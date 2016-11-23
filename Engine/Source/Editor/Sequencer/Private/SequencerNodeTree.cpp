@@ -1,20 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
-#include "MovieSceneSequence.h"
-#include "MovieSceneSection.h"
-#include "MovieSceneTrack.h"
-#include "MovieSceneCinematicShotTrack.h"
 #include "SequencerNodeTree.h"
-#include "Sequencer.h"
-#include "ScopedTransaction.h"
+#include "MovieSceneBinding.h"
+#include "GameFramework/Actor.h"
 #include "MovieScene.h"
-#include "MovieSceneFolder.h"
-#include "MovieSceneTrackEditor.h"
-#include "SequencerSectionLayoutBuilder.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "DisplayNodes/SequencerFolderNode.h"
+#include "DisplayNodes/SequencerObjectBindingNode.h"
 #include "ISequencerSection.h"
+#include "DisplayNodes/SequencerTrackNode.h"
+#include "MovieSceneSequence.h"
+#include "Tracks/MovieSceneCinematicShotTrack.h"
+#include "Sequencer.h"
+#include "MovieSceneFolder.h"
+#include "SequencerSectionLayoutBuilder.h"
 #include "ISequencerTrackEditor.h"
-#include "SequencerSpacerNode.h"
+#include "DisplayNodes/SequencerSpacerNode.h"
 
 void FSequencerNodeTree::Empty()
 {

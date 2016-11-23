@@ -5,6 +5,8 @@ D3D12Stats.cpp:RHI Stats and timing implementation.
 =============================================================================*/
 
 #include "D3D12RHIPrivate.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
 
 namespace D3D12RHI
 {

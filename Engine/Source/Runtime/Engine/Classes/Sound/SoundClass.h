@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #if WITH_EDITOR
-#include "Classes/EdGraph/EdGraph.h"
+#include "EdGraph/EdGraph.h"
 #endif
-
 #include "SoundClass.generated.h"
 
 UENUM()

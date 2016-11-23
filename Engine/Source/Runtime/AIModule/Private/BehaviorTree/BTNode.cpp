@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BTNode.h"
+#include "Engine/World.h"
+#include "AIController.h"
 #include "BehaviorTree/BTCompositeNode.h"
+#include "BehaviorTree/BehaviorTree.h"
 #include "GameplayTasksComponent.h"
 
 //----------------------------------------------------------------------//

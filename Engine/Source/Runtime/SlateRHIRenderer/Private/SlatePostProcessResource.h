@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Textures/SlateShaderResource.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
+
 /**
  * Handle to resources used for post processing.  This should not be deleted manually because it implements FDeferredCleanupInterface
  */

@@ -2,14 +2,26 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "Runtime/CoreUObject/Public/UObject/ObjectMacros.h"
-#include "Runtime/Engine/Classes/Engine/EngineTypes.h"
-#include "Runtime/Engine/Classes/Engine/Texture.h"
-#include "Runtime/Engine/Public/SceneTypes.h"
-#include "Runtime/Engine/Classes/Materials/Material.h"
-#include "Runtime/Engine/Classes/Engine/TextureStreamingTypes.h"
-#include "RawMesh.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "SceneTypes.h"
+#include "Modules/ModuleInterface.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "UObject/ErrorException.h"
+#include "Engine/Texture.h"
+
+class ALandscapeProxy;
+class Error;
+class FStaticLODModel;
+class ULandscapeComponent;
+class UMaterial;
+class UMaterialInstanceConstant;
+class UMaterialInterface;
+class UTexture2D;
+class UTextureRenderTarget2D;
+struct FMaterialProxySettings;
+struct FRawMesh;
 
 /* TODO replace this with rendering property enum when extending the system */
 UENUM()

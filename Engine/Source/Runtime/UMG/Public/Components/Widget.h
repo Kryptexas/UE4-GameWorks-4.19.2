@@ -1,19 +1,33 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Attribute.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/ScriptMacros.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Visibility.h"
+#include "Layout/Geometry.h"
+#include "Widgets/SWidget.h"
+#include "Types/SlateStructs.h"
 #include "Components/Visual.h"
-#include "SlateWrapperTypes.h"
-#include "WidgetTransform.h"
-#include "DynamicPropertyPath.h"
+#include "Styling/SlateBrush.h"
+#include "UObject/TextProperty.h"
+#include "Components/SlateWrapperTypes.h"
+#include "Slate/WidgetTransform.h"
 #include "UObject/UObjectThreadContext.h"
 
 #include "Widget.generated.h"
 
-class UPanelSlot;
-class UUserWidget;
+class APlayerController;
 class SObjectWidget;
-
-
+class UPanelSlot;
+class UPropertyBinding;
+class UUserWidget;
+struct FDynamicPropertyPath;
+enum class ECheckBoxState : uint8;
 
 namespace UMWidget
 {

@@ -1,14 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
-
 #include "DiffUtils.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Widgets/Images/SImage.h"
+#include "EditorStyleSet.h"
+#include "ISourceControlProvider.h"
+#include "ISourceControlModule.h"
+
 #include "EditorCategoryUtils.h"
-#include "Engine/SCS_Node.h"
-#include "Engine/SimpleConstructionScript.h"
+#include "Engine/Blueprint.h"
 #include "IAssetTypeActions.h"
 #include "ObjectEditorUtils.h"
-#include "ISourceControlModule.h"
 
 static const UProperty* Resolve( const UStruct* Class, FName PropertyName )
 {

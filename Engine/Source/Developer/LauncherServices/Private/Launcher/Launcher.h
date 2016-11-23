@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Interfaces/ILauncher.h"
 
 /**
  * Implements the game launcher.

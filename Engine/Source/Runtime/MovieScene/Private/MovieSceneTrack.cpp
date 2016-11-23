@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
 #include "MovieSceneTrack.h"
-#include "MovieSceneCompilerRules.h"
+#include "Evaluation/MovieSceneSegment.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
+#include "Compilation/MovieSceneCompilerRules.h"
 
-#include "MovieSceneEvaluationTemplate.h"
-#include "Compilation/IMovieSceneTemplateGenerator.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
+#include "Evaluation/MovieSceneEvaluationTemplate.h"
 #include "Evaluation/MovieSceneLegacyTrackInstanceTemplate.h"
 
 UMovieSceneTrack::UMovieSceneTrack(const FObjectInitializer& InInitializer)

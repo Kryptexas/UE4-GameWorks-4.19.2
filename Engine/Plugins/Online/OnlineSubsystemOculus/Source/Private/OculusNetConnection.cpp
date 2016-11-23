@@ -1,9 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemOculusPrivatePCH.h"
+#include "OculusNetConnection.h"
+#include "OnlineSubsystemOculusPrivate.h"
 
 #include "IPAddressOculus.h"
-#include "OculusNetConnection.h"
 
 void UOculusNetConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocket, const FURL& InURL, EConnectionState InState, int32 InMaxPacket, int32 InPacketOverhead)
 {

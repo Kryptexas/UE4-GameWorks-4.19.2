@@ -1,10 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "VisualLogger/VisualLogger.h"
-#include "AI/Navigation/NavigationTypes.h"
-#include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/NavigationPath.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "AI/Navigation/NavAgentInterface.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/Engine.h"
+#include "Engine/Canvas.h"
+#include "DrawDebugHelpers.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/NavAreas/NavArea.h"
 #include "Debug/DebugDrawService.h"
 

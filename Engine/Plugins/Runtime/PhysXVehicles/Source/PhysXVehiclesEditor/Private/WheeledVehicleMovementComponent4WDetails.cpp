@@ -1,12 +1,15 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesEditorPrivatePCH.h"
 #include "WheeledVehicleMovementComponent4WDetails.h"
+#include "WheeledVehicleMovementComponent4W.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
 #include "ScopedTransaction.h"
 #include "ObjectEditorUtils.h"
-#include "WheeledVehicleMovementComponent4W.h"
 #include "IDocumentation.h"
-#include "SCurveEditor.h"
 
 #define LOCTEXT_NAMESPACE "WheeledVehicleMovementComponent4WDetails"
 

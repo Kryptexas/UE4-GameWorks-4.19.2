@@ -4,12 +4,16 @@
 PostProcessVisualizeComplexity.cpp: Contains definitions for complexity viewmode.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessVisualizeComplexity.h"
+#include "PostProcess/PostProcessVisualizeComplexity.h"
+#include "EngineGlobals.h"
+#include "StaticBoundShaderState.h"
+#include "CanvasTypes.h"
+#include "UnrealEngine.h"
+#include "RenderTargetTemp.h"
 #include "SceneUtils.h"
-#include "PostProcessing.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
 
 /**
  * Gets the maximum shader complexity count from the ini settings.

@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AvfMediaFactoryPCH.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "IMediaModule.h"
+#include "IAvfMediaModule.h"
+#include "AvfMediaFactoryPrivate.h"
 #include "IMediaPlayerFactory.h"
-#include "ModuleInterface.h"
 
 
 DEFINE_LOG_CATEGORY(LogAvfMediaFactory);

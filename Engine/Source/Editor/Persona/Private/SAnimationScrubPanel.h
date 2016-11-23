@@ -2,10 +2,19 @@
 
 #ifndef __SAnimationScrubPanel_h__
 #define __SAnimationScrubPanel_h__
-#include "SAnimNotifyPanel.h"
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPersonaPreviewScene.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
 #include "SScrubWidget.h"
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 
+class SScrubControlPanel;
+class UAnimationAsset;
+class UAnimInstance;
+class UAnimSequenceBase;
 struct FAnimBlueprintDebugData;
 
 class SAnimationScrubPanel : public SCompoundWidget

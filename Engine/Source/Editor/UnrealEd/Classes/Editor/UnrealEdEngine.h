@@ -1,11 +1,31 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "UniquePtr.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
+#include "Misc/NotifyHook.h"
+#include "Editor/EditorEngine.h"
 #include "IPackageAutoSaver.h"
-#include "ISourceControlModule.h"
+#include "ISourceControlProvider.h"
+#include "ComponentVisualizer.h"
 #include "ComponentVisualizerManager.h"
 #include "UnrealEdEngine.generated.h"
+
+class AGroupActor;
+class FCanvas;
+class FLevelEditorViewportClient;
+class FPerformanceMonitor;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FViewport;
+class IEngineLoop;
+class ITargetPlatform;
+class UPrimitiveComponent;
+class UTexture2D;
+class UUnrealEdOptions;
 
 UENUM()
 enum EPackageNotifyState

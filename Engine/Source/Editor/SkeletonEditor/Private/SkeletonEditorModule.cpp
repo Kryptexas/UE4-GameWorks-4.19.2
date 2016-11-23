@@ -1,9 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SWidget.h"
+#include "Application/SlateWindowHelper.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "ISkeletonEditor.h"
+#include "ISkeletonTree.h"
 #include "ISkeletonEditorModule.h"
-#include "ModuleManager.h"
 #include "SkeletonEditor.h"
+#include "IEditableSkeleton.h"
 #include "EditableSkeleton.h"
 #include "SkeletonTreeManager.h"
 #include "SkeletonTreeSummoner.h"

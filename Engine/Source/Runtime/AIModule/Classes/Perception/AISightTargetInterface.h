@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Interface.h"
 #include "AISightTargetInterface.generated.h"
+
+class AActor;
 
 UINTERFACE()
 class AIMODULE_API UAISightTargetInterface : public UInterface

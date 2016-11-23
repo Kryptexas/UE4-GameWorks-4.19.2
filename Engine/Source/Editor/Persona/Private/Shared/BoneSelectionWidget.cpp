@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "BoneSelectionWidget.h"
-#include "SSearchBox.h"
-#include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
+#include "EditorStyleSet.h"
+#include "DetailLayoutBuilder.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "IEditableSkeleton.h"
 
 #define LOCTEXT_NAMESPACE "SBoneSelectionWidget"

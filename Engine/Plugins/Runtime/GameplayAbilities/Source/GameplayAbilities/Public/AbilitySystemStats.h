@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "AbilitySystemLog.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 
 DECLARE_STATS_GROUP(TEXT("AbilitySystem"), STATGROUP_AbilitySystem, STATCAT_Advanced);
 

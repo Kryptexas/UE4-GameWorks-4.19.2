@@ -4,9 +4,12 @@
 	GameNetworkManager.cpp: AGameNetworkMAnager C++ code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GameFramework/GameNetworkManager.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 #include "GameFramework/GameModeBase.h"
+#include "Engine/NetDriver.h"
+#include "Engine/Player.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameNetworkManager, Log, All);
 

@@ -2,10 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Engine/NetSerialization.h"
+#include "UObject/Interface.h"
 #include "GameplayTagContainer.h"
-#include "GameplayEffect.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayPrediction.h"
 #include "GameplayCueInterface.generated.h"
-
 
 /** Interface for actors that wish to handle GameplayCue events from GameplayEffects. Native only because blueprints can't implement interfaces with native functions */
 UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))

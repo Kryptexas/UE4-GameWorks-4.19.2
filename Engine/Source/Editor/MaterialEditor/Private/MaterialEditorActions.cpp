@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MaterialEditorModule.h"
-#include "Materials/MaterialExpressionComment.h"
-#include "MaterialEditor.h"
 #include "MaterialEditorActions.h"
-#include "SMaterialEditorViewport.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Materials/MaterialExpression.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
+#include "Materials/MaterialExpressionComment.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditorCommands"
 

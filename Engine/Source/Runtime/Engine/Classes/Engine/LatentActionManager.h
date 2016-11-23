@@ -2,9 +2,12 @@
 
 #pragma once
 
-#include "SharedPointer.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/WeakObjectPtr.h"
 #include "LatentActionManager.generated.h"
 
+class FPendingLatentAction;
 
 // Latent action info
 USTRUCT()

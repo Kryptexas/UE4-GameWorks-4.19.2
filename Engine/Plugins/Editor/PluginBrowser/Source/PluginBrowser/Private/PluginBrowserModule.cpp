@@ -1,19 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PluginBrowserPrivatePCH.h"
+#include "PluginBrowserModule.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Docking/TabManager.h"
 #include "SPluginBrowser.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
-#include "Editor/UnrealEd/Public/Features/EditorFeatures.h"
+#include "Features/IModularFeatures.h"
+#include "Features/EditorFeatures.h"
 #include "PluginMetadataObject.h"
 #include "PluginStyle.h"
 #include "PropertyEditorModule.h"
-#include "PluginBrowserModule.h"
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
 #include "SNewPluginWizard.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
-
+#include "Misc/ConfigCacheIni.h"
+#include "Interfaces/IPluginManager.h"
 
 #define LOCTEXT_NAMESPACE "PluginsEditor"
 

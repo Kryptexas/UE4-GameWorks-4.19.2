@@ -2,10 +2,18 @@
 
 
 #pragma once
-#include "Audio.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
 #include "Sound/SoundAttenuation.h"
 
 #include "AudioComponent.generated.h"
+
+class FAudioDevice;
+class USoundBase;
+class USoundClass;
 
 /** called when we finish playing audio, either because it played to completion or because a Stop() call turned it off early */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE( FOnAudioFinished );

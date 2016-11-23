@@ -4,21 +4,19 @@
 	GameMode.cpp: AGameMode c++ code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "GameFramework/GameNetworkManager.h"
-#include "Net/OnlineEngineInterface.h"
-#include "GameFramework/HUD.h"
-#include "GameFramework/DefaultPawn.h"
-#include "GameFramework/SpectatorPawn.h"
-#include "Engine/PlayerStartPIE.h"
+#include "GameFramework/GameMode.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/NetDriver.h"
+#include "GameFramework/LocalMessage.h"
 #include "GameFramework/EngineMessage.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameSession.h"
 #include "GameFramework/CheatManager.h"
-#include "GameFramework/GameMode.h"
-#include "Engine/GameInstance.h"
 #include "GameDelegates.h"
+#include "GameMapsSettings.h"
 
 namespace MatchState
 {

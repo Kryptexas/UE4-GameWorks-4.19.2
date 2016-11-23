@@ -1,15 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieScenePropertyTemplates.h"
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneFloatSection.h"
-#include "MovieSceneByteSection.h"
-#include "MovieSceneEnumSection.h"
-#include "MovieSceneIntegerSection.h"
-#include "MovieSceneVectorSection.h"
-#include "MovieSceneStringSection.h"
-#include "MovieScenePropertyTrack.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "Sections/MovieSceneFloatSection.h"
+#include "Sections/MovieSceneByteSection.h"
+#include "Sections/MovieSceneEnumSection.h"
+#include "Sections/MovieSceneIntegerSection.h"
+#include "Sections/MovieSceneVectorSection.h"
+#include "Sections/MovieSceneStringSection.h"
+#include "Tracks/MovieScenePropertyTrack.h"
+#include "MovieScene.h"
 
 namespace
 {

@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-
+#include "Framework/Text/Android/AndroidPlatformTextField.h"
+#include "Widgets/Input/IVirtualKeyboardEntry.h"
 
 // Java InputType class
 #define TYPE_CLASS_TEXT						0x00000001

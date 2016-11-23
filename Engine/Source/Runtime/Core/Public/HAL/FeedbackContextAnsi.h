@@ -1,8 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Containers/StringConv.h"
+#include "CoreGlobals.h"
+#include "Misc/OutputDeviceRedirector.h"
 #include "Misc/App.h"
+#include "Misc/OutputDeviceHelper.h"
 #include "Misc/FeedbackContext.h"
+
+class Error;
 
 /*-----------------------------------------------------------------------------
 	FFeedbackContextAnsi.

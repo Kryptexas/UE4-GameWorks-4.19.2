@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "ReferenceSkeleton.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
 #include "BoneContainer.h"
 #include "SmartName.generated.h"
 

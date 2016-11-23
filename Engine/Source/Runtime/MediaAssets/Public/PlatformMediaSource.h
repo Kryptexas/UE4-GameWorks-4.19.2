@@ -2,9 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MediaSource.h"
 #include "PlatformMediaSource.generated.h"
-
 
 /**
  * A media source that selects other media sources based on target platform.

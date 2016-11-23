@@ -5,7 +5,13 @@
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/Factory.h"
 #include "DialogueWaveFactory.generated.h"
+
+class UDialogueVoice;
 
 UCLASS(hidecategories=Object, MinimalAPI)
 class UDialogueWaveFactory : public UFactory

@@ -1,12 +1,16 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Fonts/CompositeFont.h"
+#include "Fonts/SlateFontInfo.h"
 #include "Engine/FontImportOptions.h"
-#include "FontProviderInterface.h"
-#include "SlateFontInfo.h"
+#include "Fonts/FontProviderInterface.h"
 #include "Font.generated.h"
-
 
 /** Enumerates supported font caching types. */
 UENUM()

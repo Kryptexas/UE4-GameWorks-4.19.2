@@ -12,6 +12,8 @@
 #include "ISettingsModule.h"
 #include "LevelEditor.h"
 #include "ModuleManager.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 #import <IOKit/ps/IOPowerSources.h>
 #import <IOKit/ps/IOPSKeys.h>

@@ -1,9 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneIntegerSection.h"
-#include "MovieSceneIntegerTrack.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieSceneIntegerTrack.h"
+#include "Sections/MovieSceneIntegerSection.h"
 #include "Evaluation/MovieScenePropertyTemplates.h"
 
 UMovieSceneIntegerTrack::UMovieSceneIntegerTrack( const FObjectInitializer& ObjectInitializer )

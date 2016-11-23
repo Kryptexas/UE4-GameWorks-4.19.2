@@ -2,17 +2,20 @@
 
 #pragma once
 
-#include "EnumClassFlags.h"
-#include "MovieSceneFwd.h"
-#include "InlineValue.h"
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "UObject/ObjectMacros.h"
+#include "IMovieSceneTrackInstance.h"
+#include "Misc/Guid.h"
 #include "MovieSceneSignedObject.h"
+#include "MovieSceneSection.h"
+#include "Misc/InlineValue.h"
 #include "MovieSceneTrack.generated.h"
 
-class UMovieSceneSection;
 struct FMovieSceneEvaluationTrack;
-struct FMovieSceneEvalTemplatePtr;
 struct FMovieSceneSegmentCompilerRules;
 struct FMovieSceneSequenceTemplateStore;
+struct IMovieSceneTemplateGenerator;
 
 /** Flags used to perform cook-time optimization of movie scene data */
 enum class ECookOptimizationFlags

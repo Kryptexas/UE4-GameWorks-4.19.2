@@ -1,12 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitAttributeChangeRatioThreshold.h"
+#include "TimerManager.h"
 
 #include "AbilitySystemComponent.h"
 
-#include "Abilities/GameplayAbility.h"
-#include "GameplayEffectExtension.h"
 
 UAbilityTask_WaitAttributeChangeRatioThreshold::UAbilityTask_WaitAttributeChangeRatioThreshold(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

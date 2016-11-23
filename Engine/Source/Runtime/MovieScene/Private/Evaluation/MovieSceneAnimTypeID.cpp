@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "MovieSceneAnimTypeID.h"
+#include "Evaluation/MovieSceneAnimTypeID.h"
 
 uint64 FMovieSceneAnimTypeID::Initialize(uint64* StaticPtr, uint32 Seed)
 {

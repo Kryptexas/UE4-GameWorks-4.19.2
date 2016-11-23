@@ -4,8 +4,7 @@
 
 #pragma once
 
-/** Global engine pointer. Can be 0 so don't use without checking. */
-extern ENGINE_API class UEngine*			GEngine;
+#include "CoreMinimal.h"
 
 /** when set, disallows all network travel (pending level rejects all client travel attempts) */
 extern ENGINE_API bool						GDisallowNetworkTravel;

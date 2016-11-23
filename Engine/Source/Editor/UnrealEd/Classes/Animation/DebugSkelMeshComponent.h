@@ -2,8 +2,14 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EngineDefines.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "DebugSkelMeshComponent.generated.h"
+
+class Error;
 
 USTRUCT()
 struct FSelectedSocketInfo

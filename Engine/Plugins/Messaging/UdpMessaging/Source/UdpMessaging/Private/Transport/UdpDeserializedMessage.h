@@ -2,9 +2,10 @@
 
 #pragma once
 
-
-class FReassembledUdpMessage;
-
+#include "CoreMinimal.h"
+#include "IMessageAttachment.h"
+#include "IMessageContext.h"
+#include "Transport/UdpReassembledMessage.h"
 
 /**
  * Holds a deserialized message.

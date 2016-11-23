@@ -1,6 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SessionFrontendPrivatePCH.h"
+#include "Widgets/Browser/SSessionBrowser.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/App.h"
+#include "SlateOptMacros.h"
+#include "EditorStyleSet.h"
+#include "Models/SessionBrowserTreeItems.h"
+#include "Widgets/Browser/SSessionBrowserTreeGroupRow.h"
+#include "Widgets/Browser/SSessionBrowserTreeInstanceRow.h"
+#include "Widgets/Browser/SSessionBrowserTreeSessionRow.h"
 
 
 #define LOCTEXT_NAMESPACE "SSessionBrowser"

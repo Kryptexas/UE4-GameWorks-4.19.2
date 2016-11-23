@@ -1,13 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "PreviewSceneCustomizations.h"
+#include "Modules/ModuleManager.h"
+#include "AssetData.h"
+#include "IDetailPropertyRow.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "PropertyCustomizationHelpers.h"
 #include "PersonaPreviewSceneDescription.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "Factories/PreviewMeshCollectionFactory.h"
-#include "IEditableSkeleton.h"
-#include "IPersonaPreviewScene.h"
 #include "IPropertyUtilities.h"
+#include "Preferences/PersonaOptions.h"
 
 #define LOCTEXT_NAMESPACE "PreviewSceneCustomizations"
 

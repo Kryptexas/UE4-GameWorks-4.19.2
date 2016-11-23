@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "Camera/CameraTypes.h"
-#include "CameraPhotographyModule.h"
+#include "CoreMinimal.h"
 
+class APlayerCameraManager;
+class ICameraPhotography;
+struct FMinimalViewInfo;
 
 /**
  * Free-camera photography manager

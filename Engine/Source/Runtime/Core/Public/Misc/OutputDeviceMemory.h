@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
+#include "Serialization/Archive.h"
+#include "Containers/Array.h"
+#include "HAL/CriticalSection.h"
+
 /**
  * Memory output device. Logs only into pre-allocated memory buffer.
  */

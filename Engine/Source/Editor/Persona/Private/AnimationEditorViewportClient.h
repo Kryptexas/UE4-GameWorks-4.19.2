@@ -2,9 +2,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "InputCoreTypes.h"
+#include "HitProxies.h"
+#include "UnrealWidget.h"
 #include "EditorViewportClient.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IPersonaPreviewScene.h"
 
-class FAdvancedPreviewScene;
+class FCanvas;
+class ISkeletonTree;
+class UPersonaOptions;
+class USkeletalMeshSocket;
 struct FCompactHeapPose;
 
 //////////////////////////////////////////////////////////////////////////

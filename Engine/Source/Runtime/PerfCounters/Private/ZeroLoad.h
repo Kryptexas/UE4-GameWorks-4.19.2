@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "PerfCountersModule.h"
-#include "ThreadingBase.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
 #include "ProfilingDebugging/Histogram.h"
+#include "HAL/Runnable.h"
 
 class FZeroLoad : public FRunnable
 {

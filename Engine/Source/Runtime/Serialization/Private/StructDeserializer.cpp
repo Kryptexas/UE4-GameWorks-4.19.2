@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SerializationPrivatePCH.h"
-#include "IStructDeserializerBackend.h"
 #include "StructDeserializer.h"
+#include "UObject/UnrealType.h"
+#include "IStructDeserializerBackend.h"
+#include "UObject/PropertyPortFlags.h"
 
 
 /* Internal helpers

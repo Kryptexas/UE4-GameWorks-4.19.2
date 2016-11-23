@@ -1,13 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "EngineAnalytics.h"
-#include "EngineBuildSettings.h"
+#include "Misc/Guid.h"
+#include "Stats/Stats.h"
+#include "Misc/ConfigCacheIni.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Misc/EngineBuildSettings.h"
 #include "AnalyticsBuildType.h"
-#include "AnalyticsET.h"
+#include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProviderET.h"
+#include "AnalyticsET.h"
 #include "GeneralProjectSettings.h"
 #include "EngineSessionManager.h"
+#include "Misc/EngineVersion.h"
 
 bool FEngineAnalytics::bIsInitialized;
 bool FEngineAnalytics::bIsEditorRun;

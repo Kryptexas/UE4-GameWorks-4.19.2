@@ -2,7 +2,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "ISkeletonTreeItem.h"
 #include "SkeletonTreeItem.h"
+#include "Animation/Skeleton.h"
+#include "Widgets/Input/SComboButton.h"
+
+class UDebugSkelMeshComponent;
 
 class FSkeletonTreeBoneItem : public FSkeletonTreeItem
 {

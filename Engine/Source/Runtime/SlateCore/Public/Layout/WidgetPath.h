@@ -2,10 +2,13 @@
 
 #pragma once
 
-#include "Input/NavigationReply.h"
-
-class SWindow;
-struct FPointerEvent;
+#include "CoreMinimal.h"
+#include "Types/SlateEnums.h"
+#include "Layout/Visibility.h"
+#include "Layout/ArrangedWidget.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SWindow.h"
+#include "Layout/ArrangedChildren.h"
 
 /** Matches widgets against InWidget */
 struct FWidgetMatcher
@@ -248,4 +251,4 @@ public:
 	TWeakPtr< SWindow > Window;
 };
 
-#include "WidgetPath.inl"
+#include "Layout/WidgetPath.inl"

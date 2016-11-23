@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "TokenizedMessage.h"
-#include "WeakObjectPtr.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Logging/TokenizedMessage.h"
 
 /**
  * A Message Log token that links to an object, with default behavior to link to the object

@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AbilitySystemInterface.h"
 #include "GameplayEffectTypes.h"
-#include "AbilitySystemComponent.h"
+#include "GameFramework/Pawn.h"
+#include "GameplayTagAssetInterface.h"
+#include "GameplayEffect.h"
+#include "GameFramework/Controller.h"
+#include "Misc/ConfigCacheIni.h"
 #include "AbilitySystemGlobals.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
 
 #if WITH_EDITORONLY_DATA
 const FName FGameplayModEvaluationChannelSettings::ForceHideMetadataKey(TEXT("ForceHideEvaluationChannel"));

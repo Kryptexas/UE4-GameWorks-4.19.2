@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Misc/StringClassReference.h"
+#include "LevelSequence.h"
 #include "LevelSequenceEditorSettings.generated.h"
-
-
-class UMovieSceneTrack;
-class ULevelSequence;
-
 
 USTRUCT()
 struct FLevelSequencePropertyTrackSettings

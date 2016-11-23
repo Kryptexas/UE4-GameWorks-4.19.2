@@ -11,19 +11,21 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
-#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "AudioEffect.h"
 #include "OpusAudioInfo.h"
 #include "VorbisAudioInfo.h"
 #include "XAudio2Effects.h"
-#include "Engine.h"
+#include "Interfaces/IAudioFormat.h"
+#include "HAL/PlatformAffinity.h"
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 	#include <xapobase.h>
 	#include <xapofx.h>
 	#include <xaudio2fx.h>
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
-#include "TargetPlatform.h"
 #include "XAudio2Support.h"
 #include "Runtime/HeadMountedDisplay/Public/IHeadMountedDisplayModule.h"
 

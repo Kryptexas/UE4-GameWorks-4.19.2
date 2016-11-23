@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/CriticalSection.h"
+
 /**
  * Implements a scope lock.
  *

@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/CoreDelegates.h"
+
 class IPackageLocalizationCache;
 
 /** Singleton class that manages localized package data. */

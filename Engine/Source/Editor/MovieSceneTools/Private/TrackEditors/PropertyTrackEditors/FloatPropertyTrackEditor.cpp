@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "FloatPropertyTrackEditor.h"
-#include "FloatPropertySection.h"
+#include "TrackEditors/PropertyTrackEditors/FloatPropertyTrackEditor.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
+#include "Sections/FloatPropertySection.h"
 #include "MatineeImportTools.h"
 #include "Matinee/InterpTrackFloatBase.h"
 

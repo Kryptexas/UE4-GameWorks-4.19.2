@@ -1,6 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerServicePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "Serialization/MemoryReader.h"
+#include "Misc/SecureHash.h"
+#include "IMessageContext.h"
+#include "ProfilerServiceMessages.h"
+#include "IProfilerServiceManager.h"
 #include "ProfilerServiceManager.h"
 
 

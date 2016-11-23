@@ -5,23 +5,21 @@
 =============================================================================*/
 
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
-#include "PhysicsEngine/DestructibleActor.h"
-#include "PhysicsEngine/PhysXSupport.h"
-#include "Collision/PhysXCollision.h"
-#include "ParticleDefinitions.h"
-#include "ObjectEditorUtils.h"
+#include "Components/DestructibleComponent.h"
+#include "EngineStats.h"
+#include "GameFramework/DamageType.h"
+#include "AI/Navigation/NavigationSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "PhysicsEngine/DestructibleActor.h"
+#include "PhysXPublic.h"
+#include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Engine/DestructibleMesh.h"
-#include "Components/DestructibleComponent.h"
-#include "AI/Navigation/NavigationSystem.h"
-#include "NavigationSystemHelpers.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "Kismet/GameplayStatics.h"
-#include "GameFramework/DamageType.h"
+#include "ObjectEditorUtils.h"
+#include "Engine/StaticMesh.h"
 
 UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

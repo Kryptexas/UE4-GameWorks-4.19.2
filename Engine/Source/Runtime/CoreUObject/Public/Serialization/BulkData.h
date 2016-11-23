@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "Async/Async.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Async/Future.h"
 
 /**
  * Flags serialized with the bulk data.

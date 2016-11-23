@@ -9,10 +9,11 @@
  ------------------------------------------------------------------------------------*/
 
 #include "IOSLocalNotification.h"
-#include "Engine.h"
 
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
+
+#include "Modules/ModuleManager.h"
 
 DEFINE_LOG_CATEGORY(LogIOSLocalNotification);
 

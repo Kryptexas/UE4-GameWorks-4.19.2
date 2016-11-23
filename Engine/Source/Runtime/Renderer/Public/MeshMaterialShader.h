@@ -6,9 +6,17 @@
 
 #pragma once
 
-#include "MaterialShader.h"
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "VertexFactory.h"
 #include "MeshMaterialShaderType.h"
-#include "DrawingPolicy.h"
+#include "MaterialShader.h"
+
+class FPrimitiveSceneProxy;
+struct FMeshBatchElement;
+struct FMeshDrawingRenderState;
+
+template<typename TBufferStruct> class TUniformBufferRef;
 
 /** Base class of all shaders that need material and vertex factory parameters. */
 class RENDERER_API FMeshMaterialShader : public FMaterialShader

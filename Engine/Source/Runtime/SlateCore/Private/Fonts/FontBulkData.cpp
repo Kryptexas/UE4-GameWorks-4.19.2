@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "FontBulkData.h"
+#include "Fonts/FontBulkData.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
+#include "SlateGlobals.h"
 
 // The total amount of memory we are using to store raw font bytes in bulk data
 DECLARE_MEMORY_STAT(TEXT("Font BulkData Memory"), STAT_SlateBulkFontDataMemory, STATGROUP_SlateMemory);

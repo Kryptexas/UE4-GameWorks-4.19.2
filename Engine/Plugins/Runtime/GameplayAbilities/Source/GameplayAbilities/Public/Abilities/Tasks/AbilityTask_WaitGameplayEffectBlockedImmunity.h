@@ -1,9 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
-#include "Abilities/GameplayAbilityTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayEffectTypes.h"
+#include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_WaitGameplayEffectBlockedImmunity.generated.h"
 
+class UAbilitySystemComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGameplayEffectBlockedDelegate, FGameplayEffectSpecHandle, BlockedSpec, FActiveGameplayEffectHandle, ImmunityGameplayEffectHandle);
 

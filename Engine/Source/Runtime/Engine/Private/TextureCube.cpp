@@ -4,10 +4,12 @@
 	TextureCube.cpp: UTextureCube implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "RenderUtils.h"
-#include "DDSLoader.h"
 #include "Engine/TextureCube.h"
+#include "RenderUtils.h"
+#include "TextureResource.h"
+#include "EngineUtils.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 
 UTextureCube::UTextureCube(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "NetworkVersion.h"
-#include "EngineVersion.h"
+#include "Misc/NetworkVersion.h"
+#include "Misc/App.h"
+#include "Misc/EngineVersion.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "Misc/NetworkGuid.h"
 
 DEFINE_LOG_CATEGORY( LogNetVersion );
 

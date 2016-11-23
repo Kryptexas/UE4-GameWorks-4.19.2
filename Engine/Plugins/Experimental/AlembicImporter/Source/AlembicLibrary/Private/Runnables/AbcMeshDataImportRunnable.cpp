@@ -1,12 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AlembicLibraryPublicPCH.h"
-#include "Core.h"
-
 #include "AbcMeshDataImportRunnable.h"
-
 #include "AbcImportData.h"
 #include "AbcImportUtilities.h"
+#include "Stats/StatsMisc.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAlembicImport, Log, All);
 

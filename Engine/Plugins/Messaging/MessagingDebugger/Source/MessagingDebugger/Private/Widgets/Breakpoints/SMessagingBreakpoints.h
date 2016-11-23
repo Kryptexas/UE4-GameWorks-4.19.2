@@ -2,10 +2,14 @@
 
 #pragma once
 
-
-class IMessageTracer;
-class IMessageTracerBreakpoint;
-
+#include "CoreMinimal.h"
+#include "IMessageTracerBreakpoint.h"
+#include "IMessageTracer.h"
+#include "Styling/ISlateStyle.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 
 /**
  * Implements the message breakpoints panel.

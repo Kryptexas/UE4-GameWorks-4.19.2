@@ -6,6 +6,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "HitProxies.h"
+#include "RendererInterface.h"
+#include "DrawingPolicy.h"
+#include "DepthRendering.h"
+
+class FPrimitiveSceneInfo;
+class FPrimitiveSceneProxy;
+class FScene;
+class FStaticMesh;
+class FViewInfo;
+
 /**
  * Outputs a 2d velocity vector.
  */

@@ -1,13 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "Animation/AnimSequence.h"
+#include "BonePose.h"
+#include "Materials/Material.h"
+#include "Animation/AnimMontage.h"
+#include "Engine/Engine.h"
+#include "SceneManagement.h"
+#include "EngineGlobals.h"
+#include "GameFramework/WorldSettings.h"
 #include "SkeletalRenderPublic.h"
-#include "AnimationRuntime.h"
 #include "AnimPreviewInstance.h"
 #include "Animation/AnimComposite.h"
-#include "Animation/AnimInstance.h"
-#include "Animation/BlendSpace.h"
+#include "Animation/BlendSpaceBase.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FDebugSkelMeshSceneProxy

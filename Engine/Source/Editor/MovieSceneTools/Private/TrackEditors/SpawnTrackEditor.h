@@ -2,12 +2,14 @@
 
 #pragma once
 
-#include "BoolPropertyTrackEditor.h"
-
-
-class ISequencer;
-class UMovieSceneTrack;
-class UMovieSceneSpawnTrack;
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
+#include "TrackEditors/PropertyTrackEditors/BoolPropertyTrackEditor.h"
 
 /**
  * A property track editor for controlling the lifetime of a sapwnable object

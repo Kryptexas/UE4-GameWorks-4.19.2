@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneEventSection.h"
-#include "MovieSceneEventTrack.h"
+#include "Tracks/MovieSceneEventTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Sections/MovieSceneEventSection.h"
 #include "Evaluation/MovieSceneEventTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTrack.h"
 

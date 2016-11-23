@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundNodeDelay.h"
+#include "ActiveSound.h"
 
 struct FSoundNodeDelayPayload
 {

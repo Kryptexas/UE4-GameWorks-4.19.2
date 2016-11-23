@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "EnginePrivate.h"
 #include "AudioWaveFormatParser.h"
+#include "Audio.h"
 
 // AT9 is an "extensible" type wave format
 

@@ -1,16 +1,29 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerManager.h"
-#include "SDataGraph.h"
-#include "SEventGraph.h"
-#include "SFiltersAndPresets.h"
-#include "SMultiDumpBrowser.h"
-#include "SProfilerGraphPanel.h"
-#include "SProfilerMiniView.h"
-#include "SProfilerSettings.h"
-#include "SProfilerToolbar.h"
-#include "SProfilerWindow.h"
+#include "Widgets/SProfilerWindow.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/SEventGraph.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "EditorStyleSet.h"
+#include "Widgets/SProfilerToolbar.h"
+#include "Widgets/SFiltersAndPresets.h"
+#include "Widgets/SMultiDumpBrowser.h"
+#include "Widgets/SDataGraph.h"
+#include "Widgets/SProfilerMiniView.h"
+#include "Widgets/SProfilerGraphPanel.h"
+#include "Widgets/SProfilerSettings.h"
+#include "Widgets/Notifications/SNotificationList.h"
+
+#if WITH_EDITOR
+	#include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
+	#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+	#include "EngineAnalytics.h"
+#endif // WITH_EDITOR
 
 
 #define LOCTEXT_NAMESPACE "SProfilerWindow"

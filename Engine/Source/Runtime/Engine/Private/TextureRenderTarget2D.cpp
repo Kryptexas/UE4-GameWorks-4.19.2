@@ -4,8 +4,13 @@
 	TextureRenderTarget2D.cpp: UTextureRenderTarget2D implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Misc/MessageDialog.h"
+#include "TextureResource.h"
+#include "Engine/Texture2D.h"
+#include "UnrealEngine.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 
 /*-----------------------------------------------------------------------------
 	UTextureRenderTarget2D

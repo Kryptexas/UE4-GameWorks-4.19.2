@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "OculusNetConnection.h"
 #include "Engine/NetDriver.h"
 #include "OculusNetDriver.generated.h"
 

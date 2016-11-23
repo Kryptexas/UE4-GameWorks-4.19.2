@@ -2,7 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
 #include "WebImage.h"
+
+struct FSlateBrush;
 
 /** 
  * This class is designed to facilitate caching of web images and setting a global stand-in so we don't

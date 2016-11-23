@@ -4,13 +4,16 @@
 	DataChannel.cpp: Unreal datachannel implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
-#include "Net/NetworkProfiler.h"
-#include "Net/RepLayout.h"
 #include "Net/DataReplication.h"
-#include "Engine/ActorChannel.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "EngineStats.h"
+#include "Engine/World.h"
+#include "Net/DataBunch.h"
+#include "Net/NetworkProfiler.h"
 #include "Engine/PackageMapClient.h"
+#include "Net/RepLayout.h"
+#include "Engine/ActorChannel.h"
 #include "Engine/DemoNetDriver.h"
 
 static TAutoConsoleVariable<int32> CVarMaxRPCPerNetUpdate( TEXT( "net.MaxRPCPerNetUpdate" ), 2, TEXT( "Maximum number of RPCs allowed per net update" ) );

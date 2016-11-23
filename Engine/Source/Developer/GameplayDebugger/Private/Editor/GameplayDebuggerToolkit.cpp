@@ -1,12 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
+#include "Editor/GameplayDebuggerToolkit.h"
+#include "Modules/ModuleManager.h"
 
 #if WITH_EDITOR
-#include "GameplayDebuggerToolkit.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/LevelEditor/Public/ILevelViewport.h"
-#include "EditorViewportClient.h"
+#include "LevelEditor.h"
+#include "ILevelViewport.h"
+#include "LevelEditorViewport.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "GameplayDebuggerConfig"
 

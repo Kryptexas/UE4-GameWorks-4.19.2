@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/ArrayView.h"
+
+class ISkeletonTreeItem;
+
 /** Output struct for builders to use */
 struct SKELETONEDITOR_API FSkeletonTreeBuilderOutput
 {

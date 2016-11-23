@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+
 #if UE_ENABLE_ICU
 
 THIRD_PARTY_INCLUDES_START

@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HTML5NetworkingPCH.h"
+#include "HTML5NetworkingPrivate.h"
 
 #include "IPAddress.h"
 #include "Sockets.h"
@@ -11,6 +11,7 @@
 #include "WebSocketNetDriver.h"
 #include "WebSocket.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
+#include "PacketHandlers/StatelessConnectHandlerComponent.h"
 
 /*-----------------------------------------------------------------------------
 Declarations.

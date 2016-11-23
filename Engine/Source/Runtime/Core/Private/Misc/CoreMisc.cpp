@@ -1,20 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
-#include "CorePrivatePCH.h"
-#include "ExceptionHandling.h"
-#include "UniquePtr.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Containers/Ticker.h"
+#include "HAL/IConsoleManager.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Misc/App.h"
 
 /** For FConfigFile in appInit							*/
-#include "ConfigCacheIni.h"
-#include "RemoteConfigIni.h"
-#include "SecureHash.h"
-#include "IntRect.h"
+#include "Misc/ConfigCacheIni.h"
 
-#include "ModuleManager.h"
-#include "Ticker.h"
+#include "Modules/ModuleManager.h"
 #include "DerivedDataCacheInterface.h"
-#include "ITargetPlatformManagerModule.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 
 DEFINE_LOG_CATEGORY(LogSHA);
 DEFINE_LOG_CATEGORY(LogStats);

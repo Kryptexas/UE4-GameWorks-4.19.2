@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieSceneTrackImplementation.h"
-#include "MovieSceneEvalTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Evaluation/MovieSceneTrackImplementation.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 #include "MovieSceneCameraCutTemplate.generated.h"
 
 class UMovieSceneCameraCutSection;

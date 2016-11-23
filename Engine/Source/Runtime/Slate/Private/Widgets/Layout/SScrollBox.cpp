@@ -1,7 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "LayoutUtils.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/SPanel.h"
+#include "Types/SlateConstants.h"
+#include "Layout/LayoutUtils.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
 
 
 SScrollBox::FSlot& SScrollBox::Slot()

@@ -2,18 +2,34 @@
 
 #pragma once
 
-#include "SlateEditableTextTypes.h"
-#include "SlateTextLayoutFactory.h"
-#include "IVirtualKeyboardEntry.h"
-#include "ITextInputMethodSystem.h"
-#include "ISlateEditableTextWidget.h"
-#include "IBreakIterator.h"
-#include "UniquePtr.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Geometry.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateTypes.h"
+#include "Framework/Application/IMenu.h"
+#include "Widgets/Input/IVirtualKeyboardEntry.h"
+#include "Widgets/Text/ISlateEditableTextWidget.h"
+#include "Framework/Text/ITextLayoutMarshaller.h"
+#include "Framework/Text/TextRange.h"
+#include "Framework/Text/TextLineHighlight.h"
+#include "Framework/Text/IRun.h"
+#include "Framework/Text/TextLayout.h"
+#include "Widgets/Text/SlateEditableTextTypes.h"
+#include "Framework/Text/SlateTextLayoutFactory.h"
+#include "GenericPlatform/ITextInputMethodSystem.h"
 
-class FSlateTextLayout;
+class FArrangedChildren;
+class FExtender;
+class FPaintArgs;
+class FSlateWindowElementList;
 class FTextBlockLayout;
-class ITextLayoutMarshaller;
-class ISlateRunRenderer;
+class FUICommandList;
+class IBreakIterator;
+class SWindow;
+enum class ETextShapingMethod : uint8;
 
 /** Class to handle the cached layout of SEditableText/SMultiLineEditableText by proxying around a FTextLayout */
 class SLATE_API FSlateEditableTextLayout

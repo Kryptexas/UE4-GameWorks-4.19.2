@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "AIModulePrivate.h"
+#include "AIModule.h"
+#include "EngineDefines.h"
+#include "Templates/SubclassOf.h"
 #include "AISystem.h"
+#include "VisualLogger/VisualLogger.h"
 
 #if WITH_EDITOR
 #include "Developer/AssetTools/Public/IAssetTools.h"
@@ -10,7 +13,6 @@
 #endif // ENABLE_VISUAL_LOG
 #endif
 
-#include "AIModule.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
 #include "GameplayDebugger.h"

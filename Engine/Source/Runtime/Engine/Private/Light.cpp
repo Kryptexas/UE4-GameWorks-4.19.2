@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "Engine/Light.h"
+#include "Engine/World.h"
+#include "Components/LightComponent.h"
+#include "Components/ArrowComponent.h"
 #include "Engine/PointLight.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/GeneratedMeshAreaLight.h"
-#include "Components/ArrowComponent.h"
 #include "LightingBuildOptions.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/DirectionalLightComponent.h"

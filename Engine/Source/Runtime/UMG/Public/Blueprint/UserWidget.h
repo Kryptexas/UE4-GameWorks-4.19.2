@@ -2,20 +2,32 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
 #include "Components/SlateWrapperTypes.h"
 #include "Components/Widget.h"
-#include "Geometry.h"
-#include "Engine/GameInstance.h"
-#include "Layout/Anchors.h"
-#include "NamedSlotInterface.h"
+#include "Components/NamedSlotInterface.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
 #include "Engine/LocalPlayer.h"
+#include "Widgets/Layout/Anchors.h"
 #include "Logging/MessageLog.h"
 
 #include "UserWidget.generated.h"
 
-class UWidget;
+class Error;
+class FSlateWindowElementList;
+class UDragDropOperation;
+class UTexture2D;
+class UUMGSequencePlayer;
 class UWidgetAnimation;
-struct FLocalPlayerContext;
 
 /**
  * The state passed into OnPaint that we can expose as a single painting structure to blueprints to

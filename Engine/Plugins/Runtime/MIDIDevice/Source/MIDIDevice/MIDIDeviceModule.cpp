@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MIDIDevicePrivatePCH.h"
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "MIDIDeviceLog.h"
 #include "MIDIDeviceManager.h"
 #include "Tickable.h"
 

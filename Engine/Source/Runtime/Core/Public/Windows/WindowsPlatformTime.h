@@ -2,8 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
 #include "GenericPlatform/GenericPlatformTime.h"
-#include "Windows/WindowsSystemIncludes.h"
+#include "WindowsSystemIncludes.h"
 
 
 /**
@@ -21,8 +22,8 @@ struct CORE_API FWindowsPlatformTime
 
 	static FORCEINLINE double Seconds()
 	{
-		LARGE_INTEGER Cycles;
-		QueryPerformanceCounter(&Cycles);
+		Windows::LARGE_INTEGER Cycles;
+		Windows::QueryPerformanceCounter(&Cycles);
 
 		// add big number to make bugs apparent where return value is being passed to float
 		return Cycles.QuadPart * GetSecondsPerCycle() + 16777216.0;
@@ -30,14 +31,14 @@ struct CORE_API FWindowsPlatformTime
 
 	static FORCEINLINE uint32 Cycles()
 	{
-		LARGE_INTEGER Cycles;
-		QueryPerformanceCounter(&Cycles);
+		Windows::LARGE_INTEGER Cycles;
+		Windows::QueryPerformanceCounter(&Cycles);
 		return Cycles.QuadPart;
 	}
 
 	static FORCEINLINE uint64 Cycles64()
 	{
-		LARGE_INTEGER Cycles;
+		Windows::LARGE_INTEGER Cycles;
 		QueryPerformanceCounter(&Cycles);
 		return Cycles.QuadPart;
 	}

@@ -11,7 +11,9 @@ D3D12Commands.cpp: D3D RHI commands implementation.
 #include "RHICommandList.h"
 #include "RHIStaticStates.h"
 #include "ShaderParameterUtils.h"
+#include "ShaderCompiler.h"
 #include "ScreenRendering.h"
+#include "SceneUtils.h"
 
 int32 AFRSyncTemporalResources = 1;
 static FAutoConsoleVariableRef CVarSyncTemporalResources(

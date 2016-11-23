@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "UObjectAnnotation.h"
 #include "Engine/Selection.h"
+#include "UObject/Package.h"
+#include "UObject/UObjectAnnotation.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSelection, Log, All);
 

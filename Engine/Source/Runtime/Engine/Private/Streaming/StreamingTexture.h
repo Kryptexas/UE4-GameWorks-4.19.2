@@ -6,7 +6,11 @@ StreamingTexture.h: Definitions of classes used for texture streaming.
 
 #pragma once
 
-#include "TextureStreamingHelpers.h"
+#include "CoreMinimal.h"
+#include "Engine/Texture2D.h"
+
+struct FStreamingManagerTexture;
+struct FTextureStreamingSettings;
 
 /*-----------------------------------------------------------------------------
 	FStreamingTexture, the streaming system's version of UTexture2D.

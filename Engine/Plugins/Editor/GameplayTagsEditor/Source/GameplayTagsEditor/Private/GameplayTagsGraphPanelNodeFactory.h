@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "EdGraphUtilities.h"
+#include "SGraphNode.h"
 #include "SGraphNode_MultiCompareGameplayTag.h"
 #include "GameplayTagsK2Node_MultiCompareBase.h"
 

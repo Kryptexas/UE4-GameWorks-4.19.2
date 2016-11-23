@@ -6,6 +6,12 @@ public class MaterialEditor : ModuleRules
 {
 	public MaterialEditor(TargetInfo Target)
 	{
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				"Editor/MaterialEditor/Private"
+			}
+		);
+
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] 
 			{

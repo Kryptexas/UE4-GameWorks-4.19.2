@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+enum class EMovieSceneKeyInterpolation : uint8;
+
 template<typename KeyDataType>
 class IKeyframeSection
 {
@@ -23,7 +27,6 @@ public:
 	virtual void ClearDefaults() = 0;
 
 };
-
 class IKeyframeSectionEnum
 {
 public:

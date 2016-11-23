@@ -2,13 +2,17 @@
 
 
 #pragma once
-#include "Animation/AnimNotifies/AnimNotify.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
 #include "AnimNotifyState.generated.h"
 
-class USkeletalMeshComponent;
-class UAnimSequence;
 class UAnimSequenceBase;
+class USkeletalMeshComponent;
 struct FAnimNotifyEvent;
+struct FBranchingPointNotifyPayload;
 
 UCLASS(abstract, editinlinenew, Blueprintable, const, hidecategories=Object, collapsecategories, meta=(ShowWorldContextPin))
 class ENGINE_API UAnimNotifyState : public UObject

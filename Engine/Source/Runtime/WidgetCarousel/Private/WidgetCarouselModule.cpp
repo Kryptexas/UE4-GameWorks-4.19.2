@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WidgetCarouselPrivatePCH.h"
+#include "WidgetCarouselModule.h"
+#include "Modules/ModuleManager.h"
 
 void FWidgetCarouselModule::StartupModule()
 {

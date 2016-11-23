@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "Serialization/ArchiveSaveCompressedProxy.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
 
 /*----------------------------------------------------------------------------
 	FArchiveSaveCompressedProxy

@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "AnimSingleNodeInstanceProxy.h"
+#include "Animation/AnimSingleNodeInstanceProxy.h"
+#include "AnimationRuntime.h"
 #include "Animation/AnimComposite.h"
-#include "Animation/AnimMontage.h"
-#include "Animation/BlendSpace.h"
+#include "Animation/BlendSpaceBase.h"
 #include "Animation/PoseAsset.h"
 #include "Animation/AnimSingleNodeInstance.h"
 

@@ -4,9 +4,18 @@
 	MaterialInterface.cpp: UMaterialInterface implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Materials/MaterialInterface.h"
+#include "RenderingThread.h"
+#include "PrimitiveViewRelevance.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/Texture2D.h"
 #include "Engine/SubsurfaceProfile.h"
-#include "TargetPlatform.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Components.h"
 
 //////////////////////////////////////////////////////////////////////////
 

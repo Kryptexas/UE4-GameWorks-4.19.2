@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+
+class Error;
+
 /** 
  * Enum that defines the verbosity levels of the logging system.
  * Also defines some non-verbosity levels that are hacks that allow

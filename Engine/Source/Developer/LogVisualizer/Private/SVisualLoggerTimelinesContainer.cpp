@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LogVisualizer.h"
+#include "SVisualLoggerTimelinesContainer.h"
 #include "SVisualLoggerTimeline.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "VisualLoggerDatabase.h"
+#include "LogVisualizerStyle.h"
+#include "VisualLoggerTimeSliderController.h"
 #include "SVisualLoggerReport.h"
 
 

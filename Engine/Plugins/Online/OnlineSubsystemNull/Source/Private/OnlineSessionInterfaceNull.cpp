@@ -1,16 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemNullPrivatePCH.h"
 #include "OnlineSessionInterfaceNull.h"
-#include "OnlineIdentityInterface.h"
+#include "Misc/Guid.h"
+#include "OnlineSubsystem.h"
 #include "OnlineSubsystemNull.h"
+#include "OnlineSubsystemNullTypes.h"
 #include "OnlineSubsystemUtils.h"
-#include "OnlineAsyncTaskManagerNull.h"
+#include "OnlineAsyncTaskManager.h"
 #include "SocketSubsystem.h"
-#include "LANBeacon.h"
 #include "NboSerializerNull.h"
 
-#include "VoiceInterface.h"
 
 
 FOnlineSessionInfoNull::FOnlineSessionInfoNull() :

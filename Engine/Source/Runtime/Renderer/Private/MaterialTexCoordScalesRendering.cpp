@@ -4,9 +4,11 @@
 MaterialTexCoordScalesRendering.cpp: Contains definitions for rendering the viewmode.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "MaterialTexCoordScalesRendering.h"
+#include "PrimitiveSceneProxy.h"
+#include "EngineGlobals.h"
+#include "MeshBatch.h"
+#include "Engine/Engine.h"
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FMaterialTexCoordScalePS,TEXT("MaterialTexCoordScalesPixelShader"),TEXT("Main"),SF_Pixel);
 

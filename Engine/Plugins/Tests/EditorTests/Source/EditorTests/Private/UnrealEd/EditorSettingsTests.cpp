@@ -1,11 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/AutomationTest.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Misc/EngineVersion.h"
+#include "InputCoreTypes.h"
+#include "Input/Events.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/InputChord.h"
+#include "Framework/Commands/InputBindingManager.h"
+#include "EditorStyleSettings.h"
+#include "Editor.h"
 
 // Automation
-#include "AutomationTest.h"
-#include "AutomationEditorCommon.h"
-#include "AutomationEditorPromotionCommon.h"
+#include "Tests/AutomationEditorPromotionCommon.h"
+#include "Tests/AutomationCommon.h"
+
 
 #define LOCTEXT_NAMESPACE "EditorSettingsPromotionTests"
 

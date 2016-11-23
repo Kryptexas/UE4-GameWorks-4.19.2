@@ -2,10 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ISessionInstanceInfo.h"
 
-class ISessionInstanceInfo;
 struct FSessionLogMessage;
-
 
 /**
  * Interface for game instances.

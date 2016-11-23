@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionSetMaterialAttributes.generated.h"
+
+struct FPropertyChangedEvent;
 
 UCLASS(collapsecategories, hidecategories = Object, MinimalAPI)
 class UMaterialExpressionSetMaterialAttributes : public UMaterialExpression

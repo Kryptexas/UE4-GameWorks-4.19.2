@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Serialization/ArchiveObjectGraph.h"
 
 // This traces referenced/referencer of an object using FArchiveObjectGraph 
 class FTraceReferences

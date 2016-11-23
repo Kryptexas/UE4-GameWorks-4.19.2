@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Paths.h"
 #include "AutomationPresetManager.generated.h"
+
+struct FAutomationTestPreset;
 
 /** Type definition for shared pointers to instances of FAutomationTestPreset. */
 typedef TSharedPtr<struct FAutomationTestPreset> AutomationPresetPtr;

@@ -6,10 +6,22 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "Object.h"
-#include "GarbageCollection.h"
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Math/RandomStream.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/CoreNative.h"
 #include "Templates/HasGetTypeHash.h"
+
+struct FCustomPropertyListNode;
+struct FFrame;
+struct FNetDeltaSerializeInfo;
+struct FObjectInstancingGraph;
+struct FPropertyTag;
 
 /*-----------------------------------------------------------------------------
 	Mirrors of mirror structures in Object.h. These are used by generated code 
@@ -1825,7 +1837,6 @@ struct COREUOBJECT_API FImplementedInterface
 	friend COREUOBJECT_API FArchive& operator<<(FArchive& Ar, FImplementedInterface& A);
 };
 
-#include "CoreNative.h"
 
 /** A struct that maps a string name to a native function */
 struct FNativeFunctionLookup

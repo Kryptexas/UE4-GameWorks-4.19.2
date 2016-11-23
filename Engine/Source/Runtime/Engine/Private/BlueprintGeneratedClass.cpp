@@ -1,18 +1,27 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "BlueprintUtilities.h"
-#include "Engine/InputDelegateBinding.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/StatsMisc.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/CoreNet.h"
+#include "UObject/Package.h"
+#include "UObject/LinkerLoad.h"
+#include "Serialization/ObjectWriter.h"
+#include "Engine/Blueprint.h"
+#include "Components/ActorComponent.h"
+#include "Curves/CurveFloat.h"
+#include "Engine/DynamicBlueprintBinding.h"
+#include "Components/TimelineComponent.h"
 #include "Engine/TimelineTemplate.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "Engine/SCS_Node.h"
 #include "Engine/LevelScriptActor.h"
+#include "Engine/SCS_Node.h"
 #include "Engine/InheritableComponentHandler.h"
-#include "CoreNet.h"
+#include "Misc/ScopeLock.h"
 
 #if WITH_EDITOR
-#include "BlueprintEditorUtils.h"
-#include "KismetEditorUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #endif //WITH_EDITOR
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);

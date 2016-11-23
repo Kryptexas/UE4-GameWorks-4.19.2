@@ -2,6 +2,10 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "K2Node_EditablePinBase.h"
 #include "K2Node_FunctionTerminator.generated.h"
 

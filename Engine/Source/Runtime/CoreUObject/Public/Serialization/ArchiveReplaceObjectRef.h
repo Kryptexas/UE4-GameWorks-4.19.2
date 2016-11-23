@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Serialization/ArchiveUObject.h"
 
 /** Base class for object replacement archives */ 
 class COREUOBJECT_API FArchiveReplaceObjectRefBase : public FArchiveUObject

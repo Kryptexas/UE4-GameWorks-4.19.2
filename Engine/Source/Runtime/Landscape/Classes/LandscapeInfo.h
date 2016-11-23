@@ -1,14 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/LazyObjectPtr.h"
 #include "LandscapeInfo.generated.h"
 
-// Forward declarations
-class ALandscapeProxy;
 class ALandscape;
+class ALandscapeProxy;
 class ALandscapeStreamingProxy;
 class ULandscapeComponent;
 class ULandscapeLayerInfoObject;
+class ULevel;
 class UMaterialInstanceConstant;
 struct FLandscapeEditorLayerSettings;
 

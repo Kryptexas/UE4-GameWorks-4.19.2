@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "AssetEditorModeManager.h"
-#include "PreviewScene.h"
 #include "Engine/Selection.h"
+#include "PreviewScene.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FAssetEditorModeManager

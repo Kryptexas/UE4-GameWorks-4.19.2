@@ -1,9 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneActorReferenceSection.h"
-#include "MovieSceneActorReferenceTrack.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieSceneActorReferenceTrack.h"
+#include "Sections/MovieSceneActorReferenceSection.h"
 #include "Evaluation/MovieSceneActorReferenceTemplate.h"
 
 

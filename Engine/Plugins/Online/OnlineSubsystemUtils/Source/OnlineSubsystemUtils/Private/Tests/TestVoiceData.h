@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if WITH_DEV_AUTOMATION_TESTS
 
 /** 16khz wav mono voice data "this is a test" 2 sec duration */

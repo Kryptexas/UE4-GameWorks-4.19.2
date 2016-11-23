@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "PersonaAssetFamily.h"
+#include "Modules/ModuleManager.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
+#include "Animation/AnimBlueprint.h"
 
 #define LOCTEXT_NAMESPACE "PersonaAssetFamily"
 

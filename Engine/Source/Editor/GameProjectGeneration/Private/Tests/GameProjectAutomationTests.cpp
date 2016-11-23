@@ -1,15 +1,27 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "../GameProjectGenerationPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/AutomationTest.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Builders/CubeBuilder.h"
+#include "GameFramework/PlayerStart.h"
+#include "Editor.h"
+#include "LevelEditorViewport.h"
+#include "FileHelpers.h"
+#include "ProjectDescriptor.h"
+#include "Private/IContentSource.h"
+#include "GameProjectUtils.h"
+#include "Editor/GameProjectGeneration/Private/SNewProjectWizard.h"
 
 #include "DesktopPlatformModule.h"
-#include "TargetPlatform.h"
-#include "GameProjectUtils.h"
 #include "Tests/AutomationTestSettings.h"
-#include "AutomationEditorCommon.h"
-#include "GameFramework/PlayerStart.h"
-#include "../TemplateCategory.h"
-#include "../TemplateItem.h"
+#include "Tests/AutomationEditorCommon.h"
+#include "Editor/GameProjectGeneration/Private/TemplateCategory.h"
+#include "Editor/GameProjectGeneration/Private/TemplateItem.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 

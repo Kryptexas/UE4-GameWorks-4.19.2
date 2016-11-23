@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SGraphPalette.h"
 
 //////////////////////////////////////////////////////////////////////////

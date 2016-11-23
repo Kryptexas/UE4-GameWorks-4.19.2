@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-#include "UnrealEd.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
 #include "RawMesh.h"
 #include "MeshUtilities.h"
 #include "MaterialUtilities.h"
@@ -11,6 +9,15 @@
 #include "Components/SplineMeshComponent.h"
 #include "SimplygonSDK.h"
 #include "ScopedTimers.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Modules/ModuleManager.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "Engine/SkeletalMesh.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
+#include "Components/SkinnedMeshComponent.h"
 #include "UniquePtr.h"
 
 #include "MeshMergeData.h"

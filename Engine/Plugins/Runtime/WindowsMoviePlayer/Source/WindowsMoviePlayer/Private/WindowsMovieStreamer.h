@@ -2,10 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "MoviePlayer.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
-#include <windows.h>
 #include <mfapi.h>
 #include <mfidl.h>
 

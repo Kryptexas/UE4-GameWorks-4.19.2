@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "BlendSpaceBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/BlendSpaceBase.h"
 
 #include "BlendSpace.generated.h"
 

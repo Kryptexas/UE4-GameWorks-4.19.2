@@ -2,9 +2,12 @@
 
 #pragma once
 
-#include "SCurveEditor.h"
+#include "CoreMinimal.h"
 #include "IDetailCustomization.h"
+#include "Curves/CurveOwnerInterface.h"
+#include "SCurveEditor.h"
 
+class IDetailLayoutBuilder;
 class UWheeledVehicleMovementComponent4W;
 
 class FWheeledVehicleMovementComponent4WDetails : public IDetailCustomization

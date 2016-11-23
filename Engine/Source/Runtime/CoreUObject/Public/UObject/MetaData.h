@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "WorldCompositionUtility.h"
-#include "GatherableTextData.h"
-#include "PropertyLocalizationDataGathering.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
 
 /*-----------------------------------------------------------------------------
 	UMetaData.

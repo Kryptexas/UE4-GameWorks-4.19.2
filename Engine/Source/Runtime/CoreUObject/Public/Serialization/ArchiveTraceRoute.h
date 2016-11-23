@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "Serialization/ArchiveObjectGraph.h"
 
 /**
  * Archive for finding shortest path from root to a particular object.

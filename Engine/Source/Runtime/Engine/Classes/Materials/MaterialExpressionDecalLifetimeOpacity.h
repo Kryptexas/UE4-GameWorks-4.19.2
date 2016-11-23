@@ -2,9 +2,11 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionDecalLifetimeOpacity.generated.h"
-
 
 UCLASS(collapsecategories, hidecategories = Object)
 class UMaterialExpressionDecalLifetimeOpacity : public UMaterialExpression

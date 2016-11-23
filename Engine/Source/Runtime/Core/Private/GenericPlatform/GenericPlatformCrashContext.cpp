@@ -1,10 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "GenericPlatform/GenericPlatformCrashContext.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/Parse.h"
+#include "Misc/FileHelper.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Culture.h"
+#include "Misc/Optional.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/Guid.h"
+#include "Containers/Ticker.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
-#include "EngineVersion.h"
-#include "EngineBuildSettings.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/EngineBuildSettings.h"
 
 #ifndef NOINITCRASHREPORTER
 #define NOINITCRASHREPORTER 0

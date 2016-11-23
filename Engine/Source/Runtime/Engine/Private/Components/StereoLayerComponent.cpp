@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "IHeadMountedDisplay.h"
 #include "Components/StereoLayerComponent.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "TextureResource.h"
+#include "Engine/Texture.h"
+#include "IStereoLayers.h"
+#include "IHeadMountedDisplay.h"
 
 UStereoLayerComponent::UStereoLayerComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

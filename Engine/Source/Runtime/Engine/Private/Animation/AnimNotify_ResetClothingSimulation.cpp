@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Animation/AnimNotifies/AnimNotify_ResetClothingSimulation.h"
+#include "Components/SkeletalMeshComponent.h"
 
 UAnimNotify_ResetClothingSimulation::UAnimNotify_ResetClothingSimulation()
 	: Super()

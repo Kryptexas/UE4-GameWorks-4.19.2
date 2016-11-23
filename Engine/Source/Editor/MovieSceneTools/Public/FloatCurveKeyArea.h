@@ -2,13 +2,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Curves/KeyHandle.h"
+#include "Widgets/SWidget.h"
 #include "NamedKeyArea.h"
-#include "ClipboardTypes.h"
 
-
-struct FRichCurve;
+class FMovieSceneClipboardBuilder;
+class FMovieSceneClipboardKeyTrack;
+class FStructOnScope;
+class ISequencer;
 class UMovieSceneSection;
-
+struct FMovieSceneClipboardEnvironment;
+struct FSequencerPasteEnvironment;
+enum class EMovieSceneKeyInterpolation : uint8;
 
 /**
  * A key area for float keys.

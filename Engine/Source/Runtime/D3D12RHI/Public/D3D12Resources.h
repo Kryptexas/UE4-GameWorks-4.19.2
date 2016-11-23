@@ -278,7 +278,7 @@ private:
 				// Buffer used for input, like Vertex/Index buffer.
 				// Don't bother tracking state for this resource.
 #if UE_BUILD_DEBUG
-				FPlatformAtomics::_InterlockedIncrement(&NoStateTrackingResourceCount);
+				FPlatformAtomics::InterlockedIncrement(&NoStateTrackingResourceCount);
 #endif
 				DefaultResourceState = (HeapType == D3D12_HEAP_TYPE_READBACK) ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ;
 				bRequiresResourceStateTracking = false;
@@ -292,7 +292,7 @@ private:
 				// Texture used only as a SRV.
 				// Don't bother tracking state for this resource.
 #if UE_BUILD_DEBUG
-				FPlatformAtomics::_InterlockedIncrement(&NoStateTrackingResourceCount);
+				FPlatformAtomics::InterlockedIncrement(&NoStateTrackingResourceCount);
 #endif
 				DefaultResourceState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 				bRequiresResourceStateTracking = false;

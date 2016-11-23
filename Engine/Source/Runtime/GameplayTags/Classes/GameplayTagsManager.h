@@ -2,9 +2,16 @@
 
 #pragma once
 
-#include "Engine/DataTable.h" // Needed for FTableRowBase
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
 #include "GameplayTagContainer.h"
+#include "Engine/DataTable.h"
 #include "GameplayTagsManager.generated.h"
+
+class UGameplayTagsList;
 
 /** Simple struct for a table row in the gameplay tag table and element in the ini list */
 USTRUCT()

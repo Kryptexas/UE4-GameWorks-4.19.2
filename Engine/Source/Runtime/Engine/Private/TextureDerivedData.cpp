@@ -4,7 +4,22 @@
 	TextureDerivedData.cpp: Derived data management for textures.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/Package.h"
+#include "RenderUtils.h"
+#include "TextureResource.h"
+#include "Engine/Texture.h"
+#include "Engine/Texture2D.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 
 enum
 {
@@ -14,18 +29,15 @@ enum
 
 #if WITH_EDITOR
 
-#include "UObjectAnnotation.h"
 #include "DerivedDataCacheInterface.h"
-#include "DerivedDataPluginInterface.h"
-#include "DDSLoader.h"
-#include "RenderUtils.h"
-#include "TargetPlatform.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/ITextureFormat.h"
 #include "TextureCompressorModule.h"
 #include "ImageCore.h"
 #include "Engine/TextureCube.h"
 
-#include "DebugSerializationFlags.h"
-#include "CookStats.h"
+#include "ProfilingDebugging/CookStats.h"
 
 /*------------------------------------------------------------------------------
 	Versioning for texture derived data.

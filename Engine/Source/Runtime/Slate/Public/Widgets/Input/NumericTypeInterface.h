@@ -2,8 +2,12 @@
 
 #pragma once
 
-#include "BasicMathExpressionEvaluator.h"
+#include "CoreMinimal.h"
+#include "Templates/ValueOrError.h"
+#include "Misc/ExpressionParserTypes.h"
+#include "Math/BasicMathExpressionEvaluator.h"
 
+enum class EUnit : uint8;
 
 /** Interface to provide specific functionality for dealing with a numeric type. Currently includes string conversion functionality. */
 template<typename NumericType>

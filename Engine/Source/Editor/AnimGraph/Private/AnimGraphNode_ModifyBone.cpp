@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_ModifyBone.h"
-#include "CompilerResultsLog.h"
+#include "UnrealWidget.h"
 #include "AnimNodeEditModes.h"
+#include "Kismet2/CompilerResultsLog.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_ModifyBone

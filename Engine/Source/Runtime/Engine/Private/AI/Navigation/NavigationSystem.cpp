@@ -1,20 +1,32 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "MessageLog.h"
-#include "NavDataGenerator.h"
-#include "NavigationOctree.h"
-#include "VisualLogger.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Misc/ScopeLock.h"
+#include "Stats/StatsMisc.h"
+#include "Modules/ModuleManager.h"
+#include "AI/Navigation/NavAgentInterface.h"
+#include "Engine/World.h"
+#include "GameFramework/Controller.h"
+#include "AI/Navigation/NavRelevantInterface.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineUtils.h"
+#include "Logging/MessageLog.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
+#include "AI/NavigationOctree.h"
+#include "VisualLogger/VisualLogger.h"
 #include "AI/Navigation/NavMeshBoundsVolume.h"
-#include "AI/Navigation/NavRelevantComponent.h"
 #include "AI/Navigation/NavigationInvokerComponent.h"
 #include "AI/Navigation/NavigationDataChunk.h"
+#include "Engine/Engine.h"
+#include "UObject/Package.h"
 
 #if WITH_RECAST
-#include "RecastNavMeshGenerator.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "AI/Navigation/RecastNavMeshGenerator.h"
 #endif // WITH_RECAST
 #if WITH_EDITOR
-#include "UnrealEd.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #endif
@@ -23,19 +35,13 @@
 #include "Misc/HotReloadInterface.h"
 #endif
 
-#if WITH_PHYSX
-#include "PhysicsPublic.h"
-#include "../../PhysicsEngine/PhysXSupport.h"
-#endif // WITH_PHYSX
-
 // @todo this is here only due to circular dependency to AIModule. To be removed
-#include "Navigation/CrowdManager.h"
+#include "AITypes.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "Navigation/CrowdManager.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
-#include "AI/Navigation/NavigationSystem.h"
-#include "AI/Navigation/NavRelevantComponent.h"
 #include "AI/Navigation/NavigationPath.h"
 #include "AI/Navigation/AbstractNavData.h"
 

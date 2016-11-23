@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieSceneColorTrack.h"
-#include "ColorPropertyTrackEditor.h"
-#include "ColorPropertySection.h"
+#include "TrackEditors/PropertyTrackEditors/ColorPropertyTrackEditor.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
+#include "Sections/ColorPropertySection.h"
 #include "MatineeImportTools.h"
 #include "Matinee/InterpTrackLinearColorProp.h"
 #include "Matinee/InterpTrackColorProp.h"

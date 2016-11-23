@@ -2,9 +2,11 @@
 
 #pragma once
 
-
-class FMessagingDebuggerMessageFilter;
-
+#include "CoreMinimal.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Models/MessagingDebuggerMessageFilter.h"
 
 #define LOCTEXT_NAMESPACE "SMessagingHistoryFilterBar"
 

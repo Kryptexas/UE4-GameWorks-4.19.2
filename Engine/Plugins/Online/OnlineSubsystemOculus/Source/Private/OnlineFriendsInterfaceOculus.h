@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "OnlineSubsystemOculus.h"
 #include "OnlineFriendsInterface.h"
 #include "OnlinePresenceInterface.h"
 #include "OnlineSubsystemOculusTypes.h"

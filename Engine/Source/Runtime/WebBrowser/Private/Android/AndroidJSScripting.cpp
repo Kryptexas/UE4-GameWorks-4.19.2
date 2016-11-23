@@ -1,7 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
-
 #include "AndroidJSScripting.h"
 #include "AndroidApplication.h"
 #include "AndroidWebBrowserWindow.h"
@@ -12,6 +10,7 @@
 #include "AndroidJSStructDeserializerBackend.h"
 #include "StructSerializer.h"
 #include "StructDeserializer.h"
+#include "UObject/UnrealType.h"
 
 // For UrlDecode/Encode
 #include "Http.h"

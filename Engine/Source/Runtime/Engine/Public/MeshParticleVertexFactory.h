@@ -6,9 +6,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHI.h"
 #include "UniformBuffer.h"
-//@todo - parallelrendering - remove once FOneFrameResource no longer needs to be referenced in header
+#include "VertexFactory.h"
+#include "Components.h"
 #include "SceneManagement.h"
+#include "ParticleVertexFactory.h"
+//@todo - parallelrendering - remove once FOneFrameResource no longer needs to be referenced in header
+
+class FMaterial;
+class FVertexBuffer;
+struct FDynamicReadBuffer;
+struct FShaderCompilerEnvironment;
 
 /**
  * Uniform buffer for mesh particle vertex factories.

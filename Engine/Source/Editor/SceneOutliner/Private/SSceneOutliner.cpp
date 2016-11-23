@@ -1,30 +1,47 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "SceneOutlinerPrivatePCH.h"
 #include "SSceneOutliner.h"
-
+#include "Widgets/SOverlay.h"
+#include "Engine/GameViewportClient.h"
+#include "Modules/ModuleManager.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Images/SImage.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "EditorStyleSet.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Editor/GroupActor.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
+#include "Editor.h"
+#include "EdMode.h"
+#include "EditorModeManager.h"
+#include "UnrealEdGlobals.h"
 #include "ScopedTransaction.h"
+#include "SceneOutlinerSettings.h"
+#include "ISceneOutlinerColumn.h"
+#include "SceneOutlinerModule.h"
 
-#include "ClassIconFinder.h"
 
-#include "SSocketChooser.h"
 
-#include "SceneOutlinerFilters.h"
+#include "Widgets/Input/SSearchBox.h"
+
 #include "SceneOutlinerDragDrop.h"
 
-#include "SortHelper.h"
 
 #include "ActorEditorUtils.h"
 #include "LevelUtils.h"
 
 #include "EditorActorFolders.h"
-#include "SSearchBox.h"
-#include "SInlineEditableTextBlock.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "Engine/Selection.h"
-#include "EngineUtils.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSceneOutliner, Log, All);
 

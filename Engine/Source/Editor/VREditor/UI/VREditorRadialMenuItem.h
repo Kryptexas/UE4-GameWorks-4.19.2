@@ -3,7 +3,9 @@
 #pragma once
 
 
-#include "VREditorBaseUserWidget.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Editor/VREditor/UI/VREditorBaseUserWidget.h"
 #include "VREditorRadialMenuItem.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FVRQuickMenuItemPressedCallback)

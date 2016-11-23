@@ -1,10 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "AssetToolsModule.h"
+#include "AssetTypeActions/AssetTypeActions_SoundWave.h"
+#include "Factories/DialogueWaveFactory.h"
+#include "Misc/PackageName.h"
+#include "AssetData.h"
+#include "Sound/SoundWave.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
+#include "Factories/SoundCueFactoryNew.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Sound/DialogueVoice.h"
+#include "Sound/DialogueWave.h"
+#include "Sound/SoundCue.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
-#include "ContentBrowserDelegates.h"
 #include "PropertyCustomizationHelpers.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Images/SImage.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

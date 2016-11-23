@@ -1,12 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "Core.h"
-#include "CoreUObject.h"
-#include "RenderCore.h"
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Interfaces/Interface_AssetUserData.h"
-#include "GeometryCacheTrack.h"
+#include "RenderCommandFence.h"
+
 #include "GeometryCache.generated.h"
+
+class UGeometryCacheTrack;
+class UMaterialInterface;
 
 /**
 * A Geometry Cache is a piece/set of geometry that consists of individual Mesh/Transformation samples.

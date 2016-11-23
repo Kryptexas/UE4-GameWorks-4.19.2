@@ -2,14 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "UObject/StructOnScope.h"
+#include "PropertyHandle.h"
+#include "IDetailCustomNodeBuilder.h"
 
-class IDetailPropertyRow;
-class IDetailCategoryBuilder;
 class FDetailWidgetRow;
 class IDetailGroup;
-class IDetailCustomNodeBuilder;
-class IPropertyHandle;
-
+class IDetailPropertyRow;
 
 /** The location of a property within a category */
 namespace EPropertyLocation

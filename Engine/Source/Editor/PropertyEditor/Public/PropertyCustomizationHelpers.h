@@ -2,28 +2,35 @@
 
 #pragma once
 
-#include "IFilter.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Misc/Attribute.h"
+#include "Layout/Margin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/SlateDelegates.h"
+#include "Materials/MaterialInterface.h"
+#include "PropertyHandle.h"
 #include "IDetailCustomNodeBuilder.h"
-#include "FilterCollection.h"
+#include "DetailWidgetRow.h"
 #include "SResetToDefaultMenu.h"
 #include "ActorPickerMode.h"
 #include "SceneDepthPickerMode.h"
-#include "PropertyHandle.h"
-#include "DetailWidgetRow.h"
 
-
+class AActor;
 class FAssetData;
-class FDetailWidgetRow;
-class FMaterialListBuilder;
-struct FMaterialListItem;
+class FAssetThumbnailPool;
 class FMaterialItemView;
+class FMaterialListBuilder;
+class FPropertyEditor;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
 class IMaterialListBuilder;
 class SPropertyEditorAsset;
 class SPropertyEditorClass;
-class UBoolProperty;
-class UMaterialInterface;
-class UProperty;
-
+class UFactory;
 
 namespace SceneOutliner
 {
@@ -55,7 +62,7 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeInteractiveActorPicker(FOnGetAllowedClasses OnGetAllowedClasses, FOnShouldFilterActor OnShouldFilterActor, FOnActorSelected OnActorSelectedFromPicker);
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeSceneDepthPicker(FOnSceneDepthLocationSelected OnSceneDepthLocationSelected);
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeEditConfigHierarchyButton(FSimpleDelegate OnEditConfigClicked, TAttribute<FText> OptionalToolTipText = FText(), TAttribute<bool> IsEnabled = true);
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeDocumentationButton(const TSharedRef<class FPropertyEditor>& InPropertyEditor);
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakeDocumentationButton(const TSharedRef<FPropertyEditor>& InPropertyEditor);
 
 	/** @return the UBoolProperty edit condition property if one exists. */
 	PROPERTYEDITOR_API UBoolProperty* GetEditConditionProperty(const UProperty* InProperty, bool& bNegate);

@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
 #include "MovieSceneSection.h"
+#include "Animation/AnimSequenceBase.h"
 #include "MovieSceneSkeletalAnimationSection.generated.h"
-
-class UAnimSequenceBase;
 
 USTRUCT()
 struct FMovieSceneSkeletalAnimationParams

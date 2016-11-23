@@ -2,7 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/GCObject.h"
+#include "AssetTypeActions_Base.h"
 #include "GameFramework/ForceFeedbackEffect.h"
+#include "TickableEditorObject.h"
+
+class FAssetData;
+class FMenuBuilder;
 
 struct FPreviewForceFeedbackEffect : public FActiveForceFeedbackEffect, public FTickableEditorObject, public FGCObject
 {

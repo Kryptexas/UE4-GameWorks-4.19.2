@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "Vector.h"
+#include "CoreTypes.h"
+#include "Math/UnrealMathUtility.h"
+#include "Math/Vector.h"
+#include "Math/Vector4.h"
+#include "UObject/ObjectVersion.h"
 
 /**
  * Structure for three dimensional planes.

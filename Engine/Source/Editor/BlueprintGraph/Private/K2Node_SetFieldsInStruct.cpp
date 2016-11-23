@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_SetFieldsInStruct.h"
+#include "UObject/StructOnScope.h"
+#include "EdGraphSchema_K2.h"
+#include "EdGraphUtilities.h"
 #include "MakeStructHandler.h"
-#include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 #include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"

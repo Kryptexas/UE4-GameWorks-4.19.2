@@ -1,9 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendUtils.h"
-#include "EdGraphSchema_K2.h"
-#include "IBlueprintCompilerCppBackendModule.h" // for OnPCHFilenameQuery()
+#include "Misc/App.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/Interface.h"
+#include "UObject/MetaData.h"
+#include "UObject/TextProperty.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Misc/StringClassReference.h"
+#include "Components/ActorComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Engine/Blueprint.h"
+#include "UObject/UObjectHash.h"
+#include "KismetCompiler.h"
+#include "Misc/DefaultValueHelper.h"
+#include "BlueprintCompilerCppBackend.h"
+#include "Animation/AnimBlueprint.h"
 
 FString GetPathPostfix(const UObject* ForObject)
 {
@@ -1818,7 +1832,6 @@ const TCHAR* FEmitHelper::EmptyDefaultConstructor(UScriptStruct* Struct)
 	const bool bUseForceInitConstructor = StructOps && StructOps->HasNoopConstructor();
 	return bUseForceInitConstructor ? TEXT("(EForceInit::ForceInit)") : TEXT("{}");
 }
-
 
 FString FDependenciesGlobalMapHelper::EmitHeaderCode()
 {

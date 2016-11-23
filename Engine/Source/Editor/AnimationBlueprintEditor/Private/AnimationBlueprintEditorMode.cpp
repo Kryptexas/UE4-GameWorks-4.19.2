@@ -1,14 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimationBlueprintEditorPrivatePCH.h"
-
+#include "AnimationBlueprintEditorMode.h"
+#include "Animation/DebugSkelMeshComponent.h"
 #include "Animation/AnimInstance.h"
 
-#include "AnimationBlueprintEditor.h"
 
-#include "AnimationBlueprintEditorMode.h"
+
 #include "IPersonaToolkit.h"
-#include "ISkeletonTree.h"
 #include "BlueprintEditorTabs.h"
 #include "ISkeletonEditorModule.h"
 #include "PersonaModule.h"

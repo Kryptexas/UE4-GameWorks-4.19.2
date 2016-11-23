@@ -1,17 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "Linux/LinuxCriticalSection.h"
-#include "LinuxPlatformRunnableThread.h"
-#include "EngineVersion.h"
+#include "Misc/DateTime.h"
+#include "HAL/PlatformProcess.h"
+#include "Containers/StringConv.h"
+#include "Linux/LinuxPlatformRunnableThread.h"
 #include <spawn.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
-#include <sys/ioctl.h> // ioctl
+#include <sys/ioctl.h>
 #include <sys/file.h>
-#include <asm/ioctls.h> // FIONREAD
-#include <sys/file.h> // flock
-#include "LinuxApplication.h" // FLinuxApplication::IsForeground()
+#include <asm/ioctls.h>
+#include "Linux/LinuxApplication.h"
 
 FLinuxSystemWideCriticalSection::FLinuxSystemWideCriticalSection(const FString& InName, FTimespan InTimeout)
 {

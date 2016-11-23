@@ -1,17 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VisualStudioSourceCodeAccessPrivatePCH.h"
 #include "VisualStudioSourceCodeAccessor.h"
 #include "VisualStudioSourceCodeAccessModule.h"
 #include "ISourceCodeAccessModule.h"
 #include "ModuleManager.h"
+#include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "HAL/PlatformTime.h"
 
 #if WITH_EDITOR
 #include "Developer/HotReload/Public/IHotReload.h"
 #endif
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 #include <unknwn.h>
 #include "Windows/COMPointer.h"
 #if VSACCESSOR_HAS_DTE
@@ -29,6 +35,7 @@
 	#include <tlhelp32.h>
 	#include <wbemidl.h>
 	#pragma comment(lib, "wbemuuid.lib")
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogVSAccessor, Log, All);

@@ -1,13 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "BlueprintUtilities.h"
-#include "LatentActions.h"
-#if WITH_EDITOR
-#include "Kismet2/BlueprintEditorUtils.h"
-#endif
 #include "Engine/SCS_Node.h"
-#include "Engine/SimpleConstructionScript.h"
+#include "UObject/LinkerLoad.h"
+#include "Engine/Blueprint.h"
+#include "Misc/SecureHash.h"
+#include "UObject/PropertyPortFlags.h"
 #include "Engine/InheritableComponentHandler.h"
 
 //////////////////////////////////////////////////////////////////////////

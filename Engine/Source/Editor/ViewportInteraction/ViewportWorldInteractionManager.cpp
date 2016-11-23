@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ViewportInteractionModule.h"
 #include "ViewportWorldInteractionManager.h"
+#include "Framework/Application/SlateApplication.h"
 #include "ViewportWorldInteraction.h"
-#include "ViewportInteractionInputProcessor.h"
 
 FViewportWorldInteractionManager::FViewportWorldInteractionManager() :
 	CurrentWorldInteraction( nullptr )

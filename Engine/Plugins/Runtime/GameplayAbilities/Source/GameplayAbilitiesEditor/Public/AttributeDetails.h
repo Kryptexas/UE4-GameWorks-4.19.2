@@ -2,11 +2,17 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "IDetailCustomization.h"
+#include "IPropertyTypeCustomization.h"
 
-class IPropertyHandle;
-class FDetailWidgetRow;
 class IDetailLayoutBuilder;
+class IPropertyHandle;
+class SComboButton;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAttributeDetails, Log, All);
 

@@ -4,11 +4,15 @@
 	DataChannel.cpp: Unreal datachannel implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Net/DataChannel.h"
-#include "Net/DataReplication.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "DrawDebugHelpers.h"
 #include "Net/NetworkProfiler.h"
-#include "Net/UnrealNetwork.h"
+#include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/ControlChannel.h"
 #include "Engine/PackageMapClient.h"

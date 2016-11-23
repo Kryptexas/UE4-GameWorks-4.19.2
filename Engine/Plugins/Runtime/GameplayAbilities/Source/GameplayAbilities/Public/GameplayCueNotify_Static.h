@@ -2,10 +2,12 @@
 
 #pragma once
 
-#include "GameplayTags.h"
-#include "GameplayEffect.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "GameplayTagContainer.h"
+#include "GameplayEffectTypes.h"
 #include "GameplayCueNotify_Static.generated.h"
-
 
 /**
  *	A non instantiated UObject that acts as a handler for a GameplayCue. These are useful for one-off "burst" effects.

@@ -2,6 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "TickableEditorObject.h"
+#include "ITransportControl.h"
+
+class FActiveTimerHandle;
+class SButton;
+struct FSlateBrush;
 
 class STransportControl : public ITransportControl, public FTickableEditorObject
 {

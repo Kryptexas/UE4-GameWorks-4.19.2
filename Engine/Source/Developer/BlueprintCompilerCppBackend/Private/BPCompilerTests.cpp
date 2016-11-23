@@ -1,6 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "UObject/Package.h"
+#include "UObject/UnrealType.h"
+#include "Serialization/ArchiveObjectCrc32.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
 
 class FArchiveSkipTransientObjectCRC32 : public FArchiveObjectCrc32
 {

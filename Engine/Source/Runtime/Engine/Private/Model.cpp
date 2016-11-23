@@ -4,9 +4,13 @@
 	Model.cpp: Unreal model functions
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Model.h"
-#include "MeshBuild.h"
+#include "Materials/MaterialInterface.h"
+#include "RenderUtils.h"
+#include "Misc/App.h"
+#include "Engine/Brush.h"
+#include "Containers/TransArray.h"
+#include "EngineUtils.h"
 #include "Engine/Polys.h"
 
 float UModel::BSPTexelScale = 100.0f;

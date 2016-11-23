@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "Misc/FilterCollection.h"
+#include "CoreMinimal.h"
+
+class IScreenShotData;
+template< typename ItemType > class TFilterCollection;
 
 /**
 * The screen shot filter collection - used for updating the screen shot list

@@ -4,8 +4,8 @@
 
 #include "IMacGraphicsSwitchingModule.h"
 #include "PropertyHandle.h"
-#include "SlateBasics.h"
-#include "SlateStyle.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 
 struct FRendererItem
 {

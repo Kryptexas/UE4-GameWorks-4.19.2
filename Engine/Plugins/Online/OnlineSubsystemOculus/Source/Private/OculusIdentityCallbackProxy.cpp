@@ -1,11 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
-#include "OnlineSubsystemOculusPrivatePCH.h"
+#include "OculusIdentityCallbackProxy.h"
+#include "OnlineSubsystemOculusPrivate.h"
 #include "Online.h"
 #include "OnlineIdentityOculus.h"
-
-#include "OculusIdentityCallbackProxy.h"
 
 UOculusIdentityCallbackProxy::UOculusIdentityCallbackProxy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

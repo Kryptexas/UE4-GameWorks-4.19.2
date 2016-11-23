@@ -2,10 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "NetcodeUnitTest.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
-// Forward declarations
+class UNetDriver;
 class UUnitTest;
-
+struct FStackTracker;
 
 // @todo #JohnBRefactor: Convert to multicast delegate
 

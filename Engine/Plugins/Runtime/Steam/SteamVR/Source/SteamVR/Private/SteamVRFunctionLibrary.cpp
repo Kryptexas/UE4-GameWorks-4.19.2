@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
-#include "SteamVRPrivatePCH.h"
 #include "Classes/SteamVRFunctionLibrary.h"
+#include "SteamVRPrivate.h"
 #include "SteamVRHMD.h"
 
 USteamVRFunctionLibrary::USteamVRFunctionLibrary(const FObjectInitializer& ObjectInitializer)

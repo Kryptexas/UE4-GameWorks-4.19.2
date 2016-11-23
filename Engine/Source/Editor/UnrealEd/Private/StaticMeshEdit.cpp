@@ -4,14 +4,22 @@
 	StaticMeshEdit.cpp: Static mesh edit functions.
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "Misc/FeedbackContext.h"
+#include "Engine/EngineTypes.h"
+#include "Model.h"
+#include "EditorFramework/AssetImportData.h"
+#include "EditorFramework/ThumbnailInfo.h"
+#include "Engine/MeshMerging.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Polys.h"
+#include "Editor.h"
 #include "StaticMeshResources.h"
-#include "Factories.h"
-#include "TextureLayout.h"
 #include "BSPOps.h"
 #include "RawMesh.h"
-#include "MeshUtilities.h"
-#include "Engine/Polys.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
 bool GBuildStaticMeshCollision = 1;

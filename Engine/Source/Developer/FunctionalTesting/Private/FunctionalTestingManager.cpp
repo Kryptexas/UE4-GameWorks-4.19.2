@@ -1,11 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FunctionalTestingPrivatePCH.h"
+#include "FunctionalTestingManager.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
+#include "EngineUtils.h"
+#include "FuncTestManager.h"
+#include "FunctionalTestingModule.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 #if WITH_EDITOR
 
 //----------------------------------------------------------------------//
 // 6/25 @todo these will be removed once marge from main comes
-#include "UnrealEd.h"
 class UFactory;
 //----------------------------------------------------------------------//
 

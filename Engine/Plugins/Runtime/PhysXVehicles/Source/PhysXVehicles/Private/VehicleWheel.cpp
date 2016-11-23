@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesPrivatePCH.h"
-#include "GameFramework/PawnMovementComponent.h"
-#include "PhysicsPublic.h"
 #include "VehicleWheel.h"
-#include "WheeledVehicleMovementComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Engine/World.h"
+#include "PhysxUserData.h"
+#include "Engine/StaticMesh.h"
+#include "Vehicles/TireType.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "TireConfig.h"
 #include "PhysXVehicleManager.h"
 #include "PhysXPublic.h"

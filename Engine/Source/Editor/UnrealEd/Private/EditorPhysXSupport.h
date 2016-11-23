@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+
 #if WITH_PHYSX
 
 #pragma warning( push )

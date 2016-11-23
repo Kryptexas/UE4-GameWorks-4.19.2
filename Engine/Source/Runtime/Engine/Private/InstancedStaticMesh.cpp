@@ -4,15 +4,23 @@
 	InstancedStaticMesh.cpp: Static mesh rendering code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "NavigationSystemHelpers.h"
+#include "InstancedStaticMesh.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "UnrealEngine.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
 #include "AI/NavigationOctree.h"
-#include "Components/InstancedStaticMeshComponent.h"
-#include "InstancedStaticMesh.h"
-#include "../../Renderer/Private/ScenePrivate.h"
+#include "ShaderParameterUtils.h"
+#include "Misc/UObjectToken.h"
+#include "PhysXPublic.h"
+#include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsSerializer.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "GameFramework/WorldSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;

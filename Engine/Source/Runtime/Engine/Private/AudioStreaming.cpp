@@ -4,11 +4,15 @@
 AudioStreaming.cpp: Implementation of audio streaming classes.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "AudioStreaming.h"
+#include "Misc/CoreStats.h"
+#include "HAL/IOBase.h"
 #include "Sound/SoundWave.h"
-#include "DerivedDataCacheInterface.h"
 #include "Sound/AudioSettings.h"
+#include "DerivedDataCacheInterface.h"
+#include "Serialization/MemoryReader.h"
+#include "HAL/PlatformFile.h"
+#include "HAL/PlatformFilemanager.h"
 
 #if USE_NEW_ASYNC_IO
 #include "AsyncFileHandle.h"

@@ -4,16 +4,30 @@
 	Interaction.cpp: See .UC for for info
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Engine/Console.h"
+#include "Misc/Paths.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "UObject/UnrealType.h"
+#include "Misc/PackageName.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineGlobals.h"
+#include "ShowFlags.h"
+#include "Input/Events.h"
+#include "Engine/Engine.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Texture2D.h"
+#include "Engine/LocalPlayer.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SViewport.h"
 #include "Engine/LevelScriptActor.h"
-#include "SlateBasics.h"
-#include "DefaultValueHelper.h"
-#include "ConsoleSettings.h"
+#include "Misc/DefaultValueHelper.h"
 #include "GameFramework/InputSettings.h"
 #include "Stats/StatsData.h"
-#include "TextFilter.h"
-#include "SceneViewport.h"
+#include "Misc/TextFilter.h"
 
 static const uint32 MAX_AUTOCOMPLETION_LINES = 20;
 

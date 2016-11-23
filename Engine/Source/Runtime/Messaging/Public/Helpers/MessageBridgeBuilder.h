@@ -2,9 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IMessageContext.h"
 #include "IMessageBridge.h"
 #include "IMessageBus.h"
-#include "IMessageContext.h"
 #include "IMessageTransport.h"
 #include "IMessagingModule.h"
 

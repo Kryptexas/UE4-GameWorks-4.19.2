@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "CamelCaseBreakIterator.h"
+#include "Internationalization/CamelCaseBreakIterator.h"
+#include "Internationalization/Text.h"
 
 FCamelCaseBreakIterator::FCamelCaseBreakIterator()
 	: String()

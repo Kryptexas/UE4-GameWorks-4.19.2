@@ -5,9 +5,13 @@
 	that handles creating files in a manifest from the chunks that make it.
 =============================================================================*/
 
-// Forward declarations
-class FBuildPatchAppManifest;
-struct FChunkPart;
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "BuildPatchProgress.h"
+#include "BuildPatchManifest.h"
 
 /**
  * FBuildPatchFileConstructor

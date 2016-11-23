@@ -1,7 +1,6 @@
 #pragma once
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "RHI.h"
-#include "Engine.h"
 #define DEFAULT_MAIN_POOL_COMMAND_LISTS 3
 #define MAX_ALLOCATED_COMMAND_LISTS 256
 

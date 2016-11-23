@@ -71,6 +71,12 @@ namespace UnrealBuildTool
 
 		static void AddIncludePath(List<string> Arguments, string IncludePath)
 		{
+			// Need to convert to full paths to get full paths in error messages when debug info is disabled. I don't know why.
+			if(!IncludePath.Contains("$"))
+			{
+				IncludePath = Path.GetFullPath(IncludePath);
+			}
+
 			// If the value has a space in it and isn't wrapped in quotes, do that now
 			if (!IncludePath.StartsWith("\"") && (IncludePath.Contains(" ") || IncludePath.Contains("$")))
 			{
@@ -114,6 +120,13 @@ namespace UnrealBuildTool
 			else
 			{
 				// Arguments.Append( " /showIncludes" );
+			}
+
+			// Suppress generation of object code for unreferenced inline functions. Enabling this option is more standards compliant, and causes a big reduction
+			// in object file sizes (and link times) due to the amount of stuff we inline.
+			if(WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015)
+			{
+				Arguments.Add("/Zc:inline");
 			}
 
 			if (WindowsPlatform.bCompileWithClang)
@@ -1002,20 +1015,11 @@ namespace UnrealBuildTool
 			AppendCLArguments_Global(CompileEnvironment, EnvVars, SharedArguments);
 
 			// Add include paths to the argument list.
-			if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
 			{
-				foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
-				{
-					AddIncludePath(SharedArguments, IncludePath);
-				}
+				AddIncludePath(SharedArguments, IncludePath);
 			}
-			else
-			{
-				foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.IncludePaths)
-				{
-					AddIncludePath(SharedArguments, System.IO.Path.GetFullPath(IncludePath));
-				}
-			}
+
 			foreach (string IncludePath in CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths)
 			{
 				if (WindowsPlatform.bCompileWithClang)
@@ -1394,16 +1398,16 @@ namespace UnrealBuildTool
 				// Language
 				Arguments.Add("/l 0x409");
 
-				// Include paths.
+				// Include paths. Don't use AddIncludePath() here, since it uses the full path and exceeds the max command line length.
 				foreach (string IncludePath in Environment.Config.CPPIncludeInfo.IncludePaths)
 				{
-					AddIncludePath(Arguments, IncludePath);
+					Arguments.Add(String.Format("/I \"{0}\"", IncludePath));
 				}
 
 				// System include paths.
 				foreach (string SystemIncludePath in Environment.Config.CPPIncludeInfo.SystemIncludePaths)
 				{
-					AddIncludePath(Arguments, SystemIncludePath);
+					Arguments.Add(String.Format("/I \"{0}\"", SystemIncludePath));
 				}
 
 				// Preprocessor definitions.

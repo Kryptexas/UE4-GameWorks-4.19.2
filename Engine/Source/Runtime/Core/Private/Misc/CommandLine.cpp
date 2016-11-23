@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "CommandLine.h"
+#include "Misc/CommandLine.h"
+#include "Misc/MessageDialog.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "Misc/CoreMisc.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Internationalization.h"
 
 /*-----------------------------------------------------------------------------
 	FCommandLine

@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "Serialization/MemoryWriter.h"
+#include "Containers/Queue.h"
 
 /*----------------------------------------------------------------------------
 FArchiveObjectCrc32

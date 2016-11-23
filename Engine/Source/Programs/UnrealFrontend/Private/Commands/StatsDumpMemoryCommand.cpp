@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealFrontendPrivatePCH.h"
 #include "StatsDumpMemoryCommand.h"
 #include "IProfilerModule.h"
-
+#include "Misc/CommandLine.h"
+#include "Modules/ModuleManager.h"
 
 void FStatsMemoryDumpCommand::Run()
 {

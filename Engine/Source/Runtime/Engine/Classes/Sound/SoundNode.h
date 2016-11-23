@@ -2,7 +2,18 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
 #include "SoundNode.generated.h"
+
+class FAudioDevice;
+class UEdGraphNode;
+struct FActiveSound;
+struct FPropertyChangedEvent;
+struct FWaveInstance;
 
 /*-----------------------------------------------------------------------------
 	USoundNode helper macros. 

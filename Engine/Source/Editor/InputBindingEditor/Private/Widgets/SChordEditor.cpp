@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "InputBindingEditorPrivatePCH.h"
-#include "SlateEditableTextLayout.h"
+#include "Widgets/SChordEditor.h"
+#include "Framework/Commands/InputBindingManager.h"
+#include "Widgets/Text/SlateEditableTextLayout.h"
 
 #define LOCTEXT_NAMESPACE "SChordEditor"
 

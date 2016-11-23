@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
 #include "MediaSource.h"
 #include "FileMediaSource.generated.h"
-
 
 UCLASS(BlueprintType)
 class MEDIAASSETS_API UFileMediaSource

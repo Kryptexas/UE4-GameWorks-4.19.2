@@ -7,7 +7,7 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanContext.h"
 #include "VulkanCommandBuffer.h"
-
+#include "EngineGlobals.h"
 
 struct FRHICommandWaitForFence : public FRHICommand<FRHICommandWaitForFence>
 {

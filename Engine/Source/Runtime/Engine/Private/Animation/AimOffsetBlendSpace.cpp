@@ -4,10 +4,7 @@
 	AimOffsetBlendSpace.cpp: AimOffsetBlendSpace functionality
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "Animation/BlendSpaceBase.h"
 #include "Animation/AimOffsetBlendSpace.h"
-#include "Animation/AnimSequence.h"
 
 UAimOffsetBlendSpace::UAimOffsetBlendSpace(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -6,8 +6,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Math/SHMath.h"
 #include "GenericOctreePublic.h"
 #include "GenericOctree.h"
+
+class FSceneInterface;
 
 /** Incident radiance stored for a point. */
 template <int32 SHOrder>

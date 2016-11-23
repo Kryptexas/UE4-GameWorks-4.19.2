@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "ActiveSound.h"
+#include "EngineDefines.h"
+#include "Misc/App.h"
+#include "AudioThread.h"
 #include "AudioDevice.h"
 #include "Sound/SoundCue.h"
 #include "Sound/SoundWave.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "SubtitleManager.h"
-#include "AudioThread.h"
 
 
 FActiveSound::FActiveSound()

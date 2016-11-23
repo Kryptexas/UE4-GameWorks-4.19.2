@@ -2,7 +2,19 @@
 
 #pragma once
 
-#include "Editor/Kismet/Public/Profiler/TracePath.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Profiler/TracePath.h"
+#include "Profiler/EventExecution.h"
+#include "Engine/BlueprintGeneratedClass.h"
+
+class FBlueprintFunctionContext;
+class FScriptInstrumentedEvent;
+class UBlueprint;
+class UEdGraph;
+class UK2Node_Tunnel;
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintExecutionTrace

@@ -2,17 +2,20 @@
 
 #pragma once
 
-#include "Sound/AudioVolume.h"
-#include "Sound/SoundConcurrency.h"
+#include "CoreMinimal.h"
+#include "WorldCollision.h"
 #include "Sound/SoundAttenuation.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Audio.h"
+#include "Sound/SoundConcurrency.h"
 #include "Components/AudioComponent.h"
-#include "Sound/SoundSubmix.h"
+#include "Sound/AudioVolume.h"
 
-class USoundClass;
-class USoundSubmix;
+class FAudioDevice;
 class USoundBase;
-class UAudioComponent;
-class UWorld;
+class USoundSubmix;
+class USoundWave;
+struct FListener;
 
 /**
  *	Struct used for gathering the final parameters to apply to a wave instance

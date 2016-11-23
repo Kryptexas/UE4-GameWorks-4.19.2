@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "GameplayAbility.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/Blueprint.h"
+#include "Factories/Factory.h"
 #include "GameplayAbilitiesBlueprintFactory.generated.h"
 
 UCLASS(HideCategories=Object, MinimalAPI)

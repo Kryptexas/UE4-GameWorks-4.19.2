@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "StompCommand.h"
+#include "IStompClient.h"
+
+#if WITH_STOMP
+
 /**
  * Class for encoding and parsing stomp frames
  */
@@ -38,3 +44,5 @@ private:
 	FStompHeader Header;
 	FStompBuffer Body;
 };
+
+#endif

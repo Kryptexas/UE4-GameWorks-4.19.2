@@ -1,10 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "AssetViewerSettingsCustomization.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "DetailCategoryBuilder.h"
 #include "AssetViewerSettings.h"
 
-#include "Widgets/Input/SEditableTextBox.h"
 #include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "AssetViewerSettingsCustomizations"

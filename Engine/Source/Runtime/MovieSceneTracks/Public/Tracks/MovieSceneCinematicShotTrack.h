@@ -2,14 +2,15 @@
 
 #pragma once
 
-#include "MovieSceneSubTrack.h"
-#include "MovieSceneSegmentCompiler.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/InlineValue.h"
+#include "Tracks/MovieSceneSubTrack.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
 #include "MovieSceneCinematicShotTrack.generated.h"
 
-
-class UMovieSceneSection;
 class UMovieSceneSequence;
-
+class UMovieSceneSubSection;
 
 /**
  * A track that holds consecutive sub sequences.

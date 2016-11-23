@@ -1,14 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
-
-#include "ParticleDefinitions.h"
-#include "CompilerResultsLog.h"
-#include "CallFunctionHandler.h"
-#include "Particles/ParticleSystemComponent.h"
-#include "BlueprintEditorUtils.h"
-#include "ReleaseObjectVersion.h"
+#include "K2Node_AddComponent.h"
+#include "Components/ActorComponent.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Components/ChildActorComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "UObject/ReleaseObjectVersion.h"
+#include "KismetCompilerMisc.h"
+#include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AddComponent"
 

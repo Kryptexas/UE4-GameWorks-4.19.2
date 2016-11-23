@@ -1,10 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/UnrealType.h"
+#include "EngineGlobals.h"
+#include "Components/PointLightComponent.h"
+#include "Engine/PointLight.h"
+#include "Editor.h"
 
 // Automation
-#include "AutomationTest.h"
-#include "AutomationEditorCommon.h"
+#include "Tests/AutomationEditorCommon.h"
 
 // Misc
 #include "ScopedTransaction.h"

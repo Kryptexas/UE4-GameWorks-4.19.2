@@ -2,9 +2,22 @@
 
 #pragma once
 
-#include "AggregateGeom.h"
-#include "BodySetupEnums.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "EngineDefines.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Serialization/BulkData.h"
+#include "PhysicsEngine/BodySetupEnums.h"
+#include "PhysicsEngine/AggregateGeom.h"
 #include "BodySetup.generated.h"
+
+class ITargetPlatform;
+class UPhysicalMaterial;
+class UPrimitiveComponent;
+struct FShapeData;
+enum class EPhysXMeshCookFlags : uint8;
 
 namespace physx
 {

@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "AutomatedAssetImportData.h"
+#include "Factories/Factory.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 
 DEFINE_LOG_CATEGORY(LogAutomatedImport);
 

@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include <linux/version.h>	// for checking if SOCK_CLOEXEC is defined - including sys/socket.h at this stage pollutes the namespaces with macros which cause collisions (e.g. PF_MAX)
+#include <linux/version.h>
+
+struct FGenericPlatformTypes;
 
 /**
 * Linux specific types

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemOculusPackage.h"
 #include "OVR_Platform.h"

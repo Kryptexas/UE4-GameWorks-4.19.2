@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#if WITH_STOMP
-
-#include "StompPrivatePCH.h"
-#include "StompFrame.h"
 #include "StompMessage.h"
 #include "StompClient.h"
+
+#if WITH_STOMP
 
 void FStompMessage::Ack(const FStompHeader& Header, const FStompRequestCompleted& CompletionCallback) const
 {

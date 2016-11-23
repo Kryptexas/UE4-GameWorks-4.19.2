@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-#include "UMGDetailKeyframeHandler.h"
-#include "ISequencer.h"
+#include "Animation/UMGDetailKeyframeHandler.h"
+#include "Animation/WidgetAnimation.h"
+
 #include "PropertyHandle.h"
-#include "WidgetBlueprintEditor.h"
 
 FUMGDetailKeyframeHandler::FUMGDetailKeyframeHandler(TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 	: BlueprintEditor( InBlueprintEditor )

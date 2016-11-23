@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "UdpReassembledMessage.h"
-
+#include "CoreMinimal.h"
+#include "Transport/UdpReassembledMessage.h"
 
 /**
  * Implements a re-sequencer for messages received over the UDP transport.

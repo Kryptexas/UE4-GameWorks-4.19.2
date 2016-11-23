@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "MovieSceneFloatTrack.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieSceneFloatTrack.h"
 #include "MovieSceneFadeTrack.generated.h"
-
 
 /**
  * Implements a movie scene track that controls a fade.

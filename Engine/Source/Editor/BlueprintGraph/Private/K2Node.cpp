@@ -1,16 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
-
-#include "EdGraph/EdGraphPin.h"
-#include "Engine/Breakpoint.h"
 #include "K2Node.h"
-#include "KismetDebugUtilities.h" // for HasDebuggingData(), GetWatchText()
-#include "KismetCompiler.h"
+#include "UObject/UnrealType.h"
+#include "EdGraph/EdGraphPin.h"
+#include "UObject/Interface.h"
+#include "Engine/Blueprint.h"
+#include "Engine/MemberReference.h"
 #include "GraphEditorSettings.h"
-#include "BlueprintEditorSettings.h"
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_MacroInstance.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Editor/EditorEngine.h"
+#include "Misc/OutputDeviceNull.h"
+
+#include "Engine/Breakpoint.h"
+#include "Kismet2/KismetDebugUtilities.h"
+#include "KismetCompiler.h"
+#include "PropertyCustomizationHelpers.h"
 
 #include "ObjectEditorUtils.h"
 

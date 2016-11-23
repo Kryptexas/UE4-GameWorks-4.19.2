@@ -1,8 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "LevelSequenceEditorPCH.h"
-#include "LevelSequenceEditorStyle.h"
-#include "SCinematicTransportRange.h"
+#include "CinematicViewport/SCinematicTransportRange.h"
+#include "Rendering/DrawElements.h"
+#include "ISequencerKeyCollection.h"
+#include "MovieSceneSequence.h"
+#include "EditorStyleSet.h"
+#include "Styles/LevelSequenceEditorStyle.h"
 #include "MovieScene.h"
 #include "ISequencer.h"
 

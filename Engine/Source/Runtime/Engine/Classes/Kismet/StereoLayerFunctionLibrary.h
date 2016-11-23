@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "Engine.h" // needed for access to UBlueprintFunctionLibrary
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "StereoLayerFunctionLibrary.generated.h"
 
 /**

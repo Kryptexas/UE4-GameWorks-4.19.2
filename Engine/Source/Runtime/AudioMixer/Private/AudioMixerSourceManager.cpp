@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioMixerPCH.h"
+#include "AudioMixerSourceManager.h"
 #include "AudioMixerSource.h"
 #include "AudioMixerDevice.h"
-#include "AudioMixerSourceManager.h"
+#include "AudioMixerSourceVoice.h"
+#include "AudioMixerSubmix.h"
 #include "IAudioExtensionPlugin.h"
 
 #define ONEOVERSHORTMAX (3.0517578125e-5f) // 1/32768

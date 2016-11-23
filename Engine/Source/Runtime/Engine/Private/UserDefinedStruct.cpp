@@ -1,12 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Engine/UserDefinedStruct.h"
+#include "UObject/UObjectHash.h"
+#include "Serialization/PropertyLocalizationDataGathering.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/UnrealType.h"
+#include "UObject/LinkerLoad.h"
+#include "Misc/SecureHash.h"
+#include "UObject/PropertyPortFlags.h"
 
 #if WITH_EDITOR
-#include "StructureEditorUtils.h"
+#include "UserDefinedStructure/UserDefinedStructEditorData.h"
+#include "Kismet2/StructureEditorUtils.h"
 #endif //WITH_EDITOR
-#include "Engine/UserDefinedStruct.h"
-#include "TextReferenceCollector.h"
+#include "Serialization/TextReferenceCollector.h"
 
 #if WITH_EDITORONLY_DATA
 namespace

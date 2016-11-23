@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "SocketTypes.h"
+#include "CoreMinimal.h"
+#include "SocketSubsystem.h"
 
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_WINSOCKETS
+	#include "WindowsHWrapper.h"
 	#include "Windows/AllowWindowsPlatformTypes.h"
 
 	#include <winsock2.h>
@@ -17,6 +19,7 @@
 #if PLATFORM_SWITCH
 	#include "Switch/SwitchSocketApiWrapper.h"
 #else
+	#include <unistd.h>
 	#include <sys/socket.h>
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL
 	#include <sys/ioctl.h>
@@ -26,7 +29,6 @@
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
 	#include <netdb.h>
 #endif
-	#include <unistd.h>
 
 	#define ioctlsocket ioctl
 #endif
@@ -66,7 +68,6 @@ inline int TranslateFlags(ESocketReceiveFlags::Type Flags)
 	return TranslatedFlags;
 }
 
-#include <errno.h>
 
 /**
  * Standard BSD specific socket subsystem implementation (common to both IPv4 and IPv6)

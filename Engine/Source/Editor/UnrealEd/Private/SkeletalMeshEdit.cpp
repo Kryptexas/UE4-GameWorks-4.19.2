@@ -4,13 +4,28 @@
 	SkeletalMeshEdit.cpp: Unreal editor skeletal mesh/anim support
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/Object.h"
+#include "Misc/PackageName.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/SmartName.h"
+#include "Animation/Skeleton.h"
+#include "Curves/KeyHandle.h"
+#include "Animation/AnimCurveTypes.h"
+#include "Animation/AnimSequence.h"
+#include "Editor/EditorEngine.h"
+#include "Factories/Factory.h"
+#include "Factories/FbxAnimSequenceImportData.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxImportUI.h"
 #include "SkelImport.h"
-#include "AnimationUtils.h"
 #include "ObjectTools.h"
 #include "AssetRegistryModule.h"
+#include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
-#include "FbxErrors.h"
+#include "Misc/FbxErrors.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshEdit"
 

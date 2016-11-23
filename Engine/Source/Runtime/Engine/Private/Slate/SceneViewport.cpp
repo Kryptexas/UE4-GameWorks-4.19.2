@@ -1,11 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "SlateBasics.h"
-#include "Slate/SlateTextures.h"
 #include "Slate/SceneViewport.h"
-#include "DebugCanvas.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/SViewport.h"
+#include "Misc/App.h"
+#include "EngineGlobals.h"
+#include "RenderingThread.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Canvas.h"
+#include "Application/SlateApplicationBase.h"
+#include "Layout/WidgetPath.h"
+#include "UnrealEngine.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Slate/SlateTextures.h"
+#include "Slate/DebugCanvas.h"
 
 #include "IHeadMountedDisplay.h"
 

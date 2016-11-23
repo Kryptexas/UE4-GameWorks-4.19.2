@@ -1,8 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CollisionAnalyzerPCH.h"
+#include "SCollisionAnalyzer.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "CollisionAnalyzerStyle.h"
+#include "SCAQueryTableRow.h"
+#include "SCAQueryDetails.h"
 #include "DesktopPlatformModule.h"
-#include "MainFrame.h"
 
 #define LOCTEXT_NAMESPACE "SCollisionAnalyzer"
 

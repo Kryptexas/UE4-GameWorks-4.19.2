@@ -1,7 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SessionFrontendPrivatePCH.h"
-#include "SExpandableArea.h"
+#include "Widgets/Console/SSessionConsole.h"
+#include "DesktopPlatformModule.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Widgets/SOverlay.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
+#include "Models/SessionConsoleCommands.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Console/SSessionConsoleLogTableRow.h"
+#include "Widgets/Console/SSessionConsoleCommandBar.h"
+#include "Widgets/Console/SSessionConsoleFilterBar.h"
+#include "Widgets/Console/SSessionConsoleShortcutWindow.h"
+#include "Widgets/Console/SSessionConsoleToolbar.h"
+#include "Widgets/Layout/SExpandableArea.h"
 
 
 #define LOCTEXT_NAMESPACE "SSessionConsolePanel"

@@ -4,14 +4,19 @@
 	RenderingThread.cpp: Rendering thread implementation.
 =============================================================================*/
 
-#include "RenderCorePrivatePCH.h"
-#include "RenderCore.h"
 #include "RenderingThread.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/ExceptionHandling.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/CoreStats.h"
+#include "Misc/TimeGuard.h"
+#include "Misc/CoreDelegates.h"
+#include "RenderCore.h"
+#include "RenderCommandFence.h"
 #include "RHI.h"
 #include "TickableObjectRenderThread.h"
-#include "ExceptionHandling.h"
-#include "TaskGraphInterfaces.h"
-#include "StatsData.h"
+#include "Stats/StatsData.h"
 #include "HAL/ThreadHeartBeat.h"
 //
 // Globals
@@ -427,7 +432,7 @@ public:
 	}
 
 #if PLATFORM_WINDOWS && !PLATFORM_SEH_EXCEPTIONS_DISABLED
-	static int32 FlushRHILogsAndReportCrash(LPEXCEPTION_POINTERS ExceptionInfo)
+	static int32 FlushRHILogsAndReportCrash(Windows::LPEXCEPTION_POINTERS ExceptionInfo)
 	{
 		if (GDynamicRHI)
 		{

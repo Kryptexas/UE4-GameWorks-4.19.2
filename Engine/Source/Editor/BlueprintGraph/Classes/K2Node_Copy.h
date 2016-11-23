@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "K2Node.h"
 #include "K2Node_Copy.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
+class UEdGraphPin;
+struct FEdGraphPinType;
 
 UCLASS(MinimalAPI, meta=(Keywords = "Duplicate"))
 class UK2Node_Copy : public UK2Node

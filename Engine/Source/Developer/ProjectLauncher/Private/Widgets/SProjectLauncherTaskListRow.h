@@ -2,9 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SWidget.h"
+#include "Interfaces/ILauncherTask.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherTaskListRow"
-
 
 /**
  * Implements a row widget for the launcher's task list.

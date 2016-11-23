@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#if WITH_STOMP
-
-#include "StompPrivatePCH.h"
 #include "StompCommand.h"
+
+#if WITH_STOMP
 
 #define DEFINE_COMMAND(Name, Value) const FStompCommand Name ## Command = TEXT(#Value)
 

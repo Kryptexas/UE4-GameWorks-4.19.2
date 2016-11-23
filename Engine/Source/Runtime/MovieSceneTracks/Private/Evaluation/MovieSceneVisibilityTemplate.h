@@ -2,13 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieScenePropertyTemplates.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
 
 #include "MovieSceneVisibilityTemplate.generated.h"
 
 class UMovieSceneBoolSection;
-
+class UMovieScenePropertyTrack;
 
 USTRUCT()
 struct FMovieSceneVisibilitySectionTemplate : public FMovieSceneBoolPropertySectionTemplate

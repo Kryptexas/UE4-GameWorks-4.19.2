@@ -1,8 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaAssetsPCH.h"
+#include "Misc/MediaTextureResource.h"
+#include "RenderingThread.h"
+#include "Shader.h"
+#include "IMediaTextureSink.h"
 #include "MediaTexture.h"
-#include "MediaTextureResource.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "StaticBoundShaderState.h"
+#include "SceneUtils.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "RHIStaticStates.h"
+#include "MediaShaders.h"
+#include "MediaAssetsPrivate.h"
 
 
 /* FMediaTextureResource structors

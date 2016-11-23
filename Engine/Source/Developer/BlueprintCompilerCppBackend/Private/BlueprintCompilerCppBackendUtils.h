@@ -1,8 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma  once
 
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/UnrealType.h"
+#include "IBlueprintCompilerCppBackendModule.h"
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
-#include "BlueprintCompilerCppBackend.h"
+
+class USCS_Node;
+class UUserDefinedEnum;
+class UUserDefinedStruct;
+struct FNonativeComponentData;
+enum class ENativizedTermUsage : uint8;
 
 struct FCodeText
 {
@@ -346,7 +356,6 @@ struct FBackendHelperStaticSearchableValues
 	static void EmitFunctionDeclaration(FEmitterLocalContext& Context);
 	static void EmitFunctionDefinition(FEmitterLocalContext& Context);
 };
-
 struct FNativizationSummaryHelper
 {
 	static void InaccessibleProperty(const UProperty* Property);
@@ -358,7 +367,6 @@ struct FNativizationSummaryHelper
 
 	static void ReducibleFunciton(const UClass* OriginalClass);
 };
-
 struct FDependenciesGlobalMapHelper
 {
 	static FString EmitHeaderCode();

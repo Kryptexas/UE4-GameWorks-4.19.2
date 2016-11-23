@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "Factories/ReimportSoundSurroundFactory.h"
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
+#include "Sound/SoundWave.h"
+#include "Misc/Paths.h"
+#include "EditorFramework/AssetImportData.h"
+#include "HAL/FileManager.h"
 
 #define LOCTEXT_NAMESPACE "AudioEditorFactories"
 

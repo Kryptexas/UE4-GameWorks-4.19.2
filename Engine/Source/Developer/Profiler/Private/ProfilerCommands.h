@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "Commands.h"
-
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/Commands.h"
 
 class FMenuBuilder;
-class FUICommandInfo;
-
 
 /**
  * Class that holds all profiler commands.

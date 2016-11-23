@@ -2,7 +2,13 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "EdGraph/EdGraphPin.h"
 #include "K2Node.h"
+#include "Textures/SlateIcon.h"
 #include "K2Node_Switch.generated.h"
 
 UCLASS(MinimalAPI, abstract)

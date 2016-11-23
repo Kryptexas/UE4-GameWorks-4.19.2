@@ -6,7 +6,6 @@
 
 #include "AndroidAudioDevice.h"
 #include "AudioDecompress.h"
-#include "Engine.h"
 
 // Callback that is registered if the source needs to loop
 void OpenSLBufferQueueCallback( SLAndroidSimpleBufferQueueItf InQueueInterface, void* pContext ) 

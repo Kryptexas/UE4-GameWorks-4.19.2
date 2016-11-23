@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "Factories/SoundClassFactory.h"
 #include "AudioDeviceManager.h"
+#include "Sound/SoundClass.h"
+#include "Engine/Engine.h"
 
 USoundClassFactory::USoundClassFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

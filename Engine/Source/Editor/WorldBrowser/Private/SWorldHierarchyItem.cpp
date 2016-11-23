@@ -1,10 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "WorldBrowserPrivatePCH.h"
-
 #include "SWorldHierarchyItem.h"
-#include "SColorPicker.h"
+#include "Misc/PackageName.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
+#include "Engine/Engine.h"
+#include "ISourceControlProvider.h"
+#include "ISourceControlModule.h"
+#include "EngineGlobals.h"
 #include "Engine/LevelStreamingAlwaysLoaded.h"
 #include "Engine/LevelStreamingKismet.h"
+#include "Editor.h"
+#include "DragAndDrop/LevelDragDropOp.h"
+#include "LevelCollectionModel.h"
+
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Colors/SColorPicker.h"
 
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"

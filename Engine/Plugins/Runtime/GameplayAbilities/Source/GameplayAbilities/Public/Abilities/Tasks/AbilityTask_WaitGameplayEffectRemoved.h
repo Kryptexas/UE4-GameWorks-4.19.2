@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
-#include "Abilities/GameplayAbilityTypes.h"
-#include "GameplayEffect.h"
-#include "AbilityTask_WaitGameplayEffectRemoved.generated.h"
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayEffectTypes.h"
+#include "Abilities/Tasks/AbilityTask.h"
+#include "AbilityTask_WaitGameplayEffectRemoved.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitGameplayEffectRemovedDelegate);
 

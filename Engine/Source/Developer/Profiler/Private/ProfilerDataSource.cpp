@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerDataProvider.h"
 #include "ProfilerDataSource.h"
+#include "Containers/MapBuilder.h"
+#include "ProfilerStream.h"
+#include "ProfilerDataProvider.h"
 #include "ProfilerSession.h"
-
 
 #define LOCTEXT_NAMESPACE "ProfilerDataSource"
 

@@ -2,11 +2,17 @@
 
 #pragma once
 
-#include "AlembicLibraryPublicPCH.h"
+#include "CoreMinimal.h"
 
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
+
+THIRD_PARTY_INCLUDES_START
 #include <Alembic/AbcCoreAbstract/TimeSampling.h>
 #include <Alembic/Abc/All.h>
 #include <Alembic/AbcGeom/All.h>
+THIRD_PARTY_INCLUDES_END
 
 #include "GeometryCache.h"
 #include "GeometryCacheTrackFlipbookAnimation.h"

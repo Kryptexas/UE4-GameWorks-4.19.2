@@ -5,17 +5,18 @@
 	Functions to rasterize a spline into landscape heights/weights
   =============================================================================*/
 
-#include "LandscapePrivatePCH.h"
 #include "LandscapeSplineRaster.h"
-#include "Landscape.h"
+#include "LandscapeProxy.h"
+#include "LandscapeInfo.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "LandscapeComponent.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
-#include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeSplinesComponent.h"
 #include "LandscapeSplineControlPoint.h"
-#include "LandscapeSplineSegment.h"
 #if WITH_EDITOR
-#include "AI/Navigation/NavigationSystem.h"
 #include "ScopedTransaction.h"
 #include "Raster.h"
 #endif

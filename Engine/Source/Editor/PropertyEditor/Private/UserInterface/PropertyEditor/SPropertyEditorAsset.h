@@ -1,9 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "PropertyEditorConstants.h"
-#include "PropertyEditorAssetConstants.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "GameFramework/Actor.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Input/SComboButton.h"
+#include "EditorStyleSet.h"
+#include "AssetData.h"
+#include "AssetThumbnail.h"
+#include "PropertyHandle.h"
+#include "Presentation/PropertyEditor/PropertyEditor.h"
 #include "PropertyCustomizationHelpers.h"
+
+class UFactory;
 
 /**
  * A widget used to edit Asset-type properties (UObject-derived properties).

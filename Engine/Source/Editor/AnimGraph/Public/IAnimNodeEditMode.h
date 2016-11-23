@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UnrealWidget.h"
 #include "IPersonaEditMode.h"
 
 /** Base interface for skeletal control edit modes */

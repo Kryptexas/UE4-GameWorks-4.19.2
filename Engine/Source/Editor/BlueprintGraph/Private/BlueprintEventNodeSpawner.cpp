@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEventNodeSpawner.h"
-#include "EdGraphSchema_K2.h" // for GetFriendlySignatureName()
-#include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CallFunction.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "BlueprintNodeTemplateCache.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEventNodeSpawner"
 

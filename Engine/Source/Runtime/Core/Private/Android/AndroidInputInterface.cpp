@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "AndroidInputInterface.h"
 //#include "AndroidInputDeviceMappings.h"
 #include "IInputDevice.h"
 #include "GenericApplicationMessageHandler.h"
+#include "HAL/ThreadingBase.h"
 #include <android/input.h>
+#include "Misc/CallbackDevice.h"
+#include "HAL/PlatformTime.h"
 
 
 TArray<TouchInput> FAndroidInputInterface::TouchInputStack = TArray<TouchInput>();

@@ -2,8 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "IMessageContext.h"
+#include "IMessageAttachment.h"
 #include "UdpMessagingTestTypes.generated.h"
-
 
 USTRUCT()
 struct FUdpMockMessage

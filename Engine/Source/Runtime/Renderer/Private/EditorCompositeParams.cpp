@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "RendererPrivate.h"
 #include "EditorCompositeParams.h"
+#include "RHIStaticStates.h"
+#include "MaterialShared.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "ShaderParameterUtils.h"
 
 FEditorCompositingParameters::FEditorCompositingParameters()
 {

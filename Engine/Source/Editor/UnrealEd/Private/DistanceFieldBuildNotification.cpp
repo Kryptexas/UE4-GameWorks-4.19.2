@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
-#include "MainFrame.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "TickableEditorObject.h"
+#include "Templates/ScopedPointer.h"
 #include "DistanceFieldAtlas.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "UniquePtr.h"
 
 /** Notification class for asynchronous distance field building. */

@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "BSPOps.h"
-#include "Engine/Polys.h"
+#include "EngineDefines.h"
+#include "Model.h"
+#include "Materials/Material.h"
+#include "Engine/BrushBuilder.h"
+#include "Editor/EditorEngine.h"
 #include "Components/BrushComponent.h"
 #include "GameFramework/Volume.h"
 

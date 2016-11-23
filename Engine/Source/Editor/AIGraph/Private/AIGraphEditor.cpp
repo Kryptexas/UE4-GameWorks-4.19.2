@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIGraphPrivatePCH.h"
-#include "GraphEditorActions.h"
+#include "AIGraphEditor.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Editor/EditorEngine.h"
+#include "EngineGlobals.h"
+#include "AIGraph.h"
+#include "AIGraphTypes.h"
+#include "AIGraphNode.h"
 #include "ScopedTransaction.h"
 #include "EdGraphUtilities.h"
-#include "GenericCommands.h"
-#include "AIGraphEditor.h"
+#include "Framework/Commands/GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "AIGraph"
 

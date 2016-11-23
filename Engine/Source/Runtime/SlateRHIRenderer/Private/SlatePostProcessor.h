@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "Layout/SlateRect.h"
+
 class FSlatePostProcessResource;
 class IRendererModule;
 

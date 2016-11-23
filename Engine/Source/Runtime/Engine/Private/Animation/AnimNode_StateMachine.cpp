@@ -1,14 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Animation/AnimNode_StateMachine.h"
+#include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimNode_TransitionResult.h"
 #include "Animation/AnimNode_TransitionPoseEvaluator.h"
-#include "Animation/AnimNode_SequencePlayer.h"
-#include "AnimationRuntime.h"
-#include "Animation/AnimStats.h"
+#include "Animation/AnimNode_AssetPlayerBase.h"
 #include "Animation/BlendProfile.h"
-#include "Animation/AnimInstanceProxy.h"
 
 DECLARE_CYCLE_STAT(TEXT("StateMachine SetState"), Stat_StateMachineSetState, STATGROUP_Anim);
 

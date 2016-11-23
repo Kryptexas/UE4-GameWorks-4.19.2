@@ -1,11 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "AssetData.h"
+#include "SoundClassGraph/SoundClassGraphSchema.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "SoundClassGraph/SoundClassGraph.h"
+#include "SoundClassGraph/SoundClassGraphNode.h"
+#include "Sound/SoundClass.h"
 #include "ScopedTransaction.h"
 #include "GraphEditorActions.h"
 #include "SoundClassEditorUtilities.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassSchema"
 

@@ -2,15 +2,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneFwd.h"
 
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneParameterSection.h"
+#include "MovieSceneExecutionToken.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Sections/MovieSceneParameterSection.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "MovieSceneParameterTemplate.generated.h"
 
-DECLARE_CYCLE_STAT(TEXT("Parameter Track Token Execute"), MovieSceneEval_ParameterTrack_TokenExecute, STATGROUP_MovieSceneEval);
-
 class UMovieSceneComponentMaterialTrack;
+
+DECLARE_CYCLE_STAT(TEXT("Parameter Track Token Execute"), MovieSceneEval_ParameterTrack_TokenExecute, STATGROUP_MovieSceneEval);
 
 /** Evaluation structure that holds evaluated values */
 struct FEvaluatedParameterSectionValues

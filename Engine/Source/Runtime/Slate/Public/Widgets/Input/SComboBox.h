@@ -1,12 +1,28 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "STableRow.h"
-#include "SMenuAnchor.h"
-#include "SComboButton.h"
-#include "SListView.h"
-#include "SlateApplication.h"
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Sound/SlateSound.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/SlateDelegates.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Framework/Views/TableViewTypeTraits.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
 
 DECLARE_DELEGATE( FOnComboBoxOpening )
 

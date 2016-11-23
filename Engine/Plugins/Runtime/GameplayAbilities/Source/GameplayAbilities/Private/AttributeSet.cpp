@@ -1,14 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "AttributeSet.h"
-#include "AbilitySystemComponent.h"
-#include "HAL/OutputDevices.h"
+#include "Stats/StatsMisc.h"
+#include "EngineDefines.h"
+#include "Engine/Blueprint.h"
+#include "AssetData.h"
+#include "Engine/ObjectLibrary.h"
+#include "VisualLogger/VisualLogger.h"
+#include "AbilitySystemLog.h"
+#include "GameplayEffectAggregator.h"
+#include "AbilitySystemStats.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "AbilitySystemGlobals.h"
-#include "VisualLogger.h"
+#include "AbilitySystemComponent.h"
 
-#include "ComponentReregisterContext.h"
-#include "PropertyTag.h"
+
+#if WITH_EDITOR
+#include "EditorReimportHandler.h"
+#endif
 
 #if ENABLE_VISUAL_LOG
 namespace

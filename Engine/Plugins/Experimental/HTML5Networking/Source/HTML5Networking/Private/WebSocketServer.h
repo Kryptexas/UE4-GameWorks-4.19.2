@@ -3,7 +3,7 @@
 // Read http://lucumr.pocoo.org/2012/9/24/websockets-101/ for a nice intro to web sockets.
 // This uses https://libwebsockets.org/trac/libwebsockets
 #pragma  once
-#include "HTML5NetworkingPCH.h"
+#include "HTML5NetworkingPrivate.h"
 
 class FWebSocketServer
 {

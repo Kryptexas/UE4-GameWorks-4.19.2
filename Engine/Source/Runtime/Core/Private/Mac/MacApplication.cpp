@@ -1,7 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-
 #include "MacApplication.h"
 #include "MacWindow.h"
 #include "MacCursor.h"
@@ -15,6 +13,8 @@
 #include "CocoaThread.h"
 #include "ModuleManager.h"
 #include "CocoaTextView.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/App.h"
 
 #include <IOKit/IOKitLib.h>
 #include <IOKit/graphics/IOGraphicsLib.h>

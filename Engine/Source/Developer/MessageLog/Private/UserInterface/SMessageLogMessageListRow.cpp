@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessageLogPrivatePCH.h"
-#include "SMessageLogMessageListRow.h"
-#include "SHyperlink.h"
+#include "UserInterface/SMessageLogMessageListRow.h"
+#include "Widgets/SToolTip.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Views/SListView.h"
+#include "EditorStyleSet.h"
+#include "Misc/UObjectToken.h"
+#include "Widgets/Input/SHyperlink.h"
 #include "Internationalization/Regex.h"
 
 #define LOCTEXT_NAMESPACE "SMessageLogMessageListRow"

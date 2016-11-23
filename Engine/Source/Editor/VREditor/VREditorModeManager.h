@@ -2,7 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/GCObject.h"
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+
 class UVREditorMode;
+enum class EMapChangeType : uint8;
 
 /**
  * Manages starting and closing the VREditor mode

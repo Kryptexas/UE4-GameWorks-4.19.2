@@ -2,7 +2,13 @@
 
 #ifndef __SAnimMontageScrubPanel_h__
 #define __SAnimMontageScrubPanel_h__
+
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPersonaPreviewScene.h"
 #include "SAnimationScrubPanel.h"
+#include "SMontageEditor.h"
 
 class SAnimMontageScrubPanel : public SAnimationScrubPanel
 {

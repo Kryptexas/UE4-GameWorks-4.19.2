@@ -1,16 +1,27 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "GameplayDebugger/GameplayDebuggerCategory_AI.h"
+#include "GameFramework/Pawn.h"
+#include "ShowFlags.h"
+#include "PrimitiveViewRelevance.h"
+#include "Components/PrimitiveComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "Engine/Canvas.h"
+#include "AIController.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
 
+#include "Engine/Texture2D.h"
+#include "DynamicMeshBuilder.h"
 #include "DebugRenderSceneProxy.h"
 #include "GameplayTasksComponent.h"
-#include "GameplayDebuggerCategory_AI.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Animation/AnimMontage.h"
-#include "Engine/Canvas.h"
 #include "DrawDebugHelpers.h"
 
 FGameplayDebuggerCategory_AI::FGameplayDebuggerCategory_AI()

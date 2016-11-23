@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+
 namespace UE4GetTypeHashExists_Private
 {
 	struct FNotSpecified {};

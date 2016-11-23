@@ -1,6 +1,22 @@
 // Copyright 2015 Kite & Lightning.  All rights reserved.
 
-#include "StereoPanoramaPrivatePCH.h"
+#include "SceneCapturer.h"
+#include "StereoPanoramaManager.h"
+#include "StereoPanorama.h"
+#include "SceneCapturer.h"
+#include "StereoCapturePawn.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/World.h"
+#include "Interfaces/IImageWrapperModule.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/Paths.h"
+#include "UnrealEngine.h"
+#include "Kismet/GameplayStatics.h"
+#include "Misc/FileHelper.h"
+#include "Misc/App.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/PlayerController.h"
+#include "TextureResource.h"
 
 DEFINE_LOG_CATEGORY( LogStereoPanorama );
 

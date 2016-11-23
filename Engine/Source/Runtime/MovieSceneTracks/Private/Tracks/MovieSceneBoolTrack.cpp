@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneBoolTrack.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieSceneBoolTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Sections/MovieSceneBoolSection.h"
 #include "Evaluation/MovieScenePropertyTemplates.h"
 
 UMovieSceneSection* UMovieSceneBoolTrack::CreateNewSection()

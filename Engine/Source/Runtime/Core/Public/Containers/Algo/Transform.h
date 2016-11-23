@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Templates/Invoke.h"
+#include "CoreTypes.h"
 
 namespace Algo
 {

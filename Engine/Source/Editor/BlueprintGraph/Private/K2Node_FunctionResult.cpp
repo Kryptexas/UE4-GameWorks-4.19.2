@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_FunctionResult.h"
+#include "Misc/CoreMisc.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_FunctionEntry.h"
 
-#include "KismetCompiler.h"
+#include "BPTerminal.h"
+#include "KismetCompiledFunctionContext.h"
 #include "VariableSetHandler.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintNodeSpawner.h"

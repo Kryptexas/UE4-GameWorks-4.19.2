@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "GameplayAbilityTargetActor_Trace.h"
-#include "GameplayAbilityWorldReticle.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Abilities/GameplayAbilityTargetActor_Trace.h"
 #include "GameplayAbilityTargetActor_SingleLineTrace.generated.h"
 
 UCLASS(Blueprintable)

@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "MaterialExpressionCustomOutput.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialExpressionIO.h"
+#include "Materials/MaterialExpressionCustomOutput.h"
 #include "MaterialExpressionTangentOutput.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)

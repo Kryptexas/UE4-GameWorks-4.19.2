@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-
-#include "LayoutUtils.h"
-#include "SScaleBox.h"
+#include "Widgets/Layout/SScaleBox.h"
+#include "Layout/LayoutUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SViewport.h"
+#include "Misc/CoreDelegates.h"
 
 
 /* SScaleBox interface

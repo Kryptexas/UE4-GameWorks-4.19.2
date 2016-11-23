@@ -1,7 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. 
 
-#include "ProceduralMeshComponentPluginPrivatePCH.h"
 #include "ProceduralMeshComponent.h"
+#include "PrimitiveViewRelevance.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
+#include "PrimitiveSceneProxy.h"
+#include "Containers/ResourceArray.h"
+#include "EngineGlobals.h"
+#include "VertexFactory.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "LocalVertexFactory.h"
+#include "Engine/Engine.h"
+#include "SceneManagement.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "ProceduralMeshComponentPluginPrivate.h"
 #include "DynamicMeshBuilder.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 

@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "MacGraphicsSwitchingSettingsDetails.h"
 #include "MacGraphicsSwitchingModule.h"
 #include "MacGraphicsSwitchingSettings.h"
-#include "MacGraphicsSwitchingSettingsDetails.h"
 #include "MacGraphicsSwitchingWidget.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
 
 #define LOCTEXT_NAMESPACE "MacGraphicsSwitchingSettingsDetails"
 

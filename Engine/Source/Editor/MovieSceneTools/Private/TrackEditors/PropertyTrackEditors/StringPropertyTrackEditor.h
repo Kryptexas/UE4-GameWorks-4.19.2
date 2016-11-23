@@ -2,13 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneStringTrack.h"
-#include "MovieSceneStringSection.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
+#include "Tracks/MovieSceneStringTrack.h"
+#include "Sections/MovieSceneStringSection.h"
 
 /**
  * A property track editor for strings.

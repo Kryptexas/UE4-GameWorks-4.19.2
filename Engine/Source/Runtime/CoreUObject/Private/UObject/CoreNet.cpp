@@ -4,7 +4,8 @@
 	UnCoreNet.cpp: Core networking support.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/CoreNet.h"
+#include "UObject/UnrealType.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCoreNet, Log, All);
 

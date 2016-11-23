@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "CoreFwd.h"
 
 /**
  * Implements a helper structure for compression support

@@ -2,13 +2,17 @@
 
 #pragma once
 
-#include "GameplayTags.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayTagContainer.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayPrediction.h"
+#include "UObject/ObjectKey.h"
 #include "GameplayEffect.h"
-#include "ObjectKey.h"
 #include "GameplayCue_Types.generated.h"
 
-class UGameplayCueSet;
 class AGameplayCueNotify_Actor;
+class UAbilitySystemComponent;
 class UGameplayCueSet;
 
 UENUM()

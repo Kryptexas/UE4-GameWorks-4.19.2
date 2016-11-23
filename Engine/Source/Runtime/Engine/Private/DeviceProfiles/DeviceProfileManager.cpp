@@ -1,12 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/CommandLine.h"
+#include "UObject/Package.h"
+#include "SceneManagement.h"
+#include "SystemSettings.h"
 #include "DeviceProfiles/DeviceProfile.h"
-#include "TargetPlatform.h"
 #include "IDeviceProfileSelectorModule.h"
-#include "IConsoleManager.h"
 #if WITH_EDITOR
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "PlatformInfo.h"
 #endif
 

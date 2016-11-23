@@ -59,6 +59,11 @@ namespace UnrealBuildTool
 		public static double TotalDeepIncludeScanTime = 0.0;
 
 		/// <summary>
+		/// Total time spent executing actions
+		/// </summary>
+		static public double TotalExecutorTime = 0;
+
+		/// <summary>
 		/// The command line
 		/// </summary>
 		static public List<string> CmdLine = new List<string>();
@@ -2063,7 +2068,9 @@ namespace UnrealBuildTool
 
 							// Execute the actions.
 							string TargetInfoForTelemetry = String.Join("|", Targets.Select(x => String.Format("{0} {1} {2}{3}", x.TargetName, x.Platform, x.Configuration, BuildConfiguration.bUseUnityBuild? "" : " NonUnity")));
+							DateTime ExecutorStartTime = DateTime.UtcNow;
 							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName, TargetInfoForTelemetry, bIsHotReload);
+							TotalExecutorTime += (DateTime.UtcNow - ExecutorStartTime).TotalSeconds;
 
 							// if the build succeeded, write the receipts and do any needed syncing
 							if (bSuccess)
@@ -2143,38 +2150,35 @@ namespace UnrealBuildTool
 			}
 
 			// Figure out how long we took to execute.
-			double BuildDuration = (DateTime.UtcNow - StartTime).TotalSeconds;
-			if (ExecutorName == "Local" || ExecutorName == "Distcc" || ExecutorName == "SNDBS")
+			if(ExecutorName != "Unknown")
 			{
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
-					LogEventType.Console,
-					"Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
-					System.Environment.ProcessorCount,
-					TotalBuildProjectTime,
-					TotalCompileTime,
-					TotalCreateAppBundleTime,
-					TotalGenerateDebugInfoTime,
-					TotalLinkTime,
-					TotalOtherActionsTime
-				);
+				double BuildDuration = (DateTime.UtcNow - StartTime).TotalSeconds;
+				Log.TraceInformation("Total build time: {0:0.00} seconds ({1} executor: {2:0.00} seconds)", BuildDuration, ExecutorName, TotalExecutorTime);
 
-				Log.TraceInformation("Total build time: {0:0.00} seconds", BuildDuration);
-
-				// reset statistics
-				TotalBuildProjectTime = 0;
-				TotalCompileTime = 0;
-				TotalCreateAppBundleTime = 0;
-				TotalGenerateDebugInfoTime = 0;
-				TotalLinkTime = 0;
-				TotalOtherActionsTime = 0;
-			}
-			else
-			{
-				if (ExecutorName == "XGE")
+				if (ExecutorName != "XGE")
 				{
-					Log.TraceInformation("XGE execution time: {0:0.00} seconds", BuildDuration);
+					Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+						LogEventType.Console,
+						"Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
+						System.Environment.ProcessorCount,
+						TotalBuildProjectTime,
+						TotalCompileTime,
+						TotalCreateAppBundleTime,
+						TotalGenerateDebugInfoTime,
+						TotalLinkTime,
+						TotalOtherActionsTime
+					);
 				}
 			}
+
+			// reset statistics
+			TotalBuildProjectTime = 0;
+			TotalCompileTime = 0;
+			TotalCreateAppBundleTime = 0;
+			TotalGenerateDebugInfoTime = 0;
+			TotalLinkTime = 0;
+			TotalOtherActionsTime = 0;
+			TotalExecutorTime = 0;
 
 			return BuildResult;
 		}

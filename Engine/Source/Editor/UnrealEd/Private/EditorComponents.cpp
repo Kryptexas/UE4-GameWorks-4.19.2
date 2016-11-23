@@ -1,10 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
-#include "MouseDeltaTracker.h"
+#include "EditorComponents.h"
+#include "EngineDefines.h"
+#include "HAL/IConsoleManager.h"
+#include "GameFramework/Actor.h"
+#include "Materials/Material.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "EngineGlobals.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/Selection.h"
+#include "SceneManagement.h"
+#include "EditorModeManager.h"
 #include "GameFramework/WorldSettings.h"
 
 static TAutoConsoleVariable<int32> CVarEditorNewLevelGrid(

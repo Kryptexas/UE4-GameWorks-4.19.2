@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "GameFramework/PlayerMuteList.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/LocalPlayer.h"
 #include "Net/OnlineEngineInterface.h"
 #include "GameFramework/GameSession.h"
 #include "GameFramework/PlayerState.h"

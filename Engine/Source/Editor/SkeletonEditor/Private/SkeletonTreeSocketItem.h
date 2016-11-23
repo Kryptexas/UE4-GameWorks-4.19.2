@@ -2,8 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "ISkeletonTreeItem.h"
 #include "SkeletonTreeItem.h"
 #include "IEditableSkeleton.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Preferences/PersonaOptions.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 class FSkeletonTreeSocketItem : public FSkeletonTreeItem
 {

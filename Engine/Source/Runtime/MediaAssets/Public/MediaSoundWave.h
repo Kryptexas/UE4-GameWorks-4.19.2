@@ -2,13 +2,11 @@
 
 #pragma once
 
-#include "Sound/SoundWaveProcedural.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sound/SoundWave.h"
 #include "IMediaAudioSink.h"
 #include "MediaSoundWave.generated.h"
-
-
-class UMediaPlayer;
-
 
 /**
  * Implements a playable sound asset for audio streams from UMediaPlayer assets.

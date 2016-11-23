@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPersonaPreviewScene.h"
 #include "SAnimationBlendSpaceBase.h"
 #include "Animation/BlendSpace1D.h"
 #include "AnimationBlendSpace1DHelpers.h"
@@ -18,7 +21,7 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo);
 protected:	
 	virtual void ResampleData() override;
-	
+
 	/** Generates editor elements in 1D (line) space */
 	FLineElementGenerator ElementGenerator;
 };

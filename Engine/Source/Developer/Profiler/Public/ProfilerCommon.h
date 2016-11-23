@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Stats/StatsMisc.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(Profiler, Log, All);
 

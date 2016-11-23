@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "CompilerResultsLog.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/PackageName.h"
+#include "Editor/EditorPerProjectUserSettings.h"
 #include "MessageLogModule.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 #include "SourceCodeNavigation.h"
 #include "Developer/HotReload/Public/IHotReload.h"
 #include "EngineLogs.h"

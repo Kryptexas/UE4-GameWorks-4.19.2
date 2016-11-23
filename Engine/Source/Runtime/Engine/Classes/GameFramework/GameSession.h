@@ -5,12 +5,17 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
+#include "UObject/CoreOnline.h"
 #include "GameFramework/Info.h"
 #include "GameSession.generated.h"
 
-class UWorld;
 class APlayerController;
-struct FJoinabilitySettings;
+class Error;
+struct FUniqueNetIdRepl;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGameSession, Log, All);
 

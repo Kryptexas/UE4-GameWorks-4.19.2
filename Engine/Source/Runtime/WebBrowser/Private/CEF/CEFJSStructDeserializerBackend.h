@@ -1,10 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class FCEFJSScripting;
+class IStructDeserializerBackend;
+enum class EStructDeserializerBackendTokens;
+
 #if WITH_CEF3
 
+#include "WebBrowserSingleton.h"
+#include "UObject/UnrealType.h"
 #include "IStructDeserializerBackend.h"
-#include "Core.h"
 #include "CEFJSScripting.h"
 
 // forward declarations
@@ -13,12 +21,14 @@ class UStruct;
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 #endif
 #pragma push_macro("OVERRIDE")
 #undef OVERRIDE // cef headers provide their own OVERRIDE macro
 #include "include/cef_values.h"
 #pragma pop_macro("OVERRIDE")
 #if PLATFORM_WINDOWS
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
 

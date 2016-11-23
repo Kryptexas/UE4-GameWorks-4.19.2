@@ -7,10 +7,25 @@
 
 #pragma once
 
-#include "PhysxUserData.h"
-#include "DynamicMeshBuilder.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Engine/EngineTypes.h"
+#include "Misc/CoreMisc.h"
+#include "EngineDefines.h"
+#include "RenderResource.h"
+#include "PhysicsEngine/BodyInstance.h"
 #include "LocalVertexFactory.h"
-#include "PhysicsEngine/RigidBodyIndexPair.h"
+#include "DynamicMeshBuilder.h"
+
+class AActor;
+class ULineBatchComponent;
+class UPhysicalMaterial;
+class UPhysicsAsset;
+class UPrimitiveComponent;
+class USkeletalMeshComponent;
+struct FConstraintInstance;
+struct FPendingApexDamageManager;
+
 /**
  * Physics stats
  */

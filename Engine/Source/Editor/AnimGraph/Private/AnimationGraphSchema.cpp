@@ -4,16 +4,20 @@
 	AnimationGraphSchema.cpp
 =============================================================================*/
 
-#include "AnimGraphPrivatePCH.h"
-#include "BlueprintUtilities.h"
-#include "GraphEditorActions.h"
-#include "ScopedTransaction.h"
-#include "AssetData.h"
 #include "AnimationGraphSchema.h"
-#include "K2Node_TransitionRuleGetter.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimBlueprint.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "K2Node.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Animation/AnimSequence.h"
 #include "AnimStateNode.h"
+#include "Animation/BlendSpace.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
+#include "Animation/AnimNodeBase.h"
+#include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "AnimGraphNode_ComponentToLocalSpace.h"
@@ -21,9 +25,11 @@
 #include "AnimGraphNode_Root.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "AnimGraphNode_SequencePlayer.h"
+#include "Animation/PoseAsset.h"
 #include "AnimGraphNode_PoseBlendNode.h"
 #include "AnimGraphNode_PoseByName.h"
 #include "AnimGraphCommands.h"
+#include "K2Node_Knot.h"
 
 #define LOCTEXT_NAMESPACE "AnimationGraphSchema"
 

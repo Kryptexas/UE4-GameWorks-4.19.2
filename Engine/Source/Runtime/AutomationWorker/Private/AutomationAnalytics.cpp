@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AutomationWorkerPrivatePCH.h"
 #include "AutomationAnalytics.h"
-#include "EngineBuildSettings.h"
-#include "IAnalyticsProvider.h"
-#include "AnalyticsET.h"
+#include "Misc/CommandLine.h"
+#include "Misc/App.h"
+#include "Misc/EngineVersion.h"
+#include "Interfaces/IAutomationWorkerModule.h"
+#include "AutomationWorkerMessages.h"
+#include "AutomationWorkerPrivate.h"
+#include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProviderET.h"
+#include "AnalyticsET.h"
 
 DEFINE_LOG_CATEGORY(LogAutomationAnalytics);
 

@@ -3,10 +3,13 @@
 #pragma once
 
 // Dependencies.
-#include "ModuleManager.h"
-#include "Core.h"
-#include "Json.h"
-#include "NetworkVersion.h"
+
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Serialization/JsonSerializerMacros.h"
+
+class FNetworkReplayVersion;
 
 class FReplayEventListItem : public FJsonSerializable
 {

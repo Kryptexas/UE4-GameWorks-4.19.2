@@ -1,21 +1,40 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "EngineGlobals.h"
+#include "HAL/IConsoleManager.h"
+#include "Components/SceneComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/MeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/Engine.h"
+#include "GameFramework/Volume.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/ShapeComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "SceneManagement.h"
 #include "PhysicsPublic.h"
 #include "Collision.h"
 #include "PhysicsEngine/ConstraintInstance.h"
+#include "PhysicsEngine/ShapeElem.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
-#include "MessageLog.h"
-#include "UObjectToken.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 
 #if WITH_PHYSX
-	#include "PhysXSupport.h"
-	#include "../Collision/PhysXCollision.h"
-	#include "../Collision/CollisionConversions.h"
+	#include "PhysXPublic.h"
+	#include "Physics/PhysicsFiltering.h"
+	#include "PhysicsEngine/PhysXSupport.h"
+	#include "Collision/PhysXCollision.h"
+	#include "Collision/CollisionConversions.h"
 #endif // WITH_PHYSX
 
-#include "PhysDerivedData.h"
 #include "PhysicsSerializer.h"
 
 #define LOCTEXT_NAMESPACE "BodyInstance"

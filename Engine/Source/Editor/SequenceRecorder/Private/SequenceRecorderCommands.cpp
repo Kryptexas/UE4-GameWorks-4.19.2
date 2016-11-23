@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
 #include "SequenceRecorderCommands.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorderCommands"
 

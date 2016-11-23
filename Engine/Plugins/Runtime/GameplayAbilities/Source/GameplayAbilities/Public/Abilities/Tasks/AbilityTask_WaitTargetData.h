@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "AbilityTask.h"
-#include "GameplayAbilityTargetTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameplayTagContainer.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
+#include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_WaitTargetData.generated.h"
-
-class AGameplayAbilityTargetActor;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitTargetDataDelegate, const FGameplayAbilityTargetDataHandle&, Data);
 

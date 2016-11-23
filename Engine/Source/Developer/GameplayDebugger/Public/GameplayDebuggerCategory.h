@@ -32,14 +32,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GameplayDebuggerTypes.h"
 #include "GameplayDebuggerAddonBase.h"
-#include "GameplayDebuggerCategoryReplicator.h"
 
 class AActor;
-class UPrimitiveComponent;
-class UWorld;
 class APlayerController;
 class FDebugRenderSceneProxy;
+class UPrimitiveComponent;
 struct FDebugDrawDelegateHelper;
 
 /**

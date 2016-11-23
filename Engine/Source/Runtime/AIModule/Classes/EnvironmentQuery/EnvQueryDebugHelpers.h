@@ -1,12 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "EnvQueryTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "EngineDefines.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
+#include "VisualLogger/VisualLogger.h"
 #include "DebugRenderSceneProxy.h"
-#include "VisualLoggerExtension.h"
 #include "EnvQueryDebugHelpers.generated.h"
 
-struct FEnvQueryInstance;
+class FTestData;
+class UEnvQueryDebugHelpers;
 
 #if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
 

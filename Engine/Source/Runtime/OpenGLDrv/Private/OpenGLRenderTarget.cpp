@@ -4,8 +4,11 @@
 	OpenGLRenderTarget.cpp: OpenGL render target implementation.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
-#include "ScreenRendering.h"
 
 // gDEBugger is currently very buggy. For example, it cannot show render buffers correctly and doesn't
 // know what combined depth/stencil is. This define makes OpenGL render directly to textures and disables

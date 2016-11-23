@@ -2,9 +2,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Engine/PreviewMeshCollection.h"
-#include "IAssetTypeActions.h"
+
+#include "CoreMinimal.h"
 #include "AssetTypeActions_Base.h"
+#include "Engine/PreviewMeshCollection.h"
 
 class FAssetTypeActions_PreviewMeshCollection : public FAssetTypeActions_Base
 {

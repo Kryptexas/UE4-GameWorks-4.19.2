@@ -2,33 +2,28 @@
 
 #pragma once
 
-#include "AnimationAsset.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Components/SkinnedMeshComponent.h"
-#include "AnimStateMachineTypes.h"
-#include "BonePose.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Animation/AnimTypes.h"
+#include "Animation/Skeleton.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimCurveTypes.h"
+#include "Animation/AnimMontage.h"
+#include "BonePose.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimNotifyQueue.h"
-#include "Animation/AnimClassInterface.h"
 #include "AnimInstance.generated.h"
 
-struct FAnimMontageInstance;
-class UAnimMontage;
-class USkeleton;
-class AActor;
-class UAnimSequenceBase;
-class UBlendSpaceBase;
-class APawn;
-class UAnimationAsset;
-class UCanvas;
-class UWorld;
-struct FTransform;
 class FDebugDisplayInfo;
-struct FAnimNode_SubInput;
-struct FAnimNode_AssetPlayerBase;
-struct FAnimNode_Base;
+class IAnimClassInterface;
+class UAnimInstance;
+class UCanvas;
 struct FAnimInstanceProxy;
-struct FPoseSnapshot;
+struct FAnimNode_AssetPlayerBase;
+struct FAnimNode_StateMachine;
+struct FAnimNode_SubInput;
+struct FBakedAnimationStateMachine;
 
 UENUM()
 enum class EAnimCurveType : uint8 
@@ -1240,7 +1235,7 @@ protected:
 		}
 		return *static_cast<const T*>(AnimInstanceProxy);
 	}
-	
+
 	friend struct FAnimNode_SubInstance;
 
 protected:

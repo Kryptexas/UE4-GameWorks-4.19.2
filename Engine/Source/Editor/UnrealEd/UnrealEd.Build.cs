@@ -7,10 +7,9 @@ public class UnrealEd : ModuleRules
 {
 	public UnrealEd(TargetInfo Target)
 	{
-		SharedPCHHeaderFile = "Editor/UnrealEd/Public/UnrealEd.h";
+		PrivatePCHHeaderFile = "Private/UnrealEdPrivatePCH.h";
 
-		// Cannot use shared pchs due to circular dependencies in Engine with different _API macros
-		PCHUsage = PCHUsageMode.NoSharedPCHs;
+		SharedPCHHeaderFile = "Public/UnrealEdSharedPCH.h";
 
 		PrivateIncludePaths.AddRange(
 			new string[] 

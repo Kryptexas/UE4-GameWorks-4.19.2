@@ -2,16 +2,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Engine/NetSerialization.h"
+#include "Engine/EngineTypes.h"
+#include "GameplayTagContainer.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayPrediction.h"
+#include "Components/MeshComponent.h"
 #include "GameplayAbilityTargetTypes.generated.h"
 
-class UGameplayEffect;
-class UAnimInstance;
-class UAbilitySystemComponent;
 class UGameplayAbility;
-class AGameplayAbilityTargetActor;
-class UAbilityTask;
-class UAttributeSet;
+class UGameplayEffect;
+struct FGameplayEffectSpec;
 
 UENUM(BlueprintType)
 namespace EGameplayTargetingConfirmation

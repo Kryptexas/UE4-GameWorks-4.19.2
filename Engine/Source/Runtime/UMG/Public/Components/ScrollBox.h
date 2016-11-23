@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Components/PanelWidget.h"
 #include "ScrollBox.generated.h"
 
 /**

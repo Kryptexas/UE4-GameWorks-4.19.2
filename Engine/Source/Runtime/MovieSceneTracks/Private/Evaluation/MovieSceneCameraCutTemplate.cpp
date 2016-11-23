@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneCameraCutTemplate.h"
-#include "MovieSceneCameraCutSection.h"
+#include "Evaluation/MovieSceneCameraCutTemplate.h"
+#include "Sections/MovieSceneCameraCutSection.h"
 
 DECLARE_CYCLE_STAT(TEXT("Camera Cut Track Token Execute"), MovieSceneEval_CameraCutTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

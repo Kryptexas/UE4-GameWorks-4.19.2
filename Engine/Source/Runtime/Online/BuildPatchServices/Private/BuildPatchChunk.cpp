@@ -4,7 +4,11 @@
 	BuildPatchChunk.cpp: Implements classes involved with chunks for the build system.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchChunk.h"
+#include "HAL/FileManager.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "BuildPatchUtil.h"
 
 // The chunk header magic codeword, for quick checking that the opened file is a chunk file.
 #define CHUNK_HEADER_MAGIC		0xB1FE3AA2

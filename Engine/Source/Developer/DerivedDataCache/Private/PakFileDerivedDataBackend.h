@@ -2,10 +2,20 @@
 
 #pragma once
 
-#include "Compression.h"
-#include "DerivedDataCacheUsageStats.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
 #include "DerivedDataBackendInterface.h"
+#include "ProfilingDebugging/CookStats.h"
+#include "DerivedDataCacheUsageStats.h"
+#include "Misc/ScopeLock.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
 #include "UniquePtr.h"
+
+class Error;
 
 /** 
  * A simple thread safe, pak file based backend. 

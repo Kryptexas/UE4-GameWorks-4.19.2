@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "ICUBreakIterator.h"
+#include "Internationalization/ICUBreakIterator.h"
+#include "Misc/ScopeLock.h"
+#include "Internationalization/Internationalization.h"
 
 #if UE_ENABLE_ICU
-#include "ICUTextCharacterIterator.h"
-#include "ICUCulture.h"
+#include "Internationalization/ICUTextCharacterIterator.h"
+#include "Internationalization/ICUCulture.h"
 
 FICUBreakIteratorManager* FICUBreakIteratorManager::Singleton = nullptr;
 

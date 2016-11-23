@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "Casts.h"
+#include "Templates/Casts.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCasts, Log, All);
 DEFINE_LOG_CATEGORY(LogCasts);

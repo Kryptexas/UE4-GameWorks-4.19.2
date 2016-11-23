@@ -2,10 +2,22 @@
 
 #pragma once
 
-// Forward declarations
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UObject/GCObject.h"
+#include "UnrealWidget.h"
+#include "EdMode.h"
+
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FViewport;
 class ULandscapeInfo;
 class ULandscapeLayerInfoObject;
+class UMaterialInstance;
+class UMaterialInterface;
 class UViewportInteractor;
+struct FViewportClick;
 
 // FLandscapeToolMousePosition - Struct to store mouse positions since the last time we applied the brush
 struct FLandscapeToolInteractorPosition
@@ -193,9 +205,9 @@ struct FLandscapeToolTarget
 	FName LayerName;
 
 	FLandscapeToolTarget()
-		: LandscapeInfo(NULL)
+		: LandscapeInfo()
 		, TargetType(ELandscapeToolTargetType::Heightmap)
-		, LayerInfo(NULL)
+		, LayerInfo()
 		, LayerName(NAME_None)
 	{
 	}

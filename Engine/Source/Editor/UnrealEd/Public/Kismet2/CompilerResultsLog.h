@@ -2,12 +2,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/Object.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
 #if WITH_EDITOR
-
-#include "BlueprintUtilities.h"
-#include "TokenizedMessage.h"
-#include "CompilationResult.h"
+#include "Logging/TokenizedMessage.h"
+#include "Misc/CompilationResult.h"
 #include "EdGraphToken.h"
+#endif
+
+class Error;
+
+#if WITH_EDITOR
 
 /** This class maps from final objects to their original source object, across cloning, autoexpansion, etc... */
 class UNREALED_API FBacktrackMap

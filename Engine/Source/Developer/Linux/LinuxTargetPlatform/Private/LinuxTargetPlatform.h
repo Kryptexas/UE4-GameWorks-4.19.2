@@ -6,13 +6,25 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/TargetDeviceId.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Common/TargetPlatformBase.h"
+
 #if WITH_ENGINE
+#include "Sound/SoundWave.h"
 #include "StaticMeshResources.h"
 #endif // WITH_ENGINE
-#include "IProjectManager.h"
+#include "Interfaces/IProjectManager.h"
 #include "InstalledPlatformInfo.h"
+#include "LinuxTargetDevice.h"
+#include "Linux/LinuxPlatformProperties.h"
 
 #define LOCTEXT_NAMESPACE "TLinuxTargetPlatform"
+
+class UTextureLODSettings;
 
 /**
  * Template for Linux target platforms
@@ -259,7 +271,7 @@ public:
 		if (!IS_DEDICATED_SERVER)
 		{
 			// just use the standard texture format name for this texture
-			FName TextureFormatName = this->GetDefaultTextureFormatName(InTexture, EngineSettings, false);
+			FName TextureFormatName = GetDefaultTextureFormatName(this, InTexture, EngineSettings, false);
 			OutFormats.Add(TextureFormatName);
 		}
 	}

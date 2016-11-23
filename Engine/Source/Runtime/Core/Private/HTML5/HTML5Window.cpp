@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "HTML5Window.h"
+#include "HAL/OutputDevices.h"
 
 #if !PLATFORM_HTML5_WIN32
 #include <emscripten/emscripten.h>

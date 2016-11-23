@@ -1,8 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "CinematicCameraPrivate.h"
-#include "CineCameraComponent.h"
 #include "CineCameraActor.h"
+#include "DrawDebugHelpers.h"
+#include "CineCameraComponent.h"
 
 #define LOCTEXT_NAMESPACE "CineCameraActor"
 

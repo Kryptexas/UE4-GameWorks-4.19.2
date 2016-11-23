@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundNodeDistanceCrossFade.h"
+#include "ActiveSound.h"
+#include "AudioDevice.h"
 #include "Sound/SoundBase.h"
 
 /*-----------------------------------------------------------------------------

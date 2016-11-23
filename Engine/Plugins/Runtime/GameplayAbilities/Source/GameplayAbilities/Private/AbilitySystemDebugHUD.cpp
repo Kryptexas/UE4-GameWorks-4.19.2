@@ -1,10 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AbilitySystemComponent.h"
 #include "AbilitySystemDebugHUD.h"
-#include "DebugRenderSceneProxy.h"
+#include "GameFramework/PlayerController.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 #include "Debug/DebugDrawService.h"
+#include "Engine/LocalPlayer.h"
+#include "EngineUtils.h"
+#include "AbilitySystemComponent.h"
 
 AAbilitySystemDebugHUD::AAbilitySystemDebugHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

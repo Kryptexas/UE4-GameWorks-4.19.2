@@ -3,9 +3,15 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "EngineDefines.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "PhysicsPublic.h"
+#include "PhysXIncludes.h"
+
 #if WITH_PHYSX
 
-#include "../PhysicsEngine/PhysXSupport.h"
 
 enum class EConvertQueryResult
 {

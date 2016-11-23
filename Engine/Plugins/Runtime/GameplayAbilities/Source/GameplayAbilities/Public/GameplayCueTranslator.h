@@ -3,10 +3,16 @@
 #pragma once
 
 
-#include "GameplayTags.h"
-#include "GameplayCue_Types.h"
-#include "Engine/DataAsset.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "GameplayTagContainer.h"
 #include "GameplayCueTranslator.generated.h"
+
+class AActor;
+class UGameplayCueTranslator;
+class UGameplayTagsManager;
+struct FGameplayCueParameters;
 
 /**
  *	Overview of the GameplayCueTranslator system

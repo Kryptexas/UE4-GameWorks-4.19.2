@@ -1,14 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/ScopedSlowTask.h"
+#include "GameFramework/Actor.h"
+#include "Materials/Material.h"
+#include "Engine/Brush.h"
+#include "Editor/EditorEngine.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "EdMode.h"
+#include "EditorModeManager.h"
 #include "SurfaceIterators.h"
 #include "BSPOps.h"
 #include "ActorEditorUtils.h"
-#include "Engine/Polys.h"
+#include "Misc/FeedbackContext.h"
 #include "EngineUtils.h"
-#include "Engine/Brush.h"
-#include "Engine/Selection.h"
 
 // Globals:
 static TArray<uint8*> GFlags1;

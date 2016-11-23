@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AudioMixer.h"
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include <xaudio2.h>
 #include "HideWindowsPlatformTypes.h"

@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Runtime/Renderer/Private/SceneRendering.h"
+
 /** Parameters needed to render exponential height fog. */
 class FExponentialHeightFogShaderParameters
 {

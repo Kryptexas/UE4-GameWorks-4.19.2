@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieSceneSequenceTransform.h"
+#include "CoreMinimal.h"
+#include "Evaluation/MovieSceneSequenceTransform.h"
 #include "IMovieScenePlayer.h"
 
 /** Enumeration specifying whether we're playing forwards or backwards */

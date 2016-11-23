@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/Timespan.h"
+
 /** Platforms that don't need a working FSystemWideCriticalSection can just typedef this one */
 class FSystemWideCriticalSectionNotImplemented
 {

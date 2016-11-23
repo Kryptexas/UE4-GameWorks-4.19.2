@@ -2,16 +2,22 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Components/ActorComponent.h"
+#include "EngineDefines.h"
 #include "AITypes.h"
 #include "AIResourceInterface.h"
 #include "BrainComponent.generated.h"
 
-class AController;
 class AAIController;
+class AController;
+class APawn;
 class UBlackboardComponent;
 class UBrainComponent;
 struct FAIMessage;
-class APawn;
+struct FAIMessageObserver;
 
 DECLARE_DELEGATE_TwoParams(FOnAIMessage, UBrainComponent*, const FAIMessage&);
 

@@ -2,9 +2,12 @@
 
 #pragma once
 
-#include "EditorStyle.h"
-#include "PropertyEditorModule.h"
-#include "AndroidRuntimeSettings.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "IDetailCustomization.h"
+
+class IDetailLayoutBuilder;
 
 //////////////////////////////////////////////////////////////////////////
 // FAndroidTargetSettingsCustomization

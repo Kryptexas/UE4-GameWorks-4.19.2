@@ -2,7 +2,14 @@
 
 #pragma once
 
-#include "UnrealMathUtility.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Misc/Crc.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Parse.h"
+#include "Math/IntPoint.h"
+#include "Logging/LogMacros.h"
 
 /**
  * A vector in 2-D space composed of components (X, Y) with floating point precision.

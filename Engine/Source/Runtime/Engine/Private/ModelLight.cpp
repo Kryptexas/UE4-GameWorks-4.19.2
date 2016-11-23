@@ -4,14 +4,17 @@
 	ModelLight.cpp: Unreal model lighting.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "TextureLayout.h"
 #include "ModelLight.h"
+#include "EngineDefines.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "Misc/ScopedSlowTask.h"
+#include "ComponentReregisterContext.h"
+#include "UnrealEngine.h"
+#include "TextureLayout.h"
 #include "Collision.h"
-#include "Model.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
-#include "ComponentReregisterContext.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "Components/ModelComponent.h"
 

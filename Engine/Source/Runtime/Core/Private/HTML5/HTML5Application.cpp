@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "HTML5Application.h"
 #include "HTML5Cursor.h"
 #include "HTML5InputInterface.h"
+#include "HAL/OutputDevices.h"
 
 #include "SDL_opengl.h"
 

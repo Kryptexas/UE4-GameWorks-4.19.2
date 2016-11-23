@@ -1,16 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "WindowsWindow.h"
-#include "WindowsApplication.h"
+#include "Windows/WindowsWindow.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/UnrealString.h"
+#include "CoreGlobals.h"
+#include "Math/Vector2D.h"
+#include "GenericPlatform/GenericWindowDefinition.h"
+#include "Windows/WindowsApplication.h"
 #include "HAL/ThreadHeartBeat.h"
 
-#include "AllowWindowsPlatformTypes.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 #if WINVER > 0x502	// Windows Vista or better required for DWM
-	#include "Dwmapi.h"
+	#include <dwmapi.h>
 #endif
 #include <ShlObj.h>
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"
 
 
 FWindowsWindow::~FWindowsWindow()

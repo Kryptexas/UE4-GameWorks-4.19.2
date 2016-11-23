@@ -1,19 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
-
-#include "PackageTools.h"
-#include "Kismet2/BlueprintEditorUtils.h"
-#include "Kismet2/KismetEditorUtilities.h"
-#include "BlueprintEditorModule.h"
-#include "AssetRegistryModule.h"
-#include "SBlueprintDiff.h"
-#include "ISourceControlModule.h"
-#include "MessageLog.h"
-
 #include "AssetTypeActions_GameplayAbilitiesBlueprint.h"
+#include "Misc/MessageDialog.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "GameplayAbilitiesEditor.h"
 #include "GameplayAbilityBlueprint.h"
+#include "Abilities/GameplayAbility.h"
 #include "GameplayAbilitiesBlueprintFactory.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"

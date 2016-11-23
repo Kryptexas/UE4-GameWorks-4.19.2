@@ -1,13 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioCapture.h"
 #include "AudioRecordingManager.h"
-#include "SoundDefinitions.h"
+#include "AudioCapture.h"
 #include "Sound/AudioSettings.h"
 #include "AssetRegistryModule.h"
-#include "UnrealEd.h"
 #include "Factories/SoundFactory.h"
-
+#include "Misc/ScopeLock.h"
+#include "Sound/SoundWave.h"
+#include "AudioDeviceManager.h"
+#include "Engine/Engine.h"
+#include "Components/AudioComponent.h"
 
 DEFINE_LOG_CATEGORY(LogMicManager);
 

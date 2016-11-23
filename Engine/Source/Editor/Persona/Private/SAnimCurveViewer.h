@@ -2,10 +2,25 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Animation/SmartName.h"
+#include "IPersonaPreviewScene.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
 #include "Animation/AnimInstance.h"
 #include "EditorObjectsTracker.h"
 #include "PersonaDelegates.h"
 
+class FUICommandList;
+class IEditableSkeleton;
 class SAnimCurveViewer;
 
 //////////////////////////////////////////////////////////////////////////

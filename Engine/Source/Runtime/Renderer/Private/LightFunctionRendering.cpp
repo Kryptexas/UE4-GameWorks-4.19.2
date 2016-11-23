@@ -4,10 +4,23 @@
 	LightFunctionRendering.cpp: Implementation for rendering light functions.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "EngineGlobals.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "SceneUtils.h"
+#include "RHIStaticStates.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "MaterialShaderType.h"
+#include "SceneRenderTargetParameters.h"
+#include "MaterialShader.h"
+#include "ShadowRendering.h"
+#include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
 #include "LightRendering.h"
-#include "SceneUtils.h"
 
 /**
  * A vertex shader for projecting a light function onto the scene.

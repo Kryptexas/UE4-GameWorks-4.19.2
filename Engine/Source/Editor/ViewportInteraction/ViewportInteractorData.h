@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "ViewportInteractionTypes.h"
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "ViewportInteractionTypes.h"
 
 /** Represents a single virtual hand */

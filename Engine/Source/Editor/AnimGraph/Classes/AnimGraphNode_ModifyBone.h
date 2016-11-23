@@ -2,10 +2,14 @@
 
 #pragma once
 
-#include "AnimGraphNode_SkeletalControlBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "BoneControllers/AnimNode_ModifyBone.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
+#include "EdGraph/EdGraphNodeUtils.h"
+#include "AnimGraphNode_SkeletalControlBase.h"
 #include "AnimGraphNode_ModifyBone.generated.h"
+
+class FCompilerResultsLog;
 
 UCLASS(meta=(Keywords = "Modify Transform"))
 class ANIMGRAPH_API UAnimGraphNode_ModifyBone : public UAnimGraphNode_SkeletalControlBase

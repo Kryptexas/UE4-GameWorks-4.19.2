@@ -7,8 +7,13 @@
  */
 
 #pragma once
-#include "AnimInstance.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimInstance.h"
 #include "AnimSingleNodeInstance.generated.h"
+
+struct FAnimInstanceProxy;
 
 DECLARE_DYNAMIC_DELEGATE(FPostEvaluateAnimEvent);
 

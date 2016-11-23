@@ -2,10 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "HAL/IConsoleManager.h"
+#include "Engine/MaterialMerging.h"
 #include "GameFramework/Actor.h"
+#include "Components/StaticMeshComponent.h"
 #include "LODActor.generated.h"
 
-class UStaticMeshComponent;
 class UStaticMesh;
 
 /**

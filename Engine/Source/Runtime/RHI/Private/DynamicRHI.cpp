@@ -4,10 +4,14 @@
 	DynamicRHI.cpp: Dynamically bound Render Hardware Interface implementation.
 =============================================================================*/
 
-#include "RHIPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
 #include "RHI.h"
-#include "ModuleManager.h"
-#include "GenericPlatformDriver.h" // FGPUDriverInfo
+#include "Modules/ModuleManager.h"
+#include "GenericPlatform/GenericPlatformDriver.h"
 
 #ifndef PLATFORM_ALLOW_NULL_RHI
 	#define PLATFORM_ALLOW_NULL_RHI		0

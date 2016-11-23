@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "Factories/DialogueWaveFactory.h"
+#include "Sound/DialogueWave.h"
+#include "Sound/SoundWave.h"
 
 UDialogueWaveFactory::UDialogueWaveFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

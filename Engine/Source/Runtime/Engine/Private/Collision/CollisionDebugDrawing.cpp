@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
-#include "CollisionDebugDrawingPublic.h"
+#include "Collision/CollisionDebugDrawing.h"
+#include "Collision/PhysXCollision.h"
+#include "Components/PrimitiveComponent.h"
+#include "DrawDebugHelpers.h"
 
 #if ENABLE_DRAW_DEBUG
 
@@ -13,7 +14,7 @@ static FColor BlockColor(255,64,64);
 static FColor TouchColor(64,255,64);
 static float NormalLength = 20.f;
 
-void DrawLineTraces(const UWorld* InWorld, const FVector& Start, const FVector& End, const TArray<FHitResult>& Hits, float Lifetime)
+ENGINE_API void DrawLineTraces(const UWorld* InWorld, const FVector& Start, const FVector& End, const TArray<FHitResult>& Hits, float Lifetime)
 {
 	FColor Color = (Hits.Num() > 0)? HitColor: TraceColor;
 	DrawDebugLine(InWorld, Start, End, Color, false, Lifetime);
@@ -34,7 +35,7 @@ void DrawLineTraces(const UWorld* InWorld, const FVector& Start, const FVector& 
 	}
 }
 
-void DrawSphereSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, const float Radius, const TArray<FHitResult>& Hits, float Lifetime)
+ENGINE_API void DrawSphereSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, const float Radius, const TArray<FHitResult>& Hits, float Lifetime)
 {
 	FColor Color = (Hits.Num() > 0)? HitColor: TraceColor;
 	DrawDebugSphere(InWorld, Start, Radius, FMath::Max(Radius/4.f, 2.f), Color, false, Lifetime);
@@ -57,7 +58,7 @@ void DrawSphereSweeps(const UWorld* InWorld, const FVector& Start, const FVector
 	}
 }
 
-void DrawBoxSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, const FVector& Extent, const FQuat& Rot, const TArray<FHitResult>& Hits, float Lifetime)
+ENGINE_API void DrawBoxSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, const FVector& Extent, const FQuat& Rot, const TArray<FHitResult>& Hits, float Lifetime)
 {
 	FBox StartBox(Start-Extent, Start+Extent);
 	FBox EndBox(End-Extent, End+Extent);
@@ -92,7 +93,7 @@ void DrawBoxSweeps(const UWorld* InWorld, const FVector& Start, const FVector& E
 	}
 }
 
-void DrawCapsuleSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, float HalfHeight, float Radius, const FQuat& Rotation, const TArray<FHitResult>& Hits, float Lifetime)
+ENGINE_API void DrawCapsuleSweeps(const UWorld* InWorld, const FVector& Start, const FVector& End, float HalfHeight, float Radius, const FQuat& Rotation, const TArray<FHitResult>& Hits, float Lifetime)
 {
 	FColor Color = (Hits.Num() > 0)? HitColor: TraceColor;
 	if (Hits.Num() > 0 && Hits[0].bBlockingHit)
@@ -134,7 +135,7 @@ void DrawCapsuleSweeps(const UWorld* InWorld, const FVector& Start, const FVecto
 	}
 }
 
-void DrawBoxOverlap(const UWorld* InWorld, const FVector& Pos, const FVector& Extent, const FQuat& Rot, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
+ENGINE_API void DrawBoxOverlap(const UWorld* InWorld, const FVector& Pos, const FVector& Extent, const FQuat& Rot, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
 {
 	FColor Color = (Overlaps.Num() > 0)? HitColor: TraceColor;
 	DrawDebugBox(InWorld, Pos, Extent, Rot, Color, false, Lifetime);
@@ -153,7 +154,7 @@ void DrawBoxOverlap(const UWorld* InWorld, const FVector& Pos, const FVector& Ex
 	}
 }
 
-void DrawSphereOverlap(const UWorld* InWorld, const FVector& Pos, const float Radius, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
+ENGINE_API void DrawSphereOverlap(const UWorld* InWorld, const FVector& Pos, const float Radius, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
 {
 	FColor Color = (Overlaps.Num() > 0)? HitColor: TraceColor;
 	DrawDebugSphere(InWorld, Pos, Radius, FMath::Max(Radius/4.f, 2.f), Color, false, Lifetime);
@@ -172,7 +173,7 @@ void DrawSphereOverlap(const UWorld* InWorld, const FVector& Pos, const float Ra
 	}
 }
 
-void DrawCapsuleOverlap(const UWorld* InWorld,const FVector& Pos, const float HalfHeight, const float Radius, const FQuat& Rot, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
+ENGINE_API void DrawCapsuleOverlap(const UWorld* InWorld,const FVector& Pos, const float HalfHeight, const float Radius, const FQuat& Rot, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
 {
 	FColor Color = (Overlaps.Num() > 0)? HitColor: TraceColor;
 	DrawDebugCapsule(InWorld, Pos, HalfHeight, Radius, Rot, Color, false, Lifetime);
@@ -193,8 +194,6 @@ void DrawCapsuleOverlap(const UWorld* InWorld,const FVector& Pos, const float Ha
 
 #if WITH_PHYSX
 
-#include "../PhysicsEngine/PhysXSupport.h"
-#include "PhysXCollision.h"
 
 void DrawGeomOverlaps(const UWorld* InWorld, const PxGeometry& PGeom, const PxTransform& PGeomPose, TArray<struct FOverlapResult>& Overlaps, float Lifetime)
 {

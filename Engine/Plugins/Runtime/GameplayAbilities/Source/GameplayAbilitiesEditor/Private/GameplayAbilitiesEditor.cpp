@@ -1,7 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayAbilitiesEditor.h"
+#include "EditorReimportHandler.h"
+
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
+
+
 
 #include "GameplayAbilityBlueprint.h"
 #include "GameplayAbilityGraphSchema.h"

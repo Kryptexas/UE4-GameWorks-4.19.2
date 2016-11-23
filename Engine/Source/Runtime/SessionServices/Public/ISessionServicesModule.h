@@ -2,10 +2,10 @@
 
 #pragma once
 
-
-class ISessionManager;
-class ISessionService;
-
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "ISessionManager.h"
+#include "ISessionService.h"
 
 /**
  * Interface for session core modules.

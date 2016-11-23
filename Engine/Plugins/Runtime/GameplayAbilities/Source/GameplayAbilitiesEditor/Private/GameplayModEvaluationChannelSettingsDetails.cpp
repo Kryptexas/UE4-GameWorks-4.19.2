@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayModEvaluationChannelSettingsDetails.h"
 #include "DetailWidgetRow.h"
-#include "PropertyHandle.h"
 #include "GameplayEffectTypes.h"
 #include "AbilitySystemGlobals.h"
+#include "IDetailChildrenBuilder.h"
 
 #define LOCTEXT_NAMESPACE "GameplayEffectExecutionScopedModifierInfoDetailsCustomization"
 

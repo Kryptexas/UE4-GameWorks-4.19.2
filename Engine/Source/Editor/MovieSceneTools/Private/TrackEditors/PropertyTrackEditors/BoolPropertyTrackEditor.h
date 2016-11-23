@@ -2,13 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneBoolTrack.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "Tracks/MovieSceneBoolTrack.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
 
 /**
  * A property track editor for Booleans.

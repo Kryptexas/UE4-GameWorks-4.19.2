@@ -1,19 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DesktopPlatformPrivatePCH.h"
-#include "LinuxApplication.h"
-#include "FeedbackContextMarkup.h"
+#include "Linux/DesktopPlatformLinux.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/Guid.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "DesktopPlatformPrivate.h"
+#include "Modules/ModuleManager.h"
+#include "Linux/LinuxApplication.h"
+#include "Misc/FeedbackContextMarkup.h"
 #include "HAL/ThreadHeartBeat.h"
-#include "ModuleManager.h"
 
 //#include "LinuxNativeFeedbackContext.h"
 // custom dialogs
 #if WITH_LINUX_NATIVE_DIALOGS
 	#include "UNativeDialogs.h"
 #else
-	#include "SlateFileDialogs.h"
+	#include "ISlateFileDialogModule.h"
 #endif // WITH_LINUX_NATIVE_DIALOGS
-#include "SDL.h"
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
 #define MAX_FILETYPES_STR 4096

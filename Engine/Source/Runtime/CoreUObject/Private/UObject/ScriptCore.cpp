@@ -3,9 +3,30 @@
 /*=============================================================================
 	ScriptCore.cpp: Kismet VM execution and support code.
 =============================================================================*/
-#include "CoreUObjectPrivate.h"
-#include "MallocProfiler.h"
-#include "HotReloadInterface.h"
+
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+#include "Logging/LogScopedCategoryAndVerbosityOverride.h"
+#include "Stats/Stats.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ScriptInterface.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/Object.h"
+#include "UObject/CoreNative.h"
+#include "UObject/Class.h"
+#include "Templates/Casts.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UnrealType.h"
+#include "UObject/Stack.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "UObject/ScriptMacros.h"
+#include "Misc/HotReloadInterface.h"
 #include "UObject/UObjectThreadContext.h"
 
 DEFINE_LOG_CATEGORY(LogScriptFrame);

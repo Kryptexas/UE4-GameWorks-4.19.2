@@ -6,8 +6,12 @@
 
 #pragma once
 
-#include "UObjectArray.h"
-#include "UObjectMarks.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBase.h"
+#include "UObject/UObjectArray.h"
+#include "UObject/UObjectMarks.h"
 
 #if _MSC_VER == 1900
 	#ifdef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
@@ -15,7 +19,6 @@
 	#endif
 #endif
 
-#include "Templates/PointerIsConvertibleFromTo.h"
 
 class COREUOBJECT_API UObjectBaseUtility : public UObjectBase
 {

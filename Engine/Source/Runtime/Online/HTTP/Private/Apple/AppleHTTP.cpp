@@ -1,10 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "HttpPrivatePCH.h"
 #include "AppleHTTP.h"
 #include "EngineVersion.h"
 #include "Security/Security.h"
+#include "Misc/App.h"
+#include "HAL/PlatformTime.h"
+#include "Http.h"
+#include "HttpModule.h"
 
 /****************************************************************************
  * FAppleHttpRequest implementation

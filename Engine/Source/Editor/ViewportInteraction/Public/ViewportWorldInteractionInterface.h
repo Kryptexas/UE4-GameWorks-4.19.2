@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/Interface.h"
 #include "ViewportWorldInteractionInterface.generated.h"
 
 UINTERFACE( MinimalAPI )

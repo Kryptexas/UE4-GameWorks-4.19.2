@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "SViewportToolBar.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SMenuAnchor.h"
 
 #define LOCTEXT_NAMESPACE "ViewportToolBar"
 

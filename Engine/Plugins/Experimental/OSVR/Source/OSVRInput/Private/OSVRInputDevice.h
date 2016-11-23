@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "OSVRInputPrivate.h"
 #include "IForceFeedbackSystem.h"
 #include "IInputDevice.h"
 #include "IMotionController.h"

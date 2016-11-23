@@ -1,11 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "Commandlets/ImportLocalizedDialogueCommandlet.h"
-#include "AssetRegistryModule.h"
-#include "TargetPlatform.h"
-#include "Sound/DialogueWave.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/PackageName.h"
+#include "AssetData.h"
 #include "Sound/SoundWave.h"
+#include "Misc/Paths.h"
+#include "Misc/App.h"
+#include "UObject/MetaData.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Sound/DialogueWave.h"
+#include "Utils.h"
+#include "AssetRegistryModule.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "AudioEditorModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogImportLocalizedDialogueCommandlet, Log, All);

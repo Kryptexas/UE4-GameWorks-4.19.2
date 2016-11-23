@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
-#include "SlateBasics.h"
 #include "ClassIconFinder.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
 #include "AssetData.h"
+#include "Engine/Blueprint.h"
+#include "Engine/Brush.h"
 
 const FSlateBrush* FClassIconFinder::FindIconForActors(const TArray< TWeakObjectPtr<AActor> >& InActors, UClass*& CommonBaseClass)
 {

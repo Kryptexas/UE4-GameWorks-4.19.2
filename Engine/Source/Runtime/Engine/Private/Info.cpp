@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "GameFramework/Info.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/Texture2D.h"
 
 AInfo::AInfo(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

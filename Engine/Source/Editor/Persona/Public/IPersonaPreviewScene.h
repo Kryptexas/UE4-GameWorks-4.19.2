@@ -2,7 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AdvancedPreviewScene.h"
+
+class UAnimationAsset;
+class UDebugSkelMeshComponent;
+class USkeletalMesh;
+struct FSelectedSocketInfo;
 
 // called when animation asset has been changed
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnAnimChangedMulticaster, UAnimationAsset*);

@@ -2,10 +2,13 @@
 
 #pragma once
 
+#include "../WmfMediaPrivate.h"
 #include "IMediaOutput.h"
 #include "IMediaTracks.h"
-#include "AllowWindowsPlatformTypes.h"
 
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
+#include "AllowWindowsPlatformTypes.h"
 
 class FWmfMediaSampler;
 class IMediaAudioSink;
@@ -222,3 +225,5 @@ private:
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif

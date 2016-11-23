@@ -1,14 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "ShadowMap.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
 
 #include "TextureLayout.h"
-#include "TargetPlatform.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
+#include "Interfaces/ITargetPlatform.h"
 #include "Engine/ShadowMapTexture2D.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#include "Components/LightComponent.h"
+#include "LightMap.h"
+#include "UObject/Package.h"
+#include "Misc/FeedbackContext.h"
+#include "GameFramework/WorldSettings.h"
 
 #if WITH_EDITOR
 	// NOTE: We're only counting the top-level mip-map for the following variables.

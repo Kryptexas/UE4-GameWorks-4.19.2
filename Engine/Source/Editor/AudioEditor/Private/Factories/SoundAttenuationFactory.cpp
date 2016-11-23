@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "Factories/SoundAttenuationFactory.h"
+#include "Sound/SoundAttenuation.h"
 
 USoundAttenuationFactory::USoundAttenuationFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -12,7 +12,6 @@
 #include "VorbisAudioInfo.h"
 #include "AudioEffect.h"
 #include "CoreAudioEffects.h"
-#include "Engine.h"
 
 DEFINE_LOG_CATEGORY(LogCoreAudio);
 

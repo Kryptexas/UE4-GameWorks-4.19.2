@@ -4,8 +4,9 @@
 	UnBits.h: Unreal bitstream manipulation classes.
 =============================================================================*/
 
-#include "CorePrivatePCH.h" 
-#include "BitWriter.h"
+#include "Serialization/BitWriter.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
 
 extern const uint8 GShift[8];
 extern const uint8 GMask[8];

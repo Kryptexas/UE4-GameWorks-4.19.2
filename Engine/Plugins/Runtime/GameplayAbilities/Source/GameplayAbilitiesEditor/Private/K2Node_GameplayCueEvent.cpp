@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "K2Node_GameplayCueEvent.h"
-#include "CompilerResultsLog.h"
-#include "GameplayTags.h"
+#include "EdGraph/EdGraph.h"
+#include "GameplayTagContainer.h"
+#include "GameplayTagsManager.h"
 #include "GameplayCueInterface.h"
+#include "BlueprintNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GameplayCueEvent"

@@ -1,16 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MaterialEditorModule.h"
+#include "SMaterialPalette.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SOverlay.h"
+#include "EditorStyleSet.h"
+#include "Materials/MaterialFunction.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
 
 #include "Materials/MaterialExpressionComment.h"
-#include "Materials/MaterialFunction.h"
 
-#include "EditorWidgets.h"
+#include "EditorWidgetsModule.h"
 #include "AssetRegistryModule.h"
 #include "MaterialEditor.h"
-#include "SMaterialPalette.h"
 #include "MaterialEditorActions.h"
-#include "STextComboBox.h"
+#include "Widgets/Input/STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "MaterialPalette"
 

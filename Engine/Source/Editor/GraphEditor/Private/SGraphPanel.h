@@ -2,13 +2,28 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Misc/Attribute.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Geometry.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Animation/CurveSequence.h"
+#include "UObject/GCObject.h"
 #include "GraphEditor.h"
+#include "SNodePanel.h"
+#include "SGraphNode.h"
+#include "GraphEditAction.h"
+#include "SGraphPin.h"
 #include "GraphSplineOverlapResult.h"
-#include "SGraphPin.h" // for FGraphPinHandle
 
-class SGraphNode;
-class SGraphPin;
-class UEdGraphNode;
+class FActiveTimerHandle;
+class FSlateWindowElementList;
+class IToolTip;
+class UEdGraph;
 
 DECLARE_DELEGATE( FOnUpdateGraphPanel )
 

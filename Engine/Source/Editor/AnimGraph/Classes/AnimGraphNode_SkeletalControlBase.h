@@ -2,10 +2,15 @@
 
 #pragma once
 
-#include "Editor.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BonePose.h"
 #include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_SkeletalControlBase.generated.h"
 
+class FCompilerResultsLog;
+class USkeletalMeshComponent;
+struct FAnimNode_SkeletalControlBase;
 struct HActor;
 
 /**

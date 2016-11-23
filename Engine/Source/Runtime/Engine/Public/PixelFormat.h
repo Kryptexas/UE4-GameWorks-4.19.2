@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 enum EPixelFormat
 {
 	PF_Unknown              =0,

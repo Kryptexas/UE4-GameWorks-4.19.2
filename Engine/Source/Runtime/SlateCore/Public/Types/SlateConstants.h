@@ -2,5 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /** How much to scroll for each click of the mouse wheel (in Slate Screen Units). */
 const float WheelScrollAmount = 32.0f;

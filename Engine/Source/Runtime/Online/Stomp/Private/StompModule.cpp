@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "StompPrivatePCH.h"
+#include "StompModule.h"
+#include "Modules/ModuleManager.h"
+#include "IStompClient.h"
+#include "StompLog.h"
 
 // FStompModule
 IMPLEMENT_MODULE(FStompModule, Stomp);

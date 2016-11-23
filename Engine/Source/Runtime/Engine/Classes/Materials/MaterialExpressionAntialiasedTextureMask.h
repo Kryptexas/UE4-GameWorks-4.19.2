@@ -2,8 +2,13 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Materials/MaterialExpressionTextureSampleParameter2D.h"
 #include "MaterialExpressionAntialiasedTextureMask.generated.h"
+
+class UTexture;
 
 UENUM()
 enum ETextureColorChannel

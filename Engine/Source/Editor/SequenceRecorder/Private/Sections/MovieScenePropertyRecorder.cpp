@@ -1,19 +1,19 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
-#include "MovieScenePropertyRecorder.h"
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneBoolTrack.h"
-#include "MovieSceneByteSection.h"
-#include "MovieSceneByteTrack.h"
-#include "MovieSceneEnumSection.h"
-#include "MovieSceneEnumTrack.h"
-#include "MovieSceneFloatSection.h"
-#include "MovieSceneFloatTrack.h"
-#include "MovieSceneColorSection.h"
-#include "MovieSceneColorTrack.h"
-#include "MovieSceneVectorSection.h"
-#include "MovieSceneVectorTrack.h"
+#include "Sections/MovieScenePropertyRecorder.h"
+#include "MovieScene.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "Tracks/MovieSceneBoolTrack.h"
+#include "Sections/MovieSceneByteSection.h"
+#include "Tracks/MovieSceneByteTrack.h"
+#include "Sections/MovieSceneEnumSection.h"
+#include "Tracks/MovieSceneEnumTrack.h"
+#include "Sections/MovieSceneFloatSection.h"
+#include "Tracks/MovieSceneFloatTrack.h"
+#include "Sections/MovieSceneColorSection.h"
+#include "Tracks/MovieSceneColorTrack.h"
+#include "Sections/MovieSceneVectorSection.h"
+#include "Tracks/MovieSceneVectorTrack.h"
 
 // current set of compiled-in property types
 

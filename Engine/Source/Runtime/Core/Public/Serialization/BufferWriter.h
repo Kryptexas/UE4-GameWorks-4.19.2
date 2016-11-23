@@ -2,7 +2,14 @@
 
 #pragma once
 
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Math/NumericLimits.h"
+#include "Serialization/Archive.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
 
 /**
 * Similar to FMemoryWriter, but able to internally

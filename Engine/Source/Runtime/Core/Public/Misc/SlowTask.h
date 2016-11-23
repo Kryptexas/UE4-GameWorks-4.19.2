@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "UniquePtr.h"
-#include "OutputDeviceHelper.h"
-#include "FeedbackContext.h"
+#include "CoreTypes.h"
+#include "Misc/Optional.h"
+#include "Internationalization/Text.h"
 
 /** Enum to specify a particular slow task section should be shown */
 enum class ESlowTaskVisibility

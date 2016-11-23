@@ -1,9 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ErrorException.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "UObject/TextProperty.h"
+#include "UObject/EnumProperty.h"
+#include "UnrealHeaderToolGlobals.h"
 #include "ClassMaps.h"
-#include "UniqueObj.h"
+#include "Templates/UniqueObj.h"
 #include "UniquePtr.h"
+
+class UEnum;
+class UScriptStruct;
+class UProperty;
+class FUnrealSourceFile;
+class UObject;
+class UField;
+class UMetaData;
+class FHeaderParser;
 
 extern class FCompilerMetadataManager GScriptHelper;
 

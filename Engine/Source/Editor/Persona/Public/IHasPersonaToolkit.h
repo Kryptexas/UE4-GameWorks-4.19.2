@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /** Interface implemented by objects that hold a persona toolkit */
 class IHasPersonaToolkit
 {

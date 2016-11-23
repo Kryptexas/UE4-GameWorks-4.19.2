@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingPrivatePCH.h"
-#include "MessageDispatchTask.h"
-#include "MessageTracer.h"
+#include "Bus/MessageDispatchTask.h"
+#include "IMessageReceiver.h"
 
 
 /* FMessageDispatchTask structors

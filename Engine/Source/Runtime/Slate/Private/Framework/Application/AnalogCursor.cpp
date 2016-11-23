@@ -1,9 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "AnalogCursor.h"
+#include "Framework/Application/AnalogCursor.h"
+#include "InputCoreTypes.h"
+#include "Input/Events.h"
+#include "Widgets/SWidget.h"
+#include "Layout/ArrangedChildren.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
 
-#include "HittestGrid.h"
 
 FAnalogCursor::FAnalogCursor()
 : CurrentSpeed(FVector2D::ZeroVector)

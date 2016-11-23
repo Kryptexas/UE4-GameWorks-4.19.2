@@ -3,10 +3,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "LandscapeGizmoActor.h"
-#include "Materials/Material.h"
 
 #include "LandscapeGizmoActiveActor.generated.h"
+
+class ULandscapeInfo;
+class ULandscapeLayerInfoObject;
+class UMaterial;
+class UMaterialInstance;
+class UTexture2D;
 
 UENUM()
 enum ELandscapeGizmoType

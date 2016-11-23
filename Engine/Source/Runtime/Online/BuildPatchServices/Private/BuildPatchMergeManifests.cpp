@@ -1,6 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchMergeManifests.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Misc/Guid.h"
+#include "BuildPatchManifest.h"
+#include "Async/Future.h"
+#include "Async/Async.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMergeManifests, Log, All);
 DEFINE_LOG_CATEGORY(LogMergeManifests);

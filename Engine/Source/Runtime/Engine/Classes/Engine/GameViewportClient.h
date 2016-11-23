@@ -2,26 +2,34 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/ScriptMacros.h"
+#include "Input/PopupMethodReply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SOverlay.h"
 #include "ShowFlags.h"
-#include "ScriptViewportClient.h"
-#include "ViewportSplitScreen.h"
-#include "DebugDisplayProperty.h"
-#include "TitleSafeZone.h"
-#include "GameViewportDelegates.h"
+#include "Engine/ScriptViewportClient.h"
+#include "Engine/ViewportSplitScreen.h"
+#include "Engine/TitleSafeZone.h"
+#include "Engine/GameViewportDelegates.h"
+#include "Engine/DebugDisplayProperty.h"
 
 #include "GameViewportClient.generated.h"
 
-
-class UGameInstance;
-class UNetDriver;
-class ULocalPlayer;
+class FCanvas;
+class FSceneView;
 class FSceneViewport;
+class IGameLayerManager;
 class SViewport;
 class SWindow;
-class SOverlay;
-class IGameLayerManager;
 class UCanvas;
-
+class UGameInstance;
+class ULocalPlayer;
+class UNetDriver;
+struct FStringClassReference;
 
 /**
  * Stereoscopic rendering passes.  FULL implies stereoscopic rendering isn't enabled for this pass

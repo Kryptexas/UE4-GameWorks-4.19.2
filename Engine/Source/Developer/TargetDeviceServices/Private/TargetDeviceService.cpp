@@ -1,6 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "TargetDeviceServicesPrivatePCH.h"
+#include "TargetDeviceService.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "TargetDeviceServiceMessages.h"
 #include "PlatformInfo.h"
 
 

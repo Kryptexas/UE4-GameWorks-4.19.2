@@ -4,12 +4,21 @@
 	Linker.cpp: Unreal object linker.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "SecureHash.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "LinkerManager.h"
+#include "UObject/Linker.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/UnrealType.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
+#include "Misc/SecureHash.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "UObject/LinkerManager.h"
 #include "UObject/UObjectThreadContext.h"
+#include "UObject/DebugSerializationFlags.h"
 
 DEFINE_LOG_CATEGORY(LogLinker);
 

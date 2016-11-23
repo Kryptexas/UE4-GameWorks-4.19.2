@@ -2,8 +2,19 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleLocationSkelVertSurface.generated.h"
+
+class FStaticLODModel;
+class UParticleLODLevel;
+class UParticleModuleTypeDataBase;
+class UParticleSystemComponent;
+class USkeletalMeshComponent;
+struct FParticleEmitterInstance;
+struct FSkelMeshSection;
 
 UENUM()
 enum ELocationSkelVertSurfaceSource

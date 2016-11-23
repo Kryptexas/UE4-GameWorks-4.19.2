@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "DataTableCSV.h"
-#include "CsvParser.h"
+#include "UObject/UnrealType.h"
 #include "Engine/DataTable.h"
+#include "Serialization/Csv/CsvParser.h"
 #include "Engine/UserDefinedStruct.h"
 
 #if WITH_EDITOR

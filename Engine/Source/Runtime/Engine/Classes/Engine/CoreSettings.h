@@ -2,11 +2,13 @@
 
 #pragma once
 
-#include "Curves/CurveFloat.h"
-#include "UserInterfaceSettings.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/DeveloperSettings.h"
 
 #include "CoreSettings.generated.h"
 
+struct FPropertyChangedEvent;
 
 /**
  * Rendering settings.

@@ -1,38 +1,49 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-
-#include "SKismetInspector.h"
 #include "WidgetBlueprintEditor.h"
+#include "MovieSceneBinding.h"
 #include "MovieScene.h"
-#include "MovieSceneSequenceInstance.h"
-#include "MovieScene2DTransformTrack.h"
-#include "Editor/Sequencer/Public/ISequencerModule.h"
+#include "Animation/WidgetAnimation.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "WidgetBlueprint.h"
+#include "Editor.h"
+
+#if WITH_EDITOR
+	#include "EditorStyleSet.h"
+#endif // WITH_EDITOR
+#include "Components/PanelSlot.h"
+#include "Components/PanelWidget.h"
+#include "Settings/WidgetDesignerSettings.h"
+
+#include "Tracks/MovieScenePropertyTrack.h"
+#include "ISequencerModule.h"
 #include "ObjectEditorUtils.h"
 
 #include "PropertyCustomizationHelpers.h"
 
-#include "WidgetBlueprintApplicationModes.h"
+#include "BlueprintModes/WidgetBlueprintApplicationModes.h"
+#include "Blueprint/WidgetTree.h"
 #include "WidgetBlueprintEditorUtils.h"
-#include "WidgetDesignerApplicationMode.h"
-#include "WidgetGraphApplicationMode.h"
+#include "WorkflowOrientedApp/ApplicationMode.h"
+#include "BlueprintModes/WidgetDesignerApplicationMode.h"
+#include "BlueprintModes/WidgetGraphApplicationMode.h"
 
 #include "WidgetBlueprintEditorToolbar.h"
-#include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
-#include "GenericCommands.h"
-#include "WidgetBlueprint.h"
-#include "Engine/SimpleConstructionScript.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "Kismet2/CompilerResultsLog.h"
 #include "IMessageLogListing.h"
 
-#include "MovieSceneWidgetMaterialTrack.h"
-#include "WidgetMaterialTrackUtilities.h"
+#include "Animation/MovieSceneWidgetMaterialTrack.h"
+#include "Animation/WidgetMaterialTrackUtilities.h"
 
 #include "ScopedTransaction.h"
 
-#include "NotificationManager.h"
-#include "SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

@@ -2,12 +2,22 @@
 
 #pragma once
 
-#include "EdGraphCompilerUtilities.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Templates/SubclassOf.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "Engine/Blueprint.h"
+#include "K2Node_Event.h"
 #include "BPTerminal.h"
-#include "KismetCompiledFunctionContext.h"
 #include "KismetCompilerMisc.h"
+#include "EdGraphCompilerUtilities.h"
+#include "KismetCompiledFunctionContext.h"
 
 class UBlueprintGeneratedClass;
+class UK2Node_FunctionEntry;
+class UK2Node_TemporaryVariable;
+class UK2Node_Timeline;
 
 KISMETCOMPILER_API DECLARE_LOG_CATEGORY_EXTERN(LogK2Compiler, Log, All);
 

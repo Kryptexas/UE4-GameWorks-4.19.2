@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AnimNodeEditMode.h"
+
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
 
 class FPoseDriverEditMode : public FAnimNodeEditMode
 {

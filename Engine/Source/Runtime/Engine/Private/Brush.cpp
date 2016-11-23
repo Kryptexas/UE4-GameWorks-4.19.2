@@ -4,13 +4,15 @@
 	Brush.cpp: Brush Actor implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Engine/Brush.h"
+#include "EngineGlobals.h"
 #include "Engine/Polys.h"
-#include "Net/UnrealNetwork.h"
+#include "Engine/Engine.h"
 #include "Model.h"
+#include "Materials/Material.h"
 #include "Engine/BrushBuilder.h"
-#include "ActorEditorUtils.h"
 #include "Components/BrushComponent.h"
+#include "ActorEditorUtils.h"
 
 #if WITH_EDITOR
 #include "Editor.h"

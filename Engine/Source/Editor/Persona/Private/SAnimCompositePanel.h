@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include "STrack.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SAnimTrackPanel.h"
+#include "STrack.h"
 
+class SAnimCompositeEditor;
+class SBorder;
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimCompositePanel

@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "AssetTypeActions_Base.h"
+#include "Engine/SkeletalMesh.h"
+
 class FMenuBuilder;
 
 class FAssetTypeActions_SkeletalMesh : public FAssetTypeActions_Base

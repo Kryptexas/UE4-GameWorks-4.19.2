@@ -6,8 +6,14 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "Particles/Emitter.h"
 #include "EmitterCameraLensEffectBase.generated.h"
+
+class APlayerCameraManager;
 
 UCLASS(abstract, Blueprintable)
 class ENGINE_API AEmitterCameraLensEffectBase : public AEmitter

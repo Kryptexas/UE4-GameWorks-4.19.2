@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "ClassMaps.h"
 #include "UnrealHeaderTool.h"
 
-#include "ClassMaps.h"
-#include "UnrealSourceFile.h"
 #include "UnrealTypeDefinitionInfo.h"
 #include "UHTMakefile/UHTMakefile.h"
 

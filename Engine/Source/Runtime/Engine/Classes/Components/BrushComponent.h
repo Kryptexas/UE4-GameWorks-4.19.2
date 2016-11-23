@@ -1,10 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/PrimitiveComponent.h"
 #include "BrushComponent.generated.h"
 
-struct FEngineShowFlags;
+class FPrimitiveSceneProxy;
+class UMaterialInterface;
 struct FConvexVolume;
+struct FEngineShowFlags;
 
 /** 
  *	A brush component defines a shape that can be modified within the editor. They are used both as part of BSP building, and for volumes. 

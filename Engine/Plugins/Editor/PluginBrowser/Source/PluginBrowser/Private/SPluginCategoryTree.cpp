@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PluginBrowserPrivatePCH.h"
 #include "SPluginCategoryTree.h"
-#include "IPluginManager.h"
+#include "Interfaces/IPluginManager.h"
 #include "SPluginCategory.h"
 #include "SPluginBrowser.h"
 

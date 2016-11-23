@@ -1,11 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Interfaces/Interface_AssetUserData.h"
+#include "GameFramework/Actor.h"
+#include "Engine/MeshMerging.h"
+#include "GameFramework/DamageType.h"
 #include "GameFramework/Info.h"
 #include "Sound/AudioVolume.h"
-#include "Engine/MeshMerging.h"
 #include "WorldSettings.generated.h"
 
+class UAssetUserData;
 class UNetConnection;
 
 UENUM()

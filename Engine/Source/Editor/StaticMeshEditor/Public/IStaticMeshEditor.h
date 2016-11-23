@@ -2,9 +2,14 @@
 
 #pragma once
 
-#include "Toolkits/IToolkitHost.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineBaseTypes.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "PhysicsPublic.h"
+
+class UStaticMesh;
+class UStaticMeshComponent;
+class UStaticMeshSocket;
 
 /**
  * Public interface to Static Mesh Editor

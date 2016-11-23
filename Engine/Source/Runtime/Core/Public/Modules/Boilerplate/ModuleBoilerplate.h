@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "UObject/NameTypes.h"
+
+class FFixedUObjectArray;
+
 // Boilerplate that is included once for each module, even in monolithic builds
 #if !defined(PER_MODULE_BOILERPLATE_ANYLINK)
 #define PER_MODULE_BOILERPLATE_ANYLINK(ModuleImplClass, ModuleName)
@@ -27,6 +33,8 @@
 	void operator delete[]( void* Ptr )                                                 OPERATOR_DELETE_THROW_SPEC   { FMemory::Free( Ptr ); } \
 	void operator delete  ( void* Ptr, const std::nothrow_t& )                          OPERATOR_DELETE_NOTHROW_SPEC { FMemory::Free( Ptr ); } \
 	void operator delete[]( void* Ptr, const std::nothrow_t& )                          OPERATOR_DELETE_NOTHROW_SPEC { FMemory::Free( Ptr ); }
+
+class FFixedUObjectArray;
 
 // in DLL builds, these are done per-module, otherwise we just need one in the application
 // visual studio cannot find cross dll data for visualizers, so these provide access

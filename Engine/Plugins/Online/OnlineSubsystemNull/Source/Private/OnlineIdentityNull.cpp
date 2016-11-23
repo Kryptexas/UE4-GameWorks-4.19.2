@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemNullPrivatePCH.h"
 #include "OnlineIdentityNull.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Guid.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "OnlineSubsystem.h"
 #include "IPAddress.h"
 #include "SocketSubsystem.h"
 

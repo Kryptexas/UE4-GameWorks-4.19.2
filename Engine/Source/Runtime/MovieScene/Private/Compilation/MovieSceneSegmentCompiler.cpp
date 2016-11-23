@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "MovieSceneSegmentCompiler.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
 
 FMovieSceneSectionData::FMovieSceneSectionData(const TRange<float>& InBounds, int32 InSourceIndex, int32 InPriority)
 	: Bounds(InBounds)

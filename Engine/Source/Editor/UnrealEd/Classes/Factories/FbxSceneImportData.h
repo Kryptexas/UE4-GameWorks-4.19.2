@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "FbxSceneImportFactory.h"
+
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Factories/FbxSceneImportFactory.h"
 
 #include "FbxSceneImportData.generated.h"
 

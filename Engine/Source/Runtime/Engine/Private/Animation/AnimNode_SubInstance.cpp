@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "AnimInstanceProxy.h"
 #include "Animation/AnimNode_SubInstance.h"
+#include "Animation/AnimClassInterface.h"
+#include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimNode_SubInput.h"
 
 FAnimNode_SubInstance::FAnimNode_SubInstance()

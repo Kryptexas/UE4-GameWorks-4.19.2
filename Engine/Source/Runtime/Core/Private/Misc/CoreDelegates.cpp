@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
-#include "CorePrivatePCH.h"
+#include "Misc/CoreDelegates.h"
+#include "Math/Vector.h"
 
 
 //////////////////////////////////////////////////////////////////////////

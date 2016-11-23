@@ -1,10 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "TimerManager.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "GameFramework/GameModeBase.h"
-#include "PlayerStart.h"
 #include "GameMode.generated.h"
+
+class APlayerState;
+class ULocalMessage;
+class UNetDriver;
 
 /** Possible state of the current match, where a match is all the gameplay that happens on a single map */
 namespace MatchState

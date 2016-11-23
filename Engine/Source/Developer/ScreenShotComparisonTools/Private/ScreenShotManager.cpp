@@ -1,9 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ScreenShotComparisonToolsPrivatePCH.h"
+#include "ScreenShotManager.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Async/Async.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/FilterCollection.h"
+#include "AutomationWorkerMessages.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "ScreenShotBaseNode.h"
 
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
-#include "ImageComparer.h"
 
 class FScreenshotComparisons
 {

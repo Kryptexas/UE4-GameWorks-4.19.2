@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "SoundEffectSubmix.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "SoundSubmix.generated.h"
 
 class USoundEffectSubmixPreset;
-
 
 UCLASS()
 class ENGINE_API USoundSubmix : public UObject

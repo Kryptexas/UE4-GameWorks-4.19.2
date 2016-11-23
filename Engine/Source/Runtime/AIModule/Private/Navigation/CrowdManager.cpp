@@ -1,17 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "Navigation/CrowdManager.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/Controller.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "VisualLogger/VisualLogger.h"
+#include "AIModuleLog.h"
 
 #if WITH_RECAST
 #include "AI/Navigation/PImplRecastNavMesh.h"
 #include "AI/Navigation/RecastHelpers.h"
+#include "DetourCrowd/DetourObstacleAvoidance.h"
 #include "DetourCrowd/DetourCrowd.h"
-#include "Detour/DetourCommon.h"
 #endif
 
-#include "Navigation/CrowdManager.h"
 #include "Navigation/CrowdFollowingComponent.h"
-#include "Navigation/CrowdAgentInterface.h"
 
 DECLARE_STATS_GROUP(TEXT("Crowd"), STATGROUP_AICrowd, STATCAT_Advanced);
 

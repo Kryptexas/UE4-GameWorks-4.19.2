@@ -2,9 +2,12 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionDecalMipmapLevel.generated.h"
-
 
 UCLASS(collapsecategories, hidecategories = Object)
 class UMaterialExpressionDecalMipmapLevel : public UMaterialExpression

@@ -1,13 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AttributeSet.h"
+#include "AbilitySystemGlobals.h"
+#include "Abilities/GameplayAbilityTypes.h"
+#include "AbilitySystemStats.h"
+#include "GameplayCueInterface.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
-#include "Abilities/GameplayAbilityTypes.h"
-#include "GameplayCueInterface.h"
 #include "GameplayCueManager.h"
 #include "GameplayTagResponseTable.h"
+#include "GameplayTagsManager.h"
+
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
 
 UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

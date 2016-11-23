@@ -2,10 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "EdGraphUtilities.h"
 #include "SoundCueGraph/SoundCueGraphNode_Base.h"
 #include "SoundCueGraph/SoundCueGraphNode_Root.h"
 #include "SoundCueGraph/SoundCueGraphNode.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SGraphNode.h"
 #include "SGraphNodeSoundResult.h"
 #include "SGraphNodeSoundBase.h"
 

@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AndroidMediaPCH.h"
-#include "AndroidJavaMediaPlayer.h"
 #include "AndroidMediaPlayer.h"
 #include "AndroidJavaMediaPlayer.h"
-
+#include "AndroidJavaMediaPlayer.h"
+#include "Misc/Paths.h"
+#include "Android/AndroidFile.h"
+#include "../AndroidMediaLog.h"
 
 #define LOCTEXT_NAMESPACE "FAndroidMediaModule"
 

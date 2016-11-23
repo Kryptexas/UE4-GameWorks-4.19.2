@@ -1,13 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "SkeletonTreeBuilder.h"
-#include "IEditableSkeleton.h"
 #include "IPersonaPreviewScene.h"
 #include "SkeletonTreeBoneItem.h"
 #include "SkeletonTreeSocketItem.h"
 #include "SkeletonTreeAttachedAssetItem.h"
 #include "SkeletonTreeVirtualBoneItem.h"
+#include "Animation/DebugSkelMeshComponent.h"
 
 void FSkeletonTreeBuilderOutput::Add(const TSharedPtr<class ISkeletonTreeItem>& InItem, const FName& InParentName, const FName& InParentType)
 {

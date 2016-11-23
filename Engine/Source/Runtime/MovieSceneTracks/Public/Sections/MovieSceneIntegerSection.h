@@ -2,9 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
 #include "Curves/IntegralCurve.h"
 #include "MovieSceneSection.h"
-#include "IKeyframeSection.h"
+#include "Sections/IKeyframeSection.h"
 #include "MovieSceneIntegerSection.generated.h"
 
 

@@ -4,22 +4,26 @@
 	Controller.cpp: 
 
 =============================================================================*/
-#include "EnginePrivate.h"
+#include "GameFramework/Controller.h"
+#include "GameFramework/Pawn.h"
+#include "CollisionQueryParams.h"
+#include "Engine/World.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "GameFramework/PlayerController.h"
 #include "Net/UnrealNetwork.h"
-#include "ConfigCacheIni.h"
 #include "NetworkingDistanceConstants.h"
 #include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
-#include "GameFramework/GameModeBase.h"
 #include "GameFramework/GameStateBase.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
+#include "Engine/Canvas.h"
 #include "Navigation/PathFollowingComponent.h"
 
 #include "GameFramework/PlayerState.h"
-#include "Components/CapsuleComponent.h"
 
 DEFINE_LOG_CATEGORY(LogPath);
 

@@ -2,12 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "BehaviorTree/BTNode.h"
 #include "BTTaskNode.generated.h"
 
-class UBehaviorTreeComponent;
 class UBTService;
-struct FAIMessage;
 
 /** 
  * Task are leaf nodes of behavior tree, which perform actual actions

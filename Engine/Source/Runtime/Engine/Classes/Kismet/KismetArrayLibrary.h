@@ -1,7 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ScriptMacros.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "KismetArrayLibrary.generated.h"
+
+class AActor;
 
 UCLASS()
 class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary

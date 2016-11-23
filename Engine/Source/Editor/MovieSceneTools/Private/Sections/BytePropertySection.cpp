@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieSceneByteTrack.h"
-#include "MovieSceneByteSection.h"
-#include "BytePropertySection.h"
+#include "Sections/BytePropertySection.h"
+#include "ISectionLayoutBuilder.h"
+#include "Sections/MovieSceneByteSection.h"
+#include "ByteKeyArea.h"
 #include "EnumKeyArea.h"
 
 

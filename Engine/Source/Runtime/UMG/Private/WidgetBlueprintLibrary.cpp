@@ -1,15 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "Slate/SlateBrushAsset.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Materials/MaterialInterface.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Engine/Texture2D.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Engine/Font.h"
+#include "Brushes/SlateNoResource.h"
+#include "Rendering/DrawElements.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Slate/UMGDragDropOp.h"
-#include "WidgetBlueprintLibrary.h"
+#include "Slate/SlateBrushAsset.h"
 #include "EngineGlobals.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Engine/Engine.h"
 
 //For PIE error messages
-#include "MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

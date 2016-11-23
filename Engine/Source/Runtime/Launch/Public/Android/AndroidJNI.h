@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include <jni.h>
 #include <android/log.h>
 

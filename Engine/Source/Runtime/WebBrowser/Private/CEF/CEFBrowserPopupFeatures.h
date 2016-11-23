@@ -2,12 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class IWebBrowserPopupFeatures;
+
 #if WITH_CEF3
 
 #include "IWebBrowserPopupFeatures.h"
 
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 #endif
 
 #pragma push_macro("OVERRIDE")
@@ -16,6 +22,7 @@
 #pragma pop_macro("OVERRIDE")
 
 #if PLATFORM_WINDOWS
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
 

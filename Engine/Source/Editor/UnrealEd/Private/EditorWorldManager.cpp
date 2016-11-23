@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "EditorWorldManager.h"
-#include "ViewportWorldInteractionInterface.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorMode.h"
 #include "IViewportInteractionModule.h"
+#include "EngineGlobals.h"
+#include "Editor.h"
 
 /************************************************************************/
 /* FEditorWorldWrapper                                                  */

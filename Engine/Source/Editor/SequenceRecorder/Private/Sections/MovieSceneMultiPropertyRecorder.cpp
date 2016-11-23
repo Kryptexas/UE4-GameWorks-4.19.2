@@ -1,8 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
-#include "MovieSceneMultiPropertyRecorder.h"
-#include "MovieScenePropertyRecorder.h"
+#include "Sections/MovieSceneMultiPropertyRecorder.h"
+#include "UObject/UnrealType.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Sections/MovieScenePropertyRecorder.h"
 #include "SequenceRecorderSettings.h"
 
 TSharedPtr<IMovieSceneSectionRecorder> FMovieSceneMultiPropertyRecorderFactory::CreateSectionRecorder(const FActorRecordingSettings& InActorRecordingSettings) const

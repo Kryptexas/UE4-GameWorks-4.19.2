@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
 #include "ISequencer.h"
-#include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/IToolkit.h"
+#include "Modules/ModuleInterface.h"
 
-
-class ISequencerObjectBindingManager;
+class FExtender;
+class FExtensibilityManager;
+class FMenuBuilder;
 class ISequencerTrackEditor;
 class IToolkitHost;
-class ULevelSequence;
-
+class UMovieSceneSequence;
 
 namespace SequencerMenuExtensionPoints
 {

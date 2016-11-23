@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/ThreadSafeCounter.h"
+
 /**
  * Object synchronizing read access (from any thread) and write access (only from game thread).
  * Multiple simultaneous reads from different threads are allowed. Allows multiple writes from

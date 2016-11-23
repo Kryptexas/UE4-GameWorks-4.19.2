@@ -2,7 +2,21 @@
 
 #pragma once
 
-#include "Anchors.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Layout/Margin.h"
+#include "Layout/Geometry.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SlotBase.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+#include "Widgets/Layout/Anchors.h"
+
+class FArrangedChildren;
+class FPaintArgs;
+class FSlateWindowElementList;
 
 /**
  * ConstraintCanvas is a layout widget that allows you to arbitrary position and size child widgets in a 

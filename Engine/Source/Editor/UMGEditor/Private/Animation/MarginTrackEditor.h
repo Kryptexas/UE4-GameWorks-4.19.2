@@ -2,13 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-#include "MovieSceneMarginTrack.h"
-#include "MovieSceneMarginSection.h"
-
-
-class UMovieSceneTrack;
-
+#include "Animation/MovieSceneMarginTrack.h"
+#include "Animation/MovieSceneMarginSection.h"
 
 class FMarginTrackEditor
 	: public FPropertyTrackEditor<UMovieSceneMarginTrack, UMovieSceneMarginSection, FMarginKey>

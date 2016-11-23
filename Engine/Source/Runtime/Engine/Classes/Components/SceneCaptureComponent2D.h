@@ -1,8 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptInterface.h"
+#include "Engine/BlendableInterface.h"
+#include "Camera/CameraTypes.h"
 #include "Components/SceneCaptureComponent.h"
 #include "SceneCaptureComponent2D.generated.h"
+
+class FSceneInterface;
 
 /**
  *	Used to capture a 'snapshot' of the scene from a single plane and feed it to a render target.

@@ -8,7 +8,11 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+
+class FGCObject;
 
 class COREUOBJECT_API FGCObject;
 

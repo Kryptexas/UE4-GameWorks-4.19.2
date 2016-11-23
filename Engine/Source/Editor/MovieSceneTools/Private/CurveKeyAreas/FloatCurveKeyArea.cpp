@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
 #include "FloatCurveKeyArea.h"
-#include "SFloatCurveKeyEditor.h"
-#include "MovieSceneClipboard.h"
+#include "UObject/StructOnScope.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "MovieSceneTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "ClipboardTypes.h"
+#include "CurveKeyEditors/SFloatCurveKeyEditor.h"
 #include "SequencerClipboardReconciler.h"
 
 /* IKeyArea interface

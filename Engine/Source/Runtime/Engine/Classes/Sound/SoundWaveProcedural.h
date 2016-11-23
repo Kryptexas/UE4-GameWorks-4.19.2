@@ -6,6 +6,12 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/ObjectMacros.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Containers/Queue.h"
 #include "Sound/SoundWave.h"
 #include "SoundWaveProcedural.generated.h"
 

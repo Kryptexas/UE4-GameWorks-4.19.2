@@ -1,12 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
-#include "GameplayEffect.h"
 #include "GameplayAbilityGraphSchema.h"
-#include "Kismet/KismetSystemLibrary.h"
-#include "BlueprintEditorUtils.h"
-#include "EdGraphSchema_K2.h"
 #include "EdGraphSchema_K2_Actions.h"
+#include "GameplayEffect.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 UGameplayAbilityGraphSchema::UGameplayAbilityGraphSchema(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

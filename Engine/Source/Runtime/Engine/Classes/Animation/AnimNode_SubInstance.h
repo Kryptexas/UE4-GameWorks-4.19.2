@@ -2,8 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Animation/AnimCurveTypes.h"
 #include "Animation/AnimNodeBase.h"
+#include "Animation/AnimInstance.h"
 #include "AnimNode_SubInstance.generated.h"
+
+struct FAnimInstanceProxy;
 
 USTRUCT()
 struct ENGINE_API FAnimNode_SubInstance : public FAnimNode_Base

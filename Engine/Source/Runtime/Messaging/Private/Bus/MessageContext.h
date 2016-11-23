@@ -2,13 +2,9 @@
 
 #pragma once
 
-#include "IMessageAttachment.h"
+#include "CoreMinimal.h"
 #include "IMessageContext.h"
-
-
-// forward declarations
-class UScriptStruct;
-
+#include "IMessageAttachment.h"
 
 /**
  * Implements a message context for messages sent through the message bus.

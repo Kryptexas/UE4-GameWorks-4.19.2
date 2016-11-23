@@ -6,12 +6,17 @@
 //~=============================================================================
 
 #pragma once
-#include "Components/SceneComponent.h"
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "ParticleEmitterInstances.h"
-#include "Scalability.h"
 #include "ParticleEmitter.generated.h"
 
 class UInterpCurveEdSetup;
+class UParticleLODLevel;
+class UParticleSystemComponent;
 
 //~=============================================================================
 //	Burst emissions

@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "GameplayDebuggerCategory_Navmesh.h"
+#include "GameplayDebugger/GameplayDebuggerCategory_Navmesh.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "GameFramework/PlayerController.h"
+#include "AI/Navigation/RecastNavMesh.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
 

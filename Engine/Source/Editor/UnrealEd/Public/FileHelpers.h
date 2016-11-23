@@ -2,12 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "AssetData.h"
 #include "ISourceControlProvider.h"
 
-// Forward declarations.
-class FFileName;
-class FString;
-class FAssetData;
 class ULevel;
 
 enum EFileInteraction

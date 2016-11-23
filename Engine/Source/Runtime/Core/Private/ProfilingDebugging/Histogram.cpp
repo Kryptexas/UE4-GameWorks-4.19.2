@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "EngineVersion.h"
-#include "Histogram.h"
+#include "ProfilingDebugging/Histogram.h"
 
 DEFINE_LOG_CATEGORY(LogHistograms);
 

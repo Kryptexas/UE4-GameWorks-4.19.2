@@ -2,14 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/AssertionMacros.h"
+#include "Serialization/Archive.h"
+#include "Containers/UnrealString.h"
 #include "NetworkReplayStreaming.h"
-#include "Core.h"
-#include "ModuleManager.h"
-#include "UniquePtr.h"
-#include "JsonSerializer.h"
+#include "Stats/Stats.h"
+#include "Modules/ModuleManager.h"
+#include "Serialization/JsonSerializer.h"
 #include "Tickable.h"
 
 class FInMemoryNetworkReplayStreamingFactory;
+class FNetworkReplayVersion;
 
 /* Holds all data about an entire replay */
 struct FInMemoryReplay

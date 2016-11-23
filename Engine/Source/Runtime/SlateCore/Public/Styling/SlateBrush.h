@@ -2,11 +2,12 @@
 
 #pragma once
 
-#include "Margin.h"
-#include "SlateColor.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Margin.h"
 
 #include "SlateBrush.generated.h"
-
 
 /**
  * Enumerates ways in which an image can be drawn.

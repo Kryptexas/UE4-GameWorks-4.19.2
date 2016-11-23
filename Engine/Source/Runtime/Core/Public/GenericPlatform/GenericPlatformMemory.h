@@ -6,14 +6,13 @@
 ==============================================================================================*/
 
 #pragma once
-#include "HAL/Platform.h"
-#include "HAL/PlatformCodeAnalysis.h"
+
+#include "CoreTypes.h"
+#include "CoreFwd.h"
 #include <wchar.h>
 #include <string.h>
 
-class FMalloc;
-class FOutputDevice;
-class FString;
+struct FPlatformMemoryStats;
 
 /** Holds generic memory stats, internally implemented as a map. */
 struct FGenericMemoryStats;

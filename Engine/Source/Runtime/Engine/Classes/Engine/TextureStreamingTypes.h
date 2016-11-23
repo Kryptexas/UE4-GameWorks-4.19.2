@@ -4,9 +4,22 @@
 
 #pragma once 
 
-#include "EngineTypes.h"
-#include "Components.h" // For FMeshUVChannelInfo
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "HAL/IConsoleManager.h"
+#include "RHIDefinitions.h"
+#include "SceneTypes.h"
 #include "TextureStreamingTypes.generated.h"
+
+class ULevel;
+class UMaterialInterface;
+class UPrimitiveComponent;
+class UTexture2D;
+struct FMaterialTextureInfo;
+struct FMeshUVChannelInfo;
+struct FSlowTask;
+struct FStreamingTextureBuildInfo;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(TextureStreamingBuild, Log, All);
 

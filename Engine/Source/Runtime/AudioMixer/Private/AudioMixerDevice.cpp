@@ -1,10 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioMixerPCH.h"
 #include "AudioMixerDevice.h"
 #include "AudioMixerSource.h"
+#include "AudioMixerSubmix.h"
+#include "AudioMixerSourceVoice.h"
+#include "UObject/UObjectHash.h"
 #include "DSP/Noise.h"
 #include "DSP/SinOsc.h"
+#include "UObject/UObjectIterator.h"
 
 namespace Audio
 {

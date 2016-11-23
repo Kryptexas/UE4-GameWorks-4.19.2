@@ -2,18 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IMessageContext.h"
+#include "IMessageInterceptor.h"
+#include "IMessageTracer.h"
 
-enum class EMessageScope : uint8;
-struct FMessageAddress;
 class IMessageAttachment;
-class IMessageContext;
-class IMessageInterceptor;
-class IMessageSubscription;
-class IMessageTracer;
 class IMessageReceiver;
 class IMessageSender;
-class UScriptStruct;
-
+class IMessageSubscription;
 
 /** Delegate type for message bus shutdowns. */
 DECLARE_MULTICAST_DELEGATE(FOnMessageBusShutdown);

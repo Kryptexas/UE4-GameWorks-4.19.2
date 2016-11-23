@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "LinkerPlaceholderBase.h"
+#include "UObject/LinkerPlaceholderBase.h"
+#include "UObject/UnrealType.h"
 #include "Blueprint/BlueprintSupport.h"
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS

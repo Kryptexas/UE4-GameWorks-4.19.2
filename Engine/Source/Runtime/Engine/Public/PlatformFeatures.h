@@ -2,9 +2,11 @@
 
 #pragma once 
 
-#include "SaveGameSystem.h"
-#include "DVRStreaming.h"
-#include "VideoRecordingSystem.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+
+class IVideoRecordingSystem;
 
 /**
  * Interface for platform feature modules

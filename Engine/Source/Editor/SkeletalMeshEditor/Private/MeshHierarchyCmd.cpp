@@ -1,7 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletalMeshEditorPrivatePCH.h"
 #include "MeshHierarchyCmd.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
+#include "AssetData.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 
 static FMeshHierarchyCmd MeshHierarchyCmdExec;

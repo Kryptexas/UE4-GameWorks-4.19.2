@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
+#include "EditorTests.h"
+#include "Modules/ModuleManager.h"
 
 static const FName EditorTestsTabName("EditorTests");
 

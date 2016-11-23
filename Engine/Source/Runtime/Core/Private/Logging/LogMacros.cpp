@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "Logging/LogMacros.h"
-#include "VarargsHelper.h"
+#include "CoreGlobals.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/VarargsHelper.h"
 
 void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, const TCHAR* Description, bool bIsEnsure );
 

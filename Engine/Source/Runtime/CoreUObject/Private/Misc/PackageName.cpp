@@ -1,12 +1,22 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectHash.cpp: Unreal object name hashes
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "Projects.h"
-#include "PackageLocalizationManager.h"
+#include "Misc/PackageName.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Stats/Stats.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Package.h"
+#include "UObject/PackageFileSummary.h"
+#include "UObject/Linker.h"
+#include "Interfaces/IPluginManager.h"
+#include "Internationalization/PackageLocalizationManager.h"
 #include "HAL/ThreadHeartBeat.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackageName, Log, All);

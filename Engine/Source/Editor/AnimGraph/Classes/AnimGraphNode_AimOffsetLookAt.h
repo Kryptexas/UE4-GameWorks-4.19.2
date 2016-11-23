@@ -1,10 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BlueprintNodeSignature.h"
 #include "AnimGraphNode_BlendSpaceBase.h"
 #include "AnimNodes/AnimNode_AimOffsetLookAt.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
+#include "EdGraph/EdGraphNodeUtils.h"
 #include "AnimGraphNode_AimOffsetLookAt.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
+
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 UCLASS(MinimalAPI, hidecategories = Coordinates)
 class UAnimGraphNode_AimOffsetLookAt : public UAnimGraphNode_BlendSpaceBase

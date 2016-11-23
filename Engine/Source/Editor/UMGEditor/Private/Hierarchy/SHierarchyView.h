@@ -2,15 +2,19 @@
 
 #pragma once
 
-#include "BlueprintEditor.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "WidgetBlueprintEditor.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 #include "Misc/TextFilter.h"
-#include "SCompoundWidget.h"
-#include "SHierarchyViewItem.h"
 #include "TreeFilterHandler.h"
-#include "WidgetBlueprintEditorUtils.h"
 
-class FWidgetBlueprintEditor;
-class UWidget;
+class FHierarchyModel;
+class FMenuBuilder;
+class USimpleConstructionScript;
 class UWidgetBlueprint;
 
 /**

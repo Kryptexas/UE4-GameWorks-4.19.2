@@ -2,15 +2,23 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "ParticleHelper.h"
 #include "ParticleModule.generated.h"
 
+class UDistribution;
+class UDistributionFloat;
+class UDistributionVector;
 class UInterpCurveEdSetup;
 class UParticleEmitter;
 class UParticleLODLevel;
+class UParticleModuleTypeDataBase;
+class UParticleSystemComponent;
 struct FCurveEdEntry;
 struct FParticleEmitterInstance;
-class UParticleModuleTypeDataBase;
 
 /** ModuleType
  *	Indicates the kind of emitter the module can be applied to.

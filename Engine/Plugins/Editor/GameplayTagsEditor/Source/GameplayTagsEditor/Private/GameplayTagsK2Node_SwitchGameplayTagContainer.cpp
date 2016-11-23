@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
+#include "GameplayTagsK2Node_SwitchGameplayTagContainer.h"
+#include "EdGraphSchema_K2.h"
+#include "Engine/Blueprint.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "GameplayTagsK2Node_SwitchGameplayTagContainer.h"
 #include "BlueprintGameplayTagLibrary.h"
 
 UGameplayTagsK2Node_SwitchGameplayTagContainer::UGameplayTagsK2Node_SwitchGameplayTagContainer(const FObjectInitializer& ObjectInitializer)

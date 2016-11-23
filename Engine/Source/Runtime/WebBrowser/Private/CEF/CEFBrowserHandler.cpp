@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
+#include "CEF/CEFBrowserHandler.h"
 
 #if WITH_CEF3
 
-#include "CEFBrowserHandler.h"
 #include "WebBrowserModule.h"
 #include "CEFBrowserClosureTask.h"
 #include "IWebBrowserSingleton.h"

@@ -1,14 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemUtilsPrivatePCH.h"
-#include "TestSessionInterface.h"
-#include "OnlineIdentityInterface.h"
-#include "OnlineFriendsInterface.h"
-#include "OnlineExternalUIInterface.h"
-#include "ModuleManager.h"
+#include "Tests/TestSessionInterface.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/GameMode.h"
 #include "Kismet/GameplayStatics.h"
+#include "OnlineSubsystemUtils.h"
 
-#include "Engine.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 

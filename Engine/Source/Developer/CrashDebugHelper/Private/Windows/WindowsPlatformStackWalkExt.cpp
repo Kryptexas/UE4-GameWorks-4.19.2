@@ -1,10 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashDebugHelperPrivatePCH.h"
-#include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "WindowsPlatformStackWalkExt.h"
+#include "CrashDebugHelperPrivate.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "CrashDebugPDBCache.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/MemStack.h"
+#include "Misc/Paths.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/FileManager.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include "dbgeng.h"
 #include <DbgHelp.h>

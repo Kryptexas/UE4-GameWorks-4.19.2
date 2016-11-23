@@ -1,13 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-#include "AnimationGraphSchema.h"
 #include "AnimGraphNode_BlendSpaceBase.h"
+#include "EdGraphSchema_K2_Actions.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/BlendSpace1D.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
-#include "GraphEditorActions.h"
 
 #define LOCTEXT_NAMESPACE "AnimGraphNode_BlendSpaceBase"
 

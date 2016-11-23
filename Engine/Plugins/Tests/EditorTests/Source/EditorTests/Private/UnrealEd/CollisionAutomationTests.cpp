@@ -1,21 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
+#include "UnrealEd/CollisionAutomationTests.h"
+#include "Misc/AutomationTest.h"
+#include "EngineGlobals.h"
+#include "GameFramework/Actor.h"
+#include "CollisionQueryParams.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/ShapeComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshActor.h"
+#include "Editor.h"
 
-#include "CollisionAutomationTests.h"
 
-#include "Tests/AutomationTestSettings.h"
 
 #if WITH_EDITOR
-#include "FileHelpers.h"
-#include "LevelEditor.h"
-#include "AutomationEditorCommon.h"
+#include "Tests/AutomationEditorCommon.h"
 #endif
 
 #include "AssetSelection.h"
-#include "AutomationCommon.h"
-#include "AutomationTest.h"
-#include "Engine/TriggerBase.h"
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TriggerBox.h"
 #include "Engine/TriggerSphere.h"

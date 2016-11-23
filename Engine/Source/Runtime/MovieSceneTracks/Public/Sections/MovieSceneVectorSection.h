@@ -2,12 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
 #include "Curves/RichCurve.h"
-#include "IKeyframeSection.h"
-#include "MovieSceneKeyStruct.h"
 #include "MovieSceneSection.h"
+#include "Sections/IKeyframeSection.h"
+#include "MovieSceneKeyStruct.h"
 #include "MovieSceneVectorSection.generated.h"
 
+class FStructOnScope;
+struct FPropertyChangedEvent;
 
 enum class EKeyVectorChannel
 {

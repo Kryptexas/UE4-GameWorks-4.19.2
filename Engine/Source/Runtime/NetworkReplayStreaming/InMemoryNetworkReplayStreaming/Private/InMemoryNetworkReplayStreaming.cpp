@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "InMemoryNetworkReplayStreaming.h"
-#include "Paths.h"
-#include "EngineVersion.h"
-#include "Guid.h"
-#include "DateTime.h"
-#include "IConsoleManager.h"
+#include "Serialization/MemoryReader.h"
+#include "Misc/Guid.h"
+#include "Misc/DateTime.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/NetworkVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogMemoryReplay, Log, All );
 

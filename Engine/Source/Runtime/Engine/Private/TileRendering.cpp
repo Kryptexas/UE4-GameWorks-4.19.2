@@ -4,14 +4,20 @@
 	TileRendering.cpp: Tile rendering implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "TileRendering.h"
-#include "EngineModule.h"
+#include "RHI.h"
+#include "ShowFlags.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
+#include "VertexFactory.h"
+#include "PackedNormal.h"
 #include "LocalVertexFactory.h"
+#include "SceneView.h"
+#include "CanvasTypes.h"
 #include "MeshBatch.h"
 #include "RendererInterface.h"
 #include "SceneUtils.h"
-#include "CanvasTypes.h"
+#include "EngineModule.h"
 
 #define NUM_MATERIAL_TILE_VERTS	6
 

@@ -1,38 +1,36 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HierarchicalLODUtilitiesModulePrivatePCH.h"
-#include "Core.h"
-#include "AsyncWork.h"
-
-#include "Engine/Engine.h"
-#include "Engine/World.h"
+#include "HierarchicalLODUtilities.h"
+#include "GameFramework/Actor.h"
+#include "Components/StaticMeshComponent.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/PackageName.h"
 #include "GameFramework/WorldSettings.h"
 #include "Engine/LODActor.h"
-#include "Components/StaticMeshComponent.h"
-#include "Engine/StaticMesh.h"
+#include "Components/BrushComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Model.h"
+#include "Engine/Polys.h"
+#include "HierarchicalLODUtilitiesModule.h"
+
 #include "MeshUtilities.h"
 #include "StaticMeshResources.h"
 #include "HierarchicalLODVolume.h"
 
-#include "IProjectManager.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "Interfaces/IProjectManager.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 
-#include "Editor.h"
-#include "Editor/EditorEngine.h"
 #include "BSPOps.h"
-#include "UnrealEd.h"
+#include "Builders/CubeBuilder.h"
 
 #if WITH_EDITOR
-#include "AssetData.h"
-#include "Factories/Factory.h"
-#include "ObjectTools.h"
-#include "AssetEditorManager.h"
+#include "Editor.h"
+#include "Toolkits/AssetEditorManager.h"
 #include "ScopedTransaction.h"
 #endif // WITH_EDITOR
 
-#include "HierarchicalLODUtilities.h"
 #include "HierarchicalLODProxyProcessor.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHierarchicalLODUtilities, Verbose, All);

@@ -2,11 +2,16 @@
 
 #pragma once
 
-#include "AITypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
 #include "GameFramework/Pawn.h"
+#include "FunctionalTest.h"
 #include "GenericTeamAgentInterface.h"
 #include "FunctionalAITest.generated.h"
 
+class AAIController;
 class AFunctionalAITest;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFunctionalTestAISpawned, AAIController*, Controller, APawn*, Pawn);

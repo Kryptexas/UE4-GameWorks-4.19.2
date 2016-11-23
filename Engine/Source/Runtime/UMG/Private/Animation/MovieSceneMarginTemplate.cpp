@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "MovieSceneMarginTemplate.h"
+#include "Animation/MovieSceneMarginTemplate.h"
 
-#include "MovieSceneMarginSection.h"
-#include "MovieScenePropertyTrack.h"
+#include "Animation/MovieSceneMarginSection.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 
 FMovieSceneMarginSectionTemplate::FMovieSceneMarginSectionTemplate(const UMovieSceneMarginSection& Section, const UMovieScenePropertyTrack& Track)
 	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())

@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class UMaterialInterface;
+class UWidget;
+
 /**
  * Handle to a widget material for easy getting and setting of the material.  Not designed to be stored
  */

@@ -4,15 +4,20 @@
  * ChartCreation
  *
  */
-#include "EnginePrivate.h"
 #include "ChartCreation.h"
-#include "Database.h"
-#include "RenderCore.h"
-#include "Scalability.h"
+#include "ProfilingDebugging/ProfilingHelpers.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "EngineGlobals.h"
+#include "RHI.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
 #include "AnalyticsEventAttribute.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Performance/EnginePerformanceTargets.h"
-#include "ProfilingDebugging/ProfilingHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChartCreation, Log, All);
 

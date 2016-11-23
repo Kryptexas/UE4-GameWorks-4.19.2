@@ -2,8 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "OnlineLeaderboardInterface.h"
-
+#include "OnlineFriendsInterface.h"
 #include "AGS/LeaderboardsClientInterface.h"
 
 struct FOnlinePendingLeaderboardWrite

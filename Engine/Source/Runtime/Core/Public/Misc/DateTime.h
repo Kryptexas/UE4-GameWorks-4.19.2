@@ -2,15 +2,9 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
 #include "Misc/Timespan.h"
-
-
-class FArchive;
-class FOutputDevice;
-class FString;
-class UObject;
-
 
 /**
  * Enumerates the days of the week in 7-day calendars.

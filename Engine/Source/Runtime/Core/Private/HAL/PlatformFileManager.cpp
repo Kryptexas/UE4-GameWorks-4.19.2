@@ -4,13 +4,16 @@
 	GenericPlatformFile.cpp: Generic implementations of platform file I/O functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "ModuleManager.h"
-#include "../HAL/IPlatformFileLogWrapper.h"
-#include "../HAL/IPlatformFileProfilerWrapper.h"
-#include "../HAL/IPlatformFileCachedWrapper.h"
-#include "../HAL/IPlatformFileModule.h"
-#include "../HAL/IPlatformFileOpenLogWrapper.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/AssertionMacros.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Modules/ModuleManager.h"
+#include "Templates/ScopedPointer.h"
+#include "HAL/IPlatformFileLogWrapper.h"
+#include "HAL/IPlatformFileProfilerWrapper.h"
+#include "HAL/IPlatformFileCachedWrapper.h"
+#include "HAL/IPlatformFileModule.h"
+#include "HAL/IPlatformFileOpenLogWrapper.h"
 #include "UniquePtr.h"
 
 FPlatformFileManager::FPlatformFileManager()

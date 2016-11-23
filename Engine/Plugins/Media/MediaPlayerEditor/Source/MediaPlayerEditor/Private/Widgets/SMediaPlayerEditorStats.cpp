@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "SMediaPlayerEditorStats.h"
-
+#include "Widgets/SMediaPlayerEditorStats.h"
+#include "IMediaPlayer.h"
+#include "MediaPlayer.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "SMediaPlayerEditorStats"
 

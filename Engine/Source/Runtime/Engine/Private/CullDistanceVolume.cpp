@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/CullDistanceVolume.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/World.h"
 #include "Components/BrushComponent.h"
 
 ACullDistanceVolume::ACullDistanceVolume(const FObjectInitializer& ObjectInitializer)

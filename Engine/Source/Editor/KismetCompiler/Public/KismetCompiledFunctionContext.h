@@ -2,13 +2,19 @@
 
 #pragma once
 
-#include "EdGraphCompilerUtilities.h"
-#include "BlueprintGraphDefinitions.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "UObject/Class.h"
+#include "EdGraphSchema_K2.h"
 #include "BPTerminal.h"
 #include "BlueprintCompiledStatement.h"
+#include "Kismet2/CompilerResultsLog.h"
 
-class  UBlueprintGeneratedClass;
-struct FMemberReference;
+class Error;
+class UBlueprint;
+class UBlueprintGeneratedClass;
+class UK2Node_FunctionEntry;
+struct FNetNameMapping;
 
 namespace KismetCompilerDebugOptions
 {

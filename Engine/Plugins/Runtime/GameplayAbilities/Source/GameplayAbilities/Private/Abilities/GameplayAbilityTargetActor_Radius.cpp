@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AbilitySystemComponent.h"
-#include "GameplayAbilityTargetActor_Radius.h"
-#include "Engine/World.h"
-#include "Runtime/Engine/Public/Net/UnrealNetwork.h"
-#include "GameplayAbilityTargetTypes.h"
+#include "Abilities/GameplayAbilityTargetActor_Radius.h"
+#include "GameFramework/Pawn.h"
+#include "WorldCollision.h"
+#include "Abilities/GameplayAbility.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //

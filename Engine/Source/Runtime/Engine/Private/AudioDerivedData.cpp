@@ -1,10 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "EnginePrivate.h"
 #include "AudioDerivedData.h"
-#include "TargetPlatform.h"
+#include "Interfaces/IAudioFormat.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Audio.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "Sound/SoundWave.h"
 #include "DerivedDataCacheInterface.h"
-#include "CookStats.h"
+#include "ProfilingDebugging/CookStats.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 

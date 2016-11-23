@@ -1,14 +1,20 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "HotfixPrivatePCH.h"
-
 #include "UpdateManager.h"
+#include "Misc/CommandLine.h"
+#include "Containers/Ticker.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/Package.h"
+#include "Engine/GameInstance.h"
+#include "TimerManager.h"
+#include "Engine/LocalPlayer.h"
+#include "OnlineSubsystem.h"
+
 #include "OnlineHotfixManager.h"
 
-#include "Online.h"
 #include "OnlineSubsystemUtils.h"
 
-#include "LoadTimeTracker.h"
+#include "ProfilingDebugging/LoadTimeTracker.h"
 
 #define UPDATE_CHECK_SECONDS 30.0
 

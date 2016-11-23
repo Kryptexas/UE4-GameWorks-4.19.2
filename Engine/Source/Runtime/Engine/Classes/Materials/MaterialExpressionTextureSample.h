@@ -2,9 +2,14 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "MaterialExpressionTextureSample.generated.h"
 
+struct FPropertyChangedEvent;
 
 /** defines how MipValue is used */
 UENUM()

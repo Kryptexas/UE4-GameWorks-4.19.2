@@ -2,15 +2,15 @@
 
 #pragma once
 
-#include "MovieSceneEvalTemplateBase.h"
-#include "InlineValue.h"
-#include "MovieScenePreAnimatedState.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Misc/InlineValue.h"
 #include "MovieSceneSection.h"
+#include "Evaluation/MovieSceneEvalTemplateBase.h"
 
 // These headers are not necessary to compile this header in isolation, but are required to implement an FMovieSceneEvalTemplate
-#include "MovieSceneEvaluationState.h"
-#include "MovieScenePlayback.h"
-#include "MovieSceneExecutionTokens.h"
+#include "Evaluation/MovieSceneExecutionTokens.h"
 
 #include "MovieSceneEvalTemplate.generated.h"
 

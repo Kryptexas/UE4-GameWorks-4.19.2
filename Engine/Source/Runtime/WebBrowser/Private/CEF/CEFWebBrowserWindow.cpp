@@ -1,14 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
+#include "CEF/CEFWebBrowserWindow.h"
+#include "IWebBrowserDialog.h"
+#include "UObject/Stack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Textures/SlateUpdatableTexture.h"
+
 #if WITH_CEF3
 
-#include "CEFWebBrowserWindow.h"
 #include "CEFBrowserPopupFeatures.h"
 #include "CEFWebBrowserDialog.h"
 #include "CEFBrowserClosureTask.h"
 #include "CEFJSScripting.h"
-#include "RHI.h"
 
 #if PLATFORM_MAC
 // Needed for character code definitions

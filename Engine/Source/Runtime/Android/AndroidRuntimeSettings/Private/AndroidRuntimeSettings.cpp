@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AndroidRuntimeSettingsPrivatePCH.h"
-
 #include "AndroidRuntimeSettings.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UnrealType.h"
+
 
 #if WITH_EDITOR
-#include "TargetPlatform.h"
 #include "IAndroid_MultiTargetPlatformModule.h"
 #endif
 

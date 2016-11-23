@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+#include "EnumArchiveProxy.h"
 #include "UnrealHeaderTool.h"
-#include "UHTMakefile/UHTMakefile.h"
-#include "UHTMakefile/EnumArchiveProxy.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Class.h"
+#include "UHTMakefile.h"
 
 FEnumArchiveProxy::FEnumArchiveProxy(FUHTMakefile& UHTMakefile, const UEnum* Enum)
 	: FFieldArchiveProxy(UHTMakefile, Enum)

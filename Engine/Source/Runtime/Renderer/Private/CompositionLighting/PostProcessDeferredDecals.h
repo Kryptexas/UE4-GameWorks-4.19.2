@@ -6,8 +6,13 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
-#include "DecalRenderingShared.h"
+#include "CoreMinimal.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "RendererInterface.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+#include "DecalRenderingCommon.h"
 
 // ePId_Input0: SceneColor (not needed for DBuffer decals)
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 

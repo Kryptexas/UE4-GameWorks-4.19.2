@@ -8,7 +8,9 @@ public class Core : ModuleRules
 {
 	public Core(TargetInfo Target)
 	{
-		SharedPCHHeaderFile = "Runtime/Core/Public/Core.h";
+		PrivatePCHHeaderFile = "Private/CorePrivatePCH.h";
+
+		SharedPCHHeaderFile = "Public/CoreSharedPCH.h";
 
 		PublicIncludePaths.AddRange(
 			new string[] {

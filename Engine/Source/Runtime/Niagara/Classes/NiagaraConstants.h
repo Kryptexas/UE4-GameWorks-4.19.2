@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /**  List of built-in constants
 *	The values of these enums correspond directly to indices for the compiler and interpreter
 */

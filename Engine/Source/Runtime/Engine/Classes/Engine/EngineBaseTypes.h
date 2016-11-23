@@ -7,9 +7,16 @@
  *  The typical use case is for structs used in the renderer and also in script code.
  */
 
-#include "TaskGraphInterfaces.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Misc/CoreMisc.h"
+#include "Async/TaskGraphInterfaces.h"
 #include "EngineBaseTypes.generated.h"
 
+class UActorComponent;
 struct FTickContext;
 
 //

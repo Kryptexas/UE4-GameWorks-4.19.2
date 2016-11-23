@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "MovieSceneEvaluationField.h"
+#include "Evaluation/MovieSceneEvaluationField.h"
 
 int32 FMovieSceneEvaluationField::GetSegmentFromTime(float Time) const
 {

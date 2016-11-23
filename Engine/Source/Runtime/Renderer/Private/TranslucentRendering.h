@@ -6,6 +6,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HitProxies.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
+#include "SceneRendering.h"
+
 /**
 * Translucent draw policy factory.
 * Creates the policies needed for rendering a mesh based on its material

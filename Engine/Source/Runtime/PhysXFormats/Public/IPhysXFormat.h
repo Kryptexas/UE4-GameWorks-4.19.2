@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+
 // The result of a cooking operation
 enum class EPhysXCookingResult : uint8
 {

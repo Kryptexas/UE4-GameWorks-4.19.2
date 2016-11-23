@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingPrivatePCH.h"
-#include "MessageDispatchTask.h"
-#include "MessageRouter.h"
+#include "Bus/MessageRouter.h"
+#include "HAL/PlatformProcess.h"
+#include "Bus/MessageDispatchTask.h"
+#include "IMessageSubscription.h"
+#include "IMessageReceiver.h"
+#include "IMessageInterceptor.h"
 
 
 /* FMessageRouter structors

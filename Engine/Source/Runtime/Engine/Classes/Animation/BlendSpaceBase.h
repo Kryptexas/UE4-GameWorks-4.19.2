@@ -7,7 +7,10 @@
 
 #pragma once
 
-#include "AnimSequence.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BoneContainer.h"
+#include "Animation/AnimationAsset.h"
 #include "AnimationRuntime.h"
 #include "BlendSpaceBase.generated.h"
 

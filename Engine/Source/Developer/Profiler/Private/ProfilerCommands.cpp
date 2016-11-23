@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
 #include "ProfilerCommands.h"
-#include "ProfilerManager.h"
+#include "Misc/Paths.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
+#include "Stats/StatsData.h"
 #include "ProfilerSession.h"
-#include "SMultiDumpBrowser.h"
-#include "SProfilerWindow.h"
-
+#include "Widgets/SMultiDumpBrowser.h"
+#include "Widgets/SProfilerWindow.h"
+#include "DesktopPlatformModule.h"
+#include "HAL/FileManagerGeneric.h"
 
 #define LOCTEXT_NAMESPACE "FProfilerCommands"
 

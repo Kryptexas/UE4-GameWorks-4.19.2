@@ -1,13 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetToolsPrivatePCH.h"
-#include "Toolkits/IToolkitHost.h"
+#include "AssetTypeActions/AssetTypeActions_AnimationAsset.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Misc/MessageDialog.h"
+#include "EditorStyleSet.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "AssetTools.h"
 #include "PersonaModule.h"
-#include "EditorAnimUtils.h"
-#include "NotificationManager.h"
-#include "SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "SSkeletonWidget.h"
 #include "IAnimationEditorModule.h"
+#include "Preferences/PersonaOptions.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

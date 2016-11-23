@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/Queue.h"
+#include "RenderUtils.h"
+
 #if WINVER == 0x0502
 // Windows XP uses Win7 sdk, and in that one winerror.h doesn't include them
 #ifndef DXGI_ERROR_INVALID_CALL

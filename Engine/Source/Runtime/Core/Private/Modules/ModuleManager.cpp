@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "ModuleManager.h"
-#include "EngineVersion.h"
-#include "EngineBuildSettings.h"
-#include "UProjectInfo.h"
-#include "ScopeExit.h"
-#include "ModuleVersion.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/DateTime.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Misc/Paths.h"
+#include "Stats/Stats.h"
+#include "Misc/App.h"
+#include "Misc/ScopeExit.h"
+#include "Modules/ModuleVersion.h"
+#include "Misc/ScopeLock.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 

@@ -2,20 +2,20 @@
 
 #pragma once
 
-#include "Containers/EnumAsByte.h"
+#include "CoreTypes.h"
+#include "Misc/VarArgs.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/EnableIf.h"
+#include "Templates/IsEnumClass.h"
 #include "HAL/PlatformProperties.h"
 #include "Misc/Compression.h"
 #include "Misc/EngineVersionBase.h"
-#include "TextNamespaceFwd.h"
-#include "Templates/EnableIf.h"
-#include "Templates/IsEnumClass.h"
+#include "Internationalization/TextNamespaceFwd.h"
 
-class FAssetPtr;
 class FCustomVersionContainer;
-class FLazyObjectPtr;
-struct FStringAssetReference;
+class ITargetPlatform;
 struct FUntypedBulkData;
-struct FWeakObjectPtr;
+template<class TEnum> class TEnumAsByte;
 
 // this is the master switch
 //@todoio if this is off, then we should leave the package file format completely unchanged....!!!!! this is really important to fix before we merge to main

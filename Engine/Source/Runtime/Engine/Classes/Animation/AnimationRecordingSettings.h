@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AnimationRecordingSettings.generated.h"
 
 /** Settings describing how to record an animation */

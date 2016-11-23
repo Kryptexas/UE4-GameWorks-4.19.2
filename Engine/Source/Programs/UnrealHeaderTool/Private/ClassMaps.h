@@ -2,15 +2,20 @@
 
 #pragma once
 
-#include "UniqueObj.h"
-#include "ParserClass.h"
-#include "Scope.h"
-#include "HeaderProvider.h"
+#include "CoreMinimal.h"
+#include "UObject/Stack.h"
 #include "UnderlyingEnumType.h"
 
 #include "UnrealSourceFile.h"
-#include "ClassDeclarationMetaData.h"
 
+class UField;
+class UClass;
+class UProperty;
+class UPackage;
+class UEnum;
+class FClassDeclarationMetaData;
+class FArchive;
+class FUHTMakefile;
 struct FManifestModule;
 class FUnrealSourceFile;
 class FUnrealTypeDefinitionInfo;

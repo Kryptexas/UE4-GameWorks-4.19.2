@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Engine.h"
+#include "CoreMinimal.h"
 
 
 class AUDIOEDITOR_API FSoundClassEditorUtilities

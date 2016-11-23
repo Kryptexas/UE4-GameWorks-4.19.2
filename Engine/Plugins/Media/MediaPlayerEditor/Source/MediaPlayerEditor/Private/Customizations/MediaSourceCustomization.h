@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
 #include "IDetailCustomization.h"
 
-
+class IDetailLayoutBuilder;
+class IMediaPlayerFactory;
 class IPropertyHandle;
-class SWidget;
-
 
 /**
  * Implements a details view customization for the UMediaSource class.

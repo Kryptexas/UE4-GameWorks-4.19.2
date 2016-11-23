@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/Array.h"
+#include "Misc/DateTime.h"
+#include "Math/RangeBound.h"
 
 /**
  * Template for ranges.

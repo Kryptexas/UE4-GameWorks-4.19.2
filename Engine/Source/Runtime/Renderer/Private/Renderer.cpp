@@ -4,10 +4,27 @@
 	Renderer.cpp: Renderer module implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "AssertionMacros.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/Stats.h"
+#include "Modules/ModuleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "RenderingThread.h"
+#include "RHIStaticStates.h"
+#include "SceneView.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneCore.h"
+#include "SceneHitProxyRendering.h"
+#include "SceneRendering.h"
+#include "BasePassRendering.h"
+#include "MobileBasePassRendering.h"
+#include "TranslucentRendering.h"
+#include "RendererModule.h"
 #include "GPUBenchmark.h"
+#include "SystemSettings.h"
 
 DEFINE_LOG_CATEGORY(LogRenderer);
 

@@ -2,8 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/PropertyPortFlags.h"
 #include "IOSRuntimeSettings.generated.h"
-
 
 UENUM()
 enum class EPowerUsageFrameRateLock : uint8

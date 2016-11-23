@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HttpPrivatePCH.h"
-#include "CurlHttp.h"
-#include "EngineVersion.h"
-#include "CurlHttpManager.h"
+#include "Curl/CurlHttp.h"
+#include "Stats/Stats.h"
+#include "Misc/App.h"
+#include "HttpModule.h"
+#include "Http.h"
+#include "Misc/EngineVersion.h"
+#include "Curl/CurlHttpManager.h"
 
 #if WITH_LIBCURL
 

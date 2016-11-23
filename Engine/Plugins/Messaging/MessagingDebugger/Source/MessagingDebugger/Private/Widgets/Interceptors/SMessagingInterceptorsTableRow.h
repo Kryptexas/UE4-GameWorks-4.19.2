@@ -2,10 +2,14 @@
 
 #pragma once
 
-
-class FMessagingDebuggerModel;
-struct FMessageTracerInterceptorInfo;
-
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Models/MessagingDebuggerModel.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Views/SListView.h"
 
 /**
  * Implements a row widget for the interceptors list.

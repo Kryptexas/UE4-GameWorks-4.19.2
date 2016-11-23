@@ -1,12 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "ModuleManager.h"
-#include "Editor.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "GameFramework/Actor.h"
+#include "AssetData.h"
+#include "Widgets/SWidget.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
 #include "ActorFactories/ActorFactory.h"
 #include "ActorPlacementInfo.h"
 #include "IPlacementMode.h"
-
+#include "GameFramework/Volume.h"
 
 /**
  * Struct that defines an identifier for a particular placeable item in this module.

@@ -5,6 +5,9 @@
 =============================================================================*/
 
 #include "MetalRHIPrivate.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "RenderUtils.h"
 #if PLATFORM_IOS
 #include "IOSAppDelegate.h"
 #elif PLATFORM_MAC

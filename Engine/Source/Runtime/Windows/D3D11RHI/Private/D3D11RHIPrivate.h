@@ -6,13 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "D3D11RHI.h"
 // Dependencies.
-#include "Core.h"
 #include "RHI.h"
 #include "GPUProfiler.h"
 #include "ShaderCore.h"
-#include "Engine.h"
+#include "Containers/ResourceArray.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 

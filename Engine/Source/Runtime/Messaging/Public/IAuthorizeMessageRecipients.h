@@ -2,11 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IMessageInterceptor.h"
 
-struct FMessageAddress;
-class IMessageInterceptor;
 class IMessageReceiver;
-
 
 /**
  * Interface for classes that authorize message subscriptions.

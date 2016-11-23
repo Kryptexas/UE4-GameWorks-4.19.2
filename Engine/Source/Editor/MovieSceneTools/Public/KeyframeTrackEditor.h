@@ -2,14 +2,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "KeyParams.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "Framework/Commands/UIAction.h"
+#include "Textures/SlateIcon.h"
+#include "ScopedTransaction.h"
 #include "MovieSceneTrackEditor.h"
-#include "IKeyframeSection.h"
-#include "ISequencerObjectChangeListener.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "MovieSceneCommonHelpers.h"
-#include "MovieSceneSection.h"
 
-class IPropertyHandle;
-class FPropertyChangedParams;
+template<typename KeyDataType> class IKeyframeSection;
 
 /**
  * A base class for track editors that edit tracks which contain sections implementing IKeyframeSection.

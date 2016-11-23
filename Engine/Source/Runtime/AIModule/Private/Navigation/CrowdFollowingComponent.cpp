@@ -1,9 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
 #include "Navigation/CrowdFollowingComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "VisualLogger/VisualLogger.h"
+#include "AIModuleLog.h"
 #include "Navigation/CrowdManager.h"
-#include "AI/Navigation/NavLinkCustomInterface.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
 #include "AI/Navigation/AbstractNavData.h"
 #include "AIConfig.h"
 #include "Navigation/MetaNavMeshPath.h"

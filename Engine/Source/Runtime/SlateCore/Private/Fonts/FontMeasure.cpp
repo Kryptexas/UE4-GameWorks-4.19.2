@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "SlateStats.h"
+#include "Fonts/FontMeasure.h"
+#include "Fonts/FontCache.h"
+#include "Fonts/FontCacheUtils.h"
+#include "Stats/SlateStats.h"
 
 #define USE_MEASURE_CACHING 1
 

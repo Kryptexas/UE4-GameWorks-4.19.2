@@ -4,13 +4,16 @@
 	RepLayout.cpp: Unreal replication layout implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Net/RepLayout.h"
-#include "Net/DataReplication.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/UnrealType.h"
+#include "EngineStats.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "Engine/PackageMapClient.h"
+#include "Engine/NetConnection.h"
 #include "Net/NetworkProfiler.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/NetworkSettings.h"
-#include "Engine/PackageMapClient.h"
 
 static TAutoConsoleVariable<int32> CVarAllowPropertySkipping( TEXT( "net.AllowPropertySkipping" ), 1, TEXT( "Allow skipping of properties that haven't changed for other clients" ) );
 

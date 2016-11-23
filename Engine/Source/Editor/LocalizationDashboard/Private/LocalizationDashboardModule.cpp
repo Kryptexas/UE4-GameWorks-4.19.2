@@ -1,19 +1,19 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LocalizationDashboardPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
 #include "ILocalizationDashboardModule.h"
 #include "LocalizationDashboard.h"
-#include "LocalizationTargetTypes.h"
-#include "SDockTab.h"
 #include "Features/IModularFeatures.h"
 #include "ILocalizationServiceProvider.h"
+#include "IDetailCustomization.h"
 #include "LocalizationDashboardSettingsDetailCustomization.h"
 #include "LocalizationTargetSetDetailCustomization.h"
 #include "LocalizationTargetDetailCustomization.h"
+#include "IPropertyTypeCustomization.h"
 #include "GatherTextDetailCustomizations.h"
 #include "PropertyEditorModule.h"
 #include "ILocalizationServiceModule.h"
-#include "LocalizationSettings.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 

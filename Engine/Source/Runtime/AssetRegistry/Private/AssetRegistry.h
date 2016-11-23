@@ -3,6 +3,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "AssetData.h"
+#include "IAssetRegistry.h"
+#include "Runtime/AssetRegistry/Private/PathTree.h"
+#include "Runtime/AssetRegistry/Private/PackageDependencyData.h"
+#include "Runtime/AssetRegistry/Private/AssetDataGatherer.h"
+
+class FDependsNode;
+struct FARFilter;
+
 /**
  * The AssetRegistry singleton gathers information about .uasset files in the background so things
  * like the content browser don't have to work with the filesystem

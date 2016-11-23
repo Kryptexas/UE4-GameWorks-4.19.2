@@ -3,12 +3,28 @@
 
 #pragma once
 
-#include "AssetData.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
 #include "PreviewScene.h"
+#include "EditorViewportClient.h"
+#include "AssetData.h"
+#include "Widgets/SToolTip.h"
+#include "PersonaDelegates.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserDelegates.h"
 #include "EditorAnimUtils.h"
 #include "IAnimationSequenceBrowser.h"
-#include "PersonaDelegates.h"
+
+class FSceneViewport;
+class FUICommandList;
+class IPersonaToolkit;
+class SMenuAnchor;
+class SViewport;
+class UAnimationAsset;
+class UDebugSkelMeshComponent;
+class USoundWave;
 
 //////////////////////////////////////////////////////////////////////////
 // FAnimationAssetViewportClient

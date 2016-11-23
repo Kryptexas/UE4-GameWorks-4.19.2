@@ -1,10 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
-
 #include "AnimationBlendSpaceHelpers.h"
-#include "Animation/BlendSpaceBase.h"
 
 #define BLENDSPACE_MINSAMPLE	3
 #define BLENDSPACE_MINAXES		1

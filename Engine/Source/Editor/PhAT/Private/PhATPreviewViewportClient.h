@@ -2,12 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UnrealWidget.h"
+#include "EditorViewportClient.h"
 #include "PhysicsPublic.h"
 
+class FCanvas;
 class FPhAT;
 class FPhATSharedData;
 class SPhATPreviewViewport;
-
+class UFont;
 
 /*-----------------------------------------------------------------------------
    FPhATViewportClient

@@ -2,10 +2,19 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "K2Node.h"
 #include "K2Node_TransitionRuleGetter.generated.h"
 
-class UAnimGraphNode_Base;
+class FBlueprintActionDatabaseRegistrar;
 class FBlueprintActionFilter;
+class UAnimBlueprint;
+class UAnimGraphNode_Base;
+class UAnimStateNode;
+class UEdGraphPin;
+class UEdGraphSchema;
 
 UENUM()
 namespace ETransitionGetter

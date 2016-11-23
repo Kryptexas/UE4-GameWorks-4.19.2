@@ -2,10 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "Engine/DataAsset.h"
+#include "Abilities/GameplayAbility.h"
 #include "GameplayAbilitySet.generated.h"
 
-class UGameplayAbility;
 class UAbilitySystemComponent;
 
 /**

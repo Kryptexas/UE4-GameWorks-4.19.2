@@ -2,13 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
 #include "MovieSceneSequence.h"
-#include "WidgetAnimationBinding.h"
+#include "Animation/WidgetAnimationBinding.h"
 #include "WidgetAnimation.generated.h"
 
-
 class UMovieScene;
-class UUserWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWidgetAnimationPlaybackStatusChanged);
 

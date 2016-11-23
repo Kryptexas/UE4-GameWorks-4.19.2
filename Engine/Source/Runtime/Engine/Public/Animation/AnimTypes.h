@@ -2,12 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/MemStack.h"
+//#include "Animation/AnimationAsset.h"
 #include "Animation/AnimLinkableElement.h"
 #include "AnimTypes.generated.h"
 
 struct FMarkerPair;
-struct FPassedMarker;
 struct FMarkerSyncAnimPosition;
+struct FPassedMarker;
 
 // Disable debugging information for shipping and test builds.
 #define ENABLE_ANIM_DEBUG (1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))

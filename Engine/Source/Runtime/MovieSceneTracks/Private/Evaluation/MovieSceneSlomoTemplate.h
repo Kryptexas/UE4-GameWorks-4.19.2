@@ -2,15 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieSceneTrackImplementation.h"
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneSlomoSection.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Curves/RichCurve.h"
+#include "Evaluation/MovieSceneTrackImplementation.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Sections/MovieSceneSlomoSection.h"
 
 #include "MovieSceneSlomoTemplate.generated.h"
-
-class UMovieSceneSlomoTrack;
 
 USTRUCT()
 struct FMovieSceneSlomoSectionTemplate : public FMovieSceneEvalTemplate

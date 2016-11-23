@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "Core.h"
-#include "CoreUObject.h"
-#include "ObjectMacros.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 
 const FName GameSessionName(TEXT("Game"));
 const FName PartySessionName(TEXT("Party"));

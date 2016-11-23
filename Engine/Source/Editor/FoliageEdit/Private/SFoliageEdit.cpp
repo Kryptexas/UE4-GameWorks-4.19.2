@@ -1,15 +1,29 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-
-#include "FoliageType_InstancedStaticMesh.h"
-#include "FoliageEdMode.h"
 #include "SFoliageEdit.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Styling/SlateTypes.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SWrapBox.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+
 #include "FoliageEditActions.h"
-#include "Editor/IntroTutorials/Public/IIntroTutorials.h"
-#include "SNumericEntryBox.h"
+#include "IIntroTutorials.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 #include "SFoliagePalette.h"
-#include "SScaleBox.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
 

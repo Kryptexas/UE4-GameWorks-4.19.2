@@ -19,11 +19,17 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Misc/NetworkGuid.h"
+#include "UObject/CoreNet.h"
 #include "Net/DataBunch.h"
 #include "PackageMapClient.generated.h"
 
-class FRepLayout;
-class FOutBunch;
+class UNetConnection;
+class UNetDriver;
 
 class ENGINE_API FNetFieldExport
 {

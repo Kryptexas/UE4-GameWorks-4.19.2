@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
+#include "RenderResource.h"
 #include "OpenGLDrv.h"
 
 #define GL_CHECK(x)		x; do { GLint Err = glGetError(); if (Err != 0) {FPlatformMisc::LowLevelOutputDebugStringf(TEXT("(%s:%d) GL_CHECK Failed '%s'! %d (%x)\n"), ANSI_TO_TCHAR(__FILE__), __LINE__, ANSI_TO_TCHAR( #x ), Err, Err); check(!Err);}} while (0)
@@ -48,6 +52,8 @@
 		} \
 	while (0)
 
+struct FPlatformOpenGLContext;
+struct FPlatformOpenGLDevice;
 
 /**
  * The OpenGL RHI stats.

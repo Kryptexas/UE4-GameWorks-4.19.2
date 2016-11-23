@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IMessageTracer.h"
 
 /**
  * Implements a filter for the message history list.

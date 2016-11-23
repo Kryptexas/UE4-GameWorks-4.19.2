@@ -1,13 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "InputCoreTypes.h"
 #include "BehaviorTree/BTDecorator.h"
 #include "BTDecorator_BlueprintBase.generated.h"
 
+class AActor;
+class AAIController;
+class APawn;
+class UBehaviorTree;
 class UBlackboardComponent;
-class UBehaviorTreeComponent;
-class FBehaviorBlueprintDetails;
-struct FBehaviorTreeSearchData;
 
 /**
  *  Base class for blueprint based decorator nodes. Do NOT use it for creating native c++ classes!
@@ -198,8 +204,6 @@ protected:
 	/** check if decorator's observer is currently active */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	bool IsDecoratorObserverActive() const;
-
-	friend FBehaviorBlueprintDetails;
 
 	FORCEINLINE bool GetNeedsTickForConditionChecking() const { return PerformConditionCheckImplementations != 0 && (bIsObservingBB == false || bCheckConditionOnlyBlackBoardChanges == false); }
 };

@@ -2,10 +2,15 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieSceneEvaluationTemplate.h"
+#include "CoreMinimal.h"
+#include "MovieSceneSequenceID.h"
+#include "Evaluation/MovieSceneSequenceTransform.h"
+#include "Evaluation/MovieSceneEvaluationState.h"
+#include "Evaluation/MovieScenePlayback.h"
+#include "Evaluation/MovieSceneSequenceTemplateStore.h"
+#include "Evaluation/MovieSceneEvaluationTemplate.h"
 
-class FMovieSceneSequenceInstance;
+class UMovieSceneSequence;
 
 /**
  * An instance of an evaluation template. Fast to initialize and evaluate.

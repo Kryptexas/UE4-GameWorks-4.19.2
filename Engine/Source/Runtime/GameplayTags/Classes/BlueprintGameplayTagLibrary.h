@@ -2,13 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptInterface.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "BlueprintGameplayTagLibrary.generated.h"
-
-// Forward declarations
-struct FGameplayTag;
-struct FGameplayTagContainer;
 
 UCLASS(MinimalAPI)
 class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary

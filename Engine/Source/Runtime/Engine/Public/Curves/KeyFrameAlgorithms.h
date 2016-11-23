@@ -1,6 +1,9 @@
 #pragma once
 
-#include "KeyFrameManipulator.h"
+#include "CoreMinimal.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/IKeyFrameManipulator.h"
+#include "Curves/KeyFrameManipulator.h"
 
 namespace KeyFrameAlgorithms
 {

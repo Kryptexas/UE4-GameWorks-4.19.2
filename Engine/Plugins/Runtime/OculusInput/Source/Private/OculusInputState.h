@@ -4,6 +4,7 @@
 
 #include "IMotionController.h"
 #include "InputCoreTypes.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
 
 #define OCULUS_INPUT_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WINVER > 0x0502) // || PLATFORM_MAC
 

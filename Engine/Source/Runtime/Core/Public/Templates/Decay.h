@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreTypes.h"
 #include "Templates/RemoveCV.h"
 #include "Templates/RemoveReference.h"
 

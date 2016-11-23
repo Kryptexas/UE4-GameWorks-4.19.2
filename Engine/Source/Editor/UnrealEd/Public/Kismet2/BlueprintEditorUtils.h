@@ -2,13 +2,30 @@
 
 #pragma once
 
-#include "Editor/ClassViewer/Public/ClassViewerModule.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/UnrealType.h"
+#include "Engine/Blueprint.h"
+#include "Widgets/SWidget.h"
 #include "EdGraph/EdGraph.h"
-#include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
-#include "Engine/LevelScriptBlueprint.h"
+#include "Editor/ClassViewer/Public/ClassViewerModule.h"
+#include "EdGraphSchema_K2.h"
 
-class  USCS_Node;
+class AActor;
+class ALevelScriptActor;
+class FBlueprintEditor;
+class FCompilerResultsLog;
+class INameValidatorInterface;
+class UActorComponent;
+class UK2Node_Variable;
+class ULevelScriptBlueprint;
+class USCS_Node;
+class UTimelineTemplate;
+struct FBlueprintCookedComponentInstancingData;
 struct FComponentKey;
 
 /** 
@@ -1454,7 +1471,6 @@ struct UNREALED_API FBlueprintDuplicationScopeFlags
 	TGuardValue<uint32> Guard;
 	FBlueprintDuplicationScopeFlags(uint32 InFlags) : Guard(bStaticFlags, InFlags) {}
 };
-
 struct UNREALED_API FMakeClassSpawnableOnScope
 {
 	UClass* Class;

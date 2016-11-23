@@ -6,9 +6,20 @@
  *	This will hold all of our enums and types and such that we need to
  *	use in multiple files where the enum can't be mapped to a specific file.
  */
-#include "NetSerialization.h"
-#include "GameFramework/DamageType.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/NetSerialization.h"
 #include "EngineTypes.generated.h"
+
+class AActor;
+class UDecalComponent;
+class UPhysicalMaterial;
+class UPrimitiveComponent;
+class USceneComponent;
 
 /**
  * Default number of components to expect in TInlineAllocators used with AActor component arrays.

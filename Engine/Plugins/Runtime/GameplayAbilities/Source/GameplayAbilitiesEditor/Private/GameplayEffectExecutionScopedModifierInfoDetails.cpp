@@ -1,14 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayEffectExecutionScopedModifierInfoDetails.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Input/SComboBox.h"
 #include "DetailWidgetRow.h"
-#include "IDetailPropertyRow.h"
-#include "PropertyHandle.h"
 #include "GameplayEffect.h"
-#include "GameplayEffectTypes.h"
 #include "GameplayEffectExecutionCalculation.h"
 #include "DetailLayoutBuilder.h"
+#include "SlateOptMacros.h"
 
 #define LOCTEXT_NAMESPACE "GameplayEffectExecutionScopedModifierInfoDetailsCustomization"
 

@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Animation/AnimationAsset.h"
 #include "Engine/AssetUserData.h"
+#include "Animation/AssetMappingTable.h"
 #include "Animation/AnimSequence.h"
 #include "AnimationUtils.h"
-#include "Animation/AnimInstanceProxy.h"
+#include "Animation/AnimInstance.h"
+#include "UObject/LinkerLoad.h"
 
 #define LEADERSCORE_ALWAYSLEADER  	2.f
 #define LEADERSCORE_MONTAGE			3.f

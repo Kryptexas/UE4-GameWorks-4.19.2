@@ -4,9 +4,12 @@
 MeshTexCoordSizeAccuracyRendering.cpp: Contains definitions for rendering the viewmode.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "MeshTexCoordSizeAccuracyRendering.h"
+#include "Components.h"
+#include "PrimitiveSceneProxy.h"
+#include "EngineGlobals.h"
+#include "MeshBatch.h"
+#include "Engine/Engine.h"
 
 IMPLEMENT_SHADER_TYPE(,FMeshTexCoordSizeAccuracyPS,TEXT("MeshTexCoordSizeAccuracyPixelShader"),TEXT("Main"),SF_Pixel);
 

@@ -2,7 +2,13 @@
 
 #pragma once
 
-#include "NavigationTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Serialization/BulkData.h"
+#include "AI/Navigation/NavigationTypes.h"
 #include "NavCollision.generated.h"
 
 class FPrimitiveDrawInterface;

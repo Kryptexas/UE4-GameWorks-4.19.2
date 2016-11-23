@@ -2,9 +2,9 @@
 
 #pragma once
 
-
-class IProfilerClient;
-
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "IProfilerClient.h"
 
 /**
  * Interface for ProfilerClient modules.

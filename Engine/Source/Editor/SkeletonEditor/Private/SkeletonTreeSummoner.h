@@ -2,7 +2,13 @@
 
 #pragma once
 
-#include "WorkflowTabFactory.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "ISkeletonTree.h"
+#include "WorkflowOrientedApp/WorkflowTabFactory.h"
+
+class SToolTip;
 
 struct FSkeletonTreeSummoner : public FWorkflowTabFactory
 {

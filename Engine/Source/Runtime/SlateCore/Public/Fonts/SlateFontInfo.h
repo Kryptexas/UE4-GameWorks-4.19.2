@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "Templates/TypeHash.h"
-#include "CompositeFont.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Fonts/CompositeFont.h"
 #include "SlateFontInfo.generated.h"
-
 
 /**
  * Sets the maximum font fallback level, for when a character can't be found in the selected font set.

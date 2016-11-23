@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "OutputDevice.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
 
 class CORE_API FOutputDeviceDebug : public FOutputDevice
 {

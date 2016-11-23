@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 
 struct FProfilerDataFrame;
 struct FStatMetaData;
-class ISessionInstanceInfo;
-
 
 /** Delegate for passing profiler data to UI */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FProfilerClientDataDelegate, const FGuid&, const FProfilerDataFrame&);

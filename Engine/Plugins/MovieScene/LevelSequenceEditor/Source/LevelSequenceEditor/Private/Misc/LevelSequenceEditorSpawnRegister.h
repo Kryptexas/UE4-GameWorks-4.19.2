@@ -2,15 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Templates/ValueOrError.h"
+#include "MovieSceneSequenceID.h"
+#include "MovieSceneSpawnRegister.h"
 #include "LevelSequenceSpawnRegister.h"
-#include "ObjectKey.h"
+#include "UObject/ObjectKey.h"
 
-class AActor;
 class IMovieScenePlayer;
 class ISequencer;
-class UObject;
-class UProperty;
-
+class UMovieScene;
 
 /**
  * Spawn register used in the editor to add some usability features like maintaining selection states, and projecting spawned state onto spawnable defaults

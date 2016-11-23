@@ -1,7 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "GraphEditor.h"
+#include "SSoundClassActionMenu.h"
+#include "EdGraph/EdGraph.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "SGraphActionMenu.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "EditorStyleSet.h"
+#include "SoundClassGraph/SoundClassGraphSchema.h"
 
 #define LOCTEXT_NAMESPACE "SSoundClassActionMenu"
 

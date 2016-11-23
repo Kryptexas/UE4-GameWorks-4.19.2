@@ -2,17 +2,19 @@
 
 #pragma once
 
-#include "SlateIcon.h"
-#include "WorkspaceItem.h"
-#include "SlateEnums.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Docking/WorkspaceItem.h"
 
+class FJsonObject;
 class FMenuBuilder;
 class FMultiBox;
-class FTabManager;
+class FProxyTabmanager;
 class SDockingArea;
-class SDockTab;
 class SDockingTabStack;
-class SWindow;
 struct FTabMatcher;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(

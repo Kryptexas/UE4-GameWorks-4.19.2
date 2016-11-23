@@ -7,9 +7,11 @@
 
 #pragma once
 
-#if WITH_EDITOR
-#include "ComponentEditorUtils.h"
-#endif
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Components/ActorComponent.h"
 
 #include "Selection.generated.h"
 

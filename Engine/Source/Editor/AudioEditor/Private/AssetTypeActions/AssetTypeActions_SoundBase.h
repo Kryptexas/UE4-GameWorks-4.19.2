@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AssetTypeActions_Base.h"
+
+class FAssetData;
+class FMenuBuilder;
+class USoundBase;
 
 class FAssetTypeActions_SoundBase : public FAssetTypeActions_Base
 {

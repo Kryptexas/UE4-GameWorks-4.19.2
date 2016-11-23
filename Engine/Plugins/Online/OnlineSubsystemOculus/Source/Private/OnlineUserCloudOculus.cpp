@@ -1,9 +1,11 @@
 
-#include "OnlineSubsystemOculusPrivatePCH.h"
 #include "OnlineUserCloudOculus.h"
+#include "OnlineSubsystemOculusPrivate.h"
+#include "Misc/ConfigCacheIni.h"
 #include "OnlineSubsystemOculusTypes.h"
 #include "OnlineIdentityOculus.h"
 #include "OnlineSubsystemOculusPackage.h"
+#include <algorithm>
 
 const FString FOnlineUserCloudOculus::SEPARATOR = TEXT("/");
 

@@ -2,13 +2,14 @@
 
 #pragma once
 
-#include "HardwareTargetingModule.h"
-#include "ProjectDescriptor.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "AddToProjectConfig.h"
+#include "GameProjectGenerationModule.h"
+#include "HardwareTargetingSettings.h"
 
-struct FModuleContextInfo;
-struct FAddToProjectConfig;
-struct FNewClassInfo;
 class UTemplateProjectDefs;
+struct FProjectDescriptor;
 enum class EClassDomain : uint8;
 
 struct FProjectInformation

@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "SoundCueGraphEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueGraphEditorCommands"

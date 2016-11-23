@@ -2,11 +2,15 @@
 
 #pragma once
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/AssetPtr.h"
+#include "UObject/ObjectRedirector.h"
+#include "Engine/Scene.h"
+#include "Engine/TextureCube.h"
 
 #include "AssetViewerSettings.generated.h"
-
-class UTextureCube;
 
 /**
 * Preview scene profile settings structure.

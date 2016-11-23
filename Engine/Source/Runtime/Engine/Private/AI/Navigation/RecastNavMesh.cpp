@@ -1,12 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "RecastHelpers.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "Misc/Paths.h"
+#include "EngineGlobals.h"
+#include "Engine/World.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/Engine.h"
+#include "DrawDebugHelpers.h"
+#include "Misc/ConfigCacheIni.h"
+#include "EngineUtils.h"
+#include "AI/Navigation/RecastHelpers.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "AI/Navigation/NavAreas/NavArea_LowHeight.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
-#include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/RecastNavMeshDataChunk.h"
 #include "VisualLogger/VisualLogger.h"
 
@@ -15,12 +23,8 @@
 #endif
 
 #if WITH_RECAST
-#include "DetourAlloc.h"
+#include "Detour/DetourAlloc.h"
 #endif // WITH_RECAST
-
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
 
 #include "AI/Navigation/NavMeshRenderingComponent.h"
 
@@ -130,9 +134,10 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 
 #else // WITH_RECAST
 
-#include "PImplRecastNavMesh.h"
-#include "RecastNavMeshGenerator.h"
-#include "DetourNavMeshQuery.h"
+#include "Detour/DetourNavMesh.h"
+#include "Detour/DetourNavMeshQuery.h"
+#include "AI/Navigation/PImplRecastNavMesh.h"
+#include "AI/Navigation/RecastNavMeshGenerator.h"
 
 //----------------------------------------------------------------------//
 // FRecastDebugGeometry
@@ -2540,4 +2545,3 @@ void FRecastNavMeshCachedData::OnAreaAdded(const UClass* AreaClass, int32 AreaID
 }
 
 #endif// WITH_RECAST
-

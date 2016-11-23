@@ -2,6 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "UObject/StructOnScope.h"
+#include "PropertyHandle.h"
+#include "IDetailChildrenBuilder.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilderImpl.h"
+
+class IDetailGroup;
+
 class FCustomChildrenBuilder : public IDetailChildrenBuilder
 {
 public:

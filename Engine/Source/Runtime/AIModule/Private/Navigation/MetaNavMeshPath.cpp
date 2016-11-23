@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "AI/Navigation/NavigationSystem.h"
-#include "AI/Navigation/NavAreas/NavArea.h"
 #include "Navigation/MetaNavMeshPath.h"
+#include "GameFramework/Controller.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "VisualLogger/VisualLogger.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
 #include "DrawDebugHelpers.h"
 
 const FNavPathType FMetaNavMeshPath::Type(&FMetaNavMeshPath::Super::Type);

@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "ExceptionHandling.h"
-#include "VarargsHelper.h"
-#include "OutputDeviceHelper.h"
-#include "HAL/ThreadHeartBeat.h"
+#include "Misc/OutputDevice.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "Internationalization/Text.h"
+#include "Logging/LogScopedCategoryAndVerbosityOverride.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Misc/VarargsHelper.h"
 
 DEFINE_LOG_CATEGORY(LogOutputDevice);
 

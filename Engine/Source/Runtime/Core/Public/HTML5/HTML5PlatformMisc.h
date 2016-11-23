@@ -7,7 +7,7 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformMisc.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "HTML5/HTML5DebugLogging.h"
 #include "HTML5/HTML5SystemIncludes.h"
 #include <emscripten/emscripten.h>

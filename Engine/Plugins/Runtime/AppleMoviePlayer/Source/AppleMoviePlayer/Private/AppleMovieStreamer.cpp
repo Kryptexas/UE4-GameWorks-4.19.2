@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AppleMoviePlayerPrivatePCH.h"
+#include "AppleMovieStreamer.h"
 
-#include "SlateBasics.h"
 #include "RenderingCommon.h"
 #include "Slate/SlateTextures.h"
 #include "MoviePlayer.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/Paths.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
 

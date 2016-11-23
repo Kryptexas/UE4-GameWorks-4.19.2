@@ -2,7 +2,17 @@
 
 /* ITargetDevice interface
  *****************************************************************************/
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Optional.h"
+#include "HAL/PlatformProcess.h"
 #include "AndroidTargetDeviceOutput.h"
+
+class FAndroidTargetDevice;
+struct FTargetDeviceProcessInfo;
+enum class ETargetDeviceFeatures;
+
+template<typename OptionalType> struct TOptional;
 
 inline bool FAndroidTargetDevice::Deploy( const FString& SourceFolder, FString& OutAppId )
 {

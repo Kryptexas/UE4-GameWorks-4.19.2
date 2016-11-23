@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "../AvfMediaPrivate.h"
+
 #include "IMediaOutput.h"
 #include "IMediaTracks.h"
 

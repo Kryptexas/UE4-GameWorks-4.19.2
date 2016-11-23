@@ -1,22 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MoviePlayerPrivatePCH.h"
-#include "MoviePlayer.h"
+#include "DefaultGameMoviePlayer.h"
+#include "HAL/PlatformSplash.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CoreDelegates.h"
+#include "EngineGlobals.h"
+#include "Widgets/SViewport.h"
+#include "Engine/GameEngine.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBox.h"
 
-#include "Engine.h"
-#include "SlateBasics.h"
-#include "RenderingCommon.h"
-#include "Slate/SlateTextures.h"
-#include "Slate/SceneViewport.h"
 #include "GlobalShader.h"
 
-#include "SpinLock.h"
 #include "MoviePlayerThreading.h"
-#include "DefaultGameMoviePlayer.h"
 #include "MoviePlayerSettings.h"
 #include "ShaderCompiler.h"
 #include "IHeadMountedDisplay.h"
-
+#include "IStereoLayers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
 

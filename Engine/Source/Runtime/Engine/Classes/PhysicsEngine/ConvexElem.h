@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "ShapeElem.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "PhysicsEngine/ShapeElem.h"
 #include "ConvexElem.generated.h"
 
 struct FDynamicMeshVertex;

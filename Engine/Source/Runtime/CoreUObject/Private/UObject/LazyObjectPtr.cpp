@@ -4,8 +4,12 @@
 	LazyObjectPtr.cpp: Guid-based lazy pointer to UObject
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "UObjectAnnotation.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Misc/CommandLine.h"
+#include "Misc/App.h"
+#include "UObject/Package.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UObjectAnnotation.h"
 
 
 /** Annotation associating objects with their guids **/

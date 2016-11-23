@@ -1,14 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-#include "ModuleManager.h"
-
 #include "WorkspaceMenuStructureModule.h"
-
+#include "Textures/SlateIcon.h"
+#include "Framework/Docking/WorkspaceItem.h"
 #include "WorkspaceMenuStructure.h"
 
-#include "SlateBasics.h"
-#include "EditorStyle.h"
+
+
+#include "EditorStyleSet.h"
 
 IMPLEMENT_MODULE( FWorkspaceMenuStructureModule, WorkspaceMenuStructure );
 

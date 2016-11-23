@@ -1,8 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Engine/CurveTable.h"
+
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPropertyTypeCustomization.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+#include "IDetailChildrenBuilder.h"
+#include "DetailWidgetRow.h"
 #include "IPropertyUtilities.h"
+#include "Engine/CurveTable.h"
 #include "PropertyHandle.h"
 #include "IPropertyUtilities.h"
 #include "DetailWidgetRow.h"

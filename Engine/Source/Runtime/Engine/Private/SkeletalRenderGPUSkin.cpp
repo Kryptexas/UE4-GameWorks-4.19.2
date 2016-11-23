@@ -20,16 +20,13 @@
 	3. This notice may not be removed or altered from any source distribution.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "GPUSkinVertexFactory.h"
 #include "SkeletalRenderGPUSkin.h"
-#include "SkeletalRenderCPUSkin.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "SceneUtils.h"
+#include "SkeletalRender.h"
 #include "GPUSkinCache.h"
 #include "Animation/MorphTarget.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "LocalVertexFactory.h"
 
-#include "GlobalShader.h"
 #include "ShaderParameterUtils.h"
 
 

@@ -7,13 +7,13 @@ Notes:
 	  for Winsock WSAE* errors returned by Windows Sockets.
 =============================================================================*/
 
-#include "OnlineSubsystemUtilsPrivatePCH.h"
+#include "IpConnection.h"
+#include "SocketSubsystem.h"
 
 #include "IPAddress.h"
 #include "Sockets.h"
 #include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
-#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 /*-----------------------------------------------------------------------------
 	Declarations.

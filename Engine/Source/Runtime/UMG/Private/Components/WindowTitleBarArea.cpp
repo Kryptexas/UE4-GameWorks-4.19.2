@@ -1,7 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "ObjectEditorUtils.h"
+#include "Components/WindowTitleBarArea.h"
+#include "EngineGlobals.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SWindowTitleBarArea.h"
+#include "Components/WindowTitleBarAreaSlot.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

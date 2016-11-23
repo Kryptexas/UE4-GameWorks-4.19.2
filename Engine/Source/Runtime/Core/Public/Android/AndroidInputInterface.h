@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "GenericApplicationMessageHandler.h"
 #include <android/input.h>
 #include <android/keycodes.h>
 #include <android/api-level.h>
 #include "IInputInterface.h"
 #include "IForceFeedbackSystem.h"
+#include "Math/Vector.h"
+#include "Math/Vector2D.h"
+#include "Math/Color.h"
 
 #if __ANDROID_API__ < 13
 

@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IPropertyTypeCustomization.h"
+#include "Widgets/Input/SNumericEntryBox.h"
+
+class IPropertyHandle;
+
 class FBlendParameterDetails : public IPropertyTypeCustomization
 {
 public:

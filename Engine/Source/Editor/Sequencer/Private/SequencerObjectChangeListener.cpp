@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "SequencerObjectChangeListener.h"
-#include "PropertyEditing.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Editor.h"
+#include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
 #include "IPropertyChangeListener.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSequencerTools, Log, All);

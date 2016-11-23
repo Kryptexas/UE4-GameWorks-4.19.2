@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ViewportInteractionModule.h"
 #include "ViewportInteractor.h"
+#include "CollisionQueryParams.h"
+#include "Components/PrimitiveComponent.h"
+#include "Editor.h"
 #include "ViewportWorldInteraction.h"
-#include "VIBaseTransformGizmo.h"
 #include "ViewportInteractableInterface.h"
 
 namespace VI

@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
 #include "Actions/PawnActionsComponent.h"
+#include "UObject/Package.h"
+#include "GameFramework/Controller.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
+#include "BehaviorTree/BTNode.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "VisualLogger/VisualLogger.h"
 #include "Actions/PawnAction_Sequence.h"
 
 //----------------------------------------------------------------------//

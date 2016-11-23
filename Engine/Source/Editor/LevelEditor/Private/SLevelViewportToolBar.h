@@ -2,7 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SLevelViewport.h"
 #include "Editor/UnrealEd/Public/SViewportToolBar.h"
+
+class ACameraActor;
+class FExtender;
+class FMenuBuilder;
 
 /**
  * A level viewport toolbar widget that is placed in a viewport

@@ -4,11 +4,16 @@
 	PhysCollision.cpp: Skeletal mesh collision code
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "PhysicsEngine/ShapeElem.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/AggregateGeom.h"
-#include "Collision.h"
 #include "Engine/Polys.h"
-#include "PhysicsEngine/PhysXSupport.h"
+#include "PhysXIncludes.h"
 
 #define MIN_HULL_VERT_DISTANCE		(0.1f)
 #define MIN_HULL_VALID_DIMENSION	(0.5f)

@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "CompositeFont.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Interface.h"
+#include "Fonts/CompositeFont.h"
 #include "FontFaceInterface.generated.h"
 
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))

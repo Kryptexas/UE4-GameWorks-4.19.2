@@ -2,13 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 #include "IDetailCustomization.h"
-#include "ILocalizationServiceProvider.h"
 
-class ULocalizationTarget;
+class IDetailLayoutBuilder;
 class IPropertyHandle;
+class ULocalizationTarget;
 class ULocalizationTargetSet;
-class IDetailCategoryBuilder;
 
 class FLocalizationTargetSetDetailCustomization : public IDetailCustomization
 {

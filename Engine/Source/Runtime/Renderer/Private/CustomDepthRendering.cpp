@@ -4,14 +4,11 @@
 	CustomDepthRendering.cpp: CustomDepth rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "Engine.h"
-#include "ScenePrivate.h"
-#include "ScreenRendering.h"
-#include "PostProcessing.h"
-#include "RenderingCompositionGraph.h"
-#include "SceneFilterRendering.h"
+#include "CustomDepthRendering.h"
 #include "SceneUtils.h"
+#include "DrawingPolicy.h"
+#include "DepthRendering.h"
+#include "SceneRendering.h"
 
 /*-----------------------------------------------------------------------------
 	FCustomDepthPrimSet

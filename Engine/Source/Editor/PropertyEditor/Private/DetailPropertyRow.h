@@ -2,6 +2,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "AssetThumbnail.h"
+#include "IPropertyUtilities.h"
+#include "PropertyNode.h"
+#include "IPropertyTypeCustomization.h"
+#include "DetailWidgetRow.h"
+#include "DetailCategoryBuilderImpl.h"
+#include "Presentation/PropertyEditor/PropertyEditor.h"
+#include "IDetailPropertyRow.h"
+#include "PropertyEditorHelpers.h"
+
+class FCustomChildrenBuilder;
+
 class FDetailPropertyRow : public IDetailPropertyRow, public IPropertyTypeCustomizationUtils, public TSharedFromThis<FDetailPropertyRow>
 {
 public:

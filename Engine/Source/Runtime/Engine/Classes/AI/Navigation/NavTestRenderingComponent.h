@@ -1,10 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "PrimitiveViewRelevance.h"
+#include "Components/PrimitiveComponent.h"
+#include "DynamicMeshBuilder.h"
 #include "DebugRenderSceneProxy.h"
 
 class ANavigationTestingActor;
+class APlayerController;
+class FMeshElementCollector;
+class UCanvas;
 class UNavTestRenderingComponent;
+struct FNodeDebugData;
 
 class FNavTestSceneProxy : public FDebugRenderSceneProxy
 {
@@ -107,6 +117,9 @@ private:
 #endif //WITH_RECAST && WITH_EDITOR
 
 #include "NavTestRenderingComponent.generated.h"
+
+class FPrimitiveSceneProxy;
+struct FTransform;
 
 UCLASS(hidecategories=Object)
 class UNavTestRenderingComponent: public UPrimitiveComponent

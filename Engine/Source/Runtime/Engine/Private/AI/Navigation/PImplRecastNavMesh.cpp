@@ -1,20 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "AI/Navigation/PImplRecastNavMesh.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 #if WITH_RECAST
 
 // recast includes
-#include "PImplRecastNavMesh.h"
-#include "RecastHelpers.h"
+#include "AI/Navigation/RecastHelpers.h"
 
 // recast includes
-#include "DetourNavMeshQuery.h"
-#include "DetourNavMesh.h"
-#include "DetourNode.h"
-#include "DetourCommon.h"
-#include "RecastAlloc.h"
-#include "RecastNavMeshGenerator.h"
+#include "Detour/DetourNode.h"
+#include "Recast/RecastAlloc.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
+#include "AI/Navigation/RecastNavMeshGenerator.h"
 
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "VisualLogger/VisualLogger.h"

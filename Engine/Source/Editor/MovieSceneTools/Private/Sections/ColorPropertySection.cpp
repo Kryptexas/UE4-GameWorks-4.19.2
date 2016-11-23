@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieSceneColorTrack.h"
-#include "MovieSceneColorSection.h"
-#include "ColorPropertySection.h"
-#include "CommonMovieSceneTools.h"
-#include "MovieSceneSequence.h"
+#include "Sections/ColorPropertySection.h"
+#include "Rendering/DrawElements.h"
+#include "Sections/MovieSceneColorSection.h"
+#include "SequencerSectionPainter.h"
 #include "FloatCurveKeyArea.h"
+#include "ISectionLayoutBuilder.h"
+#include "EditorStyleSet.h"
+#include "CommonMovieSceneTools.h"
 
 const FName SlateColorName("SlateColor");
 

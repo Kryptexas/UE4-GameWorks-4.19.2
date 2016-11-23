@@ -2,9 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "AnimNode_WheelHandler.h"
 #include "AnimGraphNode_WheelHandler.generated.h"
+
+class UEdGraph;
 
 UCLASS(MinimalAPI, meta=(Keywords = "Modify Wheel Vehicle"))
 class UAnimGraphNode_WheelHandler : public UAnimGraphNode_SkeletalControlBase

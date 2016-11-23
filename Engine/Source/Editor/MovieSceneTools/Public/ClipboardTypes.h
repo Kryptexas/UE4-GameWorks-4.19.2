@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Curves/RichCurve.h"
+
 #if WITH_EDITOR
 
 #include "MovieSceneClipboard.h"

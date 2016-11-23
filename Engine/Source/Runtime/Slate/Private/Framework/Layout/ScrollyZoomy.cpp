@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "ScrollyZoomy.h"
+#include "Framework/Layout/ScrollyZoomy.h"
+#include "Rendering/DrawElements.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/SWidget.h"
+#include "Framework/Application/SlateApplication.h"
 
 
 /* FScrollyZoomy structors

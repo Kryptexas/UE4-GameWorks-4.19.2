@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_Repeat.h"
-#include "GameplayPrediction.h"
+#include "TimerManager.h"
 
 UAbilityTask_Repeat::UAbilityTask_Repeat(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

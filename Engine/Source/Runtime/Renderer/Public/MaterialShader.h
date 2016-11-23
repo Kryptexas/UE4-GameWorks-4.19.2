@@ -6,11 +6,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "ShaderParameters.h"
+#include "SceneView.h"
+#include "Shader.h"
+#include "MaterialShared.h"
+#include "GlobalShader.h"
 #include "MaterialShaderType.h"
-#include "AtmosphereTextureParameters.h"
 #include "SceneRenderTargetParameters.h"
-#include "PostProcessParameters.h"
-#include "GlobalDistanceFieldParameters.h"
+
+template<typename TBufferStruct> class TUniformBufferRef;
 
 template<typename ParameterType> 
 struct TUniformParameter

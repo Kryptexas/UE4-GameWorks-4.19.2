@@ -2,7 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "VREditorTeleporter.generated.h"
+
+class UViewportInteractor;
+class UVREditorMode;
 
 /**
 * VR Editor teleport manager

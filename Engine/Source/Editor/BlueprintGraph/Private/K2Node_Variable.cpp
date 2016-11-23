@@ -1,12 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
-
-#include "CompilerResultsLog.h"
-#include "SlateIconFinder.h"
-#include "MessageLog.h"
-#include "KismetCompilerMisc.h" // for IsMissingMemberPotentiallyLoading
+#include "K2Node_Variable.h"
+#include "UObject/UObjectHash.h"
+#include "Components/PrimitiveComponent.h"
+#include "GameFramework/MovementComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "KismetCompilerMisc.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "Styling/SlateIconFinder.h"
+#include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

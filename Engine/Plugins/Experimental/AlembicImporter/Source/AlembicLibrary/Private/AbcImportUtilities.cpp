@@ -1,7 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AlembicLibraryPublicPCH.h"
+#include "AbcImportUtilities.h"
+#include "Stats/StatsMisc.h"
 
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
+
+THIRD_PARTY_INCLUDES_START
 #include <Alembic/AbcCoreHDF5/All.h>
 #include <Alembic/AbcCoreOgawa/All.h>
 #include <Alembic/AbcCoreFactory/All.h>
@@ -9,8 +15,8 @@
 #include <Alembic/AbcCoreHDF5/All.h>
 #include <Alembic/Abc/All.h>
 #include <Alembic/AbcGeom/All.h>
+THIRD_PARTY_INCLUDES_END
 
-#include "AbcImportUtilities.h"
 #include "AbcImportData.h"
 
 #define LOCTEXT_NAMESPACE "AbcImporterUtilities"

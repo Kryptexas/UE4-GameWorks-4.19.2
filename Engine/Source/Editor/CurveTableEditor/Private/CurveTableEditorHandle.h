@@ -2,9 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Curves/CurveOwnerInterface.h"
-
-class UCurveTable;
+#include "UObject/WeakObjectPtr.h"
+#include "Engine/CurveTable.h"
 
 /**
  * Handle to a particular row in a table, used for editing individual curves

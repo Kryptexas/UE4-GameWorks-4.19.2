@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
 #include "GameplayDebuggerRenderingComponent.h"
+#include "GameplayDebuggerCategoryReplicator.h"
+#include "GameplayDebuggerCategory.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FGameplayDebuggerCompositeSceneProxy

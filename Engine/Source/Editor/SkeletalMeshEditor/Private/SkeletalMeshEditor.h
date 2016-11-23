@@ -2,9 +2,19 @@
 
 #pragma once
 
-#include "ISkeletalMeshEditor.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/GCObject.h"
 #include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
+#include "Toolkits/IToolkitHost.h"
+#include "ISkeletalMeshEditor.h"
+
+class IDetailsView;
+class IPersonaToolkit;
+class IPersonaViewport;
+class ISkeletonTree;
+class USkeletalMesh;
 
 namespace SkeletalMeshEditorModes
 {

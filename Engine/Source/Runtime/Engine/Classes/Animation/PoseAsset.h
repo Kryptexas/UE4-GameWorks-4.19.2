@@ -7,8 +7,15 @@
  *
  */
 
-#include "AnimationAsset.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/SmartName.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimCurveTypes.h"
 #include "PoseAsset.generated.h"
+
+class UAnimSequence;
+class USkeletalMeshComponent;
 
 /** 
  * Pose data 

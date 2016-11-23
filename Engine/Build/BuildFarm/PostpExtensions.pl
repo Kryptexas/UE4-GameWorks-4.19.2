@@ -61,6 +61,9 @@ $::gDontCheck .= "tclTestFail,tclClusterTestTimeout";
 # We don't compile clean for Android, so ignore javac notices for now
 $::gDontCheck .= ",javacNote";
 
+# This matcher hits anything with "...." in it, which is often used for progress bars
+$::gDontCheck .= ",cppunitExtraOutput,cppunitFail";
+
 # These are patterns we want to process
 # NOTE: order is important because the file is processed line by line 
 # After an error is processed on a line that line is considered processed

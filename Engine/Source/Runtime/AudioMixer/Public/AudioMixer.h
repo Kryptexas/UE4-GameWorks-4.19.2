@@ -2,16 +2,12 @@
 
 #pragma once
 
-#include "Core.h"
-#include "Engine.h"
-
-AUDIOMIXER_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioMixer, Log, All);
-AUDIOMIXER_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioMixerDebug, Log, All);
-
-#include "SoundDefinitions.h"
+#include "CoreMinimal.h"
+#include "AudioMixerLog.h"
 #include "AudioDecompress.h"
 #include "AudioEffect.h"
 #include "AudioMixerTypes.h"
+#include "HAL/Runnable.h"
 
 // defines used for AudioMixer.h
 #define AUDIO_PLATFORM_ERROR(INFO)			(OnAudioMixerPlatformError(INFO, FString(__FILE__), __LINE__))

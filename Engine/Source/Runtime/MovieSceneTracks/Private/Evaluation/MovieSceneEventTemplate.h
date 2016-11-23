@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieSceneEventSection.h"
-#include "MovieSceneEvalTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sections/MovieSceneEventSection.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 
 #include "MovieSceneEventTemplate.generated.h"
 
 class UMovieSceneEventTrack;
+struct EventData;
 
 USTRUCT()
 struct FMovieSceneEventSectionTemplate : public FMovieSceneEvalTemplate

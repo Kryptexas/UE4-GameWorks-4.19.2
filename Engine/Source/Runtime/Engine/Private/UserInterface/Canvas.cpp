@@ -4,18 +4,24 @@
 	Canvas.cpp: Unreal canvas rendering.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "SlateBasics.h"
-#include "Engine/Font.h"
-#include "EngineFontServices.h"
-#include "TileRendering.h"
-#include "TriangleRendering.h"
-#include "RHIStaticStates.h"
-#include "BreakIterator.h"
-
-#include "IHeadMountedDisplay.h"
-#include "Debug/ReporterGraph.h"
+#include "Engine/Canvas.h"
+#include "UObject/Package.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "Materials/MaterialInterface.h"
+#include "Engine/Engine.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/Texture2D.h"
 #include "SceneUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EngineFontServices.h"
+#include "Internationalization/BreakIterator.h"
+#include "Misc/CoreDelegates.h"
+
+#include "StereoRendering.h"
+#include "Debug/ReporterGraph.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCanvas, Log, All);
 

@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SuperSearchPrivatePCH.h"
+#include "SuperSearchModule.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Application/SlateWindowHelper.h"
 #include "SSuperSearch.h"
 
 IMPLEMENT_MODULE( FSuperSearchModule,SuperSearch );

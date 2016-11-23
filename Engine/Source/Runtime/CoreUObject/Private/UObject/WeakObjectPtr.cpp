@@ -4,7 +4,8 @@
 	WeakObjectPtr.cpp: Weak pointer to UObject
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/Object.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWeakObjectPtr, Log, All);
 

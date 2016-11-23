@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/Package.h"
+#include "HAL/FileManager.h"
+#include "Misc/ITransaction.h"
+#include "UObject/MetaData.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
 #include "UObject/LinkerManager.h"
-#include "UObject/UObjectThreadContext.h"
 
 /*-----------------------------------------------------------------------------
 	UPackage.

@@ -1,6 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WidgetCarouselPrivatePCH.h"
+#include "SCarouselNavigationBar.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Application/SlateWindowHelper.h"
+#include "Widgets/Layout/SFxWidget.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
 
 #define LOCTEXT_NAMESPACE "WidgetCarousel"
 

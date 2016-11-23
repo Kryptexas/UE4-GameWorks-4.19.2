@@ -1,9 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerDataSource.h"
-#include "SEventGraphTooltip.h"
-
+#include "Widgets/SEventGraphTooltip.h"
+#include "Misc/Paths.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/SToolTip.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "SEventGraphTooltip"
 

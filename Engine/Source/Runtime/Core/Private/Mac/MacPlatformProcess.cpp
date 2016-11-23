@@ -4,8 +4,9 @@
 	MacPlatformProcess.mm: Mac implementations of Process functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "MacPlatformProcess.h"
 #include "Misc/App.h"
+#include "Misc/Paths.h"
 #include "MacApplication.h"
 #include <mach-o/dyld.h>
 #include <libproc.h>

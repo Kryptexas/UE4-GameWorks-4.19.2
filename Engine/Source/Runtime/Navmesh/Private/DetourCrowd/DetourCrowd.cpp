@@ -19,20 +19,10 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
+#include "DetourCrowd/DetourCrowd.h"
+#include "DetourCrowd/DetourProximityGrid.h"
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <string.h>
-#include <float.h>
-#include <stdlib.h>
-#include <new>
-#include "DetourCrowd.h"
-#include "DetourNavMesh.h"
-#include "DetourNavMeshQuery.h"
-#include "DetourObstacleAvoidance.h"
-#include "DetourCommon.h"
-#include "DetourAssert.h"
-#include "DetourAlloc.h"
+#include "Detour/DetourAssert.h"
 
 
 dtCrowd* dtAllocCrowd()

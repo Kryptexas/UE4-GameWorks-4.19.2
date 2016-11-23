@@ -1,11 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashReportClientApp.h"
 #include "WindowsErrorReport.h"
+#include "CrashReportClientApp.h"
 #include "CrashDebugHelperModule.h"
 #include "CrashReportUtil.h"
 #include "CrashDescription.h"
+#include "CrashDebugHelper.h"
+#include "Misc/FileHelper.h"
+#include "Modules/ModuleManager.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Internationalization.h"
+#include "HAL/PlatformFileManager.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include <ShlObj.h>
 #include "HideWindowsPlatformTypes.h"

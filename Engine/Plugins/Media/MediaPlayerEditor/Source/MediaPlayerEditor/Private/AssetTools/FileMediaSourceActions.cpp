@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "FileMediaSourceActions.h"
+#include "AssetTools/FileMediaSourceActions.h"
+#include "AssetData.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "EditorStyleSet.h"
+#include "FileMediaSource.h"
 
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"

@@ -1,19 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "Components/ActorComponent.h"
+#include "Layout/SlateRect.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node.h"
+#include "K2Node_Event.h"
+#include "K2Node_AddComponent.h"
+#include "K2Node_BaseMCDelegate.h"
+#include "K2Node_AddDelegate.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_Literal.h"
+#include "K2Node_Timeline.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "EdGraphNode_Comment.h"
 
-#include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
 #include "ComponentAssetBroker.h"
 #include "Kismet2/KismetEditorUtilities.h"
-#include "Editor/UnrealEd/Public/EdGraphUtilities.h"
-#include "EdGraph/EdGraphNode_Documentation.h"
-#include "EdGraphNode_Comment.h"
-#include "K2Node_Timeline.h"
-#include "K2Node_Literal.h"
-#include "K2Node_VariableGet.h"
-#include "K2Node_AddDelegate.h"
-#include "K2Node_CustomEvent.h"
+#include "EdGraphUtilities.h"
 
 
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()

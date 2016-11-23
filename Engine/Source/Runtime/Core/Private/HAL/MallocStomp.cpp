@@ -1,8 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "HAL/MallocStomp.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "HAL/IConsoleManager.h"
 
-#include "MallocStomp.h"
 
 #if USE_MALLOC_STOMP
 

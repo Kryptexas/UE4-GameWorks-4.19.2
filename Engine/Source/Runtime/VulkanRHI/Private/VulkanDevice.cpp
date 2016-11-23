@@ -8,6 +8,7 @@
 #include "VulkanDevice.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
+#include "Misc/Paths.h"
 
 FVulkanDevice::FVulkanDevice(VkPhysicalDevice InGpu)
 	: Gpu(InGpu)

@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
 #include "MovieSceneSignedObject.h"
+#include "Templates/Casts.h"
 
 UMovieSceneSignedObject::UMovieSceneSignedObject(const FObjectInitializer& Init)
 	: Super(Init)

@@ -10,14 +10,27 @@
 
 #pragma once
 
-#include "Components.h"
-#include "GPUSkinPublicDefs.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "RenderResource.h"
+#include "PackedNormal.h"
+#include "PrimitiveViewRelevance.h"
 #include "PrimitiveSceneProxy.h"
+#include "Components.h"
 #include "Materials/MaterialInterface.h"
+#include "Containers/DynamicRHIResourceArray.h"
 #include "ReferenceSkeleton.h"
+#include "GPUSkinPublicDefs.h"
+#include "Serialization/BulkData.h"
 
-class FRawStaticIndexBuffer16or32Interface;
+class FMaterialRenderProxy;
+class FMeshElementCollector;
 class FPrimitiveDrawInterface;
+class FRawStaticIndexBuffer16or32Interface;
+class UMorphTarget;
+class UPrimitiveComponent;
+class USkeletalMesh;
+class USkinnedMeshComponent;
 
 /** 
 * A pair of bone indices

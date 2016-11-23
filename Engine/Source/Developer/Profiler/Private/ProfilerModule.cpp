@@ -1,10 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IProfilerModule.h"
+#include "Stats/StatsFile.h"
 #include "ProfilerRawStatsForMemory.h"
-#include "SProfilerWindow.h"
-
+#include "ISessionManager.h"
+#include "ProfilerManager.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SProfilerWindow.h"
+#include "Widgets/Docking/SDockTab.h"
 
 /**
  * Implements the FProfilerModule module.

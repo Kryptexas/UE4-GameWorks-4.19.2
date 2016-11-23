@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "IOSApsalarPrivatePCH.h"
 #include "IOSApsalar.h"
+#include "IOSApsalarProvider.h"
+
+#if WITH_APSALAR
+#import "Apsalar.h"
+#endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
 

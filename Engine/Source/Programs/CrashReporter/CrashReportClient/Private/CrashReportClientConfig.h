@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+
+class FConfigFile;
 
 /**
 *  Holds FullCrashDump properties from the config.

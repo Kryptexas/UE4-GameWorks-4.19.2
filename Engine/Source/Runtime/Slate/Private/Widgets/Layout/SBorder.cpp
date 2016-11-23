@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Rendering/DrawElements.h"
 
 static FName SBorderTypeName("SBorder");
 

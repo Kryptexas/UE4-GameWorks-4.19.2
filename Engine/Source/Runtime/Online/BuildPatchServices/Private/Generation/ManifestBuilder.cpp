@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "BuildPatchServicesPrivatePCH.h"
+#include "Generation/ManifestBuilder.h"
 
-#include "ManifestBuilder.h"
-#include "BuildStreamer.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogManifestBuilder, Log, All);
 DEFINE_LOG_CATEGORY(LogManifestBuilder);

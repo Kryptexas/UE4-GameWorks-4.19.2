@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+
 #if WITH_PHYSX
 
 #if _MSC_VER

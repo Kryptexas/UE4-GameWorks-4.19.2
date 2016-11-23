@@ -2,13 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneActorReferenceTrack.h"
-#include "MovieSceneActorReferenceSection.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
+#include "Tracks/MovieSceneActorReferenceTrack.h"
+#include "Sections/MovieSceneActorReferenceSection.h"
 
 /**
  * A property track editor for actor references.

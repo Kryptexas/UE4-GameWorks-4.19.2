@@ -6,9 +6,16 @@
 
 #pragma once
 
-#include "SkeletalRender.h"
-#include "SkeletalRenderPublic.h"
+#include "CoreMinimal.h"
+#include "ProfilingDebugging/ResourceSize.h"
+#include "RenderResource.h"
 #include "LocalVertexFactory.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "SkeletalRenderPublic.h"
+#include "ClothSimData.h"
+
+class FPrimitiveDrawInterface;
+class UMorphTarget;
 
 /**
  * Skeletal mesh vertices which have been skinned to their final positions 

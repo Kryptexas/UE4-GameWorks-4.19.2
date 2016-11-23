@@ -1,6 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "Windows/WindowsPlatformMemory.h"
+#include "Misc/AssertionMacros.h"
+#include "Logging/LogMacros.h"
+#include "Misc/OutputDevice.h"
+#include "Math/NumericLimits.h"
+#include "Containers/UnrealString.h"
+#include "CoreGlobals.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Stats/Stats.h"
+#include "GenericPlatform/GenericPlatformMemoryPoolStats.h"
 
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
@@ -9,6 +18,7 @@
 #include "MemoryMisc.h"
 #include "MallocBinned.h"
 #include "MallocBinned2.h"
+#include "Windows/WindowsHWrapper.h"
 
 #if ENABLE_WIN_ALLOC_TRACKING
 #include <crtdbg.h>
@@ -32,7 +42,6 @@ int WindowsAllocHook(int nAllocType, void *pvData,
 }
 #endif // ENABLE_WIN_ALLOC_TRACKING
 
-#include "GenericPlatformMemoryPoolStats.h"
 
 
 void FWindowsPlatformMemory::Init()
@@ -95,7 +104,7 @@ FMalloc* FWindowsPlatformMemory::BaseAllocator()
 	
 #if !UE_BUILD_SHIPPING
 	// If not shipping, allow overriding with command line options, this happens very early so we need to use windows functions
-	const TCHAR* CommandLine = ::GetCommandLine();
+	const TCHAR* CommandLine = ::GetCommandLineW();
 
 	if (FCString::Stristr(CommandLine, TEXT("-ansimalloc")))
 	{
@@ -385,4 +394,4 @@ void FWindowsPlatformMemory::InternalUpdateStats( const FPlatformMemoryStats& Me
 	SET_MEMORY_STAT( STAT_WindowsSpecificMemoryStat, MemoryStats.WindowsSpecificMemoryStat );
 }
 
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"

@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "MovieScenePropertyTrack.h"
-#include "KeyParams.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieSceneMarginTrack.generated.h"
-
 
 /**
  * Handles manipulation of FMargins in a movie scene

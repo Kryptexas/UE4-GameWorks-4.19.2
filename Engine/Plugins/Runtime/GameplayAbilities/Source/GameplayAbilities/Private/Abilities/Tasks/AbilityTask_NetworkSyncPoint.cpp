@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_NetworkSyncPoint.h"
-#include "GameplayPrediction.h"
+#include "AbilitySystemComponent.h"
 
 UAbilityTask_NetworkSyncPoint::UAbilityTask_NetworkSyncPoint(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

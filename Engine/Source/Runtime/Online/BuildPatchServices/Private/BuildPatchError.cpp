@@ -4,7 +4,10 @@
 	BuildPatchError.cpp: Implements classes involved setting and getting error information.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchError.h"
+#include "Misc/ScopeLock.h"
+#include "Interfaces/IBuildInstaller.h"
+#include "BuildPatchServicesPrivate.h"
 
 #define LOCTEXT_NAMESPACE "BuildPatchInstallError"
 

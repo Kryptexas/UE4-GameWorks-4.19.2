@@ -1,6 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
  
-#include "SlatePrivatePCH.h"
+#include "Widgets/Views/SHeaderRow.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
 
 
 class STableColumnHeader : public SCompoundWidget

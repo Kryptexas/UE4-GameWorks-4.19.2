@@ -2,9 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameplayTagsK2Node_MultiCompareBase.h"
 #include "GameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags.generated.h"
 
+class FBlueprintActionDatabaseRegistrar;
+class UEdGraph;
 
 UCLASS()
 class UGameplayTagsK2Node_MultiCompareGameplayTagAssetInterfaceSingleTags : public UGameplayTagsK2Node_MultiCompareBase

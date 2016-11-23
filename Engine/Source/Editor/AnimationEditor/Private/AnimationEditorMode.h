@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "ApplicationMode.h"
-#include "WorkflowCentricApplication.h"
-#include "PersonaModule.h"
+#include "CoreMinimal.h"
+#include "WorkflowOrientedApp/WorkflowCentricApplication.h"
+#include "WorkflowOrientedApp/ApplicationMode.h"
+#include "WorkflowOrientedApp/WorkflowTabManager.h"
 
 class FAnimationEditorMode : public FApplicationMode
 {

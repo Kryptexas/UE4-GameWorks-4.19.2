@@ -2,9 +2,19 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "Containers/Queue.h"
 #include "AudioThread.h"
+
+class FAudioDevice;
+class FReferenceCollector;
+class FSoundBuffer;
 class IAudioDeviceModule;
+class UAudioComponent;
+class USoundClass;
+class USoundMix;
 class USoundSubmix;
+class USoundWave;
 
 /**
 * Class for managing multiple audio devices.

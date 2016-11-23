@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ModuleInterface.h"
-#include "UnrealEd.h"
+#pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Modules/ModuleInterface.h"
+#include "Widgets/SWidget.h"
+
+class FSpawnTabArgs;
+class FWorkspaceItem;
 
 namespace FbxAutomationBuilder { class SFbxAutomationBuilder; };
 

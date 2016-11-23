@@ -2,10 +2,13 @@
 
 #pragma once
 
-#include "GameplayAbilityTargetActor.h"
-#include "GameplayAbilityWorldReticle.h"
-#include "GameplayAbilityTargetDataFilter.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
 #include "GameplayAbilityTargetActor_Radius.generated.h"
+
+class UGameplayAbility;
 
 /** Selects everything within a given radius of the source actor. */
 UCLASS(Blueprintable, notplaceable)

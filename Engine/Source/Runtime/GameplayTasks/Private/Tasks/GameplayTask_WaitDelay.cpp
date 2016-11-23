@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTasksPrivatePCH.h"
 #include "Tasks/GameplayTask_WaitDelay.h"
+#include "Engine/EngineTypes.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 
 UGameplayTask_WaitDelay::UGameplayTask_WaitDelay(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

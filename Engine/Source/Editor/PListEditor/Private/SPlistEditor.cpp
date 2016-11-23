@@ -1,14 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-
 #include "SPlistEditor.h"
-#include "DesktopPlatformModule.h"
-#include "MainFrame.h"
+#include "HAL/FileManager.h"
+#include "Misc/App.h"
+#include "Widgets/SOverlay.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Widgets/Input/SButton.h"
+#include "Dialogs/Dialogs.h"
 
-#include "SSearchBox.h"
-#include "SExpandableArea.h"
-#include "SNotificationList.h"
+#include "XmlFile.h"
+#include "PListNodeArray.h"
+#include "PListNodeBoolean.h"
+#include "PListNodeDictionary.h"
+#include "PListNodeFile.h"
+#include "PListNodeString.h"
+#include "DesktopPlatformModule.h"
+
+#include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #define LOCTEXT_NAMESPACE "PListEditor"
 
 /** Constructs the main widget for the editor */

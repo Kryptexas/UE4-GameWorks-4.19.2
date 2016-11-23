@@ -3,11 +3,16 @@
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
-#include "SAnimCurvePanel.h"
-#include "EditorObjectsTracker.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "UObject/GCObject.h"
+#include "IPersonaPreviewScene.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
 #include "PersonaDelegates.h"
+#include "SAnimationScrubPanel.h"
+#include "EditorObjectsTracker.h"
+#include "SAnimCurvePanel.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FTrackMarkerBar

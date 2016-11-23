@@ -6,8 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "StaticLighting.h"
 #include "Model.h"
+
+class FShadowMapData2D;
+class ULevel;
+class ULightComponent;
+class UModelComponent;
+struct FQuantizedLightmapData;
 
 /** Represents a BSP surface to the static lighting system. */
 class FBSPSurfaceStaticLighting : public FStaticLightingTextureMapping, public FStaticLightingMesh

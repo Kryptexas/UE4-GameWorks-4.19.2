@@ -2,19 +2,18 @@
 
 #pragma once
 
-#include "IAuthorizeMessageRecipients.h"
-#include "IMessageBus.h"
+#include "CoreMinimal.h"
 #include "IMessageContext.h"
-
+#include "IMessageSubscription.h"
+#include "IMessageAttachment.h"
+#include "IMessageInterceptor.h"
+#include "IAuthorizeMessageRecipients.h"
+#include "IMessageTracer.h"
+#include "IMessageBus.h"
 
 class FMessageRouter;
-class FRunnableThread;
-class IMessageInterceptor;
-class IMessageSubscription;
 class IMessageReceiver;
 class IMessageSender;
-class IMessageTracer;
-
 
 /**
  * Implements a message bus.

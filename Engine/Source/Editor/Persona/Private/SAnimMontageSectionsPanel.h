@@ -3,9 +3,16 @@
 
 #pragma once
 
-#include "GraphEditor.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 #include "SNodePanel.h"
 #include "STrack.h"
+
+class SBorder;
+class SMontageEditor;
+class UAnimMontage;
 
 // Forward declatations
 class UAnimMontage;

@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneCapturePCH.h"
 #include "LevelCapture.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Engine/World.h"
 
 ULevelCapture::ULevelCapture(const FObjectInitializer& Init)
 	: Super(Init)

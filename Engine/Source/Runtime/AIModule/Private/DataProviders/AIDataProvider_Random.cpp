@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "AISystem.h"
 #include "DataProviders/AIDataProvider_Random.h"
+#include "AISystem.h"
 
 UAIDataProvider_Random::UAIDataProvider_Random(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

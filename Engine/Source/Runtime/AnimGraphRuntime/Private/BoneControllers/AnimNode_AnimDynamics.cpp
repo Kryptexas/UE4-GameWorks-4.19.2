@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphRuntimePrivatePCH.h"
-#include "AnimNode_AnimDynamics.h"
+#include "BoneControllers/AnimNode_AnimDynamics.h"
+#include "GameFramework/WorldSettings.h"
 #include "Animation/AnimInstanceProxy.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 

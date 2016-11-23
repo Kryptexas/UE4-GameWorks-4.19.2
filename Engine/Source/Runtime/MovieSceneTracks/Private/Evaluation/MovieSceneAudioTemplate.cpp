@@ -1,15 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneAudioTemplate.h"
+#include "Evaluation/MovieSceneAudioTemplate.h"
 
-#include "MovieSceneExecutionToken.h"
 
-#include "SoundDefinitions.h"
+#include "Engine/EngineTypes.h"
 #include "Components/AudioComponent.h"
+#include "Sound/SoundCue.h"
+#include "GameFramework/Actor.h"
+#include "AudioThread.h"
+#include "AudioDevice.h"
+#include "ActiveSound.h"
 
-#include "MovieSceneAudioSection.h"
-#include "MovieSceneAudioTrack.h"
+#include "Sections/MovieSceneAudioSection.h"
+#include "Tracks/MovieSceneAudioTrack.h"
+#include "MovieScene.h"
 
 DECLARE_CYCLE_STAT(TEXT("Audio Track Evaluate"), MovieSceneEval_AudioTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Audio Track Token Execute"), MovieSceneEval_AudioTrack_TokenExecute, STATGROUP_MovieSceneEval);

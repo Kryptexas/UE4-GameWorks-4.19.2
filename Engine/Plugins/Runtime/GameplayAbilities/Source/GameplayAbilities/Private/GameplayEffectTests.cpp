@@ -1,13 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "UObject/UnrealType.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/DataTable.h"
+#include "Engine/Engine.h"
+#include "AttributeSet.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayEffect.h"
+#include "GameplayAbilitiesModule.h"
+#include "GameplayTagsManager.h"
+#include "GameplayTagsModule.h"
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemTestPawn.h"
 #include "AbilitySystemTestAttributeSet.h"
-#include "GameplayEffect.h"
-#include "AttributeSet.h"
-#include "AbilitySystemComponent.h"
-#include "GameplayEffectExtension_LifestealTest.h"
-#include "GameplayEffectExtension_ShieldTest.h"
+#include "AbilitySystemGlobals.h"
 
 #define SKILL_TEST_TEXT( Format, ... ) FString::Printf(TEXT("%s - %d: %s"), TEXT(__FILE__) , __LINE__ , *FString::Printf(TEXT(Format), ##__VA_ARGS__) )
 

@@ -2,7 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "MovieSceneSequenceID.h"
 #include "MovieSceneFwd.h"
+#include "Containers/ArrayView.h"
+
+class UMovieSceneTrack;
+struct FMovieSceneEvaluationFieldSegmentPtr;
+struct FMovieSceneEvaluationTrack;
+struct FMovieSceneSequenceTransform;
+struct FMovieSceneSharedDataId;
+struct FMovieSceneSubSequenceData;
 
 /** Abstract base class used to generate evaluation templates */
 struct IMovieSceneTemplateGenerator

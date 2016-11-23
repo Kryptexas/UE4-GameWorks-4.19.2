@@ -6,7 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UniformBuffer.h"
+#include "Shader.h"
 #include "MeshMaterialShader.h"
+
+class FPrimitiveSceneProxy;
+struct FMeshBatchElement;
+struct FMeshDrawingRenderState;
 
 /** The uniform shader parameters associated with a LOD fade. */
 // This was moved out of ScenePrivate.h to workaround MSVC vs clang template issue (it's used in this header file, so needs to be declared earlier)

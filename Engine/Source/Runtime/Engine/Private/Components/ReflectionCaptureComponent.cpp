@@ -4,12 +4,26 @@
 	
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Components/ReflectionCaptureComponent.h"
+#include "Serialization/MemoryWriter.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "UObject/ConstructorHelpers.h"
+#include "GameFramework/Actor.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "RenderResource.h"
+#include "Misc/ScopeLock.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/Texture2D.h"
+#include "SceneManagement.h"
 #include "Engine/ReflectionCapture.h"
 #include "DerivedDataCacheInterface.h"
-#include "TargetPlatform.h"
+#include "Interfaces/ITargetPlatform.h"
 #include "EngineModule.h"
-#include "RendererInterface.h"
 #include "ShaderCompiler.h"
 #include "LoadTimesObjectVersion.h"
 #include "RenderingObjectVersion.h"
@@ -20,10 +34,9 @@
 #include "Engine/PlaneReflectionCapture.h"
 #include "Engine/BoxReflectionCapture.h"
 #include "Components/PlaneReflectionCaptureComponent.h"
-#include "Components/ReflectionCaptureComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkyLightComponent.h"
-#include "CookStats.h"
+#include "ProfilingDebugging/CookStats.h"
 
 #if ENABLE_COOK_STATS
 namespace ReflectionCaptureCookStats

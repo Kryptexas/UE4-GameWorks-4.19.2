@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "MovieSceneEvalTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 #include "MovieScene3DAttachTemplate.generated.h"
 
 class UMovieScene3DAttachSection;

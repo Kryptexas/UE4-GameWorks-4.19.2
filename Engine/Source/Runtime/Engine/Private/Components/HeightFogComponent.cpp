@@ -4,10 +4,17 @@
 	HeightFogComponent.cpp: Height fog implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "UObject/CoreNet.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineDefines.h"
+#include "Engine/World.h"
+#include "SceneInterface.h"
+#include "Engine/Texture2D.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Engine/ExponentialHeightFog.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/BillboardComponent.h"
 
 UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

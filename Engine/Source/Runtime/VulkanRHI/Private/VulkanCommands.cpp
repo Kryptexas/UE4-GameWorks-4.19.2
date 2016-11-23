@@ -7,6 +7,7 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
+#include "EngineGlobals.h"
 
 //#todo-rco: One of this per Context!
 static TGlobalResource< TBoundShaderStateHistory<10000, false> > GBoundShaderStateHistory;

@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProjectsPrivatePCH.h"
+#include "ModuleDescriptor.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Dom/JsonObject.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "ModuleDescriptor"
 

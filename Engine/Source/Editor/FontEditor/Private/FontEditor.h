@@ -2,10 +2,22 @@
 
 #pragma once
 
-#include "Toolkits/AssetEditorToolkit.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Toolkits/IToolkitHost.h"
+#include "IFontEditor.h"
+#include "Misc/NotifyHook.h"
 #include "EditorUndoClient.h"
-#include "Engine/Font.h"
 
+class IDetailsView;
+class SCompositeFontEditor;
+class SEditableTextBox;
+class SFontEditorViewport;
+class UFont;
+class UTextureExporterTGA;
+class UTextureFactory;
+struct FPropertyChangedEvent;
+enum class EFontCacheType : uint8;
 
 /*-----------------------------------------------------------------------------
    FFontEditor

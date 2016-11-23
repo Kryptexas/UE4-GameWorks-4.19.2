@@ -2,7 +2,16 @@
 
 #pragma once
 
-#include "Containers/BitArray.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Misc/CoreStats.h"
+#include "Misc/StringClassReference.h"
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "NavigationTypes.generated.h"
 
@@ -13,6 +22,14 @@
 
 #define DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL 50.f
 #define DEFAULT_NAV_QUERY_EXTENT_VERTICAL 250.f
+
+class AActor;
+class ANavigationData;
+class Error;
+class INavAgentInterface;
+class INavRelevantInterface;
+class ULevel;
+struct FNavigationPath;
 
 /** uniform identifier type for navigation data elements may it be a polygon or graph node */
 typedef uint64 NavNodeRef;

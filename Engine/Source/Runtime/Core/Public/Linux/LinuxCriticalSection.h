@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "PThreadCriticalSection.h"
-#include "GenericPlatform/GenericPlatformCriticalSection.h"
+#include "CoreTypes.h"
+#include "Misc/Timespan.h"
+#include "HAL/PThreadCriticalSection.h"
 
 /**
   * Linux implementation of the FSystemWideCriticalSection. Uses exclusive file locking.

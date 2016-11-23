@@ -1,16 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "SPropertyEditorEditInline.h"
+#include "UserInterface/PropertyEditor/SPropertyEditorEditInline.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Images/SImage.h"
 #include "PropertyEditorHelpers.h"
-#include "PropertyNode.h"
 #include "ObjectPropertyNode.h"
-#include "PropertyEditor.h"
 #include "PropertyHandleImpl.h"
-#include "SPropertyComboBox.h"
-#include "Editor/ClassViewer/Public/ClassViewerModule.h"
-#include "Editor/ClassViewer/Public/ClassViewerFilter.h"
-#include "SlateIconFinder.h"
+#include "ClassViewerModule.h"
+#include "ClassViewerFilter.h"
+#include "Styling/SlateIconFinder.h"
 
 class FPropertyEditorInlineClassFilter : public IClassViewerFilter
 {

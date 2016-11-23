@@ -2,6 +2,8 @@
 
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h"
+#include "EngineGlobals.h"
+#include "StaticBoundShaderState.h"
 
 DEFINE_STAT(STAT_MetalMakeDrawableTime);
 DEFINE_STAT(STAT_MetalDrawCallTime);

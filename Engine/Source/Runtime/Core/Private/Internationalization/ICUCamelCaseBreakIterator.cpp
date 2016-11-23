@@ -1,11 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "BreakIterator.h"
-#include "CamelCaseBreakIterator.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/SharedPointer.h"
+#include "Internationalization/IBreakIterator.h"
+#include "Internationalization/BreakIterator.h"
+#include "Internationalization/CamelCaseBreakIterator.h"
 
 #if UE_ENABLE_ICU
-#include "ICUTextCharacterIterator.h"
+#include "Internationalization/ICUTextCharacterIterator.h"
 THIRD_PARTY_INCLUDES_START
 	#include <unicode/uchar.h>
 THIRD_PARTY_INCLUDES_END

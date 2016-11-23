@@ -2,10 +2,9 @@
 
 #pragma once
 
-#include "Core.h"
-#include "CoreUObject.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
 #include "Containers/EnumAsByte.h" 
+#include "Engine/MaterialMerging.h"
 #include "SimplygonSDK.h"
 
 #include "SimplygonTypes.generated.h"

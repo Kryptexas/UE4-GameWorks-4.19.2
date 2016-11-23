@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_AssignmentStatement.h"
+#include "EdGraphSchema_K2.h"
 #include "KismetCompiler.h"
 #include "VariableSetHandler.h"
 #include "BlueprintNodeSpawner.h"

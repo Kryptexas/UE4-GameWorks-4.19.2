@@ -1,13 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "GameFramework/MovementComponent.h"
-#include "GameFramework/PhysicsVolume.h"
-#include "Components/SceneComponent.h"
+#include "CollisionQueryParams.h"
+#include "Engine/World.h"
 #include "Components/PrimitiveComponent.h"
-#include "MessageLog.h"
+#include "GameFramework/PhysicsVolume.h"
+#include "Logging/MessageLog.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 
 #define LOCTEXT_NAMESPACE "MovementComponent"
 DEFINE_LOG_CATEGORY_STATIC(LogMovement, Log, All);

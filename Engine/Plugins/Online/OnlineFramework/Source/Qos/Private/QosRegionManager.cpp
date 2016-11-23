@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "QosPrivatePCH.h"
 #include "QosRegionManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
 #include "QosInterface.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 #include "QosEvaluator.h"
 #include "QosModule.h"
 

@@ -2,8 +2,13 @@
 
 #pragma once
 
-#include "DataAsset.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/DataAsset.h"
 #include "PreviewMeshCollection.generated.h"
+
+class USkeleton;
 
 /** An entry in a preview mesh collection */
 USTRUCT()

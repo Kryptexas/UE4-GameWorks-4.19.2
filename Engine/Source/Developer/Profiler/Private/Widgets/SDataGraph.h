@@ -2,11 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
 #include "ProfilerDataSource.h"
 
-
+class FPaintArgs;
+class FSlateWindowElementList;
 class FTrackedStat;
-
+class SVerticalBox;
 
 namespace EDataGraphViewModes
 {

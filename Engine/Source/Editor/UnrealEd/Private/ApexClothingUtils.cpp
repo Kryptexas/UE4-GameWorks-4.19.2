@@ -1,23 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "ApexClothingUtils.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
-#include "PhysicsPublic.h"
-#include "ApexClothingUtils.h"
+#include "PhysXPublic.h"
 
 #if WITH_APEX
 
-#include "EditorPhysXSupport.h"
 // Utilities
-#include "NvParamUtils.h"
 
 #if WITH_APEX_CLOTHING
 	#include "ClothingAssetAuthoring.h"
 #endif // #if WITH_APEX_CLOTHING
 
-#include "Runtime/Engine/Private/PhysicsEngine/PhysXSupport.h"
 
 #endif // #if WITH_APEX
 

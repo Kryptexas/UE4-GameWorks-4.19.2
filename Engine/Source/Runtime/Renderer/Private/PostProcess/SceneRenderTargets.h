@@ -6,12 +6,17 @@
 
 #pragma once
 
-#include "ShaderParameters.h"
-#include "RenderTargetPool.h"
-#include "../SystemTextures.h"
-#include "RHIStaticStates.h"
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "UniformBuffer.h"
+#include "SceneInterface.h"
+#include "SceneView.h"
+#include "RendererInterface.h"
 
-struct IPooledRenderTarget;
+class FViewInfo;
 
 /** Number of cube map shadow depth surfaces that will be created and used for rendering one pass point light shadows. */
 static const int32 NumCubeShadowDepthSurfaces = 5;

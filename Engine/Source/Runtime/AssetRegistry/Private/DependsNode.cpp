@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetRegistryPCH.h"
+#include "DependsNode.h"
+#include "AssetRegistryPrivate.h"
 
 void FDependsNode::PrintNode() const
 {

@@ -1,7 +1,15 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "Misc/MessageDialog.h"
+#include "Misc/CString.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
 
 namespace
 {

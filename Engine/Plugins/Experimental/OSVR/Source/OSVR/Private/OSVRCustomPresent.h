@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "OSVRPrivate.h"
 #include "IOSVR.h"
 #include <osvr/RenderKit/RenderManagerC.h>
 

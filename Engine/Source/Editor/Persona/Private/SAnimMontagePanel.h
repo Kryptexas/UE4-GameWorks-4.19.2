@@ -3,12 +3,21 @@
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
-#include "STrack.h"
-#include "SCurveEditor.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SAnimTrackPanel.h"
-#include "PersonaDelegates.h"
+#include "SMontageEditor.h"
+#include "Animation/EditorAnimBaseObj.h"
+#include "STrack.h"
+
+class FMenuBuilder;
+class SBorder;
+class SImage;
+class STextBlock;
 
 DECLARE_DELEGATE( FOnMontageLengthChange )
 DECLARE_DELEGATE( FOnMontagePropertyChanged )

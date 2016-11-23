@@ -5,9 +5,17 @@
 =============================================================================*/
 #pragma once
 
-#include "UMemoryDefines.h"
-#include "CompressedGrowableBuffer.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/MemoryBase.h"
+#include "Serialization/Archive.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "UObject/NameTypes.h"
+#include "Misc/CompressedGrowableBuffer.h"
 
+class FScopeLock;
 
 #if USE_MALLOC_PROFILER
 

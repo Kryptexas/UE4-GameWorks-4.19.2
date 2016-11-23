@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
-#include "InterpolationParameterDetails.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "Customization/InterpolationParameterDetails.h"
+#include "IDetailsView.h"
+#include "PropertyHandle.h"
+#include "IDetailChildrenBuilder.h"
+#include "IDetailPropertyRow.h"
 
 #define LOCTEXT_NAMESPACE "InterpolationParameterDetails"
 

@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "SInvalidationPanel.h"
+#include "Components/TextBlock.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Engine/Font.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/SInvalidationPanel.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

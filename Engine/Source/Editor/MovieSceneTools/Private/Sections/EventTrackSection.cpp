@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "EventTrackSection.h"
-#include "MovieSceneEventSection.h"
+#include "Sections/EventTrackSection.h"
+#include "ISectionLayoutBuilder.h"
+#include "SequencerSectionPainter.h"
+#include "Sections/MovieSceneEventSection.h"
 #include "GenericKeyArea.h"
 
 

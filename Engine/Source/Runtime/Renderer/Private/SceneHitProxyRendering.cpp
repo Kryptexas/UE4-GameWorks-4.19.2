@@ -4,9 +4,18 @@
 	SceneHitProxyRendering.cpp: Scene hit proxy rendering.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "SceneHitProxyRendering.h"
+#include "RendererInterface.h"
+#include "BatchedElements.h"
+#include "Materials/Material.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "MaterialShaderType.h"
+#include "MeshMaterialShader.h"
+#include "ShaderBaseClasses.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
-#include "RenderResource.h"
+#include "DynamicPrimitiveDrawing.h"
 
 /**
  * A vertex shader for rendering the depth of a mesh.

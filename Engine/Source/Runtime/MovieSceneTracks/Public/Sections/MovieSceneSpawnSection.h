@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "MovieSceneBoolSection.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sections/MovieSceneBoolSection.h"
 #include "MovieSceneSpawnSection.generated.h"
 
 /**

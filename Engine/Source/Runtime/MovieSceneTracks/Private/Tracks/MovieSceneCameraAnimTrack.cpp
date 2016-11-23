@@ -1,13 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneCameraAnimSection.h"
-#include "MovieSceneCameraAnimTrack.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieSceneCameraAnimTrack.h"
+#include "Sections/MovieSceneCameraAnimSection.h"
+#include "Templates/Casts.h"
 #include "Camera/CameraAnim.h"
+#include "Evaluation/PersistentEvaluationData.h"
 #include "Evaluation/MovieSceneCameraAnimTemplate.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
 #include "Evaluation/MovieSceneEvaluationTemplate.h"
-#include "Compilation/IMovieSceneTemplateGenerator.h"
 #include "Compilation/MovieSceneCompilerRules.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneCameraAnimTrack"

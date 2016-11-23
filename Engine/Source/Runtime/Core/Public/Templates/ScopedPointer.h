@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Serialization/Archive.h"
 
 /**
  * Wrapper around a raw pointer that destroys it automatically.

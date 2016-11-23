@@ -2,11 +2,8 @@
 
 #pragma once
 
-
-struct FMessageTracerEndpointInfo;
-struct FMessageTracerMessageInfo;
-struct FMessageTracerTypeInfo;
-
+#include "CoreMinimal.h"
+#include "IMessageTracer.h"
 
 /**
  * Implements a view model for the messaging debugger.

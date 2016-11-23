@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Commandlets/GatherTextCommandletBase.h"
-#include "Sound/DialogueTypes.h"
-#include "GatherTextFromAssetsCommandlet.generated.h"
 
-class FLocMetadataValue;
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Internationalization/GatherableTextData.h"
+#include "Commandlets/GatherTextCommandletBase.h"
+#include "GatherTextFromAssetsCommandlet.generated.h"
 
 /**
  *	UGatherTextFromAssetsCommandlet: Localization commandlet that collects all text to be localized from the game assets.

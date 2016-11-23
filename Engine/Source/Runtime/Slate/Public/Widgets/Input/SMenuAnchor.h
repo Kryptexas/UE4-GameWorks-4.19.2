@@ -1,9 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "STextBlock.h"
-#include "IMenu.h"
-#include "PopupMethodReply.h"
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/PopupMethodReply.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/Application/IMenu.h"
+
+class FArrangedChildren;
+class FPaintArgs;
+class FSlateWindowElementList;
+class SWindow;
 
 /** Notification when popup is opened/closed. */
 DECLARE_DELEGATE_OneParam(FOnIsOpenChanged, bool)

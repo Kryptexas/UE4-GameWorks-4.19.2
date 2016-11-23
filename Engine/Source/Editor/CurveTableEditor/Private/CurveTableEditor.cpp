@@ -1,15 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CurveTableEditorPrivatePCH.h"
-
 #include "CurveTableEditor.h"
-#include "Toolkits/IToolkitHost.h"
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "SDockTab.h"
-#include "Engine/CurveTable.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Modules/ModuleManager.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "Framework/Layout/Overscroll.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "EditorStyleSet.h"
+#include "EditorReimportHandler.h"
+#include "CurveTableEditorModule.h"
+#include "Widgets/Docking/SDockTab.h"
 #include "SCurveEditor.h"
 #include "CurveTableEditorCommands.h"
-
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+ 
 #define LOCTEXT_NAMESPACE "CurveTableEditor"
 
 const FName FCurveTableEditor::CurveTableTabId("CurveTableEditor_CurveTable");
@@ -447,19 +454,19 @@ void FCurveTableEditor::CacheDataTableForEditing()
 		CachedRowData->CellData.AddDefaulted(AvailableColumns.Num());
 		{
 			for (auto It(Curves[CurvesIdx]->GetKeyIterator()); It; ++It)
-			{
-				int32 ColumnIndex = 0;
+		{
+			int32 ColumnIndex = 0;
 				if (UniqueColumns.Find(It->Time, ColumnIndex))
-				{
+			{
 					FCurveTableEditorColumnHeaderDataPtr CachedColumnData = AvailableColumns[ColumnIndex];
 
-					const FText CellText = FText::AsNumber(It->Value);
+				const FText CellText = FText::AsNumber(It->Value);
 					CachedRowData->CellData[ColumnIndex] = CellText;
 
-					const float CellWidth = FontMeasure->Measure(CellText, CellTextStyle.Font).X + CellPadding;
-					CachedColumnData->DesiredColumnWidth = FMath::Max(CachedColumnData->DesiredColumnWidth, CellWidth);
-				}
+				const float CellWidth = FontMeasure->Measure(CellText, CellTextStyle.Font).X + CellPadding;
+				CachedColumnData->DesiredColumnWidth = FMath::Max(CachedColumnData->DesiredColumnWidth, CellWidth);
 			}
+		}
 		}
 
 		AvailableRows.Add(CachedRowData);

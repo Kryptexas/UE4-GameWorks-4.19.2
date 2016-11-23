@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Timespan.h"
+
+class FString;
 
 /**
  * Interface for media sinks that receive string data.

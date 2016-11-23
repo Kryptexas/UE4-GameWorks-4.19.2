@@ -2,11 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class UAnimInstance;
+class USceneComponent;
+
 namespace PersonaUtils
 {
 
 /** Get the viewport scene component for the specified attached asset */
-PERSONA_API class USceneComponent* GetComponentForAttachedObject(class USceneComponent* PreviewComponent, class UObject* Object, const FName& AttachedTo);
+PERSONA_API USceneComponent* GetComponentForAttachedObject(USceneComponent* PreviewComponent, class UObject* Object, const FName& AttachedTo);
 
 /** Options for CopyPropertiesToCDO */
 enum ECopyOptions : int32
@@ -47,6 +52,6 @@ struct FCopyOptions
 };
 
 /** Copy modified properties from the specified anim instance back to its CDO */
-PERSONA_API int32 CopyPropertiesToCDO(class UAnimInstance* InAnimInstance, const FCopyOptions& Options = FCopyOptions(ECopyOptions::Default));
+PERSONA_API int32 CopyPropertiesToCDO(UAnimInstance* InAnimInstance, const FCopyOptions& Options = FCopyOptions(ECopyOptions::Default));
 
 }

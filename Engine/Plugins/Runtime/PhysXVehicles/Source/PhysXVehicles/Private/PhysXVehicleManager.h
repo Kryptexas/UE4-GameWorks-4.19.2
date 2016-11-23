@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "EngineDefines.h"
+#include "CoreMinimal.h"
+#include "WheeledVehicleMovementComponent.h"
 #include "PhysicsPublic.h"
+#include "PhysXIncludes.h"
 
 class UTireConfig;
 

@@ -1,20 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FunctionalTestingPrivatePCH.h"
-
-#include "AutomationCommon.h"
-#include "AutomationTest.h"
-#include "DelayForFramesLatentAction.h"
+#include "AutomationBlueprintFunctionLibrary.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/AutomationTest.h"
+#include "EngineGlobals.h"
+#include "UnrealClient.h"
+#include "Camera/CameraActor.h"
+#include "Camera/PlayerCameraManager.h"
+#include "Engine/Texture.h"
+#include "Engine/GameViewportClient.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
+#include "Tests/AutomationCommon.h"
+#include "Logging/MessageLog.h"
 #include "TakeScreenshotAfterTimeLatentAction.h"
-#include "Engine/LatentActionManager.h"
-#include "SlateBasics.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"
 #include "Tests/AutomationTestSettings.h"
 #include "Slate/WidgetRenderer.h"
 #include "DelayAction.h"
-
-#include "AutomationBlueprintFunctionLibrary.h"
+#include "Widgets/SViewport.h"
+#include "Framework/Application/SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
 

@@ -4,10 +4,14 @@
 ConsoleManager.cpp: console command handling
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "ConsoleManager.h"
-#include "ModuleManager.h"
-#include "RemoteConfigIni.h"
+#include "HAL/ConsoleManager.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/Paths.h"
+#include "Stats/Stats.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/RemoteConfigIni.h"
 
 DEFINE_LOG_CATEGORY(LogConsoleResponse);
 DEFINE_LOG_CATEGORY_STATIC(LogConsoleManager, Log, All);

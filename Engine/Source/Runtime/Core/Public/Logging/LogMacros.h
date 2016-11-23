@@ -2,14 +2,11 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
-#include "HAL/PlatformMisc.h"
-#include "Misc/Build.h"
+#include "CoreTypes.h"
 #include "Misc/VarArgs.h"
-#include "Templates/EnableIf.h"
-#include "LogVerbosity.h"
-#include "LogCategory.h"
-#include "AssertionMacros.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogCategory.h"
 
 /*----------------------------------------------------------------------------
 	Logging

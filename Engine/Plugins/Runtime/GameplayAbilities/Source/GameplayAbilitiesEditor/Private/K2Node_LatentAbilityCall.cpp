@@ -1,18 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "Kismet/KismetArrayLibrary.h"
-#include "GameplayTask.h"
-#include "AbilityTask.h"
-#include "KismetCompiler.h"
-#include "BlueprintEditorUtils.h"
 #include "K2Node_LatentAbilityCall.h"
-#include "GameplayAbilityGraphSchema.h"
-#include "K2Node_EnumLiteral.h"
+#include "Abilities/GameplayAbility.h"
+#include "Abilities/Tasks/AbilityTask.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "BlueprintNodeSpawner.h"
 #include "BlueprintFunctionNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "CompilerResultsLog.h"
+#include "Kismet2/CompilerResultsLog.h"
 
 static FName FK2Node_LatentAbilityCallHelper_RequiresConnection(TEXT("RequiresConnection"));
 

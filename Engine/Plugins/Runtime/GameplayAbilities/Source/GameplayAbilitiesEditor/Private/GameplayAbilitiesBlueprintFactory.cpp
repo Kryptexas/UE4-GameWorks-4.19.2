@@ -1,26 +1,40 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
+#include "GameplayAbilitiesBlueprintFactory.h"
+#include "InputCoreTypes.h"
+#include "UObject/Interface.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Abilities/GameplayAbility.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
+#include "Editor.h"
+#include "EdGraphSchema_K2.h"
 
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
-
-#include "Core.h"
-#include "Engine.h"
-
+#include "ClassViewerModule.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BlueprintEditorSettings.h"
 
-#include "Abilities/GameplayAbility.h"
 #include "GameplayAbilityBlueprint.h"
 #include "GameplayAbilityGraph.h"
 #include "GameplayAbilityGraphSchema.h"
 
 #include "ClassViewerFilter.h"
 
-#include "GameplayAbilitiesBlueprintFactory.h"
+#include "SlateOptMacros.h"
 
 #define LOCTEXT_NAMESPACE "UGameplayAbilitiesBlueprintFactory"
 

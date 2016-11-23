@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "FontCacheCompositeFont.h"
-#include "FontCacheFreeType.h"
+#include "Fonts/FontCacheCompositeFont.h"
+#include "Fonts/FontCacheFreeType.h"
+#include "SlateGlobals.h"
+#include "Fonts/FontBulkData.h"
+#include "Misc/FileHelper.h"
 
 FCachedTypefaceData::FCachedTypefaceData()
 	: Typeface(nullptr)

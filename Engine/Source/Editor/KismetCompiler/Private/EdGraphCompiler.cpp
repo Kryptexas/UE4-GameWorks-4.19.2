@@ -4,7 +4,13 @@
 	EdGraphCompiler.cpp
 =============================================================================*/
 
-#include "KismetCompilerPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "EdGraph/EdGraphNode.h"
+#include "Templates/SubclassOf.h"
+#include "EdGraph/EdGraph.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "EdGraphUtilities.h"
+#include "EdGraphCompilerUtilities.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FGraphCompilerContext

@@ -8,7 +8,7 @@
 #include "VulkanMemory.h"
 #include "VulkanContext.h"
 #include "VulkanPendingState.h"
-
+#include "Containers/ResourceArray.h"
 
 struct FPixelFormatKeyMap
 {

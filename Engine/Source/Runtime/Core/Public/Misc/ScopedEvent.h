@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/Event.h"
+
 /**
  * This class is allows a simple one-shot scoped event.
  *

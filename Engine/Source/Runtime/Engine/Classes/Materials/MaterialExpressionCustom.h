@@ -2,8 +2,14 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionCustom.generated.h"
+
+struct FPropertyChangedEvent;
 
 UENUM()
 enum ECustomMaterialOutputType

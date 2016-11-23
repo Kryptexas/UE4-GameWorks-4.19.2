@@ -6,6 +6,10 @@
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
+
 /**
  * UI for the crash report client app
  */

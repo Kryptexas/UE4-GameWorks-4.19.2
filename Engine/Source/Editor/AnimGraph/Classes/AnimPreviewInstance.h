@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "BlueprintGraphDefinitions.h"
-#include "AnimGraphNode_ModifyBone.h"
-#include "Animation/AnimSingleNodeInstance.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BonePose.h"
 #include "BoneControllers/AnimNode_ModifyBone.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Animation/AnimSingleNodeInstanceProxy.h"
 #include "AnimNodes/AnimNode_CurveSource.h"
 #include "AnimNodes/AnimNode_PoseBlendNode.h"

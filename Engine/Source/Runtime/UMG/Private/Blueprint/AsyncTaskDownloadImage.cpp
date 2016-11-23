@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-
-#include "ImageWrapper.h"
-#include "Http.h"
-
 #include "Blueprint/AsyncTaskDownloadImage.h"
-#include "TimerManager.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/Texture2D.h"
+#include "Engine/Texture2DDynamic.h"
+#include "Interfaces/IImageWrapperModule.h"
+#include "Interfaces/IHttpResponse.h"
+#include "HttpModule.h"
+
 
 //----------------------------------------------------------------------//
 // UAsyncTaskDownloadImage

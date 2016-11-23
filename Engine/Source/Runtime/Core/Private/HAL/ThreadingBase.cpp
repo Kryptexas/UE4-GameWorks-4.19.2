@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "CorePrivatePCH.h"
-#include "EventPool.h"
-#include "LockFreeList.h"
-#include "StatsData.h"
+#include "HAL/ThreadingBase.h"
+#include "UObject/NameTypes.h"
+#include "Stats/Stats.h"
+#include "Misc/CoreStats.h"
+#include "Misc/EventPool.h"
 
 DEFINE_STAT( STAT_EventWaitWithId );
 DEFINE_STAT( STAT_EventTriggerWithId );

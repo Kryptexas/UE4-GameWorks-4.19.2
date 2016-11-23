@@ -1,10 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "Templates/SharedPointer.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Internationalization.h"
 
 #if UE_ENABLE_ICU
-#include "Text.h"
-#include "TextData.h"
+#include "Internationalization/TextHistory.h"
+#include "Internationalization/TextData.h"
 
 THIRD_PARTY_INCLUDES_START
 	#include <unicode/utypes.h>
@@ -17,10 +23,10 @@ THIRD_PARTY_INCLUDES_START
 	#include <unicode/ubidi.h>
 THIRD_PARTY_INCLUDES_END
 
-#include "ICUUtilities.h"
-#include "ICUCulture.h"
-#include "ICUInternationalization.h"
-#include "ICUTextCharacterIterator.h"
+#include "Internationalization/ICUUtilities.h"
+#include "Internationalization/ICUCulture.h"
+#include "Internationalization/ICUInternationalization.h"
+#include "Internationalization/ICUTextCharacterIterator.h"
 
 bool FText::IsWhitespace( const TCHAR Char )
 {

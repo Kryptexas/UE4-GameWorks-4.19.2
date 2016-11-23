@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Engine.h"
+#include "OculusStressTests.h"
 
 #include "HeadMountedDisplayCommon.h"
 #if OCULUS_STRESS_TESTS_ENABLED
@@ -12,7 +12,6 @@
 #include "ShaderParameterUtils.h"
 #include "RHIStaticStates.h"
 
-#include "OculusStressTests.h"
 
 //This buffer should contain variables that never, or rarely change
 BEGIN_UNIFORM_BUFFER_STRUCT(FOculusPixelShaderConstantParameters, )

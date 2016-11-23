@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Components/StaticMeshComponent.h"
-#include "StaticMeshResources.h"
 #include "MeshVertexPainter/MeshVertexPainter.h"
+#include "Components.h"
+#include "StaticMeshResources.h"
 
 
 void FMeshVertexPainter::PaintVerticesSingleColor(UStaticMeshComponent* StaticMeshComponent, const FLinearColor& FillColor, bool bConvertToSRGB)

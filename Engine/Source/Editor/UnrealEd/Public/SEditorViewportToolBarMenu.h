@@ -3,6 +3,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "SViewportToolBar.h"
+#include "Framework/SlateDelegates.h"
+
+class SMenuAnchor;
+struct FSlateBrush;
+
 namespace EMenuItemType
 {
 	enum Type

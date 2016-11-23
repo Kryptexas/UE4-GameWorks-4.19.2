@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/TargetDeviceId.h"
+
+class ITargetDevice;
+class ITargetDeviceOutput;
 
 /**
  * Enumerates features that may be supported by target devices.

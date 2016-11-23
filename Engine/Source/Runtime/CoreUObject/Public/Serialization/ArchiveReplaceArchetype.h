@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
-#include "ReloadObjectArc.h"
+#include "CoreMinimal.h"
+#include "Serialization/ReloadObjectArc.h"
 
 /*----------------------------------------------------------------------------
 	FArchiveReplaceArchetype.

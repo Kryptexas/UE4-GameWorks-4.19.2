@@ -6,8 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Templates/ScopedPointer.h"
 #include "Shader.h"
-#include "SceneManagement.h"
+#include "SceneView.h"
 #include "UniquePtr.h"
 
 class FShaderCommonCompileJob;

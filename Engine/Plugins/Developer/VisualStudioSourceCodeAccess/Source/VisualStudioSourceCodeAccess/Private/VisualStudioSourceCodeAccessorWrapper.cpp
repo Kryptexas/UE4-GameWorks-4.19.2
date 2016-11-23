@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VisualStudioSourceCodeAccessPrivatePCH.h"
 #include "VisualStudioSourceCodeAccessorWrapper.h"
 #include "VisualStudioSourceCodeAccessModule.h"
 #include "ISourceCodeAccessModule.h"

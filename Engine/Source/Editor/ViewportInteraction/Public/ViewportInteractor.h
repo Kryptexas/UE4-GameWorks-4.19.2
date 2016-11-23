@@ -2,8 +2,16 @@
 
 #pragma once
 
-#include "ViewportInteractorData.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineTypes.h"
+#include "ViewportInteractionTypes.h"
+#include "Editor/ViewportInteraction/ViewportInteractorData.h"
 #include "ViewportInteractor.generated.h"
+
+class AActor;
 
 /**
  * Represents the interactor in the world

@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneSpawnTemplate.h"
+#include "Evaluation/MovieSceneSpawnTemplate.h"
 
 #include "MovieSceneSequence.h"
-#include "MovieSceneSpawnSection.h"
+#include "Sections/MovieSceneSpawnSection.h"
 
 DECLARE_CYCLE_STAT(TEXT("Spawn Track Evaluate"), MovieSceneEval_SpawnTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Spawn Track Token Execute"), MovieSceneEval_SpawnTrack_TokenExecute, STATGROUP_MovieSceneEval);

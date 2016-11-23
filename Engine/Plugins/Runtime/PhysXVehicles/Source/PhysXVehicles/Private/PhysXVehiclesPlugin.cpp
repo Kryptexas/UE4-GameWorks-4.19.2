@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesPrivatePCH.h"
-#include "IPhysXVehiclesPlugin.h"
+#include "CoreMinimal.h"
 #include "PhysicsPublic.h"
-#include "PhysXVehicleManager.h"
+#include "PhysXPublic.h"
+#include "Modules/ModuleManager.h"
+#include "IPhysXVehiclesPlugin.h"
 #include "WheeledVehicleMovementComponent.h"
+#include "PhysXVehicleManager.h"
+#include "UObject/UObjectIterator.h"
+#include "Components/SkeletalMeshComponent.h"
 
 class FPhysXVehiclesPlugin : public IPhysXVehiclesPlugin
 {

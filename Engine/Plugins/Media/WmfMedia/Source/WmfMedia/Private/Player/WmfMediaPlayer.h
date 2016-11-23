@@ -2,12 +2,18 @@
 
 #pragma once
 
+#include "../WmfMediaPrivate.h"
+#include "WmfMediaPlayer.h"
 #include "IMediaPlayer.h"
 #include "IMediaTracks.h"
 #include "IWmfMediaResolverCallbacks.h"
 #include "WmfMediaTracks.h"
-#include "AllowWindowsPlatformTypes.h"
+#include "Containers/Ticker.h"
+#include "Containers/Queue.h"
 
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
+#include "AllowWindowsPlatformTypes.h"
 
 class FWmfMediaResolver;
 class FWmfMediaSession;
@@ -114,3 +120,5 @@ private:
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif

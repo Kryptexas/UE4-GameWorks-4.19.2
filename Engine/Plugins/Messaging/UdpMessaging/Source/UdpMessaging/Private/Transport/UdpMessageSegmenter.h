@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "UdpSerializedMessage.h"
-
+#include "CoreMinimal.h"
+#include "Transport/UdpSerializedMessage.h"
 
 /**
  * Implements a message segmenter.

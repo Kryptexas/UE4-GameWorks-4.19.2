@@ -4,8 +4,8 @@
 	ShowFlags.cpp: Show Flag Definitions.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "ShowFlags.h"
+#include "SystemSettings.h"
 
 static bool IsValidNameChar(TCHAR c)
 {

@@ -2,7 +2,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Widgets/SWidget.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
+#include "MovieSceneTrackEditor.h"
+
+class FAssetData;
+class FMenuBuilder;
+class FSequencerSectionPainter;
 class UMovieSceneSkeletalAnimationSection;
+class USkeleton;
 
 /**
  * Tools for animation tracks

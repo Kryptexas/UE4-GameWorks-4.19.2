@@ -2,6 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Animation/CurveHandle.h"
+#include "Animation/CurveSequence.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SLeafWidget.h"
+#include "Styling/CoreStyle.h"
+
+class FPaintArgs;
+class FSlateWindowElementList;
+class SHorizontalBox;
 
 /** A Throbber widget that uses 5 zooming circles in a row.*/
 class SLATE_API SThrobber : public SCompoundWidget

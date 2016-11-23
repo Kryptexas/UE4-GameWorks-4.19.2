@@ -6,7 +6,12 @@
 
 #pragma once
 
-#include "PersistentObjectPtr.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/Casts.h"
+#include "UObject/PersistentObjectPtr.h"
 
 /**
  * Wrapper structure for a GUID that uniquely identifies a UObject

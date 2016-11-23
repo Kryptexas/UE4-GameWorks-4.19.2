@@ -1,14 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WmfMediaPCH.h"
+#include "WmfMediaTracks.h"
+#include "Misc/ScopeLock.h"
+#include "UObject/Class.h"
+#include "WmfMediaSampler.h"
+#include "WmfMediaUtils.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
-#include "WmfMediaSampler.h"
-#include "WmfMediaTracks.h"
-#include "WmfMediaUtils.h"
 #include "AllowWindowsPlatformTypes.h"
-
 
 #define LOCTEXT_NAMESPACE "FWmfMediaTracks"
 

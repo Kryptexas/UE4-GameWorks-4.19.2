@@ -5,16 +5,21 @@
 /** 
  * Playable sound object for raw wave files
  */
-#include "BulkData.h"
-#include "Engine/EngineTypes.h"
+
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Async/AsyncWork.h"
 #include "Sound/SoundBase.h"
+#include "Serialization/BulkData.h"
 #include "Sound/SoundGroups.h"
 
 #include "SoundWave.generated.h"
 
+class ITargetPlatform;
 struct FActiveSound;
 struct FSoundParseParameters;
-struct FWaveInstance;
 
 UENUM()
 enum EDecompressionType

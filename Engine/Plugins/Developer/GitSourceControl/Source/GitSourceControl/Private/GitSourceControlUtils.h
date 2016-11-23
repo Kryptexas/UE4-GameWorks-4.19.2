@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "GitSourceControlState.h"
-#include "GitSourceControlRevision.h"
 
 class FGitSourceControlCommand;
 

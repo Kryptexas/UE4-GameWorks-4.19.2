@@ -1,10 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "EditorModeTools.h"
-#include "MovieSceneHitProxy.h"
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "EditorModeTools.h"
+#include "EdMode.h"
+
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
 class FSequencer;
+class FViewport;
+struct HMovieSceneKeyProxy;
 
 /**
  * FSequencerEdMode is the editor mode for additional drawing and handling sequencer hotkeys in the editor

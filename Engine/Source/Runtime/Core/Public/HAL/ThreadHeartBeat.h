@@ -1,6 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/Map.h"
+#include "HAL/CriticalSection.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "HAL/Runnable.h"
+#include "HAL/ThreadSafeBool.h"
+
 /**
  * Thread heartbeat check class.
  * Used by crash handling code to check for hangs.

@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "ArchiveProxy.h"
+#include "CoreTypes.h"
+#include "Serialization/ArchiveProxy.h"
 
 /**
  * Implements a proxy archive that serializes FNames as string data.

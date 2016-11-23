@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "EdGraph/EdGraphPin.h" // for EBlueprintPinStyleType
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "BlueprintEditorSettings.generated.h"
 
 UENUM()

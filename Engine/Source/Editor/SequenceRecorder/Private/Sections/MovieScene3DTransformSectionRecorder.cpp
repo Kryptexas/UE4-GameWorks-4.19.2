@@ -1,15 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
-#include "MovieScene3DTransformSectionRecorder.h"
-#include "MovieScene.h"
-#include "MovieScene3DTransformSection.h"
-#include "MovieScene3DTransformTrack.h"
-#include "MovieSceneAnimationSectionRecorder.h"
-#include "SequenceRecorderUtils.h"
-#include "ActorRecording.h"
-#include "ActorRecordingSettings.h"
-#include "Animation/AnimSequence.h"
+#include "Sections/MovieScene3DTransformSectionRecorder.h"
+#include "Misc/ScopedSlowTask.h"
+#include "GameFramework/Character.h"
+#include "KeyParams.h"
+#include "Sections/MovieScene3DTransformSection.h"
+#include "Tracks/MovieScene3DTransformTrack.h"
 #include "SequenceRecorder.h"
 
 TSharedPtr<IMovieSceneSectionRecorder> FMovieScene3DTransformSectionRecorderFactory::CreateSectionRecorder(const FActorRecordingSettings& InActorRecordingSettings) const

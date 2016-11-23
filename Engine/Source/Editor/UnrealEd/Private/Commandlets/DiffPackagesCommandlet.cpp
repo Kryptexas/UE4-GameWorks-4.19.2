@@ -5,8 +5,19 @@
 
 =============================================================================*/
 
-#include "UnrealEd.h"
-#include "EditorCommandlets.h"
+#include "Commandlets/DiffPackagesCommandlet.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "Serialization/ArchiveReplaceObjectRef.h"
+#include "UObject/LinkerLoad.h"
+#include "Engine/Level.h"
+#include "Engine/World.h"
+#include "Commandlets/EditorCommandlets.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiffPackagesCommandlet, Log, All);
 

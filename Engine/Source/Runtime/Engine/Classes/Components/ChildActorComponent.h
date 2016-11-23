@@ -2,9 +2,16 @@
 
 
 #pragma once
-#include "SceneComponent.h"
-#include "ComponentInstanceDataCache.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/CoreNet.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
 #include "ChildActorComponent.generated.h"
+
+struct FAttachedActorInfo;
 
 class ENGINE_API FChildActorComponentInstanceData : public FSceneComponentInstanceData
 {

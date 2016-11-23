@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
+#include "Sections/VectorPropertySection.h"
 #include "FloatCurveKeyArea.h"
-#include "MovieSceneVectorSection.h"
-#include "VectorPropertySection.h"
+#include "ISectionLayoutBuilder.h"
+#include "Sections/MovieSceneVectorSection.h"
 
 
 void FVectorPropertySection::GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const

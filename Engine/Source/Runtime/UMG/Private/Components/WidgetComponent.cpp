@@ -1,21 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "WidgetComponent.h"
-#include "HittestGrid.h"
-#if !UE_SERVER
-	#include "ISlateRHIRendererModule.h"
-	#include "ISlate3DRenderer.h"
-#endif // !UE_SERVER
+#include "Components/WidgetComponent.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineGlobals.h"
+#include "MaterialShared.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/Engine.h"
+#include "Widgets/SWindow.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Input/HittestGrid.h"
+#include "SceneManagement.h"
 #include "DynamicMeshBuilder.h"
-#include "Scalability.h"
-#include "WidgetLayoutLibrary.h"
+#include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "SGameLayerManager.h"
+#include "Slate/SGameLayerManager.h"
 #include "Slate/WidgetRenderer.h"
 #include "Slate/SWorldWidgetScreenLayer.h"
-#include "Widgets/LayerManager/STooltipPresenter.h"
-#include "Widgets/Layout/SPopup.h"
 
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
 

@@ -4,9 +4,11 @@
 	MaterialGraphNode_Root.cpp
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "MaterialGraph/MaterialGraphNode_Root.h"
+#include "MaterialShared.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
 #include "MaterialEditorUtilities.h"
-#include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode_Root"

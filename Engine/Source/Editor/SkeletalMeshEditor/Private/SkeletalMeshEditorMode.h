@@ -2,10 +2,17 @@
 
 #pragma once
 
-#include "ApplicationMode.h"
-#include "WorkflowCentricApplication.h"
-#include "PersonaModule.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "WorkflowOrientedApp/WorkflowCentricApplication.h"
+#include "PersonaDelegates.h"
+#include "WorkflowOrientedApp/ApplicationMode.h"
 #include "IDocumentation.h"
+#include "WorkflowOrientedApp/WorkflowTabFactory.h"
+#include "WorkflowOrientedApp/WorkflowTabManager.h"
+
+class SToolTip;
 
 class FSkeletalMeshEditorMode : public FApplicationMode
 {

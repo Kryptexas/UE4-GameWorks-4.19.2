@@ -5,8 +5,9 @@
 
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GameFramework/SpectatorPawnMovement.h"
+#include "GameFramework/Pawn.h"
+#include "Misc/App.h"
 
 USpectatorPawnMovement::USpectatorPawnMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

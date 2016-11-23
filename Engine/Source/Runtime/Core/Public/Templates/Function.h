@@ -2,15 +2,18 @@
 
 #pragma once
 
-#include <new>
-
-#include "AreTypesEqual.h"
-#include "ContainerAllocationPolicies.h"
-#include "UnrealMathUtility.h"
-#include "UnrealMemory.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Templates/RemoveReference.h"
 #include "Templates/Decay.h"
 #include "Templates/Invoke.h"
-#include "Templates/RemoveReference.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Math/UnrealMathUtility.h"
+#include <new>
+
 
 // Disable visualization hack for shipping or test builds.
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -18,6 +21,9 @@
 #else
 	#define ENABLE_TFUNCTIONREF_VISUALIZATION 0
 #endif
+
+template <typename FuncType> class TFunction;
+template <typename FuncType> class TFunctionRef;
 
 /**
  * TFunction<FuncType>

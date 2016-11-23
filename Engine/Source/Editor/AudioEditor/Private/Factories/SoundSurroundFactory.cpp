@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "Factories/SoundSurroundFactory.h"
 #include "PackageTools.h"
+#include "Sound/SoundWave.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/Package.h"
+#include "Editor.h"
+#include "EditorFramework/AssetImportData.h"
 
 USoundSurroundFactory::USoundSurroundFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

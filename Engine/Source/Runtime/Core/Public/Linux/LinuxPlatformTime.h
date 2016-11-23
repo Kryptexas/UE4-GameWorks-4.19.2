@@ -6,8 +6,9 @@
 ==============================================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
 #include "GenericPlatform/GenericPlatformTime.h"
-#include "Linux/LinuxSystemIncludes.h"
 
 /**
  * Linux implementation of the Time OS functions

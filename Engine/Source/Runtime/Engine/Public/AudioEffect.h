@@ -6,7 +6,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Sound/SoundMix.h"
+
+class FAudioDevice;
+class FSoundSource;
+class UReverbEffect;
+struct FReverbSettings;
 
 class FAudioReverbEffect
 {

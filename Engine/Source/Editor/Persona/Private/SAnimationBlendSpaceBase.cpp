@@ -1,26 +1,35 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "SAnimationBlendSpaceBase.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Editor.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "SlateOptMacros.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 #include "ScopedTransaction.h"
 #include "AnimPreviewInstance.h"
-#include "Animation/BlendSpaceBase.h"
-#include "Animation/BlendSpace.h"
+#include "Widgets/Layout/SExpandableArea.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
 #include "SAnimationBlendSpaceGridWidget.h"
-#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "BlendSpaceEditorBase"
 
 SBlendSpaceEditorBase::~SBlendSpaceEditorBase()
-{
+			{
 	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
-}
+	}
 
 void SBlendSpaceEditorBase::Construct(const FArguments& InArgs, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo)
-{
-	BlendSpace = InArgs._BlendSpace;
+	{
+		BlendSpace = InArgs._BlendSpace;
 	PreviewScenePtr = InPreviewScene;
 	OnPostUndo.Add(FSimpleDelegate::CreateSP( this, &SBlendSpaceEditorBase::PostUndo ) );
 
@@ -29,29 +38,29 @@ void SBlendSpaceEditorBase::Construct(const FArguments& InArgs, const TSharedRef
 	SAnimEditorBase::Construct(SAnimEditorBase::FArguments().DisplayAnimInfoBar(false), InPreviewScene);
 
 	NonScrollEditorPanels->AddSlot()
-	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
 		.FillHeight(1.0f)
-		[
+				[
 			SNew(SOverlay)
 			+ SOverlay::Slot()
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
+					[
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
 				.FillWidth(1)
 				.Padding(4.0f)
-				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.FillWidth(1)
+							[
+								SNew(SHorizontalBox)
+								+SHorizontalBox::Slot()
+								.FillWidth(1)
 					.Padding(2) 
-					[
-						SNew(SVerticalBox)
+		[
+			SNew(SVerticalBox)
 						// Grid area
-						+SVerticalBox::Slot()
+			+SVerticalBox::Slot()
 						.FillHeight(1)
-						[
+			[
 							SAssignNew(NewBlendSpaceGridWidget, SBlendSpaceGridWidget)
 							.Cursor(EMouseCursor::Crosshairs)
 							.BlendSpaceBase(BlendSpace)
@@ -59,12 +68,12 @@ void SBlendSpaceEditorBase::Construct(const FArguments& InArgs, const TSharedRef
 							.OnSampleMoved(this, &SBlendSpaceEditorBase::OnSampleMoved)
 							.OnSampleRemoved(this, &SBlendSpaceEditorBase::OnSampleRemoved)
 							.OnSampleAdded(this, &SBlendSpaceEditorBase::OnSampleAdded)
-						]
-					]
+			]
 				]
 			]
 		]
-	];
+				]
+			];
 
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SBlendSpaceEditorBase::OnPropertyChanged);
 	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
@@ -80,23 +89,23 @@ void SBlendSpaceEditorBase::OnSampleMoved(const int32 SampleIndex, const FVector
 
 		bMoveSuccesful = BlendSpace->EditSampleValue(SampleIndex, NewValue);
 		if (bMoveSuccesful)
-		{
+{
 			BlendSpace->ValidateSampleData();
 			ResampleData();
+			}
 		}
 	}
-}
 
 void SBlendSpaceEditorBase::OnSampleRemoved(const int32 SampleIndex)
 {
 	FScopedTransaction ScopedTransaction(LOCTEXT("RemoveSample", "Removing Blend Grid Sample"));
-	BlendSpace->Modify();
+				BlendSpace->Modify();
 
 	const bool bRemoveSuccesful = BlendSpace->DeleteSample(SampleIndex);
 	if (bRemoveSuccesful)
-	{
+			{
 		ResampleData();
-		BlendSpace->ValidateSampleData();
+	BlendSpace->ValidateSampleData();
 	}
 }
 
@@ -107,10 +116,10 @@ void SBlendSpaceEditorBase::OnSampleAdded(UAnimSequence* Animation, const FVecto
 
 	const bool bAddSuccesful = BlendSpace->AddSample(Animation, Value);	
 	if (bAddSuccesful)
-	{
-		ResampleData();
+		{
+	ResampleData();
 		BlendSpace->ValidateSampleData();
-	}
+}
 }
 
 void SBlendSpaceEditorBase::PostUndo()
@@ -169,7 +178,7 @@ void SBlendSpaceEditorBase::OnPropertyChanged(UObject* ObjectBeingModified, FPro
 void SBlendSpaceEditorBase::NotifyPreChange(UProperty* PropertyAboutToChange)
 {
 	if (BlendSpace)
-	{
+{
 		BlendSpace->Modify();
 	}	
 }

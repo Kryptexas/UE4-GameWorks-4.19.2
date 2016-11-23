@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "LevelGuids.h"
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/Package.h"
 
 class FStructOnScope
 {

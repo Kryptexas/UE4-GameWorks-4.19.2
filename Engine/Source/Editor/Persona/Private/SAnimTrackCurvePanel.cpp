@@ -1,18 +1,28 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
-
 #include "SAnimTrackCurvePanel.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Layout/SScrollBox.h"
+
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IPersonaPreviewScene.h"
 #include "ScopedTransaction.h"
 #include "SAnimCurveEd.h"
-#include "Editor/KismetWidgets/Public/SScrubWidget.h"
-#include "AssetRegistryModule.h"
-#include "Kismet2NameValidators.h"
-#include "SExpandableArea.h"
-#include "STextEntryPopup.h"
+#include "Widgets/Layout/SExpandableArea.h"
 #include "AnimPreviewInstance.h"
-#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "AnimTrackCurvePanel"
 

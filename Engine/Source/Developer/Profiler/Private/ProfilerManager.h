@@ -2,18 +2,17 @@
  
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Misc/ConfigCacheIni.h"
+#include "IProfilerClient.h"
+#include "ISessionManager.h"
+#include "ProfilerDataSource.h"
+#include "ProfilerSession.h"
 #include "ProfilerCommands.h"
 
-
-enum class EProfilerSessionTypes;
-enum class EProfilerViewMode;
-class FGraphDataSource;
-class FProfilerCommands;
-class FProfilerSession;
-class FProfilerStatMetaData;
-class IProfilerClient;
 class SProfilerWindow;
-
 
 /** Contains all settings for the profiler, accessible through the profiler manager. */
 class FProfilerSettings

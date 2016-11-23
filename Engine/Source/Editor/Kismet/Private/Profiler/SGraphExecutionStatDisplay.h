@@ -2,7 +2,16 @@
 
 #pragma once
 
-#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "BlueprintEditor.h"
+#include "Profiler/SBlueprintProfilerToolbar.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Profiler/BPProfilerStatisticWidgets.h"
 
 // Shared pointer to a performance stat
 typedef TSharedPtr<class FBPProfilerStatWidget> FBPStatWidgetPtr;

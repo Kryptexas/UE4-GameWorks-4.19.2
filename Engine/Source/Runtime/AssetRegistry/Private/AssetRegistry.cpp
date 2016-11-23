@@ -1,11 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "AssetRegistryPCH.h"
-#include "ModuleManager.h"
-#include "GenericPlatformChunkInstall.h"
+#include "AssetRegistry.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Serialization/ArrayReader.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/MetaData.h"
+#include "AssetRegistryPrivate.h"
+#include "ARFilter.h"
+#include "DependsNode.h"
+#include "PackageReader.h"
+#include "GenericPlatform/GenericPlatformChunkInstall.h"
 
 #if WITH_EDITOR
+#include "IDirectoryWatcher.h"
 #include "DirectoryWatcherModule.h"
 #endif // WITH_EDITOR
 

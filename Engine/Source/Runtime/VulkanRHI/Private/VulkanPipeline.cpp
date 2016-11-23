@@ -6,6 +6,9 @@
 
 #include "VulkanRHIPrivate.h"
 #include "VulkanPipeline.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
 
 void FVulkanGfxPipelineState::Reset()
 {

@@ -4,21 +4,31 @@
 	BodySetup.cpp
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "EngineGlobals.h"
+#include "HAL/IConsoleManager.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/Engine.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
 #include "PhysicsEngine/PhysicsSettings.h"
-#include "TargetPlatform.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "Animation/AnimStats.h"
+#include "DerivedDataCacheInterface.h"
 
 #if WITH_PHYSX
-	#include "PhysXSupport.h"
+	#include "PhysXPublic.h"
+	#include "PhysicsEngine/PhysXSupport.h"
 #endif // WITH_PHYSX
 
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+	#include "IPhysXFormat.h"
+#endif
 
-#include "PhysDerivedData.h"
+#include "PhysicsEngine/PhysDerivedData.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "CookStats.h"
+#include "ProfilingDebugging/CookStats.h"
 
 #if ENABLE_COOK_STATS
 namespace PhysXBodySetupCookStats

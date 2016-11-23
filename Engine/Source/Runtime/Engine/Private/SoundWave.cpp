@@ -1,19 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Sound/SoundWave.h"
+#include "Serialization/MemoryWriter.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "UObject/Package.h"
+#include "EngineDefines.h"
+#include "Components/AudioComponent.h"
+#include "ContentStreaming.h"
 #include "ActiveSound.h"
-#include "Audio.h"
+#include "AudioThread.h"
 #include "AudioDevice.h"
 #include "AudioDecompress.h"
-#include "AudioThread.h"
-#include "TargetPlatform.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "AudioDerivedData.h"
 #include "SubtitleManager.h"
 #include "DerivedDataCacheInterface.h"
 #include "EditorFramework/AssetImportData.h"
-#include "CookStats.h"
-#include "FrameworkObjectVersion.h"
+#include "ProfilingDebugging/CookStats.h"
 
 #if ENABLE_COOK_STATS
 namespace SoundWaveCookStats

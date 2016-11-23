@@ -7,6 +7,21 @@
 
 #pragma once
 
+#include "CoreFwd.h"
+
+class FMeshMaterialShader;
+class FPrimitiveSceneProxy;
+class FRHICommandList;
+class FSceneView;
+class FVelocityDrawingPolicy;
+class FVertexFactory;
+class FViewInfo;
+struct FMeshBatch;
+struct FMeshBatchElement;
+struct FMeshDrawingRenderState;
+template<typename PixelParametersType> class TBasePassPixelShaderPolicyParamType;
+template<typename VertexParametersType> class TBasePassVertexShaderPolicyParamType;
+
 template<typename VertexParametersType>
 inline void TBasePassVertexShaderPolicyParamType<VertexParametersType>::SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState)
 {

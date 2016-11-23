@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "AndOrNot.h"
+#include "CoreTypes.h"
+#include "Templates/AndOrNot.h"
 
 namespace UE4IsEnumClass_Private
 {

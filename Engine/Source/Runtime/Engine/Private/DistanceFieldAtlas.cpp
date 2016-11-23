@@ -4,10 +4,15 @@
 	DistanceFieldAtlas.cpp
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "StaticMeshResources.h"
 #include "DistanceFieldAtlas.h"
-#include "CookStats.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/Runnable.h"
+#include "Misc/App.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/MemoryWriter.h"
+#include "Modules/ModuleManager.h"
+#include "StaticMeshResources.h"
+#include "ProfilingDebugging/CookStats.h"
 #include "UniquePtr.h"
 
 #if WITH_EDITOR

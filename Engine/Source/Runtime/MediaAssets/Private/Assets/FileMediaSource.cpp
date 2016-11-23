@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaAssetsPCH.h"
 #include "FileMediaSource.h"
+#include "Misc/Paths.h"
 
 
 static FName PrecacheFileName("PrecacheFile");

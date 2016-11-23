@@ -1,13 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
-
 #include "SAnimSegmentsPanel.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "AssetData.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimSequence.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "Animation/AnimCompositeBase.h"
+
 #include "ScopedTransaction.h"
 #include "DragAndDrop/AssetDragDropOp.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Runtime/Engine/Classes/Animation/AnimSequence.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
+#include "Framework/Application/SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "AnimSegmentPanel"
 

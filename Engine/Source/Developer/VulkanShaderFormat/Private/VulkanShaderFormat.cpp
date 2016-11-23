@@ -2,10 +2,10 @@
 // .
 
 #include "VulkanShaderFormat.h"
-#include "Core.h"
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
-#include "TargetPlatform.h"   
+#include "Interfaces/IShaderFormat.h"
+#include "Interfaces/IShaderFormatModule.h"
 #include "hlslcc.h"
 #include "ShaderCore.h"
 

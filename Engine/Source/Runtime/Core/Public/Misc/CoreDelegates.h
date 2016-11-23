@@ -2,7 +2,16 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Delegates/Delegate.h"
+#include "Math/IntVector.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+
 class AActor;
+class Error;
 
 // delegates for hotfixes
 namespace EHotfixDelegates

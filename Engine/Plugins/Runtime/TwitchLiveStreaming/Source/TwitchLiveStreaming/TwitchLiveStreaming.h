@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
 #include "ITwitchLiveStreaming.h"
 #include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
 #include "Runtime/Engine/Public/Tickable.h"
+#include "UObject/WeakObjectPtr.h"
 
 #if WITH_TWITCH
 

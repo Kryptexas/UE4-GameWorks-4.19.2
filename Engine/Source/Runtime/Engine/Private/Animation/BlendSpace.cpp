@@ -4,10 +4,7 @@
 	BlendSpace.cpp: 2D BlendSpace functionality
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "Animation/BlendSpaceBase.h"
 #include "Animation/BlendSpace.h"
-#include "AnimationUtils.h"
 
 UBlendSpace::UBlendSpace(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -108,14 +105,14 @@ void UBlendSpace::SnapSamplesToClosestGridPoint()
 	
 	// First mark all samples as invalid
 	for (FBlendSample& BlendSample : SampleData)
-	{
+{
 		BlendSample.bIsValid = false;
-	}
+}
 
 	for (int32 GridY = 0; GridY < NumGridPoints.Y; ++GridY)
 	{
 		for (int32 GridX = 0; GridX < NumGridPoints.X; ++GridX)
-		{
+{
 			const FVector GridPoint((GridX * GridStep.X) + GridMin.X, (GridY * GridStep.Y) + GridMin.Y, 0.0f);
 			GridPoints.Add(GridPoint);
 		}
@@ -139,7 +136,7 @@ void UBlendSpace::SnapSamplesToClosestGridPoint()
 				Index = SampleIndex;
 				SmallestDistance = Distance;
 			}
-		}
+	}
 
 		ClosestSampleToGridPoint[PointIndex] = Index;
 	}
@@ -160,14 +157,14 @@ void UBlendSpace::SnapSamplesToClosestGridPoint()
 				Index = PointIndex;
 				SmallestDistance = Distance;
 			}
-		}
+	}
 
 		// Only move the sample if it is also closest to the grid point
 		if (Index != INDEX_NONE && ClosestSampleToGridPoint[Index] == SampleIndex)
-		{
+	{
 			BlendSample.SampleValue = GridPoints[Index];
 			BlendSample.bIsValid = true;
-		}
+	}
 	}
 }
 

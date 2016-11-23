@@ -2,12 +2,15 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Misc/StringAssetReference.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "IPropertyTypeCustomization.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 
 class IPropertyHandle;
-class FDetailWidgetRow;
-class IDetailLayoutBuilder;
-
 struct FGameplayTag;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGameplayCueDetails, Log, All);

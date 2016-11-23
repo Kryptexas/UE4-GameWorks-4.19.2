@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "LightmassPCH.h"
+#include "CoreMinimal.h"
 #include "LightingSystem.h"
 #include "Raster.h"
 #include "MonteCarlo.h"
+#include "HAL/PlatformTime.h"
+#include "UnrealLightmass.h"
 
 namespace Lightmass
 {

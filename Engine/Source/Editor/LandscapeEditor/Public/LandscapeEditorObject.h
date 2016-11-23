@@ -2,9 +2,16 @@
 
 #pragma once
 
-#include "LandscapeProxy.h" // for ELandscapeLayerPaintingRestriction
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "LandscapeProxy.h"
+#include "Editor/LandscapeEditor/Private/LandscapeEdMode.h"
 #include "LandscapeFileFormatInterface.h"
 #include "LandscapeEditorObject.generated.h"
+
+class ULandscapeMaterialInstanceConstant;
+class UTexture2D;
 
 UENUM()
 namespace ELandscapeToolFlattenMode

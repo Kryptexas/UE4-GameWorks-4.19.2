@@ -2,9 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SOutputLog.h"
-#include "TargetDeviceId.h"
-#include "ITargetDevice.h"
+#include "Interfaces/TargetDeviceId.h"
+#include "Interfaces/ITargetDevice.h"
+
+class SComboButton;
 
 struct FTargetDeviceEntry
 {

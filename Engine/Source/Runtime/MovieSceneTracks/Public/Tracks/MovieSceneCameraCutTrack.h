@@ -2,14 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "MovieSceneNameableTrack.h"
 #include "MovieSceneCameraCutTrack.generated.h"
-
-
-class IMovieSceneTrackInstance;
-class UMovieSceneSection;
-class UMovieSceneCameraCutSection;
-
 
 /**
  * Handles manipulation of CameraCut properties in a movie scene.

@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "LayoutUtils.h"
-#include "SInvalidationPanel.h"
-#include "WidgetCaching.h"
-#include "ReflectionMetadata.h"
+#include "Widgets/SInvalidationPanel.h"
+#include "Rendering/DrawElements.h"
+#include "Misc/App.h"
+#include "Application/SlateApplicationBase.h"
+#include "Styling/CoreStyle.h"
+#include "Layout/WidgetPath.h"
+#include "HAL/IConsoleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Layout/WidgetCaching.h"
 
 //DECLARE_CYCLE_STAT(TEXT("Invalidation Time"), STAT_InvalidationTime, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Cached Elements"), STAT_SlateNumCachedElements, STATGROUP_Slate);

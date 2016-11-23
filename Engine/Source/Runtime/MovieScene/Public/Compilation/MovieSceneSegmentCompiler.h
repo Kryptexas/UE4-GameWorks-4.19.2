@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Evaluation/MovieSceneSegment.h"
+#include "MovieSceneSection.h"
 
 struct FMovieSceneSectionData
 {

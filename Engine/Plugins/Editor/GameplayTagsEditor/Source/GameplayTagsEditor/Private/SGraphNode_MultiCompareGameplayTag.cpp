@@ -1,14 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
-#include "GraphEditorSettings.h"
-#include "SGraphNode.h"
-#include "GameplayTagsK2Node_MultiCompareBase.h"
-
-#include "ScopedTransaction.h"
-#include "IDocumentation.h"
-#include "BlueprintEditorUtils.h"
 #include "SGraphNode_MultiCompareGameplayTag.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "GraphEditorSettings.h"
+#include "GameplayTagsK2Node_MultiCompareBase.h"
+#include "ScopedTransaction.h"
+#include "Widgets/SToolTip.h"
+#include "IDocumentation.h"
 
 void SGraphNode_MultiCompareGameplayTag::Construct(const FArguments& InArgs, UGameplayTagsK2Node_MultiCompareBase* InNode)
 {

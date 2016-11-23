@@ -1,7 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "SMediaPlayerEditorOutput.h"
+#include "Widgets/SMediaPlayerEditorOutput.h"
+#include "Styling/SlateBrush.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "IMediaOutput.h"
+#include "IMediaPlayer.h"
+#include "MediaPlayer.h"
+#include "MediaSoundWave.h"
+#include "MediaTexture.h"
+#include "Widgets/Images/SImage.h"
+#include "Editor.h"
+#include "AudioDevice.h"
 
 
 /* SMediaPlayerEditorOutput structors

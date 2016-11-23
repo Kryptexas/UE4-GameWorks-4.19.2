@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "BehaviorTree/BlackboardData.h"
+#include "GameFramework/Actor.h"
+#include "BehaviorTree/BTNode.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 
 UBlackboardData::FKeyUpdate UBlackboardData::OnUpdateKeys;
 

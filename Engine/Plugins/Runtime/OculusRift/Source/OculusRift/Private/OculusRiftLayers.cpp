@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OculusRiftPrivatePCH.h"
+#include "OculusRiftLayers.h"
 #include "OculusRiftHMD.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 
-#include "OculusRiftLayers.h"
 #include "MediaTexture.h"
 #include "ScreenRendering.h"
 #include "ScenePrivate.h"

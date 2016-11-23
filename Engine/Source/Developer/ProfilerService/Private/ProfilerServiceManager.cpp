@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerServicePrivatePCH.h"
 #include "ProfilerServiceManager.h"
+#include "Serialization/MemoryReader.h"
+#include "Misc/App.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "ProfilerServiceMessages.h"
+#include "Stats/StatsData.h"
+#include "Stats/StatsFile.h"
 
 
 DEFINE_LOG_CATEGORY(LogProfilerService);

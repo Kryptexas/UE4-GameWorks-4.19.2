@@ -1,13 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "EdGraphUtilities.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Styling/CoreStyle.h"
+#include "Exporters/Exporter.h"
+#include "EdGraph/EdGraph.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "Factories.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "UnrealExporter.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "K2Node_TunnelBoundary.h"
 #include "K2Node_Composite.h"
 

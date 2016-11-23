@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CinematicCameraPrivate.h"
 #include "CameraRig_Crane.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/CollisionProfile.h"
 
 #define LOCTEXT_NAMESPACE "CameraRig_Crane"
 

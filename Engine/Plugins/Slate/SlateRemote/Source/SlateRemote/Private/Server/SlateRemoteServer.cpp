@@ -1,6 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRemotePrivatePCH.h"
+#include "Server/SlateRemoteServer.h"
+#include "Common/UdpSocketBuilder.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SViewport.h"
+#include "Server/SlateRemoteServerMessage.h"
+#include "SlateRemotePrivate.h"
 
 
 /* FSlateRemoteServer structors

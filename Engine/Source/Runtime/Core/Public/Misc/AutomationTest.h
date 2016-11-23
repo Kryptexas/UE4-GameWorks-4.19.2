@@ -2,6 +2,21 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Templates/Function.h"
+#include "Containers/Map.h"
+#include "Math/Color.h"
+#include "Templates/SharedPointer.h"
+#include "Delegates/Delegate.h"
+#include "Misc/Optional.h"
+#include "HAL/PlatformTime.h"
+#include "Containers/Queue.h"
+#include "Misc/FeedbackContext.h"
+
 /** Flags for specifying automation test requirements/behavior */
 namespace EAutomationTestFlags
 {

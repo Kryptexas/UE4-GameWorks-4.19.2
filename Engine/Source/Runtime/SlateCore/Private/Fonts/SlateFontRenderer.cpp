@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "SlateFontRenderer.h"
-#include "SlateTextShaper.h"
-#include "FontCacheCompositeFont.h"
-#include "LegacySlateFontInfoCache.h"
+#include "Fonts/SlateFontRenderer.h"
+#include "Fonts/FontCacheCompositeFont.h"
+#include "Fonts/SlateTextShaper.h"
+#include "Fonts/LegacySlateFontInfoCache.h"
+#include "HAL/IConsoleManager.h"
 
 /**
  * Method for rendering fonts with the possibility of an outline.

@@ -2,11 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "HAL/ThreadSafeBool.h"
+#if WITH_PHYSX
+#include "PhysicsEngine/PhysXSupport.h"
+#endif
+
 void FinishSceneStat(uint32 Scene);
 
 //This is only here for now while we transition into substepping
 #if WITH_PHYSX
-#include "task/PxTask.h"
 class PhysXCompletionTask : public PxLightCpuTask
 {
 	FGraphEventRef EventToFire;

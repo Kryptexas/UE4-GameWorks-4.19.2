@@ -8,6 +8,7 @@
 #include "AndroidWindow.h"
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
+#include "OpenGLDrvPrivate.h"
 
 
 AndroidEGL* AndroidEGL::Singleton = NULL;

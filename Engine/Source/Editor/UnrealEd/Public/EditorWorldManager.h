@@ -2,10 +2,12 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
 
 class UViewportWorldInteraction;
 class UVREditorMode;
+struct FWorldContext;
 
 /**
  * Holds ViewportWorldInteraction for every world with corresponding VR Editor mode

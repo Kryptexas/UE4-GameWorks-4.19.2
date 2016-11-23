@@ -2,9 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ISkeletonTreeBuilder.h"
 #include "IEditableSkeleton.h"
 #include "ISkeletonTreeItem.h"
+
+class IPersonaPreviewScene;
+class ISkeletonTree;
+class USkeletalMeshSocket;
 
 /** Options for skeleton building */
 struct FSkeletonTreeBuilderArgs

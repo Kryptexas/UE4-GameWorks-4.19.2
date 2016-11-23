@@ -2,8 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineTypes.h"
 #include "ViewportInteractor.h"
 #include "VREditorInteractor.generated.h"
+
+class AActor;
+class UWidgetComponent;
 
 /**
  * VREditor default interactor

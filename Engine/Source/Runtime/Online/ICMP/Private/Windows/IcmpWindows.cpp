@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "IcmpPrivatePCH.h"
 #include "Icmp.h"
+#include "IcmpPrivate.h"
+#include "IcmpModule.h"
+#include "SocketSubsystem.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "WinSock2.h"

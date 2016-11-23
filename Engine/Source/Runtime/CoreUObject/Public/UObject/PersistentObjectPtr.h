@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+
 /**
  * TPersistentObjectPtr is a template base class for FLazyObjectPtr and FAssetPtr
  */

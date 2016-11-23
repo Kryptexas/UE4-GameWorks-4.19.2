@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorTeleporter.h"
+#include "HAL/IConsoleManager.h"
+#include "Engine/EngineTypes.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 #include "VREditorMode.h"
+#include "ViewportInteractionTypes.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
 
-#include "Kismet/GameplayStatics.h"
 
 namespace VREd
 {

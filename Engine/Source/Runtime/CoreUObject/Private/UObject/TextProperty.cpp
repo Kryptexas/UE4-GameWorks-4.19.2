@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
 #include "UObject/TextProperty.h"
-#include "PropertyHelper.h"
-#include "PropertyTag.h"
-#include "TextPackageNamespaceUtil.h"
+#include "Internationalization/ITextData.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
 
 bool UTextProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty)
 {

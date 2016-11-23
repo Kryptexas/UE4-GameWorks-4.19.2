@@ -6,23 +6,28 @@
 
 #pragma once
 
-#include "ShaderCore.h"
+#include "CoreMinimal.h"
+#include "Containers/List.h"
+#include "Misc/SecureHash.h"
 #include "RenderResource.h"
-#include "SecureHash.h"
+#include "ShaderParameters.h"
+#include "RenderingThread.h"
+#include "ShaderCore.h"
+#include "Serialization/ArchiveProxy.h"
 
 // For FShaderUniformBufferParameter
-#include "ShaderParameters.h"
 
 #if WITH_EDITOR
-#include "DebugSerializationFlags.h"
+#include "UObject/DebugSerializationFlags.h"
 #endif
 
-class FShaderType;
-class FShaderPipelineType;
 class FGlobalShaderType;
 class FMaterialShaderType;
 class FMeshMaterialShaderType;
+class FShaderPipelineType;
+class FShaderType;
 class FVertexFactoryParameterRef;
+class FVertexFactoryType;
 
 /** Used to identify the global shader map. */
 extern SHADERCORE_API FSHAHash GGlobalShaderMapHash;

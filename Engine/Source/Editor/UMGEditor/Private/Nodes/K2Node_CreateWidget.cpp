@@ -1,13 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
+#include "Nodes/K2Node_CreateWidget.h"
+
+#if WITH_EDITOR
+	#include "GameFramework/PlayerController.h"
+#endif // WITH_EDITOR
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CallFunction.h"
 #include "Blueprint/UserWidget.h"
+
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
-#include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 
-#include "K2Node_CreateWidget.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

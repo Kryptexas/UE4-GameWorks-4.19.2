@@ -1,6 +1,19 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-#include "CorePrivatePCH.h"
 #include "UObject/DevObjectVersion.h"
+#include "Logging/LogMacros.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/BuildObjectVersion.h"
+#include "UObject/CoreObjectVersion.h"
+#include "UObject/EditorObjectVersion.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "UObject/MobileObjectVersion.h"
+#include "UObject/NetworkingObjectVersion.h"
+#include "UObject/OnlineObjectVersion.h"
+#include "UObject/PhysicsObjectVersion.h"
+#include "UObject/PlatformObjectVersion.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "UObject/SequencerObjectVersion.h"
+#include "UObject/VRObjectVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDevObjectVersion, Log, All);
 

@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
 #include "Navigation/GridPathFollowingComponent.h"
 #include "Navigation/NavLocalGridManager.h"
+#include "VisualLogger/VisualLogger.h"
 
 UGridPathFollowingComponent::UGridPathFollowingComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

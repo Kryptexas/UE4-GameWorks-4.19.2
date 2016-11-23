@@ -6,6 +6,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "HitProxies.h"
+#include "DrawingPolicy.h"
+
+class FDepthOnlyPS;
+class FPrimitiveSceneProxy;
+class FScene;
+class FStaticMesh;
+class FViewInfo;
+
 enum EDepthDrawingMode
 {
 	// tested at a higher level

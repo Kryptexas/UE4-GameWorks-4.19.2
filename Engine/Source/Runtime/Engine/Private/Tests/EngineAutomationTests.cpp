@@ -1,15 +1,29 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/PackageName.h"
+#include "GameMapsSettings.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/EngineTypes.h"
+#include "UnrealClient.h"
+#include "Engine/GameViewportClient.h"
+#include "UnrealEngine.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineUtils.h"
 #include "Tests/AutomationTestSettings.h"
 
 #if WITH_EDITOR
 #include "FileHelpers.h"
 #endif
 
-#include "AutomationCommon.h"
-#include "AutomationTestCommon.h"
+#include "EngineGlobals.h"
+#include "Tests/AutomationCommon.h"
 #include "PlatformFeatures.h"
 #include "SaveGameSystem.h"
 #include "GameFramework/DefaultPawn.h"

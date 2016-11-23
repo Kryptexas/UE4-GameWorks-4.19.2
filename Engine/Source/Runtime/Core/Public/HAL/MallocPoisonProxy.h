@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/MemoryBase.h"
+#include "HAL/UnrealMemory.h"
+
 /** Governs when malloc that poisons the allocations is enabled. */
 #if !defined(UE_USE_MALLOC_FILL_BYTES)
 	// PoisonProxy is dangerous with binned/binned2 at this point (see UE-37243).
@@ -13,7 +18,6 @@
 
 /** Value that a new memory block will be filled with when UE_USE_MALLOC_FILL_BYTES is defined. */
 #define UE_DEBUG_FILL_NEW (0xcd)
-
 
 /**
  * FMalloc proxy that poisons new and freed allocations, helping to catch code that relies on uninitialized or freed memory.

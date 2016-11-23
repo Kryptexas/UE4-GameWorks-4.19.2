@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "CSVImportFactory.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/CSVImportFactory.h"
+#include "EditorReimportHandler.h"
 #include "ReimportDataTableFactory.generated.h"
 
 UCLASS()

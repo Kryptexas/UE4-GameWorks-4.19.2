@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "MovieSceneEvalOptionsCustomization.h"
-
-#include "MovieSceneTrack.h"
+#include "PropertyHandle.h"
 #include "MovieSceneSection.h"
+#include "MovieSceneTrack.h"
+#include "IDetailChildrenBuilder.h"
 
 TSharedRef<IPropertyTypeCustomization> FMovieSceneTrackEvalOptionsCustomization::MakeInstance()
 {

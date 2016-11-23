@@ -4,16 +4,14 @@
 	PhysicsAsset.cpp
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "PhysicsEngine/PhysicsConstraintTemplate.h"
-#include "FrameworkObjectVersion.h"
-#include "ReleaseObjectVersion.h"
-#include "MessageLog.h"
-
-#if WITH_PHYSX
-	#include "PhysXSupport.h"
-#endif // WITH_PHYSX
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "UObject/ReleaseObjectVersion.h"
+#include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "PhysicsAsset"
 

@@ -2,9 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GenericPlatform/ICursor.h"
 #include "Framework/Application/IInputProcessor.h"
 
+class FSlateApplication;
 class FViewportWorldInteractionManager;
+struct FAnalogInputEvent;
+struct FKeyEvent;
+struct FPointerEvent;
 
 class FViewportInteractionInputProcessor : public IInputProcessor
 {

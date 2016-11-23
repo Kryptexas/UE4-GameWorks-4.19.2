@@ -1,12 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "CameraCutSection.h"
-#include "ISectionLayoutBuilder.h"
-#include "Runtime/MovieSceneTracks/Public/Sections/MovieSceneCameraCutSection.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "SInlineEditableTextBlock.h"
-#include "MovieSceneToolsUserSettings.h"
+#include "Sections/CameraCutSection.h"
+#include "Sections/MovieSceneCameraCutSection.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "GameFramework/Actor.h"
+#include "Editor.h"
+#include "MovieScene.h"
+#include "SequencerSectionPainter.h"
+#include "ScopedTransaction.h"
+#include "MovieSceneSequence.h"
+#include "MovieSceneCommonHelpers.h"
+#include "EditorStyleSet.h"
+#include "EngineUtils.h"
 
 
 #define LOCTEXT_NAMESPACE "FCameraCutSection"

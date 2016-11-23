@@ -6,12 +6,47 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/NumericLimits.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "Containers/BitArray.h"
+#include "Containers/Set.h"
+#include "Math/Vector.h"
+#include "Math/BoxSphereBounds.h"
+#include "Misc/MemStack.h"
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
 #include "RHICommandList.h"
 #include "EngineStats.h"
-#include "ParallelFor.h"
+#include "Async/ParallelFor.h"
 
 // Expensive
 #define PER_MESH_DRAW_STATS 0
+
+class FDrawingPolicyMatchResult;
+class FMaterial;
+class FMaterialRenderProxy;
+class FParallelCommandListSet;
+class FPrimitiveSceneInfo;
+class FPrimitiveSceneProxy;
+class FStaticMesh;
+class FViewInfo;
+class SceneRenderingAllocator;
+class SceneRenderingBitArrayAllocator;
+struct FDrawListStats;
+struct FMeshDrawingRenderState;
+struct StereoPair;
+enum class InstancedStereoPolicy;
+template<typename DrawingPolicyType> class TStaticMeshDrawList;
+template<typename DrawingPolicyType> struct TCompareStaticMeshDrawList;
+template<typename TRHICmdList> struct TDrawEvent;
+
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
+template<typename TRHICmdList> struct TDrawEvent;
 
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove(const bool bUnlinkMesh)

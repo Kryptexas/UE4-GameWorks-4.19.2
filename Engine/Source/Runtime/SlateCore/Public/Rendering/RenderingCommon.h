@@ -2,11 +2,17 @@
 
 #pragma once
 
-#include "PopupMethodReply.h"
+#include "CoreMinimal.h"
+#include "Layout/SlateRect.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Input/NavigationReply.h"
+#include "Input/PopupMethodReply.h"
 
-struct FVector2D;
-class FSlateRect;
-enum class EPopupMethod : uint8;
+class FSlateInstanceBufferUpdate;
+class FWidgetStyle;
+class SWidget;
+struct Rect;
 
 #define SLATE_USE_32BIT_INDICES !PLATFORM_USES_ES2
 

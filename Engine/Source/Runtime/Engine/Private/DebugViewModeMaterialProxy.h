@@ -6,6 +6,16 @@ DebugViewModeMaterialProxy.h : Contains definitions the debug view mode material
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "DebugViewModeHelpers.h"
+
+class FMaterialCompiler;
+class UTexture;
+
 #if WITH_EDITORONLY_DATA
 
 /**

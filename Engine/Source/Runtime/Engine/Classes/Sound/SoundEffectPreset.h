@@ -1,10 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #if WITH_EDITOR
-#include "Developer/AssetTools/Public/AssetToolsModule.h"
+#include "Widgets/SWidget.h"
+#include "Developer/AssetTools/Public/AssetTypeCategories.h"
+#include "Developer/AssetTools/Public/IAssetTypeActions.h"
 #endif
 #include "SoundEffectPreset.generated.h"
+
+class FAssetData;
+class FMenuBuilder;
+class IToolkitHost;
+class USoundEffectPreset;
 
 #if WITH_EDITOR
 class USoundEffectPreset;

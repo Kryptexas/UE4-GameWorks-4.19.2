@@ -2,9 +2,18 @@
 
 #pragma once
 
-#include "ISkeletonEditor.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Toolkits/IToolkitHost.h"
 #include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
+#include "IDetailsView.h"
+#include "ISkeletonEditor.h"
+
+class IPersonaToolkit;
+class IPersonaViewport;
+class ISkeletonTree;
+class USkeleton;
 
 namespace SkeletonEditorModes
 {

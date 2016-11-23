@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "CurveBase.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/RichCurve.h"
+#include "Curves/CurveBase.h"
 #include "CurveVector.generated.h"
 
 

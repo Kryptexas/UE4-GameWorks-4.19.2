@@ -6,11 +6,16 @@
 
 #pragma once
 
-#include "SkeletalRender.h"
-#include "SkeletalRenderPublic.h"
-#include "GPUSkinVertexFactory.h"
+#include "CoreMinimal.h"
+#include "ProfilingDebugging/ResourceSize.h"
+#include "RenderResource.h"
+#include "ShaderParameters.h"
+#include "SkeletalMeshTypes.h"
+#include "Components/SkinnedMeshComponent.h"
 #include "ClothSimData.h"
 #include "GlobalShader.h"
+#include "GPUSkinVertexFactory.h"
+#include "SkeletalRenderPublic.h"
 
 /** 
 * Stores the updated matrices needed to skin the verts.

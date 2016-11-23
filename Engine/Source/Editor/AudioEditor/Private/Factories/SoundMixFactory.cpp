@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "Factories/SoundMixFactory.h"
+#include "Sound/SoundMix.h"
 
 USoundMixFactory::USoundMixFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

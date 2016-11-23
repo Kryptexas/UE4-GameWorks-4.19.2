@@ -2,9 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/GCObject.h"
+#include "Editor/ViewportInteraction/ViewportInteractionInputProcessor.h"
 #include "IViewportWorldInteractionManager.h"
-
-class UViewportWorldInteraction;
 
 class FViewportWorldInteractionManager: public FGCObject,  public IViewportWorldInteractionManager
 {

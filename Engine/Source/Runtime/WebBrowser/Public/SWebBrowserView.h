@@ -1,17 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "SlateBasics.h"
-#include "IWebBrowserDialog.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/PopupMethodReply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "Framework/Application/IMenu.h"
+#include "Widgets/SViewport.h"
 #include "IWebBrowserSingleton.h"
 
-enum class EWebBrowserDocumentState;
-class IWebBrowserWindow;
 class FWebBrowserViewport;
-class UObject;
-class IWebBrowserPopupFeatures;
 class IWebBrowserAdapter;
+class IWebBrowserDialog;
+class IWebBrowserPopupFeatures;
+class IWebBrowserWindow;
 struct FWebNavigationRequest;
+enum class EWebBrowserDialogEventResponse;
+enum class EWebBrowserDocumentState;
 
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnCreateWindowDelegate, const TWeakPtr<IWebBrowserWindow>&, const TWeakPtr<IWebBrowserPopupFeatures>&);

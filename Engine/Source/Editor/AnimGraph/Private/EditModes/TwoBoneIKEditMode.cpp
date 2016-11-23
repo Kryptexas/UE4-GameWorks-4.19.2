@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-#include "TwoBoneIKEditMode.h"
+#include "EditModes/TwoBoneIKEditMode.h"
+#include "SceneManagement.h"
+#include "EngineUtils.h"
 #include "IPersonaPreviewScene.h"
+#include "Animation/DebugSkelMeshComponent.h"
 
 FTwoBoneIKEditMode::FTwoBoneIKEditMode()
 	: TwoBoneIKRuntimeNode(nullptr)

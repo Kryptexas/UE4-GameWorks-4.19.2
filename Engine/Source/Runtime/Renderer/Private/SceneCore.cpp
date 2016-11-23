@@ -4,9 +4,20 @@
 	SceneCore.cpp: Core scene implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "SceneCore.h"
+#include "SceneInterface.h"
+#include "SceneManagement.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Components/ExponentialHeightFogComponent.h"
+#include "DepthRendering.h"
+#include "SceneHitProxyRendering.h"
+#include "ShadowRendering.h"
+#include "VelocityRendering.h"
+#include "BasePassRendering.h"
+#include "MobileBasePassRendering.h"
+#include "RendererModule.h"
 #include "ScenePrivate.h"
-#include "AllocatorFixedSizeFreeList.h"
+#include "Containers/AllocatorFixedSizeFreeList.h"
 
 /**
  * Fixed Size pool allocator for FLightPrimitiveInteractions

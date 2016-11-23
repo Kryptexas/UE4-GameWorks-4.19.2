@@ -2,6 +2,6 @@
 
 #pragma once
 
-#include "ScopedCallback.h"
-#include "CoreDelegates.h"
+#include "Templates/ScopedCallback.h"
+#include "Misc/CoreDelegates.h"
 

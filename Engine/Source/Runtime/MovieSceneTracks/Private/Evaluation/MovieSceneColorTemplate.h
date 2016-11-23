@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Curves/RichCurve.h"
-#include "MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 
 #include "MovieSceneColorTemplate.generated.h"
 

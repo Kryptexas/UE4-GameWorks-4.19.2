@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 /** Utility macro to clamp a sample value to 0 if in range outside of full precision. */
 

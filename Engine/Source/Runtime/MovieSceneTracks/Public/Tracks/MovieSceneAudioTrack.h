@@ -2,13 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneNameableTrack.h"
 #include "MovieSceneAudioTrack.generated.h"
 
-
-class UMovieSceneSection;
 class USoundBase;
-
 
 namespace AudioTrackConstants
 {

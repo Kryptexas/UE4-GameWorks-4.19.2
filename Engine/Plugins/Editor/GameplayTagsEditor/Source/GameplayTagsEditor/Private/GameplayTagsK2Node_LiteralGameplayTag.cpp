@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagsK2Node_LiteralGameplayTag.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_MakeArray.h"
+#include "K2Node_MakeStruct.h"
+
 #include "KismetCompiler.h"
-#include "GameplayTags.h"
+#include "GameplayTagContainer.h"
 #include "BlueprintNodeSpawner.h"
-#include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintGameplayTagLibrary.h"
 

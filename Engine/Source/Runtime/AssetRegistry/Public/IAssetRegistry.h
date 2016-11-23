@@ -2,10 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AssetData.h"
-#include "ARFilter.h"
-#include "AssetRegistryInterface.h"
+#include "Misc/AssetRegistryInterface.h"
 
+struct FARFilter;
 
 namespace EAssetAvailability
 {

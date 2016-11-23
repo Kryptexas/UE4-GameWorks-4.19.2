@@ -5,6 +5,20 @@
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "EngineGlobals.h"
+#include "RHI.h"
+#include "HitProxies.h"
+#include "ShaderParameters.h"
+#include "RHIStaticStates.h"
+#include "Shader.h"
+#include "UnrealEngine.h"
+#include "MeshMaterialShaderType.h"
+#include "DrawingPolicy.h"
+#include "MeshMaterialShader.h"
+#include "ShaderBaseClasses.h"
+#include "SceneRendering.h"
 #include "Engine/LightMapTexture2D.h"
 
 /**

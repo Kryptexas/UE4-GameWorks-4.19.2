@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
+#include "CoreMinimal.h"
+#include "Evaluation/MovieSceneAnimTypeID.h"
 #include "MovieSceneExecutionToken.h"
+
+class USceneComponent;
 
 struct FMobilityTokenProducer : IMovieScenePreAnimatedTokenProducer
 {

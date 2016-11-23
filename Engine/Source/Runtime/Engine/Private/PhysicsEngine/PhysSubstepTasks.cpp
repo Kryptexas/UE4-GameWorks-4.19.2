@@ -1,14 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "PhysicsEngine/PhysSubstepTasks.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
 #if WITH_PHYSX
-#include "PhysXSupport.h"
+#include "PhysXPublic.h"
 #endif
 
-#include "PhysSubstepTasks.h"
 
 #if WITH_PHYSX
 FPhysSubstepTask::FPhysSubstepTask(PxApexScene * GivenScene, FPhysScene* InPhysScene, uint32 InSceneType) :

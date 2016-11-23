@@ -4,13 +4,31 @@
 	ModelRender.cpp: Unreal model rendering
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "LevelUtils.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Stats/Stats.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Level.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "RawIndexBuffer.h"
+#include "PrimitiveViewRelevance.h"
+#include "Materials/MaterialInterface.h"
+#include "PrimitiveSceneProxy.h"
+#include "Engine/MapBuildDataRegistry.h"
 #include "Model.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "MeshBatch.h"
+#include "SceneManagement.h"
+#include "TessellationRendering.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
+#include "LevelUtils.h"
 #include "HModel.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
 #include "Components/ModelComponent.h"
+#include "Engine/Brush.h"
 
 namespace
 {

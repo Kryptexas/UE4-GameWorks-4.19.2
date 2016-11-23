@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "Range.h"
-#include "ArrayView.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Containers/ArrayView.h"
 #include "MovieSceneSegment.generated.h"
 
 /**

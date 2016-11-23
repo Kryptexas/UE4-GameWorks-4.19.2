@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesPrivatePCH.h"
 #include "TireConfig.h"
+#include "EngineDefines.h"
+#include "PhysXPublic.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_PHYSX
 #include "PhysXVehicleManager.h"

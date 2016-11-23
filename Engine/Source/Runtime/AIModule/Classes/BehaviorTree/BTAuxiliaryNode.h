@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "BehaviorTreeTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "BehaviorTree/BTNode.h"
 #include "BTAuxiliaryNode.generated.h"
-
-class UBehaviorTreeComponent;
 
 struct FBTAuxiliaryMemory : public FBTInstancedNodeMemory
 {

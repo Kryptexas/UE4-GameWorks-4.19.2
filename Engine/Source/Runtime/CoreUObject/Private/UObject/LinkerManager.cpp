@@ -3,8 +3,11 @@
 /*=============================================================================
 	LinkerManager.h: Unreal object linker manager
 =============================================================================*/
-#include "CoreUObjectPrivate.h"
-#include "LinkerManager.h"
+#include "UObject/LinkerManager.h"
+#include "Internationalization/GatherableTextData.h"
+#include "UObject/Package.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/LinkerLoad.h"
 #include "UObject/UObjectThreadContext.h"
 
 FLinkerManager& FLinkerManager::Get()

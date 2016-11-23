@@ -2,11 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Types/SlateEnums.h"
+#include "Input/ReplyBase.h"
+#include "Input/Events.h"
+#include "Input/DragAndDrop.h"
+
+class SWidget;
 
 // @todo Slate: this is highly sketchy, as FDragDropOperation is declared in Slate,
 // but cannot currently be brought into SlateCore due to dependencies to SWindow.
 class FDragDropOperation;
-class SWidget;
 
 /**
  * A Reply is something that a Slate event returns to the system to notify it about certain aspect of how an event was handled.

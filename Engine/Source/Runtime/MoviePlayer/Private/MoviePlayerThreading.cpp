@@ -1,13 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MoviePlayerPrivatePCH.h"
-#include "MoviePlayer.h"
-
-#include "Engine.h"
-#include "SlateBasics.h"
-#include "SpinLock.h"
 #include "MoviePlayerThreading.h"
-#include "DefaultGameMoviePlayer.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "Framework/Application/SlateApplication.h"
+
 
 
 

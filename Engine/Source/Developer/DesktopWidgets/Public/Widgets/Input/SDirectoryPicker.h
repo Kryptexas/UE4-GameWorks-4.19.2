@@ -2,8 +2,13 @@
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Application/SlateWindowHelper.h"
 
+class SEditableTextBox;
 
 /**
  * A directory path box, with a button for picking a new path.

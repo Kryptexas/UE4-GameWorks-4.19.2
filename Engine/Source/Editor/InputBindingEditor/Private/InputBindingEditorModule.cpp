@@ -1,14 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "InputBindingEditorPrivatePCH.h"
-#include "ISettingsModule.h"
-#include "ISettingsSection.h"
-#include "EditorKeyboardShortcutSettings.h"
-#include "PropertyEditing.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/IInputBindingEditorModule.h"
+#include "Framework/Commands/InputBindingManager.h"
+#include "Misc/Paths.h"
+#include "Widgets/SInputBindingEditorPanel.h"
 #include "UnrealEdMisc.h"
-#include "MessageLog.h"
-#include "Dialogs.h"
-
+#include "Logging/MessageLog.h"
+#include "Dialogs/Dialogs.h"
+#include "IDetailCustomization.h"
+#include "ISettingsModule.h"
+#include "PropertyEditorModule.h"
+#include "EditorKeyboardShortcutSettings.h"
+#include "ISettingsSection.h"
+#include "HAL/FileManager.h"
+#include "Misc/ConfigCacheIni.h"
 
 #define LOCTEXT_NAMESPACE "InputBindingEditor"
 

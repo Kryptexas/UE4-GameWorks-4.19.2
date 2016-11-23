@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class IAssetFamily;
+
 /** Central registry of persona asset families */
 class FPersonaAssetFamilyManager
 {

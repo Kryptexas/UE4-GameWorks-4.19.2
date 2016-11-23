@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioMixerPCH.h"
 #include "DSP/Delay.h"
+#include "AudioMixer.h"
 
 namespace Audio
 {

@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "UMemoryDefines.h"
+#include "CoreTypes.h"
+#include "Math/NumericLimits.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
 
 
 /**

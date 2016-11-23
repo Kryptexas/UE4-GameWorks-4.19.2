@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Templates/Function.h"
+#include "HAL/PlatformTLS.h"
+#include "HAL/TlsAutoCleanup.h"
+
+template <typename FuncType> class TFunctionRef;
+
 /**
  * Thread singleton initializer.
  */

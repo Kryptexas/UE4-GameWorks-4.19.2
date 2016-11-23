@@ -4,8 +4,13 @@
 	ExceptionHandling.cpp: Exception handling for functions that want to create crash dumps.
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "ExceptionHandling.h"
+#include "HAL/ExceptionHandling.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 #ifndef UE_ASSERT_ON_BUILD_INTEGRITY_COMPROMISED
 #define UE_ASSERT_ON_BUILD_INTEGRITY_COMPROMISED 0

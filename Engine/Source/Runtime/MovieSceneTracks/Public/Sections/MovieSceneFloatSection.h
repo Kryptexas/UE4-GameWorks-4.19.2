@@ -2,11 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
 #include "Curves/RichCurve.h"
 #include "MovieSceneSection.h"
-#include "IKeyframeSection.h"
+#include "Sections/IKeyframeSection.h"
 #include "MovieSceneFloatSection.generated.h"
-
 
 /**
  * A single floating point section

@@ -2,9 +2,8 @@
 
 #pragma once
 
-
-class IMessageContext;
-
+#include "CoreMinimal.h"
+#include "IMessageContext.h"
 
 /**
  * Interface for message interceptors.

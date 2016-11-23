@@ -10,7 +10,6 @@
 
 #include "CoreAudioDevice.h"
 #include "CoreAudioEffects.h"
-#include "Engine.h"
 
 #define AUDIO_DISTANCE_FACTOR ( 0.0127f )
 

@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ModuleManager.h"
 #include "IInputDeviceModule.h"
-#include "InputDevice.h"
+#include "IInputDevice.h"
 #include "GenericApplicationMessageHandler.h"
 
-DECLARE_DELEGATE_RetVal_TwoParams( bool, FRawInputDataDelegate, int32 /*DataSize*/, const RAWINPUT* /*Data */);
+DECLARE_DELEGATE_RetVal_TwoParams( bool, FRawInputDataDelegate, int32 /*DataSize*/, const struct tagRAWINPUT* /*Data */);
 
 class IRawInput : public IInputDevice
 {

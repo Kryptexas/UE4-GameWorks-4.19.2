@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/DataTable.h"
+#include "Serialization/PropertyLocalizationDataGathering.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "UObject/LinkerLoad.h"
 #include "DataTableCSV.h"
+#include "Policies/PrettyJsonPrintPolicy.h"
 #include "DataTableJSON.h"
 #include "EditorFramework/AssetImportData.h"
 

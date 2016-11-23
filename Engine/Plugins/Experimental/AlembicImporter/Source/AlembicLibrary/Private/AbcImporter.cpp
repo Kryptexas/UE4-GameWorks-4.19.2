@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AlembicLibraryPublicPCH.h"
+#include "AbcImporter.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 THIRD_PARTY_INCLUDES_START
 	#include <Alembic/AbcCoreHDF5/All.h>
@@ -10,14 +14,20 @@ THIRD_PARTY_INCLUDES_START
 	#include <Alembic/AbcCoreHDF5/All.h>
 THIRD_PARTY_INCLUDES_END
 
-#include "AbcImporter.h"
-
 #include "AbcImportData.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "Stats/StatsMisc.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/UObjectHash.h"
+#include "RawIndexBuffer.h"
+#include "Misc/ScopedSlowTask.h"
 
 #include "PackageTools.h"
 #include "RawMesh.h"
 #include "ObjectTools.h"
 
+#include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
 #include "SkelImport.h"
 #include "Animation/AnimSequence.h"

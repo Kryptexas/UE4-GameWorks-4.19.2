@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "BlueprintProfilerSettings.h"
-#include "ScriptPerfData.h"
+#include "Profiler/BlueprintProfilerSettings.h"
 
 UBlueprintProfilerSettings::UBlueprintProfilerSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

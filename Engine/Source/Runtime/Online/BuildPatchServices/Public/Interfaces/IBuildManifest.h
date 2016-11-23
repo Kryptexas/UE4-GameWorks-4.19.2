@@ -8,6 +8,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class IBuildManifest;
+class IManifestField;
+
 typedef TSharedPtr< class IManifestField, ESPMode::ThreadSafe > IManifestFieldPtr;
 typedef TSharedRef< class IManifestField, ESPMode::ThreadSafe > IManifestFieldRef;
 typedef TSharedPtr< class IBuildManifest, ESPMode::ThreadSafe > IBuildManifestPtr;

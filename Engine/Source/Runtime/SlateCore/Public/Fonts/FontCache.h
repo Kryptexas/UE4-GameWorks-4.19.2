@@ -2,24 +2,25 @@
 
 #pragma once
 
-#include "TextureAtlas.h"
-#include "UniquePtr.h"
-#include "ShapedTextFwd.h"
+#include "CoreMinimal.h"
+#include "Fonts/ShapedTextFwd.h"
+#include "UObject/ObjectMacros.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Textures/TextureAtlas.h"
+#include "Fonts/FontTypes.h"
 #include "FontCache.generated.h"
 
-class FFreeTypeLibrary;
+class FCompositeFontCache;
+class FFreeTypeAdvanceCache;
 class FFreeTypeFace;
 class FFreeTypeGlyphCache;
-class FFreeTypeAdvanceCache;
 class FFreeTypeKerningPairCache;
-class FCompositeFontCache;
-class FSlateFontRenderer;
-class FSlateTextShaper;
-class FSlateFontCache;
+class FFreeTypeLibrary;
 class FShapedGlyphFaceData;
-
-struct FCharacterRenderData;
-struct FSlateFontKey;
+class FSlateFontCache;
+class FSlateFontRenderer;
+class FSlateShaderResource;
+class FSlateTextShaper;
 
 enum class EFontCacheAtlasDataType : uint8
 {

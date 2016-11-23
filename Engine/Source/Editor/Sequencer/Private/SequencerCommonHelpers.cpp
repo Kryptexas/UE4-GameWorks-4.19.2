@@ -1,14 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "SequencerCommonHelpers.h"
-#include "MovieSceneSection.h"
-#include "SequencerHotspots.h"
+#include "SequencerSelectedKey.h"
+#include "DisplayNodes/SequencerSectionKeyAreaNode.h"
+#include "DisplayNodes/SequencerTrackNode.h"
 #include "SSequencer.h"
+#include "GroupedKeyArea.h"
+#include "ISequencerHotspot.h"
 #include "SSequencerTreeView.h"
 #include "VirtualTrackArea.h"
 #include "SequencerContextMenus.h"
-#include "MovieSceneTrack.h"
 
 void SequencerHelpers::GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayNode, TSet<TSharedPtr<IKeyArea>>& KeyAreas)
 {

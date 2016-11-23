@@ -4,14 +4,25 @@
 	DistortionRendering.cpp: Distortion rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "Engine.h"
-#include "ScenePrivate.h"
-#include "ScreenRendering.h"
-#include "PostProcessing.h"
-#include "RenderingCompositionGraph.h"
-#include "SceneFilterRendering.h"
+#include "DistortionRendering.h"
+#include "HitProxies.h"
+#include "ShaderParameters.h"
+#include "RHIStaticStates.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "MaterialShaderType.h"
+#include "DrawingPolicy.h"
+#include "MeshMaterialShader.h"
+#include "ShaderBaseClasses.h"
+#include "SceneRendering.h"
+#include "DynamicPrimitiveDrawing.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/SceneFilterRendering.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Distortion"), Stat_GPU_Distortion, STATGROUP_GPU);
 

@@ -1,11 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "NetcodeUnitTestPCH.h"
+#include "NUTActor.h"
+#include "Misc/CommandLine.h"
+#include "UObject/Package.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/GameMode.h"
+#include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
+#include "Engine/LocalPlayer.h"
+#include "UnrealEngine.h"
+#include "HAL/PlatformNamedPipe.h"
 
 // @todo #JohnBDoc: Need to tidy up and fully document this class; not all of the code below is clear
 
-#include "NUTActor.h"
-#include "NUTUtilNet.h"
+#include "Net/NUTUtilNet.h"
 #include "NUTUtil.h"
 
 #if TARGET_UE4_CL < CL_BEACONHOST

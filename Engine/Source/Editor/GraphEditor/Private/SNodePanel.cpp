@@ -1,9 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
+#include "SNodePanel.h"
+#include "Rendering/DrawElements.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EditorStyleSettings.h"
+#include "Settings/LevelEditorViewportSettings.h"
 #include "ScopedTransaction.h"
-#include "MarqueeOperation.h"
 
 struct FZoomLevelEntry
 {

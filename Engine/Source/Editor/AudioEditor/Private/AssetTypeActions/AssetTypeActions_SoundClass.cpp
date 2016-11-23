@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
+#include "AssetTypeActions/AssetTypeActions_SoundClass.h"
+#include "Sound/SoundClass.h"
+#include "AudioEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

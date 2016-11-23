@@ -1,21 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintDragDropMenuItem.h"
-#include "BlueprintActionMenuItem.h" // for PerformAction()
+#include "EditorStyleSet.h"
+#include "BlueprintActionMenuItem.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintDelegateNodeSpawner.h"
 #include "BlueprintVariableNodeSpawner.h"
-#include "BPDelegateDragDropAction.h"
 #include "BPVariableDragDropAction.h"
-#include "BlueprintEditor.h"		// for GetVarIconAndColor()
-#include "ObjectEditorUtils.h"
-#include "SlateColor.h"
-#include "EdGraph/EdGraph.h"
-#include "EdGraph/EdGraphNode.h"
-#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
-#include "EditorCategoryUtils.h"
-#include "EditorStyleSettings.h"	// for bShowFriendlyNames
+#include "BPDelegateDragDropAction.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintDragDropMenuItem"
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintDragDropMenuItem, Log, All);

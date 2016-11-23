@@ -4,8 +4,9 @@
 AsyncTextureStreaming.cpp: Definitions of classes used for texture streaming async task.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "AsyncTextureStreaming.h"
+#include "Streaming/AsyncTextureStreaming.h"
+#include "Misc/App.h"
+#include "Streaming/StreamingManagerTexture.h"
 
 void FAsyncTextureStreamingData::Init(TArray<FStreamingViewInfo> InViewInfos, float InLastUpdateTime, TArray<FLevelTextureManager>& LevelTextureManagers, FDynamicComponentTextureManager& DynamicComponentManager)
 {

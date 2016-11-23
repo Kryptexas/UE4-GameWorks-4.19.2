@@ -2,10 +2,24 @@
 
 #pragma once
 
-class FSlateRHIResourceManager;
-class FSlateRHIRenderingPolicy;
-class FSlateElementBatcher;
+#include "CoreMinimal.h"
+#include "Textures/SlateShaderResource.h"
+#include "Rendering/DrawElements.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "SlateRHIResourceManager.h"
+#include "UnrealClient.h"
+#include "Rendering/SlateRenderer.h"
+#include "Rendering/SlateDrawBuffer.h"
+#include "Slate/SlateTextures.h"
 
+class FSlateElementBatcher;
+class FSlateRHIRenderingPolicy;
+class ISlateStyle;
+class SWindow;
+struct Rect;
+
+template<typename TCmd> struct FRHICommand;
 
 // Number of draw buffers that can be active at any given time
 const uint32 NumDrawBuffers = 3;

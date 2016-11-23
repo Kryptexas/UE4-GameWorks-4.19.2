@@ -1,10 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneLevelVisibilitySection.h"
-#include "MovieSceneLevelVisibilityTrack.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieSceneLevelVisibilityTrack.h"
+#include "Sections/MovieSceneLevelVisibilitySection.h"
 #include "Compilation/IMovieSceneTemplateGenerator.h"
+#include "Evaluation/PersistentEvaluationData.h"
 #include "Evaluation/MovieSceneLevelVisibilityTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTrack.h"
 

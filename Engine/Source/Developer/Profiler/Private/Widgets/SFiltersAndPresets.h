@@ -2,13 +2,22 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "ProfilerCommon.h"
 #include "ProfilerSample.h"
-#include "FilterCollection.h"
-#include "TextFilter.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+#include "Widgets/Input/SComboBox.h"
+#include "Misc/TextFilter.h"
+#include "Misc/FilterCollection.h"
 
-
+class FGroupOrStatNode;
 class FProfilerSession;
-
 
 /** Type definition for shared pointers to instances of FGroupOrStatNode. */
 typedef TSharedPtr<class FGroupOrStatNode> FGroupOrStatNodePtr;

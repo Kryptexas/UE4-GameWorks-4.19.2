@@ -1,10 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Containers/StringConv.h"
+
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Templates/UnrealTemplate.h"
 #include "Containers/UnrealString.h"
-#include "HAL/Platform.h"
-#include "HAL/PlatformProcess.h"
+#include "HAL/CriticalSection.h"
+#include "Containers/StringConv.h"
 #include "UObject/UnrealNames.h"
 
 /*----------------------------------------------------------------------------

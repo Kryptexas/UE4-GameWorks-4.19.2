@@ -1,10 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "UnrealWidget.h"
+#include "Materials/Material.h"
+#include "CanvasItem.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "EditorViewportClient.h"
+#include "EdMode.h"
+#include "EditorModeManager.h"
 #include "SnappingUtils.h"
 #include "DynamicMeshBuilder.h"
 #include "CanvasTypes.h"
-#include "Materials/MaterialInstanceDynamic.h"
 
 IMPLEMENT_HIT_PROXY(HWidgetAxis,HHitProxy);
 

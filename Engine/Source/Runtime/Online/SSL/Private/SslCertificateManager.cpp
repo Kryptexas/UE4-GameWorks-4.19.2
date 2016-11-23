@@ -1,12 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "SslCertificateManager.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/PlatformFile.h"
+#include "HAL/FileManager.h"
+
 #if WITH_SSL
 
-#include "SslPrivatePCH.h"
-
-#include "SslCertificateManager.h"
-
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #endif
 

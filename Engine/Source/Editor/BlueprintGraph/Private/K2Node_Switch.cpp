@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_Switch.h"
+#include "UObject/UnrealType.h"
+#include "EdGraphSchema_K2.h"
+#include "EdGraph/EdGraphNodeUtils.h"
+#include "EdGraphUtilities.h"
+#include "BPTerminal.h"
+#include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
-#include "K2Node_SwitchEnum.h"
 #include "EditorCategoryUtils.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 
 #define LOCTEXT_NAMESPACE "K2Node_Switch"
 

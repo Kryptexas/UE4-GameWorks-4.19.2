@@ -6,8 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Components/PointLightComponent.h"
-
+#include "SceneManagement.h"
 
 /** The parts of the point light scene info that aren't dependent on the light policy type. */
 class FPointLightSceneProxyBase : public FLightSceneProxy

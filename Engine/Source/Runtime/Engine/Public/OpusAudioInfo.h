@@ -6,11 +6,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AudioDecompress.h"
 
 #define OPUS_ID_STRING "UE4OPUS"
 
 struct FOpusDecoderWrapper;
+struct FSoundQualityInfo;
 
 /**
 * Helper class to parse opus data

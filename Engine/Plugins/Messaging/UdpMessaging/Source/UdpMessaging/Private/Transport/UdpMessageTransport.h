@@ -2,16 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "IMessageContext.h"
 #include "IMessageTransport.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "IMessageAttachment.h"
+#include "Common/UdpSocketReceiver.h"
+#include "Transport/UdpReassembledMessage.h"
 
-
-struct FIPv4Endpoint;
-class FReassembledUdpMessage;
-class FSocket;
 class FUdpMessageProcessor;
-class FUdpSocketReceiver;
-class ISocketSubsystem;
-
 
 /**
  * Implements a message transport technology using an UDP network connection.

@@ -2,10 +2,15 @@
 
 #pragma once
 
-#include "MovieScenePropertyTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/RichCurve.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieScenePropertyTemplate.h"
+#include "Slate/WidgetTransform.h"
 #include "MovieScene2DTransformTemplate.generated.h"
 
-class UMovieScene3DTransformSection;
+class UMovieScene2DTransformSection;
 class UMovieScenePropertyTrack;
 
 USTRUCT()

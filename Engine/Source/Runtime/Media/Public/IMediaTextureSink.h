@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class FRHITexture;
 
 #if WITH_ENGINE
 	class FRHITexture;

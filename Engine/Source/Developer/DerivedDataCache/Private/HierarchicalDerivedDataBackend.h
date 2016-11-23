@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "DerivedDataBackendInterface.h"
+#include "ProfilingDebugging/CookStats.h"
 #include "DerivedDataCacheUsageStats.h"
+#include "Templates/ScopedPointer.h"
+#include "DerivedDataBackendAsyncPutWrapper.h"
 #include "UniquePtr.h"
 
 

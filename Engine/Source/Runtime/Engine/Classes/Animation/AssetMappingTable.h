@@ -9,7 +9,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "AssetMappingTable.generated.h"
+
+class UAnimationAsset;
 
  /** This defines one asset mapping */
 USTRUCT()

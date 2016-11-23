@@ -4,10 +4,18 @@
 	Implements a volume texture atlas for caching indirect lighting on a per-object basis
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "SceneTypes.h"
+#include "RendererInterface.h"
+#include "GenericOctree.h"
+#include "PrimitiveSceneInfo.h"
+#include "DynamicPrimitiveDrawing.h"
 #include "ScenePrivate.h"
-#include "UniformBuffer.h"
-#include "ShaderParameters.h"
 #include "PrecomputedLightVolume.h"
 
 /** 

@@ -3,6 +3,9 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Engine/DataAsset.h"
 #include "TireConfig.generated.h"
 

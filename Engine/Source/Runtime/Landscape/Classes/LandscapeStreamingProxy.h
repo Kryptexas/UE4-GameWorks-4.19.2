@@ -2,7 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "LandscapeProxy.h"
 #include "LandscapeStreamingProxy.generated.h"
+
+class ALandscape;
+class UMaterialInterface;
 
 UCLASS(MinimalAPI, notplaceable)
 class ALandscapeStreamingProxy : public ALandscapeProxy

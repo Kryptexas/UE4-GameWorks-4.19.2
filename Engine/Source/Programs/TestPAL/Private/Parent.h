@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
+
 class FParent
 {
 	/** Children to be controlled */

@@ -2,9 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "LandscapeLayerInfoObject.generated.h"
 
 class UPhysicalMaterial;
+struct FPropertyChangedEvent;
 
 UCLASS(MinimalAPI)
 class ULandscapeLayerInfoObject : public UObject

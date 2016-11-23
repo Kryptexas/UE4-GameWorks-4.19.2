@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "AI/Navigation/NavTestRenderingComponent.h"
-#include "DynamicMeshBuilder.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Engine/Canvas.h"
+#include "SceneManagement.h"
 #include "AI/Navigation/NavigationTestingActor.h"
 #include "AI/Navigation/RecastNavMesh.h"
 #include "Debug/DebugDrawService.h"

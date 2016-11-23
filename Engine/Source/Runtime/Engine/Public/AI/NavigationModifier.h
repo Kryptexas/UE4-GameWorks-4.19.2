@@ -1,13 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
-#include "AI/Navigation/NavLinkDefinition.h"
-#include "AI/Navigation/NavigationTypes.h"
 
-class UNavArea;
-class UNavLinkDefinition;
-class UPrimitiveComponent;
+#include "CoreMinimal.h"
+#include "Templates/SubclassOf.h"
+#include "AI/Navigation/NavLinkDefinition.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
+
 class UBrushComponent;
+class UPrimitiveComponent;
+
+template<typename InElementType> class TNavStatArray;
 
 struct ENGINE_API FNavigationModifier
 {

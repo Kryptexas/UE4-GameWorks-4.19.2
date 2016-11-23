@@ -1,7 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HttpPrivatePCH.h"
 #include "HttpThread.h"
+#include "IHttpThreadedRequest.h"
+#include "HAL/PlatformTime.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "HttpModule.h"
+#include "Http.h"
 
 // FHttpThread
 

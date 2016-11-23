@@ -4,14 +4,12 @@
 	LightRendering.cpp: Light rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "UniformBuffer.h"
-#include "ShaderParameters.h"
 #include "LightRendering.h"
+#include "EngineGlobals.h"
+#include "DeferredShadingRenderer.h"
 #include "LightPropagationVolume.h"
-#include "SceneUtils.h"
+#include "ScenePrivate.h"
+#include "PostProcess/SceneFilterRendering.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Lights"), Stat_GPU_Lights, STATGROUP_GPU);
 

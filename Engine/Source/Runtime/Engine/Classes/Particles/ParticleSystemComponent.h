@@ -2,12 +2,26 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Components/SceneComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Materials/MaterialInterface.h"
-#include "Particles/Emitter.h"
 #include "Particles/ParticleSystem.h"
-#include "Particles/ParticleEmitter.h"
+#include "Particles/Emitter.h"
 #include "ParticleSystemComponent.generated.h"
+
+class FParticleDynamicData;
+class FPrimitiveSceneProxy;
+class UParticleSystemReplay;
+class UPhysicalMaterial;
+struct EventData;
+struct FDynamicEmitterDataBase;
+struct FDynamicEmitterReplayDataBase;
+struct FParticleEmitterInstance;
+enum class EParticleSignificanceLevel : uint8;
 
 //
 // Forward declarations.

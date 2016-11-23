@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "SlowTask.h"
+#include "CoreTypes.h"
+#include "Internationalization/Text.h"
+#include "Misc/SlowTask.h"
 
 /**
  * A scope block representing an amount of work divided up into sections.

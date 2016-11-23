@@ -5,13 +5,10 @@
 /* Public dependencies
 *****************************************************************************/
 
-#include "Core.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
 
-#include "SoundDefinitions.h"
 #include "AudioDecompress.h"
 #include "AudioMixer.h"
-#include "AudioMixerDevice.h"
 
 namespace Audio
 {

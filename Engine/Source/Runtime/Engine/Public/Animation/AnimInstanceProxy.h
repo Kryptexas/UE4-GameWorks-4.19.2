@@ -2,17 +2,30 @@
 
 #pragma once
 
-#include "Animation/AnimNodeBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimTypes.h"
+#include "BoneContainer.h"
+#include "Animation/Skeleton.h"
 #include "Animation/AnimationAsset.h"
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimBlueprint.h"
+#include "BonePose.h"
 #include "Animation/AnimNotifyQueue.h"
-#include "Engine/PoseWatch.h"
 #include "Animation/PoseSnapshot.h"
+#include "Animation/AnimInstance.h"
+#include "Engine/PoseWatch.h"
+#include "Animation/AnimClassInterface.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 #include "AnimInstanceProxy.generated.h"
 
+class UBlendSpaceBase;
+struct FAnimNode_AssetPlayerBase;
 struct FAnimNode_Base;
 struct FAnimNode_SaveCachedPose;
+struct FAnimNode_StateMachine;
 struct FAnimNode_SubInput;
+struct FNodeDebugData;
+struct FPoseContext;
 
 // Disable debugging information for shipping and test builds.
 #define ENABLE_ANIM_DRAW_DEBUG (1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))

@@ -4,9 +4,14 @@
 /**
  *
  */
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimInstanceProxy.h"
 #include "VehicleAnimInstance.generated.h"
+
+class UWheeledVehicleMovementComponent;
 
 struct FWheelAnimData
 {

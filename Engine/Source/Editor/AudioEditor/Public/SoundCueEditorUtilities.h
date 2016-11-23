@@ -2,7 +2,12 @@
 
 #pragma once
 
-#include "Engine.h"
+#include "CoreMinimal.h"
+
+class ISoundCueEditor;
+class UEdGraph;
+class USoundCue;
+struct Rect;
 
 //////////////////////////////////////////////////////////////////////////
 // FSoundCueEditorUtilities

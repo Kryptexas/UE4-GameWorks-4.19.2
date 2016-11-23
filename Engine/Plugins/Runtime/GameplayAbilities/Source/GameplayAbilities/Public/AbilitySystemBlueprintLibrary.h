@@ -2,16 +2,22 @@
 
 #pragma once
 
-#include "Abilities/GameplayAbility.h"
-#include "Abilities/GameplayAbilityTargetDataFilter.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/ScriptInterface.h"
+#include "GameplayTagContainer.h"
+#include "AttributeSet.h"
+#include "GameplayEffectTypes.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "GameplayCueInterface.h"
+#include "Abilities/GameplayAbilityTypes.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Abilities/GameplayAbilityTargetDataFilter.h"
 #include "AbilitySystemBlueprintLibrary.generated.h"
 
-class UAnimMontage;
-class UAbilityTask_PlayMontageAndWait;
-class UAbilityTask_WaitMovementModeChange;
-class UAbilityTask_WaitOverlap;
-class UAbilityTask_WaitConfirmCancel;
+class UAbilitySystemComponent;
+class UGameplayEffect;
 
 // meta =(RestrictedToClasses="GameplayAbility")
 UCLASS()

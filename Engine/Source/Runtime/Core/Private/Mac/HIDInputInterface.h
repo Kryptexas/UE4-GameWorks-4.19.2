@@ -3,6 +3,8 @@
 #pragma once
 
 #include <IOKit/hid/IOHIDLib.h>
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "Templates/SharedPointer.h"
 
 #define MAX_NUM_HIDINPUT_CONTROLLERS 4
 

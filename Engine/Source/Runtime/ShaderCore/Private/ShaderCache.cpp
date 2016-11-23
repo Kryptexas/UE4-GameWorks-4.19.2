@@ -4,13 +4,16 @@
 	ShaderCache.cpp: Bound shader state cache implementation.
 =============================================================================*/
 
-#include "ShaderCorePrivatePCH.h"
-#include "ShaderCore.h"
 #include "ShaderCache.h"
-#include "Shader.h"
-#include "RHI.h"
 #include "RenderingThread.h"
-#include "EngineVersion.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/ArchiveSaveCompressedProxy.h"
+#include "Serialization/ArchiveLoadCompressedProxy.h"
+#include "Serialization/CustomVersion.h"
+#include "Shader.h"
+#include "Misc/EngineVersion.h"
 
 DECLARE_STATS_GROUP(TEXT("Shader Cache"),STATGROUP_ShaderCache, STATCAT_Advanced);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Shaders Cached"),STATGROUP_NumShadersCached,STATGROUP_ShaderCache);

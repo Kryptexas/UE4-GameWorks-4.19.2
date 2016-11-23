@@ -4,11 +4,18 @@
 	Timeline.cpp
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/Class.h"
+#include "UObject/CoreNet.h"
+#include "UObject/UnrealType.h"
 #include "Curves/CurveLinearColor.h"
 #include "Curves/CurveVector.h"
+#include "UObject/Package.h"
+#include "GameFramework/WorldSettings.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/TimelineComponent.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTimeline, Log, All);
 

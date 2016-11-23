@@ -2,16 +2,15 @@
 
 #pragma once
 
-#include "AudioMixerDevice.h"
 #include "AudioMixerBuffer.h"
-#include "AudioMixerSource.h"
-#include "AudioMixerSubmix.h"
 #include "AudioMixerSourceManager.h"
 
 namespace Audio
 {
 	struct FMixerSourceVoiceBuffer;
 	struct FMixerSourceVoiceFilterParams;
+	struct FMixerSourceVoiceInitParams;
+	class FMixerDevice;
 	class FMixerSubmix;
 	class FMixerSource;
 	class FMixerSourceManager;

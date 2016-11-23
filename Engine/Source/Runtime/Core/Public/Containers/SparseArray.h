@@ -2,12 +2,20 @@
 
 #pragma once
 
-#include "Containers/Array.h"
-#include "Containers/BitArray.h"
-#include "Templates/MemoryOps.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
 #include "Templates/IsTriviallyCopyConstructible.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Templates/AlignOf.h"
+#include "Templates/UnrealTemplate.h"
 #include "Templates/IsTriviallyDestructible.h"
-
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Templates/Less.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/ScriptArray.h"
+#include "Containers/BitArray.h"
 
 // Forward declarations.
 template<typename ElementType,typename Allocator = FDefaultSparseArrayAllocator >

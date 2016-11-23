@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "EnginePrivate.h"
 #include "HighResScreenshot.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "HAL/IConsoleManager.h"
+#include "Modules/ModuleManager.h"
+#include "UnrealClient.h"
+#include "Materials/Material.h"
 #include "Slate/SceneViewport.h"
-#include "ImageWrapper.h"
+#include "Interfaces/IImageWrapper.h"
+#include "Interfaces/IImageWrapperModule.h"
 
 static TAutoConsoleVariable<int32> CVarSaveEXRCompressionQuality(
 	TEXT("r.SaveEXR.CompressionQuality"),

@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Engine/SCS_Node.h"
 #include "Engine/InheritableComponentHandler.h"
+#include "Components/ActorComponent.h"
+#include "Engine/Engine.h"
+#include "Engine/SCS_Node.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/LinkerLoad.h"
 
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"

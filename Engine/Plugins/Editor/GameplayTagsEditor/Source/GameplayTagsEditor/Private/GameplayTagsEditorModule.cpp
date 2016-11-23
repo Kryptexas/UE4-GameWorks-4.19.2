@@ -1,6 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
+#include "GameplayTagsEditorModule.h"
+#include "Misc/Paths.h"
+#include "PropertyEditorModule.h"
+#include "Factories/Factory.h"
+#include "EdGraphUtilities.h"
+#include "GameplayTagContainer.h"
+#include "Engine/DataTable.h"
+#include "GameplayTagsManager.h"
+#include "AssetData.h"
+#include "Misc/ConfigCacheIni.h"
 #include "GameplayTagsGraphPanelPinFactory.h"
 #include "GameplayTagsGraphPanelNodeFactory.h"
 #include "GameplayTagContainerCustomization.h"
@@ -10,10 +19,15 @@
 #include "GameplayTagsSettingsCustomization.h"
 #include "GameplayTagsModule.h"
 #include "ISettingsModule.h"
-#include "ModuleManager.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
 #include "AssetRegistryModule.h"
+#include "Editor.h"
+#include "ISourceControlModule.h"
+#include "SourceControlHelpers.h"
+#include "HAL/PlatformFile.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Stats/StatsMisc.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagEditor"
 
@@ -238,6 +252,8 @@ public:
 				ShowNotification(FText::Format(LOCTEXT("FailedToMakeWritable", "Could not make {0} writable."), FText::FromString(ConfigPath)), 3.0f);
 			}
 		}
+
+		ShowNotification(LOCTEXT("MigrationText", "Migrated Tag Settings, check DefaultEngine.ini before checking in!"), 10.0f);
 	}
 
 	virtual bool AddNewGameplayTagToINI(FString NewTag, FString Comment, FName TagSourceName) override

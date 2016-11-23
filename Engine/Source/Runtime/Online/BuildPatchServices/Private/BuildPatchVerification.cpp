@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchVerification.h"
+#include "HAL/FileManager.h"
+#include "BuildPatchError.h"
+#include "BuildPatchUtil.h"
 
 class FBuildPatchVerificationImpl : public FBuildPatchVerification
 {

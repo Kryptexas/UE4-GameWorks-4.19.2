@@ -1,7 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IPropertyUtilities.h"
+#include "PropertyNode.h"
+#include "PropertyHandle.h"
+#include "IDetailsViewPrivate.h"
+#include "SDetailsViewBase.h"
+#include "DetailLayoutBuilder.h"
+
 class FDetailCategoryImpl;
+class IDetailCategoryBuilder;
 
 class FDetailLayoutBuilderImpl : public IDetailLayoutBuilder, public TSharedFromThis<FDetailLayoutBuilderImpl>
 {

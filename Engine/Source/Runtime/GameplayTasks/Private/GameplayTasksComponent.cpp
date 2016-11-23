@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTasksPrivatePCH.h"
 #include "GameplayTasksComponent.h"
-#include "GameplayTaskResource.h"
-#include "GameplayTask.h"
-#include "MessageLog.h"
+#include "UObject/Package.h"
+#include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
+#include "GameFramework/Actor.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "VisualLogger/VisualLogger.h"
+#include "GameplayTasksPrivate.h"
+#include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTasksComponent"
 

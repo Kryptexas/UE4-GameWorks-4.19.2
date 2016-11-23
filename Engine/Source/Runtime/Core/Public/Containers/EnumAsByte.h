@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "Templates/UnrealTypeTraits.h"
+#include "CoreTypes.h"
+#include "Templates/IsPODType.h"
 #include "Templates/IsEnumClass.h"
 
 template <bool> struct TEnumAsByte_EnumClass;

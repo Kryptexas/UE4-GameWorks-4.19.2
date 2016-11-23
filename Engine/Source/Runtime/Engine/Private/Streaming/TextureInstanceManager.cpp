@@ -4,8 +4,12 @@
 	TextureInstanceManager.cpp: Implementation of content streaming classes.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "TextureInstanceManager.h"
+#include "Streaming/TextureInstanceManager.h"
+#include "Engine/World.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/Texture2D.h"
+#include "UObject/UObjectHash.h"
 
 FTextureInstanceState::FBounds4::FBounds4()
 :	OriginX( 0, 0, 0, 0 )

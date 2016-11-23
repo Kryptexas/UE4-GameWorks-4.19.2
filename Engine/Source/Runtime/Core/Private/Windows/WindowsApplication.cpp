@@ -1,11 +1,17 @@
 ﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "WindowsApplication.h"
-#include "WindowsWindow.h"
-#include "WindowsCursor.h"
-#include "GenericApplicationMessageHandler.h"
+#include "Windows/WindowsApplication.h"
+#include "Containers/StringConv.h"
+#include "Templates/ScopedPointer.h"
+#include "CoreGlobals.h"
+#include "Internationalization/Text.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Windows/WindowsWindow.h"
+#include "Windows/WindowsCursor.h"
 #include "XInputInterface.h"
+#include "Features/IModularFeatures.h"
 #include "IInputDeviceModule.h"
 #include "IInputDevice.h"
 #include "IHapticDevice.h"
@@ -18,11 +24,10 @@
 #endif
 
 // Allow Windows Platform types in the entire file.
-#include "AllowWindowsPlatformTypes.h"
-#include "Ole2.h"
-#include <shlobj.h>
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <ShlObj.h>
 #include <objbase.h>
-#include <SetupApi.h>
+#include <SetupAPI.h>
 #include <devguid.h>
 #include <dwmapi.h>
 #include <cfgmgr32.h>
@@ -2495,4 +2500,4 @@ TSharedRef<FTaskbarList> FTaskbarList::Create()
 // Restore the windowsx.h macro for IsMaximized
 #pragma pop_macro("IsMaximized")
 
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"

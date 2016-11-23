@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "HeadMountedDisplay.h"
+
+#include "CoreMinimal.h"
 #include "IHeadMountedDisplay.h"
+#include "IGearVRPlugin.h"
+#include "HeadMountedDisplay.h"
 #include "HeadMountedDisplayCommon.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS

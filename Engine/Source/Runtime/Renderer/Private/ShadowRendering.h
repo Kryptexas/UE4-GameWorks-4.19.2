@@ -6,9 +6,37 @@
 
 #pragma once
 
-#include "ShaderParameterUtils.h"
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "Templates/RefCounting.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "UniformBuffer.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "HitProxies.h"
+#include "ConvexVolume.h"
+#include "RHIStaticStates.h"
+#include "RendererInterface.h"
+#include "SceneManagement.h"
+#include "ScenePrivateBase.h"
 #include "SceneCore.h"
+#include "LightSceneInfo.h"
+#include "DrawingPolicy.h"
+#include "Containers/DynamicRHIResourceArray.h"
+#include "GlobalShader.h"
+#include "SystemTextures.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRenderTargetParameters.h"
+#include "ShaderParameterUtils.h"
 
+class FPrimitiveSceneInfo;
+class FPrimitiveSceneProxy;
+class FProjectedShadowInfo;
+class FScene;
+class FSceneRenderer;
+class FShadowStaticMeshElement;
+class FViewInfo;
 
 /** Uniform buffer for rendering deferred lights. */
 BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)

@@ -1,19 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
-
 #include "SAnimEditorBase.h"
-#include "GraphEditor.h"
-#include "GraphEditorModule.h"
-#include "Editor/Kismet/Public/SKismetInspector.h"
-#include "SAnimationScrubPanel.h"
-#include "SAnimNotifyPanel.h"
-#include "SAnimCurvePanel.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "Animation/EditorAnimBaseObj.h"
+#include "Animation/AnimCompositeBase.h"
+#include "IDocumentation.h"
+
 #include "AnimPreviewInstance.h"
 #include "Animation/BlendSpaceBase.h"
-#include "IDocumentation.h"
-#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "AnimEditorBase"
 

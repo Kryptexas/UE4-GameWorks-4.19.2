@@ -2,9 +2,18 @@
 
 #pragma once
 
-#include "MovieSceneLevelVisibilitySection.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Widgets/SWidget.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
+#include "MovieSceneTrackEditor.h"
 
-class UMovieSceneLevelVisibilityTrack;
+class FMenuBuilder;
+enum class ELevelVisibility : uint8;
 
 /**
  * A sequencer track editor for level visibility movie scene tracks.

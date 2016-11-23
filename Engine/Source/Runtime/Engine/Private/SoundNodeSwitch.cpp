@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundNodeSwitch.h"
+#include "ActiveSound.h"
 #include "Sound/SoundCue.h"
 
 #define LOCTEXT_NAMESPACE "SoundNodeSwitch"

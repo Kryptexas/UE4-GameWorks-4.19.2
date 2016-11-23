@@ -4,12 +4,13 @@
 	AudioVolume.cpp: Used to affect audio settings in the game and editor.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "AudioDevice.h"
+#include "Sound/AudioVolume.h"
+#include "Engine/CollisionProfile.h"
 #include "AudioThread.h"
+#include "Sound/ReverbEffect.h"
+#include "AudioDevice.h"
 #include "Components/BrushComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "Sound/ReverbEffect.h"
 
 bool FReverbSettings::operator==(const FReverbSettings& Other) const
 {

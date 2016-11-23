@@ -2,8 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "VIGizmoHandle.h"
 #include "VIUniformScaleGizmoHandle.generated.h"
+
+enum class EGizmoHandleTypes : uint8;
 
 /**
  * Gizmo handle for uniform scaling

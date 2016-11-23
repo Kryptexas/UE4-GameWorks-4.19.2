@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AndroidMediaEditorPCH.h"
 #include "AndroidFileMediaSourceFactory.h"
+#include "FileMediaSource.h"
 
 
 /* UAndroidFileMediaSourceFactory structors

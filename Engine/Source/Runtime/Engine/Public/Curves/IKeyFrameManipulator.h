@@ -2,8 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Curves/KeyHandle.h"
 
+template<typename TimeType> class TKeyFrameManipulator;
 template<typename TimeType> struct TKeyTimeIterator;
 
 /**

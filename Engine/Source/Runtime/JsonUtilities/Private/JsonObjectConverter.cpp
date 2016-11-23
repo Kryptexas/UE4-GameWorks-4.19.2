@@ -1,7 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "JsonUtilitiesPrivatePCH.h"
-#include "JsonUtilities.h"
+#include "JsonObjectConverter.h"
+#include "Internationalization/Culture.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "UObject/EnumProperty.h"
+#include "UObject/TextProperty.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Policies/CondensedJsonPrintPolicy.h"
+#include "JsonObjectWrapper.h"
 
 FString FJsonObjectConverter::StandardizeCase(const FString &StringIn)
 {

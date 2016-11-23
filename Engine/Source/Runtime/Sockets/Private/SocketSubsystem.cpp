@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SocketsPrivatePCH.h"
 #include "SocketSubsystem.h"
-#include "ModuleManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ScopeLock.h"
+#include "SocketSubsystemModule.h"
+#include "Modules/ModuleManager.h"
+#include "IPAddress.h"
 #include "Sockets.h"
 #include "UniquePtr.h"
 

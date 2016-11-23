@@ -1,15 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Runtime/Analytics/AnalyticsET/Private/AnalyticsETPrivatePCH.h"
-
-#include "Core.h"
-#include "Guid.h"
-#include "Json.h"
-#include "SecureHash.h"
-#include "AnalyticsET.h"
 #include "IAnalyticsProviderET.h"
-#include "Http.h"
-#include "EngineVersion.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/OutputDeviceFile.h"
+#include "Stats/Stats.h"
+#include "Containers/Ticker.h"
+#include "Misc/App.h"
+#include "Misc/TimeGuard.h"
+
+#include "Policies/CondensedJsonPrintPolicy.h"
+#include "Serialization/JsonWriter.h"
+#include "Modules/ModuleManager.h"
+#include "AnalyticsET.h"
+#include "Interfaces/IHttpResponse.h"
+#include "Interfaces/IHttpRequest.h"
+#include "HttpModule.h"
+#include "PlatformHttp.h"
+#include "Misc/EngineVersion.h"
 
 /** When enabled (and -AnalyticsTrackPerf is specified on the command line, will log out analytics flush timings on a regular basis to Saved/AnalyticsTiming.csv. */
 #define ANALYTICS_PERF_TRACKING_ENABLED !UE_BUILD_SHIPPING

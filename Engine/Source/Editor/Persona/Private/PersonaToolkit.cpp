@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "PersonaToolkit.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimationAsset.h"
+#include "AnimationEditorPreviewScene.h"
 #include "ISkeletonEditorModule.h"
+#include "Animation/AnimBlueprint.h"
+#include "GameFramework/WorldSettings.h"
 #include "ScopedTransaction.h"
-#include "IEditableSkeleton.h"
 #include "PersonaModule.h"
 
 FPersonaToolkit::FPersonaToolkit()
@@ -169,7 +173,6 @@ TSharedRef<IPersonaPreviewScene> FPersonaToolkit::GetPreviewScene() const
 {
 	return PreviewScene.ToSharedRef();
 }
-
 USkeletalMesh* FPersonaToolkit::GetPreviewMesh() const
 {
 	if (InitialAssetClass == UAnimationAsset::StaticClass())

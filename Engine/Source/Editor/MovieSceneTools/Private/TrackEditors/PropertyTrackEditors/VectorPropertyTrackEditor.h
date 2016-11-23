@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include "MovieSceneVectorSection.h"
-#include "MovieSceneVectorTrack.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "KeyPropertyParams.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
+#include "Tracks/MovieSceneVectorTrack.h"
+#include "Sections/MovieSceneVectorSection.h"
 
 /**
  * A property track editor for vectors.

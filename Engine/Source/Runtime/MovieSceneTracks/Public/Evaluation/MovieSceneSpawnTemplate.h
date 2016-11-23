@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Curves/IntegralCurve.h"
-#include "MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieSceneAnimTypeID.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 #include "MovieSceneSpawnTemplate.generated.h"
 
 class UMovieSceneSpawnSection;

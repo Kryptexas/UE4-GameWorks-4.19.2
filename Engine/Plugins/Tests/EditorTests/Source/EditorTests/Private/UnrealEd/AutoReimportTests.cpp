@@ -1,9 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/WildcardString.h"
+#include "Misc/AutomationTest.h"
 
 #include "FileCache.h"
-#include "Projects.h"
+#include "Interfaces/IPluginManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutoReimportTests, Log, All);
 

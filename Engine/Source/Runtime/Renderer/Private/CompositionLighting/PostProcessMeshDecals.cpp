@@ -4,15 +4,22 @@
 	PostProcessDeferredMeshDecals.cpp: Deferred Decals implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessing.h"
-#include "PostProcessDeferredDecals.h"
-#include "ScreenRendering.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
+#include "HitProxies.h"
+#include "Shader.h"
 #include "SceneUtils.h"
-#include "DecalRenderingShared.h"
-
+#include "RHIStaticStates.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "MaterialShaderType.h"
+#include "DrawingPolicy.h"
+#include "MeshMaterialShader.h"
+#include "ShaderBaseClasses.h"
+#include "DepthRendering.h"
+#include "DecalRenderingCommon.h"
+#include "CompositionLighting/PostProcessDeferredDecals.h"
+#include "SceneRendering.h"
 
 
 /**

@@ -2,9 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "MoviePlayer.h"
 #include "AndroidJavaMediaPlayer.h"
-#include "SlateBasics.h"
 #include "Slate/SlateTextures.h"
 
 // The actual streamer class

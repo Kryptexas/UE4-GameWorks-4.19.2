@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FileLoggingPrivatePCH.h"
+#include "FileLogging.h"
+#include "AnalyticsEventAttribute.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "FileLoggingProvider.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileLoggingAnalytics, Display, All);
 

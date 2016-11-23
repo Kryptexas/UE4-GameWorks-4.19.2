@@ -4,8 +4,12 @@
 	FALSoundSource.
 ------------------------------------------------------------------------------------*/
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/App.h"
+#include "Audio.h"
+#include "Sound/SoundWave.h"
 #include "ALAudioDevice.h"
-#include "Engine.h"
 /**
  * Initializes a source with a given wave instance and prepares it for playback.
  *

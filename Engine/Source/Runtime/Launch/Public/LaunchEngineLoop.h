@@ -2,10 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+#if WITH_ENGINE
+	#include "UnrealEngine.h"
+#endif
 
 class FEngineService;
+class FPendingCleanupObjects;
 class ISessionService;
-
 
 /**
  * Implements the main engine loop.	

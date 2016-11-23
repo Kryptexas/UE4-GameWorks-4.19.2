@@ -4,9 +4,14 @@
 	DecalRenderingShared.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "DecalRenderingShared.h"
+#include "StaticBoundShaderState.h"
+#include "Components/DecalComponent.h"
+#include "GlobalShader.h"
+#include "MaterialShaderType.h"
+#include "MaterialShader.h"
+#include "DebugViewModeRendering.h"
+#include "ScenePrivate.h"
 
 static TAutoConsoleVariable<float> CVarDecalFadeScreenSizeMultiplier(
 	TEXT("r.Decal.FadeScreenSizeMult"),

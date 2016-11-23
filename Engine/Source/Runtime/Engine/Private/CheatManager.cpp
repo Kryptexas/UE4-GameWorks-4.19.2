@@ -1,31 +1,41 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "UnrealNetwork.h"
-#include "SlateBasics.h"
-#include "NavDataGenerator.h"
+#include "GameFramework/CheatManager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/OutputDeviceFile.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "UObject/UObjectIterator.h"
+#include "Misc/PackageName.h"
+#include "EngineDefines.h"
+#include "GameFramework/DamageType.h"
+#include "InputCoreTypes.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Engine/World.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "UObject/Package.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/Volume.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LocalPlayer.h"
+#include "DrawDebugHelpers.h"
+#include "GameFramework/GameModeBase.h"
+#include "EngineUtils.h"
 #include "Net/OnlineEngineInterface.h"
 #include "VisualLogger/VisualLogger.h"
 #include "AI/Navigation/RecastNavMesh.h"
 #include "GameFramework/Character.h"
 #include "Engine/Console.h"
-
-#if !UE_BUILD_SHIPPING
-#include "ISlateReflectorModule.h"
-#endif // #if !UE_BUILD_SHIPPING
-
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
-
-#include "GameFramework/CheatManager.h"
-#include "Components/CapsuleComponent.h"
 #include "Engine/DebugCameraController.h"
-#include "GameFramework/PlayerState.h"
-#include "GameFramework/GameModeBase.h"
-#include "GameFramework/PlayerInput.h"
-#include "GameFramework/InputSettings.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/BrushComponent.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/InputSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 

@@ -2,7 +2,14 @@
 
 #pragma once
 
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Serialization/BitReader.h"
+#include "Serialization/BitWriter.h"
+#include "Modules/ModuleInterface.h"
+#include "Containers/Queue.h"
+
+class HandlerComponent;
+class ReliabilityHandlerComponent;
 
 DECLARE_LOG_CATEGORY_EXTERN(PacketHandlerLog, Log, All);
 

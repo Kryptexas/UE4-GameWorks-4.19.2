@@ -1,9 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OutputLogPrivatePCH.h"
 #include "SDeviceOutputLog.h"
-#include "ITargetPlatform.h"
-#include "ITargetPlatformManagerModule.h"
+#include "Framework/Text/TextLayout.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Misc/ScopeLock.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Images/SImage.h"
+#include "Framework/Commands/UIAction.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "PlatformInfo.h"
 
 static bool IsSupportedPlatform(ITargetPlatform* Platform)

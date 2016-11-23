@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "MovieSceneAnimTypeID.h"
+#include "CoreMinimal.h"
+#include "Evaluation/MovieSceneAnimTypeID.h"
 
-class IMovieScenePlayer;
 class FMovieSceneSequenceInstance;
+class IMovieScenePlayer;
 
 enum EMovieSceneUpdatePass
 {

@@ -2,15 +2,29 @@
 
 #pragma once
 
-class FSkyLightSceneProxy;
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "SceneTypes.h"
+#include "Math/SHMath.h"
+
+class AWorldSettings;
+class FAtmosphericFogSceneInfo;
 class FMaterial;
 class FMaterialShaderMap;
-class ULightComponent;
-class USkyLightComponent;
-class FAtmosphericFogSceneInfo;
-class FPrimitiveComponentId;
 class FPrimitiveSceneInfo;
+class FRenderResource;
 class FRenderTarget;
+class FSkyLightSceneProxy;
+class FTexture;
+class FVertexFactory;
+class UDecalComponent;
+class ULightComponent;
+class UPlanarReflectionComponent;
+class UPrimitiveComponent;
+class UReflectionCaptureComponent;
+class USkyLightComponent;
+class UStaticMeshComponent;
+class UTextureCube;
 
 enum EBasePassDrawListType
 {

@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Animation/WidgetAnimation.h"
+#include "UObject/Package.h"
+#include "Components/Visual.h"
+#include "Blueprint/UserWidget.h"
 #include "MovieScene.h"
-#include "WidgetAnimation.h"
-#include "WidgetTree.h"
+#include "Components/PanelSlot.h"
 
 
 #define LOCTEXT_NAMESPACE "UWidgetAnimation"

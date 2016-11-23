@@ -4,17 +4,24 @@
 LandscapeEditInterface.cpp: Landscape editing interface
 =============================================================================*/
 
-#include "LandscapePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "Templates/Greater.h"
+#include "Containers/ArrayView.h"
+#include "RenderingThread.h"
+#include "LandscapeProxy.h"
+#include "Landscape.h"
+#include "LandscapeInfo.h"
+#include "LandscapeComponent.h"
+#include "LandscapeLayerInfoObject.h"
 
 #if WITH_EDITOR
 
-#include "Landscape.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
 #include "LandscapeRender.h"
 #include "ComponentReregisterContext.h"
-#include "Containers/ArrayView.h"
-#include "Algo/Transform.h"
+#include "Containers/Algo/Transform.h"
 
 // Channel remapping
 extern const size_t ChannelOffsets[4] = {STRUCT_OFFSET(FColor,R), STRUCT_OFFSET(FColor,G), STRUCT_OFFSET(FColor,B), STRUCT_OFFSET(FColor,A)};

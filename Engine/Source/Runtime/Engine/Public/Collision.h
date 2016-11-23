@@ -6,6 +6,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Engine/EngineTypes.h"
+#include "EngineDefines.h"
+
 /**
  * Collision stats
  */

@@ -1,12 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SocketsPrivatePCH.h"
+#include "BSDSockets/SocketSubsystemBSD.h"
+#include "Misc/ScopeLock.h"
 
 #if PLATFORM_HAS_BSD_SOCKETS
 
-#include "SocketSubsystemBSD.h"
-#include "SocketsBSD.h"
-
+#include "IPAddress.h"
+#include "BSDSockets/IPAddressBSD.h"
+#include "BSDSockets/SocketsBSD.h"
+#include <errno.h>
 
 FSocketBSD* FSocketSubsystemBSD::InternalBSDSocketFactory(SOCKET Socket, ESocketType SocketType, const FString& SocketDescription)
 {

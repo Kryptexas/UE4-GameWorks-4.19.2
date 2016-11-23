@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "UObjectToken.h"
+#include "Misc/UObjectToken.h"
+#include "UObject/Object.h"
 
 FOnMessageTokenActivated FUObjectToken::DefaultMessageTokenActivated;
 

@@ -4,22 +4,56 @@
 	NetworkDriver.cpp: Unreal network driver base class.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Net/DataReplication.h"
-#include "Net/UnrealNetwork.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+#include "Misc/NetworkGuid.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/CoreNet.h"
+#include "UObject/UnrealType.h"
+#include "UObject/Package.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/EngineTypes.h"
+#include "Components/ActorComponent.h"
+#include "Engine/Level.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
+#include "CollisionQueryParams.h"
+#include "Components/PrimitiveComponent.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectIterator.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/WorldSettings.h"
+#include "PacketHandler.h"
+#include "PacketHandlers/StatelessConnectHandlerComponent.h"
+#include "Engine/NetDriver.h"
+#include "Engine/LocalPlayer.h"
+#include "Net/DataBunch.h"
+#include "Engine/NetConnection.h"
+#include "DrawDebugHelpers.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
 #include "Net/NetworkProfiler.h"
+#include "Engine/PackageMapClient.h"
 #include "Net/RepLayout.h"
+#include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
 #include "Engine/VoiceChannel.h"
 #include "Engine/NetworkObjectList.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "Net/OnlineEngineInterface.h"
 #include "NetworkingDistanceConstants.h"
-#include "DataChannel.h"
-#include "Engine/PackageMapClient.h"
+#include "Engine/ChildConnection.h"
+#include "Net/DataChannel.h"
 #include "GameFramework/PlayerState.h"
-#include "GameFramework/GameModeBase.h"
-#include "PerfCountersHelpers.h"
+#include "Net/PerfCountersHelpers.h"
 
 
 #if USE_SERVER_PERF_COUNTERS
@@ -27,7 +61,7 @@
 #endif
 
 #if WITH_EDITOR
-#include "UnrealEd.h"
+#include "Editor.h"
 #endif
 
 // Default net driver stats

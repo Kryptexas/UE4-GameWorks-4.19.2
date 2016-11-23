@@ -1,15 +1,21 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "Internationalization/Text.h"
+#include "Misc/Parse.h"
+#include "UObject/ObjectVersion.h"
+#include "UObject/DebugSerializationFlags.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
 
-#include "TextData.h"
-#include "TextHistory.h"
-#include "TextFormatter.h"
-#include "TextNamespaceUtil.h"
-#include "FastDecimalFormat.h"
+#include "Internationalization/TextHistory.h"
+#include "Internationalization/ITextData.h"
+#include "Internationalization/TextData.h"
+#include "Misc/Guid.h"
+#include "Internationalization/TextFormatter.h"
+#include "Internationalization/TextNamespaceUtil.h"
+#include "Internationalization/FastDecimalFormat.h"
 
-#include "DebugSerializationFlags.h"
-#include "EditorObjectVersion.h"
+#include "UObject/EditorObjectVersion.h"
 
 //DEFINE_STAT(STAT_TextFormat);
 

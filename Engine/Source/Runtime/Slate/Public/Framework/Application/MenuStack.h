@@ -2,10 +2,17 @@
 
 #pragma once
 
-// forward declarations
-class IMenu;
-class FMenuBase;
-class IMenuHost;
+#include "CoreMinimal.h"
+#include "Input/PopupMethodReply.h"
+#include "Framework/Application/IMenu.h"
+#include "Runtime/Slate/Private/Framework/Application/Menu.h"
+#include "Layout/SlateRect.h"
+#include "Widgets/SWidget.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SWindow.h"
+#include "Application/ThrottleManager.h"
+
+class FWidgetPath;
 class SMenuPanel;
 
 typedef TArray<TSharedPtr<SWindow>> FMenuWindowList;	// deprecated

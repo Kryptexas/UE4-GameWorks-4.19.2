@@ -4,15 +4,17 @@
 	PostProcessTemporalAA.cpp: Post process MotionBlur implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessTemporalAA.h"
-#include "PostProcessAmbientOcclusion.h"
-#include "PostProcessEyeAdaptation.h"
-#include "PostProcessTonemap.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessTemporalAA.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRenderTargetParameters.h"
+#include "SceneRendering.h"
+#include "ScenePrivate.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "CompositionLighting/PostProcessAmbientOcclusion.h"
+#include "PostProcess/PostProcessTonemap.h"
+#include "ClearQuad.h"
 
 static float TemporalHalton( int32 Index, int32 Base )
 {

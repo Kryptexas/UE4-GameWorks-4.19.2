@@ -1,17 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapeEditorPrivatePCH.h"
-#include "ObjectTools.h"
-#include "LandscapeEdMode.h"
-#include "ScopedTransaction.h"
-#include "LandscapeEdit.h"
-#include "LandscapeRender.h"
-#include "LandscapeDataAccess.h"
-#include "LandscapeSplineProxies.h"
-#include "LandscapeEditorModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "LandscapeEdModeTools.h"
+#include "CoreMinimal.h"
+#include "Misc/App.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineTypes.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "LandscapeToolInterface.h"
+#include "LandscapeProxy.h"
+#include "LandscapeEdMode.h"
+#include "LandscapeEditorObject.h"
+#include "LandscapeEdit.h"
+#include "LandscapeDataAccess.h"
+#include "LandscapeEdModeTools.h"
 
 
 const int32 FNoiseParameter::Permutations[256] =

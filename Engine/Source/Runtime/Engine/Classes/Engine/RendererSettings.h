@@ -2,11 +2,15 @@
 
 #pragma once
 
-#include "Curves/CurveFloat.h"
-#include "UserInterfaceSettings.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Scene.h"
+#include "Engine/DeveloperSettings.h"
 
 #include "RendererSettings.generated.h"
 
+struct FPropertyChangedEvent;
 
 /**
  * Enumerates ways to clear a scene.

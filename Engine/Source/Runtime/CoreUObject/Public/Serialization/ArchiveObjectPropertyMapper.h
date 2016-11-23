@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/Class.h"
 
 /*----------------------------------------------------------------------------
 	FArchiveObjectPropertyMapper.

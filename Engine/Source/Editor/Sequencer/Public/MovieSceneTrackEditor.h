@@ -3,18 +3,22 @@
 #pragma once
 
 //@todo Sequencer - these have to be here for now because this class contains a small amount of implementation inside this header to avoid exporting this class
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
 #include "ISequencer.h"
-#include "ISequencerSection.h"
+#include "Framework/Commands/UICommandList.h"
+#include "ScopedTransaction.h"
+#include "MovieSceneTrack.h"
 #include "ISequencerTrackEditor.h"
 #include "MovieScene.h"
-#include "MovieSceneTrack.h"
-#include "ScopedTransaction.h"
 #include "MovieSceneSequence.h"
 
-
-class ISequencerSection;
-class UMovieSceneTrack;
-
+class FMenuBuilder;
+class FPaintArgs;
+class FSlateWindowElementList;
+class SHorizontalBox;
 
 /** Delegate for adding keys for a property
  * float - The time at which to add the key.

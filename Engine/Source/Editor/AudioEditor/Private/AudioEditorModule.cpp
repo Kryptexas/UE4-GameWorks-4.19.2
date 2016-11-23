@@ -1,7 +1,31 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "ModuleManager.h"
+#include "AudioEditorModule.h"
+#include "Modules/ModuleManager.h"
+#include "Sound/SoundNodeDialoguePlayer.h"
+#include "EdGraphUtilities.h"
+#include "SoundCueGraphConnectionDrawingPolicy.h"
+#include "Factories/SoundFactory.h"
+#include "Factories/ReimportSoundFactory.h"
+#include "SoundCueGraph/SoundCueGraphNode.h"
+#include "SoundCueGraphNodeFactory.h"
+#include "Factories/ReimportSoundSurroundFactory.h"
+#include "AssetToolsModule.h"
+#include "SoundClassEditor.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundWave.h"
+#include "SoundCueEditor.h"
+#include "AssetTypeActions/AssetTypeActions_DialogueVoice.h"
+#include "AssetTypeActions/AssetTypeActions_DialogueWave.h"
+#include "AssetTypeActions/AssetTypeActions_SoundAttenuation.h"
+#include "AssetTypeActions/AssetTypeActions_SoundConcurrency.h"
+#include "AssetTypeActions/AssetTypeActions_SoundBase.h"
+#include "AssetTypeActions/AssetTypeActions_SoundClass.h"
+#include "AssetTypeActions/AssetTypeActions_SoundCue.h"
+#include "AssetTypeActions/AssetTypeActions_SoundMix.h"
+#include "AssetTypeActions/AssetTypeActions_SoundWave.h"
+#include "AssetTypeActions/AssetTypeActions_ReverbEffect.h"
+#include "Utils.h"
 
 const FName AudioEditorAppIdentifier = FName(TEXT("AudioEditorApp"));
 

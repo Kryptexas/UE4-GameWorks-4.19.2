@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LaunchPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/App.h"
+#include "Misc/OutputDeviceError.h"
+#include "Templates/ScopedPointer.h"
+#include "LaunchEngineLoop.h"
 #include <SDL.h>
 #if PLATFORM_HTML5_BROWSER
 	#include <emscripten/emscripten.h>
@@ -12,7 +16,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5Launch, Log, All);
 
-#include "PlatformIncludes.h"
 #include <string.h>
 #include "trace.h"
 

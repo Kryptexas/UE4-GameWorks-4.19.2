@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include "Engine.h"
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Engine/Engine.h"
 
+class FBackgroundView;
+class FSceneViewport;
+class SViewport;
 
 /** 
  * Module handling default behavior for streaming pause rendering. 

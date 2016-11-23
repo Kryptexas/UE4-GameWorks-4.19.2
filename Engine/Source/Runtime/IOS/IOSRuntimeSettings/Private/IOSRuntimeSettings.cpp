@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "IOSRuntimeSettingsPrivatePCH.h"
-
 #include "IOSRuntimeSettings.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+
 
 UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

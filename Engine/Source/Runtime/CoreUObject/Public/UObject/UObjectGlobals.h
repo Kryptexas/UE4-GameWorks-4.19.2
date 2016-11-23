@@ -6,7 +6,13 @@
 
 #pragma once
 
-#include "Script.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/OutputDeviceRedirector.h"
+
+struct FCustomPropertyListNode;
+struct FObjectInstancingGraph;
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogUObjectGlobals, Log, All);
 
@@ -35,9 +41,6 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("NetSerializeFast Array BuildMap"),STAT_NetSerial
 
 
 #define	INVALID_OBJECT	(UObject*)-1
-
-/** The type of a native function callable by script */
-typedef void (UObject::*Native)( FFrame& TheStack, RESULT_DECL );
 
 
 

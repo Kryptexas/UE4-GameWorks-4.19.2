@@ -1,30 +1,29 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "AI/Navigation/RecastNavMeshGenerator.h"
+#include "AI/Navigation/NavRelevantInterface.h"
+#include "Components/PrimitiveComponent.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryWriter.h"
+#include "EngineGlobals.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Engine.h"
 #if WITH_RECAST
 
-#include "PhysicsPublic.h"
 
 #if WITH_PHYSX
-	#include "../../PhysicsEngine/PhysXSupport.h"
+	#include "PhysXPublic.h"
 #endif
-#include "RecastNavMeshGenerator.h"
-#include "PImplRecastNavMesh.h"
-#include "SurfaceIterators.h"
-#include "AI/Navigation/NavMeshBoundsVolume.h"
-#include "AI/NavigationOctree.h"
+#include "AI/Navigation/PImplRecastNavMesh.h"
 
 // recast includes
-#include "Recast.h"
-#include "DetourCommon.h"
-#include "DetourNavMeshBuilder.h"
-#include "DetourNavMeshQuery.h"
-#include "RecastAlloc.h"
-#include "DetourTileCache.h"
-#include "DetourTileCacheBuilder.h"
-#include "RecastHelpers.h"
-#include "NavigationSystemHelpers.h"
-#include "VisualLogger/VisualLogger.h"
+#include "Detour/DetourNavMeshBuilder.h"
+#include "DetourTileCache/DetourTileCacheBuilder.h"
+#include "AI/Navigation/RecastHelpers.h"
+#include "AI/NavigationSystemHelpers.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
 #define SEAMLESS_REBUILDING_ENABLED 1

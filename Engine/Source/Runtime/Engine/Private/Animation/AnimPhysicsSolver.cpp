@@ -28,8 +28,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "EnginePrivate.h"
-#include "AnimPhysicsSolver.h"
+#include "Animation/AnimPhysicsSolver.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
 DEFINE_STAT(STAT_AnimDynamicsUpdate);

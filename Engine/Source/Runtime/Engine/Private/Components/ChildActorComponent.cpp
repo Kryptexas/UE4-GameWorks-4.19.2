@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Components/ChildActorComponent.h"
+#include "Engine/World.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Package.h"
+#include "UObject/PropertyPortFlags.h"
 #include "Net/UnrealNetwork.h"
+#include "Engine/Engine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 

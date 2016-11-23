@@ -2,11 +2,31 @@
 
 #pragma once
 
-#include "Editor.h"
-#include "EditorComponents.h"
-#include "EditorModeRegistry.h"
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UObject/GCObject.h"
 #include "UnrealWidget.h"
+#include "EditorComponents.h"
+#include "EngineGlobals.h"
+#include "EditorModeRegistry.h"
 
+class FCanvas;
+class FEditorModeTools;
+class FEditorViewportClient;
+class FModeTool;
+class FModeToolkit;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FViewport;
+class UTexture2D;
+struct FConvexVolume;
+struct FViewportClick;
+
+enum EModeTools : int8;
+class FEditorViewportClient;
+class HHitProxy;
+struct FViewportClick;
+class FModeTool;
 class FEditorViewportClient;
 struct FViewportClick;
 
@@ -345,3 +365,21 @@ protected:
 	/** Indicates  */
 	bool bEditedPropertyIsTransform;
 };
+
+/*------------------------------------------------------------------------------
+	Default.
+------------------------------------------------------------------------------*/
+
+/**
+ * The default editing mode.  User can work with BSP and the builder brush. Vector and array properties are also visually editable.
+ */
+class FEdModeDefault : public FEdMode
+{
+public:
+	FEdModeDefault();
+
+	// FEdMode interface
+	virtual bool UsesPropertyWidgets() const override { return true; }
+	// End of FEdMode interface
+};
+

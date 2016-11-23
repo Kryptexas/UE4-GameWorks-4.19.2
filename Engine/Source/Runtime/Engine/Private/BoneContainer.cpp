@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "BoneContainer.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FBoneContainer

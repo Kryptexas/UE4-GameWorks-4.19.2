@@ -35,5 +35,6 @@ public class ImageWrapper : ModuleRules
 
 		// Disable shared PCHs to handle warning C4652
 		PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
+		PrivatePCHHeaderFile = "Private/ImageWrapperPrivatePCH.h";
     }
 }

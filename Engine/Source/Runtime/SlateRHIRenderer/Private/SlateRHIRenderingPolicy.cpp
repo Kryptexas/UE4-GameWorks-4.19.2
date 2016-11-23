@@ -1,20 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRHIRendererPrivatePCH.h"
-#include "RenderingPolicy.h"
 #include "SlateRHIRenderingPolicy.h"
+#include "UniformBuffer.h"
+#include "Shader.h"
+#include "ShowFlags.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "EngineGlobals.h"
+#include "RHIStaticStates.h"
+#include "SceneView.h"
+#include "Engine/Engine.h"
 #include "SlateShaders.h"
+#include "Rendering/SlateRenderer.h"
+#include "SlateRHIRenderer.h"
 #include "SlateMaterialShader.h"
-#include "SlateRHIResourceManager.h"
-#include "PreviewScene.h"
-#include "EngineModule.h"
 #include "SlateUTextureResource.h"
 #include "SlateMaterialResource.h"
-#include "Rendering/DrawElements.h"
 #include "SlateUpdatableBuffer.h"
-#include "SlateElementIndexBuffer.h"
-#include "SlateElementVertexBuffer.h"
 #include "SlatePostProcessor.h"
+#include "Modules/ModuleManager.h"
 
 extern void UpdateNoiseTextureParameters(FViewUniformShaderParameters& ViewUniformShaderParameters);
 

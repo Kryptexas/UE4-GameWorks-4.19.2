@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "ThumbnailRendering/BlueprintThumbnailRenderer.h"
+#include "ShowFlags.h"
+#include "SceneView.h"
+#include "Misc/App.h"
 
 // FPreviewScene derived helpers for rendering
-#include "EngineModule.h"
 #include "RendererInterface.h"
-#include "Engine/SimpleConstructionScript.h"
+#include "EngineModule.h"
 #include "Engine/SCS_Node.h"
 
 UBlueprintThumbnailRenderer::UBlueprintThumbnailRenderer(const FObjectInitializer& ObjectInitializer)

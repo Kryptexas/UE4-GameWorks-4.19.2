@@ -1,12 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "Ticker.h"
-#include "Async.h"
-#include "MallocAnsi.h"
-#include "GenericPlatformMemoryPoolStats.h"
-#include "MallocProfiler.h"
-#include "MemoryMisc.h"
+#include "GenericPlatform/GenericPlatformMemory.h"
+#include "HAL/PlatformMemory.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/StringConv.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "Stats/Stats.h"
+#include "Containers/Ticker.h"
+#include "Misc/FeedbackContext.h"
+#include "Async/Async.h"
+#include "HAL/MallocAnsi.h"
+#include "GenericPlatform/GenericPlatformMemoryPoolStats.h"
+#include "HAL/MemoryMisc.h"
+#include "Misc/CoreDelegates.h"
 
 
 DEFINE_STAT(MCR_Physical);

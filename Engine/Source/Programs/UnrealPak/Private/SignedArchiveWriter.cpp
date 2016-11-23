@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealPak.h"
+#include "SignedArchiveWriter.h"
 #include "IPlatformFilePak.h"
 #include "SecureHash.h"
-#include "BigInt.h"
-#include "SignedArchiveWriter.h"
+#include "HAL/FileManager.h"
 
 FSignedArchiveWriter::FSignedArchiveWriter(FArchive& InPak, const FString& InPakFilename, const FEncryptionKey& InPublicKey, const FEncryptionKey& InPrivateKey)
 : BufferArchive(Buffer)

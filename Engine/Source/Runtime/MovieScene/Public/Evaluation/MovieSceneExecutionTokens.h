@@ -2,7 +2,13 @@
 
 #pragma once
 
-#include "MovieSceneEvaluationKey.h"
+#include "CoreMinimal.h"
+#include "Evaluation/MovieSceneEvaluationKey.h"
+#include "Misc/InlineValue.h"
+#include "MovieSceneExecutionToken.h"
+#include "Evaluation/PersistentEvaluationData.h"
+#include "Evaluation/MovieScenePlayback.h"
+
 
 /**
  * Ordered execution token stack that accumulates tokens that will apply animated state to the sequence environment at a later time

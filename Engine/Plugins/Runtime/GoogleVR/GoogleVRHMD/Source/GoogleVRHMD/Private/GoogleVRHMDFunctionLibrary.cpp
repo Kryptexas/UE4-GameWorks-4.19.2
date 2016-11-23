@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#include "GoogleVRHMDPCH.h"
 #include "Classes/GoogleVRHMDFunctionLibrary.h"
 #include "GoogleVRHMD.h"
 

@@ -1,15 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
-#include "SGraphEditorActionMenu.h"
+#include "SGraphActionMenu.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Text/SRichTextBlock.h"
+#include "Widgets/Layout/SScrollBorder.h"
+#include "EditorStyleSet.h"
+#include "GraphEditorDragDropAction.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node.h"
+#include "EdGraphSchema_K2_Actions.h"
 #include "GraphActionNode.h"
-#include "SScrollBorder.h"
+#include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
 #include "EditorCategoryUtils.h"
-#include "SSearchBox.h"
-#include "SInlineEditableTextBlock.h"
-#include "Widgets/Views/STableRow.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 
 #define LOCTEXT_NAMESPACE "GraphActionMenu"
 

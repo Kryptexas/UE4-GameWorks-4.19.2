@@ -2,10 +2,17 @@
 
 #pragma once
 
-#include "EnvQueryTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/ScriptMacros.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
 #include "EnvQueryInstanceBlueprintWrapper.generated.h"
 
+class AActor;
 struct FEnvQueryRequest;
 
 UCLASS(Blueprintable, BlueprintType, meta = (DisplayName = "EQS Query Instance"))

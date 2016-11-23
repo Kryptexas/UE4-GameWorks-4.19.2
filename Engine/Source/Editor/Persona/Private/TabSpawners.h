@@ -2,13 +2,30 @@
 
 #pragma once
 
-#include "IDocumentation.h"
-#include "AnimationEditorViewportClient.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "IPersonaViewport.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "WorkflowOrientedApp/WorkflowTabFactory.h"
+#include "WorkflowOrientedApp/WorkflowTabManager.h"
+#include "BlueprintEditor.h"
+#include "WorkflowOrientedApp/ApplicationMode.h"
+#include "IDocumentation.h"
 #include "PersonaModule.h"
+#include "IPersonaPreviewScene.h"
+#include "AnimationEditorViewportClient.h"
 #include "SSingleObjectDetailsPanel.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMode"
+
+class IEditableSkeleton;
+class IPersonaToolkit;
+class ISkeletonTree;
+class SPersonaDetails;
+class SToolTip;
 
 /////////////////////////////////////////////////////
 

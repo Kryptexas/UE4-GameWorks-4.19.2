@@ -1,13 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "FontCacheFreeType.h"
-#include "FontCacheHarfBuzz.h"
-#include "FontCacheCompositeFont.h"
-#include "SlateFontRenderer.h"
-#include "SlateTextShaper.h"
-#include "LegacySlateFontInfoCache.h"
-#include "SlateFontInfo.h"
+#include "Fonts/FontCache.h"
+#include "Misc/ScopeLock.h"
+#include "HAL/IConsoleManager.h"
+#include "Application/SlateApplicationBase.h"
+#include "Fonts/FontCacheFreeType.h"
+#include "Fonts/FontCacheHarfBuzz.h"
+#include "Fonts/FontCacheCompositeFont.h"
+#include "Fonts/SlateFontRenderer.h"
+#include "Fonts/SlateTextShaper.h"
+#include "Fonts/LegacySlateFontInfoCache.h"
+#include "Fonts/FontCacheUtils.h"
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Font Atlases"), STAT_SlateNumFontAtlases, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Font Non-Atlased Textures"), STAT_SlateNumFontNonAtlasedTextures, STATGROUP_SlateMemory);

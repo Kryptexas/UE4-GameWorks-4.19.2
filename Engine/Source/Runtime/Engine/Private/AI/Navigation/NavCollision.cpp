@@ -1,15 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "AI/Navigation/NavCollision.h"
+#include "Serialization/MemoryWriter.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Engine/StaticMesh.h"
+#include "SceneManagement.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
+#include "AI/NavigationModifier.h"
 #include "AI/NavigationSystemHelpers.h"
-#include "NavigationModifier.h"
-#include "AI/Navigation/RecastNavMeshGenerator.h"
 #include "DerivedDataPluginInterface.h"
 #include "DerivedDataCacheInterface.h"
-#include "TargetPlatform.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "CookStats.h"
+#include "ProfilingDebugging/CookStats.h"
 
 #if ENABLE_COOK_STATS
 namespace NavCollisionCookStats

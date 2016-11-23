@@ -1,16 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
-#include "Sequencer.h"
 #include "SSequencerSection.h"
-#include "IKeyArea.h"
-#include "ISequencerSection.h"
-#include "MovieSceneSection.h"
-#include "MovieSceneToolHelpers.h"
-#include "CommonMovieSceneTools.h"
-#include "SequencerHotspots.h"
-#include "ScopedTransaction.h"
+#include "Rendering/DrawElements.h"
+#include "EditorStyleSet.h"
+#include "SequencerSelectionPreview.h"
+#include "GroupedKeyArea.h"
+#include "SequencerSettings.h"
+#include "Editor.h"
+#include "Sequencer.h"
 #include "SequencerSectionPainter.h"
+#include "CommonMovieSceneTools.h"
+#include "ISequencerEditTool.h"
+#include "ISequencerHotspot.h"
+#include "SequencerHotspots.h"
 
 double SSequencerSection::SelectionThrobEndTime = 0;
 

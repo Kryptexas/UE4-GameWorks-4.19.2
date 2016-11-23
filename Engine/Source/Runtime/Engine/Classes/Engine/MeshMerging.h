@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "CoreUObject.h"
-#include "MaterialMerging.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/MaterialMerging.h"
 #include "MeshMerging.generated.h"
 
 /** The importance of a mesh feature when automatically generating mesh LODs. */

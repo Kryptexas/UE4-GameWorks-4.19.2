@@ -11,9 +11,9 @@
 #define CRASH_REPORT_UNATTENDED_ONLY			PLATFORM_LINUX || FORCE_CRASH_REPORT_UNATTENDED
 
 // Pre-compiled header includes
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Logging/LogMacros.h"
 #if !CRASH_REPORT_UNATTENDED_ONLY
-	#include "SlateBasics.h"
 	#include "StandaloneRenderer.h"
 #endif // CRASH_REPORT_UNATTENDED_ONLY
 

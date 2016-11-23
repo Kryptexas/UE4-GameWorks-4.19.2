@@ -6,6 +6,13 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "CoreFwd.h"
+
+struct FBasisVectorMatrix;
+struct FLookAtMatrix;
+struct FMath;
+
 /**
  * FMatrix inline functions.
  */

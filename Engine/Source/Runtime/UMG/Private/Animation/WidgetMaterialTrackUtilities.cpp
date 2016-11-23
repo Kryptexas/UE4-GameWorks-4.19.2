@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UMGPrivatePCH.h"
-#include "WidgetMaterialTrackUtilities.h"
+#include "Animation/WidgetMaterialTrackUtilities.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
+#include "Materials/MaterialInterface.h"
+#include "Styling/SlateBrush.h"
+#include "Components/Widget.h"
+#include "Fonts/SlateFontInfo.h"
 
 
 template<typename T> struct TMaterialStructType

@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
 #include "RawInputFunctionLibrary.generated.h"
 
 struct RAWINPUT_API FRawInputKeyNames

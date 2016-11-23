@@ -2,9 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
 
 class FProfilerSettings;
-
+class SGridPanel;
+enum class ECheckBoxState : uint8;
 
 /**
  * Widget used to modify settings for the profiler, created on demand and destroyed on close.

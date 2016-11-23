@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "ListenerManager.h"
-
-class UUserDefinedEnum;
+#include "CoreMinimal.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Kismet2/ListenerManager.h"
 
 class UNREALED_API FEnumEditorUtils
 {

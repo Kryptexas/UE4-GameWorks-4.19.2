@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "PoseSnapshot.generated.h"
 
 /** A pose for a skeletal mesh */

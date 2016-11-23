@@ -4,11 +4,17 @@
 	LightmapResRatioAdjust.cpp: Lightmap Resolution Ratio Adjustment helper
 ================================================================================*/
 
-#include "LevelEditor.h"
-#include "EditorSupportDelegates.h"
 #include "LightmapResRatioAdjust.h"
+#include "UObject/Object.h"
+#include "UObject/UObjectIterator.h"
+#include "GameFramework/Actor.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/Brush.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
+#include "EditorSupportDelegates.h"
 #include "SurfaceIterators.h"
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 #include "ActorEditorUtils.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/Polys.h"

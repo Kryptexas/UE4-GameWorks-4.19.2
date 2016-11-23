@@ -1,12 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "VisualLoggerExtension.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "CanvasItem.h"
 #include "Engine/Canvas.h"
 #include "DrawDebugHelpers.h"
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
-#include "VisualLoggerExtension.h"
 
 #if ENABLE_VISUAL_LOG
 FVisualLoggerExtension::FVisualLoggerExtension()

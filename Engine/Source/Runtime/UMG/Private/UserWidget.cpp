@@ -1,13 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Blueprint/UserWidget.h"
+#include "Rendering/DrawElements.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SlateSound.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Layout/SConstraintCanvas.h"
+#include "Components/NamedSlot.h"
+#include "Slate/SObjectWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Animation/UMGSequencePlayer.h"
 
-#include "UMGSequencePlayer.h"
-#include "SceneViewport.h"
-#include "WidgetAnimation.h"
 
-#include "WidgetBlueprintLibrary.h"
-#include "WidgetLayoutLibrary.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

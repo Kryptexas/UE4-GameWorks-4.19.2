@@ -2,9 +2,13 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Modules/ModuleManager.h"
 #include "IPluginBrowser.h"
-#include "IPluginManager.h"
-#include "ModuleManager.h"
+#include "Widgets/SWindow.h"
+
+class FSpawnTabArgs;
 
 DECLARE_MULTICAST_DELEGATE(FOnNewPluginCreated);
 

@@ -2,8 +2,13 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Particles/ParticleEmitter.h"
 #include "ParticleSpriteEmitter.generated.h"
+
+class UParticleSystemComponent;
 
 UENUM()
 enum EParticleScreenAlignment

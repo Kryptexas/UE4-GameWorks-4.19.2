@@ -4,9 +4,10 @@
 	FogRendering.cpp: Fog rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "FogRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "AtmosphereRendering.h"
 #include "ScenePrivate.h"
-#include "SceneUtils.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Fog"), Stat_GPU_Fog, STATGROUP_GPU);
 

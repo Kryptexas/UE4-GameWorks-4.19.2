@@ -2,8 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "EngineDefines.h"
 #include "DestructibleFractureSettings.generated.h"
 
+class UMaterialInterface;
 
 #if WITH_APEX
 

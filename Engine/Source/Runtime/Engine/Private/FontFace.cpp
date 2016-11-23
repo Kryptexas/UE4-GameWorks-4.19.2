@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/FontFace.h"
 #include "EditorFramework/AssetImportData.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/FileHelper.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 
 UFontFace::UFontFace()
 {

@@ -2,10 +2,12 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "IPropertyTypeCustomization.h"
 #include "GameplayEffect.h"
+#include "PropertyHandle.h"
 
-class IPropertyHandle;
 class FDetailWidgetRow;
 class IDetailChildrenBuilder;
 

@@ -5,9 +5,17 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
 #include "SceneTypes.h"
-#include "PrecomputedLightVolume.h"
+#include "UObject/UObjectAnnotation.h"
 #include "MapBuildDataRegistry.generated.h"
+
+class FPrecomputedLightVolumeData;
 
 struct ENGINE_API FPerInstanceLightmapData
 {

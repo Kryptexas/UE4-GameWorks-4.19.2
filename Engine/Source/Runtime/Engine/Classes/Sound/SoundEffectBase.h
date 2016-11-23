@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "SoundEffectPreset.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Containers/Queue.h"
 #include "SoundEffectBase.generated.h"
 
 class USoundEffectPreset;

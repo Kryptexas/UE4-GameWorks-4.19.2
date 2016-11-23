@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include "SlateCore.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Layout/Visibility.h"
 #include "LevelEditorPlaySettings.generated.h"
 
+class SWindow;
 
 /**
  * Enumerates label anchor modes.

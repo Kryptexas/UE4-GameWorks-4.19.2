@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "DrawDebugHelpers.h"
 
 #include "Blueprint/BlueprintSupport.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "CoreStats.h"
 #include "Math/DualQuat.h"
 
 #define LOCTEXT_NAMESPACE "UKismetMathLibrary"

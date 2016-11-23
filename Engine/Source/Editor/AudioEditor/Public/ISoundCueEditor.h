@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "Toolkits/IToolkitHost.h"
+#include "CoreMinimal.h"
+#include "Toolkits/AssetEditorToolkit.h"
+
+class USoundCue;
+struct Rect;
 
 class ISoundCueEditor : public FAssetEditorToolkit
 {

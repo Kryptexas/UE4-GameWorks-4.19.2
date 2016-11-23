@@ -3,12 +3,38 @@
 
 #pragma once
 
-#include "ISkeletonTree.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "Animation/Skeleton.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "EditableSkeleton.h"
+#include "AssetData.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "ISkeletonTree.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
 #include "Preferences/PersonaOptions.h"
-#include "SkeletonTreeBuilder.h"
+#include "ISkeletonTreeBuilder.h"
 #include "ISkeletonTreeItem.h"
+#include "SkeletonTreeBuilder.h"
+
+class FMenuBuilder;
+class FSkeletonTreeAttachedAssetItem;
+class FSkeletonTreeBoneItem;
+class FSkeletonTreeSocketItem;
+class FSkeletonTreeVirtualBoneItem;
+class FTextFilterExpressionEvaluator;
+class FUICommandList;
+class IPersonaPreviewScene;
+class SBlendProfilePicker;
+class SComboButton;
+class UBlendProfile;
+struct FNotificationInfo;
 
 //////////////////////////////////////////////////////////////////////////
 // SSkeletonTree

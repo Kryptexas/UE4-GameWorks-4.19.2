@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "GCObject.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSingleton.h"
+#include "UObject/UObjectGlobals.h"
+
+class UDynamicClass;
 
 struct FBlueprintWarningDeclaration
 {

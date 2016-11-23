@@ -1,19 +1,27 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
+#include "SoundClassEditor.h"
+#include "Modules/ModuleManager.h"
+#include "EditorStyleSet.h"
+#include "EdGraph/EdGraph.h"
+#include "SoundClassGraph/SoundClassGraph.h"
+#include "SoundClassGraph/SoundClassGraphNode.h"
+#include "SoundClassGraph/SoundClassGraphSchema.h"
+#include "Sound/SoundClass.h"
+#include "Editor.h"
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
 #include "AssetRegistryModule.h"
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
-#include "GraphEditor.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "ScopedTransaction.h"
-#include "Toolkits/IToolkitHost.h"
-#include "SDockTab.h"
-#include "GenericCommands.h"
+#include "SSoundClassActionMenu.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "AudioEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassEditor"
 DEFINE_LOG_CATEGORY_STATIC( LogSoundClassEditor, Log, All );

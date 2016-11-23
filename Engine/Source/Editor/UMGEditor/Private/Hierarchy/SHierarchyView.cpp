@@ -1,25 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-#include "SHierarchyView.h"
-#include "SHierarchyViewItem.h"
-
-#include "UMGEditorActions.h"
-
-#include "PreviewScene.h"
-#include "SceneViewport.h"
-
-#include "BlueprintEditor.h"
-#include "SKismetInspector.h"
-#include "BlueprintEditorUtils.h"
-#include "WidgetTemplateClass.h"
-#include "WidgetBlueprintEditor.h"
-#include "SSearchBox.h"
+#include "Hierarchy/SHierarchyView.h"
 #include "WidgetBlueprint.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Editor.h"
+#include "Widgets/Views/STreeView.h"
+#include "Widgets/Layout/SScrollBorder.h"
+
+#if WITH_EDITOR
+	#include "EditorStyleSet.h"
+#endif // WITH_EDITOR
+
+#include "Hierarchy/SHierarchyViewItem.h"
 #include "WidgetBlueprintEditorUtils.h"
 
-#include "Components/PanelWidget.h"
-#include "GenericCommands.h"
+
+
+#include "Widgets/Input/SSearchBox.h"
+
+#include "Framework/Commands/GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

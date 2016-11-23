@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SubversionSourceControlRevision.h"
 #include "SubversionSourceControlState.h"
+
+class FSubversionSourceControlCommand;
+class FXmlFile;
 
 /**
  * Helper struct for maintaining temporary files for passing to commands

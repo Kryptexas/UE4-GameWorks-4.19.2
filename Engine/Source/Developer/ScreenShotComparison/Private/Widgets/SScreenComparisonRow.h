@@ -2,9 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 #include "ISourceControlState.h"
+#include "Interfaces/IScreenShotManager.h"
 
 class FScreenComparisonModel;
+struct FSlateDynamicImageBrush;
 
 /**
  * Widget to display a particular view.

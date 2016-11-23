@@ -2,9 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ModuleDescriptor.h"
-#include "PluginDescriptor.h"
 #include "CustomBuildSteps.h"
+#include "PluginDescriptor.h"
+
+class FJsonObject;
 
 /**
  * Version numbers for project descriptors.

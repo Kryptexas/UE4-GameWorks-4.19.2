@@ -2,10 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/SViewport.h"
 #include "Engine/Engine.h"
 #include "Runtime/MovieSceneCapture/Public/MovieSceneCaptureHandle.h"
 #include "GameEngine.generated.h"
 
+class Error;
+class FSceneViewport;
+class UGameViewportClient;
+class UNetDriver;
 
 /**
  * Engine that manages core systems that enable a game.

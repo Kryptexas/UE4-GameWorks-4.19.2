@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Shader.h"
+#include "GlobalShader.h"
+#include "ShadowRendering.h"
+
 /*=============================================================================
 	SceneOcclusion.h
 =============================================================================*/

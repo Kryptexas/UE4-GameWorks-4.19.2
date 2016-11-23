@@ -7,7 +7,7 @@
 #include "MetalRHIPrivate.h"
 #include "MetalProfiler.h"
 #include "MetalCommandBuffer.h"
-
+#include "Containers/ResourceArray.h"
 
 FMetalVertexBuffer::FMetalVertexBuffer(uint32 InSize, uint32 InUsage)
 	: FRHIVertexBuffer(InSize, InUsage)

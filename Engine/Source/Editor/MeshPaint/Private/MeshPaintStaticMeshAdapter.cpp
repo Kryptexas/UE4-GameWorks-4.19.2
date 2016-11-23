@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MeshPaintPrivatePCH.h"
 #include "MeshPaintStaticMeshAdapter.h"
 #include "StaticMeshResources.h"
 #include "MeshPaintEdMode.h"

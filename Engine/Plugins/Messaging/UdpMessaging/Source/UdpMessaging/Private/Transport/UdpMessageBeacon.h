@@ -2,9 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Shared/UdpMessageSegment.h"
 
-enum class EUdpMessageSegments : uint8;
-
+class FInternetAddr;
+class FSocket;
+struct FIPv4Endpoint;
 
 /**
  * Implements a beacon sender thread.

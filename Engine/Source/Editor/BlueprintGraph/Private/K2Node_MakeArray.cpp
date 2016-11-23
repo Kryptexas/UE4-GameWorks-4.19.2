@@ -1,16 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_MakeArray.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/Blueprint.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EdGraphSchema_K2.h"
+#include "EdGraph/EdGraphNodeUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
-#include "SlateBasics.h"
-#include "../../../Runtime/Engine/Classes/Kismet/KismetArrayLibrary.h"
+#include "Kismet/KismetArrayLibrary.h"
 #include "ScopedTransaction.h"
-#include "KismetCompiler.h"
+#include "EdGraphUtilities.h"
+#include "KismetCompiledFunctionContext.h"
+#include "KismetCompilerMisc.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 
 static const FString OutputPinName = FString(TEXT("Array"));
 

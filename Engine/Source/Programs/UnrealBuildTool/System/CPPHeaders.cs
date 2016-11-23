@@ -474,7 +474,7 @@ namespace UnrealBuildTool
 
 			// Get the adjusted filename
 			string FileToRead = CPPFile.AbsolutePath;
-			if (BuildPlatform.RequiresExtraUnityCPPWriter() && Path.GetFileName(FileToRead).StartsWith("Module."))
+			if (BuildPlatform.RequiresExtraUnityCPPWriter() && Path.GetFileName(FileToRead).StartsWith("Module.") && Path.GetFileName(FileToRead).ToLowerInvariant() != "module.h")
 			{
 				FileToRead += ".ex";
 			}

@@ -1,14 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
-#include "KismetEditorUtilities.h"
 #include "SGameplayAttributeWidget.h"
-#include "STextComboBox.h"
-#include "SAssetSearchBox.h"
-#include "SListViewSelectorDropdownMenu.h"
-#include "SSearchBox.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SComboBox.h"
+
+#include "AttributeSet.h"
+#include "Widgets/Input/SSearchBox.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "AbilitySystemComponent.h"
-#include "TextFilter.h"
+#include "Misc/TextFilter.h"
+#include "SlateOptMacros.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

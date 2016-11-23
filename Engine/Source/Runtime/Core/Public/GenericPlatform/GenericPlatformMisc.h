@@ -2,22 +2,16 @@
 
 #pragma once
 
-#include "Containers/ContainersFwd.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "CoreFwd.h"
+#include "HAL/PlatformCrt.h"
 
-
-struct FGenericCrashContext;
-struct FGenericMemoryWarningContext;
-
-class FDefaultAllocator;
-class FOutputDevice;
-class FString;
-class FText;
+class Error;
 class GenericApplication;
 class IPlatformChunkInstall;
 class IPlatformCompression;
-class UWorld;
-
+struct FGenericCrashContext;
+struct FGenericMemoryWarningContext;
 
 namespace EBuildConfigurations
 {
@@ -822,7 +816,7 @@ public:
 	 *	@param	Out			The output device to utilize
 	 *	@return	bool		true if command was processed, false if not
 	 */
-	static bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out)
+	static bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out)
 	{
 		return false;
 	}

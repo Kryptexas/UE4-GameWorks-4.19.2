@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
-#include "CoreUObject.h"
-
+#include "OnlineExternalUIInterfaceGameCircle.h"
 #include "AGS/AchievementsClientInterface.h"
 #include "AGS/LeaderboardsClientInterface.h"
-
+#include "Async/TaskGraphInterfaces.h"
+#include "OnlineSubsystemGameCircle.h"
 
 FOnlineExternalUIGameCircle::FOnlineExternalUIGameCircle(FOnlineSubsystemGameCircle* InSubsystem)
 	: Subsystem(InSubsystem)

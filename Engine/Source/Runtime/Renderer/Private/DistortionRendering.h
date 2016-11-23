@@ -6,6 +6,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+
+class FPrimitiveSceneProxy;
+
 /** 
 * Set of distortion scene prims  
 */

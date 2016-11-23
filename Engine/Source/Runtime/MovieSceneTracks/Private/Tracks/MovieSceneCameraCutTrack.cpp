@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneCameraCutSection.h"
-#include "MovieSceneCameraCutTrack.h"
+#include "Tracks/MovieSceneCameraCutTrack.h"
+#include "MovieScene.h"
 #include "MovieSceneCommonHelpers.h"
+#include "Sections/MovieSceneCameraCutSection.h"
 #include "Evaluation/MovieSceneCameraCutTemplate.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneCameraCutTrack"

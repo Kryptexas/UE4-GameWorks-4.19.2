@@ -4,11 +4,9 @@
 DebugViewModeRendering.cpp: Contains definitions for rendering debug viewmodes.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "SceneUtils.h"
-#include "PostProcessing.h"
+#include "DebugViewModeRendering.h"
+#include "Materials/Material.h"
+#include "ShaderComplexityRendering.h"
 #include "PrimitiveDistanceAccuracyRendering.h"
 #include "MeshTexCoordSizeAccuracyRendering.h"
 #include "MaterialTexCoordScalesRendering.h"

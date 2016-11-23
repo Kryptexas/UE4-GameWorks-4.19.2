@@ -2,7 +2,12 @@
 
 #pragma once
 
-#include "UObjectBaseUtility.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Serialization/CustomVersion.h"
+#include "Misc/EngineVersion.h"
+
+struct FCompressedChunk;
 
 /*----------------------------------------------------------------------------
 	Items stored in Unrealfiles.

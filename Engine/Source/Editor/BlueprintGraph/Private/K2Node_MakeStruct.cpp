@@ -1,14 +1,20 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
-#include "KismetCompiler.h"
+#include "K2Node_MakeStruct.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/TextProperty.h"
+#include "Engine/UserDefinedStruct.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "MakeStructHandler.h"
+#include "BlueprintNodeBinder.h"
+#include "BlueprintActionFilter.h"
 #include "BlueprintFieldNodeSpawner.h"
 #include "EditorCategoryUtils.h"
-#include "TextPackageNamespaceUtil.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "PropertyCustomizationHelpers.h"
 #include "Kismet/KismetMathLibrary.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"

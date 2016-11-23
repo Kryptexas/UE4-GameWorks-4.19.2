@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "OutputDeviceRedirector.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/ScopeLock.h"
+#include "Stats/Stats.h"
+#include "Misc/CoreStats.h"
 
 /*-----------------------------------------------------------------------------
 	FOutputDeviceRedirector.

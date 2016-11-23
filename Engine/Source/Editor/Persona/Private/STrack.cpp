@@ -1,13 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
-
-#include "SAnimNotifyPanel.h"
 #include "STrack.h"
-#include "ScopedTransaction.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+
 #include "SCurveEditor.h"
-#include "Editor/KismetWidgets/Public/SScrubWidget.h"
+#include "SScrubWidget.h"
 
 const float STrackDefaultHeight = 20.0f;
 const float DraggableBarSnapTolerance = 20.0f;

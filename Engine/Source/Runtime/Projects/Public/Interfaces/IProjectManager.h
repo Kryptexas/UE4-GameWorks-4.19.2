@@ -3,9 +3,10 @@
 #pragma once
 
 
-#include "EngineVersion.h"
+#include "CoreMinimal.h"
 #include "ModuleDescriptor.h"
-#include "ProjectDescriptor.h"
+
+struct FProjectDescriptor;
 
 /**
  * Simple data structure that is filled when querying information about projects

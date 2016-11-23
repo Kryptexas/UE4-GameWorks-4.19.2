@@ -1,13 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/AutomationTest.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/EngineVersion.h"
+#include "Framework/Application/SlateApplication.h"
 
 #include "Tests/AutomationTestSettings.h"
-#include "ModuleManager.h"
-#include "AutomationEditorCommon.h"
-#include "AutomationCommon.h"
-#include "IMainFrameModule.h"
-#include "FileManagerGeneric.h"
+#include "Misc/PackageName.h"
+#include "Tests/AutomationEditorCommon.h"
+#include "Tests/AutomationCommon.h"
+#include "Interfaces/IMainFrameModule.h"
 
 
 //////////////////////////////////////////////////////////////////////////

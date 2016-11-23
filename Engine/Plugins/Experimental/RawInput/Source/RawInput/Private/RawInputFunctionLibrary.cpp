@@ -1,6 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "RawInputPCH.h"
+#include "RawInputFunctionLibrary.h"
+#if PLATFORM_WINDOWS
+	#include "Windows/RawInputWindows.h"
+#endif
 
 TArray<FRegisteredDeviceInfo> URawInputFunctionLibrary::GetRegisteredDevices()
 {

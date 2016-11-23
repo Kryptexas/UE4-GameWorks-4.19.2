@@ -2,8 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Serialization/JsonTypes.h"
 #include "Policies/PrettyJsonPrintPolicy.h"
-#include "Dom/JsonValue.h"
+#include "Serialization/MemoryWriter.h"
 
 /**
  * Template for Json writers.

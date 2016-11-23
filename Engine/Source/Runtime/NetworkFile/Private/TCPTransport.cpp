@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "NetworkFilePrivatePCH.h"
 #include "TCPTransport.h"
-#include "MultichannelTCP.h"
+#include "NetworkMessage.h"
+#include "SocketSubsystem.h"
+#include "IPAddress.h"
+#include "Sockets.h"
+#include "MultichannelTcpSocket.h"
 #include "NetworkPlatformFile.h"
 
 FTCPTransport::FTCPTransport()

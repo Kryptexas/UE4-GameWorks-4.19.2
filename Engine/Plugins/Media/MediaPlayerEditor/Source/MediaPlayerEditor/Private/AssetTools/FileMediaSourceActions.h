@@ -2,8 +2,12 @@
 
 #pragma once
 
-#include "MediaSourceActions.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Styling/ISlateStyle.h"
+#include "AssetTools/MediaSourceActions.h"
 
+class FAssetData;
 
 /**
  * Implements an action for UMediaSource assets.

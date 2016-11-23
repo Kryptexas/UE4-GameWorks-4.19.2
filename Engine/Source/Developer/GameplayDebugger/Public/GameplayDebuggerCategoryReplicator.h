@@ -2,14 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "GameFramework/Actor.h"
 #include "GameplayDebuggerTypes.h"
 #include "GameplayDebuggerCategoryReplicator.generated.h"
 
+class AGameplayDebuggerCategoryReplicator;
 class APlayerController;
-class UInputComponent;
 class FGameplayDebuggerCategory;
 class FGameplayDebuggerExtension;
-class AGameplayDebuggerCategoryReplicator;
 class UGameplayDebuggerRenderingComponent;
 
 USTRUCT()

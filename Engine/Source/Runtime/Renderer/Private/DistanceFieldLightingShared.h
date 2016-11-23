@@ -6,8 +6,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "ShaderParameters.h"
+#include "RenderUtils.h"
+#include "RHIStaticStates.h"
 #include "DistanceFieldAtlas.h"
 #include "UniquePtr.h"
+
+class FLightSceneProxy;
+class FMaterialRenderProxy;
+class FPrimitiveSceneInfo;
+class FSceneRenderer;
+class FShaderParameterMap;
+class FViewInfo;
+
+template<typename ReferencedType> class TScopedPointer;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDistanceField, Warning, All);
 

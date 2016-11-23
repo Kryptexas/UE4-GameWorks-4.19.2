@@ -2,14 +2,26 @@
 
 #pragma once
 
-#include "Editor/Kismet/Public/BlueprintEditor.h"
-#include "ISequencer.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Widgets/SWidget.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "AssetData.h"
 #include "PreviewScene.h"
+#include "GraphEditor.h"
+#include "BlueprintEditor.h"
+#include "ISequencer.h"
 #include "WidgetReference.h"
+#include "Blueprint/UserWidget.h"
 
-class ISequencer;
+class FMenuBuilder;
+class FWidgetBlueprintEditorToolbar;
+class IMessageLogListing;
+class STextBlock;
+class UPanelSlot;
 class UWidgetAnimation;
-class UUserWidget;
+class UWidgetBlueprint;
 
 struct FNamedSlotSelection
 {

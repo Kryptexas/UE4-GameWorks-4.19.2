@@ -1,18 +1,33 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "MaterialMerging.h"
-#include "MapBuildDataRegistry.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Interfaces/Interface_AssetUserData.h"
+#include "RenderCommandFence.h"
+#include "Templates/ScopedCallback.h"
+#include "Misc/WorldCompositionUtility.h"
+#include "Engine/MaterialMerging.h"
 #include "Level.generated.h"
 
-class ALevelBounds;
+class AActor;
 class ABrush;
-class UTexture2D;
-class UNavigationDataChunk;
 class AInstancedFoliageActor;
+class ALevelBounds;
+class APlayerController;
 class AWorldSettings;
-class UWorld;
 class FSceneInterface;
+class ITargetPlatform;
+class UAssetUserData;
+class UMapBuildDataRegistry;
+class UNavigationDataChunk;
+class UTexture2D;
 struct FLevelCollection;
 
 /**

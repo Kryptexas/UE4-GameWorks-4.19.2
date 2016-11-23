@@ -2,9 +2,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Sequencer.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
+#include "SequencerCommonHelpers.h"
+#include "IKeyArea.h"
 #include "MovieSceneCommonHelpers.h"
 #include "ScopedTransaction.h"
-#include "MovieSceneSection.h"
 
 #define LOCTEXT_NAMESPACE "Arse"
 

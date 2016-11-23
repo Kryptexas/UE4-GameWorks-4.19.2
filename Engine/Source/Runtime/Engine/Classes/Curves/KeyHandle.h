@@ -1,7 +1,9 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
 #include "KeyHandle.generated.h"
-
 
 /**
  * Key handles are used to keep a handle to a key. They are completely transient.

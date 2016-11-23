@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "MessagingDebuggerModel.h"
+#include "Models/MessagingDebuggerModel.h"
 
 
 /* FMessagingDebuggerModel interface

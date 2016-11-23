@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
 #include "Engine/FontFace.h"
+#include "Toolkits/IToolkitHost.h"
 #include "AssetTypeActions_Base.h"
+
+class FMenuBuilder;
 
 class FAssetTypeActions_FontFace : public FAssetTypeActions_Base
 {

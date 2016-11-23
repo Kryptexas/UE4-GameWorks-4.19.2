@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "SGraphPin.h" // for FGraphPinHandle
-
-class UEdGraphPin;
+#include "CoreMinimal.h"
+#include "SGraphPin.h"
 
 /////////////////////////////////////////////////////
 // FGraphSplineOverlapResult

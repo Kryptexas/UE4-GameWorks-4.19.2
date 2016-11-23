@@ -4,32 +4,49 @@
 	SkeletalMesh.cpp: Unreal skeletal mesh and animation implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Engine/SkeletalMesh.h"
+#include "Serialization/CustomVersion.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "RawIndexBuffer.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Engine/Brush.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Animation/SmartName.h"
+#include "Animation/Skeleton.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "ComponentReregisterContext.h"
+#include "UObject/EditorObjectVersion.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "EngineUtils.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "EditorSupportDelegates.h"
 #include "GPUSkinVertexFactory.h"
-#include "SkeletalMeshSorting.h"
-#include "MeshBuild.h"
-#include "ParticleDefinitions.h"
 #include "TessellationRendering.h"
 #include "SkeletalRenderPublic.h"
-#include "SoundDefinitions.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
-#include "SkeletalRenderGPUSkin.h"
-#include "RawIndexBuffer.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
+#include "SceneManagement.h"
 #include "PhysicsPublic.h"
 #include "Animation/MorphTarget.h"
-#include "Animation/AnimSingleNodeInstance.h"
-#include "Animation/AnimBlueprint.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
-#include "ComponentReregisterContext.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/AssetUserData.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimInstance.h"
-#include "EditorObjectVersion.h"
+#include "SkeletalMeshSorting.h"
+#include "Engine/Engine.h"
+#include "Animation/AnimBlueprint.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
@@ -41,17 +58,15 @@
 #endif // #if WITH_EDITOR
 
 #include "Net/UnrealNetwork.h"
-#include "TargetPlatform.h"
+#include "Interfaces/ITargetPlatform.h"
 
 #if WITH_APEX
-#include "PhysicsEngine/PhysXSupport.h"
+#include "PhysXIncludes.h"
 #endif// #if WITH_APEX
 
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Components/BrushComponent.h"
-#include "FrameworkObjectVersion.h"
-#include "RenderingObjectVersion.h"
 #include "Streaming/UVChannelDensity.h"
 
 #define LOCTEXT_NAMESPACE "SkeltalMesh"
@@ -4978,8 +4993,8 @@ void ASkeletalMeshActor::LoadedFromAnotherClass(const FName& OldClassName)
 /*-----------------------------------------------------------------------------
 FSkeletalMeshSceneProxy
 -----------------------------------------------------------------------------*/
+#include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
-#include "SkeletalRender.h"
 
 const FQuat SphylBasis(FVector(1.0f / FMath::Sqrt(2.0f), 0.0f, 1.0f / FMath::Sqrt(2.0f)), PI);
 

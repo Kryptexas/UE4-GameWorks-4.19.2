@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
-#include "Abilities/GameplayAbilityTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
 #include "AttributeSet.h"
-#include "AbilityTask_WaitAttributeChange.h"
+#include "Abilities/Tasks/AbilityTask.h"
+#include "Abilities/Tasks/AbilityTask_WaitAttributeChange.h"
 #include "AbilityTask_WaitAttributeChangeRatioThreshold.generated.h"
 
 struct FGameplayEffectModCallbackData;

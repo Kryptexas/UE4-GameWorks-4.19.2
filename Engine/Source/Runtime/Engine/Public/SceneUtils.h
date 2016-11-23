@@ -10,8 +10,18 @@
 // Each event type will be displayed using the defined color
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
+
 // Note:  WITH_PROFILEGPU should be 0 for final builds
 #define WANTS_DRAW_MESH_EVENTS (WITH_PROFILEGPU && PLATFORM_SUPPORTS_DRAW_MESH_EVENTS)
+
+class FRealtimeGPUProfiler;
+class FRealtimeGPUProfilerEvent;
+class FRealtimeGPUProfilerFrame;
+class FRenderQueryPool;
+class FScopedGPUStatEvent;
 
 #if WANTS_DRAW_MESH_EVENTS
 

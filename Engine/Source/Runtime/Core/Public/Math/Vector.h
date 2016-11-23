@@ -2,8 +2,21 @@
 
 #pragma once
 
-#include "UnrealMathUtility.h"
-#include "Vector2D.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/NumericLimits.h"
+#include "Misc/Crc.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Parse.h"
+#include "Math/Color.h"
+#include "Math/IntPoint.h"
+#include "Logging/LogMacros.h"
+#include "Math/Vector2D.h"
+#include "Misc/ByteSwap.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Internationalization.h"
+#include "Math/IntVector.h"
 
 /**
  * A vector in 3-D space composed of components (X, Y, Z) with floating point precision.

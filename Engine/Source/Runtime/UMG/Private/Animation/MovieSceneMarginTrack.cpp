@@ -1,11 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "MovieSceneMarginSection.h"
-#include "MovieSceneMarginTrack.h"
-#include "IMovieScenePlayer.h"
-#include "MovieSceneMarginTemplate.h"
-#include "MovieSceneCommonHelpers.h"
+#include "Animation/MovieSceneMarginTrack.h"
+#include "Animation/MovieSceneMarginSection.h"
+#include "Animation/MovieSceneMarginTemplate.h"
 
 
 UMovieSceneMarginTrack::UMovieSceneMarginTrack(const FObjectInitializer& Init)

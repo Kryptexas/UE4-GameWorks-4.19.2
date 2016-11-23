@@ -1,12 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AITypes.h"
-#include "AI/Navigation/NavigationTypes.h"
-#include "GameFramework/NavMovementComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Engine/EngineTypes.h"
 #include "Components/ActorComponent.h"
+#include "EngineDefines.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "AITypes.h"
 #include "AIResourceInterface.h"
+#include "AI/Navigation/NavigationData.h"
+#include "GameFramework/NavMovementComponent.h"
 #include "PathFollowingComponent.generated.h"
+
+class Error;
+class FDebugDisplayInfo;
+class INavLinkCustomInterface;
+class UCanvas;
 
 AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogPathFollowing, Warning, All);
 

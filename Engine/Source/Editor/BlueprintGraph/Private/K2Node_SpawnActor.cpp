@@ -1,6 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_SpawnActor.h"
+#include "UObject/UnrealType.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "Kismet/GameplayStatics.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_CallArrayFunction.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
 
 static FString WorldContextPinName(TEXT("WorldContextObject"));

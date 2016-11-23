@@ -2,10 +2,23 @@
 
 #pragma once
 
-#include "IVREditorModule.h"
-#include "HeadMountedDisplayTypes.h"					// For EHMDDeviceType::Type
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDTrackingOrigin::Type
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
+#include "Editor/UnrealEdTypes.h"
+#include "ShowFlags.h"
+#include "Misc/App.h"
+#include "Widgets/SWindow.h"
+#include "HeadMountedDisplayTypes.h"
+#include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "VREditorMode.generated.h"
+
+class AActor;
+class FEditorViewportClient;
+class SLevelViewport;
+enum class EGizmoHandleTypes : uint8;
 
 // Forward declare the GizmoHandleTypes that is defined in VIBaseTransformGizmo.h
 enum class EGizmoHandleTypes : uint8;
@@ -440,4 +453,3 @@ private:
 	/** If this current mode is running */
 	bool bIsActive;
 };
-

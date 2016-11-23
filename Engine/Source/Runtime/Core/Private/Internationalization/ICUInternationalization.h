@@ -1,6 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Set.h"
+#include "Containers/Map.h"
+#include "Internationalization/CulturePointer.h"
+#include "Templates/UniquePtr.h"
+
+class FInternationalization;
+
 #if UE_ENABLE_ICU
 
 THIRD_PARTY_INCLUDES_START

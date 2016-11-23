@@ -2,12 +2,10 @@
 
 #pragma once
 
-#include "TaskGraphInterfaces.h"
-
-
-class FUdpSerializedMessage;
-class IMessageContext;
-
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "IMessageContext.h"
+#include "Transport/UdpSerializedMessage.h"
 
 /**
  * Implements an asynchronous task for serializing a message.

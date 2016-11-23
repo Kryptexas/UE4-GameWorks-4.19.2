@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRHIRendererPrivatePCH.h"
 #include "SlateMaterialShader.h"
-#include "RenderingCommon.h"
+#include "Materials/Material.h"
+#include "ShaderParameterUtils.h"
 
 
 FSlateMaterialShaderVS::FSlateMaterialShaderVS(const FMaterialShaderType::CompiledShaderInitializerType& Initializer)

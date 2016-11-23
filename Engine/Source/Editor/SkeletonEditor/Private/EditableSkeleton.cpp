@@ -1,12 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "EditableSkeleton.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "AssetData.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimSequence.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "ISkeletonTree.h"
 #include "SSkeletonTree.h"
-#include "IPersonaToolkit.h"
-#include "MeshUtilities.h"
-#include "BoneControllers/AnimNode_ModifyBone.h"
-#include "AnimPreviewInstance.h"
 #include "ScopedTransaction.h"
 #include "Factories.h"
 #include "Animation/BlendProfile.h"
@@ -14,9 +22,9 @@
 #include "SBlendProfilePicker.h"
 #include "AssetNotifications.h"
 #include "BlueprintActionDatabase.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "SSkeletonWidget.h"
-#include "Animation/DebugSkelMeshComponent.h"
 
 const FString FEditableSkeleton::SocketCopyPasteHeader = TEXT("SocketCopyPasteBuffer");
 

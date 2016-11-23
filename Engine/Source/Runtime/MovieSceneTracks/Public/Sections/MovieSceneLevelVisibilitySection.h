@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
+#include "MovieSceneSection.h"
 #include "MovieSceneLevelVisibilitySection.generated.h"
 
 

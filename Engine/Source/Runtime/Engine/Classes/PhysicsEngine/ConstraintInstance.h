@@ -1,8 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "ConstraintTypes.h"
-#include "ConstraintDrives.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "EngineDefines.h"
+#include "PhysxUserData.h"
+#include "PhysicsEngine/ConstraintTypes.h"
+#include "PhysicsEngine/ConstraintDrives.h"
 #include "ConstraintInstance.generated.h"
+
+class FMaterialRenderProxy;
+class FMeshElementCollector;
+class FPrimitiveDrawInterface;
+struct FBodyInstance;
 
 #if WITH_PHYSX
 namespace physx

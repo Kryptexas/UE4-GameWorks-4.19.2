@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "MovieSceneSegmentCompiler.h"
+#include "CoreMinimal.h"
+#include "MovieSceneTrack.h"
+#include "Evaluation/MovieSceneSegment.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
 
 namespace MovieSceneSegmentCompiler
 {

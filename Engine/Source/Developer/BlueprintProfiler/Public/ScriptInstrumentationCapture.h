@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "Editor/Kismet/Public/Profiler/TracePath.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FScriptInstrumentedEvent

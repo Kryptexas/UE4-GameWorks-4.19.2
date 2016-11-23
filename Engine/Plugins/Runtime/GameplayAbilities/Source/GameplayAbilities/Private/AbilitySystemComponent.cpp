@@ -1,19 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayCueInterface.h"
-#include "Abilities/GameplayAbility.h"
-#include "Abilities/Tasks/AbilityTask.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/Canvas.h"
+#include "DisplayDebugHelpers.h"
+#include "Engine/Engine.h"
+#include "GameFramework/HUD.h"
+#include "AbilitySystemStats.h"
+#include "AbilitySystemGlobals.h"
 #include "GameplayCueManager.h"
 
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
-#include "DisplayDebugHelpers.h"
-#include "VisualLogger.h"
 #include "GameplayEffectCustomApplicationRequirement.h"
 
 DEFINE_LOG_CATEGORY(LogAbilitySystemComponent);

@@ -5,11 +5,12 @@
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 #include "UObject/GCObject.h"
 
 class FPrimitiveDrawInterface;
-class FReferenceCollector;
 class FSceneView;
 class UMaterial;
 class UMaterialInstanceDynamic;

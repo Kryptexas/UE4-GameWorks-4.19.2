@@ -5,29 +5,32 @@
 
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "EngineStats.h"
+#include "Components/PrimitiveComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "UObject/Package.h"
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/NetDriver.h"
+#include "DrawDebugHelpers.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "GameFramework/Character.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/GameStateBase.h"
-#include "Components/PrimitiveComponent.h"
-#include "Animation/AnimMontage.h"
-#include "PhysicsEngine/DestructibleActor.h"
+#include "Engine/Canvas.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "Navigation/PathFollowingComponent.h"
 #include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/AvoidanceManager.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/BrushComponent.h"
 #include "Components/DestructibleComponent.h"
 
 #include "Engine/DemoNetDriver.h"
-#include "Engine/NetworkObjectList.h"
 
-#include "HAL/IConsoleManager.h"
-#include "PerfCountersHelpers.h"
+#include "Net/PerfCountersHelpers.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacterMovement, Log, All);

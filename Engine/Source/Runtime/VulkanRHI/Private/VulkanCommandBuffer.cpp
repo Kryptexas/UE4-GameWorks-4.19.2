@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "VulkanRHIPrivate.h"
-#include "VulkanCommandBuffer.h"
 #include "VulkanContext.h"
 
 FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferManager* InCommandBufferManager)

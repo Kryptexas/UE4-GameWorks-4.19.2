@@ -4,25 +4,18 @@
 	DistanceFieldSurfaceCacheLighting.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "UniformBuffer.h"
-#include "ShaderParameters.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
-#include "DistanceFieldLightingShared.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
+#include "DeferredShadingRenderer.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "DistanceFieldLightingShared.h"
+#include "ScreenRendering.h"
 #include "DistanceFieldLightingPost.h"
 #include "DistanceFieldGlobalIllumination.h"
-#include "PostProcessAmbientOcclusion.h"
-#include "RHICommandList.h"
-#include "SceneUtils.h"
 #include "OneColorShader.h"
-#include "BasePassRendering.h"
-#include "HeightfieldLighting.h"
 #include "GlobalDistanceField.h"
 #include "FXSystem.h"
-#include "PostProcessSubsurface.h"
+#include "PostProcess/PostProcessSubsurface.h"
 
 int32 GDistanceFieldAO = 1;
 FAutoConsoleVariableRef CVarDistanceFieldAO(

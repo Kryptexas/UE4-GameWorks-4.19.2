@@ -1,13 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AnimNotifyState.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "AnimNotifyState_Trail.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogAnimTrails, Log, All);
-
+class UParticleSystem;
+class UParticleSystemComponent;
 class USkeletalMeshComponent;
 class UAnimSequenceBase;
+
+DECLARE_LOG_CATEGORY_EXTERN(LogAnimTrails, Log, All);
 
 UCLASS(editinlinenew, Blueprintable, const, hidecategories = Object, collapsecategories, meta = (ShowWorldContextPin, DisplayName = "Trail"))
 class ENGINE_API UAnimNotifyState_Trail : public UAnimNotifyState

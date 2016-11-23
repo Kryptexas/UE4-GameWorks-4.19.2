@@ -2,7 +2,12 @@
 
 #pragma once
 
-#include "Editor/UnrealEd/Public/SCommonEditorViewportToolbarBase.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "SViewportToolBar.h"
+#include "SCommonEditorViewportToolbarBase.h"
+#include "SMaterialEditorViewport.h"
 
 ///////////////////////////////////////////////////////////
 // SMaterialEditorViewportToolBar

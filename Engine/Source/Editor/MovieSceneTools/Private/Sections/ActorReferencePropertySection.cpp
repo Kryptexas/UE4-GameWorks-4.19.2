@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "ActorReferencePropertySection.h"
-#include "MovieSceneActorReferenceSection.h"
+#include "Sections/ActorReferencePropertySection.h"
+#include "GameFramework/Actor.h"
+#include "ISectionLayoutBuilder.h"
+#include "Sections/MovieSceneActorReferenceSection.h"
 
 
 void FActorReferenceKeyArea::CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const

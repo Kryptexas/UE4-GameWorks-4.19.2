@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SkeletalMeshTypes.h"
+
+class UBodySetup;
+class UPhysicsAsset;
+class UPhysicsConstraintTemplate;
+class USkeletalMesh;
+class USkeletalMeshComponent;
 
 enum EPhysAssetFitGeomType
 {

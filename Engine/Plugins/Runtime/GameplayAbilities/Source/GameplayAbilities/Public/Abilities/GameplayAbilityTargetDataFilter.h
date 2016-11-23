@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
 #include "GameplayAbilityTargetDataFilter.generated.h"
 
 UENUM(BlueprintType)

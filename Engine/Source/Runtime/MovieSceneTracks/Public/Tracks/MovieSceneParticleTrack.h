@@ -2,12 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneNameableTrack.h"
 #include "MovieSceneParticleTrack.generated.h"
-
-
-class UMovieSceneSection;
-
 
 /**
  * Handles triggering of particle emitters

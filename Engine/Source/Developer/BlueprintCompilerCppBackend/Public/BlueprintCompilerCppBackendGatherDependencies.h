@@ -2,9 +2,11 @@
 
 #pragma  once
 
-#include "Engine/BlueprintGeneratedClass.h"
-#include "Engine/UserDefinedStruct.h"
-#include "Engine/UserDefinedEnum.h"
+#include "CoreMinimal.h"
+
+class UBlueprintGeneratedClass;
+class UUserDefinedEnum;
+class UUserDefinedStruct;
 
 /** The struct gathers dependencies of a converted BPGC */
 struct BLUEPRINTCOMPILERCPPBACKEND_API FGatherConvertedClassDependencies

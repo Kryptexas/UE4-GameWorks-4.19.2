@@ -2,8 +2,17 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "Delegates/IDelegateInstance.h"
+#include "Delegates/Delegate.h"
+
 #define TRACK_CONSOLE_FIND_COUNT !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
+template <class T> class TConsoleVariableData;
 
 /**
  * Console variable usage guide:

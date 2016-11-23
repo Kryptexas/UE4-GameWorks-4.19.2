@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "EditorProjectSettings.h"
+#include "Settings/EditorProjectSettings.h"
+#include "UObject/UnrealType.h"
 
 
 EUnit ConvertDefaultInputUnits(EDefaultLocationUnit In)

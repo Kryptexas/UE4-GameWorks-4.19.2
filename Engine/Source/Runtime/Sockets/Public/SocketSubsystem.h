@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "SocketTypes.h"
+
+class Error;
+class FInternetAddr;
 
 SOCKETS_API DECLARE_LOG_CATEGORY_EXTERN(LogSockets, Log, All);
 

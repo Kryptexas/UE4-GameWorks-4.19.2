@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/ArrayView.h"
+
 class FReimportHandler;
 
 /** Reimport manager for package resources with associated source files on disk. */

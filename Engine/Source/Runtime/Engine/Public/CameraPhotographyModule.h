@@ -2,6 +2,16 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "Features/IModularFeatures.h"
+#include "Modules/ModuleInterface.h"
+#include "Features/IModularFeature.h"
+#include "Modules/ModuleManager.h"
+
+class APlayerCameraManager;
+class ICameraPhotography;
+struct FMinimalViewInfo;
+
 /**
 * The public interface of the CameraPhotographyModule
 */

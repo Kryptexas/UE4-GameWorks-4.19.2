@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-
+#include "Windows/WindowsPlatformTime.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/Ticker.h"
+#include "Windows/WindowsHWrapper.h"
 
 float FWindowsPlatformTime::CPUTimePctRelative = 0.0f;
 

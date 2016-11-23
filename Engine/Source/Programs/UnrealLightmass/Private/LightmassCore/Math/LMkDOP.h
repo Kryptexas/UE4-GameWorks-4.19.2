@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 // #include "Collision.h"
+#include "LMMath.h"
+#include "LMMathSSE.h"
 
 namespace Lightmass
 {

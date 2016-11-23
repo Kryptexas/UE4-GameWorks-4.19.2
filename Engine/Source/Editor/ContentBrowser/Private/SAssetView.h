@@ -2,10 +2,36 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
 #include "AssetData.h"
+#include "ARFilter.h"
 #include "AssetThumbnail.h"
+#include "IContentBrowserSingleton.h"
+#include "SourcesData.h"
+#include "Animation/CurveSequence.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Editor/ContentBrowser/Private/AssetViewSortManager.h"
 
+class FMenuBuilder;
+class FWeakWidgetPath;
+class FWidgetPath;
+class SAssetColumnView;
+class SAssetListView;
+class SAssetTileView;
+class SComboButton;
+class UFactory;
 struct FAssetViewAsset;
+struct FAssetViewItem;
+struct FHistoryData;
+struct FPropertyChangedEvent;
 
 /**
  * A widget to display a list of filtered assets

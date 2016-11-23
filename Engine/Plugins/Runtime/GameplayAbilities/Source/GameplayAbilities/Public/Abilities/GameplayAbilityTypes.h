@@ -2,21 +2,25 @@
 
 #pragma once
 
-#include "GameplayEffect.h"
-#include "GameplayAbilitySpec.h"
-#include "GameplayPrediction.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "GameplayTagContainer.h"
 #include "AttributeSet.h"
-#include "GameFramework/MovementComponent.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayPrediction.h"
+#include "GameplayAbilitySpec.h"
+#include "UObject/Package.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameplayAbilityTypes.generated.h"
 
-class UGameplayEffect;
-class UAnimInstance;
+class APlayerController;
 class UAbilitySystemComponent;
+class UAnimInstance;
+class UAnimMontage;
 class UGameplayAbility;
-class AGameplayAbilityTargetActor;
-class UAbilityTask;
-class UAttributeSet;
-struct FActiveGameplayEffect;
+class UMovementComponent;
 
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
 

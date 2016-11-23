@@ -1,17 +1,30 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Interfaces/Interface_CollisionDataProvider.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/ScriptMacros.h"
 #include "Interfaces/Interface_AssetUserData.h"
-#include "MeshMerging.h"
+#include "RenderCommandFence.h"
+#include "Templates/ScopedPointer.h"
+#include "Components.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Engine/MeshMerging.h"
 #include "UniquePtr.h"
 #include "StaticMesh.generated.h"
 
 /** The maximum number of static mesh LODs allowed. */
 #define MAX_STATIC_MESH_LODS 8
 
-// Forward declarations
-class UFoliageType_InstancedStaticMesh;
+class FSpeedTreeWind;
+class UAssetUserData;
+class UMaterialInterface;
 struct FStaticMeshLODResources;
 
 /*-----------------------------------------------------------------------------

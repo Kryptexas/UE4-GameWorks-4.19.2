@@ -2,11 +2,9 @@
 
 #pragma once
 
-
-class IMessageAttachment;
-class IMessageContext;
-class IMessageData;
-
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "IMessageContext.h"
 
 /**
  * Interface for message transport technologies.

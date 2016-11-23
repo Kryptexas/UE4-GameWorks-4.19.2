@@ -5,6 +5,18 @@
 	that runs a thread to download chunks in it's queue.
 =============================================================================*/
 
+#pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Interfaces/IHttpRequest.h"
+#include "BuildPatchProgress.h"
+#include "BuildPatchManifest.h"
+
+enum class EBuildPatchDownloadHealth;
+
 /**
  * FChunkDownloadRecord
  * This is a simple struct to record downloads

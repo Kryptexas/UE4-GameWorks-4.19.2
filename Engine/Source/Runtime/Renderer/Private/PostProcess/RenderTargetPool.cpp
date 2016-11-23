@@ -4,9 +4,15 @@
 	RenderTargetPool.cpp: Scene render target pool manager.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "RenderTargetPool.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "RHIStaticStates.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "CanvasTypes.h"
+#include "Engine/Canvas.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRendering.h"
+#include "RenderTargetTemp.h"
 
 /** The global render targets pool. */
 TGlobalResource<FRenderTargetPool> GRenderTargetPool;

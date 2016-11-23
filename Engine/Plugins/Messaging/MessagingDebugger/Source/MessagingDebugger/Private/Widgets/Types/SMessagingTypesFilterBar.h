@@ -2,9 +2,10 @@
 
 #pragma once
 
-
-class FMessagingDebuggerTypeFilter;
-
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Models/MessagingDebuggerTypeFilter.h"
 
 /**
  * Implements the message type list filter bar widget.

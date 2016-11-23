@@ -1,7 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "CurveTableEditorPrivatePCH.h"
 #include "CurveTableEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "CurveTableEditorCommands"

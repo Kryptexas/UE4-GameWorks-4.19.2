@@ -6,7 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "BuildPatchState.h"
+
+class IBuildInstaller;
 
 typedef TSharedPtr< class IBuildInstaller, ESPMode::ThreadSafe > IBuildInstallerPtr;
 typedef TSharedRef< class IBuildInstaller, ESPMode::ThreadSafe > IBuildInstallerRef;

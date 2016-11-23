@@ -1,15 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
 #include "DetailItemNode.h"
-#include "PropertyEditorHelpers.h"
 #include "DetailCategoryGroupNode.h"
-#include "PropertyHandleImpl.h"
 #include "DetailGroup.h"
 #include "DetailPropertyRow.h"
-#include "DetailCustomBuilderRow.h"
 #include "SDetailSingleItemRow.h"
-#include "TutorialMetaData.h"
 
 
 

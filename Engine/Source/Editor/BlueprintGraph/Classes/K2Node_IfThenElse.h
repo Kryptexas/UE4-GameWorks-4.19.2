@@ -2,8 +2,15 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Textures/SlateIcon.h"
 #include "K2Node.h"
 #include "K2Node_IfThenElse.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
+class UEdGraphPin;
 
 UCLASS(MinimalAPI, meta=(Keywords = "if bool branch"))
 class UK2Node_IfThenElse : public UK2Node

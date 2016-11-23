@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "Map.h"
+#include "CoreMinimal.h"
+
+struct FKey;
 
 /** Immutable wrapper of shared pointer to a map */
 template <class FKey, class FValue>

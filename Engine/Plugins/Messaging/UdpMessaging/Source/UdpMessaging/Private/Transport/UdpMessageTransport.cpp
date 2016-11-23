@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UdpMessagingPrivatePCH.h"
-#include "UdpDeserializedMessage.h"
-#include "UdpMessageProcessor.h"
-#include "UdpMessageTransport.h"
-#include "UdpSerializeMessageTask.h"
-#include "UdpSerializedMessage.h"
+#include "Transport/UdpMessageTransport.h"
+#include "Common/UdpSocketBuilder.h"
+#include "Transport/UdpDeserializedMessage.h"
+#include "Transport/UdpSerializedMessage.h"
+#include "Transport/UdpMessageProcessor.h"
+#include "Transport/UdpSerializeMessageTask.h"
+#include "UdpMessagingPrivate.h"
 
 
 /* FUdpMessageTransport structors

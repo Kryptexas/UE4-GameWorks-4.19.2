@@ -2,9 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "CPUSolver.h"
 #include "ImportExport.h"
 #include "Cache.h"
+#include "Containers/ChunkedArray.h"
+#include "Containers/List.h"
+#include "HAL/Runnable.h"
+#include "LightmapData.h"
 
 namespace Lightmass
 {

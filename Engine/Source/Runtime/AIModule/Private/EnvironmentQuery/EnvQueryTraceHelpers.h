@@ -2,6 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Engine/World.h"
+
+class ANavigationData;
+class Error;
+
 namespace FEQSHelpers
 {
 	enum class ETraceMode : uint8

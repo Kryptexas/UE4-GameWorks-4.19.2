@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayEffectCalculation.generated.h"
-
-struct FGameplayEffectSpec;
-class UAbilitySystemComponent;
 
 /** Abstract base for specialized gameplay effect calculations; Capable of specifing attribute captures */
 UCLASS(BlueprintType, Blueprintable, Abstract)

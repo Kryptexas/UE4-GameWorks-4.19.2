@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+#include "UObject/Interface.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.generated.h"
 

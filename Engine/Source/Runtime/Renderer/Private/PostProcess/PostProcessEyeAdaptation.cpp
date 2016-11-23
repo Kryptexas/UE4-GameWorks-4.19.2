@@ -4,12 +4,9 @@
 	PostProcessEyeAdaptation.cpp: Post processing eye adaptation implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessEyeAdaptation.h"
-#include "PostProcessing.h"
-#include "SceneUtils.h"
+#include "PostProcess/PostProcessEyeAdaptation.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
 
 
 /**

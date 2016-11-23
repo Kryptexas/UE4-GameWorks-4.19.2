@@ -2,9 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "ProfilerCommon.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Rendering/RenderingCommon.h"
 
+class FPaintArgs;
 class FProfilerStatMetaData;
-
+class FSlateWindowElementList;
+struct FSlateFontInfo;
 
 struct FFrameThreadTimes
 {

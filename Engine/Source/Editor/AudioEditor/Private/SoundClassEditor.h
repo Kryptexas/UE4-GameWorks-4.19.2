@@ -2,8 +2,18 @@
 
 #pragma once
 
-#include "GraphEditor.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Toolkits/IToolkitHost.h"
 #include "EditorUndoClient.h"
+#include "GraphEditor.h"
+#include "ISoundClassEditor.h"
+
+class IDetailsView;
+class SDockableTab;
+class UEdGraph;
+class USoundClass;
 
 //////////////////////////////////////////////////////////////////////////
 // FSoundClassEditor

@@ -1,10 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "CoreMinimal.h"
+#include "Templates/Greater.h"
+#include "Stats/Stats.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
+#include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Item.h"
-#include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
-#include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
 
 //----------------------------------------------------------------------//
 // FEQSQueryDebugData

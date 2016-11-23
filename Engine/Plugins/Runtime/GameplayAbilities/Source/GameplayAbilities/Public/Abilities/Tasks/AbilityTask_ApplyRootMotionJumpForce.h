@@ -1,7 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_ApplyRootMotion_Base.h"
 #include "AbilityTask_ApplyRootMotionJumpForce.generated.h"
+
+class UCharacterMovementComponent;
+class UCurveFloat;
+class UCurveVector;
+class UGameplayTasksComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FApplyRootMotionJumpForceDelegate);
 

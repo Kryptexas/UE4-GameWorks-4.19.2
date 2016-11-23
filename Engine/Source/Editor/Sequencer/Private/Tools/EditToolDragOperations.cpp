@@ -1,14 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
-#include "EditToolDragOperations.h"
-#include "Sequencer.h"
-#include "MovieSceneSection.h"
-#include "ISequencerSection.h"
-#include "IKeyArea.h"
-#include "CommonMovieSceneTools.h"
-#include "MovieScene.h"
+#include "Tools/EditToolDragOperations.h"
+#include "ISequencer.h"
 #include "MovieSceneTrack.h"
+#include "Sequencer.h"
+#include "SequencerSettings.h"
 #include "VirtualTrackArea.h"
 
 struct FDefaultKeySnappingCandidates : ISequencerSnapCandidate

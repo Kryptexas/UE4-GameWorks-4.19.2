@@ -1,14 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
-#include "SlateCore.h"
 #include "WebBrowserSingleton.h"
-#include "IPlatformTextField.h"
-#include "IVirtualKeyboardEntry.h"
-#include "SlateApplication.h"
-#include "Runtime/Launch/Resources/Version.h"
+#include "Misc/Paths.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Misc/CommandLine.h"
+#include "Internationalization/Culture.h"
+#include "Misc/App.h"
 #include "WebBrowserModule.h"
+#include "Misc/EngineVersion.h"
+#include "Framework/Application/SlateApplication.h"
 #include "IWebBrowserCookieManager.h"
+#include "WebBrowserLog.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 #if WITH_CEF3
 #include "CEF/CEFBrowserApp.h"
@@ -24,10 +30,6 @@
 #	if PLATFORM_WINDOWS
 #		include "HideWindowsPlatformTypes.h"
 #	endif
-#endif
-
-#if PLATFORM_MAC || PLATFORM_LINUX
-#	include <pthread.h>
 #endif
 
 #if PLATFORM_ANDROID
@@ -621,4 +623,3 @@ bool FWebBrowserSingleton::UnregisterContext(const FString& ContextId)
 #undef CEF3_RESOURCES_DIR
 #undef CEF3_SUBPROCES_EXE
 #undef ApplicationCacheDir
-

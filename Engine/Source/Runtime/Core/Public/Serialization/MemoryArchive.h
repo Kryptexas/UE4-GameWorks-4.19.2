@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Serialization/Archive.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
 
 /**
  * Base class for serializing arbitrary data in memory.

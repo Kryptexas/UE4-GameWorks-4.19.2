@@ -1,37 +1,75 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LaunchPrivatePCH.h"
-#include "Internationalization/Internationalization.h"
-#include "Ticker.h"
-#include "ConsoleManager.h"
-#include "ExceptionHandling.h"
-#include "FileManagerGeneric.h"
-#include "TaskGraphInterfaces.h"
-#include "StatsMallocProfilerProxy.h"
+#include "LaunchEngineLoop.h"
+#include "HAL/PlatformStackWalk.h"
+#include "HAL/PlatformOutputDevices.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/QueuedThreadPool.h"
+#include "HAL/FileManager.h"
+#include "HAL/PlatformAffinity.h"
+#include "Misc/FileHelper.h"
+#include "Internationalization/TextLocalizationManagerGlobals.h"
+#include "Logging/LogSuppressionInterface.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "Misc/TimeGuard.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/CommandLine.h"
+#include "Misc/App.h"
+#include "Misc/OutputDeviceConsole.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Templates/ScopedPointer.h"
+#include "HAL/FileManagerGeneric.h"
+#include "HAL/ExceptionHandling.h"
+#include "Stats/StatsMallocProfilerProxy.h"
+#include "HAL/PlatformSplash.h"
+#include "HAL/ThreadManager.h"
+#include "ProfilingDebugging/ExternalProfiler.h"
+#include "Containers/Ticker.h"
 
-#include "Projects.h"
-#include "UProjectInfo.h"
-#include "EngineVersion.h"
+#include "Interfaces/IPluginManager.h"
+#include "ProjectDescriptor.h"
+#include "Interfaces/IProjectManager.h"
+#include "Misc/UProjectInfo.h"
+#include "Misc/EngineVersion.h"
+#include "HAL/IOBase.h"
 
-#include "ModuleManager.h"
-#include "../Resources/Version.h"
+#include "Misc/CoreDelegates.h"
+#include "Modules/ModuleManager.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "VersionManifest.h"
 #include "UObject/DevObjectVersion.h"
 #include "HAL/ThreadHeartBeat.h"
-#include "MallocProfiler.h"
 
-#include "NetworkVersion.h"
+#include "Misc/NetworkVersion.h"
 #include "UniquePtr.h"
 
 #if WITH_COREUOBJECT
 	#include "Internationalization/PackageLocalizationManager.h"
-	#include "CoreUObject.h"
+	#include "Misc/PackageName.h"
+	#include "Misc/StartupPackages.h"
+	#include "UObject/UObjectHash.h"
+	#include "UObject/Package.h"
+	#include "UObject/Linker.h"
 #endif
 
 #if WITH_EDITOR
-	#include "EditorStyle.h"
-	#include "RemoteConfigIni.h"
+	#include "EditorStyleSet.h"
+	#include "Misc/RemoteConfigIni.h"
 	#include "EditorCommandLineUtils.h"
+	#include "Input/Reply.h"
+	#include "Styling/CoreStyle.h"
+	#include "RenderingThread.h"
+	#include "Editor/EditorEngine.h"
+	#include "UnrealEdMisc.h"
+	#include "UnrealEdGlobals.h"
+	#include "Editor/UnrealEdEngine.h"
+	#include "Settings/EditorExperimentalSettings.h"
+	#include "Interfaces/IEditorStyleModule.h"
 
 	#if PLATFORM_WINDOWS
 		#include "AllowWindowsPlatformTypes.h"
@@ -41,14 +79,27 @@
 #endif
 
 #if WITH_ENGINE
+	#include "Engine/GameEngine.h"
+	#include "UnrealClient.h"
+	#include "Engine/LocalPlayer.h"
+	#include "GameFramework/PlayerController.h"
+	#include "GameFramework/GameUserSettings.h"
+	#include "Features/IModularFeatures.h"
+	#include "GameFramework/WorldSettings.h"
+	#include "SystemSettings.h"
+	#include "EngineStats.h"
+	#include "EngineGlobals.h"
 	#include "AudioThread.h"
-	#include "AutomationController.h"
+	#include "Interfaces/IAutomationControllerModule.h"
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
-	#include "RenderCore.h"
 	#include "ShaderCompiler.h"
 	#include "DistanceFieldAtlas.h"
 	#include "GlobalShader.h"
+	#include "Materials/MaterialInterface.h"
+	#include "TextureResource.h"
+	#include "Engine/Texture2D.h"
+	#include "SceneUtils.h"
 	#include "ParticleHelper.h"
 	#include "PhysicsPublic.h"
 	#include "PlatformFeatures.h"
@@ -57,18 +108,21 @@
 	#include "EngineService.h"
 	#include "ContentStreaming.h"
 	#include "HighResScreenshot.h"
-	#include "HotReloadInterface.h"
-	#include "ISessionService.h"
+	#include "Misc/HotReloadInterface.h"
 	#include "ISessionServicesModule.h"
-	#include "Engine/GameInstance.h"
 	#include "Net/OnlineEngineInterface.h"
 	#include "Internationalization/EnginePackageLocalizationCache.h"
+	#include "Rendering/SlateRenderer.h"
+	#include "Layout/WidgetPath.h"
+	#include "Framework/Application/SlateApplication.h"
+	#include "IMessagingModule.h"
 	#include "Engine/DemoNetDriver.h"
 
 #if !UE_SERVER
+	#include "IHeadMountedDisplayModule.h"
 	#include "HeadMountedDisplay.h"
-	#include "ISlateRHIRendererModule.h"
-	#include "ISlateNullRendererModule.h"
+	#include "Interfaces/ISlateRHIRendererModule.h"
+	#include "Interfaces/ISlateNullRendererModule.h"
 	#include "EngineFontServices.h"
 #endif
 
@@ -80,10 +134,16 @@
 #endif
 
 #if WITH_AUTOMATION_WORKER
-	#include "AutomationWorker.h"
+	#include "Interfaces/IAutomationWorkerModule.h"
 #endif
 
 #endif  //WITH_ENGINE
+
+class FSlateRenderer;
+class SViewport;
+class IPlatformFile;
+class FExternalProfiler;
+class FFeedbackContext;
 
 #if WITH_EDITOR
 	#include "FeedbackContextEditor.h"
@@ -2638,7 +2698,7 @@ bool FEngineLoop::ShouldUseIdleMode() const
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
-#include "StackTracker.h"
+#include "Containers/StackTracker.h"
 static TAutoConsoleVariable<int32> CVarLogGameThreadMallocChurn(
 	TEXT("LogGameThreadMallocChurn.Enable"),
 	0,

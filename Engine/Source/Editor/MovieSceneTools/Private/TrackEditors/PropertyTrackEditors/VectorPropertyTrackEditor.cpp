@@ -1,9 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieSceneVectorTrack.h"
-#include "VectorPropertyTrackEditor.h"
-#include "VectorPropertySection.h"
+#include "TrackEditors/PropertyTrackEditors/VectorPropertyTrackEditor.h"
+#include "Sections/VectorPropertySection.h"
 
 FName FVectorPropertyTrackEditor::XName( "X" );
 FName FVectorPropertyTrackEditor::YName( "Y" );

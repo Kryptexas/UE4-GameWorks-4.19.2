@@ -1,9 +1,23 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintProfilerPCH.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/GraphEditor/Public/SGraphPin.h"
+#include "BlueprintProfilerConnectionDrawingPolicy.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Rendering/DrawElements.h"
+#include "Framework/Application/SlateApplication.h"
+
+#if WITH_EDITOR
+#include "Engine/Blueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Profiler/TracePath.h"
+#include "Profiler/BlueprintProfilerSettings.h"
+#include "EdGraphSchema_K2.h"
+#endif // WITH_EDITOR
+
+#include "BlueprintProfilerModule.h"
+#include "ScriptInstrumentationPlayback.h"
+
+
 
 /////////////////////////////////////////////////////
 // FBlueprintProfilerPinConnectionFactory
@@ -470,7 +484,6 @@ void FBlueprintProfilerConnectionDrawingPolicy::DrawPerfConnection(int32 LayerId
 		}
 	}
 }
-
 void FBlueprintProfilerConnectionDrawingPolicy::ApplyHoverDeemphasis(UEdGraphPin* OutputPin, UEdGraphPin* InputPin, /*inout*/ float& Thickness, /*inout*/ FLinearColor& WireColor)
 {
 	const float FadeInBias = 0.75f; // Time in seconds before the fading starts to occur

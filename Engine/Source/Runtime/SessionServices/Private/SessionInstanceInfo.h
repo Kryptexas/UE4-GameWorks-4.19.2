@@ -2,15 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "IMessageContext.h"
+#include "IMessageBus.h"
+#include "Helpers/MessageEndpoint.h"
 #include "ISessionInstanceInfo.h"
+#include "ISessionInfo.h"
 
-
-class IMessageBus;
-class ISessionInfo;
 struct FEngineServicePong;
 struct FSessionLogMessage;
+struct FSessionServiceLog;
 struct FSessionServicePong;
-
 
 /**
  * Implements a class to maintain all info related to a game instance in a session

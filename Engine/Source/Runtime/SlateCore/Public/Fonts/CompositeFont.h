@@ -2,8 +2,13 @@
 
 #pragma once
 
-#include "FontBulkData.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/GCObject.h"
+#include "UObject/Class.h"
 #include "CompositeFont.generated.h"
+
+class UFontBulkData;
 
 UENUM()
 enum class EFontHinting : uint8

@@ -1,10 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "AnimCurveTypes.h"
-#include "Animation/AnimInstance.h"
-#include "AnimationRuntime.h"
-#include "FrameworkObjectVersion.h"
+#include "Animation/AnimCurveTypes.h"
+#include "UObject/FrameworkObjectVersion.h"
 
 DECLARE_CYCLE_STAT(TEXT("AnimSeq EvalCurveData"), STAT_AnimSeq_EvalCurveData, STATGROUP_Anim);
 

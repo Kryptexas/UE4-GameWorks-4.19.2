@@ -2,17 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IMessageContext.h"
+#include "IMessageBus.h"
+#include "Helpers/MessageEndpoint.h"
 #include "ISessionService.h"
 
-
-struct FMessageAddress;
-class FMessageEndpoint;
 struct FSessionServiceLogSubscribe;
 struct FSessionServiceLogUnsubscribe;
 struct FSessionServicePing;
-class IMessageBus;
-class IMessageContext;
-
 
 /**
  * Implements an application session service.

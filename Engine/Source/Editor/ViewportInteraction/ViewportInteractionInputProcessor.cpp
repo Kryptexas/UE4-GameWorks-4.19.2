@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ViewportInteractionModule.h"
 #include "ViewportInteractionInputProcessor.h"
+#include "Input/Events.h"
+#include "Misc/App.h"
 #include "ViewportWorldInteractionManager.h"
-#include "SLevelViewport.h"
 
 FViewportInteractionInputProcessor::FViewportInteractionInputProcessor( FViewportWorldInteractionManager* InWorldInteractionManager )
 	: WorldInteractionManager( InWorldInteractionManager )

@@ -1,14 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "Sound/SoundNode.h"
+#include "EngineUtils.h"
 #include "Sound/SoundCue.h"
 
 #if WITH_EDITOR
 //#include "AudioEditor.h"
 #endif
-#include "AssetData.h"
 
 /*-----------------------------------------------------------------------------
 	USoundNode implementation.

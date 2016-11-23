@@ -5,6 +5,9 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionPixelDepth.generated.h"
 

@@ -2,9 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneSequence.h"
 #include "NiagaraSequence.generated.h"
 
+class UMovieScene;
 
 /**
  * Movie scene sequence used by Niagara.

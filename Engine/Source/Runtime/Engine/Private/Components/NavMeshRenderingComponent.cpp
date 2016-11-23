@@ -4,14 +4,19 @@
 	NavMeshRenderingComponent.cpp: A component that renders a nav mesh.
  =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "DebugRenderSceneProxy.h"
-#include "NavigationOctree.h"
-#include "AI/Navigation/RecastHelpers.h"
-#include "AI/Navigation/RecastNavMeshGenerator.h"
-#include "AI/Navigation/NavigationSystem.h"
 #include "AI/Navigation/NavMeshRenderingComponent.h"
+#include "EngineGlobals.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/Canvas.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/Engine.h"
+#include "AI/NavigationOctree.h"
+#include "AI/Navigation/RecastHelpers.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "AI/Navigation/RecastNavMeshGenerator.h"
 #include "Debug/DebugDrawService.h"
+#include "SceneManagement.h"
+#include "TimerManager.h"
 
 #if WITH_EDITOR
 #include "Editor.h"

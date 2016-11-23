@@ -14,6 +14,10 @@
 #include <IOKit/IOKitLib.h>
 #include <mach-o/dyld.h>
 
+#include "Misc/ScopeLock.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreMisc.h"
+
 /*------------------------------------------------------------------------------
  OpenGL static variables.
  ------------------------------------------------------------------------------*/

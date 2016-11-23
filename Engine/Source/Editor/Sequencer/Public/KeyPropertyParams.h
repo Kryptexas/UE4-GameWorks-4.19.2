@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "KeyParams.h"
+#include "CoreMinimal.h"
+#include "UObject/UnrealType.h"
 
 class IPropertyHandle;
-class UClass;
-class UProperty;
+enum class ESequencerKeyMode;
 
 /**
  * Parameters for determining if a property can be keyed.

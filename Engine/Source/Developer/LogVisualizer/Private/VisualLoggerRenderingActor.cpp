@@ -1,18 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LogVisualizer.h"
-#include "Engine/GameInstance.h"
-#include "Debug/DebugDrawService.h"
-#include "GameFramework/HUD.h"
-#include "AI/Navigation/RecastHelpers.h"
+#include "VisualLoggerRenderingActor.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "VisualLogger/VisualLogger.h"
+#include "LogVisualizerSettings.h"
+#include "VisualLoggerDatabase.h"
+#include "LogVisualizerPrivate.h"
 #if WITH_EDITOR
-#include "Editor/EditorEngine.h"
 #include "GeomTools.h"
 #endif // WITH_EDITOR
-#include "VisualLoggerRenderingActor.h"
 #include "VisualLoggerRenderingComponent.h"
-#include "DebugRenderSceneProxy.h"
-#include "SVisualLoggerTimeline.h"
 
 class UVisualLoggerRenderingComponent;
 class FVisualLoggerSceneProxy : public FDebugRenderSceneProxy

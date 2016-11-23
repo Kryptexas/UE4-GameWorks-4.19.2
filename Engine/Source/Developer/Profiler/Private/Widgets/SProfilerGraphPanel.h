@@ -2,14 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "ProfilerManager.h"
+#include "Widgets/SCompoundWidget.h"
 
-enum class EProfilerViewMode;
-class FTrackedStat;
 class SDataGraph;
 class SProfilerMiniView;
 class SProfilerThreadView;
 class SScrollBar;
-
 
 /** A custom widget that acts as a container for widgets like SDataGraph or SEventTree. */
 class SProfilerGraphPanel

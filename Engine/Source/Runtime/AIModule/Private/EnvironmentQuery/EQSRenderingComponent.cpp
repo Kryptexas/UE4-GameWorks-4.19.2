@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "Engine/Canvas.h"
-#include "DebugRenderSceneProxy.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
-#include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
+#include "Engine/Canvas.h"
+#include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
 
 static const int32 EQSMaxItemsDrawn = 10000;
 

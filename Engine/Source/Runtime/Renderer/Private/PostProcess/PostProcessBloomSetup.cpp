@@ -4,14 +4,14 @@
 	PostProcessBloomSetup.cpp: Post processing bloom threshold pass implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessBloomSetup.h"
-#include "PostProcessing.h"
-#include "PostProcessHistogram.h"
-#include "PostProcessEyeAdaptation.h"
+#include "PostProcess/PostProcessBloomSetup.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/PostProcessEyeAdaptation.h"
+#include "ClearQuad.h"
 
 /** Encapsulates the post processing bloom threshold pixel shader. */
 class FPostProcessBloomSetupPS : public FGlobalShader

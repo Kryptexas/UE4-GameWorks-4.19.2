@@ -2,8 +2,12 @@
 
 #pragma once
 
-#include <initializer_list>
-#include "Traits/IsContiguousContainer.h"
+#include "CoreTypes.h"
+#include "Templates/PointerIsConvertibleFromTo.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Math/NumericLimits.h"
+#include "Containers/Array.h"
 
 namespace ArrayViewPrivate
 {

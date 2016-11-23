@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "SSequencerDebugVisualizer.h"
 #include "CommonMovieSceneTools.h"
+#include "EditorStyleSet.h"
+#include "Widgets/SToolTip.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Layout/ArrangedChildren.h"
 
 #define LOCTEXT_NAMESPACE "SSequencerDebugVisualizer"
 

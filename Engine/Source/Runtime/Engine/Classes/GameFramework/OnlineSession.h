@@ -5,6 +5,11 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/CoreOnline.h"
 #include "OnlineSession.generated.h"
 
 class FOnlineSessionSearchResult;

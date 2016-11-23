@@ -4,17 +4,20 @@
 Unreal Websocket network driver.
 =============================================================================*/
 
-#include "HTML5NetworkingPCH.h"
+#include "WebSocketNetDriver.h"
+#include "HTML5NetworkingPrivate.h"
 #include "Engine/Channel.h"
+#include "Engine/PendingNetGame.h"
 
 #include "IPAddress.h"
 #include "Sockets.h"
 
 #include "WebSocketConnection.h"
-#include "WebSocketNetDriver.h"
 #include "WebSocketServer.h"
 #include "WebSocket.h"
 
+#include "Engine/ChildConnection.h"
+#include "Misc/CommandLine.h"
 
 /*-----------------------------------------------------------------------------
 Declarations.

@@ -1,22 +1,43 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerVMBackend.cpp
 =============================================================================*/
 
-#include "KismetCompilerPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/Class.h"
+#include "UObject/AssetPtr.h"
+#include "UObject/Interface.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
+#include "Internationalization/TextNamespaceUtil.h"
+#include "UObject/PropertyPortFlags.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/LatentActionManager.h"
+#include "Engine/UserDefinedStruct.h"
+#include "BPTerminal.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_MacroInstance.h"
+#include "BlueprintCompiledStatement.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "KismetCompiledFunctionContext.h"
+#include "Misc/FeedbackContext.h"
 
+#include "KismetCompilerMisc.h"
 #include "KismetCompilerBackend.h"
 
-#include "DefaultValueHelper.h"
+#include "Misc/DefaultValueHelper.h"
 
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Engine/UserDefinedStruct.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "Kismet2/KismetDebugUtilities.h"
 
-#include "TextPackageNamespaceUtil.h"
-#include "BlueprintEditorUtils.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "KismetCompilerVMBackend"
 //////////////////////////////////////////////////////////////////////////

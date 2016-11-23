@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "TcpMessagingPrivatePCH.h"
-#include "JsonStructDeserializerBackend.h"
+#include "Transport/TcpDeserializedMessage.h"
+#include "UObject/Package.h"
+#include "TcpMessagingPrivate.h"
+#include "Backends/JsonStructDeserializerBackend.h"
 #include "StructDeserializer.h"
 
 

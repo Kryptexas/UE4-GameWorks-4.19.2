@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /*================================================================================
 ActiveGameplayEffectIterator.h: implementation of ActiveGameplayEffect Iterator.
 

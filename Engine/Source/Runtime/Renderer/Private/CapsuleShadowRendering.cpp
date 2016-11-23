@@ -4,17 +4,25 @@
 	CapsuleShadowRendering.cpp: Functionality for rendering shadows from capsules
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "OneColorShader.h"
-#include "LightRendering.h"
-#include "SceneFilterRendering.h"
-#include "ScreenRendering.h"
+#include "CapsuleShadowRendering.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "ShaderParameters.h"
+#include "RendererInterface.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
-#include "PostProcessing.h"
+#include "RHIStaticStates.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "SceneRenderTargetParameters.h"
+#include "ShadowRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "MaterialShaderType.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "DistanceFieldLightingPost.h"
-#include "CapsuleShadowRendering.h"
 #include "DistanceFieldLightingShared.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Capsule Shadows"), Stat_GPU_CapsuleShadows, STATGROUP_GPU);

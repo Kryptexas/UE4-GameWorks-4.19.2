@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "Json.h"
+#include "CoreMinimal.h"
+#include "Serialization/JsonWriter.h"
 
+class FJsonObject;
 enum class EModuleLoadResult;
 
 /**

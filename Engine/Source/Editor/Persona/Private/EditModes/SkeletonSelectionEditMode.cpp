@@ -1,14 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
-#include "SkeletonSelectionEditMode.h"
-#include "AnimationEditorViewportClient.h"
+#include "EditModes/SkeletonSelectionEditMode.h"
 #include "Animation/DebugSkelMeshComponent.h"
+#include "AnimationEditorViewportClient.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
 #include "AnimPreviewInstance.h"
-#include "AnimNode_ModifyBone.h"
 #include "ISkeletonTree.h"
-#include "IPersonaPreviewScene.h"
 #include "AssetEditorModeManager.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "EngineUtils.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonSelectionEditMode"
 

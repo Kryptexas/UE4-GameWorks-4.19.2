@@ -1,22 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
-
 #include "SMontageEditor.h"
-#include "GraphEditor.h"
-#include "GraphEditorModule.h"
-#include "Editor/Kismet/Public/SKismetInspector.h"
+#include "Misc/MessageDialog.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Editor.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "Animation/EditorCompositeSection.h"
+#include "IDocumentation.h"
+
+#include "SAnimTimingPanel.h"
+#include "SAnimNotifyPanel.h"
 #include "SAnimMontageScrubPanel.h"
 #include "SAnimMontagePanel.h"
 #include "SAnimMontageSectionsPanel.h"
 #include "ScopedTransaction.h"
-#include "SAnimNotifyPanel.h"
-#include "SAnimCurvePanel.h"
 #include "AnimPreviewInstance.h"
-#include "SAnimTimingPanel.h"
-#include "IDocumentation.h"
-#include "IPersonaPreviewScene.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Images/SImage.h"
 
 #define LOCTEXT_NAMESPACE "AnimSequenceEditor"
 

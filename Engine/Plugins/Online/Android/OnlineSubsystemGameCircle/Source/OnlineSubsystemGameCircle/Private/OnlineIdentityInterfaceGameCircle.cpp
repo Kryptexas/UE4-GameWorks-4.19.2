@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
+#include "OnlineIdentityInterfaceGameCircle.h"
+#include "OnlineSubsystemGameCircle.h"
 
 
 FOnlineIdentityGameCircle::FOnlineIdentityGameCircle(FOnlineSubsystemGameCircle* InSubsystem)

@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
+#include "Sections/StringPropertySection.h"
+#include "ISectionLayoutBuilder.h"
 #include "StringCurveKeyArea.h"
-#include "StringPropertySection.h"
-#include "MovieSceneStringSection.h"
+#include "Sections/MovieSceneStringSection.h"
 
 
 void FStringPropertySection::GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const

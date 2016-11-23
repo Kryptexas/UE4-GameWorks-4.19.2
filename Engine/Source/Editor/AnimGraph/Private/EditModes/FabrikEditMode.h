@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UnrealWidget.h"
 #include "AnimNodeEditMode.h"
 
 class FFabrikEditMode : public FAnimNodeEditMode

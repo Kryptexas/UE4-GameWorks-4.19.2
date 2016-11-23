@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "VREditorAutoScaler.generated.h"
+
+class UVREditorMode;
 
 /**
  * Automatically scales the user when dragging the world and pressing the touchpad

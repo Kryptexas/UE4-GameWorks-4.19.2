@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ScreenShotComparisonToolsPrivatePCH.h"
+#include "ImageComparer.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
 
 #include "Interfaces/IImageWrapperModule.h"
-#include "ImageComparer.h"
-#include "ParallelFor.h"
+#include "Async/ParallelFor.h"
 
 #define LOCTEXT_NAMESPACE "ImageComparer"
 

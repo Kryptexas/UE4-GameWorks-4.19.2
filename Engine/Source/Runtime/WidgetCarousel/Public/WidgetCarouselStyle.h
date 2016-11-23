@@ -2,7 +2,12 @@
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateBrush.h"
+#include "Styling/SlateWidgetStyle.h"
+#include "Styling/SlateStyle.h"
+#include "Styling/SlateTypes.h"
 #include "WidgetCarouselStyle.generated.h"
 
 USTRUCT()

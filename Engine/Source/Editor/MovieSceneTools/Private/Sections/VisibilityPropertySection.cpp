@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
+#include "Sections/VisibilityPropertySection.h"
 #include "BoolKeyArea.h"
-#include "VisibilityPropertySection.h"
-#include "MovieSceneBoolSection.h"
-
+#include "Sections/MovieSceneBoolSection.h"
+#include "ISectionLayoutBuilder.h"
 
 void FVisibilityPropertySection::GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const
 {

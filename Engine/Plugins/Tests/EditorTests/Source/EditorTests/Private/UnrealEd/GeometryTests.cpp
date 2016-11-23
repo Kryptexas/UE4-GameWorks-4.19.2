@@ -1,10 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "Engine/Brush.h"
+#include "EngineUtils.h"
+#include "Engine/BrushBuilder.h"
+#include "Builders/ConeBuilder.h"
+#include "Builders/CubeBuilder.h"
+#include "Builders/CurvedStairBuilder.h"
+#include "Builders/CylinderBuilder.h"
+#include "Builders/LinearStairBuilder.h"
+#include "Builders/SheetBuilder.h"
+#include "Builders/SpiralStairBuilder.h"
+#include "Builders/TetrahedronBuilder.h"
+#include "Builders/VolumetricBuilder.h"
+#include "EditorModeManager.h"
 
 //Automation
-#include "AutomationTest.h"
-#include "AutomationEditorCommon.h"
+#include "Tests/AutomationCommon.h"
+#include "Tests/AutomationEditorCommon.h"
 
 #define CUBE_VERTS_COUNT			8
 #define WORLD_ORIGIN_VECTOR			FVector(0.f,0.f,0.f)

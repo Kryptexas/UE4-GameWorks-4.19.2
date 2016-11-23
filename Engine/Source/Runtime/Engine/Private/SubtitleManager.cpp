@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "SubtitleManager.h"
-#include "SoundDefinitions.h"
-#include "Engine/Font.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Audio.h"
+#include "Components/AudioComponent.h"
 #include "AudioThread.h"
 
 

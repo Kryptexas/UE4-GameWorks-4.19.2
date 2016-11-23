@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+
 /** 
  * Order is important here! 
  * This enum is used internally to the filtering logic and represents an ordering of most filtered (hidden) to 

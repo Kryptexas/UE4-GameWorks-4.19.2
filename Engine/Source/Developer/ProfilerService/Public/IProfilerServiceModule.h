@@ -2,11 +2,9 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
-
-
-class IProfilerServiceManager;
-
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "IProfilerServiceManager.h"
 
 /**
  * Interface for ProfilerService modules.

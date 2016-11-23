@@ -4,9 +4,11 @@
 	BasePassRendering.cpp: Base pass rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "BasePassRendering.h"
+#include "StaticMeshDrawList.h"
+#include "DeferredShadingRenderer.h"
+#include "DynamicPrimitiveDrawing.h"
 #include "ScenePrivate.h"
-#include "PlanarReflectionSceneProxy.h"
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarSelectiveBasePassOutputs(

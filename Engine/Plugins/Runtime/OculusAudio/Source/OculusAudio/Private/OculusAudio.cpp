@@ -5,9 +5,9 @@
 #include "XAudio2Device.h"
 #include "AudioEffect.h"
 #include "XAudio2Effects.h"
-#include "Engine.h"
 #include "OculusAudioEffect.h"
 #include "Runtime/Windows/XAudio2/Private/XAudio2Support.h"
+#include "Misc/Paths.h"
 
 //---------------------------------------------------
 // Oculus Audio Plugin Implementation

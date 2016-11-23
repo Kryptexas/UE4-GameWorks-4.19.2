@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+#include "IStereoLayers.h"
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
 #include "ScenePrivate.h"

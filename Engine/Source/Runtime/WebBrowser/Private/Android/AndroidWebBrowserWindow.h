@@ -3,8 +3,8 @@
 #pragma once
 
 #include "IWebBrowserWindow.h"
-#include "SlateCore.h"
 #include "AndroidJSScripting.h"
+#include "Widgets/SWidget.h"
 
 class SAndroidWebBrowserWidget;
 class SWebBrowserView;

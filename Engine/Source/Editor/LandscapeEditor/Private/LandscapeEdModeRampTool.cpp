@@ -1,14 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapeEditorPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "HitProxies.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Engine/Texture2D.h"
+#include "UnrealWidget.h"
+#include "EditorModeManager.h"
+#include "UnrealEdGlobals.h"
+#include "EditorViewportClient.h"
+#include "LandscapeToolInterface.h"
 #include "LandscapeEdMode.h"
+#include "LandscapeEditorObject.h"
 #include "ScopedTransaction.h"
 #include "LandscapeEdit.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "Raster.h"
-#include "AI/Navigation/NavigationSystem.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 

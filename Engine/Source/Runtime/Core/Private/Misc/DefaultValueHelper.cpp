@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "DefaultValueHelper.h"
+#include "Misc/DefaultValueHelper.h"
+#include "Math/Color.h"
+#include "Math/Vector2D.h"
+#include "Math/Vector.h"
+#include "Math/Rotator.h"
 
 
 bool FDefaultValueHelper::Is(const FString& Source, const TCHAR* CompareStr)

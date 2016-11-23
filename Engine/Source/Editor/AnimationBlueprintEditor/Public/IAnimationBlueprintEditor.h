@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "BlueprintEditor.h"
 #include "IHasPersonaToolkit.h"
 

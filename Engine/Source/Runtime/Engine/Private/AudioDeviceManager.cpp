@@ -1,10 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Audio.h"
-#include "AudioDevice.h"
 #include "AudioDeviceManager.h"
-#include "AudioThread.h"
+#include "AudioDevice.h"
 #include "Sound/SoundWave.h"
 #include "Sound/AudioSettings.h"
 #include "GameFramework/GameUserSettings.h"

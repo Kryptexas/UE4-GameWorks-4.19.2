@@ -4,10 +4,17 @@
 	MapBuildData.cpp
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Engine/Level.h"
+#include "GameFramework/Actor.h"
 #include "LightMap.h"
+#include "UObject/UObjectAnnotation.h"
+#include "PrecomputedLightVolume.h"
+#include "Engine/MapBuildDataRegistry.h"
 #include "ShadowMap.h"
-#include "Engine/ShadowMapTexture2D.h"
+#include "UObject/Package.h"
+#include "EngineUtils.h"
 #include "Components/ModelComponent.h"
 #include "ComponentRecreateRenderStateContext.h"
 

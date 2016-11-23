@@ -2,8 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "AndroidJSScripting.h"
 #include "JsonStructDeserializerBackend.h"
-#include "Core.h"
+#include "Serialization/MemoryReader.h"
 
 class FAndroidJSStructDeserializerBackend
 	: public FJsonStructDeserializerBackend

@@ -1,10 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "HAL/FeedbackContextAnsi.h"
-#include "Misc/App.h"
-#include "Misc/OutputDeviceConsole.h"
+#include "GenericPlatform/GenericPlatformOutputDevices.h"
+#include "HAL/PlatformOutputDevices.h"
+#include "CoreGlobals.h"
+#include "Misc/Parse.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
 #include "Misc/OutputDeviceMemory.h"
+#include "Misc/OutputDeviceFile.h"
+#include "Misc/OutputDeviceDebug.h"
+#include "Misc/OutputDeviceAnsiError.h"
+#include "Misc/App.h"
+#include "HAL/FeedbackContextAnsi.h"
+#include "Misc/OutputDeviceConsole.h"
 #include "UniquePtr.h"
 
 void FGenericPlatformOutputDevices::SetupOutputDevices()

@@ -2,12 +2,20 @@
 
 #pragma once
 
-#include "SCompoundWidget.h"
-#include "UnrealEd.h"
-#include "STreeView.h"
-#include "SListView.h"
-#include "STableViewBase.h"
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Misc/NotifyHook.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+
+class IDetailsView;
+class UFbxTestPlan;
+struct FPropertyChangedEvent;
+
 //#include "FbxAutomationTests.h"
 
 class IDetailsView;

@@ -2,8 +2,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Layout/Visibility.h"
+#include "Layout/SlateRect.h"
+#include "Rendering/SlateRenderer.h"
 
-class FHitTesting;
+class FActiveTimerHandle;
+class FSlateApplicationBase;
+class FWidgetPath;
+class IToolTip;
+class SWidget;
+class SWindow;
+
+template< typename ObjectType > class TAttribute;
 
 /**
  * Interface for window title bars.

@@ -4,14 +4,15 @@
 	SceneRendering.cpp: Scene rendering.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "RefCounting.h"
 #include "SceneOcclusion.h"
+#include "EngineGlobals.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "DynamicPrimitiveDrawing.h"
+#include "ScenePrivate.h"
 #include "ScreenRendering.h"
-#include "SceneFilterRendering.h"
-#include "SceneUtils.h"
-#include "PostProcessing.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
 #include "PlanarReflectionSceneProxy.h"
 
 /*-----------------------------------------------------------------------------

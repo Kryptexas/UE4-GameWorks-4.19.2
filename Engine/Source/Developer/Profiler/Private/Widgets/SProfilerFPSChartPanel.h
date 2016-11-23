@@ -2,11 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "ProfilerManager.h"
 
-enum class EProfilerViewMode;
+class FFPSAnalyzer;
 class SHistogram;
 class SProfilerFPSStatisticsPanel;
-
 
 /**
  * A custom widget that acts as a container for widgets like SDataGraph or SEventTree.

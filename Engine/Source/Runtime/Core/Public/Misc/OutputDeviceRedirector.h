@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "OutputDevice.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
 
 /*-----------------------------------------------------------------------------
 FOutputDeviceRedirector.

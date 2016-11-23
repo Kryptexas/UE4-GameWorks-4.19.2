@@ -1,11 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "MathExpressionHandler.h"
+#include "UObject/UnrealType.h"
+#include "UObject/Interface.h"
 #include "K2Node_MathExpression.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_VariableGet.h"
 #include "EdGraphUtilities.h"
 #include "KismetCompiler.h"
-#include "MathExpressionHandler.h"
-#include "K2Node_VariableGet.h"
 
 #define LOCTEXT_NAMESPACE "KCHandler_MathExpression"
 

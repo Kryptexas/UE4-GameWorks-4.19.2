@@ -2,7 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GenericPlatform/ICursor.h"
+
 class FSlateApplication;
+struct FAnalogInputEvent;
+struct FKeyEvent;
+struct FMotionEvent;
+struct FPointerEvent;
 
 /**
  * Interface for a Slate Input Handler

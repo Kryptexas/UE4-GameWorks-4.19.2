@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
-
+#include "OnlineStoreInterfaceGameCircle.h"
+#include "OnlineSubsystemGameCircle.h"
+#include "Async/TaskGraphInterfaces.h"
+#include <jni.h>
 
 ////////////////////////////////////////////////////////////////////
 /// Amazon Store Helper Request Response Codes

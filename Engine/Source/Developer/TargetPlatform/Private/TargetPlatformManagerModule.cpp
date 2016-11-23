@@ -1,10 +1,28 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "TargetPlatformPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Templates/ScopedPointer.h"
+#include "Stats/Stats.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/MonitoredProcess.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformModule.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/IAudioFormat.h"
+#include "Interfaces/IAudioFormatModule.h"
+#include "Interfaces/IShaderFormat.h"
+#include "Interfaces/IShaderFormatModule.h"
+#include "Interfaces/ITextureFormat.h"
+#include "Interfaces/ITextureFormatModule.h"
 #include "PlatformInfo.h"
 #include "DesktopPlatformModule.h"
-#include "IPhysXFormatModule.h"
 #include "IPhysXFormat.h"
+#include "IPhysXFormatModule.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogTargetPlatformManager, Log, All);

@@ -1,15 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneCapturePCH.h"
 #include "MovieSceneCaptureHelpers.h"
 #include "MovieScene.h"
-#include "MovieSceneSection.h"
-#include "MovieSceneAudioTrack.h"
-#include "MovieSceneCinematicShotSection.h"
-#include "MovieSceneCinematicShotTrack.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "AssetData.h"
 #include "LevelSequence.h"
+#include "Tracks/MovieSceneAudioTrack.h"
+#include "Sections/MovieSceneCinematicShotSection.h"
+#include "Tracks/MovieSceneCinematicShotTrack.h"
 #include "AssetRegistryModule.h"
-#include "CoreMisc.h"
 
 /* MovieSceneCaptureHelpers
  *****************************************************************************/

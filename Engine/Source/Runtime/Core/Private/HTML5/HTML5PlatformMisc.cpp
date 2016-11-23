@@ -4,8 +4,9 @@
 	HTML5Misc.cpp: HTML5 implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "HTML5PlatformMisc.h"
 #include "HTML5Application.h"
+#include "HTML5PlatformProcess.h"
 
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"

@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include "CoreTypes.h"
 #include "UObject/NameTypes.h"
-#include "LogVerbosity.h"
 
 /** Base class for all log categories. **/
 struct CORE_API FLogCategoryBase

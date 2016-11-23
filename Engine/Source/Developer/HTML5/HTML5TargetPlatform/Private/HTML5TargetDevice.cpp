@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HTML5TargetPlatformPrivatePCH.h"
+#include "HTML5TargetDevice.h"
+#include "Interfaces/ITargetPlatform.h"
+
+
 
 /* ITargetDevice interface
  *****************************************************************************/
@@ -109,4 +112,3 @@ bool FHTML5TargetDevice::TerminateProcess( const int64 ProcessId )
 {
 	return false;
 }
-

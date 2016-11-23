@@ -1,7 +1,27 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsModulePrivatePCH.h"
+#include "GameplayTagsManager.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Stats/StatsMisc.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/Package.h"
 #include "GameplayTagsSettings.h"
+#include "GameplayTagsModule.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Engine/Engine.h"
+
+#if WITH_EDITOR
+#include "SourceControlHelpers.h"
+#include "ISourceControlModule.h"
+#include "Editor.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "GameplayTagManager"
 

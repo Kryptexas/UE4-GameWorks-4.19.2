@@ -4,10 +4,13 @@
 	LinuxPlatformStackWalk.cpp: Linux implementations of stack walk functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "Misc/App.h"
-#include "LinuxPlatformCrashContext.h"
-#include "ExceptionHandling.h"
+#include "Linux/LinuxPlatformStackWalk.h"
+#include "Misc/Parse.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CommandLine.h"
+#include "Linux/LinuxPlatformCrashContext.h"
+#include <cxxabi.h>
+#include "HAL/ExceptionHandling.h"
 #include <execinfo.h>
 #include <dlfcn.h>
 #include <cxxabi.h>

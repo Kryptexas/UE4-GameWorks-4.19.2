@@ -1,9 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AnimGraphNode_Base.h"
 #include "AnimNodes/AnimNode_ModifyCurve.h"
 #include "AnimGraphNode_ModifyCurve.generated.h"
+
+class FMenuBuilder;
 
 /** Easy way to modify curve values on a pose */
 UCLASS(MinimalAPI)

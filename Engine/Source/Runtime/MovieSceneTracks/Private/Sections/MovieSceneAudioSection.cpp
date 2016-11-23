@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneAudioSection.h"
-#include "SoundDefinitions.h"
+#include "Sections/MovieSceneAudioSection.h"
+#include "Sound/SoundBase.h"
 #include "Evaluation/MovieSceneAudioTemplate.h"
 
 UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& ObjectInitializer )

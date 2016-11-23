@@ -2,16 +2,25 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
 #include "GameplayTagContainer.h"
-#include "GameplayTagAssetInterface.h"
-#include "Runtime/Engine/Classes/Animation/AnimInstance.h"
-#include "GameplayAbilityTargetTypes.h"
-#include "GameplayAbilityTypes.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
-#include "Abilities/GameplayAbilityTargetDataFilter.h"
-#include "GameplayTask.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "GameplayTaskOwnerInterface.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "GameplayAbility.generated.h"
+
+class UAbilitySystemComponent;
+class UAnimMontage;
+class UGameplayAbility;
+class UGameplayTask;
+class UGameplayTasksComponent;
+struct EventData;
 
 /**
  * UGameplayAbility

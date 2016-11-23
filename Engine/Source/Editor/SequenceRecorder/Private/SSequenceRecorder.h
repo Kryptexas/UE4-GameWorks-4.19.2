@@ -2,7 +2,18 @@
 
 #pragma once
 
-#include "ActorRecording.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+
+class FActiveTimerHandle;
+class FUICommandList;
+class IDetailsView;
+class SProgressBar;
+class UActorRecording;
 
 class SSequenceRecorder : public SCompoundWidget
 {

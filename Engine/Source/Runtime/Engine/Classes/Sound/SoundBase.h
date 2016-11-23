@@ -6,22 +6,17 @@
  * The base class for a playable sound object 
  */
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Audio.h"
 #include "Sound/SoundConcurrency.h"
-#include "Sound/SoundEffectSource.h"
-#include "Sound/SoundSubmix.h"
 #include "SoundBase.generated.h"
 
-
+class USoundEffectSourcePreset;
+class USoundSubmix;
 struct FActiveSound;
 struct FSoundParseParameters;
-struct FWaveInstance;
-struct FAttenuationSettings; 
-struct FSoundConcurrencySettings;
-
-class USoundClass;
-class USoundAttenuation;
-class USoundConcurrency;
 
 UCLASS(config=Engine, hidecategories=Object, abstract, editinlinenew, BlueprintType)
 class ENGINE_API USoundBase : public UObject

@@ -2,10 +2,14 @@
 
 #pragma once
 
-class UWidgetTree;
+#include "CoreMinimal.h"
+#include "WidgetReference.h"
+#include "WidgetBlueprintEditor.h"
+
+class FMenuBuilder;
 class UWidgetBlueprint;
 class UWidgetSlotPair;
-struct FWidgetReference;
+class UWidgetTree;
 
 //////////////////////////////////////////////////////////////////////////
 // FWidgetBlueprintEditorUtils

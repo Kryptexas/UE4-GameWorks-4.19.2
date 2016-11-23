@@ -1,17 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "ObjectEditorUtils.h"
-#include "NavigationModifier.h"
+#include "AI/Navigation/NavLinkProxy.h"
+#include "UObject/ConstructorHelpers.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/Controller.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/Texture2D.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "AI/Navigation/NavLinkCustomComponent.h"
-#include "AI/Navigation/NavLinkCustomInterface.h"
-#include "AI/Navigation/NavLinkCustomComponent.h"
-#include "AI/Navigation/NavLinkProxy.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
-#include "NavigationSystemHelpers.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
 #include "AI/NavigationOctree.h"
+#include "ObjectEditorUtils.h"
 
 ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

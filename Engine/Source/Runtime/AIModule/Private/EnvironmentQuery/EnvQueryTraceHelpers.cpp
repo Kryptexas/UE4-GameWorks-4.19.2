@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "EnvQueryTraceHelpers.h"
+#include "EnvironmentQuery/EnvQueryTraceHelpers.h"
+#include "AI/Navigation/NavigationData.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 

@@ -4,31 +4,33 @@
 	PrimitiveComponent.cpp: Primitive component implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Components/PrimitiveComponent.h"
+#include "EngineStats.h"
+#include "GameFramework/DamageType.h"
+#include "GameFramework/Pawn.h"
+#include "WorldCollision.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "GameFramework/WorldSettings.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/Texture2D.h"
+#include "ContentStreaming.h"
+#include "DrawDebugHelpers.h"
+#include "UnrealEngine.h"
 #include "PhysicsPublic.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "LevelUtils.h"
-#if WITH_EDITOR
-#include "ShowFlags.h"
-#include "Collision.h"
-#include "ConvexVolume.h"
-#endif
-#if WITH_PHYSX
-#include "PhysicsEngine/PhysXSupport.h"
-#include "Collision/PhysXCollision.h"
-#endif // WITH_PHYSX
 #if WITH_BOX2D
 #include "PhysicsEngine/BodySetup2D.h"
 #endif
-#include "Collision/CollisionDebugDrawing.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #include "CollisionDebugDrawingPublic.h"
 #include "GameFramework/CheatManager.h"
-#include "GameFramework/DamageType.h"
-#include "Components/ChildActorComponent.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
@@ -3029,4 +3031,3 @@ const bool UPrimitiveComponent::ShouldGenerateAutoLOD() const
 #endif 
 
 #undef LOCTEXT_NAMESPACE
-

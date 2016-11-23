@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
-#include "Abilities/GameplayAbilityTypes.h"
-#include "GameplayEffect.h"
-#include "AbilityTask_WaitGameplayTagBase.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayTagContainer.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayTagBase.h"
 #include "AbilityTask_WaitGameplayTag.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitGameplayTagDelegate);

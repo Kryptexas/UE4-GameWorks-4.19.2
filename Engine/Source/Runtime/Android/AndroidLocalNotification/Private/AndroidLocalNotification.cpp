@@ -8,9 +8,9 @@
 	Includes
  ------------------------------------------------------------------------------------*/
 
-#include "Engine.h"
 #include "../Public/AndroidLocalNotification.h"
-
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
 
 DEFINE_LOG_CATEGORY(LogAndroidLocalNotification);
 

@@ -2,10 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptInterface.h"
 #include "Animation/AnimNodeBase.h"
 #include "Animation/CurveSourceInterface.h"
 
 #include "AnimNode_CurveSource.generated.h"
+
+class UAnimInstance;
 
 /** Supply curves from some external source (e.g. audio) */
 USTRUCT()

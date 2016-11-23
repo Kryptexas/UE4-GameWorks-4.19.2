@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility_Montage.h"
-#include "GameplayEffect.h"
+#include "Animation/AnimInstance.h"
 #include "AbilitySystemComponent.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------

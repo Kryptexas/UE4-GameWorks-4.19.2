@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Blueprint/WidgetNavigation.h"
+#include "Blueprint/WidgetTree.h"
 #include "MovieScene.h"
-#include "WidgetAnimation.h"
-#include "Engine/InputDelegateBinding.h"
-#include "TextReferenceCollector.h"
+#include "Animation/WidgetAnimation.h"
+#include "Serialization/TextReferenceCollector.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

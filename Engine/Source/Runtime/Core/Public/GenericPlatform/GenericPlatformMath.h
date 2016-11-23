@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/ContainersFwd.h"
+#include "HAL/PlatformCrt.h"
 
 /**
  * Generic implementation for most platforms

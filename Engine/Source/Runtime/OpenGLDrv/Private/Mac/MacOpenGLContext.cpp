@@ -4,6 +4,7 @@
 
 #include "MacOpenGLContext.h"
 #include "MacOpenGLQuery.h"
+#include "Misc/ConfigCacheIni.h"
 
 #include <IOKit/ps/IOPowerSources.h>
 #include <IOKit/ps/IOPSKeys.h>

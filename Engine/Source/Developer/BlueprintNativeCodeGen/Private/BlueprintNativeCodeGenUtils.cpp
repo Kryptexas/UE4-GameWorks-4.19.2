@@ -1,25 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintNativeCodeGenPCH.h"
-#include "BlueprintNativeCodeGenManifest.h"
 #include "BlueprintNativeCodeGenUtils.h"
-#include "Kismet2/KismetReinstanceUtilities.h"	 // for FBlueprintCompileReinstancer
-#include "Kismet2/CompilerResultsLog.h" 
-#include "KismetCompilerModule.h"
 #include "Engine/Blueprint.h"
-#include "Engine/UserDefinedStruct.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
 #include "Engine/UserDefinedEnum.h"
-#include "Kismet2/KismetEditorUtilities.h"		 // for CompileBlueprint()
-#include "OutputDevice.h"						 // for GWarn
-#include "GameProjectUtils.h"					 // for GenerateGameModuleBuildFile
-#include "Editor/GameProjectGeneration/Public/GameProjectUtils.h" // for GenerateGameModuleBuildFile()
-#include "App.h"								 // for GetGameName()
-#include "BlueprintSupport.h"					 // for FReplaceCookedBPGC
-#include "IBlueprintCompilerCppBackendModule.h"	 // for OnPCHFilenameQuery()
-#include "BlueprintNativeCodeGenModule.h"
-#include "ScopeExit.h"
-#include "Editor/Kismet/Public/FindInBlueprintManager.h" // for FDisableGatheringDataOnScope
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h" // for FBlueprintEditorUtils::FForceFastBlueprintDuplicationScope
+#include "Engine/UserDefinedStruct.h"
+#include "BlueprintNativeCodeGenManifest.h"
+#include "Kismet2/KismetReinstanceUtilities.h"
+#include "KismetCompilerModule.h"
+#include "ModuleDescriptor.h"
+#include "PluginDescriptor.h"
+#include "GameProjectUtils.h"
+#include "Misc/ScopeExit.h"
+#include "FindInBlueprintManager.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 DEFINE_LOG_CATEGORY(LogBlueprintCodeGen)
 

@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "GameplayCueNotify_Static.h"
-#include "GameplayCueManager.h"
+#include "Engine/Blueprint.h"
+#include "AbilitySystemStats.h"
+#include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayCueManager.h"
 
 UGameplayCueNotify_Static::UGameplayCueNotify_Static(const FObjectInitializer& PCIP)
 : Super(PCIP)

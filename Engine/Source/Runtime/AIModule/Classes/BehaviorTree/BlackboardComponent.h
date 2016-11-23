@@ -11,18 +11,20 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
 #include "Components/ActorComponent.h"
-#include "BehaviorTreeTypes.h"
+#include "EngineDefines.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
-#include "BehaviorTree/Blackboard/BlackboardKeyType_Enum.h"
-#include "BehaviorTree/Blackboard/BlackboardKeyType_NativeEnum.h"
-#include "BlackboardData.h"
 #include "AISystem.h"
+#include "BehaviorTree/BlackboardData.h"
 #include "BlackboardComponent.generated.h"
 
-class UBlackboardData;
 class UBrainComponent;
-class UBlackboardKeyType;
 
 namespace EBlackboardDescription
 {

@@ -2,8 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Rendering/RenderingCommon.h"
 
+class FSlateBatchData;
+class FSlateDrawElement;
+class FSlateDrawLayer;
+class FSlateElementBatch;
+class FSlateRenderingPolicy;
 class FSlateShaderResource;
+class FSlateWindowElementList;
+struct FShaderParams;
 
 /**
  * A class which batches Slate elements for rendering

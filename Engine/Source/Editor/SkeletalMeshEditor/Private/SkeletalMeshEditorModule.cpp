@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletalMeshEditorPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "ISkeletalMeshEditor.h"
 #include "ISkeletalMeshEditorModule.h"
-#include "ModuleManager.h"
 #include "SkeletalMeshEditor.h"
 
 class FSkeletalMeshEditorModule : public ISkeletalMeshEditorModule

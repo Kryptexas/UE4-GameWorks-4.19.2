@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "IOSTargetPlatformPrivatePCH.h"
+#include "IOSTargetDevice.h"
+#include "IOSMessageProtocol.h"
 
 bool FIOSTargetDevice::Connect()
 {

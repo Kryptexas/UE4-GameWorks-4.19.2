@@ -1,12 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class FCEFJSScripting;
+class IStructSerializerBackend;
+struct FStructSerializerState;
+
 #if WITH_CEF3
 
+#include "Containers/UnrealString.h"
+#include "WebBrowserSingleton.h"
+#include "UObject/UnrealType.h"
 #include "IStructSerializerBackend.h"
-#include "Core.h"
 #include "CEFJSScripting.h"
 
+class FWebJSScripting;
+class UObject;
 
 
 // forward declarations
@@ -14,6 +25,7 @@ class UProperty;
 class UStruct;
 
 #if PLATFORM_WINDOWS
+	#include "WindowsHWrapper.h"
 	#include "AllowWindowsPlatformTypes.h"
 #endif
 

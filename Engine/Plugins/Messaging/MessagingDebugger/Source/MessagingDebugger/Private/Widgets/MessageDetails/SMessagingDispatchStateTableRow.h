@@ -2,12 +2,24 @@
 
 #pragma once
 
-
-class FMessagingDebuggerModel;
-
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Margin.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "IMessageTracer.h"
+#include "Models/MessagingDebuggerModel.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Images/SImage.h"
 
 #define LOCTEXT_NAMESPACE "SMessagingDispatchStateTableRow"
-
 
 /**
  * Implements a row widget for the dispatch state list.

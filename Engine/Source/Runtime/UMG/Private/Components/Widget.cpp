@@ -1,9 +1,27 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Components/Widget.h"
+#include "Widgets/SNullWidget.h"
+#include "Types/NavigationMetaData.h"
+#include "Widgets/IToolTip.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SOverlay.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/LocalPlayer.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/SToolTip.h"
+#include "Binding/PropertyBinding.h"
+#include "Blueprint/WidgetNavigation.h"
+#include "Logging/MessageLog.h"
+#include "Blueprint/UserWidget.h"
+#include "Slate/SObjectWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "UMGStyle.h"
 
-#include "ReflectionMetadata.h"
-#include "SObjectWidget.h"
+#include "Types/ReflectionMetadata.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

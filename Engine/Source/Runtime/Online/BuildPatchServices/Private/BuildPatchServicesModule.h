@@ -6,6 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Interfaces/IBuildPatchServicesModule.h"
+#include "BuildPatchInstaller.h"
+
+class FHttpServiceTracker;
+class IAnalyticsProvider;
+
 /**
  * Constant values and typedefs
  */

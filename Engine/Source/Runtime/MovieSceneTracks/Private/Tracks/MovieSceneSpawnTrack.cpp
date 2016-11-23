@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneSpawnTrack.h"
-#include "MovieSceneSpawnSection.h"
-#include "Compilation/MovieSceneCompilerRules.h"
+#include "Tracks/MovieSceneSpawnTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "Sections/MovieSceneSpawnSection.h"
 #include "Evaluation/MovieSceneSpawnTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTrack.h"
 #include "Compilation/IMovieSceneTemplateGenerator.h"
+#include "Serialization/ObjectReader.h"
+#include "Serialization/ObjectWriter.h"
+#include "MovieScene.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneSpawnTrack"
 

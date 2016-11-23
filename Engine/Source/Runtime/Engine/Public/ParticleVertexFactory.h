@@ -6,8 +6,12 @@
 
 #pragma once
 
-#include "VertexFactory.h"
+#include "CoreMinimal.h"
+#include "RenderResource.h"
 #include "UniformBuffer.h"
+#include "VertexFactory.h"
+
+class FMaterial;
 
 /**
  * Enum identifying the type of a particle vertex factory.

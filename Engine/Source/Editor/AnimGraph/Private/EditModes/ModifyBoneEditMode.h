@@ -2,8 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UnrealWidget.h"
 #include "AnimNodeEditMode.h"
-#include "AnimNode_ModifyBone.h"
+#include "BoneControllers/AnimNode_ModifyBone.h"
 
 class FModifyBoneEditMode : public FAnimNodeEditMode
 {

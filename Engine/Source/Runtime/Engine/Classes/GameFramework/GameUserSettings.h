@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
+#include "GenericPlatform/GenericWindow.h"
 #include "Scalability.h"
 #include "GameUserSettings.generated.h"
 

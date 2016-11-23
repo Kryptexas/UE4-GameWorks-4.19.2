@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "Internationalization/ICUUtilities.h"
 
 #if UE_ENABLE_ICU
-#include "ICUUtilities.h"
 THIRD_PARTY_INCLUDES_START
 	#include <unicode/ucnv.h>
 THIRD_PARTY_INCLUDES_END

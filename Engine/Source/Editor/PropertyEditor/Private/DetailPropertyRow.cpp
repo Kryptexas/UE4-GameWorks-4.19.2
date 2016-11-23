@@ -1,12 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
 #include "DetailPropertyRow.h"
-#include "PropertyHandleImpl.h"
-#include "SResetToDefaultPropertyEditor.h"
+#include "Modules/ModuleManager.h"
+#include "PropertyCustomizationHelpers.h"
+#include "UserInterface/PropertyEditor/SResetToDefaultPropertyEditor.h"
 #include "DetailItemNode.h"
-#include "DetailCustomBuilderRow.h"
-#include "DetailGroup.h"
 #include "CustomChildBuilder.h"
 
 FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FPropertyNode> InExternalRootNode )

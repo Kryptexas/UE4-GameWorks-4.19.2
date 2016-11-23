@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
 #include "WebBrowserViewport.h"
+#include "Textures/SlateShaderResource.h"
+#include "Widgets/SWidget.h"
 #include "IWebBrowserWindow.h"
+#include "Layout/WidgetPath.h"
 
 FIntPoint FWebBrowserViewport::GetSize() const
 {

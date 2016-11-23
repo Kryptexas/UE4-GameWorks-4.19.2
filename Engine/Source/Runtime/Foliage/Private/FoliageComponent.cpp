@@ -4,10 +4,14 @@
 	FoliageComponent.cpp: Foliage rendering implementation.
 =============================================================================*/
 
-#include "FoliagePrivate.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "RenderingThread.h"
+#include "GameFramework/Controller.h"
+#include "Components/CapsuleComponent.h"
+#include "StaticMeshResources.h"
 #include "InteractiveFoliageActor.h"
 #include "InteractiveFoliageComponent.h"
-#include "Components/CapsuleComponent.h"
 
 /** Scene proxy class for UInteractiveFoliageComponent. */
 class FInteractiveFoliageSceneProxy : public FStaticMeshSceneProxy

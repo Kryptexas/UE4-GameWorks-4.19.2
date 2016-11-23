@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "OutputDevice.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
+#include "Misc/AssertionMacros.h"
 
 /**
 * Output device wrapping any kind of FArchive.  Note: Works in any build configuration.

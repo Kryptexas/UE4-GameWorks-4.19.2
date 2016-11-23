@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /**
  * Stores a record of a built target, with all metadata that other tools may need to know about the build.
  */

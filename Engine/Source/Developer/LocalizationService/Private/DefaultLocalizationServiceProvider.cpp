@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LocalizationServicePrivatePCH.h"
 #include "DefaultLocalizationServiceProvider.h"
-#include "ILocalizationServiceModule.h"
-#include "MessageLog.h"
+#include "UObject/WeakObjectPtr.h"
+
+#if WITH_EDITOR
+#include "Logging/MessageLog.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "DefaultLocalizationServiceProvider"
 

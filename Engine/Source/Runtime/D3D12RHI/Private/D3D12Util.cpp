@@ -6,6 +6,7 @@ D3D12Util.h: D3D RHI utility implementation.
 
 #include "D3D12RHIPrivate.h"
 #include "EngineModule.h"
+#include "RendererInterface.h"
 
 #define D3DERR(x) case x: ErrorCodeText = TEXT(#x); break;
 #define LOCTEXT_NAMESPACE "Developer.MessageLog"

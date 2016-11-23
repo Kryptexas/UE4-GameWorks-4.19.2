@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesPrivatePCH.h"
-#include "PhysicsPublic.h"
 #include "SimpleWheeledVehicleMovementComponent.h"
+#include "Components/PrimitiveComponent.h"
 
 #if WITH_PHYSX
+#include "PhysXPublic.h"
 #include "PhysXVehicleManager.h"
 
 void USimpleWheeledVehicleMovementComponent::SetBrakeTorque(float BrakeTorque, int32 WheelIndex)

@@ -2,16 +2,22 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Math/Vector2D.h"
+#include "Templates/SharedPointer.h"
+#include "Delegates/Delegate.h"
 #include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "GenericPlatform/GenericWindowDefinition.h"
+#include "GenericPlatform/GenericWindow.h"
 
-
-class FGenericWindow;
+class FSlateApplication;
+class IAnalyticsProvider;
 class ICursor;
+class IInputInterface;
 class ITextInputMethodSystem;
 class IForceFeedbackSystem;
-class IInputInterface;
-class IAnalyticsProvider;
-
 
 /**
 * Enumerates available modifier keys for input gestures.

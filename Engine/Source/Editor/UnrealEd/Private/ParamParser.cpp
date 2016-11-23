@@ -9,7 +9,11 @@
 	to Visual Basic.
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreTypes.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "Math/Vector.h"
+#include "Math/Rotator.h"
 
 /*-----------------------------------------------------------------------------
 	Getters.

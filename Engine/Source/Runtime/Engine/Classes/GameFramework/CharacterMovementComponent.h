@@ -1,19 +1,29 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Engine/NetSerialization.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "WorldCollision.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimMontage.h"
+#include "GameFramework/RootMotionSource.h"
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "AI/RVOAvoidanceInterface.h"
-#include "Engine/EngineBaseTypes.h"
-#include "Engine/EngineTypes.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Interfaces/NetworkPredictionInterface.h"
-#include "WorldCollision.h"
-#include "GameFramework/RootMotionSource.h"
 #include "CharacterMovementComponent.generated.h"
 
-class FDebugDisplayInfo;
 class ACharacter;
-class UCharacterMovementComponent;
+class FDebugDisplayInfo;
+class FNetworkPredictionData_Server_Character;
+class FSavedMove_Character;
+class UPrimitiveComponent;
 
 /** Data about the floor for walking movement, used by CharacterMovementComponent. */
 USTRUCT(BlueprintType)

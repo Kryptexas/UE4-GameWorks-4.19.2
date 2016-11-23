@@ -1,10 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerDataSource.h"
-#include "ProfilerManager.h"
-#include "ProfilerSession.h"
-#include "SMultiDumpBrowser.h"
+#include "Widgets/SMultiDumpBrowser.h"
 
 
 #define LOCTEXT_NAMESPACE "SMultiDumpBrowser"

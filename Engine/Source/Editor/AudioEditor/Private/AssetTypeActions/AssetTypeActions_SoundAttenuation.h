@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AssetTypeActions_Base.h"
 
 class FAssetTypeActions_SoundAttenuation : public FAssetTypeActions_Base

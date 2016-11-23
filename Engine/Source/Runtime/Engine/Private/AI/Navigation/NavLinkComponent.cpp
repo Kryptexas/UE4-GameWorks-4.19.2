@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "AI/Navigation/NavLinkComponent.h"
 #include "AI/NavigationOctree.h"
 #include "AI/NavLinkRenderingProxy.h"
 #include "AI/NavigationSystemHelpers.h"
+#include "Engine/CollisionProfile.h"
 
 UNavLinkComponent::UNavLinkComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

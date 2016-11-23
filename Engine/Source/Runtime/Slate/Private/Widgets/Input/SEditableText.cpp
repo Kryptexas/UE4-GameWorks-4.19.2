@@ -1,12 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "BreakIterator.h"
-#include "TextEditHelper.h"
-#include "PlainTextLayoutMarshaller.h"
-#include "SlateEditableTextLayout.h"
-#include "ReflectionMetadata.h"
-#include "IMenu.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Framework/Text/TextEditHelper.h"
+#include "Framework/Text/PlainTextLayoutMarshaller.h"
+#include "Widgets/Text/SlateEditableTextLayout.h"
+#include "Types/ReflectionMetadata.h"
 
 SEditableText::SEditableText()
 {

@@ -2,20 +2,45 @@
 
 #pragma once
 
-#include "World.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Misc/StringAssetReference.h"
+#include "Misc/StringClassReference.h"
+#include "Engine/World.h"
+#include "Misc/BufferedOutputDevice.h"
 #include "Engine.generated.h"
 
-class FScreenSaverInhibitor;
-class UDeviceProfileManager;
-class FViewport;
-class FCommonViewportClient;
+class AMatineeActor;
+class APlayerController;
+class Error;
 class FCanvas;
+class FCommonViewportClient;
+class FFineGrainedPerformanceTracker;
+class FPerformanceTrackingChart;
+class FScreenSaverInhibitor;
 class FTypeContainer;
+class FViewport;
+class IEngineLoop;
+class IHeadMountedDisplay;
 class IMessageRpcClient;
+class IPerformanceDataConsumer;
 class IPortalRpcLocator;
 class IPortalServiceLocator;
-class IPerformanceDataConsumer;
-class FPerformanceTrackingChart;
+class ISceneViewExtension;
+class IStereoRendering;
+class SViewport;
+class UEditorEngine;
+class UGameUserSettings;
+class UGameViewportClient;
+class ULocalPlayer;
+class UNetDriver;
+
 #if ALLOW_DEBUG_FILES
 class FFineGrainedPerformanceTracker;
 #endif
@@ -2990,3 +3015,6 @@ private:
 
 	FDelegateHandle HandleScreenshotCapturedDelegateHandle;
 };
+
+/** Global engine pointer. Can be 0 so don't use without checking. */
+extern ENGINE_API class UEngine*			GEngine;

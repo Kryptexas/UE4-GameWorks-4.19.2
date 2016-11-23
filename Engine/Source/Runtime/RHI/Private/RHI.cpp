@@ -4,9 +4,8 @@
 	RHI.cpp: Render Hardware Interface implementation.
 =============================================================================*/
 
-#include "RHIPrivatePCH.h"
 #include "RHI.h"
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, RHI);
 
@@ -48,7 +47,7 @@ const FString FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32
 };
 
 #if STATS
-#include "StatsData.h"
+#include "Stats/StatsData.h"
 static void DumpRHIMemory(FOutputDevice& OutputDevice)
 {
 	TArray<FStatMessage> Stats;

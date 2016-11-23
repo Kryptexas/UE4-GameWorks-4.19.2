@@ -1,21 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "UnrealHeaderTool.h"
+
 #include "UHTMakefile.h"
+#include "UnrealHeaderTool.h"
+#include "HAL/FileManager.h"
+#include "UObject/UObjectHash.h"
 #include "ClassMaps.h"
-#include "Scope.h"
-#include "UnrealSourceFile.h"
-#include "HeaderProvider.h"
-#include "ClassArchiveProxy.h"
-#include "PropertyArchiveProxy.h"
-#include "StructArchiveProxy.h"
-#include "PackageArchiveProxy.h"
-#include "EnumArchiveProxy.h"
-#include "ObjectBaseArchiveProxy.h"
-#include "ScriptStructArchiveProxy.h"
-#include "ModuleDescriptor.h"
 #include "Manifest.h"
-#include "ScopedTimers.h"
-#include "ScopeExit.h"
+#include "ProfilingDebugging/ScopedTimers.h"
+#include "Misc/ScopeExit.h"
 
 
 namespace UE4Makefile_Private

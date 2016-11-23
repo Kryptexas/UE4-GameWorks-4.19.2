@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "BasicMathExpressionEvaluator.h"
+#include "Math/BasicMathExpressionEvaluator.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/ExpressionParser.h"
 
 #define LOCTEXT_NAMESPACE "BasicMathExpressionEvaluator"
 

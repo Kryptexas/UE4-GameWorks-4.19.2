@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "UnrealEd.h"
-#include "Classes/Commandlets/AudioMixerCommandlet.h"
+#include "Commandlets/AudioMixerCommandlet.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Sound/SoundAttenuation.h"
+#include "Audio.h"
+#include "Sound/SoundWave.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Package.h"
+#include "ActiveSound.h"
 
 #define ENABLE_AUDIO_MIXER_COMMANDLET (PLATFORM_WINDOWS)
 

@@ -1,9 +1,16 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TextWidgetTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SWidget.h"
+#include "Components/TextWidgetTypes.h"
 #include "TextBlock.generated.h"
+
+class STextBlock;
 
 /**
  * A simple static text widget.

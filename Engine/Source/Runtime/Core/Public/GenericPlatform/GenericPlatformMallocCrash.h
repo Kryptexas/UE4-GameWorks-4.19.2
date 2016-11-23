@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/MemoryBase.h"
+#include "HAL/CriticalSection.h"
+
+struct FMallocCrashPool;
+struct FPoolDesc;
+
 /** Describes a pointer. */
 struct FPtrInfo
 {

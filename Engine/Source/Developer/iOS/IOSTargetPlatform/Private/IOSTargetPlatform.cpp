@@ -4,9 +4,19 @@
 	IOSTargetPlatform.cpp: Implements the FIOSTargetPlatform class.
 =============================================================================*/
 
-#include "IOSTargetPlatformPrivatePCH.h"
+#include "IOSTargetPlatform.h"
 #include "IProjectManager.h"
 #include "InstalledPlatformInfo.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/App.h"
+#include "Misc/MonitoredProcess.h"
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
+#if WITH_ENGINE
+#include "TextureResource.h"
+#endif
 
 /* FIOSTargetPlatform structors
  *****************************************************************************/
@@ -476,7 +486,7 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 	// if we didn't assign anything specially, then use the defaults
 	if (TextureFormatName == NAME_None)
 	{
-		TextureFormatName = GetDefaultTextureFormatName(Texture, EngineSettings, false);
+		TextureFormatName = GetDefaultTextureFormatName(this, Texture, EngineSettings, false);
 	}
 
 	// perform any remapping away from defaults

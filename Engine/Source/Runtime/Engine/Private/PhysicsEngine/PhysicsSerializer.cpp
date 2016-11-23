@@ -4,11 +4,11 @@
 	PhysicsSerializer.cpp
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
 #include "PhysicsSerializer.h"
-#include "PhysDerivedData.h"
-#include "PhysXSupport.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Guid.h"
+#include "PhysicsEngine/PhysXSupport.h"
+#include "PhysicsEngine/PhysDerivedData.h"
 
 UPhysicsSerializer::UPhysicsSerializer(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

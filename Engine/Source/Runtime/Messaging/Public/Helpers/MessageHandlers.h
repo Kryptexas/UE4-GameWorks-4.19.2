@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
 #include "IMessageContext.h"
 #include "IMessageHandler.h"
 

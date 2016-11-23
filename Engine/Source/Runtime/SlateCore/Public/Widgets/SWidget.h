@@ -2,39 +2,35 @@
 
 #pragma once
 
-#include "Visibility.h"
-#include "SlateRenderTransform.h"
-#include "NavigationReply.h"
-#include "SlateColor.h"
-#include "WidgetActiveTimerDelegate.h"
-#include "DeclarativeSyntaxSupport.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Stats/Stats.h"
+#include "Styling/SlateColor.h"
+#include "Layout/SlateRect.h"
+#include "Layout/Visibility.h"
+#include "Rendering/SlateLayoutTransform.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Input/NavigationReply.h"
+#include "Input/PopupMethodReply.h"
+#include "Types/ISlateMetaData.h"
+#include "Layout/ArrangedWidget.h"
+#include "Types/WidgetActiveTimerDelegate.h"
 #include "Layout/LayoutGeometry.h"
 
-class ISlateMetaData;
 class FActiveTimerHandle;
+class FArrangedChildren;
+class FCachedWidgetNode;
+class FChildren;
 class FPaintArgs;
-class FSlateRect;
 class FSlateWindowElementList;
-class FWidgetStyle;
+class FSlotBase;
 class FWeakWidgetPath;
 class FWidgetPath;
-class FDragDropEvent;
-class FSlotBase;
-class FArrangedChildren;
-class FChildren;
-class FArrangedWidget;
+class IToolTip;
+class SWidget;
 struct FSlateBrush;
-struct FGeometry;
-struct FFocusEvent;
-struct FKeyboardFocusEvent;
-struct FCharacterEvent;
-struct FKeyEvent;
-struct FControllerEvent;
-struct FAnalogInputEvent;
-struct FPointerEvent;
-struct FMotionEvent;
-struct FVirtualPointerPosition;
-struct FNavigationEvent;
 
 /** Delegate type for handling mouse events */
 DECLARE_DELEGATE_RetVal_TwoParams(

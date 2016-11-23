@@ -2,13 +2,22 @@
 
 #pragma once
 
-#include "GenericApplication.h"
-#include "LinuxWindow.h"
-#include "LinuxCursor.h"
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Math/Vector2D.h"
+#include "Templates/SharedPointer.h"
+#include "Misc/CoreMisc.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "GenericPlatform/GenericWindowDefinition.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Linux/LinuxWindow.h"
+#include "Linux/LinuxCursor.h"
 
-class FLinuxWindow;
-class FGenericApplicationMessageHandler;
-
+class IInputDevice;
 
 class FLinuxApplication : public GenericApplication, public FSelfRegisteringExec
 {

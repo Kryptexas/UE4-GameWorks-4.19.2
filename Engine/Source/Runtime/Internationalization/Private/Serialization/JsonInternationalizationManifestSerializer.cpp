@@ -1,11 +1,11 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "InternationalizationPrivatePCH.h"
-#include "InternationalizationManifest.h"
-#include "Internationalization/InternationalizationMetadata.h"
-#include "Json.h"
-#include "JsonInternationalizationManifestSerializer.h"
-#include "JsonInternationalizationMetadataSerializer.h"
+#include "Serialization/JsonInternationalizationManifestSerializer.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonInternationalizationMetadataSerializer.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogInternationalizationManifestSerializer, Log, All);

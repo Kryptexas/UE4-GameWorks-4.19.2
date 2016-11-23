@@ -2,8 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Policies/PrettyJsonPrintPolicy.h"
+#include "Curves/CurveOwnerInterface.h"
 #include "CurveTable.generated.h"
-
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogCurveTable, Log, All);
 

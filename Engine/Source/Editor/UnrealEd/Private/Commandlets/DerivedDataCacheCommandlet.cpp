@@ -3,15 +3,19 @@
 /*=============================================================================
 DerivedDataCacheCommandlet.cpp: Commandlet for DDC maintenence
 =============================================================================*/
-#include "UnrealEd.h"
+#include "Commandlets/DerivedDataCacheCommandlet.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 #include "PackageHelperFunctions.h"
 #include "DerivedDataCacheInterface.h"
-#include "ISourceControlModule.h"
 #include "GlobalShader.h"
-#include "TargetPlatform.h"
-#include "IConsoleManager.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "ShaderCompiler.h"
 #include "DistanceFieldAtlas.h"
+#include "Misc/RedirectCollector.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 

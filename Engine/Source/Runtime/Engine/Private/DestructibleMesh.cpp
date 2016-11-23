@@ -4,17 +4,16 @@
 	DestructibleMesh.cpp: UDestructibleMesh methods.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
-#include "StaticMeshResources.h"
 #include "Engine/DestructibleMesh.h"
+#include "RawIndexBuffer.h"
 #include "Engine/DestructibleFractureSettings.h"
-#include "PhysicsEngine/PhysXSupport.h"
-#include "EditorFramework/AssetImportData.h"
 #include "GPUSkinVertexFactory.h"
-#include "FrameworkObjectVersion.h"
+#include "StaticMeshResources.h"
+#include "PhysXPublic.h"
+#include "UObject/FrameworkObjectVersion.h"
 
 #if WITH_APEX && WITH_EDITOR
+#include "EditorFramework/AssetImportData.h"
 #include "ApexDestructibleAssetImport.h"
 #endif
 #include "PhysicalMaterials/PhysicalMaterial.h"

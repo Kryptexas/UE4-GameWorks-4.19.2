@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "BehaviorTree/Decorators/BTDecorator_BlackboardBase.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "DataProviders/AIDataProvider.h"
+#include "BehaviorTree/Decorators/BTDecorator_BlackboardBase.h"
 #include "BTDecorator_IsAtLocation.generated.h"
 
 /**

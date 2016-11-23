@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MaterialEditorModule.h"
 #include "SMaterialEditorViewportToolBar.h"
-#include "SMaterialEditorViewport.h"
-#include "EditorViewportCommands.h"
+#include "Widgets/Layout/SBorder.h"
+#include "EditorStyleSet.h"
 #include "MaterialEditorActions.h"
-#include "Editor/UnrealEd/Public/SViewportToolBar.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditorViewportToolBar"
 

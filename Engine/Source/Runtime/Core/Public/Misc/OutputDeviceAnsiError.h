@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "OutputDeviceError.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDeviceError.h"
 
 class FOutputDeviceAnsiError : public FOutputDeviceError
 {

@@ -5,20 +5,25 @@
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "PrimitiveViewRelevance.h"
+#include "SceneTypes.h"
+#include "Engine/Scene.h"
+#include "UniformBuffer.h"
 #include "SceneView.h"
 #include "PrimitiveUniformShaderParameters.h"
-#include "PrimitiveViewRelevance.h"
 
-// Forward declarations.
-class FSimpleLightEntry;
-class HHitProxy;
-class FStaticPrimitiveDrawInterface;
-class FPrimitiveSceneInfo;
-class FLightSceneProxy;
 class FLightSceneInfo;
+class FLightSceneProxy;
 class FPrimitiveDrawInterface;
-
-struct FPrimitiveMaterialInfo;
+class FPrimitiveSceneInfo;
+class FStaticPrimitiveDrawInterface;
+class UPrimitiveComponent;
+class UTexture2D;
+struct FMeshBatch;
 
 /** Data for a simple dynamic light. */
 class FSimpleLightEntry

@@ -2,9 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
 #include "PropertyEditorModule.h"
+#include "UObject/PropertyPortFlags.h"
 
 class FAssetData;
+class IPropertyHandleArray;
+class IPropertyHandleMap;
+class IPropertyHandleSet;
 
 namespace EPropertyValueSetFlags
 {

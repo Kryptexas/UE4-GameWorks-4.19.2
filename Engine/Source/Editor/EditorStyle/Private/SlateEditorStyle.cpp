@@ -1,6 +1,8 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorStylePrivatePCH.h"
+#include "SlateEditorStyle.h"
+#include "Misc/CommandLine.h"
+#include "Styling/CoreStyle.h"
 
 #if (WITH_EDITOR || (IS_PROGRAM && PLATFORM_DESKTOP))
 	#include "PlatformInfo.h"

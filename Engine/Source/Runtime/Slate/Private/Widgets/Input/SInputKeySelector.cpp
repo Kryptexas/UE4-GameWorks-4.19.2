@@ -1,7 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "SInputKeySelector.h"
+#include "Widgets/Input/SInputKeySelector.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
 
 
 void SInputKeySelector::Construct( const FArguments& InArgs )

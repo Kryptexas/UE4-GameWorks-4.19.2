@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "HTML5/HTML5PlatformStackWalk.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include <ctype.h>
+#include <stdlib.h>
 #if PLATFORM_HTML5_BROWSER
 #	include <emscripten/emscripten.h>
 #endif

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "SoundCueGraph/SoundCueGraphNode_Base.h"
 #include "SoundCueGraphNode_Root.generated.h"
 

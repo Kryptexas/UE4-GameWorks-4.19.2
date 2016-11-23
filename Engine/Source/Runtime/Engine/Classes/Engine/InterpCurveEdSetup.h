@@ -2,6 +2,10 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "InterpCurveEdSetup.generated.h"
 
 // Information about a particule curve being viewed.

@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "Factories/ReimportSoundFactory.h"
+#include "Sound/SoundWave.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Misc/Paths.h"
+#include "AudioEditorModule.h"
+#include "HAL/FileManager.h"
 
 UReimportSoundFactory::UReimportSoundFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -1,9 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-#include "DesignerCommands.h"
-#include "SDesignerToolBar.h"
+#include "Designer/SDesignerToolBar.h"
+#include "Styling/SlateTypes.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+
+#if WITH_EDITOR
+	#include "EditorStyleSet.h"
+#endif // WITH_EDITOR
 #include "Settings/WidgetDesignerSettings.h"
+
+#include "Designer/DesignerCommands.h"
 #include "SViewportToolBarComboMenu.h"
 
 #define LOCTEXT_NAMESPACE "UMG"

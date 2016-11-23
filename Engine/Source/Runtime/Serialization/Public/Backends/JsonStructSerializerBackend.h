@@ -2,14 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IStructSerializerBackend.h"
-#include "Json.h"
-
-
-// forward declarations
-class UProperty;
-class UStruct;
-
+#include "Serialization/JsonWriter.h"
 
 /**
  * Implements a writer for UStruct serialization using Json.

@@ -3,7 +3,11 @@
 #ifndef ANDROID_EVENT_MANAGER_H
 #define ANDROID_EVENT_MANAGER_H
 
+#include "CoreMinimal.h"
+#include "Containers/Queue.h"
+
 struct ANativeWindow;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogAndroidEvents, Log, All);
 
 enum EAppEventState

@@ -4,18 +4,21 @@
 	SkyLightComponent.cpp: SkyLightComponent implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#if WITH_EDITOR
-#include "ObjectEditorUtils.h"
-#endif
-#include "Engine/SkyLight.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "Net/UnrealNetwork.h"
-#include "MapErrors.h"
-#include "ComponentInstanceDataCache.h"
-#include "ShaderCompiler.h"
 #include "Components/SkyLightComponent.h"
+#include "Engine/Texture2D.h"
+#include "SceneManagement.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Misc/ScopeLock.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/SkyLight.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Net/UnrealNetwork.h"
+#include "Misc/MapErrors.h"
+#include "ShaderCompiler.h"
+#include "Components/BillboardComponent.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 

@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+struct FFilterVertex;
+
 /**
 * The family of HMD device.  Register a new class of device here if you need to branch code for PostProcessing until
 */

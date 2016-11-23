@@ -5,8 +5,22 @@
 	that runs a thread to download chunks in it's queue.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
-#include "Async.h"
+#include "BuildPatchDownloader.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Interfaces/IBuildInstaller.h"
+#include "Interfaces/IHttpResponse.h"
+#include "BuildPatchError.h"
+#include "BuildPatchHTTP.h"
+#include "BuildPatchChunkCache.h"
+#include "BuildPatchFileConstructor.h"
+#include "BuildPatchUtil.h"
+#include "BuildPatchAnalytics.h"
+#include "Async/Async.h"
 
 using namespace BuildPatchConstants;
 

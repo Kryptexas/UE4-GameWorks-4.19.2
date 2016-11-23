@@ -1,14 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "EditorSupportDelegates.h"
-#include "ActorEditorUtils.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "LevelUtils.h"
-#include "MapErrors.h"
-#include "Engine/LevelBounds.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreDelegates.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
+#include "Engine/Blueprint.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
 #include "Components/ChildActorComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EditorSupportDelegates.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "LevelUtils.h"
+#include "Misc/MapErrors.h"
+#include "ActorEditorUtils.h"
+#include "EngineGlobals.h"
 
 #if WITH_EDITOR
 

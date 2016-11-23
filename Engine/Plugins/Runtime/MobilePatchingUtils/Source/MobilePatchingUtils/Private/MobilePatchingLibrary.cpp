@@ -1,13 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MobilePatchingUtilsPrivatePCH.h"
-
 #include "MobilePatchingLibrary.h"
-#include "Http.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
+
+#include "Interfaces/IBuildPatchServicesModule.h"
+#include "Interfaces/IHttpResponse.h"
+#include "HttpModule.h"
 #include "IPlatformFilePak.h"
-#include "UnitConversion.h"
-#include "BuildPatchServicesSingleton.h"
-#include "ScopeExit.h"
+#include "Math/UnitConversion.h"
+#include "Misc/ScopeExit.h"
 
 #define LOCTEXT_NAMESPACE "MobilePatchingUtils"
 

@@ -2,13 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Serialization/JsonReader.h"
 #include "IStructDeserializerBackend.h"
-#include "Json.h"
-
-
-// forward declarations
-class UProperty;
-
 
 /**
  * Implements a reader for UStruct deserialization using Json.

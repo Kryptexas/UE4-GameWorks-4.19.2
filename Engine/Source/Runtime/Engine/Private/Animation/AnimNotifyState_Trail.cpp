@@ -1,16 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Animation/AnimNotifies/AnimNotifyState_Trail.h"
-#include "ParticleDefinitions.h"
-#include "Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
-#include "Particles/ParticleSystem.h"
+#include "GameFramework/Actor.h"
+#include "UObject/UObjectHash.h"
+#include "ParticleEmitterInstances.h"
 #include "Particles/ParticleSystemComponent.h"
-#include "MessageLog.h"
-#include "AssertionMacros.h"
+#include "Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
 #include "Animation/AnimInstance.h"
-#include "Animation/AnimSequenceBase.h"
-#include "ParticleHelper.h"
 
 #define LOCTEXT_NAMESPACE "AnimNotifyState_Trail"
 

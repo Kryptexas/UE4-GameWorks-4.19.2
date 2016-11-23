@@ -7,9 +7,18 @@
  *
  */
 
-#include "AnimTypes.h"
-#include "AnimSequenceBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimCurveTypes.h"
+#include "Animation/AnimSequenceBase.h"
 #include "AnimSequence.generated.h"
+
+struct FAnimCompressContext;
+struct FCompactPose;
 
 typedef TArray<FTransform> FTransformArrayA2;
 

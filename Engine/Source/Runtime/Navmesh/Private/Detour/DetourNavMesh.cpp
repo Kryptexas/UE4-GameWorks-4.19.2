@@ -19,19 +19,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
-#include <math.h>
-#include <float.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "DetourNavMesh.h"
-#include "DetourNode.h"
-#include "DetourCommon.h"
-#include "DetourAlloc.h"
-#include "DetourAssert.h"
-#include "DetourNavMeshQuery.h"
-#include <new>
+#include "Detour/DetourNavMesh.h"
+#include "Detour/DetourCommon.h"
+#include "Detour/DetourAssert.h"
 
 enum ESlabOverlapFlag
 {

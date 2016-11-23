@@ -4,7 +4,7 @@
 // ShaderCompileWorker.cpp : Defines the entry point for the console application.
 //
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "RequiredProgramMainCPPInclude.h"
 #include "ShaderCore.h"
 #include "ExceptionHandling.h"

@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "ParticleParameterTrackEditor.h"
-#include "MovieSceneParticleParameterTrack.h"
-#include "ParameterSection.h"
-#include "MovieSceneParameterSection.h"
+#include "TrackEditors/ParticleParameterTrackEditor.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Sections/MovieSceneParameterSection.h"
+#include "Tracks/MovieSceneParticleParameterTrack.h"
+#include "Sections/ParameterSection.h"
 #include "SequencerUtilities.h"
 
 

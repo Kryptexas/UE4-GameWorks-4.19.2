@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Camera/CameraShake.h"
 #include "MovieSceneSection.h"
 #include "MovieSceneCameraShakeSection.generated.h"
-
-class UCameraShake;
 
 USTRUCT()
 struct FMovieSceneCameraShakeSectionData

@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "SBlueprintProfilerView.h"
-#include "BPProfilerStatisticWidgets.h"
-#include "EventExecution.h"
-#include "SProfilerStatExpander.h"
-#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
+#include "Profiler/BPProfilerStatisticWidgets.h"
+#include "Profiler/BlueprintProfilerSettings.h"
+#include "EditorStyleSet.h"
+#include "Profiler/SProfilerStatExpander.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintProfilerViewTypesUI"
 

@@ -1,25 +1,31 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AI/Navigation/NavAgentInterface.h"
-#include "GameFramework/Actor.h"
-#include "Pawn.generated.h"
 
-ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogDamage, Warning, All);
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/CoreNet.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
+#include "AI/Navigation/NavAgentInterface.h"
+#include "Pawn.generated.h"
 
 class AController;
 class APhysicsVolume;
 class APlayerController;
 class APlayerState;
+class FDebugDisplayInfo;
 class UCanvas;
 class UDamageType;
 class UInputComponent;
-class UNetConnection;
 class UPawnMovementComponent;
 class UPawnNoiseEmitterComponent;
 class UPlayer;
 class UPrimitiveComponent;
-struct FNavAgentProperties;
+
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogDamage, Warning, All);
 
 /** 
  * Pawn is the base class of all actors that can be possessed by players or AI.

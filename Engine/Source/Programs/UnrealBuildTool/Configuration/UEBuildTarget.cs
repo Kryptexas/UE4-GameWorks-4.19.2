@@ -2549,7 +2549,7 @@ namespace UnrealBuildTool
 					if(!UEBuildConfiguration.bFormalBuild)
 					{
 						CPPEnvironment DefaultResourceCompileEnvironment = GlobalCompileEnvironment.DeepCopy();
-						DefaultResourceCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"\"");
+						DefaultResourceCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"UE4\"");
 
 						FileItem DefaultResourceFile = FileItem.GetExistingItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Launch", "Resources", "Windows", "PCLaunch.rc"));
 						CPPOutput DefaultResourceOutput = TargetToolChain.CompileRCFiles(DefaultResourceCompileEnvironment, new List<FileItem> { DefaultResourceFile }, ActionGraph);
@@ -2565,9 +2565,22 @@ namespace UnrealBuildTool
                 OutputItems.AddRange(Binary.Build(this, TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment, SharedPCHs, ActionGraph));  
 			}
 
+			// Make sure all the checked headers were valid
+			List<string> InvalidIncludeDirectiveMessages = Modules.Values.OfType<UEBuildModuleCPP>().Where(x => x.InvalidIncludeDirectiveMessages != null).SelectMany(x => x.InvalidIncludeDirectiveMessages).ToList();
+			if (InvalidIncludeDirectiveMessages.Count > 0)
+			{
+				foreach (string InvalidIncludeDirectiveMessage in InvalidIncludeDirectiveMessages)
+				{
+					Log.TraceError("{0}", InvalidIncludeDirectiveMessage);
+				}
+				Log.TraceError("Build canceled.");
+				return ECompilationResult.Canceled;
+			}
+
 			// Export a JSON dump of this target
 			if (BuildConfiguration.JsonExportFile != null)
 			{
+				Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(BuildConfiguration.JsonExportFile)));
 				ExportJson(BuildConfiguration.JsonExportFile);
 			}
 
@@ -2762,19 +2775,12 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Markup all the binaries containing modules with circular references
+			// Create import libraries for all binaries ahead of time, since linking binaries often causes bottlenecks
 			if (!bCompileMonolithic)
 			{
-				foreach (UEBuildModule Module in Modules.Values.Where(x => x.Binary != null))
+				foreach(UEBuildBinary Binary in AppBinaries)
 				{
-					foreach (string CircularlyReferencedModuleName in Module.Rules.CircularlyReferencedDependentModules)
-					{
-						UEBuildModule CircularlyReferencedModule;
-						if (Modules.TryGetValue(CircularlyReferencedModuleName, out CircularlyReferencedModule) && CircularlyReferencedModule.Binary != null)
-						{
-							CircularlyReferencedModule.Binary.SetCreateImportLibrarySeparately(true);
-						}
-					}
+					Binary.SetCreateImportLibrarySeparately(true);
 				}
 			}
 
@@ -3326,7 +3332,7 @@ namespace UnrealBuildTool
 			{
 				foreach(UEBuildModuleCPP Module in Binary.Modules.OfType<UEBuildModuleCPP>())
 				{
-					if(!String.IsNullOrEmpty(Module.Rules.SharedPCHHeaderFile))
+					if(Module.Rules.SharedPCHHeaderFile != null)
 					{
 						SharedPCHModules.Add(Module);
 					}
@@ -4227,6 +4233,16 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.Config.Definitions.Add("WITH_SERVER_CODE=0");
 			}
 
+			// Set the define for whether we're compiling with CEF3
+			if (UEBuildConfiguration.bCompileCEF3 && (Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64 || Platform == UnrealTargetPlatform.Mac))
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("WITH_CEF3=1");
+			}
+			else
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("WITH_CEF3=0");
+			}
+
 			// tell the compiled code the name of the UBT platform (this affects folder on disk, etc that the game may need to know)
 			GlobalCompileEnvironment.Config.Definitions.Add("UBT_COMPILED_PLATFORM=" + Platform.ToString());
 			GlobalCompileEnvironment.Config.Definitions.Add("UBT_COMPILED_TARGET=" + TargetType.ToString());
@@ -4391,20 +4407,22 @@ namespace UnrealBuildTool
 					throw new BuildException("Module rules for '{0}' should not be dependent on modules which are also dynamically loaded: {1}", ModuleName, String.Join(", ", InvalidDependencies));
 				}
 
+				// Make sure that engine modules use shared PCHs or have an explicit private PCH
+				if(RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs && RulesObject.PrivatePCHHeaderFile == null)
+				{
+					if(ProjectFile == null || !ModuleFileName.IsUnderDirectory(ProjectFile.Directory))
+					{
+						Log.TraceWarning("{0} module has shared PCHs disabled, but does not have a private PCH set", ModuleName);
+					}
+				}
+
 				// Disable shared PCHs for game modules by default (but not game plugins, since they won't depend on the game's PCH!)
 				if (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.Default)
 				{
-					////////////////////////////////////////////////////////////////////////////////////////
-					// @todo jira UE-29925:
-					// The above comment is wrong. Plugins need SharedPCHs disabled as well. See the Jira. 
-					// The following line WORKS AROUND THE ISSUE BUT DOESN'T FIX IT. 
 					if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(ProjectFile.Directory))
-					// This is the original code that matched the comment, but will cause at least Switch to fail to compile UT
-					//if (ProjectFile == null || !ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(ProjectFile.Directory, "Source")))
-					////////////////////////////////////////////////////////////////////////////////////////
 					{
 						// Engine module or plugin module -- allow shared PCHs
-						RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;
+						RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 					}
 					else
 					{

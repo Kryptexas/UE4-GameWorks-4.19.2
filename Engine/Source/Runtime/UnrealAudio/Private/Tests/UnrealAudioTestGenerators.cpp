@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealAudioPrivate.h"
-#include "UnrealAudioModule.h"
-#include "UnrealAudioTestGenerators.h"
+#include "Tests/UnrealAudioTestGenerators.h"
 
 #if ENABLE_UNREAL_AUDIO & WITH_DEV_AUTOMATION_TESTS
 

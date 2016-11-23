@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/ITargetDeviceServiceManager.h"
+#include "IMessageBus.h"
 
 /**
  * Implements a target device service manager.

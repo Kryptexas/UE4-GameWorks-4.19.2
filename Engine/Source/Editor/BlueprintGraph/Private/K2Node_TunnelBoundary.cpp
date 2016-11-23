@@ -1,7 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
-#include "KismetCompiler.h"
+#include "K2Node_TunnelBoundary.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Tunnel.h"
+#include "K2Node_Composite.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_MacroInstance.h"
+#include "KismetCompiledFunctionContext.h"
+#include "KismetCompilerMisc.h"
 
 #define LOCTEXT_NAMESPACE "FKCHandler_TunnelBoundary"
 

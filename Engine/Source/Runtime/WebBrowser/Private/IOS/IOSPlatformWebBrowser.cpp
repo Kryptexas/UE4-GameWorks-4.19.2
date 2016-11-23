@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
+#include "CoreMinimal.h"
 
 #if PLATFORM_IOS
 #include "IOSPlatformWebBrowser.h"

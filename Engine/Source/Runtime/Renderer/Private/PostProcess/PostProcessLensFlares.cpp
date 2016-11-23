@@ -4,12 +4,13 @@
 	PostProcessLensFlares.cpp: Post processing lens fares implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessLensFlares.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessLensFlares.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
+#include "ClearQuad.h"
 
 /** Encapsulates a simple copy pixel shader. */
 class FPostProcessLensFlareBasePS : public FGlobalShader

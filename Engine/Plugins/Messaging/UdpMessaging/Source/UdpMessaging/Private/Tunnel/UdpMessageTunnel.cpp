@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UdpMessagingPrivatePCH.h"
+#include "Tunnel/UdpMessageTunnel.h"
+#include "Misc/ScopeLock.h"
+#include "Common/TcpSocketBuilder.h"
+#include "Common/TcpListener.h"
+#include "Common/UdpSocketBuilder.h"
+#include "Shared/UdpMessageSegment.h"
+#include "UdpMessagingPrivate.h"
 
 #if PLATFORM_DESKTOP
 
-#include "UdpMessageSegment.h"
-#include "UdpMessageTunnelConnection.h"
-#include "UdpMessageTunnel.h"
 
 
 /* FUdpMessageTunnel structors

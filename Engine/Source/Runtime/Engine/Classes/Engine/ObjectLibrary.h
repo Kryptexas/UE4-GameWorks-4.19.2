@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "AssetData.h"
 #include "ObjectLibrary.generated.h"
+
+struct FPropertyChangedEvent;
 
 /** Class that holds a library of Objects */
 UCLASS(MinimalAPI)

@@ -1,10 +1,21 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Attribute.h"
+#include "Styling/SlateBrush.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Components/Widget.h"
 #include "Image.generated.h"
 
+class SImage;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
 class USlateBrushAsset;
+class UTexture2D;
 
 /**
  * The image widget allows you to display a Slate Brush, or texture or material in the UI.

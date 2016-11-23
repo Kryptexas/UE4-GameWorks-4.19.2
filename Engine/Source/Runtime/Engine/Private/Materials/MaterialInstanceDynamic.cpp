@@ -4,8 +4,10 @@
 	MaterialInstanceDynamic.cpp: MaterialInstanceDynamic implementation.
 ==============================================================================*/
 
-#include "EnginePrivate.h"
-#include "MaterialInstanceSupport.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UObject/Package.h"
+#include "Materials/MaterialInstanceSupport.h"
+#include "Engine/Texture.h"
 
 UMaterialInstanceDynamic::UMaterialInstanceDynamic(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

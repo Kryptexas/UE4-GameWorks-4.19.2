@@ -2,12 +2,10 @@
 
 #pragma once
 
-#include "ProfilerSession.h"
+#include "CoreMinimal.h"
+#include "Stats/StatsFile.h"
 #include "ProfilerStream.h"
-
-
-struct FAllocationInfo;
-
+#include "ProfilerSession.h"
 
 class FRawProfilerSession
 	: public FProfilerSession

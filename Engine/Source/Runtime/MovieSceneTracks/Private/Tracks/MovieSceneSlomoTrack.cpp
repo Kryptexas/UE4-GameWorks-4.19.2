@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneSlomoSection.h"
-#include "MovieSceneSlomoTrack.h"
+#include "Tracks/MovieSceneSlomoTrack.h"
+#include "Sections/MovieSceneSlomoSection.h"
 #include "Evaluation/MovieSceneSlomoTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTrack.h"
-
+#include "Templates/Casts.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneSlomoTrack"
 

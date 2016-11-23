@@ -2,16 +2,31 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "Widgets/SViewport.h"
+#include "WebBrowserSingleton.h"
+
+class FBrowserBufferedVideo;
+class FCEFBrowserHandler;
+class FCEFJSScripting;
+class FSlateUpdatableTexture;
+class IWebBrowserPopupFeatures;
+class IWebBrowserWindow;
+struct Rect;
+enum class EWebBrowserDocumentState;
+
 #if WITH_CEF3
 
 #include "IWebBrowserWindow.h"
 #include "CEFBrowserHandler.h"
-#include "SlateCore.h"
-#include "SlateBasics.h"
-#include "CoreUObject.h"
 
 #if PLATFORM_WINDOWS
-#	include "AllowWindowsPlatformTypes.h"
+	#include "WindowsHWrapper.h"
+	#include "AllowWindowsPlatformTypes.h"
+	#include "AllowWindowsPlatformAtomics.h"
 #endif
 
 #pragma push_macro("OVERRIDE")
@@ -22,9 +37,18 @@
 #pragma pop_macro("OVERRIDE")
 
 #if PLATFORM_WINDOWS
-#	include "HideWindowsPlatformTypes.h"
+	#include "HideWindowsPlatformAtomics.h"
+	#include "HideWindowsPlatformTypes.h"
 #endif
 
+class FSlateShaderResource;
+enum class EWebBrowserDocumentState;
+struct FGeometry;
+struct FPointerEvent;
+class UObject;
+struct FInputEvent;
+class FSlateUpdatableTexture;
+class FWebJSScripting;
 class FBrowserBufferedVideo;
 class FCEFJSScripting;
 

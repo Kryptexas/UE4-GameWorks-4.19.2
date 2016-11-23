@@ -1,20 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneCapturePCH.h"
 #include "MovieSceneCapture.h"
+#include "Dom/JsonValue.h"
+#include "Dom/JsonObject.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "Engine/World.h"
+#include "Slate/SceneViewport.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 #include "ActiveMovieSceneCaptures.h"
-#include "HighResScreenshot.h"
-#include "BufferVisualizationData.h"
-#include "SceneViewExtension.h"
 #include "JsonObjectConverter.h"
-#include "RemoteConfigIni.h"
-#include "Scalability.h"
-#include "SceneViewport.h"
-
-#if WITH_EDITOR
-#include "ImageWrapper.h"
-#endif
-
+#include "Misc/RemoteConfigIni.h"
 #include "MovieSceneCaptureModule.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneCapture"

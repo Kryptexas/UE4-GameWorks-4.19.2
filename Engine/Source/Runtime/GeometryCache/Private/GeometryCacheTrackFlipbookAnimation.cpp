@@ -1,9 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GeometryCacheModulePrivatePCH.h"
-#include "GeometryCacheMeshData.h"
-
 #include "GeometryCacheTrackFlipbookAnimation.h"
+
 
 GEOMETRYCACHE_API UGeometryCacheTrack_FlipbookAnimation::UGeometryCacheTrack_FlipbookAnimation(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/) : UGeometryCacheTrack(ObjectInitializer)
 {

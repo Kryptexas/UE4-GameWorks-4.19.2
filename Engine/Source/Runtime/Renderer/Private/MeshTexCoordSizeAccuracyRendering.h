@@ -6,6 +6,16 @@ MeshTexCoordSizeAccuracyRendering.h: Declarations used for the viewmode.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
+#include "DebugViewModeRendering.h"
+
+class FPrimitiveSceneProxy;
+struct FMeshBatchElement;
+struct FMeshDrawingRenderState;
+
 /**
 * Pixel shader that renders the accuracy of the texel factor.
 */

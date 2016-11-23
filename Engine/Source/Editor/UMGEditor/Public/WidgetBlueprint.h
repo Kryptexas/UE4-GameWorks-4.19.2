@@ -1,15 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
 #include "Engine/Blueprint.h"
-#include "UserWidget.h"
-#include "WidgetAnimation.h"
-#include "DynamicPropertyPath.h"
+#include "Binding/DynamicPropertyPath.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Animation/WidgetAnimationBinding.h"
 
 #include "WidgetBlueprint.generated.h"
 
+class FCompilerResultsLog;
+class UEdGraph;
 class UMovieScene;
+class UUserWidget;
+class UWidgetAnimation;
 
 /** */
 USTRUCT()

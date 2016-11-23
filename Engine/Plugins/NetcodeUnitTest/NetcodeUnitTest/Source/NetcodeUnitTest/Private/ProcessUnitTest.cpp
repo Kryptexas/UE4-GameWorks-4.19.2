@@ -1,16 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "NetcodeUnitTestPCH.h"
-
 #include "ProcessUnitTest.h"
+#include "Containers/ArrayBuilder.h"
+#include "Misc/FeedbackContext.h"
+
 #include "UnitTestManager.h"
 
 #include "UnitTestEnvironment.h"
 
-#include "SLogWindow.h"
-#include "SLogWidget.h"
+#include "UI/SLogWindow.h"
+#include "UI/SLogWidget.h"
 
-#include "Regex.h"
+#include "Internationalization/Regex.h"
 
 
 /**

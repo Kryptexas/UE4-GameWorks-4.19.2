@@ -1,13 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "DataProviders/AIDataProvider.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType.h"
+#include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
+#include "DataProviders/AIDataProvider.h"
 #include "EnvironmentQuery/EnvQueryNode.h"
 #include "EnvQueryTest.generated.h"
 
-class UEnvQueryItemType;
-class UEnvQueryContext;
+class AActor;
+
 #if WITH_EDITOR
 struct FPropertyChangedEvent;
 #endif // WITH_EDITOR

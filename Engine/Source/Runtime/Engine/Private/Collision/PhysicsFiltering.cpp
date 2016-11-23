@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Physics/PhysicsFiltering.h"
 
-#include "../PhysicsEngine/PhysXSupport.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPhysicsFilterBuilder

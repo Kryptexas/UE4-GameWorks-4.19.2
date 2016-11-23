@@ -3,6 +3,8 @@
 #pragma once
 
 #include "PThreadCriticalSection.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Timespan.h"
 
 /**
  * Mac implementation of the FSystemWideCriticalSection. Uses exclusive file locking.

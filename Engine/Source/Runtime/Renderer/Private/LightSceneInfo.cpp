@@ -4,7 +4,9 @@
 	LightSceneInfo.cpp: Light scene info implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "LightSceneInfo.h"
+#include "Components/LightComponent.h"
+#include "SceneCore.h"
 #include "ScenePrivate.h"
 #include "DistanceFieldLightingShared.h"
 

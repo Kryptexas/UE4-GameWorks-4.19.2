@@ -1,9 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include <syslog.h>
-#include "Misc/App.h"
-
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/UnrealString.h"
+#include "CoreGlobals.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Misc/App.h"
+#include "Misc/OutputDeviceConsole.h"
+#include "Misc/FeedbackContext.h"
+#include <syslog.h>
+
+class Error;
 
 /**
  * Feedback context implementation for Linux.

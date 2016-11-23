@@ -6,22 +6,23 @@
 
 #pragma once
 
-#if WITH_EDITOR
-
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "InputCoreTypes.h"
 #include "PreviewScene.h"
-
+#if WITH_EDITOR
 #include "TickableEditorObject.h"
-#include "EditorSupportDelegates.h"
+#endif
 
-struct FPreviewSceneProfile;
-
-class USphereReflectionCaptureComponent;
-class USkyLightComponent;
-class UStaticMeshComponent;
+class FViewport;
+class UAssetViewerSettings;
 class UMaterialInstanceConstant;
 class UPostProcessComponent;
-class UAssetViewerSettings;
-class UEditorPerProjectUserSettings;
+class USkyLightComponent;
+class UStaticMeshComponent;
+struct FPreviewSceneProfile;
+
+#if WITH_EDITOR
 
 class ENGINE_API FAdvancedPreviewScene : public FPreviewScene, public FTickableEditorObject
 {

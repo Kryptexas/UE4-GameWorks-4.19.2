@@ -5,10 +5,19 @@
 	Location-related particle module implementations.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Distributions/DistributionVectorConstantCurve.h"
-#include "ParticleDefinitions.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Stats/Stats.h"
+#include "GameFramework/Actor.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "RawIndexBuffer.h"
+#include "ParticleHelper.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionFloatConstant.h"
+#include "Distributions/DistributionVectorConstant.h"
+#include "Distributions/DistributionVectorUniform.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
+#include "Particles/Location/ParticleModuleLocationBase.h"
 #include "Particles/Location/ParticleModuleLocation.h"
 #include "Particles/Location/ParticleModuleLocationBoneSocket.h"
 #include "Particles/Location/ParticleModuleLocationDirect.h"
@@ -27,8 +36,6 @@
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Engine/SkeletalMeshSocket.h"
 UParticleModuleLocationBase::UParticleModuleLocationBase(const FObjectInitializer& ObjectInitializer)

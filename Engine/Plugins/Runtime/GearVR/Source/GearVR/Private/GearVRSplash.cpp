@@ -1,12 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
-#include "GearVRPrivatePCH.h"
+#include "GearVRSplash.h"
 #include "GearVR.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS
-
-#include "GearVRSplash.h"
-
 
 FGearVRSplash::FGearVRSplash(FGearVR* InPlugin) : 
 	LayerMgr(MakeShareable(new GearVR::FLayerManager(InPlugin->GetCustomPresent_Internal())))

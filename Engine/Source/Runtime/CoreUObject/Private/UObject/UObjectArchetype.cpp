@@ -4,7 +4,11 @@
 	UObjectArchetype.cpp: Unreal object archetype relationship management
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "CoreMinimal.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
 
 #if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
 #error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"

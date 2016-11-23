@@ -1,9 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SessionServicesPrivatePCH.h"
-#include "ISessionServicesModule.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "IMessagingModule.h"
+#include "ISessionManager.h"
 #include "SessionManager.h"
+#include "ISessionService.h"
 #include "SessionService.h"
+#include "ISessionServicesModule.h"
 
 
 /**

@@ -2,10 +2,12 @@
 
 #pragma once 
 
-#include "ModuleInterface.h"
-#include "UnrealAudioModule.h"
-#include "UnrealAudioDeviceFormat.h"
+#include "CoreMinimal.h"
 #include "UnrealAudioTypes.h"
+#include "Modules/ModuleInterface.h"
+#include "Runtime/UnrealAudio/Private/UnrealAudioDeviceFormat.h"
+
+class Error;
 
 #if ENABLE_UNREAL_AUDIO
 

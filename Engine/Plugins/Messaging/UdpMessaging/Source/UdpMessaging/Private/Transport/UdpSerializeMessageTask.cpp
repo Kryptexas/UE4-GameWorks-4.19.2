@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UdpMessagingPrivatePCH.h"
-#include "UdpSerializeMessageTask.h"
-#include "UdpSerializedMessage.h"
+#include "Transport/UdpSerializeMessageTask.h"
+#include "Backends/JsonStructSerializerBackend.h"
+#include "StructSerializer.h"
 
 
 /* FUdpSerializeMessageTask interface

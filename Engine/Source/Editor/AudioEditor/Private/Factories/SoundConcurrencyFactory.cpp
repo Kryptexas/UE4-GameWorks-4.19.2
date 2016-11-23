@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "Factories/SoundConcurrencyFactory.h"
+#include "Sound/SoundConcurrency.h"
 
 USoundConcurrencyFactory::USoundConcurrencyFactory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

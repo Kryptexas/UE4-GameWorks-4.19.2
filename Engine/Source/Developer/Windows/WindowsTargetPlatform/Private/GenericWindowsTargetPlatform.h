@@ -2,8 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Common/TargetPlatformBase.h"
+#include "Misc/ConfigCacheIni.h"
+#include "LocalPcTargetDevice.h"
 
 #if WITH_ENGINE
+	#include "Sound/SoundWave.h"
+	#include "TextureResource.h"
 	#include "StaticMeshResources.h"
 #endif // WITH_ENGINE
 
@@ -175,7 +181,7 @@ public:
 	{
 		if (!IS_DEDICATED_SERVER)
 		{
-			FName TextureFormatName = GetDefaultTextureFormatName(InTexture, EngineSettings, bSupportDX11TextureFormats);
+			FName TextureFormatName = GetDefaultTextureFormatName(this, InTexture, EngineSettings, bSupportDX11TextureFormats);
 			OutFormats.Add(TextureFormatName);
 		}
 	}

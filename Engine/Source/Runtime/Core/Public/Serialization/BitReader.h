@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Serialization/Archive.h"
+#include "Containers/Array.h"
 
 CORE_API void appBitsCpy( uint8* Dest, int32 DestBit, uint8* Src, int32 SrcBit, int32 BitCount );
 

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "HAL/ThreadSafeBool.h"
 #include "TickableObjectRenderThread.h"
 
 // Base class for asynchronous loading splash.

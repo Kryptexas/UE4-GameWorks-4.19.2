@@ -5,36 +5,42 @@
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/RefCounting.h"
+#include "Templates/ScopedPointer.h"
 #include "Misc/SecureHash.h"
-#include "RefCounting.h"
+#include "RHI.h"
 #include "RenderResource.h"
+#include "RenderingThread.h"
 #include "UniformBuffer.h"
-#include "SceneTypes.h"
-#include "StaticParameterSet.h"
 #include "Shader.h"
 #include "VertexFactory.h"
+#include "SceneTypes.h"
+#include "StaticParameterSet.h"
 #include "Optional.h"
 
-class FMaterialShaderMap;
-class FMaterialShaderType;
 class FMaterial;
+class FMaterialCompiler;
 class FMaterialRenderProxy;
-class FMeshMaterialShaderMap;
+class FMaterialShaderType;
+class FMaterialUniformExpression;
 class FMeshMaterialShaderType;
+class FSceneView;
 class FShaderCommonCompileJob;
-class FShaderCompileJob;
-class FShaderType;
-class FShaderTypeDependency;
-class FShaderPipelineTypeDependency;
-class FVertexFactoryType;
-class FVertexFactoryTypeDependency;
 class UMaterial;
-class UMaterialInstance;
 class UMaterialExpression;
+class UMaterialExpressionMaterialFunctionCall;
+class UMaterialInstance;
 class UMaterialInterface;
+class USubsurfaceProfile;
 class UTexture;
 struct FExpressionInput;
-struct FShaderCompilerEnvironment;
+
+template <class ElementType> class TLinkedList;
 
 #define ME_CAPTION_HEIGHT		18
 #define ME_STD_VPADDING			16

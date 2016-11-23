@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "PropertyPortFlags.h"
+#include "Misc/Timespan.h"
+#include "Templates/TypeHash.h"
+#include "Containers/UnrealString.h"
+#include "UObject/PropertyPortFlags.h"
 
 /* FTimespan interface
  *****************************************************************************/

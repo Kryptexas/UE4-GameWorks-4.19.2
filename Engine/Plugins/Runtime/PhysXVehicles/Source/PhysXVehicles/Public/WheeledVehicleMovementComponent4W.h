@@ -4,6 +4,9 @@
  * Base VehicleSim for the 4W PhysX vehicle class
  */
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "WheeledVehicleMovementComponent.h"
 #include "Curves/CurveFloat.h"
 #include "WheeledVehicleMovementComponent4W.generated.h"

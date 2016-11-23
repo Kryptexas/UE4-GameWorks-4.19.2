@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
+#include "CEF/CEFJSStructDeserializerBackend.h"
 #if WITH_CEF3
-#include "CEFJSStructDeserializerBackend.h"
+#include "UObject/EnumProperty.h"
+#include "UObject/TextProperty.h"
+#include "WebJSFunction.h"
 
 /* Internal helpers
  *****************************************************************************/

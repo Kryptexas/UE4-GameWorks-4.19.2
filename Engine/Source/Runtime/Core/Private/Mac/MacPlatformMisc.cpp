@@ -4,7 +4,7 @@
 	MacPlatformMisc.mm: Mac implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "MacPlatformMisc.h"
 #include "Misc/App.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
@@ -20,6 +20,14 @@
 #include "PLCrashReporter.h"
 #include "GenericPlatformDriver.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "HAL/PlatformOutputDevices.h"
+#include "HAL/IConsoleManager.h"
+#include "HAL/FileManager.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/FeedbackContext.h"
+#include "Internationalization/Internationalization.h"
+#include "Internationalization/Culture.h"
 
 #include <dlfcn.h>
 #include <IOKit/IOKitLib.h>

@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealHeaderTool.h"
 #include "ParserHelper.h"
-#include "DefaultValueHelper.h"
+#include "UnrealHeaderTool.h"
+#include "Misc/DefaultValueHelper.h"
 #include "UHTMakefile/UHTMakefile.h"
 
 /////////////////////////////////////////////////////

@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
+#include "OnlineSubsystemGameCircleModule.h"
 #include "OnlineSubsystemGameCircle.h"
+
+#define GAMECIRCLE_SUBSYSTEM FName(TEXT("GAMECIRCLE"))
 
 IMPLEMENT_MODULE( FOnlineSubsystemGameCircleModule, OnlineSubsystemGameCircle );
 

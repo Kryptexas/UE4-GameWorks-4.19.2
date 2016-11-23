@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
+#include "HAL/PlatformAtomics.h"
 #include "Misc/Exec.h"
 
 enum

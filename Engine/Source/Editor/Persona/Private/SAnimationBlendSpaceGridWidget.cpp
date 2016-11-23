@@ -1,22 +1,38 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
 #include "SAnimationBlendSpaceGridWidget.h"
 
+#include "Animation/AnimSequence.h"
 #include "Animation/BlendSpaceBase.h"
 #include "Animation/BlendSpace1D.h"
 
-#include "SToolTip.h"
-#include "SNumericEntryBox.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Rendering/DrawElements.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 
-#include "PropertyEditing.h"
 #include "IDetailsView.h"
+#include "UObject/StructOnScope.h"
+#include "EditorStyleSet.h"
+#include "PropertyEditorModule.h"
 #include "ISinglePropertyView.h"
 #include "IStructureDetailsView.h"
 
 #include "Customization/BlendSampleDetails.h"
-#include "AssetDragDropOp.h"
+#include "AssetData.h"
+#include "DragAndDrop/AssetDragDropOp.h"
+#include "EditorStyleSettings.h"
+
+#include "Widgets/Input/SButton.h"
+#include "Fonts/FontMeasure.h"
+#include "Modules/ModuleManager.h"
+
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "SAnimationBlendSpaceGridWidget"
 

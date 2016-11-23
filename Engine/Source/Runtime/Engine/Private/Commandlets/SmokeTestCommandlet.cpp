@@ -5,8 +5,11 @@
 
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Commandlets/SmokeTestCommandlet.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/App.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
 USmokeTestCommandlet::USmokeTestCommandlet(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

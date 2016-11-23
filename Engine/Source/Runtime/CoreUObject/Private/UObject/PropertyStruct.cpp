@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "Archive.h"
-#include "PropertyHelper.h"
-#include "LinkerPlaceholderBase.h" // for FScopedPlaceholderPropertyTracker
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyHelper.h"
+#include "UObject/LinkerPlaceholderBase.h"
 
 static inline void PreloadInnerStructMembers(UStructProperty* StructProperty)
 {

@@ -2,10 +2,14 @@
 
 #pragma once
 
-#include "ViewportDragOperation.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Interface.h"
 #include "ViewportInteractableInterface.generated.h"
 
+class UActorComponent;
 class UViewportInteractor;
+struct FHitResult;
 
 UINTERFACE( MinimalAPI )
 class UViewportInteractableInterface : public UInterface

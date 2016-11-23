@@ -6,8 +6,18 @@ DebugViewModeRendering.h: Contains definitions for rendering debug viewmodes.
 
 #pragma once
 
-#include "DebugViewModeHelpers.h"
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
 #include "ShaderParameterUtils.h"
+#include "MeshMaterialShaderType.h"
+#include "MeshMaterialShader.h"
+#include "ShaderBaseClasses.h"
+
+class FPrimitiveSceneProxy;
+struct FMeshBatchElement;
+struct FMeshDrawingRenderState;
 
 static const int32 NumStreamingAccuracyColors = 5;
 static const float UndefinedStreamingAccuracyIntensity = .02f;

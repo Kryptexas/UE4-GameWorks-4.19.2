@@ -2,11 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "VREditorUISystem.generated.h"
 
-class UVREditorInteractor;
-class UViewportInteractor;
+class AVREditorDockableWindow;
+class AVREditorFloatingUI;
+class FProxyTabmanager;
 class SColorPicker;
+class UViewportInteractor;
+class UVREditorInteractor;
 
 /**
  * VR Editor user interface manager

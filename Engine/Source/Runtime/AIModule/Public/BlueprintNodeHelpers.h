@@ -2,9 +2,14 @@
 
 #pragma once
 
-class UBTNode;
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
+
+class AActor;
+class UActorComponent;
 class UBehaviorTreeComponent;
 class UBlackboardData;
+class UBTNode;
 
 namespace BlueprintNodeHelpers
 {

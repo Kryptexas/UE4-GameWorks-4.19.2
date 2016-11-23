@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "NiagaraPrivate.h"
-#include "Particles/ParticleResources.h"
 #include "NiagaraEffectRenderer.h"
-#include "StaticMeshResources.h"
+#include "NiagaraModule.h"
+#include "Particles/ParticleResources.h"
+#include "ParticleBeamTrailVertexFactory.h"
+#include "NiagaraDataSet.h"
 
 DECLARE_CYCLE_STAT(TEXT("Generate Sprite Vertex Data"), STAT_NiagaraGenSpriteVertexData, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Generate Ribbon Vertex Data"), STAT_NiagaraGenRibbonVertexData, STATGROUP_Niagara);

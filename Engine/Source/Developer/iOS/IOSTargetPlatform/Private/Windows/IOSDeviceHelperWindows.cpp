@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved
 
-#include "IOSTargetPlatformPrivatePCH.h"
+#include "IOSTargetPlatform.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
 
 struct FDeviceNotificationCallbackInformation
 {

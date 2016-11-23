@@ -1,9 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintProfilerPCH.h"
-#include "EditorStyleSet.h"
+#include "BlueprintProfiler.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "Modules/ModuleManager.h"
+
+#if WITH_EDITOR
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Editor.h"
+#include "Profiler/BlueprintProfilerSettings.h"
+#include "BlueprintProfilerConnectionDrawingPolicy.h"
+#endif // WITH_EDITOR
+
+#include "ScriptInstrumentationPlayback.h"
+
+#include "BlueprintProfilerStats.h"
+
 #include "ActorEditorUtils.h"
-#include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintProfiler"
 

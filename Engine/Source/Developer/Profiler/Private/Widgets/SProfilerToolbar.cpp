@@ -1,11 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
+#include "Widgets/SProfilerToolbar.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Docking/TabManager.h"
+#include "EditorStyleSet.h"
+#include "ProfilerCommands.h"
 #include "ProfilerManager.h"
-#include "ProfilerSession.h"
-#include "SProfilerFPSChartPanel.h"
-#include "SProfilerToolbar.h"
-
+#include "Widgets/SProfilerFPSChartPanel.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "Profiler"
 

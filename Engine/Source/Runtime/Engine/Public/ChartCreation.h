@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "ProfilingDebugging/ProfilingHelpers.h"
+#include "CoreMinimal.h"
 #include "ProfilingDebugging/Histogram.h"
 
 //////////////////////////////////////////////////////////////////////

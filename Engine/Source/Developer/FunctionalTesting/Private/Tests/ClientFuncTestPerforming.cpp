@@ -1,7 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FunctionalTestingPrivatePCH.h"
-#include "AutomationCommon.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/Engine.h"
+#include "AssetData.h"
+#include "FunctionalTestingModule.h"
+#include "EngineGlobals.h"
+#include "Tests/AutomationCommon.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 
 #if WITH_DEV_AUTOMATION_TESTS

@@ -6,7 +6,10 @@
 
 #pragma once
 
-#include "TaskGraphInterfaces.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "HAL/Runnable.h"
 
 ////////////////////////////////////
 // Audio thread API

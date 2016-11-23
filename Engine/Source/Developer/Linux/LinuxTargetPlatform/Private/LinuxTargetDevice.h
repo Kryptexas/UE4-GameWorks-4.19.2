@@ -6,10 +6,22 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/TargetDeviceId.h"
+#include "Interfaces/ITargetDevice.h"
+#include "Misc/Paths.h"
+#include "HAL/FileManager.h"
+#include "HAL/PlatformProcess.h"
+
 #if PLATFORM_LINUX
-	#include <signal.h> // for process termination
-	#include <pwd.h> // for getting uid/gid
+	#include <signal.h>
+	#include <pwd.h>
 #endif // PLATFORM_LINUX
+
+class FLinuxTargetDevice;
+class IFileManager;
+class ITargetPlatform;
+struct FProcHandle;
 
 /**
  * Type definition for shared pointers to instances of FLinuxTargetDevice.

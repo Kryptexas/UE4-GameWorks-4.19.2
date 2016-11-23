@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "ParserHelper.h"
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+
+class FToken;
 
 /////////////////////////////////////////////////////
 // FBaseParser

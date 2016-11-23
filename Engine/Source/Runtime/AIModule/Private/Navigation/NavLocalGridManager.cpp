@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "AISystem.h"
 #include "Navigation/NavLocalGridManager.h"
+#include "AISystem.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/Engine.h"
 
 float UNavLocalGridManager::GridCellSize = 50.0f;
 

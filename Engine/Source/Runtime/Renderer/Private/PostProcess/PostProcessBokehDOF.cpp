@@ -4,14 +4,19 @@
 	PostProcessBokehDOF.cpp: Post processing lens blur implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessPassThrough.h"
-#include "PostProcessing.h"
-#include "PostProcessBokehDOF.h"
-#include "PostProcessCircleDOF.h"
+#include "PostProcess/PostProcessBokehDOF.h"
+#include "EngineGlobals.h"
+#include "StaticBoundShaderState.h"
+#include "CanvasTypes.h"
+#include "UnrealEngine.h"
+#include "RenderTargetTemp.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "SceneRenderTargetParameters.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/PostProcessCircleDOF.h"
+#include "ClearQuad.h"
 
 
 

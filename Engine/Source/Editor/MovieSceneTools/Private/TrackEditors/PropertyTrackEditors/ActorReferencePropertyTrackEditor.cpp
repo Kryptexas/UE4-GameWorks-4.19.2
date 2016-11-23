@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "ActorReferencePropertyTrackEditor.h"
-#include "ActorReferencePropertySection.h"
-#include "MatineeImportTools.h"
+#include "TrackEditors/PropertyTrackEditors/ActorReferencePropertyTrackEditor.h"
+#include "GameFramework/Actor.h"
+#include "Sections/ActorReferencePropertySection.h"
 
 
 TSharedRef<ISequencerTrackEditor> FActorReferencePropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )

@@ -1,7 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "TextFilter.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Containers/Map.h"
+#include "Internationalization/Text.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/TextFilterExpressionEvaluator.h"
+#include "Misc/TextFilter.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

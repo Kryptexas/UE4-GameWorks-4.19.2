@@ -2,12 +2,15 @@
 
 #pragma once
 
-#include "GameplayTags.h"
-#include "AbilitySystemComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameplayTagContainer.h"
+#include "Engine/DataAsset.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayEffect.h"
 #include "GameplayTagResponseTable.generated.h"
 
-
-class UGameplayEffect;
 class UAbilitySystemComponent;
 
 USTRUCT()

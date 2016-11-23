@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "MovieScenePlayback.h"
+#include "Evaluation/MovieScenePlayback.h"
 
 #include "MovieScene.h"
 

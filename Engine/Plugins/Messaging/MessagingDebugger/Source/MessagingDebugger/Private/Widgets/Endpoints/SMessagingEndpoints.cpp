@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "MessagingDebuggerModel.h"
-#include "MessagingDebuggerEndpointFilter.h"
-#include "SMessagingEndpoints.h"
-#include "SMessagingEndpointsFilterBar.h"
-#include "SMessagingEndpointsTableRow.h"
+#include "Widgets/Endpoints/SMessagingEndpoints.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Endpoints/SMessagingEndpointsFilterBar.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Endpoints/SMessagingEndpointsTableRow.h"
+#include "Widgets/Layout/SExpandableArea.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingEndpoints"

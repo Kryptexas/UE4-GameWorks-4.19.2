@@ -1,17 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapeEditorPrivatePCH.h"
-#include "ObjectTools.h"
+#include "CoreMinimal.h"
+#include "LandscapeToolInterface.h"
 #include "LandscapeEdMode.h"
-#include "ScopedTransaction.h"
-#include "LandscapeEdit.h"
-#include "LandscapeRender.h"
-#include "LandscapeDataAccess.h"
-#include "LandscapeSplineProxies.h"
-#include "LandscapeEditorModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "LandscapeEdModeTools.h"
+#include "LandscapeEditorObject.h"
 #include "Landscape.h"
+#include "LandscapeDataAccess.h"
+#include "LandscapeEdModeTools.h"
 
 namespace
 {

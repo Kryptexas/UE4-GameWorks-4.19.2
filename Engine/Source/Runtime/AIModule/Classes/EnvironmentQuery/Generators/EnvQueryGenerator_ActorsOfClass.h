@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
+#include "EnvironmentQuery/EnvQueryContext.h"
+#include "DataProviders/AIDataProvider.h"
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvQueryGenerator_ActorsOfClass.generated.h"
-
-class AActor;
-class UEnvQueryContext;
 
 UCLASS(meta = (DisplayName = "Actors Of Class"))
 class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator

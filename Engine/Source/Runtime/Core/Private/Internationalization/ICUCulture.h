@@ -1,8 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#if UE_ENABLE_ICU
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Set.h"
+#include "Containers/Map.h"
+#include "Templates/SharedPointer.h"
 #include "Internationalization/Text.h"
+#include "Internationalization/Culture.h"
+
+struct FDecimalNumberFormattingRules;
+
+#if UE_ENABLE_ICU
 THIRD_PARTY_INCLUDES_START
 	#include <unicode/locid.h>
 	#include <unicode/brkiter.h>

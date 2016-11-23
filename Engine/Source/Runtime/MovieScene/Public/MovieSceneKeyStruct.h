@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneKeyStruct.generated.h"
 
-
 struct FPropertyChangedEvent;
-
 
 /**
  * Base class for movie scene section key structs that need to manually

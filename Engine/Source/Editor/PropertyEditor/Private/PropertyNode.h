@@ -2,7 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/UnrealType.h"
 #include "PropertyPath.h"
+#include "IDetailTreeNode.h"
+
+class FComplexPropertyNode;
+class FNotifyHook;
+class FObjectPropertyNode;
+class FPropertyItemValueDataTrackerSlate;
+class FPropertyNode;
+class FStructurePropertyNode;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPropertyNode, Log, All);
 

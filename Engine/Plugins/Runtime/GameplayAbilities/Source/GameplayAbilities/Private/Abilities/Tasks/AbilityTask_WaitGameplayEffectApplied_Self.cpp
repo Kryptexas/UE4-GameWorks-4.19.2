@@ -1,12 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEffectApplied_Self.h"
 
 #include "AbilitySystemComponent.h"
 
-#include "Abilities/GameplayAbility.h"
-#include "GameplayEffectExtension.h"
 
 UAbilityTask_WaitGameplayEffectApplied_Self::UAbilityTask_WaitGameplayEffectApplied_Self(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

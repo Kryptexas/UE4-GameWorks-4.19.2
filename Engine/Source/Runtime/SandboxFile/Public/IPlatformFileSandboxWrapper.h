@@ -3,7 +3,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/Paths.h"
 #include "UniquePtr.h"
+
+class IAsyncReadFileHandle;
 
 /**
  * Wrapper to log the low level file system

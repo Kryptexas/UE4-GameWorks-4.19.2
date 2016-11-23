@@ -18,7 +18,60 @@
 #define INTERNAL_DECORATOR_CONTEXT(Method) IRHIComputeContext& Context = (CmdListType == ECmdList::EGfx) ? CmdList.GetContext() : CmdList.GetComputeContext(); Context.Method
 #endif
 
-
+class FRHICommandListBase;
+class IRHIComputeContext;
+struct FComputedBSS;
+struct FComputedGraphicsPipelineState;
+struct FComputedUniformBuffer;
+struct FMemory;
+struct FRHICommandAutomaticCacheFlushAfterComputeShader;
+struct FRHICommandBeginDrawingViewport;
+struct FRHICommandBeginFrame;
+struct FRHICommandBeginOcclusionQueryBatch;
+struct FRHICommandBeginRenderQuery;
+struct FRHICommandBeginScene;
+struct FRHICommandBindClearMRTValues;
+struct FRHICommandBuildLocalBoundShaderState;
+struct FRHICommandBuildLocalGraphicsPipelineState;
+struct FRHICommandBuildLocalUniformBuffer;
+struct FRHICommandClearColorTexture;
+struct FRHICommandClearColorTextures;
+struct FRHICommandClearDepthStencilTexture;
+struct FRHICommandClearUAV;
+struct FRHICommandCopyToResolveTarget;
+struct FRHICommandDrawIndexedIndirect;
+struct FRHICommandDrawIndexedPrimitive;
+struct FRHICommandDrawIndexedPrimitiveIndirect;
+struct FRHICommandDrawPrimitive;
+struct FRHICommandDrawPrimitiveIndirect;
+struct FRHICommandEnableDepthBoundsTest;
+struct FRHICommandEndDrawIndexedPrimitiveUP;
+struct FRHICommandEndDrawingViewport;
+struct FRHICommandEndDrawPrimitiveUP;
+struct FRHICommandEndFrame;
+struct FRHICommandEndOcclusionQueryBatch;
+struct FRHICommandEndRenderQuery;
+struct FRHICommandEndScene;
+struct FRHICommandFlushComputeShaderCache;
+struct FRHICommandSetBlendFactor;
+struct FRHICommandSetBlendState;
+struct FRHICommandSetBoundShaderState;
+struct FRHICommandSetDepthStencilState;
+struct FRHICommandSetLocalBoundShaderState;
+struct FRHICommandSetLocalGraphicsPipelineState;
+struct FRHICommandSetRasterizerState;
+struct FRHICommandSetRenderTargets;
+struct FRHICommandSetRenderTargetsAndClear;
+struct FRHICommandSetScissorRect;
+struct FRHICommandSetStencilRef;
+struct FRHICommandSetStereoViewport;
+struct FRHICommandSetStreamSource;
+struct FRHICommandSetViewport;
+struct FRHICommandTransitionTextures;
+struct FRHICommandTransitionTexturesArray;
+struct FRHICommandUpdateTextureReference;
+enum class ECmdList;
+template <typename TShaderRHIParamRef> struct FRHICommandSetLocalUniformBuffer;
 
 void FRHICommandSetRasterizerState::Execute(FRHICommandListBase& CmdList)
 {

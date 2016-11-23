@@ -2,9 +2,14 @@
 
 #pragma once
 
-#include "AnimNode_SkeletalControlBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BoneContainer.h"
+#include "BonePose.h"
+#include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimNode_RotationMultiplier.generated.h"
 
+class USkeletalMeshComponent;
 
 /**
  *	Simple controller that multiplies scalar value to the translation/rotation/scale of a single bone.

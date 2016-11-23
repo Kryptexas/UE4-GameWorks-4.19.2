@@ -6,35 +6,55 @@
 	World.h: UWorld definition.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "CollisionQueryParams.h"
 #include "WorldCollision.h"
-#include "PendingNetGame.h"
+#include "GameFramework/Pawn.h"
 #include "EngineDefines.h"
+#include "Engine/Blueprint.h"
+#include "Engine/PendingNetGame.h"
 #include "Engine/LatentActionManager.h"
-#include "Runtime/RHI/Public/RHIDefinitions.h"
-#include "GameFramework/Actor.h"
-#include "GameInstance.h"
+#include "Engine/GameInstance.h"
 
 #include "World.generated.h"
 
-class FPhysScene;
-class FSceneViewFamily;
-class IInterface_PostProcessVolume;
-class ULocalPlayer;
-class UGameViewportClient;
 class ABrush;
-class UModel;
-class APhysicsVolume;
-class UTexture2D;
-class AController;
-class APlayerController;
-class AMatineeActor;
-class AWorldSettings;
 class ACameraActor;
-class FUniqueNetId;
-class FWorldInGamePerformanceTrackers;
+class AController;
 class AGameModeBase;
 class AGameStateBase;
-class UActorComponent;
+class AMatineeActor;
+class APhysicsVolume;
+class APlayerController;
+class AWorldSettings;
+class Error;
+class FPhysScene;
+class FTimerManager;
+class FUniqueNetId;
+class FWorldInGamePerformanceTrackers;
+class IInterface_PostProcessVolume;
+class UAISystemBase;
+class UCanvas;
+class UDemoNetDriver;
+class UGameViewportClient;
+class ULevelStreaming;
+class ULocalPlayer;
+class UMaterialParameterCollection;
+class UMaterialParameterCollectionInstance;
+class UModel;
+class UNavigationSystem;
+class UNetConnection;
+class UNetDriver;
+class UPrimitiveComponent;
+class UTexture2D;
 struct FUniqueNetIdRepl;
 
 template<typename,typename> class TOctree;

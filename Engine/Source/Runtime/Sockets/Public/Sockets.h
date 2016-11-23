@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "Core.h"
-#include "IPAddress.h"
+#include "CoreMinimal.h"
 #include "SocketTypes.h"
 
+class FInternetAddr;
 
 /**
  * This is our abstract base class that hides the platform specific socket implementation

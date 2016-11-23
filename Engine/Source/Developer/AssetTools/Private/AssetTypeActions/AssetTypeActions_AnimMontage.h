@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "AssetTypeActions/AssetTypeActions_AnimationAsset.h"
+#include "Animation/AnimMontage.h"
+
+class FMenuBuilder;
+
 class FAssetTypeActions_AnimMontage : public FAssetTypeActions_AnimationAsset
 {
 public:

@@ -2,12 +2,14 @@
 
 #pragma once
 
-#include "AsyncResult.h"
-#include "IAsyncProgress.h"
-#include "IAsyncTask.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "IMessageContext.h"
 #include "IMessageRpcCall.h"
-
+#include "Async/IAsyncProgress.h"
+#include "Async/IAsyncTask.h"
+#include "Async/Future.h"
+#include "Async/AsyncResult.h"
 
 /**
  * Interface for RPC clients.

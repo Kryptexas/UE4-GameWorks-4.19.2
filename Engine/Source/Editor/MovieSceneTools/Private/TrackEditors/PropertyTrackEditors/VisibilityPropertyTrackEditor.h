@@ -2,12 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneVisibilityTrack.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
+#include "Tracks/MovieSceneVisibilityTrack.h"
+#include "Sections/MovieSceneBoolSection.h"
 
 
 /**

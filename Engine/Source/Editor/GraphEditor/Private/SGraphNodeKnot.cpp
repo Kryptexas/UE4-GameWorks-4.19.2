@@ -1,12 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
 #include "SGraphNodeKnot.h"
+#include "SCommentBubble.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "GraphEditorSettings.h"
+#include "SGraphPanel.h"
+#include "DragConnection.h"
+#include "K2Node_Knot.h"
 #include "ScopedTransaction.h"
-#include "BlueprintEditorUtils.h"
-#include "GenericCommands.h"
-#include "SInlineEditableTextBlock.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 
 namespace SKnotNodeDefinitions
 {

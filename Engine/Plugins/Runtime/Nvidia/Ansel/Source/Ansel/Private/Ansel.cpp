@@ -1,9 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "AnselPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "IAnselPlugin.h"
+#include "Camera/CameraTypes.h"
 #include "Camera/CameraPhotography.h"
+#include "Camera/PlayerCameraManager.h"
 #include "ConsoleManager.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/ViewportSplitScreen.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/HUD.h"
+#include "GameFramework/WorldSettings.h"
+#include "Kismet/GameplayStatics.h"
+#include "Widgets/SWindow.h"
 #include <AnselSDK.h>
 
 DEFINE_LOG_CATEGORY_STATIC(LogAnsel, Log, All);
@@ -68,7 +78,7 @@ private:
 	FConsoleVariableSinkHandle CVarDelegateHandle;
 };
 
-static HMODULE AnselSDKDLLHandle = 0;
+static Windows::HMODULE AnselSDKDLLHandle = 0;
 static bool bAnselDLLLoaded = false;
 
 FNVAnselCameraPhotographyPrivate::FNVAnselCameraPhotographyPrivate()
@@ -530,8 +540,8 @@ public:
 		// common preprocessor fudge to convert macro expansion into string
 #define STRINGIFY(X) STRINGIFY2(X)
 #define STRINGIFY2(X) #X
-		AnselDLLName = AnselBinariesRoot + TEXT(STRINGIFY(ANSEL_DLL));
-		AnselSDKDLLHandle = LoadLibraryW(*(AnselDLLName));
+			AnselDLLName = AnselBinariesRoot + TEXT(STRINGIFY(ANSEL_DLL));
+			AnselSDKDLLHandle = Windows::LoadLibraryW(*(AnselDLLName));
 
 		bAnselDLLLoaded = AnselSDKDLLHandle != 0;
 		
@@ -542,7 +552,7 @@ public:
 	{		
 		if (bAnselDLLLoaded)
 		{
-			FreeLibrary(AnselSDKDLLHandle);
+			Windows::FreeLibrary(AnselSDKDLLHandle);
 			AnselSDKDLLHandle = 0;
 			bAnselDLLLoaded = false;
 		}

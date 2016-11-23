@@ -1,19 +1,31 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapeEditorPrivatePCH.h"
-#include "LandscapeEditorCommands.h"
+#include "LandscapeEditorModule.h"
+#include "Modules/ModuleManager.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "EditorStyleSet.h"
+#include "EditorModeRegistry.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "LandscapeFileFormatInterface.h"
+#include "LandscapeProxy.h"
 #include "LandscapeEdMode.h"
+#include "Landscape.h"
+#include "LandscapeEditorCommands.h"
 #include "Classes/ActorFactoryLandscape.h"
 #include "LandscapeFileFormatPng.h"
 #include "LandscapeFileFormatRaw.h"
 
-#include "LandscapeEditorDetails.h"
-#include "LandscapeEditorDetailCustomizations.h"
-#include "LandscapeSplineDetails.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "PropertyEditorModule.h"
-#include "PropertyEditorDelegates.h"
+#include "LandscapeEditorDetails.h"
+#include "LandscapeEditorDetailCustomization_NewLandscape.h"
+#include "LandscapeEditorDetailCustomization_CopyPaste.h"
+#include "LandscapeSplineDetails.h"
 
-#include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "LevelEditor.h"
 
 #include "LandscapeRender.h"
 

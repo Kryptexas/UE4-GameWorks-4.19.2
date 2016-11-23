@@ -30,8 +30,8 @@
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#include "VulkanBackend.h"
 #include "VulkanShaderFormat.h"
-#include "Core.h"
 #include "hlslcc.h"
 #include "hlslcc_private.h"
 #include "VulkanBackend.h"

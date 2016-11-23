@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "BehaviorTree/BlackboardData.h"
 #include "BlueprintNodeHelpers.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyPortFlags.h"
+#include "TimerManager.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
+#include "Engine/World.h"
+#include "GameFramework/Controller.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
+#include "BehaviorTree/BTNode.h"
 
 namespace BlueprintNodeHelpers
 {

@@ -4,29 +4,32 @@
 	PhysXLibs.cpp: PhysX library imports
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "EngineDefines.h"
+#include "HAL/FileManager.h"
+#include "HAL/PlatformProcess.h"
+#include "EngineLogs.h"
 
 #if WITH_PHYSX
 
 // PhysX library imports
-#include "PhysXSupport.h"
 
 #if PLATFORM_WINDOWS
-	HMODULE	PxFoundationHandle = 0;
-	HMODULE PhysX3CommonHandle = 0;
-	HMODULE	PhysX3Handle = 0;
-	HMODULE	PxPvdSDKHandle = 0;
+	Windows::HMODULE	PxFoundationHandle = 0;
+	Windows::HMODULE PhysX3CommonHandle = 0;
+	Windows::HMODULE	PhysX3Handle = 0;
+	Windows::HMODULE	PxPvdSDKHandle = 0;
 	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-		HMODULE	PhysX3CookingHandle = 0;
+		Windows::HMODULE	PhysX3CookingHandle = 0;
 	#endif
-	HMODULE	nvToolsExtHandle = 0;
+	Windows::HMODULE	nvToolsExtHandle = 0;
 	#if WITH_APEX
-			HMODULE	APEXFrameworkHandle = 0;
-			HMODULE	APEX_DestructibleHandle = 0;
-			HMODULE	APEX_LegacyHandle = 0;
+		Windows::HMODULE	APEXFrameworkHandle = 0;
+		Windows::HMODULE	APEX_DestructibleHandle = 0;
+		Windows::HMODULE	APEX_LegacyHandle = 0;
 		#if WITH_APEX_CLOTHING
-				HMODULE	APEX_ClothingHandle = 0;
+			Windows::HMODULE	APEX_ClothingHandle = 0;
 		#endif  //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
 #elif PLATFORM_MAC
@@ -51,7 +54,7 @@
 /**
  *	Load the required modules for PhysX
  */
-void LoadPhysXModules()
+ENGINE_API void LoadPhysXModules()
 {
 
 
@@ -94,9 +97,9 @@ void LoadPhysXModules()
 	FString APEXSuffix(ArchName + TEXT(".dll"));
 #endif
 
-	auto LoadPhysicsLibrary([](const FString& Path) -> HMODULE
+	auto LoadPhysicsLibrary([](const FString& Path) -> Windows::HMODULE
 	{
-		HMODULE Handle = LoadLibraryW(*Path);
+		Windows::HMODULE Handle = Windows::LoadLibraryW(*Path);
 		if (Handle == nullptr)
 		{
 			UE_LOG(LogPhysics, Fatal, TEXT("Failed to load module '%s'."), *Path);
@@ -191,19 +194,17 @@ void LoadPhysXModules()
 void UnloadPhysXModules()
 {
 #if PLATFORM_WINDOWS
-	FreeLibrary(PxPvdSDKHandle);
-	FreeLibrary(PhysX3Handle);
+	Windows::FreeLibrary(PhysX3Handle);
 	#if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
-		FreeLibrary(PhysX3CookingHandle);
+		Windows::FreeLibrary(PhysX3CookingHandle);
 	#endif
-	FreeLibrary(PhysX3CommonHandle);
-	FreeLibrary(PxFoundationHandle);
+	Windows::FreeLibrary(PhysX3CommonHandle);
 	#if WITH_APEX
-		FreeLibrary(APEXFrameworkHandle);
-		FreeLibrary(APEX_DestructibleHandle);
-		FreeLibrary(APEX_LegacyHandle);
+		Windows::FreeLibrary(APEXFrameworkHandle);
+		Windows::FreeLibrary(APEX_DestructibleHandle);
+		Windows::FreeLibrary(APEX_LegacyHandle);
 		#if WITH_APEX_CLOTHING
-			FreeLibrary(APEX_ClothingHandle);
+			Windows::FreeLibrary(APEX_ClothingHandle);
 		#endif //WITH_APEX_CLOTHING
 	#endif	//WITH_APEX
 #elif PLATFORM_MAC

@@ -1,14 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
-
 #include "SSkeletonAnimNotifies.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "AssetData.h"
+#include "Animation/AnimSequenceBase.h"
+#include "EditorStyleSet.h"
+#include "Animation/EditorSkeletonNotifyObj.h"
+
+#include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "ScopedTransaction.h"
-#include "SSearchBox.h"
-#include "SInlineEditableTextBlock.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
 #include "IEditableSkeleton.h"
 #include "TabSpawners.h"
 

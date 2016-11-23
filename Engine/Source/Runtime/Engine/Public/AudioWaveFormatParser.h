@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+struct FChunkHeader;
+
 /**
 * Data used to parse the wave file formats
 */

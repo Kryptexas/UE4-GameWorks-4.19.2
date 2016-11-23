@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GearVRPrivatePCH.h"
 #include "GearVR.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/CoreDelegates.h"
+#include "Engine/GameEngine.h"
+#include "Engine/Canvas.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS && PLATFORM_ANDROID
 

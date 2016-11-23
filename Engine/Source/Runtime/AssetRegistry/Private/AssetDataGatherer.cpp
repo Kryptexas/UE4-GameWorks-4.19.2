@@ -1,6 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetRegistryPCH.h"
+#include "AssetDataGatherer.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "AssetRegistryPrivate.h"
+#include "NameTableArchive.h"
+#include "PackageReader.h"
+#include "AssetRegistry.h"
 
 namespace AssetDataGathererConstants
 {

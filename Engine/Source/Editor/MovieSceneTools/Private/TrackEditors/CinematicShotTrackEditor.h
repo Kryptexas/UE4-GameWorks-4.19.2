@@ -2,13 +2,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Widgets/SWidget.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerTrackEditor.h"
+#include "MovieSceneTrackEditor.h"
 
+class AActor;
+class FAssetData;
+class FMenuBuilder;
 class FTrackEditorThumbnailPool;
 class UMovieSceneCinematicShotSection;
 class UMovieSceneCinematicShotTrack;
 class UMovieSceneSubSection;
-
-
 
 /**
  * Tools for cinematic shots.

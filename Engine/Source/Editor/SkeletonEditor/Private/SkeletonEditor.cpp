@@ -1,19 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
-#include "ISkeletonEditorModule.h"
 #include "SkeletonEditor.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "AssetData.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "Editor/EditorEngine.h"
+#include "EngineGlobals.h"
+#include "ISkeletonTree.h"
+#include "ISkeletonEditorModule.h"
 #include "IPersonaToolkit.h"
 #include "PersonaModule.h"
 #include "SkeletonEditorMode.h"
 #include "IPersonaPreviewScene.h"
 #include "SkeletonEditorCommands.h"
-#include "Factories/FbxImportUI.h"
-#include "IEditableSkeleton.h"
-#include "IDetailsView.h"
-#include "ISkeletonTree.h"
 #include "IAssetFamily.h"
-#include "AssetEditorModeManager.h"
 #include "PersonaCommonCommands.h"
 
 const FName SkeletonEditorAppIdentifier = FName(TEXT("SkeletonEditorApp"));

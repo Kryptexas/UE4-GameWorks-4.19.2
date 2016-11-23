@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/StringAssetReference.h"
+#include "GameFramework/Actor.h"
+#include "Misc/StringClassReference.h"
 #include "LevelSequencePlayer.h"
 #include "LevelSequenceActor.generated.h"
 

@@ -73,7 +73,7 @@ private:
 #else
 			static int32 ID = 0;
 #endif
-			return FPlatformAtomics::_InterlockedIncrement(&ID);
+			return FPlatformAtomics::InterlockedIncrement(&ID);
 		}
 
 	public:

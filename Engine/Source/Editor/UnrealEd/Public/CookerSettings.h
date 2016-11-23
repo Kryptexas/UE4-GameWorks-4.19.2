@@ -6,7 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/DeveloperSettings.h"
 #include "CookerSettings.generated.h"
+
+struct FPropertyChangedEvent;
 
 /**
  * Various cooker settings.

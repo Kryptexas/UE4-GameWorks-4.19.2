@@ -1,21 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#if WITH_RECAST
-#	include "Detour/DetourNavMeshQuery.h"
-#endif
-#include "AI/Navigation/AbstractNavData.h"
-#include "AI/Navigation/RecastNavMesh.h"
-#include "AI/Navigation/NavLinkCustomInterface.h"
-#include "GameFramework/NavMovementComponent.h"
-#include "GameFramework/Character.h"
-#include "Navigation/MetaNavMeshPath.h"
-#include "Engine/Canvas.h"
+#include "Navigation/PathFollowingComponent.h"
+#include "UObject/Package.h"
 #include "TimerManager.h"
-#include "DisplayDebugHelpers.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/Controller.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "AISystem.h"
+#include "BrainComponent.h"
+#include "Engine/Canvas.h"
+#include "AIController.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "VisualLogger/VisualLogger.h"
+#include "AI/Navigation/AbstractNavData.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
+#include "Navigation/MetaNavMeshPath.h"
 #include "AIConfig.h"
 
-#include "Navigation/PathFollowingComponent.h"
 
 #if UE_BUILD_TEST || UE_BUILD_SHIPPING
 #define SHIPPING_STATIC static

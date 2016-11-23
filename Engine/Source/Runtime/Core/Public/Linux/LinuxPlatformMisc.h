@@ -6,11 +6,13 @@
 ==============================================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Linux/LinuxSystemIncludes.h"
 #include "Misc/Build.h"
 
-class FString;
+class Error;
 struct FGenericCrashContext;
 
 /**

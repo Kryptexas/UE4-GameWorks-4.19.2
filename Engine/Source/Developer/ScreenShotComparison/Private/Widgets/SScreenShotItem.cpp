@@ -4,7 +4,19 @@
 	SScreenShotItem.cpp: Implements the SScreenShotItem class.
 =============================================================================*/
 
-#include "ScreenShotComparisonPrivatePCH.h"
+#include "Widgets/SScreenShotItem.h"
+#include "Misc/FileHelper.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
+#include "Interfaces/IScreenShotData.h"
+#include "Interfaces/IImageWrapperModule.h"
+#include "Widgets/SScreenShotImagePopup.h"
 
 void SScreenShotItem::Construct( const FArguments& InArgs )
 {

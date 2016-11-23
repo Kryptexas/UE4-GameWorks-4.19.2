@@ -4,26 +4,38 @@
 	GenericPlatformMisc.cpp: Generic implementations of misc platform functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "LinuxPlatformMisc.h"
-#include "LinuxApplication.h"
-#include "LinuxPlatformCrashContext.h"
+#include "Linux/LinuxPlatformMisc.h"
+#include "Misc/AssertionMacros.h"
+#include "GenericPlatform/GenericPlatformMemory.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Misc/DateTime.h"
+#include "HAL/PlatformTime.h"
+#include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Misc/App.h"
+#include "Linux/LinuxApplication.h"
+#include "Linux/LinuxPlatformCrashContext.h"
 
 #if PLATFORM_HAS_CPUID
 	#include <cpuid.h>
 #endif // PLATFORM_HAS_CPUID
 #include <sys/sysinfo.h>
 #include <sched.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/vfs.h>	// statfs()
+#include <sys/vfs.h>
 #include <sys/ioctl.h>
 
-#include <ifaddrs.h>	// ethernet mac
+#include <ifaddrs.h>
 #include <net/if.h>
 #include <net/if_arp.h>
 
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 #include "HAL/ThreadHeartBeat.h"
 
 // define for glibc 2.12.2 and lower (which is shipped with CentOS 6.x and which we target by default)

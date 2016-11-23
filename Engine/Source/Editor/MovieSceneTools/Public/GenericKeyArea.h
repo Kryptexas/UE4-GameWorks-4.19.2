@@ -2,17 +2,26 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Widgets/SWidget.h"
+#include "Curves/KeyHandle.h"
 #include "NamedKeyArea.h"
 #include "ClipboardTypes.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "UObject/StructOnScope.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
+#include "Curves/IKeyFrameManipulator.h"
 #include "Curves/CurveInterface.h"
-#include "MovieSceneSection.h"
-
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SSpinBox.h"
 #include "GenericKeyArea.generated.h"
 
-class UMovieSceneSection;
+class ISequencer;
+struct FSequencerPasteEnvironment;
 
 /** Interface for editing a key value/time */
 struct ICurveEditInterface

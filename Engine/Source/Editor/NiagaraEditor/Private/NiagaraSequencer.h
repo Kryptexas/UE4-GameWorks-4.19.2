@@ -1,22 +1,27 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Editor/Sequencer/Public/ISequencerModule.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Layout/SlateRect.h"
+#include "Rendering/DrawElements.h"
+#include "EditorStyleSet.h"
+#include "Curves/KeyHandle.h"
+#include "NiagaraEmitterProperties.h"
+#include "NiagaraSimulation.h"
+#include "SequencerSectionPainter.h"
+#include "MovieSceneSection.h"
+#include "ISequencerSection.h"
+#include "MovieSceneTrack.h"
 #include "Editor/Sequencer/Public/MovieSceneTrackEditor.h"
-#include "Editor/Sequencer/Public/ISequencerSection.h"
-#include "Runtime/MovieScene/Public/MovieScene.h"
 #include "Runtime/MovieScene/Public/MovieSceneNameableTrack.h"
-#include "Runtime/MovieScene/Public/IMovieSceneTrackInstance.h"
-#include "Runtime/MovieScene/Public/MovieSceneSection.h"
 
 #include "NiagaraSequencer.generated.h"
 
-
-class IMovieScenePlayer;
-class UEmitterMovieSceneTrack;
-class UMovieSceneSection;
-class UMovieSceneTrack;
-
+class ISectionLayoutBuilder;
 
 /** 
  *	Niagara editor movie scene section; represents one emitter in the timeline

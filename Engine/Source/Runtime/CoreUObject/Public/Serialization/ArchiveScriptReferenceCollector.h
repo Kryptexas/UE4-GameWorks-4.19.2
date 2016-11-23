@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "ArchiveUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Serialization/ArchiveUObject.h"
 
 /*******************************************************************************
  * FArchiveScriptReferenceCollector

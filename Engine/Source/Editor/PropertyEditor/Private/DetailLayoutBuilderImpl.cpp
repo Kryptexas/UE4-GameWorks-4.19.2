@@ -1,13 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "PropertyNode.h"
+#include "DetailLayoutBuilderImpl.h"
+#include "ObjectPropertyNode.h"
+#include "DetailCategoryBuilderImpl.h"
 #include "PropertyHandleImpl.h"
 #include "PropertyEditorHelpers.h"
 #include "StructurePropertyNode.h"
-#include "IPropertyUtilities.h"
 #include "DetailMultiTopLevelObjectRootNode.h"
-#include "IDetailRootObjectCustomization.h"
 
 FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(TSharedPtr<FComplexPropertyNode>& InRootNode, FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< IDetailsViewPrivate >& InDetailsView)
 	: RootNode( InRootNode )

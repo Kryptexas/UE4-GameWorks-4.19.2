@@ -3,9 +3,12 @@
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Blueprint/UserWidget.h"
 #include "VREditorBaseUserWidget.generated.h"
 
+class AVREditorFloatingUI;
 
 /**
  * Base class for all of the VR widgets

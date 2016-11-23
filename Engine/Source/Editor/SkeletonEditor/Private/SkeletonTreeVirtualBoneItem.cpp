@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "SkeletonTreeVirtualBoneItem.h"
+#include "Widgets/Text/STextBlock.h"
 #include "SSkeletonTreeRow.h"
 #include "IPersonaPreviewScene.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Images/SImage.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeVirtualBoneItem"
 

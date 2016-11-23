@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+
 /**
  * Animation type ID that uniquely identifies the type of a change made
  * (ie changing a transform, spawning an object, etc) as part of a sequence evaluation

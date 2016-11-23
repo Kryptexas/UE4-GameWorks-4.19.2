@@ -1,13 +1,28 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRHIRendererPrivatePCH.h"
-#include "ImageWrapper.h"
+#include "SlateRHIResourceManager.h"
+#include "RenderingThread.h"
+#include "Engine/Texture.h"
+#include "Misc/FileHelper.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Modules/ModuleManager.h"
+#include "Styling/SlateStyleRegistry.h"
+#include "Styling/ISlateStyle.h"
+#include "Rendering/SlateRenderer.h"
+#include "EngineGlobals.h"
+#include "Engine/Texture2D.h"
+#include "RenderUtils.h"
+#include "Engine/Engine.h"
+#include "Slate/SlateTextures.h"
+#include "SlateRHITextureAtlas.h"
+#include "Interfaces/IImageWrapperModule.h"
 #include "SlateNativeTextureResource.h"
 #include "SlateUTextureResource.h"
 #include "SlateMaterialResource.h"
+#include "Slate/SlateTextureAtlasInterface.h"
 #include "SlateAtlasedTextureResource.h"
 #include "ImageUtils.h"
-#include "SlateTextureAtlasInterface.h"
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Texture Atlases"), STAT_SlateNumTextureAtlases, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Non-Atlased Textures"), STAT_SlateNumNonAtlasedTextures, STATGROUP_SlateMemory);

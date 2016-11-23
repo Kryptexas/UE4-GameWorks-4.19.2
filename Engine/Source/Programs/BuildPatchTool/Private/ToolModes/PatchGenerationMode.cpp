@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PrivatePch.h"
-#include "BuildPatchTool.h"
 #include "PatchGenerationMode.h"
+#include "Interfaces/IBuildPatchServicesModule.h"
+#include "BuildPatchTool.h"
 #include "DefaultValueHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/CommandLine.h"
+
 using namespace BuildPatchTool;
 
 namespace Constants

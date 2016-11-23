@@ -5,13 +5,11 @@
 /* Public dependencies
 *****************************************************************************/
 
-#include "SoundDefinitions.h"
-#include "AudioMixerDevice.h"
+#include "CoreMinimal.h"
 #include "AudioMixerBuffer.h"
-#include "AudioMixerSourceVoice.h"
-#include "AudioMixerSource.h"
 #include "DSP/OnePole.h"
 #include "IAudioExtensionPlugin.h"
+#include "Containers/Queue.h"
 
 #define ENABLE_AUDIO_OUTPUT_DEBUGGING 0
 

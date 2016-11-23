@@ -2,6 +2,8 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+
 /**
  * Collection of delegates for various components to call into game code
  */

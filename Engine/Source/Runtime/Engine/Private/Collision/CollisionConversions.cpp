@@ -1,12 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Collision/CollisionConversions.h"
+#include "Engine/World.h"
+#include "Components/PrimitiveComponent.h"
 
 #if WITH_PHYSX
-#include "PhysicsPublic.h"
-#include "PhysXCollision.h"
-#include "CollisionDebugDrawing.h"
-#include "CollisionConversions.h"
+#include "Collision/PhysXCollision.h"
+#include "Collision/CollisionDebugDrawing.h"
 #include "Components/DestructibleComponent.h"
 #include "Components/LineBatchComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"

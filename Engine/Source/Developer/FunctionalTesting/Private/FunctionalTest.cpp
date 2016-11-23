@@ -1,15 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FunctionalTestingPrivatePCH.h"
+#include "FunctionalTest.h"
+#include "Misc/Paths.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/LatentActionManager.h"
+#include "Components/BillboardComponent.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "UObject/ConstructorHelpers.h"
+#include "ProfilingDebugging/ProfilingHelpers.h"
+#include "Misc/AutomationTest.h"
+#include "GameFramework/PlayerController.h"
+#include "Components/TextRenderComponent.h"
+#include "Engine/Selection.h"
+#include "FuncTestManager.h"
+#include "FuncTestRenderingComponent.h"
 #include "ObjectEditorUtils.h"
 #include "VisualLogger/VisualLogger.h"
-#if WITH_EDITORONLY_DATA
-#include "FuncTestRenderingComponent.h"
-#endif // WITH_EDITORONLY_DATA
-#if WITH_EDITOR
-#include "Engine/Selection.h"
-#endif // WITH_EDITOR
-
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Engine/Texture2D.h"
 #include "DelayForFramesLatentAction.h"
 
 namespace

@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
 #include "EnvironmentQuery/Tests/EnvQueryTest_GameplayTags.h"
+#include "GameFramework/Actor.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
+#include "BehaviorTree/BTNode.h"
 #include "GameplayTagAssetInterface.h"
 
 UEnvQueryTest_GameplayTags::UEnvQueryTest_GameplayTags(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)

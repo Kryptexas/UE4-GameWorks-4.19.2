@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IPersonaEditorModeManager.h"
 
 /** Persona-specific extensions to the asset editor mode manager */

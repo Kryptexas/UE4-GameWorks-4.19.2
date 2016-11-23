@@ -2,15 +2,16 @@
 
 #pragma once
 
-#if WITH_EDITOR
+#include "CoreMinimal.h"
 
+#if WITH_EDITOR
 #include "DerivedDataPluginInterface.h"
-#include "DerivedDataCacheInterface.h"
-#include "Animation/AnimSequence.h"
-#include "TargetPlatform.h"
+#endif
 
 class UAnimSequence;
 struct FAnimCompressContext;
+
+#if WITH_EDITOR
 
 //////////////////////////////////////////////////////////////////////////
 // FDerivedDataAnimationCompression

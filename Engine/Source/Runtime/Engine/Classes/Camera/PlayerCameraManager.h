@@ -2,10 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
 #include "GameFramework/Actor.h"
-#include "CameraTypes.h"
-#include "CameraShake.h"
+#include "Camera/CameraTypes.h"
+#include "Camera/CameraShake.h"
 #include "PlayerCameraManager.generated.h"
+
+class AEmitterCameraLensEffectBase;
+class APlayerController;
+class FDebugDisplayInfo;
 
 /** 
  * Options that define how to blend when changing view targets. 

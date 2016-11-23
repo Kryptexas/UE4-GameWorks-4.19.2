@@ -2,21 +2,27 @@
 
 #pragma once
 
-#include "GameplayTags.h"
-#include "GameplayEffect.h"
-#include "GameplayCueNotify_Actor.h"
-#include "GameplayCue_Types.h"
-#include "AssetData.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringAssetReference.h"
+#include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayPrediction.h"
+#include "Engine/World.h"
+#include "AssetData.h"
 #include "Engine/StreamableManager.h"
+#include "GameplayCue_Types.h"
 #include "GameplayCueTranslator.h"
 #include "GameplayCueManager.generated.h"
+
+class AGameplayCueNotify_Actor;
+class UAbilitySystemComponent;
+class UObjectLibrary;
 
 DECLARE_DELEGATE_OneParam(FOnGameplayCueNotifySetLoaded, TArray<FStringAssetReference>);
 DECLARE_DELEGATE_OneParam(FGameplayCueProxyTick, float);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FShouldLoadGCNotifyDelegate, const FAssetData&, FName);
-
-class UObjectLibrary;
 
 /** An ObjectLibrary for the GameplayCue Notifies. Wraps 2 underlying UObjectLibraries plus options/delegates for how they are loaded */ 
 USTRUCT()

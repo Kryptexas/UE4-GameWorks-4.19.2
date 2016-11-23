@@ -1,10 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/UnrealType.h"
 #include "BlueprintCompilerCppBackendUtils.h"
-#include "WidgetBlueprintGeneratedClass.h"
-#include "WidgetAnimation.h"
-#include "WidgetTree.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Animation/WidgetAnimation.h"
+#include "Blueprint/WidgetTree.h"
 
 void FBackendHelperUMG::WidgetFunctionsInHeader(FEmitterLocalContext& Context)
 {

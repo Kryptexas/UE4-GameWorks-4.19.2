@@ -1,19 +1,36 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "BlueprintUtilities.h"
-#include "LatentActions.h"
+#include "CoreMinimal.h"
+#include "Math/RandomStream.h"
+#include "Stats/Stats.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "Serialization/ObjectReader.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Blueprint.h"
 #include "ComponentInstanceDataCache.h"
+#include "HAL/IConsoleManager.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/BillboardComponent.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Engine/World.h"
+#include "Engine/Texture2D.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/LevelScriptActor.h"
 #include "Engine/CullDistanceVolume.h"
+#include "Engine/SimpleConstructionScript.h"
 #include "Components/ChildActorComponent.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #endif
-#include "Engine/SimpleConstructionScript.h"
 
 DEFINE_LOG_CATEGORY(LogBlueprintUserMessages);
 

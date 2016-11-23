@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "PhysicsManipulationMode.h"
+#include "Components/PrimitiveComponent.h"
+#include "EditorViewportClient.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "Engine/Selection.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorPhysMode, Log, All);
 

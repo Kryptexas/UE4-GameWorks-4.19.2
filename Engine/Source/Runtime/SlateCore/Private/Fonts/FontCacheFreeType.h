@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Fonts/FontCache.h"
+
 #ifndef WITH_FREETYPE
 	#define WITH_FREETYPE	0
 #endif // WITH_FREETYPE

@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneFadeSection.h"
-#include "MovieSceneFadeTrack.h"
+#include "Tracks/MovieSceneFadeTrack.h"
+#include "Sections/MovieSceneFadeSection.h"
 #include "Evaluation/MovieSceneFadeTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTrack.h"
-
+#include "Templates/Casts.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneFadeTrack"
 

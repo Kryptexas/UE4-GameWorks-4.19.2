@@ -2,7 +2,13 @@
 
 #pragma once
 
-#include "UnrealMathUtility.h"
+#include "CoreTypes.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Parse.h"
+#include "Logging/LogMacros.h"
+#include "Math/Vector.h"
+#include "Math/VectorRegister.h"
 
 /**
  * Implements a container for rotation information.

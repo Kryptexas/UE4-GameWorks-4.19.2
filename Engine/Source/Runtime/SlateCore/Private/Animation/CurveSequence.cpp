@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
+#include "Animation/CurveSequence.h"
+#include "Types/SlateEnums.h"
+#include "Application/SlateApplicationBase.h"
+#include "Widgets/SWidget.h"
 
 
 /* FCurveSequence constructors

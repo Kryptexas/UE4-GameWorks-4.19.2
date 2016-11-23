@@ -4,9 +4,8 @@
 	MallocLeakDetection.cpp: Helper class to track memory allocations
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "MemoryMisc.h"
-#include "MallocLeakDetection.h"
+#include "HAL/MallocLeakDetection.h"
+#include "Logging/LogMacros.h"
 
 #if MALLOC_LEAKDETECTION
 

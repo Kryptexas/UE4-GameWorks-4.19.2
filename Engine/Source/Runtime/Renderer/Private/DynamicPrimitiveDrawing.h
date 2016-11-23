@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SceneManagement.h"
+#include "SceneRendering.h"
+
 /**
 * Draws a range of view's elements with the specified drawing policy factory type.
 * @param View - The view to draw the meshes for.

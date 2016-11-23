@@ -15,7 +15,6 @@
 #endif
 
 #include "Runtime/Core/Public/Modules/ModuleManager.h"
-#include "Engine.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAndroidLocalNotification, Log, All);
 

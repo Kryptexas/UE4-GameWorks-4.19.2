@@ -1,16 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "LinuxPlatformRunnableThread.h"
-#include "EngineVersion.h"
+#include "Linux/LinuxPlatformProcess.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Linux/LinuxPlatformRunnableThread.h"
+#include "Misc/EngineVersion.h"
 #include <spawn.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
-#include <sys/ioctl.h> // ioctl
+#include <sys/ioctl.h>
 #include <sys/file.h>
-#include <asm/ioctls.h> // FIONREAD
-#include <sys/file.h> // flock
-#include "LinuxApplication.h" // FLinuxApplication::IsForeground()
+#include <asm/ioctls.h>
+#include "Linux/LinuxApplication.h"
 
 namespace PlatformProcessLimits
 {

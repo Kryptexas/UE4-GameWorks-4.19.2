@@ -5,6 +5,19 @@
 	controls the process of installing a build described by a build manifest.
 =============================================================================*/
 
+#pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/Runnable.h"
+#include "BuildPatchManifest.h"
+#include "Interfaces/IBuildInstaller.h"
+#include "Interfaces/IBuildPatchServicesModule.h"
+#include "HAL/ThreadSafeBool.h"
+#include "BuildPatchProgress.h"
+
+class FBuildPatchInstallationInfo;
+class FBuildPatchInstaller;
+
 typedef TSharedPtr< class FBuildPatchInstaller, ESPMode::ThreadSafe > FBuildPatchInstallerPtr;
 typedef TSharedRef< class FBuildPatchInstaller, ESPMode::ThreadSafe > FBuildPatchInstallerRef;
 typedef TWeakPtr< class FBuildPatchInstaller, ESPMode::ThreadSafe > FBuildPatchInstallerWeakPtr;

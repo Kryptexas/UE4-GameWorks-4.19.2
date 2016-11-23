@@ -2,13 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneIntegerTrack.h"
-#include "MovieSceneIntegerSection.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Tracks/MovieSceneIntegerTrack.h"
+#include "Sections/MovieSceneIntegerSection.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
 
 /**
  * A property track editor for integers.

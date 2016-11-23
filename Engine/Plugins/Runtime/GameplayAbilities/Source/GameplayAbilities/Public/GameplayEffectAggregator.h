@@ -2,7 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameplayEffectTypes.h"
+
+struct FGameplayEffectSpec;
 
 struct GAMEPLAYABILITIES_API FAggregatorEvaluateParameters
 {

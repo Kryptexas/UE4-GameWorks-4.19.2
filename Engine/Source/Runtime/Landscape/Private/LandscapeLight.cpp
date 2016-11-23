@@ -4,17 +4,24 @@
 LandscapeLight.cpp: Static lighting for LandscapeComponents
 =============================================================================*/
 
-#include "LandscapePrivatePCH.h"
-
-#if WITH_EDITOR
 #include "LandscapeLight.h"
-#include "LandscapeRender.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
+#include "LandscapeProxy.h"
+#include "LandscapeInfo.h"
+#include "LightMap.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "ShadowMap.h"
+#include "LandscapeComponent.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeGrassType.h"
-
 #include "UnrealEngine.h"
+#include "Materials/Material.h"
+
+#if WITH_EDITOR
+
 #include "ComponentReregisterContext.h"
-#include "Materials/MaterialInstanceConstant.h"
 
 #define LANDSCAPE_LIGHTMAP_UV_INDEX 1
 

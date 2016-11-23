@@ -1,13 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
 
 #if UE_ENABLE_ICU
 THIRD_PARTY_INCLUDES_START
 	#include <unicode/regex.h>
 THIRD_PARTY_INCLUDES_END
-#include "Regex.h"
-#include "ICUUtilities.h"
+#include "Templates/SharedPointer.h"
+#include "Internationalization/Regex.h"
+#include "Internationalization/ICUUtilities.h"
 
 namespace
 {

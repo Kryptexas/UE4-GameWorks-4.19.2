@@ -3,12 +3,19 @@
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Animation/Skeleton.h"
 #include "SAnimTrackPanel.h"
-#include "SCurveEditor.h"
-#include "SAnimNotifyPanel.h"
+#include "SAnimCurvePanel.h"
 #include "Animation/AnimSequence.h"
+
+class IPersonaPreviewScene;
+class SSplitter;
+class STransformCurveEdTrack;
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimTrackCurvePanel

@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "MediaSubtitlesFactoryNew.h"
+#include "Factories/MediaSubtitlesFactoryNew.h"
+#include "MediaSubtitles.h"
+#include "AssetTypeCategories.h"
 
 
 /* UMediaSubtitlesFactoryNew structors

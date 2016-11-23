@@ -1,22 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "SRetargetManager.h"
-#include "ObjectTools.h"
+#include "Misc/MessageDialog.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Input/SButton.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "Widgets/SToolTip.h"
+#include "IDocumentation.h"
 #include "ScopedTransaction.h"
-#include "AssetRegistryModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "AssetNotifications.h"
-#include "Animation/Rig.h"
-#include "BoneSelectionWidget.h"
 #include "SRetargetSourceWindow.h"
 #include "SRigWindow.h"
-#include "Editor/AnimGraph/Classes/AnimPreviewInstance.h"
+#include "AnimPreviewInstance.h"
 #include "IEditableSkeleton.h"
-#include "IDocumentation.h"
-#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "SRetargetManager"
 

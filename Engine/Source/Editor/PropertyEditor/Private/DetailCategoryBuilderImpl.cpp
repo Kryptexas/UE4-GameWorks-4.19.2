@@ -1,23 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
 #include "DetailCategoryBuilderImpl.h"
+#include "ObjectPropertyNode.h"
+#include "Misc/ConfigCacheIni.h"
 
-#include "AssetSelection.h"
 
-#include "PropertyHandleImpl.h"
-#include "PropertyCustomizationHelpers.h"
-#include "IPropertyUtilities.h"
 
-#include "SPropertyEditor.h"
-#include "SPropertyEditorBool.h"
 #include "DetailCategoryGroupNode.h"
 #include "DetailItemNode.h"
 #include "DetailAdvancedDropdownNode.h"
-#include "SResetToDefaultPropertyEditor.h"
 #include "DetailPropertyRow.h"
 #include "DetailGroup.h"
-#include "DetailCustomBuilderRow.h"
 #include "StructurePropertyNode.h"
 
 namespace DetailLayoutConstants

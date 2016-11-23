@@ -2,11 +2,14 @@
 
 #pragma once
 
-#include "Editor.h" // for FEditorModeID
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "Widgets/SWindow.h"
+#include "Editor.h"
 
 class FPerformanceAnalyticsStats;
 class FTickableEditorObject;
-
+class FUICommandInfo;
 
 enum class EMapChangeType : uint8
 {

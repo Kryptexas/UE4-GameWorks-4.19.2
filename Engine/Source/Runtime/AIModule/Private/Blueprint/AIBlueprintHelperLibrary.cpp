@@ -1,12 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "Engine/Blueprint.h"
-#include "Blueprint/AIAsyncTaskBlueprintProxy.h"
-#include "BehaviorTree/BlackboardComponent.h"
-#include "Animation/AnimInstance.h"
-#include "TimerManager.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
+#include "EngineGlobals.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
+#include "Engine/Engine.h"
+#include "AITypes.h"
+#include "AISystem.h"
+#include "BrainComponent.h"
+#include "Navigation/PathFollowingComponent.h"
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "Blueprint/AIAsyncTaskBlueprintProxy.h"
+#include "Animation/AnimInstance.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAIBlueprint, Warning, All);
 

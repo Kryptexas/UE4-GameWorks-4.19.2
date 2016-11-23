@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Serialization/Archive.h"
+#include "Containers/UnrealString.h"
 
 /**
 * Similar to FMemoryReader, but able to internally

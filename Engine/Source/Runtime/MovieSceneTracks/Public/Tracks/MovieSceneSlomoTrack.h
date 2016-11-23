@@ -2,13 +2,10 @@
 
 #pragma once
 
-#include "MovieSceneFloatTrack.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieSceneFloatTrack.h"
 #include "MovieSceneSlomoTrack.generated.h"
-
-
-class IMovieSceneTrackInstance;
-class UMovieSceneSection;
-
 
 /**
  * Implements a movie scene track that controls a movie scene's playback speed.

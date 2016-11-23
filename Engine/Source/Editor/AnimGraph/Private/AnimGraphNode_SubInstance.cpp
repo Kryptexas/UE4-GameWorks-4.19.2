@@ -1,15 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_SubInstance.h"
-#include "CompilerResultsLog.h"
-
-#include "PropertyEditing.h"
-#include "IPropertyUtilities.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
 #include "Animation/AnimNode_SubInput.h"
 #include "PropertyCustomizationHelpers.h"
 #include "ScopedTransaction.h"
-#include "Animation/AnimInstance.h"
 
 #define LOCTEXT_NAMESPACE "SubInstanceNode"
 

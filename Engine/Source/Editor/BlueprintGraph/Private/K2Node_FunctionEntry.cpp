@@ -1,10 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
-#include "KismetCompiler.h"
+#include "K2Node_FunctionEntry.h"
+#include "Engine/Blueprint.h"
+#include "UObject/UnrealType.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/StructOnScope.h"
+#include "Engine/UserDefinedStruct.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "EdGraphSchema_K2.h"
 #include "K2Node_CallFunction.h"
-#include "BlueprintsObjectVersion.h"
+#include "K2Node_MakeArray.h"
+#include "K2Node_VariableSet.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "EdGraphUtilities.h"
+#include "BPTerminal.h"
+#include "UObject/PropertyPortFlags.h"
+#include "KismetCompilerMisc.h"
+#include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_FunctionEntry"
 

@@ -6,9 +6,13 @@
 ==============================================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/UnrealString.h"
 #include "GenericPlatform/GenericPlatformProcess.h"
-#include "HAL/Platform.h"
-#include "Linux/LinuxSystemIncludes.h"
+
+class Error;
 
 /** Wrapper around Linux pid_t. Should not be copyable as changes in the process state won't be properly propagated to all copies. */
 struct FProcState

@@ -2,6 +2,16 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Containers/StringConv.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Serialization/BufferReader.h"
+
+struct FMD5Hash;
 
 /*-----------------------------------------------------------------------------
 	MD5 functions.

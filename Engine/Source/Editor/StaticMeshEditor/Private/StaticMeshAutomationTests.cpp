@@ -1,11 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "StaticMeshEditorModule.h"
-
-#include "AutomationCommon.h"
-#include "SStaticMeshEditorViewport.h"
-#include "StaticMeshEditorViewportClient.h"
+#include "CoreMinimal.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/AutomationTest.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Engine/StaticMesh.h"
+#include "Editor.h"
+#include "Toolkits/AssetEditorManager.h"
+
+#include "Tests/AutomationCommon.h"
+#include "StaticMeshEditorViewportClient.h"
 
 namespace EditorViewButtonHelper
 {

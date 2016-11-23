@@ -2,10 +2,13 @@
 
 #pragma once
 
-#include "OutputDevice.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
 
 /** string added to the filename of timestamped backup log files */
 #define BACKUP_LOG_FILENAME_POSTFIX TEXT("-backup-")
+
+class FAsyncWriter;
 
 /** Used by FOutputDeviceFile to write to a file on a separate thread */
 class FAsyncWriter;

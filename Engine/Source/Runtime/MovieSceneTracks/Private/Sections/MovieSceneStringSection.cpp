@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneStringSection.h"
+#include "Sections/MovieSceneStringSection.h"
 
 UMovieSceneStringSection::UMovieSceneStringSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )

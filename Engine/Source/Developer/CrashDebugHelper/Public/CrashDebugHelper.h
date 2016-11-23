@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+#include "Templates/SharedPointer.h"
 
+class FArchive;
 struct FPDBCacheEntry;
 
 enum EProcessorArchitecture

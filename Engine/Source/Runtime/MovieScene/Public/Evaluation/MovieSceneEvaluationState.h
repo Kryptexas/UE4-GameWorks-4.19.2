@@ -2,11 +2,16 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "PersistentEvaluationData.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "MovieSceneSequenceID.h"
+#include "Evaluation/MovieSceneEvaluationKey.h"
+#include "Evaluation/PersistentEvaluationData.h"
+#include "Containers/ArrayView.h"
+#include "UObject/WeakObjectPtr.h"
 
-class UMovieSceneSequence;
 class IMovieScenePlayer;
+class UMovieSceneSequence;
 
 /**
  * Object cache that looks up, resolves, and caches object bindings for a specific sequence

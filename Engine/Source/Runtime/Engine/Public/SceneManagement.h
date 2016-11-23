@@ -7,27 +7,42 @@
 #pragma once
 
 // Includes the draw mesh macros
-#include "UniformBuffer.h"
-#include "ConvexVolume.h"
-#include "Engine/TextureLightProfile.h"
+
+#include "CoreMinimal.h"
+#include "Containers/ChunkedArray.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "Misc/MemStack.h"
+#include "Misc/IQueuedWork.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "EngineDefines.h"
+#include "HitProxies.h"
 #include "SceneTypes.h"
-#include "SceneView.h"
-#include "RHIDefinitions.h"
-#include "ChunkedArray.h"
+#include "ConvexVolume.h"
+#include "RendererInterface.h"
+#include "Engine/TextureLightProfile.h"
 #include "BatchedElements.h"
 #include "MeshBatch.h"
-#include "RendererInterface.h"
 #include "SceneUtils.h"
-#include "TessellationRendering.h"
 
-// Forward declarations.
+class FCanvas;
+class FLightMap;
 class FLightSceneInfo;
+class FLightSceneProxy;
+class FPrimitiveSceneInfo;
+class FPrimitiveSceneProxy;
 class FSceneViewState;
-class ULightComponent;
+class FShadowMap;
+class FStaticMeshRenderData;
 class UDecalComponent;
-class HHitProxy;
+class ULightComponent;
+class ULightMapTexture2D;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
+class UShadowMapTexture2D;
+class USkyLightComponent;
 struct FDynamicMeshVertex;
-
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBufferVisualization, Log, All);
 

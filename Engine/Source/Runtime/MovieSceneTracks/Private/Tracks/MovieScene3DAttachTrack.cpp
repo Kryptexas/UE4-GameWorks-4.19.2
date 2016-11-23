@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieScene3DAttachSection.h"
-#include "MovieScene3DAttachTrack.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieScene3DAttachTrack.h"
+#include "Sections/MovieScene3DAttachSection.h"
 #include "Evaluation/MovieScene3DAttachTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTrack.h"
+#include "Templates/Casts.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieScene3DAttachTrack"

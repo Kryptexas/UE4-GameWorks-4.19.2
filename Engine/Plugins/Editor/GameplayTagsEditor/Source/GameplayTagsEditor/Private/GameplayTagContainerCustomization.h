@@ -2,9 +2,18 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Editor/PropertyEditor/Public/IPropertyTypeCustomization.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 #include "SGameplayTagWidget.h"
 #include "EditorUndoClient.h"
+
+class IPropertyHandle;
+class SWindow;
 
 /** Customization for the gameplay tag container struct */
 class FGameplayTagContainerCustomization : public IPropertyTypeCustomization, public FEditorUndoClient

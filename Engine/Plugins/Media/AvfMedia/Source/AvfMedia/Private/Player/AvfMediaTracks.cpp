@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AvfMediaPCH.h"
 #include "AvfMediaTracks.h"
+#include "Containers/ResourceArray.h"
+#include "Misc/ScopeLock.h"
 
 #if WITH_ENGINE
 #include "RenderingThread.h"

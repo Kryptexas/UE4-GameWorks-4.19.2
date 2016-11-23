@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "Internationalization/TextHistory.h"
+#include "UObject/ObjectVersion.h"
+#include "Internationalization/ITextData.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/Guid.h"
 
-#include "TextHistory.h"
-#include "TextFormatter.h"
-#include "TextNamespaceUtil.h"
-#include "PropertyPortFlags.h"
+#include "Internationalization/TextFormatter.h"
+#include "Internationalization/TextNamespaceUtil.h"
+#include "UObject/PropertyPortFlags.h"
 
 ///////////////////////////////////////
 // FTextHistory

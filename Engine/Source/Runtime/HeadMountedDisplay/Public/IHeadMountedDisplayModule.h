@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "ModuleManager.h"		// For inline LoadModuleChecked()
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Features/IModularFeatures.h"
+#include "Features/IModularFeature.h"
+
+class IHeadMountedDisplay;
 
 /**
  * The public interface of the MotionControlsModule

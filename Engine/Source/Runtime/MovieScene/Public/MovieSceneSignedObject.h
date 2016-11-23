@@ -2,7 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
 #include "MovieSceneSignedObject.generated.h"
+
+class ITransactionObjectAnnotation;
 
 UCLASS()
 class UMovieSceneSignedObject : public UObject

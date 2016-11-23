@@ -2,7 +2,18 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "RenderCommandFence.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
+#include "Components/LightComponentBase.h"
+#include "Math/SHMath.h"
 #include "SkyLightComponent.generated.h"
+
+class FSkyLightSceneProxy;
+class UTextureCube;
 
 /** 
  * A cubemap texture resource that knows how to upload the capture data from a sky capture. 

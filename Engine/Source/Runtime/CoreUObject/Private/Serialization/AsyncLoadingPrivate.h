@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Linker.h"
+#include "Async/AsyncFileHandle.h"
+
 DECLARE_LOG_CATEGORY_EXTERN(LogLoadingDev, Fatal, All);
 
 #if USE_NEW_ASYNC_IO

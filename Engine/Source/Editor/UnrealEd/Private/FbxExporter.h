@@ -2,23 +2,42 @@
 
 #pragma once
 
-#include "Factories.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "EngineDefines.h"
+#include "Engine/StaticMesh.h"
 #include "MatineeExporter.h"
+#include "MovieSceneSequenceID.h"
 #include "MovieSceneFwd.h"
 #include "FbxImporter.h"
 
+class ABrush;
+class ACameraActor;
 class ALandscapeProxy;
-struct FAnimControlTrackKey;
-class USplineMeshComponent;
-class UInstancedStaticMeshComponent;
 class ALight;
-class UInterpTrackInstMove;
 class AMatineeActor;
-
-class UMovieScene;
+class ASkeletalMeshActor;
 class IMovieScenePlayer;
+class UAnimSequence;
+class UCameraComponent;
+class UInstancedStaticMeshComponent;
+class UInterpTrackFloatProp;
+class UInterpTrackInstMove;
+class UInterpTrackMove;
+class UInterpTrackMoveAxis;
+class ULightComponent;
+class UMaterialInterface;
+class UModel;
+class UMovieScene;
 class UMovieScene3DTransformTrack;
 class UMovieSceneFloatTrack;
+class USkeletalMesh;
+class USkeletalMeshComponent;
+class USplineMeshComponent;
+class UStaticMeshComponent;
+struct FAnimControlTrackKey;
+struct FExpressionInput;
+struct FRichCurve;
 
 namespace UnFbx
 {

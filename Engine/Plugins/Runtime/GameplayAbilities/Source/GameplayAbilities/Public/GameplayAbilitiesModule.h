@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "ModuleManager.h"
-
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
 
 /**
  * The public interface to this module

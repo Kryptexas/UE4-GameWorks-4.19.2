@@ -2,8 +2,14 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionLandscapeVisibilityMask.generated.h"
+
+class UTexture;
 
 UCLASS(collapseCategories, hideCategories=Object)
 class LANDSCAPE_API UMaterialExpressionLandscapeVisibilityMask : public UMaterialExpression

@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayAbilitySpec.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayAbility_CharacterJump.generated.h"
 

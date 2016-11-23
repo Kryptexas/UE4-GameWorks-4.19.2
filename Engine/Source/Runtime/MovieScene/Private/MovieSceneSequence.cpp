@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
 #include "MovieSceneSequence.h"
-#include "MovieSceneEvaluationTemplateGenerator.h"
-#include "MovieSceneEvaluationCustomVersion.h"
-
+#include "Compilation/MovieSceneEvaluationTemplateGenerator.h"
+#include "Evaluation/MovieSceneEvaluationCustomVersion.h"
+#include "MovieScene.h"
 
 UMovieSceneSequence::UMovieSceneSequence(const FObjectInitializer& Init)
 	: Super(Init)

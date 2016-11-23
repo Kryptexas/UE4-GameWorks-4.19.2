@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
+#include "Misc/CommandLine.h"
 #include "AllowWindowsPlatformTypes.h"
 	#include <delayimp.h>
 	#include "nvapi.h"

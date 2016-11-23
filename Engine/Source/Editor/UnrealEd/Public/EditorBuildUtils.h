@@ -7,6 +7,9 @@
 #ifndef __EditorBuildUtils_h__
 #define __EditorBuildUtils_h__
 
+#include "CoreMinimal.h"
+#include "Engine/EngineBaseTypes.h"
+
 /** Names of the built-in editor build types. */
 struct FBuildOptions
 {

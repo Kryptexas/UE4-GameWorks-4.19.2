@@ -11,7 +11,9 @@
 #include "VulkanResources.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
+#include "Misc/CommandLine.h"
 #include "GenericPlatformDriver.h"
+#include "Modules/ModuleManager.h"
 
 #ifdef VK_API_VERSION
 // Check the SDK is least the API version we want to use

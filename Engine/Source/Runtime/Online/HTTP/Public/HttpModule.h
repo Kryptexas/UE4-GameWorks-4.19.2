@@ -2,10 +2,12 @@
 
 #pragma once
 
-#include "ModuleManager.h"
-#include "HttpManager.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Modules/ModuleInterface.h"
 
-class IHttpRequest;
+class FHttpManager;
 
 /**
  * Module for Http request implementations

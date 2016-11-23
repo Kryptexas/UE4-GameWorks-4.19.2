@@ -2,13 +2,16 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
-#include "Misc/Build.h"
+#include "CoreTypes.h"
+#include "CoreFwd.h"
 
 #define CHECK_NON_CONCURRENT_ASSUMPTIONS (0)
 
 #define USE_NEW_LOCK_FREE_LISTS (PLATFORM_PS4 || PLATFORM_XBOXONE || PLATFORM_SWITCH)
 
+class FNoncopyable;
+class FNoopCounter;
+struct FMemory;
 
 /** 
  * Base class for a lock free list of pointers 

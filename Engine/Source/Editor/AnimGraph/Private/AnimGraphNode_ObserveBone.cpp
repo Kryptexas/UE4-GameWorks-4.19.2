@@ -1,13 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_ObserveBone.h"
-#include "CompilerResultsLog.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "SNodePanel.h"
 #include "SGraphNode.h"
-#include "KismetNodeInfoContext.h"
-#include "KismetDebugUtilities.h"
-#include "DetailLayoutBuilder.h"
+#include "KismetNodes/KismetNodeInfoContext.h"
+#include "Kismet2/KismetDebugUtilities.h"
 #include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
 #include "AnimNodeEditModes.h"
 
 #define LOCTEXT_NAMESPACE "ObserveBone"

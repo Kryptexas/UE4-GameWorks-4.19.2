@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsModulePrivatePCH.h"
-#include "PropertyTag.h"
+#include "GameplayTagContainer.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/CoreNet.h"
+#include "UObject/UnrealType.h"
 #include "Engine/PackageMapClient.h"
+#include "UObject/Package.h"
+#include "Engine/NetConnection.h"
+#include "GameplayTagsManager.h"
+#include "GameplayTagsModule.h"
+#include "Misc/OutputDeviceNull.h"
 
 const FGameplayTag FGameplayTag::EmptyTag;
 const FGameplayTagContainer FGameplayTagContainer::EmptyContainer;

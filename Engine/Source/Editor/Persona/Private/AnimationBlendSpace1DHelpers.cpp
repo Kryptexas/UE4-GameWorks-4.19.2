@@ -1,10 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
-
 #include "AnimationBlendSpace1DHelpers.h"
-#include "Animation/BlendSpaceBase.h"
 #include "Animation/BlendSpace.h"
 
 #define LOCTEXT_NAMESPACE "AnimationBlendSpace1DHelpers"

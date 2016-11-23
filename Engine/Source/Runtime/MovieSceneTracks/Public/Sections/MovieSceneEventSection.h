@@ -2,11 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Curves/KeyHandle.h"
+#include "MovieSceneSection.h"
 #include "Curves/NameCurve.h"
 #include "Curves/CurveInterface.h"
-#include "MovieSceneSection.h"
+#include "UObject/StructOnScope.h"
+#include "Serialization/MemoryReader.h"
+#include "Engine/Engine.h"
 #include "MovieSceneEventSection.generated.h"
 
+struct EventData;
 
 USTRUCT()
 struct FMovieSceneEventParameters

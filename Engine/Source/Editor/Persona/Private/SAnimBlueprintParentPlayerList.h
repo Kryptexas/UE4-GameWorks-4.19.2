@@ -2,8 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "BlueprintEditor.h"
 #include "IDetailsView.h"
 #include "EditorObjectsTracker.h"
+
+class UAnimationAsset;
+class UAnimBlueprint;
 
 class SAnimBlueprintParentPlayerList : public SCompoundWidget
 {

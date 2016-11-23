@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "MovieScene2DTransformSection.h"
-#include "MovieScene2DTransformTrack.h"
-#include "IMovieScenePlayer.h"
-#include "MovieScene2DTransformTemplate.h"
+#include "Animation/MovieScene2DTransformTrack.h"
+#include "Animation/MovieScene2DTransformSection.h"
 #include "MovieSceneCommonHelpers.h"
+#include "Animation/MovieScene2DTransformTemplate.h"
 
 UMovieScene2DTransformTrack::UMovieScene2DTransformTrack(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

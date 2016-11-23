@@ -13,7 +13,9 @@
  * limitations under the License.
  */
 
-#include "GoogleVRHMDPCH.h"
+#include "CoreMinimal.h"
+#include "IHeadMountedDisplay.h"
+#include "IGoogleVRHMDPlugin.h"
 #include "GoogleVRHMD.h"
 #include "ScreenRendering.h"
 

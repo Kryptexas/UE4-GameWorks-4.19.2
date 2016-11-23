@@ -1,10 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. 
 
-#include "CableComponentPluginPrivatePCH.h"
-#include "DynamicMeshBuilder.h"
+#include "CableComponent.h"
 #include "EngineGlobals.h"
+#include "PrimitiveViewRelevance.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
+#include "WorldCollision.h"
+#include "PrimitiveSceneProxy.h"
+#include "VertexFactory.h"
+#include "MaterialShared.h"
+#include "SceneManagement.h"
+#include "Engine/CollisionProfile.h"
+#include "Materials/Material.h"
 #include "LocalVertexFactory.h"
 #include "Engine/Engine.h"
+#include "CableComponentStats.h"
+#include "DynamicMeshBuilder.h"
 
 DECLARE_CYCLE_STAT(TEXT("Cable Sim"), STAT_Cable_SimTime, STATGROUP_CableComponent);
 DECLARE_CYCLE_STAT(TEXT("Cable Solve"), STAT_Cable_SolveTime, STATGROUP_CableComponent);

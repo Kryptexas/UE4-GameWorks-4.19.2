@@ -6,21 +6,31 @@
  * Contains the shared data that is used by all SkeletalMeshComponents (instances).
  */
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Interfaces/Interface_AssetUserData.h"
+#include "RenderCommandFence.h"
+#include "EngineDefines.h"
+#include "Components.h"
+#include "ReferenceSkeleton.h"
+#include "GPUSkinPublicDefs.h"
 #include "SkeletalMeshTypes.h"
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
-#include "Interfaces/Interface_AssetUserData.h"
-#include "BoneIndices.h"
-#include "Components.h"
 #include "SkeletalMesh.generated.h"
 
 /** The maximum number of skeletal mesh LODs allowed. */
 #define MAX_SKELETAL_MESH_LODS 5
 
-class UMorphTarget;
-class USkeleton;
 class UAnimInstance;
+class UAssetUserData;
+class UBodySetup;
+class UMorphTarget;
+class USkeletalMeshSocket;
+class USkeleton;
 
 #if WITH_APEX_CLOTHING
 struct FApexClothCollisionVolumeData;

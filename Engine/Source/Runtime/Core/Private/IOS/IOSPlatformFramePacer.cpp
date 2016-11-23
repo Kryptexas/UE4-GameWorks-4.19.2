@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-
+#include "IOSPlatformFramePacer.h"
+#include "Containers/Array.h"
+#include "ThreadingBase.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/Parse.h"
 
 // Collection of events listening for this trigger.
 static TArray<FEvent*> ListeningEvents;

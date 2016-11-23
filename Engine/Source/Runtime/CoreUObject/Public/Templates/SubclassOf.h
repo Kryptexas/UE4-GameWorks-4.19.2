@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "Class.h"
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
 
 /**
  * Template to allow UClass's to be passed around with type safety 

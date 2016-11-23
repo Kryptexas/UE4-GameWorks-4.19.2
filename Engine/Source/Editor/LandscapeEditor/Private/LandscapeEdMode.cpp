@@ -1,49 +1,51 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapeEditorPrivatePCH.h"
+#include "LandscapeEdMode.h"
+#include "SceneView.h"
+#include "Engine/Texture2D.h"
+#include "EditorViewportClient.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/Light.h"
+#include "Engine/Selection.h"
+#include "EditorModeManager.h"
+#include "LandscapeFileFormatInterface.h"
+#include "LandscapeEditorModule.h"
+#include "LandscapeEditorObject.h"
+#include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 
 #include "EditorSupportDelegates.h"
-#include "ObjectTools.h"
-#include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
 #include "LandscapeEdit.h"
 #include "LandscapeEditorUtils.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
-#include "LandscapeSplineProxies.h"
-#include "LandscapeEditorModule.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/UnrealEd/Public/Toolkits/ToolkitManager.h"
-#include "LandscapeEdModeTools.h"
-#include "ScopedTransaction.h"
-#include "ImageWrapper.h"
-#include "DynamicMeshBuilder.h"
-
-//Slate dependencies
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/LevelEditor/Public/SLevelViewport.h"
-#include "SLandscapeEditor.h"
-
-// VR Editor
+#include "Framework/Commands/UICommandList.h"
+#include "LevelEditor.h"
+#include "Toolkits/ToolkitManager.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "InstancedFoliageActor.h"
 #include "IVREditorModule.h"
 #include "ViewportWorldInteraction.h"
 #include "VREditorInteractor.h"
+#include "LandscapeEdModeTools.h"
+#include "LandscapeInfoMap.h"
+
+//Slate dependencies
+#include "Misc/FeedbackContext.h"
+#include "ILevelViewport.h"
+#include "SLandscapeEditor.h"
+
+// VR Editor
 #include "VREditorMode.h"
 #include "EditorWorldManager.h"
 
 // Classes
-#include "LandscapeInfoMap.h"
-#include "LandscapeStreamingProxy.h"
-#include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMaterialInstanceConstant.h"
 #include "LandscapeSplinesComponent.h"
-#include "InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
-#include "Engine/Selection.h"
-#include "LandscapeGizmoActiveActor.h"
 #include "EngineUtils.h"
-#include "Engine/Light.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 

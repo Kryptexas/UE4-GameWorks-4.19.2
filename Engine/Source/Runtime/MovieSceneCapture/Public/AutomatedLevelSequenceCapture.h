@@ -2,12 +2,17 @@
 
 #pragma once
 
-#include "MovieSceneCapture.h"
-#include "LevelSequenceActor.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringAssetReference.h"
 #include "LevelSequencePlayer.h"
+#include "MovieSceneCapture.h"
 #include "AutomatedLevelSequenceCapture.generated.h"
 
 class ALevelSequenceActor;
+class FJsonObject;
+class FSceneViewport;
+class ULevelSequenceBurnInOptions;
 
 UCLASS(config=EditorSettings)
 class MOVIESCENECAPTURE_API UAutomatedLevelSequenceCapture : public UMovieSceneCapture

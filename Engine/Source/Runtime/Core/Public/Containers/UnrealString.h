@@ -5,15 +5,22 @@
 
 #pragma once
 
-#include "Containers/Array.h"
+#include "CoreTypes.h"
+#include "Misc/VarArgs.h"
+#include "Misc/OutputDevice.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/IsArithmetic.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Templates/UnrealTemplate.h"
 #include "Math/NumericLimits.h"
-#include "Math/UnrealMathUtility.h"
-#include "Misc/Crc.h"
+#include "Containers/Array.h"
 #include "Misc/CString.h"
-#include "Templates/MemoryOps.h"
-#include "Traits/IsContiguousContainer.h"
+#include "Misc/Crc.h"
+#include "Math/UnrealMathUtility.h"
 
 struct FStringFormatArg;
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 /** Determines case sensitivity options for string comparisons. */
 namespace ESearchCase

@@ -9,28 +9,27 @@
 //			Tracking of this must be added, if demos are to support PacketHandler's in the future (not presently needed).
 
 
-#include "EnginePrivate.h"
 #include "Engine/DemoNetDriver.h"
-#include "Engine/DemoNetConnection.h"
+#include "EngineGlobals.h"
+#include "Engine/World.h"
+#include "UObject/Package.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/PlayerStart.h"
+#include "Engine/LocalPlayer.h"
+#include "EngineUtils.h"
+#include "Engine/Engine.h"
 #include "Engine/DemoPendingNetGame.h"
+#include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
-#include "Engine/PackageMapClient.h"
 #include "Engine/NetworkObjectList.h"
-#include "RepLayout.h"
+#include "Net/RepLayout.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "Engine/LevelStreamingKismet.h"
-#include "GameFramework/PlayerStart.h"
 #include "GameFramework/SpectatorPawnMovement.h"
-#include "Engine/GameInstance.h"
-#include "NetworkReplayStreaming.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
-#include "Net/DataReplication.h"
-#include "GameFramework/GameModeBase.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
-#include "NetworkVersion.h"
-#include "Engine/Level.h"
 
 DEFINE_LOG_CATEGORY( LogDemo );
 

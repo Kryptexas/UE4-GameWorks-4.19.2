@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PrivatePch.h"
-#include "BuildPatchTool.h"
 #include "ToolMode.h"
+#include "IBuildPatchServicesModule.h"
+#include "BuildPatchTool.h"
 #include "PatchGenerationMode.h"
 #include "CompactifyMode.h"
 #include "EnumerationMode.h"
 #include "MergeManifestMode.h"
 #include "DiffManifestMode.h"
+#include "Misc/CommandLine.h"
 
 namespace BuildPatchTool
 {

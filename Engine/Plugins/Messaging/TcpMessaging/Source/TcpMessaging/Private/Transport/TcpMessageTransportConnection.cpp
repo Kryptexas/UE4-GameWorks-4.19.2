@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "TcpMessagingPrivatePCH.h"
+#include "Transport/TcpMessageTransportConnection.h"
+#include "Serialization/ArrayWriter.h"
+#include "Common/TcpSocketBuilder.h"
+#include "TcpMessagingPrivate.h"
+#include "Transport/TcpDeserializedMessage.h"
 
 /** Header sent over the connection as soon as it's opened */
 struct FTcpMessageHeader

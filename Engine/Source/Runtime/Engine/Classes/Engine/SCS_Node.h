@@ -2,8 +2,16 @@
 
 
 #pragma once
-#include "SimpleConstructionScript.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/SimpleConstructionScript.h"
 #include "SCS_Node.generated.h"
+
+class UBlueprint;
 
 DECLARE_DELEGATE_OneParam( FSCSNodeNameChanged, const FName& );
 

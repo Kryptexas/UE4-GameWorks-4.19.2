@@ -2,14 +2,15 @@
 
 #pragma once
 
-#include "GeometryCacheModulePublicPCH.h"
-#include "GeometryCache.h"
-#include "DynamicMeshBuilder.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Runtime/GeometryCache/Private/GeometryCacheSceneProxy.h"
+#include "Components/MeshComponent.h"
 
 #include "GeometryCacheComponent.generated.h"
 
-class FGeometryCacheSceneProxy;
 class UGeometryCache;
+struct FGeometryCacheMeshData;
 
 /** Stores the RenderData for each individual track */
 USTRUCT()

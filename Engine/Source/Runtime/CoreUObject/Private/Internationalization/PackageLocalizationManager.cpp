@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "PackageLocalizationManager.h"
-#include "PackageLocalizationCache.h"
+#include "Internationalization/PackageLocalizationManager.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Culture.h"
+#include "Misc/PackageName.h"
+#include "Internationalization/IPackageLocalizationCache.h"
+#include "Internationalization/PackageLocalizationCache.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPackageLocalizationManager, Log, All);
 

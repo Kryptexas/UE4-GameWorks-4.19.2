@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "LegacySlateFontInfoCache.h"
+#include "Fonts/LegacySlateFontInfoCache.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/FileHelper.h"
+#include "Fonts/FontBulkData.h"
 
 TSharedPtr<FLegacySlateFontInfoCache> FLegacySlateFontInfoCache::Singleton;
 

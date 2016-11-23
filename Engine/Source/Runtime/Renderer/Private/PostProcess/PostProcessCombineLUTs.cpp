@@ -4,13 +4,13 @@
 	PostProcessCombineLUTs.cpp: Post processing tone mapping implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessCombineLUTs.h"
-#include "PostProcessing.h"
-#include "ScreenRendering.h"
+#include "PostProcess/PostProcessCombineLUTs.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "TranslucentRendering.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
+#include "ScreenRendering.h"
 
 
 // CVars

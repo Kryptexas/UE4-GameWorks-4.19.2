@@ -5,27 +5,50 @@
 	Largely based on SkeletalMeshImport.cpp
 =============================================================================*/
 
-#include "UnrealEd.h"
-
-#include "Engine.h"
-#include "TextureLayout.h"
-#include "SkelImport.h"
-#include "FbxImporter.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Misc/MessageDialog.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/PackageName.h"
+#include "SkeletalMeshTypes.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "AnimEncoding.h"
-#include "SSkeletonWidget.h"
+#include "Factories/Factory.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Animation/MorphTarget.h"
+#include "PhysicsAssetUtils.h"
 
+#include "SkelImport.h"
+#include "Logging/TokenizedMessage.h"
+#include "FbxImporter.h"
+
+#include "AssetData.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "AssetNotifications.h"
 
 #include "ObjectTools.h"
 
 #include "ApexClothingUtils.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "MeshUtilities.h"
 
+#include "IMessageLogListing.h"
 #include "MessageLogModule.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "ComponentReregisterContext.h"
 
-#include "FbxErrors.h"
+#include "Misc/FbxErrors.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/SkeletalMeshSocket.h"
 

@@ -1,22 +1,34 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
-
-#include "Tests/AutomationTestSettings.h"
-#include "AutomationEditorCommon.h"
-#include "AutomationCommon.h"
-#include "ShaderCompiler.h"
-#include "AssetEditorManager.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/AutomationTest.h"
+#include "Modules/ModuleManager.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/Material.h"
+#include "AssetData.h"
+#include "IAssetTools.h"
 #include "AssetToolsModule.h"
-#include "JsonObjectConverter.h"
+#include "EditorReimportHandler.h"
+#include "Factories/FbxFactory.h"
+#include "Factories/ReimportFbxSkeletalMeshFactory.h"
+#include "Factories/ReimportFbxStaticMeshFactory.h"
+#include "Factories/FbxAnimSequenceImportData.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxStaticMeshImportData.h"
+#include "Factories/FbxTextureImportData.h"
+#include "Factories/FbxImportUI.h"
+
 #include "AssetRegistryModule.h"
 #include "ObjectTools.h"
 #include "StaticMeshResources.h"
-#include "Engine/SkeletalMesh.h"
-#include "ReferenceSkeleton.h"
 
 #include "FbxMeshUtils.h"
-#include "FbxAutomationCommon.h"
+#include "Tests/FbxAutomationCommon.h"
 
 //////////////////////////////////////////////////////////////////////////
 

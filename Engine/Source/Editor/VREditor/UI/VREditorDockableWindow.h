@@ -2,9 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "VREditorFloatingUI.h"
+#include "ViewportDragOperation.h"
 #include "ViewportInteractableInterface.h"
 #include "VREditorDockableWindow.generated.h"
+
+class UStaticMeshComponent;
+class UViewportInteractor;
 
 /**
  * An interactive floating UI panel that can be dragged around

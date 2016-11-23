@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "SMessagingBreakpoints.h"
-#include "SMessagingBreakpointsTableRow.h"
+#include "Widgets/Breakpoints/SMessagingBreakpoints.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Breakpoints/SMessagingBreakpointsTableRow.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingBreakpoints"

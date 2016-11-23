@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
 #include "UObject/EnumProperty.h"
+#include "UObject/PropertyPortFlags.h"
 #include "PropertyTag.h"
 #include "Templates/ChooseClass.h"
 #include "Templates/IsSigned.h"

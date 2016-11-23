@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintComponentNodeSpawner.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EdGraphSchema_K2.h"
 #include "K2Node_AddComponent.h"
-#include "SlateIconFinder.h" // for FindIconForClass()
-#include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
-#include "ComponentAssetBroker.h" // for GetComponentsForAsset()/AssignAssetToComponent()
-#include "BlueprintActionFilter.h"	// for FBlueprintActionContext
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Styling/SlateIconFinder.h"
+#include "BlueprintNodeTemplateCache.h"
+#include "ComponentAssetBroker.h"
 #include "ComponentTypeRegistry.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintComponenetNodeSpawner"

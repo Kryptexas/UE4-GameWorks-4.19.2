@@ -4,12 +4,19 @@
 	PostProcessSubsurface.cpp: Screenspace subsurface scattering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessSubsurface.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessSubsurface.h"
+#include "EngineGlobals.h"
+#include "Engine/SubsurfaceProfile.h"
+#include "StaticBoundShaderState.h"
+#include "CanvasTypes.h"
+#include "UnrealEngine.h"
 #include "SceneUtils.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "RenderTargetTemp.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "SceneRenderTargetParameters.h"
+#include "PostProcess/PostProcessing.h"
 #include "CompositionLighting/PostProcessPassThrough.h"
 
 ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandListImmediate& RHICmdList);

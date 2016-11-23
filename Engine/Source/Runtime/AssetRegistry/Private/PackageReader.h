@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/PackageFileSummary.h"
+
+class FAssetData;
+class FPackageDependencyData;
+
 class FPackageReader : public FArchiveUObject
 {
 public:

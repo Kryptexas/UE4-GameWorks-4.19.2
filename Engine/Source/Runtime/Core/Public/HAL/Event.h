@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Math/NumericLimits.h"
+#include "Misc/Timespan.h"
+
 /**
  * Interface for waitable events.
  *

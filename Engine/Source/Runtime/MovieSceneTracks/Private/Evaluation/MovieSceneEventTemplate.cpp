@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneEventTemplate.h"
-#include "MovieSceneEventTrack.h"
-#include "MovieSceneEventSection.h"
+#include "Evaluation/MovieSceneEventTemplate.h"
+#include "Tracks/MovieSceneEventTrack.h"
 #include "MovieSceneSequence.h"
-#include "MovieSceneEvaluationTemplateInstance.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "EngineGlobals.h"
+#include "MovieScene.h"
 
 DECLARE_CYCLE_STAT(TEXT("Event Track Token Execute"), MovieSceneEval_EventTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

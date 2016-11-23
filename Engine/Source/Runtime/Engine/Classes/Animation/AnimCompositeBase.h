@@ -7,10 +7,14 @@
  * This contains Composite Section data and some necessary interface to make this work
  */
 
-#include "AnimSequenceBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimSequenceBase.h"
 #include "AnimCompositeBase.generated.h"
 
+class UAnimCompositeBase;
 class UAnimSequence;
+struct FCompactPose;
 
 /** Struct defining a RootMotionExtractionStep.
  * When extracting RootMotion we can encounter looping animations (wrap around), or different animations.

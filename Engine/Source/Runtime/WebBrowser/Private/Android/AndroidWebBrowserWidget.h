@@ -1,6 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/SLeafWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "AndroidWebBrowserWindow.h"
+#include "AndroidWebBrowserDialog.h"
 #include "AndroidJava.h"
 #include <jni.h>
 

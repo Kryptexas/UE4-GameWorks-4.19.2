@@ -1,9 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AndroidMediaPCH.h"
 #include "AndroidMediaTracks.h"
 #include "AndroidJavaMediaPlayer.h"
-
+#include "Misc/ScopeLock.h"
+#include "../AndroidMediaLog.h"
+#include "RenderingThread.h"
+#include "RenderResource.h"
+#include "IMediaAudioSink.h"
+#include "IMediaOverlaySink.h"
+#include "IMediaTextureSink.h"
 
 #define LOCTEXT_NAMESPACE "FAndroidMediaTracks"
 

@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
+#include "CurveKeyEditors/SEnumCurveKeyEditor.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/IntegralCurve.h"
+#include "ISequencer.h"
+#include "ScopedTransaction.h"
 #include "MovieSceneToolHelpers.h"
-#include "SEnumCurveKeyEditor.h"
 
 
 #define LOCTEXT_NAMESPACE "EnumCurveKeyEditor"

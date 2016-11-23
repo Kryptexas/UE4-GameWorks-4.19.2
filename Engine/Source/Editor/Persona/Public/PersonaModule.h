@@ -2,12 +2,22 @@
 
 #pragma once
 
-#include "Toolkits/IToolkit.h"		// For EToolkitMode::Type
-#include "Toolkits/AssetEditorToolkit.h" 
-#include "ModuleInterface.h"
-#include "PersonaDelegates.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Modules/ModuleInterface.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "Animation/AnimSequence.h"
 #include "Editor.h"
+#include "PersonaDelegates.h"
 #include "Factories/FbxImportUI.h"
+
+class FBlueprintEditor;
+class IDetailsView;
+class IEditableSkeleton;
+class IPersonaPreviewScene;
+class IPersonaToolkit;
+class UAnimBlueprint;
+class USkeletalMeshComponent;
 
 extern const FName PersonaAppName;
 

@@ -2,6 +2,9 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Materials/MaterialExpressionParameter.h"
 #include "MaterialExpressionStaticBoolParameter.generated.h"
 

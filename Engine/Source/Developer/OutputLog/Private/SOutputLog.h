@@ -1,11 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "BaseTextLayoutMarshaller.h"
-#include "TextFilterExpressionEvaluator.h"
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Framework/Text/BaseTextLayoutMarshaller.h"
+#include "Misc/TextFilterExpressionEvaluator.h"
+
+class FMenuBuilder;
 class FOutputLogTextLayoutMarshaller;
-class SSearchBox;
+class FTextLayout;
+class SMenuAnchor;
+class SMultiLineEditableTextBox;
 
 /**
 * A single log message for the output log, holding a message and

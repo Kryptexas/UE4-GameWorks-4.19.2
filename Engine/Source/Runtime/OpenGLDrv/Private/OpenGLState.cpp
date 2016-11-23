@@ -4,8 +4,11 @@
 	OpenGLState.cpp: OpenGL state implementation.
 =============================================================================*/
 
-#include "OpenGLDrvPrivate.h"
+#include "CoreMinimal.h"
+#include "Serialization/MemoryWriter.h"
+#include "RHI.h"
 #include "ShaderCache.h"
+#include "OpenGLDrv.h"
 
 GLint GMaxOpenGLTextureFilterAnisotropic = 1;
 

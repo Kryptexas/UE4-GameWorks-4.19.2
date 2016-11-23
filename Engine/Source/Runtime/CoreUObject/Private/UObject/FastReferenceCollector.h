@@ -2,7 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 #include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "UObject/UnrealType.h"
+
+struct FStackEntry;
 
 /*=============================================================================
 	FastReferenceCollector.h: Unreal realtime garbage collection helpers

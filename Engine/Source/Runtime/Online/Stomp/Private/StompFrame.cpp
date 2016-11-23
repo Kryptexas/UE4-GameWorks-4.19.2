@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#if WITH_STOMP
-
-#include "StompPrivatePCH.h"
 #include "StompFrame.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "StompLog.h"
+
+#if WITH_STOMP
 
 // Anonymous name space for some frame parsing helpers
 namespace

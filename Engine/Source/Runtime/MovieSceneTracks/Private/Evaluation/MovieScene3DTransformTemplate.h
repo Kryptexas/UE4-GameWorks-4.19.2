@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "MovieSceneEvalTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/RichCurve.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 #include "MovieScene3DTransformTemplate.generated.h"
 
 class UMovieScene3DTransformSection;

@@ -5,7 +5,13 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/FbxMeshImportData.h"
 #include "FbxStaticMeshImportData.generated.h"
+
+class UStaticMesh;
 
 UENUM()
 namespace EVertexColorImportOption

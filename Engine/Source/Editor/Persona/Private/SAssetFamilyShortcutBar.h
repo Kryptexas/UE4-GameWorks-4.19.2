@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "AssetThumbnail.h"
+
 class SAssetFamilyShortcutBar : public SCompoundWidget
 {
 public:

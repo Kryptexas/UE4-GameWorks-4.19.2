@@ -1,12 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-
-#include "Camera/CameraTypes.h"
-#include "GameFramework/PlayerController.h"
-#include "GameFramework/HUD.h"
-
 #include "Camera/CameraPhotography.h"
+
+#include "HAL/IConsoleManager.h"
+#include "Misc/CoreDelegates.h"
+
+#include "Features/IModularFeatures.h"
+#include "CameraPhotographyModule.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogCameraPhotography, Log, All);

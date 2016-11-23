@@ -4,9 +4,11 @@
 PrimitiveDistanceAccuracyRendering.cpp: Contains definitions for rendering the viewmode.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "PrimitiveDistanceAccuracyRendering.h"
+#include "PrimitiveSceneProxy.h"
+#include "EngineGlobals.h"
+#include "MeshBatch.h"
+#include "Engine/Engine.h"
 
 IMPLEMENT_SHADER_TYPE(,FPrimitiveDistanceAccuracyPS,TEXT("PrimitiveDistanceAccuracyPixelShader"),TEXT("Main"),SF_Pixel);
 

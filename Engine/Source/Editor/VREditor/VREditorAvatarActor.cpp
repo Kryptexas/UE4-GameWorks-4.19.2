@@ -1,10 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorAvatarActor.h"
+#include "Materials/MaterialInterface.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
+#include "Engine/Font.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/CollisionProfile.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Components/PostProcessComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "VREditorMode.h"
+#include "ViewportInteractionTypes.h"
 #include "VREditorInteractor.h"
 #include "ViewportWorldInteraction.h"
+#include "Engine/Engine.h"
+#include "UObject/Package.h"
+#include "EngineGlobals.h"
 #include "IHeadMountedDisplay.h"
 
 namespace VREd

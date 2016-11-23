@@ -2,29 +2,37 @@
 
 #pragma once
 
-#include "Editor.h"
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Animation/CurveSequence.h"
+#include "UObject/GCObject.h"
+#include "Editor/UnrealEdTypes.h"
+#include "SceneTypes.h"
+#include "Engine/Scene.h"
+#include "Camera/CameraTypes.h"
 #include "UnrealWidget.h"
-#include "Framework/Commands/Commands.h"
-#include "Layout/SlateRect.h"
+#include "ShowFlags.h"
+#include "UnrealClient.h"
+#include "SceneManagement.h"
 #include "EditorComponents.h"
+#include "Framework/Commands/Commands.h"
 
-
+class FAssetData;
 class FCachedJoystickState;
 class FCameraControllerConfig;
 class FCameraControllerUserImpulseData;
+class FCanvas;
 class FDragTool;
 class FEditorCameraController;
 class FEditorModeTools;
 class FEditorViewportClient;
+class FEdMode;
 class FMouseDeltaTracker;
 class FPreviewScene;
-class FSceneView;
-class FWidget;
-class HHitProxy;
 class IMatineeBase;
 class SEditorViewport;
 class UActorFactory;
-
 
 /** Delegate called by FEditorViewportClient to check its visibility */
 DECLARE_DELEGATE_RetVal( bool, FViewportStateGetter );

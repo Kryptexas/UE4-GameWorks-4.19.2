@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "SequencerTimingManager.h"
 #include "AudioDevice.h"
+#include "GameFramework/WorldSettings.h"
 
 FTimeAndDelta FSequencerDefaultTimingManager::AdjustTime(float InCurrentTime, float InDelta, float InPlayRate, float InDilation)
 {

@@ -1,13 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
 #include "FontEditorModule.h"
-#include "ModuleManager.h"
-#include "Factories.h"
-#include "SFontEditorViewport.h"
-#include "SCompositeFontEditor.h"
-#include "FontEditor.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/Font.h"
 #include "Engine/FontFace.h"
+#include "IFontEditor.h"
+#include "FontEditor.h"
 #include "FontFaceDetailsCustomization.h"
 #include "PropertyEditorModule.h"
 

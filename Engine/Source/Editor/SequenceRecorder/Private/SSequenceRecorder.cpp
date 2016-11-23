@@ -1,13 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
 #include "SSequenceRecorder.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Widgets/SOverlay.h"
 #include "ActorRecording.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Notifications/SProgressBar.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "EditorStyleSet.h"
+#include "AnimationRecorder.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
 #include "SequenceRecorderCommands.h"
-#include "SNumericEntryBox.h"
 #include "SequenceRecorderSettings.h"
 #include "SequenceRecorder.h"
-#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "SequenceRecorder"
 

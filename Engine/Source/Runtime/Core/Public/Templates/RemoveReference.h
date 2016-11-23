@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+
 /**
  * TRemoveReference<type> will remove any references from a type.
  */

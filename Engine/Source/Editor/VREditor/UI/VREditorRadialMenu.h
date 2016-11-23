@@ -3,6 +3,8 @@
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "VREditorBaseUserWidget.h"
 #include "VREditorRadialMenu.generated.h"
 

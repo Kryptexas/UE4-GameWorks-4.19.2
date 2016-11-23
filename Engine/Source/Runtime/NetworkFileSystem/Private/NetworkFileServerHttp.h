@@ -8,9 +8,21 @@
 =============================================================================*/
 #pragma  once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Interfaces/INetworkFileServer.h"
+#include "Interfaces/INetworkFileSystemModule.h"
+
+class FInternetAddr;
+class FNetworkFileServerClientConnectionHTTP;
+class ITargetPlatform;
+
 #if ENABLE_HTTP_FOR_NFS
 
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #endif
 

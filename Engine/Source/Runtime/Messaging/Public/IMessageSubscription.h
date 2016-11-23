@@ -2,10 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 
-enum class EMessageScope : uint8;
 class IMessageReceiver;
-
+enum class EMessageScope : uint8;
 
 /**
  * Interface for message subscriptions.

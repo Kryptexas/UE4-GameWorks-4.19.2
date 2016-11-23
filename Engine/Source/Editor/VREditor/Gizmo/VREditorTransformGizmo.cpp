@@ -1,14 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorTransformGizmo.h"
-#include "UnitConversion.h"
-#include "Gizmo/VREditorTranslationGizmoHandle.h"
-#include "Gizmo/VREditorRotationGizmoHandle.h"
-#include "Gizmo/VREditorPlaneTranslationGizmoHandle.h"
+#include "Engine/World.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Materials/Material.h"
+#include "Engine/Font.h"
+#include "Engine/CollisionProfile.h"
+#include "GameFramework/WorldSettings.h"
+#include "Components/TextRenderComponent.h"
+#include "Math/UnitConversion.h"
+#include "VIGizmoHandle.h"
+#include "VREditorTranslationGizmoHandle.h"
+#include "VREditorRotationGizmoHandle.h"
+#include "VREditorPlaneTranslationGizmoHandle.h"
 #include "VIStretchGizmoHandle.h"
 #include "VIUniformScaleGizmoHandle.h"
-#include "VREditorMode.h"
 
 namespace VREd
 {

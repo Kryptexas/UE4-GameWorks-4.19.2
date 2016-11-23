@@ -2,9 +2,21 @@
 
 #pragma once
 
-#include "PersonaPrivatePCH.h"
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Visibility.h"
+#include "Layout/SlateRect.h"
+#include "Input/Reply.h"
+#include "Layout/Margin.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Widgets/SToolTip.h"
+#include "Misc/NotifyHook.h"
 
+class FPaintArgs;
+class FSlateWindowElementList;
+class UAnimSequence;
 class UBlendSpaceBase;
 
 DECLARE_DELEGATE_TwoParams(FOnSampleMoved, const int32, const FVector&);

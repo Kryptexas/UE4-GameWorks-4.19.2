@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "GameplayDebuggerCategory_NavLocalGrid.h"
+#include "GameFramework/PlayerController.h"
+#include "AIController.h"
+#include "Engine/Engine.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
 #include "Navigation/NavLocalGridManager.h"
 #include "Navigation/GridPathFollowingComponent.h"
-#include "GameplayDebuggerCategory_NavLocalGrid.h"
 #include "DebugRenderSceneProxy.h"
 #include "Materials/Material.h"
 

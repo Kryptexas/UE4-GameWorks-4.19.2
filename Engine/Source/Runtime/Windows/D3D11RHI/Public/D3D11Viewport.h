@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "RenderUtils.h"
+
 /** A D3D event query resource. */
 class FD3D11EventQuery : public FRenderResource
 {

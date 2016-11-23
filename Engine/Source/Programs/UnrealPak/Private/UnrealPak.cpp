@@ -9,6 +9,7 @@
 #include "KeyGenerator.h"
 #include "AES.h"
 #include "UniquePtr.h"
+#include "Serialization/BufferWriter.h"
 
 IMPLEMENT_APPLICATION(UnrealPak, "UnrealPak");
 

@@ -2,9 +2,14 @@
 
 #pragma once
 
-#include "LandscapeInfo.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
 
 #include "LandscapeInfoMap.generated.h"
+
+class ULandscapeInfo;
 
 UCLASS()
 class ULandscapeInfoMap : public UObject

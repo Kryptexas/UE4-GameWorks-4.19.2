@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
-
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Features/IModularFeature.h"
+#include "Features/IModularFeatures.h"
 
 /**
 * FSpatializationParams

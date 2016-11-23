@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Misc/AutomationTest.h"
 #include "AutomationWorkerMessages.generated.h"
 
 

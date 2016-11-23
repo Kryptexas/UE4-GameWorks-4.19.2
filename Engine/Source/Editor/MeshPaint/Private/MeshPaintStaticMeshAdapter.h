@@ -2,8 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "MeshPaintModule.h"
+#include "GenericOctreePublic.h"
+#include "RawIndexBuffer.h"
+#include "Components/StaticMeshComponent.h"
 #include "GenericOctree.h"
+
+class UBodySetup;
+class UStaticMesh;
+class UTexture;
+struct FStaticMeshLODResources;
 
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintGeometryAdapterForStaticMeshes

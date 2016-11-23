@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_Actor.h"
+#include "UObject/WeakObjectPtr.h"
+#include "GameFramework/Actor.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 
 UEnvQueryItemType_Actor::UEnvQueryItemType_Actor(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

@@ -2,6 +2,12 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "GameFramework/Actor.h"
 #include "SimpleConstructionScript.generated.h"
 
 class USCS_Node;

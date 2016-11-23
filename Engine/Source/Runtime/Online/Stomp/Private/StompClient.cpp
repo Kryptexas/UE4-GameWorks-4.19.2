@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "StompClient.h"
+#include "StompLog.h"
+
 #if WITH_STOMP
 
-#include "StompPrivatePCH.h"
-#include "StompClient.h"
 #include "StompMessage.h"
 #include "StompFrame.h"
 

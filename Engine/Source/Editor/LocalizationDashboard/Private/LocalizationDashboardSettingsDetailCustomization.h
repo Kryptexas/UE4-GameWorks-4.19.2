@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IDetailCustomization.h"
-#include "ILocalizationServiceProvider.h"
+#include "Widgets/SWidget.h"
 
-class ULocalizationDashboardSettings;
-class IPropertyHandle;
 class IDetailCategoryBuilder;
+class IDetailLayoutBuilder;
+class ILocalizationServiceProvider;
 
 struct FLocalizationServiceProviderWrapper
 {

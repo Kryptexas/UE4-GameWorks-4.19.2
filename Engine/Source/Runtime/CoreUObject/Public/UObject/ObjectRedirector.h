@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 
 /**
  * This class will redirect an object load to another object, so if an object is renamed

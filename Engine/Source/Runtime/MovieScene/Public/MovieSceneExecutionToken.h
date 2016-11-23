@@ -2,9 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "MovieSceneFwd.h"
-#include "InlineValue.h"
-#include "MovieSceneAnimTypeID.h"
+#include "Misc/InlineValue.h"
+#include "Evaluation/MovieSceneAnimTypeID.h"
+
+class IMovieScenePlayer;
+struct FMovieSceneContext;
+struct FMovieSceneEvaluationOperand;
+struct FPersistentEvaluationData;
 
 struct IMovieScenePreAnimatedToken
 {

@@ -1,9 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "GameplayAbility.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
 #include "Abilities/GameplayAbilityWorldReticle.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "Abilities/GameplayAbilityTargetDataFilter.h"
 #include "GameplayAbilityTargetActor.generated.h"
+
+class APlayerController;
+class UAbilitySystemComponent;
+class UGameplayAbility;
 
 UENUM(BlueprintType)
 namespace ETargetAbilitySelfSelection

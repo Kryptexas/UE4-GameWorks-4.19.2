@@ -1,12 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "CollisionProfileDetails.h"
-#include "ScopedTransaction.h"
-#include "ObjectEditorUtils.h"
+#include "Misc/MessageDialog.h"
+#include "Widgets/SWindow.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "Editor.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "DetailCategoryBuilder.h"
+#include "Widgets/Input/SComboBox.h"
 #include "BodyInstanceCustomization.h"
+#include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
-#include "Engine/CollisionProfile.h"
 
 #define LOCTEXT_NAMESPACE "CollsiionProfileDetails"
 

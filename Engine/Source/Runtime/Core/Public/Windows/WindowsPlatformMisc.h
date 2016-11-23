@@ -2,9 +2,14 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/PlatformMemory.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
-#include "Windows/WindowsHWrapper.h"
 
+class GenericApplication;
+struct FGuid;
+struct FVector2D;
+class IPlatformChunkInstall;
 
 /** Helper struct used to get the string version of the Windows version. */
 struct FWindowsOSVersionHelper
@@ -128,7 +133,7 @@ struct CORE_API FWindowsPlatformMisc
 	 * @param ProcessId The identifier of the process to get the window for.
 	 * @return Window handle, or 0 if not found.
 	 */
-	static HWND GetTopLevelWindowHandle(uint32 ProcessId);
+	static Windows::HWND GetTopLevelWindowHandle(uint32 ProcessId);
 
 	/**
 	 * Searches for a window that matches the window name or the title starts with a particular text. When
@@ -224,7 +229,7 @@ struct CORE_API FWindowsPlatformMisc
 	 *
 	 * @return	true, if it successfully found the Value
 	 */
-	static bool QueryRegKey( const HKEY InKey, const TCHAR* InSubKey, const TCHAR* InValueName, FString& OutData );
+	static bool QueryRegKey( const Windows::HKEY InKey, const TCHAR* InSubKey, const TCHAR* InValueName, FString& OutData );
 
 	/**
 	 * Gets Visual Studio common tools path.

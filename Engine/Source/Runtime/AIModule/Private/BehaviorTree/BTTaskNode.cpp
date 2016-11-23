@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "GameplayTasksComponent.h"
 #include "BehaviorTree/BTTaskNode.h"
+#include "AIController.h"
+#include "VisualLogger/VisualLogger.h"
+#include "GameplayTasksComponent.h"
 
 UBTTaskNode::UBTTaskNode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

@@ -2,9 +2,11 @@
 
 #pragma once
 
-// Forward Declarations
-class UProperty;
-class UObjectProperty;
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
+#include "UObject/ObjectRedirector.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/LinkerLoad.h"
 
 /*******************************************************************************
  * FPlaceholderContainerTracker / FScopedPlaceholderPropertyTracker
@@ -302,7 +304,7 @@ private:
 };
 
 // Templatized implementation
-#include "LinkerPlaceholderBase.inl" 
+#include "UObject/LinkerPlaceholderBase.inl"
 
 /*******************************************************************************
  * TLinkerImportPlaceholder<> Specializations

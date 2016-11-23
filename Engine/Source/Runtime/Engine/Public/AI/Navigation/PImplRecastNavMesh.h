@@ -8,18 +8,23 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "AI/Navigation/RecastNavMesh.h"
+
+#if WITH_RECAST
+#include "Detour/DetourNavMesh.h"
+#include "Detour/DetourNavMeshQuery.h"
+#endif
+
+class FRecastNavMeshGenerator;
+class UNavigationSystem;
+
 #if WITH_RECAST
 
-#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
-#include "AI/Navigation/RecastNavMesh.h"
-#include "Detour/DetourNavMeshQuery.h"
-
 #define RECAST_VERY_SMALL_AGENT_RADIUS 0.0f
-
-class ARecastNavMesh;
-class FRecastNavMeshGenerator;
-class dtNavMesh;
-struct dtMeshTile;
 
 class ENGINE_API FRecastQueryFilter : public INavigationQueryFilterInterface, public dtQueryFilter
 {

@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "MaterialEditor/MaterialEditorMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "PhysicsEngine/BodySetup.h"
 
 FBoxSphereBounds UMaterialEditorMeshComponent::CalcBounds(const FTransform& LocalToWorld) const

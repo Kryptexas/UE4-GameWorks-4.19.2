@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/UObjectGlobals.h"
+#include "Misc/Guid.h"
+
 struct FAsyncPackageDesc
 {
 	/** Handle for the caller */

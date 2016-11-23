@@ -6,6 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "UObject/ScriptInterface.h"
+#include "UObject/UnrealType.h"
+#include "UObject/Stack.h"
+
 /*-----------------------------------------------------------------------------
 	Macros.
 -----------------------------------------------------------------------------*/

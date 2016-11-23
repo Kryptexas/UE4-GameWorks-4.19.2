@@ -4,6 +4,19 @@
 #define __BoneSelectionWidget_h__
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+
+class IEditableSkeleton;
+class SComboButton;
+
 DECLARE_DELEGATE_OneParam(FOnBoneSelectionChanged, FName);
 DECLARE_DELEGATE_RetVal(FName, FGetSelectedBone);
 

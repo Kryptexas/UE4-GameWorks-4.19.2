@@ -1,9 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_Literal.h"
+#include "GameFramework/Actor.h"
+#include "EdGraphSchema_K2.h"
+#include "BPTerminal.h"
+#include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
+#include "Styling/SlateIconFinder.h"
 #include "ClassIconFinder.h"
+#include "BlueprintNodeBinder.h"
 #include "BlueprintBoundNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 

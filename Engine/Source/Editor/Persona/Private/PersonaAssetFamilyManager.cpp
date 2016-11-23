@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "PersonaAssetFamilyManager.h"
+#include "AssetData.h"
+#include "IAssetFamily.h"
 #include "PersonaAssetFamily.h"
 
 FPersonaAssetFamilyManager& FPersonaAssetFamilyManager::Get()

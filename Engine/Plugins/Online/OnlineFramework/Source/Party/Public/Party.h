@@ -2,12 +2,20 @@
 
 #pragma once
 
-#include "Online.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/CoreOnline.h"
+#include "GameFramework/OnlineReplStructs.h"
 #include "OnlineSubsystemTypes.h"
+#include "Interfaces/OnlinePartyInterface.h"
+#include "PartyGameState.h"
 #include "Party.generated.h"
 
-class UWorld;
-class FUniqueNetId;
+class UGameInstance;
+
 typedef FUniqueNetIdRepl FOnlinePartyIdRepl;
 class UPartyGameState;
 class UGameInstance;

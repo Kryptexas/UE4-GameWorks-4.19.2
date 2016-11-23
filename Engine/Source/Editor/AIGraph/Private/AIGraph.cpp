@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIGraphPrivatePCH.h"
+#include "AIGraph.h"
+#include "UObject/UObjectHash.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "AIGraphTypes.h"
+#include "AIGraphNode.h"
 #include "AIGraphModule.h"
 
 UAIGraph::UAIGraph(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)

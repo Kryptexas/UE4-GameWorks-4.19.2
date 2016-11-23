@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include "BaseToolkit.h"
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "Editor/PropertyEditor/Public/PropertyEditorDelegates.h"
+
+class IDetailsView;
+class SDockableTab;
 
 class UNREALED_API FSimpleAssetEditor : public FAssetEditorToolkit
 {

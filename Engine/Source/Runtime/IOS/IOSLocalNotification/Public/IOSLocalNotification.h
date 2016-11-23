@@ -7,6 +7,7 @@
 #pragma once
 
 #include "LocalNotification.h"
+#include "Logging/LogMacros.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogIOSLocalNotification, Log, All);
 

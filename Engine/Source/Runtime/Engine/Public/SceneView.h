@@ -2,26 +2,27 @@
 
 #pragma once
 
-#include "Runtime/RenderCore/Public/UniformBuffer.h"
-#include "Engine/GameViewportClient.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "RenderResource.h"
+#include "UniformBuffer.h"
 #include "Engine/World.h"
-#include "ConvexVolume.h"
-#include "FinalPostProcessSettings.h"
-#include "SceneInterface.h"
 #include "SceneTypes.h"
-#include "ShaderParameters.h"
-#include "RendererInterface.h"
-#include "RHIStaticStates.h"
+#include "ShowFlags.h"
+#include "ConvexVolume.h"
+#include "Engine/GameViewportClient.h"
+#include "SceneInterface.h"
+#include "FinalPostProcessSettings.h"
 #include "GlobalDistanceFieldParameters.h"
 #include "DebugViewModeHelpers.h"
-#include "ShaderParameters.h"
 
-class FSceneViewStateInterface;
-class FViewUniformShaderParameters;
-class FInstancedViewUniformShaderParameters;
-class FViewElementDrawer;
-class FSceneViewFamily;
 class FForwardLightingViewResources;
+class FSceneView;
+class FSceneViewFamily;
+class FSceneViewStateInterface;
+class FViewElementDrawer;
+class ISceneViewExtension;
 
 // Projection data for a FSceneView
 struct FSceneViewProjectionData

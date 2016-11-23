@@ -5,14 +5,13 @@
 	GPUSkinCache.cpp: Performs skinning on a compute shader into a buffer to avoid vertex buffer skinning.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "GlobalShader.h"
-#include "SceneManagement.h"
-#include "GPUSkinVertexFactory.h"
-#include "SkeletalRenderGPUSkin.h"
 #include "GPUSkinCache.h"
-#include "ShaderParameterUtils.h"
+#include "RawIndexBuffer.h"
+#include "Shader.h"
 #include "SceneUtils.h"
+#include "GlobalShader.h"
+#include "SkeletalRenderGPUSkin.h"
+#include "ShaderParameterUtils.h"
 
 DEFINE_STAT(STAT_GPUSkinCache_TotalNumChunks);
 DEFINE_STAT(STAT_GPUSkinCache_TotalNumVertices);

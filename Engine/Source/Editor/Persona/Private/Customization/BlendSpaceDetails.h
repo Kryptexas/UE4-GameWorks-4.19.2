@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IDetailCustomization.h"
+
 class FBlendSpaceDetails : public IDetailCustomization
 {
 public:

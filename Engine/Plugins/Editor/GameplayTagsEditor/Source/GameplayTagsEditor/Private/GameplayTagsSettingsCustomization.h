@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
+#include "CoreMinimal.h"
+#include "Editor/PropertyEditor/Public/IDetailCustomization.h"
 #include "SGameplayTagWidget.h"
+
+class IDetailLayoutBuilder;
 
 //////////////////////////////////////////////////////////////////////////
 // FGameplayTagsSettingsCustomization

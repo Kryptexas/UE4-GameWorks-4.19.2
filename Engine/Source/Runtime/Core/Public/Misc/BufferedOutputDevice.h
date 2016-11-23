@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "OutputDevice.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
+#include "Containers/Array.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 /** Buffered output device. */
 class CORE_API FBufferedOutputDevice : public FOutputDevice

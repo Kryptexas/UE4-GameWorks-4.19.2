@@ -2,9 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EngineDefines.h"
 #include "Engine/SkeletalMesh.h"
 #include "DestructibleMesh.generated.h"
 
+class UPhysicalMaterial;
+class UStaticMesh;
 
 #if WITH_APEX
 namespace NvParameterized

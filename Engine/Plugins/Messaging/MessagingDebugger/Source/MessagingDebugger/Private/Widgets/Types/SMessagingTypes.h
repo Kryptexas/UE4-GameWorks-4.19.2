@@ -2,11 +2,15 @@
 
 #pragma once
 
-
-class FMessagingDebuggerModel;
-class FMessagingDebuggerTypeFilter;
-class IMessageTracer;
-
+#include "CoreMinimal.h"
+#include "Styling/ISlateStyle.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "IMessageTracer.h"
+#include "Models/MessagingDebuggerModel.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Models/MessagingDebuggerTypeFilter.h"
 
 /**
  * Implements the message types panel.

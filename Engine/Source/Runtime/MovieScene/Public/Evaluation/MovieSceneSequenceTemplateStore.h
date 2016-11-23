@@ -2,8 +2,10 @@
 
 #pragma once
 
-struct FMovieSceneEvaluationTemplate;
+#include "CoreMinimal.h"
+
 class UMovieSceneSequence;
+struct FMovieSceneEvaluationTemplate;
 
 struct FMovieSceneSequenceTemplateStore
 {

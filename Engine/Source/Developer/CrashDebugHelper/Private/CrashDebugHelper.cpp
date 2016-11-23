@@ -1,12 +1,24 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashDebugHelperPrivatePCH.h"
+#include "CrashDebugHelper.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Stats/StatsMisc.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "CrashDebugHelperPrivate.h"
 #include "CrashDebugPDBCache.h"
 
-#include "EngineVersion.h"
+#include "Misc/EngineVersion.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlRevision.h"
+#include "ISourceControlProvider.h"
 #include "ISourceControlModule.h"
 #include "ISourceControlLabel.h"
-#include "ISourceControlRevision.h"
 
 #ifndef MINIDUMPDIAGNOSTICS
 	#define MINIDUMPDIAGNOSTICS	0

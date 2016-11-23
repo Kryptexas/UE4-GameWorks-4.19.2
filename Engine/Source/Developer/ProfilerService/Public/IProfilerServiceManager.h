@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Serialization/MemoryWriter.h"
 
 /** Type definition for shared references to instances of IProfilerService. */
 typedef TSharedRef<class IProfilerServiceManager> IProfilerServiceManagerRef;

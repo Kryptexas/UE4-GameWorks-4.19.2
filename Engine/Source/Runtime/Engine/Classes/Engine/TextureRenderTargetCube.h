@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "TextureRenderTarget.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/TextureRenderTarget.h"
 #include "TextureRenderTargetCube.generated.h"
+
+class FTextureResource;
+struct FPropertyChangedEvent;
 
 /**
  * TextureRenderTargetCube

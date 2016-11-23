@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DesktopPlatformPrivatePCH.h"
 #include "PlatformInfo.h"
+#include "DesktopPlatformPrivate.h"
 
 #define LOCTEXT_NAMESPACE "PlatformInfo"
 

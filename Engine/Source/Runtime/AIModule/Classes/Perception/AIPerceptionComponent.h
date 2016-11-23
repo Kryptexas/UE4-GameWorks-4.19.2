@@ -2,16 +2,20 @@
 
 #pragma once
 
-#include "AISystem.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Components/ActorComponent.h"
+#include "EngineDefines.h"
+#include "GenericTeamAgentInterface.h"
+#include "Perception/AIPerceptionTypes.h"
 #include "Perception/AISense.h"
-#include "AIPerceptionSystem.h"
+#include "Perception/AIPerceptionSystem.h"
 #include "AIPerceptionComponent.generated.h"
 
 class AAIController;
-class UCanvas;
-class UAIPerceptionSystem;
-class UAISenseConfig;
 class FGameplayDebuggerCategory;
+class UAISenseConfig;
 struct FVisualLogEntry;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPerceptionUpdatedDelegate, TArray<AActor*>, UpdatedActors);

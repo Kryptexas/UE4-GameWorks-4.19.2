@@ -1,6 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Templates/SharedPointer.h"
+#include "Misc/Optional.h"
+#include "Internationalization/Text.h"
+#include "Misc/DateTime.h"
+
 enum class ETextHistoryType
 {
 	Base = 0,

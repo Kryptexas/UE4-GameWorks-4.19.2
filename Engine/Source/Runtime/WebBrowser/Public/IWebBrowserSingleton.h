@@ -2,10 +2,12 @@
 
 #pragma once
 
-// Forward Declarations
-class FSlateRenderer;
-class IWebBrowserWindow;
+#include "CoreMinimal.h"
+#include "Rendering/SlateRenderer.h"
+
 class FCEFWebBrowserWindow;
+class IWebBrowserCookieManager;
+class IWebBrowserWindow;
 struct FWebBrowserWindowInfo;
 
 class IWebBrowserWindowFactory

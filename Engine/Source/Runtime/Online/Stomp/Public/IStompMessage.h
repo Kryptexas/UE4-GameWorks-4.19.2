@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Core.h"
+
+#include "CoreMinimal.h"
+#include "IStompClient.h"
+
+
+#if WITH_STOMP
 
 class IStompMessage
 {
@@ -28,3 +33,5 @@ public:
 	virtual FString GetAckId() const = 0;
 
 };
+
+#endif

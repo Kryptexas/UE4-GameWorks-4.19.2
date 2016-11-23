@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class FRenderTarget;
+class FRHICommandListImmediate;
+class FSceneRenderer;
+class FTexture;
+struct FResolveParams;
+
 void UpdateSceneCaptureContentMobile_RenderThread(
 	FRHICommandListImmediate& RHICmdList,
 	FSceneRenderer* SceneRenderer,

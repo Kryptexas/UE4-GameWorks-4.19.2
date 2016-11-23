@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "HittestGrid.h"
+#include "Widgets/SWindow.h"
+#include "Application/SlateWindowHelper.h"
+#include "Application/SlateApplicationBase.h"
+#include "Layout/WidgetPath.h"
+#include "Input/HittestGrid.h"
 
 namespace SWindowDefs
 {
@@ -1911,3 +1914,15 @@ EActiveTimerReturnType SWindow::TriggerPlayMorphSequence( double InCurrentTime, 
 	Morpher.Sequence.Play( this->AsShared() );
 	return EActiveTimerReturnType::Stop;
 }
+
+#if WITH_EDITOR
+FScopedSwitchWorldHack::FScopedSwitchWorldHack( const FWidgetPath& WidgetPath )
+	: Window( WidgetPath.TopLevelWindow )
+	, WorldId( -1 )
+{
+	if( Window.IsValid() )
+	{
+		WorldId = Window->SwitchWorlds( WorldId );
+	}
+}
+#endif

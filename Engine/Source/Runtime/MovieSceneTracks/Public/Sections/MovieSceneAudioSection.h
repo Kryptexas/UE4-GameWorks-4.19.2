@@ -2,9 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
 #include "MovieSceneSection.h"
 #include "MovieSceneAudioSection.generated.h"
 
+class USoundBase;
 
 /**
  * Audio section, for use in the master audio, or by attached audio objects

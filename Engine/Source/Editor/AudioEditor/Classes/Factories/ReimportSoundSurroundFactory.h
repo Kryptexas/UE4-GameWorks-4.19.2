@@ -5,6 +5,10 @@
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EditorReimportHandler.h"
 #include "Factories/SoundSurroundFactory.h"
 #include "ReimportSoundSurroundFactory.generated.h"
 

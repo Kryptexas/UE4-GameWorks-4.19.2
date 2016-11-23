@@ -4,9 +4,12 @@
 	PrimitiveSceneProxy.cpp: Primitive scene proxy implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "PrimitiveSceneProxy.h"
+#include "Engine/Brush.h"
+#include "UObject/Package.h"
+#include "EngineUtils.h"
 #include "Components/BrushComponent.h"
+#include "SceneManagement.h"
 #include "PrimitiveSceneInfo.h"
 
 static TAutoConsoleVariable<int32> CVarForceSingleSampleShadowingFromStationary(

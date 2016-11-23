@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayTagContainer.h"
 #include "Abilities/GameplayAbilityTypes.h"
-#include "GameplayTags.h"
-#include "GameplayAbilityTypes.h"
+#include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_WaitGameplayEvent.generated.h"
+
+class UAbilitySystemComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitGameplayEventDelegate, FGameplayEventData, Payload);
 

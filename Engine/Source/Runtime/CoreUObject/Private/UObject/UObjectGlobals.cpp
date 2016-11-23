@@ -4,16 +4,48 @@
 	UnObj.cpp: Unreal object global data and functions
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/UObjectGlobals.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/ITransaction.h"
+#include "Serialization/ArchiveProxy.h"
+#include "Misc/CommandLine.h"
+#include "HAL/IOBase.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/SlowTask.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/App.h"
+#include "UObject/ScriptInterface.h"
+#include "UObject/UObjectAllocator.h"
+#include "UObject/UObjectBase.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Serialization/SerializedPropertyScope.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ObjectRedirector.h"
+#include "UObject/UObjectAnnotation.h"
+#include "Serialization/DuplicatedObject.h"
+#include "Serialization/DuplicatedDataReader.h"
+#include "Serialization/DuplicatedDataWriter.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
+#include "Blueprint/BlueprintSupport.h"
 #include "Misc/SecureHash.h"
 #include "UObject/ConstructorHelpers.h"
-#include "UObject/UObjectAnnotation.h"
 #include "UObject/UObjectThreadContext.h"
 #include "UObject/LinkerManager.h"
-#include "BlueprintSupport.h" // for FDeferredObjInitializerTracker
-#include "ExclusiveLoadPackageTimeTracker.h"
-#include "AssetRegistryInterface.h"
-#include "CookStats.h"
+#include "Misc/ExclusiveLoadPackageTimeTracker.h"
+#include "Misc/AssetRegistryInterface.h"
+#include "ProfilingDebugging/CookStats.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -50,7 +82,7 @@ DECLARE_CYCLE_STAT(TEXT("InstanceSubobjects"), STAT_InstanceSubobjects, STATGROU
 DECLARE_CYCLE_STAT(TEXT("PostInitProperties"), STAT_PostInitProperties, STATGROUP_Object);
 
 #if ENABLE_COOK_STATS
-#include "ScopedTimers.h"
+#include "ProfilingDebugging/ScopedTimers.h"
 
 namespace LoadPackageStats
 {

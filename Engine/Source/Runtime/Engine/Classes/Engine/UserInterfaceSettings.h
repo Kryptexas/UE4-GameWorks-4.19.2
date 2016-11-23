@@ -2,8 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringClassReference.h"
 #include "Curves/CurveFloat.h"
+#include "Engine/DeveloperSettings.h"
 #include "UserInterfaceSettings.generated.h"
+
+class UDPICustomScalingRule;
 
 /** When to render the Focus Brush for widgets that have user focus. Based on the EFocusCause. */
 UENUM()

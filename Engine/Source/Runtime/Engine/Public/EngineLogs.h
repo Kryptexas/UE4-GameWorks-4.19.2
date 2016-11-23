@@ -4,7 +4,10 @@
 
 #pragma once
 
- 
+#include "CoreMinimal.h"
+
+class Error;
+
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogMCP, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogPath, Warning, All);
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogPhysics, Warning, All);

@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "OutputDeviceArchiveWrapper.h"
+#include "Misc/OutputDeviceArchiveWrapper.h"
+#include "Misc/OutputDeviceHelper.h"
 
 void FOutputDeviceArchiveWrapper::Flush()
 {

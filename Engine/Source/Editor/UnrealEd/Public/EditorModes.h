@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "EditorModeRegistry.h"
-#include "EditorComponents.h"
-#include "UnrealWidget.h"
-#include "EngineGlobals.h"
+#include "CoreMinimal.h"
+#include "MaterialShared.h"
+#include "SceneManagement.h"
+#include "Editor.h"
 
 enum EModeTools : int8;
 class FEditorViewportClient;
@@ -90,26 +90,4 @@ public:
 		delete this;
 	}
 };
-
-#include "EdMode.h"
-
-/*------------------------------------------------------------------------------
-	Default.
-------------------------------------------------------------------------------*/
-
-/**
- * The default editing mode.  User can work with BSP and the builder brush. Vector and array properties are also visually editable.
- */
-class FEdModeDefault : public FEdMode
-{
-public:
-	FEdModeDefault();
-
-	// FEdMode interface
-	virtual bool UsesPropertyWidgets() const override { return true; }
-	// End of FEdMode interface
-};
-
-
-#include "EditorModeManager.h"
 

@@ -1,25 +1,39 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SuperSearchPrivatePCH.h"
-#include "SSearchBox.h"
 #include "SSuperSearch.h"
-#include "SScrollBorder.h"
+#include "HAL/PlatformProcess.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Layout/WidgetPath.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SMenuAnchor.h"
+#include "Widgets/Views/SListView.h"
 
 #if WITH_EDITOR
+	#include "EditorStyleSet.h"
+	#include "Engine/Blueprint.h"
+#endif
+#include "Interfaces/IHttpResponse.h"
+#include "HttpModule.h"
+#include "PlatformHttp.h"
+
+#include "Widgets/Input/SSearchBox.h"
+
+#if WITH_EDITOR
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "IIntroTutorials.h"
 #include "EditorTutorial.h"
 #include "EngineAnalytics.h"
-#include "IAnalyticsProvider.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 #endif
 
-#include "SSearchBox.h"
-
-#if WITH_EDITOR	
-#include "AssetData.h"
-#endif
-
-#include "Base64.h"
+#include "Misc/Base64.h"
 
 static TSharedRef<FSearchEntry> OtherCategory(new FSearchEntry());
 static TSharedRef<FSearchEntry> AskQuestionEntry (new FSearchEntry());

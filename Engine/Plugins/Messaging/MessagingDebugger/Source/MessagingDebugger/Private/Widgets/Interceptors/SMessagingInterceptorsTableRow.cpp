@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "SMessagingInterceptorsTableRow.h"
+#include "Widgets/Interceptors/SMessagingInterceptorsTableRow.h"
 
 
 namespace MessagingInterceptorTableRow

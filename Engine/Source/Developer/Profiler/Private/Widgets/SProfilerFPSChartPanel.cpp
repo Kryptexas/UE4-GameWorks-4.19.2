@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
+#include "Widgets/SProfilerFPSChartPanel.h"
+#include "Widgets/SBoxPanel.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
 #include "ProfilerFPSAnalyzer.h"
-#include "ProfilerManager.h"
-#include "ProfilerSession.h"
-#include "SHistogram.h"
-#include "SProfilerFPSChartPanel.h"
-
+#include "Widgets/SHistogram.h"
 
 #define LOCTEXT_NAMESPACE "SProfilerFPSChartPanel"
 

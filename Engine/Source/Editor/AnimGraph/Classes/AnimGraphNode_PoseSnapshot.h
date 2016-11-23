@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_RefPoseBase.h"
 #include "AnimNodes/AnimNode_PoseSnapshot.h"
 #include "AnimGraphNode_PoseSnapshot.generated.h"

@@ -1,20 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/Info.h"
+#include "UObject/CoreOnline.h"
+#include "GameFramework/PlayerController.h"
 #include "GameModeBase.generated.h"
 
-class FDebugDisplayInfo;
-class FUniqueNetId;
-struct FUniqueNetIdRepl;
-class AGameStateBase;
 class AGameSession;
-class AController;
-class APlayerController;
-class APlayerState;
+class AGameStateBase;
 class AHUD;
-class APawn;
+class APlayerState;
 class ASpectatorPawn;
+class UNetConnection;
 class UPlayer;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogGameMode, Log, All);

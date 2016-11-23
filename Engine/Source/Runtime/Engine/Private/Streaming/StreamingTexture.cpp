@@ -4,11 +4,9 @@
 StreamingTexture.cpp: Definitions of classes used for texture.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "StreamingTexture.h"
-#include "StreamingManagerTexture.h"
-#include "Engine/LightMapTexture2D.h"
-#include "Engine/ShadowMapTexture2D.h"
+#include "Streaming/StreamingTexture.h"
+#include "Misc/App.h"
+#include "Streaming/StreamingManagerTexture.h"
 
 FStreamingTexture::FStreamingTexture(UTexture2D* InTexture, const int32 NumStreamedMips[TEXTUREGROUP_MAX], const FTextureStreamingSettings& Settings)
 : Texture(InTexture)

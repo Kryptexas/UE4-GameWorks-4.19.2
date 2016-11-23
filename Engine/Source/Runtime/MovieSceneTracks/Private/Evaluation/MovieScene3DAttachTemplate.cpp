@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieScene3DAttachTemplate.h"
-
-#include "MovieSceneExecutionToken.h"
-#include "MovieScene3DAttachSection.h"
-#include "MovieSceneTemplateCommon.h"
+#include "Evaluation/MovieScene3DAttachTemplate.h"
+#include "Sections/MovieScene3DAttachSection.h"
+#include "Evaluation/MovieSceneTemplateCommon.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "MovieSceneCommonHelpers.h"
 
 DECLARE_CYCLE_STAT(TEXT("Attach Track Evaluate"), MovieSceneEval_AttachTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Attach Track Token Execute"), MovieSceneEval_AttachTrack_TokenExecute, STATGROUP_MovieSceneEval);

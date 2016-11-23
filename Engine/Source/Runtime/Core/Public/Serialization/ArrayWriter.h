@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "BufferArchive.h"
+#include "CoreTypes.h"
+#include "Serialization/BufferArchive.h"
 
 /**
  * Archive objects that are also a TArray. Since FBufferArchive is already the 

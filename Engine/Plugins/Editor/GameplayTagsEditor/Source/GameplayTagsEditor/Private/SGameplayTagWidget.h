@@ -2,8 +2,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/Object.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
 #include "GameplayTagsManager.h"
-#include "SlateBasics.h"
+
+class IPropertyHandle;
+class SAddNewGameplayTagWidget;
 
 /** Determines the behavior of the gameplay tag UI depending on where it's used */
 enum class EGameplayTagUIMode : uint8
@@ -28,7 +41,7 @@ public:
 		, _PropertyHandle( NULL )
 		, _GameplayTagUIMode( EGameplayTagUIMode::SelectionMode )
 		, _MaxHeight(260.0f)
-		{}
+	{}
 		SLATE_ARGUMENT( FString, Filter ) // Comma delimited string of tag root names to filter by
 		SLATE_ARGUMENT( bool, ReadOnly ) // Flag to set if the list is read only
 		SLATE_ARGUMENT( FString, TagContainerName ) // The name that will be used for the settings file

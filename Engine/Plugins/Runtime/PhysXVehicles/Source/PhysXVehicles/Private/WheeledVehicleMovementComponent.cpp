@@ -1,19 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesPrivatePCH.h"
-#include "PhysicsPublic.h"
+#include "WheeledVehicleMovementComponent.h"
+#include "EngineGlobals.h"
+#include "GameFramework/Pawn.h"
+#include "PhysxUserData.h"
+#include "Engine/Engine.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "DrawDebugHelpers.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Net/UnrealNetwork.h"
+#include "VehicleAnimInstance.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 #include "Physics/PhysicsFiltering.h"
 #include "GameFramework/PawnMovementComponent.h"
-#include "Net/UnrealNetwork.h"
-#include "MessageLog.h"
-#include "VehicleWheel.h"
-#include "WheeledVehicleMovementComponent.h"
+#include "Logging/MessageLog.h"
 #include "TireConfig.h"
-#include "VehicleAnimInstance.h"
 #include "DisplayDebugHelpers.h"
-#include "PhysicsEngine/ConstraintInstance.h"
-#include "PhysicsEngine/PhysicsAsset.h"
-#include "FrameworkObjectVersion.h"
 
 #include "PhysXPublic.h"
 #include "PhysXVehicleManager.h"
@@ -1655,7 +1661,7 @@ void UWheeledVehicleMovementComponent::CalculateAvoidanceVelocity(float DeltaTim
 	{
 		return;
 	}
-		
+	
 	UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
 	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
 

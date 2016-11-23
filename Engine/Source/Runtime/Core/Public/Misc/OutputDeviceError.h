@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "OutputDevice.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
 
 // Error device.
 class CORE_API FOutputDeviceError : public FOutputDevice

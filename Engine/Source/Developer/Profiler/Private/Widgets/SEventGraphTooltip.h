@@ -2,8 +2,11 @@
 
 #pragma once
 
-class FEventGraphSample;
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "ProfilerDataSource.h"
 
+class SToolTip;
 
 /**
  * An advanced tooltip used to show various informations in the event graph widget.

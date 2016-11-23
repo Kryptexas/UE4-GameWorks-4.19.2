@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "SkeletonEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonEditorCommands"

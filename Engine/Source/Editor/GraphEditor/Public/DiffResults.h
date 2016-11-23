@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /** Differences found within a graph */
 namespace EDiffType
 {

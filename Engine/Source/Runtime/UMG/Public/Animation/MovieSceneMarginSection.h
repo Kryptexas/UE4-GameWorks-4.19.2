@@ -2,11 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/RichCurve.h"
 #include "MovieSceneSection.h"
-#include "IKeyframeSection.h"
+#include "Layout/Margin.h"
+#include "Sections/IKeyframeSection.h"
 #include "Evaluation/MovieSceneEvalTemplate.h"
 #include "MovieSceneMarginSection.generated.h"
-
 
 enum class EKeyMarginChannel
 {

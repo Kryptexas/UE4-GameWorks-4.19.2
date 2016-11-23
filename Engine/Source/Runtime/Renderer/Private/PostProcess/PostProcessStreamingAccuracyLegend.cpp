@@ -4,13 +4,13 @@
 PostProcessVisualizeComplexity.cpp: Contains definitions for complexity viewmode.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessStreamingAccuracyLegend.h"
+#include "PostProcess/PostProcessStreamingAccuracyLegend.h"
+#include "CanvasTypes.h"
+#include "UnrealEngine.h"
+#include "RenderTargetTemp.h"
 #include "SceneUtils.h"
-#include "PostProcessing.h"
 #include "DebugViewModeRendering.h"
+#include "SceneRendering.h"
 
 void FRCPassPostProcessStreamingAccuracyLegend::DrawDesc(FCanvas& Canvas, float PosX, float PosY, const FText& Text)
 {

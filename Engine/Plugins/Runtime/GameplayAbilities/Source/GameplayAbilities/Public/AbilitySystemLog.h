@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "VisualLogger.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "VisualLogger/VisualLogger.h"
 
 // Intended categories:
 //	Log - This happened. What gameplay programmers may care about to debug

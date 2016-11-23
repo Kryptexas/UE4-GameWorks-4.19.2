@@ -6,9 +6,10 @@
 
 #pragma once
 
-#include "Engine.h"
-#include "SoundDefinitions.h"
+#include "CoreMinimal.h"
 #include "AudioEffect.h"
+#include "AudioDevice.h"
+#include "Sound/SoundWave.h"
 
 /*------------------------------------------------------------------------------------
 	Audio Framework system headers
@@ -28,6 +29,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogIOSAudio, Log, All);
 #define CHANNELS_PER_BUS 2
 #define AudioCallbackFrameSize	(8 * 1024)	// This needs to be known ahead of time to allocate appropriate buffers
 
+struct FWaveInstance;
 class FIOSAudioDevice;
 class FIOSAudioEffectsManager;
 

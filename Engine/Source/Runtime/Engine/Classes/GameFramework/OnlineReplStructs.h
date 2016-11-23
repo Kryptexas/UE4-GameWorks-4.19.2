@@ -5,7 +5,11 @@
 //
 
 #pragma once
-#include "CoreOnline.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/CoreOnline.h"
 #include "OnlineReplStructs.generated.h"
 
 class FJsonValue;

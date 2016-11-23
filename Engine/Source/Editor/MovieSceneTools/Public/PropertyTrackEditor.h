@@ -2,14 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "KeyPropertyParams.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "UObject/Package.h"
+#include "MovieSceneTrackEditor.h"
 #include "KeyframeTrackEditor.h"
-#include "PropertySection.h"
 #include "ISequencerObjectChangeListener.h"
-
-
-class IPropertyHandle;
-class FPropertyChangedParams;
-
 
 /**
 * Tools for animatable property types such as floats ands vectors

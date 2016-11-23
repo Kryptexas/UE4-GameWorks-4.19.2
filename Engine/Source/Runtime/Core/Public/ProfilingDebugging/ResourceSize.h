@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+
 /** Indicates which resource size should be returned. */
 namespace EResourceSizeMode
 {

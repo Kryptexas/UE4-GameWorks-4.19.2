@@ -1,7 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "IFilter.h"
+#include "CoreMinimal.h"
+
+class AActor;
+class FAssetData;
+class FLevelCollectionModel;
+class FLevelDragDropOp;
+class FLevelModel;
+class ULevel;
+class ULevelStreaming;
+template< typename TItemType > class IFilter;
 
 typedef TArray<TSharedPtr<class FLevelModel>> FLevelModelList;
 class FLevelCollectionModel;

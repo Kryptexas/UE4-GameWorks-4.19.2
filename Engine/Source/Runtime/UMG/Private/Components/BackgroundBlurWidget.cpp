@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-
 #include "BackgroundBlurWidget.h"
+#include "HAL/IConsoleManager.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Rendering/RenderingCommon.h"
+#include "Rendering/DrawElements.h"
+#include "Brushes/SlateNoResource.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

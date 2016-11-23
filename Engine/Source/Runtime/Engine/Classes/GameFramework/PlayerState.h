@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "GameFramework/Info.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
+#include "UObject/CoreOnline.h"
 #include "GameFramework/OnlineReplStructs.h"
+#include "GameFramework/Info.h"
 #include "PlayerState.generated.h"
 
 /**

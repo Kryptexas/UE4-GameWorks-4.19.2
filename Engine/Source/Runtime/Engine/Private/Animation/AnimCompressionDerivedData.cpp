@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "EnginePrivate.h"
-#include "AnimCompressionDerivedData.h"
+#include "Animation/AnimCompressionDerivedData.h"
+#include "Stats/Stats.h"
+#include "Animation/AnimSequence.h"
+#include "Serialization/MemoryWriter.h"
 #include "AnimationUtils.h"
 #include "AnimEncoding.h"
 #include "Animation/AnimCompress.h"
-#include "Animation/AnimCompress_Automatic.h"
 #include "AnimationCompression.h"
+#include "UObject/Package.h"
 
 #if WITH_EDITOR
 

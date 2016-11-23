@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetToolsPrivatePCH.h"
+#include "AssetTypeActions/AssetTypeActions_CurveTable.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Misc/FileHelper.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Framework/Application/SlateApplication.h"
 
 #include "Editor/CurveTableEditor/Public/CurveTableEditorModule.h"
-#include "Editor/CurveTableEditor/Public/ICurveTableEditor.h"
-#include "Engine/CurveTable.h"
 #include "DesktopPlatformModule.h"
-#include "IMainFrameModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

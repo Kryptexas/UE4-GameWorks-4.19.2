@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "AssetData.h"
+#include "CollectionManagerTypes.h"
+
+class FViewport;
+
 namespace ContentBrowserUtils
 {
 	enum class ECBFolderCategory : uint8

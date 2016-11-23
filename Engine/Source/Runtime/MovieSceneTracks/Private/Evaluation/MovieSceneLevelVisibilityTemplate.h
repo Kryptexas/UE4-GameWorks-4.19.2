@@ -2,13 +2,12 @@
 
 #pragma once
 
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneLevelVisibilitySection.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/PersistentEvaluationData.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Sections/MovieSceneLevelVisibilitySection.h"
 #include "MovieSceneLevelVisibilityTemplate.generated.h"
-
-
-class UMovieSceneLevelVisibilitySection;
-
 
 USTRUCT()
 struct FMovieSceneLevelVisibilitySectionTemplate

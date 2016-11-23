@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerClientPrivatePCH.h"
 #include "ProfilerClientManager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryReader.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "ProfilerServiceMessages.h"
+#include "Misc/SecureHash.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogProfilerClient, Log, All);

@@ -2,11 +2,15 @@
 
 #pragma once
 
-#include "GameplayTagContainer.h"
-#include "GameplayTagAssetInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "AttributeSet.h"
-#include "GameplayEffect.h"
 #include "GameplayEffectExtension.generated.h"
+
+class UAbilitySystemComponent;
+struct FGameplayEffectSpec;
+struct FGameplayModifierEvaluatedData;
 
 struct FGameplayEffectModCallbackData
 {

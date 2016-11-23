@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieScenePropertyTemplates.h"
-#include "MovieSceneVisibilityTemplate.h"
-#include "MovieSceneBoolSection.h"
-#include "MovieScenePropertyTrack.h"
-#include "MovieSceneExecutionToken.h"
+#include "Evaluation/MovieSceneVisibilityTemplate.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "Tracks/MovieScenePropertyTrack.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
 
 DECLARE_CYCLE_STAT(TEXT("Visibility Track Evaluate"), MovieSceneEval_VisibilityTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Visibility Track Token Execute"), MovieSceneEval_VisibilityTrack_TokenExecute, STATGROUP_MovieSceneEval);

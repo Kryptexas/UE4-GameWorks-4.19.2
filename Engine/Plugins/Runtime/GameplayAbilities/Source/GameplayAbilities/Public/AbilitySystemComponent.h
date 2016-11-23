@@ -2,13 +2,32 @@
 
 #pragma once
 
-#include "GameplayAbility.h"
-#include "GameplayEffect.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/NetSerialization.h"
+#include "Engine/EngineTypes.h"
+#include "GameplayTagContainer.h"
+#include "AttributeSet.h"
+#include "EngineDefines.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayPrediction.h"
 #include "GameplayCueInterface.h"
+#include "GameplayTagAssetInterface.h"
+#include "GameplayAbilitySpec.h"
+#include "GameplayEffect.h"
 #include "Abilities/GameplayAbilityTypes.h"
-#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "GameplayTasksComponent.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "Abilities/GameplayAbility.h"
 #include "AbilitySystemComponent.generated.h"
+
+class AGameplayAbilityTargetActor;
+class AHUD;
+class FDebugDisplayInfo;
+class UAnimMontage;
+class UCanvas;
+class UInputComponent;
 
 /** 
  *	UAbilitySystemComponent	

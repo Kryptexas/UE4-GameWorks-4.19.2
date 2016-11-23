@@ -2,8 +2,19 @@
 
 #pragma once
 
-#include "BlueprintProfilerSettings.h"
-#include "EventExecution.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Profiler/EventExecution.h"
+
+class SComboButton;
+enum class EBlueprintProfilerHeatLevelMetricsType : uint8;
+enum class EBlueprintProfilerHeatMapDisplayMode : uint8;
+enum class ECheckBoxState : uint8;
 
 /** Blueprint performance view type */
 namespace EBlueprintPerfViewType

@@ -13,8 +13,10 @@
  * limitations under the License.
  */
 
-#include "GoogleVRController.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
+#include "GoogleVRController.h"
+#include "GoogleVRControllerPrivate.h"
+#include "InputCoreTypes.h"
 
 UGoogleVRControllerEventManager* UGoogleVRControllerFunctionLibrary::ControllerEventManager = nullptr;
 

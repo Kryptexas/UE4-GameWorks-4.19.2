@@ -2,6 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "AssetData.h"
+#include "Misc/AssetRegistryInterface.h"
+#include "UObject/UObjectHash.h"
+
+class FSandboxPlatformFile;
+class IAssetRegistry;
+class ITargetPlatform;
 class UChunkDependencyInfo;
 struct FChunkDependencyTreeNode;
 

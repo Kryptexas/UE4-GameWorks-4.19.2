@@ -2,9 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/Actor.h"
 #include "VREditorBaseActor.generated.h"
-
 
 /**
 * Represents an actor specifically for VR Editor that has roomspace transformation

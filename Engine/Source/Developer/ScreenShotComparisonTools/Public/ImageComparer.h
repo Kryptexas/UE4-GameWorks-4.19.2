@@ -2,8 +2,12 @@
 
 #pragma once
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "ImageComparer.generated.h"
+
+class Error;
+class FComparableImage;
 
 /**
  * 

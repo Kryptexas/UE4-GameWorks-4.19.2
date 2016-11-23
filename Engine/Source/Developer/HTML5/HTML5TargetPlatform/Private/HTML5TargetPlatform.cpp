@@ -4,11 +4,10 @@
 	HTML5TargetPlatform.cpp: Implements the FHTML5TargetPlatform class.
 =============================================================================*/
 
-#include "HTML5TargetPlatformPrivatePCH.h"
-
-#if WITH_ENGINE
-#include "DeviceProfiles/DeviceProfile.h"
-#endif
+#include "HTML5TargetPlatform.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5TargetPlatform, Log, All);
 

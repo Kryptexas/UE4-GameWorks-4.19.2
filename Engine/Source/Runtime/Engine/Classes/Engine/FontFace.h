@@ -1,9 +1,15 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "FontFaceInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Fonts/FontFaceInterface.h"
 #include "FontFace.generated.h"
+
+class ITargetPlatform;
+struct FPropertyChangedEvent;
 
 /**
  * A font face asset contains the raw payload data for a source TTF/OTF file as used by FreeType.

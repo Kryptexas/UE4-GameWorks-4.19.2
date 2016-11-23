@@ -2,6 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IAssetTools.h"
+#include "IAssetTypeActions.h"
+#include "AssetData.h"
+#include "AssetRenameManager.h"
+
+class FAssetFixUpRedirectors;
+class FMenuBuilder;
+class IClassTypeActions;
+class UAutomatedAssetImportData;
+class UFactory;
+
 /** Parameters for importing specific set of files */
 struct FAssetImportParams
 {

@@ -1,21 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Misc/CoreMisc.h"
-#include "EngineDefines.h"
-#include "Engine/EngineTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringClassReference.h"
 #include "Engine/World.h"
 #include "AI/AISystemBase.h"
 #include "Math/RandomStream.h"
 #include "AISystem.generated.h"
 
-class UBehaviorTreeManager;
-class UEnvQueryManager;
-class UAIPerceptionSystem;
 class UAIAsyncTaskBlueprintProxy;
 class UAIHotSpotManager;
-class UBlackboardData;
+class UAIPerceptionSystem;
+class UAISystem;
+class UBehaviorTreeManager;
 class UBlackboardComponent;
+class UBlackboardData;
+class UEnvQueryManager;
 class UNavLocalGridManager;
 
 #define GET_AI_CONFIG_VAR(a) (GetDefault<UAISystem>()->a)

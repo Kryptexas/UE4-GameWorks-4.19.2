@@ -1,23 +1,31 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ViewportInteractionModule.h"
 #include "ViewportWorldInteraction.h"
-#include "ViewportInteractor.h"
+#include "Materials/MaterialInterface.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Editor/UnrealEdEngine.h"
+#include "EngineGlobals.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Selection.h"
+#include "DrawDebugHelpers.h"
+#include "EditorModeManager.h"
+#include "UnrealEdGlobals.h"
 #include "MouseCursorInteractor.h"
 #include "ViewportInteractableInterface.h"
 #include "ViewportDragOperation.h"
 #include "VIGizmoHandle.h"
-#include "VIBaseTransformGizmo.h"
 #include "Gizmo/VIPivotTransformGizmo.h"
-#include "IViewportWorldInteractionManager.h"
+#include "ViewportWorldInteractionManager.h"
+#include "IViewportInteractionModule.h"
 
 #include "SnappingUtils.h"
 #include "ScopedTransaction.h"
-#include "SLevelViewport.h"
 
 // For actor placement
-#include "ObjectTools.h"
-#include "AssetSelection.h"
 #include "IHeadMountedDisplay.h"
 
 #define LOCTEXT_NAMESPACE "ViewportWorldInteraction"
@@ -1312,6 +1320,7 @@ TArray<UViewportInteractor*>& UViewportWorldInteraction::GetInteractors()
 	return Interactors;
 }
 
+BEGIN_FUNCTION_BUILD_OPTIMIZATION
 void UViewportWorldInteraction::UpdateDragging(
 	const float DeltaTime,
 	bool& bIsFirstDragUpdate,
@@ -2014,6 +2023,7 @@ void UViewportWorldInteraction::UpdateDragging(
 	bIsFirstDragUpdate = false;
 	bSkipInteractiveWorldMovementThisFrame = false;
 }
+END_FUNCTION_BUILD_OPTIMIZATION
 
 FVector UViewportWorldInteraction::ComputeConstrainedDragDeltaFromStart( 
 	const bool bIsFirstDragUpdate, 

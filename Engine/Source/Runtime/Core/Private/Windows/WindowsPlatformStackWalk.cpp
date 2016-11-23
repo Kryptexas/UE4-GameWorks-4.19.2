@@ -1,15 +1,30 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "Windows/WindowsPlatformStackWalk.h"
+#include "HAL/PlatformMemory.h"
+#include "HAL/PlatformMisc.h"
+#include "Logging/LogMacros.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/StringConv.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/Paths.h"
+#include "Misc/CommandLine.h"
+#include "HAL/PlatformProcess.h"
+#include "CoreGlobals.h"
+#include "Misc/ConfigCacheIni.h"
 
-#include "AllowWindowsPlatformTypes.h"
-	#include <DbgHelp.h>				
+#include "Windows/WindowsHWrapper.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
+	#include <DbgHelp.h>
 	#include <Shlwapi.h>
-	#include <TlHelp32.h>		
-	#include <psapi.h>
-#include "HideWindowsPlatformTypes.h"
+	#include <TlHelp32.h>
+	#include <Psapi.h>
+#include "Windows/HideWindowsPlatformTypes.h"
 
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 
 /*-----------------------------------------------------------------------------

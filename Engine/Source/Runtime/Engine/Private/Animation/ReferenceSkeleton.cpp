@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "ReferenceSkeleton.h"
-#include "BonePose.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
 
 FReferenceSkeletonModifier::~FReferenceSkeletonModifier()
 {

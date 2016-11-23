@@ -4,18 +4,8 @@
 	GlobalDistanceField.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "UniformBuffer.h"
-#include "ShaderParameters.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
-#include "DistanceFieldLightingShared.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
 #include "GlobalDistanceField.h"
-#include "RHICommandList.h"
-#include "SceneUtils.h"
-#include "HeightfieldLighting.h"
+#include "DistanceFieldLightingShared.h"
 
 int32 GAOGlobalDistanceField = 1;
 FAutoConsoleVariableRef CVarAOGlobalDistanceField(

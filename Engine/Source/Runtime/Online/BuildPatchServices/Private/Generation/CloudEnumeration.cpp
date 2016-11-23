@@ -1,6 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "BuildPatchServicesPrivatePCH.h"
-#include "CloudEnumeration.h"
+#include "Generation/CloudEnumeration.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
+#include "BuildPatchChunk.h"
+#include "BuildPatchManifest.h"
+#include "Async/Future.h"
+#include "Async/Async.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCloudEnumeration, Log, All);
 DEFINE_LOG_CATEGORY(LogCloudEnumeration);

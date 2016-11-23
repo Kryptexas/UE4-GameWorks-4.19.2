@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "IBuildInstaller.h"
-#include "IBuildManifest.h"
+#include "CoreMinimal.h"
+#include "Interfaces/IBuildInstaller.h"
+#include "Modules/ModuleInterface.h"
 #include "BuildPatchSettings.h"
 
-class IAnalyticsProvider;
 class FHttpServiceTracker;
+class IAnalyticsProvider;
 
 /**
  * Delegates that will be accepted and fired of by the implementation

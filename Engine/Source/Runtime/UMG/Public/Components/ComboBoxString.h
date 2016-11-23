@@ -2,8 +2,15 @@
 
 #pragma once
 
-#include "ComboBoxWidgetStyle.h"
-#include "EditorObjectVersion.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Input/SComboBox.h"
+#include "Components/Widget.h"
 
 #include "ComboBoxString.generated.h"
 

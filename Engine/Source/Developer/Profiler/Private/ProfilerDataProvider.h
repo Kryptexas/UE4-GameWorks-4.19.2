@@ -2,11 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ProfilerCommon.h"
 #include "ProfilerSample.h"
-
-
-class IDataProvider;
-
 
 /*-----------------------------------------------------------------------------
 	Declarations

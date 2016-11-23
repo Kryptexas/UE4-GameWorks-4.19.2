@@ -2,9 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieScene.h"
-#include "MovieSceneTrack.h"
-#include "MovieScenePropertyTrack.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieSceneIntegerTrack.generated.h"
 
 /**

@@ -1,18 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-
-#include "BlueprintsObjectVersion.h"
+#include "EdGraph/EdGraphPin.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
 #include "EdGraph/EdGraph.h"
 #include "EdGraph/EdGraphSchema.h"
-#include "BlueprintUtilities.h"
 #include "Tickable.h"
+#include "EngineLogs.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "SlateBasics.h"
-#include "ScopedTransaction.h"
-#include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
+#include "Misc/ConfigCacheIni.h"
 #include "TickableEditorObject.h"
 #endif
 

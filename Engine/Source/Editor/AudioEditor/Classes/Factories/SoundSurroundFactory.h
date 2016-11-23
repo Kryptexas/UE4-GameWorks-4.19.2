@@ -5,6 +5,11 @@
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/Factory.h"
+#include "Audio.h"
 #include "SoundSurroundFactory.generated.h"
 
 const FString SurroundSpeakerLocations[SPEAKER_Count] =

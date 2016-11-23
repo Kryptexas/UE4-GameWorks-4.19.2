@@ -8,6 +8,10 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Delegates/Delegate.h"
+
 enum EStreamingStatus
 {
 	LEVEL_Unloaded,

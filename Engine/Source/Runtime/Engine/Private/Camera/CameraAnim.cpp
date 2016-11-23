@@ -1,13 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Camera/CameraActor.h"
 #include "Camera/CameraAnim.h"
-#include "ParticleDefinitions.h"
+#include "Serialization/ArchiveCountMem.h"
 #include "Camera/CameraActor.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpData.h"
-#include "Matinee/InterpGroup.h"
 #include "Matinee/InterpGroupInst.h"
 #include "Matinee/InterpGroupCamera.h"
 #include "Matinee/InterpTrackMove.h"

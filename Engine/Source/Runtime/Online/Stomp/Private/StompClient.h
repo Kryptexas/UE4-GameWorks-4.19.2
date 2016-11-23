@@ -1,9 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "IStompClient.h"
+#include "Containers/Ticker.h"
+
+class Error;
+
+#if WITH_STOMP
+
 #include "IStompClient.h"
 #include "IWebSocket.h"
-
 
 class FStompClient
 	: public IStompClient
@@ -143,3 +151,5 @@ private:
 	friend class FStompMessage;
 
 };
+
+#endif

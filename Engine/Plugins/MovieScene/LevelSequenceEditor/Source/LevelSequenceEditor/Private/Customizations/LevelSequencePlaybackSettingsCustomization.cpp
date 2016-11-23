@@ -1,11 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LevelSequenceEditorPCH.h"
-#include "IDetailPropertyRow.h"
+#include "Customizations/LevelSequencePlaybackSettingsCustomization.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Engine/GameViewportClient.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboBox.h"
+#include "PropertyHandle.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
 #include "LevelSequencePlayer.h"
-#include "PropertyHandle.h"
+#include "IDetailChildrenBuilder.h"
 
 
 #define LOCTEXT_NAMESPACE "LevelSequencePlaybackSettingsCustomization"

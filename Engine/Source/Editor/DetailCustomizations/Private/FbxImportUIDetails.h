@@ -2,6 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Types/SlateEnums.h"
+#include "IDetailCustomization.h"
+#include "Factories/FbxImportUI.h"
+
+class IDetailLayoutBuilder;
+class IDetailPropertyRow;
+class IPropertyHandle;
+
 class FFbxImportUIDetails : public IDetailCustomization
 {
 public:

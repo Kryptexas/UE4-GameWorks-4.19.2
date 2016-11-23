@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "LinuxCommonStartup.h"
-#include "ExceptionHandling.h"
-#include "LinuxPlatformCrashContext.h"
-#include "ModuleManager.h"
-#include "EngineVersion.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/FeedbackContext.h"
+#include "HAL/ExceptionHandling.h"
+#include "Linux/LinuxPlatformCrashContext.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/EngineVersion.h"
 
 #include <locale.h>
 #include <sys/resource.h>

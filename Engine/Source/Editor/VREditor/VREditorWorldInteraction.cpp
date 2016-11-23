@@ -1,26 +1,35 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorWorldInteraction.h"
+#include "HAL/IConsoleManager.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
+#include "Misc/CommandLine.h"
+#include "Modules/ModuleManager.h"
 #include "VREditorMode.h"
+#include "ViewportInteractionTypes.h"
+#include "Materials/MaterialInterface.h"
+#include "Engine/Texture.h"
+#include "LevelEditorViewport.h"
+#include "ViewportWorldInteraction.h"
+#include "Engine/BrushBuilder.h"
+#include "Components/PrimitiveComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Sound/SoundCue.h"
+#include "Editor.h"
 #include "VREditorUISystem.h"
 #include "VREditorFloatingUI.h"
-#include "VREditorDockableWindow.h"
 #include "VREditorInteractor.h"
-#include "VIBaseTransformGizmo.h"
-#include "ViewportWorldInteraction.h"
-#include "SnappingUtils.h"
-#include "ScopedTransaction.h"
 
 // For actor placement
 #include "ObjectTools.h"
 #include "AssetSelection.h"
 #include "IPlacementModeModule.h"
-#include "Kismet/GameplayStatics.h"
 
 #include "LevelEditor.h"
 #include "SLevelViewport.h"
-#include "Editor/LevelEditor/Public/LevelEditorActions.h"
+#include "LevelEditorActions.h"
 
 #define LOCTEXT_NAMESPACE "VREditor"
 

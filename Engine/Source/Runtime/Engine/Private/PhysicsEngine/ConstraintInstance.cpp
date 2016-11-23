@@ -1,14 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "PhysicsEngine/ConstraintInstance.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "HAL/IConsoleManager.h"
+#include "Components/PrimitiveComponent.h"
 #include "PhysicsPublic.h"
-#include "PhysXSupport.h"
-#include "PhysicsEngine/PhysicsAsset.h"
-#include "PhysicsEngine/PhysicsConstraintComponent.h"
-#include "UObject/DevObjectVersion.h"
+#include "PhysXPublic.h"
+#include "PhysicsEngine/PhysXSupport.h"
 
-#include "MessageLog.h"
-#include "UObjectToken.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 
 #define LOCTEXT_NAMESPACE "ConstraintInstance"
 

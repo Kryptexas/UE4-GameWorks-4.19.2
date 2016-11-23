@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneEventSection.h"
+#include "Sections/MovieSceneEventSection.h"
+#include "EngineGlobals.h"
+#include "IMovieScenePlayer.h"
 
 #include "Curves/KeyFrameAlgorithms.h"
 

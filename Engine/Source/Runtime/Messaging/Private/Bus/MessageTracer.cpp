@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingPrivatePCH.h"
-#include "MessageTracer.h"
-
+#include "Bus/MessageTracer.h"
+#include "HAL/PlatformProcess.h"
+#include "Containers/Ticker.h"
+#include "IMessageInterceptor.h"
+#include "IMessageReceiver.h"
+#include "IMessageTracerBreakpoint.h"
 
 /* FMessageTracer structors
  *****************************************************************************/

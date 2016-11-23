@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "SoundEffectPreset.h"
-#include "SoundEffectBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sound/SoundEffectPreset.h"
+#include "Sound/SoundEffectBase.h"
 #include "SoundEffectSubmix.generated.h"
 
-class USoundEffectPreset;
 class USoundEffectSubmix;
 
 /** Derived class for source effects. */

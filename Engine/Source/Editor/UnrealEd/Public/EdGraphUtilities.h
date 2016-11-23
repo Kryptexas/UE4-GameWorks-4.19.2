@@ -2,7 +2,14 @@
 
 #pragma once
 
-#include "Kismet2/CompilerResultsLog.h"
+#include "CoreMinimal.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
+
+class FCompilerResultsLog;
+class SGraphNode;
+class SGraphPin;
+class UEdGraph;
 
 //////////////////////////////////////////////////////////////////////////
 

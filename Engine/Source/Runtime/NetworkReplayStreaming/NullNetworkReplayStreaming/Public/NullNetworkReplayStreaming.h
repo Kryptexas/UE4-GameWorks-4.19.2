@@ -2,13 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Serialization/JsonSerializerMacros.h"
 #include "NetworkReplayStreaming.h"
-#include "Core.h"
-#include "Engine.h"
-#include "ModuleManager.h"
-#include "UniquePtr.h"
-#include "Json.h"
 #include "Tickable.h"
+
+class FNetworkReplayVersion;
 
 /* Class to hold metadata about an entire replay */
 class FNullReplayInfo : public FJsonSerializable

@@ -3,8 +3,11 @@
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "RenderResource.h"
+#include "ShaderParameters.h"
 #include "UniformBuffer.h"
-#include "Runtime/ShaderCore/Public/ShaderParameters.h"
 
 
 /** The uniform shader parameters associated with a primitive. */

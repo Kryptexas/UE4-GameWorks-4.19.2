@@ -1,11 +1,18 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "CorePrivatePCH.h"
-#include "ICUInternationalization.h"
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+#include "Internationalization/ICUInternationalization.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
+#include "Stats/Stats.h"
+#include "Misc/CoreStats.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
 
 #if UE_ENABLE_ICU
 
-#include "ICUUtilities.h"
-#include "ICUBreakIterator.h"
+#include "Internationalization/ICUBreakIterator.h"
 THIRD_PARTY_INCLUDES_START
 	#include <unicode/locid.h>
 	#include <unicode/timezone.h>

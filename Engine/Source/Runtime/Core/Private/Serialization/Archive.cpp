@@ -3,14 +3,27 @@
 /*=============================================================================
 	UnArchive.cpp: Core archive classes.
 =============================================================================*/
-#include "CorePrivatePCH.h"
 #include "Serialization/Archive.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "UObject/ObjectVersion.h"
+#include "Serialization/ArchiveProxy.h"
+#include "Serialization/NameAsStringProxyArchive.h"
+#include "Misc/CommandLine.h"
+#include "Internationalization/Text.h"
+#include "Stats/StatsMisc.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
 #include "Serialization/CustomVersion.h"
-#include "EngineVersion.h"
-#include "NetworkVersion.h"
-#include "TargetPlatform.h"
-#include "GenericPlatformCompression.h"
-#include "CompressedChunkInfo.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/NetworkVersion.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Serialization/CompressedChunkInfo.h"
 
 /*-----------------------------------------------------------------------------
 	FArchive implementation.

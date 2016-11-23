@@ -2,7 +2,26 @@
 
 #pragma once
 
-class FDetailCategoryWidgetDecl;
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "IPropertyUtilities.h"
+#include "IDetailTreeNode.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "PropertyNode.h"
+#include "UObject/StructOnScope.h"
+#include "PropertyHandle.h"
+#include "DetailWidgetRow.h"
+#include "DetailCustomBuilderRow.h"
+#include "DetailLayoutBuilderImpl.h"
+#include "IDetailCustomNodeBuilder.h"
+#include "DetailCategoryBuilder.h"
+
+class FDetailGroup;
+class FDetailPropertyRow;
+class IDetailGroup;
+class IDetailPropertyRow;
 
 /**
  * Defines a customization for a specific detail

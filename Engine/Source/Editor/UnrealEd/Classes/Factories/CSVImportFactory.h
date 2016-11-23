@@ -5,6 +5,12 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/RichCurve.h"
+#include "Factories/Factory.h"
+#include "Factories/ImportSettings.h"
 #include "CSVImportFactory.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCSVImportFactory, Log, All);

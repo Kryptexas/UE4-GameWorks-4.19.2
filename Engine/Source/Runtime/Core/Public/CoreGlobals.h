@@ -1,23 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "Containers/ContainersFwd.h"
-#include "HAL/Platform.h"
-#include "Misc/CoreMiscDefines.h"
-#include "Misc/OutputDevice.h"
-#include "Logging/LogMacros.h"
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "HAL/PlatformTLS.h"
+
+class Error;
 class FConfigCacheIni;
-class FExec;
-class FName;
+class FFixedUObjectArray;
 class FOutputDeviceConsole;
 class FOutputDeviceRedirector;
 class FReloadObjectArc;
-class FString;
-class FText;
 class ITransaction;
-class FRunnableThread;
-
-struct FScriptTraceStackNode;
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogHAL, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogMac, Log, All);

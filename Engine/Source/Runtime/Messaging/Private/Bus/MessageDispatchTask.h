@@ -2,13 +2,12 @@
 
 #pragma once
 
-#include "TaskGraphInterfaces.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "IMessageContext.h"
+#include "Bus/MessageTracer.h"
 
-
-class FMessageTracer;
-class IMessageContext;
 class IMessageReceiver;
-
 
 /**
  * Implements an asynchronous task for dispatching a message to a recipient.

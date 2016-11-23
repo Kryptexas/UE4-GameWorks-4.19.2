@@ -6,6 +6,27 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "CoreFwd.h"
+
+class FBatchedElements;
+class FDynamicPrimitiveResource;
+class FHitProxyConsumer;
+class FHitProxyId;
+class FParallelCommandListSet;
+class FPrimitiveDrawInterface;
+class FRenderTask;
+class FRHICommandList;
+class FTexture;
+class FViewElementPDI;
+class FViewInfo;
+class HHitProxy;
+struct FMath;
+struct FMeshBatch;
+struct FMeshBatchElement;
+struct TStatId;
+template<typename TTask> class TGraphTask;
+
 template<class DrawingPolicyFactoryType>
 void DrawViewElementsInner(
 	FRHICommandList& RHICmdList,

@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SuperSearchPrivatePCH.h"
 #include "SuperSearchStyle.h"
 
 const FName FSuperSearchStyle::TypeName(TEXT("FSuperSearchStyle"));

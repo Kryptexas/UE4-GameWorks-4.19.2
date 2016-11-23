@@ -5,8 +5,17 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/ScopedPointer.h"
+#include "UniformBuffer.h"
 #include "UniquePtr.h"
 #include "MaterialParameterCollection.generated.h"
+
+struct FPropertyChangedEvent;
 
 /** Base struct for collection parameters */
 USTRUCT()

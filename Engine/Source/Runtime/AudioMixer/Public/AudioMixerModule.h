@@ -6,14 +6,12 @@
 /* Public dependencies
 *****************************************************************************/
 
-#include "Core.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
 
 
 /* Public includes
 *****************************************************************************/
 
-#include "SoundDefinitions.h"
 #include "AudioDecompress.h"
 #include "AudioEffect.h"
 

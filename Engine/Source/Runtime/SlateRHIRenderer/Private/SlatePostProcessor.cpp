@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRHIRendererPrivatePCH.h"
 #include "SlatePostProcessor.h"
 #include "SlatePostProcessResource.h"
+#include "SlateShaders.h"
+#include "ScreenRendering.h"
+#include "SceneUtils.h"
+#include "RendererInterface.h"
+#include "StaticBoundShaderState.h"
 
 DECLARE_CYCLE_STAT(TEXT("Slate PostProcessing RT"), STAT_SlatePostProcessingRTTime, STATGROUP_Slate);
 

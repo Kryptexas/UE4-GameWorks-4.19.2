@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "PropertyNode.h"
+#include "UObject/StructOnScope.h"
+
 //-----------------------------------------------------------------------------
 //	FStructPropertyNode - Used for the root and various sub-nodes
 //-----------------------------------------------------------------------------

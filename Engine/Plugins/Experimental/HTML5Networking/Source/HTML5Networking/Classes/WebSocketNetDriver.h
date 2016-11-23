@@ -4,7 +4,13 @@
 //
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/NetDriver.h"
 #include "WebSocketNetDriver.generated.h"
+
+class FWebSocket;
+class FWebSocketServer;
 
 UCLASS(transient, config = Engine)
 class HTML5NETWORKING_API UWebSocketNetDriver : public UNetDriver

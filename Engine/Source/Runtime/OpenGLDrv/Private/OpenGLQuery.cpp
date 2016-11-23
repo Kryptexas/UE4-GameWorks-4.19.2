@@ -4,8 +4,10 @@
 	OpenGLQuery.cpp: OpenGL query RHI implementation.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
-#include "RenderCore.h"
 
 void FOpenGLDynamicRHI::RHIBeginOcclusionQueryBatch()
 {

@@ -8,11 +8,10 @@
 
 class FSLESAudioDevice;
 
-#include "Core.h"
-#include "Engine.h"
-#include "SoundDefinitions.h"
+#include "CoreMinimal.h"
 #include "AudioDecompress.h"
 #include "AudioEffect.h"
+#include "AudioDevice.h"
 
 #include <SLES/OpenSLES.h>
 #include "SLES/OpenSLES_Android.h"

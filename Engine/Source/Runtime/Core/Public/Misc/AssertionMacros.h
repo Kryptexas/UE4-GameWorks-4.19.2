@@ -2,11 +2,8 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "HAL/PlatformMisc.h"
-#include "Misc/Build.h"
-#include "Templates/EnableIf.h"
-#include "LogVerbosity.h"
 
 /**
  * FDebug

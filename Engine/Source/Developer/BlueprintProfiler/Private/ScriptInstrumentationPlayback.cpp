@@ -1,9 +1,38 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintProfilerPCH.h"
-#include "EditorStyleSet.h"
+#include "ScriptInstrumentationPlayback.h"
+#include "Engine/Blueprint.h"
+#include "K2Node.h"
+#include "K2Node_Tunnel.h"
+#include "Modules/ModuleManager.h"
+
+#if WITH_EDITOR
+#include "GameFramework/Actor.h"
+#include "Editor.h"
+#include "EdGraph/EdGraph.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Event.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_CallParentFunction.h"
+#include "K2Node_Composite.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_FunctionResult.h"
+#include "K2Node_InputKey.h"
+#include "K2Node_InputTouch.h"
+#include "K2Node_MacroInstance.h"
 #include "GraphEditorSettings.h"
-#include "BlueprintEditorUtils.h"
+#endif // WITH_EDITOR
+
+#include "BlueprintProfilerModule.h"
+#include "ScriptInstrumentationCapture.h"
+
+#include "BlueprintProfilerStats.h"
+#include "Profiler/BlueprintProfilerSettings.h"
+
+#include "EditorStyleSet.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "DelayAction.h"
 #include "K2Node_ForEachElementInEnum.h"
 

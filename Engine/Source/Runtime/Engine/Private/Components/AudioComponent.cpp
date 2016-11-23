@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "Components/AudioComponent.h"
+#include "Audio.h"
+#include "Engine/Texture2D.h"
+#include "ActiveSound.h"
+#include "AudioThread.h"
+#include "AudioDevice.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "Sound/SoundCue.h"
-#include "SubtitleManager.h"
-#include "Audio.h"
-#include "AudioThread.h"
-#include "TaskGraphInterfaces.h"
+#include "Components/BillboardComponent.h"
 
 /*-----------------------------------------------------------------------------
 UAudioComponent implementation.

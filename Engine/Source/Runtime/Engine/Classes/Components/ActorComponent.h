@@ -1,14 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Engine/EngineBaseTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/CoreNet.h"
 #include "Engine/EngineTypes.h"
-#include "Engine/MemberReference.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/ScriptMacros.h"
+#include "EdGraph/EdGraphPin.h"
 #include "Interfaces/Interface_AssetUserData.h"
 #include "ActorComponent.generated.h"
 
-struct FReplicationFlags;
-class UWorld;
+class AActor;
+class UActorComponent;
+class UAssetUserData;
+class ULevel;
 
 UENUM()
 enum class EComponentCreationMethod : uint8

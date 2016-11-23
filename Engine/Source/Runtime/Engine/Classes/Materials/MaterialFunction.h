@@ -1,7 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Templates/Casts.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "MaterialFunction.generated.h"
+
+class UMaterial;
+class UTexture;
+struct FPropertyChangedEvent;
 
 /**
  * A Material Function is a collection of material expressions that can be reused in different materials

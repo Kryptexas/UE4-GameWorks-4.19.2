@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneFwd.h"
 #include "KeyParams.h"
 #include "Curves/KeyHandle.h"
@@ -9,6 +11,8 @@
 #include "MovieSceneSignedObject.h"
 #include "MovieSceneSection.generated.h"
 
+class FStructOnScope;
+class UAISenseEvent;
 struct FMovieSceneEvalTemplatePtr;
 
 /** Enumeration specifying how to handle state when this section is no longer evaluated */

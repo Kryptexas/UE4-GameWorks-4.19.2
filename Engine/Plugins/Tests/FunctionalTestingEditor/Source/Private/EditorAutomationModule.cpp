@@ -1,15 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorAutomationPrivatePCH.h"
 #include "EditorAutomationModule.h"
+#include "HAL/IConsoleManager.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Docking/TabManager.h"
+#include "EditorStyleSet.h"
+#include "GameFramework/Actor.h"
+#include "AssetData.h"
+#include "EdGraph/EdGraphSchema.h"
 #include "LevelEditor.h"
 #include "ISessionFrontendModule.h"
 #include "IPlacementModeModule.h"
 #include "FunctionalTest.h"
 #include "ScreenshotFunctionalTest.h"
 #include "AssetRegistryModule.h"
+#include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
-#include "Framework/Docking/TabManager.h"
 
 #define LOCTEXT_NAMESPACE "EditorAutomation"
 

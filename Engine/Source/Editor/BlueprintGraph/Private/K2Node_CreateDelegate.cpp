@@ -1,6 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_CreateDelegate.h"
+#include "Engine/Blueprint.h"
+#include "Engine/MemberReference.h"
+#include "EdGraph/EdGraph.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Event.h"
+#include "K2Node_BaseMCDelegate.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
+#include "Kismet2/CompilerResultsLog.h"
 #include "DelegateNodeHandlers.h"
 #include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"

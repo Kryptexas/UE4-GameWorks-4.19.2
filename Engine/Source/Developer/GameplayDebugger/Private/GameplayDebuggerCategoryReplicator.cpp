@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
 #include "GameplayDebuggerCategoryReplicator.h"
+#include "GameFramework/PlayerController.h"
+#include "GameplayDebuggerAddonBase.h"
 #include "GameplayDebuggerAddonManager.h"
 #include "GameplayDebuggerPlayerManager.h"
 #include "GameplayDebuggerRenderingComponent.h"

@@ -2,8 +2,15 @@
 
 #pragma once
 
-#include "DragAndDrop.h"
-#include "SGraphPin.h" // for FGraphPinHandle
+#include "CoreMinimal.h"
+#include "Input/DragAndDrop.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "SGraphPin.h"
+#include "GraphEditorDragDropAction.h"
+
+class SGraphPanel;
+class UEdGraph;
 
 class FDragConnection : public FGraphEditorDragDropAction
 {

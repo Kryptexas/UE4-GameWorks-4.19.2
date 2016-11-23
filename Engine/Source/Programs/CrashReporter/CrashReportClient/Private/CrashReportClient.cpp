@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashReportClientApp.h"
-#include "CrashReportUtil.h"
-#include "CrashDescription.h"
 #include "CrashReportClient.h"
-#include "UniquePtr.h"
-#include "TaskGraphInterfaces.h"
+#include "Misc/CommandLine.h"
+#include "Internationalization/Internationalization.h"
+#include "Containers/Ticker.h"
+#include "CrashReportClientConfig.h"
+#include "Templates/UniquePtr.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
@@ -22,6 +24,9 @@ struct FCrashReportUtil
 };
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
+
+#include "PlatformHttp.h"
+#include "Framework/Application/SlateApplication.h"
 
 FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport)
 	: DiagnosticText( LOCTEXT("ProcessingReport", "Processing crash report ...") )

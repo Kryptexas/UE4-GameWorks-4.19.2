@@ -9,6 +9,9 @@
  *	- Full enumerator name has form: '<enumeration path>::<short, user defined enumerator name>'
  */
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
 #include "UserDefinedEnum.generated.h"
 
 /** 

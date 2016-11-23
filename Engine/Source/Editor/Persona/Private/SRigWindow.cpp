@@ -1,24 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "SRigWindow.h"
-#include "ObjectTools.h"
-#include "ScopedTransaction.h"
-#include "AssetRegistryModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "WorkflowOrientedApp/SContentReference.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SWindow.h"
+#include "ReferenceSkeleton.h"
+#include "Editor.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Input/SButton.h"
+#include "ContentBrowserModule.h"
 #include "AssetNotifications.h"
 #include "Animation/Rig.h"
 #include "BoneSelectionWidget.h"
-#include "SSearchBox.h"
-#include "SInlineEditableTextBlock.h"
+#include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "SRigPicker.h"
-#include "AnimationRuntime.h"
 #include "BoneMappingHelper.h"
 #include "SSkeletonWidget.h"
 #include "IEditableSkeleton.h"
+
+class FPersona;
 
 #define LOCTEXT_NAMESPACE "SRigWindow"
 

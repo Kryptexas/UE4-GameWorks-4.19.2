@@ -1,10 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "PropertyHelper.h"
-#include "LinkerPlaceholderClass.h"
-#include "LinkerPlaceholderExportObject.h"
-#include "BlueprintSupport.h" // for IsInBlueprintPackage()
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/Casts.h"
+#include "UObject/UnrealType.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "UObject/PropertyHelper.h"
+#include "UObject/LinkerPlaceholderClass.h"
+#include "UObject/LinkerPlaceholderExportObject.h"
 
 /*-----------------------------------------------------------------------------
 	UObjectPropertyBase.

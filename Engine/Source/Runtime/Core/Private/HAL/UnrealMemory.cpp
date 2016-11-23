@@ -1,6 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "HAL/UnrealMemory.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/Array.h"
+#include "Logging/LogMacros.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Containers/LockFreeList.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
 
 #if USE_MALLOC_PROFILER && WITH_ENGINE && IS_MONOLITHIC
 	#include "Runtime/Engine/Public/MallocProfilerEx.h"
@@ -10,13 +17,12 @@
 	Memory functions.
 -----------------------------------------------------------------------------*/
 
-#include "MallocDebug.h"
-#include "MallocProfiler.h"
-#include "MallocThreadSafeProxy.h"
-#include "MallocVerify.h"
-#include "MallocLeakDetection.h"
-#include "PlatformMallocCrash.h"
-#include "MallocPoisonProxy.h"
+#include "ProfilingDebugging/MallocProfiler.h"
+#include "HAL/MallocThreadSafeProxy.h"
+#include "HAL/MallocVerify.h"
+#include "HAL/MallocLeakDetection.h"
+#include "HAL/PlatformMallocCrash.h"
+#include "HAL/MallocPoisonProxy.h"
 
 #if MALLOC_GT_HOOKS
 
@@ -263,7 +269,7 @@ void FMemory::EnablePoisonTests()
 }
 
 #if !UE_BUILD_SHIPPING
-#include "TaskGraphInterfaces.h"
+#include "Async/TaskGraphInterfaces.h"
 static void FMallocBinnedOverrunTest()
 {
 	const uint32 ArraySize = 64;
@@ -573,5 +579,5 @@ void FUseSystemMallocForNew::operator delete[](void* Ptr)
 }
 
 #if !INLINE_FMEMORY_OPERATION && !PLATFORM_USES_FIXED_GMalloc_CLASS
-#include "FMemory.inl"
+#include "HAL/FMemory.inl"
 #endif

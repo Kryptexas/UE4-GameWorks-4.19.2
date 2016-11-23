@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneColorSection.h"
-#include "MovieSceneColorTrack.h"
-#include "MovieSceneColorTemplate.h"
+#include "Evaluation/MovieSceneColorTemplate.h"
+#include "Sections/MovieSceneColorSection.h"
+#include "Tracks/MovieSceneColorTrack.h"
+#include "UObject/UnrealType.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Components/LightComponent.h"
+#include "Styling/SlateColor.h"
 
 DECLARE_CYCLE_STAT(TEXT("Color Track Token Execute"), MovieSceneEval_ColorTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

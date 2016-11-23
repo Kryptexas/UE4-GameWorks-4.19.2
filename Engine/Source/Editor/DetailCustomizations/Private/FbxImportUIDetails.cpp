@@ -1,10 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "FbxImportUIDetails.h"
+#include "Misc/Attribute.h"
+#include "Misc/Guid.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Factories/FbxAnimSequenceImportData.h"
-#include "STextComboBox.h"
+#include "Factories/FbxStaticMeshImportData.h"
+#include "Factories/FbxTextureImportData.h"
+#include "Materials/MaterialInterface.h"
+#include "Materials/Material.h"
 #include "Engine/StaticMesh.h"
+#include "DetailWidgetRow.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/STextComboBox.h"
+#include "Widgets/SToolTip.h"
 
 #define LOCTEXT_NAMESPACE "FbxImportUIDetails"
 

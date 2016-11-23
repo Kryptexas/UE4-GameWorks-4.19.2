@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesEditorPrivatePCH.h"
 #include "VehicleTransmissionDataCustomization.h"
-#include "ScopedTransaction.h"
-#include "Editor/Documentation/Public/IDocumentation.h"
 #include "WheeledVehicleMovementComponent4W.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "DetailLayoutBuilder.h"
+#include "IDetailChildrenBuilder.h"
+#include "PropertyCustomizationHelpers.h"
+#include "ScopedTransaction.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "VehicleTransmissionDataCustomization"
 

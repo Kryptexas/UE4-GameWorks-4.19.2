@@ -2,7 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+
+class FEdModeFoliage;
+class SFoliagePalette;
+class UFoliageType;
 struct FFoliageMeshUIInfo;
+enum class ECheckBoxState : uint8;
+
 typedef TSharedPtr<FFoliageMeshUIInfo> FFoliageMeshUIInfoPtr; //should match typedef in FoliageEdMode.h
 
 class SFoliageEdit : public SCompoundWidget

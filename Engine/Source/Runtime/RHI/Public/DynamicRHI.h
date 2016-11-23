@@ -6,7 +6,42 @@ DynamicRHI.h: Dynamically bound Render Hardware Interface definitions.
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/Color.h"
+#include "Math/IntPoint.h"
+#include "Math/IntRect.h"
+#include "Math/Box2D.h"
+#include "Math/PerspectiveMatrix.h"
+#include "Math/TranslationMatrix.h"
+#include "Math/ScaleMatrix.h"
+#include "Math/Float16Color.h"
+#include "Modules/ModuleInterface.h"
+
+class FBlendStateInitializerRHI;
+class FGraphicsPipelineStateInitializer;
+class FLastRenderTimeContainer;
+class FReadSurfaceDataFlags;
+class FRHICommandList;
+class FRHIComputeFence;
+class FRHIDepthRenderTargetView;
+class FRHIGraphicsPipelineStateFallBack;
+class FRHIRenderTargetView;
+class FRHISetRenderTargetsInfo;
+struct FDepthStencilStateInitializerRHI;
+struct FRasterizerStateInitializerRHI;
+struct FResolveParams;
+struct FRHIResourceCreateInfo;
+struct FRHIResourceInfo;
+struct FRHIUniformBufferLayout;
+struct FSamplerStateInitializerRHI;
+struct FTextureMemoryStats;
+struct FViewportBounds;
+struct Rect;
+enum class EAsyncComputeBudget;
+enum class EClearDepthStencil;
+enum class EResourceTransitionAccess;
+enum class EResourceTransitionPipeline;
 
 FORCEINLINE FBoundShaderStateRHIRef RHICreateBoundShaderState(
 	FVertexDeclarationRHIParamRef VertexDeclaration,

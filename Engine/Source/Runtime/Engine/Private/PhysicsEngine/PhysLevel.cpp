@@ -1,12 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/UObjectGlobals.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "Engine/World.h"
 #include "PhysicsPublic.h"
-#include "ParticleDefinitions.h"
-#include "PrecomputedLightVolume.h"
 
 #if WITH_PHYSX
-	#include "PhysXSupport.h"
+	#include "PhysicsEngine/PhysXSupport.h"
 #endif
 
 #if WITH_BOX2D

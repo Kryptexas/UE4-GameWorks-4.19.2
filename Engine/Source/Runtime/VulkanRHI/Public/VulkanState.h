@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHIResources.h"
+
 class FVulkanDevice;
 
 class FVulkanSamplerState : public FRHISamplerState

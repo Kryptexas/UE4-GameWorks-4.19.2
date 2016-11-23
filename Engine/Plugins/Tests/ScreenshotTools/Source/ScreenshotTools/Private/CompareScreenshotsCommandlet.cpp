@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ScreenshotToolsPrivatePCH.h"
 #include "CompareScreenshotsCommandlet.h"
+#include "Modules/ModuleManager.h"
 
 #include "Interfaces/IScreenShotToolsModule.h"
 

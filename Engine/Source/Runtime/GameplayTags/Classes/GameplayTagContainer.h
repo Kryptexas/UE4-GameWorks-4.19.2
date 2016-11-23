@@ -2,7 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
 #include "GameplayTagContainer.generated.h"
+
+class UEditableGameplayTagQuery;
+struct FGameplayTagContainer;
+struct FPropertyTag;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGameplayTags, Log, All);
 

@@ -5,8 +5,53 @@
 =============================================================================*/
 
 #pragma once
-#include "LockFreeFixedSizeAllocator.h"
-#include "TaskGraphInterfaces.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/AlignOf.h"
+#include "Templates/UnrealTemplate.h"
+#include "Math/Color.h"
+#include "Math/IntPoint.h"
+#include "Math/IntRect.h"
+#include "Math/Box2D.h"
+#include "Math/PerspectiveMatrix.h"
+#include "Math/TranslationMatrix.h"
+#include "Math/ScaleMatrix.h"
+#include "Math/Float16Color.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include "Misc/MemStack.h"
+#include "Misc/App.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+
+class FApp;
+class FBlendStateInitializerRHI;
+class FGraphicsPipelineStateInitializer;
+class FLastRenderTimeContainer;
+class FReadSurfaceDataFlags;
+class FRHICommandListBase;
+class FRHIComputeShader;
+class FRHIDepthRenderTargetView;
+class FRHIRenderTargetView;
+class FRHISetRenderTargetsInfo;
+class IRHICommandContext;
+class IRHIComputeContext;
+struct FBoundShaderStateInput;
+struct FDepthStencilStateInitializerRHI;
+struct FRasterizerStateInitializerRHI;
+struct FResolveParams;
+struct FRHIResourceCreateInfo;
+struct FRHIResourceInfo;
+struct FRHIUniformBufferLayout;
+struct FSamplerStateInitializerRHI;
+struct FTextureMemoryStats;
+struct Rect;
+enum class EAsyncComputeBudget;
+enum class EClearDepthStencil;
+enum class EResourceTransitionAccess;
+enum class EResourceTransitionPipeline;
 
 DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
 
@@ -173,7 +218,7 @@ public:
 		return bExecuting;
 	}
 
-	inline bool Bypass();
+	bool Bypass();
 
 	FORCEINLINE void ExchangeCmdList(FRHICommandListBase& Other)
 	{
@@ -2583,8 +2628,8 @@ class FScopedRHIThreadStaller
 {
 	class FRHICommandListImmediate* Immed; // non-null if we need to unstall
 public:
-	inline FScopedRHIThreadStaller(class FRHICommandListImmediate& InImmed);
-	inline ~FScopedRHIThreadStaller();
+	FScopedRHIThreadStaller(class FRHICommandListImmediate& InImmed);
+	~FScopedRHIThreadStaller();
 };
 
 class RHI_API FRHICommandListImmediate : public FRHICommandList
@@ -2599,7 +2644,7 @@ class RHI_API FRHICommandListImmediate : public FRHICommandList
 	}
 public:
 
-	inline void ImmediateFlush(EImmediateFlushType::Type FlushType);
+	void ImmediateFlush(EImmediateFlushType::Type FlushType);
 	bool StallRHIThread();
 	void UnStallRHIThread();
 	static bool IsStalled();

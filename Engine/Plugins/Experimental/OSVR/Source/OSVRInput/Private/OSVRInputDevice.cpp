@@ -14,12 +14,12 @@
 // limitations under the License.
 //
 
-#include "OSVRInputPrivatePCH.h"
+#include "OSVRInputDevice.h"
+#include "OSVRInputPrivate.h"
+#include "Containers/Queue.h"
 
 #include "GenericPlatformMath.h"
 #include "OSVREntryPoint.h"
-#include "OSVRInputDevice.h"
-#include "SlateBasics.h"
 #include "GenericApplicationMessageHandler.h"
 #include "OSVRTypes.h"
 #include "IOSVR.h"

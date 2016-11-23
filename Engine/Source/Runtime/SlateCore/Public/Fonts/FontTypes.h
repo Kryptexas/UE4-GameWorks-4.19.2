@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Textures/TextureAtlas.h"
+
 struct SLATECORE_API FSlateFontKey
 {
 public:

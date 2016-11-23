@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneParticleParameterTemplate.h"
-#include "MovieSceneParticleParameterTrack.h"
+#include "Evaluation/MovieSceneParticleParameterTemplate.h"
+#include "Tracks/MovieSceneParticleParameterTrack.h"
+#include "Particles/Emitter.h"
+#include "Particles/ParticleSystemComponent.h"
 
 DECLARE_CYCLE_STAT(TEXT("Particle Parameter Track Token Execute"), MovieSceneEval_ParticleParameterTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

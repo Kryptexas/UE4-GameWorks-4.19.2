@@ -3,15 +3,24 @@
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
-#include "SAnimCurvePanel.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "IPersonaPreviewScene.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "IEditableSkeleton.h"
+#include "IPersonaToolkit.h"
+#include "Widgets/Views/SListView.h"
 #include "SAnimEditorBase.h"
-#include "Animation/AnimInstance.h"
 #include "Animation/PoseAsset.h"
-
+#include "Animation/AnimInstance.h"
 
 class SPoseViewer;
+class UAnimSingleNodeInstance;
 
 //////////////////////////////////////////////////////////////////////////
 // FDisplayedPoseInfo

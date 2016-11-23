@@ -1,8 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "RawInputPCH.h"
+#include "RawInput.h"
+#include "RawInputFunctionLibrary.h"
 #include "IInputDeviceModule.h"
 #include "IInputDevice.h"
+
+#if PLATFORM_WINDOWS
+	#include "Windows/RawInputWindows.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "RawInputPlugin"
 

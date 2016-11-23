@@ -2,8 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IPersonaPreviewScene.h"
+#include "IEditableSkeleton.h"
 #include "IPersonaToolkit.h"
-#include "AnimationEditorPreviewScene.h"
+
+class FAnimationEditorPreviewScene;
+class UAnimationAsset;
+class UAnimBlueprint;
+class USkeletalMesh;
 
 class FPersonaToolkit : public IPersonaToolkit, public TSharedFromThis<FPersonaToolkit>
 {

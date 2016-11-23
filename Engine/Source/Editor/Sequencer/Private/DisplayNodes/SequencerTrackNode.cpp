@@ -1,13 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
-#include "IKeyArea.h"
-#include "ISequencerSection.h"
-#include "MovieSceneSection.h"
+#include "DisplayNodes/SequencerTrackNode.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Layout/SBox.h"
+#include "DisplayNodes/SequencerObjectBindingNode.h"
+#include "Framework/Commands/UIAction.h"
+#include "Textures/SlateIcon.h"
+#include "UObject/UnrealType.h"
 #include "MovieSceneTrack.h"
+#include "SSequencer.h"
 #include "MovieSceneNameableTrack.h"
-#include "Sequencer.h"
 #include "ISequencerTrackEditor.h"
+#include "ScopedTransaction.h"
 #include "SKeyNavigationButtons.h"
 
 namespace SequencerNodeConstants

@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PartyPrivatePCH.h"
 #include "PartyGameState.h"
+#include "Engine/LocalPlayer.h"
+#include "UnrealEngine.h"
+#include "PartyModule.h"
 #include "PartyMemberState.h"
 #include "Party.h"
 #include "PartyBeaconClient.h"
-#include "Online.h"
 #include "OnlineSubsystemUtils.h"
 
 namespace PartyConsoleVariables

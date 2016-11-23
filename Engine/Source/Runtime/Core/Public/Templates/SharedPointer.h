@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include "Containers/ContainersFwd.h"
+#include "CoreTypes.h"
+#include "Templates/PointerIsConvertibleFromTo.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
 #include "Containers/Map.h"
-#include "Templates/UnrealTemplate.h"
+#include "CoreGlobals.h"
 
 
 /**
@@ -106,7 +110,7 @@
  */
 
 // SharedPointerInternals.h contains the implementation of reference counting structures we need
-#include "SharedPointerInternals.h"
+#include "Templates/SharedPointerInternals.h"
 
 
 /**
@@ -501,7 +505,7 @@ struct FMakeReferenceTo<void>
 };
 
 
-template <typename InObjectType, ESPMode InMode = ESPMode::Fast, typename... InArgTypes>
+template <typename InObjectType, ESPMode InMode, typename... InArgTypes>
 TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
 
 
@@ -1650,7 +1654,7 @@ FORCEINLINE SharedPointerInternals::FRawPtrProxy< ObjectType > MakeShareable( Ob
  * MakeShared utility function.  Allocates a new ObjectType and reference controller in a single memory block.
  * Equivalent to std::make_shared.
  */
-template <typename InObjectType, ESPMode InMode, typename... InArgTypes>
+template <typename InObjectType, ESPMode InMode = ESPMode::Fast, typename... InArgTypes>
 FORCEINLINE TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args)
 {
 	SharedPointerInternals::TIntrusiveReferenceController<InObjectType>* Controller = SharedPointerInternals::NewIntrusiveReferenceController<InObjectType>(Forward<InArgTypes>(Args)...);
@@ -1698,4 +1702,4 @@ FORCEINLINE void CleanupPointerMap(TMap< TWeakPtr<KeyType>, ValueType >& Pointer
 
 
 // Shared pointer testing
-#include "SharedPointerTesting.inl"
+#include "Templates/SharedPointerTesting.inl"

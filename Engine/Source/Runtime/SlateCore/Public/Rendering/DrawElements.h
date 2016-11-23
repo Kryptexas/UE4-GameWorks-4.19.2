@@ -2,11 +2,26 @@
 
 #pragma once
 
-#include "UniqueObj.h"
-#include "RenderingCommon.h"
+#include "CoreMinimal.h"
+#include "Fonts/ShapedTextFwd.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "Styling/WidgetStyle.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Layout/SlateRect.h"
+#include "Types/PaintArgs.h"
+#include "Layout/Geometry.h"
+#include "Containers/StaticArray.h"
+#include "Rendering/ShaderResourceManager.h"
+#include "Rendering/RenderingCommon.h"
 
+class FSlateDrawLayerHandle;
+class FSlateRenderBatch;
+class FSlateRenderDataHandle;
+class FSlateWindowElementList;
+class ILayoutCache;
+class SWidget;
 class SWindow;
-class FSlateViewportInterface;
 
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Vertex/Index Buffer Pool Memory (CPU)"), STAT_SlateBufferPoolMemory, STATGROUP_SlateMemory, SLATECORE_API );
 

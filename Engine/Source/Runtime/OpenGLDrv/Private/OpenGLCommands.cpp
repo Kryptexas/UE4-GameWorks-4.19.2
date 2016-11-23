@@ -4,9 +4,18 @@
 	OpenGLCommands.cpp: OpenGL RHI commands implementation.
 =============================================================================*/
 
-#include "OpenGLDrvPrivate.h"
-#include "OpenGLState.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "EngineGlobals.h"
+#include "RenderResource.h"
 #include "ShaderCache.h"
+#include "OpenGLDrv.h"
+#include "OpenGLDrvPrivate.h"
+#include "RenderUtils.h"
 
 #define DECLARE_ISBOUNDSHADER(ShaderType) inline void ValidateBoundShader(TRefCountPtr<FOpenGLBoundShaderState> InBoundShaderState, F##ShaderType##RHIParamRef ShaderType##RHI) \
 { \

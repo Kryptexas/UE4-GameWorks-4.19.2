@@ -1,20 +1,35 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
+#include "KismetNodes/SGraphNodeK2Base.h"
+#include "Engine/Engine.h"
+#include "Internationalization/Culture.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/SToolTip.h"
+#include "EngineGlobals.h"
+#include "GraphEditorSettings.h"
+#include "SCommentBubble.h"
+#include "SGraphPin.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node.h"
+#include "K2Node_Composite.h"
+#include "K2Node_MacroInstance.h"
+#include "K2Node_Timeline.h"
 #include "Engine/Breakpoint.h"
-#include "SGraphNodeK2Base.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "KismetNodeInfoContext.h"
+#include "Kismet2/KismetDebugUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "KismetNodes/KismetNodeInfoContext.h"
 #include "IDocumentation.h"
 #include "TutorialMetaData.h"
+#include "Widgets/Layout/SBox.h"
 
 // Blueprint Profiler
 #include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 #include "Editor/Kismet/Public/Profiler/BlueprintProfilerSettings.h"
 #include "Editor/Kismet/Public/Profiler/EventExecution.h"
-#include "Editor/Kismet/Public/Profiler/ScriptPerfData.h"
 
 #define LOCTEXT_NAMESPACE "SGraphNodeK2Base"
 

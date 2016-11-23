@@ -2,7 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "GraphEditor.h"
+#include "AssetData.h"
+#include "Editor/ReferenceViewer/Private/HistoryManager.h"
 #include "CollectionManagerTypes.h"
+
+class UEdGraph;
+class UEdGraph_ReferenceViewer;
 
 /**
  * 

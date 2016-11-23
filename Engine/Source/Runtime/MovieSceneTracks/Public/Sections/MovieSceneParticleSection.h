@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "Curves/IntegralCurve.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
 #include "MovieSceneSection.h"
+#include "Curves/IntegralCurve.h"
 #include "MovieSceneParticleSection.generated.h"
 
 

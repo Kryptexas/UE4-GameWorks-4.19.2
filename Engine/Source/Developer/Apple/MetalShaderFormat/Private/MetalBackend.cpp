@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
+#include "MetalBackend.h"
 #include "MetalShaderFormat.h"
 #include "hlslcc.h"
 #include "hlslcc_private.h"
-#include "MetalBackend.h"
 #include "MetalUtils.h"
 #include "compiler.h"
 

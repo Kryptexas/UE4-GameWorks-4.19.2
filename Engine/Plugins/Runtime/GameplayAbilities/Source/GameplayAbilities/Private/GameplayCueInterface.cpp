@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AbilitySystemComponent.h"
 #include "GameplayCueInterface.h"
+#include "AbilitySystemStats.h"
+#include "GameplayTagsModule.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayCueSet.h"
 
 

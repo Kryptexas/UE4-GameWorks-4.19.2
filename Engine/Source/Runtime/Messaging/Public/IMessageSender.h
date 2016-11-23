@@ -2,9 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IMessageContext.h"
 
-class IMessageContext;
-
+class Error;
 
 /**
  * Interface for message senders.

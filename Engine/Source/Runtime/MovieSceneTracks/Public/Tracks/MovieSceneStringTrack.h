@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "MovieScenePropertyTrack.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieSceneStringTrack.generated.h"
-
 
 /**
  * Implements a movie scene track that holds a series of strings.

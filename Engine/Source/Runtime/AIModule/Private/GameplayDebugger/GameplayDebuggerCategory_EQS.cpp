@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "GameplayDebugger/GameplayDebuggerCategory_EQS.h"
+#include "GameFramework/PlayerController.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
 
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
-#include "GameplayDebuggerCategory_EQS.h"
-#include "Engine/Canvas.h"
 #include "DrawDebugHelpers.h"
 
 #if WITH_GAMEPLAY_DEBUGGER

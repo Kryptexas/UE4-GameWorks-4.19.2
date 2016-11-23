@@ -1,15 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-
-#include "CompilerResultsLog.h"
-#include "GraphEditorActions.h"
-#include "EditorCategoryUtils.h"
-#include "AssetRegistryModule.h"
-#include "BlueprintActionDatabaseRegistrar.h"
-#include "BlueprintActionFilter.h"
-#include "BlueprintNodeSpawner.h"
 #include "AnimGraphNode_PoseBlendNode.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+
+#include "GraphEditorActions.h"
+#include "ARFilter.h"
+#include "AssetRegistryModule.h"
+#include "BlueprintActionFilter.h"
+#include "BlueprintActionDatabaseRegistrar.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "PoseBlendNode"
 

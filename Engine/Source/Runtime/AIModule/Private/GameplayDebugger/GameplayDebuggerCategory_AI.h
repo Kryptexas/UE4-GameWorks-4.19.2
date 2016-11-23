@@ -2,9 +2,22 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #if WITH_GAMEPLAY_DEBUGGER
-
 #include "GameplayDebuggerCategory.h"
+#endif
+
+class AActor;
+class AAIController;
+class APawn;
+class APlayerController;
+class FDebugRenderSceneProxy;
+class FPoly;
+class UPrimitiveComponent;
+struct FDebugDrawDelegateHelper;
+struct FNavigationPath;
+
+#if WITH_GAMEPLAY_DEBUGGER
 
 class FGameplayDebuggerCategory_AI : public FGameplayDebuggerCategory
 {

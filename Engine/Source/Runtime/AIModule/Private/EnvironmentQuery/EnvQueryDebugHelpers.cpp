@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "DebugRenderSceneProxy.h"
-#include "EnvironmentQuery/EQSRenderingComponent.h"
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
-#include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "EnvironmentQuery/EnvQueryGenerator.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
+#include "VisualLoggerExtension.h"
+#include "EnvironmentQuery/EQSRenderingComponent.h"
 
 #if USE_EQS_DEBUGGER
 void UEnvQueryDebugHelpers::QueryToBlobArray(FEnvQueryInstance& Query, TArray<uint8>& BlobArray, bool bUseCompression)

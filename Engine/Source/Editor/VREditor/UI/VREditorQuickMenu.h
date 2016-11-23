@@ -3,9 +3,10 @@
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "VREditorBaseUserWidget.h"
 #include "VREditorQuickMenu.generated.h"
-
 
 /**
  * A simple quick-access menu for VR editing, with frequently-used features

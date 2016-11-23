@@ -1,10 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Engine.h"
 #include "StreamingPauseRendering.h"
-#include "SceneViewport.h"
+#include "Layout/Margin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "RenderingThread.h"
+#include "Modules/ModuleManager.h"
+#include "EngineGlobals.h"
+#include "CanvasTypes.h"
+#include "Rendering/RenderingCommon.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SViewport.h"
+#include "Slate/SceneViewport.h"
+#include "Slate/SlateTextures.h"
 #include "MoviePlayer.h"
-#include "SThrobber.h"
+#include "Widgets/Images/SThrobber.h"
 
 
 IMPLEMENT_MODULE(FStreamingPauseRenderingModule, StreamingPauseRendering);

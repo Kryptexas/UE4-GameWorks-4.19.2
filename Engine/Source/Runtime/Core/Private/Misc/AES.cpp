@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "AES.h"
+#include "Misc/AES.h"
+#include "Misc/AssertionMacros.h"
+#include "Misc/CString.h"
+#include "HAL/UnrealMemory.h"
 
 
 // Uncomment this line to skip encryption

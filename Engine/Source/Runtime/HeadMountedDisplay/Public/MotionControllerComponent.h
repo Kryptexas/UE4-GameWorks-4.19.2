@@ -1,9 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "IMotionController.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/PrimitiveComponent.h"
 #include "SceneViewExtension.h"
 #include "MotionControllerComponent.generated.h"
+
+class FPrimitiveSceneInfo;
+class FRHICommandListImmediate;
+class FSceneView;
+class FSceneViewFamily;
+enum class ETrackingStatus : uint8;
 
 UCLASS(Blueprintable, meta = (BlueprintSpawnableComponent), ClassGroup = MotionController)
 class HEADMOUNTEDDISPLAY_API UMotionControllerComponent : public UPrimitiveComponent

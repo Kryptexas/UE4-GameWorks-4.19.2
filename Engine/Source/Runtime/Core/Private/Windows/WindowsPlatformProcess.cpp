@@ -1,14 +1,33 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "EngineVersion.h"
-#include "Resources/Windows/ModuleVersionResource.h"
+#include "Windows/WindowsPlatformProcess.h"
+#include "HAL/PlatformMisc.h"
+#include "Misc/AssertionMacros.h"
+#include "Logging/LogMacros.h"
+#include "HAL/PlatformAffinity.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
+#include "CoreGlobals.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Containers/StringConv.h"
+#include "Containers/UnrealString.h"
+#include "Misc/SingleThreadEvent.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Internationalization.h"
+#include "CoreGlobals.h"
+#include "Stats/Stats.h"
+#include "Misc/CoreStats.h"
+#include "Runtime/Core/Resources/Windows/ModuleVersionResource.h"
+#include "Windows/WindowsHWrapper.h"
 
-#include "AllowWindowsPlatformTypes.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 	#include <shellapi.h>
-	#include <shlobj.h>
+	#include <ShlObj.h>
 	#include <LM.h>
 	#include <Psapi.h>
+	#include <TlHelp32.h>
 
 	namespace ProcessConstants
 	{
@@ -18,11 +37,13 @@
 		uint32 WIN_STILL_ACTIVE = STILL_ACTIVE;
 	}
 
-#include "HideWindowsPlatformTypes.h"
-#include "WindowsPlatformMisc.h"
-#include "EventPool.h"
+#include "Windows/HideWindowsPlatformTypes.h"
+#include "Windows/WindowsPlatformMisc.h"
 
 #pragma comment(lib, "psapi.lib")
+
+static bool ReadLibraryImportsFromMemory(const IMAGE_DOS_HEADER *Header, TArray<FString> &ImportNames);
+static const void *MapRvaToPointer(const IMAGE_DOS_HEADER *Header, const IMAGE_NT_HEADERS *NtHeader, size_t Rva);
 
 
 // static variables
@@ -712,7 +733,7 @@ const TCHAR* FWindowsPlatformProcess::BaseDir()
 		// data
 		// Too early to use the FCommand line interface
 		FString BaseArg;
-		FParse::Value(::GetCommandLine(), TEXT("-basedir="), BaseArg);
+		FParse::Value(::GetCommandLineW(), TEXT("-basedir="), BaseArg);
 
 		if (BaseArg.Len())
 		{
@@ -720,7 +741,7 @@ const TCHAR* FWindowsPlatformProcess::BaseDir()
 			BaseArg += TEXT('/');
 			FCString::Strcpy(Result, *BaseArg);
 		}
-		else if (FCString::Stristr(::GetCommandLine(), TEXT("-BaseFromWorkingDir")))
+		else if (FCString::Stristr(::GetCommandLineW(), TEXT("-BaseFromWorkingDir")))
 		{
 			::GetCurrentDirectory(512, Result);
 
@@ -1057,7 +1078,7 @@ FEvent* FWindowsPlatformProcess::CreateSynchEvent(bool bIsManualReset)
 	return Event;
 }
 
-#include "AllowWindowsPlatformTypes.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 
 bool FEventWin::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
@@ -1084,7 +1105,7 @@ void FEventWin::Reset()
 	ResetEvent( Event );
 }
 
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"
 
 #include "WindowsRunnableThread.h"
 
@@ -1201,7 +1222,7 @@ bool FWindowsPlatformProcess::WritePipe(void* WritePipe, const FString& Message,
 	return bIsWritten;
 }
 
-#include "AllowWindowsPlatformTypes.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 
 FWindowsPlatformProcess::FWindowsSemaphore::FWindowsSemaphore(const FString & InName, HANDLE InSemaphore)
 	:	FSemaphore(InName)
@@ -1425,7 +1446,7 @@ bool FWindowsPlatformProcess::ReadLibraryImports(const TCHAR* FileName, TArray<F
 	return bResult;
 }
 
-bool FWindowsPlatformProcess::ReadLibraryImportsFromMemory(const IMAGE_DOS_HEADER *Header, TArray<FString> &ImportNames)
+bool ReadLibraryImportsFromMemory(const IMAGE_DOS_HEADER *Header, TArray<FString> &ImportNames)
 {
 	bool bResult = false;
 	if(Header->e_magic == IMAGE_DOS_SIGNATURE)
@@ -1454,7 +1475,7 @@ bool FWindowsPlatformProcess::ReadLibraryImportsFromMemory(const IMAGE_DOS_HEADE
 	return bResult;
 }
 
-const void *FWindowsPlatformProcess::MapRvaToPointer(const IMAGE_DOS_HEADER *Header, const IMAGE_NT_HEADERS *NtHeader, size_t Rva)
+const void *MapRvaToPointer(const IMAGE_DOS_HEADER *Header, const IMAGE_NT_HEADERS *NtHeader, size_t Rva)
 {
 	const IMAGE_SECTION_HEADER *SectionHeaders = (const IMAGE_SECTION_HEADER*)(NtHeader + 1);
 	for(size_t SectionIdx = 0; SectionIdx < NtHeader->FileHeader.NumberOfSections; SectionIdx++)
@@ -1471,50 +1492,57 @@ const void *FWindowsPlatformProcess::MapRvaToPointer(const IMAGE_DOS_HEADER *Hea
 FWindowsPlatformProcess::FProcEnumerator::FProcEnumerator()
 {
 	SnapshotHandle = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	CurrentEntry.dwSize = 0;
+	CurrentEntry = new PROCESSENTRY32();
+	CurrentEntry->dwSize = 0;
 }
 
 FWindowsPlatformProcess::FProcEnumerator::~FProcEnumerator()
 {
 	::CloseHandle(SnapshotHandle);
+	delete CurrentEntry;
 }
 
 FWindowsPlatformProcess::FProcEnumInfo::FProcEnumInfo(const PROCESSENTRY32& InInfo)
-	: Info(InInfo)
+	: Info(new PROCESSENTRY32(InInfo))
 {
 
+}
+
+FWindowsPlatformProcess::FProcEnumInfo::~FProcEnumInfo()
+{
+	delete Info;
 }
 
 bool FWindowsPlatformProcess::FProcEnumerator::MoveNext()
 {
-	if (CurrentEntry.dwSize == 0)
+	if (CurrentEntry->dwSize == 0)
 	{
-		CurrentEntry.dwSize = sizeof(PROCESSENTRY32);
+		CurrentEntry->dwSize = sizeof(PROCESSENTRY32);
 
-		return ::Process32First(SnapshotHandle, &CurrentEntry) == TRUE;
+		return ::Process32First(SnapshotHandle, CurrentEntry) == TRUE;
 	}
 
-	return ::Process32Next(SnapshotHandle, &CurrentEntry) == TRUE;
+	return ::Process32Next(SnapshotHandle, CurrentEntry) == TRUE;
 }
 
 FWindowsPlatformProcess::FProcEnumInfo FWindowsPlatformProcess::FProcEnumerator::GetCurrent() const
 {
-	return FProcEnumInfo(CurrentEntry);
+	return FProcEnumInfo(*CurrentEntry);
 }
 
 uint32 FWindowsPlatformProcess::FProcEnumInfo::GetPID() const
 {
-	return Info.th32ProcessID;
+	return Info->th32ProcessID;
 }
 
 uint32 FWindowsPlatformProcess::FProcEnumInfo::GetParentPID() const
 {
-	return Info.th32ParentProcessID;
+	return Info->th32ParentProcessID;
 }
 
 FString FWindowsPlatformProcess::FProcEnumInfo::GetName() const
 {
-	return Info.szExeFile;
+	return Info->szExeFile;
 }
 
 FString FWindowsPlatformProcess::FProcEnumInfo::GetFullPath() const
@@ -1522,4 +1550,4 @@ FString FWindowsPlatformProcess::FProcEnumInfo::GetFullPath() const
 	return GetApplicationName(GetPID());
 }
 
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"

@@ -1,14 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemSteamPrivatePCH.h"
-#include "OnlineSessionInterfaceSteam.h"
 #include "OnlineSessionAsyncServerSteam.h"
-#include "OnlineSubsystemSteam.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
+#include "OnlineSubsystemUtils.h"
+#include "SocketSubsystem.h"
 #include "IPAddressSteam.h"
 #include "SteamSessionKeys.h"
 #include "SteamUtilities.h"
 
-#include "Engine.h"
 
 /** Turn on Steam filter generation output */
 #define DEBUG_STEAM_FILTERS 1

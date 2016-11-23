@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/NetConnection.h"
 #include "WebSocketConnection.generated.h"
 
 

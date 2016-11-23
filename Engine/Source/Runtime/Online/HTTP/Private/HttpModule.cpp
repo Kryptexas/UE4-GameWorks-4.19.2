@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HttpPrivatePCH.h"
+#include "HttpModule.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
+#include "HttpManager.h"
+#include "Http.h"
 #include "NullHttp.h"
 #include "HttpTests.h"
 

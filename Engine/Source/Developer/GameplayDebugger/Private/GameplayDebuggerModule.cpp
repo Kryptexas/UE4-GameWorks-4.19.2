@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/World.h"
 #include "GameplayDebugger.h"
 #include "ISettingsModule.h"
 #include "GameplayDebuggerAddonManager.h"

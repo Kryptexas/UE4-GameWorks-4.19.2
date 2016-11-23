@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 
 /**
  * @brief CommonLinuxMain - executes common startup code for Linux programs/engine

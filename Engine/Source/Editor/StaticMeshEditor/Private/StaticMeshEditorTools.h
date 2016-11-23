@@ -2,9 +2,32 @@
 
 #pragma once
 
-#include "AssetThumbnail.h"
-#include "PropertyEditing.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Engine/EngineTypes.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Engine/MeshMerging.h"
 #include "Engine/StaticMesh.h"
+#include "IDetailCustomization.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "IDetailCustomNodeBuilder.h"
+
+class FAssetData;
+class FAssetThumbnailPool;
+class FDetailWidgetRow;
+class FLevelOfDetailSettingsLayout;
+class FStaticMeshEditor;
+class IDetailCategoryBuilder;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
+class IStaticMeshEditor;
+class UMaterialInterface;
+struct FSectionLocalizer;
 
 enum ECreationModeChoice
 {

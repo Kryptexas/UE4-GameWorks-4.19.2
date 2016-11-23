@@ -2,13 +2,18 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "InheritableComponentHandler.generated.h"
 
-class  USCS_Node;
-class  UActorComponent;
+class UActorComponent;
+class UBlueprint;
+class USCS_Node;
 struct FUCSComponentId;
-class  UBlueprint;
-class  UBlueprintGeneratedClass;
 
 USTRUCT()
 struct ENGINE_API FComponentKey

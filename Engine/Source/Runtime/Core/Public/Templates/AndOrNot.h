@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+
 /**
  * Does a boolean AND of the ::Value static members of each type, but short-circuits if any Type::Value == false.
  */

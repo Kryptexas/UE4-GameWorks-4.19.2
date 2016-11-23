@@ -3,10 +3,11 @@
 
 #pragma once
 
-#include "Engine.h"
-#include "GlobalShader.h"
+#include "CoreMinimal.h"
+#include "RenderResource.h"
 #include "ShaderParameters.h"
-#include "UniformBuffer.h"
+#include "Shader.h"
+#include "GlobalShader.h"
 #include "ShaderParameterUtils.h"
 #include "Rendering/RenderingCommon.h"
 

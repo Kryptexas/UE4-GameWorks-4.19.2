@@ -1,12 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "EngineSessionManager.h"
+#include "Misc/Guid.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/EngineVersion.h"
 #include "EngineAnalytics.h"
-#include "IAnalyticsProvider.h"
 #include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 #include "GeneralProjectSettings.h"
 #include "UserActivityTracking.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 
 #define LOCTEXT_NAMESPACE "SessionManager"
 

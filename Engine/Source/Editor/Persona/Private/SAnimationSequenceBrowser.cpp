@@ -1,25 +1,42 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
-
 #include "SAnimationSequenceBrowser.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SMenuAnchor.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimSequence.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "EditorStyleSet.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IPersonaPreviewScene.h"
+#include "PersonaModule.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/SViewport.h"
+#include "EditorReimportHandler.h"
+#include "Settings/DestructableMeshEditorSettings.h"
+#include "FileHelpers.h"
+
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
 #include "SSkeletonWidget.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "FeedbackContextEditor.h"
-#include "EditorAnimUtils.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
-#include "Editor/ContentBrowser/Public/FrontendFilterBase.h"
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
-#include "SceneViewport.h"
+#include "FrontendFilterBase.h"
+#include "Slate/SceneViewport.h"
 #include "AnimPreviewInstance.h"
 #include "ObjectEditorUtils.h"
 #include "IPersonaToolkit.h"
 #include "IAnimationEditorModule.h"
-#include "IPersonaPreviewScene.h"
-#include "PersonaModule.h"
-#include "GlobalEditorCommonCommands.h"
+#include "Sound/SoundWave.h"
+#include "Components/AudioComponent.h"
 
 #define LOCTEXT_NAMESPACE "SequenceBrowser"
 
@@ -90,10 +107,10 @@ SAnimationSequenceBrowser::~SAnimationSequenceBrowser()
 
 void SAnimationSequenceBrowser::OnRequestOpenAsset(const FAssetData& AssetData, bool bFromHistory)
 {
-	if (UObject* RawAsset = AssetData.GetAsset())
-	{
-		if (UAnimationAsset* AnimationAsset = Cast<UAnimationAsset>(RawAsset))
+		if (UObject* RawAsset = AssetData.GetAsset())
 		{
+		if (UAnimationAsset* AnimationAsset = Cast<UAnimationAsset>(RawAsset))
+			{
 			if (!bFromHistory)
 			{
 				AddAssetToHistory(AssetData);
@@ -240,17 +257,17 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 	if (bHasSelectedAnimAsset)
 	{
 		MenuBuilder.BeginSection("AnimationSequenceAdvancedOptions", LOCTEXT("AdvancedOptionsHeading", "Advanced") );
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("ChangeSkeleton", "Create a copy for another Skeleton..."),
-				LOCTEXT("ChangeSkeleton_ToolTip", "Create a copy for different skeleton"),
-				FSlateIcon(),
-				FUIAction(
-				FExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::OnCreateCopy, SelectedAssets ),
-				FCanExecuteAction()
-				)
-				);
-		}
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ChangeSkeleton", "Create a copy for another Skeleton..."),
+			LOCTEXT("ChangeSkeleton_ToolTip", "Create a copy for different skeleton"),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::OnCreateCopy, SelectedAssets ),
+			FCanExecuteAction()
+			)
+			);
+	}
 		MenuBuilder.EndSection();
 	}
 

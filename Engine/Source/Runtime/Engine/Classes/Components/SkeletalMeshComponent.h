@@ -2,22 +2,33 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Components/SceneComponent.h"
+#include "EngineDefines.h"
+#include "CollisionQueryParams.h"
+#include "SkeletalMeshTypes.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimCurveTypes.h"
 #include "Components/SkinnedMeshComponent.h"
-#include "AnimCurveTypes.h"
 #include "ClothSimData.h"
 #include "SingleAnimationPlayData.h"
 #include "Animation/PoseSnapshot.h"
 #include "SkeletalMeshComponent.generated.h"
 
-
-
+class Error;
+class FPhysScene;
+class FPrimitiveDrawInterface;
 class UAnimInstance;
-struct FEngineShowFlags;
-struct FConvexVolume;
-struct FClothingAssetData;
-struct FRootMotionMovementParams;
-struct FApexClothCollisionVolumeData;
+class UPhysicalMaterial;
+class UPhysicsAsset;
+class USkeletalMeshComponent;
+struct FConstraintInstance;
+struct FNavigableGeometryExport;
 
 DECLARE_MULTICAST_DELEGATE(FOnSkelMeshPhysicsCreatedMultiCast);
 typedef FOnSkelMeshPhysicsCreatedMultiCast::FDelegate FOnSkelMeshPhysicsCreated;

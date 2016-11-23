@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+#if WITH_SSL
+
 #include "Interfaces/ISslCertificateManager.h"
 
 class FSslCertificateManager : public ISslCertificateManager
@@ -16,3 +20,5 @@ public:
 protected:
 	TArray<X509*> RootCertificateArray;
 };
+
+#endif

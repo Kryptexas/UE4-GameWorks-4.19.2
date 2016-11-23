@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /**
  * Base FArchive for serializing UObjects. Supports FLazyObjectPtr and FAssetPtr serialization.
  */

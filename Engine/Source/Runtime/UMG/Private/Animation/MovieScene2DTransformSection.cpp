@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "MovieScene2DTransformSection.h"
-#include "MovieScene2DTransformTrack.h"
+#include "Animation/MovieScene2DTransformSection.h"
 
 
 void UMovieScene2DTransformSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )

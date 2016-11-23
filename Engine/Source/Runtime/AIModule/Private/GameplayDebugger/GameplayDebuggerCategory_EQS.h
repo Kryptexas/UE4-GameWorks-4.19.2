@@ -2,11 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #if WITH_GAMEPLAY_DEBUGGER
-
 #include "GameplayDebuggerCategory.h"
+#endif
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
+
+class APlayerController;
+class UPrimitiveComponent;
+
+#if WITH_GAMEPLAY_DEBUGGER
 
 class FGameplayDebuggerCategory_EQS : public FGameplayDebuggerCategory
 {

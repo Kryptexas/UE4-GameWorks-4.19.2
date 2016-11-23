@@ -6,9 +6,11 @@
 
 #pragma once
 
-#include "RenderCore.h"
-#include "TaskGraphInterfaces.h"
-#include "RenderCommandFence.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
+
+class FRHICommandListImmediate;
 
 ////////////////////////////////////
 // Render thread API

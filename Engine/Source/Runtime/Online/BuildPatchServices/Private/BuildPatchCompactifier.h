@@ -6,6 +6,8 @@ BuildPatchCompactifier.h: Declares classes involved with compactifying build dat
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /**
  * Used to run compactify routines on cloud directories.
  * Compactification removes all data files not currently associated

@@ -1,17 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_TwoBoneIK.h"
-#include "DebugRenderSceneProxy.h"
 #include "AnimNodeEditModes.h"
 #include "AnimationCustomVersion.h"
 
 // for customization details
-#include "../../PropertyEditor/Public/PropertyHandle.h"
-#include "../../PropertyEditor/Public/DetailLayoutBuilder.h"
-#include "../../PropertyEditor/Public/DetailCategoryBuilder.h"
-#include "../../PropertyEditor/Public/DetailWidgetRow.h"
-#include "../../PropertyEditor/Public/IDetailPropertyRow.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 

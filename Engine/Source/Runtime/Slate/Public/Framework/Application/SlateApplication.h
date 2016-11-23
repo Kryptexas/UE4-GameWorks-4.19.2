@@ -2,24 +2,41 @@
 
 #pragma once
 
-#include "GenericApplicationMessageHandler.h"
-#include "MenuStack.h"
-#include "SlateDelegates.h"
-#include "SlateApplicationBase.h"
-#include "NavigationConfig.h"
-#include "Templates/Function.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "InputCoreTypes.h"
+#include "HAL/IConsoleManager.h"
+#include "Framework/Application/IMenu.h"
+#include "Layout/Visibility.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "Styling/SlateColor.h"
+#include "Layout/SlateRect.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Input/Events.h"
+#include "Input/DragAndDrop.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SWindow.h"
+#include "Application/SlateWindowHelper.h"
+#include "Rendering/SlateRenderer.h"
+#include "Application/SlateApplicationBase.h"
+#include "Application/ThrottleManager.h"
+#include "Widgets/IToolTip.h"
+#include "Layout/WidgetPath.h"
+#include "Logging/IEventLogger.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/SlateDelegates.h"
 
-
-class SToolTip;
-class SViewport;
-class SWindow;
-enum class EHittestDirection;
-class FHittestGrid;
-struct FPopupTransitionEffect;
-class FMenuStack;
-class IWidgetReflector;
+class FNavigationConfig;
+class IInputInterface;
 class IInputProcessor;
-
+class IPlatformTextField;
+class ISlateSoundDevice;
+class ITextInputMethodSystem;
+class IVirtualKeyboardEntry;
+class IWidgetReflector;
+class SViewport;
 
 /** A Delegate for querying whether source code access is possible */
 DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);

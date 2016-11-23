@@ -4,6 +4,9 @@
 * Simple n-wheeled vehicle with suspension and tire friction. If you need a motor sim see UWheeledVehicleMovementComponent4W
 */
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "WheeledVehicleMovementComponent.h"
 #include "SimpleWheeledVehicleMovementComponent.generated.h"
 

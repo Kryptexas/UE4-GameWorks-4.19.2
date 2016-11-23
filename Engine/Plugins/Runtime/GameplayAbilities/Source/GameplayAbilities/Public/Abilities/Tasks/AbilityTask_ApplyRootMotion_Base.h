@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
 #include "AbilityTask.h"
 #include "AbilityTask_ApplyRootMotion_Base.generated.h"
 
+class UCharacterMovementComponent;
 
 UCLASS(MinimalAPI)
 class UAbilityTask_ApplyRootMotion_Base : public UAbilityTask

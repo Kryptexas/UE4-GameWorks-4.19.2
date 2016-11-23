@@ -2,8 +2,20 @@
 
 #pragma once
 
-#include "IEditableSkeleton.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Animation/PreviewAssetAttachComponent.h"
+#include "BoneContainer.h"
 #include "Animation/Skeleton.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IEditableSkeleton.h"
+
+class IPersonaPreviewScene;
+class SBlendProfilePicker;
+class SSkeletonTree;
+class UBlendProfile;
+class URig;
+class USkeletalMeshSocket;
 
 /** View-model for a skeleton tree */
 class FEditableSkeleton : public IEditableSkeleton, public FGCObject, public TSharedFromThis<FEditableSkeleton>

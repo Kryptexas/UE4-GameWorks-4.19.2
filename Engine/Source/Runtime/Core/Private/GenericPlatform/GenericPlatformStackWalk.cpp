@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "GenericPlatformCrashContext.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "HAL/PlatformStackWalk.h"
+#include "Misc/ConfigCacheIni.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 
 FProgramCounterSymbolInfo::FProgramCounterSymbolInfo() :
 	LineNumber( 0 ),

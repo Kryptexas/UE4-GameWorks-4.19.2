@@ -2,12 +2,13 @@
 
 #pragma once
 
-#include "MovieSceneTrack.h"
-#include "MovieSceneSection.h"
-#include "MovieSceneCommonHelpers.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "ISequencerSection.h"
+#include "MovieSceneCommonHelpers.h"
+#include "ISequencer.h"
 
-class FTrackInstancePropertyBindings;
+class FSequencerSectionPainter;
 
 /**
  * A generic implementation for displaying simple property sections

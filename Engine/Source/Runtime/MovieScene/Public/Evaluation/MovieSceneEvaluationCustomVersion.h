@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+
 // Custom version for movie scene evaluation serialization
 namespace FMovieSceneEvaluationCustomVersion
 {

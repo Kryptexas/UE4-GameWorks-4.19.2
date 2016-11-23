@@ -2,8 +2,19 @@
 
 #pragma once
 
-#include "UObjectBaseUtility.h"
-#include "ResourceSize.h"
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "ProfilingDebugging/ResourceSize.h"
+
+class FConfigCacheIni;
+class FEditPropertyChain;
+class ITargetPlatform;
+class ITransactionObjectAnnotation;
+struct FFrame;
+struct FObjectInstancingGraph;
+struct FPropertyChangedChainEvent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogObj, Log, All);
 
@@ -1240,3 +1251,4 @@ FORCEINLINE bool IsValid(const UObject *Test)
 {
 	return Test && !Test->IsPendingKill();
 }
+

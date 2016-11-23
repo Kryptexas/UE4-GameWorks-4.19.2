@@ -2,6 +2,16 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Math/Color.h"
+#include "Math/Vector2D.h"
+#include "Math/Vector.h"
+#include "Math/Quat.h"
+#include "Math/TwoVectors.h"
+#include "Math/InterpCurvePoint.h"
 
 /**
  * Template for interpolation curves.

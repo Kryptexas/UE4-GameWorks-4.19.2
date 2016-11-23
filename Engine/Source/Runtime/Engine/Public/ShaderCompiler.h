@@ -6,8 +6,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Templates/RefCounting.h"
+#include "Templates/ScopedPointer.h"
+#include "HAL/PlatformProcess.h"
 #include "ShaderCore.h"
+#include "Shader.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/Runnable.h"
 #include "UniquePtr.h"
+
+class FShaderCompileJob;
+class FShaderPipelineCompileJob;
+class FVertexFactoryType;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogShaderCompilers, Log, All);
 

@@ -2,7 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Matinee/InterpTrack.h"
+
 #define MATINEE_TO_LEVEL_SEQUENCE_MODULE_NAME "MatineeToLevelSequence"
+
+class UMovieScene;
 
 //////////////////////////////////////////////////////////////////////////
 // IMatineeToLevelSequenceModule

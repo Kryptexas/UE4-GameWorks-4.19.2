@@ -2,16 +2,17 @@
 
 #pragma once
 
-#include <initializer_list>
-
-#include "Containers/ContainerAllocationPolicies.h"
-#include "HAL/Platform.h"
-#include "HAL/PlatformMath.h"
-#include "Serialization/Archive.h"
-#include "Templates/EnableIf.h"
-#include "Templates/Sorting.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/UnrealTypeTraits.h"
 #include "Templates/UnrealTemplate.h"
-#include "Traits/IsContiguousContainer.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Serialization/Archive.h"
+
+#include "Templates/Less.h"
+#include "Templates/Sorting.h"
 
 #define DEBUG_HEAP 0
 
@@ -22,8 +23,6 @@
 #endif
 
 #define AGRESSIVE_ARRAY_FORCEINLINE
-
-class UClass;
 
 /**
  * Generic iterator which can operate on types that expose the following:

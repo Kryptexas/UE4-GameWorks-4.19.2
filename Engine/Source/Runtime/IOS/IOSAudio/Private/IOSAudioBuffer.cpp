@@ -10,8 +10,10 @@
 
 #include "IOSAudioDevice.h"
 #include "AudioEffect.h"
-#include "Engine.h"
 #include "IAudioFormat.h"
+#include "Sound/SoundWave.h"
+#include "AudioDeviceManager.h"
+#include "Engine/Engine.h"
 #include "AudioDecompress.h"
 #include "ADPCMAudioInfo.h"
 

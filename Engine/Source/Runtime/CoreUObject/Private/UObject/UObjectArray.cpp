@@ -4,7 +4,11 @@
 	UnObjArray.cpp: Unreal array of all objects
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/UObjectArray.h"
+#include "Misc/ScopeLock.h"
+#include "UObject/UObjectAllocator.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectArray, Log, All);
 

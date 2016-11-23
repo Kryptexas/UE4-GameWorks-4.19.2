@@ -3,10 +3,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "MaterialExpressionClearCoatNormalCustomOutput.generated.h"
-
-
 
 UCLASS()
 class UMaterialExpressionClearCoatNormalCustomOutput : public UMaterialExpressionCustomOutput

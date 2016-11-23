@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AGS/AchievementsClientInterface.h"
+#include "OnlineAchievementsInterface.h"
 #include "OnlineSubsystemTypes.h"
 
 class FOnlineSubsystemGameCircle;

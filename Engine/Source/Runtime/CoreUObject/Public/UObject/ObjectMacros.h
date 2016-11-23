@@ -6,6 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "UObject/Script.h"
+
+class FObjectInitializer;
+struct FCompiledInDefer;
+struct FFrame;
+template <typename TClass> struct TClassCompiledInDefer;
+
 /** Represents a serializable object pointer in blueprint bytecode. This is always 64-bits, even on 32-bit platforms. */
 typedef	uint64 ScriptPointerType;
 

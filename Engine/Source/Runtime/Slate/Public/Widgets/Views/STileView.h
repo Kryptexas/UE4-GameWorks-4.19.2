@@ -1,8 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
-#include "SListView.h"
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Styling/SlateTypes.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Framework/Views/TableViewTypeTraits.h"
+#include "Framework/Layout/Overscroll.h"
+#include "Widgets/Views/SListView.h"
 
 /**
  * A TileView widget is a list which arranges its items horizontally until there is no more space then creates a new row.

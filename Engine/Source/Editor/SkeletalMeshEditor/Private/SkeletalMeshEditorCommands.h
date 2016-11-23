@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Framework/Commands/Commands.h"
+#include "EditorStyleSet.h"
+
 class FSkeletalMeshEditorCommands : public TCommands<FSkeletalMeshEditorCommands>
 {
 public:

@@ -1,14 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "../LandscapeEditorPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/EngineVersion.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "LevelEditorViewport.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "LandscapeEditorObject.h"
 
-#include "AutomationCommon.h"
-#include "AutomationEditorCommon.h"
+#include "Tests/AutomationCommon.h"
+#include "Tests/AutomationEditorCommon.h"
 
-#include "../LandscapeEdMode.h"
-#include "../LandscapeEditorDetailCustomization_NewLandscape.h"
-#include "ScopedTransaction.h"
-#include "Landscape.h"
+#include "Editor/LandscapeEditor/Private/LandscapeEditorDetailCustomization_NewLandscape.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 

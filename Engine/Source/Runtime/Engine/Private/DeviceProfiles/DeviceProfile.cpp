@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "DeviceProfiles/DeviceProfile.h"
+#include "Misc/Paths.h"
+#include "UObject/Package.h"
+#include "UObject/UnrealType.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 
 UDeviceProfile::UDeviceProfile(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

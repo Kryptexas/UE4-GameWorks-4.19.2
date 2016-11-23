@@ -3,6 +3,10 @@
 #ifndef __SkeletonTreeCommands_h_
 #define __SkeletonTreeCommands_h_
 
+#include "CoreMinimal.h"
+#include "EditorStyleSet.h"
+#include "Framework/Commands/Commands.h"
+
 /**
  * Class containing commands for skeleton tree actions
  */

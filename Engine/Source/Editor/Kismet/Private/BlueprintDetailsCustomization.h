@@ -2,7 +2,31 @@
 
 #pragma once
 
-#include "EdGraph/EdGraphNode_Documentation.h"
+#include "CoreMinimal.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "K2Node_EditablePinBase.h"
+#include "IDetailCustomization.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Colors/SColorBlock.h"
+#include "IDetailCustomNodeBuilder.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "SMyBlueprint.h"
+
+class Error;
+class FBlueprintGlobalOptionsDetails;
+class FDetailWidgetRow;
+class FSCSEditorTreeNode;
+class FStructOnScope;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
+class SEditableTextBox;
+class SMultiLineEditableTextBox;
+class UEdGraphNode_Documentation;
+class UK2Node_Variable;
 
 /**
  * Variable network replication options.

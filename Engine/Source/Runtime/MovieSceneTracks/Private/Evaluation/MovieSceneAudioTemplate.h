@@ -2,11 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneEvalTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 #include "MovieSceneAudioTemplate.generated.h"
 
-class UMovieSceneAudioSection;
 class UAudioComponent;
+class UMovieSceneAudioSection;
+class USoundBase;
 
 USTRUCT()
 struct FMovieSceneAudioSectionTemplateData

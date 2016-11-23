@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ScriptMacros.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "BlueprintMapLibrary.generated.h"
 
 UCLASS(Experimental)

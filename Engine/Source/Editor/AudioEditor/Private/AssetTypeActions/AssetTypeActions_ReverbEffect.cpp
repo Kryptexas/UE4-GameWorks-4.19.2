@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
+#include "AssetTypeActions/AssetTypeActions_ReverbEffect.h"
+#include "Sound/ReverbEffect.h"
 
 UClass* FAssetTypeActions_ReverbEffect::GetSupportedClass() const
 {

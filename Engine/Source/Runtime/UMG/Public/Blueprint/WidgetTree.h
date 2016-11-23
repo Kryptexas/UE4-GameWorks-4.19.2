@@ -2,8 +2,15 @@
 
 #pragma once
 
-#include "UserWidget.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Widgets/SWidget.h"
+#include "Components/Widget.h"
 #include "Components/PanelWidget.h"
+#include "Components/NamedSlotInterface.h"
+#include "Blueprint/UserWidget.h"
 
 #include "WidgetTree.generated.h"
 

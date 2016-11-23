@@ -1,17 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
 #include "Perception/AIPerceptionComponent.h"
-#include "DrawDebugHelpers.h"
-#include "Engine/Canvas.h"
+#include "GameFramework/Controller.h"
+#include "AIController.h"
+#include "Perception/AISenseConfig.h"
+#include "VisualLogger/VisualLogger.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
+#include "GameplayDebuggerTypes.h"
 #include "GameplayDebuggerCategory.h"
 #endif
 
-#include "Perception/AISense_Sight.h"
-#include "Perception/AISense_Hearing.h"
-#include "Perception/AISense_Damage.h"
 
 
 DECLARE_CYCLE_STAT(TEXT("Requesting UAIPerceptionComponent::RemoveDeadData call from within a const function"),

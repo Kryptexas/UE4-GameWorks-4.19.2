@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Serialization/Archive.h"
+#include "Containers/UnrealString.h"
+#include "Misc/DateTime.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Templates/ScopedPointer.h"
 #include "UniquePtr.h"
 
 /**

@@ -4,8 +4,18 @@
 	SScreenShotSearchBar.cpp: Implements the SScreenShotSearchBar class.
 =============================================================================*/
 
-#include "ScreenShotComparisonPrivatePCH.h"
-#include "SSearchBox.h"
+#include "Widgets/SScreenShotSearchBar.h"
+#include "Misc/FilterCollection.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "EditorStyleSet.h"
+#include "Models/ScreenShotComparisonFilter.h"
+#include "Widgets/Input/SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "ScreenShotBrowserToolBar"
 

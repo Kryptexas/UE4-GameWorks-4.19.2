@@ -7,11 +7,13 @@
 #pragma once
 
 // Dependencies.
-#include "Core.h"
+
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "RHIDefinitions.h"
 #include "RHI.h"
 #include "GPUProfiler.h"
-#include "ShaderCore.h"
-#include "Engine.h"
+#include "RenderResource.h"
 
 //TODO: Move these to OpenGLDrvPrivate.h
 #if PLATFORM_WINDOWS
@@ -19,7 +21,7 @@
 #elif PLATFORM_MAC
 #include "Mac/OpenGLMac.h"
 #elif PLATFORM_LINUX
-#include "Linux/OpenGLLinux.h"
+#include "Runtime/OpenGLDrv/Private/Linux/OpenGLLinux.h"
 #elif PLATFORM_IOS
 #include "IOS/IOSOpenGL.h"
 #elif PLATFORM_ANDROIDESDEFERRED
@@ -38,9 +40,14 @@
 // OpenGL RHI public headers.
 #include "OpenGLUtil.h"
 #include "OpenGLState.h"
-#include "OpenGLResources.h"
 
 #define FOpenGLCachedUniformBuffer_Invalid 0xFFFFFFFF
+
+class FOpenGLDynamicRHI;
+class FResourceBulkDataInterface;
+struct Rect;
+
+template<class T> struct TOpenGLResourceTraits;
 
 // This class has multiple inheritance but really FGPUTiming is a static class
 class FOpenGLBufferedGPUTiming : public FRenderResource, public FGPUTiming

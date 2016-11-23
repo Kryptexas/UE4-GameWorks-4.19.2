@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "LocalizationDashboardSettings.generated.h"
 
 /** Currently just a dummy class used for detail customizations */

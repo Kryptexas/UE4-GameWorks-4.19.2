@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
-#include "SteamVRPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "SteamVRPrivate.h"
 #include "SteamVRHMD.h"
 
 #include "RendererPrivate.h"

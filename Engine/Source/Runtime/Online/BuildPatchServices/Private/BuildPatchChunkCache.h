@@ -7,6 +7,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/Guid.h"
+#include "BuildPatchProgress.h"
+#include "BuildPatchManifest.h"
+
+class FBuildPatchInstallationInfo;
+
 // Forward decelerations
 class FBuildPatchAppManifest;
 class FBuildPatchInstallationInfo;

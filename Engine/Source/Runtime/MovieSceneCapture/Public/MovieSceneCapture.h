@@ -2,18 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "IMovieSceneCaptureProtocol.h"
+#include "MovieSceneCaptureHandle.h"
 #include "MovieSceneCaptureSettings.h"
 #include "IMovieSceneCapture.h"
-#include "MovieSceneCaptureHandle.h"
-#include "MovieScene.h"
-#include "RenderingThread.h"
-#include "IMovieSceneCaptureProtocol.h"
 #include "MovieSceneCaptureProtocolRegistry.h"
-#include "MovieSceneCaptureProtocolSettings.h"
 #include "Scalability.h"
 #include "MovieSceneCapture.generated.h"
 
 class FJsonObject;
+class FSceneViewport;
 
 /** Structure used to cache various metrics for our capture */
 struct FCachedMetrics

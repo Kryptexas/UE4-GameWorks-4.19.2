@@ -6,9 +6,8 @@
 
 #pragma once
 
-#include "DebugSerializationFlags.h"
-
-class UProperty;
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 
 /**
  *  A tag describing a class property, to aid in serialization.

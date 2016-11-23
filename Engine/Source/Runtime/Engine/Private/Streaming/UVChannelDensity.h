@@ -6,6 +6,8 @@ UVChannelDensity.h: Helpers to compute UV channel density.
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if WITH_EDITORONLY_DATA
 
 struct FUVDensityAccumulator

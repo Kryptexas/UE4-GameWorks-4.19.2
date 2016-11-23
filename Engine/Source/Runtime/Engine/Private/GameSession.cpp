@@ -4,13 +4,15 @@
 	GameSession.cpp: GameSession code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
-#include "Net/OnlineEngineInterface.h"
-#include "Kismet/GameplayStatics.h"
-#include "GameFramework/PlayerState.h"
 #include "GameFramework/GameSession.h"
+#include "Misc/CommandLine.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/GameModeBase.h"
+#include "Engine/NetConnection.h"
+#include "Net/OnlineEngineInterface.h"
+#include "GameFramework/PlayerState.h"
 
 DEFINE_LOG_CATEGORY(LogGameSession);
 

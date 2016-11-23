@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieSceneSlomoTrack.h"
-#include "MovieSceneTrack.h"
-#include "SlomoTrackEditor.h"
+#include "TrackEditors/SlomoTrackEditor.h"
+#include "EditorStyleSet.h"
+#include "Tracks/MovieSceneSlomoTrack.h"
 
 
 #define LOCTEXT_NAMESPACE "FSlomoTrackEditor"

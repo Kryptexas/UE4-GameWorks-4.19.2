@@ -3,15 +3,17 @@
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Animation/AnimMontage.h"
 #include "SAnimEditorBase.h"
 
 class SAnimMontagePanel;
-class SAnimNotifyPanel;
-class SAnimCurvePanel;
-class SAnimMontageSectionsPanel;
 class SAnimMontageScrubPanel;
+class SAnimMontageSectionsPanel;
+class SAnimNotifyPanel;
 class SAnimTimingPanel;
 
 struct FMontageEditorRequiredArgs

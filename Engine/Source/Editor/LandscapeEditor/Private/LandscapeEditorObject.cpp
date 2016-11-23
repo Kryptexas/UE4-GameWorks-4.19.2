@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEditorObject.h"
+#include "Engine/Texture2D.h"
+#include "HAL/FileManager.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ConstructorHelpers.h"
+#include "LandscapeEditorModule.h"
 #include "LandscapeRender.h"
 #include "LandscapeMaterialInstanceConstant.h"
+#include "Misc/ConfigCacheIni.h"
 #include "EngineUtils.h"
-#include "LandscapeGizmoActor.h"
 
 //#define LOCTEXT_NAMESPACE "LandscapeEditor"
 

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Engine/EngineBaseTypes.h"
 
 /** for FShowFlagData, order is not important, adding new elements requires updating some editor code */

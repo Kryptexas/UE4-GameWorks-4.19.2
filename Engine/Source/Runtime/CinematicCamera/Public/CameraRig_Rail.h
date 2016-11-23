@@ -2,11 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "CameraRig_Rail.generated.h"
 
-class USceneComponent;
 class USplineComponent;
 class USplineMeshComponent;
+class UStaticMesh;
+class UStaticMeshComponent;
 
 /** 
  * 

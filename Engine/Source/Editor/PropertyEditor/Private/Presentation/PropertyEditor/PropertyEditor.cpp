@@ -1,18 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "PropertyEditorConstants.h"
+#include "Presentation/PropertyEditor/PropertyEditor.h"
+#include "Modules/ModuleManager.h"
+#include "UnrealEdGlobals.h"
+#include "CategoryPropertyNode.h"
+#include "ItemPropertyNode.h"
+#include "ObjectPropertyNode.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "Editor/SceneOutliner/Public/SceneOutlinerFilters.h"
+#include "IDetailPropertyRow.h"
+#include "PropertyCustomizationHelpers.h"
 #include "PropertyEditorHelpers.h"
-#include "IPropertyUtilities.h"
-
-#include "PropertyHandleImpl.h"
-
-#include "PropertyEditor.h"
-
-#include "DelegateFilter.h"
-
+#include "Editor.h"
 #include "EditorClassUtils.h"
-#include "KismetEditorUtilities.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #include "IConfigEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"

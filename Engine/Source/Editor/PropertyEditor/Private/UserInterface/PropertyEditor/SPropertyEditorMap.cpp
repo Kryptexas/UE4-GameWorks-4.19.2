@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "SPropertyEditorMap.h"
+#include "UserInterface/PropertyEditor/SPropertyEditorMap.h"
+#include "UObject/UnrealType.h"
 #include "PropertyNode.h"
-#include "ObjectPropertyNode.h"
-#include "PropertyEditor.h"
-#include "PropertyEditorHelpers.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Presentation/PropertyEditor/PropertyEditor.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 

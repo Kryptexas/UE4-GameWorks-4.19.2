@@ -2,12 +2,10 @@
 
 #pragma once
 
-#include "IMessageContext.h"
+#include "CoreMinimal.h"
 #include "IMessageSubscription.h"
 
-
 class IMessageReceiver;
-
 
 /**
  * Implements a message subscription.

@@ -6,7 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "TargetPlatformBase.h"
+#include "Mac/MacPlatformProperties.h"
+#include "Misc/ConfigCacheIni.h"
+#include "LocalMacTargetDevice.h"
+
 #if WITH_ENGINE
+#include "Sound/SoundWave.h"
+#include "TextureResource.h"
 #include "StaticMeshResources.h"
 #endif // WITH_ENGINE
 
@@ -182,7 +190,7 @@ return TSuper::SupportsFeature(Feature);
 		if (!IS_DEDICATED_SERVER)
 		{
 			// just use the standard texture format name for this texture (with no DX11 support)
-			FName TextureFormatName = this->GetDefaultTextureFormatName(Texture, EngineSettings, false);
+			FName TextureFormatName = GetDefaultTextureFormatName(this, Texture, EngineSettings, false);
 			OutFormats.Add(TextureFormatName);
 		}
 	}

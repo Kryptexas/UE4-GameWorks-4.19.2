@@ -6,9 +6,17 @@ TextureInstanceManager.h: Definitions of classes used for texture streaming.
 
 #pragma once
 
-#include "TextureStreamingHelpers.h"
+#include "CoreMinimal.h"
+#include "Templates/RefCounting.h"
+#include "ContentStreaming.h"
+#include "Streaming/TextureStreamingHelpers.h"
 
 #define MAX_TEXTURE_SIZE (float(1 << (MAX_TEXTURE_MIP_COUNT - 1)))
+
+class FStreamingTextureLevelContext;
+class ULevel;
+class UPrimitiveComponent;
+class UTexture2D;
 
 // Main Thread Job Requirement : find all instance of a component and update it's bound.
 // Threaded Job Requirement : get the list of instance texture easily from the list of 

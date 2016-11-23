@@ -1,12 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerClientPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
 #include "IProfilerClientModule.h"
 #include "ProfilerClientManager.h"
-
+#include "IMessagingModule.h"
 
 class IMessageBus;
-
 
 /**
  * Implements the ProfilerClient module

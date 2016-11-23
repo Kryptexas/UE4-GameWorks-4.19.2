@@ -2,9 +2,36 @@
 
 #pragma once
 
-#include "GraphEditorModule.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Layout/SlateRect.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Styling/SlateColor.h"
+#include "Layout/ArrangedWidget.h"
+#include "Layout/Margin.h"
+#include "Animation/CurveSequence.h"
+#include "SlotBase.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/Commands/InputChord.h"
+#include "GraphEditor.h"
+#include "Templates/ScopedPointer.h"
+#include "Layout/ArrangedChildren.h"
+#include "Types/PaintArgs.h"
+#include "EditorStyleSet.h"
+#include "Layout/LayoutUtils.h"
 #include "MarqueeOperation.h"
 #include "UniquePtr.h"
+
+class FActiveTimerHandle;
+class FScopedTransaction;
+class FSlateWindowElementList;
+struct FMarqueeOperation;
+struct Rect;
 
 //@TODO: Too generic of a name to expose at this scope
 typedef class UObject* SelectedItemType;

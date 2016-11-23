@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "MovieSceneEvaluationTemplate.h"
+#include "Evaluation/MovieSceneEvaluationTemplate.h"
+#include "MovieSceneSequence.h"
 
 FMovieSceneSequenceCachedSignature::FMovieSceneSequenceCachedSignature(UMovieSceneSequence& InSequence)
 	: Sequence(&InSequence)

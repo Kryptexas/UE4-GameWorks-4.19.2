@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphRuntimePrivatePCH.h"
-#include "AnimNode_RandomPlayer.h"
-#include "AnimInstanceProxy.h"
+#include "AnimNodes/AnimNode_RandomPlayer.h"
+#include "AnimationRuntime.h"
+#include "Animation/AnimInstanceProxy.h"
 
 FAnimNode_RandomPlayer::FAnimNode_RandomPlayer()
 : CurrentEntry(INDEX_NONE)

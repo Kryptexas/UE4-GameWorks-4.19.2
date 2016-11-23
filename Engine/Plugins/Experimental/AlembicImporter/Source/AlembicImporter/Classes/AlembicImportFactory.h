@@ -1,11 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Factories/Factory.h"
+#include "EditorReimportHandler.h"
 #include "AlembicImportFactory.generated.h"
 
 class UAbcImportSettings;
 class FAbcImporter;
 class UGeometryCache;
+class UStaticMesh;
+class USkeletalMesh;
 class SAlembicImportOptions;
 class SAlembicTrackSelectionWindow;
 

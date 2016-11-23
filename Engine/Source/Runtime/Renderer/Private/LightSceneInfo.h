@@ -6,9 +6,19 @@
 
 #pragma once
 
-#include "StaticArray.h"
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "Templates/ScopedPointer.h"
+#include "GenericOctreePublic.h"
 #include "SceneManagement.h"
+#include "GenericOctree.h"
 #include "UniquePtr.h"
+
+class FLightPrimitiveInteraction;
+class FLightSceneInfo;
+class FPrimitiveSceneInfoCompact;
+class FScene;
+class FViewInfo;
 
 /**
  * The information needed to cull a light-primitive interaction.

@@ -4,28 +4,24 @@
 	AnimInstance.cpp: Anim Instance implementation
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "Animation/AnimInstance.h"
+#include "UObject/Package.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "DrawDebugHelpers.h"
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
-#include "Animation/AnimStats.h"
+#include "Animation/AnimBlueprint.h"
+#include "Animation/AnimClassInterface.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
-#include "GameFramework/Character.h"
-#include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
-#include "MessageLog.h"
 #include "Animation/BlendSpaceBase.h"
-#include "Animation/AnimComposite.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
-#include "Animation/AnimMontage.h"
+#include "Engine/Canvas.h"
 #include "Animation/AnimNodeBase.h"
-#include "Animation/AnimNode_StateMachine.h"
-#include "Animation/AnimNode_TransitionResult.h"
-#include "Animation/AnimNode_AssetPlayerBase.h"
-#include "Animation/AnimInstance.h"
 #include "Animation/AnimInstanceProxy.h"
-#include "Animation/Skeleton.h"
-#include "Animation/SmartName.h"
+#include "Animation/AnimNode_StateMachine.h"
 
 /** Anim stats */
 

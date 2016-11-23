@@ -1,6 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorStylePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EditorStyleSettings.h"
+
+#if WITH_EDITOR
+	#include "UObject/UnrealType.h"
+#endif
 
 /* UEditorStyleSettings interface
  *****************************************************************************/

@@ -2,8 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IAdvertisingProvider.h"
-#include "Core.h"
 
 class FIOSAdvertisingProvider : public IAdvertisingProvider
 {

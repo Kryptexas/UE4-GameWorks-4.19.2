@@ -1,10 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ReferenceViewerPrivatePCH.h"
 #include "SReferenceNode.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "EdGraphNode_Reference.h"
 #include "AssetThumbnail.h"
-#include "AssetRegistryModule.h"
-#include "SInlineEditableTextBlock.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "SCommentBubble.h"
 
 #define LOCTEXT_NAMESPACE "ReferenceViewer"

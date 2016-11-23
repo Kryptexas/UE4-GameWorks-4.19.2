@@ -1,9 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineKeyValuePair.h"
+#include "Serialization/JsonTypes.h"
+#include "Dom/JsonObject.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
+#include "UObject/EnumProperty.h"
+#include "UObject/TextProperty.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "UObject/PropertyPortFlags.h"
+#include "OnlineSubsystem.h"
 #include "JsonObjectConverter.h"
-#include "Json.h"
 
 /**
  * Copy constructor. Copies the other into this object

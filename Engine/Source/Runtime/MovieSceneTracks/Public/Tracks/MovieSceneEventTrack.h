@@ -2,10 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneNameableTrack.h"
-#include "MovieSceneSpawnTrack.h"
+#include "Tracks/MovieSceneSpawnTrack.h"
 #include "MovieSceneEventTrack.generated.h"
 
+struct FMovieSceneEvaluationTrack;
 
 /**
  * Implements a movie scene track that triggers discrete events during playback.

@@ -1,12 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayEffectModifierMagnitudeDetails.h"
+#include "IDetailChildrenBuilder.h"
 #include "DetailWidgetRow.h"
 #include "IDetailPropertyRow.h"
-#include "PropertyHandle.h"
-#include "GameplayEffect.h"
-#include "DetailLayoutBuilder.h"
 
 #define LOCTEXT_NAMESPACE "GameplayEffectModifierMagnitudeDetailsCustomization"
 

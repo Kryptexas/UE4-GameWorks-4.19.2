@@ -1,10 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
 #include "Engine/DestructibleFractureSettings.h"
-#include "PhysicsEngine/PhysXSupport.h"
-
+#include "Materials/Material.h"
+#include "PhysXPublic.h"
 
 //////////////////////////////////////////////////////////////////////////
 

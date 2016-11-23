@@ -5,10 +5,10 @@
 	(creating/joining/leaving/destroying sessions)
 =============================================================================*/
 
-#include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "OnlineSessionClient.h"
 #include "Engine/GameInstance.h"
-#include "OnlineSubsystem.h"
+#include "OnlineSubsystemUtils.h"
+#include "GameFramework/PlayerController.h"
 
 UOnlineSessionClient::UOnlineSessionClient(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

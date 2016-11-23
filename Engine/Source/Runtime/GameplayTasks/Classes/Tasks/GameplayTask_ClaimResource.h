@@ -1,10 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/ScriptInterface.h"
+#include "GameplayTaskOwnerInterface.h"
 #include "GameplayTask.h"
+#include "GameplayTaskResource.h"
 #include "GameplayTask_ClaimResource.generated.h"
-
-class UGameplayTaskResource;
 
 UCLASS(BlueprintType)
 class GAMEPLAYTASKS_API UGameplayTask_ClaimResource : public UGameplayTask

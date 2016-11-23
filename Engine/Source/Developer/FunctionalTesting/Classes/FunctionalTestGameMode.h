@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/GameModeBase.h"
 #include "FunctionalTestGameMode.generated.h"
 

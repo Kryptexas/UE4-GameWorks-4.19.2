@@ -15,12 +15,17 @@
 //
 
 
-#include "OSVRPrivatePCH.h"
 #include "OSVRHMD.h"
+#include "OSVRPrivate.h"
 #include "OSVRTypes.h"
 #include "SharedPointer.h"
 #include "SceneViewport.h"
 #include "OSVREntryPoint.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonSerializer.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/GameEngine.h"
+#include "UnrealEngine.h"
 
 #include "Scalability.h"
 #include "Runtime/Core/Public/Misc/DateTime.h"

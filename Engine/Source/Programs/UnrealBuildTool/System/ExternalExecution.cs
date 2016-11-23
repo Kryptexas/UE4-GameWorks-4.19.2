@@ -659,27 +659,25 @@ namespace UnrealBuildTool
 		/// <returns>Last write time of CoreUObject.generated.cpp or DateTime.MaxValue if it doesn't exist.</returns>
 		private static DateTime GetCoreGeneratedTimestamp(string ModuleName, string ModuleGeneratedCodeDirectory)
 		{
-			DateTime Timestamp;
+			// In Installed Builds, we don't check the timestamps on engine headers.  Default to a very old date.
 			if (UnrealBuildTool.IsEngineInstalled())
 			{
-				// In Installed Builds, we don't check the timestamps on engine headers.  Default to a very old date.
-				Timestamp = DateTime.MinValue;
+				return DateTime.MinValue;
 			}
-			else
+
+			// Otherwise look for CoreUObject.generated.cpp or CoreUObject.generated.1.cpp
+			string[] Suffixes = { ".generated.cpp", ".generated.1.cpp" };
+			foreach(string Suffix in Suffixes)
 			{
-				string CoreGeneratedFilename = Path.Combine(ModuleGeneratedCodeDirectory, ModuleName + ".generated.cpp");
-				if (File.Exists(CoreGeneratedFilename))
+				FileInfo CoreGeneratedFileInfo = new FileInfo(Path.Combine(ModuleGeneratedCodeDirectory, ModuleName + Suffix));
+				if (CoreGeneratedFileInfo.Exists)
 				{
-					Timestamp = new FileInfo(CoreGeneratedFilename).LastWriteTime;
-				}
-				else
-				{
-					// Doesn't exist, so use a 'newer that everything' date to force rebuild headers.
-					Timestamp = DateTime.MaxValue;
+					return CoreGeneratedFileInfo.LastWriteTime;
 				}
 			}
 
-			return Timestamp;
+			// Doesn't exist, so use a 'newer that everything' date to force rebuild headers.
+			return DateTime.MaxValue;
 		}
 
 		/// <summary>

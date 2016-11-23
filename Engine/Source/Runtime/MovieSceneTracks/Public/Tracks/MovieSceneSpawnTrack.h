@@ -2,15 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "MovieSceneTrack.h"
 #include "Curves/IntegralCurve.h"
 #include "MovieSceneSpawnTrack.generated.h"
 
-
-class IMovieSceneTrackInstance;
-class UMovieSceneBoolSection;
-class UMovieSceneSection;
-
+struct FMovieSceneEvaluationTrack;
 
 /**
  * Handles when a spawnable should be spawned and destroyed

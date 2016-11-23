@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "MessagingDebuggerMessageFilter.h"
-#include "MessagingDebuggerModel.h"
-#include "SMessagingHistory.h"
-#include "SMessagingHistoryFilterBar.h"
-#include "SMessagingHistoryTableRow.h"
+#include "Widgets/History/SMessagingHistory.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/History/SMessagingHistoryFilterBar.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/History/SMessagingHistoryTableRow.h"
+#include "Widgets/Input/SHyperlink.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingHistory"

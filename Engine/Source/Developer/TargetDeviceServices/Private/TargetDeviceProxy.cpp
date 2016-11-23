@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "TargetDeviceServicesPrivatePCH.h"
+#include "TargetDeviceProxy.h"
+#include "HAL/PlatformProcess.h"
+#include "Helpers/FileMessageAttachment.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "TargetDeviceServiceMessages.h"
 
 
 /* FTargetDeviceProxy structors

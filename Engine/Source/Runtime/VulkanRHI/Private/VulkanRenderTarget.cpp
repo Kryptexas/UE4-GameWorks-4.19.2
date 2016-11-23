@@ -8,6 +8,7 @@
 #include "ScreenRendering.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
+#include "SceneUtils.h"
 
 static int32 GSubmitOnCopyToResolve = 0;
 static FAutoConsoleVariableRef CVarVulkanSubmitOnCopyToResolve(

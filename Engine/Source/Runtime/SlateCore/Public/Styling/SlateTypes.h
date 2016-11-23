@@ -2,10 +2,17 @@
 
 #pragma once
 
-#include "SlateSound.h"
-#include "SlateBrush.h"
-#include "SlateWidgetStyle.h"
-#include "SlateFontInfo.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/CompositeFont.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Layout/Margin.h"
+#include "Sound/SlateSound.h"
+#include "Styling/SlateBrush.h"
+#include "Styling/SlateWidgetStyle.h"
 
 #include "SlateTypes.generated.h"
 

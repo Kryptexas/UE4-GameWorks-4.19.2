@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "AlembicLibraryPublicPCH.h"
-
-#include "PropertyEditing.h"
+#include "CoreMinimal.h"
+#include "IDetailCustomization.h"
 #include "PropertyCustomizationHelpers.h"
 
 class UAbcImportSettings;

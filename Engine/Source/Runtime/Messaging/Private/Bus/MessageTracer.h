@@ -2,20 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Containers/Queue.h"
 #include "IMessageContext.h"
 #include "IMessageTracer.h"
-
-
-struct FMessageTracerEndpointInfo;
-struct FMessageTracerInterceptorInfo;
-struct FMessageTracerMessageInfo;
-struct FMessageTracerTypeInfo;
 
 class IMessageInterceptor;
 class IMessageReceiver;
 class IMessageSubscription;
 class IMessageTracerBreakpoint;
-
 
 /**
  * Implements a message bus tracers.

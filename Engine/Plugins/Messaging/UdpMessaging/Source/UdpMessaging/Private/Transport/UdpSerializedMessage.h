@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "MemoryReader.h"
-#include "MemoryWriter.h"
-
+#include "CoreMinimal.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
 
 /**
  * Enumerates possibly states of a serialized message.

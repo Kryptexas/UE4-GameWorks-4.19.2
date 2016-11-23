@@ -2,7 +2,18 @@
 
 #pragma once
 
-#include "KeyParams.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ObjectKey.h"
+#include "Curves/KeyHandle.h"
+
+class AActor;
+class UCameraComponent;
+class UMovieSceneSection;
+class USceneComponent;
+struct FRichCurve;
+enum class EMovieSceneKeyInterpolation : uint8;
 
 class MOVIESCENE_API MovieSceneHelpers
 {

@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Animation/AnimSet.h"
-#include "AnimationUtils.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimSequence.h"
+#include "UObject/Package.h"
 
 /////////////////////////////////////////////////////
 // UAnimSet

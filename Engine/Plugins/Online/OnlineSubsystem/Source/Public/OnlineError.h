@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 namespace EOnlineServerConnectionStatus {
 	enum Type : unsigned int;
 }

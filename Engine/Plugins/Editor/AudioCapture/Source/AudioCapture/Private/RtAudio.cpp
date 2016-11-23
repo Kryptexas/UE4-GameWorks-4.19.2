@@ -39,9 +39,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /************************************************************************/
 
 // RtAudio: Version 4.1.2
-#include "AudioCapture.h"
-
 #include "RtAudio.h"
+#include "AudioCapture.h"
 
 #include "AllowWindowsPlatformTypes.h"
 

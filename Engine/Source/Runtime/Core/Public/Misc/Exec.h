@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
 
 // Any object that is capable of taking commands.
 class CORE_API FExec

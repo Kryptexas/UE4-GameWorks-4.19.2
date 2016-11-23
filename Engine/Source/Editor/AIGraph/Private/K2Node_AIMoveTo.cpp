@@ -1,10 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIGraphPrivatePCH.h"
-#include "CompilerResultsLog.h"
-#include "Blueprint/AIBlueprintHelperLibrary.h"
-#include "Blueprint/AIAsyncTaskBlueprintProxy.h"
 #include "K2Node_AIMoveTo.h"
+#include "Blueprint/AIAsyncTaskBlueprintProxy.h"
+#include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AIMoveTo"

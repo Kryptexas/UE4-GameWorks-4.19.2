@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "StringPropertyTrackEditor.h"
-#include "StringPropertySection.h"
+#include "TrackEditors/PropertyTrackEditors/StringPropertyTrackEditor.h"
+#include "Sections/StringPropertySection.h"
 
 
 TSharedRef<ISequencerTrackEditor> FStringPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )

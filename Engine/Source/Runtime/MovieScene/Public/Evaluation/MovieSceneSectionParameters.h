@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "MovieSceneSequenceTransform.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/MovieSceneSequenceTransform.h"
 #include "MovieSceneSectionParameters.generated.h"
 
 USTRUCT()

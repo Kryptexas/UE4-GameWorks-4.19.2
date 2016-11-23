@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "NiagaraCommon.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogNiagara, Log, Verbose);

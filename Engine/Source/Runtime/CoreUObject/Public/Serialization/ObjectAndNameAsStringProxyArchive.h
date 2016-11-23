@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
-struct FObjectInstancingGraph;
+#include "CoreMinimal.h"
+#include "Serialization/NameAsStringProxyArchive.h"
 
 /**
  * Implements a proxy archive that serializes UObjects and FNames as string data.

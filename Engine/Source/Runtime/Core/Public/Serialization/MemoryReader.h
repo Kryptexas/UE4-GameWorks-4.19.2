@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "MemoryArchive.h"
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Serialization/MemoryArchive.h"
 
 /**
  * Archive for reading arbitrary data from the specified memory location

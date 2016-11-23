@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "OVR_Platform.h"
 
 DECLARE_DELEGATE_TwoParams(FOculusMessageOnCompleteDelegate, ovrMessageHandle, bool);

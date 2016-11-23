@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "MovieScenePropertyTrack.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieScene3DTransformTrack.generated.h"
 
 /**

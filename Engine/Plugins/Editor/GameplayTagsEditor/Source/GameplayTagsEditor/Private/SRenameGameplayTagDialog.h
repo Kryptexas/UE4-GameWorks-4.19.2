@@ -2,8 +2,12 @@
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
 #include "GameplayTagsManager.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Input/SEditableTextBox.h"
 
 class SRenameGameplayTagDialog : public SCompoundWidget
 {

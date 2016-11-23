@@ -1,9 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Sound/DialogueWave.h"
-#include "SoundDefinitions.h"
+
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
 #include "AssetTypeActions_Base.h"
+#include "Sound/DialogueWave.h"
+
+class FMenuBuilder;
 
 class FAssetTypeActions_DialogueWave : public FAssetTypeActions_Base
 {

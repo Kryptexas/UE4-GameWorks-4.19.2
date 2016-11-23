@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 
 /**
  * Base class for all interfaces

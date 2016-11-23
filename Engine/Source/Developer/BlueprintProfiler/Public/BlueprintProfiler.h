@@ -2,12 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "TickableEditorObject.h"
+#include "EdGraphUtilities.h"
 #include "BlueprintProfilerModule.h"
 #include "ScriptInstrumentationCapture.h"
 
-#if WITH_EDITOR
-#include "ScriptInstrumentationPlayback.h"
-#endif
+class FBlueprintExecutionContext;
+class FScriptEventPlayback;
+class FScriptExecutionBlueprint;
+class FScriptExecutionNode;
+class UBlueprint;
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintProfiler

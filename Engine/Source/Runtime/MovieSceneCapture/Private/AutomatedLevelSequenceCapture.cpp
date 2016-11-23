@@ -1,17 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneCapturePCH.h"
-
-#include "LevelSequencePlayer.h"
 #include "AutomatedLevelSequenceCapture.h"
-#include "ErrorCodes.h"
-#include "SceneViewport.h"
-#include "ActiveMovieSceneCaptures.h"
+#include "MovieScene.h"
+#include "Dom/JsonValue.h"
+#include "Dom/JsonObject.h"
+#include "Slate/SceneViewport.h"
+#include "Misc/CommandLine.h"
+#include "LevelSequenceActor.h"
 #include "JsonObjectConverter.h"
-#include "LevelSequenceBurnIn.h"
 #include "Tracks/MovieSceneCinematicShotTrack.h"
-#include "Sections/MovieSceneCinematicShotSection.h"
 #include "MovieSceneCaptureHelpers.h"
+#include "EngineUtils.h"
+#include "Sections/MovieSceneCinematicShotSection.h"
 
 UAutomatedLevelSequenceCapture::UAutomatedLevelSequenceCapture(const FObjectInitializer& Init)
 	: Super(Init)

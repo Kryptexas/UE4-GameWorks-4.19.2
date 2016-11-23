@@ -2,13 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
 #include "Engine/Texture.h"
 #include "IMediaTextureSink.h"
 #include "MediaTexture.generated.h"
 
-
-class IMediaTextureSink;
-
+class FTextureResource;
 
 /**
  * Implements a texture asset for rendering video tracks from UMediaPlayer assets.

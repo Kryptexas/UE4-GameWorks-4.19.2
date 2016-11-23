@@ -2,10 +2,17 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "EngineVersion.h"
-#include "GatherableTextData.h"
-#include "Linker.h"
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/AssetPtr.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/Linker.h"
+
+class FLinkerPlaceholderBase;
+struct FScopedSlowTask;
+struct FUntypedBulkData;
 
 /*----------------------------------------------------------------------------
 	FLinkerLoad.

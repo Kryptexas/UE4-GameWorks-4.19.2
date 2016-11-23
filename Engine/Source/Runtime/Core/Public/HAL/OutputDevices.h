@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "HAL/PlatformMath.h"
+#include "HAL/MemoryBase.h"
+#include "HAL/PlatformMisc.h"
+#include "HAL/UnrealMemory.h"
+#include "HAL/PlatformString.h"
+#include "HAL/PlatformProperties.h"
+#include "HAL/PlatformProcess.h"
 #include "Logging/LogCategory.h"
 #include "Logging/LogSuppressionInterface.h"
 #include "CoreGlobals.h"

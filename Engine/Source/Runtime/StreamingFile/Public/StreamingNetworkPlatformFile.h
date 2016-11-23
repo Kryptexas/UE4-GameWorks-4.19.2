@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Misc/Paths.h"
 #include "NetworkMessage.h"
 #include "NetworkPlatformFile.h"
-
 
 DECLARE_LOG_CATEGORY_EXTERN(LogStreamingPlatformFile, Log, All);
 

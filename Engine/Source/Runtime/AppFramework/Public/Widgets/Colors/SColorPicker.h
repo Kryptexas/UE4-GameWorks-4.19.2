@@ -2,10 +2,18 @@
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SWindow.h"
+#include "Framework/SlateDelegates.h"
 
-
-// forward declarations
+class FColorTheme;
+class SBorder;
 class SColorThemesViewer;
 class SComboButton;
 class SThemeColorBlocksBar;

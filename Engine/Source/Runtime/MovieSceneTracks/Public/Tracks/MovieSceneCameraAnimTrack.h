@@ -2,11 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/InlineValue.h"
 #include "MovieSceneNameableTrack.h"
-#include "MovieSceneSegmentCompiler.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
 #include "MovieSceneCameraAnimTrack.generated.h"
 
 class UMovieSceneCameraAnimSection;
+struct FMovieSceneEvaluationTrack;
 
 /**
  * 

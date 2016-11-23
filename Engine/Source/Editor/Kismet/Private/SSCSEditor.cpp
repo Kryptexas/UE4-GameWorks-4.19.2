@@ -1,37 +1,54 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
-#include "BlueprintUtilities.h"
+#include "SSCSEditor.h"
+#include "AssetData.h"
+#include "Editor.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Components/PrimitiveComponent.h"
+#include "EngineGlobals.h"
+#include "Misc/FeedbackContext.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "Layout/WidgetPath.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
+#include "Editor/UnrealEdEngine.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+#include "Components/ChildActorComponent.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Engine/Selection.h"
+#include "UnrealEdGlobals.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Variable.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "K2Node_VariableGet.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "ComponentAssetBroker.h"
 #include "ClassViewerFilter.h"
 
-#include "SSCSEditor.h"
-#include "SKismetInspector.h"
-#include "SSCSEditorViewport.h"
-#include "SComponentClassCombo.h"
 #include "PropertyPath.h"
 
 #include "AssetSelection.h"
-#include "Editor/SceneOutliner/Private/SSocketChooser.h"
 #include "ScopedTransaction.h"
 
-#include "DragAndDrop/AssetDragDropOp.h"
+#include "Styling/SlateIconFinder.h"
 #include "ClassIconFinder.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 
 #include "ObjectTools.h"
 
 #include "IDocumentation.h"
-#include "Kismet2NameValidators.h"
+#include "Kismet2/Kismet2NameValidators.h"
 #include "TutorialMetaData.h"
-#include "SInlineEditableTextBlock.h"
-#include "GenericCommands.h"
-#include "Engine/SCS_Node.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "Engine/Selection.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Framework/Commands/GenericCommands.h"
 
 #include "Engine/InheritableComponentHandler.h"
 
@@ -39,19 +56,15 @@
 
 #include "BPVariableDragDropAction.h"
 
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
+#include "AddToProjectConfig.h"
 #include "GameProjectGenerationModule.h"
 #include "FeaturedClasses.inl"
 
-#include "HotReloadInterface.h"
-#include "AssetRegistryModule.h"
-#include "SCreateAssetFromObject.h"
 
-#include "SourceCodeNavigation.h"
-#include "Editor/BlueprintGraph/Public/BlueprintEditorSettings.h"
-#include "Engine/BlueprintGeneratedClass.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 

@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "IOSAppDelegate.h"
 #include "IOSCommandLineHelper.h"
 #include "ExceptionHandling.h"
@@ -10,6 +9,12 @@
 #include "TaskGraphInterfaces.h"
 #include "GenericPlatformChunkInstall.h"
 #include "IOSPlatformMisc.h"
+#include "HAL/PlatformStackWalk.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/CommandLine.h"
+#include "IOS/IOSPlatformFramePacer.h"
+#include "IOS/IOSAsyncTask.h"
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <AVFoundation/AVAudioSession.h>

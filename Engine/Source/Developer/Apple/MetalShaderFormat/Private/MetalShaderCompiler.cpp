@@ -1,13 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // .
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "MetalShaderFormat.h"
 #include "ShaderCore.h"
 #include "MetalShaderResources.h"
 #include "ShaderCompilerCommon.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 	#include "Windows/PreWindowsApi.h"
 	#include <objbase.h>

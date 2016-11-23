@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Animation/SmartName.h"
-#include "FrameworkObjectVersion.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Animation/Skeleton.h"
+
 ////////////////////////////////////////////////////////////////////////
 //
 // FSmartNameMapping

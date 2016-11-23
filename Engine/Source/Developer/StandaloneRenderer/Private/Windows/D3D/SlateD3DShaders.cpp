@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "StandaloneRendererPrivate.h"
-
 #include "Windows/D3D/SlateD3DShaders.h"
 #include "Windows/D3D/SlateD3DRenderer.h"
 #include "Windows/D3D/SlateD3DRenderingPolicy.h"
+#include "Misc/Paths.h"
 
 static void CompileShader( const FString& Filename, const FString& EntryPoint, const FString& ShaderModel, TRefCountPtr<ID3DBlob>& OutBlob )
 {

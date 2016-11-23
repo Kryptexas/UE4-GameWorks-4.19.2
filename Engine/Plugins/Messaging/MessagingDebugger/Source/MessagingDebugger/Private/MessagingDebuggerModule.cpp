@@ -1,9 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "MessagingDebuggerCommands.h"
-#include "MessagingDebuggerStyle.h"
-#include "SMessagingDebugger.h"
+#include "CoreMinimal.h"
+#include "Features/IModularFeature.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "IMessagingModule.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/Docking/TabManager.h"
+#include "Models/MessagingDebuggerCommands.h"
+#include "Styles/MessagingDebuggerStyle.h"
+#include "Widgets/SMessagingDebugger.h"
+#include "Features/IModularFeatures.h"
+#include "Widgets/Docking/SDockTab.h"
+
+#if WITH_EDITOR
+	#include "WorkspaceMenuStructure.h"
+	#include "WorkspaceMenuStructureModule.h"
+#endif
 
 
 #define LOCTEXT_NAMESPACE "FMessagingDebuggerModule"

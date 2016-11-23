@@ -5,13 +5,17 @@
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Templates/RefCounting.h"
+#include "HitProxies.h"
 #include "MeshBatch.h"
 
-// Forward declarations.
-class FStaticMesh;
-class FScene;
-class FPrimitiveSceneInfo;
 class FLightSceneInfo;
+class FPrimitiveSceneInfo;
+class FScene;
+class FStaticMeshDrawListBase;
+class UExponentialHeightFogComponent;
 
 /**
  * An interaction between a light and a primitive.

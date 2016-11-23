@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
 #include "NameCurveKeyArea.h"
+#include "UObject/StructOnScope.h"
+#include "Curves/NameCurve.h"
+#include "Widgets/SNullWidget.h"
+#include "MovieSceneTrack.h"
+#include "ClipboardTypes.h"
 #include "SequencerClipboardReconciler.h"
 
 /* IKeyArea interface

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "DSP/Dsp.h"
 
 namespace Audio

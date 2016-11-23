@@ -1,9 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
-#include "Abilities/GameplayAbilityTypes.h"
-#include "GameplayEffect.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayTagContainer.h"
+#include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_WaitGameplayTagBase.generated.h"
+
+class UAbilitySystemComponent;
 
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitGameplayTag : public UAbilityTask

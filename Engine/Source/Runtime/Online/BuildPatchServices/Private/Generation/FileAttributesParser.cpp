@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "BuildPatchServicesPrivatePCH.h"
-#include "FileAttributesParser.h"
+#include "Generation/FileAttributesParser.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/FileHelper.h"
 #include "UniquePtr.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogFileAttributesParser, Log, All);

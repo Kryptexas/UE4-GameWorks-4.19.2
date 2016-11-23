@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "BreakIterator.h"
-#include "ShapedTextCache.h"
+#include "Framework/Text/TextLayout.h"
+#include "Fonts/FontCache.h"
+#include "HAL/IConsoleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Text/TextHitPoint.h"
+#include "Framework/Text/ILayoutBlock.h"
+#include "Internationalization/BreakIterator.h"
+#include "Framework/Text/ShapedTextCache.h"
 
 
 static TAutoConsoleVariable<int32> CVarDefaultTextFlowDirection(

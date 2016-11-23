@@ -1,19 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "ScopedTransaction.h"
-#include "MovieScene.h"
-#include "MovieSceneSection.h"
-#include "MovieScene3DPathTrack.h"
-#include "MovieScene3DPathSection.h"
-#include "ISequencerSection.h"
+#include "TrackEditors/PathTrackEditor.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "GameFramework/Actor.h"
+#include "SequencerSectionPainter.h"
+#include "GameFramework/WorldSettings.h"
+#include "Tracks/MovieScene3DPathTrack.h"
+#include "Sections/MovieScene3DPathSection.h"
 #include "ISectionLayoutBuilder.h"
-#include "MovieSceneCommonHelpers.h"
-#include "MovieSceneTrackEditor.h"
-#include "PathTrackEditor.h"
 #include "ActorEditorUtils.h"
 #include "Components/SplineComponent.h"
-#include "ActorPickerTrackEditor.h"
 #include "FloatCurveKeyArea.h"
 
 

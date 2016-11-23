@@ -1,7 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ComponentVisualizersPrivatePCH.h"
 #include "SplineComponentVisualizer.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/InputChord.h"
+#include "Framework/Commands/Commands.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
+#include "UnrealWidget.h"
+#include "Editor.h"
+#include "EditorViewportClient.h"
+#include "Components/SplineComponent.h"
 #include "ScopedTransaction.h"
 #include "ActorEditorUtils.h"
 

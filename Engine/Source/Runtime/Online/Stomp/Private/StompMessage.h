@@ -1,6 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Runtime/Online/Stomp/Private/StompFrame.h"
+
+class FStompClient;
+
+#if WITH_STOMP
+
 #include "IStompMessage.h"
 
 class FStompClient;
@@ -38,3 +46,5 @@ private:
 	friend class FStompClient;
 
 };
+
+#endif

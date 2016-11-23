@@ -1,18 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Paper2DEditorPrivatePCH.h"
+#include "TileMapEditing/TileMapEditorViewportClient.h"
+#include "Components/PrimitiveComponent.h"
 #include "PaperTileMapComponent.h"
-#include "TileMapEditorViewportClient.h"
-#include "SceneViewport.h"
-#include "EdModeTileMap.h"
-#include "PaperEditorShared/SpriteGeometryEditMode.h"
-
-#include "PreviewScene.h"
 #include "ScopedTransaction.h"
-#include "Runtime/Engine/Public/ComponentReregisterContext.h"
-#include "CanvasTypes.h"
+#include "CanvasItem.h"
 #include "Engine/Selection.h"
-#include "TileMapEditorSettings.h"
+#include "AssetEditorModeManager.h"
+#include "TileMapEditing/EdModeTileMap.h"
+#include "PaperEditorShared/SpriteGeometryEditMode.h"
+#include "PaperTileMap.h"
+
+#include "ComponentReregisterContext.h"
+#include "CanvasTypes.h"
+#include "TileMapEditing/TileMapEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "TileMapEditor"
 

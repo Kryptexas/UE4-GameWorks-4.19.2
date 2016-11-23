@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "OutputDeviceDebug.h"
+#include "Misc/OutputDeviceDebug.h"
+#include "CoreGlobals.h"
+#include "Misc/OutputDeviceHelper.h"
 
 /**
  * Serializes the passed in data unless the current event is suppressed.

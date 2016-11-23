@@ -2,6 +2,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Widgets/SWidget.h"
+#include "ISequencerSection.h"
+#include "MovieSceneTrack.h"
+#include "ISequencer.h"
+#include "ISequencerTrackEditor.h"
+#include "MovieSceneTrackEditor.h"
+
+class FAssetData;
+class FAudioThumbnail;
+class FMenuBuilder;
+class FSequencerSectionPainter;
+class USoundWave;
 
 /**
  * Tools for audio tracks

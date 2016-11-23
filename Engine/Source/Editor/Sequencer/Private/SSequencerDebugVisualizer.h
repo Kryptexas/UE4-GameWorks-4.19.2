@@ -2,6 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Layout/Geometry.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Children.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SPanel.h"
+#include "MovieSceneSequenceID.h"
+#include "Sequencer.h"
+
+class FArrangedChildren;
 struct FTimeToPixel;
 
 class SSequencerDebugSlot : public SCompoundWidget

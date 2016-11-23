@@ -1,14 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "RendererPrivate.h"
+#include "PostProcess/PostProcessCompositeEditorPrimitives.h"
+#include "StaticBoundShaderState.h"
+#include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRenderTargetParameters.h"
+#include "BasePassRendering.h"
+#include "MobileBasePassRendering.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "DynamicPrimitiveDrawing.h"
 
 #if WITH_EDITOR
 
-#include "PostProcessCompositeEditorPrimitives.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
-#include "SceneUtils.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/SceneFilterRendering.h"
 
 
 // temporary

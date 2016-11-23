@@ -3,6 +3,11 @@
 /** Factory which allows import of an ApexDestructibleAsset */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EngineDefines.h"
+#include "Factories/Factory.h"
 #include "DestructibleMeshFactory.generated.h"
 
 UCLASS(hideCategories=Object, MinimalAPI)

@@ -11,15 +11,12 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
-#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "AudioDecompress.h"
 #include "AudioEffect.h"
 #include "XAudio2Effects.h"
-#include "Engine.h"
-#include "TargetPlatform.h"
 #include "XAudio2Support.h"
-#include "SoundDefinitions.h"
+#include "Interfaces/IAudioFormat.h"
 
 #if XAUDIO_SUPPORTS_XMA2WAVEFORMATEX
 /**

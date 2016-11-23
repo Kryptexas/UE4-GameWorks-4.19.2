@@ -4,9 +4,8 @@
 	SoundCueGraphNode_Base.cpp
 =============================================================================*/
 
-#include "AudioEditorPrivatePCH.h"
 #include "SoundCueGraph/SoundCueGraphNode_Base.h"
-#include "EdGraph/EdGraphPin.h"
+#include "EdGraph/EdGraphSchema.h"
 #include "SoundCueGraph/SoundCueGraphSchema.h"
 
 /////////////////////////////////////////////////////

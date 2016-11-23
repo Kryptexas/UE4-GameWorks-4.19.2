@@ -11,17 +11,18 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
-#include "XAudio2PrivatePCH.h"
+#include "XAudio2Effects.h"
 #include "XAudio2Device.h"
 #include "AudioEffect.h"
-#include "XAudio2Effects.h"
-#include "Engine.h"
 #include "XAudio2Support.h"
+#include "Misc/App.h"
 
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 	#include <xapobase.h>
 	#include <xapofx.h>
 	#include <xaudio2fx.h>
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 
 /*-----------------------------------------------------------------------------

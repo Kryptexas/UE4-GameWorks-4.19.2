@@ -1,12 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
+#include "UnrealWidget.h"
 #include "AnimationGraphSchema.h"
 #include "Animation/AnimationSettings.h"
-#include "Animation/AnimInstance.h"
-#include "CompilerResultsLog.h"
-#include "AnimNode_SkeletalControlBase.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "BoneControllers/AnimNode_SkeletalControlBase.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_SkeletalControlBase

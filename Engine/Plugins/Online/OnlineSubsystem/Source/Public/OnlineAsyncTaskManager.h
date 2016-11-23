@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/PlatformTime.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/Runnable.h"
+#include "Misc/SingleThreadRunnable.h"
 #include "OnlineSubsystemPackage.h"
 
 /**

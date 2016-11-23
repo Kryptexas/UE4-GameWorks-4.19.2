@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Math/Color.h"
+#include "UObject/NameTypes.h"
+#include "Delegates/Delegate.h"
+#include "HAL/PlatformTime.h"
+#include "HAL/ThreadSingleton.h"
+
 /** 
  *	Unreal Engine Stats system
  *	
@@ -290,8 +297,9 @@
 #error "STATS must be defined as either zero or one."
 #endif
 
-#include "UMemoryDefines.h"
-#include "StatsMisc.h"
+#include "ProfilingDebugging/UMemoryDefines.h"
+
+struct TStatId;
 
 // used by the profiler
 enum EStatType
@@ -322,7 +330,7 @@ template<> inline const TCHAR* GetStatFormatString<double>(void) { return TEXT("
 	#define STAT(x)
 #endif
 
-#include "Stats2.h"
+#include "Stats/Stats2.h"
 
 #if STATS
 
@@ -364,9 +372,7 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 
 #else
 
-struct FNothing{};
-
-typedef FNothing TStatId;
+struct TStatId{};
 
 class FScopeCycleCounter
 {

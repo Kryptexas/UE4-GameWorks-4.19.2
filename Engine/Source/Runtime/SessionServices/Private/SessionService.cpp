@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SessionServicesPrivatePCH.h"
 #include "SessionService.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/App.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "SessionServiceMessages.h"
 
 
 /* FSessionService structors

@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. 
 
-#include "ProceduralMeshComponentPluginPrivatePCH.h"
 #include "KismetProceduralMeshLibrary.h"
+#include "RawIndexBuffer.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "ProceduralMeshComponentPluginPrivate.h"
 #include "StaticMeshResources.h"
 #include "GeomTools.h"
 
-#include "MessageLog.h"
-#include "UObjectToken.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 
 DECLARE_CYCLE_STAT(TEXT("Update Collision"), STAT_ProcMesh_CalcTangents, STATGROUP_ProceduralMesh);
 

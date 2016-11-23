@@ -1,12 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "GameFramework/PawnMovementComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "AI/RVOAvoidanceInterface.h"
+#include "GameFramework/MovementComponent.h"
+#include "VehicleWheel.h"
 #include "WheeledVehicleMovementComponent.generated.h"
 
-class UVehicleWheel;
+class UCanvas;
 
 namespace physx
 {

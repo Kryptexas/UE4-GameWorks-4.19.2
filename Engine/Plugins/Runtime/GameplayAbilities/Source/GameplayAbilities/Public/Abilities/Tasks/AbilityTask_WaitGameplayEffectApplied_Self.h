@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
-#include "Abilities/GameplayAbilityTypes.h"
-#include "AbilityTask_WaitGameplayEffectApplied.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayEffectTypes.h"
+#include "Abilities/GameplayAbilityTargetDataFilter.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEffectApplied.h"
 #include "AbilityTask_WaitGameplayEffectApplied_Self.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGameplayEffectAppliedSelfDelegate, AActor*, Source, FGameplayEffectSpecHandle, SpecHandle,  FActiveGameplayEffectHandle, ActiveHandle );

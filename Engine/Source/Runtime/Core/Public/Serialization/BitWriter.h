@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Serialization/Archive.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
 
 /*-----------------------------------------------------------------------------
 	FBitWriter.

@@ -2,9 +2,15 @@
 
 #pragma once
 
-#include "SlateBasics.h"
-#include "SGameplayTagWidget.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SGraphPin.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "SGameplayTagWidget.h"
+
+class SComboButton;
 
 class SGameplayTagGraphPin : public SGraphPin
 {

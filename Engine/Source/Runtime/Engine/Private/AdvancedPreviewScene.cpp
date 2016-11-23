@@ -1,22 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "AdvancedPreviewScene.h"
+#include "UnrealClient.h"
+
 #if WITH_EDITOR
 
-#include "EnginePrivate.h"
-#include "AdvancedPreviewScene.h"
 #include "Components/PostProcessComponent.h"
-#include "Engine/Scene.h"
+#include "Engine/Texture.h"
 #include "Engine/TextureCube.h"
+#include "Materials/Material.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "UObject/Package.h"
 
-#include "UnrealClient.h"
 #include "Editor/EditorPerProjectUserSettings.h"
 
 #include "Components/DirectionalLightComponent.h"
-#include "Components/SphereReflectionCaptureComponent.h"
 #include "Components/SkyLightComponent.h"
+#include "Components/StaticMeshComponent.h"
 
 #include "AssetViewerSettings.h"
+
+#include "Engine/StaticMesh.h"
 
 FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFloorOffset)
 	: FPreviewScene(CVS)

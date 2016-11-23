@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneVectorSection.h"
-#include "MovieSceneVectorTrack.h"
+#include "Sections/MovieSceneVectorSection.h"
+#include "UObject/StructOnScope.h"
 
 
 /* FMovieSceneVectorKeyStruct interface

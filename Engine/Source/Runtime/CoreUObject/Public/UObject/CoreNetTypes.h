@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+
 /** Secondary condition to check before considering the replication of a lifetime property. */
 UENUM(BlueprintType)
 enum ELifetimeCondition

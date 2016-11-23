@@ -1,8 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GraphEditorCommon.h"
+#include "GraphEditorDragDropAction.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
+#include "SGraphPanel.h"
+#include "Widgets/Layout/SScaleBox.h"
 #include "SPinTypeSelector.h"
-#include "SScaleBox.h"
 
 UEdGraphPin* FGraphEditorDragDropAction::GetHoveredPin() const
 {

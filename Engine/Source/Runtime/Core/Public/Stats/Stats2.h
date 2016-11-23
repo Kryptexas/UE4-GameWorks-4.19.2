@@ -2,12 +2,25 @@
 
 #pragma once
 
-#include "LockFreeList.h"
-#include "LockFreeFixedSizeAllocator.h"
-#include "ChunkedArray.h"
-#include "Function.h"
+#include "CoreTypes.h"
+#include "Templates/AlignOf.h"
+#include "Templates/UnrealTemplate.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Math/NumericLimits.h"
+#include "HAL/ThreadSingleton.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "HAL/PlatformTime.h"
+#include "UObject/NameTypes.h"
+#include "Containers/LockFreeList.h"
+#include "Containers/ChunkedArray.h"
+#include "Delegates/Delegate.h"
 
+class FScopeCycleCounter;
 class FThreadStats;
+struct TStatId;
+
+template < class T > class TThreadSingleton;
 
 /**
 * This is thread-private information about the thread idle stats, which we always collect, even in final builds

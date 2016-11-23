@@ -2,12 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Modules/ModuleInterface.h"
 
 class FRawStatsMemoryProfiler;
 class ISessionManager;
-class SDockTab;
 class SWidget;
-
 
 /**
  * Interface for the profiler module.

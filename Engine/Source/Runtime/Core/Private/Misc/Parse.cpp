@@ -1,7 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "LazyPrintf.h"
+#include "Misc/Parse.h"
+#include "Misc/DateTime.h"
+#include "HAL/PlatformProcess.h"
+#include "UObject/NameTypes.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Containers/Set.h"
+#include "Internationalization/Text.h"
+#include "Misc/Guid.h"
+#include "Misc/OutputDeviceNull.h"
+#include "HAL/IConsoleManager.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "Containers/LazyPrintf.h"
 
 #if !UE_BUILD_SHIPPING 
 /**

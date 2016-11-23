@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "WidgetCaching.h"
-#include "HittestGrid.h"
+#include "Layout/WidgetCaching.h"
+#include "Types/PaintArgs.h"
+#include "Input/HittestGrid.h"
 
 // FCachedWidgetNode
 //-------------------------------------------------------------

@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameCircleRuntimeSettingsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/Class.h"
 #include "GameCircleRuntimeSettings.h"
 #if WITH_EDITOR
 #include "ISettingsModule.h"

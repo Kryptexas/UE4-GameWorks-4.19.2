@@ -2,10 +2,12 @@
 
 #pragma once
 
-#include "AlembicImporterPrivatePCH.h"
+#include "STrackSelectionTableRow.h"
 
 #include "AbcImporter.h"
 #include "AbcImportData.h"
+
+#include "SlateOptMacros.h"
 
 struct FAbcTrackInformation;
 

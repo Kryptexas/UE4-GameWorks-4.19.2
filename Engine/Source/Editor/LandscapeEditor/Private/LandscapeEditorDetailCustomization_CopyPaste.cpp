@@ -1,25 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapeEditorPrivatePCH.h"
-#include "LandscapeEdMode.h"
-#include "LandscapeEditorCommands.h"
+#include "LandscapeEditorDetailCustomization_CopyPaste.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FileHelper.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Input/SButton.h"
 #include "LandscapeEditorObject.h"
-#include "LandscapeEditorDetails.h"
-#include "LandscapeEditorDetailCustomizations.h"
 
 #include "DetailLayoutBuilder.h"
-#include "DetailCategoryBuilder.h"
-#include "IDetailPropertyRow.h"
 #include "DetailWidgetRow.h"
 #include "IDetailGroup.h"
-#include "PropertyHandle.h"
+#include "IDetailChildrenBuilder.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
 
 #include "ScopedTransaction.h"
 #include "DesktopPlatformModule.h"
-#include "MainFrame.h"
 
-#include "LandscapeLayerInfoObject.h"
-#include "SNumericEntryBox.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.CopyPaste"
 

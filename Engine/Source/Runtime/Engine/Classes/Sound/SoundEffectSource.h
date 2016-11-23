@@ -1,15 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#if WITH_EDITOR
-#include "Developer/AssetTools/Public/AssetToolsModule.h"
-#endif
-#include "SoundEffectPreset.h"
-#include "SoundEffectBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sound/SoundEffectPreset.h"
+#include "Sound/SoundEffectBase.h"
+
 #include "SoundEffectSource.generated.h"
 
 class USoundEffectSource;
-class USoundEffectBase;
 
 /** Derived class for source effects. */
 UCLASS(config = Engine, abstract, editinlinenew, BlueprintType)
@@ -83,5 +82,4 @@ protected:
 	// Allow FAudioMixerSubmix to call ProcessAudio
 	friend class FMixerSubmix;
 };
-
 

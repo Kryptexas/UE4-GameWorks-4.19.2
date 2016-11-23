@@ -2,11 +2,25 @@
 
 #pragma once
 
-#include "EditorObjectsTracker.h"
-#include "IDocumentation.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "UObject/GCObject.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "WorkflowOrientedApp/WorkflowTabFactory.h"
 #include "PersonaDelegates.h"
+#include "IDocumentation.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+#include "EditorObjectsTracker.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonAnimnotifies"
+
+class IEditableSkeleton;
+class SToolTip;
+struct FNotificationInfo;
 
 /////////////////////////////////////////////////////
 // FSkeletonAnimNotifiesSummoner

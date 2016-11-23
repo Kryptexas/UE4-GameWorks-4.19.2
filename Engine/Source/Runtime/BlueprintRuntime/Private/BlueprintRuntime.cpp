@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintRuntimePrivatePCH.h"
+#include "BlueprintRuntime.h"
+#include "UObject/Class.h"
 #include "BlueprintRuntimeSettings.h"
-#include "BlueprintSupport.h"
+#include "Blueprint/BlueprintSupport.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintRuntime"
 

@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
-
+#include "CoreTypes.h"
+#include "Containers/ContainersFwd.h"
 
 // time and amount of work that was measured
 struct FTimeSample

@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "IcmpPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/ScopeLock.h"
+#include "IcmpPrivate.h"
 #include "Icmp.h"
 
 #if PLATFORM_USES_POSIX_IMCP
 
-#include "SocketSubsystem.h"
-#include "IPAddress.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>

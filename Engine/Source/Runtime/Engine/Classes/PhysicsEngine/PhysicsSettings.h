@@ -6,11 +6,14 @@
 
 #pragma once
 
-#include "PhysicsSettingsEnums.h"
-#include "BodySetupEnums.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/Casts.h"
 #include "Engine/DeveloperSettings.h"
+#include "PhysicsEngine/PhysicsSettingsEnums.h"
+#include "PhysicsEngine/BodySetupEnums.h"
 #include "PhysicsSettings.generated.h"
-
 
 /**
  * Structure that represents the name of physical surfaces.

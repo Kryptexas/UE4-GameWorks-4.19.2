@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "BuildPatchState.h"
+
 namespace BuildPatchServices
 {
 	/**

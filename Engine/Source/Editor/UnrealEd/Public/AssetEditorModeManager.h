@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "EditorModeManager.h"
+
+class FPreviewScene;
 
 //////////////////////////////////////////////////////////////////////////
 // FAssetEditorModeManager

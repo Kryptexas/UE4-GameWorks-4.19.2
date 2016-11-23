@@ -1,10 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "PersonaUtils.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
+#include "Engine/Blueprint.h"
+#include "Editor.h"
 #include "ComponentAssetBroker.h"
 #include "Animation/AnimInstance.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Animation/AnimNodeBase.h"
 
 namespace PersonaUtils

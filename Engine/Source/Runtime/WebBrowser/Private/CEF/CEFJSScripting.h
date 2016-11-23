@@ -1,13 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class Error;
+class FWebJSScripting;
+struct FWebJSParam;
+
 #if WITH_CEF3
-#include "CoreUObject.h"
 #include "WebJSFunction.h"
 #include "WebJSScripting.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 #endif
 #pragma push_macro("OVERRIDE")
 #undef OVERRIDE // cef headers provide their own OVERRIDE macro
@@ -15,6 +22,7 @@
 #include "include/cef_values.h"
 #pragma pop_macro("OVERRIDE")
 #if PLATFORM_WINDOWS
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
 

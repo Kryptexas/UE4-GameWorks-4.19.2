@@ -6,7 +6,17 @@
 
 #pragma once
 
-#include "DepthRendering.h"		// EDepthDrawingMode
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "RendererInterface.h"
+#include "StaticBoundShaderState.h"
+#include "ScenePrivateBase.h"
+#include "LightSceneInfo.h"
+#include "SceneRendering.h"
+#include "DepthRendering.h"
+
+class FDistanceFieldAOParameters;
+class UStaticMeshComponent;
 
 class FLightShaftsOutput
 {

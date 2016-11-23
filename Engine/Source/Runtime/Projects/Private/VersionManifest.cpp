@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProjectsPrivatePCH.h"
 #include "VersionManifest.h"
+#include "Misc/FileHelper.h"
+#include "Misc/App.h"
+#include "Serialization/JsonTypes.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Modules/ModuleManager.h"
 
 FVersionManifest::FVersionManifest()
 {

@@ -1,7 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaAssetsPCH.h"
 #include "MediaPlayer.h"
+#include "Modules/ModuleManager.h"
+#include "IMediaControls.h"
+#include "IMediaModule.h"
+#include "IMediaOutput.h"
+#include "IMediaPlayer.h"
+#include "IMediaPlayerFactory.h"
+#include "IMediaTracks.h"
+#include "Misc/Paths.h"
+#include "MediaAssetsPrivate.h"
 #include "MediaPlaylist.h"
 #include "MediaSource.h"
 #include "MediaSoundWave.h"

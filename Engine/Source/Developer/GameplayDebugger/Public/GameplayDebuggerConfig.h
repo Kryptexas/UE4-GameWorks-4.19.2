@@ -2,8 +2,13 @@
 
 #pragma once
 
-#include "GameplayDebuggerTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
 #include "GameplayDebuggerConfig.generated.h"
+
+struct FGameplayDebuggerInputModifier;
 
 UENUM()
 enum class EGameplayDebuggerOverrideMode : uint8

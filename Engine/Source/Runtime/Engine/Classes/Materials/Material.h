@@ -2,15 +2,25 @@
 
 #pragma once
 
-#include "Engine/BlendableInterface.h"
-#include "MaterialExpressionIO.h"
-#include "Materials/MaterialExpression.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "RenderCommandFence.h"
+#include "Templates/ScopedPointer.h"
 #include "Materials/MaterialInterface.h"
+#include "MaterialShared.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/MaterialFunction.h"
 #include "UniquePtr.h"
 
 #include "Material.generated.h"
+
+class ITargetPlatform;
+class UMaterialExpressionComment;
+class UPhysicalMaterial;
+class USubsurfaceProfile;
+class UTexture;
 
 #if WITH_EDITOR
 

@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "StreamingLevelModel.h"
+#include "CoreMinimal.h"
+#include "AssetData.h"
 #include "EditorUndoClient.h"
+#include "LevelCollectionModel.h"
+#include "IDetailsView.h"
+
+class FMenuBuilder;
 
 /** The non-UI solution specific presentation logic for a LevelsView */
 class FStreamingLevelCollectionModel 

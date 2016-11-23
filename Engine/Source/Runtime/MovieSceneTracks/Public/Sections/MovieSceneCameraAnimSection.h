@@ -2,8 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneSection.h"
+#include "Camera/CameraTypes.h"
 #include "MovieSceneCameraAnimSection.generated.h"
+
+class UCameraAnim;
 
 USTRUCT()
 struct FMovieSceneCameraAnimSectionData

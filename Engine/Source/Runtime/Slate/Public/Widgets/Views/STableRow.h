@@ -1,10 +1,33 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "TableViewTypeTraits.h"
-#include "ITypedTableView.h"
-#include "SExpanderArrow.h"
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "InputCoreTypes.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Geometry.h"
+#include "Input/Events.h"
+#include "Input/DragAndDrop.h"
+#include "Input/Reply.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Framework/Views/ITypedTableView.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Rendering/DrawElements.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/SExpanderArrow.h"
+#include "Widgets/Views/SHeaderRow.h"
+#include "Framework/Views/TableViewTypeTraits.h"
+
+template <typename ItemType> class SListView;
 
 /**
  * Interface for table views to talk to their rows.
@@ -377,6 +400,7 @@ public:
 		TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 		check(OwnerWidget.IsValid());
 
+		// Requires #include "Widgets/Views/STableViewBase.h"
 		TSharedRef< STableViewBase > OwnerTableViewBase = StaticCastSharedPtr< SListView<ItemType> >( OwnerWidget ).ToSharedRef();
 
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )

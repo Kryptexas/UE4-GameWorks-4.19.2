@@ -1,11 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ScreenShotComparisonPrivatePCH.h"
-
-#include "SScreenComparisonRow.h"
-#include "ScreenComparisonModel.h"
+#include "Widgets/SScreenComparisonRow.h"
+#include "Models/ScreenComparisonModel.h"
+#include "Modules/ModuleManager.h"
 #include "ISourceControlModule.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlProvider.h"
+#include "Brushes/SlateDynamicImageBrush.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
 #include "Widgets/Layout/SScaleBox.h"
+#include "Widgets/Input/SButton.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Interfaces/IImageWrapperModule.h"
+#include "Framework/Application/SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "SScreenShotBrowser"
 

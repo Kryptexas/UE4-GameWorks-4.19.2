@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayEffectDetails.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "GameplayAbilitiesModule.h"
+#include "UObject/UnrealType.h"
+#include "DetailLayoutBuilder.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayEffect.h"
 #include "GameplayEffectTemplate.h"
 
 #define LOCTEXT_NAMESPACE "GameplayEffectDetailsCustomization"

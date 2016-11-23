@@ -2,11 +2,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "WidgetCarouselStyle.h"
+#include "Widgets/SOverlay.h"
 #include "SWidgetCarousel.h"
 #include "SCarouselNavigationButton.h"
 #include "SCarouselNavigationBar.h"
 
-#include "SScaleBox.h"
+#include "Widgets/Layout/SScaleBox.h"
 
 /** A widget carousel which includes embedded left and right navigation buttons and a navigation bar below. */
 template <typename ItemType>

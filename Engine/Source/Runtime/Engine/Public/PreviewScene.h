@@ -6,6 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Engine/World.h"
+
+class FSceneInterface;
+
 /**
  * Encapsulates a simple scene setup for preview or thumbnail rendering.
  */

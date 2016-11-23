@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if WITH_EDITOR
+#include "InputCoreTypes.h"
 #include "EditorModes.h"
 #include "EdMode.h"
 #include "EditorViewportClient.h"

@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
+
+class FAssetData;
+
 /** Called when filtering content with a container class */
 DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnContainerContentValid, const UClass* /*SearchingClass*/, const UObject* /*Container*/, const FAssetData* /*DiskAssetData*/);
 

@@ -4,21 +4,23 @@
 	Audio.cpp: Unreal base audio.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ActiveSound.h"
 #include "Audio.h"
-#include "AudioDevice.h"
+#include "Misc/Paths.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Components/AudioComponent.h"
+#include "ContentStreaming.h"
+#include "DrawDebugHelpers.h"
 #include "AudioThread.h"
+#include "AudioDevice.h"
+#include "Sound/SoundBase.h"
 #include "Sound/SoundCue.h"
 #include "Sound/SoundWave.h"
+#include "ActiveSound.h"
 #include "Sound/SoundNodeWavePlayer.h"
-#include "AudioEffect.h"
-#include "Net/UnrealNetwork.h"
-#include "TargetPlatform.h"
 #include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "ContentStreaming.h"
-#include "IAudioExtensionPlugin.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 
 DEFINE_LOG_CATEGORY(LogAudio);
 

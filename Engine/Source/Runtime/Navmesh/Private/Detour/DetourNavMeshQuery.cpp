@@ -19,17 +19,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
-#include <math.h>
-#include <float.h>
-#include <string.h>
-#include "DetourNavMeshQuery.h"
-#include "DetourNavMesh.h"
-#include "DetourNode.h"
-#include "DetourCommon.h"
-#include "DetourAlloc.h"
-#include "DetourAssert.h"
-#include <new>
+#include "Detour/DetourNavMeshQuery.h"
+#include "Detour/DetourNode.h"
+#include "Detour/DetourAssert.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDebugRaycastCrash, All, All);
 

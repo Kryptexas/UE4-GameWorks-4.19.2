@@ -2,7 +2,14 @@
 
 #pragma once
 
-#include "Vector.h"
+#include "CoreTypes.h"
+#include "Misc/Crc.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Parse.h"
+#include "Logging/LogMacros.h"
+#include "Math/Vector2D.h"
+#include "Math/Vector.h"
 
 /**
  * A 4D homogeneous vector, 4x1 FLOATs, 16-byte aligned.

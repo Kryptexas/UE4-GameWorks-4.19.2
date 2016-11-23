@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "DataTableUtils.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
-#include "DataTableUtils.h"
+#include "Policies/PrettyJsonPrintPolicy.h"
+#include "Serialization/JsonWriter.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/EnumProperty.h"
 #include "DataTableJSON.h"
-#include "Json.h"
 
 DEFINE_LOG_CATEGORY(LogDataTable);
 

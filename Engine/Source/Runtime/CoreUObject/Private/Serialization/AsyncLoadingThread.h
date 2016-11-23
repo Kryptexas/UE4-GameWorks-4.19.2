@@ -5,6 +5,17 @@
 =============================================================================*/
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/ObjectMacros.h"
+#include "Serialization/AsyncLoading.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CommandLine.h"
+#include "Misc/App.h"
+#include "HAL/Runnable.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Misc/ConfigCacheIni.h"
+
 class IAssetRegistryInterface;
 
 #ifndef USE_EVENT_DRIVEN_ASYNC_LOAD

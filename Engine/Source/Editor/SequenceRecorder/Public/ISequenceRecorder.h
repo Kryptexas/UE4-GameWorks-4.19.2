@@ -2,10 +2,13 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "ISequenceAudioRecorder.h"
-#include "UniquePtr.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Modules/ModuleInterface.h"
 #include "Containers/ArrayView.h"
+
+class AActor;
+class ISequenceAudioRecorder;
 
 DECLARE_DELEGATE_OneParam(FOnRecordingStarted, class UMovieSceneSequence* /*Sequence*/);
 

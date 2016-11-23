@@ -5,8 +5,9 @@
 ==============================================================================================*/
 
 #pragma once
-#include "GenericPlatform/GenericPlatformProcess.h"
 
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include <sys/sysctl.h>
 
 /** Mac implementation of the process handle. */
 struct FProcHandle : public TProcHandle<void*, nullptr>

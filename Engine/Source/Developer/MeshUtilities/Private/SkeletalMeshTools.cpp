@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MeshUtilitiesPrivate.h"
-#include "MeshUtilities.h"
-#include "MeshBuild.h"
 #include "SkeletalMeshTools.h"
+#include "Engine/SkeletalMesh.h"
+#include "MeshBuild.h"
 
 namespace SkeletalMeshTools
 {

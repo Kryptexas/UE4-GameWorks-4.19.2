@@ -1,17 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "LinuxApplication.h"
-#include "LinuxWindow.h"
-#include "LinuxCursor.h"
-#include "GenericApplicationMessageHandler.h"
-#include "IInputInterface.h"
+#include "Linux/LinuxApplication.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/StringUtility.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "Features/IModularFeatures.h"
 #include "IInputDeviceModule.h"
-#include "IInputDevice.h"
-
-#if WITH_EDITOR
-#include "ModuleManager.h"
-#endif
 
 //
 // GameController thresholds

@@ -2,7 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/HUD.h"
 #include "AbilitySystemDebugHUD.generated.h"
+
+class APlayerController;
+class UAbilitySystemComponent;
+class UCanvas;
+class UFont;
 
 namespace EAlignHorizontal
 {

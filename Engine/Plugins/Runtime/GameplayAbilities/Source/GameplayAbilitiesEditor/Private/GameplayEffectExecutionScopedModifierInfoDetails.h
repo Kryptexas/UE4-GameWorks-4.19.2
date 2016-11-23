@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "IPropertyTypeCustomization.h"
+#include "GameplayEffectTypes.h"
+#include "PropertyHandle.h"
+#include "IDetailChildrenBuilder.h"
 
-class IPropertyHandle;
 class FDetailWidgetRow;
-class IDetailChildrenBuilder;
 class SCaptureDefWidget;
-struct FGameplayEffectAttributeCaptureDefinition;
 
 /** Details customization for FGameplayEffectExecutionScopedModifierInfo */
 class FGameplayEffectExecutionScopedModifierInfoDetails : public IPropertyTypeCustomization

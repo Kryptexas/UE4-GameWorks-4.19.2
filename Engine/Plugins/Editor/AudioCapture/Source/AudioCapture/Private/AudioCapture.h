@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 // For some reason this isn't getting set
 #ifndef __WINDOWS_DS__

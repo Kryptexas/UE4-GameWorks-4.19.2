@@ -5,14 +5,9 @@
 /* Public dependencies
 *****************************************************************************/
 
-#include "Core.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
 
-#include "SoundDefinitions.h"
-
-#include "AudioMixerDevice.h"
 #include "AudioMixerBuffer.h"
-#include "AudioMixerSourceVoice.h"
 #include "AudioMixerSourceManager.h"
 
 namespace Audio

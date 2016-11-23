@@ -2,9 +2,18 @@
 
 #pragma once
 
-#include "GameplayPrediction.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/NetSerialization.h"
+#include "AttributeSet.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayPrediction.h"
 #include "GameplayAbilitySpec.generated.h"
+
+class UAbilitySystemComponent;
+class UGameplayAbility;
 
 /**
  *	This file exists in addition so that GameplayEffect.h can use FGameplayAbilitySpec without having to include GameplayAbilityTypes.h which has depancies on

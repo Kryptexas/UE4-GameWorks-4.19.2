@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/TriggerBase.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Components/BillboardComponent.h"
+#include "Components/ShapeComponent.h"
+#include "Engine/Texture2D.h"
 
 ATriggerBase::ATriggerBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

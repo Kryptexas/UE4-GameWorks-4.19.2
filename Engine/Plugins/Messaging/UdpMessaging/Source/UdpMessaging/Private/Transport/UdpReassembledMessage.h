@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
 
 /**
  * Implements a reassembled message.

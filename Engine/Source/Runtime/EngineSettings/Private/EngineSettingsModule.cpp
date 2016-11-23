@@ -1,6 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EngineSettingsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UnrealType.h"
+#include "ConsoleSettings.h"
+#include "GameNetworkManagerSettings.h"
+#include "GameMapsSettings.h"
+#include "GameSessionSettings.h"
+#include "GeneralEngineSettings.h"
+#include "GeneralProjectSettings.h"
+#include "HudSettings.h"
+#include "Misc/ConfigCacheIni.h"
 
 
 /**

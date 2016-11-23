@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
+#include "CEF/CEFJSStructSerializerBackend.h"
 #if WITH_CEF3
 
-#include "CEFJSStructSerializerBackend.h"
+#include "UObject/EnumProperty.h"
+#include "UObject/TextProperty.h"
+#include "UObject/PropertyPortFlags.h"
 
 
 /* Private methods

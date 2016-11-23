@@ -2,8 +2,20 @@
 
 #pragma once
 
-#include "AnimationEditorPreviewScene.h"
+#include "CoreMinimal.h"
+#include "IPropertyTypeCustomization.h"
+#include "IPersonaPreviewScene.h"
+#include "IDetailCustomization.h"
+#include "PropertyHandle.h"
+#include "IEditableSkeleton.h"
 #include "IPersonaToolkit.h"
+#include "AnimationEditorPreviewScene.h"
+
+class FAssetData;
+class FDetailWidgetRow;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
+class IPropertyUtilities;
 
 class FPreviewSceneDescriptionCustomization : public IDetailCustomization
 {

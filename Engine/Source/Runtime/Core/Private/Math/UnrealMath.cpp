@@ -4,8 +4,10 @@
 	UnMath.cpp: Unreal math routines
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "PropertyPortFlags.h"
+#include "Math/UnrealMath.h"
+#include "Stats/Stats.h"
+#include "Math/RandomStream.h"
+#include "UObject/PropertyPortFlags.h"
 
 DEFINE_LOG_CATEGORY(LogUnrealMath);
 

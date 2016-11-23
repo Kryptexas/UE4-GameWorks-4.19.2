@@ -3,7 +3,7 @@
 // libwebsocket client wrapper.
 //
 #pragma  once
-#include "HTML5NetworkingPCH.h"
+#include "HTML5NetworkingPrivate.h"
 #if !PLATFORM_HTML5_BROWSER
 #include "Runtime/Sockets/Private/BSDSockets/SocketSubsystemBSD.h"
 #else

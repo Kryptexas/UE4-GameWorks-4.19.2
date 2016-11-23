@@ -1,12 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
 
-#include "Core.h"
 #include "ShaderFormatOpenGL.h"
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "TargetPlatform.h"   
-#include "hlslcc.h"
+#include "HAL/FileManager.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/IShaderFormat.h"
+#include "Interfaces/IShaderFormatModule.h"
 #include "ShaderCore.h"
 
 static FName NAME_GLSL_150(TEXT("GLSL_150")); 

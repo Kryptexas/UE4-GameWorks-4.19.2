@@ -193,7 +193,12 @@ namespace UnrealBuildTool
 			/// <summary>
 			/// Shared PCHs are OK!
 			/// </summary>
-			UseSharedPCHs
+			UseSharedPCHs,
+
+			/// <summary>
+			/// Shared PCHs may be used if an explicit private PCH is not set through PrivatePCHHeaderFile. In either case, none of the source files manually include a module PCH, and should include a matching header instead.
+			/// </summary>
+			UseExplicitOrSharedPCHs,
 		}
 
 		/// <summary>
@@ -244,10 +249,15 @@ namespace UnrealBuildTool
 		public CodeOptimization OptimizeCode = CodeOptimization.Default;
 
 		/// <summary>
+		/// Explicit private PCH for this module. Implies that this module will not use a shared PCH.
+		/// </summary>
+		public string PrivatePCHHeaderFile;
+
+		/// <summary>
 		/// Header file name for a shared PCH provided by this module.  Must be a valid relative path to a public C++ header file.
 		/// This should only be set for header files that are included by a significant number of other C++ modules.
 		/// </summary>
-		public string SharedPCHHeaderFile = String.Empty;
+		public string SharedPCHHeaderFile;
 
 		/// <summary>
 		/// Precompiled header usage for this module

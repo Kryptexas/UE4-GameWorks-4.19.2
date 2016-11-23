@@ -2,8 +2,20 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Components/MeshComponent.h"
 #include "SkinnedMeshComponent.generated.h"
+
+class FPrimitiveSceneProxy;
+class FSkeletalMeshResource;
+class FSkeletalMeshVertexBuffer;
+struct FSkelMeshSection;
 
 //
 // Forward declarations

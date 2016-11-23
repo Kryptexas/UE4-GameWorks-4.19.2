@@ -1,13 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "WindowsPlatformCrashContext.h"
 #include "PlatformMallocCrash.h"
 #include "ExceptionHandling.h"
-#include "WindowsPlatformCrashContext.h"
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 #include "HAL/ExceptionHandling.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/FileManager.h"
+#include "HAL/PlatformOutputDevices.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/App.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Templates/ScopedPointer.h"
+#include "WindowsPlatformStackWalk.h"
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include "UniquePtr.h"
 
@@ -28,6 +40,12 @@ void FWindowsPlatformCrashContext::AddPlatformSpecificProperties()
 	// On windows track the crash type
 	AddCrashProperty(TEXT("PlatformCallbackResult"), GetCrashType());
 }
+
+/** Platform specific constants. */
+enum EConstants
+{
+	UE4_MINIDUMP_CRASHCONTEXT = LastReservedStream + 1,
+};
 
 namespace
 {
@@ -61,7 +79,7 @@ bool WriteMinidump(FWindowsPlatformCrashContext& InContext, const TCHAR* Path, L
 
 	// CrashContext.runtime-xml is now a part of the minidump file.
 	MINIDUMP_USER_STREAM CrashContextStream ={0};
-	CrashContextStream.Type = FWindowsPlatformCrashContext::UE4_MINIDUMP_CRASHCONTEXT;
+	CrashContextStream.Type = UE4_MINIDUMP_CRASHCONTEXT;
 	CrashContextStream.BufferSize = InContext.GetBuffer().GetAllocatedSize();
 	CrashContextStream.Buffer = (void*)*InContext.GetBuffer();
 
@@ -550,4 +568,3 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }
-

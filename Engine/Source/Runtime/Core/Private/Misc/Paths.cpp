@@ -1,9 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
-#include "CorePrivatePCH.h"
+#include "Misc/Paths.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CommandLine.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/Guid.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/App.h"
-#include "EngineVersion.h"
+#include "Misc/EngineVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPaths, Log, All);
 

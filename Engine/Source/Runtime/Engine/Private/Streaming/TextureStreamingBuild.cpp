@@ -4,10 +4,22 @@
 TextureStreamingBuild.cpp : Contains definitions to build texture streaming data.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Engine/Level.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Misc/FeedbackContext.h"
+#include "Engine/Texture2D.h"
 #include "DebugViewModeMaterialProxy.h"
 #include "ShaderCompiler.h"
-#include "TextureStreamingHelpers.h"
+#include "Engine/StaticMesh.h"
+#include "Streaming/TextureStreamingHelpers.h"
+#include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY(TextureStreamingBuild);
 #define LOCTEXT_NAMESPACE "TextureStreamingBuild"

@@ -2,11 +2,25 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateTypes.h"
+#include "Framework/Commands/UIAction.h"
 #include "ProfilerDataSource.h"
+#include "ProfilerManager.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Views/SHeaderRow.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
 
-
-enum class EProfilerViewMode;
-
+class FEventGraphColumn;
+class FMenuBuilder;
 
 /** Type definition for shared pointers to instances of FEventGraphColumn. */
 typedef TSharedPtr<class FEventGraphColumn> FEventGraphColumnPtr;

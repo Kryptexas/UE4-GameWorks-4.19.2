@@ -4,22 +4,28 @@
 	NetConnection.cpp: Unreal connection base class.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Engine/NetConnection.h"
+#include "Misc/CommandLine.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "UObject/Package.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/LevelStreaming.h"
+#include "PacketHandlers/StatelessConnectHandlerComponent.h"
+#include "Engine/LocalPlayer.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
+#include "Misc/NetworkVersion.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
 #include "Net/DataReplication.h"
 #include "Engine/ActorChannel.h"
-#include "Engine/NetworkObjectList.h"
-#include "DataChannel.h"
+#include "Engine/ChildConnection.h"
+#include "Net/DataChannel.h"
 #include "Engine/PackageMapClient.h"
-#include "GameFramework/GameModeBase.h"
-#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
-#include "PerfCountersHelpers.h"
+#include "Net/PerfCountersHelpers.h"
 #include "GameDelegates.h"
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
 
 #if !UE_BUILD_SHIPPING
 static TAutoConsoleVariable<int32> CVarPingExcludeFrameTime( TEXT( "net.PingExcludeFrameTime" ), 0, TEXT( "Calculate RTT time between NIC's of server and client." ) );

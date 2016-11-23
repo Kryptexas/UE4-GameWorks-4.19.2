@@ -4,11 +4,30 @@
 	MobileTranslucentRendering.cpp: translucent rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "HitProxies.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
+#include "SceneUtils.h"
+#include "RHIStaticStates.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "SceneRenderTargetParameters.h"
+#include "DrawingPolicy.h"
+#include "SceneRendering.h"
+#include "LightMapRendering.h"
+#include "MaterialShaderType.h"
+#include "MeshMaterialShaderType.h"
+#include "MeshMaterialShader.h"
+#include "BasePassRendering.h"
+#include "DynamicPrimitiveDrawing.h"
+#include "TranslucentRendering.h"
+#include "MobileBasePassRendering.h"
 #include "ScenePrivate.h"
 #include "ScreenRendering.h"
-#include "SceneFilterRendering.h"
-#include "SceneUtils.h"
+#include "PostProcess/SceneFilterRendering.h"
 
 /** Pixel shader used to copy scene color into another texture so that materials can read from scene color with a node. */
 class FMobileCopySceneAlphaPS : public FGlobalShader

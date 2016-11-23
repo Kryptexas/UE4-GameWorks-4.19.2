@@ -1,20 +1,28 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "WorldBrowserPrivatePCH.h"
-
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
-#include "LevelEditor.h"
-#include "DesktopPlatformModule.h"
-#include "AssetData.h"
-
-#include "StreamingLevelCustomization.h"
-#include "StreamingLevelCollectionModel.h"
-#include "Engine/LevelStreaming.h"
-#include "Engine/Selection.h"
-#include "Engine/LevelStreamingVolume.h"
+#include "StreamingLevels/StreamingLevelCollectionModel.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Editor/EditorEngine.h"
+#include "Settings/LevelEditorMiscSettings.h"
 #include "Engine/LevelStreamingAlwaysLoaded.h"
 #include "Engine/LevelStreamingKismet.h"
+#include "Editor.h"
+#include "EditorDirectories.h"
+#include "FileHelpers.h"
+#include "Dialogs/Dialogs.h"
+#include "ScopedTransaction.h"
+#include "EditorLevelUtils.h"
+#include "LevelCollectionCommands.h"
+
+#include "Interfaces/IMainFrameModule.h"
+#include "DesktopPlatformModule.h"
+
+#include "StreamingLevels/StreamingLevelCustomization.h"
+#include "StreamingLevels/StreamingLevelModel.h"
+#include "Engine/Selection.h"
+#include "Engine/LevelStreamingVolume.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

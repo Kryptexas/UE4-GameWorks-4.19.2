@@ -1,10 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "TranslationEditorPrivatePCH.h"
 #include "TranslationPickerFloatingWindow.h"
-#include "Editor/Documentation/Public/SDocumentationToolTip.h"
+#include "Internationalization/Culture.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Text/SRichTextBlock.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/SToolTip.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Framework/Docking/TabManager.h"
+#include "SDocumentationToolTip.h"
 #include "TranslationPickerEditWindow.h"
-#include "Editor/TranslationEditor/Private/TranslationPickerWidget.h"
+#include "TranslationPickerWidget.h"
 
 #define LOCTEXT_NAMESPACE "TranslationPicker"
 

@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+
 // Custom serialization version for assets/classes in the AnimGraphRuntime and AnimGraph modules
 struct ANIMGRAPHRUNTIME_API FAnimationCustomVersion
 {

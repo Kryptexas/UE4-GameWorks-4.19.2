@@ -2,10 +2,12 @@
 
 #pragma once
 
-#include "Engine/EngineTypes.h"  // @todo: fix GlobalShader.h include dependencies
-#include "GlobalShader.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
 #include "RenderResource.h"
-
+#include "Shader.h"
+#include "Engine/Texture.h"
+#include "GlobalShader.h"
 
 /**
  * Stores media drawing vertices.

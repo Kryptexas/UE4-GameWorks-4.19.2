@@ -1,11 +1,28 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/Interface.h"
+#include "GameFramework/Actor.h"
+#include "CollisionQueryParams.h"
 #include "Engine/LatentActionManager.h"
-#include "Kismet/KismetSystemLibrary.h"
+#include "GameFramework/PlayerController.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Sound/DialogueTypes.h"
 #include "GameplayStatics.generated.h"
+
+class UAudioComponent;
+class UBlueprint;
+class UDecalComponent;
+class UParticleSystemComponent;
+class USaveGame;
+class UStaticMesh;
 
 //
 // Forward declarations.

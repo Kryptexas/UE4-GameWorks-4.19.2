@@ -5,6 +5,12 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
+#include "EngineDefines.h"
 #include "VehicleWheel.generated.h"
 
 class UPhysicalMaterial;

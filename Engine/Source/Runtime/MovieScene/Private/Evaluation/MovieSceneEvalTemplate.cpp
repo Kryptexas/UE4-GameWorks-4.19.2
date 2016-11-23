@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneEvalTemplateSerializer.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieSceneEvalTemplateSerializer.h"
 
 bool FMovieSceneEvalTemplatePtr::Serialize(FArchive& Ar)
 {

@@ -6,9 +6,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/ThreadSafeBool.h"
 #include "Sound/SoundClass.h"
 #include "Sound/SoundAttenuation.h"
 #include "IAudioExtensionPlugin.h"
+
+class FAudioDevice;
+class USoundNode;
+class USoundWave;
+struct FActiveSound;
+struct FWaveInstance;
+
+//#include "Sound/SoundConcurrency.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
 

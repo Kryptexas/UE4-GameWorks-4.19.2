@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Framework/Docking/WorkspaceItem.h"
+
 /**
  * Describes the workspace menu from which tabs are summoned
  *

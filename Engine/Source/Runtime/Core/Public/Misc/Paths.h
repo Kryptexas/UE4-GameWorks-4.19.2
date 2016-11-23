@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "HAL/CriticalSection.h"
 
 /**
  * Path helpers for retrieving game dir, engine dir, etc.

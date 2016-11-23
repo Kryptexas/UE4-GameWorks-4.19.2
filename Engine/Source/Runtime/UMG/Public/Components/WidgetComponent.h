@@ -2,9 +2,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Layout/ArrangedWidget.h"
+#include "WorldCollision.h"
+#include "Components/MeshComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "WidgetComponent.generated.h"
 
-struct FVirtualPointerPosition;
+class FHittestGrid;
+class FPrimitiveSceneProxy;
+class FWidgetRenderer;
+class SVirtualWindow;
+class SWindow;
+class UBodySetup;
+class UMaterialInstanceDynamic;
+class UTextureRenderTarget2D;
 
 UENUM(BlueprintType)
 enum class EWidgetSpace : uint8

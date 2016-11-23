@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SteamVRPrivatePCH.h"
 #include "SteamVRSplash.h"
+#include "SteamVRPrivate.h"
 #include "SteamVRHMD.h"
 
 #if STEAMVR_SUPPORTED_PLATFORMS

@@ -2,7 +2,9 @@
 
 #pragma once
 
-class FString;
+#include "CoreTypes.h"
+#include "HAL/PlatformMemory.h"
+#include "Containers/UnrealString.h"
 
 /** 
  * Symbol information associated with a program counter. 

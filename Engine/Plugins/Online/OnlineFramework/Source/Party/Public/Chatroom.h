@@ -1,10 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "OnlineChatInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Interfaces/OnlineChatInterface.h"
 #include "Chatroom.generated.h"
 
-class UWorld;
+class Error;
+class FTimerManager;
+struct FUniqueNetIdRepl;
 
 /**
  * Delegate fired when chat room attempt has completed

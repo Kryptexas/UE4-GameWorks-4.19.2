@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
 #include "SGraphPin.h"
 
 class SGameplayAttributeGraphPin : public SGraphPin

@@ -15,6 +15,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Delegates/Delegate.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
 #include "GoogleVRControllerEventManager.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGoogleVRControllerRecenterDelegate);

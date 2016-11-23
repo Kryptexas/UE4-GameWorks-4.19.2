@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SandboxFilePrivatePCH.h"
 #include "IPlatformFileSandboxWrapper.h"
-#include "IPlatformFileModule.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Guid.h"
+#include "Stats/Stats.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "HAL/IPlatformFileModule.h"
 #include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY(SandboxFile);

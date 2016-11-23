@@ -358,6 +358,19 @@ namespace UnrealBuildTool
 			// Build a list of actions that are both needed for this target and outdated.
 			HashSet<Action> ActionsToExecute = AllActions.Where(Action => Action.CommandPath != null && IsActionOutdatedMap.ContainsKey(Action) && OutdatedActionDictionary[Action]).ToHashSet();
 
+			// Delete PDB files for all produced items, since incremental updates are slower than full ones.
+			foreach (Action ActionToExecute in ActionsToExecute)
+			{
+				foreach (FileItem ProducedItem in ActionToExecute.ProducedItems)
+				{
+					if(ProducedItem.bExists && !BuildConfiguration.bUseIncrementalLinking && ProducedItem.Reference.HasExtension(".pdb"))
+					{
+						Log.TraceVerbose("Deleting outdated pdb: {0}", ProducedItem.AbsolutePath);
+						ProducedItem.Delete();
+					}
+				}
+			}
+
 			// Remove link actions if asked to
 			if (UEBuildConfiguration.bSkipLinkingWhenNothingToCompile)
 			{
@@ -1186,11 +1199,7 @@ namespace UnrealBuildTool
 					Action OutdatedAction = OutdatedActionInfo.Key;
 					foreach (FileItem ProducedItem in OutdatedActionInfo.Key.ProducedItems)
 					{
-						if (ProducedItem.bExists
-						&& (bShouldDeleteAllFiles
-							// Delete PDB files as incremental updates are slower than full ones.
-							|| (!BuildConfiguration.bUseIncrementalLinking && ProducedItem.AbsolutePath.EndsWith(".PDB", StringComparison.InvariantCultureIgnoreCase))
-							|| OutdatedAction.bShouldDeleteProducedItems))
+						if (ProducedItem.bExists && (bShouldDeleteAllFiles || OutdatedAction.bShouldDeleteProducedItems))
 						{
 							Log.TraceVerbose("Deleting outdated item: {0}", ProducedItem.AbsolutePath);
 							ProducedItem.Delete();

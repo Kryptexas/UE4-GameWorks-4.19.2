@@ -1,9 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendBase.h"
+#include "UObject/UnrealType.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Misc/Paths.h"
+#include "UObject/Interface.h"
+#include "Engine/Blueprint.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "K2Node_Event.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_CreateDelegate.h"
+#include "SourceCodeNavigation.h"
+#include "IBlueprintCompilerCppBackendModule.h"
+#include "BlueprintCompilerCppBackendGatherDependencies.h"
 #include "BlueprintCompilerCppBackendUtils.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Animation/AnimNodeBase.h"
 
 TArray<class UFunction*> IBlueprintCompilerCppBackendModule::CollectBoundFunctions(class UBlueprint* BP)

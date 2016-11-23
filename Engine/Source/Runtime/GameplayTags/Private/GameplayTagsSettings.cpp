@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsModulePrivatePCH.h"
+#include "GameplayTagsSettings.h"
+#include "GameplayTagsModule.h"
 
 UGameplayTagsList::UGameplayTagsList(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

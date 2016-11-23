@@ -2,11 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "PropertySection.h"
-
-
-class UMovieSceneSection;
-
 
 /**
  * A movie scene section for material parameters.

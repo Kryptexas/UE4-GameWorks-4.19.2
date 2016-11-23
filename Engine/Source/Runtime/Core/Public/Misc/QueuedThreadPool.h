@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "GenericPlatform/GenericPlatformAffinity.h"
+
+class IQueuedWork;
+
 /**
  * Interface for queued thread pools.
  *

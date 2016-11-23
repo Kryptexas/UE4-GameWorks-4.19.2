@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+
+class IAutomationReport;
+template< typename ItemType > class TFilterCollection;
 
 /**
 * The automation filter collection - used for updating the automation report list

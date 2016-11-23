@@ -6,9 +6,17 @@
 
 #pragma once
 
-#include "PhysXPublic.h"
-
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/ScopeLock.h"
+#include "EngineDefines.h"
+#include "Containers/Queue.h"
 #include "Physics/PhysicsFiltering.h"
+
+class UBodySetup;
+class UPhysicalMaterial;
+struct FByteBulkData;
+struct FCollisionShape;
 
 #if WITH_PHYSX
 

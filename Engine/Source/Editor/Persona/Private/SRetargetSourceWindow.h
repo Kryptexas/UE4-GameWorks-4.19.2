@@ -2,6 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Engine/SkeletalMesh.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+
+class FAssetData;
+class IEditableSkeleton;
+template <typename ItemType> class SListView;
+
 //////////////////////////////////////////////////////////////////////////
 // FDisplayedRetargetSourceInfo
 

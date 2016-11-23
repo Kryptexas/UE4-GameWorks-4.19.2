@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AutomationWindowPrivatePCH.h"
+#include "AutomationPresetManager.h"
+#include "HAL/FileManager.h"
+#include "UObject/Class.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
 
 FAutomationTestPresetManager::FAutomationTestPresetManager()

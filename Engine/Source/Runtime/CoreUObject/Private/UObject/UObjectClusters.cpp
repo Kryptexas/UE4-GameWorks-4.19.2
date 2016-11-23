@@ -4,12 +4,20 @@
 	UObjectClusters.cpp: Unreal UObject Cluster helper functions
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "Interface.h"
-#include "ModuleManager.h"
-#include "FastReferenceCollector.h"
-#include "GarbageCollection.h"
-#include "ReferenceChainSearch.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Containers/LockFreeList.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectArray.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/ReferenceChainSearch.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/FastReferenceCollector.h"
 
 int32 GCreateGCClusters = 1;
 static FAutoConsoleVariableRef CCreateGCClusters(

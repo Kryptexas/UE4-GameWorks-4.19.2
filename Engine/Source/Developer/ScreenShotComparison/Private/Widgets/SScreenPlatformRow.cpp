@@ -3,7 +3,12 @@
 /*=============================================================================
 	SScreenPlatformRow.h: Implements the SScreenPlatformRow class.
 =============================================================================*/
-#include "ScreenShotComparisonPrivatePCH.h"
+#include "Widgets/SScreenPlatformRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
+#include "EditorStyleSet.h"
+#include "Interfaces/IScreenShotData.h"
+#include "Widgets/SScreenShotItem.h"
 
 
 void SScreenPlatformRow::Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )

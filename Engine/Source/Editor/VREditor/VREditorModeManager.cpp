@@ -1,14 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorModeManager.h"
+#include "InputCoreTypes.h"
 #include "VREditorMode.h"
-#include "VREditorMode.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Modules/ModuleManager.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/WorldSettings.h"
+#include "Editor.h"
 
+#include "EngineGlobals.h"
 #include "LevelEditor.h"
-#include "SLevelViewport.h"
-#include "HeadMountedDisplay.h"
-#include "Kismet/HeadMountedDisplayFunctionLibrary.h"	// For EHMDWornState::Type
+#include "IHeadMountedDisplay.h"
 #include "EditorWorldManager.h"
 
 FVREditorModeManager::FVREditorModeManager() :

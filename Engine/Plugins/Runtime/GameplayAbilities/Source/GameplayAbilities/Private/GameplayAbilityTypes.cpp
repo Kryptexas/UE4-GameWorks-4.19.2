@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
+#include "Abilities/GameplayAbilityTypes.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/MovementComponent.h"
+#include "Abilities/GameplayAbility.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayTagContainer.h"
-#include "GameplayEffectTypes.h"
-#include "GameplayAbility.h"
 
 //----------------------------------------------------------------------
 

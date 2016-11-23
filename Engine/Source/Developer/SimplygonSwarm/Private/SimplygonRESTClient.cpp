@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SimplygonSwarmPrivatePCH.h"
 #include "SimplygonRESTClient.h"
+#include "HAL/RunnableThread.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
 #define HOSTNAME "http://127.0.0.1"
 #define PORT ":55002"

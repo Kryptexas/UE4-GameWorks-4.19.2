@@ -4,7 +4,10 @@
 #ifndef __FbxAnimUtils_h__
 #define __FbxAnimUtils_h__
 
+#include "CoreMinimal.h"
+
 class UAnimSequence;
+class UCurveTable;
 class USkeletalMesh;
 
 //Define interface for exporting fbx animation

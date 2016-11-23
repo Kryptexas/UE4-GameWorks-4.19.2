@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "SlowTask.h"
+#include "Misc/SlowTask.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/FeedbackContext.h"
 
 FSlowTask::FSlowTask(float InAmountOfWork, const FText& InDefaultMessage, bool bInEnabled, FFeedbackContext& InContext)
 	: DefaultMessage(InDefaultMessage)

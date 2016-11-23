@@ -2,11 +2,12 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "IDetailCustomization.h"
 
-class IPropertyHandle;
-class FDetailWidgetRow;
 class IDetailLayoutBuilder;
+class IPropertyHandle;
+class UGameplayEffectTemplate;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGameplayEffectDetails, Log, All);
 

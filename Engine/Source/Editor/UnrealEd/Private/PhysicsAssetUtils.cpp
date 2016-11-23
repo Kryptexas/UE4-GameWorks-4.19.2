@@ -1,14 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "PhysicsAssetUtils.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
-#include "Editor/UnrealEd/Private/ConvexDecompTool.h"
-#include "MessageLog.h"
+#include "Modules/ModuleManager.h"
+#include "MeshUtilities.h"
+#include "ConvexDecompTool.h"
+#include "Logging/MessageLog.h"
+#include "PhysicsEngine/RigidBodyIndexPair.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "PhysicsEngine/SphylElem.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
-#include "EngineLogs.h"
-#include "PhysicsEngine/BodySetup.h"
 
 void FPhysAssetCreateParams::Initialize()
 {

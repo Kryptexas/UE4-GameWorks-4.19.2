@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AlembicLibraryPublicPCH.h"
-#include "Engine.h"
-#include "UnrealEd.h"
+#include "AlembicTestCommandLet.h"
 #include "AbcImporter.h"
 #include "AbcImportSettings.h"
-#include "AlembicTestCommandLet.h"
+#include "Misc/Paths.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAlembicCommandlet, Log, All);
 

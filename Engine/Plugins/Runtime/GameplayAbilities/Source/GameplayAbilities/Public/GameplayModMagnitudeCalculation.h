@@ -2,13 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameplayEffectCalculation.h"
 #include "GameplayEffect.h"
 #include "GameplayModMagnitudeCalculation.generated.h"
-
-// Forward declarations
-struct FGameplayEffectSpec;
-class UAbilitySystemComponent;
 
 /** Class used to perform custom gameplay effect modifier calculations, either via blueprint or native code */ 
 UCLASS(BlueprintType, Blueprintable, Abstract)

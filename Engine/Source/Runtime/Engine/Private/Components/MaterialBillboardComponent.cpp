@@ -1,9 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "LevelUtils.h"
-#include "LocalVertexFactory.h"
 #include "Components/MaterialBillboardComponent.h"
+#include "EngineGlobals.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "VertexFactory.h"
+#include "PackedNormal.h"
+#include "LocalVertexFactory.h"
+#include "PrimitiveViewRelevance.h"
+#include "Materials/MaterialInterface.h"
+#include "PrimitiveSceneProxy.h"
+#include "Engine/CollisionProfile.h"
+#include "Curves/CurveFloat.h"
+#include "SceneManagement.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
+#include "LevelUtils.h"
 
 /** A material sprite vertex. */
 struct FMaterialSpriteVertex

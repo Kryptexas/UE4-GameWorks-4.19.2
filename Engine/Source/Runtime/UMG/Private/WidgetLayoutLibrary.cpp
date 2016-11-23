@@ -1,10 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "Slate/SlateBrushAsset.h"
-#include "WidgetLayoutLibrary.h"
-#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
-#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "EngineGlobals.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
+#include "Components/Widget.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/VerticalBoxSlot.h"
+#include "Components/UniformGridSlot.h"
+#include "Components/GridSlot.h"
+#include "Components/OverlaySlot.h"
+#include "Components/BorderSlot.h"
+#include "Engine/UserInterfaceSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

@@ -2,7 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/SWidget.h"
 #include "PropertyHandle.h"
+#include "AssetData.h"
+#include "PropertyNode.h"
+
+class FNotifyHook;
+class FPropertyRestriction;
 
 class FObjectBaseAddress
 {

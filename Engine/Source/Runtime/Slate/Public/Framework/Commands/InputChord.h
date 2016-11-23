@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "GenericApplication.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "InputCoreTypes.h"
+#include "GenericPlatform/GenericApplication.h"
 #include "InputChord.generated.h"
 
 //(4.8, "Use FInputChord instead of FInputGesture")

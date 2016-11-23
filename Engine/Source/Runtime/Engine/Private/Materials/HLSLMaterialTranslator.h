@@ -5,27 +5,38 @@
 
 #pragma once
 
-#if WITH_EDITORONLY_DATA
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "HAL/IConsoleManager.h"
+#include "ShaderParameters.h"
+#include "StaticParameterSet.h"
+#include "MaterialShared.h"
+#include "Stats/StatsMisc.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/Material.h"
+#include "MaterialCompiler.h"
+#include "RenderUtils.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
-#include "EnginePrivate.h"
-#include "Materials/MaterialExpressionWorldPosition.h"
-#include "Materials/MaterialExpressionTextureSample.h"
+#if WITH_EDITORONLY_DATA
 #include "Materials/MaterialExpressionSceneTexture.h"
 #include "Materials/MaterialExpressionNoise.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
-#include "Materials/MaterialExpressionMaterialFunctionCall.h"
-#include "Materials/MaterialExpressionTransform.h"
-#include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionVectorNoise.h"
-#include "Materials/MaterialFunction.h"
-#include "MaterialCompiler.h"
-#include "MaterialUniformExpressions.h"
+#include "Materials/MaterialUniformExpressions.h"
 #include "ParameterCollection.h"
 #include "Materials/MaterialParameterCollection.h"
-#include "LazyPrintf.h"
+#include "Containers/LazyPrintf.h"
+#endif
+
+class Error;
+
+#if WITH_EDITORONLY_DATA
 
 /** @return the number of components in a vector type. */
 static inline uint32 GetNumComponents(EMaterialValueType Type)

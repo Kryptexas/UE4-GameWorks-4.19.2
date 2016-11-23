@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "Delegates/Delegate.h"
+
 CORE_API DECLARE_LOG_CATEGORY_EXTERN( LogNetVersion, Log, All );
 
 class FNetworkReplayVersion

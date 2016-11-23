@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "Generation/StatsCollector.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/OutputDeviceRedirector.h"
 
-#include "StatsCollector.h"
 
 
 namespace BuildPatchServices
@@ -13,8 +15,8 @@ namespace BuildPatchServices
 	uint64 FStatsCollector::GetCycles()
 	{
 #if PLATFORM_WINDOWS
-		LARGE_INTEGER Cycles;
-		QueryPerformanceCounter(&Cycles);
+		Windows::LARGE_INTEGER Cycles;
+		Windows::QueryPerformanceCounter(&Cycles);
 		return Cycles.QuadPart;
 #elif PLATFORM_MAC
 		uint64 Cycles = mach_absolute_time();

@@ -1,19 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemSteamPrivatePCH.h"
 #include "OnlineSessionInterfaceSteam.h"
+#include "Misc/CommandLine.h"
+#include "UObject/CoreNet.h"
+#include "Engine/EngineBaseTypes.h"
+#include "SocketSubsystem.h"
+#include "OnlineAsyncTaskManagerSteam.h"
 #include "OnlineSessionAsyncLobbySteam.h"
 #include "OnlineSessionAsyncServerSteam.h"
 #include "OnlineLeaderboardInterfaceSteam.h"
-#include "VoiceInterfaceSteam.h"
-#include "OnlineSubsystemSteam.h"
-#include "SocketSubsystem.h"
 #include "LANBeacon.h"
-#include "IPAddressSteam.h"
 #include "NboSerializerSteam.h"
-#include "SteamUtilities.h"
+#include "Interfaces/VoiceInterface.h"
 
-#include "Engine.h"
 
 /** Constructor for non-lobby sessions */
 FOnlineSessionInfoSteam::FOnlineSessionInfoSteam(ESteamSession::Type InSessionType) :

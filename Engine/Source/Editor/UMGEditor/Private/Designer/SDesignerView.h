@@ -2,18 +2,40 @@
 
 #pragma once
 
-#include "SCompoundWidget.h"
-#include "SNodePanel.h"
-#include "SDesignSurface.h"
-#include "DesignerExtension.h"
+#include "CoreMinimal.h"
+#include "Templates/SubclassOf.h"
+#include "Styling/SlateColor.h"
+#include "Layout/SlateRect.h"
+#include "Layout/Visibility.h"
+#include "Layout/Geometry.h"
+#include "Input/Reply.h"
+#include "Layout/ArrangedWidget.h"
+#include "Widgets/SWidget.h"
+#include "UObject/GCObject.h"
+#include "Types/SlateStructs.h"
+#include "Animation/CurveSequence.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateBrush.h"
+#include "Components/Widget.h"
+#include "WidgetReference.h"
+#include "WidgetBlueprintEditor.h"
+#include "Settings/LevelEditorPlaySettings.h"
+#include "Layout/WidgetPath.h"
 #include "IUMGDesigner.h"
+#include "DesignerExtension.h"
+#include "Designer/SDesignSurface.h"
 
-#include "SPaintSurface.h"
-
-class FDesignerExtension;
-class UPanelWidget;
-class UUserWidget;
+class FMenuBuilder;
+class FScopedTransaction;
+class SBox;
+class SCanvas;
+class SPaintSurface;
 class SRuler;
+class SZoomPan;
+class UPanelWidget;
+class UWidgetBlueprint;
+struct FOnPaintHandlerParams;
+struct FWidgetHitResult;
 
 /**
  * The designer for widgets.  Allows for laying out widgets in a drag and drop environment.

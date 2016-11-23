@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-#include "Image.h"
-#include "WidgetTemplateImageClass.h"
-
+#include "Templates/WidgetTemplateImageClass.h"
+#include "Components/Image.h"
+#include "Materials/MaterialInterface.h"
+#include "Engine/Texture.h"
 
 FWidgetTemplateImageClass::FWidgetTemplateImageClass(const FAssetData& InAssetData)
 	: FWidgetTemplateClass(UImage::StaticClass())

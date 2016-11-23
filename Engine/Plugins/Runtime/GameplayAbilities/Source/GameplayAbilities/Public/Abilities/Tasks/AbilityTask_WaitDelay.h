@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
-#include "Abilities/GameplayAbilityTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_WaitDelay.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitDelayDelegate);

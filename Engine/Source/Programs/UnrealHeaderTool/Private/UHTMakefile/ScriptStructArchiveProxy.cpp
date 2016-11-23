@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "ScriptStructArchiveProxy.h"
 #include "UnrealHeaderTool.h"
-#include "UHTMakefile/UHTMakefile.h"
-#include "UHTMakefile/StructArchiveProxy.h"
+#include "UObject/Package.h"
+#include "UHTMakefile.h"
 
 FScriptStructArchiveProxy::FScriptStructArchiveProxy(FUHTMakefile& UHTMakefile, const UScriptStruct* ScriptStruct)
 	: FStructArchiveProxy(UHTMakefile, ScriptStruct)

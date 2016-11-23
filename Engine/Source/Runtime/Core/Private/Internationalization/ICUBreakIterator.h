@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "IBreakIterator.h"
+#include "CoreTypes.h"
+#include "Containers/Set.h"
+#include "Templates/SharedPointer.h"
+#include "Internationalization/IBreakIterator.h"
 
 #if UE_ENABLE_ICU
 

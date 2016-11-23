@@ -1,14 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FbxAutomationBuilderPrivatePCH.h"
 #include "FbxAutomationBuilder.h"
-
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SComboBox.h"
+#include "EditorStyleSet.h"
+#include "Factories/FbxImportUI.h"
 #include "Editor.h"
-#include "EditorModeManager.h"
+
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
 
-#include "FbxAutomationCommon.h"
+#include "Tests/FbxAutomationCommon.h"
 
 #define PIXEL_INSPECTOR_REQUEST_TIMEOUT 10
 #define MINIMUM_TICK_BETWEEN_CREATE_REQUEST 10

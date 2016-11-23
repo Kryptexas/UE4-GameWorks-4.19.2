@@ -1,13 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BehaviorTreeEditorPrivatePCH.h"
-#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTreeDebugger.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/Controller.h"
+#include "EngineGlobals.h"
+#include "Editor/EditorEngine.h"
+#include "Editor.h"
 #include "BehaviorTree/BTNode.h"
 #include "BehaviorTree/BTTaskNode.h"
 #include "BehaviorTree/BTAuxiliaryNode.h"
-#include "BehaviorTreeDelegates.h"
+#include "BehaviorTreeGraphNode_CompositeDecorator.h"
+#include "BehaviorTreeEditor.h"
+#include "Editor/UnrealEdEngine.h"
 #include "Engine/Selection.h"
+#include "GameFramework/PlayerController.h"
 #include "EngineUtils.h"
+#include "UnrealEdGlobals.h"
+#include "BehaviorTreeGraphNode_Decorator.h"
+#include "BehaviorTreeGraphNode_Service.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTreeDelegates.h"
 
 FBehaviorTreeDebugger::FBehaviorTreeDebugger()
 {

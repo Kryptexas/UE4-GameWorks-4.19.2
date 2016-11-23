@@ -2,9 +2,42 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Layout/Margin.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Misc/Paths.h"
+#include "Interfaces/ILauncherWorker.h"
+#include "HAL/FileManager.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/SHeaderRow.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/STableRow.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/ScopeLock.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Notifications/SProgressBar.h"
+#include "DesktopPlatformModule.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "Framework/Layout/Overscroll.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/SProjectLauncherTaskListRow.h"
+#include "Widgets/SProjectLauncherMessageListRow.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Layout/SScrollBox.h"
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherProgress"
 
+class Error;
 
 /**
  * Implements the launcher's progress page.

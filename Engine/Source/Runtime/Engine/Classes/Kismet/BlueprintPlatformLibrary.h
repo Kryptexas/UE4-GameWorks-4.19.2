@@ -2,10 +2,14 @@
 
 #pragma once
 
-#include "BlueprintFunctionLibrary.h"
-#include "GenericPlatformMisc.h"
-#include "LocalNotification.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/TextProperty.h"
+#include "Engine/GameInstance.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "BlueprintPlatformLibrary.generated.h"
+
+class ILocalNotificationService;
 
 /**
  * The list of possible device/screen orientation for mobile devices

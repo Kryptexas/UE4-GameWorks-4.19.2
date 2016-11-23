@@ -4,15 +4,16 @@
 	ModelComponent.cpp: Model component implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Components/ModelComponent.h"
-#include "Model.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Materials/Material.h"
+#include "Engine/CollisionProfile.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "Engine/Texture2D.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
-#include "Components/ModelComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "RenderingObjectVersion.h"
 
 FModelElement::FModelElement(UModelComponent* InComponent,UMaterialInterface* InMaterial):
 	Component(InComponent),

@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "Classes/Factories/SoundCueFactoryNew.h"
+#include "Factories/SoundCueFactoryNew.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "Sound/SoundNodeModulator.h"
 #include "Sound/SoundNodeDialoguePlayer.h"
 #include "SoundCueGraph/SoundCueGraphNode.h"
+#include "Sound/SoundCue.h"
+#include "Sound/DialogueWave.h"
 
 USoundCueFactoryNew::USoundCueFactoryNew(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

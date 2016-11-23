@@ -8,6 +8,15 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Logging/LogMacros.h"
+
+struct FHistogramBuilder;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogHistograms, Log, All);
 
  struct FHistogramBuilder;

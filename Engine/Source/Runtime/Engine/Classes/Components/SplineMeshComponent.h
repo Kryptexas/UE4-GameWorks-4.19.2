@@ -2,10 +2,17 @@
 
 #pragma once
 
-#include "Components/StaticMeshComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Components/StaticMeshComponent.h"
 
 #include "SplineMeshComponent.generated.h"
+
+class FPrimitiveSceneProxy;
+class ULightComponent;
+struct FNavigableGeometryExport;
 
 UENUM(BlueprintType)
 namespace ESplineMeshAxis

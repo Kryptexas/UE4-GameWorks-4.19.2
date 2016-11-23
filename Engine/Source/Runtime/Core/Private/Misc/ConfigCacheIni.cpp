@@ -1,15 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/DateTime.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/CommandLine.h"
+#include "Math/Vector4.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
-#include "ConfigCacheIni.h"
-#include "RemoteConfigIni.h"
-#include "AES.h"
-#include "SecureHash.h"
-#include "DefaultValueHelper.h"
-#include "EngineBuildSettings.h"
-#include "Paths.h"
-#include "ConfigManifest.h"
+#include "Misc/RemoteConfigIni.h"
+#include "Misc/DefaultValueHelper.h"
+#include "Misc/ConfigManifest.h"
 
 #if WITH_EDITOR
 	#define INI_CACHE 1

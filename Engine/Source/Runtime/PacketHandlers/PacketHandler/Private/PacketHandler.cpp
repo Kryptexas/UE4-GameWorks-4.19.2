@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PacketHandlerPCH.h"
-
 #include "PacketHandler.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Package.h"
+
 #include "HandlerComponentFactory.h"
 #include "ReliabilityHandlerComponent.h"
 

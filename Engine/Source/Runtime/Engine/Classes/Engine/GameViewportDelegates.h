@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "GenericPlatform/GenericApplication.h"
+
+class FViewport;
 
 /**
  * Delegate type used by UGameViewportClient when a screenshot has been captured

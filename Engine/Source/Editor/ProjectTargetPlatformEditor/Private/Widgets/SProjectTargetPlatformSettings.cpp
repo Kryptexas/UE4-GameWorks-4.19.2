@@ -1,7 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProjectTargetPlatformEditorPrivatePCH.h"
-#include "IProjectManager.h"
+#include "Widgets/SProjectTargetPlatformSettings.h"
+#include "Widgets/SBoxPanel.h"
+#include "Styling/SlateTypes.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "PlatformInfo.h"
+#include "GameProjectGenerationModule.h"
+#include "Interfaces/IProjectManager.h"
 
 #define LOCTEXT_NAMESPACE "SProjectTargetPlatformSettings"
 

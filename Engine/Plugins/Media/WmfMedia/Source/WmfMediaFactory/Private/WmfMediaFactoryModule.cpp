@@ -1,10 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WmfMediaFactoryPCH.h"
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/WeakObjectPtr.h"
+#include "IMediaModule.h"
+#include "IWmfMediaModule.h"
+#include "WmfMediaFactoryPrivate.h"
+#include "IMediaOptions.h"
 #include "IMediaPlayerFactory.h"
-#include "ModuleInterface.h"
 #include "WmfMediaSettings.h"
 
+#if WITH_EDITOR
+	#include "ISettingsModule.h"
+	#include "ISettingsSection.h"
+#endif
 
 DEFINE_LOG_CATEGORY(LogWmfMediaFactory);
 

@@ -4,7 +4,16 @@
 	BuildPatchChunkCache.cpp: Implements classes involved with chunks for the build system.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchChunkCache.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/FeedbackContext.h"
+#include "BuildPatchError.h"
+#include "BuildPatchDownloader.h"
+#include "BuildPatchServicesModule.h"
+#include "BuildPatchHash.h"
+#include "BuildPatchUtil.h"
+#include "BuildPatchAnalytics.h"
 
 // How many chunks we should be able to keep in RAM while required
 #define CHUNK_CACHE_SIZE		256

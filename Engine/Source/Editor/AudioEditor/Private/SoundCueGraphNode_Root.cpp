@@ -4,10 +4,10 @@
 	SoundCueGraphNode_Root.cpp
 =============================================================================*/
 
-#include "AudioEditorPrivatePCH.h"
+#include "SoundCueGraph/SoundCueGraphNode_Root.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "GraphEditorSettings.h"
 #include "SoundCueGraphEditorCommands.h"
-#include "SoundCueGraph/SoundCueGraphNode_Root.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueGraphNode_Root"
 

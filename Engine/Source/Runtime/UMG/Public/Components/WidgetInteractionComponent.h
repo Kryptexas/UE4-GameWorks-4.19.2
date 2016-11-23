@@ -2,11 +2,19 @@
 
 #pragma once
 
-#include "Components/WidgetComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Layout/WidgetPath.h"
 #include "WidgetInteractionComponent.generated.h"
 
+class FSlateVirtualUser;
 class UPrimitiveComponent;
-class AActor;
+class UWidgetComponent;
 
 /**
  * The interaction source for the widget interaction component, e.g. where do we try and

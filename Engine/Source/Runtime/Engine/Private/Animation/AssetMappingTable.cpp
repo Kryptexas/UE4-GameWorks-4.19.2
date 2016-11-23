@@ -4,9 +4,8 @@
 	UAssetMappingTable.cpp: AssetMappingTable functionality for sharing animations
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "Animation/AnimSequenceBase.h"
 #include "Animation/AssetMappingTable.h"
+#include "Animation/AnimationAsset.h"
 
 //@todo should move all this window stuff somewhere else. Persona?
 

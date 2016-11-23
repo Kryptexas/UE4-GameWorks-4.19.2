@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
 
-#include "GearVRPrivatePCH.h"
-#include "GearVR.h"
 #include "../Public/GearVRFunctionLibrary.h"
+#include "GearVR.h"
 
 UGearVRFunctionLibrary::UGearVRFunctionLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

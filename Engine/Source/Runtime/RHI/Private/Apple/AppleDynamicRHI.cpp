@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "RHIPrivatePCH.h"
 #include "RHI.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/MessageDialog.h"
 #include "ModuleManager.h"
 
 int32 GAppleMetalEnabled = 1;

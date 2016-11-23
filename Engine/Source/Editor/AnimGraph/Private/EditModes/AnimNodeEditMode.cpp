@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimNodeEditMode.h"
+#include "EditorViewportClient.h"
 #include "IPersonaPreviewScene.h"
 #include "Animation/DebugSkelMeshComponent.h"
-#include "AnimNode_ModifyBone.h"
+#include "BoneControllers/AnimNode_SkeletalControlBase.h"
+#include "EngineUtils.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "AssetEditorModeManager.h"
 

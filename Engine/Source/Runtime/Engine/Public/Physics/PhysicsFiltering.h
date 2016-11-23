@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "PhysicsPublic.h"
+#include "PhysXIncludes.h"
+
 /** 
  * Set of flags stored in the PhysX FilterData
  *

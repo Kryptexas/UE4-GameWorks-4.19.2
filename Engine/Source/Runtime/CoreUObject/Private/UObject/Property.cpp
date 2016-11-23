@@ -4,11 +4,17 @@
 	Property.cpp: UProperty implementation
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "PropertyHelper.h"
-#include "PropertyTag.h"
-#include "StringAssetReference.h"
-#include "StringClassReference.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Math/RandomStream.h"
+#include "Logging/LogScopedCategoryAndVerbosityOverride.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Class.h"
+#include "Templates/Casts.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyHelper.h"
+#include "Misc/StringClassReference.h"
 
 DEFINE_LOG_CATEGORY(LogProperty);
 

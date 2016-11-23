@@ -4,14 +4,18 @@
 	LightMap.cpp: Light-map implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "TargetPlatform.h"
-#include "StaticLighting.h"
 #include "LightMap.h"
+#include "UnrealEngine.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "StaticLighting.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#if WITH_EDITOR
-#include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
-#endif
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/Package.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/MapBuildDataRegistry.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogLightMap, Log, All);
 
 FLightmassDebugOptions GLightmassDebugOptions;

@@ -1,15 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneSkeletalAnimationTemplate.h"
+#include "Evaluation/MovieSceneSkeletalAnimationTemplate.h"
 
-#include "MovieSceneExecutionToken.h"
-#include "MovieSceneSkeletalAnimationSection.h"
-#include "IMovieScenePlayer.h"
-#include "Animation/AnimSequenceBase.h"
-#include "MovieSceneCompilerRules.h"
-#include "Animation/AnimInstance.h"
+#include "Compilation/MovieSceneCompilerRules.h"
 #include "Animation/AnimMontage.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimSingleNodeInstance.h"
 
 

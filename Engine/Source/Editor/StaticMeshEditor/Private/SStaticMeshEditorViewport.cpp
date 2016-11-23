@@ -1,36 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-
-#include "StaticMeshEditorModule.h"
-#include "StaticMeshEditorActions.h"
-
-#include "MouseDeltaTracker.h"
 #include "SStaticMeshEditorViewport.h"
-#include "AdvancedPreviewScene.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "StaticMeshResources.h"
-
-
-#include "StaticMeshEditor.h"
-#include "FbxMeshUtils.h"
-#include "BusyCursor.h"
-#include "MeshBuild.h"
-#include "ObjectTools.h"
-
-#include "ISocketManager.h"
-#include "StaticMeshEditorViewportClient.h"
-#include "Editor/UnrealEd/Public/STransformViewportToolbar.h"
-
-#include "../Private/GeomFitUtils.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+#include "UObject/Package.h"
+#include "Components/StaticMeshComponent.h"
+#include "EditorStyleSet.h"
+#include "Engine/StaticMesh.h"
+#include "IStaticMeshEditor.h"
+#include "StaticMeshEditorActions.h"
+#include "Slate/SceneViewport.h"
 #include "ComponentReregisterContext.h"
-
+#include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
-#include "SDockTab.h"
-
-#if WITH_PHYSX
-#include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
-#endif
+#include "Widgets/Docking/SDockTab.h"
 #include "Engine/StaticMeshSocket.h"
 
 #define HITPROXY_SOCKET	1

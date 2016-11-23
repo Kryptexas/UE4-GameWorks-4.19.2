@@ -4,8 +4,10 @@
 	UObjectHash.cpp: Unreal object name hashes
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "UObjectHash.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectHash, Log, All);
 

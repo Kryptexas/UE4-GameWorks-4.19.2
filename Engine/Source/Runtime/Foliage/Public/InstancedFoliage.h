@@ -4,7 +4,17 @@
 InstancedFoliage.h: Instanced foliage type definitions.
 =============================================================================*/
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "FoliageInstanceBase.h"
+
+class AInstancedFoliageActor;
+class UActorComponent;
+class UFoliageType;
+class UHierarchicalInstancedStaticMeshComponent;
+class UPrimitiveComponent;
+struct FFoliageInstanceHash;
 
 //
 // Forward declarations.

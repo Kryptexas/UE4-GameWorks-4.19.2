@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "UnrealMathUtility.h"
+#include "CoreTypes.h"
+#include "Math/UnrealMathUtility.h"
+#include "Math/Vector.h"
 
 /**
  * Implements a basic sphere.

@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "MediaPlayerEditorSettings.h"
+#include "CoreMinimal.h"
+#include "Shared/MediaPlayerEditorSettings.h"
 
 
 UMediaPlayerEditorSettings::UMediaPlayerEditorSettings(const FObjectInitializer& ObjectInitializer)

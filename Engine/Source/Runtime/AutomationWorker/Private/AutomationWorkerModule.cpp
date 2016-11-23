@@ -1,7 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AutomationWorkerPrivatePCH.h"
-#include "JsonUtilities.h"
+#include "AutomationWorkerModule.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "AutomationWorkerMessages.h"
+#include "UnrealClient.h"
+#include "Engine/GameViewportClient.h"
+#include "ImageUtils.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Tests/AutomationCommon.h"
+#include "AutomationAnalytics.h"
+#include "JsonObjectConverter.h"
 
 #if WITH_EDITOR
 #include "AssetRegistryModule.h"

@@ -1,9 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
 #include "SWebBrowserView.h"
+#include "Misc/CommandLine.h"
+#include "Containers/Ticker.h"
 #include "WebBrowserModule.h"
-#include "IWebBrowserSingleton.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "IWebBrowserDialog.h"
 #include "IWebBrowserWindow.h"
 #include "WebBrowserViewport.h"
 #include "IWebBrowserAdapter.h"

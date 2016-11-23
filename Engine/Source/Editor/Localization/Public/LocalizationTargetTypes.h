@@ -1,9 +1,15 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
 #include "Engine/EngineTypes.h"
 #include "LocalizationTargetTypes.generated.h"
+
+struct FPropertyChangedEvent;
 
 UENUM()
 enum class ELocalizationTargetConflictStatus : uint8

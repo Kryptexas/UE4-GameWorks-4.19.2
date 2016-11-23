@@ -2,12 +2,29 @@
 
 #pragma once
 
-#include "EditorObjectsTracker.h"
-#include "IDocumentation.h"
-#include "SSlotNameReferenceWindow.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "UObject/GCObject.h"
+#include "Widgets/SWindow.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "WorkflowOrientedApp/WorkflowTabFactory.h"
 #include "PersonaDelegates.h"
+#include "AssetData.h"
+#include "IDocumentation.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+#include "EditorObjectsTracker.h"
 
+class FMenuBuilder;
+class IEditableSkeleton;
+class SSlotNameReferenceWindow;
+class SToolTip;
+class UAnimBlueprint;
 class UAnimGraphNode_Slot;
+struct FNotificationInfo;
 
 #define LOCTEXT_NAMESPACE "SkeletonSlotNames"
 /////////////////////////////////////////////////////

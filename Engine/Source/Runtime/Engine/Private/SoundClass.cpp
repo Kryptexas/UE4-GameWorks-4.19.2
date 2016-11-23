@@ -1,14 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "Sound/SoundClass.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Audio.h"
+#include "Styling/CoreStyle.h"
+#include "AudioDeviceManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "Sound/SoundMix.h"
-
 #if WITH_EDITOR
-#include "SlateBasics.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "SoundClassGraph/SoundClassGraph.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -256,14 +261,14 @@ void USoundClass::RefreshAllGraphs(bool bIgnoreThis)
 {
 	if (SoundClassAudioEditor.IsValid())
 	{
-		// Update the graph representation of every SoundClass
-		for (TObjectIterator<USoundClass> It; It; ++It)
+	// Update the graph representation of every SoundClass
+	for (TObjectIterator<USoundClass> It; It; ++It)
+	{
+		USoundClass* SoundClass = *It;
+		if (!bIgnoreThis || SoundClass != this)
 		{
-			USoundClass* SoundClass = *It;
-			if (!bIgnoreThis || SoundClass != this)
+			if (SoundClass->SoundClassGraph)
 			{
-				if (SoundClass->SoundClassGraph)
-				{
 					SoundClassAudioEditor->RefreshGraphLinks(SoundClass->SoundClassGraph);
 				}
 			}

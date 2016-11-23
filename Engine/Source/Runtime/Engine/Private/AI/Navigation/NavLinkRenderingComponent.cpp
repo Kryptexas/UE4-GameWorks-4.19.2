@@ -1,14 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "AI/NavLinkRenderingProxy.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
-#if WITH_EDITOR
-#include "ShowFlags.h"
-#include "ConvexVolume.h"
-#endif
-#include "AI/Navigation/NavLinkHostInterface.h"
+#include "EngineGlobals.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/Engine.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "Engine/CollisionProfile.h"
+#include "SceneManagement.h"
 #include "AI/Navigation/NavAreas/NavArea.h"
+#include "AI/Navigation/NavLinkDefinition.h"
+#include "AI/NavLinkRenderingProxy.h"
+#include "AI/Navigation/NavLinkHostInterface.h"
 #include "AI/Navigation/RecastNavMesh.h"
 
 //----------------------------------------------------------------------//

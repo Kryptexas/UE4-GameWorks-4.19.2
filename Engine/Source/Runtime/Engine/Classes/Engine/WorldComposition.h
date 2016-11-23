@@ -1,7 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/WorldCompositionUtility.h"
 #include "WorldComposition.generated.h"
 
+class ULevel;
+class ULevelStreaming;
 
 /**
  * Helper structure which holds information about level package which participates in world composition

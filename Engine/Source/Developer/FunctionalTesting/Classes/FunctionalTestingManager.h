@@ -2,12 +2,14 @@
 
 #pragma once
 
-#include "Misc/AutomationTest.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
 #include "FunctionalTest.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "FunctionalTestingManager.generated.h"
 
-class UWorld;
 class IMessageLogListing;
 
 namespace FFunctionalTesting

@@ -1,6 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameMenuBuilderPrivatePCH.h"
+#include "GameMenuPage.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWeakWidget.h"
+#include "GameMenuBuilderStyle.h"
+#include "GameMenuWidgetStyle.h"
+#include "SGameMenuPageWidget.h"
+#include "GameMenuBuilder.h"
 
 FGameMenuPage::FGameMenuPage()
 {

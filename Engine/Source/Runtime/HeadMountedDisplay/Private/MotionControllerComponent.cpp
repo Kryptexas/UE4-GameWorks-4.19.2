@@ -1,9 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
-#include "HeadMountedDisplayPrivate.h"
 #include "MotionControllerComponent.h"
-#include "PrimitiveSceneInfo.h"
+#include "GameFramework/Pawn.h"
+#include "PrimitiveSceneProxy.h"
+#include "Misc/ScopeLock.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 #include "Features/IModularFeatures.h"
+#include "IMotionController.h"
+#include "PrimitiveSceneInfo.h"
 
 namespace {
 	/** This is to prevent destruction of motion controller components while they are

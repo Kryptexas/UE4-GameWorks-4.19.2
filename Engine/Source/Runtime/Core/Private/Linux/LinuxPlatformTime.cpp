@@ -4,7 +4,10 @@
 	ApplePlatformTime.mm: Apple implementations of time functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "Linux/LinuxPlatformTime.h"
+#include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
 #include <sys/resource.h>
 
 int FLinuxTime::ClockSource = FLinuxTime::CalibrateAndSelectClock();

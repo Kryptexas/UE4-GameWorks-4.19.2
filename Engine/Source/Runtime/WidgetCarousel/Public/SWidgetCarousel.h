@@ -6,6 +6,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Types/SlateEnums.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Animation/CurveSequence.h"
+#include "Widgets/Layout/SFxWidget.h"
+
 /** The desired Carousel scroll direction */
 namespace EWidgetCarouselScrollDirection
 {

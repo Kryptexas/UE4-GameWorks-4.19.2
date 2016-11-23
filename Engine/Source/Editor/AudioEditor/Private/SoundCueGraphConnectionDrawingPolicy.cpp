@@ -1,12 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "SoundCueGraphConnectionDrawingPolicy.h"
-#include "SoundDefinitions.h"
+#include "Misc/App.h"
+#include "SoundCueGraph/SoundCueGraph.h"
+#include "SoundCueGraph/SoundCueGraphNode.h"
+#include "SoundCueGraph/SoundCueGraphNode_Root.h"
+#include "SoundCueGraph/SoundCueGraphSchema.h"
+#include "Components/AudioComponent.h"
+#include "Editor.h"
+#include "AudioDevice.h"
+#include "ActiveSound.h"
 #include "Sound/SoundNode.h"
 #include "Sound/SoundCue.h"
-#include "GraphEditorSettings.h"
-#include "ConnectionDrawingPolicy.h"
 
 FConnectionDrawingPolicy* FSoundCueGraphConnectionDrawingPolicyFactory::CreateConnectionPolicy(const class UEdGraphSchema* Schema, int32 InBackLayerID, int32 InFrontLayerID, float ZoomFactor, const class FSlateRect& InClippingRect, class FSlateWindowElementList& InDrawElements, class UEdGraph* InGraphObj) const
 {

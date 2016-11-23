@@ -6,8 +6,12 @@
 
 #pragma once
 
-#include "DeviceProfile.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "DeviceProfileManager.generated.h"
+
+class UDeviceProfile;
 
 // Delegate used to refresh the UI when the profiles change
 DECLARE_MULTICAST_DELEGATE( FOnDeviceProfileManagerUpdated );

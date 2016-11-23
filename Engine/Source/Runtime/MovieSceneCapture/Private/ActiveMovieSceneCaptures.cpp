@@ -1,7 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneCapturePCH.h"
-#include "MovieSceneCapture.h"
 #include "ActiveMovieSceneCaptures.h"
 
 TUniquePtr<FActiveMovieSceneCaptures> FActiveMovieSceneCaptures::Singleton;

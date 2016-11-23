@@ -6,11 +6,28 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "HitProxies.h"
+#include "RHIStaticStates.h"
+#include "SceneManagement.h"
+#include "PrimitiveSceneInfo.h"
+#include "DrawingPolicy.h"
+#include "PostProcess/SceneRenderTargets.h"
 #include "LightMapRendering.h"
-#include "ShaderBaseClasses.h"
+#include "MeshMaterialShaderType.h"
+#include "MeshMaterialShader.h"
+#include "DebugViewModeRendering.h"
+#include "FogRendering.h"
 #include "EditorCompositeParams.h"
+#include "PlanarReflectionRendering.h"
+#include "BasePassRendering.h"
 
-class FMobileBasePassDynamicPointLightInfo;
+class FPlanarReflectionSceneProxy;
+class FScene;
 
 enum EOutputFormat
 {

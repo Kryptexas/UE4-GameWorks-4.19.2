@@ -4,6 +4,10 @@
 #ifndef __AnimViewportMenuCommands_h_
 #define __AnimViewportMenuCommands_h_
 
+#include "CoreMinimal.h"
+#include "Framework/Commands/Commands.h"
+#include "EditorStyleSet.h"
+
 /**
  * Class containing commands for viewport menu actions
  */

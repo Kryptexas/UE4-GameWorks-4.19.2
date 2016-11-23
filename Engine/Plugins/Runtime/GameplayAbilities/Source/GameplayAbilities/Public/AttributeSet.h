@@ -2,11 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/UnrealType.h"
+#include "GameFramework/Actor.h"
 #include "Engine/CurveTable.h"
 #include "Engine/DataTable.h"
 #include "AttributeSet.generated.h"
 
 class UAbilitySystemComponent;
+class UAttributeSet;
 struct FGameplayAbilityActorInfo;
 
 USTRUCT(BlueprintType)

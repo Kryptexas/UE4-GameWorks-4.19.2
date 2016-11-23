@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Audio.h"
 #include "AudioDecompress.h"
 #include "Sound/SoundWave.h"
 

@@ -2,10 +2,19 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "WeakObjectPtr.h"
-#include "Object.h"
-#include "CoreNetTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Serialization/BitReader.h"
+#include "Serialization/BitWriter.h"
+#include "Misc/NetworkGuid.h"
+#include "UObject/CoreNetTypes.h"
+
+class FOutBunch;
+class INetDeltaBaseState;
+struct FStringAssetReference;
 
 DECLARE_DELEGATE_RetVal_OneParam( bool, FNetObjectIsDynamic, const UObject*);
 

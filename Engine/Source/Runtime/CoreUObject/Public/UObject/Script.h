@@ -6,7 +6,10 @@
 
 #pragma once
 
-class UStruct;
+#include "CoreMinimal.h"
+#include "HAL/ThreadSingleton.h"
+#include "Stats/Stats.h"
+
 struct FFrame;
 
 // It's best to set only one of these, but strictly speaking you could set both.

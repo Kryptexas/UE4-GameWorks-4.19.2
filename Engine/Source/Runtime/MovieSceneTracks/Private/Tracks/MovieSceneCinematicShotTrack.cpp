@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
+#include "Tracks/MovieSceneCinematicShotTrack.h"
 #include "MovieSceneSequence.h"
-#include "MovieSceneCinematicShotSection.h"
-#include "MovieSceneCinematicShotTrack.h"
 #include "MovieSceneCommonHelpers.h"
+#include "Sections/MovieSceneCinematicShotSection.h"
 #include "Compilation/MovieSceneCompilerRules.h"
 
 

@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Engine.h"
 #include "MeshBoneReduction.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "Modules/ModuleManager.h"
+#include "GPUSkinPublicDefs.h"
+#include "ReferenceSkeleton.h"
+#include "SkeletalMeshTypes.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "UObject/UObjectHash.h"
+#include "Templates/ScopedPointer.h"
 #include "ComponentReregisterContext.h"
 #include "UniquePtr.h"
 

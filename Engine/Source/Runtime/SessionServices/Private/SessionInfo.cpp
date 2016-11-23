@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SessionServicesPrivatePCH.h"
 #include "SessionInfo.h"
+#include "EngineServiceMessages.h"
+#include "SessionServiceMessages.h"
 #include "SessionInstanceInfo.h"
 
 

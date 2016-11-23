@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "OutputDevice.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
 
 // Null output device.
 class CORE_API FOutputDeviceNull : public FOutputDevice

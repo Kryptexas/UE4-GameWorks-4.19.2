@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaAssetsPCH.h"
 #include "MediaTexture.h"
-#include "MediaTextureResource.h"
+#include "Misc/ScopeLock.h"
+#include "RenderUtils.h"
+#include "MediaAssetsPrivate.h"
+#include "Misc/MediaTextureResource.h"
 
 
 /* UMediaTexture structors

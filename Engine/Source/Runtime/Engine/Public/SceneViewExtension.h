@@ -6,6 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class APlayerController;
+class FRHICommandListImmediate;
+class FSceneView;
+class FSceneViewFamily;
+struct FMinimalViewInfo;
+
 class ISceneViewExtension
 {
 public:

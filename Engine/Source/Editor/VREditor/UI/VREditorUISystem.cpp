@@ -1,43 +1,69 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorUISystem.h"
+#include "Misc/CommandLine.h"
+#include "HAL/IConsoleManager.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Modules/ModuleManager.h"
+#include "InputCoreTypes.h"
+#include "Widgets/SNullWidget.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SWindow.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Docking/TabManager.h"
+#include "Engine/EngineTypes.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/WorldSettings.h"
+#include "Sound/SoundCue.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "UnrealEdGlobals.h"
 #include "VREditorMode.h"
+#include "VREditorBaseActor.h"
 #include "VREditorFloatingUI.h"
 #include "VREditorDockableWindow.h"
+#include "VREditorBaseUserWidget.h"
 #include "VREditorQuickMenu.h"
 #include "VREditorRadialMenu.h"
-#include "VREditorRadialMenuItem.h"
-#include "IHeadMountedDisplay.h"
+#include "ViewportInteractionTypes.h"
 #include "ViewportWorldInteraction.h"
-#include "ViewportInteractor.h"
 #include "VREditorInteractor.h"
 #include "VREditorMotionControllerInteractor.h"
+#include "IVREditorModule.h"
+#include "Settings/EditorExperimentalSettings.h"
 
 // UI
-#include "WidgetComponent.h"
+#include "Components/WidgetComponent.h"
 #include "VREditorWidgetComponent.h"
 
 // Content Browser
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Editor/ContentBrowser/Public/IContentBrowserSingleton.h"
+#include "CollectionManagerTypes.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 
 // World Outliner
-#include "Editor/SceneOutliner/Public/SceneOutliner.h"
+#include "Editor/SceneOutliner/Public/ISceneOutliner.h"
+#include "Editor/SceneOutliner/Public/SceneOutlinerPublicTypes.h"
+#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 
 // Actor Details, Modes
+#include "SEditorViewport.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "ILevelEditor.h"
 #include "LevelEditor.h"
 
 // World Settings
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
 
-#include "SLevelViewport.h"
-#include "SScaleBox.h"
-#include "SDPIScaler.h"
-#include "SWidget.h"
-#include "SDockTab.h"
-#include "SColorPicker.h"
+#include "Widgets/Layout/SDPIScaler.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Widgets/Colors/SColorPicker.h"
 
 namespace VREd
 {

@@ -2,11 +2,20 @@
 
 #pragma once
 
-#include "BehaviorTreeComponent.h"
-#include "BehaviorTreeTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
 #include "GameplayTaskOwnerInterface.h"
 #include "Tasks/AITask.h"
 #include "BTNode.generated.h"
+
+class AActor;
+class UBehaviorTree;
+class UBlackboardData;
+class UBTCompositeNode;
+class UGameplayTasksComponent;
 
 AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogBehaviorTree, Display, All);
 

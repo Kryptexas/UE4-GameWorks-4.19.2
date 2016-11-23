@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "DestructibleMeshDetails.h"
-#include "ScopedTransaction.h"
-#include "ObjectEditorUtils.h"
-#include "IDocumentation.h"
+#include "Engine/SkeletalMesh.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
 #include "Engine/DestructibleMesh.h"
 
 #define LOCTEXT_NAMESPACE "DestructibleMeshDetails"

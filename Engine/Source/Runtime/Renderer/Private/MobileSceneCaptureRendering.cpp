@@ -4,15 +4,26 @@
 MobileSceneCaptureRendering.cpp - Mobile specific scene capture code.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "UniformBuffer.h"
+#include "MobileSceneCaptureRendering.h"
+#include "Misc/MemStack.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "UnrealClient.h"
+#include "SceneInterface.h"
 #include "ShaderParameters.h"
-#include "ScreenRendering.h"
-#include "PostProcessAmbient.h"
-#include "PostProcessing.h"
+#include "RHIStaticStates.h"
+#include "RendererInterface.h"
+#include "Shader.h"
+#include "TextureResource.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "GlobalShader.h"
+#include "SceneRenderTargetParameters.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRendering.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "ScreenRendering.h"
 
 
 /**

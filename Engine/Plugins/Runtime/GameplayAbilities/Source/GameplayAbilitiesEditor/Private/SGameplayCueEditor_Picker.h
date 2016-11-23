@@ -1,6 +1,33 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // Meant to be only by SGameplayCueEditor.h
 
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "SGameplayCueEditor.h"
+#include "GameplayAbilitiesEditorModule.h"
+#include "Widgets/SBoxPanel.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+#include "EditorStyleSet.h"
+#include "Widgets/SWindow.h"
+#include "Misc/MessageDialog.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SExpandableArea.h"
+#include "Styling/SlateIconFinder.h"
+#include "EditorClassUtils.h"
+#include "Editor.h"
+
 /** Widget for picking a new GameplayCue Notify class (similar to actor class picker)  */
 class SGameplayCuePickerDialog : public SCompoundWidget
 {

@@ -1,25 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
-
 #include "AnimationEditorPreviewScene.h"
-#include "Components/DirectionalLightComponent.h"
-#include "Components/ExponentialHeightFogComponent.h"
-#include "Components/SphereReflectionCaptureComponent.h"
-#include "NotificationManager.h"
-#include "Animation/DebugSkelMeshComponent.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Components/StaticMeshComponent.h"
+#include "EditorStyleSet.h"
+
+#include "Animation/AnimBlueprint.h"
 #include "AnimPreviewInstance.h"
+#include "IEditableSkeleton.h"
 #include "IPersonaToolkit.h"
 #include "PersonaUtils.h"
 #include "ComponentAssetBroker.h"
-#include "IEditableSkeleton.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "PersonaPreviewSceneDescription.h"
-#include "Engine/WindDirectionalSource.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
-#include "Animation/CurveSourceInterface.h"
 #include "PersonaModule.h"
+#include "GameFramework/WorldSettings.h"
+#include "Particles/ParticleSystemComponent.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorPreviewScene"
 

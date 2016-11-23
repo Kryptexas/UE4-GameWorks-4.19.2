@@ -4,9 +4,12 @@
 	PreviewScene.cpp: Preview scene implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "PreviewScene.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/Package.h"
+#include "SceneInterface.h"
+#include "Components/MeshComponent.h"
+#include "AudioDevice.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/LineBatchComponent.h"
 

@@ -6,11 +6,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Distributions.h"
+#include "Distributions/DistributionFloat.h"
+#include "Distributions/DistributionVector.h"
 #include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "ParticleModuleTypeDataGpu.generated.h"
+
+class UParticleSystemComponent;
 
 /**
  * Data needed for local vector fields.

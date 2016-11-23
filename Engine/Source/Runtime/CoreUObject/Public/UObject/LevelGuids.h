@@ -2,12 +2,8 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "WorldCompositionUtility.h"
-#include "GatherableTextData.h"
-#include "PropertyLocalizationDataGathering.h"
-#include "Package.h"
-#include "MetaData.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 
 /**
  * Structure to hold information about an external packages objects used in cross-level references

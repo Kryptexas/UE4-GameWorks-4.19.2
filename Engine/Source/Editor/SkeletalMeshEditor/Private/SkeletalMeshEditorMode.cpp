@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletalMeshEditorPrivatePCH.h"
 #include "SkeletalMeshEditorMode.h"
+#include "PersonaModule.h"
 #include "SkeletalMeshEditor.h"
+#include "ISkeletonTree.h"
 #include "ISkeletonEditorModule.h"
 #include "IPersonaToolkit.h"
 

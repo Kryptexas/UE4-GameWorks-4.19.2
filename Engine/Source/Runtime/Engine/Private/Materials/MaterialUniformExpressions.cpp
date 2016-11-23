@@ -4,9 +4,10 @@
 	MaterialShared.cpp: Shared material implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "MaterialUniformExpressions.h"
-#include "MaterialInstanceSupport.h"
+#include "Materials/MaterialUniformExpressions.h"
+#include "SceneManagement.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceSupport.h"
 #include "Materials/MaterialParameterCollection.h"
 
 TLinkedList<FMaterialUniformExpressionType*>*& FMaterialUniformExpressionType::GetTypeList()

@@ -4,15 +4,20 @@
   Implementation of animation export related functionality from FbxExporter
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FeedbackContext.h"
+#include "Animation/AnimTypes.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpTrackAnimControl.h"
-#include "Animation/SkeletalMeshActor.h"
 #include "Animation/AnimSequence.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Matinee/MatineeActor.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "FbxExporter.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxAnimationExport, Log, All);
-
-#include "FbxExporter.h"
 
 namespace UnFbx
 {

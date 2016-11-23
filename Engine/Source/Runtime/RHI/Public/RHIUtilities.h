@@ -3,7 +3,25 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "HAL/IConsoleManager.h"
 #include "RHICommandList.h"
+
+class FExclusiveDepthStencil;
+class FRHIDepthRenderTargetView;
+class FRHIRenderTargetView;
+class FRHISetRenderTargetsInfo;
+struct FRHIResourceCreateInfo;
+enum class ERenderTargetLoadAction;
+enum class ERenderTargetStoreAction;
+enum class EResourceTransitionAccess;
+enum class ESimpleRenderTargetMode;
 
 /** Encapsulates a GPU read/write buffer with its UAV and SRV. */
 struct FRWBuffer

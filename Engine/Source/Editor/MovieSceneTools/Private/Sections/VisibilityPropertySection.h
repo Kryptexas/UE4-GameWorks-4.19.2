@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "BoolPropertySection.h"
-
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Sections/BoolPropertySection.h"
 
 /**
  * An implementation of visibility property sections

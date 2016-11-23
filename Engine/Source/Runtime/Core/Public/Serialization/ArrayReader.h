@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Serialization/MemoryArchive.h"
 
 class FArrayReader final : public FMemoryArchive, public TArray<uint8>
 {

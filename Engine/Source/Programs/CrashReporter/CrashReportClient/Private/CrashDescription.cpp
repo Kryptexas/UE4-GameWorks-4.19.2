@@ -1,14 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashReportClientApp.h"
-#include "GenericPlatformCrashContext.h"
-
-#include "XmlFile.h"
 #include "CrashDescription.h"
+#include "Misc/DateTime.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/Paths.h"
+#include "Misc/Guid.h"
+#include "CrashReportClientConfig.h"
+
 #include "CrashReportAnalytics.h"
-#include "CrashReportUtil.h"
+#include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProviderET.h"
-#include "EngineBuildSettings.h"
+#include "Misc/EngineBuildSettings.h"
 #include "QoSReporter.h"
 
 // #CrashReport: 2015-07-23 Move crashes from C:\Users\[USER]\AppData\Local\Microsoft\Windows\WER\ReportQueue to C:\Users\[USER]\AppData\Local\CrashReportClient\Saved

@@ -6,11 +6,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "EngineDefines.h"
+#include "CollisionQueryParams.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "WorldCollision.h"
+#include "PhysXPublic.h"
+
 #if WITH_PHYSX
 
-#include "Union.h"
-#include "../PhysicsEngine/PhysXSupport.h"
-#include "CollisionQueryParams.h"
+#include "Containers/Union.h"
 
 /** Temporary result buffer size */
 #define HIT_BUFFER_SIZE							512		// Hit buffer size for traces and sweeps. This is the total size allowed for sync + async tests.
@@ -290,11 +296,5 @@ private:
 	PxGeometry* PtrToUnionData;
 	PxQuat Rotation;
 };
-
-#endif
-
-
-#if WITH_BOX2D
-
 
 #endif

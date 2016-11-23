@@ -6,11 +6,17 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 #include "RHIDefinitions.h"
-#include "StaticArray.h"
+#include "Containers/StaticArray.h"
 
 #define INVALID_FENCE_ID (0xffffffffffffffffull)
+
+class FRenderTarget;
+class FResourceArrayInterface;
+class FResourceBulkDataInterface;
+struct Rect;
 
 inline const bool IsValidFenceID( const uint64 FenceID )
 {

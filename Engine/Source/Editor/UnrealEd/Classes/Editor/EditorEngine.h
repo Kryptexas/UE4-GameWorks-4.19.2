@@ -2,21 +2,59 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
+#include "AssetData.h"
+#include "HAL/PlatformProcess.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Widgets/SWindow.h"
+#include "TimerManager.h"
+#include "UObject/UObjectAnnotation.h"
 #include "Engine/Brush.h"
+#include "Model.h"
+#include "Editor/Transactor.h"
 #include "Engine/Engine.h"
-#include "EditorPerProjectUserSettings.h"
-#include "Transactor.h"
-#include "../Settings/LevelEditorPlaySettings.h"
-#include "../Settings/LevelEditorViewportSettings.h"
+#include "Settings/LevelEditorPlaySettings.h"
+#include "Settings/LevelEditorViewportSettings.h"
 #include "EditorEngine.generated.h"
 
-class UEditorSettings;
+class AMatineeActor;
 class APlayerStart;
-class FAssetData;
+class Error;
+class FEditorViewportClient;
+class FEditorWorldManager;
+class FMessageLog;
+class FOutputLogErrorsToMessageLogProxy;
 class FPoly;
+class FSceneViewport;
+class FSceneViewStateInterface;
+class FViewport;
+class IEngineLoop;
+class ILauncherWorker;
+class ILayers;
+class ILevelViewport;
+class ITargetPlatform;
+class SViewport;
+class UActorFactory;
 class UAnimSequence;
-class USkeleton;
+class UAudioComponent;
+class UBrushBuilder;
 class UFoliageType;
+class UGameViewportClient;
+class ULocalPlayer;
+class UNetDriver;
+class UPrimitiveComponent;
+class USkeleton;
+class USoundBase;
+class USoundNode;
+class UTextureRenderTarget2D;
+struct FAnalyticsEventAttribute;
 
 //
 // Things to set in mapSetBrush.

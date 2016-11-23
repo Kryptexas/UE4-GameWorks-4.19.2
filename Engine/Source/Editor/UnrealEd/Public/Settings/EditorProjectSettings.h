@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "UnitConversion.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/DeveloperSettings.h"
+#include "Math/UnitConversion.h"
 
 #include "EditorProjectSettings.generated.h"
 

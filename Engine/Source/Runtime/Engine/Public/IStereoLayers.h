@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHI.h"
+
 class IStereoLayers
 {
 public:

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 /**
  * The different types of relevance a primitive scene proxy can declare towards a particular scene view.

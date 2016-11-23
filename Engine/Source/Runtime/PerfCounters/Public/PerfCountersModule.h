@@ -2,8 +2,12 @@
 
 #pragma once
 
-#include "ModuleManager.h"
-#include "Json.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+
+struct FHistogram;
+template <class CharType> struct TPrettyJsonPrintPolicy;
 
 template <class CharType>
 struct TPrettyJsonPrintPolicy;

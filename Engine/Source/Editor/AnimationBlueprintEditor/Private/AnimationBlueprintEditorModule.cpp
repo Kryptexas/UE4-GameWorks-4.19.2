@@ -1,12 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimationBlueprintEditorPrivatePCH.h"
 #include "AnimationBlueprintEditorModule.h"
-#include "AnimationBlueprintEditor.h"
-#include "BlueprintUtilities.h"
-#include "AnimGraphDefinitions.h"
-#include "Toolkits/ToolkitManager.h"
 #include "Animation/AnimInstance.h"
+#include "AnimationBlueprintEditor.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CallFunction.h"
+#include "Kismet2/KismetEditorUtilities.h"
 
 IMPLEMENT_MODULE( FAnimationBlueprintEditorModule, AnimationBlueprintEditor);
 

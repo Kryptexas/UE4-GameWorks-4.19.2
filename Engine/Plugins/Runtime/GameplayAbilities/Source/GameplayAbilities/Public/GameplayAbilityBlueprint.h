@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Engine/Blueprint.h"
 #include "GameplayAbilityBlueprint.generated.h"
 

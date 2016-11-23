@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /** Helper class to set and restore serialized property on an archive */
 class FSerializedPropertyScope
 {

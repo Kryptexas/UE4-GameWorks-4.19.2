@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "Camera/CameraComponent.h"
-#include "Camera/CameraActor.h"
-#include "Camera/CameraAnim.h"
 #include "Camera/CameraAnimInst.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
+#include "Camera/CameraAnim.h"
 #include "Matinee/InterpTrackMove.h"
 #include "Matinee/InterpGroup.h"
 #include "Matinee/InterpGroupInst.h"

@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
 #include "OnlineLeaderboardInterfaceGameCircle.h"
 #include "Online.h"
-
+#include "OnlineSubsystemGameCircle.h"
 #include "OnlineAGSLeaderboardsClientCallbacks.h"
-
+#include "Async/TaskGraphInterfaces.h"
 
 FOnlineLeaderboardsGameCircle::FOnlineLeaderboardsGameCircle(FOnlineSubsystemGameCircle* InSubsystem)
 	: Subsystem(InSubsystem)

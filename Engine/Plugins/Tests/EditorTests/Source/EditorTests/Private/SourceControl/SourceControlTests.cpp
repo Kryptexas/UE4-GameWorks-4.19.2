@@ -1,14 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
-
-#include "AutomationTest.h"
-#include "ISourceControlModule.h"
-#include "ISourceControlProvider.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/AutomationTest.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "Engine/Texture2D.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "ISourceControlOperation.h"
 #include "SourceControlOperations.h"
-#include "ISourceControlLabel.h"
 #include "ISourceControlRevision.h"
-#include "Developer/AssetTools/Public/AssetToolsModule.h"
+#include "ISourceControlModule.h"
+
+#include "ISourceControlLabel.h"
 #include "PackageTools.h"
 
 #include "Tests/SourceControlAutomationCommon.h"

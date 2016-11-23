@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
 #include "NavLocalGridData.h"
 #include "NavLocalGridManager.generated.h"
 

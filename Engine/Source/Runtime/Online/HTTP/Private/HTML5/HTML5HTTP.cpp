@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HttpPrivatePCH.h"
 #include "HTML5HTTP.h"
 #include "EngineVersion.h"
+#include "Http.h"
+#include "HttpManager.h"
+#include "Misc/App.h"
 
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"

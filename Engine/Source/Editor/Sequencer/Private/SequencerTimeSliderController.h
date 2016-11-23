@@ -2,9 +2,16 @@
 
 #pragma once
 
-#include "Editor/SequencerWidgets/Public/ITimeSlider.h"
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "ITimeSlider.h"
 
+class FSlateWindowElementList;
 struct FContextMenuSuppressor;
+struct FScrubRangeToScreen;
+struct FSlateBrush;
 
 struct FPaintPlaybackRangeArgs
 {

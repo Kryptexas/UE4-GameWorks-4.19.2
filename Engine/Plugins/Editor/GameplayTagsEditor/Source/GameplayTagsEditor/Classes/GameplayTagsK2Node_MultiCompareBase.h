@@ -2,11 +2,11 @@
 
 
 #pragma once
-#include "K2Node.h"
-#include "GameplayTagContainer.h"
-#include "GameplayTagsK2Node_MultiCompareBase.generated.h"
 
-struct FGameplayTagContainer;
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "K2Node.h"
+#include "GameplayTagsK2Node_MultiCompareBase.generated.h"
 
 UCLASS()
 class UGameplayTagsK2Node_MultiCompareBase : public UK2Node

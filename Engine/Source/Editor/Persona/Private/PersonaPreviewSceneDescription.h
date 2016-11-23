@@ -2,7 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/AssetPtr.h"
 #include "PersonaPreviewSceneDescription.generated.h"
+
+class UAnimationAsset;
+class UPreviewMeshCollection;
+class USkeletalMesh;
 
 UENUM()
 enum class EPreviewAnimationMode : uint8

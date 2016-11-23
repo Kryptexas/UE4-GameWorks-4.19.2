@@ -1,29 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "Engine/BookMark.h"
-#include "StaticMeshResources.h"
-#include "EditorSupportDelegates.h"
-#include "MouseDeltaTracker.h"
-#include "ScopedTransaction.h"
-#include "SurfaceIterators.h"
-#include "SoundDefinitions.h"
-#include "LevelEditor.h"
-#include "Toolkits/ToolkitManager.h"
-#include "EditorLevelUtils.h"
-
-#include "ActorEditorUtils.h"
-#include "EditorStyle.h"
-#include "ComponentVisualizer.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "EdMode.h"
+#include "EditorModeTools.h"
+#include "EditorViewportClient.h"
+#include "Framework/Application/SlateApplication.h"
+#include "CanvasItem.h"
+#include "Engine/StaticMeshActor.h"
 #include "Engine/Selection.h"
 #include "EngineUtils.h"
-#include "CanvasItem.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "StaticMeshResources.h"
+#include "Toolkits/BaseToolkit.h"
+
 #include "CanvasTypes.h"
-#include "Engine/Polys.h"
-#include "Engine/StaticMeshActor.h"
-#include "Engine/LevelStreaming.h"
 
 /** Hit proxy used for editable properties */
 struct HPropertyWidgetProxy : public HHitProxy

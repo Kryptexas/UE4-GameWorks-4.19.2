@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LaunchPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "LaunchEngineLoop.h"
 #include "LinuxCommonStartup.h"
 
 extern int32 GuardedMain( const TCHAR* CmdLine );

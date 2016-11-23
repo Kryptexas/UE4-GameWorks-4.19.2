@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieScene3DTransformSection.h"
-#include "MovieScene3DTransformTrack.h"
+#include "Sections/MovieScene3DTransformSection.h"
+#include "UObject/StructOnScope.h"
 #include "Evaluation/MovieScene3DTransformTemplate.h"
 
 /* FMovieScene3DLocationKeyStruct interface

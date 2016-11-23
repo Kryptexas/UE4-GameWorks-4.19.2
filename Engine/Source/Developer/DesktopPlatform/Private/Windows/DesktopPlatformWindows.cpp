@@ -1,8 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DesktopPlatformPrivatePCH.h"
+#include "DesktopPlatformWindows.h"
+#include "DesktopPlatformPrivate.h"
 #include "FeedbackContextMarkup.h"
 #include "WindowsNativeFeedbackContext.h"
+#include "Misc/Paths.h"
+#include "Misc/Guid.h"
+#include "HAL/FileManager.h"
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <commdlg.h>
@@ -47,7 +51,7 @@ static ::INT CALLBACK BrowseCallbackProc(HWND hwnd, ::UINT uMsg, LPARAM lParam, 
 		case BFFM_INITIALIZED:
 		if ( lpData )
 		{
-			SendMessage(hwnd, BFFM_SETSELECTION, true, lpData);
+			SendMessageW(hwnd, BFFM_SETSELECTION, true, lpData);
 		}
 		break;
 	}

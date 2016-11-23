@@ -4,11 +4,13 @@
 	PrimitiveSceneInfo.cpp: Primitive scene info implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "PrimitiveSceneInfo.h"
+#include "PrimitiveSceneProxy.h"
+#include "Components/PrimitiveComponent.h"
+#include "SceneManagement.h"
+#include "SceneCore.h"
+#include "VelocityRendering.h"
 #include "ScenePrivate.h"
-#include "../../Engine/Classes/Components/SkeletalMeshComponent.h"
-#include "LightMapRendering.h"
-#include "ParticleDefinitions.h"
 
 /** An implementation of FStaticPrimitiveDrawInterface that stores the drawn elements for the rendering thread to use. */
 class FBatchingSPDI : public FStaticPrimitiveDrawInterface

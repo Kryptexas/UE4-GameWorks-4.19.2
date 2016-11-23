@@ -1,14 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "BehaviorTreeTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "BehaviorTree/BTAuxiliaryNode.h"
 #include "BTDecorator.generated.h"
 
-class UBTNode;
-class UBehaviorTreeComponent;
-class FBehaviorDecoratorDetails; 
-struct FBehaviorTreeSearchData;
+class FBehaviorDecoratorDetails;
 
 /** 
  * Decorators are supporting nodes placed on parent-child connection, that receive notification about execution flow and can be ticked

@@ -2,9 +2,18 @@
 
 #pragma once
 
-#include "DataTableUtils.h" // Needed here for LogDataTable and EDataTableExportFlags
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyPortFlags.h"
+#include "DataTableUtils.h"
 #include "DataTable.generated.h"
 
+class Error;
+class UDataTable;
+template <class CharType> struct TPrettyJsonPrintPolicy;
 
 // forward declare JSON writer
 template <class CharType>

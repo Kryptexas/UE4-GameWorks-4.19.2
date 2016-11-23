@@ -2,11 +2,15 @@
 
 #pragma once
 
-
-class FMessagingDebuggerEndpointFilter;
-class FMessagingDebuggerModel;
-class IMessageTracer;
-
+#include "CoreMinimal.h"
+#include "Styling/ISlateStyle.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "IMessageTracer.h"
+#include "Models/MessagingDebuggerEndpointFilter.h"
+#include "Models/MessagingDebuggerModel.h"
 
 /**
  * Implements the message endpoints panel.

@@ -4,13 +4,32 @@
 	SceneVisibility.cpp: Scene visibility determination.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "RHIDefinitions.h"
+#include "SceneTypes.h"
+#include "SceneInterface.h"
+#include "RendererInterface.h"
+#include "PrimitiveViewRelevance.h"
+#include "MaterialShared.h"
+#include "SceneManagement.h"
+#include "ScenePrivateBase.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneCore.h"
+#include "LightSceneInfo.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "DynamicPrimitiveDrawing.h"
 #include "ScenePrivate.h"
 #include "FXSystem.h"
-#include "SceneUtils.h"
-#include "PostProcessing.h"
-#include "PlanarReflectionSceneProxy.h"
+#include "PostProcess/PostProcessing.h"
 
 /*------------------------------------------------------------------------------
 	Globals

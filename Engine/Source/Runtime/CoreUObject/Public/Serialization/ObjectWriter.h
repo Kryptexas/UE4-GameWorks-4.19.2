@@ -2,9 +2,15 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
-struct FObjectInstancingGraph;
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Serialization/MemoryWriter.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
+#include "UObject/PropertyPortFlags.h"
+
+class FAssetPtr;
+class FLazyObjectPtr;
+struct FStringAssetReference;
 
 /**
  * UObject Memory Writer Archive.

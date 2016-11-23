@@ -1,9 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "SoundWaveDetails.h"
+#include "Settings/EditorExperimentalSettings.h"
 #include "Sound/SoundWave.h"
+#include "DetailLayoutBuilder.h"
 #include "ScopedTransaction.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
+#include "Widgets/Input/SButton.h"
+#include "Engine/CurveTable.h"
+#include "DetailWidgetRow.h"
+#include "Widgets/Text/STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "FSoundWaveDetails"
 
@@ -109,7 +116,7 @@ EVisibility FSoundWaveDetails::GetUseInternalCurvesVisibility(USoundWave* SoundW
 		{
 			return EVisibility::Visible;
 		}
-	}
+}
 
 	return EVisibility::Collapsed;
 }

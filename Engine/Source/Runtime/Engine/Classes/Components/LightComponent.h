@@ -2,11 +2,22 @@
 
 #pragma once
 
-#include "LightComponentBase.h"
-#include "SceneTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "RenderCommandFence.h"
 #include "EngineDefines.h"
-#include "Classes/Engine/MapBuildDataRegistry.h"
+#include "SceneTypes.h"
+#include "RenderResource.h"
+#include "Components/LightComponentBase.h"
 #include "LightComponent.generated.h"
+
+class FLightComponentMapBuildData;
+class FStaticShadowDepthMapData;
+class ULevel;
+class UMaterialInterface;
+class UPrimitiveComponent;
+class UTextureLightProfile;
 
 /** 
  * A texture containing depth values of static objects that was computed during the lighting build.

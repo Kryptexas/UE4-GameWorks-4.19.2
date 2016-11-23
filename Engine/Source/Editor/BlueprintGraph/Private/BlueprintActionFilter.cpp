@@ -1,28 +1,38 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintActionFilter.h"
+#include "UObject/Interface.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/Blueprint.h"
+#include "Modules/ModuleManager.h"
+#include "Animation/Skeleton.h"
+#include "Animation/AnimBlueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "EdGraph/EdGraph.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node.h"
+#include "K2Node_Event.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_BaseAsyncTask.h"
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_DynamicCast.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_IfThenElse.h"
+#include "K2Node_MacroInstance.h"
+#include "K2Node_MakeArray.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintNodeSpawnerUtils.h"
 #include "BlueprintVariableNodeSpawner.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintBoundEventNodeSpawner.h"
 #include "BlueprintBoundNodeSpawner.h"
-#include "BlueprintGraphModule.h"	// for GetExtendedActionMenuFilters
-#include "EdGraphSchema_K2.h"		// for FBlueprintMetadata
-#include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
-#include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()/IsVariableCategoryHiddenFromClass()
-#include "K2Node_VariableSet.h"
-#include "K2Node_VariableGet.h"
-#include "K2Node_CallArrayFunction.h" // for IsFunctionMissingPinParam()
 // "impure" node types (utilized in BlueprintActionFilterImpl::IsImpure)
-#include "K2Node_IfThenElse.h"
 #include "K2Node_MultiGate.h"
-#include "K2Node_MakeArray.h"
 #include "K2Node_Message.h"
-#include "K2Node_ExecutionSequence.h"
-#include "K2Node_DynamicCast.h"
-#include "K2Node_BaseAsyncTask.h"
 #include "EditorCategoryUtils.h"
 
 /*******************************************************************************

@@ -1,9 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieSceneVisibilityTrack.h"
-#include "VisibilityPropertyTrackEditor.h"
-#include "VisibilityPropertySection.h"
+#include "TrackEditors/PropertyTrackEditors/VisibilityPropertyTrackEditor.h"
+#include "Sections/VisibilityPropertySection.h"
 
 
 TSharedRef<ISequencerTrackEditor> FVisibilityPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )

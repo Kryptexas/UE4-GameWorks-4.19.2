@@ -6,8 +6,17 @@
 
 #pragma once
 
-#include "AsyncPackage.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/GCObject.h"
+#include "Serialization/AsyncPackage.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/ObjectRedirector.h"
 
+class IAsyncReadRequest;
+struct FAsyncPackage;
 struct FFlushTree;
 
 #define PERF_TRACK_DETAILED_ASYNC_STATS (0)

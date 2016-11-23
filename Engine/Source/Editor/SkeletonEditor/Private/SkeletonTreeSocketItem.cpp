@@ -1,11 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "SkeletonTreeSocketItem.h"
+#include "Widgets/Text/STextBlock.h"
 #include "SSkeletonTreeRow.h"
-#include "SInlineEditableTextBlock.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Widgets/SOverlay.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "Widgets/Images/SImage.h"
+#include "EditorStyleSet.h"
 #include "SocketDragDropOp.h"
 #include "IPersonaPreviewScene.h"
+#include "IDetailsView.h"
+#include "PropertyEditorModule.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeSocketItem"
 

@@ -1,7 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "DockingPrivate.h"
+#include "Framework/Docking/TabManager.h"
+#include "Dom/JsonValue.h"
+#include "Dom/JsonObject.h"
+#include "Framework/Commands/UIAction.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBox.h"
+#include "Framework/Docking/SDockingNode.h"
+#include "Framework/Docking/SDockingSplitter.h"
+#include "Framework/Docking/SDockingArea.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Framework/Docking/SDockingTabStack.h"
+#include "Framework/Docking/SDockingTabWell.h"
 #if PLATFORM_MAC
 #include "../MultiBox/Mac/MacMenu.h"
 #endif

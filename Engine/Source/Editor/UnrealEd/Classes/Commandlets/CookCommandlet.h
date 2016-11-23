@@ -5,9 +5,19 @@
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/PackageName.h"
 #include "Commandlets/Commandlet.h"
 #include "UniquePtr.h"
 #include "CookCommandlet.generated.h"
+
+class FSandboxPlatformFile;
+class ITargetPlatform;
 
 UCLASS(config=Editor)
 class UCookCommandlet

@@ -2,12 +2,11 @@
 
 #pragma once
 
-#include "FontCacheFreeType.h"
+#include "CoreMinimal.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Fonts/FontCacheFreeType.h"
 
 class FCompositeFontCache;
-struct FShapedGlyphEntry;
-struct FCharacterRenderData;
-
 
 /**
  * Internal struct for passing around information about loading a glyph 

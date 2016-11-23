@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include "NumericTypeInterface.h"
-#include "SNumericEntryBox.h"
-
+#include "CoreMinimal.h"
+#include "Widgets/Input/NumericTypeInterface.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 
 class FSequencer;
 class USequencerSettings;
-
 
 class SSequencerTransformBox
 	: public SCompoundWidget

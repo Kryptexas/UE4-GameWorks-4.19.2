@@ -1,9 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneParameterSection.h"
-#include "MovieSceneParticleParameterTrack.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieSceneParticleParameterTrack.h"
+#include "MovieSceneCommonHelpers.h"
 #include "Evaluation/MovieSceneParticleParameterTemplate.h"
 
 #define LOCTEXT_NAMESPACE "ParticleParameterTrack"

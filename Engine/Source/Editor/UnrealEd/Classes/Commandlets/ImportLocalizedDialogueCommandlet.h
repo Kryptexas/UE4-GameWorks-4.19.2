@@ -2,14 +2,14 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Commandlets/GatherTextCommandletBase.h"
 #include "Factories/SoundFactory.h"
 #include "ImportLocalizedDialogueCommandlet.generated.h"
 
+class UDialogueWave;
 class USoundWave;
-class USoundFactory;
-class FInternationalizationManifest;
-class FInternationalizationArchive;
 
 /**
  *	UImportLocalizedDialogueCommandlet: Handles synchronizing localized raw audio files with dialogue and sound wave assets.

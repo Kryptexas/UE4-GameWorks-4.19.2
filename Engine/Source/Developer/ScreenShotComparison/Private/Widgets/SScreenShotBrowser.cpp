@@ -4,10 +4,14 @@
 	SScreenShotBrowser.cpp: Implements the SScreenShotBrowser class.
 =============================================================================*/
 
-#include "ScreenShotComparisonPrivatePCH.h"
-#include "SDirectoryPicker.h"
-#include "SScreenComparisonRow.h"
+#include "Widgets/SScreenShotBrowser.h"
+#include "HAL/FileManager.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SDirectoryPicker.h"
+#include "Widgets/SScreenComparisonRow.h"
 #include "Models/ScreenComparisonModel.h"
+#include "Misc/FeedbackContext.h"
 
 #define LOCTEXT_NAMESPACE "ScreenshotComparison"
 

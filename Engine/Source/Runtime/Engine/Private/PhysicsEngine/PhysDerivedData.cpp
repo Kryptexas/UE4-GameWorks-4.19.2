@@ -1,9 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "EnginePrivate.h"
-#include "PhysDerivedData.h"
-#include "TargetPlatform.h"
+#include "PhysicsEngine/PhysDerivedData.h"
+#include "Serialization/MemoryWriter.h"
+#include "Modules/ModuleManager.h"
+#include "Stats/Stats.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Components/SplineMeshComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 
 #if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 

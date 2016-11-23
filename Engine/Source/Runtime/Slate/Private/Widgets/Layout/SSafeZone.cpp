@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-
-#include "SSafeZone.h"
+#include "Widgets/Layout/SSafeZone.h"
+#include "Layout/LayoutUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/CoreDelegates.h"
 
 void SSafeZone::Construct( const FArguments& InArgs )
 {

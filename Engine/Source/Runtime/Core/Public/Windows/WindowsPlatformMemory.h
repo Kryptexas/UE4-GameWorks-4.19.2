@@ -2,9 +2,13 @@
 
 #pragma once
 
+#include "CoreTypes.h"
 #include "GenericPlatform/GenericPlatformMemory.h"
-#include "Windows/WindowsSystemIncludes.h"
+#include "WindowsSystemIncludes.h"
 
+class FString;
+class FMalloc;
+struct FGenericMemoryStats;
 
 /**
  *	Windows implementation of the FGenericPlatformMemoryStats.
@@ -51,9 +55,9 @@ struct CORE_API FWindowsPlatformMemory
 	struct FWindowsSharedMemoryRegion : public FSharedMemoryRegion
 	{
 		/** Returns the handle to file mapping object. */
-		HANDLE GetMapping() const { return Mapping; }
+		Windows::HANDLE GetMapping() const { return Mapping; }
 
-		FWindowsSharedMemoryRegion(const FString& InName, uint32 InAccessMode, void* InAddress, SIZE_T InSize, HANDLE InMapping)
+		FWindowsSharedMemoryRegion(const FString& InName, uint32 InAccessMode, void* InAddress, SIZE_T InSize, Windows::HANDLE InMapping)
 			:	FSharedMemoryRegion(InName, InAccessMode, InAddress, InSize)
 			,	Mapping(InMapping)
 		{}
@@ -61,7 +65,7 @@ struct CORE_API FWindowsPlatformMemory
 	protected:
 
 		/** Handle of a file mapping object */
-		HANDLE				Mapping;
+		Windows::HANDLE				Mapping;
 	};
 
 	//~ Begin FGenericPlatformMemory Interface

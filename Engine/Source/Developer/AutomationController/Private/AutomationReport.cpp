@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AutomationControllerPrivatePCH.h"
-#include "Misc/AutomationTest.h"
+#include "AutomationReport.h"
+#include "Misc/FilterCollection.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 FAutomationReport::FAutomationReport(FAutomationTestInfo& InTestInfo, bool InIsParent)
 	: bEnabled( false )

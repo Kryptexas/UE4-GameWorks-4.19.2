@@ -2,14 +2,49 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Engine/Engine.h"
+#include "Sound/SoundAttenuation.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundClass.h"
+#include "Audio.h"
 #include "Sound/AudioVolume.h"
+#include "Sound/SoundConcurrency.h"
 #include "Sound/SoundMix.h"
-#include "Sound/SoundSubmix.h"
 #include "AudioDeviceManager.h"
+#include "EngineGlobals.h"
+
+class FAudioEffectsManager;
+class FCanvas;
+class FViewport;
+class FViewportClient;
+class ICompressedAudioInfo;
+class UReverbEffect;
+class USoundBase;
+class USoundEffectSourcePreset;
+class USoundEffectSubmixPreset;
+class USoundSubmix;
+class USoundWave;
+struct FActiveSound;
+struct FAudioQualitySettings;
 
 /**
  * Forward declares
  */
+class USoundClass;
+class UWorld;
+class FOutputDevice;
+class FArchive;
+class FReferenceCollector;
+struct FWaveInstance;
+class USoundWave;
+class FSoundBuffer;
+class USoundBase;
+class USoundAttenuation;
+struct FRotator;
+struct FActiveSound;
+class USoundMix;
 
 class FAudioEffectsManager;
 class FViewportClient;

@@ -1,14 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
-#include "Net/NetworkProfiler.h"
-#include "Net/DataChannel.h"
-#include "Net/DataReplication.h"
-#include "Engine/ActorChannel.h"
-#include "RepLayout.h"
 #include "Engine/PackageMapClient.h"
-#include "ScopedTimers.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/Package.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "Engine/NetSerialization.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Level.h"
+#include "TimerManager.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "Engine/Engine.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/NetConnection.h"
+#include "Net/NetworkProfiler.h"
+#include "Engine/ActorChannel.h"
+#include "Net/RepLayout.h"
+#include "ProfilingDebugging/ScopedTimers.h"
 
 // ( OutPacketId == GUID_PACKET_NOT_ACKED ) == NAK'd		(this GUID is not acked, and is not pending either, so sort of waiting)
 // ( OutPacketId == GUID_PACKET_ACKED )		== FULLY ACK'd	(this GUID is fully acked, and we no longer need to send full path)

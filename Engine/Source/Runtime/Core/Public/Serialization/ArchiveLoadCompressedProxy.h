@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "Serialization/Archive.h"
 
 /*----------------------------------------------------------------------------
 	FArchiveLoadCompressedProxy.

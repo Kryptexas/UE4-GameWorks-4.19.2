@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
 
+struct FCompressedChunk;
 
 #if !USE_NEW_ASYNC_IO
 /*----------------------------------------------------------------------------

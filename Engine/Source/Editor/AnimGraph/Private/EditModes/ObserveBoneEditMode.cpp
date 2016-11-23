@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-#include "ObserveBoneEditMode.h"
+#include "EditModes/ObserveBoneEditMode.h"
 #include "AnimGraphNode_ObserveBone.h"
 #include "IPersonaPreviewScene.h"
+#include "Animation/DebugSkelMeshComponent.h"
 
 void FObserveBoneEditMode::EnterMode(class UAnimGraphNode_Base* InEditorNode, struct FAnimNode_Base* InRuntimeNode)
 {

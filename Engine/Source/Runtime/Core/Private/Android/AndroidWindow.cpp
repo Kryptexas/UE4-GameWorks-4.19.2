@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-
 #include "AndroidWindow.h"
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <jni.h>
+#include "HAL/OutputDevices.h"
+#include "HAL/IConsoleManager.h"
 
 // Cached calculated screen resolution
 static int32 WindowWidth = -1;

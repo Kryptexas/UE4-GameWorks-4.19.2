@@ -1,9 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderSectionsPrivatePCH.h"
 #include "MovieSceneVisibilitySectionRecorder.h"
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneVisibilityTrack.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "KeyParams.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "Tracks/MovieSceneVisibilityTrack.h"
 #include "MovieScene.h"
 #include "ActorRecordingSettings.h"
 

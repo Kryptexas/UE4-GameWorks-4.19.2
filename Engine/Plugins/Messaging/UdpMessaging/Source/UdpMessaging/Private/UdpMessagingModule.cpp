@@ -1,13 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UdpMessagingPrivatePCH.h"
-#include "ModuleInterface.h"
-#include "UdpMessagingSettings.h"
-#include "UdpMessageTransport.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Helpers/MessageBridgeBuilder.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "Shared/UdpMessagingSettings.h"
+#include "Transport/UdpMessageTransport.h"
+#include "Tunnel/UdpMessageTunnel.h"
+#include "UdpMessagingPrivate.h"
+
+#if WITH_EDITOR
+	#include "ISettingsModule.h"
+	#include "ISettingsSection.h"
+#endif
 
 #if PLATFORM_DESKTOP
-	#include "UdpMessageTunnelConnection.h"
-	#include "UdpMessageTunnel.h"
 #endif
 
 

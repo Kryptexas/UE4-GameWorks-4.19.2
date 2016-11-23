@@ -1,13 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LaunchPrivatePCH.h"
+#include "AndroidJNI.h"
 #include "ExceptionHandling.h"
 #include "AndroidPlatformCrashContext.h"
 #include "Runtime/Core/Public/Misc/DateTime.h"
-
-#include "AndroidJNI.h"
+#include "HAL/PlatformStackWalk.h"
 #include "AndroidApplication.h"
 #include "AndroidInputInterface.h"
+#include "Widgets/Input/IVirtualKeyboardEntry.h"
+#include "UnrealEngine.h"
+#include "Misc/FeedbackContext.h"
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 

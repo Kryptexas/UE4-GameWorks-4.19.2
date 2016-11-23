@@ -2,14 +2,40 @@
 
 #pragma once
 
-#include "Factories.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Misc/SecureHash.h"
+#include "Factories/FbxAnimSequenceImportData.h"
+#include "Factories/FbxImportUI.h"
+#include "Logging/TokenizedMessage.h"
+#include "Factories/FbxStaticMeshImportData.h"
+#include "Factories/FbxSceneImportFactory.h"
 
-class ALight;
-class UInterpGroupInst;
-class AMatineeActor;
 class AActor;
+class ACameraActor;
+class ALight;
+class AMatineeActor;
+class Error;
+class FSkeletalMeshImportData;
+class UActorComponent;
+class UAnimSequence;
+class UFbxSkeletalMeshImportData;
+class UInterpGroupInst;
 class UInterpTrackMove;
+class UInterpTrackMoveAxis;
+class ULightComponent;
+class UMaterial;
+class UMaterialInstanceConstant;
+class UMaterialInterface;
+class UPhysicsAsset;
+class USkeletalMesh;
+class USkeleton;
+class UStaticMesh;
 class USubDSurface;
+class UTexture;
+struct FExpressionInput;
+struct FRawMesh;
+struct FRichCurve;
 
 // Temporarily disable a few warnings due to virtual function abuse in FBX source files
 #pragma warning( push )
@@ -54,7 +80,6 @@ THIRD_PARTY_INCLUDES_END
 #pragma pack(pop)
 
 
-#include "TokenizedMessage.h"
 
 
 #ifdef TMP_UNFBX_BACKUP_O_RDONLY

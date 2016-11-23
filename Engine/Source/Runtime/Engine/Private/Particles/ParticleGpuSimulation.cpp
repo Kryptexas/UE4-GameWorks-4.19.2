@@ -4,33 +4,45 @@
 	ParticleGpuSimulation.cpp: Implementation of GPU particle simulation.
 ==============================================================================*/
 
-#include "EnginePrivate.h"
-#include "FXSystemPrivate.h"
-#include "ParticleSimulationGPU.h"
-#include "ParticleSortingGPU.h"
-#include "ParticleCurveTexture.h"
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+#include "Math/RandomStream.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "RenderingThread.h"
 #include "RenderResource.h"
-#include "ParticleResources.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
-#include "ShaderParameterUtils.h"
+#include "Shader.h"
+#include "VertexFactory.h"
 #include "RHIStaticStates.h"
-#include "ParticleDefinitions.h"
+#include "GlobalDistanceFieldParameters.h"
+#include "StaticBoundShaderState.h"
+#include "Materials/Material.h"
+#include "ParticleVertexFactory.h"
+#include "SceneUtils.h"
+#include "SceneManagement.h"
+#include "ParticleHelper.h"
+#include "ParticleEmitterInstances.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "VectorField.h"
+#include "CanvasTypes.h"
+#include "Particles/FXSystemPrivate.h"
+#include "Particles/ParticleSortingGPU.h"
+#include "Particles/ParticleCurveTexture.h"
+#include "Particles/ParticleResources.h"
+#include "ShaderParameterUtils.h"
 #include "GlobalShader.h"
-#include "../VectorField.h"
-#include "../VectorFieldVisualization.h"
-#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
+#include "VectorFieldVisualization.h"
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/Spawn/ParticleModuleSpawnPerUnit.h"
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "VectorField/VectorField.h"
-#include "SceneUtils.h"
-#include "MeshBatch.h"
-#include "GlobalDistanceFieldParameters.h"
 
 DECLARE_CYCLE_STAT(TEXT("GPUSpriteEmitterInstance Init"), STAT_GPUSpriteEmitterInstance_Init, STATGROUP_Particles);
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Particle Simulation"), Stat_GPU_ParticleSimulation, STATGROUP_GPU);
@@ -43,8 +55,8 @@ DECLARE_FLOAT_COUNTER_STAT(TEXT("Particle Simulation"), Stat_GPU_ParticleSimulat
 #define TRACK_TILE_ALLOCATIONS 0
 
 /** The texture size allocated for GPU simulation. */
-const int32 GParticleSimulationTextureSizeX = 1024;
-const int32 GParticleSimulationTextureSizeY = 1024;
+extern const int32 GParticleSimulationTextureSizeX = 1024;
+extern const int32 GParticleSimulationTextureSizeY = 1024;
 
 /** Texture size must be power-of-two. */
 static_assert((GParticleSimulationTextureSizeX & (GParticleSimulationTextureSizeX - 1)) == 0, "Particle simulation texture size X is not a power of two.");

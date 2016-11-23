@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayTagBase.h"
+#include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
-#include "Abilities/GameplayAbility.h"
 
 UAbilityTask_WaitGameplayTag::UAbilityTask_WaitGameplayTag(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

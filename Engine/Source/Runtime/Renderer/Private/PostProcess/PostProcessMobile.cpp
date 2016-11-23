@@ -4,15 +4,14 @@
 	PostProcessMobile.cpp: Uber post for mobile implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "PostProcess/PostProcessMobile.h"
+#include "StaticBoundShaderState.h"
+#include "SceneUtils.h"
+#include "SceneRenderTargetParameters.h"
 #include "SceneRendering.h"
 #include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessMobile.h"
-#include "PostProcessing.h"
-#include "PostProcessHistogram.h"
-#include "PostProcessEyeAdaptation.h"
-#include "SceneUtils.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessEyeAdaptation.h"
 
 
 static EPixelFormat GetHDRPixelFormat()

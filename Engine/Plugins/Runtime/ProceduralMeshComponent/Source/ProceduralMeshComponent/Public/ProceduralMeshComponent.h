@@ -1,9 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Components/MeshComponent.h"
 #include "PhysicsEngine/ConvexElem.h"
 #include "ProceduralMeshComponent.generated.h"
+
+class FPrimitiveSceneProxy;
 
 /**
 *	Struct used to specify a tangent vector for a vertex

@@ -170,7 +170,7 @@ FD3D12Resource::FD3D12Resource(FD3D12Device* ParentDevice,
 	, FD3D12MultiNodeGPUObject(ParentDevice->GetNodeMask(), VisibleNodes)
 {
 #if UE_BUILD_DEBUG
-	FPlatformAtomics::_InterlockedIncrement(&TotalResourceCount);
+	FPlatformAtomics::InterlockedIncrement(&TotalResourceCount);
 #endif
 
 	if (Resource && Desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)

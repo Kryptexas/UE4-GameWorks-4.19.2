@@ -2,11 +2,17 @@
 
 #pragma once
 
-#include "IKeyframeSection.h"
-#include "MovieSceneKeyStruct.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/SceneComponent.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/RichCurve.h"
 #include "MovieSceneSection.h"
+#include "Sections/IKeyframeSection.h"
+#include "MovieSceneKeyStruct.h"
 #include "MovieScene3DTransformSection.generated.h"
 
+class FStructOnScope;
 
 namespace EKey3DTransformChannel
 {

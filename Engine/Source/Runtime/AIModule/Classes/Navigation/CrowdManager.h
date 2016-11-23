@@ -1,16 +1,28 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "AI/Navigation/NavigationTypes.h"
 #include "Tickable.h"
 #include "DrawDebugHelpers.h"
 #include "CrowdManager.generated.h"
 
-class UWorld;
-struct FNavMeshPath;
 class ANavigationData;
-class UCrowdFollowingComponent;
+class dtCrowd;
+class dtObstacleAvoidanceDebugData;
 class ICrowdAgentInterface;
+class UCrowdFollowingComponent;
 class UCrowdManager;
+struct dtCrowdAgent;
+struct dtCrowdAgentDebugInfo;
+struct dtCrowdAgentParams;
+struct dtQuerySpecialLinkFilter;
+struct FNavMeshPath;
+
 #if WITH_RECAST
 struct dtQuerySpecialLinkFilter;
 struct dtCrowdAgentParams;

@@ -1,12 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
 #include "Factories/SoundFactory.h"
 #include "AssetRegistryModule.h"
+#include "Components/AudioComponent.h"
+#include "Audio.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundWave.h"
+#include "Sound/SoundNode.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundNodeModulator.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "AudioDeviceManager.h"
+#include "Editor.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FeedbackContext.h"
+#include "EditorFramework/AssetImportData.h"
 
 static bool bSoundFactorySuppressImportOverwriteDialog = false;
 

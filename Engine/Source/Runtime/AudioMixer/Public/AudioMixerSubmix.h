@@ -3,9 +3,9 @@
 #pragma once
 
 #include "AudioMixer.h"
-#include "AudioMixerDevice.h"
-#include "AudioMixerSourceVoice.h"
 #include "Sound/SoundSubmix.h"
+
+class USoundEffectSubmix;
 
 namespace Audio
 {

@@ -2,13 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "PropertySection.h"
 
-
-class ISequencer;
+class FSequencerSectionPainter;
 class UMovieSceneColorSection;
-class UMovieSceneSection;
-
 
 /**
 * A color section implementation

@@ -4,8 +4,14 @@
  *
  */
 
-#include "EnginePrivate.h"
+#include "DrawDebugHelpers.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "CanvasItem.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/WorldSettings.h"
 #include "Components/LineBatchComponent.h"
+#include "Engine/Canvas.h"
 #include "GameFramework/HUD.h"
 
 #if ENABLE_DRAW_DEBUG

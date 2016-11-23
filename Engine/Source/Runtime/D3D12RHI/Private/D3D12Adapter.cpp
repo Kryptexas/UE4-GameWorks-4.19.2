@@ -357,7 +357,7 @@ void FD3D12Adapter::Cleanup()
 	FRHIResource::FlushPendingDeletes();
 
 	// Clean up the asnyc texture thread allocators
-	for (uint32 i = 0; i < GetOwningRHI()->NumThreadDynamicHeapAllocators; i++)
+	for (int32 i = 0; i < GetOwningRHI()->NumThreadDynamicHeapAllocators; i++)
 	{
 		GetOwningRHI()->ThreadDynamicHeapAllocatorArray[i]->Destroy<FD3D12ScopeLock>();
 		delete(GetOwningRHI()->ThreadDynamicHeapAllocatorArray[i]);

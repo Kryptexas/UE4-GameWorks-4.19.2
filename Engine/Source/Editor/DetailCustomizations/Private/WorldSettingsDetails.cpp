@@ -1,9 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "WorldSettingsDetails.h"
-#include "SAssetDropTarget.h"
-#include "AssetThumbnail.h"
+#include "Framework/Commands/UIAction.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "GameFramework/Actor.h"
+#include "Editor.h"
+#include "Engine/Texture2D.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "DetailLayoutBuilder.h"
+#include "GameModeInfoCustomizer.h"
 
 #define LOCTEXT_NAMESPACE "WorldSettingsDetails"
 

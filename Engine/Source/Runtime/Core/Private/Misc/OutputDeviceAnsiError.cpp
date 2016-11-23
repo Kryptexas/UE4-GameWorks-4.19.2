@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "OutputDeviceAnsiError.h"
+#include "Misc/OutputDeviceAnsiError.h"
+#include "Templates/UnrealTemplate.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
 
 /** Constructor, initializing member variables */
 FOutputDeviceAnsiError::FOutputDeviceAnsiError()

@@ -1,11 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "EnumEditorUtils.h"
-#include "ScopedTransaction.h"
-#include "BlueprintGraphDefinitions.h"
+#include "Kismet2/EnumEditorUtils.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/UnrealType.h"
+#include "UObject/EnumProperty.h"
+#include "EdGraph/EdGraphNode.h"
+#include "Engine/Blueprint.h"
+#include "EdGraph/EdGraph.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node.h"
+#include "K2Node_Variable.h"
+#include "NodeDependingOnEnumInterface.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "Engine/UserDefinedEnum.h"
 
 #define LOCTEXT_NAMESPACE "Enum"
 

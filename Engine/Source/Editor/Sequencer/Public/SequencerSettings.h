@@ -2,7 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Package.h"
 #include "SequencerSettings.generated.h"
+
+struct FPropertyChangedEvent;
+enum class EAutoKeyMode : uint8;
+enum class EMovieSceneKeyInterpolation : uint8;
 
 UENUM()
 enum ESequencerSpawnPosition

@@ -6,9 +6,13 @@
 
 #pragma once
 
-#include "Async/Async.h"
-#include "IScreenShotData.h"
-#include "../ImageComparer.h"
+#include "CoreMinimal.h"
+#include "Async/Future.h"
+#include "ImageComparer.h"
+#include "Interfaces/IScreenShotData.h"
+
+class IScreenShotManager;
+struct FScreenShotDataItem;
 
 /**
  * Type definition for shared pointers to instances of IScreenShotManager.

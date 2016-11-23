@@ -2,7 +2,22 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Misc/Parse.h"
+#include "Logging/LogMacros.h"
+#include "Templates/SharedPointer.h"
+#include "Misc/DateTime.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/PlatformTime.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/ScopeLock.h"
 #include "UniquePtr.h"
+
+class IAsyncReadFileHandle;
 
 #if !UE_BUILD_SHIPPING
 

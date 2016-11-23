@@ -4,9 +4,11 @@
 	SystemTextures.cpp: System textures implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "AtmosphereTextures.h"
+#include "Atmosphere/AtmosphericFogComponent.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "AtmosphereTextureParameters.h"
+#include "ShaderParameterUtils.h"
 
 void FAtmosphereTextures::InitDynamicRHI()
 {

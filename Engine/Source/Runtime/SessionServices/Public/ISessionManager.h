@@ -2,11 +2,10 @@
 
 #pragma once
 
-
-class ISessionInfo;
-class ISessionInstanceInfo;
-struct FSessionLogMessage;
-
+#include "CoreMinimal.h"
+#include "ISessionInstanceInfo.h"
+#include "ISessionInfo.h"
+#include "SessionLogMessage.h"
 
 /**
  * Interface for the session manager.

@@ -2,10 +2,18 @@
 
 #pragma once
 
-#include "MovieScene3DAttachSection.h"
-#include "MovieScene3DAttachTrack.h"
-#include "ActorPickerTrackEditor.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerSection.h"
+#include "ISequencer.h"
+#include "ISequencerTrackEditor.h"
+#include "TrackEditors/ActorPickerTrackEditor.h"
 
+class AActor;
+class FMenuBuilder;
+class USceneComponent;
 
 /**
  * Tools for attaching an object to another object

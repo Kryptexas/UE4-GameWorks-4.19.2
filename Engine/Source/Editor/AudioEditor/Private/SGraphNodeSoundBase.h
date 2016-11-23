@@ -2,7 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
 #include "SGraphNode.h"
+
+class SVerticalBox;
+class USoundCueGraphNode;
 
 class SGraphNodeSoundBase : public SGraphNode
 {

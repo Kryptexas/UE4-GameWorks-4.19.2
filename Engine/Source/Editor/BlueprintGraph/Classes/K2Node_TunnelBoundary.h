@@ -1,8 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "EdGraph/EdGraphPin.h"
 #include "K2Node.h"
 #include "K2Node_TunnelBoundary.generated.h"
+
+class FCompilerResultsLog;
+class UEdGraph;
+class UK2Node_Tunnel;
 
 enum ETunnelBoundaryType
 {

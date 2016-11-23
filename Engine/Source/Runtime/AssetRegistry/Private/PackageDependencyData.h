@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Linker.h"
+
 class FPackageDependencyData : public FLinkerTables
 {
 public:

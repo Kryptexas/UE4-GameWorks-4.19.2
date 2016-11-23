@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "GenericPlatformMallocCrash.h"
+#include "GenericPlatform/GenericPlatformMallocCrash.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/PlatformTLS.h"
+#include "Templates/AlignmentTemplates.h"
 
 /** Describes a pool. */
 struct FPoolDesc

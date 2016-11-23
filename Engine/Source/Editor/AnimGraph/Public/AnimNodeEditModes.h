@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Editor.h"
+
 struct ANIMGRAPH_API AnimNodeEditModes
 {
 	const static FEditorModeID AnimNode;

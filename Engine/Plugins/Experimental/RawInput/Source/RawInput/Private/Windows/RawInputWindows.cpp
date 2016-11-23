@@ -1,10 +1,15 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "RawInputPCH.h"
+#include "RawInputWindows.h"
 #include "IInputDeviceModule.h"
 #include "IInputDevice.h"
 #include "AllowWindowsPlatformTypes.h"
 #include "RawInputSettings.h"
+#include "HAL/PlatformProcess.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Engine/Engine.h"
+#include "Engine/Canvas.h"
+#include "GameFramework/HUD.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogRawInputWindows, Log, All);
 

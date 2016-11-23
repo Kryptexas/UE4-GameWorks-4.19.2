@@ -4,13 +4,11 @@
 	BlendSpaceBase.cpp: Base class for blend space objects
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "AnimationRuntime.h"
-#include "Animation/AnimInstance.h"
 #include "Animation/BlendSpaceBase.h"
+#include "Animation/AnimNotifyQueue.h"
 #include "AnimationUtils.h"
-#include "BlendSpaceUtilities.h"
-#include "FrameworkObjectVersion.h"
+#include "Animation/BlendSpaceUtilities.h"
+#include "UObject/FrameworkObjectVersion.h"
 
 DECLARE_CYCLE_STAT(TEXT("BlendSpace GetAnimPose"), STAT_BlendSpace_GetAnimPose, STATGROUP_Anim);
 

@@ -2,13 +2,26 @@
 
 #pragma once
 
-
-// Forward declarations
-class ULandscapeComponent;
-class UFoliageType;
-
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
 #include "InstancedFoliage.h"
-#include "InstancedFoliageActor.h"
+#include "UnrealWidget.h"
+#include "EdMode.h"
+#include "Widgets/Views/SHeaderRow.h"
+
+class AInstancedFoliageActor;
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FUICommandList;
+class FViewport;
+class UFoliageType;
+class ULandscapeComponent;
+class UPrimitiveComponent;
+class UStaticMeshComponent;
+class UViewportInteractor;
+struct FViewportClick;
 
 //
 // Forward declarations.

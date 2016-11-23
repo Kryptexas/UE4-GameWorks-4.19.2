@@ -1,11 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
 #include "Engine/EngineBaseTypes.h"
 #include "PendingNetGame.generated.h"
 
-struct FWorldContext;
 class UEngine;
+class UNetConnection;
+class UNetDriver;
+struct FWorldContext;
 
 /**
  * Accepting connection response codes

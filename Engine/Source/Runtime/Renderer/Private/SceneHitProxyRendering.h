@@ -6,6 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "HitProxies.h"
+#include "DrawingPolicy.h"
+
+class FPrimitiveSceneProxy;
+class FScene;
+class FStaticMesh;
+
 /**
  * Outputs no color, but can be used to write the mesh's depth values to the depth buffer.
  */

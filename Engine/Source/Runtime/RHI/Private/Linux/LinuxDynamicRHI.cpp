@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "RHIPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
 #include "RHI.h"
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/ConfigCacheIni.h"
 
 FDynamicRHI* PlatformCreateDynamicRHI()
 {

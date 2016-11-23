@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
 
 #include "RawInputSettings.generated.h"

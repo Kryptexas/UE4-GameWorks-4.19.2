@@ -13,8 +13,12 @@
  * limitations under the License.
  */
 
-#include "GoogleVRHMDPCH.h"
 #include "GoogleVRHMD.h"
+#include "Engine/LocalPlayer.h"
+#include "GameFramework/WorldSettings.h"
+#include "GameFramework/PlayerController.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/CoreDelegates.h"
 #if GOOGLEVRHMD_SUPPORTED_ANDROID_PLATFORMS
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"

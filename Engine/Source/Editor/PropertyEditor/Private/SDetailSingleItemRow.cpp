@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
 #include "SDetailSingleItemRow.h"
-#include "DetailItemNode.h"
-#include "PropertyEditorHelpers.h"
+#include "ObjectPropertyNode.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "DetailWidgetRow.h"
 #include "IDetailKeyframeHandler.h"
 #include "IDetailPropertyExtensionHandler.h"
 #include "DetailPropertyRow.h"

@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieScene3DTransformSection.h"
-#include "MovieScene3DTransformTrack.h"
-#include "IMovieScenePlayer.h"
-#include "MovieSceneSegmentCompiler.h"
+#include "Tracks/MovieScene3DTransformTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Sections/MovieScene3DTransformSection.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
+
 
 UMovieScene3DTransformTrack::UMovieScene3DTransformTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )

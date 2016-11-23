@@ -4,17 +4,20 @@
 	AnimationUtils.cpp: Skeletal mesh animation utilities.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "AnimationUtils.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/Package.h"
+#include "Animation/AnimCompress.h"
 #include "Animation/AnimCompress_BitwiseCompressOnly.h"
+#include "Animation/AnimCompress_RemoveLinearKeys.h"
 #include "Animation/AnimCompress_PerTrackCompression.h"
 #include "Animation/AnimCompress_LeastDestructive.h"
 #include "Animation/AnimCompress_RemoveEverySecondKey.h"
 #include "Animation/AnimSet.h"
 #include "Animation/AnimationSettings.h"
-#include "AnimationUtils.h"
 #include "AnimationCompression.h"
-#include "AnimEncoding.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "AnimEncoding.h"
 
 /** Array to keep track of SkeletalMeshes we have built metadata for, and log out the results just once. */
 //static TArray<USkeleton*> UniqueSkeletonsMetadataArray;

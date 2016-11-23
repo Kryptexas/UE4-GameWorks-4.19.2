@@ -1,10 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "SettingsEditorPrivatePCH.h"
-#include "SSettingsSectionHeader.h"
-#include "NotificationManager.h"
-#include "SNotificationList.h"
+#include "Widgets/SSettingsSectionHeader.h"
+#include "ISettingsCategory.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/MessageDialog.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
+#include "ISourceControlModule.h"
 #include "SSettingsEditorCheckoutNotice.h"
 #include "DesktopPlatformModule.h"
 #include "IDetailsView.h"

@@ -6,6 +6,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Misc/App.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/Paths.h"
+#include "HAL/RunnableThread.h"
+#include "Containers/ResourceArray.h"
+#include "Serialization/MemoryReader.h"
+#include "EngineGlobals.h"
+
 #define D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE				1
 
 #if UE_BUILD_SHIPPING
@@ -17,11 +27,10 @@
 #endif
 
 // Dependencies.
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "RHI.h"
 #include "GPUProfiler.h"
 #include "ShaderCore.h"
-#include "Engine.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 
@@ -726,7 +735,7 @@ public:
 
 		if (HelperThreadDynamicHeapAllocator == nullptr)
 		{
-			uint32 NextIndex = InterlockedIncrement(&NumThreadDynamicHeapAllocators) - 1;
+			uint32 NextIndex = FPlatformAtomics::InterlockedIncrement(&NumThreadDynamicHeapAllocators) - 1;
 			check(NextIndex < _countof(ThreadDynamicHeapAllocatorArray));
 			HelperThreadDynamicHeapAllocator = new FD3D12FastAllocator(Device, Node, D3D12_HEAP_TYPE_UPLOAD, AsyncTexturePoolSize);
 
@@ -737,7 +746,7 @@ public:
 	}
 
 	FD3D12FastAllocator* ThreadDynamicHeapAllocatorArray[16];
-	uint32 NumThreadDynamicHeapAllocators;
+	int32 NumThreadDynamicHeapAllocators;
 	static __declspec(thread) FD3D12FastAllocator* HelperThreadDynamicHeapAllocator;
 
 #if	PLATFORM_SUPPORTS_VIRTUAL_TEXTURES

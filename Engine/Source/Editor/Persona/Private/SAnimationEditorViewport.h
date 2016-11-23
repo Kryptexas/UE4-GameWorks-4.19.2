@@ -3,10 +3,23 @@
 
 #pragma once
 
-#include "SEditorViewport.h"
-#include "IPersonaViewport.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "PersonaDelegates.h"
+#include "IPersonaViewport.h"
+#include "EngineDefines.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "BlueprintEditor.h"
+#include "IPersonaPreviewScene.h"
+#include "EditorViewportClient.h"
 #include "AnimationEditorViewportClient.h"
+#include "ISkeletonTree.h"
+#include "AnimationEditorPreviewScene.h"
+#include "SEditorViewport.h"
+
+class SAnimationEditorViewportTabBody;
 
 struct FAnimationEditorViewportRequiredArgs
 {
@@ -104,7 +117,7 @@ public:
 	virtual TSharedRef<IPersonaViewportState> SaveState() const override;
 	virtual void RestoreState(TSharedRef<IPersonaViewportState> InState) override;
 	virtual FEditorViewportClient& GetViewportClient() const override;
-
+	
 	void RefreshViewport();
 
 	/**

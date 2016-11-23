@@ -1,19 +1,55 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealHeaderTool.h"
+#include "CoreMinimal.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/PlatformProcess.h"
+#include "Templates/UnrealTemplate.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Delegates/Delegate.h"
+#include "Misc/Guid.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/ErrorException.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "UObject/Interface.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
+#include "Misc/PackageName.h"
+#include "UnrealHeaderToolGlobals.h"
 
-#include "UniquePtr.h"
+#include "ParserClass.h"
+#include "Scope.h"
+#include "HeaderProvider.h"
+#include "GeneratedCodeVersion.h"
+#include "SimplifiedParsingClassInfo.h"
+#include "UnrealSourceFile.h"
 #include "ParserHelper.h"
+#include "Classes.h"
 #include "NativeClassExporter.h"
+#include "ProfilingDebugging/ScopedTimers.h"
 #include "HeaderParser.h"
-#include "ClassMaps.h"
 #include "IScriptGeneratorPluginInterface.h"
 #include "Manifest.h"
 #include "StringUtils.h"
-#include "IPluginManager.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "Features/IModularFeatures.h"
 #include "UHTMakefile/UHTMakefile.h"
-#include "ScopeExit.h"
+#include "Misc/ScopeExit.h"
 #include "FileLineException.h"
 
 /////////////////////////////////////////////////////
@@ -5021,21 +5057,25 @@ FUHTStringBuilder& FNativeClassHeaderGenerator::GetGeneratedFunctionTextDevice()
 {
 	static struct FMaxLinesPerCpp
 	{
-		int32 Value;
+		int32 FirstValue;
+		int32 OtherValue;
 		FMaxLinesPerCpp()
 		{
+			FirstValue = 5000;
+			check(GConfig);
+			GConfig->GetInt(TEXT("UnrealHeaderTool"), TEXT("MaxLinesPerInitialCpp"), FirstValue, GEngineIni);
+
 #if ( PLATFORM_WINDOWS && defined(__clang__) )	// @todo clang: Clang r231657 often crashes with huge Engine.generated.cpp files, so we split using a smaller threshold
-			Value = 15000;
+			OtherValue = 15000;
 #else
 			// We do this only for non-clang builds for now
-			Value = 30000;
-			check(GConfig);
-			GConfig->GetInt(TEXT("UnrealHeaderTool"), TEXT("MaxLinesPerCpp"), Value, GEngineIni);
+			OtherValue = 60000;
+			GConfig->GetInt(TEXT("UnrealHeaderTool"), TEXT("MaxLinesPerCpp"), OtherValue, GEngineIni);
 #endif
 		}
 	} MaxLinesPerCpp;
 
-	if ((GeneratedFunctionBodyTextSplit.Num() == 0) || (GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num() - 1]->GetLineCount() > MaxLinesPerCpp.Value))
+	if ((GeneratedFunctionBodyTextSplit.Num() == 0) || (GeneratedFunctionBodyTextSplit.Num() == 1 && GeneratedFunctionBodyTextSplit[0]->GetLineCount() > MaxLinesPerCpp.FirstValue) || (GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num() - 1]->GetLineCount() > MaxLinesPerCpp.OtherValue))
 	{
 		GeneratedFunctionBodyTextSplit.Add( TUniqueObj<FUHTStringBuilderLineCounter>() );
 	}
@@ -5501,6 +5541,10 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 																								LINE_TERMINATOR
 		);
 
+	// Write out an include for the generated header boilerplate code
+	//GeneratedCPPPreamble.Logf(TEXT("#pragma once") LINE_TERMINATOR);
+	GeneratedCPPPreamble.Logf(TEXT("#include \"GeneratedCppIncludes.h\"") LINE_TERMINATOR);
+
 	FString ModulePCHInclude;
 
 	const auto* ModuleInfo = GPackageToManifestModuleMap.FindChecked(Package);
@@ -5515,12 +5559,10 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	FString DepHeaderPathname = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".dep.h");
 	SaveHeaderIfChanged(*DepHeaderPathname, *(GeneratedCPPPreamble + ListOfPublicClassesUObjectHeaderModuleIncludes));
 
-	// Write out an include for the generated header boilerplate code
-	GeneratedCPPClassesIncludes.Logf(TEXT("#include \"GeneratedCppIncludes.h\"") LINE_TERMINATOR, *FPaths::GetCleanFilename(DepHeaderPathname));
-
 	// Write out our include to the .dep.h file
 	GeneratedCPPClassesIncludes.Logf(TEXT("#include \"%s\"") LINE_TERMINATOR, *FPaths::GetCleanFilename(DepHeaderPathname));
 
+	GeneratedCPPClassesIncludes.Logf(TEXT("PRAGMA_DISABLE_OPTIMIZATION") LINE_TERMINATOR);
 	{
 		// Autogenerate names (alphabetically sorted).
 		ReferencedNames.KeySort( TLess<FName>() );

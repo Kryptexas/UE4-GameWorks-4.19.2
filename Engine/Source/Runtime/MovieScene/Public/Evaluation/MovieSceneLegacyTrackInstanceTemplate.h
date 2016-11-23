@@ -2,10 +2,13 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "IMovieSceneTrackInstance.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 
 #include "MovieSceneLegacyTrackInstanceTemplate.generated.h"
+
+class UMovieSceneTrack;
 
 USTRUCT()
 struct MOVIESCENE_API FMovieSceneLegacyTrackInstanceTemplate : public FMovieSceneEvalTemplate

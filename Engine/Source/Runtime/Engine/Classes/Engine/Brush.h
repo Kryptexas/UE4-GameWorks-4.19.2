@@ -2,11 +2,12 @@
 
 #pragma once
 
-#include "Model.h"
-#include "Level.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/Actor.h"
 #include "Brush.generated.h"
 
+class UBrushBuilder;
 
 //-----------------------------------------------------------------------------
 // Variables.

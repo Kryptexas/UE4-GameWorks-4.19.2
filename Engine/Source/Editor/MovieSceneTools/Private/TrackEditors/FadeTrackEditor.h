@@ -2,12 +2,14 @@
 
 #pragma once
 
-#include "FloatPropertyTrackEditor.h"
-
-
-class ISequencer;
-class UMovieSceneTrack;
-
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
+#include "TrackEditors/PropertyTrackEditors/FloatPropertyTrackEditor.h"
 
 /**
 * A property track editor for fade control.

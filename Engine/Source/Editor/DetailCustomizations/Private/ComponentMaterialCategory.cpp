@@ -1,16 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "ComponentMaterialCategory.h"
-#include "AssetThumbnail.h"
-#include "ActorEditorUtils.h"
+#include "UObject/UnrealType.h"
+#include "Components/ActorComponent.h"
+#include "Misc/App.h"
+#include "UObject/UObjectHash.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/MeshComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Components/DecalComponent.h"
+#include "Components/TextRenderComponent.h"
+#include "UnrealEdGlobals.h"
+#include "Editor.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "PropertyCustomizationHelpers.h"
 #include "IPropertyUtilities.h"
 
 #include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
-#include "Components/DecalComponent.h"
-#include "Components/TextRenderComponent.h"
-#include "AI/Navigation/NavigationSystem.h"
 
 #define LOCTEXT_NAMESPACE "SMaterialList"
 

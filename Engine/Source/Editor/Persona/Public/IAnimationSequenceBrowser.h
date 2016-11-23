@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SCompoundWidget.h"
+
+class UAnimationAsset;
+
 class IAnimationSequenceBrowser : public SCompoundWidget
 {
 public:

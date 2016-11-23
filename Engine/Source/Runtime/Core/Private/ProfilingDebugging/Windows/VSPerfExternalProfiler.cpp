@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "ExternalProfiler.h"
-#include "Runtime/Core/Public/Features/IModularFeatures.h"
+#include "CoreTypes.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/AssertionMacros.h"
+#include "ProfilingDebugging/ExternalProfiler.h"
+#include "Features/IModularFeatures.h"
+#include "Templates/ScopedPointer.h"
 #include "UniquePtr.h"
 
 // Not all versions of Visual Studio include the profiler SDK headers

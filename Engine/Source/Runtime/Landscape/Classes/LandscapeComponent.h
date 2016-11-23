@@ -2,30 +2,37 @@
 
 #pragma once
 
-#include "LightMap.h"
-#include "ShadowMap.h"
-
-#include "SceneTypes.h"
-#include "StaticLighting.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Components/PrimitiveComponent.h"
+
 
 #include "LandscapeComponent.generated.h"
 
-// Forward declarations
-class ULandscapeLayerInfoObject;
-class ULandscapeInfo;
-class ALandscapeProxy;
 class ALandscape;
-class ULandscapeHeightfieldCollisionComponent;
+class ALandscapeProxy;
+class FLightingBuildOptions;
+class FMaterialUpdateContext;
+class FMeshMapBuildData;
+class FPrimitiveSceneProxy;
+class ITargetPlatform;
 class ULandscapeComponent;
 class ULandscapeGrassType;
-
-struct FEngineShowFlags;
+class ULandscapeHeightfieldCollisionComponent;
+class ULandscapeInfo;
+class ULandscapeLayerInfoObject;
+class ULightComponent;
+class UMaterialInstanceConstant;
+class UMaterialInterface;
+class UTexture2D;
 struct FConvexVolume;
+struct FEngineShowFlags;
 struct FLandscapeEditDataInterface;
 struct FLandscapeEditToolRenderData;
 struct FLandscapeTextureDataInfo;
-struct FLandscapeComponentGrassData;
+struct FStaticLightingPrimitiveInfo;
 
 class FLandscapeComponentDerivedData
 {

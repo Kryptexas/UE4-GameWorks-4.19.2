@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class Error;
 
 /**
  * Json (JavaScript Object Notation) is a lightweight data-interchange format.

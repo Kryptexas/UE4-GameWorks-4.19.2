@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IMovieScenePlayer.h"
+
 struct FTimeAndDelta
 {
 	float Time;

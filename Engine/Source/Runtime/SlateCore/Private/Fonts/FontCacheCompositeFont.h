@@ -2,8 +2,12 @@
 
 #pragma once
 
-class FFreeTypeLibrary;
+#include "CoreMinimal.h"
+#include "Fonts/CompositeFont.h"
+
 class FFreeTypeFace;
+class FFreeTypeLibrary;
+struct FSlateFontInfo;
 
 /**
  * Cached data for a given typeface

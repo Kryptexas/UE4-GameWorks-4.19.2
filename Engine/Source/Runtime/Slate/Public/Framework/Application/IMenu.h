@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class SWidget;
+class SWindow;
+enum class EPopupMethod : uint8;
+
 /**
  * Represents a popup menu.
  */

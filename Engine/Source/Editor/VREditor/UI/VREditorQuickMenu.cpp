@@ -1,13 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorQuickMenu.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "VREditorFloatingUI.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
 #include "VREditorUISystem.h"
 #include "VREditorMode.h"
+#include "VIBaseTransformGizmo.h"
 #include "ViewportWorldInteraction.h"
-#include "VREditorFloatingUI.h"
-#include "VREditorTransformGizmo.h"
-#include "SLevelViewport.h"	// For Simulate toggle
+#include "ILevelViewport.h"
+#include "SLevelViewport.h"
 #include "ImageUtils.h"
 
 

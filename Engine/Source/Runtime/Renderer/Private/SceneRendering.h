@@ -6,12 +6,35 @@
 
 #pragma once
 
-#include "TextureLayout.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "Templates/ScopedPointer.h"
+#include "UniformBuffer.h"
+#include "GlobalDistanceFieldParameters.h"
+#include "SceneView.h"
+#include "RendererInterface.h"
+#include "BatchedElements.h"
+#include "MeshBatch.h"
+#include "SceneManagement.h"
+#include "PrimitiveSceneInfo.h"
+#include "GlobalShader.h"
+#include "ShadowRendering.h"
+#include "PrimitiveViewRelevance.h"
 #include "DistortionRendering.h"
 #include "CustomDepthRendering.h"
 #include "HeightfieldLighting.h"
 #include "GlobalDistanceFieldParameters.h"
 #include "UniquePtr.h"
+
+class FScene;
+class FSceneViewState;
+class FViewInfo;
+struct FILCUpdatePrimTaskData;
+
+template<typename ShaderMetaType> class TShaderMap;
 
 // Forward declarations.
 class FPostprocessContext;

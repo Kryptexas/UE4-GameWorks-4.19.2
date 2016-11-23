@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "SoundDefinitions.h"
 #include "SGraphNodeSoundResult.h"
-#include "IDocumentation.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Images/SImage.h"
 #include "SoundCueGraph/SoundCueGraphNode_Base.h"
 
 void SGraphNodeSoundResult::Construct(const FArguments& InArgs, USoundCueGraphNode_Base* InNode)

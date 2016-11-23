@@ -4,10 +4,10 @@
 	PoseableMeshComponent.cpp: UPoseableMeshComponent methods.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Components/PoseableMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimStats.h"
 #include "Animation/AnimInstance.h"
-#include "Components/PoseableMeshComponent.h"
 
 UPoseableMeshComponent::UPoseableMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

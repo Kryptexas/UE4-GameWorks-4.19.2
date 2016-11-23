@@ -2,6 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "Math/RandomStream.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/UnrealType.h"
+#include "UObject/Stack.h"
+#include "UObject/ScriptMacros.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "KismetMathLibrary.generated.h"
 
 /** Provides different easing functions that can be used in blueprints */

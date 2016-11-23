@@ -7,8 +7,10 @@
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "ContentBrowserSettings.generated.h"
-
 
 /**
  * Implements the Level Editor's loading and saving settings.

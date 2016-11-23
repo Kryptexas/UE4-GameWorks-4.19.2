@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "MemoryArchive.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Serialization/MemoryArchive.h"
 
 /**
 * Archive for storing a large amount of arbitrary data to memory

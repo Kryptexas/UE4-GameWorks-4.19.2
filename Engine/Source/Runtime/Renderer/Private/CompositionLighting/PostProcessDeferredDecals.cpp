@@ -4,13 +4,9 @@
 	PostProcessDeferredDecals.cpp: Deferred Decals implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessing.h"
-#include "PostProcessDeferredDecals.h"
-#include "ScreenRendering.h"
+#include "CompositionLighting/PostProcessDeferredDecals.h"
 #include "SceneUtils.h"
+#include "ScenePrivate.h"
 #include "DecalRenderingShared.h"
 
 

@@ -2,37 +2,35 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Misc/CoreMisc.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "GenericOctreePublic.h"
 #include "AI/Navigation/NavigationData.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "GenericOctreePublic.h"
 #include "NavigationSystem.generated.h"
 
 #define NAVSYS_DEBUG (0 && UE_BUILD_DEBUG)
 
 #define NAV_USE_MAIN_NAVIGATION_DATA NULL
 
-class UNavigationPath;
-class ANavigationData;
-class UNavigationQueryFilter;
-class UWorld;
-class UCrowdManager;
-struct FNavDataConfig;
-struct FPathFindingResult;
-class UActorComponent;
-class USceneComponent;
-class AActor;
-class UEnum;
 class AController;
-class UCrowdManager;
-class UNavArea;
+class ANavMeshBoundsVolume;
+class AWorldSettings;
+class FEdMode;
+class FNavDataGenerator;
+class FNavigationOctree;
 class INavLinkCustomInterface;
 class INavRelevantInterface;
-class FNavigationOctree;
-class ANavMeshBoundsVolume;
-class FNavDataGenerator;
-class AWorldSettings;
+class UCrowdManager;
+class UNavArea;
+class UNavigationPath;
 struct FNavigationRelevantData;
-class UNavigationSystem;
+
 #if WITH_EDITOR
 class FEdMode;
 #endif // WITH_EDITOR

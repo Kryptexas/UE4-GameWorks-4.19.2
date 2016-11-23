@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
-
 #include "OnlineFriendsInterfaceGameCircle.h"
 #include "OnlineFriendGameCircle.h"
+#include "OnlineAGSPlayerClientCallbacks.h"
+#include "OnlineSubsystemGameCircle.h"
+#include "OnlineIdentityInterfaceGameCircle.h"
 
 
 FOnlineFriendsInterfaceGameCircle::FOnlineFriendsInterfaceGameCircle(FOnlineSubsystemGameCircle *const InSubsystem)

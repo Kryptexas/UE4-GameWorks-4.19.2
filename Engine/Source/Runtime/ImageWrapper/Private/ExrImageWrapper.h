@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ImageWrapperBase.h"
+
 #if WITH_UNREALEXR
 
 THIRD_PARTY_INCLUDES_START

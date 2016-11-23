@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimPreviewInstance.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "AnimationRuntime.h"
 
 #if WITH_EDITOR
 #include "ScopedTransaction.h"

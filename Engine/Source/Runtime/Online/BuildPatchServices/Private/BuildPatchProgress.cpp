@@ -5,8 +5,10 @@
 	progress information.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
-#include "BuildPatchState.h"
+#include "BuildPatchProgress.h"
+#include "Misc/ScopeLock.h"
+#include "BuildPatchError.h"
+#include "BuildPatchChunk.h"
 
 /* FBuildPatchProgress implementation
 *****************************************************************************/

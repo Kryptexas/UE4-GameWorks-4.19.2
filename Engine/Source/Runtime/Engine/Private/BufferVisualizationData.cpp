@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "EnginePrivate.h"
 #include "BufferVisualizationData.h"
+#include "HAL/IConsoleManager.h"
+#include "Materials/Material.h"
+#include "Misc/ConfigCacheIni.h"
 
 static FBufferVisualizationData GBufferVisualizationData;
 

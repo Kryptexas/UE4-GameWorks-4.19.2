@@ -6,13 +6,29 @@ LandscapeRender.h: New terrain rendering
 
 #pragma once
 
-#include "LandscapeProxy.h"
-#include "LandscapeComponent.h"
-
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/RefCounting.h"
+#include "Containers/ArrayView.h"
+#include "ShaderParameters.h"
+#include "RenderResource.h"
 #include "UniformBuffer.h"
+#include "VertexFactory.h"
+#include "MaterialShared.h"
+#include "LandscapeProxy.h"
+#include "RendererInterface.h"
+#include "MeshBatch.h"
+#include "SceneManagement.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "LandscapeComponent.h"
+#include "Materials/MaterialInterface.h"
+#include "PrimitiveViewRelevance.h"
 #include "PrimitiveSceneProxy.h"
 #include "StaticMeshResources.h"
-#include "MeshBatch.h"
+
+
+
 
 // This defines the number of border blocks to surround terrain by when generating lightmaps
 #define TERRAIN_PATCH_EXPAND_SCALAR	1
@@ -20,10 +36,7 @@ LandscapeRender.h: New terrain rendering
 #define LANDSCAPE_LOD_LEVELS 8
 #define LANDSCAPE_MAX_SUBSECTION_NUM 2
 
-// Forward declarations
 class FLandscapeComponentSceneProxy;
-class ULandscapeComponent;
-class UMaterialInterface;
 
 #if WITH_EDITOR
 namespace ELandscapeViewMode

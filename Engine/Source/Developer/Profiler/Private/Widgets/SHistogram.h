@@ -2,8 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 #include "ProfilerSample.h"
 
+class FFPSAnalyzer;
+class FPaintArgs;
+class FSlateWindowElementList;
 
 /** Type definition for shared pointers to instances of FGraphDataSource. */
 typedef TSharedPtr<class IHistogramDataSource> FHistogramDataSourcePtr;

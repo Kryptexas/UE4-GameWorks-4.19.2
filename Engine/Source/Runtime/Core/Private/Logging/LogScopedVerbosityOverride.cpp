@@ -1,7 +1,8 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "Logging/LogScopedVerbosityOverride.h"
+#include "Misc/AssertionMacros.h"
+#include "Logging/LogCategory.h"
 
 /** Back up the existing verbosity for the category then sets new verbosity.*/
 FLogScopedVerbosityOverride::FLogScopedVerbosityOverride(FLogCategoryBase * Category, ELogVerbosity::Type Verbosity)

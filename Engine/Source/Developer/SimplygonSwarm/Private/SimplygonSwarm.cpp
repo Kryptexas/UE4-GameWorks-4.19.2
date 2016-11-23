@@ -1,7 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SimplygonSwarmPrivatePCH.h"
+#include "SimplygonSwarmCommon.h"
 #include "SimplygonSwarmHelpers.h"
+#include "SimplygonRESTClient.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Object.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Interfaces/IImageWrapperModule.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/MonitoredProcess.h"
 #include "UniquePtr.h"
 THIRD_PARTY_INCLUDES_START
 #include <algorithm>

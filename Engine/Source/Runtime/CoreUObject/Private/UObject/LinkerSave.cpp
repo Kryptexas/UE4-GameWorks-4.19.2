@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
 #include "UObject/LinkerSave.h"
-#include "TextPackageNamespaceUtil.h"
+#include "HAL/FileManager.h"
+#include "Serialization/LargeMemoryWriter.h"
+#include "UObject/Package.h"
+#include "UObject/Class.h"
+#include "Templates/Casts.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/AssetPtr.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
 
 /*----------------------------------------------------------------------------
 	FLinkerSave.

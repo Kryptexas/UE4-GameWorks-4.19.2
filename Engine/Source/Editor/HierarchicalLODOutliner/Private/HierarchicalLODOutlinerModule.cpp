@@ -1,9 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HierarchicalLODOutlinerPrivatePCH.h"
 #include "HierarchicalLODOutlinerModule.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "UnrealClient.h"
+#include "Editor/UnrealEdEngine.h"
+#include "EngineGlobals.h"
+#include "GameFramework/WorldSettings.h"
+#include "UnrealEdGlobals.h"
 #include "HLODOutliner.h"
-#include "HierarchicalLODUtilities.h"
+#include "IHierarchicalLODUtilities.h"
 #include "HierarchicalLODUtilitiesModule.h"
 
 void FHierarchicalLODOutlinerModule::StartupModule()

@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AbilitySystemComponent.h"
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#include "CoreMinimal.h"
 #include "Misc/CoreMisc.h"
+#include "AbilitySystemGlobals.h"
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 struct FGameplayAbilitiesExec : public FSelfRegisteringExec
 {

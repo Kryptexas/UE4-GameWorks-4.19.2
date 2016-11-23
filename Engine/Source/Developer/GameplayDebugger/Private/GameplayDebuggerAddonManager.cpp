@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
-#include "GameplayDebuggerExtension.h"
 #include "GameplayDebuggerAddonManager.h"
+#include "Engine/World.h"
+#include "GameplayDebuggerCategoryReplicator.h"
+#include "GameplayDebuggerExtension.h"
 #include "GameplayDebuggerConfig.h"
 
 FGameplayDebuggerAddonManager::FGameplayDebuggerAddonManager()

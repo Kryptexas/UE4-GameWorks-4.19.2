@@ -1,8 +1,18 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "AutomationTest.h"
-#include "ICUUtilities.h"
+#include "CoreTypes.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Misc/DateTime.h"
+#include "CoreGlobals.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Misc/AutomationTest.h"
+#include "Internationalization/ICUUtilities.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 

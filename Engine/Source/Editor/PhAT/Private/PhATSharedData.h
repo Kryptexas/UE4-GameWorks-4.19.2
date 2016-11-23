@@ -2,11 +2,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SkeletalMeshTypes.h"
 #include "PreviewScene.h"
+#include "PhysicsAssetUtils.h"
 #include "PhysicsPublic.h"
 
+class UBodySetup;
 class UPhATEdSkeletalMeshComponent;
+class UPhATSimOptions;
+class UPhysicsAsset;
+class UPhysicsConstraintTemplate;
 class UPhysicsHandleComponent;
+class USkeletalMesh;
+class UStaticMeshComponent;
+
 #define DEBUG_CLICK_VIEWPORT 0
 
 /*-----------------------------------------------------------------------------

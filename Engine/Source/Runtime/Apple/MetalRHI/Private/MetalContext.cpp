@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalRHIPrivate.h"
+#include "Misc/App.h"
 #if PLATFORM_IOS
 #include "IOSAppDelegate.h"
+#include "IOS/IOSPlatformFramePacer.h"
 #endif
 
 #include "MetalContext.h"

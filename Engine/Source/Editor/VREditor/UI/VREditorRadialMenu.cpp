@@ -1,17 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorRadialMenu.h"
 #include "VREditorRadialMenuItem.h"
 #include "VREditorFloatingUI.h"
 #include "VREditorUISystem.h"
 #include "VREditorMode.h"
+#include "VIBaseTransformGizmo.h"
 #include "ViewportWorldInteraction.h"
-#include "VREditorTransformGizmo.h"
-#include "VREditorInteractor.h"
 #include "VREditorMotionControllerInteractor.h"
 
-#include "Editor/LevelEditor/Public/LevelEditor.h"
 
 #define LOCTEXT_NAMESPACE "VREditorRadialMenu"
 

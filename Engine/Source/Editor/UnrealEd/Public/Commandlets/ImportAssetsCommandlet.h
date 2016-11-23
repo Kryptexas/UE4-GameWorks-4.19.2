@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Commandlets/Commandlet.h"
 
 #include "ImportAssetsCommandlet.generated.h"
 
 class UAutomatedAssetImportData;
-
-
 
 UCLASS()
 class UImportAssetsCommandlet : public UCommandlet

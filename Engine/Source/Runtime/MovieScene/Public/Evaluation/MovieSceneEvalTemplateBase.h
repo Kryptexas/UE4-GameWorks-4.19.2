@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieScenePlayback.h"
-#include "EnumClassFlags.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/MovieScenePlayback.h"
 #include "MovieSceneEvalTemplateBase.generated.h"
 
 /** Empty struct used for serialization */

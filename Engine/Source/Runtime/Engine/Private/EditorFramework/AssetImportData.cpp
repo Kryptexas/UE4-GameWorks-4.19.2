@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-
 #include "EditorFramework/AssetImportData.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/PackageName.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "UObject/Package.h"
+
 
 // This whole class is compiled out in non-editor
 UAssetImportData::UAssetImportData(const FObjectInitializer& ObjectInitializer)

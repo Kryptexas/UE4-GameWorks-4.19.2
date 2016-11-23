@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "AssetData.h"
+
 /** Represents a group of related assets, e.g. a skeleton, its animations and skeletal meshes */
 class IAssetFamily
 {

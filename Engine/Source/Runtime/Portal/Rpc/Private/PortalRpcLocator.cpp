@@ -1,13 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PortalRpcPrivatePCH.h"
 #include "PortalRpcLocator.h"
-#include "IPortalRpcLocator.h"
-#include "PortalRpcLocator.h"
-#include "PortalRpcMessages.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/Guid.h"
+#include "Containers/Ticker.h"
+#include "Misc/EngineVersion.h"
 #include "IMessageContext.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "PortalRpcDefines.h"
+#include "IPortalRpcLocator.h"
+#include "PortalRpcMessages.h"
 
-#include "EngineVersion.h"
 
 class FPortalRpcLocatorImpl
 	: public IPortalRpcLocator

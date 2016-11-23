@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 /** Hardware entry lookups */
 static const FName NAME_RHI( "RHI" );

@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "Templates/Casts.h"
+#include "UObject/Package.h"
+#include "Serialization/ArchiveReplaceObjectRef.h"
 
 /*----------------------------------------------------------------------------
 FArchiveReplaceOrClearExternalReferences.

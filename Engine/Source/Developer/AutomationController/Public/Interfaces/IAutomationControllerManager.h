@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/IAutomationReport.h"
+
+class IAutomationControllerManager;
 
 /** Type definition for shared pointers to instances of IAutomationControllerManager. */
 typedef TSharedPtr<class IAutomationControllerManager> IAutomationControllerManagerPtr;

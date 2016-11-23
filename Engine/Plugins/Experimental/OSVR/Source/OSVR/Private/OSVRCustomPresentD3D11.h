@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+
 #if PLATFORM_WINDOWS
 
 #include "IOSVR.h"

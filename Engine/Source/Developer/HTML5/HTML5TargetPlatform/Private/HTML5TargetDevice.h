@@ -6,6 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/TargetDeviceId.h"
+#include "Interfaces/ITargetDevice.h"
+
+class FHTML5TargetDevice;
+class ITargetPlatform;
 
 /**
  * Type definition for shared pointers to instances of FHTML5TargetDevice.

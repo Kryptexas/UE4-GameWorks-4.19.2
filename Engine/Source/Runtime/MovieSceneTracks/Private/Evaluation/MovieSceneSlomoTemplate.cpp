@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneSlomoTemplate.h"
-#include "MovieSceneSlomoTrack.h"
-#include "MovieSceneSlomoSection.h"
+#include "Evaluation/MovieSceneSlomoTemplate.h"
+#include "Tracks/MovieSceneSlomoTrack.h"
 #include "MovieSceneSequence.h"
-#include "MovieSceneEvaluationTemplateInstance.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "Engine/Engine.h"
+#include "GameFramework/WorldSettings.h"
+#include "EngineGlobals.h"
 
 DECLARE_CYCLE_STAT(TEXT("Slomo Track Token Execute"), MovieSceneEval_SlomoTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

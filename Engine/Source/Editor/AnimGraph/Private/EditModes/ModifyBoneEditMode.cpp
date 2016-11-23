@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-#include "ModifyBoneEditMode.h"
+#include "EditModes/ModifyBoneEditMode.h"
 #include "AnimGraphNode_ModifyBone.h"
 #include "IPersonaPreviewScene.h"
+#include "Animation/DebugSkelMeshComponent.h"
 
 FModifyBoneEditMode::FModifyBoneEditMode()
 {

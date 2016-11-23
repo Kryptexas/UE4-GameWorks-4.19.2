@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "IBuildManifest.h"
+#include "CoreMinimal.h"
+#include "Interfaces/IBuildManifest.h"
+#include "Misc/Variant.h"
 #include "BuildPatchVerify.h"
 
 namespace BuildPatchServices

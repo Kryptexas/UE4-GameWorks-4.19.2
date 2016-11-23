@@ -5,18 +5,33 @@
 =============================================================================*/
 
 #pragma once
-#include "HAL/Platform.h"
-#include "Misc/Build.h"
+
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/AlignOf.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Templates/Function.h"
+#include "Delegates/Delegate.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Containers/LockFreeList.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "HAL/Event.h"
+#include "Templates/RefCounting.h"
+#include "Containers/LockFreeFixedSizeAllocator.h"
+#include "Misc/MemStack.h"
 
 #if !defined(STATS)
 #error "STATS must be defined as either zero or one."
 #endif
-#include "LockFreeList.h"
-#include "LockFreeFixedSizeAllocator.h"
-#include "Stats.h"
 
 // what level of checking to perform...normally checkSlow but could be ensure or check
 #define checkThreadGraph checkSlow
+
+class FGraphEvent;
+
 //#define checkThreadGraph(x) ((x)||((*(char*)3) = 0))
 
 DECLARE_STATS_GROUP(TEXT("Task Graph Tasks"), STATGROUP_TaskGraphTasks, STATCAT_Advanced);

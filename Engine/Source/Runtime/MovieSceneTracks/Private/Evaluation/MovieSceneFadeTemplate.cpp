@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneFadeTemplate.h"
-#include "MovieSceneFadeTrack.h"
-#include "MovieSceneFadeSection.h"
+#include "Evaluation/MovieSceneFadeTemplate.h"
+#include "Tracks/MovieSceneFadeTrack.h"
 #include "MovieSceneSequence.h"
-#include "MovieSceneEvaluationTemplateInstance.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+#include "GameFramework/PlayerController.h"
 
 DECLARE_CYCLE_STAT(TEXT("Fade Track Token Execute"), MovieSceneEval_FadeTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

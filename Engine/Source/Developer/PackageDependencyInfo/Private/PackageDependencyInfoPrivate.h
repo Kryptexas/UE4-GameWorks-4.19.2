@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "Core.h"
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+
+class FPackageDependencyTrackingInfo;
 
 /**
  *	Package dependency information class.

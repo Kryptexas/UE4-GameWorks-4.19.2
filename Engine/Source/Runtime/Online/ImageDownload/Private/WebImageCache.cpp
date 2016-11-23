@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ImageDownloadPCH.h"
 #include "WebImageCache.h"
+#include "Styling/CoreStyle.h"
 
 FWebImageCache::FWebImageCache()
 : DefaultStandInBrush(FCoreStyle::Get().GetDefaultBrush())

@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "RenderCore.h"
-#include "RenderResource.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
 #include "PackedNormal.h"
 
 /**

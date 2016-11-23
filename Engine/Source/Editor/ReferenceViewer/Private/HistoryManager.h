@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "AssetData.h"
+
+class FMenuBuilder;
+
 /** The history data object, storing all important history data */
 struct FReferenceViewerHistoryData
 {

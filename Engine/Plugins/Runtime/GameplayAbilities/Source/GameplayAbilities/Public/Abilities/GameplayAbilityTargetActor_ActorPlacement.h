@@ -2,9 +2,13 @@
 
 #pragma once
 
-#include "GameplayAbilityTargetActor_GroundTrace.h"
-#include "GameplayAbilityWorldReticle_ActorVisualization.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Abilities/GameplayAbilityTargetActor_GroundTrace.h"
 #include "GameplayAbilityTargetActor_ActorPlacement.generated.h"
+
+class AGameplayAbilityWorldReticle_ActorVisualization;
+class UGameplayAbility;
 
 UCLASS(Blueprintable)
 class AGameplayAbilityTargetActor_ActorPlacement : public AGameplayAbilityTargetActor_GroundTrace

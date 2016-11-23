@@ -1,10 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Slate/UMGDragDropOp.h"
+#include "Application/SlateApplicationBase.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Blueprint/DragDropOperation.h"
+#include "Slate/SObjectWidget.h"
 
 #include "Widgets/Layout/SDPIScaler.h"
 
-#include "UMGDragDropOp.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FUMGDragDropOp

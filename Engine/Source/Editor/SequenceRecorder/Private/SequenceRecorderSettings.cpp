@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
 #include "SequenceRecorderSettings.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Camera/CameraComponent.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Components/LightComponent.h"
 #include "SequenceRecorder.h"
 #include "CineCameraComponent.h"
 

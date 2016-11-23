@@ -1,8 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "WindowsCursor.h"
-#include "WindowsWindow.h"
+#include "Windows/WindowsCursor.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Paths.h"
+#include "Misc/CoreMisc.h"
+#include "Math/Vector2D.h"
+#include "Windows/WindowsWindow.h"
+#include "Windows/WindowsHWrapper.h"
+#include "HAL/PlatformProcess.h"
+
+#include "Windows/AllowWindowsPlatformTypes.h"
+	#include <Ole2.h>
+	#include <oleidl.h>
+#include "Windows/HideWindowsPlatformTypes.h"
 
 FWindowsCursor::FWindowsCursor()
 {

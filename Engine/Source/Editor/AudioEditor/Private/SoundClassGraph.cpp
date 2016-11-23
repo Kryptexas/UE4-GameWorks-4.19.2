@@ -3,8 +3,11 @@
 /////////////////////////////////////////////////////
 // USoundClassGraph
 
-#include "AudioEditorPrivatePCH.h"
+#include "SoundClassGraph/SoundClassGraph.h"
+#include "UObject/Package.h"
+#include "SoundClassGraph/SoundClassGraphNode.h"
 #include "GraphEditor.h"
+#include "Sound/SoundClass.h"
 
 class FSoundClassAudioEditor : public ISoundClassAudioEditor
 {

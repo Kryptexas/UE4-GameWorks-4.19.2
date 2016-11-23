@@ -3,15 +3,15 @@
 /////////////////////////////////////////////////////
 // UMaterialGraph
 
-#include "UnrealEd.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "MaterialGraph/MaterialGraphNode_Comment.h"
+#include "MaterialGraph/MaterialGraphNode.h"
+#include "MaterialGraph/MaterialGraphNode_Root.h"
 
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 
-#include "GraphEditor.h"
-#include "MaterialShared.h"
-#include "MaterialEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraph"
 

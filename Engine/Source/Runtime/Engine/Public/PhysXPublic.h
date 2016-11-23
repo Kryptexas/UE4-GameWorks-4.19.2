@@ -6,11 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "EngineDefines.h"
+#include "PhysicsPublic.h"
+
 #if WITH_PHYSX
 
 
 #include "PhysXIncludes.h"
-#include "EngineLogs.h"
 
 // Whether or not to use the PhysX scene lock
 #ifndef USE_SCENE_LOCK

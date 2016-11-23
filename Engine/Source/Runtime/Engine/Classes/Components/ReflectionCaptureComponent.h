@@ -1,9 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Misc/CoreStats.h"
+#include "Templates/RefCounting.h"
+#include "Components/SceneComponent.h"
+#include "RenderCommandFence.h"
 #include "ReflectionCaptureComponent.generated.h"
 
 class FReflectionCaptureProxy;
+class UBillboardComponent;
 
 /*
 * Refcounted class to pass around uncompressed cubemap data and track memory, for use with FReflectionCaptureFullHDR::GetUncompressedData

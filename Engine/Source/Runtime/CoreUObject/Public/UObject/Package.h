@@ -2,11 +2,19 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "WorldCompositionUtility.h"
-#include "GatherableTextData.h"
-#include "PropertyLocalizationDataGathering.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Misc/WorldCompositionUtility.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/ObjectThumbnail.h"
+#include "Serialization/CustomVersion.h"
 #include "UniquePtr.h"
+
+class Error;
 
 /**
  * Represents the result of saving a package

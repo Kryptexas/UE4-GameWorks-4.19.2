@@ -4,28 +4,27 @@
 	ParticleEmitterInstances.cpp: Particle emitter instance implementations.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "ParticleEmitterInstances.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Materials/Material.h"
+#include "Particles/ParticleSystem.h"
+#include "TessellationRendering.h"
 #include "StaticMeshResources.h"
-#include "ParticleDefinitions.h"
-#include "LevelUtils.h"
 #include "FXSystem.h"
-#include "UObjectBaseUtility.h"
 
+#include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "Particles/Collision/ParticleModuleCollisionGPU.h"
 #include "Particles/Event/ParticleModuleEventGenerator.h"
 #include "Particles/Event/ParticleModuleEventReceiverBase.h"
 #include "Particles/Material/ParticleModuleMeshMaterial.h"
 #include "Particles/Modules/Location/ParticleModulePivotOffset.h"
 #include "Particles/Orbit/ParticleModuleOrbit.h"
-#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
 #include "Particles/Spawn/ParticleModuleSpawn.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Particles/ParticleLODLevel.h"
-#include "Particles/ParticleModule.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/ParticleSystemComponent.h"
-#include "Particles/SubUV/ParticleModuleSubUV.h"
 
 #include "Components/PointLightComponent.h"
 

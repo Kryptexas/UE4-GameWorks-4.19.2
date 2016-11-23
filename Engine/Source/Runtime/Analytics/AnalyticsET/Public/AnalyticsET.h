@@ -2,8 +2,12 @@
 
 #pragma once
 
-#include "IAnalyticsProviderModule.h"
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/IAnalyticsProviderModule.h"
+
+class IAnalyticsProvider;
+class IAnalyticsProviderET;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnalytics, Display, All);
 

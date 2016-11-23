@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Serialization/ArchiveUObject.h"
 
 /**
  * This archive marks all objects referenced by the specified "root set" of objects.

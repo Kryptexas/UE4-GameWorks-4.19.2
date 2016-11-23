@@ -5,7 +5,12 @@
 //=============================================================================
 
 #pragma once
-#include "BlendableInterface.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptInterface.h"
+#include "Engine/BlendableInterface.h"
 #include "Scene.generated.h"
 
 /** Used by FPostProcessSettings Depth of Fields */

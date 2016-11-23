@@ -2,6 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/Package.h"
+#include "UObject/ObjectRedirector.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
 #include "SharedMapView.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAssetData, Log, All);

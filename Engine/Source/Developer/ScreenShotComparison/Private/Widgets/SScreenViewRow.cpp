@@ -4,7 +4,12 @@
 	SScreenViewRow.cpp: implements the SScreenViewRow class.
 =============================================================================*/
 
-#include "ScreenShotComparisonPrivatePCH.h"
+#include "Widgets/SScreenViewRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
+#include "EditorStyleSet.h"
+#include "Interfaces/IScreenShotData.h"
+#include "Widgets/SScreenPlatformRow.h"
 
 #define LOCTEXT_NAMESPACE "SScreenShotBrowser"
 

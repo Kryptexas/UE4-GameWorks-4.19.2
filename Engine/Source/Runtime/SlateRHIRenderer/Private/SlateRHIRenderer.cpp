@@ -1,11 +1,27 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRHIRendererPrivatePCH.h"
-#include "ElementBatcher.h"
-#include "StereoRendering.h"
-#include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
-#include "SlateNativeTextureResource.h"
+#include "SlateRHIRenderer.h"
+#include "Fonts/FontCache.h"
+#include "SlateRHIRenderingPolicy.h"
+#include "Misc/ScopeLock.h"
+#include "Modules/ModuleManager.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EngineGlobals.h"
+#include "RendererInterface.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "RHIStaticStates.h"
+#include "UnrealEngine.h"
+#include "GlobalShader.h"
+#include "ScreenRendering.h"
+#include "SlateShaders.h"
+#include "Rendering/ElementBatcher.h"
+#include "StereoRendering.h"
+#include "Features/ILiveStreamingService.h"
+#include "SlateNativeTextureResource.h"
+#include "ShaderCompiler.h"
 
 DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_CrashTracker);
 DECLARE_CYCLE_STAT(TEXT("Generate Capture Buffer"),STAT_GenerateCaptureBuffer,STATGROUP_CrashTracker);

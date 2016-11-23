@@ -2,11 +2,14 @@
 
 #pragma once
 
-
-class FMessagingDebuggerModel;
-struct FMessageTracerInterceptorInfo;
-class IMessageTracer;
-
+#include "CoreMinimal.h"
+#include "Styling/ISlateStyle.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "IMessageTracer.h"
+#include "Models/MessagingDebuggerModel.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 
 /**
  * Implements the message interceptors panel.

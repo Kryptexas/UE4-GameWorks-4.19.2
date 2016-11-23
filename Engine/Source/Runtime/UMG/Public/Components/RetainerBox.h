@@ -1,8 +1,16 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Widgets/SWidget.h"
+#include "Components/ContentWidget.h"
 #include "RetainerBox.generated.h"
+
+class SRetainerWidget;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
 
 /**
  * The Retainer Box renders children widgets to a render target first before

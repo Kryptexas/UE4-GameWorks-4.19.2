@@ -2,11 +2,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "RenderCommandFence.h"
 #include "Materials/MaterialInterface.h"
-#include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "StaticParameterSet.h"
+#include "MaterialShared.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/Material.h"
+#include "Materials/MaterialInstanceBasePropertyOverrides.h"
+#include "Misc/App.h"
 #include "MaterialInstance.generated.h"
+
+class ITargetPlatform;
+class UPhysicalMaterial;
+class USubsurfaceProfile;
+class UTexture;
 
 //
 // Forward declarations.

@@ -3,11 +3,20 @@
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
-#include "SAnimTrackPanel.h"
-#include "SCurveEditor.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Animation/Skeleton.h"
 #include "Animation/AnimSequenceBase.h"
+#include "SAnimTrackPanel.h"
+
+class FAnimCurveBaseInterface;
+class FMenuBuilder;
+class SCurveEdTrack;
+class SSplitter;
 
 DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const TArray<UObject*>& )
 DECLARE_DELEGATE( FOnUpdatePanel )

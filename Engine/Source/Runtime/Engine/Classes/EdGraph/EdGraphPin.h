@@ -2,8 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Templates/Casts.h"
 #include "EdGraph/EdGraphNode.h"
 #include "EdGraphPin.generated.h"
+
+class UEdGraphPin;
+enum class EPinResolveType : uint8;
 
 USTRUCT()
 struct FSimpleMemberReference

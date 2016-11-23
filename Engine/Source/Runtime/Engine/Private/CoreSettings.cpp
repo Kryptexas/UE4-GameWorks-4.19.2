@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/CoreSettings.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/UnrealType.h"
+#include "Misc/App.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCoreSettings, Log, All);
 

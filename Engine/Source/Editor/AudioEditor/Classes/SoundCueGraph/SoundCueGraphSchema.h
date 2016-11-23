@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "AssetData.h"
 #include "EdGraph/EdGraphSchema.h"
 #include "SoundCueGraphSchema.generated.h"
 
-class USoundCue;
-class USoundNodeWavePlayer;
+class UEdGraph;
+class USoundNode;
 
 /** Action to add a node to the graph */
 USTRUCT()

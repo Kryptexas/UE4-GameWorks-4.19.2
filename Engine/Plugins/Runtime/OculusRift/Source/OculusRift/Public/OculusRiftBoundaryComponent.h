@@ -1,6 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ActorComponent.h"
+#include "IOculusRiftPlugin.h"
 
 #include "OculusRiftHMD.h" // For OVR_CAPI.h (-->OculusRiftCommon.h)
 #include "OculusRiftBoundaryComponent.generated.h"

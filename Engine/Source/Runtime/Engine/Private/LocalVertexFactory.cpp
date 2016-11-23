@@ -4,10 +4,11 @@
 	LocalVertexFactory.cpp: Local vertex factory implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "LocalVertexFactory.h"
+#include "SceneView.h"
+#include "MeshBatch.h"
 #include "SpeedTreeWind.h"
 #include "ShaderParameterUtils.h"
-#include "LocalVertexFactory.h"
 
 class FSpeedTreeWindNullUniformBuffer : public TUniformBuffer<FSpeedTreeUniformParameters>
 {

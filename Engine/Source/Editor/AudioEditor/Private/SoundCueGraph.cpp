@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
+#include "SoundCueGraph/SoundCueGraph.h"
+#include "SoundCueGraph/SoundCueGraphSchema.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundNode.h"
+#include "SoundCueGraph/SoundCueGraphNode.h"
+#include "SoundCueGraph/SoundCueGraphNode_Root.h"
 
 class FSoundCueAudioEditor : public ISoundCueAudioEditor
 {
@@ -159,7 +164,6 @@ public:
 		}
 	}
 };
-
 
 
 USoundCueGraph::USoundCueGraph(const FObjectInitializer& ObjectInitializer)

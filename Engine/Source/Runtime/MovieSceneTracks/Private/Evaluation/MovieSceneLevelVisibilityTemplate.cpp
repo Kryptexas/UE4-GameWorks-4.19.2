@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneLevelVisibilityTemplate.h"
+#include "Evaluation/MovieSceneLevelVisibilityTemplate.h"
 
-#include "MovieSceneLevelVisibilitySection.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/World.h"
+#include "Misc/PackageName.h"
 
 bool GetLevelVisibility(const ULevelStreaming& Level)
 {

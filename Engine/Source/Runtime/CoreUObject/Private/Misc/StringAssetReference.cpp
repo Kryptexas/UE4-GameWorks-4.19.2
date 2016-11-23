@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ObjectRedirector.h"
+#include "Misc/PackageName.h"
 
-#include "StringAssetReference.h"
-#include "PropertyTag.h"
 
 FStringAssetReference::FStringAssetReference(const UObject* InObject)
 {
@@ -136,7 +138,7 @@ bool FStringAssetReference::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags
 	return true;
 }
 
-#include "StringReferenceTemplates.h"
+#include "Misc/StringReferenceTemplates.h"
 
 bool FStringAssetReference::SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar)
 {

@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/RecastNavMesh.h"
+
+class AController;
+class UCanvas;
+struct FVisualLogEntry;
 
 enum class EMetaPathUpdateReason : uint8 
 {

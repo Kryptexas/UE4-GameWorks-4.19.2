@@ -1,11 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-// Precompiled header include. Can't add anything above this line.
 
-#include "MapPakDownloaderModulePrivatePCH.h"
 #include "MapPakDownloader.h"
+#include "MapPakDownloaderLog.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 #include <emscripten/emscripten.h>
 #include "Misc/Guid.h"
-#include "SlateExtras.h"
+#include "Misc/App.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/PackageName.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/UObjectHash.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/PlatformFile.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Notifications/SProgressBar.h"
 
 DECLARE_DELEGATE_OneParam(FDelegateFString, FString)
 DECLARE_DELEGATE_OneParam(FDelegateInt32, int32)

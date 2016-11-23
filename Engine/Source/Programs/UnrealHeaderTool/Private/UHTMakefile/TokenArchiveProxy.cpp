@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+#include "TokenArchiveProxy.h"
 #include "UnrealHeaderTool.h"
-#include "UHTMakefile/UHTMakefile.h"
-#include "UHTMakefile/TokenArchiveProxy.h"
+#include "UHTMakefile.h"
 #include "ParserHelper.h"
 
 /* See UHTMakefile.h for overview how makefiles work. */

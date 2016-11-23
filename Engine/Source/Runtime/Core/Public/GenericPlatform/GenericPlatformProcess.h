@@ -2,12 +2,13 @@
 
 #pragma once
 
-#include "Containers/ContainersFwd.h"
-#include "GenericPlatform/GenericPlatformMisc.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Templates/Function.h"
 
+class Error;
+struct FProcHandle;
 
-class FString;
 template <typename FuncType> class TFunctionRef;
 
 namespace EProcessResource

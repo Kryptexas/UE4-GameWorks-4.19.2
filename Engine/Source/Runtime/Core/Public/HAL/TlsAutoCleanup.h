@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+
 /** Base class for objects in TLS that support auto-cleanup. */
 class CORE_API FTlsAutoCleanup
 {

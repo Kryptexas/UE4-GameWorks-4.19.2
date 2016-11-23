@@ -2,7 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimationAsset.h"
+#include "AssetData.h"
 #include "IAssetFamily.h"
+
+class UAnimBlueprint;
 
 class FPersonaAssetFamily : public IAssetFamily
 {

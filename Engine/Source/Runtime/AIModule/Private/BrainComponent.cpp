@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
 #include "BrainComponent.h"
+#include "UObject/Package.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "VisualLogger/VisualLogger.h"
 
 const FName UBrainComponent::AIMessage_MoveFinished = TEXT("MoveFinished");
 const FName UBrainComponent::AIMessage_RepathFailed = TEXT("RepathFailed");

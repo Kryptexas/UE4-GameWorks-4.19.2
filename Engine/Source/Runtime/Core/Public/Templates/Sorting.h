@@ -2,8 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/PlatformMath.h"
 #include "Templates/Less.h"
-#include "Templates/Greater.h"
 
 /**
  * Helper class for dereferencing pointer types in Sort function

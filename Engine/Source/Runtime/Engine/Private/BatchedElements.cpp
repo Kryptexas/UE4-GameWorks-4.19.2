@@ -1,13 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "BatchedElements.h"
-#include "GlobalShader.h"
-#include "ShaderParameters.h"
-#include "RHIStaticStates.h"
+#include "Misc/App.h"
+#include "Shader.h"
 #include "SimpleElementShaders.h"
-#include "RHICommandList.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogBatchedElements, Log, All);

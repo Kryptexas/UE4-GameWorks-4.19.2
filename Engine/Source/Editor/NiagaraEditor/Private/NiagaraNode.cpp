@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "NiagaraEditorPrivatePCH.h"
 #include "NiagaraNode.h"
+#include "NiagaraGraph.h"
 #include "EdGraphSchema_Niagara.h"
 
 UNiagaraNode::UNiagaraNode(const FObjectInitializer& ObjectInitializer)

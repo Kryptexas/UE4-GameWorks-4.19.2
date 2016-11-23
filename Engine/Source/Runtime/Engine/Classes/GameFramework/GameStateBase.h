@@ -1,9 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/Info.h"
-#include "TimerManager.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameStateBase.generated.h"
+
+class APlayerState;
+class ASpectatorPawn;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogGameState, Log, All);
 

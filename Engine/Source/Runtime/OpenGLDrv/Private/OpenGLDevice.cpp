@@ -4,10 +4,23 @@
 	OpenGLDevice.cpp: OpenGL device RHI implementation.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ScopeLock.h"
+#include "Stats/Stats.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "Containers/List.h"
+#include "RenderResource.h"
+#include "ShaderCore.h"
+#include "RenderUtils.h"
+#include "ShaderCache.h"
+#include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
 
 #include "HardwareInfo.h"
-#include "ShaderCache.h"
 
 #ifndef GL_STEREO
 #define GL_STEREO			0x0C33

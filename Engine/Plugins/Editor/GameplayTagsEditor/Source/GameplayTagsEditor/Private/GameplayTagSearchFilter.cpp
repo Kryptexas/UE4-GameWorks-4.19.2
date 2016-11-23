@@ -1,12 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagSearchFilter.h"
+#include "Framework/Commands/UIAction.h"
+#include "Engine/Blueprint.h"
+#include "UObject/UnrealType.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
+#include "GameplayTagContainer.h"
+#include "GameplayTagsManager.h"
 #include "SGameplayTagWidget.h"
 
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Editor/ContentBrowser/Public/FrontendFilterBase.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagSearchFilter"
 

@@ -1,11 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MergeActorsPrivatePCH.h"
-#include "SMeshMergingDialog.h"
-#include "Dialogs/DlgPickAssetPath.h"
-#include "STextComboBox.h"
-#include "RawMesh.h"
+#include "MeshMergingTool/SMeshMergingDialog.h"
 #include "MeshMergingTool/MeshMergingTool.h"
+#include "EditorStyleSet.h"
+#include "PropertyEditorModule.h"
+#include "IDetailChildrenBuilder.h"
+#include "Modules/ModuleManager.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Engine/Selection.h"
+#include "Editor.h"
+#include "Components/ChildActorComponent.h"
 
 #include "IDetailsView.h"
 

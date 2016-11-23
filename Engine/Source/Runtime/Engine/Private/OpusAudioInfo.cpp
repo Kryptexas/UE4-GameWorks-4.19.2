@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "OpusAudioInfo.h"
-#include "IAudioFormat.h"
-#include "Sound/SoundWave.h"
+#include "ContentStreaming.h"
+#include "Interfaces/IAudioFormat.h"
 
 #define WITH_OPUS (PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX)
 

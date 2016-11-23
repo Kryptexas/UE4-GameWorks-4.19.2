@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // VRNotificationsComponent.cpp: Component to handle receiving notifications from VR HMD
 
-#include "HeadMountedDisplayPrivate.h"
 #include "VRNotificationsComponent.h"
-#include "CallbackDevice.h"
+#include "Misc/CoreDelegates.h"
 
 UVRNotificationsComponent::UVRNotificationsComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -2,10 +2,13 @@
 
 #pragma once
 
-#include "EdGraphUtilities.h"
-#include "SGameplayAttributeGraphPin.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "AttributeSet.h"
+#include "EdGraphUtilities.h"
 #include "EdGraphSchema_K2.h"
+#include "SGraphPin.h"
+#include "SGameplayAttributeGraphPin.h"
 
 class FGameplayAbilitiesGraphPanelPinFactory: public FGraphPanelPinFactory
 {

@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "EdGraph/EdGraph.h"
 #include "SoundClassGraph.generated.h"
+
+class UEdGraphPin;
 
 UCLASS(MinimalAPI)
 class USoundClassGraph : public UEdGraph

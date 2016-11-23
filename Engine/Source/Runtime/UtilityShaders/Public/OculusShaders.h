@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "Engine/EngineTypes.h"  // @todo: fix GlobalShader.h include dependencies
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
 #include "GlobalShader.h"
-#include "RenderResource.h"
 #include "ShaderParameterUtils.h"
-
 
 class FOculusVertexShader : public FGlobalShader
 {

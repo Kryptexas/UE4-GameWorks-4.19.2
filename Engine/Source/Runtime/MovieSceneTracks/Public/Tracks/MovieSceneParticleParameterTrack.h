@@ -2,10 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sections/MovieSceneParameterSection.h"
 #include "MovieSceneNameableTrack.h"
-#include "MovieSceneParameterSection.h"
 #include "MovieSceneParticleParameterTrack.generated.h"
-
 
 /**
  * Handles manipulation of material parameters in a movie scene.

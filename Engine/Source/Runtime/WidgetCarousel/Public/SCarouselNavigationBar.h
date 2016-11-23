@@ -1,11 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 #include "WidgetCarouselStyle.h"
 
 #define LOCTEXT_NAMESPACE "WidgetCarousel"
 
-struct FWidgetCarouselNavigationBarStyle;
+class SHorizontalBox;
 
 /**
 * A horizontal bar of buttons for navigating to a specific item in the widget carousel.

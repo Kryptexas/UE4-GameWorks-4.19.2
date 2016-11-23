@@ -2,9 +2,17 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/Function.h"
+#include "Stats/Stats.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+
 #if !defined(USE_NEW_ASYNC_IO)
 #error "USE_NEW_ASYNC_IO must be defined."
 #endif
+
+class IAsyncReadRequest;
 
 #if USE_NEW_ASYNC_IO
 

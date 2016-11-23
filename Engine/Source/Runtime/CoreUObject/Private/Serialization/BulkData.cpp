@@ -1,9 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "CoreUObjectPrivate.h"
-#include "TargetPlatform.h"
-#include "DebugSerializationFlags.h"
+#include "Serialization/BulkData.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "Async/Async.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/LinkerSave.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "UObject/DebugSerializationFlags.h"
 
 /*-----------------------------------------------------------------------------
 	Constructors and operators

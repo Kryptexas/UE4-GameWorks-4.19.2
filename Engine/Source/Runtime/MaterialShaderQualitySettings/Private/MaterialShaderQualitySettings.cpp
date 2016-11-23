@@ -1,15 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MaterialShaderQualitySettingsPrivatePCH.h"
 #include "MaterialShaderQualitySettings.h"
+#include "UObject/Package.h"
 #include "ShaderPlatformQualitySettings.h"
+#include "Misc/SecureHash.h"
 #include "RHI.h"
-#include "SecureHash.h"
-
-#if WITH_EDITOR
-#include "TargetPlatform.h"
-#include "PlatformInfo.h"
-#endif
 
 UMaterialShaderQualitySettings* UMaterialShaderQualitySettings::RenderQualitySingleton = nullptr;
 

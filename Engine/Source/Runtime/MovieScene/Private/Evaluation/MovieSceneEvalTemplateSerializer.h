@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "MovieSceneEvaluationCustomVersion.h"
+#include "CoreMinimal.h"
+#include "Evaluation/MovieSceneEvaluationCustomVersion.h"
+
+struct FMovieSceneEmptyStruct;
 
 /** Serialize the template */
 template<typename T, uint8 N>

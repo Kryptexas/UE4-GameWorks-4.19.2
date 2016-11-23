@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
-
 #include "SAnimMontageSectionsPanel.h"
-#include "ScopedTransaction.h"
-#include "SCurveEditor.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
 #include "SMontageEditor.h"
-#include "SExpandableArea.h"
+#include "Widgets/Input/SButton.h"
+
+#include "ScopedTransaction.h"
+#include "Widgets/Layout/SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "AnimMontageSectionsPanel"
 

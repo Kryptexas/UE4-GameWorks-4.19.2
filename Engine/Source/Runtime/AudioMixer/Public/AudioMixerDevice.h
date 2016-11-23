@@ -3,14 +3,15 @@
 #pragma once
 
 #include "AudioMixer.h"
-#include "AudioMixerDevice.h"
-#include "AudioMixerSourceVoice.h"
 #include "AudioMixerSourceManager.h"
+#include "AudioDevice.h"
 
 class IAudioMixerPlatformInterface;
 
 namespace Audio
 {
+	class FMixerSourceVoice;
+
 	struct FChannelPositionInfo
 	{
 		EAudioMixerChannel::Type Channel;

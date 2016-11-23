@@ -5,7 +5,11 @@
  */
 
 #pragma once
-#include "ImportSettings.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Factories/ImportSettings.h"
 #include "FbxImportUI.generated.h"
 
 /** Import mesh type */

@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
-#include "SGraphPinExec.h"
+#include "KismetPins/SGraphPinExec.h"
+#include "Widgets/Layout/SSpacer.h"
 
 void SGraphPinExec::Construct(const FArguments& InArgs, UEdGraphPin* InPin)
 {

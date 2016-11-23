@@ -1,10 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LocalizationPrivatePCH.h"
 #include "LocalizationCommandletTasks.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Culture.h"
+#include "UObject/UObjectHash.h"
+#include "Sound/SoundWave.h"
+#include "Sound/DialogueWave.h"
 #include "LocalizationCommandletExecution.h"
 #include "LocalizationConfigurationScript.h"
 #include "LocalizationSettings.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlProvider.h"
+#include "ISourceControlModule.h"
+#include "HAL/PlatformFilemanager.h"
+
 
 #define LOCTEXT_NAMESPACE "LocalizationCommandletTasks"
 

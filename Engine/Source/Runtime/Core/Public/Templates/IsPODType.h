@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "AndOrNot.h"
-#include "IsArithmetic.h"
-#include "IsPointer.h"
+#include "CoreTypes.h"
+#include "Templates/IsPointer.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/IsArithmetic.h"
 
 /**
  * Traits class which tests if a type is POD.

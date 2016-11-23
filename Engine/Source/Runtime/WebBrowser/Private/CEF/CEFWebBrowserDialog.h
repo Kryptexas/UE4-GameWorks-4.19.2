@@ -1,6 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/AssertionMacros.h"
+#include "Internationalization/Text.h"
+
 #if WITH_CEF3
 
 #if PLATFORM_WINDOWS

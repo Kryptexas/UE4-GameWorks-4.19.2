@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "AssetViewerSettings.h"
-
+#include "UObject/UnrealType.h"
 #include "Editor/EditorPerProjectUserSettings.h"
-#include "Classes/Engine/TextureCube.h"
+
 
 UAssetViewerSettings::UAssetViewerSettings()
 {

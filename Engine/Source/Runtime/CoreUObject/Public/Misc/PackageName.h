@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+struct FFileStatData;
+
 class COREUOBJECT_API FPackageName
 {
 public:

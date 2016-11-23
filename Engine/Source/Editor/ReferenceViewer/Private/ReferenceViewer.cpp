@@ -1,10 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ReferenceViewerPrivatePCH.h"
 #include "ReferenceViewer.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Framework/Docking/TabManager.h"
+#include "EdGraphNode_Reference.h"
+#include "SGraphNode.h"
+#include "SReferenceNode.h"
+#include "SReferenceViewer.h"
 
 #include "EdGraphUtilities.h"
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "ReferenceViewer"
 //DEFINE_LOG_CATEGORY(LogReferenceViewer);

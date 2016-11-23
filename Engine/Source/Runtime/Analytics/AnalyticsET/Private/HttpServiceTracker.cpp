@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnalyticsETPrivatePCH.h"
 #include "HttpServiceTracker.h"
+#include "HAL/PlatformTime.h"
 #include "AnalyticsEventAttribute.h"
-#include "AnalyticsET.h"
 #include "IAnalyticsProviderET.h"
-#include "IHttpResponse.h"
+#include "AnalyticsET.h"
+#include "Interfaces/IHttpResponse.h"
 
 bool FHttpServiceTracker::Tick(float DeltaTime)
 {

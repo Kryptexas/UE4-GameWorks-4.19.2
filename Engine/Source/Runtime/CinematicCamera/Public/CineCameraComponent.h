@@ -1,8 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Camera/CameraComponent.h"
 #include "CineCameraComponent.generated.h"
+
+class AActor;
+class UMaterial;
+class UMaterialInstanceDynamic;
+class UStaticMesh;
+class UStaticMeshComponent;
 
 /** #note, this struct has a details customization in CameraFilmbackSettingsCustomization.cpp/h */
 USTRUCT()

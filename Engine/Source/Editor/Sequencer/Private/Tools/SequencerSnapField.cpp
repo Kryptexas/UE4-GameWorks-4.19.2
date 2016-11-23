@@ -1,14 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
-#include "SequencerSnapField.h"
-#include "SSequencerTreeView.h"
-#include "Sequencer.h"
-#include "SSequencer.h"
-#include "MovieSceneSection.h"
-#include "SequencerEntityVisitor.h"
-#include "MovieSceneSequence.h"
+#include "Tools/SequencerSnapField.h"
 #include "MovieScene.h"
+#include "SSequencer.h"
+#include "SSequencerTreeView.h"
+#include "MovieSceneSequence.h"
 
 struct FSnapGridVisitor : ISequencerEntityVisitor
 {

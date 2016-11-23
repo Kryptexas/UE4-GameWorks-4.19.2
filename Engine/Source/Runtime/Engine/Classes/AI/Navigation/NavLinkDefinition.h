@@ -2,7 +2,12 @@
 
 #pragma once
 
-#include "NavAreas/NavArea.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "AI/Navigation/NavigationTypes.h"
 #include "NavLinkDefinition.generated.h"
 
 UENUM()

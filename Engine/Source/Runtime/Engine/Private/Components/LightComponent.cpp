@@ -4,20 +4,26 @@
 	LightComponent.cpp: LightComponent implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#if WITH_EDITOR
-#include "ObjectEditorUtils.h"
-#endif
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "ComponentInstanceDataCache.h"
-#include "TargetPlatform.h"
-#include "ComponentReregisterContext.h"
-#include "Components/PointLightComponent.h"
 #include "Components/LightComponent.h"
+#include "Misc/App.h"
+#include "RenderingThread.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Materials/Material.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Engine/Texture2D.h"
+#include "Engine/TextureLightProfile.h"
+#include "SceneManagement.h"
+#include "ComponentReregisterContext.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Components/PointLightComponent.h"
 #include "Components/DirectionalLightComponent.h"
+#include "Components/BillboardComponent.h"
 #include "ComponentRecreateRenderStateContext.h"
-#include "RenderingObjectVersion.h"
 
 void FStaticShadowDepthMap::InitRHI()
 {

@@ -1,9 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-#include "PoseDriverEditMode.h"
+#include "EditModes/PoseDriverEditMode.h"
+#include "SceneManagement.h"
+#include "AnimNodes/AnimNode_PoseDriver.h"
 #include "AnimGraphNode_PoseDriver.h"
 #include "IPersonaPreviewScene.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 

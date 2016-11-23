@@ -1,10 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "BytePropertyTrackEditor.h"
-#include "BytePropertySection.h"
-#include "MovieSceneByteTrack.h"
-#include "MovieSceneSequence.h"
+#include "TrackEditors/PropertyTrackEditors/BytePropertyTrackEditor.h"
+#include "Sections/BytePropertySection.h"
+#include "UObject/EnumProperty.h"
 
 
 TSharedRef<ISequencerTrackEditor> FBytePropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )

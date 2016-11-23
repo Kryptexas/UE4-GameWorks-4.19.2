@@ -2,12 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IDetailCustomization.h"
 
-
+class FAssetData;
+class IDetailLayoutBuilder;
 class IPropertyHandle;
 class SWidget;
-
+class UMediaSource;
 
 /**
  * Implements a details view customization for the UPlatformMediaSource class.

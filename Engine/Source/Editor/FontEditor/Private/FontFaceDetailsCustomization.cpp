@@ -1,14 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FontEditorModule.h"
 #include "FontFaceDetailsCustomization.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Misc/Paths.h"
+#include "FontEditorModule.h"
 #include "DesktopPlatformModule.h"
 #include "Engine/FontFace.h"
+#include "EditorStyleSet.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
-#include "PropertyHandle.h"
 #include "ScopedTransaction.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorFontGlyphs.h"
+#include "EditorDirectories.h"
+#include "Misc/FileHelper.h"
+#include "Framework/Application/SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "FontFaceDetailsCustomization"
 

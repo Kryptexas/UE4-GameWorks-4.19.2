@@ -7,7 +7,14 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "AnimSet.generated.h"
+
+class UAnimSequence;
+class USkeletalMesh;
 
 /** This is a mapping table between each bone in a particular skeletal mesh and the tracks of this animation set. */
 USTRUCT()

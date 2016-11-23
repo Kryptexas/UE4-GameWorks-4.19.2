@@ -2,8 +2,24 @@
 
 #pragma once
 
-#include "Json.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/ILauncherProfile.h"
+#include "Interfaces/ILauncherServicesModule.h"
+#include "Misc/Paths.h"
+#include "Launcher/LauncherProjectPath.h"
+#include "Misc/CommandLine.h"
+#include "Internationalization/Culture.h"
+#include "Misc/App.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/ITargetDeviceServicesModule.h"
+#include "Common/GameProjectHelper.h"
+#include "Profiles/LauncherProfileLaunchRole.h"
 #include "PlatformInfo.h"
+
+class Error;
 
 enum ELauncherVersion
 {

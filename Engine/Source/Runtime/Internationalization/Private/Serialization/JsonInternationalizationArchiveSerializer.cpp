@@ -1,10 +1,10 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "InternationalizationPrivatePCH.h"
-#include "Internationalization/InternationalizationArchive.h"
-#include "Internationalization/InternationalizationMetadata.h"
-#include "JsonInternationalizationArchiveSerializer.h"
-#include "JsonInternationalizationMetadataSerializer.h"
+#include "Serialization/JsonInternationalizationArchiveSerializer.h"
+#include "Misc/FileHelper.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonInternationalizationMetadataSerializer.h"
 #include "LocTextHelper.h"
 
 

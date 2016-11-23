@@ -2,14 +2,10 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "CoreFwd.h"
 
-
-class FArchive;
-class FOutputDevice;
 class FString;
-class UObject;
-
 
 namespace ETimespan
 {

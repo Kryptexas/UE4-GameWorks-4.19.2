@@ -3,7 +3,7 @@
 #ifndef __ASSETNOTIFICATIONS_H__
 #define __ASSETNOTIFICATIONS_H__
 
-#include "Core.h"
+#include "CoreMinimal.h"
 
 class FAssetNotifications
 {

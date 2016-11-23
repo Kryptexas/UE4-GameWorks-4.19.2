@@ -1,28 +1,32 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "AnimationBlueprintEditorPrivatePCH.h"
 #include "AnimationBlueprintEditor.h"
-#include "AnimationBlueprintEditorModule.h"
-#include "AnimGraphDefinitions.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
+#include "EditorReimportHandler.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "EdGraph/EdGraph.h"
+#include "AssetData.h"
+#include "Animation/AnimSequenceBase.h"
+#include "Animation/AnimBlueprint.h"
+#include "Editor.h"
 #include "IDetailsView.h"
+#include "IAnimationBlueprintEditorModule.h"
+#include "AnimationBlueprintEditorModule.h"
 
-#include "Toolkits/IToolkitHost.h"
 
 #include "SKismetInspector.h"
 
-#include "Editor/Kismet/Public/BlueprintEditorTabs.h"
-#include "Editor/Kismet/Public/BlueprintEditorModes.h"
 
-#include "ScopedTransaction.h"
-#include "Editor/UnrealEd/Public/EdGraphUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
+#include "EdGraphUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/DebuggerCommands.h"
 
 #include "AnimationBlueprintEditorMode.h"
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 
-#include "ComponentAssetBroker.h"
+#include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_BlendListByInt.h"
 #include "AnimGraphNode_BlendSpaceEvaluator.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
@@ -36,29 +40,23 @@
 
 #include "AnimPreviewInstance.h"
 
-#include "Particles/ParticleSystemComponent.h"
 
-#include "AssetToolsModule.h"
 #include "AnimationEditorUtils.h"
-#include "SDockTab.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 
-#include "Editor/KismetWidgets/Public/SSingleObjectDetailsPanel.h"
+#include "SSingleObjectDetailsPanel.h"
 
-#include "MessageLog.h"
-#include "SAdvancedPreviewDetailsTab.h"
 #include "IPersonaToolkit.h"
+#include "ISkeletonTree.h"
 #include "ISkeletonEditorModule.h"
-#include "IEditableSkeleton.h"
 #include "SBlueprintEditorToolbar.h"
 #include "PersonaModule.h"
-#include "IPersonaViewport.h"
 #include "IPersonaPreviewScene.h"
 #include "IPersonaEditorModeManager.h"
 #include "AnimationGraph.h"
 #include "IAssetFamily.h"
 #include "PersonaCommonCommands.h"
-#include "Editor/AnimGraph/Public/AnimGraphCommands.h"
+#include "AnimGraphCommands.h"
 
 #define LOCTEXT_NAMESPACE "AnimationBlueprintEditor"
 

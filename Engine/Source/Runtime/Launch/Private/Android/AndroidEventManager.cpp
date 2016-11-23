@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LaunchPrivatePCH.h"
 #include "AndroidEventManager.h"
 #include "AndroidApplication.h"
 #include "AudioDevice.h"
@@ -8,7 +7,8 @@
 #include <android/native_window.h> 
 #include <android/native_window_jni.h> 
 #include "IHeadMountedDisplay.h"
-
+#include "RenderingThread.h"
+#include "UnrealEngine.h"
 
 DEFINE_LOG_CATEGORY(LogAndroidEvents);
 

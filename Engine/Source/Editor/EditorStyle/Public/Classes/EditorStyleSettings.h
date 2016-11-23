@@ -3,8 +3,10 @@
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "EditorStyleSettings.generated.h"
-
 
 /**
  * Enumerates color vision deficiency types.

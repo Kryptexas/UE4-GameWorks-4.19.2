@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "CompositeFont.h"
-#include "EditorObjectVersion.h"
-#include "FontFaceInterface.h"
+#include "Fonts/CompositeFont.h"
+#include "UObject/EditorObjectVersion.h"
+#include "Fonts/FontFaceInterface.h"
+#include "Templates/Casts.h"
+#include "Fonts/FontBulkData.h"
 
 FFontData::FFontData()
 	: FontFilename()

@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Blueprint/SlateBlueprintLibrary.h"
+#include "EngineGlobals.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
 
-#include "Slate/SlateBrushAsset.h"
-#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
-#include "SlateBlueprintLibrary.h"
+#include "Engine/UserInterfaceSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

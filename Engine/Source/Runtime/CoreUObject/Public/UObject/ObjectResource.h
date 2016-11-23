@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "UObjectBaseUtility.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 
 #if !defined(USE_NEW_ASYNC_IO) || !defined(SPLIT_COOKED_FILES)
 #error "USE_NEW_ASYNC_IO and SPLIT_COOKED_FILES must be defined"

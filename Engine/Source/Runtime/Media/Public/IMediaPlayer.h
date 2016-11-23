@@ -2,11 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 class IMediaControls;
 class IMediaOptions;
 class IMediaOutput;
 class IMediaTracks;
-
 
 /**
  * Enumerates media player related events.

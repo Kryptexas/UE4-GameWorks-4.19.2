@@ -1,7 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorFloatingText.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Engine/World.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
+#include "Engine/Font.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/CollisionProfile.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "GameFramework/WorldSettings.h"
+#include "Components/TextRenderComponent.h"
 
 
 AFloatingText::AFloatingText()

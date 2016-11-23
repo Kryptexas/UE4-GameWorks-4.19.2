@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "Interface.h"
+#include "UObject/Interface.h"
+#include "UObject/Class.h"
 
 #if WITH_EDITOR
 IMPLEMENT_CORE_INTRINSIC_CLASS(UInterface, UObject,

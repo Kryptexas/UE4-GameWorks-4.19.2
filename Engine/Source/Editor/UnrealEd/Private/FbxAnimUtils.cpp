@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "FbxAnimUtils.h"
+#include "Misc/Paths.h"
+#include "EditorDirectories.h"
 #include "FbxExporter.h"
-#include "FbxImporter.h"
+#include "Animation/AnimTypes.h"
+#include "Curves/RichCurve.h"
+#include "Engine/CurveTable.h"
 
 namespace FbxAnimUtils
 {

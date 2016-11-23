@@ -2,22 +2,26 @@
 
 #pragma once
 
-#include "K2Node.h"
-#include "Animation/AnimNodeBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
+#include "Animation/AnimBlueprint.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
+#include "Animation/AnimNodeBase.h"
+#include "Editor.h"
+#include "K2Node.h"
 #include "AnimGraphNode_Base.generated.h"
 
-// Forward declarations
-
-struct FEdGraphSchemaAction_K2NewNode;
-struct FPropertyChangedEvent;
-class FCompilerResultsLog;
-class UAnimGraphNode_Base;
-class USkeleton;
-class UAnimBlueprintGeneratedClass;
-class IDetailLayoutBuilder;
 class FAnimBlueprintCompiler;
 class FAnimGraphNodeDetails;
+class FBlueprintActionDatabaseRegistrar;
+class FCanvas;
+class FCompilerResultsLog;
+class FPrimitiveDrawInterface;
+class IDetailLayoutBuilder;
+class UAnimGraphNode_Base;
+class UEdGraphSchema;
+class USkeletalMeshComponent;
 
 struct FPoseLinkMappingRecord
 {

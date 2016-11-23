@@ -4,15 +4,20 @@
 	LinuxPlatformMemory.cpp: Linux platform memory functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "MallocAnsi.h"
-#include "MallocJemalloc.h"
-#include "MallocBinned.h"
-#include "MallocBinned2.h"
+#include "Linux/LinuxPlatformMemory.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/NumericLimits.h"
+#include "Math/UnrealMathUtility.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "HAL/MallocAnsi.h"
+#include "HAL/MallocJemalloc.h"
+#include "HAL/MallocBinned.h"
+#include "HAL/MallocBinned2.h"
 #include <sys/sysinfo.h>
 #include <sys/file.h>
 #include <sys/mman.h>
-#include <unistd.h>		// sysconf
 
 void FLinuxPlatformMemory::Init()
 {

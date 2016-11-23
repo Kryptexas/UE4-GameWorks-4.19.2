@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DesktopWidgetsPrivatePCH.h"
-#include "SDirectoryPicker.h"
+#include "Widgets/Input/SDirectoryPicker.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "SDirectoryPicker"
 

@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
+#include "GameplayTagsK2Node_MultiCompareGameplayTagContainerSingleTags.h"
+#include "GameplayTagContainer.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CallFunction.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintGameplayTagLibrary.h"
-#include "GameplayTagsK2Node_MultiCompareGameplayTagContainerSingleTags.h"
 #include "KismetCompiler.h"
 
 UGameplayTagsK2Node_MultiCompareGameplayTagContainerSingleTags::UGameplayTagsK2Node_MultiCompareGameplayTagContainerSingleTags(const FObjectInitializer& ObjectInitializer)

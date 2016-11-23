@@ -1,11 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneVisibilityTrack.h"
-#include "MovieSceneBoolSection.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieSceneVisibilityTrack.h"
+#include "Sections/MovieSceneBoolSection.h"
 #include "Evaluation/MovieSceneVisibilityTemplate.h"
-
 
 #define LOCTEXT_NAMESPACE "MovieSceneVisibilityTrack"
 

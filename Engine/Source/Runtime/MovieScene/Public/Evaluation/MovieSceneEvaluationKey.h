@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "MovieSceneTrackIdentifier.h"
+#include "CoreMinimal.h"
+#include "MovieSceneSequenceID.h"
+#include "Evaluation/MovieSceneTrackIdentifier.h"
 
 /** Keyable struct that represents a particular entity within an evaluation template (either a section/template or a track) */
 struct FMovieSceneEvaluationKey

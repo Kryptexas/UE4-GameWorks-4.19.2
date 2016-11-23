@@ -1,6 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "GenericPlatform/ICursor.h"
+#include "Templates/SharedPointer.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "Containers/BitArray.h"
 #include <SDL.h>
 
 #if PLATFORM_HTML5_BROWSER

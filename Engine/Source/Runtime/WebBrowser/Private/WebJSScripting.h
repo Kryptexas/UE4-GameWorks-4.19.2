@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "CoreUObject.h"
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "WebJSFunction.h"
+#include "UObject/GCObject.h"
+
+class Error;
 
 /**
  * Implements handling of bridging UObjects client side with JavaScript renderer side.

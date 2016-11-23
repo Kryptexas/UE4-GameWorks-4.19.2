@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "IPropertyTypeCustomization.h"
+
+class IPropertyHandle;
 
 class FInheritableGameplayTagContainerDetails : public IPropertyTypeCustomization
 {

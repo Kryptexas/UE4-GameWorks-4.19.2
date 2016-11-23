@@ -6,10 +6,14 @@
 
 #pragma once
 
-#include "Core.h"
-#include "../../RHI/Public/RHIDefinitions.h"
-#include "SecureHash.h"
-#include "../../RenderCore/Public/UniformBuffer.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Templates/RefCounting.h"
+#include "Misc/SecureHash.h"
+#include "Misc/CoreStats.h"
+#include "UniformBuffer.h"
+
+class Error;
 
 /**
  * Controls whether shader related logs are visible.

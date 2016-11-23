@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "Matrix.h"
+#include "Math/Matrix.h"
 
 void FMatrix::ErrorEnsure(const TCHAR* Message)
 {

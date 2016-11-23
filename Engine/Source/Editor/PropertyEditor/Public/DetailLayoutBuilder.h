@@ -2,9 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Fonts/SlateFontInfo.h"
+#include "EditorStyleSet.h"
+#include "AssetThumbnail.h"
+#include "PropertyHandle.h"
+
 class IDetailCategoryBuilder;
-class IPropertyHandle;
-class IArrayPropertyHelper;
 
 namespace ECategoryPriority
 {

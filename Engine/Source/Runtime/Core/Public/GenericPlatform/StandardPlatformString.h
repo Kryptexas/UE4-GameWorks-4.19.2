@@ -1,11 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/Char.h"
 #include "GenericPlatform/GenericPlatformStricmp.h"
 #include "GenericPlatform/GenericPlatformString.h"
-#include "HAL/Platform.h"
-#include "Misc/Char.h"
 #include <wchar.h>
+
+#if PLATFORM_APPLE || PLATFORM_LINUX || PLATFORM_HTML5 || PLATFORM_PS4
 
 /**
 * Standard implementation
@@ -353,3 +356,5 @@ public:
 		return Result;
 	}
 };
+
+#endif

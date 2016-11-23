@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WmfMediaEditorPCH.h"
 #include "WmfFileMediaSourceFactory.h"
+#include "Misc/Paths.h"
+#include "FileMediaSource.h"
 
 
 /* UWmfFileMediaSourceFactory structors

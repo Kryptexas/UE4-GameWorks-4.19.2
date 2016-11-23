@@ -2,14 +2,10 @@
 
 #pragma once
 
-#include "MovieScene.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneNameableTrack.h"
 #include "MovieSceneSkeletalAnimationTrack.generated.h"
-
-
-class IMovieSceneTrackInstance;
-class UMovieSceneSection;
-class UMovieSceneSkeletalAnimationSection;
 
 /**
  * Handles animation of skeletal mesh actors

@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "Containers/ContainersFwd.h"
+#include "Modules/ModuleInterface.h"
 
 
 /**

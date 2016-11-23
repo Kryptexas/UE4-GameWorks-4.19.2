@@ -270,7 +270,7 @@ FD3D12BoundShaderState::FD3D12BoundShaderState(
 	FD3D12Device* InDevice
 	) :
 	CacheLink(InVertexDeclarationRHI, InVertexShaderRHI, InPixelShaderRHI, InHullShaderRHI, InDomainShaderRHI, InGeometryShaderRHI, this),
-	UniqueID(InterlockedIncrement64(reinterpret_cast<volatile int64*>(&BoundShaderStateID))),
+	UniqueID(FPlatformAtomics::InterlockedIncrement(reinterpret_cast<volatile int64*>(&BoundShaderStateID))),
 	FD3D12DeviceChild(InDevice)
 {
 	INC_DWORD_STAT(STAT_D3D12NumBoundShaderState);

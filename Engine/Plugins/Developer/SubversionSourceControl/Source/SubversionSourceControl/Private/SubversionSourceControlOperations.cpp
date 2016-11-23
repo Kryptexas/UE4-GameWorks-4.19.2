@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SubversionSourceControlPrivatePCH.h"
 #include "SubversionSourceControlOperations.h"
-#include "SubversionSourceControlState.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlModule.h"
 #include "SubversionSourceControlCommand.h"
 #include "SubversionSourceControlModule.h"
-#include "SubversionSourceControlUtils.h"
-#include "XmlParser.h"
+#include "XmlFile.h"
 
 #define LOCTEXT_NAMESPACE "SubversionSourceControl"
 

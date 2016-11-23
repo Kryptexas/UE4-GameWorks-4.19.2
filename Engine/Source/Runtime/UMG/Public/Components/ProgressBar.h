@@ -1,9 +1,13 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Widget.h"
-#include "ProgressWidgetStyle.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Notifications/SProgressBar.h"
+#include "Components/Widget.h"
 #include "ProgressBar.generated.h"
 
 class USlateBrushAsset;

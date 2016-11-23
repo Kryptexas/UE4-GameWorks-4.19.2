@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/CoreOnline.h"
 #include "Net/OnlineEngineInterface.h"
 #include "OnlineEngineInterfaceImpl.generated.h"
 
-class UWorld;
+class Error;
 class FVoicePacket;
-class FArchive;
-class FUniqueNetId;
+struct FWorldContext;
 
 UCLASS(config = Engine)
 class ONLINESUBSYSTEMUTILS_API UOnlineEngineInterfaceImpl : public UOnlineEngineInterface

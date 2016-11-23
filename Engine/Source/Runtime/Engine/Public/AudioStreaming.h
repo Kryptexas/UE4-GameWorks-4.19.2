@@ -6,6 +6,18 @@ AudioStreaming.h: Definitions of classes used for audio streaming.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "ContentStreaming.h"
+#include "Async/AsyncWork.h"
+#include "Async/AsyncFileHandle.h"
+
+class FSoundSource;
+class USoundWave;
+struct FWaveInstance;
+
 /** Lists possible states used by Thread-safe counter. */
 enum EAudioStreamingState
 {

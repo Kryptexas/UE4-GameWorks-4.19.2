@@ -2,15 +2,14 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "IMessageBus.h"
+#include "IMessageTransport.h"
 
-
-struct FMessageAddress;
 class IAuthorizeMessageRecipients;
-class IMessageBus;
 class IMessageBridge;
-class IMessageTransport;
-
 
 /**
  * Interface for messaging modules.

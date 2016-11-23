@@ -9,6 +9,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+enum class EBuildPatchInstallError;
+
 // Protect against namespace collision.
 namespace BuildPatchConstants
 {

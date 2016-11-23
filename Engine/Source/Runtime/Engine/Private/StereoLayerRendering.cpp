@@ -4,7 +4,6 @@
 	ScreenRendering.cpp: Screen rendering implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "StereoLayerRendering.h"
 
 IMPLEMENT_SHADER_TYPE(,FStereoLayerVS,TEXT("StereoLayerShader"),TEXT("MainVS"),SF_Vertex);

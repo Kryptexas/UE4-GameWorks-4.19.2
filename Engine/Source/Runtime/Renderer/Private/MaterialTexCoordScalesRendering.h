@@ -6,6 +6,17 @@ MaterialTexCoordScalesRendering.h: Declarations used for the viewmode.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "MeshMaterialShader.h"
+#include "DebugViewModeRendering.h"
+
+class FPrimitiveSceneProxy;
+struct FMeshBatchElement;
+struct FMeshDrawingRenderState;
+
 /**
 * Pixel shader that renders texcoord scales.
 * The shader is only compiled with the local vertex factory to prevent multiple compilation.

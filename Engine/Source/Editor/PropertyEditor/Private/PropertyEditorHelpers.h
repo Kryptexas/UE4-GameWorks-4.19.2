@@ -1,10 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-class FPropertyEditor;
-class FPropertyNode;
-class IPropertyUtilities;
-class IPropertyHandle;
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/SWidget.h"
+#include "IPropertyUtilities.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "PropertyNode.h"
+#include "Presentation/PropertyEditor/PropertyEditor.h"
+
+class FNotifyHook;
+class FObjectPropertyNode;
 
 /** Property button enums. */
 namespace EPropertyButton

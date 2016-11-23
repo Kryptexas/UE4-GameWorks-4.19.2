@@ -1,8 +1,30 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "CorePrivatePCH.h"
-#include "TaskGraphInterfaces.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/NumericLimits.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "Misc/ScopedEvent.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/SingleThreadRunnable.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/NoopCounter.h"
+#include "Misc/ScopeLock.h"
+#include "Containers/LockFreeList.h"
+#include "Templates/Function.h"
+#include "Stats/Stats.h"
+#include "Misc/CoreStats.h"
+#include "Math/RandomStream.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "Containers/LockFreeFixedSizeAllocator.h"
+#include "Async/TaskGraphInterfaces.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTaskGraph, Log, All);
 
@@ -2800,7 +2822,7 @@ void FTaskGraphInterface::BroadcastSlow_OnlyUseForSpecialPurposes(bool bDoTaskTh
 
 // Benchmark
 
-#include "ParallelFor.h"
+#include "Async/ParallelFor.h"
 
 static FORCEINLINE void DoWork(void* Hash, FThreadSafeCounter& Counter, FThreadSafeCounter& Cycles, int32 Work)
 {

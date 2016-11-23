@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieSceneSubTrack.h"
+#include "Evaluation/MovieSceneEvaluationField.h"
+#include "Evaluation/MovieSceneSequenceTransform.h"
+#include "Evaluation/MovieSceneSequenceHierarchy.h"
 #include "MovieSceneSequence.h"
-#include "MovieSceneSubSection.h"
-#include "MovieSceneSubTrack.h"
-#include "MovieSceneSegmentCompiler.h"
-#include "IMovieSceneTemplateGenerator.h"
+#include "Sections/MovieSceneSubSection.h"
+#include "MovieScene.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
 
 
 #define LOCTEXT_NAMESPACE "MovieSceneSubTrack"

@@ -2,7 +2,21 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptInterface.h"
+#include "Misc/StringAssetReference.h"
+#include "Engine/BlendableInterface.h"
 #include "PropertyEditorTestObject.generated.h"
+
+class AActor;
+class IAnimClassInterface;
+class UMaterialInterface;
+class UPrimitiveComponent;
+class UStaticMesh;
+class UStaticMeshComponent;
+class UTexture;
 
 UENUM()
 enum PropertEditorTestEnum

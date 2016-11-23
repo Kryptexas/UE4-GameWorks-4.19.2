@@ -4,10 +4,11 @@
 	MallocBinned.cpp: Binned memory allocator
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "HAL/MallocBinned.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/BufferedOutputDevice.h"
 
-#include "MallocBinned.h"
-#include "MemoryMisc.h"
+#include "HAL/MemoryMisc.h"
 
 /** Malloc binned allocator specific stats. */
 DEFINE_STAT(STAT_Binned_OsCurrent);

@@ -3,6 +3,7 @@
 #pragma once
 
 
+#include "CoreTypes.h"
 #include "Templates/AlignOf.h"
 
 /**

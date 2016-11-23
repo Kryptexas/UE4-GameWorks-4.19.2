@@ -1,8 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "EngineDefines.h"
 #include "PhysxUserData.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Components/SkinnedMeshComponent.h"
 #include "DestructibleComponent.generated.h"
+
+class AController;
+class UDestructibleComponent;
+class USkeletalMesh;
+struct FCollisionShape;
+struct FNavigableGeometryExport;
 
 #if WITH_PHYSX
 namespace physx

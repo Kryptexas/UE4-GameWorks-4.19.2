@@ -1,13 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GeometryCacheModulePrivatePCH.h"
 #include "GeometryCacheComponent.h"
-#include "MessageLog.h"
+#include "GeometryCache.h"
+#include "Logging/MessageLog.h"
 #include "ContentStreaming.h"
 
-#include "GeometryCacheSceneProxy.h"
 #include "GeometryCacheTrack.h"
-#include "GeometryCacheTrackFlipbookAnimation.h"
+#include "GeometryCacheMeshData.h"
 
 #define LOCTEXT_NAMESPACE "GeometryCacheComponent"
 

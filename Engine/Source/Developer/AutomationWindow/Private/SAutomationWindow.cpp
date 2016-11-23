@@ -1,14 +1,42 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AutomationWindowPrivatePCH.h"
-
-#include "AutomationController.h"
-#include "AutomationPresetManager.h"
 #include "SAutomationWindow.h"
-#include "SSearchBox.h"
-#include "SNotificationList.h"
-#include "SThrobber.h"
-#include "SHyperlink.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/TextFilter.h"
+#include "Misc/FilterCollection.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "SlateOptMacros.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/InputChord.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/Commands.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Images/SImage.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "EditorStyleSet.h"
+#include "SAutomationWindowCommandBar.h"
+#include "AutomationFilter.h"
+#include "AutomationPresetManager.h"
+#include "SAutomationTestItemContextMenu.h"
+#include "SAutomationTestItem.h"
+
+#if WITH_EDITOR
+	#include "Engine/World.h"
+	#include "FileHelpers.h"
+	#include "AssetRegistryModule.h"
+#endif
+
+#include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Widgets/Images/SThrobber.h"
+#include "Widgets/Input/SHyperlink.h"
 #include "Internationalization/Regex.h"
 
 

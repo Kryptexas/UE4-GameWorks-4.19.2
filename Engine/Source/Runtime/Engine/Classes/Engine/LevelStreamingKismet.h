@@ -8,7 +8,10 @@
  */
 
 #pragma once
-#include "LevelStreaming.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/LevelStreaming.h"
 #include "LevelStreamingKismet.generated.h"
 
 UCLASS(MinimalAPI, BlueprintType)

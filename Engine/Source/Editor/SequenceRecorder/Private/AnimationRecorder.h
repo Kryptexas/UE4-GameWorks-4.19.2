@@ -2,6 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/GCObject.h"
+#include "Animation/AnimCurveTypes.h"
+#include "Animation/AnimationRecordingSettings.h"
+#include "Components/SkinnedMeshComponent.h"
+
+class UAnimNotify;
+class UAnimNotifyState;
+class UAnimSequence;
+class USkeletalMeshComponent;
+
 //////////////////////////////////////////////////////////////////////////
 // FAnimationRecorder
 

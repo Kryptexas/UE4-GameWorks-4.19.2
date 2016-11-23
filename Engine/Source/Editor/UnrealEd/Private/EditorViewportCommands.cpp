@@ -1,9 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "EditorViewportCommands.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/Selection.h"
+#include "AssetData.h"
+#include "Editor.h"
+#include "Modules/ModuleManager.h"
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "Materials/MaterialInterface.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportCommands"
 

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 struct FSyncPattern
 {
 	// The markers that make up this pattern

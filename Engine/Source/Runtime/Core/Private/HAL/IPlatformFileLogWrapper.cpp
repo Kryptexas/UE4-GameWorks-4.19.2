@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "IPlatformFileLogWrapper.h"
+#include "HAL/IPlatformFileLogWrapper.h"
+#include "Misc/CoreMisc.h"
 #include "UniquePtr.h"
 
 bool bSuppressFileLog = false;

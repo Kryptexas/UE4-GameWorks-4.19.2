@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundConcurrency.h"
-#include "Sound/SoundBase.h"
+#include "Components/AudioComponent.h"
 #include "ActiveSound.h"
+#include "AudioDevice.h"
+#include "Sound/SoundBase.h"
 
 /************************************************************************/
 /* USoundConcurrency													*/

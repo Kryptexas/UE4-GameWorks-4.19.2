@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+
+class UMaterialInterface;
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: former pass

@@ -4,17 +4,38 @@
 	ShaderCompiler.cpp: Platform independent shader compilations.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "EditorSupportDelegates.h"
-#include "ExceptionHandling.h"
-#include "GlobalShader.h"
-#include "TargetPlatform.h"
-#include "DerivedDataCacheInterface.h"
-#include "EngineModule.h"
 #include "ShaderCompiler.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "HAL/ExceptionHandling.h"
+#include "Serialization/NameAsStringProxyArchive.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/Guid.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Materials/MaterialInterface.h"
+#include "StaticBoundShaderState.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "EditorSupportDelegates.h"
+#include "GlobalShader.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/IShaderFormat.h"
+#include "Interfaces/IShaderFormatModule.h"
 #include "RendererInterface.h"
+#include "EngineModule.h"
 #include "ComponentRecreateRenderStateContext.h"
-#include "CookStats.h"
+#include "ProfilingDebugging/CookStats.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
@@ -176,7 +197,7 @@ namespace XGEConsoleVariables
 }
 
 #if ENABLE_COOK_STATS
-#include "ScopedTimers.h"
+#include "ProfilingDebugging/ScopedTimers.h"
 namespace ShaderCompilerCookStats
 {
 	static double BlockingTimeSec = 0.0;

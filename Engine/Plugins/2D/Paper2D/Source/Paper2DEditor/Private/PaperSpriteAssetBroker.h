@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "PaperSprite.h"
 #include "ComponentAssetBroker.h"
-#include "PhysicsEngine/BodySetup.h"
 #include "PaperSpriteComponent.h"
+#include "PhysicsEngine/BodySetup.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteAssetBroker

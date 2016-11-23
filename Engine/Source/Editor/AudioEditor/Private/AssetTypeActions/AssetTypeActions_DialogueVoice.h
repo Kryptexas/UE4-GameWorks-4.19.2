@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Sound/DialogueVoice.h"
-#include "SoundDefinitions.h"
+
+#include "CoreMinimal.h"
 #include "AssetTypeActions_Base.h"
+#include "Sound/DialogueVoice.h"
 
 class FAssetTypeActions_DialogueVoice : public FAssetTypeActions_Base
 {

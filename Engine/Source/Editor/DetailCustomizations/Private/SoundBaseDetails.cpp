@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "SoundBaseDetails.h"
 #include "Sound/SoundBase.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
 
 TSharedRef<IDetailCustomization> FSoundBaseDetails::MakeInstance()
 {

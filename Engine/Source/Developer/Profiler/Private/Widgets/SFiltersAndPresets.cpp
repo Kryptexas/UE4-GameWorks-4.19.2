@@ -1,11 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerManager.h"
+#include "Widgets/SFiltersAndPresets.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/SToolTip.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
 #include "ProfilerSession.h"
-#include "SFiltersAndPresets.h"
-#include "StatDragDropOp.h"
-
+#include "ProfilerManager.h"
+#include "Widgets/StatDragDropOp.h"
+#include "Widgets/Input/SSearchBox.h"
 
 #define LOCTEXT_NAMESPACE "SFiltersAndPresets"
 

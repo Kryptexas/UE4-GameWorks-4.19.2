@@ -2,17 +2,16 @@
 
 #pragma once
 
-#include "IWebBrowserDialog.h"
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Widgets/SWindow.h"
 
-struct FGeometry;
-struct FKeyEvent;
-struct FCharacterEvent;
-struct FPointerEvent;
-class FReply;
-class FCursorReply;
+class Error;
 class FSlateShaderResource;
+class IWebBrowserDialog;
 class IWebBrowserPopupFeatures;
-
+enum class EWebBrowserDialogEventResponse;
 
 enum class EWebBrowserDocumentState
 {

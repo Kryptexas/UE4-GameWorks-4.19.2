@@ -1,12 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "ISectionLayoutBuilder.h"
-#include "SInlineEditableTextBlock.h"
+#include "Sections/ThumbnailSection.h"
+#include "Rendering/DrawElements.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "GameFramework/Actor.h"
+#include "Modules/ModuleManager.h"
+#include "Application/ThrottleManager.h"
+#include "Widgets/Layout/SBox.h"
+#include "SequencerSectionPainter.h"
+#include "EditorStyleSet.h"
+#include "LevelEditorViewport.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
-#include "MovieSceneToolsUserSettings.h"
-#include "ThumbnailSection.h"
 
 
 #define LOCTEXT_NAMESPACE "FThumbnailSection"

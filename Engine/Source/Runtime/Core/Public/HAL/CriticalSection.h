@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
-#include "GenericPlatform/GenericPlatformCriticalSection.h"
+#include "CoreTypes.h"
 
 #if PLATFORM_WINDOWS
 	#include "Windows/WindowsCriticalSection.h"

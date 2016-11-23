@@ -2,19 +2,47 @@
 
 #pragma once
 
-#include "BlueprintEditorModule.h"
-#include "BlueprintUtilities.h"
-#include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/AssetEditorManager.h"
-#include "Kismet2/KismetEditorUtilities.h"
-#include "GraphEditor.h"
-#include "EditorUndoClient.h"
-#include "Engine/UserDefinedEnum.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "EdGraph/EdGraphPin.h"
+#include "UObject/GCObject.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Styling/SlateBrush.h"
+#include "Widgets/SWindow.h"
 #include "PreviewScene.h"
-#include "Developer/Merge/Public/Merge.h" // for FOnMergeResolved
+#include "Framework/Commands/InputChord.h"
+#include "Framework/Application/IMenu.h"
+#include "Misc/NotifyHook.h"
 #include "TickableEditorObject.h"
+#include "EditorUndoClient.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "WorkflowOrientedApp/WorkflowTabFactory.h"
+#include "WorkflowOrientedApp/WorkflowTabManager.h"
+#include "BlueprintEditorModule.h"
+#include "GraphEditor.h"
+#include "Developer/Merge/Public/Merge.h"
 
-class USCS_Node;
+class FBlueprintEditorToolbar;
+class FSCSEditorTreeNode;
+class IMessageLogListing;
+class INameValidatorInterface;
+class ISCSEditorCustomization;
+class SBlueprintPalette;
+class SBlueprintProfilerView;
+class SFindInBlueprints;
+class SKismetDebuggingView;
+class SKismetInspector;
+class SMyBlueprint;
+class SReplaceNodeReferences;
+class SSCSEditor;
+class SSCSEditorViewport;
+class UEdGraph;
+class UUserDefinedEnum;
+class UUserDefinedStruct;
+struct Rect;
 
 /////////////////////////////////////////////////////
 // FCustomDebugObjectEntry - Used to pass a custom debug object override around

@@ -1,35 +1,34 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Matinee/InterpTrackToggle.h"
-#include "MovieSceneParticleSection.h"
+#include "Sections/MovieSceneParticleSection.h"
 
-class UInterpTrackLinearColorProp;
-class UInterpTrackColorProp;
-class UInterpTrackBoolProp;
-class UInterpTrackFloatBase;
-class UInterpTrackMove;
-class UInterpTrackToggle;
+class AMatineeActor;
+class IMovieScenePlayer;
 class UInterpTrackAnimControl;
-class UInterpTrackSound;
-class UInterpTrackFade;
+class UInterpTrackBoolProp;
+class UInterpTrackColorProp;
 class UInterpTrackDirector;
 class UInterpTrackEvent;
+class UInterpTrackFade;
+class UInterpTrackFloatBase;
+class UInterpTrackLinearColorProp;
+class UInterpTrackMove;
+class UInterpTrackSound;
 class UInterpTrackVisibility;
-
-class UMovieSceneColorTrack;
-class UMovieSceneBoolTrack;
-class UMovieSceneFloatTrack;
 class UMovieScene3DTransformTrack;
+class UMovieSceneAudioTrack;
+class UMovieSceneBoolTrack;
+class UMovieSceneCameraCutTrack;
+class UMovieSceneColorTrack;
+class UMovieSceneEventTrack;
+class UMovieSceneFadeTrack;
+class UMovieSceneFloatTrack;
 class UMovieSceneParticleTrack;
 class UMovieSceneSkeletalAnimationTrack;
-class UMovieSceneAudioTrack;
-class UMovieSceneFadeTrack;
-class UMovieSceneCameraCutTrack;
-class UMovieSceneEventTrack;
 class UMovieSceneVisibilityTrack;
-
-class UMovieSceneSequence;
 
 class MOVIESCENETOOLS_API FMatineeImportTools
 {

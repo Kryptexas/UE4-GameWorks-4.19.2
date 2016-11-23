@@ -1,8 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
-
-#include "AudioMixerPCH.h"
 #include "DSP/Noise.h"
 
 namespace Audio

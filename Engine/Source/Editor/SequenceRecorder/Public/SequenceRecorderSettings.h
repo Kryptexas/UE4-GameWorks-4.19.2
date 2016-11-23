@@ -2,9 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
 #include "Animation/AnimationRecordingSettings.h"
 #include "SequenceRecorderActorFilter.h"
 #include "SequenceRecorderSettings.generated.h"
+
+class ALevelSequenceActor;
 
 /** Enum denoting if (and how) to record audio */
 UENUM()

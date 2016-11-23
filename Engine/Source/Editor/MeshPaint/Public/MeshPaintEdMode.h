@@ -2,13 +2,26 @@
 
 #pragma once
 
-#include "GenericOctree.h"
-#include "GenericOctreePublic.h"
-#include "Engine/StaticMesh.h"
-#include "IVREditorModule.h"
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "EdMode.h"
 
-
+class FEditorModeTools;
+class FEditorViewportClient;
+class FMeshPaintParameters;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FScopedTransaction;
+class FViewport;
 class IMeshPaintGeometryAdapter;
+class UFactory;
+class UMaterialInterface;
+class UMeshComponent;
+class UStaticMeshComponent;
+class UTexture;
+class UTexture2D;
+class UTextureRenderTarget2D;
+struct FStaticMeshLODResources;
 
 /** Mesh paint resource types */
 namespace EMeshPaintResource

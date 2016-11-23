@@ -4,11 +4,10 @@
 	AnimCompositeBase.cpp: Anim Composite base class that contains AnimTrack data structure/interface
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "AnimationUtils.h"
 #include "Animation/AnimCompositeBase.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimComposite.h"
+#include "BonePose.h"
 #include "AnimationRuntime.h"
 
 ///////////////////////////////////////////////////////

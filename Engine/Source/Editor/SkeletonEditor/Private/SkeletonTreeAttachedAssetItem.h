@@ -2,8 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "ISkeletonTreeItem.h"
 #include "SkeletonTreeItem.h"
 #include "AssetData.h"
+
+class USceneComponent;
 
 class FSkeletonTreeAttachedAssetItem : public FSkeletonTreeItem
 {

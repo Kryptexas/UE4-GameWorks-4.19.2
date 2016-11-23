@@ -4,10 +4,13 @@
 	Implementation of Skeletal Mesh export related functionality from FbxExporter
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "GPUSkinPublicDefs.h"
+#include "SkeletalMeshTypes.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimSequence.h"
 
 #include "FbxExporter.h"
-#include "Animation/AnimSequence.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxSkeletalMeshExport, Log, All);
 

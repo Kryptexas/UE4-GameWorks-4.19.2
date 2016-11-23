@@ -6,6 +6,9 @@ D3D12Device.h: D3D12 Device Interfaces
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+
 class FD3D12DynamicRHI;
 
 class FD3D12Device : public FD3D12SingleNodeGPUObject, public FNoncopyable, public FD3D12AdapterChild

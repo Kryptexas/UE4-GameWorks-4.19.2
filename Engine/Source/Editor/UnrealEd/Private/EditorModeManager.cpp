@@ -1,29 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "Engine/BookMark.h"
-#include "StaticMeshResources.h"
-#include "EditorSupportDelegates.h"
-#include "MouseDeltaTracker.h"
-#include "ScopedTransaction.h"
-#include "SurfaceIterators.h"
-#include "SoundDefinitions.h"
-#include "LevelEditor.h"
-#include "Toolkits/ToolkitManager.h"
-#include "EditorLevelUtils.h"
-#include "DynamicMeshBuilder.h"
-
-#include "ActorEditorUtils.h"
-#include "EditorStyle.h"
-#include "ComponentVisualizer.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "EditorModeManager.h"
 #include "Engine/Selection.h"
-#include "EngineUtils.h"
-#include "CanvasItem.h"
-#include "CanvasTypes.h"
-#include "Engine/Polys.h"
-#include "Engine/StaticMeshActor.h"
+#include "Misc/MessageDialog.h"
+#include "EditorStyleSettings.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Misc/ConfigCacheIni.h"
+#include "GameFramework/WorldSettings.h"
+#include "LevelEditorViewport.h"
+#include "EditorModeRegistry.h"
+#include "EditorModes.h"
+#include "Engine/BookMark.h"
+#include "EditorSupportDelegates.h"
+#include "EdMode.h"
+#include "Toolkits/IToolkitHost.h"
+
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/LevelStreaming.h"
 
 /*------------------------------------------------------------------------------
@@ -1172,7 +1165,6 @@ void FEditorModeTools::GetActiveModes( TArray<FEdMode*>& OutActiveModes )
 		OutActiveModes.Add(Mode.Get());
 	}
 }
-
 bool FEditorModeTools::CanCycleWidgetMode() const
 {
 	for (auto& Mode : Modes)

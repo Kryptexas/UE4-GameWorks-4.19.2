@@ -4,9 +4,11 @@
 	MobileBasePassRendering.cpp: Base pass rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "MobileBasePassRendering.h"
+#include "DynamicPrimitiveDrawing.h"
+#include "StaticMeshDrawList.h"
 #include "ScenePrivate.h"
-#include "SceneUtils.h"
+#include "ShaderPlatformQualitySettings.h"
 #include "MaterialShaderQualitySettings.h"
 
 // Changing this causes a full shader recompile

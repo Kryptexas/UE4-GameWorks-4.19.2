@@ -1,9 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "AudioEditorModule.h"
 #include "SoundCueEditorUtilities.h"
+#include "SoundCueGraph/SoundCueGraph.h"
+#include "SoundCueGraph/SoundCueGraphNode.h"
+#include "Sound/DialogueWave.h"
+#include "ISoundCueEditor.h"
 #include "Toolkits/ToolkitManager.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundNodeDialoguePlayer.h"
+#include "AudioEditorModule.h"
 #include "GraphEditor.h"
 
 bool FSoundCueEditorUtilities::CanPasteNodes(const class UEdGraph* Graph)

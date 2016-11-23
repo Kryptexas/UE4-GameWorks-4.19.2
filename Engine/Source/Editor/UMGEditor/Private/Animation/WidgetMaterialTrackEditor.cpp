@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-#include "WidgetMaterialTrackEditor.h"
-#include "MovieSceneWidgetMaterialTrack.h"
-#include "WidgetMaterialTrackUtilities.h"
-#include "MovieSceneSequenceInstance.h"
+#include "Animation/WidgetMaterialTrackEditor.h"
+#include "Components/Widget.h"
+#include "Animation/MovieSceneWidgetMaterialTrack.h"
+#include "Animation/WidgetMaterialTrackUtilities.h"
 
 
 FWidgetMaterialTrackEditor::FWidgetMaterialTrackEditor( TSharedRef<ISequencer> InSequencer )

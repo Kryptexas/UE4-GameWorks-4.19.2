@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "NetworkFilePrivatePCH.h"
+#include "HTTPTransport.h"
+#include "Serialization/BufferArchive.h"
 
 #if ENABLE_HTTP_FOR_NFS
 

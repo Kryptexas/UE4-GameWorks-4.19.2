@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
 #include "StringCurveKeyArea.h"
-#include "SStringCurveKeyEditor.h"
-#include "MovieSceneClipboard.h"
+#include "UObject/StructOnScope.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "MovieSceneTrack.h"
+#include "ClipboardTypes.h"
+#include "CurveKeyEditors/SStringCurveKeyEditor.h"
 #include "Curves/StringCurve.h"
 #include "SequencerClipboardReconciler.h"
 

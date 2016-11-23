@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "Commandlets/GenerateTextLocalizationResourceCommandlet.h"
+#include "HAL/FileManager.h"
+#include "Templates/ScopedPointer.h"
 #include "TextLocalizationResourceGenerator.h"
 #include "UniquePtr.h"
 

@@ -2,8 +2,17 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Templates/AlignOf.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Serialization/Archive.h"
 #include "Math/UnrealMathUtility.h"
 
+template<typename Allocator > class TBitArray;
 
 // Functions for manipulating bit sets.
 struct FBitSet

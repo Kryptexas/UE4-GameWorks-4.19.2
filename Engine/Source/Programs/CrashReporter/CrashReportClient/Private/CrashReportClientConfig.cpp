@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "CrashReportClientConfig.h"
+#include "Logging/LogMacros.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
 #include "CrashReportClientApp.h"
-#include "GenericPlatformCrashContext.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 
 FCrashReportClientConfig::FCrashReportClientConfig()
 	: DiagnosticsFilename( TEXT( "Diagnostics.txt" ) )

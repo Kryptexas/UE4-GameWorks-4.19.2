@@ -2,11 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Textures/SlateIcon.h"
+#include "EditorUndoClient.h"
 #include "IPersonaPreviewScene.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "Engine/WindDirectionalSource.h"
 
-class UDebugSkelMeshComponent;
-class UStaticMeshComponent;
-class UExponentialHeightFogComponent;
+class IEditableSkeleton;
+class IPersonaToolkit;
+class UAnimSequence;
 
 class FAnimationEditorPreviewScene : public IPersonaPreviewScene, public FEditorUndoClient
 {

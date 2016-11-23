@@ -1,30 +1,36 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
+#include "SGraphPanel.h"
+#include "Rendering/DrawElements.h"
+#include "EdGraph/EdGraph.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EdGraphNode_Comment.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Editor.h"
+#include "GraphEditorSettings.h"
+#include "GraphEditorDragDropAction.h"
 #include "NodeFactory.h"
 
-#include "Editor/UnrealEd/Public/DragAndDrop/ActorDragDropGraphEdOp.h"
-#include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
-#include "Editor/UnrealEd/Public/DragAndDrop/LevelDragDropOp.h"
+#include "DragAndDrop/DecoratedDragDropOp.h"
+#include "DragAndDrop/ActorDragDropGraphEdOp.h"
+#include "DragAndDrop/AssetDragDropOp.h"
+#include "DragAndDrop/LevelDragDropOp.h"
 
 #include "GraphEditorActions.h"
-#include "UICommandInfo.h"
-#include "InputChord.h"
 
 #include "ConnectionDrawingPolicy.h"
 
 #include "AssetSelection.h"
-#include "ComponentAssetBroker.h"
 
 #include "KismetNodes/KismetNodeInfoContext.h"
 #include "GraphDiffControl.h"
 
-#include "AnimationGraphSchema.h"
-#include "AnimationStateMachineSchema.h"
 
 // Blueprint Profiler
-#include "Editor/Kismet/Public/Profiler/BlueprintProfilerSettings.h"
+#include "Profiler/BlueprintProfilerSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
 

@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Modules/ModuleInterface.h"
 #include "SecureHash.h"
-#include "ModuleInterface.h"
 
 /** Helper struct for tracking dependency info for package timestamps */
 class FPackageDependencyTrackingInfo

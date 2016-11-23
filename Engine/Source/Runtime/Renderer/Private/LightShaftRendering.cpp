@@ -3,13 +3,31 @@
 /*=============================================================================
 	FogRendering.cpp: Fog rendering implementation.
 =============================================================================*/
-#include "RendererPrivate.h"
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
+#include "ShaderParameters.h"
+#include "RendererInterface.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
+#include "SceneUtils.h"
+#include "RHIStaticStates.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "LightSceneInfo.h"
+#include "GlobalShader.h"
+#include "SceneRenderTargetParameters.h"
+#include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
 #include "ScreenRendering.h"
-#include "SceneFilterRendering.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+#include "PostProcess/PostProcessInput.h"
 #include "PostProcess/PostProcessing.h"
 #include "PostProcess/PostProcessTemporalAA.h"
-#include "SceneUtils.h"
 
 
 /** Tweaked values from UE3 implementation **/

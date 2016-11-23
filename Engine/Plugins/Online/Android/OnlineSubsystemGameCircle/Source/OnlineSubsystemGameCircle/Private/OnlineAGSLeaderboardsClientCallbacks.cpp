@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
-
 #include "OnlineAGSLeaderboardsClientCallbacks.h"
 #include "Async.h"
+#include "OnlineSubsystemGameCircle.h"
 
 
 FOnlineGetPlayerScoreCallback::FOnlineGetPlayerScoreCallback(FOnlineSubsystemGameCircle *const InSubsystem)

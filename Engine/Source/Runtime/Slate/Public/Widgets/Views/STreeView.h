@@ -2,6 +2,18 @@
  
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Styling/SlateTypes.h"
+#include "Framework/Views/TableViewTypeTraits.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/Layout/Overscroll.h"
+#include "Widgets/Views/SListView.h"
 
 /** Info needed by a (relatively) small fraction of the tree items; some of them may not be visible. */
 struct FSparseItemInfo

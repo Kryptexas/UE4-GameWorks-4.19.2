@@ -6,15 +6,16 @@
 
 #pragma once
 
-#include "Vector.h"
-#include "Vector2D.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/RefCounting.h"
 #include "Components.h"
-#include "Components/PrimitiveComponent.h"
-#include "Components/LightComponent.h"
 
-// Forward declarations.
-class FStaticLightingTextureMapping;
 class FStaticLightingMapping;
+class FStaticLightingTextureMapping;
+class ULevel;
+class ULightComponent;
+class UPrimitiveComponent;
 
 /** The vertex data used to build static lighting. */
 struct FStaticLightingVertex

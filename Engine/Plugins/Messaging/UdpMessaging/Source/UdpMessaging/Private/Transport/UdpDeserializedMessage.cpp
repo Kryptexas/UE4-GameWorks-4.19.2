@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UdpMessagingPrivatePCH.h"
-#include "UdpDeserializedMessage.h"
-#include "UdpReassembledMessage.h"
+#include "Transport/UdpDeserializedMessage.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/Package.h"
+#include "UdpMessagingPrivate.h"
+#include "Backends/JsonStructDeserializerBackend.h"
+#include "StructDeserializer.h"
 
 
 /* FUdpDeserializedMessage structors

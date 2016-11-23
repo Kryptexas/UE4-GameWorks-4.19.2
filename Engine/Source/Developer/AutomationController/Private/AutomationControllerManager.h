@@ -2,8 +2,19 @@
 
 #pragma once
 
-#include "ScreenShotComparisonTools.h"
-
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Containers/Queue.h"
+#include "Misc/AutomationTest.h"
+#include "Interfaces/IAutomationControllerManager.h"
+#include "IMessageContext.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Developer/AutomationController/Private/AutomationDeviceClusterManager.h"
+#include "Developer/AutomationController/Private/AutomationReportManager.h"
+#include "Async/Future.h"
+#include "ImageComparer.h"
+#include "Interfaces/IScreenShotManager.h"
 #include "AutomationControllerManager.generated.h"
 
 USTRUCT()
@@ -66,7 +77,6 @@ public:
 		TestInformation.Empty();
 	}
 };
-
 
 
 /**

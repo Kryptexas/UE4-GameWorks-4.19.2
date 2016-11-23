@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "EnvironmentQuery/EnvQueryTest.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameplayTagContainer.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvQueryTest_GameplayTags.generated.h"
 
 class IGameplayTagAssetInterface;

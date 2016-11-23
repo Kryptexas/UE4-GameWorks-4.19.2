@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
-#include "EnginePrivate.h"
-#include "EngineGlobals.h"
+
+#include "CoreMinimal.h"
 #include "AudioDevice.h"
 #include "Haptics/HapticFeedbackEffect_Base.h"
 #include "Haptics/HapticFeedbackEffect_Curve.h"
+#include "Sound/SoundWave.h"
 #include "Haptics/HapticFeedbackEffect_SoundWave.h"
 #include "Haptics/HapticFeedbackEffect_Buffer.h"
 

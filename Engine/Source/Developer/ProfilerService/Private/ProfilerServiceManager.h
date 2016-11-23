@@ -2,16 +2,24 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/Guid.h"
+#include "IMessageContext.h"
 #include "IProfilerServiceManager.h"
-#include "Runnable.h"
+#include "HAL/Runnable.h"
+#include "Containers/Queue.h"
+#include "Containers/Ticker.h"
+#include "Helpers/MessageEndpoint.h"
 
-
-struct FMessageAddress;
-class FMessageEndpoint;
-struct FProfilerFileChunkHeader;
+struct FProfilerServiceCapture;
+struct FProfilerServiceData2;
 struct FProfilerServiceFileChunk;
-class IMessageContext;
-
+struct FProfilerServicePong;
+struct FProfilerServicePreview;
+struct FProfilerServiceRequest;
+struct FProfilerServiceSubscribe;
+struct FProfilerServiceUnsubscribe;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogProfilerService, Log, All);
 

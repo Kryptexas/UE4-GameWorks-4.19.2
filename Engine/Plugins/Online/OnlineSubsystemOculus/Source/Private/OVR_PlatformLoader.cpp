@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-#include "OnlineSubsystemOculusPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "OnlineSubsystemOculusPrivate.h"
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 
 /************************************************************************************

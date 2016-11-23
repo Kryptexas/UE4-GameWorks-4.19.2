@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "EngineVersion.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/Guid.h"
+#include "Serialization/CustomVersion.h"
 #include "Runtime/Launch/Resources/Version.h"
-#include "EngineBuildSettings.h"
-#include "ModuleVersion.h"
 #include "UObject/ReleaseObjectVersion.h"
 
 /** Version numbers for networking - DEPRECATED!!!! Use FNetworkVersion::GetNetworkCompatibleChangelist instead!!! */

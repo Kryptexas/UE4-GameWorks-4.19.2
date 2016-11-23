@@ -4,10 +4,11 @@
 	Spline.cpp
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Components/SplineComponent.h"
-#include "ComponentInstanceDataCache.h"
-#include "EditorObjectVersion.h"
+#include "UObject/EditorObjectVersion.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "SceneManagement.h"
 
 
 USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)

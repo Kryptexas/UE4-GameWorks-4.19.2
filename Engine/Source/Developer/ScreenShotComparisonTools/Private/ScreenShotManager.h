@@ -6,10 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Async/Future.h"
 #include "ImageComparer.h"
-#include "Async/Async.h"
+#include "Interfaces/IScreenShotManager.h"
+#include "Helpers/MessageEndpoint.h"
 
 class FScreenshotComparisons;
+struct FScreenShotDataItem;
 
 /**
  * Implements the ScreenShotManager that contains screen shot data.

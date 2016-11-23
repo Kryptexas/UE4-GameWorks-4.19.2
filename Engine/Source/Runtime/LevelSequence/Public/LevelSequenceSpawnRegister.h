@@ -2,7 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "MovieSceneSpawnRegister.h"
+#include "MovieSceneSequenceInstance.h"
+
+class IMovieScenePlayer;
 
 /** Movie scene spawn register that knows how to handle spawning objects (actors) for a level sequence  */
 class LEVELSEQUENCE_API FLevelSequenceSpawnRegister : public FMovieSceneSpawnRegister

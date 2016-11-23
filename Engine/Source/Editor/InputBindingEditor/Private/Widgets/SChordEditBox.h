@@ -2,6 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Commands/UICommandInfo.h"
+
+class SButton;
+class SChordEditor;
+class SMenuAnchor;
+struct FSlateBrush;
 
 /**
  * A widget that adds visuals to an SChordEditor

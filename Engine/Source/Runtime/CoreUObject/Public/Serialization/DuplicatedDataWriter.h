@@ -2,8 +2,14 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/UObjectAnnotation.h"
+#include "Serialization/DuplicatedObject.h"
+
+class FAssetPtr;
+class FLazyObjectPtr;
+struct FObjectInstancingGraph;
 
 /*----------------------------------------------------------------------------
 	FDuplicateDataWriter.

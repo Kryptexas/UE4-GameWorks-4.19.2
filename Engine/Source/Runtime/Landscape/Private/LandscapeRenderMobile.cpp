@@ -4,11 +4,8 @@
 LandscapeRenderMobile.cpp: Landscape Rendering without using vertex texture fetch
 =============================================================================*/
 
-#include "LandscapePrivatePCH.h"
-#include "ShaderParameters.h"
-#include "ShaderParameterUtils.h"
-#include "LandscapeRender.h"
 #include "LandscapeRenderMobile.h"
+#include "ShaderParameterUtils.h"
 
 void FLandscapeVertexFactoryMobile::InitRHI()
 {

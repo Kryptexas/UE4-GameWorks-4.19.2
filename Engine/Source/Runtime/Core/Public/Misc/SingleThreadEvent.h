@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/Event.h"
+
 /**
  * Fake event object used when running with only one thread.
  */

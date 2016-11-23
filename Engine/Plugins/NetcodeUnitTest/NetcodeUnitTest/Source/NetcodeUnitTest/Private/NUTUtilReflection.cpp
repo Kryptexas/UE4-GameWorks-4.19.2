@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "NetcodeUnitTestPCH.h"
-
 #include "NUTUtilReflection.h"
+#include "Containers/ArrayBuilder.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/EnumProperty.h"
+#include "UObject/TextProperty.h"
+#include "UObject/PropertyPortFlags.h"
+#include "NetcodeUnitTest.h"
+
 
 
 /**

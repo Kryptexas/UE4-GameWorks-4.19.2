@@ -1,10 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemOculusPrivatePCH.h"
 #include "OnlineSessionInterfaceOculus.h"
+#include "OnlineSubsystemOculusPrivate.h"
 #include "OnlineIdentityInterface.h"
 #include "OnlineFriendsInterfaceOculus.h"
 #include "OnlineSubsystemOculus.h"
+#include "OnlineSessionSettings.h"
 #include <string>
 
 FOnlineSessionInfoOculus::FOnlineSessionInfoOculus(ovrID RoomId) :

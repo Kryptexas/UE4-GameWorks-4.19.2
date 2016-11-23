@@ -3,12 +3,14 @@
 
 #include "VulkanShaderFormat.h"
 #include "VulkanConfiguration.h"
-#include "Core.h"
 #include "ShaderPreprocessor.h"
 #include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
 #include "VulkanBackend.h"
 #include "VulkanShaderResources.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogVulkanShaderCompiler, Log, All); 
@@ -1116,10 +1118,10 @@ static void CompileUsingExternal(const struct FShaderCompilerInput& Input, struc
 					{
 						// Change output file name to patched filename and store
 						GLSLFile = (Input.DumpDebugInfoPath / TEXT("patched") + GetExtension(Frequency));
-						if (GLSLFile.Len() >= MAX_PATH)
+						if (GLSLFile.Len() >= MAX_UNREAL_FILENAME_LENGTH)
 						{
 							FShaderCompilerError* Error = new(Output.Errors) FShaderCompilerError();
-							Error->ErrorLineString = FString::Printf(TEXT("Filepath exeeding %d characters: "), MAX_PATH, *GLSLFile);
+							Error->ErrorLineString = FString::Printf(TEXT("Filepath exeeding %d characters: "), MAX_UNREAL_FILENAME_LENGTH, *GLSLFile);
 							Output.bSucceeded = false;
 
 							if (PatchedGlslSource)

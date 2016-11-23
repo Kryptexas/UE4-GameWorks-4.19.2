@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
+#include "Sections/IntegerPropertySection.h"
 #include "IntegerKeyArea.h"
-#include "IntegerPropertySection.h"
-#include "MovieSceneIntegerSection.h"
-#include "MovieScenePropertyTrack.h"
+#include "Sections/MovieSceneIntegerSection.h"
+#include "Tracks/MovieScenePropertyTrack.h"
+#include "ISectionLayoutBuilder.h"
 
 void FIntegerPropertySection::GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const
 {

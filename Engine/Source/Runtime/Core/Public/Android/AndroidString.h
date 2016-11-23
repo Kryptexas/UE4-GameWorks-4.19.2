@@ -11,6 +11,7 @@
 
 #pragma once
 #include "Misc/Char.h"
+#include "GenericPlatform/GenericPlatformMemory.h"
 #include "GenericPlatform/GenericPlatformStricmp.h"
 #include "GenericPlatform/GenericPlatformString.h"
 

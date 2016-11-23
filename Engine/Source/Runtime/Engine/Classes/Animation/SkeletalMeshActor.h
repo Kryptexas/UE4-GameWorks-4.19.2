@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "Components/SkeletalMeshComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
 #include "Matinee/MatineeAnimInterface.h"
 #include "SkeletalMeshActor.generated.h"
+
+class UAnimMontage;
+class UAnimSequence;
 
 /**
  * SkeletalMeshActor is an instance of a USkeletalMesh in the world.

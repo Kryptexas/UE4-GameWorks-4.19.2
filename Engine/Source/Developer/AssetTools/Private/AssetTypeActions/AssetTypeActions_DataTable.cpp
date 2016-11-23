@@ -1,12 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetToolsPrivatePCH.h"
+#include "AssetTypeActions/AssetTypeActions_DataTable.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Misc/FileHelper.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Dialogs/Dialogs.h"
+#include "Framework/Application/SlateApplication.h"
 
 #include "Editor/DataTableEditor/Public/DataTableEditorModule.h"
-#include "Editor/DataTableEditor/Public/IDataTableEditor.h"
-#include "Engine/DataTable.h"
 #include "DesktopPlatformModule.h"
-#include "IMainFrameModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

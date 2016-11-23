@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "Containers/Array.h"
 #include "Containers/UnrealString.h"
 

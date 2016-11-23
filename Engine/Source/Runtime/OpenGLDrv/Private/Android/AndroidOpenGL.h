@@ -5,6 +5,10 @@
 =============================================================================*/
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/ConfigCacheIni.h"
+#include "RenderingThread.h"
+#include "RHI.h"
 
 #if PLATFORM_ANDROID
 

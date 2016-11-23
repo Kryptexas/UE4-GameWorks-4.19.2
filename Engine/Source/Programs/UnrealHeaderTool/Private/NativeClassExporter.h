@@ -2,8 +2,23 @@
 
 #pragma once
 
-#include "ParserClass.h"
+#include "CoreMinimal.h"
 #include "Classes.h"
+
+class FUnrealSourceFile;
+class UPackage;
+class UProperty;
+class FUHTMakefile;
+class UFunction;
+class UStruct;
+class UField;
+class UClass;
+class UEnum;
+class UScriptStruct;
+class UDelegateFunction;
+class FClassMetaData;
+struct FFuncInfo;
+class FOutputDevice;
 
 //
 //	FNativeClassHeaderGenerator

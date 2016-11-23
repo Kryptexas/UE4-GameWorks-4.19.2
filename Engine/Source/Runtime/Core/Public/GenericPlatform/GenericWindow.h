@@ -2,12 +2,10 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "Templates/SharedPointer.h"
 
-
 struct FGenericWindowDefinition;
-
 
 /**
  * Modes that an FGenericWindow can be in

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreTypes.h"
 
 /**
  * Binary predicate class for sorting elements in order.  Assumes < operator is defined for the template type.

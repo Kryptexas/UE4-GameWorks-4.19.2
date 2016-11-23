@@ -1,22 +1,36 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/GameInstance.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/CommandLine.h"
+#include "GameMapsSettings.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineTypes.h"
+#include "TimerManager.h"
+#include "Engine/LatentActionManager.h"
+#include "Engine/World.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Misc/Paths.h"
+#include "UObject/CoreOnline.h"
+#include "GameFramework/PlayerController.h"
 #include "Engine/Engine.h"
 #include "Engine/Console.h"
 #include "Engine/GameEngine.h"
-#include "Engine/DemoNetDriver.h"
-#include "Engine/LatentActionManager.h"
-#include "Engine/NetworkObjectList.h"
 #include "GameFramework/GameModeBase.h"
+#include "Engine/DemoNetDriver.h"
+#include "Engine/NetworkObjectList.h"
+#include "Engine/LocalPlayer.h"
 #include "GameFramework/OnlineSession.h"
-#include "GameFramework/GameSession.h"
 #include "GameFramework/PlayerState.h"
+#include "GameFramework/GameSession.h"
 #include "Net/OnlineEngineInterface.h"
+#include "Kismet/GameplayStatics.h"
+#include "Framework/Application/SlateApplication.h"
 #include "GenericPlatform/GenericApplication.h"
 
 #if WITH_EDITOR
-#include "UnrealEd.h"
+#include "Settings/LevelEditorPlaySettings.h"
+#include "Editor/EditorEngine.h"
 #endif
 
 UGameInstance::UGameInstance(const FObjectInitializer& ObjectInitializer)

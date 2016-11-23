@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "AudioDecompress.h"
 #include "AudioDevice.h"
-#include "Sound/SoundWave.h"
-#include "IAudioFormat.h"
+#include "Interfaces/IAudioFormat.h"
+#include "ContentStreaming.h"
 
 IStreamedCompressedInfo::IStreamedCompressedInfo()
 	: SrcBufferData(nullptr)

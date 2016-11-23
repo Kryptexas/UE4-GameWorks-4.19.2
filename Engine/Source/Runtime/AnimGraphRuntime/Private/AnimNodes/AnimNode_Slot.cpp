@@ -1,8 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphRuntimePrivatePCH.h"
 #include "AnimNodes/AnimNode_Slot.h"
-#include "Animation/AnimMontage.h"
 #include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////

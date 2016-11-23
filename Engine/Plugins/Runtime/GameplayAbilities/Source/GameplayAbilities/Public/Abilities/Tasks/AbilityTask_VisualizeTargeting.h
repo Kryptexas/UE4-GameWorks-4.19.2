@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "TimerManager.h"
-#include "AbilityTask.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
+#include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_VisualizeTargeting.generated.h"
-
-class AGameplayAbilityTargetActor;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FVisualizeTargetingDelegate);
 

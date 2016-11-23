@@ -4,10 +4,13 @@
 	AudioThread.cpp: Audio thread implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "AudioThread.h"
-#include "ExceptionHandling.h"
-#include "TaskGraphInterfaces.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/ExceptionHandling.h"
+#include "Misc/CoreStats.h"
+#include "UObject/UObjectGlobals.h"
+#include "Audio.h"
 
 //
 // Globals

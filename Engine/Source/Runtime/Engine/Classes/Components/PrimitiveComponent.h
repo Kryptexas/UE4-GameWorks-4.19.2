@@ -2,23 +2,33 @@
 
 #pragma once
 
-#include "Runtime/InputCore/Classes/InputCoreTypes.h"
-#include "PhysicsEngine/BodyInstance.h"
-#include "Components/SceneComponent.h"
-#include "SceneTypes.h"
-#include "Engine/TextureStreamingTypes.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Misc/Guid.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
 #include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "RenderCommandFence.h"
+#include "GameFramework/Actor.h"
+#include "CollisionQueryParams.h"
+#include "SceneTypes.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "AI/Navigation/NavRelevantInterface.h"
 #include "PrimitiveComponent.generated.h"
 
+class AController;
 class FPrimitiveSceneProxy;
-class AController; 
+class UMaterialInterface;
+class UPrimitiveComponent;
 class UTexture;
-struct FEngineShowFlags;
+struct FCollisionShape;
 struct FConvexVolume;
+struct FEngineShowFlags;
 struct FNavigableGeometryExport;
-struct FStreamingTexturePrimitiveInfo;
-class FStreamingTextureLevelContext;
 
 /** Determines whether a Character can attempt to step up onto a component when they walk in to it. */
 UENUM()

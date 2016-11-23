@@ -16,6 +16,7 @@
 #pragma once
 
 #include "GoogleVRControllerEventManager.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "GoogleVRControllerFunctionLibrary.generated.h"
 
 UENUM(BlueprintType)

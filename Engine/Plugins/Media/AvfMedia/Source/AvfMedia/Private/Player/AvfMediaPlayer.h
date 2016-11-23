@@ -2,9 +2,12 @@
 
 #pragma once
 
+#include "../AvfMediaPrivate.h"
+#include "CoreMinimal.h"
 #include "AvfMediaTracks.h"
 #include "IMediaControls.h"
 #include "IMediaPlayer.h"
+#include "Containers/Ticker.h"
 
 
 @class AVPlayer;

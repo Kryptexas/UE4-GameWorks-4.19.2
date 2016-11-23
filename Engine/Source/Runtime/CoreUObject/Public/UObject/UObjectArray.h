@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "UObjectBase.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Containers/LockFreeList.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBase.h"
 
 /**
 * Controls whether the number of available elements is being tracked in the ObjObjects array.

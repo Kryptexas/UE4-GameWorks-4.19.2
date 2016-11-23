@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesPrivatePCH.h"
-#include "PhysicsPublic.h"
-#include "TireConfig.h"
-#include "WheeledVehicleMovementComponent.h"
-
 #include "PhysXVehicleManager.h"
+#include "UObject/UObjectIterator.h"
+#include "TireConfig.h"
+
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Physics/PhysicsFiltering.h"
 #include "PhysXPublic.h"
@@ -201,13 +199,13 @@ void FPhysXVehicleManager::UpdateTireFrictionTableInternal()
 		{
 			// Iterate over each tire config
 			for (uint32 t = 0; t < NumTireConfigs; ++t)
-			{
+		{
 				UTireConfig* TireConfig = UTireConfig::AllTireConfigs[t].Get();
 				if (TireConfig != nullptr)
-				{
+			{
 					float TireFriction = TireConfig->GetTireFriction(PhysMat);
 					SurfaceTirePairs->setTypePairFriction(m, t, TireFriction);
-				}
+			}
 			}
 		}
 	}
@@ -361,12 +359,12 @@ void FPhysXVehicleManager::PreTick(FPhysScene* PhysScene, uint32 SceneType, floa
 
 	// Only support vehicles in sync scene
 	if (SceneType == PST_Sync)
+{
+	for (int32 i = 0; i < Vehicles.Num(); ++i)
 	{
-		for (int32 i = 0; i < Vehicles.Num(); ++i)
-		{
-			Vehicles[i]->PreTick(DeltaTime);
-		}
+		Vehicles[i]->PreTick(DeltaTime);
 	}
+}
 }
 
 

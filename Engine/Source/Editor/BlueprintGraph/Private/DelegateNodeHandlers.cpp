@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
 #include "DelegateNodeHandlers.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_BaseMCDelegate.h"
+#include "K2Node_CallDelegate.h"
 #include "K2Node_ClearDelegate.h"
+#include "K2Node_CreateDelegate.h"
+#include "EdGraphUtilities.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "DelegateNodeHandlers"
 

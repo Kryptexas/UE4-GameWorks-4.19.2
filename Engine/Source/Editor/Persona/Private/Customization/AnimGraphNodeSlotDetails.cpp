@@ -1,17 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
-
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-
+#include "Customization/AnimGraphNodeSlotDetails.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Animation/Skeleton.h"
+#include "EditorStyleSet.h"
+#include "DetailWidgetRow.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
 #include "AnimGraphNode_Base.h"
-
 #include "ScopedTransaction.h"
-#include "AnimGraphNodeSlotDetails.h"
-#include "STextComboBox.h"
-#include "STextEntryPopup.h"
+#include "Widgets/Input/STextComboBox.h"
+#include "Widgets/Input/STextEntryPopup.h"
 #include "TabSpawners.h"
 
 #define LOCTEXT_NAMESPACE "AnimNodeSlotDetails"

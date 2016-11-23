@@ -2,14 +2,16 @@
 
 #pragma once
 
-#include "ClipboardTypes.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/IntegralCurve.h"
+#include "MovieSceneTrack.h"
 #include "NamedKeyArea.h"
-#include "MovieSceneClipboard.h"
 #include "SequencerClipboardReconciler.h"
+#include "ClipboardTypes.h"
 
-
-struct FIntegralCurve;
-
+class FStructOnScope;
 
 /**
  * Abstract base class for integral curve key areas.

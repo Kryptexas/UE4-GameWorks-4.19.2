@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "Engine/Scene.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Engine/EngineTypes.h"
 #include "EngineDefines.h"
+#include "Engine/Scene.h"
 #include "CameraTypes.generated.h"
 
 //@TODO: Document

@@ -22,8 +22,9 @@
 #ifndef DETOURNAVMESH_H
 #define DETOURNAVMESH_H
 
-#include "DetourAlloc.h"
-#include "DetourStatus.h"
+#include "CoreMinimal.h"
+#include "Detour/DetourAlloc.h"
+#include "Detour/DetourStatus.h"
 
 // Note: If you want to use 64-bit refs, change the types of both dtPolyRef & dtTileRef.
 // It is also recommended that you change dtHashRef() to a proper 64-bit hash.

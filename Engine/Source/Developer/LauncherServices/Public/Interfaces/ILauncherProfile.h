@@ -2,6 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Interfaces/ILauncherDeviceGroup.h"
+#include "Interfaces/ILauncherProfileLaunchRole.h"
+
+class Error;
+class FJsonObject;
+class ILauncherProfile;
+class ILauncherSimpleProfile;
 
 namespace ELauncherProfileCookModes
 {

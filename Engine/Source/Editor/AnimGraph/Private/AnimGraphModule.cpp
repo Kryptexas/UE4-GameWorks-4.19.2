@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimGraphModule.h"
+#include "Textures/SlateIcon.h"
+#include "AnimGraphCommands.h"
+#include "Modules/ModuleManager.h"
 #include "AnimNodeEditModes.h"
+#include "EditorModeRegistry.h"
 #include "AnimNodeEditMode.h"
 #include "EditModes/TwoBoneIKEditMode.h"
 #include "EditModes/ObserveBoneEditMode.h"

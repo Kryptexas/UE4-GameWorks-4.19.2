@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "EngineVersionBase.h"
-
+#include "CoreTypes.h"
+#include "Misc/EngineVersionBase.h"
+#include "Containers/UnrealString.h"
 
 /** Utility functions. */
 class CORE_API FEngineVersion : public FEngineVersionBase

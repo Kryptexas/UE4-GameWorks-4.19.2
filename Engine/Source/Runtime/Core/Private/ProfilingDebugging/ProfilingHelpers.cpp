@@ -7,8 +7,13 @@
  */
 
 // Core includes.
-#include "CorePrivatePCH.h"
-#include "EngineVersion.h"
+#include "ProfilingDebugging/ProfilingHelpers.h"
+#include "Misc/DateTime.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/EngineVersion.h"
 
 // find where these are really defined
 const static int32 MaxFilenameLen = 100;

@@ -5,17 +5,27 @@
 //=============================================================================
 
 #pragma once
-#include "SlateCore.h"
-#include "Reply.h"
-#include "Player.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "Input/Reply.h"
 #include "Engine/GameViewportClient.h"
+#include "UObject/CoreOnline.h"
+#include "SceneTypes.h"
+#include "Engine/Player.h"
 #include "LocalPlayer.generated.h"
 
 
 #define INVALID_CONTROLLERID 255
 
-class FUniqueNetId;
-class UWorld;
+class AActor;
+class FSceneView;
+class UGameInstance;
+class ULocalPlayer;
+struct FMinimalViewInfo;
+struct FSceneViewProjectionData;
 
 /** A context object that binds to a LocalPlayer. Useful for UI or other things that need to pass around player references */
 struct ENGINE_API FLocalPlayerContext

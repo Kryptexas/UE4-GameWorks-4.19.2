@@ -6,12 +6,24 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/LockFreeList.h"
+#include "ProfilingDebugging/ResourceSize.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/ScopedPointer.h"
+#include "UObject/GCObject.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
 #include "TextureLayout3d.h"
-#include "GCObject.h"
 #include "UniquePtr.h"
 
 // DDC key for distance field data, must be changed when modifying the generation code or data format
 #define DISTANCEFIELD_DERIVEDDATA_VER TEXT("7768798764B445A9543C94442EA899D")
+
+class FDistanceFieldVolumeData;
+class UStaticMesh;
+
+template <class T> class TLockFreePointerListLIFO;
 
 /** Represents a distance field volume texture for a single UStaticMesh. */
 class FDistanceFieldVolumeTexture

@@ -15,6 +15,8 @@
 #include "ShaderCache.h"
 #include "MetalProfiler.h"
 #include "MetalCommandBuffer.h"
+#include "StaticBoundShaderState.h"
+#include "EngineGlobals.h"
 
 static const bool GUsesInvertedZ = true;
 static FGlobalBoundShaderState GClearMRTBoundShaderState[8][2];

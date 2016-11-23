@@ -2,8 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "AIGraphTypes.h"
 #include "AIGraphSchema.h"
 #include "EdGraphSchema_BehaviorTree.generated.h"
+
+class FSlateRect;
+class UEdGraph;
 
 /** Action to auto arrange the graph */
 USTRUCT()

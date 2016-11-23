@@ -2,9 +2,17 @@
 
 #pragma once
 
-#include "AnimPhysicsSolver.h"
-#include "AnimNode_SkeletalControlBase.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "BoneContainer.h"
+#include "Animation/AnimPhysicsSolver.h"
+#include "BonePose.h"
+#include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimNode_AnimDynamics.generated.h"
+
+class UAnimInstance;
+class USkeletalMeshComponent;
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Dynamics Overall"), STAT_AnimDynamicsOverall, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Dynamics Wind Data Update"), STAT_AnimDynamicsWindData, STATGROUP_Physics, ANIMGRAPHRUNTIME_API);

@@ -1,12 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "SBorder.h"
-#include "SScrollBar.h"
 
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Styling/SlateWidgetStyleAsset.h"
 
-class SSplitter;
-class IGridRow; 
+class SScrollBar;
 
 namespace EColumnSortPriority
 {

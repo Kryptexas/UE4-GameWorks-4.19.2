@@ -2,8 +2,9 @@
 
 #pragma once
 
-class UObject;
-struct FPropertyTag;
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/Class.h"
 
 /**
  * A struct that contains a string reference to an asset on disk.

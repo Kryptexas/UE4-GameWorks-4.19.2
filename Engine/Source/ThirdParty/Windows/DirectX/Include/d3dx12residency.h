@@ -919,7 +919,7 @@ namespace D3DX12Residency
 						hr = QueueFence->Initialize(Device);
 						Internal::InsertTailList(&QueueFencesListHead, &QueueFence->ListEntry);
 
-						InterlockedIncrement(&NumQueuesSeen);
+						FPlatformAtomics::InterlockedIncrement(&NumQueuesSeen);
 
 						if (SUCCEEDED(hr))
 						{
@@ -1368,7 +1368,7 @@ namespace D3DX12Residency
 			}
 
 			LIST_ENTRY QueueFencesListHead;
-			UINT32 NumQueuesSeen;
+			int32 NumQueuesSeen;
 			Internal::Fence AsyncThreadFence;
 
 			LIST_ENTRY InFlightSyncPointsHead;

@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ReferenceViewerPrivatePCH.h"
-#include "AssetThumbnail.h"
-#include "AssetRegistryModule.h"
+#include "EdGraphNode_Reference.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "EdGraph/EdGraphPin.h"
+#include "HAL/PlatformFilemanager.h"
 
 #define LOCTEXT_NAMESPACE "ReferenceViewer"
 

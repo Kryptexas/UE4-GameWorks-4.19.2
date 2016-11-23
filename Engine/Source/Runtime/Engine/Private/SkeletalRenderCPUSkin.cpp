@@ -20,8 +20,11 @@
 	3. This notice may not be removed or altered from any source distribution.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "SkeletalRenderCPUSkin.h"
+#include "EngineStats.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "SceneManagement.h"
+#include "SkeletalRender.h"
 #include "Animation/MorphTarget.h"
 #include "GPUSkinVertexFactory.h"
 

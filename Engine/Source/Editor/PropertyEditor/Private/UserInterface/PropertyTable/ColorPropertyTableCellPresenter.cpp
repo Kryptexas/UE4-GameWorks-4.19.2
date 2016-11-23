@@ -1,12 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "ColorPropertyTableCellPresenter.h"
-#include "PropertyEditor.h"
+#include "UserInterface/PropertyTable/ColorPropertyTableCellPresenter.h"
+#include "Layout/Margin.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBorder.h"
+#include "EditorStyleSet.h"
 #include "IPropertyTableUtilities.h"
 
-#include "SPropertyEditorColor.h"
-#include "SResetToDefaultPropertyEditor.h"
+#include "UserInterface/PropertyEditor/SPropertyEditorColor.h"
+#include "UserInterface/PropertyEditor/SResetToDefaultPropertyEditor.h"
 
 FColorPropertyTableCellPresenter::FColorPropertyTableCellPresenter( const TSharedRef< class FPropertyEditor >& InPropertyEditor, const TSharedRef< class IPropertyTableUtilities >& InPropertyUtilities )
 	: PropertyEditor( InPropertyEditor )

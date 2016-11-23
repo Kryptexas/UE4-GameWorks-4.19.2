@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "ADPCMAudioInfo.h"
-#include "IAudioFormat.h"
+#include "Interfaces/IAudioFormat.h"
 #include "Sound/SoundWave.h"
 #include "Audio.h"
+#include "ContentStreaming.h"
 
 #define WAVE_FORMAT_LPCM  1
 #define WAVE_FORMAT_ADPCM 2

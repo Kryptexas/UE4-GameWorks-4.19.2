@@ -6,6 +6,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class FAVIWriter;
+struct FCapturedFrame;
+
 #if PLATFORM_WINDOWS && !UE_BUILD_MINIMAL
 
 typedef TCHAR* PTCHAR;
@@ -24,6 +29,7 @@ typedef TCHAR* PTCHAR;
 		#pragma warning(disable:28204) // 'Func' has an override at 'file' and only the override is annotated for _Param_(N): when an override is annotated, the base (this function) should be similarly annotated.
 	#endif
 #endif
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include <streams.h>
 #include "HideWindowsPlatformTypes.h"

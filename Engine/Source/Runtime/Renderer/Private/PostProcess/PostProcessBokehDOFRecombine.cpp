@@ -4,14 +4,15 @@
 	PostProcessBokehDOFRecombine.cpp: Post processing lens blur implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessPassThrough.h"
-#include "PostProcessing.h"
-#include "PostProcessBokehDOFRecombine.h"
-#include "PostProcessBokehDOF.h"
+#include "PostProcess/PostProcessBokehDOFRecombine.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "SceneRenderTargetParameters.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/PostProcessBokehDOF.h"
+#include "ClearQuad.h"
 
 static TAutoConsoleVariable<int32> CVarSeparateTranslucencyUpsampleMode(
 	TEXT("r.SeparateTranslucencyUpsampleMode"),

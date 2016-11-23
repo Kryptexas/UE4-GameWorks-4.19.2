@@ -2,7 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Components/MeshComponent.h"
 #include "CableComponent.generated.h"
+
+class FPrimitiveSceneProxy;
 
 /** Struct containing information about a point along the cable */
 struct FCableParticle

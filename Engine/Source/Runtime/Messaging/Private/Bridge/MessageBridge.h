@@ -2,17 +2,18 @@
 
 #pragma once
 
-#include "IMessageBridge.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "IMessageContext.h"
+#include "IMessageTransport.h"
+#include "IMessageSubscription.h"
+#include "IMessageBus.h"
+#include "Bridge/MessageAddressBook.h"
+#include "IMessageBridge.h"
 #include "IMessageReceiver.h"
 #include "IMessageSender.h"
-#include "MessageAddressBook.h"
 
-
-class IMessageBus;
-class IMessageSubscription;
-class IMessageTransport;
-
+class Error;
 
 /**
  * Implements a message bridge.

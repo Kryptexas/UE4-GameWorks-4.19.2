@@ -6,19 +6,22 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "RenderingThread.h"
+#include "CoreMinimal.h"
+#include "Templates/RefCounting.h"
+#include "Misc/MemStack.h"
+#include "Modules/ModuleInterface.h"
+#include "RHI.h"
+#include "RenderResource.h"
 #include "RenderUtils.h"
 
-// Forward declarations.
-class FPrimitiveSceneProxy;
-class FPrimitiveSceneInfo;
-class FSceneViewFamily;
 class FCanvas;
-class UWorld;
-class FSceneInterface;
 class FMaterial;
+class FSceneInterface;
+class FSceneRenderTargets;
+class FSceneView;
+class FSceneViewFamily;
+struct FMeshBatch;
+struct FSynthBenchmarkResults;
 
 // Shortcut for the allocator used by scene rendering.
 class SceneRenderingAllocator

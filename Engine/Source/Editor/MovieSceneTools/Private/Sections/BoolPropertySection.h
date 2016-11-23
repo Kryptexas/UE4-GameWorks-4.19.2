@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "PropertySection.h"
 
-
-class FBoolKeyArea;
-
+class FSequencerSectionPainter;
 
 /**
 * An implementation of bool property sections.

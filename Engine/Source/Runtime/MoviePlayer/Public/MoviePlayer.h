@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "Engine.h"
-#include "ModuleInterface.h"
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Rendering/RenderingCommon.h"
+#include "Rendering/SlateRenderer.h"
+#include "Widgets/SWidget.h"
 #include "Slate/SlateTextures.h"
 
 UENUM()

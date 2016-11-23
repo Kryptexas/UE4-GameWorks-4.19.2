@@ -1,13 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-
+#include "AnimGraphNode_ModifyCurve.h"
+#include "Textures/SlateIcon.h"
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
-#include "CompilerResultsLog.h"
-#include "AnimGraphNode_ModifyCurve.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "AnimationGraphSchema.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "ModifyCurve"
 

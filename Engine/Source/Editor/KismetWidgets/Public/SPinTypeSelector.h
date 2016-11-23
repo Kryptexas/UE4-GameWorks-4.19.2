@@ -2,7 +2,27 @@
 
 #pragma once
 
-#include "BlueprintGraphDefinitions.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+#include "EditorStyleSet.h"
+#include "EdGraphSchema_K2.h"
+
+class SComboButton;
+class SMenuOwner;
+class SToolTip;
+struct FObjectReferenceType;
 
 DECLARE_DELEGATE_OneParam(FOnPinTypeChanged, const FEdGraphPinType&)
 

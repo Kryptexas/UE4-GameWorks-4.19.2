@@ -5,6 +5,19 @@
 =============================================================================*/
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "ProfilingDebugging/ResourceSize.h"
+#include "PackedNormal.h"
+#include "RenderingThread.h"
+#include "SkeletalMeshTypes.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkinnedMeshComponent.h"
+
+class FPrimitiveDrawInterface;
+class FVertexFactory;
+class UMorphTarget;
+
 //#include "../Private/SkeletalRenderCPUSkin.h"
 
 /** data for a single skinned skeletal mesh vertex */

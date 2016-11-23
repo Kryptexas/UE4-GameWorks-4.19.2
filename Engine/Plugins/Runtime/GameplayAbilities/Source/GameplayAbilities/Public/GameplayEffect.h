@@ -2,26 +2,35 @@
 
 #pragma once
 
-#include "GameplayTagAssetInterface.h"
-#include "AbilitySystemLog.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/NetSerialization.h"
+#include "Engine/EngineTypes.h"
 #include "GameplayTagContainer.h"
-#include "TimerManager.h"
+#include "Engine/CurveTable.h"
+#include "AttributeSet.h"
+#include "EngineDefines.h"
 #include "GameplayEffectTypes.h"
-#include "GameplayAbilitySpec.h"
 #include "GameplayEffectAggregator.h"
-#include "GameplayEffectCalculation.h"
+#include "GameplayPrediction.h"
+#include "GameplayTagAssetInterface.h"
+#include "GameplayAbilitySpec.h"
 #include "ActiveGameplayEffectIterator.h"
-#include "ObjectKey.h"
+#include "UObject/ObjectKey.h"
 #include "GameplayEffect.generated.h"
 
-struct FActiveGameplayEffect;
-
-class UGameplayEffect;
-class UGameplayEffectTemplate;
 class UAbilitySystemComponent;
-class UGameplayModMagnitudeCalculation;
-class UGameplayEffectExecutionCalculation;
+class UGameplayEffect;
 class UGameplayEffectCustomApplicationRequirement;
+class UGameplayEffectExecutionCalculation;
+class UGameplayEffectTemplate;
+class UGameplayModMagnitudeCalculation;
+struct FActiveGameplayEffectsContainer;
+struct FGameplayEffectModCallbackData;
+struct FGameplayEffectSpec;
 
 /** Enumeration outlining the possible gameplay effect magnitude calculation policies. */
 UENUM()

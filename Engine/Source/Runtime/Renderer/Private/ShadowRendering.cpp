@@ -4,13 +4,13 @@
 	ShadowRendering.cpp: Shadow rendering implementation
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "TextureLayout.h"
+#include "ShadowRendering.h"
+#include "PrimitiveViewRelevance.h"
+#include "DepthRendering.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
 #include "LightPropagationVolume.h"
-#include "SceneUtils.h"
-#include "SceneFilterRendering.h"
-#include "ScreenRendering.h"
+#include "ScenePrivate.h"
 
 static TAutoConsoleVariable<float> CVarCSMShadowDepthBias(
 	TEXT("r.Shadow.CSMDepthBias"),

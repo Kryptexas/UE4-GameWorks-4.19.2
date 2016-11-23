@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Framework/Layout/InertialScrollManager.h"
+
+class FSlateWindowElementList;
+class SWidget;
 
 /**
  * Interface for widgets that can be used with FScrollyZoomy.

@@ -4,26 +4,28 @@
 LandscapeRender.cpp: New terrain rendering
 =============================================================================*/
 
-#include "LandscapePrivatePCH.h"
+#include "LandscapeRender.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapePrivate.h"
 #include "LandscapeMeshProxyComponent.h"
+#include "Materials/Material.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionLandscapeLayerCoords.h"
-#include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
-#include "RHIStaticStates.h"
-#include "LandscapeRender.h"
+#include "TessellationRendering.h"
 #include "LandscapeEdit.h"
-#include "LevelUtils.h"
-#include "MaterialCompiler.h"
-#include "LandscapeMaterialInstanceConstant.h"
-#include "RawIndexBuffer.h"
 #include "Engine/LevelStreaming.h"
+#include "LevelUtils.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "LandscapeMaterialInstanceConstant.h"
 #include "Engine/ShadowMapTexture2D.h"
-#include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "UnrealEngine.h"
 #include "LandscapeLight.h"
-#include "Algo/Find.h"
+#include "Containers/Algo/Find.h"
+
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, TEXT("LandscapeParameters"));
 

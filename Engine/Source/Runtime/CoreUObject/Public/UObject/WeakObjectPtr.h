@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "AutoPointer.h"
-#include "UObjectArray.h"
+#include "CoreMinimal.h"
+#include "UObject/UObjectArray.h"
 
 /***
  * 

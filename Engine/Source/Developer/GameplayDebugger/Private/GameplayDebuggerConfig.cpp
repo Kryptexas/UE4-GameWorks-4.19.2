@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
-#include "GameplayDebugger.h"
 #include "GameplayDebuggerConfig.h"
+#include "GameplayDebugger.h"
 #include "GameplayDebuggerAddonManager.h"
 
 UGameplayDebuggerConfig::UGameplayDebuggerConfig(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)

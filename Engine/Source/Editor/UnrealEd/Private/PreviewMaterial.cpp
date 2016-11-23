@@ -1,8 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "Editor/MaterialEditor/Public/MaterialEditorModule.h"
-#include "ComponentRecreateRenderStateContext.h"
+#include "MaterialEditor/PreviewMaterial.h"
+#include "Modules/ModuleManager.h"
+#include "MaterialEditor/DEditorParameterValue.h"
+#include "MaterialEditor/DEditorFontParameterValue.h"
+#include "MaterialEditor/DEditorScalarParameterValue.h"
+#include "MaterialEditor/DEditorStaticComponentMaskParameterValue.h"
+#include "MaterialEditor/DEditorStaticSwitchParameterValue.h"
+#include "MaterialEditor/DEditorTextureParameterValue.h"
+#include "MaterialEditor/DEditorVectorParameterValue.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "MaterialEditor/MaterialEditorInstanceConstant.h"
+#include "MaterialEditor/MaterialEditorMeshComponent.h"
+#include "MaterialEditorModule.h"
 #include "Materials/MaterialInstanceConstant.h"
 
 /**

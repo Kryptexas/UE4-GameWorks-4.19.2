@@ -1,9 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PackageDependencyInfoPrivatePCH.h"
-#include "PackageDependencyInfoPrivate.h"
 #include "PackageDependencyInfo.h"
-#include "ModuleManager.h"
+#include "HAL/PlatformProcess.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Stats/StatsMisc.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/UObjectIterator.h"
+#include "PackageDependencyInfoPrivate.h"
 #include "SecureHash.h"
 #include "QueuedThreadPool.h"
 

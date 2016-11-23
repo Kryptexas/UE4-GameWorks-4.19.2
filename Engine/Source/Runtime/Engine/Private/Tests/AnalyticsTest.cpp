@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "AutomationTest.h"
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Guid.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/App.h"
 #include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-#include "Runtime/Analytics/Analytics/Public/AnalyticsEventAttribute.h"
-#include "UnrealEngine.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 

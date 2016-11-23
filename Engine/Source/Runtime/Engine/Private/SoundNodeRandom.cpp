@@ -1,12 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundNodeRandom.h"
+#include "ActiveSound.h"
 
 #if WITH_EDITOR
-	#include "UnrealEd.h"
+	#include "Editor.h"
 #endif
 
 /*-----------------------------------------------------------------------------

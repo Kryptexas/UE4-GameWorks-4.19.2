@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Misc/Attribute.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Curves/KeyHandle.h"
 #include "PropertySection.h"
+#include "Widgets/Layout/SSpacer.h"
 #include "IntegralKeyArea.h"
-
-
-struct FIntegralCurve;
-class UMovieSceneSection;
-
 
 /** A key area for displaying and editing an actor reference property. */
 class FActorReferenceKeyArea

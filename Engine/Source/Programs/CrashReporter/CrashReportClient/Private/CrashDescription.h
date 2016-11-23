@@ -1,11 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "GenericPlatformCrashContext.h"
-#include "UnrealString.h"
-#include "XmlFile.h"
-#include "EngineVersion.h"
 
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
+#include "XmlFile.h"
+#include "Misc/EngineVersion.h"
+
+enum class ECrashDescVersions : int32;
+enum class ECrashDumpMode : int32;
+class FXmlNode;
 struct FPrimaryCrashProperties;
 struct FAnalyticsEventAttribute;
 

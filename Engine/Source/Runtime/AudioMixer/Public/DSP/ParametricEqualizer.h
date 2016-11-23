@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "DSP/BiQuadFilter.h"
 
 namespace Audio

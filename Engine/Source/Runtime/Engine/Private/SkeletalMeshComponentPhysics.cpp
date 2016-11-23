@@ -1,38 +1,51 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Stats/Stats.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "HAL/IConsoleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/EngineTypes.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Components/PrimitiveComponent.h"
+#include "SkeletalMeshTypes.h"
+#include "ClothSimData.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "DrawDebugHelpers.h"
 #include "SkeletalRender.h"
 #include "SkeletalRenderPublic.h"
-#include "Components/SkeletalMeshComponent.h"
 
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 #include "CollisionDebugDrawingPublic.h"
 
 #if WITH_PHYSX
+	#include "SceneManagement.h"
+	#include "PhysXPublic.h"
 	#include "PhysicsEngine/PhysXSupport.h"
-	#include "Collision/PhysXCollision.h"
 #endif
 
-#include "Collision/CollisionDebugDrawing.h"
 
 #if WITH_APEX
-	#include "NvParamUtils.h"
-	#include "Apex.h"
 
 #if WITH_APEX_CLOTHING
-	#include "ClothingAsset.h"
-	#include "ClothingActor.h"
-	#include "ClothingCollision.h"
 	// for cloth morph target	
 	#include "Animation/MorphTarget.h"
 
 #endif// #if WITH_APEX_CLOTHING
 
 #endif//#if WITH_APEX
+#include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsAsset.h"
-#include "PhysicsEngine/PhysicsSettings.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 

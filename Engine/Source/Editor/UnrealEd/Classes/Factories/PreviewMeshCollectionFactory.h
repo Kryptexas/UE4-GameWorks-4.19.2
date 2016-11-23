@@ -2,8 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/WeakObjectPtr.h"
 #include "Factories/Factory.h"
 #include "PreviewMeshCollectionFactory.generated.h"
+
+class USkeleton;
 
 UCLASS(hidecategories = Object, MinimalAPI)
 class UPreviewMeshCollectionFactory : public UFactory

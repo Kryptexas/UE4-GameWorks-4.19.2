@@ -1,14 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PakFilePrivatePCH.h"
-#include "IPlatformFilePak.h"
-#include "SecureHash.h"
-#include "FileManagerGeneric.h"
-#include "ModuleManager.h"
-#include "IPlatformFileModule.h"
-#include "IOBase.h"
-#include "BigInt.h"
 #include "SignedArchiveReader.h"
+#include "HAL/FileManager.h"
+#include "HAL/Event.h"
+#include "HAL/RunnableThread.h"
 #include "PublicKey.inl"
 
 DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("FChunkCacheWorker.ProcessQueue"), STAT_FChunkCacheWorker_ProcessQueue, STATGROUP_PakFile);

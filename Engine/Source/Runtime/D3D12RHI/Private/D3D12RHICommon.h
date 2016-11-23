@@ -6,6 +6,8 @@ D3D12BaseRHIPrivate.h: Private D3D RHI definitions for Windows.
 
 #pragma once
 
+#include "WindowsHWrapper.h"
+
 class FD3D12Adapter;
 class FD3D12Device;
 

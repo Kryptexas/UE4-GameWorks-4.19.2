@@ -2,9 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #if WITH_GAMEPLAY_DEBUGGER
-
 #include "GameplayDebuggerCategory.h"
+#endif
+
+class APlayerController;
+
+#if WITH_GAMEPLAY_DEBUGGER
 
 class FGameplayDebuggerCategory_NavLocalGrid : public FGameplayDebuggerCategory
 {

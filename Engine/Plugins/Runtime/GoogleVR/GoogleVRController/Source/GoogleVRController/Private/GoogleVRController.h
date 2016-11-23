@@ -15,8 +15,8 @@
 
 #pragma once
 
-#include "GoogleVRControllerPrivatePCH.h"
-#include "InputDevice.h"
+#include "GoogleVRControllerPrivate.h"
+#include "IInputDevice.h"
 #include "IMotionController.h"
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_PLATFORMS

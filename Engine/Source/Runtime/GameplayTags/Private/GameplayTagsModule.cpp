@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsModulePrivatePCH.h"
+#include "GameplayTagsModule.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/Package.h"
 
 FSimpleMulticastDelegate IGameplayTagsModule::OnGameplayTagTreeChanged;
 FSimpleMulticastDelegate IGameplayTagsModule::OnTagSettingsChanged;

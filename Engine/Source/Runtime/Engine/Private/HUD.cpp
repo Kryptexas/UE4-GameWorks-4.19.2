@@ -4,15 +4,30 @@
 	HUD.cpp: Heads up Display related functionality
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Components/LineBatchComponent.h"
 #include "GameFramework/HUD.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Misc/App.h"
+#include "EngineGlobals.h"
+#include "Layout/Margin.h"
+#include "CollisionQueryParams.h"
+#include "Materials/MaterialInterface.h"
+#include "SceneView.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Engine.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "TextureResource.h"
+#include "Engine/Texture.h"
+#include "Engine/LocalPlayer.h"
 #include "GameFramework/GameModeBase.h"
-#include "Net/UnrealNetwork.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
+#include "EngineUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Components/LineBatchComponent.h"
+#include "Engine/Canvas.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 #include "DisplayDebugHelpers.h"
-#include "SlateBasics.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 

@@ -1,14 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorFloatingUI.h"
 #include "VREditorUISystem.h"
 #include "VREditorBaseUserWidget.h"
 #include "VREditorMode.h"
-#include "WidgetComponent.h"
+#include "Components/WidgetComponent.h"
 #include "VREditorWidgetComponent.h"
-#include "VREditorInteractor.h"
-#include "SLevelViewport.h"	// For tab manager tricks
 
 
 namespace VREd

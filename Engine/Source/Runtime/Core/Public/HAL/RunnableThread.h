@@ -2,8 +2,14 @@
 
 #pragma once
 
-class FTlsAutoCleanup;
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "HAL/PlatformTLS.h"
+#include "HAL/PlatformAffinity.h"
 
+class FRunnable;
+class FTlsAutoCleanup;
 
 /**
  * Interface for runnable threads.

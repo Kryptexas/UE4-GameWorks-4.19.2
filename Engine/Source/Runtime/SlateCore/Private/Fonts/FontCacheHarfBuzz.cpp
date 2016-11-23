@@ -1,10 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "FontCacheHarfBuzz.h"
-#include "FontCacheFreeType.h"
+#include "Fonts/FontCacheHarfBuzz.h"
+#include "Fonts/FontCache.h"
+#include "Fonts/FontCacheFreeType.h"
 
 #if WITH_HARFBUZZ
+	#if PLATFORM_WINDOWS
+		#include "WindowsHWrapper.h"
+		#include "AllowWindowsPlatformAtomics.h"
+	#endif
 	#if PLATFORM_WINDOWS || PLATFORM_XBOXONE
 		#pragma warning(push)
 		#pragma warning(disable:4996) // warning C4996: 'strncpy': This function or variable may be unsafe. Consider using strncpy_s instead.
@@ -21,6 +25,9 @@
 	#if PLATFORM_WINDOWS || PLATFORM_XBOXONE
 		#pragma warning(pop)
 	#endif // #if PLATFORM_WINDOWS
+	#if PLATFORM_WINDOWS
+		#include "HideWindowsPlatformAtomics.h"
+	#endif
 #endif // #if WITH_HARFBUZZ
 
 #if WITH_HARFBUZZ

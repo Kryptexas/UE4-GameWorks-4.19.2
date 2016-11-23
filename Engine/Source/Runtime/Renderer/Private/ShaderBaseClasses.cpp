@@ -4,7 +4,9 @@
 	ShaderBaseClasses.cpp: Shader base classes
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "ShaderBaseClasses.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "RendererModule.h"
 #include "ScenePrivate.h"
 #include "ParameterCollection.h"
 

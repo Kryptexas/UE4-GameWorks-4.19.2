@@ -2,12 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "MaterialShared.h"
 #include "MaterialExpressionIO.h"
 
 #include "MaterialExpression.generated.h"
 
-class FMaterialExpressionKey;
 class UEdGraphNode;
+class UMaterial;
+class UTexture;
+struct FPropertyChangedEvent;
 
 //@warning: FExpressionInput is mirrored in MaterialShared.h and manually "subclassed" in Material.h (FMaterialInput)
 #if !CPP      //noexport struct

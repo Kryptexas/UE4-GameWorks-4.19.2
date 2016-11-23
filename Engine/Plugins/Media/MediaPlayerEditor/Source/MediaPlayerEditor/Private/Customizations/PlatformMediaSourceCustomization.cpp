@@ -1,7 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "PlatformMediaSourceCustomization.h"
+#include "Customizations/PlatformMediaSourceCustomization.h"
+#include "MediaSource.h"
+#include "PlatformMediaSource.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "EditorStyleSet.h"
+#include "IDetailPropertyRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "IMediaModule.h"
+#include "PlatformInfo.h"
+#include "PropertyCustomizationHelpers.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Images/SImage.h"
+
 
 
 #define LOCTEXT_NAMESPACE "FPlatformMediaSourceCustomization"

@@ -4,15 +4,19 @@
 	StaticMeshBuild.cpp: Static mesh building.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Serialization/BulkData.h"
+#include "Components/StaticMeshComponent.h"
+#include "GenericOctreePublic.h"
+#include "GenericOctree.h"
+#include "Engine/StaticMesh.h"
+#include "UObject/UObjectIterator.h"
 #include "StaticMeshResources.h"
 #include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
-#include "RawMesh.h"
-#include "MeshUtilities.h"
-#include "TargetPlatform.h"
-#include "GenericOctree.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/App.h"
 #endif // #if WITH_EDITOR
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"

@@ -2,8 +2,16 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/TextProperty.h"
 #include "Components/PrimitiveComponent.h"
 #include "TextRenderComponent.generated.h"
+
+class FPrimitiveSceneProxy;
+class UFont;
+class UMaterialInterface;
 
 UENUM()
 enum EHorizTextAligment

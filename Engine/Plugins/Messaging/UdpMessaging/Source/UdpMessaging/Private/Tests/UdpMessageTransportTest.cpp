@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UdpMessagingPrivatePCH.h"
-#include "UdpMessageTransport.h"
-#include "UdpMessagingTestTypes.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Misc/AutomationTest.h"
+#include "Interfaces/IPv4/IPv4Address.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "IMessageContext.h"
+#include "Transport/UdpMessageTransport.h"
+#include "Tests/UdpMessagingTestTypes.h"
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUdpMessageTransportTest, "System.Core.Messaging.Transports.Udp.UdpMessageTransport (takes ~2 minutes!)", EAutomationTestFlags::Disabled | EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::EngineFilter)

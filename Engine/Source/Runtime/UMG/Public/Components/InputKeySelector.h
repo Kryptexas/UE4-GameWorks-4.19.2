@@ -2,8 +2,17 @@
 
 #pragma once
 
-#include "SInputKeySelector.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Framework/Commands/InputChord.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Layout/Margin.h"
+#include "Widgets/SWidget.h"
+#include "Components/Widget.h"
 #include "InputKeySelector.generated.h"
+
+class SInputKeySelector;
+struct FButtonStyle;
 
 /** A widget for selecting a single key or a single key with a modifier. */
 UCLASS()

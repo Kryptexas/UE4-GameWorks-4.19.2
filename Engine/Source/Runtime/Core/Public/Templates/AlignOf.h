@@ -3,6 +3,7 @@
 #pragma once
 
 
+#include "CoreTypes.h"
 #include "Templates/ChooseClass.h"
 #include "Templates/IntegralConstant.h"
 #include "Templates/IsClass.h"

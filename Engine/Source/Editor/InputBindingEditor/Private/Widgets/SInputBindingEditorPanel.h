@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Framework/Commands/UICommandInfo.h"
+#include "Framework/Commands/InputBindingManager.h"
+#include "Widgets/Views/STableRow.h"
+
+class IDetailLayoutBuilder;
 
 /**
  * A gesture sort functor.  Sorts by name or gesture and ascending or descending

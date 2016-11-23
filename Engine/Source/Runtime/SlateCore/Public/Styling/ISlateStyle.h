@@ -1,15 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/SlateFontInfo.h"
 #include "Styling/StyleDefaults.h"
 
+class Error;
 class UTexture2D;
-
-struct FMargin;
-struct FSlateColor;
 struct FSlateDynamicImageBrush;
-struct FSlateFontInfo;
-struct FSlateSound;
 struct FSlateWidgetStyle;
+
 /**
  * 
  */

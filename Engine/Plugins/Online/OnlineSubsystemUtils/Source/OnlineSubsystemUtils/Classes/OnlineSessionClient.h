@@ -5,11 +5,18 @@
  */
 
 #pragma once
-#include "OnlineSessionInterface.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/CoreOnline.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
+#include "Interfaces/OnlineSessionInterface.h"
+#include "GameFramework/OnlineSession.h"
 #include "OnlineSessionClient.generated.h"
 
-class UWorld;
-class APlayerController;
+class UGameInstance;
+class UNetDriver;
 
 UCLASS(config=Game)
 class ONLINESUBSYSTEMUTILS_API UOnlineSessionClient : public UOnlineSession

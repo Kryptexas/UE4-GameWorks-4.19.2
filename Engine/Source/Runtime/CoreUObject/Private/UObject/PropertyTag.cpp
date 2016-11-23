@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "PropertyTag.h"
+#include "UObject/PropertyTag.h"
+#include "UObject/DebugSerializationFlags.h"
+#include "Serialization/SerializedPropertyScope.h"
+#include "UObject/UnrealType.h"
 #include "EnumProperty.h"
 #include "UObject/BlueprintsObjectVersion.h"
 

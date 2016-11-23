@@ -2,15 +2,20 @@
 
 #pragma once
 
-#include "Curves/CurveBase.h"
-#include "KeyParams.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/RichCurve.h"
 
-class ISequencer;
-class UMovieSceneSection;
 class FMovieSceneClipboardBuilder;
 class FMovieSceneClipboardKeyTrack;
+class FStructOnScope;
+class ISequencer;
+class UMovieSceneSection;
 struct FMovieSceneClipboardEnvironment;
 struct FSequencerPasteEnvironment;
+struct FSlateBrush;
+enum class EMovieSceneKeyInterpolation : uint8;
 
 /**
  * Information for how to draw each key.

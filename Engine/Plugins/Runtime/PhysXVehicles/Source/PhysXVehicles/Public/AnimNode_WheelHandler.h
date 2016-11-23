@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BoneContainer.h"
+#include "BonePose.h"
 #include "VehicleAnimInstance.h"
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimNode_WheelHandler.generated.h"

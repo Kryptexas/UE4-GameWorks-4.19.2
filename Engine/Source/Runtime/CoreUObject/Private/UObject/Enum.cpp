@@ -1,8 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "UObjectThreadContext.h"
+#include "CoreMinimal.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/ErrorException.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UObjectThreadContext.h"
 #include "UObject/DevObjectVersion.h"
+#include "UObject/CoreObjectVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEnum, Log, All);
 

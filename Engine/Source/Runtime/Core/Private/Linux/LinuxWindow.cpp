@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "LinuxWindow.h"
-#include "LinuxApplication.h"
+#include "Linux/LinuxWindow.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Text.h"
+#include "Math/Vector2D.h"
+#include "GenericPlatform/GenericWindowDefinition.h"
+#include "Misc/App.h"
+#include "Linux/LinuxApplication.h"
 
 DEFINE_LOG_CATEGORY( LogLinuxWindow );
 DEFINE_LOG_CATEGORY( LogLinuxWindowType );

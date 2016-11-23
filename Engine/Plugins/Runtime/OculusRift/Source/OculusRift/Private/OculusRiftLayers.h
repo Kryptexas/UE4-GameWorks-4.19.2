@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "IOculusRiftPlugin.h"
 #include "IHeadMountedDisplay.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "HAL/ThreadSafeBool.h"
 #include "HeadMountedDisplayCommon.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS

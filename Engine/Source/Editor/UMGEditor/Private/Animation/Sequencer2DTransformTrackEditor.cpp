@@ -1,9 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-#include "Sequencer2DTransformTrackEditor.h"
-#include "MovieScene2DTransformSection.h"
-#include "MovieScene2DTransformTrack.h"
+#include "Animation/Sequencer2DTransformTrackEditor.h"
 #include "PropertySection.h"
 #include "ISectionLayoutBuilder.h"
 #include "FloatCurveKeyArea.h"

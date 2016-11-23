@@ -1,9 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "MovieSceneBoolTrack.h"
-#include "BoolPropertyTrackEditor.h"
-#include "BoolPropertySection.h"
+#include "TrackEditors/PropertyTrackEditors/BoolPropertyTrackEditor.h"
+#include "Sections/BoolPropertySection.h"
 
 
 TSharedRef<ISequencerTrackEditor> FBoolPropertyTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> OwningSequencer)

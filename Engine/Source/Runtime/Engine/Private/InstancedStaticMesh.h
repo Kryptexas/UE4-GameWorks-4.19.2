@@ -6,49 +6,31 @@
 
 #pragma once
 
-#include "PhysicsPublic.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "RenderingThread.h"
+#include "RenderResource.h"
+#include "PrimitiveViewRelevance.h"
 #include "ShaderParameters.h"
-#include "ShaderParameterUtils.h"
-
-#include "Misc/UObjectToken.h"
-#include "Components/SplineMeshComponent.h"
-#include "Components/ModelComponent.h"
-#include "Components/ShapeComponent.h"
-#include "Components/BoxComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
-#include "Components/DrawSphereComponent.h"
-#include "Components/TextRenderComponent.h"
-#include "Components/VectorFieldComponent.h"
-#include "PhysicsEngine/RadialForceComponent.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Components/WindDirectionalSourceComponent.h"
-#include "Components/TimelineComponent.h"
-#include "SlateBasics.h"
-#include "NavDataGenerator.h"
-#include "AI/Navigation/RecastHelpers.h"
-
-#include "StaticMeshResources.h"
-#include "StaticMeshLight.h"
-#include "SpeedTreeWind.h"
-#include "ComponentInstanceDataCache.h"
+#include "SceneView.h"
 #include "VertexFactory.h"
 #include "LocalVertexFactory.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "StaticMeshResources.h"
 
-#if WITH_PHYSX
-#include "PhysicsEngine/PhysXSupport.h"
-#include "Collision/PhysXCollision.h"
-#endif
+
+#include "StaticMeshLight.h"
 
 #if WITH_EDITOR
 #include "LightMap.h"
 #include "ShadowMap.h"
-#include "Logging/MessageLog.h"
 #endif
 
-#include "NavigationSystemHelpers.h"
-#include "AI/Navigation/NavCollision.h"
-#include "Components/InstancedStaticMeshComponent.h"
+class ULightComponent;
 
 extern TAutoConsoleVariable<float> CVarFoliageMinimumScreenSize;
 extern TAutoConsoleVariable<float> CVarFoliageLODDistanceScale;
@@ -815,4 +797,3 @@ struct FComponentInstancedLightmapData
 	/** List of new components */
 	TArray< FComponentInstanceSharingData > SharingData;
 };
-

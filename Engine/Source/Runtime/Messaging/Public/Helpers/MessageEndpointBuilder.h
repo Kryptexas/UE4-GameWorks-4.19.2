@@ -2,11 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Async/TaskGraphInterfaces.h"
 #include "IMessageBus.h"
+#include "IMessageHandler.h"
+#include "Helpers/MessageEndpoint.h"
 #include "IMessagingModule.h"
-#include "MessageEndpoint.h"
-#include "MessageHandlers.h"
-#include "TaskGraphInterfaces.h"
+#include "Helpers/MessageHandlers.h"
 
 
 /**

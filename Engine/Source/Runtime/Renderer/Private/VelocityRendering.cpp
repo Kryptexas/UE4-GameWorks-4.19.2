@@ -4,9 +4,19 @@
 	VelocityRendering.cpp: Velocity rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "VelocityRendering.h"
 #include "SceneUtils.h"
-#include "ScreenSpaceReflections.h"
+#include "Materials/Material.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "MaterialShaderType.h"
+#include "MaterialShader.h"
+#include "MeshMaterialShader.h"
+#include "ShaderBaseClasses.h"
+#include "SceneRendering.h"
+#include "StaticMeshDrawList.h"
+#include "DeferredShadingRenderer.h"
+#include "ScenePrivate.h"
+#include "PostProcess/ScreenSpaceReflections.h"
 
 // Changing this causes a full shader recompile
 static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocity(

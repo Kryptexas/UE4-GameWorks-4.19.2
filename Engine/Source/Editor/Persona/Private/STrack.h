@@ -2,7 +2,27 @@
 
 #pragma once
 
-#include "GraphEditor.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/DragAndDrop.h"
+#include "Input/Reply.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+#include "Widgets/SCompoundWidget.h"
+#include "EditorStyleSet.h"
+
+class FArrangedChildren;
+class FMenuBuilder;
+class FPaintArgs;
+class FSlateWindowElementList;
+class FUICommandList;
+class STrack;
+class STrackNode;
 
 //////////////////////////////////////////////////////////////////////////
 DECLARE_DELEGATE_RetVal( float, FOnGetScrubValue )

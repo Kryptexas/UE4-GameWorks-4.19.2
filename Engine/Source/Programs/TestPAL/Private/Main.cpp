@@ -1,6 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PrivatePCH.h"
+#include "CoreMinimal.h"
+#include "TestPALLog.h"
+#include "Parent.h"
+#include "Stats/StatsMisc.h"
+#include "HAL/RunnableThread.h"
+#include "GenericPlatform/GenericApplication.h"
 
 #include "TestDirectoryWatcher.h"
 #include "RequiredProgramMainCPPInclude.h"

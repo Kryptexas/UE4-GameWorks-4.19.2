@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "MessagingDebuggerModel.h"
-#include "SMessagingAddressTableRow.h"
-#include "SMessagingEndpointDetails.h"
+#include "Widgets/EndpointDetails/SMessagingEndpointDetails.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/EndpointDetails/SMessagingAddressTableRow.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingEndpointDetails"

@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "UnrealTemplate.h"
-#include "Templates/EnableIf.h"
-#include "Templates/IsArray.h"
+#include "CoreTypes.h"
 #include "Templates/PointerIsConvertibleFromTo.h"
+#include "Templates/UnrealTemplate.h"
+#include "Templates/IsArray.h"
 #include "Templates/RemoveExtent.h"
 
 // Single-ownership smart pointer in the vein of std::unique_ptr.

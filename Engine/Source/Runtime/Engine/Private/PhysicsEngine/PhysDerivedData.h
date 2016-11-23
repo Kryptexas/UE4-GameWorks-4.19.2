@@ -2,13 +2,21 @@
 
 #pragma once
 
-#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "EngineDefines.h"
+#include "PhysXIncludes.h"
 
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 #include "DerivedDataPluginInterface.h"
-#include "DerivedDataCacheInterface.h"
-#include "TargetPlatform.h"
-#include "PhysXSupport.h"
 #include "IPhysXFormat.h"
+#endif
+
+class UBodySetup;
+struct FBodyInstance;
+struct FBodySetupUVInfo;
+
+#if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 
 //////////////////////////////////////////////////////////////////////////
 // PhysX Cooker

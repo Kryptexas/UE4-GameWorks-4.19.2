@@ -2,17 +2,28 @@
 
 
 #pragma once
-#include "Engine/BlendableInterface.h"
-#include "Runtime/RHI/Public/RHIDefinitions.h"
-#include "Runtime/RenderCore/Public/RenderCommandFence.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/ScriptMacros.h"
+#include "RenderCommandFence.h"
 #include "SceneTypes.h"
+#include "RHI.h"
+#include "Engine/BlendableInterface.h"
 #include "MaterialInterface.generated.h"
 
-class UMaterial;
-class FMaterialResource;
 class FMaterialCompiler;
-struct FPrimitiveViewRelevance;
+class FMaterialRenderProxy;
+class FMaterialResource;
+class UMaterial;
+class UPhysicalMaterial;
+class USubsurfaceProfile;
 class UTexture;
+struct FPrimitiveViewRelevance;
 
 enum EMaterialUsage
 {

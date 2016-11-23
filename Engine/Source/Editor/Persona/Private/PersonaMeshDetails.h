@@ -2,7 +2,26 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "EngineDefines.h"
+#include "Engine/SkeletalMesh.h"
+#include "PropertyHandle.h"
 #include "IDetailCustomNodeBuilder.h"
+#include "IDetailCustomization.h"
+
+class FAssetData;
+class FDetailWidgetRow;
+class FPersonaMeshDetails;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
+class IPersonaToolkit;
+class SUniformGridPanel;
+struct FSectionLocalizer;
+
 /**
  * Struct to uniquely identify clothing applied to a material section
  * Contains index into the ClothingAssets array and the submesh index.

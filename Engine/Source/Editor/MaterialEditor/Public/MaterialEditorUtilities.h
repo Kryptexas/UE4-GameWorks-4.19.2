@@ -2,9 +2,20 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "EdGraph/EdGraphNode.h"
+#include "MaterialShared.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 
-struct FExpressionInput;
+class IMaterialEditor;
+class UMaterial;
+class UMaterialExpressionComment;
+class UMaterialExpressionFunctionInput;
+class UMaterialFunction;
+class UMaterialInstance;
+class UMaterialInterface;
+struct FGraphActionMenuBuilder;
 
 //////////////////////////////////////////////////////////////////////////
 // FMaterialEditorUtilities

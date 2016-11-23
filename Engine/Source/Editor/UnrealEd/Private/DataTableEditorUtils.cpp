@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "DataTableEditorUtils.h"
-#include "DataTableUtils.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Styling/SlateTypes.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EditorStyleSet.h"
+#include "Engine/UserDefinedStruct.h"
 #include "ScopedTransaction.h"
 #include "K2Node_GetDataTableRow.h"
-#include "Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE "DataTableEditorUtils"
 

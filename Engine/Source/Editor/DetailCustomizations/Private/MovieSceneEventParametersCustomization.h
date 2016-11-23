@@ -2,7 +2,15 @@
 
 #pragma once
 
-class IDetailsView;
+#include "CoreMinimal.h"
+#include "IPropertyTypeCustomization.h"
+#include "IStructureDetailsView.h"
+
+class FAssetData;
+class FDetailWidgetRow;
+class IDetailChildrenBuilder;
+class IPropertyHandle;
+class IPropertyUtilities;
 
 class FMovieSceneEventParametersCustomization : public IPropertyTypeCustomization
 {

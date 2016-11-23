@@ -6,6 +6,9 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "RHI.h"
+
 DECLARE_LOG_CATEGORY_EXTERN(LogMetal, Display, All);
 
 // Metal RHI public headers.

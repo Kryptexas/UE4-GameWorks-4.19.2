@@ -1,14 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
-#include "SPropertyMenuAssetPicker.h"
+#include "UserInterface/PropertyEditor/SPropertyMenuAssetPicker.h"
+#include "Factories/Factory.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Editor.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Layout/SBox.h"
 #include "AssetRegistryModule.h"
+#include "IAssetTools.h"
 #include "AssetToolsModule.h"
-#include "DelegateFilter.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
-#include "PropertyEditorAssetConstants.h"
-#include "EditorStyleSet.h"
-#include "SlateIconFinder.h"
+#include "UserInterface/PropertyEditor/PropertyEditorAssetConstants.h"
+#include "Styling/SlateIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 

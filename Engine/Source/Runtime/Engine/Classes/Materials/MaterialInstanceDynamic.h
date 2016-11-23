@@ -2,7 +2,10 @@
 
 
 #pragma once
-#include "MaterialInstance.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Materials/MaterialInstance.h"
 #include "MaterialInstanceDynamic.generated.h"
 
 UCLASS(hidecategories=Object, collapsecategories, BlueprintType)

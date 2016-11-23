@@ -30,11 +30,8 @@
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include "Core.h"
-#include "ShaderFormatOpenGL.h"
-#include "hlslcc.h"
-#include "hlslcc_private.h"
 #include "GlslBackend.h"
+#include "hlslcc_private.h"
 #include "compiler.h"
 
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS

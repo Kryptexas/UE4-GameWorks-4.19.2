@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/ILauncherTask.h"
+#include "Interfaces/ILauncherProfile.h"
+
+class ILauncherWorker;
 
 namespace ELauncherWorkerStatus
 {

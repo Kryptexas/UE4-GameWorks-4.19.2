@@ -1,15 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemBlueprintLibrary.h"
-#include "AbilitySystemInterface.h"
+#include "GameplayEffectAggregator.h"
+#include "GameplayEffect.h"
+#include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
-#include "Abilities/GameplayAbility.h"
-#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
-#include "Abilities/Tasks/AbilityTask_WaitMovementModeChange.h"
-#include "Abilities/Tasks/AbilityTask_WaitOverlap.h"
-#include "Abilities/Tasks/AbilityTask_WaitConfirmCancel.h"
-#include "LatentActions.h"
+#include "AbilitySystemInterface.h"
 
 UAbilitySystemBlueprintLibrary::UAbilitySystemBlueprintLibrary(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

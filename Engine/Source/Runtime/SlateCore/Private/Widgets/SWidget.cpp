@@ -1,10 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
 #include "Widgets/SWidget.h"
-#include "Input/Events.h"
-#include "ActiveTimerHandle.h"
-#include "SlateStats.h"
+#include "Types/PaintArgs.h"
+#include "Layout/ArrangedChildren.h"
+#include "Layout/Children.h"
+#include "SlateGlobals.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/IToolTip.h"
+#include "Misc/Paths.h"
+#include "HAL/IConsoleManager.h"
+#include "Types/NavigationMetaData.h"
+#include "Application/SlateApplicationBase.h"
+#include "Styling/CoreStyle.h"
+#include "Application/ActiveTimerHandle.h"
+#include "Stats/SlateStats.h"
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Total Widgets"), STAT_SlateTotalWidgets, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Painted Widgets"), STAT_SlateNumPaintedWidgets, STATGROUP_Slate);

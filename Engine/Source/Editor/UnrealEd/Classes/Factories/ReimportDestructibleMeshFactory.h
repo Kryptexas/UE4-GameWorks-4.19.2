@@ -3,6 +3,12 @@
 /** Factory which allows re-import of an ApexDestructibleAsset */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EngineDefines.h"
+#include "EditorReimportHandler.h"
+#include "Factories/DestructibleMeshFactory.h"
 #include "ReimportDestructibleMeshFactory.generated.h"
 
 UCLASS(hideCategories=Object)

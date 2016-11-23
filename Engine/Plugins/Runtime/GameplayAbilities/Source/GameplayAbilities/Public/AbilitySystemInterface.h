@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "GameplayTagContainer.h"
-#include "GameplayEffect.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Interface.h"
 #include "AbilitySystemInterface.generated.h"
 
 class UAbilitySystemComponent;

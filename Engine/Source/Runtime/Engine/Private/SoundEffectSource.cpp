@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "Sound/SoundEffectSource.h"
 
 USoundEffectSourcePreset::USoundEffectSourcePreset(const FObjectInitializer& ObjectInitializer)

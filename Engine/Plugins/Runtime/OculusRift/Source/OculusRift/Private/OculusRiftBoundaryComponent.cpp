@@ -1,6 +1,6 @@
-#include "OculusRiftPrivatePCH.h"
 #include "OculusRiftBoundaryComponent.h"
-
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 

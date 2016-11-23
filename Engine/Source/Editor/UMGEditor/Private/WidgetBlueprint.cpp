@@ -1,17 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-
-#include "Runtime/MovieScene/Public/MovieScene.h"
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
-
-#include "Blueprint/WidgetTree.h"
-#include "Blueprint/WidgetBlueprintGeneratedClass.h"
-#include "PropertyTag.h"
 #include "WidgetBlueprint.h"
-#include "WidgetBlueprintCompiler.h"
-#include "PropertyBinding.h"
-#include "Engine/UserDefinedStruct.h"
+#include "Components/Widget.h"
+#include "Blueprint/UserWidget.h"
+#include "MovieScene.h"
+
+#if WITH_EDITOR
+	#include "Engine/UserDefinedStruct.h"
+#endif // WITH_EDITOR
+#include "EdGraph/EdGraph.h"
+#include "Blueprint/WidgetTree.h"
+#include "Animation/WidgetAnimation.h"
+
+#include "Kismet2/StructureEditorUtils.h"
+
+#include "Kismet2/CompilerResultsLog.h"
+#include "Binding/PropertyBinding.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

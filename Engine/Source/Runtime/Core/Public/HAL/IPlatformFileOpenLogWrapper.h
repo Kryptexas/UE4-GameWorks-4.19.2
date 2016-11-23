@@ -2,6 +2,17 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Misc/Parse.h"
+#include "Containers/StringConv.h"
+#include "Misc/DateTime.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Misc/Paths.h"
+
+class IAsyncReadFileHandle;
 
 #if !UE_BUILD_SHIPPING
 

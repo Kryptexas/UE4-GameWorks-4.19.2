@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRHIRendererPrivatePCH.h"
+#include "SlateShaders.h"
 
 
 /** Flag to determine if we are running with a color vision deficiency shader on */

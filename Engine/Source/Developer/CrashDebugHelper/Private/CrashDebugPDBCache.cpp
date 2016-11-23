@@ -1,7 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashDebugHelperPrivatePCH.h"
 #include "CrashDebugPDBCache.h"
+#include "HAL/PlatformTime.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "CrashDebugHelperPrivate.h"
 #include "UniquePtr.h"
 
 /*-----------------------------------------------------------------------------

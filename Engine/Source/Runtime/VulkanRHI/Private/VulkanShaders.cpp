@@ -8,6 +8,7 @@
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 #include "GlobalShader.h"
+#include "Serialization/MemoryReader.h"
 
 #if (!PLATFORM_ANDROID)
 #include <vulkan/icd-spv.h>

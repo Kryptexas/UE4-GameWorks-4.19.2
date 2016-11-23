@@ -7,10 +7,14 @@ See https://msdn.microsoft.com/en-us/library/windows/desktop/hh405049%28v=vs.85%
 
 */
 
+#include "CoreMinimal.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
 #include "UnrealAudioDeviceModule.h"
 #include "UnrealAudioBuffer.h"
 #include "ModuleManager.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include <xaudio2.h>
 #include "HideWindowsPlatformTypes.h"

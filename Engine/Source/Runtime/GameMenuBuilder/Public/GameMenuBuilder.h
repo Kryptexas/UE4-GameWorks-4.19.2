@@ -2,15 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "GameMenuBuilderModule.h"
 
-#include "SlateBasics.h"
-#include "GameMenuBuilderStyle.h"
-#include "GameMenuWidgetStyle.h"
-#include "SGameMenuPageWidget.h"
-#include "SGameMenuItemWidget.h"
-#include "GameMenuItem.h"
-#include "GameMenuPage.h"
 
 class FGameMenuBuilderModule : public IGameMenuBuilderModule
 {

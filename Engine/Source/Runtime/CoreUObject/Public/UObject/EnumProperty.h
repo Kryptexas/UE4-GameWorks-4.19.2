@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
+#include "CoreMinimal.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ObjectMacros.h"
 
 class UEnum;
 class UNumericProperty;

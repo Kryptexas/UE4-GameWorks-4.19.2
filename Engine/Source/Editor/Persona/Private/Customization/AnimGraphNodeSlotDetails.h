@@ -2,7 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Input/Reply.h"
+#include "IDetailCustomization.h"
 #include "PersonaDelegates.h"
+
+class IPropertyHandle;
+class USkeleton;
 
 /**
  * Customizes a DataTable asset to use a dropdown

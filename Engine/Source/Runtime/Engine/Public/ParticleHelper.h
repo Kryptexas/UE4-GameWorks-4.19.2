@@ -6,12 +6,31 @@
 
 #pragma once
 
-#include "ParticleVertexFactory.h"
-#include "MeshParticleVertexFactory.h"
-#include "MaterialShared.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Math/RandomStream.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "UniformBuffer.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
 #include "Materials/MaterialInterface.h"
+#include "MaterialShared.h"
+#include "MeshBatch.h"
+#include "MeshParticleVertexFactory.h"
 
 #define _ENABLE_PARTICLE_LOD_INGAME_
+
+class FParticleSystemSceneProxy;
+class UParticleModuleRequired;
+class UParticleSystemComponent;
+class USkeletalMeshComponent;
+class UStaticMesh;
+struct FBaseParticle;
+struct FParticleMeshEmitterInstance;
+struct FStaticMeshLODResources;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogParticles, Log, All);
 

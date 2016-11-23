@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "StringAssetReference.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Templates/Casts.h"
+#include "UObject/PersistentObjectPtr.h"
+#include "Misc/StringAssetReference.h"
 
 /**
  * FAssetPtr is a type of weak pointer to a UObject, that also keeps track of the path to the object on disk.

@@ -2,16 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AITypes.h"
 #include "GenericTeamAgentInterface.h"
-#include "AITypes.h"
 #include "AIPerceptionTypes.generated.h"
 
-class UAISense;
-class UAISenseEvent;
-class UAISenseConfig;
 class UAIPerceptionComponent;
-class UWorld;
+class UAISense;
 
 //////////////////////////////////////////////////////////////////////////
 struct AIMODULE_API FAISenseCounter : FAIBasicCounter<uint8>

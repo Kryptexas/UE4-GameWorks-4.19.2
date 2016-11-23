@@ -1,17 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
-
 #include "SSequenceEditor.h"
-#include "GraphEditor.h"
-#include "GraphEditorModule.h"
-#include "Editor/Kismet/Public/SKismetInspector.h"
-#include "SAnimationScrubPanel.h"
+#include "Animation/AnimSequence.h"
+
 #include "SAnimNotifyPanel.h"
-#include "SAnimCurvePanel.h"
 #include "SAnimTrackCurvePanel.h"
-#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "AnimSequenceEditor"
 

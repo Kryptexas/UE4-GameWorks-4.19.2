@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
-
+#include "OnlineSubsystemGameCircle.h"
+#include "Misc/ConfigCacheIni.h"
+#include <jni.h>
 
 FOnlineSubsystemGameCircle::FOnlineSubsystemGameCircle()
 	: IdentityInterface(nullptr)

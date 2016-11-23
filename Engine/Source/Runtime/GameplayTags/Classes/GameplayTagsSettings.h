@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "GameplayTagContainer.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/StringAssetReference.h"
+#include "GameplayTagsManager.h"
 #include "GameplayTagsSettings.generated.h"
 
 /** A single redirect from a deleted tag to the new tag that should replace it */

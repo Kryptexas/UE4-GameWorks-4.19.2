@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingPrivatePCH.h"
-#include "MessageBridge.h"
+#include "Bridge/MessageBridge.h"
 
 
 /* FMessageBridge structors

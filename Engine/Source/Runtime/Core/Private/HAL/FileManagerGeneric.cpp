@@ -10,9 +10,12 @@
 =============================================================================*/
 
 // for compression
-#include "CorePrivatePCH.h"
-#include "FileManagerGeneric.h"
-#include "SecureHash.h"
+#include "HAL/FileManagerGeneric.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/SecureHash.h"
 #include "UniquePtr.h"
 #include <time.h>
 

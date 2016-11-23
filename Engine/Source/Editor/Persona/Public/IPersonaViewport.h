@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SCompoundWidget.h"
+
 /** Opaque state interface for saving and restoring viewport state */
 struct IPersonaViewportState
 {

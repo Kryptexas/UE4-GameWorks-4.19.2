@@ -7,12 +7,21 @@
  *
  */
 
-#include "Animation/AnimCompositeBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Animation/AnimLinkableElement.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/Skeleton.h"
+#include "Animation/AnimationAsset.h"
 #include "AlphaBlend.h"
+#include "Animation/AnimCompositeBase.h"
 #include "AnimMontage.generated.h"
 
-class UAnimMontage;
 class UAnimInstance;
+class UAnimMontage;
+class UAnimSequence;
+class USkeletalMeshComponent;
 
 /**
  * Section data for each track. Reference of data will be stored in the child class for the way they want

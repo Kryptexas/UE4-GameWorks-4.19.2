@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MacGraphicsSwitchingModule.h"
 #include "MacGraphicsSwitchingStyle.h"
+#include "MacGraphicsSwitchingModule.h"
 #include "SlateStyle.h"
+#include "EditorStyleSet.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/SlateStyleRegistry.h"
 
 #define IMAGE_PLUGIN_BRUSH( RelativePath, ... ) FSlateImageBrush( FPaperStyle::InContent( RelativePath, ".png" ), __VA_ARGS__ )
 #define IMAGE_BRUSH(RelativePath, ...) FSlateImageBrush(StyleSet->RootToContentDir(RelativePath, TEXT(".png")), __VA_ARGS__)

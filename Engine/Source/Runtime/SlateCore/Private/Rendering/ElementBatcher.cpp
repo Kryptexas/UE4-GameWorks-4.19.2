@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "ElementBatcher.h"
-#include "SlateRenderTransform.h"
-#include "Internationalization/Text.h"
-#include "SlateStats.h"
+#include "Rendering/ElementBatcher.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Fonts/FontCache.h"
+#include "Rendering/DrawElements.h"
+#include "Rendering/RenderingPolicy.h"
+#include "Stats/SlateStats.h"
+#include "Widgets/SWindow.h"
 
 DECLARE_CYCLE_STAT(TEXT("Find Batch For Element Time"), STAT_SlateFindBatchForElement, STATGROUP_SlateVerbose);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Elements (Prebatch)"), STAT_SlateNumPrebatchElements, STATGROUP_Slate);

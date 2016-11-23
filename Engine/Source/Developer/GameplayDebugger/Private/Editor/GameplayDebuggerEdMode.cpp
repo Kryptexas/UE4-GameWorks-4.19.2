@@ -1,16 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
+#include "Editor/GameplayDebuggerEdMode.h"
 
 #if WITH_EDITOR
-#include "GameplayDebuggerEdMode.h"
-#include "GameplayDebuggerToolkit.h"
+#include "Editor/GameplayDebuggerToolkit.h"
 #include "Toolkits/ToolkitManager.h"
 #include "GameplayDebuggerPlayerManager.h"
 #include "GameplayDebuggerLocalController.h"
 
 #include "EditorModeManager.h"
-#include "EditorViewportClient.h"
+#include "Components/InputComponent.h"
 
 const FName FGameplayDebuggerEdMode::EM_GameplayDebugger = TEXT("EM_GameplayDebugger");
 

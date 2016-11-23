@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "UMGSequencePlayer.h"
+#include "Animation/UMGSequencePlayer.h"
 #include "MovieScene.h"
-#include "MovieSceneSequenceInstance.h"
-#include "MovieScene.h"
-#include "WidgetAnimation.h"
+#include "UMGPrivate.h"
+#include "Animation/WidgetAnimation.h"
 
 
 UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializer)

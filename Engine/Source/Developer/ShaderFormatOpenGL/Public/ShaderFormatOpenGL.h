@@ -2,10 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "RHIDefinitions.h"
 #include "hlslcc.h"
 
-enum GLSLVersion
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
+
+struct FShaderCompilerInput;
+struct FShaderCompilerOutput;
+
+enum GLSLVersion 
 {
 	GLSL_150,
 	GLSL_430,

@@ -1,8 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "FileHelper.h"
-#include "SecureHash.h"
+#include "Misc/FileHelper.h"
+#include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "Misc/ByteSwap.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/Paths.h"
+#include "Math/IntRect.h"
+#include "Misc/OutputDeviceFile.h"
+#include "ProfilingDebugging/ProfilingHelpers.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/SecureHash.h"
 
 /*-----------------------------------------------------------------------------
 	FFileHelper

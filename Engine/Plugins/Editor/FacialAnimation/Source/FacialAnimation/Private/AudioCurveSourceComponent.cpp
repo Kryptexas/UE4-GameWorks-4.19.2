@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FacialAnimationPrivatePCH.h"
 #include "AudioCurveSourceComponent.h"
+#include "Sound/SoundWave.h"
+#include "Engine/CurveTable.h"
 
 UAudioCurveSourceComponent::UAudioCurveSourceComponent()
 {

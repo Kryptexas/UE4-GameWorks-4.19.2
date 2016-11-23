@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "BlueprintProfilerSettings.h"
+#include "CoreMinimal.h"
 
 //////////////////////////////////////////////////////////////////////////
 // EScriptPerfDataType

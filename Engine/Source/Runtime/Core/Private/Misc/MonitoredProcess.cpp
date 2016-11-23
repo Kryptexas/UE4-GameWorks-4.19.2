@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "Misc/MonitoredProcess.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/Paths.h"
 
 /* FMonitoredProcess structors
  *****************************************************************************/

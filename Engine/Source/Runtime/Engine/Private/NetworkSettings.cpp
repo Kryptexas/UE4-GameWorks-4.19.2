@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/NetworkSettings.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyPortFlags.h"
 
 UNetworkSettings::UNetworkSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -2,8 +2,15 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionLandscapeLayerSwitch.generated.h"
+
+class UTexture;
 
 UCLASS(collapsecategories, hidecategories=Object)
 class LANDSCAPE_API UMaterialExpressionLandscapeLayerSwitch : public UMaterialExpression

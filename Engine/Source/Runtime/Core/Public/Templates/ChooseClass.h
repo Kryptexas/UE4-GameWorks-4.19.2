@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreTypes.h"
 
 /** Chooses between two different classes based on a boolean. */
 template<bool Predicate,typename TrueClass,typename FalseClass>

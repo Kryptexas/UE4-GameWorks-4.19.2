@@ -4,7 +4,12 @@
 	GCObjectReferencer.cpp: Implementation of UGCObjectReferencer
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/Casts.h"
+#include "UObject/GCObject.h"
 
 // Global GC state flags
 extern bool GObjIncrementalPurgeIsInProgress;

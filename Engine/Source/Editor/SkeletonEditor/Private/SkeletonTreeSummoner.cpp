@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "SkeletonTreeSummoner.h"
+#include "EditorStyleSet.h"
 #include "IDocumentation.h"
 #include "SkeletonEditor.h"
-#include "ISkeletonTree.h"
 
 #define LOCTEXT_NAMESPACE "SkeletonTreeSummoner"
 

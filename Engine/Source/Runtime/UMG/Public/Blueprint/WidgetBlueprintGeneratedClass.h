@@ -2,15 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Binding/DynamicPropertyPath.h"
 #include "Engine/BlueprintGeneratedClass.h"
-#include "DynamicPropertyPath.h"
 
 #include "WidgetBlueprintGeneratedClass.generated.h"
 
-class UMovieScene;
-class UStructProperty;
 class UUserWidget;
 class UWidgetAnimation;
+class UWidgetTree;
 
 UENUM()
 enum class EBindingKind : uint8

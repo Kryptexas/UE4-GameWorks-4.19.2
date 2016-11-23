@@ -1,7 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "SFloatCurveKeyEditor.h"
+#include "CurveKeyEditors/SFloatCurveKeyEditor.h"
+#include "Curves/KeyHandle.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Editor.h"
+#include "ISequencer.h"
+#include "ScopedTransaction.h"
+#include "MovieSceneCommonHelpers.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "FloatCurveKeyEditor"
 

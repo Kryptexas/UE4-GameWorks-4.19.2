@@ -7,12 +7,26 @@
 #pragma once
 
 // Includes.
-#include "ChunkedArray.h"
-#include "GenericOctree.h"
+
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Engine/Level.h"
+#include "Templates/ScopedPointer.h"
 #include "StaticLighting.h"
 #include "LightingBuildOptions.h"
 #include "UniquePtr.h"
 
+class FCanvas;
+class FLightmassProcessor;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FShadowMapData2D;
+class UActorComponent;
+class ULightComponent;
+class ULightComponentBase;
+class UModel;
+struct FNodeGroup;
+struct FQuantizedLightmapData;
 struct FSelectedLightmapSample;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogStaticLightingSystem, Log, All);

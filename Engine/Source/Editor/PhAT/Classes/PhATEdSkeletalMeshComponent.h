@@ -1,9 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "PhysicsPublic.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "PhATEdSkeletalMeshComponent.generated.h"
 
+class FPrimitiveDrawInterface;
 
 UCLASS()
 class UPhATEdSkeletalMeshComponent : public USkeletalMeshComponent

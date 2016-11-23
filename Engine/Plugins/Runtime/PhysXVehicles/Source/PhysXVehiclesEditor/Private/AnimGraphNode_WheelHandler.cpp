@@ -1,10 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesEditorPrivatePCH.h"
-#include "VehicleAnimInstance.h"
 #include "AnimGraphNode_WheelHandler.h"
-#include "CompilerResultsLog.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/CompilerResultsLog.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_WheelHandler

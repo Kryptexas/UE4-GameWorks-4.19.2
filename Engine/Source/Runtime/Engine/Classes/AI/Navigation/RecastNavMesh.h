@@ -2,8 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "EngineDefines.h"
+#include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/NavigationData.h"
-#include "Tickable.h"
 #include "RecastNavMesh.generated.h"
 
 /** Initial checkin. */
@@ -34,14 +38,14 @@
 #define RECAST_STRAIGHTPATH_OFFMESH_CONNECTION 0x04
 #define RECAST_UNWALKABLE_POLY_COST	FLT_MAX
 
-class FNavDataGenerator;
 class FPImplRecastNavMesh;
 class FRecastQueryFilter;
 class INavLinkCustomInterface;
+class UCanvas;
 class UNavArea;
 class UNavigationSystem;
+class UPrimitiveComponent;
 class URecastNavMeshDataChunk;
-struct FAreaNavModifier;
 struct FRecastAreaNavModifierElement;
 
 UENUM()

@@ -2,13 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IMessageContext.h"
-
 
 struct FMessageTracerEndpointInfo;
 struct FMessageTracerMessageInfo;
 struct FMessageTracerTypeInfo;
-
 
 /**
  * Enumerates tracer breakpoint states.

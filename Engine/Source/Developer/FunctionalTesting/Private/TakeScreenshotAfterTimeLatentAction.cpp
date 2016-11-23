@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "FunctionalTestingPrivatePCH.h"
-#include "AutomationBlueprintFunctionLibrary.h"
+
 #include "TakeScreenshotAfterTimeLatentAction.h"
+#include "AutomationBlueprintFunctionLibrary.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+#include "Misc/AutomationTest.h"
 
 FTakeScreenshotAfterTimeLatentAction::FTakeScreenshotAfterTimeLatentAction(const FLatentActionInfo& LatentInfo, const FString& InScreenshotName, FAutomationScreenshotOptions InOptions)
 	: ExecutionFunction(LatentInfo.ExecutionFunction)

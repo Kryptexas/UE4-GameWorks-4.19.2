@@ -2,11 +2,16 @@
 
 #pragma once
 
-
-class FMessagingDebuggerMessageFilter;
-class FMessagingDebuggerModel;
-class IMessageTracer;
-
+#include "CoreMinimal.h"
+#include "Styling/ISlateStyle.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "IMessageTracer.h"
+#include "Models/MessagingDebuggerModel.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Models/MessagingDebuggerMessageFilter.h"
 
 /**
  * Implements the message history panel.

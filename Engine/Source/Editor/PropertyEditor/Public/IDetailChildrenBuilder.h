@@ -2,8 +2,11 @@
 
 #pragma once
 
-class IDetailCustomNodeBuilder;
-class IPropertyHandle;
+#include "CoreMinimal.h"
+#include "IDetailCustomNodeBuilder.h"
+#include "Widgets/SWidget.h"
+#include "UObject/StructOnScope.h"
+#include "PropertyHandle.h"
 
 /**
  * Builder for adding children to a detail customization

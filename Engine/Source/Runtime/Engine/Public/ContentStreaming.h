@@ -6,6 +6,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+
+class AActor;
+class FSoundSource;
+class UPrimitiveComponent;
+class USoundWave;
+class UTexture2D;
+struct FStreamingManagerTexture;
+struct FWaveInstance;
+
 /*-----------------------------------------------------------------------------
 	Stats.
 -----------------------------------------------------------------------------*/

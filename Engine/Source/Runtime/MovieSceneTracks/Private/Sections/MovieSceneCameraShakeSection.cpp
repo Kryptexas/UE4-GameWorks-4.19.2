@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneCameraShakeSection.h"
-#include "MovieSceneCameraShakeTrack.h"
+#include "Sections/MovieSceneCameraShakeSection.h"
+#include "Tracks/MovieSceneCameraShakeTrack.h"
 #include "Evaluation/MovieSceneCameraAnimTemplate.h"
 
 

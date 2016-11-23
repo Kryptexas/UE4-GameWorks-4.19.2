@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
 
 /**
  * Information about a duplicated object

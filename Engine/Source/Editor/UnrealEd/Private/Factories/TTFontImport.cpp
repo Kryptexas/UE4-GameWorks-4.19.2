@@ -3,17 +3,31 @@
 /*=============================================================================
 	TTFontImport.cpp: True-type Font Importing
 =============================================================================*/
-#include "UnrealEd.h"
-#include "Factories.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
-#include "DesktopPlatformModule.h"
+
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SWindow.h"
+#include "Engine/FontImportOptions.h"
 #include "Engine/Font.h"
+#include "Factories/TrueTypeFontFactory.h"
+#include "RenderUtils.h"
+#include "Engine/Texture2D.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "IDesktopPlatform.h"
+#include "DesktopPlatformModule.h"
 
 #ifndef WITH_FREETYPE
 	#define WITH_FREETYPE	0
 #endif // WITH_FREETYPE
 
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 namespace TTFConstants
 {
@@ -30,7 +44,6 @@ namespace TTFConstants
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #endif // USE_FREETYPE
-#include "Engine/FontImportOptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTTFontImport, Log, All);
 
@@ -1029,7 +1042,7 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 
 		// Create the Windows font
 		HFONT FontHandle =
-			CreateFont(
+			CreateFontW(
 				nHeight,
 				0,
 				0,

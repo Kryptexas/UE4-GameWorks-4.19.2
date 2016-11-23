@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/ResourceArray.h"
+#include "RHI.h"
+
+struct Rect;
 
 /** A null implementation of the dynamically bound RHI. */
 class FNullDynamicRHI : public FDynamicRHI , public IRHICommandContext

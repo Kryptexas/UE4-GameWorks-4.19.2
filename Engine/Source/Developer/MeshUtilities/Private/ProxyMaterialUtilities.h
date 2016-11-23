@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/MaterialMerging.h"
+#include "StaticParameterSet.h"
+#include "Materials/Material.h"
+#include "Engine/Texture2D.h"
+#include "MaterialUtilities.h"
+#include "Materials/MaterialInstanceConstant.h"
+
 namespace ProxyMaterialUtilities
 {
 #define TEXTURE_MACRO_BASE(a, b, c) \

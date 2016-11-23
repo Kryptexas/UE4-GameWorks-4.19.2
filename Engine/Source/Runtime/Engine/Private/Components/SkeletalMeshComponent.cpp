@@ -4,40 +4,27 @@
 	UnSkeletalComponent.cpp: Actor component implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "ParticleDefinitions.h"
-#include "BlueprintUtilities.h"
-#include "SkeletalRenderCPUSkin.h"
-#include "SkeletalRenderGPUSkin.h"
-#include "AnimEncoding.h"
-#include "AnimationUtils.h"
-#include "AnimationRuntime.h"
-#include "PhysXASync.h"
+#include "Misc/App.h"
+#include "DrawDebugHelpers.h"
 #include "Animation/AnimStats.h"
-#include "Animation/AnimNodeBase.h"
-#include "Particles/ParticleSystemComponent.h"
+#include "AnimationRuntime.h"
+#include "Animation/AnimClassInterface.h"
+#include "Animation/AnimInstance.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "AI/NavigationSystemHelpers.h"
 #include "PhysicsPublic.h"
-#if WITH_EDITOR
-#include "ShowFlags.h"
-#include "Collision.h"
-#include "ConvexVolume.h"
-#endif
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 
 #if WITH_APEX_CLOTHING
-#include "PhysicsEngine/PhysXSupport.h"
-#include "ClothingActor.h"
-#include "ClothingAsset.h"
+#include "PhysXIncludes.h"
 #endif
 
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 #include "Animation/AnimNode_SubInput.h"
-#include "Animation/PoseSnapshot.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponent"
 

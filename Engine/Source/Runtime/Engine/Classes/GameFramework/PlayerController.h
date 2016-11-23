@@ -1,21 +1,40 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "TimerManager.h"
+
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/NetSerialization.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Widgets/SWidget.h"
+#include "Engine/LatentActionManager.h"
+#include "SceneTypes.h"
+#include "GameFramework/Controller.h"
+#include "UObject/TextProperty.h"
+#include "GameFramework/OnlineReplStructs.h"
 #include "GameFramework/PlayerMuteList.h"
 #include "Camera/PlayerCameraManager.h"
-#include "Camera/CameraTypes.h"
-#include "Camera/CameraActor.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/ForceFeedbackEffect.h"
-#include "GameFramework/OnlineReplStructs.h"
-#include "GameFramework/Controller.h"
-#include "Engine/LatentActionManager.h"
 #include "GenericPlatform/IInputInterface.h"
 #include "PlayerController.generated.h"
 
-
-class FPrimitiveComponentId;
+class ACameraActor;
+class APawn;
+class ASpectatorPawn;
+class FDebugDisplayInfo;
+class UActorChannel;
+class UGameViewportClient;
+class UInterpTrackInstDirector;
+class ULocalMessage;
+class UPlayer;
+class UPrimitiveComponent;
+struct FActiveHapticFeedbackEffect;
 struct FCollisionQueryParams;
 
 /** Default delegate that provides an implementation for those that don't have special needs other than a toggle */

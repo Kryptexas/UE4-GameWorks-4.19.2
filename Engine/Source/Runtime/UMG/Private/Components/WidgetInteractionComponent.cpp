@@ -1,12 +1,14 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-
-#include "WidgetComponent.h"
-#include "WidgetLayoutLibrary.h"
-#include "WidgetInteractionComponent.h"
-
+#include "Components/WidgetInteractionComponent.h"
+#include "CollisionQueryParams.h"
+#include "Components/PrimitiveComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Components/ArrowComponent.h"
+#include "Framework/Application/SlateApplication.h"
+
+#include "Components/WidgetComponent.h"
+
 
 #define LOCTEXT_NAMESPACE "WidgetInteraction"
 

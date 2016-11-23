@@ -1,12 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Components/BillboardComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineGlobals.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "Components/LightComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/Texture2D.h"
+#include "SceneManagement.h"
 #include "Engine/Light.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
-#if WITH_EDITOR
-#include "ShowFlags.h"
-#include "ConvexVolume.h"
-#endif
 
 namespace BillboardConstants
 {

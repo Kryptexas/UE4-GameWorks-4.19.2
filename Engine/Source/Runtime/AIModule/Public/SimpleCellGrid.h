@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Serialization/Archive.h"
 
 struct FGridSize2D

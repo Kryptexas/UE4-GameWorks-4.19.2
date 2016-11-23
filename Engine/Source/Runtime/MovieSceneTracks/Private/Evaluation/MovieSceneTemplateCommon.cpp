@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneTemplateCommon.h"
+#include "Evaluation/MovieSceneTemplateCommon.h"
+#include "Components/SceneComponent.h"
 
 /** A movie scene pre-animated token that stores a pre-animated mobility */
 struct FMobilityPreAnimatedToken : IMovieScenePreAnimatedToken

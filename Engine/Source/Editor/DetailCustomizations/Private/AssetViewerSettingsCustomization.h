@@ -2,6 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IDetailCustomization.h"
+#include "Types/SlateEnums.h"
+
+class IDetailLayoutBuilder;
+class IPropertyHandle;
+class SEditableTextBox;
 class UAssetViewerSettings;
 
 class FAssetViewerSettingsCustomization : public IDetailCustomization

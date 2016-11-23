@@ -1,11 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DesktopPlatformPrivatePCH.h"
 #include "DesktopPlatformBase.h"
-#include "UProjectInfo.h"
-#include "EngineVersion.h"
-#include "ModuleManager.h"
-#include "Json.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/Guid.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/App.h"
+#include "Misc/EngineVersion.h"
+#include "Serialization/JsonTypes.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Modules/ModuleManager.h"
 
 
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
@@ -1178,7 +1185,7 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputD
 		BatchFileContents += FString::Printf(TEXT("msbuild /nologo /verbosity:quiet \"%s\" /property:Configuration=Development /property:Platform=AnyCPU"), *CsProjLocation);
 		FFileHelper::SaveStringToFile(BatchFileContents, *BuildBatchFile);
 
-		TCHAR CmdExePath[MAX_PATH];
+		TCHAR CmdExePath[PLATFORM_MAX_FILEPATH_LENGTH];
 		FPlatformMisc::GetEnvironmentVariable(TEXT("ComSpec"), CmdExePath, ARRAY_COUNT(CmdExePath));
 		CompilerExecutableFilename = CmdExePath;
 

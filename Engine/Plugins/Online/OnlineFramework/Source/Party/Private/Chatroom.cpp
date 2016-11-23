@@ -1,8 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PartyPrivatePCH.h"
 #include "Chatroom.h"
-#include "Engine/GameInstance.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "TimerManager.h"
+#include "Engine/LocalPlayer.h"
 #include "OnlineSubsystemUtils.h"
 
 inline FString GetLocalUserNickName(UWorld* World, const FUniqueNetId& LocalUserId)

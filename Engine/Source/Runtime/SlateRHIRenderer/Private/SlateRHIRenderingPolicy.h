@@ -3,10 +3,19 @@
 
 #pragma once
 
-#include "RenderingPolicy.h"
+#include "CoreMinimal.h"
+#include "Rendering/RenderingCommon.h"
+#include "Rendering/ShaderResourceManager.h"
+#include "Rendering/DrawElements.h"
+#include "Rendering/RenderingPolicy.h"
+#include "SlateElementIndexBuffer.h"
+#include "SlateElementVertexBuffer.h"
+#include "SlateRHIResourceManager.h"
 
+class FSlateFontServices;
 class FSlateRHIResourceManager;
 class FSlatePostProcessor;
+class ILayoutCache;
 
 class FSlateRHIRenderingPolicy : public FSlateRenderingPolicy
 {

@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "HAL/PThreadRunnableThread.h"
+#include "Stats/Stats.h"
 
 #if	PLATFORM_USE_PTHREADS
 
-#include "PThreadRunnableThread.h"
 
 uint32 FRunnableThreadPThread::Run()
 {

@@ -6,6 +6,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSingleton.h"
+
+class FObjectInitializer;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogUObjectThreadContext, Log, All);
 
 class COREUOBJECT_API FUObjectThreadContext : public TThreadSingleton<FUObjectThreadContext>

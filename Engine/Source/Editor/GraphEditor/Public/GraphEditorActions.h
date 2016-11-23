@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Framework/Commands/Commands.h"
 #include "EditorStyleSet.h"
 
 class FGraphEditorCommandsImpl : public TCommands<FGraphEditorCommandsImpl>

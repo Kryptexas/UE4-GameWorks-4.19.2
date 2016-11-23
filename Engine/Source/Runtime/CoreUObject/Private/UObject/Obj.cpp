@@ -4,17 +4,50 @@
 	UnObj.cpp: Unreal object manager.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Logging/LogScopedCategoryAndVerbosityOverride.h"
+#include "Stats/Stats.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/EnumProperty.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "Templates/Casts.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ObjectRedirector.h"
+#include "UObject/UObjectAnnotation.h"
+#include "UObject/ReferenceChainSearch.h"
+#include "Serialization/ArchiveCountMem.h"
+#include "Serialization/ArchiveShowReferences.h"
+#include "Serialization/ArchiveFindCulprit.h"
+#include "Serialization/ArchiveTraceRoute.h"
+#include "Misc/PackageName.h"
+#include "Serialization/BulkData.h"
+#include "UObject/LinkerLoad.h"
+#include "Misc/RedirectCollector.h"
 
-#include "UObjectAnnotation.h"
-#include "ModuleManager.h"
-#include "MallocProfiler.h"
 
 #include "Serialization/ArchiveDescribeReference.h"
-#include "FindStronglyConnected.h"
-#include "HotReloadInterface.h"
+#include "UObject/FindStronglyConnected.h"
 #include "UObject/UObjectThreadContext.h"
-#include "ExclusiveLoadPackageTimeTracker.h"
+#include "Misc/ExclusiveLoadPackageTimeTracker.h"
 #include "Serialization/DeferredMessageLog.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
@@ -2187,7 +2220,7 @@ static void StaticShutdownAfterError()
 /*-----------------------------------------------------------------------------
    Command line.
 -----------------------------------------------------------------------------*/
-#include "ClassTree.h"
+#include "UObject/ClassTree.h"
 
 static void ShowIntrinsicClasses( FOutputDevice& Ar )
 {

@@ -4,10 +4,20 @@
 	TextureStreamingManager.cpp: Implementation of content streaming classes.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "StreamingManagerTexture.h"
-#include "TextureInstanceManager.h"
-#include "AsyncTextureStreaming.h"
+#include "Streaming/StreamingManagerTexture.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Materials/MaterialInterface.h"
+#include "Components/MeshComponent.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "Streaming/AsyncTextureStreaming.h"
 
 void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TArray<FTextureSortElement>* InCandidateTextures, int64 RequiredMemorySize, volatile bool* bSucceeded);
 bool TrackTexture( const FString& TextureName );

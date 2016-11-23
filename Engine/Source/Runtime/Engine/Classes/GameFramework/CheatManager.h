@@ -8,6 +8,13 @@
 //=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/ScriptMacros.h"
 #include "CheatManager.generated.h"
 
 /** Debug Trace info for capturing **/

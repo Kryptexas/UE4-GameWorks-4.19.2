@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GeometryCacheModulePrivatePCH.h"
 #include "GeometryCacheTrack.h"
 
 GEOMETRYCACHE_API UGeometryCacheTrack::UGeometryCacheTrack(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/) : UObject(ObjectInitializer)

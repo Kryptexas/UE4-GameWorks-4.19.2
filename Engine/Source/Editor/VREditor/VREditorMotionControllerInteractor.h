@@ -2,9 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "InputCoreTypes.h"
+#include "HeadMountedDisplayTypes.h"
 #include "VREditorInteractor.h"
-#include "HeadMountedDisplayTypes.h"	// For EHMDDeviceType::Type
 #include "VREditorMotionControllerInteractor.generated.h"
+
+class AActor;
+class UStaticMesh;
+class UStaticMeshSocket;
 
 /**
  * Represents the interactor in the world

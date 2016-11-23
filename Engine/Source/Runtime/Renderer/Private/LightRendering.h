@@ -6,7 +6,12 @@
 
 #pragma once
 
-#include "UniformBuffer.h"
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
+#include "ShadowRendering.h"
+#include "SceneRendering.h"
 
 template<typename ShaderRHIParamRef>
 void SetSimpleDeferredLightParameters(

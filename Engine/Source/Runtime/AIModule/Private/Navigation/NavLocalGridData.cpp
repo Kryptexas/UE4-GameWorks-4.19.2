@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
 #include "Navigation/NavLocalGridData.h"
 #include "Navigation/NavLocalGridManager.h"
 #include "GraphAStar.h"
+#include "AI/Navigation/NavigationPath.h"
 
 namespace FGridMathHelpers
 {

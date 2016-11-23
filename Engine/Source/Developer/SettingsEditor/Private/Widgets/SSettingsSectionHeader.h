@@ -2,7 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "ISettingsEditorModel.h"
+#include "ISettingsSection.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "IDetailRootObjectCustomization.h"
+
+class IDetailsView;
+class SSettingsEditorCheckoutNotice;
 
 class SSettingsSectionHeader : public SCompoundWidget
 {

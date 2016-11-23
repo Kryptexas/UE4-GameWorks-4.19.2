@@ -4,9 +4,14 @@
 	DirectionalLightComponent.cpp: DirectionalLightComponent implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Engine/DirectionalLight.h"
 #include "Components/DirectionalLightComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "RenderingThread.h"
+#include "ConvexVolume.h"
+#include "SceneInterface.h"
+#include "Engine/Texture2D.h"
+#include "SceneManagement.h"
+#include "Engine/DirectionalLight.h"
 
 static float GMaxCSMRadiusToAllowPerObjectShadows = 8000;
 static FAutoConsoleVariableRef CVarMaxCSMRadiusToAllowPerObjectShadows(

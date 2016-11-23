@@ -4,6 +4,8 @@
 #include "Features/IModularFeatures.h"
 #include "IOculusRiftPlugin.h"
 #include "OculusRiftCommon.h"
+#include "Misc/App.h"
+#include "GenericPlatform/IInputInterface.h"
 
 #if OCULUS_INPUT_SUPPORTED_PLATFORMS
 

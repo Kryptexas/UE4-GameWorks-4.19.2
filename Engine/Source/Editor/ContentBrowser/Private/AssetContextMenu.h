@@ -2,6 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "AssetData.h"
+#include "ContentBrowserDelegates.h"
+#include "SourcesData.h"
+
+class FMenuBuilder;
+class FUICommandList;
+class SAssetView;
+class SWindow;
+
 class FAssetContextMenu : public TSharedFromThis<FAssetContextMenu>
 {
 public:

@@ -2,26 +2,29 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 #include "EnvironmentQuery/EnvQueryContext.h"
-#include "DataProviders/AIDataProvider.h"
 #include "BehaviorTree/BehaviorTreeTypes.h"
 #include "EnvQueryTypes.generated.h"
 
 class AActor;
-class ARecastNavMesh;
-class UNavigationQueryFilter;
-class UEnvQueryTest;
-class UEnvQueryGenerator;
-class UEnvQueryItemType_VectorBase;
-class UEnvQueryItemType_ActorBase;
-class UEnvQueryContext;
-class UEnvQuery;
-class UBlackboardData;
+class ANavigationData;
+class Error;
 class UBlackboardComponent;
+class UBlackboardData;
+class UEnvQuery;
+class UEnvQueryGenerator;
+class UEnvQueryItemType_ActorBase;
+class UEnvQueryItemType_VectorBase;
+class UEnvQueryTest;
 struct FEnvQueryInstance;
-struct FEnvQueryOptionInstance;
-struct FEnvQueryItemDetails;
 
 AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Warning, All);
 

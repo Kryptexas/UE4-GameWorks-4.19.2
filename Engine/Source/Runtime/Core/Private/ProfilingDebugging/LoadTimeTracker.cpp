@@ -7,8 +7,10 @@
 */
 
 // Core includes.
-#include "CorePrivatePCH.h"
-#include "LoadTimeTracker.h"
+#include "ProfilingDebugging/LoadTimeTracker.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "HAL/IConsoleManager.h"
 
 FLoadTimeTracker::FLoadTimeTracker()
 {

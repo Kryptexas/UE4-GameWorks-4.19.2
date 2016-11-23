@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "SGameplayAttributeGraphPin.h"
+#include "Widgets/SBoxPanel.h"
+#include "AttributeSet.h"
 #include "SGameplayAttributeWidget.h"
-#include "GameplayTags.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

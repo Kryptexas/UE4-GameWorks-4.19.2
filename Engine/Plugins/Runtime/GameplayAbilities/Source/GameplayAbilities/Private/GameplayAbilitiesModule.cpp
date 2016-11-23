@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
+#include "GameplayAbilitiesModule.h"
+#include "UObject/Object.h"
+#include "Misc/StringClassReference.h"
+#include "GameFramework/HUD.h"
 #include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
 

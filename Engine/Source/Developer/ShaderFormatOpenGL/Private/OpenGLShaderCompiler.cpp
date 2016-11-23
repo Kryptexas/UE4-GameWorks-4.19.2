@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // ..
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryWriter.h"
 #include "ShaderFormatOpenGL.h"
 
 #if PLATFORM_WINDOWS
@@ -14,9 +18,9 @@
 	#include "Windows/MinWindows.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
+#include "ShaderCore.h"
 #include "ShaderPreprocessor.h"
 #include "ShaderCompilerCommon.h"
-#include "hlslcc.h"
 #include "GlslBackend.h"
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"

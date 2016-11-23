@@ -1,11 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "SImage.h"
 
-class SGraphNode;
-class UEdGraphPin;
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Misc/Guid.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/DragAndDrop.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Layout/SBorder.h"
+#include "SGraphNode.h"
+
 class SGraphPanel;
+class SGraphPin;
+class SHorizontalBox;
+class SImage;
 
 #define NAME_DefaultPinLabelStyle TEXT("Graph.Node.PinName")
 

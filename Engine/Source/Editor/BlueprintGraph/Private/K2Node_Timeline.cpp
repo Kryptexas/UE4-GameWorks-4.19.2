@@ -1,13 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_Timeline.h"
+#include "Engine/Blueprint.h"
+#include "Curves/CurveFloat.h"
+#include "Components/TimelineComponent.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveVector.h"
+#include "Engine/TimelineTemplate.h"
+#include "EdGraph/EdGraph.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Composite.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "K2Node_VariableGet.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "BlueprintEditorUtils.h"
 #include "BlueprintNodeSpawner.h"
-#include "Editor/GraphEditor/Public/DiffResults.h"
-#include "Kismet2NameValidators.h"
+#include "DiffResults.h"
+#include "Kismet2/Kismet2NameValidators.h"
+#include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Timeline"

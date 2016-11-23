@@ -1,8 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphNode.h"
 #include "AssetData.h"
+#include "EdGraph_ReferenceViewer.h"
 #include "EdGraphNode_Reference.generated.h"
+
+class UEdGraphPin;
 
 UCLASS()
 class UEdGraphNode_Reference : public UEdGraphNode

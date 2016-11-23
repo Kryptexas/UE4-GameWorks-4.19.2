@@ -2,18 +2,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
 #include "EdGraphNode.generated.h"
 
+class INameValidatorInterface;
+class SGraphNode;
+class SWidget;
 class UBlueprint;
 class UEdGraph;
 class UEdGraphNode;
-class UEdGraphSchema;
 class UEdGraphPin;
-class SGraphNode;
-class SWidget;
+class UEdGraphSchema;
 struct FEdGraphPinType;
+struct FPropertyChangedEvent;
 struct FSlateIcon;
-
 
 /** Enum used to define which way data flows into or out of this pin. */
 UENUM()

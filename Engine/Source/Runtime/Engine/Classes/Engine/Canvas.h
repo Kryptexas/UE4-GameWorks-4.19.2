@@ -2,12 +2,17 @@
 
 #pragma once
 
-#include "Engine/Engine.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "CanvasItem.h"
 #include "CanvasTypes.h"
 #include "Canvas.generated.h"
 
-class FSceneView;
-class UFont;
+class UMaterialInterface;
+class UReporterGraph;
+class UTexture;
 
 /**
  * Holds texture information with UV coordinates as well.

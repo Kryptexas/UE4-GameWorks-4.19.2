@@ -1,20 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DestructibleMeshEditorPrivatePCH.h"
-
-#include "PhysicsPublic.h"
-#include "Runtime/Engine/Private/PhysicsEngine/PhysXSupport.h"
-#include "MouseDeltaTracker.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "PreviewScene.h"
+#include "SDestructibleMeshEditorViewport.h"
+#include "Misc/Paths.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Settings/DestructableMeshEditorSettings.h"
+#include "Factories/FbxStaticMeshImportData.h"
+#include "Components/DestructibleComponent.h"
+#include "EditorDirectories.h"
+#include "UObject/Package.h"
+#include "DestructibleMeshEditor.h"
+#include "DestructibleChunkParamsProxy.h"
+#include "Slate/SceneViewport.h"
 #include "ApexDestructibleAssetImport.h"
 #include "DesktopPlatformModule.h"
 #include "FbxImporter.h"
+#include "UObject/UObjectHash.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/DestructibleMesh.h"
-#include "SDockableTab.h"
-#include "Components/DestructibleComponent.h"
+#include "Widgets/Docking/SDockableTab.h"
 #include "Engine/StaticMesh.h"
+#include "PhysXPublic.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDestructibleMeshEditor, Log, All);
 
@@ -470,8 +476,6 @@ void FDestructibleMeshEditorViewportClient::ImportFBXChunks()
 			// Invalid filename 
 		}
 	}
-#if WITH_APEX
-#endif // WITH_APEX
 }
 
 //////////////////////////////////////////////////////////////////////////

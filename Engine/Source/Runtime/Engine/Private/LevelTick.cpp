@@ -4,36 +4,56 @@
 	LevelTick.cpp: Level timer tick function
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Components/SceneCaptureComponent2D.h"
-#include "Components/SceneCaptureComponentCube.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/Stats.h"
+#include "Misc/TimeGuard.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/GarbageCollection.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineTypes.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "Engine/World.h"
+#include "GameFramework/Controller.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "GameFramework/PlayerController.h"
+#include "SceneUtils.h"
+#include "ParticleHelper.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/NetConnection.h"
+#include "UnrealEngine.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/WorldComposition.h"
-#include "Net/UnrealNetwork.h"
 #include "Collision.h"
 #include "PhysicsPublic.h"
 #include "Tickable.h"
 #include "IHeadMountedDisplay.h"
+#include "TimerManager.h"
 
-#include "ParticleDefinitions.h"
 //#include "SoundDefinitions.h"
 #include "FXSystem.h"
 #include "TickTaskManagerInterface.h"
-#include "IPlatformFileProfilerWrapper.h"
-#if WITH_PHYSX
-#include "PhysicsEngine/PhysXSupport.h"
-#endif
+#include "HAL/IPlatformFileProfilerWrapper.h"
 #if !UE_BUILD_SHIPPING
+#include "VisualizerEvents.h"
 #include "STaskGraph.h"
 #endif
-#include "ParallelFor.h"
+#include "Async/ParallelFor.h"
 #include "Engine/CoreSettings.h"
 
 #include "InGamePerformanceTracker.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
 #if WITH_EDITOR
-	#include "UnrealEd.h"
+	#include "Editor.h"
 #endif
 
 // this will log out all of the objects that were ticked in the FDetailedTickStats struct so you can isolate what is expensive
@@ -1062,6 +1082,7 @@ public:
 #endif // !UE_BUILD_SHIPPING
 
 #if ENABLE_COLLISION_ANALYZER
+#include "ICollisionAnalyzer.h"
 #include "CollisionAnalyzerModule.h"
 extern bool GCollisionAnalyzerIsRecording;
 #endif // ENABLE_COLLISION_ANALYZER

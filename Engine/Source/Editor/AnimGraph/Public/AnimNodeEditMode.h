@@ -2,8 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UnrealWidget.h"
 #include "IAnimNodeEditMode.h"
 #include "BonePose.h"
+
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class USkeletalMeshComponent;
+struct FViewportClick;
 
 /** Base implementation for anim node edit modes */
 class FAnimNodeEditMode : public IAnimNodeEditMode

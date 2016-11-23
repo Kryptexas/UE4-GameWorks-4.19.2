@@ -1,15 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "SMorphTargetViewer.h"
-#include "ObjectTools.h"
-#include "AssetRegistryModule.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Framework/Commands/UIAction.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Animation/DebugSkelMeshComponent.h"
 #include "ScopedTransaction.h"
-#include "SSearchBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Animation/MorphTarget.h"
 #include "Animation/AnimInstance.h"
-#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "SMorphTargetViewer"
 

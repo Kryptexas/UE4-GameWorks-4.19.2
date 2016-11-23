@@ -4,17 +4,14 @@
 	PostProcessHMD.cpp: Post processing for HMD devices.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "ScreenRendering.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessHMD.h"
-#include "PostProcessing.h"
-#include "PostProcessHistogram.h"
-#include "PostProcessEyeAdaptation.h"
+#include "PostProcess/PostProcessHMD.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 #include "IHeadMountedDisplay.h"
-#include "RHICommandList.h"
 #include "SceneUtils.h"
+#include "StaticBoundShaderState.h"
+#include "SceneRenderTargetParameters.h"
+#include "SceneRendering.h"
 
 /** The filter vertex declaration resource type. */
 class FDistortionVertexDeclaration : public FRenderResource

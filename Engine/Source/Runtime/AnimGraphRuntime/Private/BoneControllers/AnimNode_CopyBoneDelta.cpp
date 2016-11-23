@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphRuntimePrivatePCH.h"
-#include "Animation/AnimTypes.h"
-#include "AnimNode_CopyBoneDelta.h"
+#include "BoneControllers/AnimNode_CopyBoneDelta.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "AnimationRuntime.h"
 
 FAnimNode_CopyBoneDelta::FAnimNode_CopyBoneDelta()
 	: bCopyTranslation(false)

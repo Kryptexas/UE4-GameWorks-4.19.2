@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ICursor.h"
+#include "Math/Vector2D.h"
 
 class FHTML5Cursor : public ICursor
 {

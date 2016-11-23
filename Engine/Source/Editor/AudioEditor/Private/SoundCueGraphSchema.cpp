@@ -4,16 +4,28 @@
 	SoundCueGraphSchema.cpp
 =============================================================================*/
 
-#include "AudioEditorPrivatePCH.h"
-#include "SlateBasics.h"
-#include "AssetData.h"
+#include "SoundCueGraph/SoundCueGraphSchema.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Layout/SlateRect.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EdGraphNode_Comment.h"
+#include "EdGraph/EdGraph.h"
+#include "SoundCueGraph/SoundCueGraph.h"
+#include "SoundCueGraph/SoundCueGraphNode.h"
+#include "SoundCueGraph/SoundCueGraphNode_Root.h"
+#include "Sound/SoundWave.h"
+#include "Sound/DialogueWave.h"
+#include "Editor.h"
+#include "Sound/SoundNode.h"
+#include "Sound/SoundNodeWavePlayer.h"
 #include "GraphEditorActions.h"
-#include "SoundDefinitions.h"
 #include "SoundCueEditorUtilities.h"
 #include "ScopedTransaction.h"
 #include "GraphEditor.h"
 #include "Engine/Selection.h"
-
+#include "Sound/SoundNodeDialoguePlayer.h"
+#include "Sound/SoundCue.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueSchema"
 

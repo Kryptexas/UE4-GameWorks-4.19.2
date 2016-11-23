@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebSocketsPrivatePCH.h"
 #include "WebSocketsModule.h"
+#include "WebSocketsLog.h"
 
 #if WITH_WEBSOCKETS
 #include "PlatformWebSocket.h"

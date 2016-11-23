@@ -4,7 +4,6 @@
 DebugViewModeMaterialProxy.cpp : Contains definitions the debug view mode material shaders.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "DebugViewModeMaterialProxy.h"
 
 ENGINE_API const FMaterial* GetDebugViewMaterialPS(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material)

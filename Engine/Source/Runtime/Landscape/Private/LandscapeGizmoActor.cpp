@@ -1,6 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapePrivatePCH.h"
+#include "LandscapeGizmoActor.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FileHelper.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineDefines.h"
+#include "RHI.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "MaterialShared.h"
+#include "LandscapeInfo.h"
+#include "Engine/Texture2D.h"
+#include "LandscapeLayerInfoObject.h"
 #include "LandscapeInfoMap.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeRender.h"
@@ -9,7 +21,9 @@
 #include "DynamicMeshBuilder.h"
 #include "Engine/CollisionProfile.h"
 #include "EngineUtils.h"
+#include "Materials/Material.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "Components/BillboardComponent.h"
 
 namespace
 {

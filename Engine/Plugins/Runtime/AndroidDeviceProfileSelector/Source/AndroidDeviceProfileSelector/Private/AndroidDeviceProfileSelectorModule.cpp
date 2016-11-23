@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AndroidDeviceProfileSelectorPrivatePCH.h"
+#include "AndroidDeviceProfileSelectorModule.h"
+#include "AndroidDeviceProfileSelector.h"
+#include "AndroidDeviceProfileMatchingRules.h"
+#include "Templates/Casts.h"
 #include "Regex.h"
+#include "Modules/ModuleManager.h"
 
 IMPLEMENT_MODULE(FAndroidDeviceProfileSelectorModule, AndroidDeviceProfileSelector);
 

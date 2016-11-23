@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GearVRPrivatePCH.h"
+#include "CoreMinimal.h"
 #include "GearVR.h"
+#include "IHeadMountedDisplay.h"
+#include "IGearVRPlugin.h"
 #include "RHIStaticStates.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS

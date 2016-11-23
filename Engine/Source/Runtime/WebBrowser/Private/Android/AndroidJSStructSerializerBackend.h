@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "AndroidJSScripting.h"
 #include "JsonStructSerializerBackend.h"
 
 class UObject;

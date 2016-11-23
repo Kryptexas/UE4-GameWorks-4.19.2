@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "EngineVersion.h"
-#include "GatherableTextData.h"
-#include "PackageFileSummary.h"
-#include "ObjectResource.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectResource.h"
+#include "Internationalization/GatherableTextData.h"
+#include "UObject/PackageFileSummary.h"
 
+class FReferenceCollector;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLinker, Log, All);
 

@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "UniformBuffer.h"
 #include "ShaderCore.h"
-#include "CrossCompilerCommon.h"
 
 
 /**

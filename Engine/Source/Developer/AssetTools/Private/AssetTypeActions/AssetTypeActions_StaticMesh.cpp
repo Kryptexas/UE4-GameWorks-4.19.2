@@ -1,19 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetToolsPrivatePCH.h"
+#include "AssetTypeActions/AssetTypeActions_StaticMesh.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
+#include "EditorFramework/AssetImportData.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "AssetTools.h"
 
 #include "Editor/StaticMeshEditor/Public/StaticMeshEditorModule.h"
 
 #include "Editor/DestructibleMeshEditor/Public/DestructibleMeshEditorModule.h"
-#include "Editor/DestructibleMeshEditor/Public/IDestructibleMeshEditor.h"
 
-#include "ApexDestructibleAssetImport.h"
 #include "Engine/DestructibleMesh.h"
 
 #include "FbxMeshUtils.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "Engine/StaticMesh.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

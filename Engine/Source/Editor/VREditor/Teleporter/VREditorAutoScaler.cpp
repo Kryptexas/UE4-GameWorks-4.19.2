@@ -1,11 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorAutoScaler.h"
 #include "VREditorMode.h"
+#include "ViewportInteractionTypes.h"
 #include "ViewportWorldInteraction.h"
-#include "VREditorInteractor.h"
+#include "ViewportInteractor.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/WorldSettings.h"
+#include "Sound/SoundCue.h"
 
 UVREditorAutoScaler::UVREditorAutoScaler( const FObjectInitializer& ObjectInitializer ) :
 	Super( ObjectInitializer ),

@@ -2,11 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Misc/StringAssetReference.h"
 #include "Viewports.h"
 #include "Editor/UnrealEdTypes.h"
-#include "Engine/EngineBaseTypes.h"
 #include "LevelEditorViewportSettings.generated.h"
-
 
 /**
  * Enumerates modes for the viewport's rotation grid.

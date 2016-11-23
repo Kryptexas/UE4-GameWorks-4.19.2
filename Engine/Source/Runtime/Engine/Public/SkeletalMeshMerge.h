@@ -10,6 +10,17 @@ FSkeletalMeshMerge
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "ReferenceSkeleton.h"
+
+class FStaticLODModel;
+class UMaterialInterface;
+class USkeletalMesh;
+class USkeletalMeshSocket;
+class USkeleton;
+struct FSkelMeshSection;
+
 struct FRefPoseOverride
 {
  public:

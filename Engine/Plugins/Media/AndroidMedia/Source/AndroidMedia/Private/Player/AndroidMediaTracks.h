@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IMediaOutput.h"
 #include "IMediaTracks.h"
 #include "AndroidJavaMediaPlayer.h"

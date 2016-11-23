@@ -2,11 +2,13 @@
 
 
 #pragma once
-#include "Components/PrimitiveComponent.h"
-#include "RHIDefinitions.h"
-#include "MeshComponent.generated.h"
 
-struct FMaterialRelevance;
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/PrimitiveComponent.h"
+#include "Materials/MaterialInterface.h"
+#include "MeshComponent.generated.h"
 
 /**
  * MeshComponent is an abstract base for any component that is an instance of a renderable collection of triangles.

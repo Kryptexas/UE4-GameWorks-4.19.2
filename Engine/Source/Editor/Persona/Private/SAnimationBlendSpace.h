@@ -2,8 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SAnimationBlendSpaceBase.h"
-#include "Animation/BlendSpace.h"
 #include "AnimationBlendSpaceHelpers.h"
 
 class SBlendSpaceEditor : public SBlendSpaceEditorBase
@@ -21,10 +22,10 @@ protected:
 
 	/**
 	* Triangle Generator
-	*/
+	 */
 	FDelaunayTriangleGenerator Generator;
 	/**
-	* Blend Space Grid to represent data
-	*/
+	 * Blend Space Grid to represent data
+	 */
 	FBlendSpaceGrid	BlendSpaceGrid;
 };

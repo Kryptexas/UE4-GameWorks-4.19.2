@@ -2,10 +2,18 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Modules/ModuleInterface.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Toolkits/AssetEditorToolkit.h"
 #include "ISkeletonEditor.h"
 #include "ISkeletonTree.h"
 #include "BlendProfilePicker.h"
+
+class IEditableSkeleton;
+class USkeleton;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSkeletonEditor, Log, All);
 

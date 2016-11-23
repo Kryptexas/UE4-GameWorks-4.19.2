@@ -1,24 +1,31 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "GameFramework/WorldSettings.h"
+#include "Misc/MessageDialog.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineDefines.h"
+#include "EngineStats.h"
+#include "Engine/World.h"
+#include "SceneInterface.h"
+#include "GameFramework/DefaultPhysicsVolume.h"
+#include "EngineUtils.h"
 #include "Engine/AssetUserData.h"
 #include "Engine/WorldComposition.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/GameNetworkManager.h"
-#include "SoundDefinitions.h"
-#include "ParticleDefinitions.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "AudioDevice.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #include "Particles/ParticleEventManager.h"
 #include "PhysicsEngine/PhysicsSettings.h"
-#include "GameFramework/DefaultPhysicsVolume.h"
-
-#define LOCTEXT_NAMESPACE "ErrorChecking"
 
 #if WITH_EDITOR
 #include "Editor.h"
 #endif 
+
+#define LOCTEXT_NAMESPACE "ErrorChecking"
 
 // @todo vreditor urgent: Temporary hack to allow world-to-meters to be set before
 // input is polled for motion controller devices each frame.

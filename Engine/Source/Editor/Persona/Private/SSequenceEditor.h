@@ -3,10 +3,15 @@
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPersonaPreviewScene.h"
 #include "SAnimCurvePanel.h"
+#include "SAnimationScrubPanel.h"
 #include "SAnimEditorBase.h"
+
+class SAnimNotifyPanel;
+class SAnimTrackCurvePanel;
 
 //////////////////////////////////////////////////////////////////////////
 // SSequenceEditor

@@ -2,16 +2,21 @@
 
 #pragma once
 
-#include "Runnable.h"
-#include "UdpMessageResequencer.h"
-#include "UdpMessageSegment.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Containers/Queue.h"
+#include "IMessageAttachment.h"
+#include "IMessageTransport.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "Common/UdpSocketReceiver.h"
+#include "Shared/UdpMessageSegment.h"
+#include "Transport/UdpMessageResequencer.h"
+#include "Transport/UdpSerializedMessage.h"
 
-
-class FReassembledUdpMessage;
 class FUdpMessageBeacon;
 class FUdpMessageSegmenter;
-class FUdpSerializedMessage;
-
+class FUdpSocketSender;
 
 /**
  * Implements a message processor for UDP messages.

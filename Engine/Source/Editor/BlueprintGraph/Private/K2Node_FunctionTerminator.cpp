@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_FunctionTerminator.h"
+#include "UObject/UnrealType.h"
 #include "GraphEditorSettings.h"
-#include "CompilerResultsLog.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/CompilerResultsLog.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

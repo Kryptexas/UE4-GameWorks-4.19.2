@@ -1,10 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "ActorEditorUtils.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "Engine/Brush.h"
 
 #if WITH_EDITOR
-#include "ComponentEditorUtils.h"
+#include "Kismet2/ComponentEditorUtils.h"
 #endif
 
 namespace FActorEditorUtils

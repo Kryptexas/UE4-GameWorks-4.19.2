@@ -2,7 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
 #include "IDetailCustomization.h"
+
+class IDetailLayoutBuilder;
 
 /**
  *  Customize the font face asset to allow you to pick a file and store the result in the asset

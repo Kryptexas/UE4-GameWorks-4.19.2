@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "XmppPrivatePCH.h"
-#include "XmppJingle.h"
-#include "XmppConnectionJingle.h"
+#include "XmppJingle/XmppJingle.h"
+#include "XmppLog.h"
+#include "XmppJingle/XmppConnectionJingle.h"
+#include "Misc/Guid.h"
 
 #if WITH_XMPP_JINGLE
 

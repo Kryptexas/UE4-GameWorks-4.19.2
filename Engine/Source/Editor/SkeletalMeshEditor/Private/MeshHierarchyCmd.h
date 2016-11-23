@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "CoreMisc.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
 
 class FMeshHierarchyCmd : private FSelfRegisteringExec
 {

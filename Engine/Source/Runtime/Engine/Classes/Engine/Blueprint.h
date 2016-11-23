@@ -2,12 +2,22 @@
 
 #pragma once
 
-#include "CoreNetTypes.h"
-#include "EdGraph/EdGraphPin.h"
-#include "EdGraph/EdGraphNode.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
 #include "Engine/EngineTypes.h"
-#include "BlueprintCore.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/BlueprintCore.h"
 #include "Blueprint.generated.h"
+
+class FCompilerResultsLog;
+class ITargetPlatform;
+class UActorComponent;
+class UEdGraph;
+class UInheritableComponentHandler;
 
 /**
  * Enumerates states a blueprint can be in.

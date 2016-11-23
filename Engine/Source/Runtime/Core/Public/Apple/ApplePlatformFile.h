@@ -7,6 +7,8 @@
 #pragma once
 #include "GenericPlatform/GenericPlatformFile.h"
 
+template <typename FuncType> class TFunctionRef;
+
 /**
  * Mac File I/O implementation
 **/

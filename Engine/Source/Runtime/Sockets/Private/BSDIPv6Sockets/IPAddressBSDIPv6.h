@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "BSDSockets/SocketSubsystemBSDPrivate.h"
+#include "IPAddress.h"
+
 #if PLATFORM_HAS_BSD_IPV6_SOCKETS
 
-#include "Core.h"
-#include "IPAddress.h"
 
 
 /**

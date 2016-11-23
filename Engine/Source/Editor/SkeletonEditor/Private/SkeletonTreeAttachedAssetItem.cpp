@@ -1,12 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "SkeletonTreeAttachedAssetItem.h"
 #include "PersonaUtils.h"
 #include "IPersonaPreviewScene.h"
 #include "AssetSelection.h"
 #include "Styling/SlateIconFinder.h"
+#include "Modules/ModuleManager.h"
 #include "ContentBrowserModule.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "ActorFactories/ActorFactory.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "IContentBrowserSingleton.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeAttachedAssetItem"
 

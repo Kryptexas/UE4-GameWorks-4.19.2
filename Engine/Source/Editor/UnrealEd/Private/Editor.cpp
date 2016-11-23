@@ -1,118 +1,72 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
-#include "Matinee/MatineeActor.h"
-#include "InteractiveFoliageActor.h"
-#include "Animation/SkeletalMeshActor.h"
-#include "Engine/WorldComposition.h"
-#include "EditorSupportDelegates.h"
-#include "Factories.h"
-#include "BSPOps.h"
-#include "EditorCommandLineUtils.h"
-#include "Net/NetworkProfiler.h"
-#include "UObjectGlobals.h"
+#include "Editor.h"
+#include "Factories/Factory.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Modules/ModuleManager.h"
+#include "Containers/ArrayView.h"
+#include "EditorReimportHandler.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlProvider.h"
+#include "ISourceControlModule.h"
+#include "Factories/ReimportDestructibleMeshFactory.h"
+#include "Factories/ReimportFbxSkeletalMeshFactory.h"
+#include "Factories/ReimportFbxStaticMeshFactory.h"
+#include "Factories/ReimportFbxSceneFactory.h"
+#include "Factories/ReimportSoundFactory.h"
+#include "Factories/ReimportSoundSurroundFactory.h"
+#include "Factories/ReimportTextureFactory.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Misc/ScopedSlowTask.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineUtils.h"
+#include "Dialogs/Dialogs.h"
 
 // needed for the RemotePropagator
-#include "SoundDefinitions.h"
-#include "Database.h"
-#include "SurfaceIterators.h"
-#include "ScopedTransaction.h"
 
-#include "ISourceControlModule.h"
-#include "PackageBackup.h"
-#include "LevelUtils.h"
-#include "Layers/Layers.h"
-#include "EditorLevelUtils.h"
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "AssetSelection.h"
-#include "FXSystem.h"
 
+#include "Engine/SimpleConstructionScript.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "Kismet2/KismetEditorUtilities.h"
-#include "Kismet2/KismetDebugUtilities.h"
-#include "Editor/Kismet/Public/BlueprintEditorModule.h"
 #include "Engine/InheritableComponentHandler.h"
 
-#include "BlueprintUtilities.h"
 
-#include "AssetRegistryModule.h"
-#include "ContentBrowserModule.h"
-#include "ISourceCodeAccessModule.h"
 
-#include "Editor/MainFrame/Public/MainFrame.h"
-#include "AnimationUtils.h"
-#include "AudioDecompress.h"
-#include "LevelEditor.h"
-#include "SCreateAssetFromObject.h"
+#include "Interfaces/IMainFrameModule.h"
 
-#include "Editor/ActorPositioning.h"
 
-#include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
 
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "Editor/LevelEditor/Public/ILevelViewport.h"
 
-#include "ComponentReregisterContext.h"
-#include "EngineModule.h"
-#include "RendererInterface.h"
 
 #if PLATFORM_WINDOWS
+	#include "WindowsHWrapper.h"
 // For WAVEFORMATEXTENSIBLE
 	#include "AllowWindowsPlatformTypes.h"
 #include <mmreg.h>
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
-#include "AudioDerivedData.h"
-#include "Projects.h"
-#include "TargetPlatform.h"
-#include "RemoteConfigIni.h"
 
-#include "AssetToolsModule.h"
 #include "DesktopPlatformModule.h"
 #include "ObjectTools.h"
-#include "MessageLogModule.h"
 
-#include "GameProjectGenerationModule.h"
-#include "ActorEditorUtils.h"
-#include "SnappingUtils.h"
-#include "EditorViewportCommands.h"
-#include "MessageLog.h"
 
-#include "MRUFavoritesList.h"
-#include "EditorStyle.h"
-#include "EngineBuildSettings.h"
 
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 
 // AIMdule
-#include "BehaviorTree/BehaviorTreeManager.h"
 
-#include "HotReloadInterface.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "Engine/GameEngine.h"
-#include "Engine/TextureRenderTarget2D.h"
-#include "GameFramework/GameUserSettings.h"
-#include "Engine/Light.h"
-#include "Engine/LevelStreamingVolume.h"
-#include "Sound/SoundCue.h"
-#include "Components/BrushComponent.h"
-#include "Engine/LocalPlayer.h"
-#include "Components/SkyLightComponent.h"
-#include "Components/ReflectionCaptureComponent.h"
-#include "Engine/Polys.h"
-#include "UnrealEngine.h"
-#include "EngineStats.h"
-#include "Engine/SimpleConstructionScript.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "K2Node_AddComponent.h"
 
 #include "AutoReimport/AutoReimportUtilities.h"
 
-#include "Settings/EditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
 

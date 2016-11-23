@@ -4,9 +4,12 @@
 
 //#include "Engine/Scene.h"
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "CameraRig_Crane.generated.h"
 
-class USceneComponent;
+class UStaticMeshComponent;
 
 /** 
  * A simple rig for simulating crane-like camera movements.

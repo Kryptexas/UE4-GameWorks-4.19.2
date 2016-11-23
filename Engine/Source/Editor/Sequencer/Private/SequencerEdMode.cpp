@@ -1,12 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "SequencerEdMode.h"
+#include "EditorViewportClient.h"
+#include "Curves/KeyHandle.h"
+#include "ISequencer.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
 #include "Sequencer.h"
-#include "SubtitleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "DisplayNodes/SequencerObjectBindingNode.h"
+#include "DisplayNodes/SequencerTrackNode.h"
+#include "SequencerCommonHelpers.h"
 #include "MovieSceneHitProxy.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
 #include "Sections/MovieScene3DTransformSection.h"
+#include "SubtitleManager.h"
 
 const FEditorModeID FSequencerEdMode::EM_SequencerMode(TEXT("EM_SequencerMode"));
 

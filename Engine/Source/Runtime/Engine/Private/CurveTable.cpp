@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/CurveTable.h"
-#include "Json.h"
-#include "CsvParser.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/Csv/CsvParser.h"
 
 #include "EditorFramework/AssetImportData.h"
 
@@ -583,7 +583,6 @@ bool FCurveTableRowHandle::operator!=(const FCurveTableRowHandle& Other) const
 {
 	return ((Other.CurveTable != CurveTable) || (Other.RowName != RowName));
 }
-
 void FCurveTableRowHandle::PostSerialize(const FArchive& Ar)
 {
 	if (Ar.IsSaving() && !IsNull() && CurveTable)

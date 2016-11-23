@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "GameplayCueNotify_Actor.h"
+#include "TimerManager.h"
+#include "Engine/Blueprint.h"
+#include "Components/TimelineComponent.h"
+#include "AbilitySystemStats.h"
+#include "AbilitySystemGlobals.h"
 #include "GameplayCueManager.h"
-#include "AbilitySystemComponent.h"
 
 AGameplayCueNotify_Actor::AGameplayCueNotify_Actor(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

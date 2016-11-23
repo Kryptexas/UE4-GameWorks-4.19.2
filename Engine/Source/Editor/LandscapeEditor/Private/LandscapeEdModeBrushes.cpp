@@ -1,19 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapeEditorPrivatePCH.h"
-
-#include "ObjectTools.h"
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "EngineUtils.h"
+#include "EditorViewportClient.h"
+#include "LandscapeToolInterface.h"
+#include "LandscapeProxy.h"
+#include "LandscapeGizmoActor.h"
 #include "LandscapeEdMode.h"
-#include "ScopedTransaction.h"
-#include "LandscapeEdit.h"
+#include "LandscapeEditorObject.h"
+
 #include "LandscapeRender.h"
-#include "Landscape.h"
-#include "LandscapeHeightfieldCollisionComponent.h"
-#include "LandscapeMaterialInstanceConstant.h"
 
 #include "LevelUtils.h"
-#include "Materials/MaterialInstanceDynamic.h"
-#include "EngineUtils.h"
 
 // 
 // FLandscapeBrush

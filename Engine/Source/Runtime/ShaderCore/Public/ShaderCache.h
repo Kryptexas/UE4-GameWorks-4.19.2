@@ -6,9 +6,12 @@
 
 #pragma once
 
-#include "ShaderCore.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/SecureHash.h"
 #include "RHI.h"
-#include "BoundShaderStateCache.h"
 #include "TickableObjectRenderThread.h"
 
 /** Custom serialization version for FShaderCache */

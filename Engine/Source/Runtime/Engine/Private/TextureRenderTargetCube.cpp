@@ -4,9 +4,12 @@
 	TextureRenderTargetCube.cpp: UTextureRenderTargetCube implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Engine/TextureRenderTargetCube.h"
-#include "DDSLoader.h"
+#include "RenderUtils.h"
+#include "TextureResource.h"
+#include "UnrealEngine.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 #include "Engine/TextureCube.h"
 
 /*-----------------------------------------------------------------------------

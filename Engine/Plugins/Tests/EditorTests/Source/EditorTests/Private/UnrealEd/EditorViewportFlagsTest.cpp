@@ -1,6 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "ShowFlags.h"
+#include "Editor.h"
+#include "LevelEditorViewport.h"
 
 namespace FViewportTestHelper
 {

@@ -1,14 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-#include "ModuleInterface.h"
-#include "ModuleManager.h"
-#include "Engine.h"
-#include "PhysicsPublic.h"
-#include "TargetPlatform.h"
+#include "PhysXFormats.h"
+#include "Serialization/MemoryWriter.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
 #include "IPhysXFormat.h"
 #include "IPhysXFormatModule.h"
-#include "PhysXFormats.h"
 #include "PhysicsEngine/PhysXSupport.h"
 
 static_assert(WITH_PHYSX, "No point in compiling PhysX cooker, if we don't have PhysX.");

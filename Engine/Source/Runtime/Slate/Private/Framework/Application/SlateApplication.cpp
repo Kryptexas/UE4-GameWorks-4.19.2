@@ -1,20 +1,43 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "SlatePrivatePCH.h"
-#include "SWindowTitleBar.h"
-#include "HittestGrid.h"
-#include "SlateStats.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Rendering/SlateDrawBuffer.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/TimeGuard.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "InputCoreModule.h"
+#include "Layout/LayoutUtils.h"
+#include "Sound/ISlateSoundDevice.h"
+#include "Sound/NullSlateSoundDevice.h"
+#include "Framework/Text/PlatformTextField.h"
+#include "Framework/Application/NavigationConfig.h"
+#include "Widgets/SWeakWidget.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/SToolTip.h"
+#include "Widgets/SViewport.h"
+#include "Framework/Application/SWindowTitleBar.h"
+#include "Input/HittestGrid.h"
+#include "Stats/SlateStats.h"
 
-#include "IWidgetReflector.h"
-#include "GenericCommands.h"
-#include "NotificationManager.h"
-#include "IInputProcessor.h"
-#include "ITextInputMethodSystem.h"
+#include "Framework/Application/IWidgetReflector.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Framework/Application/IInputProcessor.h"
+#include "GenericPlatform/ITextInputMethodSystem.h"
 #include "ToolboxModule.h"
-#include "TabCommands.h"
+#include "Framework/Docking/TabCommands.h"
 
 #define SLATE_HAS_WIDGET_REFLECTOR !UE_BUILD_SHIPPING || PLATFORM_DESKTOP
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
 

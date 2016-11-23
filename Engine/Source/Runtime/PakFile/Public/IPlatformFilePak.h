@@ -2,7 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Stats/Stats.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Templates/ScopedPointer.h"
 #include "UniquePtr.h"
+
+class FChunkCacheWorker;
+class IAsyncReadFileHandle;
 
 PAKFILE_API DECLARE_LOG_CATEGORY_EXTERN(LogPakFile, Log, All);
 DECLARE_FLOAT_ACCUMULATOR_STAT_EXTERN(TEXT("Total pak file read time"), STAT_PakFile_Read, STATGROUP_PakFile, PAKFILE_API);

@@ -2,10 +2,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/WeakObjectPtr.h"
+#include "GameFramework/Actor.h"
+#include "EditorViewportClient.h"
 #include "ViewportWorldInteractionInterface.h"
+#include "Misc/App.h"
 #include "ViewportInteractionTypes.h"
-#include "ViewportInteractionInputProcessor.h"
+#include "VIBaseTransformGizmo.h"
+#include "LevelEditorViewport.h"
 #include "ViewportWorldInteraction.generated.h"
+
+class IViewportInteractableInterface;
+class UViewportInteractor;
 
 namespace ViewportWorldActionTypes
 {

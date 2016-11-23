@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/ThreadSafeCounter.h"
+
 /**
  * Thread safe bool, wraps FThreadSafeCounter
  */

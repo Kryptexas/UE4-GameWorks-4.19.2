@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "Sorting.h"
+#include "CoreMinimal.h"
+#include "Animation/BlendSpaceBase.h"
 #include "Animation/BlendSpace.h"
+
+struct FTriangle;
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimationBlendSpace

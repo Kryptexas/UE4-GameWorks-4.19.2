@@ -2,10 +2,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/List.h"
+#include "SkeletalMeshTypes.h"
+#include "Animation/MorphTarget.h"
+#include "Animation/AnimSequence.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
+
 THIRD_PARTY_INCLUDES_START
 	#include <Alembic/AbcGeom/All.h>
 THIRD_PARTY_INCLUDES_END
 
+class UMaterial;
 class UStaticMesh;
 class USkeletalMesh;
 class UGeometryCache;

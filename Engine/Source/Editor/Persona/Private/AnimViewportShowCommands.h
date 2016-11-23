@@ -4,6 +4,11 @@
 #ifndef __AnimViewportShowCommands_h_
 #define __AnimViewportShowCommands_h_
 
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Framework/Commands/Commands.h"
+#include "EditorStyleSet.h"
+
 /**
  * Class containing commands for persona viewport show actions
  */

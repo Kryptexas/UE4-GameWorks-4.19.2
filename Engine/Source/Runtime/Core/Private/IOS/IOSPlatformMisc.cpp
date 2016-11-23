@@ -4,7 +4,7 @@
 	IOSPlatformMisc.mm: iOS implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "IOSPlatformMisc.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "IOSApplication.h"
@@ -12,6 +12,8 @@
 #include "IOSView.h"
 #include "IOSChunkInstaller.h"
 #include "IOSInputInterface.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
 
 #include "Apple/ApplePlatformCrashContext.h"
 

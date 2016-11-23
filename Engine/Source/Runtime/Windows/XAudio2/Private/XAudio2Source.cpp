@@ -11,12 +11,11 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
-#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "XAudio2Effects.h"
-#include "Engine.h"
 #include "XAudio2Support.h"
 #include "IAudioExtensionPlugin.h"
+#include "ActiveSound.h"
 
 /*------------------------------------------------------------------------------------
 	For muting user soundtracks during cinematics

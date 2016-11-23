@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 //
-#include "EnginePrivate.h"
 #include "Kismet/StereoLayerFunctionLibrary.h"
+#include "EngineGlobals.h"
+#include "TextureResource.h"
+#include "Engine/Texture.h"
+#include "Engine/Engine.h"
 #include "IStereoLayers.h"
 #include "IHeadMountedDisplay.h"
 

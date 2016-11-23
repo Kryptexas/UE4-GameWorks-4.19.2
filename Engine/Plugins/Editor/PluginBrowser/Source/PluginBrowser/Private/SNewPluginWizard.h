@@ -2,6 +2,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Input/Reply.h"
+#include "Brushes/SlateDynamicImageBrush.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+
+class ITableRow;
+class SFilePathBlock;
+class STableViewBase;
+enum class ECheckBoxState : uint8;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogPluginWizard, Log, All);
 
 class SFilePathBlock;

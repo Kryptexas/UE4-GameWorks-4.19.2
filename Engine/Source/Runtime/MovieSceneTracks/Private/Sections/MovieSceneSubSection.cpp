@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "IMovieScenePlayer.h"
+#include "Sections/MovieSceneSubSection.h"
+#include "MovieScene.h"
+#include "MovieSceneTrack.h"
 #include "MovieSceneSequence.h"
-#include "MovieSceneSubSection.h"
 
 TWeakObjectPtr<UMovieSceneSubSection> UMovieSceneSubSection::TheRecordingSection;
 

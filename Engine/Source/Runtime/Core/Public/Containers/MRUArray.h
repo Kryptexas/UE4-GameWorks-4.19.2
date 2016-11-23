@@ -2,7 +2,10 @@
 
 #pragma once
 
-#include "Array.h"
+#include "CoreTypes.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Containers/Array.h"
 
 /*-----------------------------------------------------------------------------
 	MRU array.

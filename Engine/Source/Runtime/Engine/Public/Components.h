@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "PackedNormal.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "RenderResource.h"
 #include "Components.generated.h"
 

@@ -1,13 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
+#include "Customization/BlendSpaceDetails.h"
 
-#include "BlendSpaceDetails.h"
+#include "IDetailsView.h"
+#include "IDetailGroup.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
 
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-
+#include "Animation/BlendSpaceBase.h"
 #include "Animation/BlendSpace1D.h"
 
 #define LOCTEXT_NAMESPACE "BlendSpaceDetails"

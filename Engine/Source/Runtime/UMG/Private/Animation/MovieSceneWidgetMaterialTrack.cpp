@@ -1,10 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "MovieSceneWidgetMaterialTrack.h"
-#include "WidgetMaterialTrackUtilities.h"
-#include "MovieSceneWidgetMaterialTemplate.h"
-
+#include "Animation/MovieSceneWidgetMaterialTrack.h"
+#include "Animation/WidgetMaterialTrackUtilities.h"
+#include "Animation/MovieSceneWidgetMaterialTemplate.h"
 
 UMovieSceneWidgetMaterialTrack::UMovieSceneWidgetMaterialTrack( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)

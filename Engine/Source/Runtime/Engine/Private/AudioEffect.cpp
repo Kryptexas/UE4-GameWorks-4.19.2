@@ -4,8 +4,10 @@
 	AudioEffect.cpp: Unreal base audio.
 =============================================================================*/
 
-#include "EnginePrivate.h" 
 #include "AudioEffect.h"
+#include "Misc/App.h"
+#include "Audio.h"
+#include "Sound/AudioVolume.h"
 #include "Sound/ReverbEffect.h"
 
 /** 

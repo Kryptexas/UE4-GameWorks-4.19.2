@@ -1,13 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "SDockTab.h"
 #include "Toolkits/SimpleAssetEditor.h"
-#include "Toolkits/AssetEditorToolkit.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "Modules/ModuleManager.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
+#include "Editor.h"
 
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
 #define LOCTEXT_NAMESPACE "GenericEditor"
 

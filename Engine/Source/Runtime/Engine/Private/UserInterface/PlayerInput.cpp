@@ -4,8 +4,17 @@
 	PlayerInput.cpp: Unreal input system.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GameFramework/PlayerInput.h"
+#include "Misc/CommandLine.h"
+#include "Components/InputComponent.h"
+#include "Misc/App.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "GameFramework/PlayerController.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/LocalPlayer.h"
 #include "GameFramework/InputSettings.h"
 
 bool bExecutingBindCommand = false;

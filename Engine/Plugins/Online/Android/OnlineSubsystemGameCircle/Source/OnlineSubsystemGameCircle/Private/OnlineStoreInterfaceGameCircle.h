@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "OnlineStoreInterface.h"
+
+class FOnlineSubsystemGameCircle;
 
 /**
  * The resulting state of an iap transaction

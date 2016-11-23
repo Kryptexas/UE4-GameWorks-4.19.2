@@ -4,12 +4,9 @@
 TextureStreamingHelpers.cpp: Definitions of classes used for texture streaming.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "TextureStreamingHelpers.h"
+#include "Streaming/TextureStreamingHelpers.h"
 #include "Engine/Texture2D.h"
-#include "GenericPlatformMemoryPoolStats.h"
-#include "Engine/LightMapTexture2D.h"
-#include "Engine/ShadowMapTexture2D.h"
+#include "GenericPlatform/GenericPlatformMemoryPoolStats.h"
 
 /** Streaming stats */
 

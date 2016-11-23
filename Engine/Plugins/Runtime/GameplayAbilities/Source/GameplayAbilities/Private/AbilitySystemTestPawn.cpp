@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemTestPawn.h"
-#include "AbilitySystemTestAttributeSet.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemTestAttributeSet.h"
 
 FName  AAbilitySystemTestPawn::AbilitySystemComponentName(TEXT("AbilitySystemComponent0"));
 

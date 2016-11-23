@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "DSP/Delay.h"
 #include "DSP/OnePole.h"
 

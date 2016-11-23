@@ -7,9 +7,10 @@
  *
  */
 
-#include "AnimationAsset.h"
-#include "SmartName.h"
-#include "Skeleton.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/AnimationAsset.h"
 #include "Animation/AnimCurveTypes.h"
 #include "AnimSequenceBase.generated.h"
 

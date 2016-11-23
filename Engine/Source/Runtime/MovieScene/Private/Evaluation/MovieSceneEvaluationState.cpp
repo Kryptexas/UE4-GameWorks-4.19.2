@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "MovieSceneEvaluationState.h"
-
+#include "Evaluation/MovieSceneEvaluationState.h"
+#include "MovieSceneSequence.h"
+#include "MovieScene.h"
 
 DECLARE_CYCLE_STAT(TEXT("Find Bound Objects"), MovieSceneEval_FindBoundObjects, STATGROUP_MovieSceneEval);
 

@@ -2,10 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "LandscapeProxy.h"
+
+
 #include "Landscape.generated.h"
 
-class ULandscapeInfoMap;
+class ULandscapeComponent;
 
 UENUM()
 enum ELandscapeSetupErrors

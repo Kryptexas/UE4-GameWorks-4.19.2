@@ -1,15 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PerforceSourceControlPrivatePCH.h"
 #include "PerforceSourceControlProvider.h"
+#include "PerforceSourceControlPrivate.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/CommandLine.h"
+#include "Misc/QueuedThreadPool.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "ISourceControlModule.h"
+#include "PerforceConnectionInfo.h"
 #include "PerforceSourceControlCommand.h"
+#include "ISourceControlLabel.h"
 #include "PerforceSourceControlLabel.h"
 #include "PerforceConnection.h"
-#include "IPerforceSourceControlWorker.h"
 #include "PerforceSourceControlModule.h"
-#include "PerforceSourceControlSettings.h"
 #include "SPerforceSourceControlSettings.h"
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 #include "ScopedSourceControlProgress.h"
 
 static FName ProviderName("Perforce");

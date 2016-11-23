@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GeometryCacheModulePrivatePCH.h"
+#include "GeometryCache.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Materials/MaterialInterface.h"
 #include "GeometryCacheTrackTransformAnimation.h"
 #include "GeometryCacheTrackFlipbookAnimation.h"
-#include "EditorFramework/AssetImportData.h"
-#include "TargetPlatform.h"
-#include "FrameworkObjectVersion.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Interfaces/ITargetPlatform.h"
 
 UGeometryCache::UGeometryCache(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

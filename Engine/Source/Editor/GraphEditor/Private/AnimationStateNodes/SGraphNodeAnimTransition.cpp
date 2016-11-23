@@ -1,20 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
-#include "SGraphNodeAnimTransition.h"
-#include "SGraphPreviewer.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/KismetWidgets/Public/SKismetLinearExpression.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "AnimationStateNodes/SGraphNodeAnimTransition.h"
+#include "AnimStateTransitionNode.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/SToolTip.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimBlueprint.h"
+#include "SGraphPanel.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "SKismetLinearExpression.h"
 
 #include "ConnectionDrawingPolicy.h"
 #include "IDocumentation.h"
 
 #include "AnimationTransitionGraph.h"
 #include "AnimGraphNode_TransitionResult.h"
+#include "Animation/AnimNode_StateMachine.h"
 #include "AnimGraphNode_StateMachineBase.h"
-#include "AnimStateTransitionNode.h"
 #include "AnimationStateMachineGraph.h"
 
 #define LOCTEXT_NAMESPACE "TransitionNodes"

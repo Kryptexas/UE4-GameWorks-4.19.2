@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Textures/SlateShaderResource.h"
+#include "Materials/MaterialInterface.h"
+
+class FMaterialRenderProxy;
+
 /**
  * A resource for rendering a UMaterial in Slate
  */

@@ -4,8 +4,10 @@
 LightMapRendering.cpp: Light map rendering implementations.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "SceneManagement.h"
+#include "LightMapRendering.h"
+#include "Engine/LightMapTexture2D.h"
+#include "Engine/ShadowMapTexture2D.h"
+#include "ScenePrivate.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrecomputedLightingParameters, TEXT("PrecomputedLightingBuffer"));
 

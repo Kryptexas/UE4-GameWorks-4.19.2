@@ -2,11 +2,28 @@
 
 #pragma once
 
-#include "IDocumentation.h"
-#include "KismetEditorUtilities.h"
-#include "EditorClassUtils.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Engine/Blueprint.h"
+#include "Editor.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "IDetailGroup.h"
+#include "IDetailPropertyRow.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Widgets/Layout/SBox.h"
 #include "GameFramework/GameModeBase.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "PropertyCustomizationHelpers.h"
+#include "IDocumentation.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "FGameModeInfoCustomizer"
 

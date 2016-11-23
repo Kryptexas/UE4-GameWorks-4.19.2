@@ -1,21 +1,31 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-
-#include "AnimationTabSummoner.h"
-#include "WidgetBlueprintEditor.h"
-#include "ISequencer.h"
-#include "WidgetAnimation.h"
+#include "TabFactory/AnimationTabSummoner.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "MovieScene.h"
-#include "UMGStyle.h"
-#include "SSearchBox.h"
-#include "SInlineEditableTextBlock.h"
-#include "GenericCommands.h"
-#include "ScopedTransaction.h"
+#include "Animation/WidgetAnimation.h"
 #include "WidgetBlueprint.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SScrollBorder.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+
+#if WITH_EDITOR
+	#include "EditorStyleSet.h"
+#endif // WITH_EDITOR
+#include "Blueprint/WidgetTree.h"
+
+#include "UMGStyle.h"
+#include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "ScopedTransaction.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Misc/TextFilter.h"
-#include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
+#include "Kismet2/Kismet2NameValidators.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

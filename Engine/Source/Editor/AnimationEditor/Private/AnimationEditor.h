@@ -2,9 +2,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Widgets/SWidget.h"
+#include "UObject/GCObject.h"
+#include "Toolkits/IToolkitHost.h"
 #include "IAnimationEditor.h"
 #include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
+
+class FAssetData;
+class FMenuBuilder;
+class IAnimationSequenceBrowser;
+class IDetailsView;
+class IPersonaToolkit;
+class IPersonaViewport;
+class ISkeletonTree;
+class UAnimationAsset;
 
 namespace AnimationEditorModes
 {

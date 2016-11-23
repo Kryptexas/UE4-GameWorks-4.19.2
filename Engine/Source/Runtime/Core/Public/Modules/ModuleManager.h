@@ -2,10 +2,20 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "Delegate.h"
-#include "Boilerplate/ModuleBoilerplate.h"
-
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "UObject/NameTypes.h"
+#include "Templates/SharedPointer.h"
+#include "Delegates/Delegate.h"
+#include "Misc/Optional.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/MultiReaderSingleWriterGT.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/Boilerplate/ModuleBoilerplate.h"
 
 #if WITH_HOT_RELOAD
 	/** If true, we are reloading a class for HotReload */

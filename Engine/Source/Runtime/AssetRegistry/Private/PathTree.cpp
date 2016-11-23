@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetRegistryPCH.h"
+#include "PathTree.h"
 
 bool FPathTree::CachePath(FName Path)
 {

@@ -1,8 +1,42 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "UHTMakefile/FieldArchiveProxy.h"
 
+#include "CoreMinimal.h"
+#include "UObject/TextProperty.h"
+#include "UObject/EnumProperty.h"
+#include "FieldArchiveProxy.h"
+
+class FUHTMakefile;
+class UProperty;
+class FArchive;
+class UByteProperty;
+class UInt8Property;
+class UIntProperty;
+class UUInt16Property;
+class UUInt32Property;
+class UUInt64Property;
+class UFloatProperty;
+class UDoubleProperty;
+class UBoolProperty;
+class UNameProperty;
+class UStrProperty;
+class UTextProperty;
+class UDelegateProperty;
+class UMulticastDelegateProperty;
+class UObjectPropertyBase;
+class UClassProperty;
+class UObjectProperty;
+class UWeakObjectProperty;
+class ULazyObjectProperty;
+class UAssetObjectProperty;
+class UAssetClassProperty;
+class UInterfaceProperty;
+class UStructProperty;
+struct FScriptSparseArrayLayout;
+class UMapProperty;
+class USetProperty;
+class UArrayProperty;
 
 /* See UHTMakefile.h for overview how makefiles work. */
 struct FPropertyArchiveProxy : public FFieldArchiveProxy

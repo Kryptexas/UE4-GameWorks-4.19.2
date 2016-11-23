@@ -2,21 +2,28 @@
 
 #pragma once
 
-#include "UniquePtr.h"
-#include "ISequencerEditTool.h"
-#include "IMovieScenePlayer.h"
-#include "SequencerCommonHelpers.h"
-
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "UObject/GCObject.h"
+#include "Misc/NotifyHook.h"
+#include "Widgets/SCompoundWidget.h"
+#include "MovieSceneSequenceID.h"
+#include "ITimeSlider.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Input/NumericTypeInterface.h"
+#include "Sequencer.h"
 
 class FActorDragDropGraphEdOp;
 class FAssetDragDropOp;
 class FClassDragDropOp;
-class FEditPropertyChain;
-class FSequencer;
-class FSequencerNodeTree;
+class FMovieSceneClipboard;
+class FSequencerTimeSliderController;
 class FUnloadedClassDragDropOp;
-class IDetailsView;
-class UMovieSceneSection;
+class FVirtualTrackArea;
+class ISequencerEditTool;
 class SSequencerCurveEditor;
 class SSequencerGotoBox;
 class SSequencerLabelBrowser;
@@ -24,11 +31,9 @@ class SSequencerTrackArea;
 class SSequencerTrackOutliner;
 class SSequencerTransformBox;
 class SSequencerTreeView;
-class FSequencerTimeSliderController;
-
-struct FSectionHandle;
+class USequencerSettings;
 struct FPaintPlaybackRangeArgs;
-
+struct FSectionHandle;
 
 namespace SequencerLayoutConstants
 {

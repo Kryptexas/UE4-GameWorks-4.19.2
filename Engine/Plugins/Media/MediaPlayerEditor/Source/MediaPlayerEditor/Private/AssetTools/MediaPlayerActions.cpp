@@ -1,10 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaPlayerEditorPCH.h"
-#include "MediaPlayerActions.h"
-#include "MediaPlayerEditorToolkit.h"
-#include "MediaSoundWaveFactoryNew.h"
-#include "MediaTextureFactoryNew.h"
+#include "AssetTools/MediaPlayerActions.h"
+#include "MediaPlayer.h"
+#include "Misc/PackageName.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
+#include "EditorStyleSet.h"
+#include "MediaSoundWave.h"
+#include "MediaTexture.h"
+#include "Toolkits/MediaPlayerEditorToolkit.h"
+#include "Factories/MediaSoundWaveFactoryNew.h"
+#include "Factories/MediaTextureFactoryNew.h"
 
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"

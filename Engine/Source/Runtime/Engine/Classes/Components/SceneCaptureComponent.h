@@ -2,8 +2,18 @@
 
 
 #pragma once
-#include "Runtime/Engine/Public/ShowFlags.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/SceneComponent.h"
+#include "SceneTypes.h"
+#include "ShowFlags.h"
+#include "Engine/GameViewportClient.h"
 #include "SceneCaptureComponent.generated.h"
+
+class AActor;
+class FSceneViewStateInterface;
+class UPrimitiveComponent;
 
 /** View state needed to create a scene capture renderer */
 struct FSceneCaptureViewInfo

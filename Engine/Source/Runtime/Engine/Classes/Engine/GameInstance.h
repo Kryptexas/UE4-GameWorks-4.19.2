@@ -2,11 +2,21 @@
 
 #pragma once
 
-#include "EngineBaseTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/ScriptMacros.h"
 #include "GameInstance.generated.h"
 
-class ULocalPlayer;
+class AGameModeBase;
+class APlayerController;
+class FOnlineSessionSearchResult;
+class FTimerManager;
 class FUniqueNetId;
+class ULocalPlayer;
+class UOnlineSession;
 struct FLatentActionManager;
 
 // 

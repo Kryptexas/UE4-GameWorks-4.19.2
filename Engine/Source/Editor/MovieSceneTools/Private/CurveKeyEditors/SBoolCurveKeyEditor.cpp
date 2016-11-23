@@ -1,7 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "SBoolCurveKeyEditor.h"
+#include "CurveKeyEditors/SBoolCurveKeyEditor.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Curves/KeyHandle.h"
+#include "ISequencer.h"
+#include "ScopedTransaction.h"
+#include "Curves/IntegralCurve.h"
 
 #define LOCTEXT_NAMESPACE "BoolCurveKeyEditor"
 

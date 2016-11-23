@@ -9,7 +9,6 @@
  ------------------------------------------------------------------------------------*/
 
 #include "IOSAudioDevice.h"
-#include "Engine.h"
 #include "IAudioFormat.h"
 #include "ContentStreaming.h"
 #include "IAudioFormat.h"

@@ -2,14 +2,19 @@
 
 #pragma once
 
-#include "AnimBlueprint.h"
-#include "AnimBlueprintGeneratedClass.h"
-#include "AnimationRuntime.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/AnimCurveTypes.h"
 #include "BonePose.h"
 #include "AnimNodeBase.generated.h"
 
-struct FAnimInstanceProxy;
+class IAnimClassInterface;
+class UAnimBlueprint;
 class UAnimInstance;
+struct FAnimInstanceProxy;
+struct FAnimNode_Base;
 
 /** Base class for update/evaluate contexts */
 struct FAnimationBaseContext

@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BuildPatchServicesPrivatePCH.h"
 #include "BuildPatchState.h"
 
 #define LOCTEXT_NAMESPACE "BuildPatchInstallProgress"

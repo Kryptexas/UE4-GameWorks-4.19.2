@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
+#include "SSoundCuePalette.h"
+#include "SoundCueGraph/SoundCueGraphSchema.h"
 
 void SSoundCuePalette::Construct(const FArguments& InArgs)
 {

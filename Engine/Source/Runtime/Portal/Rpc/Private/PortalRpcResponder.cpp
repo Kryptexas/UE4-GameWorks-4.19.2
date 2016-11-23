@@ -1,13 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PortalRpcPrivatePCH.h"
 #include "PortalRpcResponder.h"
+#include "IMessageContext.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Helpers/MessageEndpointBuilder.h"
 #include "IPortalRpcResponder.h"
-#include "IMessageRpcServer.h"
+#include "HAL/PlatformProcess.h"
 #include "IPortalRpcServer.h"
 #include "PortalRpcMessages.h"
-#include "ModuleManager.h"
-#include "GenericPlatformMisc.h"
 
 class FPortalRpcResponderImpl
 	: public IPortalRpcResponder

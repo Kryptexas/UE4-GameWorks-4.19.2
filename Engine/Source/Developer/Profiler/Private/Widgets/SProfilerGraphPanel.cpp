@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerManager.h"
-#include "SDataGraph.h"
-#include "SProfilerGraphPanel.h"
-#include "SProfilerMiniView.h"
-#include "SProfilerThreadView.h"
-
+#include "Widgets/SProfilerGraphPanel.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "EditorStyleSet.h"
+#include "Widgets/SDataGraph.h"
+#include "Widgets/SProfilerMiniView.h"
+#include "Widgets/SProfilerThreadView.h"
 
 #define LOCTEXT_NAMESPACE "SProfilerGraphPanel"
 

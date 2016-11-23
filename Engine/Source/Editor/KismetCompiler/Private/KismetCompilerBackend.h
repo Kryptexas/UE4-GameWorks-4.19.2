@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "KismetCompiledFunctionContext.h"
 #include "KismetCompiler.h"
 
 //////////////////////////////////////////////////////////////////////////

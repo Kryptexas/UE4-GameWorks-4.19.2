@@ -2,17 +2,27 @@
 
 #pragma once
 
-#include "PhysxUserData.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Engine/EngineTypes.h"
 #include "CollisionQueryParams.h"
+#include "EngineDefines.h"
+#include "PhysxUserData.h"
 #include "BodyInstance.generated.h"
 
 #define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
 
+class FPhysScene;
+class UBodySetup;
+class UPhysicalMaterial;
+class UPrimitiveComponent;
+struct FBodyInstance;
+struct FCollisionNotifyInfo;
 struct FCollisionShape;
 struct FConstraintInstance;
-class UPhysicsConstraintComponent;
-enum class ETeleportType;
-class UBodySetup;
+struct FPropertyChangedEvent;
+struct FShapeData;
 
 /** Delegate for applying custom physics forces upon the body. Can be passed to "AddCustomPhysics" so 
   * custom forces and torques can be calculated individually for every physics substep.

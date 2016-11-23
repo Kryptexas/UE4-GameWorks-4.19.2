@@ -1,6 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsModulePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "UObject/Package.h"
+#include "Misc/AutomationTest.h"
+#include "Engine/DataTable.h"
+#include "GameplayTagContainer.h"
+#include "GameplayTagsManager.h"
+#include "GameplayTagsModule.h"
+#include "Stats/StatsMisc.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 

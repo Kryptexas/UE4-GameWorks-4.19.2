@@ -1,13 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SteamVRPrivatePCH.h"
 #include "SteamVRHMD.h"
+#include "SteamVRPrivate.h"
 
+#include "Misc/App.h"
+#include "Misc/CoreDelegates.h"
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "SceneViewport.h"
 #include "PostProcess/PostProcessHMD.h"
 #include "Classes/SteamVRFunctionLibrary.h"
+#include "Engine/GameEngine.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/WorldSettings.h"
 
 #include "SteamVRMeshAssets.h"
 
@@ -814,7 +819,7 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 	bool bShouldShutdown = false;
 	if (bIsQuitting)
 	{
-		if (QuitTimestamp < FApp::GetTickCount())
+		if (QuitTimestamp < FApp::GetCurrentTime())
 		{
 			bShouldShutdown = true;
 			bIsQuitting = false;
@@ -832,7 +837,7 @@ bool FSteamVRHMD::OnStartGameFrame(FWorldContext& WorldContext)
 			{
 				// If we're currently in stereo mode, allow a few seconds while we disable stereo rendering before shutting down the VR system
 				EnableStereo(false);
-				QuitTimestamp = FApp::GetTickCount() + kShutdownTimeout;
+				QuitTimestamp = FApp::GetCurrentTime() + kShutdownTimeout;
 				bIsQuitting = true;
 			}
 			else if (!bIsQuitting)

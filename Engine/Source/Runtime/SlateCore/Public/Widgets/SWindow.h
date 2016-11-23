@@ -2,8 +2,40 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateColor.h"
+#include "Layout/SlateRect.h"
+#include "Layout/Visibility.h"
+#include "Rendering/SlateLayoutTransform.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "GenericPlatform/GenericWindowDefinition.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "Input/Reply.h"
+#include "Rendering/RenderingCommon.h"
+#include "Types/SlateStructs.h"
+#include "Animation/CurveSequence.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SlotBase.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+
+class FActiveTimerHandle;
 class FHittestGrid;
-class ISlateViewport;
+class FPaintArgs;
+class FSlateWindowElementList;
+class FWidgetPath;
+class IWindowTitleBar;
+class SPopupLayer;
+class SWindow;
 
 /** Notification that a window has been activated */
 DECLARE_DELEGATE( FOnWindowActivated );
@@ -1174,15 +1206,7 @@ private:
  */
 struct FScopedSwitchWorldHack
 {
-	FScopedSwitchWorldHack( const FWidgetPath& WidgetPath )
-		: Window( WidgetPath.TopLevelWindow )
-		, WorldId( -1 )
-	{
-		if( Window.IsValid() )
-		{
-			WorldId = Window->SwitchWorlds( WorldId );
-		}
-	}
+	SLATECORE_API FScopedSwitchWorldHack( const FWidgetPath& WidgetPath );
 
 	FScopedSwitchWorldHack( TSharedPtr<SWindow> InWindow )
 		: Window( InWindow )

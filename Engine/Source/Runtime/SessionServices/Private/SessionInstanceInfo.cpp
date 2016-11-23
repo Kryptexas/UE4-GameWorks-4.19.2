@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SessionServicesPrivatePCH.h"
 #include "SessionInstanceInfo.h"
+#include "SessionLogMessage.h"
+#include "HAL/PlatformProcess.h"
+#include "EngineServiceMessages.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "SessionServiceMessages.h"
 
 
 /* FSessionInstanceInfo structors

@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Logging/LogVerbosity.h"
+
+struct FLogCategoryBase;
+
 /*-----------------------------------------------------------------------------
 	FLogScopedVerbosityOverride
 -----------------------------------------------------------------------------*/

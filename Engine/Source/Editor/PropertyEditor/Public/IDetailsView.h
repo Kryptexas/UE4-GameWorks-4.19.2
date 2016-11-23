@@ -2,7 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SCompoundWidget.h"
 #include "PropertyEditorDelegates.h"
+#include "Framework/Commands/UICommandList.h"
+
+class AActor;
+class FNotifyHook;
+class FPropertyPath;
+class IDetailKeyframeHandler;
+class IDetailPropertyExtensionHandler;
+class IDetailRootObjectCustomization;
 
 /**
  * Init params for a details view widget

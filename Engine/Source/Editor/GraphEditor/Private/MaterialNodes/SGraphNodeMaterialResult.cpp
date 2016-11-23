@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GraphEditorCommon.h"
-#include "SGraphNodeMaterialResult.h"
+#include "MaterialNodes/SGraphNodeMaterialResult.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "MaterialGraph/MaterialGraphNode_Root.h"
+#include "SGraphPanel.h"
 #include "TutorialMetaData.h"
+#include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
 
 /////////////////////////////////////////////////////

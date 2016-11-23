@@ -1,24 +1,32 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "StaticMeshResources.h"
-#include "Factories.h"
-
 #include "FbxMeshUtils.h"
-#include "FbxExporter.h"
+#include "EngineDefines.h"
+#include "Misc/Paths.h"
+#include "UObject/Package.h"
+#include "Engine/SkeletalMesh.h"
+#include "Factories/FbxAssetImportData.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxStaticMeshImportData.h"
+#include "Factories/FbxImportUI.h"
+#include "Engine/StaticMesh.h"
+#include "EditorDirectories.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/MessageDialog.h"
 
-#include "MainFrame.h"
+#include "Logging/TokenizedMessage.h"
+#include "FbxImporter.h"
+
 #include "DesktopPlatformModule.h"
 
 #if WITH_APEX_CLOTHING
 	#include "ApexClothingUtils.h"
 #endif // #if WITH_APEX_CLOTHING
 
-#include "ComponentReregisterContext.h"
 
-#include "FbxErrors.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Misc/FbxErrors.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogExportMeshUtils, Log, All);
 

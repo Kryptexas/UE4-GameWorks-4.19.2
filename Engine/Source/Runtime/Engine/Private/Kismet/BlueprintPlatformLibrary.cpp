@@ -1,12 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Engine/GameEngine.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/BlueprintPlatformLibrary.h"
-#include "Engine/Console.h"
-#include "AssertionMacros.h"
-#include "OutputDevice.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Modules/ModuleManager.h"
+#include "LocalNotification.h"
+#include "EngineLogs.h"
 
 void UPlatformGameInstance::PostInitProperties()
 

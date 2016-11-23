@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class FEditableSkeleton;
+
 /** Central registry of skeleton trees */
 class FSkeletonTreeManager
 {

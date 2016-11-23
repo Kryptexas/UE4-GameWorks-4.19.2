@@ -6,11 +6,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Misc/ScopeLock.h"
+#include "HAL/PlatformProcess.h"
+#include "TickableEditorObject.h"
 #include "IPlatformFileSandboxWrapper.h"
 #include "CookOnTheFlyServer.generated.h"
 
-
 class FChunkManifestGenerator;
+class ITargetPlatform;
+struct FPropertyChangedEvent;
+enum class ESavePackageResult;
 
 enum class ECookInitializationFlags
 {

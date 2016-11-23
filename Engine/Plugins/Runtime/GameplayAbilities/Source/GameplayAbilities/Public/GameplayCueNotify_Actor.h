@@ -2,11 +2,13 @@
 
 #pragma once
 
-#include "GameplayTags.h"
-#include "GameplayEffect.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "GameplayCue_Types.h"
 #include "GameplayCueNotify_Actor.generated.h"
-
 
 /**
  *	An instantiated Actor that acts as a handler of a GameplayCue. Since they are instantiated, they can maintain state and tick/update every frame if necessary. 

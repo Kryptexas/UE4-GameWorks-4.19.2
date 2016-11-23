@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/LockFreeList.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/Event.h"
 
 /**
  * Enumerates available event pool types.

@@ -1,17 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PlacementModePrivatePCH.h"
-#include "AssetSelection.h"
-#include "PlacementMode.h"
-#include "IPlacementModeModule.h"
 #include "SPlacementModeTools.h"
+#include "Application/SlateApplicationBase.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "AssetThumbnail.h"
+#include "LevelEditor.h"
+#include "PlacementMode.h"
 #include "DragAndDrop/AssetDragDropOp.h"
-#include "IBspModeModule.h"
 #include "EditorClassUtils.h"
-#include "SSearchBox.h"
-#include "GameFramework/Volume.h"
-#include "Engine/PostProcessVolume.h"
-#include "AssetToolsModule.h"
+#include "Widgets/Input/SSearchBox.h"
 
 
 struct FSortPlaceableItems

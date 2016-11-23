@@ -1,14 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "MovieSceneEventParametersCustomization.h"
 
-#include "MovieSceneEventSection.h"
+#include "UObject/UnrealType.h"
+#include "Sections/MovieSceneEventSection.h"
 
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "PropertyHandle.h"
 #include "PropertyCustomizationHelpers.h"
 #include "ContentBrowserModule.h"
-#include "IStructureDetailsView.h"
 #include "IPropertyUtilities.h"
+#include "IDetailChildrenBuilder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Serialization/MemoryWriter.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneEventParameters"
 

@@ -6,8 +6,9 @@
 
 #pragma once
 
-#include "ShaderParameters.h"
-#include "PostProcess/RenderTargetPool.h"
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "RendererInterface.h"
 
 /**
  * Encapsulates the system textures used for scene rendering.

@@ -7,10 +7,9 @@ public class Engine : ModuleRules
 {
 	public Engine(TargetInfo Target)
 	{
-		SharedPCHHeaderFile = "Runtime/Engine/Public/Engine.h";
+		PrivatePCHHeaderFile = "Private/EnginePrivatePCH.h";
 
-		// Cannot use shared pchs due to circular dependencies in CoreUObject with different _API macros
-		PCHUsage = PCHUsageMode.NoSharedPCHs;
+		SharedPCHHeaderFile = "Public/EngineSharedPCH.h";
 
 		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer", "PacketHandler", "NetworkReplayStreaming" });
 

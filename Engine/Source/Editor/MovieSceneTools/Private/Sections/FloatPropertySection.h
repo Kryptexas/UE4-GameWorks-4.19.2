@@ -2,11 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "PropertySection.h"
-
-
-class UMovieSceneSection;
-
 
 /**
  * An implementation of float property sections.

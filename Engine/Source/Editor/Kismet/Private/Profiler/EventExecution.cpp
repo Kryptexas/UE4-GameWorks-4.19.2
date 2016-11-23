@@ -1,9 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "BlueprintProfilerSettings.h"
-#include "EventExecution.h"
-#include "SHyperlink.h"
+#include "Profiler/EventExecution.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Images/SImage.h"
+#include "EditorStyleSet.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
+#include "AssetData.h"
+#include "Editor.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "Profiler/BlueprintProfilerSettings.h"
+#include "Widgets/Input/SHyperlink.h"
 
 // Debugging defines
 #define STRICT_PERFDATA_CREATION 0		// Asserts when script perf data is created from an incorrect tracepath.

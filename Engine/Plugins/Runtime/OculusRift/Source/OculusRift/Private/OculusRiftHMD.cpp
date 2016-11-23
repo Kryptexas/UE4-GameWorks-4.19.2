@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OculusRiftPrivatePCH.h"
 #include "OculusRiftHMD.h"
 #include "OculusRiftMeshAssets.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/CoreDelegates.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/GameEngine.h"
 
 #if !PLATFORM_MAC // Mac uses 0.5/OculusRiftHMD_05.cpp
 
@@ -12,6 +18,7 @@
 #include "SceneViewport.h"
 #include "PostProcess/SceneRenderTargets.h"
 #include "HardwareInfo.h"
+#include "Framework/Application/SlateApplication.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"

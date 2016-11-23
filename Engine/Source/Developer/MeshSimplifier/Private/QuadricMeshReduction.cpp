@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "Engine.h"
-#include "RawMesh.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Templates/ScopedPointer.h"
 #include "MeshUtilities.h"
 #include "MeshBuild.h"
+#include "RawMesh.h"
 #include "MeshSimplify.h"
 #include "UniquePtr.h"
 

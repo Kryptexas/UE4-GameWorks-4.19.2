@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "Stats.h"
+#include "CoreTypes.h"
+#include "Stats/Stats.h"
 
 
 

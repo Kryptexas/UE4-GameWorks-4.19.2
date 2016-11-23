@@ -6,9 +6,26 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Logging/LogMacros.h"
+#include "Containers/BitArray.h"
+#include "Math/IntPoint.h"
+#include "Misc/CommandLine.h"
+#include "Templates/RefCounting.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
 #include "BoundShaderStateCache.h"
+#include "RenderResource.h"
 #include "OpenGLShaderResources.h"
 #include "ShaderCache.h"
+
+class FOpenGLDynamicRHI;
+class FOpenGLLinkedProgram;
 
 extern void OnVertexBufferDeletion( GLuint VertexBufferResource );
 extern void OnIndexBufferDeletion( GLuint IndexBufferResource );

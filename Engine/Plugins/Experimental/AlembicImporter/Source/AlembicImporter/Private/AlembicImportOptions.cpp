@@ -1,11 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AlembicImporterPrivatePCH.h"
 #include "AlembicImportOptions.h"
 
 #include "PropertyEditorModule.h"
 #include "IDetailsView.h"
 #include "AbcImportSettings.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Input/SButton.h"
 
 #include "STrackSelectionTableRow.h"
 

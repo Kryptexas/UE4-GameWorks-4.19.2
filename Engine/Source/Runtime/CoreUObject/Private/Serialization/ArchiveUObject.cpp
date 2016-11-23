@@ -1,6 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Serialization/SerializedPropertyScope.h"
+#include "UObject/UnrealType.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
+#include "Serialization/ArchiveReplaceObjectRef.h"
+#include "Misc/PackageName.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogArchiveUObject, Log, All);
 

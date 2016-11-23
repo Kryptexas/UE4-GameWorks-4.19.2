@@ -1,6 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. 
 
-#include "ArchVisCharacterPluginPrivatePCH.h"
+#include "ArchVisCharMovementComponent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/Controller.h"
 
 UArchVisCharMovementComponent::UArchVisCharMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

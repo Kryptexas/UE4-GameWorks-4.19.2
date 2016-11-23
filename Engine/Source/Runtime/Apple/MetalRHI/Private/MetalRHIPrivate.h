@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "Engine.h"
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CommandLine.h"
 
 // UE4 has a Max of 8 RTs, but we can spend less time looping with 6
 const uint32 MaxMetalRenderTargets = 6;
@@ -143,3 +145,4 @@ FORCEINLINE MTLStoreAction GetMetalRTStoreAction(ERenderTargetStoreAction StoreA
 
 #include "MetalStateCache.h"
 #include "MetalContext.h"
+

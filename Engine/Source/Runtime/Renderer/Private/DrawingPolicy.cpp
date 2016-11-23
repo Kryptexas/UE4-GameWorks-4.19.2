@@ -4,9 +4,9 @@
 	DrawingPolicy.cpp: Base drawing policy implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
+#include "DrawingPolicy.h"
 #include "SceneUtils.h"
+#include "SceneRendering.h"
 
 int32 GEmitMeshDrawEvent = 0;
 static FAutoConsoleVariableRef CVarEmitMeshDrawEvent(

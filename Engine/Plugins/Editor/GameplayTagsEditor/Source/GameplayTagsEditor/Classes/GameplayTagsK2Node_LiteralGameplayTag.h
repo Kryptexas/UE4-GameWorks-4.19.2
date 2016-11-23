@@ -2,8 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "K2Node.h"
 #include "GameplayTagsK2Node_LiteralGameplayTag.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
+class UEdGraph;
+class UEdGraphSchema;
 
 UCLASS()
 class UGameplayTagsK2Node_LiteralGameplayTag : public UK2Node

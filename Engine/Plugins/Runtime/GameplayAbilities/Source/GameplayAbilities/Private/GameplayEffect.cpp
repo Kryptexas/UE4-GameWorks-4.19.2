@@ -1,17 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffect.h"
+#include "TimerManager.h"
+#include "GameFramework/GameStateBase.h"
+#include "Engine/PackageMapClient.h"
+#include "Engine/NetConnection.h"
+#include "AbilitySystemStats.h"
+#include "GameplayTagsModule.h"
+#include "AbilitySystemGlobals.h"
 #include "GameplayEffectExtension.h"
-#include "GameplayEffectTypes.h"
 #include "AbilitySystemComponent.h"
-#include "AbilitySystemInterface.h"
 #include "GameplayModMagnitudeCalculation.h"
 #include "GameplayEffectExecutionCalculation.h"
 #include "GameplayCueManager.h"
 
 #if ENABLE_VISUAL_LOG
-#include "VisualLoggerTypes.h"
 //#include "VisualLogger/VisualLogger.h"
 #endif // ENABLE_VISUAL_LOG
 

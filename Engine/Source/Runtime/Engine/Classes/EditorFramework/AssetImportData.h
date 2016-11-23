@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/SecureHash.h"
 #include "AssetImportData.generated.h"
 
 /** Struct that is used to store an array of asset import data as an asset registry tag */

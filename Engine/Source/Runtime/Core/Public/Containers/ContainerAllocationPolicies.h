@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/TypeCompatibleBytes.h"
 #include "HAL/PlatformMath.h"
-#include "MemoryBase.h"
-#include "Misc/OutputDevice.h"
 #include "Templates/MemoryOps.h"
 #include "Math/NumericLimits.h"
-#include "Templates/TypeCompatibleBytes.h"
 
+class FDefaultBitArrayAllocator;
 
 /** branchless pointer selection
 * return A ? A : B;

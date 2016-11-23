@@ -4,12 +4,29 @@
 	InstancedStaticMesh.cpp: Static mesh rendering code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Templates/Greater.h"
+#include "Math/RandomStream.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineStats.h"
+#include "Async/AsyncWork.h"
+#include "PrimitiveViewRelevance.h"
+#include "ConvexVolume.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "MaterialShared.h"
+#include "UObject/UObjectIterator.h"
+#include "MeshBatch.h"
+#include "RendererInterface.h"
+#include "Engine/StaticMesh.h"
+#include "UnrealEngine.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "StaticMeshResources.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedStaticMesh.h"
-#include "NavigationSystemHelpers.h"
-#include "AI/Navigation/NavCollision.h"
 
 static TAutoConsoleVariable<int32> CVarFoliageSplitFactor(
 	TEXT("foliage.SplitFactor"),

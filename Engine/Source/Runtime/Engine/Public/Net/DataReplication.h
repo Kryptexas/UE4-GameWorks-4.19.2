@@ -6,9 +6,19 @@
 =============================================================================*/
 #pragma once
 
-class FRepState;
+#include "CoreMinimal.h"
+#include "Misc/NetworkGuid.h"
+#include "UObject/CoreNet.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/UnrealType.h"
+
 class FNetFieldExportGroup;
+class FOutBunch;
 class FRepChangelistState;
+class FRepLayout;
+class FRepState;
+class UNetConnection;
+class UNetDriver;
 
 bool FORCEINLINE IsCustomDeltaProperty( const UProperty* Property )
 {

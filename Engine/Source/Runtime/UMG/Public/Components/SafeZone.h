@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Widgets/SWidget.h"
+#include "Components/ContentWidget.h"
+#include "Widgets/Layout/SSafeZone.h"
 #include "SafeZone.generated.h"
 
 UCLASS()

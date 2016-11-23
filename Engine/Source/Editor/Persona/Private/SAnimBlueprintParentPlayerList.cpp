@@ -1,11 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
  
-#include "PersonaPrivatePCH.h"
 #include "SAnimBlueprintParentPlayerList.h"
+#include "Widgets/Text/STextBlock.h"
 #include "PropertyEditorModule.h"
+#include "Widgets/Layout/SBox.h"
+#include "Animation/AnimBlueprint.h"
+#include "Animation/EditorParentPlayerListObj.h"
 #include "AnimGraphNodeDetails.h"
+#include "Widgets/Views/SListView.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
-#include "BlueprintEditor.h"
 
 SAnimBlueprintParentPlayerList::SAnimBlueprintParentPlayerList()
 	: RootBlueprint(NULL)

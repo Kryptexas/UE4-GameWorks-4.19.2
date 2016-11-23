@@ -1,9 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
-#include "EngineVersion.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/QueuedThreadPool.h"
+#include "Internationalization/Internationalization.h"
+#include "Math/Vector2D.h"
+#include "Misc/ConfigCacheIni.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Misc/App.h"
+#include "CrashReportClientConfig.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
 #include "CrashDescription.h"
 #include "CrashReportAnalytics.h"
+#include "Modules/ModuleManager.h"
 #include "QoSReporter.h"
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
@@ -11,11 +21,12 @@
 	#include "CrashReportClient.h"
 	#include "CrashReportClientStyle.h"
 	#include "ISlateReflectorModule.h"
+	#include "Framework/Application/SlateApplication.h"
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 
 #include "CrashReportClientUnattended.h"
+#include "Async/TaskGraphInterfaces.h"
 #include "RequiredProgramMainCPPInclude.h"
-#include "AsyncWork.h"
 
 #include "MainLoopTiming.h"
 

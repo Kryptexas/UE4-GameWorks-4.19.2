@@ -2,7 +2,21 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
+#include "Math/UnrealMathUtility.h"
+#include "Serialization/Archive.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Parse.h"
+#include "Logging/LogMacros.h"
+#include "Misc/DateTime.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/IPlatformFileLogWrapper.h"
 #include "UniquePtr.h"
+
+class IAsyncReadFileHandle;
 
 class CORE_API FCachedFileHandle : public IFileHandle
 {

@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "Interfaces/IAutomationReport.h"
 
 /**
  * Interface for automation test results modules.

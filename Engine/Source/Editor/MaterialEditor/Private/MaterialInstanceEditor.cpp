@@ -1,25 +1,38 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "MaterialInstanceEditor.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EngineGlobals.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Views/SListView.h"
+#include "UObject/Package.h"
+#include "Editor.h"
+#include "EditorStyleSet.h"
+#include "MaterialEditor/DEditorTextureParameterValue.h"
+#include "Materials/Material.h"
+#include "MaterialEditor/MaterialEditorInstanceConstant.h"
+#include "ThumbnailRendering/SceneThumbnailInfoWithPrimitive.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "MaterialEditorModule.h"
 
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 
-#include "MaterialInstanceEditor.h"
 #include "MaterialEditor.h"
 #include "MaterialEditorActions.h"
 #include "MaterialEditorUtilities.h"
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/PropertyEditor/Public/PropertyHandle.h"
+#include "PropertyEditorModule.h"
 #include "MaterialEditorInstanceDetailCustomization.h"
 
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "EditorViewportCommands.h"
-#include "SDockTab.h"
-#include "Materials/MaterialInstanceConstant.h"
+#include "Widgets/Docking/SDockTab.h"
 #include "CanvasTypes.h"
+#include "UnrealEdGlobals.h"
+#include "Editor/UnrealEdEngine.h"
+
 
 #define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
 

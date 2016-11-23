@@ -1,17 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "EdGraph/EdGraphNode.h"
+#include "UObject/BlueprintsObjectVersion.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Textures/SlateIcon.h"
 #include "EdGraph/EdGraph.h"
-#include "BlueprintsObjectVersion.h"
-#include "BlueprintUtilities.h"
 #if WITH_EDITOR
-#include "Editor/UnrealEd/Public/CookerSettings.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "SlateBasics.h"
+#include "CookerSettings.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/PropertyPortFlags.h"
 #include "ScopedTransaction.h"
-#include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
-#include "Editor/Kismet/Public/FindInBlueprintManager.h"
-#include "EditorStyle.h"
+#include "FindInBlueprintManager.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "EdGraph"

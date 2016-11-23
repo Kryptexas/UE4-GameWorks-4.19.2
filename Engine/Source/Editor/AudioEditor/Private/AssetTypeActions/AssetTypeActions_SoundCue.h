@@ -2,7 +2,12 @@
 
 #pragma once
 
-#include "AssetTypeActions_SoundBase.h"
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "AssetTypeActions/AssetTypeActions_SoundBase.h"
+
+class FMenuBuilder;
+class USoundCue;
 
 class FAssetTypeActions_SoundCue : public FAssetTypeActions_SoundBase
 {

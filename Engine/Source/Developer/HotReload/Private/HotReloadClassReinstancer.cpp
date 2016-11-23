@@ -1,13 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HotReloadPrivatePCH.h"
 #include "HotReloadClassReinstancer.h"
+#include "Engine/Blueprint.h"
+#include "Serialization/MemoryWriter.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Serialization/ArchiveReplaceObjectRef.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #if WITH_ENGINE
-#include "Engine/BlueprintGeneratedClass.h"
-#include "Layers/ILayers.h"
-#include "BlueprintEditor.h"
-#include "Kismet2/CompilerResultsLog.h"
 
 void FHotReloadClassReinstancer::SetupNewClassReinstancing(UClass* InNewClass, UClass* InOldClass)
 {

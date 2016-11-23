@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include "RenderCore.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 
 /**
  * This class provides common registration for render thread tickable objects. It is an

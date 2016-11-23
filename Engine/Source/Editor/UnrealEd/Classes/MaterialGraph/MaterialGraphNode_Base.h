@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "EdGraph/EdGraphNode.h"
 #include "MaterialGraphNode_Base.generated.h"
+
+class UEdGraphPin;
+class UEdGraphSchema;
 
 UCLASS(MinimalAPI)
 class UMaterialGraphNode_Base : public UEdGraphNode

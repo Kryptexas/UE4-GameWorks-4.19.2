@@ -22,16 +22,14 @@
 #ifndef DETOURNAVMESHQUERY_H
 #define DETOURNAVMESHQUERY_H
 
-#include "DetourNavMesh.h"
-#include "DetourStatus.h"
-#include "DetourCommon.h"
+#include "CoreMinimal.h"
+#include "Detour/DetourAlloc.h"
+#include "Detour/DetourNavMesh.h"
+#include "Detour/DetourCommon.h"
 
 //@UE4 BEGIN
 #define WITH_FIXED_AREA_ENTERING_COST 1
 
-#ifndef FLT_MAX
-#include <float.h>
-#endif
 #define DT_UNWALKABLE_POLY_COST FLT_MAX
 //@UE4 END
 

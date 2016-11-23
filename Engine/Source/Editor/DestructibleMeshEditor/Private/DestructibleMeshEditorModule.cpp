@@ -1,15 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DestructibleMeshEditorPrivatePCH.h"
-
-#include "ModuleManager.h"
+#include "DestructibleMeshEditorModule.h"
+#include "Misc/PackageName.h"
+#include "Modules/ModuleManager.h"
+#include "IDestructibleMeshEditor.h"
 #include "DestructibleMeshEditor.h"
-#include "Toolkits/ToolkitManager.h"
+#include "Misc/MessageDialog.h"
+
+#include "IAssetTools.h"
 #include "AssetToolsModule.h"
 
-#include "ApexDestructibleAssetImport.h"
 #include "Engine/DestructibleMesh.h"
 #include "Engine/StaticMesh.h"
+#include "Materials/Material.h"
 #include "Materials/MaterialExpressionSpeedTree.h"
 
 IMPLEMENT_MODULE( FDestructibleMeshEditorModule, DestructibleMeshEditor );

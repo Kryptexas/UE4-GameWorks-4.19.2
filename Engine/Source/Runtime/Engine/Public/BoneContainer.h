@@ -2,11 +2,15 @@
 
 #pragma once
 
-#include "AnimTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/WeakObjectPtr.h"
 #include "BoneIndices.h"
-#include "CustomBoneIndexArray.h"
+#include "ReferenceSkeleton.h"
+#include "Animation/AnimTypes.h"
 #include "BoneContainer.generated.h"
 
+class USkeletalMesh;
 class USkeleton;
 
 /**
@@ -309,7 +313,6 @@ private:
 	/** Cache remapping data if current Asset is a Skeleton, with all compatible Skeletons. */
 	void RemapFromSkeleton(USkeleton const & SourceSkeleton);
 };
-
 USTRUCT()
 struct FBoneReference
 {

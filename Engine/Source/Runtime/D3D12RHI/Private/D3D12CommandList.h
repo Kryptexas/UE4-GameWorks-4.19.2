@@ -5,6 +5,9 @@ D3D12CommandList.h: Implementation of D3D12 Command List functions
 =============================================================================*/
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+
 class FD3D12Device;
 
 class FD3D12CommandAllocator

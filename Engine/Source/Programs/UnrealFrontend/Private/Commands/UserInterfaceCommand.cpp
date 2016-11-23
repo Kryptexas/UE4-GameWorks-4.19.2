@@ -1,15 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealFrontendPrivatePCH.h"
-#include "AutomationController.h"
+#include "UserInterfaceCommand.h"
+#include "IAutomationControllerModule.h"
 #include "ISlateReflectorModule.h"
-#include "Projects.h"
-#include "SlateBasics.h"
+#include "Interfaces/IPluginManager.h"
 #include "StandaloneRenderer.h"
 #include "TaskGraphInterfaces.h"
-#include "UserInterfaceCommand.h"
 #include "ISourceCodeAccessModule.h"
-
+#include "Containers/Ticker.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Framework/Docking/TabManager.h"
+#include "Framework/Docking/LayoutService.h"
+#include "Framework/Application/SlateApplication.h"
+#include "HAL/PlatformProcess.h"
 
 #define IDEAL_FRAMERATE 60;
 

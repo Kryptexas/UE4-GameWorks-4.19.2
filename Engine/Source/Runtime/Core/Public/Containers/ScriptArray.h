@@ -2,9 +2,13 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Containers/Array.h"
 #include <initializer_list>
 
-#include "Array.h"
 
 /**
  * Base dynamic array.

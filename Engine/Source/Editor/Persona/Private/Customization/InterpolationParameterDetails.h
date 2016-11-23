@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IPropertyTypeCustomization.h"
+
+class IPropertyHandle;
+
 class FInterpolationParameterDetails : public IPropertyTypeCustomization
 {
 public:

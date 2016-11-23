@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+
 /** Fake Thread safe counter, used to avoid cluttering code with ifdefs when counters are only used for debugging. */
 class FNoopCounter
 {

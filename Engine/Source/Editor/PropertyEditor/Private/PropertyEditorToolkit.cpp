@@ -1,16 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
 #include "PropertyEditorToolkit.h"
-#include "IPropertyTable.h"
+#include "Engine/Blueprint.h"
+#include "Editor.h"
+#include "EditorStyleSet.h"
+#include "PropertyEditorModule.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
 #include "IPropertyTableColumn.h"
-#include "PropertyPath.h"
 #include "IPropertyTreeRow.h"
 #include "IPropertyTableRow.h"
-#include "SPropertyTreeViewImpl.h"
 
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditorToolkit"
 

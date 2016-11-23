@@ -2,7 +2,13 @@
 
 #pragma once
 
-class FText;
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
 
 namespace SettingsHelpers
 {

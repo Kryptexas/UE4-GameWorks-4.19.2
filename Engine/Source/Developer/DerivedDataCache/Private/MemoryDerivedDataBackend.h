@@ -1,8 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
 #include "DerivedDataBackendInterface.h"
+#include "ProfilingDebugging/CookStats.h"
 #include "DerivedDataCacheUsageStats.h"
+#include "Misc/ScopeLock.h"
+#include "Templates/ScopedPointer.h"
+
+class Error;
 
 /** 
  * A simple thread safe, memory based backend. This is used for Async puts and the boot cache.

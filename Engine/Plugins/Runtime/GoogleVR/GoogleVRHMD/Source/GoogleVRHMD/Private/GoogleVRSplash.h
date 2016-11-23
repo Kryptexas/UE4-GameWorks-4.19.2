@@ -15,9 +15,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IHeadMountedDisplay.h"
+#include "IGoogleVRHMDPlugin.h"
+
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 #include "TickableObjectRenderThread.h"
 
+class IRendererModule;
+class UTexture2D;
 class FGoogleVRHMD;
 class FGoogleVRHMDCustomPresent;
 

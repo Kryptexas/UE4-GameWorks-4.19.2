@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateReflectorPrivatePCH.h"
 #include "WidgetSnapshotService.h"
+#include "Misc/App.h"
+#include "WidgetSnapshotMessages.h"
 #include "IMessagingModule.h"
-#include "MessageEndpointBuilder.h"
-#include "SWidgetSnapshotVisualizer.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "Widgets/SWidgetSnapshotVisualizer.h"
 
 FWidgetSnapshotService::FWidgetSnapshotService()
 {

@@ -4,6 +4,9 @@
 	OpenGLWindowsLoader.cpp: Manual loading of OpenGL functions from DLL.
 =============================================================================*/
 
+#include "Linux/OpenGLLinux.h"
+#include "Misc/ScopeLock.h"
+#include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
 #include "ComponentReregisterContext.h"
 

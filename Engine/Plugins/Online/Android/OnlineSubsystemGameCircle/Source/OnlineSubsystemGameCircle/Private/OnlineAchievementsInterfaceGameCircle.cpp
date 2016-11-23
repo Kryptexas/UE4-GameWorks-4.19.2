@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemGameCirclePrivatePCH.h"
+#include "OnlineAchievementsInterfaceGameCircle.h"
 #include "Online.h"
 #include "OnlineAchievementsInterface.h"
 #include "Android/AndroidJNI.h"
 #include "AGS/PlayerClientInterface.h"
+#include "OnlineSubsystemGameCircle.h"
 
 
 FOnlineAchievementsGameCircle::FOnlineAchievementsGameCircle( FOnlineSubsystemGameCircle* InSubsystem )

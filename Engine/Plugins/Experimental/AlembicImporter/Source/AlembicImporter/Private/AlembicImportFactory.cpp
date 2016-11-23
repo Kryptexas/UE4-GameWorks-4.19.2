@@ -1,11 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AlembicImporterPrivatePCH.h"
-
-#include "UnrealEd.h"
-#include "MainFrame.h"
-
 #include "AlembicImportFactory.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/SkeletalMesh.h"
+#include "Editor.h"
+#include "EditorFramework/AssetImportData.h"
+#include "HAL/FileManager.h"
+#include "Framework/Application/SlateApplication.h"
+
+#include "IMainFrameModule.h"
+
 #include "AlembicImportOptions.h"
 
 #include "AlembicLibraryModule.h"

@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "AnimSequence.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Animation/AnimSequence.h"
+#include "Engine/DeveloperSettings.h"
 #include "AnimationSettings.generated.h"
 
 /**

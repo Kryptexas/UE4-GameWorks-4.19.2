@@ -2,6 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "IMessageContext.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Interfaces/IAutomationWorkerModule.h"
+
+struct FAutomationWorkerFindWorkers;
+struct FAutomationWorkerImageComparisonResults;
+struct FAutomationWorkerNextNetworkCommandReply;
+struct FAutomationWorkerPing;
+struct FAutomationWorkerRequestTests;
+struct FAutomationWorkerResetTests;
+struct FAutomationWorkerRunTests;
 
 /**
  * Implements the Automation Worker module.

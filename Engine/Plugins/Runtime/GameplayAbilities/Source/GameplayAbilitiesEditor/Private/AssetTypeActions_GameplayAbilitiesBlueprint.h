@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "AssetTypeActions/AssetTypeActions_Blueprint.h"
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Developer/AssetTools/Private/AssetTypeActions/AssetTypeActions_Blueprint.h"
+
+class UFactory;
 
 class FAssetTypeActions_GameplayAbilitiesBlueprint : public FAssetTypeActions_Blueprint
 {

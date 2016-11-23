@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "AssetToolsModule.h"
+#include "AssetTypeActions/AssetTypeActions_SoundCue.h"
+#include "Sound/SoundAttenuation.h"
+#include "Misc/PackageName.h"
+#include "Sound/SoundCue.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Factories/SoundAttenuationFactory.h"
 #include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "AudioEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

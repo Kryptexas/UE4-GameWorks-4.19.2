@@ -1,12 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BehaviorTreeEditorPrivatePCH.h"
-#include "BlueprintGraphDefinitions.h"
-#include "GraphEditorActions.h"
+#include "EdGraphSchema_BehaviorTreeDecorator.h"
+#include "Modules/ModuleManager.h"
+#include "EdGraph/EdGraph.h"
+#include "SoundClassGraph/SoundClassGraphSchema.h"
+#include "BehaviorTree/BTDecorator.h"
+#include "BehaviorTreeDecoratorGraphNode.h"
+#include "AIGraphTypes.h"
+#include "BehaviorTreeDecoratorGraphNode_Decorator.h"
+#include "BehaviorTreeDecoratorGraphNode_Logic.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "BehaviorTreeEditorModule.h"
 #include "GraphEditorSettings.h"
-#include "BehaviorTreeConnectionDrawingPolicy.h"
+#include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeDecoratorSchema"
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()

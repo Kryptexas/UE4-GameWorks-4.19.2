@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "PropertyCustomizationHelpers.h"
+#include "AssetData.h"
+
+class UFactory;
+
 class SPropertyMenuAssetPicker : public SCompoundWidget
 {
 public:

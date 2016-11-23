@@ -6,24 +6,20 @@
 	Dependencies.
 -----------------------------------------------------------------------------*/
 
-#include "Engine.h"
-
-#include "Commandlets/EditorCommandlets.h"
-#include "EditorUndoClient.h"
-#include "TickableEditorObject.h"
-#include "Editor/UnrealEdTypes.h"
+#include "CoreMinimal.h"
+#include "Templates/ScopedCallback.h"
+#include "Engine/Level.h"
+#include "AssetData.h"
 #include "Editor/EditorEngine.h"
+#include "Engine/StaticMesh.h"
+
+
 
 #define CAMERA_ZOOM_DAMPEN			200.f
 
-class FGeomBase;
-class FGeomVertex;
-class FGeomEdge;
-class FGeomPoly;
-class FGeomObject;
-class FScopedTransaction;
+class AStaticMeshActor;
+class FEdMode;
 class UFactory;
-
 
 /** The shorthand identifier used for editor modes */
 typedef FName FEditorModeID;
@@ -232,14 +228,6 @@ enum ETAxis
 	TAXIS_AUTO              = 4,
 };
 
-/** Coordinate system identifiers. */
-enum ECoordSystem
-{
-	COORD_None	= -1,
-	COORD_World,
-	COORD_Local,
-	COORD_Max,
-};
 
 
 
@@ -481,9 +469,6 @@ UStaticMesh* CreateStaticMeshFromBrush(UObject* Outer,FName Name,ABrush* Brush,U
  * @param	StaticMeshActor			The source static mesh.  Must be non-NULL.
  */
 UNREALED_API void CreateModelFromStaticMesh(UModel* Model,AStaticMeshActor* StaticMeshActor);
-
-#include "EditorModeTools.h"
-#include "UnrealWidget.h"
 
 
 /**

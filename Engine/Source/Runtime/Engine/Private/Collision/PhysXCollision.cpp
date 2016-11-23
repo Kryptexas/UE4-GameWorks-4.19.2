@@ -1,14 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "Collision/PhysXCollision.h"
+#include "Engine/World.h"
 #include "Collision.h"
 #include "CollisionDebugDrawingPublic.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Components/PrimitiveComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PhysicsEngine/PhysXSupport.h"
-#include "Physics/PhysicsFiltering.h"
 
 #if WITH_BOX2D
 #include "../PhysicsEngine2D/Box2DIntegration.h"
@@ -470,10 +470,8 @@ private:
 
 #if WITH_PHYSX
 
-#include "../PhysicsEngine/PhysXSupport.h"
-#include "PhysXCollision.h"
-#include "CollisionDebugDrawing.h"
-#include "CollisionConversions.h"
+#include "Collision/CollisionDebugDrawing.h"
+#include "Collision/CollisionConversions.h"
 
 float DebugLineLifetime = 2.f;
 
@@ -740,6 +738,7 @@ PxQueryHitType::Enum FPxQueryFilterCallbackSweep::postFilter(const PxFilterData&
 //@TODO: BOX2D: Can we break the collision analyzer's dependence on PhysX?
 #if ENABLE_COLLISION_ANALYZER
 
+#include "ICollisionAnalyzer.h"
 #include "CollisionAnalyzerModule.h"
 
 bool GCollisionAnalyzerIsRecording = false;

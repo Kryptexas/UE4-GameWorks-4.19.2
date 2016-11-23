@@ -4,18 +4,29 @@
 // Base class of a network driver attached to an active or pending level.
 #pragma once
 
-#include "EngineTypes.h"
-#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
-#include "StatelessConnectHandlerComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Misc/NetworkGuid.h"
+#include "UObject/CoreNet.h"
+#include "GameFramework/WorldSettings.h"
+#include "PacketHandler.h"
 
 #include "NetDriver.generated.h"
 
+class Error;
+class FNetGUIDCache;
+class FNetworkNotify;
+class FNetworkObjectList;
+class FObjectReplicator;
 class FRepChangedPropertyTracker;
 class FRepLayout;
-class FObjectReplicator;
-class FNetworkObjectList;
-struct FNetworkObjectInfo;
 class FReplicationChangelistMgr;
+class FVoicePacket;
+class StatelessConnectHandlerComponent;
+class UNetConnection;
+struct FNetworkObjectInfo;
 
 //
 // Whether to support net lag and packet loss testing.

@@ -2,7 +2,13 @@
 
 #pragma once
 
-#include "LockFreeList.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Containers/LockFreeList.h"
+#include "IPlatformFilePak.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/Runnable.h"
+#include "Math/BigInt.h"
 
 /**
  * Chunk buffer.

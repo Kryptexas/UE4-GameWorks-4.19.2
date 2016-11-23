@@ -1,11 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WmfMediaPCH.h"
+#include "WmfMediaSession.h"
+#include "WmfMediaUtils.h"
+#include "Misc/ScopeLock.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM
 
-#include "WmfMediaSession.h"
-#include "WmfMediaUtils.h"
 #include "AllowWindowsPlatformTypes.h"
 
 

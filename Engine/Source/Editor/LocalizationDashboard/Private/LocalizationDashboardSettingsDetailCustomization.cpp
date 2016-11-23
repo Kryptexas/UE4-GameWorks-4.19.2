@@ -1,17 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LocalizationDashboardPrivatePCH.h"
 #include "LocalizationDashboardSettingsDetailCustomization.h"
+#include "Styling/SlateTypes.h"
+#include "ILocalizationServiceProvider.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Text/STextBlock.h"
 #include "DetailLayoutBuilder.h"
 #include "LocalizationSettings.h"
-#include "LocalizationTargetTypes.h"
 #include "DetailWidgetRow.h"
 #include "DetailCategoryBuilder.h"
-#include "IDetailsView.h"
-#include "ObjectEditorUtils.h"
-#include "ILocalizationServiceProvider.h"
 #include "ILocalizationServiceModule.h"
 #include "ILocalizationDashboardModule.h"
+#include "Widgets/Input/SComboBox.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 

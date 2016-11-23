@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WmfMediaPCH.h"
+#include "CoreMinimal.h"
+#include "WmfMediaPrivate.h"
 #include "IWmfMediaModule.h"
 
 #if WMFMEDIA_SUPPORTED_PLATFORM

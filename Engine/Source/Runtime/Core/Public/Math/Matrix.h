@@ -2,8 +2,15 @@
 
 #pragma once
 
-#include "Axis.h"
-#include "Plane.h"
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Math/Vector.h"
+#include "Math/Vector4.h"
+#include "Math/Plane.h"
+#include "Math/Rotator.h"
+#include "Math/Axis.h"
 
 /**
  * 4x4 matrix of floating point values.
@@ -463,4 +470,4 @@ static inline void Inverse4x4( double* dst, const float* src )
 	}
 }
 
-#include "Matrix.inl"
+#include "Math/Matrix.inl"

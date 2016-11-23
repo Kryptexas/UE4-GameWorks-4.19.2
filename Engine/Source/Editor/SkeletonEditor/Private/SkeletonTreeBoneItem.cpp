@@ -1,15 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "SkeletonTreeBoneItem.h"
 #include "SSkeletonTreeRow.h"
 #include "IPersonaPreviewScene.h"
 #include "IDocumentation.h"
 #include "Animation/BlendProfile.h"
 #include "IEditableSkeleton.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Images/SImage.h"
 #include "BoneDragDropOp.h"
+#include "Animation/DebugSkelMeshComponent.h"
 #include "SocketDragDropOp.h"
-#include "AssetDragDropOp.h"
+#include "DragAndDrop/AssetDragDropOp.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/SToolTip.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeBoneItem"
 

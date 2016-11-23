@@ -2,26 +2,22 @@
 
 #pragma once
 
-#include "GameplayTags.h"
-#include "GameplayAbilitiesModule.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/StringAssetReference.h"
+#include "Misc/StringClassReference.h"
+#include "GameplayTagContainer.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayAbilitiesModule.h"
 #include "AbilitySystemGlobals.generated.h"
 
-class AActor;
 class UAbilitySystemComponent;
-class UCurveTable;
-class UDataTable;
 class UGameplayCueManager;
 class UGameplayTagReponseTable;
-
 struct FGameplayAbilityActorInfo;
-struct FGameplayEffectContext;
-struct FGameplayTag;
-struct FAttributeSetInitter;
 struct FGameplayEffectSpec;
 struct FGameplayEffectSpecForRPC;
-struct FGameplayCueParameters;
-struct FGameplayEffectContextHandle;
 
 /** Called when ability fails to activate, passes along the failed ability and a tag explaining why */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAbilitySystemAssetOpenedDelegate, FString , int );

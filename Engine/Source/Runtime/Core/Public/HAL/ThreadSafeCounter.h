@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/PlatformAtomics.h"
+
 /** Thread safe counter */
 class FThreadSafeCounter
 {

@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
+#include "GameplayDebuggerCategory.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
+#include "GameplayDebuggerCategoryReplicator.h"
 
 FGameplayDebuggerCategory::FGameplayDebuggerCategory() :
 	CollectDataInterval(0.0f),

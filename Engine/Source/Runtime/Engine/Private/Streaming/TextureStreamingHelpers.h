@@ -6,6 +6,13 @@ TextureStreamingHelpers.h: Definitions of classes used for texture streaming.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/MemStack.h"
+
+class UTexture2D;
+
 /**
  * Streaming stats
  */

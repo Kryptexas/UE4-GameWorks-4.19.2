@@ -2,10 +2,17 @@
 
 #pragma once
 
-
-class FMessagingDebuggerModel;
-struct FMessageTracerEndpointInfo;
-
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Models/MessagingDebuggerModel.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SCheckBox.h"
 
 /**
  * Implements a row widget for the session console log.

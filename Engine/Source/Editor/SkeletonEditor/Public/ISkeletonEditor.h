@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "WorkflowCentricApplication.h"
+#include "CoreMinimal.h"
+#include "WorkflowOrientedApp/WorkflowCentricApplication.h"
 #include "IHasPersonaToolkit.h"
 
 class ISkeletonEditor : public FWorkflowCentricApplication, public IHasPersonaToolkit

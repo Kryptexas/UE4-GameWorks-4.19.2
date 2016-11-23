@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
+#include "CEF/CEFJSScripting.h"
+
 #if WITH_CEF3
 
 #include "WebJSScripting.h"

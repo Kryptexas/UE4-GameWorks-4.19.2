@@ -1,9 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectExtension_ShieldTest.h"
-#include "AbilitySystemComponent.h"
-#include "AbilitySystemTestAttributeSet.h"
 
 UGameplayEffectExtension_ShieldTest::UGameplayEffectExtension_ShieldTest(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)

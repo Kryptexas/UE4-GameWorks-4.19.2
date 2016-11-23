@@ -1,14 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LevelSequencePCH.h"
 #include "LevelSequenceSpawnRegister.h"
-#include "MovieSceneSequenceInstance.h"
-#include "MovieSceneSpawnable.h"
-#include "MovieSceneSequence.h"
+#include "Engine/EngineTypes.h"
 #include "MovieScene.h"
-#include "MovieSceneCommonHelpers.h"
-#include "Particles/ParticleSystem.h"
-#include "IMovieScenePlayer.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Engine/Engine.h"
+#include "MovieSceneSequence.h"
 
 static const FName SequencerActorTag(TEXT("SequencerActor"));
 

@@ -1,9 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HttpPrivatePCH.h"
-#include "CurlHttpManager.h"
-#include "CurlHttpThread.h"
-#include "CurlHttp.h"
+#include "Curl/CurlHttpManager.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/LocalTimestampDirectoryVisitor.h"
+#include "Curl/CurlHttpThread.h"
+#include "Curl/CurlHttp.h"
 
 #if WITH_LIBCURL
 

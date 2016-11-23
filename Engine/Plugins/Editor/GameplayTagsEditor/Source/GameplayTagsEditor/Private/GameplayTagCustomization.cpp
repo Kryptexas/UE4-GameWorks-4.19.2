@@ -1,13 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagCustomization.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "MainFrame.h"
-#include "SGameplayTagWidget.h"
-#include "GameplayTagContainer.h"
-#include "ScopedTransaction.h"
-#include "SScaleBox.h"
+#include "Widgets/Input/SComboButton.h"
+
+#include "Editor.h"
+#include "PropertyHandle.h"
+#include "DetailWidgetRow.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagCustomization"
 

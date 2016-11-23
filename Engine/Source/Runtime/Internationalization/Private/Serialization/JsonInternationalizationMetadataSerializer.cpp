@@ -1,9 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "InternationalizationPrivatePCH.h"
-#include "Internationalization/InternationalizationMetadata.h"
-#include "Json.h"
-#include "JsonInternationalizationMetadataSerializer.h"
+#include "Serialization/JsonInternationalizationMetadataSerializer.h"
+#include "Serialization/JsonSerializer.h"
 
 
 struct FCompareLocMetadataValue

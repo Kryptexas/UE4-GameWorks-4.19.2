@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "MessagingDebuggerTypeFilter.h"
-#include "SMessagingTypesFilterBar.h"
+#include "Widgets/Types/SMessagingTypesFilterBar.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SSearchBox.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingTypesFilterBar"

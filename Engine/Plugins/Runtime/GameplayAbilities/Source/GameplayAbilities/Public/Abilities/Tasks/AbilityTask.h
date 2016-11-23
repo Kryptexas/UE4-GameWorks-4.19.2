@@ -1,10 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameplayPrediction.h"
+#include "GameplayAbilitySpec.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "GameplayTask.h"
-#include "GameplayAbility.h"
-#include "AbilitySystemComponent.h"
+#include "Abilities/GameplayAbility.h"
 #include "AbilityTask.generated.h"
 
+class UAbilitySystemComponent;
+class UGameplayTasksComponent;
 
 /**
  *	AbilityTasks are small, self contained operations that can be performed while executing an ability.

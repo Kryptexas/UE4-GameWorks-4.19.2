@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility.h"
-#include "GameplayEffect.h"
+#include "TimerManager.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/NetDriver.h"
+#include "AbilitySystemStats.h"
+#include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
-#include "AbilitySystemBlueprintLibrary.h"
-#include "AbilityTask.h"
-#include "VisualLogger.h"
-#include "GameplayCueManager.h"
+#include "Abilities/Tasks/AbilityTask.h"
+#include "GameplayCue_Types.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //

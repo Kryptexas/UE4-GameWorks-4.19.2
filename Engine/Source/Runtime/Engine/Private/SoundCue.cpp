@@ -1,16 +1,28 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Sound/SoundCue.h"
+#include "Misc/App.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Components/AudioComponent.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineUtils.h"
+#include "Sound/SoundNode.h"
 #include "Sound/SoundNodeMixer.h"
+#include "Sound/SoundNodeAssetReferencer.h"
+#include "Sound/SoundWave.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "Sound/SoundNodeQualityLevel.h"
 #include "Sound/SoundNodeSoundClass.h"
-#include "Sound/SoundWave.h"
 #include "GameFramework/GameUserSettings.h"
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "SoundCueGraph/SoundCueGraphNode.h"
+#include "SoundCueGraph/SoundCueGraph.h"
+#include "SoundCueGraph/SoundCueGraphNode_Root.h"
+#include "SoundCueGraph/SoundCueGraphSchema.h"
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -454,10 +466,10 @@ void USoundCue::SetupSoundNode(USoundNode* InSoundNode, bool bSelectNewNode/* = 
 void USoundCue::LinkGraphNodesFromSoundNodes()
 {
 	USoundCue::GetSoundCueAudioEditor()->LinkGraphNodesFromSoundNodes(this);
-}
+	}
 
 void USoundCue::CompileSoundNodesFromGraphNodes()
-{
+	{
 	USoundCue::GetSoundCueAudioEditor()->CompileSoundNodesFromGraphNodes(this);
 }
 
@@ -469,9 +481,9 @@ void USoundCue::SetSoundCueAudioEditor(TSharedPtr<ISoundCueAudioEditor> InSoundC
 
 /** Gets the sound cue graph editor implementation. */
 TSharedPtr<ISoundCueAudioEditor> USoundCue::GetSoundCueAudioEditor()
-{
+	{
 	return SoundCueAudioEditor;
 }
-
+			
 
 #endif

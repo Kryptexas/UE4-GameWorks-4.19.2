@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "Perception/AISightTargetInterface.h"
 #include "Perception/AISense_Sight.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "CollisionQueryParams.h"
+#include "Engine/Engine.h"
+#include "AISystem.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "VisualLogger/VisualLogger.h"
+#include "Perception/AISightTargetInterface.h"
 #include "Perception/AISenseConfig_Sight.h"
 
 #define DO_SIGHT_VLOGGING (0 && ENABLE_VISUAL_LOG)

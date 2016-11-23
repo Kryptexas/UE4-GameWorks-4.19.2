@@ -6,7 +6,10 @@
 
 #pragma once
 
-#include "Linker.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/ScopeLock.h"
 
 class FLinkerManager : private FSelfRegisteringExec
 {

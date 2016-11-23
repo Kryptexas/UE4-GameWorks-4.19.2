@@ -2,8 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "EditorFramework/AssetImportData.h"
 #include "FbxAssetImportData.generated.h"
+
+class UFbxSceneImportData;
 
 /**
  * Base class for import data and options used when importing any asset from FBX

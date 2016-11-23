@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+struct FUserActivity;
+
 enum class EEngineSessionManagerMode
 {
 	Editor,

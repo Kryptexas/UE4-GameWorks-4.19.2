@@ -4,16 +4,30 @@
 	SkeletalMeshImport.cpp: Skeletal mesh import code.
 =============================================================================*/
 
-#include "UnrealEd.h"
-#include "Factories.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Materials/MaterialInterface.h"
+#include "GPUSkinPublicDefs.h"
+#include "ReferenceSkeleton.h"
+#include "SkeletalMeshTypes.h"
+#include "Engine/SkeletalMesh.h"
+#include "EditorFramework/ThumbnailInfo.h"
 #include "SkelImport.h"
 #include "SkeletalMeshSorting.h"
-#include "../../../../Source/Runtime/Engine/Classes/PhysicsEngine/PhysicsAsset.h"
+#include "RawIndexBuffer.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
-#include "FbxErrors.h"
+#include "Misc/FbxErrors.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "LODUtilities.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "UObject/Package.h"
+#include "MeshUtilities.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalMeshImport, Log, All);
 

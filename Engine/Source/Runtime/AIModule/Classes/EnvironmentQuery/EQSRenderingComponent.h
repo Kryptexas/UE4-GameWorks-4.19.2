@@ -1,15 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EngineDefines.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
+#include "PrimitiveViewRelevance.h"
 #include "DebugRenderSceneProxy.h"
-#include "Debug/DebugDrawService.h"
-#include "EnvQueryTypes.h"
-#include "EnvQueryDebugHelpers.h"
+#include "EnvironmentQuery/EnvQueryDebugHelpers.h"
 #include "Components/PrimitiveComponent.h"
 #include "EQSRenderingComponent.generated.h"
 
+class APlayerController;
 class IEQSQueryResultSourceInterface;
-struct FEnvQueryInstance;
+class UCanvas;
 
 class AIMODULE_API FEQSSceneProxy : public FDebugRenderSceneProxy
 {

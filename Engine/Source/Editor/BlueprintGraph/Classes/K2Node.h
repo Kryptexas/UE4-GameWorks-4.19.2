@@ -1,15 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "EdGraph/EdGraphNode.h"
+#include "UObject/LinkerLoad.h"
 #include "BlueprintNodeSignature.h"
-#include "EngineLogs.h"
 #include "K2Node.generated.h"
 
-class UActorComponent;
-class UBlueprintNodeSpawner;
+class AActor;
 class FBlueprintActionDatabaseRegistrar;
+class UActorComponent;
+class UBlueprint;
 class UDynamicBlueprintBinding;
+class UEdGraph;
+class UEdGraphPin;
+class UEdGraphSchema;
 
 /** Helper structure to cache old data for optional pins so the data can be restored during reconstruction */
 struct FOldOptionalPinSettings

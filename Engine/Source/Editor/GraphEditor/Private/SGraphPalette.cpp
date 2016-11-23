@@ -1,16 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
 #include "SGraphPalette.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/SOverlay.h"
+#include "Widgets/Images/SImage.h"
+#include "EditorStyleSet.h"
+#include "GraphEditorDragDropAction.h"
 
-#include "EditorWidgets.h"
+#include "EditorWidgetsModule.h"
 
 //#include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
 
 #include "IDocumentation.h"
-#include "SInlineEditableTextBlock.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 #include "SPinTypeSelector.h"
 
 void SGraphPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActionData* const InCreateData)

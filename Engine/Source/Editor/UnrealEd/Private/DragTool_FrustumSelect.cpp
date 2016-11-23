@@ -1,17 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
-#include "StaticMeshResources.h"
 #include "DragTool_FrustumSelect.h"
+#include "Components/PrimitiveComponent.h"
+#include "CanvasItem.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "GameFramework/Volume.h"
+#include "EngineUtils.h"
+#include "Engine/Selection.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
 #include "ActorEditorUtils.h"
 #include "ScopedTransaction.h"
 #include "HModel.h"
-#include "Components/DrawSphereComponent.h"
-#include "AI/Navigation/NavLinkRenderingComponent.h"
-#include "Engine/Selection.h"
-#include "EngineUtils.h"
-#include "CanvasItem.h"
 #include "CanvasTypes.h"
 
 ///////////////////////////////////////////////////////////////////////////////

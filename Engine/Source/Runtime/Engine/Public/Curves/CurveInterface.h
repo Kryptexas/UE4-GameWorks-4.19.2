@@ -1,7 +1,8 @@
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Curves/KeyHandle.h"
-#include "KeyFrameManipulator.h"
+#include "Curves/KeyFrameManipulator.h"
 
 /**
  * Proxy type used to reference a key's time and value

@@ -4,28 +4,31 @@
 	MaterialShared.cpp: Shared material implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Materials/MaterialExpressionBreakMaterialAttributes.h"
+#include "MaterialShared.h"
+#include "Stats/StatsMisc.h"
+#include "UObject/CoreObjectVersion.h"
+#include "Misc/App.h"
+#include "UObject/UObjectHash.h"
+#include "LocalVertexFactory.h"
+#include "Materials/MaterialInterface.h"
+#include "MaterialExpressionIO.h"
+#include "Materials/Material.h"
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
-#include "PixelFormat.h"
+#include "Materials/MaterialInstance.h"
+#include "UObject/UObjectIterator.h"
+#include "ComponentReregisterContext.h"
+#include "Materials/MaterialExpressionBreakMaterialAttributes.h"
 #include "ShaderCompiler.h"
 #include "MaterialCompiler.h"
-#include "MaterialShaderType.h"
 #include "MeshMaterialShaderType.h"
-#include "HLSLMaterialTranslator.h"
-#include "MaterialUniformExpressions.h"
-#include "Developer/TargetPlatform/Public/TargetPlatform.h"
-#include "ComponentReregisterContext.h"
+#include "RendererInterface.h"
+#include "Materials/HLSLMaterialTranslator.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "EngineModule.h"
-#include "Engine/Font.h"
+#include "Engine/Texture.h"
 
-#include "LocalVertexFactory.h"
-
-#include "VertexFactory.h"
-#include "RendererInterface.h"
+#include "ShaderPlatformQualitySettings.h"
 #include "MaterialShaderQualitySettings.h"
-#include "UObject/CoreObjectVersion.h"
 #include "DecalRenderingCommon.h"
 
 DEFINE_LOG_CATEGORY(LogMaterial);
@@ -2726,8 +2729,7 @@ bool FMaterialShaderMapId::ContainsVertexFactoryType(const FVertexFactoryType* V
 	}
 
 	return false;
-}
-//////////////////////////////////////////////////////////////////////////
+}//////////////////////////////////////////////////////////////////////////
 
 FMaterialAttributeDefintion::FMaterialAttributeDefintion(
 		const FGuid& InAttributeID, const FString& InDisplayName, EMaterialProperty InProperty,

@@ -1,11 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_VariableGet.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EdGraph/EdGraph.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_IfThenElse.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
 #include "ScopedTransaction.h"
-#include "Kismet/KismetTextLibrary.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_VariableGet

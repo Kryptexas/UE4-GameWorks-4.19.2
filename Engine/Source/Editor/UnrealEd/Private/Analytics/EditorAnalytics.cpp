@@ -1,14 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "TargetPlatform.h"
-
-#include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-
 #include "EditorAnalytics.h"
 #include "GeneralProjectSettings.h"
-#include "GameProjectGenerationModule.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+
+#include "EngineAnalytics.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
+
 
 #define LOCTEXT_NAMESPACE "EditorAnalytics"
 

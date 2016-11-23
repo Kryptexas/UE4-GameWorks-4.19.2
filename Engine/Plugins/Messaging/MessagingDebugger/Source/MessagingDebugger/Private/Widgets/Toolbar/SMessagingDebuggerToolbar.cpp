@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "MessagingDebuggerCommands.h"
-#include "SMessagingDebuggerToolbar.h"
+#include "Widgets/Toolbar/SMessagingDebuggerToolbar.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Models/MessagingDebuggerCommands.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingDebuggerToolbar"

@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "PropertyEditorPrivatePCH.h"
 #include "PropertyChangeListener.h"
+#include "UObject/UnrealType.h"
+#include "PropertyNode.h"
 #include "ObjectPropertyNode.h"
 #include "PropertyEditorHelpers.h"
 

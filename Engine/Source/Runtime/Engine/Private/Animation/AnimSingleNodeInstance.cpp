@@ -5,16 +5,9 @@
 	Only plays one animation at a time. 
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "Animation/AnimNodeBase.h"
 #include "Animation/AnimSingleNodeInstance.h"
-#include "AnimationRuntime.h"
-#include "Animation/BlendSpace.h"
 #include "Animation/BlendSpaceBase.h"
-#include "Animation/AnimComposite.h"
-#include "Animation/AimOffsetBlendSpace.h"
-#include "Animation/AimOffsetBlendSpace1D.h"
-#include "Animation/AnimMontage.h"
+#include "Animation/BlendSpace.h"
 #include "Animation/AnimSingleNodeInstanceProxy.h"
 
 /////////////////////////////////////////////////////

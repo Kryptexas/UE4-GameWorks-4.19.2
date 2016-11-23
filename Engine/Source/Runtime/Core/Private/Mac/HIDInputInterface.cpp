@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "HIDInputInterface.h"
-
+#include "HAL/PlatformTime.h"
+#include "Misc/CallbackDevice.h"
+#include "Templates/SharedPointer.h"
 
 static int32 GetDevicePropertyAsInt32(IOHIDDeviceRef DeviceRef, CFStringRef Property)
 {

@@ -1,13 +1,30 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "Windows/WindowsPlatformOutputDevices.h"
+#include "Logging/LogMacros.h"
+#include "Misc/OutputDevice.h"
+#include "HAL/PlatformTime.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
+#include "CoreGlobals.h"
+#include "Misc/CString.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Misc/CoreDelegates.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Misc/App.h"
 
-#include "FeedbackContextAnsi.h"
-#include "../Private/Windows/WindowsPlatformOutputDevicesPrivate.h"
-#include "../Private/Windows/WindowsPlatformFeedbackContextPrivate.h"
+#include "HAL/FeedbackContextAnsi.h"
+#include "WindowsPlatformOutputDevicesPrivate.h"
+#include "WindowsPlatformFeedbackContextPrivate.h"
 #include "HAL/ThreadHeartBeat.h"
 
-#include "AllowWindowsPlatformTypes.h"
+#include "Windows/WindowsHWrapper.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 
 namespace OutputDeviceConstants
 {
@@ -15,7 +32,7 @@ namespace OutputDeviceConstants
 	uint32 WIN_ATTACH_PARENT_PROCESS = ATTACH_PARENT_PROCESS;
 }
 
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"
 
 
 //////////////////////////////////

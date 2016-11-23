@@ -1,10 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayAbilitiesEditorModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "Stats/StatsMisc.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Docking/TabManager.h"
+#include "EditorStyleSet.h"
+#include "HAL/IConsoleManager.h"
+#include "Framework/Application/SlateApplication.h"
+
+#include "PropertyEditorModule.h"
 #include "AttributeDetails.h"
-#include "AttributeSet.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayEffect.h"
+#include "Misc/FeedbackContext.h"
+#include "GameplayAbilitiesModule.h"
+#include "GameplayTagsManager.h"
+#include "GameplayTagsModule.h"
 #include "AbilitySystemGlobals.h"
 #include "GameplayEffectDetails.h"
 #include "GameplayEffectExecutionScopedModifierInfoDetails.h"
@@ -13,24 +27,25 @@
 #include "GameplayModEvaluationChannelSettingsDetails.h"
 #include "AttributeBasedFloatDetails.h"
 
-#include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
+#include "IAssetTypeActions.h"
 #include "AssetTypeActions_GameplayAbilitiesBlueprint.h"
+#include "EdGraphUtilities.h"
 #include "GameplayAbilitiesGraphPanelPinFactory.h"
 #include "GameplayCueTagDetails.h"
 
-#include "GameplayTagsModule.h"
-#include "Editor/BlueprintGraph/Public/BlueprintActionDatabase.h"
+#include "BlueprintActionDatabase.h"
 #include "K2Node_GameplayCueEvent.h"
 
 #include "SGameplayCueEditor.h"
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "SDockTab.h"
+#include "WorkspaceMenuStructure.h"
+#include "WorkspaceMenuStructureModule.h"
+#include "Widgets/Docking/SDockTab.h"
 
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "HotReloadInterface.h"
+#include "LevelEditor.h"
+#include "Misc/HotReloadInterface.h"
+#include "EditorReimportHandler.h"
 
-#include "AbilitySystemGlobals.h"
 
 class FGameplayAbilitiesEditorModule : public IGameplayAbilitiesEditorModule
 {

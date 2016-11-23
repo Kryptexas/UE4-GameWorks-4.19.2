@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "ScriptPerfData.h"
+#include "Profiler/ScriptPerfData.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ScriptPerfDataUIText

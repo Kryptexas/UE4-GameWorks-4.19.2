@@ -1,9 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UdpMessagingPrivatePCH.h"
-#include "UdpMessagingTestTypes.h"
-#include "UdpSerializeMessageTask.h"
-#include "UdpSerializedMessage.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/AutomationTest.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "Transport/UdpSerializedMessage.h"
+#include "IMessageContext.h"
+#include "Transport/UdpSerializeMessageTask.h"
+#include "Tests/UdpMessagingTestTypes.h"
+
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUdpSerializeMessageTaskTest, "System.Core.Messaging.Transports.Udp.UdpSerializedMessage", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::EngineFilter)

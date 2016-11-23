@@ -1,21 +1,27 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
 #include "BehaviorTreeTypes.generated.h"
 
-class UBlackboardData;
-class UBlackboardComponent;
+class FBlackboardDecoratorDetails;
+class UBehaviorTree;
 class UBehaviorTreeComponent;
+class UBlackboardComponent;
+class UBlackboardData;
+class UBlackboardKeyType;
+class UBTAuxiliaryNode;
+class UBTCompositeNode;
 class UBTNode;
 class UBTTaskNode;
-class UBehaviorTree;
-class UBTCompositeNode;
-class UBTAuxiliaryNode;
-class UBlackboardKeyType;
-class FBlackboardDecoratorDetails;
-
-struct FBTNodeIndex;
-struct FBehaviorTreeSearchUpdate;
+struct FBehaviorTreeSearchData;
 
 // Visual logging helper
 #define BT_VLOG(Context, Verbosity, Format, ...) UE_VLOG(Context->OwnerComp.IsValid() ? Context->OwnerComp->GetOwner() : NULL, LogBehaviorTree, Verbosity, Format, ##__VA_ARGS__)

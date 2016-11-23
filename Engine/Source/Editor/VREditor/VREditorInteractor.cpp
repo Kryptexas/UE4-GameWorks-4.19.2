@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "VREditorModule.h"
 #include "VREditorInteractor.h"
+#include "EngineUtils.h"
 #include "ViewportWorldInteraction.h"
 
 #include "VREditorMode.h"
 #include "VREditorFloatingText.h"
 
 #include "VREditorButton.h"
+#include "VREditorFloatingUI.h"
 #include "VREditorDockableWindow.h"
 
 #define LOCTEXT_NAMESPACE "VREditor"

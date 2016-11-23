@@ -4,8 +4,25 @@
 	AndroidDeviceDetectionModule.cpp: Implements the FAndroidDeviceDetectionModule class.
 =============================================================================*/
 
-#include "AndroidDeviceDetectionPrivatePCH.h"
-#include "ModuleManager.h"
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/StringConv.h"
+#include "Containers/Map.h"
+#include "GenericPlatform/GenericPlatformStackWalk.h"
+#include "HAL/PlatformProcess.h"
+#include "Logging/LogMacros.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Misc/Paths.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/ScopeLock.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/IAndroidDeviceDetection.h"
+#include "Interfaces/IAndroidDeviceDetectionModule.h"
 #include "ITcpMessagingModule.h"
 
 #define LOCTEXT_NAMESPACE "FAndroidDeviceDetectionModule" 

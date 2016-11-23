@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class UBlendProfile;
+
 DECLARE_DELEGATE_OneParam(FOnBlendProfileSelected, UBlendProfile*);
 
 /** Argument used to set up the blend profile picker */

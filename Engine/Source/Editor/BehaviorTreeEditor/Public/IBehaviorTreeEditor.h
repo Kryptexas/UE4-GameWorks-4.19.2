@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "WorkflowCentricApplication.h"
+#include "CoreMinimal.h"
+#include "WorkflowOrientedApp/WorkflowCentricApplication.h"
+
+class UEdGraphNode;
+struct Rect;
 
 /** BT Editor public interface */
 class IBehaviorTreeEditor : public FWorkflowCentricApplication

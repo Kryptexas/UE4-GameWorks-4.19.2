@@ -2,23 +2,24 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieScenePropertyTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Curves/RichCurve.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieScenePropertyTemplate.h"
 #include "Curves/IntegralCurve.h"
 #include "Curves/StringCurve.h"
 
 #include "MovieScenePropertyTemplates.generated.h"
 
 class UMovieSceneBoolSection;
-class UMovieSceneFloatSection;
 class UMovieSceneByteSection;
+class UMovieSceneFloatSection;
 class UMovieSceneIntegerSection;
-class UMovieSceneVectorSection;
-class UMovieSceneStringSection;
 class UMovieScenePropertyTrack;
+class UMovieSceneStringSection;
+class UMovieSceneVectorSection;
 class UMovieSceneEnumSection;
-
 
 USTRUCT()
 struct FMovieSceneBoolPropertySectionTemplate : public FMovieSceneEvalTemplate

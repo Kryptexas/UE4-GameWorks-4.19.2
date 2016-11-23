@@ -2,9 +2,14 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Editor/PropertyEditor/Public/IPropertyTypeCustomization.h"
 #include "SGameplayTagWidget.h"
 #include "EditorUndoClient.h"
+
+class IPropertyHandle;
+class SComboButton;
 
 /** Customization for the gameplay tag struct */
 class FGameplayTagCustomization : public IPropertyTypeCustomization, public FEditorUndoClient

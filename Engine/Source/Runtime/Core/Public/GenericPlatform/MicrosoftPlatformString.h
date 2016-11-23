@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Char.h"
+#include "Misc/Char.h"
 #include "GenericPlatform/GenericPlatformString.h"
 #include "GenericPlatformStricmp.h"
 

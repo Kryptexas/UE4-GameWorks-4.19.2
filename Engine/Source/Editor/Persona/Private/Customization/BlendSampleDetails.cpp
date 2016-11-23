@@ -1,17 +1,25 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
-#include "BlendSampleDetails.h"
+#include "Customization/BlendSampleDetails.h"
 
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "IDetailsView.h"
+#include "EditorStyleSet.h"
+#include "Misc/StringAssetReference.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
 
-#include "SNumericEntryBox.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 
+#include "Animation/AnimSequence.h"
 #include "Animation/BlendSpaceBase.h"
 #include "Animation/BlendSpace1D.h"
 #include "SAnimationBlendSpaceGridWidget.h"
+#include "PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "BlendSampleDetails"
 

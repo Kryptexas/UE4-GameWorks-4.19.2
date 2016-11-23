@@ -1,17 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "SlateBasics.h"
-#include "AutomationCommon.h"
-#include "ImageUtils.h"
-#include "ShaderCompiler.h"		// GShaderCompilingManager
+#include "Tests/AutomationCommon.h"
+#include "Misc/Paths.h"
+#include "EngineGlobals.h"
+#include "Widgets/SWidget.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/Engine.h"
+#include "HardwareInfo.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Kismet/GameplayStatics.h"
+#include "ContentStreaming.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "ShaderCompiler.h"
 #include "GameFramework/GameStateBase.h"
 #include "Scalability.h"
-
-#if WITH_EDITOR
-#include "FileHelpers.h"
-#endif
-
 #include "Matinee/MatineeActor.h"
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)

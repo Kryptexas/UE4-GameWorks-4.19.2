@@ -6,6 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "SceneView.h"
+
+class FPrimitiveSceneProxy;
+
 /** 
 * Set of custom depth scene prims  
 */

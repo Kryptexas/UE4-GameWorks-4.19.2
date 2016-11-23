@@ -6,9 +6,10 @@
 	See https://msdn.microsoft.com/en-us/library/windows/desktop/hh405049%28v=vs.85%29.aspx
 */
 
+#include "AudioMixerPlatformXAudio2.h"
 #include "AudioMixer.h"
 #include "AudioMixerDevice.h"
-#include "AudioMixerPlatformXAudio2.h"
+#include "HAL/PlatformAffinity.h"
 #include "OpusAudioInfo.h"
 #include "VorbisAudioInfo.h"
 

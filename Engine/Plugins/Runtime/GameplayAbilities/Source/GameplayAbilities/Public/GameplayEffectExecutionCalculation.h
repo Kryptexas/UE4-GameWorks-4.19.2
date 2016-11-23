@@ -2,12 +2,16 @@
 
 #pragma once
 
-#include "GameplayEffectCalculation.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
+#include "GameplayTagContainer.h"
+#include "GameplayEffectTypes.h"
 #include "GameplayEffectAggregator.h"
 #include "GameplayEffect.h"
+#include "GameplayEffectCalculation.h"
 #include "GameplayEffectExecutionCalculation.generated.h"
 
-struct FGameplayEffectSpec;
 class UAbilitySystemComponent;
 
 /** Struct representing parameters for a custom gameplay effect execution. Should not be held onto via reference, used just for the scope of the execution */

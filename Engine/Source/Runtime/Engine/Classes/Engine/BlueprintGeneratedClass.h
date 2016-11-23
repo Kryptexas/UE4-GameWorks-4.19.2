@@ -2,9 +2,21 @@
 
 #pragma once
 
-#include "MeshBatch.h"
-#include "Archive.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "EdGraph/EdGraphPin.h"
 #include "BlueprintGeneratedClass.generated.h"
+
+class AActor;
+class UActorComponent;
+class UDynamicBlueprintBinding;
+class UInheritableComponentHandler;
+class UTimelineTemplate;
 
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Persistent Uber Graph Frame memory"), STAT_PersistentUberGraphFrameMemory, STATGROUP_Memory, );
 

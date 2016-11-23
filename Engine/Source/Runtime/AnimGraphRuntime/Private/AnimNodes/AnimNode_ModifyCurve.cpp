@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphRuntimePrivatePCH.h"
-#include "AnimationRuntime.h"
-#include "AnimInstanceProxy.h"
 #include "AnimNodes/AnimNode_ModifyCurve.h"
+#include "AnimationRuntime.h"
+#include "Animation/AnimInstanceProxy.h"
 
 FAnimNode_ModifyCurve::FAnimNode_ModifyCurve()
 {

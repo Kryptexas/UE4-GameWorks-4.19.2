@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "AssetData.h"
+#include "Misc/AssetRegistryInterface.h"
+
 /** Implementation of IDependsNode */
 class FDependsNode
 {

@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "BuildPatchManifest.h"
+#include "Interfaces/IBuildPatchServicesModule.h"
+
 // A delegate returning a bool. Used to pass a paused state
 DECLARE_DELEGATE_RetVal(bool, FBuildPatchBoolRetDelegate);
 

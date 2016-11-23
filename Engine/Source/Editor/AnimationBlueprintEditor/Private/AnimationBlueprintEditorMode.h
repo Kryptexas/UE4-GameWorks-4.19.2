@@ -2,7 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "WorkflowOrientedApp/WorkflowTabManager.h"
+#include "AnimationBlueprintEditor.h"
+#include "Animation/AnimBlueprint.h"
 #include "BlueprintEditorModes.h"
+
+class IPersonaPreviewScene;
 
 /////////////////////////////////////////////////////
 // FAnimBlueprintEditAppMode

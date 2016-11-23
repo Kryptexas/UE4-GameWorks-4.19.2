@@ -732,8 +732,10 @@ namespace UnrealBuildTool
 				// gets the correct ORIGINAL_FILE_NAME macro.
 				if (UEBuildConfiguration.bFormalBuild && !BinaryLinkEnvironment.InputFiles.Any(x => x.Reference.HasExtension(".res")))
 				{
+					CPPEnvironment BinaryResourceCompileEnvironment = BinaryCompileEnvironment.DeepCopy();
+					BinaryResourceCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(BinaryResourceCompileEnvironment.Config.OutputDirectory, Modules.First().Name);
 					FileItem DefaultResourceFile = FileItem.GetItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Launch", "Resources", "Windows", "PCLaunch.rc"));
-					CPPOutput DefaultResourceOutput = ToolChain.CompileRCFiles(BinaryCompileEnvironment, new List<FileItem> { DefaultResourceFile }, ActionGraph);
+					CPPOutput DefaultResourceOutput = ToolChain.CompileRCFiles(BinaryResourceCompileEnvironment, new List<FileItem> { DefaultResourceFile }, ActionGraph);
 					BinaryLinkEnvironment.InputFiles.AddRange(DefaultResourceOutput.ObjectFiles);
 				}
 

@@ -2,15 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieSceneTrackImplementation.h"
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneFadeSection.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Curves/RichCurve.h"
+#include "Evaluation/MovieSceneTrackImplementation.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Sections/MovieSceneFadeSection.h"
 
 #include "MovieSceneFadeTemplate.generated.h"
-
-class UMovieSceneFadeTrack;
 
 USTRUCT()
 struct FMovieSceneFadeSectionTemplate : public FMovieSceneEvalTemplate

@@ -1,7 +1,19 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LauncherServicesPrivatePCH.h"
+#include "Launcher/LauncherWorker.h"
+#include "HAL/PlatformTime.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Containers/Queue.h"
+#include "Modules/ModuleManager.h"
+#include "Launcher/LauncherTaskChainState.h"
+#include "Launcher/LauncherTask.h"
+#include "Launcher/LauncherUATTask.h"
+#include "Launcher/LauncherVerifyProfileTask.h"
 #include "PlatformInfo.h"
+#include "ISourceCodeAccessor.h"
 #include "ISourceCodeAccessModule.h"
 
 #define LOCTEXT_NAMESPACE "LauncherWorker"

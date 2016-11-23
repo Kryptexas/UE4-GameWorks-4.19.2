@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Interface.h"
 #include "TickableAttributeSetInterface.generated.h"
 
 /** Interface for actors which can be "spotted" by a player */

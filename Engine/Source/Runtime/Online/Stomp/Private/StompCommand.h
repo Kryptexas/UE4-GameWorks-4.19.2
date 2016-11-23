@@ -1,6 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class Error;
+
+#if WITH_STOMP
+
 typedef FName FStompCommand;
 
 #define DECLARE_COMMAND(Name) extern const FStompCommand Name ## Command
@@ -22,3 +29,5 @@ DECLARE_COMMAND(Receipt);
 DECLARE_COMMAND(Error);
 
 #undef DECLARE_COMMAND
+
+#endif

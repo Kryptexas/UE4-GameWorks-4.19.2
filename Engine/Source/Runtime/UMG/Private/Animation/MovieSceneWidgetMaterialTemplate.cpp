@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "MovieSceneWidgetMaterialTemplate.h"
-#include "WidgetMaterialTrackUtilities.h"
-#include "MovieSceneWidgetMaterialTrack.h"
+#include "Animation/MovieSceneWidgetMaterialTemplate.h"
+#include "Animation/WidgetMaterialTrackUtilities.h"
+#include "Animation/MovieSceneWidgetMaterialTrack.h"
+#include "Components/Widget.h"
 
 // Container to ensure unique IDs per property path
 TMovieSceneAnimTypeIDContainer<TArray<FName>> BrushPropertyIDs;

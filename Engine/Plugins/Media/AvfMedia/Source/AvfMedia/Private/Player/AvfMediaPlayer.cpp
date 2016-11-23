@@ -1,7 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AvfMediaPCH.h"
 #include "AvfMediaPlayer.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "IOS/IOSAsyncTask.h"
 
 /**
  * Cocoa class that can help us with reading player item information.

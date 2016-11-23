@@ -6,10 +6,17 @@ TextureStreamingManager.h: Definitions of classes used for texture streaming.
 
 #pragma once
 
-#include "StreamingTexture.h"
-#include "TextureInstanceManager.h"
+#include "CoreMinimal.h"
+#include "ContentStreaming.h"
+#include "Streaming/TextureStreamingHelpers.h"
+#include "Streaming/StreamingTexture.h"
+#include "Streaming/TextureInstanceManager.h"
 
-class FAsyncTextureStreamingData;
+class AActor;
+class FAsyncTextureStreamingTask;
+class UPrimitiveComponent;
+
+template<typename TTask> class FAsyncTask;
 
 /*-----------------------------------------------------------------------------
 	Texture streaming.

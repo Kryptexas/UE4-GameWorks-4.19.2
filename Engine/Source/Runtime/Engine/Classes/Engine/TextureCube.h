@@ -2,7 +2,13 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/Texture.h"
 #include "TextureCube.generated.h"
+
+class FTextureResource;
 
 UCLASS(hidecategories=Object, MinimalAPI)
 class UTextureCube : public UTexture

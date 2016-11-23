@@ -1,46 +1,73 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "ExceptionHandling.h"
-#include "SecureHash.h"
-#include "WindowsApplication.h"
-#include "EngineVersion.h"
-#include "WindowsPlatformCrashContext.h"
+#include "Windows/WindowsPlatformMisc.h"
+#include "Misc/DateTime.h"
+#include "Misc/AssertionMacros.h"
+#include "Logging/LogMacros.h"
+#include "Misc/OutputDevice.h"
+#include "HAL/PlatformStackWalk.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
+#include "CoreGlobals.h"
+#include "HAL/FileManager.h"
+#include "Misc/CString.h"
+#include "Misc/Parse.h"
+#include "Misc/MessageDialog.h"
+#include "Containers/StringConv.h"
+#include "Containers/UnrealString.h"
+#include "CoreGlobals.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
+#include "Math/Color.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/OutputDeviceFile.h"
+#include "Misc/OutputDeviceError.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "HAL/ExceptionHandling.h"
+#include "Misc/SecureHash.h"
+#include "Windows/WindowsApplication.h"
+#include "Misc/EngineVersion.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
+#include "Windows/WindowsPlatformCrashContext.h"
+#include "HAL/PlatformOutputDevices.h"
 
-#include "GenericPlatformChunkInstall.h"
-#include "GenericPlatformDriver.h"			// FGPUDriverInfo
+#include "GenericPlatform/GenericPlatformChunkInstall.h"
+#include "GenericPlatform/GenericPlatformDriver.h"
 #include "HAL/ThreadHeartBeat.h"
 
 // Resource includes.
 #include "Runtime/Launch/Resources/Windows/Resource.h"
 
-#include "AllowWindowsPlatformTypes.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 	#include <time.h>
-	#include <MMSystem.h>
-	#include <rpcsal.h>					// from DXSDK
-	#include <gameux.h>					// from DXSDK For IGameExplorer
-	#include <shlobj.h>
-	#include <intshcut.h>
+	#include <mmsystem.h>
+	#include <rpcsal.h>
+	#include <gameux.h>
+	#include <ShlObj.h>
+	#include <IntShCut.h>
 	#include <shellapi.h>
-	#include <Iphlpapi.h>
-#include "HideWindowsPlatformTypes.h"
+	#include <IPHlpApi.h>
+#include "Windows/HideWindowsPlatformTypes.h"
 
-#include "MallocTBB.h"
-#include "ModuleManager.h"
-#include "MallocAnsi.h"
-#include "VarargsHelper.h"
+#include "Modules/ModuleManager.h"
 
 #if !FORCE_ANSI_ALLOCATOR
-	#include "AllowWindowsPlatformTypes.h"
-		#include <psapi.h>
-	#include "HideWindowsPlatformTypes.h"
+	#include "Windows/AllowWindowsPlatformTypes.h"
+		#include <Psapi.h>
+	#include "Windows/HideWindowsPlatformTypes.h"
 	#pragma comment(lib, "psapi.lib")
 #endif
 
 #include <fcntl.h>
 #include <io.h>
 
-#include "AllowWindowsPlatformTypes.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Win8 builds
 #ifndef SM_CONVERTIBLESLATEMODE
@@ -383,7 +410,7 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 
 	return ErrorCode;
 }
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"
 
 /** 
  * Whether support for integrating into the firewall is there
@@ -392,7 +419,7 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 
 extern "C"
 {
-	CORE_API HINSTANCE hInstance = NULL;
+	CORE_API Windows::HINSTANCE hInstance = NULL;
 }
 
 
@@ -674,7 +701,7 @@ void FWindowsPlatformMisc::SetGracefulTerminationHandler()
 
 void FWindowsPlatformMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength)
 {
-	uint32 Error = ::GetEnvironmentVariable(VariableName, Result, ResultLength);
+	uint32 Error = ::GetEnvironmentVariableW(VariableName, Result, ResultLength);
 	if (Error <= 0)
 	{		
 		*Result = 0;
@@ -2029,7 +2056,7 @@ bool FWindowsPlatformMisc::GetWindowTitleMatchingText(const TCHAR* TitleStartsWi
 	bool bWasFound = false;
 	WCHAR Buffer[8192];
 	// Get the first window so we can start walking the window chain
-	HWND hWnd = FindWindow(NULL,NULL);
+	HWND hWnd = FindWindowW(NULL,NULL);
 	if (hWnd != NULL)
 	{
 		do
@@ -2441,7 +2468,7 @@ FString FWindowsPlatformMisc::GetCPUBrand()
 	return FCPUIDQueriedData::GetBrand();
 }
 
-#include "AllowWindowsPlatformTypes.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
 FString FWindowsPlatformMisc::GetPrimaryGPUBrand()
 {
 	static FString PrimaryGPUBrand;
@@ -2751,7 +2778,7 @@ FGPUDriverInfo FWindowsPlatformMisc::GetGPUDriverInfo(const FString& DeviceDescr
 	return Ret;
 }
 
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"
 
 void FWindowsPlatformMisc::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
 {
@@ -2791,7 +2818,7 @@ int32 FWindowsPlatformMisc::GetCacheLineSize()
 	return FCPUIDQueriedData::GetCacheLineSize();
 }
 
-bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey, const TCHAR* InValueName, FString& OutData )
+bool FWindowsPlatformMisc::QueryRegKey( const Windows::HKEY InKey, const TCHAR* InSubKey, const TCHAR* InValueName, FString& OutData )
 {
 	bool bSuccess = false;
 

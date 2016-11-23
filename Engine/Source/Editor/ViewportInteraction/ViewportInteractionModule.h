@@ -2,11 +2,9 @@
 
 #pragma once
 
-#include "UnrealEd.h"
-#include "ViewportWorldInteractionManager.h"
+#include "CoreMinimal.h"
 #include "IViewportInteractionModule.h"
-
-class FViewportWorldInteractionManager;
+#include "Editor/ViewportInteraction/ViewportWorldInteractionManager.h"
 
 class FViewportInteractionModule : public IViewportInteractionModule
 {

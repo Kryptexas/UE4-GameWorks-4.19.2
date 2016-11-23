@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "Widgets/Layout/SScrollBarTrack.h"
+#include "Layout/ArrangedChildren.h"
 
 static const int32 NUM_SCROLLBAR_SLOTS = 3;
 

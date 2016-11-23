@@ -6,11 +6,17 @@
 
 #pragma once
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Misc/SecureHash.h"
 
 #include "Generation/StatsCollector.h"
 
 #include "BuildPatchChunk.generated.h"
+
+struct FChunkHeader;
 
 using namespace BuildPatchServices;
 /**

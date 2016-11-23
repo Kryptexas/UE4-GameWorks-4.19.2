@@ -1,12 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SizeMapModule.h"
-#include "STreeMap.h"
 #include "SSizeMap.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/Texture2D.h"
+#include "Editor.h"
 #include "AssetRegistryModule.h"
 #include "AssetThumbnail.h"
 #include "ClassIconFinder.h"
-#include "UnitConversion.h"
+#include "Math/UnitConversion.h"
 
 #define LOCTEXT_NAMESPACE "SizeMap"
 

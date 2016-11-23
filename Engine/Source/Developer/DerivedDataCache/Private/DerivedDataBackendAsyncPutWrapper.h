@@ -1,8 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 #include "DerivedDataBackendInterface.h"
+#include "ProfilingDebugging/CookStats.h"
 #include "DerivedDataCacheUsageStats.h"
+#include "Misc/ScopeLock.h"
+#include "Templates/ScopedPointer.h"
+#include "MemoryDerivedDataBackend.h"
+#include "Async/AsyncWork.h"
 
 /** 
  * Thread safe set helper

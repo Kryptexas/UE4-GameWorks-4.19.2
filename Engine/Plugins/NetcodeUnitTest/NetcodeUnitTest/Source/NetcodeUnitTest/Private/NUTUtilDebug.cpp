@@ -1,14 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "NetcodeUnitTestPCH.h"
+#include "NUTUtilDebug.h"
 
 #include "ClientUnitTest.h"
 #include "NUTActor.h"
 
-#include "Net/UnitTestNetConnection.h"
-
-#include "NUTUtilDebug.h"
 #include "Net/NUTUtilNet.h"
+
 
 
 /**

@@ -2,15 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Textures/SlateShaderResource.h"
+#include "Brushes/SlateDynamicImageBrush.h"
+#include "Rendering/DrawElements.h"
 
-class SWindow;
 class FRHITexture2D;
-class ISlateStyle;
 class FSlateDrawBuffer;
 class FSlateUpdatableTexture;
+class ILayoutCache;
 class ISlateAtlasProvider;
-
-struct FSlateBrush;
+class ISlateStyle;
+class SWindow;
+struct Rect;
 
 typedef FRHITexture2D* FTexture2DRHIParamRef;
 

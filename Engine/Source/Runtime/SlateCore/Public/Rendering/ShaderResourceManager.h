@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Styling/SlateBrush.h"
+#include "Textures/SlateShaderResource.h"
+#include "Textures/SlateTextureData.h"
+
 class ISlateAtlasProvider;
 
 /**

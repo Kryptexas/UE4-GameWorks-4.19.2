@@ -1,12 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
+#include "SoundCueGraph/SoundCueGraphNode.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Editor/EditorEngine.h"
+#include "SoundCueGraph/SoundCueGraph.h"
 #include "Sound/SoundNodeWavePlayer.h"
-#include "SoundDefinitions.h"
 #include "GraphEditorActions.h"
 #include "SoundCueGraphEditorCommands.h"
 #include "ScopedTransaction.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "Sound/SoundCue.h"
 #include "Engine/Font.h"
 #include "Sound/SoundNodeDialoguePlayer.h"

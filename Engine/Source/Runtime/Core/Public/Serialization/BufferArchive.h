@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "Archive.h"
-#include "MemoryWriter.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Serialization/MemoryWriter.h"
 
 /**
  * Buffer archiver.

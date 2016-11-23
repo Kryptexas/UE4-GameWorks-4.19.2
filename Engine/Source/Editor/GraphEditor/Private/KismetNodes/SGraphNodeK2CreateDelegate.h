@@ -2,6 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "KismetNodes/SGraphNodeK2Base.h"
+
+class ITableRow;
+class SComboButton;
+class STableViewBase;
+class SVerticalBox;
+class UK2Node;
+
 class SGraphNodeK2CreateDelegate : public SGraphNodeK2Base
 {
 public:

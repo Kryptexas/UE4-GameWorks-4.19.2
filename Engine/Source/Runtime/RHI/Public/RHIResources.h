@@ -3,13 +3,27 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Misc/Crc.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Math/Color.h"
+#include "Containers/StaticArray.h"
+#include "HAL/ThreadSafeCounter.h"
 #include "RHIDefinitions.h"
-#include "RefCounting.h"
-#include "Runtime/Engine/Public/PixelFormat.h" // for EPixelFormat
-#include "LockFreeList.h"
-#include "SecureHash.h"
+#include "Templates/RefCounting.h"
+#include "Runtime/Engine/Public/PixelFormat.h"
+#include "Containers/LockFreeList.h"
+#include "Misc/SecureHash.h"
 
 #define DISABLE_RHI_DEFFERED_DELETE 0
+
+struct FClearValueBinding;
+struct FRHIResourceInfo;
+enum class EClearBinding;
 
 /** The base type of RHI resources. */
 class RHI_API FRHIResource

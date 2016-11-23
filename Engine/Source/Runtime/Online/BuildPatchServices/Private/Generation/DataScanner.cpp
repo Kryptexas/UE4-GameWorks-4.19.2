@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BuildPatchServicesPrivatePCH.h"
-#include "DataScanner.h"
-#include "ThreadingBase.h"
-#include "Async.h"
+#include "Generation/DataScanner.h"
+#include "HAL/ThreadSafeBool.h"
+#include "BuildPatchChunk.h"
+#include "BuildPatchHash.h"
+#include "Async/Future.h"
+#include "Async/Async.h"
 
 namespace BuildPatchServices
 {

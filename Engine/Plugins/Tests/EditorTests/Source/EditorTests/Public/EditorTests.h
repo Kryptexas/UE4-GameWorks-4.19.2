@@ -2,10 +2,8 @@
 
 #pragma once
 
-#include "ModuleManager.h"
-
-class FToolBarBuilder;
-class FMenuBuilder;
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 
 class FEditorTestsModule : public IModuleInterface
 {

@@ -1,7 +1,10 @@
 // Copyright 1998t-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "SStringCurveKeyEditor.h"
+#include "CurveKeyEditors/SStringCurveKeyEditor.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Curves/KeyHandle.h"
+#include "ISequencer.h"
+#include "ScopedTransaction.h"
 #include "Curves/StringCurve.h"
 
 #define LOCTEXT_NAMESPACE "StringCurveKeyEditor"

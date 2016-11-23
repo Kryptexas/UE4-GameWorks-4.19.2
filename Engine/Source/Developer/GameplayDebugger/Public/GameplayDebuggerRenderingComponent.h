@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Components/PrimitiveComponent.h"
 #include "DebugRenderSceneProxy.h"
 #include "GameplayDebuggerRenderingComponent.generated.h"

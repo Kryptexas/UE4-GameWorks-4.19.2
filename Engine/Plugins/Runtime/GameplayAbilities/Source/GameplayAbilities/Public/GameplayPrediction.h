@@ -2,7 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
 #include "GameplayPrediction.generated.h"
+
+class UAbilitySystemComponent;
 
 DECLARE_DELEGATE(FPredictionKeyEvent);
 

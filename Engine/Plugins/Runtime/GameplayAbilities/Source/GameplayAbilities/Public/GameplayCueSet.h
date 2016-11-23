@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringAssetReference.h"
+#include "GameplayTagContainer.h"
+#include "Engine/DataAsset.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayCueSet.generated.h"
 

@@ -2,7 +2,15 @@
 
 #pragma once
 
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+
+class FBlueprintExecutionContext;
+class FScriptExecutionBlueprint;
+class FScriptExecutionNode;
+class UBlueprint;
+class UEdGraphNode;
+struct FScriptInstrumentationSignal;
 
 /** Delegate to broadcast structural stats changes */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBPStatGraphLayoutChanged, TWeakObjectPtr<UBlueprint>);

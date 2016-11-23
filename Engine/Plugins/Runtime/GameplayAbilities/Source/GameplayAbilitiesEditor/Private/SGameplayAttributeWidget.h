@@ -2,8 +2,11 @@
 
 #pragma once
 
-#include "AttributeSet.h"
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Input/SComboButton.h"
 
 class SGameplayAttributeWidget : public SCompoundWidget
 {

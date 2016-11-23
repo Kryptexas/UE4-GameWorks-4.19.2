@@ -4,9 +4,10 @@
 	LightMapDensityRendering.cpp: Implementation for rendering lightmap density.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "LightMapDensityRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "LightMapRendering.h"
 #include "ScenePrivate.h"
-#include "SceneUtils.h"
 
 //-----------------------------------------------------------------------------
 

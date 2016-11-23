@@ -4,9 +4,44 @@
 	UCContentCommandlets.cpp: Various commmandlets.
 =============================================================================*/
 
-#include "UnrealEd.h"
-
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "Misc/PackageName.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/StartupPackages.h"
+#include "Misc/RedirectCollector.h"
+#include "Engine/EngineTypes.h"
+#include "Materials/Material.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "SourceControlHelpers.h"
 #include "ISourceControlModule.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Commandlets/ListMaterialsUsedWithMeshEmittersCommandlet.h"
+#include "Commandlets/ListStaticMeshesImportedFromSpeedTreesCommandlet.h"
+#include "Particles/ParticleSystem.h"
+#include "Commandlets/ResavePackagesCommandlet.h"
+#include "Commandlets/WrangleContentCommandlet.h"
+#include "EngineGlobals.h"
+#include "Particles/ParticleEmitter.h"
+#include "Engine/StaticMesh.h"
+#include "AssetData.h"
+#include "Engine/Brush.h"
+#include "Editor.h"
+#include "FileHelpers.h"
+
 #include "PackageHelperFunctions.h"
 #include "PackageTools.h"
 
@@ -14,24 +49,17 @@ DEFINE_LOG_CATEGORY(LogContentCommandlet);
 
 #include "AssetRegistryModule.h"
 
-#include "Kismet2/KismetEditorUtilities.h"
-#include "Kismet2/BlueprintEditorUtils.h"
 
 #include "Particles/Material/ParticleModuleMeshMaterial.h"
-#include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"
-#include "Particles/ParticleModule.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Particles/ParticleSystem.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Engine/LevelStreaming.h"
-#include "Engine/StaticMesh.h"
 
 // for UResavePackagesCommandlet::PerformAdditionalOperations building lighting code
-#include "Engine/WorldComposition.h"
 #include "LightingBuildOptions.h"
 // For preloading FFindInBlueprintSearchManager
-#include "Editor/Kismet/Public/FindInBlueprintManager.h"
+#include "FindInBlueprintManager.h"
 
 /**-----------------------------------------------------------------------------
  *	UResavePackages commandlet.

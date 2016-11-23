@@ -2,10 +2,18 @@
 
 // Physics engine integration utilities
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/World.h"
+#include "PhysxUserData.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Components/PrimitiveComponent.h"
 #include "Model.h"
-#include "PhysXSupport.h"
+#include "PhysicsPublic.h"
+#include "PhysXPublic.h"
+#include "PhysicsEngine/PhysXSupport.h"
+#include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
 /** Returns false if ModelToHulls operation should halt because of vertex count overflow. */

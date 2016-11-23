@@ -4,20 +4,26 @@
 	Texture2D.cpp: Implementation of UTexture2D.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "DerivedDataCacheInterface.h"
-
-#if PLATFORM_DESKTOP
-#include "DDSLoader.h"
-#endif
-
-#if WITH_EDITOR
-#include "TextureCompressorModule.h"
-#endif
-
-#include "TargetPlatform.h"
+#include "Engine/Texture2D.h"
+#include "ProfilingDebugging/ScopedDebugInfo.h"
+#include "Serialization/MemoryWriter.h"
+#include "HAL/IOBase.h"
+#include "Misc/App.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Containers/ResourceArray.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/LinkerLoad.h"
+#include "RenderUtils.h"
 #include "ContentStreaming.h"
-#include "Streaming/StreamingManagerTexture.h"
+#include "EngineUtils.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "DerivedDataCacheInterface.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Streaming/TextureStreamingHelpers.h"
 
 #if USE_NEW_ASYNC_IO
 #include "AsyncFileHandle.h"

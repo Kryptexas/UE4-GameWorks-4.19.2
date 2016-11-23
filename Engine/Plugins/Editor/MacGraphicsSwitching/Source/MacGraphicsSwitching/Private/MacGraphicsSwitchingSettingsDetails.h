@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "PropertyEditing.h"
+#include "IDetailCustomization.h"
 #include "PropertyCustomizationHelpers.h"
 
 class FMacGraphicsSwitchingSettingsDetails : public IDetailCustomization

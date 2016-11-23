@@ -1,11 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "AttributeBasedFloatDetails.h"
+#include "Misc/Attribute.h"
 #include "DetailWidgetRow.h"
-#include "IDetailPropertyRow.h"
 #include "PropertyHandle.h"
+#include "IDetailPropertyRow.h"
 #include "GameplayEffect.h"
+#include "IDetailChildrenBuilder.h"
 
 #define LOCTEXT_NAMESPACE "AttributeBasedFloatDetails"
 

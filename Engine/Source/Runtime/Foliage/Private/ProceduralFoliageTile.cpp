@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FoliagePrivate.h"
 #include "ProceduralFoliageTile.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
 #include "ProceduralFoliageSpawner.h"
-#include "ProceduralFoliageBroadphase.h"
-#include "InstancedFoliageActor.h"
 
 #define LOCTEXT_NAMESPACE "ProceduralFoliage"
 

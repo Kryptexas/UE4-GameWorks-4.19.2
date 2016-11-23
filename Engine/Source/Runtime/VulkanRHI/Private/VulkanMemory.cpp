@@ -6,6 +6,7 @@
 
 #include "VulkanRHIPrivate.h"
 #include "VulkanMemory.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 namespace VulkanRHI
 {

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 
 enum EShaderFrequency
 {

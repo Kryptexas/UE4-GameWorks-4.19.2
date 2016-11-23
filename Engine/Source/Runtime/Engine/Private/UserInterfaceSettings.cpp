@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-
-#include "MessageLog.h"
-
-#include "Engine/RendererSettings.h"
 #include "Engine/UserInterfaceSettings.h"
+
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+
 #include "Engine/DPICustomScalingRule.h"
 
 #define LOCTEXT_NAMESPACE "Engine"

@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UdpMessagingPrivatePCH.h"
-#include "UdpMessageSegmenter.h"
-#include "UdpSerializedMessage.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "Transport/UdpSerializedMessage.h"
+#include "Transport/UdpMessageSegmenter.h"
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUdpMessageSegmenterTest, "System.Core.Messaging.Transports.Udp.UdpMessageSegmenter", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::EngineFilter)

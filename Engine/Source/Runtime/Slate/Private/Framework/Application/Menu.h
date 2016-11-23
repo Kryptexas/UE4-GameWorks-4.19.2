@@ -2,7 +2,12 @@
 
 #pragma once
 
-#include "IMenu.h"
+#include "CoreMinimal.h"
+#include "Input/PopupMethodReply.h"
+#include "Framework/Application/IMenu.h"
+
+class SWidget;
+class SWindow;
 
 /**
  * Represents the base class of popup menus.

@@ -1,11 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "GameplayAbilityWorldReticle.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Abilities/GameplayAbilityWorldReticle.h"
 
 #include "GameplayAbilityWorldReticle_ActorVisualization.generated.h"
 
 class AGameplayAbilityTargetActor;
+class UMaterialInterface;
 
 /** This is a dummy reticle for internal use by visualization placement tasks. It builds a custom visual model of the visualization being placed. */
 UCLASS(notplaceable)

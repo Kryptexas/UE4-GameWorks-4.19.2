@@ -2,7 +2,14 @@
 
 #pragma once
 
-#include "PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "IDetailCustomization.h"
+#include "Engine/SkeletalMesh.h"
+
+class IDetailLayoutBuilder;
+class IPropertyHandle;
+class SEditableTextBox;
+class USkeletalMeshSocket;
 
 class FSkeletalMeshSocketDetails : public IDetailCustomization
 {

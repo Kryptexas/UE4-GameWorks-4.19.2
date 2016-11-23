@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerServicePrivatePCH.h"
-#include "ProfilerServiceManager.h"
-#include "IProfilerServiceManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
 #include "IProfilerServiceModule.h"
+#include "ProfilerServiceManager.h"
 
 
 /**

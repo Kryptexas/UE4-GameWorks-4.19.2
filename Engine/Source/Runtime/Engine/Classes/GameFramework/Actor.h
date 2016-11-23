@@ -1,22 +1,36 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "ComponentInstanceDataCache.h"
-#include "Components/SceneComponent.h"
-#include "EngineDefines.h"
-#include "Engine/EngineBaseTypes.h"
-#include "Engine/EngineTypes.h"
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/Object.h"
 #include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/CoreNet.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "ComponentInstanceDataCache.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "RenderCommandFence.h"
-#include "TimerManager.h"
+#include "Misc/ITransaction.h"
 #include "Engine/Level.h"
 
 #include "Actor.generated.h"
 
-struct FHitResult;
 class AActor;
-class FTimerManager; 
+class AController;
+class AMatineeActor;
+class APawn;
+class APlayerController;
+class UActorChannel;
+class UChildActorComponent;
 class UNetDriver;
+class UPrimitiveComponent;
+struct FAttachedActorInfo;
 struct FNetViewer;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);

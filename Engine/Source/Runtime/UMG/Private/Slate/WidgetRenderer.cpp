@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "WidgetRenderer.h"
-#include "HittestGrid.h"
+#include "Slate/WidgetRenderer.h"
+#include "TextureResource.h"
+#include "Layout/ArrangedChildren.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Rendering/SlateDrawBuffer.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 #if !UE_SERVER
-#include "ISlateRHIRendererModule.h"
-#include "ISlate3DRenderer.h"
+#include "Interfaces/ISlateRHIRendererModule.h"
 #endif // !UE_SERVER
 
 #include "Widgets/LayerManager/STooltipPresenter.h"

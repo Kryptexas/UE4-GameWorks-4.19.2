@@ -2,11 +2,14 @@
 
 #pragma once
 
-#include "Curves/IntegralCurve.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Curves/KeyHandle.h"
 #include "MovieSceneSection.h"
-#include "IKeyframeSection.h"
+#include "Curves/IntegralCurve.h"
+#include "Sections/IKeyframeSection.h"
 #include "MovieSceneActorReferenceSection.generated.h"
-
 
 /**
  * A single actor reference point section

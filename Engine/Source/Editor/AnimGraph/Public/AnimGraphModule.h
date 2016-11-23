@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 
-#include "AnimGraphCommands.h"
 
 class FAnimGraphModule : public IModuleInterface
 {

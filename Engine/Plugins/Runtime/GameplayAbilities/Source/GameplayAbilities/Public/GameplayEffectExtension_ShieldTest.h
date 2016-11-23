@@ -2,11 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameplayEffectExtension.h"
-#include "GameplayTagContainer.h"
-#include "GameplayTagAssetInterface.h"
-#include "AttributeSet.h"
 #include "GameplayEffectExtension_ShieldTest.generated.h"
+
+class UGameplayEffect;
+struct FGameplayModifierEvaluatedData;
 
 UCLASS(BlueprintType)
 class GAMEPLAYABILITIES_API UGameplayEffectExtension_ShieldTest : public UGameplayEffectExtension

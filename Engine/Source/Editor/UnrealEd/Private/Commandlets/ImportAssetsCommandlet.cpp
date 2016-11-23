@@ -1,11 +1,22 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "Commandlets/ImportAssetsCommandlet.h"
 #include "AutomatedAssetImportData.h"
-#include "ImportAssetsCommandlet.h"
+#include "Modules/ModuleManager.h"
+#include "Factories/Factory.h"
+#include "IAssetTools.h"
 #include "AssetToolsModule.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
-
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Factories/ImportSettings.h"
+#include "ISourceControlModule.h"
+#include "Editor.h"
+#include "FileHelpers.h"
+#include "Misc/FeedbackContext.h"
+#include "HAL/PlatformFilemanager.h"
 
 static void PrintUsage()
 {

@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "GameplayAbilityTargetActor.h"
-#include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_SpawnActor.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "AbilitySystemComponent.h"
 
 
 UAbilityTask_SpawnActor::UAbilityTask_SpawnActor(const FObjectInitializer& ObjectInitializer)

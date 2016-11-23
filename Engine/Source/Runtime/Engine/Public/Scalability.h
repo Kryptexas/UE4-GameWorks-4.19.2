@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 namespace Scalability
 { 
 	enum class EQualityLevelBehavior

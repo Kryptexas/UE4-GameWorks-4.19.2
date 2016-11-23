@@ -1,11 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
+#include "Sections/BoolPropertySection.h"
+#include "Rendering/DrawElements.h"
+#include "Curves/IntegralCurve.h"
 #include "BoolKeyArea.h"
-#include "BoolPropertySection.h"
+#include "SequencerSectionPainter.h"
+#include "ISectionLayoutBuilder.h"
+#include "EditorStyleSet.h"
 #include "CommonMovieSceneTools.h"
-#include "MovieSceneBoolTrack.h"
-#include "MovieSceneBoolSection.h"
+#include "Sections/MovieSceneBoolSection.h"
 
 
 void FBoolPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const

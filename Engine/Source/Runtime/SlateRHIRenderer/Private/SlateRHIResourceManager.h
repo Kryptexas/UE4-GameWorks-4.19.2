@@ -2,14 +2,26 @@
 
 #pragma once
 
-#include "TextureAtlas.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Textures/TextureAtlas.h"
+#include "UObject/GCObject.h"
+#include "Containers/Queue.h"
+#include "Rendering/ShaderResourceManager.h"
+#include "Rendering/RenderingCommon.h"
+#include "Rendering/DrawElements.h"
+#include "Materials/MaterialInterface.h"
+#include "Tickable.h"
 #include "SlateElementIndexBuffer.h"
 #include "SlateElementVertexBuffer.h"
 
-class FSlateDynamicTextureResource;
-class FSlateUTextureResource;
-class FSlateMaterialResource;
 class FSlateAtlasedTextureResource;
+class FSlateDynamicTextureResource;
+class FSlateMaterialResource;
+class FSlateUTextureResource;
+class ILayoutCache;
+class ISlateStyle;
+class UTexture;
 
 /** 
  * Lookup key for materials.  Sometimes the same material is used with different masks so there must be

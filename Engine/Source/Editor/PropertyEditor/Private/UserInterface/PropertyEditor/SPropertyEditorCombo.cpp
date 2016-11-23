@@ -1,14 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
+#include "UserInterface/PropertyEditor/SPropertyEditorCombo.h"
+#include "IDocumentation.h"
 
-#include "PropertyNode.h"
 #include "PropertyEditorHelpers.h"
-#include "PropertyEditor.h"
-#include "SPropertyComboBox.h"
-#include "SPropertyEditorCombo.h"
+#include "UserInterface/PropertyEditor/SPropertyComboBox.h"
 
-#include "PropertyHandle.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 

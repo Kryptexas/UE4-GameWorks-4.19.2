@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieScene3DTransformTemplate.h"
+#include "Evaluation/MovieScene3DTransformTemplate.h"
 
-#include "MovieSceneExecutionToken.h"
-#include "MovieScene3DTransformSection.h"
-#include "MovieSceneTemplateCommon.h"
+#include "Sections/MovieScene3DTransformSection.h"
+#include "Evaluation/MovieSceneTemplateCommon.h"
+#include "MovieSceneCommonHelpers.h"
 
 DECLARE_CYCLE_STAT(TEXT("Transform Track Evaluate"), MovieSceneEval_TransformTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Transform Track Token Execute"), MovieSceneEval_TransformTrack_TokenExecute, STATGROUP_MovieSceneEval);

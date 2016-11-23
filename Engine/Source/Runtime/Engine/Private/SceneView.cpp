@@ -4,21 +4,24 @@
 	SceneView.cpp: SceneView implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "SceneView.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "EngineGlobals.h"
+#include "PrimitiveUniformShaderParameters.h"
+#include "Engine/Engine.h"
+#include "Widgets/SWindow.h"
 #include "SceneManagement.h"
 #include "EngineModule.h"
-#include "StereoRendering.h"
-#include "HighResScreenshot.h"
-#include "Slate/SceneViewport.h"
-#include "RendererInterface.h"
 #include "BufferVisualizationData.h"
 #include "Interfaces/Interface_PostProcessVolume.h"
 #include "Engine/TextureCube.h"
 #include "IHeadMountedDisplay.h"
-#include "Classes/Engine/RendererSettings.h"
+#include "Engine/RendererSettings.h"
 #include "LightPropagationVolumeBlendable.h"
-#include "SceneViewExtension.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "HighResScreenshot.h"
+#include "Slate/SceneViewport.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 

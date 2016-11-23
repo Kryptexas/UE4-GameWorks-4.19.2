@@ -1,20 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "SPoseEditor.h"
-#include "ObjectTools.h"
-#include "AssetRegistryModule.h"
+#include "Misc/MessageDialog.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Animation/DebugSkelMeshComponent.h"
 #include "ScopedTransaction.h"
-#include "SSearchBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Animation/AnimSingleNodeInstance.h"
-#include "IPersonaPreviewScene.h"
-#include "IPersonaToolkit.h"
-#include "IEditableSkeleton.h"
 
-#include "SInlineEditableTextBlock.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "PoseEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "AnimPoseEditor"

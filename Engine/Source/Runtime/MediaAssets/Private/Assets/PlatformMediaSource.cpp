@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaAssetsPCH.h"
-#include "MediaSource.h"
 #include "PlatformMediaSource.h"
-
+#include "UObject/SequencerObjectVersion.h"
+#if WITH_EDITOR
+	#include "Interfaces/ITargetPlatform.h"
+#endif
 
 /* UMediaSource interface
  *****************************************************************************/

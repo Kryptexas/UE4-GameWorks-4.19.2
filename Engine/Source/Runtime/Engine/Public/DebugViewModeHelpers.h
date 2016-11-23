@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHIDefinitions.h"
+
 /** 
  * Enumeration for different Quad Overdraw visualization mode.
  */

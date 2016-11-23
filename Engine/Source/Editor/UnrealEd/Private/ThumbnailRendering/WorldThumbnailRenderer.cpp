@@ -1,10 +1,16 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "ThumbnailRendering/WorldThumbnailRenderer.h"
+#include "EngineDefines.h"
+#include "Misc/App.h"
+#include "ShowFlags.h"
+#include "Engine/World.h"
+#include "SceneView.h"
+#include "ThumbnailRendering/WorldThumbnailInfo.h"
+#include "Engine/LevelBounds.h"
+#include "RendererInterface.h"
 #include "EngineModule.h"
 #include "ContentStreaming.h"
-#include "RendererInterface.h"
-#include "Engine/LevelBounds.h"
 
 UWorldThumbnailRenderer::UWorldThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

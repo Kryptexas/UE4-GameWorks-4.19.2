@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "GameFramework/MovementComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "GameFramework/MovementComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "UObject/Package.h"
 
 UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

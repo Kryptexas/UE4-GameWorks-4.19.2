@@ -1,17 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "Factories.h"
-#include "BusyCursor.h"
-#include "SSkeletonWidget.h"
+#include "Factories/FbxFactory.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
+#include "Editor/EditorEngine.h"
+#include "Factories/FbxAnimSequenceImportData.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxStaticMeshImportData.h"
+#include "Factories/FbxTextureImportData.h"
+#include "Factories/FbxImportUI.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/SubDSurface.h"
+#include "Editor.h"
 
+#include "Logging/TokenizedMessage.h"
 #include "FbxImporter.h"
 
-#include "FbxErrors.h"
+#include "Misc/FbxErrors.h"
 #include "AssetRegistryModule.h"
-#include "Engine/StaticMesh.h"
 #include "ObjectTools.h"
-#include "Animation/AnimSequence.h"
 #include "JsonObjectConverter.h"
 
 #define LOCTEXT_NAMESPACE "FBXFactory"

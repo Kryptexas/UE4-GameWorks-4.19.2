@@ -2,11 +2,15 @@
 
 #pragma once
 
-#include "GameFramework/PlayerController.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "GameplayDebuggerPlayerManager.generated.h"
 
 class AGameplayDebuggerCategoryReplicator;
+class APlayerController;
 class UGameplayDebuggerLocalController;
+class UInputComponent;
 
 USTRUCT()
 struct FGameplayDebuggerPlayerData

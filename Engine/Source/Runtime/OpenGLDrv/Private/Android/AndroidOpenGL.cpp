@@ -3,6 +3,8 @@
 #if !PLATFORM_ANDROIDESDEFERRED
 
 #include "OpenGLDrvPrivate.h"
+#include "AndroidOpenGL.h"
+#include "OpenGLDrvPrivate.h"
 #include "OpenGLES2.h"
 #include "AndroidWindow.h"
 #include "AndroidOpenGLPrivate.h"

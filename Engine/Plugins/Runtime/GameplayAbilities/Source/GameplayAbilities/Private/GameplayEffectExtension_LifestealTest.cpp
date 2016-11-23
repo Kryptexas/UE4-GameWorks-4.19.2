@@ -1,7 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectExtension_LifestealTest.h"
+#include "GameplayEffect.h"
+#include "GameplayTagsModule.h"
 #include "AbilitySystemTestAttributeSet.h"
 #include "AbilitySystemComponent.h"
 

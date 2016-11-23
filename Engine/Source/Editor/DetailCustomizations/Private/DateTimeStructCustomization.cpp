@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "DateTimeStructCustomization.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Engine/GameViewportClient.h"
+#include "PropertyHandle.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "DetailWidgetRow.h"
 #include "InternationalizationSettingsModel.h"
 
 

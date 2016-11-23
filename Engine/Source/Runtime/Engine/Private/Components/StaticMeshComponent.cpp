@@ -1,30 +1,39 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Components/StaticMeshComponent.h"
+#include "Modules/ModuleManager.h"
+#include "RenderingThread.h"
+#include "Components.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Materials/Material.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/CollisionProfile.h"
+#include "ContentStreaming.h"
+#include "ComponentReregisterContext.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
 #include "StaticMeshResources.h"
-#include "Components/SplineMeshComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #if WITH_EDITOR
-#include "ShowFlags.h"
 #include "Collision.h"
-#include "ConvexVolume.h"
-#include "HierarchicalLODUtilities.h"
+#include "IHierarchicalLODUtilities.h"
 #include "HierarchicalLODUtilitiesModule.h"
 #endif
-#include "ComponentInstanceDataCache.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
-#include "ComponentReregisterContext.h"
 #include "Engine/ShadowMapTexture2D.h"
 #include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
-#include "NavigationSystemHelpers.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "AI/NavigationOctree.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "RenderingObjectVersion.h"
+#include "EngineGlobals.h"
 #include "ComponentRecreateRenderStateContext.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
@@ -2092,7 +2101,6 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 	}
 }
 
-#include "AI/Navigation/RecastHelpers.h"
 bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 	if (GetStaticMesh() != NULL && GetStaticMesh()->NavCollision != NULL)

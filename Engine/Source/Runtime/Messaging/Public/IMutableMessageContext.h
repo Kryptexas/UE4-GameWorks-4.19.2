@@ -2,14 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IMessageContext.h"
-
 
 enum class EMessageScope : uint8;
 struct FMessageAddress;
 class IMessageAttachment;
-class UScriptStruct;
-
 
 /**
  * Interface for mutable message contexts.

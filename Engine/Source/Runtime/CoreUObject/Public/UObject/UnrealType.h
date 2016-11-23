@@ -6,10 +6,23 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "PropertyPortFlags.h"
-#include "PropertyTag.h"
-#include "Templates/IsTriviallyDestructible.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/CoreNetTypes.h"
+#include "UObject/ScriptInterface.h"
+#include "Templates/Casts.h"
+#include "Templates/IsFloatingPoint.h"
+#include "Templates/IsIntegral.h"
+#include "Templates/IsSigned.h"
+#include "Templates/Greater.h"
+#include "Containers/List.h"
+#include "UObject/LazyObjectPtr.h"
+#include "UObject/AssetPtr.h"
+#include "UObject/PropertyTag.h"
 #include "Serialization/SerializedPropertyScope.h"
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogType, Log, All);

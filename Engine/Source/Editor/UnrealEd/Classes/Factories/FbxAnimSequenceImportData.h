@@ -1,7 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/FbxAssetImportData.h"
 #include "FbxAnimSequenceImportData.generated.h"
+
+class UAnimSequence;
+struct FPropertyChangedEvent;
 
 /**
 * I know these descriptions don't make sense, but the functions I use act a bit different depending on situation.

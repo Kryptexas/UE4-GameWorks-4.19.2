@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
 #include "UObject/ObjectMemoryAnalyzer.h"
+#include "UObject/Object.h"
+#include "UObject/UObjectIterator.h"
+#include "Serialization/ArchiveCountMem.h"
 
 FObjectMemoryAnalyzer::FObjectMemoryAnalyzer(uint32 Flags)
 	: BaseClass(NULL)

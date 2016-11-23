@@ -1,13 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "FbxAutomationBuilderPrivatePCH.h"
 #include "FbxAutomationBuilderModule.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Application/SlateWindowHelper.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Docking/TabManager.h"
 #include "FbxAutomationBuilder.h"
-#include "PropertyEditorModule.h"
 #include "FbxAutomationBuilderStyle.h"
+#include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
 
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
 
 void FFbxAutomationBuilderModule::StartupModule()
 {

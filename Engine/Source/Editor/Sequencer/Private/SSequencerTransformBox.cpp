@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
+#include "SSequencerTransformBox.h"
 #include "Sequencer.h"
 #include "SequencerSettings.h"
-#include "SSequencerTransformBox.h"
+#include "SequencerCommonHelpers.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SSpacer.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 

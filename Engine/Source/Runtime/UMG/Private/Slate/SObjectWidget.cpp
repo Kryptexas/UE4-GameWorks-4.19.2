@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Slate/SObjectWidget.h"
 
-#include "WidgetLayoutLibrary.h"
-#include "UMGDragDropOp.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Slate/UMGDragDropOp.h"
 
 void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObject)
 {

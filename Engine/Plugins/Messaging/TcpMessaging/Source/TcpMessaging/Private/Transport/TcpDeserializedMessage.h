@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Common/UdpSocketReceiver.h"
+#include "IMessageAttachment.h"
+#include "IMessageContext.h"
 
 /**
  * Holds a deserialized message.

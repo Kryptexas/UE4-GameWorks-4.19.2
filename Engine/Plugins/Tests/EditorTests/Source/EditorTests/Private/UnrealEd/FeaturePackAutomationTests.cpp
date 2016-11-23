@@ -1,18 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
-
-#include "Tests/AutomationTestSettings.h"
-
-#if WITH_EDITOR
-#include "FileHelpers.h"
-#include "LevelEditor.h"
-#include "AutomationEditorCommon.h"
-#endif
-
-#include "AssetSelection.h"
-#include "AutomationCommon.h"
-#include "AutomationTest.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/AutomationTest.h"
 #include "FeaturePackContentSource.h"
 
 DEFINE_LOG_CATEGORY_STATIC(FeaturePackAutomationTestLog, Log, All);

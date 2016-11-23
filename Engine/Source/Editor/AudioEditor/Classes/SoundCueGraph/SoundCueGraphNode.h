@@ -2,8 +2,13 @@
 
 #pragma once
 
-#include "SoundCueGraphNode_Base.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "SoundCueGraph/SoundCueGraphNode_Base.h"
 #include "SoundCueGraphNode.generated.h"
+
+class UEdGraphPin;
+class USoundNode;
 
 UCLASS(MinimalAPI)
 class USoundCueGraphNode : public USoundCueGraphNode_Base

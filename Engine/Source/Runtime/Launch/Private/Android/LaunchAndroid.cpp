@@ -1,6 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LaunchPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/App.h"
+#include "Misc/OutputDeviceError.h"
+#include "LaunchEngineLoop.h"
 #include <string.h>
 #include <jni.h>
 #include <pthread.h>
@@ -14,11 +17,15 @@
 #include <dlfcn.h>
 #include "AndroidWindow.h"
 #include <android/sensor.h>
-#include "Core.h"
 #include "AndroidApplication.h"
 #include "IHeadMountedDisplayModule.h"
 #include "ISessionServicesModule.h"
 #include "ISessionService.h"
+#include "Engine/Engine.h"
+#include "HAL/PlatformFile.h"
+#include "HAL/PlatformAffinity.h"
+#include "Modules/ModuleManager.h"
+#include "IMessagingModule.h"
 
 // Function pointer for retrieving joystick events
 // Function has been part of the OS since Honeycomb, but only appeared in the

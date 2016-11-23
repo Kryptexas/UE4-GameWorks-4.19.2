@@ -4,19 +4,11 @@
 	AnimationUE4.cpp: Animation runtime utilities
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "BlueprintUtilities.h"
-#include "AnimEncoding.h"
 #include "AnimationRuntime.h"
-#include "AnimationUtils.h"
 #include "Animation/AnimData/BoneMaskFilter.h"
 #include "Animation/BlendSpaceBase.h"
-#include "Animation/AnimCompositeBase.h"
 #include "Animation/AnimInstance.h"
-#include "BonePose.h"
-#include "Animation/BlendProfile.h"
 #include "SkeletalRender.h"
-#include "Animation/MorphTarget.h"
 
 DEFINE_LOG_CATEGORY(LogAnimation);
 DEFINE_LOG_CATEGORY(LogRootMotion);

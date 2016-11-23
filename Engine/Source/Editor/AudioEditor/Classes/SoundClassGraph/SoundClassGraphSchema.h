@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Classes/EdGraph/EdGraphSchema.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphSchema.h"
 #include "SoundClassGraphSchema.generated.h"
+
+class UEdGraph;
 
 /** Action to add a node to the graph */
 USTRUCT()

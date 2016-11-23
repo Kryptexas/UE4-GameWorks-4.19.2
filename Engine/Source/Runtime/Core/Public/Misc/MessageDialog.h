@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
-
-class FText;
+#include "CoreTypes.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
 
 /** 
  * FMessageDialog

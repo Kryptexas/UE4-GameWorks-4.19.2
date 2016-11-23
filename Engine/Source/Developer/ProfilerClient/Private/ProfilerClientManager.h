@@ -2,16 +2,24 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
 #include "IProfilerClient.h"
+#include "IMessageContext.h"
+#include "Containers/Ticker.h"
 #include "IProfilerServiceManager.h"
-#include "StatsData.h"
-#include "StatsFile.h"
-
+#include "IMessageBus.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Stats/StatsFile.h"
 
 class FNewStatsReader;
 class FProfilerClientManager;
-class IMessageBus;
-
+struct FProfilerServiceAuthorize;
+struct FProfilerServiceData2;
+struct FProfilerServiceFileChunk;
+struct FProfilerServicePing;
+struct FProfilerServicePreviewAck;
 
 /**
  * Helper struct containing all of the data and operations associated with a service connection.

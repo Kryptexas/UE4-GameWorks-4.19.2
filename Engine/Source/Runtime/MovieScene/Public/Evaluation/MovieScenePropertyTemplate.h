@@ -2,9 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneFwd.h"
 #include "MovieSceneCommonHelpers.h"
-#include "MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieSceneAnimTypeID.h"
+#include "MovieSceneExecutionToken.h"
+#include "Evaluation/PersistentEvaluationData.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 #include "MovieScenePropertyTemplate.generated.h"
 
 DECLARE_CYCLE_STAT(TEXT("Property Track Token Execute"), MovieSceneEval_PropertyTrack_TokenExecute, STATGROUP_MovieSceneEval);

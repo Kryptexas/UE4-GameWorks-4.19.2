@@ -4,11 +4,19 @@
 	BuildPatchManifest.h: Declares the manifest classes.
 =============================================================================*/
 
-#include "CoreUObject.h"
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Interfaces/IBuildManifest.h"
 #include "BuildPatchChunk.h"
+#include "UObject/GCObject.h"
 #include "BuildPatchManifest.generated.h"
 
-#pragma once
+class FBuildPatchAppManifest;
+class FBuildPatchCustomField;
 
 typedef TSharedPtr< class FBuildPatchCustomField, ESPMode::ThreadSafe > FBuildPatchCustomFieldPtr;
 typedef TSharedRef< class FBuildPatchCustomField, ESPMode::ThreadSafe > FBuildPatchCustomFieldRef;

@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "VisibilityBinding.h"
+#include "Binding/VisibilityBinding.h"
+#include "Components/SlateWrapperTypes.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

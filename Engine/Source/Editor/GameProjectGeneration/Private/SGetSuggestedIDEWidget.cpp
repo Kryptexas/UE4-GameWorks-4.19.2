@@ -1,13 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GameProjectGenerationPrivatePCH.h"
+#include "SGetSuggestedIDEWidget.h"
+#include "HAL/PlatformProcess.h"
+#include "Widgets/Input/SButton.h"
 #include "SourceCodeNavigation.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "SHyperlink.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Widgets/Input/SHyperlink.h"
 #include "EngineAnalytics.h"
-#include "IAnalyticsProvider.h"
+#include "Interfaces/IAnalyticsProvider.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
 

@@ -4,12 +4,14 @@
 	PlayerState.cpp: 
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "GameFramework/PlayerState.h"
+#include "Engine/World.h"
+#include "GameFramework/Controller.h"
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/EngineMessage.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/OnlineEngineInterface.h"
-#include "GameFramework/GameState.h"
-#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameStateBase.h"
 
 APlayerState::APlayerState(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer

@@ -4,9 +4,25 @@
 	LightGridInjection.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "UniformBuffer.h"
+#include "ShaderParameters.h"
+#include "RendererInterface.h"
+#include "EngineDefines.h"
+#include "PrimitiveSceneProxy.h"
+#include "Shader.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "LightSceneInfo.h"
+#include "GlobalShader.h"
+#include "SceneRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "BasePassRendering.h"
+#include "RendererModule.h"
+#include "ScenePrivate.h"
 
 int32 GLightGridPixelSize = 64;
 FAutoConsoleVariableRef CVarLightGridPixelSize(

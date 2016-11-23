@@ -1,10 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
 #include "SAddNewGameplayTagWidget.h"
-#include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
+#include "DetailLayoutBuilder.h"
 #include "GameplayTagsSettings.h"
+#include "GameplayTagsEditorModule.h"
 #include "SGameplayTagWidget.h"
+#include "Widgets/Input/SButton.h"
 
 #define LOCTEXT_NAMESPACE "AddNewGameplayTagWidget"
 

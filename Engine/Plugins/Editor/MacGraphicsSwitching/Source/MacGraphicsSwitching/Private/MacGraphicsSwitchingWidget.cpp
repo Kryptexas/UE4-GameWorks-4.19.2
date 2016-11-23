@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
+#include "MacGraphicsSwitchingWidget.h"
 #include "MacGraphicsSwitchingModule.h"
 #include "MacGraphicsSwitchingStyle.h"
-#include "MacGraphicsSwitchingWidget.h"
 #include "DetailLayoutBuilder.h"
+#include "Widgets/Input/SComboBox.h"
+#include "Misc/ConfigCacheIni.h"
 
 #define LOCTEXT_NAMESPACE "MacGraphicsSwitchingWidget"
 

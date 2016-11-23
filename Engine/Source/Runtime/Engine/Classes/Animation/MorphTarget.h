@@ -2,14 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "PackedNormal.h"
 #include "MorphTarget.generated.h"
-
 
 class FStaticLODModel;
 class USkeletalMesh;
 class UStaticMesh;
-
 
 /**
 * Morph mesh vertex data used for comparisons and importing

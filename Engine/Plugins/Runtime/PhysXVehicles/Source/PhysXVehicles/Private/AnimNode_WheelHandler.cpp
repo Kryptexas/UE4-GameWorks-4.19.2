@@ -1,12 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesPrivatePCH.h"
-#include "AnimationRuntime.h"
 #include "AnimNode_WheelHandler.h"
+#include "AnimationRuntime.h"
 #include "WheeledVehicle.h"
 #include "WheeledVehicleMovementComponent.h"
-#include "VehicleWheel.h"
-#include "Animation/AnimInstanceProxy.h"
 
 
 /////////////////////////////////////////////////////

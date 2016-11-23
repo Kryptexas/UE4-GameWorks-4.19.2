@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "GameFramework/MovementComponent.h"
 #include "AI/Navigation/AvoidanceManager.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
+#include "DrawDebugHelpers.h"
+#include "GameFramework/MovementComponent.h"
 #include "AI/RVOAvoidanceInterface.h"
+#include "AI/Navigation/NavEdgeProviderInterface.h"
 
 DEFINE_STAT(STAT_AI_ObstacleAvoidance);
 

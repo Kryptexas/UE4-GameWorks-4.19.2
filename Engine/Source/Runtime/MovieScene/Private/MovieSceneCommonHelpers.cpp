@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "IMovieScenePlayer.h"
 #include "MovieSceneCommonHelpers.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Camera/CameraComponent.h"
+#include "KeyParams.h"
+#include "MovieSceneSection.h"
 
 
 TArray<UMovieSceneSection*> MovieSceneHelpers::GetAllTraversedSections( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime )

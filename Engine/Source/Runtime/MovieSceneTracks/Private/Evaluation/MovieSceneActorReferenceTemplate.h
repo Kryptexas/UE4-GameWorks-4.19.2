@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "MovieScenePropertyTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieScenePropertyTemplate.h"
 #include "Curves/IntegralCurve.h"
 #include "MovieSceneActorReferenceTemplate.generated.h"
 

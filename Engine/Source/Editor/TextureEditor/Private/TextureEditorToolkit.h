@@ -2,9 +2,21 @@
 
 #pragma once
 
-#include "Toolkits/AssetEditorToolkit.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
 #include "EditorUndoClient.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Interfaces/ITextureEditorToolkit.h"
+#include "IDetailsView.h"
+#include "TextureEditorSettings.h"
 
+class SDockableTab;
+class STextBlock;
+class STextureEditorViewport;
+class UFactory;
+class UTexture;
 
 /**
  * Implements an Editor toolkit for textures.

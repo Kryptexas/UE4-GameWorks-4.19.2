@@ -6,6 +6,18 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Templates/SharedPointer.h"
+#include "CoreMinimal.h"
+
+class FAndroidTargetDevice;
+class FTargetDeviceId;
+class ITargetDevice;
+class ITargetPlatform;
+struct FTargetDeviceProcessInfo;
+enum class ETargetDeviceFeatures;
+enum class ETargetDeviceTypes;
 
 /**
  * Type definition for shared pointers to instances of FAndroidTargetDevice.

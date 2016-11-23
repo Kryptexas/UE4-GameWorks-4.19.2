@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "OnlineDelegateMacros.h"
+#include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
+#include "OnlineDelegateMacros.h"
 
 /** List of known friends list types */
 namespace EFriendsLists

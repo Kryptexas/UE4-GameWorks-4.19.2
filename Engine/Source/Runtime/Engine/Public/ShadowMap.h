@@ -2,11 +2,16 @@
 
 #pragma once
 
-// Forward declarations
-class ULightComponent;
-class UInstancedStaticMeshComponent;
-class FShadowMap2D;
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "RenderingThread.h"
+#include "SceneManagement.h"
 
+class FShadowMap2D;
+class UInstancedStaticMeshComponent;
+class ULightComponent;
+class UMapBuildDataRegistry;
+class UShadowMapTexture2D;
 
 struct FSignedDistanceFieldShadowSample
 {

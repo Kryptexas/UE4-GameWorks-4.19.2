@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include "MovieSceneByteTrack.h"
-#include "MovieSceneByteSection.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
+#include "Tracks/MovieSceneByteTrack.h"
+#include "Sections/MovieSceneByteSection.h"
 
 /**
 * A property track editor for byte and enumerations.

@@ -1,8 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerStream.h"
-#include "SProfilerThreadView.h"
+#include "Widgets/SProfilerThreadView.h"
+#include "Brushes/SlateColorBrush.h"
+#include "EditorStyleSet.h"
 
 
 SProfilerThreadView::SProfilerThreadView()

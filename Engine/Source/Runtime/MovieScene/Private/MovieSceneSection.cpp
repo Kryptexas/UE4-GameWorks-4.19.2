@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
 #include "MovieSceneSection.h"
+#include "MovieSceneTrack.h"
+#include "MovieSceneCommonHelpers.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 
 
 UMovieSceneSection::UMovieSceneSection(const FObjectInitializer& ObjectInitializer)

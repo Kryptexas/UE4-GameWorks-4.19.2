@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "Utils.h"
+#include "EditorViewportClient.h"
 
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 // Needed for showing balloon messages
 #include "AllowWindowsPlatformTypes.h"
 		#include <ShellAPI.h>

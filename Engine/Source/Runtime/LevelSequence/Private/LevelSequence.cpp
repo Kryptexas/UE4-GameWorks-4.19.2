@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LevelSequencePCH.h"
 #include "LevelSequence.h"
-#include "LevelSequenceObject.h"
+#include "Engine/EngineTypes.h"
+#include "HAL/IConsoleManager.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Engine.h"
 #include "MovieScene.h"
-#include "MovieSceneCommonHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelSequence, Log, All);
 

@@ -1,8 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRHIRendererPrivatePCH.h"
 #include "Slate3DRenderer.h"
-#include "ElementBatcher.h"
+#include "Fonts/FontCache.h"
+#include "Widgets/SWindow.h"
+#include "SceneUtils.h"
+#include "SlateRHIRenderer.h"
+#include "Rendering/ElementBatcher.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Slate 3D"), Slate3D, STATGROUP_GPU);
 

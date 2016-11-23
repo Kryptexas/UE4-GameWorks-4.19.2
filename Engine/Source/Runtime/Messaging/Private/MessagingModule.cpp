@@ -1,9 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CoreDelegates.h"
+#include "Modules/ModuleManager.h"
+#include "Bus/MessageDispatchTask.h"
+#include "IMessageBus.h"
+#include "Bus/MessageBus.h"
+#include "Bridge/MessageBridge.h"
 #include "IMessagingModule.h"
-#include "MessageBridge.h"
-#include "MessageBus.h"
 
 
 #ifndef PLATFORM_SUPPORTS_MESSAGEBUS

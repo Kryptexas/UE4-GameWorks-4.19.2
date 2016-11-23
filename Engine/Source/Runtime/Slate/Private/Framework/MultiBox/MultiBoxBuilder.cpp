@@ -1,17 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "MultiBox.h"
-#include "SHeadingBlock.h"
-#include "SMenuEntryBlock.h"
-#include "SMenuSeparatorBlock.h"
-#include "SToolBarSeparatorBlock.h"
-#include "SToolBarButtonBlock.h"
-#include "SToolBarComboButtonBlock.h"
-#include "SEditableTextBlock.h"
-#include "SButtonRowBlock.h"
-#include "SWidgetBlock.h"
-#include "SGroupMarkerBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBox.h"
+#include "Widgets/Layout/SBox.h"
+#include "Framework/MultiBox/SHeadingBlock.h"
+#include "Framework/MultiBox/SMenuEntryBlock.h"
+#include "Framework/MultiBox/SMenuSeparatorBlock.h"
+#include "Framework/MultiBox/SToolBarSeparatorBlock.h"
+#include "Framework/MultiBox/SToolBarButtonBlock.h"
+#include "Framework/MultiBox/SToolBarComboButtonBlock.h"
+#include "Framework/MultiBox/SEditableTextBlock.h"
+#include "Framework/MultiBox/SButtonRowBlock.h"
+#include "Framework/MultiBox/SWidgetBlock.h"
+#include "Framework/MultiBox/SGroupMarkerBlock.h"
 
 FMultiBoxBuilder::FMultiBoxBuilder( const EMultiBoxType::Type InType, FMultiBoxCustomization InCustomization, const bool bInShouldCloseWindowAfterMenuSelection, const TSharedPtr< const FUICommandList >& InCommandList, TSharedPtr<FExtender> InExtender, FName InTutorialHighlightName )
 	: MultiBox( FMultiBox::Create( InType, InCustomization, bInShouldCloseWindowAfterMenuSelection ) )

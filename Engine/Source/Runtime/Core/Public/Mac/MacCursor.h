@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ICursor.h"
+#include "Math/IntRect.h"
 
 @class FCocoaWindow;
 

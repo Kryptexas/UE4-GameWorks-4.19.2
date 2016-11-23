@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Components/CircularThrobber.h"
 #include "Slate/SlateBrushAsset.h"
-#include "SThrobber.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Widgets/Images/SThrobber.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

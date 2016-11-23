@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #include "hlslcc.h"
 THIRD_PARTY_INCLUDES_START
 	#include "ir.h"

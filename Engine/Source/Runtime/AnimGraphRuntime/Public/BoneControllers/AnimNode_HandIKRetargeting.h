@@ -2,8 +2,14 @@
 
 #pragma once
 
-#include "AnimNode_SkeletalControlBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BoneContainer.h"
+#include "BonePose.h"
+#include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimNode_HandIKRetargeting.generated.h"
+
+class USkeletalMeshComponent;
 
 /**
  * Node to handle re-targeting of Hand IK bone chain.

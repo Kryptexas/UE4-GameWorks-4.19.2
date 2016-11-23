@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "SMessagingGraph.h"
+#include "Widgets/Graph/SMessagingGraph.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingGraph"

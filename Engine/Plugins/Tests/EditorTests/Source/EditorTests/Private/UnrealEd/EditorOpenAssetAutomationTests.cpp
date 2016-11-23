@@ -1,12 +1,17 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EditorTestsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/App.h"
+#include "UObject/Object.h"
+#include "UObject/GarbageCollection.h"
 
 #include "Tests/AutomationTestSettings.h"
-#include "AutomationEditorCommon.h"
-#include "AutomationCommon.h"
+#include "Tests/AutomationEditorCommon.h"
+#include "Tests/AutomationCommon.h"
 #include "ShaderCompiler.h"
-#include "AssetEditorManager.h"
+#include "Toolkits/AssetEditorManager.h"
 
 #define ASSET_OPEN_INTERVAL 1.5f
 

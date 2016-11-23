@@ -6,14 +6,20 @@
 
 #pragma once
 
-#include "ChunkedArray.h"
+#include "CoreMinimal.h"
+#include "Containers/ChunkedArray.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
+#include "RenderingThread.h"
+#include "Serialization/BulkData.h"
 #include "SceneManagement.h"
 #include "Engine/LightMapTexture2D.h"
 
-// Forward declarations
-struct FQuantizedLightmapData;
-class UInstancedStaticMeshComponent;
 class FLightMap2D;
+class UInstancedStaticMeshComponent;
+class UMapBuildDataRegistry;
+class UPrimitiveComponent;
+struct FQuantizedLightmapData;
 
 /** Whether to use bilinear filtering on lightmaps */
 extern ENGINE_API bool GUseBilinearLightmaps;

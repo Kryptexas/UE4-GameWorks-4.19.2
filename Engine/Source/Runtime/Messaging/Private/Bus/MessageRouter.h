@@ -2,14 +2,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IMessageContext.h"
-#include "MessageTracer.h"
-
+#include "Containers/Queue.h"
+#include "IMessageTracer.h"
+#include "Bus/MessageTracer.h"
+#include "HAL/Runnable.h"
 
 class IMessageInterceptor;
+class IMessageReceiver;
 class IMessageSubscription;
-class IMessageTracer;
-
 
 /**
  * Implements a topic-based message router.

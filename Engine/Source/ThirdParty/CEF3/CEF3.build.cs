@@ -32,8 +32,6 @@ public class CEF3 : ModuleRules
 
 		if (CEFPlatform.Length > 0 && UEBuildConfiguration.bCompileCEF3)
 		{
-			Definitions.Add("WITH_CEF3=1");
-
 			string PlatformPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "CEF3", "cef_binary_" + CEFVersion + "_" + CEFPlatform);
 
 			PublicSystemIncludePaths.Add(PlatformPath);

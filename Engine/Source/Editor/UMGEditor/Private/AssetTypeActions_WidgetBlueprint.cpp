@@ -1,18 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-
-#include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
-#include "PackageTools.h"
-#include "Kismet2/BlueprintEditorUtils.h"
-#include "Kismet2/KismetEditorUtilities.h"
-#include "BlueprintEditorModule.h"
-#include "AssetRegistryModule.h"
-#include "SBlueprintDiff.h"
-#include "ISourceControlModule.h"
-#include "MessageLog.h"
-#include "WidgetBlueprint.h"
 #include "AssetTypeActions_WidgetBlueprint.h"
+#include "Misc/MessageDialog.h"
+#include "Engine/Blueprint.h"
+#include "Framework/Application/SlateApplication.h"
+
+#include "WidgetBlueprint.h"
+
+#include "SBlueprintDiff.h"
 #include "WidgetBlueprintEditor.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"

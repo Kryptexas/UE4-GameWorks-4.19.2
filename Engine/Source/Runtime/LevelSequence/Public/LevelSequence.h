@@ -2,10 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneSequence.h"
 #include "LevelSequenceObject.h"
 #include "LevelSequenceObjectReference.h"
 #include "LevelSequence.generated.h"
+
+class UMovieScene;
 
 /**
  * Movie scene animation for Actors.

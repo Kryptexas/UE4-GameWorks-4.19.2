@@ -1,16 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "SlateTextLayout.h"
-#include "SlateEditableTextLayout.h"
-#include "SlateTextRun.h"
-#include "SlatePasswordRun.h"
-#include "TextBlockLayout.h"
-#include "TextEditHelper.h"
-#include "ITextLayoutMarshaller.h"
-#include "ISlateEditableTextWidget.h"
-#include "GenericCommands.h"
-#include "BreakIterator.h"
+#include "Widgets/Text/SlateEditableTextLayout.h"
+#include "Styling/CoreStyle.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Fonts/FontCache.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/Text/TextHitPoint.h"
+#include "Framework/Text/SlateTextRun.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Text/SlatePasswordRun.h"
+#include "Widgets/Text/TextBlockLayout.h"
+#include "Framework/Text/TextEditHelper.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Internationalization/BreakIterator.h"
 
 /**
  * Ensure that text transactions are always completed.

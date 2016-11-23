@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "RuntimeTestsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+#include "Framework/Text/TextRange.h"
+#include "Framework/Text/ITextDecorator.h"
 
-#include "AutomationTest.h"
 #include "Framework/Text/RichTextMarkupProcessing.h"
 
 // Disable optimization for RickTextMarkupProcessingTest as it compiles very slowly in development builds

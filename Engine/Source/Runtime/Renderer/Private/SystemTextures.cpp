@@ -4,8 +4,9 @@
 	SystemTextures.cpp: System textures implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
+#include "SystemTextures.h"
+#include "Math/RandomStream.h"
+#include "PostProcess/RenderTargetPool.h"
 
 /*-----------------------------------------------------------------------------
 SystemTextures

@@ -4,12 +4,15 @@
 	TranslucentRendering.cpp: Translucent rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "TranslucentRendering.h"
+#include "DeferredShadingRenderer.h"
+#include "BasePassRendering.h"
+#include "DynamicPrimitiveDrawing.h"
+#include "RendererModule.h"
+#include "LightPropagationVolume.h"
 #include "ScenePrivate.h"
 #include "ScreenRendering.h"
-#include "SceneFilterRendering.h"
-#include "LightPropagationVolume.h"
-#include "SceneUtils.h"
+#include "PostProcess/SceneFilterRendering.h"
 
 DECLARE_CYCLE_STAT(TEXT("TranslucencyTimestampQueryFence Wait"), STAT_TranslucencyTimestampQueryFence_Wait, STATGROUP_SceneRendering);
 DECLARE_CYCLE_STAT(TEXT("TranslucencyTimestampQuery Wait"), STAT_TranslucencyTimestampQuery_Wait, STATGROUP_SceneRendering);

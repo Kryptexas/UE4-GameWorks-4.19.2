@@ -2,25 +2,36 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
 #include "PhysicsEngine/BodyInstance.h"
-#include "AI/Navigation/NavigationTypes.h"
+#include "Async/AsyncWork.h"
 #include "Engine/Texture.h"
 #include "LandscapeProxy.generated.h"
 
-class ULandscapeInfo;
-class ULandscapeComponent;
-class ULandscapeSplinesComponent;
-class ULandscapeGrassType;
-class UHierarchicalInstancedStaticMeshComponent;
-class ULandscapeHeightfieldCollisionComponent;
-class UMaterialInstanceConstant;
-class ULandscapeMaterialInstanceConstant;
-class ALandscapeProxy;
 class ALandscape;
-class ALandscapeStreamingProxy;
-struct FLandscapeInfoLayerSettings;
+class ALandscapeProxy;
+class UHierarchicalInstancedStaticMeshComponent;
+class ULandscapeComponent;
+class ULandscapeGrassType;
+class ULandscapeHeightfieldCollisionComponent;
+class ULandscapeInfo;
+class ULandscapeLayerInfoObject;
+class ULandscapeMaterialInstanceConstant;
+class ULandscapeSplinesComponent;
+class UMaterialInstanceConstant;
+class UMaterialInterface;
+class UPhysicalMaterial;
+class USplineComponent;
+class UTexture2D;
 struct FAsyncGrassBuilder;
+struct FLandscapeInfoLayerSettings;
 struct FRawMesh;
+enum class ENavDataGatheringMode : uint8;
 
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()

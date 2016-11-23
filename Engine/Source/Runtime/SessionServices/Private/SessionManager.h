@@ -2,17 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "IMessageContext.h"
+#include "IMessageBus.h"
+#include "Helpers/MessageEndpoint.h"
+#include "ISessionInstanceInfo.h"
+#include "ISessionInfo.h"
+#include "SessionLogMessage.h"
 #include "ISessionManager.h"
 
-
-struct FEngineServicePong;
 class FSessionInfo;
+struct FEngineServicePong;
 struct FSessionServicePong;
-class IMessageBus;
-class IMessageContext;
-class ISessionInfo;
-class ISessionInstanceInfo;
-
 
 /**
  * Implement the session manager

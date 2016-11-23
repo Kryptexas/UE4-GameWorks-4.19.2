@@ -2,7 +2,15 @@
 
 #pragma once
 
-#include "Editor/SequencerWidgets/Public/ITimeSlider.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "ITimeSlider.h"
+
+class FSlateWindowElementList;
 
 struct FVisualLoggerTimeSliderArgs : FTimeSliderArgs
 {

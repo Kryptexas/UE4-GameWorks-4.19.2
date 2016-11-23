@@ -2,12 +2,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Async/AsyncWork.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "StaticMeshResources.h"
 
 #include "HierarchicalInstancedStaticMeshComponent.generated.h"
 
 class FClusterBuilder;
+class FStaticLightingTextureMapping_InstancedStaticMesh;
 
 USTRUCT()
 struct FClusterNode

@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "HAL/Platform.h"
+
+#include "CoreTypes.h"
+#include "GenericPlatform/GenericPlatformAtomics.h"
 
 #if PLATFORM_WINDOWS
 #include "Windows/WindowsPlatformAtomics.h"

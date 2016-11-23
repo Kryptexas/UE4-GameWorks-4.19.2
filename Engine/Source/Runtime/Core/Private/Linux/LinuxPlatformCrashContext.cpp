@@ -1,14 +1,28 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "Linux/LinuxPlatformCrashContext.h"
+#include "Containers/StringConv.h"
+#include "HAL/PlatformStackWalk.h"
+#include "HAL/PlatformTime.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/PlatformOutputDevices.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "HAL/FileManager.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Delegates/IDelegateInstance.h"
+#include "Misc/Guid.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/OutputDeviceError.h"
+#include "Containers/Ticker.h"
+#include "Misc/FeedbackContext.h"
 #include "Misc/App.h"
-#include "EngineVersion.h"
-#include "PlatformMallocCrash.h"
-#include "LinuxPlatformRunnableThread.h"
+#include "Misc/EngineVersion.h"
+#include "HAL/PlatformMallocCrash.h"
+#include "Linux/LinuxPlatformRunnableThread.h"
 
-#include <sys/utsname.h>	// for uname()
-#include <signal.h>
 #include "HAL/ThreadHeartBeat.h"
 
 FString DescribeSignal(int32 Signal, siginfo_t* Info, ucontext_t *Context)

@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemTestAttributeSet.h"
+#include "GameplayTagContainer.h"
+#include "GameplayEffect.h"
+#include "GameplayTagsModule.h"
 #include "GameplayEffectExtension.h"
-#include "AbilitySystemComponent.h"
 
 
 UAbilitySystemTestAttributeSet::UAbilitySystemTestAttributeSet(const FObjectInitializer& ObjectInitializer)

@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
+#include "AssetTypeActions_GameplayTagAssetBase.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "UObject/UnrealType.h"
+#include "Framework/Application/SlateApplication.h"
+
+#include "GameplayTagContainer.h"
 #include "SGameplayTagWidget.h"
-#include "MainFrame.h"
+#include "Interfaces/IMainFrameModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

@@ -7,7 +7,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "UniformBuffer.h"
+#include "VertexFactory.h"
+#include "ParticleVertexFactory.h"
+
+class FMaterial;
 
 /**
  * Uniform buffer for particle beam/trail vertex factories.

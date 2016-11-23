@@ -3,21 +3,52 @@
 /*=============================================================================
 	PackageUtilities.cpp: Commandlets for viewing information about package files
 =============================================================================*/
-#include "UnrealEd.h"
+
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/ObjectThumbnail.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Serialization/ArchiveCountMem.h"
+#include "Misc/PackageName.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/LinkerLoad.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "Commandlets/Commandlet.h"
+#include "Commandlets/CompressAnimationsCommandlet.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "SourceControlHelpers.h"
+#include "Commandlets/LoadPackageCommandlet.h"
+#include "Commandlets/PkgInfoCommandlet.h"
+#include "Commandlets/ReplaceActorCommandlet.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Serialization/ArchiveReplaceObjectRef.h"
+#include "GameFramework/WorldSettings.h"
+#include "Editor.h"
+#include "FileHelpers.h"
 
 #include "Animation/AnimCompress_BitwiseCompressOnly.h"
 
-#include "ISourceControlModule.h"
 
+#include "CollectionManagerTypes.h"
+#include "ICollectionManager.h"
+#include "CollectionManagerModule.h"
 #include "PackageHelperFunctions.h"
 #include "PackageUtilityWorkers.h"
 
-#include "AnimationUtils.h"
 #include "AnimationCompression.h"
 #include "Animation/AnimationSettings.h"
 
-#include "CollectionManagerModule.h"
-#include "GameFramework/WorldSettings.h"
 #include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY(LogPackageHelperFunctions);

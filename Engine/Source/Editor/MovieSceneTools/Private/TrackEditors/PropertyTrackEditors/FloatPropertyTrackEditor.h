@@ -2,13 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneFloatTrack.h"
-#include "MovieSceneFloatSection.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
+#include "Tracks/MovieSceneFloatTrack.h"
+#include "Sections/MovieSceneFloatSection.h"
 
 /**
  * A property track editor for floats.

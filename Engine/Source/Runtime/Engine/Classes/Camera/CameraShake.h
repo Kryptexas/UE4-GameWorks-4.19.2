@@ -2,7 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
+#include "Camera/CameraTypes.h"
 #include "CameraShake.generated.h"
+
+class AActor;
 
 /************************************************************
  * Parameters for defining oscillating camera shakes

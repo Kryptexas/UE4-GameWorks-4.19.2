@@ -4,12 +4,16 @@
 	ShaderCore.h: Shader core module implementation.
 =============================================================================*/
 
-#include "ShaderCorePrivatePCH.h"
 #include "ShaderCore.h"
-#include "SecureHash.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Stats/StatsMisc.h"
+#include "Misc/ScopedSlowTask.h"
 #include "Shader.h"
 #include "VertexFactory.h"
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 FSHAHash GGlobalShaderMapHash;
 

@@ -4,9 +4,12 @@
 	StartupPackages.cpp: Startup Package Functions
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
 #include "Misc/StartupPackages.h"
-#include "ModuleManager.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/Package.h"
+#include "UObject/LinkerLoad.h"
 
 void FStartupPackages::GetStartupPackageNames(TArray<FString>& PackageNames, const FString& EngineConfigFilename, bool bIsCreatingHashes)
 {

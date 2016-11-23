@@ -1,8 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "Sound/SoundClass.h"
 #include "SoundClassGraph/SoundClassGraphNode.h"
+#include "Sound/SoundClass.h"
 #include "SoundClassGraph/SoundClassGraphSchema.h"
 #include "SoundClassGraph/SoundClassGraph.h"
 

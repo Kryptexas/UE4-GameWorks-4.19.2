@@ -2,6 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SGraphNode.h"
+
+class SVerticalBox;
+
 class SGraphNode_MultiCompareGameplayTag : public SGraphNode
 {
 public:

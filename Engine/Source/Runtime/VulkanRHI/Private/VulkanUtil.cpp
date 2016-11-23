@@ -307,6 +307,7 @@ void FVulkanGPUProfiler::EndFrame()
 #include "RHIStaticStates.h"
 #include "OneColorShader.h"
 #include "VulkanRHI.h"
+#include "StaticBoundShaderState.h"
 
 static FGlobalBoundShaderState LongGPUTaskBoundShaderState;
 

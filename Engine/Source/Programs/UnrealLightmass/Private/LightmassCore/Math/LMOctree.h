@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "LMMath.h"
+#include "LMMathSSE.h"
+#include "UnrealLightmass.h"
+
 namespace Lightmass
 {
 

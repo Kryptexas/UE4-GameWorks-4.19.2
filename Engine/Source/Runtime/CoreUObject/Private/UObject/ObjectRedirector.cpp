@@ -4,7 +4,10 @@
 	UnRedirector.cpp: Object redirector implementation.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/ObjectRedirector.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/PropertyPortFlags.h"
 
 /*-----------------------------------------------------------------------------
 	UObjectRedirector

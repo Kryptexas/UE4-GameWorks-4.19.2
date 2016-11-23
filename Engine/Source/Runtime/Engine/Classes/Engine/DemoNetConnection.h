@@ -2,8 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/NetConnection.h"
 #include "DemoNetConnection.generated.h"
 
+class APlayerController;
+class FObjectReplicator;
+class UDemoNetDriver;
 
 struct FQueuedDemoPacket
 {

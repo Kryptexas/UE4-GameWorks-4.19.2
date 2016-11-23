@@ -6,11 +6,31 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "HitProxies.h"
+#include "RHIStaticStates.h"
+#include "SceneManagement.h"
+#include "Materials/Material.h"
+#include "DrawingPolicy.h"
+#include "PostProcess/SceneRenderTargets.h"
 #include "LightMapRendering.h"
 #include "VelocityRendering.h"
+#include "MeshMaterialShaderType.h"
+#include "MeshMaterialShader.h"
 #include "ShaderBaseClasses.h"
+#include "DebugViewModeRendering.h"
+#include "FogRendering.h"
 #include "EditorCompositeParams.h"
 #include "PlanarReflectionRendering.h"
+#include "UnrealEngine.h"
+
+class FScene;
+
+template<typename TBufferStruct> class TUniformBufferRef;
 
 class FViewInfo;
 

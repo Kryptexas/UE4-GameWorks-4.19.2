@@ -1,15 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "Widgets/Text/SRichTextBlock.h"
 
 #if WITH_FANCY_TEXT
 
-#include "TextLayoutEngine.h"
-#include "TextBlockLayout.h"
-#include "IRichTextMarkupParser.h"
-#include "RichTextMarkupProcessing.h"
-#include "RichTextLayoutMarshaller.h"
-#include "ReflectionMetadata.h"
+#include "Widgets/Text/TextBlockLayout.h"
+#include "Framework/Text/RichTextMarkupProcessing.h"
+#include "Framework/Text/RichTextLayoutMarshaller.h"
+#include "Types/ReflectionMetadata.h"
 
 SRichTextBlock::SRichTextBlock()
 {

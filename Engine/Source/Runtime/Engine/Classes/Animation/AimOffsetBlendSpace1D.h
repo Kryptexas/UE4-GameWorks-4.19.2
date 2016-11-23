@@ -7,7 +7,9 @@
 
 #pragma once 
 
-#include "BlendSpace1D.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/BlendSpace1D.h"
 #include "AimOffsetBlendSpace1D.generated.h"
 
 UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)

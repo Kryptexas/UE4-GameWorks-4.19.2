@@ -4,17 +4,18 @@
 	Character.cpp: ACharacter implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/DamageType.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/ArrowComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Components/PrimitiveComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "DisplayDebugHelpers.h"
+#include "Engine/Canvas.h"
 #include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
-#include "Components/CapsuleComponent.h"
-#include "GameFramework/DamageType.h"
-#include "Engine/SkeletalMeshSocket.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);

@@ -1,10 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEffectBlockedImmunity.h"
+#include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
-#include "Abilities/GameplayAbility.h"
-#include "GameplayEffectExtension.h"
 
 UAbilityTask_WaitGameplayEffectBlockedImmunity::UAbilityTask_WaitGameplayEffectBlockedImmunity(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

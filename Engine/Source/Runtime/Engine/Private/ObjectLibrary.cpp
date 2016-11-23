@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "AssetRegistryModule.h"
 #include "Engine/ObjectLibrary.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/BlueprintCore.h"
+#include "Engine/Blueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
+#include "ARFilter.h"
+#include "AssetRegistryModule.h"
 #include "Engine/StreamableManager.h"
 
 UObjectLibrary::UObjectLibrary(const FObjectInitializer& ObjectInitializer)

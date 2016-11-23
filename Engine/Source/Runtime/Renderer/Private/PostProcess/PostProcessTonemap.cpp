@@ -4,16 +4,12 @@
 	PostProcessTonemap.cpp: Post processing tone mapping implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "PostProcess/PostProcessTonemap.h"
+#include "EngineGlobals.h"
 #include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessEyeAdaptation.h"
-#include "PostProcessUpscale.h"
-#include "PostProcessTonemap.h"
-#include "PostProcessing.h"
-#include "PostProcessCombineLUTs.h"
-#include "PostProcessMobile.h"
-#include "SceneUtils.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessCombineLUTs.h"
+#include "PostProcess/PostProcessMobile.h"
 
 static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("r.Tonemapper.Sharpen"),

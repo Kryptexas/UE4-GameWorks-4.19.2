@@ -2,14 +2,19 @@
 
 #pragma once
 
-#include "GenericWindow.h"
-#include "SharedPointer.h"
+#include "CoreTypes.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "Templates/SharedPointer.h"
+#include "WindowsHWrapper.h"
 
 #include "AllowWindowsPlatformTypes.h"
-#include "Ole2.h"
-#include "OleIdl.h"
+#include <Ole2.h>
+#include <oleidl.h>
 #include "HideWindowsPlatformTypes.h"
 
+class FWindowsApplication;
+struct FVector2D;
+enum class EWindowTransparency;
 
 /**
  * A platform specific implementation of FNativeWindow.

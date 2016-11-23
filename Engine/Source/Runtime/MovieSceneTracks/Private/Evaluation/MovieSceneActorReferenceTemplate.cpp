@@ -1,10 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneActorReferenceTemplate.h"
+#include "Evaluation/MovieSceneActorReferenceTemplate.h"
 
-#include "MovieSceneActorReferenceSection.h"
-#include "MovieSceneActorReferenceTrack.h"
+#include "Sections/MovieSceneActorReferenceSection.h"
+#include "Tracks/MovieSceneActorReferenceTrack.h"
+#include "GameFramework/Actor.h"
 
 namespace PropertyTemplate
 {

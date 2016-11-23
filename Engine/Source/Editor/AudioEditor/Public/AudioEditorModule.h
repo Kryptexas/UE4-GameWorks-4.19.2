@@ -2,12 +2,18 @@
 
 #pragma once
 
-#include "UnrealEd.h"
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/IToolkit.h"
 #include "ISoundClassEditor.h"
 #include "ISoundCueEditor.h"
+
+class UDialogueWave;
+class USoundClass;
+class USoundCue;
+class USoundNode;
+class USoundWave;
+struct FDialogueContextMapping;
 
 AUDIOEDITOR_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioEditor, Log, All);
 

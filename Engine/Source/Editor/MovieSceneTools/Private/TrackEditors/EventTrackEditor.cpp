@@ -1,9 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "EventTrackEditor.h"
-#include "EventTrackSection.h"
-#include "MovieSceneEventTrack.h"
+#include "TrackEditors/EventTrackEditor.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "GameFramework/Actor.h"
+#include "EditorStyleSet.h"
+#include "Tracks/MovieSceneEventTrack.h"
+#include "Sections/EventTrackSection.h"
 
 
 #define LOCTEXT_NAMESPACE "FEventTrackEditor"

@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "IScreenShotManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Interfaces/IScreenShotManager.h"
 
 /**
  * Interface for session core modules.

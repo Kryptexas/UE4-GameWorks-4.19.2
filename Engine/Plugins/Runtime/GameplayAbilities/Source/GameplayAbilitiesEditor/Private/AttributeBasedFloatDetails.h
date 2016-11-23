@@ -2,11 +2,13 @@
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "IPropertyTypeCustomization.h"
 
-class IPropertyHandle;
 class FDetailWidgetRow;
 class IDetailChildrenBuilder;
+class IPropertyHandle;
 
 /** Details customization for FAttributeBasedFloat */
 class FAttributeBasedFloatDetails : public IPropertyTypeCustomization

@@ -14,8 +14,9 @@
  */
 
 
-#include "GoogleVRController.h"
 #include "Classes/GoogleVRControllerEventManager.h"
+#include "GoogleVRController.h"
+#include "GoogleVRControllerPrivate.h"
 
 UGoogleVRControllerEventManager::UGoogleVRControllerEventManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

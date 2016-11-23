@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ITargetDevice.h"
+#include "HAL/FileManager.h"
+#include "HAL/PlatformProcess.h"
 
 /**
  * Template for local Mac target devices.

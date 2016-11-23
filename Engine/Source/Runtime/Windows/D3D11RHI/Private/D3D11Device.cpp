@@ -5,6 +5,9 @@
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
 #include "AllowWindowsPlatformTypes.h"
 	#include <delayimp.h>
 #include "HideWindowsPlatformTypes.h"

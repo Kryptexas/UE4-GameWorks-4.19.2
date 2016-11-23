@@ -2,9 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if WITH_EDITOR
-#include "Toolkits/BaseToolkit.h"
 #include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Toolkits/BaseToolkit.h"
 
 class FGameplayDebuggerToolkit : public FModeToolkit
 {

@@ -1,6 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Framework/Commands/InputChord.h"
+#include "EditorStyleSet.h"
+#include "Framework/Commands/Commands.h"
+
 #define LOCTEXT_NAMESPACE "LevelCollectionCommands"
 
 /** The set of commands supported by the WorldView */

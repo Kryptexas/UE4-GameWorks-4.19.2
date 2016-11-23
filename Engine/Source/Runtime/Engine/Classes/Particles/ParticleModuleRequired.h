@@ -2,13 +2,18 @@
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "RenderCommandFence.h"
 #include "Particles/ParticleModule.h"
-#include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSpriteEmitter.h"
-#include "SubUVAnimation.h"
+#include "Particles/SubUVAnimation.h"
 #include "ParticleModuleRequired.generated.h"
 
 class UInterpCurveEdSetup;
+class UParticleLODLevel;
+struct FCurveEdEntry;
 
 UENUM()
 enum class EParticleUVFlipMode : uint8

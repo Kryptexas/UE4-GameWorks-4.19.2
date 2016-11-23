@@ -1,16 +1,23 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Components/SplineMeshComponent.h"
+#include "Serialization/MemoryWriter.h"
+#include "Modules/ModuleManager.h"
+#include "RenderingThread.h"
+#include "VertexFactory.h"
+#include "LocalVertexFactory.h"
+#include "Engine/CollisionProfile.h"
+#include "StaticMeshResources.h"
 #include "SplineMeshSceneProxy.h"
 #include "ShaderParameterUtils.h"
-#include "NavigationSystemHelpers.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
+#include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
-#include "HierarchicalLODUtilities.h"
+#include "IHierarchicalLODUtilities.h"
 #include "HierarchicalLODUtilitiesModule.h"
 #endif // WITH_EDITOR
 

@@ -1,9 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MessagingDebuggerPCH.h"
-#include "MessagingDebuggerModel.h"
-#include "SMessagingDispatchStateTableRow.h"
-#include "SMessagingMessageDetails.h"
+#include "Widgets/MessageDetails/SMessagingMessageDetails.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/MessageDetails/SMessagingDispatchStateTableRow.h"
 
 
 #define LOCTEXT_NAMESPACE "SMessagingMessageDetails"

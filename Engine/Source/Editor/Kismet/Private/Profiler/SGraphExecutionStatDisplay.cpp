@@ -1,13 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "BPProfilerStatisticWidgets.h"
-#include "SBlueprintProfilerToolbar.h"
-#include "SGraphExecutionStatDisplay.h"
-#include "BlueprintEditor.h"
-#include "Public/Profiler/EventExecution.h"
-#include "SDockTab.h"
-#include "Developer/BlueprintProfiler/Public/ScriptInstrumentationPlayback.h"
+#include "Profiler/SGraphExecutionStatDisplay.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "EdGraph/EdGraph.h"
+#include "Profiler/BlueprintProfilerSettings.h"
+#include "EditorStyleSet.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "BlueprintProfilerModule.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "ScriptInstrumentationPlayback.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintProfilerGraphExecView"
 

@@ -6,8 +6,12 @@
 
 #pragma once
 
-#include "RHICommandList.h"
+#include "CoreMinimal.h"
+#include "SceneView.h"
+#include "MeshBatch.h"
 
+class FPrimitiveSceneProxy;
+class FStaticMesh;
 class FViewInfo;
 
 /**

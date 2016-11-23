@@ -4,18 +4,17 @@
 	ConvertToUniformMesh.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "UniformBuffer.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
 #include "ShaderParameters.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
+#include "Shader.h"
+#include "MeshBatch.h"
+#include "MaterialShaderType.h"
+#include "MaterialShader.h"
+#include "DrawingPolicy.h"
+#include "MeshMaterialShader.h"
+#include "ScenePrivate.h"
 #include "DistanceFieldLightingShared.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
-#include "DistanceFieldGlobalIllumination.h"
-#include "RHICommandList.h"
-#include "SceneUtils.h"
-#include "DistanceFieldAtlas.h"
 
 class FConvertToUniformMeshVS : public FMeshMaterialShader
 {

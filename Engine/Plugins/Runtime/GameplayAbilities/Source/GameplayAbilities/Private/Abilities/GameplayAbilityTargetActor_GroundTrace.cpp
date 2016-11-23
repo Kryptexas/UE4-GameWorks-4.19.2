@@ -1,10 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AbilitySystemComponent.h"
-#include "GameplayAbilityTargetActor_GroundTrace.h"
-#include "Engine/World.h"
-#include "Runtime/Engine/Public/Net/UnrealNetwork.h"
+#include "Abilities/GameplayAbilityTargetActor_GroundTrace.h"
+#include "GameFramework/Pawn.h"
+#include "DrawDebugHelpers.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //

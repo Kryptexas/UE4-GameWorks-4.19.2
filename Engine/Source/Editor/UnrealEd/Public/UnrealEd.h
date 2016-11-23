@@ -1,14 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __UnrealEd_h__
-#define __UnrealEd_h__
+#pragma once
 
-#ifdef __cplusplus // Xcode needs that to use this file as a precompiled header for indexing
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
 
-#if WITH_EDITOR
-
+#include "Engine.h"
 #include "EngineDefines.h"
 
+#include "Misc/Timespan.h"
 #include "SlateBasics.h"
 #include "EditorStyle.h"
 
@@ -82,11 +82,15 @@
 #include "Classes/Commandlets/DiffFilesCommandlet.h"
 #include "Classes/Commandlets/DumpBlueprintsInfoCommandlet.h"
 #include "Classes/Commandlets/DumpHiddenCategoriesCommandlet.h"
+#include "GraphEditAction.h"
 #include "Classes/MaterialGraph/MaterialGraph.h"
+#include "EdGraphNode_Comment.h"
 #include "Classes/MaterialGraph/MaterialGraphNode_Comment.h"
 #include "Classes/Animation/EditorAnimBaseObj.h"
 #include "Classes/Animation/EditorAnimCompositeSegment.h"
 #include "Classes/Animation/EditorAnimSegment.h"
+#include "DisplayDebugHelpers.h"
+#include "Animation/AnimInstance.h"
 #include "Classes/Animation/EditorCompositeSection.h"
 #include "Classes/Animation/EditorNotifyObject.h"
 #include "Classes/Builders/EditorBrushBuilder.h"
@@ -104,6 +108,10 @@
 #include "Classes/Settings/LevelEditorPlaySettings.h"
 #include "Classes/Settings/LevelEditorViewportSettings.h"
 #include "Classes/Editor/EditorEngine.h"
+#include "IPackageAutoSaver.h"
+#include "ISourceControlModule.h"
+#include "ComponentVisualizer.h"
+#include "ComponentVisualizerManager.h"
 #include "Classes/Editor/UnrealEdEngine.h"
 #include "Classes/Settings/EditorExperimentalSettings.h"
 #include "Classes/Settings/EditorLoadingSavingSettings.h"
@@ -252,6 +260,7 @@
 #include "Classes/Exporters/TextureExporterTGA.h"
 #include "Classes/ThumbnailRendering/ThumbnailRenderer.h"
 #include "Classes/ThumbnailRendering/DefaultSizedThumbnailRenderer.h"
+#include "ThumbnailHelpers.h"
 #include "Classes/ThumbnailRendering/AnimBlueprintThumbnailRenderer.h"
 #include "Classes/ThumbnailRendering/AnimSequenceThumbnailRenderer.h"
 #include "Classes/ThumbnailRendering/BlendSpaceThumbnailRenderer.h"
@@ -279,20 +288,25 @@
 #include "Classes/Commandlets/WrangleContentCommandlet.h"
 //////////////////////	@todo Classes.h
 
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Commandlets/EditorCommandlets.h"
+#include "EditorUndoClient.h"
+#include "EditorModeTools.h"
+#include "UnrealWidget.h"
 #include "Editor.h"
 
 #include "EditorViewportClient.h"
 #include "LevelEditorViewport.h"
 
 #include "EditorModeRegistry.h"
+#include "EdMode.h"
+#include "EditorModeManager.h"
 #include "EditorModes.h"
 
 #include "MRUList.h"
 
 
 //#include "../Private/GeomFitUtils.h"
-
-extern UNREALED_API class UUnrealEdEngine* GUnrealEd;
 
 #include "UnrealEdMisc.h"
 #include "EditorDirectories.h"
@@ -307,15 +321,8 @@ extern UNREALED_API class UUnrealEdEngine* GUnrealEd;
 #include "Dialogs/Dialogs.h"
 #include "Viewports.h"
 
-#endif // WITH_EDITOR
-
-UNREALED_API int32 EditorInit( class IEngineLoop& EngineLoop );
-UNREALED_API void EditorExit();
+#include "UnrealEdGlobals.h"
 
 #include "UnrealEdMessages.h"
 
 #include "EditorAnalytics.h"
-
-#endif // __cplusplus
-
-#endif	// __UnrealEd_h__

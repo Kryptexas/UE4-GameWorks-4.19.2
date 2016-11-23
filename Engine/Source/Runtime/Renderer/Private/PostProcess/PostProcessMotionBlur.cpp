@@ -4,16 +4,17 @@
 	PostProcessMotionBlur.cpp: Post process MotionBlur implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessAmbientOcclusion.h"
-#include "PostProcessMotionBlur.h"
-#include "PostProcessAmbientOcclusion.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessMotionBlur.h"
+#include "StaticBoundShaderState.h"
+#include "CanvasTypes.h"
+#include "RenderTargetTemp.h"
 #include "SceneUtils.h"
-#include "GPUSkinVertexFactory.h"
-#include "../../Engine/Private/SkeletalRenderGPUSkin.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRenderTargetParameters.h"
+#include "ScenePrivate.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "CompositionLighting/PostProcessAmbientOcclusion.h"
+#include "PostProcess/PostProcessing.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarMotionBlurFiltering(

@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Components/InputKeySelector.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Input/SInputKeySelector.h"
 
 UInputKeySelector::UInputKeySelector( const FObjectInitializer& ObjectInitializer )
 {

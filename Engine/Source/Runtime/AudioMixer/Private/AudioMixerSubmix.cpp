@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioMixerPCH.h"
 #include "AudioMixerSubmix.h"
+#include "AudioMixerDevice.h"
+#include "AudioMixerSourceVoice.h"
 #include "Sound/SoundSubmix.h"
+#include "Sound/SoundEffectSubmix.h"
 
 namespace Audio
 {

@@ -2,9 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
 #include "Components/ActorComponent.h"
 #include "ViewportDragOperation.generated.h"
-
 
 /**
  * Base class for interactable drag calculations

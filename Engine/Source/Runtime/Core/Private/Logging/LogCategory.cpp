@@ -1,7 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "LogCategory.h"
+#include "Logging/LogCategory.h"
+#include "CoreGlobals.h"
+#include "Logging/LogSuppressionInterface.h"
+#include "Misc/OutputDeviceRedirector.h"
 
 FLogCategoryBase::FLogCategoryBase(const TCHAR *CategoryName, ELogVerbosity::Type InDefaultVerbosity, ELogVerbosity::Type InCompileTimeVerbosity)
 	: DefaultVerbosity(InDefaultVerbosity)

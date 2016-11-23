@@ -2,13 +2,14 @@
 
 #pragma once
 
-#include "MovieSceneColorSection.h"
-#include "MovieSceneColorTrack.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
+#include "Tracks/MovieSceneColorTrack.h"
+#include "Sections/MovieSceneColorSection.h"
 
 /**
 * A property track editor for colors.

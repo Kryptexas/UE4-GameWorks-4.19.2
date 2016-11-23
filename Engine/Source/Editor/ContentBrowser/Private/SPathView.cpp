@@ -1,14 +1,25 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "ContentBrowserPCH.h"
+#include "SPathView.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "EditorStyleSet.h"
+#include "Settings/ContentBrowserSettings.h"
+#include "AssetRegistryModule.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "ContentBrowserSingleton.h"
+#include "ContentBrowserUtils.h"
+#include "HistoryManager.h"
 
 #include "DragAndDrop/AssetPathDragDropOp.h"
 #include "DragDropHandler.h"
 
 #include "PathViewTypes.h"
-#include "ObjectTools.h"
 #include "SourcesViewWidgets.h"
-#include "SSearchBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "NativeClassHierarchy.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"

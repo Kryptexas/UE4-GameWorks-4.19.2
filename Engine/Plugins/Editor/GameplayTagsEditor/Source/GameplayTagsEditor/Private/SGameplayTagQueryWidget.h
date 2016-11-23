@@ -2,8 +2,17 @@
 
 #pragma once
 
-#include "GameplayTagsManager.h"
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "GameplayTagContainer.h"
+
+class IDetailsView;
+struct FPropertyChangedEvent;
 
 /** Widget allowing user to tag assets with gameplay tags */
 class SGameplayTagQueryWidget : public SCompoundWidget

@@ -2,34 +2,65 @@
 
 #pragma once
 
-#include "Editor/EditorWidgets/Public/ITransportControl.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "SequencerNodeTree.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "UObject/GCObject.h"
+#include "MovieSceneSequenceID.h"
+#include "IMovieScenePlayer.h"
+#include "ITimeSlider.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Input/NumericTypeInterface.h"
+#include "Animation/CurveHandle.h"
+#include "Animation/CurveSequence.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "TickableEditorObject.h"
 #include "EditorUndoClient.h"
-#include "MovieSceneClipboard.h"
-#include "MovieScenePossessable.h"
+#include "KeyPropertyParams.h"
+#include "ISequencer.h"
+#include "ISequencerModule.h"
+#include "ISequencerObjectChangeListener.h"
+#include "SequencerSelection.h"
+#include "SequencerSelectionPreview.h"
+#include "Editor/EditorWidgets/Public/ITransportControl.h"
 #include "SequencerLabelManager.h"
-#include "MovieSceneEvaluationTemplateInstance.h"
+#include "Evaluation/MovieSceneSequenceTransform.h"
+#include "Evaluation/MovieScenePlayback.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "LevelEditor.h"
 #include "SequencerTimingManager.h"
 
+class AActor;
 class ACineCameraActor;
+class APlayerController;
+class FLevelEditorViewportClient;
 class FMenuBuilder;
+class FMovieSceneClipboard;
+class FSequencerObjectBindingNode;
+class FSequencerTrackNode;
+class FViewportClient;
 class IDetailKeyframeHandler;
+class ILevelViewport;
 class IMenu;
 class ISequencerEditTool;
-class ISequencerObjectChangeListener;
-class IToolkitHost;
+class ISequencerKeyCollection;
+class ISequencerTrackEditor;
 class SSequencer;
-class UClass;
-class UMovieScene;
-class UMovieSceneSection;
+class ULevel;
 class UMovieSceneSequence;
-class UWorld;
-class FMovieSceneSpawnRegister;
-class FSequencerNodeTree;
-
-struct ISequencerHotspot;
+class UMovieSceneSubSection;
+class USequencerSettings;
+struct FMovieScenePossessable;
+struct FSequencerTemplateStore;
 struct FTransformData;
-
+struct ISequencerHotspot;
+enum class EMapChangeType : uint8;
 
 /**
  * Sequencer is the editing tool for MovieScene assets.

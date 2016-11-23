@@ -4,10 +4,10 @@
 	GPUVertexFactory.cpp: GPU skin vertex factory implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GPUSkinVertexFactory.h"
+#include "SceneView.h"
+#include "MeshBatch.h"
 #include "GPUSkinCache.h"
-#include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 
 // Changing this is currently unsupported after content has been chunked with the previous setting

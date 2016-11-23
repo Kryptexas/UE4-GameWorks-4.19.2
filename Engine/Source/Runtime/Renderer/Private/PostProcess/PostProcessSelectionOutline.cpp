@@ -4,15 +4,19 @@
 	PostProcessSelectionOutline.cpp: Post processing outline effect.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "PostProcess/PostProcessSelectionOutline.h"
+#include "StaticBoundShaderState.h"
+#include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRenderTargetParameters.h"
+#include "SceneHitProxyRendering.h"
+#include "ScenePrivate.h"
+#include "EngineGlobals.h"
 
 #if WITH_EDITOR
 
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessSelectionOutline.h"
-#include "OneColorShader.h"
-#include "SceneUtils.h"
+#include "PostProcess/PostProcessing.h"
+#include "PostProcess/SceneFilterRendering.h"
 
 ///////////////////////////////////////////
 // FRCPassPostProcessSelectionOutlineColor

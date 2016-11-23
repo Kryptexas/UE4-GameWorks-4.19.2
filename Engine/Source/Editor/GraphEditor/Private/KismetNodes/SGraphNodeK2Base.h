@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SNodePanel.h"
+#include "SGraphNode.h"
+
+class SToolTip;
+
 class GRAPHEDITOR_API SGraphNodeK2Base : public SGraphNode
 {
 public:

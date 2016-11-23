@@ -1,16 +1,21 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 	
+#include "CrashUpload.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/Guid.h"
+#include "Serialization/MemoryWriter.h"
+#include "Containers/Ticker.h"
+#include "CrashReportClientConfig.h"
 #include "CrashReportClientApp.h"
 
-#include "CrashUpload.h"
-#include "UniquePtr.h"
-#include "PlatformErrorReport.h"
+#include "Interfaces/IHttpResponse.h"
+#include "HttpModule.h"
+#include "GenericPlatform/GenericPlatformHttp.h"
 #include "PendingReports.h"
-#include "XmlFile.h"
-#include "CrashReportUtil.h"
-#include "GenericPlatformCrashContext.h"
 #include "CrashDescription.h"
-#include "EngineBuildSettings.h"
+#include "Misc/EngineBuildSettings.h"
 
 // Switched off CRR upload - Jun 2016
 #define PRIMARY_UPLOAD_RECEIVER 0

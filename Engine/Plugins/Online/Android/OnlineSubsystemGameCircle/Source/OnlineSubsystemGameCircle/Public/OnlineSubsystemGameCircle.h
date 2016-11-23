@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineIdentityInterfaceGameCircle.h"
@@ -10,6 +11,7 @@
 #include "OnlineExternalUIInterfaceGameCircle.h"
 #include "OnlineFriendsInterfaceGameCircle.h"
 #include "OnlineAGSCallbackManager.h"
+#include "OnlineStoreInterfaceGameCircle.h"
 #include "UniquePtr.h"
 
 #include <string>

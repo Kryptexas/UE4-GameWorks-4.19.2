@@ -2,13 +2,11 @@
 
 #pragma once
 
-#include "MovieScene.h"
-#include "MovieSceneTrack.h"
-#include "MovieScenePropertyTrack.h"
-#include "MovieScenePropertyTrack.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 
 #include "MovieSceneVectorTrack.generated.h"
-
 
 /**
  * Handles manipulation of component transforms in a movie scene

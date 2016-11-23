@@ -1,22 +1,31 @@
 ﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "Containers/UnrealString.h"
-#include "Internationalization/CulturePointer.h"
-#include "Templates/SharedPointer.h"
-#include "UObject/NameTypes.h"
-#include "ITextData.h"
-#include "TextLocalizationManager.h"
-#include "Optional.h"
-#include "UniquePtr.h"
 
-struct FTimespan;
-struct FDateTime;
+#include "CoreTypes.h"
+#include "HAL/PlatformAtomics.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Containers/EnumAsByte.h"
+#include "Templates/SharedPointer.h"
+#include "Internationalization/CulturePointer.h"
+#include "Internationalization/TextLocalizationManager.h"
+#include "Misc/Optional.h"
+#include "Templates/UniquePtr.h"
+
+class FFormatArgumentValue;
+class FTextFormatData;
+class ITextData;
 
 class FText;
 class FTextHistory;
 class FTextFormatData;
 class FHistoricTextFormatData;
 class FHistoricTextNumericData;
+
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 #define ENABLE_TEXT_ERROR_CHECKING_RESULTS (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
 
@@ -300,7 +309,7 @@ public:
 	 * Generate an FText that represents the passed number as currency in the current culture.
 	 * BaseVal is specified in the smallest fractional value of the currency and will be converted for formatting according to the selected culture.
 	 * Keep in mind the CurrencyCode is completely independent of the culture it's displayed in (and they do not imply one another).
-	 * For example: FText::AsCurrencyBase(650, TEXT("EUR")); would return an FText of "€6.50" in most English cultures (en_US/en_UK) and "6,50€" in Spanish (es_ES).
+	 * For example: FText::AsCurrencyBase(650, TEXT("EUR")); would return an FText of "â‚¬6.50" in most English cultures (en_US/en_UK) and "6,50â‚¬" in Spanish (es_ES).
 	 */
 	static FText AsCurrencyBase(int64 BaseVal, const FString& CurrencyCode, const FCulturePtr& TargetCulture = NULL);
 

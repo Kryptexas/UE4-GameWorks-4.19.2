@@ -3,10 +3,13 @@ BestFitAllocator.cpp: Unreal memory best fit allocator
 Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 =============================================================================*/
 
-#include "RHIPrivatePCH.h"
-#include "RHI.h"
 #include "GPUDefragAllocator.h"
-#include "ScopedTimers.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopeLock.h"
+#include "Math/RandomStream.h"
+#include "Stats/StatsMisc.h"
+#include "RHI.h"
+#include "ProfilingDebugging/ScopedTimers.h"
 
 DECLARE_STATS_GROUP(TEXT("TexturePool"), STATGROUP_TexturePool, STATCAT_ADVANCED);
 

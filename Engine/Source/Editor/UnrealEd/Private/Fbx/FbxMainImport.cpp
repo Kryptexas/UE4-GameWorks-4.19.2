@@ -4,18 +4,27 @@
 	Main implementation of FFbxImporter : import FBX data to Unreal
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/SecureHash.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxTextureImportData.h"
 
-#include "Factories.h"
-#include "Engine.h"
+#include "Materials/MaterialInterface.h"
 #include "SkelImport.h"
-#include "FbxErrors.h"
+#include "Logging/TokenizedMessage.h"
+#include "Misc/FbxErrors.h"
 #include "FbxImporter.h"
 #include "FbxOptionWindow.h"
-#include "FbxErrors.h"
-#include "MainFrame.h"
+#include "Interfaces/IMainFrameModule.h"
 #include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 
 DEFINE_LOG_CATEGORY(LogFbx);
 

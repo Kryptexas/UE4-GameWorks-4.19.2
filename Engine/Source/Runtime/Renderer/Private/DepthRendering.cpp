@@ -4,12 +4,26 @@
 	DepthRendering.cpp: Depth rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "DepthRendering.h"
+#include "RendererInterface.h"
+#include "StaticBoundShaderState.h"
+#include "SceneUtils.h"
+#include "EngineGlobals.h"
+#include "Materials/Material.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "MaterialShaderType.h"
+#include "MeshMaterialShaderType.h"
+#include "MeshMaterialShader.h"
+#include "ShaderBaseClasses.h"
+#include "SceneRendering.h"
+#include "StaticMeshDrawList.h"
+#include "DeferredShadingRenderer.h"
 #include "ScenePrivate.h"
 #include "OneColorShader.h"
 #include "IHeadMountedDisplay.h"
 #include "ScreenRendering.h"
-#include "SceneFilterRendering.h"
+#include "PostProcess/SceneFilterRendering.h"
 
 static TAutoConsoleVariable<int32> CVarRHICmdPrePassDeferredContexts(
 	TEXT("r.RHICmdPrePassDeferredContexts"),

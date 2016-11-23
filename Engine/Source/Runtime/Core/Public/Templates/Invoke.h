@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "Templates/Decay.h"
-#include "Templates/EnableIf.h"
+#include "CoreTypes.h"
 #include "Templates/PointerIsConvertibleFromTo.h"
+#include "Templates/UnrealTemplate.h"
+#include "Templates/Decay.h"
 
 
 namespace UE4Invoke_Private

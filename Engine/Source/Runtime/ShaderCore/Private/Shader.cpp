@@ -4,15 +4,14 @@
 	Shader.cpp: Shader implementation.
 =============================================================================*/
 
-#include "ShaderCorePrivatePCH.h"
-#include "ShaderCore.h"
 #include "Shader.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/StatsMisc.h"
+#include "Serialization/MemoryWriter.h"
 #include "VertexFactory.h"
-#include "DiagnosticTable.h"
-#include "DerivedDataCacheInterface.h"
-#include "ModuleManager.h"
-#include "TargetPlatform.h"
-#include "RHICommandList.h"
+#include "ProfilingDebugging/DiagnosticTable.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "ShaderCache.h"
 
 

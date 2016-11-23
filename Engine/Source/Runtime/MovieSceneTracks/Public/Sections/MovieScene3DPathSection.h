@@ -2,13 +2,15 @@
 
 #pragma once
 
-#include "MovieScene3DConstraintSection.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/RichCurve.h"
+#include "Sections/MovieScene3DConstraintSection.h"
 #include "MovieScene3DPathSection.generated.h"
-
 
 class USceneComponent;
 class USplineComponent;
-
 
 UENUM(BlueprintType)
 enum class MovieScene3DPathSection_Axis : uint8

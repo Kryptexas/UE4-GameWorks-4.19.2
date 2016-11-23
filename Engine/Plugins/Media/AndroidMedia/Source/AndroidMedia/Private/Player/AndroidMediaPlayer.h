@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AndroidMediaTracks.h"
 #include "IMediaControls.h"
 #include "IMediaPlayer.h"
+#include "Containers/Ticker.h"
 
 
 class FJavaAndroidMediaPlayer;

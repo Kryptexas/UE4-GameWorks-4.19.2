@@ -1,6 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimationEditorPrivatePCH.h"
 #include "AnimationEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorCommands"

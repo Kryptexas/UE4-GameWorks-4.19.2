@@ -1,16 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GraphEditorCommon.h"
-#include "SGraphNodeAnimState.h"
-#include "SGraphPreviewer.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "SGraphNode.h"
-#include "IDocumentation.h"
+#include "AnimationStateNodes/SGraphNodeAnimState.h"
+#include "AnimStateNodeBase.h"
 #include "AnimStateConduitNode.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/SToolTip.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimBlueprint.h"
+#include "SGraphPreviewer.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "IDocumentation.h"
 #include "AnimationStateMachineGraph.h"
-#include "AnimGraphNode_StateMachineBase.h"
 #include "Animation/AnimNode_StateMachine.h"
-#include "SInlineEditableTextBlock.h"
+#include "AnimGraphNode_StateMachineBase.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 
 /////////////////////////////////////////////////////
 // SStateMachineOutputPin

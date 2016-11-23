@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
-#include "HeadMountedDisplay.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "GameFramework/WorldSettings.h"
+#include "IHeadMountedDisplay.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUHeadMountedDisplay, Log, All);
 

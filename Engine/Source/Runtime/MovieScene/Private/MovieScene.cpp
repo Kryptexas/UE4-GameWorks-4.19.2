@@ -1,9 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
 #include "MovieScene.h"
+#include "MovieSceneTrack.h"
 #include "MovieSceneFolder.h"
-#include "MovieSceneEvaluationCustomVersion.h"
+#include "Evaluation/MovieSceneEvaluationCustomVersion.h"
 
 /* UMovieScene interface
  *****************************************************************************/

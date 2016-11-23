@@ -1,12 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashReportClientApp.h"
-#include "CrashDebugHelperModule.h"
 #include "GenericErrorReport.h"
-#include "XmlFile.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/PlatformFilemanager.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "Misc/FileHelper.h"
+#include "Internationalization/Text.h"
+#include "CrashReportClientConfig.h"
+#include "Modules/ModuleManager.h"
+#include "CrashDebugHelper.h"
+#include "CrashDebugHelperModule.h"
 #include "CrashReportUtil.h"
-#include "CrashDescription.h"
-#include "EngineBuildSettings.h"
 
 // ----------------------------------------------------------------
 // Helpers

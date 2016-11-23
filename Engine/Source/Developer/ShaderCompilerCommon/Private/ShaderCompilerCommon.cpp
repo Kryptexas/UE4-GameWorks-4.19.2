@@ -1,11 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 // .
 
-#include "ShaderCompilerCommonPrivatePCH.h"
 #include "ShaderCompilerCommon.h"
-#include "ModuleManager.h"
-#include "CrossCompilerCommon.h"
-#include "TypeHash.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
 #include "HlslccDefinitions.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, ShaderCompilerCommon);

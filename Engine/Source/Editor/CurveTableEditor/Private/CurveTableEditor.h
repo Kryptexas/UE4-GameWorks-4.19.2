@@ -2,11 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Types/SlateStructs.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Toolkits/IToolkitHost.h"
 #include "ICurveTableEditor.h"
-#include "Toolkits/AssetEditorToolkit.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 #include "CurveTableEditorHandle.h"
-
-class UCurveTable;
 
 struct FCurveTableEditorColumnHeaderData
 {

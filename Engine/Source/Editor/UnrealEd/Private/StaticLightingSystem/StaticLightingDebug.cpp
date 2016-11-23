@@ -4,10 +4,16 @@
 	StaticLightingDebug.cpp: Code for debugging static lighting
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "RawIndexBuffer.h"
+#include "Components/StaticMeshComponent.h"
+#include "CanvasTypes.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 #include "StaticMeshResources.h"
-#include "StaticLightingPrivate.h"
+#include "StaticLightingSystem/StaticLightingPrivate.h"
 #include "LightMap.h"
+#include "Engine/MapBuildDataRegistry.h"
 #include "Components/ModelComponent.h"
 
 /** Information about the texel that is selected */

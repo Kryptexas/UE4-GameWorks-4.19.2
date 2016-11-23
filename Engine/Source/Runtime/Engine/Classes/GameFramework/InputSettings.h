@@ -1,7 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "PlayerInput.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
+#include "Misc/StringAssetReference.h"
+#include "GameFramework/PlayerInput.h"
 
 #include "InputSettings.generated.h"
 

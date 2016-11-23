@@ -6,6 +6,7 @@
 
 #include "D3D11RHIPrivate.h"
 #include "RenderCore.h"
+#include "Misc/CommandLine.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #include <dwmapi.h>

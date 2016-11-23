@@ -2,12 +2,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Containers/Queue.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "Tunnel/UdpMessageTunnelConnection.h"
 #include "IUdpMessageTunnel.h"
 
-
-class FRunnableThread;
-class FSocket;
-
+class FTcpListener;
 
 /**
  * Implements a bi-directional tunnel to send UDP messages over a TCP connection.

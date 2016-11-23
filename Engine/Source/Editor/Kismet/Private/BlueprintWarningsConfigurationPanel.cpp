@@ -1,9 +1,24 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
+#include "BlueprintWarningsConfigurationPanel.h"
+#include "Misc/Paths.h"
+#include "Widgets/SBoxPanel.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/SHeaderRow.h"
+#include "Widgets/Views/STableRow.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Package.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SComboBox.h"
+#include "EditorStyleSet.h"
 
 #include "BlueprintRuntime.h"
-#include "BlueprintWarningsConfigurationPanel.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "BlueprintRuntimeSettings.h"
 #include "SSettingsEditorCheckoutNotice.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintWarningConfigurationPanel"

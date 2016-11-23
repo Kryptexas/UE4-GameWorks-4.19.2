@@ -1,11 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PartyPrivatePCH.h"
 #include "Party.h"
-#include "PartyGameState.h"
+#include "TimerManager.h"
 #include "Engine/GameInstance.h"
+#include "PartyModule.h"
 
-#include "Online.h"
 #include "OnlineSubsystemUtils.h"
 
 #define LOCTEXT_NAMESPACE "Parties"

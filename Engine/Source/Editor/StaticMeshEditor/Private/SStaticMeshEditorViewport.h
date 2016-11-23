@@ -2,9 +2,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/GCObject.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "EditorViewportClient.h"
+#include "Editor/StaticMeshEditor/Private/StaticMeshEditorViewportClient.h"
 #include "AdvancedPreviewScene.h"
 #include "SEditorViewport.h"
 #include "Editor/UnrealEd/Public/SCommonEditorViewportToolbarBase.h"
+
+class IStaticMeshEditor;
+class SVerticalBox;
+class UStaticMesh;
+class UStaticMeshComponent;
 
 /**
  * StaticMesh Editor Preview viewport widget

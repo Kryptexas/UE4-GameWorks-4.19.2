@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if HACK_HEADER_GENERATOR
 	#include "Templates/IsValidVariadicFunctionArg.h"
 	#include "Templates/AndOrNot.h"

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 // various parameters will be exposed to config at some point
 namespace FAIConfig
 {

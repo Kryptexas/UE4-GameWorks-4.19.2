@@ -4,8 +4,19 @@
 	
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "../../Renderer/Private/ScenePrivate.h"
+#include "Components/SceneCaptureComponent.h"
+#include "Misc/ScopeLock.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "UObject/ConstructorHelpers.h"
+#include "GameFramework/Actor.h"
+#include "RenderingThread.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/Texture2D.h"
+#include "SceneManagement.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/SceneCapture.h"
 #include "Engine/SceneCapture2D.h"
 #include "Components/SceneCaptureComponent2D.h"
@@ -16,8 +27,7 @@
 #include "Components/PlanarReflectionComponent.h"
 #include "PlanarReflectionSceneProxy.h"
 #include "Components/BoxComponent.h"
-#include "MessageLog.h"
-#include "RenderingObjectVersion.h"
+#include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "SceneCaptureComponent"
 

@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 /**
  * Returns true if the specified points are about equal
  */

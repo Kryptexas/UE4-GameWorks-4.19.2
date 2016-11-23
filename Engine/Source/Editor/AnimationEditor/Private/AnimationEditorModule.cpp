@@ -1,8 +1,10 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimationEditorPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "IAnimationEditor.h"
 #include "IAnimationEditorModule.h"
-#include "ModuleManager.h"
 #include "AnimationEditor.h"
 
 class FAnimationEditorModule : public IAnimationEditorModule

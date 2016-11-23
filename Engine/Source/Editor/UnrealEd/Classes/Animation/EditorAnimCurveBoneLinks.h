@@ -5,7 +5,16 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "BoneContainer.h"
+#include "Animation/SmartName.h"
 #include "EditorAnimCurveBoneLinks.generated.h"
+
+class IEditableSkeleton;
+struct FPropertyChangedEvent;
 
 DECLARE_DELEGATE_OneParam( FOnAnimCurveBonesChange, class UEditorAnimCurveBoneLinks*)
 

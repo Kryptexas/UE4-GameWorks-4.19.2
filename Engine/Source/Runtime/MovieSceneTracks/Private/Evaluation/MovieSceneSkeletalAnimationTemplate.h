@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneSkeletalAnimationSection.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Sections/MovieSceneSkeletalAnimationSection.h"
 #include "MovieSceneSkeletalAnimationTemplate.generated.h"
-
-class UMovieSceneSkeletalAnimationSection;
 
 USTRUCT()
 struct FMovieSceneSkeletalAnimationSectionTemplateParameters : public FMovieSceneSkeletalAnimationParams

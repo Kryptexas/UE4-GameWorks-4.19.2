@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
 
 #include "CoreUObject.h"
 
@@ -21,7 +23,7 @@
 #include "IMessageBridge.h"
 #include "IMessagingModule.h"
 
-#include "FileMessageAttachment.h"
-#include "MessageBridgeBuilder.h"
-#include "MessageEndpoint.h"
-#include "MessageEndpointBuilder.h"
+#include "Helpers/FileMessageAttachment.h"
+#include "Helpers/MessageBridgeBuilder.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Helpers/MessageEndpointBuilder.h"

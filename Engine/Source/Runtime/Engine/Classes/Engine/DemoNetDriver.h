@@ -2,11 +2,24 @@
 
 #pragma once
 
-#include "NetDriver.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Serialization/BitReader.h"
+#include "Misc/NetworkGuid.h"
+#include "Engine/EngineBaseTypes.h"
+#include "GameFramework/Actor.h"
+#include "Misc/EngineVersion.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/NetDriver.h"
+#include "Engine/PackageMapClient.h"
+#include "Misc/NetworkVersion.h"
 #include "NetworkReplayStreaming.h"
-#include "PackageMapClient.h"
-#include "DemoNetConnection.h"
+#include "Engine/DemoNetConnection.h"
 #include "DemoNetDriver.generated.h"
+
+class Error;
+class FNetworkNotify;
+class UDemoNetDriver;
 
 DECLARE_LOG_CATEGORY_EXTERN( LogDemo, Log, All );
 

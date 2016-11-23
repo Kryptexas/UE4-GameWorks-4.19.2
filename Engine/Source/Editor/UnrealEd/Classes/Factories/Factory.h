@@ -2,10 +2,14 @@
 
 #pragma once
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
 #include "Misc/SecureHash.h"
 #include "Factory.generated.h"
 
+struct FUntypedBulkData;
 
 /**
  * Base class for all factories

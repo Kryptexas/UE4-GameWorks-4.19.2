@@ -1,12 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "Components/ActorComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/CoreNet.h"
 #include "Engine/EngineTypes.h"
+#include "ComponentInstanceDataCache.h"
+#include "Components/ActorComponent.h"
 #include "RHIDefinitions.h"
-#include "ComponentInstanceDataCache.h" // for FActorComponentInstanceData
 #include "SceneComponent.generated.h"
 
+class AActor;
+class APhysicsVolume;
+class USceneComponent;
 struct FLevelCollection;
 
 /** Overlap info consisting of the primitive and the body that is overlapping */

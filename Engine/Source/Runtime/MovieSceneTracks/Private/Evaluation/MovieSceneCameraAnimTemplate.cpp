@@ -1,8 +1,14 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneCameraAnimTemplate.h"
-#include "MovieSceneCameraAnimSection.h"
+#include "Evaluation/MovieSceneCameraAnimTemplate.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/Actor.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraAnim.h"
+#include "Camera/CameraAnimInst.h"
+#include "Engine/World.h"
+#include "MovieSceneCommonHelpers.h"
+#include "UObject/Package.h"
 
 DECLARE_CYCLE_STAT(TEXT("Camera Anim Track Token Execute"), MovieSceneEval_CameraAnimTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

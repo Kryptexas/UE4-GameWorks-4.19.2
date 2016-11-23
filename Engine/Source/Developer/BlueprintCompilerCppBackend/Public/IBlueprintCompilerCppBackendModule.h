@@ -2,7 +2,11 @@
 
 #pragma once
 
-#include "Editor/KismetCompiler/Public/BlueprintCompilerCppBackendInterface.h"
+#include "CoreMinimal.h"
+#include "Misc/StringAssetReference.h"
+#include "BlueprintCompilerCppBackendInterface.h"
+
+class UBlueprint;
 
 struct FNativizationSummary
 {

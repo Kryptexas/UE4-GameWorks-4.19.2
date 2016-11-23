@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashReportClientApp.h"
-
 #include "CrashReportAnalytics.h"
-#include "EngineBuildSettings.h"
+#include "Misc/Guid.h"
+
 #include "AnalyticsET.h"
 #include "IAnalyticsProviderET.h"
 

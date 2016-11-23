@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Curves/IntegralCurve.h"
-#include "MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 
 #include "MovieSceneParticleTemplate.generated.h"
 

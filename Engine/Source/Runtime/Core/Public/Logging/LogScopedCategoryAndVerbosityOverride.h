@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "UObject/NameTypes.h"
+
 /** 
  * Helper class that uses thread local storage to set up the default category and verbosity for the low level logging functions.
  * This is what allow a UE_LOG(LogHAL, Log, TEXT("...")); within a UE_LOG statement to know what the category and verbosity is.

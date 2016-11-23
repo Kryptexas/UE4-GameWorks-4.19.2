@@ -1,6 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AutomationControllerPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Guid.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Containers/Ticker.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/FilterCollection.h"
+#include "Interfaces/IAutomationControllerModule.h"
 
 
 /** States for running the automation process */

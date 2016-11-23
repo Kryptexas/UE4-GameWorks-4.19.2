@@ -1,14 +1,20 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesEditorPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "UObject/Class.h"
 #include "WheeledVehicleMovementComponent4WDetails.h"
+#include "PropertyEditorModule.h"
 #include "VehicleTransmissionDataCustomization.h"
+#include "Modules/ModuleManager.h"
 #include "IPhysXVehiclesEditorPlugin.h"
+#include "AssetData.h"
 #include "AssetRegistryModule.h"
 #include "Vehicles/TireType.h"
 #include "TireConfig.h"
 #include "VehicleWheel.h"
-
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "HAL/IConsoleManager.h"
+#include "Engine/Blueprint.h"
 
 class FPhysXVehiclesEditorPlugin : public IPhysXVehiclesEditorPlugin
 {

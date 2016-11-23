@@ -4,12 +4,11 @@
 	GameState.cpp: GameState C++ code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
 #include "GameFramework/GameState.h"
-#include "GameFramework/PlayerState.h"
-#include "GameFramework/GameModeBase.h"
+#include "TimerManager.h"
 #include "GameFramework/GameMode.h"
+#include "GameFramework/WorldSettings.h"
+#include "Net/UnrealNetwork.h"
 
 AGameState::AGameState(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

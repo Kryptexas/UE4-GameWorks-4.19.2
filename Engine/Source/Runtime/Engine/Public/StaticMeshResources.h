@@ -6,16 +6,33 @@
 
 #pragma once
 
-#include "Engine/StaticMesh.h"
-#include "Components/StaticMeshComponent.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/UObjectIterator.h"
+#include "Templates/ScopedPointer.h"
+#include "Materials/MaterialInterface.h"
+#include "RenderResource.h"
+#include "PackedNormal.h"
+#include "Containers/DynamicRHIResourceArray.h"
 #include "RawIndexBuffer.h"
-#include "TextureLayout3d.h"
+#include "Components.h"
 #include "LocalVertexFactory.h"
+#include "PrimitiveViewRelevance.h"
 #include "PrimitiveSceneProxy.h"
+#include "Engine/MeshMerging.h"
+#include "Engine/StaticMesh.h"
+#include "UObject/UObjectHash.h"
+#include "MeshBatch.h"
 #include "SceneManagement.h"
+#include "Components/StaticMeshComponent.h"
 #include "PhysicsEngine/BodySetupEnums.h"
 #include "Materials/MaterialInterface.h"
 #include "UniquePtr.h"
+
+class FDistanceFieldVolumeData;
+class UBodySetup;
 
 /**
  * The LOD settings to use for a group of static meshes.

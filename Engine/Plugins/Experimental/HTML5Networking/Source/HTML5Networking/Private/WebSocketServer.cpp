@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "HTML5NetworkingPCH.h"
 #include "WebSocketServer.h"
+#include "HTML5NetworkingPrivate.h"
 #include "WebSocket.h"
 
 #if !PLATFORM_HTML5

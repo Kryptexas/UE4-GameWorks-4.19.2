@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "InheritableGameplayTagContainerDetails.h"
-#include "DetailWidgetRow.h"
-#include "IDetailPropertyRow.h"
 #include "PropertyHandle.h"
+#include "IDetailChildrenBuilder.h"
+#include "DetailWidgetRow.h"
 
 #define LOCTEXT_NAMESPACE "InheritableGameplayTagContainerDetailsCustomization"
 

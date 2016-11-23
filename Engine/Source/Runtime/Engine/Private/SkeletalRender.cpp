@@ -4,10 +4,9 @@
 	SkeletalRender.cpp: Skeletal mesh skinning/rendering code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "SkeletalRender.h"
 #include "SkeletalRenderPublic.h"
-#include "PhysicsEngine/PhysicsAsset.h"
+#include "SceneManagement.h"
 
 /*-----------------------------------------------------------------------------
 Globals

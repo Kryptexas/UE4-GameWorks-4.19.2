@@ -1,12 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
-#include "BlueprintNodeSpawner.h"
-#include "BlueprintActionDatabaseRegistrar.h"
-#include "BlueprintGameplayTagLibrary.h"
 #include "GameplayTagsK2Node_MultiCompareBase.h"
-#include "GameplayTagsK2Node_MultiCompareGameplayTagContainer.h"
-#include "KismetCompiler.h"
+#include "UObject/UnrealType.h"
+#include "EdGraph/EdGraph.h"
 
 UGameplayTagsK2Node_MultiCompareBase::UGameplayTagsK2Node_MultiCompareBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -43,7 +39,7 @@ FText UGameplayTagsK2Node_MultiCompareBase::GetTooltipText() const
 
 FText UGameplayTagsK2Node_MultiCompareBase::GetMenuCategory() const
 {
-	return NSLOCTEXT("K2Node", "MultiCompareTagContainer_ActionMenuCategory", "Gameplay Tags");
+	return NSLOCTEXT("K2Node", "MultiCompareTagContainer_ActionMenuCategory", "Gameplay Tags|Tag Container");
 }
 
 FString UGameplayTagsK2Node_MultiCompareBase::GetUniquePinName()

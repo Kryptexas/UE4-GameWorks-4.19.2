@@ -1,12 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LandscapePrivatePCH.h"
-#include "LandscapeInfoMap.h"
 #include "LandscapeModule.h"
-#include "UObjectHash.h"
+#include "Serialization/CustomVersion.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Package.h"
 #include "Engine/World.h"
-#include "Engine/Level.h"
-#include "Materials/Material.h"
+#include "Materials/MaterialInterface.h"
+#include "LandscapeComponent.h"
+#include "LandscapeVersion.h"
+#include "LandscapeInfoMap.h"
 #include "Materials/MaterialInstance.h"
 
 // Register the custom version with core

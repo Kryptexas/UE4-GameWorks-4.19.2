@@ -1,9 +1,26 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "PropertyEditorModule.h"
-#include "AssetData.h"
+
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "IPropertyTypeCustomization.h"
 #include "PropertyHandle.h"
+#include "IDetailCustomization.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+
+class FAssetData;
+class FBlueprintEditor;
+class UAnimationAsset;
+class UAnimGraphNode_Base;
+class UBlendProfile;
+class UEditorParentPlayerListObj;
+class USkeleton;
+struct FAnimParentNodeAssetOverride;
 
 /////////////////////////////////////////////////////
 // FAnimGraphNodeDetails 

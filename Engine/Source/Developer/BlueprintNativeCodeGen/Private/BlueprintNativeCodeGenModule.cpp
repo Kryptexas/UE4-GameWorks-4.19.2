@@ -1,15 +1,31 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintNativeCodeGenPCH.h"
+#include "BlueprintNativeCodeGenModule.h"
+#include "Engine/Blueprint.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Package.h"
+#include "Templates/Greater.h"
+#include "Components/ActorComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "AssetData.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Settings/ProjectPackagingSettings.h"
 
 #include "AssetRegistryModule.h"
 #include "BlueprintNativeCodeGenManifest.h"
-#include "BlueprintNativeCodeGenModule.h"
-#include "BlueprintNativeCodeGenUtils.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "BlueprintCompilerCppBackendInterface.h"
 #include "IBlueprintCompilerCppBackendModule.h"
-#include "BlueprintEditorUtils.h"
-#include "Engine/Blueprint.h" // for EBlueprintType
+#include "BlueprintNativeCodeGenUtils.h"
+#include "Engine/SCS_Node.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Engine/InheritableComponentHandler.h"
+#include "Animation/AnimBlueprint.h"
 
 /*******************************************************************************
 * NativizationCookControllerImpl

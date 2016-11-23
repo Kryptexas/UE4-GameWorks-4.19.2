@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "HardwareInfo.h"
-#include "AutomationTest.h"
-#include "Delegate.h"
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+
+class AMatineeActor;
+class SWindow;
 
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 

@@ -1,15 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
+#include "Customization/BlendParameterDetails.h"
 
-#include "BlendParameterDetails.h"
-
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "IDetailsView.h"
+#include "PropertyHandle.h"
+#include "IDetailChildrenBuilder.h"
+#include "DetailWidgetRow.h"
 #include "Animation/BlendSpaceBase.h"
 
-#include "SNumericEntryBox.h"
 
 #define LOCTEXT_NAMESPACE "BlendParameterDetails"
 

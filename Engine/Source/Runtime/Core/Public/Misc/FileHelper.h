@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "Containers/UnrealString.h"
-#include "Containers/Array.h"
+#include "HAL/FileManager.h"
+#include "Containers/ArrayView.h"
 
 /*-----------------------------------------------------------------------------
 	FFileHelper

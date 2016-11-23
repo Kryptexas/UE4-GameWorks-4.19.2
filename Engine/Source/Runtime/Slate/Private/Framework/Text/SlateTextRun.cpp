@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "SlateTextRun.h"
-#include "ShapedTextCache.h"
-#include "RunUtils.h"
+#include "Framework/Text/SlateTextRun.h"
+#include "Rendering/DrawElements.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Text/DefaultLayoutBlock.h"
+#include "Framework/Text/ShapedTextCache.h"
+#include "Framework/Text/RunUtils.h"
 
 TSharedRef< FSlateTextRun > FSlateTextRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
 {

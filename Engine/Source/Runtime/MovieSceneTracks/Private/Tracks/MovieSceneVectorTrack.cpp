@@ -1,9 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneVectorSection.h"
-#include "MovieSceneVectorTrack.h"
-#include "IMovieScenePlayer.h"
+#include "Tracks/MovieSceneVectorTrack.h"
+#include "Sections/MovieSceneVectorSection.h"
 #include "Evaluation/MovieScenePropertyTemplates.h"
 
 

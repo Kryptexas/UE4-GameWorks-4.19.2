@@ -2,9 +2,10 @@
 
 #pragma once
 
-
-class FMessagingDebuggerEndpointFilter;
-
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Models/MessagingDebuggerEndpointFilter.h"
 
 /**
  * Implements the endpoints list filter bar widget.

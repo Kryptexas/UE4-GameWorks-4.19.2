@@ -2,9 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/Actor.h"
 #include "VREditorFloatingText.generated.h"
-
 
 /**
  * Draws 3D text in the world along with targeting line cues

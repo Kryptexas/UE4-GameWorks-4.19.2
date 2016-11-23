@@ -3,8 +3,21 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Commands/Commands.h"
+#include "Animation/AnimTypes.h"
+#include "EditorStyleSet.h"
 #include "STrack.h"
 #include "SAnimTrackPanel.h"
+
+class FAssetData;
+class FMenuBuilder;
+class UAnimSequenceBase;
+struct FAnimSegment;
 
 DECLARE_DELEGATE( FOnPreAnimUpdate )
 DECLARE_DELEGATE( FOnPostAnimUpdate )

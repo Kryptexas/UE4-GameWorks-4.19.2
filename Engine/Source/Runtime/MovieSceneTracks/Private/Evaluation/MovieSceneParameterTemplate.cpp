@@ -1,9 +1,8 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieSceneParameterSection.h"
-#include "MovieSceneMaterialTrack.h"
-#include "MovieSceneParameterTemplate.h"
+#include "Evaluation/MovieSceneParameterTemplate.h"
+#include "Tracks/MovieSceneMaterialTrack.h"
+#include "Components/PrimitiveComponent.h"
 
 FMovieSceneParameterSectionTemplate::FMovieSceneParameterSectionTemplate(const UMovieSceneParameterSection& Section)
 	: Scalars(Section.GetScalarParameterNamesAndCurves())

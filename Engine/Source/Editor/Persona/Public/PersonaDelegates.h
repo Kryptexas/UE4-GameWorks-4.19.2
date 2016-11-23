@@ -2,6 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class SAnimationEditorViewportTabBody;
+struct FTabId;
+
 // Called when a blend profile is selected in the blend profile tab
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectBlendProfile, class UBlendProfile*);
 

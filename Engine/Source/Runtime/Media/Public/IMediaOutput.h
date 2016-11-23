@@ -2,11 +2,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 class IMediaAudioSink;
 class IMediaOverlaySink;
 class IMediaTextureSink;
-
 
 /**
  * Interface for access to a media player's output.

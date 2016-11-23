@@ -6,7 +6,14 @@ AsyncTextureStreaming.h: Definitions of classes used for texture streaming async
 
 #pragma once
 
-#include "StreamingManagerTexture.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "ContentStreaming.h"
+#include "Async/AsyncWork.h"
+#include "Streaming/StreamingTexture.h"
+#include "Streaming/TextureInstanceManager.h"
+
+struct FStreamingManagerTexture;
 
 /** Thread-safe helper struct for streaming information. */
 class FAsyncTextureStreamingData

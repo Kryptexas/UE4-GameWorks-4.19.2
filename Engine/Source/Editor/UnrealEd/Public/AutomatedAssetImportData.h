@@ -2,7 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "AutomatedAssetImportData.generated.h"
+
+class UFactory;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAutomatedImport, Log, All);
 

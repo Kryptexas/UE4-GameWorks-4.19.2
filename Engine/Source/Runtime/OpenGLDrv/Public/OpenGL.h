@@ -4,7 +4,11 @@
 	OpenGL.h: Public OpenGL base definitions for non-common functionality
 =============================================================================*/
 #pragma once
-	
+
+#include "Containers/ContainersFwd.h"
+
+struct FPlatformOpenGLContext;
+struct FPlatformOpenGLDevice;
 
 /** OpenGL Logging. */
 OPENGLDRV_API DECLARE_LOG_CATEGORY_EXTERN(LogOpenGL,Log,VeryVerbose);

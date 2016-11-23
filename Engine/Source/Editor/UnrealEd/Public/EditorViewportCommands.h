@@ -3,6 +3,15 @@
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Widgets/SWidget.h"
+#include "Framework/Commands/Commands.h"
+#include "EditorStyleSet.h"
+#include "Engine/TextureStreamingTypes.h"
+
+class FUICommandList;
+
 /**
  * Class containing commands for editor viewport actions common to all viewports
  */

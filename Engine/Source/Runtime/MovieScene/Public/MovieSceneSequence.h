@@ -2,13 +2,16 @@
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieSceneEvaluationTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "MovieSceneSignedObject.h"
+#include "MovieSceneTrack.h"
+#include "Evaluation/MovieSceneEvaluationTemplate.h"
 #include "MovieSceneSequence.generated.h"
 
+class ITargetPlatform;
 class UMovieScene;
-struct FMovieSceneSequenceTemplateStore;
 
 /**
  * Abstract base class for movie scene animations (C++ version).

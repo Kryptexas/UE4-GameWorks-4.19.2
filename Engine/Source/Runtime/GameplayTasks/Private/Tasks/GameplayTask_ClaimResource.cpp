@@ -1,7 +1,5 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTasksPrivatePCH.h"
-#include "GameplayTaskResource.h"
 #include "Tasks/GameplayTask_ClaimResource.h"
 
 UGameplayTask_ClaimResource::UGameplayTask_ClaimResource(const FObjectInitializer& ObjectInitializer)

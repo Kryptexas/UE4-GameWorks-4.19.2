@@ -1,9 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
-#include "BusyCursor.h"
 #include "ReferencedAssetsUtils.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Engine/Level.h"
+#include "AssetData.h"
+#include "Editor.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogReferncedAssetsBrowser, Log, All);

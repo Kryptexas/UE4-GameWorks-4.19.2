@@ -1,9 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagsSettingsCustomization.h"
 #include "GameplayTagsSettings.h"
 #include "GameplayTagsModule.h"
+#include "PropertyHandle.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
 
 #define LOCTEXT_NAMESPACE "FGameplayTagsSettingsCustomization"
 

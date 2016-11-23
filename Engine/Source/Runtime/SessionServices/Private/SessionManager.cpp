@@ -1,8 +1,13 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "SessionServicesPrivatePCH.h"
-#include "SessionInfo.h"
 #include "SessionManager.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/CommandLine.h"
+#include "Containers/Ticker.h"
+#include "EngineServiceMessages.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "SessionServiceMessages.h"
+#include "SessionInfo.h"
 
 
 /* FSessionManager structors

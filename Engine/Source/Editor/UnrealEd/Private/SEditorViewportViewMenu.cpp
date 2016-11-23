@@ -1,10 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
 #include "SEditorViewportViewMenu.h"
-#include "SViewportToolBar.h"
-#include "SEditorViewport.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
 #include "EditorViewportCommands.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportViewMenu"

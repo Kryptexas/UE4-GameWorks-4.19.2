@@ -2,10 +2,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 #include "StereoRendering.h"
-#include "Layout/SlateRect.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "HeadMountedDisplayTypes.h"
+
+class FPrimitiveSceneInfo;
+class FSceneInterface;
+class ISceneViewExtension;
+class UCanvas;
+class USceneComponent;
+struct FPostProcessSettings;
+struct FWorldContext;
 
 /**
  * HMD device interface

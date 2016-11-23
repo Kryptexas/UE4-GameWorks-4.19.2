@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "VIBaseTransformGizmo.h"
 #include "VREditorTransformGizmo.generated.h"
 

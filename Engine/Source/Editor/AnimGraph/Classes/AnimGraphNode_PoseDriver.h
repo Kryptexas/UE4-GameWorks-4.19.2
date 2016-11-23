@@ -2,12 +2,13 @@
 
 #pragma once
 
-class IDetailCategoryBuilder;
-class IPropertyHandle;
-
-#include "AnimGraphNode_PoseHandler.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AnimNodes/AnimNode_PoseDriver.h"
+#include "AnimGraphNode_PoseHandler.h"
 #include "AnimGraphNode_PoseDriver.generated.h"
+
+class FCompilerResultsLog;
 
 UCLASS()
 class ANIMGRAPH_API UAnimGraphNode_PoseDriver : public UAnimGraphNode_PoseHandler

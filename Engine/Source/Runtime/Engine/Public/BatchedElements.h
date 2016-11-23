@@ -6,10 +6,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/RefCounting.h"
+#include "RHI.h"
+#include "RenderResource.h"
 #include "HitProxies.h"
+#include "SceneView.h"
 #include "StaticBoundShaderState.h"
-#include "SceneTypes.h"
 
+struct FBatchedPoint;
 
 namespace EBlendModeFilter
 {

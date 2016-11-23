@@ -1,14 +1,18 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneToolsPrivatePCH.h"
-#include "CinematicShotSection.h"
-#include "ISectionLayoutBuilder.h"
-#include "Runtime/MovieSceneTracks/Public/Sections/MovieSceneCinematicShotSection.h"
-#include "CinematicShotTrackEditor.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "SInlineEditableTextBlock.h"
+#include "Sections/CinematicShotSection.h"
+#include "Sections/MovieSceneCinematicShotSection.h"
+#include "Rendering/DrawElements.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "ScopedTransaction.h"
+#include "MovieSceneTrack.h"
+#include "MovieScene.h"
+#include "TrackEditors/CinematicShotTrackEditor.h"
+#include "SequencerSectionPainter.h"
+#include "EditorStyleSet.h"
 #include "MovieSceneToolHelpers.h"
-#include "MovieSceneToolsUserSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "FCinematicShotSection"

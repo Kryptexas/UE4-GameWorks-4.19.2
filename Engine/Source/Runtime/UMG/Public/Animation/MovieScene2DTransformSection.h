@@ -2,10 +2,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/RichCurve.h"
 #include "MovieSceneSection.h"
-#include "IKeyframeSection.h"
+#include "Slate/WidgetTransform.h"
+#include "Sections/IKeyframeSection.h"
 #include "MovieScene2DTransformSection.generated.h"
-
 
 enum class EKey2DTransformChannel
 {
