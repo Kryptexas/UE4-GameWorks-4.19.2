@@ -8,7 +8,7 @@
 class IAssetRegistryInterface;
 
 #ifndef USE_EVENT_DRIVEN_ASYNC_LOAD
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined""
+#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
 #endif
 
 #if USE_EVENT_DRIVEN_ASYNC_LOAD

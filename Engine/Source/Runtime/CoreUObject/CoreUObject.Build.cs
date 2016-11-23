@@ -8,6 +8,9 @@ public class CoreUObject : ModuleRules
 	{
 		SharedPCHHeaderFile = "Runtime/CoreUObject/Public/CoreUObject.h";
 
+		// Cannot use shared pchs due to Core including CoreUObject with different _API macros
+		PCHUsage = PCHUsageMode.NoSharedPCHs;
+
 		PrivateIncludePaths.Add("Runtime/CoreUObject/Private");
 
         PrivateIncludePathModuleNames.AddRange(

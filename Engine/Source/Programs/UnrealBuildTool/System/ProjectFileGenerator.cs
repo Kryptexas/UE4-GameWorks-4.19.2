@@ -444,9 +444,10 @@ namespace UnrealBuildTool
 			Dictionary<DirectoryReference, ProjectFile> GameProjects = null;
 			Dictionary<string, ProjectFile> ProgramProjects = null;
 			HashSet<ProjectFile> TemplateGameProjects = null;
+			HashSet<ProjectFile> SampleGameProjects = null;
 			{
 				// Setup buildable projects for all targets
-				AddProjectsForAllTargets( AllGameProjects, out EngineProject, out GameProjects, out ProgramProjects, out TemplateGameProjects );
+				AddProjectsForAllTargets( AllGameProjects, out EngineProject, out GameProjects, out ProgramProjects, out TemplateGameProjects, out SampleGameProjects );
 
 				// Add all game projects and game config files
 				AddAllGameProjects(GameProjects, SupportedPlatformNames, RootFolder);
@@ -530,6 +531,10 @@ namespace UnrealBuildTool
 						if( TemplateGameProjects.Contains( CurGameProject ) )
 						{
 							RootFolder.AddSubFolder( "Templates" ).ChildProjects.Add( CurGameProject );
+						}
+						else if (SampleGameProjects.Contains( CurGameProject ) )
+						{
+							RootFolder.AddSubFolder("Samples").ChildProjects.Add(CurGameProject);
 						}
 						else
 						{
@@ -1632,17 +1637,19 @@ namespace UnrealBuildTool
 		/// <param name="GameProjects">Map of game folder name to all of the game projects we created</param>
 		/// <param name="ProgramProjects">Map of program names to all of the program projects we created</param>
 		/// <param name="TemplateGameProjects">Set of template game projects we found.  These will also be in the GameProjects map</param>
-		private void AddProjectsForAllTargets( List<UProjectInfo> AllGames, out ProjectFile EngineProject, out Dictionary<DirectoryReference, ProjectFile> GameProjects, out Dictionary<string, ProjectFile> ProgramProjects, out HashSet<ProjectFile> TemplateGameProjects )
+		private void AddProjectsForAllTargets( List<UProjectInfo> AllGames, out ProjectFile EngineProject, out Dictionary<DirectoryReference, ProjectFile> GameProjects, out Dictionary<string, ProjectFile> ProgramProjects, out HashSet<ProjectFile> TemplateGameProjects, out HashSet<ProjectFile> SampleGameProjects )
 		{
 			// As we're creating project files, we'll also keep track of whether we created an "engine" project and return that if we have one
 			EngineProject = null;
 			GameProjects = new Dictionary<DirectoryReference,ProjectFile>();
 			ProgramProjects = new Dictionary<string,ProjectFile>( StringComparer.InvariantCultureIgnoreCase );
 			TemplateGameProjects = new HashSet<ProjectFile>();
+			SampleGameProjects = new HashSet<ProjectFile>();
 
 			// Get some standard directories
 			DirectoryReference EngineSourceProgramsDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Programs");
 			DirectoryReference TemplatesDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "..", "Templates");
+			DirectoryReference SamplesDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "..", "Samples");
 
 			// Find all of the target files.  This will filter out any modules or targets that don't
 			// belong to platforms we're generating project files for.
@@ -1737,6 +1744,7 @@ namespace UnrealBuildTool
 
 					// Check to see if this is a template target.  That is, the target is located under the "Templates" folder
 					bool IsTemplateTarget = TargetFilePath.IsUnderDirectory(TemplatesDirectory);
+					bool IsSampleTarget = TargetFilePath.IsUnderDirectory(SamplesDirectory);
 
 					DirectoryReference BaseFolder = null;
 					if (IsProgramTarget)
@@ -1762,6 +1770,10 @@ namespace UnrealBuildTool
 						if (IsTemplateTarget)
 						{
 							TemplateGameProjects.Add(ProjectFile);
+						}
+						else if (IsSampleTarget)
+						{
+							SampleGameProjects.Add(ProjectFile);
 						}
 						BaseFolder = GameFolder;
 

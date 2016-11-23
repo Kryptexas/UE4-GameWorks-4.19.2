@@ -294,6 +294,17 @@ namespace UnrealBuildTool
 		public static string PCHOutputDirectory;
 
 		/// <summary>
+		/// Whether we should export a JSON file containing detailed target information.
+		/// </summary>
+		[XmlConfig]
+		public static string JsonExportFile;
+
+		/// <summary>
+		/// Skip building; just do setup and terminate.
+		/// </summary>
+		public static bool bSkipBuild;
+
+		/// <summary>
 		/// Relative root engine path.
 		/// </summary>
 		private static string _RelativeEnginePath = "../../Engine/";

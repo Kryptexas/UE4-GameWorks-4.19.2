@@ -163,7 +163,7 @@
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Clean.bat"/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/Rebuild.bat"/>
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/RunUAT.bat"/>
-		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/GetVSComnToolsPath.bat"/>
+		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Build/BatchFiles/GetMSBuildPath.bat"/>
 
 		<!-- Binaries which are explicitly staged by UAT rather than listing runtime dependencies -->
 		<Property Name="CopyEditorFilter" Value="$(CopyEditorFilter);Engine/Binaries/ThirdParty/OpenSSL/..."/>
@@ -342,5 +342,12 @@
 
 	<!-- Additional Binaries -->
 	<Property Name="CopyXboxOneFilter" Value="$(CopyXboxOneFilter);Engine/Binaries/Win64/XboxOne/XboxOnePackageNameUtil.exe"/>
+	
+	<!-- Switch -->
+	<Property Name="CopySwitchFilter" Value=""/>
+	<Property Name="CopySwitchExceptions" Value=""/>
+	
+	<!-- Build Files -->
+	<Property Name="CopySwitchFilter" Value="$(CopySwitchFilter);Engine/Build/Switch/..."/>
 
 </BuildGraph>

@@ -172,8 +172,6 @@ namespace UnrealBuildTool
 
 			// Don't stop compilation at first error...
 			BuildConfiguration.bStopXGECompilationAfterErrors = true;
-
-			BuildConfiguration.bUseSharedPCHs = false;
 		}
 
 		/// <summary>

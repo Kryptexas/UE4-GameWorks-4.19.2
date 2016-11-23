@@ -78,6 +78,7 @@
     <Compile Include="Tasks\AgeStoreTask.cs" />
     <Compile Include="Tasks\CommandletTask.cs" />
     <Compile Include="Tasks\CsCompileTask.cs" />
+    <Compile Include="Tasks\MoveTask.cs" />
     <Compile Include="Tasks\SymStoreTask.cs" />
     <Compile Include="Tasks\TagReceiptTask.cs" />
     <Compile Include="Tasks\PakFileTask.cs" />

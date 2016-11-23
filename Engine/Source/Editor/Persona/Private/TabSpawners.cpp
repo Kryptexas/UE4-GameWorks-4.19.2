@@ -538,9 +538,9 @@ FText FAdvancedPreviewSceneTabSummoner::GetTabToolTipText(const FWorkflowTabSpaw
 }
 
 /////////////////////////////////////////////////////
-// FDetailsTabSummoner
+// FPersonaDetailsTabSummoner
 
-FDetailsTabSummoner::FDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, FOnDetailsCreated InOnDetailsCreated)
+FPersonaDetailsTabSummoner::FPersonaDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, FOnDetailsCreated InOnDetailsCreated)
 	: FWorkflowTabFactory(FPersonaTabs::DetailsID, InHostingApp)
 	, OnDetailsCreated(InOnDetailsCreated)
 {
@@ -556,12 +556,12 @@ FDetailsTabSummoner::FDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> I
 	OnDetailsCreated.ExecuteIfBound(PersonaDetails->DetailsView.ToSharedRef());
 }
 
-TSharedRef<SWidget> FDetailsTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+TSharedRef<SWidget> FPersonaDetailsTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
 	return PersonaDetails.ToSharedRef();
 }
 
-FText FDetailsTabSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
+FText FPersonaDetailsTabSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
 {
 	return LOCTEXT("PersonaDetailsToolTip", "Edit the details of selected objects.");
 }

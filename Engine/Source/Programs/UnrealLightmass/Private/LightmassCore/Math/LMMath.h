@@ -76,7 +76,7 @@ static const int32 appTruncErrorCode = 0x80000000;
  */
 inline int32 appTrunc( float F )
 {
-	return VectorTruncate( VectorSetFloat1( F ) );
+	return LmVectorTruncate( LmVectorSetFloat1( F ) );
 }
 
 /** Thread-safe Random Number Generator which wraps the SIMD-oriented Fast Mersenne Twister (SFMT). */

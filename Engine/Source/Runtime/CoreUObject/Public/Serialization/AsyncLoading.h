@@ -13,7 +13,7 @@ struct FFlushTree;
 #define PERF_TRACK_DETAILED_ASYNC_STATS (0)
 
 #ifndef USE_EVENT_DRIVEN_ASYNC_LOAD
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined""
+#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
 #endif
 
 

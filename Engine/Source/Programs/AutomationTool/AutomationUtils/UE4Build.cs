@@ -507,7 +507,10 @@ namespace AutomationTool
 					}
 
 					Version.Changelist = ChangelistNumber;
-					Version.CompatibleChangelist = CompatibleChangelistNumber;
+					if(CompatibleChangelistNumber > 0)
+					{
+						Version.CompatibleChangelist = CompatibleChangelistNumber;
+					}
 					Version.IsLicenseeVersion = bIsLicenseeVersion? 1 : 0;
 					Version.BranchName = Branch;
 

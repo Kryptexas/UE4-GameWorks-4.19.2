@@ -4,7 +4,6 @@
 
 #include "UnrealAudioTypes.h"
 #include "UnrealAudioVoice.h"
-#include "UnrealAudioPrivate.h"
 #include "UnrealAudioVoiceInternal.h"
 #include "UnrealAudioUtilities.h"
 

@@ -42,7 +42,6 @@ public class DetailCustomizations : ModuleRules
 				"RHI",
                 "HardwareTargeting",
 				"SharedSettingsWidgets",
-                "LightPropagationVolumeRuntime",
                 "AIModule", 
                 "MeshUtilities",
 				"ConfigEditor",

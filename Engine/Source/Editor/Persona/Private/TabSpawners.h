@@ -154,23 +154,6 @@ protected:
 };
 
 /////////////////////////////////////////////////////
-// FSkeletonTreeSummoner
-
-struct FSkeletonTreeSummoner : public FWorkflowTabFactory
-{
-public:
-	FSkeletonTreeSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
-	
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
-
-	// Create a tooltip widget for the tab
-	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const override
-	{
-		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("SkeletonTreeTooltip", "The Skeleton Tree tab lets you see and select bones (and sockets) in the skeleton hierarchy."), NULL, TEXT("Shared/Editors/Persona"), TEXT("SkeletonTree_Window"));
-	}
-};
-
-/////////////////////////////////////////////////////
 // FMorphTargetTabSummoner
 
 struct FMorphTargetTabSummoner : public FWorkflowTabFactory
@@ -372,12 +355,12 @@ private:
 };
 
 /////////////////////////////////////////////////////
-// FDetailsTabSummoner
+// FPersonaDetailsTabSummoner
 
-struct FDetailsTabSummoner : public FWorkflowTabFactory
+struct FPersonaDetailsTabSummoner : public FWorkflowTabFactory
 {
 public:
-	FDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, FOnDetailsCreated InOnDetailsCreated);
+	FPersonaDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, FOnDetailsCreated InOnDetailsCreated);
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override;
 

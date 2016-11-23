@@ -1602,9 +1602,12 @@ namespace AutomationTool
 		/// <param name="Source"></param>
 		/// <param name="Dest"></param>
 		/// <param name="MaxThreads"></param>
-		public static void ThreadedCopyFiles(List<string> Source, List<string> Dest, int MaxThreads = 64)
+		public static void ThreadedCopyFiles(List<string> Source, List<string> Dest, int MaxThreads = 64, bool bQuiet = false)
 		{
-			Log("Copying {0} file(s) using max {1} thread(s)", Source.Count, MaxThreads);
+			if(!bQuiet)
+			{
+				Log("Copying {0} file(s) using max {1} thread(s)", Source.Count, MaxThreads);
+			}
 
             if (Source.Count != Dest.Count)
 			{
@@ -1655,6 +1658,23 @@ namespace AutomationTool
 			var RelativePaths = Filter.ApplyToDirectory(SourceDir, bIgnoreSymlinks);
 			return ThreadedCopyFiles(SourceDir, TargetDir, RelativePaths);
 		}
+
+		/// <summary>
+		/// Moves files in parallel
+        /// </summary>
+		/// <param
+		/// <param name="SourceAndTargetPairs">Pairs of source and target files</param>
+		public static void ParallelMoveFiles(IEnumerable<KeyValuePair<FileReference, FileReference>> SourceAndTargetPairs)
+		{
+            try
+            {
+                Parallel.ForEach(SourceAndTargetPairs, Pair => File.Move(Pair.Key.FullName, Pair.Value.FullName));
+            }
+            catch (AggregateException Ex)
+            {
+                throw new AutomationException(Ex, "Failed to thread-copy files.");
+            }
+        }
 
 		#endregion
 

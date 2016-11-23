@@ -153,7 +153,7 @@ namespace UnrealBuildTool
 		string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
 		{
             // @todo tvos merge: Make sure PlatformContext is proper (TVOS vs IOS platform)
-            PlatformContext.SetUpProjectEnvironment(CompileEnvironment.Config.Target.Configuration);
+            PlatformContext.SetUpProjectEnvironment(CompileEnvironment.Config.Configuration);
 
             string Result = "";
 
@@ -198,7 +198,7 @@ namespace UnrealBuildTool
 				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
 			}
 
-			if (PlatformContext.IsBitcodeCompilingEnabled(CompileEnvironment.Config.Target.Configuration))
+			if (PlatformContext.IsBitcodeCompilingEnabled(CompileEnvironment.Config.Configuration))
 			{
 				Result += " -fembed-bitcode";
 			}
@@ -206,9 +206,9 @@ namespace UnrealBuildTool
 			Result += " -c";
 
 			// What architecture(s) to build for
-			Result += PlatformContext.GetArchitectureArgument(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture);
+			Result += PlatformContext.GetArchitectureArgument(CompileEnvironment.Config.Configuration, CompileEnvironment.Config.Architecture);
 
-			if (CompileEnvironment.Config.Target.Architecture == "-simulator")
+			if (CompileEnvironment.Config.Architecture == "-simulator")
 			{
 				Result += " -isysroot " + BaseSDKDirSim + "/" + PlatformContext.GetXcodePlatformName(false) + IOSSDKVersion + ".sdk";
 			}
@@ -220,7 +220,7 @@ namespace UnrealBuildTool
 			Result += " -m" +  PlatformContext.GetXcodeMinVersionParam() + "=" + PlatformContext.GetRunTimeVersion();
 
 			// Optimize non- debug builds.
-			if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+			if (CompileEnvironment.Config.bOptimizeCode)
 			{
 				if (UEBuildConfiguration.bCompileForSize)
 				{
@@ -386,17 +386,17 @@ namespace UnrealBuildTool
 
 		string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
 		{
-            PlatformContext.SetUpProjectEnvironment(LinkEnvironment.Config.Target.Configuration);
+            PlatformContext.SetUpProjectEnvironment(LinkEnvironment.Config.Configuration);
 
             string Result = "";
 
-			Result += PlatformContext.GetArchitectureArgument(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
+			Result += PlatformContext.GetArchitectureArgument(LinkEnvironment.Config.Configuration, LinkEnvironment.Config.Architecture);
 
-			bool bIsDevice = (LinkEnvironment.Config.Target.Architecture != "-simulator");
+			bool bIsDevice = (LinkEnvironment.Config.Architecture != "-simulator");
 			Result += String.Format(" -isysroot {0}Platforms/{1}.platform/Developer/SDKs/{1}{2}.sdk",
 				XcodeDeveloperDir, PlatformContext.GetXcodePlatformName(bIsDevice), IOSSDKVersion);
 
-			if(PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Config.Target.Configuration))
+			if(PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Config.Configuration))
 			{
 				FileItem OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
 				FileItem RemoteOutputFile = LocalToRemoteFileItem(OutputFile, false);
@@ -408,7 +408,7 @@ namespace UnrealBuildTool
 			Result += " -dead_strip";
 			Result += " -m" + PlatformContext.GetXcodeMinVersionParam() + "=" + PlatformContext.GetRunTimeVersion();
 			Result += " -Wl";
-			if(!PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Config.Target.Configuration))
+			if(!PlatformContext.IsBitcodeCompilingEnabled(LinkEnvironment.Config.Configuration))
 			{
 				Result += "-no_pie";
 			}
@@ -416,7 +416,7 @@ namespace UnrealBuildTool
 			Result += " -ObjC";
 			//			Result += " -v";
 
-			Result += " " + PlatformContext.GetAdditionalLinkerFlags(LinkEnvironment.Config.Target.Configuration);
+			Result += " " + PlatformContext.GetAdditionalLinkerFlags(LinkEnvironment.Config.Configuration);
 
 			// link in the frameworks
 			foreach (string Framework in LinkEnvironment.Config.Frameworks)
@@ -450,7 +450,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
 			string Arguments = GetCompileArguments_Global(CompileEnvironment);
 			string PCHArguments = "";
@@ -461,6 +461,11 @@ namespace UnrealBuildTool
 				// This needs to be before the other include paths to ensure GCC uses it instead of the source header file.
 				var PrecompiledFileExtension = UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.IOS).GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
 				PCHArguments += string.Format(" -include \"{0}\"", ConvertPath(CompileEnvironment.PrecompiledHeaderFile.AbsolutePath.Replace(PrecompiledFileExtension, "")));
+			}
+
+			foreach(FileReference ForceIncludeFile in CompileEnvironment.Config.ForceIncludeFiles)
+			{
+				PCHArguments += String.Format(" -include \"{0}\"", ConvertPath(ForceIncludeFile.FullName));
 			}
 
 			// Add include paths to the argument list.
@@ -497,13 +502,13 @@ namespace UnrealBuildTool
 				Arguments += string.Format(" -D\"{0}\"", Definition);
 			}
 
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Platform);
 
 			CPPOutput Result = new CPPOutput();
 			// Create a compile action for each source file.
 			foreach (FileItem SourceFile in SourceFiles)
 			{
-				Action CompileAction = new Action(ActionType.Compile);
+				Action CompileAction = ActionGraph.Add(ActionType.Compile);
 				string FileArguments = "";
 				string Extension = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant();
 
@@ -546,7 +551,7 @@ namespace UnrealBuildTool
 				}
 
 				// Add the C++ source file and its included files to the prerequisite item list.
-				AddPrerequisiteSourceFile(Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
+				AddPrerequisiteSourceFile(BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
@@ -623,13 +628,13 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
+		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly, ActionGraph ActionGraph)
 		{
 			string LinkerPath = ToolchainDir +
 				(LinkEnvironment.Config.bIsBuildingLibrary ? IOSArchiver : IOSLinker);
 
 			// Create an action that invokes the linker.
-			Action LinkAction = new Action(ActionType.Link);
+			Action LinkAction = ActionGraph.Add(ActionType.Link);
 
 			if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
@@ -777,7 +782,7 @@ namespace UnrealBuildTool
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
 
 			LinkAction.CommandPath = "sh";
-			if(LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping && Path.GetExtension(RemoteOutputFile.AbsolutePath) != ".a")
+			if(LinkEnvironment.Config.Configuration == CPPTargetConfiguration.Shipping && Path.GetExtension(RemoteOutputFile.AbsolutePath) != ".a")
 			{
 				// When building a shipping package, symbols are stripped from the exe as the last build step. This is a problem
 				// when re-packaging and no source files change because the linker skips symbol generation and dsymutil will 
@@ -802,7 +807,7 @@ namespace UnrealBuildTool
 			return RemoteOutputFile;
 		}
 
-        public FileItem CompileAssetCatalog(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir)
+        public FileItem CompileAssetCatalog(FileItem Executable, string EngineDir, string BuildDir, string IntermediateDir, ActionGraph ActionGraph)
         {
             // Make a file item for the source and destination files
             FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
@@ -819,7 +824,7 @@ namespace UnrealBuildTool
             }
 
             // Make the compile action
-            Action CompileAssetAction = new Action(ActionType.CreateAppBundle);
+            Action CompileAssetAction = ActionGraph.Add(ActionType.CreateAppBundle);
             if (!Utils.IsRunningOnMono)
             {
                 CompileAssetAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
@@ -854,7 +859,7 @@ namespace UnrealBuildTool
         /// Generates debug info for a given executable
         /// </summary>
         /// <param name="Executable">FileItem describing the executable to generate debug info for</param>
-        public FileItem GenerateDebugInfo(FileItem Executable)
+        public FileItem GenerateDebugInfo(FileItem Executable, ActionGraph ActionGraph)
 		{
             // Make a file item for the source and destination files
             FileItem LocalExecutable = RemoteToLocalFileItem(Executable);
@@ -865,7 +870,7 @@ namespace UnrealBuildTool
             FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
 
             // Make the compile action
-            Action GenDebugAction = new Action(ActionType.GenerateDebugInfo);
+            Action GenDebugAction = ActionGraph.Add(ActionType.GenerateDebugInfo);
 			if (!Utils.IsRunningOnMono)
 			{
 				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
@@ -1134,9 +1139,9 @@ namespace UnrealBuildTool
             }
         }
 
-        public override ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment BinaryLinkEnvironment)
+        public override ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment BinaryLinkEnvironment, ActionGraph ActionGraph)
         {
-            var OutputFiles = base.PostBuild(Executable, BinaryLinkEnvironment);
+            var OutputFiles = base.PostBuild(Executable, BinaryLinkEnvironment, ActionGraph);
 
             if (BinaryLinkEnvironment.Config.bIsBuildingLibrary)
             {
@@ -1146,7 +1151,7 @@ namespace UnrealBuildTool
             // For IOS/tvOS, generate the dSYM file if the config file is set to do so
 			if ((BuildConfiguration.bGeneratedSYMFile == true || BuildConfiguration.bGeneratedSYMBundle == true || BuildConfiguration.bUsePDBFiles == true) && (!BinaryLinkEnvironment.Config.bIsBuildingLibrary || BinaryLinkEnvironment.Config.bIsBuildingDLL))
             {
-                OutputFiles.Add(GenerateDebugInfo(Executable));
+                OutputFiles.Add(GenerateDebugInfo(Executable, ActionGraph));
             }
 
             // for tvOS generate the asset catalog
@@ -1156,7 +1161,7 @@ namespace UnrealBuildTool
                 string BuildDir = (((ProjectFile != null) ? ProjectFile.Directory : UnrealBuildTool.EngineDirectory)) + "/Build/TVOS";
                 string IntermediateDir = (((ProjectFile != null) ? ProjectFile.Directory : UnrealBuildTool.EngineDirectory)) + "/Intermediate/TVOS";
                 GenerateAssetCatalog(EngineDir, BuildDir, IntermediateDir);
-                OutputFiles.Add(CompileAssetCatalog(Executable, EngineDir, BuildDir, IntermediateDir));
+                OutputFiles.Add(CompileAssetCatalog(Executable, EngineDir, BuildDir, IntermediateDir, ActionGraph));
             }
 
             return OutputFiles;

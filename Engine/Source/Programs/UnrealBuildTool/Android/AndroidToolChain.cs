@@ -400,7 +400,7 @@ namespace UnrealBuildTool
 			}
 
 			// shipping builds will cause this warning with "ensure", so disable only in those case
-			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
+			if (CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				Result += " -Wno-unused-value";
 			}
@@ -412,7 +412,7 @@ namespace UnrealBuildTool
 			}
 
 			// optimization level
-			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+			if (!CompileEnvironment.Config.bOptimizeCode)
 			{
 				Result += " -O0";
 			}
@@ -469,7 +469,7 @@ namespace UnrealBuildTool
 				Result += " -mfpu=vfpv3-d16";			//@todo android: UE3 was just vfp. arm7a should all support v3 with 16 registers
 
 				// Add flags for on-device debugging	
-				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Debug)
 				{
 					Result += " -fno-omit-frame-pointer";	// Disable removing the save/restore frame pointer for better debugging
 					if (ClangVersionFloat >= 3.6f)
@@ -479,7 +479,7 @@ namespace UnrealBuildTool
 				}
 
 				// Some switches interfere with on-device debugging
-				if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Config.Configuration != CPPTargetConfiguration.Debug)
 				{
 					Result += " -ffunction-sections";   // Places each function in its own section of the output file, linker may be able to perform opts to improve locality of reference
 				}
@@ -500,7 +500,7 @@ namespace UnrealBuildTool
 				//Result += " -mfpu=vfpv3-d16";			//@todo android: UE3 was just vfp. arm7a should all support v3 with 16 registers
 
 				// Some switches interfere with on-device debugging
-				if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Config.Configuration != CPPTargetConfiguration.Debug)
 				{
 					Result += " -ffunction-sections";   // Places each function in its own section of the output file, linker may be able to perform opts to improve locality of reference
 				}
@@ -875,7 +875,7 @@ namespace UnrealBuildTool
 		}
 
 		static private bool bHasPrintedApiLevel = false;
-		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
 			if (Arches.Count == 0)
 			{
@@ -908,7 +908,7 @@ namespace UnrealBuildTool
 				BaseArguments += string.Format(" -D \"{0}\"", Definition);
 			}
 
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Platform);
 			var NDKRoot = Environment.GetEnvironmentVariable("NDKROOT").Replace("\\", "/");
 
 			string BasePCHName = "";
@@ -973,7 +973,7 @@ namespace UnrealBuildTool
 
 					foreach (FileItem SourceFile in SourceFiles)
 					{
-						Action CompileAction = new Action(ActionType.Compile);
+						Action CompileAction = ActionGraph.Add(ActionType.Compile);
 						string FileArguments = "";
 						bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
 						bool bDisableShadowWarning = false;
@@ -981,12 +981,12 @@ namespace UnrealBuildTool
 						// should we disable optimizations on this file?
 						// @todo android - We wouldn't need this if we could disable optimizations per function (via pragma)
 						bool bDisableOptimizations = false;// SourceFile.AbsolutePath.ToUpperInvariant().IndexOf("\\SLATE\\") != -1;
-						if (bDisableOptimizations && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+						if (bDisableOptimizations && CompileEnvironment.Config.bOptimizeCode)
 						{
 							Log.TraceWarning("Disabling optimizations on {0}", SourceFile.AbsolutePath);
 						}
 
-						bDisableOptimizations = bDisableOptimizations || CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug;
+						bDisableOptimizations = bDisableOptimizations || !CompileEnvironment.Config.bOptimizeCode;
 
 						// Add C or C++ specific compiler arguments.
 						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
@@ -1012,7 +1012,7 @@ namespace UnrealBuildTool
 						}
 
 						// Add the C++ source file and its included files to the prerequisite item list.
-						AddPrerequisiteSourceFile(Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
+						AddPrerequisiteSourceFile(BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
 
 						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 						{
@@ -1095,7 +1095,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
+		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly, ActionGraph ActionGraph)
 		{
 			return null;
 		}
@@ -1118,7 +1118,7 @@ namespace UnrealBuildTool
 			return Pathname;
 		}
 
-		public override FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
+		public override FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly, ActionGraph ActionGraph)
 		{
 			List<FileItem> Outputs = new List<FileItem>();
 
@@ -1163,7 +1163,7 @@ namespace UnrealBuildTool
 					}
 
 					// Create an action that invokes the linker.
-					Action LinkAction = new Action(ActionType.Link);
+					Action LinkAction = ActionGraph.Add(ActionType.Link);
 					LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 
 					if (LinkEnvironment.Config.bIsBuildingLibrary)
@@ -1294,7 +1294,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile)
+		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile, ActionGraph ActionGraph)
 		{
 			throw new BuildException("Android cannot compile C# files");
 		}

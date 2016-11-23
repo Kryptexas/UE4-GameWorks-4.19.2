@@ -3,7 +3,6 @@
 #pragma once
 
 #include "MovieSceneEvaluationKey.h"
-#include "MovieSceneEvalTemplate.h"
 
 /**
  * Ordered execution token stack that accumulates tokens that will apply animated state to the sequence environment at a later time

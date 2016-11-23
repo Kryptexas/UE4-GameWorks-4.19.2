@@ -139,11 +139,6 @@ namespace UnrealBuildTool
 			CPlusPlus,
 
 			/// <summary>
-			/// CLR module (mixed C++ and C++/CLI)
-			/// </summary>
-			CPlusPlusCLR,
-
-			/// <summary>
 			/// External (third-party)
 			/// </summary>
 			External,

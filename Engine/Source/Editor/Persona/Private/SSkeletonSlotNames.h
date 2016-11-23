@@ -11,7 +11,7 @@ class UAnimGraphNode_Slot;
 
 #define LOCTEXT_NAMESPACE "SkeletonSlotNames"
 /////////////////////////////////////////////////////
-// FSkeletonTreeSummoner
+// FSkeletonSlotNamesSummoner
 struct FSkeletonSlotNamesSummoner : public FWorkflowTabFactory
 {
 public:

@@ -196,7 +196,6 @@
     <Compile Include="System\PluginDescriptor.cs" />
     <Compile Include="System\ProjectDescriptor.cs" />
     <Compile Include="System\QMakefileGenerator.cs" />
-    <Compile Include="System\ModuleProcessingException.cs" />
     <Compile Include="System\MakefileGenerator.cs" />
     <Compile Include="System\SNDBS.cs" />
     <Compile Include="System\VCSolutionOptions.cs" />

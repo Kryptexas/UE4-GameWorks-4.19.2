@@ -913,7 +913,7 @@ namespace UnrealBuildTool
 		/// The C++ environment that all the environments used to compile UE-based modules are derived from.
 		/// </summary>
 		[NonSerialized]
-		public CPPEnvironment GlobalCompileEnvironment = new CPPEnvironment();
+		public CPPEnvironment GlobalCompileEnvironment;
 
 		/// <summary>
 		/// The link environment all binary link environments are derived from.
@@ -1046,6 +1046,12 @@ namespace UnrealBuildTool
 		FileReference[] PostBuildStepScripts;
 
 		/// <summary>
+		/// Cached header information for this target
+		/// </summary>
+		[NonSerialized]
+		public CPPHeaders Headers;
+
+		/// <summary>
 		/// A list of the module filenames which were used to build this target.
 		/// </summary>
 		/// <returns></returns>
@@ -1105,6 +1111,9 @@ namespace UnrealBuildTool
 			PlatformContext = UEBuildPlatform.GetBuildPlatform(Platform).CreateContext(ProjectFile);
 			PreBuildStepScripts = (FileReference[])Info.GetValue("pr", typeof(FileReference[]));
 			PostBuildStepScripts = (FileReference[])Info.GetValue("po", typeof(FileReference[]));
+
+			Headers = new CPPHeaders(ProjectFile, TargetName);
+			GlobalCompileEnvironment = new CPPEnvironment(Headers);
 		}
 
 		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
@@ -1160,6 +1169,9 @@ namespace UnrealBuildTool
 			ForeignPlugins = InDesc.ForeignPlugins;
 			ForceReceiptFileName = InDesc.ForceReceiptFileName;
 			PlatformContext = InDesc.PlatformContext;
+
+			Headers = new CPPHeaders(ProjectFile, TargetName);
+			GlobalCompileEnvironment = new CPPEnvironment(Headers);
 
 			Debug.Assert(InTargetCsFilename == null || InTargetCsFilename.HasExtension(".Target.cs"));
 			TargetCsFilenameField = InTargetCsFilename;
@@ -1551,7 +1563,7 @@ namespace UnrealBuildTool
 						Log.TraceVerbose("\tDeleting " + FlatCPPIncludeDependencyCacheFilename);
 						CleanFile(FlatCPPIncludeDependencyCacheFilename.FullName);
 					}
-					FileReference DependencyCacheFilename = DependencyCache.GetDependencyCachePathForTarget(this);
+					FileReference DependencyCacheFilename = DependencyCache.GetDependencyCachePathForTarget(ProjectFile, TargetName);
 					if (DependencyCacheFilename.Exists())
 					{
 						Log.TraceVerbose("\tDeleting " + DependencyCacheFilename);
@@ -2020,6 +2032,12 @@ namespace UnrealBuildTool
 				Version = new BuildVersion();
 			}
 
+			// If we've got a changelist set, set that we're making a formal build
+			if(Version.Changelist != 0)
+			{
+				UEBuildConfiguration.bFormalBuild = true;
+			}
+
 			// Create a unique identifier for this build, which can be used to identify modules when the changelist is constant. It's fine to share this between runs with the same makefile; 
 			// the output won't change. By default we leave it blank when compiling a subset of modules (for hot reload, etc...), otherwise it won't match anything else. When writing to a directory
 			// that already contains a manifest, we'll reuse the build id that's already in there (see below).
@@ -2152,7 +2170,7 @@ namespace UnrealBuildTool
 						VersionManifest Manifest;
 						if (!FileNameToVersionManifest.TryGetValue(ManifestFileName, out Manifest))
 						{
-							Manifest = new VersionManifest(Version.Changelist, Version.CompatibleChangelist, BuildId);
+							Manifest = new VersionManifest(Version.Changelist, Version.EffectiveCompatibleChangelist, BuildId);
 
 							VersionManifest ExistingManifest;
 							if (VersionManifest.TryRead(ManifestFileName.FullName, out ExistingManifest) && Version.Changelist == ExistingManifest.Changelist)
@@ -2180,6 +2198,12 @@ namespace UnrealBuildTool
 				}
 			}
 			FileReferenceToVersionManifestPairs = FileNameToVersionManifest.ToArray();
+
+			// Add all the version manifests to the receipt
+			foreach(FileReference VersionManifestFile in FileNameToVersionManifest.Keys)
+			{
+				Receipt.AddBuildProduct(VersionManifestFile.FullName, BuildProductType.RequiredResource);
+			}
 		}
 
 		/// <summary>
@@ -2357,7 +2381,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Builds the target, appending list of output files and returns building result.
 		/// </summary>
-		public ECompilationResult Build(UEToolChain TargetToolChain, out List<FileItem> OutputItems, out List<UHTModuleInfo> UObjectModules)
+		public ECompilationResult Build(UEToolChain TargetToolChain, out List<FileItem> OutputItems, out List<UHTModuleInfo> UObjectModules, ActionGraph ActionGraph)
 		{
 			OutputItems = new List<FileItem>();
 			UObjectModules = new List<UHTModuleInfo>();
@@ -2370,9 +2394,12 @@ namespace UnrealBuildTool
 			}
 
 			// Execute the pre-build steps
-			if(!ExecuteCustomPreBuildSteps())
+			if(!ProjectFileGenerator.bGenerateProjectFiles)
 			{
-				return ECompilationResult.OtherCompilationError;
+				if(!ExecuteCustomPreBuildSteps())
+				{
+					return ECompilationResult.OtherCompilationError;
+				}
 			}
 
 			// If we're compiling monolithic, make sure the executable knows about all referenced modules
@@ -2426,7 +2453,7 @@ namespace UnrealBuildTool
 			}
 
 			// On Mac and Linux we have actions that should be executed after all the binaries are created
-			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac || GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Linux)
+			if (GlobalLinkEnvironment.Config.Platform == CPPTargetPlatform.Mac || GlobalLinkEnvironment.Config.Platform == CPPTargetPlatform.Linux)
 			{
 				TargetToolChain.SetupBundleDependencies(AppBinaries, TargetName);
 			}
@@ -2459,13 +2486,6 @@ namespace UnrealBuildTool
 				{
 					return ECompilationResult.Succeeded;
 				}
-			}
-
-			// We don't need to worry about shared PCH headers when only generating project files.  This is
-			// just an optimization
-			if (!ProjectFileGenerator.bGenerateProjectFiles)
-			{
-				GlobalCompileEnvironment.SharedPCHHeaderFiles = FindSharedPCHHeaders();
 			}
 
 			if ((BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !ProjectFileGenerator.bGenerateProjectFiles))
@@ -2510,21 +2530,88 @@ namespace UnrealBuildTool
 
 			GlobalLinkEnvironment.bShouldCompileMonolithic = ShouldCompileMonolithic();
 
-			// Build the target's binaries.
-			foreach (UEBuildBinary Binary in AppBinaries)
+			// Find all the shared PCHs.
+			List<PrecompiledHeaderTemplate> SharedPCHs = new List<PrecompiledHeaderTemplate>();
+			if (!ProjectFileGenerator.bGenerateProjectFiles && BuildConfiguration.bUseSharedPCHs)
 			{
-                OutputItems.AddRange(Binary.Build(this, TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment));  
+				SharedPCHs = FindSharedPCHs();
 			}
 
-			if (BuildConfiguration.bPrintPerformanceInfo)
+			// Compile the resource files common to all DLLs on Windows
+			if (!ShouldCompileMonolithic())
 			{
-				foreach (SharedPCHHeaderInfo SharedPCH in GlobalCompileEnvironment.SharedPCHHeaderFiles)
+				if (Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64)
 				{
-					Log.TraceInformation("Shared PCH '" + SharedPCH.Module.Name + "': Used " + SharedPCH.NumModulesUsingThisPCH + " times");
+					FileItem VersionFile = FileItem.GetExistingItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Core", "Resources", "Windows", "ModuleVersionResource.rc.inl"));
+					CPPOutput VersionOutput = TargetToolChain.CompileRCFiles(GlobalCompileEnvironment, new List<FileItem> { VersionFile }, ActionGraph);
+					GlobalLinkEnvironment.InputDllResourceFiles.AddRange(VersionOutput.ObjectFiles);
+
+					if(!UEBuildConfiguration.bFormalBuild)
+					{
+						CPPEnvironment DefaultResourceCompileEnvironment = GlobalCompileEnvironment.DeepCopy();
+						DefaultResourceCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"\"");
+
+						FileItem DefaultResourceFile = FileItem.GetExistingItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Launch", "Resources", "Windows", "PCLaunch.rc"));
+						CPPOutput DefaultResourceOutput = TargetToolChain.CompileRCFiles(DefaultResourceCompileEnvironment, new List<FileItem> { DefaultResourceFile }, ActionGraph);
+
+						GlobalLinkEnvironment.InputDllResourceFiles.AddRange(DefaultResourceOutput.ObjectFiles);
+					}
 				}
 			}
 
+			// Build the target's binaries.
+			foreach (UEBuildBinary Binary in AppBinaries)
+			{
+                OutputItems.AddRange(Binary.Build(this, TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment, SharedPCHs, ActionGraph));  
+			}
+
+			// Export a JSON dump of this target
+			if (BuildConfiguration.JsonExportFile != null)
+			{
+				ExportJson(BuildConfiguration.JsonExportFile);
+			}
+
 			return ECompilationResult.Succeeded;
+		}
+
+		/// <summary>
+		/// Export the definition of this target to a JSON file
+		/// </summary>
+		/// <param name="File">File to write to</param>
+		private void ExportJson(string FileName)
+		{
+			using (JsonWriter Writer = new JsonWriter(FileName))
+			{
+				Writer.WriteObjectStart();
+
+				Writer.WriteValue("Name", TargetName);
+				Writer.WriteValue("Configuration", Configuration.ToString());
+				Writer.WriteValue("Platform", Platform.ToString());
+				if (ProjectFile != null)
+				{
+					Writer.WriteValue("ProjectFile", ProjectFile.FullName);
+				}
+
+				Writer.WriteArrayStart("Binaries");
+				foreach (UEBuildBinary Binary in AppBinaries.Union(PrecompiledBinaries))
+				{
+					Writer.WriteObjectStart();
+					Binary.ExportJson(Writer);
+					Writer.WriteObjectEnd();
+				}
+				Writer.WriteArrayEnd();
+
+				Writer.WriteObjectStart("Modules");
+				foreach(UEBuildModule Module in Modules.Values)
+				{
+					Writer.WriteObjectStart(Module.Name);
+					Module.ExportJson(Writer);
+					Writer.WriteObjectEnd();
+				}
+				Writer.WriteObjectEnd();
+
+				Writer.WriteObjectEnd();
+			}
 		}
 
 		/// <summary>
@@ -2692,7 +2779,7 @@ namespace UnrealBuildTool
 			}
 
 			// On Mac AppBinaries paths for non-console targets need to be adjusted to be inside the app bundle
-			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac && !GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
+			if (GlobalLinkEnvironment.Config.Platform == CPPTargetPlatform.Mac && !GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{
 				TargetToolChain.FixBundleBinariesPaths(this, AppBinaries);
 			}
@@ -3196,7 +3283,7 @@ namespace UnrealBuildTool
 			Module.Binary = Binary;
 
 			// Process dependencies for this new module
-			Module.CachePCHUsageForModuleSourceFiles(this, Module.CreateModuleCompileEnvironment(this, GlobalCompileEnvironment));
+			Module.CachePCHUsageForModuleSourceFiles(Headers, Module.CreateModuleCompileEnvironment(this, GlobalCompileEnvironment));
 
 			// Add module to binary
 			Binary.AddModule(Module);
@@ -3227,102 +3314,58 @@ namespace UnrealBuildTool
 				InRulesFile: null);
 		}
 
-
 		/// <summary>
-		/// For any dependent module that has "SharedPCHHeaderFile" set in its module rules, we gather these headers
-		/// and sort them in order from least-dependent to most-dependent such that larger, more complex PCH headers
-		/// appear last in the list
+		/// Determines which modules can be used to create shared PCHs
 		/// </summary>
-		/// <returns>List of shared PCH headers to use</returns>
-		private List<SharedPCHHeaderInfo> FindSharedPCHHeaders()
+		/// <returns>List of shared PCH modules, in order of preference</returns>
+		List<PrecompiledHeaderTemplate> FindSharedPCHs()
 		{
-			// List of modules, with all of the dependencies of that module
-			List<SharedPCHHeaderInfo> SharedPCHHeaderFiles = new List<SharedPCHHeaderInfo>();
-
-			// Build up our list of modules with "shared PCH headers".  The list will be in dependency order, with modules
-			// that depend on previous modules appearing later in the list
-			foreach (UEBuildBinary Binary in AppBinaries)
+			// Find how many other shared PCH modules each module depends on, and use that to sort the shared PCHs by reverse order of size.
+			HashSet<UEBuildModuleCPP> SharedPCHModules = new HashSet<UEBuildModuleCPP>();
+			foreach(UEBuildBinaryCPP Binary in AppBinaries.OfType<UEBuildBinaryCPP>())
 			{
-				UEBuildBinaryCPP CPPBinary = Binary as UEBuildBinaryCPP;
-				if (CPPBinary != null)
+				foreach(UEBuildModuleCPP Module in Binary.Modules.OfType<UEBuildModuleCPP>())
 				{
-					foreach (UEBuildModule Module in CPPBinary.Modules)
+					if(!String.IsNullOrEmpty(Module.Rules.SharedPCHHeaderFile))
 					{
-						UEBuildModuleCPP CPPModule = Module as UEBuildModuleCPP;
-						if (CPPModule != null)
-						{
-							if (!String.IsNullOrEmpty(CPPModule.Rules.SharedPCHHeaderFile) && CPPModule.Binary.Config.bAllowCompilation)
-							{
-								// @todo SharedPCH: Ideally we could figure the PCH header name automatically, and simply use a boolean in the module
-								//     definition to opt into exposing a shared PCH.  Unfortunately we don't determine which private PCH header "goes with"
-								//     a module until a bit later in the process.  It shouldn't be hard to change that though.
-								string SharedPCHHeaderFilePath = ProjectFileGenerator.RootRelativePath + "/Engine/Source/" + CPPModule.Rules.SharedPCHHeaderFile;
-								FileItem SharedPCHHeaderFileItem = FileItem.GetExistingItemByPath(SharedPCHHeaderFilePath);
-								if (SharedPCHHeaderFileItem != null)
-								{
-									List<UEBuildModule> ModuleDependencies = new List<UEBuildModule>();
-									bool bIncludeDynamicallyLoaded = false;
-									CPPModule.GetAllDependencyModules(ModuleDependencies, new HashSet<UEBuildModule>(), bIncludeDynamicallyLoaded, bForceCircular: false, bOnlyDirectDependencies: false);
-
-									// Figure out where to insert the shared PCH into our list, based off the module dependency ordering
-									int InsertAtIndex = SharedPCHHeaderFiles.Count;
-									for (int ExistingModuleIndex = SharedPCHHeaderFiles.Count - 1; ExistingModuleIndex >= 0; --ExistingModuleIndex)
-									{
-										UEBuildModule ExistingModule = SharedPCHHeaderFiles[ExistingModuleIndex].Module;
-										Dictionary<string, UEBuildModule> ExistingModuleDependencies = SharedPCHHeaderFiles[ExistingModuleIndex].Dependencies;
-
-										// If the module to add to the list is dependent on any modules already in our header list, that module
-										// must be inserted after any of those dependencies in the list
-										foreach (KeyValuePair<string, UEBuildModule> ExistingModuleDependency in ExistingModuleDependencies)
-										{
-											if (ExistingModuleDependency.Value == CPPModule)
-											{
-												// Make sure we're not a circular dependency of this module.  Circular dependencies always
-												// point "upstream".  That is, modules like Engine point to UnrealEd in their
-												// CircularlyReferencedDependentModules array, but the natural dependency order is
-												// that UnrealEd depends on Engine.  We use this to avoid having modules such as UnrealEd
-												// appear before Engine in our shared PCH list.
-												// @todo SharedPCH: This is not very easy for people to discover.  Luckily we won't have many shared PCHs in total.
-												if (!ExistingModule.HasCircularDependencyOn(CPPModule.Name))
-												{
-													// We are at least dependent on this module.  We'll keep searching the list to find
-													// further-descendant modules we might be dependent on
-													InsertAtIndex = ExistingModuleIndex;
-													break;
-												}
-											}
-										}
-									}
-
-									SharedPCHHeaderInfo NewSharedPCHHeaderInfo = new SharedPCHHeaderInfo();
-									NewSharedPCHHeaderInfo.PCHHeaderFile = SharedPCHHeaderFileItem;
-									NewSharedPCHHeaderInfo.Module = CPPModule;
-									NewSharedPCHHeaderInfo.Dependencies = ModuleDependencies.ToDictionary(M => M.Name);
-									SharedPCHHeaderFiles.Insert(InsertAtIndex, NewSharedPCHHeaderInfo);
-								}
-								else
-								{
-									throw new BuildException("Could not locate the specified SharedPCH header file '{0}' for module '{1}'.", SharedPCHHeaderFilePath, CPPModule.Name);
-								}
-							}
-						}
+						SharedPCHModules.Add(Module);
 					}
 				}
 			}
 
-			if (SharedPCHHeaderFiles.Count > 0)
+			// Shared PCHs are only supported for engine modules at the moment. Check there are no game modules in the list.
+			List<UEBuildModuleCPP> NonEngineSharedPCHs = SharedPCHModules.Where(x => !x.RulesFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory)).ToList();
+			if(NonEngineSharedPCHs.Count > 0)
 			{
-				Log.TraceVerbose("Detected {0} shared PCH headers (listed in dependency order):", SharedPCHHeaderFiles.Count);
-				foreach (SharedPCHHeaderInfo CurSharedPCH in SharedPCHHeaderFiles)
+				throw new BuildException("Shared PCHs are only supported for engine modules (found {0}).", String.Join(", ", NonEngineSharedPCHs.Select(x => x.Name)));
+			}
+
+			// Find a priority for each shared PCH, determined as the number of other shared PCHs it includes.
+			Dictionary<UEBuildModuleCPP, int> SharedPCHModuleToPriority = new Dictionary<UEBuildModuleCPP, int>();
+			foreach(UEBuildModuleCPP SharedPCHModule in SharedPCHModules)
+			{
+				List<UEBuildModule> Dependencies = new List<UEBuildModule>();
+				SharedPCHModule.GetAllDependencyModules(Dependencies, new HashSet<UEBuildModule>(), false, false, false);
+				SharedPCHModuleToPriority.Add(SharedPCHModule, Dependencies.Count(x => SharedPCHModules.Contains(x)));
+			}
+
+			// Create the shared PCH modules, in order
+			List<PrecompiledHeaderTemplate> OrderedSharedPCHModules = new List<PrecompiledHeaderTemplate>();
+			foreach(UEBuildModuleCPP Module in SharedPCHModuleToPriority.OrderByDescending(x => x.Value).Select(x => x.Key))
+			{
+				OrderedSharedPCHModules.Add(Module.CreateSharedPCHTemplate(this, GlobalCompileEnvironment));
+			}
+
+			// Print the ordered list of shared PCHs
+			if(OrderedSharedPCHModules.Count > 0)
+			{
+				Log.TraceVerbose("Found {0} shared PCH headers (listed in order of preference):", SharedPCHModules.Count);
+				foreach (PrecompiledHeaderTemplate SharedPCHModule in OrderedSharedPCHModules)
 				{
-					Log.TraceVerbose("	" + CurSharedPCH.PCHHeaderFile.AbsolutePath + "  (module: " + CurSharedPCH.Module.Name + ")");
+					Log.TraceVerbose("	" + SharedPCHModule.Module.Name);
 				}
 			}
-			else
-			{
-				Log.TraceVerbose("Did not detect any shared PCH headers");
-			}
-			return SharedPCHHeaderFiles;
+			return OrderedSharedPCHModules;
 		}
 
 		/// <summary>
@@ -3726,7 +3769,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Sets up the modules for the target.
 		/// </summary>
-		protected virtual void SetupModules()
+		protected void SetupModules()
 		{
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			List<string> PlatformExtraModules = new List<string>();
@@ -4204,8 +4247,8 @@ namespace UnrealBuildTool
 
 			// Validates current settings and updates if required.
 			BuildConfiguration.ValidateConfiguration(
-				GlobalCompileEnvironment.Config.Target.Configuration,
-				GlobalCompileEnvironment.Config.Target.Platform,
+				GlobalCompileEnvironment.Config.Configuration,
+				GlobalCompileEnvironment.Config.Platform,
 				GlobalCompileEnvironment.Config.bCreateDebugInfo,
 				PlatformContext);
 		}
@@ -4282,12 +4325,12 @@ namespace UnrealBuildTool
 
 			CPPTargetPlatform MainCompilePlatform = BuildPlatform.DefaultCppPlatform;
 
-			GlobalLinkEnvironment.Config.Target.Platform = MainCompilePlatform;
-			GlobalCompileEnvironment.Config.Target.Platform = MainCompilePlatform;
+			GlobalLinkEnvironment.Config.Platform = MainCompilePlatform;
+			GlobalCompileEnvironment.Config.Platform = MainCompilePlatform;
 
 			string ActiveArchitecture = PlatformContext.GetActiveArchitecture();
-			GlobalCompileEnvironment.Config.Target.Architecture = ActiveArchitecture;
-			GlobalLinkEnvironment.Config.Target.Architecture = ActiveArchitecture;
+			GlobalCompileEnvironment.Config.Architecture = ActiveArchitecture;
+			GlobalLinkEnvironment.Config.Architecture = ActiveArchitecture;
 
 			if (!ProjectFileGenerator.bGenerateProjectFiles)
 			{
@@ -4346,30 +4389,6 @@ namespace UnrealBuildTool
 				if (InvalidDependencies.Count != 0)
 				{
 					throw new BuildException("Module rules for '{0}' should not be dependent on modules which are also dynamically loaded: {1}", ModuleName, String.Join(", ", InvalidDependencies));
-				}
-
-				// Choose code optimization options based on module type (game/engine) if default optimization method is selected.
-				bool bIsEngineModule = ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
-				if (RulesObject.OptimizeCode == ModuleRules.CodeOptimization.Default)
-				{
-					// Engine/Source and Engine/Plugins are considered 'Engine' code...
-					if (bIsEngineModule)
-					{
-						// Engine module - always optimize (except Debug).
-						RulesObject.OptimizeCode = ModuleRules.CodeOptimization.Always;
-					}
-					else
-					{
-						// Game module - do not optimize in Debug and DebugGame builds.
-						////////////////////////////////////////////////////////////////////////////////////////
-						// @todo jira UE-29925:
-						// See the Jira for why this does not always work properly
-						// The following commented out line WORKS AROUND THE ISSUE BUT DOESN'T FIX IT. 
-						// UnrealTournament may act weird without this code.
-						// RulesObject.OptimizeCode = ModuleRules.CodeOptimization.Always;
-						////////////////////////////////////////////////////////////////////////////////////////
-						RulesObject.OptimizeCode = ModuleRules.CodeOptimization.InNonDebugBuilds;
-					}
 				}
 
 				// Disable shared PCHs for game modules by default (but not game plugins, since they won't depend on the game's PCH!)
@@ -4542,7 +4561,7 @@ namespace UnrealBuildTool
 
 				IntelliSenseGatherer IntelliSenseGatherer = null;
 				List<FileItem> FoundSourceFiles = new List<FileItem>();
-				if (RulesObject.Type == ModuleRules.ModuleType.CPlusPlus || RulesObject.Type == ModuleRules.ModuleType.CPlusPlusCLR)
+				if (RulesObject.Type == ModuleRules.ModuleType.CPlusPlus)
 				{
 					ProjectFile ProjectFileForIDE = null;
 					if (ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.ModuleToProjectFileMap.TryGetValue(ModuleName, out ProjectFileForIDE))
@@ -4608,19 +4627,6 @@ namespace UnrealBuildTool
 			{
 				case ModuleRules.ModuleType.CPlusPlus:
 					return new UEBuildModuleCPP(
-							InName: ModuleName,
-							InType: ModuleType,
-							InModuleDirectory: ModuleDirectory,
-							InGeneratedCodeDirectory: GeneratedCodeDirectory,
-							InIntelliSenseGatherer: IntelliSenseGatherer,
-							InSourceFiles: ModuleSourceFiles,
-							InRules: RulesObject,
-							bInBuildSourceFiles: bBuildSourceFiles,
-							InRulesFile: InRulesFile
-						);
-
-				case ModuleRules.ModuleType.CPlusPlusCLR:
-					return new UEBuildModuleCPPCLR(
 							InName: ModuleName,
 							InType: ModuleType,
 							InModuleDirectory: ModuleDirectory,

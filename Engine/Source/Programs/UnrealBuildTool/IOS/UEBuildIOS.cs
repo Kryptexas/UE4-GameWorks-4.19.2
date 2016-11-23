@@ -514,7 +514,6 @@ namespace UnrealBuildTool
 			base.ValidateBuildConfiguration(Configuration, Platform, bCreateDebugInfo);
 
 			BuildConfiguration.bUsePCHFiles = false;
-			BuildConfiguration.bUseSharedPCHs = false;
 			BuildConfiguration.bCheckExternalHeadersForModification = false;
 			BuildConfiguration.bCheckSystemHeadersForModification = false;
 			BuildConfiguration.ProcessorCountMultiplier = IOSToolChain.GetAdjustedProcessorCountMultiplier();

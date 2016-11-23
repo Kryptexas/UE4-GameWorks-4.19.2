@@ -4,7 +4,6 @@
 
 #include "EdGraphUtilities.h"
 #include "ConnectionDrawingPolicy.h"
-#include "SoundCueGraphConnectionDrawingPolicy.h"
 
 struct FSoundCueGraphConnectionDrawingPolicyFactory : public FGraphPanelPinConnectionFactory
 {

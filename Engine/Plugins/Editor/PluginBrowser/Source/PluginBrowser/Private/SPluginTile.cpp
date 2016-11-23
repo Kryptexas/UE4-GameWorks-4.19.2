@@ -216,13 +216,40 @@ void SPluginTile::RecreateWidgets()
 
 										// Friendly name
 										+SHorizontalBox::Slot()
-										.Padding(PaddingAmount)
-										[
-											SNew(STextBlock)
-												.Text(FText::FromString(PluginDescriptor.FriendlyName))
-												.HighlightText_Raw(&OwnerWeak.Pin()->GetOwner().GetPluginTextFilter(), &FPluginTextFilter::GetRawFilterText)
-												.TextStyle(FPluginStyle::Get(), "PluginTile.NameText")
-										]
+											.AutoWidth()
+											.VAlign(VAlign_Center)
+											.Padding(PaddingAmount)
+											[
+												SNew(STextBlock)
+													.Text(FText::FromString(PluginDescriptor.FriendlyName))
+													.HighlightText_Raw(&OwnerWeak.Pin()->GetOwner().GetPluginTextFilter(), &FPluginTextFilter::GetRawFilterText)
+													.TextStyle(FPluginStyle::Get(), "PluginTile.NameText")
+											]
+
+										// "NEW!" label
+										+ SHorizontalBox::Slot()
+											.AutoWidth()
+											.Padding(10.0f, 0.0f, 0.0f, 0.0f)
+											.HAlign(HAlign_Left)
+											.VAlign(VAlign_Center)
+											[
+												SNew(SBorder)
+													.Padding(FMargin(5.0f, 3.0f))
+													.BorderImage(FPluginStyle::Get()->GetBrush("PluginTile.NewLabelBackground"))
+													[
+														SNew(STextBlock)
+															.Visibility(FPluginBrowserModule::Get().IsNewlyInstalledPlugin(Plugin->GetName())? EVisibility::Visible : EVisibility::Collapsed)
+															.Font(FPluginStyle::Get()->GetFontStyle(TEXT("PluginTile.NewLabelFont")))
+															.Text(LOCTEXT("PluginNewLabel", "NEW!"))
+															.TextStyle(FPluginStyle::Get(), "PluginTile.NewLabelText")
+													]
+											]
+
+										// Gap
+										+ SHorizontalBox::Slot()
+											[
+												SNew(SSpacer)
+											]
 
 										// Version
 										+ SHorizontalBox::Slot()

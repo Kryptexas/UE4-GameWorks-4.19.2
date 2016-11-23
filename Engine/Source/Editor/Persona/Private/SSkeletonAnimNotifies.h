@@ -9,7 +9,7 @@
 #define LOCTEXT_NAMESPACE "SkeletonAnimnotifies"
 
 /////////////////////////////////////////////////////
-// FSkeletonTreeSummoner
+// FSkeletonAnimNotifiesSummoner
 struct FSkeletonAnimNotifiesSummoner : public FWorkflowTabFactory
 {
 public:

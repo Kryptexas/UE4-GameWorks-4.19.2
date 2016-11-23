@@ -86,7 +86,7 @@ class BuildPlugin : BuildCommand
 
 		// Compile the plugin for all the target platforms
 		List<UnrealTargetPlatform> HostPlatforms = ParseParam("NoHostPlatform")? new List<UnrealTargetPlatform>() : new List<UnrealTargetPlatform> { BuildHostPlatform.Current.Platform };
-		List<UnrealTargetPlatform> TargetPlatforms = GetTargetPlatforms(this, BuildHostPlatform.Current.Platform).Where(x => IsCodeTargetPlatform(BuildHostPlatform.Current.Platform, x)).ToList();
+		List<UnrealTargetPlatform> TargetPlatforms = GetTargetPlatforms(this, BuildHostPlatform.Current.Platform);
 		FileReference[] BuildProducts = CompilePlugin(HostProjectFile, HostProjectPluginFile, Plugin, HostPlatforms, TargetPlatforms, "");
 
 		// Package up the final plugin data
@@ -220,7 +220,7 @@ class BuildPlugin : BuildCommand
 		// Get the output plugin filename
 		FileReference TargetPluginFile = FileReference.Combine(TargetDir, SourcePluginFile.GetFileName());
 		PluginDescriptor NewDescriptor = PluginDescriptor.FromFile(TargetPluginFile, false);
-		NewDescriptor.bEnabledByDefault = true;
+		NewDescriptor.bEnabledByDefault = false;
 		NewDescriptor.bInstalled = true;
 		NewDescriptor.Save(TargetPluginFile.FullName, false);
 	}
@@ -258,33 +258,24 @@ class BuildPlugin : BuildCommand
 		List<UnrealTargetPlatform> TargetPlatforms = new List<UnrealTargetPlatform>();
 		if(!Command.ParseParam("NoTargetPlatforms"))
 		{
-			// Always support the host platform
-			TargetPlatforms.Add(HostPlatform);
+			// Only interested in building for Platforms that support code projects
+			TargetPlatforms = UEBuildPlatform.GetRegisteredPlatforms().Where(x => InstalledPlatformInfo.Current.IsValidPlatform(x, EProjectType.Code)).ToList();
 
-			// Add other target platforms for each host platform
-			if(HostPlatform == UnrealTargetPlatform.Win64)
+			// only build Mac on Mac
+			if (HostPlatform != UnrealTargetPlatform.Mac && TargetPlatforms.Contains(UnrealTargetPlatform.Mac))
 			{
-				TargetPlatforms.Add(UnrealTargetPlatform.Win32);
+				TargetPlatforms.Remove(UnrealTargetPlatform.Mac);
 			}
-			if(HostPlatform == UnrealTargetPlatform.Win64 || HostPlatform == UnrealTargetPlatform.Mac)
+			// only build Windows on Windows
+			if (HostPlatform != UnrealTargetPlatform.Win64 && TargetPlatforms.Contains(UnrealTargetPlatform.Win64))
 			{
-				TargetPlatforms.Add(UnrealTargetPlatform.Android);
+				TargetPlatforms.Remove(UnrealTargetPlatform.Win64);
+				TargetPlatforms.Remove(UnrealTargetPlatform.Win32);
 			}
-			if(HostPlatform == UnrealTargetPlatform.Win64 || HostPlatform == UnrealTargetPlatform.Mac)
+			// build Linux on Windows and Linux
+			if (HostPlatform != UnrealTargetPlatform.Win64 && HostPlatform != UnrealTargetPlatform.Linux && TargetPlatforms.Contains(UnrealTargetPlatform.Linux))
 			{
-				TargetPlatforms.Add(UnrealTargetPlatform.IOS);
-			}
-			if (HostPlatform == UnrealTargetPlatform.Win64 || HostPlatform == UnrealTargetPlatform.Mac)
-			{
-				TargetPlatforms.Add(UnrealTargetPlatform.TVOS);
-			}
-			if (HostPlatform == UnrealTargetPlatform.Win64)
-			{
-				TargetPlatforms.Add(UnrealTargetPlatform.Linux);
-			}
-			if(HostPlatform == UnrealTargetPlatform.Win64 || HostPlatform == UnrealTargetPlatform.Mac )
-			{
-				TargetPlatforms.Add(UnrealTargetPlatform.HTML5);
+				TargetPlatforms.Remove(UnrealTargetPlatform.Linux);
 			}
 
 			// Remove any platforms that aren't enabled on the command line
@@ -308,23 +299,6 @@ class BuildPlugin : BuildCommand
 			}
 		}
 		return TargetPlatforms;
-	}
-
-	static bool IsCodeTargetPlatform(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform TargetPlatform)
-	{
-		if(TargetPlatform == UnrealTargetPlatform.Linux)
-		{
-			return false;
-		}
-		if(HostPlatform == UnrealTargetPlatform.Win64 && TargetPlatform == UnrealTargetPlatform.IOS)
-		{
-			return false;
-		}
-		if (HostPlatform == UnrealTargetPlatform.Win64 && TargetPlatform == UnrealTargetPlatform.TVOS)
-		{
-			return false;
-		}
-		return true;
 	}
 }
 
