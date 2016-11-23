@@ -3960,67 +3960,9 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.Config.Definitions.Add(String.Format("IS_PROGRAM={0}", TargetType == TargetRules.TargetType.Program ? "1" : "0"));
 			}
 
-			String[] RSAKeys;
-			String AESKey;
-			ParseEncryptionIni(ProjectDirectory, Platform, out RSAKeys, out AESKey);
-			bool bSigningEnabledByIniFile = false;
-
-			if (RSAKeys != null)
+			if (!bUseSharedBuildEnvironment)
 			{
-				GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + RSAKeys[1] + "\"");
-				GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + RSAKeys[2] + "\"");
-
-				bSigningEnabledByIniFile = true;
-			}
-
-			if (!String.IsNullOrEmpty(AESKey))
-			{
-				if (AESKey.Length < 32)
-				{
-					Log.TraceError("AES key specified in configs must be at least 32 characters long!");
-				}
-				else
-				{
-					GlobalCompileEnvironment.Config.Definitions.Add("AES_KEY=\"" + AESKey + "\"");
-				}
-			}
-			
-			// If we didn't extract any keys from the new ini file setup, try looking for the old keys text file
-			if (!bSigningEnabledByIniFile && !string.IsNullOrEmpty(Rules.PakSigningKeysFile))
-			{
-				string FullFilename = Path.Combine(ProjectDirectory.FullName, Rules.PakSigningKeysFile);
-
-				Log.TraceVerbose("Adding signing keys to executable from '{0}'", FullFilename);
-
-				if (File.Exists(FullFilename))
-				{
-					string[] Lines = File.ReadAllLines(FullFilename);
-					List<string> Keys = new List<string>();
-					foreach (string Line in Lines)
-					{
-						if (!string.IsNullOrEmpty(Line))
-						{
-							if (Line.StartsWith("0x"))
-							{
-								Keys.Add(Line.Trim());
-							}
-						}
-					}
-
-					if (Keys.Count == 3)
-					{
-						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + Keys[1] + "\"");
-						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + Keys[2] + "\"");
-					}
-					else
-					{
-						Log.TraceWarning("Contents of signing key file are invalid so will be ignored");
-					}
-				}
-				else
-				{
-					Log.TraceVerbose("Signing key file is missing! Executable will not include signing keys");
-				}
+				SetupEncryptionAndSingningKeys();
 			}
 
 			// Validate UE configuration - needs to happen before setting any environment mojo and after argument parsing.
@@ -4266,6 +4208,72 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.Config.Target.Platform,
 				GlobalCompileEnvironment.Config.bCreateDebugInfo,
 				PlatformContext);
+		}
+
+		private void SetupEncryptionAndSingningKeys()
+		{
+			String[] RSAKeys;
+			String AESKey;
+			ParseEncryptionIni(ProjectDirectory, Platform, out RSAKeys, out AESKey);
+			bool bSigningEnabledByIniFile = false;
+
+			if (RSAKeys != null)
+			{
+				GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + RSAKeys[1] + "\"");
+				GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + RSAKeys[2] + "\"");
+
+				bSigningEnabledByIniFile = true;
+			}
+
+			if (!String.IsNullOrEmpty(AESKey))
+			{
+				if (AESKey.Length < 32)
+				{
+					Log.TraceError("AES key specified in configs must be at least 32 characters long!");
+				}
+				else
+				{
+					GlobalCompileEnvironment.Config.Definitions.Add("AES_KEY=\"" + AESKey + "\"");
+				}
+			}
+
+			// If we didn't extract any keys from the new ini file setup, try looking for the old keys text file
+			if (!bSigningEnabledByIniFile && !string.IsNullOrEmpty(Rules.PakSigningKeysFile))
+			{
+				string FullFilename = Path.Combine(ProjectDirectory.FullName, Rules.PakSigningKeysFile);
+
+				Log.TraceVerbose("Adding signing keys to executable from '{0}'", FullFilename);
+
+				if (File.Exists(FullFilename))
+				{
+					string[] Lines = File.ReadAllLines(FullFilename);
+					List<string> Keys = new List<string>();
+					foreach (string Line in Lines)
+					{
+						if (!string.IsNullOrEmpty(Line))
+						{
+							if (Line.StartsWith("0x"))
+							{
+								Keys.Add(Line.Trim());
+							}
+						}
+					}
+
+					if (Keys.Count == 3)
+					{
+						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + Keys[1] + "\"");
+						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + Keys[2] + "\"");
+					}
+					else
+					{
+						Log.TraceWarning("Contents of signing key file are invalid so will be ignored");
+					}
+				}
+				else
+				{
+					Log.TraceVerbose("Signing key file is missing! Executable will not include signing keys");
+				}
+			}
 		}
 
 		void SetUpPlatformEnvironment()
