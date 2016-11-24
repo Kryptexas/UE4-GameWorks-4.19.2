@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if PLATFORM_IOS
 
 #include "IWebBrowserWindow.h"
-#include "SlateCore.h"
+#include "Widgets/SWindow.h"
 #import <UIKit/UIKit.h>
 #import <UIKit/UIWebView.h>
 

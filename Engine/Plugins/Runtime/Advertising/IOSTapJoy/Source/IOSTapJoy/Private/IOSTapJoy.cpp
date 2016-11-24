@@ -1,7 +1,11 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "IOSTapJoyPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "IAdvertisingProvider.h"
 #include "IOSAppDelegate.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/ConfigCacheIni.h"
 #import <Tapjoy/Tapjoy.h>
 
 class FTapJoyProvider : public IAdvertisingProvider

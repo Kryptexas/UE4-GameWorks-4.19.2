@@ -1,13 +1,15 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "HotReloadClassReinstancer.h"
-#include "Engine/Blueprint.h"
 #include "Serialization/MemoryWriter.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/UObjectIterator.h"
 #include "UObject/Package.h"
 #include "Serialization/ArchiveReplaceObjectRef.h"
+#if WITH_ENGINE
+#include "Engine/Blueprint.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#endif
 
 #if WITH_ENGINE
 

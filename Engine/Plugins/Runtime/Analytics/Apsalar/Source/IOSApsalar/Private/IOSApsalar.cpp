@@ -2,6 +2,7 @@
 
 #include "IOSApsalar.h"
 #include "IOSApsalarProvider.h"
+#include "Modules/ModuleManager.h"
 
 #if WITH_APSALAR
 #import "Apsalar.h"

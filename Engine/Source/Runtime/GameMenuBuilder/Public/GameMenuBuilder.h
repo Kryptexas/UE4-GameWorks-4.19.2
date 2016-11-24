@@ -2,18 +2,15 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
+
 #include "GameMenuBuilderModule.h"
 
-
-class FGameMenuBuilderModule : public IGameMenuBuilderModule
-{
-	virtual void StartupModule() override
-	{
-		
-	}
-	void SetStyleName()
-	{
-	}
-
-};
+#include "SlateBasics.h"
+#include "GameMenuBuilderStyle.h"
+#include "GameMenuWidgetStyle.h"
+#include "SGameMenuPageWidget.h"
+#include "SGameMenuItemWidget.h"
+#include "GameMenuItem.h"
+#include "GameMenuPage.h"

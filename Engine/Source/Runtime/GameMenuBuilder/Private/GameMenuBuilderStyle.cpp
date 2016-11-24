@@ -6,7 +6,7 @@
 #include "Styling/SlateTypes.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Slate/SlateGameResources.h"
-#include "GameMenuBuilder.h"
+#include "GameMenuBuilderModule.h"
 
 
 
@@ -16,7 +16,7 @@ void FGameMenuBuilderStyle::Initialize(const FString StyleName)
 {
 	if (FModuleManager::Get().IsModuleLoaded("GameMenuBuilder") == false)
 	{
-		FModuleManager::LoadModuleChecked<FGameMenuBuilderModule>("GameMenuBuilder");
+		FModuleManager::LoadModuleChecked<IGameMenuBuilderModule>("GameMenuBuilder");
 	}
 	if (!SimpleStyleInstance.IsValid())
 	{

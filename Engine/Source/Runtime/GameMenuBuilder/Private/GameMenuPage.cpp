@@ -6,7 +6,7 @@
 #include "GameMenuBuilderStyle.h"
 #include "GameMenuWidgetStyle.h"
 #include "SGameMenuPageWidget.h"
-#include "GameMenuBuilder.h"
+#include "GameMenuBuilderModule.h"
 
 FGameMenuPage::FGameMenuPage()
 {
@@ -34,7 +34,7 @@ bool FGameMenuPage::InitialiseRootMenu(APlayerController* InPCOwner, const FStri
 {
 	if (FModuleManager::Get().IsModuleLoaded("GameMenuBuilder") == false)
 	{
-		FModuleManager::LoadModuleChecked<FGameMenuBuilderModule>("GameMenuBuilder");
+		FModuleManager::LoadModuleChecked<IGameMenuBuilderModule>("GameMenuBuilder");
 	}	
 
 	TArray<FString> SplitString;

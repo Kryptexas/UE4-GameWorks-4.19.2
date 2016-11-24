@@ -5,6 +5,8 @@
 #include "OnlineSubsystemFacebookPrivate.h"
 #include "OnlineIdentityFacebook.h"
 #include "OnlineSharingFacebook.h"
+#include "Interfaces/OnlineFriendsInterface.h"
+#include "Misc/ConfigCacheIni.h"
 
 #import <FBSDKCoreKit/FBSDKCoreKit.h>
 

@@ -1,7 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "GameMenuBuilder.h"
-
+#include "GameMenuBuilderModule.h"
+#include "Modules/ModuleManager.h"
 
 
 

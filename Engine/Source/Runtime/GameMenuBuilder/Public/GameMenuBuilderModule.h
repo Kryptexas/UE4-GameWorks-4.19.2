@@ -27,3 +27,14 @@ public:
 	}
 };
 
+class FGameMenuBuilderModule : public IGameMenuBuilderModule
+{
+	virtual void StartupModule() override
+	{
+
+	}
+	void SetStyleName()
+	{
+	}
+
+};

@@ -128,7 +128,7 @@ struct FWindowsPlatformMath : public FGenericPlatformMath
 	static FORCEINLINE uint64 CountLeadingZeros64(uint64 Value)
 	{
 		// Use BSR to return the log2 of the integer
-		DWORD Log2;
+		unsigned long Log2;
 		if (_BitScanReverse64(&Log2, Value) != 0)
 		{
 			return 63 - Log2;

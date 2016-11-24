@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "IMessageContext.h"
+#include "Async/IAsyncTask.h"
 #include "Async/AsyncResult.h"
 #include "IMessageRpcHandler.h"
 #include "IMessageRpcReturn.h"

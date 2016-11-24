@@ -11,7 +11,6 @@
 #include "GameMenuBuilderStyle.h"
 #include "SGameMenuPageWidget.h"
 #include "GameMenuPage.h"
-#include "GameMenuBuilder.h"
 #include "Engine/World.h"
 
 void SGameMenuItemWidget::Construct(const FArguments& InArgs)

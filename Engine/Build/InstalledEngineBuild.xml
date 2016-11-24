@@ -254,7 +254,7 @@
 		</Node>
 	
 		<!-- Downstream monolithics Switch -->
-		<Node Name="Compile UE4Game Switch" Requires="Compile UnrealHeaderTool Win64" Produces="#UE4Game Switch;#UE4Game Switch Includes">
+		<Node Name="Compile UE4Game Switch" Requires="Compile UnrealHeaderTool Win64" Produces="#UE4Game Switch;#UE4Game Switch Includes" If="'$(WithSwitch)' == true">
 			<Compile Target="UE4Game" Platform="Switch" Configuration="Development" Tag="#UE4Game Switch" Arguments="-precompile"/>
 			<Compile Target="UE4Game" Platform="Switch" Configuration="Shipping" Tag="#UE4Game Switch" Arguments="-precompile"/>
 

@@ -5,7 +5,9 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Widgets/SWidget.h"
+#if WITH_EDITOR
 #include "AssetData.h"
+#endif
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
 

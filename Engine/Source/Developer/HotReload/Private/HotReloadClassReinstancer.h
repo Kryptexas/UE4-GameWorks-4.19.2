@@ -2,7 +2,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#if WITH_ENGINE
 #include "Kismet2/KismetReinstanceUtilities.h"
+#endif
 
 class UBlueprint;
 
