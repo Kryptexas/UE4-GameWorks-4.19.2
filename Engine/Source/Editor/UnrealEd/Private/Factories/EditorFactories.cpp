@@ -5671,7 +5671,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
 	ReimportUI->MeshTypeToImport = FBXIT_StaticMesh;
 	ReimportUI->bOverrideFullName = false;
-	ReimportUI->bCombineMeshes = true;
+	ReimportUI->StaticMeshImportData->bCombineMeshes = true;
 
 	if (!ImportUI)
 	{

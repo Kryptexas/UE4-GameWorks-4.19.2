@@ -237,7 +237,7 @@ UObject* UFbxFactory::FactoryCreateBinary
 			TArray< TArray<FbxNode*>* > SkelMeshArray;
 
 			bool bImportStaticMeshLODs = ImportUI->StaticMeshImportData->bImportMeshLODs;
-			bool bCombineMeshes = ImportUI->bCombineMeshes;
+			bool bCombineMeshes = ImportUI->StaticMeshImportData->bCombineMeshes;
 
 			if ( ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh )
 			{
@@ -661,8 +661,6 @@ IImportSettingsParser* UFbxFactory::GetImportSettingsParser()
 UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bCombineMeshes = true;
-
 	StaticMeshImportData = CreateDefaultSubobject<UFbxStaticMeshImportData>(TEXT("StaticMeshImportData"));
 	SkeletalMeshImportData = CreateDefaultSubobject<UFbxSkeletalMeshImportData>(TEXT("SkeletalMeshImportData"));
 	AnimSequenceImportData = CreateDefaultSubobject<UFbxAnimSequenceImportData>(TEXT("AnimSequenceImportData"));
