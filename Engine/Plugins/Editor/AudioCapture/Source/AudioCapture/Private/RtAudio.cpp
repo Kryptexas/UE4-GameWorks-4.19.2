@@ -44,11 +44,13 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "AllowWindowsPlatformTypes.h"
 
-#include <iostream>
-#include <cstdlib>
-#include <cstring>
-#include <climits>
-#include <algorithm>
+THIRD_PARTY_INCLUDES_START
+	#include <iostream>
+	#include <cstdlib>
+	#include <cstring>
+	#include <climits>
+	#include <algorithm>
+THIRD_PARTY_INCLUDES_END
 
 // Static variable definitions.
 const unsigned int RtApi::MAX_SAMPLE_RATES = 14;

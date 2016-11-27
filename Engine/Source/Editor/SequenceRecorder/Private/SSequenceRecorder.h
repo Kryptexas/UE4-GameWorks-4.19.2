@@ -8,6 +8,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
+#include "ActorRecording.h"
 
 class FActiveTimerHandle;
 class FUICommandList;

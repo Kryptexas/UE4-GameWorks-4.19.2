@@ -29,12 +29,14 @@ enum class EWebBrowserDocumentState;
 	#include "AllowWindowsPlatformAtomics.h"
 #endif
 
+THIRD_PARTY_INCLUDES_START
 #pragma push_macro("OVERRIDE")
 #	undef OVERRIDE // cef headers provide their own OVERRIDE macro
 #	include "include/internal/cef_ptr.h"
 #	include "include/cef_render_handler.h"
 #	include "include/cef_jsdialog_handler.h"
 #pragma pop_macro("OVERRIDE")
+THIRD_PARTY_INCLUDES_END
 
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformAtomics.h"

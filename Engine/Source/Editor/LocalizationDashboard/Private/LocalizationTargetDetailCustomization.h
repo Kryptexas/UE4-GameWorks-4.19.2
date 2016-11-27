@@ -7,6 +7,7 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "IDetailCustomization.h"
+#include "LocalizationTargetTypes.h"
 
 class IDetailLayoutBuilder;
 class IPropertyHandle;

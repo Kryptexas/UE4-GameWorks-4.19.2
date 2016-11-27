@@ -14,13 +14,15 @@
 	#pragma warning(disable: 6340) // warning C6340: Mismatch on sign: 'const unsigned int' passed as _Param_(4) when some signed type is required in call to 'snprintf'.
 #endif
 
-#include "glslang/Include/ShHandle.h"
-#include "glslang/Include/revision.h"
-#include "glslang/Public/ShaderLang.h"
-#include "SPIRV/GlslangToSpv.h"
-#include "SPIRV/GLSL.std.450.h"
-#include "SPIRV/doc.h"
-#include "SPIRV/disassemble.h"
+THIRD_PARTY_INCLUDES_START
+	#include "glslang/Include/ShHandle.h"
+	#include "glslang/Include/revision.h"
+	#include "glslang/Public/ShaderLang.h"
+	#include "SPIRV/GlslangToSpv.h"
+	#include "SPIRV/GLSL.std.450.h"
+	#include "SPIRV/doc.h"
+	#include "SPIRV/disassemble.h"
+THIRD_PARTY_INCLUDES_END
 
 #if _MSC_VER >= 1800
 	#pragma warning(pop)
