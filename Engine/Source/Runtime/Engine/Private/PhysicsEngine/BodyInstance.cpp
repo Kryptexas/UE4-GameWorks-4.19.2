@@ -2718,6 +2718,12 @@ void FBodyInstance::ApplyWeldOnChildren()
 	
 }
 
+bool FBodyInstance::ShouldInstanceSimulatingPhysics() const
+{
+	return bSimulatePhysics && BodySetup.IsValid() && BodySetup->GetCollisionTraceFlag() != ECollisionTraceFlag::CTF_UseComplexAsSimple;
+}
+
+
 void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending)
 {
 	if (bSimulate)
@@ -4890,7 +4896,7 @@ void FBodyInstance::InitDynamicProperties_AssumesLocked()
 		}else
 		{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if (ShouldInstanceSimulatingPhysics())
+			if (bSimulatePhysics)
 			{
 				if(UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get())
 				{
@@ -5217,7 +5223,7 @@ void FBodyInstance::GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsBy
 		{
 			if (GetPxRigidActor_AssumesLocked()->is<PxRigidBody>())
 			{
-				if (!bSimulatePhysics)
+				if (!ShouldInstanceSimulatingPhysics())
 				{
 					ShapeData.SyncBodyFlags |= PxRigidBodyFlag::eKINEMATIC;
 					ShapeData.AsyncBodyFlags |= PxRigidBodyFlag::eKINEMATIC;
