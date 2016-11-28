@@ -4,6 +4,7 @@
 #include "Features/IModularFeatures.h"
 #include "IOculusRiftPlugin.h"
 #include "OculusRiftCommon.h"
+#include "OculusRiftHMD.h"
 
 #if OCULUS_INPUT_SUPPORTED_PLATFORMS
 
@@ -628,14 +629,48 @@ bool FOculusInput::GetControllerOrientationAndPosition( const int32 ControllerIn
 		{
 			if( (int32)DeviceHand >= 0 && (int32)DeviceHand < 2 )
 			{
-				const FOculusTouchControllerState& ControllerState = ControllerPair.ControllerStates[ (int32)DeviceHand ];
-
-				if( ControllerState.bIsCurrentlyTracked )
+				if (IsInGameThread())
 				{
-					OutOrientation = ControllerState.Orientation.Rotator();
-					OutPosition = ControllerState.Location;
+					const FOculusTouchControllerState& ControllerState = ControllerPair.ControllerStates[(int32)DeviceHand];
 
-					bHaveControllerData = true;
+					if (ControllerState.bIsCurrentlyTracked)
+					{
+						OutOrientation = ControllerState.Orientation.Rotator();
+						OutPosition = ControllerState.Location;
+
+						bHaveControllerData = true;
+					}
+				}
+				else
+				{
+					
+					if (GEngine->HMDDevice.IsValid() && (GEngine->HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift))
+					{
+						FOculusRiftHMD* OculusHMD = static_cast<FOculusRiftHMD*>(GEngine->HMDDevice.Get());
+						FCustomPresent* OculusCustomPresent = static_cast<FCustomPresent*>(OculusHMD->GetCustomPresent());
+						FViewExtension* ViewExtension = OculusCustomPresent->GetRenderContext();
+						if (ViewExtension)
+						{
+							FGameFrame* Frame = ViewExtension->GetRenderFrame();
+							if (Frame)
+							{
+								ovrTrackingState LateUpdateOvrTrackingState = Frame->RenderThreadTrackingState;
+								ovrPosef& InPose = LateUpdateOvrTrackingState.HandPoses[(int32)DeviceHand].ThePose;
+								FVector NewLocation;
+								FQuat NewOrientation;
+
+								NewOrientation = ToFQuat(InPose.Orientation);
+								float WTMS = Frame->WorldToMetersScaleWhileInFrame;
+								const FVector Pos = (ToFVector_M2U(OVR::Vector3f(InPose.Position), WTMS) - (Frame->Settings->BaseOffset * WTMS)) * Frame->CameraScale3D;
+								OutPosition = Frame->Settings->BaseOrientation.Inverse().RotateVector(Pos);
+
+								NewOrientation = Frame->Settings->BaseOrientation.Inverse() * NewOrientation;
+								NewOrientation.Normalize();
+								OutOrientation = NewOrientation.Rotator();
+
+							}
+						}
+					}
 				}
 			}
 
