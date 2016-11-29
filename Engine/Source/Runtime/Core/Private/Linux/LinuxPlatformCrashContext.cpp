@@ -22,6 +22,7 @@
 #include "Misc/EngineVersion.h"
 #include "HAL/PlatformMallocCrash.h"
 #include "Linux/LinuxPlatformRunnableThread.h"
+#include "ExceptionHandling.h"
 
 #include "HAL/ThreadHeartBeat.h"
 
@@ -475,7 +476,7 @@ void FLinuxCrashContext::GenerateCrashInfoAndLaunchReporter(bool bReportingNonCr
 		CrashReportClientArguments += TEXT(" ");
 
 		// Suppress the user input dialog if we're running in unattended mode
-		bool bNoDialog = FApp::IsUnattended() || IsRunningDedicatedServer();
+		bool bNoDialog = FApp::IsUnattended() || (!IsInteractiveEnsureMode() && bReportingNonCrash) || IsRunningDedicatedServer();
 		if (bNoDialog)
 		{
 			CrashReportClientArguments += TEXT(" -Unattended ");

@@ -29,6 +29,7 @@ CORE_API TCHAR MiniDumpFilenameW[1024] = TEXT("");
 
 
 volatile int32 GCrashType = 0;
+bool GEnsureShowsCRC = false;
 
 void ReportImageIntegrityStatus(const TCHAR* InMessage, const int32 InCode)
 {
@@ -86,4 +87,24 @@ void SetCrashType(ECrashType InCrashType)
 int32 GetCrashType()
 {
 	return GCrashType;
+}
+void ReportInteractiveEnsure(const TCHAR* InMessage)
+{
+	GEnsureShowsCRC = true;
+
+#if PLATFORM_DESKTOP
+	GLog->PanicFlushThreadedLogs();
+	// GErrorMessage here is very unfortunate but it's used internally by the crash context code.
+	FCString::Strcpy(GErrorMessage, ARRAY_COUNT(GErrorMessage), InMessage);
+	// Skip macros and FDebug, we always want this to fire
+	NewReportEnsure(InMessage);
+	GErrorMessage[0] = '\0';
+#endif
+
+	GEnsureShowsCRC = false;
+}
+
+bool IsInteractiveEnsureMode()
+{
+	return GEnsureShowsCRC;
 }

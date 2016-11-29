@@ -345,6 +345,14 @@ struct CORE_API FGenericPlatformProcess
 	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild = nullptr);
 
 	/**
+	 * Opens an existing process. 
+	 *
+	 * @param ProcessID				The process id of the process for which we want to obtain a handle.
+	 * @return The process handle for use in other process functions
+	 */
+	static FProcHandle OpenProcess(uint32 ProcessID);
+
+	/**
 	 * Returns true if the specified process is running 
 	 *
 	 * @param ProcessHandle handle returned from FPlatformProcess::CreateProc

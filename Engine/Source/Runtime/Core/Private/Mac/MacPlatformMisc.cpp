@@ -2389,7 +2389,16 @@ void FMacCrashContext::GenerateEnsureInfoAndLaunchReporter() const
 		const bool bIsEnsure = true;
 		GenerateInfoInFolder(TCHAR_TO_UTF8(*EnsureLogFolder), bIsEnsure);
 		
-		FString Arguments = FString::Printf(TEXT("\"%s/\" -Unattended"), *EnsureLogFolder);
+		FString Arguments;
+		if (IsInteractiveEnsureMode())
+		{
+			Arguments = FString::Printf(TEXT("\"%s/\""), *EnsureLogFolder);
+		}
+		else
+		{
+			Arguments = FString::Printf(TEXT("\"%s/\" -Unattended"), *EnsureLogFolder);
+		}
+
 		FString ReportClient = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("CrashReportClient"), EBuildConfigurations::Development));
 		FPlatformProcess::ExecProcess(*ReportClient, *Arguments, nullptr, nullptr, nullptr);
 	}

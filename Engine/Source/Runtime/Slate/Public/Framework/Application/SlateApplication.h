@@ -1430,6 +1430,17 @@ public:
 	*/
 	FDelegateHandle RegisterOnWindowActionNotification(const FOnWindowAction& Notification);
 
+
+	/** Event type for when Slate is ticking during a modal dialog loop */
+	DECLARE_EVENT_OneParam(FSlateApplication, FOnModalLoopTickEvent, float);
+
+	/**
+	 * Get the FOnModalLoopTickEvent for the Slate Application. Allows clients to register for callbacks during modal dialog loops.
+	 *
+	 * @return The application's FOnModalLoopTickEvent.
+	 */
+	FOnModalLoopTickEvent& GetOnModalLoopTickEvent() { return ModalLoopTickEvent; }
+
 	/**
 	* Unregister the notification because it is no longer desired.
 	*
@@ -1950,6 +1961,9 @@ private:
 
 	/** Delegate for post slate Tick */
 	FSlateTickEvent PostTickEvent;
+
+	/** Delegate for slate Tick during modal dialogs */
+	FOnModalLoopTickEvent ModalLoopTickEvent;
 
 	/** Critical section to avoid multiple threads calling Slate Tick when we're synchronizing between the Slate Loading Thread and the Game Thread. */
 	FCriticalSection SlateTickCriticalSection;

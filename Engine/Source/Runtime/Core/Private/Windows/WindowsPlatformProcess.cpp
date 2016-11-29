@@ -379,6 +379,11 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 	return FProcHandle(ProcInfo.hProcess);
 }
 
+FProcHandle FWindowsPlatformProcess::OpenProcess(uint32 ProcessID)
+{
+	return FProcHandle(::OpenProcess(PROCESS_ALL_ACCESS, 0, ProcessID));
+}
+
 bool FWindowsPlatformProcess::IsProcRunning( FProcHandle & ProcessHandle )
 {
 	bool bApplicationRunning = true;
@@ -1348,11 +1353,6 @@ bool FWindowsPlatformProcess::Daemonize()
 {
 	// TODO: implement
 	return true;
-}
-
-FProcHandle FWindowsPlatformProcess::OpenProcess(uint32 ProcessID)
-{
-	return FProcHandle(::OpenProcess(PROCESS_ALL_ACCESS, 0, ProcessID));
 }
 
 void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileName, const TArray<FString>& SearchPaths)

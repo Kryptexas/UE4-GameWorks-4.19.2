@@ -11,17 +11,24 @@
 #include "UserActivityTracking.h"
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
+#include "EngineBuildSettings.h"
+#include "SlateApplication.h"
+
 
 #define LOCTEXT_NAMESPACE "SessionManager"
+
+DEFINE_LOG_CATEGORY(LogEngineSessionManager);
 
 namespace SessionManagerDefs
 {
 	static const FTimespan SessionRecordExpiration(30, 0, 0, 0);	// 30 days
-	static const FTimespan SessionRecordTimeout(0, 30, 0);			// 30 minutes
+	static const FTimespan SessionRecordTimeout(0, 3, 0);			// 3 minutes
 	static const FTimespan GlobalLockWaitTimeout(0, 0, 0, 0, 500);	// 1/2 second
-	static const float HeartbeatPeriodSeconds(300.0f);				// 5 minutes
+	static const int HeartbeatPeriodSeconds(60);				// 1 minute
 	static const FString DefaultUserActivity(TEXT("Unknown"));
 	static const FString StoreId(TEXT("Epic Games"));
+	static const FString RunningSessionToken(TEXT("Running"));
+	static const FString ShutdownSessionToken(TEXT("Shutdown"));
 	static const FString CrashSessionToken(TEXT("Crashed"));
 	static const FString DebuggerSessionToken(TEXT("Debugger"));
 	static const FString AbnormalSessionToken(TEXT("AbnormalShutdown"));
@@ -29,14 +36,20 @@ namespace SessionManagerDefs
 	static const FString SessionRecordListSection(TEXT("List"));
 	static const FString EditorSessionRecordSectionPrefix(TEXT("Unreal Engine/Editor Sessions/"));
 	static const FString GameSessionRecordSectionPrefix(TEXT("Unreal Engine/Game Sessions/"));
+	static const FString WatchdogRecordSectionPrefix(TEXT("Unreal Engine/Watchdog/"));
 	static const FString SessionsVersionString(TEXT("1_3"));
+	static const FString WatchdogVersionString(TEXT("1_0"));
 	static const FString ModeStoreKey(TEXT("Mode"));
 	static const FString ProjectNameStoreKey(TEXT("ProjectName"));
+	static const FString CommandLineStoreKey(TEXT("CommandLine"));
 	static const FString CrashStoreKey(TEXT("IsCrash"));
 	static const FString DeactivatedStoreKey(TEXT("IsDeactivated"));
 	static const FString BackgroundStoreKey(TEXT("IsInBackground"));
 	static const FString EngineVersionStoreKey(TEXT("EngineVersion"));
 	static const FString TimestampStoreKey(TEXT("Timestamp"));
+	static const FString StartupTimeStoreKey(TEXT("StartupTimestamp"));
+	static const FString SessionIdStoreKey(TEXT("SessionId"));
+	static const FString StatusStoreKey(TEXT("LastExecutionState"));
 	static const FString DebuggerStoreKey(TEXT("IsDebugger"));
 	static const FString UserActivityStoreKey(TEXT("CurrentUserActivity"));
 	static const FString VanillaStoreKey(TEXT("IsVanilla"));
@@ -78,7 +91,8 @@ void FEngineSessionManager::Initialize()
 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.AddRaw(this, &FEngineSessionManager::OnAppForeground);
 	FUserActivityTracking::OnActivityChanged.AddRaw(this, &FEngineSessionManager::OnUserActivity);
 	FCoreDelegates::IsVanillaProductChanged.AddRaw(this, &FEngineSessionManager::OnVanillaStateChanged);
-
+	FSlateApplication::Get().GetOnModalLoopTickEvent().AddRaw(this, &FEngineSessionManager::Tick);
+	
 	const bool bFirstInitAttempt = true;
 	InitializeRecords(bFirstInitAttempt);
 }
@@ -99,6 +113,8 @@ void FEngineSessionManager::InitializeRecords(bool bFirstAttempt)
 		// Get list of sessions in storage
 		if (StoredValuesLock.IsValid() && BeginReadWriteRecords())
 		{
+			UE_LOG(LogEngineSessionManager, Verbose, TEXT("Initializing EngineSessionManager for abnormal shutdown tracking"));
+
 			TArray<FSessionRecord> SessionRecordsToDelete;
 
 			// Attempt check each stored session
@@ -137,6 +153,8 @@ void FEngineSessionManager::InitializeRecords(bool bFirstAttempt)
 			EndReadWriteRecords();
 
 			bInitializedRecords = true;
+
+			UE_LOG(LogEngineSessionManager, Log, TEXT("EngineSessionManager initialized"));
 		}
 	}
 
@@ -151,7 +169,7 @@ void FEngineSessionManager::Tick(float DeltaTime)
 {
 	HeartbeatTimeElapsed += DeltaTime;
 
-	if (HeartbeatTimeElapsed > SessionManagerDefs::HeartbeatPeriodSeconds && !bShutdown)
+	if (HeartbeatTimeElapsed > (float)SessionManagerDefs::HeartbeatPeriodSeconds && !bShutdown)
 	{
 		HeartbeatTimeElapsed = 0.0f;
 
@@ -168,6 +186,13 @@ void FEngineSessionManager::Tick(float DeltaTime)
 			CurrentSession.Timestamp = FDateTime::UtcNow();
 
 			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::TimestampStoreKey, TimestampToString(CurrentSession.Timestamp));
+
+#if PLATFORM_SUPPORTS_WATCHDOG
+			if (!WatchdogSectionName.IsEmpty())
+			{
+				FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::TimestampStoreKey, TimestampToString(CurrentSession.Timestamp));
+			}
+#endif
 		}
 	}
 }
@@ -180,6 +205,7 @@ void FEngineSessionManager::Shutdown()
 	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.RemoveAll(this);
 	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.RemoveAll(this);
 	FCoreDelegates::IsVanillaProductChanged.RemoveAll(this);
+	FSlateApplication::Get().GetOnModalLoopTickEvent().RemoveAll(this);
 
 	// Clear the session record for this session
 	if (bInitializedRecords)
@@ -196,6 +222,15 @@ void FEngineSessionManager::Shutdown()
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::BackgroundStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::UserActivityStoreKey);
 			FPlatformMisc::DeleteStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::VanillaStoreKey);
+
+#if PLATFORM_SUPPORTS_WATCHDOG
+			if (!WatchdogSectionName.IsEmpty())
+			{
+				FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::StatusStoreKey, SessionManagerDefs::ShutdownSessionToken);
+				FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::TimestampStoreKey, TimestampToString(FDateTime::UtcNow()));
+				WatchdogSectionName = FString();
+			}
+#endif
 		}
 
 		bInitializedRecords = false;
@@ -331,6 +366,7 @@ void FEngineSessionManager::DeleteStoredRecord(const FSessionRecord& Record)
  * @Trigger Fired only by the engine during startup, once for each "abnormal shutdown" detected that has not already been sent.
  *
  * @Type Static
+ * @Owner Chris.Wood
  *
  * @EventParam RunType - Editor or Game
  * @EventParam ProjectName - Project for the session that abnormally terminated. 
@@ -363,28 +399,23 @@ void FEngineSessionManager::DeleteStoredRecord(const FSessionRecord& Record)
  */
 void FEngineSessionManager::SendAbnormalShutdownReport(const FSessionRecord& Record)
 {
-#if PLATFORM_WINDOWS
-	const FString PlatformName(TEXT("Windows"));
-#elif PLATFORM_MAC
-	const FString PlatformName(TEXT("Mac"));
-#elif PLATFORM_LINUX
-	const FString PlatformName(TEXT("Linux"));
+	FString PlatformName(FPlatformProperties::PlatformName());
+
+#if PLATFORM_WINDOWS | PLATFORM_MAC | PLATFORM_LINUX
+	// do nothing
 #elif PLATFORM_PS4
-	const FString PlatformName(TEXT("PS4"));
 	if (Record.bIsDeactivated && !Record.bCrashed)
 	{
 		// Shutting down in deactivated state on PS4 is normal - don't report it
 		return;
 	}
 #elif PLATFORM_XBOXONE
-	const FString PlatformName(TEXT("XBoxOne"));
 	if (Record.bIsInBackground && !Record.bCrashed)
 	{
 		// Shutting down in background state on XB1 is normal - don't report it
 		return;
 	}
 #else
-	const FString PlatformName(TEXT("Unknown"));
 	return; // TODO: CWood: disabled on other platforms
 #endif
 
@@ -419,6 +450,8 @@ void FEngineSessionManager::SendAbnormalShutdownReport(const FSessionRecord& Rec
 	AbnormalShutdownAttributes.Add(FAnalyticsEventAttribute(TEXT("IsVanilla"), IsVanillaString));
 
 	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Engine.AbnormalShutdown"), AbnormalShutdownAttributes);
+
+	UE_LOG(LogEngineSessionManager, Log, TEXT("EngineSessionManager sent abnormal shutdown report. Type=%s, SessionId=%s"), *ShutdownTypeString, *SessionIdString);
 }
 
 void FEngineSessionManager::CreateAndWriteRecordForSession()
@@ -463,6 +496,15 @@ void FEngineSessionManager::CreateAndWriteRecordForSession()
 	FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::VanillaStoreKey, IsVanillaString);
 
 	SessionRecords.Add(CurrentSession);
+
+#if PLATFORM_SUPPORTS_WATCHDOG
+	bool bUseWatchdog = false;
+	GConfig->GetBool(TEXT("EngineSessionManager"), TEXT("UseWatchdogMTBF"), bUseWatchdog, GEngineIni);
+	if ((!CurrentSession.bIsDebugger && bUseWatchdog && !FParse::Param(FCommandLine::Get(), TEXT("NoWatchdog"))) || FParse::Param(FCommandLine::Get(), TEXT("ForceWatchdog")))
+	{
+		StartWatchdog(ModeString, CurrentSession.ProjectName, FPlatformProperties::PlatformName(), CurrentSession.SessionId, CurrentSession.EngineVersion);
+	}
+#endif
 }
 
 void FEngineSessionManager::OnCrashing()
@@ -471,6 +513,14 @@ void FEngineSessionManager::OnCrashing()
 	{
 		CurrentSession.bCrashed = true;
 		FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::CrashStoreKey, SessionManagerDefs::TrueValueString);
+
+#if PLATFORM_SUPPORTS_WATCHDOG
+		if (!WatchdogSectionName.IsEmpty())
+		{
+			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::StatusStoreKey, SessionManagerDefs::CrashSessionToken);
+			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::TimestampStoreKey, TimestampToString(FDateTime::UtcNow()));
+		}
+#endif
 	}
 }
 
@@ -541,6 +591,14 @@ void FEngineSessionManager::OnUserActivity(const FUserActivity& UserActivity)
 	{
 		CurrentSession.CurrentUserActivity = GetUserActivityString();
 		FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, CurrentSessionSectionName, SessionManagerDefs::UserActivityStoreKey, CurrentSession.CurrentUserActivity);
+
+#if PLATFORM_SUPPORTS_WATCHDOG
+		if (!WatchdogSectionName.IsEmpty())
+		{
+			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::UserActivityStoreKey, CurrentSession.CurrentUserActivity);
+			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::TimestampStoreKey, TimestampToString(FDateTime::UtcNow()));
+		}
+#endif
 	}
 }
 
@@ -555,5 +613,99 @@ FString FEngineSessionManager::GetUserActivityString() const
 
 	return UserActivity.ActionName;
 }
+
+#if PLATFORM_SUPPORTS_WATCHDOG
+
+/**
+ * @EventName Engine.StartWatchdog
+ *
+ * @Trigger Event raised by EngineSessionManager as part of MTBF tracking. Records an attempt to start the UnrealWatchdog process.
+ *
+ * @Type Static
+ * @Owner Chris.Wood
+ *
+ * @EventParam RunType - Editor or Game
+ * @EventParam ProjectName - Project for the session.
+ * @EventParam Platform - Windows, Mac, Linux
+ * @EventParam SessionId - Analytics SessionID of the session.
+ * @EventParam EngineVersion - EngineVersion of the session.
+ * @EventParam IsInternalBuild - internal Epic build environment or not? Calls FEngineBuildSettings::IsInternalBuild(). Value is Yes or No.
+ * @EventParam Outcome - Whether the watchdog was started successfully. One of Succeeded, CreateProcFailed or MissingBinaryFailed.
+ *
+ * @Comments Currently only runs Watchdog when MTBF is enabled, we aren't debugging, we're a DESKTOP platform and watchdog is specifically enabled via config or command line arg.
+ */
+void FEngineSessionManager::StartWatchdog(const FString& RunType, const FString& ProjectName, const FString& PlatformName, const FString& SessionId, const FString& EngineVersion)
+{
+	uint32 ProcessId =  FPlatformProcess::GetCurrentProcessId();
+	const int SuccessfulRtnCode = 0;	// hardcode this for now, zero might not always be correct
+
+	FString WatchdogClientArguments =
+		FString::Printf(TEXT("-PID=%u -RunType=%s -ProjectName=\"%s\" -Platform=%s -SessionId=%s -EngineVersion=%s -SuccessfulRtnCode=%d -HeartbeatSeconds=%d"), ProcessId, *RunType, *ProjectName, *PlatformName, *SessionId, *EngineVersion, SuccessfulRtnCode, SessionManagerDefs::HeartbeatPeriodSeconds);
+
+	if (FEngineBuildSettings::IsInternalBuild())
+	{
+		// Suppress the watchdog dialogs if this engine session should never show interactive UI
+		if (!FApp::IsUnattended() && !IsRunningDedicatedServer() && FApp::CanEverRender())
+		{
+			// Only show watchdog dialogs if it's set in config
+			bool bAllowWatchdogDialogs = false;
+			GConfig->GetBool(TEXT("EngineSessionManager"), TEXT("AllowWatchdogDialogs"), bAllowWatchdogDialogs, GEngineIni);
+
+			if (bAllowWatchdogDialogs)
+			{
+				WatchdogClientArguments.Append(TEXT(" -AllowDialogs"));
+			}
+		}
+	}
+
+	FString WatchdogPath = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("UnrealWatchdog"), EBuildConfigurations::Development));
+
+	TArray< FAnalyticsEventAttribute > WatchdogStartedAttributes;
+	WatchdogStartedAttributes.Add(FAnalyticsEventAttribute(TEXT("RunType"), RunType));
+	WatchdogStartedAttributes.Add(FAnalyticsEventAttribute(TEXT("ProjectName"), ProjectName));
+	WatchdogStartedAttributes.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformName));
+	WatchdogStartedAttributes.Add(FAnalyticsEventAttribute(TEXT("SessionId"), SessionId));
+	WatchdogStartedAttributes.Add(FAnalyticsEventAttribute(TEXT("IsInternalBuild"), FEngineBuildSettings::IsInternalBuild() ? TEXT("Yes") : TEXT("No")));
+
+	if (FPaths::FileExists(WatchdogPath))
+	{
+		FProcHandle WatchdogProcessHandle = FPlatformProcess::CreateProc(*WatchdogPath, *WatchdogClientArguments, true, true, false, NULL, 0, NULL, NULL);
+
+		if (WatchdogProcessHandle.IsValid())
+		{
+			FString WatchdogStartTimeString = TimestampToString(FDateTime::UtcNow());
+
+			WatchdogStartedAttributes.Add(FAnalyticsEventAttribute(TEXT("Outcome"), TEXT("Succeeded")));
+			UE_LOG(LogEngineSessionManager, Log, TEXT("Started UnrealWatchdog for process id %u"), ProcessId);
+
+			WatchdogSectionName = GetWatchdogStoreSectionString(ProcessId);
+
+			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::CommandLineStoreKey, FCommandLine::GetOriginalForLogging());
+			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::StartupTimeStoreKey, WatchdogStartTimeString);
+			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::TimestampStoreKey, WatchdogStartTimeString);
+			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::StatusStoreKey, SessionManagerDefs::RunningSessionToken);
+			FPlatformMisc::SetStoredValue(SessionManagerDefs::StoreId, WatchdogSectionName, SessionManagerDefs::UserActivityStoreKey, CurrentSession.CurrentUserActivity);
+		}
+		else
+		{
+			WatchdogStartedAttributes.Add(FAnalyticsEventAttribute(TEXT("Outcome"), TEXT("CreateProcFailed")));
+			UE_LOG(LogEngineSessionManager, Warning, TEXT("Unable to start UnrealWatchdog.exe. CreateProc failed."));
+		}
+	}
+	else
+	{
+		WatchdogStartedAttributes.Add(FAnalyticsEventAttribute(TEXT("Outcome"), TEXT("MissingBinaryFailed")));
+		UE_LOG(LogEngineSessionManager, Warning, TEXT("Unable to start UnrealWatchdog.exe. File not found."));
+	}
+
+	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Engine.StartWatchdog"), WatchdogStartedAttributes);
+}
+
+FString FEngineSessionManager::GetWatchdogStoreSectionString(uint32 InPID)
+{
+	return FString::Printf(TEXT("%s%s/%u"), *SessionManagerDefs::WatchdogRecordSectionPrefix, *SessionManagerDefs::WatchdogVersionString, InPID);
+}
+
+#endif // PLATFORM_SUPPORTS_WATCHDOG
 
 #undef LOCTEXT_NAMESPACE

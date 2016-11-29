@@ -206,6 +206,12 @@ FProcHandle FGenericPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 	return FProcHandle();
 }
 
+FProcHandle FGenericPlatformProcess::OpenProcess(uint32 ProcessID)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::OpenProcess not implemented on this platform"));
+	return FProcHandle();
+}
+
 bool FGenericPlatformProcess::IsProcRunning( FProcHandle & ProcessHandle )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::IsProcRunning not implemented on this platform"));

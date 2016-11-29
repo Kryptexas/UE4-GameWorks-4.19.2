@@ -2014,13 +2014,16 @@ void FSlateApplication::AddModalWindow( TSharedRef<SWindow> InSlateWindow, const
 				FPlatformProcess::Sleep(SleepTime);
 			}
 
+			const float DeltaTime = GetDeltaTime();
+
+			// Tick any other systems that need to update during modal dialogs
+			ModalLoopTickEvent.Broadcast(DeltaTime);
+
 			FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Tick");
 
 			{
 				SCOPE_CYCLE_COUNTER(STAT_SlateTickTime);
 				SLATE_CYCLE_COUNTER_SCOPE(GSlateTotalTickTime);
-
-				const float DeltaTime = GetDeltaTime();
 
 				// Tick and pump messages for the platform.
 				TickPlatform(DeltaTime);

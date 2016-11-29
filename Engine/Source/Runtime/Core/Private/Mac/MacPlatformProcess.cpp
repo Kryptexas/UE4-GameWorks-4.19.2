@@ -82,6 +82,7 @@ FString FMacPlatformProcess::GenerateApplicationPath( const FString& AppName, EB
 	}
 	else
 	{
+		// Try expected path of an executable inside an app package in Engine Binaries
 		FString ExecutablePath = FString::Printf(TEXT("../../../Engine/Binaries/%s/%s.app/Contents/MacOS/%s"), *PlatformName, *ExecutableName, *ExecutableName);
 			
 		NSString* LaunchPath = ExecutablePath.GetNSString();
@@ -92,18 +93,30 @@ FString FMacPlatformProcess::GenerateApplicationPath( const FString& AppName, EB
 		}
 		else
 		{
-			CFStringRef App = FPlatformString::TCHARToCFString(*ExecutableName);
-			NSWorkspace* Workspace = [NSWorkspace sharedWorkspace];
-			NSString* AppPath = [Workspace fullPathForApplication:(NSString*)App];
-			CFRelease(App);
-			if (AppPath)
+			// Next try expected path of a simple executable file in Engine Binaries
+			ExecutablePath = FString::Printf(TEXT("../../../Engine/Binaries/%s/%s"), *PlatformName, *ExecutableName);
+
+			LaunchPath = ExecutablePath.GetNSString();
+
+			if ([[NSFileManager defaultManager] fileExistsAtPath:LaunchPath])
 			{
-				ExecutablePath = FString::Printf(TEXT("%s/Contents/MacOS/%s"), *FString(AppPath), *ExecutableName);
 				return ExecutablePath;
 			}
 			else
 			{
-				return FString();
+				CFStringRef App = FPlatformString::TCHARToCFString(*ExecutableName);
+				NSWorkspace* Workspace = [NSWorkspace sharedWorkspace];
+				NSString* AppPath = [Workspace fullPathForApplication : (NSString*)App];
+				CFRelease(App);
+				if (AppPath)
+				{
+					ExecutablePath = FString::Printf(TEXT("%s/Contents/MacOS/%s"), *FString(AppPath), *ExecutableName);
+					return ExecutablePath;
+				}
+				else
+				{
+					return FString();
+				}
 			}
 		}
 	}
