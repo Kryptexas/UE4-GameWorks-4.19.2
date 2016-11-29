@@ -15,6 +15,12 @@
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
 #endif
 
+static TAutoConsoleVariable<int32> CVarUsePostInit(
+	TEXT("vr.SteamVR.UsePostInit"),
+	0,
+	TEXT("Apply late update after init views. This can improve performance, but may cause culling errors. 0 to disable (default), 1 to enable."),
+	ECVF_RenderThreadSafe);
+
 /** Helper function for acquiring the appropriate FSceneViewport */
 FSceneViewport* FindSceneViewport()
 {
@@ -1200,13 +1206,20 @@ void FSteamVRHMD::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHI
 	ApplyLateUpdate(ViewFamily.Scene, OldRelativeTransform, NewRelativeTransform);
 }
 
-void FSteamVRHMD::PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) {}
+void FSteamVRHMD::PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily)
+{
+	PreRenderViewFamily_RenderThread(RHICmdList, InViewFamily);
+}
 
-void FSteamVRHMD::PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}
+void FSteamVRHMD::PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
+{
+	PreRenderView_RenderThread(RHICmdList, InView);
+}
 
 bool FSteamVRHMD::UsePostInitView() const
 {
-	return false;
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.SteamVr.UsePostInit"));
+	return (CVar && CVar->GetValueOnAnyThread() != 0);
 }
 
 void FSteamVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, SViewport* ViewportWidget)

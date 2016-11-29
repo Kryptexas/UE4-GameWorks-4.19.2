@@ -570,14 +570,24 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Find the visible primitives.
 	bool bDoInitViewAftersPrepass = InitViews(RHICmdList, ILCTaskData, SortEvents);
 
-	for (int32 ViewExt = 0; ViewExt < ViewFamily.ViewExtensions.Num(); ++ViewExt)
+	if (ViewFamily.bHMDUsePostInit)
 	{
-		ViewFamily.ViewExtensions[ViewExt]->PostInitViewFamily_RenderThread(RHICmdList, ViewFamily);
-		for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
+		SCOPED_DRAW_EVENT(RHICmdList, ViewExtensionPostInitViews);
+
+		for (int32 ViewExt = 0; ViewExt < ViewFamily.ViewExtensions.Num(); ++ViewExt)
 		{
-			ViewFamily.ViewExtensions[ViewExt]->PostInitView_RenderThread(RHICmdList, Views[ViewIndex]);
+			SCOPED_DRAW_EVENT(RHICmdList, PostInitViewFamily);
+			ViewFamily.ViewExtensions[ViewExt]->PostInitViewFamily_RenderThread(RHICmdList, ViewFamily);
+			for (int32 ViewIndex = 0; ViewIndex < ViewFamily.Views.Num(); ++ViewIndex)
+			{
+				SCOPED_DRAW_EVENT(RHICmdList, PostInitView);
+				ViewFamily.ViewExtensions[ViewExt]->PostInitView_RenderThread(RHICmdList, Views[ViewIndex]);
+			}
 		}
 	}
+
+	TemporalSamplingSetup(RHICmdList);
+	InitViewsRHIResources(RHICmdList, bDitheredLODTransitionsUseStencil);
 
 	TGuardValue<bool> LockDrawLists(GDrawListsLocked, true);
 #if !UE_BUILD_SHIPPING

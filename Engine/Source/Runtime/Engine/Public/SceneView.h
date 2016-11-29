@@ -1246,6 +1246,9 @@ public:
 	/** if true then results of scene rendering are copied/resolved to the RenderTarget. */
 	bool bResolveScene;
 
+	/** If true, apply HMD late update after init views instead of before. */
+	bool bHMDUsePostInit;
+
 	/** 
 	 * Which component of the scene rendering should be output to the final render target.
 	 * If SCS_FinalColorLDR this indicates do nothing.
