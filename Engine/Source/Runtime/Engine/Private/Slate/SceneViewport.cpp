@@ -490,12 +490,13 @@ FReply FSceneViewport::AcquireFocusAndCapture(FIntPoint MousePosition)
 
 		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
 		bool bShouldShowMouseCursor = PC && PC->ShouldShowMouseCursor();
-		if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
+		
+		if (ViewportClient->HideCursorDuringCapture() && !bShouldShowMouseCursor)
 		{
 			bCursorHiddenDueToCapture = true;
 			MousePosBeforeHiddenDueToCapture = MousePosition;
 		}
-		if (bCursorHiddenDueToCapture || !bShouldShowMouseCursor)
+		if (bCursorHiddenDueToCapture || bShouldShowMouseCursor)
 		{
 			ReplyState.UseHighPrecisionMouseMovement(ViewportWidgetRef);
 		}
@@ -537,17 +538,8 @@ FReply FSceneViewport::OnMouseButtonUp( const FGeometry& InGeometry, const FPoin
 		}
 		bCursorVisible = ViewportClient->GetCursor(this, GetMouseX(), GetMouseY()) != EMouseCursor::None;
 
-		bool bShouldMouseBeVisible = false;
-
-		UWorld* World = ViewportClient->GetWorld();
-		if (World && World->IsGameWorld() && World->GetGameInstance())
-		{
-			APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
-			bShouldMouseBeVisible = PC && PC->ShouldShowMouseCursor();
-		}
-
 		bReleaseMouse = 
-			(bCursorVisible && !bShouldMouseBeVisible) || 
+			bCursorVisible || 
 			ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown ||
 			( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringRightMouseDown && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton );
 	}
