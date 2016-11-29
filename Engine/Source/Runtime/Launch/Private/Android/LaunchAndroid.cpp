@@ -304,23 +304,6 @@ int32 AndroidMain(struct android_app* state)
 
 	FAppEventManager::GetInstance()->SetEmptyQueueHandlerEvent(FPlatformProcess::GetSynchEventFromPool(false));
 
-#if PLATFORM_ANDROID_VULKAN
-	//@todo Ronin - is this needed now?
-	// wait for loadmap to complete if Vulkan on Android
-	if (FAndroidMisc::ShouldUseVulkan())
-	{
-		double startTime = FPlatformTime::Seconds();
-		double stopTime = startTime + 5.0f;
-		while (FPlatformTime::Seconds() < stopTime)
-		{
-			GEngineLoop.Tick();
-
-			float timeToSleep = 0.05f; //in seconds
-			sleep(timeToSleep);
-		}
-	}
-#endif
-
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("Messaging")))
 	{

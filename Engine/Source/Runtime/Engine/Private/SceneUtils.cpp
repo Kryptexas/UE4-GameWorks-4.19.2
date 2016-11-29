@@ -4,6 +4,8 @@
 #include "RHI.h"
 #include "SceneUtils.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogSceneUtils,All,All);
+
 #if HAS_GPU_STATS
 
 // Only exposed for debugging. Disabling this carries a severe performance penalty
@@ -18,6 +20,14 @@ static TAutoConsoleVariable<int> CVarGPUStatsEnabled(
 	TEXT("r.GPUStatsEnabled"),
 	1,
 	TEXT("Enables or disables GPU stat recording"));
+
+
+static TAutoConsoleVariable<int> CVarGPUStatsMaxQueriesPerFrame(
+	TEXT("r.GPUStatsMaxQueriesPerFrame"),
+	-1,
+	TEXT("Limits the number of timestamps allocated per frame. -1 = no limit"), 
+	ECVF_RenderThreadSafe);
+
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("[TOTAL]"), Stat_GPU_Total, STATGROUP_GPU);
 
@@ -125,28 +135,41 @@ public:
 		, bEndQueryInFlight(false)
 	{
 		StatName = InStatId.GetName();
-		StartQuery = RenderQueryPool->AllocateQuery();
-		EndQuery = RenderQueryPool->AllocateQuery();
+
+		const int MaxGPUQueries = CVarGPUStatsMaxQueriesPerFrame.GetValueOnRenderThread();
+		if ( MaxGPUQueries == -1 || RenderQueryPool->GetAllocatedQueryCount() < MaxGPUQueries )
+		{
+			StartQuery = RenderQueryPool->AllocateQuery();
+			EndQuery = RenderQueryPool->AllocateQuery();
+		}
+	}
+
+	bool HasQueriesAllocated() const 
+	{ 
+		return IsValidRef(StartQuery); 
 	}
 
 	void ReleaseQueries(FRenderQueryPool* RenderQueryPool, FRHICommandListImmediate* RHICmdListPtr)
 	{
-		if (RHICmdListPtr)
+		if ( HasQueriesAllocated() )
 		{
-			// If we have queries in flight then get results before releasing back to the pool to avoid an ensure fail in the gnm RHI
-			uint64 Temp;
-			if (bBeginQueryInFlight)
+			if (RHICmdListPtr)
 			{
-				RHICmdListPtr->GetRenderQueryResult(StartQuery, Temp, false);
-			}
+				// If we have queries in flight then get results before releasing back to the pool to avoid an ensure fail in the gnm RHI
+				uint64 Temp;
+				if (bBeginQueryInFlight)
+				{
+					RHICmdListPtr->GetRenderQueryResult(StartQuery, Temp, false);
+				}
 
-			if (bEndQueryInFlight)
-			{
-				RHICmdListPtr->GetRenderQueryResult(EndQuery, Temp, false);
+				if (bEndQueryInFlight)
+				{
+					RHICmdListPtr->GetRenderQueryResult(EndQuery, Temp, false);
+				}
 			}
+			RenderQueryPool->ReleaseQuery(StartQuery);
+			RenderQueryPool->ReleaseQuery(EndQuery);
 		}
-		RenderQueryPool->ReleaseQuery(StartQuery);
-		RenderQueryPool->ReleaseQuery(EndQuery);
 	}
 
 	void Begin(FRHICommandListImmediate& RHICmdList)
@@ -155,12 +178,14 @@ public:
 		check(!bInsideQuery);
 		bInsideQuery = true;
 
-		RHICmdList.EndRenderQuery(StartQuery);
+		if (IsValidRef(StartQuery))
+		{
+			RHICmdList.EndRenderQuery(StartQuery);
+			bBeginQueryInFlight = true;
+		}
 		StartResultMicroseconds = InvalidQueryResult;
 		EndResultMicroseconds = InvalidQueryResult;
 		FrameNumber = GFrameNumberRenderThread;
-
-		bBeginQueryInFlight = true;
 	}
 
 	void End(FRHICommandListImmediate& RHICmdList)
@@ -168,30 +193,41 @@ public:
 		check(IsInRenderingThread());
 		check(bInsideQuery);
 		bInsideQuery = false;
-		RHICmdList.EndRenderQuery(EndQuery);
 
-		bEndQueryInFlight = true;
+		if ( HasQueriesAllocated() )
+		{
+			RHICmdList.EndRenderQuery(EndQuery);
+			bEndQueryInFlight = true;
+		}
 	}
 
 	bool GatherQueryResults(FRHICommandListImmediate& RHICmdList)
 	{
 		// Get the query results which are still outstanding
 		check(GFrameNumberRenderThread != FrameNumber);
-		if (StartResultMicroseconds == InvalidQueryResult)
+		if ( HasQueriesAllocated() )
 		{
-			if (!RHICmdList.GetRenderQueryResult(StartQuery, StartResultMicroseconds, true))
+			if (StartResultMicroseconds == InvalidQueryResult)
 			{
-				StartResultMicroseconds = InvalidQueryResult;
+				if (!RHICmdList.GetRenderQueryResult(StartQuery, StartResultMicroseconds, true))
+				{
+					StartResultMicroseconds = InvalidQueryResult;
+				}
+				bBeginQueryInFlight = false;
 			}
-			bBeginQueryInFlight = false;
+			if (EndResultMicroseconds == InvalidQueryResult)
+			{
+				if (!RHICmdList.GetRenderQueryResult(EndQuery, EndResultMicroseconds, true))
+				{
+					EndResultMicroseconds = InvalidQueryResult;
+				}
+				bEndQueryInFlight = false;
+			}
 		}
-		if (EndResultMicroseconds == InvalidQueryResult)
+		else
 		{
-			if (!RHICmdList.GetRenderQueryResult(EndQuery, EndResultMicroseconds, true))
-			{
-				EndResultMicroseconds = InvalidQueryResult;
-			}
-			bEndQueryInFlight = false;
+			// If we don't have a query allocated, just set the results to zero
+			EndResultMicroseconds = StartResultMicroseconds = 0;
 		}
 		return HasValidResult();
 	}
@@ -302,6 +338,7 @@ public:
 	bool UpdateStats(FRHICommandListImmediate& RHICmdList)
 	{
 		// Gather any remaining results and check all the results are ready
+		bool bAllQueriesAllocated = true;
 		for (int Index = 0; Index < GpuProfilerEvents.Num(); Index++)
 		{
 			FRealtimeGPUProfilerEvent* Event = GpuProfilerEvents[Index];
@@ -315,6 +352,15 @@ public:
 				// The frame isn't ready yet. Don't update stats - we'll try again next frame. 
 				return false;
 			}
+			if (!Event->HasQueriesAllocated())
+			{
+				bAllQueriesAllocated = false;
+			}
+		}
+
+		if (!bAllQueriesAllocated)
+		{
+			UE_LOG(LogSceneUtils, Warning, TEXT("Ran out of GPU queries! Results for this frame will be incomplete"));
 		}
 
 		float TotalMS = 0.0f;
@@ -426,8 +472,8 @@ void FRealtimeGPUProfiler::EndFrame(FRHICommandListImmediate& RHICmdList)
 	{
 		// On a successful read, advance the ReadBufferIndex and WriteBufferIndex and clear the frame we just read
 		Frames[ReadBufferIndex]->Clear(&RHICmdList);
-	WriteFrameNumber = GFrameNumberRenderThread;
-	WriteBufferIndex = (WriteBufferIndex + 1) % Frames.Num();
+		WriteFrameNumber = GFrameNumberRenderThread;
+		WriteBufferIndex = (WriteBufferIndex + 1) % Frames.Num();
 		ReadBufferIndex = (ReadBufferIndex + 1) % Frames.Num();
 		bStatGatheringPaused = false;
 	}
@@ -510,11 +556,13 @@ FRenderQueryPool::~FRenderQueryPool()
 void FRenderQueryPool::Release()
 {
 	Queries.Empty();
+	NumQueriesAllocated = 0;
 }
 
 FRenderQueryRHIRef FRenderQueryPool::AllocateQuery()
 {
 	// Are we out of available render queries?
+	NumQueriesAllocated++;
 	if (Queries.Num() == 0)
 	{
 		// Create a new render query.
@@ -528,6 +576,7 @@ void FRenderQueryPool::ReleaseQuery(FRenderQueryRHIRef &Query)
 {
 	if (IsValidRef(Query))
 	{
+		NumQueriesAllocated--;
 #if RENDER_QUERY_POOLING_ENABLED
 		// Is no one else keeping a refcount to the query?
 		if (Query.GetRefCount() == 1)

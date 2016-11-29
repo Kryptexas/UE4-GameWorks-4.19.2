@@ -4,8 +4,9 @@
 	TiledDeferredLightShaders.usf: Implementation of tiled deferred shading
 =============================================================================*/
 
-#include "Common.usf"
+#define SUPPORT_CONTACT_SHADOWS 0
 
+#include "Common.usf"
 #include "DeferredLightingCommon.usf"
 
 #define THREADGROUP_TOTALSIZE (THREADGROUP_SIZEX * THREADGROUP_SIZEY)

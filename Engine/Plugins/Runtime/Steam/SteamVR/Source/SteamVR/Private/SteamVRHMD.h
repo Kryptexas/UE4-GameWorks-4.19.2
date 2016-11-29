@@ -133,6 +133,7 @@ public:
 	virtual void PreRenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
 	virtual void PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneViewFamily& InViewFamily) override;
 	virtual void PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
+	virtual bool UsePostInitView() const override;
 
 	// IStereoLayers interface
 	virtual uint32 CreateLayer(const FLayerDesc& InLayerDesc) override;
@@ -175,6 +176,7 @@ public:
 
 		virtual void OnBackBufferResize() override;
 		virtual bool Present(int& SyncInterval) override;
+		virtual void PostPresent() override;
 
 		virtual void BeginRendering() override;
 		void FinishRendering();

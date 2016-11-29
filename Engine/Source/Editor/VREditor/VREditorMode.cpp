@@ -131,7 +131,7 @@ void UVREditorMode::Shutdown()
 	GEnableVREditorHacks = false;
 }
 
-void UVREditorMode::Enter()
+void UVREditorMode::Enter(const bool bReenteringVREditing)
 {
 	bWantsToExitMode = false;
 	ExitType = EVREditorExitType::Normal;
@@ -304,8 +304,10 @@ void UVREditorMode::Enter()
 
 		if( bActuallyUsingVR )
 		{
-			GEngine->HMDDevice->EnableStereo( true );
-
+			if( !( GEngine->HMDDevice->IsStereoEnabled() ) || bReenteringVREditing )
+			{
+				GEngine->HMDDevice->EnableStereo( true );
+			}
 			// @todo vreditor: Force single eye, undistorted mirror for demos
 			const bool bIsVREditorDemo = FParse::Param( FCommandLine::Get(), TEXT( "VREditorDemo" ) );	// @todo vreditor: Remove this when no longer needed (console variable, too!)
 			if( bIsVREditorDemo && GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift )
@@ -378,11 +380,14 @@ void UVREditorMode::Enter()
 		SpawnAvatarMeshActor();
 	}
 
+	/** This will make sure this is not ticking after the editor has been closed. */
+	GEditor->OnEditorClose().AddUObject( this, &UVREditorMode::OnEditorClosed );
+
 	bFirstTick = true;
 	bIsActive = true;
 }
 
-void UVREditorMode::Exit()
+void UVREditorMode::Exit(const bool bHMDShouldExitStereo)
 {
 	{
 		//Destroy the avatar
@@ -393,7 +398,7 @@ void UVREditorMode::Exit()
 		}
 
 		{
-			if(GEngine->HMDDevice.IsValid())
+			if(GEngine->HMDDevice.IsValid() && bHMDShouldExitStereo)
 			{
 				// @todo vreditor switch: We don't want to do this if a VR PIE session is somehow active.  Is that even possible while immersive?
 				GEngine->HMDDevice->EnableStereo( false );
@@ -535,9 +540,20 @@ void UVREditorMode::Exit()
 		WorldInteraction->Activate( false );
 	}
 
+	GEditor->OnEditorClose().RemoveAll( this );
+
 	bWantsToExitMode = false;
 	bIsActive = false;
 	bFirstTick = false;
+}
+
+void UVREditorMode::OnEditorClosed()
+{
+	if( bIsActive )
+	{
+		Exit( false );
+		Shutdown();
+	}
 }
 
 void UVREditorMode::StartExitingVRMode( const EVREditorExitType InExitType /*= EVREditorExitType::To_Editor */ )

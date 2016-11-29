@@ -11,5 +11,5 @@
     <EndUserGroup>Git</EndUserGroup>
     <EndUserGroup>P4</EndUserGroup>
   </RedistributeTo>
-  <LicenseFolder>/Engine/Extras/ThirdPartyNotUE/emsdk/Emscripten_License.txt</LicenseFolder>
+  <LicenseFolder>/Engine/Extras/ThirdPartyNotUE/emsdk/Emscripten_License*</LicenseFolder>
 </TpsData>

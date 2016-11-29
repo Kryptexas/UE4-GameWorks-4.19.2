@@ -48,11 +48,7 @@ struct FSimpleDeferredLightData
 	bool bInverseSquared;
 };
 
-#ifdef THREADGROUP_SIZEX
 #define REFERENCE_QUALITY	0
-#else
-#define REFERENCE_QUALITY	0
-#endif
 
 #undef LIGHT_SOURCE_SHAPE
 #define LIGHT_SOURCE_SHAPE 1
@@ -346,6 +342,10 @@ float ShadowRayCast(
 	return 1 - Shadow;
 }
 
+#ifndef SUPPORT_CONTACT_SHADOWS
+#error "Must set SUPPORT_CONTACT_SHADOWS"
+#endif
+
 /** Calculates lighting for a given position, normal, etc with a fully featured lighting model designed for quality. */
 float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferData GBuffer, float AmbientOcclusion, uint ShadingModelID, FDeferredLightData LightData, float4 LightAttenuation, uint2 Random)
 {
@@ -470,7 +470,7 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferDat
 			// Commented out because it reduces character shading quality.
 			//SurfaceShadow *= saturate(dot(N, L) * 6 - 0.2);
 
-#ifndef THREADGROUP_SIZEX
+#if SUPPORT_CONTACT_SHADOWS
 			BRANCH
 			if( LightData.ShadowedBits > 1 && LightData.ContactShadowLength > 0 )
 			{
@@ -488,7 +488,7 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, FGBufferDat
 			SurfaceShadow = AmbientOcclusion;
 		}
 
-#ifndef THREADGROUP_SIZEX
+#if SUPPORT_CONTACT_SHADOWS
 		BRANCH
 		if( LightData.ShadowedBits < 2 && GBuffer.ShadingModelID == SHADINGMODELID_HAIR )
 		{

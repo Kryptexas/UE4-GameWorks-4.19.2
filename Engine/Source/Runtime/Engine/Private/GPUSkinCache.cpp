@@ -53,7 +53,7 @@ static FAutoConsoleVariableRef CVarGSkinCacheSafety(
 int32 GEnableGPUSkinCache = 1;
 static TAutoConsoleVariable<int32> CVarEnableGPUSkinCache(
 	TEXT("r.SkinCache.Mode"),
-	0,
+	1,
 	TEXT("Whether or not to use the GPU compute skinning cache.\n")
 	TEXT("This will perform skinning on a compute job and not skin on the vertex shader.\n")
 	TEXT("Requires r.SkinCache.CompileShaders=1\n")
@@ -65,10 +65,10 @@ static TAutoConsoleVariable<int32> CVarEnableGPUSkinCache(
 TAutoConsoleVariable<int32> CVarGPUSkinCacheRecomputeTangents(
 	TEXT("r.SkinCache.RecomputeTangents"),
 	2,
-	TEXT("If r.SkinCache.Mode is enabled this option recomputes the vertex tangents on the GPU\n")
-	TEXT("Can be changed at runtime, Requires r.SkinCache.CompileShaders=1 and r.SkinCache.Mode=1\n")
+	TEXT("This option enables recomputing the vertex tangents on the GPU.\n")
+	TEXT("Can be changed at runtime, requires both r.SkinCache.CompileShaders=1 and r.SkinCache.Mode=1\n")
 	TEXT(" 0: off\n")
-	TEXT(" 1: on\n")
+	TEXT(" 1: on, forces all skinned object to recompute tangents\n")
 	TEXT(" 2: on, SkinCache only objects that would require the RecomputTangents feature (default)"),
 	ECVF_RenderThreadSafe
 	);

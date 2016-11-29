@@ -4194,7 +4194,7 @@ namespace UnrealBuildTool
 			SetUpConfigurationEnvironment();
 			SetUpProjectEnvironment(Configuration);
 
-			if (UEBuildConfiguration.bEventDrivenLoader && !UnrealBuildTool.IsEngineInstalled())
+			if (UEBuildConfiguration.bEventDrivenLoader && !bUseSharedBuildEnvironment)
 			{
 				GlobalCompileEnvironment.Config.Definitions.Add("USE_NEW_ASYNC_IO=1");
 			}

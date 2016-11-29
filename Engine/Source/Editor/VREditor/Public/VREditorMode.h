@@ -80,10 +80,10 @@ public:
 	void Shutdown();
 
 	/** When the user actually enters the VR Editor mode */
-	void Enter();
+	void Enter(const bool bReenteringVREditing);
 
 	/** When the user leaves the VR Editor mode */
-	void Exit();
+	void Exit(const bool bHMDShouldExitStereo);
 
 	/** Tick before the ViewportWorldInteraction is ticked */
 	void PreTick( const float DeltaTime );
@@ -274,6 +274,10 @@ public:
 	const FSavedEditorState& GetSavedEditorState() const;
 
 private:
+
+	/** Called when the editor is closed */
+	void OnEditorClosed();
+
 	//Handles closing the VR mode by escape key
 	void InputKey(const FEditorViewportClient& InViewportClient, const FKey InKey, const EInputEvent InEvent, bool& bOutWasHandled);
 

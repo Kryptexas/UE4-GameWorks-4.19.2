@@ -90,9 +90,11 @@ bool UViewportInteractor::HandleInputKey( const FKey Key, const EInputEvent Even
 		// Give subsystems a chance to handle actions for this interactor
 		WorldInteraction->OnViewportInteractionInputAction().Broadcast( *WorldInteraction->GetViewportClient(), this, *Action, Action->bIsInputCaptured, bHandled );
 
-		// Give the derived classes a chance to update according to the input
-		HandleInputKey( *Action, Key, Event, bHandled );
-
+		if(!bHandled)
+		{
+			// Give the derived classes a chance to update according to the input
+			HandleInputKey( *Action, Key, Event, bHandled );
+		}
 		// Start checking on default action implementation
 		if ( !bHandled )
 		{

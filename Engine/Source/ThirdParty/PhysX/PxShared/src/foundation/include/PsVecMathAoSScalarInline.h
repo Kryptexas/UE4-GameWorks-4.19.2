@@ -479,7 +479,7 @@ PX_FORCE_INLINE PxU32 FAllEq(const FloatV a, const FloatV b)
 
 PX_FORCE_INLINE FloatV FRound(const FloatV a)
 {
-	return floor(a.x + 0.5f);
+	return floatFloor(a.x + 0.5f);
 }
 
 PX_FORCE_INLINE FloatV FSin(const FloatV a)
@@ -816,7 +816,7 @@ PX_FORCE_INLINE PxU32 V3AllEq(const Vec3V a, const Vec3V b)
 
 PX_FORCE_INLINE Vec3V V3Round(const Vec3V a)
 {
-	return Vec3V(floor(a.x + 0.5f), floor(a.y + 0.5f), floor(a.z + 0.5f));
+	return Vec3V(floatFloor(a.x + 0.5f), floatFloor(a.y + 0.5f), floatFloor(a.z + 0.5f));
 }
 
 PX_FORCE_INLINE Vec3V V3Sin(const Vec3V a)
@@ -1271,7 +1271,7 @@ PX_FORCE_INLINE Vec4V V4Clamp(const Vec4V a, const Vec4V minV, const Vec4V maxV)
 
 PX_FORCE_INLINE Vec4V V4Round(const Vec4V a)
 {
-	return Vec4V(floor(a.x + 0.5f), floor(a.y + 0.5f), floor(a.z + 0.5f), floor(a.w + 0.5f));
+	return Vec4V(floatFloor(a.x + 0.5f), floatFloor(a.y + 0.5f), floatFloor(a.z + 0.5f), floatFloor(a.w + 0.5f));
 }
 
 PX_FORCE_INLINE Vec4V V4Sin(const Vec4V a)

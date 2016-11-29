@@ -50,12 +50,6 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		AllocatorToUse = EMemoryAllocatorToUse::Binned;
 	}
 	
-	// Prefer jemalloc as it consistently saves ~20% RES usage in my (RCL) tests (editor only)
-	if (PLATFORM_SUPPORTS_JEMALLOC && WITH_EDITOR)
-	{
-		AllocatorToUse = EMemoryAllocatorToUse::Jemalloc;
-	}
-
 	if (FORCE_ANSI_ALLOCATOR)
 	{
 		AllocatorToUse = EMemoryAllocatorToUse::Ansi;

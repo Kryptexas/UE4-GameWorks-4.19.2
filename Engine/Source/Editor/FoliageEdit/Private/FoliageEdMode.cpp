@@ -442,29 +442,36 @@ void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UVie
 		UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
 		if (VREditorMode != nullptr && VREditorMode->IsFullyInitialized())
 		{
-			// Grab interactor
-			for (UViewportInteractor* ViewportInteractor : VREditorMode->GetWorldInteraction().GetInteractors())
+			// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
+			if (FoliageInteractor && FoliageInteractor->IsHoveringOverPriorityType())
 			{
-				// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
-				const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(ViewportInteractor);
-				if (VRInteractor->IsHoveringOverPriorityType())
-				{
-					EndFoliageBrushTrace();
-				}
+				EndFoliageBrushTrace();
+				FoliageInteractor = nullptr;
+			}
+			// If there isn't currently a foliage interactor and we are hovering over something valid
+			else if (FoliageInteractor == nullptr && Interactor->GetHitResultFromLaserPointer().GetActor() != nullptr)
+			{
+				FoliageInteractor = Interactor;
+			}
+			// If we aren't hovering over something valid and the tool isn't active
+			else if (Interactor->GetHitResultFromLaserPointer().GetActor() == nullptr && !bToolActive)
+			{
+				FoliageInteractor = nullptr;
+			}
 
-				// Skip other interactors if we are painting with one
-				if (ViewportInteractor && ViewportInteractor == FoliageInteractor)
+			// Skip other interactors if we are painting with one
+			if (FoliageInteractor && Interactor == FoliageInteractor)
+			{
+				// Go ahead and paint immediately
+				FVector LaserPointerStart, LaserPointerEnd;
+				if (FoliageInteractor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 				{
-					// Go ahead and paint immediately
-					FVector LaserPointerStart, LaserPointerEnd;
-					if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
-					{
-						const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
+					const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
 
-						FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
-					}
+					FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
 				}
 			}
+			
 		}
 	}
 }
@@ -475,16 +482,17 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 	if (VREditorMode != nullptr && Interactor != nullptr)
 	{
 		const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-		FoliageInteractor = Interactor;
 
-		// Consume both full press and light press
-		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed || Action.ActionType == ViewportWorldActionTypes::SelectAndMove)
+		// Only allow light press
+		Interactor->SetAllowTriggerFullPress(false);
+		// Consume light press
+		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed)
 		{
 			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
 			{
 				// Go ahead and paint immediately
 				FVector LaserPointerStart, LaserPointerEnd;
-				if (FoliageInteractor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+				if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 				{
 					const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
 					BrushTraceDirection = LaserPointerDirection;
@@ -501,7 +509,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 						// Fill a static mesh with foliage brush
 						else if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
 						{
-							FHitResult HitResult = FoliageInteractor->GetHitResultFromLaserPointer();
+							FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
 
 							if (HitResult.Actor.Get() != nullptr)
 							{
@@ -522,7 +530,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 						// Select an instanced foliage
 						else if (UISettings.GetSelectToolSelected())
 						{
-							FHitResult HitResult = FoliageInteractor->GetHitResultFromLaserPointer();
+							FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
 
 							GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
 
@@ -551,6 +559,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 			else if (Action.Event == IE_Released && FoliageInteractor && FoliageInteractor == Interactor)
 			{
 				EndFoliageBrushTrace();
+				FoliageInteractor = nullptr;
 			}
 		}
 	}
@@ -732,37 +741,6 @@ void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime
 			SphereBrushComponent->UnregisterComponent();
 		}
 	}
-
-	// Check if VR Editor is active
-	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient->GetWorld())->GetVREditorMode();
-	if (VREditorMode->IsActive())
-	{
-			// Grab interactor
-			for (UViewportInteractor* Interactor : VREditorMode->GetWorldInteraction().GetInteractors())
-			{
-				// Skip other interactors if we are painting with one
-				if (Interactor && Interactor == FoliageInteractor)
-				{
-					// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
-					const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-					if (VRInteractor->IsHoveringOverPriorityType())
-					{
-						EndFoliageBrushTrace();
-					}
-					else if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
-					{
-						// Go ahead and paint immediately
-						FVector LaserPointerStart, LaserPointerEnd;
-						if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
-						{
-							const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
-
-							FoliageBrushTrace(ViewportClient, LaserPointerStart, LaserPointerDirection);
-						}
-					}
-				}
-			}
-	}
 }
 
 void FEdModeFoliage::StartFoliageBrushTrace(FEditorViewportClient* ViewportClient, class UViewportInteractor* Interactor)
@@ -770,6 +748,10 @@ void FEdModeFoliage::StartFoliageBrushTrace(FEditorViewportClient* ViewportClien
 	if (!bToolActive)
 	{
 		GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
+		if (Interactor)
+		{
+			FoliageInteractor = Interactor;
+		}
 		PreApplyBrush();
 		ApplyBrush(ViewportClient);
 		bToolActive = true;

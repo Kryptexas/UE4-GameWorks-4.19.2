@@ -3949,7 +3949,7 @@ void FSequencer::ActivateSequencerEditorMode()
 	GLevelEditorModeTools().ActivateMode( FSequencerEdMode::EM_SequencerMode );
 
 	FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
-	SequencerEdMode->SetSequencer(ActiveSequencerPtr.Pin().Get());
+	SequencerEdMode->SetSequencer(ActiveSequencerPtr);
 }
 
 

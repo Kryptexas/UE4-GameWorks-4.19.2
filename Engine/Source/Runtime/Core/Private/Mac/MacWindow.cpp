@@ -541,7 +541,8 @@ bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 
 		if (WindowHandle->bIsOnActiveSpace)
 		{
-			NSPoint CursorPoint = NSMakePoint(X, WindowFrame.size.height - (Y + 1));
+			const float DPIScaleFactor = GetDPIScaleFactor();
+			NSPoint CursorPoint = NSMakePoint(X / DPIScaleFactor, WindowFrame.size.height - (Y / DPIScaleFactor + 1));
 			PointInWindow = (NSPointInRect(CursorPoint, VisibleFrame) == YES);
 		}
 	}

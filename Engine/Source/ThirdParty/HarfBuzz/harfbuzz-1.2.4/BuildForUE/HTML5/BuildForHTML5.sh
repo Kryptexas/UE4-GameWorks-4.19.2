@@ -32,7 +32,6 @@ build_via_cmake()
 	mkdir BUILD$SUFFIX
 	cd BUILD$SUFFIX
 	# ----------------------------------------
-	TYPE=${type^^}
 	if [ $TYPE == "DEBUG" ]; then
 		DBGFLAG=_DEBUG
 	else

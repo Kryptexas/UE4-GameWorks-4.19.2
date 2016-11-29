@@ -1204,6 +1204,11 @@ void FSteamVRHMD::PostInitViewFamily_RenderThread(FRHICommandListImmediate& RHIC
 
 void FSteamVRHMD::PostInitView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) {}
 
+bool FSteamVRHMD::UsePostInitView() const
+{
+	return false;
+}
+
 void FSteamVRHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, SViewport* ViewportWidget)
 {
 	check(IsInGameThread());

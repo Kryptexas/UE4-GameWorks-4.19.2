@@ -10,8 +10,7 @@
 
 const FEditorModeID FSequencerEdMode::EM_SequencerMode(TEXT("EM_SequencerMode"));
 
-FSequencerEdMode::FSequencerEdMode() :
-	Sequencer(nullptr)
+FSequencerEdMode::FSequencerEdMode()
 {
 	FSequencerEdModeTool* SequencerEdModeTool = new FSequencerEdModeTool(this);
 
@@ -30,7 +29,7 @@ void FSequencerEdMode::Enter()
 
 void FSequencerEdMode::Exit()
 {
-	Sequencer = NULL;
+	SequencerPtr.Reset();
 
 	FEdMode::Exit();
 }
@@ -43,7 +42,9 @@ bool FSequencerEdMode::IsCompatibleWith(FEditorModeID OtherModeID) const
 
 bool FSequencerEdMode::InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
 {
-	if (Sequencer == nullptr)
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+
+	if (!Sequencer.IsValid())
 	{
 		return false;
 	}
@@ -63,7 +64,9 @@ bool FSequencerEdMode::InputKey( FEditorViewportClient* ViewportClient, FViewpor
 
 void FSequencerEdMode::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
 {
-	if (Sequencer == nullptr)
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+
+	if (!Sequencer.IsValid())
 	{
 		return;
 	}
@@ -98,6 +101,13 @@ void FSequencerEdMode::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* 
 
 void FSequencerEdMode::OnKeySelected(FViewport* Viewport, HMovieSceneKeyProxy* KeyProxy)
 {
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+
+	if (!Sequencer.IsValid())
+	{
+		return;
+	}
+
 	bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
 	bool bAltDown = Viewport->KeyState(EKeys::LeftAlt) || Viewport->KeyState(EKeys::RightAlt);
 	bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
@@ -370,6 +380,13 @@ void FSequencerEdMode::DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterf
 
 	// Map between object binding nodes and selection
 	TMap<TSharedRef<FSequencerDisplayNode>, bool > ObjectBindingNodesSelectionMap;
+
+	TSharedPtr<FSequencer> Sequencer = SequencerPtr.Pin();
+
+	if (!Sequencer.IsValid())
+	{
+		return;
+	}
 
 	for (auto ObjectBinding : Sequencer->GetNodeTree()->GetObjectBindingMap() )
 	{
