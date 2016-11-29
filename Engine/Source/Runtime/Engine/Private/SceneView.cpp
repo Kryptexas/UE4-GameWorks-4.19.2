@@ -2239,7 +2239,6 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 	bResolveScene(CVS.bResolveScene),
 	SceneCaptureSource(SCS_FinalColorLDR),
 	SceneCaptureCompositeMode(SCCM_Overwrite),
-	bHMDUsePostInit(false),
 	bWorldIsPaused(false),
 	GammaCorrection(CVS.GammaCorrection)
 {
@@ -2288,15 +2287,6 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 	bDrawBaseInfo = true;
 	bNullifyWorldSpacePosition = false;
 #endif
-
-	if (GEngine &&
-		GEngine->HMDDevice.IsValid() &&
-		GEngine->HMDDevice->IsStereoEnabled() &&
-		GEngine->HMDDevice->GetViewExtension().IsValid() &&
-		GEngine->HMDDevice->GetViewExtension()->UsePostInitView())
-	{
-		bHMDUsePostInit = true;
-	}
 }
 
 void FSceneViewFamily::ComputeFamilySize()

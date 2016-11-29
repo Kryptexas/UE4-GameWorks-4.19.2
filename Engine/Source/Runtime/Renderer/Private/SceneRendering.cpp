@@ -23,6 +23,9 @@
 #include "ComponentRecreateRenderStateContext.h"
 #include "PostProcessSubsurface.h"
 
+// For UsePostInitView
+#include "IHeadMountedDisplay.h"
+
 /*-----------------------------------------------------------------------------
 	Globals
 -----------------------------------------------------------------------------*/
@@ -1590,7 +1593,13 @@ static void ViewExtensionPreRender_RenderThread(FRHICommandListImmediate& RHICmd
 	// update any resources that needed a deferred update
 	FDeferredUpdateResource::UpdateResources(RHICmdList);
 
-	if (!SceneRenderer->ViewFamily.bHMDUsePostInit)
+	const bool bHMDUsePostInit = GEngine &&
+		GEngine->HMDDevice.IsValid() &&
+		GEngine->HMDDevice->IsStereoEnabled() &&
+		GEngine->HMDDevice->GetViewExtension().IsValid() &&
+		GEngine->HMDDevice->GetViewExtension()->UsePostInitView();
+
+	if (!bHMDUsePostInit)
 	{
 		for (int ViewExt = 0; ViewExt < SceneRenderer->ViewFamily.ViewExtensions.Num(); ViewExt++)
 		{

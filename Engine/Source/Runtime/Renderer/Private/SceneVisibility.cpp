@@ -12,6 +12,10 @@
 #include "PostProcessing.h"
 #include "PlanarReflectionSceneProxy.h"
 
+// For UsePostInitView
+#include "IHeadMountedDisplay.h"
+#include "SceneViewExtension.h"
+
 /*------------------------------------------------------------------------------
 	Globals
 ------------------------------------------------------------------------------*/
@@ -2873,7 +2877,13 @@ bool FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		SortBasePassStaticData(AverageViewPosition);
 	}
 
-	bool bDoInitViewAftersPrepass = !!GDoInitViewsLightingAfterPrepass && !ViewFamily.bHMDUsePostInit;
+	const bool bHMDUsePostInit = GEngine &&
+		GEngine->HMDDevice.IsValid() &&
+		GEngine->HMDDevice->IsStereoEnabled() &&
+		GEngine->HMDDevice->GetViewExtension().IsValid() &&
+		GEngine->HMDDevice->GetViewExtension()->UsePostInitView();
+
+	bool bDoInitViewAftersPrepass = !!GDoInitViewsLightingAfterPrepass && !bHMDUsePostInit;
 
 	if (!bDoInitViewAftersPrepass)
 	{

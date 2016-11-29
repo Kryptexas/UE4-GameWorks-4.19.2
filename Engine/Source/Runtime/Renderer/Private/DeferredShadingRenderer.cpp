@@ -570,7 +570,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Find the visible primitives.
 	bool bDoInitViewAftersPrepass = InitViews(RHICmdList, ILCTaskData, SortEvents);
 
-	if (ViewFamily.bHMDUsePostInit)
+	if (GEngine &&
+		GEngine->HMDDevice.IsValid() &&
+		GEngine->HMDDevice->IsStereoEnabled() &&
+		GEngine->HMDDevice->GetViewExtension().IsValid() &&
+		GEngine->HMDDevice->GetViewExtension()->UsePostInitView())
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ViewExtensionPostInitViews);
 
