@@ -48,7 +48,7 @@ void UEnvQueryGenerator_SimpleGrid::GenerateItems(FEnvQueryInstance& QueryInstan
 
 FText UEnvQueryGenerator_SimpleGrid::GetDescriptionTitle() const
 {
-	return FText::Format(LOCTEXT("DescriptionGenerateAroundContext", "{0}: generate around {1}"),
+	return FText::Format(LOCTEXT("SimpleGridDescriptionGenerateAroundContext", "{0}: generate around {1}"),
 		Super::GetDescriptionTitle(), UEnvQueryTypes::DescribeContext(GenerateAround));
 };
 

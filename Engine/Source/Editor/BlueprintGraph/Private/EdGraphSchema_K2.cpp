@@ -3503,7 +3503,7 @@ FText UEdGraphSchema_K2::TypeToText(UProperty* const Property)
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("SetType"), TypeToText(Set->ElementProp));
-			return FText::Format(LOCTEXT("ArrayPropertyText", "Set of {SetType}"), Args);
+			return FText::Format(LOCTEXT("SetPropertyText", "Set of {SetType}"), Args);
 		}
 	}
 	else if (UMapProperty* Map = Cast<UMapProperty>(Property))
@@ -3513,7 +3513,7 @@ FText UEdGraphSchema_K2::TypeToText(UProperty* const Property)
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("MapKeyType"), TypeToText(Map->KeyProp));
 			Args.Add(TEXT("MapValueType"), TypeToText(Map->ValueProp));
-			return FText::Format(LOCTEXT("ArrayPropertyText", "Map of {MapKeyType} to {MapValueType}"), Args);
+			return FText::Format(LOCTEXT("MapPropertyText", "Map of {MapKeyType} to {MapValueType}"), Args);
 		}
 	}
 	

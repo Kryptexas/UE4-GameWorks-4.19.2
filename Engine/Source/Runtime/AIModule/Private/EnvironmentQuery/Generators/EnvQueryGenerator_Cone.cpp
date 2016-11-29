@@ -84,7 +84,7 @@ void UEnvQueryGenerator_Cone::GenerateItems(FEnvQueryInstance& QueryInstance) co
 
 FText UEnvQueryGenerator_Cone::GetDescriptionTitle() const
 {
-	return FText::Format(LOCTEXT("DescriptionGenerateAroundContext", "{0}: generate in front of {1}"),
+	return FText::Format(LOCTEXT("ConeDescriptionGenerateAroundContext", "{0}: generate in front of {1}"),
 		Super::GetDescriptionTitle(), UEnvQueryTypes::DescribeContext(CenterActor));
 }
 

@@ -176,7 +176,7 @@ TSharedPtr<SWidget> FAssetTypeActions_ForceFeedbackEffect::GetThumbnailOverlay(c
 			return LOCTEXT("Thumbnail_StopForceFeedbackToolTip", "Stop selected force feedback effect");
 		}
 
-		return LOCTEXT("Thumbnail_PlaySoundToolTip", "Play selected force feedback effect");
+		return LOCTEXT("Thumbnail_PlayForceFeedbackToolTip", "Play selected force feedback effect");
 	};
 
 	return SNew(SBox)

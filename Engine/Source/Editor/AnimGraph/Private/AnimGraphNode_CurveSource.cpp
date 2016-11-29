@@ -18,7 +18,7 @@ FText UAnimGraphNode_CurveSource::GetNodeTitle(ENodeTitleType::Type TitleType) c
 {
 	if (TitleType != ENodeTitleType::MenuTitle && Node.SourceBinding != NAME_None)
 	{
-		return FText::Format(LOCTEXT("AnimGraphNode_CurveSource_Title", "Curve Source: {0}"), FText::FromName(Node.SourceBinding));
+		return FText::Format(LOCTEXT("AnimGraphNode_CurveSource_Title_Fmt", "Curve Source: {0}"), FText::FromName(Node.SourceBinding));
 	}
 	else
 	{
