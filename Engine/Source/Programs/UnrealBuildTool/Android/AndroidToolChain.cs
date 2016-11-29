@@ -227,7 +227,7 @@ namespace UnrealBuildTool
 							 select Arch + GPUArch).ToList();
 		}
 
-		static public string GetGLESVersionFromGPUArch(string GPUArch)
+		static public string GetGLESVersionFromGPUArch(string GPUArch, bool bES30Minimum)
 		{
 			GPUArch = GPUArch.Substring(1); // drop the '-' from the start
 			string GLESversion = "";
@@ -242,6 +242,10 @@ namespace UnrealBuildTool
 				default:
 					GLESversion = "0x00020000";
 					break;
+			}
+			if (bES30Minimum && (GLESversion[6] < '3'))
+			{
+				GLESversion = "0x00030000";
 			}
 
 			return GLESversion;
