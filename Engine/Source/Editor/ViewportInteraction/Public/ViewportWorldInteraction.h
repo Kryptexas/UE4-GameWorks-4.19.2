@@ -364,6 +364,9 @@ private:
 	/** Spawns the grid actor */
 	void SpawnGridMeshActor();
 
+	/** Average location of all the current transformables */
+	FVector CalculateAverageLocationOfTransformables();
+
 	//
 	// Colors
 	//

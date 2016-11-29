@@ -2148,8 +2148,7 @@ void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Intera
 		const bool bHaveLaserPointer = Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd );
 		if ( bHaveLaserPointer )
 		{
-			AActor* Actor = ClickedComponent->GetOwner();
-
+			AActor* Actor = ClickedComponent->GetOwner(); 
 			FViewportInteractorData& InteractorData = Interactor->GetInteractorData();
 
 			// Capture undo state
@@ -2226,6 +2225,9 @@ void UViewportWorldInteraction::StartDraggingActors( UViewportInteractor* Intera
 			LastDragGizmoStartTransform = InteractorData.GizmoStartTransform;
 
 			SetupTransformablesForSelectedActors();
+
+			// Calculate the offset between the average location and the hit location after setting the transformables for the new selected objects
+			InteractorData.StartHitLocationToTransformableCenter = CalculateAverageLocationOfTransformables() - HitLocation;
 
 			// If we're placing actors, start interpolating to their actual location.  This helps smooth everything out when
 			// using the laser impact point as the target transform
@@ -2396,7 +2398,9 @@ bool UViewportWorldInteraction::FindPlacementPointUnderLaser( UViewportInteracto
 			}
 
 			const FVector WorldSpaceExtremePointOnBox = InteractorData.GizmoStartTransform.TransformVectorNoScale( ExtremePointOnBox );
+
 			HitLocation -= WorldSpaceExtremePointOnBox;
+			HitLocation -= InteractorData.StartHitLocationToTransformableCenter;
 		}
 
 		OutHitLocation = HitLocation;
@@ -2939,6 +2943,20 @@ void UViewportWorldInteraction::SpawnGridMeshActor()
 		// The grid starts off hidden
 		SnapGridMeshComponent->SetVisibility( false );
 	}
+}
+
+FVector UViewportWorldInteraction::CalculateAverageLocationOfTransformables()
+{
+	FVector Result = FVector::ZeroVector;
+
+	for( TUniquePtr<FViewportTransformable>& TransformablePtr : Transformables )
+	{
+		Result += ((*TransformablePtr).LastTransform.GetLocation());
+	}
+
+	Result /= Transformables.Num();
+
+	return Result;
 }
 
 FLinearColor UViewportWorldInteraction::GetColor( const EColors Color ) const

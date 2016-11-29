@@ -618,6 +618,32 @@ void UVREditorMotionControllerInteractor::HandleInputKey( FViewportActionKeyInpu
 		}
 	}
 
+	if( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
+	{
+		bOutWasHandled = true;
+		const EViewportInteractionDraggingMode DraggingMode = GetDraggingMode();
+
+		if( Event == IE_Pressed )
+		{ 
+			// Start dragging at laser impact when already dragging actors freely
+			if( DraggingMode == EViewportInteractionDraggingMode::ActorsFreely )
+			{
+				FVector PlaceAt = GetHoverLocation();
+				const bool bIsPlacingActors = true;
+				const FViewportActionKeyInput FakeSelectAndMoveAction( ViewportWorldActionTypes::SelectAndMove_LightlyPressed );
+				WorldInteraction->StartDraggingActors( this, FakeSelectAndMoveAction, WorldInteraction->GetTransformGizmoActor()->GetRootComponent(), PlaceAt, bIsPlacingActors );
+			}
+		}
+		else if( Event == IE_Released )
+		{
+			// Disable dragging at laser impact when releasing
+			if( DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+			{
+				SetDraggingMode( EViewportInteractionDraggingMode::ActorsFreely );
+			}
+		}
+	}
+
 	ApplyButtonPressColors( Action );
 }
 
