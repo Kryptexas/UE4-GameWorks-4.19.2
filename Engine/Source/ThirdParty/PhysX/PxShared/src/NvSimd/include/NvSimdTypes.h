@@ -74,11 +74,19 @@ void foo(const float* ptr)
 * */
 // note: ps4 compiler defines _M_X64 without value
 #if !defined(PX_SIMD_DISABLED)
-#define NV_SIMD_SSE2 (defined _M_IX86 || defined _M_X64 || defined __i386__ || defined __x86_64__) || (defined(__EMSCRIPTEN__) && defined(__SSE2__))
-#define NV_SIMD_NEON (defined _M_ARM || defined __ARM_NEON__)
+	#if (defined _M_IX86 || defined _M_X64 || defined __i386__ || defined __x86_64__) || (defined(__EMSCRIPTEN__) && defined(__SSE2__))
+		#define NV_SIMD_SSE2 1
+	#else
+		#define NV_SIMD_SSE2 0
+	#endif
+	#if (defined _M_ARM || defined __ARM_NEON__)
+		#define NV_SIMD_NEON 1
+	#else
+		#define NV_SIMD_NEON 0
+	#endif
 #else
-#define NV_SIMD_SSE2 0
-#define NV_SIMD_NEON 0
+	#define NV_SIMD_SSE2 0
+	#define NV_SIMD_NEON 0
 #endif
 #define NV_SIMD_SIMD (NV_SIMD_SSE2 || NV_SIMD_NEON)
 
@@ -96,7 +104,11 @@ void foo(const float* ptr)
 // support shift by vector operarations
 #define NV_SIMD_SHIFT_BY_VECTOR (NV_SIMD_NEON)
 // support inline assembler
-#define NV_SIMD_INLINE_ASSEMBLER !(defined _M_ARM || defined SN_TARGET_PSP2 || defined __arm64__)
+#if !(defined _M_ARM || defined SN_TARGET_PSP2 || defined __arm64__)
+	#define NV_SIMD_INLINE_ASSEMBLER 1
+#else
+	#define NV_SIMD_INLINE_ASSEMBLER 0
+#endif
 
 /*! \def NV_SIMD_USE_NAMESPACE
 * \brief Set to 1 to define the SIMD library types and functions inside the nvidia::simd namespace.
