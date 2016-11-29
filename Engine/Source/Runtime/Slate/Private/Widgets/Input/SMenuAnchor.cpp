@@ -127,9 +127,10 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 		const FVector2D PopupContentDesiredSize = PopupWindow->GetContent()->GetDesiredSize();
 		FGeometry PopupGeometry = ComputeMenuPlacement( AllottedGeometry, PopupContentDesiredSize, Placement.Get() );
 		const FVector2D NewPosition = PopupGeometry.LocalToAbsolute(FVector2D::ZeroVector);
-		const FVector2D NewSize = PopupGeometry.GetDrawSize();
+		// For the CreateWindow case, don't transform the size; it will always use the ApplicationScale * window's DPI scale
+		const FVector2D NewSize = PopupGeometry.GetLocalSize() * PopupWindow->GetNativeWindow()->GetDPIScaleFactor();
 
-		const FSlateRect NewShape = FSlateRect( NewPosition.X, NewPosition.Y, NewPosition.X + NewSize.X, NewPosition.Y + NewSize.Y );
+		const FSlateRect NewShape = FSlateRect( FMath::RoundToFloat(NewPosition.X), FMath::RoundToFloat(NewPosition.Y), NewPosition.X + NewSize.X, NewPosition.Y + NewSize.Y );
 
 		// We made a window for showing the popup.
 		// Update the window's position!
