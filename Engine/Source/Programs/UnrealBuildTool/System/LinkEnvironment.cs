@@ -237,9 +237,14 @@ namespace UnrealBuildTool
 		public List<FileItem> InputLibraries = new List<FileItem>();
 
 		/// <summary>
-		/// Compiled resources that should be linked into every binary
+		/// The default resource file to link in to every binary if a custom one is not provided
 		/// </summary>
-		public List<FileItem> InputDllResourceFiles = new List<FileItem>();
+		public List<FileItem> DefaultResourceFiles = new List<FileItem>();
+
+		/// <summary>
+		/// Resource files which should be compiled into every binary
+		/// </summary>
+		public List<FileItem> CommonResourceFiles = new List<FileItem>();
 
 		/// <summary>
 		/// The LinkEnvironmentConfiguration.
@@ -260,8 +265,9 @@ namespace UnrealBuildTool
 		{
 			InputFiles.AddRange(InCopyEnvironment.InputFiles);
 			InputLibraries.AddRange(InCopyEnvironment.InputLibraries);
-			InputDllResourceFiles.AddRange(InCopyEnvironment.InputDllResourceFiles);
-
+			DefaultResourceFiles.AddRange(InCopyEnvironment.DefaultResourceFiles);
+			CommonResourceFiles.AddRange(InCopyEnvironment.CommonResourceFiles);
+			
 			Config = new LinkEnvironmentConfiguration(InCopyEnvironment.Config);
 		}
 

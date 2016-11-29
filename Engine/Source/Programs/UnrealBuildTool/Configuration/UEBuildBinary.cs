@@ -728,19 +728,27 @@ namespace UnrealBuildTool
 			// Add the default resources for dlls
 			if (Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
 			{
-				// For formal builds, if this binary does not already have a resource file, compile the default resource file. This will ensure it
-				// gets the correct ORIGINAL_FILE_NAME macro.
-				if (UEBuildConfiguration.bFormalBuild && !BinaryLinkEnvironment.InputFiles.Any(x => x.Reference.HasExtension(".res")))
+				// Check if there's already a custom resource file
+				if (!BinaryLinkEnvironment.InputFiles.Any(x => x.Reference.HasExtension(".res")))
 				{
-					CPPEnvironment BinaryResourceCompileEnvironment = BinaryCompileEnvironment.DeepCopy();
-					BinaryResourceCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(BinaryResourceCompileEnvironment.Config.OutputDirectory, Modules.First().Name);
-					FileItem DefaultResourceFile = FileItem.GetItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Launch", "Resources", "Windows", "PCLaunch.rc"));
-					CPPOutput DefaultResourceOutput = ToolChain.CompileRCFiles(BinaryResourceCompileEnvironment, new List<FileItem> { DefaultResourceFile }, ActionGraph);
-					BinaryLinkEnvironment.InputFiles.AddRange(DefaultResourceOutput.ObjectFiles);
+					if (UEBuildConfiguration.bFormalBuild)
+					{
+						// For formal builds, compile the default resource file per-binary, so that it gets the correct ORIGINAL_FILE_NAME macro.
+						CPPEnvironment BinaryResourceCompileEnvironment = BinaryCompileEnvironment.DeepCopy();
+						BinaryResourceCompileEnvironment.Config.OutputDirectory = DirectoryReference.Combine(BinaryResourceCompileEnvironment.Config.OutputDirectory, Modules.First().Name);
+						FileItem DefaultResourceFile = FileItem.GetItemByFileReference(FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Launch", "Resources", "Windows", "PCLaunch.rc"));
+						CPPOutput DefaultResourceOutput = ToolChain.CompileRCFiles(BinaryResourceCompileEnvironment, new List<FileItem> { DefaultResourceFile }, ActionGraph);
+						BinaryLinkEnvironment.InputFiles.AddRange(DefaultResourceOutput.ObjectFiles);
+					}
+					else
+					{
+						// For non-formal builds, we just want to share the default resource file between modules
+						BinaryLinkEnvironment.InputFiles.AddRange(BinaryLinkEnvironment.DefaultResourceFiles);
+					}
 				}
 
 				// Add all the common resource files
-				BinaryLinkEnvironment.InputFiles.AddRange(BinaryLinkEnvironment.InputDllResourceFiles);
+				BinaryLinkEnvironment.InputFiles.AddRange(BinaryLinkEnvironment.CommonResourceFiles);
 			}
 
 			return BinaryLinkEnvironment;
