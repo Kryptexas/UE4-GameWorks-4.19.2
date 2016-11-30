@@ -382,6 +382,7 @@ struct FObjectImport : public FObjectResource
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
 	bool			bImportPackageHandled;
 	bool			bImportSearchedFor;
+	bool			bImportFailed;
 #endif
 
 	/**

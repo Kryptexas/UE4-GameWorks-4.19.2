@@ -108,6 +108,19 @@ enum class EUINavigation : uint8
 };
 
 /**
+ * Context for focus change
+ */
+UENUM()
+enum class ENavigationSource : uint8
+{
+	/** Navigate from the focused widget */
+	FocusedWidget,
+	
+	/** Navigate from the widget under the cursor */
+	WidgetUnderCursor,
+};
+
+/**
  * Enumerates horizontal alignment options, i.e. for widget slots.
  */
 UENUM(BlueprintType)

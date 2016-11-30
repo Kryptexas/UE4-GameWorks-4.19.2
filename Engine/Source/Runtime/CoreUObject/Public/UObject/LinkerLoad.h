@@ -200,11 +200,16 @@ public:
 	COREUOBJECT_API static FName FindNewNameForClass(FName OldClassName, bool bIsInstance);
 
 	/**
-	* Utility functions to check the list of known missing packages and silence any warnings
-	* that may have occurred on load.
-	* @return true if the provided package is in the KnownMissingPackage list
-	*/
+	 * Utility functions to check the list of known missing packages and silence any warnings
+	 * that may have occurred on load.
+	 * @return true if the provided package is in the KnownMissingPackage list
+	 */
 	COREUOBJECT_API static bool IsKnownMissingPackage(FName PackageName);
+
+	/**
+	 * Register that a package is now known missing and that it should silence future warnings/issues
+	 */
+	COREUOBJECT_API static void AddKnownMissingPackage(FName PackageName);
 
 private:
 

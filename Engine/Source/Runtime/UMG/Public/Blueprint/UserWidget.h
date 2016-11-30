@@ -1080,6 +1080,11 @@ private:
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+namespace CreateWidgetHelpers
+{
+	UMG_API bool ValidateUserWidgetClass(UClass* UserWidgetClass);
+}
+
 template< class T >
 T* CreateWidget(UWorld* World, UClass* UserWidgetClass  = T::StaticClass() )
 {
@@ -1089,15 +1094,8 @@ T* CreateWidget(UWorld* World, UClass* UserWidgetClass  = T::StaticClass() )
 		return nullptr;
 	}
 
-	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	if (!CreateWidgetHelpers::ValidateUserWidgetClass(UserWidgetClass))
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NotUserWidget", "CreateWidget can only be used on UUserWidget children."));
-		return nullptr;
-	}
-
-	if ( UserWidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NewerVersionExists | CLASS_Deprecated) )
-	{
-		FMessageLog("PIE").Error(LOCTEXT("NotValidClass", "Abstract, Deprecated or Replaced classes are not allowed to be used to construct a user widget."));
 		return nullptr;
 	}
 
@@ -1124,27 +1122,26 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass = T::St
 		return nullptr;
 	}
 
-	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	if (!CreateWidgetHelpers::ValidateUserWidgetClass(UserWidgetClass))
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NotUserWidget", "CreateWidget can only be used on UUserWidget children."));
-		return nullptr;
-	}
-
-	if ( UserWidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NewerVersionExists | CLASS_Deprecated) )
-	{
-		FMessageLog("PIE").Error(LOCTEXT("NotValidClass", "Abstract, Deprecated or Replaced classes are not allowed to be used to construct a user widget."));
 		return nullptr;
 	}
 
 	if ( !OwningPlayer->IsLocalPlayerController() )
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NotLocalPlayer", "Only Local Player Controllers can be assigned to widgets."));
+		const FText FormatPattern = LOCTEXT("NotLocalPlayer", "Only Local Player Controllers can be assigned to widgets. {PlayerController} is not a Local Player Controller.");
+		FFormatNamedArguments FormatPatternArgs;
+		FormatPatternArgs.Add(TEXT("PlayerController"), FText::FromName(OwningPlayer->GetFName()));
+		FMessageLog("PIE").Error(FText::Format(FormatPattern, FormatPatternArgs));
 		return nullptr;
 	}
 
 	if (!OwningPlayer->Player)
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NoPLayer", "CreateWidget cannot be used on Player Controller with no attached player."));
+		const FText FormatPattern = LOCTEXT("NoPlayer", "CreateWidget cannot be used on Player Controller with no attached player. {PlayerController} has no Player attached.");
+		FFormatNamedArguments FormatPatternArgs;
+		FormatPatternArgs.Add(TEXT("PlayerController"), FText::FromName(OwningPlayer->GetFName()));
+		FMessageLog("PIE").Error(FText::Format(FormatPattern, FormatPatternArgs));
 		return nullptr;
 	}
 
@@ -1167,16 +1164,9 @@ T* CreateWidget(UGameInstance* OwningGame, UClass* UserWidgetClass = T::StaticCl
 		FMessageLog("PIE").Error(LOCTEXT("GameNull", "Unable to create a widget outered to a null game instance."));
 		return nullptr;
 	}
-
-	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	
+	if (!CreateWidgetHelpers::ValidateUserWidgetClass(UserWidgetClass))
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NotUserWidget", "CreateWidget can only be used on UUserWidget children."));
-		return nullptr;
-	}
-
-	if ( UserWidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NewerVersionExists | CLASS_Deprecated) )
-	{
-		FMessageLog("PIE").Error(LOCTEXT("NotValidClass", "Abstract, Deprecated or Replaced classes are not allowed to be used to construct a user widget."));
 		return nullptr;
 	}
 

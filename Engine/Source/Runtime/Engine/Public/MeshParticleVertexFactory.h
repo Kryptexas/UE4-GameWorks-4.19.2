@@ -31,6 +31,9 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FMeshParticleUniformParameters, ENGINE_API)
 END_UNIFORM_BUFFER_STRUCT( FMeshParticleUniformParameters )
 typedef TUniformBufferRef<FMeshParticleUniformParameters> FMeshParticleUniformBufferRef;
 
+class FMeshParticleInstanceVertices;
+
+
 /**
  * Vertex factory for rendering instanced mesh particles with out dynamic parameter support.
  */
@@ -90,12 +93,14 @@ public:
 		: FParticleVertexFactoryBase(InType, InFeatureLevel)
 		, DynamicVertexStride(InDynamicVertexStride)
 		, DynamicParameterVertexStride(InDynamicParameterVertexStride)
+		, InstanceVerticesCPU(nullptr)
 	{}
 
 	FMeshParticleVertexFactory()
 		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
 		, DynamicVertexStride(-1)
 		, DynamicParameterVertexStride(-1)
+		, InstanceVerticesCPU(nullptr)
 	{}
 
 	/**
@@ -174,6 +179,11 @@ public:
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
+	FMeshParticleInstanceVertices*& GetInstanceVerticesCPU()
+	{
+		return InstanceVerticesCPU;
+	}
+
 protected:
 	FDataType Data;
 	
@@ -185,6 +195,9 @@ protected:
 	FUniformBufferRHIParamRef MeshParticleUniformBuffer;
 
 	FDynamicReadBuffer PrevTransformBuffer;
+
+	/** Used to remember this in the case that we reuse the same vertex factory for multiple renders . */
+	FMeshParticleInstanceVertices* InstanceVerticesCPU;
 };
 
 

@@ -12,7 +12,7 @@ using Ionic.Zlib;
 using System.Security.Principal; 
 using System.Threading;
 using System.Diagnostics;
-using Manzana;
+//using Manzana;
 
 static class IOSEnvVarNames
 {
@@ -24,14 +24,14 @@ class IOSClientProcess : IProcessResult
 {
 	private IProcessResult	childProcess;
 	private Thread			consoleLogWorker;
-	private bool			processConsoleLogs;
+	//private bool			processConsoleLogs;
 	
 	public IOSClientProcess(IProcessResult inChildProcess, string inDeviceID)
 	{
 		childProcess = inChildProcess;
 		
 		// Startup another thread that collect device console logs
-		processConsoleLogs = true;
+		//processConsoleLogs = true;
 		consoleLogWorker = new Thread(() => ProcessConsoleOutput(inDeviceID));
 		consoleLogWorker.Start();
 	}
@@ -111,37 +111,37 @@ class IOSClientProcess : IProcessResult
 	
 	private void StopConsoleOutput()
 	{
-		processConsoleLogs = false;
+		//processConsoleLogs = false;
 		consoleLogWorker.Join();
 	}
 	
 	public void ProcessConsoleOutput(string inDeviceID)
 	{		
-		MobileDeviceInstance	targetDevice = null;
-		foreach(MobileDeviceInstance curDevice in MobileDeviceInstanceManager.GetSnapshotInstanceList())
-		{
-			if(curDevice.DeviceId == inDeviceID)
-			{
-				targetDevice = curDevice;
-				break;
-			}
-		}
-		
-		if(targetDevice == null)
-		{
-			return;
-		}
-		
-		targetDevice.StartSyslogService();
-		
-		while(processConsoleLogs)
-		{
-			string logData = targetDevice.GetSyslogData();
-			
-			Console.WriteLine("DeviceLog: " + logData);
-		}
-		
-		targetDevice.StopSyslogService();
+// 		MobileDeviceInstance	targetDevice = null;
+// 		foreach(MobileDeviceInstance curDevice in MobileDeviceInstanceManager.GetSnapshotInstanceList())
+// 		{
+// 			if(curDevice.DeviceId == inDeviceID)
+// 			{
+// 				targetDevice = curDevice;
+// 				break;
+// 			}
+// 		}
+// 		
+// 		if(targetDevice == null)
+// 		{
+// 			return;
+// 		}
+// 		
+// 		targetDevice.StartSyslogService();
+// 		
+// 		while(processConsoleLogs)
+// 		{
+// 			string logData = targetDevice.GetSyslogData();
+// 			
+// 			Console.WriteLine("DeviceLog: " + logData);
+// 		}
+// 		
+// 		targetDevice.StopSyslogService();
 	}
 
 };
@@ -1188,13 +1188,13 @@ public class IOSPlatform : Platform
         return new List<string> { ".dsym" };
     }
 	
-	void MobileDeviceConnected(object sender, ConnectEventArgs args)
-	{
-	}
-	
-	void MobileDeviceDisconnected(object sender, ConnectEventArgs args)
-	{
-	}
+// 	void MobileDeviceConnected(object sender, ConnectEventArgs args)
+// 	{
+// 	}
+// 	
+// 	void MobileDeviceDisconnected(object sender, ConnectEventArgs args)
+// 	{
+// 	}
 
 	public override IProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
@@ -1206,13 +1206,13 @@ public class IOSPlatform : Platform
             }
 			
 			// This code only cares about connected devices so just call the run loop a few times to get the existing connected devices
-			MobileDeviceInstanceManager.Initialize(MobileDeviceConnected, MobileDeviceDisconnected);
-			for(int i = 0; i < 4; ++i)
-			{
-				System.Threading.Thread.Sleep(1);
-				CoreFoundationRunLoop.RunLoopRunInMode(CoreFoundationRunLoop.kCFRunLoopDefaultMode(), 0.25, 0);
-			}
-			
+// 			MobileDeviceInstanceManager.Initialize(MobileDeviceConnected, MobileDeviceDisconnected);
+// 			for(int i = 0; i < 4; ++i)
+// 			{
+// 				System.Threading.Thread.Sleep(1);
+// 				CoreFoundationRunLoop.RunLoopRunInMode(CoreFoundationRunLoop.kCFRunLoopDefaultMode(), 0.25, 0);
+// 			}
+// 			
             /*			string AppDirectory = string.Format("{0}/Payload/{1}.app",
 				Path.GetDirectoryName(Params.ProjectGameExeFilename), 
 				Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename));

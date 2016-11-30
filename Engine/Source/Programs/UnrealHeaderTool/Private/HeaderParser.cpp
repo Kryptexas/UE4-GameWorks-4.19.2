@@ -6614,7 +6614,7 @@ void FHeaderParser::CompileVariableDeclaration(FClasses& AllClasses, UStruct* St
 	{
 		if ((*ExposeOnSpawnValue == TEXT("true")) && !FExposeOnSpawnValidator::IsSupported(OriginalProperty))
 		{
-			FError::Throwf(TEXT("ExposeOnSpawn - Property cannoty be exposed"));
+			FError::Throwf(TEXT("ExposeOnSpawn - Property cannot be exposed"));
 		}
 	}
 

@@ -21,6 +21,7 @@
 #include "Engine/Engine.h"
 #include "Engine/Texture2D.h"
 #include "DelayForFramesLatentAction.h"
+#include "Engine/DebugCameraController.h"
 
 namespace
 {
@@ -478,11 +479,31 @@ void AFunctionalTest::GoToObservationPoint()
 	UWorld* World = GetWorld();
 	if (World && World->GetGameInstance())
 	{
-		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
-		if (PC && PC->GetPawn())
+		APlayerController* TargetPC = nullptr;
+		for (FConstPlayerControllerIterator PCIterator = World->GetPlayerControllerIterator(); PCIterator; ++PCIterator)
 		{
-			PC->GetPawn()->TeleportTo(ObservationPoint->GetActorLocation(), ObservationPoint->GetActorRotation(), /*bIsATest=*/false, /*bNoCheck=*/true);
-			PC->SetControlRotation(ObservationPoint->GetActorRotation());
+			APlayerController* PC = PCIterator->Get();
+
+			// Don't use debug camera player controllers.
+			// While it's tempting to teleport the camera if the user is debugging something then moving the camera around will them.
+			if (PC && !PC->IsA(ADebugCameraController::StaticClass()))
+			{
+				TargetPC = PC;
+				break;
+			}
+		}
+
+		if (TargetPC)
+		{
+			if (TargetPC->GetPawn())
+			{
+				TargetPC->GetPawn()->TeleportTo(ObservationPoint->GetActorLocation(), ObservationPoint->GetActorRotation(), /*bIsATest=*/false, /*bNoCheck=*/true);
+				TargetPC->SetControlRotation(ObservationPoint->GetActorRotation());
+			}
+			else
+			{
+				TargetPC->SetViewTarget(ObservationPoint);
+			}
 		}
 	}
 }

@@ -68,10 +68,18 @@ public:
 	/**
 	 *  Set the text justification for this text block
 	 *
-	 *  @param Justification new justification
+	 *  @param InJustification new justification
 	 */
-	UFUNCTION( BlueprintCallable, Category = "Appearance" )
-	void SetJustification( ETextJustify::Type InJustification );
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetJustification(ETextJustify::Type InJustification);
+	
+	/**
+	 *  Set the minimum desired width for this text block
+	 *
+	 *  @param InMinDesiredWidth new minimum desired width
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetMinDesiredWidth(float InMinDesiredWidth);
 
 public:
 	/** The text to display */

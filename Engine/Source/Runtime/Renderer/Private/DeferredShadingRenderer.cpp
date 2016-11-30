@@ -45,6 +45,15 @@ static FAutoConsoleVariableRef CVarEarlyZPassMovable(
 	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
 
+/** Affects BasePassPixelShader.usf so must relaunch editor to recompile shaders. */
+static TAutoConsoleVariable<int32> CVarEarlyZPassOnlyMaterialMasking(
+	TEXT("r.EarlyZPassOnlyMaterialMasking"),
+	0,
+	TEXT("Whether to compute materials' mask opacity only in early Z pass. Changing this setting requires restarting the editor.\n")
+	TEXT("Note: Needs r.EarlyZPass == 2 && r.EarlyZPassMovable == 1"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
+	);
+
 static TAutoConsoleVariable<int32> CVarStencilForLODDither(
 	TEXT("r.StencilForLODDither"),
 	0,
@@ -138,7 +147,7 @@ bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel)
 	bool bStencilLODDither = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
 
 	// Note: ShouldForceFullDepthPass affects which static draw lists meshes go into, so nothing it depends on can change at runtime, unless you do a FGlobalComponentRecreateRenderStateContext to propagate the cvar change
-	return bDBufferAllowed || bStencilLODDither || IsForwardShadingEnabled(FeatureLevel);
+	return bDBufferAllowed || bStencilLODDither || IsForwardShadingEnabled(FeatureLevel) || UseSelectiveBasePassOutputs();
 }
 
 const TCHAR* GetDepthPassReason(bool bDitheredLODTransitionsUseStencil, ERHIFeatureLevel::Type FeatureLevel)
@@ -763,7 +772,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	
 	SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
-	SceneContext.PreallocGBufferTargets(bUseVelocityGBuffer); // Even if !bShouldRenderVelocities, the velocity buffer must be bound because it's a compile time option for the shader.
+	SceneContext.PreallocGBufferTargets();
 	SceneContext.AllocGBufferTargets(RHICmdList);
 
 	//occlusion can't run before basepass if there's no prepass to fill in some depth to occlude against.

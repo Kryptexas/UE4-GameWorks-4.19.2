@@ -560,6 +560,7 @@ void FMetalRHICommandContext::RHIDrawPrimitiveIndirect(uint32 PrimitiveType, FVe
 	if(!FShaderCache::IsPredrawCall())
 	{
 		RHI_PROFILE_DRAW_CALL_STATS(EMTLSamplePointBeforeDraw, EMTLSamplePointAfterDraw, 1, 1);
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), VertexBuffer->Buffer);
 		
 		[Context->GetRenderContext() drawPrimitives:TranslatePrimitiveType(PrimitiveType)
 										indirectBuffer:VertexBuffer->Buffer
@@ -605,6 +606,8 @@ void FMetalRHICommandContext::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef In
 	
 	if(!FShaderCache::IsPredrawCall())
 	{
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), IndexBuffer->Buffer);
+		
 #if METAL_API_1_1
 		if (GRHISupportsBaseVertexIndex && GRHISupportsFirstInstance)
 		{
@@ -654,6 +657,9 @@ void FMetalRHICommandContext::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef Ind
 		
 		if(!FShaderCache::IsPredrawCall())
 		{
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), IndexBuffer->Buffer);
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), VertexBuffer->Buffer);
+			
 			RHI_PROFILE_DRAW_CALL_STATS(EMTLSamplePointBeforeDraw, EMTLSamplePointAfterDraw, 1, 1);
 			
 			[Context->GetRenderContext() drawIndexedPrimitives:TranslatePrimitiveType(PrimitiveType)
@@ -695,6 +701,8 @@ void FMetalRHICommandContext::RHIDrawIndexedPrimitiveIndirect(uint32 PrimitiveTy
 		if(!FShaderCache::IsPredrawCall())
 		{
 			RHI_PROFILE_DRAW_CALL_STATS(EMTLSamplePointBeforeDraw, EMTLSamplePointAfterDraw, 1, 1);
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), IndexBuffer->Buffer);
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), VertexBuffer->Buffer);
 			
 			[Context->GetRenderContext() drawIndexedPrimitives:TranslatePrimitiveType(PrimitiveType)
 													 indexType:IndexBuffer->IndexType
@@ -818,6 +826,7 @@ void FMetalRHICommandContext::RHIEndDrawIndexedPrimitiveUP()
 	
 	if(!FShaderCache::IsPredrawCall())
 	{
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Context->GetRingBuffer());
 		[Context->GetRenderContext() drawIndexedPrimitives:TranslatePrimitiveType(PendingPrimitiveType)
 												indexCount:NumIndices
 												 indexType:(PendingIndexDataStride == 2) ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32

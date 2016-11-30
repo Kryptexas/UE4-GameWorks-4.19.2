@@ -33,6 +33,11 @@ FArchive& operator<<( FArchive& Ar, FUniqueNetIdRepl& UniqueNetId)
 			UniqueNetId.UniqueIdFromString(Contents);
 		}
 	}
+	else if (Ar.IsLoading())
+	{
+		// @note: replicated a nullptr unique id
+		UniqueNetId.SetUniqueNetId(nullptr);
+	}
 
 	return Ar;
 }

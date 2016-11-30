@@ -42,6 +42,16 @@ UQosRegionManager::UQosRegionManager(const FObjectInitializer& ObjectInitializer
 
 	// get a forced region id from the command line as an override
 	FParse::Value(FCommandLine::Get(), TEXT("McpRegion="), ForceRegionId);
+
+	// Temporary hack to aid in config conversion. 
+	if (ForceRegionId == TEXT("USA"))
+	{
+		ForceRegionId = TEXT("NA");
+	}
+	else if (ForceRegionId == TEXT("Poland"))
+	{
+		ForceRegionId = TEXT("EU");
+	}
 }
 
 void UQosRegionManager::PostReloadConfig(UProperty* PropertyThatWasLoaded)

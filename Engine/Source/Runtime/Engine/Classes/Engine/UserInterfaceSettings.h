@@ -96,6 +96,9 @@ public:
 		YAxisName="Scale"))
 	FRuntimeFloatCurve UIScaleCurve;
 
+	UPROPERTY(config, EditAnywhere, Category = "Widgets", meta = (ToolTip = "If false, widget references will be stripped during cook for server builds and not loaded at runtime."))
+	bool bLoadWidgetsOnDedicatedServer;
+
 public:
 
 	virtual void PostInitProperties() override;

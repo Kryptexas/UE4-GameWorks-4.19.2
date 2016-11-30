@@ -63,6 +63,7 @@ void* FMetalIndexBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, uint32 
 		id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
 		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"SynchronizeResource(IndexBuffer %p)", this);
 		[Blitter synchronizeResource:Buffer];
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(GetMetalDeviceContext().GetCurrentCommandBuffer(), Buffer);
 		
 		//kick the current command buffer.
 		GetMetalDeviceContext().SubmitCommandBufferAndWait();

@@ -3,4 +3,5 @@
 
 DEFINE_LOG_CATEGORY(LogAbilitySystem);
 DEFINE_LOG_CATEGORY(VLogAbilitySystem);
+DEFINE_LOG_CATEGORY(LogGameplayEffects);
 

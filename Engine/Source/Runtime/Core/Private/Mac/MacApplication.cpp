@@ -1002,6 +1002,15 @@ void FMacApplication::OnWindowDidMove(TSharedRef<FMacWindow> Window)
 	Window->PositionY = SlatePosition.Y;
 }
 
+void FMacApplication::OnWindowWillResize(TSharedRef<FMacWindow> Window)
+{
+	SCOPED_AUTORELEASE_POOL;
+	
+	// OnResizingWindow flushes the renderer commands which is needed before we start resizing, but also right after that
+	// because window view's drawRect: can be called before Slate has a chance to flush them.
+	MessageHandler->OnResizingWindow(Window);
+}
+
 void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRestoreMouseCursorLocking)
 {
 	SCOPED_AUTORELEASE_POOL;
@@ -1018,10 +1027,6 @@ void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window, bool bRes
 		Width = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.width * Window->GetDPIScaleFactor());
 		Height = FMath::TruncToInt([[Window->GetWindowHandle() screen] frame].size.height * Window->GetDPIScaleFactor());
 	}
-
-	// OnResizingWindow flushes the renderer commands which is needed before we start resizing, but also right after that
-	// because window view's drawRect: can be called before Slate has a chance to flush them.
-	MessageHandler->OnResizingWindow(Window);
 
 	if (bRestoreMouseCursorLocking)
 	{
@@ -1100,7 +1105,10 @@ void FMacApplication::OnApplicationDidBecomeActive()
 	FApp::SetVolumeMultiplier(1.0f);
 
 	GameThreadCall(^{
-		MessageHandler->OnApplicationActivationChanged(true);
+		if (MacApplication)
+		{
+			MessageHandler->OnApplicationActivationChanged(true);
+		}
 	}, @[ NSDefaultRunLoopMode ], false);
 }
 
@@ -1148,7 +1156,10 @@ void FMacApplication::OnApplicationWillResignActive()
 	FApp::SetVolumeMultiplier(FApp::GetUnfocusedVolumeMultiplier());
 
 	GameThreadCall(^{
-		MessageHandler->OnApplicationActivationChanged(false);
+		if (MacApplication)
+		{
+			MessageHandler->OnApplicationActivationChanged(false);
+		}
 	}, @[ NSDefaultRunLoopMode ], false);
 }
 
@@ -1204,26 +1215,30 @@ void FMacApplication::OnActiveSpaceDidChange()
 
 void FMacApplication::OnCursorLock()
 {
-	NSWindow* NativeWindow = [NSApp keyWindow];
-	if (NativeWindow)
-	{
-		const bool bIsCursorLocked = ((FMacCursor*)Cursor.Get())->IsLocked();
-		if (bIsCursorLocked)
+	MainThreadCall(^{
+		SCOPED_AUTORELEASE_POOL;
+		NSWindow* NativeWindow = [NSApp keyWindow];
+		// This block can be called after MacApplication is destroyed
+		if (MacApplication && NativeWindow && Cursor.IsValid())
 		{
-			[NativeWindow setMinSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
-			[NativeWindow setMaxSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
-		}
-		else
-		{
-			TSharedPtr<FMacWindow> Window = FindWindowByNSWindow((FCocoaWindow*)NativeWindow);
-			if (Window.IsValid())
+			const bool bIsCursorLocked = ((FMacCursor*)Cursor.Get())->IsLocked();
+			if (bIsCursorLocked)
 			{
-				const FGenericWindowDefinition& Definition = Window->GetDefinition();
-				[NativeWindow setMinSize:NSMakeSize(Definition.SizeLimits.GetMinWidth().Get(10.0f), Definition.SizeLimits.GetMinHeight().Get(10.0f))];
-				[NativeWindow setMaxSize:NSMakeSize(Definition.SizeLimits.GetMaxWidth().Get(10000.0f), Definition.SizeLimits.GetMaxHeight().Get(10000.0f))];
+				[NativeWindow setMinSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
+				[NativeWindow setMaxSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
+			}
+			else
+			{
+				TSharedPtr<FMacWindow> Window = FindWindowByNSWindow((FCocoaWindow*)NativeWindow);
+				if (Window.IsValid())
+				{
+					const FGenericWindowDefinition& Definition = Window->GetDefinition();
+					[NativeWindow setMinSize:NSMakeSize(Definition.SizeLimits.GetMinWidth().Get(10.0f), Definition.SizeLimits.GetMinHeight().Get(10.0f))];
+					[NativeWindow setMaxSize:NSMakeSize(Definition.SizeLimits.GetMaxWidth().Get(10000.0f), Definition.SizeLimits.GetMaxHeight().Get(10000.0f))];
+				}
 			}
 		}
-	}
+	}, NSDefaultRunLoopMode, false);
 }
 
 void FMacApplication::ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event)
@@ -1731,6 +1746,21 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 
 		OutDisplayMetrics.MonitorInfo.Add(Info);
 	}
+
+						// Now that we have the whole workspace rect calculated, we can fix DisplayRect's and WorkArea's top and bottom coordinates
+						//
+						// IMPORTANT!
+						// The following code should not be merged to //UE4/Main. FMacScreen-related code was heavily modified as part of work on high-DPI support
+						// and Info.DisplayRect and Info.WorkArea in //UE4/Main already have the origin in top-left corner, so they don't need this.
+						//
+/********************/	for (FMonitorInfo& Info : OutDisplayMetrics.MonitorInfo)
+/*					*/	{
+/* DO NOT MERGE		*/		Info.DisplayRect.Top = WholeWorkspace.size.height - (Info.DisplayRect.Top + Info.DisplayRect.Bottom);
+/* TO //UE4/Main	*/		Info.DisplayRect.Bottom += Info.DisplayRect.Top;
+/* See comment		*/		Info.WorkArea.Top = WholeWorkspace.size.height - (Info.WorkArea.Top + Info.WorkArea.Bottom);
+/*					*/		Info.WorkArea.Bottom += Info.WorkArea.Top;
+/********************/	}
+
 
 	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = WholeWorkspace.origin.x;

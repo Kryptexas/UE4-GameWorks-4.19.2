@@ -304,6 +304,13 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 		ToolTip="Whether to render movable objects in the early Z pass. Need to reload the level!"))
 	uint32 bEarlyZPassMovable:1;
 
+	UPROPERTY(config, EditAnywhere, Category = Optimizations, meta = (
+		EditCondition = "EarlyZPass == OpaqueAndMasked && bEarlyZPassMovable",
+		ConsoleVariable = "r.EarlyZPassOnlyMaterialMasking", DisplayName = "Mask material only in early Z-pass",
+		ToolTip = "Whether to compute materials' mask opacity only in early Z pass. Changing this setting requires restarting the editor.",
+		ConfigRestartRequired = true))
+	uint32 bEarlyZPassOnlyMaterialMasking : 1;
+
 	UPROPERTY(config, EditAnywhere, Category=Lighting, meta=(
 		ConsoleVariable="r.DBuffer",DisplayName="DBuffer Decals",
 		ToolTip="Whether to accumulate decal properties to a buffer before the base pass.  DBuffer decals correctly affect lightmap and sky lighting, unlike regular deferred decals.  DBuffer enabled forces a full prepass.  Changing this setting requires restarting the editor.",

@@ -323,8 +323,11 @@ protected:
 
 #if WITH_EDITOR
 	void OnTableReimported(UObject* InObject);
+
+	void OnPreBeginPIE(const bool bIsSimulatingInEditor);
 #endif
 
+	void ResetCachedData();
 	void HandlePreLoadMap(const FString& MapName);
 
 #if WITH_EDITORONLY_DATA

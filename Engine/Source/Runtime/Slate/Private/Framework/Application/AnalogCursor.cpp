@@ -109,11 +109,12 @@ void FAnalogCursor::Tick(const float DeltaTime, FSlateApplication& SlateApp, TSh
 	CurrentOffset += CurrentSpeed * DeltaTime * SpeedMult;
 	const FVector2D NewPosition = OldPosition + CurrentOffset;
 
+	// save the remaining sub-pixel offset 
+	CurrentOffset.X = FGenericPlatformMath::Frac(NewPosition.X);
+	CurrentOffset.Y = FGenericPlatformMath::Frac(NewPosition.Y);
+
 	// update the cursor position
 	UpdateCursorPosition(SlateApp, Cursor, NewPosition);
-
-	// save the remaining sub-pixel offset after setting the cursor
-	CurrentOffset = NewPosition - Cursor->GetPosition();
 }
 
 bool FAnalogCursor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent)
@@ -267,11 +268,14 @@ void FAnalogCursor::UpdateCursorPosition(FSlateApplication& SlateApp, TSharedRef
 	{
 		//put the cursor in the correct spot
 		Cursor->SetPosition(NewPosition.X, NewPosition.Y);
+	
+		// Since the cursor may have been locked and its location clamped, get the actual new position
+		const FVector2D UpdatedPosition = Cursor->GetPosition();
 
 		//create a new mouse event
 		FPointerEvent MouseEvent(
 			0,
-			NewPosition,
+			UpdatedPosition,
 			OldPosition,
 			SlateApp.PressedMouseButtons,
 			EKeys::Invalid,

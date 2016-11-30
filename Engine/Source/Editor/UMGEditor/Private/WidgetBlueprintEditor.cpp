@@ -506,11 +506,8 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 
 		return MigratePropertyValue(SourceObjectProperty, DestionationObjectProperty, PropertyChainNode->GetNextNode(), PropertyChainNode->GetNextNode()->GetValue(), bIsModify);
 	}
-	else if ( UArrayProperty* CurrentArrayProperty = Cast<UArrayProperty>(CurrentProperty) )
-	{
-		// Arrays!
-	}
 
+	// ExportText/ImportText works on all property types
 	return MigratePropertyValue(SourceObject, DestinationObject, PropertyChainNode->GetNextNode(), MemberProperty, bIsModify);
 }
 

@@ -378,7 +378,7 @@ public abstract class XLocLocalizationProvider : LocalizationProvider
 
 	protected XLocConfig Config;
 
-	protected Dictionary<string, string> GetEpicCultureToXLocLanguageId()
+	virtual protected Dictionary<string, string> GetEpicCultureToXLocLanguageId()
 	{
 		return new Dictionary<string, string>
 		{

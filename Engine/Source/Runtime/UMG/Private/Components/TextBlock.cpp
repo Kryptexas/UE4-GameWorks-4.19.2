@@ -88,6 +88,15 @@ void UTextBlock::SetJustification( ETextJustify::Type InJustification )
 	}
 }
 
+void UTextBlock::SetMinDesiredWidth(float InMinDesiredWidth)
+{
+	MinDesiredWidth = InMinDesiredWidth;
+	if (MyTextBlock.IsValid())
+	{
+		MyTextBlock->SetMinDesiredWidth(MinDesiredWidth);
+	}
+}
+
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
  	if (bWrapWithInvalidationPanel && !IsDesignTime())

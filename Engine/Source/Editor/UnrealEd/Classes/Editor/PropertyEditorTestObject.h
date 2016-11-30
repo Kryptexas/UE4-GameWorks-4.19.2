@@ -136,6 +136,9 @@ class UPropertyEditorTestObject : public UObject
 	float FloatProperty;
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
+	double DoubleProperty;
+
+	UPROPERTY(EditAnywhere, Category=BasicProperties)
 	FName NameProperty;
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)

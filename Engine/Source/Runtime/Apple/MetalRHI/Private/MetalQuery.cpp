@@ -29,80 +29,91 @@ FMetalQueryBuffer::~FMetalQueryBuffer()
     }
 }
 
-void const* FMetalQueryBuffer::GetResult(uint32 Offset)
+uint64 FMetalQueryBuffer::GetResult(uint32 Offset)
 {
     check(Buffer);
-    void const* Result = (void const*)(((uint8*)[Buffer contents]) + Offset);
+	uint64 Result = 0;
+	@autoreleasepool
+	{
+		Result = *((uint64 const*)(((uint8*)[Buffer contents]) + Offset));
+	}
     return Result;
 }
 
+bool FMetalCommandBufferFence::Wait(uint64 Millis)
+{
+	@autoreleasepool
+	{
+		TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe> CommandBuffer = CommandBufferRef.Pin();
+		if (CommandBuffer.IsValid())
+		{
+			if(Millis > 0 && [(*CommandBuffer) status] < MTLCommandBufferStatusCompleted)
+			{
+				check([(*CommandBuffer) status] >= MTLCommandBufferStatusCommitted && [(*CommandBuffer) status] <= MTLCommandBufferStatusError);
+				[(*CommandBuffer) waitUntilCompleted];
+				check([(*CommandBuffer) status] >= MTLCommandBufferStatusCommitted && [(*CommandBuffer) status] <= MTLCommandBufferStatusError);
+			}
+			if([(*CommandBuffer) status] == MTLCommandBufferStatusError)
+			{
+				FMetalCommandList::HandleMetalCommandBufferFailure((*CommandBuffer));
+			}
+			return ([(*CommandBuffer) status] >= MTLCommandBufferStatusCompleted);
+		}
+		else
+		{
+			return true;
+		}
+	}
+}
+	
 bool FMetalQueryResult::Wait(uint64 Millis)
 {
 	if(IsValidRef(SourceBuffer))
 	{
 		if(!bCompleted)
 		{
-			bool bOK = false;
+			bCompleted = CommandBufferFence.Wait(Millis);
 			
-			if(CommandBuffer)
-			{
-				if(CommandBuffer.status < MTLCommandBufferStatusCompleted)
-				{
-					check(CommandBuffer.status >= MTLCommandBufferStatusCommitted && CommandBuffer.status <= MTLCommandBufferStatusError);
-					[CommandBuffer waitUntilCompleted];
-					check(CommandBuffer.status >= MTLCommandBufferStatusCommitted && CommandBuffer.status <= MTLCommandBufferStatusError);
-				}
-				if(CommandBuffer.status == MTLCommandBufferStatusError)
-				{
-					FMetalCommandList::HandleMetalCommandBufferFailure(CommandBuffer);
-				}
-				
-				bCompleted = CommandBuffer.status >= MTLCommandBufferStatusCompleted;
-				bOK = bCompleted;
-				[CommandBuffer release];
-				CommandBuffer = nil;
-			}
-			
-			return bOK;
+			return bCompleted;
 		}
 		return true;
 	}
 	return false;
 }
 
-void const* FMetalQueryResult::GetResult()
+uint64 FMetalQueryResult::GetResult()
 {
 	if(IsValidRef(SourceBuffer))
 	{
 		return SourceBuffer->GetResult(Offset);
 	}
-	return nullptr;
+	return 0;
 }
 
 FMetalRenderQuery::FMetalRenderQuery(ERenderQueryType InQueryType)
 : Type(InQueryType)
 {
 	Buffer.Offset = 0;
-	Buffer.CommandBuffer = nil;
 	Buffer.bCompleted = false;
 }
 
 FMetalRenderQuery::~FMetalRenderQuery()
 {
-	[Buffer.CommandBuffer release];
 	Buffer.SourceBuffer.SafeRelease();
 	Buffer.Offset = 0;
 }
 
 void FMetalRenderQuery::Begin(FMetalContext* Context)
 {
+	Buffer.SourceBuffer.SafeRelease();
+	Buffer.Offset = 0;
+	
 	if(Type == RQT_Occlusion)
 	{
 		// these only need to be 8 byte aligned (of course, a normal allocation oafter this will be 256 bytes, making large holes if we don't do all
 		// query allocations at once)
 		Context->GetQueryBufferPool()->Allocate(Buffer);
 		Buffer.bCompleted = false;
-		Buffer.CommandBuffer = nil;
 		
 		Result = 0;
 		bAvailable = false;
@@ -124,8 +135,7 @@ void FMetalRenderQuery::End(FMetalContext* Context)
 	{
 		// switch back to non-occlusion rendering
 		Context->GetCommandEncoder().SetVisibilityResultMode(MTLVisibilityResultModeDisabled, 0);
-		Buffer.CommandBuffer = [Context->GetCurrentCommandBuffer() retain];
-		check(Buffer.CommandBuffer);
+		Context->InsertCommandBufferFence(Buffer.CommandBufferFence);
 	}
 }
 
@@ -160,9 +170,13 @@ bool FMetalDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,
 			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUQuery] += FPlatformTime::Cycles() - IdleStart;
 			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUQuery]++;
 		}
+		else
+		{
+			bOK = Query->Buffer.Wait(0);
+		}
 		
         Query->Result = 0;
-		Query->bAvailable = true; // @todo Zebra Never wait for a failed signal again.
+		Query->bAvailable = Query->Buffer.bCompleted; // @todo Zebra Never wait for a failed signal again.
 		
         if (bOK == false)
         {
@@ -172,7 +186,7 @@ bool FMetalDynamicRHI::RHIGetRenderQueryResult(FRenderQueryRHIParamRef QueryRHI,
 		
 		if(Query->Type == RQT_Occlusion)
 		{
-			Query->Result = *((uint64 const*)Query->Buffer.GetResult());
+			Query->Result = Query->Buffer.GetResult();
 		}
 		Query->Buffer.SourceBuffer.SafeRelease();
     }

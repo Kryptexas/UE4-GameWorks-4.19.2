@@ -22,6 +22,12 @@ static FAutoConsoleVariableRef CVarMetalCommandBufferCommitThreshold(
 	GMetalCommandBufferCommitThreshold,
 	TEXT("When enabled (> 0) if the command buffer has more than this number of draw/dispatch command encoded then it will be committed at the next encoder boundary to keep the GPU busy. (Default: 100, set to <= 0 to disable)"));
 
+int32 GMetalSupportsIntermediateBackBuffer = PLATFORM_MAC ? 1 : 0;
+static FAutoConsoleVariableRef CVarMetalSupportsIntermediateBackBuffer(
+	TEXT("rhi.Metal.SupportsIntermediateBackBuffer"),
+	GMetalSupportsIntermediateBackBuffer,
+	TEXT("When enabled (> 0) allocate an intermediate texture to use as the back-buffer & blit from there into the actual device back-buffer, thereby allowing screenshots & video capture that would otherwise be impossible as the texture required has already been released back to the OS as required by Metal's API. (Off by default (0) on iOS/tvOS but enabled (1) on Mac)"));
+
 #if PLATFORM_MAC
 static int32 GMetalCommandQueueSize = 5120; // This number is large due to texture streaming - currently each texture is its own command-buffer.
 // The whole MetalRHI needs to be changed to use MTLHeaps/MTLFences & reworked so that operations with the same synchronisation requirements are collapsed into a single blit command-encoder/buffer.
@@ -303,6 +309,7 @@ FMetalDeviceContext::FMetalDeviceContext(id<MTLDevice> MetalDevice, uint32 InDev
 , SceneFrameCounter(0)
 , FrameCounter(0)
 , ActiveContexts(1)
+, AllocatedContexts(1)
 {
 #if METAL_DEBUG_OPTIONS
 	CommandQueue.SetRuntimeDebuggingLevel(GMetalRuntimeDebugLevel);
@@ -548,21 +555,39 @@ void FMetalDeviceContext::EndDrawingViewport(FMetalViewport* Viewport, bool bPre
 	// enqueue a present if desired
 	if (bPresent)
 	{
-		id<CAMetalDrawable> Drawable = (id<CAMetalDrawable>)Viewport->GetDrawable();
-		if (Drawable.texture)
+		id<CAMetalDrawable> Drawable = (id<CAMetalDrawable>)Viewport->GetDrawable(EMetalViewportAccessRHI);
+		if (Drawable && Drawable.texture)
 		{
-#if PLATFORM_MAC
-			id<MTLBlitCommandEncoder> Blitter = GetBlitContext();
+			[Drawable retain];
 			
-			id<MTLTexture> Src = Viewport->GetBackBuffer()->Surface.Texture;
-			id<MTLTexture> Dst = Drawable.texture;
+			if (GMetalSupportsIntermediateBackBuffer)
+			{
+				id<MTLBlitCommandEncoder> Blitter = GetBlitContext();
+				
+				id<MTLTexture> Src = [Viewport->GetBackBuffer(EMetalViewportAccessRHI)->Surface.Texture retain];
+				id<MTLTexture> Dst = [Drawable.texture retain];
+				
+				NSUInteger Width = FMath::Min(Src.width, Dst.width);
+				NSUInteger Height = FMath::Min(Src.height, Dst.height);
+				
+				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CurrentCommandBuffer, Src);
+				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CurrentCommandBuffer, Dst);
+				
+				[Blitter copyFromTexture:Src sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(Width, Height, 1) toTexture:Dst destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+				
+				METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(this, @"Present(BackBuffer %p, Drawable %p)", Viewport->GetBackBuffer(EMetalViewportAccessRHI), Drawable);
+				
+				CommandEncoder.EndEncoding();
+				
+				[CurrentCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer>) {
+					[Src release];
+					[Dst release];
+				}];
+			}
 			
-			[Blitter copyFromTexture:Src sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(Src.width, Src.height, 1) toTexture:Dst destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
-			
-			METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(this, @"Present(BackBuffer %p, Drawable %p)", Viewport->GetBackBuffer(), Drawable);
-			
-			CommandEncoder.EndEncoding();
-#endif
+			[CurrentCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer>) {
+				[Drawable release];
+			}];
 			[CurrentCommandBuffer addScheduledHandler:^(id<MTLCommandBuffer>) {
 				[Drawable present];
 			}];
@@ -705,17 +730,24 @@ FMetalRHICommandContext* FMetalDeviceContext::AcquireContext()
 		check(CmdContext);
 		
 		Context = new FMetalRHICommandContext(CmdContext->GetProfiler(), MetalContext);
+		
+		++AllocatedContexts;
 	}
 	check(Context);
-	++ActiveContexts;
+	FPlatformAtomics::InterlockedIncrement(&ActiveContexts);
 	return Context;
 }
 
 void FMetalDeviceContext::ReleaseContext(FMetalRHICommandContext* Context)
 {
-	//delete Context;
+	check(!Context->GetInternalContext().GetCurrentCommandBuffer());
+	check(!Context->GetInternalContext().GetCommandEncoder().IsRenderCommandEncoderActive());
+	check(!Context->GetInternalContext().GetCommandEncoder().IsComputeCommandEncoderActive());
+	check(!Context->GetInternalContext().GetCommandEncoder().IsBlitCommandEncoderActive());
+	
 	ParallelContexts.Push(Context);
-	--ActiveContexts;
+	FPlatformAtomics::InterlockedDecrement(&ActiveContexts);
+	check(ActiveContexts >= 1);
 }
 
 uint32 FMetalDeviceContext::GetNumActiveContexts(void) const
@@ -814,6 +846,24 @@ id<MTLBlitCommandEncoder> FMetalContext::GetBlitContext()
 id<MTLCommandBuffer> FMetalContext::GetCurrentCommandBuffer()
 {
 	return CurrentCommandBuffer;
+}
+
+void FMetalContext::InsertCommandBufferFence(FMetalCommandBufferFence& Fence)
+{
+	check(CurrentCommandBuffer);
+	
+	TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe>* CmdBufRef = new TSharedPtr<MTLCommandBufferRef, ESPMode::ThreadSafe>(new MTLCommandBufferRef([CurrentCommandBuffer retain]));
+	
+	[CurrentCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull CommandBuffer)
+	{
+		if(CommandBuffer.status == MTLCommandBufferStatusError)
+		{
+			FMetalCommandList::HandleMetalCommandBufferFailure(CommandBuffer);
+		}
+		delete CmdBufRef;
+	}];
+	
+	Fence.CommandBufferRef = *CmdBufRef;
 }
 
 void FMetalContext::CreateAutoreleasePool()
@@ -1002,9 +1052,15 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 			const FVertexElement& Element = CurrentBoundShaderState->VertexDeclaration->Elements[ElementIndex];
 			
 			uint32 StreamStride = StateCache.GetVertexStride(Element.StreamIndex);
-			StrideHash ^= (StreamStride << 1);
+			StrideHash ^= (StreamStride << ElementIndex);
+			
+			bool const bStrideMistmatch = (StreamStride > 0 && Element.Stride != StreamStride);
+			
+			uint32 const ActualStride = bStrideMistmatch ? StreamStride : (Element.Stride ? Element.Stride : TranslateElementTypeToSize(Element.Type));
+			
+			bool const bStepRateMistmatch = StreamStride == 0 && Element.Stride != StreamStride;
 
-			if (StreamStride > 0 && Element.Stride != StreamStride)
+			if (bStrideMistmatch || bStepRateMistmatch)
 			{
 				if (!bUpdatedStrides)
 				{
@@ -1014,7 +1070,15 @@ bool FMetalContext::PrepareToDraw(uint32 PrimitiveType)
 				}
 				auto BufferLayout = [Layout.layouts objectAtIndexedSubscript:UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex)];
 				check(BufferLayout);
-				BufferLayout.stride = StreamStride;
+				if (bStrideMistmatch)
+				{
+					BufferLayout.stride = ActualStride;
+				}
+				if (bStepRateMistmatch)
+				{
+					BufferLayout.stepFunction = MTLVertexStepFunctionConstant;
+					BufferLayout.stepRate = 0;
+				}
 			}
 		}
 	}
@@ -1792,6 +1856,7 @@ void FMetalContext::DispatchIndirect(FMetalVertexBuffer* ArgumentBuffer, uint32 
 	MTLSize ThreadgroupCounts = MTLSizeMake(ComputeShader->NumThreadsX, ComputeShader->NumThreadsY, ComputeShader->NumThreadsZ);
 	check(ComputeShader->NumThreadsX > 0 && ComputeShader->NumThreadsY > 0 && ComputeShader->NumThreadsZ > 0);
 	
+	METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(GetCurrentCommandBuffer(), ArgumentBuffer->Buffer);
 	[CommandEncoder.GetComputeCommandEncoder() dispatchThreadgroupsWithIndirectBuffer:ArgumentBuffer->Buffer indirectBufferOffset:ArgumentOffset threadsPerThreadgroup:ThreadgroupCounts];
 	
 	OutstandingOpCount++;
@@ -1853,24 +1918,33 @@ public:
 	void operator delete(void *RawMemory);
 	
 	FMetalCommandContextContainer()
-	: CmdContext(GetMetalDeviceContext().AcquireContext())
+	: CmdContext(nullptr)
 	{
-		check(CmdContext);
 	}
 	
 	virtual ~FMetalCommandContextContainer() override
 	{
+		if (CmdContext)
+		{
+			GetMetalDeviceContext().ReleaseContext(CmdContext);
+			CmdContext = nullptr;
+			check(!CmdContext);
+		}
 	}
 	
 	virtual IRHICommandContext* GetContext() override
 	{
+		CmdContext = GetMetalDeviceContext().AcquireContext();
+		check(CmdContext);
 		CmdContext->GetInternalContext().InitFrame(false);
 		return CmdContext;
 	}
 	virtual void FinishContext() override
 	{
-		check(CmdContext);
-		CmdContext->GetInternalContext().FinishFrame();
+		if (CmdContext)
+		{
+			CmdContext->GetInternalContext().FinishFrame();
+		}
 	}
 	virtual void SubmitAndFreeContextContainer(int32 Index, int32 Num) override
 	{

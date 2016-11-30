@@ -520,10 +520,10 @@ uint GetSelectiveOutputMask()
 #if !WRITES_CUSTOMDATA_TO_GBUFFER
 	Mask |= SKIP_CUSTOMDATA_MASK;
 #endif
-#if !WRITES_PRECSHADOWFACTOR_TO_GBUFFER
+#if !GBUFFER_HAS_PRECSHADOWFACTOR
 	Mask |= SKIP_PRECSHADOW_MASK;
 #endif
-#if WRITES_PRECSHADOWFACTOR_ZERO
+#if (GBUFFER_HAS_PRECSHADOWFACTOR && WRITES_PRECSHADOWFACTOR_ZERO)
 	Mask |= ZERO_PRECSHADOW_MASK;
 #endif
 #if !WRITES_VELOCITY_TO_GBUFFER
@@ -588,10 +588,12 @@ void FPixelShaderInOut_MainPS(
 #endif
 
 	//Clip if the blend mode requires it.
+#if !EARLY_Z_PASS_ONLY_MATERIAL_MASKING
 	if(!bEditorWeightedZBuffering)
 	{
 		GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
 	}
+#endif
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor(PixelMaterialInputs);
 	half  Metallic = GetMaterialMetallic(PixelMaterialInputs);
@@ -1034,44 +1036,37 @@ void FPixelShaderInOut_MainPS(
 	}
 
 #if USES_GBUFFER
-	// extra starts at MRT4 (see PIXELSHADEROUTPUT_MRT3)
-	int MRT_Write_Index = 4;
-
-	#if WRITES_VELOCITY_TO_GBUFFER
-		Out.MRT[MRT_Write_Index++] = OutVelocity;
+	#if GBUFFER_HAS_VELOCITY
+		Out.MRT[4] = OutVelocity;
 	#endif
 
-	// we don't test for WRITES_CUSTOMDATA_TO_GBUFFER because GetGBufferRenderTargets() is not masking the MRT based on it, we mask by GetSelectiveOutputMask instead
-	Out.MRT[MRT_Write_Index++] = OutGBufferD;
+	Out.MRT[GBUFFER_HAS_VELOCITY ? 5 : 4] = OutGBufferD;
 
-	#if WRITES_PRECSHADOWFACTOR_TO_GBUFFER
-		Out.MRT[MRT_Write_Index++] = OutGBufferE;
+	#if GBUFFER_HAS_PRECSHADOWFACTOR
+		Out.MRT[GBUFFER_HAS_VELOCITY ? 6 : 5] = OutGBufferE;
 	#endif
-
 #endif
 }
 
 
-// Two options control the render target bindings : OUTPUT_GBUFFER_VELOCITY and ALLOW_STATIC_LIGHTING
-// Big issue here on PC with AMD hardware : putting the velocity buffer after an optional RT fails!!!
-#define VELOCITY_OUTPUT ((USES_GBUFFER) && (WRITES_VELOCITY_TO_GBUFFER))
-// we don't test for WRITES_CUSTOMDATA_TO_GBUFFER because GetGBufferRenderTargets() is not masking the MRT based on it, we mask by GetSelectiveOutputMask instead
-#define CUSTOMDATA_OUTPUT (USES_GBUFFER)
-#define PRESHADOWFACTOR_OUTPUT ((USES_GBUFFER) && (WRITES_PRECSHADOWFACTOR_TO_GBUFFER))
-
-#define EXTRA_MRT_COUNT (VELOCITY_OUTPUT + CUSTOMDATA_OUTPUT + PRESHADOWFACTOR_OUTPUT)
-
 // the following needs to match to the code in FSceneRenderTargets::GetGBufferRenderTargets()
-
 #define PIXELSHADEROUTPUT_BASEPASS 1
-#define PIXELSHADEROUTPUT_MRT0 (1)
-#define PIXELSHADEROUTPUT_MRT1 (USES_GBUFFER)
-#define PIXELSHADEROUTPUT_MRT2 (USES_GBUFFER)
-#define PIXELSHADEROUTPUT_MRT3 (USES_GBUFFER)
-#define PIXELSHADEROUTPUT_MRT4 (EXTRA_MRT_COUNT > 0)
-#define PIXELSHADEROUTPUT_MRT5 (EXTRA_MRT_COUNT > 1)
-#define PIXELSHADEROUTPUT_MRT6 (EXTRA_MRT_COUNT > 2)
+#define PIXELSHADEROUTPUT_MRT0 (!USES_GBUFFER || !SELECTIVE_BASEPASS_OUTPUTS || NEEDS_BASEPASS_FOGGING || USES_EMISSIVE_COLOR || ALLOW_STATIC_LIGHTING)
+#define PIXELSHADEROUTPUT_MRT1 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))
+#define PIXELSHADEROUTPUT_MRT2 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))
+#define PIXELSHADEROUTPUT_MRT3 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))
 #define PIXELSHADEROUTPUT_A2C ((EDITOR_ALPHA2COVERAGE) != 0)
+#if GBUFFER_HAS_VELOCITY
+#define PIXELSHADEROUTPUT_MRT4 WRITES_VELOCITY_TO_GBUFFER
+#define PIXELSHADEROUTPUT_MRT5 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || WRITES_CUSTOMDATA_TO_GBUFFER))
+#define PIXELSHADEROUTPUT_MRT6 (GBUFFER_HAS_PRECSHADOWFACTOR && (!SELECTIVE_BASEPASS_OUTPUTS || WRITES_PRECSHADOWFACTOR_TO_GBUFFER && !MATERIAL_SHADINGMODEL_UNLIT))
+
+#else //WRITES_VELOCITY_TO_GBUFFER
+#define PIXELSHADEROUTPUT_MRT4 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || WRITES_CUSTOMDATA_TO_GBUFFER))
+#define PIXELSHADEROUTPUT_MRT5 (GBUFFER_HAS_PRECSHADOWFACTOR && (!SELECTIVE_BASEPASS_OUTPUTS || WRITES_PRECSHADOWFACTOR_TO_GBUFFER && !MATERIAL_SHADINGMODEL_UNLIT))
+
+#endif //WRITES_VELOCITY_TO_GBUFFER
+
 // all PIXELSHADEROUTPUT_ and "void FPixelShaderInOut_MainPS()" need to be setup before this include
 // this include generates the wrapper code to call MainPS(inout FPixelShaderOutput PixelShaderOutput)
 #include "PixelShaderOutputCommon.usf"

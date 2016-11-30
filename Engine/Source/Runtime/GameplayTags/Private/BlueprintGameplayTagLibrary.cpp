@@ -2,6 +2,8 @@
 
 #include "BlueprintGameplayTagLibrary.h"
 #include "GameplayTagsModule.h"
+#include "Engine/Engine.h"
+#include "EngineUtils.h"
 
 UBlueprintGameplayTagLibrary::UBlueprintGameplayTagLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -87,6 +89,51 @@ bool UBlueprintGameplayTagLibrary::HasAllTags(const FGameplayTagContainer& TagCo
 bool UBlueprintGameplayTagLibrary::DoesContainerMatchTagQuery(const FGameplayTagContainer& TagContainer, const FGameplayTagQuery& TagQuery)
 {
 	return TagQuery.Matches(TagContainer);
+}
+
+void UBlueprintGameplayTagLibrary::GetAllActorsOfClassMatchingTagQuery(UObject* WorldContextObject,
+																	   TSubclassOf<AActor> ActorClass,
+																	   const FGameplayTagQuery& GameplayTagQuery,
+																	   TArray<AActor*>& OutActors)
+{
+	OutActors.Empty();
+
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+
+	// We do nothing if not class provided, rather than giving ALL actors!
+	if (ActorClass && World)
+	{
+		bool bHasLoggedMissingInterface = false;
+		for (TActorIterator<AActor> It(World, ActorClass); It; ++It)
+		{
+			AActor* Actor = *It;
+			check(Actor != nullptr);
+			if (!Actor->IsPendingKill())
+			{
+				IGameplayTagAssetInterface* GameplayTagAssetInterface = Cast<IGameplayTagAssetInterface>(Actor);
+				if (GameplayTagAssetInterface != nullptr)
+				{
+					FGameplayTagContainer OwnedGameplayTags;
+					GameplayTagAssetInterface->GetOwnedGameplayTags(OwnedGameplayTags);
+
+					if (OwnedGameplayTags.MatchesQuery(GameplayTagQuery))
+					{
+						OutActors.Add(Actor);
+					}
+				}
+				else
+				{
+					if (!bHasLoggedMissingInterface)
+					{
+						UE_LOG(LogGameplayTags, Warning,
+							TEXT("At least one actor (%s) of class %s does not implement IGameplTagAssetInterface.  Unable to find owned tags, so cannot determine if actor matches gameplay tag query.  Presuming it does not."),
+							*Actor->GetName(), *ActorClass->GetName());
+						bHasLoggedMissingInterface = true;
+					}
+				}
+			}
+		}
+	}
 }
 
 bool UBlueprintGameplayTagLibrary::EqualEqual_GameplayTagContainer(const FGameplayTagContainer& A, const FGameplayTagContainer& B)

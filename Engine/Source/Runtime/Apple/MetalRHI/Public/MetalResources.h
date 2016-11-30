@@ -428,13 +428,68 @@ public:
 	}
 };
 
+template<typename T>
+class TMetalPtr
+{
+public:
+	TMetalPtr()
+	: Object(nil)
+	{
+		
+	}
+	
+	TMetalPtr(T Obj)
+	: Object(Obj)
+	{
+		
+	}
+	
+	TMetalPtr(TMetalPtr const& Other)
+	: Object(nil)
+	{
+		
+	}
+	
+	~TMetalPtr()
+	{
+		[Object release];
+	}
+	
+	TMetalPtr& operator=(TMetalPtr const& Other)
+	{
+		if (&Other != this)
+		{
+			[Other.Object retain];
+			[Object release];
+			Object = Other.Object;
+		}
+		return *this;
+	}
+	
+	operator T() const
+	{
+		return Object;
+	}
+private:
+	T Object;
+};
+
+typedef TMetalPtr<id<MTLCommandBuffer>> MTLCommandBufferRef;
+
+struct FMetalCommandBufferFence
+{
+	bool Wait(uint64 Millis);
+	
+	TWeakPtr<MTLCommandBufferRef, ESPMode::ThreadSafe> CommandBufferRef;
+};
+
 struct FMetalQueryBuffer : public FRHIResource
 {
     FMetalQueryBuffer(FMetalContext* InContext, id<MTLBuffer> InBuffer);
     
     virtual ~FMetalQueryBuffer();
     
-    void const* GetResult(uint32 Offset);
+    uint64 GetResult(uint32 Offset);
 	
 	TWeakPtr<struct FMetalQueryBufferPool, ESPMode::ThreadSafe> Pool;
     id<MTLBuffer> Buffer;
@@ -445,10 +500,10 @@ typedef TRefCountPtr<FMetalQueryBuffer> FMetalQueryBufferRef;
 struct FMetalQueryResult
 {
     bool Wait(uint64 Millis);
-    void const* GetResult();
+    uint64 GetResult();
 	
     FMetalQueryBufferRef SourceBuffer;
-	id<MTLCommandBuffer> CommandBuffer;
+	FMetalCommandBufferFence CommandBufferFence;
     uint32 Offset;
 	bool bCompleted;
 };
@@ -461,7 +516,7 @@ public:
 	/** Initialization constructor. */
 	FMetalRenderQuery(ERenderQueryType InQueryType);
 
-	~FMetalRenderQuery();
+	virtual ~FMetalRenderQuery();
 
 	/**
 	 * Kick off an occlusion test 
@@ -708,6 +763,12 @@ public:
 	: FRHIComputeFence(InName)
 	, CommandBuffer(nil)
 	{}
+	
+	virtual ~FMetalComputeFence()
+	{
+		[CommandBuffer release];
+		CommandBuffer = nil;
+	}
 	
 	virtual void Reset() final override
 	{

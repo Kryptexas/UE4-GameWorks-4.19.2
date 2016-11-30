@@ -82,6 +82,7 @@ public:
 public:
 
 	virtual void PostLoad() override;
+	virtual bool NeedsLoadForServer() const override;
 
 	/**
 	 * This is the function that makes UMG work.  Once a user widget is constructed, it will post load

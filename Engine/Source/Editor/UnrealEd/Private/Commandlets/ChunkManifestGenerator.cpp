@@ -854,7 +854,14 @@ bool FChunkManifestGenerator::GetPackageDependencyChain(FName SourcePackage, FNa
 
 bool FChunkManifestGenerator::GetPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames, EAssetRegistryDependencyType::Type InDependencyType)
 {	
-	return AssetRegistry.GetDependencies(PackageName, DependentPackageNames, InDependencyType);
+	if (FGameDelegates::Get().GetGetPackageDependenciesForManifestGeneratorDelegate().IsBound())
+	{
+		return FGameDelegates::Get().GetGetPackageDependenciesForManifestGeneratorDelegate().Execute(PackageName, DependentPackageNames, InDependencyType);
+	}
+	else
+	{
+		return AssetRegistry.GetDependencies(PackageName, DependentPackageNames, InDependencyType);
+	}
 }
 
 bool FChunkManifestGenerator::GatherAllPackageDependencies(FName PackageName, TArray<FName>& DependentPackageNames)

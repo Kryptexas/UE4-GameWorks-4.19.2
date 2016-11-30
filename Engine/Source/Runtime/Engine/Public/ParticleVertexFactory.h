@@ -10,6 +10,7 @@
 #include "RenderResource.h"
 #include "UniformBuffer.h"
 #include "VertexFactory.h"
+#include "SceneView.h"
 
 class FMaterial;
 
@@ -34,6 +35,9 @@ public:
 	/** Default constructor. */
 	explicit FParticleVertexFactoryBase( EParticleVertexFactoryType Type, ERHIFeatureLevel::Type InFeatureLevel )
 		: FVertexFactory(InFeatureLevel)
+		, LastFrameSetup(MAX_uint32)
+		, LastViewFamily(nullptr)
+		, LastFrameRealTime(-1.0f)
 		, ParticleFactoryType(Type)
 		, bInUse(false)
 	{
@@ -70,13 +74,31 @@ public:
 
 	ERHIFeatureLevel::Type GetFeatureLevel() const { check(HasValidFeatureLevel());  return FRenderResource::GetFeatureLevel(); }
 
+	bool CheckAndUpdateLastFrame(const FSceneViewFamily& ViewFamily) const
+	{
+		if (LastFrameSetup != MAX_uint32 && (&ViewFamily == LastViewFamily) && ViewFamily.FrameNumber == LastFrameSetup && LastFrameRealTime == ViewFamily.CurrentRealTime)
+		{
+			return false;
+		}
+		LastFrameSetup = ViewFamily.FrameNumber;
+		LastFrameRealTime = ViewFamily.CurrentRealTime;
+		LastViewFamily = &ViewFamily;
+		return true;
+	}
+
 private:
+
+	/** Last state where we set this. We only need to setup these once per frame, so detemine same frame by number, time, and view family. */
+	mutable uint32 LastFrameSetup;
+	mutable const FSceneViewFamily *LastViewFamily;
+	mutable float LastFrameRealTime;
 
 	/** The type of the vertex factory. */
 	EParticleVertexFactoryType ParticleFactoryType;
 
 	/** Whether the vertex factory is in use. */
 	bool bInUse;
+
 };
 
 /**

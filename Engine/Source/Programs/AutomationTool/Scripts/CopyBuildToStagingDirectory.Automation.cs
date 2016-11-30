@@ -597,7 +597,6 @@ public partial class Project : CommandUtils
 				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Programs/CrashReportClient/Config" ) );
 			}
 
-
 			// check if the game will be verifying ssl connections - if not, we can skip staging files that won't be needed
 			bool bStageSSLCertificates = false;
 			ConfigCacheIni PlatformEngineConfig = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.IniPlatformType, "Engine", new DirectoryReference(CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName)));
@@ -1252,7 +1251,7 @@ public partial class Project : CommandUtils
 
 	private static string GetTmpPackagingPath(ProjectParams Params, DeploymentContext SC)
 	{
-		return CombinePaths(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Saved", "TmpPackaging", SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false));
+		return CombinePaths(Path.GetDirectoryName(Params.RawProjectPath.FullName), "Saved", "TmpPackaging", SC.FinalCookPlatform);
 	}
 
 	private static bool ShouldCreatePak(ProjectParams Params, DeploymentContext SC)

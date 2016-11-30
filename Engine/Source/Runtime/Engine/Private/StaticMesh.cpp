@@ -62,6 +62,14 @@ DECLARE_MEMORY_STAT( TEXT( "StaticMesh Total Memory" ), STAT_StaticMeshTotalMemo
 /** Package name, that if set will cause only static meshes in that package to be rebuilt based on SM version. */
 ENGINE_API FName GStaticMeshPackageNameToRebuild = NAME_None;
 
+#if WITH_EDITORONLY_DATA
+int32 GUpdateMeshLODGroupSettingsAtLoad = 0;
+static FAutoConsoleVariableRef CVarStaticMeshUpdateMeshLODGroupSettingsAtLoad(
+	TEXT("r.StaticMesh.UpdateMeshLODGroupSettingsAtLoad"),
+	GUpdateMeshLODGroupSettingsAtLoad,
+	TEXT("If set, LODGroup settings for static meshes will be applied at load time."));
+#endif
+
 #if ENABLE_COOK_STATS
 namespace StaticMeshCookStats
 {
@@ -1903,7 +1911,11 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 void UStaticMesh::SetLODGroup(FName NewGroup)
 {
 #if WITH_EDITORONLY_DATA
-	Modify();
+	const bool bBeforeDerivedDataCached = (RenderData == nullptr);
+	if (!bBeforeDerivedDataCached)
+	{
+		Modify();
+	}
 	LODGroup = NewGroup;
 
 	const ITargetPlatform* Platform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
@@ -1913,25 +1925,31 @@ void UStaticMesh::SetLODGroup(FName NewGroup)
 	// Set the number of LODs to at least the default. If there are already LODs they will be preserved, with default settings of the new LOD group.
 	int32 DefaultLODCount = GroupSettings.GetDefaultNumLODs();
 
-	while (SourceModels.Num() < DefaultLODCount)
-	{
-		new(SourceModels) FStaticMeshSourceModel();
-	}
-	
 	if (SourceModels.Num() > DefaultLODCount)
 	{
 		int32 NumToRemove = SourceModels.Num() - DefaultLODCount;
 		SourceModels.RemoveAt(DefaultLODCount, NumToRemove);
 	}
+	else if (DefaultLODCount > SourceModels.Num())
+	{
+		int32 NumToAdd = DefaultLODCount - SourceModels.Num();
+		SourceModels.AddDefaulted(NumToAdd);
+	}
+
+	check(SourceModels.Num() == DefaultLODCount);
 
 	// Set reduction settings to the defaults.
 	for (int32 LODIndex = 0; LODIndex < DefaultLODCount; ++LODIndex)
 	{
 		SourceModels[LODIndex].ReductionSettings = GroupSettings.GetDefaultSettings(LODIndex);
 	}
-	bAutoComputeLODScreenSize = true;
 	LightMapResolution = GroupSettings.GetDefaultLightMapResolution();
-	PostEditChange();
+	
+	if (!bBeforeDerivedDataCached)
+	{
+		bAutoComputeLODScreenSize = true;
+		PostEditChange();
+	}
 #endif
 }
 
@@ -2533,6 +2551,12 @@ void UStaticMesh::PostLoad()
 			{
 				SourceModels[i].BuildSettings.bBuildAdjacencyBuffer = (TotalIndexCount < 50000);
 			}
+		}
+
+		// The LODGroup update on load must happen before CacheDerivedData so we don't have to rebuild it after
+		if (GUpdateMeshLODGroupSettingsAtLoad && LODGroup != NAME_None)
+		{
+			SetLODGroup(LODGroup);
 		}
 
 		CacheDerivedData();

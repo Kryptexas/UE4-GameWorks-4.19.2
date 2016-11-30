@@ -2734,6 +2734,7 @@ bool SupportsDistanceFieldAO(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatfor
 {
 	return GDistanceFieldAO 
 		&& FeatureLevel >= ERHIFeatureLevel::SM5
+		&& (!IsMetalPlatform(ShaderPlatform) || !IsRHIDeviceIntel())
 		&& DoesPlatformSupportDistanceFieldAO(ShaderPlatform);
 }
 

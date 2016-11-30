@@ -372,12 +372,13 @@ bool FXAudio2SoundSource::CreateSource( void )
 	// Create a source that goes to the spatialisation code and reverb effect
 	Destinations[NumSends].pOutputVoice = Effects->DryPremasterVoice;
 
-	// EQFilter Causes sound devices on AMD boards to lag and starve important game threads. Hack disable for AMD until a long term solution is put into place.
-	static const bool bIsAMD = (FPlatformMisc::GetCPUVendor() == TEXT("AuthenticAMD"));
-	if (!bIsAMD && IsEQFilterApplied())
+	// EQFilter Causes some sound devices to lag and starve important game threads. Hack disable until a long term solution is put into place.
+#if 0
+	if (IsEQFilterApplied())
 	{
 		Destinations[NumSends].pOutputVoice = Effects->EQPremasterVoice;
 	}
+#endif
 
 	NumSends++;
 

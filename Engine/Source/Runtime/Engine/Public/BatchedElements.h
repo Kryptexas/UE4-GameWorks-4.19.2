@@ -360,7 +360,8 @@ private:
 	/** bound shader state for the regular mesh elements with an sRGB texture */
 	static FSimpleElementBSSContainer RegularSRGBBoundShaderState;
 	/** bound shader state for masked mesh elements */
-	static FSimpleElementBSSContainer MaskedBoundShaderState;
+	static FSimpleElementBSSContainer MaskedLinearBoundShaderState;
+    static FSimpleElementBSSContainer MaskedSRGBBoundShaderState;
 	/** bound shader state for masked mesh elements */
 	static FSimpleElementBSSContainer DistanceFieldBoundShaderState;
 	/** bound shader state for the hit testing mesh elements */

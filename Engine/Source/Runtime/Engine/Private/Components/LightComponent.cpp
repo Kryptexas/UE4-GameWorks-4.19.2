@@ -341,6 +341,7 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	BloomTint = FColor::White;
 
 	RayStartOffsetDepthScale = .003f;
+	bAddedToSceneVisible = false;
 }
 
 
@@ -645,25 +646,17 @@ void ULightComponent::CreateRenderState_Concurrent()
 {
 	Super::CreateRenderState_Concurrent();
 
-	bool bHidden = false;
-#if WITH_EDITORONLY_DATA
-	bHidden = GetOwner() ? GetOwner()->IsHiddenEd() : false;
-#endif // WITH_EDITORONLY_DATA
-
-	if(!ShouldComponentAddToScene())
-	{
-		bHidden = true;
-	}
-
 	if (bAffectsWorld)
 	{
 		UWorld* World = GetWorld();
-		if (bVisible && !bHidden)
+		const bool bHidden = !ShouldComponentAddToScene() || !ShouldRender() || Intensity <= 0.f;
+		if (!bHidden)
 		{
 			InitializeStaticShadowDepthMap();
 
 			// Add the light to the scene.
 			World->Scene->AddLight(this);
+			bAddedToSceneVisible = true;
 		}
 		// Add invisible stationary lights to the scene in the editor
 		// Even invisible stationary lights consume a shadowmap channel so they must be included in the stationary light overlap preview
@@ -692,6 +685,7 @@ void ULightComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
 	GetWorld()->Scene->RemoveLight(this);
+	bAddedToSceneVisible = false;
 }
 
 /** Set brightness of the light */
@@ -703,13 +697,8 @@ void ULightComponent::SetIntensity(float NewIntensity)
 	{
 		Intensity = NewIntensity;
 
-		// Use lightweight color and brightness update 
-		UWorld* World = GetWorld();
-		if( World && World->Scene )
-		{
-			//@todo - remove from scene if brightness or color becomes 0
-			World->Scene->UpdateLightColorAndBrightness( this );
-		}
+		// Use lightweight color and brightness update if possible
+		UpdateColorAndBrightness();
 	}
 }
 
@@ -893,7 +882,19 @@ void ULightComponent::UpdateColorAndBrightness()
 	UWorld* World = GetWorld();
 	if( World && World->Scene )
 	{
-		World->Scene->UpdateLightColorAndBrightness( this );
+		const bool bNeedsToBeAddedToScene = (!bAddedToSceneVisible && Intensity > 0.f);
+		const bool bNeedsToBeRemovedFromScene = (bAddedToSceneVisible && Intensity <= 0.f);
+		if (bNeedsToBeAddedToScene || bNeedsToBeRemovedFromScene)
+		{
+			// We may have just been set to 0 intensity or we were previously 0 intensity.
+			// Mark the render state dirty to add or remove this light from the scene as necessary.
+			MarkRenderStateDirty();
+		}
+		else if (bAddedToSceneVisible && Intensity > 0.f)
+		{
+			// We are already in the scene. Just update with this fast path command
+			World->Scene->UpdateLightColorAndBrightness(this);
+		}
 	}
 }
 

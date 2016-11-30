@@ -8,6 +8,14 @@ FWebImageCache::FWebImageCache()
 {
 }
 
+void FWebImageCache::PreUnload()
+{
+	for (const TSharedRef<FWebImage>& WebImage : StrongRefCache)
+	{
+		WebImage->CancelDownload();
+	}
+}
+
 TSharedRef<const FWebImage> FWebImageCache::Download(const FString& Url, const TOptional<FString>& DefaultImageUrl)
 {
 	TAttribute<const FSlateBrush*> StandInBrush;

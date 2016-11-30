@@ -142,6 +142,9 @@ public:
 	/** Called to handle an OnKeyDown event from our parent widget */
 	FReply HandleKeyDown(const FKeyEvent& InKeyEvent);
 
+	/** Called to handle an OnKeyUp event from our parent widget */
+	FReply HandleKeyUp(const FKeyEvent& InKeyEvent);
+
 	/** Called to handle an OnMouseButtonDown event from our parent widget */
 	FReply HandleMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent);
 

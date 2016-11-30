@@ -3660,6 +3660,12 @@ void FBlueprintDelegateActionDetails::CollectAvailibleSignatures()
 					FunctionsToCopySignatureFrom.Add(ItemData);
 				}
 			}
+
+			// Sort the function list
+			FunctionsToCopySignatureFrom.Sort([](const TSharedPtr<FString>& ElementA, const TSharedPtr<FString>& ElementB) -> bool
+			{
+				return *ElementA < *ElementB;
+			});
 		}
 	}
 }

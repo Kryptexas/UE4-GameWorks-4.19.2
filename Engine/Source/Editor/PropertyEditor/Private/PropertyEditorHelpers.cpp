@@ -190,6 +190,14 @@ TSharedRef<SWidget> SPropertyValueWidget::ConstructPropertyEditorWidget( TShared
 
 			NumericWidget->GetDesiredWidth( MinDesiredWidth, MaxDesiredWidth );
 		}
+		else if ( SPropertyEditorNumeric<double>::Supports( PropertyEditorRef ) )
+		{
+			auto NumericWidget =
+				SAssignNew( PropertyWidget, SPropertyEditorNumeric<double>, PropertyEditorRef )
+				.Font( FontStyle );
+
+			NumericWidget->GetDesiredWidth( MinDesiredWidth, MaxDesiredWidth );
+		}
 		else if (SPropertyEditorNumeric<int8>::Supports(PropertyEditorRef))
 		{
 			auto NumericWidget =
@@ -547,6 +555,10 @@ namespace PropertyEditorHelpers
 		else if( FPropertyHandleFloat::Supports( PropertyNode ) )
 		{
 			PropertyHandle = MakeShareable( new FPropertyHandleFloat( PropertyNode, NotifyHook, PropertyUtilities ) );
+		}
+		else if ( FPropertyHandleDouble::Supports( PropertyNode ) )
+		{
+			PropertyHandle = MakeShareable( new FPropertyHandleDouble( PropertyNode, NotifyHook, PropertyUtilities ) );
 		}
 		else if( FPropertyHandleBool::Supports( PropertyNode ) )
 		{

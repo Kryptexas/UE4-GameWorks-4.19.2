@@ -153,6 +153,11 @@ public:
 private:
 	const FComponentOverrideRecord* FindRecord(const FComponentKey Key) const;
 	
+	/** All component records */
 	UPROPERTY()
 	TArray<FComponentOverrideRecord> Records;
+
+	/** List of components that were marked unnecessary, need to keep these around so it doesn't regenerate them when a child asks for one */
+	UPROPERTY(Transient)
+	TArray<UActorComponent*> UnnecessaryComponents;
 };

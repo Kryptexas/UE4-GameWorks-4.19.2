@@ -232,6 +232,33 @@ void FObjectReplicator::CleanUp()
 		StopReplicating( OwningChannel );		// We shouldn't get here, but just in case
 	}
 
+	if ( Connection != nullptr )
+	{
+		for ( const FNetworkGUID& GUID : ReferencedGuids )
+		{
+			TSet< FObjectReplicator* >& Replicators = Connection->Driver->GuidToReplicatorMap.FindChecked( GUID );
+
+			Replicators.Remove( this );
+
+			if ( Replicators.Num() == 0 )
+			{
+				Connection->Driver->GuidToReplicatorMap.Remove( GUID );
+			}
+		}
+
+		Connection->Driver->UnmappedReplicators.Remove( this );
+
+		Connection->Driver->TotalTrackedGuidMemoryBytes -= TrackedGuidMemoryBytes;
+	}
+	else
+	{
+		ensureMsgf( TrackedGuidMemoryBytes == 0, TEXT( "TrackedGuidMemoryBytes should be 0" ) );
+		ensureMsgf( ReferencedGuids.Num() == 0, TEXT( "ReferencedGuids should be 0" ) );
+	}
+
+	ReferencedGuids.Empty();
+	TrackedGuidMemoryBytes = 0;
+
 	SetObject( NULL );
 
 	ObjectClass					= NULL;
@@ -365,25 +392,6 @@ void FObjectReplicator::StopReplicating( class UActorChannel * InActorChannel )
 	check( OwningChannel != NULL );
 	check( OwningChannel->Connection == Connection );
 	check( OwningChannel == InActorChannel );
-
-	for ( const FNetworkGUID& GUID : ReferencedGuids )
-	{
-		TSet< FObjectReplicator* >& Replicators = Connection->Driver->GuidToReplicatorMap.FindChecked( GUID );
-
-		Replicators.Remove( this );
-
-		if ( Replicators.Num() == 0 )
-		{
-			Connection->Driver->GuidToReplicatorMap.Remove( GUID );
-		}
-	}
-
-	Connection->Driver->UnmappedReplicators.Remove( this );
-
-	ReferencedGuids.Empty();
-	
-	Connection->Driver->TotalTrackedGuidMemoryBytes -= TrackedGuidMemoryBytes;
-	TrackedGuidMemoryBytes = 0;
 
 	OwningChannel = NULL;
 
@@ -1476,7 +1484,7 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 
 		FNetDeltaSerializeInfo Parms;
 
-		FNetSerializeCB NetSerializeCB( OwningChannel->Connection->Driver );
+		FNetSerializeCB NetSerializeCB( Connection->Driver );
 
 		Parms.DebugName			= StructProperty->GetName();
 		Parms.Struct			= InnerStruct;

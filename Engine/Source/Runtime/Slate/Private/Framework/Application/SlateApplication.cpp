@@ -2073,8 +2073,8 @@ TSharedRef<SWindow> FSlateApplication::AddWindowAsNativeChild( TSharedRef<SWindo
 	// don't add the Slate window to our window list, we wouldn't be able to route that message to the window.
 	InParentWindow->AddChildWindow( InSlateWindow );
 
-	// Only make native generic windows if the parent has one.
-	if ( InParentWindow->GetNativeWindow()->GetOSWindowHandle() )
+	// Only make native generic windows if the parent has one. Nullrhi makes only generic windows, whose handles are always null
+	if ( InParentWindow->GetNativeWindow()->GetOSWindowHandle() || !FApp::CanEverRender() )
 	{
 		TSharedRef<FGenericWindow> NewWindow = MakeWindow(InSlateWindow, bShowImmediately);
 
@@ -3094,28 +3094,32 @@ void FSlateApplication::ProcessReply( const FWidgetPath& CurrentEventPath, const
 	// If we have a valid Navigation request and enough time has passed since the last navigation then try to navigate.
 	if (TheReply.GetNavigationType() != EUINavigation::Invalid)
 	{
-		TSharedPtr<SWidget> FocusedWidget = GetUserFocusedWidget(UserIndex);
-		if (FocusedWidget.IsValid())
+		FWidgetPath NavigationSource;
+		if (TheReply.GetNavigationSource() == ENavigationSource::WidgetUnderCursor)
+		{
+			NavigationSource = *WidgetsUnderMouse;
+		}
+		else if(const FSlateUser* User = GetOrCreateUser(UserIndex))
+		{
+			const FUserFocusEntry& UserFocusEntry = User->Focus;
+			NavigationSource = UserFocusEntry.WidgetPath.ToWidgetPath();
+		}
+
+		if (NavigationSource.IsValid())
 		{
 			FNavigationEvent NavigationEvent(UserIndex, TheReply.GetNavigationType());
 
-			if ( const FSlateUser* User = GetOrCreateUser(UserIndex) )
+			FNavigationReply NavigationReply = FNavigationReply::Escape();
+			for (int32 WidgetIndex = NavigationSource.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex)
 			{
-				const FUserFocusEntry& UserFocusEntry = User->Focus;
-				FWidgetPath EventPath = UserFocusEntry.WidgetPath.ToWidgetPath();
-
-				FNavigationReply NavigationReply = FNavigationReply::Escape();
-				for ( int32 WidgetIndex = EventPath.Widgets.Num() - 1; WidgetIndex >= 0; --WidgetIndex )
+				FArrangedWidget& SomeWidgetGettingEvent = NavigationSource.Widgets[WidgetIndex];
+				if (SomeWidgetGettingEvent.Widget->IsEnabled())
 				{
-					FArrangedWidget& SomeWidgetGettingEvent = EventPath.Widgets[WidgetIndex];
-					if ( SomeWidgetGettingEvent.Widget->IsEnabled() )
+					NavigationReply = SomeWidgetGettingEvent.Widget->OnNavigation(SomeWidgetGettingEvent.Geometry, NavigationEvent).SetHandler(SomeWidgetGettingEvent.Widget);
+					if (NavigationReply.GetBoundaryRule() != EUINavigationRule::Escape || WidgetIndex == 0)
 					{
-						NavigationReply = SomeWidgetGettingEvent.Widget->OnNavigation(SomeWidgetGettingEvent.Geometry, NavigationEvent).SetHandler(SomeWidgetGettingEvent.Widget);
-						if ( NavigationReply.GetBoundaryRule() != EUINavigationRule::Escape || WidgetIndex == 0 )
-						{
-							AttemptNavigation(NavigationEvent, NavigationReply, SomeWidgetGettingEvent);
-							break;
-						}
+						AttemptNavigation(NavigationSource, NavigationEvent, NavigationReply, SomeWidgetGettingEvent);
+						break;
 					}
 				}
 			}
@@ -5692,69 +5696,67 @@ bool FSlateApplication::OnCursorSet()
 	return true;
 }
 
-bool FSlateApplication::AttemptNavigation(const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget)
+bool FSlateApplication::AttemptNavigation(const FWidgetPath& NavigationSource, const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget)
 {
-	// Get the controller focus target for this user
-	FSlateUser* User = GetOrCreateUser(NavigationEvent.GetUserIndex());
-	if ( !User )
+	if ( !NavigationSource.IsValid() )
 	{
 		return false;
 	}
 
-	FWeakWidgetPath FocusedWeakWidgetPath = User->Focus.WidgetPath;
-	TSharedPtr<SWidget> FocusedWidget = FocusedWeakWidgetPath.IsValid() ? FocusedWeakWidgetPath.GetLastWidget().Pin() : TSharedPtr<SWidget>();
+	TSharedPtr<SWidget> DestinationWidget = TSharedPtr<SWidget>();
 
-	TSharedPtr<SWidget> NewFocusedWidget = TSharedPtr<SWidget>();
-	if (FocusedWidget.IsValid())
+	EUINavigation NavigationType = NavigationEvent.GetNavigationType();
+	if ( NavigationReply.GetBoundaryRule() == EUINavigationRule::Explicit )
 	{
-		EUINavigation NavigationType = NavigationEvent.GetNavigationType();
-
-		if ( NavigationReply.GetBoundaryRule() == EUINavigationRule::Explicit )
+		DestinationWidget = NavigationReply.GetFocusRecipient();
+	}
+	else if ( NavigationReply.GetBoundaryRule() == EUINavigationRule::Custom )
+	{
+		const FNavigationDelegate& FocusDelegate = NavigationReply.GetFocusDelegate();
+		if ( FocusDelegate.IsBound() )
 		{
-			NewFocusedWidget = NavigationReply.GetFocusRecipient();
+			DestinationWidget = FocusDelegate.Execute(NavigationType);
 		}
-		else if ( NavigationReply.GetBoundaryRule() == EUINavigationRule::Custom )
+	}
+	else
+	{
+		// Find the next widget
+		if (NavigationType == EUINavigation::Next || NavigationType == EUINavigation::Previous)
 		{
-			const FNavigationDelegate& FocusDelegate = NavigationReply.GetFocusDelegate();
-			if ( FocusDelegate.IsBound() )
-			{
-				NewFocusedWidget = FocusDelegate.Execute(NavigationType);
-			}
+			// Fond the next widget
+			FWeakWidgetPath WeakNavigationSource(NavigationSource);
+			FWidgetPath NewFocusedWidgetPath = WeakNavigationSource.ToNextFocusedPath(NavigationType, NavigationReply, BoundaryWidget);
+
+			// Resolve the Widget Path
+			FArrangedWidget& NewFocusedArrangedWidget = NewFocusedWidgetPath.Widgets.Last();
+			DestinationWidget = NewFocusedArrangedWidget.Widget;
 		}
 		else
 		{
-			// Find the next widget
-			if (NavigationType == EUINavigation::Next || NavigationType == EUINavigation::Previous)
-			{
-				// Fond the next widget
-				FWidgetPath NewFocusedWidgetPath = FocusedWeakWidgetPath.ToNextFocusedPath(NavigationType, NavigationReply, BoundaryWidget);
+			// Resolve the Widget Path
+			const FArrangedWidget& FocusedArrangedWidget = NavigationSource.Widgets.Last();
 
-				// Resolve the Widget Path
-				FArrangedWidget& NewFocusedArrangedWidget = NewFocusedWidgetPath.Widgets.Last();
-				NewFocusedWidget = NewFocusedArrangedWidget.Widget;
-			}
-			else
-			{
-				// Resolve the Widget Path
-				FWidgetPath FocusedWidgetPath = FocusedWeakWidgetPath.ToWidgetPath();
-				FArrangedWidget& FocusedArrangedWidget = FocusedWidgetPath.Widgets.Last();
+			// Switch worlds for widgets in the current path 
+			FScopedSwitchWorldHack SwitchWorld(NavigationSource);
 
-				// Switch worlds for widgets in the current path 
-				FScopedSwitchWorldHack SwitchWorld(FocusedWidgetPath);
-
-				NewFocusedWidget = FocusedWidgetPath.GetWindow()->GetHittestGrid()->FindNextFocusableWidget(FocusedArrangedWidget, NavigationType, NavigationReply, BoundaryWidget);
-			}
+			DestinationWidget = NavigationSource.GetWindow()->GetHittestGrid()->FindNextFocusableWidget(FocusedArrangedWidget, NavigationType, NavigationReply, BoundaryWidget);
 		}
 	}
 
 	// Set controller focus if we have a valid widget
-	if (NewFocusedWidget.IsValid())
+	bool bHandled = false;
+	if (CustomNavigationEvent.IsBound())
 	{
-		SetUserFocus(NavigationEvent.GetUserIndex(), NewFocusedWidget, EFocusCause::Navigation);
-		return true;
+		bHandled = CustomNavigationEvent.Execute(DestinationWidget);
 	}
 
-	return false;
+	if (!bHandled && DestinationWidget.IsValid())
+	{
+		SetUserFocus(NavigationEvent.GetUserIndex(), DestinationWidget, EFocusCause::Navigation);
+		bHandled = true;
+	}
+
+	return bHandled;
 }
 
 bool FSlateApplication::OnControllerAnalog( FGamepadKeyNames::Type KeyName, int32 ControllerId, float AnalogValue )
@@ -6546,6 +6548,23 @@ void FSlateApplication::SetWidgetReflector(const TSharedRef<IWidgetReflector>& W
 	}
 
 	WidgetReflectorPtr = WidgetReflector;
+}
+
+void FSlateApplication::NavigateFromWidgetUnderCursor(EUINavigation InNavigationType, TSharedRef<SWindow> InWindow, uint32 InUserIndex)
+{
+	if (InNavigationType != EUINavigation::Invalid)
+	{
+		FWidgetPath PathToLocatedWidget = LocateWidgetInWindow(GetCursorPos(), InWindow, false);
+		if (PathToLocatedWidget.IsValid())
+		{
+			TSharedPtr<SWidget> WidgetToNavFrom = PathToLocatedWidget.Widgets.Last().Widget;
+
+			if (WidgetToNavFrom.IsValid())
+			{
+				FSlateApplication::Get().ProcessReply(PathToLocatedWidget, FReply::Handled().SetNavigation(InNavigationType, ENavigationSource::WidgetUnderCursor), &PathToLocatedWidget, nullptr, InUserIndex);
+			}
+		}
+	}
 }
 
 #undef SLATE_HAS_WIDGET_REFLECTOR

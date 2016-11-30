@@ -2576,6 +2576,9 @@ void GlobalBeginCompileShader(
 		Input.Environment.SetDefine(TEXT("COMPUTESHADER"), Target.Frequency == SF_Compute);
 	}
 
+	// #defines get stripped out by the preprocessor without this. We can override with this
+	Input.Environment.SetDefine(TEXT("COMPILER_DEFINE"), TEXT("#define"));
+
 	// Set instanced stereo define
 	{
 		static const auto CVarInstancedStereo = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
@@ -2703,7 +2706,7 @@ void GlobalBeginCompileShader(
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BasePassOutputsVelocity"));
-		Input.Environment.SetDefine(TEXT("OUTPUT_GBUFFER_VELOCITY"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
+		Input.Environment.SetDefine(TEXT("GBUFFER_HAS_VELOCITY"), CVar ? (CVar->GetValueOnGameThread() != 0) : 0);
 	}
 
 	{
@@ -2725,6 +2728,11 @@ void GlobalBeginCompileShader(
 	const bool bForwardShading = CVarForwardShading ? (CVarForwardShading->GetInt() != 0) : false;
 
 	Input.Environment.SetDefine(TEXT("FORWARD_SHADING"), bForwardShading);
+
+	{
+		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPassOnlyMaterialMasking"));
+		Input.Environment.SetDefine(TEXT("EARLY_Z_PASS_ONLY_MATERIAL_MASKING"), CVar ? (CVar->GetInt() != 0) : 0);
+	}
 
 	{
 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VertexFoggingForOpaque"));

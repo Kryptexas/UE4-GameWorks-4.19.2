@@ -67,6 +67,10 @@ FMetalCommandEncoder::~FMetalCommandEncoder(void)
 		CommitCommandBuffer(false);
 	}
 	
+	check(!IsRenderCommandEncoderActive());
+	check(!IsComputeCommandEncoderActive());
+	check(!IsBlitCommandEncoderActive());
+	
 	if(ComputePipelineState)
 	{
 		[ComputePipelineState release];
@@ -308,6 +312,35 @@ void FMetalCommandEncoder::BeginRenderCommandEncoding(void)
 			}
 		}
     }
+	
+#if METAL_DEBUG_OPTIONS
+	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
+	{
+		if(RenderPassDesc.colorAttachments)
+		{
+			for(uint i = 0; i< 8; i++)
+			{
+				MTLRenderPassColorAttachmentDescriptor* Desc = [RenderPassDesc.colorAttachments objectAtIndexedSubscript:i];
+				if(Desc)
+				{
+					METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, Desc.texture);
+				}
+			}
+		}
+		if(RenderPassDesc.depthAttachment)
+		{
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPassDesc.depthAttachment.texture);
+		}
+		if(RenderPassDesc.stencilAttachment)
+		{
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPassDesc.stencilAttachment.texture);
+		}
+		if(RenderPassDesc.visibilityResultBuffer)
+		{
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPassDesc.visibilityResultBuffer);
+		}
+	}
+#endif
 }
 
 void FMetalCommandEncoder::RestoreRenderCommandEncoding(void)
@@ -377,6 +410,7 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 	
 	PushDebugGroup(@"RestoreRenderCommandEncodingState");
 	
+	METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPipelineState);
 	[RenderCommandEncoder setRenderPipelineState:RenderPipelineState];
 	[RenderCommandEncoder setViewport:Viewport];
 	[RenderCommandEncoder setFrontFacingWinding:FrontFacingWinding];
@@ -397,6 +431,7 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 	[RenderCommandEncoder setScissorRect:UnifiedScissorRect];
 	[RenderCommandEncoder setTriangleFillMode:FillMode];
 	[RenderCommandEncoder setBlendColorRed:BlendColor[0] green:BlendColor[1] blue:BlendColor[2] alpha:BlendColor[3]];
+	METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, DepthStencilState);
 	[RenderCommandEncoder setDepthStencilState:DepthStencilState];
 #if METAL_API_1_1
 	if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSeparateStencil))
@@ -416,6 +451,7 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 		{
 			if (ShaderBuffers[SF_Vertex].Buffers[i] != nil)
 			{
+				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderBuffers[SF_Vertex].Buffers[i]);
 				[RenderCommandEncoder setVertexBuffer:ShaderBuffers[SF_Vertex].Buffers[i] offset:ShaderBuffers[SF_Vertex].Offsets[i] atIndex:i];
 			}
 			else if (ShaderBuffers[SF_Vertex].Bytes[i] != nil)
@@ -436,6 +472,7 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 					
 					FMemory::Memcpy(((uint8*)[RingBufferInner contents]) + RingOffset, Bytes, Len);
 					
+					METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, RingBufferInner);
 					[RenderCommandEncoder setVertexBuffer:RingBufferInner offset:RingOffset atIndex:i];
 				}
 			}
@@ -444,6 +481,7 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 		{
 			if (ShaderBuffers[SF_Pixel].Buffers[i] != nil)
 			{
+				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderBuffers[SF_Pixel].Buffers[i]);
 				[RenderCommandEncoder setFragmentBuffer:ShaderBuffers[SF_Pixel].Buffers[i] offset:ShaderBuffers[SF_Pixel].Offsets[i] atIndex:i];
 			}
 			else if (ShaderBuffers[SF_Pixel].Bytes[i] != nil)
@@ -464,6 +502,7 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 					
 					FMemory::Memcpy(((uint8*)[RingBufferInner contents]) + RingOffset, Bytes, Len);
 					
+					METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, RingBufferInner);
 					[RenderCommandEncoder setFragmentBuffer:RingBufferInner offset:RingOffset atIndex:i];
 				}
 			}
@@ -474,11 +513,13 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 	{
 		if(ShaderTextures[SF_Vertex].Textures[i] && (ShaderTextures[SF_Vertex].Bound & (1 << i)))
 		{
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderTextures[SF_Vertex].Textures[i]);
 			[RenderCommandEncoder setVertexTexture:ShaderTextures[SF_Vertex].Textures[i] atIndex:i];
 		}
 		
 		if(ShaderTextures[SF_Pixel].Textures[i] && (ShaderTextures[SF_Pixel].Bound & (1 << i)))
 		{
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderTextures[SF_Pixel].Textures[i]);
 			[RenderCommandEncoder setFragmentTexture:ShaderTextures[SF_Pixel].Textures[i] atIndex:i];
 		}
 	}
@@ -487,10 +528,12 @@ void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
 	{
 		if(ShaderSamplers[SF_Vertex].Samplers[i] != nil && (ShaderSamplers[SF_Vertex].Bound & (1 << i)))
 		{
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, ShaderSamplers[SF_Vertex].Samplers[i]);
 			[RenderCommandEncoder setVertexSamplerState:ShaderSamplers[SF_Vertex].Samplers[i]  atIndex:i];
 		}
 		if(ShaderSamplers[SF_Pixel].Samplers[i] != nil && (ShaderSamplers[SF_Pixel].Bound & (1 << i)))
 		{
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, ShaderSamplers[SF_Pixel].Samplers[i]);
 			[RenderCommandEncoder setFragmentSamplerState:ShaderSamplers[SF_Pixel].Samplers[i] atIndex:i];
 		}
 	}
@@ -554,6 +597,7 @@ void FMetalCommandEncoder::RestoreComputeCommandEncodingState(void)
 		if (ShaderBuffers[SF_Compute].Buffers[i] != nil)
 		{
 			ShaderBuffers[SF_Compute].Bound |= (1 << i);
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderBuffers[SF_Compute].Buffers[i]);
 			[ComputeCommandEncoder setBuffer:ShaderBuffers[SF_Compute].Buffers[i] offset:ShaderBuffers[SF_Compute].Offsets[i] atIndex:i];
 		}
 		else if (ShaderBuffers[SF_Compute].Bytes[i] != nil)
@@ -574,6 +618,7 @@ void FMetalCommandEncoder::RestoreComputeCommandEncodingState(void)
 				id<MTLBuffer> RingBufferInner = RingBuffer->Buffer;
 					
 				FMemory::Memcpy(((uint8*)[RingBufferInner contents]) + RingOffset, Bytes, Len);
+				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, RingBufferInner);
 					
 				[ComputeCommandEncoder setBuffer:RingBufferInner offset:RingOffset atIndex:i];
 			}
@@ -585,6 +630,7 @@ void FMetalCommandEncoder::RestoreComputeCommandEncodingState(void)
 		if(ShaderTextures[SF_Compute].Textures[i])
 		{
 			ShaderTextures[SF_Compute].Bound |= (1 << i);
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderTextures[SF_Compute].Textures[i]);
 			[ComputeCommandEncoder setTexture:ShaderTextures[SF_Compute].Textures[i] atIndex:i];
 		}
 	}
@@ -594,6 +640,7 @@ void FMetalCommandEncoder::RestoreComputeCommandEncodingState(void)
 		if(ShaderSamplers[SF_Compute].Samplers[i] != nil)
 		{
 			ShaderSamplers[SF_Compute].Bound |= (1 << i);
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, ShaderSamplers[SF_Compute].Samplers[i]);
 			[ComputeCommandEncoder setSamplerState:ShaderSamplers[SF_Compute].Samplers[i] atIndex:i];
 		}
 	}
@@ -646,23 +693,26 @@ void FMetalCommandEncoder::EndEncoding(void)
 		[Buf endCommandEncoder];
 	}
 #endif
-	if(IsRenderCommandEncoderActive())
+	@autoreleasepool
 	{
-		[RenderCommandEncoder endEncoding];
-		[RenderCommandEncoder release];
-		RenderCommandEncoder = nil;
-	}
-	else if(IsComputeCommandEncoderActive())
-	{
-		[ComputeCommandEncoder endEncoding];
-		[ComputeCommandEncoder release];
-		ComputeCommandEncoder = nil;
-	}
-	else if(IsBlitCommandEncoderActive())
-	{
-		[BlitCommandEncoder endEncoding];
-		[BlitCommandEncoder release];
-		BlitCommandEncoder = nil;
+		if(IsRenderCommandEncoderActive())
+		{
+			[RenderCommandEncoder endEncoding];
+			[RenderCommandEncoder release];
+			RenderCommandEncoder = nil;
+		}
+		else if(IsComputeCommandEncoderActive())
+		{
+			[ComputeCommandEncoder endEncoding];
+			[ComputeCommandEncoder release];
+			ComputeCommandEncoder = nil;
+		}
+		else if(IsBlitCommandEncoderActive())
+		{
+			[BlitCommandEncoder endEncoding];
+			[BlitCommandEncoder release];
+			BlitCommandEncoder = nil;
+		}
 	}
 }
 
@@ -779,6 +829,7 @@ void FMetalCommandEncoder::SetRenderPipelineState(id<MTLRenderPipelineState> Pip
 	RenderPipelineState = PipelineState;
 	if (RenderCommandEncoder)
 	{
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPipelineState);
 		[RenderCommandEncoder setRenderPipelineState:RenderPipelineState];
 	}
 }
@@ -876,6 +927,7 @@ void FMetalCommandEncoder::SetDepthStencilState(id<MTLDepthStencilState> const I
 	DepthStencilState = InDepthStencilState;
 	if (RenderCommandEncoder)
 	{
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, InDepthStencilState);
 		[RenderCommandEncoder setDepthStencilState:InDepthStencilState];
 	}
 }
@@ -942,6 +994,9 @@ void FMetalCommandEncoder::SetShaderBuffer(EShaderFrequency Frequency, id<MTLBuf
 		ShaderBuffers[Frequency].Buffers[index] = Buffer;
 		ShaderBuffers[Frequency].Bytes[index] = nil;
         ShaderBuffers[Frequency].Offsets[index] = Offset;
+		
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Buffer);
+		
         switch (Frequency)
         {
             case SF_Vertex:
@@ -1023,7 +1078,8 @@ void FMetalCommandEncoder::SetShaderBytes(EShaderFrequency const Frequency, NSDa
 		id<MTLBuffer> RingBufferInner = RingBuffer->Buffer;
 	
 		FMemory::Memcpy(((uint8*)[RingBufferInner contents]) + RingOffset, Bytes, Len);
-
+		
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, RingBufferInner);
 		switch (Frequency)
 		{
 			case SF_Vertex:
@@ -1061,7 +1117,8 @@ bool FMetalCommandEncoder::SetShaderBufferConditional(EShaderFrequency const Fre
 		ShaderBuffers[Frequency].Bound |= (1 << index);
 		ShaderBuffers[Frequency].Buffers[index] = Buffer;
 		ShaderBuffers[Frequency].Bytes[index] = nil;
-        ShaderBuffers[Frequency].Offsets[index] = Offset;
+		ShaderBuffers[Frequency].Offsets[index] = Offset;
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Buffer);
         switch (Frequency)
         {
             case SF_Vertex:
@@ -1099,6 +1156,7 @@ void FMetalCommandEncoder::SetShaderBufferOffset(EShaderFrequency Frequency, NSU
 	if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSetBufferOffset))
 	{
 		ShaderBuffers[Frequency].Offsets[index] = Offset;
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderBuffers[Frequency].Buffers[index]);
 		switch (Frequency)
 		{
 			case SF_Vertex:
@@ -1144,6 +1202,7 @@ void FMetalCommandEncoder::SetShaderBuffers(EShaderFrequency Frequency, id<MTLBu
 		{
 			ShaderBuffers[Frequency].Bound &= ~(1 << i);
 		}
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Buffers[i]);
 		ShaderBuffers[Frequency].Buffers[i] = Buffers[i];
 		ShaderBuffers[Frequency].Offsets[i] = Offsets[i];
 		ShaderBuffers[Frequency].Bytes[i] = nil;
@@ -1187,6 +1246,7 @@ void FMetalCommandEncoder::SetShaderTexture(EShaderFrequency Frequency, id<MTLTe
 		ShaderTextures[Frequency].Bound &= ~(1 << index);
 	}
 	
+	METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Texture);
 	ShaderTextures[Frequency].Textures[index] = Texture;
 	
 	switch (Frequency)
@@ -1229,6 +1289,7 @@ void FMetalCommandEncoder::SetShaderTextures(EShaderFrequency Frequency, const i
 			ShaderTextures[Frequency].Bound &= ~(1 << i);
 		}
 		
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Textures[i]);
 		ShaderTextures[Frequency].Textures[i] = Textures[i];
 	}
 	

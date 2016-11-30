@@ -489,6 +489,7 @@ void UConsole::ConsoleCommand(const FString& Command)
 {
 	// insert into history buffer
 	{
+		HistoryBuffer.Remove(Command);
 		HistoryBuffer.Add(Command);
 
 		NormalizeHistoryBuffer();

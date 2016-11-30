@@ -913,6 +913,12 @@ UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* In
 			Arguments.Add(TEXT("ObjectName"), FText::FromString(ObjectName));
 			const FString Error = FText::Format(NSLOCTEXT("Core", "ObjectNotFound", "Failed to find object '{ClassName} {OuterName}.{ObjectName}'"), Arguments).ToString();
 			SafeLoadError(InOuter, LoadFlags, *Error);
+
+			if (InOuter)
+			{
+				// Stop future repeated warnings
+				FLinkerLoad::AddKnownMissingPackage(FName(*InOuter->GetPathName()));
+			}
 		}
 	}
 	return Result;
@@ -1120,14 +1126,23 @@ static UPackage* LoadPackageInternalInner(UPackage* InOuter, const TCHAR* InLong
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
 		if (!Result || !Result->IsFullyLoaded())
 		{
-			FlushAsyncLoading();
-			Result = FindObjectFast<UPackage>(nullptr, PackageFName);
-			check(!Result || Result->IsFullyLoaded());
-			if (!Result)
+			if (FLinkerLoad::IsKnownMissingPackage(PackageFName) || (Result && Result->IsPendingKill()))
 			{
-				LoadPackageAsync(InName, nullptr, *InPackageName);
+				// Don't retry if known missing or pending kill
+				UE_LOG(LogUObjectGlobals, Verbose, TEXT("Failing load of package %s because it's already failed once %s."), *InPackageName);
+			}
+			else
+			{
 				FlushAsyncLoading();
 				Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+			
+				check(!Result || Result->IsFullyLoaded());
+				if (!Result)
+				{
+					LoadPackageAsync(InName, nullptr, *InPackageName);
+					FlushAsyncLoading();
+					Result = FindObjectFast<UPackage>(nullptr, PackageFName);
+				}
 			}
 		}
 #else

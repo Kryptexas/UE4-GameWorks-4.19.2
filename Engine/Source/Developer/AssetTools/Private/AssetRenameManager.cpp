@@ -405,6 +405,18 @@ void FAssetRenameManager::LoadReferencingPackages(TArray<FAssetRenameDataWithRef
 			const bool bLocalFile = !SourceControlState.IsValid() || SourceControlState->IsAdded() || !SourceControlState->IsSourceControlled() || SourceControlState->IsIgnored();
 			if ( !bLocalFile )
 			{
+				// If this asset is locked or not current, mark it failed to prevent it from being renamed
+				if (SourceControlState->IsCheckedOutOther())
+				{
+					RenameData.bRenameFailed = true;
+					RenameData.FailureReason = LOCTEXT("RenameFailedCheckedOutByOther", "Checked out by another user.");
+				}
+				else if (!SourceControlState->IsCurrent())
+				{
+					RenameData.bRenameFailed = true;
+					RenameData.FailureReason = LOCTEXT("RenameFailedNotCurrent", "Out of date.");
+				}
+
 				// This asset is not local. It is not safe to rename it without leaving a redirector
 				RenameData.bCreateRedirector = true;
 				continue;
@@ -461,9 +473,9 @@ bool FAssetRenameManager::CheckOutPackages(TArray<FAssetRenameDataWithReferencer
 	TArray<UPackage*> PackagesToCheckOut;
 	PackagesToCheckOut.Reset(AssetsToRename.Num() + InOutReferencingPackagesToSave.Num());
 
-	for (const auto& AssetToRename : AssetsToRename)
+	for (const FAssetRenameDataWithReferencers& AssetToRename : AssetsToRename)
 	{
-		if (AssetToRename.Asset.IsValid())
+		if (!AssetToRename.bRenameFailed && AssetToRename.Asset.IsValid())
 		{
 			PackagesToCheckOut.Add(AssetToRename.Asset->GetOutermost());
 		}

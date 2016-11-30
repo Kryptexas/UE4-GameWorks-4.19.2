@@ -45,6 +45,10 @@ public:
 	UFUNCTION(BlueprintPure, Category="User Interface|Geometry")
 	static FVector2D GetLocalSize(const FGeometry& Geometry);
 
+	/** @return Whether brushes A and B are identical. */
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (SlateBrush)", CompactNodeTitle = "=="), Category = "SlateBrush")
+	static bool EqualEqual_SlateBrush(const FSlateBrush& A, const FSlateBrush& B);
+
 	/**
 	 * Translates local coordinate of the geometry provided into local viewport coordinates.
 	 *

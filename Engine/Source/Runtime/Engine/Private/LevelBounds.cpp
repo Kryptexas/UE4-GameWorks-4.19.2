@@ -148,20 +148,38 @@ bool ALevelBounds::IsTickableInEditor() const
 
 void ALevelBounds::UpdateLevelBounds()
 {
+	FVector LevelCenter = FVector::ZeroVector;
+	FVector LevelSize = DefaultLevelSize;
 	FBox LevelBounds = CalculateLevelBounds(GetLevel());
 	if (LevelBounds.IsValid)
 	{
-		FVector LevelCenter = LevelBounds.GetCenter();
-		FVector LevelSize = LevelBounds.GetSize();
+		LevelCenter = LevelBounds.GetCenter();
+		LevelSize = LevelBounds.GetSize();
 		
-		SetActorTransform(FTransform(FQuat::Identity, LevelCenter, LevelSize));
 		bUsingDefaultBounds = false;
 	}
 	else
 	{
-		SetActorTransform(FTransform(FQuat::Identity, FVector::ZeroVector, DefaultLevelSize));
 		bUsingDefaultBounds = true;
 	}
+
+	// Avoid issue where the bounds size is zero and SetActorTransform complains
+	if (LevelSize.X < 1.f)
+	{
+		LevelSize.X = 1.f;
+	}
+
+	if (LevelSize.Y < 1.f)
+	{
+		LevelSize.Y = 1.f;
+	}
+
+	if (LevelSize.Z < 1.f)
+	{
+		LevelSize.Z = 1.f;
+	}
+
+	SetActorTransform(FTransform(FQuat::Identity, LevelCenter, LevelSize));
 	
 	BroadcastLevelBoundsUpdated();
 }

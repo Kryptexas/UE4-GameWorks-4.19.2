@@ -18,5 +18,6 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
+	virtual bool NeedsLoadForServer() const override;
 	//~ End UObject Interface
 };

@@ -128,7 +128,7 @@ void FStompFrame::Encode(FStompBuffer& Out) const
 
 		for(auto Element : Header)
 		{
-			FTCHARToUTF8 HeaderNameEncoded(*Element.Key.ToString());
+			FTCHARToUTF8 HeaderNameEncoded(*Element.Key.ToString().ToLower());
 			FTCHARToUTF8 HeaderValueEncoded(*Element.Value);
 			AppendArray(Out, (uint8*)HeaderNameEncoded.Get(), HeaderNameEncoded.Length(), bShouldEscapeFrameHeader);
 			Out.Add(':');

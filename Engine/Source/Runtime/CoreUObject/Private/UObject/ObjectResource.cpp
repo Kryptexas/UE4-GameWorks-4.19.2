@@ -146,39 +146,42 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 -----------------------------------------------------------------------------*/
 
 FObjectImport::FObjectImport()
-:	FObjectResource	()
+	: FObjectResource()
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
-,	bImportPackageHandled(false)
-, bImportSearchedFor(false)
+	, bImportPackageHandled(false)
+	, bImportSearchedFor(false)
+	, bImportFailed(false)
 #endif
 
 {
 }
 
-FObjectImport::FObjectImport( UObject* InObject )
-:	FObjectResource	( InObject																)
-,	ClassPackage	( InObject ? InObject->GetClass()->GetOuter()->GetFName()	: NAME_None	)
-,	ClassName		( InObject ? InObject->GetClass()->GetFName()				: NAME_None	)
-,	XObject			( InObject																)
-,	SourceLinker	( NULL																	)
-,	SourceIndex		( INDEX_NONE															)
+FObjectImport::FObjectImport(UObject* InObject)
+	: FObjectResource(InObject)
+	, ClassPackage(InObject ? InObject->GetClass()->GetOuter()->GetFName() : NAME_None)
+	, ClassName(InObject ? InObject->GetClass()->GetFName() : NAME_None)
+	, XObject(InObject)
+	, SourceLinker(NULL)
+	, SourceIndex(INDEX_NONE)
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
-, bImportPackageHandled(false)
-, bImportSearchedFor(false)
+	, bImportPackageHandled(false)
+	, bImportSearchedFor(false)
+	, bImportFailed(false)
 #endif
 {
 }
 
 FObjectImport::FObjectImport(UObject* InObject, UClass* InClass)
-:	FObjectResource	( InObject																)
-,	ClassPackage	( (InObject && InClass) ? InClass->GetOuter()->GetFName()	: NAME_None	)
-,	ClassName		( (InObject && InClass) ? InClass->GetFName()				: NAME_None	)
-,	XObject			( InObject																)
-,	SourceLinker	( NULL																	)
-,	SourceIndex		( INDEX_NONE															)
+	: FObjectResource(InObject)
+	, ClassPackage((InObject && InClass) ? InClass->GetOuter()->GetFName() : NAME_None)
+	, ClassName((InObject && InClass) ? InClass->GetFName() : NAME_None)
+	, XObject(InObject)
+	, SourceLinker(NULL)
+	, SourceIndex(INDEX_NONE)
 #if USE_EVENT_DRIVEN_ASYNC_LOAD
-, bImportPackageHandled(false)
-, bImportSearchedFor(false)
+	, bImportPackageHandled(false)
+	, bImportSearchedFor(false)
+	, bImportFailed(false)
 #endif
 {
 }

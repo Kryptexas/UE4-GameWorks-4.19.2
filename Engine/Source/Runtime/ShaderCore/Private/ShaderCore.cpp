@@ -442,6 +442,7 @@ void GetShaderIncludes(const TCHAR* Filename, TArray<FString>& IncludeFilenames,
 					const bool bIsOptionalInclude = (ExtractedIncludeFilename == TEXT("PS4/PS4Common.usf") 
 						|| ExtractedIncludeFilename == TEXT("PS4/PostProcessHMDMorpheus.usf")
 						|| ExtractedIncludeFilename == TEXT("PS4/RTWriteMaskProcessing.usf")
+						|| ExtractedIncludeFilename == TEXT("XboxOne/XboxOneCommon.usf")
 						);
 					// ignore the header if it's optional and doesn't exist
 					if (bIsOptionalInclude)

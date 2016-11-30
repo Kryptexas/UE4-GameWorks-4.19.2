@@ -240,7 +240,7 @@ FString UCurveTable::GetTableAsJSON() const
 	return Result;
 }
 
-bool UCurveTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const
+bool UCurveTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, bool bAsArray) const
 {
 	if(RowMap.Num() <= 0)
 	{
@@ -263,15 +263,24 @@ bool UCurveTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJ
 		}
 	}
 
-	JsonWriter->WriteArrayStart();
+	if (bAsArray)
+	{
+		JsonWriter->WriteArrayStart();
+	}
 
 	// display all the curves
 	for(int32 CurvesIdx = 0; CurvesIdx < Curves.Num(); CurvesIdx++)
 	{
-		JsonWriter->WriteObjectStart();
-		// show name of curve
-		JsonWriter->WriteValue(TEXT("Name"),Names[CurvesIdx].ToString());
-
+		if (bAsArray)
+		{
+			JsonWriter->WriteObjectStart();
+			// show name of curve
+			JsonWriter->WriteValue(TEXT("Name"),Names[CurvesIdx].ToString());
+		}
+		else
+		{
+			JsonWriter->WriteObjectStart(Names[CurvesIdx].ToString());
+		}
 		// show data of curve
 		auto LongIt(Curves[LongestCurveIndex]->GetKeyIterator());
 		for (auto It(Curves[CurvesIdx]->GetKeyIterator()); It; ++It)
@@ -282,7 +291,10 @@ bool UCurveTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJ
 		JsonWriter->WriteObjectEnd();
 	}
 
-	JsonWriter->WriteArrayEnd();
+	if(bAsArray)
+	{
+		JsonWriter->WriteArrayEnd();
+	}
 	return true;
 }
 

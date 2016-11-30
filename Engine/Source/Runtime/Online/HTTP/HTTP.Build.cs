@@ -35,6 +35,7 @@ public class HTTP : ModuleRules
 			Target.Platform == UnrealTargetPlatform.Switch)
 		{
             AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
+            PrivateDependencyModuleNames.Add("SSL");
 		}
 		if (Target.Platform == UnrealTargetPlatform.HTML5)
         {

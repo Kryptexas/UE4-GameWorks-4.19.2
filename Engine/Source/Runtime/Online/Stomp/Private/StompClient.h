@@ -6,12 +6,12 @@
 #include "IStompClient.h"
 #include "Containers/Ticker.h"
 
-class Error;
-
 #if WITH_STOMP
 
 #include "IStompClient.h"
 #include "IWebSocket.h"
+
+class Error;
 
 class FStompClient
 	: public IStompClient

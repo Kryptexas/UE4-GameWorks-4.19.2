@@ -8,13 +8,11 @@ public class Stomp : ModuleRules
     {
         Definitions.Add("STOMP_PACKAGE=1");
 
-		bool bShouldUseModule = false;
-		if (Target.Platform == UnrealTargetPlatform.Win32 ||
+		bool bShouldUseModule = 
+			Target.Platform == UnrealTargetPlatform.Win32 ||
 			Target.Platform == UnrealTargetPlatform.Win64 ||
-			Target.Platform == UnrealTargetPlatform.Mac)
-		{
-			bShouldUseModule = true;
-		}
+			Target.Platform == UnrealTargetPlatform.Mac ||
+			Target.Platform == UnrealTargetPlatform.Linux;
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

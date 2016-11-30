@@ -59,7 +59,7 @@ namespace FindInBlueprintsHelpers
 	/** Looks up a JsonValue's FText from the passed lookup table */
 	FText AsFText(int32 InValue, const TMap<int32, FText>& InLookupTable);
 
-	bool IsTextEqualToString(FText InText, FString InString);
+	bool IsTextEqualToString(const FText& InText, const FString& InString);
 
 	/**
 	 * Retrieves the pin type as a string value

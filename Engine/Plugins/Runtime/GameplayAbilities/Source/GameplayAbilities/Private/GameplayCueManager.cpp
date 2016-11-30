@@ -1498,6 +1498,8 @@ void UGameplayCueManager::OnWorldCleanup(UWorld* World, bool bSessionEnded, bool
 			idx--;
 		}
 	}
+
+	IGameplayCueInterface::ClearTagToFunctionMap();
 }
 
 void UGameplayCueManager::DumpPreallocationStats(UWorld* World)

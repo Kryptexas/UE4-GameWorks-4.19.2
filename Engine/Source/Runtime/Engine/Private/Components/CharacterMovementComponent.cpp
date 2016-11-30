@@ -7001,8 +7001,17 @@ void UCharacterMovementComponent::SmoothClientPosition_UpdateVisuals()
 			const FVector NewRelLocation = ClientData->MeshRotationOffset.UnrotateVector(ClientData->MeshTranslationOffset) + CharacterOwner->GetBaseTranslationOffset();
 			if (!UpdatedComponent->GetComponentQuat().Equals(ClientData->MeshRotationOffset, SCENECOMPONENT_QUAT_TOLERANCE))
 			{
+				const FVector OldLocation = Mesh->RelativeLocation;
+				const FRotator OldRotation = UpdatedComponent->RelativeRotation;
 				Mesh->RelativeLocation = NewRelLocation;
 				UpdatedComponent->SetWorldRotation(ClientData->MeshRotationOffset);
+
+				// If we did not move from SetWorldRotation, we need to at least call SetRelativeLocation since we were relying on the UpdatedComponent to update the transform of the mesh
+				if (UpdatedComponent->RelativeRotation == OldRotation)
+				{
+					Mesh->RelativeLocation = OldLocation;
+					Mesh->SetRelativeLocation(NewRelLocation);
+				}
 			}
 			else
 			{

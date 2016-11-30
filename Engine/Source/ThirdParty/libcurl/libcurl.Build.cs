@@ -9,6 +9,8 @@ public class libcurl : ModuleRules
 		Type = ModuleType.External;
 
 		Definitions.Add("WITH_LIBCURL=1");
+
+		string NewLibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/7_48_0/";
 		string LibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/curl-7.47.1/";
 
 		// TODO: latest recompile for consoles and mobile platforms
@@ -16,13 +18,15 @@ public class libcurl : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PublicIncludePaths.Add(OldLibCurlPath + "include/Linux/" + Target.Architecture);
-			PublicLibraryPaths.Add(OldLibCurlPath + "lib/Linux/" + Target.Architecture);
+			string platform = "/Linux/" + Target.Architecture;
+			string IncludePath = NewLibCurlPath + "include" + platform;
+			string LibraryPath = NewLibCurlPath + "lib" + platform;
 
-			PublicAdditionalLibraries.Add("curl");
-			PublicAdditionalLibraries.Add("crypto");
-			PublicAdditionalLibraries.Add("ssl");
-			PublicAdditionalLibraries.Add("dl");
+			PublicIncludePaths.Add(IncludePath);
+			PublicLibraryPaths.Add(LibraryPath);
+			PublicAdditionalLibraries.Add(LibraryPath + "/libcurl.a");
+
+			PrivateDependencyModuleNames.Add("SSL");
 		}
 
 		else if (Target.Platform == UnrealTargetPlatform.Android)

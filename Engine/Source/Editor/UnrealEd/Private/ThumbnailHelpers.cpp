@@ -50,11 +50,11 @@ FThumbnailPreviewScene::FThumbnailPreviewScene()
 
 	// Add additional lights
 	UDirectionalLightComponent* DirectionalLight2 = NewObject<UDirectionalLightComponent>();
-	DirectionalLight->Intensity = 5.0f;
+	DirectionalLight2->Intensity = 5.0f;
 	AddComponent(DirectionalLight2, FTransform( FRotator(-40,-144.678, 0) ));
 
 	UDirectionalLightComponent* DirectionalLight3 = NewObject<UDirectionalLightComponent>();
-	DirectionalLight->Intensity = 1.0f;
+	DirectionalLight3->Intensity = 1.0f;
 	AddComponent(DirectionalLight3, FTransform( FRotator(299.235,144.993, 0) ));
 
 	// Add an infinite plane

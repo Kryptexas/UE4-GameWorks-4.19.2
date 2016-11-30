@@ -428,7 +428,8 @@ static void SetHitTestingBlendState(FRHICommandList& RHICmdList, ESimpleElementB
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::SimpleBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularSRGBBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularLinearBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedSRGBBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedLinearBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::DistanceFieldBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::HitTestingBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::ColorChannelMaskShaderState;
@@ -626,7 +627,7 @@ void FBatchedElements::PrepareShaders(
 				if (Texture->bSRGB)
 				{
 					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_SRGB>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedSRGBBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, MaskedPixelShader);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
@@ -635,7 +636,7 @@ void FBatchedElements::PrepareShaders(
 				else
 				{
 					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_Linear>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedLinearBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, MaskedPixelShader);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);

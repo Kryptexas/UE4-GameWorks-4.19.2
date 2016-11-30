@@ -437,11 +437,27 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 }
 
+- (NSSize)windowWillResize:(NSWindow *)sender toSize:(NSSize)frameSize
+{
+	SCOPED_AUTORELEASE_POOL;
+	if (MacApplication && sender == self)
+	{
+		GameThreadCall(^{
+			TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow((FCocoaWindow*)sender);
+			if (Window.IsValid())
+			{
+				MacApplication->OnWindowWillResize(Window.ToSharedRef());
+			}
+		}, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
+	}
+	return frameSize;
+}
+
 - (void)windowDidResize:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
 	bZoomed = [self isZoomed];
-	if (MacApplication && self.TargetWindowMode == WindowMode)
+	if (MacApplication)
 	{
 		MacApplication->DeferEvent(Notification);
 	}

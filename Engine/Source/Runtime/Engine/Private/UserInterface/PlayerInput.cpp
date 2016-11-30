@@ -253,6 +253,8 @@ bool UPlayerInput::InputKey(FKey Key, EInputEvent Event, float AmountDepressed, 
 
 bool UPlayerInput::InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad )
 {
+	ensure((Key != EKeys::MouseX && Key != EKeys::MouseY) || NumSamples > 0);
+
 	// first event associated with this key, add it to the map
 	FKeyState& KeyState = KeyStateMap.FindOrAdd(Key);
 

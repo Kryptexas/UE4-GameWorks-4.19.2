@@ -403,7 +403,9 @@ void UAbilitySystemComponent::OnRemoveAbility(FGameplayAbilitySpec& Spec)
 			if (Instance->IsActive())
 			{
 				// End the ability but don't replicate it, OnRemoveAbility gets replicated
-				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+				bool bReplicateEndAbility = false;
+				bool bWasCancelled = false;
+				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, bReplicateEndAbility, bWasCancelled);
 			}
 			else
 			{
@@ -611,7 +613,7 @@ UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayA
 	return AbilityInstance;
 }
 
-void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability)
+void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability, bool bWasCancelled)
 {
 	check(Ability);
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
@@ -1146,7 +1148,9 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 		{
 			if (Ability->bRetriggerInstancedAbility && InstancedAbility)
 			{
-				InstancedAbility->EndAbility(Handle, ActorInfo, Spec->ActivationInfo, true);
+				bool bReplicateEndAbility = true;
+				bool bWasCancelled = false;
+				InstancedAbility->EndAbility(Handle, ActorInfo, Spec->ActivationInfo, bReplicateEndAbility, bWasCancelled);
 			}
 			else
 			{
@@ -1436,7 +1440,7 @@ void UAbilitySystemComponent::RemoteEndOrCancelAbility(FGameplayAbilitySpecHandl
 			}
 			else
 			{
-				AbilitySpec->Ability->EndAbility(AbilityToEnd, AbilityActorInfo.Get(), ActivationInfo, false);
+				AbilitySpec->Ability->EndAbility(AbilityToEnd, AbilityActorInfo.Get(), ActivationInfo, false, bWasCanceled);
 			}
 		}
 		else
@@ -1460,7 +1464,7 @@ void UAbilitySystemComponent::RemoteEndOrCancelAbility(FGameplayAbilitySpecHandl
 						}
 						else
 						{
-							Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+							Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false, bWasCanceled);
 						}
 					}
 				}

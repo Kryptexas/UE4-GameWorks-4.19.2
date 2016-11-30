@@ -16,6 +16,7 @@
 #include "Framework/Text/TextEditHelper.h"
 #include "Framework/Commands/GenericCommands.h"
 #include "Internationalization/BreakIterator.h"
+#include "SlateSettings.h"
 
 /**
  * Ensure that text transactions are always completed.
@@ -582,8 +583,12 @@ bool FSlateEditableTextLayout::HandleFocusReceived(const FFocusEvent& InFocusEve
 	{
 		if (!OwnerWidget->IsTextReadOnly())
 		{
-			// @TODO: Create ITextInputMethodSystem derivations for mobile
-			FSlateApplication::Get().ShowVirtualKeyboard(true, InFocusEvent.GetUser(), VirtualKeyboardEntry);
+			const bool bShowVirtualKeyboardOnAllFocusTypes = GetDefault<USlateSettings>()->bVirtualKeyboardDisplayOnFocus;
+			if (InFocusEvent.GetCause() == EFocusCause::Mouse || bShowVirtualKeyboardOnAllFocusTypes)
+			{
+				// @TODO: Create ITextInputMethodSystem derivations for mobile
+				FSlateApplication::Get().ShowVirtualKeyboard(true, InFocusEvent.GetUser(), VirtualKeyboardEntry);
+			}
 		}
 	}
 	else
@@ -928,6 +933,21 @@ FReply FSlateEditableTextLayout::HandleKeyDown(const FKeyEvent& InKeyEvent)
 	}
 
 	return Reply;
+}
+
+FReply FSlateEditableTextLayout::HandleKeyUp(const FKeyEvent& InKeyEvent)
+{
+	if (FPlatformMisc::GetRequiresVirtualKeyboard() && InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom)
+	{
+		if (!OwnerWidget->IsTextReadOnly())
+		{
+			// @TODO: Create ITextInputMethodSystem derivations for mobile
+			FSlateApplication::Get().ShowVirtualKeyboard(true, InKeyEvent.GetUserIndex(), VirtualKeyboardEntry);
+			return FReply::Handled();
+		}
+	}
+
+	return FReply::Unhandled();
 }
 
 FReply FSlateEditableTextLayout::HandleMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& InMouseEvent)

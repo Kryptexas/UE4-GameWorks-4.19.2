@@ -19,6 +19,9 @@ class IMAGEDOWNLOAD_API FWebImageCache
 public:
 	FWebImageCache();
 
+	/** Signifies the module is being unloaded and to perform any actions that depend on other modules which may be unloaded as well */
+	void PreUnload();
+
 	/** Find or create a WebImage object for this URL (you probably just want to call ->Attr() on this) */
 	TSharedRef<const FWebImage> Download(const FString& Url, const TOptional<FString>& DefaultImageUrl = TOptional<FString>());
 

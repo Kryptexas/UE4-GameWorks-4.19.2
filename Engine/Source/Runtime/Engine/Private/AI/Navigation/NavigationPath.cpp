@@ -523,7 +523,10 @@ void FNavMeshPath::PerformStringPulling(const FVector& StartLoc, const FVector& 
 {
 #if WITH_RECAST
 	const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
-	bStringPulled = MyOwner->FindStraightPath(StartLoc, EndLoc, PathCorridor, PathPoints, &CustomLinkIds);
+	if (PathCorridor.Num())
+	{
+		bStringPulled = MyOwner->FindStraightPath(StartLoc, EndLoc, PathCorridor, PathPoints, &CustomLinkIds);
+	}
 #endif	// WITH_RECAST
 }
 

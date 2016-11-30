@@ -95,7 +95,24 @@ struct FMetalRenderPipelineDesc
 		}
 	};
 	
-	static pthread_rwlock_t MetalPipelineMutex;
+	struct FMetalRWMutex
+	{
+		FMetalRWMutex()
+		{
+			int Err = pthread_rwlock_init(&Mutex, nullptr);
+			checkf(Err == 0, TEXT("pthread_rwlock_init failed with error: %d"), errno);
+		}
+		
+		~FMetalRWMutex()
+		{
+			int Err = pthread_rwlock_destroy(&Mutex);
+			checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with error: %d"), errno);
+		}
+		
+		pthread_rwlock_t Mutex;
+	};
+	
+	static FMetalRWMutex MetalPipelineMutex;
 	static TMap<FMetalRenderPipelineKey, id<MTLRenderPipelineState>> MetalPipelineCache;
 	static uint32 BlendBitOffsets[6];
 	static uint32 RTBitOffsets[6];

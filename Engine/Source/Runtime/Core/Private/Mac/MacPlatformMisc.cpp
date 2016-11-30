@@ -1214,8 +1214,10 @@ FMacPlatformMisc::FGPUDescriptor& FMacPlatformMisc::FGPUDescriptor::operator=(FG
 
 TMap<FString, float> FMacPlatformMisc::FGPUDescriptor::GetPerformanceStatistics() const
 {
+	SCOPED_AUTORELEASE_POOL;
+	static CFStringRef PerformanceStatisticsRef = CFSTR("PerformanceStatistics");
 	TMap<FString, float> Data;
-	const CFDictionaryRef PerformanceStats = (const CFDictionaryRef)IORegistryEntrySearchCFProperty(PCIDevice, kIOServicePlane, CFSTR("PerformanceStatistics"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+	const CFDictionaryRef PerformanceStats = (const CFDictionaryRef)IORegistryEntrySearchCFProperty(PCIDevice, kIOServicePlane, PerformanceStatisticsRef, kCFAllocatorDefault, kIORegistryIterateRecursively);
 	if(PerformanceStats)
 	{
 		if(CFGetTypeID(PerformanceStats) == CFDictionaryGetTypeID())
@@ -1250,7 +1252,8 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 				if(IORegistryEntryCreateCFProperties(ServiceEntry, &ServiceInfo, kCFAllocatorDefault, kNilOptions) == kIOReturnSuccess)
 				{
 					// GPUs are class-code 0x30000
-					const CFDataRef ClassCode = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, CFSTR("class-code"));
+					static CFStringRef ClassCodeRef = CFSTR("class-code");
+					const CFDataRef ClassCode = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, ClassCodeRef);
 					if(ClassCode && CFGetTypeID(ClassCode) == CFDataGetTypeID())
 					{
 						const uint32* ClassCodeValue = reinterpret_cast<const uint32*>(CFDataGetBytePtr(ClassCode));
@@ -1263,7 +1266,8 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 							IOObjectRetain(ServiceEntry);
 							Desc.PCIDevice = (uint32)ServiceEntry;
 							
-							const CFDataRef Model = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, CFSTR("model"));
+							static CFStringRef ModelRef = CFSTR("model");
+							const CFDataRef Model = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, ModelRef);
 							if(Model)
 							{
 								if(CFGetTypeID(Model) == CFDataGetTypeID())
@@ -1278,27 +1282,31 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 								}
 							}
 							
-							const CFDataRef DeviceID = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, CFSTR("device-id"));
+							static CFStringRef DeviceIDRef = CFSTR("device-id");
+							const CFDataRef DeviceID = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, DeviceIDRef);
 							if(DeviceID && CFGetTypeID(DeviceID) == CFDataGetTypeID())
 							{
 								const uint32* Value = reinterpret_cast<const uint32*>(CFDataGetBytePtr(DeviceID));
 								Desc.GPUDeviceId = *Value;
 							}
 							
-							const CFDataRef VendorID = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, CFSTR("vendor-id"));
+							static CFStringRef VendorIDRef = CFSTR("vendor-id");
+							const CFDataRef VendorID = (const CFDataRef)CFDictionaryGetValue(ServiceInfo, VendorIDRef);
 							if(DeviceID && CFGetTypeID(DeviceID) == CFDataGetTypeID())
 							{
 								const uint32* Value = reinterpret_cast<const uint32*>(CFDataGetBytePtr(VendorID));
 								Desc.GPUVendorId = *Value;
 							}
 							
-							const CFBooleanRef Headless = (const CFBooleanRef)CFDictionaryGetValue(ServiceInfo, CFSTR("headless"));
+							static CFStringRef HeadlessRef = CFSTR("headless");
+							const CFBooleanRef Headless = (const CFBooleanRef)CFDictionaryGetValue(ServiceInfo, HeadlessRef);
 							if(Headless && CFGetTypeID(Headless) == CFBooleanGetTypeID())
 							{
 								Desc.GPUHeadless = (bool)CFBooleanGetValue(Headless);
 							}
 							
-							CFTypeRef VRAM = IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("VRAM,totalMB"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+							static CFStringRef VRAMTotal = CFSTR("VRAM,totalMB");
+							CFTypeRef VRAM = IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, VRAMTotal, kCFAllocatorDefault, kIORegistryIterateRecursively);
 							if (VRAM)
 							{
 								if(CFGetTypeID(VRAM) == CFDataGetTypeID())
@@ -1313,7 +1321,8 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 								CFRelease(VRAM);
 							}
 							
-							const CFStringRef MetalLibName = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("MetalPluginName"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+							static CFStringRef MetalPluginName = CFSTR("MetalPluginName");
+							const CFStringRef MetalLibName = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, MetalPluginName, kCFAllocatorDefault, kIORegistryIterateRecursively);
 							if(MetalLibName)
 							{
 								if(CFGetTypeID(MetalLibName) == CFStringGetTypeID())
@@ -1326,20 +1335,23 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 								}
 							}
 							
-							const CFStringRef OpenGLLibName = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("IOGLBundleName"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+							static CFStringRef IOGLBundleName = CFSTR("IOGLBundleName");
+							const CFStringRef OpenGLLibName = (const CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, IOGLBundleName, kCFAllocatorDefault, kIORegistryIterateRecursively);
 							if(OpenGLLibName)
 							{
 								if(CFGetTypeID(OpenGLLibName) == CFStringGetTypeID())
-									{
+								{
 									Desc.GPUOpenGLBundle = (NSString*)OpenGLLibName;
-									}
-									else
-									{
-									CFRelease(OpenGLLibName);
-									}
 								}
+								else
+								{
+									CFRelease(OpenGLLibName);
+								}
+							}
 							
 							CFStringRef BundleID = nullptr;
+							
+							static CFStringRef CFBundleIdentifier = CFSTR("CFBundleIdentifier");
 							
 							io_iterator_t ChildIterator;
 							if(IORegistryEntryGetChildIterator(ServiceEntry, kIOServicePlane, &ChildIterator) == kIOReturnSuccess)
@@ -1347,10 +1359,12 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 								io_registry_entry_t ChildEntry;
 								while((BundleID == nullptr) && (ChildEntry = IOIteratorNext(ChildIterator)))
 								{
-									CFStringRef IOMatchCategory = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, CFSTR("IOMatchCategory"), kCFAllocatorDefault, 0);
-									if (IOMatchCategory && CFGetTypeID(IOMatchCategory) == CFStringGetTypeID() && CFStringCompare(IOMatchCategory, CFSTR("IOAccelerator"), 0) == kCFCompareEqualTo)
+									static CFStringRef IOMatchCategoryRef = CFSTR("IOMatchCategory");
+									CFStringRef IOMatchCategory = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, IOMatchCategoryRef, kCFAllocatorDefault, 0);
+									static CFStringRef IOAcceleratorRef = CFSTR("IOAccelerator");
+									if (IOMatchCategory && CFGetTypeID(IOMatchCategory) == CFStringGetTypeID() && CFStringCompare(IOMatchCategory, IOAcceleratorRef, 0) == kCFCompareEqualTo)
 									{
-										BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, CFSTR("CFBundleIdentifier"), kCFAllocatorDefault, 0);
+										BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ChildEntry, kIOServicePlane, CFBundleIdentifier, kCFAllocatorDefault, 0);
 									}
 									if (IOMatchCategory)
 									{
@@ -1364,7 +1378,7 @@ TArray<FMacPlatformMisc::FGPUDescriptor> const& FMacPlatformMisc::GetGPUDescript
 							
 							if (BundleID == nullptr)
 							{
-								BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFSTR("CFBundleIdentifier"), kCFAllocatorDefault, kIORegistryIterateRecursively);
+								BundleID = (CFStringRef)IORegistryEntrySearchCFProperty(ServiceEntry, kIOServicePlane, CFBundleIdentifier, kCFAllocatorDefault, kIORegistryIterateRecursively);
 							}
 							
 							if(BundleID)

@@ -150,6 +150,7 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	bStopOnOverlap = true;
 	bReachTestIncludesAgentRadius = true;
 	bReachTestIncludesGoalRadius = true;
+	bMoveToGoalOnLastSegment = true;
 
 	Status = EPathFollowingStatus::Idle;
 
@@ -860,7 +861,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 			OnSegmentFinished();
 			OnPathFinished(EPathFollowingResult::Success, FPathFollowingResultFlags::None);
 		}
-		else if (bFollowingLastSegment)
+		else if (bFollowingLastSegment && bMoveToGoalOnLastSegment)
 		{
 			// use goal actor for end of last path segment
 			// UNLESS it's partial path (can't reach goal)

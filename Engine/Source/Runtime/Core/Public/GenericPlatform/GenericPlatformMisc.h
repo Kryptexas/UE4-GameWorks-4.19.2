@@ -937,6 +937,15 @@ public:
 	}
 
 	/**
+	 * Returns whether the platform has variable hardware (configurable/upgradeable system).
+	 */
+	static bool HasVariableHardware()
+	{
+		// By default assume that platform hardware is variable.
+		return true;
+	}
+
+	/**
 	 * Returns whether the given platform feature is currently available (for instance, Metal is only available in IOS8 and with A7 devices)
 	 */
 	static bool HasPlatformFeature(const TCHAR* FeatureName)

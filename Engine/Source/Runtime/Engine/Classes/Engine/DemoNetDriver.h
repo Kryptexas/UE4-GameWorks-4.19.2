@@ -80,13 +80,15 @@ enum ENetworkVersionHistory
 	HISTORY_SAVE_ENGINE_VERSION				= 4,			// Now saving engine net version + InternalProtocolVersion
 	HISTORY_EXTRA_VERSION					= 5,			// We now save engine/game protocol version, checksum, and changelist
 	HISTORY_MULTIPLE_LEVELS					= 6,			// Replays support seamless travel between levels
-	HISTORY_MULTIPLE_LEVELS_TIME_CHANGES	= 7				// Save out the time that level changes happen
+	HISTORY_MULTIPLE_LEVELS_TIME_CHANGES	= 7,				// Save out the time that level changes happen
+	HISTORY_DELETED_STARTUP_ACTORS			= 8				// Save DeletedNetStartupActors inside checkpoints
 };
 
 static const uint32 MIN_SUPPORTED_VERSION = HISTORY_EXTRA_VERSION;
 
 static const uint32 NETWORK_DEMO_MAGIC				= 0x2CF5A13D;
-static const uint32 NETWORK_DEMO_VERSION			= HISTORY_MULTIPLE_LEVELS_TIME_CHANGES;
+static const uint32 NETWORK_DEMO_VERSION			= HISTORY_DELETED_STARTUP_ACTORS;
+static const uint32 MIN_NETWORK_DEMO_VERSION		= HISTORY_EXTRA_VERSION;
 
 static const uint32 NETWORK_DEMO_METADATA_MAGIC		= 0x3D06B24E;
 static const uint32 NETWORK_DEMO_METADATA_VERSION	= 0;
@@ -155,9 +157,9 @@ struct FNetworkDemoHeader
 		Ar << Header.Version;
 
 		// Check version
-		if (Header.Version < MIN_SUPPORTED_VERSION)
+		if ( Header.Version < MIN_NETWORK_DEMO_VERSION )
 		{
-			UE_LOG(LogDemo, Error, TEXT("Header.Version (%d) < MIN_SUPPORTED_VERSION (%d)"), Header.Version, MIN_SUPPORTED_VERSION);
+			UE_LOG( LogDemo, Error, TEXT( "Header.Version < MIN_NETWORK_DEMO_VERSION. Header.Version: %i, MIN_NETWORK_DEMO_VERSION: %i" ), Header.Version, MIN_NETWORK_DEMO_VERSION );
 			Ar.SetError();
 			return Ar;
 		}
@@ -192,6 +194,21 @@ struct FNetworkDemoHeader
 
 		return Ar;
 	}
+};
+
+/** Information about net startup actors that need to be rolled back by being destroyed and re-created */
+USTRUCT()
+struct FRollbackNetStartupActorInfo
+{
+	GENERATED_BODY()
+
+	FName		Name;
+	UPROPERTY()
+	UObject*	Archetype;
+	FVector		Location;
+	FRotator	Rotation;
+	UPROPERTY()
+	ULevel*		Level;
 };
 
 /**
@@ -246,11 +263,23 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	/** When we save a checkpoint, we remember all of the actors that need a checkpoint saved out by adding them to this list */
 	TSet< TWeakObjectPtr< AActor > > PendingCheckpointActors;
 
+	/** Net startup actors that need to be destroyed after checkpoints are loaded */
+	TSet< FString >									DeletedNetStartupActors;
+
+	/** 
+	 * Net startup actors that need to be rolled back during scrubbing by being destroyed and re-spawned 
+	 * NOTE - DeletedNetStartupActors will take precedence here, and destroy the actor instead
+	 */
+	UPROPERTY(transient)
+	TMap< FString, FRollbackNetStartupActorInfo >	RollbackNetStartupActors;
+
 	/** Checkpoint state */
 	FPackageMapAckState CheckpointAckState;					// Current ack state of packagemap for the current checkpoint being saved
 	double				TotalCheckpointSaveTimeSeconds;		// Total time it took to save checkpoint across all frames
 	int32				TotalCheckpointSaveFrames;			// Total number of frames used to save a checkpoint
 	double				LastCheckpointTime;					// Last time a checkpoint was saved
+
+	void		RespawnNecessaryNetStartupActors();
 
 	void		SaveCheckpoint();
 	void		TickCheckpoint();
@@ -471,6 +500,11 @@ public:
 
 	/** Read the streaming level information from the metadata after the level is loaded */
 	void PendingNetGameLoadMapCompleted();
+
+	virtual void NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel=false ) override;
+
+	/** Call this function during playback to track net startup actors that need a hard reset when scrubbing, which is done by destroying and then re-spawning */
+	virtual void QueueNetStartupActorForRollbackViaDeletion( AActor* Actor );
 
 protected:
 	/** allows subclasses to write game specific data to demo header which is then handled by ProcessGameSpecificDemoHeader */

@@ -34,6 +34,7 @@ public:
 	virtual uint16 GetIncludeFlags() const override { return 0; }
 	virtual void SetExcludeFlags(uint16 Flags) override {}
 	virtual uint16 GetExcludeFlags() const override { return 0; }
+	virtual FVector GetAdjustedEndLocation(const FVector& EndLocation) const override { return EndLocation; }
 	virtual INavigationQueryFilterInterface* CreateCopy() const override;
 };
 

@@ -281,6 +281,11 @@ namespace LocalizationConfigurationScript
 				ConfigSection.Add( TEXT("PackageFileNameFilters"), FString::Printf( TEXT("*.%s"), *FileExtension.Pattern) );
 			}
 
+			for (const auto& CollectionName : Target->Settings.GatherFromPackages.Collections)
+			{
+				ConfigSection.Add( TEXT("CollectionFilters"), CollectionName.ToString() );
+			}
+
 			ConfigSection.Add( TEXT("ShouldGatherFromEditorOnlyData"), Target->Settings.GatherFromPackages.ShouldGatherFromEditorOnlyData ? TEXT("true") : TEXT("false") );
 			ConfigSection.Add( TEXT("SkipGatherCache"), Target->Settings.GatherFromPackages.SkipGatherCache ? TEXT("true") : TEXT("false") );
 		}

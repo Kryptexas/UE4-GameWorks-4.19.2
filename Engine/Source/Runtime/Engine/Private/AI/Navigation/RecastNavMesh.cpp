@@ -1943,20 +1943,21 @@ FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProp
 		NavMeshPath = NavPath ? NavPath->CastPath<FNavMeshPath>() : nullptr;
 	}
 
-	if (NavMeshPath)
+	const FNavigationQueryFilter* NavFilter = Query.QueryFilter.Get();
+	if (NavMeshPath && NavFilter)
 	{
 		NavMeshPath->ApplyFlags(Query.NavDataFlags);
 
-		if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == true)
+		const FVector AdjustedEndLocation = NavFilter->GetAdjustedEndLocation(Query.EndLocation);
+		if ((Query.StartLocation - AdjustedEndLocation).IsNearlyZero() == true)
 		{
 			Result.Path->GetPathPoints().Reset();
-			Result.Path->GetPathPoints().Add(FNavPathPoint(Query.EndLocation));
+			Result.Path->GetPathPoints().Add(FNavPathPoint(AdjustedEndLocation));
 			Result.Result = ENavigationQueryResult::Success;
 		}
-		else if (Query.QueryFilter.IsValid())
+		else
 		{
-			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath(Query.StartLocation, Query.EndLocation, *NavMeshPath,
-				*(Query.QueryFilter.Get()), Query.Owner.Get());
+			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath(Query.StartLocation, AdjustedEndLocation, *NavMeshPath, *NavFilter, Query.Owner.Get());
 
 			const bool bPartialPath = Result.IsPartial();
 			if (bPartialPath)
@@ -1981,10 +1982,16 @@ bool ARecastNavMesh::TestPath(const FNavAgentProperties& AgentProperties, const 
 	}
 
 	bool bPathExists = true;
-	if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == false)
+
+	const FNavigationQueryFilter* NavFilter = Query.QueryFilter.Get();
+	if (NavFilter)
 	{
-		ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestPath(Query.StartLocation, Query.EndLocation, *(Query.QueryFilter.Get()), Query.Owner.Get(), NumVisitedNodes);
-		bPathExists = (Result == ENavigationQueryResult::Success);
+		const FVector AdjustedEndLocation = NavFilter->GetAdjustedEndLocation(Query.EndLocation);
+		if ((Query.StartLocation - AdjustedEndLocation).IsNearlyZero() == false)
+		{
+			ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestPath(Query.StartLocation, AdjustedEndLocation, *NavFilter, Query.Owner.Get(), NumVisitedNodes);
+			bPathExists = (Result == ENavigationQueryResult::Success);
+		}
 	}
 
 	return bPathExists;
@@ -2004,29 +2011,34 @@ bool ARecastNavMesh::TestHierarchicalPath(const FNavAgentProperties& AgentProper
 	const bool bCanUseHierachicalPath = (Query.QueryFilter == RecastNavMesh->GetDefaultQueryFilter());
 	bool bPathExists = true;
 
-	if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == false)
+	const FNavigationQueryFilter* NavFilter = Query.QueryFilter.Get();
+	if (NavFilter)
 	{
-		bool bUseFallbackSearch = false;
-		if (bCanUseHierachicalPath)
+		const FVector AdjustedEndLocation = NavFilter->GetAdjustedEndLocation(Query.EndLocation);
+		if ((Query.StartLocation - AdjustedEndLocation).IsNearlyZero() == false)
 		{
-			ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestClusterPath(Query.StartLocation, Query.EndLocation, NumVisitedNodes);
-			bPathExists = (Result == ENavigationQueryResult::Success);
-
-			if (Result == ENavigationQueryResult::Error)
+			bool bUseFallbackSearch = false;
+			if (bCanUseHierachicalPath)
 			{
+				ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestClusterPath(Query.StartLocation, AdjustedEndLocation, NumVisitedNodes);
+				bPathExists = (Result == ENavigationQueryResult::Success);
+
+				if (Result == ENavigationQueryResult::Error)
+				{
+					bUseFallbackSearch = true;
+				}
+			}
+			else
+			{
+				UE_LOG(LogNavigation, Log, TEXT("Hierarchical path finding test failed: filter doesn't match!"));
 				bUseFallbackSearch = true;
 			}
-		}
-		else
-		{
-			UE_LOG(LogNavigation, Log, TEXT("Hierarchical path finding test failed: filter doesn't match!"));
-			bUseFallbackSearch = true;
-		}
 
-		if (bUseFallbackSearch)
-		{
-			ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestPath(Query.StartLocation, Query.EndLocation, *(Query.QueryFilter.Get()), Query.Owner.Get(), NumVisitedNodes);
-			bPathExists = (Result == ENavigationQueryResult::Success);
+			if (bUseFallbackSearch)
+			{
+				ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestPath(Query.StartLocation, AdjustedEndLocation, *NavFilter, Query.Owner.Get(), NumVisitedNodes);
+				bPathExists = (Result == ENavigationQueryResult::Success);
+			}
 		}
 	}
 

@@ -118,6 +118,7 @@ public:
 	virtual uint16 GetIncludeFlags() const = 0;
 	virtual void SetExcludeFlags(uint16 Flags) = 0;
 	virtual uint16 GetExcludeFlags() const = 0;
+	virtual FVector GetAdjustedEndLocation(const FVector& EndLocation) const { return EndLocation; }
 
 	virtual INavigationQueryFilterInterface* CreateCopy() const = 0;
 };
@@ -176,6 +177,9 @@ public:
 
 	/** get backtracking status */
 	bool IsBacktrackingEnabled() const { return QueryFilterImpl->IsBacktrackingEnabled(); }
+
+	/** post processing for pathfinding's end point */
+	FVector GetAdjustedEndLocation(const FVector& EndPoint) const { return QueryFilterImpl->GetAdjustedEndLocation(EndPoint);  }
 
 	template<typename FilterType>
 	void SetFilterType()

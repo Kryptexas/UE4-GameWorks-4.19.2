@@ -208,6 +208,7 @@ public:
 	 * @return The result of attempting to get the value
 	 */
 	virtual FPropertyAccess::Result GetValue( float& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( double& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( bool& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( int8& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( int16& OutValue ) const = 0;
@@ -237,6 +238,7 @@ public:
 	 * @return The result of attempting to set the value
 	 */
 	virtual FPropertyAccess::Result SetValue( const float& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const double& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const bool& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const int8& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const int16& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;

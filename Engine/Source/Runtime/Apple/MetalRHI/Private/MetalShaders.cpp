@@ -50,13 +50,13 @@ public:
 	FMetalCompiledShaderCache()
 	{
 		int Err = pthread_rwlock_init(&Lock, nullptr);
-		checkf(Err == 0, TEXT("pthread_rwlock_init failed with error: %d"), errno);
+		checkf(Err == 0, TEXT("pthread_rwlock_init failed with error: %d"), Err);
 	}
 	
 	~FMetalCompiledShaderCache()
 	{
 		int Err = pthread_rwlock_destroy(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with error: %d"), errno);
+		checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with error: %d"), Err);
 		for (TPair<FMetalCompiledShaderKey, id<MTLFunction>> Pair : Cache)
 		{
 			[Pair.Value release];
@@ -66,20 +66,20 @@ public:
 	id<MTLFunction> FindRef(FMetalCompiledShaderKey Key)
 	{
 		int Err = pthread_rwlock_rdlock(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), errno);
+		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with error: %d"), Err);
 		id<MTLFunction> Func = Cache.FindRef(Key);
 		Err = pthread_rwlock_unlock(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
+		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), Err);
 		return Func;
 	}
 	
 	void Add(FMetalCompiledShaderKey Key, id<MTLFunction> Function)
 	{
 		int Err = pthread_rwlock_wrlock(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with error: %d"), errno);
+		checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with error: %d"), Err);
 		Cache.Add(Key, Function);
 		Err = pthread_rwlock_unlock(&Lock);
-		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), errno);
+		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with error: %d"), Err);
 	}
 	
 private:
@@ -421,7 +421,7 @@ FMetalBoundShaderState::FMetalBoundShaderState(
 #endif
 	
 	int Err = pthread_rwlock_init(&PipelineMutex, nullptr);
-	checkf(Err == 0, TEXT("pthread_rwlock_init failed with errno: %d"), errno);
+	checkf(Err == 0, TEXT("pthread_rwlock_init failed with errno: %d"), Err);
 }
 
 FMetalBoundShaderState::~FMetalBoundShaderState()
@@ -431,7 +431,7 @@ FMetalBoundShaderState::~FMetalBoundShaderState()
 #endif
 	
 	int Err = pthread_rwlock_destroy(&PipelineMutex);
-	checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with errno: %d"), errno);
+	checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with errno: %d"), Err);
 }
 
 void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedVertexDescriptor const& VertexDesc, const FMetalRenderPipelineDesc& RenderPipelineDesc, MTLRenderPipelineReflection** Reflection)
@@ -445,7 +445,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 		int Err = pthread_rwlock_rdlock(&PipelineMutex);
-		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with errno: %d"), errno);
+		checkf(Err == 0, TEXT("pthread_rwlock_rdlock failed with errno: %d"), Err);
 	}
 	
 	// have we made a matching state object yet?
@@ -460,7 +460,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 	{
 		SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 		int Err = pthread_rwlock_unlock(&PipelineMutex);
-		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with errno: %d"), errno);
+		checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with errno: %d"), Err);
 	}
 	
 	// make one if not
@@ -474,7 +474,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 			int Err = pthread_rwlock_wrlock(&PipelineMutex);
-			checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with errno: %d"), errno);
+			checkf(Err == 0, TEXT("pthread_rwlock_wrlock failed with errno: %d"), Err);
 		}
 		
 		Dict = PipelineStates.Find(PipelineHash);
@@ -507,7 +507,7 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 		{
 			SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderLockTime);
 			int Err = pthread_rwlock_unlock(&PipelineMutex);
-			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with errno: %d"), errno);
+			checkf(Err == 0, TEXT("pthread_rwlock_unlock failed with errno: %d"), Err);
 		}
 		
 #if METAL_DEBUG_OPTIONS

@@ -521,6 +521,9 @@ protected:
 	/** increase acceptance radius with goal's radius */
 	uint32 bReachTestIncludesGoalRadius : 1;
 
+	/** if set, target location will be constantly updated to match goal actor while following last segment of full path */
+	uint32 bMoveToGoalOnLastSegment : 1;
+
 	/** if set, movement block detection will be used */
 	uint32 bUseBlockDetection : 1;
 

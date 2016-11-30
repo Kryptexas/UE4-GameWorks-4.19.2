@@ -34,6 +34,7 @@
 
 #include "AISystem.h"
 #include "Engine/EndUserSettings.h"
+#include "Runtime/Slate/Public/SlateSettings.h"
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 
@@ -175,6 +176,12 @@ protected:
 			LOCTEXT("EndUserSettingsDescription", "Settings you may wish to expose to end-users of your game."),
 			GetMutableDefault<UEndUserSettings>()
 			);
+
+		SettingsModule.RegisterSettings("Project", "Engine", "Slate",
+			LOCTEXT("SlateSettingsName", "Slate Settings"),
+			LOCTEXT("SlateSettingsDescription", "Settings for Slate."),
+			GetMutableDefault<USlateSettings>()
+		);
 	}
 
 	/**

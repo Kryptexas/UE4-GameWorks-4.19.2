@@ -467,8 +467,7 @@ public:
 	// @param 1: add a reference, -1: remove a reference
 	void AdjustGBufferRefCount(FRHICommandList& RHICmdList, int Delta);
 
-	//
-	void PreallocGBufferTargets(bool bShouldRenderVelocities);
+	void PreallocGBufferTargets();
 	void GetGBufferADesc(FPooledRenderTargetDesc& Desc) const;
 	void AllocGBufferTargets(FRHICommandList& RHICmdList);
 

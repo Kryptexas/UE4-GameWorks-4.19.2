@@ -49,6 +49,8 @@ static TAutoConsoleVariable<int32> CVarDemoLoadCheckpointGarbageCollect( TEXT( "
 static TAutoConsoleVariable<float> CVarCheckpointSaveMaxMSPerFrameOverride( TEXT( "demo.CheckpointSaveMaxMSPerFrameOverride" ), -1.0f, TEXT( "If >= 0, this value will override the CheckpointSaveMaxMSPerFrame member variable, which is the maximum time allowed each frame to spend on saving a checkpoint. If 0, it will save the checkpoint in a single frame, regardless of how long it takes." ) );
 static TAutoConsoleVariable<int32> CVarDemoClientRecordAsyncEndOfFrame( TEXT( "demo.ClientRecordAsyncEndOfFrame" ), 0, TEXT( "If true, TickFlush will be called on a thread in parallel with Slate." ) );
 
+static TAutoConsoleVariable<int32> CVarForceDisableAsyncPackageMapLoading( TEXT( "demo.ForceDisableAsyncPackageMapLoading" ), 0, TEXT( "If true, async package map loading of network assets will be disabled." ) );
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarDemoForceFailure( TEXT( "demo.ForceFailure" ), 0, TEXT( "" ) );
 #endif
@@ -429,7 +431,16 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 		return false;
 	}
 
-	GuidCache->SetNetworkChecksumMode( FNetGUIDCache::NETCHECKSUM_SaveButIgnore );
+	GuidCache->SetNetworkChecksumMode( FNetGUIDCache::ENetworkChecksumMode::SaveButIgnore );
+
+	if ( CVarForceDisableAsyncPackageMapLoading.GetValueOnGameThread() > 0 )
+	{
+		GuidCache->SetAsyncLoadMode( FNetGUIDCache::EAsyncLoadMode::ForceDisable );
+	}
+	else
+	{
+		GuidCache->SetAsyncLoadMode( FNetGUIDCache::EAsyncLoadMode::UseCVar );
+	}
 
 	// Playback, local machine is a client, and the demo stream acts "as if" it's the server.
 	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
@@ -583,7 +594,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 		return false;
 	}
 
-	GuidCache->SetNetworkChecksumMode( FNetGUIDCache::NETCHECKSUM_SaveButIgnore );
+	GuidCache->SetNetworkChecksumMode( FNetGUIDCache::ENetworkChecksumMode::SaveButIgnore );
 
 	check( World != NULL );
 
@@ -1282,7 +1293,10 @@ void UDemoNetDriver::TickCheckpoint()
 		//
 		*CheckpointArchive << CurrentLevelIndex;
 
-		// First, save the current guid cache
+		// Save deleted startup actors
+		*CheckpointArchive << DeletedNetStartupActors;
+
+		// Save the current guid cache
 		SerializeGuidCache( GuidCache, CheckpointArchive );
 
 		// Save the compatible rep layout map
@@ -1540,6 +1554,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	}
 
 	const double ReplicationStartTimeSeconds = FPlatformTime::Seconds();
+	TArray<AActor*> ActorsToRemove;
 
 	for ( const FActorPriority& ActorPriority : PrioritizedActors )
 	{
@@ -1597,7 +1612,7 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		if ( bDidReplicateActor && Actor->NetDormancy == DORM_DormantAll )
 		{
 			// If we've replicated this object at least once, and it wants to go dormant, make it dormant now
-			GetNetworkObjectList().GetObjects().Remove( Actor );
+			ActorsToRemove.Add( Actor );
 			FullyDormantActors.Add( Actor );
 		}
 
@@ -1638,6 +1653,11 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 				break;
 			}
 		}
+	}
+
+	for (int32 Idx = 0; Idx < ActorsToRemove.Num(); Idx++)
+	{
+		GetNetworkObjectList().GetObjects().Remove(ActorsToRemove[Idx]);
 	}
 
 	// Make sure nothing is left over
@@ -2136,6 +2156,15 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		return;
 	}
 
+	if ( CVarForceDisableAsyncPackageMapLoading.GetValueOnGameThread() > 0 )
+	{
+		GuidCache->SetAsyncLoadMode( FNetGUIDCache::EAsyncLoadMode::ForceDisable );
+	}
+	else
+	{
+		GuidCache->SetAsyncLoadMode( FNetGUIDCache::EAsyncLoadMode::UseCVar );
+	}
+
 	if ( CVarGotoTimeInSeconds.GetValueOnGameThread() >= 0.0f )
 	{
 		GotoTimeInSeconds( CVarGotoTimeInSeconds.GetValueOnGameThread() );
@@ -2427,6 +2456,42 @@ FReplayExternalDataArray* UDemoNetDriver::GetExternalDataArrayForObject( UObject
 	return ExternalDataToObjectMap.Find( NetworkGUID );
 }
 
+void UDemoNetDriver::RespawnNecessaryNetStartupActors()
+{
+	for ( auto It = RollbackNetStartupActors.CreateIterator(); It; ++It )
+	{
+		if ( DeletedNetStartupActors.Contains( It.Key() ) )
+		{
+			// We don't want to re-create these since they should no longer exist after the current checkpoint
+			continue;
+		}
+
+		FRollbackNetStartupActorInfo& RollbackActor = It.Value();
+
+		FActorSpawnParameters SpawnInfo;
+
+		SpawnInfo.Template							= CastChecked<AActor>( RollbackActor.Archetype );
+		SpawnInfo.SpawnCollisionHandlingOverride	= ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnInfo.bNoFail							= true;
+		SpawnInfo.Name								= RollbackActor.Name;
+		SpawnInfo.OverrideLevel						= RollbackActor.Level;
+
+		AActor* Actor = GetWorld()->SpawnActorAbsolute( RollbackActor.Archetype->GetClass(), FTransform( RollbackActor.Rotation, RollbackActor.Location ), SpawnInfo );
+
+		if ( !ensure( Actor->GetFullName() == It.Key() ) )
+		{
+			UE_LOG( LogDemo, Log, TEXT( "RespawnNecessaryNetStartupActors: NetStartupRollbackActor name doesn't match original: %s, %s" ), *Actor->GetFullName(), *It.Key() );
+		}
+
+		Actor->bNetStartup = true;
+		Actor->SwapRolesForReplay();
+
+		check( Actor->GetRemoteRole() == ROLE_Authority );
+
+		It.RemoveCurrent();
+	}
+}
+
 bool UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 GotoCheckpointSkipExtraTimeInMS )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("LoadCheckpoint time"), STAT_ReplayCheckpointLoadTime, STATGROUP_Net);
@@ -2606,6 +2671,15 @@ bool UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 	ServerConnection->Close();
 	ServerConnection->CleanUp();
 
+	// Destroy startup actors that need to rollback via being destroyed and re-created
+	for ( FActorIterator It( GetWorld() ); It; ++It )
+	{
+		if ( RollbackNetStartupActors.Contains( It->GetFullName() ) )
+		{
+			GetWorld()->DestroyActor( *It, true );
+		}
+	}
+
 	// Optionally collect garbage after the old actors and connection are cleaned up - there could be a lot of pending-kill objects at this point.
 	if (CVarDemoLoadCheckpointGarbageCollect.GetValueOnGameThread() != 0)
 	{
@@ -2663,6 +2737,12 @@ bool UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 
 	if ( GotoCheckpointArchive->TotalSize() == 0 || GotoCheckpointArchive->TotalSize() == INDEX_NONE )
 	{
+		// Make sure this is empty so that RespawnNecessaryNetStartupActors will respawn them
+		DeletedNetStartupActors.Empty();
+
+		// Re-create all startup actors that were destroyed but should exist beyond this point
+		RespawnNecessaryNetStartupActors();
+
 		// This is the very first checkpoint, we'll read the stream from the very beginning in this case
 		DemoCurrentTime			= 0;
 		bDemoPlaybackDone		= false;
@@ -2675,6 +2755,28 @@ bool UDemoNetDriver::LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 Goto
 
 		return true;
 	}
+
+	// Load net startup actors that need to be destroyed
+	if ( PlaybackDemoHeader.Version >= HISTORY_DELETED_STARTUP_ACTORS )
+	{
+		*GotoCheckpointArchive << DeletedNetStartupActors;
+	}
+
+	// Destroy startup actors that shouldn't exist past this checkpoint
+	for ( FActorIterator It( GetWorld() ); It; ++It )
+	{
+		if ( DeletedNetStartupActors.Contains( It->GetFullName() ) )
+		{
+			// Put this actor on the rollback list so we can undelete it during future scrubbing
+			QueueNetStartupActorForRollbackViaDeletion( *It );
+
+			// Delete the actor
+			GetWorld()->DestroyActor( *It, true );
+		}
+	}
+
+	// Re-create all startup actors that were destroyed but should exist beyond this point
+	RespawnNecessaryNetStartupActors();
 
 	int32 NumValues = 0;
 	*GotoCheckpointArchive << NumValues;
@@ -3029,6 +3131,48 @@ void UDemoNetDriver::NotifyGotoTimeFinished(bool bWasSuccessful)
 
 void UDemoNetDriver::PendingNetGameLoadMapCompleted()
 {
+}
+
+void UDemoNetDriver::NotifyActorDestroyed( AActor* Actor, bool IsSeamlessTravel )
+{
+	check( Actor != nullptr );
+
+	if ( IsRecording() && Actor->IsNetStartupActor() )
+	{
+		DeletedNetStartupActors.Add( Actor->GetFullName() );		// This is a TSet, so it will only happen once
+	}
+
+	Super::NotifyActorDestroyed( Actor, IsSeamlessTravel );
+}
+
+void UDemoNetDriver::QueueNetStartupActorForRollbackViaDeletion( AActor* Actor )
+{
+	check( Actor != nullptr );
+
+	if ( !Actor->IsNetStartupActor() )
+	{
+		return;		// We only want startup actors
+	}
+
+	if ( !IsPlaying() )
+	{
+		return;		// We should only be doing this at runtime while playing a replay
+	}
+
+	if ( RollbackNetStartupActors.Contains( Actor->GetFullName() ) )
+	{
+		return;		// This actor is already queued up
+	}
+
+	FRollbackNetStartupActorInfo RollbackActor;
+
+	RollbackActor.Name		= Actor->GetFName();
+	RollbackActor.Archetype	= Actor->GetArchetype();
+	RollbackActor.Location	= Actor->GetActorLocation();
+	RollbackActor.Rotation	= Actor->GetActorRotation();
+	RollbackActor.Level		= Actor->GetLevel();
+
+	RollbackNetStartupActors.Add( Actor->GetFullName(), RollbackActor );
 }
 
 /*-----------------------------------------------------------------------------

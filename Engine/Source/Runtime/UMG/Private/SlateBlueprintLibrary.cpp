@@ -37,6 +37,11 @@ FVector2D USlateBlueprintLibrary::GetLocalSize(const FGeometry& Geometry)
 	return Geometry.GetLocalSize();
 }
 
+bool USlateBlueprintLibrary::EqualEqual_SlateBrush(const FSlateBrush& A, const FSlateBrush& B)
+{
+	return A == B;
+}
+
 void USlateBlueprintLibrary::LocalToViewport(UObject* WorldContextObject, const FGeometry& Geometry, FVector2D LocalCoordinate, FVector2D& PixelPosition, FVector2D& ViewportPosition)
 {
 	FVector2D AbsoluteCoordinate = Geometry.LocalToAbsolute(LocalCoordinate);

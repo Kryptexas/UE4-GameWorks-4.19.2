@@ -506,7 +506,7 @@ void UParty::PartyExitedInternal(const FUniqueNetId& LocalUserId, const FOnlineP
 	}
 	else
 	{
-		UE_LOG(LogParty, Warning, TEXT("[%s]: Missing party state during exit"), *InPartyId.ToString());
+		UE_LOG(LogParty, Display, TEXT("[%s]: Missing party state during exit"), *InPartyId.ToString());
 	}
 }
 
@@ -922,10 +922,7 @@ void UParty::OnCreatePesistentPartyCompletedCommon(const FUniqueNetId& LocalUser
 
 	ensure(PersistentPartyId.IsValid());
 	UPartyGameState* PersistentParty = GetPersistentParty();
-	if (!ensure(PersistentParty != nullptr))
-	{
-		return;
-	}
+	ensure(PersistentParty != nullptr);
 
 	EPartyType PartyType = EPartyType::Public;
 	bool bLeaderInvitesOnly = false;

@@ -211,8 +211,9 @@ int32 FGameplayDebuggerCategory_EQS::DrawLookedAtItem(const EQSDebug::FQueryData
 			DescTileItem.BlendMode = SE_BLEND_Translucent;
 			CanvasContext.DrawItem(DescTileItem, 0, CanvasContext.CursorY - BackgroundPadding);
 
-			CanvasContext.Printf(FColor::Red, TEXT("Selected item:%d failed test [%d]: {yellow}%s {LightBlue}(%s)"),
+			CanvasContext.Printf(FColor::Red, TEXT("Selected item (#%d, %s) failed test [%d]: {yellow}%s {LightBlue}(%s)"),
 				BestItemIndex,
+				QueryData.Items.IsValidIndex(BestItemIndex) ? *QueryData.Items[BestItemIndex].Desc : TEXT("INVALID"),
 				FailedTestIndex,
 				*QueryData.Tests[FailedTestIndex].ShortName,
 				*QueryData.Tests[FailedTestIndex].Detailed);

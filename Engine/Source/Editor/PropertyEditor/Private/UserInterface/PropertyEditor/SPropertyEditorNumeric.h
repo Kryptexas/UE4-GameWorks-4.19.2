@@ -54,7 +54,7 @@ public:
 		const TSharedRef< FPropertyNode > PropertyNode = InPropertyEditor->GetPropertyNode();
 		const UProperty* Property = InPropertyEditor->GetProperty();
 
-		if(!Property->IsA(UFloatProperty::StaticClass()) && Property->HasMetaData(PropertyEditorConstants::MD_Bitmask))
+		if(!Property->IsA(UFloatProperty::StaticClass()) && !Property->IsA(UDoubleProperty::StaticClass()) && Property->HasMetaData(PropertyEditorConstants::MD_Bitmask))
 		{
 			auto CreateBitmaskFlagsArray = [](const UProperty* Prop)
 			{
@@ -391,6 +391,12 @@ private:
 	};
 
 	template<typename U>
+	struct TTypeToProperty<double, U>
+	{
+		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UDoubleProperty::StaticClass()); }
+	};
+
+	template<typename U>
 	struct TTypeToProperty<int8, U>
 	{
 		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UInt8Property::StaticClass()); }
@@ -567,6 +573,15 @@ private:
 		static float BitwiseAND(float Base, float Mask) { return 0.0f; }
 		static float BitwiseXOR(float Base, float Mask) { return 0.0f; }
 		static float LeftShift(float Base, int32 Shift) { return 0.0f; }
+	};
+
+	/** Explicit specialization for numeric 'double' types (these will not be used). */
+	template<typename U>
+	struct TBitmaskValueHelpers<double, U>
+	{
+		static double BitwiseAND(double Base, double Mask) { return 0.0f; }
+		static double BitwiseXOR(double Base, double Mask) { return 0.0f; }
+		static double LeftShift(double Base, int32 Shift)  { return 0.0f; }
 	};
 
 private:

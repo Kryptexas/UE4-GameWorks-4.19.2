@@ -916,6 +916,31 @@ namespace UnrealBuildTool
                 });
 		}
 
+		/// <summary>
+		/// Reads configuration settings for a class from a hierarchy of ini files
+		/// </summary>
+		/// <param name="Ini">Config file cache</param>
+		/// <param name="Type">The type to read settings for. Settings will be read from the section with a name corresponding to this type.</param>
+		static void ReadGlobalIniSettings(ConfigCacheIni Ini, Type Type)
+		{
+			ConfigCacheIni.IniSection Section = Ini.FindSection(Type.Name);
+			if(Section != null)
+			{
+				foreach (KeyValuePair<string, ConfigCacheIni.IniValues> Pair in Section)
+				{
+					FieldInfo Field = Type.GetField(Pair.Key);
+					if(Field == null || !XmlConfigLoader.IsConfigurableField(Field))
+					{
+						Log.TraceWarning("Invalid setting: {0}.{1}", Type.Name, Pair.Key);
+					}
+					else
+					{
+						Field.SetValue(null, XmlConfigLoader.ParseFieldData(Field.FieldType, String.Join("\n", Pair.Value)));
+					}
+				}
+			}
+		}
+
 		private static int DoPostStartupStuffThatCanAccessConfigs(string[] Arguments)
 		{
 			// We can now do a full initialization of the logging system with proper configuration values.
@@ -1237,6 +1262,11 @@ namespace UnrealBuildTool
 							throw new BuildException("When running UnrealCodeAnalyzer, please specify exactly one action to execute");
 						}
 					}
+
+					// Read any global configuration settings for the project, now that we have a path to the project file.
+					ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Engine", (ProjectFile == null)? null : ProjectFile.Directory, EngineDirectory);
+					ReadGlobalIniSettings(Ini, typeof(BuildConfiguration));
+					ReadGlobalIniSettings(Ini, typeof(UEBuildConfiguration));
 
 					// Get the build version
 					BuildVersion Version;
@@ -1561,11 +1591,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-
 		public static ECompilationResult RunUBT(string[] Arguments, FileReference ProjectFile)
 		{
 			bool bSuccess = true;
-
 
 			DateTime RunUBTInitStartTime = DateTime.UtcNow;
 

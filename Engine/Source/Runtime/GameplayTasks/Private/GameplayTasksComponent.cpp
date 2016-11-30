@@ -454,7 +454,7 @@ void UGameplayTasksComponent::UpdateTaskActivations()
 		FGameplayResourceSet ResourcesBlocked;
 		for (int32 TaskIndex = 0; TaskIndex < TaskPriorityQueue.Num(); ++TaskIndex)
 		{
-			if (ensure(TaskPriorityQueue[TaskIndex]))
+			if (TaskPriorityQueue[TaskIndex])
 			{
 				const FGameplayResourceSet RequiredResources = TaskPriorityQueue[TaskIndex]->GetRequiredResources();
 				const FGameplayResourceSet ClaimedResources = TaskPriorityQueue[TaskIndex]->GetClaimedResources();
@@ -474,6 +474,8 @@ void UGameplayTasksComponent::UpdateTaskActivations()
 			else
 			{
 				bHasNulls = true;
+
+				UE_VLOG(this, LogGameplayTasks, Warning, TEXT("UpdateTaskActivations found null entry in task queue at index:%d!"), TaskIndex);
 			}
 		}
 

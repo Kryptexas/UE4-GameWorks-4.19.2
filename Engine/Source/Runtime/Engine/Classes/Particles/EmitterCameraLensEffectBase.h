@@ -49,6 +49,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = EmitterCameraLensEffectBase)
 	uint8 bAllowMultipleInstances:1;
 
+	/** If bAllowMultipleInstances is true and this effect is retriggered, the particle system will be reset if this is true */
+	UPROPERTY(EditAnywhere, Category = EmitterCameraLensEffectBase)
+	uint8 bResetWhenRetriggered:1;
+
 	/** 
 	 *  If an emitter class in this array is currently playing, do not play this effect.
 	 *  Useful for preventing multiple similar or expensive camera effects from playing simultaneously.

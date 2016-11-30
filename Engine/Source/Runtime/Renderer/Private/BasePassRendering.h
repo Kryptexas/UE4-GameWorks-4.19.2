@@ -1159,6 +1159,9 @@ public:
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState,BlendMode);
 		}
 
+		static IConsoleVariable* EarlyZPassOnlyMaterialMaskingCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPassOnlyMaterialMasking"));
+		bool bMaskInEarlyPass = (EarlyZPassOnlyMaterialMaskingCVar && Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel())->IsMasked() && EarlyZPassOnlyMaterialMaskingCVar->GetInt());
+
 		if (bEnableReceiveDecalOutput && !UseDebugViewPS())
 		{
 			// Set stencil value for this draw call
@@ -1168,7 +1171,17 @@ public:
 			
 			if (DrawRenderState.DepthStencilState)
 			{
+				//@TODO: Handle bMaskInEarlyPass in this case (used when a LODTransition is specified)
 				RHICmdList.SetDepthStencilState(DrawRenderState.DepthStencilState, StencilValue);
+			}
+			else if (bMaskInEarlyPass)
+			{
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+					false, CF_Equal,
+					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
+				>::GetRHI(), StencilValue);
 			}
 			else
 			{
@@ -1179,6 +1192,10 @@ public:
 					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
 				>::GetRHI(), StencilValue);
 			}
+		}
+		else if (bMaskInEarlyPass)
+		{
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Equal>::GetRHI());
 		}
 
 		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);

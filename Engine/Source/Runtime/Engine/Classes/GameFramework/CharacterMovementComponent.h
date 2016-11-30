@@ -1904,6 +1904,9 @@ public:
 	/** Get prediction data for a server game. Should not be used if not running as a server. Allocates the data on demand and can be overridden to allocate a custom override if desired. */
 	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const override;
 
+	class FNetworkPredictionData_Client_Character* GetPredictionData_Client_Character() const;
+	class FNetworkPredictionData_Server_Character* GetPredictionData_Server_Character() const;
+
 	virtual bool HasPredictionData_Client() const override;
 	virtual bool HasPredictionData_Server() const override;
 
@@ -1913,9 +1916,6 @@ public:
 protected:
 	class FNetworkPredictionData_Client_Character* ClientPredictionData;
 	class FNetworkPredictionData_Server_Character* ServerPredictionData;
-
-	class FNetworkPredictionData_Client_Character* GetPredictionData_Client_Character() const;
-	class FNetworkPredictionData_Server_Character* GetPredictionData_Server_Character() const;
 
 	/**
 	 * Smooth mesh location for network interpolation, based on values set up by SmoothCorrection.

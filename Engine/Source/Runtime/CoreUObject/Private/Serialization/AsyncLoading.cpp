@@ -1606,7 +1606,7 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports_Event()
 		}
 
 		bool bForcePackageLoad = false;
-		if (!Import->OuterIndex.IsNull())
+		if (!Import->OuterIndex.IsNull() && !Import->bImportFailed)
 		{
 			// we didn't find an object, so we need to stream the package in because it might have been GC'd and we need to reload it (unless we have already done that according to bImportPackageHandled)
 			FObjectImport* ImportOutermost = Import;
@@ -1876,8 +1876,16 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 				{
 					FindExistingImport(LocalImportIndex);
 					bool bFinishedLoading = IsFullyLoadedObj(Import.XObject);
-					UE_CLOG(!bFinishedLoading && Import.XObject, LogStreaming, Fatal, TEXT("Found package without a linker, could find %s in %s, but somehow wasn't finished loading."), *Import.ObjectName.ToString(), *ImportPackage->GetName());
-					UE_CLOG(!bFinishedLoading && !Import.XObject, LogStreaming, Fatal, TEXT("Found package without a linker, could not find %s in %s."), *Import.ObjectName.ToString(), *ImportPackage->GetName());
+
+					if (Import.XObject)
+					{
+						UE_CLOG(!bFinishedLoading, LogStreaming, Fatal, TEXT("Found package without a linker, could find %s in %s, but somehow wasn't finished loading."), *Import.ObjectName.ToString(), *ImportPackage->GetName());
+					}
+					else
+					{
+						// This can happen for missing packages on disk, which already warned
+						Import.bImportFailed = true;
+					}
 				}
 				if (ImportLinker && ImportLinker->AsyncRoot)
 				{
@@ -1922,9 +1930,10 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 						LocalExportIndex = FPackageIndex::FromExport(0);
 					}
 
-					UE_CLOG(LocalExportIndex.IsNull(), LogStreaming, Warning, TEXT("Could not find import %s.%s in package %s, this is probably related to adding stuff we don't need to import map under the 'IsEventDrivenLoaderEnabledInCookedBuilds'."), *OuterName.ToString(), *Import.ObjectName.ToString(), *ImportPackage->GetName());
-					UE_CLOG(bDynamicImport && LocalExportIndex.IsNull(), LogStreaming, Fatal, TEXT("Could not find dynamic import %s.%s in package %s."), *OuterName.ToString(), *Import.ObjectName.ToString(), *ImportPackage->GetName());
-					if (!LocalExportIndex.IsNull())
+					Import.bImportFailed = LocalExportIndex.IsNull();
+					UE_CLOG(Import.bImportFailed, LogStreaming, Warning, TEXT("Could not find import %s.%s in package %s, this is probably related to adding stuff we don't need to import map under the 'IsEventDrivenLoaderEnabledInCookedBuilds'."), *OuterName.ToString(), *Import.ObjectName.ToString(), *ImportPackage->GetName());
+					UE_CLOG(bDynamicImport && Import.bImportFailed, LogStreaming, Fatal, TEXT("Could not find dynamic import %s.%s in package %s."), *OuterName.ToString(), *Import.ObjectName.ToString(), *ImportPackage->GetName());
+					if (!Import.bImportFailed)
 					{
 						FObjectExport& Export = ImportLinker->Exp(LocalExportIndex);
 						if (bDynamicSomethingMissingFromTheFakeExportTable)
@@ -2297,11 +2306,11 @@ void FAsyncPackage::LinkImport(int32 LocalImportIndex)
 {
 	check(LocalImportIndex >= 0 && LocalImportIndex < Linker->ImportMap.Num());
 	FObjectImport& Import = Linker->ImportMap[LocalImportIndex];
-	if (!Import.XObject)
+	if (!Import.XObject && !Import.bImportFailed)
 	{
 		if (Linker->GetFArchiveAsync2Loader())
 		{
-		Linker->GetFArchiveAsync2Loader()->LogItem(TEXT("LinkImport"));
+			Linker->GetFArchiveAsync2Loader()->LogItem(TEXT("LinkImport"));
 		}
 		if (Import.SourceLinker)
 		{
@@ -2316,6 +2325,11 @@ void FAsyncPackage::LinkImport(int32 LocalImportIndex)
 			{
 				check(!OuterMostIndex.IsNull() && OuterMostIndex.IsImport());
 				FObjectImport& OuterMostImport = Linker->Imp(OuterMostIndex);
+				if (OuterMostImport.bImportFailed)
+				{
+					Import.bImportFailed = true;
+					return;
+				}
 
 				if (OuterMostImport.OuterIndex.IsNull())
 				{
@@ -2345,15 +2359,20 @@ void FAsyncPackage::LinkImport(int32 LocalImportIndex)
 							if (OuterMostIndex != Import.OuterIndex)
 							{
 								FObjectImport& OuterImport = Linker->Imp(Import.OuterIndex);
-								if (!OuterImport.XObject)
+								if (!OuterImport.XObject && !OuterImport.bImportFailed)
 								{
 									LinkImport(Import.OuterIndex.ToImport());
 								}
+								if (OuterImport.bImportFailed)
+								{
+									Import.bImportFailed = true;
+									return;
+								}
 								Outer = OuterImport.XObject;
-								check(Outer); // Bad dependencies, we somehow are trying to link an import when the outer of the import has not been created yet
+								UE_CLOG(!Outer, LogStreaming, Fatal, TEXT("Missing outer for import of (%s): %s in %s was not found, but the package exists."), *Desc.NameToLoad.ToString(), *OuterImport.ObjectName.ToString(), *ImportPackage->GetFullName());
 							}
 							Import.XObject = FLinkerLoad::FindImportFast(FindClass, Outer, Import.ObjectName);
-							UE_CLOG(!Import.XObject, LogStreaming, Fatal, TEXT("Missing import: %s in %s was not found, but the package exists."), *Import.ObjectName.ToString(), *ImportPackage->GetFullName());
+							UE_CLOG(!Import.XObject, LogStreaming, Fatal, TEXT("Missing import of (%s): %s in %s was not found, but the package exists."), *Desc.NameToLoad.ToString(), *Import.ObjectName.ToString(), *ImportPackage->GetFullName());
 						}
 					}
 				}
@@ -4733,7 +4752,7 @@ EAsyncPackageState::Type FAsyncPackage::TickAsyncPackage(bool InbUseTimeLimit, b
 #endif
 		// Call PostLoad on objects, this could cause new objects to be loaded that require
 		// another iteration of the PreLoad loop.
-		if (LoadingState == EAsyncPackageState::Complete)
+		if (LoadingState == EAsyncPackageState::Complete && !bLoadHasFailed)
 		{
 			SCOPED_LOADTIMER(Package_PostLoadObjects);
 			LoadingState = PostLoadObjects();
@@ -4856,10 +4875,23 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 				(!GetConvertedDynamicPackageNameToTypeName().Contains(Desc.Name) &&
 				!DoesPackageExist))
 			{
-				UE_LOG(LogStreaming, Error, TEXT("Couldn't find file for package %s requested by async loading code. NameToLoad: %s"), *Desc.Name.ToString(), *Desc.NameToLoad.ToString());
+				FName FailedLoadName = FName(*NameToLoad);
+
+				if (!FLinkerLoad::IsKnownMissingPackage(FailedLoadName))
+				{
+					UE_LOG(LogStreaming, Error, TEXT("Couldn't find file for package %s requested by async loading code. NameToLoad: %s"), *Desc.Name.ToString(), *Desc.NameToLoad.ToString());
+
 #if !WITH_EDITORONLY_DATA
-				UE_CLOG(bUseTimeLimit, LogStreaming, Error, TEXT("This will hitch streaming because it ends up searching the disk instead of finding the file in the pak file."));
+					UE_CLOG(bUseTimeLimit, LogStreaming, Error, TEXT("This will hitch streaming because it ends up searching the disk instead of finding the file in the pak file."));
 #endif
+
+					// Add to known missing list so it won't error again
+					if (FPackageName::IsScriptPackage(NameToLoad))
+					{
+						FLinkerLoad::AddKnownMissingPackage(FailedLoadName);
+					}
+				}
+
 				bLoadHasFailed = true;
 				return EAsyncPackageState::TimeOut;
 			}

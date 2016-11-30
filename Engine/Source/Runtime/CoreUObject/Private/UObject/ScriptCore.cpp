@@ -861,13 +861,15 @@ void ClearReturnValue(UProperty* ReturnProp, RESULT_DECL)
 {
 	if (ReturnProp != NULL)
 	{
-		// destroy old value if necessary
-		if (!ReturnProp->HasAllPropertyFlags(CPF_NoDestructor))
+		uint8* Data = (uint8*)RESULT_PARAM;
+		for (int32 ArrayIdx = 0; ArrayIdx < ReturnProp->ArrayDim; ArrayIdx++, Data += ReturnProp->ElementSize)
 		{
-			ReturnProp->DestroyValue(RESULT_PARAM);
+			// destroy old value if necessary
+			ReturnProp->DestroyValue(Data);
+
+			// copy zero value for return property into Result, or default construct as necessary
+			ReturnProp->ClearValue(Data);
 		}
-		// copy zero value for return property into Result
-		FMemory::Memzero(RESULT_PARAM, ReturnProp->ArrayDim * ReturnProp->ElementSize);
 	}
 }
 
@@ -992,13 +994,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	else
 	{
 		UProperty* ReturnProp = (Function)->GetReturnProperty();
-		if (ReturnProp != NULL)
-		{
-			// destroy old value if necessary
-			ReturnProp->DestroyValue(RESULT_PARAM);
-			// copy zero value for return property into Result
-			FMemory::Memzero(RESULT_PARAM, ReturnProp->ArrayDim * ReturnProp->ElementSize);
-		}
+		ClearReturnValue(ReturnProp, RESULT_PARAM);
 	}
 }
 
@@ -1316,8 +1312,8 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 
 		// Call native function or UObject::ProcessInternal.
 		const bool bHasReturnParam = Function->ReturnValueOffset != MAX_uint16;
-		uint8* ReturnValueAdress = bHasReturnParam ? ((uint8*)Parms + Function->ReturnValueOffset) : nullptr;
-		Function->Invoke(this, NewStack, ReturnValueAdress);
+		uint8* ReturnValueAddress = bHasReturnParam ? ((uint8*)Parms + Function->ReturnValueOffset) : nullptr;
+		Function->Invoke(this, NewStack, ReturnValueAddress);
 
 		if (!bUsePersistentFrame)
 		{

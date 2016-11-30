@@ -6852,7 +6852,7 @@ void UEditorEngine::AutomationLoadMap(const FString& MapName, FString* OutError)
 	if (bNeedPieStart)
 	{
 		//TODO NICKD We need a better way to determine when to start the map.
-		//ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
+		ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(10.f));
 	}
 #endif
 	return;

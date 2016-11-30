@@ -373,7 +373,7 @@ struct FNavMeshTileData
 	// size of allocated data
 	int32	DataSize;
 	// actual tile data
-	TSharedPtr<FNavData> NavData;
+	TSharedPtr<FNavData, ESPMode::ThreadSafe> NavData;
 	
 	FNavMeshTileData() : LayerIndex(0), DataSize(0) { }
 	~FNavMeshTileData();

@@ -78,9 +78,10 @@ public:
 	}
 
 	/** An event should return FReply::Handled().SetNavigation( NavigationType ) as a means of asking the system to attempt a navigation*/
-	FReply& SetNavigation(EUINavigation InNavigationType)
+	FReply& SetNavigation(EUINavigation InNavigationType, ENavigationSource InNavigationSource = ENavigationSource::FocusedWidget)
 	{
 		this->NavigationType = InNavigationType;
+		this->NavigationSource = InNavigationSource;
 		return Me();
 	}
 
@@ -205,6 +206,9 @@ public:
 	/** Get the navigation type (Invalid if no navigation is requested). */
 	EUINavigation GetNavigationType() const { return NavigationType; }
 
+	/** Get the widget that is the source of the navigation (nullptr will result in the source being the currently focused widget). */
+	ENavigationSource GetNavigationSource() const { return NavigationSource; }
+
 	/** @return the Content that we should use for the Drag and Drop operation; Invalid SharedPtr if a drag and drop operation is not requested*/
 	const TSharedPtr<FDragDropOperation>& GetDragDropContent() const { return DragDropContent; }
 
@@ -253,6 +257,7 @@ private:
 		, DragDropContent(nullptr)
 		, FocusChangeReason(EFocusCause::SetDirectly)
 		, NavigationType(EUINavigation::Invalid)
+		, NavigationSource(ENavigationSource::FocusedWidget)
 		, bReleaseMouseCapture(false)
 		, bSetUserFocus(false)
 		, bReleaseUserFocus(false)
@@ -279,6 +284,7 @@ private:
 	TSharedPtr<FDragDropOperation> DragDropContent;
 	EFocusCause FocusChangeReason;
 	EUINavigation NavigationType;
+	ENavigationSource NavigationSource;
 	uint32 bReleaseMouseCapture:1;
 	uint32 bSetUserFocus:1;
 	uint32 bReleaseUserFocus : 1;

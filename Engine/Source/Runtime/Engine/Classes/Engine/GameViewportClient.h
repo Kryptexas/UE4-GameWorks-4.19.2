@@ -719,6 +719,15 @@ public:
 
 	virtual FPopupMethodReply OnQueryPopupMethod() const override;
 
+	/**
+	 * Sets whether or not the software cursor widgets are used.
+	 * If no software cursor widgets are set this setting has no meaningful effect.
+	 */
+	void SetUseSoftwareCursorWidgets(bool bInUseSoftwareCursorWidgets)
+	{
+		bUseSoftwareCursorWidgets = bInUseSoftwareCursorWidgets;
+	}
+
 #if WITH_EDITOR
 	/** Accessor for delegate called when a game viewport received input key */
 	FOnGameViewportInputKey& OnGameViewportInputKey()
@@ -795,8 +804,11 @@ private:
 	/** Weak pointer to the highres screenshot dialog if it's open */
 	TWeakPtr<SWindow> HighResScreenshotDialog;
 
-	/** Map of Cursor Widgets*/
+	/** Map of Software Cursor Widgets*/
 	TMap<EMouseCursor::Type, TSharedRef<SWidget>> CursorWidgets;
+
+	/** Controls if the Map of Software Cursor Widgets is used */
+	bool bUseSoftwareCursorWidgets;
 
 	/* Function that handles bug screen-shot requests w/ or w/o extra HUD info (project-specific) */
 	bool RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHUDInfo);

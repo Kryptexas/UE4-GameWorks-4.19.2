@@ -5,8 +5,6 @@
 #include "CoreMinimal.h"
 #include "Runtime/Online/Stomp/Private/StompFrame.h"
 
-class FStompClient;
-
 #if WITH_STOMP
 
 #include "IStompMessage.h"

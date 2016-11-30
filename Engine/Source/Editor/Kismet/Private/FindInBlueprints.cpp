@@ -54,9 +54,9 @@ FText FindInBlueprintsHelpers::AsFText(int32 InValue, const TMap<int32, FText>& 
 	return LOCTEXT("FiBSerializationError", "There was an error in serialization!");
 }
 
-bool FindInBlueprintsHelpers::IsTextEqualToString(FText InText, FString InString)
+bool FindInBlueprintsHelpers::IsTextEqualToString(const FText& InText, const FString& InString)
 {
-	return InString == InText.ToString() || InString == InText.BuildSourceString();
+	return InString == InText.ToString() || InString == *FTextInspector::GetSourceString(InText);
 }
 
 FString FindInBlueprintsHelpers::GetPinTypeAsString(const FEdGraphPinType& InPinType)

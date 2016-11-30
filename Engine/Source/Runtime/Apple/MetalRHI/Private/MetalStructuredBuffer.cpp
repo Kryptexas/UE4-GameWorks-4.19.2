@@ -64,6 +64,7 @@ void* FMetalStructuredBuffer::Lock(EResourceLockMode LockMode, uint32 Offset, ui
 		// Synchronise the buffer with the CPU
 		id<MTLBlitCommandEncoder> Blitter = GetMetalDeviceContext().GetBlitContext();
 		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"SynchronizeResource(StructuredBuffer %p)", this);
+		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(GetMetalDeviceContext().GetCurrentCommandBuffer(), Buffer);
 		[Blitter synchronizeResource:Buffer];
 		
 		//kick the current command buffer.

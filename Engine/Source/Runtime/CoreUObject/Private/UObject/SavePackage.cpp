@@ -793,6 +793,19 @@ static void ConditionallyExcludeObjectForTarget(UObject* Obj, FArchive& Ar)
 	} while (Search && !Obj->HasAllMarks(ObjectMarks));
 }
 
+static bool IsCDOWithIncludedClassForPlatform(UObject* Obj, FArchive& Ar)
+{
+	if (Obj->HasAnyFlags(RF_ClassDefaultObject))
+	{
+		UClass* CDOClass = Obj->GetClass();
+		ConditionallyExcludeObjectForTarget(CDOClass, Ar);
+		const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(Ar.CookingTarget(), Ar.IsCooking());
+		return !CDOClass->HasAllMarks(ObjectMarks);
+	}
+
+	return false;
+}
+
 /**
  * Archive for tagging objects and names that must be exported
  * to the file.  It tags the objects passed to it, and recursively
@@ -905,8 +918,8 @@ FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 		UObject* Template = Obj->GetArchetype();
 		*this << Template;
 
-		// class default objects should always be loaded
-		if ( Obj->HasAnyFlags(RF_ClassDefaultObject) )
+		// class default objects should always be loaded, unless its class is excluded
+		if ( IsCDOWithIncludedClassForPlatform(Obj, *this) )
 		{
 			if ( Obj->GetClass()->HasAnyClassFlags(CLASS_Intrinsic) )
 			{
@@ -1282,7 +1295,7 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 #endif //WITH_EDITOR
 				}
 
-				if ( Obj->HasAnyFlags(RF_ClassDefaultObject) )
+				if ( IsCDOWithIncludedClassForPlatform(Obj, *this) )
 				{
 					Obj->UnMark(OBJECTMARK_NotForClient);
 					Obj->UnMark(OBJECTMARK_NotForServer);

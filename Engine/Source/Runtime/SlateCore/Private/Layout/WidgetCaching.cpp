@@ -14,7 +14,7 @@ void FCachedWidgetNode::Initialize(const FPaintArgs& Args, TSharedRef<SWidget> I
 	ClippingRect = InClippingRect;
 	WindowOffset = Args.GetWindowToDesktopTransform();
 	RecordedVisibility = Args.GetLastRecordedVisibility();
-	LastRecordedHittestIndex = 0;
+	LastRecordedHittestIndex = Args.GetLastHitTestIndex();
 
 	if ( RecordedVisibility.AreChildrenHitTestVisible() )
 	{

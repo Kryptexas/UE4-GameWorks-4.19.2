@@ -858,6 +858,7 @@ bool SupportsDistanceFieldShadows(ERHIFeatureLevel::Type FeatureLevel, EShaderPl
 {
 	return GDistanceFieldShadowing
 		&& FeatureLevel >= ERHIFeatureLevel::SM5
+		&& (!IsMetalPlatform(ShaderPlatform) || !IsRHIDeviceIntel())
 		&& DoesPlatformSupportDistanceFieldShadowing(ShaderPlatform);
 }
 

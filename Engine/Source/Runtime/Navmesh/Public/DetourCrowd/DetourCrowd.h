@@ -253,6 +253,9 @@ class NAVMESH_API dtCrowd
 	// [UE4] time between attempts to restore agents state
 	float m_agentStateCheckInterval;
 
+	// [UE4] separation filter
+	float m_separationDirFilter;
+
 	int m_velocitySampleCount;
 
 	dtNavMeshQuery* m_navquery;
@@ -466,6 +469,9 @@ public:
 	void setPruneStartedOffmeshConnections(bool bRemoveFromCorridor);
 
 	void setEarlyReachTestOptimization(bool bEnable);
+
+	/// [UE4] Set separation filter param
+	void setSeparationFilter(float InFilter);
 
 	/// [UE4] Check if agent moved away from its path corridor
 	bool isOutsideCorridor(const int idx) const;

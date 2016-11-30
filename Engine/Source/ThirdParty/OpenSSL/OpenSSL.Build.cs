@@ -10,6 +10,7 @@ public class OpenSSL : ModuleRules
 		Type = ModuleType.External;
 
 		string OpenSSL101Path = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "OpenSSL", "1.0.1g");
+		string OpenSSL102hPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "OpenSSL", "1_0_2h");
 		string OpenSSL102Path = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "OpenSSL", "1.0.2g");
 
         string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") ? "Win32" :
@@ -45,6 +46,20 @@ public class OpenSSL : ModuleRules
 
 			PublicAdditionalLibraries.Add(Path.Combine(LibPath, "libeay" + LibPostfixAndExt));
 			PublicAdditionalLibraries.Add(Path.Combine(LibPath, "ssleay" + LibPostfixAndExt));
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			string platform = "/Linux/" + Target.Architecture;
+			string IncludePath = OpenSSL102hPath + "/include" + platform;
+			string LibraryPath = OpenSSL102hPath + "/lib" + platform;
+
+			PublicIncludePaths.Add(IncludePath);
+			PublicLibraryPaths.Add(LibraryPath);
+		    PublicAdditionalLibraries.Add(LibraryPath + "/libssl.a");
+		    PublicAdditionalLibraries.Add(LibraryPath + "/libcrypto.a");
+
+			PublicDependencyModuleNames.Add("zlib");
+//			PublicAdditionalLibraries.Add("z");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{

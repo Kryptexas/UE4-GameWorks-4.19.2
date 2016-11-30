@@ -141,6 +141,7 @@ UCrowdManager::UCrowdManager(const FObjectInitializer& ObjectInitializer) : Supe
 	MaxAvoidedWalls = 8;
 	NavmeshCheckInterval = 1.0f;
 	PathOptimizationInterval = 0.5f;
+	SeparationDirClamp = -1.0f;
 	bSingleAreaVisibilityOptimization = true;
 	bPruneStartedOffmeshConnections = false;
 	bEarlyReachTestOptimization = false;
@@ -868,6 +869,7 @@ void UCrowdManager::CreateCrowdManager()
 	{
 		DetourCrowd->init(MaxAgents, MaxAgentRadius, NavMeshPtr);
 		DetourCrowd->setAgentCheckInterval(NavmeshCheckInterval);
+		DetourCrowd->setSeparationFilter(SeparationDirClamp);
 		DetourCrowd->setSingleAreaVisibilityOptimization(bSingleAreaVisibilityOptimization);
 		DetourCrowd->setPruneStartedOffmeshConnections(bPruneStartedOffmeshConnections);
 		DetourCrowd->setEarlyReachTestOptimization(bEarlyReachTestOptimization);

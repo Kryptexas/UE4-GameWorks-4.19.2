@@ -48,6 +48,14 @@ void UAbilitySystemGlobals::InitGlobalData()
 
 	// Register for PreloadMap so cleanup can occur on map transitions
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UAbilitySystemGlobals::HandlePreLoadMap);
+
+#if WITH_EDITOR
+	// Register in editor for PreBeginPlay so cleanup can occur when we start a PIE session
+	if (GIsEditor)
+	{
+		FEditorDelegates::PreBeginPIE.AddUObject(this, &UAbilitySystemGlobals::OnPreBeginPIE);
+	}
+#endif
 }
 
 
@@ -440,10 +448,22 @@ bool UAbilitySystemGlobals::ShouldIgnoreCosts() const
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-void UAbilitySystemGlobals::HandlePreLoadMap(const FString& MapName)
+#if WITH_EDITOR
+void UAbilitySystemGlobals::OnPreBeginPIE(const bool bIsSimulatingInEditor)
+{
+	ResetCachedData();
+}
+#endif // WITH_EDITOR
+
+void UAbilitySystemGlobals::ResetCachedData()
 {
 	IGameplayCueInterface::ClearTagToFunctionMap();
 	FActiveGameplayEffectHandle::ResetGlobalHandleMap();
+}
+
+void UAbilitySystemGlobals::HandlePreLoadMap(const FString& MapName)
+{
+	ResetCachedData();
 }
 
 void UAbilitySystemGlobals::Notify_OpenAssetInEditor(FString AssetName, int AssetType)

@@ -81,11 +81,11 @@ namespace BuildGraph.Tasks
 
 			// Run the command
 			StringBuilder CommandLine = new StringBuilder();
-			if (!Parameters.Arguments.CaseInsensitiveContains("-p4") && !Parameters.Arguments.CaseInsensitiveContains("-nop4"))
+			if (Parameters.Arguments == null || (!Parameters.Arguments.CaseInsensitiveContains("-p4") && !Parameters.Arguments.CaseInsensitiveContains("-nop4")))
 			{
 				CommandLine.AppendFormat("{0} ", CommandUtils.P4Enabled ? "-p4" : "-nop4");
 			}
-			if (!Parameters.Arguments.CaseInsensitiveContains("-submit") && !Parameters.Arguments.CaseInsensitiveContains("-nosubmit"))
+			if (Parameters.Arguments == null || (!Parameters.Arguments.CaseInsensitiveContains("-submit") && !Parameters.Arguments.CaseInsensitiveContains("-nosubmit")))
 			{
 				CommandLine.AppendFormat("{0} ", CommandUtils.AllowSubmit ? "-submit" : "-nosubmit");
 			}

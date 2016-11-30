@@ -6,6 +6,7 @@
 #include "MovieScene.h"
 #include "Animation/WidgetAnimation.h"
 #include "Serialization/TextReferenceCollector.h"
+#include "Engine/UserInterfaceSettings.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -197,6 +198,13 @@ void UWidgetBlueprintGeneratedClass::PostLoad()
 			}
 		}
 	}
+}
+
+bool UWidgetBlueprintGeneratedClass::NeedsLoadForServer() const
+{
+	const UUserInterfaceSettings* UISettings = GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+	check(UISettings);
+	return UISettings->bLoadWidgetsOnDedicatedServer;
 }
 
 #undef LOCTEXT_NAMESPACE

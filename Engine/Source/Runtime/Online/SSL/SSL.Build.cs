@@ -8,13 +8,11 @@ public class SSL : ModuleRules
     {
         Definitions.Add("SSL_PACKAGE=1");
 
-		bool bShouldUseModule = false;
-		if (Target.Platform == UnrealTargetPlatform.Mac ||
+		bool bShouldUseModule =
+			Target.Platform == UnrealTargetPlatform.Mac ||
 			Target.Platform == UnrealTargetPlatform.Win32 ||
-			Target.Platform == UnrealTargetPlatform.Win64)
-		{
-			bShouldUseModule = true;
-		}
+			Target.Platform == UnrealTargetPlatform.Win64 ||
+			Target.Platform == UnrealTargetPlatform.Linux;
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -32,12 +30,7 @@ public class SSL : ModuleRules
 				}
 				);
 
-			if (Target.Platform == UnrealTargetPlatform.Mac ||
-				Target.Platform == UnrealTargetPlatform.Win32 ||
-				Target.Platform == UnrealTargetPlatform.Win64)
-			{
-				AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
-			}
+			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
 		}
     }
 }

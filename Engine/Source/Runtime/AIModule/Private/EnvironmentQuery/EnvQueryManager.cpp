@@ -324,7 +324,7 @@ void UEnvQueryManager::Tick(float DeltaTime)
 
 			const TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
 
-			if (QueryInstance->IsFinished())
+			if (!QueryInstance.IsValid() || QueryInstance->IsFinished())
 			{
 				// If this query is already finished, skip it.
 				++Index;
@@ -345,10 +345,11 @@ void UEnvQueryManager::Tick(float DeltaTime)
 					QueryInstance->ExecuteOneStep(TimeLeft);
 				}
 
+				const float QueryExecutionTime = QueryInstance->GetTotalExecutionTime();
 				if (QueryInstance->IsFinished())
 				{
 					// Always log that we executed total execution time at the end of the query.
-					if (QueryInstance->GetTotalExecutionTime() > ExecutionTimeWarningSeconds)
+					if (QueryExecutionTime > ExecutionTimeWarningSeconds)
 					{
 						UE_LOG(LogEQS, Warning, TEXT("Finished query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
 					}
@@ -380,7 +381,7 @@ void UEnvQueryManager::Tick(float DeltaTime)
 					++Index;
 				}
 
-				if (!QueryInstance->HasLoggedTimeLimitWarning() && (QueryInstance->GetTotalExecutionTime() > ExecutionTimeWarningSeconds))
+				if (QueryExecutionTime > ExecutionTimeWarningSeconds && QueryInstance.IsValid() && !QueryInstance->HasLoggedTimeLimitWarning())
 				{
 					UE_LOG(LogEQS, Warning, TEXT("Query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
 					QueryInstance->SetHasLoggedTimeLimitWarning();
@@ -420,13 +421,16 @@ void UEnvQueryManager::Tick(float DeltaTime)
 				for (int32 Index = RunningQueries.Num() - 1, FinishedQueriesCounter = NumQueriesFinished; Index >= 0 && FinishedQueriesCounter > 0; --Index)
 				{
 					TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
+					if (!QueryInstance.IsValid())
+					{
+						RunningQueries.RemoveAt(Index, 1, /*bAllowShrinking=*/false);
+						continue;
+					}
 
 					if (QueryInstance->IsFinished())
 					{
 						FinishedQueriesTotalTime += FPlatformTime::Seconds() - QueryInstance->GetQueryStartTime();
-
 						RunningQueries.RemoveAt(Index, 1, /*bAllowShrinking=*/false);
-
 						--FinishedQueriesCounter;
 					}
 				}

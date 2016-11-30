@@ -97,7 +97,8 @@ TSharedPtr<FJsonValue> ConvertScalarUPropertyToJsonValue(UProperty* Property, co
 	else if (UStructProperty *StructProperty = Cast<UStructProperty>(Property))
 	{
 		UScriptStruct::ICppStructOps* TheCppStructOps = StructProperty->Struct->GetCppStructOps();
-		if (TheCppStructOps && TheCppStructOps->HasExportTextItem())
+		// Intentionally exclude the JSON Object wrapper, which specifically needs to export JSON in an object representation instead of a string
+		if (StructProperty->Struct != FJsonObjectWrapper::StaticStruct() && TheCppStructOps && TheCppStructOps->HasExportTextItem())
 		{
 			FString OutValueStr;
 			TheCppStructOps->ExportTextItem(OutValueStr, Value, nullptr, nullptr, PPF_None, nullptr);

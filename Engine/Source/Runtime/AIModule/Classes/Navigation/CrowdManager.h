@@ -238,6 +238,8 @@ class AIMODULE_API UCrowdManager : public UObject
 	/** notify called when detour navmesh is changed */
 	void OnNavMeshUpdate();
 
+	const ANavigationData* GetNavData() const { return MyNavData; }
+
 	UWorld* GetWorld() const override;
 
 	static UCrowdManager* GetCurrent(UObject* WorldContextObject);
@@ -279,6 +281,10 @@ protected:
 	/** how often should agents try to optimize their paths? */
 	UPROPERTY(config, EditAnywhere, Category = Config)
 	float PathOptimizationInterval;
+
+	/** clamp separation force to left/right when neighbor is behind (dot between forward and dirToNei, -1 = disabled) */
+	UPROPERTY(config, EditAnywhere, Category = Config)
+	float SeparationDirClamp;
 
 	uint32 bPruneStartedOffmeshConnections : 1;
 	uint32 bSingleAreaVisibilityOptimization : 1;

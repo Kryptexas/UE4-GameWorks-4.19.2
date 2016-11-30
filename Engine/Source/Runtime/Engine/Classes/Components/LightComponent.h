@@ -253,6 +253,9 @@ public:
 	/** Fence used to track progress of render resource destruction. */
 	FRenderCommandFence DestroyFence;
 
+	/** true when this light component has been added to the scene as a normal visible light. Used to keep track of whether we need to dirty the render state in UpdateColorAndBrightness */
+	uint32 bAddedToSceneVisible:1;
+
 	/**
 	 * Test whether this light affects the given primitive.  This checks both the primitive and light settings for light relevance
 	 * and also calls AffectsBounds.

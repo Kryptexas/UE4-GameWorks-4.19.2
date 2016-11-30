@@ -4,7 +4,7 @@
 
 #include "HAL/Platform.h"
 
-#if PLATFORM_WINDOWS || PLATFORM_MAC // || PLATFORM_LINUX
+#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
 #include "Lws/LwsWebSocket.h"
 typedef FLwsWebSocket FPlatformWebSocket;
 #else

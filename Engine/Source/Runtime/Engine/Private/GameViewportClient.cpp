@@ -130,6 +130,7 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	, EngineShowFlags(ESFIM_Game)
 	, CurrentBufferVisualizationMode(NAME_None)
 	, HighResScreenshotDialog(NULL)
+	, bUseSoftwareCursorWidgets(true)
 	, bIgnoreInput(false)
 	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
 	, bHideCursorDuringCapture(false)
@@ -698,10 +699,13 @@ void UGameViewportClient::AddCursor(EMouseCursor::Type Cursor, const FStringClas
 
 TOptional<TSharedRef<SWidget>> UGameViewportClient::MapCursor(FViewport* InViewport, const FCursorReply& CursorReply)
 {
-	const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
-	if (CursorWidgetPtr != nullptr)
+	if (bUseSoftwareCursorWidgets)
 	{
-		return *CursorWidgetPtr;
+		const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
+		if (CursorWidgetPtr != nullptr)
+		{
+			return *CursorWidgetPtr;
+		}
 	}
 	return TOptional<TSharedRef<SWidget>>();
 }

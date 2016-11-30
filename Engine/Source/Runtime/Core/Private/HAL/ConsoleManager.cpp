@@ -1408,7 +1408,9 @@ void FConsoleManager::AddConsoleHistoryEntry(const TCHAR* Input)
 		HistoryEntries.RemoveAt(0);
 	}
 
-	HistoryEntries.Add(FString(Input));
+	const FString InString(Input);
+	HistoryEntries.Remove(InString);
+	HistoryEntries.Add(InString);
 
 	SaveHistory();
 }

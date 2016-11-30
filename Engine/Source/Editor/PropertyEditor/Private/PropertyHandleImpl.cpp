@@ -1696,6 +1696,7 @@ IMPLEMENT_PROPERTY_ACCESSOR( uint16 )
 IMPLEMENT_PROPERTY_ACCESSOR( uint32 )
 IMPLEMENT_PROPERTY_ACCESSOR( uint64 )
 IMPLEMENT_PROPERTY_ACCESSOR( float )
+IMPLEMENT_PROPERTY_ACCESSOR( double )
 IMPLEMENT_PROPERTY_ACCESSOR( FString )
 IMPLEMENT_PROPERTY_ACCESSOR( FText )
 IMPLEMENT_PROPERTY_ACCESSOR( FName )
@@ -2427,6 +2428,7 @@ void FPropertyHandleBase::SetIgnoreValidation(bool bInIgnore)
 
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleInt )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleFloat )
+IMPLEMENT_PROPERTY_VALUE( FPropertyHandleDouble )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleBool )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleByte )
 IMPLEMENT_PROPERTY_VALUE( FPropertyHandleString )
@@ -2673,6 +2675,44 @@ FPropertyAccess::Result FPropertyHandleFloat::SetValue( const float& NewValue, E
 	FPropertyAccess::Result Res;
 	// Clamp the value from any meta data ranges stored on the property value
 	float FinalValue = ClampValueFromMetaData<float>( NewValue, *Implementation->GetPropertyNode() );
+
+	const FString ValueStr = FString::Printf( TEXT("%f"), FinalValue );
+	Res = Implementation->ImportText( ValueStr, Flags );
+
+	return Res;
+}
+
+// double
+bool FPropertyHandleDouble::Supports( TSharedRef<FPropertyNode> PropertyNode )
+{
+	UProperty* Property = PropertyNode->GetProperty();
+
+	if (Property == nullptr)
+	{
+		return false;
+	}
+
+	return Property->IsA(UDoubleProperty::StaticClass());
+}
+
+FPropertyAccess::Result FPropertyHandleDouble::GetValue( double& OutValue ) const
+{
+	void* PropValue = nullptr;
+	FPropertyAccess::Result Res = Implementation->GetValueData( PropValue );
+
+	if (Res == FPropertyAccess::Success)
+	{
+		OutValue = Implementation->GetPropertyValue<UDoubleProperty>(PropValue);
+	}
+
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyHandleDouble::SetValue( const double& NewValue, EPropertyValueSetFlags::Type Flags )
+{
+	FPropertyAccess::Result Res;
+	// Clamp the value from any meta data ranges stored on the property value
+	float FinalValue = ClampValueFromMetaData<double>( NewValue, *Implementation->GetPropertyNode() );
 
 	const FString ValueStr = FString::Printf( TEXT("%f"), FinalValue );
 	Res = Implementation->ImportText( ValueStr, Flags );

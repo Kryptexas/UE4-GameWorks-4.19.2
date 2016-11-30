@@ -279,15 +279,15 @@ struct AIMODULE_API FEnvDirection
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** line A: start context */
+	/** line: start context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
 	TSubclassOf<UEnvQueryContext> LineFrom;
 
-	/** line A: finish context */
+	/** line: finish context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
 	TSubclassOf<UEnvQueryContext> LineTo;
 
-	/** line A: direction context */
+	/** rotation: direction context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
 	TSubclassOf<UEnvQueryContext> Rotation;
 

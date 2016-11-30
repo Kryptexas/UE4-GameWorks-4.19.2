@@ -345,11 +345,11 @@ FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateDebugSceneProxy(cons
 
 		FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 		{
+			const bool bCanShow = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex);
+
 			FPrimitiveViewRelevance Result;
-			Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex);// IsShown(View);
+			Result.bDrawRelevance = Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = bCanShow;
 			Result.bDynamicRelevance = true;
-			// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
-			Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = IsShown(View);
 			return Result;
 		}
 	};

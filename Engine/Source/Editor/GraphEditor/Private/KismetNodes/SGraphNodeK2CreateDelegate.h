@@ -15,10 +15,10 @@ class UK2Node;
 class SGraphNodeK2CreateDelegate : public SGraphNodeK2Base
 {
 public:
-	SLATE_BEGIN_ARGS(SGraphNodeK2CreateDelegate){}
+	SLATE_BEGIN_ARGS(SGraphNodeK2CreateDelegate) {}
 	SLATE_END_ARGS()
 
-	struct FFunctionItemData
+		struct FFunctionItemData
 	{
 		FName Name;
 		FString Description;

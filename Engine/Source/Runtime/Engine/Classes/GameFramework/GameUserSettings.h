@@ -430,12 +430,13 @@ protected:
 
 	/** Returns the effective frame rate limit (by default it returns the FrameRateLimit member) */
 	virtual float GetEffectiveFrameRateLimit();
+
+	void UpdateResolutionQuality();
+
 private:
 
 	UPROPERTY(BlueprintAssignable, meta = (AllowPrivateAccess = "true"))
 	FOnGameUserSettingsUINeedsUpdate OnGameUserSettingsUINeedsUpdate;
-
-	void UpdateResolutionQuality();
 
 	void SetPreferredFullscreenMode(int32 Mode);
 };

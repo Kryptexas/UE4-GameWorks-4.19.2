@@ -19,22 +19,11 @@
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct,TEXT("GBuffers"));
 
-static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocityDebug(
-	TEXT("r.BasePassOutputsVelocityDebug"),
-	0,
-	TEXT("Debug settings for Base Pass outputting velocity.\n")
-	TEXT("0 - Regular rendering\n")
-	TEXT("1 - Skip setting GBufferVelocity RT\n")
-	TEXT("2 - Set Color Mask 0 for GBufferVelocity RT"),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarRSMResolution(
 	TEXT("r.LPV.RSMResolution"),
 	360,
 	TEXT("Reflective Shadow Map resolution (used for LPV) - higher values result in less aliasing artifacts, at the cost of performance"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-static int32 GBasePassOutputsVelocityDebug = 0;
 
 /*-----------------------------------------------------------------------------
 FSceneRenderTargets
@@ -771,16 +760,9 @@ void FSceneRenderTargets::ReleaseGBufferTargets()
 	GBufferVelocity.SafeRelease();
 }
 
-void FSceneRenderTargets::PreallocGBufferTargets(bool bShouldRenderVelocities)
+void FSceneRenderTargets::PreallocGBufferTargets()
 {
-	if (GBasePassOutputsVelocityDebug == 1)
-	{
-		bAllocateVelocityGBuffer = false;
-	}
-	else
-	{
-		bAllocateVelocityGBuffer = bShouldRenderVelocities && FVelocityRendering::OutputsToGBuffer();
-	}
+	bAllocateVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
 }
 
 void FSceneRenderTargets::GetGBufferADesc(FPooledRenderTargetDesc& Desc) const
@@ -853,17 +835,16 @@ void FSceneRenderTargets::AllocGBufferTargets(FRHICommandList& RHICmdList)
 
 		// Create the mask g-buffer (e.g. SSAO, subsurface scattering, wet surface mask, skylight mask, ...).
 		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding(FLinearColor(0, 1, 1, 1)), TexCreate_None, TexCreate_RenderTargetable, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferD, TEXT("GBufferD"));
 		}
 
 		if (bAllowStaticLighting)
 		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding(FLinearColor(1, 1, 1, 1)), TexCreate_None, TexCreate_RenderTargetable, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GBufferE, TEXT("GBufferE"));
 		}
 
-		GBasePassOutputsVelocityDebug = CVarBasePassOutputsVelocityDebug.GetValueOnRenderThread();
 		if (bAllocateVelocityGBuffer)
 		{
 			FPooledRenderTargetDesc VelocityRTDesc = FVelocityRendering::GetRenderTargetDesc();

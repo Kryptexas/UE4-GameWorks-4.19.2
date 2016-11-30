@@ -58,6 +58,8 @@ public:
 		return bRetainReferences ? CommandQueue.CreateRetainedCommandBuffer() : CommandQueue.CreateUnretainedCommandBuffer();
 	}
 	
+	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence);
+	
 	/**
 	 * Handle rendering thread starting/stopping
 	 */
@@ -287,5 +289,8 @@ private:
 	uint32 Features;
 	
 	/** Count of concurrent contexts encoding commands. */
-	uint32 ActiveContexts;
+	int32 ActiveContexts;
+	
+	/** Count of concurrent contexts encoding commands. */
+	uint32 AllocatedContexts;
 };

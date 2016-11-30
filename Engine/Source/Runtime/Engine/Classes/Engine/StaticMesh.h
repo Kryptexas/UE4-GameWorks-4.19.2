@@ -425,7 +425,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FMeshSectionInfoMap SectionInfoMap;
 
 	/** The LOD group to which this mesh belongs. */
-	UPROPERTY()
+	UPROPERTY(AssetRegistrySearchable)
 	FName LODGroup;
 
 	/** If true, the distances at which LODs swap are computed automatically. */

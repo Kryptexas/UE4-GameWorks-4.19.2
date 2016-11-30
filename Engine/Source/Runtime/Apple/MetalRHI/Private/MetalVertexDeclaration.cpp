@@ -36,7 +36,7 @@ static MTLVertexFormat TranslateElementTypeToMTLType(EVertexElementType Type)
 
 }
 
-static uint32 TranslateElementTypeToSize(EVertexElementType Type)
+uint32 TranslateElementTypeToSize(EVertexElementType Type)
 {
 	switch (Type)
 	{
@@ -155,6 +155,7 @@ bool FMetalHashedVertexDescriptor::operator==(FMetalHashedVertexDescriptor const
 
 FMetalVertexDeclaration::FMetalVertexDeclaration(const FVertexDeclarationElementList& InElements)
 	: Elements(InElements)
+	, BaseHash(0)
 {
 	GenerateLayout(InElements);
 }
@@ -203,7 +204,7 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 		checkf(Element.Stride == 0 || Element.Offset + TranslateElementTypeToSize(Element.Type) <= Element.Stride, 
 			TEXT("Stream component is bigger than stride: Offset: %d, Size: %d [Type %d], Stride: %d"), Element.Offset, TranslateElementTypeToSize(Element.Type), (uint32)Element.Type, Element.Stride);
 
-		StrideHash ^= (Element.Stride << 1);
+		StrideHash ^= (Element.Stride << ElementIndex);
 
 		// Vertex & Constant buffers are set up in the same space, so add VB's from the top
 		uint32 ShaderBufferIndex = UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex);

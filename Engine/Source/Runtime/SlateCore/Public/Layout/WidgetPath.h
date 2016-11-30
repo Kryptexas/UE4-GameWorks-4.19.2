@@ -224,16 +224,18 @@ public:
 	bool ContainsWidget( const TSharedRef< const SWidget >& SomeWidget ) const;
 
 	/**
-	 * @param MoveDirection      Direction in which to move the focus.
+	 * @param NavigationType      Direction in which to move the focus (only for use with EUINavigation::Next and EUINavigation::Previous).
 	 * 
-	 * @return The new focus path.
+	 * @return The widget path to the resulting widget
 	 */
 	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType);
 
 	/**
-	 * @param MoveDirection      Direction in which to move the focus.
+	 * @param NavigationType      Direction in which to move the focus (only for use with EUINavigation::Next and EUINavigation::Previous).
+	 * @param NavigationReply	  The NavigationReply that the RuleWidget provided during the bubbled navigation event
+	 * @param RuleWidget		  The ArrangedWidget or the widget that provided the NavigationReply 
 	 * 
-	 * @return The new focus path.
+	 * @return The widget path to the resulting widget
 	 */
 	FWidgetPath ToNextFocusedPath(EUINavigation NavigationType, const FNavigationReply& NavigationReply, const FArrangedWidget& RuleWidget);
 	

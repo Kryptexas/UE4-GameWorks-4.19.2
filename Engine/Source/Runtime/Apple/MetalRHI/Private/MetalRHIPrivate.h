@@ -143,6 +143,8 @@ FORCEINLINE MTLStoreAction GetMetalRTStoreAction(ERenderTargetStoreAction StoreA
 	}
 }
 
+uint32 TranslateElementTypeToSize(EVertexElementType Type);
+
 #include "MetalStateCache.h"
 #include "MetalContext.h"
 

@@ -229,7 +229,7 @@ void UGameUserSettings::UpdateResolutionQuality()
 
 	if (bUseDesiredScreenHeight)
 	{
-		ScalabilityQuality.ResolutionQuality = UGameUserSettings::GetDefaultResolutionScale();
+		ScalabilityQuality.ResolutionQuality = GetDefaultResolutionScale();
 	}
 	else
 	{

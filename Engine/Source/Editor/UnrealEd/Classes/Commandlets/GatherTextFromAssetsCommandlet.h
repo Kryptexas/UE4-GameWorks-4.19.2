@@ -22,11 +22,25 @@ class UGatherTextFromAssetsCommandlet : public UGatherTextCommandletBase
 public:
 	//~ Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;
+
+	bool GetConfigurationScript(const TMap<FString, FString>& InCommandLineParameters, FString& OutFilePath, FString& OutStepSectionName);
+	bool ConfigureFromScript(const FString& GatherTextConfigPath, const FString& SectionName);
+
 	//~ End UCommandlet Interface
 
 private:
 	static const FString UsageText;
 
+	TArray<FString> ModulesToPreload;
+	TArray<FString> IncludePathFilters;
+	TArray<FString> CollectionFilters;
+	TArray<FString> ExcludePathFilters;
+	TArray<FString> PackageFileNameFilters;
+	TArray<FString> ExcludeClassNames;
+	TArray<FString> ManifestDependenciesList;
+
+	bool bSkipGatherCache;
 	bool bFixBroken;
 	bool ShouldGatherFromEditorOnlyData;
+	bool ShouldExcludeDerivedClasses;
 };

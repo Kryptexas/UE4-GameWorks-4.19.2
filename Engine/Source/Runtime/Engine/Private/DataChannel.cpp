@@ -1704,7 +1704,10 @@ bool UActorChannel::CleanUp( const bool bForDestroy )
 	// Remove from hash and stuff.
 	SetClosingFlag();
 
-	CleanupReplicators();
+	// If this actor is going dormant (and we are a client), keep the replicators around, we need them to run the business logic for updating unmapped properties
+	const bool bKeepReplicators = !bForDestroy && !bIsServer && Dormant != 0;
+
+	CleanupReplicators( bKeepReplicators );
 
 	// We don't care about any leftover pending guids at this point
 	PendingGuidResolves.Empty();
@@ -1979,6 +1982,13 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 			{
 				FNetworkGUID NetGUID;
 				Bunch << NetGUID;
+
+				// If we have async package map loading disabled, we have to ignore NumMustBeMappedGUIDs
+				//	(this is due to the fact that async loading could have been enabled on the server side)
+				if ( !Connection->Driver->GuidCache->ShouldAsyncLoad() )
+				{
+					continue;
+				}
 
 				// This GUID better have been exported before we get here, which means it must be registered by now
 				check( Connection->Driver->GuidCache->IsGUIDRegistered( NetGUID ) );
@@ -3155,6 +3165,8 @@ TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject
 		}
 		else
 		{
+			UE_LOG( LogNetTraffic, Log, TEXT( "Found existing replicator for %s" ), *Obj->GetName() );
+
 			NewReplicator = *ReplicatorRefPtr;
 		}
 

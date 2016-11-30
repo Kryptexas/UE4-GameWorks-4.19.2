@@ -61,17 +61,6 @@ void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) 
 	TagContainer.AppendTags(InheritableOwnedTagsContainer.CombinedTags);
 }
 
-void UGameplayEffect::GetTargetEffects(TArray<const UGameplayEffect*, TInlineAllocator<4> >& OutEffects) const
-{
-	for ( TSubclassOf<UGameplayEffect> EffectClass : TargetEffectClasses )
-	{
-		if ( EffectClass )
-		{
-			OutEffects.Add(EffectClass->GetDefaultObject<UGameplayEffect>());
-		}
-	}
-}
-
 void UGameplayEffect::PostLoad()
 {
 	Super::PostLoad();
@@ -113,6 +102,27 @@ void UGameplayEffect::PostLoad()
 	GETCURVE_REPORTERROR(ChanceToApplyToTarget.Curve);
 	DurationMagnitude.ReportErrors(GetPathName());
 #endif // WITH_EDITOR
+
+
+	for (const TSubclassOf<UGameplayEffect>& ConditionalEffectClass : TargetEffectClasses_DEPRECATED)
+	{
+		FConditionalGameplayEffect ConditionalGameplayEffect;
+		ConditionalGameplayEffect.EffectClass = ConditionalEffectClass;
+		ConditionalGameplayEffects.Add(ConditionalGameplayEffect);
+	}
+	TargetEffectClasses_DEPRECATED.Empty();
+
+	for (FGameplayEffectExecutionDefinition& Execution : Executions)
+	{
+		for (const TSubclassOf<UGameplayEffect>& ConditionalEffectClass : Execution.ConditionalGameplayEffectClasses_DEPRECATED)
+		{
+			FConditionalGameplayEffect ConditionalGameplayEffect;
+			ConditionalGameplayEffect.EffectClass = ConditionalEffectClass;
+			Execution.ConditionalGameplayEffects.Add(ConditionalGameplayEffect);
+		}
+
+		Execution.ConditionalGameplayEffectClasses_DEPRECATED.Empty();
+	}
 }
 
 void UGameplayEffect::PostInitProperties()
@@ -552,6 +562,24 @@ void FGameplayEffectExecutionDefinition::GetAttributeCaptureDefinitions(OUT TArr
 	}
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+//
+//	FConditionalGameplayEffect
+//
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+
+bool FConditionalGameplayEffect::CanApply(const FGameplayTagContainer& SourceTags, float SourceLevel) const
+{
+	// Right now we're just using the tags but in the future we may gate this by source level as well
+	return SourceTags.HasAll(RequiredSourceTags);
+}
+
+FGameplayEffectSpecHandle FConditionalGameplayEffect::CreateSpec(FGameplayEffectContextHandle EffectContext, float SourceLevel) const
+{
+	const UGameplayEffect* EffectCDO = EffectClass ? EffectClass->GetDefaultObject<UGameplayEffect>() : nullptr;
+	return EffectCDO ? FGameplayEffectSpecHandle(new FGameplayEffectSpec(EffectCDO, EffectContext, SourceLevel)) : FGameplayEffectSpecHandle();
+}
+
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -711,13 +739,17 @@ void FGameplayEffectSpec::Initialize(const UGameplayEffect* InDef, const FGamepl
 	CapturedSourceTags.GetSpecTags().AppendTags(InDef->InheritableGameplayEffectTags.CombinedTags);
 
 	// Make TargetEffectSpecs too
-	TArray<const UGameplayEffect*, TInlineAllocator<4> > TargetEffectDefs;
 
-	InDef->GetTargetEffects(TargetEffectDefs);
-
-	for (const UGameplayEffect* TargetDef : TargetEffectDefs)
+	for (const FConditionalGameplayEffect& ConditionalEffect : InDef->ConditionalGameplayEffects)
 	{
-		TargetEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, EffectContext, InLevel)));
+		if (ConditionalEffect.CanApply(CapturedSourceTags.GetActorTags(), InLevel))
+		{
+			FGameplayEffectSpecHandle SpecHandle = ConditionalEffect.CreateSpec(EffectContext, InLevel);
+			if (SpecHandle.IsValid())
+			{
+				TargetEffectSpecs.Add(SpecHandle);
+			}
+		}
 	}
 
 	// Make Granted AbilitySpecs (caller may modify these specs after creating spec, which is why we dont just reference them from the def)
@@ -1743,13 +1775,15 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 		if (bRunConditionalEffects)
 		{
 			// If successful, apply conditional specs
-			for (const TSubclassOf<UGameplayEffect>& TargetDefClass : CurExecDef.ConditionalGameplayEffectClasses)
+			for (const FConditionalGameplayEffect& ConditionalEffect : CurExecDef.ConditionalGameplayEffects)
 			{
-				if (*TargetDefClass != nullptr)
+				if (ConditionalEffect.CanApply(SpecToUse.CapturedSourceTags.GetActorTags(), SpecToUse.GetLevel()))
 				{
-					const UGameplayEffect* TargetDef = TargetDefClass->GetDefaultObject<UGameplayEffect>();
-
-					ConditionalEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, Spec.GetEffectContext(), Spec.GetLevel())));
+					FGameplayEffectSpecHandle SpecHandle = ConditionalEffect.CreateSpec(SpecToUse.GetEffectContext(), SpecToUse.GetLevel());
+					if (SpecHandle.IsValid())
+					{
+						ConditionalEffectSpecs.Add(SpecHandle);
+					}
 				}
 			}
 		}
@@ -2151,7 +2185,7 @@ void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGame
 	}
 }
 
-void FActiveGameplayEffectsContainer::GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies)
+void FActiveGameplayEffectsContainer::GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies) const
 {
 	for (const FActiveGameplayEffect& ActiveEffect : this)	
 	{
@@ -2721,6 +2755,7 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiv
 	}
 
 	GAMEPLAYEFFECT_SCOPE_LOCK();
+	UE_VLOG(Owner->OwnerActor ? Owner->OwnerActor : Owner->GetOuter(), LogGameplayEffects, Log, TEXT("Added: %s"), *GetNameSafe(EffectDef->GetClass()));
 
 	// Add our ongoing tag requirements to the dependency map. We will actually check for these tags below.
 	for (const FGameplayTag& Tag : EffectDef->OngoingTagRequirements.IgnoreTags)
@@ -2861,6 +2896,7 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 		FActiveGameplayEffect& Effect = *GetActiveGameplayEffect(ActiveGEIdx);
 		if (Effect.Handle == Handle && Effect.IsPendingRemove == false)
 		{
+			UE_VLOG(Owner->OwnerActor, LogGameplayEffects, Log, TEXT("Removed: %s"), *GetNameSafe(Effect.Spec.Def->GetClass()));
 			if (UE_LOG_ACTIVE(VLogAbilitySystem, Log))
 			{
 				ABILITY_VLOG(Owner->OwnerActor, Log, TEXT("Removed %s"), *Effect.Spec.Def->GetFName().ToString());

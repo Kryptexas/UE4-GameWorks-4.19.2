@@ -373,6 +373,27 @@ struct FGameplayEffectExecutionScopedModifierInfo
 	FGameplayTagRequirements TargetTags;
 };
 
+/**
+ * Struct for gameplay effects that apply only if another gameplay effect (or execution) was successfully applied.
+ */
+USTRUCT()
+struct GAMEPLAYABILITIES_API FConditionalGameplayEffect
+{
+	GENERATED_USTRUCT_BODY()
+
+	bool CanApply(const FGameplayTagContainer& SourceTags, float SourceLevel) const;
+
+	FGameplayEffectSpecHandle CreateSpec(FGameplayEffectContextHandle EffectContext, float SourceLevel) const;
+
+	/** gameplay effect that will be applied to the target */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	TSubclassOf<UGameplayEffect> EffectClass;
+
+	/** Tags that the source must have for this GE to apply */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	FGameplayTagContainer RequiredSourceTags;
+};
+
 /** 
  * Struct representing the definition of a custom execution for a gameplay effect.
  * Custom executions run special logic from an outside class each time the gameplay effect executes.
@@ -403,9 +424,13 @@ struct GAMEPLAYABILITIES_API FGameplayEffectExecutionDefinition
 	UPROPERTY(EditDefaultsOnly, Category = Execution)
 	TArray<FGameplayEffectExecutionScopedModifierInfo> CalculationModifiers;
 
+	/** Deprecated. */
+	UPROPERTY()
+	TArray<TSubclassOf<UGameplayEffect>> ConditionalGameplayEffectClasses_DEPRECATED;
+
 	/** Other Gameplay Effects that will be applied to the target of this execution if the execution is successful. Note if no execution class is selected, these will always apply. */
-	UPROPERTY(EditDefaultsOnly, Category = Execution, meta = (DisplayName = "Conditional Gameplay Effects"))
-	TArray<TSubclassOf<UGameplayEffect>> ConditionalGameplayEffectClasses;
+	UPROPERTY(EditDefaultsOnly, Category = Execution)
+	TArray<FConditionalGameplayEffect> ConditionalGameplayEffects;
 };
 
 /**
@@ -1570,7 +1595,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 		
 	void SetBaseAttributeValueFromReplication(FGameplayAttribute Attribute, float BaseBalue);
 
-	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies);
+	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies) const;
 
 	void DebugCyclicAggregatorBroadcasts(struct FAggregator* Aggregator);
 
@@ -1835,9 +1860,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Application, DisplayName="Application Requirement")
 	TArray<TSubclassOf<UGameplayEffectCustomApplicationRequirement> > ApplicationRequirements;
 
+	/** Deprecated. Use ConditionalGameplayEffects instead */
+	UPROPERTY()
+	TArray<TSubclassOf<UGameplayEffect>> TargetEffectClasses_DEPRECATED;
+
 	/** other gameplay effects that will be applied to the target of this effect if this effect applies */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect,meta = (DisplayName = "Linked Gameplay Effects"))
-	TArray<TSubclassOf<UGameplayEffect>> TargetEffectClasses;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	TArray<FConditionalGameplayEffect> ConditionalGameplayEffects;
 
 	/** Effects to apply when a stacking effect "overflows" its stack count through another attempted application. Added whether the overflow application succeeds or not. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Overflow)
@@ -1858,8 +1887,6 @@ public:
 	/** Effects to apply when this effect expires naturally via its duration; Only works for effects with a duration */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Expiration)
 	TArray<TSubclassOf<UGameplayEffect>> RoutineExpirationEffectClasses;
-
-	void GetTargetEffects(TArray<const UGameplayEffect*, TInlineAllocator<4> >& OutEffects) const;
 
 	// ------------------------------------------------
 	// Gameplay tag interface

@@ -511,7 +511,9 @@ void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, co
 		}
 
 		// End the ability but don't replicate it, we replicate the CancelAbility call directly
-		EndAbility(Handle, ActorInfo, ActivationInfo, false);
+		bool bReplicateEndAbility = false;
+		bool bWasCancelled = true;
+		EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 	}
 }
 
@@ -543,13 +545,13 @@ bool UGameplayAbility::IsEndAbilityValid(const FGameplayAbilitySpecHandle Handle
 	return true;
 }
 
-void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility)
+void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
 	if (IsEndAbilityValid(Handle, ActorInfo))
 	{
 		if (ScopeLockCount > 0)
 		{
-			WaitingToExecute.Add(FPostLockDelegate::CreateUObject(this, &UGameplayAbility::EndAbility, Handle, ActorInfo, ActivationInfo, bReplicateEndAbility));
+			WaitingToExecute.Add(FPostLockDelegate::CreateUObject(this, &UGameplayAbility::EndAbility, Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled));
 			return;
 		}
 
@@ -621,7 +623,7 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 			}
 
 			// Tell owning AbilitySystemComponent that we ended so it can do stuff (including MarkPendingKill us)
-			ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(Handle, this);
+			ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(Handle, this, bWasCancelled);
 		}
 	}
 }
@@ -643,7 +645,9 @@ void UGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 		else
 		{
 			UE_LOG(LogAbilitySystem, Warning, TEXT("Ability %s expects event data but none is being supplied. Use Activate Ability instead of Activate Ability From Event."), *GetName());
-			EndAbility(Handle, ActorInfo, ActivationInfo, false);
+			bool bReplicateEndAbility = false;
+			bool bWasCancelled = true;
+			EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 		}
 	}
 	else
@@ -995,7 +999,9 @@ void UGameplayAbility::K2_EndAbility()
 {
 	check(CurrentActorInfo);
 
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
+	bool bReplicateEndAbility = true;
+	bool bWasCancelled = false;
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 // --------------------------------------------------------------------

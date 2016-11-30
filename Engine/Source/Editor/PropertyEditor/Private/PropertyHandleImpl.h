@@ -396,6 +396,7 @@ public:
 	DECLARE_PROPERTY_ACCESSOR( uint32 )
 	DECLARE_PROPERTY_ACCESSOR( uint64 )
 	DECLARE_PROPERTY_ACCESSOR( float )
+	DECLARE_PROPERTY_ACCESSOR( double )
 	DECLARE_PROPERTY_ACCESSOR( FString )
 	DECLARE_PROPERTY_ACCESSOR( FText )
 	DECLARE_PROPERTY_ACCESSOR( FName )
@@ -514,6 +515,15 @@ public:
 	static bool Supports( TSharedRef<FPropertyNode> PropertyNode );
 	virtual FPropertyAccess::Result GetValue( float& OutValue ) const override;
 	virtual FPropertyAccess::Result SetValue( const float& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
+};
+
+class FPropertyHandleDouble : public FPropertyHandleBase
+{
+public:
+	FPropertyHandleDouble( TSharedRef<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities );
+	static bool Supports( TSharedRef<FPropertyNode> PropertyNode );
+	virtual FPropertyAccess::Result GetValue( double& OutValue ) const override;
+	virtual FPropertyAccess::Result SetValue( const double& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
 };
 
 class FPropertyHandleBool : public FPropertyHandleBase

@@ -160,7 +160,7 @@ float FGameplayAttribute::GetNumericValueChecked(const UAttributeSet* Src) const
 
 FGameplayAttributeData* FGameplayAttribute::GetGameplayAttributeData(UAttributeSet* Src) const
 {
-	if (IsGameplayAttributeDataProperty(Attribute))
+	if (Src && IsGameplayAttributeDataProperty(Attribute))
 	{
 		UStructProperty* StructProperty = Cast<UStructProperty>(Attribute);
 		check(StructProperty);
@@ -172,7 +172,7 @@ FGameplayAttributeData* FGameplayAttribute::GetGameplayAttributeData(UAttributeS
 
 FGameplayAttributeData* FGameplayAttribute::GetGameplayAttributeDataChecked(UAttributeSet* Src) const
 {
-	if (IsGameplayAttributeDataProperty(Attribute))
+	if (Src && IsGameplayAttributeDataProperty(Attribute))
 	{
 		UStructProperty* StructProperty = Cast<UStructProperty>(Attribute);
 		check(StructProperty);

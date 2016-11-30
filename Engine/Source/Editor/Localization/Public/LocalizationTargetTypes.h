@@ -140,6 +140,10 @@ struct FGatherTextFromPackagesConfiguration
 	UPROPERTY(config, EditAnywhere, Category = "Filter")
 	TArray<FGatherTextFileExtension> FileExtensions;
 
+	/* Packages in these collections may be processed for gathering. */
+	UPROPERTY(config, EditAnywhere, Category = "Filter")
+	TArray<FName> Collections;
+
 	/* If enabled, data that is specified as editor-only may be processed for gathering. */
 	UPROPERTY(config, EditAnywhere, Category = "Gather Text")
 	bool ShouldGatherFromEditorOnlyData;

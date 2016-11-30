@@ -127,6 +127,17 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 		UEngine::CopyPropertiesForUnrelatedObjects(BestArchetype, NewComponentTemplate, CopyParams);
 	}
 
+	// Clear transient flag if it was transient before and re copy off archetype
+	if (NewComponentTemplate->HasAnyFlags(RF_Transient) && UnnecessaryComponents.Contains(NewComponentTemplate))
+	{
+		NewComponentTemplate->ClearFlags(RF_Transient);
+		UnnecessaryComponents.Remove(NewComponentTemplate);
+
+		UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
+		CopyParams.bDoDelta = false;
+		UEngine::CopyPropertiesForUnrelatedObjects(BestArchetype, NewComponentTemplate, CopyParams);
+	}
+
 	FComponentOverrideRecord NewRecord;
 	NewRecord.ComponentKey = Key;
 	NewRecord.ComponentClass = NewComponentTemplate->GetClass();
@@ -190,10 +201,11 @@ void UInheritableComponentHandler::ValidateTemplates()
 				}
 				else
 				{
-					// Set pending kill so this object does not get used as an archetype for subclasses
+					// Set transient flag so this object does not get used as an archetype for subclasses
 					if (Record.ComponentTemplate)
 					{
-						Record.ComponentTemplate->MarkPendingKill();
+						Record.ComponentTemplate->SetFlags(RF_Transient);
+						UnnecessaryComponents.AddUnique(Record.ComponentTemplate);
 					}
 
 					UE_LOG(LogBlueprint, Log, TEXT("ValidateTemplates '%s': overridden template is unnecessary and will be removed - component '%s' from '%s'"),

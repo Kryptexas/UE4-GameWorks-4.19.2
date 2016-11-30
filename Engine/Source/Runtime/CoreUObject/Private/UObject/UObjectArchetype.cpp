@@ -48,8 +48,8 @@ UObject* UObject::GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FN
 					SuperClassArchetype = SuperClassArchetype->GetSuperClass())
 				{
 					Result = static_cast<UObject*>(FindObjectWithOuter(SuperClassArchetype, Class, Name));
-					// We can have invalid archetypes halfway through the hierarchy, keep looking if it's pending kill
-					if (Result && !Result->IsPendingKill())
+					// We can have invalid archetypes halfway through the hierarchy, keep looking if it's pending kill or transient
+					if (Result && !Result->IsPendingKill() && !Result->HasAnyFlags(RF_Transient))
 					{
 						break;
 					}

@@ -180,7 +180,11 @@ void SScaleBox::SetIgnoreInheritedScale(bool InIgnoreInheritedScale)
 
 FVector2D SScaleBox::ComputeDesiredSize(float InScale) const
 {
-	const float LayoutScale = GetLayoutScale();
+	float LayoutScale = GetLayoutScale();
+	if (IgnoreInheritedScale.Get(false))
+	{
+		return LayoutScale * SCompoundWidget::ComputeDesiredSize(InScale) / InScale;
+	}
 	return LayoutScale * SCompoundWidget::ComputeDesiredSize(InScale);
 }
 

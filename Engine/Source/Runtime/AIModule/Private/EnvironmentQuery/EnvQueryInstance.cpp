@@ -560,7 +560,7 @@ void FEnvQueryInstance::PickRandomItemOfScoreAtLeast(float MinScore)
 	}
 
 	// pick only one, discard others
-	PickSingleItem(FMath::RandHelper(NumBestItems));
+	PickSingleItem(UAISystem::GetRandomStream().RandHelper(NumBestItems));
 }
 
 void FEnvQueryInstance::PickSingleItem(int32 ItemIndex)

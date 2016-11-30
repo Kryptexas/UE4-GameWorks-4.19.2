@@ -605,7 +605,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	}
 
 	// Makes a copy of all the active effects on this ability component
-	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies)
+	void GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies) const
 	{
 		ActiveGameplayEffects.GetAllActiveGameplayEffectSpecs(OutSpecCopies);
 	}
@@ -885,7 +885,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	virtual void HandleChangeAbilityCanBeCanceled(const FGameplayTagContainer& AbilityTags, UGameplayAbility* RequestingAbility, bool bCanBeCanceled) {}
 
 	/** Returns true if any passed in tags are blocked */
-	bool AreAbilityTagsBlocked(const FGameplayTagContainer& Tags) const;
+	virtual bool AreAbilityTagsBlocked(const FGameplayTagContainer& Tags) const;
 
 	void BlockAbilitiesWithTags(const FGameplayTagContainer& Tags);
 	void UnBlockAbilitiesWithTags(const FGameplayTagContainer& Tags);
@@ -934,7 +934,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	bool InternalTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey InPredictionKey = FPredictionKey(), UGameplayAbility ** OutInstancedAbility = nullptr, FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate = nullptr, const FGameplayEventData* TriggerEventData = nullptr);
 
 	/** Called from the ability to let the component know it is ended */
-	virtual void NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
+	virtual void NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability, bool bWasCancelled);
 
 	/** Replicate that an ability has ended, to the client or server as appropriate */
 	void ReplicateEndAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability);

@@ -7094,6 +7094,7 @@ AEmitterCameraLensEffectBase::AEmitterCameraLensEffectBase(const FObjectInitiali
 
 	// this property is deprecated, give it the sentinel value to indicate it doesn't need to be migrated
 	DistFromCamera_DEPRECATED = TNumericLimits<float>::Max();
+	bResetWhenRetriggered = false;
 }
 
 
@@ -7142,9 +7143,9 @@ void AEmitterCameraLensEffectBase::RegisterCamera(APlayerCameraManager* C)
 void AEmitterCameraLensEffectBase::NotifyRetriggered() 
 {
 	UParticleSystemComponent* const PSC = GetParticleSystemComponent();
-	if (PSC && PSC->bWasDeactivated)
+	if (PSC && (PSC->bWasDeactivated || bResetWhenRetriggered))
 	{
-		PSC->Activate(false);
+		PSC->Activate(bResetWhenRetriggered);
 	}
 }
 
