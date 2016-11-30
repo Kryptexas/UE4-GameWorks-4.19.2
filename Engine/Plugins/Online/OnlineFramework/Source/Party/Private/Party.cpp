@@ -922,7 +922,10 @@ void UParty::OnCreatePesistentPartyCompletedCommon(const FUniqueNetId& LocalUser
 
 	ensure(PersistentPartyId.IsValid());
 	UPartyGameState* PersistentParty = GetPersistentParty();
-	ensure(PersistentParty != nullptr);
+	if (!ensure(PersistentParty != nullptr))
+	{
+		return;
+	}
 
 	EPartyType PartyType = EPartyType::Public;
 	bool bLeaderInvitesOnly = false;
