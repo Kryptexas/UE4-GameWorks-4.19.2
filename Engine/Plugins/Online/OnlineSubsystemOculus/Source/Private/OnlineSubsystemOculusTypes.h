@@ -56,7 +56,8 @@ public:
 
 	virtual const uint8* GetBytes() const override
 	{
-		auto byteArray = static_cast<uint8*>(malloc(sizeof(uint8) * 4));
+		uint8* byteArray = static_cast<uint8*>(malloc(sizeof(uint8) * 4));
+		check(byteArray);
 
 		// convert from an unsigned long int to a 4-byte array
 		byteArray[0] = static_cast<uint8>((ID >> 24) & 0xFF);
