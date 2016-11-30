@@ -2726,11 +2726,6 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 			if (Level->bIsVisible)
 			{
 				RemoveFromWorld(Level);
-
-				if (Scene)
-				{
-					Scene->OnLevelRemovedFromWorld(this, Level->bIsLightingScenario);
-				}
 			}
 		}
 

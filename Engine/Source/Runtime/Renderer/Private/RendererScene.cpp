@@ -2572,14 +2572,6 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 	}
 }
 
-void FScene::OnLevelRemovedFromWorld(UWorld* InWorld, bool bIsLightingScenario)
-{
-	if (bIsLightingScenario)
-	{
-		InWorld->PropagateLightingScenarioChange();
-	}
-}
-
 #if WITH_EDITOR
 bool FScene::InitializePixelInspector(FRenderTarget* BufferFinalColor, FRenderTarget* BufferSceneColor, FRenderTarget* BufferDepth, FRenderTarget* BufferHDR, FRenderTarget* BufferA, FRenderTarget* BufferBCDE, int32 BufferIndex)
 {
