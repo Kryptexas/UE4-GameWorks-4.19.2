@@ -12,6 +12,9 @@
 #include "DeviceProfiles/DeviceProfile.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
 
+int32 GTextureRenderTarget2DMaxSizeX = 999999999;
+int32 GTextureRenderTarget2DMaxSizeY = 999999999;
+
 /*-----------------------------------------------------------------------------
 	UTextureRenderTarget2D
 -----------------------------------------------------------------------------*/
@@ -161,6 +164,9 @@ void UTextureRenderTarget2D::PostLoad()
 		SizeY = FMath::Min<int32>(SizeY, GSystemResolution.ResY);
 	}
 
+	SizeX = FMath::Min<int32>(SizeX, GTextureRenderTarget2DMaxSizeX);
+	SizeY = FMath::Min<int32>(SizeY, GTextureRenderTarget2DMaxSizeY);
+	
 	Super::PostLoad();
 }
 

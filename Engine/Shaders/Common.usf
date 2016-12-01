@@ -926,14 +926,8 @@ MaterialFloat3 RGBTDecode8BPC(MaterialFloat4 RGBT, MaterialFloat Range)
 float GetHDR32bppEncodeMode()
 {
 #if ES2_PROFILE
-	#if COMPILER_GLSL_ES2
-		#if IOS || WEBGL
-			#if USE_32BPP_HDR
-				return HDR_ENCODE_MOSAIC;
-			#endif
-		#else // ANDROID
-			return intrinsic_GetHDR32bppEncodeModeES2();
-		#endif
+	#if COMPILER_GLSL_ES2 && !IOS && !WEBGL // ANDROID
+		return intrinsic_GetHDR32bppEncodeModeES2();
 	#endif
 	#if MOBILE_EMULATION
 		// To enable editor runtime change without recompile, PC always eats the encode cost.

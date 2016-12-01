@@ -12,6 +12,9 @@ class FTextureResource;
 class UTexture2D;
 struct FPropertyChangedEvent;
 
+extern ENGINE_API int32 GTextureRenderTarget2DMaxSizeX;
+extern ENGINE_API int32 GTextureRenderTarget2DMaxSizeY;
+
 /**
  * TextureRenderTarget2D
  *

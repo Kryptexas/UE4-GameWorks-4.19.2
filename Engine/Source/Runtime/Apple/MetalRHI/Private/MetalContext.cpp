@@ -32,7 +32,7 @@ static FAutoConsoleVariableRef CVarMetalSupportsIntermediateBackBuffer(
 static int32 GMetalCommandQueueSize = 5120; // This number is large due to texture streaming - currently each texture is its own command-buffer.
 // The whole MetalRHI needs to be changed to use MTLHeaps/MTLFences & reworked so that operations with the same synchronisation requirements are collapsed into a single blit command-encoder/buffer.
 #else
-static int32 GMetalCommandQueueSize = 64;
+static int32 GMetalCommandQueueSize = 0;
 #endif
 static FAutoConsoleVariableRef CVarMetalCommandQueueSize(
 	TEXT("rhi.Metal.CommandQueueSize"),

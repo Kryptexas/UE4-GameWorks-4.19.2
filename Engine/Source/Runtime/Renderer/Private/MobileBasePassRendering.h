@@ -32,7 +32,6 @@ class FScene;
 enum EOutputFormat
 {
 	LDR_GAMMA_32,
-	HDR_LINEAR_32,
 	HDR_LINEAR_64,
 };
 
@@ -55,13 +54,10 @@ static bool ShouldCacheShaderByPlatformAndOutputFormat(EShaderPlatform Platform,
 {
 	bool bSupportsMobileHDR = IsMobileHDR();
 	bool bShaderUsesLDR = (OutputFormat == LDR_GAMMA_32);
-	bool bShaderUsesHDR = !bShaderUsesLDR;
-	// Android ES2 uses intrinsic_GetHDR32bppEncodeModeES2 so doesn't need a HDR_LINEAR_32 permutation
-	bool bIsAndroid32bpp = (OutputFormat == HDR_LINEAR_32) && (Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES3_1_ANDROID);
 
 	// only cache this shader if the LDR/HDR output matches what we currently support.  IsMobileHDR can't change, so we don't need
-	// the LDR shaders if we are doing HDR, and vice-versa.	Android doesn't need HDR_LINEAR_32 as it
-	return (bShaderUsesLDR && !bSupportsMobileHDR) || (bShaderUsesHDR && bSupportsMobileHDR && !bIsAndroid32bpp);
+	// the LDR shaders if we are doing HDR, and vice-versa.
+	return (bShaderUsesLDR && !bSupportsMobileHDR) || (!bShaderUsesLDR && bSupportsMobileHDR);
 }
 
 /**
@@ -441,7 +437,6 @@ public:
 	{		
 		TMobileBasePassPSBaseType<LightMapPolicyType, NumDynamicPointLights>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ENABLE_SKY_LIGHT"), bEnableSkyLight);
-		OutEnvironment.SetDefine(TEXT("USE_32BPP_HDR"), OutputFormat == HDR_LINEAR_32);
 		OutEnvironment.SetDefine(TEXT("OUTPUT_GAMMA_SPACE"), OutputFormat == LDR_GAMMA_32);
 	}
 	
@@ -470,20 +465,7 @@ struct GetMobileBasePassShaders
 	TMobileBasePassPSPolicyParamType<typename LightMapPolicyType::PixelParametersType, NumDynamicPointLights>*& PixelShader
 	)
 	{
-		if (IsMobileHDR32bpp() && !GSupportsHDR32bppEncodeModeIntrinsic)
-		{
-			VertexShader = Material.GetShader<TMobileBasePassVS<LightMapPolicyType, HDR_LINEAR_64> >(VertexFactoryType);
-
-			if (bEnableSkyLight)
-			{
-				PixelShader = Material.GetShader< TMobileBasePassPS<LightMapPolicyType, HDR_LINEAR_32, true, NumDynamicPointLights> >(VertexFactoryType);
-			}
-			else
-			{
-				PixelShader = Material.GetShader< TMobileBasePassPS<LightMapPolicyType, HDR_LINEAR_32, false, NumDynamicPointLights> >(VertexFactoryType);
-			}
-		}
-		else if (IsMobileHDR())
+		if (IsMobileHDR())
 		{
 			VertexShader = Material.GetShader<TMobileBasePassVS<LightMapPolicyType, HDR_LINEAR_64> >(VertexFactoryType);
 
@@ -535,20 +517,7 @@ void GetUniformMobileBasePassShaders(
 	TMobileBasePassPSPolicyParamType<FUniformLightMapPolicyShaderParametersType, NumDynamicPointLights>*& PixelShader
 	)
 {
-	if (IsMobileHDR32bpp() && !GSupportsHDR32bppEncodeModeIntrinsic)
-	{
-		VertexShader = Material.GetShader<TMobileBasePassVS<TUniformLightMapPolicy<Policy>, HDR_LINEAR_64> >(VertexFactoryType);
-
-		if (bEnableSkyLight)
-		{
-			PixelShader = Material.GetShader< TMobileBasePassPS<TUniformLightMapPolicy<Policy>, HDR_LINEAR_32, true, NumDynamicPointLights> >(VertexFactoryType);
-		}
-		else
-		{
-			PixelShader = Material.GetShader< TMobileBasePassPS<TUniformLightMapPolicy<Policy>, HDR_LINEAR_32, false, NumDynamicPointLights> >(VertexFactoryType);
-		}
-	}
-	else if (IsMobileHDR())
+	if (IsMobileHDR())
 	{
 		VertexShader = Material.GetShader<TMobileBasePassVS<TUniformLightMapPolicy<Policy>, HDR_LINEAR_64> >(VertexFactoryType);
 

@@ -1426,16 +1426,18 @@ class FPostProcessTonemapPS_ES2 : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		// This is only used on ES2.
-		// TODO: Make this only compile on PC/Mobile (and not console).
-		return !IsConsolePlatform(Platform);
+		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
+
+		// Only cache for ES2/3.1 shader platforms, and only compile 32bpp shaders for Android or PC emulation
+		return IsMobilePlatform(Platform) && 
+			(!TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR) || Platform == SP_OPENGL_ES2_ANDROID || (IsES2Platform(Platform) && IsPCPlatform(Platform)));
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 
-		uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
+		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
 
 		OutEnvironment.SetDefine(TEXT("USE_GAMMA_ONLY"),         TonemapperIsDefined(ConfigBitmask, TonemapperGammaOnly));
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_MATRIX"),       TonemapperIsDefined(ConfigBitmask, TonemapperColorMatrix));

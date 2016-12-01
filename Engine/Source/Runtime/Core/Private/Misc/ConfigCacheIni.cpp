@@ -1607,18 +1607,18 @@ bool FConfigCacheIni::AreFileOperationsDisabled()
 }
 
 /**
- * Prases apart an ini section that contains a list of 1-to-N mappings of names in the following format
+ * Parses apart an ini section that contains a list of 1-to-N mappings of names in the following format
  *	 [PerMapPackages]
- *	 MapName=Map1
- *	 Package=PackageA
- *	 Package=PackageB
- *	 MapName=Map2
- *	 Package=PackageC
- *	 Package=PackageD
+ *	 .MapName1=Map1
+ *	 .Package1=PackageA
+ *	 .Package1=PackageB
+ *	 .MapName2=Map2
+ *	 .Package2=PackageC
+ *	 .Package2=PackageD
  * 
  * @param Section Name of section to look in
- * @param KeyOne Key to use for the 1 in the 1-to-N (MapName in the above example)
- * @param KeyN Key to use for the N in the 1-to-N (Package in the above example)
+ * @param KeyOne Key to use for the 1 in the 1-to-N (MapName in the above example - the number suffix gets ignored but helps to keep ordering)
+ * @param KeyN Key to use for the N in the 1-to-N (Package in the above example - the number suffix gets ignored but helps to keep ordering)
  * @param OutMap Map containing parsed results
  * @param Filename Filename to use to find the section
  *
@@ -1644,7 +1644,7 @@ void FConfigCacheIni::Parse1ToNSectionOfNames(const TCHAR* Section, const TCHAR*
 	for( FConfigSectionMap::TIterator It(*ConfigSection); It; ++It )
 	{
 		// is the current key the 1 key?
-		if (It.Key() == KeyOne)
+		if (It.Key().ToString().StartsWith(KeyOne))
 		{
 			const FName KeyName(*It.Value().GetValue());
 
@@ -1658,7 +1658,7 @@ void FConfigCacheIni::Parse1ToNSectionOfNames(const TCHAR* Section, const TCHAR*
 			}
 		}
 		// is the current key the N key?
-		else if (It.Key() == KeyN && WorkingList != nullptr)
+		else if (It.Key().ToString().StartsWith(KeyN) && WorkingList != nullptr)
 		{
 			// if so, add it to the N list for the current 1 key
 			WorkingList->Add(FName(*It.Value().GetValue()));
@@ -1672,18 +1672,18 @@ void FConfigCacheIni::Parse1ToNSectionOfNames(const TCHAR* Section, const TCHAR*
 }
 
 /**
- * Prases apart an ini section that contains a list of 1-to-N mappings of strings in the following format
+ * Parses apart an ini section that contains a list of 1-to-N mappings of strings in the following format
  *	 [PerMapPackages]
- *	 MapName=Map1
- *	 Package=PackageA
- *	 Package=PackageB
- *	 MapName=Map2
- *	 Package=PackageC
- *	 Package=PackageD
+ *	 .MapName1=Map1
+ *	 .Package1=PackageA
+ *	 .Package1=PackageB
+ *	 .MapName2=Map2
+ *	 .Package2=PackageC
+ *	 .Package2=PackageD
  * 
  * @param Section Name of section to look in
- * @param KeyOne Key to use for the 1 in the 1-to-N (MapName in the above example)
- * @param KeyN Key to use for the N in the 1-to-N (Package in the above example)
+ * @param KeyOne Key to use for the 1 in the 1-to-N (MapName in the above example - the number suffix gets ignored but helps to keep ordering)
+ * @param KeyN Key to use for the N in the 1-to-N (Package in the above example - the number suffix gets ignored but helps to keep ordering)
  * @param OutMap Map containing parsed results
  * @param Filename Filename to use to find the section
  *
@@ -1709,7 +1709,7 @@ void FConfigCacheIni::Parse1ToNSectionOfStrings(const TCHAR* Section, const TCHA
 	for( FConfigSectionMap::TIterator It(*ConfigSection); It; ++It )
 	{
 		// is the current key the 1 key?
-		if (It.Key() == KeyOne)
+		if (It.Key().ToString().StartsWith(KeyOne))
 		{
 			// look for existing set in the map
 			WorkingList = OutMap.Find(It.Value().GetValue());
@@ -1721,7 +1721,7 @@ void FConfigCacheIni::Parse1ToNSectionOfStrings(const TCHAR* Section, const TCHA
 			}
 		}
 		// is the current key the N key?
-		else if (It.Key() == KeyN && WorkingList != nullptr)
+		else if (It.Key().ToString().StartsWith(KeyN) && WorkingList != nullptr)
 		{
 			// if so, add it to the N list for the current 1 key
 			WorkingList->Add(It.Value().GetValue());
