@@ -12,6 +12,7 @@
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Item.h"
+#include "AISystem.h"
 
 //----------------------------------------------------------------------//
 // FEQSQueryDebugData

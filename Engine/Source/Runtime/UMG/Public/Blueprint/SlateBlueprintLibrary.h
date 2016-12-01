@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "UObject/Script.h"
 #include "Layout/Geometry.h"
+#include "Styling/SlateBrush.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "SlateBlueprintLibrary.generated.h"
 
