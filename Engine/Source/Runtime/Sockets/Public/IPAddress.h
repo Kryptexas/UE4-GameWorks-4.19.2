@@ -170,11 +170,12 @@ public:
 /** A non-async resolve info for returning cached results */
 class FResolveInfoCached : public FResolveInfo
 {
+protected:
 	/** The address that was resolved */
 	TSharedPtr<FInternetAddr> Addr;
 
 	/** Hidden on purpose */
-	FResolveInfoCached();
+	FResolveInfoCached() {}
 
 public:
 	/**

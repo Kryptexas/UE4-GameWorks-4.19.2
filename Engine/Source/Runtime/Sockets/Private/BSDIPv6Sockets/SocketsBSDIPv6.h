@@ -57,6 +57,16 @@ public:
 		FSocketBSDIPv6::Close();
 	}
 
+	/**
+	* Gets the Socket for anyone who knows they have an FSocketBSD.
+	*
+	* @return The native socket.
+	*/
+	SOCKET GetNativeSocket()
+	{
+		return Socket;
+	}
+
 
 public:
 

@@ -3,7 +3,7 @@
 #include "SocketsPrivatePCH.h"
 #include "SocketSubsystemIOS.h"
 #include "ModuleManager.h"
-#include "BSDSockets/SocketsBSD.h"
+#include "BSDIPv6Sockets/SocketsBSDIPv6.h"
 #include <ifaddrs.h>
 
 
@@ -70,9 +70,11 @@ bool FSocketSubsystemIOS::HasNetworkDevice()
 
 FSocket* FSocketSubsystemIOS::CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP)
 {
-	FSocketBSD* NewSocket = (FSocketBSD*)FSocketSubsystemBSD::CreateSocket(SocketType, SocketDescription, bForceUDP);
+	FSocketBSDIPv6* NewSocket = (FSocketBSDIPv6*)FSocketSubsystemBSDIPv6::CreateSocket(SocketType, SocketDescription, bForceUDP);
 	if (NewSocket)
 	{
+		NewSocket->SetIPv6Only(false);
+
 		// disable the SIGPIPE exception 
 		int bAllow = 1;
 		setsockopt(NewSocket->GetNativeSocket(), SOL_SOCKET, SO_NOSIGPIPE, &bAllow, sizeof(bAllow));
