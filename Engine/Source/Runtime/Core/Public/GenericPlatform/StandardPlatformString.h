@@ -8,7 +8,7 @@
 #include "GenericPlatform/GenericPlatformString.h"
 #include <wchar.h>
 
-#if PLATFORM_APPLE || PLATFORM_LINUX || PLATFORM_HTML5 || PLATFORM_PS4
+#if PLATFORM_APPLE || PLATFORM_LINUX || PLATFORM_HTML5 || PLATFORM_PS4 || PLATFORM_SWITCH
 
 /**
 * Standard implementation
