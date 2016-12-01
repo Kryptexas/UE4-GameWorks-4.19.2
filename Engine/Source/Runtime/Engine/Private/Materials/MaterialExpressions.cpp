@@ -1024,6 +1024,14 @@ bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKe
 		FExpressionInput* Input = Inputs[Index];
 		if (Input->Expression)
 		{
+			// ContainsInputLoop primarily used to detect safe traversal path for IsResultMaterialAttributes.
+			// In those cases we can bail on a function as the inputs are strongly typed
+			UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Input->Expression);
+			if (FunctionCall)
+			{
+				continue;
+			}
+
 			FMaterialExpressionKey InputExpressionKey(Input->Expression, Input->OutputIndex);
 			if (ExpressionStack.Contains(InputExpressionKey))
 			{
@@ -4598,8 +4606,8 @@ UMaterialExpressionStaticSwitchParameter::UMaterialExpressionStaticSwitchParamet
 bool UMaterialExpressionStaticSwitchParameter::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	check(OutputIndex == 0);
-	if( (!A.Expression || A.Expression->IsResultMaterialAttributes(A.OutputIndex)) &&
-		(!B.Expression || B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
+	if( (A.Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
+		(B.Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
 	{
 		return true;
 	}
@@ -4770,8 +4778,8 @@ bool UMaterialExpressionStaticSwitch::IsResultMaterialAttributes(int32 OutputInd
 {
 	// If there is a loop anywhere in this expression's inputs then we can't risk checking them
 	check(OutputIndex == 0);
-	if( (!A.Expression || A.Expression->ContainsInputLoop() || A.Expression->IsResultMaterialAttributes(A.OutputIndex)) &&
-		(!B.Expression || B.Expression->ContainsInputLoop() || B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
+	if( (A.Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
+		(B.Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
 	{
 		return true;
 	}
