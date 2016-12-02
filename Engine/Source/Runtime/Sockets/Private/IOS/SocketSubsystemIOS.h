@@ -3,13 +3,13 @@
 #pragma once
 
 #include "SocketSubsystem.h"
-#include "BSDIPv6Sockets/SocketSubsystemBSDIPv6.h"
+#include "BSDSockets/SocketSubsystemBSD.h"
 #include "SocketSubsystemPackage.h"
 
 /**
  * Windows specific socket subsystem implementation
  */
-class FSocketSubsystemIOS : public FSocketSubsystemBSDIPv6
+class FSocketSubsystemIOS : public FSocketSubsystemBSD
 {
 protected:
 
