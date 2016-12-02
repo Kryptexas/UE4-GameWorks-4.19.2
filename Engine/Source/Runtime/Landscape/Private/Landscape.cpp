@@ -1145,9 +1145,10 @@ void ALandscape::PostLoad()
 	else
 	{
 #if WITH_EDITOR
-		for (ALandscape* Landscape : TActorRange<ALandscape>(GetWorld()))
+		UWorld* CurrentWorld = GetWorld();
+		for (ALandscape* Landscape : TObjectRange<ALandscape>(RF_ClassDefaultObject | RF_BeginDestroyed))
 		{
-			if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
+			if (Landscape && Landscape != this && Landscape->LandscapeGuid == LandscapeGuid && Landscape->GetWorld() == CurrentWorld)
 			{
 				// Duplicated landscape level, need to generate new GUID
 				Modify();
