@@ -36,8 +36,8 @@ class FCEFJSScripting
 	, public TSharedFromThis<FCEFJSScripting>
 {
 public:
-	FCEFJSScripting(CefRefPtr<CefBrowser> Browser)
-		: FWebJSScripting()
+	FCEFJSScripting(CefRefPtr<CefBrowser> Browser, bool bJSBindingToLoweringEnabled)
+		: FWebJSScripting(bJSBindingToLoweringEnabled)
 		, InternalCefBrowser(Browser)
 	{}
 

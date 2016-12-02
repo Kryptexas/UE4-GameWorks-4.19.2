@@ -881,7 +881,7 @@ uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint32* KeyCodes, FStrin
 	ADDKEYMAP( '\\', TEXT("Backslash") );
 	ADDKEYMAP( ']', TEXT("RightBracket") );
 	ADDKEYMAP( '\'', TEXT("Apostrophe") );
-	ADDKEYMAP( ' ', TEXT("SpaceBar") );
+	ADDKEYMAP(' ', TEXT("SpaceBar"));
 
 	// AZERTY Keys
 	ADDKEYMAP( '&', TEXT("Ampersand") );

@@ -260,11 +260,23 @@ FReply SWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPoi
 void SWidget::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	bIsHovered = true;
+
+	if (MouseEnterHandler.IsBound())
+	{
+		// A valid handler is assigned; let it handle the event.
+		MouseEnterHandler.Execute(MyGeometry, MouseEvent);
+	}
 }
 
 void SWidget::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	bIsHovered = false;
+
+	if (MouseLeaveHandler.IsBound())
+	{
+		// A valid handler is assigned; let it handle the event.
+		MouseLeaveHandler.Execute(MouseEvent);
+	}
 }
 
 FReply SWidget::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -848,4 +860,14 @@ void SWidget::SetOnMouseMove(FPointerEventHandler EventHandler)
 void SWidget::SetOnMouseDoubleClick(FPointerEventHandler EventHandler)
 {
 	MouseDoubleClickHandler = EventHandler;
+}
+
+void SWidget::SetOnMouseEnter(FNoReplyPointerEventHandler EventHandler)
+{
+	MouseEnterHandler = EventHandler;
+}
+
+void SWidget::SetOnMouseLeave(FSimpleNoReplyPointerEventHandler EventHandler)
+{
+	MouseLeaveHandler = EventHandler;
 }

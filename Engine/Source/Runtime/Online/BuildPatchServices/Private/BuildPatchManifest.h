@@ -361,7 +361,7 @@ namespace BuildPatchServices
  * Declare the FBuildPatchAppManifest object class. This holds the UObject data, and the implemented build manifest functionality
  */
 class FBuildPatchAppManifest
-	: public IBuildManifest, FGCObject
+	: public IBuildManifest
 {
 	// Allow access to build processor classes
 	friend class FBuildDataGenerator;
@@ -621,10 +621,6 @@ public:
 
 	/** @return True if this manifest is for the same build, i.e. same ID, Name, and Version */
 	bool IsSameAs(FBuildPatchAppManifestRef InstallManifest) const;
-public:
-
-	// FGCObject API
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 private:
 
@@ -642,8 +638,23 @@ private:
 
 private:
 
-	/** Holds the actual manifest data. Some other variables point to the memory held by this object */
-	UBuildPatchManifest* Data;
+	/** Holds the actual manifest data. Some other variables point to the memory held by these objects */
+	uint8 ManifestFileVersion;
+	bool bIsFileData;
+	uint32 AppID;
+	FString AppName;
+	FString BuildVersion;
+	FString LaunchExe;
+	FString LaunchCommand;
+	FString PrereqName;
+	FString PrereqPath;
+	FString PrereqArgs;
+	TArray<FFileManifestData> FileManifestList;
+	TArray<FChunkInfoData> ChunkList;
+	TArray<FCustomFieldData> CustomFields;
+
+	/** Holds the handle to our PreExit delegate */
+	FDelegateHandle OnPreExitHandle;
 
 	/** Some lookups to optimize data access */
 	TMap<FGuid, FString*> FileNameLookup;

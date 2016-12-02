@@ -18,7 +18,7 @@ class FAndroidJSScripting
 public:
 	static const FString JSMessageTag;
 
-	FAndroidJSScripting();
+	FAndroidJSScripting(bool bJSBindingToLoweringEnabled);
 
 	virtual void BindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true) override;
 	virtual void UnbindUObject(const FString& Name, UObject* Object = nullptr, bool bIsPermanent = true) override;

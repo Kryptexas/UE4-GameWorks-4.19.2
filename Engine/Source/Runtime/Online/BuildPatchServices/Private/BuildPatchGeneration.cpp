@@ -17,6 +17,32 @@ using namespace BuildPatchServices;
 DECLARE_LOG_CATEGORY_EXTERN(LogPatchGeneration, Log, All);
 DEFINE_LOG_CATEGORY(LogPatchGeneration);
 
+namespace BuildPatchServices
+{
+	struct FScannerDetails
+	{
+	public:
+		FScannerDetails(int32 InLayer, uint64 InLayerOffset, bool bInIsFinalScanner, uint64 InPaddingSize, TArray<uint8> InData, FBlockStructure InStructure, const ICloudEnumerationRef& CloudEnumeration, const FStatsCollectorRef& StatsCollector)
+			: Layer(InLayer)
+			, LayerOffset(InLayerOffset)
+			, bIsFinalScanner(bInIsFinalScanner)
+			, PaddingSize(InPaddingSize)
+			, Data(MoveTemp(InData))
+			, Structure(MoveTemp(InStructure))
+			, Scanner(FDataScannerFactory::Create(Data, CloudEnumeration, StatsCollector))
+		{}
+
+	public:
+		int32 Layer;
+		uint64 LayerOffset;
+		bool bIsFinalScanner;
+		uint64 PaddingSize;
+		TArray<uint8> Data;
+		FBlockStructure Structure;
+		IDataScannerRef Scanner;
+	};
+}
+
 namespace PatchGenerationHelpers
 {
 	bool SerialiseIntersection(const FBlockStructure& ByteStructure, const FBlockStructure& Intersection, FBlockStructure& SerialRanges)
@@ -61,32 +87,20 @@ namespace PatchGenerationHelpers
 		}
 		return Count;
 	}
-}
 
-namespace BuildPatchServices
-{
-	struct FScannerDetails
+	int32 GetMaxScannerBacklogCount()
 	{
-	public:
-		FScannerDetails(int32 InLayer, uint64 InLayerOffset, bool bInIsFinalScanner, uint64 InPaddingSize, TArray<uint8> InData, FBlockStructure InStructure, const ICloudEnumerationRef& CloudEnumeration, const FStatsCollectorRef& StatsCollector)
-			: Layer(InLayer)
-			, LayerOffset(InLayerOffset)
-			, bIsFinalScanner(bInIsFinalScanner)
-			, PaddingSize(InPaddingSize)
-			, Data(MoveTemp(InData))
-			, Structure(MoveTemp(InStructure))
-			, Scanner(FDataScannerFactory::Create(Data, CloudEnumeration, StatsCollector))
-		{}
+		int32 MaxScannerBacklogCount = 75;
+		GConfig->GetInt(TEXT("BuildPatchServices"), TEXT("MaxScannerBacklog"), MaxScannerBacklogCount, GEngineIni);
+		MaxScannerBacklogCount = FMath::Clamp<int32>(MaxScannerBacklogCount, 5, 500);
+		return MaxScannerBacklogCount;
+	}
 
-	public:
-		int32 Layer;
-		uint64 LayerOffset;
-		bool bIsFinalScanner;
-		uint64 PaddingSize;
-		TArray<uint8> Data;
-		FBlockStructure Structure;
-		IDataScannerRef Scanner;
-	};
+	bool ScannerArrayFull(const TArray<TUniquePtr<FScannerDetails>>& Scanners)
+	{
+		static int32 MaxScannerBacklogCount = GetMaxScannerBacklogCount();
+		return (FDataScannerCounter::GetNumIncompleteScanners() > FDataScannerCounter::GetNumRunningScanners()) || (Scanners.Num() >= MaxScannerBacklogCount);
+	}
 }
 
 bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchServices::FGenerationConfiguration& Settings)
@@ -149,16 +163,24 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 	double LastProgressLog = FPlatformTime::Seconds();
 	const double TimeGenStarted = LastProgressLog;
 
-	// Load scanner data size from config, default to 32.5 MB.
+	// Load settings from config.
 	float GenerationScannerSizeMegabytes = 32.5f;
+	float StatsLoggerTimeSeconds = 10.0f;
 	GConfig->GetFloat(TEXT("BuildPatchServices"), TEXT("GenerationScannerSizeMegabytes"), GenerationScannerSizeMegabytes, GEngineIni);
+	GConfig->GetFloat(TEXT("BuildPatchServices"), TEXT("StatsLoggerTimeSeconds"), StatsLoggerTimeSeconds, GEngineIni);
 	GenerationScannerSizeMegabytes = FMath::Clamp<float>(GenerationScannerSizeMegabytes, 10.0f, 500.0f);
+	StatsLoggerTimeSeconds = FMath::Clamp<float>(StatsLoggerTimeSeconds, 1.0f, 60.0f);
 	const uint64 ScannerDataSize = GenerationScannerSizeMegabytes * 1048576;
 	const uint64 ScannerOverlapSize = FBuildPatchData::ChunkDataSize - 1;
 	TArray<uint8> DataBuffer;
 
 	// Setup Generation stats.
-	auto* StatTotalTime = StatsCollector->CreateStat(TEXT("Generation: Total Time"), EStatFormat::Timer);
+	volatile int64* StatTotalTime = StatsCollector->CreateStat(TEXT("Generation: Total Time"), EStatFormat::Timer);
+	volatile int64* StatLayers = StatsCollector->CreateStat(TEXT("Generation: Layers"), EStatFormat::Value);
+	volatile int64* StatNumScanners = StatsCollector->CreateStat(TEXT("Generation: Scanner Backlog"), EStatFormat::Value);
+	volatile int64* StatUnknownDataAlloc = StatsCollector->CreateStat(TEXT("Generation: Unmatched Buffers Allocation"), EStatFormat::DataSize);
+	volatile int64* StatUnknownDataNum = StatsCollector->CreateStat(TEXT("Generation: Unmatched Buffers Use"), EStatFormat::DataSize);
+	int64 MaxLayer = 0;
 
 	// List of created scanners.
 	TArray<TUniquePtr<FScannerDetails>> Scanners;
@@ -184,8 +206,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 	bool bHasUnknownData = true;
 	while (!BuildStream->IsEndOfData() || Scanners.Num() > 0 || bHasUnknownData)
 	{
-		bool bScannerQueueFull = FDataScannerCounter::GetNumIncompleteScanners() > FDataScannerCounter::GetNumRunningScanners();
-		if (!bScannerQueueFull)
+		if (!PatchGenerationHelpers::ScannerArrayFull(Scanners))
 		{
 			// Create a scanner from new build data?
 			if (!BuildStream->IsEndOfData())
@@ -223,6 +244,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 		}
 
 		// Grab any completed scanners?
+		FStatsCollector::Set(StatNumScanners, Scanners.Num());
 		while (Scanners.Num() > 0 && Scanners[0]->Scanner->IsComplete())
 		{
 			FScannerDetails& Scanner = *Scanners[0];
@@ -487,14 +509,12 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 			// Use unknown data to make new scanners.
 			if (UnknownLayerData.Num() > 0)
 			{
-				bScannerQueueFull = FDataScannerCounter::GetNumIncompleteScanners() > FDataScannerCounter::GetNumRunningScanners();
-
 				// Make sure there are enough bytes available for a scanner, plus a chunk, so that we know no more chunks will get
 				// made from this sequential unknown data.
 				uint64 RequiredScannerBytes = ScannerDataSize + FBuildPatchData::ChunkDataSize;
 				// We make a scanner when there's enough data, or if we are at the end of data for this layer.
 				bool bShouldMakeScanner = (ProcessedCount >= RequiredScannerBytes) || bIsFinalData;
-				if (!bScannerQueueFull && bShouldMakeScanner)
+				if (!PatchGenerationHelpers::ScannerArrayFull(Scanners) && bShouldMakeScanner)
 				{
 					// Create data processor.
 					const uint64 SizeToTake = FMath::Min<uint64>(ScannerDataSize, UnknownLayerData.Num());
@@ -512,10 +532,13 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 						UE_LOG(LogPatchGeneration, Error, TEXT("Tracked unknown build data inconsistent."));
 						return false;
 					}
-					uint64& DataOffset = LayerToDataOffset.FindOrAdd(Layer + 1);
-					Scanners.Emplace(new FScannerDetails(Layer + 1, DataOffset, bIsFinalScanner, PadSize, MoveTemp(ScannerData), BuildStructure, CloudEnumeration, StatsCollector));
-					LayerToScannerCount.FindOrAdd(Layer + 1)++;
-					UE_LOG(LogPatchGeneration, Verbose, TEXT("Creating scanner on layer %d at %llu. IsFinal:%d."), Layer + 1, DataOffset, bIsFinalScanner);
+					const int32 NextLayer = Layer + 1;
+					uint64& DataOffset = LayerToDataOffset.FindOrAdd(NextLayer);
+					Scanners.Emplace(new FScannerDetails(NextLayer, DataOffset, bIsFinalScanner, PadSize, MoveTemp(ScannerData), BuildStructure, CloudEnumeration, StatsCollector));
+					LayerToScannerCount.FindOrAdd(NextLayer)++;
+					UE_LOG(LogPatchGeneration, Verbose, TEXT("Creating scanner on layer %d at %llu. IsFinal:%d."), NextLayer, DataOffset, bIsFinalScanner);
+					MaxLayer = FMath::Max<int64>(MaxLayer, NextLayer);
+					FStatsCollector::Set(StatLayers, MaxLayer);
 
 					// Remove data we just pulled out from tracking, minus the overlap.
 					uint64 RemoveSize = bIsFinalScanner ? SizeToTake : SizeToTake - ScannerOverlapSize;
@@ -549,26 +572,34 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory(const BuildPatchSe
 			}
 		}
 
+		// Set whether we are still processing unknown data.
+		int64 UnknownDataAlloc = 0;
+		int64 UnknownDataNum = 0;
+		for (TPair<int32, TArray<uint8>>& UnknownLayerDataPair : LayerToUnknownLayerData)
+		{
+			UnknownDataNum += UnknownLayerDataPair.Value.Num();
+			UnknownDataAlloc += UnknownLayerDataPair.Value.GetAllocatedSize();
+		}
+		bHasUnknownData = UnknownDataNum > 0;
+		FStatsCollector::Set(StatUnknownDataAlloc, UnknownDataAlloc);
+		FStatsCollector::Set(StatUnknownDataNum, UnknownDataNum);
+
 		// Log collected stats.
 		GLog->FlushThreadedLogs();
 		FStatsCollector::Set(StatTotalTime, FStatsCollector::GetCycles() - StartTime);
-		StatsCollector->LogStats(10.0f);
-
-		// Set whether we are still processing unknown data.
-		bHasUnknownData = false;
-		for (TPair<int32, TArray<uint8>>& UnknownLayerDataPair : LayerToUnknownLayerData)
-		{
-			if (UnknownLayerDataPair.Value.Num() > 0)
-			{
-				bHasUnknownData = true;
-				break;
-			}
-		}
+		StatsCollector->LogStats(StatsLoggerTimeSeconds);
 
 		// Sleep to allow other threads.
 		FPlatformProcess::Sleep(0.01f);
 	}
 	UE_LOG(LogPatchGeneration, Verbose, TEXT("Scanning complete, waiting for writer thread."));
+
+	// Check that we read some build data
+	if (BuildStream->GetBuildSize() == 0)
+	{
+		UE_LOG(LogPatchGeneration, Error, TEXT("There was no data to process. Please check path: %s."), *Settings.RootDirectory);
+		return false;
+	}
 
 	// Inform no more chunks.
 	ChunkWriter.NoMoreChunks();

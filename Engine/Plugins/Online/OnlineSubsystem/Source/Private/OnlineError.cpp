@@ -37,7 +37,7 @@ void FOnlineError::SetFromErrorCode(const FString& ErrorCodeIn)
 FOnlineError::FOnlineError(const FText& ErrorMessageIn)
 	: bSucceeded(false)
 	, HttpResult(0)
-	, NumericErrorCode(0)
+	, NumericErrorCode(INDEX_NONE)
 {
 	SetFromErrorMessage(ErrorMessageIn);
 }

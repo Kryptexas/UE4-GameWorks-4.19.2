@@ -40,6 +40,18 @@ DECLARE_DELEGATE_RetVal_TwoParams(
 	/** The Mouse Event that we are processing */
 	const FPointerEvent&)
 
+DECLARE_DELEGATE_TwoParams(
+	FNoReplyPointerEventHandler,
+	/** The geometry of the widget*/
+	const FGeometry&,
+	/** The Mouse Event that we are processing */
+	const FPointerEvent&)
+
+DECLARE_DELEGATE_OneParam(
+	FSimpleNoReplyPointerEventHandler,
+	/** The Mouse Event that we are processing */
+	const FPointerEvent&)
+
 enum class EPopupMethod : uint8;
 
 class SLATECORE_API FSlateControlledConstruction
@@ -990,6 +1002,12 @@ public:
 	/** See OnMouseDoubleClick event */
 	void SetOnMouseDoubleClick(FPointerEventHandler EventHandler);
 
+	/** See OnMouseEnter event */
+	void SetOnMouseEnter(FNoReplyPointerEventHandler EventHandler);
+
+	/** See OnMouseLeave event */
+	void SetOnMouseLeave(FSimpleNoReplyPointerEventHandler EventHandler);
+
 public:
 
 	// Widget Inspector and debugging methods
@@ -1257,6 +1275,8 @@ private:
 	FPointerEventHandler MouseButtonUpHandler;
 	FPointerEventHandler MouseMoveHandler;
 	FPointerEventHandler MouseDoubleClickHandler;
+	FNoReplyPointerEventHandler MouseEnterHandler;
+	FSimpleNoReplyPointerEventHandler MouseLeaveHandler;
 };
 
 //=================================================================

@@ -31,14 +31,7 @@ public:
 
 	virtual void Lock( const RECT* const Bounds ) override;
 
-public:
-
-	/**
-	 * Defines a custom cursor shape for the EMouseCursor::Custom type.
-	 * 
-	 * @param CursorHandle	A native cursor handle to show when EMouseCursor::Custom is selected.
-	 */
-	virtual void SetCustomShape( Windows::HCURSOR CursorHandle );
+	virtual void SetCustomShape(void* CursorHandle) override;
 
 private:
 

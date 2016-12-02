@@ -99,4 +99,6 @@ public:
 	 * @param Bounds	The bounds to lock the cursor to.  Pass NULL to unlock.
 	 */
 	virtual void Lock( const RECT* const Bounds ) = 0;
+
+	virtual void SetCustomShape(void* CursorHandle) = 0;
 };

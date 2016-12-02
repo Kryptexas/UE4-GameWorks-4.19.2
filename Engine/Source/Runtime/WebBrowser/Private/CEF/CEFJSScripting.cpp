@@ -53,7 +53,7 @@ CefRefPtr<CefDictionaryValue> FCEFJSScripting::ConvertStruct(UStruct* TypeInfo, 
 
 	CefRefPtr<CefDictionaryValue> Result = CefDictionaryValue::Create();
 	Result->SetString("$type", "struct");
-	Result->SetString("$ue4Type", *TypeInfo->GetName());
+	Result->SetString("$ue4Type", *GetBindingName(TypeInfo));
 	Result->SetDictionary("$value", Backend.GetResult());
 	return Result;
 }
@@ -69,7 +69,7 @@ CefRefPtr<CefDictionaryValue> FCEFJSScripting::ConvertObject(UObject* Object)
 	for (TFieldIterator<UFunction> FunctionIt(Class, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
 	{
 		UFunction* Function = *FunctionIt;
-		MethodNames->SetString(MethodIndex++, *Function->GetName());
+		MethodNames->SetString(MethodIndex++, *GetBindingName(Function));
 	}
 
 	Result->SetString("$type", "uobject");
@@ -271,7 +271,7 @@ bool FCEFJSScripting::HandleExecuteUObjectMethodMessage(CefRefPtr<CefListValue> 
 					}
 					else
 					{
-						CopyContainerValue(NamedArgs, CefArgs, CefString(*Param->GetName()), CurrentArg);
+						CopyContainerValue(NamedArgs, CefArgs, CefString(*GetBindingName(Param)), CurrentArg);
 						CurrentArg++;
 					}
 				}
@@ -311,7 +311,7 @@ bool FCEFJSScripting::HandleExecuteUObjectMethodMessage(CefRefPtr<CefListValue> 
 			CefRefPtr<CefDictionaryValue> ResultDict = ReturnBackend.GetResult();
 
 			// Extract the single return value from the serialized dictionary to an array
-			CopyContainerValue(Results, ResultDict, 0, CefString(*ReturnParam->GetName()));
+			CopyContainerValue(Results, ResultDict, 0, *GetBindingName(ReturnParam));
 		}
 		InvokeJSFunction(ResultCallbackId, Results, false);
 	}

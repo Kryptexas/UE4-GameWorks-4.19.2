@@ -16,7 +16,7 @@ void FCEFJSStructSerializerBackend::AddNull(const FStructSerializerState& State)
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetNull(*State.ValueProperty->GetName());
+			Current.DictionaryValue->SetNull(*Scripting->GetBindingName(State.ValueProperty));
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetNull(Current.ListValue->GetSize());
@@ -30,7 +30,7 @@ void FCEFJSStructSerializerBackend::Add(const FStructSerializerState& State, boo
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetBool(*State.ValueProperty->GetName(), Value);
+			Current.DictionaryValue->SetBool(*Scripting->GetBindingName(State.ValueProperty), Value);
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetBool(Current.ListValue->GetSize(), Value);
@@ -44,7 +44,7 @@ void FCEFJSStructSerializerBackend::Add(const FStructSerializerState& State, int
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetInt(*State.ValueProperty->GetName(), Value);
+			Current.DictionaryValue->SetInt(*Scripting->GetBindingName(State.ValueProperty), Value);
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetInt(Current.ListValue->GetSize(), Value);
@@ -58,7 +58,7 @@ void FCEFJSStructSerializerBackend::Add(const FStructSerializerState& State, dou
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetDouble(*State.ValueProperty->GetName(), Value);
+			Current.DictionaryValue->SetDouble(*Scripting->GetBindingName(State.ValueProperty), Value);
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetDouble(Current.ListValue->GetSize(), Value);
@@ -72,7 +72,7 @@ void FCEFJSStructSerializerBackend::Add(const FStructSerializerState& State, FSt
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetString(*State.ValueProperty->GetName(), *Value);
+			Current.DictionaryValue->SetString(*Scripting->GetBindingName(State.ValueProperty), *Value);
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetString(Current.ListValue->GetSize(), *Value);
@@ -86,7 +86,7 @@ void FCEFJSStructSerializerBackend::Add(const FStructSerializerState& State, UOb
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetDictionary(*State.ValueProperty->GetName(), Scripting->ConvertObject(Value));
+			Current.DictionaryValue->SetDictionary(*Scripting->GetBindingName(State.ValueProperty), Scripting->ConvertObject(Value));
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetDictionary(Current.ListValue->GetSize(), Scripting->ConvertObject(Value));
@@ -101,7 +101,7 @@ void FCEFJSStructSerializerBackend::Add(const FStructSerializerState& State, UOb
 void FCEFJSStructSerializerBackend::BeginArray(const FStructSerializerState& State)
 {
 	CefRefPtr<CefListValue> ListValue = CefListValue::Create();
-	Stack.Push(StackItem(State.ValueProperty->GetName(), ListValue));
+	Stack.Push(StackItem(Scripting->GetBindingName(State.ValueProperty), ListValue));
 }
 
 
@@ -118,7 +118,7 @@ void FCEFJSStructSerializerBackend::BeginStructure(const FStructSerializerState&
 	else if (State.ValueProperty != nullptr)
 	{
 		CefRefPtr<CefDictionaryValue> DictionaryValue = CefDictionaryValue::Create();
-		Stack.Push(StackItem(State.ValueProperty->GetName(), DictionaryValue));
+		Stack.Push(StackItem(Scripting->GetBindingName(State.ValueProperty), DictionaryValue));
 	}
 	else
 	{

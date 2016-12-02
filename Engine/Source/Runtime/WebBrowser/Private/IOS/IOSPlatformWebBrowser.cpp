@@ -298,6 +298,10 @@ FReply FWebBrowserWindow::OnMouseMove(const FGeometry& MyGeometry, const FPointe
 	return FReply::Unhandled();
 }
 
+void FWebBrowserWindow::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+}
+
 FReply FWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	return FReply::Unhandled();

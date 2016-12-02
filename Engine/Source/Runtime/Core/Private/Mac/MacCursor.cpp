@@ -208,17 +208,6 @@ FMacCursor::~FMacCursor()
 	}
 }
 
-void FMacCursor::SetCustomShape(NSCursor* CursorHandle)
-{
-	SCOPED_AUTORELEASE_POOL;
-	[CursorHandle retain];
-	if (CursorHandles[EMouseCursor::Custom] != NULL)
-	{
-		[CursorHandles[EMouseCursor::Custom] release];
-	}
-	CursorHandles[EMouseCursor::Custom] = CursorHandle;
-}
-
 FVector2D FMacCursor::GetPosition() const
 {
 	FVector2D CurrentPos = CurrentPosition;
@@ -543,4 +532,17 @@ const FVector2D& FMacCursor::GetMouseScaling() const
 	{
 		return FVector2D::UnitVector;
 	}
+}
+
+void FMacCursor::SetCustomShape(void* InCursorHandle)
+{
+	NSCursor* CursorHandle = (NSCursor*)InCursorHandle;
+
+	SCOPED_AUTORELEASE_POOL;
+	[CursorHandle retain];
+	if (CursorHandles[EMouseCursor::Custom] != NULL)
+	{
+		[CursorHandles[EMouseCursor::Custom] release];
+	}
+	CursorHandles[EMouseCursor::Custom] = CursorHandle;
 }

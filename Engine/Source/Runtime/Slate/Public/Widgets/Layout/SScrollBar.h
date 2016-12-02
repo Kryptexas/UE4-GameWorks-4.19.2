@@ -113,6 +113,9 @@ public:
 	/** @return True if the user is scrolling by dragging the scroll bar thumb. */
 	bool IsScrolling() const;
 
+	/** @return the orientation in which the scrollbar is scrolling. */
+	EOrientation GetOrientation() const; 
+
 	/** See argument Style */
 	void SetStyle(const FScrollBarStyle* InStyle);
 

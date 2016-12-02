@@ -329,9 +329,9 @@ FString FAndroidJSScripting::ConvertObject(UObject* Object)
 		{
 			first = false;
 		}
-		Result.Append(*Function->GetName());
+		Result.Append(*GetBindingName(Function));
 		Result.Append(TEXT(": function "));
-		Result.Append(*Function->GetName());
+		Result.Append(*GetBindingName(Function));
 		Result.Append(TEXT(" ("));
 
 		bool firstArg = true;
@@ -351,7 +351,7 @@ FString FAndroidJSScripting::ConvertObject(UObject* Object)
 					{
 						firstArg = false;
 					}
-					Result.Append(*Param->GetName());
+					Result.Append(*GetBindingName(Param));
 				}
 			}
 		}
@@ -510,7 +510,7 @@ bool FAndroidJSScripting::HandleExecuteUObjectMethodMessage(const TArray<FString
 			FString ResultJS = ReturnBackend.ToString();
 
 			ResultJS.Append(TEXT("['"));
-			ResultJS.Append(ReturnParam->GetName().ReplaceCharWithEscapedChar());
+			ResultJS.Append(GetBindingName(ReturnParam).ReplaceCharWithEscapedChar());
 			ResultJS.Append(TEXT("']"));
 
 			InvokeJSFunctionRaw(ResultCallbackId, ResultJS, false);
@@ -545,7 +545,7 @@ void FAndroidJSScripting::PageLoaded(TSharedRef<class FAndroidWebBrowserWindow> 
 	InWindow->ExecuteJavascript(Script);
 }
 
-FAndroidJSScripting::FAndroidJSScripting()
-	: FWebJSScripting()
+FAndroidJSScripting::FAndroidJSScripting(bool bJSBindingToLoweringEnabled)
+	: FWebJSScripting(bJSBindingToLoweringEnabled)
 {
 }

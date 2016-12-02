@@ -728,6 +728,14 @@ void FAutomationTestBase::AddError(const FString& InError, int32 StackOffset)
 	}
 }
 
+void FAutomationTestBase::AddError(const FString& InError, const FString& InFilename, int32 InLineNumber)
+{
+	if (!bSuppressLogs)
+	{
+		ExecutionInfo.Errors.Add(FAutomationEvent(InError, ExecutionInfo.Context, InFilename, InLineNumber));
+	}
+}
+
 void FAutomationTestBase::AddWarning( const FString& InWarning )
 {
 	if( !bSuppressLogs )
@@ -791,8 +799,8 @@ void FAutomationTestBase::GenerateTestNames(TArray<FAutomationTestInfo>& TestInf
 			GetTestFlags(),
 			GetRequiredDeviceNum(),
 			ParameterNames[ParameterIndex],
-			GetTestSourceFileName(),
-			GetTestSourceFileLine(),
+			GetTestSourceFileName(CompleteTestName),
+			GetTestSourceFileLine(CompleteTestName),
 			GetTestAssetPath(ParameterNames[ParameterIndex]),
 			GetTestOpenCommand(ParameterNames[ParameterIndex])
 		);

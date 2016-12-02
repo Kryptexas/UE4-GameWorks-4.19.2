@@ -364,7 +364,7 @@ private:
 
 
 
-FCEFWebBrowserWindow::FCEFWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, CefRefPtr<FCEFBrowserHandler> InHandler, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
+FCEFWebBrowserWindow::FCEFWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, CefRefPtr<FCEFBrowserHandler> InHandler, FString InUrl, TOptional<FString> InContentsToLoad, bool bInShowErrorMessage, bool bInThumbMouseButtonNavigation, bool bInUseTransparency, bool bInJSBindingToLoweringEnabled)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
 	, InternalCefBrowser(InBrowser)
 	, WebBrowserHandler(InHandler)
@@ -373,9 +373,9 @@ FCEFWebBrowserWindow::FCEFWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, CefR
 	, bIsClosing(false)
 	, bIsInitialized(false)
 	, ContentsToLoad(InContentsToLoad)
-	, ShowErrorMessage(InShowErrorMessage)
-	, bThumbMouseButtonNavigation(InThumbMouseButtonNavigation)
-	, bUseTransparency(InUseTransparency)
+	, bShowErrorMessage(bInShowErrorMessage)
+	, bThumbMouseButtonNavigation(bInThumbMouseButtonNavigation)
+	, bUseTransparency(bInUseTransparency)
 	, Cursor(EMouseCursor::Default)
 	, bIsDisabled(false)
 	, bIsHidden(false)
@@ -390,7 +390,7 @@ FCEFWebBrowserWindow::FCEFWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, CefR
 	, bPopupHasFocus(false)
 	, bRecoverFromRenderProcessCrash(false)
 	, ErrorCode(0)
-	, Scripting(new FCEFJSScripting(InBrowser))
+	, Scripting(new FCEFJSScripting(InBrowser, bInJSBindingToLoweringEnabled))
 {
 	check(InBrowser.get() != nullptr);
 
@@ -1225,6 +1225,12 @@ FReply FCEFWebBrowserWindow::OnMouseMove(const FGeometry& MyGeometry, const FPoi
 	return Reply;
 }
 
+void FCEFWebBrowserWindow::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	// Ensure we clear any tooltips if the mouse leaves the window.
+	SetToolTip(CefString());
+}
+
 FReply FCEFWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	FReply Reply = FReply::Unhandled();
@@ -1508,9 +1514,13 @@ void FCEFWebBrowserWindow::OnCursorChange(CefCursorHandle CefCursor, CefRenderHa
 		// Platform specific support for native cursor types
 		default:
 			{
-				FPlatformCursor* PlatformCursor = (FPlatformCursor*)FSlateApplication::Get().GetPlatformCursor().Get();
-				PlatformCursor->SetCustomShape(CefCursor);
-				Cursor = EMouseCursor::Custom;
+				TSharedPtr<ICursor> PlatformCursor = FSlateApplication::Get().GetPlatformCursor();
+
+				if (PlatformCursor.IsValid())
+				{
+					PlatformCursor->SetCustomShape((void*)CefCursor);
+					Cursor = EMouseCursor::Custom;
+				}
 			}
 			break;
 		#else

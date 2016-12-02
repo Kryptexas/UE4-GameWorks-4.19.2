@@ -129,7 +129,7 @@ namespace EOnlineServerConnectionStatus
 	enum Type : unsigned int
 	{
 		/** System normal (used for default state) */
-		Normal,
+		Normal = 0,
 		/** Gracefully disconnected from the online servers */
 		NotConnected,
 		/** Connected to the online servers just fine */

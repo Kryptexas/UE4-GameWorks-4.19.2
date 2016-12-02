@@ -208,6 +208,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	: WebBrowserWindowFactory(MakeShareable(new FNoWebBrowserWindowFactory()))
 #endif
 	, bDevToolsShortcutEnabled(UE_BUILD_DEBUG)
+	, bJSBindingsToLoweringEnabled(true)
 {
 #if WITH_CEF3
 	// The FWebBrowserSingleton must be initialized on the game thread
@@ -357,7 +358,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	bool bThumbMouseButtonNavigation = BrowserWindowParent->IsThumbMouseButtonNavigationEnabled();
 	bool bUseTransparency = BrowserWindowParent->UseTransparency();
 	FString InitialURL = BrowserWindowInfo->Browser->GetMainFrame()->GetURL().ToWString().c_str();
-	TSharedPtr<FCEFWebBrowserWindow> NewBrowserWindow(new FCEFWebBrowserWindow(BrowserWindowInfo->Browser, BrowserWindowInfo->Handler, InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+	TSharedPtr<FCEFWebBrowserWindow> NewBrowserWindow(new FCEFWebBrowserWindow(BrowserWindowInfo->Browser, BrowserWindowInfo->Handler, InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency, bJSBindingsToLoweringEnabled));
 	BrowserWindowInfo->Handler->SetBrowserWindow(NewBrowserWindow);
 
 	WindowInterfaces.Add(NewBrowserWindow);
@@ -469,7 +470,8 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 				WindowSettings.ContentsToLoad,
 				WindowSettings.bShowErrorMessage,
 				WindowSettings.bThumbMouseButtonNavigation,
-				WindowSettings.bUseTransparency));
+				WindowSettings.bUseTransparency,
+				bJSBindingsToLoweringEnabled));
 			NewHandler->SetBrowserWindow(NewBrowserWindow);
 
 			WindowInterfaces.Add(NewBrowserWindow);
@@ -483,7 +485,8 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 		WindowSettings.ContentsToLoad,
 		WindowSettings.bShowErrorMessage,
 		WindowSettings.bThumbMouseButtonNavigation,
-		WindowSettings.bUseTransparency));
+		WindowSettings.bUseTransparency,
+		bJSBindingsToLoweringEnabled));
 
 	//WindowInterfaces.Add(NewBrowserWindow);
 	return NewBrowserWindow;

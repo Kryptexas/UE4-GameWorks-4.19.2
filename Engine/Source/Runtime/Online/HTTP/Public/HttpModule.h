@@ -171,51 +171,67 @@ public:
 	}
 
 	/**
-	 * @return Target tick rate of an http thread
+	 * @return Target tick rate of an active http thread
 	 */
-	inline float GetHttpThreadProcessingClampInSeconds() const
+	inline float GetHttpThreadActiveFrameTimeInSeconds() const
 	{
-		return HttpThreadProcessingClampInSeconds;
+		return HttpThreadActiveFrameTimeInSeconds;
 	}
 
 	/**
-	 * Set the target tick rate of an http thread
+	 * Set the target tick rate of an active http thread
 	 */
-	inline void SetHttpThreadProcessingClampInSeconds(float InHttpThreadProcessingClampInSeconds)
+	inline void SetHttpThreadActiveFrameTimeInSeconds(float InHttpThreadActiveFrameTimeInSeconds)
 	{
-		HttpThreadProcessingClampInSeconds = InHttpThreadProcessingClampInSeconds;
+		HttpThreadActiveFrameTimeInSeconds = InHttpThreadActiveFrameTimeInSeconds;
 	}
 
 	/**
-	* @return Target tick rate of an http thread
-	*/
-	inline float GetHttpThreadFrameTimeInSeconds() const
+	 * @return Minimum sleep time of an active http thread
+	 */
+	inline float GetHttpThreadActiveMinimumSleepTimeInSeconds() const
 	{
-		return HttpThreadFrameTimeInSeconds;
+		return HttpThreadActiveMinimumSleepTimeInSeconds;
 	}
 
 	/**
-	* Set the target tick rate of an http thread
-	*/
-	inline void SetHttpThreadFrameTimeInSeconds(float InHttpThreadFrameTimeInSeconds)
+	 * Set the minimum sleep time of an active http thread
+	 */
+	inline void SetHttpThreadActiveMinimumSleepTimeInSeconds(float InHttpThreadActiveMinimumSleepTimeInSeconds)
 	{
-		HttpThreadFrameTimeInSeconds = InHttpThreadFrameTimeInSeconds;
+		HttpThreadActiveMinimumSleepTimeInSeconds = InHttpThreadActiveMinimumSleepTimeInSeconds;
 	}
 
 	/**
-	* @return Target tick rate of an http thread
-	*/
-	inline float GetHttpThreadMinimumSleepTimeInSeconds() const
+	 * @return Target tick rate of an idle http thread
+	 */
+	inline float GetHttpThreadIdleFrameTimeInSeconds() const
 	{
-		return HttpThreadMinimumSleepTimeInSeconds;
+		return HttpThreadIdleFrameTimeInSeconds;
 	}
 
 	/**
-	* Set the target tick rate of an http thread
-	*/
-	inline void SetHttpThreadMinimumSleepTimeInSeconds(float InHttpThreadMinimumSleepTimeInSeconds)
+	 * Set the target tick rate of an idle http thread
+	 */
+	inline void SetHttpThreadIdleFrameTimeInSeconds(float InHttpThreadIdleFrameTimeInSeconds)
 	{
-		HttpThreadMinimumSleepTimeInSeconds = InHttpThreadMinimumSleepTimeInSeconds;
+		HttpThreadIdleFrameTimeInSeconds = InHttpThreadIdleFrameTimeInSeconds;
+	}
+
+	/**
+	 * @return Minimum sleep time when idle, waiting for requests
+	 */
+	inline float GetHttpThreadIdleMinimumSleepTimeInSeconds() const
+	{
+		return HttpThreadIdleMinimumSleepTimeInSeconds;
+	}
+
+	/**
+	 * Set the minimum sleep time when idle, waiting for requests
+	 */
+	inline void SetHttpThreadIdleMinimumSleepTimeInSeconds(float InHttpThreadIdleMinimumSleepTimeInSeconds)
+	{
+		HttpThreadIdleMinimumSleepTimeInSeconds = InHttpThreadIdleMinimumSleepTimeInSeconds;
 	}
 
 private:
@@ -258,12 +274,14 @@ private:
 	float HttpSendTimeout;
 	/** total time to delay the request */
 	float HttpDelayTime;
-	/** Time in seconds to clamp the processing of HTTP requests on the HTTP thread to. 0 means unclamped */
-	float HttpThreadProcessingClampInSeconds;
-	/** Time in seconds to use as a frame time. 0 means no frame time. */
-	float HttpThreadFrameTimeInSeconds;
-	/** Time in seconds to sleep minimally */
-	float HttpThreadMinimumSleepTimeInSeconds;
+	/** Time in seconds to use as frame time when actively processing requests. 0 means no frame time. */
+	float HttpThreadActiveFrameTimeInSeconds;
+	/** Time in seconds to sleep minimally when actively processing requests. */
+	float HttpThreadActiveMinimumSleepTimeInSeconds;
+	/** Time in seconds to use as frame time when idle, waiting for requests. 0 means no frame time. */
+	float HttpThreadIdleFrameTimeInSeconds;
+	/** Time in seconds to sleep minimally when idle, waiting for requests. */
+	float HttpThreadIdleMinimumSleepTimeInSeconds;
 	/** Max number of simultaneous connections to a specific server */
 	int32 HttpMaxConnectionsPerServer;
 	/** Max buffer size for individual http reads */

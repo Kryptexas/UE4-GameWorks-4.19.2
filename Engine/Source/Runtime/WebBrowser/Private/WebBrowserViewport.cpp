@@ -77,6 +77,7 @@ void FWebBrowserViewport::OnMouseEnter(const FGeometry& MyGeometry, const FPoint
 
 void FWebBrowserViewport::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
+	WebBrowserWindow->OnMouseLeave(MouseEvent);
 }
 
 FReply FWebBrowserViewport::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)

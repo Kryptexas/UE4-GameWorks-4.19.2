@@ -16,8 +16,9 @@ class FWebJSScripting
 	: public FGCObject
 {
 public:
-	FWebJSScripting()
+	FWebJSScripting(bool bInJSBindingToLoweringEnabled)
 		: BaseGuid(FGuid::NewGuid())
+		, bJSBindingToLoweringEnabled(bInJSBindingToLoweringEnabled)
 	{}
 
 	virtual void BindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true) =0;
@@ -26,6 +27,12 @@ public:
 
 	virtual void InvokeJSFunction(FGuid FunctionId, int32 ArgCount, FWebJSParam Arguments[], bool bIsError=false) =0;
 	virtual void InvokeJSErrorResult(FGuid FunctionId, const FString& Error) =0;
+
+
+	FString GetBindingName(const UField* Property) const
+	{
+		return bJSBindingToLoweringEnabled ? Property->GetName().ToLower() : Property->GetName();
+	}
 
 public:
 
@@ -129,4 +136,6 @@ protected:
 	/** Reverse lookup for permanent bindings */
 	TMap<FString, UObject*> PermanentUObjectsByName;
 
+	/** The to-lowering option enable for the binding names. */
+	const bool bJSBindingToLoweringEnabled;
 };

@@ -14,6 +14,7 @@ public class CrashReportClientTarget : TargetRules
 	//
 	// TargetRules interface.
 	//
+
 	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 	{
 		OutPlatforms.Add(UnrealTargetPlatform.Win32);

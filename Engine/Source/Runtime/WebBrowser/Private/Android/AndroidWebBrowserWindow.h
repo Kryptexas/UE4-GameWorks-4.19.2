@@ -24,13 +24,16 @@ class FAndroidWebBrowserWindow
 
 private:
 	/**
-	* Creates and initializes a new instance.
-	*
-	* @param InUrl The Initial URL that will be loaded.
-	* @param InContentsToLoad Optional string to load as a web page.
-	* @param InShowErrorMessage Whether to show an error message in case of loading errors.
-	*/
-	FAndroidWebBrowserWindow(FString InUrl, TOptional<FString> InContentsToLoad, bool ShowErrorMessage, bool bThumbMouseButtonNavigation, bool bUseTransparency);
+	 * Creates and initializes a new instance.
+	 *
+	 * @param Url The Initial URL that will be loaded.
+	 * @param ContentsToLoad Optional string to load as a web page.
+	 * @param bShowErrorMessage Whether to show an error message in case of loading errors.
+	 * @param bThumbMouseButtonNavigation Whether to allow forward and back navigation via the mouse thumb buttons.
+	 * @param bUseTransparency Whether to enable transparency.
+	 * @param bJSBindingToLoweringEnabled Whether we ToLower all JavaScript member names.
+	 */
+	FAndroidWebBrowserWindow(FString Url, TOptional<FString> ContentsToLoad, bool bShowErrorMessage, bool bThumbMouseButtonNavigation, bool bUseTransparency, bool bJSBindingToLoweringEnabled);
 
 	/**
 	 * Create the SWidget for this WebBrowserWindow
@@ -63,6 +66,7 @@ public:
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
 	virtual void OnFocus(bool SetFocus, bool bIsPopup) override;
 	virtual void OnCaptureLost() override;

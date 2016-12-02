@@ -47,14 +47,17 @@ void FHttpModule::StartupModule()
 	HttpDelayTime = 0;
 	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpDelayTime"), HttpDelayTime, GEngineIni);
 
-	HttpThreadProcessingClampInSeconds = 0.005f; // 5ms
-	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadProcessingClampInSeconds"), HttpThreadProcessingClampInSeconds, GEngineIni);
+	HttpThreadActiveFrameTimeInSeconds = 1.0f / 200.0f; // 200Hz
+	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadActiveFrameTimeInSeconds"), HttpThreadActiveFrameTimeInSeconds, GEngineIni);
 
-	HttpThreadFrameTimeInSeconds = 1.0f / 30.0f; // 30Hz
-	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadFrameTimeInSeconds"), HttpThreadFrameTimeInSeconds, GEngineIni);
+	HttpThreadActiveMinimumSleepTimeInSeconds = 0.0f;
+	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadActiveMinimumSleepTimeInSeconds"), HttpThreadActiveMinimumSleepTimeInSeconds, GEngineIni);
 
-	HttpThreadMinimumSleepTimeInSeconds = 0.0f;
-	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadMinimumSleepTimeInSeconds"), HttpThreadMinimumSleepTimeInSeconds, GEngineIni);
+	HttpThreadIdleFrameTimeInSeconds = 1.0f / 30.0f; // 30Hz
+	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadIdleFrameTimeInSeconds"), HttpThreadIdleFrameTimeInSeconds, GEngineIni);
+
+	HttpThreadIdleMinimumSleepTimeInSeconds = 0.0f;
+	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpThreadIdleMinimumSleepTimeInSeconds"), HttpThreadIdleMinimumSleepTimeInSeconds, GEngineIni);
 
 	HttpManager = FPlatformHttp::CreatePlatformHttpManager();
 	if (NULL == HttpManager)

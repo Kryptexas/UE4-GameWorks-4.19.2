@@ -205,6 +205,17 @@ void SWebBrowserView::HandleWindowDeactivated()
 	}
 }
 
+void SWebBrowserView::HandleWindowActivated()
+{
+	if (BrowserViewport.IsValid())
+	{
+		if (HasAnyUserFocusOrFocusedDescendants())
+		{
+			BrowserViewport->OnFocusReceived(FFocusEvent());
+		}	
+	}
+}
+
 void SWebBrowserView::LoadURL(FString NewURL)
 {
 	AddressBarUrl = FText::FromString(NewURL);
@@ -335,6 +346,7 @@ void SWebBrowserView::SetupParentWindowHandlers()
 	if (SlateParentWindowPtr.IsValid() && BrowserWindow.IsValid())
 	{
 		SlateParentWindowPtr.Pin()->GetOnWindowDeactivatedEvent().AddSP(this, &SWebBrowserView::HandleWindowDeactivated);
+		SlateParentWindowPtr.Pin()->GetOnWindowActivatedEvent().AddSP(this, &SWebBrowserView::HandleWindowActivated);
 	}
 }
 

@@ -14,8 +14,13 @@
 #include "Delegates/Delegate.h"
 #include "Misc/Optional.h"
 #include "HAL/PlatformTime.h"
+#include "HAL/ThreadSafeBool.h" 
+#include "HAL/PlatformStackWalk.h"
+#include "GenericPlatformStackWalk.h" 
 #include "Containers/Queue.h"
 #include "Misc/FeedbackContext.h"
+#include "Future.h"
+#include "Async.h"
 
 /** Flags for specifying automation test requirements/behavior */
 namespace EAutomationTestFlags
@@ -401,6 +406,39 @@ protected:
 
 	friend class FAutomationTestFramework;
 };
+
+/**
+ * A simple latent command that runs the provided function on another thread
+ */
+class FThreadedAutomationLatentCommand : public IAutomationLatentCommand
+{
+public:
+
+	virtual ~FThreadedAutomationLatentCommand() {};
+
+	virtual bool Update() override
+	{
+		if (!Future.IsValid())
+		{
+			Future = Async(EAsyncExecution::Thread, Function);
+		}
+
+		return Future.IsReady();
+	}
+
+	FThreadedAutomationLatentCommand(TFunction<void()> InFunction)
+		: Function(InFunction)
+	{ }
+
+protected:
+
+	const TFunction<void()> Function;
+
+	TFuture<void> Future;
+
+	friend class FAutomationTestFramework;
+};
+
 
 /**
  * Simple abstract base class for networked, multi-participant tests
@@ -879,6 +917,16 @@ public:
 	 */
 	virtual void AddError( const FString& InError, int32 StackOffset = 0 );
 
+
+	/**
+	 * Adds an error message to this test
+	 *
+	 * @param	InError	Error message to add to this test
+	 * @param	InFilename	The filename the error originated in
+	 * @param	InLineNumber	The line number in the file this error originated in
+	 */
+	virtual void AddError(const FString& InError, const FString& InFilename, int32 InLineNumber);
+
 	/**
 	 * Adds a warning to this test
 	 *
@@ -937,6 +985,11 @@ public:
 		return bComplexTask;
 	}
 
+	const bool IsRanOnSeparateThread() const
+	{
+		return bRunOnSeparateThread;
+	}
+
 	/**
 	 * Used to suppress / unsuppress logs.
 	 *
@@ -971,6 +1024,12 @@ public:
 	/** Gets the line number where this test was defined. */
 	virtual int32 GetTestSourceFileLine() const { return 0; }
 
+	/** Gets the filename where this test was defined. */
+	virtual FString GetTestSourceFileName(const FString& InTestName) const { return GetTestSourceFileName(); }
+
+	/** Gets the line number where this test was defined. */
+	virtual int32 GetTestSourceFileLine(const FString& InTestName) const { return GetTestSourceFileLine(); }
+
 	/** Allows navigation to the asset associated with the test if there is one. */
 	virtual FString GetTestAssetPath(const FString& Parameter) const { return TEXT(""); }
 
@@ -1004,11 +1063,36 @@ public:
 	 *
 	 * @see TestNotEqual
 	 */
-	template<typename ValueType> void TestEqual(const FString& Description, const ValueType& A, const ValueType& B)
+	template<typename ValueType> 
+	void TestEqual(const FString& Description, const ValueType& A, const ValueType& B)
 	{
 		if (A != B)
 		{
 			AddError(FString::Printf(TEXT("%s: The two values are not equal."), *Description), 1);
+		}
+	}
+
+	void TestEqual(const FString& Description, const FString& A, const TCHAR* B)
+	{
+		if (A != B)
+		{
+			AddError(FString::Printf(TEXT("%s: The two values are not equal.\n  Actual: '%s'\nExpected: '%s'"), *Description, *A, B), 1);
+		}
+	}
+
+	void TestEqual(const FString& Description, const TCHAR* A, const TCHAR* B)
+	{
+		if (A != B)
+		{
+			AddError(FString::Printf(TEXT("%s: The two values are not equal.\n  Actual: '%s'\nExpected: '%s'"), *Description, A, B), 1);
+		}
+	}
+
+	void TestEqual(const FString& Description, const TCHAR* A, const FString& B)
+	{
+		if (A != B)
+		{
+			AddError(FString::Printf(TEXT("%s: The two values are not equal.\n  Actual: '%s'\nExpected: '%s'"), *Description, A, *B), 1);
 		}
 	}
 
@@ -1188,6 +1272,9 @@ protected:
 	//Flag to indicate if this is a complex task
 	bool bComplexTask;
 
+	//Flag to indicate if this test should be ran on it's own thread
+	bool bRunOnSeparateThread;
+
 	/** Flag to suppress logs */
 	bool bSuppressLogs;
 
@@ -1221,6 +1308,9 @@ public:
 
 	virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override
 	{
+		const_cast<FBDDAutomationTestBase*>(this)->BeautifiedNames.Empty();
+		const_cast<FBDDAutomationTestBase*>(this)->TestCommands.Empty();
+
 		bIsDiscoveryMode = true;
 		const_cast<FBDDAutomationTestBase*>(this)->RunTest(FString());
 		bIsDiscoveryMode = false;
@@ -1228,6 +1318,11 @@ public:
 		OutBeautifiedNames.Append(BeautifiedNames);
 		OutTestCommands.Append(TestCommands);
 		bBaseRunTestRan = false;
+	}
+
+	bool IsDiscoveryMode() const
+	{
+		return bIsDiscoveryMode;
 	}
 
 	void xDescribe(const FString& InDescription, TFunction<void()> DoWork)
@@ -1374,6 +1469,669 @@ private:
 	TArray<FString> TestCommands;
 	mutable bool bIsDiscoveryMode;
 	mutable bool bBaseRunTestRan;
+};
+
+DECLARE_DELEGATE(FDoneDelegate);
+
+class CORE_API FAutomationSpecBase : public FAutomationTestBase
+{
+private:
+
+	class FSingleExecuteLatentCommand : public IAutomationLatentCommand
+	{
+	public:
+		FSingleExecuteLatentCommand(TFunction<void()> InPredicate)
+			: Predicate(MoveTemp(InPredicate))
+		{ }
+
+		virtual ~FSingleExecuteLatentCommand()
+		{ }
+
+		virtual bool Update() override
+		{
+			Predicate();
+			return true;
+		}
+
+	private:
+
+		const TFunction<void()> Predicate;
+	};
+
+	class FUntilDoneLatentCommand : public IAutomationLatentCommand
+	{
+	public:
+
+		FUntilDoneLatentCommand(TFunction<void(const FDoneDelegate&)> InPredicate)
+			: Predicate(MoveTemp(InPredicate))
+			, bIsRunning(false)
+			, bDone(false)
+		{ }
+
+		virtual ~FUntilDoneLatentCommand()
+		{ }
+
+		virtual bool Update() override
+		{
+			if (!bIsRunning)
+			{
+				Predicate(FDoneDelegate::CreateSP(this, &FUntilDoneLatentCommand::Done));
+				bIsRunning = true;
+			}
+
+			if (bDone)
+			{
+				// Reset the done for the next potential run of this command
+				bDone = false;
+				bIsRunning = false;
+				return true;
+			}
+
+			return false;
+		}
+
+	private:
+
+		void Done()
+		{
+			bDone = true;
+		}
+
+	private:
+
+		const TFunction<void(const FDoneDelegate&)> Predicate;
+
+		bool bIsRunning;
+		FThreadSafeBool bDone;
+	};
+
+	class FAsyncUntilDoneLatentCommand : public IAutomationLatentCommand
+	{
+	public:
+
+		FAsyncUntilDoneLatentCommand(EAsyncExecution InExecution, TFunction<void(const FDoneDelegate&)> InPredicate)
+			: Execution(InExecution)
+			, Predicate(MoveTemp(InPredicate))
+			, bDone(false)
+		{ }
+
+		virtual ~FAsyncUntilDoneLatentCommand()
+		{ }
+
+		virtual bool Update() override
+		{
+			if (!Future.IsValid())
+			{
+				Future = Async<void>(Execution, [this]() {
+					Predicate(FDoneDelegate::CreateRaw(this, &FAsyncUntilDoneLatentCommand::Done));
+				});
+			}
+
+			if (bDone)
+			{
+				// Reset the done for the next potential run of this command
+				bDone = false;
+				Future = TFuture<void>();
+				return true;
+			}
+
+			return false;
+		}
+
+	private:
+
+		void Done()
+		{
+			bDone = true;
+		}
+
+	private:
+
+		const EAsyncExecution Execution;
+		const TFunction<void(const FDoneDelegate&)> Predicate;
+
+		TFuture<void> Future;
+		FThreadSafeBool bDone;
+	};
+
+	class FAsyncLatentCommand : public IAutomationLatentCommand
+	{
+	public:
+
+		FAsyncLatentCommand(EAsyncExecution InExecution, TFunction<void()> InPredicate)
+			: Execution(InExecution)
+			, Predicate(MoveTemp(InPredicate))
+			, bDone(false)
+		{ }
+
+		virtual ~FAsyncLatentCommand()
+		{ }
+
+		virtual bool Update() override
+		{
+			if (!Future.IsValid())
+			{
+				Future = Async<void>(Execution, [this]() {
+					Predicate();
+					bDone = true;
+				});
+			}
+
+			if (bDone)
+			{
+				// Reset the done for the next potential run of this command
+				bDone = false;
+				Future = TFuture<void>();
+				return true;
+			}
+
+			return false;
+		}
+
+	private:
+
+		void Done()
+		{
+			bDone = true;
+		}
+
+	private:
+
+		const EAsyncExecution Execution;
+		const TFunction<void()> Predicate;
+
+		TFuture<void> Future;
+		FThreadSafeBool bDone;
+	};
+
+	struct FSpecIt
+	{
+	public:
+
+		FString Description;
+		FString Id;
+		FString Filename;
+		int32 LineNumber;
+		TSharedRef<IAutomationLatentCommand> Command;
+
+		FSpecIt(FString InDescription, FString InId, FString InFilename, int32 InLineNumber, TSharedRef<IAutomationLatentCommand> InCommand)
+			: Description(MoveTemp(InDescription))
+			, Id(MoveTemp(InId))
+			, Filename(InFilename)
+			, LineNumber(MoveTemp(InLineNumber))
+			, Command(MoveTemp(InCommand))
+		{ }
+	};
+
+	struct FSpecDefinitionScope
+	{
+	public:
+
+		FString Description;
+
+		TArray<TSharedRef<IAutomationLatentCommand>> BeforeEach;
+		TArray<TSharedRef<FSpecIt>> It;
+		TArray<TSharedRef<IAutomationLatentCommand>> AfterEach;
+
+		TArray<TSharedRef<FSpecDefinitionScope>> Children;
+	};
+
+	struct FSpec
+	{
+	public:
+
+		FString Id;
+		FString Description;
+		FString Filename;
+		int32 LineNumber;
+		TArray<TSharedRef<IAutomationLatentCommand>> Commands;
+	};
+
+public:
+
+	FAutomationSpecBase(const FString& InName, const bool bInComplexTask)
+		: FAutomationTestBase(InName, bInComplexTask)
+		, RootDefinitionScope(MakeShareable(new FSpecDefinitionScope()))
+	{
+		DefinitionScopeStack.Push(RootDefinitionScope.ToSharedRef());
+	}
+
+	virtual bool RunTest(const FString& InParameters) override
+	{
+		EnsureDefinitions();
+
+		if (!InParameters.IsEmpty())
+		{
+			const TSharedRef<FSpec>* SpecToRun = IdToSpecMap.Find(InParameters);
+			if (SpecToRun != nullptr)
+			{
+				for (int32 Index = 0; Index < (*SpecToRun)->Commands.Num(); ++Index)
+				{
+					FAutomationTestFramework::GetInstance().EnqueueLatentCommand((*SpecToRun)->Commands[Index]);
+				}
+			}
+		}
+		else
+		{
+			TArray<TSharedRef<FSpec>> Specs;
+			IdToSpecMap.GenerateValueArray(Specs);
+
+			for (int32 SpecIndex = 0; SpecIndex < Specs.Num(); SpecIndex++)
+			{
+				for (int32 CommandIndex = 0; CommandIndex < Specs[SpecIndex]->Commands.Num(); ++CommandIndex)
+				{
+					FAutomationTestFramework::GetInstance().EnqueueLatentCommand(Specs[SpecIndex]->Commands[CommandIndex]);
+				}
+			}
+		}
+
+		return true;
+	}
+
+	virtual bool IsStressTest() const 
+	{
+		return false; 
+	}
+
+	virtual uint32 GetRequiredDeviceNum() const override 
+	{ 
+		return 1; 
+	}
+
+	virtual FString GetTestSourceFileName(const FString& InTestName) const override
+	{
+		FString TestId = InTestName;
+		if (TestId.StartsWith(TestName + TEXT(" ")))
+		{
+			TestId = InTestName.RightChop(TestName.Len() + 1);
+		}
+
+		const TSharedRef<FSpec>* Spec = IdToSpecMap.Find(TestId);
+		if (Spec != nullptr)
+		{
+			return (*Spec)->Filename;
+		}
+
+		return FAutomationTestBase::GetTestSourceFileName();
+	}
+
+	virtual int32 GetTestSourceFileLine(const FString& InTestName) const override
+	{ 
+		FString TestId = InTestName;
+		if (TestId.StartsWith(TestName + TEXT(" ")))
+		{
+			TestId = InTestName.RightChop(TestName.Len() + 1);
+		}
+
+		const TSharedRef<FSpec>* Spec = IdToSpecMap.Find(TestId);
+		if (Spec != nullptr)
+		{
+			return (*Spec)->LineNumber;
+		}
+
+		return FAutomationTestBase::GetTestSourceFileLine();
+	}
+
+	virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const override
+	{
+		EnsureDefinitions();
+
+		TArray<TSharedRef<FSpec>> Specs;
+		IdToSpecMap.GenerateValueArray(Specs);
+
+		for (int32 Index = 0; Index < Specs.Num(); Index++)
+		{
+			OutTestCommands.Push(Specs[Index]->Id);
+			OutBeautifiedNames.Push(Specs[Index]->Description);
+		}
+	}
+
+	void xDescribe(const FString& InDescription, TFunction<void()> DoWork)
+	{
+		//disabled
+	}
+
+	void Describe(const FString& InDescription, TFunction<void()> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> ParentScope = DefinitionScopeStack.Last();
+		const TSharedRef<FSpecDefinitionScope> NewScope = MakeShareable(new FSpecDefinitionScope());
+		NewScope->Description = InDescription;
+		ParentScope->Children.Push(NewScope);
+
+		DefinitionScopeStack.Push(NewScope);
+		PushDescription(InDescription);
+		DoWork();
+		PopDescription(InDescription);
+		DefinitionScopeStack.Pop();
+
+		if (NewScope->It.Num() == 0 && NewScope->Children.Num() == 0)
+		{
+			ParentScope->Children.Remove(NewScope);
+		}
+	}
+
+	void xIt(const FString& InDescription, TFunction<void()> DoWork)
+	{
+		//disabled
+	}
+
+	void xIt(const FString& InDescription, EAsyncExecution Execution, TFunction<void()> DoWork)
+	{
+		//disabled
+	}
+
+	void xLatentIt(const FString& InDescription, TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		//disabled
+	}
+
+	void xLatentIt(const FString& InDescription, EAsyncExecution Execution, TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		//disabled
+	}
+
+	void It(const FString& InDescription, TFunction<void()> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		const TArray<FProgramCounterSymbolInfo> Stack = FPlatformStackWalk::GetStack(1, 1);
+
+		PushDescription(InDescription);
+		CurrentScope->It.Push(MakeShareable(new FSpecIt(GetDescription(), GetId(), Stack[0].Filename, Stack[0].LineNumber, MakeShareable(new FSingleExecuteLatentCommand(DoWork)))));
+		PopDescription(InDescription);
+	}
+
+	void It(const FString& InDescription, EAsyncExecution Execution, TFunction<void()> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		const TArray<FProgramCounterSymbolInfo> Stack = FPlatformStackWalk::GetStack(1, 1);
+
+		PushDescription(InDescription);
+		CurrentScope->It.Push(MakeShareable(new FSpecIt(GetDescription(), GetId(), Stack[0].Filename, Stack[0].LineNumber, MakeShareable(new FAsyncLatentCommand(Execution, DoWork)))));
+		PopDescription(InDescription);
+	}
+
+	void LatentIt(const FString& InDescription, TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		const TArray<FProgramCounterSymbolInfo> Stack = FPlatformStackWalk::GetStack(1, 1);
+
+		PushDescription(InDescription);
+		CurrentScope->It.Push(MakeShareable(new FSpecIt(GetDescription(), GetId(), Stack[0].Filename, Stack[0].LineNumber, MakeShareable(new FUntilDoneLatentCommand(DoWork)))));
+		PopDescription(InDescription);
+	}
+
+	void LatentIt(const FString& InDescription, EAsyncExecution Execution, TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		const TArray<FProgramCounterSymbolInfo> Stack = FPlatformStackWalk::GetStack(1, 1);
+
+		PushDescription(InDescription);
+		CurrentScope->It.Push(MakeShareable(new FSpecIt(GetDescription(), GetId(), Stack[0].Filename, Stack[0].LineNumber, MakeShareable(new FAsyncUntilDoneLatentCommand(Execution, DoWork)))));
+		PopDescription(InDescription);
+	}
+
+	void xBeforeEach(TFunction<void()> DoWork)
+	{
+		// disabled
+	}
+
+	void xBeforeEach(EAsyncExecution Execution, TFunction<void()> DoWork)
+	{
+		// disabled
+	}
+
+	void xLatentBeforeEach(TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		// disabled
+	}
+
+	void xLatentBeforeEach(EAsyncExecution Execution, TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		// disabled
+	}
+
+	void BeforeEach(TFunction<void()> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		CurrentScope->BeforeEach.Push(MakeShareable(new FSingleExecuteLatentCommand(DoWork)));
+	}
+
+	void BeforeEach(EAsyncExecution Execution, TFunction<void()> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		CurrentScope->BeforeEach.Push(MakeShareable(new FAsyncLatentCommand(Execution, DoWork)));
+	}
+
+	void LatentBeforeEach(TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		CurrentScope->BeforeEach.Push(MakeShareable(new FUntilDoneLatentCommand(DoWork)));
+	}
+	     
+	void LatentBeforeEach(EAsyncExecution Execution, TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		CurrentScope->BeforeEach.Push(MakeShareable(new FAsyncUntilDoneLatentCommand(Execution, DoWork)));
+	}
+
+	void xAfterEach(TFunction<void()> DoWork)
+	{
+		// disabled
+	}
+
+	void xAfterEach(EAsyncExecution Execution, TFunction<void()> DoWork)
+	{
+		// disabled
+	}
+
+	void xLatentAfterEach(TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		// disabled
+	}
+
+	void xLatentAfterEach(EAsyncExecution Execution, TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		// disabled
+	}
+
+	void AfterEach(TFunction<void()> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		CurrentScope->AfterEach.Push(MakeShareable(new FSingleExecuteLatentCommand(DoWork)));
+	}
+
+	void AfterEach(EAsyncExecution Execution, TFunction<void()> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		CurrentScope->AfterEach.Push(MakeShareable(new FAsyncLatentCommand(Execution, DoWork)));
+	}
+
+	void LatentAfterEach(TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		CurrentScope->AfterEach.Push(MakeShareable(new FUntilDoneLatentCommand(DoWork)));
+	}
+
+	void LatentAfterEach(EAsyncExecution Execution, TFunction<void(const FDoneDelegate&)> DoWork)
+	{
+		const TSharedRef<FSpecDefinitionScope> CurrentScope = DefinitionScopeStack.Last();
+		CurrentScope->AfterEach.Push(MakeShareable(new FAsyncUntilDoneLatentCommand(Execution, DoWork)));
+	}
+
+protected:
+
+	void EnsureDefinitions() const
+	{
+		if (!bHasBeenDefined)
+		{
+			const_cast<FAutomationSpecBase*>(this)->Define();
+			const_cast<FAutomationSpecBase*>(this)->PostDefine();
+		}
+	}
+
+	virtual void Define() = 0;
+
+	void PostDefine()
+	{
+		TArray<TSharedRef<FSpecDefinitionScope>> Stack;
+		Stack.Push(RootDefinitionScope.ToSharedRef());
+
+		TArray<TSharedRef<IAutomationLatentCommand>> BeforeEach;
+		TArray<TSharedRef<IAutomationLatentCommand>> AfterEach;
+
+		while (Stack.Num() > 0)
+		{
+			const TSharedRef<FSpecDefinitionScope> Scope = Stack.Last();
+
+			BeforeEach.Append(Scope->BeforeEach);
+			AfterEach.Append(Scope->AfterEach); // iterate in reverse
+
+			for (int32 ItIndex = 0; ItIndex < Scope->It.Num(); ItIndex++)
+			{
+				TSharedRef<FSpecIt> It = Scope->It[ItIndex];
+
+				TSharedRef<FSpec> Spec = MakeShareable(new FSpec());
+				Spec->Id = It->Id;
+				Spec->Description = It->Description;
+				Spec->Filename = It->Filename;
+				Spec->LineNumber = It->LineNumber;
+				Spec->Commands.Append(BeforeEach);
+				Spec->Commands.Add(It->Command);
+
+				for (int32 AfterEachIndex = AfterEach.Num() - 1; AfterEachIndex >= 0; AfterEachIndex--)
+				{
+					Spec->Commands.Add(AfterEach[AfterEachIndex]);
+				}
+
+				check(!IdToSpecMap.Contains(Spec->Id));
+				IdToSpecMap.Add(Spec->Id, Spec);
+			}
+			Scope->It.Empty();
+
+			if (Scope->Children.Num() > 0)
+			{
+				Stack.Append(Scope->Children);
+				Scope->Children.Empty();
+			}
+			else
+			{
+				while (Stack.Num() > 0 && Stack.Last()->Children.Num() == 0 && Stack.Last()->It.Num() == 0)
+				{
+					const TSharedRef<FSpecDefinitionScope> PoppedScope = Stack.Pop();
+
+					if (PoppedScope->BeforeEach.Num() > 0)
+					{
+						BeforeEach.RemoveAt(BeforeEach.Num() - PoppedScope->BeforeEach.Num(), PoppedScope->BeforeEach.Num());
+					}
+
+					if (PoppedScope->AfterEach.Num() > 0)
+					{
+						AfterEach.RemoveAt(AfterEach.Num() - PoppedScope->AfterEach.Num(), PoppedScope->AfterEach.Num());
+					}
+				}
+			}
+		}
+
+		RootDefinitionScope.Reset();
+		DefinitionScopeStack.Reset();
+		bHasBeenDefined = true;
+	}
+
+	void Redefine()
+	{
+		Description.Empty();
+		IdToSpecMap.Empty();
+		RootDefinitionScope.Reset();
+		DefinitionScopeStack.Empty();
+		bHasBeenDefined = false;
+	}
+
+private:
+
+	void PushDescription(const FString& InDescription)
+	{
+		Description.Add(InDescription);
+	}
+
+	void PopDescription(const FString& InDescription)
+	{
+		Description.RemoveAt(Description.Num() - 1);
+	}
+
+	FString GetDescription() const
+	{
+		FString CompleteDescription;
+		for (int32 Index = 0; Index < Description.Num(); ++Index)
+		{
+			if (Description[Index].IsEmpty())
+			{
+				continue;
+			}
+
+			if (CompleteDescription.IsEmpty())
+			{
+				CompleteDescription = Description[Index];
+			}
+			else if (FChar::IsWhitespace(CompleteDescription[CompleteDescription.Len() - 1]) || FChar::IsWhitespace(Description[Index][0]))
+			{
+				CompleteDescription = CompleteDescription + TEXT(".") + Description[Index];
+			}
+			else
+			{
+				CompleteDescription = FString::Printf(TEXT("%s.%s"), *CompleteDescription, *Description[Index]);
+			}
+		}
+
+		return CompleteDescription;
+	}
+
+	FString GetId() const
+	{
+		if (Description.Last().EndsWith(TEXT("]")))
+		{
+			FString ItDescription = Description.Last();
+			ItDescription.RemoveAt(ItDescription.Len() - 1);
+
+			int32 StartingBraceIndex = INDEX_NONE;
+			if (ItDescription.FindLastChar(TEXT('['), StartingBraceIndex) && StartingBraceIndex != ItDescription.Len() - 1)
+			{
+				FString CommandId = ItDescription.RightChop(StartingBraceIndex + 1);
+				return CommandId;
+			}
+		}
+
+		FString CompleteId;
+		for (int32 Index = 0; Index < Description.Num(); ++Index)
+		{
+			if (Description[Index].IsEmpty())
+			{
+				continue;
+			}
+
+			if (CompleteId.IsEmpty())
+			{
+				CompleteId = Description[Index];
+			}
+			else if (FChar::IsWhitespace(CompleteId[CompleteId.Len() - 1]) || FChar::IsWhitespace(Description[Index][0]))
+			{
+				CompleteId = CompleteId + Description[Index];
+			}
+			else
+			{
+				CompleteId = FString::Printf(TEXT("%s %s"), *CompleteId, *Description[Index]);
+			}
+		}
+
+		return CompleteId;
+	}
+
+private:
+
+	TArray<FString> Description;
+	TMap<FString, TSharedRef<FSpec>> IdToSpecMap;
+	TSharedPtr<FSpecDefinitionScope> RootDefinitionScope;
+	TArray<TSharedRef<FSpecDefinitionScope>> DefinitionScopeStack;
+	bool bHasBeenDefined;
 };
 
 
@@ -1564,13 +2322,59 @@ public: \
 		virtual uint32 GetTestFlags() const override { return TFlags; } \
 		virtual bool IsStressTest() const { return false; } \
 		virtual uint32 GetRequiredDeviceNum() const override { return 1; } \
-		virtual FString GetFileName() const { return FileName; } \
-		virtual int32 GetFileLine() const { return LineNumber; } \
+		virtual FString GetTestSourceFileName() const override { return FileName; } \
+		virtual int32 GetTestSourceFileLine() const override { return LineNumber; } \
 	protected: \
 		virtual bool RunTest(const FString& Parameters) override; \
 		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
+	private: \
+		void Define(); \
 	};
 
+#define DEFINE_SPEC_PRIVATE( TClass, PrettyName, TFlags, FileName, LineNumber ) \
+	class TClass : public FAutomationSpecBase \
+	{ \
+	public: \
+		TClass( const FString& InName ) \
+		: FAutomationSpecBase( InName, false ) {\
+			static_assert((TFlags)&EAutomationTestFlags::ApplicationContextMask, "AutomationTest has no application flag.  It shouldn't run.  See AutomationTest.h."); \
+			static_assert(	(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::SmokeFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::EngineFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::ProductFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::PerfFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::StressFilter), \
+							"All AutomationTests must have exactly 1 filter type specified.  See AutomationTest.h."); \
+		} \
+		virtual uint32 GetTestFlags() const override { return TFlags; } \
+		virtual FString GetTestSourceFileName() const override { return FileName; } \
+		virtual int32 GetTestSourceFileLine() const override { return LineNumber; } \
+	protected: \
+		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
+		virtual void Define() override; \
+	};
+
+#define BEGIN_DEFINE_SPEC_PRIVATE( TClass, PrettyName, TFlags, FileName, LineNumber ) \
+	class TClass : public FAutomationSpecBase \
+	{ \
+	public: \
+		TClass( const FString& InName ) \
+		: FAutomationSpecBase( InName, false ) {\
+			static_assert((TFlags)&EAutomationTestFlags::ApplicationContextMask, "AutomationTest has no application flag.  It shouldn't run.  See AutomationTest.h."); \
+			static_assert(	(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::SmokeFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::EngineFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::ProductFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::PerfFilter) || \
+							(((TFlags)&EAutomationTestFlags::FilterMask) == EAutomationTestFlags::StressFilter), \
+							"All AutomationTests must have exactly 1 filter type specified.  See AutomationTest.h."); \
+		} \
+		virtual uint32 GetTestFlags() const override { return TFlags; } \
+		using FAutomationSpecBase::GetTestSourceFileName; \
+		virtual FString GetTestSourceFileName() const override { return FileName; } \
+		using FAutomationSpecBase::GetTestSourceFileLine; \
+		virtual int32 GetTestSourceFileLine() const override { return LineNumber; } \
+	protected: \
+		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
+		virtual void Define() override;
 
 #if WITH_AUTOMATION_WORKER
 	#define IMPLEMENT_SIMPLE_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
@@ -1613,6 +2417,23 @@ public: \
 			TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
 		}
 
+	#define DEFINE_SPEC( TClass, PrettyName, TFlags ) \
+		DEFINE_SPEC_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__) \
+		namespace\
+		{\
+			TClass TClass##AutomationSpecInstance( TEXT(#TClass) );\
+		}
+
+	#define BEGIN_DEFINE_SPEC( TClass, PrettyName, TFlags ) \
+		BEGIN_DEFINE_SPEC_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__) 
+
+	#define END_DEFINE_SPEC( TClass ) \
+		};\
+		namespace\
+		{\
+			TClass TClass##AutomationSpecInstance( TEXT(#TClass) );\
+		}
+
 	//#define BEGIN_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
 	//	BEGIN_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
 	//
@@ -1635,8 +2456,14 @@ public: \
 		IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
 	#define IMPLEMENT_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
 		IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)
-	#define IMPLEMENT_BDD_AUTOMATION_TEST(TClass, PrettyName, TFlags, NumParticipants) \
-		IMPLEMENT_BDD_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, NumParticipants, __FILE__, __LINE__)
+	#define IMPLEMENT_BDD_AUTOMATION_TEST(TClass, PrettyName, TFlags) \
+		IMPLEMENT_BDD_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__)
+	#define DEFINE_SPEC(TClass, PrettyName, TFlags) \
+		DEFINE_SPEC_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__)
+	#define BEGIN_DEFINE_SPEC(TClass, PrettyName, TFlags) \
+		BEGIN_DEFINE_SPEC_PRIVATE(TClass, PrettyName, TFlags, __FILE__, __LINE__)
+	#define END_DEFINE_SPEC(TClass) \
+		}; \
 
 	//#define BEGIN_CUSTOM_COMPLEX_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
 	//	BEGIN_CUSTOM_COMPLEX_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__)

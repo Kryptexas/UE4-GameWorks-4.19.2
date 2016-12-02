@@ -295,6 +295,7 @@ private:
 	}
 
 	void HandleWindowDeactivated();
+	void HandleWindowActivated();
 
 private:
 

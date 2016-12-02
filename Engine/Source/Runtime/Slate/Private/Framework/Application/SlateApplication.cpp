@@ -787,11 +787,18 @@ void FPopupSupport::SendNotifications( const FWidgetPath& WidgetsUnderCursor )
 	}
 }
 
+void FSlateApplication::SetPlatformApplication(const TSharedRef<class GenericApplication>& InPlatformApplication)
+{
+	PlatformApplication->SetMessageHandler(MakeShareable(new FGenericApplicationMessageHandler()));
+
+	PlatformApplication = InPlatformApplication;
+	PlatformApplication->SetMessageHandler(CurrentApplication.ToSharedRef());
+}
+
 void FSlateApplication::Create()
 {
 	Create(MakeShareable(FPlatformMisc::CreateApplication()));
 }
-
 
 TSharedRef<FSlateApplication> FSlateApplication::Create(const TSharedRef<class GenericApplication>& InPlatformApplication)
 {

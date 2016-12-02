@@ -143,11 +143,6 @@ FWindowsCursor::~FWindowsCursor()
 	}
 }
 
-void FWindowsCursor::SetCustomShape( HCURSOR CursorHandle )
-{
-	CursorHandles[EMouseCursor::Custom] = CursorHandle;
-}
-
 FVector2D FWindowsCursor::GetPosition() const
 {
 	POINT CursorPos;
@@ -193,5 +188,11 @@ void FWindowsCursor::Lock( const RECT* const Bounds )
 {
 	// Lock/Unlock the cursor
 	::ClipCursor(Bounds);
-		// If the cursor is not visible and we're running game, assume we're in a mode where the mouse is controlling the camera and lock it to the center of the widget.
+	// If the cursor is not visible and we're running game, assume we're in a mode where the mouse is controlling the camera and lock it to the center of the widget.
+}
+
+void FWindowsCursor::SetCustomShape(void* InCursorHandle)
+{
+	HCURSOR CursorHandle = (HCURSOR)InCursorHandle;
+	CursorHandles[EMouseCursor::Custom] = CursorHandle;
 }

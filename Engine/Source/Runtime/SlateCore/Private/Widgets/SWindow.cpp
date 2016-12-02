@@ -1664,6 +1664,7 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
 	const bool bIsBorderlessGameWindow = Type == EWindowType::GameWindow && !bHasOSWindowBorder;
 
 	const float WindowDPIScale = FSlateApplicationBase::Get().GetApplicationScale() * (NativeWindow.IsValid() ? NativeWindow->GetDPIScaleFactor() : 1.0f);
+
 	const FMargin DPIScaledResizeBorder = UserResizeBorder * WindowDPIScale;
 
 	const bool bIsCursorVisible = FSlateApplicationBase::Get().GetPlatformCursor()->GetType() != EMouseCursor::None;

@@ -75,8 +75,14 @@ void* FWindowsPlatformProcess::GetDllHandle( const TCHAR* FileName )
 		SearchPaths.Add(DllDirectories[Idx]);
 	}
 
-	::SetErrorMode(SEM_NOOPENFILEERRORBOX);
-	return LoadLibraryWithSearchPaths(FileName, SearchPaths);
+	// Load the DLL, avoiding windows dialog boxes if missing
+	int32 PrevErrorMode = ::SetErrorMode(SEM_NOOPENFILEERRORBOX);
+
+	void* Handle = LoadLibraryWithSearchPaths(FileName, SearchPaths);
+
+	::SetErrorMode(PrevErrorMode);
+
+	return Handle;
 }
 
 void FWindowsPlatformProcess::FreeDllHandle( void* DllHandle )

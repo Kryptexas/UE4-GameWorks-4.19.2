@@ -1900,19 +1900,19 @@ void SAutomationWindow::OnTestAvailableCallback( EAutomationControllerModuleStat
 {
 	AutomationControllerState = InAutomationControllerState;
 
-#if WITH_EDITOR
 	// Only list tests on opening the Window if the asset registry isn't in the middle of loading tests.
 	if ( InAutomationControllerState == EAutomationControllerModuleState::Ready && AutomationController->GetReports().Num() == 0 )
 	{
+#if WITH_EDITOR
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		if ( !AssetRegistryModule.Get().IsLoadingAssets() )
 		{
 			ListTests();
 		}
-	}
 #else
-	ListTests();
+		ListTests();
 #endif
+	}
 }
 
 void SAutomationWindow::OnTestsCompleteCallback()

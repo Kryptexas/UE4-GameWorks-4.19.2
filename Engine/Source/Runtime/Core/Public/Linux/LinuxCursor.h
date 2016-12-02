@@ -34,6 +34,8 @@ public:
 
 	virtual void Lock( const RECT* const Bounds ) override;
 
+	virtual void SetCustomShape(void* CursorHandle) override;
+
 public:
 
 	/**

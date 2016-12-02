@@ -169,6 +169,13 @@ public:
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) = 0;
 
 	/**
+	 * Notify the browser that a mouse has left the window
+	 *
+	 * @param MouseEvent Information about the input event
+	 */
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) = 0;
+
+	/**
 	 * Called when the mouse wheel is spun
 	 *
 	 * @param MyGeometry The Geometry of the browser

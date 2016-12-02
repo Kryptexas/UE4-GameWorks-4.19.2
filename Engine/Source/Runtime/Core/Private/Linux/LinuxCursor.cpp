@@ -332,3 +332,8 @@ bool FLinuxCursor::IsHidden()
 {
 	return bHidden;
 }
+
+void FLinuxCursor::SetCustomShape(void* CursorHandle)
+{
+	
+}

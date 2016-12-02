@@ -235,13 +235,20 @@ uint32 FChunkWriter::FQueuedChunkWriter::Run()
 
 			// Delete the data memory
 			delete ChunkFile;
+
+			// Small sleep for next chunk
+			FPlatformProcess::Sleep(0.0f);
+		}
+		else
+		{
+			// Larger sleep for no work
+			FPlatformProcess::Sleep(0.1f);
 		}
 		double TotalTime = FStatsCollector::CyclesToSeconds(*StatFileCreateTime + *StatSerlialiseTime);
 		if (TotalTime > 0.0)
 		{
 			FStatsCollector::Set(StatDataWriteSpeed, *StatDataWritten / TotalTime);
 		}
-		FPlatformProcess::Sleep(0.0f);
 	}
 	return 0;
 }

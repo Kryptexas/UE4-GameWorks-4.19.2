@@ -1133,8 +1133,8 @@ FKey FInputKeyManager::GetKeyFromCodes( const uint32 KeyCode, const uint32 CharC
 
 void FInputKeyManager::GetCodesFromKey(const FKey Key, const uint32*& KeyCode, const uint32*& CharCode) const
 {
-	KeyCode = KeyMapCharToEnum.FindKey(Key);
-	CharCode = KeyMapVirtualToEnum.FindKey(Key);
+	CharCode = KeyMapCharToEnum.FindKey(Key);
+	KeyCode = KeyMapVirtualToEnum.FindKey(Key);
 }
 
 #undef LOCTEXT_NAMESPACE

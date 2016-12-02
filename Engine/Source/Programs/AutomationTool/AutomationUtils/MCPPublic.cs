@@ -10,11 +10,29 @@ using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UnrealBuildTool;
+using EpicGames.MCP.Automation;
 
 namespace EpicGames.MCP.Automation
 {
 	using EpicGames.MCP.Config;
 	using System.Threading.Tasks;
+
+	public static class Extensions
+	{
+		public static Type[] SafeGetLoadedTypes(this Assembly Dll)
+		{
+			Type[] AllTypes;
+			try
+			{
+				AllTypes = Dll.GetTypes();
+			}
+			catch (ReflectionTypeLoadException e)
+			{
+				AllTypes = e.Types.Where(x => x != null).ToArray();
+			}
+			return AllTypes;
+		}
+	}
 
     /// <summary>
     /// Utility class to provide commit/rollback functionality via an RAII-like functionality.
@@ -628,7 +646,7 @@ namespace EpicGames.MCP.Automation
 				Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
 				foreach (var Dll in LoadedAssemblies)
 				{
-					Type[] AllTypes = Dll.GetTypes();
+					Type[] AllTypes = Dll.SafeGetLoadedTypes();
 					foreach (var PotentialConfigType in AllTypes)
 					{
 						if (PotentialConfigType != typeof(BuildPatchToolBase) && typeof(BuildPatchToolBase).IsAssignableFrom(PotentialConfigType))
@@ -651,7 +669,8 @@ namespace EpicGames.MCP.Automation
 		/// </summary>
 		/// <param name="Opts">Parameters which will be passed to the patch tool generation process.</param>
 		/// <param name="Version">Which version of BuildPatchTool is desired.</param>
-		public abstract void Execute(PatchGenerationOptions Opts, ToolVersion Version = ToolVersion.Live);
+		/// <param name="bAllowManifestClobbering">If set to true, will allow an existing manifest file to be overwritten with this execution. Default is false.</param>
+		public abstract void Execute(PatchGenerationOptions Opts, ToolVersion Version = ToolVersion.Live, bool bAllowManifestClobbering = false);
 
 		/// <summary>
 		/// Runs the Build Patch Tool executable to compactify a cloud directory using the supplied parameters.
@@ -698,7 +717,7 @@ namespace EpicGames.MCP.Automation
                 Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
                 foreach (var Dll in LoadedAssemblies)
                 {
-                    Type[] AllTypes = Dll.GetTypes();
+                    Type[] AllTypes = Dll.SafeGetLoadedTypes();
                     foreach (var PotentialConfigType in AllTypes)
                     {
                         if (PotentialConfigType != typeof(BuildInfoPublisherBase) && typeof(BuildInfoPublisherBase).IsAssignableFrom(PotentialConfigType))
@@ -808,7 +827,7 @@ namespace EpicGames.MCP.Automation
                 Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
                 foreach (var Dll in LoadedAssemblies)
                 {
-                    Type[] AllTypes = Dll.GetTypes();
+                    Type[] AllTypes = Dll.SafeGetLoadedTypes();
                     foreach (var PotentialConfigType in AllTypes)
                     {
                         if (PotentialConfigType != typeof(McpAccountServiceBase) && typeof(McpAccountServiceBase).IsAssignableFrom(PotentialConfigType))
@@ -908,7 +927,7 @@ namespace EpicGames.MCP.Automation
 						Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
 						foreach (var Dll in LoadedAssemblies)
 						{
-							Type[] AllTypes = Dll.GetTypes();
+							Type[] AllTypes = Dll.SafeGetLoadedTypes();
 							foreach (var PotentialConfigType in AllTypes)
 							{
 								if (PotentialConfigType != typeof(CloudStorageBase) && typeof(CloudStorageBase).IsAssignableFrom(PotentialConfigType))
@@ -1301,7 +1320,7 @@ namespace EpicGames.MCP.Config
                 Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
                 foreach (var Dll in LoadedAssemblies)
                 {
-                    Type[] AllTypes = Dll.GetTypes();
+                    Type[] AllTypes = Dll.SafeGetLoadedTypes();
                     foreach (var PotentialConfigType in AllTypes)
                     {
                         if (PotentialConfigType != typeof(McpConfigData) && typeof(McpConfigData).IsAssignableFrom(PotentialConfigType))

@@ -85,7 +85,7 @@ bool FBuildDiffManifests::DiffManifests(const FString& ManifestFilePathA, const 
 			++NewChunksCount;
 			TotalChunkSize += ChunkInfoRef.FileSize;
 			NewChunkPaths.Add(FBuildPatchUtils::GetDataFilename(ManifestB.ToSharedRef(), TEXT("."), ChunkInfoRef.Guid));
-			UE_LOG(LogDiffManifests, Log, TEXT("New chunk discovered: Size: %10lld, Path: %s"), ChunkInfoRef.FileSize, *NewChunkPaths.Last());
+			UE_LOG(LogDiffManifests, Verbose, TEXT("New chunk discovered: Size: %10lld, Path: %s"), ChunkInfoRef.FileSize, *NewChunkPaths.Last());
 		}
 	}
 

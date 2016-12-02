@@ -518,6 +518,11 @@ public:
 		return PlatformApplication->Cursor;
 	}
 
+	TSharedPtr<class GenericApplication> GetPlatformApplication()
+	{
+		return PlatformApplication;
+	}
+
 protected:
 	/** multicast delegate to broadcast when a global invalidate is requested */
 	FOnGlobalInvalidate OnGlobalInvalidateEvent;

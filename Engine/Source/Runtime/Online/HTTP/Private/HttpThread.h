@@ -83,12 +83,14 @@ protected:
 	/** signal request to stop and exit thread */
 	FThreadSafeCounter ExitRequest;
 
-	/** Time in seconds to clamp the processing of HTTP requests on the HTTP thread to. 0 means unclamped */
-	double HttpThreadProcessingClampInSeconds;
-	/** Time in seconds to use as a frame time. 0 means no frame time. */
-	double HttpThreadFrameTimeInSeconds;
-	/** Time in seconds to sleep minimally */
-	double HttpThreadMinimumSleepTimeInSeconds;
+	/** Time in seconds to use as frame time when actively processing requests. 0 means no frame time. */
+	double HttpThreadActiveFrameTimeInSeconds;
+	/** Time in seconds to sleep minimally when actively processing requests. */
+	double HttpThreadActiveMinimumSleepTimeInSeconds;
+	/** Time in seconds to use as frame time when idle, waiting for requests. 0 means no frame time. */
+	double HttpThreadIdleFrameTimeInSeconds;
+	/** Time in seconds to sleep minimally when idle, waiting for requests. */
+	double HttpThreadIdleMinimumSleepTimeInSeconds;
 
 protected:
 	/** Critical section to lock access to PendingThreadedRequests, CancelledThreadedRequests, and CompletedThreadedRequests */

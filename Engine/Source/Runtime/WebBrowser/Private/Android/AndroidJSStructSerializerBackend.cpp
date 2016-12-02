@@ -36,7 +36,7 @@ void FAndroidJSStructSerializerBackend::WriteUObject(const FStructSerializerStat
 	}
 	else
 	{
-		GetWriter()->WriteRawJSONValue(State.ValueProperty->GetName(), RawValue);
+		GetWriter()->WriteRawJSONValue(Scripting->GetBindingName(State.ValueProperty), RawValue);
 	}
 }
 

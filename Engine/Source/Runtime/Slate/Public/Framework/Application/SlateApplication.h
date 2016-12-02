@@ -828,6 +828,8 @@ public:
 	 */
 	void EnableMenuAnimations( const bool bEnableAnimations );
 
+	void SetPlatformApplication(const TSharedRef<class GenericApplication>& InPlatformApplication);
+
 	/** Set the global application icon */
 	void SetAppIcon(const FSlateBrush* const InAppIcon);
 

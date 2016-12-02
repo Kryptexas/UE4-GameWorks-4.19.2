@@ -106,6 +106,11 @@ public:
 		bDevToolsShortcutEnabled = Value;
 	}
 
+	virtual void SetJSBindingToLoweringEnabled(bool bEnabled) override
+	{
+		bJSBindingsToLoweringEnabled = bEnabled;
+	}
+
 public:
 
 	// FTickerObjectBase Interface
@@ -130,6 +135,8 @@ private:
 	TSharedRef<IWebBrowserWindowFactory> WebBrowserWindowFactory;
 
 	bool bDevToolsShortcutEnabled;
+
+	bool bJSBindingsToLoweringEnabled;
 
 };
 

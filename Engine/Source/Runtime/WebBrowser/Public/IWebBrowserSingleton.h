@@ -165,4 +165,18 @@ public:
 	 */
 	virtual bool IsDevToolsShortcutEnabled() = 0;
 
+
+	/**
+	 * Enable or disable to-lowering of JavaScript object member bindings.
+	 *
+	 * Due to how JavaScript to UObject bridges require the use of FNames for building up the JS API objects, it is possible for case-sensitivity issues
+	 * to develop if an FName has been previously created with differing case to your function or property names. To-lowering the member names allows
+	 * a guaranteed casing for the web page's JS to reference.
+	 *
+	 * Default behavior is enabled, so that all JS side objects have only lowercase members.
+	 *
+	 * @param bEnabled a boolean value to enable or disable the to-lowering.
+	 */
+	virtual void SetJSBindingToLoweringEnabled(bool bEnabled) = 0;
+
 };

@@ -285,6 +285,11 @@ bool SScrollBar::IsScrolling() const
 	return bDraggingThumb;
 }
 
+EOrientation SScrollBar::GetOrientation() const
+{
+	return Orientation;
+}
+
 void SScrollBar::SetStyle(const FScrollBarStyle* InStyle)
 {
 	const FScrollBarStyle* Style = InStyle;

@@ -14,11 +14,12 @@
 FHttpThread::FHttpThread()
 	:	Thread(nullptr)
 {
-	HttpThreadProcessingClampInSeconds = FHttpModule::Get().GetHttpThreadProcessingClampInSeconds();
-	HttpThreadFrameTimeInSeconds = FHttpModule::Get().GetHttpThreadFrameTimeInSeconds();
-	HttpThreadMinimumSleepTimeInSeconds = FHttpModule::Get().GetHttpThreadMinimumSleepTimeInSeconds();
+	HttpThreadActiveFrameTimeInSeconds = FHttpModule::Get().GetHttpThreadActiveFrameTimeInSeconds();
+	HttpThreadActiveMinimumSleepTimeInSeconds = FHttpModule::Get().GetHttpThreadActiveMinimumSleepTimeInSeconds();
+	HttpThreadIdleFrameTimeInSeconds = FHttpModule::Get().GetHttpThreadIdleFrameTimeInSeconds();
+	HttpThreadIdleMinimumSleepTimeInSeconds = FHttpModule::Get().GetHttpThreadIdleMinimumSleepTimeInSeconds();
 
-	UE_LOG(LogHttp, Log, TEXT("HTTP thread processing clamped at %.1f ms. HTTP thread frame time clamped to %.1f ms. Minimum sleep time is %.1f ms"), HttpThreadProcessingClampInSeconds * 1000.0, HttpThreadFrameTimeInSeconds * 1000.0, HttpThreadMinimumSleepTimeInSeconds * 1000.0);
+	UE_LOG(LogHttp, Log, TEXT("HTTP thread active frame time %.1f ms. Minimum active sleep time is %.1f ms. HTTP thread idle frame time %.1f ms. Minimum idle sleep time is %.1f ms."), HttpThreadActiveFrameTimeInSeconds * 1000.0, HttpThreadActiveMinimumSleepTimeInSeconds * 1000.0, HttpThreadIdleFrameTimeInSeconds * 1000.0, HttpThreadIdleMinimumSleepTimeInSeconds * 1000.0);
 }
 
 FHttpThread::~FHttpThread()
@@ -88,12 +89,12 @@ uint32 FHttpThread::Run()
 	TArray<IHttpThreadedRequest*> RequestsToComplete;
 	while (!ExitRequest.GetValue())
 	{
-		double TickBegin = FPlatformTime::Seconds();
-		double TickEnd = 0.0;
+		double OuterLoopBegin = FPlatformTime::Seconds();
+		double OuterLoopEnd = 0.0;
 		bool bKeepProcessing = true;
 		while (bKeepProcessing)
 		{
-			double InterationBegin = FPlatformTime::Seconds();
+			double InnerLoopBegin = FPlatformTime::Seconds();
 
 			// cache all cancelled and pending requests
 			{
@@ -167,37 +168,27 @@ uint32 FHttpThread::Run()
 				RequestsToComplete.Reset();
 			}
 
-			double TimeNow = FPlatformTime::Seconds();
-			double TimeWithoutSleeping = TimeNow - TickBegin;
-			bool bEndit = false;
 			if (RunningThreadedRequests.Num() == 0)
 			{
-				bEndit = true;
-			}
-
-			if (HttpThreadProcessingClampInSeconds > 0.0 && TimeWithoutSleeping >= HttpThreadProcessingClampInSeconds)
-			{
-				bEndit = true;
-			}
-
-			if (bEndit)
-			{
 				bKeepProcessing = false;
-				TickEnd = TimeNow;
+			}
+
+			double InnerLoopEnd = FPlatformTime::Seconds();
+			if (bKeepProcessing)
+			{
+				double InnerLoopTime = InnerLoopEnd - InnerLoopBegin;
+				double InnerSleep = FMath::Max(HttpThreadActiveFrameTimeInSeconds - InnerLoopTime, HttpThreadActiveMinimumSleepTimeInSeconds);
+				FPlatformProcess::SleepNoStats(InnerSleep);
+			}
+			else
+			{
+				OuterLoopEnd = InnerLoopEnd;
 			}
 		}
 
-		double TickTime = TickEnd - TickBegin;
-		double TimeToSleep = HttpThreadMinimumSleepTimeInSeconds;
-		if (HttpThreadFrameTimeInSeconds > 0.0 && HttpThreadFrameTimeInSeconds >= TickTime)
-		{
-			TimeToSleep = FMath::Max(HttpThreadFrameTimeInSeconds - TickTime, TimeToSleep);
-		}
-
-		if (TimeToSleep > 0.0)
-		{
-			FPlatformProcess::SleepNoStats(TimeToSleep);
-		}
+		double OuterLoopTime = OuterLoopEnd - OuterLoopBegin;
+		double OuterSleep = FMath::Max(HttpThreadIdleFrameTimeInSeconds - OuterLoopTime, HttpThreadIdleMinimumSleepTimeInSeconds);
+		FPlatformProcess::SleepNoStats(OuterSleep);
 	}
 	return 0;
 }
