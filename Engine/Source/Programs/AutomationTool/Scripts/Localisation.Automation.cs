@@ -203,6 +203,9 @@ class Localise : BuildCommand
 				}
 			}
 
+			// Revert any other unchanged files
+			P4.RevertUnchanged(PendingChangeList);
+
 			int SubmittedChangeList;
 			P4.Submit(PendingChangeList, out SubmittedChangeList);
 		}
