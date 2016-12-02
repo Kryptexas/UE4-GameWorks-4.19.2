@@ -462,10 +462,31 @@ bool FIndirectLightingCache::IndirectLightingAllowed(FScene* Scene, FSceneRender
 	return bAnyViewAllowsIndirectLightingCache;
 }
 
+void FIndirectLightingCache::ProcessPrimitiveUpdate(FScene* Scene, FViewInfo& View, int32 PrimitiveIndex, bool bAllowUnbuiltPreview, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate)
+{
+	FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+	const bool bPrecomputedLightingBufferWasDirty = PrimitiveSceneInfo->NeedsPrecomputedLightingBufferUpdate();
+
+	const FPrimitiveViewRelevance& PrimitiveRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
+	const TMap<FPrimitiveComponentId, FAttachmentGroupSceneInfo>& AttachmentGroups = Scene->AttachmentGroups;
+	UpdateCachePrimitive(AttachmentGroups, PrimitiveSceneInfo, bAllowUnbuiltPreview, PrimitiveRelevance.bOpaqueRelevance, OutBlocksToUpdate, OutTransitionsOverTimeToUpdate);
+
+	// If it was already dirty, then the primitive is already in one of the view dirty primitive list at this point.
+	// This also ensures that a primitive does not get added twice to the list, which could create an array reallocation.
+	if (!bPrecomputedLightingBufferWasDirty && PrimitiveSceneInfo->NeedsPrecomputedLightingBufferUpdate())
+	{
+		// Since the update can be executed on a threaded job (see GILCUpdatePrimTaskEnabled), no reallocation must happen here.
+		checkSlow(View.DirtyPrecomputedLightingBufferPrimitives.Num() < View.DirtyPrecomputedLightingBufferPrimitives.Max());
+		View.DirtyPrecomputedLightingBufferPrimitives.Push(PrimitiveSceneInfo);
+	}
+}
+
 void FIndirectLightingCache::UpdateCachePrimitivesInternal(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateIndirectLightingCachePrims);
+
 	const TMap<FPrimitiveComponentId, FAttachmentGroupSceneInfo>& AttachmentGroups = Scene->AttachmentGroups;
+
 	if (IndirectLightingAllowed(Scene, Renderer))
 	{		
 		if (bUpdateAllCacheEntries)
@@ -503,57 +524,29 @@ void FIndirectLightingCache::UpdateCachePrimitivesInternal(FScene* Scene, FScene
 		}
 		else
 		{
-			TArray<uint32> SetBitIndices[4];
-			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateCachePreWalk);
-			
-				for (int32 ViewIndex = 0; ViewIndex < Renderer.Views.Num(); ViewIndex++)
-				{
-					FViewInfo& View = Renderer.Views[ViewIndex];
-					SetBitIndices[ViewIndex].Reserve(View.PrimitiveVisibilityMap.Num());
-
-					for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
-					{
-						uint32 PrimitiveIndex = BitIt.GetIndex();
-						SetBitIndices[ViewIndex].Add(PrimitiveIndex);					
-					}
-
-					// Any visible primitives with an indirect shadow need their ILC updated, since that determines the indirect shadow direction
-					for (int32 IndirectPrimitiveIndex = 0; IndirectPrimitiveIndex < View.IndirectShadowPrimitives.Num(); IndirectPrimitiveIndex++)
-					{
-						int32 PrimitiveIndex = View.IndirectShadowPrimitives[IndirectPrimitiveIndex]->GetIndex();
-						SetBitIndices[ViewIndex].AddUnique(PrimitiveIndex);
-					}
-				}			
-			}
-
-			// Go over the views and operate on any relevant visible primitives
 			for (int32 ViewIndex = 0; ViewIndex < Renderer.Views.Num(); ViewIndex++)
 			{
 				FViewInfo& View = Renderer.Views[ViewIndex];
 
-				const TArray<uint32>& SetBits = SetBitIndices[ViewIndex];
-				for (int32 i = 0; i < SetBits.Num(); ++i)
+				for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 				{
-					uint32 PrimitiveIndex = SetBits[i];
+					uint32 PrimitiveIndex = BitIt.GetIndex();
+					ProcessPrimitiveUpdate(Scene, View, PrimitiveIndex, bAllowUnbuiltPreview, OutBlocksToUpdate, OutTransitionsOverTimeToUpdate);
+				}
 
-					FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
-					const bool bPrecomputedLightingBufferWasDirty = PrimitiveSceneInfo->NeedsPrecomputedLightingBufferUpdate();
+				// Any visible primitives with an indirect shadow need their ILC updated, since that determines the indirect shadow direction
+				for (int32 IndirectPrimitiveIndex = 0; IndirectPrimitiveIndex < View.IndirectShadowPrimitives.Num(); IndirectPrimitiveIndex++)
+				{
+					int32 PrimitiveIndex = View.IndirectShadowPrimitives[IndirectPrimitiveIndex]->GetIndex();
 
-					const FPrimitiveViewRelevance& PrimitiveRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
-					UpdateCachePrimitive(AttachmentGroups, PrimitiveSceneInfo, bAllowUnbuiltPreview, PrimitiveRelevance.bOpaqueRelevance, OutBlocksToUpdate, OutTransitionsOverTimeToUpdate);
-
-					// If it was already dirty, then the primitive is already in one of the view dirty primitive list at this point.
-					// This also ensures that a primitive does not get added twice to the list, which could create an array reallocation.
-					if (!bPrecomputedLightingBufferWasDirty && PrimitiveSceneInfo->NeedsPrecomputedLightingBufferUpdate())
+					if (!View.PrimitiveVisibilityMap[PrimitiveIndex])
 					{
-						// Since the update can be executed on a threaded job (see GILCUpdatePrimTaskEnabled), no reallocation must happen here.
-						checkSlow(View.DirtyPrecomputedLightingBufferPrimitives.Num() < View.DirtyPrecomputedLightingBufferPrimitives.Max());
-						View.DirtyPrecomputedLightingBufferPrimitives.Push(PrimitiveSceneInfo);
+						ProcessPrimitiveUpdate(Scene, View, PrimitiveIndex, bAllowUnbuiltPreview, OutBlocksToUpdate, OutTransitionsOverTimeToUpdate);
 					}
 				}
-			}
+			}			
 		}
+
 		bUpdateAllCacheEntries = false;
 	}
 }

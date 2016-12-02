@@ -1322,15 +1322,18 @@ void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 		ExpressionPreviewMaterial->PreEditChange( NULL );
 		ExpressionPreviewMaterial->PostEditChange();
 	}
-	else 
+	
 	{
 		FMaterialUpdateContext UpdateContext(FMaterialUpdateContext::EOptions::SyncWithRenderingThread);
 		UpdateContext.AddMaterial(Material);
 
-		// Update the regular preview material when not previewing an expression.
-		Material->PreEditChange( NULL );
+		// Update the regular preview material even when previewing an expression to allow code view regeneration.
+		Material->PreEditChange(NULL);
 		Material->PostEditChange();
+	}
 
+	if (!PreviewExpression)
+	{
 		UpdateStatsMaterials();
 
 		// Null out the expression preview material so they can be GC'ed

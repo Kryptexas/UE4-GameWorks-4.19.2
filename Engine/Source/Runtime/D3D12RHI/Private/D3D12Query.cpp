@@ -147,39 +147,21 @@ bool FD3D12Device::GetQueryData(FD3D12RenderQuery& Query, bool bWait)
 	}
 
 	// Read the data from the query's buffer.
+	static const CD3DX12_RANGE EmptyRange(0, 0);
 	if (Query.Type == RQT_Occlusion)
 	{
 		const uint32 BeginOffset = Query.HeapIndex * sizeof(Query.Result);
-		CD3DX12_RANGE range(BeginOffset, BeginOffset + sizeof(Query.Result));
-		VERIFYD3D12RESULT(OcclusionQueryHeap.MapResultBufferRange(range));
-		Query.Result = *reinterpret_cast<const uint64*>(OcclusionQueryHeap.GetResultBufferData(range));
-		OcclusionQueryHeap.UnmapResultBufferRange();
+		const CD3DX12_RANGE ReadRange(BeginOffset, BeginOffset + sizeof(Query.Result));
+		const FD3D12ScopeMap<uint64> MappedData(OcclusionQueryHeap.GetResultBuffer(), 0, &ReadRange, &EmptyRange /* Not writing any data */);
+		Query.Result = MappedData[Query.HeapIndex];
 		return true;
 	}
 	else
 	{
-		void* pSrcData = nullptr;
-		HRESULT Result = Query.ResultBuffer->Map(0, nullptr, &pSrcData);
-		if (Result == S_OK)
-		{
-			// Copy the data from the query result buffer to the destination
-			Query.Result = *reinterpret_cast<const uint64*>(pSrcData);
-
-			// Unmap
-			Query.ResultBuffer->Unmap(0, nullptr);
-
-			return true;
-		}
-		else if (Result == DXGI_ERROR_DEVICE_REMOVED || Result == DXGI_ERROR_DEVICE_RESET || Result == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
-		{
-			GetParentAdapter()->SetDeviceRemoved(true);
-			return false;
-		}
-		else
-		{
-			VERIFYD3D12RESULT(Result);
-			return false;
-		}
+		static const CD3DX12_RANGE ReadRange(0, sizeof(Query.Result));
+		const FD3D12ScopeMap<uint64> MappedData(Query.ResultBuffer.GetReference(), 0, &ReadRange, &EmptyRange /* Not writing any data */);
+		Query.Result = MappedData[0];
+		return true;
 	}
 }
 

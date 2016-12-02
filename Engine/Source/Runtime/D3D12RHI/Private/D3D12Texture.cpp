@@ -331,6 +331,7 @@ void FD3D12DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
 	OutStats.TotalGraphicsMemory = FD3D12GlobalStats::GTotalGraphicsMemory ? FD3D12GlobalStats::GTotalGraphicsMemory : -1;
 
 	OutStats.AllocatedMemorySize = int64(GCurrentTextureMemorySize) * 1024;
+	OutStats.LargestContiguousAllocation = OutStats.AllocatedMemorySize;
 	OutStats.TexturePoolSize = GTexturePoolSize;
 	OutStats.PendingMemoryAdjustment = 0;
 
@@ -1263,6 +1264,7 @@ void FD3D12DynamicRHI::RHICopySharedMips(FTexture2DRHIParamRef DestTexture2DRHI,
 		{
 			FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, DestTexture2D->GetResource(), DestTexture2D->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 			FScopeResourceBarrier ScopeResourceBarrierSrc(hCommandList, SrcTexture2D->GetResource(), SrcTexture2D->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+			hCommandList.FlushResourceBarriers();
 
 			for (uint32 MipIndex = 0; MipIndex < NumSharedMips; ++MipIndex)
 			{
@@ -1409,6 +1411,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 
 		FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, NewTexture2D->GetResource(), NewTexture2D->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 		FScopeResourceBarrier ScopeResourceBarrierSource(hCommandList, Texture2D->GetResource(), Texture2D->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		hCommandList.FlushResourceBarriers();	// Must flush so the desired state is actually set.
 
 		for (uint32 MipIndex = 0; MipIndex < NumSharedMips; ++MipIndex)
 		{
@@ -1571,6 +1574,7 @@ void* TD3D12Texture2D<RHIResourceType>::Lock(class FRHICommandListImmediate* RHI
 			FScopeResourceBarrier ScopeResourceBarrierSource(hCommandList, GetResource(), GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_SOURCE, SourceCopyLocation.SubresourceIndex);
 
 			Device->GetDefaultCommandContext().numCopies++;
+			hCommandList.FlushResourceBarriers();
 			hCommandList->CopyTextureRegion(
 				&DestCopyLocation,
 				0, 0, 0,
@@ -1620,6 +1624,7 @@ void FD3D12TextureBase::UpdateTexture(const D3D12_TEXTURE_COPY_LOCATION& DestCop
 	// Don't need to transition upload heaps
 
 	DefaultContext.numCopies++;
+	hCommandList.FlushResourceBarriers();
 	hCommandList->CopyTextureRegion(
 		&DestCopyLocation,
 		DestX, DestY, DestZ,
@@ -1905,6 +1910,7 @@ void FD3D12DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI, uint
 		FScopeResourceBarrier ScopeResourceBarrierDest(hCommandList, Texture->GetResource(), Texture->GetResource()->GetDefaultResourceState(), D3D12_RESOURCE_STATE_COPY_DEST, DestCopyLocation.SubresourceIndex);
 
 		Device->GetDefaultCommandContext().numCopies++;
+		hCommandList.FlushResourceBarriers();
 		hCommandList->CopyTextureRegion(
 			&DestCopyLocation,
 			UpdateRegion.DestX, UpdateRegion.DestY, UpdateRegion.DestZ,
@@ -2021,7 +2027,6 @@ void FD3D12CommandContext::RHIUpdateTextureReference(FTextureReferenceRHIParamRe
 	}
 }
 
-#if PLATFORM_WINDOWS
 ID3D12CommandQueue* FD3D12DynamicRHI::RHIGetD3DCommandQueue()
 {
 	return GetAdapter().GetDevice()->GetCommandListManager().GetD3DCommandQueue();
@@ -2038,6 +2043,13 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 	uint32 SizeZ = TextureDesc.DepthOrArraySize;
 	uint32 NumMips = TextureDesc.MipLevels;
 	uint32 NumSamples = TextureDesc.SampleDesc.Count;
+
+	//TODO: Somehow Oculus is creating a Render Target with 4k alignment with ovr_GetTextureSwapChainBufferDX
+	//      This is invalid and causes our size calculation to fail. Oculus SDK bug?
+	if (TextureDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+	{
+		TextureDesc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+	}
 
 	SCOPE_CYCLE_COUNTER(STAT_D3D12CreateTextureTime);
 
@@ -2078,6 +2090,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 	FD3D12Texture2D* TextureOut = Adapter->CreateLinkedObject<FD3D12Texture2D>([&](FD3D12Device* Device)
 	{
 		FD3D12Resource* TextureResource = new FD3D12Resource(Device, Device->GetNodeMask(), Resource, State, TextureDesc);
+		TextureResource->AddRef();
 
 		FD3D12Texture2D* Texture2D = new FD3D12Texture2D(Device,
 			SizeX,
@@ -2185,4 +2198,3 @@ void FD3D12DynamicRHI::RHIAliasTexture2DResources(FTexture2DRHIParamRef DestText
 		SrcTexture2D = (FD3D12Texture2D*) SrcTexture2D->GetNextObject();
 	}
 }
-#endif // PLATFORM_WINDOWS

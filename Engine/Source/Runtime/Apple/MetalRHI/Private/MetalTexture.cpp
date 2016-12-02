@@ -1477,23 +1477,25 @@ void FMetalSurface::UpdateSRV(FTextureRHIRef SourceTex)
 		if (GMetalAllowStencils)
 		{
 		// In this case StencilTexture is the source depth/stencil texture and Texture is our target Stencil-only copy
-			
+		
 		id<MTLBlitCommandEncoder> BlitEncoder = FMetalContext::GetCurrentContext()->GetBlitContext();
-			
+		
 		uint32 SizePerImage = Texture.width * Texture.height;
 		FMetalPooledBuffer Buf = GetMetalDeviceContext().CreatePooledBuffer(FMetalPooledBufferArgs(GetMetalDeviceContext().GetDevice(), SizePerImage, MTLStorageModePrivate));
 		[Buf.Buffer retain];
 		INC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
-			
+		
 		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG((&GetMetalDeviceContext()), @"FMetalSurface::UpdateSRV %p(Source %p)", this, SourceTex.GetReference());
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(FMetalContext::GetCurrentContext()->GetCurrentCommandBuffer(), StencilTexture);
+			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(FMetalContext::GetCurrentContext()->GetCurrentCommandBuffer(), Buf.Buffer);
 		[BlitEncoder copyFromTexture:StencilTexture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0,0,0) sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toBuffer:Buf.Buffer destinationOffset:0 destinationBytesPerRow:Texture.width destinationBytesPerImage:SizePerImage options:MTLBlitOptionStencilFromDepthStencil];
-			
+		
 			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(FMetalContext::GetCurrentContext()->GetCurrentCommandBuffer(), Texture);
 			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(FMetalContext::GetCurrentContext()->GetCurrentCommandBuffer(), Buf.Buffer);
 		[BlitEncoder copyFromBuffer:Buf.Buffer sourceOffset:0 sourceBytesPerRow:Texture.width sourceBytesPerImage:SizePerImage sourceSize:MTLSizeMake(Texture.width, Texture.height, 1) toTexture:Texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0,0,0)];
-			
+		
 		bWritten = true;
-			
+		
 		DEC_MEMORY_STAT_BY(STAT_MetalWastedPooledBufferMem, Buf.Buffer.length - SizePerImage);
 		SafeReleasePooledBuffer(Buf.Buffer);
 	}

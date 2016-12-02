@@ -2853,7 +2853,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 				/*NumMips=*/ 1,
 				TextureFormat
 				);
-			Texture->SRGB = true;
+			Texture->SRGB = BitDepth < 16;
 			const TArray<uint8>* RawPNG = nullptr;
 			if ( PngImageWrapper->GetRaw( Format, BitDepth, RawPNG ) )
 			{
@@ -2929,7 +2929,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 					/*NumMips=*/ 1,
 					TextureFormat
 					);
-				Texture->SRGB = true;
+				Texture->SRGB = BitDepth < 16;
 			
 				uint8* MipData = Texture->Source.LockMip( 0 );
 				FMemory::Memcpy( MipData, RawJPEG->GetData(), RawJPEG->Num() );

@@ -670,7 +670,7 @@ void FMaterialEditorUtilities::BuildTextureStreamingData(UMaterialInterface* Upd
 		};
 
 		// Here we need a full rebuild since the shader changed. Although don't wait for previous shaders to fasten the process.
-		CompileTextureStreamingShaders(QualityLevel, FeatureLevel, true, false, Materials, SlowTask);
+		CompileDebugViewModeShaders(DVSM_OutputMaterialTextureScales, QualityLevel, FeatureLevel, true, false, Materials, SlowTask);
 
 		FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
 		for (UMaterialInterface* MaterialInterface : Materials)

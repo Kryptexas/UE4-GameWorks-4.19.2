@@ -291,8 +291,11 @@ extern RHI_API bool GRHISupportsParallelRHIExecute;
 /** Whether or not the RHI can perform MSAA sample load. */
 extern RHI_API bool GRHISupportsMSAADepthSampleAccess;
 
-/** Whether the present adapter/display offers HDR output capabilities */
+/** Whether the present adapter/display offers HDR output capabilities. */
 extern RHI_API bool GRHISupportsHDROutput;
+
+/** Format used for the backbuffer when outputting to a HDR display. */
+extern RHI_API EPixelFormat GRHIHDRDisplayOutputFormat;
 
 /** Called once per frame only from within an RHI. */
 extern RHI_API void RHIPrivateBeginFrame();

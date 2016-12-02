@@ -22,21 +22,178 @@ class FViewInfo;
 	if(A.MemberName < B.MemberName) { return -1; } \
 	else if(A.MemberName > B.MemberName) { return +1; }
 
-struct FMeshDrawingRenderState
+enum class EDrawingPolicyOverrideFlags
 {
-	FMeshDrawingRenderState() 
-		: BlendState(nullptr)
-		, RasterizerState(nullptr)
+	None = 0,
+	TwoSided = 1 << 0,
+	DitheredLODTransition = 1 << 1,
+	Wireframe = 1 << 2,
+	ReverseCullMode = 1 << 3,
+};
+ENUM_CLASS_FLAGS(EDrawingPolicyOverrideFlags);
+
+struct FDrawingPolicyRenderState
+{
+	FDrawingPolicyRenderState() = delete;
+
+	//temporary tracking of the reset comandlist
+	FDrawingPolicyRenderState(FRHICommandList* InDebugResetRHICmdList, const FSceneView& SceneView) : 
+#if RHI_PSO_X_VALIDATION		
+		DebugParentState(nullptr),
+		DebugResetRHICmdList(InDebugResetRHICmdList),
+#endif
+		  BlendState(nullptr)
 		, DepthStencilState(nullptr)
+		, ViewUniformBufferPtr(&SceneView.ViewUniformBuffer)
 		, StencilRef(0)
+		, ViewOverrideFlags(EDrawingPolicyOverrideFlags::None)
 		, DitheredLODTransitionAlpha(0.0f)
-	{}
+	{
+		ViewOverrideFlags |= SceneView.bReverseCulling ? EDrawingPolicyOverrideFlags::ReverseCullMode : EDrawingPolicyOverrideFlags::None;
+		ViewOverrideFlags |= SceneView.bRenderSceneTwoSided ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
+	}
+
+	//temporary deletion of default copy constructor
+	FDrawingPolicyRenderState(const FDrawingPolicyRenderState& DrawRenderState) = delete;
+
+	//temporary tracking of the reset comandlist
+	FORCEINLINE_DEBUGGABLE FDrawingPolicyRenderState(FRHICommandList* InDebugResetRHICmdList, const FDrawingPolicyRenderState& DrawRenderState) :
+#if RHI_PSO_X_VALIDATION
+		DebugParentState(InDebugResetRHICmdList ? &DrawRenderState : nullptr),
+		DebugResetRHICmdList(InDebugResetRHICmdList),
+#endif
+		  BlendState(DrawRenderState.BlendState)
+		, DepthStencilState(DrawRenderState.DepthStencilState)
+		, ViewUniformBufferPtr(DrawRenderState.ViewUniformBufferPtr)
+		, StencilRef(DrawRenderState.StencilRef)
+		, ViewOverrideFlags(DrawRenderState.ViewOverrideFlags)
+		, DitheredLODTransitionAlpha(DrawRenderState.DitheredLODTransitionAlpha)
+	{
+	}
+
+	~FDrawingPolicyRenderState()
+	{
+#if RHI_PSO_X_VALIDATION
+		if (DebugParentState && DebugResetRHICmdList)
+		{
+			FScopedStrictGraphicsPipelineStateUse UsePSOOnly(*DebugResetRHICmdList, false);
+			if (DebugParentState->BlendState && BlendState != DebugParentState->BlendState)
+			{
+				DebugResetRHICmdList->SetBlendState(DebugParentState->BlendState);
+			}
+			if (DebugParentState->DepthStencilState && DepthStencilState != DebugParentState->DepthStencilState)
+			{
+				DebugResetRHICmdList->SetDepthStencilState(DebugParentState->DepthStencilState, DebugParentState->StencilRef);
+			}
+		}
+#endif
+	}
+
+public:
+	FORCEINLINE_DEBUGGABLE void SetBlendState(FRHICommandList& RHICmdList, FBlendStateRHIParamRef InBlendState)
+	{
+		BlendState = InBlendState;
+
+#if RHI_PSO_X_VALIDATION
+		checkf(&RHICmdList == DebugResetRHICmdList, TEXT("If the State has been transfered to another comandlist it should be copied or recreated"));
+		ensure(!RHICmdList.StrictGraphicsPipelineStateUse || !BlendState || RHICmdList.VerifyableBlendState == BlendState);
+		FScopedStrictGraphicsPipelineStateUse UsePSOOnly(RHICmdList, false);
+#else
+		if (!RHICmdList.StrictGraphicsPipelineStateUse)
+#endif
+		{
+			RHICmdList.SetBlendState(InBlendState);
+		}
+	}
+
+	FORCEINLINE_DEBUGGABLE const FBlendStateRHIParamRef GetBlendState() const
+	{
+		return BlendState;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetDepthStencilState(FRHICommandList& RHICmdList, FDepthStencilStateRHIParamRef InDepthStencilState, uint32 InStencilRef = 0)
+	{
+		DepthStencilState = InDepthStencilState;
+		StencilRef = InStencilRef;
+
+#if RHI_PSO_X_VALIDATION
+		checkf(&RHICmdList == DebugResetRHICmdList, TEXT("If the State has been transfered to another comandlist it should be copied or recreated"));
+		ensure(!RHICmdList.StrictGraphicsPipelineStateUse || !DepthStencilState || RHICmdList.VerifyableDepthStencilState == DepthStencilState);	
+		FScopedStrictGraphicsPipelineStateUse UsePSOOnly(RHICmdList, false);
+#else
+		if (!RHICmdList.StrictGraphicsPipelineStateUse)
+#endif
+		{
+			RHICmdList.SetDepthStencilState(InDepthStencilState, InStencilRef);
+		}
+	}
+
+	FORCEINLINE_DEBUGGABLE const FDepthStencilStateRHIParamRef GetDepthStencilState() const
+	{
+		return DepthStencilState;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetViewUniformBuffer(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer)
+	{
+		ViewUniformBufferPtr = &InViewUniformBuffer;
+	}
+
+	FORCEINLINE_DEBUGGABLE const TUniformBufferRef<FViewUniformShaderParameters>& GetViewUniformBuffer() const
+	{
+		return *static_cast<const TUniformBufferRef<FViewUniformShaderParameters>*>(ViewUniformBufferPtr);
+	}
+
+	FORCEINLINE_DEBUGGABLE uint32 GetStencilRef() const
+	{
+		return StencilRef;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetDitheredLODTransitionAlpha(float InDitheredLODTransitionAlpha)
+	{
+		DitheredLODTransitionAlpha = InDitheredLODTransitionAlpha;
+	}
+
+	FORCEINLINE_DEBUGGABLE float GetDitheredLODTransitionAlpha() const
+	{
+		return DitheredLODTransitionAlpha;
+	}
+
+
+	FORCEINLINE_DEBUGGABLE EDrawingPolicyOverrideFlags& ModifyViewOverrideFlags()
+	{
+		return ViewOverrideFlags;
+	}
+
+	FORCEINLINE_DEBUGGABLE EDrawingPolicyOverrideFlags GetViewOverrideFlags() const
+	{
+		return ViewOverrideFlags;
+	}
+
+private:
+	//start temporary code block
+	friend class FParallelCommandListSet;
+	void ReassignResetRHICmdList(FRHICommandList* InDebugResetRHICmdList)
+	{
+#if RHI_PSO_X_VALIDATION
+		DebugResetRHICmdList = InDebugResetRHICmdList;
+		DebugParentState = nullptr;
+#endif
+	}
+
+#if RHI_PSO_X_VALIDATION
+	const FDrawingPolicyRenderState*	DebugParentState;
+	FRHICommandList*					DebugResetRHICmdList;
+#endif
 
 	FBlendStateRHIParamRef			BlendState;
-	FRasterizerStateRHIParamRef		RasterizerState;
 	FDepthStencilStateRHIParamRef	DepthStencilState;
 
+	//TODO this is evil, put prevents us from calling add and remove ref all the time
+	const void*						ViewUniformBufferPtr;
 	uint32							StencilRef;
+
+	//not sure if those should belong here
+	EDrawingPolicyOverrideFlags		ViewOverrideFlags;
 	float							DitheredLODTransitionAlpha;
 };
 
@@ -105,6 +262,53 @@ public:
 #define DRAWING_POLICY_MATCH(MatchExp) Result.Append((MatchExp), TEXT(#MatchExp))
 #define DRAWING_POLICY_MATCH_END } return Result;
 
+struct FMeshDrawingPolicyOverrideSettings
+{
+	EDrawingPolicyOverrideFlags	MeshOverrideFlags = EDrawingPolicyOverrideFlags::None;
+	EPrimitiveType				MeshPrimitiveType = PT_TriangleList;
+};
+
+FORCEINLINE_DEBUGGABLE FMeshDrawingPolicyOverrideSettings ComputeMeshOverrideSettings(const FMeshBatch& Mesh)
+{
+	FMeshDrawingPolicyOverrideSettings OverrideSettings;
+	OverrideSettings.MeshPrimitiveType = (EPrimitiveType)Mesh.Type;
+
+	OverrideSettings.MeshOverrideFlags |= Mesh.bDisableBackfaceCulling ? EDrawingPolicyOverrideFlags::TwoSided : EDrawingPolicyOverrideFlags::None;
+	OverrideSettings.MeshOverrideFlags |= Mesh.bDitheredLODTransition ? EDrawingPolicyOverrideFlags::DitheredLODTransition : EDrawingPolicyOverrideFlags::None;
+	OverrideSettings.MeshOverrideFlags |= Mesh.bWireframe ? EDrawingPolicyOverrideFlags::Wireframe : EDrawingPolicyOverrideFlags::None;
+	OverrideSettings.MeshOverrideFlags |= Mesh.ReverseCulling ? EDrawingPolicyOverrideFlags::ReverseCullMode : EDrawingPolicyOverrideFlags::None;
+	return OverrideSettings;
+}
+
+/**
+* Creates and sets the base PSO so that resources can be set. Generally best to call during SetSharedState.
+*/
+template<class DrawingPolicyType>
+void CommitGraphicsPipelineState(FRHICommandList& RHICmdList, const DrawingPolicyType& DrawingPolicy, const FDrawingPolicyRenderState& DrawRenderState, ERHIFeatureLevel::Type	FeatureLevel)
+{
+#if RHI_PSO_X_VALIDATION
+	RHICmdList.ValidatePsoState(DrawRenderState.GetBlendState(), DrawRenderState.GetDepthStencilState());
+#endif
+
+	FGraphicsPipelineStateInitializer GraphicsPSOInit;
+	GraphicsPSOInit.PrimitiveType = DrawingPolicy.GetPrimitiveType();
+	GraphicsPSOInit.BoundShaderState = DrawingPolicy.GetBoundShaderStateInput(FeatureLevel);
+	GraphicsPSOInit.RasterizerState = DrawingPolicy.ComputeRasterizerState(DrawRenderState.GetViewOverrideFlags());
+
+	check(DrawRenderState.GetDepthStencilState());
+	GraphicsPSOInit.DepthStencilState = DrawRenderState.GetDepthStencilState();
+	GraphicsPSOInit.SetStencilRef(DrawRenderState.GetStencilRef());
+
+	check(DrawRenderState.GetBlendState());
+	GraphicsPSOInit.BlendState = DrawRenderState.GetBlendState();
+	GraphicsPSOInit.SetBlendFactor(FLinearColor(1.0f, 1.0f, 1.0f));
+
+	RHICmdList.ApplyCachedRenderTargets(GraphicsPSOInit);
+
+	FLocalGraphicsPipelineState BaseGraphicsPSO = RHICmdList.BuildLocalGraphicsPipelineState(GraphicsPSOInit);
+	RHICmdList.SetLocalGraphicsPipelineState(BaseGraphicsPSO);
+}
+
 /**
  * The base mesh drawing policy.  Subclasses are used to draw meshes with type-specific context variables.
  * May be used either simply as a helper to render a dynamic mesh, or as a static instance shared between
@@ -128,10 +332,8 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
-		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
-		bool bInTwoSidedOverride = false,
-		bool bInDitheredLODTransitionOverride = false,
-		bool bInWireframeOverride = false
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None
 		);
 
 	FMeshDrawingPolicy& operator = (const FMeshDrawingPolicy& Other)
@@ -139,10 +341,10 @@ public:
 		VertexFactory = Other.VertexFactory;
 		MaterialRenderProxy = Other.MaterialRenderProxy;
 		MaterialResource = Other.MaterialResource;
-		bIsTwoSidedMaterial = Other.bIsTwoSidedMaterial;
+		MeshFillMode = Other.MeshFillMode;
+		MeshCullMode = Other.MeshCullMode;
+		MeshPrimitiveType = Other.MeshPrimitiveType;
 		bIsDitheredLODTransitionMaterial = Other.bIsDitheredLODTransitionMaterial;
-		bIsWireframeMaterial = Other.bIsWireframeMaterial;
-		bNeedsBackfacePass = Other.bNeedsBackfacePass;
 		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
 		DebugViewShaderMode = Other.DebugViewShaderMode;
 		return *this; 
@@ -150,21 +352,40 @@ public:
 
 	uint32 GetTypeHash() const
 	{
-		return PointerHash(VertexFactory,PointerHash(MaterialRenderProxy));
+		return PointerHash(VertexFactory, PointerHash(MaterialRenderProxy));
 	}
 
-	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+	static void OnlyApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
+
+	void ApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+	{
+		OnlyApplyDitheredLODTransitionState(RHICmdList, DrawRenderState, ViewInfo, Mesh, InAllowStencilDither);
+	}
 
 	FDrawingPolicyMatchResult Matches(const FMeshDrawingPolicy& OtherDrawer) const
 	{
 		DRAWING_POLICY_MATCH_BEGIN
 			DRAWING_POLICY_MATCH(VertexFactory == OtherDrawer.VertexFactory) &&
 			DRAWING_POLICY_MATCH(MaterialRenderProxy == OtherDrawer.MaterialRenderProxy) &&
-			DRAWING_POLICY_MATCH(bIsTwoSidedMaterial == OtherDrawer.bIsTwoSidedMaterial) &&
 			DRAWING_POLICY_MATCH(bIsDitheredLODTransitionMaterial == OtherDrawer.bIsDitheredLODTransitionMaterial) &&
 			DRAWING_POLICY_MATCH(bUsePositionOnlyVS == OtherDrawer.bUsePositionOnlyVS) &&
-			DRAWING_POLICY_MATCH(bIsWireframeMaterial == OtherDrawer.bIsWireframeMaterial);
+			DRAWING_POLICY_MATCH(MeshFillMode == OtherDrawer.MeshFillMode) &&
+			DRAWING_POLICY_MATCH(MeshCullMode == OtherDrawer.MeshCullMode) &&
+			DRAWING_POLICY_MATCH(MeshPrimitiveType == OtherDrawer.MeshPrimitiveType);
 		DRAWING_POLICY_MATCH_END
+	}
+
+	static FORCEINLINE_DEBUGGABLE ERasterizerCullMode InverseCullMode(ERasterizerCullMode CullMode)
+	{
+		return CullMode == CM_None ? CM_None : (CullMode == CM_CCW ? CM_CW : CM_CCW);
+	}
+
+	FORCEINLINE_DEBUGGABLE FRasterizerStateRHIParamRef ComputeRasterizerState(EDrawingPolicyOverrideFlags InOverrideFlags) const
+	{
+		const bool bReverseCullMode = !!(InOverrideFlags & EDrawingPolicyOverrideFlags::ReverseCullMode); //(View.bReverseCulling ^ bBackFace)
+		const bool bRenderSceneTwoSided = !!(InOverrideFlags & EDrawingPolicyOverrideFlags::TwoSided); //View.bRenderSceneTwoSided
+		ERasterizerCullMode LocalCullMode = bRenderSceneTwoSided ? CM_None : bReverseCullMode ? InverseCullMode(MeshCullMode) : MeshCullMode;
+		return GetStaticRasterizerState<true>(MeshFillMode, LocalCullMode);
 	}
 
 	/**
@@ -177,19 +398,12 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const
-	{
-		const bool bRenderTwoSided = (IsTwoSided() && !NeedsBackfacePass()) || View.bRenderSceneTwoSided || Mesh.bDisableBackfaceCulling;
-
-		// Use bitwise logic ops to avoid branches
-		RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
-			(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid, 
-			bRenderTwoSided ? CM_None : (((View.bReverseCulling ^ bBackFace) ^ Mesh.ReverseCulling) ? CM_CCW : CM_CW)
-			));
+	{	
+		RHICmdList.SetRasterizerState(ComputeRasterizerState(DrawRenderState.GetViewOverrideFlags()));
 	}
 
 	/**
@@ -209,7 +423,7 @@ public:
 	 * @param CI - The command interface to execute the draw commands on.
 	 * @param View - The view of the scene being drawn.
 	 */
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const FMeshDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
 
 	/**
 	* Get the decl for this mesh policy type and vertexfactory
@@ -220,7 +434,6 @@ public:
 	{
 		COMPAREDRAWINGPOLICYMEMBERS(VertexFactory);
 		COMPAREDRAWINGPOLICYMEMBERS(MaterialRenderProxy);
-		COMPAREDRAWINGPOLICYMEMBERS(bIsTwoSidedMaterial);
 		COMPAREDRAWINGPOLICYMEMBERS(bIsDitheredLODTransitionMaterial);
 		return 0;
 	}
@@ -228,7 +441,7 @@ public:
 	// Accessors.
 	bool IsTwoSided() const
 	{
-		return bIsTwoSidedMaterial;
+		return MeshCullMode == CM_None;
 	}
 	bool IsDitheredLODTransition() const
 	{
@@ -236,11 +449,12 @@ public:
 	}
 	bool IsWireframe() const
 	{
-		return bIsWireframeMaterial;
+		return MeshFillMode == FM_Wireframe;
 	}
-	bool NeedsBackfacePass() const
+
+	EPrimitiveType GetPrimitiveType() const
 	{
-		return bNeedsBackfacePass;
+		return MeshPrimitiveType;
 	}
 
 	const FVertexFactory* GetVertexFactory() const { return VertexFactory; }
@@ -258,14 +472,15 @@ protected:
 	const FVertexFactory* VertexFactory;
 	const FMaterialRenderProxy* MaterialRenderProxy;
 	const FMaterial* MaterialResource;
-	uint32 bIsTwoSidedMaterial : 1;
+	
+	ERasterizerFillMode MeshFillMode;
+	ERasterizerCullMode MeshCullMode;
+	EPrimitiveType		MeshPrimitiveType;
+
 	uint32 bIsDitheredLODTransitionMaterial : 1;
-	uint32 bIsWireframeMaterial : 1;
-	uint32 bNeedsBackfacePass : 1;
 	uint32 bUsePositionOnlyVS : 1;
 	uint32 DebugViewShaderMode : 6; // EDebugViewShaderMode
 };
 
 
 uint32 GetTypeHash(const FBoundShaderStateRHIRef &Key);
-

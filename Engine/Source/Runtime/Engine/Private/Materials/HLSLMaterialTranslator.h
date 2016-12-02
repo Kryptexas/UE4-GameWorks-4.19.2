@@ -1698,9 +1698,9 @@ protected:
 
 	virtual int32 CallExpression(FMaterialExpressionKey ExpressionKey,FMaterialCompiler* Compiler) override
 	{
-		// For any translated result not relying on material attributes, we can
-		// discard the attribute ID from the key to allow result sharing
-		if (ExpressionKey.Expression && !ExpressionKey.Expression->IsResultMaterialAttributes(ExpressionKey.OutputIndex))
+		// For any translated result not relying on material attributes, we can discard the attribute ID from the key
+		// to allow result sharing. In cases where we detect an expression loop we must err on the side of caution
+		if (ExpressionKey.Expression && !ExpressionKey.Expression->ContainsInputLoop() && !ExpressionKey.Expression->IsResultMaterialAttributes(ExpressionKey.OutputIndex))
 		{
 			ExpressionKey.MaterialAttributeID = FGuid(0,0,0,0);
 		}
@@ -2035,6 +2035,15 @@ protected:
 		}
 
 		return AddCodeChunk(PropertyMeta.Type, *Code);
+	}
+
+	virtual int32 PreviousFrameSwitch(int32 CurrentX, int32 PrevX) override
+	{
+		if (bCompilingPreviousFrame)
+		{
+			return PrevX;
+		}
+		return CurrentX;
 	}
 
 	virtual int32 GameTime(bool bPeriodic, float Period) override
@@ -3038,7 +3047,9 @@ protected:
 
 		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
-		const bool bStoreTexCoordScales = (ShaderFrequency == SF_Pixel && TextureReferenceIndex != INDEX_NONE && Material && Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
+		const bool bStoreTexCoordScales = ShaderFrequency == SF_Pixel && TextureReferenceIndex != INDEX_NONE && Material && 
+			(Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale || Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeRequiredTextureResolution);
+
 		if (bStoreTexCoordScales)
 		{
 			AddCodeChunk(MCT_Float, TEXT("StoreTexCoordScale(Parameters.TexCoordScalesParams, %s, %d)"), *UVs, (int)TextureReferenceIndex);

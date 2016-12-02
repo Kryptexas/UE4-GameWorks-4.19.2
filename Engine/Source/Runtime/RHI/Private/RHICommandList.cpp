@@ -1268,6 +1268,14 @@ void FRHICommandListBase::QueueRenderThreadCommandListSubmit(FGraphEventRef& Ren
 	new (AllocCommand<FRHICommandWaitForAndSubmitRTSubList>()) FRHICommandWaitForAndSubmitRTSubList(RenderThreadCompletionEvent, CmdList);
 }
 
+#if RHI_PSO_X_VALIDATION
+void FRHICommandListBase::ValidatePsoState(const FBlendStateRHIParamRef BlendState, const FDepthStencilStateRHIParamRef DepthStencilState)
+{
+	ensure(VerifyableDepthStencilState == DepthStencilState);
+	ensure(VerifyableBlendState == BlendState);
+}
+#endif
+
 struct FRHICommandSubmitSubList : public FRHICommand<FRHICommandSubmitSubList>
 {
 	FRHICommandList* RHICmdList;

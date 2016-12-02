@@ -7,6 +7,11 @@
 #define TEX_COORD_SCALE_ANALYSIS 1
 #define DEBUG_MATERIAL_PARAMETERS 1
 
+// Don't allow scene texture as we use ESceneRenderTargetsMode::DontSet in FMaterialTexCoordScalePS::SetParameters
+// to avoid crashes in command let mode.
+#undef SCENE_TEXTURES_DISABLED
+#define SCENE_TEXTURES_DISABLED 1
+
 #include "Common.usf"
 #include "SHCommon.usf"
 
@@ -169,6 +174,8 @@ void Main(
 #endif
 	}
 	Params = MaterialParameters.TexCoordScalesParams;
+
+	Result *= saturate(Luminance(BaseColor));
 
 	if (bOutputScales)
 	{

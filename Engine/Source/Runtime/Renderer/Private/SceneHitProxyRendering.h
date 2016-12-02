@@ -27,7 +27,8 @@ public:
 	FHitProxyDrawingPolicy(
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
-		ERHIFeatureLevel::Type InFeatureLevel
+		ERHIFeatureLevel::Type InFeatureLevel,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings
 		);
 
 	// FMeshDrawingPolicy interface.
@@ -41,7 +42,7 @@ public:
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader);
 		DRAWING_POLICY_MATCH_END
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
 
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
@@ -56,8 +57,7 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FHitProxyId HitProxyId,
 		const ContextDataType PolicyContext
 		) const;
@@ -73,12 +73,12 @@ private:
 class FEditorSelectionDrawingPolicy : public FHitProxyDrawingPolicy
 {
 public:
-	FEditorSelectionDrawingPolicy(const FVertexFactory* InVertexFactory, const FMaterialRenderProxy* InMaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-		: FHitProxyDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InFeatureLevel)
+	FEditorSelectionDrawingPolicy(const FVertexFactory* InVertexFactory, const FMaterialRenderProxy* InMaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel, const FMeshDrawingPolicyOverrideSettings& InOverrideSettings)
+		: FHitProxyDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InFeatureLevel, InOverrideSettings)
 	{}
 
 	// FMeshDrawingPolicy interface.
-	void SetMeshRenderState( FRHICommandList& RHICmdList, const FSceneView& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FMeshBatch& Mesh, int32 BatchElementIndex, bool bBackFace, const FMeshDrawingRenderState& DrawRenderState, const FHitProxyId HitProxyId, const ContextDataType PolicyContext );
+	void SetMeshRenderState( FRHICommandList& RHICmdList, const FSceneView& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy, const FMeshBatch& Mesh, int32 BatchElementIndex, const FDrawingPolicyRenderState& DrawRenderState, const FHitProxyId HitProxyId, const ContextDataType PolicyContext );
 
 	/**
 	 * Gets the value that should be written into the editor selection stencil buffer for a given primitive
@@ -119,8 +119,8 @@ public:
 		const FSceneView& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
-		bool bBackFace,
 		bool bPreFog,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);

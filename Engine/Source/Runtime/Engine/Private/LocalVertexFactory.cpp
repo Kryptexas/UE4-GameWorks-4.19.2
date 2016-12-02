@@ -93,13 +93,13 @@ void FLocalVertexFactory::SetData(const FDataType& InData)
 */
 void FLocalVertexFactory::Copy(const FLocalVertexFactory& Other)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FLocalVertexFactoryCopyData,
-		FLocalVertexFactory*,VertexFactory,this,
-		const FDataType*,DataCopy,&Other.Data,
-	{
-		VertexFactory->Data = *DataCopy;
-	});
+	FLocalVertexFactory* VertexFactory = this;
+	const FDataType* DataCopy = &Other.Data;
+	EnqueueUniqueRenderCommand("FLocalVertexFactoryCopyData",
+		[VertexFactory, DataCopy](FRHICommandListImmediate& RHICmdList)
+		{
+			VertexFactory->Data = *DataCopy;
+		});
 	BeginUpdateResourceRHI(this);
 }
 

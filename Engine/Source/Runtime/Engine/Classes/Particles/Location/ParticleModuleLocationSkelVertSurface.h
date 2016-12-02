@@ -54,6 +54,10 @@ class ENGINE_API UParticleModuleLocationSkelVertSurface : public UParticleModule
 	UPROPERTY(EditAnywhere, Category=VertSurface)
 	uint32 bInheritBoneVelocity:1;
 
+	/** A scale on how much of the bone's velocity a particle will inherit. */
+	UPROPERTY(EditAnywhere, Category=VertSurface)
+	float InheritVelocityScale;
+
 	/**
 	 *	The parameter name of the skeletal mesh actor that supplies the SkelMeshComponent for in-game.
 	 */

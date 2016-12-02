@@ -267,26 +267,10 @@ public:
 			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
 			if (RHITexture)
 			{
-				if (auto* Texture2D = RHITexture->GetTexture2D())
+				FVulkanTextureBase* Base = (FVulkanTextureBase*)RHITexture->GetTextureBaseRHI();
+				if (Image == Base->Surface.Image)
 				{
-					if (Image == ((FVulkanTexture2D*)Texture2D)->Surface.Image)
-					{
-						return true;
-					}
-				}
-				else if (auto* TextureCube = RHITexture->GetTextureCube())
-				{
-					if (Image == ((FVulkanTextureCube*)TextureCube)->Surface.Image)
-					{
-						return true;
-					}
-				}
-				else if (auto* Texture3D = RHITexture->GetTexture3D())
-				{
-					if (Image == ((FVulkanTexture3D*)Texture3D)->Surface.Image)
-					{
-						return true;
-					}
+					return true;
 				}
 			}
 		}
@@ -368,7 +352,7 @@ public:
 	// Can be called only once, the idea is that the Layout remains fixed.
 	void Compile();
 
-	inline const TArray<VkDescriptorSetLayout> GetHandles() const
+	inline const TArray<VkDescriptorSetLayout>& GetHandles() const
 	{
 		return LayoutHandles;
 	}

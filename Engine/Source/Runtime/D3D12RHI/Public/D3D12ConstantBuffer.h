@@ -28,7 +28,7 @@ public:
 	* @param Offset - The offset in the constant buffer to place the data at
 	* @param InSize - The size of the data being copied
 	*/
-	void UpdateConstant(const uint8* Data, uint16 Offset, uint16 InSize)
+	FORCEINLINE void UpdateConstant(const uint8* Data, uint16 Offset, uint16 InSize)
 	{
 		// Check that the data we are shadowing fits in the allocated shadow data
 		check((uint32)Offset + (uint32)InSize <= MAX_GLOBAL_CONSTANT_BUFFER_SIZE);
@@ -38,7 +38,7 @@ public:
 		bIsDirty = true;
 	}
 
-	void Reset() { CurrentUpdateSize = 0; }
+	FORCEINLINE void Reset() { CurrentUpdateSize = 0; }
 
 	bool Version(FD3D12ResourceLocation& BufferOut, bool bDiscardSharedConstants);
 

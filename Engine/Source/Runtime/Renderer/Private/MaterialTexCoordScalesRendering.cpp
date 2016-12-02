@@ -32,7 +32,8 @@ void FMaterialTexCoordScalePS::SetParameters(
 		SetShaderValue(RHICmdList, FMeshMaterialShader::GetPixelShader(), AccuracyColorsParameter, FLinearColor::Black, ColorIndex);
 	}
 
-	FMeshMaterialShader::SetParameters(RHICmdList, FMeshMaterialShader::GetPixelShader(), MaterialRenderProxy, Material, View, View.ViewUniformBuffer, ESceneRenderTargetsMode::SetTextures);
+	// Don't allow scene texture as this create issues when running command let.
+	FMeshMaterialShader::SetParameters(RHICmdList, FMeshMaterialShader::GetPixelShader(), MaterialRenderProxy, Material, View, View.ViewUniformBuffer, ESceneRenderTargetsMode::DontSet);
 }
 
 void FMaterialTexCoordScalePS::SetMesh(
@@ -42,7 +43,7 @@ void FMaterialTexCoordScalePS::SetMesh(
 	const FPrimitiveSceneProxy* Proxy,
 	int32 VisualizeLODIndex,
 	const FMeshBatchElement& BatchElement, 
-	const FMeshDrawingRenderState& DrawRenderState
+	const FDrawingPolicyRenderState& DrawRenderState
 	)
 {
 	const int32 AnalysisIndex = View.Family->GetViewModeParam() >= 0 ? FMath::Clamp<int32>(View.Family->GetViewModeParam(), 0, TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL - 1) : -1;

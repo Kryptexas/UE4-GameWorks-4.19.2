@@ -29,6 +29,7 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		ERHIFeatureLevel::Type InFeatureLevel
 		);
 
@@ -43,22 +44,22 @@ public:
 			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader);
 		DRAWING_POLICY_MATCH_END
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* SceneView, const FVelocityDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
+
 	void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const ElementDataType& ElementData, 
 		const ContextDataType PolicyContext
 		) const;
 
 	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const;
 
-	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	friend int32 Compare(const FVelocityDrawingPolicy& A, const FVelocityDrawingPolicy& B);
 
@@ -88,8 +89,8 @@ public:
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
-		bool bBackFace,
 		bool bPreFog,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId, 
 		const bool bIsInstancedStereo = false

@@ -336,13 +336,13 @@ void FGPUSkinCache::Initialize(FRHICommandListImmediate& RHICmdList)
 		// We clear once in the beginning and then each time in the PerVertexPass (this saves the clear or another Dispatch)
 		uint32 Value[4] = { 0, 0, 0, 0 };
 		RHICmdList.ClearUAV(SkinTangentIntermediate.UAV, Value);
-	}
-
-	TransitionAllToWriteable(RHICmdList);
+	}	
 
 	CachedElements.Reserve(MaxCachedElements);
 
 	bInitialized = true;
+
+	TransitionAllToWriteable(RHICmdList);
 }
 
 void FGPUSkinCache::Cleanup()

@@ -96,6 +96,7 @@ public:
 	inline FD3D12DynamicRHI* GetOwningRHI() { return OwningRHI; }
 	inline const D3D12_RESOURCE_HEAP_TIER GetResourceHeapTier() const { return ResourceHeapTier; }
 	inline const D3D12_RESOURCE_BINDING_TIER GetResourceBindingTier() const { return ResourceBindingTier; }
+	inline const D3D_ROOT_SIGNATURE_VERSION GetRootSignatureVersion() const { return RootSignatureVersion; }
 	inline const DXGI_ADAPTER_DESC& GetD3DAdapterDesc() const { return Desc.Desc; }
 	inline IDXGIAdapter* GetAdapter() { return DxgiAdapter; }
 	inline const FD3D12AdapterDesc& GetDesc() const { return Desc; }
@@ -143,7 +144,7 @@ public:
 	inline const uint32 GetNumGPUNodes() const { return (!GIsEditor && GEnableMGPU) ? Desc.NumDeviceNodes : 1; }
 	inline const bool AlternateFrameRenderingEnabled() const { return MultiGPUMode == MGPU_AFR; }
 	
-	inline FD3D12Fence& GetFrameFence() { return FrameFence; }
+	inline FD3D12ManualFence& GetFrameFence()  { return FrameFence; }
 
 	void SwitchToNextGPU();
 
@@ -179,6 +180,8 @@ public:
 	inline FD3D12DynamicHeapAllocator& GetUploadHeapAllocator() { return *UploadHeapAllocator; }
 
 	inline FD3DGPUProfiler& GetGPUProfiler() { return GPUProfilingData; }
+
+	inline uint32 GetDebugFlags() const { return DebugFlags; }
 
 	void Cleanup();
 
@@ -217,7 +220,8 @@ public:
 		FRHIResourceCreateInfo& CreateInfo,
 		bool SkipCreate);
 
-	uint64 SignalEndOfFrame(ID3D12CommandQueue* CurrentQueue, bool WaitForCompletion);
+	// Queue up a command to signal the frame fence on the command list. This should only be called from the rendering thread.
+	void SignalFrameFence_RenderThread(FRHICommandListImmediate& RHICmdList);
 
 	template<typename ObjectType, typename CreationCoreFunction>
 	inline ObjectType* CreateLinkedObject(const CreationCoreFunction& pfnCreationCore)
@@ -284,7 +288,7 @@ public:
 	{
 		return *TransientUniformBufferAllocator.GetObjectForThisThread([this]() -> FD3D12FastConstantAllocator*
 		{
-			FD3D12FastConstantAllocator* Alloc = new FD3D12FastConstantAllocator(Devices[0], ActiveGPUMask(), 1024*1024*1);
+			FD3D12FastConstantAllocator* Alloc = new FD3D12FastConstantAllocator(Devices[0], ActiveGPUMask(), 1024*1024*2);
 			Alloc->Init();
 			return Alloc;
 		});
@@ -316,6 +320,7 @@ protected:
 	TRefCountPtr<ID3D12Device1> RootDevice1;
 	D3D12_RESOURCE_HEAP_TIER ResourceHeapTier;
 	D3D12_RESOURCE_BINDING_TIER ResourceBindingTier;
+	D3D_ROOT_SIGNATURE_VERSION RootSignatureVersion;
 
 	/** True if the device being used has been removed. */
 	bool bDeviceRemoved;
@@ -343,7 +348,7 @@ protected:
 	TRefCountPtr<IDXGIFactory> DxgiFactory;
 
 	/** A Fence whos value increases every frame*/
-	FD3D12Fence FrameFence;
+	FD3D12ManualFence FrameFence;
 
 	FD3D12DeferredDeletionQueue DeferredDeletionQueue;
 
@@ -358,4 +363,6 @@ protected:
 
 	// Each of these devices represents a physical GPU 'Node'
 	FD3D12Device* Devices[MAX_NUM_LDA_NODES];
+
+	uint32 DebugFlags;
 };

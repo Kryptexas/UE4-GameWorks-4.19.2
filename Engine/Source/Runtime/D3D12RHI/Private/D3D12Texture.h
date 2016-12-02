@@ -114,9 +114,14 @@ public:
 
 	// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
 	// You can't use fast version of XXSetShaderResources (called XXSetFastShaderResource) on dynamic or d/s targets
-	bool HasDepthStencilView()
+	inline bool HasDepthStencilView() const
 	{
 		return (NumDepthStencilViews > 0);
+	}
+
+	inline bool HasRenderTargetViews() const
+	{
+		return (NumRenderTargetViews > 0);
 	}
 
 	void AliasResources(FD3D12TextureBase* Texture)

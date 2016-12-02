@@ -1982,10 +1982,9 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 	UniformParameters.name = *(FVector4*)(WindShaderValues + FSpeedTreeWind::offset); \
 	UniformParameters.Prev##name = *(FVector4*)(WindShaderValues + FSpeedTreeWind::offset + FSpeedTreeWind::NUM_SHADER_VALUES);
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FUpdateSpeedTreeWindCommand,
-		FScene*,Scene,this,
-		double,CurrentTime,CurrentTime,
+	FScene* Scene = this;
+	EnqueueUniqueRenderCommand("FUpdateSpeedTreeWindCommand",
+		[Scene, CurrentTime](FRHICommandListImmediate& RHICmdList)
 		{
 			FVector WindDirection;
 			float WindSpeed;
@@ -1998,7 +1997,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				const UStaticMesh* StaticMesh = It.Key();
 				FSpeedTreeWindComputation* WindComputation = It.Value();
 
-				if( !StaticMesh->RenderData )
+				if( !(StaticMesh->RenderData.IsValid() && StaticMesh->SpeedTreeWind.IsValid()) )
 				{
 					It.RemoveCurrent();
 					continue;

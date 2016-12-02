@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "ACES.usf"
+#include "GammaCorrectionCommon.usf"
 
 // usually 1/2.2, the .y is used for inverse gamma when "gamma only" mode is not used
 half3 InverseGamma;
@@ -315,4 +316,32 @@ float3x3 OuputInverseGamutMappingMatrix( uint OutputGamut )
 	return GamutMappingMatrix;
 }
 
+float3 ST2084ToScRGB(float3 Color, uint OutputDevice)
+{
+	// Nvidia HDR encoding - Remove PQ, convert to linear scRGB
+	const float3x3 AP1_2_sRGB = mul(XYZ_2_sRGB_MAT, AP1_2_XYZ_MAT);
+	const float WhitePoint = 80.f;
 
+	// 1000.f nit display
+	float MaxODTNits = 1000.0f;
+	float MinODTNits = 0.0001f;
+
+	if (OutputDevice == 4)
+	{
+		// 2000 nit display
+		MaxODTNits = 2000.0f;
+		MinODTNits = 0.005f;
+	}
+
+	float3 OutColor = ST2084ToLinear(Color);
+		
+	OutColor = clamp(OutColor, MinODTNits, MaxODTNits);
+	OutColor.x = Y_2_linCV(OutColor.x, MaxODTNits, MinODTNits);
+	OutColor.y = Y_2_linCV(OutColor.y, MaxODTNits, MinODTNits);
+	OutColor.z = Y_2_linCV(OutColor.z, MaxODTNits, MinODTNits);
+
+	float scRGBScale = MaxODTNits / WhitePoint;
+	OutColor = mul(AP1_2_sRGB, OutColor) * scRGBScale;
+
+	return OutColor;
+}

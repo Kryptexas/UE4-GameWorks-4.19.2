@@ -39,6 +39,7 @@
 #include "VelocityRendering.h"
 #include "BasePassRendering.h"
 #include "MobileBasePassRendering.h"
+#include "VolumeRendering.h"
 
 /** Factor by which to grow occlusion tests **/
 #define OCCLUSION_SLOP (1.0f)
@@ -388,13 +389,6 @@ private:
 	FGraphEventRef QuerySubmittedFences[NumBufferedFrames];
 };
 
-class FDeferredGlobalDistanceFieldUpdateInfo
-{
-public:
-	int32 ClipmapIndex;
-	int32 FramesLeft;
-};
-
 /**
  * The scene manager's private implementation of persistent view state.
  * This class is associated with a particular camera across multiple frames by the game thread.
@@ -487,7 +481,8 @@ public:
 
 	TMap<int32, FIndividualOcclusionHistory> PlanarReflectionOcclusionHistories;
 
-	TArray<FDeferredGlobalDistanceFieldUpdateInfo> DeferredGlobalDistanceFieldUpdates;
+	// Array of ClipmapIndex
+	TArray<int32> DeferredGlobalDistanceFieldUpdates;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Are we currently in the state of freezing rendering? (1 frame where we gather what was rendered) */
@@ -1400,6 +1395,8 @@ public:
 private:
 	/** Internal helper to determine if indirect lighting is enabled at all */
 	bool IndirectLightingAllowed(FScene* Scene, FSceneRenderer& Renderer) const;
+
+	void ProcessPrimitiveUpdate(FScene* Scene, FViewInfo& View, int32 PrimitiveIndex, bool bAllowUnbuiltPreview, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate);
 
 	/** Internal helper to perform the work of updating the cache primitives.  Can be done on any thread as a task */
 	void UpdateCachePrimitivesInternal(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate);

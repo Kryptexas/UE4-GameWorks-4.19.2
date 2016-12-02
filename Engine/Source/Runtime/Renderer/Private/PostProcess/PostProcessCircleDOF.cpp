@@ -12,6 +12,7 @@
 #include "PostProcess/PostProcessBokehDOF.h"
 #include "SceneRenderTargetParameters.h"
 #include "PostProcess/PostProcessing.h"
+#include "DeferredShadingRenderer.h"
 
 static TAutoConsoleVariable<int32> CVarDepthOfFieldFarBlur(
 	TEXT("r.DepthOfField.FarBlur"),
@@ -172,8 +173,6 @@ void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& C
 		return;
 	}
 
-	uint32 NumRenderTargets = bNearBlurEnabled ? 2 : 1;
-
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
@@ -190,7 +189,7 @@ void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& C
 	FIntRect DestRect = SrcRect / 2;
 
 	const FSceneRenderTargetItem& DestRenderTarget0 = PassOutputs[0].RequestSurface(Context);
-	const FSceneRenderTargetItem& DestRenderTarget1 = bNearBlurEnabled ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget1 = SupportSceneAlpha() ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
 
 	// Set the view family's render target/viewport.
 	FTextureRHIParamRef RenderTargets[2] =
@@ -198,6 +197,7 @@ void FRCPassPostProcessCircleDOFSetup::Process(FRenderingCompositePassContext& C
 		DestRenderTarget0.TargetableTexture,
 		DestRenderTarget1.TargetableTexture
 	};
+	uint32 NumRenderTargets = SupportSceneAlpha() ? 2 : 1;
 	SetRenderTargets(Context.RHICmdList, NumRenderTargets, RenderTargets, FTextureRHIParamRef(), 0, NULL);
 
 	FLinearColor ClearColors[2] = 
@@ -272,10 +272,25 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOFSetup::ComputeOutputDesc(EPas
 	Ret.TargetableFlags &= ~(uint32)TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
 	Ret.AutoWritable = false;
-	Ret.DebugName = (InPassOutputId == ePId_Output0) ? TEXT("CircleDOFSetup0") : TEXT("CircleDOFSetup1");
+	if (SupportSceneAlpha())
+	{
+		if (InPassOutputId == 0)
+		{
+			Ret.DebugName = (InPassOutputId == ePId_Output0) ? TEXT("CircleDOFSceneColorSetup0") : TEXT("CircleDOFSceneColorSetup1");
+		}
+		else if (InPassOutputId == 1)
+		{
+			Ret.DebugName = (InPassOutputId == ePId_Output0) ? TEXT("CircleDOFSetup0") : TEXT("CircleDOFSetup1");
+			Ret.Format = PF_R32_FLOAT;
+		}
+	}
+	else
+	{
+		Ret.DebugName = (InPassOutputId == ePId_Output0) ? TEXT("CircleDOFSetup0") : TEXT("CircleDOFSetup1");
 
-	// more precision for additive blending and we need the alpha channel
-	Ret.Format = PF_FloatRGBA;
+		// more precision for additive blending and we need the alpha channel
+		Ret.Format = PF_FloatRGBA;
+	}
 
 	return Ret;
 }
@@ -500,7 +515,7 @@ static void TemporalRandom2(FVector2D* RESTRICT const Constant, uint32 FrameNumb
 	Constant->Y = TemporalHalton2(FrameNumber & 1023, 3);
 }
 
-template <uint32 NearBlurEnable, uint32 Quality>
+template <uint32 Quality>
 class FPostProcessCircleDOFPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessCircleDOFPS, Global);
@@ -513,7 +528,6 @@ class FPostProcessCircleDOFPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("ENABLE_NEAR_BLUR"), NearBlurEnable);
 		OutEnvironment.SetDefine(TEXT("QUALITY"), Quality);
 	}
 
@@ -591,21 +605,21 @@ public:
 
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A, B) typedef FPostProcessCircleDOFPS<A, B> FPostProcessCircleDOFPS##A##B; \
-	IMPLEMENT_SHADER_TYPE2(FPostProcessCircleDOFPS##A##B, SF_Pixel);
+#define VARIATION1(A) typedef FPostProcessCircleDOFPS<A> FPostProcessCircleDOFPS##A; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessCircleDOFPS##A, SF_Pixel);
 
-	VARIATION1(0,0)			VARIATION1(1,0)
-	VARIATION1(0,1)	        VARIATION1(1,1)
-	VARIATION1(0,2)         VARIATION1(1,2)
+VARIATION1(0)
+VARIATION1(1)
+VARIATION1(2)
 
 
 #undef VARIATION1
 
-template <uint32 NearBlurEnable, uint32 Quality>
+template <uint32 Quality>
 FShader* FRCPassPostProcessCircleDOF::SetShaderTempl(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessCircleDOFPS<NearBlurEnable, Quality> > PixelShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessCircleDOFPS<Quality> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
@@ -629,8 +643,6 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 		return;
 	}
 
-	uint32 NumRenderTargets = bNearBlurEnabled ? 2 : 1;
-
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
@@ -647,7 +659,7 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 	FIntRect DestRect = SrcRect;
 
 	const FSceneRenderTargetItem& DestRenderTarget0 = PassOutputs[0].RequestSurface(Context);
-	const FSceneRenderTargetItem& DestRenderTarget1 = bNearBlurEnabled ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget1 = SupportSceneAlpha() ? PassOutputs[1].RequestSurface(Context) : FSceneRenderTargetItem();
 
 	// Set the view family's render target/viewport.
 	FTextureRHIParamRef RenderTargets[2] =
@@ -655,6 +667,7 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 		DestRenderTarget0.TargetableTexture,
 		DestRenderTarget1.TargetableTexture
 	};
+	uint32 NumRenderTargets = SupportSceneAlpha() ? 2 : 1;
 	SetRenderTargets(Context.RHICmdList, NumRenderTargets, RenderTargets, FTextureRHIParamRef(), 0, NULL);
 
 	FLinearColor ClearColors[2] = 
@@ -662,6 +675,7 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 		FLinearColor(0, 0, 0, 0),
 		FLinearColor(0, 0, 0, 0)
 	};
+
 	// is optimized away if possible (RT size=view size, )
 	Context.RHICmdList.ClearColorTextures(NumRenderTargets, RenderTargets, ClearColors, DestRect);
 
@@ -679,27 +693,12 @@ void FRCPassPostProcessCircleDOF::Process(FRenderingCompositePassContext& Contex
 	
 
 	FShader* VertexShader = 0;
-
-	if (bNearBlurEnabled)
+	
+	switch (DOFQualityCVarValue)
 	{
-		switch (DOFQualityCVarValue)
-		{
-			case 0:  VertexShader = SetShaderTempl<1, 0>(Context); break;
-			case 3:  VertexShader = SetShaderTempl<1, 1>(Context); break;
-			case 4:  VertexShader = SetShaderTempl<1, 2>(Context); break;
-			default: VertexShader = SetShaderTempl<1, 0>(Context);
-		}
-	}
-	else
-	{
-		switch (DOFQualityCVarValue)
-		{
-			case 0:  VertexShader = SetShaderTempl<0, 0>(Context);
-			case 3:  VertexShader = SetShaderTempl<0, 1>(Context); break;
-			case 4:  VertexShader = SetShaderTempl<0, 2>(Context); break;	
-			default: VertexShader = SetShaderTempl<0, 0>(Context);
-		}
-
+		case 3:  VertexShader = SetShaderTempl<1>(Context); break;
+		case 4:  VertexShader = SetShaderTempl<2>(Context); break;	
+		default: VertexShader = SetShaderTempl<0>(Context);
 	}
 
 	DrawPostProcessPass(
@@ -734,17 +733,32 @@ FPooledRenderTargetDesc FRCPassPostProcessCircleDOF::ComputeOutputDesc(EPassOutp
 	Ret.TargetableFlags &= ~(uint32)TexCreate_UAV;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
 
-	Ret.DebugName = (InPassOutputId == ePId_Output0) ? TEXT("CircleDOF0") : TEXT("CircleDOF1");
+	if (SupportSceneAlpha())
+	{
+		if (InPassOutputId == 0)
+		{
+			Ret.DebugName = TEXT("CircleDOFSceneColor");
+		}
+		else if (InPassOutputId == 1)
+		{
+			Ret.DebugName = TEXT("CircleDOFCoc");
+			Ret.Format = GetInput(ePId_Input1)->GetOutput()->RenderTargetDesc.Format;
+		}
+	}
+	else
+	{
+		Ret.DebugName = (InPassOutputId == ePId_Output0) ? TEXT("CircleDOF0") : TEXT("CircleDOF1");
 
-	// more precision for additive blending and we need the alpha channel
-	Ret.Format = PF_FloatRGBA;
+		// more precision for additive blending and we need the alpha channel
+		Ret.Format = PF_FloatRGBA;
+	}
 
 	return Ret;
 }
 
 
 /** Encapsulates  the Circle DOF recombine pixel shader. */
-template <uint32 NearBlurEnable, uint32 Quality>
+template <uint32 Quality>
 class FPostProcessCircleDOFRecombinePS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessCircleDOFRecombinePS, Global);
@@ -757,7 +771,6 @@ class FPostProcessCircleDOFRecombinePS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		OutEnvironment.SetDefine(TEXT("ENABLE_NEAR_BLUR"), NearBlurEnable);
 		OutEnvironment.SetDefine(TEXT("QUALITY"), Quality);
 	}
 
@@ -825,19 +838,19 @@ public:
 
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A, B) typedef FPostProcessCircleDOFRecombinePS<A, B> FPostProcessCircleDOFRecombinePS##A##B; \
-	IMPLEMENT_SHADER_TYPE2(FPostProcessCircleDOFRecombinePS##A##B, SF_Pixel);
+#define VARIATION1(A) typedef FPostProcessCircleDOFRecombinePS<A> FPostProcessCircleDOFRecombinePS##A; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessCircleDOFRecombinePS##A, SF_Pixel);
 
-	VARIATION1(0,0)			VARIATION1(1,0)
-	VARIATION1(0,1)			VARIATION1(1,1)
+	VARIATION1(0)
+	VARIATION1(1)
 
 #undef VARIATION1
 
-template <uint32 NearBlurEnable, uint32 Quality>
+template <uint32 Quality>
 FShader* FRCPassPostProcessCircleDOFRecombine::SetShaderTempl(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessCircleDOFRecombinePS<NearBlurEnable, Quality> > PixelShader(Context.GetShaderMap());
+	TShaderMapRef<FPostProcessCircleDOFRecombinePS<Quality> > PixelShader(Context.GetShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
@@ -897,16 +910,10 @@ void FRCPassPostProcessCircleDOFRecombine::Process(FRenderingCompositePassContex
 
 	FShader* VertexShader = 0;
 
-	if (bNearBlurEnabled)
-	{
-		if(Quality) VertexShader = SetShaderTempl<1, 1>(Context);
-		  else		VertexShader = SetShaderTempl<1, 0>(Context);
-	}
+	if (Quality)
+		VertexShader = SetShaderTempl<1>(Context);
 	else
-	{
-		if(Quality)	VertexShader = SetShaderTempl<0, 1>(Context);
-		  else		VertexShader = SetShaderTempl<0, 0>(Context);
-	}
+		VertexShader = SetShaderTempl<0>(Context);
 
 	DrawPostProcessPass(
 		Context.RHICmdList,

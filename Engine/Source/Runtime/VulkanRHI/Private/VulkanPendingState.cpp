@@ -192,6 +192,8 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	uint32 LimitMaxSamplers = 1024;
 	uint32 LimitMaxCombinedImageSamplers = 4096;
 	uint32 LimitMaxUniformTexelBuffers = 512;
+	uint32 LimitMaxStorageTexelBuffers = 512;
+	uint32 LimitMaxStorageImage = 512;
 
 	TArray<VkDescriptorPoolSize> Types;
 	VkDescriptorPoolSize* Type = new(Types) VkDescriptorPoolSize;
@@ -218,6 +220,16 @@ FVulkanDescriptorPool::FVulkanDescriptorPool(FVulkanDevice* InDevice)
 	FMemory::Memzero(*Type);
 	Type->type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 	Type->descriptorCount = LimitMaxUniformTexelBuffers;
+
+	Type = new(Types) VkDescriptorPoolSize;
+	FMemory::Memzero(*Type);
+	Type->type = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+	Type->descriptorCount = LimitMaxStorageTexelBuffers;
+
+	Type = new(Types) VkDescriptorPoolSize;
+	FMemory::Memzero(*Type);
+	Type->type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	Type->descriptorCount = LimitMaxStorageImage;
 
 	for (const VkDescriptorPoolSize& PoolSize : Types)
 	{

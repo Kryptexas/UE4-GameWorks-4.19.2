@@ -206,7 +206,7 @@ FPrimitiveViewRelevance FPrimitiveSceneProxy::GetViewRelevance(const FSceneView*
 
 static TAutoConsoleVariable<int32> CVarDeferUniformBufferUpdatesUntilVisible(
 	TEXT("r.DeferUniformBufferUpdatesUntilVisible"),
-	!WITH_EDITOR,
+	1,
 	TEXT("If > 0, then don't update the primitive uniform buffer until it is visible."));
 
 void FPrimitiveSceneProxy::UpdateUniformBufferMaybeLazy()

@@ -123,9 +123,6 @@ struct FMaterialPixelParameters
 	/** Interpolated vertex color, in linear color space. */
 	half4 VertexColor;
 
-	/** Normalized tangent space normal. */
-	half3 TangentNormal;
-
 	/** Normalized world space normal. */
 	half3 WorldNormal;
 
@@ -345,7 +342,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	return Parameters.ScreenPosition;
 }
 
-#if DEFERRED_DECAL && NUM_MATERIAL_TEXCOORDS
+#if DECAL_PRIMITIVE && NUM_MATERIAL_TEXCOORDS
 	/*
 	 * Material node DecalMipmapLevel's code designed to avoid the 2x2 pixels artefacts on the edges around where the decal
 	 * is projected to. The technique is fetched from (http://www.humus.name/index.php?page=3D&ID=84).
@@ -405,7 +402,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 		float MaxDiff = max(dot(UvPixelDiffX, UvPixelDiffX), dot(UvPixelDiffY, UvPixelDiffY));
 		return 0.5 * log2(MaxDiff);
 	}
-#else // DEFERRED_DECAL && NUM_MATERIAL_TEXCOORDS
+#else // DECAL_PRIMITIVE && NUM_MATERIAL_TEXCOORDS
 	float2 ComputeDecalDDX(FMaterialPixelParameters Parameters)
 	{
 		return 0.0f;
@@ -420,9 +417,9 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	{
 		return 0.0f;
 	}
-#endif // DEFERRED_DECAL && NUM_MATERIAL_TEXCOORDS
+#endif // DECAL_PRIMITIVE && NUM_MATERIAL_TEXCOORDS
 
-#if DEFERRED_DECAL
+#if DECAL_PRIMITIVE
 	/*
 	 * Deferred decal don't have a Primitive uniform buffer, because we don't know on which primitive the decal
 	 * is being projected to. But the user may still need to get the decal's actor world position.
@@ -438,7 +435,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	{
 		return Primitive.ActorWorldPosition;
 	}
-#endif // DEFERRED_DECAL
+#endif // DECAL_PRIMITIVE
 
 #if DECAL_PRIMITIVE
 	float DecalLifetimeOpacity()
@@ -1539,6 +1536,35 @@ float GetMaterialPixelDepthOffset(FPixelMaterialInputs PixelMaterialInputs)
 	return PixelMaterialInputs.PixelDepthOffset;
 }
 
+#if DECAL_PRIMITIVE
+
+float3 TransformTangentNormalToWorld(in FMaterialPixelParameters Parameters, float3 TangentNormal)
+{
+	// To transform the normals use tranpose(Inverse(DecalToWorld)) = transpose(WorldToDecal)
+	// But we want to only rotate the normals (we don't want to non-uniformaly scale them).
+	// We assume the matrix is only a scale and rotation, and we remove non-uniform scale:
+	float3 lengthSqr = { length2(DecalToWorld._m00_m01_m02),
+							length2(DecalToWorld._m10_m11_m12),
+							length2(DecalToWorld._m20_m21_m22) };
+
+	float3 scale = rsqrt(lengthSqr);
+				
+	// Pre-multiply by the inverse of the non-uniform scale in DecalToWorld
+	float4 ScaledNormal = float4(-TangentNormal.z * scale.x, TangentNormal.y * scale.y, TangentNormal.x * scale.z, 0.f);
+
+	// Compute the normal 
+	return normalize(mul(ScaledNormal, DecalToWorld).xyz);
+}
+
+#else //DECAL_PRIMITIVE
+
+float3 TransformTangentNormalToWorld(in FMaterialPixelParameters Parameters, float3 TangentNormal)
+{
+	return normalize(float3(TransformTangentVectorToWorld(Parameters.TangentToWorld, TangentNormal)));
+}
+
+#endif //DECAL_PRIMITIVE
+
 void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out FPixelMaterialInputs PixelMaterialInputs)
 {
 	// Initial calculations (required for Normal)
@@ -1550,26 +1576,25 @@ void CalcPixelMaterialInputs(in out FMaterialPixelParameters Parameters, in out 
 	float3 MaterialNormal = GetMaterialNormal(Parameters, PixelMaterialInputs);
 
 #if MATERIAL_TANGENTSPACENORMAL
-
 #if SIMPLE_FORWARD_SHADING
-	// Drop normal with simple forward shading for scalability
-	MaterialNormal = float3(0, 0, 1);
+	Parameters.WorldNormal = float3(0, 0, 1);
 #endif
-
-	// flip the normal for backfaces being rendered with a two-sided material
-	Parameters.TangentNormal = MaterialNormal * Parameters.TwoSidedSign;
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	// ES2 will rely on only the final normalize for performance
-	Parameters.TangentNormal = normalize(Parameters.TangentNormal);
+	MaterialNormal = normalize(MaterialNormal);
 #endif
 
 	// normalizing after the tangent space to world space conversion improves quality with sheared bases (UV layout to WS causes shrearing)
 	// use full precision normalize to avoid overflows
-	Parameters.WorldNormal = normalize(float3(TransformTangentVectorToWorld(Parameters.TangentToWorld, Parameters.TangentNormal)));
-#else
-	// Here we don't supoport two sided materials
-	Parameters.TangentNormal = Parameters.WorldNormal = normalize(MaterialNormal);
+	Parameters.WorldNormal = TransformTangentNormalToWorld(Parameters, MaterialNormal);
+#else //MATERIAL_TANGENTSPACENORMAL
+	Parameters.WorldNormal = normalize(MaterialNormal);
+#endif //MATERIAL_TANGENTSPACENORMAL
+
+#if MATERIAL_TANGENTSPACENORMAL
+	// flip the normal for backfaces being rendered with a two-sided material
+	Parameters.WorldNormal *= Parameters.TwoSidedSign;
 #endif
 
 	Parameters.ReflectionVector = ReflectionAboutCustomWorldNormal(Parameters, Parameters.WorldNormal, false);

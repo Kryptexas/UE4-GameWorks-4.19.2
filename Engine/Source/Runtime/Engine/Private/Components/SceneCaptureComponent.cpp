@@ -602,6 +602,7 @@ UPlanarReflectionComponent::UPlanarReflectionComponent(const FObjectInitializer&
 	ProjectionWithExtraFOV[1] = FMatrix::Identity;
 
 	ShowFlags.SetLightShafts(0);
+	ShowFlags.SetContactShadows(0);
 
 	NextPlanarReflectionId++;
 	PlanarReflectionId = NextPlanarReflectionId;

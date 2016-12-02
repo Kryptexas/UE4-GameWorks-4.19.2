@@ -3282,7 +3282,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 		EngineShowFlags)
 		.SetWorldTimes( TimeSeconds, DeltaTimeSeconds, RealTimeSeconds )
 		.SetRealtimeUpdate( IsRealtime() )
-		.SetViewModeParam( ViewModeParam ) );
+		.SetViewModeParam( ViewModeParam, ViewModeParamName ) );
 
 	ViewFamily.EngineShowFlags = EngineShowFlags;
 
@@ -4691,13 +4691,21 @@ void FEditorViewportClient::SetRealtimePreview()
 void FEditorViewportClient::SetViewMode(EViewModeIndex InViewModeIndex)
 {
 	ViewModeParam = -1; // Reset value when the viewmode changes
+	ViewModeParamName = NAME_None;
+	ViewModeParamNameMap.Empty();
 
 	if (IsPerspective())
 	{
+
 		if (InViewModeIndex == VMI_PrimitiveDistanceAccuracy || InViewModeIndex == VMI_MeshUVDensityAccuracy || InViewModeIndex == VMI_MaterialTextureScaleAccuracy)
 		{
 			FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld(), InViewModeIndex);
 		}
+		else // Otherwise compile any required shader if needed.
+		{
+			FEditorBuildUtils::CompileViewModeShaders(GetWorld(), InViewModeIndex);
+		}
+			 
 		PerspViewModeIndex = InViewModeIndex;
 		ApplyViewMode(PerspViewModeIndex, true, EngineShowFlags);
 		bForcingUnlitForNewMap = false;
@@ -4733,7 +4741,24 @@ void FEditorViewportClient::SetViewModes(const EViewModeIndex InPerspViewModeInd
 void FEditorViewportClient::SetViewModeParam(int32 InViewModeParam)
 {
 	ViewModeParam = InViewModeParam;
+	FName* BoundName = ViewModeParamNameMap.Find(ViewModeParam);
+	ViewModeParamName = BoundName ? *BoundName : FName();
+
 	Invalidate();
+}
+
+bool FEditorViewportClient::IsViewModeParam(int32 InViewModeParam) const
+{
+	const FName* MappedName = ViewModeParamNameMap.Find(ViewModeParam);
+	// Check if the param and names match. The param name only gets updated on click, while the map is built at menu creation.
+	if (MappedName)
+	{
+		return ViewModeParam == InViewModeParam && ViewModeParamName == *MappedName;
+	}
+	else
+	{
+		return ViewModeParam == InViewModeParam && ViewModeParamName == NAME_None;
+	}
 }
 
 EViewModeIndex FEditorViewportClient::GetViewMode() const
@@ -4955,7 +4980,7 @@ void FEditorViewportClient::ProcessScreenShots(FViewport* InViewport)
 				GetScene(),
 				EngineShowFlags)
 				.SetRealtimeUpdate(IsRealtime())
-				.SetViewModeParam(ViewModeParam));
+				.SetViewModeParam(ViewModeParam, ViewModeParamName));
 			auto* ViewportBak = Viewport;
 			Viewport = InViewport;
 			FSceneView* View = CalcSceneView(&ViewFamily);

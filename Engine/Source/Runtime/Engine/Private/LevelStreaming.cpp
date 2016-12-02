@@ -574,6 +574,9 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 
 				Level->HandleLegacyMapBuildData();
 
+				// Notify the streamer to start building incrementally the level streaming data.
+				IStreamingManager::Get().AddLevel(Level);
+
 				// Make sure this level will start to render only when it will be fully added to the world
 				if (LODPackageNames.Num() > 0)
 				{

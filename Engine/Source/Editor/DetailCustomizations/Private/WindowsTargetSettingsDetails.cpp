@@ -61,6 +61,14 @@ static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 	{
 		FriendlyRHIName = LOCTEXT("OpenGL3", "OpenGL 3 (SM4)");
 	}
+	else if (InRHIName == TEXT("GLSL_150_ES2"))
+	{
+		FriendlyRHIName = LOCTEXT("OpenGL3ES2", "OpenGL 3 (ES2)");
+	}
+	else if (InRHIName == TEXT("GLSL_150_ES31"))
+	{
+		FriendlyRHIName = LOCTEXT("OpenGL3ES2", "OpenGL 3 (ES3.1, Experimental)");
+	}
 	else if (InRHIName == TEXT("GLSL_430"))
 	{
 		FriendlyRHIName = LOCTEXT("OpenGL4", "OpenGL 4 (SM5, Experimental)");
@@ -75,7 +83,7 @@ static FText GetFriendlyNameFromRHIName(const FString& InRHIName)
 	}
 	else if (InRHIName == TEXT("SF_VULKAN_SM5"))
 	{
-		FriendlyRHIName = LOCTEXT("VulkanSM5", "Vulkan (SM5)");
+		FriendlyRHIName = LOCTEXT("VulkanSM5", "Vulkan Desktop (SM5, Highly Experimental!)");
 	}
 	else if (InRHIName == TEXT("GLSL_SWITCH"))
 	{

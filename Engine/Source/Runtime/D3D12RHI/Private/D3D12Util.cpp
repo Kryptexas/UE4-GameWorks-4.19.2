@@ -308,10 +308,10 @@ namespace D3D12RHI
 
 void FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(const D3D12_RESOURCE_BINDING_TIER& ResourceBindingTier, const FShaderCodePackedResourceCounts& Counts, FShaderRegisterCounts& Shader, bool bAllowUAVs)
 {
-	static const uint32 MaxSamplerCount = D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT;
+	static const uint32 MaxSamplerCount = MAX_SAMPLERS;
 	static const uint32 MaxConstantBufferCount = MAX_CBS;
 	static const uint32 MaxShaderResourceCount = MAX_SRVS;
-	static const uint32 MaxUnorderedAccessCount = D3D12_PS_CS_UAV_REGISTER_COUNT;
+	static const uint32 MaxUnorderedAccessCount = MAX_UAVS;
 
 	// Round up and clamp values to their max
 	// Note: Rounding and setting counts based on binding tier allows us to create fewer root signatures.
@@ -338,7 +338,7 @@ void FD3D12QuantizedBoundShaderState::InitShaderRegisterCounts(const D3D12_RESOU
 	}
 	else
 	{
-		Shader.ConstantBufferCount = MaxConstantBufferCount;
+		Shader.ConstantBufferCount = (Counts.NumCBs > MAX_ROOT_CBVS) ? MaxConstantBufferCount : Counts.NumCBs;
 		Shader.UnorderedAccessCount = (bAllowUAVs) ? MaxUnorderedAccessCount : 0;
 	}
 }
@@ -721,29 +721,35 @@ bool AssertResourceState(ID3D12CommandList* pCommandList, FD3D12Resource* pResou
 //
 
 DEFINE_STAT(STAT_D3D12PresentTime);
+
+DEFINE_STAT(STAT_D3D12NumCommandAllocators);
+DEFINE_STAT(STAT_D3D12NumCommandLists);
 DEFINE_STAT(STAT_D3D12NumPSOs);
+
 DEFINE_STAT(STAT_D3D12TexturesAllocated);
 DEFINE_STAT(STAT_D3D12TexturesReleased);
-DEFINE_STAT(STAT_D3D12ClearShaderResourceTime);
 DEFINE_STAT(STAT_D3D12CreateTextureTime);
 DEFINE_STAT(STAT_D3D12LockTextureTime);
 DEFINE_STAT(STAT_D3D12UnlockTextureTime);
-DEFINE_STAT(STAT_D3D12CopyTextureTime);
+DEFINE_STAT(STAT_D3D12LockBufferTime);
+DEFINE_STAT(STAT_D3D12UnlockBufferTime);
+
 DEFINE_STAT(STAT_D3D12NewBoundShaderStateTime);
 DEFINE_STAT(STAT_D3D12CreateBoundShaderStateTime);
-DEFINE_STAT(STAT_D3D12CleanUniformBufferTime);
-DEFINE_STAT(STAT_D3D12UpdateUniformBufferTime);
-DEFINE_STAT(STAT_D3D12TexturePoolMemory);
-DEFINE_STAT(STAT_D3D12FreeUniformBufferMemory);
-DEFINE_STAT(STAT_D3D12NumFreeUniformBuffers);
 DEFINE_STAT(STAT_D3D12NumBoundShaderState);
+DEFINE_STAT(STAT_D3D12SetBoundShaderState);
+
+DEFINE_STAT(STAT_D3D12UpdateUniformBufferTime);
 
 DEFINE_STAT(STAT_D3D12CommitResourceTables);
-DEFINE_STAT(STAT_D3D12CacheResourceTables);
-DEFINE_STAT(STAT_D3D12CacheResourceTableCalls);
-DEFINE_STAT(STAT_D3D12SetShaderTextureTime);
-DEFINE_STAT(STAT_D3D12SetShaderTextureCalls);
 DEFINE_STAT(STAT_D3D12SetTextureInTableCalls);
+
+DEFINE_STAT(STAT_D3D12ClearShaderResourceViewsTime);
+DEFINE_STAT(STAT_D3D12SetShaderResourceViewTime);
+DEFINE_STAT(STAT_D3D12SetUnorderedAccessViewTime);
+DEFINE_STAT(STAT_D3D12CommitGraphicsConstants);
+DEFINE_STAT(STAT_D3D12CommitComputeConstants);
+DEFINE_STAT(STAT_D3D12SetShaderUniformBuffer);
 
 DEFINE_STAT(STAT_D3D12ApplyStateTime);
 DEFINE_STAT(STAT_D3D12ApplyStateRebuildPSOTime);
@@ -754,12 +760,10 @@ DEFINE_STAT(STAT_D3D12ApplyStateSetVertexBufferTime);
 DEFINE_STAT(STAT_D3D12ApplyStateSetConstantBufferTime);
 DEFINE_STAT(STAT_D3D12PSOCreateTime);
 DEFINE_STAT(STAT_D3D12ClearMRT);
-DEFINE_STAT(STAT_D3D12CommitGraphicsConstants);
-DEFINE_STAT(STAT_D3D12SetShaderUniformBuffer);
-DEFINE_STAT(STAT_D3D12SetBoundShaderState);
+
 DEFINE_STAT(STAT_D3D12ExecuteCommandListTime);
 DEFINE_STAT(STAT_D3D12WaitForFenceTime);
-DEFINE_STAT(STAT_D3D12ResourceCleanUpTime);
+
 DEFINE_STAT(STAT_D3D12UsedVideoMemory);
 DEFINE_STAT(STAT_D3D12AvailableVideoMemory);
 DEFINE_STAT(STAT_D3D12TotalVideoMemory);

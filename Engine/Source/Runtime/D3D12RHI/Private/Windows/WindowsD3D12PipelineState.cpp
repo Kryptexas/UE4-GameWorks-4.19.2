@@ -46,16 +46,13 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* Graphic
 		DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&RSBlobLength, sizeof(*RSBlobLength));
 		if (RSBlobLength > 0)
 		{
-			void* RSBlobData = nullptr;
-			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&RSBlobData, *RSBlobLength);
-
-			// Create the root signature
-			const HRESULT CreateRootSignatureHR = Adapter->GetD3DDevice()->CreateRootSignature(Adapter->ActiveGPUMask(), RSBlobData, *RSBlobLength, IID_PPV_ARGS(&PSODesc->pRootSignature));
-			if (FAILED(CreateRootSignatureHR))
-			{
-				// The cache has failed, build PSOs at runtime
-				return;
-			}
+			FD3D12QuantizedBoundShaderState* QBSS = nullptr;
+			DiskCaches[PSO_CACHE_GRAPHICS].SetPointerAndAdvanceFilePosition((void**)&QBSS, sizeof(*QBSS));
+			
+			FD3D12RootSignatureManager* const RootSignatureManager = GetParentAdapter()->GetRootSignatureManager();
+			FD3D12RootSignature* const RootSignature = RootSignatureManager->GetRootSignature(*QBSS);
+			PSODesc->pRootSignature = RootSignature->GetRootSignature();
+			check(PSODesc->pRootSignature);
 		}
 		if (PSODesc->InputLayout.NumElements)
 		{
@@ -133,16 +130,13 @@ void FD3D12PipelineStateCache::RebuildFromDiskCache(ID3D12RootSignature* Graphic
 		DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&RSBlobLength, sizeof(*RSBlobLength));
 		if (RSBlobLength > 0)
 		{
-			void* RSBlobData = nullptr;
-			DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&RSBlobData, *RSBlobLength);
+			FD3D12QuantizedBoundShaderState* QBSS = nullptr;
+			DiskCaches[PSO_CACHE_COMPUTE].SetPointerAndAdvanceFilePosition((void**)&QBSS, sizeof(*QBSS));
 
-			// Create the root signature
-			const HRESULT CreateRootSignatureHR = Adapter->GetD3DDevice()->CreateRootSignature(Adapter->ActiveGPUMask(), RSBlobData, *RSBlobLength, IID_PPV_ARGS(&PSODesc->pRootSignature));
-			if (FAILED(CreateRootSignatureHR))
-			{
-				// The cache has failed, build PSOs at runtime
-				return;
-			}
+			FD3D12RootSignatureManager* const RootSignatureManager = GetParentAdapter()->GetRootSignatureManager();
+			FD3D12RootSignature* const RootSignature = RootSignatureManager->GetRootSignature(*QBSS);
+			PSODesc->pRootSignature = RootSignature->GetRootSignature();
+			check(PSODesc->pRootSignature);
 		}
 		if (PSODesc->CS.BytecodeLength)
 		{
@@ -234,6 +228,7 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindGraphicsLowLevel(FD3D12LowLev
 		}
 		else
 		{
+			check(false);
 			UE_LOG(LogD3D12RHI, Warning, TEXT("PSO re-creation failed. Most likely on disk descriptor corruption."));
 			for (uint32 i = 0; i < NUM_PSO_CACHE_TYPES; i++)
 			{
@@ -266,6 +261,7 @@ FD3D12PipelineState* FD3D12PipelineStateCache::FindCompute(FD3D12ComputePipeline
 		}
 		else
 		{
+			check(false);
 			UE_LOG(LogD3D12RHI, Warning, TEXT("PSO re-creation failed. Most likely on disk descriptor corruption."));
 			for (uint32 i = 0; i < NUM_PSO_CACHE_TYPES; i++)
 			{
@@ -308,9 +304,11 @@ FD3D12PipelineState* FD3D12PipelineStateCache::Add(const GraphicsPipelineCreatio
 		DiskCaches[PSO_CACHE_GRAPHICS].AppendData((void*)(&RSBlobLength), sizeof(RSBlobLength));
 		if (RSBlobLength > 0)
 		{
-			// Save the root signature
+			// Save the quantized bound shader state so we can use the root signature manager to deduplicate and handle root signature creation.
 			check(Args.Args.Desc->pRootSignature->GetRootSignature() == PsoDesc.pRootSignature);
-			DiskCaches[PSO_CACHE_GRAPHICS].AppendData(pRSBlob->GetBufferPointer(), RSBlobLength);
+			FD3D12RootSignatureManager* const RootSignatureManager = GetParentAdapter()->GetRootSignatureManager();
+			const FD3D12QuantizedBoundShaderState QBSS = RootSignatureManager->GetQuantizedBoundShaderState(Args.Args.Desc->pRootSignature);
+			DiskCaches[PSO_CACHE_GRAPHICS].AppendData(&QBSS, sizeof(QBSS));
 		}
 		if (PsoDesc.InputLayout.NumElements)
 		{
@@ -396,10 +394,12 @@ FD3D12PipelineState* FD3D12PipelineStateCache::Add(const ComputePipelineCreation
 		DiskCaches[PSO_CACHE_COMPUTE].AppendData((void*)(&RSBlobLength), sizeof(RSBlobLength));
 		if (RSBlobLength > 0)
 		{
-			// Save the root signature
+			// Save the quantized bound shader state so we can use the root signature manager to deduplicate and handle root signature creation.
 			CA_SUPPRESS(6011);
 			check(Args.Args.Desc->pRootSignature->GetRootSignature() == PsoDesc.pRootSignature);
-			DiskCaches[PSO_CACHE_COMPUTE].AppendData(pRSBlob->GetBufferPointer(), RSBlobLength);
+			FD3D12RootSignatureManager* const RootSignatureManager = GetParentAdapter()->GetRootSignatureManager();
+			const FD3D12QuantizedBoundShaderState QBSS = RootSignatureManager->GetQuantizedBoundShaderState(Args.Args.Desc->pRootSignature);
+			DiskCaches[PSO_CACHE_COMPUTE].AppendData(&QBSS, sizeof(QBSS));
 		}
 		if (PsoDesc.CS.BytecodeLength)
 		{
@@ -514,7 +514,7 @@ void FD3D12PipelineStateCache::Init(FString &GraphicsCacheFilename, FString &Com
 
 			if (pLibraryBlob)
 			{
-				UE_LOG(LogD3D12RHI, Log, TEXT("Creating Pipeline Library from existing disk cache (%llu KiB containing %u PSOs)."), LibrarySize / 1024ll, DriverShaderBlobs);
+				UE_LOG(LogD3D12RHI, Log, TEXT("Creating Pipeline Library from existing disk cache (%llu KiB)."), LibrarySize / 1024ll);
 			}
 			else
 			{

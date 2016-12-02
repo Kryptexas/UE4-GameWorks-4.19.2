@@ -274,7 +274,8 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, Device(InDevice)
 	, bIsImmediate(bInIsImmediate)
 	, bSubmitAtNextSafePoint(false)
-	, UBRingBuffer(nullptr)
+	, bAutomaticFlushAfterComputeShader(true)
+	, UniformBufferUploader(nullptr)
 	, PendingNumVertices(0)
 	, PendingVertexDataStride(0)
 	, PendingPrimitiveIndexType(VK_INDEX_TYPE_MAX_ENUM)
@@ -299,7 +300,7 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
 	DescriptorPools.Add(Pool);
 
-	UBRingBuffer = new FVulkanRingBuffer(InDevice, VULKAN_UB_RING_BUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	UniformBufferUploader = new FVulkanUniformBufferUploader(Device, VULKAN_UB_RING_BUFFER_SIZE);
 }
 
 FVulkanCommandListContext::~FVulkanCommandListContext()
@@ -310,7 +311,7 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 
 	TransitionState.Destroy(*Device);
 
-	delete UBRingBuffer;
+	delete UniformBufferUploader;
 	delete PendingGfxState;
 	delete PendingComputeState;
 
@@ -1114,7 +1115,7 @@ void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat 
 	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
 	ViewInfo.offset = Offset;
 	ViewInfo.range = Size;
-	Flags = Buffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+	Flags = Buffer->GetBufferUsageFlags() & (VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
 	check(Flags);
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
@@ -1255,14 +1256,14 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 		1, &ResolveDesc);
 }
 
-FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, VkFlags Usage)
+FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, VkFlags Usage, VkMemoryPropertyFlags MemPropertyFlags)
 	: VulkanRHI::FDeviceChild(InDevice)
 	, BufferOffset(0)
 	, BufferSize(TotalSize)
 	, MinAlignment(0)
 {
 	FRHIResourceCreateInfo CreateInfo;
-	BufferSuballocation = InDevice->GetResourceHeapManager().AllocateBuffer(TotalSize, Usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, __FILE__, __LINE__);
+	BufferSuballocation = InDevice->GetResourceHeapManager().AllocateBuffer(TotalSize, Usage, MemPropertyFlags, __FILE__, __LINE__);
 	MinAlignment = BufferSuballocation->GetBufferAllocation()->GetAlignment();
 }
 

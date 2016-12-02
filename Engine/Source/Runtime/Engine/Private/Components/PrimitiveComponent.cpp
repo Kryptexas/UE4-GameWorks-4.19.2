@@ -252,8 +252,8 @@ void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextu
 		}
 		else
 		{
-			// Other wise check that everything is setup right.
-			const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && Info.Bounds.SphereRadius > SMALL_NUMBER && ensure(FMath::IsFinite(Info.TexelFactor));
+			// Other wise check that everything is setup right. If the component is not yet registered, then the bound data is irrelevant.
+			const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && (Info.Bounds.SphereRadius > SMALL_NUMBER || !IsRegistered()) && ensure(FMath::IsFinite(Info.TexelFactor));
 			if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
 			{
 				OutStreamingTextures.RemoveAt(Index--);

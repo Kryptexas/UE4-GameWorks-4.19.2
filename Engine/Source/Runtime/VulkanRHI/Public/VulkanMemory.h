@@ -358,6 +358,19 @@ namespace VulkanRHI
 		friend class FOldResourceHeapPage;
 	};
 
+	struct FRange
+	{
+		uint32 Offset;
+		uint32 Size;
+
+		inline bool operator<(const FRange& In) const
+		{
+			return Offset < In.Offset;
+		}
+
+		static void JoinConsecutiveRanges(TArray<FRange>& Ranges);
+	};
+
 	// One device allocation that is shared amongst different resources
 	class FOldResourceHeapPage
 	{
@@ -392,17 +405,7 @@ namespace VulkanRHI
 
 		bool JoinFreeBlocks();
 
-		struct FPair
-		{
-			uint32 Offset;
-			uint32 Size;
-
-			inline bool operator<(const FPair& In) const
-			{
-				return Offset < In.Offset;
-			}
-		};
-		TArray<FPair> FreeList;
+		TArray<FRange> FreeList;
 		friend class FOldResourceHeap;
 	};
 
@@ -488,10 +491,10 @@ namespace VulkanRHI
 			, UsedSize(0)
 		{
 			MaxSize = InDeviceMemoryAllocation->GetSize();
-			FPair Pair;
-			Pair.Offset = 0;
-			Pair.Size = MaxSize;
-			FreeList.Add(Pair);
+			FRange FullRange;
+			FullRange.Offset = 0;
+			FullRange.Size = MaxSize;
+			FreeList.Add(FullRange);
 		}
 
 		virtual ~FSubresourceAllocator() {}
@@ -528,18 +531,8 @@ namespace VulkanRHI
 		int64 UsedSize;
 		static FCriticalSection CS;
 
-		struct FPair
-		{
-			uint32 Offset;
-			uint32 Size;
-
-			bool operator<(const FPair& In) const
-			{
-				return Offset < In.Offset;
-			}
-		};
 		// List of free ranges
-		TArray<FPair> FreeList;
+		TArray<FRange> FreeList;
 
 		// Active sub-allocations
 		TArray<FResourceSuballocation*> Suballocations;
@@ -657,6 +650,16 @@ namespace VulkanRHI
 			return Owner;
 		}
 
+		inline bool IsHostCachedSupported() const
+		{
+			return bIsHostCachedSupported;
+		}
+
+		inline bool IsLazilyAllocatedSupported() const
+		{
+			return bIsLazilyAllocatedSupported;
+		}
+
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		void DumpMemory();
 #endif
@@ -664,6 +667,9 @@ namespace VulkanRHI
 	protected:
 		FResourceHeapManager* Owner;
 		uint32 MemoryTypeIndex;
+
+		bool bIsHostCachedSupported;
+		bool bIsLazilyAllocatedSupported;
 
 		uint32 DefaultPageSize;
 		uint32 PeakPageSize;
@@ -727,6 +733,20 @@ namespace VulkanRHI
 			{
 				UE_LOG(LogVulkanRHI, Fatal, TEXT("Missing memory type index %d, MemSize %d, MemPropTypeBits %u, MemPropertyFlags %u, %s(%d)"), TypeIndex, (uint32)MemoryReqs.size, (uint32)MemoryReqs.memoryTypeBits, (uint32)MemoryPropertyFlags, ANSI_TO_TCHAR(File), Line);
 			}
+
+			if (!ResourceTypeHeaps[TypeIndex]->IsHostCachedSupported())
+			{
+				//remove host cached bit if device does not support it
+				//it should only affect perf
+				MemoryPropertyFlags = MemoryPropertyFlags & ~VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+			}
+			if (!ResourceTypeHeaps[TypeIndex]->IsLazilyAllocatedSupported())
+			{
+				//remove lazily bit if device does not support it
+				//it should only affect perf
+				MemoryPropertyFlags = MemoryPropertyFlags & ~VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+			}
+
 			FOldResourceAllocation* Allocation = ResourceTypeHeaps[TypeIndex]->AllocateResource(MemoryReqs.size, MemoryReqs.alignment, false, bMapped, File, Line);
 			if (!Allocation)
 			{

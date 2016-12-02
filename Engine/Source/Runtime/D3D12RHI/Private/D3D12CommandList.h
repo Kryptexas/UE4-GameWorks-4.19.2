@@ -10,18 +10,33 @@ D3D12CommandList.h: Implementation of D3D12 Command List functions
 
 class FD3D12Device;
 
-class FD3D12CommandAllocator
+class FD3D12CommandAllocator : public FNoncopyable
 {
 public:
-	FD3D12CommandAllocator(ID3D12Device* InDevice, const D3D12_COMMAND_LIST_TYPE& InType);
+	explicit FD3D12CommandAllocator(ID3D12Device* InDevice, const D3D12_COMMAND_LIST_TYPE& InType);
+	~FD3D12CommandAllocator();
 
-	// The command allocator is ready to be used (or reset) when the GPU not using it.
-	inline bool IsReady() const { return SyncPoint.IsComplete(); }
+	// The command allocator is ready to be reset when all command lists have been executed (or discarded) AND the GPU not using it.
+	inline bool IsReady() const { return (PendingCommandListCount.GetValue() == 0) && SyncPoint.IsComplete(); }
 	inline bool HasValidSyncPoint() const { return SyncPoint.IsValid(); }
 	inline void SetSyncPoint(const FD3D12SyncPoint& InSyncPoint) { check(InSyncPoint.IsValid()); SyncPoint = InSyncPoint; }
 	inline void Reset() { check(IsReady()); VERIFYD3D12RESULT(CommandAllocator->Reset()); }
-	ID3D12CommandAllocator* GetCommandAllocator() { return CommandAllocator.GetReference(); }
-	ID3D12CommandAllocator** GetCommandAllocatorInitReference() { return CommandAllocator.GetInitReference(); }
+
+	operator ID3D12CommandAllocator*() { return CommandAllocator.GetReference(); }
+
+	// Called to indicate a command list is using this command alloctor
+	inline void IncrementPendingCommandLists()
+	{
+		check(PendingCommandListCount.GetValue() >= 0);
+		PendingCommandListCount.Increment();
+	}
+
+	// Called to indicate a command list using this allocator has been executed OR discarded (closed with no intention to execute it).
+	inline void DecrementPendingCommandLists()
+	{
+		check(PendingCommandListCount.GetValue() > 0);
+		PendingCommandListCount.Decrement();
+	}
 
 private:
 	void Init(ID3D12Device* InDevice, const D3D12_COMMAND_LIST_TYPE& InType);
@@ -29,13 +44,14 @@ private:
 private:
 	TRefCountPtr<ID3D12CommandAllocator> CommandAllocator;
 	FD3D12SyncPoint SyncPoint;	// Indicates when the GPU is finished using the command allocator.
+	FThreadSafeCounter PendingCommandListCount;	// The number of command lists using this allocator but haven't been executed yet.
 };
 
 class FD3D12CommandListHandle
 {
 private:
 
-	class FD3D12CommandListData : public FD3D12DeviceChild, public FD3D12SingleNodeGPUObject
+	class FD3D12CommandListData : public FD3D12DeviceChild, public FD3D12SingleNodeGPUObject, public FNoncopyable
 	{
 	public:
 
@@ -60,10 +76,13 @@ private:
 		// Note: Command lists can be reset immediately after they are submitted for execution.
 		void Reset(FD3D12CommandAllocator& CommandAllocator)
 		{
-			VERIFYD3D12RESULT(CommandList->Reset(CommandAllocator.GetCommandAllocator(), nullptr));
+			VERIFYD3D12RESULT(CommandList->Reset(CommandAllocator, nullptr));
 
 			CurrentCommandAllocator = &CommandAllocator;
 			IsClosed = false;
+
+			// Indicate this command allocator is being used.
+			CurrentCommandAllocator->IncrementPendingCommandLists();
 
 			CleanupActiveGenerations();
 

@@ -15,6 +15,7 @@
 #include "PostProcess/SceneFilterRendering.h"
 #include "CompositionLighting/PostProcessAmbientOcclusion.h"
 #include "PostProcess/PostProcessing.h"
+#include "DeferredShadingRenderer.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarMotionBlurFiltering(
@@ -721,7 +722,10 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlur::ComputeOutputDesc(EPassOut
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
-	Ret.Format = PF_FloatRGB;
+	if (!SupportSceneAlpha())
+	{
+		Ret.Format = PF_FloatRGB;
+	}
 	Ret.DebugName = TEXT("MotionBlur");
 	Ret.AutoWritable = false;
 

@@ -10,6 +10,7 @@
 #include "RendererInterface.h"
 
 class FPrimitiveSceneProxy;
+struct FDrawingPolicyRenderState;
 
 /** 
 * Set of distortion scene prims  
@@ -24,7 +25,7 @@ public:
 	* @param DPGIndex - current DPG used to draw items
 	* @return true if anything was drawn
 	*/
-	bool DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, bool bInitializeOffsets);
+	bool DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, bool bInitializeOffsets);
 
 	/**
 	* Adds a new primitives to the list of distortion prims

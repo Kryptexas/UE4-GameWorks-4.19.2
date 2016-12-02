@@ -19,6 +19,8 @@ FStreamingTexture::FStreamingTexture(UTexture2D* InTexture, const int32 NumStrea
 	LastRenderTimeRefCount = 0;
 	DynamicBoostFactor = 1.f;
 
+	bHasUpdatePending = InTexture && InTexture->bHasStreamingUpdatePending;
+
 	bForceFullyLoadHeuristic = false;
 	NumMissingMips = 0;
 	bLooksLowRes = false;

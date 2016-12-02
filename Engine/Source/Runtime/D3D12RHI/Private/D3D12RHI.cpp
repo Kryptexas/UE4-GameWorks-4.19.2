@@ -28,15 +28,6 @@ FD3D12DynamicRHI* FD3D12DynamicRHI::SingleD3DRHI = nullptr;
 using namespace D3D12RHI;
 
 FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
-	CommitResourceTableCycles(0),
-	CacheResourceTableCalls(0),
-	CacheResourceTableCycles(0),
-	SetShaderTextureCycles(0),
-	SetShaderTextureCalls(0),
-	SetTextureInTableCalls(0),
-	LockBufferCalls(0),
-	SceneFrameCounter(0),
-	ResourceTableFrameCounter(INDEX_NONE),
 	NumThreadDynamicHeapAllocators(0),
 	ViewportFrameCounter(0),
 	ChosenAdapters(ChosenAdaptersIn)
@@ -175,6 +166,7 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 	GMaxTextureDimensions = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
 	GMaxCubeTextureDimensions = D3D12_REQ_TEXTURECUBE_DIMENSION;
 	GMaxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
+	GRHISupportsMSAADepthSampleAccess = true;
 
 	GMaxTextureMipCount = FMath::CeilLogTwo(GMaxTextureDimensions) + 1;
 	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
@@ -190,13 +182,6 @@ FD3D12DynamicRHI::FD3D12DynamicRHI(TArray<FD3D12Adapter*>& ChosenAdaptersIn) :
 
 	GSupportsTimestampRenderQueries = true;
 	GSupportsParallelOcclusionQueries = true;
-
-	{
-		// Workaround for 4.14. Limit the number of GPU stats on D3D12 due to an issue with high memory overhead with render queries (Jira UE-38139)
-		//@TODO: Remove this when render query issues are fixed
-		static IConsoleVariable* GPUStatsEnabledCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.GPUStatsMaxQueriesPerFrame"));
-		GPUStatsEnabledCVar->Set(1024); // 1024*64KB = 64MB
-	}
 
 	// Enable async compute by default
 	GEnableAsyncCompute = true;
@@ -364,6 +349,7 @@ void FD3D12DynamicRHI::UpdateBuffer(FD3D12Resource* Dest, uint32 DestOffset, FD3
 	// Don't need to transition upload heaps
 
 	DefaultContext.numCopies++;
+	hCommandList.FlushResourceBarriers();
 	hCommandList->CopyBufferRegion(Dest->GetResource(), DestOffset, Source->GetResource(), SourceOffset, NumBytes);
 	hCommandList.UpdateResidency(Dest);
 	hCommandList.UpdateResidency(Source);
@@ -524,4 +510,9 @@ void FD3D12DynamicRHI::RHISwitchToAFRIfApplicable()
 			ViewPort->Resize(Size.X, Size.Y, ViewPort->IsFullscreen());
 		}
 	}
+}
+
+uint32 FD3D12DynamicRHI::GetDebugFlags()
+{
+	return GetAdapter().GetDebugFlags();
 }

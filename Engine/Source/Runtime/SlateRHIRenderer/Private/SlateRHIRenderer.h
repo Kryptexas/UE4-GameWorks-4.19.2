@@ -114,6 +114,12 @@ private:
 		FTexture2DRHIRef UITargetSRV;
 		/** HDR source data */
 		FTexture2DRHIRef HDRSourceSRV;
+
+		/** Color-space LUT for HDR UI composition. */
+		FTexture3DRHIRef ColorSpaceLUTRT;
+		FTexture3DRHIRef ColorSpaceLUTSRV;
+		int32 ColorSpaceLUTOutputDevice;
+		int32 ColorSpaceLUTOutputGamut;
 		
 		//FTexture2DRHIRef RenderTargetTexture;
 		/** The OS Window handle (for recreating the viewport) */
@@ -146,7 +152,9 @@ private:
 		virtual void ReleaseRHI() override;
 
 		FViewportInfo()
-			:	OSWindow(NULL), 
+			:	ColorSpaceLUTOutputDevice(0),
+				ColorSpaceLUTOutputGamut(0),
+				OSWindow(NULL), 
 				Width(0),
 				Height(0),
 				DesiredWidth(0),
@@ -167,6 +175,8 @@ private:
 			HDRSourceRT.SafeRelease();
 			UITargetSRV.SafeRelease();
 			HDRSourceSRV.SafeRelease();
+			ColorSpaceLUTRT.SafeRelease();
+			ColorSpaceLUTSRV.SafeRelease();
 		}
 
 		void ConditionallyUpdateDepthBuffer(bool bInRequiresStencilTest);

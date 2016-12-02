@@ -672,9 +672,9 @@ bool UStaticMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimit
 		MaterialData.Material = GetMaterial(MaterialIndex);
 		MaterialData.UVChannelData = GetStaticMesh()->GetUVChannelData(MaterialIndex);
 #if WITH_EDITORONLY_DATA
-		MaterialData.Bounds = MaterialStreamingBounds.IsValidIndex(MaterialIndex) ?  MaterialStreamingBounds[MaterialIndex] : Bounds.GetBox();
+		MaterialData.PackedRelativeBox = MaterialStreamingRelativeBoxes.IsValidIndex(MaterialIndex) ?  MaterialStreamingRelativeBoxes[MaterialIndex] : PackedRelativeBox_Identity;
 #else
-		MaterialData.Bounds = Bounds.GetBox();
+		MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
 #endif
 	}
 	return MaterialData.IsValid();
@@ -689,25 +689,25 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 	{
 		AActor* ComponentActor = GetOwner();
 
-		if (!bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && GetStaticMesh() && GetStaticMesh()->RenderData)
+		if (!bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && GetStaticMesh() && GetStaticMesh()->RenderData && !bHiddenInGame)
 		{
 			// First generate the bounds. Will be used in the texture streaming build and also in the debug viewmode.
 			const int32 NumMaterials = GetNumMaterials();
 
 			// Build the material bounds if in full rebuild or if the data is incomplete.
-			if (BuildType == TSB_MapBuild || (BuildType == TSB_ViewMode && MaterialStreamingBounds.Num() != NumMaterials))
+			if (BuildType == TSB_MapBuild || (BuildType == TSB_ViewMode && MaterialStreamingRelativeBoxes.Num() != NumMaterials))
 			{
 				// Build the material bounds.
-				MaterialStreamingBounds.Empty(NumMaterials);
+				MaterialStreamingRelativeBoxes.Empty(NumMaterials);
 				for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 				{
-					MaterialStreamingBounds.Add(GetStaticMesh()->GetMaterialBox(MaterialIndex, ComponentToWorld));
+					MaterialStreamingRelativeBoxes.Add(PackRelativeBox(Bounds.GetBox(), GetStaticMesh()->GetMaterialBox(MaterialIndex, ComponentToWorld)));
 				}
 
 				// Update since proxy has a copy of the material bounds.
 				MarkRenderStateDirty();
 			}
-			else if (MaterialStreamingBounds.Num() != NumMaterials)
+			else if (MaterialStreamingRelativeBoxes.Num() != NumMaterials)
 			{
 				bBuildDataValid = false; 
 			}
@@ -719,7 +719,7 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 				if (Level)
 				{
 					// Get the data without any component scaling as the built data does not include scale.
-					FStreamingTextureLevelContext LevelContext(QualityLevel, FeatureLevel);
+					FStreamingTextureLevelContext LevelContext(QualityLevel, FeatureLevel, true); // Use the boxes that were just computed!
 					TArray<FStreamingTexturePrimitiveInfo> UnpackedData;
 					GetStreamingTextureInfoInner(LevelContext, nullptr, 1.f, UnpackedData);
 					PackStreamingTextureData(Level, UnpackedData, StreamingTextureData, Bounds);
@@ -734,6 +734,10 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 				// In that case, check if the component refers a streaming texture. If so, the build data is missing.
 				TArray<UMaterialInterface*> UsedMaterials;
 				GetUsedMaterials(UsedMaterials);
+
+				// Reset the validity here even if the bounds don't fit as the material might not use any streaming textures.
+				// This is required as the texture streaming build only mark levels as dirty if they have texture related data.
+				bBuildDataValid = true; 
 
 				for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 				{
@@ -775,9 +779,9 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 		{
 			StreamingTextureData.Empty();
 
-			if (MaterialStreamingBounds.Num())
+			if (MaterialStreamingRelativeBoxes.Num())
 			{
-				MaterialStreamingBounds.Empty();
+				MaterialStreamingRelativeBoxes.Empty();
 				MarkRenderStateDirty(); // Update since proxy has a copy of the material bounds.
 			}
 		}
@@ -815,6 +819,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext
 			{
 				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
 				StreamingTexture.Bounds		 = Bounds;
+				StreamingTexture.PackedRelativeBox = PackedRelativeBox_Identity; // Set the PackedRelativeBox to incremental level insertion.
 				StreamingTexture.TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
 				StreamingTexture.Texture	 = Lightmap->GetTexture(LightmapIndex);
 			}
@@ -828,6 +833,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext
 			{
 				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
 				StreamingTexture.Bounds		 = Bounds;
+				StreamingTexture.PackedRelativeBox = PackedRelativeBox_Identity;
 				StreamingTexture.TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
 				StreamingTexture.Texture	 = Shadowmap->GetTexture();
 			}

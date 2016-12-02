@@ -63,6 +63,9 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		FViewInfo View(&SceneView);
 		View.InitRHIResources();
 
+		//TODO ResetState
+		FDrawingPolicyRenderState DrawRenderState(&RHICmdList, SceneView);
+
 		const auto FeatureLevel = View.GetFeatureLevel();
 	
 		const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
@@ -78,33 +81,33 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 		{
 			if (FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
-				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(nullptr, ETranslucencyPass::TPT_AllTranslucency, true), Mesh, false, false, NULL, HitProxyId);
+				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(nullptr, ETranslucencyPass::TPT_AllTranslucency, true), Mesh, false, DrawRenderState, NULL, HitProxyId);
 			}
 			else
 			{
-				FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileTranslucencyDrawingPolicyFactory::ContextType(false), Mesh, false, false, NULL, HitProxyId);
+				FMobileTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileTranslucencyDrawingPolicyFactory::ContextType(false), Mesh, false, DrawRenderState, NULL, HitProxyId);
 			}
 		}
 		// handle opaque materials
 		else
 		{
 			// make sure we are doing opaque drawing
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
 
 			// draw the mesh
 			if (bIsHitTesting)
 			{
-				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FHitProxyDrawingPolicyFactory::ContextType(), Mesh, false, DrawRenderState, NULL, HitProxyId);
 			}
 			else
 			{
 				if (FeatureLevel >= ERHIFeatureLevel::SM4)
 				{
-					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, false, NULL, HitProxyId);
+					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, DrawRenderState, NULL, HitProxyId);
 				}
 				else
 				{
-					FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, false, NULL, HitProxyId);
+					FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), Mesh, false, DrawRenderState, NULL, HitProxyId);
 				}
 			}
 		}	

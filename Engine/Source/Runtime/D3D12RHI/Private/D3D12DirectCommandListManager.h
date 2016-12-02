@@ -1,8 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "RHI.h"
-#define DEFAULT_MAIN_POOL_COMMAND_LISTS 3
-#define MAX_ALLOCATED_COMMAND_LISTS 256
 
 //#define DEBUG_FENCES 1
 
@@ -69,6 +67,7 @@ private:
 	TQueue<FD3D12FenceCore*> AvailableFences;
 };
 
+// Automatically increments the current fence value after Signal.
 class FD3D12Fence : public FRHIComputeFence, public FNoncopyable, public FD3D12AdapterChild
 {
 public:
@@ -82,7 +81,7 @@ public:
 	void WaitForFence(uint64 FenceValue);
 
 	uint64 GetCurrentFence() const { return CurrentFence; }
-	uint64 GetSignalFence() const { return SignalFence; }
+	uint64 GetLastSignaledFence() const { return LastSignaledFence; }
 	uint64 GetLastCompletedFence();
 
 	// Might not be the most up to date value but avoids querying the fence.
@@ -90,13 +89,31 @@ public:
 
 	void Destroy();
 
-private:
+protected:
+	void InternalSignal(ID3D12CommandQueue* pCommandQueue, uint64 FenceToSignal);
+
+protected:
 	uint64 CurrentFence;
-	uint64 SignalFence;
+	uint64 LastSignaledFence;
 	uint64 LastCompletedFence;
 	FCriticalSection WaitForFenceCS;
 
 	FD3D12FenceCore* FenceCore;
+};
+
+// Fence value must be incremented manually. Useful when you need incrementing and signaling to happen at different times.
+class FD3D12ManualFence : public FD3D12Fence
+{
+public:
+	explicit FD3D12ManualFence(FD3D12Adapter* Parent = nullptr, const FName& Name = L"<unnamed>")
+		: FD3D12Fence(Parent, Name)
+	{}
+
+	// Signals the specified fence value.
+	uint64 Signal(ID3D12CommandQueue* pCommandQueue, uint64 FenceToSignal);
+
+	// Increments the current fence and returns the previous value.
+	inline uint64 IncrementCurrentFence() { return CurrentFence++; }
 };
 
 class FD3D12CommandAllocatorManager : public FD3D12DeviceChild
@@ -121,7 +138,7 @@ private:
 	TArray<FD3D12CommandAllocator*> CommandAllocators;		// List of all command allocators owned by this manager
 	TQueue<FD3D12CommandAllocator*> CommandAllocatorQueue;	// Queue of available allocators. Note they might still be in use by the GPU.
 	FCriticalSection CS;	// Must be thread-safe because multiple threads can obtain/release command allocators
-	D3D12_COMMAND_LIST_TYPE Type;
+	const D3D12_COMMAND_LIST_TYPE Type;
 };
 
 class FD3D12CommandListManager : public FD3D12DeviceChild, public FD3D12SingleNodeGPUObject
@@ -188,13 +205,7 @@ private:
 
 	FD3D12Fence CommandListFence;
 
-#if WINVER >= 0x0600 // Interlock...64 functions are only available from Vista onwards
-	int64									NumCommandListsAllocated;
-#else
-	int32									NumCommandListsAllocated;
-#endif
 	D3D12_COMMAND_LIST_TYPE					CommandListType;
 	FCriticalSection						ResourceStateCS;
 	FCriticalSection						FenceCS;
 };
-

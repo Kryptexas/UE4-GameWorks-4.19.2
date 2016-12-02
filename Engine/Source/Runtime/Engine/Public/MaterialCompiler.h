@@ -87,6 +87,7 @@ public:
 
 	virtual	int32 ViewProperty(EMaterialExposedViewProperty Property, bool InvProperty = false) = 0;
 
+	virtual int32 PreviousFrameSwitch(int32 CurrentX, int32 PrevX) = 0;
 	virtual int32 GameTime(bool bPeriodic, float Period) = 0;
 	virtual int32 RealTime(bool bPeriodic, float Period) = 0;
 	virtual int32 PeriodicHint(int32 PeriodicCode) { return PeriodicCode; }
@@ -300,6 +301,7 @@ public:
 	
 	virtual	int32 ViewProperty(EMaterialExposedViewProperty Property, bool InvProperty) override { return Compiler->ViewProperty(Property, InvProperty); }
 
+	virtual int32 PreviousFrameSwitch(int32 CurrentX, int32 PrevX) { return Compiler->PreviousFrameSwitch(CurrentX, PrevX); }
 	virtual int32 GameTime(bool bPeriodic, float Period) override { return Compiler->GameTime(bPeriodic, Period); }
 	virtual int32 RealTime(bool bPeriodic, float Period) override { return Compiler->RealTime(bPeriodic, Period); }
 

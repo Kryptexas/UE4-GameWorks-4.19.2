@@ -204,11 +204,15 @@ public:
 	float FogHeightFalloff;
 	float FogMaxOpacity;
 	float StartDistance;
+	float FogCutoffDistance;
 	float LightTerminatorAngle;
 	FLinearColor FogColor;
 	float DirectionalInscatteringExponent;
 	float DirectionalInscatteringStartDistance;
 	FLinearColor DirectionalInscatteringColor;
+	UTextureCube* InscatteringColorCubemap;
+	float FullyDirectionalInscatteringColorDistance;
+	float NonDirectionalInscatteringColorDistance;
 
 	/** Initialization constructor. */
 	FExponentialHeightFogSceneInfo(const UExponentialHeightFogComponent* InComponent);

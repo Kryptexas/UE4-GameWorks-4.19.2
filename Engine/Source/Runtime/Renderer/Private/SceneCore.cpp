@@ -440,10 +440,14 @@ FExponentialHeightFogSceneInfo::FExponentialHeightFogSceneInfo(const UExponentia
 	FogHeightFalloff(InComponent->FogHeightFalloff / 1000.0f),
 	FogMaxOpacity(InComponent->FogMaxOpacity),
 	StartDistance(InComponent->StartDistance),
+	FogCutoffDistance(InComponent->FogCutoffDistance),
 	LightTerminatorAngle(0),
 	DirectionalInscatteringExponent(InComponent->DirectionalInscatteringExponent),
 	DirectionalInscatteringStartDistance(InComponent->DirectionalInscatteringStartDistance),
 	DirectionalInscatteringColor(InComponent->DirectionalInscatteringColor)
 {
-	FogColor = InComponent->FogInscatteringColor;
+	FogColor = InComponent->InscatteringColorCubemap ? InComponent->InscatteringTextureTint : InComponent->FogInscatteringColor;
+	InscatteringColorCubemap = InComponent->InscatteringColorCubemap;
+	FullyDirectionalInscatteringColorDistance = InComponent->FullyDirectionalInscatteringColorDistance;
+	NonDirectionalInscatteringColorDistance = InComponent->NonDirectionalInscatteringColorDistance;
 }

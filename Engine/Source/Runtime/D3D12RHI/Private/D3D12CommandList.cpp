@@ -41,7 +41,8 @@ FD3D12CommandListHandle::FD3D12CommandListData::FD3D12CommandListData(FD3D12Devi
 	, FD3D12DeviceChild(ParentDevice)
 	, FD3D12SingleNodeGPUObject(ParentDevice->GetNodeMask())
 {
-	VERIFYD3D12RESULT(ParentDevice->GetDevice()->CreateCommandList(GetNodeMask(), CommandListType, CommandAllocator.GetCommandAllocator(), nullptr, IID_PPV_ARGS(CommandList.GetInitReference())));
+	VERIFYD3D12RESULT(ParentDevice->GetDevice()->CreateCommandList(GetNodeMask(), CommandListType, CommandAllocator, nullptr, IID_PPV_ARGS(CommandList.GetInitReference())));
+	INC_DWORD_STAT(STAT_D3D12NumCommandLists);
 
 	// Initially start with all lists closed.  We'll open them as we allocate them.
 	Close();
@@ -54,6 +55,7 @@ FD3D12CommandListHandle::FD3D12CommandListData::FD3D12CommandListData(FD3D12Devi
 FD3D12CommandListHandle::FD3D12CommandListData::~FD3D12CommandListData()
 {
 	CommandList.SafeRelease();
+	DEC_DWORD_STAT(STAT_D3D12NumCommandLists);
 
 	D3DX12Residency::DestroyResidencySet(GetParentDevice()->GetResidencyManager(), ResidencySet);
 }
@@ -93,12 +95,20 @@ void FD3D12CommandListHandle::Execute(bool WaitForCompletion)
 }
 
 FD3D12CommandAllocator::FD3D12CommandAllocator(ID3D12Device* InDevice, const D3D12_COMMAND_LIST_TYPE& InType)
+	: PendingCommandListCount(0)
 {
 	Init(InDevice, InType);
+}
+
+FD3D12CommandAllocator::~FD3D12CommandAllocator()
+{
+	CommandAllocator.SafeRelease();
+	DEC_DWORD_STAT(STAT_D3D12NumCommandAllocators);
 }
 
 void FD3D12CommandAllocator::Init(ID3D12Device* InDevice, const D3D12_COMMAND_LIST_TYPE& InType)
 {
 	check(CommandAllocator.GetReference() == nullptr);
 	VERIFYD3D12RESULT(InDevice->CreateCommandAllocator(InType, IID_PPV_ARGS(CommandAllocator.GetInitReference())));
+	INC_DWORD_STAT(STAT_D3D12NumCommandAllocators);
 }

@@ -107,14 +107,17 @@ void UTextureRenderTarget2D::InitAutoFormat(uint32 InSizeX, uint32 InSizeY)
 
 void UTextureRenderTarget2D::UpdateResourceImmediate(bool bClearRenderTarget/*=true*/)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		UpdateResourceImmediate,
-		FRenderResource*,Resource,Resource,
-		bool, bClearRenderTarget, bClearRenderTarget,
-		{
-		static_cast<FTextureRenderTarget2DResource*>(Resource)->UpdateDeferredResource(RHICmdList, bClearRenderTarget);
-		}
-	);
+	if (Resource)
+	{
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			UpdateResourceImmediate,
+			FTextureRenderTarget2DResource*, Resource, static_cast<FTextureRenderTarget2DResource*>(Resource),
+			bool, bClearRenderTarget, bClearRenderTarget,
+			{
+				Resource->UpdateDeferredResource(RHICmdList, bClearRenderTarget);
+			}
+		);
+	}
 }
 
 #if WITH_EDITOR

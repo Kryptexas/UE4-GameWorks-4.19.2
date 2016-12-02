@@ -252,10 +252,8 @@ FComputeShaderRHIRef FD3D12DynamicRHI::RHICreateComputeShader(const TArray<uint8
 
 void FD3D12CommandContext::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)
 {
-	// structures are chosen to be directly mappable
-	D3D12_VIEWPORT* D3DData = (D3D12_VIEWPORT*)Data;
-
-	StateCache.SetViewports(Count, D3DData);
+	// Structures are chosen to be directly mappable
+	StateCache.SetViewports(Count, reinterpret_cast<const D3D12_VIEWPORT*>(Data));
 }
 
 static volatile uint64 BoundShaderStateID = 0;

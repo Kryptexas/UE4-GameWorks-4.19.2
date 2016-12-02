@@ -175,6 +175,18 @@ TAutoConsoleVariable<int32> CVarStreamingUseMaterialData(
 	TEXT("If non-zero, material texture scales and coord will be used"),
 	ECVF_Default);
 
+TAutoConsoleVariable<int32> CVarStreamingNumStaticComponentsProcessedPerFrame(
+	TEXT("r.Streaming.NumStaticComponentsProcessedPerFrame"),
+	50,
+	TEXT("If non-zero, the engine will incrementaly inserting levels by processing this amount of components per frame before they become visible"),
+	ECVF_Default);
+
+TAutoConsoleVariable<int32> CVarStreamingDefragDynamicBounds(
+	TEXT("r.Streaming.DefragDynamicBounds"),
+	1,
+	TEXT("If non-zero, unused dynamic bounds will be removed from the update loop"),
+	ECVF_Default);
+
 void FTextureStreamingSettings::Update()
 {
 	MaxEffectiveScreenSize = CVarStreamingScreenSizeEffectiveMax.GetValueOnAnyThread();

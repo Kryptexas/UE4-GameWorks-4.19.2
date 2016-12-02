@@ -625,6 +625,8 @@ public:
 	// FLandcapeSceneProxy
 	void ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor);
 
+	virtual bool HeightfieldHasPendingStreaming() const override;
+
 	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription) override;
 
 	virtual void GetLCIs(FLCIArray& LCIs) override;

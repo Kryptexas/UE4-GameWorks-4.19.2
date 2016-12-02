@@ -1750,7 +1750,20 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 					for (int32 ChildIndex = 0; ChildIndex < ShadowGroupPrimitives.Num(); ChildIndex++)
 					{
 						FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
-						ProjectedPreShadowInfo->AddReceiverPrimitive(ShadowChild);
+						bool bChildIsVisibleInAnyView = false;
+						for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+						{
+							const FViewInfo& View = Views[ViewIndex];
+							if (View.PrimitiveVisibilityMap[ShadowChild->GetIndex()])
+							{
+								bChildIsVisibleInAnyView = true;
+								break;
+							}
+						}
+						if (bChildIsVisibleInAnyView)
+						{
+							ProjectedPreShadowInfo->AddReceiverPrimitive(ShadowChild);
+						}
 					}
 				}
 			}

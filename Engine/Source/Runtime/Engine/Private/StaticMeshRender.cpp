@@ -118,7 +118,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 #if WITH_EDITORONLY_DATA
 	, StreamingDistanceMultiplier(FMath::Max(0.0f, InComponent->StreamingDistanceMultiplier))
 	, StreamingTransformScale(InComponent->GetTextureStreamingTransformScale())
-	, MaterialStreamingBounds(InComponent->MaterialStreamingBounds)
+	, MaterialStreamingRelativeBoxes(InComponent->MaterialStreamingRelativeBoxes)
 	, SectionIndexPreview(InComponent->SectionIndexPreview)
 #endif
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -451,12 +451,13 @@ bool FStaticMeshSceneProxy::GetPrimitiveDistance(int32 LODIndex, int32 SectionIn
 		// The LOD-section data is stored per material index as it is only used for texture streaming currently.
 		const int32 MaterialIndex = LODs[LODIndex].Sections[SectionIndex].MaterialIndex;
 
-		if (MaterialStreamingBounds.IsValidIndex(MaterialIndex))
+		if (MaterialStreamingRelativeBoxes.IsValidIndex(MaterialIndex))
 		{
-			const FBox& MaterialBox = MaterialStreamingBounds[MaterialIndex];
+			FBoxSphereBounds MaterialBounds;
+			UnpackRelativeBox(GetBounds(), MaterialStreamingRelativeBoxes[MaterialIndex], MaterialBounds);
 
-			FVector ViewToObject = (MaterialBox.GetCenter() - ViewOrigin).GetAbs();
-			FVector BoxViewToObject = ViewToObject.ComponentMin(MaterialBox.GetExtent());
+			FVector ViewToObject = (MaterialBounds.Origin - ViewOrigin).GetAbs();
+			FVector BoxViewToObject = ViewToObject.ComponentMin(MaterialBounds.BoxExtent);
 			float DistSq = FVector::DistSquared(BoxViewToObject, ViewToObject);
 
 			PrimitiveDistance = FMath::Sqrt(FMath::Max<float>(1.f, DistSq)) * OneOverDistanceMultiplier;

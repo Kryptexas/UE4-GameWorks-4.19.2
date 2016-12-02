@@ -117,7 +117,7 @@ void SetDeferredLightParameters(
 	static auto* ContactShadowsCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ContactShadows"));
 	DeferredLightUniformsValue.ContactShadowLength = 0;
 
-	if (ContactShadowsCVar && ContactShadowsCVar->GetValueOnRenderThread() != 0)
+	if (ContactShadowsCVar && ContactShadowsCVar->GetValueOnRenderThread() != 0 && View.Family->EngineShowFlags.ContactShadows)
 	{
 		DeferredLightUniformsValue.ContactShadowLength = LightSceneInfo->Proxy->GetContactShadowLength();
 	}
@@ -451,10 +451,10 @@ public:
 		bool bInDirectionalLight,
 		bool bInOnePassPointLightShadow,
 		bool bInPreShadow,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		ERHIFeatureLevel::Type InFeatureLevel,
 		const FVertexFactory* InVertexFactory = 0,
 		const FMaterialRenderProxy* InMaterialRenderProxy = 0,
-		bool bInCastShadowAsTwoSided = false,
 		bool bReverseCulling = false
 		);
 
@@ -495,7 +495,7 @@ public:
 			DRAWING_POLICY_MATCH(FeatureLevel == Other.FeatureLevel);
 		DRAWING_POLICY_MATCH_END
 	}
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
 
 	/** 
 	 * Create bound shader state using the vertex decl from the mesh draw policy
@@ -510,8 +510,7 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const;
@@ -572,8 +571,8 @@ public:
 		const FSceneView& View,
 		ContextType Context,
 		const FMeshBatch& Mesh,
-		bool bBackFace,
 		bool bPreFog,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
@@ -850,7 +849,7 @@ public:
 	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, FSetShadowRenderTargetFunction SetShadowRenderTargets, EShadowDepthRenderMode RenderMode);
 
 	/** Set state for depth rendering */
-	void SetStateForDepth(FRHICommandList& RHICmdList, EShadowDepthRenderMode RenderMode );
+	void SetStateForDepth(FRHICommandList& RHICmdList, EShadowDepthRenderMode RenderMode, FDrawingPolicyRenderState& DrawRenderState);
 
 	void ClearDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, int32 NumColorTextures, FTextureRHIParamRef* ColorTextures, FTextureRHIParamRef DepthTexture, bool bPerformClear);
 
@@ -1032,11 +1031,11 @@ private:
 	* Renders the dynamic shadow subject depth, to a particular hacked view
 	*/
 	friend class FRenderDepthDynamicThreadTask;
-	void RenderDepthDynamic(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView);
+	void RenderDepthDynamic(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, const FDrawingPolicyRenderState& DrawRenderState);
 
 	void GetShadowTypeNameForDrawEvent(FString& TypeName) const;
 
-	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FProjectedShadowInfo& ShadowInfo);
+	template <bool bReflectiveShadowmap> friend void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const FProjectedShadowInfo& ShadowInfo);
 
 	/** Updates object buffers needed by ray traced distance field shadows. */
 	int32 UpdateShadowCastingObjectBuffers() const;

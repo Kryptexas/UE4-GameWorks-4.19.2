@@ -297,7 +297,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 
 	/** Material Bounds used for texture streaming. */
 	UPROPERTY(NonTransactional)
-	TArray<FBox> MaterialStreamingBounds;
+	TArray<uint32> MaterialStreamingRelativeBoxes;
 #endif
 
 	/** The Lightmass settings for this object. */

@@ -32,6 +32,9 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 
 	virtual ~FStreamingManagerTexture();
 
+	/** Called before GC to clear pending kill levels. */
+	void OnPreGarbageCollect();
+
 	/**
 	 * Updates streaming, taking into account all current view infos. Can be called multiple times per frame.
 	 *
@@ -193,6 +196,9 @@ protected:
 //BEGIN: Thread-safe functions and data
 		friend class FAsyncTextureStreamingTask;
 
+		/** Returns whether this primitive will be handled by as a static primitive within LevelTextureManagers */
+		bool IsHandledAsStatic(const UPrimitiveComponent* Primitive) const;
+
 		/**
 		 * Not thread-safe: Updates a portion (as indicated by 'StageIndex') of all streaming textures,
 		 * allowing their streaming state to progress.
@@ -275,7 +281,7 @@ protected:
 	TArray<int32>	RemovedTextureIndices;
 
 	/** Level data */
-	TArray<FLevelTextureManager> LevelTextureManagers;
+	TIndirectArray<FLevelTextureManager> LevelTextureManagers;
 
 	/** Stages [0,N-2] is non-threaded data collection, Stage N-1 is wait-for-AsyncWork-and-finalize. */
 	int32					ProcessingStage;

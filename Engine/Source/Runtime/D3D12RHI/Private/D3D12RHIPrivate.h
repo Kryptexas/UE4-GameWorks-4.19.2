@@ -16,15 +16,7 @@
 #include "Serialization/MemoryReader.h"
 #include "EngineGlobals.h"
 
-#define D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE				1
-
-#if UE_BUILD_SHIPPING
-#define D3D12_PROFILING_ENABLED 0
-#elif UE_BUILD_TEST
-#define D3D12_PROFILING_ENABLED 0
-#else
-#define D3D12_PROFILING_ENABLED 0
-#endif
+#define D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE 1
 
 // Dependencies.
 #include "CoreMinimal.h"
@@ -56,6 +48,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 #include "D3D12View.h"
 #include "D3D12CommandList.h"
 #include "D3D12Texture.h"
+#include "D3D12DirectCommandListManager.h"
 #include "../Public/D3D12Viewport.h"
 #include "../Public/D3D12ConstantBuffer.h"
 #include "D3D12Query.h"
@@ -63,18 +56,11 @@ DECLARE_LOG_CATEGORY_EXTERN(LogD3D12RHI, Log, All);
 #include "D3D12DescriptorCache.h"
 #include "D3D12StateCachePrivate.h"
 typedef FD3D12StateCacheBase FD3D12StateCache;
-#include "D3D12DirectCommandListManager.h"
 #include "D3D12Allocation.h"
 #include "D3D12CommandContext.h"
 #include "D3D12Stats.h"
 #include "D3D12Device.h"
 #include "D3D12Adapter.h"
-
-#if UE_BUILD_SHIPPING || UE_BUILD_TEST
-#define CHECK_SRV_TRANSITIONS 0
-#else
-#define CHECK_SRV_TRANSITIONS 0	// MSFT: Seb: TODO: ENable
-#endif
 
 // Definitions.
 #define USE_D3D12RHI_RESOURCE_STATE_TRACKING 1	// Fully relying on the engine's resource barriers is a work in progress. For now, continue to use the D3D12 RHI's resource state tracking.
@@ -98,6 +84,13 @@ typedef FD3D12StateCacheBase FD3D12StateCache;
 #define LOG_EXECUTE_COMMAND_LISTS 0
 #define ASSERT_RESOURCE_STATES 0
 #define LOG_PRESENT 0
+#endif
+
+#define DEBUG_FRAME_TIMING 0
+#if DEBUG_FRAME_TIMING
+#define LOG_VIEWPORT_EVENTS 1
+#define LOG_PRESENT 1
+#define LOG_EXECUTE_COMMAND_LISTS 1
 #endif
 
 #if EXECUTE_DEBUG_COMMAND_LISTS
@@ -268,6 +261,7 @@ public:
 	virtual void RHISetStreamOutTargets(uint32 NumTargets, const FVertexBufferRHIParamRef* VertexBuffers, const uint32* Offsets) final override;
 	virtual void RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask) final override;
 	virtual void RHIBlockUntilGPUIdle() final override;
+	virtual void RHISubmitCommandsAndFlushGPU() final override;
 	virtual bool RHIGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate) final override;
 	virtual void RHIGetSupportedResolution(uint32& Width, uint32& Height) final override;
 	virtual void RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRef Texture, uint32 FirstMip) override;
@@ -278,12 +272,12 @@ public:
 	virtual class IRHIComputeContext* RHIGetDefaultAsyncComputeContext() final override;
 	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() final override;
 
-#if PLATFORM_WINDOWS
+
 	// FD3D12DynamicRHI interface.
+	virtual uint32 GetDebugFlags();
 	virtual ID3D12CommandQueue* RHIGetD3DCommandQueue();
 	virtual FTexture2DRHIRef RHICreateTexture2DFromD3D12Resource(uint8 Format, uint32 Flags, const FClearValueBinding& ClearValueBinding, ID3D12Resource* Resource);
 	virtual void RHIAliasTexture2DResources(FTexture2DRHIParamRef DestTexture2D, FTexture2DRHIParamRef SrcTexture2D);
-#endif // PLATFORM_WINDOWS
 
 	//
 	// The Following functions are the _RenderThread version of the above functions. They allow the RHI to control the thread synchronization for greater efficiency.
@@ -603,7 +597,10 @@ public:
 	static void TransitionResourceWithTracking(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource, D3D12_RESOURCE_STATES after, uint32 subresource)
 	{
 #if USE_D3D12RHI_RESOURCE_STATE_TRACKING
+		check(pResource);
 		check(pResource->RequiresResourceStateTracking());
+
+		check(!((after & (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) && (pResource->GetDesc().Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE)));
 
 		hCommandList.UpdateResidency(pResource);
 
@@ -620,12 +617,14 @@ public:
 				{
 					// We need a pending resource barrier so we can setup the state before this command list executes
 					hCommandList.AddPendingResourceBarrier(pResource, after, SubresourceIndex);
+					ResourceState.SetSubresourceState(SubresourceIndex, after);
 				}
 				// We're not using IsTransitionNeeded() because we do want to transition even if 'after' is a subset of 'before'
 				// This is so that we can ensure all subresources are in the same state, simplifying future barriers
 				else if (before != after)
 				{
 					hCommandList.AddTransitionBarrier(pResource, before, after, SubresourceIndex);
+					ResourceState.SetSubresourceState(SubresourceIndex, after);
 				}
 			}
 
@@ -655,7 +654,10 @@ public:
 	static void TransitionResourceWithTracking(FD3D12CommandListHandle& hCommandList, FD3D12Resource* pResource, D3D12_RESOURCE_STATES after, const CViewSubresourceSubset& subresourceSubset)
 	{
 #if USE_D3D12RHI_RESOURCE_STATE_TRACKING
+		check(pResource);
 		check(pResource->RequiresResourceStateTracking());
+
+		check(!((after & (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) && (pResource->GetDesc().Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE)));
 
 		hCommandList.UpdateResidency(pResource);
 		D3D12_RESOURCE_STATES before;
@@ -756,43 +758,6 @@ public:
 	virtual bool HandleSpecialUnlock(uint32 MipIndex, uint32 Flags, const struct FD3D12TextureLayout& TextureLayout, void* RawTextureMemory) = 0;	
 #endif
 
-	inline void IncrementSetShaderTextureCalls(uint32 value = 1)
-	{
-		SetShaderTextureCalls += value;
-	}
-
-	inline void IncrementSetShaderTextureCycles(uint32 value)
-	{
-		SetShaderTextureCycles += value;
-	}
-
-	inline void IncrementCacheResourceTableCalls(uint32 value = 1)
-	{
-		CacheResourceTableCalls += value;
-	}
-
-	inline void IncrementCacheResourceTableCycles(uint32 value)
-	{
-		CacheResourceTableCycles += value;
-	}
-
-	inline void IncrementCommitComputeResourceTables(uint32 value = 1)
-	{
-		CommitResourceTableCycles += value;
-	}
-
-	inline void AddBoundShaderState(FD3D12BoundShaderState* state)
-	{
-		BoundShaderStateHistory.Add(state);
-	}
-
-	inline void IncrementSetTextureInTableCalls(uint32 value = 1)
-	{
-		SetTextureInTableCalls += value;
-	}
-
-	inline uint32 GetResourceTableFrameCounter() { return ResourceTableFrameCounter; }
-
 	/** Consumes about 100ms of GPU time (depending on resolution and GPU), useful for making sure we're not CPU bound when GPU profiling. */
 	void IssueLongGPUTask();
 
@@ -811,28 +776,7 @@ protected:
 	void* ZeroBuffer;
 	uint32 ZeroBufferSize;
 
-	uint32 CommitResourceTableCycles;
-	uint32 CacheResourceTableCalls;
-	uint32 CacheResourceTableCycles;
-	uint32 SetShaderTextureCycles;
-	uint32 SetShaderTextureCalls;
-	uint32 SetTextureInTableCalls;
-	uint32 LockBufferCalls;
-
-
 	uint32 ViewportFrameCounter;
-
-	/** Internal frame counter, incremented on each call to RHIBeginScene. */
-	uint32 SceneFrameCounter;
-
-	/**
-	* Internal counter used for resource table caching.
-	* INDEX_NONE means caching is not allowed.
-	*/
-	uint32 ResourceTableFrameCounter;
-
-	/** A history of the most recently used bound shader states, used to keep transient bound shader states from being recreated for each use. */
-	TGlobalResource< TBoundShaderStateHistory<10000> > BoundShaderStateHistory;
 
 	template<typename BaseResourceType>
 	TD3D12Texture2D<BaseResourceType>* CreateD3D12Texture2D(uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bTextureArray, bool CubeTexture, uint8 Format,
@@ -927,13 +871,13 @@ class FScopeResourceBarrier
 {
 private:
 	FD3D12CommandListHandle& hCommandList;
-	FD3D12Resource* pResource;
-	D3D12_RESOURCE_STATES Current;
-	D3D12_RESOURCE_STATES Desired;
-	uint32 Subresource;
+	FD3D12Resource* const pResource;
+	const D3D12_RESOURCE_STATES Current;
+	const D3D12_RESOURCE_STATES Desired;
+	const uint32 Subresource;
 
 public:
-	explicit FScopeResourceBarrier(FD3D12CommandListHandle &hInCommandList, FD3D12Resource* pInResource, D3D12_RESOURCE_STATES InCurrent, D3D12_RESOURCE_STATES InDesired, const uint32 InSubresource)
+	explicit FScopeResourceBarrier(FD3D12CommandListHandle& hInCommandList, FD3D12Resource* pInResource, const D3D12_RESOURCE_STATES& InCurrent, const D3D12_RESOURCE_STATES& InDesired, const uint32 InSubresource)
 		: hCommandList(hInCommandList)
 		, pResource(pInResource)
 		, Current(InCurrent)
@@ -942,8 +886,6 @@ public:
 	{
 		check(!pResource->RequiresResourceStateTracking());
 		hCommandList.AddTransitionBarrier(pResource, Current, Desired, Subresource);
-
-		hCommandList.FlushResourceBarriers();	// Must flush so the desired state is actually set.
 	}
 
 	~FScopeResourceBarrier()
@@ -961,14 +903,14 @@ class FConditionalScopeResourceBarrier
 {
 private:
 	FD3D12CommandListHandle& hCommandList;
-	FD3D12Resource* pResource;
+	FD3D12Resource* const pResource;
 	D3D12_RESOURCE_STATES Current;
-	D3D12_RESOURCE_STATES Desired;
-	uint32 Subresource;
-	bool bUseTracking;
+	const D3D12_RESOURCE_STATES Desired;
+	const uint32 Subresource;
+	const bool bUseTracking;
 
 public:
-	explicit FConditionalScopeResourceBarrier(FD3D12CommandListHandle &hInCommandList, FD3D12Resource* pInResource, D3D12_RESOURCE_STATES InDesired, const uint32 InSubresource)
+	explicit FConditionalScopeResourceBarrier(FD3D12CommandListHandle& hInCommandList, FD3D12Resource* pInResource, const D3D12_RESOURCE_STATES& InDesired, const uint32 InSubresource)
 		: hCommandList(hInCommandList)
 		, pResource(pInResource)
 		, Current(D3D12_RESOURCE_STATE_TBD)
@@ -985,8 +927,6 @@ public:
 		{
 			FD3D12DynamicRHI::TransitionResource(hCommandList, pResource, Desired, Subresource);
 		}
-
-		hCommandList.FlushResourceBarriers();	// Must flush so the desired state is actually set.
 	}
 
 	~FConditionalScopeResourceBarrier()
@@ -1025,18 +965,55 @@ public:
 		VERIFYD3D12RESULT(pResource->Map(Subresource, pReadRange, reinterpret_cast<void**>(&pData)));
 	}
 
+	explicit FD3D12ScopeMap(ID3D12Resource* pInResource, const uint32 InSubresource, const D3D12_RANGE* InReadRange, const D3D12_RANGE* InWriteRange)
+		: pResource(pInResource)
+		, Subresource(InSubresource)
+		, pReadRange(InReadRange)
+		, pWriteRange(InWriteRange)
+		, pData(nullptr)
+	{
+		VERIFYD3D12RESULT(pResource->Map(Subresource, pReadRange, reinterpret_cast<void**>(&pData)));
+	}
+
 	~FD3D12ScopeMap()
 	{
 		pResource->Unmap(Subresource, pWriteRange);
 	}
 
+	bool IsValidForRead(const uint32 Index) const
+	{
+		return IsInRange(pReadRange, Index);
+	}
+
+	bool IsValidForWrite(const uint32 Index) const
+	{
+		return IsInRange(pWriteRange, Index);
+	}
+
 	TType& operator[] (const uint32 Index)
 	{
+		checkf(IsValidForRead(Index) || IsValidForWrite(Index), TEXT("Index %u is not valid for read or write based on the ranges used to Map/Unmap the resource."), Index);
 		return *(pData + Index);
 	}
 
 	const TType& operator[] (const uint32 Index) const
 	{
+		checkf(IsValidForRead(Index), TEXT("Index %u is not valid for read based on the range used to Map the resource."), Index);
 		return *(pData + Index);
+	}
+
+private:
+	inline bool IsInRange(const D3D12_RANGE* pRange, const uint32 Index) const
+	{
+		if (pRange)
+		{
+			const uint64 Offset = Index * sizeof(TType);
+			return (Offset >= pRange->Begin) && (Offset < pRange->End);
+		}
+		else
+		{
+			// Null means the entire resource is mapped for read or will be written to.
+			return true;
+		}
 	}
 };

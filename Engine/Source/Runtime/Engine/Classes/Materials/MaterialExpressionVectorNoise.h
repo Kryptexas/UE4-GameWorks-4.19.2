@@ -48,7 +48,7 @@ enum EVectorNoiseFunction
 	VNF_MAX
 };
 
-UCLASS()
+UCLASS(MinimalAPI)
 class UMaterialExpressionVectorNoise : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

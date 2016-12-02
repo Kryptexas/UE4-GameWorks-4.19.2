@@ -383,8 +383,8 @@ void SystemResolutionSinkCallback()
 	uint32 ResX, ResY;
 	int32 WindowModeInt = GSystemResolution.WindowMode;
 
-	static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-	bool bHDROutputEnabled = CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
+	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnAnyThread() != 0;
 	
 	if (FParse::Resolution(*ResString, ResX, ResY, WindowModeInt))
 	{

@@ -997,7 +997,9 @@ void FScene::AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent
 
 			if (DoGPUArrayCopy() && bNeedsUpdateAllCaptures)
 			{
-				check( ReflectionCaptureSize == ReflectionSceneData.CubemapArray.GetCubemapSize() || ReflectionSceneData.CubemapArray.GetCubemapSize() == 0 );
+				// If we're not in the editor, we discard the CPU-side reflection capture data after loading to save memory, so we can't resize if the resolution changes. If this happens, we assert
+				check(GIsEditor || ReflectionCaptureSize == ReflectionSceneData.CubemapArray.GetCubemapSize() || ReflectionSceneData.CubemapArray.GetCubemapSize() == 0);
+
 				if (ReflectionCaptureSize == ReflectionSceneData.CubemapArray.GetCubemapSize())
 				{
 					// We can do a fast GPU copy to realloc the array, so we don't need to update all captures

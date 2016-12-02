@@ -103,6 +103,7 @@ bool SViewportToolBar::IsViewModeSupported(EViewModeIndex ViewModeIndex) const
 	{
 	case VMI_PrimitiveDistanceAccuracy:
 	case VMI_MaterialTextureScaleAccuracy:
+	case VMI_RequiredTextureResolution:
 		return false;
 	default:
 		return true;

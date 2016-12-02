@@ -10,7 +10,7 @@ class FDiskCacheInterface
 {
 	// Increment this if changes are made to the
 	// disk caches so stale caches get updated correctly
-	static const uint32 mCurrentHeaderVersion = 4;
+	static const uint32 mCurrentHeaderVersion = 5;
 	struct FDiskCacheHeader
 	{
 		uint32 mHeaderVersion;

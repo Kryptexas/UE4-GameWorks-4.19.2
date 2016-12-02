@@ -742,11 +742,11 @@ FBoxSphereBounds FStaticLightingSystem::GetImportanceBounds(bool bClampToScene) 
 }
 
 /** Returns true if the specified position is inside any of the importance volumes. */
-bool FStaticLightingSystem::IsPointInImportanceVolume(const FVector4& Position) const
+bool FStaticLightingSystem::IsPointInImportanceVolume(const FVector4& Position, float Tolerance) const
 {
 	if (Scene.ImportanceVolumes.Num() > 0)
 	{
-		return Scene.IsPointInImportanceVolume(Position);
+		return Scene.IsPointInImportanceVolume(Position, Tolerance);
 	}
 	else
 	{

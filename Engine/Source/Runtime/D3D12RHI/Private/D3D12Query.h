@@ -113,21 +113,6 @@ public:
 	uint32 BeginQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType); // Obtain a query from the store of available queries
 	void EndQuery(FD3D12CommandContext& CmdContext, D3D12_QUERY_TYPE InQueryType, uint32 InElement);
 
-	HRESULT MapResultBufferRange(const D3D12_RANGE &InRange)
-	{
-		return ResultBuffer->GetResource()->Map(0, &InRange, &pResultData);	// Note: The pointer is NOT offset by the range
-	}
-
-	void* GetResultBufferData(uint32 InElement) { return reinterpret_cast<uint8*>(pResultData) + (InElement * ResultSize); } // Get a pointer to the result data for the specified element
-	void* GetResultBufferData(const D3D12_RANGE &InRange) { return reinterpret_cast<uint8*>(pResultData) + InRange.Begin; } // Get a pointer to the result data at the start of the range
-
-	void UnmapResultBufferRange()
-	{
-		// Unmap an empty range because we didn't write any data (Note: this is different from a null range)
-		static const CD3DX12_RANGE EmptyRange(0, 0);
-		ResultBuffer->GetResource()->Unmap(0, &EmptyRange);
-	}
-
 	uint32 GetQueryHeapCount() const { return QueryHeapDesc.Count; }
 	uint32 GetResultSize() const { return ResultSize; }
 

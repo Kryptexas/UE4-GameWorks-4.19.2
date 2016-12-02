@@ -3000,6 +3000,11 @@ void FLandscapeComponentSceneProxy::ChangeLODDistanceFactor_RenderThread(float I
 	LODDistance = InLODDistanceFactor;
 }
 
+bool FLandscapeComponentSceneProxy::HeightfieldHasPendingStreaming() const
+{
+	return HeightmapTexture && HeightmapTexture->bHasStreamingUpdatePending;
+}
+
 void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription)
 {
 	OutHeightmapTexture = HeightmapTexture;

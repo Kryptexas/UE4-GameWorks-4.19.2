@@ -581,6 +581,58 @@ inline void RHICreateTargetableShaderResourceCubeArray(
 		OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize, ArraySize, Format, NumMips, Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource, CreateInfo);
 	}
 }
+
+/**
+ * Creates 1 or 2 textures with the same dimensions/format.
+ * If the RHI supports textures that can be used as both shader resources and render targets,
+ * and bForceSeparateTargetAndShaderResource=false, then a single texture is created.
+ * Otherwise two textures are created, one of them usable as a shader resource and resolve target, and one of them usable as a render target.
+ * Two texture references are always returned, but they may reference the same texture.
+ * If two different textures are returned, the render-target texture must be manually copied to the shader-resource texture.
+ */
+inline void RHICreateTargetableShaderResource3D(
+	uint32 SizeX,
+	uint32 SizeY,
+	uint32 SizeZ,
+	uint8 Format,	
+	uint32 NumMips,
+	uint32 Flags,
+	uint32 TargetableTextureFlags,
+	bool bForceSeparateTargetAndShaderResource,
+	FRHIResourceCreateInfo& CreateInfo,
+	FTexture3DRHIRef& OutTargetableTexture,
+	FTexture3DRHIRef& OutShaderResourceTexture
+	)
+{
+	// Ensure none of the usage flags are passed in.
+	check(!(Flags & TexCreate_RenderTargetable));
+	check(!(Flags & TexCreate_ResolveTargetable));
+	check(!(Flags & TexCreate_ShaderResource));
+
+	// Ensure that all of the flags provided for the targetable texture are not already passed in Flags.
+	check(!(Flags & TargetableTextureFlags));
+
+	// Ensure that the targetable texture is either render or depth-stencil targetable.
+	check(TargetableTextureFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_UAV));
+
+	if (!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
+	{
+		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture3D(SizeX, SizeY, SizeZ, Format, NumMips, Flags | TargetableTextureFlags | TexCreate_ShaderResource, CreateInfo);
+	}
+	else
+	{
+		uint32 ResolveTargetableTextureFlags = TexCreate_ResolveTargetable;
+		if (TargetableTextureFlags & TexCreate_DepthStencilTargetable)
+		{
+			ResolveTargetableTextureFlags |= TexCreate_DepthStencilResolveTarget;
+		}
+		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
+		OutTargetableTexture = RHICreateTexture3D(SizeX, SizeY, SizeZ, Format, NumMips, Flags | TargetableTextureFlags, CreateInfo);
+		OutShaderResourceTexture = RHICreateTexture3D(SizeX, SizeY, SizeZ, Format, NumMips, Flags | ResolveTargetableTextureFlags | TexCreate_ShaderResource, CreateInfo);
+	}
+}
+
 /**
  * Computes the vertex count for a given number of primitives of the specified type.
  * @param NumPrimitives The number of primitives.

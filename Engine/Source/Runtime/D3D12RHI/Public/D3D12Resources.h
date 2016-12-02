@@ -15,7 +15,7 @@ class FD3D12StateCacheBase;
 class FD3D12CommandListManager;
 class FD3D12CommandContext;
 class FD3D12CommandListHandle;
-struct FD2D12GraphicsPipelineState;
+struct FD3D12GraphicsPipelineState;
 typedef FD3D12StateCacheBase FD3D12StateCache;
 
 class FD3D12PendingResourceBarrier
@@ -102,6 +102,7 @@ private:
 	D3D12_RESOURCE_STATES WritableState;
 	bool bRequiresResourceStateTracking;
 	bool bDepthStencil;
+	bool bDeferDelete;
 	D3D12_HEAP_TYPE HeapType;
 	D3D12_GPU_VIRTUAL_ADDRESS GPUVirtualAddress;
 	void* ResourceBaseAddress;
@@ -172,7 +173,13 @@ public:
 	{
 		return DebugName;
 	}
+	
+	void DoNotDeferDelete()
+	{
+		bDeferDelete = false;
+	}
 
+	inline bool ShouldDeferDelete() const { return bDeferDelete; }
 	inline bool IsPlacedResource() const { return Heap.GetReference() != nullptr; }
 	inline bool IsDepthStencilResource() const { return bDepthStencil; }
 
@@ -206,7 +213,7 @@ public:
 			}
 			else if (bBuffer && !bUAV)
 			{
-				(bReadBackResource) ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ;
+				return (bReadBackResource) ? D3D12_RESOURCE_STATE_COPY_DEST : D3D12_RESOURCE_STATE_GENERIC_READ;
 			}
 			else if (bWritable) // This things require tracking anyway
 			{
@@ -807,5 +814,5 @@ struct TD3D12ResourceTraits<FRHIComputeFence>
 template<>
 struct TD3D12ResourceTraits<FRHIGraphicsPipelineState>
 {
-	typedef FD2D12GraphicsPipelineState TConcreteType;
+	typedef FD3D12GraphicsPipelineState TConcreteType;
 };

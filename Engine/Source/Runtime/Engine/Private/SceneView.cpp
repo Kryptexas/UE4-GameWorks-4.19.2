@@ -2258,6 +2258,8 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 
 	DebugViewShaderMode = ChooseDebugViewShaderMode();
 	ViewModeParam = CVS.ViewModeParam;
+	ViewModeParamName = CVS.ViewModeParamName;
+
 	if (!AllowDebugViewPS(DebugViewShaderMode, GetShaderPlatform()))
 	{
 		DebugViewShaderMode = DVSM_None;
@@ -2424,65 +2426,11 @@ EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
 	{
 		return DVSM_MaterialTextureScaleAccuracy;
 	}
-	return DVSM_None;
-}
-
-static bool PlatformSupportsDebugViewShaders(EShaderPlatform Platform)
-{
-	// List of platforms that have been tested and proven functional. 
-	return Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5 || Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_METAL_SM4;
-}
-
-bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
-{
-#if WITH_EDITOR
-	// Those options are used to test compilation on specific platforms
-	static const bool bForceQuadOverdraw = FParse::Param(FCommandLine::Get(), TEXT("quadoverdraw"));
-	static const bool bForceStreamingAccuracy = FParse::Param(FCommandLine::Get(), TEXT("streamingaccuracy"));
-	static const bool bForceTextureStreamingBuild = FParse::Param(FCommandLine::Get(), TEXT("streamingbuild"));
-
-	switch (ShaderMode)
+	else if (EngineShowFlags.RequiredTextureResolution)
 	{
-	case DVSM_None:
-		return false;
-	case DVSM_ShaderComplexity:
-		return true;
-	case DVSM_ShaderComplexityContainedQuadOverhead:
-	case DVSM_ShaderComplexityBleedingQuadOverhead:
-	case DVSM_QuadComplexity:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceQuadOverdraw || PlatformSupportsDebugViewShaders(Platform));
-	case DVSM_PrimitiveDistanceAccuracy:
-	case DVSM_MeshUVDensityAccuracy:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceStreamingAccuracy || PlatformSupportsDebugViewShaders(Platform));
-	case DVSM_MaterialTextureScaleAccuracy:
-	case DVSM_OutputMaterialTextureScales:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceTextureStreamingBuild || PlatformSupportsDebugViewShaders(Platform));
-	default:
-		return false;
+		return DVSM_RequiredTextureResolution;
 	}
-#else
-	return ShaderMode == DVSM_ShaderComplexity;
-#endif
-}
-
-bool AllowDebugViewVSDSHS(EShaderPlatform Platform)
-{
-#if WITH_EDITOR
-	// Those options are used to test compilation on specific platforms
-	static const bool bForce = 
-		FParse::Param(FCommandLine::Get(), TEXT("quadoverdraw")) || 
-		FParse::Param(FCommandLine::Get(), TEXT("streamingaccuracy")) || 
-		FParse::Param(FCommandLine::Get(), TEXT("streamingbuild"));
-
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForce || PlatformSupportsDebugViewShaders(Platform));
-#else
-	return false;
-#endif
-}
-
-bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode)
-{
-	return AllowDebugViewPS(ShaderMode, GMaxRHIShaderPlatform);
+	return DVSM_None;
 }
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

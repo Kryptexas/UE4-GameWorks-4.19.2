@@ -573,7 +573,9 @@ void Main(
 	Color = lerp(Color, DiffuseColor + SpecularColor, ResolvedView.UnlitViewmodeMask);
 #endif
 
-	#if MATERIALBLENDING_TRANSLUCENT
+	#if MATERIALBLENDING_ALPHACOMPOSITE
+		OutColor = half4(Color * VertexFog.a + VertexFog.rgb * Opacity, Opacity);
+	#elif MATERIALBLENDING_TRANSLUCENT
 		OutColor = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
 	#elif MATERIALBLENDING_ADDITIVE
 		OutColor = half4(Color * (VertexFog.a * Opacity.x), 0.0f);

@@ -7,7 +7,6 @@
 #include "Common.usf"
 #include "PostProcessCommon.usf"
 #include "TonemapCommon.usf"
-#include "GammaCorrectionCommon.usf"
 #include "EyeAdaptationCommon.usf"
 
 // 0 / 1(slower, visualize multiple internals side by side for the same image portion, see DebugTile)
@@ -522,30 +521,7 @@ void MainPS(
 		BRANCH
 		if (EncodeHDROutput)
 		{
-			// Nvidia HDR encoding - Remove PQ, convert to linear scRGB
-			const float3x3 AP1_2_sRGB = mul(XYZ_2_sRGB_MAT, AP1_2_XYZ_MAT);
-			const float WhitePoint = 80.f;
-
-			OutColor.xyz = ST2084ToLinear(OutColor.xyz);
-
-			// 1000 nit display
-			float MaxODTNits = 1000.0f;
-			float MinODTNits = 0.0001f;
-
-			if (GetOutputDevice() == 4)
-			{
-				// 2000 nit display
-				MaxODTNits = 2000.0f;
-				MinODTNits = 0.005f;
-			}
-
-			OutColor.xyz = clamp(OutColor.xyz, MinODTNits, MaxODTNits);
-			OutColor.x = Y_2_linCV(OutColor.x, MaxODTNits, MinODTNits);
-			OutColor.y = Y_2_linCV(OutColor.y, MaxODTNits, MinODTNits);
-			OutColor.z = Y_2_linCV(OutColor.z, MaxODTNits, MinODTNits);
-
-			float scRGBScale = MaxODTNits / WhitePoint;
-			OutColor.xyz = mul(AP1_2_sRGB, OutColor.xyz) * scRGBScale;
+			OutColor.xyz = ST2084ToScRGB(OutColor.xyz, GetOutputDevice());
 		}
 	#endif
 

@@ -75,6 +75,9 @@ protected:
 	/** Should we build lighting for the packages we are saving? **/
 	bool bShouldBuildLighting;
 
+	/** Should we build texture streaming for the packages we are saving? **/
+	bool bShouldBuildTextureStreaming;
+
 	/** Ignore package version changelist **/
 	bool bIgnoreChangelist;
 

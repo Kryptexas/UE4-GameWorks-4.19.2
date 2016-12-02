@@ -365,7 +365,7 @@ public:
 		}
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState);
 
 	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex);
 
@@ -602,6 +602,7 @@ public:
 		SingleCubemapArrayIndex.Bind(ParameterMap, TEXT("SingleCubemapArrayIndex"));	
 		SingleCaptureOffsetAndAverageBrightness.Bind(ParameterMap, TEXT("SingleCaptureOffsetAndAverageBrightness"));
 		SingleCapturePositionAndRadius.Bind(ParameterMap, TEXT("SingleCapturePositionAndRadius"));
+		SingleCaptureBrightness.Bind(ParameterMap, TEXT("SingleCaptureBrightness"));
 		SkyLightReflectionParameters.Bind(ParameterMap);
 	}
 
@@ -618,6 +619,7 @@ public:
 		Ar << P.SingleCubemapArrayIndex;
 		Ar << P.SingleCaptureOffsetAndAverageBrightness;
 		Ar << P.SingleCapturePositionAndRadius;
+		Ar << P.SingleCaptureBrightness;
 		Ar << P.SkyLightReflectionParameters;
 		return Ar;
 	}
@@ -631,6 +633,7 @@ private:
 	FShaderParameter SingleCubemapArrayIndex;
 	FShaderParameter SingleCaptureOffsetAndAverageBrightness;
 	FShaderParameter SingleCapturePositionAndRadius;
+	FShaderParameter SingleCaptureBrightness;
 
 	FSkyLightReflectionParameters SkyLightReflectionParameters;
 };
@@ -740,7 +743,7 @@ public:
 		ForwardLightingParameters.Set(RHICmdList, ShaderRHI, *View, bIsInstancedStereo);
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, const FMeshDrawingRenderState& DrawRenderState, EBlendMode BlendMode);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, const FDrawingPolicyRenderState& DrawRenderState, EBlendMode BlendMode);
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
@@ -891,10 +894,17 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy, 
 		const FMaterial& InMaterialResource, 
-		EDebugViewShaderMode InDebugViewShaderMode) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode, false, false, false)
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+		EDebugViewShaderMode InDebugViewShaderMode,
+		bool bInEnableReceiveDecalOutput) : FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode), bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
 	{}
 
-	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+	void ApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
+
+protected:
+
+	/** Whether or not outputing the receive decal boolean */
+	uint32 bEnableReceiveDecalOutput : 1;
 };
 
 /**
@@ -934,18 +944,18 @@ public:
 		ESceneRenderTargetsMode::Type InSceneTextureMode,
 		bool bInEnableSkyLight,
 		bool bInEnableAtmosphericFog,
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 		EDebugViewShaderMode InDebugViewShaderMode = DVSM_None,
 		bool bInEnableEditorPrimitiveDepthTest = false,
 		bool bInEnableReceiveDecalOutput = false
 		):
-		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InDebugViewShaderMode),
+		FBasePassDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, InDebugViewShaderMode, bInEnableReceiveDecalOutput),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode), 
 		SceneTextureMode(InSceneTextureMode),
 		bEnableSkyLight(bInEnableSkyLight),
 		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
-		bEnableAtmosphericFog(bInEnableAtmosphericFog),
-		bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
+		bEnableAtmosphericFog(bInEnableAtmosphericFog)
 	{
 		HullShader = NULL;
 		DomainShader = NULL;
@@ -990,11 +1000,12 @@ public:
 			DRAWING_POLICY_MATCH(DomainShader == Other.DomainShader) &&
 			DRAWING_POLICY_MATCH(SceneTextureMode == Other.SceneTextureMode) &&
 			DRAWING_POLICY_MATCH(bEnableSkyLight == Other.bEnableSkyLight) && 
-			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy);
+			DRAWING_POLICY_MATCH(LightMapPolicy == Other.LightMapPolicy) &&
+			DRAWING_POLICY_MATCH(bEnableReceiveDecalOutput == Other.bEnableReceiveDecalOutput);
 		DRAWING_POLICY_MATCH_END
 	}
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, bool bUseDownsampledTranslucencyViewUniformBuffer = false) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FViewInfo* View, const ContextDataType PolicyContext, const FDrawingPolicyRenderState& DrawRenderState, bool bUseDownsampledTranslucencyViewUniformBuffer = false) const
 	{
 		// If the current debug view shader modes are allowed, different VS/DS/HS must be used (with only SV_POSITION as PS interpolant).
 		if (View->Family->UseDebugViewVSDSHS())
@@ -1105,8 +1116,7 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		FDrawingPolicyRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const
@@ -1159,46 +1169,7 @@ public:
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DrawRenderState,BlendMode);
 		}
 
-		static IConsoleVariable* EarlyZPassOnlyMaterialMaskingCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.EarlyZPassOnlyMaterialMasking"));
-		bool bMaskInEarlyPass = (EarlyZPassOnlyMaterialMaskingCVar && Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel())->IsMasked() && EarlyZPassOnlyMaterialMaskingCVar->GetInt());
-
-		if (bEnableReceiveDecalOutput && !UseDebugViewPS())
-		{
-			// Set stencil value for this draw call
-			// This is effectively extending the GBuffer using the stencil bits
-			const uint8 StencilValue = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, PrimitiveSceneProxy ? !!PrimitiveSceneProxy->ReceivesDecals() : 0x00)
-				| STENCIL_LIGHTING_CHANNELS_MASK(PrimitiveSceneProxy ? PrimitiveSceneProxy->GetLightingChannelStencilValue() : 0x00);
-			
-			if (DrawRenderState.DepthStencilState)
-			{
-				//@TODO: Handle bMaskInEarlyPass in this case (used when a LODTransition is specified)
-				RHICmdList.SetDepthStencilState(DrawRenderState.DepthStencilState, StencilValue);
-			}
-			else if (bMaskInEarlyPass)
-			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-					false, CF_Equal,
-					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
-					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-				>::GetRHI(), StencilValue);
-			}
-			else
-			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-					true, CF_GreaterEqual,
-					true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
-					false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
-					0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1) | STENCIL_LIGHTING_CHANNELS_MASK(0x7)
-				>::GetRHI(), StencilValue);
-			}
-		}
-		else if (bMaskInEarlyPass)
-		{
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Equal>::GetRHI());
-		}
-
-		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,DrawRenderState,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 	}
 
 	friend int32 CompareDrawingPolicy(const TBasePassDrawingPolicy& A,const TBasePassDrawingPolicy& B)
@@ -1236,9 +1207,6 @@ protected:
 	uint32 bEnableEditorPrimitiveDepthTest : 1;
 	/** Whether or not this policy enables atmospheric fog */
 	uint32 bEnableAtmosphericFog : 1;
-
-	/** Whether or not outputing the receive decal boolean */
-	uint32 bEnableReceiveDecalOutput : 1;
 };
 
 /**
@@ -1268,8 +1236,8 @@ public:
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
-		bool bBackFace,
 		bool bPreFog,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId, 
 		const bool bIsInstancedStereo = false
@@ -1355,7 +1323,7 @@ template<typename ProcessActionType>
 void ProcessBasePassMeshForSimpleForwardShading(
 	FRHICommandList& RHICmdList,
 	const FProcessBasePassMeshParameters& Parameters,
-	const ProcessActionType& Action,
+	ProcessActionType&& Action,
 	const FLightMapInteraction& LightMapInteraction,
 	bool bIsLitMaterial,
 	bool bAllowStaticLighting
@@ -1417,7 +1385,7 @@ template<typename ProcessActionType>
 void ProcessBasePassMesh(
 	FRHICommandList& RHICmdList,
 	const FProcessBasePassMeshParameters& Parameters,
-	const ProcessActionType& Action
+	ProcessActionType&& Action
 	)
 {
 	// Check for a cached light-map.

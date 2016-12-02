@@ -10,6 +10,8 @@
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 
+static const double HitchTime = 2.0 / 60.0;
+
 void FVulkanGfxPipelineState::Reset()
 {
 	BSS = nullptr;
@@ -270,7 +272,7 @@ bool FVulkanPipelineStateCache::Load(const TArray<FString>& CacheFilenames, TArr
 				FGfxPipelineEntry* GfxEntry = &GfxPipelineEntries[Index];
 				GfxEntry->bLoaded = true;
 				CreatGfxEntryRuntimeObjects(GfxEntry);
-				CreateGfxPipelineFromEntry(GfxEntry, Pipeline);
+				CreateGfxPipelineFromEntry(GfxEntry, Pipeline, nullptr);
 
 				FVulkanGfxPipelineStateKey CreateInfo(GfxEntry->GraphicsKey, GfxEntry->VertexInputKey, GfxEntry->ShaderHashes);
 
@@ -387,7 +389,7 @@ void FVulkanPipelineStateCache::CreateAndAdd(FVulkanRenderPass* RenderPass, cons
 	PopulateGfxEntry(State, RenderPass, GfxEntry);
 
 	// Create the pipeline
-	CreateGfxPipelineFromEntry(GfxEntry, Pipeline);
+	CreateGfxPipelineFromEntry(GfxEntry, Pipeline, &BSS);
 
 	//UE_LOG(LogVulkanRHI, Display, TEXT("PK: Added Entry %llx Index %d"), CreateInfo.PipelineKey, GfxEntries.Num());
 
@@ -797,7 +799,7 @@ FArchive& operator << (FArchive& Ar, FVulkanPipelineStateCache::FGfxPipelineEntr
 	return Ar << (*Entry);
 }
 
-void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEntry* GfxEntry, FVulkanGfxPipeline* Pipeline)
+void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEntry* GfxEntry, FVulkanGfxPipeline* Pipeline, const FVulkanBoundShaderState* BSS)
 {
 	// Pipeline
 	VkGraphicsPipelineCreateInfo PipelineInfo;
@@ -917,8 +919,21 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 
 	PipelineInfo.pDynamicState = &DynamicState;
 
+	double BeginTime = BSS ? FPlatformTime::Seconds() : 0.0;
 	//#todo-rco: Group the pipelines and create multiple (derived) pipelines at once
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateGraphicsPipelines(Device->GetInstanceHandle(), PipelineCache, 1, &PipelineInfo, nullptr, &Pipeline->Pipeline));
+	double EndTime = BSS ? FPlatformTime::Seconds() : 0.0;
+	double Delta = EndTime - BeginTime;
+	if (Delta > HitchTime)
+	{
+		UE_LOG(LogVulkanRHI, Warning, TEXT("Hitchy pipeline key 0x%08x%08x 0x%08x%08x VtxInKey 0x%08x VS %s GS %s PS %s"), 
+			(uint32)((GfxEntry->GraphicsKey.Key[0] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[0] & 0xffffffff),
+			(uint32)((GfxEntry->GraphicsKey.Key[1] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[1] & 0xffffffff),
+			GfxEntry->VertexInputKey,
+			*BSS->VertexShader->DebugName,
+			BSS->GeometryShader ? *BSS->GeometryShader->DebugName : TEXT("nullptr"),
+			BSS->PixelShader ? *BSS->PixelShader->DebugName : TEXT("nullptr"));
+	}
 }
 
 void FVulkanPipelineStateCache::PopulateGfxEntry(const FVulkanGfxPipelineState& State, const FVulkanRenderPass* RenderPass, FVulkanPipelineStateCache::FGfxPipelineEntry* OutGfxEntry)

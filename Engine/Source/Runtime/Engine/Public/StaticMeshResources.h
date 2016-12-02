@@ -1150,7 +1150,7 @@ protected:
 	/** The cacheed GetTextureStreamingTransformScale */
 	float StreamingTransformScale;
 	/** Material bounds used for texture streaming. */
-	TArray<FBox> MaterialStreamingBounds;
+	TArray<uint32> MaterialStreamingRelativeBoxes;
 
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
 	int32 SectionIndexPreview;

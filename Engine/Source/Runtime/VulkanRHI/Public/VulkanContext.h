@@ -161,9 +161,9 @@ public:
 		return FrameCounter;
 	}
 
-	inline FVulkanRingBuffer* GetUBRingBuffer()
+	inline FVulkanUniformBufferUploader* GetUniformBufferUploader()
 	{
-		return UBRingBuffer;
+		return UniformBufferUploader;
 	}
 
 	void WriteBeginTimestamp(FVulkanCmdBuffer* CmdBuffer);
@@ -176,7 +176,8 @@ protected:
 	FVulkanDevice* Device;
 	const bool bIsImmediate;
 	bool bSubmitAtNextSafePoint;
-	FVulkanRingBuffer* UBRingBuffer;
+	bool bAutomaticFlushAfterComputeShader;
+	FVulkanUniformBufferUploader* UniformBufferUploader;
 
 	void SetShaderUniformBuffer(EShaderFrequency Stage, const FVulkanUniformBuffer* UniformBuffer, int32 BindingIndex);
 
@@ -242,6 +243,18 @@ protected:
 		TMap<uint32, FFramebufferList*> Framebuffers;
 
 		void NotifyDeletedRenderTarget(FVulkanDevice& InDevice, const FVulkanTextureBase* Texture);
+		
+		VkImageLayout FindOrAddLayout(VkImage Image, VkImageLayout LayoutIfNotFound)
+		{
+			VkImageLayout* Found = CurrentLayout.Find(Image);
+			if (Found)
+			{
+				return *Found;
+			}
+
+			CurrentLayout.Add(Image, LayoutIfNotFound);
+			return LayoutIfNotFound;
+		}
 	};
 	FTransitionState TransitionState;
 
@@ -309,6 +322,7 @@ private:
 	}
 
 	void InternalSubmitActiveCmdBuffer();
+	void FlushAfterComputeShader();
 
 	friend class FVulkanDevice;
 	friend class FVulkanDynamicRHI;

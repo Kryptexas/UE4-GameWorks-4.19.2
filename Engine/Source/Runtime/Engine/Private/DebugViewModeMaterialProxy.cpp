@@ -6,10 +6,10 @@ DebugViewModeMaterialProxy.cpp : Contains definitions the debug view mode materi
 
 #include "DebugViewModeMaterialProxy.h"
 
-ENGINE_API const FMaterial* GetDebugViewMaterialPS(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material)
+ENGINE_API const FMaterial* GetDebugViewMaterialPS(const FMaterial* Material, EMaterialShaderMapUsage::Type Usage)
 {
 #if WITH_EDITORONLY_DATA
-	return FDebugViewModeMaterialProxy::GetShader(DebugViewShaderMode, Material);
+	return FDebugViewModeMaterialProxy::GetShader(Material, Usage);
 #else
 	return nullptr;
 #endif
@@ -24,7 +24,7 @@ ENGINE_API void ClearAllDebugViewMaterials()
 
 #if WITH_EDITORONLY_DATA
 
-TMap<const FMaterial*, FDebugViewModeMaterialProxy*> FDebugViewModeMaterialProxy::DebugMaterialShaderMap;
+TMap<FDebugViewModeMaterialProxy::FMaterialUsagePair, FDebugViewModeMaterialProxy*> FDebugViewModeMaterialProxy::DebugMaterialShaderMap;
 volatile bool FDebugViewModeMaterialProxy::bReentrantCall = false;
 
 void FDebugViewModeMaterialProxy::AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage)
@@ -34,21 +34,19 @@ void FDebugViewModeMaterialProxy::AddShader(UMaterialInterface* InMaterialInterf
 	const FMaterial* Material = InMaterialInterface->GetMaterialResource(FeatureLevel);
 	if (!Material) return;
 
-	if (!DebugMaterialShaderMap.Contains(Material))
+	FMaterialUsagePair ShaderMapKey(Material, InUsage);
+	if (!DebugMaterialShaderMap.Contains(ShaderMapKey))
 	{
-		DebugMaterialShaderMap.Add(Material, new FDebugViewModeMaterialProxy(InMaterialInterface, QualityLevel, FeatureLevel, InUsage));
+		DebugMaterialShaderMap.Add(ShaderMapKey, new FDebugViewModeMaterialProxy(InMaterialInterface, QualityLevel, FeatureLevel, InUsage));
 	}
 }
 
-const FMaterial* FDebugViewModeMaterialProxy::GetShader(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material)
+const FMaterial* FDebugViewModeMaterialProxy::GetShader(const FMaterial* Material, EMaterialShaderMapUsage::Type Usage)
 {
-	if (DebugViewShaderMode == DVSM_MaterialTextureScaleAccuracy || DebugViewShaderMode == DVSM_OutputMaterialTextureScales)
+	FDebugViewModeMaterialProxy** BoundMaterial = DebugMaterialShaderMap.Find(FMaterialUsagePair(Material, Usage));
+	if (BoundMaterial && *BoundMaterial && (*BoundMaterial)->IsValid())
 	{
-		FDebugViewModeMaterialProxy** BoundMaterial = DebugMaterialShaderMap.Find(Material);
-		if (BoundMaterial && *BoundMaterial && (*BoundMaterial)->IsValid())
-		{
-			return *BoundMaterial;
-		}
+		return *BoundMaterial;
 	}
 	return nullptr;
 }
@@ -60,7 +58,7 @@ void FDebugViewModeMaterialProxy::ClearAllShaders()
 	FlushRenderingCommands();
 
 	bReentrantCall = true;
-	for (TMap<const FMaterial*, FDebugViewModeMaterialProxy*>::TIterator It(DebugMaterialShaderMap); It; ++It)
+	for (TMap<FMaterialUsagePair, FDebugViewModeMaterialProxy*>::TIterator It(DebugMaterialShaderMap); It; ++It)
 	{
 		FDebugViewModeMaterialProxy* Proxy = It.Value();
 		delete Proxy;
@@ -74,9 +72,9 @@ void FDebugViewModeMaterialProxy::ValidateAllShaders(TSet<UMaterialInterface*>& 
 {
 	FlushRenderingCommands();
 
-	for (TMap<const FMaterial*, FDebugViewModeMaterialProxy*>::TIterator It(DebugMaterialShaderMap); It; ++It)
+	for (TMap<FMaterialUsagePair, FDebugViewModeMaterialProxy*>::TIterator It(DebugMaterialShaderMap); It; ++It)
 	{
-		const FMaterial* OriginalMaterial = It.Key();
+		const FMaterial* OriginalMaterial = It.Key().Material;
 		FDebugViewModeMaterialProxy* DebugMaterial = It.Value();
 
 		if (OriginalMaterial && DebugMaterial && OriginalMaterial->GetGameThreadShaderMap() && DebugMaterial->GetGameThreadShaderMap())

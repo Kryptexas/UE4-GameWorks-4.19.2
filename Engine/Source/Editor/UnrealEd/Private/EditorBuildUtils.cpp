@@ -37,6 +37,7 @@
 #include "HierarchicalLOD.h"
 #include "ActorEditorUtils.h"
 #include "MaterialUtilities.h"
+#include "UnrealEngine.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildUtils, Log, All);
 
@@ -896,10 +897,11 @@ FBuildAllHandler::FBuildAllHandler()
 	BuildSteps.Add(FBuildOptions::BuildGeometry);
 	BuildSteps.Add(FBuildOptions::BuildHierarchicalLOD);
 	BuildSteps.Add(FBuildOptions::BuildAIPaths);
+	// Texture streaming goes before lighting as lighting needs to be the last build step.
+	// This is not an issue as lightmaps are not taken into consideration in the texture streaming build.
+	BuildSteps.Add(FBuildOptions::BuildTextureStreaming);
 	//Lighting must always be the last one when doing a build all
 	BuildSteps.Add(FBuildOptions::BuildLighting);
-	//Texture streaming follows lighting because it could generate lightmap related data.
-	BuildSteps.Add(FBuildOptions::BuildTextureStreaming);
 }
 
 /**
@@ -1076,15 +1078,14 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, EViewModeIn
 	if (bNeedsMaterialData)
 	{
 		TSet<UMaterialInterface*> Materials;
-
-		if (!GetTextureStreamingBuildMaterials(InWorld, Materials, BuildTextureStreamingTask))
+		if (!GetUsedMaterialsInWorld(InWorld, Materials, BuildTextureStreamingTask))
 		{
 			return false;
 		}
 
 		if (Materials.Num())
 		{
-			if (!CompileTextureStreamingShaders(QualityLevel, FeatureLevel, SelectedViewMode == VMI_Unknown, true, Materials, BuildTextureStreamingTask))
+			if (!CompileDebugViewModeShaders(DVSM_OutputMaterialTextureScales, QualityLevel, FeatureLevel, SelectedViewMode == VMI_Unknown, true, Materials, BuildTextureStreamingTask))
 			{
 				return false;
 			}
@@ -1144,6 +1145,41 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, EViewModeIn
 	}
 
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+	return true;
+}
+
+bool FEditorBuildUtils::CompileViewModeShaders(UWorld* InWorld, EViewModeIndex SelectedViewMode)
+{
+	if (!InWorld || SelectedViewMode != VMI_RequiredTextureResolution) return false;
+	const EDebugViewShaderMode ShaderMode = DVSM_RequiredTextureResolution;
+
+	const EMaterialQualityLevel::Type QualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;;
+	const ERHIFeatureLevel::Type FeatureLevel = InWorld->FeatureLevel;
+
+	FScopedSlowTask CompileShaderTask(3.f, LOCTEXT("CompileDebugViewModeShaders", "Compiling Missing ViewMode Shaders")); // { Get Used Materials, Sync Pending Shader, Wait for Compilation }
+	CompileShaderTask.MakeDialog(true);
+
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+
+	TSet<UMaterialInterface*> Materials;
+	if (!GetUsedMaterialsInWorld(InWorld, Materials, CompileShaderTask))
+	{
+		return false;
+	}
+
+	if (Materials.Num())
+	{
+		if (!CompileDebugViewModeShaders(ShaderMode, QualityLevel, FeatureLevel, false, true, Materials, CompileShaderTask))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		CompileShaderTask.EnterProgressFrame();
+	}
+
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 	return true;
 }
 

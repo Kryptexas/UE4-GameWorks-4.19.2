@@ -44,18 +44,6 @@
 #include <uuid/uuid.h>
 
 /*------------------------------------------------------------------------------
- Settings defines.
- ------------------------------------------------------------------------------*/
-
-#if WITH_EDITOR
-#define MAC_GRAPHICS_SETTINGS TEXT("/Script/MacGraphicsSwitching.MacGraphicsSwitchingSettings")
-#define MAC_GRAPHICS_INI GEditorSettingsIni
-#else
-#define MAC_GRAPHICS_SETTINGS TEXT("/Script/MacTargetPlatform.MacTargetSettings")
-#define MAC_GRAPHICS_INI GEngineIni
-#endif
-
-/*------------------------------------------------------------------------------
  Console variables.
  ------------------------------------------------------------------------------*/
 
@@ -1411,8 +1399,7 @@ int32 FMacPlatformMisc::GetExplicitRendererIndex()
 	check(GConfig && GConfig->IsReadyForUse());
 	
 	int32 ExplicitRenderer = -1;
-	if ((FParse::Value(FCommandLine::Get(),TEXT("MacExplicitRenderer="), ExplicitRenderer) && ExplicitRenderer >= 0)
-		|| (GConfig->GetInt(MAC_GRAPHICS_SETTINGS, TEXT("RendererID"), ExplicitRenderer, MAC_GRAPHICS_INI) && ExplicitRenderer >= 0))
+	if (FParse::Value(FCommandLine::Get(),TEXT("MacExplicitRenderer="), ExplicitRenderer) && ExplicitRenderer >= 0)
 	{
 		return ExplicitRenderer;
 	}

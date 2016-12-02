@@ -54,7 +54,9 @@ public:
 
 	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const override
 	{
-		return FString(ShaderType->GetName()).Contains(TEXT("FMaterialTexCoordScalePS"));
+		const FString ShaderTypeName = ShaderType->GetName();
+		return (ShaderTypeName.Contains(TEXT("FMaterialTexCoordScalePS")) && Usage == EMaterialShaderMapUsage::DebugViewModeTexCoordScale) || 
+			(ShaderTypeName.Contains(TEXT("FRequiredTextureResolutionPS")) && Usage == EMaterialShaderMapUsage::DebugViewModeRequiredTextureResolution);
 	}
 
 	virtual const TArray<UTexture*>& GetReferencedTextures() const override
@@ -118,7 +120,7 @@ public:
 	////////////////
 
 	static void AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage);
-	static const FMaterial* GetShader(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material);
+	static const FMaterial* GetShader(const FMaterial* Material, EMaterialShaderMapUsage::Type Usage);
 	static void ClearAllShaders();
 	static bool HasAnyShaders() { return DebugMaterialShaderMap.Num() > 0; }
 	static void ValidateAllShaders(TSet<UMaterialInterface*>& Materials);
@@ -134,8 +136,26 @@ private:
 	/** Whether this debug material should be used or not. */
 	bool bValid;
 
+	struct FMaterialUsagePair
+	{
+		FMaterialUsagePair(const FMaterial* InMaterial, EMaterialShaderMapUsage::Type InUsage) : Material(InMaterial), Usage(InUsage) {}
+		const FMaterial* Material;
+		EMaterialShaderMapUsage::Type Usage;
+
+		friend bool operator==(const FMaterialUsagePair& Lhs, const FMaterialUsagePair& Rhs)
+		{
+			return Lhs.Material == Rhs.Material && Lhs.Usage == Rhs.Usage;
+		}
+
+		friend uint32 GetTypeHash( const FMaterialUsagePair& Pair )
+		{
+			return GetTypeHash(Pair.Material) ^ GetTypeHash(Pair.Usage);
+		}
+
+	};
+
 	static volatile bool bReentrantCall;
-	static TMap<const FMaterial*, FDebugViewModeMaterialProxy*> DebugMaterialShaderMap;
+	static TMap<FMaterialUsagePair, FDebugViewModeMaterialProxy*> DebugMaterialShaderMap;
 };
 
 #endif

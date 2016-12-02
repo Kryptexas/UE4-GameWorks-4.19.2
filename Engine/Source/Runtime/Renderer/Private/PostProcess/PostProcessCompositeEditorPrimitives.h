@@ -7,6 +7,7 @@
 #include "PostProcess/RenderingCompositionGraph.h"
 
 class FViewInfo;
+struct FDrawingPolicyRenderState;
 
 #if WITH_EDITOR
 
@@ -30,7 +31,7 @@ private:
 	 * @param View	The view to draw in
 	 */
 	template <typename TBasePass>
-	void RenderPrimitivesToComposite(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+	void RenderPrimitivesToComposite(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState);
 
 	bool bDeferredBasePass;
 };

@@ -10,6 +10,7 @@ DebugViewModeRendering.cpp: Contains definitions for rendering debug viewmodes.
 #include "PrimitiveDistanceAccuracyRendering.h"
 #include "MeshTexCoordSizeAccuracyRendering.h"
 #include "MaterialTexCoordScalesRendering.h"
+#include "RequiredTextureResolutionRendering.h"
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeVS,TEXT("DebugViewModeVertexShader"),TEXT("Main"),SF_Vertex);	
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FDebugViewModeHS,TEXT("DebugViewModeVertexShader"),TEXT("MainHull"),SF_Hull);	
@@ -52,7 +53,7 @@ public:
 		const FPrimitiveSceneProxy* Proxy,
 		int32 VisualizeLODIndex,
 		const FMeshBatchElement& BatchElement, 
-		const FMeshDrawingRenderState& DrawRenderState
+		const FDrawingPolicyRenderState& DrawRenderState
 		) override{}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, const FSceneView& View) override {}
@@ -76,7 +77,7 @@ void FDebugViewMode::GetMaterialForVSHSDS(const FMaterialRenderProxy** MaterialR
 	}
 }
 
-ENGINE_API const FMaterial* GetDebugViewMaterialPS(EDebugViewShaderMode DebugViewShaderMode, const FMaterial* Material);
+ENGINE_API const FMaterial* GetDebugViewMaterialPS(const FMaterial* Material, EMaterialShaderMapUsage::Type Usage);
 
 IDebugViewModePSInterface* FDebugViewMode::GetPSInterface(TShaderMap<FGlobalShaderType>* ShaderMap, const FMaterial* Material, EDebugViewShaderMode DebugViewShaderMode)
 {
@@ -100,17 +101,25 @@ IDebugViewModePSInterface* FDebugViewMode::GetPSInterface(TShaderMap<FGlobalShad
 	case DVSM_MaterialTextureScaleAccuracy:
 	case DVSM_OutputMaterialTextureScales:
 	{
-		const FMaterial* MaterialForPS = GetDebugViewMaterialPS(DebugViewShaderMode, Material);
+		const FMaterial* MaterialForPS = GetDebugViewMaterialPS(Material, EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
 		if (MaterialForPS)
 		{
 			return MaterialForPS->GetShader<FMaterialTexCoordScalePS>(LocalVertexFactory);
 		}
 		break;
 	}
+	case DVSM_RequiredTextureResolution:
+	{
+		const FMaterial* MaterialForPS = GetDebugViewMaterialPS(Material, EMaterialShaderMapUsage::DebugViewModeRequiredTextureResolution);
+		if (MaterialForPS)
+		{
+			return MaterialForPS->GetShader<FRequiredTextureResolutionPS>(LocalVertexFactory);
+		}
+		break;
+	}
 	default:
 		break;
 	}
-
 	return *TShaderMapRef<FMissingShaderPS>(ShaderMap);
 }
 
@@ -175,7 +184,7 @@ void FDebugViewMode::SetMeshVSHSDS(
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* Proxy,
 	const FMeshBatchElement& BatchElement, 
-	const FMeshDrawingRenderState& DrawRenderState,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const FMaterial* Material, 
 	bool bHasHullAndDomainShader
 	)

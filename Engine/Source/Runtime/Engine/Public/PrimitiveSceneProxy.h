@@ -254,6 +254,8 @@ public:
 		BoundsSurfaceArea = 0;
 	}
 
+	virtual bool HeightfieldHasPendingStreaming() const { return false; }
+
 	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription)
 	{
 		OutHeightmapTexture = NULL;

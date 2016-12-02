@@ -28,6 +28,9 @@ class UTexture2D;
 struct FStreamingTextureBuildInfo;
 struct FMaterialTextureInfo;
 
+// The PackedRelativeBox value that return the bound unaltered
+static const uint32 PackedRelativeBox_Identity = 0xffff0000;
+
 /** Information about a streaming texture that a primitive uses for rendering. */
 USTRUCT()
 struct FStreamingTexturePrimitiveInfo
@@ -37,30 +40,34 @@ struct FStreamingTexturePrimitiveInfo
 	UPROPERTY()
 	UTexture2D* Texture;
 
+	/** 
+	 * The streaming bounds of the texture, usually the component material bounds. 
+	 * Usually only valid for registered component, as component bounds are only updated when the components are registered.
+	 * otherwise only PackedRelativeBox can be used.Irrelevant when the component is not registered, as the component could be moved by ULevel::ApplyWorldOffset()
+	 * In that case, only PackedRelativeBox is meaningful.
+	 */
 	UPROPERTY()
 	FBoxSphereBounds Bounds;
 
 	UPROPERTY()
 	float TexelFactor;
 
+	/** 
+	 * When non zero, this represents the relative box used to compute Bounds, using the component bounds as reference.
+	 * If available, this allows the texture streamer to generate the level streaming data before the level gets visible.
+	 * At that point, the component are not yet registered, and the bounds are unknown, but the precompiled build data is still available.
+	 * Also allows to update the relative bounds after a level get moved around from ApplyWorldOffset.
+	 */
+	UPROPERTY()
+	uint32 PackedRelativeBox;
+
 	FStreamingTexturePrimitiveInfo() : 
 		Texture(nullptr), 
 		Bounds(ForceInit), 
-		TexelFactor(1.0f) 
+		TexelFactor(1.0f),
+		PackedRelativeBox(0)
 	{
 	}
-
-
-	/**
-	 *	Set this struct to match the packed params.
-	 *
-	 *	@param	InTexture			The texture as refered by the packed info.
-	 * 	@param	ExtraScale			Extra scale to be applied to the texcoord world size.
-	 *	@param	RefBounds			The reference bounds used to unpack the relative box.
-	 *	@param	Info				The packed params.
-	 *	@param	bUseRelativeBox		true if the relative box is relevant. Could be irrelevant if a level transform was applied after the texture streaming build.
-	 */
-	ENGINE_API void UnPackFrom(UTexture2D* InTexture, float ExtraScale, const FBoxSphereBounds& RefBounds, const FStreamingTextureBuildInfo& Info, bool bUseRelativeBox);
 };
 
 /** 
@@ -127,7 +134,7 @@ struct FStreamingTextureBuildInfo
 
 struct FPrimitiveMaterialInfo
 {
-	FPrimitiveMaterialInfo() : Material(nullptr), UVChannelData(nullptr) {}
+	FPrimitiveMaterialInfo() : Material(nullptr), UVChannelData(nullptr), PackedRelativeBox(0) {}
 
 	// The material
 	const UMaterialInterface* Material;
@@ -136,9 +143,9 @@ struct FPrimitiveMaterialInfo
 	const FMeshUVChannelInfo* UVChannelData;
 
 	// The material bounds for the mesh.
-	FBox Bounds;
+	uint32 PackedRelativeBox;
 
-	bool IsValid() const { return Material && UVChannelData && Bounds.IsValid; }
+	bool IsValid() const { return Material && UVChannelData && PackedRelativeBox != 0; }
 };
 
 enum ETextureStreamingBuildType
@@ -162,9 +169,9 @@ enum ETextureStreamingBuildType
 class FStreamingTextureLevelContext
 {
 	/** Reversed lookup for ULevel::StreamingTextureGuids. */
-	TMap<FGuid, int32> TextureGuidToLevelIndex;
+	const TMap<FGuid, int32>* TextureGuidToLevelIndex;
 
-	/** Whether the precomputed relative bounds should be used or not.  Will be false if the transform level was rotated  since the last texture streaming build. */
+	/** Whether the precomputed relative bounds should be used or not.  Will be false if the transform level was rotated since the last texture streaming build. */
 	bool bUseRelativeBoxes;
 
 	/** An id used to identify the component build data. */
@@ -198,18 +205,16 @@ class FStreamingTextureLevelContext
 
 	int32* GetBuildDataIndexRef(UTexture2D* Texture2D);
 
-	void InitFromLevel(const ULevel* InLevel);
-
 public:
 
 	// Needs InLevel to use precomputed data from 
-	FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, ERHIFeatureLevel::Type InFeatureLevel, const ULevel* InLevel = nullptr);
-	FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, const ULevel* InLevel = nullptr);
+	FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, const ULevel* InLevel = nullptr, const TMap<FGuid, int32>* InTextureGuidToLevelIndex = nullptr);
+	FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, ERHIFeatureLevel::Type InFeatureLevel, bool InUseRelativeBoxes);
 	FStreamingTextureLevelContext(EMaterialQualityLevel::Type InQualityLevel, const UPrimitiveComponent* Primitive);
 	~FStreamingTextureLevelContext();
 
 	void BindBuildData(const TArray<FStreamingTextureBuildInfo>* PreBuiltData);
-	void ProcessMaterial(const FPrimitiveMaterialInfo& MaterialData, float ComponentScaling, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures);
+	void ProcessMaterial(const FBoxSphereBounds& ComponentBounds, const FPrimitiveMaterialInfo& MaterialData, float ComponentScaling, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures);
 
 	EMaterialQualityLevel::Type GetQualityLevel() { return QualityLevel; }
 	ERHIFeatureLevel::Type GetFeatureLevel() { return FeatureLevel; }
@@ -228,8 +233,6 @@ typedef TMap<UMaterialInterface*, TArray<FMaterialTextureInfo> > FTexCoordScaleM
 typedef TMap<UMaterialInterface*, TArray<ULevel*> > FMaterialToLevelsMap;
 
 /** Build the shaders required for the texture streaming build. Returns whether or not the action was successful. */
-ENGINE_API bool GetTextureStreamingBuildMaterials(UWorld* InWorld, OUT TSet<UMaterialInterface*>& MaterialsToUpdate, FSlowTask& BuildTextureStreamingTask);
-ENGINE_API bool CompileTextureStreamingShaders(EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bFullRebuild, bool bWaitForPreviousShaders, TSet<UMaterialInterface*>& Materials, FSlowTask& BuildTextureStreamingTask);
 ENGINE_API bool BuildTextureStreamingComponentData(UWorld* InWorld, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bFullRebuild, FSlowTask& BuildTextureStreamingTask);
 
 /** Check if the lighting build is dirty. Updates the needs rebuild status of the level and world. */
@@ -241,5 +244,10 @@ ENGINE_API void CheckTextureStreamingBuildValidity(UWorld* InWorld);
  * @return			true if the UTexture2D is supposed to be streaming
  */
 ENGINE_API bool IsStreamingTexture( const UTexture2D* Texture2D );
+
+ENGINE_API uint32 PackRelativeBox(const FVector& RefOrigin, const FVector& RefExtent, const FVector& Origin, const FVector& Extent);
+ENGINE_API uint32 PackRelativeBox(const FBox& RefBox, const FBox& Box);
+ENGINE_API void UnpackRelativeBox(const FBoxSphereBounds& InRefBounds, uint32 InPackedRelBox, FBoxSphereBounds& OutBounds);
+
 
 extern ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics;

@@ -205,7 +205,7 @@ const FSlateBrush* SCommonEditorViewportToolbarBase::GetCameraMenuLabelIcon() co
 EVisibility SCommonEditorViewportToolbarBase::GetViewModeOptionsVisibility() const
 {
 	const FEditorViewportClient& ViewClient = GetViewportClient();
-	if (ViewClient.GetViewMode() == VMI_MeshUVDensityAccuracy || ViewClient.GetViewMode() == VMI_MaterialTextureScaleAccuracy)
+	if (ViewClient.GetViewMode() == VMI_MeshUVDensityAccuracy || ViewClient.GetViewMode() == VMI_MaterialTextureScaleAccuracy || ViewClient.GetViewMode() == VMI_RequiredTextureResolution)
 	{
 		return EVisibility::SelfHitTestInvisible;
 	}
@@ -219,8 +219,9 @@ TSharedRef<SWidget> SCommonEditorViewportToolbarBase::GenerateViewModeOptionsMen
 {
 	GetInfoProvider().OnFloatingButtonClicked();
 	TSharedRef<SEditorViewport> ViewportRef = GetInfoProvider().GetViewportWidget();
-	const FEditorViewportClient& ViewClient = GetViewportClient();
-	return BuildViewModeOptionsMenu(ViewportRef->GetCommandList(), ViewClient.GetViewMode());
+	FEditorViewportClient& ViewClient = GetViewportClient();
+	const UWorld* World = ViewClient.GetWorld();
+	return BuildViewModeOptionsMenu(ViewportRef->GetCommandList(), ViewClient.GetViewMode(), World ? World->FeatureLevel : GMaxRHIFeatureLevel, ViewClient.GetViewModeParamNameMap());
 }
 
 

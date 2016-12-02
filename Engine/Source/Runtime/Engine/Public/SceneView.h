@@ -1154,6 +1154,8 @@ public:
 
 		/** Additional view params related to the current viewmode (example : texcoord index) */
 		int32 ViewModeParam;
+		/** An name bound to the current viewmode param. (example : texture name) */
+		FName ViewModeParamName;
 
 		/** The current world time. */
 		float CurrentWorldTime;
@@ -1195,7 +1197,7 @@ public:
 		ConstructionValues& SetGammaCorrection(const float Value) { GammaCorrection = Value; return *this; }		
 
 		/** Set the view param. */
-		ConstructionValues& SetViewModeParam(const int InViewModeParam) { ViewModeParam = InViewModeParam; return *this; }		
+		ConstructionValues& SetViewModeParam(const int InViewModeParam, const FName& InViewModeParamName) { ViewModeParam = InViewModeParam; ViewModeParamName = InViewModeParamName; return *this; }		
 	};
 	
 	/** The views which make up the family. */
@@ -1304,15 +1306,19 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	EDebugViewShaderMode DebugViewShaderMode;
 	int32 ViewModeParam;
+	FName ViewModeParamName;
+
 	bool bUsedDebugViewPSVSHS;
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DebugViewShaderMode; }
 	FORCEINLINE int32 GetViewModeParam() const { return ViewModeParam; }
+	FORCEINLINE const FName& GetViewModeParamName() const { return ViewModeParamName; }
 	EDebugViewShaderMode ChooseDebugViewShaderMode() const;
 	FORCEINLINE bool UseDebugViewVSDSHS() const { return bUsedDebugViewPSVSHS; }
 	FORCEINLINE bool UseDebugViewPS() const { return DebugViewShaderMode != DVSM_None; }
 #else
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
 	FORCEINLINE int32 GetViewModeParam() const { return -1; }
+	FORCEINLINE FName GetViewModeParamName() const { return NAME_None; }
 	FORCEINLINE bool UseDebugViewVSDSHS() const { return false; }
 	FORCEINLINE bool UseDebugViewPS() const { return false; }
 #endif

@@ -293,6 +293,7 @@ bool GRHISupportsMSAADepthSampleAccess = false;
 bool GRHISupportsResolveCubemapFaces = false;
 
 bool GRHISupportsHDROutput = false;
+EPixelFormat GRHIHDRDisplayOutputFormat = PF_FloatRGBA;
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;

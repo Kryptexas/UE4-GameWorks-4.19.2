@@ -90,9 +90,9 @@ void Main(
 
 #if USE_VERTEX_FOG
 #if PACK_INTERPOLANTS
-	PackedInterps[0] = CalculateVertexHeightFog(WorldPosition.xyz - float4(ResolvedView.TranslatedWorldCameraOrigin, 1));
+	PackedInterps[0] = CalculateVertexHeightFog(WorldPosition.xyz - ResolvedView.TranslatedWorldCameraOrigin);
 #else
-	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz - float4(ResolvedView.TranslatedWorldCameraOrigin, 1));
+	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz - ResolvedView.TranslatedWorldCameraOrigin);
 #endif // PACK_INTERPOLANTS
 #endif
 

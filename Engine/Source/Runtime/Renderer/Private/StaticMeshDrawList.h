@@ -299,7 +299,7 @@ private:
 	* @param bDrawnShared - determines whether to draw shared
 	*/
 	template<InstancedStereoPolicy InstancedStereo>
-	int32 DrawElement(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const FElement& Element, uint64 BatchElementMask, FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
+	int32 DrawElement(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState, const FElement& Element, uint64 BatchElementMask, FDrawingPolicyLink* DrawingPolicyLink, bool &bDrawnShared);
 
 public:
 
@@ -318,14 +318,6 @@ public:
 	);
 
 	/**
-	 * Draws only the static meshes which are in the visibility map.
-	 * @param View - The view of the meshes to render.
-	 * @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.
-	 * @return True if any static meshes were drawn.
-	 */
-	bool DrawVisible(const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap);
-
-	/**
 	* Draws only the static meshes which are in the visibility map, limited to a range of policies
 	* Both StaticMeshVisibilityMap and BatchVisibilityArray should be non-null for regular rendering or StereoView should be non-null if rendering with instanced stereo
 	* @param View - The view of the meshes to render (use the left view of a stereo pair when rendering with instanced stereo)
@@ -340,6 +332,7 @@ public:
 	bool DrawVisibleInner(FRHICommandList& RHICmdList,
 		const FViewInfo& View,
 		const typename DrawingPolicyType::ContextDataType PolicyContext,
+		FDrawingPolicyRenderState& DrawRenderState,
 		const TBitArray<SceneRenderingBitArrayAllocator>* const StaticMeshVisibilityMap,
 		const TArray<uint64, SceneRenderingAllocator>* const BatchVisibilityArray,
 		const StereoPair* const StereoView,
@@ -354,18 +347,15 @@ public:
 	*/
 	inline bool DrawVisibleInstancedStereo(
 		FRHICommandList& RHICmdList,
-		const StereoPair& StereoView)
+		const StereoPair& StereoView,
+		const FDrawingPolicyRenderState& DrawRenderState)
 	{
-		return DrawVisibleInner<InstancedStereoPolicy::Enabled>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(true), nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
+		//moved out of the inner loop and only modified if bDrawnShared
+		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+
+		return DrawVisibleInner<InstancedStereoPolicy::Enabled>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(true), DrawRenderStateLocal, nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
 	}
 
-	inline bool DrawVisibleInstancedStereo(
-		FRHICommandList& RHICmdList,
-		const StereoPair& StereoView,
-		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer)
-	{
-		return DrawVisibleInner<InstancedStereoPolicy::Enabled>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(ViewUniformBuffer, true), nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
-	}
 	/**
 	* Draws only the static meshes which are in the visibility map of the stereo pair
 	* Stereo instancing is not enabled, the driver handles this for mobile multi-view
@@ -374,9 +364,13 @@ public:
 	*/
 	inline bool DrawVisibleMobileMultiView(
 		FRHICommandList& RHICmdList,
-		const StereoPair& StereoView)
+		const StereoPair& StereoView,
+		const FDrawingPolicyRenderState& DrawRenderState)
 	{
-		return DrawVisibleInner<InstancedStereoPolicy::MobileMultiView>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(false), nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
+		//moved out of the inner loop and only modified if bDrawnShared
+		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+
+		return DrawVisibleInner<InstancedStereoPolicy::MobileMultiView>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(false), DrawRenderStateLocal, nullptr, nullptr, &StereoView, 0, OrderedDrawingPolicies.Num() - 1, false);
 	}
 
 	/**
@@ -386,7 +380,7 @@ public:
 	 * @param BatchVisibilityArray - An array of batch element visibility bitmasks.
 	 * @return True if any static meshes were drawn.
 	 */
-	bool DrawVisible(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray);
+	bool DrawVisible(FRHICommandList& RHICmdList, const FViewInfo& View, const typename DrawingPolicyType::ContextDataType PolicyContext, const FDrawingPolicyRenderState& DrawRenderState, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray);
 
 private:
 
@@ -424,10 +418,6 @@ public:
 		DrawVisibleParallelInternal(typename DrawingPolicyType::ContextDataType(true), nullptr, nullptr, &StereoView, ParallelCommandListSet);
 	}
 
-	inline void DrawVisibleParallelInstancedStereo(const StereoPair& StereoView, const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer, FParallelCommandListSet& ParallelCommandListSet)
-	{
-		DrawVisibleParallelInternal(typename DrawingPolicyType::ContextDataType(ViewUniformBuffer, true), nullptr, nullptr, &StereoView, ParallelCommandListSet);
-	}
 	/**
 	* Draws only the static meshes which are in the visibility map, sorted front-to-back.
 	* Both StaticMeshVisibilityMap and BatchVisibilityArray should be non-null for regular rendering or StereoView should be non-null if rendering with mobile multi-view
@@ -442,6 +432,7 @@ public:
 	int32 DrawVisibleFrontToBackInner(
 		FRHICommandList& RHICmdList,
 		const FViewInfo& View,
+		FDrawingPolicyRenderState& DrawRenderState,
 		const typename DrawingPolicyType::ContextDataType PolicyContext,
 		const TBitArray<SceneRenderingBitArrayAllocator>* const StaticMeshVisibilityMap,
 		const TArray<uint64, SceneRenderingAllocator>* const BatchVisibilityArray,
@@ -459,12 +450,16 @@ public:
 	inline int32 DrawVisibleFrontToBack(
 		FRHICommandList& RHICmdList, 
 		const FViewInfo& View, 
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const typename DrawingPolicyType::ContextDataType PolicyContext, 
 		const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, 
 		const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, 
 		int32 MaxToDraw)
 	{
-		return DrawVisibleFrontToBackInner<InstancedStereoPolicy::Disabled>(RHICmdList, View, PolicyContext, &StaticMeshVisibilityMap, &BatchVisibilityArray, nullptr, MaxToDraw);
+		//moved out of the inner loop and only modified if bDrawnShared
+		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+
+		return DrawVisibleFrontToBackInner<InstancedStereoPolicy::Disabled>(RHICmdList, View, DrawRenderStateLocal, PolicyContext, &StaticMeshVisibilityMap, &BatchVisibilityArray, nullptr, MaxToDraw);
 	}
 
 	/**
@@ -474,22 +469,25 @@ public:
 	* @param MaxToDraw - The maximum number of meshes to be drawn.
 	* @return The number of static meshes drawn.
 	*/
-	inline int32 DrawVisibleFrontToBackMobileMultiView(FRHICommandList& RHICmdList, const StereoPair &StereoView, const int32 MaxToDraw)
+	inline int32 DrawVisibleFrontToBackMobileMultiView(FRHICommandList& RHICmdList, const StereoPair &StereoView, const FDrawingPolicyRenderState& DrawRenderState, const int32 MaxToDraw)
 	{
-		return DrawVisibleFrontToBackInner<InstancedStereoPolicy::MobileMultiView>(RHICmdList, *StereoView.LeftView, typename DrawingPolicyType::ContextDataType(false), nullptr, nullptr, &StereoView, MaxToDraw);
+		//moved out of the inner loop and only modified if bDrawnShared
+		FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+
+		return DrawVisibleFrontToBackInner<InstancedStereoPolicy::MobileMultiView>(RHICmdList, *StereoView.LeftView, DrawRenderStateLocal, typename DrawingPolicyType::ContextDataType(false), nullptr, nullptr, &StereoView, MaxToDraw);
 	}
 
 	/**
 	 * Helper functions when policy context is not needed.
 	 */
-	inline bool DrawVisible(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap)
+	inline bool DrawVisible(const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap)
 	{
-		return DrawVisible(View, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap);
+		return DrawVisible(View, typename DrawingPolicyType::ContextDataType(), DrawRenderState, StaticMeshVisibilityMap);
 	}
 
-	inline bool DrawVisible(FRHICommandList& RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray)
+	inline bool DrawVisible(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray)
 	{
-		return DrawVisible(RHICmdList, View, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray);
+		return DrawVisible(RHICmdList, View, typename DrawingPolicyType::ContextDataType(), DrawRenderState, StaticMeshVisibilityMap, BatchVisibilityArray);
 	}
 
 	inline void DrawVisibleParallel(const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, FParallelCommandListSet& ParallelCommandListSet)
@@ -497,9 +495,9 @@ public:
 		DrawVisibleParallel(typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray, ParallelCommandListSet);
 	}
 
-	inline int32 DrawVisibleFrontToBack(FRHICommandList& RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray, int32 MaxToDraw)
+	inline int32 DrawVisibleFrontToBack(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray, int32 MaxToDraw)
 	{
-		return DrawVisibleFrontToBack(RHICmdList, View, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray, MaxToDraw);
+		return DrawVisibleFrontToBack(RHICmdList, View, DrawRenderState, typename DrawingPolicyType::ContextDataType(), StaticMeshVisibilityMap, BatchVisibilityArray, MaxToDraw);
 	}
 
 	/** Sorts OrderedDrawingPolicies front to back. */

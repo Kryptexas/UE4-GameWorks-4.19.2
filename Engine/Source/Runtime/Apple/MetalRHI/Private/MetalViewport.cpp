@@ -130,7 +130,7 @@ void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 	}
 #if PLATFORM_MAC
 	MainThreadCall(^{
-		((CAMetalLayer*)View.layer).drawableSize = CGSizeMake(InSizeX, InSizeY);
+	((CAMetalLayer*)View.layer).drawableSize = CGSizeMake(InSizeX, InSizeY);
 	}, NSDefaultRunLoopMode, true);
 #else
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
@@ -165,12 +165,12 @@ id<MTLDrawable> FMetalViewport::GetDrawable(EMetalViewportAccessFlag Accessor)
 		{
 			uint32 IdleStart = FPlatformTime::Cycles();
 			
-#if PLATFORM_MAC
+	#if PLATFORM_MAC
 			CAMetalLayer* CurrentLayer = (CAMetalLayer*)[View layer];
 			Drawable = CurrentLayer ? [[CurrentLayer nextDrawable] retain] : nil;
-#else
+	#else
 			Drawable = [[[IOSAppDelegate GetDelegate].IOSView MakeDrawable] retain];
-#endif
+	#endif
 #if PLATFORM_MAC && METAL_DEBUG_OPTIONS
 			if (CurrentLayer.drawableSize.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || CurrentLayer.drawableSize.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY())
 			{
@@ -258,7 +258,7 @@ void FMetalDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 {
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
 	check(Viewport);
-	
+
 	Viewport->BeginDrawingViewport();
 	
 	((FMetalDeviceContext*)Context)->BeginDrawingViewport(Viewport);

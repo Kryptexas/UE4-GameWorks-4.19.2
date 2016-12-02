@@ -53,6 +53,7 @@ void FDiskCacheInterface::Init(FString &filename)
 		{
 			UE_LOG(LogD3D12RHI, Warning, TEXT("Disk cache is stale. Disk Cache version: %d App version: %d"), mHeader.mHeaderVersion, mCurrentHeaderVersion);
 			ClearDiskCache();
+			Init(filename);
 		}
 	}
 	else

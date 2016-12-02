@@ -86,6 +86,7 @@ bool SMaterialEditorViewportToolBar::IsViewModeSupported(EViewModeIndex ViewMode
 	{
 	case VMI_PrimitiveDistanceAccuracy:
 	case VMI_MeshUVDensityAccuracy:
+	case VMI_RequiredTextureResolution:
 		return false;
 	default:
 		return true;

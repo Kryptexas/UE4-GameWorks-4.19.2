@@ -74,6 +74,15 @@ struct FStreamingTexture
 	// Whether this texture can be affected by Global Bias and Budget Bias per texture.
 	FORCEINLINE bool IsMaxResolutionAffectedByGlobalBias() const { return LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture && !(Texture && Texture->bIgnoreStreamingMipBias); }
 
+	FORCEINLINE bool HasUpdatePending(bool bIsStreamingPaused, bool bHasViewPoint) const 
+	{
+		const bool bBudgetedMipsIsValid = bHasViewPoint || bForceFullyLoadHeuristic; // Force fully load don't need any viewpoint info.
+		// If paused, nothing will update anytime soon.
+		// If more mips will be streamed in eventually, wait.
+		// Otherwise, if the distance based computation had no viewpoint, wait.
+		return !bIsStreamingPaused && (BudgetedMips > ResidentMips || !bBudgetedMipsIsValid);
+	}
+
 	/***************************************************************
 	 * Members initialized when this is constructed => NEVER CHANGES
 	 ***************************************************************/
@@ -135,6 +144,9 @@ struct FStreamingTexture
 
 	/** Whether an attemp to cancel the inflight request has been attempted. */
 	uint32			bCancelRequestAttempted : 1;
+
+	/** Wheter the streamer has streaming plans for this texture. */
+	uint32			bHasUpdatePending : 1;
 
 	/** If non-zero, the most recent time an instance location was removed for this texture. */
 	double			InstanceRemovedTimestamp;

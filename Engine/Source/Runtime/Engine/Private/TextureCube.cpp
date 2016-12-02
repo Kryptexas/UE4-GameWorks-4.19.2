@@ -114,7 +114,7 @@ uint32 UTextureCube::CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const
 {
 	if ( Enum == TMC_ResidentMips || Enum == TMC_AllMipsBiased )
 	{
-		return CalcTextureMemorySize( GetNumMips() - LODBias );
+		return CalcTextureMemorySize( GetNumMips() - GetCachedLODBias() );
 	}
 	else
 	{

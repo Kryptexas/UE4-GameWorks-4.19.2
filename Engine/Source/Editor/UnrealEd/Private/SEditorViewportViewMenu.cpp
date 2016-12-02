@@ -85,6 +85,10 @@ FText SEditorViewportViewMenu::GetViewMenuLabel() const
 				Label = LOCTEXT("ViewMenuTitle_MaterialTextureScaleAccuracy", "Material Texture Scales Accuracy");
 				break;
 
+			case VMI_RequiredTextureResolution:
+				Label = LOCTEXT("ViewMenuTitle_Required Texture Resolution", "Required Texture Resolution");
+				break;
+
 			case VMI_StationaryLightOverlap:
 				Label = LOCTEXT("ViewMenuTitle_StationaryLightOverlap", "Stationary Light Overlap");
 				break;
@@ -142,6 +146,7 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 		static FName PrimitiveDistanceAccuracyIcon("EditorViewport.TexStreamAccPrimitiveDistanceMode");
 		static FName MeshUVDensityAccuracyIcon("EditorViewport.TexStreamAccMeshUVDensityMode");
 		static FName MaterialTextureScaleAccuracyIcon("EditorViewport.TexStreamAccMaterialTextureScaleMode");
+		static FName RequiredTextureResolutionIcon("EditorViewport.RequiredTextureResolutionMode");
 		static FName LightOverlapIcon("EditorViewport.StationaryLightOverlapMode");
 		static FName LightmapDensityIcon("EditorViewport.LightmapDensityMode");
 		static FName ReflectionModeIcon("EditorViewport.ReflectionOverrideMode");
@@ -202,6 +207,10 @@ const FSlateBrush* SEditorViewportViewMenu::GetViewMenuLabelIcon() const
 
 			case VMI_MaterialTextureScaleAccuracy:
 				Icon = MaterialTextureScaleAccuracyIcon;
+				break;
+
+			case VMI_RequiredTextureResolution:
+				Icon = RequiredTextureResolutionIcon;
 				break;
 
 			case VMI_StationaryLightOverlap:
@@ -305,6 +314,10 @@ TSharedRef<SWidget> SEditorViewportViewMenu::GenerateViewMenuContent() const
 						if ( AllowDebugViewShaderMode(DVSM_MaterialTextureScaleAccuracy) && CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0 && (!ParentToolBar.IsValid() || ParentToolBar->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
 						{
 							Menu.AddMenuEntry(BaseViewportCommands.TexStreamAccMaterialTextureScaleMode, NAME_None, LOCTEXT("TexStreamAccMaterialTextureScaleViewModeDisplayName", "Material Texture Scales"));
+						}
+						if ( AllowDebugViewShaderMode(DVSM_RequiredTextureResolution) && (!ParentToolBar.IsValid() || ParentToolBar->IsViewModeSupported(VMI_MaterialTextureScaleAccuracy)) )
+						{
+							Menu.AddMenuEntry(BaseViewportCommands.RequiredTextureResolutionMode, NAME_None, LOCTEXT("RequiredTextureResolutionModeDisplayName", "Required Texture Resolution"));
 						}
 						Menu.EndSection();
 					}

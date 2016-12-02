@@ -337,10 +337,10 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 	}
 
 	// Override blending operations to accumulate alpha
-	static TConsoleVariableData<int32>* CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
-	static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	static const auto CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
+	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 
-	const bool bCompositeUI = CVarCompositeMode->GetValueOnRenderThread() != 0 && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+	const bool bCompositeUI = CVarCompositeMode->GetValueOnRenderThread() != 0 && GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
 
 	if (bCompositeUI)
 	{

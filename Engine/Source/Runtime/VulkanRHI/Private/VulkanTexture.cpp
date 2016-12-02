@@ -182,7 +182,8 @@ VkImage FVulkanSurface::CreateImage(
 		ImageCreateInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		ImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	}
-	else if (UEFlags & TexCreate_UAV)
+	
+	if (UEFlags & TexCreate_UAV)
 	{
 		ImageCreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 	}
@@ -731,18 +732,8 @@ FTexture3DRHIRef FVulkanDynamicRHI::RHICreateTexture3D(uint32 SizeX, uint32 Size
 
 void FVulkanDynamicRHI::RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceInfo& OutInfo)
 {
-	if (FRHITexture2D* Tex2D = Ref->GetTexture2D())
-	{
-		OutInfo.VRamAllocation.AllocationSize = ((FVulkanTexture2D*)Tex2D)->Surface.GetMemorySize();
-	}
-	else if (FRHITextureCube* TexCube = Ref->GetTextureCube())
-	{
-		OutInfo.VRamAllocation.AllocationSize = ((FVulkanTextureCube*)TexCube)->Surface.GetMemorySize();
-	}
-	else if (FRHITexture3D* Tex3D = Ref->GetTexture3D())
-	{
-		OutInfo.VRamAllocation.AllocationSize = ((FVulkanTexture3D*)Tex3D)->Surface.GetMemorySize();
-	}
+	FVulkanTextureBase* Base = (FVulkanTextureBase*)Ref->GetTextureBaseRHI();
+	OutInfo.VRamAllocation.AllocationSize = Base->Surface.GetMemorySize();
 }
 
 void FVulkanDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SourceSurfaceRHI)
@@ -1184,37 +1175,6 @@ void FVulkanTextureView::Destroy(FVulkanDevice& Device)
 	}
 }
 
-FVulkanTextureBase* FVulkanTextureBase::Cast(FRHITexture* Texture)
-{
-	check(Texture);
-	FVulkanTextureBase* OutTexture = nullptr;
-
-	if(Texture->GetTexture2D())
-	{
-		OutTexture = static_cast<FVulkanTexture2D*>(Texture->GetTexture2D());
-	}
-	else if(Texture->GetTexture2DArray())
-	{
-		OutTexture = static_cast<FVulkanTexture2DArray*>(Texture->GetTexture2DArray());
-	}
-	else if(Texture->GetTexture3D())
-	{
-		OutTexture = static_cast<FVulkanTexture3D*>(Texture->GetTexture3D());
-	}
-	else if(Texture->GetTextureCube())
-	{
-		OutTexture = static_cast<FVulkanTextureCube*>(Texture->GetTextureCube());
-	}
-	else if(Texture->GetTextureReference())
-	{
-		FVulkanTextureReference* ref = static_cast<FVulkanTextureReference*>(Texture->GetTextureReference());
-		OutTexture = FVulkanTextureBase::Cast(ref->GetReferencedTexture());
-	}
-
-	check(OutTexture);
-	return OutTexture;
-}
-
 FVulkanTextureBase::FVulkanTextureBase(FVulkanDevice& Device, VkImageViewType ResourceType, EPixelFormat InFormat, uint32 SizeX, uint32 SizeY, uint32 SizeZ, bool bArray, uint32 ArraySize, uint32 NumMips, uint32 NumSamples, uint32 UEFlags, const FRHIResourceCreateInfo& CreateInfo)
 	#if !VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
 	 : Surface(Device, ResourceType, InFormat, SizeX, SizeY, SizeZ, bArray, ArraySize, NumMips, NumSamples, UEFlags, CreateInfo)
@@ -1522,38 +1482,15 @@ void FVulkanDynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, co
 	{
 // TODO: this dies in the printf on android. Needs investigation.
 #if !PLATFORM_ANDROID
-		if (FRHITexture2D* Tex2d = TextureRHI->GetTexture2D())
-		{
-			FVulkanTexture2D* VTex2d = (FVulkanTexture2D*)Tex2d;
+		FVulkanTextureBase* Base = (FVulkanTextureBase*)TextureRHI->GetTextureBaseRHI();
 #if VULKAN_ENABLE_DUMP_LAYER
-			VulkanRHI::PrintfBegin
+		VulkanRHI::PrintfBegin
 #elif VULKAN_ENABLE_API_DUMP
-			FPlatformMisc::LowLevelOutputDebugStringf
+		FPlatformMisc::LowLevelOutputDebugStringf
 #endif
-				(*FString::Printf(TEXT("vkDebugMarkerSetObjectNameEXT(%p=%s)\n"), VTex2d->Surface.Image, Name));
-		}
-		else if (FRHITextureCube* TexCube = TextureRHI->GetTextureCube())
-		{
-			FVulkanTextureCube* VTexCube = (FVulkanTextureCube*)TexCube;
-#if VULKAN_ENABLE_DUMP_LAYER
-			VulkanRHI::PrintfBegin
-#elif VULKAN_ENABLE_API_DUMP
-			FPlatformMisc::LowLevelOutputDebugStringf
+			(*FString::Printf(TEXT("vkDebugMarkerSetObjectNameEXT(%p=%s)\n"), Base->Surface.Image, Name));
 #endif
-				(*FString::Printf(TEXT("vkDebugMarkerSetObjectNameEXT(%p=%s)\n"), VTexCube->Surface.Image, Name));
-		}
-		else if (FRHITexture3D* Tex3d = TextureRHI->GetTexture3D())
-		{
-			FVulkanTexture3D* VTex3d = (FVulkanTexture3D*)Tex3d;
-#if VULKAN_ENABLE_DUMP_LAYER
-			VulkanRHI::PrintfBegin
-#elif VULKAN_ENABLE_API_DUMP
-			FPlatformMisc::LowLevelOutputDebugStringf
-#endif
-				(*FString::Printf(TEXT("vkDebugMarkerSetObjectNameEXT(%p=%s)\n"), VTex3d->Surface.Image, Name));
-		}
-	#endif
-}
+	}
 #endif
 
 #if VULKAN_ENABLE_DRAW_MARKERS
@@ -1571,21 +1508,8 @@ void FVulkanDynamicRHI::RHIBindDebugLabelName(FTextureRHIParamRef TextureRHI, co
 			DebugMarkerSetObjectName(VulkanDevice, &Info);
 		};
 
-		if (FRHITexture2D* Tex2d = TextureRHI->GetTexture2D())
-		{
-			FVulkanTexture2D* VulkanTexture = (FVulkanTexture2D*)Tex2d;
-			DoCall(Device->GetDebugMarkerSetObjectName(), Device->GetInstanceHandle(), VulkanTexture->Surface.Image, TCHAR_TO_ANSI(Name));
-		}
-		else if (FRHITexture3D* Tex3d = TextureRHI->GetTexture3D())
-		{
-			FVulkanTexture3D* VulkanTexture = (FVulkanTexture3D*)Tex3d;
-			DoCall(Device->GetDebugMarkerSetObjectName(), Device->GetInstanceHandle(), VulkanTexture->Surface.Image, TCHAR_TO_ANSI(Name));
-		}
-		else if (FRHITextureCube* TexCube = TextureRHI->GetTextureCube())
-		{
-			FVulkanTextureCube* VulkanTexture = (FVulkanTextureCube*)TexCube;
-			DoCall(Device->GetDebugMarkerSetObjectName(), Device->GetInstanceHandle(), VulkanTexture->Surface.Image, TCHAR_TO_ANSI(Name));
-		}
+		FVulkanTextureBase* Base = (FVulkanTextureBase*)TextureRHI->GetTextureBaseRHI();
+		DoCall(Device->GetDebugMarkerSetObjectName(), Device->GetInstanceHandle(), Base->Surface.Image, TCHAR_TO_ANSI(Name));
 	}
 #endif
 	FName DebugName(Name);

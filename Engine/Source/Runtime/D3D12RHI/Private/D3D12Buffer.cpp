@@ -162,6 +162,7 @@ BufferType* FD3D12Adapter::CreateRHIBuffer(FRHICommandListImmediate* RHICmdList,
 						FConditionalScopeResourceBarrier ConditionalScopeResourceBarrier(hCommandList, Destination, D3D12_RESOURCE_STATE_COPY_DEST, 0);
 
 						Device->GetDefaultCommandContext().numCopies++;
+						hCommandList.FlushResourceBarriers();
 						hCommandList->CopyBufferRegion(
 							Destination->GetResource(),
 							CurrentBuffer->ResourceLocation.GetOffsetFromBaseOfResource(),
@@ -195,18 +196,10 @@ BufferType* FD3D12Adapter::CreateRHIBuffer(FRHICommandListImmediate* RHICmdList,
 	return BufferOut;
 }
 
-DEFINE_STAT(STAT_D3D12LockBufferCalls);
-DEFINE_STAT(STAT_D3D12LockBufferTime);
-
 template<class BufferType>
 void* FD3D12DynamicRHI::LockBuffer(FRHICommandListImmediate* RHICmdList, BufferType* Buffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
 {
-
-#if STATS
-	LockBufferCalls++;
 	SCOPE_CYCLE_COUNTER(STAT_D3D12LockBufferTime);
-	INC_DWORD_STAT_BY(STAT_D3D12LockBufferCalls, LockBufferCalls);
-#endif
 
 	FD3D12LockedResource& LockedData = Buffer->LockedData;
 	check(LockedData.bLocked == false);
@@ -271,6 +264,7 @@ void* FD3D12DynamicRHI::LockBuffer(FRHICommandListImmediate* RHICmdList, BufferT
 					// Don't need to transition upload heaps
 
 					DefaultContext.numCopies++;
+					hCommandList.FlushResourceBarriers();	// Must flush so the desired state is actually set.
 					hCommandList->CopyBufferRegion(
 						StagingBuffer->GetResource(),
 						0,
@@ -320,6 +314,8 @@ void* FD3D12DynamicRHI::LockBuffer(FRHICommandListImmediate* RHICmdList, BufferT
 template<class BufferType>
 void FD3D12DynamicRHI::UnlockBuffer(FRHICommandListImmediate* RHICmdList, BufferType* Buffer)
 {
+	SCOPE_CYCLE_COUNTER(STAT_D3D12UnlockBufferTime);
+
 	FD3D12LockedResource& LockedData = Buffer->LockedData;
 	check(LockedData.bLocked == true);
 

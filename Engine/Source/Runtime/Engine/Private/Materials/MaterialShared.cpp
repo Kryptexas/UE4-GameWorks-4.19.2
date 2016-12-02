@@ -1939,12 +1939,12 @@ void FMaterialRenderProxy::CacheUniformExpressions_GameThread()
 {
 	if (FApp::CanEverRender())
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			FCacheUniformExpressionsCommand,
-			FMaterialRenderProxy*,RenderProxy,this,
-		{
-			RenderProxy->CacheUniformExpressions();
-		});
+		FMaterialRenderProxy* RenderProxy = this;
+		EnqueueUniqueRenderCommand("FCacheUniformExpressionsCommand",
+			[RenderProxy](FRHICommandListImmediate& RHICmdList)
+			{
+				RenderProxy->CacheUniformExpressions();
+			});
 	}
 }
 

@@ -58,6 +58,8 @@ DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
 // set this one to get a stat for each RHI command 
 #define RHI_STATS 0
 
+#define RHI_PSO_X_VALIDATION UE_BUILD_DEBUG
+
 #if RHI_STATS
 DECLARE_STATS_GROUP(TEXT("RHICommands"),STATGROUP_RHI_COMMANDS, STATCAT_Advanced);
 #define RHISTAT(Method)	DECLARE_SCOPE_CYCLE_COUNTER(TEXT(#Method), STAT_RHI##Method, STATGROUP_RHI_COMMANDS)
@@ -71,7 +73,7 @@ extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasks;
 class FRHICommandListBase;
 
 #ifdef CONTINUABLE_PSO_VERIFY
-#define PSO_VERIFY ensureAlways
+#define PSO_VERIFY ensure
 #else
 #define PSO_VERIFY	check
 #endif
@@ -316,9 +318,19 @@ public:
 	TStaticArray<FRHIRenderTargetView, MaxSimultaneousRenderTargets> CachedRenderTargets;
 	FRHIDepthRenderTargetView CachedDepthStencilTarget;
 
+#if RHI_PSO_X_VALIDATION
+	void ValidatePsoState(const FBlendStateRHIParamRef BlendState, const FDepthStencilStateRHIParamRef DepthStencilState);
+#endif
+
 protected:
 	struct FRHICommandSetRasterizerState* CachedRasterizerState;
 	struct FRHICommandSetDepthStencilState* CachedDepthStencilState;
+
+#if RHI_PSO_X_VALIDATION
+	friend struct FDrawingPolicyRenderState;
+	FBlendStateRHIParamRef			VerifyableBlendState;
+	FDepthStencilStateRHIParamRef	VerifyableDepthStencilState;
+#endif
 
 	void CacheActiveRenderTargets(
 		uint32 NewNumSimultaneousRenderTargets,
@@ -341,6 +353,11 @@ public:
 	{
 		CachedRasterizerState = nullptr;
 		CachedDepthStencilState = nullptr;
+
+#if RHI_PSO_X_VALIDATION
+		VerifyableBlendState = nullptr;
+		VerifyableDepthStencilState = nullptr;
+#endif
 	}
 
 
@@ -364,23 +381,24 @@ public:
 	FDrawUpData DrawUPData; 
 };
 
-class ScopedStrictGraphicsPipelineStateUse
+class FScopedStrictGraphicsPipelineStateUse
 {
 public:
-	ScopedStrictGraphicsPipelineStateUse(
-		FRHICommandListBase& InRHICmdList
-	)
-		: RHICmdList(InRHICmdList)
+	FScopedStrictGraphicsPipelineStateUse(
+		FRHICommandListBase& InRHICmdList,
+		bool Enabled = true)
+	: PreviousStrictGraphicsPipelineStateUse(InRHICmdList.StrictGraphicsPipelineStateUse), RHICmdList(InRHICmdList)
 	{
-		RHICmdList.StrictGraphicsPipelineStateUse = 1;
+		RHICmdList.StrictGraphicsPipelineStateUse = Enabled;
 	}
 
-	~ScopedStrictGraphicsPipelineStateUse()
+	~FScopedStrictGraphicsPipelineStateUse()
 	{
-		RHICmdList.StrictGraphicsPipelineStateUse = 0;
+		RHICmdList.StrictGraphicsPipelineStateUse = PreviousStrictGraphicsPipelineStateUse;
 	}
 
 private:
+	const uint32 PreviousStrictGraphicsPipelineStateUse;
 	const FRHICommandListBase& RHICmdList;
 };
 
@@ -1794,7 +1812,9 @@ public:
 	FORCEINLINE_DEBUGGABLE void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White)
 	{
 		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
-
+#if RHI_PSO_X_VALIDATION
+		VerifyableBlendState = State;
+#endif
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetBlendState)(State, BlendFactor);
@@ -1846,7 +1866,9 @@ public:
 	void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
 	{
 		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
-
+#if RHI_PSO_X_VALIDATION
+		VerifyableDepthStencilState = NewStateRHI;
+#endif
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetDepthStencilState)(NewStateRHI, StencilRef);

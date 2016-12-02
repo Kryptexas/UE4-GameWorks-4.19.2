@@ -836,6 +836,23 @@ namespace VulkanRHI
 		}
 	}
 
+	void PrintResultAndNamedHandles(VkResult Result, const TCHAR* HandleName, uint32 NumHandles, uint64* Handles)
+	{
+		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
+		{
+			DebugLog += FString::Printf(TEXT(" -> %s => %s\n"), *GetVkResultErrorString(Result), HandleName);
+			for (uint32 Index = 0; Index < NumHandles; ++Index)
+			{
+				DebugLog += FString::Printf(TEXT(" [%d]=%p"), Index, (void*)Handles[Index]);
+			}
+			DebugLog += TEXT("\n");
+			if (Result < VK_SUCCESS)
+			{
+				FlushDebugWrapperLog();
+			}
+		}
+	}
+
 	void PrintResultAndPointer(VkResult Result, uint64 Handle)
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
@@ -1094,12 +1111,12 @@ namespace VulkanRHI
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateDescriptorSetLayout(Info=%p, OutLayout=%p)[...]\n"), CreateInfo, SetLayout));
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateDescriptorSetLayout(Info=%p, OutLayout=%p)[...]"), CreateInfo, SetLayout));
 			DebugLog += FString::Printf(TEXT("%sNumBindings=%d, Bindings=%p\n"), Tabs, CreateInfo->bindingCount, CreateInfo->pBindings);
 			for (uint32 Index = 0; Index < CreateInfo->bindingCount; ++Index)
 			{
-				DebugLog += FString::Printf(TEXT("%s\tBinding[%d]= binding=%d DescType=%d NumDesc=%d StageFlags=%x"), Tabs, Index, 
-					CreateInfo->pBindings[Index].binding, (uint32)CreateInfo->pBindings[Index].descriptorType, CreateInfo->pBindings[Index].descriptorCount, (uint32)CreateInfo->pBindings[Index].stageFlags);
+				DebugLog += FString::Printf(TEXT("%s\tBinding[%d]= binding=%d DescType=%s NumDesc=%d StageFlags=%x\n"), Tabs, Index, 
+					CreateInfo->pBindings[Index].binding, *GetDescriptorTypeString(CreateInfo->pBindings[Index].descriptorType), CreateInfo->pBindings[Index].descriptorCount, (uint32)CreateInfo->pBindings[Index].stageFlags);
 			}
 /*
 		typedef struct VkDescriptorSetLayoutBinding {
@@ -1163,6 +1180,8 @@ namespace VulkanRHI
 
 				DebugLog += '\n';
 			}
+
+			FlushDebugWrapperLog();
 		}
 			/*
 		typedef struct VkWriteDescriptorSet {

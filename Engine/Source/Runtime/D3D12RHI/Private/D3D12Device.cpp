@@ -162,16 +162,6 @@ void FD3D12Device::SetupAfterDeviceCreation()
 	CreateCommandContexts();
 
 	UpdateMSAASettings();
-
-	if (GRHISupportsAsyncTextureCreation)
-	{
-		UE_LOG(LogD3D12RHI, Log, TEXT("Async texture creation enabled"));
-	}
-	else
-	{
-		UE_LOG(LogD3D12RHI, Log, TEXT("Async texture creation disabled: %s"),
-			D3D12RHI_ShouldAllowAsyncResourceCreation() ? TEXT("no driver support") : TEXT("disabled by user"));
-	}
 }
 
 void FD3D12Device::UpdateConstantBufferPageProperties()
@@ -210,9 +200,10 @@ void FD3D12Device::UpdateMSAASettings()
 
 void FD3D12Device::Cleanup()
 {
-	FD3D12Adapter* Adapter = GetParentAdapter();
-	// Ensure any pending rendering is finished
-	Adapter->SignalEndOfFrame(CommandListManager.GetD3DCommandQueue(), true);
+	// Wait for the command queues to flush
+	CommandListManager.WaitForCommandQueueFlush();
+	CopyCommandListManager.WaitForCommandQueueFlush();
+	AsyncCommandListManager.WaitForCommandQueueFlush();
 
 	check(!GIsCriticalError);
 
@@ -220,22 +211,12 @@ void FD3D12Device::Cleanup()
 
 	ReleasePooledUniformBuffers();
 
-	// Wait for the command queues to flush
-	CommandListManager.WaitForCommandQueueFlush();
-	CopyCommandListManager.WaitForCommandQueueFlush();
-	AsyncCommandListManager.WaitForCommandQueueFlush();
-
 	// Delete array index 0 (the default context) last
 	for (int32 i = CommandContextArray.Num() - 1; i >= 0; i--)
 	{
 		delete CommandContextArray[i];
 		CommandContextArray[i] = nullptr;
 	}
-
-	// This is needed so the deferred deletion queue empties out completely because the resources in the
-	// queue use the frame fence values. This includes any deleted resources that may have been deleted 
-	// after the above signal frame
-	Adapter->SignalEndOfFrame(CommandListManager.GetD3DCommandQueue(), true);
 
 	// Flush all pending deletes before destroying the device.
 	FRHIResource::FlushPendingDeletes();

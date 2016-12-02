@@ -2196,27 +2196,39 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 				}
 				else
 				{
-					static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TemporalAASharpness"));
-					float Scale = ( 2.0f - CVar->GetFloat() ) * 0.3f;
-
-					// More than 8 samples can improve quality.
 					ViewState->OnFrameRenderingSetup(TemporalAASamples, ViewFamily);
 					uint32 Index = ViewState->GetCurrentTemporalAASampleIndex();
 
 					float u1 = Halton( Index + 1, 2 );
 					float u2 = Halton( Index + 1, 3 );
 
-					// Gaussian sample
-					float phi = 2.0f * PI * u2;
-					float r = Scale * FMath::Sqrt( -2.0f * FMath::Loge( FMath::Max( u1, 1e-6f ) ) );
-					SampleX = r * FMath::Cos( phi );
-					SampleY = r * FMath::Sin( phi );
+					// Generates samples in normal distribution
+					// exp( x^2 / Sigma^2 )
+					
+					static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TemporalAAFilterSize"));
+					float FilterSize = CVar->GetFloat();
+
+					// Scale distribution to set non-unit variance
+					// Variance = Sigma^2
+					float Sigma = 0.47f * FilterSize;
+
+					// Window to [-0.5, 0.5] output
+					// Without windowing we could generate samples far away on the infinite tails.
+					float OutWindow = 0.5f;
+					float InWindow = FMath::Exp( -0.5 * FMath::Square( OutWindow / Sigma ) );
+					
+					// Box-Muller transform
+					float Theta = 2.0f * PI * u2;
+					float r = Sigma * FMath::Sqrt( -2.0f * FMath::Loge( (1.0f - u1) * InWindow + u1 ) );
+					
+					SampleX = r * FMath::Cos( Theta );
+					SampleY = r * FMath::Sin( Theta );
 				}
 
 				View.TemporalJitterPixelsX = SampleX;
 				View.TemporalJitterPixelsY = SampleY;
 
-				View.ViewMatrices.HackAddTemporalAAProjectionJitter(FVector2D(SampleX * 2.0f / View.ViewRect.Width(), SampleY * 2.0f / View.ViewRect.Height()));
+				View.ViewMatrices.HackAddTemporalAAProjectionJitter(FVector2D(SampleX * 2.0f / View.ViewRect.Width(), SampleY * -2.0f / View.ViewRect.Height()));
 			}
 		}
 		else if(ViewState)

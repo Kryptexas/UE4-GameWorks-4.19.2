@@ -918,10 +918,10 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 			int32 RTMipIndex = NewRenderTargetsRHI[RenderTargetIndex].MipIndex;
 			int32 RTSliceIndex = NewRenderTargetsRHI[RenderTargetIndex].ArraySliceIndex;
 			FD3D11TextureBase* NewRenderTarget = GetD3D11TextureFromRHITexture(NewRenderTargetsRHI[RenderTargetIndex].Texture);
-			RenderTargetView = NewRenderTarget->GetRenderTargetView(RTMipIndex, RTSliceIndex);
 
 			if (NewRenderTarget)
 			{
+				RenderTargetView = NewRenderTarget->GetRenderTargetView(RTMipIndex, RTSliceIndex);
 				uint32 CurrentFrame = PresentCounter;
 				const EResourceTransitionAccess CurrentAccess = NewRenderTarget->GetCurrentGPUAccess();
 				const uint32 LastFrameWritten = NewRenderTarget->GetLastFrameWritten();
@@ -2310,10 +2310,9 @@ void FD3D11DynamicRHI::RHITransitionResources(EResourceTransitionAccess Transiti
 	for (int32 i = 0; i < NumTextures; ++i)
 	{				
 		FTextureRHIParamRef RenderTarget = InTextures[i];
-		SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResourcesLoop, bShowTransitionEvents, TEXT("To:%i - %s"), i, *RenderTarget->GetName().ToString());
-
 		if (RenderTarget)
 		{
+			SCOPED_RHI_CONDITIONAL_DRAW_EVENTF(*this, RHITransitionResourcesLoop, bShowTransitionEvents, TEXT("To:%i - %s"), i, *RenderTarget->GetName().ToString());
 
 			FD3D11BaseShaderResource* Resource = nullptr;
 			FD3D11Texture2D* SourceTexture2D = static_cast<FD3D11Texture2D*>(RenderTarget->GetTexture2D());

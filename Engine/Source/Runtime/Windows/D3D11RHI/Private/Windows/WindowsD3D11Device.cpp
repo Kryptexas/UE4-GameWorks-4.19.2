@@ -249,7 +249,9 @@ static void SetHDRMonitorMode(IDXGIOutput *Output, bool bEnableHDR, EDisplayGamu
 		NV_HDR_CAPABILITIES HDRCapabilities = {};
 		HDRCapabilities.version = NV_HDR_CAPABILITIES_VER;
 
-		if (NVAPI_OK == NvAPI_Disp_GetHdrCapabilities(DisplayId, &HDRCapabilities))
+		NvStatus = NvAPI_Disp_GetHdrCapabilities(DisplayId, &HDRCapabilities);
+
+		if (NvStatus == NVAPI_OK)
 		{
 			if (HDRCapabilities.isST2084EotfSupported)
 			{
@@ -286,7 +288,8 @@ static void SetHDRMonitorMode(IDXGIOutput *Output, bool bEnableHDR, EDisplayGamu
 				}
 			}
 		}
-		else
+		// Ignore expected failures caused by insufficient driver version and remote desktop connections
+		else if (NvStatus != NVAPI_ERROR && NvStatus != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
 		{
 			NvAPI_ShortString SzDesc;
 			NvAPI_GetErrorMessage(NvStatus, SzDesc);
@@ -304,9 +307,9 @@ static void SetHDRMonitorMode(IDXGIOutput *Output, bool bEnableHDR, EDisplayGamu
 /** Enable HDR meta data transmission */
 void FD3D11DynamicRHI::EnableHDR(IDXGIOutput* Output)
 {
-	static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-	static TConsoleVariableData<int32>* CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
-	static TConsoleVariableData<int32>* CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
+	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	static const auto CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
+	static const auto CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
 
 	if (GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnAnyThread() != 0)
 	{
@@ -974,6 +977,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			if (S_OK == HRes)
 			{
 				GRHISupportsHDROutput = SupportsHDROutput(DXGIOutput);
+				GRHIHDRDisplayOutputFormat = PF_FloatRGBA;
 			}
 		}
 

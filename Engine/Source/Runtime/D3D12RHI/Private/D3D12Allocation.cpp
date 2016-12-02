@@ -9,7 +9,6 @@
 #include "D3D12Allocation.h"
 #include "Misc/BufferedOutputDevice.h"
 
-
 //-----------------------------------------------------------------------------
 //	Allocator Base
 //-----------------------------------------------------------------------------
@@ -1125,7 +1124,8 @@ void* FD3D12FastAllocator::Allocate(uint32 Size, uint32 Alignment, class FD3D12R
 {
 	LockType Lock(&CS);
 
-	ResourceLocation->Clear();
+	// Check to make sure our assumption that we don't need a ResourceLocation->Clear() here is valid.
+	checkf(!ResourceLocation->IsValid(), TEXT("The supplied resource location already has a valid resource. You should Clear() it first or it may leak."));
 
 	if (Size > PagePool.GetPageSize())
 	{
@@ -1323,6 +1323,8 @@ void FD3D12FastConstantAllocator::Init()
 
 void FD3D12FastConstantAllocator::ReallocBuffer()
 {
+	check(PageSize % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
+
 	FD3D12Device* Device = GetParentDevice();
 	FD3D12Adapter* Adapter = Device->GetParentAdapter();
 
@@ -1340,20 +1342,20 @@ void FD3D12FastConstantAllocator::ReallocBuffer()
 void* FD3D12FastConstantAllocator::Allocate(uint32 Bytes, FD3D12ResourceLocation& OutLocation)
 {
 	check(Bytes <= PageSize);
-	OutLocation.Clear();
+
+	// Check to make sure our assumption that we don't need a OutLocation.Clear() here is valid.
+	checkf(!OutLocation.IsValid(), TEXT("The supplied resource location already has a valid resource. You should Clear() it first or it may leak."));
 
 	// Align to a constant buffer block size
 	const uint32 AlignedSize = Align(Bytes, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-
-	uint64 Location = RingBuffer.Allocate(AlignedSize / D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-
+	const uint64 Location = RingBuffer.Allocate(AlignedSize / D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 	if (Location == FD3D12AbstractRingBuffer::FailedReturnValue)
 	{
-		PageSize = PageSize + (PageSize / 2);
+		PageSize = Align(PageSize + (PageSize / 2), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 		ReallocBuffer();
 		RingBuffer.Reset(PageSize / D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
-		UE_LOG(LogD3D12RHI, Warning, TEXT("Constant Allocator had to grow! Consider making it larger to begin with. %d"), PageSize);
+		UE_LOG(LogD3D12RHI, Warning, TEXT("Constant Allocator had to grow! Consider making it larger to begin with. New size: %d bytes"), PageSize);
 
 		return Allocate(Bytes, OutLocation);
 	}

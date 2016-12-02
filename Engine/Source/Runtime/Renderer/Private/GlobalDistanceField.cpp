@@ -827,6 +827,16 @@ void ComputeUpdateRegionsAndUpdateViewState(
 {
 	GlobalDistanceFieldInfo.Clipmaps.AddZeroed(NumClipmaps);
 
+	// Cache the heighfields update region boxes for fast reuse for each clip region.
+	TArray<FBox> PendingStreamingHeightfieldBoxes;
+	for (const FPrimitiveSceneInfo* HeightfieldPrimitive : Scene->DistanceFieldSceneData.HeightfieldPrimitives)
+	{
+		if (HeightfieldPrimitive->Proxy->HeightfieldHasPendingStreaming())
+		{
+			PendingStreamingHeightfieldBoxes.Add(HeightfieldPrimitive->Proxy->GetBounds().GetBox());
+		}
+	}
+
 	if (View.ViewState)
 	{
 		View.ViewState->GlobalDistanceFieldUpdateIndex++;
@@ -947,46 +957,48 @@ void ComputeUpdateRegionsAndUpdateViewState(
 					FVolumeUpdateRegion UpdateRegion;
 					UpdateRegion.Bounds = ClipmapBounds;
 					UpdateRegion.CellsSize = FIntVector(GAOGlobalDFResolution);
-					UpdateRegion.UpdateType = VUT_MeshDistanceFields;
 					Clipmap.UpdateRegions.Add(UpdateRegion);
-
-					// We're building a cached version of the scene, but landscape relies on texture streaming which is constantly changing.  
-					// Ideally we would update the cache when texture streaming of heightfields completes, but the texture streamer does not support that notification atm.
-					// As a workaround, defer heightfield updates for an arbitrary amount of time so that hopefully the heightfields will have streamed in.
-					FDeferredGlobalDistanceFieldUpdateInfo DeferredUpdateInfo;
-					DeferredUpdateInfo.ClipmapIndex = ClipmapIndex;
-					DeferredUpdateInfo.FramesLeft = 30;
-					View.ViewState->DeferredGlobalDistanceFieldUpdates.Add(DeferredUpdateInfo);
 
 					// Store the location of the full update
 					ClipmapViewState.FullUpdateOrigin = GridCenter;
 					View.ViewState->bInitializedGlobalDistanceFieldOrigins = true;
 				}
 
-				for (int32 DeferredUpdateIndex = 0; DeferredUpdateIndex < View.ViewState->DeferredGlobalDistanceFieldUpdates.Num(); DeferredUpdateIndex++)
+				// Check if the clipmap intersects with a pending update region
+				bool bHasPendingStreaming = false;
+				for (const FBox& HeightfieldBox : PendingStreamingHeightfieldBoxes)
 				{
-					FDeferredGlobalDistanceFieldUpdateInfo& DeferredUpdate = View.ViewState->DeferredGlobalDistanceFieldUpdates[DeferredUpdateIndex];
-
-					if (DeferredUpdate.ClipmapIndex == ClipmapIndex)
+					if (ClipmapBounds.Intersect(HeightfieldBox))
 					{
-						int32 Frequency;
-						int32 Phase;
-						GetUpdateFrequencyForClipmap(ClipmapIndex, Frequency, Phase);
-
-						DeferredUpdate.FramesLeft -= Frequency;
-
-						if (DeferredUpdate.FramesLeft <= 0)
-						{
-							View.ViewState->DeferredGlobalDistanceFieldUpdates.RemoveAt(DeferredUpdateIndex);
-							DeferredUpdateIndex--;
-
-							FVolumeUpdateRegion UpdateRegion;
-							UpdateRegion.Bounds = ClipmapBounds;
-							UpdateRegion.CellsSize = FIntVector(GAOGlobalDFResolution);
-							UpdateRegion.UpdateType = VUT_Heightfields;
-							Clipmap.UpdateRegions.Add(UpdateRegion);
-						}
+						bHasPendingStreaming = true;
+						break;
 					}
+				}
+
+				// If some of the height fields has pending streaming regions, postpone a full update.
+				if (bHasPendingStreaming)
+				{
+					// Mark a pending update for this height field. It will get processed when all pending texture streaming affecting it will be completed.
+					View.ViewState->DeferredGlobalDistanceFieldUpdates.AddUnique(ClipmapIndex);
+					// Remove the height fields from the update.
+					for (FVolumeUpdateRegion& UpdateRegion : Clipmap.UpdateRegions)
+					{
+						UpdateRegion.UpdateType = (EVolumeUpdateType)(UpdateRegion.UpdateType & ~VUT_Heightfields);
+					}
+				}
+				else if (View.ViewState->DeferredGlobalDistanceFieldUpdates.Remove(ClipmapIndex) > 0)
+				{
+					// Remove the height fields from the current update as we are pushing a new full update.
+					for (FVolumeUpdateRegion& UpdateRegion : Clipmap.UpdateRegions)
+					{
+						UpdateRegion.UpdateType = (EVolumeUpdateType)(UpdateRegion.UpdateType & ~VUT_Heightfields);
+					}
+
+					FVolumeUpdateRegion UpdateRegion;
+					UpdateRegion.Bounds = ClipmapBounds;
+					UpdateRegion.CellsSize = FIntVector(GAOGlobalDFResolution);
+					UpdateRegion.UpdateType = VUT_Heightfields;
+					Clipmap.UpdateRegions.Add(UpdateRegion);
 				}
 
 				ClipmapViewState.PrimitiveModifiedBounds.Reset();

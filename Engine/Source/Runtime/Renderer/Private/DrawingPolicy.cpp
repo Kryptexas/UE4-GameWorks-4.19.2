@@ -21,48 +21,47 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource,
-	EDebugViewShaderMode InDebugViewShaderMode,
-	bool bInTwoSidedOverride,
-	bool bInDitheredLODTransitionOverride,
-	bool bInWireframeOverride
+	const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+	EDebugViewShaderMode InDebugViewShaderMode
 	):
 	VertexFactory(InVertexFactory),
 	MaterialRenderProxy(InMaterialRenderProxy),
 	MaterialResource(&InMaterialResource),
-	bIsDitheredLODTransitionMaterial(InMaterialResource.IsDitheredLODTransition() || bInDitheredLODTransitionOverride),
-	bIsWireframeMaterial(InMaterialResource.IsWireframe() || bInWireframeOverride),
+	MeshPrimitiveType(InOverrideSettings.MeshPrimitiveType),
+	bIsDitheredLODTransitionMaterial(InMaterialResource.IsDitheredLODTransition() || !!(InOverrideSettings.MeshOverrideFlags & EDrawingPolicyOverrideFlags::DitheredLODTransition)),
 	//convert from signed bool to unsigned uint32
 	DebugViewShaderMode((uint32)InDebugViewShaderMode)
 {
 	// using this saves a virtual function call
 	bool bMaterialResourceIsTwoSided = InMaterialResource.IsTwoSided();
-
-	bIsTwoSidedMaterial = bMaterialResourceIsTwoSided || bInTwoSidedOverride;
-
-	bNeedsBackfacePass = !bInTwoSidedOverride && bMaterialResourceIsTwoSided
-		//@todo - hook up bTwoSidedSeparatePass here if we re-add it
-		&& false;
 	
+	const bool bIsWireframeMaterial = InMaterialResource.IsWireframe() || !!(InOverrideSettings.MeshOverrideFlags & EDrawingPolicyOverrideFlags::Wireframe);
+	MeshFillMode = bIsWireframeMaterial ? FM_Wireframe : FM_Solid;
+
+	const bool bInTwoSidedOverride = !!(InOverrideSettings.MeshOverrideFlags & EDrawingPolicyOverrideFlags::TwoSided);
+	const bool bInReverseCullModeOverride = !!(InOverrideSettings.MeshOverrideFlags & EDrawingPolicyOverrideFlags::ReverseCullMode);
+	const bool bIsTwoSided = (bMaterialResourceIsTwoSided || bInTwoSidedOverride);
+	const bool bMeshRenderTwoSided = bIsTwoSided || bInTwoSidedOverride;
+	MeshCullMode = (bMeshRenderTwoSided) ? CM_None : (bInReverseCullModeOverride ? CM_CCW : CM_CW);
+
 	bUsePositionOnlyVS = false;
 }
 
-FMeshDrawingRenderState FMeshDrawingPolicy::GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
+void FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither)
 {
-	FMeshDrawingRenderState DrawRenderState;
+	DrawRenderState.SetDitheredLODTransitionAlpha(0.0f);
 
 	if (Mesh.bDitheredLODTransition && !InAllowStencilDither)
 	{
 		if (ViewInfo.StaticMeshFadeOutDitheredLODMap[Mesh.Id])
 		{
-			DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition();
+			DrawRenderState.SetDitheredLODTransitionAlpha(ViewInfo.GetTemporalLODTransition());
 		}
 		else if (ViewInfo.StaticMeshFadeInDitheredLODMap[Mesh.Id])
 		{
-			DrawRenderState.DitheredLODTransitionAlpha = ViewInfo.GetTemporalLODTransition() - 1.0f;
+			DrawRenderState.SetDitheredLODTransitionAlpha(ViewInfo.GetTemporalLODTransition() - 1.0f);
 		}
 	}
-
-	return DrawRenderState;
 }
 
 void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch& Mesh, int32 BatchElementIndex, const bool bIsInstancedStereo) const
@@ -192,7 +191,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 	}
 }
 
-void FMeshDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
+void FMeshDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const FMeshDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const
 {
 	check(VertexFactory && VertexFactory->IsInitialized());
 	VertexFactory->Set(RHICmdList);

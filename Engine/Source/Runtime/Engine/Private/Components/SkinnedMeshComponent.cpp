@@ -657,7 +657,7 @@ bool USkinnedMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimi
 	{
 		MaterialData.Material = GetMaterial(MaterialIndex);
 		MaterialData.UVChannelData = SkeletalMesh->GetUVChannelData(MaterialIndex);
-		MaterialData.Bounds = Bounds.GetBox();
+		MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
 	}
 	return MaterialData.IsValid();
 }

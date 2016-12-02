@@ -85,7 +85,7 @@ public:
 		const FPrimitiveSceneProxy* Proxy,
 		int32 VisualizeLODIndex,
 		const FMeshBatchElement& BatchElement, 
-		const FMeshDrawingRenderState& DrawRenderState
+		const FDrawingPolicyRenderState& DrawRenderState
 		) override;
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, const FSceneView& View) override { check(false); }

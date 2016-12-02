@@ -15,6 +15,7 @@
 class FPrimitiveSceneProxy;
 struct FMeshBatchElement;
 struct FMeshDrawingRenderState;
+struct FDrawingPolicyRenderState;
 
 template<typename TBufferStruct> class TUniformBufferRef;
 
@@ -57,7 +58,7 @@ public:
 		const FSceneView& View,
 		const FPrimitiveSceneProxy* Proxy,
 		const FMeshBatchElement& BatchElement,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		uint32 DataFlags = 0
 	);
 

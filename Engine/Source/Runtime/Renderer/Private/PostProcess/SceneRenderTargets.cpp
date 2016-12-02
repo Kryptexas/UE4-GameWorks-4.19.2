@@ -1263,46 +1263,43 @@ void FSceneRenderTargets::FinishRenderingTranslucency(FRHICommandListImmediate& 
 }
 
 
-bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame)
+void FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame)
 {
+	check(IsSeparateTranslucencyActive(View));
+
 	bSeparateTranslucencyPass = true;
-	if(IsSeparateTranslucencyActive(View))
+
+	FIntPoint ScaledSize;
+	float Scale = 1.0f;
+	GetSeparateTranslucencyDimensions(ScaledSize, Scale);
+
+	SCOPED_DRAW_EVENT(RHICmdList, BeginSeparateTranslucency);
+
+	TRefCountPtr<IPooledRenderTarget>* SeparateTranslucency;
+	if (bSnapshot)
 	{
-		FIntPoint ScaledSize;
-		float Scale = 1.0f;
-		GetSeparateTranslucencyDimensions(ScaledSize, Scale);
+		check(SeparateTranslucencyRT.GetReference());
+		SeparateTranslucency = &SeparateTranslucencyRT;
+	}
+	else
+	{
+		SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
+	}
+	const FTexture2DRHIRef &SeparateTranslucencyDepth = Scale < 1.0f ? (const FTexture2DRHIRef&)GetSeparateTranslucencyDepth(RHICmdList, ScaledSize)->GetRenderTargetItem().TargetableTexture : GetSceneDepthSurface();
 
-		SCOPED_DRAW_EVENT(RHICmdList, BeginSeparateTranslucency);
+	check((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture->GetClearColor() == FLinearColor::Black);
+	// clear the render target the first time, re-use afterwards
+	SetRenderTarget(RHICmdList, (*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture, SeparateTranslucencyDepth,
+		bFirstTimeThisFrame ? ESimpleRenderTargetMode::EClearColorExistingDepth : ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 
-		TRefCountPtr<IPooledRenderTarget>* SeparateTranslucency;
-		if (bSnapshot)
-		{
-			check(SeparateTranslucencyRT.GetReference());
-			SeparateTranslucency = &SeparateTranslucencyRT;
-		}
-		else
-		{
-			SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
-		}
-		const FTexture2DRHIRef &SeparateTranslucencyDepth = Scale < 1.0f ? (const FTexture2DRHIRef&)GetSeparateTranslucencyDepth(RHICmdList, ScaledSize)->GetRenderTargetItem().TargetableTexture : GetSceneDepthSurface();
 
-		check((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture->GetClearColor() == FLinearColor::Black);
-		// clear the render target the first time, re-use afterwards
-		SetRenderTarget(RHICmdList, (*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture, SeparateTranslucencyDepth, 
-			bFirstTimeThisFrame ? ESimpleRenderTargetMode::EClearColorExistingDepth : ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
-
-		
-		if (!bFirstTimeThisFrame)
-		{
-			// Clear the stencil buffer for ResponsiveAA
-			RHICmdList.BindClearMRTValues(true, false, true);
-		}
-
-		RHICmdList.SetViewport(View.ViewRect.Min.X * Scale, View.ViewRect.Min.Y * Scale, 0.0f, View.ViewRect.Max.X * Scale, View.ViewRect.Max.Y * Scale, 1.0f);
-		return true;
+	if (!bFirstTimeThisFrame)
+	{
+		// Clear the stencil buffer for ResponsiveAA
+		RHICmdList.BindClearMRTValues(true, false, true);
 	}
 
-	return false;
+	RHICmdList.SetViewport(View.ViewRect.Min.X * Scale, View.ViewRect.Min.Y * Scale, 0.0f, View.ViewRect.Max.X * Scale, View.ViewRect.Max.Y * Scale, 1.0f);
 }
 
 void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View)
@@ -2423,15 +2420,15 @@ void FDeferredPixelShaderParameters::Set(TRHICmdList& RHICmdList, const ShaderRH
 	// if() is purely an optimization and could be removed
 	if (IsDBufferEnabled())
 	{
-		IPooledRenderTarget* DBufferA = SceneContext.DBufferA ? SceneContext.DBufferA : GSystemTextures.BlackDummy;
-		IPooledRenderTarget* DBufferB = SceneContext.DBufferB ? SceneContext.DBufferB : GSystemTextures.BlackDummy;
-		IPooledRenderTarget* DBufferC = SceneContext.DBufferC ? SceneContext.DBufferC : GSystemTextures.BlackDummy;
+		IPooledRenderTarget* DBufferA = SceneContext.DBufferA ? SceneContext.DBufferA : GSystemTextures.BlackAlphaOneDummy;
+		IPooledRenderTarget* DBufferB = SceneContext.DBufferB ? SceneContext.DBufferB : GSystemTextures.MidGrayDummy;
+		IPooledRenderTarget* DBufferC = SceneContext.DBufferC ? SceneContext.DBufferC : GSystemTextures.GreenDummy;
 
 		// todo: optimize out when not needed
 		SetTextureParameter(RHICmdList, ShaderRHI, DBufferATexture, DBufferATextureSampler, TStaticSamplerState<>::GetRHI(), DBufferA->GetRenderTargetItem().ShaderResourceTexture);
 		SetTextureParameter(RHICmdList, ShaderRHI, DBufferBTexture, DBufferBTextureSampler, TStaticSamplerState<>::GetRHI(), DBufferB->GetRenderTargetItem().ShaderResourceTexture);
 		SetTextureParameter(RHICmdList, ShaderRHI, DBufferCTexture, DBufferCTextureSampler, TStaticSamplerState<>::GetRHI(), DBufferC->GetRenderTargetItem().ShaderResourceTexture);
-
+		 
 		if (GSupportsRenderTargetWriteMask)
 		{
 			if (SceneContext.DBufferMask)

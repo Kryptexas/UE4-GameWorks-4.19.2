@@ -957,7 +957,10 @@ void FPixelShaderInOut_MainPS(
 #endif
 	Color += Emissive;
 
-	#if MATERIALBLENDING_TRANSLUCENT
+	#if MATERIALBLENDING_ALPHACOMPOSITE
+		Out.MRT[0] = half4(Color * VertexFog.a + VertexFog.rgb * Opacity, Opacity);
+		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
+	#elif MATERIALBLENDING_TRANSLUCENT
 		Out.MRT[0] = half4(Color * VertexFog.a + VertexFog.rgb, Opacity);
 		Out.MRT[0] = RETURN_COLOR(Out.MRT[0]);
 	#elif MATERIALBLENDING_ADDITIVE

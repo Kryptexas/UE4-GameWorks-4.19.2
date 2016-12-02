@@ -149,7 +149,7 @@ public:
 };
 TGlobalResource<FTileMesh> GTileMesh;
 
-static void CreateTileVerices(FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_VERTS], const class FSceneView& View, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, const FColor InVertexColor)
+static void CreateTileVertices(FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_VERTS], const class FSceneView& View, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, const FColor InVertexColor)
 {
 	static_assert(NUM_MATERIAL_TILE_VERTS == 6, "Invalid tile tri-list size.");
 
@@ -184,7 +184,7 @@ void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class F
 {
 	// create verts
 	FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_VERTS];
-	CreateTileVerices(DestVertex, View, bNeedsToSwitchVerticalAxis, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, InVertexColor);
+	CreateTileVertices(DestVertex, View, bNeedsToSwitchVerticalAxis, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, InVertexColor);
 
 	// update the FMeshBatch
 	FMeshBatch& Mesh = GTileMesh.MeshElement;
@@ -199,7 +199,7 @@ void FTileRenderer::DrawRotatedTile(FRHICommandListImmediate& RHICmdList, const 
 {
 	// create verts
 	FMaterialTileVertex DestVertex[NUM_MATERIAL_TILE_VERTS];
-	CreateTileVerices(DestVertex, View, bNeedsToSwitchVerticalAxis, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, InVertexColor);
+	CreateTileVertices(DestVertex, View, bNeedsToSwitchVerticalAxis, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, InVertexColor);
 	
 	// rotate tile using view center as origin
 	FIntPoint ViewRectSize = View.ViewRect.Size();
@@ -342,31 +342,31 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 		bNeedsToSwitchVerticalAxis ? uint32(1) : uint32(0),
 		Canvas->GetAllowedModes()
 	};
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		DrawTileCommand,
-		FDrawTileParameters, Parameters, DrawTileParameters,
+	EnqueueUniqueRenderCommand(
+		"DrawTileCommand",
+		[DrawTileParameters](FRHICommandListImmediate& RHICmdList)
 		{
-			SCOPED_DRAW_EVENTF(RHICmdList, CanvasDrawTile, *Parameters.RenderData->MaterialRenderProxy->GetMaterial(GMaxRHIFeatureLevel)->GetFriendlyName());
+			SCOPED_DRAW_EVENTF(RHICmdList, CanvasDrawTile, *DrawTileParameters.RenderData->MaterialRenderProxy->GetMaterial(GMaxRHIFeatureLevel)->GetFriendlyName());
 			
-			for (int32 TileIdx = 0; TileIdx < Parameters.RenderData->Tiles.Num(); TileIdx++)
+			for (int32 TileIdx = 0; TileIdx < DrawTileParameters.RenderData->Tiles.Num(); TileIdx++)
 			{
-				const FRenderData::FTileInst& Tile = Parameters.RenderData->Tiles[TileIdx];
+				const FRenderData::FTileInst& Tile = DrawTileParameters.RenderData->Tiles[TileIdx];
 				FTileRenderer::DrawTile(
 					RHICmdList,
-					*Parameters.View,
-					Parameters.RenderData->MaterialRenderProxy,
-					Parameters.bNeedsToSwitchVerticalAxis,
+					*DrawTileParameters.View,
+					DrawTileParameters.RenderData->MaterialRenderProxy,
+					DrawTileParameters.bNeedsToSwitchVerticalAxis,
 					Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
 					Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-					Parameters.bIsHitTesting, Tile.HitProxyId,
+					DrawTileParameters.bIsHitTesting, Tile.HitProxyId,
 					Tile.InColor);
 			}
 
-			delete Parameters.View->Family;
-			delete Parameters.View;
-			if (Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender)
+			delete DrawTileParameters.View->Family;
+			delete DrawTileParameters.View;
+			if (DrawTileParameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender)
 			{
-				delete Parameters.RenderData;
+				delete DrawTileParameters.RenderData;
 			}
 		});
 	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)

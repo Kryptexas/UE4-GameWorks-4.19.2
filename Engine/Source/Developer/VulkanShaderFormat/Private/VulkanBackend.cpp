@@ -40,6 +40,8 @@
 
 #include "VulkanConfiguration.h"
 
+#include "CrossCompilerCommon.h"
+
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "glsl_parser_extras.h"
 PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
@@ -735,6 +737,10 @@ class FGenerateVulkanVisitor : public ir_visitor
 		{
 			ralloc_asprintf_append(buffer, "%s", t->name);
 		}
+		else if (t->base_type == GLSL_TYPE_IMAGE)
+		{
+			ralloc_asprintf_append(buffer, "%s", t->name);
+		}
 		else
 		{
 			std::string Name = FixHlslName(t, LanguageSpec->AllowsSharingSamplers());
@@ -1064,7 +1070,7 @@ class FGenerateVulkanVisitor : public ir_visitor
 						GetDescriptorSetForStage(ShaderTarget),
 						comp_str,
 						type_str[var->type->inner_type->base_type],
-						BindingTable.RegisterBinding(var->name, "u", EVulkanBindingType::StorageTexelBuffer)
+						BindingTable.RegisterBinding(var->name, "u", var->type->sampler_buffer ? EVulkanBindingType::StorageTexelBuffer : EVulkanBindingType::StorageImage)
 						);
 				}
 				else
@@ -3613,6 +3619,8 @@ static FSystemValue PixelSystemValueTable[] =
 	{ "SV_PrimitiveID", glsl_type::int_type, "gl_PrimitiveID", ir_var_in, false, false, false, false },
 	{ "SV_RenderTargetArrayIndex", glsl_type::int_type, "gl_Layer", ir_var_in, false, false, false, false },
 	{ "SV_Target0", glsl_type::half4_type, "gl_FragColor", ir_var_out, false, false, false, true },
+	{ "SV_Coverage", glsl_type::int_type, "gl_SampleMaskIn[0]", ir_var_in, false, false, false, false },
+	{ "SV_Coverage", glsl_type::int_type, "gl_SampleMask[0]", ir_var_out, false, false, false, false },
 	{ NULL, NULL, NULL, ir_var_auto, false, false, false }
 };
 
@@ -5510,8 +5518,7 @@ FVulkanBindingTable::FBinding::FBinding(const char* InName, int32 InIndex, EVulk
 	// Validate Sampler type, s == PACKED_TYPENAME_SAMPLER
 	check((Type == EVulkanBindingType::CombinedImageSampler || Type == EVulkanBindingType::UniformTexelBuffer) ? SubType == 's' : true);
 
-	check(Type == EVulkanBindingType::PackedUniformBuffer ?
-		( SubType == 'h' || SubType == 'm' || SubType == 'l' || SubType == 'i' || SubType == 'u' ) : true);
+	check(Type != EVulkanBindingType::PackedUniformBuffer || CrossCompiler::IsValidPackedTypeName((CrossCompiler::EPackedTypeName)SubType));
 }
 
 inline int8 ExtractHLSLCCType(const char* name)
@@ -5556,7 +5563,6 @@ int32 FVulkanBindingTable::FindBinding(const char* InName) const
 		}
 	}
 
-	check(0);
 	return -1;
 }
 

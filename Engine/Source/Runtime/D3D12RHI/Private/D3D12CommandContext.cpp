@@ -6,7 +6,7 @@ D3D12CommandContext.cpp: RHI  Command Context implementation.
 
 #include "D3D12RHIPrivate.h"
 
-int32 GCommandListBatchingMode = CLB_NormalBatching;
+int32 GCommandListBatchingMode = CLB_AggressiveBatching;
 static FAutoConsoleVariableRef CVarCommandListBatchingMode(
 	TEXT("D3D12.CommandListBatchingMode"),
 	GCommandListBatchingMode,
@@ -34,7 +34,7 @@ FD3D12CommandContext::FD3D12CommandContext(FD3D12Device* InParent, FD3D12SubAllo
 	CommandListHandle(),
 	CommandAllocator(nullptr),
 	CommandAllocatorManager(InParent, InIsAsyncComputeContext ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT),
-	ConstantsAllocator(InParent, GetVisibilityMask(), (1024*1024) * 2),
+	ConstantsAllocator(InParent, GetVisibilityMask(), (1024*1024) * 3),
 	DynamicVB(InParent),
 	DynamicIB(InParent),
 	StateCache(InParent->GetNodeMask()),
@@ -71,7 +71,7 @@ void FD3D12CommandContext::RHIPushEvent(const TCHAR* Name, FColor Color)
 	}
 
 #if USE_PIX
-	PIXBeginEvent(CommandListHandle.GraphicsCommandList(), PIX_COLOR_DEFAULT, Name);
+	PIXBeginEvent(CommandListHandle.GraphicsCommandList(), PIX_COLOR(Color.R, Color.G, Color.B), Name);
 #endif
 }
 
@@ -122,28 +122,22 @@ void FD3D12CommandContext::ReleaseCommandAllocator()
 	}
 }
 
-void FD3D12CommandContext::OpenCommandList(bool bRestoreState)
+void FD3D12CommandContext::OpenCommandList()
 {
-	FD3D12CommandListManager& CommandListManager = GetCommandListManager();
-
 	// Conditionally get a new command allocator.
-	// Each command context uses a new allocator for all command lists with a single frame.
+	// Each command context uses a new allocator for all command lists within a "frame".
 	ConditionalObtainCommandAllocator();
 
 	// Get a new command list
-	CommandListHandle = CommandListManager.ObtainCommandList(*CommandAllocator);
+	CommandListHandle = GetCommandListManager().ObtainCommandList(*CommandAllocator);
+	CommandListHandle.SetCurrentOwningContext(this);
 
-	CommandListHandle->SetDescriptorHeaps(DescriptorHeaps.Num(), DescriptorHeaps.GetData());
-	StateCache.ForceSetGraphicsRootSignature();
-	StateCache.ForceSetComputeRootSignature();
-
+	// Notify the descriptor cache about the new command list
+	// This will set the descriptor cache's current heaps on the new command list.
 	StateCache.GetDescriptorCache()->NotifyCurrentCommandList(CommandListHandle);
 
-	if (bRestoreState)
-	{
-		// The next time ApplyState is called, it will set all state on this new command list
-		StateCache.RestoreState();
-	}
+	// Mark state as dirty so next time ApplyState is called, it will set all state on this new command list
+	StateCache.DirtyState();
 
 	numDraws = 0;
 	numDispatches = 0;
@@ -151,23 +145,11 @@ void FD3D12CommandContext::OpenCommandList(bool bRestoreState)
 	numBarriers = 0;
 	numCopies = 0;
 	otherWorkCounter = 0;
-	CommandListHandle.SetCurrentOwningContext(this);
 }
 
 void FD3D12CommandContext::CloseCommandList()
 {
 	CommandListHandle.Close();
-}
-
-void FD3D12CommandContext::ExecuteCommandList(bool WaitForCompletion)
-{
-	check(CommandListHandle.IsClosed());
-
-	// Only submit a command list if it does meaningful work or is expected to wait for completion.
-	if (WaitForCompletion || HasDoneWork())
-	{
-		CommandListHandle.Execute(WaitForCompletion);
-	}
 }
 
 FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompletion)
@@ -202,7 +184,7 @@ FD3D12CommandListHandle FD3D12CommandContext::FlushCommands(bool WaitForCompleti
 
 		// Get a new command list to replace the one we submitted for execution. 
 		// Restore the state from the previous command list.
-		OpenCommandList(true);
+		OpenCommandList();
 	}
 
 	return CommandListHandle;
@@ -260,27 +242,14 @@ void FD3D12CommandContext::ClearState()
 
 	bDiscardSharedConstants = false;
 
-	for (int32 Frequency = 0; Frequency < SF_NumFrequencies; Frequency++)
-	{
-		DirtyUniformBuffers[Frequency] = 0;
-		for (int32 Index = 0; Index < MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE; ++Index)
-		{
-			BoundUniformBuffers[Frequency][Index] = nullptr;
-		}
-	}
-
-	for (int32 Index = 0; Index < _countof(CurrentUAVs); ++Index)
-	{
-		CurrentUAVs[Index] = nullptr;
-	}
+	FMemory::Memzero(BoundUniformBuffers, sizeof(BoundUniformBuffers));
+	FMemory::Memzero(DirtyUniformBuffers, sizeof(DirtyUniformBuffers));
+	FMemory::Memzero(CurrentUAVs, sizeof(CurrentUAVs));
 	NumUAVs = 0;
 
 	if (!bIsAsyncComputeContext)
 	{
-		for (int32 Index = 0; Index < _countof(CurrentRenderTargets); ++Index)
-		{
-			CurrentRenderTargets[Index] = nullptr;
-		}
+		FMemory::Memzero(CurrentRenderTargets, sizeof(CurrentRenderTargets));
 		NumSimultaneousRenderTargets = 0;
 
 		CurrentDepthStencilTarget = nullptr;
@@ -292,94 +261,17 @@ void FD3D12CommandContext::ClearState()
 
 		CurrentBoundShaderState = nullptr;
 	}
-
-	// MSFT: Need to do anything with the constant buffers?
-	/*
-	for (int32 BufferIndex = 0; BufferIndex < VSConstantBuffers.Num(); BufferIndex++)
-	{
-	VSConstantBuffers[BufferIndex]->ClearConstantBuffer();
-	}
-	for (int32 BufferIndex = 0; BufferIndex < PSConstantBuffers.Num(); BufferIndex++)
-	{
-	PSConstantBuffers[BufferIndex]->ClearConstantBuffer();
-	}
-	for (int32 BufferIndex = 0; BufferIndex < HSConstantBuffers.Num(); BufferIndex++)
-	{
-	HSConstantBuffers[BufferIndex]->ClearConstantBuffer();
-	}
-	for (int32 BufferIndex = 0; BufferIndex < DSConstantBuffers.Num(); BufferIndex++)
-	{
-	DSConstantBuffers[BufferIndex]->ClearConstantBuffer();
-	}
-	for (int32 BufferIndex = 0; BufferIndex < GSConstantBuffers.Num(); BufferIndex++)
-	{
-	GSConstantBuffers[BufferIndex]->ClearConstantBuffer();
-	}
-	for (int32 BufferIndex = 0; BufferIndex < CSConstantBuffers.Num(); BufferIndex++)
-	{
-	CSConstantBuffers[BufferIndex]->ClearConstantBuffer();
-	}
-	*/
-
-	CurrentComputeShader = nullptr;
-}
-
-void FD3D12CommandContext::CheckIfSRVIsResolved(FD3D12ShaderResourceView* SRV)
-{
-	// MSFT: Seb: TODO: Make this work on 12
-#if CHECK_SRV_TRANSITIONS
-	if (GRHIThread || !SRV)
-	{
-		return;
-	}
-
-	static const auto CheckSRVCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CheckSRVTransitions"));
-	if (!CheckSRVCVar->GetValueOnRenderThread())
-	{
-		return;
-	}
-
-	ID3D11Resource* SRVResource = nullptr;
-	SRV->GetResource(&SRVResource);
-
-	int32 MipLevel;
-	int32 NumMips;
-	int32 ArraySlice;
-	int32 NumSlices;
-	GetMipAndSliceInfoFromSRV(SRV, MipLevel, NumMips, ArraySlice, NumSlices);
-
-	//d3d uses -1 to mean 'all mips'
-	int32 LastMip = MipLevel + NumMips - 1;
-	int32 LastSlice = ArraySlice + NumSlices - 1;
-
-	TArray<FUnresolvedRTInfo> RTInfoArray;
-	UnresolvedTargets.MultiFind(SRVResource, RTInfoArray);
-
-	for (int32 InfoIndex = 0; InfoIndex < RTInfoArray.Num(); ++InfoIndex)
-	{
-		const FUnresolvedRTInfo& RTInfo = RTInfoArray[InfoIndex];
-		int32 RTLastMip = RTInfo.MipLevel + RTInfo.NumMips - 1;
-		ensureMsgf((MipLevel == -1 || NumMips == -1) || (LastMip < RTInfo.MipLevel || MipLevel > RTLastMip), TEXT("SRV is set to read mips in range %i to %i.  Target %s is unresolved for mip %i"), MipLevel, LastMip, *RTInfo.ResourceName.ToString(), RTInfo.MipLevel);
-		ensureMsgf(NumMips != -1, TEXT("SRV is set to read all mips.  Target %s is unresolved for mip %i"), *RTInfo.ResourceName.ToString(), RTInfo.MipLevel);
-
-		int32 RTLastSlice = RTInfo.ArraySlice + RTInfo.ArraySize - 1;
-		ensureMsgf((ArraySlice == -1 || LastSlice == -1) || (LastSlice < RTInfo.ArraySlice || ArraySlice > RTLastSlice), TEXT("SRV is set to read slices in range %i to %i.  Target %s is unresolved for mip %i"), ArraySlice, LastSlice, *RTInfo.ResourceName.ToString(), RTInfo.ArraySlice);
-		ensureMsgf(ArraySlice == -1 || NumSlices != -1, TEXT("SRV is set to read all slices.  Target %s is unresolved for slice %i"));
-	}
-	SRVResource->Release();
-#endif
 }
 
 void FD3D12CommandContext::ConditionalClearShaderResource(FD3D12ResourceLocation* Resource)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12ClearShaderResourceTime);
 	check(Resource);
-	ClearShaderResourceViews<SF_Vertex>(Resource);
-	ClearShaderResourceViews<SF_Hull>(Resource);
-	ClearShaderResourceViews<SF_Domain>(Resource);
-	ClearShaderResourceViews<SF_Pixel>(Resource);
-	ClearShaderResourceViews<SF_Geometry>(Resource);
-	ClearShaderResourceViews<SF_Compute>(Resource);
+	StateCache.ClearShaderResourceViews<SF_Vertex>(Resource);
+	StateCache.ClearShaderResourceViews<SF_Hull>(Resource);
+	StateCache.ClearShaderResourceViews<SF_Domain>(Resource);
+	StateCache.ClearShaderResourceViews<SF_Pixel>(Resource);
+	StateCache.ClearShaderResourceViews<SF_Geometry>(Resource);
+	StateCache.ClearShaderResourceViews<SF_Compute>(Resource);
 }
 
 void FD3D12CommandContext::ClearAllShaderResources()
@@ -389,14 +281,49 @@ void FD3D12CommandContext::ClearAllShaderResources()
 
 void FD3D12CommandContext::RHIEndFrame()
 {
-#if PLATFORM_SUPPORTS_MGPU
+	// Note: RHIEndFrame is not called consistently when a movie is playing but asset loading is done.
+	// This can result in not cleaning up resources as quickly as desired.
 	FD3D12Device* Device = GetParentDevice();
 	FD3D12Adapter* Adapter = Device->GetParentAdapter();
+	{
+		check(IsDefaultContext());
+		check(Adapter->GetCurrentNodeMask() == Device->GetNodeMask());
 
+		Adapter->EndFrame();
+
+		const uint32 NumContexts = Device->GetNumContexts();
+		for (uint32 i = 0; i < NumContexts; ++i)
+		{
+			Device->GetCommandContext(i).EndFrame();
+		}
+
+		// TODO: What about the compute contexts?
+
+		Device->GetTextureAllocator().CleanUpAllocations();
+		Device->GetDefaultBufferAllocator().CleanupFreeBlocks();
+
+		Device->GetDefaultFastAllocator().CleanupPages<FD3D12ScopeLock>(10);
+
+		// The Texture streaming threads
+		{
+			for (int32 i = 0; i < FD3D12DynamicRHI::GetD3DRHI()->NumThreadDynamicHeapAllocators; ++i)
+			{
+				FD3D12FastAllocator* TextureStreamingAllocator = FD3D12DynamicRHI::GetD3DRHI()->ThreadDynamicHeapAllocatorArray[i];
+				if (TextureStreamingAllocator)
+				{
+					TextureStreamingAllocator->CleanupPages<FD3D12ScopeLock>(10);
+				}
+			}
+		}
+
+		GetCommandListManager().ReleaseResourceBarrierCommandListAllocator();
+
+		UpdateMemoryStats();
+	}
+
+#if PLATFORM_SUPPORTS_MGPU
 	if (Adapter->AlternateFrameRenderingEnabled())
 	{
-		Adapter->SignalEndOfFrame(GetCommandListManager().GetD3DCommandQueue(), false);
-
 		// When doing AFR rendering we need to switch to the next GPU
 		Adapter->SwitchToNextGPU();
 
@@ -409,43 +336,24 @@ void FD3D12CommandContext::RHIEndFrame()
 
 void FD3D12CommandContext::UpdateMemoryStats()
 {
-#if PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS && STATS
 	DXGI_QUERY_VIDEO_MEMORY_INFO LocalVideoMemoryInfo;
-
 	GetParentDevice()->GetLocalVideoMemoryInfo(&LocalVideoMemoryInfo);
 
-	int64 budget = LocalVideoMemoryInfo.Budget;
-
-	int64 AvailableSpace = budget - int64(LocalVideoMemoryInfo.CurrentUsage);
-
+	const int64 Budget = LocalVideoMemoryInfo.Budget;
+	const int64 AvailableSpace = Budget - int64(LocalVideoMemoryInfo.CurrentUsage);
 	SET_MEMORY_STAT(STAT_D3D12UsedVideoMemory, LocalVideoMemoryInfo.CurrentUsage);
 	SET_MEMORY_STAT(STAT_D3D12AvailableVideoMemory, AvailableSpace);
-	SET_MEMORY_STAT(STAT_D3D12TotalVideoMemory, budget);
+	SET_MEMORY_STAT(STAT_D3D12TotalVideoMemory, Budget);
 #endif
 }
 
 void FD3D12CommandContext::RHIBeginScene()
 {
-	check(IsDefaultContext());
-	FD3D12DynamicRHI& RHI = OwningRHI;
-	// Increment the frame counter. INDEX_NONE is a special value meaning "uninitialized", so if
-	// we hit it just wrap around to zero.
-	OwningRHI.SceneFrameCounter++;
-	if (OwningRHI.SceneFrameCounter == INDEX_NONE)
-	{
-		OwningRHI.SceneFrameCounter++;
-	}
-
-	static auto* ResourceTableCachingCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("rhi.ResourceTableCaching"));
-	if (ResourceTableCachingCvar == NULL || ResourceTableCachingCvar->GetValueOnAnyThread() == 1)
-	{
-		OwningRHI.ResourceTableFrameCounter = OwningRHI.SceneFrameCounter;
-	}
 }
 
 void FD3D12CommandContext::RHIEndScene()
 {
-	OwningRHI.ResourceTableFrameCounter = INDEX_NONE;
 }
 
 #if D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE
@@ -523,7 +431,7 @@ public:
 				DefaultContext.numCopies +
 				DefaultContext.numDraws;
 
-			DefaultContext.OpenCommandList(true);
+			DefaultContext.OpenCommandList();
 		}
 
 		// Add the current lists for execution (now or possibly later depending on the command list batching mode).

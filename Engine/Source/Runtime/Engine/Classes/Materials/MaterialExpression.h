@@ -395,7 +395,7 @@ class ENGINE_API UMaterialExpression : public UObject
 #endif // WITH_EDITOR
 
 	/** Checks whether any inputs to this expression create a loop */
-	bool ContainsInputLoop();
+	bool ContainsInputLoop(const bool bStopOnFunctionCall = true);
 
 protected:
 	/**
@@ -405,7 +405,7 @@ protected:
 	 * @param ExpressionStack    List of expression keys that have been checked already in the current stack
 	 * @param VisitedExpressions List of all expression keys that have been visited
 	 */
-	bool ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions);
+	bool ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions, const bool bStopOnFunctionCall);
 };
 
 

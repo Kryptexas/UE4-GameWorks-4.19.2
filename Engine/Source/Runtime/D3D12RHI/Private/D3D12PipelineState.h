@@ -240,14 +240,14 @@ protected:
 	FAsyncTask<FD3D12PipelineStateWorker>* Worker;
 };
 
-struct FD2D12GraphicsPipelineState : public FRHIGraphicsPipelineState
+struct FD3D12GraphicsPipelineState : public FRHIGraphicsPipelineState
 {
-	FD2D12GraphicsPipelineState()
+	FD3D12GraphicsPipelineState()
 		: PipelineState(nullptr)
 	{
 	}
 
-	FD2D12GraphicsPipelineState(
+	FD3D12GraphicsPipelineState(
 		const FGraphicsPipelineStateInitializer& Initializer,
 		FD3D12PipelineState* InPipelineState
 	)

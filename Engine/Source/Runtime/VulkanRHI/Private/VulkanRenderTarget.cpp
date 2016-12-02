@@ -466,7 +466,6 @@ void FVulkanDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntR
 	MappedRange.offset = StagingBuffer->GetAllocationOffset();
 	MappedRange.size = Size;
 	VulkanRHI::vkInvalidateMappedMemoryRanges(Device->GetInstanceHandle(), 1, &MappedRange);
-	VulkanRHI::vkFlushMappedMemoryRanges(Device->GetInstanceHandle(), 1, &MappedRange);
 
 	OutData.SetNum(NumPixels);
 	FColor* Dest = OutData.GetData();
@@ -501,18 +500,6 @@ void FVulkanDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, 
 		uint32 NumPixels = (Surface.Width >> InMipIndex) * (Surface.Height >> InMipIndex);
 		const uint32 Size = NumPixels * sizeof(FFloat16Color);
 		VulkanRHI::FStagingBuffer* StagingBuffer = InDevice->GetStagingManager().AcquireBuffer(Size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, true);
-		{
-			FFloat16Color* Color = (FFloat16Color*)StagingBuffer->GetMappedPointer();
-			Color->R.Set(1.0); Color->G.Set(0.7); Color->B.Set(0.0); Color->A.Set(0.5);
-
-			VkMappedMemoryRange MappedRange;
-			FMemory::Memzero(MappedRange);
-			MappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-			MappedRange.memory = StagingBuffer->GetDeviceMemoryHandle();
-			MappedRange.offset = StagingBuffer->GetAllocationOffset();
-			MappedRange.size = Size;
-			VulkanRHI::vkFlushMappedMemoryRanges(InDevice->GetInstanceHandle(), 1, &MappedRange);
-		}
 
 		if (GIgnoreCPUReads == 0)
 		{
@@ -634,11 +621,69 @@ void FVulkanDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI
 
 void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs, FComputeFenceRHIParamRef WriteComputeFence)
 {
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	ensure(CmdBuffer->IsOutsideRenderPass());
+	TArray<VkBufferMemoryBarrier> BufferBarriers;
+	TArray<VkImageMemoryBarrier> ImageBarriers;
 	for (int32 Index = 0; Index < NumUAVs; ++Index)
 	{
 		FVulkanUnorderedAccessView* UAV = ResourceCast(InUAVs[Index]);
-		ensure(0);
+
+		VkAccessFlags SrcAccess = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, DestAccess = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+		switch (TransitionType)
+		{
+		case EResourceTransitionAccess::EWritable:
+			SrcAccess = VK_ACCESS_SHADER_READ_BIT;
+			DestAccess = VK_ACCESS_SHADER_WRITE_BIT;
+			break;
+		case EResourceTransitionAccess::EReadable:
+			SrcAccess = VK_ACCESS_SHADER_WRITE_BIT;
+			DestAccess = VK_ACCESS_SHADER_READ_BIT;
+			break;
+		case EResourceTransitionAccess::ERWBarrier:
+			SrcAccess = VK_ACCESS_SHADER_READ_BIT;
+			DestAccess = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+			break;
+		default:
+			ensure(0);
+			break;
+		}
+
+		if (UAV->SourceVertexBuffer)
+		{
+			VkBufferMemoryBarrier& Barrier = BufferBarriers[BufferBarriers.AddUninitialized()];
+			VulkanRHI::SetupAndZeroBufferBarrier(Barrier, SrcAccess, DestAccess, UAV->SourceVertexBuffer->GetHandle(), UAV->SourceVertexBuffer->GetOffset(), UAV->SourceVertexBuffer->GetSize());
+		}
+		else if (UAV->SourceTexture)
+		{
+			VkImageMemoryBarrier& Barrier = ImageBarriers[ImageBarriers.AddUninitialized()];
+			FVulkanTextureBase* VulkanTexture = FVulkanTextureBase::Cast(UAV->SourceTexture);
+			VkImageLayout Layout = TransitionState.FindOrAddLayout(VulkanTexture->Surface.Image, VK_IMAGE_LAYOUT_GENERAL);
+			VulkanRHI::SetupAndZeroImageBarrier(Barrier, VulkanTexture->Surface, SrcAccess, Layout, DestAccess, Layout);
+		}
+		else
+		{
+			ensure(0);
+		}
 	}
+
+	VkPipelineStageFlagBits SourceStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, DestStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	switch (TransitionPipeline)
+	{
+	case EResourceTransitionPipeline::EGfxToCompute:
+		SourceStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+		DestStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		break;
+	case EResourceTransitionPipeline::EComputeToGfx:
+		SourceStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		DestStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+		break;
+	default:
+		ensure(0);
+		break;
+	}
+
+	VulkanRHI::vkCmdPipelineBarrier(CmdBuffer->GetHandle(), SourceStage, DestStage, 0, 0, nullptr, BufferBarriers.Num(), BufferBarriers.GetData(), ImageBarriers.Num(), ImageBarriers.GetData());
 }
 
 void FVulkanCommandListContext::RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures)

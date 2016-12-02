@@ -39,6 +39,8 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 	FIntRect ViewRect = View.ViewRect;
 	FIntPoint SrcSize = SceneColorInputDesc->Extent;
 
+	FDrawingPolicyRenderState DrawRenderState(&Context.RHICmdList, View);
+
 	// Get the output render target
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 	
@@ -54,7 +56,7 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 		FHitProxyDrawingPolicyFactory::ContextType FactoryContext;
 
 		Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		Context.RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
+		DrawRenderState.SetBlendState(Context.RHICmdList, TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
 
 		// Note that the stencil value will overflow with enough selected objects
 		FEditorSelectionDrawingPolicy::ResetStencilValues();
@@ -63,7 +65,7 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 		FScene* Scene = View.Family->Scene->GetRenderScene();
 		if(Scene)
 		{	
-			Scene->EditorSelectionDrawList.DrawVisible(Context.RHICmdList, View, View.StaticMeshEditorSelectionMap, View.StaticMeshBatchVisibility);
+			Scene->EditorSelectionDrawList.DrawVisible(Context.RHICmdList, View, DrawRenderState, View.StaticMeshEditorSelectionMap, View.StaticMeshBatchVisibility);
 		}
 	
 		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
@@ -87,7 +89,7 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 				Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), StencilValue);
 
 				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(Context.RHICmdList, View, FactoryContext, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(Context.RHICmdList, View, FactoryContext, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
 		}
 

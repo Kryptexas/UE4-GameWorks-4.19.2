@@ -325,7 +325,7 @@ static void SetShadowProjectionShaderTemplNew(FRHICommandList& RHICmdList, int32
 }
 
 void FProjectedShadowInfo::SetBlendStateForProjection(
-	FRHICommandListImmediate& RHICmdList, 
+	FRHICommandListImmediate& RHICmdList,
 	int32 ShadowMapChannel, 
 	bool bIsWholeSceneDirectionalShadow,
 	bool bUseFadePlane,
@@ -533,9 +533,11 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 	bool bMobileModulatedProjections, 
 	bool bCameraInsideShadowFrustum) const
 {
+	FDrawingPolicyRenderState DrawRenderState(&RHICmdList, *View);
+
 	// Depth test wo/ writes, no color writing.
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
+	DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
+	DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<CW_NONE>::GetRHI());
 
 	// If this is a preshadow, mask the projection by the receiver primitives.
 	if (bPreShadow || bSelfShadowOnly)
@@ -550,7 +552,8 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 		}
 
 		// Set stencil to one.
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+		DrawRenderState.SetDepthStencilState(RHICmdList,
+			TStaticDepthStencilState<
 			false, CF_DepthNearOrEqual,
 			true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
 			false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
@@ -561,13 +564,14 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 		// Note that self-shadow pre-shadows still mask by receiver elements.
 		const TArray<FMeshBatchAndRelevance, SceneRenderingAllocator>& DynamicMeshElements = bPreShadow ? DynamicReceiverMeshElements : DynamicSubjectMeshElements;
 
-		FDepthDrawingPolicyFactory::ContextType Context(View->ViewUniformBuffer, DDM_AllOccluders, false);
+		FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
 
 		for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicMeshElements.Num(); MeshBatchIndex++)
 		{
 			const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicMeshElements[MeshBatchIndex];
 			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-			FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, false, bIsInstancedStereoEmulated);
+
+			FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, false, bIsInstancedStereoEmulated);
 		}
 
 		// Pre-shadows mask by receiver elements, self-shadow mask by subject elements.
@@ -590,11 +594,10 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 
 						if (View->StaticMeshVisibilityMap[StaticMesh.Id])
 						{
-							const FMeshDrawingRenderState DrawRenderState(FDepthDrawingPolicy::GetDitheredLODTransitionState(*View, StaticMesh));
 							FDepthDrawingPolicyFactory::DrawStaticMesh(
 								RHICmdList, 
 								*View,
-								FDepthDrawingPolicyFactory::ContextType(View->ViewUniformBuffer, DDM_AllOccluders, false),
+								FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
 								StaticMesh,
 								StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num() )- 1),
 								true,
@@ -615,11 +618,10 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 			for (int32 ElementIndex = 0; ElementIndex < StaticSubjectMeshElements.Num(); ++ElementIndex)
 			{
 				const FStaticMesh& StaticMesh = *StaticSubjectMeshElements[ElementIndex].Mesh;
-				const FMeshDrawingRenderState DrawRenderState(FDepthDrawingPolicy::GetDitheredLODTransitionState(*View, StaticMesh));
 				FDepthDrawingPolicyFactory::DrawStaticMesh(
 					RHICmdList, 
 					*View,
-					FDepthDrawingPolicyFactory::ContextType(View->ViewUniformBuffer, DDM_AllOccluders, false),
+					FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders, false),
 					StaticMesh,
 					StaticMesh.bRequiresPerElementVisibility ? View->StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num() )- 1),
 					true,
@@ -642,11 +644,12 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 	else if (IsWholeSceneDirectionalShadow())
 	{
 		// Increment stencil on front-facing zfail, decrement on back-facing zfail.
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-			false,CF_DepthNearOrEqual,
-			true,CF_Always,SO_Keep,SO_Increment,SO_Keep,
-			true,CF_Always,SO_Keep,SO_Decrement,SO_Keep,
-			0xff,0xff
+		DrawRenderState.SetDepthStencilState(RHICmdList,
+			TStaticDepthStencilState<
+			false, CF_DepthNearOrEqual,
+			true, CF_Always, SO_Keep, SO_Increment, SO_Keep,
+			true, CF_Always, SO_Keep, SO_Decrement, SO_Keep,
+			0xff, 0xff
 			>::GetRHI());
 
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -700,22 +703,24 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 			// Because zfail handles these cases while zpass does not.
 			// zfail stenciling is somewhat slower than zpass because on modern GPUs HiZ will be disabled when setting up stencil.
 			// Increment stencil on front-facing zfail, decrement on back-facing zfail.
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-				false,CF_DepthNearOrEqual,
-				true,CF_Always,SO_Keep,SO_Increment,SO_Keep,
-				true,CF_Always,SO_Keep,SO_Decrement,SO_Keep,
-				0xff,0xff
+			DrawRenderState.SetDepthStencilState(RHICmdList,
+				TStaticDepthStencilState<
+				false, CF_DepthNearOrEqual,
+				true, CF_Always, SO_Keep, SO_Increment, SO_Keep,
+				true, CF_Always, SO_Keep, SO_Decrement, SO_Keep,
+				0xff, 0xff
 				>::GetRHI());
 		}
 		else
 		{
 			// Increment stencil on front-facing zpass, decrement on back-facing zpass.
 			// HiZ will be enabled on modern GPUs which will save a little GPU time.
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-				false,CF_DepthNearOrEqual,
-				true,CF_Always,SO_Keep,SO_Keep,SO_Increment,
-				true,CF_Always,SO_Keep,SO_Keep,SO_Decrement,
-				0xff,0xff
+			DrawRenderState.SetDepthStencilState(RHICmdList,
+				TStaticDepthStencilState<
+				false, CF_DepthNearOrEqual,
+				true, CF_Always, SO_Keep, SO_Keep, SO_Increment,
+				true, CF_Always, SO_Keep, SO_Keep, SO_Decrement,
+				0xff, 0xff
 				>::GetRHI());
 		}
 		
@@ -734,19 +739,20 @@ void FProjectedShadowInfo::SetupProjectionStencilMask(
 		// if rendering modulated shadows mask out subject mesh elements to prevent self shadowing.
 		if (bMobileModulatedProjections && !CVarEnableModulatedSelfShadow.GetValueOnRenderThread())
 		{
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+			DrawRenderState.SetDepthStencilState(RHICmdList,
+				TStaticDepthStencilState<
 				false, CF_DepthNearOrEqual,
 				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
 				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
 				0xff, 0xff
-			>::GetRHI(), 0);
+				>::GetRHI(), 0);
 
-			FDepthDrawingPolicyFactory::ContextType Context(View->ViewUniformBuffer, DDM_AllOccluders, false);
+			FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
 			for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicSubjectMeshElements.Num(); MeshBatchIndex++)
 			{
 				const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicSubjectMeshElements[MeshBatchIndex];
 				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-				FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+				FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
 		}
 	}
@@ -818,22 +824,24 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			// No depth test or writes, zero the stencil
 			// Note: this will disable hi-stencil on many GPUs, but still seems 
 			// to be faster. However, early stencil still works 
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+			RHICmdList.SetDepthStencilState(
+				TStaticDepthStencilState<
 				false, CF_Always,
 				true, CF_NotEqual, SO_Zero, SO_Zero, SO_Zero,
 				false, CF_Always, SO_Zero, SO_Zero, SO_Zero,
 				0xff, 0xff
-			>::GetRHI());
+				>::GetRHI());
 		}
 		else
 		{
 			// no depth test or writes, Test stencil for non-zero.
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+			RHICmdList.SetDepthStencilState(
+				TStaticDepthStencilState<
 				false, CF_Always,
 				true, CF_NotEqual, SO_Keep, SO_Keep, SO_Keep,
 				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
 				0xff, 0xff
-			>::GetRHI());
+				>::GetRHI());
 		}
 	}
 

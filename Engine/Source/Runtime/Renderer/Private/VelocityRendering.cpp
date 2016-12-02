@@ -69,7 +69,7 @@ public:
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, ESceneRenderTargetsMode::DontSet);
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh, int32 BatchElementIndex, const FMeshDrawingRenderState& DrawRenderState, const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, const FMatrix& InPreviousLocalToWorld)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh, int32 BatchElementIndex, const FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, const FMatrix& InPreviousLocalToWorld)
 	{
 		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(), VertexFactory, View, Proxy, Mesh.Elements[BatchElementIndex], DrawRenderState);
 
@@ -235,7 +235,7 @@ public:
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, View.ViewUniformBuffer, ESceneRenderTargetsMode::DontSet);
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh,int32 BatchElementIndex,const FMeshDrawingRenderState& DrawRenderState,const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, bool bBackFace)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh,int32 BatchElementIndex,const FDrawingPolicyRenderState& DrawRenderState,const FViewInfo& View, const FPrimitiveSceneProxy* Proxy)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
@@ -260,9 +260,10 @@ FVelocityDrawingPolicy::FVelocityDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource,
+	const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
 	ERHIFeatureLevel::Type InFeatureLevel
 	)
-	:	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource)	
+	:	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,InOverrideSettings)	
 {
 	const FMaterialShaderMap* MaterialShaderIndex = InMaterialResource.GetRenderingThreadShaderMap();
 	const FMeshMaterialShaderMap* MeshShaderIndex = MaterialShaderIndex->GetMeshShaderMap(InVertexFactory->GetType());
@@ -320,8 +321,10 @@ bool FVelocityDrawingPolicy::SupportsVelocity() const
 	}
 }
 
-void FVelocityDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* SceneView, const ContextDataType PolicyContext) const
+void FVelocityDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* SceneView, FVelocityDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const
 {
+	CommitGraphicsPipelineState(RHICmdList, *this, DrawRenderState, SceneView->GetFeatureLevel());
+
 	// NOTE: Assuming this cast is always safe!
 	FViewInfo* View = (FViewInfo*)SceneView;
 
@@ -335,7 +338,7 @@ void FVelocityDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const F
 	}
 
 	// Set the shared mesh resources.
-	FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext);
+	FMeshDrawingPolicy::SetSharedState(RHICmdList, View, PolicyContext, DrawRenderState);
 }
 
 void FVelocityDrawingPolicy::SetMeshRenderState(
@@ -344,8 +347,7 @@ void FVelocityDrawingPolicy::SetMeshRenderState(
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
-	bool bBackFace,
-	const FMeshDrawingRenderState& DrawRenderState,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const ElementDataType& ElementData,
 	const ContextDataType PolicyContext
 	) const
@@ -375,8 +377,7 @@ void FVelocityDrawingPolicy::SetMeshRenderState(
 		HullShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex], DrawRenderState);
 	}
 
-	PixelShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, DrawRenderState, View, PrimitiveSceneProxy, bBackFace);
-	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, DrawRenderState, ElementData, PolicyContext);
+	PixelShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, DrawRenderState, View, PrimitiveSceneProxy);	
 }
 
 void FVelocityDrawingPolicy::SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const {
@@ -461,7 +462,7 @@ bool FVelocityDrawingPolicy::HasVelocityOnBasePass(const FViewInfo& View,const F
 	return Material->MaterialModifiesMeshPosition_RenderThread() && Material->OutputsVelocityOnBasePass();
 }
 
-FBoundShaderStateInput FVelocityDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
+FBoundShaderStateInput FVelocityDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const
 {
 	return FBoundShaderStateInput(
 		FMeshDrawingPolicy::GetVertexDeclaration(), 
@@ -508,7 +509,8 @@ void FVelocityDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* St
 			    MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 		    }
 
-			FVelocityDrawingPolicy DrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), FeatureLevel);
+			FVelocityDrawingPolicy DrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), ComputeMeshOverrideSettings(*StaticMesh), FeatureLevel);
+
 			if (DrawingPolicy.SupportsVelocity())
 			{
 				// Add the static mesh to the depth-only draw list.
@@ -523,13 +525,15 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
-	bool bBackFace,
 	bool bPreFog,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	FHitProxyId HitProxyId, 
 	const bool bIsInstancedStereo
 	)
 {
+	FScopedStrictGraphicsPipelineStateUse UsePSOOnly(RHICmdList);
+
 	// Only draw opaque materials in the depth pass.
 	const auto FeatureLevel = View.GetFeatureLevel();
 	const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
@@ -546,13 +550,13 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 			// Default material doesn't handle masked, and doesn't have the correct bIsTwoSided setting.
 			MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 		}
-		FVelocityDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), FeatureLevel);
+		FVelocityDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), ComputeMeshOverrideSettings(Mesh), FeatureLevel);
 		if(DrawingPolicy.SupportsVelocity())
 		{			
-			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(FeatureLevel));
-			DrawingPolicy.SetSharedState(RHICmdList, &View, FVelocityDrawingPolicy::ContextDataType(bIsInstancedStereo));
-			FMeshDrawingRenderState DrawRenderState;
-			DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
+			FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
+			DrawRenderStateLocal.SetDitheredLODTransitionAlpha(Mesh.DitheredLODTransitionAlpha);
+
+			DrawingPolicy.SetSharedState(RHICmdList, &View, FVelocityDrawingPolicy::ContextDataType(bIsInstancedStereo), DrawRenderStateLocal);
 			for (int32 BatchElementIndex = 0, BatchElementCount = Mesh.Elements.Num(); BatchElementIndex < BatchElementCount; ++BatchElementIndex)
 			{
 				// We draw instanced static meshes twice when rendering with instanced stereo. Once for each eye.
@@ -565,7 +569,7 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 					TDrawEvent<FRHICommandList> MeshEvent;
 					BeginMeshDrawEvent(RHICmdList, PrimitiveSceneProxy, Mesh, MeshEvent);
 
-					DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, DrawRenderState, FMeshDrawingPolicy::ElementDataType(), FVelocityDrawingPolicy::ContextDataType());
+					DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, DrawRenderStateLocal, FMeshDrawingPolicy::ElementDataType(), FVelocityDrawingPolicy::ContextDataType());
 					DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex, bIsInstancedStereo);
 				}
 			}
@@ -606,9 +610,9 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 		&& !(View.Family->Views.Num() > 1);
 }
 
-void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex)
+void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, int32 FirstIndex, int32 LastIndex)
 {
-	FVelocityDrawingPolicyFactory::ContextType Context(View.ViewUniformBuffer, DDM_AllOccluders, false);
+	FVelocityDrawingPolicyFactory::ContextType Context(DDM_AllOccluders, false);
 
 	for (int32 MeshBatchIndex = FirstIndex; MeshBatchIndex <= LastIndex; MeshBatchIndex++)
 	{
@@ -618,7 +622,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRH
 			&& MeshBatchAndRelevance.PrimitiveSceneProxy->GetPrimitiveSceneInfo()->ShouldRenderVelocity(View))
 		{
 			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-			FVelocityDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, View.IsInstancedStereoPass());
+			FVelocityDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId, View.IsInstancedStereoPass());
 		}
 	}
 }
@@ -628,6 +632,7 @@ class FRenderVelocityDynamicThreadTask : public FRenderTask
 	FDeferredShadingSceneRenderer& ThisRenderer;
 	FRHICommandList& RHICmdList;
 	const FViewInfo& View;
+	FDrawingPolicyRenderState DrawRenderState;
 	int32 FirstIndex;
 	int32 LastIndex;
 
@@ -637,11 +642,13 @@ public:
 		FDeferredShadingSceneRenderer& InThisRenderer,
 		FRHICommandList& InRHICmdList,
 		const FViewInfo& InView,
+		const FDrawingPolicyRenderState& InDrawRenderState,
 		int32 InFirstIndex, int32 InLastIndex
 		)
 		: ThisRenderer(InThisRenderer)
 		, RHICmdList(InRHICmdList)
 		, View(InView)
+		, DrawRenderState(nullptr, InDrawRenderState)
 		, FirstIndex(InFirstIndex)
 		, LastIndex(InLastIndex)
 	{
@@ -656,7 +663,7 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		ThisRenderer.RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, FirstIndex, LastIndex);
+		ThisRenderer.RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, DrawRenderState, FirstIndex, LastIndex);
 		RHICmdList.HandleRTThreadTaskCompletion(MyCompletionGraphEvent);
 	}
 };
@@ -686,7 +693,7 @@ static void BeginVelocityRendering(FRHICommandList& RHICmdList, TRefCountPtr<IPo
 	}
 }
 
-static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
+static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	const FIntPoint BufferSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
@@ -719,8 +726,8 @@ static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& Vie
 		}
 	}
 
-	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_DepthNearOrEqual>::GetRHI());
+	DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA>::GetRHI());
+	DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_DepthNearOrEqual>::GetRHI());
 	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
 }
 
@@ -745,8 +752,9 @@ public:
 
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
 	{
+		FParallelCommandListSet::SetStateOnCommandList(CmdList);
 		BeginVelocityRendering(CmdList, VelocityRT, false);
-		SetVelocitiesState(CmdList, View, VelocityRT);
+		SetVelocitiesState(CmdList, View, DrawRenderState, VelocityRT);
 	}
 };
 
@@ -802,7 +810,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandLis
 					FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 					FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
-						.ConstructAndDispatchWhenReady(*this, *CmdList, View, Start, Last);
+						.ConstructAndDispatchWhenReady(*this, *CmdList, View, ParallelCommandListSet.DrawRenderState, Start, Last);
 
 					ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
 
@@ -819,23 +827,24 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 	{
 		const FViewInfo& View = Views[ViewIndex];
 
+		FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+
 		if (View.ShouldRenderView())
 		{
-			SetVelocitiesState(RHICmdList, View, VelocityRT);
+			SetVelocitiesState(RHICmdList, View, DrawRenderState, VelocityRT);
 
 			// Draw velocities for movable static meshes.
 			if (!View.IsInstancedStereoPass())
 			{
-
-				Scene->VelocityDrawList.DrawVisible(RHICmdList, View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
+				Scene->VelocityDrawList.DrawVisible(RHICmdList, View, DrawRenderState, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
 			}
 			else
 			{
 				const StereoPair StereoView(Views[0], Views[1], Views[0].StaticMeshVelocityMap, Views[1].StaticMeshVelocityMap, Views[0].StaticMeshBatchVisibility, Views[1].StaticMeshBatchVisibility);
-				Scene->VelocityDrawList.DrawVisibleInstancedStereo(RHICmdList, StereoView);
+				Scene->VelocityDrawList.DrawVisibleInstancedStereo(RHICmdList, StereoView, DrawRenderState);
 			}
 
-			RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, 0, View.DynamicMeshElements.Num() - 1);
+			RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, DrawRenderState, 0, View.DynamicMeshElements.Num() - 1);
 		}
 	}
 }

@@ -73,7 +73,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #define VULKAN_ENABLE_API_DUMP									0
 // Enables logging wrappers per Vulkan call
 #define VULKAN_ENABLE_DUMP_LAYER								0
-#define VULKAN_ENABLE_DRAW_MARKERS								PLATFORM_WINDOWS
+#define VULKAN_ENABLE_DRAW_MARKERS								PLATFORM_WINDOWS && !VULKAN_ENABLE_DUMP_LAYER
 #define VULKAN_ALLOW_MIDPASS_CLEAR								0
 
 // Keep the Vk*CreateInfo stored per object
@@ -94,7 +94,7 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					1
 #endif
 
-#define VULKAN_ENABLE_AGGRESSIVE_STATS							1
+#define VULKAN_ENABLE_AGGRESSIVE_STATS							0
 
 #define VULKAN_ENABLE_PIPELINE_CACHE							1
 
@@ -144,4 +144,24 @@ namespace EVulkanBindingType
 
 		Count,
 	};
+
+	static inline char GetBindingTypeChar(EType Type)
+	{
+		// Make sure these do NOT alias EPackedTypeName*
+		switch (Type)
+		{
+		case UniformBuffer:			return 'b';
+		case CombinedImageSampler:	return 'c';
+		case Sampler:				return 'p';
+		case Image:					return 'w';
+		case UniformTexelBuffer:	return 'x';
+		case StorageImage:			return 'y';
+		case StorageTexelBuffer:	return 'z';
+		default:
+			check(0);
+			break;
+		}
+
+		return 0;
+	}
 }

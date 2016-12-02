@@ -53,10 +53,10 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 	typename TPixelShader::FParameter PixelShaderParameter
 	)
 {
-	// Save the current viewport so that it can be restored
-	D3D12_VIEWPORT SavedViewport;
-	uint32 NumSavedViewports = 1;
-	StateCache.GetViewports(&NumSavedViewports, &SavedViewport);
+	// Save the current viewports so they can be restored
+	D3D12_VIEWPORT SavedViewports[D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+	uint32 NumSavedViewports = StateCache.GetNumViewports();
+	StateCache.GetViewports(&NumSavedViewports, SavedViewports);
 
 	// No alpha blending, no depth tests or writes, no stencil tests or writes, no backface culling.
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI(), FLinearColor::White);
@@ -159,7 +159,7 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 
 	// Set the source texture.
 	const uint32 TextureIndex = ResolvePixelShader->UnresolvedSurface.GetBaseIndex();
-	SetShaderResourceView<SF_Pixel>(&SourceTexture->ResourceLocation, SourceTexture->GetShaderResourceView(), TextureIndex);
+	StateCache.SetShaderResourceView<SF_Pixel>(SourceTexture->GetShaderResourceView(), TextureIndex);
 
 	// Generate the vertices used
 	FScreenVertex Vertices[4];
@@ -197,7 +197,7 @@ void FD3D12CommandContext::ResolveTextureUsingShader(
 
 	// Reset saved viewport
 	{
-		StateCache.SetViewports(1, &SavedViewport);
+		StateCache.SetViewports(NumSavedViewports, SavedViewports);
 	}
 }
 
@@ -225,39 +225,6 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 
 	FD3D12Texture3D* SourceTexture3D = static_cast<FD3D12Texture3D*>(RetrieveTextureBase(SourceTextureRHI->GetTexture3D()));
 	FD3D12Texture3D* DestTexture3D = static_cast<FD3D12Texture3D*>(RetrieveTextureBase(DestTextureRHI->GetTexture3D()));
-
-#if CHECK_SRV_TRANSITIONS
-	//check first, as some of the resolve shaders could trigger the resource we're currently resolving.
-	ID3D12Resource* SourceResource = nullptr;
-	int32 ResolveSlice = -1;
-	if (SourceTexture2D)
-	{
-		SourceResource = SourceTexture2D->GetResource();
-	}
-	if (SourceTextureCube)
-	{
-		SourceResource = SourceTextureCube->GetResource();
-		ResolveSlice = ResolveParams.SourceArrayIndex * 6 + ResolveParams.CubeFace;
-	}
-	if (SourceTexture3D)
-	{
-		SourceResource = SourceTexture3D->GetResource();
-	}
-
-	if (SourceResource)
-	{
-		// if we don't have specific resolve data remove all references.
-		// this is helpful when you clear many mips/slices but only want to do one resolve.
-		if (ResolveParams.MipIndex == -1 && ResolveParams.SourceArrayIndex == -1)
-		{
-			UnresolvedTargets.Remove(SourceResource);
-		}
-		else
-		{
-			UnresolvedTargets.Remove(SourceResource, FUnresolvedRTInfo(SourceTextureRHI->GetName(), ResolveParams.MipIndex, 1, ResolveSlice, 1));
-		}
-	}
-#endif
 
 	if (SourceTexture2D && DestTexture2D)
 	{
@@ -321,6 +288,7 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 					FConditionalScopeResourceBarrier ConditionalScopeResourceBarrierSource(CommandListHandle, SourceTexture2D->GetResource(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE, 0);
 
 					otherWorkCounter++;
+					CommandListHandle.FlushResourceBarriers();
 					CommandListHandle->ResolveSubresource(
 						DestTexture2D->GetResource()->GetResource(),
 						0,
@@ -352,6 +320,7 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 						CD3DX12_TEXTURE_COPY_LOCATION SourceCopyLocation(SourceTexture2D->GetResource()->GetResource(), 0);
 
 						numCopies++;
+						CommandListHandle.FlushResourceBarriers();
 						CommandListHandle->CopyTextureRegion(
 							&DestCopyLocation,
 							ResolveParams.Rect.X1, ResolveParams.Rect.Y1, 0,
@@ -391,6 +360,7 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 							CD3DX12_TEXTURE_COPY_LOCATION SourceCopyLocation(SourceTexture2D->GetResource()->GetResource(), 0);
 
 							numCopies++;
+							CommandListHandle.FlushResourceBarriers();
 							CommandListHandle->CopyTextureRegion(
 								&DestCopyLocation,
 								0, 0, 0,
@@ -416,6 +386,7 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 							CD3DX12_TEXTURE_COPY_LOCATION SourceCopyLocation(SourceTexture2D->GetResource()->GetResource(), 0);
 
 							numCopies++;
+							CommandListHandle.FlushResourceBarriers();
 							CommandListHandle->CopyTextureRegion(
 								&DestCopyLocation,
 								0, 0, 0,
@@ -453,6 +424,7 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 				FConditionalScopeResourceBarrier ConditionalScopeResourceBarrierSource(CommandListHandle, SourceTextureCube->GetResource(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE, SourceSubresource);
 
 				otherWorkCounter++;
+				CommandListHandle.FlushResourceBarriers();
 				CommandListHandle->ResolveSubresource(
 					DestTextureCube->GetResource()->GetResource(),
 					DestSubresource,
@@ -473,6 +445,7 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 				FConditionalScopeResourceBarrier ConditionalScopeResourceBarrierSource(CommandListHandle, SourceTextureCube->GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE, SourceCopyLocation.SubresourceIndex);
 
 				numCopies++;
+				CommandListHandle.FlushResourceBarriers();
 				CommandListHandle->CopyTextureRegion(
 					&DestCopyLocation,
 					0, 0, 0,
@@ -498,6 +471,7 @@ void FD3D12CommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceText
 		FConditionalScopeResourceBarrier ConditionalScopeResourceBarrierSource(CommandListHandle, SourceTexture2D->GetResource(), D3D12_RESOURCE_STATE_COPY_SOURCE, SourceCopyLocation.SubresourceIndex);
 
 		numCopies++;
+		CommandListHandle.FlushResourceBarriers();
 		CommandListHandle->CopyTextureRegion(
 			&DestCopyLocation,
 			0, 0, 0,
@@ -1451,6 +1425,7 @@ void FD3D12DynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 		// Don't need to transition upload heaps
 
 		DefaultContext.numCopies++;
+		hCommandList.FlushResourceBarriers();
 		hCommandList->CopyTextureRegion(
 			&DestCopyLocation,
 			0, 0, 0,
@@ -1548,6 +1523,7 @@ void FD3D12DynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 		// Don't need to transition upload heaps
 
 		DefaultContext.numCopies++;
+		hCommandList.FlushResourceBarriers();
 		hCommandList->CopyTextureRegion(
 			&DestCopyLocation,
 			0, 0, 0,

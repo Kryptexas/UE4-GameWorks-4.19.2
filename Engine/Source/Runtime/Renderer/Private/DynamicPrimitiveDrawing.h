@@ -22,6 +22,7 @@ template<class DrawingPolicyFactoryType>
 void DrawViewElementsInner(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog,
@@ -40,6 +41,7 @@ template<class DrawingPolicyFactoryType>
 bool DrawViewElements(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog

@@ -15,8 +15,8 @@ class UParticleEmitter;
 struct FCurveEdEntry;
 struct FParticleEmitterInstance;
 
-UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Initial Color"))
-class UParticleModuleColor : public UParticleModuleColorBase
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Initial Color"))
+class ENGINE_API UParticleModuleColor : public UParticleModuleColorBase
 {
 	GENERATED_UCLASS_BODY()
 

@@ -240,6 +240,25 @@ namespace VulkanRHI
 		VERIFYVULKANRESULT(VulkanRHI::vkInvalidateMappedMemoryRanges(DeviceHandle, 1, &Range));
 	}
 
+	void FRange::JoinConsecutiveRanges(TArray<FRange>& Ranges)
+	{
+		if (Ranges.Num() > 1)
+		{
+			Ranges.Sort();
+
+			for (int32 Index = Ranges.Num() - 1; Index > 0; --Index)
+			{
+				FRange& Current = Ranges[Index];
+				FRange& Prev = Ranges[Index - 1];
+				if (Prev.Offset + Prev.Size == Current.Offset)
+				{
+					Prev.Size += Current.Size;
+					Ranges.RemoveAt(Index, 1, false);
+				}
+			}
+		}
+	}
+
 
 	FOldResourceAllocation::FOldResourceAllocation(FOldResourceHeapPage* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation,
 		uint32 InRequestedSize, uint32 InAlignedOffset,
@@ -297,10 +316,10 @@ namespace VulkanRHI
 		, FrameFreed(0)
 	{
 		MaxSize = InDeviceMemoryAllocation->GetSize();
-		FPair Pair;
-		Pair.Offset = 0;
-		Pair.Size = MaxSize;
-		FreeList.Add(Pair);
+		FRange FullRange;
+		FullRange.Offset = 0;
+		FullRange.Size = MaxSize;
+		FreeList.Add(FullRange);
 	}
 
 	FOldResourceHeapPage::~FOldResourceHeapPage()
@@ -314,7 +333,7 @@ namespace VulkanRHI
 		FScopeLock ScopeLock(&GAllocationLock);
 		for (int32 Index = 0; Index < FreeList.Num(); ++Index)
 		{
-			FPair& Entry = FreeList[Index];
+			FRange& Entry = FreeList[Index];
 			uint32 AllocatedOffset = Entry.Offset;
 			uint32 AlignedOffset = Align(Entry.Offset, Alignment);
 			uint32 AlignmentAdjustment = AlignedOffset - Entry.Offset;
@@ -352,7 +371,7 @@ namespace VulkanRHI
 			FScopeLock ScopeLock(&GAllocationLock);
 			ResourceAllocations.RemoveSingleSwap(Allocation, false);
 
-			FPair NewFree;
+			FRange NewFree;
 			NewFree.Offset = Allocation->AllocationOffset;
 			NewFree.Size = Allocation->AllocationSize;
 
@@ -371,21 +390,7 @@ namespace VulkanRHI
 	bool FOldResourceHeapPage::JoinFreeBlocks()
 	{
 		FScopeLock ScopeLock(&GAllocationLock);
-		if (FreeList.Num() > 1)
-		{
-			FreeList.Sort();
-
-			for (int32 Index = FreeList.Num() - 1; Index > 0; --Index)
-			{
-				FPair& Current = FreeList[Index];
-				FPair& Prev = FreeList[Index - 1];
-				if (Prev.Offset + Prev.Size == Current.Offset)
-				{
-					Prev.Size += Current.Size;
-					FreeList.RemoveAt(Index, 1, false);
-				}
-			}
-		}
+		FRange::JoinConsecutiveRanges(FreeList);
 
 		if (FreeList.Num() == 1)
 		{
@@ -405,6 +410,8 @@ namespace VulkanRHI
 	FOldResourceHeap::FOldResourceHeap(FResourceHeapManager* InOwner, uint32 InMemoryTypeIndex, uint32 InPageSize)
 		: Owner(InOwner)
 		, MemoryTypeIndex(InMemoryTypeIndex)
+		, bIsHostCachedSupported(false)
+		, bIsLazilyAllocatedSupported(false)
 		, DefaultPageSize(InPageSize)
 		, PeakPageSize(0)
 		, UsedMemory(0)
@@ -658,6 +665,9 @@ namespace VulkanRHI
 				RemainingHeapSizes[MemoryProperties.memoryTypes[TypeIndices[Index]].heapIndex] -= HeapSize;
 				// Last one...
 				GPUHeap = ResourceTypeHeaps[TypeIndices[Index]];
+
+				ResourceTypeHeaps[TypeIndices[Index]]->bIsHostCachedSupported = ((MemoryProperties.memoryTypes[Index].propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) == VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
+				ResourceTypeHeaps[TypeIndices[Index]]->bIsLazilyAllocatedSupported = ((MemoryProperties.memoryTypes[Index].propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) == VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT);
 			}
 			NumGPUAllocations = HeapSize / GPU_ONLY_HEAP_PAGE_SIZE;
 		}
@@ -678,7 +688,11 @@ namespace VulkanRHI
 		uint32 NumDownloadAllocations = 0;
 		{
 			uint32 TypeIndex = 0;
-			VERIFYVULKANRESULT(MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, &TypeIndex));
+			{
+				VkResult HostCached = MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, &TypeIndex);
+				VkResult Host = MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &TypeIndex);
+				ensure(HostCached == VK_SUCCESS || Host == VK_SUCCESS);
+			}
 			uint64 HeapSize = MemoryProperties.memoryHeaps[MemoryProperties.memoryTypes[TypeIndex].heapIndex].size;
 			DownloadToCPUHeap = new FOldResourceHeap(this, TypeIndex, STAGING_HEAP_PAGE_SIZE);
 			ResourceTypeHeaps[TypeIndex] = DownloadToCPUHeap;
@@ -689,7 +703,8 @@ namespace VulkanRHI
 		uint32 NumMemoryAllocations = (uint64)Device->GetLimits().maxMemoryAllocationCount;
 		if (NumGPUAllocations + NumDownloadAllocations + NumUploadAllocations > NumMemoryAllocations)
 		{
-			UE_LOG(LogVulkanRHI, Warning, TEXT("Too many allocations (%d) per heap size (G:%d U:%d D:%d), might run into slow path in the driver"), NumGPUAllocations + NumDownloadAllocations + NumUploadAllocations, NumGPUAllocations, NumUploadAllocations, NumDownloadAllocations);
+			UE_LOG(LogVulkanRHI, Warning, TEXT("Too many allocations (%d) per heap size (G:%d U:%d D:%d), might run into slow path in the driver"),
+				NumGPUAllocations + NumDownloadAllocations + NumUploadAllocations, NumGPUAllocations, NumUploadAllocations, NumDownloadAllocations);
 		}
 	}
 
@@ -968,21 +983,7 @@ namespace VulkanRHI
 	bool FSubresourceAllocator::JoinFreeBlocks()
 	{
 		FScopeLock ScopeLock(&CS);
-		if (FreeList.Num() > 1)
-		{
-			FreeList.Sort();
-
-			for (int32 Index = FreeList.Num() - 1; Index > 0; --Index)
-			{
-				FPair& Current = FreeList[Index];
-				FPair& Prev = FreeList[Index - 1];
-				if (Prev.Offset + Prev.Size == Current.Offset)
-				{
-					Prev.Size += Current.Size;
-					FreeList.RemoveAt(Index, 1, false);
-				}
-			}
-		}
+		FRange::JoinConsecutiveRanges(FreeList);
 
 		if (FreeList.Num() == 1)
 		{
@@ -1002,7 +1003,7 @@ namespace VulkanRHI
 		InAlignment = FMath::Max(InAlignment, Alignment);
 		for (int32 Index = 0; Index < FreeList.Num(); ++Index)
 		{
-			FPair& Entry = FreeList[Index];
+			FRange& Entry = FreeList[Index];
 			uint32 AllocatedOffset = Entry.Offset;
 			uint32 AlignedOffset = Align(Entry.Offset, InAlignment);
 			uint32 AlignmentAdjustment = AlignedOffset - Entry.Offset;
@@ -1040,7 +1041,7 @@ namespace VulkanRHI
 			FScopeLock ScopeLock(&CS);
 			Suballocations.RemoveSingleSwap(Suballocation, false);
 
-			FPair NewFree;
+			FRange NewFree;
 			NewFree.Offset = Suballocation->AllocationOffset;
 			NewFree.Size = Suballocation->AllocationSize;
 

@@ -384,6 +384,7 @@ private:
 		SetMeshUVDensityAccuracy(false);
 		SetMaterialTextureScaleAccuracy(false);
 		SetOutputMaterialTextureScales(false);
+		SetRequiredTextureResolution(false);
 	}
 
 

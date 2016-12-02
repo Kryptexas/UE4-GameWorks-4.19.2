@@ -1050,8 +1050,8 @@ public:
 		int32 OutputGamutValue = CVarDisplayColorGamut.GetValueOnRenderThread();
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
 
-		int32 HDROutputEnabledValue = CVarHDROutputEnabled.GetValueOnRenderThread();
-		SetShaderValue(Context.RHICmdList, ShaderRHI, EncodeHDROutput, HDROutputEnabledValue);
+		int32 HDROutputEncodingValue = (CVarHDROutputEnabled.GetValueOnRenderThread() != 0 && IsRHIDeviceNVIDIA()) ? 1 : 0; // Nvidia-specific scRGB encoding
+		SetShaderValue(Context.RHICmdList, ShaderRHI, EncodeHDROutput, HDROutputEncodingValue);
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
 
@@ -1403,7 +1403,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 
 	Ret.Reset();
 	// RGB is the color in LDR, A is the luminance for PostprocessAA
-	Ret.Format = bHDROutput ? PF_FloatRGBA : PF_B8G8R8A8;
+	Ret.Format = bHDROutput ? GRHIHDRDisplayOutputFormat : PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 

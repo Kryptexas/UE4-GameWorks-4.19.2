@@ -111,6 +111,7 @@
 #include "Materials/MaterialExpressionOneMinus.h"
 #include "Materials/MaterialExpressionPanner.h"
 #include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionPreviousFrameSwitch.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
@@ -1037,14 +1038,14 @@ void UMaterialExpression::SetEditableName(const FString& NewName)
 
 #endif // WITH_EDITOR
 
-bool UMaterialExpression::ContainsInputLoop()
+bool UMaterialExpression::ContainsInputLoop(const bool bStopOnFunctionCall /*= true*/)
 {
 	TArray<FMaterialExpressionKey> ExpressionStack;
 	TSet<FMaterialExpressionKey> VisitedExpressions;
-	return ContainsInputLoopInternal(ExpressionStack, VisitedExpressions);
+	return ContainsInputLoopInternal(ExpressionStack, VisitedExpressions, bStopOnFunctionCall);
 }
 
-bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions)
+bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions, const bool bStopOnFunctionCall)
 {
 #if WITH_EDITORONLY_DATA
 	const TArray<FExpressionInput*> Inputs = GetInputs();
@@ -1053,6 +1054,14 @@ bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKe
 		FExpressionInput* Input = Inputs[Index];
 		if (Input->Expression)
 		{
+			// ContainsInputLoop primarily used to detect safe traversal path for IsResultMaterialAttributes.
+			// In those cases we can bail on a function as the inputs are strongly typed
+			UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<UMaterialExpressionMaterialFunctionCall>(Input->Expression);
+			if (bStopOnFunctionCall && FunctionCall)
+			{
+				continue;
+			}
+
 			FMaterialExpressionKey InputExpressionKey(Input->Expression, Input->OutputIndex);
 			if (ExpressionStack.Contains(InputExpressionKey))
 			{
@@ -1063,7 +1072,7 @@ bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKe
 			{
 				VisitedExpressions.Add(InputExpressionKey);
 				ExpressionStack.Add(InputExpressionKey);
-				if (Input->Expression->ContainsInputLoopInternal(ExpressionStack, VisitedExpressions))
+				if (Input->Expression->ContainsInputLoopInternal(ExpressionStack, VisitedExpressions, bStopOnFunctionCall))
 				{
 					return true;
 				}
@@ -5102,8 +5111,8 @@ UMaterialExpressionStaticSwitchParameter::UMaterialExpressionStaticSwitchParamet
 bool UMaterialExpressionStaticSwitchParameter::IsResultMaterialAttributes(int32 OutputIndex)
 {
 	check(OutputIndex == 0);
-	if( (!A.Expression || A.Expression->IsResultMaterialAttributes(A.OutputIndex)) &&
-		(!B.Expression || B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
+	if( (A.Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
+		(B.Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
 	{
 		return true;
 	}
@@ -5274,8 +5283,8 @@ bool UMaterialExpressionStaticSwitch::IsResultMaterialAttributes(int32 OutputInd
 {
 	// If there is a loop anywhere in this expression's inputs then we can't risk checking them
 	check(OutputIndex == 0);
-	if( (!A.Expression || A.Expression->ContainsInputLoop() || A.Expression->IsResultMaterialAttributes(A.OutputIndex)) &&
-		(!B.Expression || B.Expression->ContainsInputLoop() || B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
+	if( (A.Expression && !A.Expression->ContainsInputLoop() && A.Expression->IsResultMaterialAttributes(A.OutputIndex)) ||
+		(B.Expression && !B.Expression->ContainsInputLoop() && B.Expression->IsResultMaterialAttributes(B.OutputIndex)))
 	{
 		return true;
 	}
@@ -5344,6 +5353,74 @@ uint32 UMaterialExpressionStaticSwitch::GetInputType(int32 InputIndex)
 	{
 		return MCT_StaticBool;
 	}
+}
+#endif
+
+//
+//	UMaterialExpressionPreviousFrameSwitch
+//
+UMaterialExpressionPreviousFrameSwitch::UMaterialExpressionPreviousFrameSwitch(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Functions;
+		FConstructorStatics()
+			: NAME_Functions(LOCTEXT("Functions", "Functions"))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+#if WITH_EDITORONLY_DATA
+	MenuCategories.Add(ConstructorStatics.NAME_Functions);
+#endif
+}
+
+#if WITH_EDITOR
+bool UMaterialExpressionPreviousFrameSwitch::IsResultMaterialAttributes(int32 OutputIndex)
+{
+	// If there is a loop anywhere in this expression's inputs then we can't risk checking them
+	check(OutputIndex == 0);
+	if ((CurrentFrame.Expression && !CurrentFrame.Expression->ContainsInputLoop() && CurrentFrame.Expression->IsResultMaterialAttributes(CurrentFrame.OutputIndex)) ||
+		(PreviousFrame.Expression && !PreviousFrame.Expression->ContainsInputLoop() && PreviousFrame.Expression->IsResultMaterialAttributes(PreviousFrame.OutputIndex)))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+int32 UMaterialExpressionPreviousFrameSwitch::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
+{
+	return Compiler->PreviousFrameSwitch(CurrentFrame.Compile(Compiler), PreviousFrame.Compile(Compiler));
+}
+
+void UMaterialExpressionPreviousFrameSwitch::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(FString(TEXT("PreviousFrameSwitch")));
+}
+#endif // WITH_EDITOR
+
+FString UMaterialExpressionPreviousFrameSwitch::GetInputName(int32 InputIndex) const
+{
+	if (InputIndex == 0)
+	{
+		return TEXT("Current Frame");
+	}
+	else
+	{
+		return TEXT("Previous Frame");
+	}
+}
+
+#if WITH_EDITOR
+uint32 UMaterialExpressionPreviousFrameSwitch::GetInputType(int32 InputIndex)
+{
+	return MCT_Unknown;
 }
 #endif
 

@@ -14,6 +14,15 @@
 #include <vulkan/icd-spv.h>
 #endif
 
+static TAutoConsoleVariable<int32> GStripGLSL(
+	TEXT("r.Vulkan.StripGlsl"),
+	1,
+	TEXT("1 to remove glsl source (default)\n")\
+	TEXT("0 to keep glsl source in each shader for debugging"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe
+);
+
+
 void FVulkanShader::Create(EShaderFrequency Frequency, const TArray<uint8>& InShaderCode)
 {
 	check(Device);
@@ -21,8 +30,6 @@ void FVulkanShader::Create(EShaderFrequency Frequency, const TArray<uint8>& InSh
 	FMemoryReader Ar(InShaderCode, true);
 
 	Ar << CodeHeader;
-
-	Ar << BindingTable;
 
 	TArray<ANSICHAR> DebugNameArray;
 	Ar << DebugNameArray;
@@ -32,6 +39,10 @@ void FVulkanShader::Create(EShaderFrequency Frequency, const TArray<uint8>& InSh
 	Ar << Spirv;
 
 	Ar << GlslSource;
+	if (GStripGLSL.GetValueOnAnyThread() == 1)
+	{
+		GlslSource.Empty(0);
+	}
 
 	int32 CodeOffset = Ar.Tell();
 
@@ -51,6 +62,11 @@ void FVulkanShader::Create(EShaderFrequency Frequency, const TArray<uint8>& InSh
 	ModuleCreateInfo.pCode = Code;
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateShaderModule(Device->GetInstanceHandle(), &ModuleCreateInfo, nullptr, &ShaderModule));
+
+	if (Frequency == SF_Compute && CodeHeader.NEWDescriptorInfo.DescriptorTypes.Num() == 0)
+	{
+		UE_LOG(LogVulkanRHI, Warning, TEXT("Compute shader %s %s has no resources!"), *CodeHeader.ShaderName, *DebugName);
+	}
 }
 
 #if VULKAN_HAS_DEBUGGING_ENABLED
@@ -140,26 +156,16 @@ FPixelShaderRHIRef FVulkanDynamicRHI::RHICreatePixelShader(const TArray<uint8>& 
 
 FHullShaderRHIRef FVulkanDynamicRHI::RHICreateHullShader(const TArray<uint8>& Code) 
 { 
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-
-#if 0
-	FVulkanHullShader* Shader = new FVulkanHullShader(&Device, Code);
+	FVulkanHullShader* Shader = new FVulkanHullShader(Device);
+	Shader->Create(Code);
 	return Shader;
-#else
-	return nullptr;
-#endif
 }
 
 FDomainShaderRHIRef FVulkanDynamicRHI::RHICreateDomainShader(const TArray<uint8>& Code) 
 { 
-	VULKAN_SIGNAL_UNIMPLEMENTED();
-
-#if 0
-	FVulkanDomainShader* Shader = new FVulkanDomainShader(&Device, Code);
+	FVulkanDomainShader* Shader = new FVulkanDomainShader(Device);
+	Shader->Create(Code);
 	return Shader;
-#else
-	return nullptr;
-#endif
 }
 
 FGeometryShaderRHIRef FVulkanDynamicRHI::RHICreateGeometryShader(const TArray<uint8>& Code) 
@@ -205,158 +211,70 @@ FVulkanShaderState::~FVulkanShaderState()
 	}
 }
 
+inline void FVulkanShaderState::GenerateLayoutBindingsForStage(VkShaderStageFlagBits StageFlags, EDescriptorSetStage DescSet, const FVulkanCodeHeader& CodeHeader, FVulkanDescriptorSetsLayout* OutLayout)
+{
+	//#todo-rco: Mobile assumption!
+	int32 DescriptorSetIndex = (int32)DescSet;
+
+	VkDescriptorSetLayoutBinding Binding;
+	FMemory::Memzero(Binding);
+	Binding.descriptorCount = 1;
+	Binding.stageFlags = StageFlags;
+	for (int32 Index = 0; Index < CodeHeader.NEWDescriptorInfo.DescriptorTypes.Num(); ++Index)
+	{
+		Binding.binding = Index;
+		Binding.descriptorType = CodeHeader.NEWDescriptorInfo.DescriptorTypes[Index];
+		OutLayout->AddDescriptor(DescriptorSetIndex, Binding, Index);
+	}
+}
+
+
 FVulkanComputeShaderState::FVulkanComputeShaderState(FVulkanDevice* InDevice, FComputeShaderRHIParamRef InComputeShader)
 	: FVulkanShaderState(InDevice)
 {
 	ComputeShader = ResourceCast(InComputeShader);
 
-	DirtyPackedUniformBufferStaging = true;
-	DirtyPackedUniformBufferStagingMask = true;
-	DirtyTextures = true;
-	DirtySamplerStates = true;
-	DirtySRVs = true;
+	NEWPackedUniformBufferStagingDirty = 0;
 
-	// Setup working areas for the global uniforms
+	check(InComputeShader);
 #if VULKAN_ENABLE_PIPELINE_CACHE
 	ShaderHash = ComputeShader->CodeHeader.SourceHash;
 #endif
-	InitGlobalUniforms(ComputeShader->CodeHeader.SerializedBindings);
 
-	GenerateLayoutBindings(ComputeShader->CodeHeader.SerializedBindings);
+	InitGlobalUniformsForStage(ComputeShader->CodeHeader, NEWPackedUniformBufferStaging, NEWPackedUniformBufferStagingDirty);
+	GenerateLayoutBindingsForStage(VK_SHADER_STAGE_COMPUTE_BIT, EDescriptorSetStage::Compute, ComputeShader->CodeHeader, Layout);
+
 	Layout->Compile();
 
-	uint32 UniformCombinedSamplerCount = 0;
-	uint32 UniformSamplerBufferCount = 0;
-	uint32 UniformBufferCount = 0;
-	GetDescriptorInfoCounts(UniformCombinedSamplerCount, UniformSamplerBufferCount, UniformBufferCount);
-
-	// Setup Write information
-	CreateDescriptorWriteInfo(UniformCombinedSamplerCount, UniformSamplerBufferCount, UniformBufferCount);
+	CreateDescriptorWriteInfos();
 }
 
-void FVulkanComputeShaderState::GenerateLayoutBindings(const FVulkanShaderSerializedBindings& SerializedBindings)
-{
-	int32 DescriptorSetIndex = 0;
-
-	auto LoopPerType = [&](EVulkanBindingType::EType BindingType, VkDescriptorType DescriptorType)
-	{
-		const TArray<FVulkanShaderSerializedBindings::FBindMap>& BindingsPerType = SerializedBindings.Bindings[BindingType];
-		for (int32 Index = 0; Index < BindingsPerType.Num(); ++Index)
-		{
-			VkDescriptorSetLayoutBinding Binding;
-			FMemory::Memzero(Binding);
-			Binding.binding = BindingsPerType[Index].VulkanBindingIndex;
-			Binding.descriptorType = DescriptorType;
-			Binding.descriptorCount = 1;
-			Binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-			Layout->AddDescriptor(DescriptorSetIndex, Binding, BindingsPerType[Index].VulkanBindingIndex);
-		}
-	};
-
-	LoopPerType(EVulkanBindingType::CombinedImageSampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	LoopPerType(EVulkanBindingType::UniformTexelBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER);
-	LoopPerType(EVulkanBindingType::UniformBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	LoopPerType(EVulkanBindingType::PackedUniformBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-}
-
-void FVulkanComputeShaderState::CreateDescriptorWriteInfo(uint32 InUniformCombinedSamplerCount, uint32 InUniformSamplerBufferCount, uint32 InUniformBufferCount)
+void FVulkanComputeShaderState::CreateDescriptorWriteInfos()
 {
 	check(DescriptorWrites.Num() == 0);
-	DescriptorWrites.AddZeroed(InUniformCombinedSamplerCount + InUniformSamplerBufferCount + InUniformBufferCount);
-	DescriptorImageInfo.AddZeroed(InUniformCombinedSamplerCount);
-	DescriptorBufferInfo.AddZeroed(InUniformBufferCount);
 
-	for (uint32 Index = 0; Index < InUniformCombinedSamplerCount; ++Index)
+	DescriptorWrites.AddZeroed(ComputeShader->CodeHeader.NEWDescriptorInfo.DescriptorTypes.Num());
+	DescriptorImageInfo.AddZeroed(ComputeShader->CodeHeader.NEWDescriptorInfo.NumImageInfos);
+	DescriptorBufferInfo.AddZeroed(ComputeShader->CodeHeader.NEWDescriptorInfo.NumBufferInfos);
+
+	for (int32 Index = 0; Index < DescriptorImageInfo.Num(); ++Index)
 	{
-		VkDescriptorImageInfo& Sampler = DescriptorImageInfo[Index];
 		// Texture.Load() still requires a default sampler...
-		Sampler.sampler = Device->GetDefaultSampler();
-		Sampler.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		DescriptorImageInfo[Index].sampler = Device->GetDefaultSampler();
+		DescriptorImageInfo[Index].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 	}
 
-	int32 WriteIndex = 0;
-	int32 ImageIndex = 0;
-	int32 BufferIndex = 0;
-	do
-	{
-		FVulkanShader* StageShader = ComputeShader;
-		if (!StageShader)
-		{
-			continue;
-		}
+	VkWriteDescriptorSet* CurrentDescriptorWrite = DescriptorWrites.GetData();
+	VkDescriptorImageInfo* CurrentImageInfo = DescriptorImageInfo.GetData();
+	VkDescriptorBufferInfo* CurrentBufferInfo = DescriptorBufferInfo.GetData();
 
-		if (StageShader->GetNumDescriptors() == 0)
-		{
-			continue;
-		}
-
-		//#todo-rco: Use BindingTable instead...
-		auto& Bindings = StageShader->CodeHeader.SerializedBindings.Bindings;
-
-		if (InUniformCombinedSamplerCount)
-		{
-			for (int32 Index = 0; Index < Bindings[EVulkanBindingType::CombinedImageSampler].Num(); ++Index)
-			{
-				FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[EVulkanBindingType::CombinedImageSampler][Index];
-				VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-				WriteDesc->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				WriteDesc->dstBinding = Mapping.VulkanBindingIndex;
-				WriteDesc->descriptorCount = 1;
-				WriteDesc->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				VkDescriptorImageInfo* TextureInfo = &DescriptorImageInfo[ImageIndex++];
-				WriteDesc->pImageInfo = TextureInfo;
-				//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-				SRVWriteInfo.Add(WriteDesc);
-			}
-		}
-
-		for (int32 Index = 0; Index < Bindings[EVulkanBindingType::UniformTexelBuffer].Num(); ++Index)
-		{
-			FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[EVulkanBindingType::UniformTexelBuffer][Index];
-			VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-			WriteDesc->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			WriteDesc->dstBinding = Mapping.VulkanBindingIndex;
-			WriteDesc->descriptorCount = 1;
-			WriteDesc->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-			SRVWriteInfo.Add(WriteDesc);
-		}
-
-		if (InUniformBufferCount)
-		{
-			for (int32 Index = 0; Index < Bindings[EVulkanBindingType::UniformBuffer].Num(); ++Index)
-			{
-				FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[EVulkanBindingType::UniformBuffer][Index];
-				VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-				WriteDesc->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				WriteDesc->dstBinding = Mapping.VulkanBindingIndex;
-				WriteDesc->descriptorCount = 1;
-				WriteDesc->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				VkDescriptorBufferInfo* BufferInfo = &DescriptorBufferInfo[BufferIndex++];
-				WriteDesc->pBufferInfo = BufferInfo;
-			}
-
-			DescriptorBufferInfoForPackedUB = DescriptorBufferInfo.GetData() + BufferIndex;
-			for (int32 Index = 0; Index < Bindings[EVulkanBindingType::PackedUniformBuffer].Num(); ++Index)
-			{
-				FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[EVulkanBindingType::PackedUniformBuffer][Index];
-				VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-				WriteDesc->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				WriteDesc->dstBinding = Mapping.VulkanBindingIndex;
-				WriteDesc->descriptorCount = 1;
-				WriteDesc->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				VkDescriptorBufferInfo* BufferInfo = &DescriptorBufferInfo[BufferIndex++];
-				WriteDesc->pBufferInfo = BufferInfo;
-			}
-		}
-	}
-	while(0);
-
-	check(InUniformCombinedSamplerCount + InUniformSamplerBufferCount + InUniformBufferCount == DescriptorWrites.Num());
+	NEWShaderDescriptorState.SetupDescriptorWrites(ComputeShader->CodeHeader.NEWDescriptorInfo, CurrentDescriptorWrite, CurrentImageInfo, CurrentBufferInfo);
 }
 
 void FVulkanComputeShaderState::SetUniformBuffer(uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
 {
+	check(0);
+#if 0
 	uint32 VulkanBindingPoint = ComputeShader->GetBindingTable().UniformBufferBindingIndices[BindPoint];
 
 	check(UniformBuffer && (UniformBuffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT));
@@ -368,47 +286,13 @@ void FVulkanComputeShaderState::SetUniformBuffer(uint32 BindPoint, const FVulkan
 #if VULKAN_ENABLE_RHI_DEBUGGING
 	//DebugInfo.UBs[BindPoint] = UniformBuffer;
 #endif
-}
-
-void FVulkanComputeShaderState::SetTexture(uint32 BindPoint, const FVulkanTextureBase* VulkanTextureBase)
-{
-	// Validate BindPoint
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	// Vulkan implementation shares the same binding-point for a texture and a sampler
-	ValidateBindingPoint(*ComputeShader, BindPoint, CrossCompiler::PACKED_TYPENAME_SAMPLER);
-#endif
-
-	check(VulkanTextureBase);
-
-	uint32 VulkanBindingPoint = ComputeShader->GetBindingTable().CombinedSamplerBindingIndices[BindPoint];
-	DescriptorImageInfo[VulkanBindingPoint].imageView = VulkanTextureBase->PartialView->View;
-	DescriptorImageInfo[VulkanBindingPoint].imageLayout = (VulkanTextureBase->Surface.GetFullAspectMask() & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) != 0 ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;
-
-	DirtyTextures = true;
-#if VULKAN_ENABLE_RHI_DEBUGGING
-	//DebugInfo.Textures[BindPoint] = VulkanTextureBase;
 #endif
 }
 
-void FVulkanComputeShaderState::SetSamplerState(uint32 BindPoint, FVulkanSamplerState* Sampler)
+void FVulkanComputeShaderState::SetSRVTextureView(uint32 BindPoint, const FVulkanTextureView& TextureView)
 {
-	// Validate BindPoint
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	// Vulkan implementation shares the same binding-point for a texture and a sampler
-	ValidateBindingPoint(*ComputeShader, BindPoint, CrossCompiler::PACKED_TYPENAME_SAMPLER);
-#endif
-
-	uint32 VulkanBindingPoint = ComputeShader->GetBindingTable().CombinedSamplerBindingIndices[BindPoint];
-	DescriptorImageInfo[VulkanBindingPoint].sampler = Sampler ? Sampler->Sampler : VK_NULL_HANDLE;
-
-	DirtySamplerStates = true;
-#if VULKAN_ENABLE_RHI_DEBUGGING
-	//DebugInfo.SamplerStates[BindPoint] = Sampler;
-#endif
-}
-
-void FVulkanComputeShaderState::SetTextureView(uint32 BindPoint, const FVulkanTextureView& TextureView)
-{
+	ensure(0);
+#if 0
 	uint32 VulkanBindingPoint = ComputeShader->GetBindingTable().CombinedSamplerBindingIndices[BindPoint];
 	DescriptorImageInfo[VulkanBindingPoint].imageView = TextureView.View;
 	//DescriptorSamplerImageInfoForStage[VulkanBindingPoint].imageLayout = (TextureView.BaseTexture->Surface.GetFullAspectMask() & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) != 0 ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;
@@ -417,23 +301,6 @@ void FVulkanComputeShaderState::SetTextureView(uint32 BindPoint, const FVulkanTe
 #if VULKAN_ENABLE_RHI_DEBUGGING
 	//DebugInfo.SRVIs[BindPoint] = &TextureView;
 #endif
-}
-
-void FVulkanComputeShaderState::SetBufferViewState(uint32 BindPoint, FVulkanBufferView* View)
-{
-	// Validate BindPoint
-#if VULKAN_HAS_DEBUGGING_ENABLED
-	// Vulkan implementation shares the same binding-point for a texture and a sampler
-	ValidateBindingPoint(*ComputeShader, BindPoint, CrossCompiler::PACKED_TYPENAME_SAMPLER);
-#endif
-
-	uint32 VulkanBindingPoint = ComputeShader->GetBindingTable().UniformTexelBufferBindingIndices[BindPoint];
-	check(!View || (View->Flags & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT));
-	SRVWriteInfo[VulkanBindingPoint]->pTexelBufferView = View ? &View->View : VK_NULL_HANDLE;
-
-	DirtySRVs = true;
-#if VULKAN_ENABLE_RHI_DEBUGGING
-	//DebugInfo.SRVBs[BindPoint] = View;
 #endif
 }
 
@@ -446,43 +313,39 @@ void FVulkanComputeShaderState::SetSRV(uint32 TextureIndex, FVulkanShaderResourc
 		if (SRV->BufferView)
 		{
 			checkf(SRV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
-			SetBufferViewState(TextureIndex, SRV->BufferView);
+			SetSRVBufferViewState(TextureIndex, SRV->BufferView);
 		}
 		else
 		{
 			checkf(SRV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
-			SetTextureView(TextureIndex, SRV->TextureView);
+			SetSRVTextureView(TextureIndex, SRV->TextureView);
 		}
 	}
 	else
 	{
-		SetBufferViewState(TextureIndex, nullptr);
+		SetSRVBufferViewState(TextureIndex, nullptr);
 	}
 }
 
 void FVulkanComputeShaderState::SetUAV(uint32 UAVIndex, FVulkanUnorderedAccessView* UAV)
 {
-	ensure(0);
-/*
 	if (UAV)
 	{
-		// make sure any dynamically backed SRV points to current memory
+		// make sure any dynamically backed UAV points to current memory
 		UAV->UpdateView();
 		if (UAV->BufferView)
 		{
-			checkf(UAV->BufferView != VK_NULL_HANDLE, TEXT("Empty SRV"));
-			SetBufferViewState(TextureIndex, SRV->BufferView);
+			SetUAVBufferViewState(UAVIndex, UAV->BufferView);
+		}
+		else if (UAV->SourceTexture)
+		{
+			SetUAVTextureView(UAVIndex, UAV->TextureView);
 		}
 		else
 		{
-			checkf(UAV->TextureView.View != VK_NULL_HANDLE, TEXT("Empty SRV"));
-			SetTextureView(TextureIndex, SRV->TextureView);
+			ensure(0);
 		}
 	}
-	else
-	{
-		SetBufferViewState(TextureIndex, nullptr);
-	}*/
 }
 
 FVulkanComputePipeline* FVulkanComputeShaderState::PrepareForDispatch(const struct FVulkanComputePipelineState& State)
@@ -502,64 +365,11 @@ FVulkanComputePipeline* FVulkanComputeShaderState::PrepareForDispatch(const stru
 	return Pipeline;
 }
 
-void FVulkanComputeShaderState::InitGlobalUniforms(const FVulkanShaderSerializedBindings& SerializedBindings)
-{
-	auto FindPackedArraySize = [&](int32 PackedTypeIndex) -> uint16
-	{
-		int32 Size = 0;
-		for (const CrossCompiler::FPackedArrayInfo& EntryInfo: SerializedBindings.PackedGlobalArrays)
-		{
-			if (EntryInfo.TypeIndex == PackedTypeIndex)
-			{
-				return EntryInfo.Size;
-			}
-		}
-		check(0);
-		return 0;
-	};
-
-	const TArray<FVulkanShaderSerializedBindings::FBindMap>& PackedBindings = SerializedBindings.Bindings[EVulkanBindingType::PackedUniformBuffer];
-	for (int32 Index = 0; Index < PackedBindings.Num(); ++Index)
-	{
-		const FVulkanShaderSerializedBindings::FBindMap& Binding = PackedBindings[Index];
-		uint8 TypeIndex = SerializedBindings.PackedUBTypeIndex[Index];
-		check(TypeIndex != (uint8)-1);
-		DirtyPackedUniformBufferStagingMask |= (1 << TypeIndex);
-		check(PackedUniformBufferStaging[TypeIndex].Num() == 0);
-		int32 PackedArraySize = FindPackedArraySize(TypeIndex);
-		PackedUniformBufferStaging[TypeIndex].AddZeroed(PackedArraySize);
-	}
-
-	DirtyPackedUniformBufferStaging = DirtyPackedUniformBufferStagingMask;
-}
-
-void FVulkanComputeShaderState::GetDescriptorInfoCounts(uint32& OutCombinedSamplerCount, uint32& OutSamplerBufferCount, uint32& OutUniformBufferCount)
-{
-	OutCombinedSamplerCount = 0;
-	OutSamplerBufferCount = 0;
-	OutUniformBufferCount = 0;
-
-	if (ComputeShader->GetNumDescriptors() > 0)
-	{
-		auto& Layouts = ComputeShader->CodeHeader.SerializedBindings.Bindings;
-
-		OutCombinedSamplerCount += Layouts[EVulkanBindingType::CombinedImageSampler].Num();
-		OutSamplerBufferCount += Layouts[EVulkanBindingType::UniformTexelBuffer].Num();
-		OutUniformBufferCount += Layouts[EVulkanBindingType::PackedUniformBuffer].Num() + Layouts[EVulkanBindingType::UniformBuffer].Num();
-
-		DirtyTextures = true;
-		DirtySamplerStates = true;
-		DirtySRVs = true;
-		DirtyPackedUniformBufferStaging = DirtyPackedUniformBufferStagingMask;
-	}
-}
-
 void FVulkanComputeShaderState::ResetState()
 {
-	DirtyTextures = true;
-	DirtySamplerStates = true;
-	DirtySRVs = true;
+#if 0
 	DirtyPackedUniformBufferStaging = DirtyPackedUniformBufferStagingMask;
+#endif
 
 	CurrDescriptorSets = nullptr;
 
@@ -586,44 +396,29 @@ bool FVulkanComputeShaderState::UpdateDescriptorSets(FVulkanCommandListContext* 
 
 	const TArray<VkDescriptorSet>& DescriptorSetHandles = CurrDescriptorSets->GetHandles();
 	int32 DescriptorSetIndex = 0;
-	do
+
+	FVulkanUniformBufferUploader* UniformBufferUploader = CmdListContext->GetUniformBufferUploader();
+	uint8* CPURingBufferBase = (uint8*)UniformBufferUploader->GetCPUMappedPointer();
+
+	const VkDescriptorSet DescriptorSet = DescriptorSetHandles[DescriptorSetIndex];
+	++DescriptorSetIndex;
+
+	bool bRequiresPackedUBUpdate = (NEWPackedUniformBufferStagingDirty != 0);
+	if (bRequiresPackedUBUpdate)
 	{
-		// this is an optimization for the ring buffer to only truly lock once for all uniforms
-		FVulkanRingBuffer* RingBuffer = CmdListContext->GetUBRingBuffer();
-		uint8* RingBufferBase = (uint8*)RingBuffer->GetMappedPointer();
-
-		FVulkanShader* StageShader = ComputeShader;
-		if (!StageShader)
-		{
-			break;
-		}
-
-		const uint32 NumDescriptorsForStage = StageShader->GetNumDescriptors();
-		if (NumDescriptorsForStage == 0)
-		{
-			// Empty set, still has its own index
-			++DescriptorSetIndex;
-			break;
-		}
-
-		const VkDescriptorSet DescriptorSet = DescriptorSetHandles[DescriptorSetIndex];
-		++DescriptorSetIndex;
-
-		bool bRequiresNonUBUpdate = DirtySamplerStates || DirtySRVs || DirtyTextures;
-		bool bRequiresUBUpdate = (DirtyPackedUniformBufferStaging != 0);
-		if (!bRequiresNonUBUpdate && !bRequiresUBUpdate)
-		{
-			//#todo-rco: Skip this desc set writes and only call update for the modified ones!
-			//continue;
-			int x = 0;
-		}
-
-		uint32 RemainingGlobalUniformMask = DirtyPackedUniformBufferStagingMask;
-		VkDescriptorBufferInfo* BufferInfo = DescriptorBufferInfoForPackedUB;
-		TArray<uint8>* PackedUniformBuffer = &PackedUniformBufferStaging[0];
-		UpdateDescriptorSetsForStage(CmdListContext, CmdBuffer, GlobalUniformPool, DescriptorSet, StageShader, RemainingGlobalUniformMask, BufferInfo, PackedUniformBuffer, RingBuffer, RingBufferBase, WriteIndex);
+		UpdatePackedUniformBuffers(Device, ComputeShader->CodeHeader, NEWPackedUniformBufferStaging, NEWShaderDescriptorState, UniformBufferUploader, CPURingBufferBase, NEWPackedUniformBufferStagingDirty);
+		NEWPackedUniformBufferStagingDirty = 0;
 	}
-	while(0);
+
+	bool bRequiresNonPackedUBUpdate = (NEWShaderDescriptorState.DirtyMask != 0);
+	if (!bRequiresNonPackedUBUpdate && !bRequiresPackedUBUpdate)
+	{
+		//#todo-rco: Skip this desc set writes and only call update for the modified ones!
+		//continue;
+		int x = 0;
+	}
+
+	NEWShaderDescriptorState.SetDescriptorSet(DescriptorSet);
 
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
 	INC_DWORD_STAT_BY(STAT_VulkanNumUpdateDescriptors, DescriptorWrites.Num());
@@ -635,16 +430,6 @@ bool FVulkanComputeShaderState::UpdateDescriptorSets(FVulkanCommandListContext* 
 		SCOPE_CYCLE_COUNTER(STAT_VulkanVkUpdateDS);
 #endif
 		VulkanRHI::vkUpdateDescriptorSets(Device->GetInstanceHandle(), DescriptorWrites.Num(), DescriptorWrites.GetData(), 0, nullptr);
-	}
-
-	{
-#if VULKAN_ENABLE_AGGRESSIVE_STATS
-		SCOPE_CYCLE_COUNTER(STAT_VulkanClearDirtyDSState);
-#endif
-		FMemory::Memzero(DirtyTextures);
-		FMemory::Memzero(DirtySamplerStates);
-		FMemory::Memzero(DirtySRVs);
-		FMemory::Memzero(DirtyPackedUniformBufferStaging);
 	}
 
 	return true;
@@ -669,19 +454,14 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 	, GlobalListLink(this)
 #endif
 {
+	static int32 sID = 0;
+	ID = sID++;
 	INC_DWORD_STAT(STAT_VulkanNumBoundShaderState);
 
 	FMemory::Memzero(VertexInputBindings);
 	FMemory::Memzero(Attributes);
 	FMemory::Memzero(VertexInputStateInfo);
-	FMemory::Memzero(DescriptorSamplerImageInfoForStage);
-
-	static_assert(CrossCompiler::PACKED_TYPEINDEX_MAX <= sizeof(DirtyPackedUniformBufferStagingMask[0]) * 8, "Won't fit!");
-	FMemory::Memzero(DescriptorBufferInfoForPackedUBForStage);
-	FMemory::Memzero(DirtyPackedUniformBufferStaging);
-	FMemory::Memzero(DirtyPackedUniformBufferStagingMask);
-	FMemory::Memzero(DescriptorBufferInfoForStage);
-	FMemory::Memzero(SRVWriteInfoForStage);
+	FMemory::Memzero(NEWPackedUniformBufferStagingDirty);
 
 	FVulkanVertexDeclaration* InVertexDeclaration = ResourceCast(InVertexDeclarationRHI);
 	FVulkanVertexShader* InVertexShader = ResourceCast(InVertexShaderRHI);
@@ -703,26 +483,29 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 #endif
 
 	// Setup working areas for the global uniforms
-	if (VertexShader)
-	{
+	check(VertexShader);
 #if VULKAN_ENABLE_PIPELINE_CACHE
-		ShaderHashes[SF_Vertex] = VertexShader->CodeHeader.SourceHash;
+	ShaderHashes[SF_Vertex] = VertexShader->CodeHeader.SourceHash;
 #endif
-		InitGlobalUniforms(SF_Vertex, VertexShader->CodeHeader.SerializedBindings);
-	}
+	InitGlobalUniformsForStage(VertexShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Vertex], NEWPackedUniformBufferStagingDirty[SF_Vertex]);
+	GenerateLayoutBindingsForStage(VK_SHADER_STAGE_VERTEX_BIT, EDescriptorSetStage::Vertex, VertexShader->CodeHeader, Layout);
+
 	if (PixelShader)
 	{
 #if VULKAN_ENABLE_PIPELINE_CACHE
 		ShaderHashes[SF_Pixel] = PixelShader->CodeHeader.SourceHash;
 #endif
-		InitGlobalUniforms(SF_Pixel, PixelShader->CodeHeader.SerializedBindings);
+		InitGlobalUniformsForStage(PixelShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Pixel], NEWPackedUniformBufferStagingDirty[SF_Pixel]);
+		GenerateLayoutBindingsForStage(VK_SHADER_STAGE_FRAGMENT_BIT, EDescriptorSetStage::Pixel, PixelShader->CodeHeader, Layout);
 	}
 	if (GeometryShader)
 	{
 #if VULKAN_ENABLE_PIPELINE_CACHE
 		ShaderHashes[SF_Geometry] = GeometryShader->CodeHeader.SourceHash;
 #endif
-		InitGlobalUniforms(SF_Geometry, GeometryShader->CodeHeader.SerializedBindings);
+		InitGlobalUniformsForStage(GeometryShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Geometry], NEWPackedUniformBufferStagingDirty[SF_Geometry]);
+		GenerateLayoutBindings(SF_Geometry, GeometryShader->CodeHeader);
+		GenerateLayoutBindingsForStage(VK_SHADER_STAGE_GEOMETRY_BIT, EDescriptorSetStage::Geometry, GeometryShader->CodeHeader, Layout);
 	}
 	if (HullShader)
 	{
@@ -732,23 +515,21 @@ FVulkanBoundShaderState::FVulkanBoundShaderState(
 		ShaderHashes[SF_Hull] = HullShader->CodeHeader.SourceHash;
 		ShaderHashes[SF_Domain] = DomainShader->CodeHeader.SourceHash;
 #endif
-		InitGlobalUniforms(SF_Hull, HullShader->CodeHeader.SerializedBindings);
-		InitGlobalUniforms(SF_Domain, DomainShader->CodeHeader.SerializedBindings);
+		InitGlobalUniformsForStage(HullShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Hull], NEWPackedUniformBufferStagingDirty[SF_Hull]);
+		InitGlobalUniformsForStage(DomainShader->CodeHeader, NEWPackedUniformBufferStaging[SF_Domain], NEWPackedUniformBufferStagingDirty[SF_Domain]);
+		GenerateLayoutBindingsForStage(VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, EDescriptorSetStage::Hull, HullShader->CodeHeader, Layout);
+		GenerateLayoutBindingsForStage(VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, EDescriptorSetStage::Domain, DomainShader->CodeHeader, Layout);
 	}
 	else
 	{
 		// Can't have Domain w/o Hull
 		check(DomainShader == nullptr);
 	}
-	GenerateLayoutBindings();
 
-	uint32 UniformCombinedSamplerCount = 0;
-	uint32 UniformSamplerBufferCount = 0;
-	uint32 UniformBufferCount = 0;
-	GetDescriptorInfoCounts(UniformCombinedSamplerCount, UniformSamplerBufferCount, UniformBufferCount);
+	Layout->Compile();
+	GenerateVertexInputStateInfo();
 
-	// Setup Write information
-	CreateDescriptorWriteInfo(UniformCombinedSamplerCount, UniformSamplerBufferCount, UniformBufferCount);
+	CreateDescriptorWriteInfos();
 }
 
 FVulkanBoundShaderState::~FVulkanBoundShaderState()
@@ -830,6 +611,7 @@ FVulkanGfxPipeline* FVulkanBoundShaderState::PrepareForDraw(FVulkanRenderPass* R
 void FVulkanBoundShaderState::ResetState()
 {
 	static_assert(SF_Geometry + 1 == SF_Compute, "Loop assumes compute is after gfx stages!");
+#if 0
 	for(uint32 Stage = 0; Stage < SF_Compute; Stage++)
 	{
 		DirtyTextures[Stage] = true;
@@ -837,6 +619,7 @@ void FVulkanBoundShaderState::ResetState()
 		DirtySRVs[Stage] = true;
 		DirtyPackedUniformBufferStaging[Stage] = DirtyPackedUniformBufferStagingMask[Stage];
 	}
+#endif
 
 	CurrDescriptorSets = nullptr;
 
@@ -871,64 +654,7 @@ VkPipelineLayout FVulkanShaderState::GetPipelineLayout() const
 	return PipelineLayout;
 }
 
-void FVulkanBoundShaderState::InitGlobalUniforms(EShaderFrequency Stage, const FVulkanShaderSerializedBindings& SerializedBindings)
-{
-	auto FindPackedArraySize = [&](int32 PackedTypeIndex) -> uint16
-	{
-		int32 Size = 0;
-		for (const CrossCompiler::FPackedArrayInfo& EntryInfo: SerializedBindings.PackedGlobalArrays)
-		{
-			if (EntryInfo.TypeIndex == PackedTypeIndex)
-			{
-				return EntryInfo.Size;
-			}
-		}
-		check(0);
-		return 0;
-	};
-
-	const TArray<FVulkanShaderSerializedBindings::FBindMap>& PackedBindings = SerializedBindings.Bindings[EVulkanBindingType::PackedUniformBuffer];
-	for (int32 Index = 0; Index < PackedBindings.Num(); ++Index)
-	{
-		const FVulkanShaderSerializedBindings::FBindMap& Binding = PackedBindings[Index];
-		uint8 TypeIndex = SerializedBindings.PackedUBTypeIndex[Index];
-		check(TypeIndex != (uint8)-1);
-		DirtyPackedUniformBufferStagingMask[Stage] |= (1 << TypeIndex);
-		check(PackedUniformBufferStaging[Stage][TypeIndex].Num() == 0);
-		int32 PackedArraySize = FindPackedArraySize(TypeIndex);
-		PackedUniformBufferStaging[Stage][TypeIndex].AddZeroed(PackedArraySize);
-	}
-
-	DirtyPackedUniformBufferStaging[Stage] = DirtyPackedUniformBufferStagingMask[Stage];
-}
-
-void FVulkanBoundShaderState::GenerateLayoutBindings()
-{
-	GenerateLayoutBindings(SF_Vertex, VertexShader->CodeHeader.SerializedBindings);
-
-	if (HullShader)
-	{
-		GenerateLayoutBindings(SF_Hull, HullShader->CodeHeader.SerializedBindings);
-		if (DomainShader)
-		{
-			GenerateLayoutBindings(SF_Domain, DomainShader->CodeHeader.SerializedBindings);
-		}
-	}
-	if (PixelShader)
-	{
-		GenerateLayoutBindings(SF_Pixel, PixelShader->CodeHeader.SerializedBindings);
-	}
-	if (GeometryShader)
-	{
-		GenerateLayoutBindings(SF_Geometry, GeometryShader->CodeHeader.SerializedBindings);
-	}
-
-	Layout->Compile();
-
-	GenerateVertexInputStateInfo();
-}
-
-void FVulkanBoundShaderState::GenerateLayoutBindings(EShaderFrequency Stage, const FVulkanShaderSerializedBindings& SerializedBindings)
+void FVulkanBoundShaderState::GenerateLayoutBindings(EShaderFrequency Stage, const FVulkanCodeHeader& CodeHeader)
 {
 	VkShaderStageFlagBits StageFlags = UEFrequencyToVKStageBit(Stage);
 
@@ -936,47 +662,24 @@ void FVulkanBoundShaderState::GenerateLayoutBindings(EShaderFrequency Stage, con
 	EDescriptorSetStage DescSet = GetDescriptorSetForStage(Stage);
 	int32 DescriptorSetIndex = (int32)DescSet;
 
-	auto LoopPerType = [&](EVulkanBindingType::EType BindingType, VkDescriptorType DescriptorType)
-		{
-			const TArray<FVulkanShaderSerializedBindings::FBindMap>& BindingsPerType = SerializedBindings.Bindings[BindingType];
-			for (int32 Index = 0; Index < BindingsPerType.Num(); ++Index)
-			{
-				VkDescriptorSetLayoutBinding Binding;
-				FMemory::Memzero(Binding);
-				Binding.binding = BindingsPerType[Index].VulkanBindingIndex;
-				Binding.descriptorType = DescriptorType;
-				Binding.descriptorCount = 1;
-				Binding.stageFlags = StageFlags;
-
-				Layout->AddDescriptor(DescriptorSetIndex, Binding, BindingsPerType[Index].VulkanBindingIndex);
-			}
-		};
-
-	LoopPerType(EVulkanBindingType::CombinedImageSampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	LoopPerType(EVulkanBindingType::UniformTexelBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER);
-	LoopPerType(EVulkanBindingType::UniformBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	LoopPerType(EVulkanBindingType::PackedUniformBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	VkDescriptorSetLayoutBinding Binding;
+	FMemory::Memzero(Binding);
+	Binding.descriptorCount = 1;
+	Binding.stageFlags = StageFlags;
+	for (int32 Index = 0; Index < CodeHeader.NEWDescriptorInfo.DescriptorTypes.Num(); ++Index)
+	{
+		Binding.binding = Index;
+		Binding.descriptorType = CodeHeader.NEWDescriptorInfo.DescriptorTypes[Index];
+		Layout->AddDescriptor(DescriptorSetIndex, Binding, Index);
+	}
 }
 
-void FVulkanBoundShaderState::CreateDescriptorWriteInfo(uint32 InUniformCombinedSamplerCount, uint32 InUniformSamplerBufferCount, uint32 InUniformBufferCount)
+void FVulkanBoundShaderState::CreateDescriptorWriteInfos()
 {
 	check(DescriptorWrites.Num() == 0);
-	DescriptorWrites.AddZeroed(InUniformCombinedSamplerCount + InUniformSamplerBufferCount + InUniformBufferCount);
-	DescriptorImageInfo.AddZeroed(InUniformCombinedSamplerCount);
-	DescriptorBufferInfo.AddZeroed(InUniformBufferCount);
-
-	for (uint32 Index = 0; Index < InUniformCombinedSamplerCount; ++Index)
-	{
-		VkDescriptorImageInfo& Sampler = DescriptorImageInfo[Index];
-		// Texture.Load() still requires a default sampler...
-		Sampler.sampler = Device->GetDefaultSampler();
-		Sampler.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	}
 
 	static_assert(SF_Geometry + 1 == SF_Compute, "Loop assumes compute is after gfx stages!");
-	int32 WriteIndex = 0;
-	int32 ImageIndex = 0;
-	int32 BufferIndex = 0;
+
 	for (uint32 Stage = 0; Stage < SF_Compute; Stage++)
 	{
 		FVulkanShader* StageShader = GetShaderPtr((EShaderFrequency)Stage);
@@ -985,76 +688,35 @@ void FVulkanBoundShaderState::CreateDescriptorWriteInfo(uint32 InUniformCombined
 			continue;
 		}
 
-		if (StageShader->GetNumDescriptors() == 0)
+		DescriptorWrites.AddZeroed(StageShader->CodeHeader.NEWDescriptorInfo.DescriptorTypes.Num());
+		DescriptorImageInfo.AddZeroed(StageShader->CodeHeader.NEWDescriptorInfo.NumImageInfos);
+		DescriptorBufferInfo.AddZeroed(StageShader->CodeHeader.NEWDescriptorInfo.NumBufferInfos);
+	}
+
+	for (int32 Index = 0; Index < DescriptorImageInfo.Num(); ++Index)
+	{
+		// Texture.Load() still requires a default sampler...
+		DescriptorImageInfo[Index].sampler = Device->GetDefaultSampler();
+		DescriptorImageInfo[Index].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	}
+
+	VkWriteDescriptorSet* CurrentDescriptorWrite = DescriptorWrites.GetData();
+	VkDescriptorImageInfo* CurrentImageInfo = DescriptorImageInfo.GetData();
+	VkDescriptorBufferInfo* CurrentBufferInfo = DescriptorBufferInfo.GetData();
+
+	for (uint32 Stage = 0; Stage < SF_Compute; Stage++)
+	{
+		FVulkanShader* StageShader = GetShaderPtr((EShaderFrequency)Stage);
+		if (!StageShader)
 		{
 			continue;
 		}
 
-		//#todo-rco: Use BindingTable instead...
-		auto& Bindings = StageShader->CodeHeader.SerializedBindings.Bindings;
-
-		if (InUniformCombinedSamplerCount)
-		{
-			DescriptorSamplerImageInfoForStage[Stage] = DescriptorImageInfo.GetData() + ImageIndex;
-
-			for (int32 Index = 0; Index < Bindings[EVulkanBindingType::CombinedImageSampler].Num(); ++Index)
-			{
-				FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[EVulkanBindingType::CombinedImageSampler][Index];
-				VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-				WriteDesc->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				WriteDesc->dstBinding = Mapping.VulkanBindingIndex;
-				WriteDesc->descriptorCount = 1;
-				WriteDesc->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				VkDescriptorImageInfo* TextureInfo = &DescriptorImageInfo[ImageIndex++];
-				WriteDesc->pImageInfo = TextureInfo;
-				//#todo-rco: FIX! SamplerBuffers share numbering with Samplers
-				SRVWriteInfoForStage[Stage].Add(WriteDesc);
-			}
-		}
-
-		for (int32 Index = 0; Index < Bindings[EVulkanBindingType::UniformTexelBuffer].Num(); ++Index)
-		{
-			FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[EVulkanBindingType::UniformTexelBuffer][Index];
-			VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-			WriteDesc->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			WriteDesc->dstBinding = Mapping.VulkanBindingIndex;
-			WriteDesc->descriptorCount = 1;
-			WriteDesc->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-			SRVWriteInfoForStage[Stage].Add(WriteDesc);
-		}
-
-		if (InUniformBufferCount)
-		{
-			DescriptorBufferInfoForStage[Stage] = DescriptorBufferInfo.GetData() + BufferIndex;
-
-			for (int32 Index = 0; Index < Bindings[EVulkanBindingType::UniformBuffer].Num(); ++Index)
-			{
-				FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[EVulkanBindingType::UniformBuffer][Index];
-				VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-				WriteDesc->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				WriteDesc->dstBinding = Mapping.VulkanBindingIndex;
-				WriteDesc->descriptorCount = 1;
-				WriteDesc->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				VkDescriptorBufferInfo* BufferInfo = &DescriptorBufferInfo[BufferIndex++];
-				WriteDesc->pBufferInfo = BufferInfo;
-			}
-
-			DescriptorBufferInfoForPackedUBForStage[Stage] = DescriptorBufferInfo.GetData() + BufferIndex;
-			for (int32 Index = 0; Index < Bindings[EVulkanBindingType::PackedUniformBuffer].Num(); ++Index)
-			{
-				FVulkanShaderSerializedBindings::FBindMap& Mapping = Bindings[EVulkanBindingType::PackedUniformBuffer][Index];
-				VkWriteDescriptorSet* WriteDesc = &DescriptorWrites[WriteIndex++];
-				WriteDesc->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				WriteDesc->dstBinding = Mapping.VulkanBindingIndex;
-				WriteDesc->descriptorCount = 1;
-				WriteDesc->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				VkDescriptorBufferInfo* BufferInfo = &DescriptorBufferInfo[BufferIndex++];
-				WriteDesc->pBufferInfo = BufferInfo;
-			}
-		}
+		NEWShaderDescriptorState[Stage].SetupDescriptorWrites(StageShader->CodeHeader.NEWDescriptorInfo, CurrentDescriptorWrite, CurrentImageInfo, CurrentBufferInfo);
+		CurrentDescriptorWrite += StageShader->CodeHeader.NEWDescriptorInfo.DescriptorTypes.Num();
+		CurrentImageInfo += StageShader->CodeHeader.NEWDescriptorInfo.NumImageInfos;
+		CurrentBufferInfo += StageShader->CodeHeader.NEWDescriptorInfo.NumBufferInfos;
 	}
-
-	check(InUniformCombinedSamplerCount + InUniformSamplerBufferCount + InUniformBufferCount == DescriptorWrites.Num());
 }
 
 void FVulkanBoundShaderState::InternalBindVertexStreams(FVulkanCmdBuffer* Cmd, const void* InVertexStreams)
@@ -1267,91 +929,6 @@ void FVulkanBoundShaderState::GenerateVertexInputStateInfo()
 	VertexInputStateInfo.Create(BindingsNum, VertexInputBindings, AttributesNum, Attributes);
 }
 
-void FVulkanBoundShaderState::SetShaderParameter(EShaderFrequency Stage, uint32 BufferIndexName, uint32 ByteOffset, uint32 NumBytes, const void* NewValue)
-{
-#if VULKAN_ENABLE_AGGRESSIVE_STATS
-	SCOPE_CYCLE_COUNTER(STAT_VulkanSetShaderParamTime);
-#endif
-
-	uint32 BufferIndex = CrossCompiler::PackedTypeNameToTypeIndex(BufferIndexName);
-	TArray<uint8>& StagingBuffer = PackedUniformBufferStaging[Stage][BufferIndex];
-	check(ByteOffset + NumBytes <= (uint32)StagingBuffer.Num());
-	FMemory::Memcpy(StagingBuffer.GetData() + ByteOffset, NewValue, NumBytes);
-	DirtyPackedUniformBufferStaging[Stage] |= (1 << BufferIndex);
-}
-
-void FVulkanBoundShaderState::SetTexture(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureBase* VulkanTextureBase)
-{
-	// Validate BindPoint
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		// Vulkan implementation shares the same binding-point for a texture and a sampler
-		ValidateBindingPoint(GetShader(Stage), BindPoint, CrossCompiler::PACKED_TYPENAME_SAMPLER);
-	#endif
-
-	check(VulkanTextureBase);
-
-	FVulkanShader* StageShader = GetShaderPtr((EShaderFrequency)Stage);
-	uint32 VulkanBindingPoint = StageShader->GetBindingTable().CombinedSamplerBindingIndices[BindPoint];
-	DescriptorSamplerImageInfoForStage[Stage][VulkanBindingPoint].imageView = VulkanTextureBase->PartialView->View;
-	DescriptorSamplerImageInfoForStage[Stage][VulkanBindingPoint].imageLayout = (VulkanTextureBase->Surface.GetFullAspectMask() & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) != 0 ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;
-
-	DirtyTextures[Stage] = true;
-#if VULKAN_ENABLE_RHI_DEBUGGING
-	DebugInfo.Textures[Stage][BindPoint] = VulkanTextureBase;
-#endif
-}
-
-void FVulkanBoundShaderState::SetSamplerState(EShaderFrequency Stage, uint32 BindPoint, FVulkanSamplerState* Sampler)
-{
-	// Validate BindPoint
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		// Vulkan implementation shares the same binding-point for a texture and a sampler
-		ValidateBindingPoint(GetShader(Stage), BindPoint, CrossCompiler::PACKED_TYPENAME_SAMPLER);
-	#endif
-
-	FVulkanShader* StageShader = GetShaderPtr((EShaderFrequency)Stage);
-	uint32 VulkanBindingPoint = StageShader->GetBindingTable().CombinedSamplerBindingIndices[BindPoint];
-	DescriptorSamplerImageInfoForStage[Stage][VulkanBindingPoint].sampler = Sampler ? Sampler->Sampler : VK_NULL_HANDLE;
-
-	DirtySamplerStates[Stage] = true;
-#if VULKAN_ENABLE_RHI_DEBUGGING
-	DebugInfo.SamplerStates[Stage][BindPoint] = Sampler;
-#endif
-}
-
-void FVulkanBoundShaderState::SetTextureView(EShaderFrequency Stage, uint32 BindPoint, const FVulkanTextureView& TextureView)
-{
-	FVulkanShader* StageShader = GetShaderPtr((EShaderFrequency)Stage);
-	uint32 VulkanBindingPoint = StageShader->GetBindingTable().CombinedSamplerBindingIndices[BindPoint];
-	DescriptorSamplerImageInfoForStage[Stage][VulkanBindingPoint].imageView = TextureView.View;
-	//DescriptorSamplerImageInfoForStage[Stage][VulkanBindingPoint].imageLayout = (TextureView.BaseTexture->Surface.GetFullAspectMask() & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) != 0 ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;
-
-	DirtySamplerStates[Stage] = true;
-#if VULKAN_ENABLE_RHI_DEBUGGING
-	DebugInfo.SRVIs[Stage][BindPoint] = &TextureView;
-#endif
-}
-
-void FVulkanBoundShaderState::SetBufferViewState(EShaderFrequency Stage, uint32 BindPoint, FVulkanBufferView* View)
-{
-	// Validate BindPoint
-	#if VULKAN_HAS_DEBUGGING_ENABLED
-		// Vulkan implementation shares the same binding-point for a texture and a sampler
-		ValidateBindingPoint(GetShader(Stage), BindPoint, CrossCompiler::PACKED_TYPENAME_SAMPLER);
-	#endif
-
-
-	FVulkanShader* StageShader = GetShaderPtr((EShaderFrequency)Stage);
-	uint32 VulkanBindingPoint = StageShader->GetBindingTable().UniformTexelBufferBindingIndices[BindPoint];
-	check(!View || (View->Flags & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT));
-	SRVWriteInfoForStage[Stage][VulkanBindingPoint]->pTexelBufferView = View ? &View->View : VK_NULL_HANDLE;
-
-	DirtySRVs[Stage] = true;
-#if VULKAN_ENABLE_RHI_DEBUGGING
-	DebugInfo.SRVBs[Stage][BindPoint] = View;
-#endif
-}
-
 void FVulkanBoundShaderState::SetSRV(EShaderFrequency Stage, uint32 TextureIndex, FVulkanShaderResourceView* SRV)
 {
 	if (SRV)
@@ -1371,29 +948,14 @@ void FVulkanBoundShaderState::SetSRV(EShaderFrequency Stage, uint32 TextureIndex
 	}
 	else
 	{
-		SetBufferViewState(Stage, TextureIndex, nullptr);
-	}
-}
-
-void FVulkanBoundShaderState::SetUniformBufferConstantData(EShaderFrequency Stage, uint32 BindPoint, const TArray<uint8>& ConstantData)
-{
-	FVulkanShader* Shader = GetShaderPtr(Stage);
-
-	// Emulated UBs
-	for (const CrossCompiler::FUniformBufferCopyInfo& CopyInfo : Shader->CodeHeader.UniformBuffersCopyInfo)
-	{
-		if (CopyInfo.SourceUBIndex == BindPoint)
-		{
-			TArray<uint8>& StagingBuffer = PackedUniformBufferStaging[Stage][CopyInfo.DestUBTypeIndex];
-			//check(ByteOffset + NumBytes <= (uint32)StagingBuffer.Num());
-			FMemory::Memcpy(StagingBuffer.GetData() + CopyInfo.DestOffsetInFloats * 4, ConstantData.GetData() + CopyInfo.SourceOffsetInFloats * 4, CopyInfo.SizeInFloats * 4);
-			DirtyPackedUniformBufferStaging[Stage] |= (1 << CopyInfo.DestUBTypeIndex);
-		}
+		NEWShaderDescriptorState[Stage].ClearBufferView(TextureIndex);
 	}
 }
 
 void FVulkanBoundShaderState::SetUniformBuffer(EShaderFrequency Stage, uint32 BindPoint, const FVulkanUniformBuffer* UniformBuffer)
 {
+	check(0);
+#if 0
 	FVulkanShader* Shader = GetShaderPtr(Stage);
 	uint32 VulkanBindingPoint = Shader->GetBindingTable().UniformBufferBindingIndices[BindPoint];
 
@@ -1407,34 +969,7 @@ void FVulkanBoundShaderState::SetUniformBuffer(EShaderFrequency Stage, uint32 Bi
 #if VULKAN_ENABLE_RHI_DEBUGGING
 	DebugInfo.UBs[Stage][BindPoint] = UniformBuffer;
 #endif
-}
-
-void FVulkanBoundShaderState::GetDescriptorInfoCounts(uint32& OutCombinedSamplerCount, uint32& OutSamplerBufferCount, uint32& OutUniformBufferCount)
-{
-	OutCombinedSamplerCount = 0;
-	OutSamplerBufferCount = 0;
-	OutUniformBufferCount = 0;
-
-	for (uint32 Stage = 0; Stage < SF_Compute; Stage++)
-	{
-		FVulkanShader* StageShader = GetShaderPtr((EShaderFrequency)Stage);
-		if (StageShader)
-		{
-			if (StageShader->GetNumDescriptors() > 0)
-			{
-				auto& Layouts = StageShader->CodeHeader.SerializedBindings.Bindings;
-
-				OutCombinedSamplerCount += Layouts[EVulkanBindingType::CombinedImageSampler].Num();
-				OutSamplerBufferCount += Layouts[EVulkanBindingType::UniformTexelBuffer].Num();
-				OutUniformBufferCount += Layouts[EVulkanBindingType::PackedUniformBuffer].Num() + Layouts[EVulkanBindingType::UniformBuffer].Num();
-
-				DirtyTextures[Stage] = true;
-				DirtySamplerStates[Stage] = true;
-				DirtySRVs[Stage] = true;
-				DirtyPackedUniformBufferStaging[Stage] = DirtyPackedUniformBufferStagingMask[Stage];
-			}
-		}
-	}
+#endif
 }
 
 FVulkanShaderState::FDescriptorSetsPair::~FDescriptorSetsPair()
@@ -1486,6 +1021,8 @@ FORCEINLINE_DEBUGGABLE void FVulkanShaderState::UpdateDescriptorSetsForStage(FVu
 	uint32 RemainingGlobalUniformMask, VkDescriptorBufferInfo* BufferInfo, TArray<uint8>* PackedUniformBuffer, 
 	FVulkanRingBuffer* RingBuffer, uint8* RingBufferBase, int32& WriteIndex)
 {
+	check(0);
+#if 0
 	//if (bRequiresUpdate)
 	{
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
@@ -1531,6 +1068,57 @@ FORCEINLINE_DEBUGGABLE void FVulkanShaderState::UpdateDescriptorSetsForStage(FVu
 			++PackedUniformBuffer;
 		}
 	}
+#endif
+}
+
+
+void FVulkanShaderState::UpdatePackedUniformBuffers(FVulkanDevice* Device, const FVulkanCodeHeader& CodeHeader, FNEWPackedUniformBufferStaging& NEWPackedUniformBufferStaging, 
+	FNEWVulkanShaderDescriptorState& NEWShaderDescriptorState, FVulkanUniformBufferUploader* UniformBufferUploader, uint8* CPURingBufferBase, uint64 RemainingPackedUniformsMask)
+{
+	VkDeviceSize UBOffsetAlignment = Device->GetLimits().minUniformBufferOffsetAlignment;
+	int32 PackedUBIndex = 0;
+	SCOPE_CYCLE_COUNTER(STAT_VulkanApplyDSUniformBuffers);
+	while (RemainingPackedUniformsMask)
+	{
+		if (RemainingPackedUniformsMask & 1)
+		{
+			const TArray<uint8>& StagedUniformBuffer = NEWPackedUniformBufferStaging.PackedUniformBuffers[PackedUBIndex];
+			int32 BindingIndex = CodeHeader.NEWPackedUBToVulkanBindingIndices[PackedUBIndex].VulkanBindingIndex;
+
+			const int32 UBSize = StagedUniformBuffer.Num();
+
+			// get offset into the RingBufferBase pointer
+			uint64 RingBufferOffset = UniformBufferUploader->AllocateMemory(UBSize, UBOffsetAlignment);
+
+			// get location in the ring buffer to use
+			FMemory::Memcpy(CPURingBufferBase + RingBufferOffset, StagedUniformBuffer.GetData(), UBSize);
+
+			NEWShaderDescriptorState.SetUniformBuffer(BindingIndex, UniformBufferUploader->GetCPUBufferHandle(), RingBufferOffset + UniformBufferUploader->GetCPUBufferOffset(), UBSize);
+		}
+		RemainingPackedUniformsMask = RemainingPackedUniformsMask >> 1;
+		++PackedUBIndex;
+	}
+}
+
+void FVulkanShaderState::SetUniformBufferConstantDataForStage(const FVulkanCodeHeader& CodeHeader, uint32 BindPoint, 
+	const TArray<uint8>& ConstantData, FNEWPackedUniformBufferStaging& NEWPackedUniformBufferStaging, uint64& NEWPackedUniformBufferStagingDirty)
+{
+	// Emulated UBs. Assumes UniformBuffersCopyInfo table is sorted by CopyInfo.SourceUBIndex
+	if (BindPoint < (uint32)CodeHeader.NEWEmulatedUBCopyRanges.Num())
+	{
+		uint32 Range = CodeHeader.NEWEmulatedUBCopyRanges[BindPoint];
+		uint16 Start = (Range >> 16) & 0xffff;
+		uint16 Count = Range & 0xffff;
+		for (int32 Index = Start; Index < Start + Count; ++Index)
+		{
+			const CrossCompiler::FUniformBufferCopyInfo& CopyInfo = CodeHeader.UniformBuffersCopyInfo[Index];
+			check(CopyInfo.SourceUBIndex == BindPoint);
+			TArray<uint8>& StagingBuffer = NEWPackedUniformBufferStaging.PackedUniformBuffers[(int32)CopyInfo.DestUBIndex];
+			//check(ByteOffset + NumBytes <= (uint32)StagingBuffer.Num());
+			FMemory::Memcpy(StagingBuffer.GetData() + CopyInfo.DestOffsetInFloats * 4, ConstantData.GetData() + CopyInfo.SourceOffsetInFloats * 4, CopyInfo.SizeInFloats * 4);
+			NEWPackedUniformBufferStagingDirty = NEWPackedUniformBufferStagingDirty | ((uint64)1 << (uint64)CopyInfo.DestUBIndex);
+		}
+	}
 }
 
 
@@ -1555,9 +1143,8 @@ bool FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 	const TArray<VkDescriptorSet>& DescriptorSetHandles = CurrDescriptorSets->GetHandles();
 	int32 DescriptorSetIndex = 0;
 
-	// this is an optimization for the ring buffer to only truly lock once for all uniforms
-	FVulkanRingBuffer* RingBuffer = CmdListContext->GetUBRingBuffer();
-	uint8* RingBufferBase = (uint8*)RingBuffer->GetMappedPointer();
+	FVulkanUniformBufferUploader* UniformBufferUploader = CmdListContext->GetUniformBufferUploader();
+	uint8* CPURingBufferBase = (uint8*)UniformBufferUploader->GetCPUMappedPointer();
 
 	//#todo-rco: Compute!
 	static_assert(SF_Geometry + 1 == SF_Compute, "Loop assumes compute is after gfx stages!");
@@ -1569,8 +1156,7 @@ bool FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 			continue;
 		}
 
-		const uint32 NumDescriptorsForStage = StageShader->GetNumDescriptors();
-		if (NumDescriptorsForStage == 0)
+		if (StageShader->CodeHeader.NEWDescriptorInfo.DescriptorTypes.Num() == 0)
 		{
 			// Empty set, still has its own index
 			++DescriptorSetIndex;
@@ -1580,19 +1166,22 @@ bool FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 		const VkDescriptorSet DescriptorSet = DescriptorSetHandles[DescriptorSetIndex];
 		++DescriptorSetIndex;
 
-		bool bRequiresNonUBUpdate = DirtySamplerStates[Stage] || DirtySRVs[Stage] || DirtyTextures[Stage];
-		bool bRequiresUBUpdate = (DirtyPackedUniformBufferStaging[Stage] != 0);
-		if (!bRequiresNonUBUpdate && !bRequiresUBUpdate)
+		bool bRequiresPackedUBUpdate = (NEWPackedUniformBufferStagingDirty[Stage] != 0);
+		if (bRequiresPackedUBUpdate)
+		{
+			UpdatePackedUniformBuffers(Device, StageShader->CodeHeader, NEWPackedUniformBufferStaging[Stage], NEWShaderDescriptorState[Stage], UniformBufferUploader, CPURingBufferBase, NEWPackedUniformBufferStagingDirty[Stage]);
+			NEWPackedUniformBufferStagingDirty[Stage] = 0;
+		}
+
+		bool bRequiresNonPackedUBUpdate = (NEWShaderDescriptorState[Stage].DirtyMask != 0);
+		if (!bRequiresNonPackedUBUpdate && !bRequiresPackedUBUpdate)
 		{
 			//#todo-rco: Skip this desc set writes and only call update for the modified ones!
 			//continue;
 			int x = 0;
 		}
 
-		uint32 RemainingGlobalUniformMask = DirtyPackedUniformBufferStagingMask[Stage];
-		VkDescriptorBufferInfo* BufferInfo = DescriptorBufferInfoForPackedUBForStage[Stage];
-		TArray<uint8>* PackedUniformBuffer = &PackedUniformBufferStaging[Stage][0];
-		UpdateDescriptorSetsForStage(CmdListContext, CmdBuffer, GlobalUniformPool, DescriptorSet, StageShader, RemainingGlobalUniformMask, BufferInfo, PackedUniformBuffer, RingBuffer, RingBufferBase, WriteIndex);
+		NEWShaderDescriptorState[Stage].SetDescriptorSet(DescriptorSet);
 	}
 
 #if VULKAN_ENABLE_AGGRESSIVE_STATS
@@ -1605,16 +1194,6 @@ bool FVulkanBoundShaderState::UpdateDescriptorSets(FVulkanCommandListContext* Cm
 		SCOPE_CYCLE_COUNTER(STAT_VulkanVkUpdateDS);
 #endif
 		VulkanRHI::vkUpdateDescriptorSets(Device->GetInstanceHandle(), DescriptorWrites.Num(), DescriptorWrites.GetData(), 0, nullptr);
-	}
-
-	{
-#if VULKAN_ENABLE_AGGRESSIVE_STATS
-		SCOPE_CYCLE_COUNTER(STAT_VulkanClearDirtyDSState);
-#endif
-		FMemory::Memzero(DirtyTextures);
-		FMemory::Memzero(DirtySamplerStates);
-		FMemory::Memzero(DirtySRVs);
-		FMemory::Memzero(DirtyPackedUniformBufferStaging);
 	}
 
 	return true;

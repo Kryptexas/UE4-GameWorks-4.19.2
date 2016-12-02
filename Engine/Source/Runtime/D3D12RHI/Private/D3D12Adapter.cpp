@@ -6,6 +6,25 @@ D3D12Adapter.cpp:D3D12 Adapter implementation.
 
 #include "D3D12RHIPrivate.h"
 
+struct FRHICommandSignalFrameFence : public FRHICommand<FRHICommandSignalFrameFence>
+{
+	ID3D12CommandQueue* const pCommandQueue;
+	FD3D12ManualFence* const Fence;
+	const uint64 Value;
+	FORCEINLINE_DEBUGGABLE FRHICommandSignalFrameFence(ID3D12CommandQueue* pInCommandQueue, FD3D12ManualFence* InFence, uint64 InValue)
+		: pCommandQueue(pInCommandQueue)
+		, Fence(InFence)
+		, Value(InValue)
+	{
+	}
+
+	void Execute(FRHICommandListBase& CmdList)
+	{
+		Fence->Signal(pCommandQueue, Value);
+		check(Fence->GetLastSignaledFence() == Value);
+	}
+};
+
 void* FD3D12ThreadLocalObject<FD3D12FastConstantAllocator>::ThisThreadObject = nullptr;
 
 FD3D12Adapter::FD3D12Adapter(FD3D12AdapterDesc& DescIn)
@@ -19,11 +38,12 @@ FD3D12Adapter::FD3D12Adapter(FD3D12AdapterDesc& DescIn)
 	, MultiGPUMode(MGPU_Disabled)
 	, UploadHeapAllocator(nullptr)
 	, CurrentGPUNode(GDefaultGPUMask)
-	, FrameFence(this, L"Frame Fence")
+	, FrameFence(this, L"Adapter Frame Fence")
 	, DeferredDeletionQueue(this)
 	, DefaultContextRedirector(this)
 	, DefaultAsyncComputeContextRedirector(this)
 	, GPUProfilingData(this)
+	, DebugFlags(0)
 {}
 
 void FD3D12Adapter::Initialize(FD3D12DynamicRHI* RHI)
@@ -56,6 +76,20 @@ void FD3D12Adapter::CreateRootDevice(bool bWithDebug)
 		TRefCountPtr<ID3D12Debug> DebugController;
 		VERIFYD3D12RESULT(D3D12GetDebugInterface(IID_PPV_ARGS(DebugController.GetInitReference())));
 		DebugController->EnableDebugLayer();
+
+		// TODO: MSFT: BEGIN TEMPORARY WORKAROUND for a debug layer issue with the Editor creating lots of viewports (swapchains).
+		// Without this you could see this error: D3D12 ERROR: ID3D12CommandQueue::ExecuteCommandLists: Up to 8 swapchains can be written to by a single command queue. Present must be called on one of the swapchains to enable a command queue to execute command lists that write to more.  [ STATE_SETTING ERROR #906: COMMAND_QUEUE_TOO_MANY_SWAPCHAIN_REFERENCES]
+		if (GIsEditor)
+		{
+			TRefCountPtr<ID3D12Debug1> DebugController1;
+			const HRESULT HrDebugController1 = D3D12GetDebugInterface(IID_PPV_ARGS(DebugController1.GetInitReference()));
+			if (DebugController1.GetReference())
+			{
+				DebugController1->SetEnableSynchronizedCommandQueueValidation(false);
+				UE_LOG(LogD3D12RHI, Warning, TEXT("Disabling the debug layer's Synchronized Command Queue Validation. This means many debug layer features won't do anything. This code should be removed as soon as possible with an update debug layer."));
+			}
+		}
+		// END TEMPORARY WORKAROUND
 
 		UE_LOG(LogD3D12RHI, Log, TEXT("InitD3DDevice: -D3DDebug = %s"), bWithDebug ? TEXT("on") : TEXT("off"));
 #endif
@@ -239,6 +273,14 @@ void FD3D12Adapter::InitializeDevices()
 		ResourceHeapTier = D3D12Caps.ResourceHeapTier;
 		ResourceBindingTier = D3D12Caps.ResourceBindingTier;
 
+		D3D12_FEATURE_DATA_ROOT_SIGNATURE D3D12RootSignatureCaps = {};
+		D3D12RootSignatureCaps.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;	// This is the highest version we currently support. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
+		if (FAILED(RootDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &D3D12RootSignatureCaps, sizeof(D3D12RootSignatureCaps))))
+		{
+			D3D12RootSignatureCaps.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+		}
+		RootSignatureVersion = D3D12RootSignatureCaps.HighestVersion;
+
 		FrameFence.CreateFence(0);
 
 		CreateSignatures();
@@ -331,7 +373,11 @@ void FD3D12Adapter::Cleanup()
 	// Reset the RHI initialized flag.
 	GIsRHIInitialized = false;
 
-	SignalEndOfFrame(GetCurrentDevice()->GetCommandListManager().GetD3DCommandQueue(), true);
+	for (auto& Viewport : Viewports)
+	{
+		Viewport->IssueFrameEvent();
+		Viewport->WaitForFrameEventCompletion();
+	}
 
 	// Manually destroy the effects as we can't do it in their destructor.
 	for (auto& Effect : TemporalEffectMap)
@@ -407,16 +453,25 @@ void FD3D12Adapter::SwitchToNextGPU()
 	}
 }
 
-uint64 FD3D12Adapter::SignalEndOfFrame(ID3D12CommandQueue* CurrentQueue, bool WaitForCompletion)
+void FD3D12Adapter::SignalFrameFence_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
-	const uint64 SignaledFence = FrameFence.Signal(CurrentQueue);
+	check(IsInRenderingThread());
+	check(RHICmdList.IsImmediate());
+	ID3D12CommandQueue* const pCommandQueue = GetCurrentDevice()->GetCommandListManager().GetD3DCommandQueue();
 
-	if (WaitForCompletion)
+	// Increment the current fence (on render thread timeline).
+	const uint64 PreviousFence = FrameFence.IncrementCurrentFence();
+
+	// Queue a command to signal the frame fence is complete on the GPU (on the RHI thread timeline if using an RHI thread).
+	if (RHICmdList.Bypass() || !GRHIThread)
 	{
-		FrameFence.WaitForFence(SignaledFence);
+		FRHICommandSignalFrameFence Cmd(pCommandQueue, &FrameFence, PreviousFence);
+		Cmd.Execute(RHICmdList);
 	}
-
-	return SignaledFence;
+	else
+	{
+		new (RHICmdList.AllocCommand<FRHICommandSignalFrameFence>()) FRHICommandSignalFrameFence(pCommandQueue, &GetFrameFence(), PreviousFence);
+	}
 }
 
 FD3D12TemporalEffect* FD3D12Adapter::GetTemporalEffect(const FName& EffectName)

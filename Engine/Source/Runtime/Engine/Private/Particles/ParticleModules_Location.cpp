@@ -2184,6 +2184,7 @@ UParticleModuleLocationSkelVertSurface::UParticleModuleLocationSkelVertSurface(c
 	SkelMeshActorParamName = ConstructorStatics.NAME_VertSurfaceActor;
 	bOrientMeshEmitters = true;
 	bEnforceNormalCheck = false;
+	InheritVelocityScale = 1.0f;
 }
 
 DEFINE_STAT(STAT_ParticleSkelMeshSurfTime);
@@ -2356,7 +2357,7 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 				const int32 VelocityIndex = InstancePayload->ValidAssociatedBoneIndices.Find(ActiveBoneIndex);
 				if(VelocityIndex != INDEX_NONE)
 				{
-					Particle.BaseVelocity = InstancePayload->BoneVelocities[VelocityIndex];
+					Particle.BaseVelocity = FMath::Lerp(Particle.BaseVelocity, InstancePayload->BoneVelocities[VelocityIndex], InheritVelocityScale);
 					ensureMsgf(!Particle.BaseVelocity.ContainsNaN(), TEXT("NaN in Particle Base Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 				}
 			}

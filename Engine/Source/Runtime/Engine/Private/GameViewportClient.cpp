@@ -730,9 +730,11 @@ void UGameViewportClient::SetDropDetail(float DeltaSeconds)
 		}
 		const float FrameRate	= FrameTime > 0 ? 1 / FrameTime : 0;
 
+		// When using FixedFrameRate, FrameRate here becomes FixedFrameRate (even if actual framerate is smaller).
+		const bool bTimeIsManipulated = FApp::IsBenchmarking() || FApp::UseFixedTimeStep() || GEngine->bUseFixedFrameRate;
 		// Drop detail if framerate is below threshold.
-		GetWorld()->bDropDetail		= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate, 1.f, 100.f) && !FApp::IsBenchmarking() && !FApp::UseFixedTimeStep();
-		GetWorld()->bAggressiveLOD	= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate - 5.f, 1.f, 100.f) && !FApp::IsBenchmarking() && !FApp::UseFixedTimeStep();
+		GetWorld()->bDropDetail		= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate, 1.f, 100.f) && !bTimeIsManipulated;
+		GetWorld()->bAggressiveLOD	= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate - 5.f, 1.f, 100.f) && !bTimeIsManipulated;
 
 		// this is slick way to be able to do something based on the frametime and whether we are bound by one thing or another
 #if 0 

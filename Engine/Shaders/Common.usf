@@ -84,6 +84,16 @@
 
 #endif   
 
+#if SCENE_ALPHA
+#define SceneColorLayout float4
+#define CastFloat4ToSceneColorLayout(x) (x)
+#define SetSceneColorLayoutToFloat4(dest,value) dest = (value)
+#else
+#define SceneColorLayout float3
+#define CastFloat4ToSceneColorLayout(x) ((x).rgb)
+#define SetSceneColorLayoutToFloat4(dest,value) dest.rgb = (value)
+#endif
+
 // Generated file that contains uniform buffer declarations needed by the shader being compiled 
 #include "GeneratedUniformBuffers.usf" 
 
@@ -327,12 +337,114 @@ MaterialFloat4 TextureCubeSampleGrad(TextureCube Tex, SamplerState Sampler, floa
 	return Tex.SampleGrad(Sampler, UV, DDX, DDY);
 }
 
+//converts an input 1d to 2d position. Useful for locating z frames that have been laid out in a 2d grid like a flipbook.
+float2 Tile1Dto2D(float xsize, float idx)
+{
+	float2 xyidx = 0;
+	xyidx.y = floor(idx / xsize);
+	xyidx.x = idx - xsize * xyidx.y;
+
+	return xyidx;
+}
+
+float4 PseudoVolumeTexture(Texture2D Tex, SamplerState TexSampler, float3 inPos, float xsize, float numframes)
+{
+	float zframe = ceil(inPos.z * numframes);
+	float zphase = frac(inPos.z * numframes);
+
+	float2 uv = frac(inPos.xy) / xsize;
+
+	float2 curframe = Tile1Dto2D(xsize, zframe) / xsize;
+	float2 nextframe = Tile1Dto2D(xsize, zframe + 1) / xsize;
+
+	float4 sampleA = Tex.SampleLevel(TexSampler, uv + curframe, 0);
+	float4 sampleB = Tex.SampleLevel(TexSampler, uv + nextframe, 0);
+
+	return lerp(sampleA, sampleB, zphase);
+}
+
+// return a pseudovolume texture sample.
+// useful for simulating 3D texturing with a 2D texture or as a texture flipbook with lerped transitions
+// treats 2d layout of frames a 3d texture and performs bilinear filtering by blending with an offset Z frame.
+// @param Tex       = Input Texture Object storing Volume Data
+// @param inPos     = Input float3 for Position, 0-1
+// @param xsize     = Input float for num frames in x,y directions
+// @param numFrames = Input float for num total frames
+
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5 // Cubemap arrays are not supported in SM4 feature level
 	MaterialFloat4 TextureCubeArraySampleLevel(TextureCubeArray Tex, SamplerState Sampler, float3 UV, float ArrayIndex, MaterialFloat Mip)
 	{
 		return Tex.SampleLevel(Sampler, float4(UV, ArrayIndex), Mip);
 	}
 #endif
+
+void Bicubic2DCatmullRom( in float2 UV, in float2 Size, out float2 Sample[3], out float2 Weight[3] )
+{
+	const float2 InvSize = 1.0 / Size;
+ 
+	UV *= Size;
+
+	float2 tc = floor( UV - 0.5 ) + 0.5;
+	float2 f = UV - tc;
+	float2 f2 = f * f;
+	float2 f3 = f2 * f;
+
+	float2 w0 = f2 - 0.5 * (f3 + f);
+	float2 w1 = 1.5 * f3 - 2.5 * f2 + 1;
+	float2 w3 = 0.5 * (f3 - f2);
+	float2 w2 = 1 - w0 - w1 - w3;
+
+	Weight[0] = w0;
+	Weight[1] = w1 + w2;
+	Weight[2] = w3;
+
+	Sample[0] = tc - 1;
+	Sample[1] = tc + w2 / Weight[1];
+	Sample[2] = tc + 2;
+ 
+	Sample[0] *= InvSize;
+	Sample[1] *= InvSize;
+	Sample[2] *= InvSize;
+}
+
+MaterialFloat4 Texture2DSampleBicubic( Texture2D Tex, SamplerState Sampler, float2 UV, float2 Size )
+{
+	float2 Weight[3];
+	float2 Sample[3];
+	Bicubic2DCatmullRom( UV, Size, Sample, Weight );
+
+	MaterialFloat4 OutColor;
+#if 0
+	OutColor  = Tex.SampleLevel( Sampler, float2( Sample[0].x, Sample[0].y ), 0 ) * Weight[0].x * Weight[0].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[0].y ), 0 ) * Weight[1].x * Weight[0].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[2].x, Sample[0].y ), 0 ) * Weight[2].x * Weight[0].y;
+
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[0].x, Sample[1].y ), 0 ) * Weight[0].x * Weight[1].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[1].y ), 0 ) * Weight[1].x * Weight[1].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[2].x, Sample[1].y ), 0 ) * Weight[2].x * Weight[1].y;
+
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[0].x, Sample[2].y ), 0 ) * Weight[0].x * Weight[2].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[2].y ), 0 ) * Weight[1].x * Weight[2].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[2].x, Sample[2].y ), 0 ) * Weight[2].x * Weight[2].y;
+#else
+	// Optimized by removing corner samples
+	OutColor  = Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[0].y ), 0 ) * Weight[1].x * Weight[0].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[0].x, Sample[1].y ), 0 ) * Weight[0].x * Weight[1].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[1].y ), 0 ) * Weight[1].x * Weight[1].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[2].x, Sample[1].y ), 0 ) * Weight[2].x * Weight[1].y;
+	OutColor += Tex.SampleLevel( Sampler, float2( Sample[1].x, Sample[2].y ), 0 ) * Weight[1].x * Weight[2].y;
+
+	// Reweight after removing the corners
+	float CornerWeights;
+	CornerWeights  = Weight[1].x * Weight[0].y;
+	CornerWeights += Weight[0].x * Weight[1].y;
+	CornerWeights += Weight[1].x * Weight[1].y;
+	CornerWeights += Weight[2].x * Weight[1].y;
+	CornerWeights += Weight[1].x * Weight[2].y;
+	OutColor /= CornerWeights;
+#endif
+	return OutColor;
+}
 
 	// TANGENTTOWORLD0 is the first row of the tangent to world matrix, w might be needed for padding and is not used yet.
 	// TANGENTTOWORLD2 is the last row of the tangent to world matrix, determinant of tangent basis in w

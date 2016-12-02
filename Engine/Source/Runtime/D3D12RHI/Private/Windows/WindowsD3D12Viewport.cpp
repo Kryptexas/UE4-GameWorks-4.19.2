@@ -28,7 +28,9 @@ FD3D12Viewport::FD3D12Viewport(class FD3D12Adapter* InParent, HWND InWindowHandl
 	NumBackBuffers(DefaultNumBackBuffers),
 	BackBuffer(nullptr),
 	CurrentBackBufferIndex(0),
+	Fence(InParent, L"Viewport Fence"),
 	LastSignaledValue(0),
+	pCommandQueue(nullptr),
 #if PLATFORM_SUPPORTS_MGPU
 	FramePacerRunnable(nullptr),
 #endif //PLATFORM_SUPPORTS_MGPU
@@ -52,6 +54,8 @@ void FD3D12Viewport::Init(IDXGIFactory* Factory, bool AssociateWindow)
 {
 	FD3D12Adapter* Adapter = GetParentAdapter();
 
+	Fence.CreateFence(0);
+
 	CalculateSwapChainDepth();
 
 	DXGI_SWAP_CHAIN_FLAG swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
@@ -73,10 +77,10 @@ void FD3D12Viewport::Init(IDXGIFactory* Factory, bool AssociateWindow)
 		SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		SwapChainDesc.Flags = swapChainFlags;
 
-		ID3D12CommandQueue* CommandQueue = Adapter->GetDevice()->GetCommandListManager().GetD3DCommandQueue();
+		pCommandQueue = Adapter->GetDevice()->GetCommandListManager().GetD3DCommandQueue();
 
 		TRefCountPtr<IDXGISwapChain> SwapChain;
-		VERIFYD3D12RESULT(Factory->CreateSwapChain(CommandQueue, &SwapChainDesc, SwapChain.GetInitReference()));
+		VERIFYD3D12RESULT(Factory->CreateSwapChain(pCommandQueue, &SwapChainDesc, SwapChain.GetInitReference()));
 		VERIFYD3D12RESULT(SwapChain->QueryInterface(IID_PPV_ARGS(SwapChain1.GetInitReference())));
 	}
 

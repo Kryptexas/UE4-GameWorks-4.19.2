@@ -38,19 +38,19 @@ enum ERootParameterKeys
 class FD3D12RootSignatureDesc
 {
 public:
-	explicit FD3D12RootSignatureDesc(const FD3D12QuantizedBoundShaderState& QBSS);
+	explicit FD3D12RootSignatureDesc(const FD3D12QuantizedBoundShaderState& QBSS, const D3D12_RESOURCE_BINDING_TIER ResourceBindingTier);
 
-	inline const D3D12_ROOT_SIGNATURE_DESC& GetDesc() const { return RootDesc; }
+	inline const D3D12_VERSIONED_ROOT_SIGNATURE_DESC& GetDesc() const { return RootDesc; }
 
-	static D3D12_ROOT_SIGNATURE_DESC& GetStaticGraphicsRootSignatureDesc();
-	static D3D12_ROOT_SIGNATURE_DESC& GetStaticComputeRootSignatureDesc();
+	static D3D12_VERSIONED_ROOT_SIGNATURE_DESC& GetStaticGraphicsRootSignatureDesc();
+	static D3D12_VERSIONED_ROOT_SIGNATURE_DESC& GetStaticComputeRootSignatureDesc();
 
 private:
 	static const uint32 MaxRootParameters = 32;	// Arbitrary max, increase as needed.
 	uint32 RootParametersSize;	// The size of all root parameters in the root signature. Size in DWORDs, the limit is 64.
-	CD3DX12_ROOT_PARAMETER TableSlots[MaxRootParameters];
-	CD3DX12_DESCRIPTOR_RANGE DescriptorRanges[MaxRootParameters];
-	CD3DX12_ROOT_SIGNATURE_DESC RootDesc;
+	CD3DX12_ROOT_PARAMETER1 TableSlots[MaxRootParameters];
+	CD3DX12_DESCRIPTOR_RANGE1 DescriptorRanges[MaxRootParameters];
+	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC RootDesc;
 };
 
 class FD3D12RootSignature : public FD3D12AdapterChild
@@ -87,7 +87,7 @@ public:
 	{
 		Init(InQBSS);
 	}
-	explicit FD3D12RootSignature(FD3D12Adapter* InParent, const D3D12_ROOT_SIGNATURE_DESC& InDesc)
+	explicit FD3D12RootSignature(FD3D12Adapter* InParent, const D3D12_VERSIONED_ROOT_SIGNATURE_DESC& InDesc)
 		: FD3D12AdapterChild(InParent)
 	{
 		Init(InDesc);
@@ -99,7 +99,7 @@ public:
 	}
 
 	void Init(const FD3D12QuantizedBoundShaderState& InQBSS);
-	void Init(const D3D12_ROOT_SIGNATURE_DESC& InDesc);
+	void Init(const D3D12_VERSIONED_ROOT_SIGNATURE_DESC& InDesc);
 	void Init(ID3DBlob* const InBlob);
 
 	ID3D12RootSignature* GetRootSignature() const { return RootSignature.GetReference(); }
@@ -200,7 +200,11 @@ public:
 	inline CBVSlotMask CBVRegisterMask(uint32 ShaderStage) const { check(ShaderStage != SF_NumFrequencies); return Stage[ShaderStage].CBVRegisterMask; }
 
 private:
-	void AnalyzeSignature(const D3D12_ROOT_SIGNATURE_DESC& Desc);
+	void AnalyzeSignature(const D3D12_VERSIONED_ROOT_SIGNATURE_DESC& Desc);
+
+	template<typename RootSignatureDescType>
+	void InternalAnalyzeSignature(const RootSignatureDescType& Desc);
+
 	inline bool HasVisibility(const D3D12_SHADER_VISIBILITY& ParameterVisibility, const D3D12_SHADER_VISIBILITY& Visibility) const
 	{
 		return ParameterVisibility == D3D12_SHADER_VISIBILITY_ALL || ParameterVisibility == Visibility;
@@ -348,7 +352,8 @@ private:
 	}
 
 	// Update the mask that indicates what shader registers are used in the descriptor table.
-	inline void UpdateCBVRegisterMask(EShaderFrequency SF, const D3D12_DESCRIPTOR_RANGE& Range)
+	template<typename DescriptorRangeType>
+	inline void UpdateCBVRegisterMaskWithDescriptorRange(EShaderFrequency SF, const DescriptorRangeType& Range)
 	{
 		const uint32 StartRegister = Range.BaseShaderRegister;
 		const uint32 EndRegister = StartRegister + Range.NumDescriptors;
@@ -366,7 +371,8 @@ private:
 	}
 
 	// Update the mask that indicates what shader registers are used in the root descriptor.
-	inline void UpdateCBVRegisterMask(EShaderFrequency SF, const D3D12_ROOT_DESCRIPTOR& Descriptor)
+	template<typename DescriptorType>
+	inline void UpdateCBVRegisterMaskWithDescriptor(EShaderFrequency SF, const DescriptorType& Descriptor)
 	{
 		const uint32 StartStage = (SF == SF_NumFrequencies) ? SF_Vertex : SF;
 		const uint32 EndStage = (SF == SF_NumFrequencies) ? SF_Compute : SF;

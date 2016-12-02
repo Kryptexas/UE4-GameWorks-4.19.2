@@ -616,7 +616,8 @@ bool TileBoundsIntersectDistanceFieldCaster(
 	BRANCH
 	if (SphereIntersectSphere(float4(SphereCenterAndRadius.xyz, SphereCenterAndRadius.w + MaxOcclusionDistance), TileBoundingSphere)
 #if LIGHT_SOURCE_MODE != LIGHT_SOURCE_FROM_RECEIVER
-		&& SphereIntersectConeWithMaxDistance(float4(SphereCenterAndRadius.xyz, SphereCenterAndRadius.w + TileBoundingSphere.w), TileBoundingSphere.xyz, TileConeAxis, TileConeAngleCos, TileConeAngleSin, MaxOcclusionDistance)
+		// This 'can object cast on tile bounds' test has to be disabled because the weight used to combine occlusion from multiple objects is computed based on distance to occluder only
+		//&& SphereIntersectConeWithMaxDistance(float4(SphereCenterAndRadius.xyz, SphereCenterAndRadius.w + TileBoundingSphere.w), TileBoundingSphere.xyz, TileConeAxis, TileConeAngleCos, TileConeAngleSin, MaxOcclusionDistance)
 #endif
 		)
 	{
@@ -725,14 +726,16 @@ float ShadowConeTraceAgainstCulledDistanceFieldCasters(
 	float MaxOcclusionDistance,
 	uint CulledDataParameter, 
 	uint NumIntersectingCasters,
-	uniform bool bUseCulling)
+	uniform bool bUseCulling,
+	inout uint NumTraceSteps)
 {
 	float TanConeAngle = tan(LightAngle);
 
-	float ConeVisibility = 1;
+	float GeometricMeanNumerator = 0;
+	float TotalWeight = 0;
 
 	LOOP
-	for (uint TileCulledObjectIndex = 0; TileCulledObjectIndex < NumIntersectingCasters && ConeVisibility > 0; TileCulledObjectIndex++)
+	for (uint TileCulledObjectIndex = 0; TileCulledObjectIndex < NumIntersectingCasters; TileCulledObjectIndex++)
 	{
 		uint ListObjectIndex = TileCulledObjectIndex;
 
@@ -781,6 +784,7 @@ float ShadowConeTraceAgainstCulledDistanceFieldCasters(
 			// How much to artificially slow down the stepping proportional to cone occlusion
 			// Reduces artifacts when steps are large (far from the surface) yet heavily occluded because the cone angle is large
 			float FullVisibilityMaxStepFraction = .1f;
+			float OcclusionExponent = .8f;
 
 			float SampleRayTime = StartOffset;
 			uint StepIndex = 0;
@@ -795,11 +799,10 @@ float ShadowConeTraceAgainstCulledDistanceFieldCasters(
 				float VolumeDistanceToOccluder = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
 
 				float SphereRadius = clamp(TanConeAngle * SampleRayTime, 0, VolumeMaxSphereRadius);
-				float StepVisibility = saturate(VolumeDistanceToOccluder / SphereRadius);
+				float StepVisibility = pow(saturate(VolumeDistanceToOccluder / SphereRadius), OcclusionExponent);
 
 				float OccluderDistanceFraction = (SampleRayTime + VolumeDistanceToOccluder) * UVScaleAndVolumeScale.w / EffectiveMaxOcclusionDistance;
-				OccluderDistanceFraction = OccluderDistanceFraction * OccluderDistanceFraction;
-
+	
 				// Fade out occlusion based on distance to occluder to avoid a discontinuity at the max AO distance
 				//@todo - this introduces banding artifacts because we may be taking large steps through the fade region
 				StepVisibility = max(StepVisibility, saturate(OccluderDistanceFraction));
@@ -810,6 +813,7 @@ float ShadowConeTraceAgainstCulledDistanceFieldCasters(
 
 				StepDistance = max(StepDistance, MinStepSize);
 				SampleRayTime += StepDistance;
+				NumTraceSteps++;
 
 				// Terminate the trace if we reached a negative area or went past the end of the ray
 				if (VolumeDistanceToOccluder <= 0 
@@ -820,12 +824,41 @@ float ShadowConeTraceAgainstCulledDistanceFieldCasters(
 			}
 
 			#if LIGHT_SOURCE_MODE != LIGHT_SOURCE_PUNCTUAL
+
+				// Attempt to match the effect of MinVisibility on capsule shadows, which combine with multiply so a MinVisibility of .1 does not actually achieve values >= .1
+				MinVisibility *= MinVisibility;
+
 				// Apply to indirect shadows only
 				MinTraceVisibility = lerp(MinVisibility, 1, MinTraceVisibility);
 			#endif
 
-			ConeVisibility *= MinTraceVisibility;
+			float WeightDistance = EffectiveMaxOcclusionDistance;
+
+			{
+				float3 SampleVolumePosition = VolumeRayStart;
+				float3 ClampedSamplePosition = clamp(SampleVolumePosition, -LocalPositionExtent, LocalPositionExtent);
+				float DistanceToClamped = length(ClampedSamplePosition - SampleVolumePosition);
+				float3 VolumeUV = DistanceFieldVolumePositionToUV(ClampedSamplePosition, UVScaleAndVolumeScale.xyz, UVAdd);
+				float VolumeDistanceToOccluder = Texture3DSampleLevel(DistanceFieldTexture, DistanceFieldSampler, VolumeUV, 0).x + DistanceToClamped;
+
+				WeightDistance = VolumeDistanceToOccluder * UVScaleAndVolumeScale.w;
+				//WeightDistance = length(SphereCenterAndRadius.xyz - WorldRayStart);
+			}
+
+			float Weight = 1 - saturate(WeightDistance / EffectiveMaxOcclusionDistance);
+			Weight = pow(Weight, 4);
+
+			// Weighted geometric mean to combine shadows from multiple casters without over-darkening like a simple multiply would do
+			GeometricMeanNumerator += Weight * log2(MinTraceVisibility);
+			TotalWeight += Weight;
 		}
+	}
+
+	float ConeVisibility = 1;
+
+	if (TotalWeight > 0)
+	{
+		ConeVisibility = exp2(GeometricMeanNumerator / TotalWeight);
 	}
 
 	return ConeVisibility;
@@ -883,6 +916,7 @@ void CapsuleShadowingCS(
 	FTileCullingData TileCullingData1;
 	uint NumPixelIntersectingShapes = 0;
 	uint NumTileIntersectingShapes = 0;
+	uint NumDistanceFieldSteps = 0;
 
 	// So we can skip skybox pixels / tiles without having to check the GBuffer for shading model
 	float MaxDepth = 20000;
@@ -978,7 +1012,8 @@ void CapsuleShadowingCS(
 				MaxOcclusionDistance,
 				CulledDataParameter,
 				NumIntersectingDistanceFieldCasters,
-				USE_CULLING ? true : false);
+				USE_CULLING ? true : false,
+				NumDistanceFieldSteps);
 		#endif
 
 #if !APPLY_TO_BENT_NORMAL
@@ -989,6 +1024,7 @@ void CapsuleShadowingCS(
 #endif
 	}
 
+	//Visibility = NumDistanceFieldSteps / 20.0f;
 	//Visibility = NumPixelIntersectingShapes / 20.0f;
 	//Visibility = bTileShouldComputeShadowing ? 1 : 0;
 

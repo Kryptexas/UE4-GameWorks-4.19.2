@@ -28,6 +28,7 @@ struct FVulkanComputePipelineState
 	}
 
 	TRefCountPtr<FVulkanComputeShaderState> CSS;
+	TArray<FVulkanUnorderedAccessView*> UAVListForAutoFlush;
 };
 
 
@@ -556,7 +557,7 @@ private:
 
 	VkPipelineCache PipelineCache;
 
-	void CreateGfxPipelineFromEntry(const FGfxPipelineEntry* GfxEntry, FVulkanGfxPipeline* Pipeline);
+	void CreateGfxPipelineFromEntry(const FGfxPipelineEntry* GfxEntry, FVulkanGfxPipeline* Pipeline, const FVulkanBoundShaderState* BSS);
 	void PopulateGfxEntry(const FVulkanGfxPipelineState& State, const FVulkanRenderPass* RenderPass, FGfxPipelineEntry* OutGfxEntry);
 	void CreatGfxEntryRuntimeObjects(FGfxPipelineEntry* GfxEntry);
 	bool Load(const TArray<FString>& CacheFilenames, TArray<uint8>& OutDeviceCache);

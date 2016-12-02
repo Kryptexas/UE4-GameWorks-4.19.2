@@ -12,6 +12,14 @@
 //#todo-rco: One of this per Context!
 static TGlobalResource< TBoundShaderStateHistory<10000, false> > GBoundShaderStateHistory;
 
+static TAutoConsoleVariable<int32> GCVarSubmitOnDispatch(
+	TEXT("r.Vulkan.SubmitOnDispatch"),
+	0,
+	TEXT("0 to not do anything special on dispatch(default)\n")\
+	TEXT("1 to submit the cmd buffer after each dispatch"),
+	ECVF_RenderThreadSafe
+);
+
 static inline bool UseRealUBs()
 {
 	static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Vulkan.UseRealUBs"));
@@ -68,7 +76,7 @@ void FVulkanCommandListContext::RHISetComputeShader(FComputeShaderRHIParamRef Co
 	PendingComputeState->SetComputeShader(ComputeShader);
 }
 
-void FVulkanCommandListContext::RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ) 
+void FVulkanCommandListContext::RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
 {
 	SCOPE_CYCLE_COUNTER(STAT_VulkanDispatchCallTime);
 
@@ -77,6 +85,17 @@ void FVulkanCommandListContext::RHIDispatchComputeShader(uint32 ThreadGroupCount
 	VkCommandBuffer CmdBuffer = Cmd->GetHandle();
 	PendingComputeState->PrepareDispatch(this, Cmd);
 	VulkanRHI::vkCmdDispatch(CmdBuffer, ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+
+	if (GCVarSubmitOnDispatch.GetValueOnRenderThread())
+	{
+		InternalSubmitActiveCmdBuffer();
+	}
+
+	// flush any needed buffers that the compute shader wrote to	
+	if (bAutomaticFlushAfterComputeShader)
+	{
+		FlushAfterComputeShader();
+	}
 
 	if (IsImmediate())
 	{
@@ -116,6 +135,10 @@ void FVulkanCommandListContext::RHISetUAVParameter(FComputeShaderRHIParamRef Com
 {
 	FVulkanUnorderedAccessView* UAV = ResourceCast(UAVRHI);
 	PendingComputeState->CurrentState.CSS->SetUAV(UAVIndex, UAV);
+	if (bAutomaticFlushAfterComputeShader && UAV)
+	{
+		PendingComputeState->CurrentState.UAVListForAutoFlush.Add(UAV);
+	}
 }
 
 void FVulkanCommandListContext::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 UAVIndex,FUnorderedAccessViewRHIParamRef UAVRHI, uint32 InitialCount)
@@ -170,7 +193,12 @@ void FVulkanCommandListContext::RHISetShaderTexture(FPixelShaderRHIParamRef Pixe
 
 void FVulkanCommandListContext::RHISetShaderTexture(FComputeShaderRHIParamRef ComputeShader, uint32 TextureIndex, FTextureRHIParamRef NewTextureRHI)
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	FVulkanComputePipelineState& State = PendingComputeState->CurrentState;
+
+	check(ResourceCast(ComputeShader) == State.CSS->ComputeShader);
+
+	FVulkanTextureBase* VulkanTexture = GetVulkanTextureFromRHITexture(NewTextureRHI);
+	State.CSS->SetTexture(TextureIndex, VulkanTexture);
 }
 
 
@@ -290,7 +318,10 @@ void FVulkanCommandListContext::RHISetShaderParameter(FPixelShaderRHIParamRef Pi
 
 void FVulkanCommandListContext::RHISetShaderParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue)
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	FVulkanComputePipelineState& ShaderState = PendingComputeState->CurrentState;
+
+	check(ShaderState.CSS->ComputeShader.GetReference() == ResourceCast(ComputeShaderRHI));
+	ShaderState.CSS->SetShaderParameter(BufferIndex, BaseIndex, NumBytes, NewValue);
 }
 
 struct FSrtResourceBinding
@@ -377,15 +408,18 @@ inline void FVulkanCommandListContext::SetShaderUniformBuffer(EShaderFrequency S
 	}
 
 	const FShaderCompilerResourceTable& ResourceBindingTable = Shader.CodeHeader.SerializedBindings.ShaderResourceTable;
+	if (ResourceBindingTable.ResourceTableLayoutHashes.Num() == 0)
+	{
+		return;
+	}
 
+	//#todo-rco: Quite slow...
 	// Gather texture bindings from the SRT table
-	static TArray<FSrtResourceBinding> TextureBindings;
-	TextureBindings.Reset();
+	TArray<FSrtResourceBinding> TextureBindings;
 	GatherUniformBufferResources(ResourceBindingTable.TextureMap, ResourceBindingTable.ResourceTableBits, UniformBuffer, BindingIndex, TextureBindings);
 
 	// Gather Sampler bindings from the SRT table
-	static TArray<FSrtResourceBinding> SamplerBindings;
-	SamplerBindings.Reset();
+	TArray<FSrtResourceBinding> SamplerBindings;
 	GatherUniformBufferResources(ResourceBindingTable.SamplerMap, ResourceBindingTable.ResourceTableBits, UniformBuffer, BindingIndex, SamplerBindings);
 
 	//#todo-rco: Separate samplers & textures
@@ -476,10 +510,86 @@ void FVulkanCommandListContext::RHISetShaderUniformBuffer(FPixelShaderRHIParamRe
 
 void FVulkanCommandListContext::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
 {
+#if VULKAN_ENABLE_AGGRESSIVE_STATS
+	SCOPE_CYCLE_COUNTER(STAT_VulkanSetUniformBufferTime);
+#endif
 	FVulkanComputePipelineState& State = PendingComputeState->CurrentState;
-	check(State.CSS->DoesShaderMatch(ResourceCast(ComputeShader)));
+
+	// Walk through all resources to set all appropriate states
+	FVulkanComputeShader* Shader = ResourceCast(ComputeShader);
+
+	check(State.CSS->DoesShaderMatch(Shader));
 	FVulkanUniformBuffer* UniformBuffer = ResourceCast(BufferRHI);
-	State.CSS->SetUniformBuffer(BufferIndex, UniformBuffer);
+	
+	// Uniform Buffers
+	if (UseRealUBs())
+	{
+		State.CSS->SetUniformBuffer(BufferIndex, UniformBuffer);
+	}
+	else
+	{
+		State.CSS->SetUniformBufferConstantData(BufferIndex, UniformBuffer->ConstantData);
+	}
+
+	const FShaderCompilerResourceTable& ResourceBindingTable = Shader->CodeHeader.SerializedBindings.ShaderResourceTable;
+	if (ResourceBindingTable.ResourceTableLayoutHashes.Num() == 0)
+	{
+		return;
+	}
+
+	//#todo-rco: Quite slow...
+	// Gather texture bindings from the SRT table
+	TArray<FSrtResourceBinding> TextureBindings;
+	GatherUniformBufferResources(ResourceBindingTable.TextureMap, ResourceBindingTable.ResourceTableBits, UniformBuffer, BufferIndex, TextureBindings);
+
+	// Gather Sampler bindings from the SRT table
+	TArray<FSrtResourceBinding> SamplerBindings;
+	GatherUniformBufferResources(ResourceBindingTable.SamplerMap, ResourceBindingTable.ResourceTableBits, UniformBuffer, BufferIndex, SamplerBindings);
+
+	//#todo-rco: Separate samplers & textures
+	// The amount of samplers and textures should be proportional
+	check(SamplerBindings.Num() >= TextureBindings.Num());
+
+	for (int32 Index = 0; Index < TextureBindings.Num(); Index++)
+	{
+		const FSrtResourceBinding& CurrTextureBinding = TextureBindings[Index];
+		const FSrtResourceBinding& CurrSamplerBinding = SamplerBindings[Index];
+
+		// Sampler and binding index is expected to be the same, since we are constructing
+		// VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER object, which has sampler and a texture/image
+		check(CurrSamplerBinding.BindingIndex == CurrTextureBinding.BindingIndex);
+
+		// Set Texture
+		{
+			FTextureRHIParamRef TexRef = (FTextureRHIParamRef)CurrTextureBinding.Resource.GetReference();
+			const FVulkanTextureBase* BaseTexture = FVulkanTextureBase::Cast(TexRef);
+			if (BaseTexture)
+			{
+				// Do the binding...
+				State.CSS->SetTexture(CurrTextureBinding.BindingIndex, BaseTexture);
+			}
+			else
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Invalid texture in SRT table for shader '%s'"), *Shader->DebugName);
+			}
+		}
+
+		// Set Sampler
+		{
+			FVulkanSamplerState* CurrSampler = static_cast<FVulkanSamplerState*>(CurrSamplerBinding.Resource.GetReference());
+			check(CurrSampler);
+
+			if (CurrSampler)
+			{
+				// Do the binding...
+				State.CSS->SetSamplerState(CurrSamplerBinding.BindingIndex, CurrSampler);
+			}
+			else
+			{
+				UE_LOG(LogVulkanRHI, Warning, TEXT("Invalid sampler in SRT table for shader '%s'"), *Shader->DebugName);
+			}
+		}
+	}
 }
 
 void FVulkanCommandListContext::RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef)
@@ -811,12 +921,12 @@ uint32 FVulkanDynamicRHI::RHIGetGPUFrameCycles()
 
 void FVulkanCommandListContext::RHIAutomaticCacheFlushAfterComputeShader(bool bEnable)
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	bAutomaticFlushAfterComputeShader = bEnable;
 }
 
 void FVulkanCommandListContext::RHIFlushComputeShaderCache()
 {
-	VULKAN_SIGNAL_UNIMPLEMENTED();
+	//#todo-rco: Flush
 }
 
 void FVulkanDynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
@@ -861,4 +971,38 @@ void FVulkanCommandListContext::RHISubmitCommandsHint()
 		SafePointSubmit();
 	}
 	CommandBufferManager->RefreshFenceStatus();
+}
+
+void FVulkanCommandListContext::FlushAfterComputeShader()
+{
+	FVulkanCmdBuffer* CmdBuffer = CommandBufferManager->GetActiveCmdBuffer();
+	int32 NumResourcesToFlush = PendingComputeState->CurrentState.UAVListForAutoFlush.Num();
+	if (NumResourcesToFlush > 0)
+	{
+		TArray<VkImageMemoryBarrier> ImageBarriers;
+		TArray<VkBufferMemoryBarrier> BufferBarriers;
+		for (FVulkanUnorderedAccessView* UAV : PendingComputeState->CurrentState.UAVListForAutoFlush)
+		{
+			if (UAV->SourceVertexBuffer)
+			{
+				VkBufferMemoryBarrier Barrier;
+				VulkanRHI::SetupAndZeroBufferBarrier(Barrier, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT, UAV->SourceVertexBuffer->GetHandle(), UAV->SourceVertexBuffer->GetOffset(), UAV->SourceVertexBuffer->GetSize());
+				BufferBarriers.Add(Barrier);
+			}
+			else if (UAV->SourceTexture)
+			{
+				FVulkanTextureBase* Texture = (FVulkanTextureBase*)UAV->SourceTexture->GetTextureBaseRHI();
+				VkImageMemoryBarrier Barrier;
+				VkImageLayout Layout = TransitionState.FindOrAddLayout(Texture->Surface.Image, VK_IMAGE_LAYOUT_GENERAL);
+				VulkanRHI::SetupAndZeroImageBarrier(Barrier, Texture->Surface, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, Layout, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, Layout);
+				ImageBarriers.Add(Barrier);
+			}
+			else
+			{
+				ensure(0);
+			}
+		}
+		VulkanRHI::vkCmdPipelineBarrier(CmdBuffer->GetHandle(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, BufferBarriers.Num(), BufferBarriers.GetData(), ImageBarriers.Num(), ImageBarriers.GetData());
+		PendingComputeState->CurrentState.UAVListForAutoFlush.SetNum(0, false);
+	}
 }

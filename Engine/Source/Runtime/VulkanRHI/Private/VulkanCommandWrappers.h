@@ -17,6 +17,7 @@ namespace VulkanRHI
 	void CmdPrintfBeginResult(VkCommandBuffer CmdBuffer, const FString& String);
 	void PrintResult(VkResult Result);
 	void PrintResultAndNamedHandle(VkResult Result, const TCHAR* HandleName, void* Handle);
+	void PrintResultAndNamedHandles(VkResult Result, const TCHAR* HandleName, uint32 NumHandles, uint64* Handles);
 	void PrintResultAndPointer(VkResult Result, void* Handle);
 	void PrintResultAndNamedHandle(VkResult Result, const TCHAR* HandleName, uint64 Handle);
 	void PrintResultAndPointer(VkResult Result, uint64 Handle);
@@ -78,6 +79,7 @@ namespace VulkanRHI
 	#define PrintfBegin(x)
 	#define PrintResult(x)
 	#define PrintResultAndNamedHandle(r, n, h)
+	#define PrintResultAndNamedHandles(r, hn, nh, h)
 	#define PrintResultAndPointer(r, h)
 	#define DumpPhysicalDeviceProperties(x)
 	#define DumpAllocateMemory(d, i, m)
@@ -804,7 +806,7 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkAllocateDescriptorSets(Device, AllocateInfo, DescriptorSets);
 
-		PrintResultAndNamedHandle(Result, TEXT("DescriptorSet"), *DescriptorSets);
+		PrintResultAndNamedHandles(Result, TEXT("DescriptorSet"), AllocateInfo->descriptorSetCount, (uint64*)DescriptorSets);
 		return Result;
 	}
 

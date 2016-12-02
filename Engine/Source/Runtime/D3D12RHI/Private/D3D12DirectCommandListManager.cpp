@@ -42,7 +42,7 @@ FD3D12FenceCore::~FD3D12FenceCore()
 FD3D12Fence::FD3D12Fence(FD3D12Adapter* Parent, const FName& Name)
 	: FRHIComputeFence(Name)
 	, CurrentFence(-1)
-	, SignalFence(-1)
+	, LastSignaledFence(-1)
 	, LastCompletedFence(-1)
 	, FenceCore(nullptr)
 	, FD3D12AdapterChild(Parent)
@@ -58,8 +58,8 @@ void FD3D12Fence::Destroy()
 {
 	if (FenceCore)
 	{
-		//Return the underlying fence to the pool, store the last value signaled on this fence
-		GetParentAdapter()->GetFenceCorePool().ReleaseFenceCore(FenceCore, SignalFence);
+		// Return the underlying fence to the pool, store the last value signaled on this fence
+		GetParentAdapter()->GetFenceCorePool().ReleaseFenceCore(FenceCore, LastSignaledFence);
 		FenceCore = nullptr;
 	}
 }
@@ -68,24 +68,36 @@ void FD3D12Fence::CreateFence(uint64 InitialValue)
 {
 	check(FenceCore == nullptr);
 
-	//Get a fence from the pool
+	// Get a fence from the pool
 	FenceCore = GetParentAdapter()->GetFenceCorePool().ObtainFenceCore(InitialValue);
 
 #if !UE_BUILD_SHIPPING
 	SetName(FenceCore->GetFence(), *GetName().ToString());
 #endif
-	SignalFence = GetLastCompletedFence();
-	CurrentFence = SignalFence + 1;
+	LastSignaledFence = GetLastCompletedFence();
+	CurrentFence = LastSignaledFence + 1;
 }
 
+uint64 FD3D12Fence::Signal(ID3D12CommandQueue* pCommandQueue)
+{
+	check(LastSignaledFence != CurrentFence);
+	InternalSignal(pCommandQueue, CurrentFence);
 
+	// Update the cached version of the fence value
+	GetLastCompletedFence();
+
+	// Increment the current Fence
+	CurrentFence++;
+
+	return LastSignaledFence;
+}
 
 void FD3D12Fence::GpuWait(ID3D12CommandQueue* pCommandQueue, uint64 FenceValue)
 {
 	check(pCommandQueue != nullptr);
 
 #if DEBUG_FENCES
-	UE_LOG(LogD3D12RHI, Log, TEXT("*** WAIT (CmdQueue: %016llX) Fence: %016llX (%s), Value: %u ***"), pCommandQueue, FenceCore->GetFence(), *GetName().ToString(), FenceValue);
+	UE_LOG(LogD3D12RHI, Log, TEXT("*** GPU WAIT (CmdQueue: %016llX) Fence: %016llX (%s), Value: %u ***"), pCommandQueue, FenceCore->GetFence(), *GetName().ToString(), FenceValue);
 #endif
 
 	VERIFYD3D12RESULT(pCommandQueue->Wait(FenceCore->GetFence(), FenceValue));
@@ -110,6 +122,18 @@ uint64 FD3D12Fence::GetLastCompletedFence()
 {
 	LastCompletedFence = FenceCore->GetFence()->GetCompletedValue();
 	return LastCompletedFence;
+}
+
+uint64 FD3D12ManualFence::Signal(ID3D12CommandQueue* pCommandQueue, uint64 FenceToSignal)
+{
+	check(LastSignaledFence != FenceToSignal);
+	InternalSignal(pCommandQueue, FenceToSignal);
+
+	// Update the cached version of the fence value
+	GetLastCompletedFence();
+
+	check(LastSignaledFence == FenceToSignal);
+	return LastSignaledFence;
 }
 
 FD3D12CommandAllocatorManager::FD3D12CommandAllocatorManager(FD3D12Device* InParent, const D3D12_COMMAND_LIST_TYPE& InType)
@@ -155,8 +179,7 @@ void FD3D12CommandAllocatorManager::ReleaseCommandAllocator(FD3D12CommandAllocat
 }
 
 FD3D12CommandListManager::FD3D12CommandListManager(FD3D12Device* InParent, D3D12_COMMAND_LIST_TYPE CommandListType)
-	: NumCommandListsAllocated(0)
-	, CommandListType(CommandListType)
+	: CommandListType(CommandListType)
 	, ResourceBarrierCommandAllocator(nullptr)
 	, ResourceBarrierCommandAllocatorManager(InParent, D3D12_COMMAND_LIST_TYPE_DIRECT)
 	, CommandListFence(nullptr, L"Command List Fence")
@@ -236,13 +259,15 @@ void FD3D12CommandListManager::ReleaseCommandList(FD3D12CommandListHandle& hList
 {
 	check(hList.IsClosed());
 	check(hList.GetCommandListType() == CommandListType);
+
+	// Indicate that a command list using this allocator has either been executed or discarded.
+	hList.CurrentCommandAllocator()->DecrementPendingCommandLists();
+
 	ReadyLists.Enqueue(hList);
 }
 
 void FD3D12CommandListManager::ExecuteCommandList(FD3D12CommandListHandle& hList, bool WaitForCompletion)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12ExecuteCommandListTime);
-
 	TArray<FD3D12CommandListHandle> Lists;
 	Lists.Add(hList);
 
@@ -437,8 +462,6 @@ void FD3D12CommandListManager::ReleaseResourceBarrierCommandListAllocator()
 
 uint32 FD3D12CommandListManager::GetResourceBarrierCommandList(FD3D12CommandListHandle& hList, FD3D12CommandListHandle& hResourceBarrierList)
 {
-	SCOPE_CYCLE_COUNTER(STAT_D3D12ExecuteCommandListTime);
-
 	TArray<FD3D12PendingResourceBarrier>& PendingResourceBarriers = hList.PendingResourceBarriers();
 	const uint32 NumPendingResourceBarriers = PendingResourceBarriers.Num();
 	if (NumPendingResourceBarriers)
@@ -477,7 +500,9 @@ uint32 FD3D12CommandListManager::GetResourceBarrierCommandList(FD3D12CommandList
 			}
 
 			// Update the state to the what it will be after hList executes
-			const D3D12_RESOURCE_STATES LastState = hList.GetResourceState(PRB.Resource).GetSubresourceState(Desc.Transition.Subresource);
+			const D3D12_RESOURCE_STATES CommandListState = hList.GetResourceState(PRB.Resource).GetSubresourceState(Desc.Transition.Subresource);
+			const D3D12_RESOURCE_STATES LastState = (CommandListState != D3D12_RESOURCE_STATE_TBD) ? CommandListState : After;
+			
 			if (Before != LastState)
 			{
 				pResourceState->SetSubresourceState(Desc.Transition.Subresource, LastState);
@@ -547,7 +572,8 @@ void FD3D12CommandListManager::WaitForCommandQueueFlush()
 {
 	if (D3DCommandQueue)
 	{
-		GetParentDevice()->GetParentAdapter()->SignalEndOfFrame(D3DCommandQueue, true);
+		const uint64 SignaledFence = CommandListFence.Signal(D3DCommandQueue);
+		CommandListFence.WaitForFence(SignaledFence);
 	}
 }
 
@@ -555,12 +581,6 @@ FD3D12CommandListHandle FD3D12CommandListManager::CreateCommandListHandle(FD3D12
 {
 	FD3D12CommandListHandle List;
 	List.Create(GetParentDevice(), CommandListType, CommandAllocator, this);
-	const int64 CommandListCount = FPlatformAtomics::InterlockedIncrement(&NumCommandListsAllocated);
-
-	// If we hit this, we should really evaluate why we need so many command lists, especially since
-	// each command list is paired with an allocator. This can consume a lot of memory even if the command lists
-	// are empty
-	check(CommandListCount < MAX_ALLOCATED_COMMAND_LISTS);
 	return List;
 }
 

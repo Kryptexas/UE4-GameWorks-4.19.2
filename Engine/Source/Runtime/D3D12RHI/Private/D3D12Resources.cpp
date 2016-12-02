@@ -27,15 +27,13 @@ FD3D12DeferredDeletionQueue::~FD3D12DeferredDeletionQueue()
 
 void FD3D12DeferredDeletionQueue::EnqueueResource(FD3D12Resource* pResource)
 {
-	FD3D12Adapter* Adapter = GetParentAdapter();
+	check(pResource->ShouldDeferDelete());
+	const uint64 CurrentFrameFence = GetParentAdapter()->GetFrameFence().GetCurrentFence();
 
-	FD3D12Fence& FrameFence = Adapter->GetFrameFence();
+	// Useful message for identifying when resources are released on the rendering thread.
+	//UE_CLOG(IsInActualRenderingThread(), LogD3D12RHI, Display, TEXT("Rendering Thread: Deleting %#016llx when done with frame fence %llu"), pResource, CurrentFrameFence);
 
-	const uint64 CurrentFrameFence = FrameFence.GetCurrentFence();
-
-	FencedObjectType FencedObject;
-	FencedObject.Key = pResource;
-	FencedObject.Value = CurrentFrameFence;
+	const TPairInitializer<FD3D12Resource*, uint64> FencedObject(pResource, CurrentFrameFence);
 	DeferredReleaseQueue.Enqueue(FencedObject);
 }
 
@@ -63,16 +61,17 @@ bool FD3D12DeferredDeletionQueue::ReleaseResources(bool DeleteImmediately)
 			{
 			}
 
-			bool operator() (FencedObjectType FenceObject)
+			bool operator() (FencedObjectType FenceObject) const
 			{
 				return FrameFence.IsFenceComplete(FenceObject.Value);
 			}
 
+		private:
 			FD3D12Fence& FrameFence;
 		};
 
 		FencedObjectType FenceObject;
-		FDequeueFenceObject DequeueFenceObject(Adapter->GetFrameFence());
+		const FDequeueFenceObject DequeueFenceObject(Adapter->GetFrameFence());
 
 		while (DeferredReleaseQueue.Dequeue(FenceObject, DequeueFenceObject))
 		{
@@ -112,16 +111,16 @@ FD3D12DeferredDeletionQueue::FD3D12AsyncDeletionWorker::FD3D12AsyncDeletionWorke
 		{
 		}
 
-		bool operator() (FencedObjectType FenceObject)
+		bool operator() (FencedObjectType FenceObject) const
 		{
 			return FrameFence.IsFenceComplete(FenceObject.Value);
 		}
 
+	private:
 		FD3D12Fence& FrameFence;
 	};
 
-	FDequeueFenceObject DequeueFenceObject(Adapter->GetFrameFence());
-
+	const FDequeueFenceObject DequeueFenceObject(Adapter->GetFrameFence());
 	DeletionQueue->BatchDequeue(&Queue, DequeueFenceObject, 4096);
 }
 
@@ -162,6 +161,7 @@ FD3D12Resource::FD3D12Resource(FD3D12Device* ParentDevice,
 	, DefaultResourceState(D3D12_RESOURCE_STATE_TBD)
 	, bRequiresResourceStateTracking(true)
 	, bDepthStencil(false)
+	, bDeferDelete(true)
 	, HeapType(InHeapType)
 	, GPUVirtualAddress(0)
 	, ResourceBaseAddress(nullptr)
@@ -441,7 +441,14 @@ void FD3D12ResourceLocation::ReleaseResource()
 	case ResourceLocationType::eStandAlone:
 	{
 		check(UnderlyingResource->GetRefCount() == 1);
-		GetParentDevice()->GetParentAdapter()->GetDeferredDeletionQueue().EnqueueResource(UnderlyingResource);
+		if (UnderlyingResource->ShouldDeferDelete())
+		{
+			GetParentDevice()->GetParentAdapter()->GetDeferredDeletionQueue().EnqueueResource(UnderlyingResource);
+		}
+		else
+		{
+			UnderlyingResource->Release();
+		}
 		break;
 	}
 	case ResourceLocationType::eSubAllocation:
@@ -452,7 +459,7 @@ void FD3D12ResourceLocation::ReleaseResource()
 	}
 	case ResourceLocationType::eAliased:
 	{
-		if (UnderlyingResource->GetRefCount() == 1)
+		if (UnderlyingResource->ShouldDeferDelete() && UnderlyingResource->GetRefCount() == 1)
 		{
 			GetParentDevice()->GetParentAdapter()->GetDeferredDeletionQueue().EnqueueResource(UnderlyingResource);
 		}

@@ -10,6 +10,8 @@ struct FD3D12VertexBufferCache;
 struct FD3D12IndexBufferCache;
 struct FD3D12ConstantBufferCache;
 struct FD3D12ShaderResourceViewCache;
+struct FD3D12UnorderedAccessViewCache;
+struct FD3D12SamplerStateCache;
 
 // Like a TMap<KeyType, ValueType>
 // Faster lookup performance, but possibly has false negatives
@@ -119,7 +121,7 @@ struct FD3D12UniqueDescriptorTable
 	}
 
 	FD3D12SamplerArrayDesc Key;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE CPUTable[D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT];
+	CD3DX12_CPU_DESCRIPTOR_HANDLE CPUTable[MAX_SAMPLERS];
 
 	// This will point to the table start in the global heap
 	D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle;
@@ -154,7 +156,7 @@ struct FD3D12UniqueDescriptorTableKeyFuncs : BaseKeyFuncs<FD3D12UniqueDescriptor
 	}
 };
 
-typedef FD3D12UniqueDescriptorTable<D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT> FD3D12UniqueSamplerTable;
+typedef FD3D12UniqueDescriptorTable<MAX_SAMPLERS> FD3D12UniqueSamplerTable;
 
 typedef TSet<FD3D12UniqueSamplerTable, FD3D12UniqueDescriptorTableKeyFuncs<FD3D12UniqueSamplerTable>> FD3D12SamplerSet;
 
@@ -335,7 +337,7 @@ public:
 	void SetParent(FD3D12DescriptorCache* InParent) { Parent = InParent; }
 
 	// Roll over behavior depends on the heap type
-	virtual void RollOver() = 0;
+	virtual bool RollOver() = 0;
 	virtual void NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle);
 	virtual uint32 GetTotalSize();
 
@@ -382,7 +384,7 @@ public:
 	FD3D12SamplerSet& GetUniqueDescriptorTables() { return UniqueDescriptorTables; }
 	FCriticalSection& GetCriticalSection() { return CriticalSection; }
 
-	void RollOver();
+	bool RollOver();
 private:
 
 	FD3D12SamplerSet UniqueDescriptorTables;
@@ -426,7 +428,7 @@ public:
 	void Init(SubAllocationDesc _Desc);
 
 	// Specializations
-	void RollOver();
+	bool RollOver();
 	void NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle);
 	uint32 GetTotalSize();
 
@@ -445,7 +447,7 @@ public:
 		: FD3D12OnlineHeap(Device, Node, true, _Parent)
 	{ }
 
-	void RollOver();
+	bool RollOver();
 
 	void NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle);
 
@@ -515,17 +517,24 @@ public:
 		if (LocalViewHeap) { delete(LocalViewHeap); }
 	}
 
-	inline ID3D12DescriptorHeap *GetViewDescriptorHeap()
+	inline ID3D12DescriptorHeap* GetViewDescriptorHeap()
 	{
 		return CurrentViewHeap->GetHeap();
 	}
 
-	inline ID3D12DescriptorHeap *GetSamplerDescriptorHeap()
+	inline ID3D12DescriptorHeap* GetSamplerDescriptorHeap()
 	{
 		return CurrentSamplerHeap->GetHeap();
 	}
 
-	// Notify the descriptor cache of the current fence value every time you start recording a command list; this allows
+	// Checks if the specified descriptor heap has been set on the current command list.
+	bool IsHeapSet(ID3D12DescriptorHeap* const pHeap) const
+	{
+		return (pHeap == pPreviousViewHeap) || (pHeap == pPreviousSamplerHeap);
+	}
+
+	// Notify the descriptor cache every time you start recording a command list.
+	// This sets descriptor heaps on the command list and indicates the current fence value which allows
 	// us to avoid querying DX12 for that value thousands of times per frame, which can be costly.
 	void NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle);
 
@@ -540,19 +549,23 @@ public:
 
 	void SetIndexBuffer(FD3D12IndexBufferCache& Cache);
 	void SetVertexBuffers(FD3D12VertexBufferCache& Cache);
-	void SetUAVs(EShaderFrequency ShaderStage, uint32 UAVStartSlot, TRefCountPtr<FD3D12UnorderedAccessView>* UnorderedAccessViewArray, uint32 Count, uint32 &HeapSlot);
 	void SetRenderTargets(FD3D12RenderTargetView** RenderTargetViewArray, uint32 Count, FD3D12DepthStencilView* DepthStencilTarget);
-	void SetSamplers(EShaderFrequency ShaderStage, FD3D12SamplerState** Samplers, uint32 Count, uint32& HeapSlot);
 
 	template <EShaderFrequency ShaderStage>
-	void SetSRVs(FD3D12ShaderResourceViewCache& Cache, uint32 Count, uint32& HeapSlot);
+	void SetUAVs(FD3D12UnorderedAccessViewCache& Cache, const UAVSlotMask& SlotsNeededMask, uint32 Count, uint32 &HeapSlot);
+
+	template <EShaderFrequency ShaderStage>
+	void SetSamplers(FD3D12SamplerStateCache& Cache, const SamplerSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
+
+	template <EShaderFrequency ShaderStage>
+	void SetSRVs(FD3D12ShaderResourceViewCache& Cache, const SRVSlotMask& SlotsNeededMask, uint32 Count, uint32& HeapSlot);
 
 	template <EShaderFrequency ShaderStage> 
 	void SetConstantBuffers(FD3D12ConstantBufferCache& Cache, const CBVSlotMask& SlotsNeededMask);
 
 	void SetStreamOutTargets(FD3D12Resource **Buffers, uint32 Count, const uint32* Offsets);
 
-	void HeapRolledOver(D3D12_DESCRIPTOR_HEAP_TYPE Type);
+	bool HeapRolledOver(D3D12_DESCRIPTOR_HEAP_TYPE Type);
 	void HeapLoopedAround(D3D12_DESCRIPTOR_HEAP_TYPE Type);
 	void Init(FD3D12Device* InParent, FD3D12CommandContext* InCmdContext, uint32 InNumViewDescriptors, uint32 InNumSamplerDescriptors, FD3D12SubAllocatedOnlineHeap::SubAllocationDesc& SubHeapDesc);
 	void Clear();
@@ -560,17 +573,24 @@ public:
 	void EndFrame();
 	void GatherUniqueSamplerTables();
 
-	void SwitchToContextLocalViewHeap();
-	void SwitchToContextLocalSamplerHeap();
-	void SwitchToGlobalSamplerHeap();
+	bool SwitchToContextLocalViewHeap();
+	bool SwitchToContextLocalSamplerHeap();
+	bool SwitchToGlobalSamplerHeap();
 
 	TArray<FD3D12UniqueSamplerTable>& GetUniqueTables() { return UniqueTables; }
 
-	bool UsingGlobalSamplerHeap() { return bUsingGlobalSamplerHeap; }
-	void DisableGlobalSamplerHeap() { bUsingGlobalSamplerHeap = false; }
+	inline bool UsingGlobalSamplerHeap() const { return bUsingGlobalSamplerHeap; }
 	FD3D12SamplerSet& GetLocalSamplerSet() { return LocalSamplerSet; }
 
 private:
+	// Sets the current descriptor tables on the command list and marks any descriptor tables as dirty if necessary.
+	// Returns true if one of the heaps actually changed, false otherwise.
+	bool SetDescriptorHeaps();
+
+	// The previous view and sampler heaps set on the current command list.
+	ID3D12DescriptorHeap* pPreviousViewHeap;
+	ID3D12DescriptorHeap* pPreviousSamplerHeap;
+
 	FD3D12OnlineHeap* CurrentViewHeap;
 	FD3D12OnlineHeap* CurrentSamplerHeap;
 

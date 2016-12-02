@@ -195,6 +195,7 @@ static FParallelCommandListSet* GOutstandingParallelCommandListSet = nullptr;
 
 FParallelCommandListSet::FParallelCommandListSet(TStatId InExecuteStat, const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
 	: View(InView)
+	, DrawRenderState(nullptr, InView)
 	, ParentCmdList(InParentCmdList)
 	, Snapshot(nullptr)
 	, ExecuteStat(InExecuteStat)
@@ -406,7 +407,9 @@ void FViewInfo::Init()
 	ExponentialFogParameters = FVector4(0,1,1,0);
 	ExponentialFogColor = FVector::ZeroVector;
 	FogMaxOpacity = 1;
-	ExponentialFogParameters3 = FVector2D(0, 0);
+	ExponentialFogParameters3 = FVector4(0, 0, 0, 0);
+	FogInscatteringColorCubemap = NULL;
+	FogInscatteringTextureParameters = FVector::ZeroVector;
 
 	bUseDirectionalInscattering = false;
 	DirectionalInscatteringExponent = 0;
@@ -1446,17 +1449,17 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 
 			FViewInfo& View = Views[ViewIndex];
 
+			FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 			
-			// seems this is set each draw call anyway
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-			
+			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
+
 			const bool bWriteCustomStencilValues = SceneContext.IsCustomDepthPassWritingStencil();
 
 			if (!bWriteCustomStencilValues)
 			{
-				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+				DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 			}
 
 			if ((CVarCustomDepthTemporalAAJitter.GetValueOnRenderThread() == 0) && (View.AntiAliasingMethod == AAM_TemporalAA))
@@ -1473,12 +1476,12 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 					VolumeBounds,
 					TVC_MAX,
 					OverriddenViewUniformShaderParameters);
-				TUniformBufferRef<FViewUniformShaderParameters> OverriddenViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(OverriddenViewUniformShaderParameters, UniformBuffer_SingleFrame);
-				View.CustomDepthSet.DrawPrims(RHICmdList, View, OverriddenViewUniformBuffer, bWriteCustomStencilValues);
+				DrawRenderState.SetViewUniformBuffer(TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(OverriddenViewUniformShaderParameters, UniformBuffer_SingleFrame));
+				View.CustomDepthSet.DrawPrims(RHICmdList, View, DrawRenderState, bWriteCustomStencilValues);
 			}
 			else
 			{
-				View.CustomDepthSet.DrawPrims(RHICmdList, View, View.ViewUniformBuffer, bWriteCustomStencilValues);
+				View.CustomDepthSet.DrawPrims(RHICmdList, View, DrawRenderState, bWriteCustomStencilValues);
 			}
 		}
 

@@ -19,9 +19,10 @@ D3D12CommandContext.h: D3D12 Command Context Interfaces
 #include "AllowWindowsPlatformTypes.h"
 #include <delayimp.h>
 
-#if D3D12_PROFILING_ENABLED
-#define USE_PIX 1
-#include "pix.h"
+#if D3D12_PROFILING_ENABLED || XBOXONE_PROFILING_ENABLED
+	static_assert(WITH_PROFILEGPU == 1, "PIX profiling is requested/enabled, however the engine is compiling out draw events. See Build.h.");
+	#define USE_PIX 1
+	#include "pix.h"
 #endif
 #include "HideWindowsPlatformTypes.h"
 
@@ -39,41 +40,6 @@ public:
 		return static_cast<typename TD3D12ResourceTraits<TRHIType>::TConcreteType*>(Resource);
 	}
 
-	template <EShaderFrequency ShaderFrequency>
-	void ClearShaderResourceViews(FD3D12ResourceLocation* Resource)
-	{
-		StateCache.ClearShaderResourceViews<ShaderFrequency>(Resource);
-	}
-
-	void CheckIfSRVIsResolved(FD3D12ShaderResourceView* SRV);
-
-	template <EShaderFrequency ShaderFrequency>
-	void InternalSetShaderResourceView(FD3D12ResourceLocation* Resource, FD3D12ShaderResourceView* SRV, int32 ResourceIndex, FD3D12StateCache::ESRV_Type SrvType = FD3D12StateCache::SRV_Unknown)
-	{
-		// Check either both are set, or both are null.
-		check((Resource && SRV) || (!Resource && !SRV));
-		CheckIfSRVIsResolved(SRV);
-
-		// Set the SRV we have been given (or null).
-		StateCache.SetShaderResourceView<ShaderFrequency>(SRV, ResourceIndex, SrvType);
-	}
-
-	void SetCurrentComputeShader(FComputeShaderRHIParamRef ComputeShader)
-	{
-		CurrentComputeShader = ComputeShader;
-	}
-
-	const FComputeShaderRHIRef& GetCurrentComputeShader() const
-	{
-		return CurrentComputeShader;
-	}
-
-	template <EShaderFrequency ShaderFrequency>
-	void SetShaderResourceView(FD3D12ResourceLocation* Resource, FD3D12ShaderResourceView* SRV, int32 ResourceIndex, FD3D12StateCache::ESRV_Type SrvType = FD3D12StateCache::SRV_Unknown)
-	{
-		InternalSetShaderResourceView<ShaderFrequency>(Resource, SRV, ResourceIndex, SrvType);
-	}
-
 	void EndFrame()
 	{
 		StateCache.GetDescriptorCache()->EndFrame();
@@ -86,13 +52,15 @@ public:
 		}
 	}
 
+	// If necessary, this gets a new command allocator for this context.
 	void ConditionalObtainCommandAllocator();
+
+	// Next time a command list is opened on this context, it will use a different command allocator.
 	void ReleaseCommandAllocator();
 
 	// Cycle to a new command list, but don't execute the current one yet.
-	void OpenCommandList(bool bRestoreState = false);
+	void OpenCommandList();
 	void CloseCommandList();
-	void ExecuteCommandList(bool WaitForCompletion = false);
 
 	// Close the D3D command list and execute it.  Optionally wait for the GPU to finish. Returns the handle to the command list so you can wait for it later.
 	FD3D12CommandListHandle FlushCommands(bool WaitForCompletion = false);
@@ -116,17 +84,15 @@ public:
 
 	// Tracks the currently set state blocks.
 	FD3D12RenderTargetView* CurrentRenderTargets[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
-	FD3D12UnorderedAccessView* CurrentUAVs[D3D12_PS_CS_UAV_REGISTER_COUNT];
+	FD3D12UnorderedAccessView* CurrentUAVs[MAX_UAVS];
 	FD3D12DepthStencilView* CurrentDepthStencilTarget;
 	FD3D12TextureBase* CurrentDepthTexture;
 	uint32 NumSimultaneousRenderTargets;
 	uint32 NumUAVs;
 
-	/** D3D12  defines a maximum of 14 constant buffers per shader stage. */
-	enum { MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE = 14 };
 
 	/** Track the currently bound uniform buffers. */
-	FD3D12UniformBuffer* BoundUniformBuffers[SF_NumFrequencies][MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE];
+	FD3D12UniformBuffer* BoundUniformBuffers[SF_NumFrequencies][MAX_CBS];
 
 	/** Bit array to track which uniform buffers have changed since the last draw call. */
 	uint16 DirtyUniformBuffers[SF_NumFrequencies];
@@ -176,54 +142,10 @@ public:
 	FD3D12ConstantBuffer GSConstantBuffer;
 	FD3D12ConstantBuffer CSConstantBuffer;
 
-	FComputeShaderRHIRef CurrentComputeShader;
-
-#if CHECK_SRV_TRANSITIONS
-	/*
-	* Rendertargets must be explicitly 'resolved' to manage their transition to an SRV on some platforms and DX12
-	* We keep track of targets that need 'resolving' to provide safety asserts at SRV binding time.
-	*/
-	struct FUnresolvedRTInfo
-	{
-		FUnresolvedRTInfo(FName InResourceName, int32 InMipLevel, int32 InNumMips, int32 InArraySlice, int32 InArraySize)
-			: ResourceName(InResourceName)
-			, MipLevel(InMipLevel)
-			, NumMips(InNumMips)
-			, ArraySlice(InArraySlice)
-			, ArraySize(InArraySize)
-		{
-		}
-
-		bool operator==(const FUnresolvedRTInfo& Other) const
-		{
-			return MipLevel == Other.MipLevel &&
-				NumMips == Other.NumMips &&
-				ArraySlice == Other.ArraySlice &&
-				ArraySize == Other.ArraySize;
-		}
-
-		FName ResourceName;
-		int32 MipLevel;
-		int32 NumMips;
-		int32 ArraySlice;
-		int32 ArraySize;
-	};
-	TMultiMap<ID3D12Resource*, FUnresolvedRTInfo> UnresolvedTargets;
-#endif
-
 	TRefCountPtr<FD3D12BoundShaderState> CurrentBoundShaderState;
 
-	TArray<ID3D12DescriptorHeap*> DescriptorHeaps;
-	void SetDescriptorHeaps(TArray<ID3D12DescriptorHeap*>& InHeaps)
-	{
-		DescriptorHeaps = InHeaps;
-
-		// Need to set the descriptor heaps on the underlying command list because they can change mid command list
-		if (CommandListHandle != nullptr)
-		{
-			CommandListHandle->SetDescriptorHeaps(DescriptorHeaps.Num(), DescriptorHeaps.GetData());
-		}
-	}
+	/** A history of the most recently used bound shader states, used to keep transient bound shader states from being recreated for each use. */
+	TGlobalResource< TBoundShaderStateHistory<10000, false> > BoundShaderStateHistory;
 
 	/** needs to be called before each draw call */
 	void CommitNonComputeShaderConstants();
@@ -262,8 +184,6 @@ public:
 	{
 		return bIsDefaultContext;
 	}
-
-	TRefCountPtr<FD3D12Fence> PendingFence;
 
 	// IRHIComputeContext interface
 	virtual void RHIWaitComputeFence(FComputeFenceRHIParamRef InFence) final override;
@@ -410,13 +330,7 @@ public:
 #if !PLATFORM_SUPPORTS_MGPU
 		return ((FD3D12TextureBase*)Texture->GetTextureBaseRHI());
 #else
-		if (!Texture)
-		{
-			return nullptr;
-		}
-
 		FD3D12TextureBase* Result((FD3D12TextureBase*)Texture->GetTextureBaseRHI());
-
 		if (bIsMGPUAware)
 		{
 			if (!Result)

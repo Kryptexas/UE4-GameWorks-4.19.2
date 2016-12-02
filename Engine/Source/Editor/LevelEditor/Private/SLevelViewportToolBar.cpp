@@ -1030,7 +1030,7 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 EVisibility SLevelViewportToolBar::GetViewModeOptionsVisibility() const
 {
 	const FLevelEditorViewportClient& ViewClient = Viewport.Pin()->GetLevelViewportClient();
-	if (ViewClient.GetViewMode() == VMI_MeshUVDensityAccuracy || ViewClient.GetViewMode() == VMI_MaterialTextureScaleAccuracy)
+	if (ViewClient.GetViewMode() == VMI_MeshUVDensityAccuracy || ViewClient.GetViewMode() == VMI_MaterialTextureScaleAccuracy || ViewClient.GetViewMode() == VMI_RequiredTextureResolution)
 	{
 		return EVisibility::SelfHitTestInvisible;
 	}
@@ -1051,8 +1051,9 @@ FText SLevelViewportToolBar::GetViewModeOptionsMenuLabel() const
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateViewModeOptionsMenu() const
 {
 	Viewport.Pin()->OnFloatingButtonClicked();
-	const FLevelEditorViewportClient& ViewClient = Viewport.Pin()->GetLevelViewportClient();
-	return BuildViewModeOptionsMenu(Viewport.Pin()->GetCommandList(), ViewClient.GetViewMode());
+	FLevelEditorViewportClient& ViewClient = Viewport.Pin()->GetLevelViewportClient();
+	const UWorld* World = ViewClient.GetWorld();
+	return BuildViewModeOptionsMenu(Viewport.Pin()->GetCommandList(), ViewClient.GetViewMode(), World ? World->FeatureLevel : GMaxRHIFeatureLevel, ViewClient.GetViewModeParamNameMap());
 }
 
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateFOVMenu() const

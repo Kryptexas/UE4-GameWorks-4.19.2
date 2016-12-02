@@ -187,6 +187,7 @@ static void CopyCaptureToTarget(
 	bool bNeedsFlippedRenderTarget,
 	FSceneRenderer* SceneRenderer)
 {
+	FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
 	ESceneCaptureSource CaptureSource = View.Family->SceneCaptureSource;
 	ESceneCaptureCompositeMode CaptureCompositeMode = View.Family->SceneCaptureCompositeMode;
 
@@ -200,23 +201,23 @@ static void CopyCaptureToTarget(
 	if (CaptureSource == SCS_SceneColorHDR && CaptureCompositeMode == SCCM_Composite)
 	{
 		// Blend with existing render target color. Scene capture color is already pre-multiplied by alpha.
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_SourceAlpha, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
+		DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_SourceAlpha, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
 		RTLoadAction = ERenderTargetLoadAction::ELoad;
 	}
 	else if (CaptureSource == SCS_SceneColorHDR && CaptureCompositeMode == SCCM_Additive)
 	{
 		// Add to existing render target color. Scene capture color is already pre-multiplied by alpha.
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
+		DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
 		RTLoadAction = ERenderTargetLoadAction::ELoad;
 	}
 	else
 	{
 		RTLoadAction = ERenderTargetLoadAction::ENoAction;
-		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
 	}
 
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	FRHIRenderTargetView ColorView(Target->GetRenderTargetTexture(), 0, -1, RTLoadAction, ERenderTargetStoreAction::EStore);
 	FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView());
@@ -269,7 +270,7 @@ static void CopyCaptureToTarget(
 		FMobileSceneRenderer* MobileSceneRenderer = (FMobileSceneRenderer*)SceneRenderer;
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EClearColorExistingDepth);
-		MobileSceneRenderer->RenderInverseOpacity(RHICmdList, View);
+		MobileSceneRenderer->RenderInverseOpacity(RHICmdList, View, DrawRenderState);
 
 		// Set capture target.
 		FRHIRenderTargetView OpacityView(Target->GetRenderTargetTexture(), 0, -1, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
@@ -277,9 +278,9 @@ static void CopyCaptureToTarget(
 		RHICmdList.SetRenderTargetsAndClear(OpacityInfo);
 
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_Always>::GetRHI());
 		// Note lack of inverse, both the target and source images are already inverted.
-		RHICmdList.SetBlendState(TStaticBlendState<CW_ALPHA, BO_Add, BF_DestColor, BF_Zero, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
+		DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<CW_ALPHA, BO_Add, BF_DestColor, BF_Zero, BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI());
 
 		// Combine translucent opacity pass to earlier opaque pass to build final inverse opacity.
 		TShaderMapRef<FScreenVS> ScreenVertexShader(View.ShaderMap);

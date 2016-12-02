@@ -23,21 +23,26 @@ enum EDebugViewShaderMode
 	DVSM_MeshUVDensityAccuracy,		// Visualize the accuracy of the mesh UV densities computed for texture streaming.
 	DVSM_MaterialTextureScaleAccuracy, // Visualize the accuracy of the material texture scales used for texture streaming.
 	DVSM_OutputMaterialTextureScales, // Outputs the material texture scales.
+	DVSM_RequiredTextureResolution, // Visualize the accuracy of the material texture scales used for texture streaming.
 	DVSM_MAX
 };
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 /** Returns true if the specified shadermode is available for the given shader platform. Called for shader compilation shader compilation. */
-extern ENGINE_API bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform);
+ENGINE_API bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform);
 /** Returns true if the vertex shader (and potential hull and domain) should be compiled on the given platform. */
-extern ENGINE_API bool AllowDebugViewVSDSHS(EShaderPlatform Platform);
+ENGINE_API bool AllowDebugViewVSDSHS(EShaderPlatform Platform);
 /** Returns true if the shader mode can be enabled. This is only for UI elements as no shader platform is actually passed. */
-extern ENGINE_API bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode);
+ENGINE_API bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode);
 #else
 FORCEINLINE bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform) { return false; }
 FORCEINLINE bool AllowDebugViewVSDSHS(EShaderPlatform Platform)  { return false; }
 FORCEINLINE bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode) { return false; }
 #endif
+
+ENGINE_API int32 GetNumActorsInWorld(UWorld* InWorld);
+ENGINE_API bool GetUsedMaterialsInWorld(UWorld* InWorld, OUT TSet<UMaterialInterface*>& OutMaterials, struct FSlowTask& Task);
+ENGINE_API bool CompileDebugViewModeShaders(EDebugViewShaderMode Mode, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bFullRebuild, bool bWaitForPreviousShaders, TSet<UMaterialInterface*>& Materials, FSlowTask& ProgressTask);
 
 
 

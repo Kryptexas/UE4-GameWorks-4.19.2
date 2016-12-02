@@ -55,6 +55,7 @@ DEFINE_LOG_CATEGORY(LogContentCommandlet);
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Engine/LevelStreaming.h"
+#include "EditorBuildUtils.h"
 
 // for UResavePackagesCommandlet::PerformAdditionalOperations building lighting code
 #include "LightingBuildOptions.h"
@@ -685,6 +686,8 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	bAutoCheckIn = bAutoCheckOut && Switches.Contains(TEXT("AutoCheckIn"));
 	/** determine if we are building lighting for the map packages on the pass. **/
 	bShouldBuildLighting = Switches.Contains(TEXT("buildlighting"));
+	/** determine if we are building lighting for the map packages on the pass. **/
+	bShouldBuildTextureStreaming = Switches.Contains(TEXT("buildtexturestreaming"));
 	/** determine if we can skip the version changelist check */
 	bIgnoreChangelist = Switches.Contains(TEXT("IgnoreChangelist"));
 	if ( bShouldBuildLighting )
@@ -787,9 +790,17 @@ FText UResavePackagesCommandlet::GetChangelistDescription() const
 {
 	FText ChangelistDescription;
 
-	if (bShouldBuildLighting)
+	if (bShouldBuildTextureStreaming && bShouldBuildLighting)
+	{
+		ChangelistDescription = NSLOCTEXT("ContentCmdlets", "ChangelistDescriptionBuildLightingAndTextureStreaming", "Rebuild lightmaps & texture streaming.");
+	}
+	else if (bShouldBuildLighting)
 	{
 		ChangelistDescription = NSLOCTEXT("ContentCmdlets", "ChangelistDescriptionBuildLighting", "Rebuild lightmaps.");
+	}
+	else if (bShouldBuildTextureStreaming)
+	{
+		ChangelistDescription = NSLOCTEXT("ContentCmdlets", "ChangelistDescriptionBuildTextureStreaming", "Rebuild texture streaming.");
 	}
 	else
 	{
@@ -928,9 +939,9 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 	}
 	ABrush::OnRebuildDone();
 
-	if (bShouldBuildLighting)
+	if (bShouldBuildLighting || bShouldBuildTextureStreaming)
 	{
-		bool bShouldProceedWithLightmapRebuild = true;
+		bool bShouldProceedWithRebuild = true;
 
 		static bool bHasLoadedStartupPackages = false;
 		if (bHasLoadedStartupPackages == false)
@@ -963,28 +974,25 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 
 		TArray<FString> SublevelFilenames;
 		
-		auto CheckOutLevelLightingFile = [this,&bShouldProceedWithLightmapRebuild, &SublevelFilenames](ULevel* InLevel)
+		auto CheckOutLevelFile = [this,&bShouldProceedWithRebuild, &SublevelFilenames](ULevel* InLevel)
+		{
+			if (InLevel && InLevel->MapBuildData)
 			{
-				if (InLevel && InLevel->MapBuildData)
+				UPackage* MapBuildDataPackage = InLevel->MapBuildData->GetOutermost();
+				FString MapBuildDataPackageName = MapBuildDataPackage->GetName();
+				if (MapBuildDataPackage != InLevel->GetOutermost())
 				{
-					UPackage* MapBuildDataPackage = InLevel->MapBuildData->GetOutermost();
-					FString MapBuildDataPackageName = MapBuildDataPackage->GetName();
-
-					if (MapBuildDataPackage != InLevel->GetOutermost())
+					if (CheckoutFile(MapBuildDataPackageName))
 					{
-						if (CheckoutFile(MapBuildDataPackageName))
-						{
-							SublevelFilenames.Add(MapBuildDataPackageName);
-						}
-						else
-						{
-							bShouldProceedWithLightmapRebuild = false;
-						}
+						SublevelFilenames.Add(MapBuildDataPackageName);
+					}
+					else
+					{
+						bShouldProceedWithRebuild = false;
 					}
 				}
-			};
-
-
+			}
+		};
 
 		// if we can't check out the main map or it's not up to date then we can't do the lighting rebuild at all!
 		FString WorldPackageName;
@@ -994,26 +1002,27 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 			{
 				SublevelFilenames.Add(WorldPackageName);
 
-				CheckOutLevelLightingFile(World->PersistentLevel);
+				CheckOutLevelFile(World->PersistentLevel);
 			}
 			else
 			{
-				bShouldProceedWithLightmapRebuild = false;
+				bShouldProceedWithRebuild = false;
 			}
 		}
 		else
 		{
-			bShouldProceedWithLightmapRebuild = false;
+			bShouldProceedWithRebuild = false;
 		}
 		
 
-		if (bShouldProceedWithLightmapRebuild)
+
+		if (bShouldProceedWithRebuild)
 		{
 			World->LoadSecondaryLevels(true, NULL);
 
 			for (ULevelStreaming* NextStreamingLevel : World->StreamingLevels)
 			{
-				CheckOutLevelLightingFile(NextStreamingLevel->GetLoadedLevel());
+				CheckOutLevelFile(NextStreamingLevel->GetLoadedLevel());
 
 				FString StreamingLevelPackageFilename;
 				const FString StreamingLevelWorldAssetPackageName = NextStreamingLevel->GetWorldAssetPackageName();
@@ -1026,7 +1035,7 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 					}
 					else
 					{
-						bShouldProceedWithLightmapRebuild = false;
+						bShouldProceedWithRebuild = false;
 						break;
 					}
 				}
@@ -1038,61 +1047,71 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 
 	
 		// If nothing came up that stops us from continuing, then start building lightmass
-		if (bShouldProceedWithLightmapRebuild)
+		if (bShouldProceedWithRebuild)
 		{
 			World->FlushLevelStreaming(EFlushLevelStreamingType::Full);
 
 			// We need any deferred commands added when loading to be executed before we start building lighting.
 			GEngine->TickDeferredCommands();
 
-			GRedirectCollector.ResolveStringAssetReference();
-
-			FLightingBuildOptions LightingOptions;
-			// Always build on production
-			LightingOptions.QualityLevel = Quality_Production;
-
-			auto BuildFailedDelegate = [&bShouldProceedWithLightmapRebuild,&World]() {
-				UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());
-				bShouldProceedWithLightmapRebuild = false;
-			};
-
-			FDelegateHandle BuildFailedDelegateHandle = FEditorDelegates::OnLightingBuildFailed.AddLambda(BuildFailedDelegate);
-
-			GEditor->BuildLighting(LightingOptions);
-			while (GEditor->IsLightingBuildCurrentlyRunning())
+			if (bShouldBuildTextureStreaming)
 			{
-				GEditor->UpdateBuildLighting();
+				FEditorBuildUtils::EditorBuildTextureStreaming(World);
 			}
 
-			FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
+			if (bShouldBuildLighting)
+			{
+				// This does not seem to have any use for the texture streaming build but slows down considerably the process.
+				GRedirectCollector.ResolveStringAssetReference();
+
+				FLightingBuildOptions LightingOptions;
+				// Always build on production
+				LightingOptions.QualityLevel = Quality_Production;
+
+				auto BuildFailedDelegate = [&bShouldProceedWithRebuild,&World]() {
+					UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed building lighting for %s"), *World->GetOutermost()->GetName());
+					bShouldProceedWithRebuild = false;
+				};
+
+				FDelegateHandle BuildFailedDelegateHandle = FEditorDelegates::OnLightingBuildFailed.AddLambda(BuildFailedDelegate);
+
+				GEditor->BuildLighting(LightingOptions);
+				while (GEditor->IsLightingBuildCurrentlyRunning())
+				{
+					GEditor->UpdateBuildLighting();
+				}
+
+				FEditorDelegates::OnLightingBuildFailed.Remove(BuildFailedDelegateHandle);
+			}
 
 			auto SaveMapBuildData = [this, &SublevelFilenames] (ULevel* InLevel) 
+			{
+				if (InLevel && InLevel->MapBuildData && bShouldBuildLighting)
 				{
-					if (InLevel && InLevel->MapBuildData)
+					UPackage* MapBuildDataPackage = InLevel->MapBuildData->GetOutermost();
+					FString MapBuildDataPackageName = MapBuildDataPackage->GetName();
+
+					if (MapBuildDataPackage != InLevel->GetOutermost())
 					{
-						UPackage* MapBuildDataPackage = InLevel->MapBuildData->GetOutermost();
-						FString MapBuildDataPackageName = MapBuildDataPackage->GetName();
+						FString MapBuildDataFilename;
 
-						if (MapBuildDataPackage != InLevel->GetOutermost())
+						if ( FPackageName::TryConvertLongPackageNameToFilename(MapBuildDataPackageName, MapBuildDataFilename, FPackageName::GetMapPackageExtension() ) )
 						{
-							FString MapBuildDataFilename;
-
-							if ( FPackageName::TryConvertLongPackageNameToFilename(MapBuildDataPackageName, MapBuildDataFilename, FPackageName::GetMapPackageExtension() ) )
+							SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename);
+							if ( IFileManager::Get().FileExists(*MapBuildDataFilename))
 							{
-								SavePackageHelper(MapBuildDataPackage, MapBuildDataFilename);
-								if ( IFileManager::Get().FileExists(*MapBuildDataFilename))
-								{
-									CheckoutFile(MapBuildDataFilename, true);
-								}
+								CheckoutFile(MapBuildDataFilename, true);
 							}
 						}
 					}
-				};
+				}
+			};
 
 			SaveMapBuildData( World->PersistentLevel );
 
 
-			if( bShouldProceedWithLightmapRebuild )
+			// If everything is a success, resave the levels.
+			if( bShouldProceedWithRebuild )
 			{
 				for (ULevelStreaming* NextStreamingLevel : World->StreamingLevels)
 				{
@@ -1107,17 +1126,16 @@ void UResavePackagesCommandlet::PerformAdditionalOperations(class UWorld* World,
 						}
 
 						SaveMapBuildData(NextStreamingLevel->GetLoadedLevel());
-
 					}
 				}
 			}
 		}
 		else
 		{
-			UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to complete steps necessary to start a lightmass build of %s"), *World->GetName());
+			UE_LOG(LogContentCommandlet, Error, TEXT("[REPORT] Failed to complete steps necessary to start a lightmass or texture streaming build of %s"), *World->GetName());
 		}
 
-		if ((bShouldProceedWithLightmapRebuild == false)||(bSavePackage == false))
+		if ((bShouldProceedWithRebuild == false)||(bSavePackage == false))
 		{
 			// don't save our parent package
 			bSavePackage = false;

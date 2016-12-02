@@ -3872,7 +3872,7 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 	CheckTextureStreamingBuildValidity(InWorld);
 	if (InWorld->NumTextureStreamingUnbuiltComponents > 0 || InWorld->NumTextureStreamingDirtyResources > 0)
 	{
-		FMessageLog("MapCheck").Warning()->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_TextureStreamingNeedsRebuild", "Texture streaming needs to be rebuilt, run 'Build Texture Streaming'.")));
+		FMessageLog("MapCheck").Warning()->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_TextureStreamingNeedsRebuild", "Texture streaming needs to be rebuilt ({0} Components, {1} Resource Refs), run 'Build Texture Streaming'."), InWorld->NumTextureStreamingUnbuiltComponents, InWorld->NumTextureStreamingDirtyResources)));
 	}
 
 	GWarn->StatusUpdate( 0, ProgressDenominator, CheckMapLocText );
@@ -6716,7 +6716,7 @@ bool UEditorEngine::HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, F
 	}
 
 	FScopedSlowTask SlowTask(3.f); // { Sync Pending Shader, Wait for Compilation, Export }
-	CompileTextureStreamingShaders(QualityLevel, FeatureLevel, true, true, Materials, SlowTask);
+	CompileDebugViewModeShaders(DVSM_OutputMaterialTextureScales, QualityLevel, FeatureLevel, true, true, Materials, SlowTask);
 	FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
 	for (UMaterialInterface* MaterialInterface : Materials)
 	{

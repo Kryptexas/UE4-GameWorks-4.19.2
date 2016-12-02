@@ -48,7 +48,7 @@
 #include "BufferVisualizationData.h"
 #include "CompositionLighting/PostProcessLpvIndirect.h"
 #include "PostProcess/PostProcessStreamingAccuracyLegend.h"
-
+#include "DeferredShadingRenderer.h"
 
 /** The global center for all post processing activities. */
 FPostProcessing GPostProcessing;
@@ -590,13 +590,14 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDept
 		return;
 	}
 
-	FRenderingCompositePass* DOFSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFSetup(false));
+	FRenderingCompositePass* DOFSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFSetup());
 	DOFSetup->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 	DOFSetup->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
 
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
 	FRenderingCompositePass* DOFInputPass = DOFSetup;
+	auto CocSetup = FRenderingCompositeOutputRef( DOFSetup, SupportSceneAlpha() ? ePId_Output1 : ePId_Output0 );
 	if( Context.View.AntiAliasingMethod == AAM_TemporalAA && ViewState )
 	{
 		FRenderingCompositePass* HistoryInput;
@@ -611,30 +612,30 @@ static void AddPostProcessDepthOfFieldCircle(FPostprocessContext& Context, FDept
 		}
 
 		FRenderingCompositePass* NodeTemporalAA = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessDOFTemporalAA );
-		NodeTemporalAA->SetInput( ePId_Input0, DOFSetup );
+		NodeTemporalAA->SetInput( ePId_Input0, CocSetup );
 		NodeTemporalAA->SetInput( ePId_Input1, FRenderingCompositeOutputRef( HistoryInput ) );
 		NodeTemporalAA->SetInput( ePId_Input2, FRenderingCompositeOutputRef( HistoryInput ) );
 		NodeTemporalAA->SetInput( ePId_Input3, VelocityInput );
 
-		DOFInputPass = NodeTemporalAA;
+		CocSetup = FRenderingCompositeOutputRef( NodeTemporalAA );
 		ViewState->bDOFHistory = false;
 	}
 
-	FRenderingCompositeOutputRef Far;
-	FRenderingCompositeOutputRef Near;
-
 	FRenderingCompositePass* DOFNear = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFDilate());
-	DOFNear->SetInput(ePId_Input0, FRenderingCompositeOutputRef(DOFInputPass, ePId_Output0));
-	Near = FRenderingCompositeOutputRef(DOFNear, ePId_Output0);
+	DOFNear->SetInput(ePId_Input0, CocSetup);
+	FRenderingCompositeOutputRef Near = FRenderingCompositeOutputRef(DOFNear, ePId_Output0);
 
-	FRenderingCompositePass* DOFApply = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOF(false));
+	FRenderingCompositePass* DOFApply = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOF());
 	DOFApply->SetInput(ePId_Input0, FRenderingCompositeOutputRef(DOFInputPass, ePId_Output0));
 	DOFApply->SetInput(ePId_Input1, Near);
-	Far = FRenderingCompositeOutputRef(DOFApply, ePId_Output0);
+	DOFApply->SetInput(ePId_Input2, CocSetup);
+	FRenderingCompositeOutputRef Far = FRenderingCompositeOutputRef(DOFApply, ePId_Output0);
+	FRenderingCompositeOutputRef FarCoc = SupportSceneAlpha() ? FRenderingCompositeOutputRef(DOFApply, ePId_Output1) : Far;
 
-	FRenderingCompositePass* NodeRecombined = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFRecombine(false));
+	FRenderingCompositePass* NodeRecombined = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCircleDOFRecombine());
 	NodeRecombined->SetInput(ePId_Input0, Context.FinalOutput);
 	NodeRecombined->SetInput(ePId_Input1, Far);
+	NodeRecombined->SetInput(ePId_Input2, FarCoc);
 
 	Context.FinalOutput = FRenderingCompositeOutputRef(NodeRecombined);
 }
@@ -1230,7 +1231,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		}
 
 		static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-		const bool bHDROutputEnabled = CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+		const bool bHDROutputEnabled = GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
 
 		static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
 		const bool bHDRTonemapperOutput = bAllowTonemapper && (GetHighResScreenshotConfig().bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnRenderThread() || bHDROutputEnabled);
@@ -1262,6 +1263,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 				bool bCircleDOF = View.FinalPostProcessSettings.DepthOfFieldMethod == DOFM_CircleDOF;
 				if(!bCircleDOF)
 				{
+					check(!SupportSceneAlpha());
 					if(VelocityInput.IsValid())
 					{
 						bSepTransWasApplied = AddPostProcessDepthOfFieldGaussian(Context, DepthOfFieldStat, VelocityInput, SeparateTranslucency);
@@ -1301,6 +1303,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 			if(bBokehDOF)
 			{
+				check(!SupportSceneAlpha());
 				if(VelocityInput.IsValid())
 				{
 					AddPostProcessDepthOfFieldBokeh(Context, SeparateTranslucency, VelocityInput);
@@ -1319,6 +1322,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 			if(SeparateTranslucency.IsValid() && !bSepTransWasApplied)
 			{
+				check(!SupportSceneAlpha());
 				// separate translucency is done here or in AddPostProcessDepthOfFieldBokeh()
 				FRenderingCompositePass* NodeRecombined = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBokehDOFRecombine());
 				NodeRecombined->SetInput(ePId_Input0, Context.FinalOutput);
@@ -1643,7 +1647,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 				PostTonemapHDRColor = Context.FinalOutput;
 
 				// Add a pass-through as tonemapper will be forced LDR if final pass in chain 
-				if (bHDRTonemapperOutput)
+				if (bHDRTonemapperOutput && !bHDROutputEnabled)
 				{
 					FRenderingCompositePass* PassthroughNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessPassThrough(nullptr));
 					PassthroughNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -1711,7 +1715,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			bResultsUpsampled = true;
 		}
 
-		if (DebugViewShaderMode == DVSM_PrimitiveDistanceAccuracy || DebugViewShaderMode == DVSM_MeshUVDensityAccuracy || DebugViewShaderMode == DVSM_MaterialTextureScaleAccuracy)
+		if (DebugViewShaderMode == DVSM_PrimitiveDistanceAccuracy || DebugViewShaderMode == DVSM_MeshUVDensityAccuracy || DebugViewShaderMode == DVSM_MaterialTextureScaleAccuracy ||DebugViewShaderMode == DVSM_RequiredTextureResolution)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessStreamingAccuracyLegend(GEngine->StreamingAccuracyColors));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -1924,8 +1928,9 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			{
 				Desc.Extent = View.Family->RenderTarget->GetSizeXY();
 			}
+
 			// todo: this should come from View.Family->RenderTarget
-			Desc.Format = bHDROutputEnabled ? PF_FloatRGBA : PF_B8G8R8A8;
+			Desc.Format = bHDROutputEnabled ? GRHIHDRDisplayOutputFormat : PF_B8G8R8A8;
 			Desc.NumMips = 1;
 			Desc.DebugName = TEXT("FinalPostProcessColor");
 

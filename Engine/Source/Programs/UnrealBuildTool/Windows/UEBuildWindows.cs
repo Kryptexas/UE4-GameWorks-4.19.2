@@ -31,6 +31,11 @@ namespace UnrealBuildTool
 	public class WindowsPlatformContext : UEBuildPlatformContext
 	{
 		/// <summary>
+		/// Enable PIX debugging (automatically disabled in Shipping and Test configs)
+		/// </summary>
+		private bool bPixProfilingEnabled = true;
+
+		/// <summary>
 		/// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
 		/// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
 		/// This is a flag to determine we should support XP if possible from XML
@@ -58,8 +63,15 @@ namespace UnrealBuildTool
 			{
 				// ...check if it was supported from a config.
 				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", DirectoryReference.FromFile(ProjectFile));
+				String IniPath = "/Script/WindowsTargetPlatform.WindowsTargetSettings";
+				bool bSetting = false;
+				if (Ini.GetBool(IniPath, "bEnablePIXProfiling", out bSetting))
+				{
+					bPixProfilingEnabled = bSetting;
+				}
+
 				string MinimumOS;
-				if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "MinimumOSVersion", out MinimumOS))
+				if (Ini.GetString(IniPath, "MinimumOSVersion", out MinimumOS))
 				{
 					if (string.IsNullOrEmpty(MinimumOS) == false)
 					{
@@ -154,6 +166,16 @@ namespace UnrealBuildTool
 
 			if (ModuleName == "D3D12RHI")
 			{
+				if (bPixProfilingEnabled && Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
+				{
+					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=1");
+					Rules.Definitions.Add("PROFILE");
+				}
+				else
+				{
+					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=0");
+				}
+
 				// To enable platform specific D3D12 RHI Types
 				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
 			}
@@ -187,6 +209,9 @@ namespace UnrealBuildTool
 					Rules.PublicDelayLoadDLLs.Add("dxgi.dll");
 				}
 			}
+
+			// Delay-load D3D12 so we can use the latest features and still run on downlevel versions of the OS
+			Rules.PublicDelayLoadDLLs.Add("d3d12.dll");
 		}
 
 		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)

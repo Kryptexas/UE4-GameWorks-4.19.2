@@ -44,7 +44,7 @@ void FMeshTexCoordSizeAccuracyPS::SetMesh(
 	const FPrimitiveSceneProxy* Proxy,
 	int32 VisualizeLODIndex,
 	const FMeshBatchElement& BatchElement, 
-	const FMeshDrawingRenderState& DrawRenderState
+	const FDrawingPolicyRenderState& DrawRenderState
 	)
 {
 	const int32 AnalysisIndex = View.Family->GetViewModeParam() >= 0 ? FMath::Clamp<int32>(View.Family->GetViewModeParam(), 0, MAX_TEXCOORDS - 1) : -1;

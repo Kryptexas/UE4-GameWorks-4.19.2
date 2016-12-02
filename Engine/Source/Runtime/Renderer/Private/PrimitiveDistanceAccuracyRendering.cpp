@@ -43,7 +43,7 @@ void FPrimitiveDistanceAccuracyPS::SetMesh(
 	const FPrimitiveSceneProxy* Proxy,
 	int32 VisualizeLODIndex,
 	const FMeshBatchElement& BatchElement, 
-	const FMeshDrawingRenderState& DrawRenderState
+	const FDrawingPolicyRenderState& DrawRenderState
 	)
 {
 	float CPULogDistance = -1.f;

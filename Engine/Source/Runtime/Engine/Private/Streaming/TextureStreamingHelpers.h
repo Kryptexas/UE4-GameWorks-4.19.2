@@ -59,6 +59,8 @@ extern TAutoConsoleVariable<int32> CVarStreamingUseFixedPoolSize;
 extern TAutoConsoleVariable<int32> CVarStreamingPoolSize;
 extern TAutoConsoleVariable<int32> CVarStreamingCheckBuildStatus;
 extern TAutoConsoleVariable<int32> CVarStreamingUseMaterialData;
+extern TAutoConsoleVariable<int32> CVarStreamingNumStaticComponentsProcessedPerFrame;
+extern TAutoConsoleVariable<int32> CVarStreamingDefragDynamicBounds;
 
 struct FTextureStreamingSettings
 {

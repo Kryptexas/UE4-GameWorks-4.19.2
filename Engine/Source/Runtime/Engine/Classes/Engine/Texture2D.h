@@ -84,6 +84,10 @@ public:
 	UPROPERTY(transient, NonTransactional)
 	uint32 bIsStreamable:1;
 
+	/** Whether some mips might be streamed soon. If false, the texture is not planned resolution will be stable. */
+	UPROPERTY(transient, NonTransactional)
+	uint32 bHasStreamingUpdatePending:1;
+
 	/** Whether the current texture mip change request is pending cancellation.	*/
 	UPROPERTY(transient, NonTransactional)
 	uint32 bHasCancelationPending:1;

@@ -103,6 +103,14 @@ static FAutoConsoleVariableRef CVarEnableAsyncComputeTranslucencyLightingVolumeC
 	ECVF_RenderThreadSafe | ECVF_Scalability
 );
 
+static TAutoConsoleVariable<int32> CVarAlphaChannel(
+	TEXT("r.SceneAlpha"),
+	0,
+	TEXT("0 to disable scene alpha channel support.\n")
+	TEXT(" 0: disabled (default)\n")
+	TEXT(" 1: enabled"),
+	ECVF_ReadOnly);
+
 DECLARE_CYCLE_STAT(TEXT("PostInitViews FlushDel"), STAT_PostInitViews_FlushDel, STATGROUP_InitViews);
 DECLARE_CYCLE_STAT(TEXT("InitViews Intentional Stall"), STAT_InitViews_Intentional_Stall, STATGROUP_InitViews);
 
@@ -148,6 +156,11 @@ bool ShouldForceFullDepthPass(ERHIFeatureLevel::Type FeatureLevel)
 
 	// Note: ShouldForceFullDepthPass affects which static draw lists meshes go into, so nothing it depends on can change at runtime, unless you do a FGlobalComponentRecreateRenderStateContext to propagate the cvar change
 	return bDBufferAllowed || bStencilLODDither || IsForwardShadingEnabled(FeatureLevel) || UseSelectiveBasePassOutputs();
+}
+
+bool SupportSceneAlpha()
+{
+	return CVarAlphaChannel.GetValueOnRenderThread() != 0;
 }
 
 const TCHAR* GetDepthPassReason(bool bDitheredLODTransitionsUseStencil, ERHIFeatureLevel::Type FeatureLevel)
@@ -205,12 +218,6 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 		}
 	}
 
-	// Shader complexity requires depth only pass to display masked material cost correctly
-	if (ViewFamily.UseDebugViewPS() && ViewFamily.GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
-	{
-		EarlyZPassMode = DDM_AllOpaque;
-	}
-
 	// Warning: EarlyZPass logic is mirrored in FStaticMesh::AddToDrawLists
 
 	bEarlyZPassMovable = GEarlyZPassMovable != 0;
@@ -218,7 +225,13 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	static const auto StencilLODDitherCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));
 	bDitheredLODTransitionsUseStencil = StencilLODDitherCVar->GetValueOnAnyThread() != 0;
 
-	if (ShouldForceFullDepthPass(FeatureLevel))
+	// Shader complexity requires depth only pass to display masked material cost correctly
+	if (ViewFamily.UseDebugViewPS() && ViewFamily.GetDebugViewShaderMode() != DVSM_OutputMaterialTextureScales)
+	{
+		EarlyZPassMode = DDM_AllOpaque;
+		bEarlyZPassMovable = true;
+	}
+	else if (ShouldForceFullDepthPass(FeatureLevel))
 	{
 		// DBuffer decals and stencil LOD dithering force a full prepass
 		EarlyZPassMode = DDM_AllOccluders;
@@ -890,7 +903,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
 		SceneContext.BeginRenderingSceneColor(RHICmdList);
-		RHICmdList.ClearColorTexture(SceneContext.GetSceneDepthSurface(), FLinearColor(0, 0, 0, 0), FIntRect());
+		RHICmdList.ClearColorTexture(SceneContext.GetSceneColorSurface(), FLinearColor(0, 0, 0, 0), FIntRect());
 	}
 
 	SceneContext.DBufferA.SafeRelease();

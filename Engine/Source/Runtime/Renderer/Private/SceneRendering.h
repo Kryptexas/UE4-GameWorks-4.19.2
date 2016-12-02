@@ -332,7 +332,7 @@ public:
 	* @param PhaseSortedPrimitives - array with the primitives we want to draw
 	* @param TranslucenyPassType
 	*/
-	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType) const;
+	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType) const;
 
 	/**
 	* Iterate over the sorted list of prims and draw them
@@ -342,7 +342,7 @@ public:
 	* @param FirstPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
 	* @param LastPrimIdx, range of elements to render (included), index into SortedPrims[] after sorting
 	*/
-	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 FirstPrimIdx, int32 LastPrimIdx) const;
+	void DrawPrimitivesParallel(FRHICommandList& RHICmdList, const class FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 FirstPrimIdx, int32 LastPrimIdx) const;
 
 	/**
 	* Draw a single primitive...this is used when we are rendering in parallel and we need to handlke a translucent shadow
@@ -351,14 +351,14 @@ public:
 	* @param TranslucenyPassType
 	* @param PrimIdx in SortedPrims[]
 	*/
-	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 PrimIdx) const;
+	void DrawAPrimitive(FRHICommandList& RHICmdList, const class FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, class FDeferredShadingSceneRenderer& Renderer, ETranslucencyPass::Type TranslucenyPassType, int32 PrimIdx) const;
 
 	/** 
 	* Draw all the primitives in this set for the mobile pipeline. 
 	* @param bRenderSeparateTranslucency - If false, only primitives with materials without mobile separate translucency enabled are rendered. Opposite if true.
 	*/
 	template <class TDrawingPolicyFactory>
-	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, typename TDrawingPolicyFactory::ContextType& DrawingContext) const;
+	void DrawPrimitivesForMobile(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, typename TDrawingPolicyFactory::ContextType& DrawingContext) const;
 
 	/**
 	* Insert a primitive to the translucency rendering list[s]
@@ -406,7 +406,7 @@ private:
 
 
 	/** Renders a single primitive for the deferred shading pipeline. */
-	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, ETranslucencyPass::Type TranslucenyPassType) const;
+	void RenderPrimitive(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, ETranslucencyPass::Type TranslucenyPassType) const;
 };
 
 template <> struct TIsPODType<FTranslucentPrimSet::FTranslucentSortedPrim> { enum { Value = true }; };
@@ -516,6 +516,7 @@ class FParallelCommandListSet
 {
 public:
 	const FViewInfo& View;
+	FDrawingPolicyRenderState DrawRenderState;
 	FRHICommandListImmediate& ParentCmdList;
 	FSceneRenderTargets* Snapshot;
 	TStatId	ExecuteStat;
@@ -555,7 +556,7 @@ public:
 
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList)
 	{
-
+		DrawRenderState.ReassignResetRHICmdList(&CmdList);
 	}
 	static void WaitForTasks();
 private:
@@ -800,7 +801,10 @@ public:
 	FVector4 ExponentialFogParameters;
 	FVector ExponentialFogColor;
 	float FogMaxOpacity;
-	FVector2D ExponentialFogParameters3;
+	FVector4 ExponentialFogParameters3;
+
+	UTexture* FogInscatteringColorCubemap;
+	FVector FogInscatteringTextureParameters;
 
 	/** Parameters for directional inscattering of exponential height fog. */
 	bool bUseDirectionalInscattering;
@@ -1389,7 +1393,7 @@ public:
 
 	virtual void RenderHitProxies(FRHICommandListImmediate& RHICmdList) override;
 
-	bool RenderInverseOpacity(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+	bool RenderInverseOpacity(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState);
 
 protected:
 	/** Finds the visible dynamic shadows for each view. */
@@ -1431,7 +1435,7 @@ protected:
 	void UpdatePostProcessUsageFlags();
 
 	/** Render inverse opacity for the dynamic meshes. */
-	bool RenderInverseOpacityDynamic(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
+	bool RenderInverseOpacityDynamic(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
 	
 private:
 

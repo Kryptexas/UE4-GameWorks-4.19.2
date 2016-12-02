@@ -74,6 +74,7 @@ void FVulkanQueue::Submit(FVulkanCmdBuffer* CmdBuffer, FVulkanSemaphore* WaitSem
 	{
 		VERIFYVULKANRESULT(VulkanRHI::vkQueueWaitIdle(Queue));
 		CmdBuffer->GetOwner()->RefreshFenceStatus();
+		Device->GetFenceManager().WaitForFence(CmdBuffer->Fence, 1000 * 60);
 		ensure(Device->GetFenceManager().IsFenceSignaled(CmdBuffer->Fence));
 	}
 

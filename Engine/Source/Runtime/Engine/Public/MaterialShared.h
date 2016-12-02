@@ -375,7 +375,8 @@ namespace EMaterialShaderMapUsage
 		MaterialExportEmissive,
 		MaterialExportOpacity,
 		MaterialExportSubSurfaceColor,
-		DebugViewModeTexCoordScale
+		DebugViewModeTexCoordScale,
+		DebugViewModeRequiredTextureResolution
 	};
 }
 

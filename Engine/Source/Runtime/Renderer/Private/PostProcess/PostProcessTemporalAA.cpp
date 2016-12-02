@@ -16,30 +16,16 @@
 #include "PostProcess/PostProcessTonemap.h"
 #include "ClearQuad.h"
 
-static float TemporalHalton( int32 Index, int32 Base )
-{
-	float Result = 0.0f;
-	float InvBase = 1.0f / Base;
-	float Fraction = InvBase;
-	while( Index > 0 )
-	{
-		Result += ( Index % Base ) * Fraction;
-		Index /= Base;
-		Fraction *= InvBase;
-	}
-	return Result;
-}
-
-static void TemporalRandom(FVector2D* RESTRICT const Constant, uint32 FrameNumber)
-{
-	Constant->X = TemporalHalton(FrameNumber & 1023, 2);
-	Constant->Y = TemporalHalton(FrameNumber & 1023, 3);
-}
-
-static TAutoConsoleVariable<float> CVarTemporalAASharpness(
-	TEXT("r.TemporalAASharpness"),
+static TAutoConsoleVariable<float> CVarTemporalAAFilterSize(
+	TEXT("r.TemporalAAFilterSize"),
 	1.0f,
-	TEXT("Sharpness of temporal AA (0.0 = smoother, 1.0 = sharper)."),
+	TEXT("Size of the filter kernel. (1.0 = smoother, 0.0 = sharper but aliased)."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarTemporalAACatmullRom(
+	TEXT("r.TemporalAACatmullRom"),
+	1,
+	TEXT("Whether to use a Catmull-Rom filter kernel. Should be a bit sharper than Gaussian."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarTemporalAAPauseCorrect(
@@ -81,9 +67,7 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter SampleWeights;
-	FShaderParameter LowpassWeights;
 	FShaderParameter PlusWeights;
-	FShaderParameter RandomOffset;
 	FShaderParameter DitherScale;
 	FShaderParameter VelocityScaling;
 
@@ -94,9 +78,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		SampleWeights.Bind(Initializer.ParameterMap, TEXT("SampleWeights"));
-		LowpassWeights.Bind(Initializer.ParameterMap, TEXT("LowpassWeights"));
 		PlusWeights.Bind(Initializer.ParameterMap, TEXT("PlusWeights"));
-		RandomOffset.Bind(Initializer.ParameterMap, TEXT("RandomOffset"));
 		DitherScale.Bind(Initializer.ParameterMap, TEXT("DitherScale"));
 		VelocityScaling.Bind(Initializer.ParameterMap, TEXT("VelocityScaling"));
 	}
@@ -105,7 +87,7 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << SampleWeights << LowpassWeights << PlusWeights << RandomOffset << DitherScale << VelocityScaling;
+		Ar << PostprocessParameter << DeferredParameters << SampleWeights << PlusWeights << DitherScale << VelocityScaling;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -127,8 +109,8 @@ public:
 
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
-		float JitterX = Context.View.TemporalJitterPixelsX *  0.5f;
-		float JitterY = Context.View.TemporalJitterPixelsY * -0.5f;
+		float JitterX = Context.View.TemporalJitterPixelsX;
+		float JitterY = Context.View.TemporalJitterPixelsY;
 
 		{
 			const FPooledRenderTargetDesc* InputDesc = Context.Pass->GetInputDesc(ePId_Input0);
@@ -146,10 +128,10 @@ public:
 				{  1.0f,  1.0f },
 			};
 		
-			float Sharpness = CVarTemporalAASharpness.GetValueOnRenderThread();
+			float FilterSize = CVarTemporalAAFilterSize.GetValueOnRenderThread();
+			int32 bCatmullRom = CVarTemporalAACatmullRom.GetValueOnRenderThread();
 
 			float Weights[9];
-			float WeightsLow[9];
 			float WeightsPlus[5];
 			float TotalWeight = 0.0f;
 			float TotalWeightLow = 0.0f;
@@ -159,29 +141,20 @@ public:
 				float PixelOffsetX = SampleOffsets[i][0] - JitterX;
 				float PixelOffsetY = SampleOffsets[i][1] - JitterY;
 
-				if( Sharpness > 1.0f )
+				PixelOffsetX /= FilterSize;
+				PixelOffsetY /= FilterSize;
+
+				if( bCatmullRom )
 				{
 					Weights[i] = CatmullRom( PixelOffsetX ) * CatmullRom( PixelOffsetY );
 					TotalWeight += Weights[i];
 				}
 				else
 				{
-					// Exponential fit to Blackman-Harris 3.3
-					PixelOffsetX *= 1.0f + Sharpness * 0.5f;
-					PixelOffsetY *= 1.0f + Sharpness * 0.5f;
+					// Normal distribution, Sigma = 0.47
 					Weights[i] = FMath::Exp( -2.29f * ( PixelOffsetX * PixelOffsetX + PixelOffsetY * PixelOffsetY ) );
 					TotalWeight += Weights[i];
 				}
-
-				// Lowpass.
-				PixelOffsetX = SampleOffsets[i][0] - JitterX;
-				PixelOffsetY = SampleOffsets[i][1] - JitterY;
-				PixelOffsetX *= 0.25f;
-				PixelOffsetY *= 0.25f;
-				PixelOffsetX *= 1.0f + Sharpness * 0.5f;
-				PixelOffsetY *= 1.0f + Sharpness * 0.5f;
-				WeightsLow[i] = FMath::Exp( -2.29f * ( PixelOffsetX * PixelOffsetX + PixelOffsetY * PixelOffsetY ) );
-				TotalWeightLow += WeightsLow[i];
 			}
 
 			WeightsPlus[0] = Weights[1];
@@ -194,26 +167,18 @@ public:
 			for( int32 i = 0; i < 9; i++ )
 			{
 				SetShaderValue(Context.RHICmdList, ShaderRHI, SampleWeights, Weights[i] / TotalWeight, i );
-				SetShaderValue(Context.RHICmdList, ShaderRHI, LowpassWeights, WeightsLow[i] / TotalWeightLow, i );
 			}
 
 			for( int32 i = 0; i < 5; i++ )
 			{
 				SetShaderValue(Context.RHICmdList, ShaderRHI, PlusWeights, WeightsPlus[i] / TotalWeightPlus, i );
 			}
-			
-			FVector2D RandomOffsetValue;
-			TemporalRandom(&RandomOffsetValue, Context.View.Family->FrameNumber);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, RandomOffset, RandomOffsetValue);
-
 		}
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, DitherScale, bUseDither ? 1.0f : 0.0f);
 
 		const bool bIgnoreVelocity = (ViewState && ViewState->bSequencerIsPaused);
 		SetShaderValue(Context.RHICmdList, ShaderRHI, VelocityScaling, bIgnoreVelocity ? 0.0f : 1.0f);
-
-		SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(Context.View));
 	}
 };
 

@@ -792,7 +792,7 @@ public:
 	}
 
 	/** @return True if InViewModeIndex is the current view mode param */
-	bool IsViewModeParam(int32 InViewModeParam) const { return ViewModeParam == InViewModeParam; }
+	bool IsViewModeParam(int32 InViewModeParam) const;
 
 	/**
 	 * Invalidates this viewport and optionally child views.
@@ -1037,6 +1037,9 @@ public:
 
 	/** Returns the location of the object at the given viewport X,Y */
 	FVector GetHitProxyObjectLocation(int32 X, int32 Y);
+
+	/** Returns the map allowing to convert from the viewmode param to a name. */
+	TMap<int32, FName>& GetViewModeParamNameMap() { return ViewModeParamNameMap; }
 
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
@@ -1494,6 +1497,10 @@ private:
 
 	/* View mode param */
 	int32 ViewModeParam;
+	FName ViewModeParamName;
+
+	/* A map converting the viewmode param into an asset name. The map gets updated while the menu is populated. */
+	TMap<int32, FName> ViewModeParamNameMap;
 
 	/** near plane adjustable for each editor view, if < 0 GNearClippingPlane should be used. */
 	float NearPlane;
