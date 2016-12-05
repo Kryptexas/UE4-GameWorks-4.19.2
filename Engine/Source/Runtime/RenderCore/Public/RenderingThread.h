@@ -277,7 +277,7 @@ namespace Detail
 	template<typename T>
 	struct FalseType
 	{
-		static constexpr const bool False = false;
+		static CONSTEXPR const bool False = false;
 	};
 }
 
