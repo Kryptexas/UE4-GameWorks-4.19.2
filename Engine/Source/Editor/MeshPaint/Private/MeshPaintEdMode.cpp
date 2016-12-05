@@ -236,7 +236,7 @@ void FEdModeMeshPaint::Enter()
 /** FEdMode: Called when the mode is exited */
 void FEdModeMeshPaint::Exit()
 {
-	if(IVREditorModule::IsAvailable() && GEditor != nullptr)
+	if (IVREditorModule::IsAvailable())
 	{
 		// Because it is unknown if the mode entered with a play or editor mode we have to do this for both
 		for(int i = 0; i < 2; i++)
