@@ -97,6 +97,8 @@ class FAutomationDriver
 {
 public:
 
+	virtual ~FAutomationDriver();
+
 	virtual bool Wait(FTimespan Timespan) override;
 	virtual bool Wait(const FDriverWaitDelegate& Delegate) override;
 

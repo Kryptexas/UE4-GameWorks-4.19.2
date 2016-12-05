@@ -134,6 +134,9 @@ class IAutomationDriverSpecSuiteViewModel
 {
 public:
 
+	virtual ~IAutomationDriverSpecSuiteViewModel()
+	{ }
+
 	/** @return The current value of the form text element */
 	virtual FText GetFormText(EFormElement Element) const = 0;
 

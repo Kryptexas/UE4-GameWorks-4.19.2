@@ -9,6 +9,9 @@ class FPassThroughMessageHandlerImpl
 {
 public:
 
+	virtual ~FPassThroughMessageHandlerImpl()
+	{ }
+
 	virtual bool IsHandlingMessages() const override
 	{
 		return bAllowMessageHandling;
@@ -455,6 +458,9 @@ class FPassThroughMessageHandlerFactory
 	: public IPassThroughMessageHandlerFactory
 {
 public:
+
+	virtual ~FPassThroughMessageHandlerFactory()
+	{ }
 
 	virtual TSharedRef<FPassThroughMessageHandler> Create(
 		const TSharedRef<FGenericApplicationMessageHandler>& MessageHandler) const override

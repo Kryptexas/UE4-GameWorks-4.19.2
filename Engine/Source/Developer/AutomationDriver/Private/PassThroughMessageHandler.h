@@ -8,6 +8,9 @@ class FPassThroughMessageHandler
 {
 public:
 
+	virtual ~FPassThroughMessageHandler()
+	{ }
+
 	virtual bool IsHandlingMessages() const = 0;
 
 	virtual void SetAllowMessageHandling(bool bValue) = 0;
@@ -17,6 +20,9 @@ public:
 class IPassThroughMessageHandlerFactory
 {
 public:
+
+	virtual ~IPassThroughMessageHandlerFactory()
+	{ }
 
 	virtual TSharedRef<FPassThroughMessageHandler> Create(
 		const TSharedRef<FGenericApplicationMessageHandler>& MessageHandler) const = 0;

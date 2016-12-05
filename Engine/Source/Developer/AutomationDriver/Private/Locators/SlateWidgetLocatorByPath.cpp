@@ -25,6 +25,9 @@ private:
 	{
 	public:
 
+		virtual ~FIdMatcher()
+		{ }
+
 		virtual bool IsMatch(const TSharedRef<SWidget>& Widget) const override
 		{
 			const TArray<TSharedRef<FDriverIdMetaData>> AllIdMetaData = Widget->GetAllMetaData<FDriverIdMetaData>();
@@ -56,6 +59,9 @@ private:
 		: public FMatcher
 	{
 	public:
+
+		virtual ~FTagMatcher()
+		{ }
 
 		virtual bool IsMatch(const TSharedRef<SWidget>& Widget) const override
 		{
@@ -93,6 +99,9 @@ private:
 		: public FMatcher
 	{
 	public:
+
+		virtual ~FTypeMatcher()
+		{ }
 
 		virtual bool IsMatch(const TSharedRef<SWidget>& Widget) const override
 		{

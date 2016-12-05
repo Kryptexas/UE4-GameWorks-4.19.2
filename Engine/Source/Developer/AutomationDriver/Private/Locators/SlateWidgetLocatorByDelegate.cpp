@@ -9,6 +9,9 @@ class FSlateWidgetLocatorByWidgetDelegate
 {
 public:
 
+	virtual ~FSlateWidgetLocatorByWidgetDelegate()
+	{ }
+
 	virtual FString ToDebugString() const
 	{
 		FString DelegateName;
@@ -61,6 +64,9 @@ class FSlateWidgetLocatorByWidgetPathDelegate
 	: public IElementLocator
 {
 public:
+
+	virtual ~FSlateWidgetLocatorByWidgetPathDelegate()
+	{ }
 
 	virtual FString ToDebugString() const
 	{

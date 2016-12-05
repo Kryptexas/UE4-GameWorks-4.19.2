@@ -274,6 +274,10 @@ TSharedRef<FAsyncAutomationDriver, ESPMode::ThreadSafe> FAsyncAutomationDriverFa
 }
 
 
+FAutomationDriver::~FAutomationDriver()
+{
+
+}
 
 bool FAutomationDriver::Wait(FTimespan Timespan)
 {

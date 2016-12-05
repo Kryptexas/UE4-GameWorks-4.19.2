@@ -1362,6 +1362,9 @@ class FAsyncDriverSequence
 {
 public:
 
+	virtual ~FAsyncDriverSequence()
+	{ }
+
 	virtual IAsyncActionSequence& Actions()
 	{
 		return *ActionSequence;
@@ -1865,6 +1868,9 @@ class FDriverSequence
 	: public IDriverSequence
 {
 public:
+
+	virtual ~FDriverSequence()
+	{ }
 
 	virtual IActionSequence& Actions()
 	{

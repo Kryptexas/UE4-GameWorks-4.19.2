@@ -16,6 +16,9 @@ class FSlateWidgetElement
 {
 public:
 
+	virtual ~FSlateWidgetElement()
+	{ }
+
 	virtual FString ToDebugString() const
 	{
 		const TSharedRef<SWidget> Widget = WidgetPath.Widgets.Last().Widget;

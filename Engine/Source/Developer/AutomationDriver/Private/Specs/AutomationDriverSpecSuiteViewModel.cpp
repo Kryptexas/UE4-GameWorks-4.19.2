@@ -8,6 +8,9 @@ class FAutomationDriverSpecSuiteViewModel
 {
 public:
 
+	virtual ~FAutomationDriverSpecSuiteViewModel()
+	{ }
+
 	virtual FText GetFormText(EFormElement Element) const override
 	{
 		return FormTextMap.FindOrAdd(Element);

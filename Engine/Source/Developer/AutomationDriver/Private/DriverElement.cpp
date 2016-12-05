@@ -831,6 +831,9 @@ class FDriverElementCollection
 {
 public:
 
+	virtual ~FDriverElementCollection()
+	{ }
+
 	virtual TArray<TSharedRef<IDriverElement, ESPMode::ThreadSafe>> GetElements() override
 	{
 		if (IsInGameThread())
@@ -904,6 +907,9 @@ class FDriverElement
 	, public TSharedFromThis<FDriverElement, ESPMode::ThreadSafe>
 {
 public:
+
+	virtual ~FDriverElement()
+	{ }
 
 	virtual bool Hover() override
 	{

@@ -8,6 +8,9 @@ class FAutomatedCursor
 {
 public:
 
+	virtual ~FAutomatedCursor()
+	{ }
+
 	virtual FVector2D GetPosition() const override
 	{
 		if (bAllowMessageHandling)

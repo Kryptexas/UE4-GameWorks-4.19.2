@@ -10,6 +10,9 @@ class FSlateWidgetLocatorByUniqueTag
 {
 public:
 
+	virtual ~FSlateWidgetLocatorByUniqueTag()
+	{ }
+
 	virtual FString ToDebugString() const
 	{
 		const FString Address = FString::Printf(TEXT("0x%p"), &UniqueMetaData.Get());
