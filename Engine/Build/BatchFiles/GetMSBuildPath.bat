@@ -58,7 +58,7 @@ for /f "tokens=2,*" %%A in ('REG.exe query HKLM\SOFTWARE\%1 /v %2 2^>Nul') do (
 		exit /B 0
 	)
 )
-for /f "tokens=2,*" %%A in ('REG.exe query HKLM\SOFTWARE\Wow6432Node\%1 /v %2 2^>Nul') do (
+for /f "tokens=2,*" %%A in ('REG.exe query HKCU\SOFTWARE\Wow6432Node\%1 /v %2 2^>Nul') do (
 	if exist "%%B%%3" (
 		set MSBUILD_EXE="%%B%3"
 		exit /B 0
