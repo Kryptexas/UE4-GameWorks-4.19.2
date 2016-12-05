@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 #include "RendererInterface.h"
 #include "SceneView.h"
+#include "DrawingPolicy.h"
 
 class FPrimitiveSceneProxy;
 
