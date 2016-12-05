@@ -1253,7 +1253,7 @@ namespace UnrealBuildTool
 			if (bModuleUsesUnityBuild)
 			{
 				CPPFilesToCompile = Unity.GenerateUnityCPPs(ToolChain, Target, CPPFilesToCompile, CPPCompileEnvironment, Name);
-				LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(ToolChain, CPPCompileEnvironment, CPPFilesToCompile, Name, ActionGraph).ObjectFiles);
+				LinkInputFiles.AddRange(CompileUnityFilesWithToolChain(ToolChain, CPPCompileEnvironment, ModuleCompileEnvironment, CPPFilesToCompile, Name, ActionGraph).ObjectFiles);
 			}
 			else
 			{
@@ -1397,7 +1397,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Compiles the provided CPP unity files. Will
 		/// </summary>
-		private CPPOutput CompileUnityFilesWithToolChain(UEToolChain ToolChain, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
+		private CPPOutput CompileUnityFilesWithToolChain(UEToolChain ToolChain, CPPEnvironment CompileEnvironment, CPPEnvironment ModuleCompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
 			List<FileItem> NormalFiles = new List<FileItem>();
 			List<FileItem> AdaptiveFiles = new List<FileItem>();
@@ -1433,7 +1433,7 @@ namespace UnrealBuildTool
 			{
 				// Create an unoptmized compilation environment. Need to turn of PCH due to different
 				// compiler settings
-				CPPEnvironment UnoptimziedEnvironment = CompileEnvironment.DeepCopy();
+				CPPEnvironment UnoptimziedEnvironment = ModuleCompileEnvironment.DeepCopy();
 				UnoptimziedEnvironment.Config.bOptimizeCode = false;
 				UnoptimziedEnvironment.Config.PrecompiledHeaderAction = PrecompiledHeaderAction.None;
 
