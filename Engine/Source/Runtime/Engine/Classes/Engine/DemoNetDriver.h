@@ -281,6 +281,8 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 
 	void		RespawnNecessaryNetStartupActors();
 
+	virtual bool ShouldSaveCheckpoint();
+
 	void		SaveCheckpoint();
 	void		TickCheckpoint();
 	bool		LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 GotoCheckpointSkipExtraTimeInMS );

@@ -40,6 +40,7 @@ public:
 
 	virtual FOnPrepareLoadingScreen& OnPrepareLoadingScreen() override { return OnPrepareLoadingScreenDelegate; }
 	virtual FOnMoviePlaybackFinished& OnMoviePlaybackFinished() override { return OnMoviePlaybackFinishedDelegate; }
+	virtual FOnMovieClipFinished& OnMovieClipFinished() override { return OnMovieClipFinishedDelegate; }
 
 	/** FTickableObjectRenderThread interface */
 	virtual void Tick( float DeltaTime ) override;
@@ -117,6 +118,9 @@ private:
 	FOnPrepareLoadingScreen OnPrepareLoadingScreenDelegate;
 	
 	FOnMoviePlaybackFinished OnMoviePlaybackFinishedDelegate;
+
+	FOnMovieClipFinished OnMovieClipFinishedDelegate;
+
 
 	/** The last time a movie was started */
 	double LastPlayTime;
