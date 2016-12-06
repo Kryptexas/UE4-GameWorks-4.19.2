@@ -117,6 +117,9 @@ private:
 
 public:
 
+	virtual ~FSlateWidgetLocatorByPath()
+	{ }
+
 	virtual FString ToDebugString() const
 	{
 		return TEXT("[By::Path] ") + Path;
