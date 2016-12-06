@@ -170,6 +170,9 @@ class FAutomatedApplicationImpl
 {
 public:
 
+	virtual ~FAutomatedApplicationImpl()
+	{ }
+
 	virtual void AllowPlatformMessageHandling() override
 	{
 		if (PassThroughMessageHandler.IsValid())

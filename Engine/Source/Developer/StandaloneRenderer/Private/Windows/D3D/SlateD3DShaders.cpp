@@ -4,6 +4,8 @@
 #include "Windows/D3D/SlateD3DRenderer.h"
 #include "Windows/D3D/SlateD3DRenderingPolicy.h"
 #include "Misc/Paths.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
 
 // @return pointer to the D3DCompile function
 static pD3DCompile GetD3DCompileFunc()
