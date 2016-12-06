@@ -1,10 +1,12 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+class ISlateMetaData;
+
 /**
  * A static helper class which is used to easily construct various types of AutomationDriver specific SlateMetaData.
  */
-class FDriverMetaData
+class SLATE_API FDriverMetaData
 {
 public:
 

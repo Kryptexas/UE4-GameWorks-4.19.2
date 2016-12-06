@@ -903,6 +903,7 @@ void FAutomationDriverSpec::Define()
 		{
 			It("should return true if the element is currently visible in the SWidget DOM being displayed", EAsyncExecution::ThreadPool, [this]()
 			{
+				Driver->Wait(Until::ElementIsVisible(By::Id("Piano"), FWaitTimeout::InSeconds(1)));
 				TEST_TRUE(Driver->FindElement(By::Id("Piano"))->IsVisible());
 			});
 

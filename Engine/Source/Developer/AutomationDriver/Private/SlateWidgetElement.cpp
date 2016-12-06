@@ -83,7 +83,7 @@ public:
 
 	virtual FVector2D GetSize() const override
 	{
-		return WidgetPath.Widgets.Last().Geometry.GetLocalSize();
+		return WidgetPath.Widgets.Last().Geometry.GetDrawSize();
 	}
 
 	virtual TSharedPtr<FGenericWindow> GetWindow() const override

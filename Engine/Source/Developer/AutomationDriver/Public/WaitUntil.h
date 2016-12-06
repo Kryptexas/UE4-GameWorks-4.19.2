@@ -6,7 +6,7 @@ class IElementLocator;
 /**
  * Represents the state of an active wait action for the driver
  */
-struct FDriverWaitResponse
+struct AUTOMATIONDRIVER_API FDriverWaitResponse
 {
 public:
 
@@ -52,7 +52,7 @@ DECLARE_DELEGATE_RetVal(bool, FDriverWaitConditionDelegate);
 /**
  * A fluent wrapper around timespan to enforce obvious differences between specified Timeout and Interval values for waits
  */
-class FWaitTimeout
+class AUTOMATIONDRIVER_API FWaitTimeout
 {
 public:
 
@@ -69,7 +69,7 @@ public:
 /**
  * A fluent wrapper around timespan to enforce obvious differences between specified Timeout and Interval values for waits
  */
-class FWaitInterval
+class AUTOMATIONDRIVER_API FWaitInterval
 {
 public:
 
@@ -86,7 +86,7 @@ public:
 /**
  * Represents a collection of fluent helper functions designed to make accessing and creating driver wait delegates easier
  */
-class Until
+class AUTOMATIONDRIVER_API Until
 {
 public:
 

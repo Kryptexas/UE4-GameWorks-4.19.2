@@ -9,7 +9,7 @@ DECLARE_DELEGATE_OneParam(FLocateSlateWidgetPathElementDelegate, TArray<FWidgetP
 /**
  * Represents a collection of fluent helper functions designed to make accessing and creating element locators easy
  */
-class By
+class AUTOMATIONDRIVER_API By
 {
 public:
 
