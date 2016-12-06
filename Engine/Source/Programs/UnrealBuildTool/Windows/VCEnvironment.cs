@@ -215,26 +215,29 @@ namespace UnrealBuildTool
 
 		private static string FindNetFxSDKExtensionInstallationFolder()
 		{
-			string Version;
+			string[] Versions;
 			switch (WindowsPlatform.Compiler)
 			{
 				case WindowsCompiler.VisualStudio2017:
 				case WindowsCompiler.VisualStudio2015:
-					Version = "4.6";
+					Versions = new string[] { "4.6", "4.6.1", "4.6.2" };
 					break;
 
 				default:
 					return string.Empty;
 			}
-			string FinalResult = string.Empty;
-			object Result = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null)
-					  ?? Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null);
 
-			if (Result != null)
+			foreach (string Version in Versions)
 			{
-				FinalResult = ((string)Result).TrimEnd('\\');
+				string Result = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null) as string
+							?? Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null) as string;
+				if (Result != null)
+				{
+					return Result.TrimEnd('\\');
+				}
 			}
-			return FinalResult;
+
+			return string.Empty;
 		}
 
 		private static string FindWindowsSDKExtensionInstallationFolder()
