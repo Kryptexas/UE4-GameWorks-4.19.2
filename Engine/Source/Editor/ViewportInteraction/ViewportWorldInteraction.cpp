@@ -2794,6 +2794,7 @@ void UViewportWorldInteraction::SetWorldToMetersScale( const float NewWorldToMet
 
 	ENGINE_API extern float GNewWorldToMetersScale;
 	GNewWorldToMetersScale = NewWorldToMetersScale;
+	OnWorldScaleChangedEvent.Broadcast(NewWorldToMetersScale);
 }
 
 UViewportInteractor* UViewportWorldInteraction::GetOtherInteractorIntertiaContribute( UViewportInteractor* Interactor )

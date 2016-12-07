@@ -429,6 +429,9 @@ public:
 	// Gets the color
 	FLinearColor GetColor( const EColors Color ) const;
 
+	// Get the default near clipping plane for VR editing
+	float GetDefaultVRNearClipPlane() const;
+
 private:
 
 	// All the colors for this mode
