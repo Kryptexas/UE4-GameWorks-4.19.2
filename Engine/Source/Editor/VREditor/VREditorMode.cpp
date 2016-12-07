@@ -792,6 +792,11 @@ void UVREditorMode::DestroyTransientActor( AActor* Actor ) const
 	WorldInteraction->DestroyTransientActor( Actor );
 }
 
+bool UVREditorMode::IsShowingRadialMenu(const UVREditorInteractor* Interactor) const
+{
+	return UISystem->IsShowingRadialMenu(Interactor);
+}
+
 const SLevelViewport& UVREditorMode::GetLevelViewportPossessedForVR() const
 {
 	return *VREditorLevelViewportWeakPtr.Pin();

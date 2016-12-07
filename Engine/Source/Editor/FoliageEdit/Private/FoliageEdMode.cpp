@@ -486,9 +486,9 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 		// Only allow light press
 		Interactor->SetAllowTriggerFullPress(false);
 		// Consume light press
-		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed)
+		if ((Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed) && (!VREditorMode->IsShowingRadialMenu(VRInteractor)))
 		{
-			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
+			if ((Action.Event == IE_Pressed) && (!VRInteractor->IsHoveringOverPriorityType()))
 			{
 				// Go ahead and paint immediately
 				FVector LaserPointerStart, LaserPointerEnd;
@@ -556,7 +556,7 @@ void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UVi
 			}
 
 			// Stop current tracking if the user is no longer painting
-			else if (Action.Event == IE_Released && FoliageInteractor && FoliageInteractor == Interactor)
+			else if (Action.Event == IE_Released && FoliageInteractor && (FoliageInteractor == Interactor))
 			{
 				EndFoliageBrushTrace();
 				FoliageInteractor = nullptr;

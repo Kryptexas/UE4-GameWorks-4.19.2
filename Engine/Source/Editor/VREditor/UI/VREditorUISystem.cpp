@@ -1218,7 +1218,7 @@ void UVREditorUISystem::ShowEditorUIPanel( AVREditorFloatingUI* Panel, UVREditor
 }
 
 
-bool UVREditorUISystem::IsShowingRadialMenu( UVREditorInteractor* Interactor ) const
+bool UVREditorUISystem::IsShowingRadialMenu(const UVREditorInteractor* Interactor ) const
 {
 	const EControllerHand DockedToHand = QuickRadialMenu->GetDockedTo() == AVREditorFloatingUI::EDockedTo::LeftArm ? EControllerHand::Left : EControllerHand::Right;
 	const UVREditorInteractor* DockedToInteractor = GetOwner().GetHandInteractor( DockedToHand );
