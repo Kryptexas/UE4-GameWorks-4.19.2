@@ -286,9 +286,9 @@ public:
 
 	float GetWorldToMetersScale() const;
 	void SetWorldToMetersScale( const float NewWorldToMetersScale );
+	float WorldToMetersScaleWhileInFrame;
 
 private:
-	float WorldToMetersScaleWhileInFrame;
 
 };
 

@@ -215,26 +215,29 @@ namespace UnrealBuildTool
 
 		private static string FindNetFxSDKExtensionInstallationFolder()
 		{
-			string Version;
+			string[] Versions;
 			switch (WindowsPlatform.Compiler)
 			{
 				case WindowsCompiler.VisualStudio2017:
 				case WindowsCompiler.VisualStudio2015:
-					Version = "4.6";
+					Versions = new string[] { "4.6", "4.6.1", "4.6.2" };
 					break;
 
 				default:
 					return string.Empty;
 			}
-			string FinalResult = string.Empty;
-			object Result = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null)
-					  ?? Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null);
 
-			if (Result != null)
+			foreach (string Version in Versions)
 			{
-				FinalResult = ((string)Result).TrimEnd('\\');
+				string Result = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null) as string
+							?? Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null) as string;
+				if (Result != null)
+				{
+					return Result.TrimEnd('\\');
+				}
 			}
-			return FinalResult;
+
+			return string.Empty;
 		}
 
 		private static string FindWindowsSDKExtensionInstallationFolder()
@@ -546,46 +549,72 @@ namespace UnrealBuildTool
 
 		/// <summary>
 		/// Gets the path to MSBuild.
+		/// This mirrors the logic in GetMSBuildPath.bat.
 		/// </summary>
 		public static string GetMSBuildToolPath()
 		{
-			string ToolPath;
-			if(TryGetMSBuildToolPath("FrameworkDir64", "FrameworkVer64", out ToolPath))
+			// Try to get the MSBuild 14.0 path directly (see https://msdn.microsoft.com/en-us/library/hh162058(v=vs.120).aspx)
+			string ToolPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "14.0", "bin", "MSBuild.exe");
+			if(File.Exists(ToolPath))
+			{
+				return ToolPath;
+			} 
+
+			// Try to get the MSBuild 14.0 path from the registry
+			if (TryReadMsBuildInstallPath("Microsoft\\MSBuild\\ToolsVersions\\14.0", "MSBuildToolsPath", "MSBuild.exe", out ToolPath))
 			{
 				return ToolPath;
 			}
-			if(TryGetMSBuildToolPath("FrameworkDir32", "FrameworkVer32", out ToolPath))
+
+			// Check for MSBuild 15. This is installed alongside Visual Studio 2017, so we get the path relative to that.
+			if (TryReadMsBuildInstallPath("Microsoft\\VisualStudio\\SxS\\VS7", "15.0", "MSBuild\\15.0\\bin\\MSBuild.exe", out ToolPath))
 			{
 				return ToolPath;
 			}
+
+			// Check for older versions of MSBuild. These are registered as separate versions in the registry.
+			if (TryReadMsBuildInstallPath("Microsoft\\MSBuild\\ToolsVersions\\12.0", "MSBuildToolsPath", "MSBuild.exe", out ToolPath))
+			{
+				return ToolPath;
+			}
+			if (TryReadMsBuildInstallPath("Microsoft\\MSBuild\\ToolsVersions\\4.0", "MSBuildToolsPath", "MSBuild.exe", out ToolPath))
+			{
+				return ToolPath;
+			}
+
 			throw new BuildException("NOTE: Please ensure that 64bit Tools are installed with DevStudio - there is usually an option to install these during install");
 		}
 
-		static bool TryGetMSBuildToolPath(string FrameworkDirName, string FrameworkVerName, out string ToolPath)
+		/// <summary>
+		/// Function to query the registry under HKCU/HKLM Win32/Wow64 software registry keys for a certain install directory.
+		/// This mirrors the logic in GetMSBuildPath.bat.
+		/// </summary>
+		/// <returns></returns>
+		static bool TryReadMsBuildInstallPath(string KeyRelativePath, string KeyName, string MsBuildRelativePath, out string OutMsBuildPath)
 		{
-			string[] RegistryPaths = 
+			string[] KeyBasePaths =
 			{
-				@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\SxS\VC7",
-				@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\VisualStudio\SxS\VC7",
-				@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7",
-				@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7"
+				@"HKEY_CURRENT_USER\SOFTWARE\",
+				@"HKEY_LOCAL_MACHINE\SOFTWARE\",
+				@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\",
+				@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\"
 			};
 
-			foreach(string RegistryPath in RegistryPaths)
+			foreach (string KeyBasePath in KeyBasePaths)
 			{
-				string FrameworkDir = Microsoft.Win32.Registry.GetValue(RegistryPath, FrameworkDirName, null) as string;
-				if(!String.IsNullOrEmpty(FrameworkDir))
+				string Value = Registry.GetValue(KeyBasePath + KeyRelativePath, KeyName, null) as string;
+				if (Value != null)
 				{
-					string FrameworkVer = Microsoft.Win32.Registry.GetValue(RegistryPath, FrameworkVerName, null) as string;
-					if(!String.IsNullOrEmpty(FrameworkVer))
+					string MsBuildPath = Path.Combine(Value, MsBuildRelativePath);
+					if (File.Exists(MsBuildPath))
 					{
-						ToolPath = Path.Combine(FrameworkDir, FrameworkVer, "MSBuild.exe");
+						OutMsBuildPath = MsBuildPath;
 						return true;
 					}
 				}
 			}
 
-			ToolPath = null;
+			OutMsBuildPath = null;
 			return false;
 		}
 

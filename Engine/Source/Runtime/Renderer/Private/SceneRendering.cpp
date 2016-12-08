@@ -23,6 +23,9 @@
 #include "ComponentRecreateRenderStateContext.h"
 #include "PostProcessSubsurface.h"
 
+// For UsePostInitView
+#include "IHeadMountedDisplay.h"
+
 /*-----------------------------------------------------------------------------
 	Globals
 -----------------------------------------------------------------------------*/
@@ -1583,17 +1586,30 @@ void FSceneRenderer::ClearPrimitiveSingleFramePrecomputedLightingBuffers()
 */
 static void ViewExtensionPreRender_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer)
 {
+	SCOPED_DRAW_EVENT(RHICmdList, ViewExtensionPreInitViews);
+
 	FMemMark MemStackMark(FMemStack::Get());
 
 	// update any resources that needed a deferred update
 	FDeferredUpdateResource::UpdateResources(RHICmdList);
 
-	for (int ViewExt = 0; ViewExt < SceneRenderer->ViewFamily.ViewExtensions.Num(); ViewExt++)
+	const bool bHMDUsePostInit = GEngine &&
+		GEngine->HMDDevice.IsValid() &&
+		GEngine->HMDDevice->IsStereoEnabled() &&
+		GEngine->HMDDevice->GetViewExtension().IsValid() &&
+		GEngine->HMDDevice->GetViewExtension()->UsePostInitView();
+
+	if (!bHMDUsePostInit)
 	{
-		SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderViewFamily_RenderThread(RHICmdList, SceneRenderer->ViewFamily);
-		for (int ViewIndex = 0; ViewIndex < SceneRenderer->ViewFamily.Views.Num(); ViewIndex++)
+		for (int ViewExt = 0; ViewExt < SceneRenderer->ViewFamily.ViewExtensions.Num(); ViewExt++)
 		{
-			SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderView_RenderThread(RHICmdList, SceneRenderer->Views[ViewIndex]);
+			SCOPED_DRAW_EVENT(RHICmdList, PreInitViewFamily);
+			SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderViewFamily_RenderThread(RHICmdList, SceneRenderer->ViewFamily);
+			for (int ViewIndex = 0; ViewIndex < SceneRenderer->ViewFamily.Views.Num(); ViewIndex++)
+			{
+				SCOPED_DRAW_EVENT(RHICmdList, PreInitView);
+				SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderView_RenderThread(RHICmdList, SceneRenderer->Views[ViewIndex]);
+			}
 		}
 	}
 }

@@ -77,19 +77,19 @@ TSharedPtr<FEditorWorldWrapper> FEditorWorldManager::GetEditorWorldWrapper(const
 {
 	// Try to find this world in the map and return it or create and add one if nothing found
 	TSharedPtr<FEditorWorldWrapper> Result;
-	if(InWorld)
+	check(InWorld != nullptr);
+
+	TSharedPtr<FEditorWorldWrapper>* FoundWorld = EditorWorldMap.Find(InWorld->GetUniqueID());
+	if (FoundWorld != nullptr)
 	{
-		TSharedPtr<FEditorWorldWrapper>* FoundWorld = EditorWorldMap.Find(InWorld->GetUniqueID());
-		if(FoundWorld != nullptr)
-		{
-			Result = *FoundWorld;
-		}
-		else
-		{
-			FWorldContext* WorldContext = GEditor->GetWorldContextFromWorld(InWorld);
-			Result = OnWorldContextAdd(*WorldContext);
-		}
+		Result = *FoundWorld;
 	}
+	else
+	{
+		FWorldContext* WorldContext = GEditor->GetWorldContextFromWorld(InWorld);
+		Result = OnWorldContextAdd(*WorldContext);
+	}
+
 	return Result;
 }
 
@@ -98,7 +98,7 @@ TSharedPtr<FEditorWorldWrapper> FEditorWorldManager::OnWorldContextAdd(FWorldCon
 	//Only add editor type world to the map
 	UWorld* World = InWorldContext.World();
 	TSharedPtr<FEditorWorldWrapper> Result;
-	if(World && (InWorldContext.WorldType == EWorldType::Editor || InWorldContext.WorldType == EWorldType::EditorPreview))
+	if(World /* && (InWorldContext.WorldType == EWorldType::Editor || InWorldContext.WorldType == EWorldType::EditorPreview) */)
 	{
 		TSharedPtr<FEditorWorldWrapper> EditorWorld(new FEditorWorldWrapper(InWorldContext));
 		Result = EditorWorld;

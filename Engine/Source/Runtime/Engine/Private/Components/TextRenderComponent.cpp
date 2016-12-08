@@ -361,6 +361,8 @@ public:
 		{
 			check(InMaterial && InFont && InFont->FontCacheType == EFontCacheType::Offline);
 
+			bIsCustomMID = false;
+
 			const int32 NumFontPages = InFont->Textures.Num();
 			if (NumFontPages > 0)
 			{
@@ -371,6 +373,8 @@ public:
 				{
 					if (InMaterial->IsA<UMaterialInstanceDynamic>())
 					{
+						bIsCustomMID = true;
+
 						// If the user provided a custom MID, we can't do anything but use that single MID for page 0
 						UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(InMaterial);
 						for (const FName FontParameterName : FontParameters)
@@ -400,8 +404,8 @@ public:
 		{
 			bool bIsStale = false;
 
-			// We can only test for stale MIDs when we created the MIDs ourselves (which we don't do if the outer MID was itself a MID)
-			if (GIsEditor && !InMaterial->IsA<UMaterialInstanceDynamic>())
+			// We can only test for stale MIDs when we created the MIDs ourselves
+			if (GIsEditor && !bIsCustomMID)
 			{
 				bIsStale = MIDs.Num() != InFont->Textures.Num();
 
@@ -424,6 +428,7 @@ public:
 
 		TArray<UMaterialInstanceDynamic*> MIDs;
 		TArray<FName> FontParameters;
+		bool bIsCustomMID;
 	};
 
 	typedef TSharedRef<const FMIDData, ESPMode::ThreadSafe> FMIDDataRef;
@@ -474,16 +479,19 @@ public:
 		for (auto& MIDDataPair : CachedMIDs)
 		{
 			const FMIDDataPtr& MIDData = MIDDataPair.Value;
-			for (UMaterialInstanceDynamic*& MID : const_cast<FMIDData*>(MIDData.Get())->MIDs)
+			if (!MIDData->bIsCustomMID)
 			{
-				Collector.AddReferencedObject(MID);
+				for (UMaterialInstanceDynamic*& MID : const_cast<FMIDData*>(MIDData.Get())->MIDs)
+				{
+					Collector.AddReferencedObject(MID);
+				}
 			}
 		}
 
 		for (const FMIDDataWeakPtr& StaleMID : StaleMIDs)
 		{
 			FMIDDataPtr PinnedMID = StaleMID.Pin();
-			if (PinnedMID.IsValid())
+			if (PinnedMID.IsValid() && !PinnedMID->bIsCustomMID)
 			{
 				for (UMaterialInstanceDynamic*& MID : const_cast<FMIDData*>(PinnedMID.Get())->MIDs)
 				{

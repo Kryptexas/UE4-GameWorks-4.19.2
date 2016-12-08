@@ -2245,11 +2245,53 @@ void GenerateMeshToMeshSkinningData(TArray<FApexClothPhysToRenderVertData>& OutS
 	}
 }
 
+// Temporary duplication of FMath::ComputeBaryCentric2D for patch. Original function checked against SMALL_NUMBER for coplanar points
+// but this tolerance is a little too large, prefer to warn about small triangles and attempt to calculate anyway.
+FVector ComputeBaryCentric2D_Clothing(const FVector& Point, const FVector& A, const FVector& B, const FVector& C, float CoplanarTolerance = SMALL_NUMBER)
+{
+	// Compute the normal of the triangle
+	const FVector TriNorm = (B - A) ^ (C - A);
+
+	//check collinearity of A,B,C
+	check(TriNorm.SizeSquared() > CoplanarTolerance && "Collinear points in FMath::ComputeBaryCentric2D()");
+
+	const FVector N = TriNorm.GetSafeNormal();
+
+	// Compute twice area of triangle ABC
+	const float AreaABCInv = 1.0f / (N | TriNorm);
+
+	// Compute a contribution
+	const float AreaPBC = N | ((B - Point) ^ (C - Point));
+	const float a = AreaPBC * AreaABCInv;
+
+	// Compute b contribution
+	const float AreaPCA = N | ((C - Point) ^ (A - Point));
+	const float b = AreaPCA * AreaABCInv;
+
+	// Compute c contribution
+	return FVector(a, b, 1.0f - a - b);
+}
+
 FVector4 GetPointBaryAndDist(const FVector& A, const FVector& B, const FVector& C, const FVector& NA, const FVector& NB, const FVector& NC, const FVector& Point)
 {
 	FPlane TrianglePlane(A, B, C);
 	const FVector PointOnTriPlane = FVector::PointPlaneProject(Point, TrianglePlane);
-	const FVector BaryCoords = FMath::ComputeBaryCentric2D(PointOnTriPlane, A, B, C);
+
+	// Check for coplanar points and warn about possibly bad data
+	const FVector TriNorm = (B - A) ^ (C - A);
+
+	const float NormalSizeSq = TriNorm.SizeSquared();
+	if(NormalSizeSq < SMALL_NUMBER)
+	{
+		UE_LOG(LogApexClothingUtils, Log, TEXT("Tiny triangle detected when generating clothing skinning data. (A=%.5f,%.5f,%.5f, B=%.5f,%.5f,%.5f, C=%.5f,%.5f,%.5f). This may cause rendering issues, consider improving the topology of the simulation mesh."),
+			   A.X,A.Y,A.Z,
+			   B.X,B.Y,B.Z,
+			   C.X,C.Y,C.Z);
+
+		check(NormalSizeSq > 0.0f);
+	}
+
+	const FVector BaryCoords = ComputeBaryCentric2D_Clothing(PointOnTriPlane, A, B, C, 0.0f);
 	const FVector NormalAtPoint = TrianglePlane; //NA * BaryCoords.X + NB * BaryCoords.Y + NC * BaryCoords.Z;
 	FVector TriPointToVert = Point - PointOnTriPlane;
 	TriPointToVert = TriPointToVert.ProjectOnTo(NormalAtPoint);

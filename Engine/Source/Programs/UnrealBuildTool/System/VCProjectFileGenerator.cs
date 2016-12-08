@@ -41,7 +41,7 @@ namespace UnrealBuildTool
 		VisualStudio2012, // Unsupported
 		VisualStudio2013,
 		VisualStudio2015,
-		VisualStudio2017, // "15"
+		VisualStudio2017,
 	}
 
 	/// <summary>

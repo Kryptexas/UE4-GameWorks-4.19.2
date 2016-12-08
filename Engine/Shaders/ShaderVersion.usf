@@ -2,5 +2,5 @@
 // Each time the console command is executed it generates a new GUID. As this file is included
 // in common.usf (which should be included in any shader) it allows to invalidate the shader DDC.
 // 
-// GUID = 763D97AE101C4AF88A7222EF58F2A920
+// GUID = D5E1D31051264D70977E3035C7A01AAC
  

@@ -653,28 +653,30 @@ bool AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	{
 		if (bErrorFree)
 		{
-			// Get all scene components owned by the given actor prior to SCS execution
+			// Get all components owned by the given actor prior to SCS execution.
 			// Note: GetComponents() internally does a NULL check, so we can assume here that all entries are valid.
-			TInlineComponentArray<USceneComponent*> AllSceneComponents;
-			GetComponents(AllSceneComponents);
+			TInlineComponentArray<UActorComponent*> PreSCSComponents;
+			GetComponents(PreSCSComponents);
 
 			// Determine the set of native scene components that SCS nodes can attach to.
 			TInlineComponentArray<USceneComponent*> NativeSceneComponents;
-			NativeSceneComponents.Reserve(AllSceneComponents.Num());
-			for (USceneComponent* SceneComponent : AllSceneComponents)
+			for (UActorComponent* ActorComponent : PreSCSComponents)
 			{
-				// Exclude subcomponents of native components, as these could unintentionally be matched by name during SCS execution. Also exclude instance-only components.
-				if (SceneComponent->CreationMethod == EComponentCreationMethod::Native && SceneComponent->GetOuter()->IsA<AActor>())
+				if (USceneComponent* SceneComponent = Cast<USceneComponent>(ActorComponent))
 				{
-					// If RootComponent is not set, the first unattached native scene component will be used as root. This matches what's done in FixupNativeActorComponents().
-					// @TODO - consider removing this; keeping here as a fallback just in case it wasn't set prior to SCS execution, but in most cases now this should be valid. 
-					if (RootComponent == nullptr && SceneComponent->GetAttachParent() == nullptr)
+					// Exclude subcomponents of native components, as these could unintentionally be matched by name during SCS execution. Also exclude instance-only components.
+					if (SceneComponent->CreationMethod == EComponentCreationMethod::Native && SceneComponent->GetOuter()->IsA<AActor>())
 					{
-						// Note: All native scene components should already have been registered at this point, so we don't need to register the component here.
-						SetRootComponent(SceneComponent);
-					}
+						// If RootComponent is not set, the first unattached native scene component will be used as root. This matches what's done in FixupNativeActorComponents().
+						// @TODO - consider removing this; keeping here as a fallback just in case it wasn't set prior to SCS execution, but in most cases now this should be valid. 
+						if (RootComponent == nullptr && SceneComponent->GetAttachParent() == nullptr)
+						{
+							// Note: All native scene components should already have been registered at this point, so we don't need to register the component here.
+							SetRootComponent(SceneComponent);
+						}
 
-					NativeSceneComponents.Add(SceneComponent);
+						NativeSceneComponents.Add(SceneComponent);
+					}
 				}
 			}
 
@@ -700,13 +702,13 @@ bool AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 				RegisterAllComponents();
 			}
 
-			// Once SCS execution has finished, we do a final pass to register any components that may have been deferred or were otherwise left unregistered after SCS execution.
+			// Once SCS execution has finished, we do a final pass to register any new components that may have been deferred or were otherwise left unregistered after SCS execution.
 			TInlineComponentArray<UActorComponent*> PostSCSComponents;
 			GetComponents(PostSCSComponents);
 			for (UActorComponent* ActorComponent : PostSCSComponents)
 			{
 				// Limit registration to components that are known to have been created during SCS execution
-				if (!ActorComponent->IsRegistered() && (ActorComponent->CreationMethod == EComponentCreationMethod::SimpleConstructionScript || !AllSceneComponents.Contains(ActorComponent)))
+				if (!ActorComponent->IsRegistered() && (ActorComponent->CreationMethod == EComponentCreationMethod::SimpleConstructionScript || !PreSCSComponents.Contains(ActorComponent)))
 				{
 					USimpleConstructionScript::RegisterInstancedComponent(ActorComponent);
 				}

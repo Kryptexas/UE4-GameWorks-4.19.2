@@ -136,7 +136,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 								LatentUUID = GetTypeHash(AssociatedNode->NodeGuid);
 
 								UEdGraphNode* ResultNode = AssociatedNode;
-								UEdGraphNode* SourceNode = Cast<UEdGraphNode>(Context.MessageLog.FindSourceObject(AssociatedNode));
+								UEdGraphNode* SourceNode = Cast<UEdGraphNode>(Context.MessageLog.GetIntermediateTunnelInstance(AssociatedNode));
 								while (SourceNode && SourceNode != ResultNode)
 								{
 									if (SourceNode->NodeGuid.IsValid())
@@ -144,7 +144,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 										LatentUUID = HashCombine(LatentUUID, GetTypeHash(SourceNode->NodeGuid));
 									}
 									ResultNode = SourceNode;
-									SourceNode = Cast<UEdGraphNode>(Context.MessageLog.FindSourceObject(ResultNode));
+									SourceNode = Cast<UEdGraphNode>(Context.MessageLog.GetIntermediateTunnelInstance(ResultNode));
 								}
 							}
 							else

@@ -367,14 +367,26 @@ void FEdModeFoliage::Enter()
 void FEdModeFoliage::Exit()
 {
 	// Unregister VR mode from event handlers
-	if (IVREditorModule::IsAvailable())
+	if (IVREditorModule::IsAvailable() && GEditor != nullptr)
 	{
-		UViewportWorldInteraction* WorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld())->GetViewportWorldInteraction();
-		if (WorldInteraction != nullptr)
+		// Because it is unknown if the mode entered with a play or editor mode we have to do this for both
+		for (int i = 0; i < 2; i++)
 		{
-			WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
-			WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
-			FoliageInteractor = nullptr;
+			UWorld* World = i == 0 ? GEditor->PlayWorld : GEditor->EditorWorld;
+			if (World != nullptr)
+			{
+				TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(World);
+				if (EditorWorldWrapper.IsValid())
+				{
+					UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
+					if (WorldInteraction != nullptr)
+					{
+						WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
+						WorldInteraction->OnViewportInteractionHoverUpdate().RemoveAll(this);
+						FoliageInteractor = nullptr;
+					}
+				}
+			}
 		}
 	}
 
@@ -439,127 +451,132 @@ void FEdModeFoliage::OnVRHoverUpdate(FEditorViewportClient& ViewportClient, UVie
 	// Check if VR Editor is active
 	if (IVREditorModule::IsAvailable())
 	{
-		UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
-		if (VREditorMode != nullptr && VREditorMode->IsFullyInitialized())
+		TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
+		if (EditorWorldWrapper.IsValid())
 		{
-			// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
-			if (FoliageInteractor && FoliageInteractor->IsHoveringOverPriorityType())
+			UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
+			if (VREditorMode != nullptr && VREditorMode->IsFullyInitialized())
 			{
-				EndFoliageBrushTrace();
-				FoliageInteractor = nullptr;
-			}
-			// If there isn't currently a foliage interactor and we are hovering over something valid
-			else if (FoliageInteractor == nullptr && Interactor->GetHitResultFromLaserPointer().GetActor() != nullptr)
-			{
-				FoliageInteractor = Interactor;
-			}
-			// If we aren't hovering over something valid and the tool isn't active
-			else if (Interactor->GetHitResultFromLaserPointer().GetActor() == nullptr && !bToolActive)
-			{
-				FoliageInteractor = nullptr;
-			}
-
-			// Skip other interactors if we are painting with one
-			if (FoliageInteractor && Interactor == FoliageInteractor)
-			{
-				// Go ahead and paint immediately
-				FVector LaserPointerStart, LaserPointerEnd;
-				if (FoliageInteractor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+				// Check if we're hovering over UI. If so, stop painting so we don't display the preview brush sphere
+				if (FoliageInteractor && FoliageInteractor->IsHoveringOverPriorityType())
 				{
-					const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
+					EndFoliageBrushTrace();
+					FoliageInteractor = nullptr;
+				}
+				// If there isn't currently a foliage interactor and we are hovering over something valid
+				else if (FoliageInteractor == nullptr && Interactor->GetHitResultFromLaserPointer().GetActor() != nullptr)
+				{
+					FoliageInteractor = Interactor;
+				}
+				// If we aren't hovering over something valid and the tool isn't active
+				else if (Interactor->GetHitResultFromLaserPointer().GetActor() == nullptr && !bToolActive)
+				{
+					FoliageInteractor = nullptr;
+				}
 
-					FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
+				// Skip other interactors if we are painting with one
+				if (FoliageInteractor && Interactor == FoliageInteractor)
+				{
+					// Go ahead and paint immediately
+					FVector LaserPointerStart, LaserPointerEnd;
+					if (FoliageInteractor->GetLaserPointer(/* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+					{
+						const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
+						FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
+					}
 				}
 			}
-			
 		}
 	}
 }
 
 void FEdModeFoliage::OnVRAction(class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled)
 {
-	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
-	if (VREditorMode != nullptr && Interactor != nullptr)
+	TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
+	if (EditorWorldWrapper.IsValid())
 	{
-		const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
-
-		// Only allow light press
-		Interactor->SetAllowTriggerFullPress(false);
-		// Consume light press
-		if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed)
+		UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
+		if (VREditorMode != nullptr && Interactor != nullptr)
 		{
-			if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
+			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
+
+			// Only allow light press
+			Interactor->SetAllowTriggerFullPress(false);
+			// Consume light press
+			if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed)
 			{
-				// Go ahead and paint immediately
-				FVector LaserPointerStart, LaserPointerEnd;
-				if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+				if (Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
 				{
-					const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
-					BrushTraceDirection = LaserPointerDirection;
-
-					// Only start painting if we're not dragging a widget handle
-					if (ViewportClient.GetCurrentWidgetAxis() == EAxisList::None)
+					// Go ahead and paint immediately
+					FVector LaserPointerStart, LaserPointerEnd;
+					if (Interactor->GetLaserPointer(/* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 					{
-						if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
-						{
-							StartFoliageBrushTrace(&ViewportClient, Interactor);
-							FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
-						}
+						const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
+						BrushTraceDirection = LaserPointerDirection;
 
-						// Fill a static mesh with foliage brush
-						else if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
+						// Only start painting if we're not dragging a widget handle
+						if (ViewportClient.GetCurrentWidgetAxis() == EAxisList::None)
 						{
-							FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
-
-							if (HitResult.Actor.Get() != nullptr)
+							if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 							{
+								StartFoliageBrushTrace(&ViewportClient, Interactor);
+								FoliageBrushTrace(&ViewportClient, LaserPointerStart, LaserPointerDirection);
+							}
+
+							// Fill a static mesh with foliage brush
+							else if (UISettings.GetPaintBucketToolSelected() || UISettings.GetReapplyPaintBucketToolSelected())
+							{
+								FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
+
+								if (HitResult.Actor.Get() != nullptr)
+								{
+									GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
+
+									if (IsModifierButtonPressed(&ViewportClient))
+									{
+										ApplyPaintBucket_Remove(HitResult.Actor.Get());
+									}
+									else
+									{
+										ApplyPaintBucket_Add(HitResult.Actor.Get());
+									}
+
+									GEditor->EndTransaction();
+								}
+							}
+							// Select an instanced foliage
+							else if (UISettings.GetSelectToolSelected())
+							{
+								FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
+
 								GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
 
-								if (IsModifierButtonPressed(&ViewportClient))
+								if (HitResult.GetActor() != nullptr)
 								{
-									ApplyPaintBucket_Remove(HitResult.Actor.Get());
-								}
-								else
-								{
-									ApplyPaintBucket_Add(HitResult.Actor.Get());
+									// Clear all currently selected instances
+									SelectInstances(ViewportClient.GetWorld(), false);
+									for (auto& FoliageMeshUI : FoliageMeshList)
+									{
+										UFoliageType* Settings = FoliageMeshUI->Settings;
+										SelectInstanceAtLocation(ViewportClient.GetWorld(), Settings, HitResult.ImpactPoint, !IsModifierButtonPressed(&ViewportClient));
+									}
 								}
 
 								GEditor->EndTransaction();
+
+								// @todo vreditor: we currently don't have a key mapping scheme to snap selected instances to ground 
+								// SnapSelectedInstancesToGround(GetWorld());
 							}
-						}
-						// Select an instanced foliage
-						else if (UISettings.GetSelectToolSelected())
-						{
-							FHitResult HitResult = Interactor->GetHitResultFromLaserPointer();
-
-							GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing"));
-
-							if (HitResult.GetActor() != nullptr)
-							{
-								// Clear all currently selected instances
-								SelectInstances(ViewportClient.GetWorld(), false);
-								for (auto& FoliageMeshUI : FoliageMeshList)
-								{
-									UFoliageType* Settings = FoliageMeshUI->Settings;
-									SelectInstanceAtLocation(ViewportClient.GetWorld(), Settings, HitResult.ImpactPoint, !IsModifierButtonPressed(&ViewportClient));
-								}
-							}
-
-							GEditor->EndTransaction();
-
-							// @todo vreditor: we currently don't have a key mapping scheme to snap selected instances to ground 
-							// SnapSelectedInstancesToGround(GetWorld());
-
 						}
 					}
 				}
-			}
 
-			// Stop current tracking if the user is no longer painting
-			else if (Action.Event == IE_Released && FoliageInteractor && FoliageInteractor == Interactor)
-			{
-				EndFoliageBrushTrace();
-				FoliageInteractor = nullptr;
+				// Stop current tracking if the user is no longer painting
+				else if (Action.Event == IE_Released && FoliageInteractor && FoliageInteractor == Interactor)
+				{
+					EndFoliageBrushTrace();
+					FoliageInteractor = nullptr;
+				}
 			}
 		}
 	}
@@ -815,8 +832,21 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, co
 bool FEdModeFoliage::MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY)
 {
 	// Use mouse capture if there's no other interactor currently tracing brush
-	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient->GetWorld())->GetVREditorMode();
-	if (!VREditorMode->IsActive())
+	bool bVREditorActive = false;
+	if (GetWorld() != nullptr)
+	{
+		TSharedPtr < FEditorWorldWrapper > EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
+		if (EditorWorldWrapper.IsValid())
+		{
+			UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
+			if (VREditorMode != nullptr && VREditorMode->IsActive())
+			{
+				bVREditorActive = true;
+			}
+		}
+	}
+
+	if (!bVREditorActive)
 	{
 		// Compute a world space ray from the screen space mouse coordinates
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -853,8 +883,21 @@ bool FEdModeFoliage::MouseMove(FEditorViewportClient* ViewportClient, FViewport*
 bool FEdModeFoliage::CapturedMouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY)
 {
 	// Use mouse capture if there's no other interactor currently tracing brush
-	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient->GetWorld())->GetVREditorMode();
-	if (!VREditorMode->IsActive())
+	bool bVREditorActive = false;
+	if (GetWorld() != nullptr)
+	{
+		TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
+		if (EditorWorldWrapper.IsValid())
+		{
+			UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
+			if (VREditorMode != nullptr && VREditorMode->IsActive())
+			{
+				bVREditorActive = true;
+			}
+		}
+	}
+
+	if (!bVREditorActive)
 	{
 		//Compute a world space ray from the screen space mouse coordinates
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(

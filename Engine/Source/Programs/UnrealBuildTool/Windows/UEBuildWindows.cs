@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 		/// Visual Studio 2015 (Visual C++ 14.0)
 		VisualStudio2015,
 
-		/// Visual Studio "15" (2017?) (Visual C++ 15.0)
+		/// Visual Studio 2017 (Visual C++ 15.0)
 		VisualStudio2017,
 	}
 
@@ -697,7 +697,7 @@ namespace UnrealBuildTool
 				case WindowsCompiler.VisualStudio2015:
 					return "Visual Studio 2015";
 				case WindowsCompiler.VisualStudio2017:
-					return "Visual Studio \"15\"";
+					return "Visual Studio 2017";
 				default:
 					return Compiler.ToString();
 			}
@@ -805,7 +805,7 @@ namespace UnrealBuildTool
 				DirectoryReference VSInstallDir;
 				if(TryGetVSInstallDir(Compiler, out VSInstallDir))
 				{
-					FileReference VersionPath = FileReference.Combine(VSInstallDir, "Common7", "IDE", "VisualCpp", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
+					FileReference VersionPath = FileReference.Combine(VSInstallDir, "VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
 					if(VersionPath.Exists())
 					{
 						InstallDir = VersionPath.Directory.ParentDirectory.ParentDirectory;

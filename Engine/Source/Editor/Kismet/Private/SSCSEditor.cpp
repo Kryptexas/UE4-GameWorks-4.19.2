@@ -4675,8 +4675,12 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 				NewComponentName = *FComponentEditorUtils::GenerateValidVariableName(NewComponentClass, ActorInstance);
 			}
 
+			// Get the set of owned components that exists prior to instancing the new component.
+			TInlineComponentArray<UActorComponent*> PreInstanceComponents;
+			ActorInstance->GetComponents(PreInstanceComponents);
+
 			// Construct the new component and attach as needed
-			auto NewInstanceComponent = NewObject<UActorComponent>(ActorInstance, NewComponentClass, NewComponentName, RF_Transactional);
+			UActorComponent* NewInstanceComponent = NewObject<UActorComponent>(ActorInstance, NewComponentClass, NewComponentName, RF_Transactional);
 			if (USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewInstanceComponent))
 			{
 				USceneComponent* RootComponent = ActorInstance->GetRootComponent();
@@ -4700,6 +4704,17 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 			ActorInstance->AddInstanceComponent(NewInstanceComponent);
 			NewInstanceComponent->OnComponentCreated();
 			NewInstanceComponent->RegisterComponent();
+
+			// Register any new components that may have been created during construction of the instanced component, but were not explicitly registered.
+			TInlineComponentArray<UActorComponent*> PostInstanceComponents;
+			ActorInstance->GetComponents(PostInstanceComponents);
+			for (UActorComponent* ActorComponent : PostInstanceComponents)
+			{
+				if (!ActorComponent->IsRegistered() && ActorComponent->bAutoRegister && !ActorComponent->IsPendingKill() && !PreInstanceComponents.Contains(ActorComponent))
+				{
+					ActorComponent->RegisterComponent();
+				}
+			}
 
 			// Rerun construction scripts
 			ActorInstance->RerunConstructionScripts();

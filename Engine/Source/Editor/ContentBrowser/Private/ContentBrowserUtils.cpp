@@ -23,6 +23,9 @@ namespace ContentBrowserUtils
 {
 	// Keep a map of all the paths that have custom colors, so updating the color in one location updates them all
 	static TMap< FString, TSharedPtr< FLinearColor > > PathColors;
+
+	/** Internal function to delete a folder from disk, but only if it is empty. InPathToDelete is in FPackageName format. */
+	bool DeleteEmptyFolderFromDisk(const FString& InPathToDelete);
 }
 
 class SContentBrowserPopup : public SCompoundWidget
@@ -568,14 +571,52 @@ bool ContentBrowserUtils::DeleteFolders(const TArray<FString>& PathsToDelete)
 
 		for (const FString& PathToDelete : PathsToDelete)
 		{
-			FString PathToDeleteOnDisk;
-			if (FPackageName::TryConvertLongPackageNameToFilename(PathToDelete, PathToDeleteOnDisk) && IFileManager::Get().DeleteDirectory(*PathToDeleteOnDisk))
+			if (DeleteEmptyFolderFromDisk(PathToDelete))
 			{
 				AssetRegistryModule.Get().RemovePath(PathToDelete);
 			}
 		}
 
 		return true;
+	}
+
+	return false;
+}
+
+bool ContentBrowserUtils::DeleteEmptyFolderFromDisk(const FString& InPathToDelete)
+{
+	struct FEmptyFolderVisitor : public IPlatformFile::FDirectoryVisitor
+	{
+		bool bIsEmpty;
+
+		FEmptyFolderVisitor()
+			: bIsEmpty(true)
+		{
+		}
+
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
+		{
+			if (!bIsDirectory)
+			{
+				bIsEmpty = false;
+				return false; // abort searching
+			}
+
+			return true; // continue searching
+		}
+	};
+
+	FString PathToDeleteOnDisk;
+	if (FPackageName::TryConvertLongPackageNameToFilename(InPathToDelete, PathToDeleteOnDisk))
+	{
+		// Look for files on disk in case the folder contains things not tracked by the asset registry
+		FEmptyFolderVisitor EmptyFolderVisitor;
+		IFileManager::Get().IterateDirectoryRecursively(*PathToDeleteOnDisk, EmptyFolderVisitor);
+
+		if (EmptyFolderVisitor.bIsEmpty)
+		{
+			return IFileManager::Get().DeleteDirectory(*PathToDeleteOnDisk, false, true);
+		}
 	}
 
 	return false;
@@ -781,8 +822,11 @@ bool ContentBrowserUtils::MoveFolders(const TArray<FString>& InSourcePathNames, 
 			ContentBrowserUtils::MoveAssets( PathIt.Value(), Destination, PathIt.Key() );
 		}
 
-		// Attempt to remove the old paths. This operation will silently fail if any assets failed to move.
-		AssetRegistryModule.Get().RemovePath(SourcePath);
+		// Attempt to remove the old path
+		if (DeleteEmptyFolderFromDisk(SourcePath))
+		{
+			AssetRegistryModule.Get().RemovePath(SourcePath);
+		}
 	}
 
 	return true;

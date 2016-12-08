@@ -6,7 +6,7 @@
 
 #include "VulkanRHIPrivate.h"
 #include "VulkanManager.h"
-#include "VulkanSwapchain.h"
+#include "VulkanSwapChain.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
 
@@ -469,7 +469,9 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	//#todo-rco: Proper SyncInterval bLockToVsync ? RHIConsoleVariables::SyncInterval : 0
 	int32 SyncInterval = 0;
 	bool bNeedNativePresent = true;
-	if (IsValidRef(CustomPresent))
+
+	const bool bHasCustomPresent = IsValidRef(CustomPresent);
+	if (bHasCustomPresent)
 	{
 		bNeedNativePresent = CustomPresent->Present(SyncInterval);
 	}
@@ -479,6 +481,11 @@ bool FVulkanViewport::Present(FVulkanCmdBuffer* CmdBuffer, FVulkanQueue* Queue, 
 	{
 		// Present the back buffer to the viewport window.
 		bResult = SwapChain->Present(Queue, RenderingDoneSemaphores[AcquiredImageIndex]);//, SyncInterval, 0);
+
+		if (bHasCustomPresent)
+		{
+			CustomPresent->PostPresent();
+		}
 
 		// Release the back buffer
 		RHIBackBuffer = nullptr;
@@ -627,16 +634,22 @@ void FVulkanDynamicRHI::Present()
 	//#todo-rco: Proper SyncInterval bLockToVsync ? RHIConsoleVariables::SyncInterval : 0
 	int32 SyncInterval = 0;
 	bool bNeedNativePresent = true;
-	if (IsValidRef(DrawingViewport->CustomPresent))
+
+	const bool bHasCustomPresent = IsValidRef(DrawingViewport->CustomPresent);
+	if (bHasCustomPresent)
 	{
 		bNeedNativePresent = DrawingViewport->CustomPresent->Present(SyncInterval);
 	}
-
 
 	if (bNeedNativePresent)
 	{
 		// Present the back buffer to the viewport window.
 		/*Result = */DrawingViewport->SwapChain->Present(SyncInterval, 0);
+
+		if (bHasCustomPresent)
+		{
+			DrawingViewport->CustomPresent->PostPresent();
+		}
 	}
 #endif
 	check(0);

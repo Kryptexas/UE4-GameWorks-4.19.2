@@ -2154,6 +2154,11 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 
 void UnFbx::FFbxImporter::CleanUpUnusedMaterials(FSkeletalMeshImportData& ImportData)
 {
+	if (ImportData.Materials.Num() <= 0)
+	{
+		return;
+	}
+
 	TArray< VMaterial > ExistingMatList = ImportData.Materials;
 
 	TArray<uint8> UsedMaterialIndex;
@@ -2165,7 +2170,7 @@ void UnFbx::FFbxImporter::CleanUpUnusedMaterials(FSkeletalMeshImportData& Import
 		UsedMaterialIndex.AddUnique(Triangle.MatIndex);
 	}
 	//Remove any unused material.
-	if (UsedMaterialIndex.Num() != ExistingMatList.Num())
+	if (UsedMaterialIndex.Num() < ExistingMatList.Num())
 	{
 		TArray<int32> RemapIndex;
 		TArray< VMaterial > &NewMatList = ImportData.Materials;

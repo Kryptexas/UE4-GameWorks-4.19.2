@@ -1039,7 +1039,10 @@ void FPersona::SetDetailObjects(const TArray<UObject*>& InObjects)
 void FPersona::SetDetailObject(UObject* Obj)
 {
 	TArray<UObject*> Objects;
-	Objects.Add(Obj);
+	if (Obj)
+	{
+		Objects.Add(Obj);
+	}
 	SetDetailObjects(Objects);
 }
 
@@ -2700,7 +2703,24 @@ void FPersona::HandleOpenNewAsset(UObject* InNewAsset)
 
 UObject* FPersona::HandleGetObject()
 {
-	return GetEditingObject();
+	if (GetCurrentMode() == FPersonaModes::MeshEditMode)
+	{
+		return GetPersonaToolkit()->GetMesh();
+	}
+	else if (GetCurrentMode() == FPersonaModes::AnimationEditMode)
+	{
+		return GetPersonaToolkit()->GetAnimationAsset();
+	}
+	else if (GetCurrentMode() == FPersonaModes::AnimBlueprintEditMode)
+	{
+		return GetPersonaToolkit()->GetAnimBlueprint();
+	}
+	else if (GetCurrentMode() == FPersonaModes::SkeletonDisplayMode)
+	{
+		return GetPersonaToolkit()->GetSkeleton();
+	}
+	
+	return nullptr;
 }
 
 void FPersona::OnPostCompile()

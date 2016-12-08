@@ -4739,9 +4739,13 @@ public:
 	}
 
 	// FCustomizableTextObjectFactory implementation
-	virtual bool CanCreateClass(UClass* ObjectClass, bool& bOmitSubObjs) const override
+	virtual bool CanCreateClass(UClass* InObjectClass, bool& bOmitSubObjs) const override
 	{
-		return true;
+		if (InObjectClass->IsChildOf(UMovieSceneTrack::StaticClass()))
+		{
+			return true;
+		}
+		return false;
 	}
 	
 
@@ -4755,6 +4759,17 @@ public:
 public:
 	TArray<UMovieSceneTrack*> NewTracks;
 };
+
+bool FSequencer::CanPaste(const FString& TextToImport) const
+{
+	FTrackObjectTextFactory Factory;
+	if (!Factory.CanCreateObjectsFromText(TextToImport))
+	{
+		return false;
+	}
+
+	return true;
+}
 
 void FSequencer::ImportTracksFromText(const FString& TextToImport, /*out*/ TArray<UMovieSceneTrack*>& ImportedTracks)
 {

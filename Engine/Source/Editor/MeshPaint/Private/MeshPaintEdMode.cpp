@@ -236,16 +236,28 @@ void FEdModeMeshPaint::Enter()
 /** FEdMode: Called when the mode is exited */
 void FEdModeMeshPaint::Exit()
 {
-	if( IVREditorModule::IsAvailable() )
+	if (IVREditorModule::IsAvailable())
 	{
-		UViewportWorldInteraction* ViewpportWorldInteraction = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld())->GetViewportWorldInteraction();
-		if(ViewpportWorldInteraction != nullptr )
+		// Because it is unknown if the mode entered with a play or editor mode we have to do this for both
+		for(int i = 0; i < 2; i++)
 		{
-			// Restore the transform gizmo visibility
-			ViewpportWorldInteraction->SetTransformGizmoVisible( true );
+			UWorld* World = i == 0 ? GEditor->PlayWorld : GEditor->EditorWorld;
+			if(World != nullptr)
+			{
+				TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(World);
+				if(EditorWorldWrapper.IsValid())
+				{
+					UViewportWorldInteraction* WorldInteraction = EditorWorldWrapper->GetViewportWorldInteraction();
+					if(WorldInteraction != nullptr)
+					{
+						// Restore the transform gizmo visibility
+						WorldInteraction->SetTransformGizmoVisible(true);
 
-			// Unregister from event handlers
-			ViewpportWorldInteraction->OnViewportInteractionInputAction().RemoveAll( this );
+						// Unregister from event handlers
+						WorldInteraction->OnViewportInteractionInputAction().RemoveAll(this);
+					}
+				}
+			}
 		}
 	}
 
@@ -2698,27 +2710,34 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 		static TArray<FPaintRay> PaintRays;
 		PaintRays.Reset();
 		
-		UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper( Viewport->GetClient()->GetWorld() )->GetVREditorMode();
+		UVREditorMode* VREditorMode = nullptr;
+		{
+			TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(Viewport->GetClient()->GetWorld());
+			if(EditorWorldWrapper.IsValid())
+			{
+				VREditorMode = EditorWorldWrapper->GetVREditorMode();
+			}
+		}
 
 		// Check to see if VREditorMode is active. If so, we're painting with interactor
 		bool bIsInVRMode = false;
-		if ( IVREditorModule::IsAvailable() )
+		if (IVREditorModule::IsAvailable())
 		{
-			if ( VREditorMode != nullptr && VREditorMode->IsFullyInitialized() && VREditorMode->IsActive())
+			if (VREditorMode != nullptr && VREditorMode->IsFullyInitialized() && VREditorMode->IsActive())
 			{
 				bIsInVRMode = true;
-				for ( UViewportInteractor* Interactor : VREditorMode->GetWorldInteraction().GetInteractors() )
+				for (UViewportInteractor* Interactor : VREditorMode->GetWorldInteraction().GetInteractors())
 				{
 					// Skip other interactors if we are painting with one
-					if ( PaintingWithInteractorInVR && Interactor != PaintingWithInteractorInVR )
+					if (PaintingWithInteractorInVR && Interactor != PaintingWithInteractorInVR)
 					{
 						continue;
 					}
 
 					FVector LaserPointerStart, LaserPointerEnd;
-					if ( Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
+					if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
 					{
-						const FVector LaserPointerDirection = ( LaserPointerEnd - LaserPointerStart ).GetSafeNormal();
+						const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
 
 						FPaintRay& NewPaintRay = *new( PaintRays ) FPaintRay();
 						NewPaintRay.CameraLocation = VREditorMode->GetHeadTransform().GetLocation();
@@ -2759,7 +2778,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 		}
 
 		// Apply paint pressure and start painting (or if not currently painting, draw a preview of where paint will be applied)
-		for( const FPaintRay& PaintRay : PaintRays )
+		for (const FPaintRay& PaintRay : PaintRays)
 		{
 			// Unless "Flow" mode is enabled, we'll only draw a visual cue while rendering and won't
 			// do any actual painting.  When "Flow" is turned on we will paint here, too!
@@ -2767,36 +2786,35 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 			float StrengthScale = (PaintingWithInteractorInVR == nullptr && FMeshPaintSettings::Get().bEnableFlow) ? FMeshPaintSettings::Get().FlowAmount : 1.0f;
 
 			bool bIsHoveringOverPriorityTypeVR = false;
-			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( PaintRay.ViewportInteractor );
-			if( VRInteractor != nullptr )
+			const UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(PaintRay.ViewportInteractor);
+			if (VRInteractor != nullptr)
 			{
 				bIsHoveringOverPriorityTypeVR = VRInteractor->IsHoveringOverPriorityType();
 			}
 
 			// Don't draw visual cue for paint brush when the interactor is hovering over UI
-			if( !bVisualCueOnly || PaintRay.ViewportInteractor == nullptr || !bIsHoveringOverPriorityTypeVR )
+			if (!bVisualCueOnly || PaintRay.ViewportInteractor == nullptr || !bIsHoveringOverPriorityTypeVR)
 			{
 				// Don't draw visual cue if we're hovering over a viewport interactable, such as a dockable window selection bar
 				bool bIsHoveringOverViewportInteractable = false;
-				if( bVisualCueOnly && PaintRay.ViewportInteractor != nullptr )
+				if (bVisualCueOnly && PaintRay.ViewportInteractor != nullptr)
 				{
 					FHitResult HitResult = PaintRay.ViewportInteractor->GetHitResultFromLaserPointer();
-					if( HitResult.Actor.IsValid() )
+					if (HitResult.Actor.IsValid() && VREditorMode != nullptr)
 					{
 						UViewportWorldInteraction& WorldInteraction = VREditorMode->GetWorldInteraction();
-
-						if( WorldInteraction.IsInteractableComponent( HitResult.GetComponent() ) )
+						if (WorldInteraction.IsInteractableComponent(HitResult.GetComponent()))
 						{
 							AActor* Actor = HitResult.Actor.Get();
 
 							// Make sure we're not hovering over some other viewport interactable, such as a dockable window selection bar or close button
-							IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>( Actor );
-							bIsHoveringOverViewportInteractable = ( ActorInteractable != nullptr );
+							IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>(Actor);
+							bIsHoveringOverViewportInteractable = (ActorInteractable != nullptr);
 						}
 					}
 				}
 
-				if( !bIsHoveringOverViewportInteractable )
+				if (!bIsHoveringOverViewportInteractable)
 				{
 					// Apply VR controller trigger pressure if we're painting in VR
 					if (bIsPainting && PaintingWithInteractorInVR && VREditorMode != nullptr && VRInteractor != nullptr)
@@ -5173,80 +5191,84 @@ TWeakObjectPtr<AActor> FEdModeMeshPaint::GetEditingActor() const
 void FEdModeMeshPaint::OnVRAction( class FEditorViewportClient& ViewportClient, UViewportInteractor* Interactor, 
 	const FViewportActionKeyInput& Action, bool& bOutIsInputCaptured, bool& bWasHandled )
 {
-	UVREditorMode* VREditorMode = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(ViewportClient.GetWorld())->GetVREditorMode();
-	UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>( Interactor );
-	if( VREditorMode != nullptr && VREditorMode->IsActive() && VRInteractor != nullptr )
+	TSharedPtr<FEditorWorldWrapper> EditorWorldWrapper = GEditor->GetEditorWorldManager()->GetEditorWorldWrapper(GetWorld());
+	if (EditorWorldWrapper.IsValid())
 	{
-		if( Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed )
+		UVREditorMode* VREditorMode = EditorWorldWrapper->GetVREditorMode();
+		UVREditorInteractor* VRInteractor = Cast<UVREditorInteractor>(Interactor);
+		if (VREditorMode != nullptr && VREditorMode->IsActive() && VRInteractor != nullptr)
 		{
-			if( !bIsPainting && Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType() )
+			if (Action.ActionType == ViewportWorldActionTypes::SelectAndMove_LightlyPressed)
 			{
-				// Check to see that we're clicking on a selected object.  You can only paint on selected things.  Otherwise,
-				// we'll fall through to the normal interaction code which might cause the object to become selected.
-				bool bIsClickingOnSelectedObject = false;
+				if (!bIsPainting && Action.Event == IE_Pressed && !VRInteractor->IsHoveringOverPriorityType())
 				{
-					FHitResult HitResult = VRInteractor->GetHitResultFromLaserPointer();
-					if( HitResult.Actor.IsValid() )
+					// Check to see that we're clicking on a selected object.  You can only paint on selected things.  Otherwise,
+					// we'll fall through to the normal interaction code which might cause the object to become selected.
+					bool bIsClickingOnSelectedObject = false;
 					{
-						UViewportWorldInteraction& WorldInteraction = VREditorMode->GetWorldInteraction();
-						
-						if( WorldInteraction.IsInteractableComponent( HitResult.GetComponent() ) )
+						FHitResult HitResult = VRInteractor->GetHitResultFromLaserPointer();
+						if (HitResult.Actor.IsValid())
 						{
-							AActor* Actor = HitResult.Actor.Get();
+							UViewportWorldInteraction& WorldInteraction = VREditorMode->GetWorldInteraction();
 
-							// Make sure we're not hovering over some other viewport interactable, such as a dockable window selection bar or close button
-							IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>( Actor );
-							if( ActorInteractable == nullptr )
+							if (WorldInteraction.IsInteractableComponent(HitResult.GetComponent()))
 							{
-								if( Actor != WorldInteraction.GetTransformGizmoActor() )  // Don't change any actor selection state if the user clicked on a gizmo
+								AActor* Actor = HitResult.Actor.Get();
+
+								// Make sure we're not hovering over some other viewport interactable, such as a dockable window selection bar or close button
+								IViewportInteractableInterface* ActorInteractable = Cast<IViewportInteractableInterface>(Actor);
+								if (ActorInteractable == nullptr)
 								{
-									if( Actor->IsSelected() )
+									if (Actor != WorldInteraction.GetTransformGizmoActor())  // Don't change any actor selection state if the user clicked on a gizmo
 									{
-										bIsClickingOnSelectedObject = true;
+										if (Actor->IsSelected())
+										{
+											bIsClickingOnSelectedObject = true;
+										}
 									}
 								}
 							}
 						}
 					}
-				}
 
-				if( bIsClickingOnSelectedObject )
-				{
-					bWasHandled = true;
-					bOutIsInputCaptured = true;
-
-					// Don't allow a "full press" to happen at all with this trigger pull.  We don't need full press for anything, and it
-					// would interrupt our light press.
-					VRInteractor->SetAllowTriggerFullPress( false );
-
-					StartPainting();
-					PaintingWithInteractorInVR = Interactor;
-
-					// Go ahead and paint immediately
-					FVector LaserPointerStart, LaserPointerEnd;
-					if( Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd ) )
+					if (bIsClickingOnSelectedObject)
 					{
-						const FVector LaserPointerDirection = ( LaserPointerEnd - LaserPointerStart ).GetSafeNormal();
+						bWasHandled = true;
+						bOutIsInputCaptured = true;
 
-						// Apply VR controller trigger pressure
-						float StrengthScale = VRInteractor->GetSelectAndMoveTriggerValue();
+						// Don't allow a "full press" to happen at all with this trigger pull.  We don't need full press for anything, and it
+						// would interrupt our light press.
+						VRInteractor->SetAllowTriggerFullPress(false);
 
-						// Paint!
-						const bool bVisualCueOnly = false;
-						const EMeshPaintAction::Type PaintAction = GetPaintAction( ViewportClient.Viewport );
-						bool bAnyPaintableActorsUnderCursor = false;
-						DoPaint( VREditorMode->GetHeadTransform().GetLocation(), LaserPointerStart, LaserPointerDirection, NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor );
+						StartPainting();
+						PaintingWithInteractorInVR = Interactor;
+
+						// Go ahead and paint immediately
+						FVector LaserPointerStart, LaserPointerEnd;
+						if (Interactor->GetLaserPointer( /* Out */ LaserPointerStart, /* Out */ LaserPointerEnd))
+						{
+							const FVector LaserPointerDirection = (LaserPointerEnd - LaserPointerStart).GetSafeNormal();
+
+							// Apply VR controller trigger pressure
+							float StrengthScale = VRInteractor->GetSelectAndMoveTriggerValue();
+
+							// Paint!
+							const bool bVisualCueOnly = false;
+							const EMeshPaintAction::Type PaintAction = GetPaintAction(ViewportClient.Viewport);
+							bool bAnyPaintableActorsUnderCursor = false;
+							DoPaint(VREditorMode->GetHeadTransform().GetLocation(), LaserPointerStart, LaserPointerDirection, NULL, PaintAction, bVisualCueOnly, StrengthScale, /* Out */ bAnyPaintableActorsUnderCursor);
+						}
 					}
 				}
-			}
 
-			// Stop current tracking if the user is no longer painting
-			else if( bIsPainting && Action.Event == IE_Released && PaintingWithInteractorInVR && PaintingWithInteractorInVR == Interactor )
-			{
-				EndPainting();
+				// Stop current tracking if the user is no longer painting
+				else if (bIsPainting && Action.Event == IE_Released && PaintingWithInteractorInVR && PaintingWithInteractorInVR == Interactor)
+				{
+					EndPainting();
 
-				bWasHandled = true;
-				bOutIsInputCaptured = false;
+					bWasHandled = true;
+					bOutIsInputCaptured = false;
+				}
 			}
 		}
 	}

@@ -542,23 +542,16 @@ bool FHeadMountedDisplay::IsStereoEnabled() const
 {
 	if (IsInGameThread())
 	{
+		// If IsStereoEnabled is called when a game frame hasn't started, then always return false.
+		// In the case when you need to check if stereo is GOING TO be enabled in next frame,
+		// use explicit call to Settings->IsStereoEnabled()
 		const auto frame = GetCurrentFrame();
 		if (frame && frame->Settings.IsValid())
 		{
 			return (frame->Settings->IsStereoEnabled());
 		}
-		else
-		{
-			// If IsStereoEnabled is called when a game frame hasn't started, then always return false.
-			// In the case when you need to check if stereo is GOING TO be enabled in next frame,
-			// use explicit call to Settings->IsStereoEnabled()
-			return false;
-		}
 	}
-	else
-	{
-		check(0);
-	}
+
 	return false;
 }
 

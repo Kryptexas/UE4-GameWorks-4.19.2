@@ -84,7 +84,7 @@ void OnModuleCompileStarted(bool bIsAsyncCompile)
 int32 GetVisualStudioVersionForCompiler()
 {
 #if _MSC_VER >= 1910
-	return 15; // Visual Studio "15"
+	return 15; // Visual Studio 2017
 #elif _MSC_VER == 1900
 	return 14; // Visual Studio 2015
 #elif _MSC_VER == 1800
@@ -140,7 +140,7 @@ void FVisualStudioSourceCodeAccessor::RefreshAvailability()
 {
 	Locations.Reset();
 
-	AddVisualStudioVersion(15); // Visual Studio "15"
+	AddVisualStudioVersion(15); // Visual Studio 2017
 	AddVisualStudioVersion(14); // Visual Studio 2015
 	AddVisualStudioVersion(12); // Visual Studio 2013
 }

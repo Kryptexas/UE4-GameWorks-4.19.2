@@ -519,7 +519,7 @@ namespace UnrealBuildTool
 			BuildVersion Version;
 			if (BuildVersion.TryRead(out Version))
 			{
-				CL = (Version.CompatibleChangelist != 0)? Version.CompatibleChangelist : Version.Changelist;
+				CL = Version.EffectiveCompatibleChangelist;
 			}
 
 			return String.Format("{0}.{1}.{2}", CL / (100 * 100), (CL / 100) % 100, CL % 100);

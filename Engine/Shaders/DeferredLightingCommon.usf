@@ -307,7 +307,7 @@ float ShadowRayCast(
 	float3 RayStartUVz = float3( RayStartScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz, RayStartScreen.z );
 	float3 RayStepUVz = float3( RayStepScreen.xy * View.ScreenPositionScaleBias.xy, RayStepScreen.z );
 
-	float4 RayDepthClip	= RayStartClip + mul( float4( 0, 0, PixelDepthLength, 0 ), View.ViewToClip );
+	float4 RayDepthClip	= RayStartClip + mul( float4( 0, 0, ContactShadowLength * PixelDepthLength, 0 ), View.ViewToClip );
 	float3 RayDepthScreen = RayDepthClip.xyz / RayDepthClip.w;
 
 	const float Step = 1.0 / NumSteps;
