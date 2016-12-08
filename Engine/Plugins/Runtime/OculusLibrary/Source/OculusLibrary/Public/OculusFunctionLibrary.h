@@ -6,6 +6,7 @@
 #include "IHeadMountedDisplay.h"
 #include "UObject/ObjectMacros.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "iOculusRiftPlugin.h"
 #include "OculusFunctionLibrary.generated.h"
 
 USTRUCT(BlueprintType, meta = (DisplayName = "HMD User Profile Data Field"))
@@ -282,6 +283,7 @@ class OCULUSLIBRARY_API UOculusFunctionLibrary : public UBlueprintFunctionLibrar
 	 * Returns IStereoLayers interface to work with overlays.
 	 */
 	static class IStereoLayers* GetStereoLayers();
+
 protected:
 	static class FHeadMountedDisplay* GetOculusHMD();
 };

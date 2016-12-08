@@ -92,8 +92,10 @@ void UWidgetInteractionComponent::SetCustomHitResult(const FHitResult& HitResult
 	CustomHitResult = HitResult;
 }
 
-bool UWidgetInteractionComponent::PerformTrace(FHitResult& HitResult)
+UWidgetInteractionComponent::FWidgetTraceResult UWidgetInteractionComponent::PerformTrace() const
 {
+	FWidgetTraceResult TraceResult;
+
 	switch( InteractionSource )
 	{
 		case EWidgetInteractionSource::World:
@@ -108,7 +110,8 @@ bool UWidgetInteractionComponent::PerformTrace(FHitResult& HitResult)
 			FCollisionQueryParams Params = FCollisionQueryParams::DefaultQueryParam;
 			Params.AddIgnoredComponents(PrimitiveChildren);
 
-			return GetWorld()->LineTraceSingleByChannel(HitResult, WorldLocation, WorldLocation + ( Direction * InteractionDistance ), TraceChannel, Params);
+			TraceResult.bWasHit = GetWorld()->LineTraceSingleByChannel(TraceResult.HitResult, WorldLocation, WorldLocation + ( Direction * InteractionDistance ), TraceChannel, Params);
+			break;
 		}
 		case EWidgetInteractionSource::Mouse:
 		case EWidgetInteractionSource::CenterScreen:
@@ -122,7 +125,7 @@ bool UWidgetInteractionComponent::PerformTrace(FHitResult& HitResult)
 			APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 
 			ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
-			bool bHit = false;
+			TraceResult.bWasHit = false;
 			if ( LocalPlayer && LocalPlayer->ViewportClient )
 			{
 				if ( InteractionSource == EWidgetInteractionSource::Mouse )
@@ -130,7 +133,7 @@ bool UWidgetInteractionComponent::PerformTrace(FHitResult& HitResult)
 					FVector2D MousePosition;
 					if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
 					{
-						bHit = PlayerController->GetHitResultAtScreenPosition(MousePosition, TraceChannel, Params, HitResult);
+						TraceResult.bWasHit = PlayerController->GetHitResultAtScreenPosition(MousePosition, TraceChannel, Params, TraceResult.HitResult);
 					}
 				}
 				else if ( InteractionSource == EWidgetInteractionSource::CenterScreen )
@@ -138,33 +141,59 @@ bool UWidgetInteractionComponent::PerformTrace(FHitResult& HitResult)
 					FVector2D ViewportSize;
 					LocalPlayer->ViewportClient->GetViewportSize(ViewportSize);
 
-					bHit = PlayerController->GetHitResultAtScreenPosition(ViewportSize * 0.5f, TraceChannel, Params, HitResult);
+					TraceResult.bWasHit = PlayerController->GetHitResultAtScreenPosition(ViewportSize * 0.5f, TraceChannel, Params, TraceResult.HitResult);
 				}
 
 				// Don't allow infinite distance hit testing.
-				if ( bHit )
+				if ( TraceResult.bWasHit )
 				{
-					if ( HitResult.Distance > InteractionDistance )
+					if ( TraceResult.HitResult.Distance > InteractionDistance )
 					{
-						HitResult = FHitResult();
-						bHit = false;
+						TraceResult = FWidgetTraceResult();
 					}
 				}
 			}
-			
-			return bHit;
+			break;
 		}
 		case EWidgetInteractionSource::Custom:
 		{
-			HitResult = CustomHitResult;
-			return HitResult.bBlockingHit;
+			TraceResult.HitResult = CustomHitResult;
+			TraceResult.bWasHit = CustomHitResult.bBlockingHit;
+			break;
 		}
 	}
 
-	return false;
+	// Resolve trace to location on widget.
+	if (TraceResult.bWasHit)
+	{
+		TraceResult.HitWidgetComponent = Cast<UWidgetComponent>(TraceResult.HitResult.GetComponent());
+		if (TraceResult.HitWidgetComponent)
+		{
+			// @todo WASTED WORK: GetLocalHitLocation() gets called in GetHitWidgetPath();
+
+			if (TraceResult.HitWidgetComponent->GetGeometryMode() == EWidgetGeometryMode::Cylinder)
+			{
+				const FTransform WorldTransform = GetComponentTransform();
+				const FVector Direction = WorldTransform.GetUnitAxis(EAxis::X);
+				
+				TTuple<FVector, FVector2D> CylinderHitLocation = TraceResult.HitWidgetComponent->GetCylinderHitLocation(TraceResult.HitResult.ImpactPoint, Direction);
+				TraceResult.HitResult.ImpactPoint = CylinderHitLocation.Get<0>();
+				TraceResult.LocalHitLocation = CylinderHitLocation.Get<1>();
+			}
+			else
+			{
+				ensure(TraceResult.HitWidgetComponent->GetGeometryMode() == EWidgetGeometryMode::Plane);
+				TraceResult.HitWidgetComponent->GetLocalHitLocation(LastHitResult.ImpactPoint, TraceResult.LocalHitLocation);
+			}
+
+			TraceResult.HitWidgetPath = FWidgetPath(TraceResult.HitWidgetComponent->GetHitWidgetPath(TraceResult.LocalHitLocation, /*bIgnoreEnabledStatus*/ false));
+		}
+	}
+
+	return TraceResult;
 }
 
-void UWidgetInteractionComponent::GetRelatedComponentsToIgnoreInAutomaticHitTesting(TArray<UPrimitiveComponent*>& IgnorePrimitives)
+void UWidgetInteractionComponent::GetRelatedComponentsToIgnoreInAutomaticHitTesting(TArray<UPrimitiveComponent*>& IgnorePrimitives) const
 {
 	TArray<USceneComponent*> SceneChildren;
 	if ( AActor* Owner = GetOwner() )
@@ -208,24 +237,16 @@ void UWidgetInteractionComponent::SimulatePointerMovement()
 		return;
 	}
 	
-	LocalHitLocation = LastLocalHitLocation;
 	FWidgetPath WidgetPathUnderFinger;
-	
-	const bool bHit = PerformTrace(LastHitResult);
-
 	UWidgetComponent* OldHoveredWidget = HoveredWidgetComponent;
-	
-	HoveredWidgetComponent = nullptr;
 
-	if (bHit)
-	{
-		HoveredWidgetComponent = Cast<UWidgetComponent>(LastHitResult.GetComponent());
-		if ( HoveredWidgetComponent )
-		{
-			HoveredWidgetComponent->GetLocalHitLocation(LastHitResult.ImpactPoint, LocalHitLocation );
-			WidgetPathUnderFinger = FWidgetPath(HoveredWidgetComponent->GetHitWidgetPath(LastHitResult.ImpactPoint, /*bIgnoreEnabledStatus*/ false));
-		}
-	}
+	FWidgetTraceResult TraceResult = PerformTrace();
+	LastHitResult = TraceResult.HitResult;
+	HoveredWidgetComponent = TraceResult.HitWidgetComponent;
+	LocalHitLocation = TraceResult.bWasHit
+		? TraceResult.LocalHitLocation
+		: LastLocalHitLocation;
+	WidgetPathUnderFinger = TraceResult.HitWidgetPath;
 
 	if ( bShowDebug )
 	{

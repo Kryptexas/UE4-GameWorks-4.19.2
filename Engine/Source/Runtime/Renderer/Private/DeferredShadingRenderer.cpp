@@ -783,10 +783,23 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
 	const bool bUseSelectiveBasePassOutputs = UseSelectiveBasePassOutputs();
 
-	
-	SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
-	SceneContext.PreallocGBufferTargets();
-	SceneContext.AllocGBufferTargets(RHICmdList);
+	// Skip the MSAA depth resolve if none of the features which read scene depth before the base pass can be active
+	// This is relying on the post-BasePass ResolveSceneDepthTexture to handle other uses of scene depth, like translucency with DepthFade
+	if ((ViewFamily.EngineShowFlags.Decals && bDBuffer) || ViewFamily.EngineShowFlags.DynamicShadows || bShouldRenderVelocities)
+	{
+		SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+	}
+	else
+	{
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EReadable, SceneContext.GetSceneDepthSurface());
+	}
+
+	if (bUseGBuffer)
+	{
+		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
+		SceneContext.PreallocGBufferTargets(); // Even if !bShouldRenderVelocities, the velocity buffer must be bound because it's a compile time option for the shader.
+		SceneContext.AllocGBufferTargets(RHICmdList);
+	}
 
 	//occlusion can't run before basepass if there's no prepass to fill in some depth to occlude against.
 	bool bOcclusionBeforeBasePass = ((CVarOcclusionQueryLocation.GetValueOnRenderThread() == 1) && bNeedsPrePass) || IsForwardShadingEnabled(FeatureLevel);	
@@ -940,14 +953,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
+	if (bUseGBuffer)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Resolve_After_Basepass);
-		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
-
-		if (bUseGBuffer)
-		{
-			SceneContext.FinishRenderingGBuffer(RHICmdList);
-		}
+		SceneContext.FinishRenderingGBuffer(RHICmdList);
 	}
 
 	if(GetCustomDepthPassLocation() == 1)
@@ -1010,6 +1019,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		ServiceLocalQueue();
 	}
 
+	// TODO: Could entirely remove this by using STENCIL_SANDBOX_BIT in ShadowRendering.cpp and DistanceFieldSurfaceCacheLighting.cpp
+	if (!IsForwardShadingEnabled(FeatureLevel))
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ClearStencilFromBasePass);
 
@@ -1160,8 +1171,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 			RendererModule.RenderPostOpaqueExtensions(View, RHICmdList, SceneContext);
 		}
-
-		SceneContext.FinishRenderingSceneColor(RHICmdList);
 	}
 
 	// No longer needed, release

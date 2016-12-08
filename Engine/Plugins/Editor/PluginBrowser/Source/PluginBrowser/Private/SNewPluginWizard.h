@@ -8,6 +8,7 @@
 #include "Brushes/SlateDynamicImageBrush.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
+#include "IPluginWizardDefinition.h"
 
 class ITableRow;
 class SFilePathBlock;
@@ -17,36 +18,6 @@ enum class ECheckBoxState : uint8;
 DECLARE_LOG_CATEGORY_EXTERN(LogPluginWizard, Log, All);
 
 class SFilePathBlock;
-
-/**
- * Description of a plugin template
- */
-struct FPluginTemplateDescription
-{
-	/** Name of this template in the GUI */
-	FText Name;
-
-	/** Description of this template in the GUI */
-	FText Description;
-
-	/** Name of the directory containing template files */
-	FString OnDiskPath;
-
-	/** Brush resource for the image that is dynamically loaded */
-	TSharedPtr< FSlateDynamicImageBrush > PluginIconDynamicImageBrush;
-
-	/** Can the plugin contain content? */
-	bool CanContainContent;
-
-	/** Constructor */
-	FPluginTemplateDescription(FText InName, FText InDescription, FString InOnDiskPath, bool InCanContainContent = false)
-		: Name(InName)
-		, Description(InDescription)
-		, OnDiskPath(InOnDiskPath)
-		, CanContainContent(InCanContainContent)
-	{
-	}
-};
 
 /**
  * A wizard to create a new plugin
@@ -61,29 +32,27 @@ public:
 	SNewPluginWizard();
 
 	/** Constructs this widget with InArgs */
-	void Construct(const FArguments& InArgs, TSharedPtr<SDockTab> InOwnerTab);
+	void Construct(const FArguments& InArgs, TSharedPtr<SDockTab> InOwnerTab, TSharedPtr<IPluginWizardDefinition> InPluginWizardDefinition = nullptr);
 
 private:
+	/**
+	 * Called when Folder Path textbox changes value
+	 * @param InText The new Plugin Folder Path text
+	 */
+	void OnFolderPathTextChanged(const FText& InText);
+
 	/**
 	 * Called to generate a widget for the specified list item
 	 * @param Item The template information for this row
 	 * @param OwnerTable The table that owns these rows
 	 * @return The widget for this template
 	 */
-	TSharedRef<ITableRow> OnGenerateTemplateRow(TSharedRef<FPluginTemplateDescription> Item, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> OnGenerateTemplateRow(TSharedRef<FPluginTemplateDescription> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/**
-	 * Called when selected template changes
-	 * @param InItem The selected template
-	 * @param SelectInfo How the item was selected
+	 * Called when the template selection changes
 	 */
-	void OnTemplateSelectionChanged( TSharedPtr<FPluginTemplateDescription> InItem, ESelectInfo::Type SelectInfo );
-
-	/**
-	 * Called when Folder Path textbox changes value
-	 * @param InText The new Plugin Folder Path text
-	 */
-	void OnFolderPathTextChanged(const FText& InText);
+	void OnTemplateSelectionChanged(TSharedPtr<FPluginTemplateDescription> InItem, ESelectInfo::Type SelectInfo);
 
 	/**
 	 * Called when Plugin Name textbox changes value
@@ -148,7 +117,7 @@ private:
 	 * @param UPluginFilePath Path where the descriptor file should be written
 	 * @return Whether the files was written successfully
 	 */
-	bool WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool CanContainContent, bool HasModules);
+	bool WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules);
 
 	/**
 	 * Displays an editor pop up error notification
@@ -163,11 +132,11 @@ private:
 	void DeletePluginDirectory(const FString& InPath);
 
 private:
-	/** List of known templates */
-	TArray<TSharedRef<FPluginTemplateDescription>> Templates;
+	/** The current plugin wizard definition */
+	TSharedPtr<IPluginWizardDefinition> PluginWizardDefinition;
 
-	/** Currently selected template */
-	TSharedPtr<FPluginTemplateDescription> CurrentTemplate;
+	/** The list view for template selection */
+	TSharedPtr<SListView<TSharedRef<FPluginTemplateDescription>>> ListView;
 
 	/** Absolute path to game plugins directory so we don't have to convert it repeatedly */
 	FString AbsoluteGamePluginPath;

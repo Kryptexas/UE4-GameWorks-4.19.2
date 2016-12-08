@@ -2331,9 +2331,9 @@ EScaleMode::Type ComputeScaleMode(const TArray<PxShape*>& PShapes)
 	return ScaleMode;
 }
 
-void FBodyInstance::SetMassOverride(float MassInKG)
+void FBodyInstance::SetMassOverride(float MassInKG, bool bNewOverrideMass)
 {
-	bOverrideMass = true;
+	bOverrideMass = bNewOverrideMass;
 	MassInKgOverride = MassInKG;
 }
 

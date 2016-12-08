@@ -2542,7 +2542,7 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 
 	for (int32 iLayer = 0; iLayer < CompressedLayers.Num(); iLayer++)
 	{
-		if (DirtyLayers[iLayer] == false)
+		if (DirtyLayers[iLayer] == false || !CompressedLayers[iLayer].IsValid())
 		{
 			// skip layers not marked for rebuild
 			continue;

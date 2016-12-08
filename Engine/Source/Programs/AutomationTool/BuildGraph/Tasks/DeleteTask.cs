@@ -61,7 +61,10 @@ namespace BuildGraph.Tasks
 			HashSet<FileReference> Files = ResolveFilespec(CommandUtils.RootDirectory, Parameters.Files, TagNameToFileSet);
 			foreach(FileReference File in Files)
 			{
-				InternalUtils.SafeDeleteFile(File.FullName, true);
+				if (!InternalUtils.SafeDeleteFile(File.FullName))
+				{
+					CommandUtils.LogWarning("Couldn't delete file {0}", File.FullName);
+				}
 			}
 
 			// Try to delete all the parent directories. Keep track of the directories we've already deleted to avoid hitting the disk.

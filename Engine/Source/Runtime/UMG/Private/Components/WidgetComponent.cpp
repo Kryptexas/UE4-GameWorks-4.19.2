@@ -11,6 +11,7 @@
 #include "Widgets/SWindow.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Input/HittestGrid.h"
 #include "SceneManagement.h"
 #include "DynamicMeshBuilder.h"
@@ -108,6 +109,8 @@ public:
 		, MaterialInstance( InComponent->GetMaterialInstance() )
 		, BodySetup( InComponent->GetBodySetup() )
 		, BlendMode( InComponent->GetBlendMode() )
+		, GeometryMode(InComponent->GetGeometryMode())
+		, ArcAngle(FMath::DegreesToRadians(InComponent->GetCylinderArcAngle()))
 	{
 		bWillEverBeLit = false;
 
@@ -141,34 +144,114 @@ public:
 #endif
 
 		const FMatrix& ViewportLocalToWorld = GetLocalToWorld();
-
+	
 		if( RenderTarget )
 		{
 			FTextureResource* TextureResource = RenderTarget->Resource;
 			if ( TextureResource )
 			{
-				float U = -RenderTarget->SizeX * Pivot.X;
-				float V = -RenderTarget->SizeY * Pivot.Y;
-				float UL = RenderTarget->SizeX * ( 1.0f - Pivot.X );
-				float VL = RenderTarget->SizeY * ( 1.0f - Pivot.Y );
-
-				int32 VertexIndices[4];
-
-				for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
+				if (GeometryMode == EWidgetGeometryMode::Plane)
 				{
-					FDynamicMeshBuilder MeshBuilder;
+					float U = -RenderTarget->SizeX * Pivot.X;
+					float V = -RenderTarget->SizeY * Pivot.Y;
+					float UL = RenderTarget->SizeX * (1.0f - Pivot.X);
+					float VL = RenderTarget->SizeY * (1.0f - Pivot.Y);
 
-					if ( VisibilityMap & ( 1 << ViewIndex ) )
+					int32 VertexIndices[4];
+
+					for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 					{
-						VertexIndices[0] = MeshBuilder.AddVertex(-FVector(0, U, V), FVector2D(0, 0), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
-						VertexIndices[1] = MeshBuilder.AddVertex(-FVector(0, U, VL), FVector2D(0, 1), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
-						VertexIndices[2] = MeshBuilder.AddVertex(-FVector(0, UL, VL), FVector2D(1, 1), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
-						VertexIndices[3] = MeshBuilder.AddVertex(-FVector(0, UL, V), FVector2D(1, 0), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
+						FDynamicMeshBuilder MeshBuilder;
 
-						MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[1], VertexIndices[2]);
-						MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[2], VertexIndices[3]);
+						if ( VisibilityMap & ( 1 << ViewIndex ) )
+						{
+							VertexIndices[0] = MeshBuilder.AddVertex(-FVector(0, U, V ),  FVector2D(0, 0), FVector(0, -1, 0), FVector(0, 0, -1), FVector(1, 0, 0), FColor::White);
+							VertexIndices[1] = MeshBuilder.AddVertex(-FVector(0, U, VL),  FVector2D(0, 1), FVector(0, -1, 0), FVector(0, 0, -1), FVector(1, 0, 0), FColor::White);
+							VertexIndices[2] = MeshBuilder.AddVertex(-FVector(0, UL, VL), FVector2D(1, 1), FVector(0, -1, 0), FVector(0, 0, -1), FVector(1, 0, 0), FColor::White);
+							VertexIndices[3] = MeshBuilder.AddVertex(-FVector(0, UL, V),  FVector2D(1, 0), FVector(0, -1, 0), FVector(0, 0, -1), FVector(1, 0, 0), FColor::White);
 
-						MeshBuilder.GetMesh(ViewportLocalToWorld, MaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
+							MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[1], VertexIndices[2]);
+							MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[2], VertexIndices[3]);
+
+							MeshBuilder.GetMesh(ViewportLocalToWorld, MaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
+						}
+					}
+				}
+				else
+				{
+					ensure(GeometryMode == EWidgetGeometryMode::Cylinder);
+
+					const int32 NumSegments = FMath::Lerp(4, 32, ArcAngle/PI);
+
+
+					const float Radius = RenderTarget->SizeX / ArcAngle;
+					const float Apothem = Radius * FMath::Cos(0.5f*ArcAngle);
+					const float ChordLength = 2.0f * Radius * FMath::Sin(0.5f*ArcAngle);
+					
+					const float PivotOffsetX = ChordLength * (0.5-Pivot.X);
+					const float V = -RenderTarget->SizeY * Pivot.Y;
+					const float VL = RenderTarget->SizeY * (1.0f - Pivot.Y);
+
+					int32 VertexIndices[4];
+
+					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+					{
+						FDynamicMeshBuilder MeshBuilder;
+
+						if (VisibilityMap & (1 << ViewIndex))
+						{
+							const float RadiansPerStep = ArcAngle / NumSegments;
+
+							FVector LastTangentX;
+							FVector LastTangentY;
+							FVector LastTangentZ;
+
+							for (int32 Segment = 0; Segment < NumSegments; Segment++ )
+							{
+								const float Angle = -ArcAngle / 2 + Segment * RadiansPerStep;
+								const float NextAngle = Angle + RadiansPerStep;
+								
+								// Polar to Cartesian
+								const float X0 = Radius * FMath::Cos(Angle) - Apothem;
+								const float Y0 = Radius * FMath::Sin(Angle);
+								const float X1 = Radius * FMath::Cos(NextAngle) - Apothem;
+								const float Y1 = Radius * FMath::Sin(NextAngle);
+
+								const float U0 = static_cast<float>(Segment) / NumSegments;
+								const float U1 = static_cast<float>(Segment+1) / NumSegments;
+
+								const FVector Vertex0 = -FVector(X0, PivotOffsetX + Y0, V);
+								const FVector Vertex1 = -FVector(X0, PivotOffsetX + Y0, VL);
+								const FVector Vertex2 = -FVector(X1, PivotOffsetX + Y1, VL);
+								const FVector Vertex3 = -FVector(X1, PivotOffsetX + Y1, V);
+
+								FVector TangentX = Vertex3 - Vertex0;
+								TangentX.Normalize();
+								FVector TangentY = Vertex1 - Vertex0;
+								TangentY.Normalize();
+								FVector TangentZ = FVector::CrossProduct(TangentX, TangentY);
+
+								if (Segment == 0)
+								{
+									LastTangentX = TangentX;
+									LastTangentY = TangentY;
+									LastTangentZ = TangentZ;
+								}
+
+								VertexIndices[0] = MeshBuilder.AddVertex(Vertex0, FVector2D(U0, 0), LastTangentX, LastTangentY, LastTangentZ, FColor::White);
+								VertexIndices[1] = MeshBuilder.AddVertex(Vertex1, FVector2D(U0, 1), LastTangentX, LastTangentY, LastTangentZ, FColor::White);
+								VertexIndices[2] = MeshBuilder.AddVertex(Vertex2, FVector2D(U1, 1), TangentX, TangentY, TangentZ, FColor::White);
+								VertexIndices[3] = MeshBuilder.AddVertex(Vertex3, FVector2D(U1, 0), TangentX, TangentY, TangentZ, FColor::White);
+
+								MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[1], VertexIndices[2]);
+								MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[2], VertexIndices[3]);
+
+								LastTangentX = TangentX;
+								LastTangentY = TangentY;
+								LastTangentZ = TangentZ;
+							}
+							MeshBuilder.GetMesh(ViewportLocalToWorld, MaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
+						}
 					}
 				}
 			}
@@ -280,6 +363,8 @@ private:
 	FMaterialRelevance MaterialRelevance;
 	UBodySetup* BodySetup;
 	EWidgetBlendMode BlendMode;
+	EWidgetGeometryMode GeometryMode;
+	float ArcAngle;
 };
 
 
@@ -303,6 +388,8 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	, TickWhenOffscreen( false )
 	, SharedLayerName(TEXT("WidgetComponentScreenLayer"))
 	, LayerZOrder(-100)
+	, GeometryMode(EWidgetGeometryMode::Plane)
+	, CylinderArcAngle( 180.0f )
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
@@ -656,6 +743,24 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 	LastWidgetRenderTime = GetWorld()->TimeSeconds;
 }
 
+float UWidgetComponent::ComputeComponentWidth() const
+{
+	switch (GeometryMode)
+	{
+		default:
+		case EWidgetGeometryMode::Plane:
+			return DrawSize.X;
+		break;
+
+		case EWidgetGeometryMode::Cylinder:
+			const float ArcAngleRadians = FMath::DegreesToRadians(GetCylinderArcAngle());
+			const float Radius = GetDrawSize().X / ArcAngleRadians;
+			// Chord length is 2*R*Sin(Theta/2)
+			return 2.0f * Radius * FMath::Sin(0.5f*ArcAngleRadians);
+		break;
+	}
+}
+
 void UWidgetComponent::RemoveWidgetFromScreen()
 {
 #if !UE_SERVER
@@ -754,6 +859,8 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 		static FName OpacityFromTextureName("OpacityFromTexture");
 		static FName ParabolaDistortionName(TEXT("ParabolaDistortion"));
 		static FName BlendModeName( TEXT( "BlendMode" ) );
+		static FName GeometryModeName( TEXT("GeometryMode") );
+		static FName CylinderArcAngleName( TEXT("CylinderArcAngle") );
 
 		auto PropertyName = Property->GetFName();
 
@@ -764,7 +871,7 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 			UpdateWidget();
 			MarkRenderStateDirty();
 		}
-		else if ( PropertyName == DrawSizeName || PropertyName == PivotName )
+		else if ( PropertyName == DrawSizeName || PropertyName == PivotName || PropertyName == GeometryModeName || PropertyName == CylinderArcAngleName )
 		{
 			MarkRenderStateDirty();
 			UpdateBodySetup(true);
@@ -1003,6 +1110,11 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 		FVector Origin = FVector(.5f,
 			-( DrawSize.X * 0.5f ) + ( DrawSize.X * Pivot.X ),
 			-( DrawSize.Y * 0.5f ) + ( DrawSize.Y * Pivot.Y ));
+			const float Width = ComputeComponentWidth();
+			const float Height = DrawSize.Y;
+			Origin = FVector(.5f,
+				-( Width * 0.5f ) + ( Width * Pivot.X ),
+				-( Height * 0.5f ) + ( Height * Pivot.Y ));
 			
 		BoxElem->X = 0.01f;
 		BoxElem->Y = DrawSize.X;
@@ -1015,6 +1127,8 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 
 void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalWidgetHitLocation) const
 {
+	ensureMsgf(GeometryMode == EWidgetGeometryMode::Plane, TEXT("Method does not support non-planar widgets."));
+
 	// Find the hit location on the component
 	FVector ComponentHitLocation = ComponentToWorld.InverseTransformPosition(WorldHitLocation);
 
@@ -1029,6 +1143,121 @@ void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& 
 	FVector2D NormalizedLocation = OutLocalWidgetHitLocation / CurrentDrawSize;
 
 	OutLocalWidgetHitLocation.Y = CurrentDrawSize.Y * NormalizedLocation.Y;
+}
+
+
+TOptional<float> FindLineSphereIntersection(const FVector& Start, const FVector& Dir, float Radius)
+{
+	// Solution exist at two possible locations:
+	// (Start + Dir * t) (dot) (Start + Dir * t) = Radius^2
+	// Dir(dot)Dir*t^2 + 2*Start(dot)Dir + Start(dot)Start - Radius^2 = 0
+	//
+	// Recognize quadratic form with:
+	const float a = FVector::DotProduct(Dir,Dir);
+	const float b = 2 * FVector::DotProduct(Start,Dir);
+	const float c = FVector::DotProduct(Start,Start) - Radius*Radius;
+
+	const float Discriminant = b*b - 4 * a * c;
+	
+	if (Discriminant >= 0)
+	{
+		const float SqrtDiscr = FMath::Sqrt(Discriminant);
+		const float Soln1 = (-b + SqrtDiscr) / (2 * a);
+
+		return Soln1;
+	}
+	else
+	{
+		return TOptional<float>();
+	}
+}
+
+TTuple<FVector, FVector2D> UWidgetComponent::GetCylinderHitLocation(FVector WorldHitLocation, FVector WorldHitDirection) const
+{
+	// Turn this on to see a visualiztion of cylindrical collision testing.
+	static const bool bDrawCollisionDebug = false;
+
+	ensure(GeometryMode == EWidgetGeometryMode::Cylinder);
+		
+
+	FTransform ToWorld = GetComponentToWorld();
+
+	const FVector HitLocation_ComponentSpace = ComponentToWorld.InverseTransformPosition(WorldHitLocation);
+	const FVector HitDirection_ComponentSpace = ComponentToWorld.InverseTransformVector(WorldHitDirection);
+
+
+	const float ArcAngleRadians = FMath::DegreesToRadians(GetCylinderArcAngle());
+	const float Radius = GetDrawSize().X / ArcAngleRadians;
+	const float Apothem = Radius * FMath::Cos(0.5f*ArcAngleRadians);
+	const float ChordLength = 2.0f * Radius * FMath::Sin(0.5f*ArcAngleRadians);
+
+	const float PivotOffsetX = ChordLength * (0.5-Pivot.X);
+
+	if (bDrawCollisionDebug)
+	{
+		// Draw component-space axes
+		UKismetSystemLibrary::DrawDebugArrow((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector::ZeroVector), ToWorld.TransformPosition(FVector(50.f, 0, 0)), 2.0f, FLinearColor::Red);
+		UKismetSystemLibrary::DrawDebugArrow((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector::ZeroVector), ToWorld.TransformPosition(FVector(0, 50.f, 0)), 2.0f, FLinearColor::Green);
+		UKismetSystemLibrary::DrawDebugArrow((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector::ZeroVector), ToWorld.TransformPosition(FVector(0, 0, 50.f)), 2.0f, FLinearColor::Blue);
+
+		// Draw the imaginary circle which we use to describe the cylinder.
+		// Note that we transform all the hit locations into a space where the circle's origin is at (0,0).
+		UKismetSystemLibrary::DrawDebugCircle((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector::ZeroVector), ToWorld.GetScale3D().X*Radius, 64, FLinearColor::Green,
+			0, 1.0f, FVector(0, 1, 0), FVector(1, 0, 0));
+		UKismetSystemLibrary::DrawDebugLine((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector(-Apothem, -Radius, 0.0f)), ToWorld.TransformPosition(FVector(-Apothem, +Radius, 0.0f)), FLinearColor::Green);
+	}
+
+	const FVector HitLocation_CircleSpace( -Apothem, HitLocation_ComponentSpace.Y + PivotOffsetX, 0.0f );
+	const FVector HitDirection_CircleSpace( HitDirection_ComponentSpace.X, HitDirection_ComponentSpace.Y, 0.0f );
+
+	// DRAW HIT DIRECTION
+	if (bDrawCollisionDebug)
+	{
+		UKismetSystemLibrary::DrawDebugCircle((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector(HitLocation_CircleSpace.X, HitLocation_CircleSpace.Y,0)), 2.0f);
+		FVector HitDirection_CircleSpace_Normalized = HitDirection_CircleSpace;
+		HitDirection_CircleSpace_Normalized.Normalize();
+		HitDirection_CircleSpace_Normalized *= 40;
+		UKismetSystemLibrary::DrawDebugLine(
+			(UWidgetComponent*)(this),
+			ToWorld.TransformPosition(FVector(HitLocation_CircleSpace.X, HitLocation_CircleSpace.Y, 0.0f)),
+			ToWorld.TransformPosition(FVector(HitLocation_CircleSpace.X + HitDirection_CircleSpace_Normalized.X, HitLocation_CircleSpace.Y + HitDirection_CircleSpace_Normalized.Y, 0.0f)),
+			FLinearColor::White, 0, 0.1f);
+	}
+
+	// Perform a ray vs. circle intersection test (effectively in 2D because Z coordinate is always 0)
+	const TOptional<float> Solution = FindLineSphereIntersection(HitLocation_CircleSpace, HitDirection_CircleSpace, Radius);
+	if (Solution.IsSet())
+	{
+		const float Time = Solution.GetValue();
+
+		const FVector TrueHitLocation_CircleSpace = HitLocation_CircleSpace + HitDirection_CircleSpace * Time;
+		if (bDrawCollisionDebug)
+		{
+			UKismetSystemLibrary::DrawDebugLine((UWidgetComponent*)(this),
+				ToWorld.TransformPosition(FVector(HitLocation_CircleSpace.X, HitLocation_CircleSpace.Y, 0.0f)),
+				ToWorld.TransformPosition(FVector(TrueHitLocation_CircleSpace.X, TrueHitLocation_CircleSpace.Y, 0.0f)),
+				FLinearColor(1, 0, 1, 1), 0, 0.5f);
+		 }
+			
+		// Determine the widget-space X hit coordinate.
+		const float Endpoint1 = FMath::Fmod(FMath::Atan2(-0.5f*ChordLength, -Apothem) + 2*PI, 2*PI);
+		const float Endpoint2 = FMath::Fmod(FMath::Atan2(+0.5f*ChordLength, -Apothem) + 2*PI, 2*PI);
+		const float HitAngleRads = FMath::Fmod(FMath::Atan2(TrueHitLocation_CircleSpace.Y, TrueHitLocation_CircleSpace.X) + 2*PI, 2*PI);
+		const float HitAngleZeroToOne = (HitAngleRads - FMath::Min(Endpoint1, Endpoint2)) / FMath::Abs(Endpoint2 - Endpoint1);
+
+
+		// Determine the widget-space Y hit coordinate
+		const FVector CylinderHitLocation_ComponentSpace = HitLocation_ComponentSpace + HitDirection_ComponentSpace*Time;
+		const float YHitLocation = (-CylinderHitLocation_ComponentSpace.Z + CurrentDrawSize.Y*Pivot.Y);
+
+		const FVector2D WidgetSpaceHitCoord = FVector2D(HitAngleZeroToOne * CurrentDrawSize.X, YHitLocation);
+			
+		return MakeTuple(ComponentToWorld.TransformPosition(CylinderHitLocation_ComponentSpace), WidgetSpaceHitCoord);
+	}
+	else
+	{
+		return MakeTuple(FVector::ZeroVector, FVector2D::ZeroVector);
+	}
 }
 
 UUserWidget* UWidgetComponent::GetUserWidgetObject() const
@@ -1053,10 +1282,20 @@ const TSharedPtr<SWidget>& UWidgetComponent::GetSlateWidget() const
 
 TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(FVector WorldHitLocation, bool bIgnoreEnabledStatus, float CursorRadius)
 {
+	ensure(GeometryMode == EWidgetGeometryMode::Plane);
+
 	FVector2D LocalHitLocation;
 	GetLocalHitLocation(WorldHitLocation, LocalHitLocation);
 
-	TSharedRef<FVirtualPointerPosition> VirtualMouseCoordinate = MakeShareable( new FVirtualPointerPosition );
+	return GetHitWidgetPath(LocalHitLocation, bIgnoreEnabledStatus, CursorRadius);
+}
+
+
+TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(FVector2D WidgetSpaceHitCoordinate, bool bIgnoreEnabledStatus, float CursorRadius /*= 0.0f*/)
+{
+	TSharedRef<FVirtualPointerPosition> VirtualMouseCoordinate = MakeShareable(new FVirtualPointerPosition);
+
+	const FVector2D& LocalHitLocation = WidgetSpaceHitCoordinate;
 
 	VirtualMouseCoordinate->CurrentCursorPosition = LocalHitLocation;
 	VirtualMouseCoordinate->LastCursorPosition = LastLocalHitLocation;

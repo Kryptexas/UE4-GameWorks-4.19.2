@@ -669,6 +669,13 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "ToolPanel.LightGroupBorder", new BOX_BRUSH("Common/LightGroupBorder", FMargin(4.0f / 16.0f)) );
 	}
 
+	// Filtering/Searching feedback
+	{
+		const FLinearColor ActiveFilterColor = FLinearColor(1.0f,0.55f,0.0f,1.0f);
+		Set("Searching.SearchActiveTab", new BOX_BRUSH("Common/SearchPseudoTab", FVector2D(16,16), FMargin(0.49f), ActiveFilterColor));
+		Set("Searching.SearchActiveBorder", new BOX_BRUSH("Common/SearchActiveBorder", FVector2D(8,8), FMargin(0.49f), ActiveFilterColor));
+	}
+
 	// Inline Editable Text Block
 	{
 		FTextBlockStyle InlineEditableTextBlockReadOnly = FTextBlockStyle(NormalText)

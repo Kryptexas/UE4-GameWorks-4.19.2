@@ -15,6 +15,9 @@ UWrapBox::UWrapBox(const FObjectInitializer& ObjectInitializer)
 
 	SWrapBox::FArguments Defaults;
 	Visibility = Visiblity_DEPRECATED = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
+
+	WrapWidth = 500;
+	bExplicitWrapWidth = false;
 }
 
 void UWrapBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -59,7 +62,8 @@ UWrapBoxSlot* UWrapBox::AddChildWrapBox(UWidget* Content)
 TSharedRef<SWidget> UWrapBox::RebuildWidget()
 {
 	MyWrapBox = SNew(SWrapBox)
-		.UseAllottedWidth(true);
+		.UseAllottedWidth(!bExplicitWrapWidth)
+		.PreferredWidth(WrapWidth);
 
 	for ( UPanelSlot* PanelSlot : Slots )
 	{
@@ -78,6 +82,8 @@ void UWrapBox::SynchronizeProperties()
 	Super::SynchronizeProperties();
 
 	MyWrapBox->SetInnerSlotPadding(InnerSlotPadding);
+	MyWrapBox->SetUseAllottedWidth(!bExplicitWrapWidth);
+	MyWrapBox->SetWrapWidth(WrapWidth);
 }
 
 void UWrapBox::SetInnerSlotPadding(FVector2D InPadding)

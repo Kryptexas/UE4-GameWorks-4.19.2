@@ -111,10 +111,10 @@ END_UNIFORM_BUFFER_STRUCT( FGBufferResourceStruct )
 /*
 * Stencil layout during basepass / deferred decals:
 *		BIT ID    | USE
-*		[0]       | sandbox bit (this is not actually output in the base pass, but in the decal passes)
+*		[0]       | sandbox bit (bit to be use by any rendering passes, but must be properly reset to 0 after using)
 *		[1]       | unallocated
 *		[2]       | unallocated
-*		[3]       | unallocated
+*		[3]       | Temporal AA mask for translucent object.
 *		[4]       | Lighting channels
 *		[5]       | Lighting channels
 *		[6]       | Lighting channels
@@ -123,6 +123,7 @@ END_UNIFORM_BUFFER_STRUCT( FGBufferResourceStruct )
 * After deferred decals, stencil is cleared to 0 and no longer packed in this way, to ensure use of fast hardware clears and HiStencil.
 */
 #define STENCIL_SANDBOX_BIT_ID				0
+#define STENCIL_TEMPORAL_RESPONSIVE_AA_BIT_ID 3
 #define STENCIL_LIGHTING_CHANNELS_BIT_ID	4
 #define STENCIL_RECEIVE_DECAL_BIT_ID		7
 
@@ -133,6 +134,8 @@ END_UNIFORM_BUFFER_STRUCT( FGBufferResourceStruct )
 #define GET_STENCIL_BIT_MASK(BIT_NAME,Value) uint8((uint8(Value) & uint8(0x01)) << (STENCIL_##BIT_NAME##_BIT_ID))
 
 #define STENCIL_SANDBOX_MASK GET_STENCIL_BIT_MASK(SANDBOX,1)
+
+#define STENCIL_TEMPORAL_RESPONSIVE_AA_MASK GET_STENCIL_BIT_MASK(TEMPORAL_RESPONSIVE_AA,1)
 
 #define STENCIL_LIGHTING_CHANNELS_MASK(Value) uint8((Value & 0x7) << STENCIL_LIGHTING_CHANNELS_BIT_ID)
 
@@ -252,7 +255,7 @@ public:
 	void FinishRenderingTranslucency(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View);
 
 	void BeginRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame);
-	void FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View);
+	void FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList);
 	void FreeSeparateTranslucency()
 	{
 		SeparateTranslucencyRT.SafeRelease();
@@ -309,6 +312,12 @@ public:
 	 * @return clamped to reasonable numbers
 	 */
 	int32 GetEditorMSAACompositingSampleCount() const;
+
+	/**
+	* Affects the render quality of the scene. MSAA is needed if >1
+	* @return clamped to reasonable numbers
+	*/
+	static uint16 GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type InFeatureLevel);
 
 	bool IsStaticLightingAllowed() const { return bAllowStaticLighting; }
 
@@ -664,7 +673,7 @@ private:
 		{
 			return ESceneColorFormatType::Mobile;
 		}
-		else if (CurrentShadingPath == EShadingPath::Deferred && (bRequireSceneColorAlpha || CurrentSceneColorFormat == 4))
+		else if (CurrentShadingPath == EShadingPath::Deferred && (bRequireSceneColorAlpha || CurrentSceneColorFormat == PF_FloatRGBA))
 		{
 			return ESceneColorFormatType::HighEndWithAlpha;
 		}

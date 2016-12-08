@@ -304,6 +304,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** set block detection params */
 	void SetBlockDetection(float DistanceThreshold, float Interval, int32 NumSamples);
 
+	/** Returns true if pathfollowing is doing deceleration at the end of the path. */
+	bool IsDecelerating() const { return bIsDecelerating; };
+
 	/** @returns state of movement stopping on finish */
 	FORCEINLINE bool IsStopMovementOnFinishActive() const { return bStopMovementOnFinish; }
 	
@@ -542,6 +545,9 @@ protected:
 	/** gets set when agent starts following a navigation link. Cleared after agent starts falling or changes segment to a non-link one */
 	uint32 bWalkingNavLinkStart : 1;
 
+	/** True if pathfollowing is doing deceleration at the end of the path. @see FollowPathSegment(). */
+	uint32 bIsDecelerating : 1;
+
 	/** timeout for Waiting state, negative value = infinite */
 	float WaitingTimeout;
 
@@ -615,7 +621,7 @@ protected:
 	bool HasReachedDestination(const FVector& CurrentLocation) const;
 
 	/** check if segment is completed */
-	bool HasReachedCurrentTarget(const FVector& CurrentLocation) const;
+	virtual bool HasReachedCurrentTarget(const FVector& CurrentLocation) const;
 
 	/** check if moving agent has reached goal defined by cylinder */
 	bool HasReachedInternal(const FVector& GoalLocation, float GoalRadius, float GoalHalfHeight, const FVector& AgentLocation, float RadiusThreshold, float AgentRadiusMultiplier) const;
@@ -675,7 +681,7 @@ protected:
 
 	/** debug point reach test values */
 	void DebugReachTest(float& CurrentDot, float& CurrentDistance, float& CurrentHeight, uint8& bDotFailed, uint8& bDistanceFailed, uint8& bHeightFailed) const;
-	
+
 	/** used to keep track of which subsystem requested this AI resource be locked */
 	FAIResourceLock ResourceLock;
 

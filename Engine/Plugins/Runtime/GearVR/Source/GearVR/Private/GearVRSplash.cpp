@@ -368,6 +368,11 @@ void FGearVRSplash::UnloadTextures()
 	}
 }
 
+uint32 FGearVRSplash::GetTotalNumberOfLayersSupported() const
+{
+	return VRAPI_FRAME_LAYER_TYPE_MAX;
+}
+
 void FGearVRSplash::Hide(EShowType InShowType)
 {
 	UE_LOG(LogHMD, Log, TEXT("FGearVRSplash::Hide"));

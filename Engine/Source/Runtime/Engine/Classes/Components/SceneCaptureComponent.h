@@ -99,6 +99,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
 	void ShowOnlyActorComponents(AActor* InActor);
 
+	/** Removes a component from the Show Only list. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	void RemoveShowOnlyComponent(UPrimitiveComponent* InComponent);
+
+	/** Removes a actor's components from the Show Only list. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	void RemoveShowOnlyActorComponents(AActor* InActor);
+
+	/** Clears the Show Only list. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|SceneCapture")
+	void ClearShowOnlyComponents(UPrimitiveComponent* InComponent);
+
 	/** Returns the view state, if any, and allocates one if needed. This function can return NULL, e.g. when bCaptureEveryFrame is false. */
 	FSceneViewStateInterface* GetViewState();
 	FSceneViewStateInterface* GetStereoViewState();

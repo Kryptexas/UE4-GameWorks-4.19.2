@@ -1135,27 +1135,23 @@ public:
 			SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, BloomDirtMaskParam, BloomDirtMaskUB);
 		}
 
-		// volume texture LUT
+		// Use a provided tonemaping LUT (provided by a CombineLUTs pass). 
 		{
+			
 			FRenderingCompositeOutputRef* OutputRef = Context.Pass->GetInput(ePId_Input3);
 
-			if(OutputRef)
+			// Indicates the Tonemapper combined LUT node was nominally in the network.
+			const bool bUseLUT = (OutputRef != NULL);
+
+			if (bUseLUT)
 			{
-				FRenderingCompositeOutput* Input = OutputRef->GetOutput();
-
-				if(Input)
+				const FTextureRHIRef* SrcTexture = Context.View.GetTonemappingLUTTexture();
+			
+				if (SrcTexture)
 				{
-					TRefCountPtr<IPooledRenderTarget> InputPooledElement = Input->RequestInput();
-
-					if(InputPooledElement)
-					{
-						check(!InputPooledElement->IsFree());
-
-						const FTextureRHIRef& SrcTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
-					
-						SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), SrcTexture);
-					}
+						SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), *SrcTexture);
 				}
+
 			}
 		}
 

@@ -86,7 +86,7 @@ void UAITask_MoveTo::FinishMoveTask(EPathFollowingResult::Type InResult)
 	}
 	else
 	{
-		OnMoveFinished.Broadcast(InResult);
+		OnMoveFinished.Broadcast(InResult, OwnerController);
 	}
 }
 

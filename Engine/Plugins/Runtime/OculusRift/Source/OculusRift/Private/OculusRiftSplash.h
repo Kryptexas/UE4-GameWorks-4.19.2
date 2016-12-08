@@ -35,6 +35,8 @@ protected:
 	void PushBlackFrame();
 	void UnloadTextures();
 
+	virtual uint32 GetTotalNumberOfLayersSupported() const override { return ovrMaxLayerCount; }
+
 private:
 	class FOculusRiftHMD*		pPlugin;
 	TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> RenderFrame;

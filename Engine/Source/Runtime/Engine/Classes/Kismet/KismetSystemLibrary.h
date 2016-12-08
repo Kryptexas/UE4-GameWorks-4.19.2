@@ -1402,3 +1402,54 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	static FString GetCommandLine();
 };
+
+
+
+//////////////////////////////////////////////////////////////////////////
+// UKismetSystemLibrary inlines
+
+
+FORCEINLINE_DEBUGGABLE bool UKismetSystemLibrary::IsValid(const UObject* Object)
+{
+	return ::IsValid(Object);
+}
+
+FORCEINLINE_DEBUGGABLE bool UKismetSystemLibrary::IsValidClass(UClass* Class)
+{
+	return ::IsValid(Class);
+}
+
+FORCEINLINE int32 UKismetSystemLibrary::MakeLiteralInt(int32 Value)
+{
+	return Value;
+}
+
+FORCEINLINE float UKismetSystemLibrary::MakeLiteralFloat(float Value)
+{
+	return Value;
+}
+
+FORCEINLINE bool UKismetSystemLibrary::MakeLiteralBool(bool Value)
+{
+	return Value;
+}
+
+FORCEINLINE FName UKismetSystemLibrary::MakeLiteralName(FName Value)
+{
+	return Value;
+}
+
+FORCEINLINE uint8 UKismetSystemLibrary::MakeLiteralByte(uint8 Value)
+{
+	return Value;
+}
+
+FORCEINLINE FString UKismetSystemLibrary::MakeLiteralString(const FString& Value)
+{
+	return Value;
+}
+
+FORCEINLINE FText UKismetSystemLibrary::MakeLiteralText(FText Value)
+{
+	return Value;
+}

@@ -123,16 +123,29 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &SDetailsView::SetRootExpansionStates, /*bExpanded=*/true, /*bRecurse=*/false )));
 
-	FilterRow = SNew( SHorizontalBox )
+	FilterRow = 
+		SNew( SHorizontalBox )
 		.Visibility( this, &SDetailsView::GetFilterBoxVisibility )
 		+SHorizontalBox::Slot()
 		.FillWidth( 1 )
-		.VAlign( VAlign_Center )
 		[
-			// Create the search box
-			SAssignNew( SearchBox, SSearchBox )
-			.OnTextChanged( this, &SDetailsView::OnFilterTextChanged  )
-			.AddMetaData<FTagMetaData>(TEXT("Details.Search"))
+			SNew(SOverlay)
+			+SOverlay::Slot()
+			.Padding(2.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("Searching.SearchActiveTab"))
+				.Visibility_Lambda([&](){ return this->bHasActiveFilter ? EVisibility::Visible : EVisibility::Collapsed; })
+			]
+			+SOverlay::Slot()
+			.Padding(4.0f, 2.0f)
+			.VAlign( VAlign_Center )
+			[
+				// Create the search box
+				SAssignNew(SearchBox, SSearchBox)
+				.OnTextChanged(this, &SDetailsView::OnFilterTextChanged)
+				.AddMetaData<FTagMetaData>(TEXT("Details.Search"))
+			]
 		]
 		+SHorizontalBox::Slot()
 		.Padding( 4.0f, 0.0f, 0.0f, 0.0f )
@@ -199,11 +212,11 @@ void SDetailsView::Construct(const FArguments& InArgs)
 	{
 		VerticalBox->AddSlot()
 		.AutoHeight()
-		.Padding(0.0f, 0.0f, 0.0f, 2.0f)
 		[
 			FilterRow.ToSharedRef()
 		];
 	}
+
 
 	VerticalBox->AddSlot()
 	.FillHeight(1)
@@ -222,6 +235,12 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			[
 				ExternalScrollbar
 			]
+		]
+		+ SOverlay::Slot()
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::GetBrush("Searching.SearchActiveBorder"))
+			.Visibility_Lambda([&]() { return this->bHasActiveFilter ? EVisibility::HitTestInvisible : EVisibility::Collapsed; })
 		]
 	];
 

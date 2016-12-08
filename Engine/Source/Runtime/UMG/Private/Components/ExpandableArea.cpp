@@ -47,6 +47,15 @@ void UExpandableArea::SetIsExpanded(bool IsExpanded)
 	}
 }
 
+void UExpandableArea::SetIsExpanded_Animated(bool IsExpanded)
+{
+	bIsExpanded = IsExpanded;
+	if (MyExpandableArea.IsValid())
+	{
+		MyExpandableArea->SetExpanded_Animated(IsExpanded);
+	}
+}
+
 void UExpandableArea::ReleaseSlateResources( bool bReleaseChildren )
 {
 	Super::ReleaseSlateResources(bReleaseChildren);

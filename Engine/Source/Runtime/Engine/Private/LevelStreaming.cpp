@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/LevelStreaming.h"
+#include "ContentStreaming.h"
 #include "Misc/App.h"
 #include "UObject/Package.h"
 #include "Serialization/ArchiveTraceRoute.h"

@@ -129,6 +129,10 @@ struct FParticleEmitterBuildInfo
 	float CollisionRadiusScale;
 	/** Bias applied to the collision radius. */
 	float CollisionRadiusBias;
+	/** Factor reflection spreading cone when colliding. */
+	float CollisionRandomSpread;
+	/** Random distribution across the reflection spreading cone when colliding. */
+	float CollisionRandomDistribution;
 	/** Friction. */
 	float Friction;
 	/** Collision damping factor. */

@@ -342,7 +342,7 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 	return DesiredBufferSize;
 }
 
-inline uint16 GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type InFeatureLevel)
+uint16 FSceneRenderTargets::GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	uint16 NumSamples = 1;
 
@@ -642,8 +642,6 @@ void FSceneRenderTargets::FinishRenderingGBuffer(FRHICommandListImmediate& RHICm
 			RHICmdList.CopyToResolveTarget(RenderTargets[i].Texture, RenderTargets[i].Texture, true, ResolveParams);
 		}
 	}
-	FTextureRHIParamRef DepthSurface = GetSceneDepthSurface();
-	RHICmdList.CopyToResolveTarget(DepthSurface, DepthSurface, true, ResolveParams);
 
 	QuadOverdrawIndex = INDEX_NONE;
 }
@@ -1302,32 +1300,29 @@ void FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 	RHICmdList.SetViewport(View.ViewRect.Min.X * Scale, View.ViewRect.Min.Y * Scale, 0.0f, View.ViewRect.Max.X * Scale, View.ViewRect.Max.Y * Scale, 1.0f);
 }
 
-void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList, const FViewInfo& View)
+void FSceneRenderTargets::FinishRenderingSeparateTranslucency(FRHICommandList& RHICmdList)
 {
-	if(IsSeparateTranslucencyActive(View))
+	SCOPED_DRAW_EVENT(RHICmdList, FinishSeparateTranslucency);
+
+	TRefCountPtr<IPooledRenderTarget>* SeparateTranslucency;
+	TRefCountPtr<IPooledRenderTarget>* SeparateTranslucencyDepth;
+	if (bSnapshot)
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, FinishSeparateTranslucency);
-
-		TRefCountPtr<IPooledRenderTarget>* SeparateTranslucency;
-		TRefCountPtr<IPooledRenderTarget>* SeparateTranslucencyDepth;
-		if (bSnapshot)
-		{
-			check(SeparateTranslucencyRT.GetReference());
-			SeparateTranslucency = &SeparateTranslucencyRT;
-			SeparateTranslucencyDepth = &SeparateTranslucencyDepthRT;
-		}
-		else
-		{
-			FIntPoint ScaledSize;
-			float Scale = 1.0f;
-			GetSeparateTranslucencyDimensions(ScaledSize, Scale);
-			SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
-			SeparateTranslucencyDepth = &GetSeparateTranslucencyDepth(RHICmdList, ScaledSize);
-		}
-
-		RHICmdList.CopyToResolveTarget((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture, (*SeparateTranslucency)->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-		RHICmdList.CopyToResolveTarget((*SeparateTranslucencyDepth)->GetRenderTargetItem().TargetableTexture, (*SeparateTranslucencyDepth)->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+		check(SeparateTranslucencyRT.GetReference());
+		SeparateTranslucency = &SeparateTranslucencyRT;
+		SeparateTranslucencyDepth = &SeparateTranslucencyDepthRT;
 	}
+	else
+	{
+		FIntPoint ScaledSize;
+		float Scale = 1.0f;
+		GetSeparateTranslucencyDimensions(ScaledSize, Scale);
+		SeparateTranslucency = &GetSeparateTranslucency(RHICmdList, ScaledSize);
+		SeparateTranslucencyDepth = &GetSeparateTranslucencyDepth(RHICmdList, ScaledSize);
+	}
+
+	RHICmdList.CopyToResolveTarget((*SeparateTranslucency)->GetRenderTargetItem().TargetableTexture, (*SeparateTranslucency)->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+	RHICmdList.CopyToResolveTarget((*SeparateTranslucencyDepth)->GetRenderTargetItem().TargetableTexture, (*SeparateTranslucencyDepth)->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 
 	bSeparateTranslucencyPass = false;
 }

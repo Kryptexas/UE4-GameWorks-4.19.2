@@ -36,6 +36,8 @@ protected:
 	void PushBlackFrame();
 	void UnloadTextures();
 
+	virtual uint32 GetTotalNumberOfLayersSupported() const override;
+
 private:
 	class FGearVR*		pPlugin;
 	TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> RenderFrame;

@@ -883,7 +883,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			if (CmdName.IsEmpty())
 				return false;
 
-			GetSettings()->PixelDensity = FMath::Clamp(FCString::Atof(*CmdName), 0.5f, 2.0f);
+			GetSettings()->PixelDensity = FMath::Clamp(FCString::Atof(*CmdName), 0.1f, 10.0f);
 			GetSettings()->PixelDensityMin = FMath::Min(GetSettings()->PixelDensity, GetSettings()->PixelDensityMin);
 			GetSettings()->PixelDensityMax = FMath::Max(GetSettings()->PixelDensity, GetSettings()->PixelDensityMax);
 			Flags.bNeedUpdateStereoRenderingParams = true;
@@ -895,7 +895,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			if (CmdName.IsEmpty())
 				return false;
 
-			GetSettings()->PixelDensityMin = FMath::Clamp(FCString::Atof(*CmdName), 0.5f, 2.0f);
+			GetSettings()->PixelDensityMin = FMath::Clamp(FCString::Atof(*CmdName), 0.1f, 10.0f);
 			GetSettings()->PixelDensityMax = FMath::Max(GetSettings()->PixelDensityMin, GetSettings()->PixelDensityMax);
 			GetSettings()->PixelDensity = FMath::Clamp(GetSettings()->PixelDensity, GetSettings()->PixelDensityMin, GetSettings()->PixelDensityMax);
 			Flags.bNeedUpdateStereoRenderingParams = true;
@@ -907,7 +907,7 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			if (CmdName.IsEmpty())
 				return false;
 
-			GetSettings()->PixelDensityMax = FMath::Clamp(FCString::Atof(*CmdName), 0.5f, 2.0f);
+			GetSettings()->PixelDensityMax = FMath::Clamp(FCString::Atof(*CmdName), 0.1f, 10.0f);
 			GetSettings()->PixelDensityMin = FMath::Min(GetSettings()->PixelDensityMin, GetSettings()->PixelDensityMax);
 			GetSettings()->PixelDensity = FMath::Clamp(GetSettings()->PixelDensity, GetSettings()->PixelDensityMin, GetSettings()->PixelDensityMax);
 			Flags.bNeedUpdateStereoRenderingParams = true;

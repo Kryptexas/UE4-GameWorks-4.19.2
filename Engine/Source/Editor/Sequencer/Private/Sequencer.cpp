@@ -5216,8 +5216,12 @@ FMovieSceneSpawnable* FSequencer::ConvertToSpawnableInternal(FGuid PossessableGu
 		for (int32 Index = 0; Index < MovieScene->GetPossessableCount(); ++Index)
 		{
 			FMovieScenePossessable& MovieScenePossessable = MovieScene->GetPossessable(Index);
-			MovieScenePossessable.SetParent(PersistentGuid);
-			Spawnable->AddChildPossessable(MovieScenePossessable.GetGuid());
+			bool bBelongsToNewSpawnable = MovieScenePossessable.GetParent() == PersistentGuid;
+			if (bBelongsToNewSpawnable)
+			{
+				MovieScenePossessable.SetParent(PersistentGuid);
+				Spawnable->AddChildPossessable(MovieScenePossessable.GetGuid());
+			}
 		}
 	}
 	

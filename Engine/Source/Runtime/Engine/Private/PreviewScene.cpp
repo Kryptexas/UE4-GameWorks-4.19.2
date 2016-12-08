@@ -43,6 +43,7 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	AddComponent(DirectionalLight, FTransform(CVS.LightRotation));
 
 	LineBatcher = NewObject<ULineBatchComponent>(GetTransientPackage());
+	LineBatcher->bCalculateAccurateBounds = false;
 	AddComponent(LineBatcher, FTransform::Identity);
 }
 

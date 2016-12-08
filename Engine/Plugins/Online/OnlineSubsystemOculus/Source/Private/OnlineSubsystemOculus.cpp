@@ -189,6 +189,8 @@ bool FOnlineSubsystemOculus::Init()
 #endif
 	if (bOculusInit)
 	{
+		// Need to manually start ticker if we are reloading the subsystem
+		StartTicker();
 		MessageTaskManager = MakeUnique<FOnlineMessageTaskManagerOculus>();
 		check(MessageTaskManager);
 
@@ -216,14 +218,14 @@ bool FOnlineSubsystemOculus::InitWithWindowsPlatform()
 	auto OculusAppId = GetAppId();
 	if (OculusAppId.IsEmpty())
 	{
-		UE_LOG_ONLINE(Error, TEXT("Missing OculusAppId key in OnlineSubsystemOculus of DefaultEngine.ini"));
+		UE_LOG_ONLINE(Warning, TEXT("Missing OculusAppId key in OnlineSubsystemOculus of DefaultEngine.ini"));
 		return false;
 	}
 
 	auto InitResult = ovr_PlatformInitializeWindows(TCHAR_TO_ANSI(*OculusAppId));
 	if (InitResult != ovrPlatformInitialize_Success)
 	{
-		UE_LOG_ONLINE(Warning, TEXT("Failed to initialize the Oculus Platform SDK! Error code: %d"), (int)InitResult);
+		UE_LOG_ONLINE(Warning, TEXT("Failed to initialize the Oculus Platform SDK! Failure code: %d"), (int)InitResult);
 		return false;
 	}
 	return true;

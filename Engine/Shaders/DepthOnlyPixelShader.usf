@@ -21,6 +21,9 @@ void Main(
 	OPTIONAL_OutDepthConservative,
 #endif
 	out float4 OutColor : SV_Target0
+#if MATERIALBLENDING_MASKED_USING_COVERAGE
+	, out uint OutCoverage : SV_Coverage
+#endif
 	)
 {
 #if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
@@ -41,6 +44,8 @@ void Main(
 
 	#if MATERIALBLENDING_TRANSLUCENT
 		clip(GetMaterialOpacity(PixelMaterialInputs) - GetMaterialOpacityMaskClipValue());
+	#elif MATERIALBLENDING_MASKED_USING_COVERAGE
+		OutCoverage = DiscardMaterialWithPixelCoverage(MaterialParameters, PixelMaterialInputs);
 	#else
 		GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
 	#endif

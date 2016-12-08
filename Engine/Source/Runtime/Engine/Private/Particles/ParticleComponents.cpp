@@ -3522,10 +3522,10 @@ void UParticleSystemComponent::OnRegister()
 			}
 		}
 
-			SavedAutoAttachRelativeLocation = RelativeLocation;
-			SavedAutoAttachRelativeRotation = RelativeRotation;
-			SavedAutoAttachRelativeScale3D = RelativeScale3D;
-		}
+		SavedAutoAttachRelativeLocation = RelativeLocation;
+		SavedAutoAttachRelativeRotation = RelativeRotation;
+		SavedAutoAttachRelativeScale3D = RelativeScale3D;
+	}
 
 	Super::OnRegister();
 

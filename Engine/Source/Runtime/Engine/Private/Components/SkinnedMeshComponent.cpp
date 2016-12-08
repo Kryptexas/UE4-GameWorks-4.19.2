@@ -1865,6 +1865,36 @@ FColor USkinnedMeshComponent::GetVertexColor(int32 VertexIndex) const
 	return Model.ColorVertexBuffer.VertexColor(VertexBase + VertIndex);
 }
 
+FVector2D USkinnedMeshComponent::GetVertexUV(int32 VertexIndex, uint32 UVChannel) const
+{
+	// Fail if no mesh or no vertex buffer.
+	FVector2D FallbackUV = FVector2D::ZeroVector;
+	if (!SkeletalMesh || !MeshObject)
+	{
+		return FallbackUV;
+	}
+
+	FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
+	
+	if (!Model.VertexBufferGPUSkin.IsInitialized())
+	{
+		return FallbackUV;
+	}
+
+	// Find the chunk and vertex within that chunk, and skinning type, for this vertex.
+	int32 SectionIndex;
+	int32 VertIndex;
+	bool bHasExtraBoneInfluences;
+	Model.GetSectionFromVertexIndex(VertexIndex, SectionIndex, VertIndex, bHasExtraBoneInfluences);
+
+	check(SectionIndex < Model.Sections.Num());
+	const FSkelMeshSection& Section = Model.Sections[SectionIndex];
+	
+	int32 VertexBase = Section.GetVertexBufferIndex();
+	uint32 ClampedUVChannel = FMath::Min(UVChannel, Model.VertexBufferGPUSkin.GetNumTexCoords());
+
+	return Model.VertexBufferGPUSkin.GetVertexUV(VertexBase + VertIndex, ClampedUVChannel);
+}
 
 void USkinnedMeshComponent::HideBone( int32 BoneIndex, EPhysBodyOp PhysBodyOption)
 {

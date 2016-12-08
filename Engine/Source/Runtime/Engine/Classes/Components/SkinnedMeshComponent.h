@@ -577,6 +577,14 @@ public:
 	FColor GetVertexColor(int32 VertexIndex) const;
 
 	/**
+	* Returns texture coordinates of the vertex.
+	*
+	* @param VertexIndex		Vertex Index. If compressed, this will be slow.
+	* @param TexCoordChannel	Texture coordinate channel Index.
+	*/
+	FVector2D GetVertexUV(int32 VertexIndex, uint32 UVChannel) const;
+
+	/**
 	 * Update functions
 	 */
 

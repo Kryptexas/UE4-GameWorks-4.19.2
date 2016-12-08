@@ -125,7 +125,7 @@ bool FAsyncLoadingSplash::AddSplash(const FSplashDesc& Desc)
 {
 	check(IsInGameThread());
 	FScopeLock ScopeLock(&SplashScreensLock);
-	if (SplashScreenDescs.Num() < SPLASH_MAX_NUM)
+	if (SplashScreenDescs.Num() < (int32)GetTotalNumberOfLayersSupported())
 	{
 #if !UE_BUILD_SHIPPING
 		// check if we already have very same layer; if yes, print out a warning

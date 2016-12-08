@@ -329,6 +329,7 @@ const FScrollBarStyle& FScrollBarStyle::GetDefault()
 
 
 FExpandableAreaStyle::FExpandableAreaStyle()
+: RolloutAnimationSeconds(0.1f)
 {
 }
 

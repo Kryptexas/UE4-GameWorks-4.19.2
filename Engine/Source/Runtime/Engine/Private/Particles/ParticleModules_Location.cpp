@@ -2184,6 +2184,8 @@ UParticleModuleLocationSkelVertSurface::UParticleModuleLocationSkelVertSurface(c
 	SkelMeshActorParamName = ConstructorStatics.NAME_VertSurfaceActor;
 	bOrientMeshEmitters = true;
 	bEnforceNormalCheck = false;
+	bInheritUV = false;
+	InheritUVChannel = 0;
 	InheritVelocityScale = 1.0f;
 }
 
@@ -2387,6 +2389,42 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 				}
 				Particle.Color = UseColor;
 				Particle.BaseColor = UseColor;
+			}
+					
+			if (bInheritUV)
+			{
+				FVector2D UseUV;
+				if (SourceType == VERTSURFACESOURCE_Vert)
+				{
+					UseUV = SourceComponent->GetVertexUV(SourceIndex, InheritUVChannel);
+				}
+				else if (SourceType == VERTSURFACESOURCE_Surface)
+				{
+					int32 VertIndex[3];
+					FVector2D VertUVs[3];
+
+					VertIndex[0] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex);
+					VertIndex[1] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 1);
+					VertIndex[2] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 2);
+					VertUVs[0] = SourceComponent->GetVertexUV(VertIndex[0], InheritUVChannel);
+					VertUVs[1] = SourceComponent->GetVertexUV(VertIndex[1], InheritUVChannel);
+					VertUVs[2] = SourceComponent->GetVertexUV(VertIndex[2], InheritUVChannel);
+					UseUV.X = (VertUVs[0].X + VertUVs[1].X + VertUVs[2].X) / 3;
+					UseUV.Y = (VertUVs[0].Y + VertUVs[1].Y + VertUVs[2].Y) / 3;
+
+					// TODO: Barycentric interpolation instead of triangle average. Position is in same struct during vertex fetch above
+					/*FVector BarycentricUV = FMath::GetBaryCentric2D(Point, VertA, VertB, VertC);
+					FVector2D UseUV = VertUVs[0] * BarycentricUV.X + VertUVs[1] * BarycentricUV.Y + VertUVs[2] * BarycentricUV.Z;*/
+				}
+
+				const int32 DynParamOffset = Owner->DynamicParameterDataOffset;
+				if (DynParamOffset > 0)
+				{
+					// Override dynamic parameters to allow vertex colors to be used
+					FEmitterDynamicParameterPayload& DynamicPayload = *((FEmitterDynamicParameterPayload*)((uint8*)&Particle + DynParamOffset));
+					DynamicPayload.DynamicParameterValue[0] = UseUV.X;
+					DynamicPayload.DynamicParameterValue[1] = UseUV.Y;
+				}
 			}
 
 			if (bMeshRotationActive)

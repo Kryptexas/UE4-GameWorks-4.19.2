@@ -937,15 +937,6 @@ void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo&
 		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()), FilterBufferSize,
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
-
-	if ( bUseSeparateTranslucency )
-	{
-		SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);
-	}
-	else
-	{
-		SceneContext.FinishRenderingSceneColor(RHICmdList);
-	}
 }
 
 void FSceneViewState::TrimHistoryRenderTargets(const FScene* Scene)

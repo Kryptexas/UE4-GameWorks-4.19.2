@@ -1973,7 +1973,7 @@ bool UPrimitiveComponent::ComponentOverlapComponentImpl(class UPrimitiveComponen
 	USkeletalMeshComponent * OtherComp = Cast<USkeletalMeshComponent>(PrimComp);
 	if (OtherComp)
 	{
-		UE_LOG(LogCollision, Log, TEXT("ComponentOverlapMulti : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
+		UE_LOG(LogCollision, Warning, TEXT("ComponentOverlapMulti : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
 		return false;
 	}
 
@@ -2305,6 +2305,11 @@ const TArray<FOverlapInfo>* UPrimitiveComponent::ConvertSweptOverlapsToCurrentOv
 						if (OtherPrimitive->bMultiBodyOverlap)
 						{
 							// Not handled yet. We could do it by checking every body explicitly and track each body index in the overlap test, but this seems like a rare need.
+							return nullptr;
+						}
+						else if (Cast<USkeletalMeshComponent>(OtherPrimitive) || Cast<USkeletalMeshComponent>(this))
+						{
+							// SkeletalMeshComponent does not support this operation, and would return false in the test when an actual query could return true.
 							return nullptr;
 						}
 						else if (OtherPrimitive->ComponentOverlapComponent(this, EndLocation, EndRotationQuat, UnusedQueryParams))
@@ -2683,7 +2688,11 @@ void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 		SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
 		if (UWorld* MyWorld = GetWorld())
 		{
-			if (bGenerateOverlapEvents && IsQueryCollisionEnabled())
+			if (MyWorld->GetNonDefaultPhysicsVolumeCount() == 0)
+			{
+				SetPhysicsVolume(MyWorld->GetDefaultPhysicsVolume(), bTriggerNotifiers);
+			}
+			else if (bGenerateOverlapEvents && IsQueryCollisionEnabled())
 			{
 				APhysicsVolume* BestVolume = MyWorld->GetDefaultPhysicsVolume();
 				int32 BestPriority = BestVolume->Priority;

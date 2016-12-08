@@ -100,6 +100,8 @@ public:
 	 */
 	virtual void SetExpanded( bool bExpanded );
 
+	virtual void SetExpanded_Animated( bool bExpanded );
+
 protected:
 
 	/**

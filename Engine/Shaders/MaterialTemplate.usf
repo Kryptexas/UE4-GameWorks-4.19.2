@@ -1708,6 +1708,41 @@ void GetMaterialCoverageAndClipping(FMaterialPixelParameters Parameters, FPixelM
 #endif
 }
 
+#define MATERIALBLENDING_MASKED_USING_COVERAGE (FORWARD_SHADING && MATERIALBLENDING_MASKED && SUPPORTS_PIXEL_COVERAGE)
+#if MATERIALBLENDING_MASKED_USING_COVERAGE
+
+uint GetDerivativeCoverageFromMask(float MaterialMask)
+{
+	uint Coverage = 0x0;
+	if (MaterialMask > 0.01) Coverage = 0x8;
+	if (MaterialMask > 0.25) Coverage = 0x9;
+	if (MaterialMask > 0.50) Coverage = 0xD;
+	if (MaterialMask > 0.75) Coverage = 0xF;
+	return Coverage;
+}
+
+// Returns the new pixel coverage according the material's mask and the current pixel's mask.
+uint DiscardMaterialWithPixelCoverage(FMaterialPixelParameters MaterialParameters, FPixelMaterialInputs PixelMaterialInputs)
+{
+	ClipLODTransition(MaterialParameters);
+	float OriginalMask = GetMaterialMaskInputRaw(PixelMaterialInputs);
+	float MaskClip = GetMaterialOpacityMaskClipValue();
+
+	if (View.BufferMSAA > 1)
+	{
+		float Mask = (OriginalMask - MaskClip) / (1.0 - MaskClip);
+		uint CurrentPixelCoverage = GetDerivativeCoverageFromMask(Mask);
+		// Discard pixel shader if all sample are masked to avoid computing other material inputs.
+		clip(float(CurrentPixelCoverage) - 0.5);
+		return CurrentPixelCoverage;
+	}
+	clip(OriginalMask - MaskClip);
+	return 0xF;
+}
+
+#endif // MATERIALBLENDING_MASKED_USING_COVERAGE
+
+
 	#define FrontFaceSemantic SV_IsFrontFace
 	#define FIsFrontFace bool
 	half GetFloatFacingSign(FIsFrontFace bIsFrontFace)

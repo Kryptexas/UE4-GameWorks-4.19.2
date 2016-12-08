@@ -657,8 +657,10 @@ OVRPL_PUBLIC_FUNCTION(void) ovr_PlatformInitializeStandaloneAccessToken(const ch
 OVRP_PUBLIC_FUNCTION(void) ovr_UnityResetTestPlatform();
 OVRPL_PUBLIC_FUNCTION(void) ovr_ResetInitAndContext()
 {
-	ovr_UnityResetTestPlatform();
-	InitializeResult = ovrPlatformInitialize_Uninitialized;
+	if (InitializeResult == ovrPlatformInitialize_Success) {
+		ovr_UnityResetTestPlatform();
+		InitializeResult = ovrPlatformInitialize_Uninitialized;
+	}
 }
 
 #endif

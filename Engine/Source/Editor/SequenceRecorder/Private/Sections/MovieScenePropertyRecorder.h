@@ -73,7 +73,11 @@ public:
 			AddKeyToSection(MovieSceneSection, Key);
 		}
 
-		ReduceKeys(MovieSceneSection);
+		const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
+		if (Settings->bReduceKeys)
+		{
+			ReduceKeys(MovieSceneSection);
+		}
 	}
 
 private:

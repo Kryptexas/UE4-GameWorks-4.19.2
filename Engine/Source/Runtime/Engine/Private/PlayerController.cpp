@@ -3632,8 +3632,16 @@ void APlayerController::StopHapticEffect(EControllerHand Hand)
 	SetHapticsByValue(0.f, 0.f, Hand);
 }
 
+static TAutoConsoleVariable<int32> CVarDisableHaptics(TEXT("input.DisableHaptics"),0,TEXT("If greater than zero, no haptic feedback is processed."));
+
 void APlayerController::SetHapticsByValue(const float Frequency, const float Amplitude, EControllerHand Hand)
 {
+	bool bDisableHaptics = (CVarDisableHaptics.GetValueOnGameThread() > 0);
+	if (bDisableHaptics)
+	{
+		return;
+	}
+
 	if (Hand == EControllerHand::Left)
 	{
 		ActiveHapticEffect_Left.Reset();
@@ -3740,18 +3748,22 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 		if (InputInterface)
 		{
 			InputInterface->SetForceFeedbackChannelValues(ControllerId, (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
-			
-			// Haptic Updates
-			if (bLeftHapticsNeedUpdate)
-			{
-				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Left, LeftHaptics);
-			}
 
-			if (bRightHapticsNeedUpdate)
+			bool bDisableHaptics = (CVarDisableHaptics.GetValueOnGameThread() > 0);
+			if (!bDisableHaptics)
 			{
-				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Right, RightHaptics);
-			}
 
+				// Haptic Updates
+				if (bLeftHapticsNeedUpdate)
+				{
+					InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Left, LeftHaptics);
+				}
+
+				if (bRightHapticsNeedUpdate)
+				{
+					InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Right, RightHaptics);
+				}
+			}
 		}
 	}
 }

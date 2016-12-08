@@ -507,7 +507,7 @@ void UPrimitiveComponent::SetMassOverrideInKg(FName BoneName, float MassInKg, bo
 	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
 		WarnInvalidPhysicsOperations(LOCTEXT("SetCenterOfMass", "SetCenterOfMass"), nullptr);
-		BI->SetMassOverride(MassInKg);
+		BI->SetMassOverride(MassInKg, bOverrideMass);
 		BI->UpdateMassProperties();
 	}
 }
@@ -1065,6 +1065,12 @@ bool UPrimitiveComponent::K2_LineTraceComponent(FVector TraceStart, FVector Trac
 
 ECollisionEnabled::Type UPrimitiveComponent::GetCollisionEnabled() const
 {
+	AActor* Owner = GetOwner();
+	if (Owner && !Owner->GetActorEnableCollision())
+	{
+		return ECollisionEnabled::NoCollision;
+	}
+
 	return BodyInstance.GetCollisionEnabled();
 }
 

@@ -780,6 +780,8 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FParticleSimulationParameters,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionRadiusScale)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionRadiusBias)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionTimeBias)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionRandomSpread)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, CollisionRandomDistribution)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, OneMinusFriction)
 END_UNIFORM_BUFFER_STRUCT(FParticleSimulationParameters)
 
@@ -4913,6 +4915,8 @@ static void SetGPUSpriteResourceData( FGPUSpriteResources* Resources, const FGPU
 	Resources->SimulationParameters.CollisionRadiusScale = InResourceData.CollisionRadiusScale;
 	Resources->SimulationParameters.CollisionRadiusBias = InResourceData.CollisionRadiusBias;
 	Resources->SimulationParameters.CollisionTimeBias = InResourceData.CollisionTimeBias;
+	Resources->SimulationParameters.CollisionRandomSpread = InResourceData.CollisionRandomSpread;
+	Resources->SimulationParameters.CollisionRandomDistribution = InResourceData.CollisionRandomDistribution;
 	Resources->SimulationParameters.OneMinusFriction = InResourceData.OneMinusFriction;
 	Resources->EmitterSimulationResources.GlobalVectorFieldScale = InResourceData.GlobalVectorFieldScale;
 	Resources->EmitterSimulationResources.GlobalVectorFieldTightness = InResourceData.GlobalVectorFieldTightness;

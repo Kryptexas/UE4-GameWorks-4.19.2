@@ -40,6 +40,11 @@ AEQSTestingPawn::AEQSTestingPawn(const FObjectInitializer& ObjectInitializer)
 
 #if WITH_EDITORONLY_DATA
 	EdRenderComp = CreateEditorOnlyDefaultSubobject<UEQSRenderingComponent>(TEXT("EQSRender"));
+	if (EdRenderComp)
+	{
+		EdRenderComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
 		UArrowComponent* ArrowComp = FindComponentByClass<UArrowComponent>();

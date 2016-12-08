@@ -455,7 +455,7 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if(PrimComp->IsA(USkeletalMeshComponent::StaticClass()))
 	{
-		UE_LOG(LogCollision, Warning, TEXT("ComponentSweepMulti : SkeletalMeshComponent support only root body (%s) "), *PrimComp->GetReadableName());
+		UE_LOG(LogCollision, Log, TEXT("ComponentSweepMulti : SkeletalMeshComponent support only root body (%s) "), *PrimComp->GetReadableName());
 	}
 #endif
 

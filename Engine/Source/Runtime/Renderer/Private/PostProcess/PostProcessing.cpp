@@ -312,16 +312,25 @@ static FRCPassPostProcessTonemap* AddTonemapper(
 	const bool bDoGammaOnly,
 	const bool bHDRTonemapperOutput)
 {
-	const FEngineShowFlags& EngineShowFlags = Context.View.Family->EngineShowFlags;
+	const FViewInfo& View = Context.View;
+	const EStereoscopicPass StereoPass = View.StereoPass;
 
-	FRenderingCompositePass* CombinedLUT = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs(Context.View.GetShaderPlatform()));
-	const bool bDoEyeAdaptation = IsAutoExposureMethodSupported(Context.View.GetFeatureLevel(), EyeAdapationMethodId);
-	FRCPassPostProcessTonemap* PostProcessTonemap =	Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(Context.View, bDoGammaOnly, bDoEyeAdaptation, bHDRTonemapperOutput));
+	const FEngineShowFlags& EngineShowFlags = View.Family->EngineShowFlags;
+
+	FRenderingCompositeOutputRef TonemapperCombinedLUTOutputRef;
+	if (View.State && (StereoPass != eSSP_RIGHT_EYE))
+	{
+		FRenderingCompositePass* CombinedLUT = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs(View.GetShaderPlatform()));
+		TonemapperCombinedLUTOutputRef =  FRenderingCompositeOutputRef(CombinedLUT);
+	}
+
+	const bool bDoEyeAdaptation = IsAutoExposureMethodSupported(View.GetFeatureLevel(), EyeAdapationMethodId);
+	FRCPassPostProcessTonemap* PostProcessTonemap =	Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemap(View, bDoGammaOnly, bDoEyeAdaptation, bHDRTonemapperOutput));
 
 	PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);
 	PostProcessTonemap->SetInput(ePId_Input1, BloomOutputCombined);
 	PostProcessTonemap->SetInput(ePId_Input2, EyeAdaptation);
-	PostProcessTonemap->SetInput(ePId_Input3, CombinedLUT);
+	PostProcessTonemap->SetInput(ePId_Input3, TonemapperCombinedLUTOutputRef);
 
 	Context.FinalOutput = FRenderingCompositeOutputRef(PostProcessTonemap);
 
@@ -712,8 +721,19 @@ static FRenderingCompositeOutputRef AddBloom(FBloomDownSampleArray& BloomDownSam
 				Tint.G = LumScale;
 				Tint.B = 0;
 			}
+			// Only bloom this down-sampled input if the bloom size is non-zero
+			if (Op.BloomSize > SMALL_NUMBER)
+			{
+				BloomOutput = RenderBloom(Context, PostProcessDownsamples[SourceIndex], Op.BloomSize * Settings.BloomSizeScale, Tint, BloomOutput);
+			}
+		}
 
-			BloomOutput = RenderBloom(Context, PostProcessDownsamples[SourceIndex], Op.BloomSize * Settings.BloomSizeScale, Tint, BloomOutput);
+		if (!BloomOutput.IsValid())
+		{
+			// Bloom was disabled by setting bloom size to zero in the post process.
+			// No bloom, provide substitute source for lens flare.
+			BloomOutput = PostProcessDownsamples[0];
+
 		}
 	}
 

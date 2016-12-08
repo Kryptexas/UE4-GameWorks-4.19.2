@@ -850,6 +850,11 @@ private:
 	virtual void Tick( float DeltaTime ) final { check(0); }
 
 #endif
+
+public:
+
+	/** Prefix used to identify template component instances */
+	static const FString ComponentTemplateNameSuffix;
 };
 
 //////////////////////////////////////////////////////////////////////////

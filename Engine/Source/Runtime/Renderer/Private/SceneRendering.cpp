@@ -155,6 +155,12 @@ static TAutoConsoleVariable<float> CVarNormalCurvatureToRoughnessBias(
 	TEXT("Biases the roughness resulting from screen space normal changes for materials with NormalCurvatureToRoughness enabled.  Valid range [-1, 1]"),
 	ECVF_RenderThreadSafe | ECVF_Scalability);
 
+static TAutoConsoleVariable<float> CVarNormalCurvatureToRoughnessExponent(
+	TEXT("r.NormalCurvatureToRoughnessExponent"),
+	0.333f,
+	TEXT("Exponent on the roughness resulting from screen space normal changes for materials with NormalCurvatureToRoughness enabled."),
+	ECVF_RenderThreadSafe | ECVF_Scalability);
+
 static TAutoConsoleVariable<float> CVarNormalCurvatureToRoughnessScale(
 	TEXT("r.NormalCurvatureToRoughnessScale"),
 	1.0f,
@@ -569,6 +575,8 @@ void FViewInfo::SetupUniformBufferParameters(
 		InPrevViewMatrices
 	);
 
+	// TODO: MSAA should be set as same as ViewRect.
+	ViewUniformShaderParameters.BufferMSAA = FSceneRenderTargets::GetNumSceneColorMSAASamples(FeatureLevel);
 
 	const bool bCheckerboardSubsurfaceRendering = FRCPassPostProcessSubsurface::RequiresCheckerboardSubsurfaceRendering( SceneContext.GetSceneColorFormat() );
 	ViewUniformShaderParameters.bCheckerboardSubsurfaceProfileRendering = bCheckerboardSubsurfaceRendering ? 1.0f : 0.0f;
@@ -751,6 +759,7 @@ void FViewInfo::SetupUniformBufferParameters(
 
 	ViewUniformShaderParameters.NormalCurvatureToRoughnessScaleBias.X = FMath::Clamp(CVarNormalCurvatureToRoughnessScale.GetValueOnAnyThread(), 0.0f, 2.0f);
 	ViewUniformShaderParameters.NormalCurvatureToRoughnessScaleBias.Y = FMath::Clamp(CVarNormalCurvatureToRoughnessBias.GetValueOnAnyThread(), -1.0f, 1.0f);
+	ViewUniformShaderParameters.NormalCurvatureToRoughnessScaleBias.Z = FMath::Clamp(CVarNormalCurvatureToRoughnessExponent.GetValueOnAnyThread(), .05f, 20.0f);
 
 	ViewUniformShaderParameters.RenderingReflectionCaptureMask = bIsReflectionCapture ? 1.0f : 0.0f;
 
@@ -1004,6 +1013,35 @@ void FViewInfo::SetValidEyeAdaptation() const
 		EffectiveViewState->SetValidEyeAdaptation();
 	}
 }
+
+void FViewInfo::SetValidTonemappingLUT() const
+{
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	if (EffectiveViewState) EffectiveViewState->SetValidTonemappingLUT();
+}
+
+const FTextureRHIRef* FViewInfo::GetTonemappingLUTTexture() const
+{
+	const FTextureRHIRef* TextureRHIRef = NULL;
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	if (EffectiveViewState && EffectiveViewState->HasValidTonemappingLUT())
+	{
+		TextureRHIRef = EffectiveViewState->GetTonemappingLUTTexture();
+	}
+	return TextureRHIRef;
+};
+
+FSceneRenderTargetItem* FViewInfo::GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT) const 
+{
+	FSceneRenderTargetItem* TargetItem = NULL;
+	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
+	if (EffectiveViewState)
+	{
+		TargetItem = &(EffectiveViewState->GetTonemappingLUTRenderTarget(RHICmdList, LUTSize, bUseVolumeLUT));
+	}
+	return TargetItem;
+}
+
 
 void FDisplayInternalsData::Setup(UWorld *World)
 {

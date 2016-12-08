@@ -839,6 +839,17 @@ public:
 	 * @return The distance between two points.
 	 */
 	static FORCEINLINE float Dist(const FVector &V1, const FVector &V2);
+	static FORCEINLINE float Distance(const FVector &V1, const FVector &V2) { return Dist(V1, V2); }
+
+	/**
+	* Euclidean distance between two points in the XY plane (ignoring Z).
+	*
+	* @param V1 The first point.
+	* @param V2 The second point.
+	* @return The distance between two points in the XY plane.
+	*/
+	static FORCEINLINE float DistXY(const FVector &V1, const FVector &V2);
+	static FORCEINLINE float Dist2D(const FVector &V1, const FVector &V2) { return DistXY(V1, V2); }
 
 	/**
 	 * Squared distance between two points.
@@ -857,6 +868,7 @@ public:
 	 * @return The squared distance between two points in the XY plane
 	 */
 	static FORCEINLINE float DistSquaredXY(const FVector &V1, const FVector &V2);
+	static FORCEINLINE float DistSquared2D(const FVector &V1, const FVector &V2) { return DistSquaredXY(V1, V2); }
 	
 	/**
 	 * Compute pushout of a box from a plane.
@@ -1933,7 +1945,12 @@ FORCEINLINE float FVector::HeadingAngle() const
 
 FORCEINLINE float FVector::Dist(const FVector &V1, const FVector &V2)
 {
-	return FMath::Sqrt(FMath::Square(V2.X-V1.X) + FMath::Square(V2.Y-V1.Y) + FMath::Square(V2.Z-V1.Z));
+	return FMath::Sqrt(FVector::DistSquared(V1, V2));
+}
+
+FORCEINLINE float FVector::DistXY(const FVector &V1, const FVector &V2)
+{
+	return FMath::Sqrt(FVector::DistSquaredXY(V1, V2));
 }
 
 FORCEINLINE float FVector::DistSquared(const FVector &V1, const FVector &V2)

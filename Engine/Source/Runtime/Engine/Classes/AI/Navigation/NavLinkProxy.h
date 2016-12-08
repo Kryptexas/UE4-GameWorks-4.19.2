@@ -72,7 +72,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostInitializeComponents() override;
+	virtual void PostRegisterAllComponents() override;
 	virtual void PostLoad() override;
 
 #if ENABLE_VISUAL_LOG

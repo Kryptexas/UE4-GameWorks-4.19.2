@@ -562,6 +562,13 @@ private:
 	// eye adaptation is only valid after it has been computed, not on allocation of the RT
 	bool bValidEyeAdaptation;
 
+	// The LUT used by tonemapping.  In stereo this is only computed and stored by the Left Eye.
+	TRefCountPtr<IPooledRenderTarget> CombinedLUTRenderTarget;
+
+	// LUT is only valid after it has been computed, not on allocation of the RT
+	bool bValidTonemappingLUT;
+
+
 	// used by the Postprocess Material Blending system to avoid recreation and garbage collection of MIDs
 	TArray<UMaterialInstanceDynamic*> MIDPool;
 	uint32 MIDUsedCount;
@@ -824,6 +831,59 @@ public:
 		bValidEyeAdaptation = true;
 	}
 
+	bool HasValidTonemappingLUT() const
+	{
+		return bValidTonemappingLUT;
+	}
+
+	void SetValidTonemappingLUT(bool bValid = true)
+	{
+		bValidTonemappingLUT = bValid;
+	}
+	
+
+	// Returns a reference to the render target used for the LUT.  Allocated on the first request.
+	FSceneRenderTargetItem& GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT)
+	{
+		
+
+		if (CombinedLUTRenderTarget.IsValid() == false|| CombinedLUTRenderTarget->GetDesc().Extent.Y != LUTSize) 
+		{
+			// Create the texture needed for the tonemapping LUT
+
+			EPixelFormat LUTPixelFormat = PF_A2B10G10R10;
+			if (!GPixelFormats[LUTPixelFormat].Supported)
+			{
+				LUTPixelFormat = PF_R8G8B8A8;
+			}
+
+			FPooledRenderTargetDesc Desc = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(LUTSize * LUTSize, LUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
+
+			if (bUseVolumeLUT)
+			{
+				Desc.Extent = FIntPoint(LUTSize, LUTSize);
+				Desc.Depth = LUTSize;
+			}
+
+			Desc.DebugName = TEXT("CombineLUTs");
+			
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CombinedLUTRenderTarget, Desc.DebugName);
+
+		}
+
+		FSceneRenderTargetItem& RenderTarget = CombinedLUTRenderTarget.GetReference()->GetRenderTargetItem();
+		return RenderTarget;
+	}
+
+	const FTextureRHIRef* GetTonemappingLUTTexture() const {
+		const FTextureRHIRef* ShaderResourceTexture = NULL;
+	
+		if (CombinedLUTRenderTarget.IsValid()) {
+			ShaderResourceTexture = &CombinedLUTRenderTarget->GetRenderTargetItem().ShaderResourceTexture;
+		}
+		return ShaderResourceTexture;
+	}
+
 
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
@@ -842,6 +902,7 @@ public:
 		OcclusionQueryPool.Release();
 		HZBOcclusionTests.ReleaseDynamicRHI();
 		EyeAdaptationRTManager.SafeRelease();
+		CombinedLUTRenderTarget.SafeRelease();
 		TemporalAAHistoryRT.SafeRelease();
 		PendingTemporalAAHistoryRT.SafeRelease();
 		DOFHistoryRT.SafeRelease();

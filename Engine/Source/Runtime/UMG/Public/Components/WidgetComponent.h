@@ -37,6 +37,16 @@ enum class EWidgetBlendMode : uint8
 	Transparent
 };
 
+UENUM()
+enum class EWidgetGeometryMode : uint8
+{
+	/** The widget is mapped onto a plane */
+	Plane,
+
+	/** The widget is mapped onto a cylinder */
+	Cylinder
+};
+
 
 /**
  * The widget component provides a surface in the 3D environment on which to render widgets normally rendered to the screen.
@@ -106,6 +116,14 @@ public:
 	 */
 	virtual void GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalHitLocation) const;
 
+	/**
+	 * When using EWidgetGeometryMode::Cylinder, continues the trace from the front face
+	 * of the widget component into the cylindrical geometry and returns adjusted hit results information.
+	 * 
+	 * @returns two hit locations FVector is in world space and a FVector2D is in widget-space.
+	 */
+	TTuple<FVector, FVector2D> GetCylinderHitLocation(FVector WorldHitLocation, FVector WorldHitDirection) const;
+
 	/** @return Gets the last local location that was hit */
 	FVector2D GetLastLocalHitLocation() const
 	{
@@ -124,6 +142,9 @@ public:
 
 	/** @return List of widgets with their geometry and the cursor position transformed into this Widget component's space. */
 	TArray<FWidgetAndPointer> GetHitWidgetPath(FVector WorldHitLocation, bool bIgnoreEnabledStatus, float CursorRadius = 0.0f);
+
+	/** @return List of widgets with their geometry and the cursor position transformed into this Widget space. The widget space is expressed as a Vector2D. */
+	TArray<FWidgetAndPointer> GetHitWidgetPath(FVector2D WidgetSpaceHitCoordinate, bool bIgnoreEnabledStatus, float CursorRadius = 0.0f);
 
 	/** @return The render target to which the user widget is rendered */
 	UFUNCTION(BlueprintCallable, Category=UserInterface)
@@ -214,6 +235,12 @@ public:
 
 	void SetEditTimeUsable(bool Value) { bEditTimeUsable = Value; }
 
+	/** @see EWidgetGeometryMode, @see GetCylinderArcAngle() */
+	EWidgetGeometryMode GetGeometryMode() const { return GeometryMode; }
+
+	/** Defines the curvature of the widget component when using EWidgetGeometryMode::Cylinder; ignored otherwise.  */
+	float GetCylinderArcAngle() const { return CylinderArcAngle; }
+
 protected:
 	void RegisterWindow();
 	void UnregisterWindow();
@@ -224,6 +251,9 @@ protected:
 
 	/** Draws the current widget to the render target if possible. */
 	virtual void DrawWidgetToRenderTarget(float DeltaTime);
+
+	/** @return the width of the widget component taking GeometryMode into account. */
+	float ComputeComponentWidth() const;
 
 protected:
 	/** The coordinate space in which to render the widget */
@@ -378,6 +408,14 @@ protected:
 	/** ZOrder the layer will be created on, note this only matters on the first time a new layer is created, subsequent additions to the same layer will use the initially defined ZOrder */
 	UPROPERTY(EditDefaultsOnly, Category = Layers)
 	int32 LayerZOrder;
+
+	/** Controls the geometry of the widget component. See EWidgetGeometryMode. */
+	UPROPERTY(EditAnywhere, Category=UserInterface)
+	EWidgetGeometryMode GeometryMode;
+
+	/** Curvature of a cylindrical widget in degrees. */
+	UPROPERTY(EditAnywhere, Category=UserInterface, meta=(ClampMin=1.0f, ClampMax=180.0f))
+	float CylinderArcAngle;
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
 	TSharedPtr<class FHittestGrid> HitTestGrid;

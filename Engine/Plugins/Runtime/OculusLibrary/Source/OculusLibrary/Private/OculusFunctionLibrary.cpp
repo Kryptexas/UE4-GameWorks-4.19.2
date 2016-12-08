@@ -6,6 +6,7 @@
 #include "EngineGlobals.h"
 
 #include "IOculusRiftPlugin.h"
+#include "OculusRiftHMD.h"
 
 #define GEARVR_SUPPORTED_PLATFORMS (PLATFORM_ANDROID && PLATFORM_ANDROID_ARM)
 
@@ -455,3 +456,4 @@ class IStereoLayers* UOculusFunctionLibrary::GetStereoLayers()
 #endif // OCULUS_SUPPORTED_PLATFORMS
 	return nullptr;
 }
+

@@ -27,7 +27,8 @@ float NormalCurvatureToRoughness(float3 WorldNormal)
     float3 dNdy = ddy(WorldNormal);
     float x = dot(dNdx, dNdx);
     float y = dot(dNdy, dNdy);
-    return max(x, y);
+    float CurvatureApprox = pow(max(x, y), View.NormalCurvatureToRoughnessScaleBias.z);
+	return saturate(CurvatureApprox * View.NormalCurvatureToRoughnessScaleBias.x + View.NormalCurvatureToRoughnessScaleBias.y);
 }
 
 #if TRANSLUCENT_SELF_SHADOWING
@@ -59,7 +60,7 @@ SamplerState	PrevSceneColorSampler;
 #endif
 
 #define FORCE_FULLY_ROUGH (SIMPLE_FORWARD_SHADING || MATERIAL_FULLY_ROUGH)
-#define EDITOR_ALPHA2COVERAGE (USE_EDITOR_COMPOSITING && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL)
+#define EDITOR_ALPHA2COVERAGE (USE_EDITOR_COMPOSITING && SUPPORTS_PIXEL_COVERAGE)
 
 // Optimization: if opacity is 0 then revert to default shading model 
 #define SUBSURFACE_PROFILE_OPACITY_THRESHOLD 1
@@ -591,7 +592,11 @@ void FPixelShaderInOut_MainPS(
 #if !EARLY_Z_PASS_ONLY_MATERIAL_MASKING
 	if(!bEditorWeightedZBuffering)
 	{
-		GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
+		#if MATERIALBLENDING_MASKED_USING_COVERAGE
+			Out.Coverage = DiscardMaterialWithPixelCoverage(MaterialParameters, PixelMaterialInputs);
+		#else
+			GetMaterialCoverageAndClipping(MaterialParameters, PixelMaterialInputs);
+		#endif
 	}
 #endif
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
@@ -601,11 +606,6 @@ void FPixelShaderInOut_MainPS(
 
 	float MaterialAO = GetMaterialAmbientOcclusion(PixelMaterialInputs);
 	float Roughness = GetMaterialRoughness(PixelMaterialInputs);
-
-#if MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS && FORWARD_SHADING
-    float GeometricAARoughness = saturate(NormalCurvatureToRoughness(MaterialParameters.WorldNormal) * View.NormalCurvatureToRoughnessScaleBias.x + View.NormalCurvatureToRoughnessScaleBias.y);
-    Roughness = max(Roughness, GeometricAARoughness);
-#endif
 
 	// 0..1, SubsurfaceProfileId = int(x * 255)
 	float SubsurfaceProfile = 0;
@@ -795,6 +795,15 @@ void FPixelShaderInOut_MainPS(
 	// So that the following code can still use DiffuseColor and SpecularColor.
 	GBuffer.SpecularColor = lerp(0.08 * LocalSpecular.xxx, LocalBaseColor, Metallic.xxx);
 
+#if MATERIAL_NORMAL_CURVATURE_TO_ROUGHNESS && FORWARD_SHADING
+    float GeometricAARoughness = NormalCurvatureToRoughness(MaterialParameters.WorldNormal);
+    GBuffer.Roughness = max(GBuffer.Roughness, GeometricAARoughness);
+
+#if MATERIAL_SHADINGMODEL_CLEAR_COAT
+	GBuffer.CustomData.y = max(GBuffer.CustomData.y, GeometricAARoughness);
+#endif
+#endif
+
 #if MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE && USES_GBUFFER
 	// SubsurfaceProfile applies the BaseColor in a later pass. Any lighting output in the base pass needs
 	// to separate specualar and diffuse lighting in a checkerboard pattern
@@ -903,7 +912,7 @@ void FPixelShaderInOut_MainPS(
 				GBuffer,
 				DiffuseColorForIndirect,
 				GBuffer.SpecularColor,
-				Roughness,
+				GBuffer.Roughness,
 				MaterialParameters.WorldNormal, 
 				MaterialParameters.CameraVector);
 			
@@ -1059,6 +1068,7 @@ void FPixelShaderInOut_MainPS(
 #define PIXELSHADEROUTPUT_MRT2 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))
 #define PIXELSHADEROUTPUT_MRT3 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || !MATERIAL_SHADINGMODEL_UNLIT))
 #define PIXELSHADEROUTPUT_A2C ((EDITOR_ALPHA2COVERAGE) != 0)
+#define PIXELSHADEROUTPUT_COVERAGE (MATERIALBLENDING_MASKED_USING_COVERAGE)
 #if GBUFFER_HAS_VELOCITY
 #define PIXELSHADEROUTPUT_MRT4 WRITES_VELOCITY_TO_GBUFFER
 #define PIXELSHADEROUTPUT_MRT5 (USES_GBUFFER && (!SELECTIVE_BASEPASS_OUTPUTS || WRITES_CUSTOMDATA_TO_GBUFFER))

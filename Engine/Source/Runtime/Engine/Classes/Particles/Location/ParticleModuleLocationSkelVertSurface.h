@@ -102,6 +102,14 @@ class ENGINE_API UParticleModuleLocationSkelVertSurface : public UParticleModule
 	UPROPERTY(EditAnywhere, Category = VertSurface)
 	uint32 bInheritVertexColor : 1;
 
+	/** If true, particles inherit the associated UV data on spawn. Accessed through dynamic parameter module X and Y, must be a "Spawn Time Only" parameter on "AutoSet" mode. This feature is not supported for GPU particles. */
+	UPROPERTY(EditAnywhere, Category = VertSurface)
+	uint32 bInheritUV : 1;
+
+	/** UV channel to inherit from the spawn mesh, internally clamped to those available.  */
+	UPROPERTY(EditAnywhere, Category = VertSurface)
+	uint32 InheritUVChannel;
+
 	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 #if WITH_EDITOR

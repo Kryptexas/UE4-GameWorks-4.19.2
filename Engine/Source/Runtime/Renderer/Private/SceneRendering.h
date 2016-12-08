@@ -959,6 +959,19 @@ public:
 	/** Informs sceneinfo that eyedaptation has queued commands to compute it at least once */
 	void SetValidEyeAdaptation() const;
 
+	/** Informs sceneinfo that tonemapping LUT has queued commands to compute it at least once */
+	void SetValidTonemappingLUT() const;
+
+	/** Gets the tonemapping LUT texture, previously computed by the CombineLUTS post process,
+	* for stereo rendering, this will force the post-processing to use the same texture for both eyes*/
+	const FTextureRHIRef* GetTonemappingLUTTexture() const;
+
+	/** Gets the rendertarget that will be populated by CombineLUTS post process 
+	* for stereo rendering, this will force the post-processing to use the same render target for both eyes*/
+	FSceneRenderTargetItem* GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT) const;
+	
+
+
 	/** Instanced stereo and multi-view only need to render the left eye. */
 	bool ShouldRenderView() const 
 	{

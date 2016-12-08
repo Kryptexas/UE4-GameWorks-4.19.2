@@ -1119,6 +1119,7 @@ void FDeferredShadingSceneRenderer::RenderIndirectCapsuleShadows(
 	FTextureRHIParamRef ExistingIndirectOcclusionTexture) const
 {
 	if (SupportsCapsuleShadows(FeatureLevel, GShaderPlatformForFeatureLevel[FeatureLevel])
+		&& ViewFamily.EngineShowFlags.DynamicShadows
 		&& FSceneRenderTargets::Get(RHICmdList).IsStaticLightingAllowed())
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderIndirectCapsuleShadows);

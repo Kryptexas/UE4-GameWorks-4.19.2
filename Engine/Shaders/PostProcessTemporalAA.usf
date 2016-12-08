@@ -15,6 +15,7 @@
 float SampleWeights[9];
 float PlusWeights[5];
 float VelocityScaling;
+float CurrentFrameWeight;
 
 float3 RGBToYCoCg( float3 RGB )
 {

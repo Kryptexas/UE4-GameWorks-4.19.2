@@ -254,6 +254,9 @@
 // Using SV_ClipDistance has overhead (15% slower base pass in triangle bound test scene on PS4) so projects have to opt-in
 #define USE_GLOBAL_CLIP_PLANE (PLATFORM_SUPPORTS_GLOBAL_CLIP_PLANE && PROJECT_ALLOW_GLOBAL_CLIP_PLANE)
 
+// Whether the platform support pixel coverage on MSAA targets (SV_Coverage).
+#define SUPPORTS_PIXEL_COVERAGE (FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL && !MOBILE_EMULATION)
+
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
 MaterialFloat4 Texture1DSample(Texture1D Tex, SamplerState Sampler, float UV)
@@ -1890,7 +1893,7 @@ struct FPixelShaderIn
 	// read only
 	float4 SvPosition;
 
-	// Pixel Shader InCoverage, only usable if PIXELSHADEROUTPUT_A2C is 1
+	// Pixel Shader InCoverage, only usable if PIXELSHADEROUTPUT_COVERAGE is 1
 	uint Coverage;
 
 	//
@@ -1902,7 +1905,7 @@ struct FPixelShaderOut
 	// [0..7], only usable if PIXELSHADEROUTPUT_MRT0, PIXELSHADEROUTPUT_MRT1, ... is 1
 	float4 MRT[8];
 
-	// Pixel Shader OutCoverage, only usable if PIXELSHADEROUTPUT_A2C is 1
+	// Pixel Shader OutCoverage, only usable if PIXELSHADEROUTPUT_COVERAGE is 1
 	uint Coverage;
 
 	// Pixel Shader OutDepth

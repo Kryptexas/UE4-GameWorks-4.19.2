@@ -2173,6 +2173,13 @@ static FText GetPinIncompatibilityReason(const UEdGraphPin* PinA, const UEdGraph
 
 			MessageFormat = LOCTEXT("CannotGetClass", "'{PinAName}' and '{PinBName}' are not inherently compatible ('{InputName}' is an object type, and '{OutputName}' is a reference to an object instance).\nWe cannot use {OutputName}'s class because it is not a child of {InputType}.");
 		}
+		else if (InputType.PinCategory == UEdGraphSchema_K2::PC_Object)
+		{
+			if (bIsFatalOut != nullptr)
+			{
+				*bIsFatalOut = true;
+			}
+		}
 	}
 
 	return FText::Format(MessageFormat, MessageArgs);
@@ -3823,6 +3830,10 @@ namespace
 	{
 		bool bResult = false;
 		bool bIsNonNativeClass = false;
+		if(UClass* TargetAsClass = const_cast<UClass*>(Cast<UClass>(InTargetStruct)))
+		{
+			InTargetStruct = TargetAsClass->GetAuthoritativeClass();
+		}
 		if (UClass* SourceAsClass = const_cast<UClass*>(Cast<UClass>(InSourceStruct)))
 		{
 			if (SourceAsClass->ClassGeneratedBy)

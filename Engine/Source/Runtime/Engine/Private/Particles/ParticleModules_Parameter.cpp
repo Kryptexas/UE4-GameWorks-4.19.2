@@ -145,10 +145,22 @@ void UParticleModuleParameterDynamic::SpawnEx(FParticleEmitterInstance* Owner, i
 	SPAWN_INIT;
 	{
 		PARTICLE_ELEMENT(FEmitterDynamicParameterPayload, DynamicPayload);
-		DynamicPayload.DynamicParameterValue[0] = GetParameterValue(DynamicParams[0], Particle, Owner, InRandomStream);
-		DynamicPayload.DynamicParameterValue[1] = GetParameterValue(DynamicParams[1], Particle, Owner, InRandomStream);
-		DynamicPayload.DynamicParameterValue[2] = GetParameterValue(DynamicParams[2], Particle, Owner, InRandomStream);
-		DynamicPayload.DynamicParameterValue[3] = GetParameterValue(DynamicParams[3], Particle, Owner, InRandomStream);
+		if (DynamicParams[0].ValueMethod != EDPV_AutoSet)
+		{
+			DynamicPayload.DynamicParameterValue[0] = GetParameterValue(DynamicParams[0], Particle, Owner, InRandomStream);
+		}
+		if (DynamicParams[1].ValueMethod != EDPV_AutoSet)
+		{
+			DynamicPayload.DynamicParameterValue[1] = GetParameterValue(DynamicParams[1], Particle, Owner, InRandomStream);
+		}
+		if (DynamicParams[2].ValueMethod != EDPV_AutoSet)
+		{
+			DynamicPayload.DynamicParameterValue[2] = GetParameterValue(DynamicParams[2], Particle, Owner, InRandomStream);
+		}
+		if (DynamicParams[3].ValueMethod != EDPV_AutoSet)
+		{
+			DynamicPayload.DynamicParameterValue[3] = GetParameterValue(DynamicParams[3], Particle, Owner, InRandomStream);
+		}
 	}
 }
 
@@ -511,7 +523,7 @@ void UParticleModuleParameterDynamic::UpdateUsageFlags()
 			{
 				UpdateFlags &= ~(1 << Index);
 			}
-			if ((DynParam.ValueMethod != EDPV_UserSet) || 
+			if ((DynParam.ValueMethod != EDPV_UserSet && DynParam.ValueMethod != EDPV_AutoSet) || 
 				(DynParam.bScaleVelocityByParamValue == true))
 			{
 				bUsesVelocity = true;

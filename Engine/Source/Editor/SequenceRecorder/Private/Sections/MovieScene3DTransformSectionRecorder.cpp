@@ -185,24 +185,50 @@ void FMovieScene3DTransformSectionRecorder::FinalizeSection()
 	const EMovieSceneKeyInterpolation Interpolation = AnimRecorder.IsValid() ? EMovieSceneKeyInterpolation::Linear : EMovieSceneKeyInterpolation::Auto;
 
 	// add buffered transforms
+	TArray<float> KeyTimes; KeyTimes.SetNum(BufferedTransforms.Num());
+	TArray<float> TranslationXValues; TranslationXValues.SetNum(BufferedTransforms.Num());
+	TArray<float> TranslationYValues; TranslationYValues.SetNum(BufferedTransforms.Num());
+	TArray<float> TranslationZValues; TranslationZValues.SetNum(BufferedTransforms.Num());
+	TArray<float> RotationXValues; RotationXValues.SetNum(BufferedTransforms.Num());
+	TArray<float> RotationYValues; RotationYValues.SetNum(BufferedTransforms.Num());
+	TArray<float> RotationZValues; RotationZValues.SetNum(BufferedTransforms.Num());
+	TArray<float> ScaleXValues; ScaleXValues.SetNum(BufferedTransforms.Num());
+	TArray<float> ScaleYValues; ScaleYValues.SetNum(BufferedTransforms.Num());
+	TArray<float> ScaleZValues; ScaleZValues.SetNum(BufferedTransforms.Num());
+
+	int32 Index = 0;
 	for(const FBufferedTransformKey& BufferedTransform : BufferedTransforms)
 	{
 		const FVector Translation = BufferedTransform.Transform.GetTranslation();
 		const FVector Rotation = BufferedTransform.WoundRotation.Euler();
 		const FVector Scale = BufferedTransform.Transform.GetScale3D();
 
-		MovieSceneSection->AddKey(BufferedTransform.KeyTime, FTransformKey(EKey3DTransformChannel::Translation, EAxis::X, Translation.X, bUnwindRotation), Interpolation);
-		MovieSceneSection->AddKey(BufferedTransform.KeyTime, FTransformKey(EKey3DTransformChannel::Translation, EAxis::Y, Translation.Y, bUnwindRotation), Interpolation);
-		MovieSceneSection->AddKey(BufferedTransform.KeyTime, FTransformKey(EKey3DTransformChannel::Translation, EAxis::Z, Translation.Z, bUnwindRotation), Interpolation);
+		KeyTimes[Index] = BufferedTransform.KeyTime;
 
-		MovieSceneSection->AddKey(BufferedTransform.KeyTime, FTransformKey(EKey3DTransformChannel::Rotation, EAxis::X, Rotation.X, bUnwindRotation), Interpolation);
-		MovieSceneSection->AddKey(BufferedTransform.KeyTime, FTransformKey(EKey3DTransformChannel::Rotation, EAxis::Y, Rotation.Y, bUnwindRotation), Interpolation);
-		MovieSceneSection->AddKey(BufferedTransform.KeyTime, FTransformKey(EKey3DTransformChannel::Rotation, EAxis::Z, Rotation.Z, bUnwindRotation), Interpolation);
+		TranslationXValues[Index] = Translation.X;
+		TranslationYValues[Index] = Translation.Y;
+		TranslationZValues[Index] = Translation.Z;
 
-		MovieSceneSection->AddKey(BufferedTransform.KeyTime, FTransformKey(EKey3DTransformChannel::Scale, EAxis::X, Scale.X, bUnwindRotation), Interpolation);
-		MovieSceneSection->AddKey(BufferedTransform.KeyTime, FTransformKey(EKey3DTransformChannel::Scale, EAxis::Y, Scale.Y, bUnwindRotation), Interpolation);
-		MovieSceneSection->AddKey(BufferedTransform.KeyTime, FTransformKey(EKey3DTransformChannel::Scale, EAxis::Z, Scale.Z, bUnwindRotation), Interpolation);
+		RotationXValues[Index] = Rotation.X;
+		RotationYValues[Index] = Rotation.Y;
+		RotationZValues[Index] = Rotation.Z;
+
+		ScaleXValues[Index] = Scale.X;
+		ScaleYValues[Index] = Scale.Y;
+		ScaleZValues[Index] = Scale.Z;
+
+		++Index;
 	}
+	
+	MovieSceneSection->GetTranslationCurve(EAxis::X).SetKeys(KeyTimes, TranslationXValues);
+	MovieSceneSection->GetTranslationCurve(EAxis::Y).SetKeys(KeyTimes, TranslationYValues);
+	MovieSceneSection->GetTranslationCurve(EAxis::Z).SetKeys(KeyTimes, TranslationZValues);
+	MovieSceneSection->GetRotationCurve(EAxis::X).SetKeys(KeyTimes, RotationXValues);
+	MovieSceneSection->GetRotationCurve(EAxis::Y).SetKeys(KeyTimes, RotationYValues);
+	MovieSceneSection->GetRotationCurve(EAxis::Z).SetKeys(KeyTimes, RotationZValues);
+	MovieSceneSection->GetScaleCurve(EAxis::X).SetKeys(KeyTimes, ScaleXValues);
+	MovieSceneSection->GetScaleCurve(EAxis::Y).SetKeys(KeyTimes, ScaleYValues);
+	MovieSceneSection->GetScaleCurve(EAxis::Z).SetKeys(KeyTimes, ScaleZValues);
 
 	BufferedTransforms.Empty();
 
@@ -222,9 +248,13 @@ void FMovieScene3DTransformSectionRecorder::FinalizeSection()
 		TPairInitializer<FRichCurve*, float>(&MovieSceneSection->GetScaleCurve(EAxis::Z), KINDA_SMALL_NUMBER),
 	};
 
-	for(TPair<FRichCurve*, float>& CurveAndTolerance : CurvesAndTolerances)
+	const USequenceRecorderSettings* Settings = GetDefault<USequenceRecorderSettings>();
+	if (Settings->bReduceKeys) 
 	{
-		CurveAndTolerance.Key->RemoveRedundantKeys(CurveAndTolerance.Value);
+		for (TPair<FRichCurve*, float>& CurveAndTolerance : CurvesAndTolerances)
+		{
+			CurveAndTolerance.Key->RemoveRedundantKeys(CurveAndTolerance.Value);
+		}
 	}
 
 	// we cant remove redundant tracks if we were attached as the playback relies on update order of

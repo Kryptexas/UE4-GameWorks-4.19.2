@@ -11808,6 +11808,11 @@ UMaterialExpressionPreSkinnedPosition::UMaterialExpressionPreSkinnedPosition(con
 #if WITH_EDITOR
 int32 UMaterialExpressionPreSkinnedPosition::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
+	if (Compiler->GetCurrentShaderFrequency() != SF_Vertex)
+	{
+		return Compiler->Errorf(TEXT("Pre-skinned position is only available in the vertex shader, pass through custom interpolators if needed."));
+	}
+
 	return Compiler->PreSkinnedPosition();
 }
 

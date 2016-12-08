@@ -140,10 +140,16 @@ TSharedRef<SDockTab> FPluginBrowserModule::HandleSpawnPluginBrowserTab(const FSp
 
 TSharedRef<SDockTab> FPluginBrowserModule::HandleSpawnPluginCreatorTab(const FSpawnTabArgs& SpawnTabArgs)
 {
+	// Spawns the plugin creator tab with the default definition
+	return SpawnPluginCreatorTab(SpawnTabArgs, nullptr);
+}
+
+TSharedRef<SDockTab> FPluginBrowserModule::SpawnPluginCreatorTab(const FSpawnTabArgs& SpawnTabArgs, TSharedPtr<IPluginWizardDefinition> PluginWizardDefinition)
+{
 	TSharedRef<SDockTab> ResultTab = SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab);
 
-	TSharedRef<SWidget> TabContentWidget = SNew(SNewPluginWizard, ResultTab);
+	TSharedRef<SWidget> TabContentWidget = SNew(SNewPluginWizard, ResultTab, PluginWizardDefinition);
 	ResultTab->SetContent(TabContentWidget);
 
 	return ResultTab;

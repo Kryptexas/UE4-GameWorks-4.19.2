@@ -21,6 +21,7 @@
 #include "AssetRegistryModule.h"
 #include "Engine/Selection.h"
 #include "ObjectPropertyNode.h"
+#include "PropertyHandleImpl.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -88,7 +89,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	PropertyHandle = InArgs._PropertyHandle;
 	OnSetObject = InArgs._OnSetObject;
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
-	bAllowActorPicker = InArgs._AllowActorPicker && PropertyEditor.IsValid();
+	bAllowActorPicker = InArgs._AllowActorPicker;
 	bSearchInBlueprint = InArgs._SearchInBlueprint;
 
 	UProperty* Property = nullptr;
@@ -178,17 +179,29 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		// Make sure we're not trying to allow an actor picker on a property of an archetype object
 		if (bAllowActorPicker)
 		{
-			FObjectPropertyNode* RootObjectNode = PropertyEditor->GetPropertyNode()->FindRootObjectItemParent();
-			
-			check(RootObjectNode);
-			
-			// One of the object is an archetype, we can't allow actor picker
-			for (int32 i = 0; i < RootObjectNode->GetNumObjects(); ++i)
+			TSharedPtr<FPropertyNode> PropertyNode;
+
+			if (PropertyEditor.IsValid())
 			{
-				if (RootObjectNode->GetUObject(i)->HasAnyFlags(RF_ArchetypeObject))
+				PropertyNode = PropertyEditor->GetPropertyNode();
+			}
+			else if (PropertyHandle.IsValid() && PropertyHandle->IsValidHandle())
+			{
+				PropertyNode = StaticCastSharedPtr<FPropertyHandleBase>(PropertyHandle)->GetPropertyNode();
+			}
+
+
+			FObjectPropertyNode* RootObjectNode = PropertyNode->FindRootObjectItemParent();			
+			if(RootObjectNode)
+			{
+				// One of the object is an archetype, we can't allow actor picker
+				for(int32 i = 0; i < RootObjectNode->GetNumObjects(); ++i)
 				{
-					bAllowActorPicker = false;
-					break;
+					if(RootObjectNode->GetUObject(i)->HasAnyFlags(RF_ArchetypeObject))
+					{
+						bAllowActorPicker = false;
+						break;
+					}
 				}
 			}
 		}

@@ -25,7 +25,7 @@ class AIMODULE_API UAITask : public UGameplayTask
 	GENERATED_BODY()
 protected:
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category="AI|Tasks")
 	AAIController* OwnerController;
 
 	virtual void Activate() override;

@@ -104,9 +104,9 @@ protected:
 	void LoadTexture(FSplashDesc& InSplashDesc);
 	void UnloadTexture(FSplashDesc& InSplashDesc);
 
-	TSharedPtr<FTicker>	RenTicker;
+	virtual uint32 GetTotalNumberOfLayersSupported() const = 0;
 
-	const int32 SPLASH_MAX_NUM = 10;
+	TSharedPtr<FTicker>	RenTicker;
 
 	mutable FCriticalSection SplashScreensLock;
 	UPROPERTY()

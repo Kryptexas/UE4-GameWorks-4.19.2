@@ -242,7 +242,11 @@ bool FPropertyChangeListener::ScanForChanges( bool bRecacheNewValues )
 			{
 				for (auto It = ObjectNode->ObjectConstIterator(); It; ++It)
 				{
-					ObjectsThatChanged.Add(It->Get());
+					UObject* Obj = It->Get();
+					if (ensure(Obj != nullptr))
+					{
+						ObjectsThatChanged.Add(Obj);
+					}
 				}
 			}
 
@@ -277,7 +281,11 @@ void FPropertyChangeListener::TriggerAllPropertiesChangedDelegate()
 		{
 			for (auto It = ObjectNode->ObjectConstIterator(); It; ++It)
 			{
-				ObjectsThatChanged.Add(It->Get());
+				UObject* Obj = It->Get();
+				if (ensure(Obj != nullptr))
+				{
+					ObjectsThatChanged.Add(Obj);
+				}
 			}
 		}
 

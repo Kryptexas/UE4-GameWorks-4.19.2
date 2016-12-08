@@ -4675,10 +4675,14 @@ void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildI
 	if (bBounceOnCollision)
 	{
 		ResourceData.OneMinusFriction = 1.0f - EmitterBuildInfo.Friction;
+		ResourceData.CollisionRandomSpread = EmitterBuildInfo.CollisionRandomSpread;
+		ResourceData.CollisionRandomDistribution = EmitterBuildInfo.CollisionRandomDistribution;
 	}
 	else
 	{
 		ResourceData.OneMinusFriction = 0.0f;
+		ResourceData.CollisionRandomSpread = 0.0f;
+		ResourceData.CollisionRandomDistribution = 1.0f;
 	}
 
 	// Collision time bias, used to kill particles on collision if desired.

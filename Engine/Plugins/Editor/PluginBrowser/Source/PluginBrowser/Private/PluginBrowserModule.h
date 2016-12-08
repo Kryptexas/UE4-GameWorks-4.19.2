@@ -64,6 +64,9 @@ public:
 	/** ID name for the plugin creator tab */
 	static const FName PluginCreatorTabName;
 
+	/** Spawns the plugin creator tab with a specific wizard definition */
+	virtual TSharedRef<SDockTab> SpawnPluginCreatorTab(const FSpawnTabArgs& SpawnTabArgs, TSharedPtr<IPluginWizardDefinition> PluginWizardDefinition) override;
+
 private:
 	/** Called to spawn the plugin browser tab */
 	TSharedRef<SDockTab> HandleSpawnPluginBrowserTab(const FSpawnTabArgs& SpawnTabArgs);

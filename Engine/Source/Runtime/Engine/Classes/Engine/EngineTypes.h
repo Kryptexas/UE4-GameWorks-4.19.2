@@ -3090,25 +3090,67 @@ struct FWalkableSlopeOverride
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Behavior of this surface (whether we affect the walkable slope). */
+	/**
+	 * Behavior of this surface (whether we affect the walkable slope).
+	 * @see GetWalkableSlopeBehavior(), SetWalkableSlopeBehavior()
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=WalkableSlopeOverride)
 	TEnumAsByte<EWalkableSlopeBehavior> WalkableSlopeBehavior;
 
 	/**
-	 * Override walkable slope, applying the rules of the Walkable Slope Behavior.
+	 * Override walkable slope angle (in degrees), applying the rules of the Walkable Slope Behavior.
+	 * @see GetWalkableSlopeAngle(), SetWalkableSlopeAngle()
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=WalkableSlopeOverride, meta=(ClampMin="0", ClampMax="90", UIMin="0", UIMax="90"))
 	float WalkableSlopeAngle;
 
+private:
+
+	// Cached angle for which we computed a cosine.
+	mutable float CachedSlopeAngle;
+	// Cached cosine of angle.
+	mutable float CachedSlopeCos;
+
+public:
+
 	FWalkableSlopeOverride()
 		: WalkableSlopeBehavior(WalkableSlope_Default)
 		, WalkableSlopeAngle(0.f)
+		, CachedSlopeAngle(0.f)
+		, CachedSlopeCos(1.f)
 	{ }
 
 	FWalkableSlopeOverride(EWalkableSlopeBehavior NewSlopeBehavior, float NewSlopeAngle)
 		: WalkableSlopeBehavior(NewSlopeBehavior)
 		, WalkableSlopeAngle(NewSlopeAngle)
-	{ }
+		, CachedSlopeAngle(0.f)
+		, CachedSlopeCos(1.f)
+	{
+	}
+
+	// Gets the slope override behavior.
+	FORCEINLINE EWalkableSlopeBehavior GetWalkableSlopeBehavior() const
+	{
+		return WalkableSlopeBehavior;
+	}
+
+	// Gets the slope angle used for the override behavior.
+	FORCEINLINE float GetWalkableSlopeAngle() const
+	{
+		return WalkableSlopeAngle;
+	}
+
+	// Set the slope override behavior.
+	FORCEINLINE void SetWalkableSlopeBehavior(EWalkableSlopeBehavior NewSlopeBehavior)
+	{
+		WalkableSlopeBehavior = NewSlopeBehavior;
+	}
+
+	// Set the slope angle used for the override behavior.
+	FORCEINLINE void SetWalkableSlopeAngle(float NewSlopeAngle)
+	{
+		WalkableSlopeAngle = FMath::Clamp(NewSlopeAngle, 0.f, 90.f);
+	}
 
 	// Given a walkable floor normal Z value, either relax or restrict the value if we override such behavior.
 	float ModifyWalkableFloorZ(float InWalkableFloorZ) const
@@ -3122,14 +3164,14 @@ struct FWalkableSlopeOverride
 
 			case WalkableSlope_Increase:
 			{
-				const float Angle = FMath::DegreesToRadians(WalkableSlopeAngle);
-				return FMath::Min(InWalkableFloorZ, FMath::Cos(Angle));
+				CheckCachedData();
+				return FMath::Min(InWalkableFloorZ, CachedSlopeCos);
 			}
 
 			case WalkableSlope_Decrease:
 			{
-				const float Angle = FMath::DegreesToRadians(WalkableSlopeAngle);
-				return FMath::Max(InWalkableFloorZ, FMath::Cos(Angle));
+				CheckCachedData();
+				return FMath::Max(InWalkableFloorZ, CachedSlopeCos);
 			}
 
 			case WalkableSlope_Unwalkable:
@@ -3144,8 +3186,21 @@ struct FWalkableSlopeOverride
 			}
 		}
 	}
+
+private:
+
+	void CheckCachedData() const
+	{
+		if (CachedSlopeAngle != WalkableSlopeAngle)
+		{
+			const float AngleRads = FMath::DegreesToRadians(WalkableSlopeAngle);
+			CachedSlopeCos = FMath::Clamp(FMath::Cos(AngleRads), 0.f, 1.f);
+			CachedSlopeAngle = WalkableSlopeAngle;
+		}
+	}
 };
 
+template<> struct TIsPODType<FWalkableSlopeOverride> { enum { Value = true }; };
 
 template<>
 struct TStructOpsTypeTraits<FRepMovement> : public TStructOpsTypeTraitsBase

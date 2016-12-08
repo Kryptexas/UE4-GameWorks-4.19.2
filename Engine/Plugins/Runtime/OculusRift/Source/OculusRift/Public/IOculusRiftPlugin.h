@@ -8,6 +8,10 @@
 // Oculus support is not available on windows xp
 #define OCULUS_RIFT_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WINVER > 0x0502) // || PLATFORM_MAC
 
+class FRHITexture2D;
+
+DECLARE_DELEGATE_RetVal_FourParams(FRHITexture2D*, FOculusRiftRenderDelegate, FIntRect& /* EyeDstRect */, FIntRect& /* EyeSrcRect */, FIntRect& /* SpectatorDstRect */, FIntRect& /* SpectatorSrcRect */);
+
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
  * within this plugin.

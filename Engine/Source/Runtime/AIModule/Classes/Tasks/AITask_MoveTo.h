@@ -11,7 +11,7 @@
 
 class AAIController;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMoveTaskCompletedSignature, TEnumAsByte<EPathFollowingResult::Type>, Result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMoveTaskCompletedSignature, TEnumAsByte<EPathFollowingResult::Type>, Result, AAIController*, AIController);
 
 UCLASS()
 class AIMODULE_API UAITask_MoveTo : public UAITask

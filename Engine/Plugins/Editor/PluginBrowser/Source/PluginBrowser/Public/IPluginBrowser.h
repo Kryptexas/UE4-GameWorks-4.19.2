@@ -35,5 +35,15 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "PluginBrowser" );
 	}
+
+public:
+	/**
+	 * Allows other modules to spawn the new plugin interface with their own definition
+	 * 
+	 * @param	SpawnTabArgs			Arguments for spawning the new plugin tab
+	 * @param	PluginWizardDefinition	The definition that drives the functionality of the new plugin tab
+	 * @return	A shared reference to the dock tab where the new plugin widget is created.
+	 */
+	virtual TSharedRef<class SDockTab> SpawnPluginCreatorTab(const class FSpawnTabArgs& SpawnTabArgs, TSharedPtr<class IPluginWizardDefinition> PluginWizardDefinition) = 0;
 };
 

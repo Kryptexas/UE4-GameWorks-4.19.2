@@ -184,7 +184,7 @@ static void FinishTranslucentRenderTarget(FRHICommandListImmediate& RHICmdList, 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	if ((TranslucencyPass == ETranslucencyPass::TPT_SeparateTranslucency) && SceneContext.IsSeparateTranslucencyActive(View))
 	{
-		SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);
+		SceneContext.FinishRenderingSeparateTranslucency(RHICmdList);
 	}
 	else
 	{
@@ -531,11 +531,21 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 			{
 				if( bDisableDepthTest )
 				{
-					DrawRenderStateLocal.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false, CF_Always, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), 1);
+					DrawRenderStateLocal.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<
+						false, CF_Always,
+						true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+						false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+						STENCIL_TEMPORAL_RESPONSIVE_AA_MASK, STENCIL_TEMPORAL_RESPONSIVE_AA_MASK
+						>::GetRHI(), STENCIL_TEMPORAL_RESPONSIVE_AA_MASK);
 				}
 				else
 				{
-					DrawRenderStateLocal.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<false,CF_DepthNearOrEqual,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(), 1);
+					DrawRenderStateLocal.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<
+						false, CF_DepthNearOrEqual,
+						true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+						false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+						STENCIL_TEMPORAL_RESPONSIVE_AA_MASK, STENCIL_TEMPORAL_RESPONSIVE_AA_MASK
+						>::GetRHI(), STENCIL_TEMPORAL_RESPONSIVE_AA_MASK);
 				}
 			}
 			else if( bDisableDepthTest )
@@ -1030,11 +1040,14 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 	GParallelTranslucencyContext.bSceneColorCopyIsUpToDate = false;
 	FScopedCommandListWaitForTasks Flusher(CVarRHICmdFlushRenderThreadTasksTranslucentPass.GetValueOnRenderThread() > 0 || CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() > 0, RHICmdList);
 
+	bool bRequiresSeperateTranslucencyResolve = false;
+
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
 		FViewInfo& View = Views[ViewIndex];
+
 		{
 
 #if STATS
@@ -1091,8 +1104,6 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 				QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_SDPG_Foreground);
 				DrawViewElementsParallel<FTranslucencyDrawingPolicyFactory>(GParallelTranslucencyContext, SDPG_Foreground, false, ParallelCommandListSet);
 			}
-
-			FinishTranslucentRenderTarget(RHICmdList, View, TranslucenyPassType);
 		}
 #if STATS
 		if (View.ViewState)
@@ -1144,6 +1155,8 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 				// Draw only translucent prims that are in the SeparateTranslucency pass
 				if (View.TranslucentPrimSet.SortedPrimsNum.Num(TranslucencyPass) > 0)
 				{
+					bRequiresSeperateTranslucencyResolve = true;
+
 					QUICK_SCOPE_CYCLE_COUNTER(RenderTranslucencyParallel_Start_FDrawSortedTransAnyThreadTask_SeparateTransluceny);
 
 					FInt32Range PassRange = View.TranslucentPrimSet.SortedPrimsNum.GetPassRange(TranslucencyPass);
@@ -1174,9 +1187,14 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 					}
 				}
 			}
-			SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);
+
 			EndTimingSeparateTranslucencyPass(RHICmdList, View);
 		}
+	}
+	
+	if (bRequiresSeperateTranslucencyResolve)
+	{
+		SceneContext.FinishRenderingSeparateTranslucency(RHICmdList);
 	}
 }
 
@@ -1212,13 +1230,16 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 			return;
 		}
 
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+		bool bRequiresSeperateTranslucencyResolve = false;
+
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
 			FViewInfo& View = Views[ViewIndex];
-
 			FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+
 			// non separate translucency
 			{
 #if STATS
@@ -1244,9 +1265,6 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 						LightPropagationVolume->Visualise(RHICmdList, View);
 					}
 				}
-
-				FinishTranslucentRenderTarget(RHICmdList, View, ETranslucencyPass::TPT_StandardTranslucency);
-
 #if STATS
 				if (View.ViewState)
 				{
@@ -1257,9 +1275,10 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 			
 			// separate translucency
 			{
-				FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 				if (SceneContext.IsSeparateTranslucencyActive(View))
 				{
+					bRequiresSeperateTranslucencyResolve = true;
+
 					// always call BeginRenderingSeparateTranslucency() even if there are no primitives to we keep the RT allocated
 					FIntPoint ScaledSize;
 					float Scale = 1.0f;
@@ -1301,11 +1320,15 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 						DrawAllTranslucencyPasses(RHICmdList, View, DrawRenderState, ETranslucencyPass::TPT_SeparateTranslucency);
 					}
 
-					SceneContext.FinishRenderingSeparateTranslucency(RHICmdList, View);
 
 					EndTimingSeparateTranslucencyPass(RHICmdList, View);
 				}
 			}
+		}
+
+		if (bRequiresSeperateTranslucencyResolve)
+		{
+			SceneContext.FinishRenderingSeparateTranslucency(RHICmdList);
 		}
 	}
 }

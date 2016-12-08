@@ -333,7 +333,7 @@ public:
 	float GetMassOverride() const { return MassInKgOverride; }
 
 	/** Sets the mass override */
-	void SetMassOverride(float MassInKG);
+	void SetMassOverride(float MassInKG, bool bNewOverrideMass = true);
 
 	/** 'Drag' force added to reduce linear movement */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)

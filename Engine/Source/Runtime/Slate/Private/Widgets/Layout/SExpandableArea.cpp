@@ -23,7 +23,7 @@ void SExpandableArea::Construct( const FArguments& InArgs )
 	ExpandedImage = &InArgs._Style->ExpandedImage;
 
 	// If it should be initially visible, show it now
-	RolloutCurve = FCurveSequence(0.0f, 0.1f, ECurveEaseFunction::QuadOut);
+	RolloutCurve = FCurveSequence(0.0f, InArgs._Style->RolloutAnimationSeconds, ECurveEaseFunction::CubicOut);
 
 	if (!bAreaCollapsed)
 	{
@@ -115,7 +115,29 @@ void SExpandableArea::SetExpanded( bool bExpanded )
 	}
 }
 
-TSharedRef<SWidget> SExpandableArea::ConstructHeaderWidget( const FArguments& InArgs, TSharedRef<SWidget> HeaderContent )
+void SExpandableArea::SetExpanded_Animated(bool bExpanded)
+{
+	const bool bShouldBeCollapsed = !bExpanded;
+	if (bAreaCollapsed != bShouldBeCollapsed)
+	{
+		bAreaCollapsed = bShouldBeCollapsed;
+		if (!bAreaCollapsed)
+		{
+			RolloutCurve = FCurveSequence(0.0f, RolloutCurve.GetCurve(0).DurationSeconds, ECurveEaseFunction::CubicOut);
+			RolloutCurve.Play(this->AsShared());
+		}
+		else
+		{
+			RolloutCurve = FCurveSequence(0.0f, RolloutCurve.GetCurve(0).DurationSeconds, ECurveEaseFunction::CubicIn);
+			RolloutCurve.PlayReverse(this->AsShared());
+		}
+
+		// Allow some section-specific code to be executed when the section becomes visible or collapsed
+		OnAreaExpansionChanged.ExecuteIfBound(!bAreaCollapsed);
+	}
+}
+
+TSharedRef<SWidget> SExpandableArea::ConstructHeaderWidget(const FArguments& InArgs, TSharedRef<SWidget> HeaderContent)
 {
 	return
 		SNew(SHorizontalBox)
@@ -166,21 +188,7 @@ FReply SExpandableArea::OnHeaderClicked()
 
 void SExpandableArea::OnToggleContentVisibility()
 {
-	bAreaCollapsed = !bAreaCollapsed;
-
-	if( !bAreaCollapsed )
-	{
-		RolloutCurve = FCurveSequence( 0.0f, 0.1f, ECurveEaseFunction::CubicOut );
-		RolloutCurve.Play( this->AsShared() );
-	}
-	else
-	{
-		RolloutCurve = FCurveSequence( 0.0f, 0.1f, ECurveEaseFunction::CubicIn );
-		RolloutCurve.PlayReverse( this->AsShared() );
-	}
-
-	// Allow some section-specific code to be executed when the section becomes visible or collapsed
-	OnAreaExpansionChanged.ExecuteIfBound( !bAreaCollapsed );
+	SetExpanded_Animated( !!bAreaCollapsed );
 }
 
 const FSlateBrush* SExpandableArea::OnGetCollapseImage() const

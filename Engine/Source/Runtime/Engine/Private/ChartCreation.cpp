@@ -1182,6 +1182,7 @@ void FPerformanceTrackingSystem::StartCharting()
 	GTargetFrameRatesForSummary.Reset();
 	GTargetFrameRatesForSummary.Add(30);
 	GTargetFrameRatesForSummary.Add(60);
+	GTargetFrameRatesForSummary.Add(90);
 	GTargetFrameRatesForSummary.Add(120);
 
 	GGPUFrameTime = 0;

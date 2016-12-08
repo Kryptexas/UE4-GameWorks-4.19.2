@@ -112,9 +112,9 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 }
 #endif // WITH_EDITOR
 
-void ANavLinkProxy::PostInitializeComponents()
+void ANavLinkProxy::PostRegisterAllComponents()
 {
-	Super::PostInitializeComponents();
+	Super::PostRegisterAllComponents();
 
 	if (SmartLinkComp)
 	{

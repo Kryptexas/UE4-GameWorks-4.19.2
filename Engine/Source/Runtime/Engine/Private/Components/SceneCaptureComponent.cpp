@@ -248,6 +248,29 @@ void USceneCaptureComponent::ShowOnlyActorComponents(AActor* InActor)
 	}
 }
 
+void USceneCaptureComponent::RemoveShowOnlyComponent(UPrimitiveComponent* InComponent)
+{
+	ShowOnlyComponents.Remove(InComponent);
+}
+
+void USceneCaptureComponent::RemoveShowOnlyActorComponents(AActor* InActor)
+{
+	if (InActor)
+	{
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+		InActor->GetComponents(PrimitiveComponents);
+		for (int32 ComponentIndex = 0, NumComponents = PrimitiveComponents.Num(); ComponentIndex < NumComponents; ++ComponentIndex)
+		{
+			ShowOnlyComponents.Remove(PrimitiveComponents[ComponentIndex]);
+		}
+	}
+}
+
+void USceneCaptureComponent::ClearShowOnlyComponents(UPrimitiveComponent* InComponent)
+{
+	ShowOnlyComponents.Reset();
+}
+
 FSceneViewStateInterface* USceneCaptureComponent::GetViewState()
 {
 	FSceneViewStateInterface* ViewStateInterface = ViewState.GetReference();

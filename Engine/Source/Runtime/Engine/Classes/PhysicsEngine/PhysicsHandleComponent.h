@@ -100,6 +100,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsHandle")
 	ENGINE_API virtual void ReleaseComponent();
 
+	/** Returns the currently grabbed component, or null if nothing is grabbed. */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsHandle")
+	ENGINE_API class UPrimitiveComponent* GetGrabbedComponent() const;
+
 	/** Set the target location */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsHandle")
 	ENGINE_API void SetTargetLocation(FVector NewLocation);

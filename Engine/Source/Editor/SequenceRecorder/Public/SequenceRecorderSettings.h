@@ -122,6 +122,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	bool bRecordWorldSettingsActor;
 
+	/** Whether to remove keyframes within a tolerance from the recorded tracks */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	bool bReduceKeys;
+
 	/** Filter to check spawned actors against to see if they should be recorded */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	FSequenceRecorderActorFilter ActorFilter;

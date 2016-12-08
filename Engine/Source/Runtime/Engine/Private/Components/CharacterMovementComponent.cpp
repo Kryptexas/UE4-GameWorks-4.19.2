@@ -71,7 +71,7 @@ const float MAX_STEP_SIDE_Z = 0.08f;	// maximum z value for the normal on the ve
 const float SWIMBOBSPEED = -80.f;
 const float VERTICAL_SLOPE_NORMAL_Z = 0.001f; // Slope is vertical if Abs(Normal.Z) <= this threshold. Accounts for precision problems that sometimes angle normals slightly off horizontal for vertical surface.
 
-const float UCharacterMovementComponent::MIN_TICK_TIME = 0.0002f;
+const float UCharacterMovementComponent::MIN_TICK_TIME = 1e-6f;
 const float UCharacterMovementComponent::MIN_FLOOR_DIST = 1.9f;
 const float UCharacterMovementComponent::MAX_FLOOR_DIST = 2.4f;
 const float UCharacterMovementComponent::BRAKE_TO_STOP_VELOCITY = 10.f;
@@ -2936,10 +2936,10 @@ float UCharacterMovementComponent::GetPathFollowingBrakingDistance(float MaxSpee
 		return FixedPathBrakingDistance;
 	}
 
-	const float BrakingDeceleration = BrakingDecelerationWalking * (bUseSeparateBrakingFriction ? BrakingFriction : GroundFriction);
+	const float BrakingDeceleration = FMath::Abs(GetMaxBrakingDeceleration());
 
 	// character won't be able to stop with negative or nearly zero deceleration, use MaxSpeed for path length calculations
-	const float BrakingDistance = (BrakingDeceleration < SMALL_NUMBER) ? MaxSpeed : (FMath::Square(MaxSpeed) / BrakingDeceleration);
+	const float BrakingDistance = (BrakingDeceleration < SMALL_NUMBER) ? MaxSpeed : (FMath::Square(MaxSpeed) / (2.f * BrakingDeceleration));
 	return BrakingDistance;
 }
 
@@ -3180,6 +3180,27 @@ float UCharacterMovementComponent::GetMaxAcceleration() const
 	return MaxAcceleration;
 }
 
+float UCharacterMovementComponent::GetMaxBrakingDeceleration() const
+{
+	switch (MovementMode)
+	{
+		case MOVE_Walking:
+		case MOVE_NavWalking:
+			return BrakingDecelerationWalking;
+		case MOVE_Falling:
+			return BrakingDecelerationFalling;
+		case MOVE_Swimming:
+			return BrakingDecelerationSwimming;
+		case MOVE_Flying:
+			return BrakingDecelerationFlying;
+		case MOVE_Custom:
+			return 0.f;
+		case MOVE_None:
+		default:
+			return 0.f;
+	}
+}
+
 FVector UCharacterMovementComponent::GetCurrentAcceleration() const
 {
 	return Acceleration;
@@ -3253,7 +3274,7 @@ void UCharacterMovementComponent::PhysFlying(float deltaTime, int32 Iterations)
 			Velocity = FVector::ZeroVector;
 		}
 		const float Friction = 0.5f * GetPhysicsVolume()->FluidFriction;
-		CalcVelocity(deltaTime, Friction, true, BrakingDecelerationFlying);
+		CalcVelocity(deltaTime, Friction, true, GetMaxBrakingDeceleration());
 	}
 
 	ApplyRootMotionToVelocity(deltaTime);
@@ -3394,7 +3415,7 @@ void UCharacterMovementComponent::PhysSwimming(float deltaTime, int32 Iterations
 	if( !HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity() )
 	{
 		const float Friction = 0.5f * GetPhysicsVolume()->FluidFriction * Depth;
-		CalcVelocity(deltaTime, Friction, true, BrakingDecelerationSwimming);
+		CalcVelocity(deltaTime, Friction, true, GetMaxBrakingDeceleration());
 		Velocity.Z += GetGravityZ() * deltaTime * (1.f - NetBuoyancy);
 	}
 
@@ -3650,6 +3671,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 		// Apply input
 		if (!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
 		{
+			const float MaxDecel = GetMaxBrakingDeceleration();
 			// Compute VelocityNoAirControl
 			if (bHasAirControl)
 			{
@@ -3657,7 +3679,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 				TGuardValue<FVector> RestoreAcceleration(Acceleration, FVector::ZeroVector);
 				TGuardValue<FVector> RestoreVelocity(Velocity, Velocity);
 				Velocity.Z = 0.f;
-				CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);
+				CalcVelocity(timeTick, FallingLateralFriction, false, MaxDecel);
 				VelocityNoAirControl = FVector(Velocity.X, Velocity.Y, OldVelocity.Z);
 			}
 
@@ -3666,7 +3688,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 				// Acceleration = FallAcceleration for CalcVelocity(), but we restore it after using it.
 				TGuardValue<FVector> RestoreAcceleration(Acceleration, FallAcceleration);
 				Velocity.Z = 0.f;
-				CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);
+				CalcVelocity(timeTick, FallingLateralFriction, false, MaxDecel);
 				Velocity.Z = OldVelocity.Z;
 			}
 
@@ -4276,7 +4298,7 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 		// Apply acceleration
 		if( !HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity() )
 		{
-			CalcVelocity(timeTick, GroundFriction, false, BrakingDecelerationWalking);
+			CalcVelocity(timeTick, GroundFriction, false, GetMaxBrakingDeceleration());
 			checkCode(ensureMsgf(!Velocity.ContainsNaN(), TEXT("PhysWalking: Velocity contains NaN after CalcVelocity (%s)\n%s"), *GetPathNameSafe(this), *Velocity.ToString()));
 		}
 		
@@ -4474,7 +4496,7 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 	Acceleration.Z = 0.f;
 	if (!HasAnimRootMotion() && !CurrentRootMotion.HasOverrideVelocity())
 	{
-		CalcVelocity(deltaTime, GroundFriction, false, BrakingDecelerationWalking);
+		CalcVelocity(deltaTime, GroundFriction, false, GetMaxBrakingDeceleration());
 		checkCode(ensureMsgf(!Velocity.ContainsNaN(), TEXT("PhysNavWalking: Velocity contains NaN after CalcVelocity (%s)\n%s"), *GetPathNameSafe(this), *Velocity.ToString()));
 	}
 

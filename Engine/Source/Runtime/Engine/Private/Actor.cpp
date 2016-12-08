@@ -607,6 +607,7 @@ void AActor::PostLoad()
 void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
 	USceneComponent* OldRoot = RootComponent;
+	USceneComponent* OldRootParent = (OldRoot ? OldRoot->GetAttachParent() : nullptr);
 	bool bHadRoot = !!OldRoot;
 	FRotator OldRotation;
 	FVector OldTranslation;
@@ -630,10 +631,20 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 		GetRootComponent()->RelativeScale3D = OldScale;
 		
 		// Migrate any attachment to the new root
-		if(OldRoot->GetAttachParent())
+		if (OldRoot->GetAttachParent())
 		{
-			RootComponent->SetupAttachment(OldRoot->GetAttachParent());
-			OldRoot->SetupAttachment(nullptr);
+			// Users may try to fixup attachment to the root on their own, avoid creating a cycle.
+			if (OldRoot->GetAttachParent() != RootComponent)
+			{
+				RootComponent->SetupAttachment(OldRoot->GetAttachParent());
+			}
+		}
+
+		// Attach old root to new root, if the user did not do something on their own during construction that differs from the serialized value.
+		if (OldRoot->GetAttachParent() == OldRootParent && OldRoot->GetAttachParent() != RootComponent)
+		{
+			UE_LOG(LogActor, Log, TEXT("--- Attaching old root to new root %s->%s"), *OldRoot->GetFullName(), *GetRootComponent()->GetFullName());
+			OldRoot->SetupAttachment(RootComponent);
 		}
 
 		// Reset the transform on the old component
@@ -3535,17 +3546,17 @@ FRotator AActor::K2_GetActorRotation() const
 
 FVector AActor::GetActorForwardVector() const
 {
-	return GetActorQuat().RotateVector(FVector::ForwardVector);
+	return GetActorQuat().GetForwardVector();
 }
 
 FVector AActor::GetActorUpVector() const
 {
-	return GetActorQuat().RotateVector(FVector::UpVector);
+	return GetActorQuat().GetUpVector();
 }
 
 FVector AActor::GetActorRightVector() const
 {
-	return GetActorQuat().RotateVector(FVector::RightVector);
+	return GetActorQuat().GetRightVector();
 }
 
 USceneComponent* AActor::K2_GetRootComponent() const

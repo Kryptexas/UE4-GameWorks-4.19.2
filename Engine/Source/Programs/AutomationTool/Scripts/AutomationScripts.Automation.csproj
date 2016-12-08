@@ -80,6 +80,7 @@
     <Compile Include="CookTargetCommand.Automation.cs" />
     <Compile Include="CopyBuildToStagingDirectory.Automation.cs" />
     <Compile Include="CopyUAT.Automation.cs" />
+    <Compile Include="CopyUsingDistillFileSet.Automation.cs" />
     <Compile Include="DeployCommand.Automation.cs" />
     <Compile Include="FixupRedirects.Automation.cs" />
     <Compile Include="GenerateDSYM.Automation.cs" />

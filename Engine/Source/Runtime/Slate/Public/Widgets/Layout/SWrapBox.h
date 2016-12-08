@@ -110,6 +110,12 @@ public:
 	/** See InnerSlotPadding Attribute */
 	void SetInnerSlotPadding(FVector2D InInnerSlotPadding);
 
+	/** Set the width at which the wrap panel should wrap its content. */
+	void SetWrapWidth( const TAttribute<float>& InWrapWidth );
+
+	/** When true, use the WrapWidth property to determine where to wrap to the next line. */
+	void SetUseAllottedWidth(bool bInUseAllottedWidth);
+
 private:
 
 	/** How wide this panel should appear to be. Any widgets past this line will be wrapped onto the next line. */

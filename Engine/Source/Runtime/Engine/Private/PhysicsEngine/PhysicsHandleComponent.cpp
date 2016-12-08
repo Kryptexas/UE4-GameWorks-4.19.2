@@ -251,8 +251,10 @@ void UPhysicsHandleComponent::ReleaseComponent()
 #endif // WITH_PHYSX
 }
 
-
-
+UPrimitiveComponent* UPhysicsHandleComponent::GetGrabbedComponent() const
+{
+	return GrabbedComponent;
+}
 
 void UPhysicsHandleComponent::SetTargetLocation(FVector NewLocation)
 {

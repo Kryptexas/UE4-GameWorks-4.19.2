@@ -254,14 +254,31 @@ protected:
 	/** Performs the simulation of pointer movement.  Does not run if bEnableHitTesting is set to false. */
 	void SimulatePointerMovement();
 
+	struct FWidgetTraceResult
+	{
+		FWidgetTraceResult()
+			: HitResult()
+			, LocalHitLocation(FVector2D::ZeroVector)
+			, HitWidgetComponent(nullptr)
+			, HitWidgetPath()
+			, bWasHit(false)
+		{
+		}
+
+		FHitResult HitResult;
+		FVector2D LocalHitLocation;
+		UWidgetComponent* HitWidgetComponent;
+		FWidgetPath HitWidgetPath;
+		bool bWasHit;
+	};
 	/** Performs the trace and gets the hit result under the specified InteractionSource */
-	virtual bool PerformTrace(FHitResult& HitResult);
+	virtual FWidgetTraceResult PerformTrace() const;
 	
 	/**
 	 * Gets the list of components to ignore during hit testing.  Which is everything that is a parent/sibling of this 
 	 * component that's not a Widget Component.  This is so traces don't get blocked by capsules and such around the player.
 	 */
-	void GetRelatedComponentsToIgnoreInAutomaticHitTesting(TArray<UPrimitiveComponent*>& IgnorePrimitives);
+	void GetRelatedComponentsToIgnoreInAutomaticHitTesting(TArray<UPrimitiveComponent*>& IgnorePrimitives) const;
 
 protected:
 

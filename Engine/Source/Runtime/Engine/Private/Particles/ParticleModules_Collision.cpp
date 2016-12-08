@@ -583,6 +583,8 @@ bool UParticleModuleCollision::PerformCollisionCheck(FParticleEmitterInstance* O
 UParticleModuleCollisionGPU::UParticleModuleCollisionGPU(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Friction(0.0f)
+	, RandomSpread(0.0f)
+	, RandomDistribution(2.0f)
 	, RadiusScale(1.0f)
 	, RadiusBias(0.0f)
 	, Response(EParticleCollisionResponse::Bounce)
@@ -647,6 +649,8 @@ void UParticleModuleCollisionGPU::CompileModule(struct FParticleEmitterBuildInfo
 	EmitterInfo.CollisionResponse = Response;
 	EmitterInfo.CollisionRadiusScale = RadiusScale;
 	EmitterInfo.CollisionRadiusBias = RadiusBias;
+	EmitterInfo.CollisionRandomSpread = RandomSpread;
+	EmitterInfo.CollisionRandomDistribution = RandomDistribution;
 	EmitterInfo.Friction = Friction;
 	EmitterInfo.Resilience.Initialize(Resilience.Distribution);
 	EmitterInfo.ResilienceScaleOverLife.Initialize(ResilienceScaleOverLife.Distribution);

@@ -1566,6 +1566,7 @@ void UWorld::UpdateWorldComponents(bool bRerunConstructionScripts, bool bCurrent
 		if(!LineBatcher)
 		{
 			LineBatcher = NewObject<ULineBatchComponent>();
+			LineBatcher->bCalculateAccurateBounds = false;
 		}
 
 		if(!LineBatcher->IsRegistered())
@@ -1576,6 +1577,7 @@ void UWorld::UpdateWorldComponents(bool bRerunConstructionScripts, bool bCurrent
 		if(!PersistentLineBatcher)
 		{
 			PersistentLineBatcher = NewObject<ULineBatchComponent>();
+			PersistentLineBatcher->bCalculateAccurateBounds = false;
 		}
 
 		if(!PersistentLineBatcher->IsRegistered())	
@@ -1586,6 +1588,7 @@ void UWorld::UpdateWorldComponents(bool bRerunConstructionScripts, bool bCurrent
 		if(!ForegroundLineBatcher)
 		{
 			ForegroundLineBatcher = NewObject<ULineBatchComponent>();
+			ForegroundLineBatcher->bCalculateAccurateBounds = false;
 		}
 
 		if(!ForegroundLineBatcher->IsRegistered())	

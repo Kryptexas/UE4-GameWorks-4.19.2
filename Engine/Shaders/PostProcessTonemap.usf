@@ -58,8 +58,10 @@ uint GetOutputDevice()
 // LUT for color grading
 #if USE_VOLUME_LUT == 1
 	Texture3D		ColorGradingLUT;
-	SamplerState	ColorGradingLUTSampler;
-#endif
+#else
+	Texture2D       ColorGradingLUT;
+#endif 
+SamplerState        ColorGradingLUTSampler;
 
 static const float LUTSize = 32;
 
@@ -78,7 +80,8 @@ half3 ColorLookupTable( half3 LinearColor )
 #if USE_VOLUME_LUT == 1
 	half3 OutDeviceColor = ColorGradingLUT.Sample( ColorGradingLUTSampler, UVW ).rgb;
 #else
-	half3 OutDeviceColor = UnwrappedTexture3DSample( PostprocessInput3, PostprocessInput3Sampler, UVW, LUTSize ).rgb;
+	half3 OutDeviceColor = UnwrappedTexture3DSample( ColorGradingLUT, ColorGradingLUTSampler, UVW, LUTSize ).rgb;
+	//half3 OutDeviceColor = UnwrappedTexture3DSample( PostprocessInput3, PostprocessInput3Sampler, UVW, LUTSize ).rgb;
 #endif
 	
 	return OutDeviceColor * 1.05;
