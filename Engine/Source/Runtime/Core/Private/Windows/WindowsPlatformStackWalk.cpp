@@ -818,12 +818,14 @@ bool FWindowsPlatformStackWalk::InitStackWalking()
 	{
 		// Refresh and reload symbols
 		SymRefreshModuleList( GetCurrentProcess() );
+
+		GNeedToRefreshSymbols = false;
+
 		if (!FPlatformProperties::IsMonolithicBuild() && FPlatformStackWalk::WantsDetailedCallstacksInNonMonolithicBuilds())
 		{
 			const FString RemoteStorage = GetRemoteStorage( GetDownstreamStorage() );
 			LoadProcessModules( RemoteStorage );
 		}
-		GNeedToRefreshSymbols = false;
 	}
 #endif
 
