@@ -101,9 +101,11 @@ No further code is needed. We can set up our CameraDirector in our world now.
 				// Sets default values for this actor's properties
 				ACameraDirector();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 

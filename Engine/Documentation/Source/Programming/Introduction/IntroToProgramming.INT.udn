@@ -46,11 +46,13 @@ Once you choose to create the class, the wizard will generate the files and open
 	public:	
 		// Sets default values for this actor's properties
 		AMyActor();
-		// Called when the game starts or when spawned
-		virtual void BeginPlay() override;
-		
+	
 		// Called every frame
 		virtual void Tick( float DeltaSeconds ) override;
+
+	protected:
+		// Called when the game starts or when spawned
+		virtual void BeginPlay() override;
 	};
 
 The class wizard generates your class with **BeginPlay()** and **Tick()** specified as overloads. **BeginPlay()** is an event that lets you know the Actor has entered the game in a playable state. This is a good place to initiate gameplay logic for your class. **Tick()** is called once per frame with the amount of elapsed time since the last call passed in. There you can do any recurring logic. However if you do not need that functionality, it is best to remove it to save yourself a small amount of performance. If you remove it, make sure to remove the line in the constructor that indicated ticking should occur. The constructor below contains the line in question.
