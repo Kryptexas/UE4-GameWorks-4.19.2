@@ -52,7 +52,7 @@ Description:在您的关卡中创建测试对象
     [/PARAM]
     [PARAM:content]
 		**FloatingActor.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -78,7 +78,7 @@ Description:在您的关卡中创建测试对象
 			};
 
 		**FloatingActor.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "QuickStart.h"
 			#include "FloatingActor.h"

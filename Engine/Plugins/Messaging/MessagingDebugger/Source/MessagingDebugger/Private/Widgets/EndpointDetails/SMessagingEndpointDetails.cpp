@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Widgets/EndpointDetails/SMessagingEndpointDetails.h"
 #include "Widgets/Text/STextBlock.h"

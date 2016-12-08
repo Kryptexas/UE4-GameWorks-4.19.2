@@ -1,4 +1,4 @@
-// CopyAssetMappingTableht 1998-2016 Epic Games, Inc. All AssetMappingTablehts Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UAssetMappingTable.cpp: AssetMappingTable functionality for sharing animations

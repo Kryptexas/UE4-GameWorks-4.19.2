@@ -75,7 +75,7 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
     [/PARAM]
     [PARAM:content]
 		**CollidingPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -104,7 +104,7 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
 			};
 
 		**CollidingPawn.cpp**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
@@ -181,7 +181,7 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
 			}
 
 		**CollidingPawnMovementComponent.h**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -201,7 +201,7 @@ Pawn Movement Component のビヘイビアを定義したら、カスタマイ�
 			};
 
 		**CollidingPawnMovementComponent.cpp**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawnMovementComponent.h"

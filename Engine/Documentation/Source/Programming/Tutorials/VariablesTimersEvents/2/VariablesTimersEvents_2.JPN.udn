@@ -95,7 +95,7 @@ C++ コードに独自の値と機能を記述しながら、プログラマー�
     [/PARAM]
     [PARAM:content]
 		**Countdown.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -135,7 +135,7 @@ C++ コードに独自の値と機能を記述しながら、プログラマー�
 
 
 		**Countdown.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "HowTo_VTE.h"
 			#include "Countdown.h"

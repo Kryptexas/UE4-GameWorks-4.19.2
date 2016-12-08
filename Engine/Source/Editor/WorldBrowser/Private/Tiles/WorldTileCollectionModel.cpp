@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #include "Tiles/WorldTileCollectionModel.h"
 #include "Misc/PackageName.h"
 #include "Components/PrimitiveComponent.h"

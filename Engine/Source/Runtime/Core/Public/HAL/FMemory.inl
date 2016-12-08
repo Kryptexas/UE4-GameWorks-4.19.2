@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #if !defined(FMEMORY_INLINE_FUNCTION_DECORATOR)
 	#define FMEMORY_INLINE_FUNCTION_DECORATOR 

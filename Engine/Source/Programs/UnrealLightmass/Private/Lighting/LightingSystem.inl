@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 template<int32 SHOrder>
 TGatheredLightSample<SHOrder> FGatheredLightSampleUtil::AmbientLight(const FLinearColor& Color)
 {

@@ -1,4 +1,4 @@
-// CopyAssetMappingTableht 1998-2016 Epic Games, Inc. All AssetMappingTablehts Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * This is the definition for a AssetMappingTable that is used for mapping different animation assets

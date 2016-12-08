@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #include "Commandlets/PopulateDialogueWaveFromCharacterSheetCommandlet.h"
 #include "Misc/FileHelper.h"
 #include "Modules/ModuleManager.h"

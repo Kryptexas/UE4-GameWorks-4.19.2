@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Serialization/AsyncIOSystemBase.h"
 #if !USE_NEW_ASYNC_IO

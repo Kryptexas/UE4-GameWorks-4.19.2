@@ -1,4 +1,6 @@
-﻿using IncludeTool.Support;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using IncludeTool.Support;
 using System;
 using System.Collections.Generic;
 using System.Linq;

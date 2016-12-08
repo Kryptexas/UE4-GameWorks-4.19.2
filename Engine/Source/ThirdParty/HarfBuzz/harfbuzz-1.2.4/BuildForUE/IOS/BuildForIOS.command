@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+# Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 CUR_PATH=$(dirname "$0")
 PATH_TO_CMAKE_FILE="$CUR_PATH/.."

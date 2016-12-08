@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #include "NiagaraCommon.h"
 
 uint32 GetNiagaraDataElementCount(ENiagaraDataType Type)
