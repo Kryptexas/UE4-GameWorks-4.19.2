@@ -58,7 +58,7 @@ Description:Camera Director をワールドに配置してカメラを割り当�
     [/PARAM]
     [PARAM:content]
 		**MyPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -90,7 +90,7 @@ Description:Camera Director をワールドに配置してカメラを割り当�
 			};
 
 		**MyPawn.h**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#include "HowTo_AutoCamera.h"
 			#include "CameraDirector.h"

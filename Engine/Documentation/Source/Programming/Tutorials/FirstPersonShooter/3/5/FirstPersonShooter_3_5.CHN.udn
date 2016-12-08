@@ -158,7 +158,7 @@ Version:4.11
     [/PARAM]
     [PARAM:content]
 		**FPSProjectile.h**
-			// 版权所有 1998-2016 Epic Games, Inc. 保留所有权利。
+			// 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
 			#pragma once
 			
@@ -197,7 +197,7 @@ Version:4.11
 			};
 
 		**FPSProjectile.cpp**
-			// 版权所有 1998-2016 Epic Games, Inc. 保留所有权利。
+			// 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 
 			#include "FPSProject.h"
 			#include "FPSProjectile.h"
@@ -260,7 +260,7 @@ Version:4.11
 			}
 
 		**FPSCharacter.h**
-			// 版权所有 1998-2016 Epic Games, Inc. 保留所有权利。
+			// 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 			
 			#pragma once
 			
@@ -323,7 +323,7 @@ Version:4.11
 			};
 
 		**FPSCharacter.cpp**
-			// 版权所有 1998-2016 Epic Games, Inc. 保留所有权利。
+			// 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 			
 			#include "FPSProject.h"
 			#include "FPSCharacter.h"
@@ -454,7 +454,7 @@ Version:4.11
 			}
 
 		**FPSHUD.h**
-			// 版权所有 1998-2016 Epic Games, Inc. 保留所有权利。
+			// 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 			
 			#pragma once
 			
@@ -480,7 +480,7 @@ Version:4.11
 			};
 
 		**FPSHUD.cpp**
-			// 版权所有 1998-2016 Epic Games, Inc. 保留所有权利。
+			// 版权所有 1998-2017 Epic Games, Inc. 保留所有权利。
 			
 			#include "FPSProject.h"
 			#include "FPSHUD.h"

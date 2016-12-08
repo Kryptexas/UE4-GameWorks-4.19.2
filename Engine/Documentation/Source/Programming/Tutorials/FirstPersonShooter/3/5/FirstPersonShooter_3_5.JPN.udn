@@ -159,7 +159,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
     [/PARAM]
     [PARAM:content]
 		**FPSProjectile.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -200,7 +200,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 
 
 		**FPSProjectile.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "FPSProject.h"
 			#include "FPSProjectile.h"
@@ -265,7 +265,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			}
 
 		**FPSCharacter.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#pragma once
 
@@ -333,7 +333,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			};
 
 		**FPSCharacter.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 			#include "FPSProject.h"
 			#include "FPSCharacter.h"
@@ -466,7 +466,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			}
 
 		**FPSHUD.h**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 			#pragma once
 
 			#include "GameFramework/HUD.h"
@@ -492,7 +492,7 @@ CPP HUD クラスをブループリントに拡張します。C++ クラスの�
 			};
 
 		**FPSHUD.cpp**
-			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 			#include "FPSProject.h"
 			#include "FPSHUD.h"
 			void AFPSHUD::DrawHUD()

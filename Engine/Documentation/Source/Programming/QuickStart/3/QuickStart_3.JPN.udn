@@ -116,7 +116,7 @@ Version:4.9
     [/PARAM]
     [PARAM:content]
 		**FloatingActor.h**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#pragma once
 
@@ -143,7 +143,7 @@ Version:4.9
 			};
 
 		**FloatingActor.cpp**
-			// Copyright 1998-2016 Epic Games, Inc.All Rights Reserved.
+			// Copyright 1998-2017 Epic Games, Inc.All Rights Reserved.
 
 			#include "QuickStart.h"
 			#include "FloatingActor.h"
