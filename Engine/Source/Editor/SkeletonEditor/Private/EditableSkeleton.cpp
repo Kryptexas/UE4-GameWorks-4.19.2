@@ -555,8 +555,14 @@ USkeletalMeshSocket* FEditableSkeleton::HandleAddSocket(const FName& InBoneName)
 
 bool FEditableSkeleton::HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName)
 {
+	FName Dummy;
+	return HandleAddVirtualBone(SourceBoneName, TargetBoneName, Dummy);
+}
+
+bool FEditableSkeleton::HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName, FName& NewVirtualBoneName)
+{
 	FScopedTransaction Transaction(LOCTEXT("AddVirtualBone", "Add Virtual Bone to Skeleton"));
-	const bool Success = Skeleton->AddNewVirtualBone(SourceBoneName, TargetBoneName);
+	const bool Success = Skeleton->AddNewVirtualBone(SourceBoneName, TargetBoneName, NewVirtualBoneName);
 	if (!Success)
 	{
 		Transaction.Cancel();

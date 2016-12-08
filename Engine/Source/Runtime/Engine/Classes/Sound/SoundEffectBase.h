@@ -6,17 +6,38 @@
 #include "UObject/Object.h"
 #include "HAL/ThreadSafeBool.h"
 #include "Containers/Queue.h"
-#include "SoundEffectBase.generated.h"
+
+// The following macro code creates boiler-plate code for a sound effect preset and hides unnecessary details from user-created effects.
+
+// Macro chain to expand "MyEffectName" to "FMyEffectNameSettings"
+#define EFFECT_SETTINGS_NAME2(CLASS_NAME, SUFFIX) F ## CLASS_NAME ## SUFFIX
+#define EFFECT_SETTINGS_NAME1(CLASS_NAME, SUFFIX) EFFECT_SETTINGS_NAME2(CLASS_NAME, SUFFIX)
+#define EFFECT_SETTINGS_NAME(CLASS_NAME)		  EFFECT_SETTINGS_NAME1(CLASS_NAME, Settings)
+
+#define EFFECT_PRESET_NAME2(CLASS_NAME, SUFFIX)  U ## CLASS_NAME ## SUFFIX
+#define EFFECT_PRESET_NAME1(CLASS_NAME, SUFFIX)  EFFECT_PRESET_NAME2(CLASS_NAME, SUFFIX)
+#define EFFECT_PRESET_NAME(CLASS_NAME)			 EFFECT_PRESET_NAME1(CLASS_NAME, Preset)
+
+#define EFFECT_PRESET_METHODS(EFFECT_NAME) \
+		virtual void* GetSettings() override { return (void*)&Settings; } \
+		virtual uint32 GetSettingsSize() const override { return sizeof(Settings); } \
+		virtual UScriptStruct* GetSettingsStruct() const override { return EFFECT_SETTINGS_NAME(EFFECT_NAME)::StaticStruct(); } \
+		virtual FText GetAssetActionName() const override { return FText::FromString(#EFFECT_NAME); } \
+		virtual UClass* GetSupportedClass() const override { return EFFECT_PRESET_NAME(EFFECT_NAME)::StaticClass(); } \
+		virtual USoundEffectPreset* CreateNewPreset(UObject* InParent, FName Name, EObjectFlags Flags) const override { return NewObject<EFFECT_PRESET_NAME(EFFECT_NAME)>(InParent, GetSupportedClass(), Name, Flags); } \
+		virtual FSoundEffectBase* CreateNewEffect() const override { return new F##EFFECT_NAME; }
+
+#define EFFECT_PRESET_METHODS_NO_ASSET_ACTIONS(EFFECT_NAME) \
+		virtual bool HasAssetActions() const override { return false; } \
+		EFFECT_PRESET_METHODS(EFFECT_NAME)
 
 class USoundEffectPreset;
 
-UCLASS()
-class ENGINE_API USoundEffectBase : public UObject
+class ENGINE_API FSoundEffectBase
 {
 public:
-	GENERATED_UCLASS_BODY()
-
-	virtual ~USoundEffectBase();
+	FSoundEffectBase();
+	virtual ~FSoundEffectBase() {}
 
 	/** Returns if the submix is active or bypassing audio. */
 	bool IsActive() const { return bIsActive; }
@@ -31,15 +52,6 @@ public:
 	void SetPreset(USoundEffectPreset* InPreset);
 
 protected:
-
-	/** Return the class of the effect. */
-	virtual UClass* GetEffectClass() const 
-	{
-		return nullptr;
-	};
-
-	USoundEffectPreset* SoundEffectPreset;
-	uint32 PresetSettingsSize;
 
 	TArray<uint8> RawPresetDataScratchInputBuffer;
 	TArray<uint8> RawPresetDataScratchOutputBuffer;

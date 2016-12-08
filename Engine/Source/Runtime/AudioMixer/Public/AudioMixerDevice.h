@@ -65,7 +65,7 @@ namespace Audio
 		void InitSoundSubmixes() override;
 		void RegisterSoundSubmix(USoundSubmix* SoundSubmix) override;
 		void UnregisterSoundSubmix(USoundSubmix* SoundSubmix) override;
-		FMixerSubmix* GetSubmixInstance(USoundSubmix* SoundSubmix);
+		FMixerSubmixPtr GetSubmixInstance(USoundSubmix* SoundSubmix);
 
 		int32 GetNumActiveSources() const override;
 		//~ End FAudioDevice
@@ -93,7 +93,8 @@ namespace Audio
 		const TArray<FChannelPositionInfo>& GetCurrentChannelPositions() const { return CurrentChannelAzimuthPositions; }
 
 		void Get3DChannelMap(const FWaveInstance* InWaveInstance, const float EmitterAzimuth, const float NormalizedOmniRadius, TArray<float>& OutChannelMap);
-		void Get2DChannelMap(const int32 NumSourceChannels, TArray<float>& OutChannelMap);
+		void Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels, TArray<float>& OutChannelMap) const;
+		const float* Get2DChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels) const;
 
 		void SetChannelAzimuth(EAudioMixerChannel::Type ChannelType, int32 Azimuth);
 
@@ -102,12 +103,17 @@ namespace Audio
 
 		FMixerSourceManager* GetSourceManager();
 
-		FMixerSubmix* GetMasterSubmix() { return MasterSubmix; }
-		FMixerSubmix** GetSubmix(USoundSubmix* InSoundSubmix) { return Submixes.Find(InSoundSubmix); }
+		FMixerSubmixPtr GetMasterSubmix() { return MasterSubmix; }
+		FMixerSubmixPtr GetMasterReverbSubmix() { return MasterReverbSubmix; }
+		FMixerSubmixPtr GetMasterEQSubmix() { return MasterEQSubmix; }
 
 	private:
 		void ResetAudioPlatformThreadId();
 
+		void Get2DChannelMapInternal(const int32 NumSourceChannels, const int32 NumOutputChannels, TArray<float>& OutChannelMap) const;
+		void InitializeChannelMaps();
+		int32 GetChannelMapCacheId(const int32 NumSourceChannels, const int32 NumOutputChannels) const;
+		void CacheChannelMap(const int32 NumSourceChannels, const int32 NumOutputChannels);
 		void InitializeChannelAzimuthMap(const int32 NumChannels);
 
 		int32 GetAzimuthForChannelType(EAudioMixerChannel::Type ChannelType);
@@ -115,8 +121,13 @@ namespace Audio
 		void WhiteNoiseTest(TArray<float>& Output);
 		void SineOscTest(TArray<float>& Output);
 
-	private:
+		bool IsMainAudioDevice() const;
 
+	private:
+		// Master submixes
+		static USoundSubmix* MasterSoundSubmix;
+		static USoundSubmix* MasterReverbSoundSubmix;
+		static USoundSubmix* MasterEQSoundSubmix;
 
 		/** Ptr to the platform interface, which handles streaming audio to the hardware device. */
 		IAudioMixerPlatformInterface* AudioMixerPlatform;
@@ -128,7 +139,7 @@ namespace Audio
 		TArray<FChannelPositionInfo> CurrentChannelAzimuthPositions;
 
 		/** 2D channel maps of input-output channel maps. */
-		TMap<int32, TArray<float>> ChannelMapCache;
+		static TMap<int32, TArray<float>> ChannelMapCache;
 
 		/** The audio output stream parameters used to initialize the audio hardware. */
 		FAudioMixerOpenStreamParams OpenStreamParams;
@@ -149,10 +160,16 @@ namespace Audio
 		FAudioPlatformDeviceInfo PlatformInfo;
 
 		/** The true root master submix which will always exist. */
-		FMixerSubmix* MasterSubmix;
+		FMixerSubmixPtr MasterSubmix;
+
+		/** The master submix for reverb effect. */
+		FMixerSubmixPtr MasterReverbSubmix;
+
+		/** The master submix for the EQ effect. */
+		FMixerSubmixPtr MasterEQSubmix;
 
 		/** Map of USoundSubmix static data objects to the dynamic audio mixer submix. */
-		TMap<USoundSubmix*, FMixerSubmix*> Submixes;
+		TMap<USoundSubmix*, FMixerSubmixPtr> Submixes;
 
 		/** List of mixer source voices. */
 		TArray<FMixerSourceVoice*> SourceVoices;

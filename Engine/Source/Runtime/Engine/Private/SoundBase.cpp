@@ -6,7 +6,6 @@
 
 USoundClass* USoundBase::DefaultSoundClassObject = nullptr;
 USoundConcurrency* USoundBase::DefaultSoundConcurrencyObject = nullptr;
-USoundSubmix* USoundBase::DefaultSoundSubmixObject = nullptr;
 
 USoundBase::USoundBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -14,6 +13,7 @@ USoundBase::USoundBase(const FObjectInitializer& ObjectInitializer)
 	, Priority(1.0f)
 {
 	MaxConcurrentPlayCount_DEPRECATED = 16;
+	DefaultMasterReverbSendAmount = 0.2f;
 }
 
 void USoundBase::PostInitProperties()
@@ -29,16 +29,6 @@ void USoundBase::PostInitProperties()
 		}
 	}
 	SoundClassObject = USoundBase::DefaultSoundClassObject;
-
-	if (USoundBase::DefaultSoundSubmixObject == nullptr)
-	{
-		const FStringAssetReference DefaultSoundSubmixName = GetDefault<UAudioSettings>()->DefaultSoundSubmixName;
-		if (DefaultSoundSubmixName.IsValid())
-		{
-			USoundBase::DefaultSoundSubmixObject = LoadObject<USoundSubmix>(nullptr, *DefaultSoundSubmixName.ToString());
-		}
-	}
-	SoundSubmixObject = USoundBase::DefaultSoundSubmixObject;
 
 	if (USoundBase::DefaultSoundConcurrencyObject == nullptr)
 	{
@@ -57,13 +47,13 @@ bool USoundBase::IsPlayable() const
 	return false;
 }
 
-const FAttenuationSettings* USoundBase::GetAttenuationSettingsToApply() const
+const FSoundAttenuationSettings* USoundBase::GetAttenuationSettingsToApply() const
 {
 	if (AttenuationSettings)
 	{
 		return &AttenuationSettings->Attenuation;
 	}
-	return NULL;
+	return nullptr;
 }
 
 float USoundBase::GetMaxAudibleDistance()

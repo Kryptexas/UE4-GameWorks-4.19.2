@@ -44,16 +44,16 @@ FSkeletalMeshMerge::FSkeletalMeshMerge(USkeletalMesh* InMergeMesh,
 	switch( NumUVs )\
 	{\
 	case 1:\
-		GenerateLODModel< VertexType<1, bHasExtraBoneInfluences> >( LODIdx + StripTopLODs );\
+		GenerateLODModel< VertexType<1>, TSkinWeightInfo<bHasExtraBoneInfluences> >( LODIdx + StripTopLODs );\
 		break;\
 	case 2:\
-		GenerateLODModel< VertexType<2, bHasExtraBoneInfluences> >( LODIdx + StripTopLODs );\
+		GenerateLODModel< VertexType<2>, TSkinWeightInfo<bHasExtraBoneInfluences> >( LODIdx + StripTopLODs );\
 		break;\
 	case 3:\
-		GenerateLODModel< VertexType<3, bHasExtraBoneInfluences> >( LODIdx + StripTopLODs );\
+		GenerateLODModel< VertexType<3>, TSkinWeightInfo<bHasExtraBoneInfluences> >( LODIdx + StripTopLODs );\
 		break;\
 	case 4:\
-		GenerateLODModel< VertexType<4, bHasExtraBoneInfluences> >( LODIdx + StripTopLODs );\
+		GenerateLODModel< VertexType<4>, TSkinWeightInfo<bHasExtraBoneInfluences> >( LODIdx + StripTopLODs );\
 		break;\
 	default:\
 		checkf(false, TEXT("Invalid number of UV sets.  Must be between 0 and 4") );\
@@ -384,27 +384,20 @@ void FSkeletalMeshMerge::GenerateNewSectionArray( TArray<FNewSectionInfo>& NewSe
 	}
 }
 
-template<typename VertexDataType, bool bHasExtraBoneInfluences>
+template<typename VertexDataType>
 void FSkeletalMeshMerge::CopyVertexFromSource(VertexDataType& DestVert, const FStaticLODModel& SrcLODModel, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo)
 {
-	// add the new vertex
-	const TGPUSkinVertexBase<bHasExtraBoneInfluences>* SrcBaseVert = SrcLODModel.VertexBufferGPUSkin.GetVertexPtr<bHasExtraBoneInfluences>(SourceVertIdx);
-	DestVert.Position = SrcLODModel.VertexBufferGPUSkin.GetVertexPositionFast<bHasExtraBoneInfluences>(SrcBaseVert);
+	const TGPUSkinVertexBase* SrcBaseVert = SrcLODModel.VertexBufferGPUSkin.GetVertexPtr(SourceVertIdx);
+
+	DestVert.Position = SrcLODModel.VertexBufferGPUSkin.GetVertexPositionFast(SrcBaseVert);
 	DestVert.TangentX = SrcBaseVert->TangentX;
 	DestVert.TangentZ = SrcBaseVert->TangentZ;
-
-	// if source doesn't have extra influence, we have to clear the buffer
-	FMemory::Memzero(DestVert.InfluenceBones);
-	FMemory::Memzero(DestVert.InfluenceWeights);
-
-	FMemory::Memcpy(DestVert.InfluenceBones, SrcBaseVert->InfluenceBones, sizeof(SrcBaseVert->InfluenceBones));
-	FMemory::Memcpy(DestVert.InfluenceWeights, SrcBaseVert->InfluenceWeights, sizeof(SrcBaseVert->InfluenceWeights));
 
 	// Copy all UVs that are available
 	uint32 LODNumTexCoords = SrcLODModel.VertexBufferGPUSkin.GetNumTexCoords();
 	for (uint32 UVIndex = 0; UVIndex < LODNumTexCoords && UVIndex < MAX_TEXCOORDS; ++UVIndex)
 	{
-		FVector2D UVs = SrcLODModel.VertexBufferGPUSkin.GetVertexUVFast<bHasExtraBoneInfluences>(SourceVertIdx, UVIndex);
+		FVector2D UVs = SrcLODModel.VertexBufferGPUSkin.GetVertexUVFast(SourceVertIdx, UVIndex);
 		if (UVIndex < (uint32)MergeSectionInfo.UVTransforms.Num())
 		{
 			FVector Transformed = MergeSectionInfo.UVTransforms[UVIndex].TransformPosition(FVector(UVs, 1.f));
@@ -413,11 +406,25 @@ void FSkeletalMeshMerge::CopyVertexFromSource(VertexDataType& DestVert, const FS
 		DestVert.UVs[UVIndex] = UVs;
 	}
 }
+
+template<typename SkinWeightType, bool bHasExtraBoneInfluences>
+void FSkeletalMeshMerge::CopyWeightFromSource(SkinWeightType& DestWeight, const FStaticLODModel& SrcLODModel, int32 SourceVertIdx, const FMergeSectionInfo& MergeSectionInfo)
+{
+	const TSkinWeightInfo<bHasExtraBoneInfluences>* SrcSkinWeights = SrcLODModel.SkinWeightVertexBuffer.GetSkinWeightPtr<bHasExtraBoneInfluences>(SourceVertIdx);
+
+	// if source doesn't have extra influence, we have to clear the buffer
+	FMemory::Memzero(DestWeight.InfluenceBones);
+	FMemory::Memzero(DestWeight.InfluenceWeights);
+
+	FMemory::Memcpy(DestWeight.InfluenceBones, SrcSkinWeights->InfluenceBones, sizeof(SrcSkinWeights->InfluenceBones));
+	FMemory::Memcpy(DestWeight.InfluenceWeights, SrcSkinWeights->InfluenceWeights, sizeof(SrcSkinWeights->InfluenceWeights));
+}
+
 /**
 * Creates a new LOD model and adds the new merged sections to it. Modifies the MergedMesh.
 * @param LODIdx - current LOD to process
 */
-template<typename VertexDataType>
+template<typename VertexDataType, typename SkinWeightType>
 void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 {
 	// add the new LOD model entry
@@ -435,6 +442,8 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 	// merged vertex buffer
 	TArray< VertexDataType > MergedVertexBuffer;
+	// merged skin weight buffer
+	TArray< SkinWeightType > MergedSkinWeightBuffer;
 	// merged vertex color buffer
 	TArray< FColor > MergedColorBuffer;
 	// merged index buffer
@@ -549,18 +558,22 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 			// keep track of the current base vertex index before adding any new vertices
 			// this will be needed to remap the index buffer values to the new range
 			int32 CurrentBaseVertexIndex = MergedVertexBuffer.Num();
-			const bool bSourceExtraBoneInfluence = SrcLODModel.VertexBufferGPUSkin.HasExtraBoneInfluences();
+			const bool bSourceExtraBoneInfluence = SrcLODModel.SkinWeightVertexBuffer.HasExtraBoneInfluences();
 			for( int32 VertIdx=MergeSectionInfo.Section->BaseVertexIndex; VertIdx < MaxVertIdx; VertIdx++ )
 			{
 				// add the new vertex
 				VertexDataType& DestVert = MergedVertexBuffer[MergedVertexBuffer.AddUninitialized()];
+				SkinWeightType& DestWeight = MergedSkinWeightBuffer[MergedSkinWeightBuffer.AddUninitialized()];
+
+				CopyVertexFromSource<VertexDataType>(DestVert, SrcLODModel, VertIdx, MergeSectionInfo);
+
 				if (bSourceExtraBoneInfluence)
 				{
-					CopyVertexFromSource<VertexDataType, true>(DestVert, SrcLODModel, VertIdx, MergeSectionInfo);
+					CopyWeightFromSource<SkinWeightType, true>(DestWeight, SrcLODModel, VertIdx, MergeSectionInfo);
 				}
 				else
 				{
-					CopyVertexFromSource<VertexDataType, false>(DestVert, SrcLODModel, VertIdx, MergeSectionInfo);
+					CopyWeightFromSource<SkinWeightType, false>(DestWeight, SrcLODModel, VertIdx, MergeSectionInfo);
 				}
 
 				// if the mesh uses vertex colors, copy the source color if possible or default to white
@@ -585,12 +598,12 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 				}
 
 				// remap the bone index used by this vertex to match the mergedbonemap 
-				for( int32 Idx=0; Idx < MAX_INFLUENCES_PER_STREAM; Idx++ )
+				for( int32 Idx=0; Idx < SkinWeightType::NumInfluences; Idx++ )
 				{
-					if( DestVert.InfluenceWeights[Idx] > 0 )
+					if (DestWeight.InfluenceWeights[Idx] > 0)
 					{
-						checkSlow(MergeSectionInfo.BoneMapToMergedBoneMap.IsValidIndex(DestVert.InfluenceBones[Idx]));
-						DestVert.InfluenceBones[Idx] = (uint8)MergeSectionInfo.BoneMapToMergedBoneMap[DestVert.InfluenceBones[Idx]];
+						checkSlow(MergeSectionInfo.BoneMapToMergedBoneMap.IsValidIndex(DestWeight.InfluenceBones[Idx]));
+						DestWeight.InfluenceBones[Idx] = (uint8)MergeSectionInfo.BoneMapToMergedBoneMap[DestWeight.InfluenceBones[Idx]];
 					}
 				}
 			}
@@ -634,17 +647,20 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 	MergeLODModel.VertexBufferGPUSkin.SetUseFullPrecisionUVs(MergeMesh->bUseFullPrecisionUVs);
 	// set CPU skinning on vertex buffer since it affects the type of TResourceArray needed
 	MergeLODModel.VertexBufferGPUSkin.SetNeedsCPUAccess(bNeedsCPUAccess);
-	MergeLODModel.VertexBufferGPUSkin.SetHasExtraBoneInfluences(MergeResource->HasExtraBoneInfluences());
 	// Set the number of tex coords on this vertex buffer
 	MergeLODModel.VertexBufferGPUSkin.SetNumTexCoords(TotalNumUVs);
 	MergeLODModel.NumTexCoords = TotalNumUVs;
 
+	MergeLODModel.SkinWeightVertexBuffer.SetHasExtraBoneInfluences(MergeResource->HasExtraBoneInfluences());
+	MergeLODModel.SkinWeightVertexBuffer.SetNeedsCPUAccess(bNeedsCPUAccess);
+
 	// copy vertex resource arrays
 	MergeLODModel.VertexBufferGPUSkin = MergedVertexBuffer;
+	MergeLODModel.SkinWeightVertexBuffer = MergedSkinWeightBuffer;
 
 	if( MergeMesh->bHasVertexColors )
 	{
-		MergeLODModel.ColorVertexBuffer = MergedColorBuffer;
+		MergeLODModel.ColorVertexBuffer.InitFromColorArray(MergedColorBuffer);
 	}
 
 	FMultiSizeIndexContainerData IndexBufferData;

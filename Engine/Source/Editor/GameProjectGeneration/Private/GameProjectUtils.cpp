@@ -370,11 +370,11 @@ FString FNewClassInfo::GetHeaderTemplateFilename() const
 				// Only check audio-mixer module specific classes if audio mixer is loaded
 				if (FModuleManager::Get().IsModuleLoaded("AudioMixer"))
 				{
-					if (BaseClass == USoundEffectSource::StaticClass())
+					if (BaseClass == USoundEffectSourcePreset::StaticClass())
 					{
 						return TEXT("SoundEffectSourceClass.h.template");
 					}
-					else if (BaseClass == USoundEffectSubmix::StaticClass())
+					else if (BaseClass == USoundEffectSubmixPreset::StaticClass())
 					{
 						return TEXT("SoundEffectSubmixClass.h.template");
 					}
@@ -425,11 +425,11 @@ FString FNewClassInfo::GetSourceTemplateFilename() const
 				{
 					return TEXT("CharacterClass.cpp.template");
 				}
-				else if (BaseClass == USoundEffectSubmix::StaticClass())
+				else if (BaseClass == USoundEffectSubmixPreset::StaticClass())
 				{
 					return TEXT("SoundEffectSubmixClass.cpp.template");
 				}
-				else if (BaseClass == USoundEffectSource::StaticClass())
+				else if (BaseClass == USoundEffectSourcePreset::StaticClass())
 				{
 					return TEXT("SoundEffectSourceClass.cpp.template");
 				}

@@ -101,7 +101,11 @@ Next I added a new GameMode to represent the state of the player being at the ma
 	{
 		GENERATED_UCLASS_BODY()
 
+	protected:
+
 		virtual void BeginPlay() override;
+
+	public:
 
 		TSharedPtr<MainMenu> MainMenuPtr;
 	

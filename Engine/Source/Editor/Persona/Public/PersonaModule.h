@@ -60,12 +60,11 @@ struct FPersonaToolkitArgs
 
 struct FAnimDocumentArgs
 {
-	FAnimDocumentArgs(const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class IPersonaToolkit>& InPersonaToolkit, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnPostUndo, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnAnimNotifiesChanged, FSimpleMulticastDelegate& InOnSectionsChanged)
+	FAnimDocumentArgs(const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, const TSharedRef<class IPersonaToolkit>& InPersonaToolkit, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnPostUndo, FSimpleMulticastDelegate& InOnAnimNotifiesChanged, FSimpleMulticastDelegate& InOnSectionsChanged)
 		: PreviewScene(InPreviewScene)
 		, PersonaToolkit(InPersonaToolkit)
 		, EditableSkeleton(InEditableSkeleton)
 		, OnPostUndo(InOnPostUndo)
-		, OnCurvesChanged(InOnCurvesChanged)
 		, OnAnimNotifiesChanged(InOnAnimNotifiesChanged)
 		, OnSectionsChanged(InOnSectionsChanged)
 	{}
@@ -75,14 +74,12 @@ struct FAnimDocumentArgs
 	TWeakPtr<class IPersonaToolkit> PersonaToolkit;
 	TWeakPtr<class IEditableSkeleton> EditableSkeleton;
 	FSimpleMulticastDelegate& OnPostUndo;
-	FSimpleMulticastDelegate& OnCurvesChanged;
 	FSimpleMulticastDelegate& OnAnimNotifiesChanged;
 	FSimpleMulticastDelegate& OnSectionsChanged;
 
 	/** Optional args */
 	FOnObjectsSelected OnDespatchObjectsSelected;
 	FOnInvokeTab OnDespatchInvokeTab;
-	FSimpleDelegate OnDespatchCurvesChanged;
 	FSimpleDelegate OnDespatchSectionsChanged;
 	FSimpleDelegate OnDespatchAnimNotifiesChanged;
 };
@@ -126,7 +123,7 @@ public:
 	virtual TSharedRef<class FWorkflowTabFactory> CreateAnimNotifiesTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, FSimpleMulticastDelegate& InOnChangeAnimNotifies, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected) const;
 
 	/** Create a skeleton cuve viewer tab factory */
-	virtual TSharedRef<class FWorkflowTabFactory> CreateCurveViewerTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected) const;
+	virtual TSharedRef<class FWorkflowTabFactory> CreateCurveViewerTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected) const;
 
 	/** Create a retarget manager tab factory */
 	virtual TSharedRef<class FWorkflowTabFactory> CreateRetargetManagerTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo) const;

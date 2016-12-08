@@ -416,7 +416,7 @@ float USoundCue::GetPitchMultiplier()
 	return PitchMultiplier;
 }
 
-const FAttenuationSettings* USoundCue::GetAttenuationSettingsToApply() const
+const FSoundAttenuationSettings* USoundCue::GetAttenuationSettingsToApply() const
 {
 	if (bOverrideAttenuation)
 	{

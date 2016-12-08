@@ -68,7 +68,11 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggerCategoryReplicator : public AActor
 
 	virtual class UNetConnection* GetNetConnection() const override;
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+
+protected:
 	virtual void BeginPlay() override;
+
+public:
 	virtual void Destroyed() override;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 

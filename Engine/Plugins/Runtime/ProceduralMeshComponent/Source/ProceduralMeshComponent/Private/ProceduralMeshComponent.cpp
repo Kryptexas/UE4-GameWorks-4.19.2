@@ -882,6 +882,8 @@ void UProceduralMeshComponent::UpdateCollision()
 
 	// New GUID as collision has changed
 	ProcMeshBodySetup->BodySetupGuid = FGuid::NewGuid();
+	// Also we want cooked data for this
+	ProcMeshBodySetup->bHasCookedCollisionData = true;
 
 #if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// Clear current mesh data

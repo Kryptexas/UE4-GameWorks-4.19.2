@@ -20,6 +20,7 @@
 #include "MaterialShared.h"
 #include "MeshBatch.h"
 #include "MeshParticleVertexFactory.h"
+#include "PrimitiveSceneProxy.h"
 
 #define _ENABLE_PARTICLE_LOD_INGAME_
 

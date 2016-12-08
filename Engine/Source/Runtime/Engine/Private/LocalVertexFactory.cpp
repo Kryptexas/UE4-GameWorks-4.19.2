@@ -9,6 +9,7 @@
 #include "MeshBatch.h"
 #include "SpeedTreeWind.h"
 #include "ShaderParameterUtils.h"
+#include "Rendering/ColorVertexBuffer.h"
 
 class FSpeedTreeWindNullUniformBuffer : public TUniformBuffer<FSpeedTreeUniformParameters>
 {

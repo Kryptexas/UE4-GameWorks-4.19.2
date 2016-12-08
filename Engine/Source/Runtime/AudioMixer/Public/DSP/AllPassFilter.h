@@ -7,27 +7,27 @@
 
 namespace Audio
 {
-	/** 
-	* An All Pass Filter (APF) delay line. 
-	* https://en.wikipedia.org/wiki/All-pass_filter
-	* APFs can be created by cascading a feedback and a feedforward combfilter with equal delays.
-	*/
-	class FAllPassFilter : public FDelay
+	// Implementation of a delay line with a feedback/feedforward gain coefficient
+	// APF filters pass all frequencies but changes phase relationships of frequencies
+	class FDelayAPF : public FDelay
 	{
 	public:
-		FAllPassFilter();
-		~FAllPassFilter();
+		// Constructor
+		FDelayAPF();
 
-		/** Set the APF Gain coefficient. */
-		void SetAPFGain(const float InGain);
+		// Destructor
+		~FDelayAPF();
 
-		/** Override the operator for APF */
-		float operator()(const float InSample) override;
+		// Set the APF feedback/feedforward gain coefficient
+		void SetG(float InG) { G = InG; }
+
+		// overrides
+		virtual void ProcessAudio(const float* pInput, float* pOutput) override;
 
 	protected:
-		/** APF Feedback/Feedforward gain coefficient. */
-		float APF_G;
-	};
+		// Feedback/Feedforward gain coefficient
+		float G;
 
+	};
 
 }

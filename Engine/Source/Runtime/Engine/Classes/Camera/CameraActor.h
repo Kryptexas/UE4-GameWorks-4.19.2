@@ -70,13 +70,14 @@ public:
 #endif
 
 	virtual class USceneComponent* GetDefaultAttachComponent() const override;
-
 	//~ End UObject Interface
-	
+
+protected:
 	//~ Begin AActor Interface
 	virtual void BeginPlay() override;
 	//~ End AActor Interface
 
+public:
 	/** Returns CameraComponent subobject **/
 	class UCameraComponent* GetCameraComponent() const;
 

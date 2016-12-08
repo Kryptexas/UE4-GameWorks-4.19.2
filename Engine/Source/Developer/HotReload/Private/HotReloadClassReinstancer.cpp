@@ -95,7 +95,7 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotR
 		virtual void Serialize(void* Data, int64 Num) override
 		{
 			// Collect serialized properties so we can later update their values on instances if they change
-			auto SerializedProperty = GetSerializedProperty();
+			UProperty* SerializedProperty = GetSerializedProperty();
 			if (SerializedProperty != nullptr)
 			{
 				FCDOProperty& PropertyInfo = PropertyData.Properties.FindOrAdd(SerializedProperty->GetFName());
@@ -159,14 +159,14 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotR
 		virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override
 		{
 			FArchive& Ar = *this;
-			auto UniqueID = LazyObjectPtr.GetUniqueID();
+			FUniqueObjectGuid UniqueID = LazyObjectPtr.GetUniqueID();
 			Ar << UniqueID;
 			return *this;
 		}
 		virtual FArchive& operator<<(FAssetPtr& AssetPtr) override
 		{
 			FArchive& Ar = *this;
-			auto UniqueID = AssetPtr.GetUniqueID();
+			FStringAssetReference UniqueID = AssetPtr.GetUniqueID();
 			Ar << UniqueID;
 			return Ar;
 		}
@@ -271,8 +271,8 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 				if (!ChildBP->HasAnyFlags(RF_NeedLoad))
 				{
 					Children.AddUnique(ChildBP);
-					auto BPGC = Cast<UBlueprintGeneratedClass>(ChildBP->GeneratedClass);
-					auto CurrentCDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
+					UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(ChildBP->GeneratedClass);
+					UObject* CurrentCDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
 					if (CurrentCDO && (OriginalCDO == CurrentCDO->GetArchetype()))
 					{
 						BPGC->OverridenArchetypeForCDO = OriginalCDO;
@@ -340,7 +340,7 @@ FHotReloadClassReinstancer::~FHotReloadClassReinstancer()
 /** Helper for finding subobject in an array. Usually there's not that many subobjects on a class to justify a TMap */
 FORCEINLINE static UObject* FindDefaultSubobject(TArray<UObject*>& InDefaultSubobjects, FName SubobjectName)
 {
-	for (auto Subobject : InDefaultSubobjects)
+	for (UObject* Subobject : InDefaultSubobjects)
 	{
 		if (Subobject->GetFName() == SubobjectName)
 		{
@@ -399,14 +399,14 @@ void FHotReloadClassReinstancer::UpdateDefaultProperties()
 		virtual FArchive& operator<<(FLazyObjectPtr& LazyObjectPtr) override
 		{
 			FArchive& Ar = *this;
-			auto UniqueID = LazyObjectPtr.GetUniqueID();
+			FUniqueObjectGuid UniqueID = LazyObjectPtr.GetUniqueID();
 			Ar << UniqueID;
 			return *this;
 		}
 		virtual FArchive& operator<<(FAssetPtr& AssetPtr) override
 		{
 			FArchive& Ar = *this;
-			auto UniqueID = AssetPtr.GetUniqueID();
+			FStringAssetReference UniqueID = AssetPtr.GetUniqueID();
 			Ar << UniqueID;
 			return Ar;
 		}
@@ -440,12 +440,12 @@ void FHotReloadClassReinstancer::UpdateDefaultProperties()
 
 	TArray<FPropertyToUpdate> PropertiesToUpdate;
 	// Collect all properties that have actually changed
-	for (auto& Pair : ReconstructedCDOProperties.Properties)
+	for (const TPair<FName, FCDOProperty>& Pair : ReconstructedCDOProperties.Properties)
 	{
-		auto OldPropertyInfo = OriginalCDOProperties.Properties.Find(Pair.Key);
+		FCDOProperty* OldPropertyInfo = OriginalCDOProperties.Properties.Find(Pair.Key);
 		if (OldPropertyInfo)
 		{
-			auto& NewPropertyInfo = Pair.Value;
+			const FCDOProperty& NewPropertyInfo = Pair.Value;
 
 			uint8* OldSerializedValuePtr = OriginalCDOProperties.Bytes.GetData() + OldPropertyInfo->SerializedValueOffset;
 			uint8* NewSerializedValuePtr = ReconstructedCDOProperties.Bytes.GetData() + NewPropertyInfo.SerializedValueOffset;

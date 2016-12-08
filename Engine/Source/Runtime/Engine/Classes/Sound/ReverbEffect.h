@@ -13,7 +13,7 @@ class UReverbEffect : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Density - 0.0 < 1.0 < 1.0 - Coloration of the late reverb - lower value is more */
+	/** Density - 0.0 < 1.0 < 1.0 - Coloration of the late reverb - lower value is more grainy */
 	UPROPERTY(Category=ReverbParameters, meta=(ClampMin = "0.0", ClampMax = "1.0"), EditAnywhere)
 	float		Density;
 
@@ -53,11 +53,23 @@ class UReverbEffect : public UObject
 	UPROPERTY(Category=ReverbParameters, meta=(ClampMin = "0.0", ClampMax = "0.1"), EditAnywhere)
 	float		LateDelay;
 
-	/** Air Absorption - 0.892 < 0.994 < 1.0 - lower value means more absorption */
-	UPROPERTY(Category=ReverbParameters, meta=(ClampMin = "0.892", ClampMax = "1.0"), EditAnywhere)
+	/** Air Absorption - 0.0 < 0.994 < 1.0 - lower value means more absorption */
+	UPROPERTY(Category=ReverbParameters, meta=(ClampMin = "0.0", ClampMax = "1.0"), EditAnywhere)
 	float		AirAbsorptionGainHF;
 
 	/** Room Rolloff - 0.0 < 0.0 < 10.0 - multiplies the attenuation due to distance */
 	UPROPERTY(Category=ReverbParameters, meta=(ClampMin = "0.0", ClampMax = "10.0"), EditAnywhere)
 	float		RoomRolloffFactor;
+
+#if WITH_EDITORONLY_DATA
+	/** Transient property used to trigger real-time updates of the reverb for real-time editor previewing */
+	UPROPERTY(transient)
+	uint32 bChanged : 1;
+#endif
+
+protected:
+
+#if WITH_EDITORONLY_DATA
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };

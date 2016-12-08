@@ -213,7 +213,7 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 	}
 }
 
-TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* TargetProperty, TSharedRef<IPropertyHandle> TargetPropertyHandle, const UClass* NodeClass)
+TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* TargetProperty, TSharedRef<IPropertyHandle> TargetPropertyHandle, UClass* NodeClass)
 {
 	if(const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>( TargetProperty ))
 	{
@@ -250,7 +250,7 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 	return SNullWidget::NullWidget;
 }
 
-bool FAnimGraphNodeDetails::OnShouldFilterAnimAsset( const FAssetData& AssetData, const UClass* NodeToFilterFor ) const
+bool FAnimGraphNodeDetails::OnShouldFilterAnimAsset( const FAssetData& AssetData, UClass* NodeToFilterFor ) const
 {
 	const FString* SkeletonName = AssetData.TagsAndValues.Find(TEXT("Skeleton"));
 	if ((SkeletonName != nullptr) && (*SkeletonName == TargetSkeletonName))

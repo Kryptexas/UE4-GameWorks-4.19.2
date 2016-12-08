@@ -277,17 +277,8 @@ PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Bod
 	const int32 SceneIndex2 = Body2 ? Body2->GetSceneIndex() : -1;
 	PxScene* PScene = nullptr;
 
-	//now we check if the two actors are valid
-	if(SceneIndex1 == -1 && SceneIndex2 == -1)
-	{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		FMessageLog("PIE").Warning()
-			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenNullStart", "Constraint")))
-			->AddToken(FUObjectToken::Create(DebugOwner))
-			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenNullEnd", "attempting to create a joint between two null actors.")));
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	}
-	else if(SceneIndex1 >= 0 && SceneIndex2 >= 0 && SceneIndex1 != SceneIndex2)
+	//ensure we constrain components from the same scene
+	if(SceneIndex1 >= 0 && SceneIndex2 >= 0 && SceneIndex1 != SceneIndex2)
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		UPrimitiveComponent* PrimComp1 = Body1 ? Body1->OwnerComponent.Get() : nullptr;
@@ -302,7 +293,7 @@ PxScene* GetPScene_LockFree(const FBodyInstance* Body1, const FBodyInstance* Bod
 			->AddToken(FTextToken::Create(LOCTEXT("JointBetweenScenesEnd", ").  No joint created.")));
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	}
-	else
+	else if(SceneIndex1 >= 0 || SceneIndex2 >= 0)
 	{
 		PScene = GetPhysXSceneFromIndex(SceneIndex1 >= 0 ? SceneIndex1 : SceneIndex2);
 	}
@@ -851,10 +842,9 @@ void FConstraintInstance::SetLinearVelocityDrive(bool bEnableXDrive, bool bEnabl
 #endif
 }
 
-/** Function for turning angular position drive on and off. */
-void FConstraintInstance::SetAngularPositionDrive(bool InEnableSwingDrive, bool InEnableTwistDrive)
+void FConstraintInstance::SetOrientationDriveTwistAndSwing(bool InEnableTwistDrive, bool InEnableSwingDrive)
 {
-	ProfileInstance.AngularDrive.SetAngularPositionDrive(InEnableSwingDrive, InEnableTwistDrive);
+	ProfileInstance.AngularDrive.SetOrientationDriveTwistAndSwing(InEnableTwistDrive, InEnableSwingDrive);
 #if WITH_PHYSX
 	ExecuteOnUnbrokenJointReadWrite([this](PxD6Joint* Joint)
 	{
@@ -863,12 +853,48 @@ void FConstraintInstance::SetAngularPositionDrive(bool InEnableSwingDrive, bool 
 #endif
 }
 
-/** Function for turning angular velocity drive on and off. */
-void FConstraintInstance::SetAngularVelocityDrive(bool InEnableSwingDrive, bool InEnableTwistDrive)
+void FConstraintInstance::SetOrientationDriveSLERP(bool InEnableSLERP)
 {
-	ProfileInstance.AngularDrive.SetAngularVelocityDrive(InEnableSwingDrive, InEnableTwistDrive);
+	ProfileInstance.AngularDrive.SetOrientationDriveSLERP(InEnableSLERP);
 #if WITH_PHYSX
 	ExecuteOnUnbrokenJointReadWrite([this](PxD6Joint* Joint)
+	{
+		ProfileInstance.AngularDrive.UpdatePhysXAngularDrive_AssumesLocked(Joint);
+	});
+#endif
+}
+
+/** Set which twist and swing angular velocity drives are enabled. Only applicable when Twist And Swing drive mode is used */
+void FConstraintInstance::SetAngularVelocityDriveTwistAndSwing(bool bInEnableTwistDrive, bool bInEnableSwingDrive)
+{
+	ProfileInstance.AngularDrive.SetAngularVelocityDriveTwistAndSwing(bInEnableTwistDrive, bInEnableSwingDrive);
+#if WITH_PHYSX
+	ExecuteOnUnbrokenJointReadWrite([this](PxD6Joint* Joint)
+	{
+		ProfileInstance.AngularDrive.UpdatePhysXAngularDrive_AssumesLocked(Joint);
+	});
+#endif
+}
+
+/** Set whether the SLERP angular velocity drive is enabled. Only applicable when SLERP drive mode is used */
+void FConstraintInstance::SetAngularVelocityDriveSLERP(bool bInEnableSLERP)
+{
+	ProfileInstance.AngularDrive.SetAngularVelocityDriveSLERP(bInEnableSLERP);
+#if WITH_PHYSX
+	ExecuteOnUnbrokenJointReadWrite([this](PxD6Joint* Joint)
+	{
+		ProfileInstance.AngularDrive.UpdatePhysXAngularDrive_AssumesLocked(Joint);
+	});
+#endif
+}
+
+/** Set the angular drive mode */
+void FConstraintInstance::SetAngularDriveMode(EAngularDriveMode::Type DriveMode)
+{
+	ProfileInstance.AngularDrive.SetAngularDriveMode(DriveMode);
+
+#if WITH_PHYSX
+	ExecuteOnUnbrokenJointReadWrite([&](PxD6Joint* Joint)
 	{
 		ProfileInstance.AngularDrive.UpdatePhysXAngularDrive_AssumesLocked(Joint);
 	});

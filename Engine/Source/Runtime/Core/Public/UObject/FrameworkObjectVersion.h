@@ -72,6 +72,15 @@ struct CORE_API FFrameworkObjectVersion
 		// Blend space post load verification
 		BlendSpacePostLoadSnapToGrid,
 
+		// Addition of rate scales to blend space samples
+		SupportBlendSpaceRateScale,
+
+		// LOD hysteresis also needs conversion from the LODsUseResolutionIndependentScreenSize version
+		LODHysteresisUseResolutionIndependentScreenSize,
+
+		// AudioComponent override subtitle priority default change
+		ChangeAudioComponentOverrideSubtitlePriorityDefault,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

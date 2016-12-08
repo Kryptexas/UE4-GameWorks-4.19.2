@@ -1503,6 +1503,8 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 		FRawMeshTracker& RawMeshTracker = OutRawMeshTrackers[OverallLODIndex];
 		const int32 BaseVertexIndex = RawMesh.VertexPositions.Num();
 
+		FSkeletalMeshLODInfo& SrcLODInfo = InSkinnedMeshComponent->SkeletalMesh->LODInfo[LODIndexRead];
+
 		// Get the CPU skinned verts for this LOD
 		TArray<FFinalSkinVertex> FinalVertices;
 		InSkinnedMeshComponent->GetCPUSkinnedVertices(FinalVertices, LODIndexRead);
@@ -1526,17 +1528,18 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 			if (!SkelMeshSection.bDisabled)
 			{
 				// Build 'wedge' info
-				const int32 NumIndices = SkelMeshSection.NumTriangles * 3;
-				for (int32 IndexIndex = 0; IndexIndex < NumIndices; IndexIndex++)
+				const int32 NumWedges = SkelMeshSection.NumTriangles * 3;
+				for(int32 WedgeIndex = 0; WedgeIndex < NumWedges; WedgeIndex++)
 				{
-					int32 Index = IndexBuffer.Get(SkelMeshSection.BaseIndex + IndexIndex);
+					const int32 VertexIndexForWedge = IndexBuffer.Get(SkelMeshSection.BaseIndex + WedgeIndex);
 
-					RawMesh.WedgeIndices.Add(BaseVertexIndex + Index);
+					RawMesh.WedgeIndices.Add(BaseVertexIndex + VertexIndexForWedge);
 
-					const FFinalSkinVertex& SkinnedVertex = FinalVertices[Index];
+					const FFinalSkinVertex& SkinnedVertex = FinalVertices[VertexIndexForWedge];
 					const FVector TangentX = InComponentToWorld.TransformVector(SkinnedVertex.TangentX);
-					const FVector4 TangentZ = InComponentToWorld.TransformVector(SkinnedVertex.TangentZ);
-					const FVector TangentY = (TangentX ^ TangentZ).GetSafeNormal() * TangentZ.W;
+					const FVector TangentZ = InComponentToWorld.TransformVector(SkinnedVertex.TangentZ);
+					const FVector4 UnpackedTangentZ = SkinnedVertex.TangentZ;
+					const FVector TangentY = (TangentX ^ TangentZ).GetSafeNormal() * UnpackedTangentZ.W;
 
 					RawMesh.WedgeTangentX.Add(TangentX);
 					RawMesh.WedgeTangentY.Add(TangentY);
@@ -1550,14 +1553,14 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 						}
 						else
 						{
-							RawMesh.WedgeTexCoords[TexCoordIndex].Add(StaticLODModel.VertexBufferGPUSkin.GetVertexUV(Index, TexCoordIndex));
+							RawMesh.WedgeTexCoords[TexCoordIndex].Add(StaticLODModel.VertexBufferGPUSkin.GetVertexUV(VertexIndexForWedge, TexCoordIndex));
 							RawMeshTracker.bValidTexCoords[TexCoordIndex] = true;
 						}
 					}
 
 					if (StaticLODModel.ColorVertexBuffer.IsInitialized())
 					{
-						RawMesh.WedgeColors.Add(StaticLODModel.ColorVertexBuffer.VertexColor(Index));
+						RawMesh.WedgeColors.Add(StaticLODModel.ColorVertexBuffer.VertexColor(VertexIndexForWedge));
 						RawMeshTracker.bValidColors = true;
 					}
 					else
@@ -1566,10 +1569,17 @@ static void SkinnedMeshToRawMeshes(USkinnedMeshComponent* InSkinnedMeshComponent
 					}
 				}
 
+				int32 MaterialIndex = SkelMeshSection.MaterialIndex;
+				// use the remapping of material indices for all LODs besides the base LOD 
+				if (LODIndexRead > 0 && SrcLODInfo.LODMaterialMap.IsValidIndex(SkelMeshSection.MaterialIndex))
+				{
+					MaterialIndex = FMath::Clamp<int32>(SrcLODInfo.LODMaterialMap[SkelMeshSection.MaterialIndex], 0, InSkinnedMeshComponent->SkeletalMesh->Materials.Num());
+				}
+
 				// copy face info
 				for (uint32 TriIndex = 0; TriIndex < SkelMeshSection.NumTriangles; TriIndex++)
 				{
-					RawMesh.FaceMaterialIndices.Add(BaseMaterialIndex + SkelMeshSection.MaterialIndex);
+					RawMesh.FaceMaterialIndices.Add(BaseMaterialIndex + MaterialIndex);
 					RawMesh.FaceSmoothingMasks.Add(0); // Assume this is ignored as bRecomputeNormals is false
 				}
 			}
@@ -1748,6 +1758,8 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 			}
 		}
 
+		uint32 MaxInUseTextureCoordinate = 0;
+
 		// scrub invalid vert color & tex coord data
 		check(RawMeshes.Num() == RawMeshTrackers.Num());
 		for (int32 RawMeshIndex = 0; RawMeshIndex < RawMeshes.Num(); RawMeshIndex++)
@@ -1762,6 +1774,11 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 				if (!RawMeshTrackers[RawMeshIndex].bValidTexCoords[TexCoordIndex])
 				{
 					RawMeshes[RawMeshIndex].WedgeTexCoords[TexCoordIndex].Empty();
+				}
+				else
+				{
+                                        // Store first texture coordinate index not in use
+					MaxInUseTextureCoordinate = FMath::Max(MaxInUseTextureCoordinate, TexCoordIndex);
 				}
 			}
 		}
@@ -1789,6 +1806,9 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 
 			StaticMesh->LightingGuid = FGuid::NewGuid();
 
+			// Determine which texture coordinate map should be used for storing/generating the lightmap UVs
+			const uint32 LightMapIndex = FMath::Min(MaxInUseTextureCoordinate + 1, (uint32)MAX_MESH_TEXTURE_COORDS - 1);
+
 			// Add source to new StaticMesh
 			for (FRawMesh& RawMesh : RawMeshes)
 			{
@@ -1797,12 +1817,12 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 					FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
 					SrcModel->BuildSettings.bRecomputeNormals = false;
 					SrcModel->BuildSettings.bRecomputeTangents = false;
-					SrcModel->BuildSettings.bRemoveDegenerates = false;
+					SrcModel->BuildSettings.bRemoveDegenerates = true;
 					SrcModel->BuildSettings.bUseHighPrecisionTangentBasis = false;
 					SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
 					SrcModel->BuildSettings.bGenerateLightmapUVs = true;
 					SrcModel->BuildSettings.SrcLightmapIndex = 0;
-					SrcModel->BuildSettings.DstLightmapIndex = 1;
+					SrcModel->BuildSettings.DstLightmapIndex = LightMapIndex;
 					SrcModel->RawMeshBulkData->SaveRawMesh(RawMesh);
 				}
 			}
@@ -1815,6 +1835,27 @@ UStaticMesh* FMeshUtilities::ConvertMeshesToStaticMesh(const TArray<UMeshCompone
 			
 			//Set the Imported version before calling the build
 			StaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+
+			// Set light map coordinate index to match DstLightmapIndex
+			StaticMesh->LightMapCoordinateIndex = LightMapIndex;
+
+			// setup section info map
+			for (int32 RawMeshLODIndex = 0; RawMeshLODIndex < RawMeshes.Num(); RawMeshLODIndex++)
+			{
+				const FRawMesh& RawMesh = RawMeshes[RawMeshLODIndex];
+				TArray<int32> UniqueMaterialIndices;
+				for (int32 MaterialIndex : RawMesh.FaceMaterialIndices)
+				{
+					UniqueMaterialIndices.AddUnique(MaterialIndex);
+				}
+
+				int32 SectionIndex = 0;
+				for (int32 UniqueMaterialIndex : UniqueMaterialIndices)
+				{
+					StaticMesh->SectionInfoMap.Set(RawMeshLODIndex, SectionIndex, FMeshSectionInfo(UniqueMaterialIndex));
+					SectionIndex++;
+				}
+			}
 
 			// Build mesh from source
 			StaticMesh->Build(false);
@@ -5896,7 +5937,7 @@ static void CheckWrappingUVs(TArray<FRawMeshExt>& SourceMeshes, TArray<bool>& Me
 	}
 }
 
-void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, FCreateProxyDelegate InProxyCreatedDelegate, const bool bAllowAsync, const float ScreenAreaSize)
+void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const struct FMeshProxySettings& InMeshProxySettings, UPackage* InOuter, const FString& InProxyBasePackageName, const FGuid InGuid, FCreateProxyDelegate InProxyCreatedDelegate, const bool bAllowAsync, const float ScreenSize)
 {
 	// Error/warning checking for input
 	if (MeshMerging == NULL)
@@ -5963,7 +6004,7 @@ void FMeshUtilities::CreateProxyMesh(const TArray<AActor*>& InActors, const stru
 	static const FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
 	FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
 	IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
-	float EstimatedDistance = Utilities->CalculateDrawDistanceFromScreenSize(EstimatedBounds.SphereRadius, ScreenAreaSize, ProjectionMatrix);
+	float EstimatedDistance = Utilities->CalculateDrawDistanceFromScreenSize(EstimatedBounds.SphereRadius, ScreenSize, ProjectionMatrix);
 	
 	SlowTask.EnterProgressFrame(5.0f, LOCTEXT("CreateProxyMesh_CollectingMeshes", "Collecting Input Static Meshes"));
 
@@ -6284,6 +6325,12 @@ void FMeshUtilities::FlattenMaterialsWithMeshData(TArray<UMaterialInterface*>& I
 			{
 				// Generate unique UVs
 				GenerateUniqueUVsForStaticMesh(*MergeData->RawMesh, InMaterialProxySettings.TextureSize.GetMax(), MergeData->NewUVs);
+			}			
+
+			FBox2D TextureBoundsForMesh(EForceInit::ForceInitToZero);
+			for (const FVector2D& UV : MergeData->NewUVs)
+			{
+				TextureBoundsForMesh += UV;
 			}
 
 			// Export the material using mesh data to support vertex based material properties
@@ -6291,7 +6338,7 @@ void FMeshUtilities::FlattenMaterialsWithMeshData(TArray<UMaterialInterface*>& I
 				CurrentMaterial,
 				MergeData->RawMesh,
 				LocalMaterialIndex,
-				MergeData->TexCoordBounds[LocalTextureBoundIndex],
+				TextureBoundsForMesh,
 				MergeData->NewUVs,
 				FlattenMaterial,
 				CachedShader);
@@ -7040,7 +7087,7 @@ bool FMeshUtilities::PropagatePaintedColorsToRawMesh(const UStaticMeshComponent*
 		if (ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
 		{	
 			int32 NumWedges = RawMesh.WedgeIndices.Num();
-			const bool bUseWedgeMap = RenderData.WedgeMap.Num() > 0 && RenderData.WedgeMap.Num() == NumWedges;
+			const bool bUseWedgeMap = RenderData.WedgeMap.Num() > 0 && RenderData.WedgeMap.Num() == NumWedges && !StaticMeshComponent->IsA<USplineMeshComponent>();
 			// If we have a wedge map
 			if (bUseWedgeMap)
 			{
@@ -7177,8 +7224,8 @@ static void ExtractPhysicsGeometry(UStaticMeshComponent* InMeshComponent, FKAggr
 	OutAggGeom.RenderInfo = nullptr;
 	for (FKConvexElem& Elem : OutAggGeom.ConvexElems)
 	{
-		Elem.ConvexMesh = nullptr;
-		Elem.ConvexMeshNegX = nullptr;
+		Elem.SetConvexMesh(nullptr);
+		Elem.SetMirroredConvexMesh(nullptr);
 	}
 
 	// Transform geometry to world space
@@ -7599,7 +7646,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 
 		// LOD index will be overridden if the user has chosen to pick it according to the viewing distance
 		int32 CalculatedLODIndex = -1;
-		if (InSettings.LODSelectionType == EMeshLODSelectionType::CalculateLOD && ScreenSize > 0.0f && ScreenSize < 1.0f)
+		if (InSettings.LODSelectionType == EMeshLODSelectionType::CalculateLOD && FMath::IsWithinInclusive(ScreenSize, 0.0f, 1.0f))
 		{
 			FHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<FHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
 			IHierarchicalLODUtilities* Utilities = Module.GetUtilities();
@@ -7693,7 +7740,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	TArray<bool> MeshShouldBakeVertexData;
 	MeshShouldBakeVertexData.AddZeroed(SourceMeshes.Num());
 
-	if (bShouldBakeOutMaterials)
+	if (bShouldBakeOutMaterials && InSettings.bUseVertexDataForBakingMaterial)
 	{
 		// If we have UVs outside of the UV boundaries we should use unique UVs to render out the materials
 		CheckWrappingUVs(SourceMeshes, MeshShouldBakeVertexData);
@@ -7868,7 +7915,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 	// Flatten out the occupied UV channel flags, we need this to ensure the same amount of uv sets written out for each mesh
 	bool bFlattenedOcuppiedUVChannels[MAX_MESH_TEXTURE_COORDS];
 	FMemory::Memset(bFlattenedOcuppiedUVChannels, 0, sizeof(bool) * MAX_MESH_TEXTURE_COORDS);
-	bFlattenedOcuppiedUVChannels[0] = true;
+	bFlattenedOcuppiedUVChannels[0] = true; // Should always have one valid texture coordinate channel
 	for (int CoordinateIndex = 0; CoordinateIndex < MAX_MESH_TEXTURE_COORDS; ++CoordinateIndex)
 	{
 		for (int32 LODIndex = 0; LODIndex < MAX_STATIC_MESH_LODS; ++LODIndex)
@@ -8271,7 +8318,7 @@ private:
 		if(ModuleNames.Num() > 0)
 		{
 			for(FName ModuleName : ModuleNames)
-			{
+		{
 				FUIAction UIAction;
 				UIAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnMeshSimplificationModuleChosen, ModuleName);
 				UIAction.GetActionCheckState.BindSP(this, &FMeshSimplifcationSettingsCustomization::IsMeshSimplificationModuleChosen, ModuleName);
@@ -8281,34 +8328,34 @@ private:
 			}
 
 			MenuBuilder.AddMenuSeparator();
-		}
+			}
 
 		FUIAction OpenMarketplaceAction;
 		OpenMarketplaceAction.ExecuteAction.BindSP(this, &FMeshSimplifcationSettingsCustomization::OnFindReductionPluginsClicked);
 		FSlateIcon Icon = FSlateIcon(FEditorStyle::Get().GetStyleSetName(), "LevelEditor.OpenMarketplace.Menu");
 		MenuBuilder.AddMenuEntry( LOCTEXT("FindMoreReductionPluginsLink", "Search the Marketplace"), LOCTEXT("FindMoreReductionPluginsLink_Tooltip", "Opens the Marketplace to find more mesh reduction plugins"), Icon, OpenMarketplaceAction);
 		return MenuBuilder.MakeWidget();
-	}
+			}
 
 	void OnMeshSimplificationModuleChosen(FName ModuleName)
-	{
+			{
 		if(MeshReductionModuleProperty->IsValidHandle())
-		{
+				{
 			MeshReductionModuleProperty->SetValue(ModuleName);
-		}
-	}
+				}
+			}
 
 	ECheckBoxState IsMeshSimplificationModuleChosen(FName ModuleName)
-	{
+			{
 		if(MeshReductionModuleProperty->IsValidHandle())
-		{
+			{
 			FName CurrentModuleName;
 			MeshReductionModuleProperty->GetValue(CurrentModuleName);
 			return CurrentModuleName == ModuleName ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-		}
+				}
 
 		return ECheckBoxState::Unchecked;
-	}
+			}
 
 	void OnFindReductionPluginsClicked()
 	{
@@ -8316,7 +8363,7 @@ private:
 		FUnrealEdMisc::Get().GetURL(TEXT("MeshSimplificationPluginsURL"), URL);
 
 		FUnrealEdMisc::Get().OpenMarketplace(URL);
-	}
+		}
 private:
 	TSharedPtr<IPropertyHandle> MeshReductionModuleProperty;
 };
@@ -8743,24 +8790,47 @@ void FMeshUtilities::RemoveLevelViewportMenuExtender()
 	}
 }
 
+/** Util for getting all MeshComponents from a supplied set of Actors */
+void GetSkinnedAndStaticMeshComponentsFromActors(const TArray<AActor*> InActors, TArray<UMeshComponent*>& OutMeshComponents)
+{
+	for (AActor* Actor : InActors)
+	{
+		// add all components from this actor
+		TInlineComponentArray<UMeshComponent*> ActorComponents(Actor);
+		for (UMeshComponent* ActorComponent : ActorComponents)
+		{
+			if (ActorComponent->IsA(USkinnedMeshComponent::StaticClass()) || ActorComponent->IsA(UStaticMeshComponent::StaticClass()))
+			{
+				OutMeshComponents.AddUnique(ActorComponent);
+			}
+		}
+
+		// add all attached actors
+		TArray<AActor*> AttachedActors;
+		Actor->GetAttachedActors(AttachedActors);
+		for (AActor* AttachedActor : AttachedActors)
+		{
+			TInlineComponentArray<UMeshComponent*> AttachedActorComponents(AttachedActor);
+			for (UMeshComponent* AttachedActorComponent : AttachedActorComponents)
+			{
+				if (AttachedActorComponent->IsA(USkinnedMeshComponent::StaticClass()) || AttachedActorComponent->IsA(UStaticMeshComponent::StaticClass()))
+				{
+					OutMeshComponents.AddUnique(AttachedActorComponent);
+				}
+			}
+		}
+	}
+}
+
 TSharedRef<FExtender> FMeshUtilities::GetLevelViewportContextMenuExtender(const TSharedRef<FUICommandList> CommandList, const TArray<AActor*> InActors)
 {
 	TSharedRef<FExtender> Extender = MakeShareable(new FExtender);
 
 	if (InActors.Num() > 0)
 	{
-		bool bHasComponent = false;
-		for (AActor* Actor : InActors)
-		{
-			TInlineComponentArray<UMeshComponent*> Components(Actor);
-			if (Components.Num() > 0)
-			{
-				bHasComponent = true;
-				break;
-			}
-		}
-		
-		if (bHasComponent)
+		TArray<UMeshComponent*> Components;
+		GetSkinnedAndStaticMeshComponentsFromActors(InActors, Components);
+		if (Components.Num() > 0)
 		{
 			FText ActorName = InActors.Num() == 1 ? FText::Format(LOCTEXT("ActorNameSingular", "\"{0}\""), FText::FromString(InActors[0]->GetActorLabel())) : LOCTEXT("ActorNamePlural", "Actors");
 
@@ -8788,27 +8858,7 @@ void FMeshUtilities::ConvertActorMeshesToStaticMesh(const TArray<AActor*> InActo
 {
 	TArray<UMeshComponent*> MeshComponents;
 
-	for (AActor* Actor : InActors)
-	{
-		// add all components from this actor
-		TInlineComponentArray<UMeshComponent*> ActorComponents(Actor);
-		for (UMeshComponent* ActorComponent : ActorComponents)
-		{
-			MeshComponents.AddUnique(ActorComponent);
-		}
-
-		// add all attached actors
-		TArray<AActor*> AttachedActors;
-		Actor->GetAttachedActors(AttachedActors);
-		for (AActor* AttachedActor : AttachedActors)
-		{
-			TInlineComponentArray<UMeshComponent*> AttachedActorComponents(AttachedActor);
-			for (UMeshComponent* AttachedActorComponent : AttachedActorComponents)
-			{
-				MeshComponents.AddUnique(AttachedActorComponent);
-			}
-		}
-	}
+	GetSkinnedAndStaticMeshComponentsFromActors(InActors, MeshComponents);
 
 	auto GetActorRootTransform = [](AActor* InActor)
 	{

@@ -2040,9 +2040,18 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 	{
 		TArray<uint8> OutData;
 		FDerivedDataAnimationCompression* AnimCompressor = new FDerivedDataAnimationCompression(this, CompressContext, bDoCompressionInPlace);
-		if (AnimCompressor->CanBuild())
+		// For debugging DDC/Compression issues		
+		const bool bSkipDDC = false;
+		if (bSkipDDC)
 		{
-			GetDerivedDataCacheRef().GetSynchronous(AnimCompressor, OutData);
+			AnimCompressor->Build(OutData);
+		}
+		else
+		{
+			if (AnimCompressor->CanBuild())
+			{
+				GetDerivedDataCacheRef().GetSynchronous(AnimCompressor, OutData);
+			}
 		}
 
 		if (bUseRawDataOnly && OutData.Num() > 0)
@@ -2208,7 +2217,7 @@ void UAnimSequence::UpdateSHAWithCurves(FSHA1& Sha, const FRawCurveTracks& InRaw
 	{
 		UpdateWithData(Sha, Curve.Name.UID);
 		UpdateWithData(Sha, Curve.FloatCurve.DefaultValue);
-		UpdateSHAWithArray(Sha, Curve.FloatCurve.Keys);
+		UpdateSHAWithArray(Sha, Curve.FloatCurve.GetConstRefOfKeys());
 		UpdateWithData(Sha, Curve.FloatCurve.PreInfinityExtrap);
 		UpdateWithData(Sha, Curve.FloatCurve.PostInfinityExtrap);
 	}
@@ -3284,10 +3293,6 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConv
 	}
 
 	SetSkeleton(NewSkeleton);
-
-	// We don't force gen here as that can cause us to constantly generate
-	// new anim ddc keys if users never resave anims that need to remap.
-	PostProcessSequence(false);
 }
 
 void UAnimSequence::PostProcessSequence(bool bForceNewRawDatGuid)

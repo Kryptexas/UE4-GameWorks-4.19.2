@@ -268,6 +268,11 @@ bool ABrush::IsLevelBoundsRelevant() const
 	return (Level && this != Level->Actors[1]);
 }
 
+void ABrush::RebuildNavigationData()
+{
+	// empty in base class
+}
+
 FColor ABrush::GetWireColor() const
 {
 	FColor Color = GEngine->C_BrushWire;

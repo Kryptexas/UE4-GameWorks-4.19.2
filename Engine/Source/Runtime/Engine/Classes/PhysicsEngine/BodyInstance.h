@@ -676,7 +676,13 @@ public:
 	void UpdateTriMeshVertices(const TArray<FVector> & NewPositions);
 
 	/** Returns the center of mass of this body (in world space) */
-	FVector GetCOMPosition() const;
+	FVector GetCOMPosition() const
+	{
+		return GetMassSpaceToWorldSpace().GetLocation();
+	}
+
+	/** Returns the mass coordinate system to world space transform (position is world center of mass, rotation is world inertia orientation) */
+	FTransform GetMassSpaceToWorldSpace() const;
 
 	/** Draws the center of mass as a wire star */
 	void DrawCOMPosition(class FPrimitiveDrawInterface* PDI, float COMRenderSize, const FColor& COMRenderColor);
@@ -1136,6 +1142,8 @@ public:
 
 private:
 
+	void UpdateDebugRendering();
+
 	struct FWeldInfo
 	{
 		FWeldInfo(FBodyInstance* InChildBI, const FTransform& InRelativeTM)
@@ -1180,6 +1188,8 @@ private:
 	/** Enum indicating what type of object this should be considered as when it moves */
 	UPROPERTY(EditAnywhere, Category=Custom)
 	TEnumAsByte<enum ECollisionChannel> ObjectType;
+
+	void SetShapeFlagsInternal_AssumesShapeLocked(struct FSetShapeParams& Params, bool& bUpdateMassProperties);
 };
 
 template<>
@@ -1228,9 +1238,4 @@ FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBody(const FVector& Pos
 FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics() const
 {
 	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
-}
-
-FORCEINLINE_DEBUGGABLE bool FBodyInstance::ShouldInstanceSimulatingPhysics() const
-{
-	return bSimulatePhysics;
 }

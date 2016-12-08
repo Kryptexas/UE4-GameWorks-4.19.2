@@ -43,4 +43,16 @@ FEditorModeID UAnimGraphNode_PoseDriver::GetEditorMode() const
 	return AnimNodeEditModes::PoseDriver;
 }
 
+EAnimAssetHandlerType UAnimGraphNode_PoseDriver::SupportsAssetClass(const UClass* AssetClass) const
+{
+	if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
+	{
+		return EAnimAssetHandlerType::Supported;
+	}
+	else
+	{
+		return EAnimAssetHandlerType::NotSupported;
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

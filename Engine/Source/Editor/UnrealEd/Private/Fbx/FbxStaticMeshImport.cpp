@@ -2111,7 +2111,7 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 	StaticMesh->BodySetup->InvalidatePhysicsData();
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 		
 	return true;
 }

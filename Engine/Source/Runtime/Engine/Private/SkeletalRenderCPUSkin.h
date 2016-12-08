@@ -68,7 +68,6 @@ private:
 	/** parent mesh containing the source data */
 	FSkeletalMeshResource* SkeletalMeshResource;
 
-	template <bool bExtraBoneInfluencesT>
 	void InitVertexData(FStaticLODModel& LodModel);
 };
 
@@ -167,7 +166,7 @@ public:
 	virtual ~FSkeletalMeshObjectCPUSkin();
 
 	//~ Begin FSkeletalMeshObject Interface
-	virtual void InitResources() override;
+	virtual void InitResources(USkinnedMeshComponent* InMeshComponent) override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetsWeights) override;
 	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare);

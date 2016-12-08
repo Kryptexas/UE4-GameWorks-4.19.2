@@ -13,6 +13,7 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "EditorCategoryUtils.h"
 #include "BlueprintNodeSpawner.h"
+#include "Animation/AnimComposite.h"
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
@@ -281,6 +282,18 @@ bool UAnimGraphNode_SequencePlayer::IsActionFilteredOut(class FBlueprintActionFi
 		}
 	}
 	return bIsFilteredOut;
+}
+
+EAnimAssetHandlerType UAnimGraphNode_SequencePlayer::SupportsAssetClass(const UClass* AssetClass) const
+{
+	if (AssetClass->IsChildOf(UAnimSequence::StaticClass()) || AssetClass->IsChildOf(UAnimComposite::StaticClass()))
+	{
+		return EAnimAssetHandlerType::PrimaryHandler;
+	}
+	else
+	{
+		return EAnimAssetHandlerType::NotSupported;
+	}
 }
 
 void UAnimGraphNode_SequencePlayer::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)

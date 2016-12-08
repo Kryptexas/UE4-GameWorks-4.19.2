@@ -118,6 +118,10 @@ struct FAbcPolyMeshObject
 	/** Frame index of first frame containing data */
 	uint32 StartFrameIndex;
 
+	/** Cached self and child bounds for entire duration of the animation */
+	FBoxSphereBounds SelfBounds;
+	FBoxSphereBounds ChildBounds;
+
 	/** GUID identifying the hierarchy for this object (parent structure) */
 	FGuid HierarchyGuid;
 
@@ -168,6 +172,10 @@ struct FAbcTransformObject
 	float StartFrameTime;
 	/** Frame index of first frame containing data */
 	uint32 StartFrameIndex;
+
+	/** Cached self and child bounds for entire duration of the animation */
+	FBoxSphereBounds SelfBounds;
+	FBoxSphereBounds ChildBounds;
 
 	/** Matrix samples taken for this object */
 	TArray<FMatrix> MatrixSamples;
@@ -220,6 +228,7 @@ public:
 	FAbcImportData() : NumFrames(0)
 		, FramesPerSecond(0)
 		, SecondsPerFrame(0.0f)
+		, ArchiveBounds(EForceInit::ForceInitToZero)
 		, MinTime(TNumericLimits<float>::Max())
 		, MaxTime(TNumericLimits<float>::Min())
 		, MinFrameIndex(TNumericLimits<uint32>::Max())
@@ -262,6 +271,9 @@ public:
 	uint32 FramesPerSecond;
 	/** Seconds per frame (calculated according to FPS) */
 	float SecondsPerFrame;
+
+	/** Entire bounds of the archive over time */
+	FBoxSphereBounds ArchiveBounds;
 
 	/** Min and maximum time found in the Alembic file*/
 	float MinTime;

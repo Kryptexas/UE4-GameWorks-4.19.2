@@ -82,7 +82,7 @@ namespace UnrealBuildTool
 			if (BuildConfiguration.bPrintPerformanceInfo)
 			{
 				var TelemetryInitTime = (DateTime.UtcNow - TelemetryInitStartTime).TotalSeconds;
-				Log.TraceInformation("Telemetry initialization took " + TelemetryInitTime + "s");
+				Log.TraceInformation("Telemetry initialization took " + TelemetryInitTime + "s. Provider Type = " + (Provider == null ? "null" : Provider.GetType().ToString()));
 			}
 		}
 

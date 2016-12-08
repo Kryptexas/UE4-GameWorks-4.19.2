@@ -153,12 +153,23 @@ struct FTriangle
 		Edges[1] = FHalfEdge(Vertices[1], Vertices[2]);
 		Edges[2] = FHalfEdge(Vertices[2], Vertices[0]);
 	}
+	
+	FTriangle()
+	{
+		Vertices[0] = nullptr;
+		Vertices[1] = nullptr;
+		Vertices[2] = nullptr;
+	}
 
 	~FTriangle()
 	{
-		Vertices[0]->RemoveTriangle(this);
-		Vertices[1]->RemoveTriangle(this);
-		Vertices[2]->RemoveTriangle(this);
+		for (int32 VertexIndex = 0; VertexIndex < 3; ++VertexIndex)
+		{
+			if (Vertices[VertexIndex])
+			{
+				Vertices[VertexIndex]->RemoveTriangle(this);
+			}
+		}
 	}
 
 	bool Contains (const FPoint& Other) const
@@ -279,10 +290,10 @@ public:
 	void Triangulate();
 
 	/** 
-	 * Add new sample point to SamplePointList
+	 * Add new sample point to SamplePointList and its corresponding sample index in the blendspace
 	 * It won't be added if already exists
 	 */
-	void AddSamplePoint(const FVector& NewPoint);
+	void AddSamplePoint(const FVector& NewPoint, const int32 SampleIndex);
 
 	/** 
 	 * This is for debug purpose to step only one to triangulate
@@ -324,20 +335,24 @@ public:
 		return IndiceMappingTable[NewSortedSamplePointList];
 	}
 
-	void InitializeIndiceMapping();
-
 	const TArray<int32>& GetIndiceMapping() { return IndiceMappingTable; }
 
 	/* Set the grid box, so we can normalize the sample points */
-	void SetGridBox(const FBox& Box)
+	void SetGridBox(const FBlendParameter& BlendParamX, const FBlendParameter& BlendParamY)
 	{
-		FVector Size = Box.GetSize();
+		FBox GridBox;
+		GridBox.Min.X = BlendParamX.Min;
+		GridBox.Max.X = BlendParamX.Max;
+		GridBox.Min.Y = BlendParamY.Min;
+		GridBox.Max.Y = BlendParamY.Max;
+
+		FVector Size = GridBox.GetSize();
 
 		Size.X = FMath::Max( Size.X, DELTA );
 		Size.Y = FMath::Max( Size.Y, DELTA );
 		Size.Z = FMath::Max( Size.Z, DELTA );
 
-		GridMin = Box.Min;
+		GridMin = GridBox.Min;
 		RecipGridSize = FVector(1.0f, 1.0f, 1.0f) / Size;
 	}
 
@@ -392,7 +407,7 @@ private:
 	 */
 	TArray<FPoint>		SamplePointList;
 	/**
-	 * This is map back to original indices after sorted
+	 * This stores the indices from the added sample points to the original indices in the blendspace
 	 */
 	TArray<int32>			IndiceMappingTable;
 
@@ -433,7 +448,7 @@ public:
 	bool FindTriangleThisPointBelongsTo(const FVector& TestPoint, FVector& OutBaryCentricCoords, FTriangle * & OutTriangle, const TArray<FTriangle*> & TriangleList) const;
 
 	/**  
-	 * Fill up Grid Elements using TriangleList input - Grid information should have been set by SetGridInfo
+	 * Fill up Grid GridPoints using TriangleList input - Grid information should have been set by SetGridInfo
 	 * 
 	 * @param	SamplePoints		: Sample Point List
 	 * @param	TriangleList		: List of triangles
@@ -445,19 +460,19 @@ public:
 	 */
 	FBlendSpaceGrid()
 		:	GridDimensions(FVector(0, 0, 0), FVector(100, 100, 0))
-		,	NumGridPoints(5, 5)
+		,	NumGridPointsForAxis(5, 5)
 	{
 	}
 
 	void Reset()
 	{
-		Elements.Empty();
+		GridPoints.Empty();
 	}
 
 	void SetGridInfo(const FBlendParameter& BlendParamX, const FBlendParameter& BlendParamY)
 	{
-		NumGridPoints.X = BlendParamX.GridNum + 1;
-		NumGridPoints.Y = BlendParamY.GridNum + 1;
+		NumGridPointsForAxis.X = BlendParamX.GridNum + 1;
+		NumGridPointsForAxis.Y = BlendParamY.GridNum + 1;
 
 		NumGridDivisions.X = BlendParamX.GridNum;
 		NumGridDivisions.Y = BlendParamY.GridNum;
@@ -470,7 +485,7 @@ public:
 	}
 	
 	const FEditorElement& GetElement(const int32 GridX, const int32 GridY) const;
-	const TArray<FEditorElement>& GetElements() const { return Elements;}
+	const TArray<FEditorElement>& GetElements() const { return GridPoints;}
 	
 	/** 
 	 * Convert grid index (GridX, GridY) to triangle coords and returns FVector
@@ -482,9 +497,9 @@ private:
 	FBox GridDimensions;
 
 	// how many rows/cols for each axis
-	FIntPoint NumGridPoints;
+	FIntPoint NumGridPointsForAxis;
 	FIntPoint NumGridDivisions;
 
 	// Each point data -output data
-	TArray<FEditorElement> Elements; // 2D array saved in 1D array, to search (x, y), x*GridSizeX+y;
+	TArray<FEditorElement> GridPoints; // 2D array saved in 1D array, to search (x, y), x*GridSizeX+y;
 };

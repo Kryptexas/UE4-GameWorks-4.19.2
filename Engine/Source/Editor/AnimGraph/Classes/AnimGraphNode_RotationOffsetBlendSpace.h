@@ -30,6 +30,7 @@ class UAnimGraphNode_RotationOffsetBlendSpace: public UAnimGraphNode_BlendSpaceB
 	virtual UAnimationAsset* GetAnimationAsset() const override { return Node.BlendSpace; }
 	virtual void GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap) override;
+	virtual EAnimAssetHandlerType SupportsAssetClass(const UClass* AssetClass) const override;
 	// End of UAnimGraphNode_Base interface
 
 	// UK2Node interface
@@ -38,7 +39,9 @@ class UAnimGraphNode_RotationOffsetBlendSpace: public UAnimGraphNode_BlendSpaceB
 	virtual FBlueprintNodeSignature GetSignature() const override;
 	// End of UK2Node interface
 
+	// UAnimGraphNode_AssetPlayerBase interface
 	virtual void SetAnimationAsset(UAnimationAsset* Asset) override;
+	// End of UAnimGraphNode_AssetPlayerBase interface
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */

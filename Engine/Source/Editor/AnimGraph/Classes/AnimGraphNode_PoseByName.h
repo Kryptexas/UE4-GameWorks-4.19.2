@@ -33,6 +33,7 @@ class UAnimGraphNode_PoseByName : public UAnimGraphNode_AssetPlayerBase
 	virtual UAnimationAsset* GetAnimationAsset() const override;
 	virtual void GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap) override;
+	virtual EAnimAssetHandlerType SupportsAssetClass(const UClass* AssetClass) const override;
 	// End of UAnimGraphNode_Base
 
 	// UK2Node interface
@@ -41,7 +42,9 @@ class UAnimGraphNode_PoseByName : public UAnimGraphNode_AssetPlayerBase
 	//virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End of UK2Node interface
 
+	// UAnimGraphNode_AssetPlayerBase interface
 	virtual void SetAnimationAsset(UAnimationAsset* Asset) override;
+	// End of UAnimGraphNode_AssetPlayerBase interface
 
 private:
 	FText GetNodeTitleForPoseAsset(ENodeTitleType::Type TitleType, UPoseAsset* InPoseAsset) const;

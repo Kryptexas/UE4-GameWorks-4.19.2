@@ -1,10 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagContainerCustomization.h"
-#include "Widgets/SWindow.h"
-#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SComboButton.h"
+
 #include "Widgets/Input/SButton.h"
-#include "Framework/Docking/TabManager.h"
+
 
 #include "Editor.h"
 #include "PropertyHandle.h"
@@ -39,10 +39,15 @@ void FGameplayTagContainerCustomization::CustomizeHeader(TSharedRef<class IPrope
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SNew(SButton)
-					.IsEnabled(!StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst))
-					.Text(LOCTEXT("GameplayTagContainerCustomization_Edit", "Edit..."))
-					.OnClicked(this, &FGameplayTagContainerCustomization::OnEditButtonClicked)
+					SNew(SComboButton)
+					.OnGetMenuContent(this, &FGameplayTagContainerCustomization::GetListContent)
+					.ContentPadding(FMargin(2.0f, 2.0f))
+					.MenuPlacement(MenuPlacement_BelowAnchor)
+					.ButtonContent()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("GameplayTagContainerCustomization_Edit", "Edit..."))
+					]
 				]
 				+ SVerticalBox::Slot()
 				.AutoHeight()
@@ -117,63 +122,36 @@ TSharedRef<ITableRow> FGameplayTagContainerCustomization::MakeListViewWidget(TSh
 			];
 }
 
-FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
+TSharedRef<SWidget> FGameplayTagContainerCustomization::GetListContent()
 {
 	if (!StructPropertyHandle.IsValid() || StructPropertyHandle->GetProperty() == nullptr)
 	{
-		return FReply::Handled();
+		return SNullWidget::NullWidget;
 	}
 
 	TArray<UObject*> OuterObjects;
 	StructPropertyHandle->GetOuterObjects(OuterObjects);
 
 	FString Categories;
-	if( StructPropertyHandle->GetProperty()->HasMetaData( TEXT("Categories") ) )
+	if (StructPropertyHandle->GetProperty()->HasMetaData(TEXT("Categories")))
 	{
-		Categories = StructPropertyHandle->GetProperty()->GetMetaData( TEXT("Categories") );
+		Categories = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("Categories"));
 	}
 
-	bool bReadOnly = StructPropertyHandle->GetProperty()->HasAnyPropertyFlags( CPF_EditConst );
+	bool bReadOnly = StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst);
 
-	FText Title;
-	FText AssetName;
-	FText PropertyName = StructPropertyHandle->GetPropertyDisplayName();
-
-	if (OuterObjects.Num() > 1)
-	{
-		AssetName = FText::Format( LOCTEXT("GameplayTagDetailsBase_MultipleAssets", "{0} Assets"), FText::AsNumber( OuterObjects.Num() ) );
-		Title = FText::Format( LOCTEXT("GameplayTagContainerCustomization_BaseWidgetTitle", "Tag Editor: {0} {1}"), PropertyName, AssetName );
-	}
-	else if (OuterObjects.Num() > 0 && OuterObjects[0])
-	{
-		AssetName = FText::FromString( OuterObjects[0]->GetName() );
-		Title = FText::Format( LOCTEXT("GameplayTagContainerCustomization_BaseWidgetTitle", "Tag Editor: {0} {1}"), PropertyName, AssetName );
-	}
-
-	GameplayTagWidgetWindow = SNew(SWindow)
-	.Title(Title)
-	.ClientSize(FVector2D(600, 400))
-	[
-		SAssignNew(GameplayTagWidget, SGameplayTagWidget, EditableContainers)
-		.Filter( Categories )
-		.OnTagChanged(this, &FGameplayTagContainerCustomization::RefreshTagList)
-		.ReadOnly(bReadOnly)
-		.TagContainerName( StructPropertyHandle->GetPropertyDisplayName().ToString() )
-		.PropertyHandle( StructPropertyHandle )
-	];
-
-	GameplayTagWidgetWindow->GetOnWindowDeactivatedEvent().AddRaw(this, &FGameplayTagContainerCustomization::OnGameplayTagWidgetWindowDeactivate);
-
-	if (FGlobalTabmanager::Get()->GetRootWindow().IsValid())
-	{
-		FSlateApplication::Get().AddWindowAsNativeChild(GameplayTagWidgetWindow.ToSharedRef(), FGlobalTabmanager::Get()->GetRootWindow().ToSharedRef());
-	}
-	else
-	{
-		FSlateApplication::Get().AddWindow(GameplayTagWidgetWindow.ToSharedRef());
-	}
-
-	return FReply::Handled();
+	return SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.MaxHeight(400)
+		[
+			SNew(SGameplayTagWidget, EditableContainers)
+			.Filter(Categories)
+			.ReadOnly(bReadOnly)
+			.TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
+			.OnTagChanged(this, &FGameplayTagContainerCustomization::RefreshTagList)
+			.PropertyHandle(StructPropertyHandle)
+		];
 }
 
 FReply FGameplayTagContainerCustomization::OnClearAllButtonClicked()
@@ -209,7 +187,7 @@ void FGameplayTagContainerCustomization::PostUndo( bool bSuccess )
 	if( bSuccess )
 	{
 		RefreshTagList();
-	}	
+	}
 }
 
 void FGameplayTagContainerCustomization::PostRedo( bool bSuccess )
@@ -217,20 +195,16 @@ void FGameplayTagContainerCustomization::PostRedo( bool bSuccess )
 	if( bSuccess )
 	{
 		RefreshTagList();
-	}	
+	}
 }
 
 FGameplayTagContainerCustomization::~FGameplayTagContainerCustomization()
 {
-	if( GameplayTagWidgetWindow.IsValid() )
-	{
-		GameplayTagWidgetWindow->RequestDestroyWindow();
-	}
 	GEditor->UnregisterForUndo(this);
 }
 
 void FGameplayTagContainerCustomization::BuildEditableContainerList()
-{	
+{
 	EditableContainers.Empty();
 
 	if( StructPropertyHandle.IsValid() )
@@ -243,17 +217,6 @@ void FGameplayTagContainerCustomization::BuildEditableContainerList()
 			EditableContainers.Add(SGameplayTagWidget::FEditableGameplayTagContainerDatum(nullptr, (FGameplayTagContainer*)RawStructData[ContainerIdx]));
 		}
 	}	
-}
-
-void FGameplayTagContainerCustomization::OnGameplayTagWidgetWindowDeactivate()
-{
-	if( GameplayTagWidgetWindow.IsValid() )
-	{
-		if (GameplayTagWidget.IsValid() && GameplayTagWidget->IsAddingNewTag() == false)
-		{
-			GameplayTagWidgetWindow->RequestDestroyWindow();
-		}
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

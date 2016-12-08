@@ -1898,6 +1898,11 @@ bool FLevelEditorActionCallbacks::SaveAnimationFromSkeletalMeshComponent(AActor 
 	return false;
 }
 
+void FLevelEditorActionCallbacks::OpenMergeActor_Clicked()
+{
+	FGlobalTabmanager::Get()->InvokeTab(FName("MergeActors"));
+}
+
 void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 {
 	// @todo simulate: There are lots of types of changes that can't be "kept", like attachment or newly-spawned actors.  This
@@ -3183,6 +3188,8 @@ void FLevelEditorCommands::RegisterCommands()
 			.UserInterfaceType(EUserInterfaceActionType::RadioButton)
 			.DefaultChord(FInputChord());
 	}
+
+	UI_COMMAND(OpenMergeActor, "Merge Actors", "Opens the Merge Actor panel", EUserInterfaceActionType::Button, FInputChord());
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

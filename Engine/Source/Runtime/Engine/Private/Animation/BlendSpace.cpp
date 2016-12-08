@@ -91,6 +91,7 @@ bool UBlendSpace::IsValidAdditive() const
 	return ContainsMatchingSamples(AAT_LocalSpaceBase) || ContainsMatchingSamples(AAT_RotationOffsetMeshSpace);
 }
 
+#if WITH_EDITOR
 void UBlendSpace::SnapSamplesToClosestGridPoint()
 {
 	TArray<FVector> GridPoints;
@@ -167,6 +168,24 @@ void UBlendSpace::SnapSamplesToClosestGridPoint()
 	}
 	}
 }
+
+void UBlendSpace::RemapSamplesToNewAxisRange()
+{
+	const FVector OldGridMin(PreviousAxisMinMaxValues[0].X, PreviousAxisMinMaxValues[1].X, 0.0f);
+	const FVector OldGridMax(PreviousAxisMinMaxValues[0].Y, PreviousAxisMinMaxValues[1].Y, 1.0f);
+	const FVector OldGridRange = OldGridMax - OldGridMin;
+
+	const FVector NewGridMin(BlendParameters[0].Min, BlendParameters[1].Min, 0.0f);
+	const FVector NewGridMax(BlendParameters[0].Max, BlendParameters[1].Max, 1.0f);
+	const FVector NewGridRange = NewGridMax - NewGridMin;
+
+	for (FBlendSample& BlendSample : SampleData)
+	{
+		const FVector NormalizedValue = (BlendSample.SampleValue - OldGridMin) / OldGridRange;
+		BlendSample.SampleValue = NewGridMin + (NormalizedValue * NewGridRange);
+	}
+}
+#endif // WITH_EDITOR
 
 EBlendSpaceAxis UBlendSpace::GetAxisToScale() const
 {

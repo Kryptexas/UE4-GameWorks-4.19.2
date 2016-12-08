@@ -333,6 +333,12 @@ FAnimNode_Base* UAnimGraphNode_Base::FindDebugAnimNode(USkeletalMeshComponent * 
 	return DebugNode;
 }
 
+EAnimAssetHandlerType UAnimGraphNode_Base::SupportsAssetClass(const UClass* AssetClass) const
+{
+	return EAnimAssetHandlerType::NotSupported;
+}
+
+
 void UAnimGraphNode_Base::PinDefaultValueChanged(UEdGraphPin* Pin)
 {
 	Super::PinDefaultValueChanged(Pin);

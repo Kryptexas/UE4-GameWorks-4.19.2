@@ -91,6 +91,38 @@ bool FKeyHandleMap::operator!=(const FKeyHandleMap& Other) const
 	return !(*this==Other);
 }
 
+void FKeyHandleMap::EnsureAllIndicesHaveHandles(int32 NumIndices)
+{
+	TArray<FKeyHandle, TInlineAllocator<16>> HandlesToRemove;
+
+	for (const TPair<FKeyHandle, int32>& Pair: KeyHandlesToIndices)
+	{
+		if (Pair.Value >= NumIndices)
+		{
+			HandlesToRemove.Add(Pair.Key);
+		}
+	}
+
+	for (const FKeyHandle& Handle : HandlesToRemove)
+	{
+		KeyHandlesToIndices.Remove(Handle);
+	}
+
+	for (int32 i = 0; i < NumIndices; ++i)
+	{
+		EnsureIndexHasAHandle(i);
+	}
+}
+
+void FKeyHandleMap::EnsureIndexHasAHandle(int32 KeyIndex)
+{
+	const FKeyHandle* KeyHandle = KeyHandlesToIndices.FindKey(KeyIndex);
+	if (!KeyHandle)
+	{
+		FKeyHandle OutKeyHandle = FKeyHandle();
+		KeyHandlesToIndices.Add(OutKeyHandle, KeyIndex);
+	}
+}
 
 int32 FKeyHandleLookupTable::GetIndex(FKeyHandle KeyHandle)
 {

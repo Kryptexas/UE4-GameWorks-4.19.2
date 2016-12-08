@@ -294,6 +294,13 @@ bool FPrimitiveSceneProxy::UseSingleSampleShadowFromStationaryLights() const
 	return bSingleSampleShadowFromStationaryLights || CVarForceSingleSampleShadowingFromStationary.GetValueOnRenderThread() != 0; 
 }
 
+#if !UE_BUILD_SHIPPING
+void FPrimitiveSceneProxy::SetDebugMassData(const TArray<FDebugMassData>& InDebugMassData)
+{
+	DebugMassData = InDebugMassData;
+}
+#endif
+
 /**
  * Updates selection for the primitive proxy. This is called in the rendering thread by SetSelection_GameThread.
  * @param bInSelected - true if the parent actor is selected in the editor
@@ -354,6 +361,36 @@ void FPrimitiveSceneProxy::SetHovered_GameThread(const bool bInHovered)
 		PrimitiveSceneProxy->SetHovered_RenderThread(bNewHovered);
 	});
 }
+
+#if !UE_BUILD_SHIPPING
+void FPrimitiveSceneProxy::FDebugMassData::DrawDebugMass(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM) const
+{
+	const FQuat MassOrientationToWorld = ElemTM.GetRotation() * LocalTensorOrientation;
+	const FVector COMWorldPosition = ElemTM.TransformPosition(LocalCenterOfMass);
+
+	const float Size = 15.f;
+	const FVector XAxis = MassOrientationToWorld * FVector(1.f, 0.f, 0.f);
+	const FVector YAxis = MassOrientationToWorld * FVector(0.f, 1.f, 0.f);
+	const FVector ZAxis = MassOrientationToWorld * FVector(0.f, 0.f, 1.f);
+
+	DrawCircle(PDI, COMWorldPosition, XAxis, YAxis, FColor(255, 255, 100), Size, 25, SDPG_World);
+	DrawCircle(PDI, COMWorldPosition, ZAxis, YAxis, FColor(255, 255, 100), Size, 25, SDPG_World);
+
+	const float InertiaSize = FMath::Max(MassSpaceInertiaTensor.Size(), KINDA_SMALL_NUMBER);
+	const float XSize = Size * MassSpaceInertiaTensor.X / InertiaSize;
+	const float YSize = Size * MassSpaceInertiaTensor.Y / InertiaSize;
+	const float ZSize = Size * MassSpaceInertiaTensor.Z / InertiaSize;
+
+	const float Thickness = 2.f * FMath::Sqrt(3.f);	//We end up normalizing by inertia size. If the sides are all even we'll end up dividing by sqrt(3) since 1/sqrt(1+1+1)
+	const float XThickness = Thickness * MassSpaceInertiaTensor.X / InertiaSize;
+	const float YThickness = Thickness * MassSpaceInertiaTensor.Y / InertiaSize;
+	const float ZThickness = Thickness * MassSpaceInertiaTensor.Z / InertiaSize;
+
+	PDI->DrawLine(COMWorldPosition + XAxis * Size, COMWorldPosition - Size * XAxis, FColor(255, 0, 0), SDPG_World, XThickness);
+	PDI->DrawLine(COMWorldPosition + YAxis * Size, COMWorldPosition - Size * YAxis, FColor(0, 255, 0), SDPG_World, YThickness);
+	PDI->DrawLine(COMWorldPosition + ZAxis * Size, COMWorldPosition - Size * ZAxis, FColor(0, 0, 255), SDPG_World, ZThickness);
+}
+#endif
 
 /**
  * Updates the hidden editor view visibility map on the game thread which just enqueues a command on the render thread

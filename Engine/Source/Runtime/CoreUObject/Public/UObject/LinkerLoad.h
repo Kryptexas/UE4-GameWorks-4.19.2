@@ -194,10 +194,23 @@ public:
 	/** 
 	 * Utility functions to query the object name redirects list for the current name for a class
 	 * @param OldClassName An old class name, without path
-	 * @param bIsInstance If true, we're an instance, so check instance only maps as well
-	 * @return Current full path of this class. It will be None if no redirect found
+	 * @return Current full path of the class. It will be None if no redirect found
 	 */
 	COREUOBJECT_API static FName FindNewNameForClass(FName OldClassName, bool bIsInstance);
+
+	/** 
+	* Utility functions to query the enum name redirects list for the current name for an enum
+	* @param OldEnumName An old enum name, without path
+	* @return Current full path of the enum. It will be None if no redirect found
+	*/
+	COREUOBJECT_API static FName FindNewNameForEnum(FName OldEnumName);
+
+	/** 
+	* Utility functions to query the struct name redirects list for the current name for a struct
+	* @param OldStructName An old struct name, without path
+	* @return Current full path of the struct. It will be None if no redirect found
+	*/
+	COREUOBJECT_API static FName FindNewNameForStruct(FName OldStructName);
 
 	/**
 	 * Utility functions to check the list of known missing packages and silence any warnings

@@ -102,7 +102,7 @@ class ENGINE_API ABrush
 	UPROPERTY()
 	uint32 bNotForClientOrServer:1;
 
-	UPROPERTY(export)
+	UPROPERTY(Instanced)
 	class UModel* Brush;
 
 private_subobject:
@@ -163,6 +163,7 @@ public:
 	
 	// AActor interface
 	virtual bool IsLevelBoundsRelevant() const override;
+	virtual void RebuildNavigationData();
 
 #if WITH_EDITOR
 	virtual void Destroyed() override;

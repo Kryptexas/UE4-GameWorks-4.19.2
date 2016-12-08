@@ -16,6 +16,7 @@
 #include "XAudio2Support.h"
 #include "IAudioExtensionPlugin.h"
 #include "ActiveSound.h"
+#include "Sound/AudioSettings.h"
 
 /*------------------------------------------------------------------------------------
 	For muting user soundtracks during cinematics
@@ -373,16 +374,17 @@ bool FXAudio2SoundSource::CreateSource( void )
 	Destinations[NumSends].pOutputVoice = Effects->DryPremasterVoice;
 
 	// EQFilter Causes some sound devices to lag and starve important game threads. Hack disable until a long term solution is put into place.
-#if 0
-	if (IsEQFilterApplied())
+
+	const bool bIsEQDisabled = GetDefault<UAudioSettings>()->bDisableMasterEQ;
+	if (!bIsEQDisabled && IsEQFilterApplied())
 	{
 		Destinations[NumSends].pOutputVoice = Effects->EQPremasterVoice;
 	}
-#endif
 
 	NumSends++;
 
-	if( bReverbApplied )
+	const bool bIsReverbDisabled = GetDefault<UAudioSettings>()->bDisableMasterReverb;
+	if( bReverbApplied && !bIsReverbDisabled)
 	{
 		Destinations[NumSends].pOutputVoice = Effects->ReverbEffectVoice;
 		NumSends++;

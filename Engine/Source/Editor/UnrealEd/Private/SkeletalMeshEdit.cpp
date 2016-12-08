@@ -1363,7 +1363,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 					{
 						bSuccess = false;
 						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_InvalidUnrealTransform",
-											"Track {0} did not yeild valid transform. Please report this to animation team."), FText::FromName(BoneName))), FFbxErrors::Animation_TransformError);
+											"Track {0} has invalid transform(NaN). Zero scale transform can cause this issue."), FText::FromName(BoneName))), FFbxErrors::Animation_TransformError);
 						break;
 					}
 
@@ -1418,7 +1418,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 					{
 						bSuccess = false;
 						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_InvalidUnrealLocalTransform",
-											"Track {0} did not yeild valid local transform. Please report this to animation team."), FText::FromName(BoneName))), FFbxErrors::Animation_TransformError);
+											"Track {0} has invalid transform(NaN). If you have zero scale transform, that can cause this."), FText::FromName(BoneName))), FFbxErrors::Animation_TransformError);
 						break;
 					}
 

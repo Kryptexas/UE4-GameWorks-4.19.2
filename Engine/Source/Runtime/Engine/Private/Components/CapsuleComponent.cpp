@@ -8,6 +8,7 @@
 #include "SceneManagement.h"
 #include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PrimitiveSceneProxy.h"
 
 
 UCapsuleComponent::UCapsuleComponent(const FObjectInitializer& ObjectInitializer)

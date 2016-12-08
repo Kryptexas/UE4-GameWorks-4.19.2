@@ -2,16 +2,11 @@
 
 #include "PropertyRestriction.h"
 
-FText FPropertyRestriction::GetReason()const
+bool FPropertyRestriction::IsValueHidden(const FString& InValue) const
 {
-	return Reason; 
-}
-
-bool FPropertyRestriction::IsValueRestricted(const FString& InValue)const
-{
-	for( int i = 0; i < Values.Num(); ++i )
+	for (const FString& Value : HiddenValues)
 	{
-		if( InValue == Values[i] )
+		if (InValue == Value)
 		{
 			return true;
 		}
@@ -19,7 +14,24 @@ bool FPropertyRestriction::IsValueRestricted(const FString& InValue)const
 	return false;
 }
 
-void FPropertyRestriction::AddValue(const FString& InValue)
+bool FPropertyRestriction::IsValueDisabled(const FString& InValue)const
 {
-	Values.Add(InValue);
+	for (const FString& Value : DisabledValues)
+	{
+		if (InValue == Value)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void FPropertyRestriction::AddHiddenValue(FString InValue)
+{
+	HiddenValues.Add(MoveTemp(InValue));
+}
+
+void FPropertyRestriction::AddDisabledValue(FString InValue)
+{
+	DisabledValues.Add(MoveTemp(InValue));
 }

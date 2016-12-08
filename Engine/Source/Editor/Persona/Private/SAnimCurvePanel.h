@@ -57,7 +57,6 @@ public:
 		, _InputMax()
 		, _OnSetInputViewRange()
 		, _OnGetScrubValue()
-		, _OnCurvesChanged()
 	{}
 
 	/**
@@ -81,7 +80,6 @@ public:
 	 */
 	SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
 
-	SLATE_EVENT( FSimpleDelegate, OnCurvesChanged )
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton);
@@ -172,8 +170,6 @@ private:
 	TAttribute<float> CurrentPosition;
 	FOnGetScrubValue OnGetScrubValue;
 	TArray<TWeakPtr<class SCurveEdTrack>> Tracks;
-
-	FSimpleDelegate OnCurvesChanged;
 
 	/**
 	 * This is to control visibility of the curves, so you can edit or not

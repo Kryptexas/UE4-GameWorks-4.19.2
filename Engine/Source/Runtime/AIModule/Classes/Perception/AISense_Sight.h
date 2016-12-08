@@ -48,7 +48,7 @@ struct AIMODULE_API FAISightEvent
 
 struct FAISightTarget
 {
-	typedef FName FTargetId;
+	typedef uint32 FTargetId;
 	static const FTargetId InvalidTargetId;
 
 	TWeakObjectPtr<AActor> Target;
@@ -126,9 +126,8 @@ public:
 		FDigestedSightProperties(const UAISenseConfig_Sight& SenseConfig);
 	};	
 	
-	//TChunkedArray<FDigestedSightProperties> DigestedProps
-
-	TMap<FAISightTarget::FTargetId, FAISightTarget> ObservedTargets;
+	typedef TMap<FAISightTarget::FTargetId, FAISightTarget> FTargetsContainer;
+	FTargetsContainer ObservedTargets;
 	TMap<FPerceptionListenerID, FDigestedSightProperties> DigestedProperties;
 
 	TArray<FAISightQuery> SightQueryQueue;

@@ -67,8 +67,6 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioDebug, Display, All);
 #define MIN_FILTER_BANDWIDTH			0.1f
 #define MAX_FILTER_BANDWIDTH			2.0f
 
-#define DEFAULT_SUBTITLE_PRIORITY		10000.0f
-
 /**
  * Audio stats
  */
@@ -116,6 +114,66 @@ enum EAudioSpeakers
 	SPEAKER_RightBack,		//				*
 	SPEAKER_Count
 };
+
+namespace EAudioMixerChannel
+{
+	/** Enumeration values represent sound file or speaker channel types. */
+	enum Type
+	{
+		FrontLeft,
+		FrontRight,
+		FrontCenter,
+		LowFrequency,
+		BackLeft,
+		BackRight,
+		FrontLeftOfCenter,
+		FrontRightOfCenter,
+		BackCenter,
+		SideLeft,
+		SideRight,
+		TopCenter,
+		TopFrontLeft,
+		TopFrontCenter,
+		TopFrontRight,
+		TopBackLeft,
+		TopBackCenter,
+		TopBackRight,
+		Unused,
+		ChannelTypeCount
+	};
+
+	static const int32 MaxSupportedChannel = EAudioMixerChannel::TopCenter;
+
+	inline const TCHAR* ToString(EAudioMixerChannel::Type InType)
+	{
+		switch (InType)
+		{
+		case FrontLeft:				return TEXT("FrontLeft");
+		case FrontRight:			return TEXT("FrontRight");
+		case FrontCenter:			return TEXT("FrontCenter");
+		case LowFrequency:			return TEXT("LowFrequency");
+		case BackLeft:				return TEXT("BackLeft");
+		case BackRight:				return TEXT("BackRight");
+		case FrontLeftOfCenter:		return TEXT("FrontLeftOfCenter");
+		case FrontRightOfCenter:	return TEXT("FrontRightOfCenter");
+		case BackCenter:			return TEXT("BackCenter");
+		case SideLeft:				return TEXT("SideLeft");
+		case SideRight:				return TEXT("SideRight");
+		case TopCenter:				return TEXT("TopCenter");
+		case TopFrontLeft:			return TEXT("TopFrontLeft");
+		case TopFrontCenter:		return TEXT("TopFrontCenter");
+		case TopFrontRight:			return TEXT("TopFrontRight");
+		case TopBackLeft:			return TEXT("TopBackLeft");
+		case TopBackCenter:			return TEXT("TopBackCenter");
+		case TopBackRight:			return TEXT("TopBackRight");
+
+		default:
+			checkf(false, TEXT("Unsupport channel type"));
+			return TEXT("UNSUPPORTED");
+		}
+	}
+}
+
 
 // Forward declarations.
 class UAudioComponent;
@@ -183,6 +241,13 @@ struct EAudioPlugin
 /** Queries if a plugin of the given type is enabled. */
 ENGINE_API bool IsAudioPluginEnabled(EAudioPlugin::Type PluginType);
 
+/** Struct describes the submix send info for the wave instance. */
+struct ENGINE_API FSubmixSendInfo
+{
+	class USoundSubmix* SoundSubmix;
+	float DryLevel;
+	float WetLevel;
+};
 
 /**
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
@@ -197,8 +262,9 @@ struct ENGINE_API FWaveInstance
 	class USoundWave*	WaveData;
 	/** Sound class */
 	class USoundClass*  SoundClass;
-	/** Sound submix */
-	class USoundSubmix* SoundSubmix;
+	/** Sound submix sends */
+	TArray<FSubmixSendInfo> SoundSubmixSends;
+
 	/** Sound nodes to notify when the current audio buffer finishes */
 	FNotifyBufferFinishedHooks NotifyBufferFinishedHooks;
 
@@ -280,10 +346,19 @@ struct ENGINE_API FWaveInstance
 	float				OmniRadius;
 	/** Amount of spread for 3d multi-channel asset spatialization */
 	float				StereoSpread;
-	/** Distance from closest listener to sound. used in attenuation calculations. */
+	/** Distance over which the sound is attenuated. */
 	float				AttenuationDistance;
+	/** The distance from this wave instance to the closest listener. */
+	float				ListenerToSoundDistance;
 	/** The absolute position of the wave instance relative to forward vector of listener. */
 	float				AbsoluteAzimuth; 
+
+	/** Reverb distance-based wet-level settings defined in attenuation settings. */
+	float				ReverbWetLevelMin;
+	float				ReverbWetLevelMax;
+	float				ReverbDistanceMin;
+	float				ReverbDistanceMax;
+
 	/** Cached type hash */
 	uint32				TypeHash;
 	/** Hash value for finding the wave instance based on the path through the cue to get to it */

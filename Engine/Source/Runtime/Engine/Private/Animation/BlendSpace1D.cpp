@@ -21,6 +21,62 @@ bool UBlendSpace1D::IsValidAdditiveType(EAdditiveAnimationType AdditiveType) con
 	return (AdditiveType == AAT_LocalSpaceBase || AdditiveType == AAT_None);
 }
 
+EBlendSpaceAxis UBlendSpace1D::GetAxisToScale() const
+{
+	return bScaleAnimation ? BSA_X : BSA_None;
+}
+
+bool UBlendSpace1D::IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const
+{
+	return FMath::IsNearlyEqual(SamplePointA.X, SamplePointB.X);
+}
+
+void UBlendSpace1D::GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const
+{
+
+	FVector NormalizedBlendInput = GetNormalizedBlendInput(BlendInput);
+
+	float GridIndex = FMath::TruncToFloat(NormalizedBlendInput.X);
+	float Remainder = NormalizedBlendInput.X - GridIndex;
+
+	const FEditorElement* BeforeElement = GetGridSampleInternal(GridIndex);
+
+	if (BeforeElement)
+	{
+		FGridBlendSample NewSample;
+		NewSample.GridElement = *BeforeElement;
+		// now calculate weight - GridElement has weights to nearest samples, here we weight the grid element
+		NewSample.BlendWeight = (1.f-Remainder);
+		OutBlendSamples.Add(NewSample);
+	}
+	else
+	{
+		FGridBlendSample NewSample;
+		NewSample.GridElement = FEditorElement();
+		NewSample.BlendWeight = 0.f;
+		OutBlendSamples.Add(NewSample);
+	}
+
+	const FEditorElement* AfterElement = GetGridSampleInternal(GridIndex+1);
+
+	if (AfterElement)
+	{
+		FGridBlendSample NewSample;
+		NewSample.GridElement = *AfterElement;
+		// now calculate weight - GridElement has weights to nearest samples, here we weight the grid element
+		NewSample.BlendWeight = (Remainder);
+		OutBlendSamples.Add(NewSample);
+	}
+	else
+	{
+		FGridBlendSample NewSample;
+		NewSample.GridElement = FEditorElement();
+		NewSample.BlendWeight = 0.f;
+		OutBlendSamples.Add(NewSample);
+	}
+}
+
+#if WITH_EDITOR
 void UBlendSpace1D::SnapSamplesToClosestGridPoint()
 {
 	TArray<float> GridPoints;
@@ -29,7 +85,7 @@ void UBlendSpace1D::SnapSamplesToClosestGridPoint()
 
 	const float GridMin = BlendParameters[0].Min;
 	const float GridMax = BlendParameters[0].Max;
-	const float GridRange = GridMax - GridMin;	
+	const float GridRange = GridMax - GridMin;
 	const int32 NumGridPoints = BlendParameters[0].GridNum + 1;
 	const float GridStep = GridRange / BlendParameters[0].GridNum;
 
@@ -38,7 +94,7 @@ void UBlendSpace1D::SnapSamplesToClosestGridPoint()
 	{
 		BlendSample.bIsValid = false;
 	}
-	
+
 	for (int32 GridPointIndex = 0; GridPointIndex < NumGridPoints; ++GridPointIndex)
 	{
 		const float GridPointValue = (GridPointIndex * GridStep) + GridMin;
@@ -95,57 +151,20 @@ void UBlendSpace1D::SnapSamplesToClosestGridPoint()
 	}
 }
 
-EBlendSpaceAxis UBlendSpace1D::GetAxisToScale() const
+void UBlendSpace1D::RemapSamplesToNewAxisRange()
 {
-	return bScaleAnimation ? BSA_X : BSA_None;
-}
+	const float OldGridMin = PreviousAxisMinMaxValues[0].X;
+	const float OldGridMax = PreviousAxisMinMaxValues[0].Y;
+	const float OldGridRange = OldGridMax - OldGridMin;
 
-bool UBlendSpace1D::IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const
-{
-	return FMath::IsNearlyEqual(SamplePointA.X, SamplePointB.X);
-}
+	const float NewGridMin = BlendParameters[0].Min;
+	const float NewGridMax = BlendParameters[0].Max;
+	const float NewGridRange = NewGridMax - NewGridMin;
 
-void UBlendSpace1D::GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const
-{
-
-	FVector NormalizedBlendInput = GetNormalizedBlendInput(BlendInput);
-
-	float GridIndex = FMath::TruncToFloat(NormalizedBlendInput.X);
-	float Remainder = NormalizedBlendInput.X - GridIndex;
-
-	const FEditorElement* BeforeElement = GetGridSampleInternal(GridIndex);
-
-	if (BeforeElement)
+	for (FBlendSample& BlendSample : SampleData)
 	{
-		FGridBlendSample NewSample;
-		NewSample.GridElement = *BeforeElement;
-		// now calculate weight - GridElement has weights to nearest samples, here we weight the grid element
-		NewSample.BlendWeight = (1.f-Remainder);
-		OutBlendSamples.Add(NewSample);
-	}
-	else
-	{
-		FGridBlendSample NewSample;
-		NewSample.GridElement = FEditorElement();
-		NewSample.BlendWeight = 0.f;
-		OutBlendSamples.Add(NewSample);
-	}
-
-	const FEditorElement* AfterElement = GetGridSampleInternal(GridIndex+1);
-
-	if (AfterElement)
-	{
-		FGridBlendSample NewSample;
-		NewSample.GridElement = *AfterElement;
-		// now calculate weight - GridElement has weights to nearest samples, here we weight the grid element
-		NewSample.BlendWeight = (Remainder);
-		OutBlendSamples.Add(NewSample);
-	}
-	else
-	{
-		FGridBlendSample NewSample;
-		NewSample.GridElement = FEditorElement();
-		NewSample.BlendWeight = 0.f;
-		OutBlendSamples.Add(NewSample);
+		const float NormalizedValue = (BlendSample.SampleValue.X - OldGridMin) / OldGridRange;		
+		BlendSample.SampleValue.X = NewGridMin + (NormalizedValue * NewGridRange);
 	}
 }
+#endif // WITH_EDITOR

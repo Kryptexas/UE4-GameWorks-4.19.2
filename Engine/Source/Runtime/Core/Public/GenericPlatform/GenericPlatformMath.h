@@ -262,6 +262,7 @@ struct FGenericPlatformMath
 
 	static FORCEINLINE float Sin( float Value ) { return sinf(Value); }
 	static FORCEINLINE float Asin( float Value ) { return asinf( (Value<-1.f) ? -1.f : ((Value<1.f) ? Value : 1.f) ); }
+	static FORCEINLINE float Sinh(float Value) { return sinhf(Value); }
 	static FORCEINLINE float Cos( float Value ) { return cosf(Value); }
 	static FORCEINLINE float Acos( float Value ) { return acosf( (Value<-1.f) ? -1.f : ((Value<1.f) ? Value : 1.f) ); }
 	static FORCEINLINE float Tan( float Value ) { return tanf(Value); }

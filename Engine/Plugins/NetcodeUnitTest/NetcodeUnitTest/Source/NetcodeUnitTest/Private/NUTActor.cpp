@@ -187,14 +187,14 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 
 			UClass* SpawnClass = FindObject<UClass>(NULL, *SpawnClassName);
 
-			if (SpawnClass != NULL)
+			if (SpawnClass != nullptr)
 			{
 				FActorSpawnParameters SpawnParms;
 				SpawnParms.Owner = GetOwner();
 
 				AActor* NewActor = GetWorld()->SpawnActor<AActor>(SpawnClass, SpawnParms);
 
-				if (NewActor != NULL)
+				if (NewActor != nullptr)
 				{
 					UE_LOG(LogUnitTest, Log, TEXT("Successfully summoned actor of class '%s'"), *SpawnClassName);
 
@@ -202,7 +202,7 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 					{
 						UE_LOG(LogUnitTest, Log, TEXT("Forcing call to 'BeginPlay' on newly spawned actor."));
 
-						NewActor->BeginPlay();
+						NewActor->DispatchBeginPlay();
 					}
 
 					if (bGameplayDebuggerHack)
@@ -337,9 +337,9 @@ void ANUTActor::Tick(float DeltaSeconds)
 
 	UWorld* CurWorld = GetWorld();
 
-	if (CurWorld != NULL)
+	if (CurWorld != nullptr)
 	{
-		ENetMode CurNetMode = GEngine != NULL ? GEngine->GetNetMode(CurWorld) : NM_Standalone;
+		ENetMode CurNetMode = GEngine != nullptr ? GEngine->GetNetMode(CurWorld) : NM_Standalone;
 		bool bClientTimedOut = CurNetMode != NM_Standalone &&
 								(CurWorld->RealTimeSeconds - LastAliveTime) > (CurNetMode == NM_Client ? 5.0f : 10.0f);
 
@@ -351,7 +351,7 @@ void ANUTActor::Tick(float DeltaSeconds)
 		}
 
 		// Have the server set the owner, when appropriate
-		if (Cast<APlayerController>(GetOwner()) == NULL || bClientTimedOut)
+		if (Cast<APlayerController>(GetOwner()) == nullptr || bClientTimedOut)
 		{
 			UpdateOwner();
 		}
@@ -364,13 +364,13 @@ void ANUTActor::Tick(float DeltaSeconds)
 			UNetDriver* BeaconDriver = GEngine->FindNamedNetDriver(CurWorld, NAME_BeaconDriver);
 #else
 			// Somehow, the beacon driver name got messed up in a subsequent checkin, so now has to be found manually
-			UNetDriver* BeaconDriver = NULL;
+			UNetDriver* BeaconDriver = nullptr;
 
 			FWorldContext* CurContext = GEngine->GetWorldContextFromWorld(CurWorld);
 
-			if (CurContext != NULL)
+			if (CurContext != nullptr)
 			{
-				for (auto CurDriverRef : CurContext->ActiveNetDrivers)
+				for (const FNamedNetDriver& CurDriverRef : CurContext->ActiveNetDrivers)
 				{
 					if (CurDriverRef.NetDriverDef->DefName == NAME_BeaconDriver)
 					{
@@ -382,7 +382,7 @@ void ANUTActor::Tick(float DeltaSeconds)
 #endif
 
 			// Only hook when a client is connected
-			if (BeaconDriver != NULL && BeaconDriver->ClientConnections.Num() > 0)
+			if (BeaconDriver != nullptr && BeaconDriver->ClientConnections.Num() > 0)
 			{
 				HookNetDriver(BeaconDriver);
 
@@ -566,11 +566,11 @@ void ANUTActor::NetFlush()
 {
 	UNetDriver* CurNetDriver = GetNetDriver();
 
-	if (CurNetDriver != NULL)
+	if (CurNetDriver != nullptr)
 	{
 		UNetConnection* ServerConn = CurNetDriver->ServerConnection;
 
-		if (ServerConn != NULL)
+		if (ServerConn != nullptr)
 		{
 			UE_LOG(LogUnitTest, Log, TEXT("Flushing ServerConnection"));
 			ServerConn->FlushNet();
@@ -579,7 +579,7 @@ void ANUTActor::NetFlush()
 		{
 			UE_LOG(LogUnitTest, Log, TEXT("Flushing ClientConnections"));
 
-			for (auto CurConn : CurNetDriver->ClientConnections)
+			for (UNetConnection* CurConn : CurNetDriver->ClientConnections)
 			{
 				CurConn->FlushNet();
 			}

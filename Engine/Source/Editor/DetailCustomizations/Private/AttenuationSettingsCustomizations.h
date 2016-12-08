@@ -8,11 +8,9 @@
 #include "IPropertyTypeCustomization.h"
 #include "PropertyHandle.h"
 
-class FAttenuationSettingsCustomization : public IPropertyTypeCustomization
+class FBaseAttenuationSettingsCustomization : public IPropertyTypeCustomization
 {
 public:
-	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
-
 	/** IPropertyTypeCustomization instance */
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
@@ -28,11 +26,20 @@ protected:
 
 	TSharedPtr< IPropertyHandle > AttenuationShapeHandle;
 	TSharedPtr< IPropertyHandle > DistanceAlgorithmHandle;
-	TSharedPtr< IPropertyHandle > SpatializationAlgorithmHandle;
+};
+
+class FSoundAttenuationSettingsCustomization : public FBaseAttenuationSettingsCustomization
+{
+public:
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
+
+	virtual void CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+
+protected:
 
 	TSharedPtr< IPropertyHandle > bIsSpatializedHandle;
 	TSharedPtr< IPropertyHandle > bIsFocusedHandle;
-	TSharedPtr< IPropertyHandle > bIsOcclussionEnabledHandle;
+	TSharedPtr< IPropertyHandle > bIsOcclusionEnabledHandle;
 
 	bool IsFocusedEnabled() const;
 	TAttribute<bool> GetIsFocusEnabledAttribute() const;
@@ -41,4 +48,12 @@ protected:
 	TAttribute<bool> GetIsOcclusionEnabledAttribute() const;
 
 	TAttribute<bool> IsFocusEnabledAttribute;
+};
+
+class FForceFeedbackAttenuationSettingsCustomization : public FBaseAttenuationSettingsCustomization
+{
+public:
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
+
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 };

@@ -400,6 +400,10 @@ int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh)
 	return LinkupIndex;
 }
 
+void USkeleton::RemoveLinkup(const USkeletalMesh* InSkelMesh)
+{
+	SkelMesh2LinkupCache.Remove(InSkelMesh);
+}
 
 int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 {
@@ -483,7 +487,7 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 void USkeleton::RebuildLinkup(const USkeletalMesh* InSkelMesh)
 {
 	// remove the key
-	SkelMesh2LinkupCache.Remove(InSkelMesh);
+	RemoveLinkup(InSkelMesh);
 	// build new one
 	BuildLinkup(InSkelMesh);
 }
@@ -1517,6 +1521,12 @@ void USkeleton::AccumulateCurveMetaData(FName CurveName, bool bMaterialSet, bool
 
 bool USkeleton::AddNewVirtualBone(const FName SourceBoneName, const FName TargetBoneName)
 {
+	FName Dummy;
+	return AddNewVirtualBone(SourceBoneName, TargetBoneName, Dummy);
+}
+
+bool USkeleton::AddNewVirtualBone(const FName SourceBoneName, const FName TargetBoneName, FName& NewVirtualBoneName)
+{
 	for (const FVirtualBone& SSBone : VirtualBones)
 	{
 		if (SSBone.SourceBoneName == SourceBoneName &&
@@ -1527,7 +1537,8 @@ bool USkeleton::AddNewVirtualBone(const FName SourceBoneName, const FName Target
 	}
 	Modify();
 	VirtualBones.Add(FVirtualBone(SourceBoneName, TargetBoneName));
-	
+	NewVirtualBoneName = VirtualBones.Last().VirtualBoneName;
+
 	RegenerateVirtualBoneGuid();
 	HandleVirtualBoneChanges();
 

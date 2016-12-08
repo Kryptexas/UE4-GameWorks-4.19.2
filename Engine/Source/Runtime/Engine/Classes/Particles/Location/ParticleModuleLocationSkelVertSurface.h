@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Particles/Location/ParticleModuleLocationBase.h"
+#include "SkeletalMeshTypes.h"
 #include "ParticleModuleLocationSkelVertSurface.generated.h"
 
 class FStaticLODModel;

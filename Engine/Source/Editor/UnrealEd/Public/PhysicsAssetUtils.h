@@ -45,6 +45,7 @@ struct FPhysAssetCreateParams
 
 class UPhysicsAsset;
 class UPhysicsConstraintTemplate;
+struct FBoneVertInfo;
 
 /** Collection of functions to create and setup PhysicsAssets */
 namespace FPhysicsAssetUtils

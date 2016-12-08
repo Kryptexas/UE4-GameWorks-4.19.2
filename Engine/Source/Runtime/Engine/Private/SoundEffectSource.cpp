@@ -8,12 +8,7 @@ USoundEffectSourcePreset::USoundEffectSourcePreset(const FObjectInitializer& Obj
 {
 }
 
-USoundEffectSource::USoundEffectSource(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
-
-void USoundEffectSource::ProcessAudio(FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData)
+void FSoundEffectSource::ProcessAudio(FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData)
 {
 	bIsRunning = true;
 

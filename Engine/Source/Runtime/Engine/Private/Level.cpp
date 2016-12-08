@@ -1756,7 +1756,7 @@ void ULevel::RouteActorInitialize()
 	{
 		AActor* Actor = ActorsToBeginPlay[ActorIndex];
 		SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-		Actor->BeginPlay();			
+		Actor->DispatchBeginPlay();
 	}
 }
 

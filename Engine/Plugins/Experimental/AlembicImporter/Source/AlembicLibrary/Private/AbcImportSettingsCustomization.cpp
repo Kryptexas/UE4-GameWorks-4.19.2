@@ -28,15 +28,14 @@ void FAbcImportSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& Lay
 	if (UAbcImportSettings::Get()->bReimport)
 	{
 		UEnum* ImportTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAlembicImportType"));		
-		static FText RestrictReason = FText::FromString("Unable to change type while reimporting");
+		static FText RestrictReason = NSLOCTEXT("AlembicImportFactory", "ReimportRestriction", "Unable to change type while reimporting");
 		TSharedPtr<FPropertyRestriction> EnumRestriction = MakeShareable(new FPropertyRestriction(RestrictReason));
 
 		for (uint8 EnumIndex = 0; EnumIndex < (ImportTypeEnum->GetMaxEnumValue() + 1); ++EnumIndex)
 		{
 			if (EnumValue != EnumIndex)
 			{
-				const FString RestrictValue = ImportTypeEnum->GetDisplayNameTextByValue(EnumIndex).ToString();
-				EnumRestriction->AddValue(RestrictValue);
+				EnumRestriction->AddDisabledValue(ImportTypeEnum->GetNameByValue(EnumIndex).ToString());
 			}
 		}		
 		ImportType->AddRestriction(EnumRestriction.ToSharedRef());

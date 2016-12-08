@@ -1888,12 +1888,16 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 	/** Delegate used by SavePackage() to check whether a package should be saved */
 	static FIsPackageOKToSaveDelegate IsPackageOKToSaveDelegate;
 
+	/** Delegate for registering hot-reloaded classes that have been added  */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FRegisterHotReloadAddedClassesDelegate, const TArray<UClass*>&);
+	static FRegisterHotReloadAddedClassesDelegate RegisterHotReloadAddedClassesDelegate;
+
 	/** Delegate for registering hot-reloaded classes that changed after hot-reload for reinstancing */
-	DECLARE_DELEGATE_TwoParams(FRegisterClassForHotReloadReinstancingDelegate, UClass*, UClass*);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FRegisterClassForHotReloadReinstancingDelegate, UClass*, UClass*);
 	static FRegisterClassForHotReloadReinstancingDelegate RegisterClassForHotReloadReinstancingDelegate;
 
 	/** Delegate for reinstancing hot-reloaded classes */
-	DECLARE_DELEGATE(FReinstanceHotReloadedClassesDelegate);
+	DECLARE_MULTICAST_DELEGATE(FReinstanceHotReloadedClassesDelegate);
 	static FReinstanceHotReloadedClassesDelegate ReinstanceHotReloadedClassesDelegate;
 
 	// Sent at the very beginning of LoadMap

@@ -6,13 +6,14 @@
 
 #include "SAnimNotifyPanel.h"
 #include "SAnimTrackCurvePanel.h"
+#include "AnimPreviewInstance.h"
 
 #define LOCTEXT_NAMESPACE "AnimSequenceEditor"
 
 //////////////////////////////////////////////////////////////////////////
 // SSequenceEditor
 
-void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPersonaPreviewScene> InPreviewScene, TSharedRef<class IEditableSkeleton> InEditableSkeleton, FSimpleMulticastDelegate& OnPostUndo, FSimpleMulticastDelegate& OnCurvesChanged)
+void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPersonaPreviewScene> InPreviewScene, TSharedRef<class IEditableSkeleton> InEditableSkeleton, FSimpleMulticastDelegate& OnPostUndo)
 {
 	SequenceObj = InArgs._Sequence;
 	check(SequenceObj);
@@ -23,8 +24,7 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 		InPreviewScene );
 
 	OnPostUndo.Add(FSimpleDelegate::CreateSP( this, &SSequenceEditor::PostUndo ) );
-	OnCurvesChanged.Add(FSimpleDelegate::CreateSP( this, &SSequenceEditor::HandleCurvesChanged) );
-	
+
 	EditorPanels->AddSlot()
 	.AutoHeight()
 	.Padding(0, 10)
@@ -56,7 +56,6 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 		.InputMax(this, &SAnimEditorBase::GetMaxInput)
 		.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 		.OnGetScrubValue(this, &SAnimEditorBase::GetScrubValue)
-		.OnCurvesChanged(InArgs._OnCurvesChanged)
 	];
 
 	UAnimSequence * AnimSeq = Cast<UAnimSequence>(SequenceObj);
@@ -75,7 +74,6 @@ void SSequenceEditor::Construct(const FArguments& InArgs, TSharedRef<class IPers
 			.InputMax(this, &SAnimEditorBase::GetMaxInput)
 			.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 			.OnGetScrubValue(this, &SAnimEditorBase::GetScrubValue)
-			.OnCurvesChanged(InArgs._OnCurvesChanged)
 		];
 	}
 }
@@ -94,14 +92,6 @@ void SSequenceEditor::PostUndo()
 		{
 			AnimTrackCurvePanel->UpdatePanel();
 		}
-	}
-}
-
-void SSequenceEditor::HandleCurvesChanged()
-{
-	if (AnimTrackCurvePanel.IsValid())
-	{
-		AnimTrackCurvePanel->UpdatePanel();
 	}
 }
 

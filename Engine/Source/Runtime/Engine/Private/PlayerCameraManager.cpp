@@ -40,12 +40,12 @@ APlayerCameraManager::APlayerCameraManager(const FObjectInitializer& ObjectIniti
 	bReplicates = false;
 	FreeCamDistance = 256.0f;
 	bDebugClientSideCamera = false;
-	ViewPitchMin = -89.99f;
-	ViewPitchMax = 89.99f;
+	ViewPitchMin = -89.9f;
+	ViewPitchMax = 89.9f;
 	ViewYawMin = 0.f;
 	ViewYawMax = 359.999f;
-	ViewRollMin = -89.99f;
-	ViewRollMax = 89.99f;
+	ViewRollMin = -89.9f;
+	ViewRollMax = 89.9f;
 	bUseClientSideCameraUpdates = true;
 	CameraStyle = NAME_Default;
 	bCanBeDamaged = false;
@@ -847,13 +847,12 @@ void APlayerCameraManager::SetDesiredColorScale(FVector NewColorScale, float Int
 void APlayerCameraManager::UpdateCamera(float DeltaTime)
 {
 	check(PCOwner != nullptr);
-	const bool bOnlyRunPhotography = IsOnlyPhotography();
 
 	if ((PCOwner->Player && PCOwner->IsLocalPlayerController()) || !bUseClientSideCameraUpdates || bDebugClientSideCamera)
 	{
 		DoUpdateCamera(DeltaTime);
 
-		if (!bOnlyRunPhotography && bShouldSendClientSideCameraUpdate && IsNetMode(NM_Client))
+		if (bShouldSendClientSideCameraUpdate && IsNetMode(NM_Client))
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ServerUpdateCamera);
 
@@ -869,130 +868,130 @@ void APlayerCameraManager::UpdateCamera(float DeltaTime)
 	}
 }
 
-bool APlayerCameraManager::IsOnlyPhotography() const
-{
-	return GetWorld()->IsPaused() && !PCOwner->ShouldPerformFullTickWhenPaused();
-}
-
 void APlayerCameraManager::DoUpdateCamera(float DeltaTime)
 {
 	FMinimalViewInfo NewPOV = ViewTarget.POV;
-	const bool bOnlyRunPhotography = IsOnlyPhotography();
 
-	if (!bOnlyRunPhotography)
+	// update color scale interpolation
+	if (bEnableColorScaleInterp)
 	{
-		// update color scale interpolation
-		if (bEnableColorScaleInterp)
+		float BlendPct = FMath::Clamp((GetWorld()->TimeSeconds - ColorScaleInterpStartTime) / ColorScaleInterpDuration, 0.f, 1.0f);
+		ColorScale = FMath::Lerp(OriginalColorScale, DesiredColorScale, BlendPct);
+		// if we've maxed
+		if (BlendPct == 1.0f)
 		{
-			float BlendPct = FMath::Clamp((GetWorld()->TimeSeconds - ColorScaleInterpStartTime) / ColorScaleInterpDuration, 0.f, 1.0f);
-			ColorScale = FMath::Lerp(OriginalColorScale, DesiredColorScale, BlendPct);
-			// if we've maxed
-			if (BlendPct == 1.0f)
+			// disable further interpolation
+			bEnableColorScaleInterp = false;
+		}
+	}
+
+	// Don't update outgoing viewtarget during an interpolation when bLockOutgoing is set.
+	if ((PendingViewTarget.Target == NULL) || !BlendParams.bLockOutgoing)
+	{
+		// Update current view target
+		ViewTarget.CheckViewTarget(PCOwner);
+		UpdateViewTarget(ViewTarget, DeltaTime);
+	}
+
+	// our camera is now viewing there
+	NewPOV = ViewTarget.POV;
+
+	// if we have a pending view target, perform transition from one to another.
+	if (PendingViewTarget.Target != NULL)
+	{
+		BlendTimeToGo -= DeltaTime;
+
+		// Update pending view target
+		PendingViewTarget.CheckViewTarget(PCOwner);
+		UpdateViewTarget(PendingViewTarget, DeltaTime);
+
+		// blend....
+		if (BlendTimeToGo > 0)
+		{
+			float DurationPct = (BlendParams.BlendTime - BlendTimeToGo) / BlendParams.BlendTime;
+
+			float BlendPct = 0.f;
+			switch (BlendParams.BlendFunction)
 			{
-				// disable further interpolation
-				bEnableColorScaleInterp = false;
+			case VTBlend_Linear:
+				BlendPct = FMath::Lerp(0.f, 1.f, DurationPct);
+				break;
+			case VTBlend_Cubic:
+				BlendPct = FMath::CubicInterp(0.f, 0.f, 1.f, 0.f, DurationPct);
+				break;
+			case VTBlend_EaseIn:
+				BlendPct = FMath::Lerp(0.f, 1.f, FMath::Pow(DurationPct, BlendParams.BlendExp));
+				break;
+			case VTBlend_EaseOut:
+				BlendPct = FMath::Lerp(0.f, 1.f, FMath::Pow(DurationPct, 1.f / BlendParams.BlendExp));
+				break;
+			case VTBlend_EaseInOut:
+				BlendPct = FMath::InterpEaseInOut(0.f, 1.f, DurationPct, BlendParams.BlendExp);
+				break;
+			default:
+				break;
+			}
+
+			// Update pending view target blend
+			NewPOV = ViewTarget.POV;
+			NewPOV.BlendViewInfo(PendingViewTarget.POV, BlendPct);//@TODO: CAMERA: Make sure the sense is correct!  BlendViewTargets(ViewTarget, PendingViewTarget, BlendPct);
+		}
+		else
+		{
+			// we're done blending, set new view target
+			ViewTarget = PendingViewTarget;
+
+			// clear pending view target
+			PendingViewTarget.Target = NULL;
+
+			BlendTimeToGo = 0;
+
+			// our camera is now viewing there
+			NewPOV = PendingViewTarget.POV;
+		}
+	}
+
+	if (bEnableFading)
+	{
+		if (bAutoAnimateFade)
+		{
+			FadeTimeRemaining = FMath::Max(FadeTimeRemaining - DeltaTime, 0.0f);
+			if (FadeTime > 0.0f)
+			{
+				FadeAmount = FadeAlpha.X + ((1.f - FadeTimeRemaining / FadeTime) * (FadeAlpha.Y - FadeAlpha.X));
+			}
+
+			if ((bHoldFadeWhenFinished == false) && (FadeTimeRemaining <= 0.f))
+			{
+				// done
+				StopCameraFade();
 			}
 		}
 
-		// Don't update outgoing viewtarget during an interpolation when bLockOutgoing is set.
-		if ((PendingViewTarget.Target == NULL) || !BlendParams.bLockOutgoing)
+		if (bFadeAudio)
 		{
-			// Update current view target
-			ViewTarget.CheckViewTarget(PCOwner);
-			UpdateViewTarget(ViewTarget, DeltaTime);
-		}
-
-		// our camera is now viewing there
-		NewPOV = ViewTarget.POV;
-
-		// if we have a pending view target, perform transition from one to another.
-		if (PendingViewTarget.Target != NULL)
-		{
-			BlendTimeToGo -= DeltaTime;
-
-			// Update pending view target
-			PendingViewTarget.CheckViewTarget(PCOwner);
-			UpdateViewTarget(PendingViewTarget, DeltaTime);
-
-			// blend....
-			if (BlendTimeToGo > 0)
-			{
-				float DurationPct = (BlendParams.BlendTime - BlendTimeToGo) / BlendParams.BlendTime;
-
-				float BlendPct = 0.f;
-				switch (BlendParams.BlendFunction)
-				{
-				case VTBlend_Linear:
-					BlendPct = FMath::Lerp(0.f, 1.f, DurationPct);
-					break;
-				case VTBlend_Cubic:
-					BlendPct = FMath::CubicInterp(0.f, 0.f, 1.f, 0.f, DurationPct);
-					break;
-				case VTBlend_EaseIn:
-					BlendPct = FMath::Lerp(0.f, 1.f, FMath::Pow(DurationPct, BlendParams.BlendExp));
-					break;
-				case VTBlend_EaseOut:
-					BlendPct = FMath::Lerp(0.f, 1.f, FMath::Pow(DurationPct, 1.f / BlendParams.BlendExp));
-					break;
-				case VTBlend_EaseInOut:
-					BlendPct = FMath::InterpEaseInOut(0.f, 1.f, DurationPct, BlendParams.BlendExp);
-					break;
-				default:
-					break;
-				}
-
-				// Update pending view target blend
-				NewPOV = ViewTarget.POV;
-				NewPOV.BlendViewInfo(PendingViewTarget.POV, BlendPct);//@TODO: CAMERA: Make sure the sense is correct!  BlendViewTargets(ViewTarget, PendingViewTarget, BlendPct);
-			}
-			else
-			{
-				// we're done blending, set new view target
-				ViewTarget = PendingViewTarget;
-
-				// clear pending view target
-				PendingViewTarget.Target = NULL;
-
-				BlendTimeToGo = 0;
-
-				// our camera is now viewing there
-				NewPOV = PendingViewTarget.POV;
-			}
-		}
-
-		if (bEnableFading)
-		{
-			if (bAutoAnimateFade)
-			{
-				FadeTimeRemaining = FMath::Max(FadeTimeRemaining - DeltaTime, 0.0f);
-				if (FadeTime > 0.0f)
-				{
-					FadeAmount = FadeAlpha.X + ((1.f - FadeTimeRemaining / FadeTime) * (FadeAlpha.Y - FadeAlpha.X));
-				}
-
-				if ((bHoldFadeWhenFinished == false) && (FadeTimeRemaining <= 0.f))
-				{
-					// done
-					StopCameraFade();
-				}
-			}
-
-			if (bFadeAudio)
-			{
-				ApplyAudioFade();
-			}
+			ApplyAudioFade();
 		}
 	}
 
 	// update photography camera, if any
-	bool bPhotographyCausedCameraCut = FCameraPhotographyManager::Get().UpdateCamera(NewPOV, this);
+	const bool bPhotographyCausedCameraCut = FCameraPhotographyManager::Get().UpdateCamera(NewPOV, this);
 	bGameCameraCutThisFrame = bGameCameraCutThisFrame || bPhotographyCausedCameraCut;
 
 	// Cache results
 	FillCameraCache(NewPOV);
 }
 
+void APlayerCameraManager::UpdateCameraPhotographyOnly()
+{
+	FMinimalViewInfo NewPOV = ViewTarget.POV;
 
+	// update photography camera, if any
+	bGameCameraCutThisFrame = FCameraPhotographyManager::Get().UpdateCamera(NewPOV, this);
+
+	// Cache results
+	FillCameraCache(NewPOV);
+}
 
 FPOV APlayerCameraManager::BlendViewTargets(const FTViewTarget& A,const FTViewTarget& B, float Alpha)
 {

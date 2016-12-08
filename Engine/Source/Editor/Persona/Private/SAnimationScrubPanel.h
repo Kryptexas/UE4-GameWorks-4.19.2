@@ -77,8 +77,11 @@ protected:
 	void OnAppendAnimSequence( bool bFromStart, int32 NumOfFrames );
 	void OnInsertAnimSequence( bool bBefore, int32 CurrentFrame );
 
-	/** Function to zero out translation of the selected frame */
-	void OnReZeroAnimSequence( );
+	/** 
+	 * Sets the root bone to be at the origin at the specified frame.
+	 * If FrameIndex is INDEX_NONE then the current frame is used.
+	 */
+	void OnReZeroAnimSequence(int32 FrameIndex);
 
 	// make sure viewport is freshes
 	void OnBeginSliderMovement();

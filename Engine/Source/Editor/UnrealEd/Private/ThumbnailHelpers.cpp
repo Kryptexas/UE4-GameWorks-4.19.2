@@ -638,7 +638,10 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 		if (USkeleton* Skeleton = InAnimation->GetSkeleton())
 		{
 			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetAssetPreviewMesh(InAnimation);
-
+			if (!PreviewSkeletalMesh)
+			{
+				PreviewSkeletalMesh = Skeleton->FindCompatibleMesh();
+			}
 			PreviewActor->GetSkeletalMeshComponent()->SetSkeletalMesh(PreviewSkeletalMesh);
 
 			if (PreviewSkeletalMesh)

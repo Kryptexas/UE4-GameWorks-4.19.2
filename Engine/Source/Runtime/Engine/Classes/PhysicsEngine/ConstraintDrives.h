@@ -157,12 +157,27 @@ struct ENGINE_API FAngularDriveConstraint
 
 	bool IsOrientationDriveEnabled() const
 	{
-		return TwistDrive.bEnablePositionDrive || SwingDrive.bEnablePositionDrive;
+		if(AngularDriveMode == EAngularDriveMode::TwistAndSwing)
+		{
+			return TwistDrive.bEnablePositionDrive || SwingDrive.bEnablePositionDrive;
+		}
+		else
+		{
+			return SlerpDrive.bEnablePositionDrive;
+		}
 	}
 
 	bool IsVelocityDriveEnabled() const
 	{
-		return TwistDrive.bEnableVelocityDrive || SwingDrive.bEnableVelocityDrive;
+		if (AngularDriveMode == EAngularDriveMode::TwistAndSwing)
+		{
+			return TwistDrive.bEnableVelocityDrive || SwingDrive.bEnableVelocityDrive;
+		}
+		else
+		{
+			return SlerpDrive.bEnableVelocityDrive;
+		}
+		
 	}
 
 	/** Updates physx drive with properties from unreal */
@@ -172,7 +187,10 @@ private:
 	friend struct FConstraintInstance;
 	//These functions may leave the struct in an invalid state unless calling UpdatePhysX* functions.
 	//They are only meant as helpers for FConstraintInstance
-	void SetAngularPositionDrive(bool InEnableSwingDrive, bool InEnableTwistDrive);
-	void SetAngularVelocityDrive(bool InEnableSwingDrive, bool InEnableTwistDrive);
+	void SetOrientationDriveTwistAndSwing(bool InEnableTwistDrive, bool InEnableSwingDrive);
+	void SetOrientationDriveSLERP(bool InEnableSLERP);
+	void SetAngularVelocityDriveTwistAndSwing(bool InEnableTwistDrive, bool InEnableSwingDrive);
+	void SetAngularVelocityDriveSLERP(bool InEnableSLERP);
 	void SetDriveParams(float InStiffness, float InDamping, float InForceLimit);
+	void SetAngularDriveMode(EAngularDriveMode::Type DriveMode);
 };

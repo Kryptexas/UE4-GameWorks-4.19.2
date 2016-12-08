@@ -7,18 +7,22 @@
 class PROPERTYEDITOR_API FPropertyRestriction
 {
 public:
-	
+
 	FPropertyRestriction(const FText& InReason)
-		:Reason(InReason)
+		: Reason(InReason)
 	{
 	}
 
-	FText GetReason()const;
-	bool IsValueRestricted(const FString& InValue)const;
-	void AddValue(const FString& InValue);
+	const FText& GetReason() const { return Reason; }
+
+	bool IsValueHidden(const FString& Value) const;
+	bool IsValueDisabled(const FString& Value) const;
+	void AddHiddenValue(FString Value);
+	void AddDisabledValue(FString Value);
 
 private:
 
-	TArray<FString> Values;
+	TArray<FString> HiddenValues;
+	TArray<FString> DisabledValues;
 	FText Reason;
 };

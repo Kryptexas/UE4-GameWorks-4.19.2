@@ -66,12 +66,21 @@ void SAnimationScrubPanel::Construct( const SAnimationScrubPanel::FArguments& In
 
 FReply SAnimationScrubPanel::OnClick_Forward_Step()
 {
+	UDebugSkelMeshComponent* SMC = GetPreviewScene()->GetPreviewMeshComponent();
+
 	if (UAnimSingleNodeInstance* PreviewInstance = GetPreviewInstance())
 	{
+		bool bShouldStepCloth = FMath::Abs(PreviewInstance->GetLength() - PreviewInstance->GetCurrentTime()) > SMALL_NUMBER;
+
 		PreviewInstance->SetPlaying(false);
 		PreviewInstance->StepForward();
+
+		if(SMC && bShouldStepCloth)
+		{
+			SMC->bPerformSingleClothingTick = true;
+		}
 	}
-	else if (UDebugSkelMeshComponent* SMC = GetPreviewScene()->GetPreviewMeshComponent())
+	else if (SMC)
 	{
 		//@TODO: Should we hardcode 30 Hz here?
 		{
@@ -102,10 +111,18 @@ FReply SAnimationScrubPanel::OnClick_Forward_End()
 FReply SAnimationScrubPanel::OnClick_Backward_Step()
 {
 	UAnimSingleNodeInstance* PreviewInstance = GetPreviewInstance();
+	UDebugSkelMeshComponent* SMC = GetPreviewScene()->GetPreviewMeshComponent();
 	if (PreviewInstance)
 	{
+		bool bShouldStepCloth = PreviewInstance->GetCurrentTime() > SMALL_NUMBER;
+
 		PreviewInstance->SetPlaying(false);
 		PreviewInstance->StepBackward();
+
+		if(SMC && bShouldStepCloth)
+		{
+			SMC->bPerformSingleClothingTick = true;
+		}
 	}
 	return FReply::Handled();
 }
@@ -124,6 +141,8 @@ FReply SAnimationScrubPanel::OnClick_Backward_End()
 FReply SAnimationScrubPanel::OnClick_Forward()
 {
 	UAnimSingleNodeInstance* PreviewInstance = GetPreviewInstance();
+	UDebugSkelMeshComponent* SMC = GetPreviewScene()->GetPreviewMeshComponent();
+
 	if (PreviewInstance)
 	{
 		bool bIsReverse = PreviewInstance->IsReverse();
@@ -137,6 +156,11 @@ FReply SAnimationScrubPanel::OnClick_Forward()
 		else if (bIsPlaying) 
 		{
 			PreviewInstance->SetPlaying(false);
+			
+			if(SMC && SMC->bPauseClothingSimulationWithAnim)
+			{
+				SMC->SuspendClothingSimulation();
+			}
 		}
 		// if not playing, play forward
 		else 
@@ -149,11 +173,15 @@ FReply SAnimationScrubPanel::OnClick_Forward()
 
 			PreviewInstance->SetReverse(false);
 			PreviewInstance->SetPlaying(true);
+
+			if(SMC && SMC->bPauseClothingSimulationWithAnim)
+			{
+				SMC->ResumeClothingSimulation();
+			}
 		}
 	}
-	else if (UDebugSkelMeshComponent* SMC = GetPreviewScene()->GetPreviewMeshComponent())
+	else if(SMC)
 	{
-
 		SMC->GlobalAnimRateScale = (SMC->GlobalAnimRateScale > 0.0f) ? 0.0f : 1.0f;
 	}
 
@@ -511,7 +539,7 @@ void SAnimationScrubPanel::OnInsertAnimSequence( bool bBefore, int32 CurrentFram
 	}
 }
 
-void SAnimationScrubPanel::OnReZeroAnimSequence( )
+void SAnimationScrubPanel::OnReZeroAnimSequence(int32 FrameIndex)
 {
 	UAnimSingleNodeInstance* PreviewInstance = GetPreviewInstance();
 	if(PreviewInstance)
@@ -528,16 +556,28 @@ void SAnimationScrubPanel::OnReZeroAnimSequence( )
 				//Call modify to restore anim sequence current state
 				AnimSequence->Modify();
 
-				// Find vector that would translate current root bone location onto origin.
-				FVector ApplyTranslation = -1.f * PreviewSkelComp->GetComponentSpaceTransforms()[0].GetLocation();
-
-				// Convert into world space and eliminate 'z' translation. Don't want to move character into ground.
-				FVector WorldApplyTranslation = PreviewSkelComp->ComponentToWorld.TransformVector(ApplyTranslation);
-				WorldApplyTranslation.Z = 0.f;
-				ApplyTranslation = PreviewSkelComp->ComponentToWorld.InverseTransformVector(WorldApplyTranslation);
-
 				// As above, animations don't have any idea of hierarchy, so we don't know for sure if track 0 is the root bone's track.
 				FRawAnimSequenceTrack& RawTrack = AnimSequence->GetRawAnimationTrack(0);
+
+				// Find vector that would translate current root bone location onto origin.
+				FVector FrameTransform = FVector::ZeroVector;
+				if (FrameIndex == INDEX_NONE)
+				{
+					// Use current transform
+					FrameTransform = PreviewSkelComp->GetComponentSpaceTransforms()[0].GetLocation();
+				}
+				else if(RawTrack.PosKeys.IsValidIndex(FrameIndex))
+				{
+					// Use transform at frame
+					FrameTransform = RawTrack.PosKeys[FrameIndex];
+				}
+
+				FVector ApplyTranslation = -1.f * FrameTransform;
+
+				// Convert into world space
+				FVector WorldApplyTranslation = PreviewSkelComp->ComponentToWorld.TransformVector(ApplyTranslation);
+				ApplyTranslation = PreviewSkelComp->ComponentToWorld.InverseTransformVector(WorldApplyTranslation);
+
 				for(int32 i=0; i<RawTrack.PosKeys.Num(); i++)
 				{
 					RawTrack.PosKeys[i] += ApplyTranslation;

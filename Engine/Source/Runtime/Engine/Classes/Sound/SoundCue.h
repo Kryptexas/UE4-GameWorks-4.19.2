@@ -94,7 +94,7 @@ class USoundCue : public USoundBase
 
 	/* Attenuation settings to use if Override Attenuation is set to true */
 	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(EditCondition="bOverrideAttenuation"))
-	FAttenuationSettings AttenuationOverrides;
+	FSoundAttenuationSettings AttenuationOverrides;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
@@ -129,7 +129,7 @@ public:
 	virtual float GetPitchMultiplier() override;
 	virtual float GetMaxAudibleDistance() override;
 	virtual float GetDuration() override;
-	virtual const FAttenuationSettings* GetAttenuationSettingsToApply() const override;
+	virtual const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const override;
 	//~ End USoundBase Interface.
 
 	/** Construct and initialize a node within this Cue */

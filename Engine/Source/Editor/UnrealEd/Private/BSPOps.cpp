@@ -530,6 +530,7 @@ void FBSPOps::csgPrepMovingBrush( ABrush* Actor )
 
 	// Make sure simplified collision is up to date.
 	Actor->GetBrushComponent()->BuildSimpleBrushCollision();
+	Actor->RebuildNavigationData();
 }
 
 /**

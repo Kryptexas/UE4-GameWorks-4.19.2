@@ -105,6 +105,14 @@ enum class EBlueprintUsage : uint8
 	UsesBlueprint
 };
 
+/** Enum that indicates level of support of this node for a parciular asset class */
+enum class EAnimAssetHandlerType : uint8
+{
+	PrimaryHandler,
+	Supported,
+	NotSupported
+};
+
 /**
   * This is the base class for any animation graph nodes that generate or consume an animation pose in
   * the animation blend graph.
@@ -253,6 +261,12 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 		return nullptr;
 	}
+
+	/** 
+	 *	Returns whether this node supports the supplied asset class
+	 *	@param	bPrimaryAssetHandler	Is this the 'primary' handler for this asset (the node that should be created when asset is dropped)
+	 */
+	virtual EAnimAssetHandlerType SupportsAssetClass(const UClass* AssetClass) const;
 
 	// Event that observers can bind to so that they are notified about changes
 	// made to this node through the property system

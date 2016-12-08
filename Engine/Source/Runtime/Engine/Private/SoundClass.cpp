@@ -82,7 +82,8 @@ void USoundClass::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyC
 {
 	if (PropertyChangedEvent.Property != NULL)
 	{
-		static FName NAME_ChildClasses(TEXT("ChildClasses"));
+		static const FName NAME_ChildClasses(TEXT("ChildClasses"));
+		static const FName NAME_ParentClass(TEXT("ParentClass"));
 
 		if (PropertyChangedEvent.Property->GetFName() == NAME_ChildClasses)
 		{
@@ -120,6 +121,32 @@ void USoundClass::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyC
 				}
 			}
 
+			RefreshAllGraphs(false);
+		}
+		else if (PropertyChangedEvent.Property->GetFName() == NAME_ParentClass)
+		{
+			// Add this sound class to the parent class if it's not already added
+			if (ParentClass)
+			{
+				bool bIsChildClass = false;
+				for (int32 i = 0; i < ParentClass->ChildClasses.Num(); ++i)
+				{
+					USoundClass* ChildClass = ParentClass->ChildClasses[i];
+					if (ChildClass && ChildClass == this)
+					{
+						bIsChildClass = true;
+						break;
+					}
+				}
+
+				if (!bIsChildClass)
+				{
+					ParentClass->Modify();
+					ParentClass->ChildClasses.Add(this);
+				}
+			}
+
+			Modify();
 			RefreshAllGraphs(false);
 		}
 	}

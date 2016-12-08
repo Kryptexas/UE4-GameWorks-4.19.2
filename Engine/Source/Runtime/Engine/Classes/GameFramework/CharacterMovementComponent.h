@@ -1057,6 +1057,7 @@ public:
 
 	//BEGIN UNavMovementComponent Interface
 	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) override;
+	virtual void RequestPathMove(const FVector& MoveInput) override;
 	virtual bool CanStartPathFollowing() const override;
 	virtual bool CanStopPathFollowing() const override;
 	virtual float GetPathFollowingBrakingDistance(float MaxSpeed) const override;

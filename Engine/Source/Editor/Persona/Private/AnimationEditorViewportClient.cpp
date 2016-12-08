@@ -26,6 +26,7 @@
 #include "SAnimationEditorViewport.h"
 #include "AssetViewerSettings.h"
 #include "IPersonaEditorModeManager.h"
+#include "SkeletalMeshTypes.h"
 
 namespace {
 	// Value from UE3
@@ -122,7 +123,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	}
 
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateRaw(this, &FAnimationViewportClient::HandleSkeletalMeshChanged));
-	HandleSkeletalMeshChanged(InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh);
+	HandleSkeletalMeshChanged(nullptr, InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh);
 	InPreviewScene->RegisterOnInvalidateViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleInvalidateViews));
 	InPreviewScene->RegisterOnFocusViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleFocusViews));
 
@@ -273,17 +274,20 @@ bool FAnimationViewportClient::IsSetCameraFollowChecked() const
 	return bCameraFollow;
 }
 
-void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* InSkeletalMesh)
+void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* OldSkeletalMesh, USkeletalMesh* NewSkeletalMesh)
 {
-	GetSkeletonTree()->DeselectAll();
-
-	if (!bInitiallyFocused)
+	if (OldSkeletalMesh != NewSkeletalMesh || NewSkeletalMesh == nullptr)
 	{
-		FocusViewportOnPreviewMesh();
-		bInitiallyFocused = true;
-	}
+		GetSkeletonTree()->DeselectAll();
 
-	UpdateCameraSetup();
+		if (!bInitiallyFocused)
+		{
+			FocusViewportOnPreviewMesh();
+			bInitiallyFocused = true;
+		}
+
+		UpdateCameraSetup();
+	}
 
 	// Setup physics data from physics assets if available, clearing any physics setup on the component
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();

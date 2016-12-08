@@ -1233,6 +1233,7 @@ public:
 	 *
 	 * @param Index Tells where to insert the new elements.
 	 * @param Count Number of elements to add.
+	 * @see Insert, InsertZeroed, InsertDefaulted
 	 */
 	void InsertUninitialized(int32 Index, int32 Count = 1)
 	{
@@ -1258,12 +1259,26 @@ public:
 	 *
 	 * @param Index Tells where to insert the new elements.
 	 * @param Count Number of elements to add.
-	 * @see Insert, InsertUninitialized
+	 * @see Insert, InsertUninitialized, InsertDefaulted
 	 */
 	void InsertZeroed(int32 Index, int32 Count = 1)
 	{
 		InsertUninitialized(Index, Count);
 		FMemory::Memzero((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count * sizeof(ElementType));
+	}
+
+	/**
+	 * Inserts a given number of default-constructed elements into the array at a given
+	 * location.
+	 *
+	 * @param Index Tells where to insert the new elements.
+	 * @param Count Number of elements to add.
+	 * @see Insert, InsertUninitialized, InsertZeroed
+	 */
+	void InsertDefaulted(int32 Index, int32 Count = 1)
+	{
+		InsertUninitialized(Index, Count);
+		DefaultConstructItems<ElementType>((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count);
 	}
 
 	/**

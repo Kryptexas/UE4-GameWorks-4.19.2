@@ -240,8 +240,7 @@ template<> PX_CUDA_CALLABLE PX_FORCE_INLINE void checkType<const PxCapsuleGeomet
 }
 
 // the shape structure relies on punning capsules and spheres 
-// PT: removed because it keeps failing in random ways on random platforms
-//PX_COMPILE_TIME_ASSERT(PX_OFFSET_OF(PxCapsuleGeometry, radius) == PX_OFFSET_OF(PxSphereGeometry, radius));
+PX_COMPILE_TIME_ASSERT(PX_OFFSET_OF(PxCapsuleGeometry, radius) == PX_OFFSET_OF(PxSphereGeometry, radius));
 }
 
 #endif

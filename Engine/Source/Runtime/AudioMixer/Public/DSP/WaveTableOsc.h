@@ -6,11 +6,12 @@
 
 namespace Audio
 {
-	/** The various types of wave tables */
+	// Wavetable oscillator types
 	namespace EWaveTable
 	{
 		enum Type
 		{
+			None,
 			SineWaveTable,
 			SawWaveTable,
 			TriangleWaveTable,
@@ -18,120 +19,95 @@ namespace Audio
 			BandLimitedSawWaveTable,
 			BandLimitedTriangleWaveTable,
 			BandLimitedSquareWaveTable,
-			UserCreated
+			Custom
 		};
 	}
 
+	class FWaveTableOsc;
 
-	/** Base class for a wave table oscillator. */
+	// A factory interface for creating custom wave tables
+	class ICustomWaveTableOscFactory
+	{
+	public:
+		// Creates  custom wave table with the given requested size. Custom table doesn't necessarily have to honor the requested size.
+		virtual FWaveTableOsc* CreateCustomWaveTable(const int32 RequestedWaveTableSize) = 0;
+	};
+
+	// A wave table oscillator class
 	class FWaveTableOsc
 	{
 	public:
+		// Constructor
 		FWaveTableOsc();
+
+		// Virtual Destructor
 		virtual ~FWaveTableOsc();
 
-		/** Initializes the wave table oscillator */
-		void Init(const int32 InSampleRate, const int32 InTableSize = 1024);
+		// Initialize the wave table oscillator
+		void Init(const int32 InSampleRate, const float InFrequencyHz);
 
-		/** Set the frequency of the oscillator in hertz */
-		void SetFrequency(const float InFrequencyHz);
+		// Sets the sample rate of the oscillator.
+		void SetSampleRate(const int32 InSampleRate);
 
-		/** Sets the polarity of the wave table oscillator. True makes it unipolar. False makes it bipolar. */
-		void SetPolarity(const bool bInIsUnipolar);
+		// Resets the wave table read indices.
+		void Reset();
 
-		/** Function which returns the current in-phase and quad phase sample values. */
-		void operator()(float* OutSample, float* OutQuadSample);
+		// Sets the amount to scale and add to the output of the wave table
+		void SetScaleAdd(const float InScale, const float InAdd);
 
-		/** Returns the type of the wave table this is. */
-		virtual EWaveTable::Type GetType() const = 0;
+		// Returns the type of the wave table oscillator.
+		EWaveTable::Type GetType() const { return WaveTableType; }
+
+		// Sets the frequency of the wave table oscillator.
+		void SetFrequencyHz(const float InFrequencyHz);
+
+		// Returns the frequency of the wave table oscillator.
+		float GetFrequencyHz() const { return FrequencyHz; }
+
+		// Processes the wave table, outputs the normal and quad phase (optional) values 
+		void ProcessAudio(float* OutputNormalPhase, float* OutputQuadPhase = nullptr);
+
+		// Sets the factory interface to use to create a custom wave table
+		static void SetCustomWaveTableOscFactory(ICustomWaveTableOscFactory* InCustomWaveTableOscFactory);
+
+		// Creates a wave table using internal factories for standard wave tables or uses custom wave table factor if it exists.
+		static FWaveTableOsc* CreateWaveTable(const EWaveTable::Type WaveTableType, const int32 WaveTableSize = 1024);
 
 	protected:
-		/** Function to generate the wave table. */
-		virtual void Generate(const int32 InTableSize) = 0;
+		void UpdateFrequency();
 
-		/** Audio for the wave table. */
-		TArray<float> WaveTable;
+		// Custom wave table factory
+		static ICustomWaveTableOscFactory* CustomWaveTableOscFactory;
 
-	private:
+		// The wave table buffer
+		float* WaveTableBuffer;
 
-		/** Sample rate of the oscillator. */
+		// The wave table buffer size
+		int32 WaveTableBufferSize;
+
+		// The frequency of the output (given the sample rate)
+		float FrequencyHz;
+
+		// The sample rate of the oscillator
 		int32 SampleRate;
 
-		/** Read index of the wave table oscillator */
-		float ReadIndex;
+		// Normal phase read index
+		float NormalPhaseReadIndex;
 
-		/** Quadrature read index of the wave table oscillator */
+		// The quad-phase read index
 		float QuadPhaseReadIndex;
 
-		/** The amount to increment to the read indices whenever read from the oscillator */
-		float ReadDelta;
+		// The phase increment (based on frequency)
+		float PhaseIncrement;
 
-		/** What polarity the wave table generator works in. */
-		bool bIsUnipolar;
-	};
+		// Amount to scale the output by
+		float OutputScale;
 
-	class FSineWaveTable : public FWaveTableOsc
-	{
-	public:
-		EWaveTable::Type GetType() const { return EWaveTable::SineWaveTable; }
+		// Amount to add to the output
+		float OutputAdd;
 
-	protected:
-		virtual void Generate(const int32 InTableSize) override;
-		
-	};
-
-	class FSawWaveTable : public FWaveTableOsc
-	{
-	public:
-		EWaveTable::Type GetType() const { return EWaveTable::SawWaveTable; }
-
-	protected:
-		virtual void Generate(const int32 InTableSize) override;
-	};
-
-	class FBandLimitedSawWaveTable : public FWaveTableOsc
-	{
-	public:
-		EWaveTable::Type GetType() const { return EWaveTable::BandLimitedSawWaveTable; }
-
-	protected:
-		virtual void Generate(const int32 InTableSize) override;
-	};
-
-	class FTriangleWaveTable : public FWaveTableOsc
-	{
-	public:
-		EWaveTable::Type GetType() const { return EWaveTable::TriangleWaveTable; }
-
-	protected:
-		virtual void Generate(const int32 InTableSize) override;
-	};
-
-	class FBandLimitedTriangleWaveTable : public FWaveTableOsc
-	{
-	public:
-		EWaveTable::Type GetType() const { return EWaveTable::BandLimitedTriangleWaveTable; }
-
-	protected:
-		virtual void Generate(const int32 InTableSize) override;
-	};
-
-	class FSquareWaveTable : public FWaveTableOsc
-	{
-	public:
-		EWaveTable::Type GetType() const { return EWaveTable::SquareWaveTable; }
-
-	protected:
-		virtual void Generate(const int32 InTableSize) override;
-	};
-
-	class FBandLimitedSquareWaveTable : public FWaveTableOsc
-	{
-	public:
-		EWaveTable::Type GetType() const { return EWaveTable::BandLimitedSquareWaveTable; }
-
-	protected:
-		virtual void Generate(const int32 InTableSize) override;
+		// The wave table oscillator type
+		EWaveTable::Type WaveTableType;
 	};
 
 }

@@ -428,10 +428,7 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 	{
 		Collector.AddReferencedObject( This->PersistentLevel, This );
 
-		for( int32 Index = 0; Index < This->Levels.Num(); Index++ )
-		{
-			Collector.AddReferencedObject( This->Levels[Index], This );
-		}
+		Collector.AddReferencedObjects( This->Levels, This );
 
 		Collector.AddReferencedObject( This->CurrentLevel, This );
 		Collector.AddReferencedObject( This->NetDriver, This );
@@ -446,18 +443,9 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		Collector.AddReferencedObject( This->NavigationSystem, This );
 		Collector.AddReferencedObject( This->AvoidanceManager, This );
 
-		for( int32 Index = 0; Index < This->ExtraReferencedObjects.Num(); Index++ )
-		{
-			Collector.AddReferencedObject( This->ExtraReferencedObjects[Index], This );
-		}
-		for( int32 Index = 0; Index < This->StreamingLevels.Num(); Index++ )
-		{
-			Collector.AddReferencedObject( This->StreamingLevels[Index], This );
-		}
-		for (auto* Object : This->PerModuleDataObjects)
-		{
-			Collector.AddReferencedObject(Object, This);
-		}
+		Collector.AddReferencedObjects( This->ExtraReferencedObjects, This );
+		Collector.AddReferencedObjects( This->StreamingLevels, This );
+		Collector.AddReferencedObjects(This->PerModuleDataObjects, This);
 	}
 #endif
 
@@ -496,19 +484,19 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 
 		if (PersistentLevel->MapBuildData->IsLegacyBuildData())
 		{
-	TArray<UTexture2D*> LightMapsAndShadowMaps;
-	GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
+			TArray<UTexture2D*> LightMapsAndShadowMaps;
+			GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
 
-	for (auto* Tex : LightMapsAndShadowMaps)
-	{
-				if (Tex)
-		{
-					if (!Tex->Rename(*Tex->GetName(), NewOuter, Flags))
+			for (UTexture2D* Tex : LightMapsAndShadowMaps)
 			{
-				return false;
+				if (Tex)
+				{
+					if (!Tex->Rename(*Tex->GetName(), NewOuter, Flags))
+					{
+						return false;
+					}
+				}
 			}
-		}
-	}
 		}
 		else
 		{
@@ -517,15 +505,15 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 			UPackage* BuildDataPackage = PersistentLevel->MapBuildData->GetOutermost();
 
 			if (!BuildDataPackage->Rename(*NewPackageName, NewOuter, Flags))
-	{
-		return false;
-	}
+			{
+				return false;
+			}
 		}
 
 		if (!PersistentLevel->MapBuildData->Rename(*NewMapBuildDataName.ToString(), NewOuter, Flags))
-	{
-		return false;
-	}
+		{
+			return false;
+		}
 	}
 
 	// Rename the level script blueprint now, unless we are in PostLoad. ULevel::PostLoad should handle renaming this at load time.
@@ -639,18 +627,18 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 				NewTextureOuter = NewBuildData;
 			}
 
-		TArray<UTexture2D*> LightMapsAndShadowMaps;
-		GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
+			TArray<UTexture2D*> LightMapsAndShadowMaps;
+			GetLightMapsAndShadowMaps(PersistentLevel, LightMapsAndShadowMaps);
 
-		// Duplicate the textures, if any
-		for (auto* Tex : LightMapsAndShadowMaps)
-		{
-				if (Tex && Tex->GetOutermost() != NewTextureOuter)
+			// Duplicate the textures, if any
+			for (UTexture2D* Tex : LightMapsAndShadowMaps)
 			{
+				if (Tex && Tex->GetOutermost() != NewTextureOuter)
+				{
 					UObject* NewTex = StaticDuplicateObject(Tex, NewTextureOuter, Tex->GetFName());
-				ReplacementMap.Add(Tex, NewTex);
+					ReplacementMap.Add(Tex, NewTex);
+				}
 			}
-		}
 		}
 
 		// Duplicate the level script blueprint generated classes as well
@@ -690,12 +678,12 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 		const bool bNullPrivateRefs = false;
 		const bool bIgnoreOuterRef = true;
 		const bool bIgnoreArchetypeRef = false;
-		for (auto* Obj : ObjectsToFixReferences)
+		for (UObject* Obj : ObjectsToFixReferences)
 		{
 			FArchiveReplaceObjectRef<UObject> ReplaceAr(Obj, ReplacementMap, bNullPrivateRefs, bIgnoreOuterRef, bIgnoreArchetypeRef);
 		}
 		// PostEditChange is required for some objects to react to the change, e.g. update render-thread proxies
-		for (auto* Obj : ObjectsToFixReferences)
+		for (UObject* Obj : ObjectsToFixReferences)
 		{
 			Obj->PostEditChange();
 		}
@@ -769,9 +757,9 @@ void UWorld::FinishDestroy()
 		bool bContainsAnotherWorld = false;
 		TArray<UObject*> PotentialWorlds;
 		GetObjectsWithOuter(WorldPackage, PotentialWorlds, false);
-		for (auto ObjIt = PotentialWorlds.CreateConstIterator(); ObjIt; ++ObjIt)
+		for (UObject* PotentialWorld : PotentialWorlds)
 		{
-			UWorld* World = Cast<UWorld>(*ObjIt);
+			UWorld* World = Cast<UWorld>(PotentialWorld);
 			if (World && World != this)
 			{
 				bContainsAnotherWorld = true;
@@ -929,7 +917,7 @@ UWorld* UWorld::GetWorld() const
 void UWorld::SetupParameterCollectionInstances()
 {
 	// Create an instance for each parameter collection in memory
-	for (auto* CurrentCollection : TObjectRange<UMaterialParameterCollection>())
+	for (UMaterialParameterCollection* CurrentCollection : TObjectRange<UMaterialParameterCollection>())
 	{
 		AddParameterCollectionInstance(CurrentCollection, false);
 	}
@@ -950,7 +938,7 @@ void UWorld::AddParameterCollectionInstance(UMaterialParameterCollection* Collec
 		}
 	}
 
-	auto NewInstance = NewObject<UMaterialParameterCollectionInstance>();
+	UMaterialParameterCollectionInstance* NewInstance = NewObject<UMaterialParameterCollectionInstance>();
 	NewInstance->SetCollection(Collection, this);
 
 	if (ExistingIndex != INDEX_NONE)
@@ -2260,7 +2248,7 @@ void UWorld::RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval )
 	check(!Level->IsPendingKill());
 	check(!Level->IsUnreachable());
 
-	if ( CurrentLevelPendingVisibility == NULL && Level->bIsVisible )
+	if ( CurrentLevelPendingVisibility == nullptr && Level->bIsVisible )
 	{
 		// Keep track of timing.
 		double StartTime = FPlatformTime::Seconds();	
@@ -2269,7 +2257,7 @@ void UWorld::RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval )
 		if ( bAllowIncrementalRemoval && GLevelStreamingUnregisterComponentsTimeLimit > 0.0 )
 		{
 			bFinishRemovingLevel = false;
-			if (CurrentLevelPendingInvisibility == NULL)
+			if (CurrentLevelPendingInvisibility == nullptr)
 			{
 				// Mark level as being the one in process of being made invisible. 
 				// This will prevent this level from being unloaded or made visible in the meantime
@@ -2288,7 +2276,7 @@ void UWorld::RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval )
 					if (Level->IncrementalUnregisterComponents(NumComponentsToUnregister))
 					{
 						// We're done, so the level can be removed
-						CurrentLevelPendingInvisibility = NULL;
+						CurrentLevelPendingInvisibility = nullptr;
 						bFinishRemovingLevel = true;
 						break;
 					}
@@ -2297,97 +2285,99 @@ void UWorld::RemoveFromWorld( ULevel* Level, bool bAllowIncrementalRemoval )
 		}
         else
         {
-		Level->bIsBeingRemoved = true;
+			Level->bIsBeingRemoved = true;
         }
 
 		if ( bFinishRemovingLevel )
 		{
-		for (int32 ActorIdx = 0; ActorIdx < Level->Actors.Num(); ActorIdx++)
-		{
-			AActor* Actor = Level->Actors[ActorIdx];
-			if (Actor != NULL)
+			for (int32 ActorIdx = 0; ActorIdx < Level->Actors.Num(); ActorIdx++)
 			{
-				Actor->RouteEndPlay(EEndPlayReason::RemovedFromWorld);
-
-				if (NetDriver)
+				if (AActor* Actor = Level->Actors[ActorIdx])
 				{
-					NetDriver->NotifyActorLevelUnloaded(Actor);
-				}
-			}
-		}
+					Actor->RouteEndPlay(EEndPlayReason::RemovedFromWorld);
 
-		// Remove any pawns from the pawn list that are about to be streamed out
-		for( FConstPawnIterator Iterator = GetPawnIterator(); Iterator; ++Iterator )
-		{
-			APawn* Pawn = Iterator->Get();
-			if (Pawn->IsInLevel(Level))
-			{
-				RemovePawn(Pawn);
-				--Iterator;
-			}
-			else if (UCharacterMovementComponent* CharacterMovement = Cast<UCharacterMovementComponent>(Pawn->GetMovementComponent()))
-			{
-				// otherwise force floor check in case the floor was streamed out from under it
-				CharacterMovement->bForceNextFloorCheck = true;
-			}
-		}
-
-		Level->ReleaseRenderingResources();
-
-		// Remove from the world's level array and destroy actor components.
-		IStreamingManager::Get().RemoveLevel( Level );
-		
-		Level->ClearLevelComponents();
-
-		// notify server that the client has removed this level
-		if (!Level->bClientOnlyVisible)
-		{
-			for (FLocalPlayerIterator It(GEngine, this); It; ++It)
-			{
-				APlayerController* LocalPlayerController = It->GetPlayerController(this);
-				if (LocalPlayerController != NULL)
-				{
-					// Remap packagename for PIE networking before sending out to server
-					FName PackageName = Level->GetOutermost()->GetFName();
-					FString PackageNameStr = PackageName.ToString();
-					if (GEngine->NetworkRemapPath(LocalPlayerController->GetNetDriver(), PackageNameStr, false))
+					if (NetDriver)
 					{
-						PackageName = FName(*PackageNameStr);
+						NetDriver->NotifyActorLevelUnloaded(Actor);
 					}
-
-					LocalPlayerController->ServerUpdateLevelVisibility(PackageName, false);
 				}
 			}
-		}
+
+			// Remove any pawns from the pawn list that are about to be streamed out
+			for( FConstPawnIterator Iterator = GetPawnIterator(); Iterator; ++Iterator )
+			{
+				APawn* Pawn = Iterator->Get();
+				if (Pawn->IsInLevel(Level))
+				{
+					RemovePawn(Pawn);
+					--Iterator;
+				}
+				else if (UCharacterMovementComponent* CharacterMovement = Cast<UCharacterMovementComponent>(Pawn->GetMovementComponent()))
+				{
+					// otherwise force floor check in case the floor was streamed out from under it
+					CharacterMovement->bForceNextFloorCheck = true;
+				}
+			}
+
+			Level->ReleaseRenderingResources();
+
+			// Remove from the world's level array and destroy actor components.
+			IStreamingManager::Get().RemoveLevel( Level );
 		
-		// Remove any actors in the network list
-		for ( int i = 0; i < Level->Actors.Num(); i++ )
-		{
-			RemoveNetworkActor( Level->Actors[ i ] );
-		}
+			Level->ClearLevelComponents();
 
-		Level->bIsVisible = false;
+			// notify server that the client has removed this level
+			if (!Level->bClientOnlyVisible)
+			{
+				for (FLocalPlayerIterator It(GEngine, this); It; ++It)
+				{
+					APlayerController* LocalPlayerController = It->GetPlayerController(this);
+					if (LocalPlayerController != NULL)
+					{
+						// Remap packagename for PIE networking before sending out to server
+						FName PackageName = Level->GetOutermost()->GetFName();
+						FString PackageNameStr = PackageName.ToString();
+						if (GEngine->NetworkRemapPath(LocalPlayerController->GetNetDriver(), PackageNameStr, false))
+						{
+							PackageName = FName(*PackageNameStr);
+						}
 
-		// Notify world composition: will place a level at original position
-		if (WorldComposition)
-		{
-			WorldComposition->OnLevelRemovedFromWorld(Level);
-		}
+						LocalPlayerController->ServerUpdateLevelVisibility(PackageName, false);
+					}
+				}
+			}
+		
+			// Remove any actors in the network list
+			for (AActor* Actor : Level->Actors)
+			{
+				if (Actor)
+				{
+					RemoveNetworkActor(Actor);
+				}
+			}
 
-		// Make sure level always has OwningWorld in the editor
-		if (IsGameWorld())
-		{
-			Levels.Remove(Level);
-			Level->OwningWorld = NULL;
-		}
+			Level->bIsVisible = false;
+
+			// Notify world composition: will place a level at original position
+			if (WorldComposition)
+			{
+				WorldComposition->OnLevelRemovedFromWorld(Level);
+			}
+
+			// Make sure level always has OwningWorld in the editor
+			if (IsGameWorld())
+			{
+				Levels.Remove(Level);
+				Level->OwningWorld = nullptr;
+			}
 				
-		// let the universe know we have removed a level
-		FWorldDelegates::LevelRemovedFromWorld.Broadcast(Level, this);
-		BroadcastLevelsChanged();
+			// let the universe know we have removed a level
+			FWorldDelegates::LevelRemovedFromWorld.Broadcast(Level, this);
+			BroadcastLevelsChanged();
 
-		ULevelStreaming::BroadcastLevelVisibleStatus(this, Level->GetOutermost()->GetFName(), false);
+			ULevelStreaming::BroadcastLevelVisibleStatus(this, Level->GetOutermost()->GetFName(), false);
 
-		Level->bIsBeingRemoved = false;
+			Level->bIsBeingRemoved = false;
 		} // if ( bFinishRemovingLevel )
 
 #if PERF_TRACK_DETAILED_ASYNC_STATS
@@ -2630,9 +2620,8 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 		const FString PlayWorldMapName = ConvertToPIEPackageName(OwningWorld->GetOutermost()->GetName(), WorldContext.PIEInstance);
 
 		PackageNamesBeingDuplicatedForPIE.Add(PlayWorldMapName);
-		for (auto LevelIt = OwningWorld->StreamingLevels.CreateConstIterator(); LevelIt; ++LevelIt)
+		for (ULevelStreaming* StreamingLevel : OwningWorld->StreamingLevels)
 		{
-			ULevelStreaming* StreamingLevel = *LevelIt;
 			if (StreamingLevel)
 			{
 				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
@@ -3384,20 +3373,20 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	}
 
 	// update the auto-complete list for the console
-	UConsole* ViewportConsole = (GEngine->GameViewport != NULL) ? GEngine->GameViewport->ViewportConsole : NULL;
-	if (ViewportConsole != NULL)
+	UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
+	if (ViewportConsole != nullptr)
 	{
 		ViewportConsole->BuildRuntimeAutoCompleteList();
 	}
 
 	// let all subsystems/managers know:
 	// @note if UWorld starts to host more of these it might a be a good idea to create a generic IManagerInterface of some sort
-	if (NavigationSystem != NULL)
+	if (NavigationSystem != nullptr)
 	{
 		NavigationSystem->OnInitializeActors();
 	}
 
-	if (AISystem != NULL)
+	if (AISystem != nullptr)
 	{
 		AISystem->InitializeActorsForPlay(bResetTime);
 	}
@@ -3450,7 +3439,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 
 	FWorldDelegates::OnWorldCleanup.Broadcast(this, bSessionEnded, bCleanupResources);
 
-	if (AISystem != NULL)
+	if (AISystem != nullptr)
 	{
 		AISystem->CleanupWorld(bSessionEnded, bCleanupResources, NewWorld);
 	}
@@ -3702,18 +3691,16 @@ void UWorld::AddNetworkActor( AActor* Actor )
 
 void UWorld::RemoveNetworkActor( AActor* Actor )
 {
-	if ( Actor == NULL )
+	if (Actor)
 	{
-		return;
-	}
-
-	ForEachNetDriver(GEngine, this, [Actor](UNetDriver* const Driver)
-	{
-		if (Driver != nullptr)
+		ForEachNetDriver(GEngine, this, [Actor](UNetDriver* const Driver)
 		{
-			Driver->GetNetworkObjectList().GetObjects().Remove(Actor);
-		}
-	});
+			if (Driver != nullptr)
+			{
+				Driver->GetNetworkObjectList().GetObjects().Remove(Actor);
+			}
+		});
+	}
 }
 
 FDelegateHandle UWorld::AddOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler )
@@ -5174,22 +5161,20 @@ UWorld* FSeamlessTravelHandler::Tick()
 			TArray<AActor*> ActuallyKeptActors;
 			ActuallyKeptActors.Reserve(KeepAnnotation.Num());
 
-			// rename dynamic actors in the old world's PersistentLevel that we want to keep into the new world
-			for (FActorIterator It(CurrentWorld); It; ++It)
+			// Rename dynamic actors in the old world's PersistentLevel that we want to keep into the new world
+			auto ProcessActor = [this, &KeepAnnotation, &ActuallyKeptActors, NetDriver](AActor* TheActor) -> bool
 			{
-				AActor* TheActor = *It;
-
-				const bool bIsInCurrentLevel	= TheActor->GetLevel() == CurrentWorld->PersistentLevel;
-				const bool bManuallyMarkedKeep	= KeepAnnotation.Get(TheActor);
-				const bool bDormant				= NetDriver && NetDriver->ServerConnection && NetDriver->ServerConnection->DormantActors.Contains(TheActor);
-				const bool bKeepNonOwnedActor	= TheActor->Role < ROLE_Authority && !bDormant && !TheActor->IsNetStartupActor();
-				const bool bForceExcludeActor	= TheActor->IsA(ALevelScriptActor::StaticClass());
+				const bool bIsInCurrentLevel = TheActor->GetLevel() == CurrentWorld->PersistentLevel;
+				const bool bManuallyMarkedKeep = KeepAnnotation.Get(TheActor);
+				const bool bDormant = NetDriver && NetDriver->ServerConnection && NetDriver->ServerConnection->DormantActors.Contains(TheActor);
+				const bool bKeepNonOwnedActor = TheActor->Role < ROLE_Authority && !bDormant && !TheActor->IsNetStartupActor();
+				const bool bForceExcludeActor = TheActor->IsA(ALevelScriptActor::StaticClass());
 
 				// Keep if it's in the current level AND it isn't specifically excluded AND it was either marked as should keep OR we don't own this actor
 				if (bIsInCurrentLevel && !bForceExcludeActor && (bManuallyMarkedKeep || bKeepNonOwnedActor))
 				{
-					It.ClearCurrent(); //@warning: invalidates *It until next iteration
 					ActuallyKeptActors.Add(TheActor);
+					return true;
 				}
 				else
 				{
@@ -5207,7 +5192,24 @@ UWorld* FSeamlessTravelHandler::Tick()
 					{
 						NetDriver->NotifyActorLevelUnloaded(TheActor);
 					}
+					return false;
 				}
+			};
+
+			// We move everything but the player controllers first, and then the controllers, keeping their relative order, to avoid breaking any call to GetPlayerController with a fixed index.
+			for (FActorIterator It(CurrentWorld); It; ++It)
+			{
+				AActor* TheActor = *It;
+				if (!TheActor->IsA(APlayerController::StaticClass()))
+				{
+					ProcessActor(TheActor);
+				}
+			}
+
+			for (FConstPlayerControllerIterator Iterator = CurrentWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
+			{
+				APlayerController* Player = Iterator->Get();
+				ProcessActor(Player);
 			}
 
  			bool bCreateNewGameMode = !bIsClient;
@@ -5299,6 +5301,15 @@ UWorld* FSeamlessTravelHandler::Tick()
 				if (Level)
 				{
 					CastChecked<UWorld>(Level->GetOuter())->MarkObjectsPendingKill();
+				}
+			}
+
+			for (ULevelStreaming* LevelStreaming : CurrentWorld->StreamingLevels)
+			{
+				// If an unloaded levelstreaming still has a loaded level we need to mark its objects to be deleted as well
+				if ((!LevelStreaming->bShouldBeLoaded || !LevelStreaming->bShouldBeVisible) && LevelStreaming->GetLoadedLevel())
+				{
+					CastChecked<UWorld>(LevelStreaming->GetLoadedLevel()->GetOuter())->MarkObjectsPendingKill();
 				}
 			}
 
@@ -5704,7 +5715,7 @@ FString UWorld::RemovePIEPrefix(const FString &Source)
 
 UWorld* UWorld::FindWorldInPackage(UPackage* Package)
 {
-	UWorld* RetVal = NULL;
+	UWorld* RetVal = nullptr;
 	TArray<UObject*> PotentialWorlds;
 	GetObjectsWithOuter(Package, PotentialWorlds, false);
 	for ( auto ObjIt = PotentialWorlds.CreateConstIterator(); ObjIt; ++ObjIt )
@@ -6346,7 +6357,7 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bSho
             SlowTask.EnterProgressFrame(10.0f);
             if (Scene)
             {
-				for (auto* Level : Levels)
+				for (ULevel* Level : Levels)
 				{
 					Level->ReleaseRenderingResources();
 				}
@@ -6355,7 +6366,7 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel, bool bSho
                 GetRendererModule().RemoveScene(Scene);
                 GetRendererModule().AllocateScene(this, bRequiresHitProxies, FXSystem != nullptr, InFeatureLevel );
 
-				for (auto* Level : Levels)
+				for (ULevel* Level : Levels)
 				{
 					Level->InitializeRenderingResources();
 					Level->PrecomputedVisibilityHandler.UpdateScene(Scene);

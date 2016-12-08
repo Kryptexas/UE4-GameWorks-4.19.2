@@ -7,20 +7,4 @@
 
 namespace Audio
 {
-	/** 
-	* FChorus
-	* Takes mono samples in and returns flanged mono samples out.
-	*/
-	class FChorus : public FModulatedDelay
-	{
-	public:
-		/** Constructor */
-		FChorus();
-
-		/** Destructor */
-		virtual ~FChorus();
-
-		/** Initialize the flanger with the given sample rate. */
-		void Init(int32 InSampleRate) override;
-	};
 }

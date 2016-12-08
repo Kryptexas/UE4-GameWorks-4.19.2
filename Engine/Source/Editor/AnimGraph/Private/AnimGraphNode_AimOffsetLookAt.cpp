@@ -30,7 +30,14 @@ FText UAnimGraphNode_AimOffsetLookAt::GetTooltipText() const
 
 FText UAnimGraphNode_AimOffsetLookAt::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (Node.BlendSpace == nullptr)
+	UBlendSpaceBase* BlendSpaceToCheck = Node.BlendSpace;
+	UEdGraphPin* BlendSpacePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_AimOffsetLookAt, BlendSpace));
+	if (BlendSpacePin != nullptr && BlendSpaceToCheck == nullptr)
+	{
+		BlendSpaceToCheck = Cast<UBlendSpaceBase>(BlendSpacePin->DefaultObject);
+	}
+
+	if (BlendSpaceToCheck == nullptr)
 	{
 		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
@@ -45,7 +52,7 @@ FText UAnimGraphNode_AimOffsetLookAt::GetNodeTitle(ENodeTitleType::Type TitleTyp
 	//        choose to mark this dirty when that happens for this to properly work
 	else //if (!CachedNodeTitles.IsTitleCached(TitleType, this))
 	{
-		const FText BlendSpaceName = FText::FromString(Node.BlendSpace->GetName());
+		const FText BlendSpaceName = FText::FromString(BlendSpaceToCheck->GetName());
 
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
@@ -134,22 +141,50 @@ void UAnimGraphNode_AimOffsetLookAt::SetAnimationAsset(UAnimationAsset* Asset)
 
 void UAnimGraphNode_AimOffsetLookAt::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
-	if (Node.BlendSpace == NULL)
+	UBlendSpaceBase* BlendSpaceToCheck = Node.BlendSpace;
+	UEdGraphPin* BlendSpacePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_AimOffsetLookAt, BlendSpace));
+	if (BlendSpacePin != nullptr && BlendSpaceToCheck == nullptr)
+	{
+		BlendSpaceToCheck = Cast<UBlendSpaceBase>(BlendSpacePin->DefaultObject);
+	}
+
+	if (!BlendSpaceToCheck)
 	{
 		MessageLog.Error(TEXT("@@ references an unknown blend space"), this);
 	}
-	else if (Cast<UAimOffsetBlendSpace>(Node.BlendSpace) == NULL &&
-		Cast<UAimOffsetBlendSpace1D>(Node.BlendSpace) == NULL)
+	else if (Cast<UAimOffsetBlendSpace>(BlendSpaceToCheck) == nullptr &&
+		Cast<UAimOffsetBlendSpace1D>(BlendSpaceToCheck) == nullptr)
 	{
 		MessageLog.Error(TEXT("@@ references an invalid blend space (one that is not an aim offset)"), this);
 	}
 	else
 	{
-		USkeleton* BlendSpaceSkeleton = Node.BlendSpace->GetSkeleton();
+		const USkeleton* BlendSpaceSkeleton = BlendSpaceToCheck->GetSkeleton();
 		if (BlendSpaceSkeleton && // if blend space doesn't have skeleton, it might be due to blend space not loaded yet, @todo: wait with anim blueprint compilation until all assets are loaded?
 			!BlendSpaceSkeleton->IsCompatible(ForSkeleton))
 		{
 			MessageLog.Error(TEXT("@@ references blendspace that uses different skeleton @@"), this, BlendSpaceSkeleton);
+		}
+
+		// Make sure that the source socket name is a valid one for the skeleton
+		UEdGraphPin* SocketNamePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_AimOffsetLookAt, SourceSocketName));
+		FName SocketNameToCheck = (SocketNamePin != nullptr) ? FName(*SocketNamePin->DefaultValue) : Node.SourceSocketName;
+
+		// Temporary fix where skeleton is not fully loaded during AnimBP compilation and thus the socket name check is invalid UE-39499 (NEED FIX) 
+		if (BlendSpaceSkeleton && !BlendSpaceSkeleton->HasAnyFlags(RF_NeedPostLoad))
+		{
+			const bool bValidValue = SocketNamePin == nullptr && BlendSpaceSkeleton->FindSocket(Node.SourceSocketName);
+			const bool bValidPinValue = SocketNamePin != nullptr && BlendSpaceSkeleton->FindSocket(FName(*SocketNamePin->DefaultValue));
+			const bool bValidConnectedPin = SocketNamePin != nullptr && SocketNamePin->LinkedTo.Num();
+
+			if (!bValidValue && !bValidPinValue && !bValidConnectedPin)
+			{ 
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("SocketName"), FText::FromName(SocketNameToCheck));
+
+				const FText Msg = FText::Format(LOCTEXT("SocketNameNotFound", "@@ - Socket {SocketName} not found in Skeleton"), Args);
+				MessageLog.Error(*Msg.ToString(), this);
+			}
 		}
 	}
 

@@ -231,6 +231,7 @@
 #include "Animation/BlendSpace.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
+#include "GameFramework/ForceFeedbackAttenuation.h"
 #include "Haptics/HapticFeedbackEffect_Curve.h"
 #include "Haptics/HapticFeedbackEffect_Buffer.h"
 #include "Haptics/HapticFeedbackEffect_SoundWave.h"
@@ -243,6 +244,7 @@
 #include "ImageUtils.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "Factories/PreviewMeshCollectionFactory.h"
+#include "Factories/ForceFeedbackAttenuationFactory.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -6483,6 +6485,24 @@ UObject* UStructureFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 {
 	ensure(UUserDefinedStruct::StaticClass() == Class);
 	return FStructureEditorUtils::CreateUserDefinedStruct(InParent, Name, Flags);
+}
+
+/*-----------------------------------------------------------------------------
+UForceFeedbackAttenuationFactory implementation.
+-----------------------------------------------------------------------------*/
+UForceFeedbackAttenuationFactory::UForceFeedbackAttenuationFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+	SupportedClass = UForceFeedbackAttenuation::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* UForceFeedbackAttenuationFactory::FactoryCreateNew( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn )
+{
+	return NewObject<UForceFeedbackAttenuation>(InParent, InName, Flags);
 }
 
 /*-----------------------------------------------------------------------------

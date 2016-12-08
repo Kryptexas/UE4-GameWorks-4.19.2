@@ -7,74 +7,35 @@
 
 namespace Audio
 {
-	/** One Pole Feedback Filter */
-	class FOnePole
+	// Simple 1-pole lowpass filter
+	class FOnePoleLPF
 	{
 	public:
-		/** Constructor */
-		FOnePole()
-			: A0(1.0f)
-			, B1(0.0f)
-			, Z1(0.0f)
-		{
-		}
 
-		/** Destructor */
-		virtual ~FOnePole()
-		{
-		}
-
-		/** Initialize the LPF */
-		void Init()
-		{
-			A0 = 1.0f;
-			B1 = 0.0f;
-			Z1 = 0.0f;
-		}
-
-		/** Directly set the filter coefficients */
-		void SetCoefficients(const float InA0, const float InB1)
-		{
-			A0 = InA0;
-			B1 = InB1;
-		}
-
-		/** Filter the input sample. */
-		float operator()(const float InSample)
-		{
-			const float Yn = A0 * InSample + B1 * Z1;
-
-			// Keep float values in full precision
-			return Z1 = UnderflowClamp(Yn);
-		}
-
-	protected:
-		// Coefficients
-		float A0;
-		float B1;
-
-		/** One sample delay. */
-		float Z1;
-	};
-
-	/** One Pole Low Pass Filter */
-	class FOnePoleLPF : public FOnePole
-	{
-	public:
+		// Constructor 
 		FOnePoleLPF()
 			: CutoffFrequency(0.0f)
-		{
-			SetFrequency(1.0f);
-		}
+			, B1(0.0f)
+			, A0(1.0f)
+			, Z1(0.0f)
+		{}
 
-		/** Directly sets the G-coefficient. */
-		FORCEINLINE void SetG(const float InG)
-		{
+		// Set the LPF gain coefficient
+		FORCEINLINE void SetG(float InG)
+		{ 
 			B1 = InG;
 			A0 = 1.0f - B1;
 		}
 
-		/** Sets the filter frequency using normalized frequency */
+		// Resets the sample delay to 0
+		void Reset()
+		{
+			B1 = 0.0f;
+			A0 = 1.0f;
+			Z1 = 0.0f;
+		}
+
+		/** Sets the filter frequency using normalized frequency (between 0.0 and 1.0f or 0.0 hz and Nyquist Frequency in Hz) */
 		FORCEINLINE void SetFrequency(const float InFrequency)
 		{
 			if (CutoffFrequency != InFrequency)
@@ -85,30 +46,35 @@ namespace Audio
 			}
 		}
 
-		float CutoffFrequency;
-	};
-
-	/** One Pole Highpass Pass Filter */
-	class FOnePoleHPF : public FOnePole
-	{
-	public:
-		FOnePoleHPF()
-			: CutoffFrequency(1.0f)
+		float ProcessAudio(const float InputSample)
 		{
-			SetFrequency(0.0f);
+			// read the delay line to get w(n-D); call base class
+			// read
+			float Yn = InputSample*A0 + B1*Z1;
+
+			// Underflow check
+			UnderflowClamp(Yn);
+
+			// Write to z1 delayed sample
+			Z1 = Yn;
+			return Yn;
 		}
 
-		FORCEINLINE void SetFrequency(const float InFrequency)
+		// Process audio
+		void ProcessAudio(const float* InputSample, float* OutputSample)
 		{
-			if (CutoffFrequency != InFrequency)
-			{
-				CutoffFrequency = InFrequency;
-				B1 = -FMath::Exp(PI * (CutoffFrequency - 0.5f));
-				A0 = 1.0f + B1;
-			}
+			*OutputSample = ProcessAudio(*InputSample);
 		}
 
+	protected:
 		float CutoffFrequency;
+
+		// Filter coefficients
+		float B1;
+		float A0;
+
+		// 1-sample delay
+		float Z1;
 	};
 
 }

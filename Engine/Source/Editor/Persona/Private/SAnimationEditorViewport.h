@@ -126,7 +126,7 @@ public:
 	const TSharedPtr<FUICommandList>& GetCommandList() const { return UICommandList; }
 
 	/** Handle the skeletal mesh changing */
-	void HandlePreviewMeshChanged(class USkeletalMesh* SkeletalMesh);
+	void HandlePreviewMeshChanged(class USkeletalMesh* OldSkeletalMesh, class USkeletalMesh* NewSkeletalMesh);
 
 	/** Function to get the number of LOD models associated with the preview skeletal mesh*/
 	int32 GetLODModelCount() const;
@@ -384,6 +384,9 @@ private:
 	bool IsDisablingClothSimulation() const;
 
 	void OnApplyClothWind();
+
+	void OnPauseClothingSimWithAnim();
+	bool IsPausingClothingSimWithAnim();
 
 	/** Show cloth simulation normals */
 	void OnShowClothSimulationNormals();

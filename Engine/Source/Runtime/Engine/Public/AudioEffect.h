@@ -8,13 +8,14 @@
 
 #include "CoreMinimal.h"
 #include "Sound/SoundMix.h"
+#include "AudioDevice.h"
 
 class FAudioDevice;
 class FSoundSource;
 class UReverbEffect;
 struct FReverbSettings;
 
-class FAudioReverbEffect
+class ENGINE_API FAudioReverbEffect
 {
 public:
 	/** Sets the default values for a reverb effect */
@@ -95,7 +96,7 @@ public:
 	/** 
 	 * Engine hook to handle setting and fading in of reverb effects
 	 */
-	void SetReverbSettings( const FReverbSettings& ReverbSettings );
+	void SetReverbSettings(const FReverbSettings& ReverbSettings, bool bForce = false);
 
 	/** 
 	 * Engine hook to handle setting and fading in of EQ effects and group ducking
@@ -206,6 +207,8 @@ protected:
 	FAudioReverbEffect		CurrentReverbEffect;
 	FAudioReverbEffect		PrevReverbEffect;
 	FAudioReverbEffect		DestinationReverbEffect;
+
+	FReverbSettings 		CurrentReverbSettings;
 
 	USoundMix*				CurrentEQMix;
 

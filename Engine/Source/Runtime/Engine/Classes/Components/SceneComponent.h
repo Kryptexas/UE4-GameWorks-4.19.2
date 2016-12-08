@@ -1014,7 +1014,7 @@ protected:
 	/** Calculate the new ComponentToWorld transform for this component.
 		Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
 		If Parent is not passed in we use the component's AttachParent*/
-	FORCEINLINE FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL, FName SocketName = NAME_None) const
+	FORCEINLINE FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = nullptr, FName SocketName = NAME_None) const
 	{
 		SocketName = Parent ? SocketName : GetAttachSocketName();
 		Parent = Parent ? Parent : GetAttachParent();
@@ -1023,7 +1023,7 @@ protected:
 			const bool bGeneral = bAbsoluteLocation || bAbsoluteRotation || bAbsoluteScale;
 			if (!bGeneral)
 			{
-				return NewRelativeTransform * Parent->GetSocketTransform(GetAttachSocketName());
+				return NewRelativeTransform * Parent->GetSocketTransform(SocketName);
 			}
 			
 			return CalcNewComponentToWorld_GeneralCase(NewRelativeTransform, Parent, SocketName);

@@ -339,9 +339,13 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void PreNetReceive() override;
 	virtual void PostNetReceive() override;
-	virtual void BeginPlay() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual void PostLoad() override;
+
+protected:
+	virtual void BeginPlay() override;
+
+public:
 
 #if WITH_EDITOR
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;

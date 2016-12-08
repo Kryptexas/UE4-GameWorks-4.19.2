@@ -21,12 +21,12 @@ struct FDecoratorSchemaAction_NewNode : public FEdGraphSchemaAction
 
 	FDecoratorSchemaAction_NewNode() 
 		: FEdGraphSchemaAction()
-		, NodeTemplate(NULL)
+		, NodeTemplate(nullptr)
 	{}
 
-	FDecoratorSchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
-		, NodeTemplate(NULL)
+	FDecoratorSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
+		, NodeTemplate(nullptr)
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface

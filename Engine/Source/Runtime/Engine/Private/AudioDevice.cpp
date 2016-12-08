@@ -32,6 +32,7 @@
 #include "Developer/AssetTools/Public/IAssetTools.h"
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
 #include "Editor/EditorEngine.h"
+#include "AudioEditorModule.h"
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -3427,7 +3428,7 @@ bool FAudioDevice::LocationIsAudible(const FVector& Location, const FTransform& 
 	return (ListenerTransform.GetTranslation() - Location).SizeSquared() < MaxDistanceSquared;
 }
 
-void FAudioDevice::GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float& OutMaxDistance, float& OutFocusFactor)
+void FAudioDevice::GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld* World, const FVector& Location, const FSoundAttenuationSettings* AttenuationSettingsToApply, float& OutMaxDistance, float& OutFocusFactor)
 {
 	check(IsInGameThread());
 	check(Sound);
@@ -3467,7 +3468,7 @@ void FAudioDevice::GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld*
 	}
 }
 
-bool FAudioDevice::SoundIsAudible(USoundBase* Sound, const UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float MaxDistance, float FocusFactor)
+bool FAudioDevice::SoundIsAudible(USoundBase* Sound, const UWorld* World, const FVector& Location, const FSoundAttenuationSettings* AttenuationSettingsToApply, float MaxDistance, float FocusFactor)
 {
 	check(IsInGameThread());
 
@@ -3534,7 +3535,7 @@ int32 FAudioDevice::FindClosestListenerIndex(const FTransform& SoundTransform) c
 	return INDEX_NONE;
 }
 
-void FAudioDevice::GetAttenuationListenerData(FAttenuationListenerData& OutListenerData, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FTransform* InListenerTransform) const
+void FAudioDevice::GetAttenuationListenerData(FAttenuationListenerData& OutListenerData, const FTransform& SoundTransform, const FSoundAttenuationSettings& AttenuationSettings, const FTransform* InListenerTransform) const
 {
 	// Only compute various components of the listener of it hasn't been computed yet
 	if (!OutListenerData.bDataComputed)
@@ -3574,7 +3575,7 @@ void FAudioDevice::GetAttenuationListenerData(FAttenuationListenerData& OutListe
 	}
 }
 
-void FAudioDevice::GetAzimuth(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FTransform& ListenerTransform, float& OutAzimuth, float& OutAbsoluteAzimuth) const
+void FAudioDevice::GetAzimuth(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const FTransform& SoundTransform, const FSoundAttenuationSettings& AttenuationSettings, const FTransform& ListenerTransform, float& OutAzimuth, float& OutAbsoluteAzimuth) const
 {
 	GetAttenuationListenerData(OutListenerData, SoundTransform, AttenuationSettings, &ListenerTransform);
 
@@ -3610,7 +3611,7 @@ void FAudioDevice::GetAzimuth(FAttenuationListenerData& OutListenerData, const U
 	}
 }
 
-float FAudioDevice::GetFocusFactor(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const float Azimuth, const FAttenuationSettings& AttenuationSettings) const
+float FAudioDevice::GetFocusFactor(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const float Azimuth, const FSoundAttenuationSettings& AttenuationSettings) const
 {
 	check(Sound);
 
@@ -3735,7 +3736,7 @@ UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, const FCreateC
 		if (Params.Actor == nullptr || !Params.Actor->IsPendingKill())
 		{
 			// Listener position could change before long sounds finish
-			const FAttenuationSettings* AttenuationSettingsToApply = (Params.AttenuationSettings ? &Params.AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
+			const FSoundAttenuationSettings* AttenuationSettingsToApply = (Params.AttenuationSettings ? &Params.AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
 
 			bool bIsAudible = true;
 			// If a sound is a long duration, the position might change before sound finishes so assume it's audible
@@ -3820,7 +3821,7 @@ void FAudioDevice::PlaySoundAtLocation(USoundBase* Sound, UWorld* World, float V
 		return;
 	}
 
-	const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
+	const FSoundAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
 	float MaxDistance = 0.0f;
 	float FocusFactor = 0.0f;
 
@@ -3840,7 +3841,6 @@ void FAudioDevice::PlaySoundAtLocation(USoundBase* Sound, UWorld* World, float V
 		NewActiveSound.Transform.SetTranslation(Location);
 		NewActiveSound.Transform.SetRotation(FQuat(Rotation));
 		NewActiveSound.bIsUISound = !bIsInGameWorld;
-		NewActiveSound.bHandleSubtitles = true;
 		NewActiveSound.SubtitlePriority = Sound->GetSubtitlePriority();
 
 		NewActiveSound.bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
@@ -4143,25 +4143,8 @@ void FAudioDevice::InitSoundEffectPresets()
 	SoundEffectSubmixPresetInstances.Reset();
 
 #if WITH_EDITOR
-
-	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-
-	for (TObjectIterator<UClass> It; It; ++It)
-	{
-		UClass* ChildClass = *It;
-		if (ChildClass->HasAnyClassFlags(CLASS_Abstract))
-		{
-			continue;
-		}
-
-		// Look for submix or source preset classes
-		if (ChildClass->IsChildOf<USoundEffectPreset>())
-		{		
-			USoundEffectPreset* EffectPreset = ChildClass->GetDefaultObject<USoundEffectPreset>();
-			AssetToolsModule.Get().RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectPreset(EffectPreset)));
-		}
-	}
-
+	IAudioEditorModule* AudioEditorModule = &FModuleManager::LoadModuleChecked<IAudioEditorModule>("AudioEditor");
+	AudioEditorModule->RegisterEffectPresetAssetActions();
 #endif
 
 	// Reset the maps of sound instances properties

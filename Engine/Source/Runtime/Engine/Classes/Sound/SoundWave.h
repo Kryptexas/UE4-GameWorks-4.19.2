@@ -180,8 +180,8 @@ class ENGINE_API USoundWave : public USoundBase
 	UPROPERTY(Category=Sound, meta=(ClampMin = "0.0"), EditAnywhere)
 	float Volume;
 
-	/** Playback pitch for sound - Minimum is 0.4, maximum is 2.0 - it is a simple linear multiplier to the SampleRate. */
-	UPROPERTY(Category=Sound, meta=(ClampMin = "0.4", ClampMax = "2.0"), EditAnywhere)
+	/** Playback pitch for sound. */
+	UPROPERTY(Category=Sound, meta=(ClampMin = "0.125", ClampMax = "4.0"), EditAnywhere)
 	float Pitch;
 
 	/** Number of channels of multichannel data; 1 or 2 for regular mono and stereo files */
@@ -251,7 +251,7 @@ public:
 	typedef FAsyncTask< class FAsyncAudioDecompressWorker > FAsyncAudioDecompress;	// Forward declare typedef
 	FAsyncAudioDecompress*		AudioDecompressor;
 
-	/** Pointer to 16 bit PCM data - used to avoid synchronous operation to obtain first block of the relatime decompressed buffer */
+	/** Pointer to 16 bit PCM data - used to avoid synchronous operation to obtain first block of the realtime decompressed buffer */
 	uint8*						CachedRealtimeFirstBuffer;
 
 	/** Pointer to 16 bit PCM data - used to decompress data to and preview sounds */

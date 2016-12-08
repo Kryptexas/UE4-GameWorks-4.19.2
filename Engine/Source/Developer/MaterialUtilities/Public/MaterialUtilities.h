@@ -137,7 +137,7 @@ struct FMaterialMergeData
 	/** Material index to use when the material is baked out using mesh data (face material indices) */
 	int32 MaterialIndex;
 	/** Optional tex coordinate bounds of original texture coordinates set */
-	const FBox2D& TexcoordBounds;
+	FBox2D TexcoordBounds;
 	/** Optional new set of non-overlapping texture coordinates */
 	const TArray<FVector2D>& TexCoords;
 
@@ -149,7 +149,7 @@ struct FMaterialMergeData
 		const FRawMesh* InMesh,
 		const FStaticLODModel* InLODModel,
 		int32 InMaterialIndex,
-		const FBox2D& InTexcoordBounds,
+		FBox2D InTexcoordBounds,
 		const TArray<FVector2D>& InTexCoords)
 		: ProxyCache(nullptr)
 		, Material(InMaterial)

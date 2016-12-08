@@ -4,41 +4,37 @@
 
 namespace Audio
 {
-	FAllPassFilter::FAllPassFilter()
+	FDelayAPF::FDelayAPF()
+		: G(0.0f)
 	{
 	}
 
-	FAllPassFilter::~FAllPassFilter()
+	FDelayAPF::~FDelayAPF()
 	{
 	}
 
-	void FAllPassFilter::SetAPFGain(const float InGain)
+	void FDelayAPF::ProcessAudio(const float* InputSample, float* OutputSample)
 	{
-		APF_G = InGain;
-	}
+		// Read the delay line to get w(n-D);
+		const float WnD = this->Read();
 
-	float FAllPassFilter::operator()(const float InSample)
-	{
-		// If read and write index are identical then pass input to output
+		// For the APF if the delay is 0.0 we just need to pass input -> output
 		if (ReadIndex == WriteIndex)
 		{
-			TapIn(InSample);
-			return InSample;
+			this->WriteDelayAndInc(*InputSample);
+			*OutputSample = *InputSample;
+			return;
 		}
 
-		// Using difference equations:
-		// w(n) = x(n) + g * w(n - D)
-		// y(n) = -g * w(n) + w(n - D)
+		// Form w(n) = x(n) + gw(n-D)
+		const float Wn = *InputSample + G*WnD;
 
-		// w(n - D) is the sample value at the current read index
-		const float Wn_D = Read();
-		const float Wn = InSample + APF_G * Wn_D;
-		const float Yn = -APF_G * Wn + Wn_D;
+		// form y(n) = -gw(n) + w(n-D)
+		float Yn = -G*Wn + WnD;
 
-		// Write Wn (not Yn) into the delay line
-		TapIn(Wn);
-
-		return UnderflowClamp(Yn);
+		UnderflowClamp(Yn);
+		this->WriteDelayAndInc(Wn);
+		*OutputSample = Yn;
 	}
 
 }

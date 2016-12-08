@@ -69,6 +69,7 @@ namespace Audio
 		void Pause() override;
 		bool IsFinished() override;
 		FString Describe(bool bUseLongName) override;
+		float GetPlaybackPercent() const override;
 		//~ End FSoundSource Interface
 
 		//~Begin ISourceBufferQueueListener

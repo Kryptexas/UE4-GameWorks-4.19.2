@@ -16,6 +16,7 @@
 #include "Engine/Engine.h"
 #include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
+#include "PrimitiveSceneProxy.h"
 
 /** A material sprite vertex. */
 struct FMaterialSpriteVertex

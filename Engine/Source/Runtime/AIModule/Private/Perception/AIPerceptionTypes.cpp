@@ -85,6 +85,12 @@ FName FPerceptionListener::GetBodyActorName() const
 	return OwnerActor ? OwnerActor->GetFName() : NAME_None;
 }
 
+uint32 FPerceptionListener::GetBodyActorUniqueID() const
+{
+	const AActor* OwnerActor = Listener.IsValid() ? Listener->GetBodyActor() : nullptr;
+	return OwnerActor ? OwnerActor->GetUniqueID() : FAISystem::InvalidUnsignedID;
+}
+
 const AActor* FPerceptionListener::GetBodyActor() const 
 { 
 	return Listener.IsValid() ? Listener->GetBodyActor() : NULL; 

@@ -86,7 +86,8 @@ namespace physx { namespace profile {
 			StopEvent,
 			RelativeStartEvent, //reuses context,id from the earlier event.
 			RelativeStopEvent, //reuses context,id from the earlier event.
-			EventValue
+			EventValue,
+			CUDAProfileBuffer //obsolete, placeholder to skip data from PhysX SDKs < 3.4
 		};
 	};
 
@@ -582,6 +583,38 @@ namespace physx { namespace profile {
 	};
 	template<> inline EventTypes::Enum getEventType<EventValue>() { return EventTypes::EventValue; }
 
+	//obsolete, placeholder to skip data from PhysX SDKs < 3.4
+	struct CUDAProfileBuffer
+	{
+		uint64_t mTimestamp;
+		float mTimespan;
+		const uint8_t* mCudaData;
+		uint32_t mBufLen;
+		uint32_t mVersion;
+
+		template<typename TStreamType> 
+		uint32_t streamify( TStreamType& inStream, const EventHeader& )
+		{
+			uint32_t writtenSize = inStream.streamify("Timestamp", mTimestamp);
+			writtenSize += inStream.streamify("Timespan", mTimespan);
+			writtenSize += inStream.streamify("CudaData", mCudaData, mBufLen);
+			writtenSize += inStream.streamify("BufLen", mBufLen);
+			writtenSize += inStream.streamify("Version", mVersion);
+			return writtenSize;
+		}
+
+		bool operator==( const CUDAProfileBuffer& other ) const 
+		{ 
+			return mTimestamp == other.mTimestamp
+				&& mTimespan == other.mTimespan
+				&& mBufLen == other.mBufLen
+				&& memcmp( mCudaData, other.mCudaData, mBufLen ) == 0
+				&& mVersion == other.mVersion;
+		}
+	};
+
+	template<> inline EventTypes::Enum getEventType<CUDAProfileBuffer>() { return EventTypes::CUDAProfileBuffer; }
+
 	//Provides a generic equal operation for event data objects.
 	template <typename TEventData>
 	struct EventDataEqualOperator
@@ -599,7 +632,7 @@ namespace physx { namespace profile {
 	class Event
 	{
 	public:
-		typedef PX_PROFILE_UNION_6(StartEvent, StopEvent, RelativeStartEvent, RelativeStopEvent, EventValue, uint8_t) EventData;
+		typedef PX_PROFILE_UNION_7(StartEvent, StopEvent, RelativeStartEvent, RelativeStopEvent, EventValue, CUDAProfileBuffer, uint8_t) EventData;
 
 	private:
 		EventHeader mHeader;
@@ -655,6 +688,8 @@ namespace physx { namespace profile {
 		case EventTypes::RelativeStartEvent:	return inOperator( inData.toType( Type2Type<RelativeStartEvent>() ) );
 		case EventTypes::RelativeStopEvent:		return inOperator( inData.toType( Type2Type<RelativeStopEvent>() ) );
 		case EventTypes::EventValue:			return inOperator( inData.toType( Type2Type<EventValue>() ) );
+		//obsolete, placeholder to skip data from PhysX SDKs < 3.4
+		case EventTypes::CUDAProfileBuffer:		return inOperator( inData.toType( Type2Type<CUDAProfileBuffer>() ) );
 		case EventTypes::Unknown:				break;
 		}
 		uint8_t type = static_cast<uint8_t>( inEventType );

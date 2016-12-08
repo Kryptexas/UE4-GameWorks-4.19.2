@@ -43,11 +43,6 @@ namespace physx
 
 class PxPvdTransport;
 
-namespace pvdsdk
-{
-class PsPvd;
-}
-
 #if PX_WINDOWS_FAMILY && !PX_ARM_FAMILY
 #ifndef PX_PVDSDK_DLL
 #define PX_PVDSDK_API PX_DLL_IMPORT
@@ -170,23 +165,6 @@ class PxPvd : public physx::PxProfilerCallback
 	Retrieves the PVD flags. See PxPvdInstrumentationFlags.
 	*/
 	virtual PxPvdInstrumentationFlags getInstrumentationFlags() = 0;
-
-	/**
-	Get the underlying interface, for advanced users.
-	*/
-    virtual pvdsdk::PsPvd* getPvdInternal() = 0;
-
-	/**
-	\brief Set the user profiler if they want to intercept profiling events for themselves.
-	\param callback The user's profiler to callback to
-	*/
-	virtual void setUserProfiler(physx::PxProfilerCallback *callback) = 0;
-
-	/**
-	\brief Returns the current user profiler callback
-	\return Returns the current user profiler callback
-	*/
-	virtual physx::PxProfilerCallback * getUserProfiler(void) = 0;
 
 	/**
 	\brief Releases the pvd instance.

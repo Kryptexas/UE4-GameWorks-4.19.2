@@ -34,7 +34,7 @@ cloth::SwCloth::SwCloth(SwFactory& factory, SwFabric& fabric, Range<const PxVec4
 , mFabric(fabric)
 , mNumVirtualParticles(0)
 #if APEX_UE4
-, mSimulationTask(nullptr)
+, mSimulationTask(NULL)
 #endif
 , mUserData(0)
 {
@@ -95,7 +95,7 @@ cloth::SwCloth::SwCloth(SwFactory& factory, const SwCloth& cloth)
 , mSelfCollisionIndices(cloth.mSelfCollisionIndices)
 , mRestPositions(cloth.mRestPositions)
 #if APEX_UE4
-, mSimulationTask(nullptr)
+, mSimulationTask(NULL)
 #endif
 {
 	copy(*this, cloth);

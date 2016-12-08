@@ -28,7 +28,6 @@ public:
 		SLATE_EVENT(FOnObjectsSelected, OnObjectsSelected)
 		SLATE_EVENT(FSimpleDelegate, OnAnimNotifiesChanged)
 		SLATE_EVENT(FOnInvokeTab, OnInvokeTab)
-		SLATE_EVENT(FSimpleDelegate, OnCurvesChanged)
 
 	SLATE_END_ARGS()
 
@@ -39,7 +38,7 @@ private:
 	TSharedPtr<class SAnimationScrubPanel> AnimScrubPanel;
 	TWeakPtr<class IPersonaPreviewScene> PreviewScenePtr;
 public:
-	void Construct(const FArguments& InArgs, TSharedRef<class IPersonaPreviewScene> InPreviewScene, TSharedRef<class IEditableSkeleton> InEditableSkeleton, FSimpleMulticastDelegate& OnPostUndo, FSimpleMulticastDelegate& OnCurvesChanged);
+	void Construct(const FArguments& InArgs, TSharedRef<class IPersonaPreviewScene> InPreviewScene, TSharedRef<class IEditableSkeleton> InEditableSkeleton, FSimpleMulticastDelegate& OnPostUndo);
 
 	virtual UAnimationAsset* GetEditorObject() const override { return SequenceObj; }
 
@@ -49,5 +48,4 @@ private:
 
 	/** Post undo **/
 	void PostUndo();
-	void HandleCurvesChanged();
 };

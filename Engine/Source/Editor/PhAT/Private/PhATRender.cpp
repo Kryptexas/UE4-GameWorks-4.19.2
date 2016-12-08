@@ -11,6 +11,7 @@
 #include "PhATEdSkeletalMeshComponent.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "SkeletalMeshTypes.h"
 
 UPhATEdSkeletalMeshComponent::UPhATEdSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

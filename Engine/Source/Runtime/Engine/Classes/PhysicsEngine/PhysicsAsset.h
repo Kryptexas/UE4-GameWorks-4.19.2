@@ -166,6 +166,11 @@ public:
 	 **/
 	ENGINE_API void BodyFindConstraints(int32 BodyIndex, TArray<int32>& Constraints);
 
+#if WITH_EDITOR
+	/** Update skeletal meshes when physics asset changes*/
+	ENGINE_API void RefreshPhysicsAssetChange() const;
+#endif
+
 private:
 
 #if WITH_EDITORONLY_DATA

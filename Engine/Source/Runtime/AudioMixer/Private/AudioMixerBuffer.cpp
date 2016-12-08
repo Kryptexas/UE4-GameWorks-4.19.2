@@ -24,7 +24,6 @@ namespace Audio
 			Data = InWave->RawPCMData;
 			DataSize = InWave->RawPCMDataSize;
  			InWave->RawPCMData = nullptr;
- 			InWave->RawPCMDataSize = 0;
 		}
 
 		// Set the base-class NumChannels to wave's NumChannels

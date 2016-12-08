@@ -248,12 +248,59 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 */
 	FORCEINLINE_DEBUGGABLE const FGameplayTagContainer* GetSingleTagContainer(const FGameplayTag& GameplayTag) const
 	{
-		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTag);
-		if (TagNode)
+		TSharedPtr<FGameplayTagNode> TagNode = FindTagNode(GameplayTag);
+		if (TagNode.IsValid())
 		{
-			return &((*TagNode)->GetSingleTagContainer());
+			return &(TagNode->GetSingleTagContainer());
 		}
 		return nullptr;
+	}
+
+	/**
+	 * Checks node tree to see if a FGameplayTagNode with the tag exists
+	 *
+	 * @param TagName	The name of the tag node to search for
+	 *
+	 * @return A shared pointer to the FGameplayTagNode found, or NULL if not found.
+	 */
+	FORCEINLINE_DEBUGGABLE TSharedPtr<FGameplayTagNode> FindTagNode(const FGameplayTag& GameplayTag) const
+	{
+		const TSharedPtr<FGameplayTagNode>* Node = GameplayTagNodeMap.Find(GameplayTag);
+
+		if (Node)
+		{
+			return *Node;
+		}
+#if WITH_EDITOR
+		// Check redirector
+		if (GIsEditor && GameplayTag.IsValid())
+		{
+			FGameplayTag RedirectedTag = GameplayTag;
+
+			RedirectSingleGameplayTag(RedirectedTag, nullptr);
+
+			Node = GameplayTagNodeMap.Find(RedirectedTag);
+
+			if (Node)
+			{
+				return *Node;
+			}
+		}
+#endif
+		return nullptr;
+	}
+
+	/**
+	 * Checks node tree to see if a FGameplayTagNode with the name exists
+	 *
+	 * @param TagName	The name of the tag node to search for
+	 *
+	 * @return A shared pointer to the FGameplayTagNode found, or NULL if not found.
+	 */
+	FORCEINLINE_DEBUGGABLE TSharedPtr<FGameplayTagNode> FindTagNode(FName TagName) const
+	{
+		FGameplayTag PossibleTag(TagName);
+		return FindTagNode(PossibleTag);
 	}
 
 	/** Loads the tag tables referenced in the GameplayTagSettings object */
@@ -266,25 +313,13 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	void DestroyGameplayTagTree();
 
 	/** Splits a tag such as x.y.z into an array of names {x,y,z} */
-	void SplitGameplayTagFName(const FGameplayTag& Tag, TArray<FName>& OutNames);
+	void SplitGameplayTagFName(const FGameplayTag& Tag, TArray<FName>& OutNames) const;
 
+	/** Gets the list of all tags in the dictionary */
 	void RequestAllGameplayTags(FGameplayTagContainer& TagContainer, bool OnlyIncludeDictionaryTags) const;
 
-	/**
-	 * Checks if the passed in name is in the tag dictionary and can be created
-	 *
-	 * @return True if valid
-	 */
+	/** Returns true if if the passed in name is in the tag dictionary and can be created */
 	bool ValidateTagCreation(FName TagName) const;
-
-	/**
-	 * Checks node tree to see if a FGameplayTagNode with the name exists
-	 *
-	 * @param TagName	The name of the tag node to search for
-	 *
-	 * @return A shared pointer to the FGameplayTagNode found, or NULL if not found.
-	 */
-	TSharedPtr<FGameplayTagNode> FindTagNode(FName TagName) const;
 
 	/** Returns the tag source for a given tag source name, or null if not found */
 	const FGameplayTagSource* FindTagSource(FName TagSourceName) const;
@@ -303,29 +338,29 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	int32 GameplayTagsMatchDepth(const FGameplayTag& GameplayTagOne, const FGameplayTag& GameplayTagTwo) const;
 
 	/** Returns true if we should import tags from UGameplayTagsSettings objects (configured by INI files) */
-	bool ShouldImportTagsFromINI();
+	bool ShouldImportTagsFromINI() const;
 
 	/** Should we print loading errors when trying to load invalid tags */
-	bool ShouldWarnOnInvalidTags()
+	bool ShouldWarnOnInvalidTags() const
 	{
 		return bShouldWarnOnInvalidTags;
 	}
 
 	/** Should use fast replication */
-	bool ShouldUseFastReplication()
+	bool ShouldUseFastReplication() const
 	{
 		return bUseFastReplication;
 	}
 
 	/** Handles redirectors for an entire container, will also error on invalid tags */
-	void RedirectTagsForContainer(FGameplayTagContainer& Container, UProperty* SerializingProperty);
+	void RedirectTagsForContainer(FGameplayTagContainer& Container, UProperty* SerializingProperty) const;
 
 	/** Handles redirectors for a single tag, will also error on invalid tag. This is only called for when individual tags are serialized on their own */
-	void RedirectSingleGameplayTag(FGameplayTag& Tag, UProperty* SerializingProperty);
+	void RedirectSingleGameplayTag(FGameplayTag& Tag, UProperty* SerializingProperty) const;
 
 	/** Gets a tag name from net index and vice versa, used for replication efficiency */
-	FName GetTagNameFromNetIndex(FGameplayTagNetIndex Index);
-	FGameplayTagNetIndex GetNetIndexFromTag(const FGameplayTag &InTag);
+	FName GetTagNameFromNetIndex(FGameplayTagNetIndex Index) const;
+	FGameplayTagNetIndex GetNetIndexFromTag(const FGameplayTag &InTag) const;
 
 	/** Cached number of bits we need to replicate tags. That is, Log2(Number of Tags). Will always be <= 16. */
 	int32 NetIndexTrueBitNum;
@@ -343,10 +378,10 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 
 #if WITH_EDITOR
 	/** Gets a Filtered copy of the GameplayRootTags Array based on the comma delimited filter string passed in */
-	void GetFilteredGameplayRootTags( const FString& InFilterString, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray );
+	void GetFilteredGameplayRootTags(const FString& InFilterString, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray) const;
 
 	/** Gets a list of all gameplay tag nodes added by the specific source */
-	void GetAllTagsFromSource(FName TagSource, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray);
+	void GetAllTagsFromSource(FName TagSource, TArray< TSharedPtr<FGameplayTagNode> >& OutTagArray) const;
 
 	/** Returns true if this tag is directly in the dictionary already */
 	bool IsDictionaryTag(FName TagName) const;
@@ -426,7 +461,7 @@ private:
 
 	void AddTagTableRow(const FGameplayTagTableRow& TagRow, FName SourceName);
 
-	void AddChildrenTags(FGameplayTagContainer& TagContainer, const TSharedPtr<FGameplayTagNode> GameplayTagNode, bool RecurseAll=true, bool OnlyIncludeDictionaryTags=false) const;
+	void AddChildrenTags(FGameplayTagContainer& TagContainer, TSharedPtr<FGameplayTagNode> GameplayTagNode, bool RecurseAll=true, bool OnlyIncludeDictionaryTags=false) const;
 
 	/**
 	 * Helper function for GameplayTagsMatch to get all parents when doing a parent match,
@@ -435,7 +470,7 @@ private:
 	 * @param NameList		The list we are adding all parent complete names too
 	 * @param GameplayTag	The current Tag we are adding to the list
 	 */
-	void GetAllParentNodeNames(TSet<FName>& NamesList, const TSharedPtr<FGameplayTagNode> GameplayTag) const;
+	void GetAllParentNodeNames(TSet<FName>& NamesList, TSharedPtr<FGameplayTagNode> GameplayTag) const;
 
 	/** Returns the tag source for a given tag source name, or null if not found */
 	FGameplayTagSource* FindOrAddTagSource(FName TagSourceName, EGameplayTagSourceType SourceType);

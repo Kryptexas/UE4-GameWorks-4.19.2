@@ -162,10 +162,14 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, LightMapDensity, SFG_Hidden, LOCTEXT("LightMapDens
 SHOWFLAG_FIXED_IN_SHIPPING(0, StreamingBounds, SFG_Advanced, LOCTEXT("StreamingBoundsSF", "Streaming Bounds"))
 /** Render joint limits */
 SHOWFLAG_FIXED_IN_SHIPPING(0, Constraints, SFG_Advanced, LOCTEXT("ConstraintsSF", "Constraints"))
+/** Render mass debug data */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MassProperties, SFG_Advanced, LOCTEXT("MassPropertiesSF", "Mass Properties"))
 /** Draws camera frustums */
 SHOWFLAG_FIXED_IN_SHIPPING(0, CameraFrustums, SFG_Advanced, LOCTEXT("CameraFrustumsSF", "Camera Frustums"))
 /** Draw sound actor radii */
 SHOWFLAG_FIXED_IN_SHIPPING(0, AudioRadius, SFG_Advanced, LOCTEXT("AudioRadiusSF", "Audio Radius"))
+/** Draw force feedback radii */
+SHOWFLAG_FIXED_IN_SHIPPING(0, ForceFeedbackRadius, SFG_Advanced, LOCTEXT("ForceFeedbackSF", "Force Feedback Radius"))
 /** Colors BSP based on model component association */
 SHOWFLAG_FIXED_IN_SHIPPING(0, BSPSplit, SFG_Advanced, LOCTEXT("BSPSplitSF", "BSP Split"))
 /** show editor (wireframe) brushes, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */

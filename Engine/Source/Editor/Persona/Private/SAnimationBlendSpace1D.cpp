@@ -24,28 +24,31 @@ void SBlendSpaceEditor1D::ResampleData()
 
 	const TArray<FBlendSample>& BlendSamples = BlendSpace->GetBlendSamples();
 	if (BlendSamples.Num())
-{
+	{
 		for (const FBlendSample& Sample : BlendSamples)
-{
+		{
 			// Add X value from sample (this is the only valid value to be set for 1D blend spaces / aim offsets
-			ElementGenerator.SamplePointList.Add(Sample.SampleValue.X);
-	}
+			if (Sample.bIsValid)
+			{
+				ElementGenerator.SamplePointList.Add(Sample.SampleValue.X);
+			}
+		}
 		ElementGenerator.CalculateEditorElements();
 
 		// Create point to sample index list
 		TArray<int32> PointListToSampleIndices;
 		PointListToSampleIndices.Init(INDEX_NONE, ElementGenerator.SamplePointList.Num());
 		for (int32 PointIndex = 0; PointIndex < ElementGenerator.SamplePointList.Num(); ++PointIndex)
-{
+		{
 			const float Point = ElementGenerator.SamplePointList[PointIndex];
 			for (int32 SampleIndex = 0; SampleIndex < BlendSamples.Num(); ++SampleIndex)
-	{
+			{
 				if (BlendSamples[SampleIndex].SampleValue.X == Point)
-	{
+				{
 					PointListToSampleIndices[PointIndex] = SampleIndex;
-			break;
-		}
-	}
+					break;
+				}
+			}
 		}
 
 		BlendSpace->FillupGridElements(PointListToSampleIndices, ElementGenerator.EditorElements);

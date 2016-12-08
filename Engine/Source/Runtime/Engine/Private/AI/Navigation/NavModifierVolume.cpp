@@ -35,12 +35,13 @@ void ANavModifierVolume::SetAreaClass(TSubclassOf<UNavArea> NewAreaClass)
 	{
 		AreaClass = NewAreaClass;
 
-		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-		if (NavSys != nullptr)
-		{
-			NavSys->UpdateActorInNavOctree(*this);
-		}
+		UNavigationSystem::UpdateActorInNavOctree(*this);
 	}
+}
+
+void ANavModifierVolume::RebuildNavigationData()
+{
+	UNavigationSystem::UpdateActorInNavOctree(*this);
 }
 
 #if WITH_EDITOR

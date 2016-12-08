@@ -59,35 +59,61 @@ protected:
 	typedef TArray<UEdGraphPin*> UEdGraphPinArray;
 
 protected:
+	/** Record of a single copy operation */
+	struct FPropertyCopyRecord
+	{
+		FPropertyCopyRecord(UEdGraphPin* InDestPin, UProperty* InDestProperty, int32 InDestArrayIndex)
+			: DestPin(InDestPin)
+			, DestProperty(InDestProperty)
+			, DestArrayIndex(InDestArrayIndex)
+			, SourcePropertyName(NAME_None)
+			, SourceSubStructPropertyName(NAME_None)
+			, Operation(EPostCopyOperation::None)
+		{}
+
+		bool IsFastPath() const
+		{
+			return DestProperty != nullptr && SourcePropertyName != NAME_None;
+		}
+
+		void InvalidateFastPath()
+		{
+			SourcePropertyName = NAME_None;
+			SourceSubStructPropertyName = NAME_None;
+		}
+
+		void ValidateFastPath(UClass* InCompiledClass);
+
+		/** The destination pin we are copying to */
+		UEdGraphPin* DestPin;
+
+		/** The destination property we are copying to (on an animation node) */
+		UProperty* DestProperty;
+
+		/** The array index we use if the destination property is an array */
+		int32 DestArrayIndex;
+
+		/** The source property we are copying from (on an anim instance) */
+		FName SourcePropertyName;
+
+		/** The source sub-struct property we are copying from (if the source property is a struct property) */
+		FName SourceSubStructPropertyName;
+
+		/** Any operation we want to perform post-copy on the destination data */
+		EPostCopyOperation Operation;
+	};
+
 	// Wireup record for a single anim node property (which might be an array)
 	struct FAnimNodeSinglePropertyHandler
 	{
-		TMap<int32, UEdGraphPin*> ArrayPins;
-
-		UEdGraphPin* SinglePin;
-
-		// If this is valid we are a 'simple property copy', avoiding BP thunk
-		FName SimpleCopyPropertyName;
-
-		// If this is a sub-struct property, this will be something other than NAME_None
-		FName SubStructPropertyName;
-
-		// Any operation we want to perform post-copy on the destination data
-		EPostCopyOperation Operation;
-
-		// Whether this node chain only ever accesses members
-		bool bHasOnlyMemberAccess;
+		/** Copy records */
+		TArray<FPropertyCopyRecord> CopyRecords;
 
 		// If the anim instance is the container target instead of the node.
 		bool bInstanceIsTarget;
 
 		FAnimNodeSinglePropertyHandler()
-			: SinglePin(NULL)
-			, SimpleCopyPropertyName(NAME_None)
-			, SubStructPropertyName(NAME_None)
-			, Operation(EPostCopyOperation::None)
-			, bHasOnlyMemberAccess(false)
-			, bInstanceIsTarget(false)
+			: bInstanceIsTarget(false)
 		{
 		}
 	};
@@ -131,14 +157,14 @@ protected:
 	{
 	public:
 
-		// The instance property to use if we aren't accessing data through the node variable
-		UProperty* InstanceProperty;
-
 		// The node variable that the handler is in
 		UStructProperty* NodeVariableProperty;
 
 		// The specific evaluation handler inside the specified node
 		UStructProperty* EvaluationHandlerProperty;
+
+		// Whether or not our serviced properties are actually on the instance instead of the node
+		bool bServicesInstanceProperties;
 
 		// Set of properties serviced by this handler (Map from property name to the record for that property)
 		TMap<FName, FAnimNodeSinglePropertyHandler> ServicedProperties;
@@ -149,20 +175,23 @@ protected:
 	public:
 
 		FEvaluationHandlerRecord()
-			: InstanceProperty(nullptr)
-			, NodeVariableProperty(nullptr)
+			: NodeVariableProperty(nullptr)
 			, EvaluationHandlerProperty(nullptr)
+			, bServicesInstanceProperties(false)
 			, HandlerFunctionName(NAME_None)
 		{}
 
-		bool OnlyUsesCopyRecords() const
+		bool IsFastPath() const
 		{
 			for(TMap<FName, FAnimNodeSinglePropertyHandler>::TConstIterator It(ServicedProperties); It; ++It)
 			{
 				const FAnimNodeSinglePropertyHandler& AnimNodeSinglePropertyHandler = It.Value();
-				if(AnimNodeSinglePropertyHandler.SimpleCopyPropertyName == NAME_None)
+				for (const FPropertyCopyRecord& CopyRecord : AnimNodeSinglePropertyHandler.CopyRecords)
 				{
-					return false;
+					if (!CopyRecord.IsFastPath())
+					{
+						return false;
+					}
 				}
 			}
 
@@ -176,19 +205,23 @@ protected:
 
 		void PatchFunctionNameAndCopyRecordsInto(UObject* TargetObject) const;
 
-		void RegisterPin(UEdGraphPin* SourcePin, UProperty* AssociatedProperty, int32 AssociatedPropertyArrayIndex);
+		void RegisterPin(UEdGraphPin* DestPin, UProperty* AssociatedProperty, int32 AssociatedPropertyArrayIndex);
 
 		UStructProperty* GetHandlerNodeProperty() const { return NodeVariableProperty; }
 
+		void BuildFastPathCopyRecords();
+
+		void ValidateFastPath(UClass* InCompiledClass);
+
 	private:
 
-		bool CheckForVariableGet(FAnimNodeSinglePropertyHandler& Handler, UEdGraphPin* SourcePin);
+		bool CheckForVariableGet(FPropertyCopyRecord& CopyRecord, UEdGraphPin* DestPin);
 
-		bool CheckForLogicalNot(FAnimNodeSinglePropertyHandler& Handler, UEdGraphPin* SourcePin);
+		bool CheckForLogicalNot(FPropertyCopyRecord& CopyRecord, UEdGraphPin* DestPin);
 
-		bool CheckForStructMemberAccess(FAnimNodeSinglePropertyHandler& Handler, UEdGraphPin* SourcePin);
+		bool CheckForStructMemberAccess(FPropertyCopyRecord& CopyRecord, UEdGraphPin* DestPin);
 
-		bool CheckForMemberOnlyAccess(FAnimNodeSinglePropertyHandler& Handler, UEdGraphPin* SourcePin);
+		bool CheckForMemberOnlyAccess(FPropertyCopyRecord& CopyRecord, UEdGraphPin* DestPin);
 	};
 
 	// State machines may get processed before their inner graphs, so their node index needs to be patched up later
@@ -295,7 +328,9 @@ private:
 	void CachePoseNodeOrdering_TraverseInternal(UAnimGraphNode_Base* InAnimGraphNode, TArray<UAnimGraphNode_SaveCachedPose*> &OrderedSavePoseNodes);
 
 	// Gets all anim graph nodes that are piped into the provided node (traverses input pins)
-	void GetLinkedAnimNodes(UAnimGraphNode_Base* InGraphNode, TArray<UAnimGraphNode_Base*> &LinkedAnimNodes);
+	void GetLinkedAnimNodes(UAnimGraphNode_Base* InGraphNode, TArray<UAnimGraphNode_Base*>& LinkedAnimNodes);
+	void GetLinkedAnimNodes_TraversePin(UEdGraphPin* InPin, TArray<UAnimGraphNode_Base*>& LinkedAnimNodes);
+	void GetLinkedAnimNodes_ProcessAnimNode(UAnimGraphNode_Base* AnimNode, TArray<UAnimGraphNode_Base*>& LinkedAnimNodes);
 
 	// Automatically fill in parameters for the specified Getter node
 	void AutoWireAnimGetter(class UK2Node_AnimGetter* Getter, UAnimStateTransitionNode* InTransitionNode);

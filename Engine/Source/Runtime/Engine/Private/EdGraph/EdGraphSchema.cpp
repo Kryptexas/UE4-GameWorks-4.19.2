@@ -22,38 +22,38 @@
 
 #define LOCTEXT_NAMESPACE "EdGraph"
 
-void FEdGraphSchemaAction::UpdateCategory(const FText& NewCategory)
+void FEdGraphSchemaAction::UpdateCategory(FText NewCategory)
 {
-	Category = NewCategory;
+	Category = MoveTemp(NewCategory);
 
 	TArray<FString> Scratch;
 	Category.ToString().ParseIntoArray(FullSearchCategoryArray, TEXT(" "), true);
 	Category.BuildSourceString().ParseIntoArray(Scratch, TEXT(" "), true);
-	FullSearchCategoryArray.Append(Scratch);
+	FullSearchCategoryArray.Append(MoveTemp(Scratch));
 
-	SearchText.Empty();
-	for (const auto& Entry : FullSearchTitlesArray)
+	SearchText.Reset();
+	for (const FString& Entry : FullSearchTitlesArray)
 	{
 		SearchText += Entry;
 	}
 	SearchText.Append(LINE_TERMINATOR);
-	for (const auto& Entry : FullSearchKeywordsArray)
+	for (const FString& Entry : FullSearchKeywordsArray)
 	{
 		SearchText += Entry;
 	}
 	SearchText.Append(LINE_TERMINATOR);
-	for (const auto& Entry : FullSearchCategoryArray)
+	for (const FString& Entry : FullSearchCategoryArray)
 	{
 		SearchText += Entry;
 	}
 }
 
-void FEdGraphSchemaAction::UpdateSearchData(const FText& NewMenuDescription, const FString& NewToolTipDescription, const FText& NewCategory, const FText& NewKeywords)
+void FEdGraphSchemaAction::UpdateSearchData(FText NewMenuDescription, FString NewToolTipDescription, FText NewCategory, FText NewKeywords)
 {
-	MenuDescription = NewMenuDescription;
-	TooltipDescription = NewToolTipDescription;
-	Category = NewCategory;
-	Keywords = NewKeywords;
+	MenuDescription = MoveTemp(NewMenuDescription);
+	TooltipDescription = MoveTemp(NewToolTipDescription);
+	Category = MoveTemp(NewCategory);
+	Keywords = MoveTemp(NewKeywords);
 
 	MenuDescription.ToString().ParseIntoArray(MenuDescriptionArray, TEXT(" "), true);
 
@@ -71,19 +71,19 @@ void FEdGraphSchemaAction::UpdateSearchData(const FText& NewMenuDescription, con
 	FullSearchCategoryArray.Append(Scratch);
 
 	// Glob search text together, we use the SearchText string for basic filtering:
-	for (auto& Entry : FullSearchTitlesArray)
+	for (FString& Entry : FullSearchTitlesArray)
 	{
 		Entry.ToLowerInline();
 		SearchText += Entry;
 	}
 	SearchText.Append(LINE_TERMINATOR);
-	for (auto& Entry : FullSearchKeywordsArray)
+	for (FString& Entry : FullSearchKeywordsArray)
 	{
 		Entry.ToLowerInline();
 		SearchText += Entry;
 	}
 	SearchText.Append(LINE_TERMINATOR);
-	for (auto& Entry : FullSearchCategoryArray)
+	for (FString& Entry : FullSearchCategoryArray)
 	{
 		Entry.ToLowerInline();
 		SearchText += Entry;
@@ -93,12 +93,12 @@ void FEdGraphSchemaAction::UpdateSearchData(const FText& NewMenuDescription, con
 /////////////////////////////////////////////////////
 // FGraphActionListBuilderBase
 
-void FGraphActionListBuilderBase::AddAction( const TSharedPtr<FEdGraphSchemaAction>& NewAction, FString const& Category/* = TEXT("") */ )
+void FGraphActionListBuilderBase::AddAction( const TSharedPtr<FEdGraphSchemaAction>& NewAction, FString const& Category)
 {
 	Entries.Add( ActionGroup( NewAction, Category ) );
 }
 
-void FGraphActionListBuilderBase::AddActionList( const TArray<TSharedPtr<FEdGraphSchemaAction> >& NewActions, FString const& Category/* = TEXT("") */ )
+void FGraphActionListBuilderBase::AddActionList( const TArray<TSharedPtr<FEdGraphSchemaAction> >& NewActions, FString const& Category)
 {
 	Entries.Add( ActionGroup( NewActions, Category ) );
 }
@@ -113,7 +113,7 @@ int32 FGraphActionListBuilderBase::GetNumActions() const
 	return Entries.Num();
 }
 
-FGraphActionListBuilderBase::ActionGroup& FGraphActionListBuilderBase::GetAction( int32 Index )
+FGraphActionListBuilderBase::ActionGroup& FGraphActionListBuilderBase::GetAction( const int32 Index )
 {
 	return Entries[Index];
 }
@@ -126,15 +126,15 @@ void FGraphActionListBuilderBase::Empty()
 /////////////////////////////////////////////////////
 // FGraphActionListBuilderBase::GraphAction
 
-FGraphActionListBuilderBase::ActionGroup::ActionGroup( TSharedPtr<FEdGraphSchemaAction> InAction, FString const& CategoryPrefix/* = TEXT("") */ )
-	: RootCategory(CategoryPrefix)
+FGraphActionListBuilderBase::ActionGroup::ActionGroup(TSharedPtr<FEdGraphSchemaAction> InAction, FString CategoryPrefix)
+	: RootCategory(MoveTemp(CategoryPrefix))
 {
 	Actions.Add( InAction );
 	InitCategoryChain();
 }
 
-FGraphActionListBuilderBase::ActionGroup::ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString const& CategoryPrefix/* = TEXT("") */ )
-	: RootCategory(CategoryPrefix)
+FGraphActionListBuilderBase::ActionGroup::ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString CategoryPrefix)
+	: RootCategory(MoveTemp(CategoryPrefix))
 {
 	Actions = InActions;
 	InitCategoryChain();
@@ -211,15 +211,15 @@ void FGraphActionListBuilderBase::ActionGroup::Copy(const ActionGroup& Other)
 void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
 {
 #if WITH_EDITOR
-	static FString const CategoryDelim("|");
-	FEditorCategoryUtils::GetCategoryDisplayString(RootCategory).ParseIntoArray(CategoryChain, *CategoryDelim, true);
+	const TCHAR* CategoryDelim = TEXT("|");
+	FEditorCategoryUtils::GetCategoryDisplayString(RootCategory).ParseIntoArray(CategoryChain, CategoryDelim, true);
 
 	if (Actions.Num() > 0)
 	{
 		TArray<FString> SubCategoryChain;
 
 		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->GetCategory().ToString());
-		SubCategory.ParseIntoArray(SubCategoryChain, *CategoryDelim, true);
+		SubCategory.ParseIntoArray(SubCategoryChain, CategoryDelim, true);
 
 		CategoryChain.Append(SubCategoryChain);
 	}
@@ -234,10 +234,10 @@ void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
 /////////////////////////////////////////////////////
 // FCategorizedGraphActionListBuilder
 
-static FString ConcatCategories(FString const& RootCategory, FString const& SubCategory)
+static FString ConcatCategories(FString RootCategory, FString const& SubCategory)
 {
-	FString ConcatedCategory = RootCategory;
-	if (!SubCategory.IsEmpty() && !RootCategory.IsEmpty())
+	FString ConcatedCategory = MoveTemp(RootCategory);
+	if (!SubCategory.IsEmpty() && !ConcatedCategory.IsEmpty())
 	{
 		ConcatedCategory += TEXT("|");
 	}
@@ -246,17 +246,17 @@ static FString ConcatCategories(FString const& RootCategory, FString const& SubC
 	return ConcatedCategory;
 }
 
-FCategorizedGraphActionListBuilder::FCategorizedGraphActionListBuilder(FString const& CategoryIn/* = TEXT("")*/)
-	: Category(CategoryIn)
+FCategorizedGraphActionListBuilder::FCategorizedGraphActionListBuilder(FString CategoryIn)
+	: Category(MoveTemp(CategoryIn))
 {
 }
 
-void FCategorizedGraphActionListBuilder::AddAction(TSharedPtr<FEdGraphSchemaAction> const& NewAction, FString const& CategoryIn/* = TEXT("")*/)
+void FCategorizedGraphActionListBuilder::AddAction(TSharedPtr<FEdGraphSchemaAction> const& NewAction, FString const& CategoryIn)
 {
 	FGraphActionListBuilderBase::AddAction(NewAction, ConcatCategories(Category, CategoryIn));
 }
 
-void FCategorizedGraphActionListBuilder::AddActionList(TArray<TSharedPtr<FEdGraphSchemaAction> > const& NewActions, FString const& CategoryIn/* = TEXT("")*/)
+void FCategorizedGraphActionListBuilder::AddActionList(TArray<TSharedPtr<FEdGraphSchemaAction> > const& NewActions, FString const& CategoryIn)
 {
 	FGraphActionListBuilderBase::AddActionList(NewActions, ConcatCategories(Category, CategoryIn));
 }
@@ -284,7 +284,7 @@ namespace
 UEdGraphNode* FEdGraphSchemaAction_NewNode::CreateNode(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, class UEdGraphNode* InNodeTemplate)
 {
 	// Duplicate template node to create new node
-	UEdGraphNode* ResultNode = NULL;
+	UEdGraphNode* ResultNode = nullptr;
 
 #if WITH_EDITOR
 	ResultNode = DuplicateObject<UEdGraphNode>(InNodeTemplate, ParentGraph);
@@ -323,11 +323,11 @@ UEdGraphNode* FEdGraphSchemaAction_NewNode::CreateNode(class UEdGraph* ParentGra
 
 UEdGraphNode* FEdGraphSchemaAction_NewNode::PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode/* = true*/)
 {
-	UEdGraphNode* ResultNode = NULL;
+	UEdGraphNode* ResultNode = nullptr;
 
 #if WITH_EDITOR
 	// If there is a template, we actually use it
-	if (NodeTemplate != NULL)
+	if (NodeTemplate != nullptr)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("AddNode", "Add Node"));
 		ParentGraph->Modify();
@@ -345,7 +345,7 @@ UEdGraphNode* FEdGraphSchemaAction_NewNode::PerformAction(class UEdGraph* Parent
 
 UEdGraphNode* FEdGraphSchemaAction_NewNode::PerformAction(class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location, bool bSelectNewNode/* = true*/) 
 {
-	UEdGraphNode* ResultNode = NULL;
+	UEdGraphNode* ResultNode = nullptr;
 
 #if WITH_EDITOR
 	if (FromPins.Num() > 0)
@@ -360,7 +360,7 @@ UEdGraphNode* FEdGraphSchemaAction_NewNode::PerformAction(class UEdGraph* Parent
 	}
 	else
 	{
-		ResultNode = PerformAction(ParentGraph, NULL, Location, bSelectNewNode);
+		ResultNode = PerformAction(ParentGraph, nullptr, Location, bSelectNewNode);
 	}
 #endif // WITH_EDITOR
 
@@ -601,7 +601,7 @@ FPinConnectionResponse UEdGraphSchema::MovePinLinks(UEdGraphPin& MoveFromPin, UE
 		TEXT("When moving to an Intermediate pin, use FKismetCompilerContext::MovePinLinksToIntermediate() instead of UEdGraphSchema::MovePinLinks()"));
 #endif // #if WITH_EDITOR
 
-	FPinConnectionResponse FinalResponse = FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT(""));
+	FPinConnectionResponse FinalResponse = FPinConnectionResponse(CONNECT_RESPONSE_MAKE, FText());
 	// First copy the current set of links
 	TArray<UEdGraphPin*> CurrentLinks = MoveFromPin.LinkedTo;
 	// Then break all links at pin we are moving from
@@ -634,7 +634,7 @@ FPinConnectionResponse UEdGraphSchema::CopyPinLinks(UEdGraphPin& CopyFromPin, UE
 		TEXT("When copying to an Intermediate pin, use FKismetCompilerContext::CopyPinLinksToIntermediate() instead of UEdGraphSchema::CopyPinLinks()"));
 #endif // #if WITH_EDITOR
 
-	FPinConnectionResponse FinalResponse = FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT(""));
+	FPinConnectionResponse FinalResponse = FPinConnectionResponse(CONNECT_RESPONSE_MAKE, FText());
 	for (int32 i=0; i<CopyFromPin.LinkedTo.Num(); i++)
 	{
 		UEdGraphPin* NewLink = CopyFromPin.LinkedTo[i];
@@ -659,7 +659,7 @@ FPinConnectionResponse UEdGraphSchema::CopyPinLinks(UEdGraphPin& CopyFromPin, UE
 FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 {
 	FText ResultPinName;
-	check(Pin != NULL);
+	check(Pin != nullptr);
 	if (Pin->PinFriendlyName.IsEmpty())
 	{
 		ResultPinName = FText::FromString(Pin->PinName);
@@ -758,7 +758,7 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 					const FScopedTransaction Transaction( LOCTEXT("EditNodeComment", "Change Node Comment") );
 					SelectedNode->Modify();
 					UProperty* NodeCommentProperty = FindField<UProperty>(SelectedNode->GetClass(), "NodeComment");
-					if(NodeCommentProperty != NULL)
+					if(NodeCommentProperty != nullptr)
 					{
 						SelectedNode->PreEditChange(NodeCommentProperty);
 
@@ -829,7 +829,7 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 
 							if( Action.IsValid() )
 							{
-								Action->PerformAction(Graph, NULL, FVector2D());
+								Action->PerformAction(Graph, nullptr, FVector2D());
 							}
 						}
 					}

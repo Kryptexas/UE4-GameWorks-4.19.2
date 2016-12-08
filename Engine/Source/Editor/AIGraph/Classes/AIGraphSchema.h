@@ -26,8 +26,8 @@ struct AIGRAPH_API FAISchemaAction_NewNode : public FEdGraphSchemaAction
 		, NodeTemplate(nullptr)
 	{}
 
-	FAISchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FAISchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, NodeTemplate(nullptr)
 	{}
 
@@ -67,8 +67,8 @@ struct AIGRAPH_API FAISchemaAction_NewSubNode : public FEdGraphSchemaAction
 		, ParentNode(nullptr)
 	{}
 
-	FAISchemaAction_NewSubNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FAISchemaAction_NewSubNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, NodeTemplate(nullptr)
 		, ParentNode(nullptr)
 	{}

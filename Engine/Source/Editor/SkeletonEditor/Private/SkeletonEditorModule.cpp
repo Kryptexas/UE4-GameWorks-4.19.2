@@ -13,6 +13,9 @@
 #include "EditableSkeleton.h"
 #include "SkeletonTreeManager.h"
 #include "SkeletonTreeSummoner.h"
+#include "BoneProxy.h"
+#include "BoneProxyDetailsCustomization.h"
+#include "PropertyEditorModule.h"
 
 class FSkeletonEditorModule : public ISkeletonEditorModule
 {
@@ -27,6 +30,9 @@ public:
 	{
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
+
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.RegisterCustomClassLayout(UBoneProxy::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FBoneProxyDetailsCustomization::MakeInstance));
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
@@ -34,6 +40,16 @@ public:
 	{
 		MenuExtensibilityManager.Reset();
 		ToolBarExtensibilityManager.Reset();
+
+		if (FModuleManager::Get().IsModuleLoaded(TEXT("PropertyEditor")))
+		{
+			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+			if (UObjectInitialized())
+			{
+				PropertyModule.UnregisterCustomClassLayout(UBoneProxy::StaticClass()->GetFName());
+			}
+		}
 	}
 
 	virtual TSharedRef<ISkeletonEditor> CreateSkeletonEditor(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, USkeleton* InSkeleton) override

@@ -9,9 +9,11 @@
 #include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_AssetPlayerBase.generated.h"
 
+/** Get the default anim node class for playing a particular asset */
 ANIMGRAPH_API UClass* GetNodeClassForAsset(const UClass* AssetClass);
-ANIMGRAPH_API bool SupportNodeClassForAsset(const UClass* AssetClass, const UClass* NodeClass);
 
+/** See if a particular anim NodeClass can play a particular anim AssetClass */
+ANIMGRAPH_API bool SupportNodeClassForAsset(const UClass* AssetClass, UClass* NodeClass);
 
 /** Helper / intermediate for asset player graphical nodes */
 UCLASS(Abstract, MinimalAPI)

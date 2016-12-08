@@ -5,18 +5,17 @@
 #include "UObject/ObjectMacros.h"
 #include "Sound/SoundEffectPreset.h"
 #include "Sound/SoundEffectBase.h"
+#include "AudioDevice.h"
 #include "SoundEffectSubmix.generated.h"
 
-class USoundEffectSubmix;
+class FSoundEffectSubmix;
 
-/** Derived class for source effects. */
+
+/** This is here to make sure users don't mix up source and submix effects in the editor. Asset sorting, drag-n-drop, etc. */
 UCLASS(config = Engine, hidecategories = Object, abstract, editinlinenew, BlueprintType)
 class ENGINE_API USoundEffectSubmixPreset : public USoundEffectPreset
 {
 	GENERATED_UCLASS_BODY()
-
-	/** Create a new submix effect instance. */
-	virtual USoundEffectSubmix* CreateNewEffect() const { return nullptr; }
 };
 
 /** Struct which has data needed to initialize the submix effect. */
@@ -30,35 +29,52 @@ struct FSoundEffectSubmixInitData
 /** Struct which supplies audio data to submix effects on game thread. */
 struct FSoundEffectSubmixInputData
 {
+	/** Ptr to preset data if new data is available. This will be nullptr if no new preset data has been set. */
 	void* PresetData;
-	TArray<float>* AudioBuffer;
+	
+	/** The number of audio frames for this input data. 1 frame is an interleaved sample. */
+	int32 NumFrames;
+
+	/** The number of channels of this audio effect. */
 	int32 NumChannels;
+
+	/** The raw input audio buffer. Size is NumFrames * NumChannels */
+	TArray<float>* AudioBuffer;
+
+	/** Sample accurate audio clock. */
 	double AudioClock;
 };
 
 struct FSoundEffectSubmixOutputData
 {
+	/** The output audio buffer. */
 	TArray<float>* AudioBuffer;
+
+	/** The number of channels in the output buffer. */
+	int32 NumChannels;
 };
 
-UCLASS(config = Engine, hidecategories = Object, abstract, editinlinenew, BlueprintType)
-class ENGINE_API USoundEffectSubmix : public USoundEffectBase
+class ENGINE_API FSoundEffectSubmix : public FSoundEffectBase
 {
-	GENERATED_UCLASS_BODY()
+public:
+	FSoundEffectSubmix() {}
+	virtual ~FSoundEffectSubmix() {}
 
 	/** Called on an audio effect at initialization on main thread before audio processing begins. */
-	virtual void Init(const FSoundEffectSubmixInitData& InSampleRate) PURE_VIRTUAL(USoundEffectSubmix::Init, ;);
+	virtual void Init(const FSoundEffectSubmixInitData& InSampleRate) = 0;
 
 	/** Called on game thread to allow submix effect to query game data if needed. */
 	virtual void Tick() {}
 
+	/** Override to down mix input audio to a desired channel count. */
+	virtual uint32 GetDesiredInputChannelCountOverride() const
+	{
+		return INDEX_NONE;
+	}
+
 	/** Process the input block of audio. Called on audio thread. */
-	virtual void OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData) PURE_VIRTUAL(USoundEffectSubmix::OnProcessAudio, ;);
+	virtual void OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData) = 0;
 
 	/** Processes audio in the source effect. */
 	void ProcessAudio(FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData);
-
-protected:
-	UClass* GetEffectClass() const { return GetClass(); }
-
 };

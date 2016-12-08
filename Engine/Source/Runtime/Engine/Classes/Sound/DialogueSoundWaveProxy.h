@@ -26,7 +26,7 @@ public:
 	virtual bool IsPlayable() const override;
 
 	/** Returns a pointer to the attenuation settings that are to be applied for this node */
-	virtual const FAttenuationSettings* GetAttenuationSettingsToApply() const override;
+	virtual const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const override;
 
 	/** 
 	 * Returns the farthest distance at which the sound could be heard

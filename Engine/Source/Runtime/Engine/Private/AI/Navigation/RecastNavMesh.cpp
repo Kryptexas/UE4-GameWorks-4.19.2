@@ -1051,22 +1051,42 @@ bool ARecastNavMesh::GetRandomPointInNavigableRadius(const FVector& Origin, floa
 {
 	const FVector ProjectionExtent(NavDataConfig.DefaultQueryExtent.X, NavDataConfig.DefaultQueryExtent.Y, BIG_NUMBER);
 	OutResult = FNavLocation(FNavigationSystem::InvalidLocation);
-	
-	// this is super naive implementation for now. We give it 10 tries, and fail if it's not enough. 
-	// The proper solution would involve processing nearby&in-radius tiles in batches until the whole radius of the query is exhausted
-	static const int32 IterationsLimit = 10;
-	int32 Interation = 0;
-	do 
-	{
-		const float RandomAngle = 2.f * PI * FMath::FRand();
-		const float U = FMath::FRand() + FMath::FRand();
-		const float RandomRadius = Radius * (U > 1 ? 2.f - U : U);
-		const FVector RandomOffset(FMath::Cos(RandomAngle) * RandomRadius, FMath::Sin(RandomAngle) * RandomRadius, 0);
-		FVector RandomLocationInRadius = Origin + RandomOffset;
 
-		// naive implementation 
-		ProjectPoint(RandomLocationInRadius, OutResult, ProjectionExtent, Filter);
-	} while (OutResult.HasNodeRef() == false && ++Interation < IterationsLimit);
+	const float RandomAngle = 2.f * PI * FMath::FRand();
+	const float U = FMath::FRand() + FMath::FRand();
+	const float RandomRadius = Radius * (U > 1 ? 2.f - U : U);
+	const FVector RandomOffset(FMath::Cos(RandomAngle) * RandomRadius, FMath::Sin(RandomAngle) * RandomRadius, 0);
+	FVector RandomLocationInRadius = Origin + RandomOffset;
+
+	// naive implementation 
+	ProjectPoint(RandomLocationInRadius, OutResult, ProjectionExtent, Filter);
+
+	// if failed get a list of all nav polys in the area and do it the hard way
+	if (OutResult.HasNodeRef() == false && RecastNavMeshImpl)
+	{
+		const float RadiusSq = FMath::Square(Radius);
+		TArray<FNavPoly> Polys;
+		const FVector FallbackExtent(Radius, Radius, BIG_NUMBER);
+		const FBox Box(Origin - FallbackExtent, Origin + FallbackExtent);
+		GetPolysInBox(Box, Polys, Filter, Querier);
+	
+		// @todo extremely naive implementation, barely random. To be improved
+		while (Polys.Num() > 0)
+		{
+			const int32 RandomIndex = FMath::RandHelper(Polys.Num());
+			const FNavPoly& Poly = Polys[RandomIndex];
+
+			FVector PointOnPoly(0);
+			if (RecastNavMeshImpl->GetClosestPointOnPoly(Poly.Ref, Origin, PointOnPoly)
+				&& FVector::DistSquared(PointOnPoly, Origin) < RadiusSq)
+			{
+				OutResult = FNavLocation(PointOnPoly, Poly.Ref);
+				break;
+			}
+
+			Polys.RemoveAtSwap(RandomIndex, 1, /*bAllowShrinking=*/false);
+		}
+	}
 
 	return OutResult.HasNodeRef() == true;
 }

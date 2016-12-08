@@ -137,6 +137,7 @@ namespace Sc
 
 		PX_FORCE_INLINE	void							internalAddToBroadPhase();
 		PX_FORCE_INLINE	void							internalRemoveFromBroadPhase();
+						void							initSubsystemsDependingOnElementID();
 	}
 	PX_ALIGN_SUFFIX(16);
 

@@ -866,8 +866,8 @@ PxCollection* MakePhysXCollection(const TArray<UPhysicalMaterial*>& PhysicalMate
 
 		for (const FKConvexElem& ConvexElem : BodySetup->AggGeom.ConvexElems)
 		{
-			AddToCollection(PCollection, ConvexElem.ConvexMesh);
-			AddToCollection(PCollection, ConvexElem.ConvexMeshNegX);
+			AddToCollection(PCollection, ConvexElem.GetConvexMesh());
+			AddToCollection(PCollection, ConvexElem.GetMirroredConvexMesh());
 		}
 	}
 

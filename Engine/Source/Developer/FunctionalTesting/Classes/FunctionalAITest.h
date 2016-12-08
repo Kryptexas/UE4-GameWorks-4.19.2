@@ -143,7 +143,10 @@ public:
 	virtual bool IsOneOfSpawnedPawns(AActor* Actor);
 
 	// AActor interface begin
+protected:
 	virtual void BeginPlay() override;
+
+public:
 	virtual void Tick(float DeltaSeconds) override;
 	// AActor interface end
 

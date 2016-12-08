@@ -168,6 +168,7 @@
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/LocalPlayer.h"
 #include "EngineStats.h"
+#include "Rendering/ColorVertexBuffer.h"
 
 #if !UE_BUILD_SHIPPING
 #include "Tests/AutomationCommon.h"
@@ -854,19 +855,10 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	GLog->EnableBacklog( false );
 
 	{
-		// avoid doing this every time, create a list of classes that derive from AVolume
-		TArray<UClass*> VolumeClasses;
-		for (TObjectIterator<UClass> ObjectIt; ObjectIt; ++ObjectIt)
-		{
-			UClass* TestClass = *ObjectIt;
-			// we want classes derived from AVolume, but not AVolume itself
-			if ( TestClass->IsChildOf(AVolume::StaticClass()) && TestClass != AVolume::StaticClass() )
-			{
-				VolumeClasses.Add( TestClass );
-			}
-		}
-
 		FAssetData NoAssetData;
+
+		TArray<UClass*> VolumeClasses;
+		TArray<UClass*> VolumeFactoryClasses;
 
 		// Create array of ActorFactory instances.
 		for (TObjectIterator<UClass> ObjectIt; ObjectIt; ++ObjectIt)
@@ -877,17 +869,9 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 				if (!TestClass->HasAnyClassFlags(CLASS_Abstract))
 				{
 					// if the factory is a volume shape factory we create an instance for all volume types
-					if ( TestClass->IsChildOf(UActorFactoryBoxVolume::StaticClass()) ||
-						 TestClass->IsChildOf(UActorFactorySphereVolume::StaticClass()) ||
-						 TestClass->IsChildOf(UActorFactoryCylinderVolume::StaticClass()) )
+					if (TestClass->IsChildOf(UActorFactoryVolume::StaticClass()))
 					{
-						for ( int32 i=0; i < VolumeClasses.Num(); i++ )
-						{
-							UActorFactory* NewFactory = NewObject<UActorFactory>(GetTransientPackage(), TestClass);
-							check(NewFactory);
-							NewFactory->NewActorClass = VolumeClasses[i];
-							ActorFactories.Add(NewFactory);
-						}
+						VolumeFactoryClasses.Add(TestClass);
 					}
 					else
 					{
@@ -897,7 +881,26 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 					}
 				}
 			}
+			else if (TestClass->IsChildOf(AVolume::StaticClass()) && TestClass != AVolume::StaticClass() )
+			{
+				// we want classes derived from AVolume, but not AVolume itself
+				VolumeClasses.Add( TestClass );
+			}
 		}
+
+		ActorFactories.Reserve(ActorFactories.Num() + (VolumeFactoryClasses.Num() * VolumeClasses.Num()));
+		for (UClass* VolumeFactoryClass : VolumeFactoryClasses)
+		{
+			for (UClass* VolumeClass : VolumeClasses)
+			{
+				UActorFactory* NewFactory = NewObject<UActorFactory>(GetTransientPackage(), VolumeFactoryClass);
+				check(NewFactory);
+				NewFactory->NewActorClass = VolumeClass;
+				ActorFactories.Add(NewFactory);
+			}
+		}
+
+		FCoreUObjectDelegates::RegisterHotReloadAddedClassesDelegate.AddUObject(this, &UEditorEngine::CreateVolumeFactoriesForNewClasses);
 	}
 
 	// Used for sorting ActorFactory classes.
@@ -949,6 +952,36 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	bIsInitialized = true;
 };
 
+void UEditorEngine::CreateVolumeFactoriesForNewClasses(const TArray<UClass*>& NewClasses)
+{
+	TArray<UClass*> NewVolumeClasses;
+	for (UClass* NewClass : NewClasses)
+	{
+		if (NewClass && NewClass->IsChildOf(AVolume::StaticClass()))
+		{
+			NewVolumeClasses.Add(NewClass);
+		}
+	}
+
+	if (NewVolumeClasses.Num() > 0)
+	{
+		for (TObjectIterator<UClass> ObjectIt; ObjectIt; ++ObjectIt)
+		{
+			UClass* TestClass = *ObjectIt;
+			if (!TestClass->HasAnyClassFlags(CLASS_Abstract) && TestClass->IsChildOf(UActorFactoryVolume::StaticClass()))
+			{
+				ActorFactories.Reserve(ActorFactories.Num() + NewVolumeClasses.Num());
+				for (UClass* NewVolumeClass : NewVolumeClasses)
+				{
+					UActorFactory* NewFactory = NewObject<UActorFactory>(GetTransientPackage(), TestClass);
+					check(NewFactory);
+					NewFactory->NewActorClass = NewVolumeClass;
+					ActorFactories.Add(NewFactory);
+				}
+			}
+		}
+	}
+}
 
 void UEditorEngine::InitBuilderBrush( UWorld* InWorld )
 {

@@ -72,7 +72,10 @@ public:
 
 	// Begin Actor interface
 	virtual void Tick(float Delta) override;
+protected:
 	virtual void BeginPlay() override;
+
+public:
 	// End Actor interface
 
 	/** Handle pressing forwards */

@@ -46,7 +46,7 @@ namespace Audio
 		}
 	}
 
-	float FSourceParam::operator()()
+	float FSourceParam::Update()
 	{
 		float Alpha = Frame / NumInterpFrames;
 		if (Alpha >= 1.0f)
@@ -115,15 +115,13 @@ namespace Audio
 		float InterpFrames = MixerDevice->GetSampleRate() * 0.033f;
 		PitchSourceParam.Init(FSourceParam(InterpFrames), InNumSources);
 		VolumeSourceParam.Init(FSourceParam(InterpFrames), InNumSources);
-		WetLevelSourceParam.Init(FSourceParam(InterpFrames), InNumSources);
 		LPFCutoffFrequencyParam.Init(FSourceParam(InterpFrames), InNumSources);
 		ChannelMapParam.Init(FSourceChannelMap(InterpFrames), InNumSources);
 		SpatParams.AddDefaulted(InNumSources);
 		LowPassFilters.AddDefaulted(InNumSources);
 
 		PostEffectBuffers.AddDefaulted(InNumSources);
-		DryBuffer.AddDefaulted(InNumSources);
-		WetBuffer.AddDefaulted(InNumSources);
+		OutputBuffer.AddDefaulted(InNumSources);
 		bIsActive.AddDefaulted(InNumSources);
 		bIsPlaying.AddDefaulted(InNumSources);
 		bIsPaused.AddDefaulted(InNumSources);
@@ -189,8 +187,12 @@ namespace Audio
 		}
 #endif
 
-		// Remove the mixer source from its owning submix
-		MixerSources[SourceId]->GetOwningSubmix()->RemoveSourceVoice(MixerSources[SourceId]);
+		// Remove the mixer source from its submix sends
+		TMap<uint32, FMixerSourceSubmixSend>& SubmixSends = MixerSources[SourceId]->GetSubmixSends();
+		for (auto SubmixSendItem : SubmixSends)
+		{
+			SubmixSendItem.Value.Submix->RemoveSourceVoice(MixerSources[SourceId]);
+		}
 
 		// Delete the mixer source and null the slot
 		delete MixerSources[SourceId];
@@ -199,7 +201,6 @@ namespace Audio
 		// Reset all state and data
 		PitchSourceParam[SourceId].Reset();
 		VolumeSourceParam[SourceId].Reset();
-		WetLevelSourceParam[SourceId].Reset();
 		LPFCutoffFrequencyParam[SourceId].Reset();
 
 		LowPassFilters[SourceId].Reset();
@@ -215,8 +216,7 @@ namespace Audio
 		CurrentFrameIndex[SourceId] = 0;
 		NumFramesPlayed[SourceId] = 0;
 		PostEffectBuffers[SourceId].Reset();
-		DryBuffer[SourceId].Reset();
-		WetBuffer[SourceId].Reset();
+		OutputBuffer[SourceId].Reset();
 		bIsActive[SourceId] = false;
 		bIsPlaying[SourceId] = false;
 		bIsDone[SourceId] = true;
@@ -297,7 +297,12 @@ namespace Audio
 			AUDIO_MIXER_CHECK(MixerSources[SourceId] == nullptr);
 			MixerSources[SourceId] = InitParams.SourceVoice;
 
-			InitParams.OwningSubmix->AddSourceVoice(InitParams.SourceVoice);
+			// Loop through the source's sends and add this source to those submixes with the send info
+			for (int32 i = 0; i < InitParams.SubmixSends.Num(); ++i)
+			{
+				const FMixerSourceSubmixSend& MixerSourceSend = InitParams.SubmixSends[i];
+				MixerSourceSend.Submix->AddOrSetSourceVoice(InitParams.SourceVoice, MixerSourceSend.DryLevel, MixerSourceSend.WetLevel);
+			}
 
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
 			AUDIO_MIXER_CHECK(!bIsDebugMode[SourceId]);
@@ -429,20 +434,6 @@ namespace Audio
 		});
 	}
 
-	void FMixerSourceManager::SetWetLevel(const int32 SourceId, const float WetLevel)
-	{
-		AUDIO_MIXER_CHECK(SourceId < NumTotalSources);
-		AUDIO_MIXER_CHECK(GameThreadInfo.bIsBusy[SourceId]);
-		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
-
-		AudioMixerThreadCommand([this, SourceId, WetLevel]()
-		{
-			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
-
-			WetLevelSourceParam[SourceId].SetValue(WetLevel);
-		});
-	}
-
 	void FMixerSourceManager::SetChannelMap(const int32 SourceId, const TArray<float>& ChannelMap)
 	{
 		AUDIO_MIXER_CHECK(SourceId < NumTotalSources);
@@ -488,6 +479,20 @@ namespace Audio
 
 			AUDIO_MIXER_CHECK(InSourceVoiceBuffer->AudioBytes <= (uint32)InSourceVoiceBuffer->AudioData.Num());
 			BufferQueue[SourceId].Enqueue(InSourceVoiceBuffer);
+		});
+	}
+
+
+	void FMixerSourceManager::SetSubmixSendInfo(const int32 SourceId, FMixerSubmixPtr Submix, const float DryLevel, const float WetLevel)
+	{
+		AUDIO_MIXER_CHECK(SourceId < NumTotalSources);
+		AUDIO_MIXER_CHECK(GameThreadInfo.bIsBusy[SourceId]);
+		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
+
+		AudioMixerThreadCommand([this, SourceId, Submix, DryLevel, WetLevel]()
+		{
+			AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+			Submix->AddOrSetSourceVoice(MixerSources[SourceId], DryLevel, WetLevel);
 		});
 	}
 
@@ -699,7 +704,7 @@ namespace Audio
 						SampleValue = FMath::Lerp(CurrFrameValue, NextFrameValue, CurrentAlpha);
 						SourceBuffer[SourceId].Add(SampleValue);
 					}
-					const float CurrentPitchScale = PitchSourceParam[SourceId]();
+					const float CurrentPitchScale = PitchSourceParam[SourceId].Update();
 
 					CurrentFrameAlpha[SourceId] += CurrentPitchScale;
 				}
@@ -734,8 +739,8 @@ namespace Audio
 			int32 SampleIndex = 0;
 			for (int32 Frame = 0; Frame < NumFrames; ++Frame)
 			{
-				const float LPFFreq = LPFFrequencyParam();
-				float CurrentVolumeValue = VolumeSourceParam[SourceId]();
+				const float LPFFreq = LPFFrequencyParam.Update();
+				float CurrentVolumeValue = VolumeSourceParam[SourceId].Update();
 				
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE				
 				if (bIsDebugModeEnabled && !bIsDebugMode[SourceId])
@@ -754,7 +759,7 @@ namespace Audio
 					// Process the source through the filter
 					float SourceSample = Buffer[SampleIndex];
 					
-					SourceSample = LowPassFilters[SourceId][Channel](SourceSample);
+					SourceSample = LowPassFilters[SourceId][Channel].ProcessAudio(SourceSample);
 
 					// Process the effect chain
 					// TODO
@@ -809,11 +814,8 @@ namespace Audio
 
 		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
 		{
-			DryBuffer[SourceId].Reset();
-			DryBuffer[SourceId].AddZeroed(NumOutputSamples);
-
-			WetBuffer[SourceId].Reset();
-			WetBuffer[SourceId].AddZeroed(NumOutputSamples);
+			OutputBuffer[SourceId].Reset();
+			OutputBuffer[SourceId].AddZeroed(NumOutputSamples);
 		}
 
 		for (int32 SourceId = 0; SourceId < NumTotalSources; ++SourceId)
@@ -829,12 +831,6 @@ namespace Audio
 			for (int32 Frame = 0; Frame < NumFrames; ++Frame)
 			{
 				const int32 PostEffectChannels = NumPostEffectChannels[SourceId];
-
-				// Compute the constant-power values of the dry-wet buffer scalars
-				const float WetLevelParamValue = WetLevelSourceParam[SourceId]();
-
-				const float WetLevel = FMath::Sin(WetLevelParamValue * 0.5f * PI);
-				const float DryLevel = FMath::Cos(WetLevelParamValue * 0.5f * PI);
 
 #if ENABLE_AUDIO_OUTPUT_DEBUGGING
 				FSineOsc& SineOsc = DebugOutputGenerators[SourceId];
@@ -859,40 +855,50 @@ namespace Audio
 					{
 						// Look up the channel map value (maps input channels to output channels) for the source
 						// This is the step that either applies the spatialization algorithm or just maps a 2d sound
-						const int32 ChannelMapIndex = PostEffectChannels * OutputChannel + SourceChannel;
+						const int32 ChannelMapIndex = NumOutputChannels * SourceChannel + OutputChannel;
 						const float ChannelMapValue = ScratchChannelMap[ChannelMapIndex];
-
-						AUDIO_MIXER_CHECK(ChannelMapValue >= 0.0f && ChannelMapValue <= 1.0f);
-
-						// Scale the input source sample for this source channel value
-						const float SampleValue = SourceSampleValue * ChannelMapValue;
 
 						// If we have a non-zero sample value, write it out. Note that most 3d audio channel maps
 						// for surround sound will result in 0.0 sample values so this branch should save a bunch of multiplies + adds
-						const int32 OutputSampleIndex = Frame * NumOutputChannels + OutputChannel;
+						if (ChannelMapValue > 0.0f)
+						{
+							AUDIO_MIXER_CHECK(ChannelMapValue >= 0.0f && ChannelMapValue <= 1.0f);
 
-						DryBuffer[SourceId][OutputSampleIndex] += SampleValue * DryLevel;
-						WetBuffer[SourceId][OutputSampleIndex] += SampleValue * WetLevel;
+							// Scale the input source sample for this source channel value
+							const float SampleValue = SourceSampleValue * ChannelMapValue;
+
+							const int32 OutputSampleIndex = Frame * NumOutputChannels + OutputChannel;
+
+							OutputBuffer[SourceId][OutputSampleIndex] += SampleValue;
+						}
 					}
 				}
 			}
 		}
 	}
 
-	void FMixerSourceManager::MixOutputBuffers(const int32 SourceId, TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer) const
+	void FMixerSourceManager::MixOutputBuffers(const int32 SourceId, TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer, const float DryLevel, const float WetLevel) const
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 		AUDIO_MIXER_CHECK(SourceId < NumTotalSources);
-		AUDIO_MIXER_CHECK(OutDryBuffer.Num() == OutWetBuffer.Num());
-		AUDIO_MIXER_CHECK(OutDryBuffer.Num() == DryBuffer[SourceId].Num());
+		AUDIO_MIXER_CHECK(OutputBuffer.Num() == OutputBuffer[SourceId].Num());
 
-		// Mix the source's dry and wet buffers into the output buffers. Note that the source's dry/wet buffers need to have been already computed
-		// earlier in the audio update frame.
-		for (int32 SampleIndex = 0; SampleIndex < OutDryBuffer.Num(); ++SampleIndex)
+		if (DryLevel > 0.0f)
 		{
-			OutDryBuffer[SampleIndex] += DryBuffer[SourceId][SampleIndex];
-			OutWetBuffer[SampleIndex] += WetBuffer[SourceId][SampleIndex];
+			for (int32 SampleIndex = 0; SampleIndex < OutDryBuffer.Num(); ++SampleIndex)
+			{
+				OutDryBuffer[SampleIndex] += OutputBuffer[SourceId][SampleIndex] * DryLevel;
+			}
 		}
+
+		if (WetLevel > 0.0f)
+		{
+			for (int32 SampleIndex = 0; SampleIndex < OutDryBuffer.Num(); ++SampleIndex)
+			{
+				OutWetBuffer[SampleIndex] += OutputBuffer[SourceId][SampleIndex] * WetLevel;
+			}
+		}
+
 	}
 
 	void FMixerSourceManager::ComputeNextBlockOfSamples()

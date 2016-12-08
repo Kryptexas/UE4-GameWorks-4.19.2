@@ -41,6 +41,9 @@ namespace Audio
 		/** The name of the audio device */
 		FString Name;
 
+		/** ID of the device. */
+		FString DeviceId;
+
 		/** The number of channels supported by the audio device */
 		int32 NumChannels;
 
@@ -76,6 +79,7 @@ namespace Audio
 		void Reset()
 		{
 			Name = TEXT("Unknown");
+			DeviceId = TEXT("Unknown");
 			NumChannels = 0;
 			SampleRate = 0;
 			DefaultSampleRate = 0;
@@ -95,7 +99,17 @@ namespace Audio
 	public:
 		/** Callback to generate a new audio stream buffer. */
 		virtual bool OnProcessAudioStream(TArray<float>& OutputBuffer) = 0;
+
+		/** Function to implement when an audio hardware device is added to the system. */
+		virtual void OnAudioDeviceAdded(const FString& DeviceId) {}
+
+		virtual void OnDefaultDeviceOutputChanged(const FString& DeviceId) {}
+
+		virtual void OnDefaultInputOutputChanged(const FString& DeviceId) {}
+
+
 	};
+
 
 	/** Defines parameters needed for opening a new audio stream to device. */
 	struct FAudioMixerOpenStreamParams
@@ -224,6 +238,9 @@ namespace Audio
 
 		/** Creates a Compressed audio info class suitable for decompressing this SoundWave. */
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) = 0;
+
+		/** Return any optional device name defined in platform configuratio. */
+		virtual FString GetDefaultDeviceName() = 0;
 
 	public: // Public Functions
 		//~ Begin FRunnable

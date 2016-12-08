@@ -22,6 +22,8 @@
 #include "ReferenceSkeleton.h"
 #include "GPUSkinPublicDefs.h"
 #include "Serialization/BulkData.h"
+#include "Rendering/ColorVertexBuffer.h"
+#include "Rendering/SkinWeightVertexBuffer.h"
 
 class FMaterialRenderProxy;
 class FMeshElementCollector;
@@ -58,13 +60,7 @@ struct FBoneIndexPair
 	}
 };
 
-/** Which set of indices to select for TRISORT_CustomLeftRight sections. */
-enum ECustomSortAlternateIndexMode
-{
-	CSAIM_Auto = 0,
-	CSAIM_Left = 1,
-	CSAIM_Right = 2,
-};
+
 
 
 class USkeletalMesh;
@@ -272,56 +268,9 @@ struct FApexClothPhysToRenderVertData
 	}
 };
 
-/**
- * A structure for holding the APEX cloth collision volumes data
- */
-struct FApexClothCollisionVolumeData
-{
-	/**
-	\brief structure for presenting collision volume data
 
-	\note contains either capsule data or convex data.
-	*/
 
-	int32	BoneIndex;
-	// For convexes
-	uint32	ConvexVerticesCount;
-	// For convexes
-	uint32	ConvexVerticesStart;
-	TArray<FVector> BoneVertices;
-	TArray<FPlane>  BonePlanes;
-	// For capsules
-	float	CapsuleRadius;
-	// For capsules
-	float	CapsuleHeight;
-	FMatrix LocalPose;
 
-	FApexClothCollisionVolumeData()
-	{
-		BoneIndex = -1;
-		ConvexVerticesCount = 0;
-		ConvexVerticesStart = 0;
-		CapsuleRadius = 0.0f;
-		CapsuleHeight = 0.0f;
-		LocalPose.SetIdentity();
-	}
-
-	bool IsCapsule() const
-	{
-		return (ConvexVerticesCount == 0);
-	}
-};
-
-/**
- * \brief A structure for holding bone sphere ( one of the APEX cloth collision volumes data )
- * \note 2 bone spheres present a capsule
- */
-struct FApexClothBoneSphereData
-{
-	int32	BoneIndex;
-	float	Radius;
-	FVector LocalPos;
-};
 
 
 /** Helper to convert the above enum to string */
@@ -481,38 +430,23 @@ struct FSkelMeshSection
 * Base vertex data for GPU skinned skeletal meshes
 *	make sure to update GpuSkinCacheCommon.usf if the member sizes/order change!
 */
-template <bool bExtraBoneInfluences>
 struct TGPUSkinVertexBase
 {
-	enum
-	{
-		NumInfluences = bExtraBoneInfluences ? MAX_TOTAL_INFLUENCES : MAX_INFLUENCES_PER_STREAM,
-	};
 	// Tangent, U-direction
 	FPackedNormal	TangentX;
 	// Normal
 	FPackedNormal	TangentZ;
-	uint8			InfluenceBones[NumInfluences];
-	uint8			InfluenceWeights[NumInfluences];
 
-	/**
-	* Serializer
-	*
-	* @param Ar - archive to serialize with
-	*/
+	/** Serializer */
 	void Serialize(FArchive& Ar);
-	void Serialize(FArchive& Ar, FVector& OutPosition)
-	{
-		Serialize(Ar);
-	}
 };
 
 /** 
 * 16 bit UV version of skeletal mesh vertex
 *	make sure to update GpuSkinCacheCommon.usf if the member sizes/order change!
 */
-template<uint32 NumTexCoords, bool bExtraBoneInfluencesT>
-struct TGPUSkinVertexFloat16Uvs : public TGPUSkinVertexBase<bExtraBoneInfluencesT>
+template<uint32 NumTexCoords>
+struct TGPUSkinVertexFloat16Uvs : public TGPUSkinVertexBase
 {
 	/** full float position **/
 	FVector			Position;
@@ -543,8 +477,8 @@ struct TGPUSkinVertexFloat16Uvs : public TGPUSkinVertexBase<bExtraBoneInfluences
 * 32 bit UV version of skeletal mesh vertex
 *	make sure to update GpuSkinCacheCommon.usf if the member sizes/order change!
 */
-template<uint32 NumTexCoords, bool bExtraBoneInfluencesT>
-struct TGPUSkinVertexFloat32Uvs : public TGPUSkinVertexBase<bExtraBoneInfluencesT>
+template<uint32 NumTexCoords>
+struct TGPUSkinVertexFloat32Uvs : public TGPUSkinVertexBase
 {
 	/** full float position **/
 	FVector			Position;
@@ -567,28 +501,6 @@ struct TGPUSkinVertexFloat32Uvs : public TGPUSkinVertexBase<bExtraBoneInfluences
 		{
 			Ar << V.UVs[UVIndex];
 		}
-		return Ar;
-	}
-};
-
-/**
- * A structure for holding a skeletal mesh vertex color
- */
-struct FGPUSkinVertexColor
-{
-	/** VertexColor */
-	FColor VertexColor;
-
-	/**
-	 * Serializer
-	 *
-	 * @param Ar - archive to serialize with
-	 * @param V - vertex to serialize
-	 * @return archive that was used
-	 */
-	friend FArchive& operator<<(FArchive& Ar, FGPUSkinVertexColor& V)
-	{
-		Ar << V.VertexColor;
 		return Ar;
 	}
 };
@@ -784,11 +696,10 @@ public:
 	* @param VertexIndex - index into the vertex buffer
 	* @return pointer to vertex data cast to base vertex type
 	*/
-	template <bool bExtraBoneInfluencesT>
-	FORCEINLINE const TGPUSkinVertexBase<bExtraBoneInfluencesT>* GetVertexPtr(uint32 VertexIndex) const
+	FORCEINLINE const TGPUSkinVertexBase* GetVertexPtr(uint32 VertexIndex) const
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		return (TGPUSkinVertexBase<bExtraBoneInfluencesT>*)(Data + VertexIndex * Stride);
+		return (TGPUSkinVertexBase*)(Data + VertexIndex * Stride);
 	}
 	/** 
 	* Non-Const access to entry in vertex data array
@@ -796,11 +707,10 @@ public:
 	* @param VertexIndex - index into the vertex buffer
 	* @return pointer to vertex data cast to base vertex type
 	*/
-	template <bool bExtraBoneInfluencesT>
-	FORCEINLINE TGPUSkinVertexBase<bExtraBoneInfluencesT>* GetVertexPtr(uint32 VertexIndex)
+	FORCEINLINE TGPUSkinVertexBase* GetVertexPtr(uint32 VertexIndex)
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		return (TGPUSkinVertexBase<bExtraBoneInfluencesT>*)(Data + VertexIndex * Stride);
+		return (TGPUSkinVertexBase*)(Data + VertexIndex * Stride);
 	}
 
 	/**
@@ -810,17 +720,16 @@ public:
 	* @param UVIndex - [0,MAX_TEXCOORDS] value to index into UVs array
 	* @return 2D UV values
 	*/
-	template <bool bExtraBoneInfluencesT>
 	FORCEINLINE FVector2D GetVertexUVFast(uint32 VertexIndex,uint32 UVIndex) const
 	{
 		checkSlow(VertexIndex < GetNumVertices());
 		if( !bUseFullPrecisionUVs )
 		{
-			return ((TGPUSkinVertexFloat16Uvs<MAX_TEXCOORDS, bExtraBoneInfluencesT>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
+			return ((TGPUSkinVertexFloat16Uvs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
 		}
 		else
 		{
-			return ((TGPUSkinVertexFloat32Uvs<MAX_TEXCOORDS, bExtraBoneInfluencesT>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
+			return ((TGPUSkinVertexFloat32Uvs<MAX_TEXCOORDS>*)(Data + VertexIndex * Stride))->UVs[UVIndex];
 		}		
 	}	
 
@@ -833,9 +742,7 @@ public:
 	*/
 	FORCEINLINE FVector2D GetVertexUV(uint32 VertexIndex,uint32 UVIndex) const
 	{
-		return bExtraBoneInfluences
-			? GetVertexUVFast<true>(VertexIndex, UVIndex)
-			: GetVertexUVFast<false>(VertexIndex, UVIndex);
+		return GetVertexUVFast(VertexIndex, UVIndex);
 	}
 
 	/**
@@ -847,9 +754,7 @@ public:
 	FORCEINLINE FVector GetVertexPositionSlow(uint32 VertexIndex) const
 	{
 		checkSlow(VertexIndex < GetNumVertices());
-		return bExtraBoneInfluences
-			? GetVertexPositionFast<true>((const TGPUSkinVertexBase<true>*)(Data + VertexIndex * Stride))
-			: GetVertexPositionFast<false>((const TGPUSkinVertexBase<false>*)(Data + VertexIndex * Stride));
+		return GetVertexPositionFast((const TGPUSkinVertexBase*)(Data + VertexIndex * Stride));
 	}
 
 	/**
@@ -858,16 +763,15 @@ public:
 	* @param TGPUSkinVertexBase *
 	* @return FVector 3D position
 	*/
-	template <bool bExtraBoneInfluencesT>
-	FORCEINLINE FVector GetVertexPositionFast(const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcVertex) const
+	FORCEINLINE FVector GetVertexPositionFast(const TGPUSkinVertexBase* SrcVertex) const
 	{
 		if( !bUseFullPrecisionUVs )
 		{
-			return ((TGPUSkinVertexFloat16Uvs<MAX_TEXCOORDS, bExtraBoneInfluencesT>*)(SrcVertex))->Position;
+			return ((TGPUSkinVertexFloat16Uvs<MAX_TEXCOORDS>*)(SrcVertex))->Position;
 		}
 		else
 		{
-			return ((TGPUSkinVertexFloat32Uvs<MAX_TEXCOORDS, bExtraBoneInfluencesT>*)(SrcVertex))->Position;
+			return ((TGPUSkinVertexFloat32Uvs<MAX_TEXCOORDS>*)(SrcVertex))->Position;
 		}		
 	}
 
@@ -877,10 +781,9 @@ public:
 	* @param TGPUSkinVertexBase *
 	* @return FVector 3D position
 	*/
-	template <bool bExtraBoneInfluencesT>
 	FORCEINLINE FVector GetVertexPositionFast(uint32 VertexIndex) const
 	{
-		return GetVertexPositionFast<bExtraBoneInfluencesT>((const TGPUSkinVertexBase<bExtraBoneInfluencesT>*)(Data + VertexIndex * Stride));
+		return GetVertexPositionFast((const TGPUSkinVertexBase*)(Data + VertexIndex * Stride));
 	}
 
 	//~ Other accessors.
@@ -950,19 +853,6 @@ public:
 	void SetNeedsCPUAccess(bool bInNeedsCPUAccess);
 	bool GetNeedsCPUAccess() const { return bNeedsCPUAccess; }
 
-	/** 
-	* @param bInHasExtraBoneInfluences - set to true if this will have extra streams for bone indices & weights.
-	*/
-	FORCEINLINE void SetHasExtraBoneInfluences(bool bInHasExtraBoneInfluences)
-	{
-		bExtraBoneInfluences = bInHasExtraBoneInfluences;
-	}
-
-	FORCEINLINE bool HasExtraBoneInfluences() const
-	{
-		return bExtraBoneInfluences;
-	}
-
 	/**
 	 * @param InNumTexCoords	The number of texture coordinate sets that should be in this mesh
 	 */
@@ -974,15 +864,13 @@ public:
 	/**
 	 * Assignment operator. 
 	 */
-	template <uint32 NumTexCoordsT, bool bExtraBoneInfluencesT>
-	FSkeletalMeshVertexBuffer& operator=(const TArray< TGPUSkinVertexFloat16Uvs<NumTexCoordsT, bExtraBoneInfluencesT> >& InVertices)
+	template <uint32 NumTexCoordsT>
+	FSkeletalMeshVertexBuffer& operator=(const TArray< TGPUSkinVertexFloat16Uvs<NumTexCoordsT> >& InVertices)
 	{
 		check(!bUseFullPrecisionUVs);
-		check(bExtraBoneInfluences == bExtraBoneInfluencesT);
 		AllocateData();
 
-		*(TSkeletalMeshVertexData< TGPUSkinVertexFloat16Uvs<NumTexCoordsT, bExtraBoneInfluencesT> >*)VertexData = InVertices;
-
+		*(TSkeletalMeshVertexData< TGPUSkinVertexFloat16Uvs<NumTexCoordsT> >*)VertexData = InVertices;
 
 		Data = VertexData->GetDataPointer();
 		Stride = VertexData->GetStride();
@@ -994,14 +882,13 @@ public:
 	/**
 	 * Assignment operator.  
 	 */
-	template <uint32 NumTexCoordsT, bool bExtraBoneInfluencesT>
-	FSkeletalMeshVertexBuffer& operator=(const TArray< TGPUSkinVertexFloat32Uvs<NumTexCoordsT, bExtraBoneInfluencesT> >& InVertices)
+	template <uint32 NumTexCoordsT>
+	FSkeletalMeshVertexBuffer& operator=(const TArray< TGPUSkinVertexFloat32Uvs<NumTexCoordsT> >& InVertices)
 	{
 		check(bUseFullPrecisionUVs);
-		check(bExtraBoneInfluences == bExtraBoneInfluencesT);
 		AllocateData();
 
-		*(TSkeletalMeshVertexData< TGPUSkinVertexFloat32Uvs<NumTexCoordsT, bExtraBoneInfluencesT> >*)VertexData = InVertices;
+		*(TSkeletalMeshVertexData< TGPUSkinVertexFloat32Uvs<NumTexCoordsT> >*)VertexData = InVertices;
 
 		Data = VertexData->GetDataPointer();
 		Stride = VertexData->GetStride();
@@ -1017,14 +904,7 @@ public:
 	template<uint32 NumTexCoordsT>
 	void ConvertToFullPrecisionUVs()
 	{
-		if (bExtraBoneInfluences)
-		{
-			ConvertToFullPrecisionUVsTyped<NumTexCoordsT, true>();
-		}
-		else
-		{
-			ConvertToFullPrecisionUVsTyped<NumTexCoordsT, false>();
-		}
+		ConvertToFullPrecisionUVsTyped<NumTexCoordsT>();
 	}
 	
 	// @param guaranteed only to be valid if the vertex buffer is valid
@@ -1038,14 +918,10 @@ protected:
 	FShaderResourceViewRHIRef SRVValue;
 
 private:
-	/** InfluenceBones/InfluenceWeights byte order has been swapped */
-	bool bInfluencesByteSwapped;
 	/** Corresponds to USkeletalMesh::bUseFullPrecisionUVs. if true then 32 bit UVs are used */
 	bool bUseFullPrecisionUVs;
 	/** true if this vertex buffer will be used with CPU skinning. Resource arrays are set to cpu accessible if this is true */
 	bool bNeedsCPUAccess;
-	/** Has extra bone influences per Vertex, which means using a different TGPUSkinVertexBase */
-	bool bExtraBoneInfluences;
 	/** The vertex data storage type */
 	FSkeletalMeshVertexDataInterface* VertexData;
 	/** The cached vertex data pointer. */
@@ -1075,155 +951,15 @@ private:
 	*/
 	void SetVertexSlow(uint32 VertexIndex,const FSoftSkinVertex& SrcVertex)
 	{
-		if (bExtraBoneInfluences)
-		{
-			SetVertexFast<true>(VertexIndex, SrcVertex);
-		}
-		else
-		{
-			SetVertexFast<false>(VertexIndex, SrcVertex);
-		}
+		SetVertexFast(VertexIndex, SrcVertex);
 	}
 
 	/** Helper for concrete types */
-	template <bool bUsesExtraBoneInfluences>
 	void SetVertexFast(uint32 VertexIndex,const FSoftSkinVertex& SrcVertex);
 
 	/** Helper for concrete types */
-	template<uint32 NumTexCoordsT, bool bUsesExtraBoneInfluences>
+	template<uint32 NumTexCoordsT>
 	void ConvertToFullPrecisionUVsTyped();
-};
-
-/** 
- * A vertex buffer for holding skeletal mesh per vertex color information only. 
- * This buffer sits along side FSkeletalMeshVertexBuffer in each skeletal mesh lod
- */
-class FSkeletalMeshVertexColorBuffer : public FVertexBuffer
-{
-public:
-	/**
-	 * Constructor
-	 */
-	ENGINE_API FSkeletalMeshVertexColorBuffer();
-
-	/**
-	 * Destructor
-	 */
-	ENGINE_API virtual ~FSkeletalMeshVertexColorBuffer();
-
-	/**
-	 * Assignment. Assumes that vertex buffer will be rebuilt 
-	 */
-	ENGINE_API FSkeletalMeshVertexColorBuffer& operator=(const FSkeletalMeshVertexColorBuffer& Other);
-	
-	/**
-	 * Constructor (copy)
-	 */
-	ENGINE_API FSkeletalMeshVertexColorBuffer(const FSkeletalMeshVertexColorBuffer& Other);
-
-	/** 
-	 * Delete existing resources 
-	 */
-	void CleanUp();
-
-	/**
-	 * Initializes the buffer with the given vertices.
-	 * @param InVertices - The vertices to initialize the buffer with.
-	 */
-	void Init(const TArray<FSoftSkinVertex>& InVertices);
-
-	/**
-	 * Serializer for this class
-	 * @param Ar - archive to serialize to
-	 * @param B - data to serialize
-	 */
-	friend FArchive& operator<<(FArchive& Ar,FSkeletalMeshVertexColorBuffer& VertexBuffer);
-
-	//~ Begin FRenderResource interface.
-
-	/**
-	 * Initialize the RHI resource for this vertex buffer
-	 */
-	virtual void InitRHI() override;
-
-	/**
-	 * @return text description for the resource type
-	 */
-	virtual FString GetFriendlyName() const override;
-
-	//~ End FRenderResource interface.
-
-	/** 
-	 * @return number of vertices in this vertex buffer
-	 */
-	FORCEINLINE uint32 GetNumVertices() const
-	{
-		return NumVertices;
-	}
-
-	/** 
-	* @return cached stride for vertex data type for this vertex buffer
-	*/
-	FORCEINLINE uint32 GetStride() const
-	{
-		return Stride;
-	}
-	/** 
-	* @return total size of data in resource array
-	*/
-	FORCEINLINE uint32 GetVertexDataSize() const
-	{
-		return NumVertices * Stride;
-	}
-
-	/**
-	 * @return the vertex color for the specified index
-	 */
-	FORCEINLINE const FColor& VertexColor( uint32 VertexIndex ) const
-	{
-		checkSlow( VertexIndex < GetNumVertices() );
-		uint8* VertBase = Data + VertexIndex * Stride;
-		return ((FGPUSkinVertexColor*)(VertBase))->VertexColor;
-	}
-
-	/**
-	 * Assignment operator - Initializes the buffer with the given colors.
-	 * @param InColors - The colors to initialize the buffer with.
-	 */
-	FSkeletalMeshVertexColorBuffer& operator=(const TArray<FColor>& InColors);
-
-private:
-	/** The vertex data storage type */
-	FSkeletalMeshVertexDataInterface* VertexData;
-	/** The cached vertex data pointer. */
-	uint8* Data;
-	/** The cached vertex stride. */
-	uint32 Stride;
-	/** The cached number of vertices. */
-	uint32 NumVertices;
-
-	/** 
-	 * Allocates the vertex data storage type
-	 */
-	void AllocateData();
-
-	/**
-	 * Resizes the vertex data storage & updates the cached info.
-	 */
-	void ResizeData(int32 InNumVertices);
-
-	/**
-	 * Update the cached 'VertexData' information.
-	 */
-	void UpdateCachedInfo();
-
-	/** 
-	 * Copy the contents of the source color to the destination vertex in the buffer 
-	 *
-	 * @param VertexIndex - index into the vertex buffer
-	 * @param SrcColor - source color to copy from
-	 */
-	void SetColor(uint32 VertexIndex,const FColor& SrcColor);
 };
 
 /** 
@@ -1522,8 +1258,11 @@ public:
 	/** static vertices from chunks for skinning on GPU */
 	FSkeletalMeshVertexBuffer	VertexBufferGPUSkin;
 	
+	/** Skin weights for skinning */
+	FSkinWeightVertexBuffer		SkinWeightVertexBuffer;
+
 	/** A buffer for vertex colors */
-	FSkeletalMeshVertexColorBuffer	ColorVertexBuffer;
+	FColorVertexBuffer			ColorVertexBuffer;
 
 	/** A buffer for APEX cloth mesh-mesh mapping */
 	FSkeletalMeshVertexAPEXClothBuffer	APEXClothVertexBuffer;
@@ -1680,7 +1419,7 @@ public:
 
 	bool DoesVertexBufferHaveExtraBoneInfluences() const
 	{
-		return VertexBufferGPUSkin.HasExtraBoneInfluences();
+		return SkinWeightVertexBuffer.HasExtraBoneInfluences();
 	}
 
 	bool DoSectionsNeedExtraBoneInfluences() const

@@ -148,7 +148,7 @@ public:
 	* @param InArgs - Arguments passed from Slate
 	*
 	*/
-	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected);
+	void Construct( const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected);
 
 	/**
 	* Destructor - resets the animation curve
@@ -165,7 +165,7 @@ public:
 	* @param NewPreviewMesh - The new preview mesh being used by Persona
 	*
 	*/
-	void OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh);
+	void OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh);
 
 	/**
 	* Is registered with Persona to handle when its preview asset is changed.
@@ -284,6 +284,9 @@ private:
 	// Adds a new smartname entry to the skeleton in the container we are managing
 	void CreateNewNameEntry(const FText& CommittedText, ETextCommit::Type CommitType);
 
+	/** Handle smart name (i.e. curve) removal */
+	void HandleSmartNameRemoved(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids);
+
 	/** Get the SmartNameMapping for anim curves */
 	const struct FSmartNameMapping* GetAnimCurveMapping();
 
@@ -334,4 +337,7 @@ private:
 
 	/** apply curve bone links from editor mirror object to skeleton */
 	void ApplyCurveBoneLinks(class UEditorAnimCurveBoneLinks* EditorObj);
+
+	/** Delegate handle for HandleSmartNameRemoved callback */
+	FDelegateHandle SmartNameRemovedHandle;
 };

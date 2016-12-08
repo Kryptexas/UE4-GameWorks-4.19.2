@@ -1713,6 +1713,11 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked,LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_IOS)));
 
+	ActionList.MapAction(
+		Commands.OpenMergeActor,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OpenMergeActor_Clicked)
+	);
+
 	for (int32 i = 0; i < ERHIFeatureLevel::Num; ++i)
 	{
 		ActionList.MapAction(

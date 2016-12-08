@@ -132,9 +132,11 @@ We're now ready to create objects in **Unreal Editor** based on our code. For re
 				// Sets default values for this actor's properties
 				AFloatingActor();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 	

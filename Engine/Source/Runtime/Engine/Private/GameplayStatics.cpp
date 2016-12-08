@@ -33,6 +33,7 @@
 #include "GameFramework/SaveGame.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Components/DecalComponent.h"
+#include "Components/ForceFeedbackComponent.h"
 #include "LandscapeProxy.h"
 #include "Logging/MessageLog.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
@@ -1017,6 +1018,7 @@ void UGameplayStatics::PlaySound2D(const UObject* WorldContextObject, class USou
 	{
 		FActiveSound NewActiveSound;
 		NewActiveSound.SetSound(Sound);
+		NewActiveSound.SetWorld(ThisWorld);
 
 		NewActiveSound.VolumeMultiplier = VolumeMultiplier;
 		NewActiveSound.PitchMultiplier = PitchMultiplier;
@@ -1027,6 +1029,7 @@ void UGameplayStatics::PlaySound2D(const UObject* WorldContextObject, class USou
 		NewActiveSound.bAllowSpatialization = false;
 		NewActiveSound.ConcurrencySettings = ConcurrencySettings;
 		NewActiveSound.Priority = Sound->Priority;
+		NewActiveSound.SubtitlePriority = Sound->GetSubtitlePriority();
 
 		AudioDevice->AddNewActiveSound(NewActiveSound);
 	}
@@ -1134,7 +1137,7 @@ UAudioComponent* UGameplayStatics::SpawnSoundAtLocation(const UObject* WorldCont
 		AudioComponent->bAllowSpatialization	= bIsInGameWorld;
 		AudioComponent->bIsUISound				= !bIsInGameWorld;
 		AudioComponent->bAutoDestroy			= true;
-		AudioComponent->SubtitlePriority		= DEFAULT_SUBTITLE_PRIORITY; // Fixme: pass in? Do we want that exposed to blueprints though?
+		AudioComponent->SubtitlePriority		= Sound->GetSubtitlePriority();
 		AudioComponent->Play(StartTime);
 	}
 
@@ -1195,7 +1198,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 			AudioComponent->bAllowSpatialization = bIsInGameWorld;
 			AudioComponent->bIsUISound = !bIsInGameWorld;
 			AudioComponent->bAutoDestroy = true;
-			AudioComponent->SubtitlePriority = DEFAULT_SUBTITLE_PRIORITY; // Fixme: pass in? Do we want that exposed to blueprints though?
+			AudioComponent->SubtitlePriority = Sound->GetSubtitlePriority();
 			AudioComponent->Play(StartTime);
 		}
 	}
@@ -1500,6 +1503,56 @@ UDecalComponent* UGameplayStatics::SpawnDecalAttached(class UMaterialInterface* 
 				}
 			}
 		}
+	}
+	return nullptr;
+}
+
+UForceFeedbackComponent* CreateForceFeedbackComponent(UForceFeedbackEffect* FeedbackEffect, AActor* Actor, const bool bLooping, const float IntensityMultiplier, UForceFeedbackAttenuation* AttenuationSettings)
+{
+	UForceFeedbackComponent* ForceFeedbackComp = NewObject<UForceFeedbackComponent>(Actor);
+	ForceFeedbackComp->bAutoActivate = false;
+	ForceFeedbackComp->bAutoDestroy = true;
+	ForceFeedbackComp->bLooping = bLooping;
+	ForceFeedbackComp->ForceFeedbackEffect = FeedbackEffect;
+	ForceFeedbackComp->IntensityMultiplier = IntensityMultiplier;
+	ForceFeedbackComp->AttenuationSettings = AttenuationSettings;
+	ForceFeedbackComp->RegisterComponent();
+
+	return ForceFeedbackComp;
+}
+
+UForceFeedbackComponent* UGameplayStatics::SpawnForceFeedbackAtLocation(const UObject* WorldContextObject, UForceFeedbackEffect* ForceFeedbackEffect, const FVector Location, const FRotator Rotation, const bool bLooping, const float IntensityMultiplier, const float StartTime, UForceFeedbackAttenuation* AttenuationSettings)
+{
+	if (ForceFeedbackEffect)
+	{
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+		{
+			UForceFeedbackComponent* ForceFeedbackComp = CreateForceFeedbackComponent(ForceFeedbackEffect, World->GetWorldSettings(), bLooping, IntensityMultiplier, AttenuationSettings);
+			ForceFeedbackComp->SetWorldLocationAndRotation(Location, Rotation);
+			ForceFeedbackComp->Play(StartTime);
+			return ForceFeedbackComp;
+		}
+	}
+	return nullptr;
+}
+
+UForceFeedbackComponent* UGameplayStatics::SpawnForceFeedbackAttached(UForceFeedbackEffect* ForceFeedbackEffect, USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, const bool bStopWhenAttachedToDestroyed, const bool bLooping, const float IntensityMultiplier, const float StartTime, UForceFeedbackAttenuation* AttenuationSettings)
+{
+	if (ForceFeedbackEffect && AttachToComponent)
+	{
+		UForceFeedbackComponent* ForceFeedbackComp = CreateForceFeedbackComponent(ForceFeedbackEffect, AttachToComponent->GetOwner(), bLooping, IntensityMultiplier, AttenuationSettings);
+		ForceFeedbackComp->bStopWhenOwnerDestroyed = bStopWhenAttachedToDestroyed;
+		ForceFeedbackComp->AttachToComponent(AttachToComponent, FAttachmentTransformRules::KeepRelativeTransform, AttachPointName);
+		if (LocationType == EAttachLocation::KeepWorldPosition)
+		{
+			ForceFeedbackComp->SetWorldLocationAndRotation(Location, Rotation);
+		}
+		else
+		{
+			ForceFeedbackComp->SetRelativeLocationAndRotation(Location, Rotation);
+		}
+		ForceFeedbackComp->Play(StartTime);
+		return ForceFeedbackComp;
 	}
 	return nullptr;
 }

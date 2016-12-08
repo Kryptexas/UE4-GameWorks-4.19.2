@@ -250,5 +250,17 @@ UScriptStruct* UAnimGraphNode_BlendSpacePlayer::GetTimePropertyStruct() const
 	return FAnimNode_BlendSpacePlayer::StaticStruct();
 }
 
+EAnimAssetHandlerType UAnimGraphNode_BlendSpacePlayer::SupportsAssetClass(const UClass* AssetClass) const
+{
+	if (AssetClass->IsChildOf(UBlendSpaceBase::StaticClass()) && !IsAimOffsetBlendSpace(AssetClass))
+	{
+		return EAnimAssetHandlerType::PrimaryHandler;
+	}
+	else
+	{
+		return EAnimAssetHandlerType::NotSupported;
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
 

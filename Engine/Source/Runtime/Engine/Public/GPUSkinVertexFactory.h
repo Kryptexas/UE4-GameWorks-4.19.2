@@ -34,6 +34,7 @@
 #include "VertexFactory.h"
 #include "LocalVertexFactory.h"
 #include "ResourcePool.h"
+#include "SkeletalMeshTypes.h"
 
 class FSkeletalMeshVertexBuffer;
 

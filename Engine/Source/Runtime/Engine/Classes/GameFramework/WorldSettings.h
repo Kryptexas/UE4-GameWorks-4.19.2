@@ -213,7 +213,7 @@ struct ENGINE_API FHierarchicalSimplification
 	float DrawDistance;
 
 	/** The screen radius an mesh object should reach before swapping to the LOD actor, once one of parent displays, it won't draw any of children. */
-	UPROPERTY(Category = FHierarchicalSimplification, EditAnywhere, meta = (UIMin = "0.0000", ClampMin = "0.00000", UIMax = "1.0", ClampMax = "1.0"))
+	UPROPERTY(Category = FHierarchicalSimplification, EditAnywhere, meta = (UIMin = "0.00001", ClampMin = "0.000001", UIMax = "1.0", ClampMax = "1.0"))
 	float TransitionScreenSize;
 
 	/** If this is true, it will simplify mesh but it is slower.

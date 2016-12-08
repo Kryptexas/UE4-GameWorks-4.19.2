@@ -116,4 +116,11 @@ FText UAnimGraphNode_BlendSpaceBase::GetMenuCategory() const
 {
 	return LOCTEXT("BlendSpaceCategory_Label", "BlendSpaces");
 }
+
+bool UAnimGraphNode_BlendSpaceBase::IsAimOffsetBlendSpace(const UClass* BlendSpaceClass)
+{
+	return  BlendSpaceClass->IsChildOf(UAimOffsetBlendSpace::StaticClass()) ||
+		BlendSpaceClass->IsChildOf(UAimOffsetBlendSpace1D::StaticClass());
+}
+
 #undef LOCTEXT_NAMESPACE

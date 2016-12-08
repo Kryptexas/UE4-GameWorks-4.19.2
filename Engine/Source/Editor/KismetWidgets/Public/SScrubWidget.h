@@ -23,6 +23,7 @@ DECLARE_DELEGATE_TwoParams( FOnCropAnimSequence, bool, float )
 DECLARE_DELEGATE_TwoParams( FOnAddAnimSequence, bool, int32 )
 DECLARE_DELEGATE_TwoParams( FOnAppendAnimSequence, bool, int32 )
 DECLARE_DELEGATE_TwoParams( FOnScrubBarDrag, int32, float)
+DECLARE_DELEGATE_OneParam( FOnReZeroAnimSequence, int32 )
 
 class KISMETWIDGETS_API SScrubWidget : public SCompoundWidget
 {
@@ -66,7 +67,7 @@ public:
 		/** Called when an frame is appended in the beginning or at the end */
 		SLATE_EVENT(FOnAppendAnimSequence, OnAppendAnimSequence)
 		/** Called to zero out selected frame's translation from origin */
-		SLATE_EVENT( FSimpleDelegate, OnReZeroAnimSequence )
+		SLATE_EVENT( FOnReZeroAnimSequence, OnReZeroAnimSequence )
 		/** Optional, additional values to draw on the timeline **/
 		SLATE_ATTRIBUTE( TArray<float>, DraggableBars )
 		SLATE_EVENT( FOnScrubBarDrag, OnBarDrag)
@@ -119,7 +120,7 @@ private:
 	void OnShowPopupOfAppendAnimation(bool bBegin);
 
 	/** Function to zero out translation of the selected frame */
-	void OnReZeroCalled();
+	void OnReZeroCalled(int32 FrameIndex);
 
 	TAttribute<float> ValueAttribute;
 	FOnFloatValueChanged OnValueChanged;
@@ -132,7 +133,7 @@ private:
 	FOnCropAnimSequence		OnCropAnimSequence;
 	FOnAddAnimSequence		OnAddAnimSequence;
 	FOnAppendAnimSequence	OnAppendAnimSequence;
-	FSimpleDelegate			OnReZeroAnimSequence;
+	FOnReZeroAnimSequence	OnReZeroAnimSequence;
 
 	/** Dragagble bars are generic lines drawn on the scrub widget that can be dragged with the mouse. This is very bare bones and just represents drawing/moving float values */
 	TAttribute<TArray<float>>	DraggableBars;

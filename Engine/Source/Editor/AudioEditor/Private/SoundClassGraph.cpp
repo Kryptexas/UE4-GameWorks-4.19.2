@@ -72,8 +72,6 @@ void USoundClassGraph::AddDroppedSoundClasses(const TArray<USoundClass*>& SoundC
 
 void USoundClassGraph::AddNewSoundClass(UEdGraphPin* FromPin, class USoundClass* SoundClass, int32 NodePosX, int32 NodePosY, bool bSelectNewNode/* = true*/)
 {
-	check(SoundClass->ChildClasses.Num() == 0);
-
 	Modify();
 
 	USoundClassGraphNode* GraphNode = CreateNode(SoundClass, NodePosX, NodePosY, bSelectNewNode);
@@ -144,22 +142,25 @@ void USoundClassGraph::RefreshGraphLinks()
 
 			ChildPin->BreakAllPinLinks();
 
-			for (int32 ChildIndex = 0; ChildIndex < Node->SoundClass->ChildClasses.Num(); ChildIndex++)
+			if (Node->SoundClass)
 			{
-				USoundClass* ChildClass = Node->SoundClass->ChildClasses[ChildIndex];
-
-				if (ChildClass)
+				for (int32 ChildIndex = 0; ChildIndex < Node->SoundClass->ChildClasses.Num(); ChildIndex++)
 				{
-					USoundClassGraphNode* ChildNode = FindExistingNode(ChildClass);
+					USoundClass* ChildClass = Node->SoundClass->ChildClasses[ChildIndex];
 
-					if (!ChildNode)
+					if (ChildClass)
 					{
-						// New Child not yet represented on graph
-						ConstructNodes(ChildClass, Node->NodePosX+400, Node->NodePosY);
-						ChildNode = FindExistingNode(ChildClass);
-					}
+						USoundClassGraphNode* ChildNode = FindExistingNode(ChildClass);
 
-					ChildPin->MakeLinkTo(ChildNode->GetParentPin());
+						if (!ChildNode)
+						{
+							// New Child not yet represented on graph
+							ConstructNodes(ChildClass, Node->NodePosX + 400, Node->NodePosY);
+							ChildNode = FindExistingNode(ChildClass);
+						}
+
+						ChildPin->MakeLinkTo(ChildNode->GetParentPin());
+					}
 				}
 			}
 
@@ -273,8 +274,6 @@ void USoundClassGraph::RemoveAllNodes()
 
 USoundClassGraphNode* USoundClassGraph::CreateNode(USoundClass* SoundClass, int32 NodePosX, int32 NodePosY, bool bSelectNewNode/* = true*/)
 {
-	// Make sure the sound class graph sound class nodes are all linked before trying to make a new node. This will make sure we know about recursive graph connections.
-	LinkSoundClasses();
 
 	USoundClassGraphNode* GraphNode = FindExistingNode(SoundClass);
 

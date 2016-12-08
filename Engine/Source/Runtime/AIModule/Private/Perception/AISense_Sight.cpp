@@ -49,14 +49,14 @@ FORCEINLINE_DEBUGGABLE bool CheckIsTargetInSightPie(const FPerceptionListener& L
 //----------------------------------------------------------------------//
 // FAISightTarget
 //----------------------------------------------------------------------//
-const FAISightTarget::FTargetId FAISightTarget::InvalidTargetId = NAME_None;
+const FAISightTarget::FTargetId FAISightTarget::InvalidTargetId = FAISystem::InvalidUnsignedID;
 
 FAISightTarget::FAISightTarget(AActor* InTarget, FGenericTeamId InTeamId)
 	: Target(InTarget), SightTargetInterface(NULL), TeamId(InTeamId)
 {
 	if (InTarget)
 	{
-		TargetId = InTarget->GetFName();
+		TargetId = InTarget->GetUniqueID();
 	}
 	else
 	{
@@ -353,7 +353,7 @@ void UAISense_Sight::RegisterSource(AActor& SourceActor)
 
 void UAISense_Sight::UnregisterSource(AActor& SourceActor)
 {
-	const FAISightTarget::FTargetId AsTargetId = SourceActor.GetFName();
+	const FAISightTarget::FTargetId AsTargetId = SourceActor.GetUniqueID();
 	FAISightTarget* AsTarget = ObservedTargets.Find(AsTargetId);
 	
 	if (AsTarget != nullptr && SightQueryQueue.Num() > 0)
@@ -390,7 +390,7 @@ void UAISense_Sight::CleanseInvalidSources()
 {
 	bool bInvalidSourcesFound = false;
 	int32 NumInvalidSourcesFound = 0;
-	for (TMap<FName, FAISightTarget>::TIterator ItTarget(ObservedTargets); ItTarget; ++ItTarget)
+	for (FTargetsContainer::TIterator ItTarget(ObservedTargets); ItTarget; ++ItTarget)
 	{
 		if (ItTarget->Value.Target.IsValid() == false)
 		{
@@ -422,9 +422,17 @@ bool UAISense_Sight::RegisterTarget(AActor& TargetActor, FQueriesOperationPostPr
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_Sense_Sight_RegisterTarget);
 	
-	FAISightTarget* SightTarget = ObservedTargets.Find(TargetActor.GetFName());
+	FAISightTarget* SightTarget = ObservedTargets.Find(TargetActor.GetUniqueID());
 	
-	if (SightTarget == NULL)
+	if (SightTarget != nullptr && SightTarget->GetTargetActor() != &TargetActor)
+	{
+		// this means given unique ID has already been recycled. 
+		FAISightTarget NewSightTarget(&TargetActor);
+
+		SightTarget = &(ObservedTargets.Add(NewSightTarget.TargetId, NewSightTarget));
+		SightTarget->SightTargetInterface = Cast<IAISightTargetInterface>(&TargetActor);
+	}
+	else if (SightTarget == nullptr)
 	{
 		FAISightTarget NewSightTarget(&TargetActor);
 
@@ -488,7 +496,7 @@ void UAISense_Sight::GenerateQueriesForListener(const FPerceptionListener& Liste
 	const AActor* Avatar = Listener.GetBodyActor();
 
 	// create sight queries with all legal targets
-	for (TMap<FName, FAISightTarget>::TConstIterator ItTarget(ObservedTargets); ItTarget; ++ItTarget)
+	for (FTargetsContainer::TConstIterator ItTarget(ObservedTargets); ItTarget; ++ItTarget)
 	{
 		const AActor* TargetActor = ItTarget->Value.GetTargetActor();
 		if (TargetActor == NULL || TargetActor == Avatar)
@@ -527,7 +535,7 @@ void UAISense_Sight::OnListenerUpdateImpl(const FPerceptionListener& UpdatedList
 	RemoveAllQueriesByListener(UpdatedListener, DontSort);
 	
 	// see if this listener is a Target as well
-	const FAISightTarget::FTargetId AsTargetId = UpdatedListener.GetBodyActorName();
+	const FAISightTarget::FTargetId AsTargetId = UpdatedListener.GetBodyActorUniqueID();
 	FAISightTarget* AsTarget = ObservedTargets.Find(AsTargetId);
 	if (AsTarget != NULL)
 	{

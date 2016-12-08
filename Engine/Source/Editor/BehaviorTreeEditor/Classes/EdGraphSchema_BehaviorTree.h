@@ -21,8 +21,8 @@ struct FBehaviorTreeSchemaAction_AutoArrange : public FEdGraphSchemaAction
 	FBehaviorTreeSchemaAction_AutoArrange() 
 		: FEdGraphSchemaAction() {}
 
-	FBehaviorTreeSchemaAction_AutoArrange(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
+	FBehaviorTreeSchemaAction_AutoArrange(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface
@@ -36,8 +36,8 @@ struct FBehaviorTreeSchemaAction_AddComment : public FEdGraphSchemaAction
 	GENERATED_BODY()
 	
 	FBehaviorTreeSchemaAction_AddComment() : FEdGraphSchemaAction() {}
-	FBehaviorTreeSchemaAction_AddComment(const FText& InDescription, const FString& InToolTip)
-		: FEdGraphSchemaAction(FText(), InDescription, InToolTip, 0)
+	FBehaviorTreeSchemaAction_AddComment(FText InDescription, FString InToolTip)
+		: FEdGraphSchemaAction(FText(), MoveTemp(InDescription), MoveTemp(InToolTip), 0)
 	{
 	}
 

@@ -5,286 +5,295 @@
 
 namespace Audio
 {
+	ICustomWaveTableOscFactory* FWaveTableOsc::CustomWaveTableOscFactory = nullptr;
 
 	FWaveTableOsc::FWaveTableOsc()
-		: SampleRate(0)
-		, ReadIndex(0.0f)
+		: WaveTableBuffer(nullptr)
+		, WaveTableBufferSize(0)
+		, FrequencyHz(440.0f)
+		, SampleRate(44100)
+		, NormalPhaseReadIndex(0.0f)
 		, QuadPhaseReadIndex(0.0f)
-		, ReadDelta(0.0f)
+		, PhaseIncrement(0.0f)
+		, OutputScale(1.0f)
+		, OutputAdd(0.0f)
+		, WaveTableType(EWaveTable::None)
 	{
+		SetFrequencyHz(FrequencyHz);
 	}
 
 	FWaveTableOsc::~FWaveTableOsc()
 	{
+		if (WaveTableBuffer)
+		{
+			delete[] WaveTableBuffer;
+			WaveTableBuffer = nullptr;
+		}
 	}
 
-	void FWaveTableOsc::Init(int32 InSampleRate, int32 TableSize)
+	void FWaveTableOsc::Init(const int32 InSampleRate, const float InFrequencyHz)
 	{
-		AUDIO_MIXER_CHECK(InSampleRate > 0);
-
 		SampleRate = InSampleRate;
-		
-		Generate(TableSize);
+		FrequencyHz = InFrequencyHz;
+
+		Reset();
+		UpdateFrequency();
 	}
 
-	void FWaveTableOsc::SetFrequency(const float InFrequencyHz)
+	void FWaveTableOsc::SetSampleRate(const int32 InSampleRate)
 	{
-		AUDIO_MIXER_CHECK(InFrequencyHz > 0);
-		ReadDelta = (InFrequencyHz / (float)SampleRate) * (float)WaveTable.Num();
+		SampleRate = InSampleRate;
+		UpdateFrequency();
 	}
 
-	void FWaveTableOsc::SetPolarity(const bool bInIsUnipolar)
+	void FWaveTableOsc::SetScaleAdd(const float InScale, const float InAdd)
 	{
-		bIsUnipolar = bInIsUnipolar;
+		OutputScale = InScale;
+		OutputAdd = InAdd;
 	}
 
-	void FWaveTableOsc::operator()(float* OutSample, float* OutQuadSample)
+	void FWaveTableOsc::Reset()
 	{
-		const int32 CurrIndex = (int32)ReadIndex;
-		const int32 NextIndex = (CurrIndex + 1) % WaveTable.Num();
+		// Normal phase starts at front of table
+		NormalPhaseReadIndex = 0.0f;
 
-		const int32 CurrQuadIndex = (int32)QuadPhaseReadIndex;
-		const int32 NextQuadIndex = (CurrQuadIndex + 1) % WaveTable.Num();
+		// Quad phase starts at 25% of the wave table buffer size
+		QuadPhaseReadIndex = 0.25f * WaveTableBufferSize;
+	}
 
-		const float Alpha = ReadIndex - CurrIndex;
-		const float QuadAlpha = QuadPhaseReadIndex - CurrQuadIndex;
+	// Sets the frequency of the wave table oscillator.
+	void FWaveTableOsc::SetFrequencyHz(const float InFrequencyHz)
+	{
+		FrequencyHz = InFrequencyHz;
+		UpdateFrequency();
+	}
 
-		*OutSample = FMath::Lerp(WaveTable[CurrIndex], WaveTable[NextIndex], Alpha);
-		*OutQuadSample = FMath::Lerp(WaveTable[CurrQuadIndex], WaveTable[NextQuadIndex], Alpha);
+	void FWaveTableOsc::UpdateFrequency()
+	{
+		PhaseIncrement = (float)WaveTableBufferSize * FrequencyHz / (float)SampleRate;
+	}
 
-		if (bIsUnipolar)
+	void FWaveTableOsc::ProcessAudio(float* OutputNormalPhase, float* OutputQuadPhase)
+	{
+		const int32 NormPhaseReadIndexPrev = (int32)NormalPhaseReadIndex;
+		const float Alpha = NormalPhaseReadIndex - NormPhaseReadIndexPrev;
+
+		if (OutputNormalPhase)
 		{
-			// Scale from [-1.0, 1.0] to [0.0 1.0]
-			*OutSample = 0.5f * (*OutSample + 1.0f);
-			*OutQuadSample = 0.5f * (*OutQuadSample + 1.0f);
+			const int32 NormPhaseReadIndexNext = (NormPhaseReadIndexPrev + 1) % WaveTableBufferSize;
+			const float NormalPhaseOutput = FMath::Lerp(WaveTableBuffer[NormPhaseReadIndexPrev], WaveTableBuffer[NormPhaseReadIndexNext], Alpha);
+			*OutputNormalPhase = NormalPhaseOutput * OutputScale + OutputAdd;
 		}
 
-		ReadIndex += ReadDelta;
-		QuadPhaseReadIndex += ReadIndex;
-
-		// Wrap the read indices to within the size of the table
-		while (ReadIndex >= (float)WaveTable.Num())
+		if (OutputQuadPhase)
 		{
-			ReadIndex -= (float)WaveTable.Num();
+			const int32 QuadPhaseReadIndexPrev = (int32)QuadPhaseReadIndex;
+			const int32 QuadPhaseReadIndexNext = (QuadPhaseReadIndexPrev + 1) % WaveTableBufferSize;
+
+			float QuadPhaseOutput = FMath::Lerp(WaveTableBuffer[QuadPhaseReadIndexPrev], WaveTableBuffer[QuadPhaseReadIndexNext], Alpha);
+			*OutputQuadPhase = QuadPhaseOutput * OutputScale + OutputAdd;
 		}
 
-		while (QuadPhaseReadIndex >= (float)WaveTable.Num())
+		NormalPhaseReadIndex += PhaseIncrement;
+		QuadPhaseReadIndex += PhaseIncrement;
+
+		while (NormalPhaseReadIndex >= WaveTableBufferSize)
 		{
-			QuadPhaseReadIndex -= (float)WaveTable.Num();
+			NormalPhaseReadIndex -= WaveTableBufferSize;
 		}
-	}
 
-	/*
-	* FSineWaveTable
-	*/
-	void FSineWaveTable::Generate(const int32 InTableSize)
-	{
-		WaveTable.Reset(InTableSize);
-
-		for (int32 i = 0; i < InTableSize; ++i)
+		while (QuadPhaseReadIndex >= WaveTableBufferSize)
 		{
-			WaveTable.Add(FMath::Sin(2.0f * PI * (float)i / InTableSize));
+			QuadPhaseReadIndex -= WaveTableBufferSize;
 		}
 	}
 
-	/*
-	* FSawWaveTable
-	*/
-	void FSawWaveTable::Generate(const int32 InTableSize)
+	void FWaveTableOsc::SetCustomWaveTableOscFactory(ICustomWaveTableOscFactory* InCustomWaveTableOscFactory)
 	{
-		WaveTable.Reset(InTableSize);
+		FWaveTableOsc::CustomWaveTableOscFactory = InCustomWaveTableOscFactory;
+	}
 
-		/*      
-				 /|   /|
-		        / |  / |
-		       /  | /  |
-		      /   |/   |
-		*/
-
-		// Using y = mx + b slope/intercept form
-		const int32 HalfPoint = 0.5f * InTableSize;
-		const float Slope = 1.0f / HalfPoint;
-
-		for (int32 i = 0; i < InTableSize; ++i)
+	FWaveTableOsc* FWaveTableOsc::CreateWaveTable(const EWaveTable::Type WaveTableType, const int32 WaveTableSize)
+	{
+		if (WaveTableType == EWaveTable::Custom)
 		{
-			// Rise if less than half point
-			if (i < HalfPoint)
+			if (FWaveTableOsc::CustomWaveTableOscFactory != nullptr)
 			{
-				WaveTable.Add(Slope * i);
+				// Use the user-set custom wave table factory to create a new wave table oscillator
+				return FWaveTableOsc::CustomWaveTableOscFactory->CreateCustomWaveTable(WaveTableSize);
 			}
 			else
 			{
-				WaveTable.Add(Slope * (i - HalfPoint - 1) - 1.0f);
+				// No custom wave table factory set, return nullptr
+				return nullptr;
 			}
 		}
-	}
 
-	/*
-	* FBandLimitedSawWaveTable
-	*/
-	void FBandLimitedSawWaveTable::Generate(const int32 InTableSize)
-	{
-		WaveTable.Reset(InTableSize);
-		WaveTable.AddDefaulted(InTableSize);
-
-		float MaxValue = 0.0f;
-
-		// Generate according to sum of sines, Fourier theorem
-		for (int32 i = 0; i < InTableSize; ++i)
+		if (WaveTableType == EWaveTable::None || WaveTableSize <= 0)
 		{
-			const float TwoPiFraction = 2.0f * PI * (float)i / InTableSize;
-
-			for (int32 k = 1; k <= 6; ++k)
-			{
-				const float SinusoidComponent = FMath::Sin(TwoPiFraction * k);
-				const float Sign = FMath::Pow(-1.0f, (float)(k + 1));
-				const float Amplitude = (1.0f / k);
-				WaveTable[i] += Sign * Amplitude * SinusoidComponent;
-			}
-
-			if (WaveTable[i] > MaxValue)
-			{
-				MaxValue = WaveTable[i];
-			}
+			return nullptr;
 		}
 
-		// Normalize
-		for (int32 i = 0; i < InTableSize; ++i)
+		// Make a new wave table oscillator
+		FWaveTableOsc* NewWaveTableOsc = new FWaveTableOsc();
+
+		NewWaveTableOsc->WaveTableBuffer = new float[WaveTableSize];
+		NewWaveTableOsc->WaveTableBufferSize = WaveTableSize;
+		NewWaveTableOsc->WaveTableType = WaveTableType;
+		NewWaveTableOsc->Reset();
+
+		switch (WaveTableType)
 		{
-			WaveTable[i] /= MaxValue;
-		}
-	}
-
-	/*
-	* FTriangleWaveTable
-	*/
-	void FTriangleWaveTable::Generate(const int32 InTableSize)
-	{
-		WaveTable.Reset(InTableSize);
-
-		/*
-		          /\
-		         /  \    
-		             \  /
-		              \/
-		*/
-
-		const int32 QuarterPoint = 0.25f * InTableSize;
-		const int32 ThirdQuarterPoint = 0.75f * InTableSize;
-
-		const float RisingSlope = 1.0f / QuarterPoint;
-		const float FallingSlope = -2.0f / (0.5f * InTableSize);
-
-		for (int32 i = 0; i < InTableSize; ++i)
+		case EWaveTable::SineWaveTable:
 		{
-			// Rising first edge
-			if (i < QuarterPoint)
+			for (int32 i = 0; i < WaveTableSize; ++i)
 			{
-				WaveTable.Add(RisingSlope * i);
-			}
-			// Falling middle part
-			else if (i < ThirdQuarterPoint)
-			{
-				WaveTable.Add(FallingSlope * (i - QuarterPoint) + 1.0f);
-			}
-			// Rising last part
-			else
-			{
-				WaveTable.Add(RisingSlope * (i - ThirdQuarterPoint) - 1.0f);
+				NewWaveTableOsc->WaveTableBuffer[i] = FMath::Sin(2.0f * PI * (float)i / WaveTableSize);
 			}
 		}
-	}
+		break;
 
-	/*
-	* FBandLimitedTriangleWaveTable
-	*/
-	void FBandLimitedTriangleWaveTable::Generate(const int32 InTableSize)
-	{
-		WaveTable.Reset(InTableSize);
-		WaveTable.AddDefaulted(InTableSize);
-
-		float MaxValue = 0.0f;
-
-		// Generate according to sum of sines, Fourier theorem
-		// triangle wave only has odd-harmonics
-		for (int32 i = 0; i < InTableSize; ++i)
+		case EWaveTable::SawWaveTable:
 		{
-			const float TwoPiFraction = 2.0f * PI * (float)i / InTableSize;
+			const int32 HalfTableSize = WaveTableSize / 2;
+			const float Slope = 1.0f / HalfTableSize;
 
-			for (int32 k = 0; k <= 3; ++k)
+			// Rise to half-point, the offset by 1.0, continue to rise
+			for (int32 i = 0; i < WaveTableSize; ++i)
 			{
-				const float SinusoidComponent = FMath::Sin(TwoPiFraction * (2.0f * k + 1.0f));
-				const float Sign = FMath::Pow(-1.0f, (float)k);
-				const float Amplitude = (1.0f / FMath::Pow((float)(2 * k + 1), 2.0f));
-
-				WaveTable[i] += Sign * Amplitude * SinusoidComponent;
-			}
-
-			if (WaveTable[i] > MaxValue)
-			{
-				MaxValue = WaveTable[i];
+				if (i < HalfTableSize)
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] = Slope * i;
+				}
+				else
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] = Slope * (i - HalfTableSize - 1) - 1.0f;
+				}
 			}
 		}
+		break;
 
-		// Normalize
-		for (int32 i = 0; i < InTableSize; ++i)
+		case EWaveTable::TriangleWaveTable:
 		{
-			WaveTable[i] /= MaxValue;
+			const int32 QuarterTableSize = WaveTableSize / 4;
+			const int32 HalfTableSize = WaveTableSize / 2;
+			const int32 ThreeQuarterTableSize = 3 * WaveTableSize / 4;
+			const float SlopeUp = 1.0f / QuarterTableSize;
+			const float SlopeDown = -2.0f / HalfTableSize;
+
+			for (int32 i = 0; i < WaveTableSize; ++i)
+			{
+				if (i < QuarterTableSize)
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] = SlopeUp * i - 1.0f;
+				}
+				else if (i < ThreeQuarterTableSize)
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] = SlopeDown * (i - QuarterTableSize) + 1.0f;
+				}
+				else
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] = SlopeUp * (i - ThreeQuarterTableSize) - 1.0f;
+				}
+			}
 		}
-	}
+		break;
 
-	/*
-	* FBandLimitedSquareWaveTable
-	*/
-	void FSquareWaveTable::Generate(const int32 InTableSize)
-	{
-		WaveTable.Reset(InTableSize);
-		const int32 HalfPoint = 0.5f * InTableSize;
-
-		for (int i = 0; i < InTableSize; ++i)
+		case EWaveTable::SquareWaveTable:
 		{
-			if (i < HalfPoint)
+			const int32 HalfTableSize = WaveTableSize / 2;
+
+			for (int32 i = 0; i < WaveTableSize; ++i)
 			{
-				WaveTable.Add(1.0f);
-			}
-			else
-			{
-				WaveTable.Add(-1.0f);
+				if (i < HalfTableSize)
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] = 1.0f;
+				}
+				else
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] = -1.0f;
+				}
 			}
 		}
-	}
+		break;
 
-	void FBandLimitedSquareWaveTable::Generate(const int32 InTableSize)
-	{
-		WaveTable.Reset(InTableSize);
-		WaveTable.AddDefaulted(InTableSize);
-
-		float MaxValue = 0.0f;
-
-		// Generate according to sum of sines, Fourier theorem
-		for (int32 i = 0; i < InTableSize; ++i)
+		case EWaveTable::BandLimitedSawWaveTable:
 		{
-			const float TwoPiFraction = 2.0f * PI * (float)i / InTableSize;
+			float MaxSample = 0.0f;
 
-			for (int32 k = 1; k <= 5; ++k)
+			for (int32 i = 0; i < WaveTableSize; ++i)
 			{
-				const float SinusoidComponent = FMath::Sin(TwoPiFraction * (2.0f * k - 1.0f));
-				const float Amplitude = 1.0f / (2.0f * k - 1.0f);
+				NewWaveTableOsc->WaveTableBuffer[i] = 0.0f;
+				for (int32 g = 1; g <= 6; ++g)
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] += FMath::Pow(-1.0f, (float)(g + 1)) * (1.0f / g) * FMath::Sin(2.0f * PI * i * (float)g / WaveTableSize);
+				}
 
-				WaveTable[i] += Amplitude * SinusoidComponent;
+				if (NewWaveTableOsc->WaveTableBuffer[i] > MaxSample)
+				{
+					MaxSample = NewWaveTableOsc->WaveTableBuffer[i];
+				}
 			}
 
-			if (WaveTable[i] > MaxValue)
+			for (int32 i = 0; i < WaveTableSize; ++i)
 			{
-				MaxValue = WaveTable[i];
+				NewWaveTableOsc->WaveTableBuffer[i] /= MaxSample;
 			}
 		}
+		break;
 
-		// Normalize
-		for (int32 i = 0; i < InTableSize; ++i)
+		case EWaveTable::BandLimitedTriangleWaveTable:
 		{
-			WaveTable[i] /= MaxValue;
+			float MaxSample = 0.0f;
+
+			for (int32 i = 0; i < WaveTableSize; ++i)
+			{
+				NewWaveTableOsc->WaveTableBuffer[i] = 0.0f;
+				for (int g = 1; g <= 6; ++g)
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] += FMath::Pow(-1.0f, (float)g) * (1.0f / FMath::Pow(2.0f * (float)g + 1.0f, 2.0f)) * FMath::Sin(2.0f * PI * (2.0f * (float)g + 1.0f) * i / WaveTableSize);
+				}
+
+				if (NewWaveTableOsc->WaveTableBuffer[i] > MaxSample)
+				{
+					MaxSample = NewWaveTableOsc->WaveTableBuffer[i];
+				}
+			}
+
+			for (int32 i = 0; i < WaveTableSize; ++i)
+			{
+				NewWaveTableOsc->WaveTableBuffer[i] /= MaxSample;
+			}
 		}
+		break;
+
+		case EWaveTable::BandLimitedSquareWaveTable:
+		{
+			float MaxSample = 0.0f;
+
+			for (int32 i = 0; i < WaveTableSize; ++i)
+			{
+				NewWaveTableOsc->WaveTableBuffer[i] = 0.0f;
+				for (int g = 1; g <= 6; ++g)
+				{
+					NewWaveTableOsc->WaveTableBuffer[i] += (1.0f / g) * (float)sin(2.0f * PI * i * (float)g / WaveTableSize);
+				}
+
+				if (NewWaveTableOsc->WaveTableBuffer[i] > MaxSample)
+				{
+					MaxSample = NewWaveTableOsc->WaveTableBuffer[i];
+				}
+			}
+
+			for (int32 i = 0; i < WaveTableSize; ++i)
+			{
+				NewWaveTableOsc->WaveTableBuffer[i] /= MaxSample;
+			}
+		}
+		break;
+		}
+
+		return NewWaveTableOsc;
 	}
 
 }

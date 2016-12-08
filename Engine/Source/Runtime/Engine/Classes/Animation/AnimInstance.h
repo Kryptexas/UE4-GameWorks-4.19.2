@@ -365,9 +365,9 @@ class ENGINE_API UAnimInstance : public UObject
 	 * - All access of variables in the blend tree should be a direct access of a member variable
 	 * - No BlueprintUpdateAnimation event should be used (i.e. the event graph should be empty). Only native update is permitted.
 	 */
-	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate to control threaded update on a per-instance basis.")
+	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate on the UAnimBlueprint to control this.")
 	UPROPERTY()
-	bool bRunUpdatesInWorkerThreads;
+	bool bRunUpdatesInWorkerThreads_DEPRECATED;
 
 	/** 
 	 * DEPRECATED: No longer used.
@@ -376,13 +376,14 @@ class ENGINE_API UAnimInstance : public UObject
 	 * - Use of BlueprintUpdateAnimation
 	 * - Use of non 'fast-path' EvaluateGraphExposedInputs in the node graph
 	 */
-	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate to control threaded update on a per-instance basis.")
+	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate on the UAnimBlueprint to control this.")
 	UPROPERTY()
-	bool bCanUseParallelUpdateAnimation;
+	bool bCanUseParallelUpdateAnimation_DEPRECATED;
 
 	/**
 	 * Allows this anim instance to update its native update, blend tree, montages and asset players on
-	 * a worker thread. The compiler will attempt to pick up any issues that may occur with threaded update.
+	 * a worker thread. This flag is propagated from the UAnimBlueprint to this instance by the compiler.
+	 * The compiler will attempt to pick up any issues that may occur with threaded update.
 	 * For updates to run in multiple threads both this flag and the project setting "Allow Multi Threaded 
 	 * Animation Update" should be set.
 	 */
@@ -395,7 +396,7 @@ class ENGINE_API UAnimInstance : public UObject
 	 */
 	DEPRECATED(4.15, "This variable is no longer used. Use bWarnAboutBlueprintUsage on the UAnimBlueprint to control this.")
 	UPROPERTY()
-	bool bWarnAboutBlueprintUsage;
+	bool bWarnAboutBlueprintUsage_DEPRECATED;
 
 	/** Flag to check back on the game thread that indicates we need to run PostUpdateAnimation() in the post-eval call */
 	bool bNeedsUpdate;

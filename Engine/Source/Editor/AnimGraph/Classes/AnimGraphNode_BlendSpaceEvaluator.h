@@ -33,13 +33,16 @@ class UAnimGraphNode_BlendSpaceEvaluator : public UAnimGraphNode_BlendSpaceBase
 	virtual UAnimationAsset* GetAnimationAsset() const override;
 	virtual const TCHAR* GetTimePropertyName() const override;
 	virtual UScriptStruct* GetTimePropertyStruct() const override;
+	virtual EAnimAssetHandlerType SupportsAssetClass(const UClass* AssetClass) const override;
 	// End of UAnimGraphNode_Base interface
 
 	// UK2Node interface
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 	// End of UK2Node interface
 
+	// UAnimGraphNode_AssetPlayerBase interface
 	virtual void SetAnimationAsset(UAnimationAsset* Asset) override;
+	// End of UAnimGraphNode_AssetPlayerBase interface
 
 private:
 	FText GetNodeTitleForBlendSpace(ENodeTitleType::Type TitleType, UBlendSpaceBase* InBlendSpace) const;

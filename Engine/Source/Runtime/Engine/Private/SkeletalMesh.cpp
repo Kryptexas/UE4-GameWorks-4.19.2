@@ -26,27 +26,20 @@
 #include "UObject/EditorObjectVersion.h"
 #include "UObject/RenderingObjectVersion.h"
 #include "EngineUtils.h"
-#include "Animation/SkeletalMeshActor.h"
 #include "EditorSupportDelegates.h"
 #include "GPUSkinVertexFactory.h"
 #include "TessellationRendering.h"
 #include "SkeletalRenderPublic.h"
 #include "Logging/TokenizedMessage.h"
 #include "Logging/MessageLog.h"
-#include "Misc/UObjectToken.h"
-#include "Misc/MapErrors.h"
 #include "SceneManagement.h"
 #include "PhysicsPublic.h"
 #include "Animation/MorphTarget.h"
-#include "Animation/AnimBlueprintGeneratedClass.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/AssetUserData.h"
-#include "Animation/AnimMontage.h"
-#include "Animation/AnimInstance.h"
 #include "SkeletalMeshSorting.h"
 #include "Engine/Engine.h"
-#include "Animation/AnimBlueprint.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"
@@ -57,7 +50,6 @@
 
 #endif // #if WITH_EDITOR
 
-#include "Net/UnrealNetwork.h"
 #include "Interfaces/ITargetPlatform.h"
 
 #if WITH_APEX
@@ -74,7 +66,7 @@
 DEFINE_LOG_CATEGORY(LogSkeletalMesh);
 DECLARE_CYCLE_STAT(TEXT("GetShadowShapes"), STAT_GetShadowShapes, STATGROUP_Anim);
 
-// Custom serialization version for RecomputeTangent
+// Custom serialization version for SkeletalMesh types
 struct FSkeletalMeshCustomVersion
 {
 	enum Type
@@ -91,6 +83,11 @@ struct FSkeletalMeshCustomVersion
 		SaveNumVertices = 4,
 		// Regenerated clothing section shadow flags from source sections
 		RegenerateClothingShadowFlags = 5,
+		// Share color buffer structure with StaticMesh
+		UseSharedColorBufferFormat = 6,
+		// Use separate buffer for skin weights
+		UseSeparateSkinWeightBuffer = 7,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -225,10 +222,8 @@ SIZE_T FClothingAssetData::GetResourceSizeBytes() const
 * Constructor
 */
 FSkeletalMeshVertexBuffer::FSkeletalMeshVertexBuffer() 
-:	bInfluencesByteSwapped(false)
-,	bUseFullPrecisionUVs(false)
+:	bUseFullPrecisionUVs(false)
 ,	bNeedsCPUAccess(false)
-,	bExtraBoneInfluences(false)
 ,	VertexData(nullptr)
 ,	Data(nullptr)
 ,	Stride(0)
@@ -254,7 +249,6 @@ FSkeletalMeshVertexBuffer& FSkeletalMeshVertexBuffer::operator=(const FSkeletalM
 	CleanUp();
 	bUseFullPrecisionUVs = Other.bUseFullPrecisionUVs;
 	bNeedsCPUAccess = Other.bNeedsCPUAccess;
-	bExtraBoneInfluences = Other.bExtraBoneInfluences;
 	return *this;
 }
 
@@ -262,10 +256,8 @@ FSkeletalMeshVertexBuffer& FSkeletalMeshVertexBuffer::operator=(const FSkeletalM
 * Constructor (copy)
 */
 FSkeletalMeshVertexBuffer::FSkeletalMeshVertexBuffer(const FSkeletalMeshVertexBuffer& Other)
-:	bInfluencesByteSwapped(false)
-,	bUseFullPrecisionUVs(Other.bUseFullPrecisionUVs)
+:	bUseFullPrecisionUVs(Other.bUseFullPrecisionUVs)
 ,	bNeedsCPUAccess(Other.bNeedsCPUAccess)
-,	bExtraBoneInfluences(Other.bExtraBoneInfluences)
 ,	VertexData(nullptr)
 ,	Data(nullptr)
 ,	Stride(0)
@@ -314,6 +306,8 @@ void FSkeletalMeshVertexBuffer::ReleaseRHI()
 	SRVValue.SafeRelease();
 }
 
+
+
 /**
 * Serializer for this class
 * @param Ar - archive to serialize to
@@ -325,17 +319,12 @@ FArchive& operator<<(FArchive& Ar,FSkeletalMeshVertexBuffer& VertexBuffer)
 
 	Ar << VertexBuffer.NumTexCoords;
 	Ar << VertexBuffer.bUseFullPrecisionUVs;
-	if (Ar.UE4Ver() >= VER_UE4_SUPPORT_GPUSKINNING_8_BONE_INFLUENCES)
+
+	bool bBackCompatExtraBoneInfluences = false;
+
+	if (Ar.UE4Ver() >= VER_UE4_SUPPORT_GPUSKINNING_8_BONE_INFLUENCES && Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::UseSeparateSkinWeightBuffer)
 	{
-		Ar << VertexBuffer.bExtraBoneInfluences;
-	}
-	else
-	{
-		if (Ar.IsLoading())
-		{
-			// Make sure nothing slipped through the cracks
-			check(!VertexBuffer.bExtraBoneInfluences);
-		}
+		Ar << bBackCompatExtraBoneInfluences;
 	}
 
 	// Serialize MeshExtension and Origin
@@ -351,14 +340,30 @@ FArchive& operator<<(FArchive& Ar,FSkeletalMeshVertexBuffer& VertexBuffer)
 	// if Ar is counting, it still should serialize. Need to count VertexData
 	if (!StripFlags.IsDataStrippedForServer() || Ar.IsCountingMemory())
 	{
-		if( VertexBuffer.VertexData != NULL )
+		// Special handling for loading old content
+		if (Ar.IsLoading() && Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::UseSeparateSkinWeightBuffer)
 		{
-			VertexBuffer.VertexData->Serialize(Ar);	
+			int32 ElementSize;
+			Ar << ElementSize;
 
-			// update cached buffer info
-			VertexBuffer.NumVertices = VertexBuffer.VertexData->GetNumVertices();
-			VertexBuffer.Data = (VertexBuffer.NumVertices > 0) ? VertexBuffer.VertexData->GetDataPointer() : nullptr;
-			VertexBuffer.Stride = VertexBuffer.VertexData->GetStride();
+			int32 ArrayNum;
+			Ar << ArrayNum;
+
+			TArray<uint8> DummyBytes;
+			DummyBytes.AddUninitialized(ElementSize * ArrayNum);
+			Ar.Serialize(DummyBytes.GetData(), ElementSize * ArrayNum);
+		}
+		else
+		{
+			if (VertexBuffer.VertexData != NULL)
+			{
+				VertexBuffer.VertexData->Serialize(Ar);
+
+				// update cached buffer info
+				VertexBuffer.NumVertices = VertexBuffer.VertexData->GetNumVertices();
+				VertexBuffer.Data = (VertexBuffer.NumVertices > 0) ? VertexBuffer.VertexData->GetDataPointer() : nullptr;
+				VertexBuffer.Stride = VertexBuffer.VertexData->GetStride();
+			}
 		}
 	}
 
@@ -383,21 +388,10 @@ void FSkeletalMeshVertexBuffer::Init(const TArray<FSoftSkinVertex>& InVertices)
 		NumVertices = VertexData->GetNumVertices();
 	}
 	
-	if (bExtraBoneInfluences)
+	for( int32 VertIdx=0; VertIdx < InVertices.Num(); VertIdx++ )
 	{
-		for( int32 VertIdx=0; VertIdx < InVertices.Num(); VertIdx++ )
-		{
-			const FSoftSkinVertex& SrcVertex = InVertices[VertIdx];
-			SetVertexFast<true>(VertIdx,SrcVertex);
-		}
-	}
-	else
-	{
-		for( int32 VertIdx=0; VertIdx < InVertices.Num(); VertIdx++ )
-		{
-			const FSoftSkinVertex& SrcVertex = InVertices[VertIdx];
-			SetVertexFast<false>(VertIdx,SrcVertex);
-		}
+		const FSoftSkinVertex& SrcVertex = InVertices[VertIdx];
+		SetVertexFast(VertIdx,SrcVertex);
 	}
 }
 
@@ -407,13 +401,13 @@ void FSkeletalMeshVertexBuffer::SetNeedsCPUAccess(bool bInNeedsCPUAccess)
 }
 
 // Handy macro for allocating the correct vertex data class (which has to be known at compile time) depending on the data type and number of UVs.  
-#define ALLOCATE_VERTEX_DATA_TEMPLATE( VertexDataType, NumUVs, bExtraBoneInfluences )											\
+#define ALLOCATE_VERTEX_DATA_TEMPLATE( VertexDataType, NumUVs )											\
 	switch(NumUVs)																						\
 	{																									\
-		case 1: VertexData = new TSkeletalMeshVertexData< VertexDataType<1, bExtraBoneInfluences> >(bNeedsCPUAccess); break;	\
-		case 2: VertexData = new TSkeletalMeshVertexData< VertexDataType<2, bExtraBoneInfluences> >(bNeedsCPUAccess); break;	\
-		case 3: VertexData = new TSkeletalMeshVertexData< VertexDataType<3, bExtraBoneInfluences> >(bNeedsCPUAccess); break;	\
-		case 4: VertexData = new TSkeletalMeshVertexData< VertexDataType<4, bExtraBoneInfluences> >(bNeedsCPUAccess); break;	\
+		case 1: VertexData = new TSkeletalMeshVertexData< VertexDataType<1> >(bNeedsCPUAccess); break;	\
+		case 2: VertexData = new TSkeletalMeshVertexData< VertexDataType<2> >(bNeedsCPUAccess); break;	\
+		case 3: VertexData = new TSkeletalMeshVertexData< VertexDataType<3> >(bNeedsCPUAccess); break;	\
+		case 4: VertexData = new TSkeletalMeshVertexData< VertexDataType<4> >(bNeedsCPUAccess); break;	\
 		default: UE_LOG(LogSkeletalMesh, Fatal,TEXT("Invalid number of texture coordinates"));								\
 	}																									\
 
@@ -427,42 +421,25 @@ void FSkeletalMeshVertexBuffer::AllocateData()
 
 	if( !bUseFullPrecisionUVs )
 	{
-		if (bExtraBoneInfluences)
-		{
-			ALLOCATE_VERTEX_DATA_TEMPLATE( TGPUSkinVertexFloat16Uvs, NumTexCoords, true );
-		}
-		else
-		{
-			ALLOCATE_VERTEX_DATA_TEMPLATE( TGPUSkinVertexFloat16Uvs, NumTexCoords, false );
-		}
+		ALLOCATE_VERTEX_DATA_TEMPLATE( TGPUSkinVertexFloat16Uvs, NumTexCoords );
 	}
 	else
 	{
-		if (bExtraBoneInfluences)
-		{
-			ALLOCATE_VERTEX_DATA_TEMPLATE( TGPUSkinVertexFloat32Uvs, NumTexCoords, true );
-		}
-		else
-		{
-			ALLOCATE_VERTEX_DATA_TEMPLATE( TGPUSkinVertexFloat32Uvs, NumTexCoords, false );
-		}
+		ALLOCATE_VERTEX_DATA_TEMPLATE( TGPUSkinVertexFloat32Uvs, NumTexCoords );
 	}
 }
 
-template <bool bExtraBoneInfluencesT>
 void FSkeletalMeshVertexBuffer::SetVertexFast(uint32 VertexIndex,const FSoftSkinVertex& SrcVertex)
 {
 	checkSlow(VertexIndex < GetNumVertices());
-	auto* VertBase = (TGPUSkinVertexBase<bExtraBoneInfluencesT>*)(Data + VertexIndex * Stride);
+	auto* VertBase = (TGPUSkinVertexBase*)(Data + VertexIndex * Stride);
 	VertBase->TangentX = SrcVertex.TangentX;
 	VertBase->TangentZ = SrcVertex.TangentZ;
 	// store the sign of the determinant in TangentZ.W
 	VertBase->TangentZ.Vector.W = GetBasisDeterminantSignByte( SrcVertex.TangentX, SrcVertex.TangentY, SrcVertex.TangentZ );
-	FMemory::Memcpy(VertBase->InfluenceBones,SrcVertex.InfluenceBones, TGPUSkinVertexBase<bExtraBoneInfluencesT>::NumInfluences);
-	FMemory::Memcpy(VertBase->InfluenceWeights,SrcVertex.InfluenceWeights, TGPUSkinVertexBase<bExtraBoneInfluencesT>::NumInfluences);
 	if( !bUseFullPrecisionUVs )
 	{
-		auto* Vertex = (TGPUSkinVertexFloat16Uvs<MAX_TEXCOORDS, bExtraBoneInfluencesT>*)VertBase;
+		auto* Vertex = (TGPUSkinVertexFloat16Uvs<MAX_TEXCOORDS>*)VertBase;
 		Vertex->Position = SrcVertex.Position;
 		for( uint32 UVIndex = 0; UVIndex < NumTexCoords; ++UVIndex )
 		{
@@ -471,7 +448,7 @@ void FSkeletalMeshVertexBuffer::SetVertexFast(uint32 VertexIndex,const FSoftSkin
 	}
 	else
 	{
-		auto* Vertex = (TGPUSkinVertexFloat32Uvs<MAX_TEXCOORDS, bExtraBoneInfluencesT>*)VertBase;
+		auto* Vertex = (TGPUSkinVertexFloat32Uvs<MAX_TEXCOORDS>*)VertBase;
 		Vertex->Position = SrcVertex.Position;
 		for( uint32 UVIndex = 0; UVIndex < NumTexCoords; ++UVIndex )
 		{
@@ -484,19 +461,19 @@ void FSkeletalMeshVertexBuffer::SetVertexFast(uint32 VertexIndex,const FSoftSkin
 * Convert the existing data in this mesh from 16 bit to 32 bit UVs.
 * Without rebuilding the mesh (loss of precision)
 */
-template<uint32 NumTexCoordsT, bool bExtraBoneInfluencesT>
+template<uint32 NumTexCoordsT>
 void FSkeletalMeshVertexBuffer::ConvertToFullPrecisionUVsTyped()
 {
 	if( !bUseFullPrecisionUVs )
 	{
-		TArray< TGPUSkinVertexFloat32Uvs<NumTexCoordsT, bExtraBoneInfluencesT> > DestVertexData;
-		TSkeletalMeshVertexData< TGPUSkinVertexFloat16Uvs<NumTexCoordsT, bExtraBoneInfluencesT> >& SrcVertexData = *(TSkeletalMeshVertexData< TGPUSkinVertexFloat16Uvs<NumTexCoordsT, bExtraBoneInfluencesT> >*)VertexData;			
+		TArray< TGPUSkinVertexFloat32Uvs<NumTexCoordsT> > DestVertexData;
+		TSkeletalMeshVertexData< TGPUSkinVertexFloat16Uvs<NumTexCoordsT> >& SrcVertexData = *(TSkeletalMeshVertexData< TGPUSkinVertexFloat16Uvs<NumTexCoordsT> >*)VertexData;			
 		DestVertexData.AddUninitialized(SrcVertexData.Num());
 		for( int32 VertIdx=0; VertIdx < SrcVertexData.Num(); VertIdx++ )
 		{
-			TGPUSkinVertexFloat16Uvs<NumTexCoordsT, bExtraBoneInfluencesT>& SrcVert = SrcVertexData[VertIdx];
-			TGPUSkinVertexFloat32Uvs<NumTexCoordsT, bExtraBoneInfluencesT>& DestVert = DestVertexData[VertIdx];
-			FMemory::Memcpy(&DestVert,&SrcVert,sizeof(TGPUSkinVertexBase<bExtraBoneInfluencesT>));
+			TGPUSkinVertexFloat16Uvs<NumTexCoordsT>& SrcVert = SrcVertexData[VertIdx];
+			TGPUSkinVertexFloat32Uvs<NumTexCoordsT>& DestVert = DestVertexData[VertIdx];
+			FMemory::Memcpy(&DestVert,&SrcVert,sizeof(TGPUSkinVertexBase));
 			DestVert.Position = SrcVert.Position;
 			for( uint32 UVIndex = 0; UVIndex < NumTexCoords; ++UVIndex )
 			{
@@ -510,175 +487,6 @@ void FSkeletalMeshVertexBuffer::ConvertToFullPrecisionUVsTyped()
 	}
 }
 
-/*-----------------------------------------------------------------------------
-FSkeletalMeshVertexColorBuffer
------------------------------------------------------------------------------*/
-
-/**
- * Constructor
- */
-FSkeletalMeshVertexColorBuffer::FSkeletalMeshVertexColorBuffer() 
-:	VertexData(nullptr),
-	Data(nullptr),
-	Stride(0),
-	NumVertices(0)
-{
-
-}
-
-/**
- * Destructor
- */
-FSkeletalMeshVertexColorBuffer::~FSkeletalMeshVertexColorBuffer()
-{
-	// clean up everything
-	CleanUp();
-}
-
-/**
- * Assignment. Assumes that vertex buffer will be rebuilt 
- */
-
-FSkeletalMeshVertexColorBuffer& FSkeletalMeshVertexColorBuffer::operator=(const FSkeletalMeshVertexColorBuffer& Other)
-{
-	CleanUp();
-	return *this;
-}
-
-/**
- * Copy Constructor
- */
-FSkeletalMeshVertexColorBuffer::FSkeletalMeshVertexColorBuffer(const FSkeletalMeshVertexColorBuffer& Other)
-:	VertexData(nullptr),
-	Data(nullptr),
-	Stride(0),
-	NumVertices(0)
-{
-
-}
-
-/**
- * @return text description for the resource type
- */
-FString FSkeletalMeshVertexColorBuffer::GetFriendlyName() const
-{
-	return TEXT("Skeletal0-mesh vertex color buffer");
-}
-
-/** 
- * Delete existing resources 
- */
-void FSkeletalMeshVertexColorBuffer::CleanUp()
-{
-	delete VertexData;
-	VertexData = nullptr;
-}
-
-/**
- * Initialize the RHI resource for this vertex buffer
- */
-void FSkeletalMeshVertexColorBuffer::InitRHI()
-{
-	check(VertexData);
-	FResourceArrayInterface* ResourceArray = VertexData->GetResourceArray();
-	if( ResourceArray->GetResourceDataSize() > 0 )
-	{
-		FRHIResourceCreateInfo CreateInfo(ResourceArray);
-		VertexBufferRHI = RHICreateVertexBuffer( ResourceArray->GetResourceDataSize(), BUF_Static, CreateInfo);
-	}
-}
-
-/**
- * Serializer for this class
- * @param Ar - archive to serialize to
- * @param B - data to serialize
- */
-FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexColorBuffer& VertexBuffer )
-{
-	FStripDataFlags StripFlags(Ar, 0, VER_UE4_STATIC_SKELETAL_MESH_SERIALIZATION_FIX);
-	if( Ar.IsLoading() )
-	{
-		VertexBuffer.AllocateData();
-	}
-
-	if ( !StripFlags.IsDataStrippedForServer() || Ar.IsCountingMemory() )
-	{
-		if( VertexBuffer.VertexData != NULL )
-		{
-			VertexBuffer.VertexData->Serialize( Ar );
-			VertexBuffer.UpdateCachedInfo();
-		}
-	}
-
-	return Ar;
-}
-
-/**
- * Initializes the buffer with the given vertices.
- * @param InVertices - The vertices to initialize the buffer with.
- */
-void FSkeletalMeshVertexColorBuffer::Init( const TArray<FSoftSkinVertex>& InVertices )
-{
-	AllocateData();
-	ResizeData(InVertices.Num());
-
-	// Copy color info from each vertex
-	for( int32 VertIdx=0; VertIdx < InVertices.Num(); ++VertIdx )
-	{
-		const FSoftSkinVertex& SrcVertex = InVertices[VertIdx];
-		SetColor(VertIdx,SrcVertex.Color);
-	}
-}
-
-/** 
- * Allocates the vertex data storage type. 
- */
-void FSkeletalMeshVertexColorBuffer::AllocateData()
-{
-	CleanUp();
-
-	VertexData = new TSkeletalMeshVertexData<FGPUSkinVertexColor>(true);
-}
-
-FSkeletalMeshVertexColorBuffer& FSkeletalMeshVertexColorBuffer::operator=(const TArray<FColor>& InColors)
-{
-	AllocateData();
-	ResizeData(InColors.Num());
-
-	// Copy the color values for each vertex.
-	for (int32 VertIdx = 0; VertIdx < InColors.Num(); ++VertIdx)
-	{
-		SetColor(VertIdx, InColors[VertIdx]);
-	}
-
-	return *this;
-}
-
-void FSkeletalMeshVertexColorBuffer::ResizeData(int32 InNumVertices)
-{
-	VertexData->ResizeBuffer(InNumVertices);
-	UpdateCachedInfo();
-}
-
-void FSkeletalMeshVertexColorBuffer::UpdateCachedInfo()
-{
-	Data = VertexData->GetDataPointer();
-	Stride = VertexData->GetStride();
-	NumVertices = VertexData->GetNumVertices();
-}
-
-/** 
- * Copy the contents of the source color to the destination vertex in the buffer 
- *
- * @param VertexIndex - index into the vertex buffer
- * @param SrcColor - source color to copy from
- */
-void FSkeletalMeshVertexColorBuffer::SetColor( uint32 VertexIndex, const FColor& SrcColor )
-{
-	checkSlow( VertexIndex < GetNumVertices() );
-	uint8* VertBase = Data + VertexIndex * Stride;
-	((FGPUSkinVertexColor*)(VertBase))->VertexColor = SrcColor;
-}
 
 /*-----------------------------------------------------------------------------
 FSkeletalMeshVertexAPEXClothBuffer
@@ -840,22 +648,10 @@ FGPUSkinVertexBase
 *
 * @param Ar - archive to serialize with
 */
-template <bool bExtraBoneInfluencesT>
-void TGPUSkinVertexBase<bExtraBoneInfluencesT>::Serialize(FArchive& Ar)
+void TGPUSkinVertexBase::Serialize(FArchive& Ar)
 {
 	Ar << TangentX;
 	Ar << TangentZ;
-
-	// serialize bone and weight uint8 arrays in order
-	// this is required when serializing as bulk data memory (see TArray::BulkSerialize notes)
-	for(uint32 InfluenceIndex = 0; InfluenceIndex < NumInfluences; InfluenceIndex++)
-	{
-		Ar << InfluenceBones[InfluenceIndex];
-	}
-	for(uint32 InfluenceIndex = 0; InfluenceIndex < NumInfluences; InfluenceIndex++)
-	{
-		Ar << InfluenceWeights[InfluenceIndex];
-	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -1617,13 +1413,31 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 		if( Ar.IsLoading() )
 		{
 			// set cpu skinning flag on the vertex buffer so that the resource arrays know if they need to be CPU accessible
-			VertexBufferGPUSkin.SetNeedsCPUAccess(bKeepBuffersInCPUMemory || SkelMeshOwner->GetImportedResource()->RequiresCPUSkinning(GMaxRHIFeatureLevel));
+			bool bNeedsCPUAccess = bKeepBuffersInCPUMemory || SkelMeshOwner->GetImportedResource()->RequiresCPUSkinning(GMaxRHIFeatureLevel);
+			VertexBufferGPUSkin.SetNeedsCPUAccess(bNeedsCPUAccess);
+			SkinWeightVertexBuffer.SetNeedsCPUAccess(bNeedsCPUAccess);
 		}
 		Ar << NumTexCoords;
 		Ar << VertexBufferGPUSkin;
+
+		if (Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) >= FSkeletalMeshCustomVersion::UseSeparateSkinWeightBuffer)
+		{
+			Ar << SkinWeightVertexBuffer;
+		}
+
 		if( SkelMeshOwner->bHasVertexColors)
 		{
-			Ar << ColorVertexBuffer;
+			// Handling for old color buffer data
+			if (Ar.IsLoading() && Ar.CustomVer(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::UseSharedColorBufferFormat)
+			{
+				TArray<FColor> OldColors;
+				FStripDataFlags LegacyColourStripFlags(Ar, 0, VER_UE4_STATIC_SKELETAL_MESH_SERIALIZATION_FIX);
+				OldColors.BulkSerialize(Ar);
+			}
+			else
+			{
+				ColorVertexBuffer.Serialize(Ar, bKeepBuffersInCPUMemory);
+			}
 		}
 
 		if ( !StripFlags.IsClassDataStripped( LodAdjacencyStripFlag ) )
@@ -1685,10 +1499,13 @@ void FStaticLODModel::InitResources(bool bNeedsVertexColors, int32 LODIndex, TAr
 	INC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, VertexBufferGPUSkin.GetVertexDataSize() );
 	BeginInitResource(&VertexBufferGPUSkin);
 
+	INC_DWORD_STAT_BY(STAT_SkeletalMeshVertexMemory, SkinWeightVertexBuffer.GetVertexDataSize());
+	BeginInitResource(&SkinWeightVertexBuffer);
+
 	if( bNeedsVertexColors )
 	{	
 		// Only init the color buffer if the mesh has vertex colors
-		INC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, ColorVertexBuffer.GetVertexDataSize() );
+		INC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, ColorVertexBuffer.GetAllocatedSize() );
 		BeginInitResource(&ColorVertexBuffer);
 	}
 
@@ -1755,14 +1572,16 @@ void FStaticLODModel::ReleaseResources()
 {
 	DEC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, MultiSizeIndexContainer.IsIndexBufferValid() ? (MultiSizeIndexContainer.GetIndexBuffer()->Num() * MultiSizeIndexContainer.GetDataTypeSize()) : 0 );
 	DEC_DWORD_STAT_BY( STAT_SkeletalMeshIndexMemory, AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() ? (AdjacencyMultiSizeIndexContainer.GetIndexBuffer()->Num() * AdjacencyMultiSizeIndexContainer.GetDataTypeSize()) : 0 );
-	DEC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, VertexBufferGPUSkin.GetVertexDataSize() );
-	DEC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, ColorVertexBuffer.GetVertexDataSize() );
+	DEC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, VertexBufferGPUSkin.GetVertexDataSize());
+	DEC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, SkinWeightVertexBuffer.GetVertexDataSize());
+	DEC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, ColorVertexBuffer.GetAllocatedSize() );
 	DEC_DWORD_STAT_BY( STAT_SkeletalMeshVertexMemory, APEXClothVertexBuffer.GetVertexDataSize() );
 
 	MultiSizeIndexContainer.ReleaseResources();
 	AdjacencyMultiSizeIndexContainer.ReleaseResources();
 
 	BeginReleaseResource(&VertexBufferGPUSkin);
+	BeginReleaseResource(&SkinWeightVertexBuffer);
 	BeginReleaseResource(&ColorVertexBuffer);
 	BeginReleaseResource(&APEXClothVertexBuffer);
 	BeginReleaseResource(&MorphTargetVertexInfoBuffers);
@@ -1797,7 +1616,7 @@ void FStaticLODModel::GetSectionFromVertexIndex(int32 InVertIndex, int32& OutSec
 		if(InVertIndex < VertCount + Section.GetNumVertices())
 		{
 			OutVertIndex = InVertIndex - VertCount;
-			bOutHasExtraBoneInfluences = VertexBufferGPUSkin.HasExtraBoneInfluences();
+			bOutHasExtraBoneInfluences = SkinWeightVertexBuffer.HasExtraBoneInfluences();
 			return;
 		}
 		VertCount += Section.GetNumVertices();
@@ -1864,16 +1683,18 @@ void FStaticLODModel::BuildVertexBuffers(uint32 BuildFlags)
 	VertexBufferGPUSkin.SetNeedsCPUAccess(true);
 	// Set the number of texture coordinate sets
 	VertexBufferGPUSkin.SetNumTexCoords( NumTexCoords );
-
-	VertexBufferGPUSkin.SetHasExtraBoneInfluences(DoSectionsNeedExtraBoneInfluences());
-
 	// init vertex buffer with the vertex array
 	VertexBufferGPUSkin.Init(Vertices);
 
+	// Init skin weight buffer
+	SkinWeightVertexBuffer.SetNeedsCPUAccess(true);
+	SkinWeightVertexBuffer.SetHasExtraBoneInfluences(DoSectionsNeedExtraBoneInfluences());
+	SkinWeightVertexBuffer.Init(Vertices);
+
 	// Init the color buffer if this mesh has vertex colors.
-	if( bHasVertexColors )
+	if( bHasVertexColors && Vertices.Num() > 0 )
 	{
-		ColorVertexBuffer.Init(Vertices);
+		ColorVertexBuffer.InitFromColorArray(&Vertices[0].Color, Vertices.Num(), sizeof(FSoftSkinVertex));
 	}
 
 	if( HasApexClothData() )
@@ -1993,6 +1814,10 @@ void FStaticLODModel::ReleaseCPUResources()
 		{
 			VertexBufferGPUSkin.CleanUp();
 		}
+		if (SkinWeightVertexBuffer.IsWeightDataValid())
+		{
+			SkinWeightVertexBuffer.CleanUp();
+		}
 	}
 }
 
@@ -2026,7 +1851,8 @@ void FStaticLODModel::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	}
 
 	CumulativeResourceSize.AddUnknownMemoryBytes(VertexBufferGPUSkin.GetVertexDataSize());
-	CumulativeResourceSize.AddUnknownMemoryBytes(ColorVertexBuffer.GetVertexDataSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(SkinWeightVertexBuffer.GetVertexDataSize());
+	CumulativeResourceSize.AddUnknownMemoryBytes(ColorVertexBuffer.GetAllocatedSize());
 	CumulativeResourceSize.AddUnknownMemoryBytes(APEXClothVertexBuffer.GetVertexDataSize());
 
 	CumulativeResourceSize.AddUnknownMemoryBytes(RawPointIndices.GetBulkDataSize());
@@ -2526,7 +2352,6 @@ void USkeletalMesh::ReleaseResources()
 }
 
 #if WITH_EDITORONLY_DATA
-template <bool bExtraBoneInfluencesT>
 static void AccumulateUVDensities(float* OutWeightedUVDensities, float* OutWeights, const FStaticLODModel& LODModel, const FSkelMeshSection& Section)
 {
 	const int32 NumTotalTriangles = LODModel.GetTotalFaces();
@@ -2554,18 +2379,18 @@ static void AccumulateUVDensities(float* OutWeightedUVDensities, float* OutWeigh
 		uint32 Index2 = SrcIndices[TriangleIndex*3+2];
 
 		const float Aera = FUVDensityAccumulator::GetTriangleAera(
-								LODModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(Index0),
-								LODModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(Index1),
-								LODModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(Index2));
+								LODModel.VertexBufferGPUSkin.GetVertexPositionFast(Index0),
+								LODModel.VertexBufferGPUSkin.GetVertexPositionFast(Index1),
+								LODModel.VertexBufferGPUSkin.GetVertexPositionFast(Index2));
 
 		if (Aera > SMALL_NUMBER)
 		{
 			for (int32 CoordinateIndex = 0; CoordinateIndex < NumCoordinateIndex; ++CoordinateIndex)
 			{
 				const float UVAera = FUVDensityAccumulator::GetUVChannelAera(
-										LODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(Index0, CoordinateIndex),
-										LODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(Index1, CoordinateIndex),
-										LODModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(Index2, CoordinateIndex));
+										LODModel.VertexBufferGPUSkin.GetVertexUVFast(Index0, CoordinateIndex),
+										LODModel.VertexBufferGPUSkin.GetVertexUVFast(Index1, CoordinateIndex),
+										LODModel.VertexBufferGPUSkin.GetVertexUVFast(Index2, CoordinateIndex));
 
 				UVDensityAccs[CoordinateIndex].PushTriangle(Aera, UVAera);
 			}
@@ -2604,14 +2429,7 @@ void USkeletalMesh::UpdateUVChannelData(bool bRebuildAll)
 					if (SectionInfo.MaterialIndex != MaterialIndex)
 							continue;
 
-					if (LODModel.DoesVertexBufferHaveExtraBoneInfluences())
-					{
-						AccumulateUVDensities<true>(WeightedUVDensities, Weights, LODModel, SectionInfo);
-					}
-					else
-					{
-						AccumulateUVDensities<false>(WeightedUVDensities, Weights, LODModel, SectionInfo);
-					}
+					AccumulateUVDensities(WeightedUVDensities, Weights, LODModel, SectionInfo);
 				}
 			}
 
@@ -2901,6 +2719,12 @@ void USkeletalMesh::BeginDestroy()
 {
 	Super::BeginDestroy();
 
+	// remove the cache of link up
+	if (Skeleton)
+	{
+		Skeleton->RemoveLinkup(this);
+	}
+
 #if WITH_APEX_CLOTHING
 	// release clothing assets
 	for (FClothingAssetData& Data : ClothingAssets)
@@ -2915,8 +2739,6 @@ void USkeletalMesh::BeginDestroy()
 
 	// Release the mesh's render resources.
 	ReleaseResources();
-
-
 }
 
 bool USkeletalMesh::IsReadyForFinishDestroy()
@@ -3091,8 +2913,9 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	}
 #endif
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	bRequiresLODScreenSizeConversion = Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::LODsUseResolutionIndependentScreenSize;
+	bRequiresLODHysteresisConversion = Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::LODHysteresisUseResolutionIndependentScreenSize;
 #endif
 }
 
@@ -3323,22 +3146,25 @@ void USkeletalMesh::PostLoad()
 		}
 	}
 
-	// initialize rendering resources
-	if (FApp::CanEverRender())
+#if WITH_EDITORONLY_DATA
+	// Rebuild vertex buffers if needed
+	if (GetLinkerCustomVersion(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::UseSeparateSkinWeightBuffer)
 	{
-#if WITH_EDITOR
-		// If we needed to recalc max bone influences, also need to recreate gpu vertex buffer with that info
-		if (GetLinkerCustomVersion(FSkeletalMeshCustomVersion::GUID) < FSkeletalMeshCustomVersion::RecalcMaxBoneInfluences)
+		FSkeletalMeshResource* Resource = GetImportedResource();
+		if (Resource && FPlatformProperties::HasEditorOnlyData())
 		{
-			FSkeletalMeshResource* Resource = GetImportedResource();
 			uint32 VertexFlags = GetVertexBufferFlags();
 			for (int32 LODIndex = 0; LODIndex < Resource->LODModels.Num(); LODIndex++)
 			{
 				Resource->LODModels[LODIndex].BuildVertexBuffers(VertexFlags);
 			}
 		}
+	}
 #endif // WITH_EDITOR
 
+	// initialize rendering resources
+	if (FApp::CanEverRender())
+	{
 		InitResources();
 	}
 	else
@@ -3454,8 +3280,8 @@ void USkeletalMesh::PostLoad()
 		}
 	}
 
-#if WITH_EDITOR
-	if (bRequiresLODScreenSizeConversion)
+#if WITH_EDITORONLY_DATA
+	if (bRequiresLODScreenSizeConversion || bRequiresLODHysteresisConversion)
 	{
 		// Convert screen area to screen size
 		ConvertLegacyLODScreenSize();
@@ -4466,7 +4292,9 @@ void USkeletalMesh::AddBoneToReductionSetting(int32 LODIndex, FName BoneName)
 		LODInfo[LODIndex].RemovedBones.AddUnique(BoneName);
 	}
 }
+#endif // WITH_EDITOR
 
+#if WITH_EDITORONLY_DATA
 void USkeletalMesh::ConvertLegacyLODScreenSize()
 {
 	if (LODInfo.Num() == 1)
@@ -4489,23 +4317,36 @@ void USkeletalMesh::ConvertLegacyLODScreenSize()
 		{
 			FSkeletalMeshLODInfo& LODInfoEntry = LODInfo[LODIndex];
 
-			if (LODInfoEntry.ScreenSize == 0.0f)
+			if (bRequiresLODScreenSizeConversion)
 			{
-				LODInfoEntry.ScreenSize = 1.0f;
-			}
-			else
-			{
-				// legacy screen size was scaled by a fixed constant of 320.0f, so its kinda arbitrary. Convert back to distance based metric first.
-				const float ScreenDepth = FMath::Max(ScreenWidth / 2.0f * ProjMatrix.M[0][0], ScreenHeight / 2.0f * ProjMatrix.M[1][1]) * Bounds.SphereRadius / (LODInfoEntry.ScreenSize * 320.0f);
+				if (LODInfoEntry.ScreenSize == 0.0f)
+				{
+					LODInfoEntry.ScreenSize = 1.0f;
+				}
+				else
+				{
+					// legacy screen size was scaled by a fixed constant of 320.0f, so its kinda arbitrary. Convert back to distance based metric first.
+					const float ScreenDepth = FMath::Max(ScreenWidth / 2.0f * ProjMatrix.M[0][0], ScreenHeight / 2.0f * ProjMatrix.M[1][1]) * Bounds.SphereRadius / (LODInfoEntry.ScreenSize * 320.0f);
 
-				// Now convert using the query function
-				LODInfoEntry.ScreenSize = ComputeBoundsScreenSize(FVector::ZeroVector, Bounds.SphereRadius, FVector(0.0f, 0.0f, ScreenDepth), ProjMatrix);
+					// Now convert using the query function
+					LODInfoEntry.ScreenSize = ComputeBoundsScreenSize(FVector::ZeroVector, Bounds.SphereRadius, FVector(0.0f, 0.0f, ScreenDepth), ProjMatrix);
+				}
+			}
+
+			if (bRequiresLODHysteresisConversion)
+			{
+				if (LODInfoEntry.LODHysteresis != 0.0f)
+				{
+					// Also convert the hysteresis as if it was a screen size topo
+					const float ScreenHysteresisDepth = FMath::Max(ScreenWidth / 2.0f * ProjMatrix.M[0][0], ScreenHeight / 2.0f * ProjMatrix.M[1][1]) * Bounds.SphereRadius / (LODInfoEntry.LODHysteresis * 320.0f);
+					LODInfoEntry.LODHysteresis = ComputeBoundsScreenSize(FVector::ZeroVector, Bounds.SphereRadius, FVector(0.0f, 0.0f, ScreenHysteresisDepth), ProjMatrix);
+				}
 			}
 		}
 	}
 }
+#endif
 
-#endif // WITH_EDITOR
 
 /*-----------------------------------------------------------------------------
 USkeletalMeshSocket
@@ -4687,308 +4528,6 @@ void USkeletalMeshSocket::Serialize(FArchive& Ar)
 }
 
 
-/*-----------------------------------------------------------------------------
-	ASkeletalMeshActor
------------------------------------------------------------------------------*/
-ASkeletalMeshActor::ASkeletalMeshActor(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-
-	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMeshComponent0"));
-	SkeletalMeshComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
-	// check BaseEngine.ini for profile setup
-	SkeletalMeshComponent->SetCollisionProfileName(UCollisionProfile::PhysicsActor_ProfileName);
-	RootComponent = SkeletalMeshComponent;
-
-	bShouldDoAnimNotifies = true;
-}
-
-void ASkeletalMeshActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
-{
-	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
-
-	DOREPLIFETIME( ASkeletalMeshActor, ReplicatedMesh );
-	DOREPLIFETIME( ASkeletalMeshActor, ReplicatedPhysAsset );
-	DOREPLIFETIME( ASkeletalMeshActor, ReplicatedMaterial0 );
-	DOREPLIFETIME( ASkeletalMeshActor, ReplicatedMaterial1 );
-}
-
-void ASkeletalMeshActor::PreviewBeginAnimControl(UInterpGroup* InInterpGroup)
-{
-	if (CanPlayAnimation())
-	{
-		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-		if (!AnimInst)
-		{
-		SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-	}
-}
-}
-
-
-void ASkeletalMeshActor::PreviewFinishAnimControl(UInterpGroup* InInterpGroup)
-{
-	if (CanPlayAnimation())
-	{
-		// if in editor, reset the Animations, makes easier for artist to see them visually and align them
-		// in game, we keep the last pose that matinee kept. If you'd like it to have animation, you'll need to have AnimTree or AnimGraph to handle correctly
-		if (SkeletalMeshComponent->GetAnimationMode()== EAnimationMode::Type::AnimationBlueprint)
-		{
-			UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-			if(AnimInst)
-			{
-				AnimInst->Montage_Stop(0.f);
-				AnimInst->UpdateAnimation(0.f, false);
-			}
-		}
-		// Update space bases to reset it back to ref pose
-		SkeletalMeshComponent->RefreshBoneTransforms();
-		SkeletalMeshComponent->RefreshSlaveComponents();
-		SkeletalMeshComponent->UpdateComponentToWorld();
-	}
-}
-
-
-void ASkeletalMeshActor::PreviewSetAnimPosition(FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime)
-{
-	if(CanPlayAnimation(InAnimSequence))
-	{
-		TWeakObjectPtr<class UAnimMontage>& CurrentlyPlayingMontage = CurrentlyPlayingMontages.FindOrAdd(SlotName);
-		CurrentlyPlayingMontage = FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, InPosition, bLooping, bFireNotifies, DeltaTime);
-	}
-}
-
-void ASkeletalMeshActor::PreviewSetAnimWeights(TArray<FAnimSlotInfo>& SlotInfos)
-{
-	//no support yet
-}
-
-void ASkeletalMeshActor::SetAnimWeights( const TArray<struct FAnimSlotInfo>& SlotInfos )
-{
-	//no support yet
-}
-
-/** Check SkeletalMeshActor for errors. */
-#if WITH_EDITOR
-void ASkeletalMeshActor::CheckForErrors()
-{
-	Super::CheckForErrors();
-
-	if (SkeletalMeshComponent)
-	{
-		UPhysicsAsset * const PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
-		if(!PhysicsAsset)
-		{
-			if (SkeletalMeshComponent->CastShadow 
-				&& SkeletalMeshComponent->bCastDynamicShadow)
-			{
-				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("DetailedInfo"), FText::FromString(GetDetailedInfo()));
-				FMessageLog("MapCheck").PerformanceWarning()
-					->AddToken(FUObjectToken::Create(this))
-					->AddToken(FTextToken::Create( FText::Format( LOCTEXT( "MapCheck_Message_SkelMeshActorNoPhysAsset", "SkeletalMeshActor '{DetailedInfo}' casts shadow but has no PhysicsAsset assigned.  The shadow will be low res and inefficient" ), Arguments ) ))
-					->AddToken(FMapErrorToken::Create(FMapErrors::SkelMeshActorNoPhysAsset));
-			}
-		}
-
-		if(SkeletalMeshComponent->CastShadow 
-			&& SkeletalMeshComponent->bCastDynamicShadow 
-			&& SkeletalMeshComponent->IsRegistered() 
-			&& SkeletalMeshComponent->Bounds.SphereRadius > 2000.0f)
-		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("DetailedInfo"), FText::FromString(GetDetailedInfo()));
-			// Large shadow casting objects that create preshadows will cause a massive performance hit, since preshadows are meant for small shadow casters.
-			FMessageLog("MapCheck").PerformanceWarning()
-				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_ActorLargeShadowCaster", "{DetailedInfo} : Large actor casts a shadow and will cause an extreme performance hit unless shadow casting is disabled" ), Arguments ) ))
-				->AddToken(FMapErrorToken::Create(FMapErrors::ActorLargeShadowCaster));
-		}
-
-		if (SkeletalMeshComponent->SkeletalMesh == NULL)
-		{
-			FMessageLog("MapCheck").Warning()
-				->AddToken(FUObjectToken::Create(this))
-				->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_SkeletalMeshNull", "Skeletal mesh actor has NULL SkeletalMesh property")))
-				->AddToken(FMapErrorToken::Create(FMapErrors::SkeletalMeshNull));
-		}
-	}
-	else 
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
-		FMessageLog("MapCheck").Warning()
-			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_SkeletalMeshComponent", "Skeletal mesh actor has NULL SkeletalMeshComponent property")))
-			->AddToken(FMapErrorToken::Create(FMapErrors::SkeletalMeshComponent));
-	}
-}
-#endif
-
-FString ASkeletalMeshActor::GetDetailedInfoInternal() const
-{
-	FString Result;  
-
-	if( SkeletalMeshComponent )
-	{
-		Result = SkeletalMeshComponent->GetDetailedInfoInternal();
-	}
-	else
-	{
-		Result = TEXT("No_SkeletalMeshComponent");
-	}
-
-	return Result;  
-}
-
-#if WITH_EDITOR
-void ASkeletalMeshActor::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeChainProperty(PropertyChangedEvent);
-
-	if (PropertyChangedEvent.Property != nullptr)
-	{
-		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_STRING_CHECKED(ASkeletalMeshActor, SkeletalMeshComponent) && SkeletalMeshComponent->SkeletalMesh != nullptr)
-		{
-			SkeletalMeshComponent->CleanUpOverrideMaterials();
-		}
-	}
-}
-#endif
-
-void ASkeletalMeshActor::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-	// grab the current mesh for replication
-	if (Role == ROLE_Authority && SkeletalMeshComponent)
-	{
-		ReplicatedMesh = SkeletalMeshComponent->SkeletalMesh;
-	}
-
-	// Unfix bodies flagged as 'full anim weight'
-	if( SkeletalMeshComponent )
-	{
-		ReplicatedPhysAsset = SkeletalMeshComponent->GetPhysicsAsset();
-	}
-}
-
-void ASkeletalMeshActor::OnRep_ReplicatedMesh()
-{
-	SkeletalMeshComponent->SetSkeletalMesh(ReplicatedMesh);
-}
-
-void ASkeletalMeshActor::OnRep_ReplicatedPhysAsset()
-{
-	SkeletalMeshComponent->SetPhysicsAsset(ReplicatedPhysAsset);
-}
-
-void ASkeletalMeshActor::OnRep_ReplicatedMaterial0()
-{
-	SkeletalMeshComponent->SetMaterial(0, ReplicatedMaterial0);
-}
-
-void ASkeletalMeshActor::OnRep_ReplicatedMaterial1()
-{
-	SkeletalMeshComponent->SetMaterial(1, ReplicatedMaterial1);
-}
-
-void ASkeletalMeshActor::BeginAnimControl(UInterpGroup* InInterpGroup)
-{
-	if (CanPlayAnimation())
-	{
-		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-		if (!AnimInst)
-		{
-		SkeletalMeshComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-	}
-}
-}
-
-bool ASkeletalMeshActor::CanPlayAnimation(class UAnimSequenceBase* AnimAssetBase/*=NULL*/) const
-{
-	return (SkeletalMeshComponent->SkeletalMesh && SkeletalMeshComponent->SkeletalMesh->Skeleton && 
-		(!AnimAssetBase || SkeletalMeshComponent->SkeletalMesh->Skeleton->IsCompatible(AnimAssetBase->GetSkeleton())));
-}
-
-void ASkeletalMeshActor::SetAnimPosition(FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bFireNotifies, bool bLooping)
-{
-	if (CanPlayAnimation(InAnimSequence))
-	{
-		TWeakObjectPtr<class UAnimMontage>& CurrentlyPlayingMontage = CurrentlyPlayingMontages.FindOrAdd(SlotName);
-		CurrentlyPlayingMontage = FAnimMontageInstance::SetMatineeAnimPositionInner(SlotName, SkeletalMeshComponent, InAnimSequence, InPosition, bLooping);
-	}
-}
-
-void ASkeletalMeshActor::FinishAnimControl(UInterpGroup* InInterpGroup)
-{
-	if(SkeletalMeshComponent->GetAnimationMode()== EAnimationMode::Type::AnimationBlueprint)
-	{
-		UAnimInstance* AnimInst = SkeletalMeshComponent->GetAnimInstance();
-		if(AnimInst)
-	{
-			AnimInst->Montage_Stop(0.f);
-			AnimInst->UpdateAnimation(0.f, false);
-		}
-
-		// Update space bases to reset it back to ref pose
-		SkeletalMeshComponent->RefreshBoneTransforms();
-		SkeletalMeshComponent->RefreshSlaveComponents();
-		SkeletalMeshComponent->UpdateComponentToWorld();
-	}
-}
-
-
-#if WITH_EDITOR
-
-bool ASkeletalMeshActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
-{
-	Super::GetReferencedContentObjects(Objects);
-
-	if (SkeletalMeshComponent->SkeletalMesh)
-	{
-		Objects.Add(SkeletalMeshComponent->SkeletalMesh);
-	}
-	return true;
-}
-
-void ASkeletalMeshActor::EditorReplacedActor(AActor* OldActor)
-{
-	Super::EditorReplacedActor(OldActor);
-
-	if (ASkeletalMeshActor * OldSkelMeshActor = Cast<ASkeletalMeshActor>(OldActor))
-	{
-		// if no skeletal mesh set, take one from previous actor
-		if (SkeletalMeshComponent && OldSkelMeshActor->SkeletalMeshComponent &&
-			SkeletalMeshComponent->SkeletalMesh == NULL)
-		{
-			SkeletalMeshComponent->SetSkeletalMesh(OldSkelMeshActor->SkeletalMeshComponent->SkeletalMesh);
-		}
-	}
-}
-
-void ASkeletalMeshActor::LoadedFromAnotherClass(const FName& OldClassName)
-{
-	Super::LoadedFromAnotherClass(OldClassName);
-
-	if(GetLinkerUE4Version() < VER_UE4_REMOVE_SKELETALPHYSICSACTOR)
-	{
-		static FName SkeletalPhysicsActor_NAME(TEXT("SkeletalPhysicsActor"));
-		static FName KAsset_NAME(TEXT("KAsset"));
-
-		if(OldClassName == SkeletalPhysicsActor_NAME || OldClassName == KAsset_NAME)
-		{
-			SkeletalMeshComponent->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipAllBones;
-			SkeletalMeshComponent->BodyInstance.bSimulatePhysics = true;
-			SkeletalMeshComponent->bBlendPhysics = true;
-
-			bAlwaysRelevant = true;
-			bReplicateMovement = true;
-			SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
-			bReplicates = true;
-		}
-	}
-}
-#endif
 
 /*-----------------------------------------------------------------------------
 FSkeletalMeshSceneProxy
@@ -5340,6 +4879,8 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 		}
 	}
 
+	const FEngineShowFlags& EngineShowFlags = ViewFamily.EngineShowFlags;
+
 	const int32 LODIndex = MeshObject->GetLOD();
 	check(LODIndex < SkelMeshResource->LODModels.Num());
 	const FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
@@ -5387,6 +4928,21 @@ void FSkeletalMeshSceneProxy::GetMeshElementsConditionallySelectable(const TArra
 			if( PhysicsAssetForDebug )
 			{
 				DebugDrawPhysicsAsset(ViewIndex, Collector, ViewFamily.EngineShowFlags);
+			}
+
+			if (EngineShowFlags.MassProperties && DebugMassData.Num() > 0 && MeshObject)
+			{
+				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+				const TArray<FTransform>& ComponentSpaceTransforms = *MeshObject->GetComponentSpaceTransforms();
+
+				for (const FDebugMassData& DebugMass : DebugMassData)
+				{
+					if(ComponentSpaceTransforms.IsValidIndex(DebugMass.BoneIndex))
+					{			
+						const FTransform BoneToWorld = ComponentSpaceTransforms[DebugMass.BoneIndex] * FTransform(GetLocalToWorld());
+						DebugMass.DrawDebugMass(PDI, BoneToWorld);
+					}
+				}
 			}
 
 			if (ViewFamily.EngineShowFlags.SkeletalMeshes)
@@ -5804,167 +5360,6 @@ bool FSkeletalMeshSceneProxy::GetMaterialTextureScales(int32 LODIndex, int32 Sec
 }
 #endif
 
-USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-	, AnimUpdateRateParams(nullptr)
-{
-	bAutoActivate = true;
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.TickGroup = TG_PrePhysics;	
-	WireframeColor = FColor(221, 221, 28, 255);
-
-	MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-
-	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-
-	StreamingDistanceMultiplier = 1.0f;
-	bCanHighlightSelectedSections = false;
-	CanCharacterStepUpOn = ECB_Owner;
-#if WITH_EDITORONLY_DATA
-	ProgressiveDrawingFraction = 1.0f;
-	ChunkIndexPreview = -1;
-	SectionIndexPreview = -1;
-#endif // WITH_EDITORONLY_DATA
-	bPerBoneMotionBlur = true;
-	bCastCapsuleDirectShadow = false;
-	bCastCapsuleIndirectShadow = false;
-	CapsuleIndirectShadowMinVisibility = .1f;
-
-	bDoubleBufferedComponentSpaceTransforms = true;
-	CurrentEditableComponentTransforms = 0;
-	CurrentReadComponentTransforms = 1;
-	bNeedToFlipSpaceBaseBuffers = false;
-
-	bCanEverAffectNavigation = false;
-	MasterBoneMapCacheCount = 0;
-}
-
-
-void USkinnedMeshComponent::UpdateMorphMaterialUsageOnProxy()
-{
-	// update morph material usage
-	if( SceneProxy )
-	{
-		const bool bHasMorphs = ActiveMorphTargets.Num() > 0;
-		((FSkeletalMeshSceneProxy*)SceneProxy)->UpdateMorphMaterialUsage_GameThread(bHasMorphs);
-	}
-}
-
-// UObject interface
-// Override to have counting working better
-void USkinnedMeshComponent::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-
-	if(Ar.IsCountingMemory())
-	{
-		// add all native variables - mostly bigger chunks 
-		ComponentSpaceTransformsArray[0].CountBytes(Ar);
-		ComponentSpaceTransformsArray[1].CountBytes(Ar);
-		MasterBoneMap.CountBytes(Ar);
-	}
-}
-
-void USkeletalMeshComponent::Serialize(FArchive& Ar)
-{
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-#if WITH_EDITORONLY_DATA
-	if (Ar.IsSaving())
-	{
-		if ((NULL != AnimationBlueprint_DEPRECATED) && (NULL == AnimBlueprintGeneratedClass))
-		{
-			AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(AnimationBlueprint_DEPRECATED->GeneratedClass);
-		}
-	}
-#endif
-
-	Super::Serialize(Ar);
-			
-	// to count memory : TODO: REMOVE?
-	if(Ar.IsCountingMemory())
-	{
-		BoneSpaceTransforms.CountBytes(Ar);
-		RequiredBones.CountBytes(Ar);
-	}
-
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_SKELETALMESH_COMPONENT_BODYSETUP_SERIALIZATION)
-	{
-		//we used to serialize bodysetup of skeletal mesh component. We no longer do this, but need to not break existing content
-		if (bEnablePerPolyCollision)
-		{
-			Ar << BodySetup;
-		}
-	}
-
-	// Since we separated simulation vs blending
-	// if simulation is on when loaded, just set blendphysics to be true
-	if (BodyInstance.bSimulatePhysics)
-	{
-		bBlendPhysics = true;
-	}
-
-#if WITH_EDITORONLY_DATA
-	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_EDITORONLY_BLUEPRINTS))
-	{
-		if ((NULL != AnimationBlueprint_DEPRECATED))
-		{
-			// Migrate the class from the animation blueprint once, and null the value so we never get in again
-			AnimBlueprintGeneratedClass = Cast<UAnimBlueprintGeneratedClass>(AnimationBlueprint_DEPRECATED->GeneratedClass);
-			AnimationBlueprint_DEPRECATED = NULL;
-		}
-	}
-#endif
-
-	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_NO_ANIM_BP_CLASS_IN_GAMEPLAY_CODE))
-	{
-		if (nullptr != AnimBlueprintGeneratedClass)
-		{
-			AnimClass = AnimBlueprintGeneratedClass;
-		}
-	}
-
-	if (Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_AUTO_WELDING))
-	{
-		BodyInstance.bAutoWeld = false;
-	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-}
-
-void USkinnedMeshComponent::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	// Get Mesh Object's memory
-	if(MeshObject)
-	{
-		MeshObject->GetResourceSizeEx(CumulativeResourceSize);
-	}
-}
-
-FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
-{
-	ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
-	FSkeletalMeshSceneProxy* Result = nullptr;
-	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
-
-	// Only create a scene proxy for rendering if properly initialized
-	if( SkelMeshResource && 
-		SkelMeshResource->LODModels.IsValidIndex(PredictedLODLevel) &&
-		!bHideSkin &&
-		MeshObject)
-	{
-		// Only create a scene proxy if the bone count being used is supported, or if we don't have a skeleton (this is the case with destructibles)
-		int32 MaxBonesPerChunk = SkelMeshResource->GetMaxBonesPerSection();
-		if (MaxBonesPerChunk <= GetFeatureLevelMaxNumberOfBones(SceneFeatureLevel))
-		{
-			Result = ::new FSkeletalMeshSceneProxy(this,SkelMeshResource);
-		}
-	}
-
-	return Result;
-}
-
 #undef LOCTEXT_NAMESPACE
 
-/** Returns SkeletalMeshComponent subobject **/
-USkeletalMeshComponent* ASkeletalMeshActor::GetSkeletalMeshComponent() { return SkeletalMeshComponent; }
+

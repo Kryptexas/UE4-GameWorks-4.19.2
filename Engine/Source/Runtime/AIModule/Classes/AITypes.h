@@ -25,6 +25,7 @@ namespace FAISystem
 	static const FVector InvalidDirection = FVector::ZeroVector; 
 	static const float InvalidRange = -1.f;
 	static const float InfiniteInterval = -FLT_MAX;
+	static const uint32 InvalidUnsignedID = uint32(INDEX_NONE);
 
 	FORCEINLINE bool IsValidLocation(const FVector& TestLocation)
 	{

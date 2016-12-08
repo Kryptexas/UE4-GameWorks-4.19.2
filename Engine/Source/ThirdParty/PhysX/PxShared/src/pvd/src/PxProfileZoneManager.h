@@ -69,42 +69,6 @@ namespace physx {
 	};
 
 	/**
-	\brief Custom profiler interface. User will receive the profile events to handle 
-	them individually. 
-	*/
-	class PxUserCustomProfiler
-	{
-	public:
-		/**
-		\brief Send a start profile event, optionally with a context. Events are sorted by thread
-		and context in the client side.
-		\param eventName Event name.
-		\param contextId Context id.
-		\param threadId Thread id.
-		*/
-		virtual void onStartEvent( const char* eventName, uint64_t contextId, uint32_t threadId) = 0;
-
-		/**
-		\brief Send a stop profile event, optionally with a context. Events are sorted by thread
-		and context in the client side.
-		\param eventName Event name.
-		\param contextId Context id.
-		\param threadId Thread id.
-		*/
-		virtual void onStopEvent( const char* eventName, uint64_t contextId, uint32_t threadId) = 0;
-		
-		/**
-		\brief Send a event value, optionally with a context. 
-		\param eventName Event name.
-		\param inValue Event value.		
-		*/
-		virtual void onEventValue(const char* eventName, int64_t inValue) = 0;
-
-	protected:
-		virtual ~PxUserCustomProfiler(void) {}
-	};
-
-	/**
 	\brief The profiling system was setup in the expectation that there would be several
 	systems that each had its own island of profile information.  PhysX, client code,
 	and APEX would be the first examples of these.  Each one of these islands is represented
@@ -173,12 +137,6 @@ namespace physx {
 		by sizeof one event.  When full an immediate call to all listeners is made.
 		*/
 		virtual PxProfileZone& createProfileZone( const char* inSDKName, PxProfileNames inNames = PxProfileNames(), uint32_t inEventBufferByteSize = 0x4000 /*16k*/ ) = 0;
-
-		/**
-		\brief Set custom profiler. 
-		\param callback User custom profiler.
-		*/
-		virtual void setUserCustomProfiler(PxUserCustomProfiler* callback) = 0;
 
 		/**
 		\brief Releases the profile manager instance.

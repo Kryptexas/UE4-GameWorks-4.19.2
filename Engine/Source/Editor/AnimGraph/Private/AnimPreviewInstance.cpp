@@ -459,6 +459,16 @@ void UAnimPreviewInstance::SetKey(FSimpleDelegate InOnSetKeyCompleteDelegate)
 	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().SetKey(InOnSetKeyCompleteDelegate);
 }
 
+void UAnimPreviewInstance::SetKey()
+{
+	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().SetKey();
+}
+
+void UAnimPreviewInstance::SetKeyCompleteDelegate(FSimpleDelegate InOnSetKeyCompleteDelegate)
+{
+	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().SetKeyCompleteDelegate(InOnSetKeyCompleteDelegate);
+}
+
 void UAnimPreviewInstance::RefreshCurveBoneControllers()
 {
 	GetProxyOnGameThread<FAnimPreviewInstanceProxy>().RefreshCurveBoneControllers(CurrentAsset);

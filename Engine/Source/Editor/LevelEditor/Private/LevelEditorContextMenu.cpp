@@ -386,6 +386,11 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 		if (ContextType == LevelEditorMenuContext::Viewport)
 		{
 			LevelEditorCreateActorMenu::FillAddReplaceViewportContextMenuSections(MenuBuilder);
+
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().OpenMergeActor,
+					NAME_None,
+					LOCTEXT("OpenMergeActor", "Merge Actors"),
+					LOCTEXT("GoToDocsForActor_ToolTip", "Click to open the Merge Actor panel"));
 		}
 
 		if (GEditor->PlayWorld != NULL)

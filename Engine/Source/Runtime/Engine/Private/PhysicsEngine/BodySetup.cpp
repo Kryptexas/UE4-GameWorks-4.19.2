@@ -114,8 +114,8 @@ void UBodySetup::CopyBodyPropertiesFrom(const UBodySetup* FromSetup)
 	for (int32 i = 0; i < AggGeom.ConvexElems.Num(); i++)
 	{
 		FKConvexElem& ConvexElem = AggGeom.ConvexElems[i];
-		ConvexElem.ConvexMesh = NULL;
-		ConvexElem.ConvexMeshNegX = NULL;
+		ConvexElem.SetConvexMesh(nullptr);
+		ConvexElem.SetMirroredConvexMesh(nullptr);
 	}
 
 	DefaultInstance.CopyBodyInstancePropertiesFrom(&FromSetup->DefaultInstance);
@@ -140,8 +140,8 @@ void UBodySetup::AddCollisionFrom(const FKAggregateGeom& FromAggGeom)
 	for (int32 i = FirstNewConvexIdx; i < AggGeom.ConvexElems.Num(); i++)
 	{
 		FKConvexElem& ConvexElem = AggGeom.ConvexElems[i];
-		ConvexElem.ConvexMesh = NULL;
-		ConvexElem.ConvexMeshNegX = NULL;
+		ConvexElem.SetConvexMesh(nullptr);
+		ConvexElem.SetMirroredConvexMesh(nullptr);
 	}
 }
 
@@ -217,14 +217,14 @@ void UBodySetup::CreatePhysicsMeshes()
 
 				if (bGenerateNonMirroredCollision)
 				{
-					ConvexElem.ConvexMesh = CookedDataReader.ConvexMeshes[ElementIndex];
-					FPhysxSharedData::Get().Add(ConvexElem.ConvexMesh);
+					ConvexElem.SetConvexMesh(CookedDataReader.ConvexMeshes[ElementIndex]);
+					FPhysxSharedData::Get().Add(ConvexElem.GetConvexMesh());
 				}
 
 				if (bGenerateMirroredCollision)
 				{
-					ConvexElem.ConvexMeshNegX = CookedDataReader.ConvexMeshesNegX[ElementIndex];
-					FPhysxSharedData::Get().Add(ConvexElem.ConvexMeshNegX);
+					ConvexElem.SetMirroredConvexMesh(CookedDataReader.ConvexMeshesNegX[ElementIndex]);
+					FPhysxSharedData::Get().Add(ConvexElem.GetMirroredConvexMesh());
 				}
 			}
 		}
@@ -259,20 +259,20 @@ void UBodySetup::ClearPhysicsMeshes()
 	{
 		FKConvexElem* ConvexElem = &(AggGeom.ConvexElems[i]);
 
-		if(ConvexElem->ConvexMesh != NULL)
+		if(ConvexElem->GetConvexMesh() != nullptr)
 		{
 			// put in list for deferred release
-			GPhysXPendingKillConvex.Add(ConvexElem->ConvexMesh);
-			FPhysxSharedData::Get().Remove(ConvexElem->ConvexMesh);
-			ConvexElem->ConvexMesh = NULL;
+			GPhysXPendingKillConvex.Add(ConvexElem->GetConvexMesh());
+			FPhysxSharedData::Get().Remove(ConvexElem->GetConvexMesh());
+			ConvexElem->SetConvexMesh(nullptr);
 		}
 
-		if(ConvexElem->ConvexMeshNegX != NULL)
+		if(ConvexElem->GetMirroredConvexMesh() != nullptr)
 		{
 			// put in list for deferred release
-			GPhysXPendingKillConvex.Add(ConvexElem->ConvexMeshNegX);
-			FPhysxSharedData::Get().Remove(ConvexElem->ConvexMeshNegX);
-			ConvexElem->ConvexMeshNegX = NULL;
+			GPhysXPendingKillConvex.Add(ConvexElem->GetMirroredConvexMesh());
+			FPhysxSharedData::Get().Remove(ConvexElem->GetMirroredConvexMesh());
+			ConvexElem->SetMirroredConvexMesh(nullptr);
 		}
 	}
 
@@ -525,45 +525,34 @@ public:
 			PxTransform PLocalPose;
 			bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, PLocalPose);
 
-			PxConvexMesh* UseConvexMesh = bUseNegX ? ConvexElem.ConvexMeshNegX : ConvexElem.ConvexMesh;
+			PxConvexMesh* UseConvexMesh = bUseNegX ? ConvexElem.GetMirroredConvexMesh() : ConvexElem.GetConvexMesh();
 			if (UseConvexMesh)
 			{
 				PxConvexMeshGeometry PConvexGeom;
 				PConvexGeom.convexMesh = UseConvexMesh;
-				PConvexGeom.scale.scale = U2PVector(ShapeScale3DAbs * ConvexElem.GetTransform().GetScale3D().GetAbs());	//scale shape about the origin
-				FTransform ConvexTransform = ConvexElem.GetTransform();
-				if (ConvexTransform.GetScale3D().X < 0 || ConvexTransform.GetScale3D().Y < 0 || ConvexTransform.GetScale3D().Z < 0)
-				{
-					UE_LOG(LogPhysics, Warning, TEXT("AddConvexElemsToRigidActor: [%s] ConvexElem[%d] has negative scale. Not currently supported"), *GetPathNameSafe(BodySetup->GetOuter()), i);
-				}
-				if (ConvexTransform.IsValid())
-				{
-					//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
-					PxTransform PElementTransform = U2PTransform(ConvexTransform * RelativeTM);
-					PLocalPose.q *= PElementTransform.q;
-					PLocalPose.p = PElementTransform.p;
-					PLocalPose.p.x *= Scale3D.X;
-					PLocalPose.p.y *= Scale3D.Y;
-					PLocalPose.p.z *= Scale3D.Z;
+				PConvexGeom.scale.scale = U2PVector(ShapeScale3DAbs);	//scale shape about the origin
 
-					if (PConvexGeom.isValid())
-					{
-						PxVec3 PBoundsExtents = PConvexGeom.convexMesh->getLocalBounds().getExtents();
+				//Scale the position independent of shape scale. This is because physx transforms have no concept of scale
+				PxTransform PElementTransform = U2PTransform(RelativeTM);
+				PLocalPose.q *= PElementTransform.q;
+				PLocalPose.p = PElementTransform.p;
+				PLocalPose.p.x *= Scale3D.X;
+				PLocalPose.p.y *= Scale3D.Y;
+				PLocalPose.p.z *= Scale3D.Z;
 
-						ensure(PLocalPose.isValid());
-						{
-							const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PBoundsExtents.minElement(), MinContactOffset, MaxContactOffset);
-							AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset, ConvexElem.GetUserData());
-						}
-					}
-					else
+				if (PConvexGeom.isValid())
+				{
+					PxVec3 PBoundsExtents = PConvexGeom.convexMesh->getLocalBounds().getExtents();
+
+					ensure(PLocalPose.isValid());
 					{
-						UE_LOG(LogPhysics, Warning, TEXT("AddConvexElemsToRigidActor: [%s] ConvexElem[%d] invalid"), *GetPathNameSafe(BodySetup->GetOuter()), i);
+						const float ContactOffset = FMath::Clamp(ContactOffsetFactor * PBoundsExtents.minElement(), MinContactOffset, MaxContactOffset);
+						AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset, ConvexElem.GetUserData());
 					}
 				}
 				else
 				{
-					UE_LOG(LogPhysics, Warning, TEXT("AddConvexElemsToRigidActor: [%s] ConvexElem[%d] has invalid transform"), *GetPathNameSafe(BodySetup->GetOuter()), i);
+					UE_LOG(LogPhysics, Warning, TEXT("AddConvexElemsToRigidActor: [%s] ConvexElem[%d] invalid"), *GetPathNameSafe(BodySetup->GetOuter()), i);
 				}
 			}
 			else
@@ -1223,14 +1212,14 @@ void UBodySetup::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 	{
 		FKConvexElem& ConvexElem = AggGeom.ConvexElems[ConvIdx];
 
-		if(ConvexElem.ConvexMesh != NULL)
+		if(ConvexElem.GetConvexMesh() != NULL)
 		{
-			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetPhysxObjectSize(ConvexElem.ConvexMesh, NULL));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetPhysxObjectSize(ConvexElem.GetConvexMesh(), NULL));
 		}
 
-		if(ConvexElem.ConvexMeshNegX != NULL)
+		if(ConvexElem.GetMirroredConvexMesh() != NULL)
 		{
-			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetPhysxObjectSize(ConvexElem.ConvexMeshNegX, NULL));
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(GetPhysxObjectSize(ConvexElem.GetMirroredConvexMesh(), NULL));
 		}
 	}
 
@@ -1324,6 +1313,26 @@ void FKConvexElem::ScaleElem(FVector DeltaSize, float MinSize)
 float SignedVolumeOfTriangle(const FVector& p1, const FVector& p2, const FVector& p3) 
 {
 	return FVector::DotProduct(p1, FVector::CrossProduct(p2, p3)) / 6.0f;
+}
+
+physx::PxConvexMesh* FKConvexElem::GetConvexMesh() const
+{
+	return ConvexMesh;
+}
+
+void FKConvexElem::SetConvexMesh(physx::PxConvexMesh* InMesh)
+{
+	ConvexMesh = InMesh;
+}
+
+physx::PxConvexMesh* FKConvexElem::GetMirroredConvexMesh() const
+{
+	return ConvexMeshNegX;
+}
+
+void FKConvexElem::SetMirroredConvexMesh(physx::PxConvexMesh* InMesh)
+{
+	ConvexMeshNegX = InMesh;
 }
 
 float FKConvexElem::GetVolume(const FVector& Scale) const

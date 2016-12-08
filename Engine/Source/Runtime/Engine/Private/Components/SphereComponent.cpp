@@ -8,6 +8,7 @@
 #include "PhysicsEngine/SphereElem.h"
 #include "SceneManagement.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PrimitiveSceneProxy.h"
 
 USphereComponent::USphereComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

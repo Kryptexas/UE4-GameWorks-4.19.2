@@ -519,6 +519,11 @@ public:
 	 */
 	virtual void UpdateCamera(float DeltaTime);
 
+	/**
+	* Performs a photography camera tick even when the camera wouldn't normally be ticking.
+	*/
+	void UpdateCameraPhotographyOnly();
+
 	/** 
 	 * Creates and initializes a new camera modifier of the specified class. 
 	 * @param ModifierClass - The class of camera modifier to create.
@@ -616,9 +621,6 @@ protected:
 	/** Internal function conditionally called from UpdateCamera to do the actual work of updating the camera. */
 	virtual void DoUpdateCamera(float DeltaTime);
 
-	/** Whether to only run photography overrides */
-	bool IsOnlyPhotography() const;
-	
 	/** Internal. Applies appropriate audio fading to the audio system. */
 	virtual void ApplyAudioFade();
 	virtual void StopAudioFade();

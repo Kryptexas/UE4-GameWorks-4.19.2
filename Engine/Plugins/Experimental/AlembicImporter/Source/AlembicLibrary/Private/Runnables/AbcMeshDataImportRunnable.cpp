@@ -51,10 +51,6 @@ uint32 FAbcMeshDataImportRunnable::Run()
 	const int32 NumMeshTracks = ImportData->PolyMeshObjects.Num();	
 	const int32 FrameSpan = StopFrameIndex - StartFrameIndex;
 	const int32 FrameOffset = ImportData->ImportSettings->SamplingSettings.FrameStart;
-	const bool bApplyTransformation = (ImportData->ImportSettings->ImportType == EAlembicImportType::StaticMesh && ImportData->ImportSettings->StaticMeshSettings.bMergeMeshes && ImportData->ImportSettings->StaticMeshSettings.bPropagateMatrixTransformations)
-		|| (ImportData->ImportSettings->ImportType == EAlembicImportType::Skeletal && ImportData->ImportSettings->CompressionSettings.bBakeMatrixAnimation);
-
-
 	for (TSharedPtr< FAbcPolyMeshObject>& PolyMeshObject : ImportData->PolyMeshObjects)
 	{		
 		Alembic::AbcGeom::IPolyMesh PolyMesh = PolyMeshObject->Mesh;
@@ -90,14 +86,6 @@ uint32 FAbcMeshDataImportRunnable::Run()
 				TSharedRef<FTokenizedMessage> Message = FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("InvalidFrameForMeshObject", "Invalid or empty frame number {0} in {1}, skipping frame."), FText::FromString( FString::FromInt(FrameIndex) ), FText::FromString(PolyMeshObject->Name)));
 				FAbcImportLogger::AddImportMessage(Message);
 				continue;
-			}
-
-			if (bApplyTransformation)
-			{
-				TSharedPtr<FCachedHierarchyTransforms>& CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(PolyMeshObject->HierarchyGuid);
-				checkf(PolyMeshObject->bConstantTransformation || CachedHierarchyTransforms->MatrixSamples.IsValidIndex(FrameIndex - FrameOffset), TEXT("Sampling is identical for transforms as for mesh data so the number of samples should match"));
-				const FMatrix& Transform = PolyMeshObject->bConstantTransformation ? CachedHierarchyTransforms->MatrixSamples[0] : CachedHierarchyTransforms->MatrixSamples[FrameIndex - FrameOffset];
-				AbcImporterUtilities::PropogateMatrixTransformationToSample(Sample, Transform);
 			}
 			
 			// Set the sample time according to the current frame index we are at

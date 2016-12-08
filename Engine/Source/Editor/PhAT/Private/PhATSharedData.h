@@ -273,7 +273,7 @@ public:
 	bool bManipulating;
 
 	/** Used to prevent recursion with tree hierarchy ... needs to be rewritten! */
-	bool bInsideSelChange;
+	int32 InsideSelChange;
 
 	FTransform ResetTM;
 

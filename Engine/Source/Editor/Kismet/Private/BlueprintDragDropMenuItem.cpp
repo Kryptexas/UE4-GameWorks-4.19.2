@@ -13,8 +13,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintDragDropMenuItem, Log, All);
 
 //------------------------------------------------------------------------------
-FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* SampleAction, int32 MenuGrouping, const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip)
-: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, MenuGrouping)
+FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* SampleAction, int32 MenuGrouping, FText InNodeCategory, FText InMenuDesc, FString InToolTip)
+: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), MenuGrouping)
 {
 	AppendAction(SampleAction);
 	check(SampleAction != nullptr);

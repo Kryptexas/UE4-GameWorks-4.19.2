@@ -1687,6 +1687,8 @@ private:
 				for( uint32 TexCoordIndex = 0; TexCoordIndex < TexCoordCount; ++TexCoordIndex )
 				{
 					FVector2D TexCoord = Vertex.UVs[TexCoordIndex];
+					TexCoord.X = FMath::Clamp(TexCoord.X, -1024.0f, 1024.0f);
+					TexCoord.Y = FMath::Clamp(TexCoord.Y, -1024.0f, 1024.0f);
 					TexCoords[TexCoordIndex]->SetTuple( Index, (float*)&TexCoord );
 				}
 

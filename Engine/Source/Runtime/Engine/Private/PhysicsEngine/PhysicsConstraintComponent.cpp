@@ -542,15 +542,32 @@ void UPhysicsConstraintComponent::SetLinearVelocityDrive( bool bEnableDriveX, bo
 	ConstraintInstance.SetLinearVelocityDrive(bEnableDriveX, bEnableDriveY, bEnableDriveZ);
 }
 
-void UPhysicsConstraintComponent::SetAngularOrientationDrive( bool bEnableSwingDrive, bool bEnableTwistDrive )
+void UPhysicsConstraintComponent::SetOrientationDriveTwistAndSwing( bool bEnableTwistDrive, bool bEnableSwingDrive)
 {
-	ConstraintInstance.SetAngularPositionDrive(bEnableSwingDrive, bEnableTwistDrive);
+	ConstraintInstance.SetOrientationDriveTwistAndSwing(bEnableTwistDrive, bEnableSwingDrive);
 }
 
-void UPhysicsConstraintComponent::SetAngularVelocityDrive( bool bEnableSwingDrive, bool bEnableTwistDrive )
+void UPhysicsConstraintComponent::SetOrientationDriveSLERP(bool bEnableSLERP)
 {
-	ConstraintInstance.SetAngularVelocityDrive(bEnableSwingDrive, bEnableTwistDrive);
+	ConstraintInstance.SetOrientationDriveSLERP(bEnableSLERP);
 }
+
+
+void UPhysicsConstraintComponent::SetAngularDriveMode(EAngularDriveMode::Type DriveMode)
+{
+	ConstraintInstance.SetAngularDriveMode(DriveMode);
+}
+
+void UPhysicsConstraintComponent::SetAngularVelocityDriveTwistAndSwing( bool bEnableTwistDrive, bool bEnableSwingDrive)
+{
+	ConstraintInstance.SetAngularVelocityDriveTwistAndSwing(bEnableTwistDrive, bEnableSwingDrive);
+}
+
+void UPhysicsConstraintComponent::SetAngularVelocityDriveSLERP(bool bEnableSLERP)
+{
+	ConstraintInstance.SetAngularVelocityDriveSLERP(bEnableSLERP);
+}
+
 
 void UPhysicsConstraintComponent::SetLinearPositionTarget( const FVector& InPosTarget )
 {
@@ -562,9 +579,9 @@ void UPhysicsConstraintComponent::SetLinearVelocityTarget( const FVector& InVelT
 	ConstraintInstance.SetLinearVelocityTarget(InVelTarget);
 }
 
-void UPhysicsConstraintComponent::SetLinearDriveParams( float InSpring, float InDamping, float InForceLimit )
+void UPhysicsConstraintComponent::SetLinearDriveParams( float PositionStrength, float VelocityStrength, float InForceLimit )
 {
-	ConstraintInstance.SetLinearDriveParams(InSpring, InDamping, InForceLimit);
+	ConstraintInstance.SetLinearDriveParams(PositionStrength, VelocityStrength, InForceLimit);
 }
 
 void UPhysicsConstraintComponent::SetAngularOrientationTarget( const FRotator& InPosTarget )
@@ -577,9 +594,9 @@ void UPhysicsConstraintComponent::SetAngularVelocityTarget( const FVector& InVel
 	ConstraintInstance.SetAngularVelocityTarget(InVelTarget);
 }
 
-void UPhysicsConstraintComponent::SetAngularDriveParams( float InSpring, float InDamping, float InForceLimit )
+void UPhysicsConstraintComponent::SetAngularDriveParams( float PositionStrength, float VelocityStrength, float InForceLimit )
 {
-	ConstraintInstance.SetAngularDriveParams(InSpring, InDamping, InForceLimit);
+	ConstraintInstance.SetAngularDriveParams(PositionStrength, VelocityStrength, InForceLimit);
 }
 
 void UPhysicsConstraintComponent::SetLinearXLimit(ELinearConstraintMotion Motion, float LinearLimit)

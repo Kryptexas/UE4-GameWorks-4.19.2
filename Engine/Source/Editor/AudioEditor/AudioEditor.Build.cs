@@ -29,7 +29,7 @@ public class AudioEditor : ModuleRules
                 "Landscape",
                 "PropertyEditor",
                 "DetailCustomizations",
-//                "AssetTools",
+                "ClassViewer",
                 "GraphEditor",
                 "ContentBrowser",
             }

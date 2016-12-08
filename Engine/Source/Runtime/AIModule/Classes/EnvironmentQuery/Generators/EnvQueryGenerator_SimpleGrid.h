@@ -19,8 +19,8 @@ class UEnvQueryGenerator_SimpleGrid : public UEnvQueryGenerator_ProjectedPoints
 {
 	GENERATED_UCLASS_BODY()
 
-	/** square's extent */
-	UPROPERTY(EditDefaultsOnly, Category=Generator)
+	/** half of square's extent, like a radius */
+	UPROPERTY(EditDefaultsOnly, Category=Generator, meta=(DisplayName="GridHalfSize"))
 	FAIDataProviderFloatValue GridSize;
 
 	/** generation density */

@@ -57,7 +57,8 @@ public class EditorTests : ModuleRules
                 "DirectoryWatcher",
 				"Projects",
                 "UnrealEd",
-                "AudioEditor"
+                "AudioEditor",
+                "AnimGraphRuntime",
             }
 			);
 		

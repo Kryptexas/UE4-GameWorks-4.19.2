@@ -83,13 +83,6 @@ void UAudioSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pro
 		{
 			bReconcileNodes = true;
 		}
-		else if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAudioSettings, DefaultSoundSubmixName))
-		{
-			if (DefaultSoundSubmixName.IsValid())
-			{
-				USoundBase::DefaultSoundSubmixObject = LoadObject<USoundSubmix>(nullptr, *DefaultSoundSubmixName.ToString());
-			}
-		}
 
 		if (bReconcileNodes)
 		{

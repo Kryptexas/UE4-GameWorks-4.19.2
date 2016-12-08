@@ -1543,6 +1543,13 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 					FString RedirectName, ResultPackage, ResultClass;
 					const FName* RedirectNameObj = ObjectNameRedirects.Find(Import.ObjectName);
 					const FName* RedirectNameClass = ObjectNameRedirects.Find(Import.ClassName);
+
+					if (bIsStruct && !RedirectNameObj)
+					{
+						// Check struct redirects as well
+						RedirectNameObj = StructNameRedirects.Find(Import.ObjectName);
+					}
+
 					int32 OldOuterIndex = 0;
 					if ( (RedirectNameObj && bIsClassOrStructOrEnum) || RedirectNameClass )
 					{
@@ -4816,9 +4823,33 @@ TArray<FName> FLinkerLoad::FindPreviousNamesForClass(FString CurrentClassPath, b
 	return OldNames;
 }
 
+FName FLinkerLoad::FindNewNameForEnum(const FName OldEnumName)
+{
+	if (FName* RedirectName = ObjectNameRedirects.Find(OldEnumName))
+	{
+		return *RedirectName;
+	}
+
+	return NAME_None;
+}
+
+FName FLinkerLoad::FindNewNameForStruct(const FName OldStructName)
+{
+	FName* RedirectName = StructNameRedirects.Find(OldStructName);
+
+	if (RedirectName)
+	{
+		return *RedirectName;
+	}
+	
+	RedirectName = ObjectNameRedirects.Find(OldStructName);
+
+	return (RedirectName ? *RedirectName : NAME_None);
+}
+
 FName FLinkerLoad::FindNewNameForClass(FName OldClassName, bool bIsInstance)
 {
-	FName *RedirectName = ObjectNameRedirects.Find(OldClassName);
+	FName* RedirectName = ObjectNameRedirects.Find(OldClassName);
 
 	if (RedirectName)
 	{

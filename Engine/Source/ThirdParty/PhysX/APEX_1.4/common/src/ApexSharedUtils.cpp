@@ -2288,7 +2288,7 @@ struct ConvexV
 struct Output
 {
 		/// Get the normal to push apart in direction from A to B
-	PX_FORCE_INLINE Vec3V getNormal() const { return V3Normalize(V3Sub(mClosestB, mClosestA)); }
+	PX_FORCE_INLINE Vec3V getNormal() const { const Vec3V dir = V3Sub(mClosestB, mClosestA);  if (!V3AllGrtr(V3Eps(), V3Abs(dir))) return V3Normalize(dir); return V3Zero(); }
 	Vec3V mClosestA;				///< Closest point on A
 	Vec3V mClosestB;				///< Closest point on B
 	FloatV mDistSq;

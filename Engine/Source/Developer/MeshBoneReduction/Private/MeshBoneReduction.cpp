@@ -11,6 +11,7 @@
 #include "Templates/ScopedPointer.h"
 #include "ComponentReregisterContext.h"
 #include "UniquePtr.h"
+#include "SkeletalMeshTypes.h"
 
 class FMeshBoneReductionModule : public IMeshBoneReductionModule
 {

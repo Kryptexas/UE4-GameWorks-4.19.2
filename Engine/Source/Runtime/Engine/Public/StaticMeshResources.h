@@ -29,6 +29,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "PhysicsEngine/BodySetupEnums.h"
 #include "Materials/MaterialInterface.h"
+#include "Rendering/ColorVertexBuffer.h"
 #include "UniquePtr.h"
 
 class FDistanceFieldVolumeData;

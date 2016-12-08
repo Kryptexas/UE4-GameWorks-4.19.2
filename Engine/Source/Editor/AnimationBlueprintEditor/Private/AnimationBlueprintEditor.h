@@ -50,6 +50,7 @@ namespace AnimationBlueprintEditorTabs
 	extern const FName AnimBlueprintPreviewEditorTab;
 	extern const FName AssetOverridesTab;
 	extern const FName SlotNamesTab;
+	extern const FName CurveNamesTab;
 };
 
 /**

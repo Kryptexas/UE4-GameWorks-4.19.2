@@ -571,6 +571,34 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 		return SpawnDialogueAttached(Dialogue, Context, AttachToComponent, AttachPointName, Location, FRotator::ZeroRotator, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
 
+	/** Plays a force feedback effect at the given location. This is a fire and forget effect and does not travel with any actor. Replication is also not handled at this point.
+	 * @param ForceFeedbackEffect - effect to play
+	 * @param Location - World position to center the effect at
+	 * @param Rotation - World rotation to center the effect at
+	 * @param IntensityMultiplier - Intensity multiplier 
+	 * @param StartTime - How far in to the feedback effect to begin playback at
+	 * @param AttenuationSettings - Override attenuation settings package to play effect with
+	 * @return Force Feedback Component to manipulate the playing feedback effect with
+	 */
+	UFUNCTION(BlueprintCallable, Category="ForceFeedback", meta=(WorldContext="WorldContextObject", AdvancedDisplay = "3", UnsafeDuringActorConsturction = "true", Keywords = "play"))
+	static UForceFeedbackComponent* SpawnForceFeedbackAtLocation(const UObject* WorldContextObject, UForceFeedbackEffect* ForceFeedbackEffect, FVector Location, FRotator Rotation = FRotator::ZeroRotator, bool bLooping = false, float IntensityMultiplier = 1.f, float StartTime = 0.f, UForceFeedbackAttenuation* AttenuationSettings = nullptr);
+
+	/** Plays a force feedback effect attached to and following the specified component. This is a fire and forget effect. Replication is also not handled at this point.
+	 * @param ForceFeedbackEffect - effect to play
+	 * @param AttachComponent - Component to attach to.
+	 * @param AttachPointName - Optional named point within the AttachComponent to attach to
+	 * @param Location - Depending on the value of Location Type this is either a relative offset from the attach component/point or an absolute world position that will be translated to a relative offset
+	 * @param Rotation - Depending on the value of Location Type this is either a relative offset from the attach component/point or an absolute world rotation that will be translated to a relative offset
+	 * @param LocationType - Specifies whether Location is a relative offset or an absolute world position
+	 * @param bStopWhenAttachedToDestroyed - Specifies whether the feedback effect should stop playing when the owner of the attach to component is destroyed.
+	 * @param IntensityMultiplier - Intensity multiplier 
+	 * @param StartTime - How far in to the feedback effect to begin playback at
+	 * @param AttenuationSettings - Override attenuation settings package to play effect with
+	 * @return Force Feedback Component to manipulate the playing feedback effect with
+	*/
+	UFUNCTION(BlueprintCallable, Category="ForceFeedback", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	static UForceFeedbackComponent* SpawnForceFeedbackAttached(UForceFeedbackEffect* ForceFeedbackEffect, USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), FRotator Rotation = FRotator::ZeroRotator, EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, bool bLooping = false, float IntensityMultiplier = 1.f, float StartTime = 0.f, class UForceFeedbackAttenuation* AttenuationSettings = nullptr);
+
 	/**
 	 * Will set subtitles to be enabled or disabled.
 	 * @param bEnabled will enable subtitle drawing if true, disable if false.

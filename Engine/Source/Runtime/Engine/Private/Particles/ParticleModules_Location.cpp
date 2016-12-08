@@ -38,6 +38,8 @@
 #include "Particles/ParticleModuleRequired.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "SkeletalMeshTypes.h"
+
 UParticleModuleLocationBase::UParticleModuleLocationBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -2916,7 +2918,7 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticl
 			}
 		}
 
-		return Model.VertexBufferGPUSkin.HasExtraBoneInfluences()
+		return Model.SkinWeightVertexBuffer.HasExtraBoneInfluences()
 			? VertInfluencedByActiveBoneTyped<true>(Model, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
 			: VertInfluencedByActiveBoneTyped<false>(Model, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
 	}
@@ -2927,8 +2929,8 @@ template<bool bExtraBoneInfluencesT>
 bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(FStaticLODModel& Model, const FSkelMeshSection& Section, int32 VertIndex, USkeletalMeshComponent* InSkelMeshComponent, FModuleLocationVertSurfaceInstancePayload* InstancePayload, int32* OutBoneIndex)
 {
 	const TArray<int32>& MasterBoneMap = InSkelMeshComponent->GetMasterBoneMap();
-	// Do soft skinning for this vertex.
-	const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcSoftVertex = Model.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Section.GetVertexBufferIndex()+VertIndex);
+	// Get weights on this vertex
+	const TSkinWeightInfo<bExtraBoneInfluencesT>* SrcSkinWeights = Model.SkinWeightVertexBuffer.GetSkinWeightPtr<bExtraBoneInfluencesT>(Section.GetVertexBufferIndex() + VertIndex);
 
 #if !PLATFORM_LITTLE_ENDIAN
 	// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
@@ -2937,7 +2939,7 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(FSt
 	for(int32 InfluenceIndex = 0;InfluenceIndex < Section.MaxBoneInfluences;InfluenceIndex++)
 #endif
 	{
-		int32 BoneIndex = Section.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
+		int32 BoneIndex = Section.BoneMap[SrcSkinWeights->InfluenceBones[InfluenceIndex]];
 		if(InSkelMeshComponent->MasterPoseComponent.IsValid())
 		{		
 			check(MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());

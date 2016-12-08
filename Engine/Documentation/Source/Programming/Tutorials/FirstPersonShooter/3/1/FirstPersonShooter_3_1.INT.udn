@@ -84,9 +84,11 @@ Now that we've set-up our character, it's time to implement a projectile weapon 
 			// Sets default values for this actor's properties
 			AFPSProjectile();
 		
+		protected:
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
+		public:
 			// Called every frame
 			virtual void Tick( float DeltaSeconds ) override;
 		
@@ -173,9 +175,11 @@ Now that we've set-up our character, it's time to implement a projectile weapon 
 			// Sets default values for this actor's properties
 			AFPSProjectile();
 		
+		protected:
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
+		public:
 			// Called every frame
 			virtual void Tick( float DeltaSeconds ) override;
 		
@@ -274,9 +278,11 @@ Now that we've set-up our character, it's time to implement a projectile weapon 
 			// Sets default values for this actor's properties
 			AFPSProjectile();
 		
+		protected:
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
+		public:
 			// Called every frame
 			virtual void Tick( float DeltaSeconds ) override;
 		
@@ -384,9 +390,11 @@ Now that we've set-up our character, it's time to implement a projectile weapon 
 			// Sets default values for this character's properties
 			AFPSCharacter();
 		
+		protected:
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
+		public:
 			// Called every frame
 			virtual void Tick( float DeltaSeconds ) override;
 		
@@ -590,9 +598,11 @@ Ultimately, you'll be able to calculate an initial location for the projectile b
 			// Sets default values for this character's properties
 			AFPSCharacter();
 		
+		protected:
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
+		public:
 			// Called every frame
 			virtual void Tick( float DeltaSeconds ) override;
 		

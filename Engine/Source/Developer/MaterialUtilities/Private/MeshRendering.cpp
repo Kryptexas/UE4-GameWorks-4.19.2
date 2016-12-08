@@ -25,6 +25,7 @@
 #include "CanvasItem.h"
 #include "CanvasTypes.h"
 #include "LocalVertexFactory.h"
+#include "SkeletalMeshTypes.h"
 
 #include "RendererInterface.h"
 #include "EngineModule.h"

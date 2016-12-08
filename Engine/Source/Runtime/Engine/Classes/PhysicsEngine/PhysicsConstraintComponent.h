@@ -124,21 +124,58 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint")
 	void SetLinearVelocityDrive(bool bEnableDriveX, bool bEnableDriveY, bool bEnableDriveZ);
 
-	/** Enables/Disables angular orientation drive 
+	/** Enables/Disables angular orientation drive. Only relevant if the AngularDriveMode is set to Twist and Swing 
 	 *	
-	 *	@param bEnableSwingDrive	Indicates whether the drive for the swing axis should be enabled
-	 *	@param bEnableTwistDrive	Indicates whether the drive for the twist axis should be enabled
+	 *	@param bEnableSwingDrive	Indicates whether the drive for the swing axis should be enabled. Only relevant if the AngularDriveMode is set to Twist and Swing
+	 *	@param bEnableTwistDrive	Indicates whether the drive for the twist axis should be enabled. Only relevant if the AngularDriveMode is set to Twist and Swing
 	 */
-	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint")
-	void SetAngularOrientationDrive(bool bEnableSwingDrive, bool bEnableTwistDrive);
+	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint", meta=(DeprecatedFunction, DeprecationMessage = "Use SetOrientationDriveTwistAndSwing instead."))
+	void SetAngularOrientationDrive(bool bEnableSwingDrive, bool bEnableTwistDrive)
+	{
+		SetOrientationDriveTwistAndSwing(bEnableTwistDrive, bEnableSwingDrive);
+	}
+	/** Enables/Disables angular orientation drive. Only relevant if the AngularDriveMode is set to Twist and Swing
+	*
+	*	@param bEnableSwingDrive	Indicates whether the drive for the swing axis should be enabled. Only relevant if the AngularDriveMode is set to Twist and Swing
+	*	@param bEnableTwistDrive	Indicates whether the drive for the twist axis should be enabled. Only relevant if the AngularDriveMode is set to Twist and Swing
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	void SetOrientationDriveTwistAndSwing(bool bEnableTwistDrive, bool bEnableSwingDrive);
 
-	/** Enables/Disables angular velocity drive 
-	 *	
-	 *	@param bEnableSwingDrive	Indicates whether the drive for the swing axis should be enabled
-	 *	@param bEnableTwistDrive	Indicates whether the drive for the twit axis should be enabled
-	 */
-	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint")
-	void SetAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive);
+	/** Enables/Disables the angular orientation slerp drive. Only relevant if the AngularDriveMode is set to SLERP
+	*
+	*	@param bEnableSLERP     	Indicates whether the SLERP drive should be enabled. Only relevant if the AngularDriveMode is set to SLERP
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	void SetOrientationDriveSLERP(bool bEnableSLERP);
+
+	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint", meta = (DeprecatedFunction, DeprecationMessage = "Use SetAngularVelocityDriveTwistAndSwing instead."))
+	void SetAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive)
+	{
+		SetAngularVelocityDriveTwistAndSwing(bEnableTwistDrive, bEnableSwingDrive);
+	}
+
+	/** Enables/Disables angular velocity twist and swing drive. Only relevant if the AngularDriveMode is set to Twist and Swing
+	*
+	*	@param bEnableSwingDrive	Indicates whether the drive for the swing axis should be enabled. Only relevant if the AngularDriveMode is set to Twist and Swing
+	*	@param bEnableTwistDrive	Indicates whether the drive for the twist axis should be enabled. Only relevant if the AngularDriveMode is set to Twist and Swing
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	void SetAngularVelocityDriveTwistAndSwing(bool bEnableTwistDrive, bool bEnableSwingDrive);
+
+	/** Enables/Disables the angular velocity slerp drive. Only relevant if the AngularDriveMode is set to SLERP
+	*
+	*	@param bEnableSLERP     	Indicates whether the SLERP drive should be enabled. Only relevant if the AngularDriveMode is set to SLERP
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	void SetAngularVelocityDriveSLERP(bool bEnableSLERP);
+
+	/** Switches the angular drive mode between SLERP and Twist And Swing
+	*
+	*	@param DriveMode	The angular drive mode to use. SLERP uses shortest spherical path, but will not work if any angular constraints are locked. Twist and Swing decomposes the path into the different angular degrees of freedom but may experience gimbal lock
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	void SetAngularDriveMode(EAngularDriveMode::Type DriveMode);
 
 	/** Sets the target position for the linear drive. 
 	 *	@param InPosTarget		Target position
@@ -153,12 +190,12 @@ public:
 	void SetLinearVelocityTarget(const FVector& InVelTarget);
 
 	/** Sets the drive params for the linear drive. 
-	 *	@param InSpring		Spring force for the drive
-	 *	@param InDamping	Damping of the drive
+	 *	@param PositionStrength		Positional strength for the drive (stiffness)
+	 *	@param VelocityStrength 	Velocity strength of the drive (damping)
 	 *	@param InForceLimit	Max force applied by the drive
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint")
-	void SetLinearDriveParams(float InSpring, float InDamping, float InForceLimit);
+	void SetLinearDriveParams(float PositionStrength, float VelocityStrength, float InForceLimit);
 
 	/** Sets the target orientation for the angular drive. 
 	 *	@param InPosTarget		Target orientation
@@ -174,12 +211,12 @@ public:
 	void SetAngularVelocityTarget(const FVector& InVelTarget);
 
 	/** Sets the drive params for the angular drive. 
-	 *	@param InSpring		Spring force for the drive
-	 *	@param InDamping	Damping of the drive
+	 *	@param PositionStrength		Positional strength for the drive (stiffness)
+	 *	@param VelocityStrength 	Velocity strength of the drive (damping)
 	 *	@param InForceLimit	Max force applied by the drive
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint")
-	void SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit);
+	void SetAngularDriveParams(float PositionStrength, float VelocityStrength, float InForceLimit);
 
 
 	/** Sets the LinearX Motion Type

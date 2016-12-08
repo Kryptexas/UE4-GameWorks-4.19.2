@@ -1,265 +1,172 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DSP/Delay.h"
+#include "Delay.h"
+#include "Dsp.h"
 #include "AudioMixer.h"
 
 namespace Audio
 {
 	FDelay::FDelay()
-		: Feedback(0.0f)
-		, DelaySamples(0.0f)
-		, OutputGain(0.0f)
+		: AudioBuffer(nullptr)
+		, AudioBufferSize(0)
 		, ReadIndex(0)
 		, WriteIndex(0)
 		, SampleRate(0)
+		, DelayInSamples(0.0f)
+		, DelayMsec(0.0f)
+		, OutputAttenuation(1.0f)
+		, OutputAttenuationDB(0.0f)
 	{
+		Reset();
 	}
 
 	FDelay::~FDelay()
 	{
+		if (AudioBuffer)
+		{
+			delete[] AudioBuffer;
+		}
 	}
 
-	void FDelay::Init(const int32 InSampleRate, const int32 InDelaySizeMsec)
+	void FDelay::Init(const int32 InSampleRate, const int32 InBufferSizeSamples)
 	{
-		AUDIO_MIXER_CHECK(InSampleRate != 0);
 		SampleRate = InSampleRate;
+		AudioBufferSize = InBufferSizeSamples;
 
-		// Get the number of samples based on sample rate
-		const int32 NumSamples = InSampleRate * ((float)InDelaySizeMsec / 1000.0f);
-		AudioBuffer.Reset();
-		AudioBuffer.AddDefaulted(NumSamples);
+		if (AudioBuffer)
+		{
+			delete[] AudioBuffer;
+		}
 
-		// Assume the current delay is the entire buffer size
-		DelaySamples = NumSamples;
+		AudioBuffer = new float[InBufferSizeSamples];
+
+		Reset();
 	}
 
 	void FDelay::Reset()
 	{
-		AUDIO_MIXER_CHECK(SampleRate != 0);
-
-		const int32 BufferSize = AudioBuffer.Num();
-		AudioBuffer.Reset();
-		AudioBuffer.AddDefaulted(BufferSize);
-
-		// Reset the write index
-		WriteIndex = 0;
-
-		// Set the read index based on the current delay in samples
-		ReadIndex = -(int32)DelaySamples;
-
-		while (ReadIndex < 0)
+		if (AudioBuffer)
 		{
-			ReadIndex += BufferSize;
+			FMemory::Memzero(AudioBuffer, sizeof(float)*AudioBufferSize);
 		}
-	}
 
-	void FDelay::SetFeedback(const float InFeedback)
-	{
-		AUDIO_MIXER_CHECK(InFeedback >= -1.0f && InFeedback <= 1.0f);
-		Feedback = InFeedback;
-	}
+		WriteIndex = 0;
+		ReadIndex = 0;
 
-	void FDelay::SetOutputGainDB(const float InOutputGainDB)
-	{
-		AUDIO_MIXER_CHECK(InOutputGainDB <= 0.0f);
-
-		OutputGain = FMath::Pow(10.0f, InOutputGainDB / 20.0f);
-	}
-
-	void FDelay::SetOutputGain(const float InOutputGain)
-	{
-		AUDIO_MIXER_CHECK(InOutputGain >= 0.0f && InOutputGain <= 1.0f);
-
-		OutputGain = InOutputGain;
+		Update();
 	}
 
 	void FDelay::SetDelayMsec(const float InDelayMsec)
 	{
-		AUDIO_MIXER_CHECK(SampleRate != 0);
+		DelayMsec = InDelayMsec;
+		Update();
+	}
 
-		// Set the current delay in terms of fractional samples
-		DelaySamples = InDelayMsec * ((float)SampleRate / 1000.0f);
-
-		// Update the read index based on the current write index
-		// Don't touch the current write index, this will allow modulated delay lines.
-		ReadIndex = WriteIndex - (int32)DelaySamples;
-
-		// Make sure to wrap the read index to within the bounds of the delay line
-		while (ReadIndex < 0)
-		{
-			ReadIndex += AudioBuffer.Num();
-		}
+	void FDelay::SetOutputAttenuationDB(const float InDelayAttenDB)
+	{
+		OutputAttenuationDB = InDelayAttenDB;
+		Update();
 	}
 
 	float FDelay::Read() const
 	{
-		// Get the previous read index, wrap to buffer size
-		const int32 ReadIndexPrev = (ReadIndex == 0) ? AudioBuffer.Num() - 1 : ReadIndex - 1;
-
-		// Get the output at the current read index
+		// Read the output of the delay at ReadIndex
 		const float Yn = AudioBuffer[ReadIndex];
 
-		// Get sample value at previous read index
-		const float YnPrev = AudioBuffer[ReadIndexPrev];
-
-		// Get the lerp alpha for interpolating sample reading
-		const float Alpha = DelaySamples - (int32)DelaySamples;
-
-		// Lerp from current read to prev read output
-		return FMath::Lerp(Yn, YnPrev, Alpha);
-	}
-
-	float FDelay::TapOut(const float TapOutMsec) const
-	{
-		const float TapDelaySamples = TapOutMsec * ((float)SampleRate / 1000.0f);
-		int32 TapReadIndex = WriteIndex - (int32)TapDelaySamples;
-		while (TapReadIndex < 0)
+		// Read the location ONE BEHIND yn at y(n-1)
+		int32 ReadIndexPrev = ReadIndex - 1;
+		if (ReadIndexPrev < 0)
 		{
-			TapReadIndex += AudioBuffer.Num();
+			ReadIndexPrev = AudioBufferSize - 1;
 		}
 
-		// Get the previous read index, wrap to buffer size
-		const int32 TapReadIndexPrev = (TapReadIndex == 0) ? AudioBuffer.Num() - 1 : TapReadIndex - 1;
+		// Set y(n-1)
+		const float YnPrev = AudioBuffer[ReadIndexPrev];
 
-		// Get current and previous tap read sample values
-		const float Yn = AudioBuffer[ReadIndex];
-		const float YnPrev = AudioBuffer[TapReadIndexPrev];
+		// Get the amount of fractional delay between previous and next read indices
+		const float Fraction = DelayInSamples - (int32)DelayInSamples;
 
-		// Get lerp alpha
-		const float Alpha = TapDelaySamples - (int32)TapDelaySamples;
-
-		// Lerp from current read to prev read indices
-		return FMath::Lerp(Yn, YnPrev, Alpha);
+		return FMath::Lerp(Yn, YnPrev, Fraction);
 	}
 
-	void FDelay::TapIn(const float InSample)
+	float FDelay::ReadDelayAt(const float InReadMsec) const
 	{
-		AudioBuffer[WriteIndex++] = InSample;
+		const float ReadAtDelayInSamples = InReadMsec*((float)SampleRate) / 1000.0f;
 
-		if (WriteIndex >= AudioBuffer.Num())
+		// Subtract to make read index
+		int32 ReadAtReadIndex = WriteIndex - (int32)ReadAtDelayInSamples;
+
+		if (ReadAtReadIndex < 0)
+		{
+			ReadAtReadIndex += AudioBufferSize;	// amount of wrap is Read + Length
+		}
+
+		// Read the output of the delay at ReadAtReadIndexs
+		float Yn = AudioBuffer[ReadAtReadIndex];
+
+		// Read the location ONE BEHIND yn at y(n-1)
+		int32 ReadAtReadIndexPrev = ReadAtReadIndex - 1;
+		if (ReadAtReadIndexPrev < 0)
+		{
+			ReadAtReadIndexPrev = AudioBufferSize - 1;
+		}
+
+		// get y(n-1)
+		const float YnPrev = AudioBuffer[ReadAtReadIndexPrev];
+
+		// interpolate: (0, yn) and (1, yn_1) by the amount fracDelay
+		float Fraction = ReadAtDelayInSamples - (int32)ReadAtDelayInSamples;
+
+		return FMath::Lerp(Yn, YnPrev, Fraction);
+	}
+
+	void FDelay::WriteDelayAndInc(const float InDelayInput)
+	{
+		// write to the delay line
+		AudioBuffer[WriteIndex] = InDelayInput; // external feedback sample
+												// increment the pointers and wrap if necessary
+		WriteIndex++;
+		if (WriteIndex >= AudioBufferSize)
 		{
 			WriteIndex = 0;
 		}
 
-		++ReadIndex;
-
-		if (ReadIndex >= AudioBuffer.Num())
+		ReadIndex++;
+		if (ReadIndex >= AudioBufferSize)
 		{
 			ReadIndex = 0;
 		}
 	}
 
-	float FDelay::operator()(const float InSample)
+	void FDelay::ProcessAudio(const float* InputSample, float* OutputSample)
 	{
-		// If there is no delay, then copy input to output
-		const float Yn = (DelaySamples == 0.0f) ? InSample : Read();
-
-		// Write in the new sample into the delay line with possible feedback
-		TapIn(InSample + Feedback * Yn);
-
-		// Return the output applied with the gain
-		return OutputGain * Yn;
+		const float Xn = *InputSample;
+		const float Yn = DelayInSamples == 0 ? Xn : Read();
+		WriteDelayAndInc(Xn);
+		*OutputSample = OutputAttenuation*Yn;
 	}
 
-	/**
-	* FModulatedDelay
-	*/
-	FModulatedDelay::FModulatedDelay()
-		: CurrentWaveTable(&SinLFO)
-		, ModulationDepth(0.0f)
-		, ModulationFrequency(0.0f)
-		, MinDelayTimeMsec(0.0f)
-		, MaxDelayTimeMsec(0.0f)
-		, DelayOffsetMsec(0.0f)
-		, ModulationFeedback(0.0f)
-		, WetLevel(1.0f)
-		, bIsInQuadPhase(false)
+	void FDelay::Update()
 	{
-	}
+		// Compute linear output attenuation based on DB attenuation settings
+		OutputAttenuation = FMath::Pow(10.0f, OutputAttenuationDB / 20.0f);
 
-	FModulatedDelay::~FModulatedDelay()
-	{
-	}
+		// Compute the delay in samples based on msec delay line
+		DelayInSamples = DelayMsec*((float)SampleRate / 1000.0f);
 
-	void FModulatedDelay::Init(int32 InSampleRate)
-	{
-		SawLFO.Init(InSampleRate);
-		SinLFO.Init(InSampleRate);
-		Delay.Init(InSampleRate);
-	}
-
-	void FModulatedDelay::SetLFO(const EWaveTable::Type InLFOType)
-	{
-		switch (InLFOType)
+		if (DelayInSamples >= (float)AudioBufferSize)
 		{
-		default:
-		case EWaveTable::SineWaveTable:
-			CurrentWaveTable = &SinLFO;
-			break;
-		case EWaveTable::SawWaveTable:
-			CurrentWaveTable = &SawLFO;
-			break;
-		case EWaveTable::TriangleWaveTable:
-			CurrentWaveTable = &TriLFO;
-			break;
-		case EWaveTable::SquareWaveTable:
-			CurrentWaveTable = &SquareLFO;
-			break;
+			DelayInSamples = (float)AudioBufferSize;
 		}
-	}
 
-	void FModulatedDelay::SetModulationFeedback(const float InModulationFeedback)
-	{
-		Delay.SetFeedback(InModulationFeedback);
-	}
+		// Subtract from write index the delay in samples (will do interpolation during read)
+		ReadIndex = WriteIndex - (int32)DelayInSamples;
 
-	void FModulatedDelay::SetWetLevel(const float InWetLevel)
-	{
-		AUDIO_MIXER_CHECK(InWetLevel >= 0.0f && InWetLevel <= 1.0f);
-		WetLevel = InWetLevel;
-	}
-
-	void FModulatedDelay::SetMinAndMaxDelayMSec(const float InMinDelayTimeMsec, const float InMaxDelayTimeMsec)
-	{
-		AUDIO_MIXER_CHECK(InMinDelayTimeMsec >= 0.0f && InMaxDelayTimeMsec <= 1.0f);
-		AUDIO_MIXER_CHECK(InMinDelayTimeMsec < InMaxDelayTimeMsec);
-
-		MinDelayTimeMsec = InMinDelayTimeMsec;
-		MaxDelayTimeMsec = InMaxDelayTimeMsec;
-	}
-
-	void FModulatedDelay::SetModulationDelayOffsetMsec(const float InDelayOffsetMsec)
-	{
-		AUDIO_MIXER_CHECK(InDelayOffsetMsec >= 0.0f);
-		DelayOffsetMsec = InDelayOffsetMsec;
-	}
-
-	void FModulatedDelay::SetModulationFrequency(const float InModulationFrequency)
-	{
-		SawLFO.SetFrequency(ModulationFrequency);
-		SinLFO.SetFrequency(ModulationFrequency);
-	}
-
-	float FModulatedDelay::operator()(const float InSample)
-	{
-		// Get the current value of our LFO wavetable
-		float Yn = 0.0f;			// Normal phase output
-		float Yqn = 0.0f;			// Quad phase output
-
-		(*CurrentWaveTable)(&Yn, &Yqn);
-
-		// Use modulation depth and min/max delay time range to compute a new delay time 
-		const float LFOSample = bIsInQuadPhase ? Yqn : Yn;
-		const float NewDelayMsec = ModulationDepth * LFOSample * (MaxDelayTimeMsec - MinDelayTimeMsec) + MinDelayTimeMsec + DelayOffsetMsec;
-
-		// Set the new delay time on our delay line
-		Delay.SetDelayMsec(NewDelayMsec);
-
-		// Feed the input sample through the now modulated delay line 
-		const float OutDelay = Delay(InSample);
-		const float OutputSample = OutDelay * WetLevel + InSample * (1.0f - WetLevel);
-
-		return OutputSample;
+		// If negative, wrap around
+		if (ReadIndex < 0)
+		{
+			ReadIndex += AudioBufferSize;
+		}
 	}
 
 }

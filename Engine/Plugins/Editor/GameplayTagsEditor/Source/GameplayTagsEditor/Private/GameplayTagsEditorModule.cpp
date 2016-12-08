@@ -252,8 +252,6 @@ public:
 				ShowNotification(FText::Format(LOCTEXT("FailedToMakeWritable", "Could not make {0} writable."), FText::FromString(ConfigPath)), 3.0f);
 			}
 		}
-
-		ShowNotification(LOCTEXT("MigrationText", "Migrated Tag Settings, check DefaultEngine.ini before checking in!"), 10.0f);
 	}
 
 	virtual bool AddNewGameplayTagToINI(FString NewTag, FString Comment, FName TagSourceName) override
@@ -308,6 +306,8 @@ public:
 
 			TagList->GameplayTagList.AddUnique(FGameplayTagTableRow(FName(*NewTag), Comment));
 
+			TagList->SortTags();
+
 			GameplayTagsUpdateSourceControl(TagList->ConfigFileName);
 
 			// Check source control before and after writing, to make sure it gets created or checked out
@@ -356,7 +356,7 @@ public:
 					Settings->UpdateDefaultConfigFile();
 					GConfig->LoadFile(Settings->GetDefaultConfigFilename());
 
-					ShowNotification(FText::Format(LOCTEXT("RemoveTagRedirect", "Deleted tag redirect {0}"), FText::FromString(TagToDelete)), 3.0f);
+					ShowNotification(FText::Format(LOCTEXT("RemoveTagRedirect", "Deleted tag redirect {0}"), FText::FromString(TagToDelete)), 5.0f);
 
 					return true;
 				}
@@ -370,25 +370,60 @@ public:
 		const FGameplayTagSource* TagSource = Manager.FindTagSource(TagSourceName);
 
 		// Verify tag source
-		if (!TagSource || !TagSource->SourceTagList)
+		if (!TagSource)
+		{
+			ShowNotification(FText::Format(LOCTEXT("RemoveTagFailureNoSource", "Cannot delete tag {0} as it is implicit, remove children manually"), FText::FromString(TagToDelete)), 10.0f);
+
+			return false;
+		}
+		else if (!TagSource->SourceTagList)
 		{
 			ShowNotification(FText::Format(LOCTEXT("RemoveTagFailureBadSource", "Cannot delete tag {0} from source {1}, remove manually"), FText::FromString(TagToDelete), FText::FromName(TagSourceName)), 10.0f);
 
 			return false;
 		}
 
-		// Verify references
-		FAssetIdentifier TagId = FAssetIdentifier(FGameplayTag::StaticStruct(), TagName);
-		TArray<FAssetIdentifier> Referencers;
+		FGameplayTag ActualTag = Manager.RequestGameplayTag(TagName);
+		FGameplayTagContainer ChildTags = Manager.RequestGameplayTagChildrenInDictionary(ActualTag);
 
-		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		AssetRegistryModule.Get().GetReferencers(TagId, Referencers, EAssetRegistryDependencyType::SearchableName);
+		TArray<FName> TagsThatWillBeDeleted;
 
-		if (Referencers.Num() > 0)
+		TagsThatWillBeDeleted.Add(TagName);
+
+		FGameplayTag ParentTag = ActualTag.RequestDirectParent();
+		while (ParentTag.IsValid())
 		{
-			ShowNotification(FText::Format(LOCTEXT("RemoveTagFailureBadSource", "Cannot delete tag {0}, still referenced by {1} and possibly others"), FText::FromString(TagToDelete), FText::FromString(Referencers[0].ToString())), 10.0f);
+			// See if there are more children than the one we are about to delete
+			FGameplayTagContainer ParentChildTags = Manager.RequestGameplayTagChildrenInDictionary(ParentTag);
 
-			return false;
+			ensure(ParentChildTags.HasTagExact(ActualTag));
+			if (ParentChildTags.Num() == 1)
+			{
+				// This is the only tag, add to deleted list
+				TagsThatWillBeDeleted.Add(ParentTag.GetTagName());
+				ParentTag = ParentTag.RequestDirectParent();
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		for (FName TagNameToDelete : TagsThatWillBeDeleted)
+		{
+			// Verify references
+			FAssetIdentifier TagId = FAssetIdentifier(FGameplayTag::StaticStruct(), TagName);
+			TArray<FAssetIdentifier> Referencers;
+
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+			AssetRegistryModule.Get().GetReferencers(TagId, Referencers, EAssetRegistryDependencyType::SearchableName);
+
+			if (Referencers.Num() > 0)
+			{
+				ShowNotification(FText::Format(LOCTEXT("RemoveTagFailureBadSource", "Cannot delete tag {0}, still referenced by {1} and possibly others"), FText::FromName(TagNameToDelete), FText::FromString(Referencers[0].ToString())), 10.0f);
+
+				return false;
+			}
 		}
 
 		// Passed, delete and save
@@ -404,7 +439,16 @@ public:
 				GameplayTagsUpdateSourceControl(TagList->ConfigFileName);
 				GConfig->LoadFile(TagList->ConfigFileName);
 
-				ShowNotification(FText::Format(LOCTEXT("RemoveTag", "Deleted tag {0}"), FText::FromString(TagToDelete)), 3.0f);
+				// See if we still live due to child tags
+
+				if (ChildTags.Num() > 0)
+				{
+					ShowNotification(FText::Format(LOCTEXT("RemoveTagChildrenExist", "Deleted explicit tag {0}, still exists implicitly due to children"), FText::FromString(TagToDelete)), 5.0f);
+				}
+				else
+				{
+					ShowNotification(FText::Format(LOCTEXT("RemoveTag", "Deleted tag {0}"), FText::FromString(TagToDelete)), 5.0f);
+				}
 
 				// This invalidates all local variables, need to return right away
 				Manager.EditorRefreshGameplayTagTree();
@@ -475,7 +519,7 @@ public:
 		Settings->UpdateDefaultConfigFile();
 		GConfig->LoadFile(Settings->GetDefaultConfigFilename());
 
-		ShowNotification(FText::Format(LOCTEXT("AddTagRedirect", "Renamed tag {0} to {1}"), FText::FromString(TagToRename), FText::FromString(TagToRename)), 3.0f);
+		ShowNotification(FText::Format(LOCTEXT("AddTagRedirect", "Renamed tag {0} to {1}"), FText::FromString(TagToRename), FText::FromString(TagToRenameTo)), 3.0f);
 
 		Manager.EditorRefreshGameplayTagTree();
 

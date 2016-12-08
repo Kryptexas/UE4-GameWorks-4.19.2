@@ -53,9 +53,11 @@ Now that we can detect the projectile's collision interactions, we can determine
 			// Sets default values for this actor's properties
 			AFPSProjectile();
 		
+		protected:
 			// Called when the game starts or when spawned
 			virtual void BeginPlay() override;
 			
+		public:
 			// Called every frame
 			virtual void Tick( float DeltaSeconds ) override;
 		

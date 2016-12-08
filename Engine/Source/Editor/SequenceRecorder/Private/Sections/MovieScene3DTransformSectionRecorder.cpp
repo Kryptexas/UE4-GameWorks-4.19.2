@@ -262,15 +262,15 @@ void FMovieScene3DTransformSectionRecorder::FinalizeSection()
 	if(!bWasAttached)
 	{
 		// now we have reduced our keys, if we dont have any, remove the section as it is redundant
-		if( MovieSceneSection->GetTranslationCurve(EAxis::X).Keys.Num() == 0 && 
-			MovieSceneSection->GetTranslationCurve(EAxis::Y).Keys.Num() == 0 && 
-			MovieSceneSection->GetTranslationCurve(EAxis::Z).Keys.Num() == 0 && 
-			MovieSceneSection->GetRotationCurve(EAxis::X).Keys.Num() == 0 && 
-			MovieSceneSection->GetRotationCurve(EAxis::Y).Keys.Num() == 0 && 
-			MovieSceneSection->GetRotationCurve(EAxis::Z).Keys.Num() == 0 && 
-			MovieSceneSection->GetScaleCurve(EAxis::X).Keys.Num() == 0 && 
-			MovieSceneSection->GetScaleCurve(EAxis::Y).Keys.Num() == 0 && 
-			MovieSceneSection->GetScaleCurve(EAxis::Z).Keys.Num() == 0)
+		if( MovieSceneSection->GetTranslationCurve(EAxis::X).GetNumKeys() == 0 && 
+			MovieSceneSection->GetTranslationCurve(EAxis::Y).GetNumKeys() == 0 &&
+			MovieSceneSection->GetTranslationCurve(EAxis::Z).GetNumKeys() == 0 &&
+			MovieSceneSection->GetRotationCurve(EAxis::X).GetNumKeys() == 0 &&
+			MovieSceneSection->GetRotationCurve(EAxis::Y).GetNumKeys() == 0 &&
+			MovieSceneSection->GetRotationCurve(EAxis::Z).GetNumKeys() == 0 &&
+			MovieSceneSection->GetScaleCurve(EAxis::X).GetNumKeys() == 0 &&
+			MovieSceneSection->GetScaleCurve(EAxis::Y).GetNumKeys() == 0 &&
+			MovieSceneSection->GetScaleCurve(EAxis::Z).GetNumKeys() == 0)
 		{
 			if(DefaultTransform.Equals(FTransform::Identity))
 			{

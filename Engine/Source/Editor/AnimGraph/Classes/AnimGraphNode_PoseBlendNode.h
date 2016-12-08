@@ -31,6 +31,7 @@ class UAnimGraphNode_PoseBlendNode : public UAnimGraphNode_PoseHandler
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap) override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
+	virtual EAnimAssetHandlerType SupportsAssetClass(const UClass* AssetClass) const override;
 	// End of UAnimGraphNode_Base
 
 	// UK2Node interface

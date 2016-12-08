@@ -66,4 +66,6 @@ namespace NavigationHelper
 	ENGINE_API void DefaultNavLinkProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationLink>& IN NavLinks);
 
 	ENGINE_API void DefaultNavLinkSegmentProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationSegmentLink>& IN NavLinks);
+
+	ENGINE_API bool IsBodyNavigationRelevant(const UBodySetup& IN BodySetup);
 }

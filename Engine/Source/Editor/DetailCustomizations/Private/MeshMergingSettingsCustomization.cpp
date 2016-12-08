@@ -45,9 +45,9 @@ void FMeshMergingSettingsObjectCustomization::CustomizeDetails(IDetailLayoutBuil
 		{
 			EnumProperty = Property;
 						
-			FText RestrictReason = FText::FromString("Unable to support this option in Merge Actor");
-			TSharedPtr<FPropertyRestriction> EnumRestriction = MakeShareable(new FPropertyRestriction(RestrictReason));
-			EnumRestriction->AddValue(TEXT("Calculate correct LOD level"));
+			TSharedPtr<FPropertyRestriction> EnumRestriction = MakeShareable(new FPropertyRestriction(LOCTEXT("NoSupport","Unable to support this option in Merge Actor")));
+			const UEnum* const MeshLODSelectionTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMeshLODSelectionType"));		
+			EnumRestriction->AddDisabledValue(MeshLODSelectionTypeEnum->GetEnumNameStringByValue((uint8)EMeshLODSelectionType::CalculateLOD));
 			EnumProperty->AddRestriction(EnumRestriction.ToSharedRef());
 		}
 	}

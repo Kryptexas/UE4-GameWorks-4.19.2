@@ -23,13 +23,13 @@
 #define LOCTEXT_NAMESPACE "BlendSpaceEditorBase"
 
 SBlendSpaceEditorBase::~SBlendSpaceEditorBase()
-			{
+{
 	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
-	}
+}
 
 void SBlendSpaceEditorBase::Construct(const FArguments& InArgs, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo)
-	{
-		BlendSpace = InArgs._BlendSpace;
+{
+	BlendSpace = InArgs._BlendSpace;
 	PreviewScenePtr = InPreviewScene;
 	OnPostUndo.Add(FSimpleDelegate::CreateSP( this, &SBlendSpaceEditorBase::PostUndo ) );
 
@@ -38,29 +38,29 @@ void SBlendSpaceEditorBase::Construct(const FArguments& InArgs, const TSharedRef
 	SAnimEditorBase::Construct(SAnimEditorBase::FArguments().DisplayAnimInfoBar(false), InPreviewScene);
 
 	NonScrollEditorPanels->AddSlot()
-			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
 		.FillHeight(1.0f)
-				[
+		[
 			SNew(SOverlay)
 			+ SOverlay::Slot()
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
 				.FillWidth(1)
 				.Padding(4.0f)
-							[
-								SNew(SHorizontalBox)
-								+SHorizontalBox::Slot()
-								.FillWidth(1)
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.FillWidth(1)
 					.Padding(2) 
-		[
-			SNew(SVerticalBox)
+					[
+						SNew(SVerticalBox)
 						// Grid area
-			+SVerticalBox::Slot()
+						+SVerticalBox::Slot()
 						.FillHeight(1)
-			[
+						[
 							SAssignNew(NewBlendSpaceGridWidget, SBlendSpaceGridWidget)
 							.Cursor(EMouseCursor::Crosshairs)
 							.BlendSpaceBase(BlendSpace)
@@ -68,12 +68,12 @@ void SBlendSpaceEditorBase::Construct(const FArguments& InArgs, const TSharedRef
 							.OnSampleMoved(this, &SBlendSpaceEditorBase::OnSampleMoved)
 							.OnSampleRemoved(this, &SBlendSpaceEditorBase::OnSampleRemoved)
 							.OnSampleAdded(this, &SBlendSpaceEditorBase::OnSampleAdded)
-			]
+						]
+					]
 				]
 			]
 		]
-				]
-			];
+	];
 
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SBlendSpaceEditorBase::OnPropertyChanged);
 	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
@@ -89,12 +89,12 @@ void SBlendSpaceEditorBase::OnSampleMoved(const int32 SampleIndex, const FVector
 
 		bMoveSuccesful = BlendSpace->EditSampleValue(SampleIndex, NewValue);
 		if (bMoveSuccesful)
-{
+		{
 			BlendSpace->ValidateSampleData();
 			ResampleData();
-			}
 		}
 	}
+}
 
 void SBlendSpaceEditorBase::OnSampleRemoved(const int32 SampleIndex)
 {
@@ -103,9 +103,9 @@ void SBlendSpaceEditorBase::OnSampleRemoved(const int32 SampleIndex)
 
 	const bool bRemoveSuccesful = BlendSpace->DeleteSample(SampleIndex);
 	if (bRemoveSuccesful)
-			{
+	{
 		ResampleData();
-	BlendSpace->ValidateSampleData();
+		BlendSpace->ValidateSampleData();
 	}
 }
 
@@ -116,10 +116,10 @@ void SBlendSpaceEditorBase::OnSampleAdded(UAnimSequence* Animation, const FVecto
 
 	const bool bAddSuccesful = BlendSpace->AddSample(Animation, Value);	
 	if (bAddSuccesful)
-		{
-	ResampleData();
+	{
+		ResampleData();
 		BlendSpace->ValidateSampleData();
-}
+	}
 }
 
 void SBlendSpaceEditorBase::PostUndo()
@@ -130,6 +130,9 @@ void SBlendSpaceEditorBase::PostUndo()
 
 	// Invalidate widget data
 	NewBlendSpaceGridWidget->InvalidateCachedData();
+
+	// Invalidate sample indices used for UI info
+	NewBlendSpaceGridWidget->InvalidateState();
 
 	// Set flag which will update the preview value in the next tick (this due the recreation of data after Undo)
 	bShouldSetPreviewValue = true;
@@ -178,7 +181,7 @@ void SBlendSpaceEditorBase::OnPropertyChanged(UObject* ObjectBeingModified, FPro
 void SBlendSpaceEditorBase::NotifyPreChange(UProperty* PropertyAboutToChange)
 {
 	if (BlendSpace)
-{
+	{
 		BlendSpace->Modify();
 	}	
 }
@@ -187,6 +190,8 @@ void SBlendSpaceEditorBase::NotifyPostChange(const FPropertyChangedEvent& Proper
 {
 	if (BlendSpace)
 	{
+		BlendSpace->ValidateSampleData();
+		ResampleData();
 		BlendSpace->MarkPackageDirty();
 	}
 }

@@ -15,6 +15,7 @@
 #include "DynamicMeshBuilder.h"
 #include "StaticMeshResources.h"
 #include "Engine/LightMapTexture2D.h"
+#include "SkeletalMeshTypes.h"
 
 /** Emits draw events for a given FMeshBatch and the FPrimitiveSceneProxy corresponding to that mesh element. */
 #if WANTS_DRAW_MESH_EVENTS
@@ -1334,7 +1335,8 @@ bool IsRichView(const FSceneViewFamily& ViewFamily)
 		ViewFamily.EngineShowFlags.Wireframe ||
 		ViewFamily.EngineShowFlags.LevelColoration ||
 		ViewFamily.EngineShowFlags.LODColoration ||
-		ViewFamily.EngineShowFlags.HLODColoration)
+		ViewFamily.EngineShowFlags.HLODColoration ||
+		ViewFamily.EngineShowFlags.MassProperties )
 	{
 		return true;
 	}

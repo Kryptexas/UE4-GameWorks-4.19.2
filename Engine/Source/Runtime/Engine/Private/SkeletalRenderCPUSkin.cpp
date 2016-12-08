@@ -30,7 +30,7 @@
 
 struct FMorphTargetDelta;
 
-template<typename BaseVertexType, typename VertexType>
+template<typename VertexType>
 static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FStaticLODModel& LOD, TArray<FActiveMorphTarget>& ActiveMorphTargets, TArray<float>& MorphTargetWeights, const TMap<int32, FClothSimulData>& ClothSimulUpdateData, float ClothBlendWeight, const FMatrix& WorldToLocal);
 
 #define INFLUENCE_0		0
@@ -70,17 +70,9 @@ void FFinalSkinVertexBuffer::InitDynamicRHI()
 	// all the vertex data for a single LOD of the skel mesh
 	FStaticLODModel& LodModel = SkeletalMeshResource->LODModels[LODIdx];
 
-	if (LodModel.DoesVertexBufferHaveExtraBoneInfluences())
-	{
-		InitVertexData<true>(LodModel);
-	}
-	else
-	{
-		InitVertexData<false>(LodModel);
-	}
+	InitVertexData(LodModel);
 }
 
-template <bool bExtraBoneInfluencesT>
 void FFinalSkinVertexBuffer::InitVertexData(FStaticLODModel& LodModel)
 {
 	// this used to be check, but during clothing importing (when replacing Apex asset)
@@ -100,14 +92,14 @@ void FFinalSkinVertexBuffer::InitVertexData(FStaticLODModel& LodModel)
 		FFinalSkinVertex* DestVertex = (FFinalSkinVertex*)Buffer;
 		for (uint32 VertexIdx = 0; VertexIdx < LodModel.NumVertices; VertexIdx++)
 		{
-			const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcVertex = LodModel.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(VertexIdx);
+			const TGPUSkinVertexBase* SrcVertex = LodModel.VertexBufferGPUSkin.GetVertexPtr(VertexIdx);
 
-			DestVertex->Position = LodModel.VertexBufferGPUSkin.GetVertexPositionFast<bExtraBoneInfluencesT>(VertexIdx);
+			DestVertex->Position = LodModel.VertexBufferGPUSkin.GetVertexPositionFast(VertexIdx);
 			DestVertex->TangentX = SrcVertex->TangentX;
 			// w component of TangentZ should already have sign of the tangent basis determinant
 			DestVertex->TangentZ = SrcVertex->TangentZ;
 
-			FVector2D UVs = LodModel.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluencesT>(VertexIdx, 0);
+			FVector2D UVs = LodModel.VertexBufferGPUSkin.GetVertexUVFast(VertexIdx, 0);
 			DestVertex->U = UVs.X;
 			DestVertex->V = UVs.Y;
 
@@ -142,7 +134,7 @@ FSkeletalMeshObjectCPUSkin::FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* In
 		new(LODs) FSkeletalMeshObjectLOD(SkeletalMeshResource,LODIndex);
 	}
 
-	InitResources();
+	InitResources(InMeshComponent);
 }
 
 
@@ -152,7 +144,7 @@ FSkeletalMeshObjectCPUSkin::~FSkeletalMeshObjectCPUSkin()
 }
 
 
-void FSkeletalMeshObjectCPUSkin::InitResources()
+void FSkeletalMeshObjectCPUSkin::InitResources(USkinnedMeshComponent* InMeshComponent)
 {
 	for( int32 LODIndex=0;LODIndex < LODs.Num();LODIndex++ )
 	{
@@ -295,26 +287,12 @@ void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) cons
 			if (LOD.VertexBufferGPUSkin.GetUseFullPrecisionUVs())
 			{
 				// do actual skinning
-				if (LOD.DoesVertexBufferHaveExtraBoneInfluences())
-				{
-					SkinVertices< TGPUSkinVertexBase<true>, TGPUSkinVertexFloat32Uvs<1, true> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights, DynamicData->ClothSimulUpdateData, DynamicData->ClothBlendWeight, DynamicData->WorldToLocal);
-				}
-				else
-				{
-					SkinVertices< TGPUSkinVertexBase<false>, TGPUSkinVertexFloat32Uvs<1, false> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights, DynamicData->ClothSimulUpdateData, DynamicData->ClothBlendWeight, DynamicData->WorldToLocal);
-				}
+				SkinVertices< TGPUSkinVertexFloat32Uvs<1> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights, DynamicData->ClothSimulUpdateData, DynamicData->ClothBlendWeight, DynamicData->WorldToLocal);
 			}
 			else
 			{
 				// do actual skinning
-				if (LOD.DoesVertexBufferHaveExtraBoneInfluences())
-				{
-					SkinVertices< TGPUSkinVertexBase<true>, TGPUSkinVertexFloat16Uvs<1, true> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights, DynamicData->ClothSimulUpdateData, DynamicData->ClothBlendWeight, DynamicData->WorldToLocal);
-				}
-				else
-				{
-					SkinVertices< TGPUSkinVertexBase<false>, TGPUSkinVertexFloat16Uvs<1, false> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights, DynamicData->ClothSimulUpdateData, DynamicData->ClothBlendWeight, DynamicData->WorldToLocal);
-				}
+				SkinVertices< TGPUSkinVertexFloat16Uvs<1> >( DestVertex, ReferenceToLocal, DynamicData->LODIndex, LOD, DynamicData->ActiveMorphTargets, DynamicData->MorphTargetWeights, DynamicData->ClothSimulUpdateData, DynamicData->ClothBlendWeight, DynamicData->WorldToLocal);
 			}
 
 			if (bRenderOverlayMaterial)
@@ -655,7 +633,7 @@ const VectorRegister		VECTOR_0001				= DECLARE_VECTOR_REGISTER(0.f, 0.f, 0.f, 1.
 
 #define FIXED_VERTEX_INDEX 0xFFFF
 
-template<bool bExtraBoneInfluences, int32 MaxSectionBoneInfluences, typename BaseVertexType, typename VertexType>
+template<bool bExtraBoneInfluences, int32 MaxSectionBoneInfluences, typename VertexType>
 static void SkinVertexSection( FFinalSkinVertex*& DestVertex, TArray<FMorphTargetInfo>& MorphEvalInfos, const TArray<float>& MorphWeights, const FSkelMeshSection& Section, const FStaticLODModel &LOD, int32 VertexBufferBaseIndex, uint32 NumValidMorphs, int32 &CurBaseVertIdx, int32 LODIndex, int32 RigidInfluenceIndex, const FMatrix* RESTRICT ReferenceToLocal, const FClothSimulData* ClothSimData, float ClothBlendWeight, const FMatrix& WorldToLocal)
 {
 	// VertexCopy for morph. Need to allocate right struct
@@ -667,9 +645,6 @@ static void SkinVertexSection( FFinalSkinVertex*& DestVertex, TArray<FMorphTarge
 	FPlatformMisc::Prefetch( BoneMap );
 	FPlatformMisc::Prefetch( BoneMap, PLATFORM_CACHE_LINE_SIZE );
 
-	VertexType* SrcRigidVertex = NULL;
-	
-
 	VertexType* SrcSoftVertex = NULL;
 	const FVector MeshExtension = LOD.VertexBufferGPUSkin.GetMeshExtension();
 	const FVector MeshOrigin = LOD.VertexBufferGPUSkin.GetMeshOrigin();
@@ -680,7 +655,7 @@ static void SkinVertexSection( FFinalSkinVertex*& DestVertex, TArray<FMorphTarge
 		INC_DWORD_STAT_BY(STAT_CPUSkinVertices,NumSoftVertices);
 
 		// Prefetch first vertex
-		FPlatformMisc::Prefetch( LOD.VertexBufferGPUSkin.GetVertexPtr<(bExtraBoneInfluences)>(Section.GetVertexBufferIndex()) );
+		FPlatformMisc::Prefetch( LOD.VertexBufferGPUSkin.GetVertexPtr(Section.GetVertexBufferIndex()) );
 		if (bLODUsesAPEXCloth)
 		{
 			FPlatformMisc::Prefetch(&LOD.APEXClothVertexBuffer.MappingData(Section.GetVertexBufferIndex()));
@@ -689,9 +664,12 @@ static void SkinVertexSection( FFinalSkinVertex*& DestVertex, TArray<FMorphTarge
 		for(int32 VertexIndex = VertexBufferBaseIndex;VertexIndex < NumSoftVertices;VertexIndex++,DestVertex++)
 		{
 			const int32 VertexBufferIndex = Section.GetVertexBufferIndex() + VertexIndex;
-			SrcSoftVertex = (VertexType*)LOD.VertexBufferGPUSkin.GetVertexPtr<(bExtraBoneInfluences)>(VertexBufferIndex);
+			SrcSoftVertex = (VertexType*)LOD.VertexBufferGPUSkin.GetVertexPtr(VertexBufferIndex);
 			FPlatformMisc::Prefetch( SrcSoftVertex, PLATFORM_CACHE_LINE_SIZE );	// Prefetch next vertices
 			VertexType* MorphedVertex = SrcSoftVertex;
+
+			const TSkinWeightInfo<bExtraBoneInfluences>* SrcWeights = LOD.SkinWeightVertexBuffer.GetSkinWeightPtr<bExtraBoneInfluences>(VertexBufferIndex);
+
 			if( NumValidMorphs ) 
 			{
 				MorphedVertex = &VertexCopy;
@@ -705,12 +683,12 @@ static void SkinVertexSection( FFinalSkinVertex*& DestVertex, TArray<FMorphTarge
 				FPlatformMisc::Prefetch(APEXVertData, PLATFORM_CACHE_LINE_SIZE);	// Prefetch next cloth vertex
 			}
 
-			const uint8* RESTRICT BoneIndices = MorphedVertex->InfluenceBones;
-			const uint8* RESTRICT BoneWeights = MorphedVertex->InfluenceWeights;
+			const uint8* RESTRICT BoneIndices = SrcWeights->InfluenceBones;
+			const uint8* RESTRICT BoneWeights = SrcWeights->InfluenceWeights;
 
 			static VectorRegister	SrcNormals[3];
 			VectorRegister			DstNormals[3];
-			const FVector VertexPosition = LOD.VertexBufferGPUSkin.GetVertexPositionFast((const BaseVertexType*)MorphedVertex);
+			const FVector VertexPosition = LOD.VertexBufferGPUSkin.GetVertexPositionFast((const TGPUSkinVertexBase*)MorphedVertex);
 			SrcNormals[0] = VectorLoadFloat3_W1( &VertexPosition );
 			SrcNormals[1] = Unpack3( &MorphedVertex->TangentX.Vector.Packed );
 			SrcNormals[2] = Unpack4( &MorphedVertex->TangentZ.Vector.Packed );
@@ -897,7 +875,7 @@ static void SkinVertexSection( FFinalSkinVertex*& DestVertex, TArray<FMorphTarge
 			}
 
 			// Copy UVs.
-			FVector2D UVs = LOD.VertexBufferGPUSkin.GetVertexUVFast<bExtraBoneInfluences>(Section.GetVertexBufferIndex() + VertexIndex, 0);
+			FVector2D UVs = LOD.VertexBufferGPUSkin.GetVertexUVFast(Section.GetVertexBufferIndex() + VertexIndex, 0);
 			DestVertex->U = UVs.X;
 			DestVertex->V = UVs.Y;
 
@@ -906,24 +884,24 @@ static void SkinVertexSection( FFinalSkinVertex*& DestVertex, TArray<FMorphTarge
 	}
 }
 
-template< bool bExtraBoneInfluences, typename BaseVertexType, typename VertexType>
+template< bool bExtraBoneInfluences, typename VertexType>
 static void SkinVertexSection( FFinalSkinVertex*& DestVertex, TArray<FMorphTargetInfo>& MorphEvalInfos, const TArray<float>& MorphWeights, const FSkelMeshSection& Section, const FStaticLODModel &LOD, int32 VertexBufferBaseIndex, uint32 NumValidMorphs, int32 &CurBaseVertIdx, int32 LODIndex, int32 RigidInfluenceIndex, const FMatrix* RESTRICT ReferenceToLocal, const FClothSimulData* ClothSimData, float ClothBlendWeight, const FMatrix& WorldToLocal)
 {
 	switch (Section.MaxBoneInfluences)
 	{
-		case 1: SkinVertexSection<bExtraBoneInfluences, 1, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
-		case 2: SkinVertexSection<bExtraBoneInfluences, 2, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
-		case 3: SkinVertexSection<bExtraBoneInfluences, 3, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
-		case 4: SkinVertexSection<bExtraBoneInfluences, 4, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
-		case 5: SkinVertexSection<bExtraBoneInfluences, 5, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
-		case 6: SkinVertexSection<bExtraBoneInfluences, 6, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
-		case 7: SkinVertexSection<bExtraBoneInfluences, 7, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
-		case 8: SkinVertexSection<bExtraBoneInfluences, 8, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
+		case 1: SkinVertexSection<bExtraBoneInfluences, 1, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
+		case 2: SkinVertexSection<bExtraBoneInfluences, 2, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
+		case 3: SkinVertexSection<bExtraBoneInfluences, 3, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
+		case 4: SkinVertexSection<bExtraBoneInfluences, 4, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
+		case 5: SkinVertexSection<bExtraBoneInfluences, 5, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
+		case 6: SkinVertexSection<bExtraBoneInfluences, 6, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
+		case 7: SkinVertexSection<bExtraBoneInfluences, 7, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
+		case 8: SkinVertexSection<bExtraBoneInfluences, 8, VertexType>(DestVertex, MorphEvalInfos, MorphWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal); break;
 		default: check(0);
 	}
 }
 
-template<typename BaseVertexType, typename VertexType>
+template<typename VertexType>
 static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FStaticLODModel& LOD, TArray<FActiveMorphTarget>& ActiveMorphTargets, TArray<float>& MorphTargetWeights, const TMap<int32, FClothSimulData>& ClothSimulUpdateData, float ClothBlendWeight, const FMatrix& WorldToLocal)
 {
 	uint32 StatusRegister = VectorGetControlRegister();
@@ -955,11 +933,11 @@ static void SkinVertices(FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal
 
 		if (LOD.DoSectionsNeedExtraBoneInfluences())
 		{
-			SkinVertexSection<true, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphTargetWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal);
+			SkinVertexSection<true, VertexType>(DestVertex, MorphEvalInfos, MorphTargetWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal);
 		}
 		else
 		{
-			SkinVertexSection<false, BaseVertexType, VertexType>(DestVertex, MorphEvalInfos, MorphTargetWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal);
+			SkinVertexSection<false, VertexType>(DestVertex, MorphEvalInfos, MorphTargetWeights, Section, LOD, VertexBufferBaseIndex, NumValidMorphs, CurBaseVertIdx, LODIndex, RigidInfluenceIndex, ReferenceToLocal, ClothSimData, ClothBlendWeight, WorldToLocal);
 		}
 	}
 
@@ -989,7 +967,7 @@ FVector4 GetTangetToColor(FPackedNormal Tangent)
  * @param BonesOfInterest - array of bones we want to display
  */
 template <bool bExtraBoneInfluencesT>
-static FORCEINLINE void CalculateSectionBoneWeights(FFinalSkinVertex*& DestVertex, FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, FSkelMeshSection& Section, const TArray<int32>& BonesOfInterest)
+static FORCEINLINE void CalculateSectionBoneWeights(FFinalSkinVertex*& DestVertex, FSkinWeightVertexBuffer& SkinWeightVertexBuffer, FSkelMeshSection& Section, const TArray<int32>& BonesOfInterest)
 {
 	const float INV255 = 1.f/255.f;
 
@@ -1003,16 +981,16 @@ static FORCEINLINE void CalculateSectionBoneWeights(FFinalSkinVertex*& DestVerte
 	for(int32 VertexIndex = VertexBufferBaseIndex;VertexIndex < Section.GetNumVertices();VertexIndex++,DestVertex++)
 	{
 		const int32 VertexBufferIndex = Section.GetVertexBufferIndex() + VertexIndex;
-		auto* SrcSoftVertex = VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(VertexBufferIndex);
+		auto* SrcWeight = SkinWeightVertexBuffer.GetSkinWeightPtr<bExtraBoneInfluencesT>(VertexBufferIndex);
 
 		//Zero out the UV coords
 		DestVertex->U = 0.0f;
 		DestVertex->V = 0.0f;
 
-		const uint8* RESTRICT BoneIndices = SrcSoftVertex->InfluenceBones;
-		const uint8* RESTRICT BoneWeights = SrcSoftVertex->InfluenceWeights;
+		const uint8* RESTRICT BoneIndices = SrcWeight->InfluenceBones;
+		const uint8* RESTRICT BoneWeights = SrcWeight->InfluenceWeights;
 
-		for (int32 i = 0; i < TGPUSkinVertexBase<bExtraBoneInfluencesT>::NumInfluences; i++)
+		for (int32 i = 0; i < TSkinWeightInfo<bExtraBoneInfluencesT>::NumInfluences; i++)
 		{
 			if (BonesOfInterest.Contains(BoneMap[BoneIndices[i]]))
 			{
@@ -1041,13 +1019,13 @@ static void CalculateBoneWeights(FFinalSkinVertex* DestVertex, FStaticLODModel& 
 	{
 		FSkelMeshSection& Section = LOD.Sections[SectionIndex];
 
-		if (LOD.VertexBufferGPUSkin.HasExtraBoneInfluences())
+		if (LOD.SkinWeightVertexBuffer.HasExtraBoneInfluences())
 		{
-			CalculateSectionBoneWeights<true>(DestVertex, LOD.VertexBufferGPUSkin, Section, InBonesOfInterest);
+			CalculateSectionBoneWeights<true>(DestVertex, LOD.SkinWeightVertexBuffer, Section, InBonesOfInterest);
 		}
 		else
 		{
-			CalculateSectionBoneWeights<false>(DestVertex, LOD.VertexBufferGPUSkin, Section, InBonesOfInterest);
+			CalculateSectionBoneWeights<false>(DestVertex, LOD.SkinWeightVertexBuffer, Section, InBonesOfInterest);
 		}
 	}
 }

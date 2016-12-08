@@ -11,6 +11,7 @@
 #include "Animation/AnimSequence.h"
 
 #include "FbxExporter.h"
+#include "SkeletalMeshTypes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxSkeletalMeshExport, Log, All);
 

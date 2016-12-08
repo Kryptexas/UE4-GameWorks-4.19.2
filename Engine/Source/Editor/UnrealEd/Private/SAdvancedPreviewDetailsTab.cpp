@@ -212,6 +212,8 @@ FReply SAdvancedPreviewDetailsTab::RemoveProfileButtonClick()
 
 void SAdvancedPreviewDetailsTab::OnAssetViewerSettingsRefresh(const FName& InPropertyName)
 {
+	const bool bNameNone = InPropertyName == NAME_None;
+	
 	const bool bUpdateEnvironment = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, EnvironmentCubeMap)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, LightingRigRotation) || (InPropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, Profiles)));
 	const bool bUpdateSkyLight = bUpdateEnvironment || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, SkyLightIntensity) || (InPropertyName == GET_MEMBER_NAME_CHECKED(UAssetViewerSettings, Profiles)));
 	const bool bUpdateDirectionalLight = (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, DirectionalLightIntensity)) || (InPropertyName == GET_MEMBER_NAME_CHECKED(FPreviewSceneProfile, DirectionalLightColor));
@@ -222,7 +224,7 @@ void SAdvancedPreviewDetailsTab::OnAssetViewerSettingsRefresh(const FName& InPro
 		UpdateProfileNames();
 	}
 
-	PreviewScenePtr.Pin()->UpdateScene(DefaultSettings->Profiles[ProfileIndex], bUpdateSkyLight, bUpdateEnvironment, bUpdatePostProcessing, bUpdateDirectionalLight);
+	PreviewScenePtr.Pin()->UpdateScene(DefaultSettings->Profiles[ProfileIndex], bUpdateSkyLight || bNameNone, bUpdateEnvironment || bNameNone, bUpdatePostProcessing || bNameNone, bUpdateDirectionalLight || bNameNone);
 }
 
 void SAdvancedPreviewDetailsTab::CreateSettingsView()

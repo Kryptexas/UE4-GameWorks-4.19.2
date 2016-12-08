@@ -361,7 +361,7 @@ void SMorphTargetViewer::Construct(const FArguments& InArgs, const TSharedRef<IP
 	CreateMorphTargetList();
 }
 
-void SMorphTargetViewer::OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh)
+void SMorphTargetViewer::OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh)
 {
 	SkeletalMesh = NewPreviewMesh;
 	CreateMorphTargetList( NameFilterBox->GetText().ToString() );

@@ -50,7 +50,13 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 	HighlightedSampleIndex = SelectedSampleIndex = DraggedSampleIndex = INDEX_NONE;
 	DragState = EDragState::None;
 	// Initialize flags 
-	bPreviewPositionSet = false;
+	bPreviewPositionSet = true;
+	bHighlightPreviewPin = false;
+	// Initialize preview value to center or the grid
+	LastPreviewingSampleValue.X = (BlendSpace->GetBlendParameter(0).GetRange() * .5f) + BlendSpace->GetBlendParameter(0).Min;
+	LastPreviewingSampleValue.Y = GridType == EGridType::TwoAxis ? (BlendSpace->GetBlendParameter(1).GetRange() * .5f) + BlendSpace->GetBlendParameter(1).Min : 0.0f;
+	LastPreviewingSampleValue.Z = 0.0f;
+
 	bShowTriangulation = false;
 	bMouseIsOverGeometry = false;
 	bRefreshCachedData = true;
@@ -79,8 +85,8 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 
 	// Initialize UI layout values
 	KeySize = FVector2D(12.0f, 12.0f);
-	DragThresshold = 9.0f;
-	ClickThresshold = 12.0f;
+	DragThreshold = 9.0f;
+	ClickAndHighlightThreshold = 12.0f;
 	TextMargin = 16.0f;
 	GridMargin = FMargin(MaxVerticalAxisTextWidth + (TextMargin * 2.0f), TextMargin, (HorizontalAxisMaxTextWidth * 0.5f) + TextMargin, MaxHorizontalAxisTextHeight + (TextMargin * 2.0f));
 
@@ -191,6 +197,7 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 		]
 
 		+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
 			SNew(STextBlock)
 			.Text(this, &SBlendSpaceGridWidget::GetToolTipSampleValue)
@@ -219,7 +226,7 @@ TSharedPtr<SWidget> SBlendSpaceGridWidget::CreateGridEntryBox(const int32 BoxInd
 		[
 			SNew(STextBlock)
 			.Visibility(bShowLabel ? EVisibility::Visible : EVisibility::Collapsed)
-			.Text_Lambda([&]() { return (BoxIndex == 0) ? ParameterXName : ParameterYName; })
+			.Text_Lambda([=]() { return (BoxIndex == 0) ? ParameterXName : ParameterYName; })
 		];
 }
 
@@ -544,7 +551,7 @@ FReply SBlendSpaceGridWidget::OnMouseMove(const FGeometry& MyGeometry, const FPo
 		else if (DragState == EDragState::PreDrag)
 		{
 			// Actually start dragging
-			if ((LocalMousePosition - MouseDownPosition).SizeSquared() > DragThresshold)
+			if ((LocalMousePosition - MouseDownPosition).SizeSquared() > DragThreshold)
 			{
 				DragState = EDragState::DragSample;
 				HighlightedSampleIndex = INDEX_NONE;
@@ -569,10 +576,7 @@ FReply SBlendSpaceGridWidget::ProcessClick(const FGeometry& MyGeometry, const FP
 			for (int32 SampleIndex = 0; SampleIndex < Samples.Num(); ++SampleIndex)
 			{
 				const FBlendSample& Sample = Samples[SampleIndex];
-				const FVector2D GridPosition = SampleValueToGridPosition(Sample.SampleValue);
-
-				const float MouseDistance = FMath::Abs(FVector2D::Distance(LocalMousePosition, GridPosition));
-				if (MouseDistance < ClickThresshold)
+				if (IsSampleValueWithinMouseRange(Sample.SampleValue))
 				{
 					SelectedSampleIndex = SampleIndex;					
 					break;
@@ -626,13 +630,23 @@ FReply SBlendSpaceGridWidget::ProcessClick(const FGeometry& MyGeometry, const FP
 FReply SBlendSpaceGridWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	// Start previewing when either one of the shift keys is pressed
-	if (bMouseIsOverGeometry && ((InKeyEvent.GetKey() == EKeys::LeftShift ) || (InKeyEvent.GetKey() == EKeys::RightShift)))
+	if (bMouseIsOverGeometry)
 	{
-		StartPreviewing();
-		DragState = EDragState::Preview;
-		// Make tool tip visible (this will display the current preview sample value)
-		ShowToolTip();
-		return FReply::Handled();
+		if ((InKeyEvent.GetKey() == EKeys::LeftShift) || (InKeyEvent.GetKey() == EKeys::RightShift))
+		{
+			StartPreviewing();
+			DragState = EDragState::Preview;
+			// Make tool tip visible (this will display the current preview sample value)
+			ShowToolTip();
+			return FReply::Handled();
+		}
+		
+		// Set flag for showing advanced preview info in tooltip
+		if ((InKeyEvent.GetKey() == EKeys::LeftControl) || (InKeyEvent.GetKey() == EKeys::RightControl))
+		{
+			bAdvancedPreview = true;
+			return FReply::Handled();
+		}
 	}
 
 	return FReply::Unhandled();
@@ -646,6 +660,12 @@ FReply SBlendSpaceGridWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyEve
 		StopPreviewing();
 		DragState = EDragState::None;
 		ResetToolTip();
+		return FReply::Handled();
+	}
+
+	if((InKeyEvent.GetKey() == EKeys::LeftControl) || (InKeyEvent.GetKey() == EKeys::RightControl))
+	{
+		bAdvancedPreview = false;
 		return FReply::Handled();
 	}
 
@@ -811,17 +831,24 @@ const FSlateRect SBlendSpaceGridWidget::GetGridRectangleFromGeometry(const FGeom
 	return WindowRect.InsetBy(GridMargin + GridRatioMargin);
 }
 
+bool SBlendSpaceGridWidget::IsSampleValueWithinMouseRange(const FVector& SampleValue)
+{
+	const FVector2D GridPosition = SampleValueToGridPosition(SampleValue);
+	const float MouseDistance = FVector2D::Distance(LocalMousePosition, GridPosition);	
+	return (FMath::Abs(MouseDistance) < ClickAndHighlightThreshold);
+}
+
 void SBlendSpaceGridWidget::StartPreviewing()
 {
 	bSamplePreviewing = true;
 	LastPreviewingMousePosition = LocalMousePosition;
+	LastPreviewingSampleValue = GridPositionToSampleValue(LastPreviewingMousePosition);
 	bPreviewPositionSet = true;	
 }
 
 void SBlendSpaceGridWidget::StopPreviewing()
 {
 	bSamplePreviewing = false;
-	LastPreviewingMousePosition = LocalMousePosition;
 }
 
 FText SBlendSpaceGridWidget::GetToolTipAnimationName() const
@@ -833,7 +860,12 @@ FText SBlendSpaceGridWidget::GetToolTipAnimationName() const
 		// If we are not dragging, but over a valid blend sample return its animation asset name
 		case EDragState::None:
 		{		
-			if (HighlightedSampleIndex != INDEX_NONE && BlendSpace->IsValidBlendSampleIndex(HighlightedSampleIndex))
+			if (bHighlightPreviewPin)
+			{
+				const FText PreviewPinText = LOCTEXT("HighlightPreviewPinTooltipText", "Preview Value (Hold Shift to Move)");
+				ToolTipText = PreviewPinText;
+			}
+			else if (HighlightedSampleIndex != INDEX_NONE && BlendSpace->IsValidBlendSampleIndex(HighlightedSampleIndex))
 			{
 				const FBlendSample& BlendSample = BlendSpace->GetBlendSample(HighlightedSampleIndex);					
 				ToolTipText = (BlendSample.Animation != nullptr) ? FText::FromString(BlendSample.Animation->GetName()) : EmptyAnimationText;
@@ -873,7 +905,9 @@ FText SBlendSpaceGridWidget::GetToolTipAnimationName() const
 		// If we are previewing return a descriptive label
 		case EDragState::Preview:
 		{
-			ToolTipText = FText::FromString("Preview value");
+			const FText AdvancedPreviewText = LOCTEXT("AdvancedPreviewValueTooltip", "Preview Value");
+			const FText BasicPreviewText = LOCTEXT("BasicPreviewValueTooltip", "Preview Value (Hold Ctrl for Weight Details)");	
+			ToolTipText = bAdvancedPreview ? AdvancedPreviewText : BasicPreviewText;
 			break;
 		}
 		default:
@@ -894,7 +928,11 @@ FText SBlendSpaceGridWidget::GetToolTipSampleValue() const
 		// If we are over a sample return its sample value if valid and otherwise show an error message as to why the sample is invalid
 		case EDragState::None:
 		{		
-			if (HighlightedSampleIndex != INDEX_NONE)
+			if (bHighlightPreviewPin)
+			{
+				ToolTipText = FText::Format(ValueFormattingText, ParameterXName, FText::FromString(FString::SanitizeFloat(LastPreviewingSampleValue.X)), ParameterYName, FText::FromString(FString::SanitizeFloat(LastPreviewingSampleValue.Y)));
+			}
+			else if (HighlightedSampleIndex != INDEX_NONE && BlendSpace->IsValidBlendSampleIndex(HighlightedSampleIndex))
 			{
 				const FBlendSample& BlendSample = BlendSpace->GetBlendSample(HighlightedSampleIndex);
 
@@ -949,8 +987,25 @@ FText SBlendSpaceGridWidget::GetToolTipSampleValue() const
 		// If we are setting the preview value return the current preview sample value
 		case EDragState::Preview:
 		{
-			ToolTipText = FText::Format(ValueFormattingText, ParameterXName, FText::FromString(FString::SanitizeFloat(LastPreviewingSampleValue.X)), ParameterYName, FText::FromString(FString::SanitizeFloat(LastPreviewingSampleValue.Y)));
+			FFormatOrderedArguments PreviewTextArguments;
+			PreviewTextArguments.Add(FText::Format(ValueFormattingText, ParameterXName, FText::FromString(FString::SanitizeFloat(LastPreviewingSampleValue.X)), ParameterYName, FText::FromString(FString::SanitizeFloat(LastPreviewingSampleValue.Y))));
 
+			FString PreviewSamplesString;
+			if (bAdvancedPreview)
+			{				
+				for (const FBlendSampleData& SampleData : PreviewedSamples)
+				{
+					PreviewSamplesString += "\n";
+					PreviewSamplesString += SampleData.Animation ? SampleData.Animation->GetName() : "No Animation Set";
+					PreviewSamplesString += ": ";
+					PreviewSamplesString += FString::SanitizeFloat(SampleData.TotalWeight);
+				}				
+			}
+			PreviewTextArguments.Add(FText::FromString(PreviewSamplesString));
+			
+			const FTextFormat PreviewTextFormat = FTextFormat::FromString("{0}{1}");			
+			ToolTipText = FText::Format(PreviewTextFormat, PreviewTextArguments);
+			
 			break;
 		}
 		default:
@@ -1190,39 +1245,51 @@ void SBlendSpaceGridWidget::Tick(const FGeometry& AllottedGeometry, const double
 {
 	const int32 PreviousSampleIndex = HighlightedSampleIndex;
 	HighlightedSampleIndex = INDEX_NONE;
+	const bool bPreviousHighlightPreviewPin = bHighlightPreviewPin;
 
 	if (DragState == EDragState::None)
 	{
-		// Determine highlighted sample
-		const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
-		for (int32 SampleIndex = 0; SampleIndex < Samples.Num(); ++SampleIndex)
+		// Check if we are highlighting preview pin						
+		bHighlightPreviewPin = IsSampleValueWithinMouseRange(LastPreviewingSampleValue);
+		if (bHighlightPreviewPin)
 		{
-			const FBlendSample& Sample = Samples[SampleIndex];
-
-			// Ranges from 0 to 1
-			FVector2D GridPosition = SampleValueToGridPosition(Sample.SampleValue);
-			FLinearColor DrawColor = FLinearColor::White;
-			const float MouseDistance = FVector2D::Distance(LocalMousePosition, GridPosition);
-			if (FMath::Abs(MouseDistance) < 12.0f)
-			{
-				HighlightedSampleIndex = SampleIndex;
-				break;
-			}
-		}
-
-		// If we started selecting or selected a different sample make sure we show/hide the tooltip
-		if (PreviousSampleIndex != HighlightedSampleIndex)
-		{
-			if (HighlightedSampleIndex != INDEX_NONE)
+			if (bHighlightPreviewPin != bPreviousHighlightPreviewPin)
 			{
 				ShowToolTip();
 			}
-			else
+		}
+		else if (bPreviousHighlightPreviewPin != bHighlightPreviewPin)
+		{
+			ResetToolTip();
+		}
+
+		if (!bHighlightPreviewPin)
+		{
+			// Determine highlighted sample
+			const TArray<FBlendSample>& Samples = BlendSpace->GetBlendSamples();
+			for (int32 SampleIndex = 0; SampleIndex < Samples.Num(); ++SampleIndex)
 			{
-				ResetToolTip();
+				const FBlendSample& Sample = Samples[SampleIndex];
+				if (IsSampleValueWithinMouseRange(Sample.SampleValue))
+				{
+					HighlightedSampleIndex = SampleIndex;
+					break;
+				}
+			}
+
+			// If we started selecting or selected a different sample make sure we show/hide the tooltip
+			if (PreviousSampleIndex != HighlightedSampleIndex)
+			{
+				if (HighlightedSampleIndex != INDEX_NONE)
+				{
+					ShowToolTip();
+				}
+				else
+				{
+					ResetToolTip();
+				}
 			}
 		}
-		
 	}
 	else if (DragState == EDragState::DragSample)
 	{
@@ -1266,6 +1333,10 @@ void SBlendSpaceGridWidget::Tick(const FGeometry& AllottedGeometry, const double
 		LastPreviewingMousePosition.X = FMath::Clamp(LocalMousePosition.X, CachedGridRectangle.Left, CachedGridRectangle.Right);
 		LastPreviewingMousePosition.Y = FMath::Clamp(LocalMousePosition.Y, CachedGridRectangle.Top, CachedGridRectangle.Bottom);
 		LastPreviewingSampleValue = GridPositionToSampleValue(LastPreviewingMousePosition);
+						
+		// Retrieve and cache weighted samples
+		PreviewedSamples.Empty(4);
+		BlendSpace->GetSamplesFromBlendInput(GetBlendPreviewValue(), PreviewedSamples);
 	}
 
 	// Refresh cache blendspace/grid data if needed
@@ -1289,6 +1360,22 @@ const FVector SBlendSpaceGridWidget::GetBlendPreviewValue()
 void SBlendSpaceGridWidget::InvalidateCachedData()
 {
 	bRefreshCachedData = true;	
+}
+
+void SBlendSpaceGridWidget::InvalidateState()
+{
+	if (HighlightedSampleIndex != INDEX_NONE)
+	{
+		ResetToolTip();
+	}
+
+	if (DragState != EDragState::None)
+	{
+		DragState = EDragState::None;
+	}
+	
+	SelectedSampleIndex = BlendSpace->IsValidBlendSampleIndex(SelectedSampleIndex) ? SelectedSampleIndex : INDEX_NONE;
+	HighlightedSampleIndex = DraggedSampleIndex = INDEX_NONE;
 }
 
 const bool SBlendSpaceGridWidget::IsValidDragDropOperation(const FDragDropEvent& DragDropEvent, FText& InvalidOperationText)

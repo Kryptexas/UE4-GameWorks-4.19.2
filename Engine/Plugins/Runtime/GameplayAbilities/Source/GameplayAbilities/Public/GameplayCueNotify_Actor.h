@@ -27,8 +27,10 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+protected:
 	virtual void BeginPlay() override;
 
+public:
 	virtual void SetOwner( AActor* NewOwner ) override;
 
 	virtual void PostInitProperties() override;

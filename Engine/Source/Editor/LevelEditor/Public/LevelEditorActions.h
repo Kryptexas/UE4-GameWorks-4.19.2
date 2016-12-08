@@ -607,6 +607,9 @@ public:
 	TSharedPtr< FUICommandInfo > SelectActorsInLayers;
 
 	TSharedPtr< FUICommandInfo > FocusAllViewportsToSelection;
+
+        // Open merge actor command
+	TSharedPtr< FUICommandInfo > OpenMergeActor;
 };
 
 /**
@@ -1263,6 +1266,10 @@ public:
 	 *	@return true if it can execute.
 	 */
 	static bool ActorSelected_CanExecute();
+
+
+	/** Called when 'Open Merge Actor' is clicked */
+	static void OpenMergeActor_Clicked();
 
 private:
 	/** 

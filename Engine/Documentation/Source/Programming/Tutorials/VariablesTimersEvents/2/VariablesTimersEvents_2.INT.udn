@@ -111,9 +111,11 @@ We have now made a variable and a function accessible to, and alterable by, non-
 				// Sets default values for this actor's properties
 				ACountdown();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 

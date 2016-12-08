@@ -714,26 +714,26 @@ bool FString::IsNumeric() const
  *
  * @return	The number of elements in InArray
  */
-int32 FString::ParseIntoArray( TArray<FString>& OutArray, const TCHAR* pchDelim, bool InCullEmpty ) const
+int32 FString::ParseIntoArray( TArray<FString>& OutArray, const TCHAR* pchDelim, const bool InCullEmpty ) const
 {
 	// Make sure the delimit string is not null or empty
 	check(pchDelim);
-	OutArray.Empty();
+	OutArray.Reset();
 	const TCHAR *Start = Data.GetData();
-	int32 DelimLength = FCString::Strlen(pchDelim);
+	const int32 DelimLength = FCString::Strlen(pchDelim);
 	if (Start && DelimLength)
 	{
 		while( const TCHAR *At = FCString::Strstr(Start,pchDelim) )
 		{
 			if (!InCullEmpty || At-Start)
 			{
-				new (OutArray) FString(At-Start,Start);
+				OutArray.Emplace(At-Start,Start);
 			}
 			Start = At + DelimLength;
 		}
 		if (!InCullEmpty || *Start)
 		{
-			new(OutArray) FString(Start);
+			OutArray.Emplace(Start);
 		}
 
 	}

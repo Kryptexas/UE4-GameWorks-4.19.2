@@ -1093,6 +1093,7 @@ public:
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
+	virtual bool IsReadyForOwnerToAutoDestroy() const override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual UObject const* AdditionalStatObject() const override
 	{

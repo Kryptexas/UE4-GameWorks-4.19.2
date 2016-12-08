@@ -428,7 +428,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(AssetRegistrySearchable)
 	FName LODGroup;
 
-	/** If true, the distances at which LODs swap are computed automatically. */
+	/** If true, the screen sizees at which LODs swap are computed automatically. */
 	UPROPERTY()
 	uint32 bAutoComputeLODScreenSize:1;
 
@@ -604,6 +604,7 @@ public:
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	ENGINE_API virtual void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override;
 	ENGINE_API void SetLODGroup(FName NewGroup);
+	ENGINE_API void BroadcastNavCollisionChange();
 #endif // WITH_EDITOR
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
 	ENGINE_API virtual void PostInitProperties() override;
@@ -749,7 +750,9 @@ public:
 	/**
 	 * Calculates navigation collision for caching
 	 */
-	ENGINE_API void CreateNavCollision();
+	ENGINE_API void CreateNavCollision(const bool bIsUpdate = false);
+
+	FORCEINLINE const UNavCollision* GetNavCollision() const { return NavCollision; }
 
 	const FGuid& GetLightingGuid() const
 	{

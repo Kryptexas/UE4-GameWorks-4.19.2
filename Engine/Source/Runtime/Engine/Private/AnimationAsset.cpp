@@ -153,7 +153,7 @@ void FAnimGroupInstance::Prepare(const FAnimGroupInstance* PreviousGroup)
 
 		ValidMarkers.Sort();
 
-		if (PreviousGroup && (ValidMarkers != PreviousGroup->ValidMarkers))
+		if (!PreviousGroup || (ValidMarkers != PreviousGroup->ValidMarkers))
 		{
 			for (int32 InternalActivePlayerIndex = 0; InternalActivePlayerIndex < ActivePlayers.Num(); ++InternalActivePlayerIndex)
 			{
@@ -243,17 +243,23 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 		}
 		if (GetAllAnimationSequencesReferred(AnimAssetsToReplace))
 		{
-			// @fixme: linah, martinw 
-			// since poseprocess was called by remap, if it's additive with base, it will try post process
-			// inside of remap without converting base animation, so by going backway, it will convert
-			// base animation and then additive, and compression will work correctly
-			// this is termporary fix - another ticket has been entered to fix it properly UE-35689
-			for (int32 AnimationIndex = AnimAssetsToReplace.Num()-1 ; AnimationIndex >=0; --AnimationIndex)
+			//Firstly need to remap
+			for (UAnimationAsset* AnimAsset : AnimAssetsToReplace)
 			{
-				UAnimationAsset* IterAsset = AnimAssetsToReplace[AnimationIndex];
 				// these two are different functions for now
 				// technically if you have implementation for Remap, it will also set skeleton 
-				IterAsset->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
+				AnimAsset->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
+			}
+
+			//Second need to process anim sequences themselves. This is done in two stages as additives can rely on other animations.
+			for (UAnimationAsset* AnimAsset : AnimAssetsToReplace)
+			{
+				if (UAnimSequence* Seq = Cast<UAnimSequence>(AnimAsset))
+				{
+					// We don't force gen here as that can cause us to constantly generate
+					// new anim ddc keys if users never resave anims that need to remap.
+					Seq->PostProcessSequence(false);
+				}
 			}
 		}
 

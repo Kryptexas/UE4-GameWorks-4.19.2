@@ -282,10 +282,10 @@ FString FComponentEditorUtils::GenerateValidVariableNameFromAsset(UObject* Asset
 USceneComponent* FComponentEditorUtils::FindClosestParentInList(UActorComponent* ChildComponent, const TArray<UActorComponent*>& ComponentList)
 {
 	USceneComponent* ClosestParentComponent = nullptr;
-	for (auto Component : ComponentList)
+	for (UActorComponent* Component : ComponentList)
 	{
-		auto ChildAsScene = Cast<USceneComponent>(ChildComponent);
-		auto SceneComponent = Cast<USceneComponent>(Component);
+		USceneComponent* ChildAsScene = Cast<USceneComponent>(ChildComponent);
+		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
 		if (ChildAsScene && SceneComponent)
 		{
 			// Check to see if any parent is also in the list
@@ -349,7 +349,7 @@ void FComponentEditorUtils::CopyComponents(const TArray<UActorComponent*>& Compo
 		if (DuplicatedComponent)
 		{
 			// If the duplicated component is a scene component, wipe its attach parent (to prevent log warnings for referencing a private object in an external package)
-			if (auto DuplicatedCompAsSceneComp = Cast<USceneComponent>(DuplicatedComponent))
+			if (USceneComponent* DuplicatedCompAsSceneComp = Cast<USceneComponent>(DuplicatedComponent))
 			{
 				DuplicatedCompAsSceneComp->SetupAttachment(nullptr);
 			}
@@ -434,7 +434,7 @@ void FComponentEditorUtils::PasteComponents(TArray<UActorComponent*>& OutPastedC
 		FString NewComponentName = FComponentEditorUtils::GenerateValidVariableName(NewActorComponent->GetClass(), TargetActor);
 		NewActorComponent->Rename(*NewComponentName, TargetActor, REN_DontCreateRedirectors | REN_DoNotDirty);
 
-		if (auto NewSceneComponent = Cast<USceneComponent>(NewActorComponent))
+		if (USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewActorComponent))
 		{
 			// Default to attaching to the target component's parent if possible, otherwise attach to the root
 			USceneComponent* NewComponentParent = TargetParent ? TargetParent : TargetActor->GetRootComponent();
@@ -492,7 +492,7 @@ void FComponentEditorUtils::GetComponentsFromClipboard(TMap<FName, FName>& OutPa
 bool FComponentEditorUtils::CanDeleteComponents(const TArray<UActorComponent*>& ComponentsToDelete)
 {
 	bool bCanDelete = true;
-	for (auto ComponentToDelete : ComponentsToDelete)
+	for (UActorComponent* ComponentToDelete : ComponentsToDelete)
 	{
 		// We can't delete non-instance components or the default scene root
 		if (ComponentToDelete->CreationMethod != EComponentCreationMethod::Instance 
@@ -512,7 +512,7 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 
 	TArray<AActor*> ActorsToReconstruct;
 
-	for (auto ComponentToDelete : ComponentsToDelete)
+	for (UActorComponent* ComponentToDelete : ComponentsToDelete)
 	{
 		if (ComponentToDelete->CreationMethod != EComponentCreationMethod::Instance)
 		{
@@ -533,7 +533,7 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 				// Worst-case, the root can be selected
 				OutComponentToSelect = RootComponent;
 
-				if (auto ComponentToDeleteAsSceneComp = Cast<USceneComponent>(ComponentToDelete))
+				if (USceneComponent* ComponentToDeleteAsSceneComp = Cast<USceneComponent>(ComponentToDelete))
 				{
 					if (USceneComponent* ParentComponent = ComponentToDeleteAsSceneComp->GetAttachParent())
 					{
@@ -582,7 +582,7 @@ int32 FComponentEditorUtils::DeleteComponents(const TArray<UActorComponent*>& Co
 	}
 
 	// Reconstruct owner instance(s) after deletion
-	for(auto ActorToReconstruct : ActorsToReconstruct)
+	for(AActor* ActorToReconstruct : ActorsToReconstruct)
 	{
 		ActorToReconstruct->RerunConstructionScripts();
 	}
@@ -675,25 +675,45 @@ void FComponentEditorUtils::BindComponentSelectionOverride(USceneComponent* Scen
 	if (SceneComponent)
 	{
 		// If the scene component is a primitive component, set the override for it
-		auto PrimComponent = Cast<UPrimitiveComponent>(SceneComponent);
-		if (PrimComponent && PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
+		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(SceneComponent);
+		if (PrimitiveComponent && PrimitiveComponent->SelectionOverrideDelegate.IsBound() != bBind)
 		{
 			if (bBind)
 			{
-				PrimComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
+				PrimitiveComponent->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateUObject(GUnrealEd, &UUnrealEdEngine::IsComponentSelected);
 			}
 			else
 			{
-				PrimComponent->SelectionOverrideDelegate.Unbind();
+				PrimitiveComponent->SelectionOverrideDelegate.Unbind();
 			}
 		}
 		else
 		{
+			TArray<UPrimitiveComponent*> ComponentsToBind;
+
+			if (UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(SceneComponent))
+			{
+				if (AActor* ChildActor = ChildActorComponent->GetChildActor())
+				{
+					ChildActor->GetComponents(ComponentsToBind,true);
+				}
+			}
+
 			// Otherwise, make sure the override is set properly on any attached editor-only primitive components (ex: billboards)
 			for (USceneComponent* Component : SceneComponent->GetAttachChildren())
 			{
-				PrimComponent = Cast<UPrimitiveComponent>(Component);
-				if (PrimComponent && PrimComponent->IsEditorOnly() && PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
+				if (UPrimitiveComponent* PrimComponent = Cast<UPrimitiveComponent>(Component))
+				{
+					if (PrimComponent->IsEditorOnly())
+					{
+						ComponentsToBind.Add(PrimComponent);
+					}
+				}
+			}
+
+			for (UPrimitiveComponent* PrimComponent : ComponentsToBind)
+			{
+				if (PrimComponent->SelectionOverrideDelegate.IsBound() != bBind)
 				{
 					if (bBind)
 					{
@@ -713,8 +733,8 @@ bool FComponentEditorUtils::AttemptApplyMaterialToComponent(USceneComponent* Sce
 {
 	bool bResult = false;
 	
-	auto MeshComponent = Cast<UMeshComponent>(SceneComponent);
-	auto DecalComponent = Cast<UDecalComponent>(SceneComponent);
+	UMeshComponent* MeshComponent = Cast<UMeshComponent>(SceneComponent);
+	UDecalComponent* DecalComponent = Cast<UDecalComponent>(SceneComponent);
 
 	UMaterial* BaseMaterial = MaterialToApply->GetBaseMaterial();
 

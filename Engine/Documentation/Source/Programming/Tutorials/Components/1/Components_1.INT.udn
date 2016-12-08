@@ -116,9 +116,11 @@ Our new Pawn now has a collection of useful Components attached to it, and is re
 				// Sets default values for this pawn's properties
 				ACollidingPawn();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 	
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 

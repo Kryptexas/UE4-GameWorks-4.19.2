@@ -90,9 +90,11 @@ We're now ready to finish coding our MyPawn class in **Visual Studio**.
 				// Sets default values
 				AMyPawn();
 
+			protected:
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-	
+			
+			public:
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 

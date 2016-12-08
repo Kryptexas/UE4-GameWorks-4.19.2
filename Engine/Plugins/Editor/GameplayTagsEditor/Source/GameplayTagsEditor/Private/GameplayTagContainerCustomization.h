@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "Layout/Visibility.h"
-#include "Input/Reply.h"
 #include "Widgets/SWidget.h"
 #include "Editor/PropertyEditor/Public/IPropertyTypeCustomization.h"
 #include "Widgets/Views/STableViewBase.h"
@@ -13,7 +12,6 @@
 #include "EditorUndoClient.h"
 
 class IPropertyHandle;
-class SWindow;
 
 /** Customization for the gameplay tag container struct */
 class FGameplayTagContainerCustomization : public IPropertyTypeCustomization, public FEditorUndoClient
@@ -33,13 +31,11 @@ public:
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override {}
 
 	//~ Begin FEditorUndoClient Interface
-	virtual void PostUndo( bool bSuccess ) override;
-	virtual void PostRedo( bool bSuccess ) override;	
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
 	//~ End FEditorUndoClient Interface
 
 private:
-	/** Called when the edit button is clicked; Launches the gameplay tag editor */
-	FReply OnEditButtonClicked();
 
 	/** Called when the clear all button is clicked; Clears all selected tags in the container*/
 	FReply OnClearAllButtonClicked();
@@ -62,8 +58,8 @@ private:
 	/** Build List of Editable Containers */
 	void BuildEditableContainerList();
 
-	/** Delegate to close the Gameplay Tag Edit window if it loses focus, as the data it uses is volatile to outside changes */
-	void OnGameplayTagWidgetWindowDeactivate();
+	/** Callback function to create content for the combo button. */
+	TSharedRef<SWidget> GetListContent();
 
 	/** Cached property handle */
 	TSharedPtr<IPropertyHandle> StructPropertyHandle;
@@ -76,11 +72,5 @@ private:
 
 	/** The TagList, kept as a member so we can update it later */
 	TSharedPtr<SListView<TSharedPtr<FString>>> TagListView;
-
-	/** The Window for the GameplayTagWidget */
-	TSharedPtr<SWindow> GameplayTagWidgetWindow;
-
-	/** The widget */
-	TSharedPtr<SGameplayTagWidget> GameplayTagWidget;
 };
 

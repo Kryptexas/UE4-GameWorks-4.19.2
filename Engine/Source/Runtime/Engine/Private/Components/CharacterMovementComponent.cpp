@@ -2902,6 +2902,21 @@ void UCharacterMovementComponent::RequestDirectMove(const FVector& MoveVelocity,
 	}
 }
 
+void UCharacterMovementComponent::RequestPathMove(const FVector& MoveInput)
+{
+	FVector AdjustedMoveInput(MoveInput);
+
+	// preserve magnitude when moving on ground/falling and requested input has Z component
+	// see ConstrainInputAcceleration for details
+	if (MoveInput.Z != 0.f && (IsMovingOnGround() || IsFalling()))
+	{
+		const float Mag = MoveInput.Size();
+		AdjustedMoveInput = MoveInput.GetSafeNormal2D() * Mag;
+	}
+	
+	Super::RequestPathMove(AdjustedMoveInput);
+}
+
 bool UCharacterMovementComponent::CanStartPathFollowing() const
 {
 	if (!HasValidData() || HasAnimRootMotion())

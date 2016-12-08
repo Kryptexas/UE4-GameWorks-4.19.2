@@ -23,8 +23,8 @@ struct AUDIOEDITOR_API FSoundClassGraphSchemaAction_NewNode : public FEdGraphSch
 		, NewSoundClassName(TEXT("ClassName"))
 	{}
 
-	FSoundClassGraphSchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FSoundClassGraphSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, NewSoundClassName(TEXT("ClassName"))
 	{}
 

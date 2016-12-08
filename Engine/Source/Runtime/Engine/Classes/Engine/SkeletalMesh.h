@@ -33,7 +33,6 @@ class USkeletalMeshSocket;
 class USkeleton;
 
 #if WITH_APEX_CLOTHING
-struct FApexClothCollisionVolumeData;
 
 namespace nvidia
 {
@@ -436,6 +435,57 @@ struct FClothPhysicsProperties
 
 };
 
+/**
+* A structure for holding the APEX cloth collision volumes data
+*/
+struct FApexClothCollisionVolumeData
+{
+	/**
+	\brief structure for presenting collision volume data
+
+	\note contains either capsule data or convex data.
+	*/
+
+	int32	BoneIndex;
+	// For convexes
+	uint32	ConvexVerticesCount;
+	// For convexes
+	uint32	ConvexVerticesStart;
+	TArray<FVector> BoneVertices;
+	TArray<FPlane>  BonePlanes;
+	// For capsules
+	float	CapsuleRadius;
+	// For capsules
+	float	CapsuleHeight;
+	FMatrix LocalPose;
+
+	FApexClothCollisionVolumeData()
+	{
+		BoneIndex = -1;
+		ConvexVerticesCount = 0;
+		ConvexVerticesStart = 0;
+		CapsuleRadius = 0.0f;
+		CapsuleHeight = 0.0f;
+		LocalPose.SetIdentity();
+	}
+
+	bool IsCapsule() const
+	{
+		return (ConvexVerticesCount == 0);
+	}
+};
+
+/**
+* \brief A structure for holding bone sphere ( one of the APEX cloth collision volumes data )
+* \note 2 bone spheres present a capsule
+*/
+struct FApexClothBoneSphereData
+{
+	int32	BoneIndex;
+	float	Radius;
+	FVector LocalPos;
+};
+
 USTRUCT()
 struct FClothingAssetData
 {
@@ -670,12 +720,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = Physics)
 	uint32 bEnablePerPolyCollision : 1;
 
-	/**
-	 * If true on post load we need to calculate resolution independent Display Factors from the
-	 * loaded LOD screen sizes.
-	 */
-	uint32 bRequiresLODScreenSizeConversion : 1;
-
 	// Physics data for the per poly collision case. In 99% of cases you will not need this and are better off using simple ragdoll collision (physics asset)
 	UPROPERTY(transient)
 	class UBodySetup* BodySetup;
@@ -719,6 +763,18 @@ public:
 	/* Attached assets component for this mesh */
 	UPROPERTY()
 	FPreviewAssetAttachContainer PreviewAttachedAssetContainer;
+
+	/**
+	 * If true on post load we need to calculate resolution independent Display Factors from the
+	 * loaded LOD screen sizes.
+	 */
+	uint32 bRequiresLODScreenSizeConversion : 1;
+
+	/**
+	 * If true on post load we need to calculate resolution independent LOD hysteresis from the
+	 * loaded LOD hysteresis.
+	 */
+	uint32 bRequiresLODHysteresisConversion : 1;
 
 #endif // WITH_EDITORONLY_DATA
 
@@ -997,7 +1053,9 @@ public:
 	ENGINE_API void BuildPhysicsData();
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, const TArray<FName>& BoneNames);
 	ENGINE_API void AddBoneToReductionSetting(int32 LODIndex, FName BoneName);
+#endif
 
+#if WITH_EDITORONLY_DATA
 	/** Convert legacy screen size (based on fixed resolution) into screen size (diameter in screen units) */
 	void ConvertLegacyLODScreenSize();
 #endif

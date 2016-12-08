@@ -2,25 +2,8 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "UObject/ObjectMacros.h"
-#include "UObject/Object.h"
-#include "UObject/Class.h"
-#include "Engine/EngineTypes.h"
-#include "Curves/CurveFloat.h"
+#include "Engine/Attenuation.h"
 #include "SoundAttenuation.generated.h"
-
-UENUM()
-enum ESoundDistanceModel
-{
-	ATTENUATION_Linear,
-	ATTENUATION_Logarithmic,
-	ATTENUATION_Inverse,
-	ATTENUATION_LogReverse,
-	ATTENUATION_NaturalSound,
-	ATTENUATION_Custom,
-	ATTENUATION_MAX,
-};
 
 UENUM()
 enum ESoundDistanceCalc
@@ -33,18 +16,6 @@ enum ESoundDistanceCalc
 };
 
 UENUM()
-namespace EAttenuationShape
-{
-	enum Type
-	{
-		Sphere,
-		Capsule,
-		Box,
-		Cone
-	};
-}
-
-UENUM()
 enum ESoundSpatializationAlgorithm
 {
 	SPATIALIZATION_Default,
@@ -55,7 +26,7 @@ enum ESoundSpatializationAlgorithm
 The settings for attenuating.
 */
 USTRUCT(BlueprintType)
-struct ENGINE_API FAttenuationSettings
+struct ENGINE_API FSoundAttenuationSettings : public FBaseAttenuationSettings
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -83,23 +54,8 @@ struct ENGINE_API FAttenuationSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Occlusion)
 	uint32 bUseComplexCollisionForOcclusion:1;
 
-	/* The type of volume versus distance algorithm to use for the attenuation model. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation )
-	TEnumAsByte<enum ESoundDistanceModel> DistanceAlgorithm;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
-	FRuntimeFloatCurve CustomAttenuationCurve;
-
 	UPROPERTY()
 	TEnumAsByte<enum ESoundDistanceCalc> DistanceType_DEPRECATED;
-
-	/* The shape of the attenuation volume. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation )
-	TEnumAsByte<enum EAttenuationShape::Type> AttenuationShape;
-
-	/* The volume at maximum distance in deciBels. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(DisplayName = "dB Attenuation At Max", ClampMax = "0" ))
-	float dBAttenuationAtMax;
 
 	/** At what distance we start treating the sound source as spatialized */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(ClampMin = "0", EditCondition="bSpatialize", DisplayName="Non-Spatialized Radius"))
@@ -118,23 +74,6 @@ struct ENGINE_API FAttenuationSettings
 
 	UPROPERTY()
 	float RadiusMax_DEPRECATED;
-
-	/* The dimensions to use for the attenuation shape. Interpretation of the values differ per shape.
-	   Sphere  - X is Sphere Radius. Y and Z are unused
-	   Capsule - X is Capsule Half Height, Y is Capsule Radius, Z is unused
-	   Box     - X, Y, and Z are the Box's dimensions
-	   Cone    - X is Cone Radius, Y is Cone Angle, Z is Cone Falloff Angle
-	*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
-	FVector AttenuationShapeExtents;
-
-	/* The distance back from the sound's origin to begin the cone when using the cone attenuation shape. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(ClampMin = "0"))
-	float ConeOffset;
-
-	/* The distance over which falloff occurs. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(ClampMin = "0"))
-	float FalloffDistance;
 
 	/* The range at which to start applying a low pass filter. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LowPassFilter )
@@ -200,25 +139,35 @@ struct ENGINE_API FAttenuationSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Occlusion, meta = (ClampMin = "0", UIMin = "0.0", EditCondition = "bEnableOcclusion"))
 	float OcclusionInterpolationTime;
 
-	FAttenuationSettings()
+	/** The amount to send to master reverb when sound is ReverbDistanceMin from listener. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
+	float ReverbWetLevelMin;
+
+	/** The amount to send to master reverb when sound is at ReverbDistanceMax from listener. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
+	float ReverbWetLevelMax;
+
+	/** The distance which defines the amount of reverb wet level defined in ReverbWetLevelMin. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
+	float ReverbDistanceMin;
+
+	/** The distance which defines the amount of reverb wet level defined in ReverbDistanceMax. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attenuation)
+	float ReverbDistanceMax;
+
+	FSoundAttenuationSettings()
 		: bAttenuate(true)
 		, bSpatialize(true)
 		, bAttenuateWithLPF(false)
 		, bEnableListenerFocus(false)
 		, bEnableOcclusion(false)
 		, bUseComplexCollisionForOcclusion(false)
-		, DistanceAlgorithm(ATTENUATION_Linear)
 		, DistanceType_DEPRECATED(SOUNDDISTANCE_Normal)
-		, AttenuationShape(EAttenuationShape::Sphere)
-		, dBAttenuationAtMax(-60.f)
 		, OmniRadius(0.0f)
 		, StereoSpread(0.0f)
 		, SpatializationAlgorithm(ESoundSpatializationAlgorithm::SPATIALIZATION_Default)
 		, RadiusMin_DEPRECATED(400.f)
 		, RadiusMax_DEPRECATED(4000.f)
-		, AttenuationShapeExtents(400.f, 0.f, 0.f)
-		, ConeOffset(0.f)
-		, FalloffDistance(3600.f)
 		, LPFRadiusMin(3000.f)
 		, LPFRadiusMax(6000.f)
 		, LPFFrequencyAtMin(20000.f)
@@ -235,32 +184,27 @@ struct ENGINE_API FAttenuationSettings
 		, OcclusionLowPassFilterFrequency(20000.f)
 		, OcclusionVolumeAttenuation(1.0f)
 		, OcclusionInterpolationTime(0.1f)
+		, ReverbWetLevelMin(0.3f)
+		, ReverbWetLevelMax(0.95f)
+		, ReverbDistanceMin(AttenuationShapeExtents.X)
+		, ReverbDistanceMax(AttenuationShapeExtents.X + FalloffDistance)
 	{
 	}
 
-	bool operator==(const FAttenuationSettings& Other) const;
+	bool operator==(const FSoundAttenuationSettings& Other) const;
 	void PostSerialize(const FArchive& Ar);
 
-	struct AttenuationShapeDetails
-	{
-		FVector Extents;
-		float Falloff;
-		float ConeOffset;
-	};
-
-	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, AttenuationShapeDetails>& ShapeDetailsMap) const;
-	float GetMaxDimension() const;
+	virtual void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FBaseAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const override;
 	float GetFocusPriorityScale(const struct FGlobalFocusSettings& FocusSettings, float FocusFactor) const;
 	float GetFocusAttenuation(const struct FGlobalFocusSettings& FocusSettings, float FocusFactor) const;
 	float GetFocusDistanceScale(const struct FGlobalFocusSettings& FocusSettings, float FocusFactor) const;
-	float AttenuationEval(const float Distance, const float Falloff, const float DistanceScale) const;
-	float AttenuationEvalBox(const FTransform& SoundLocation, const FVector ListenerLocation, const float DistanceScale) const;
-	float AttenuationEvalCapsule(const FTransform& SoundLocation, const FVector ListenerLocation, const float DistanceScale) const;
-	float AttenuationEvalCone(const FTransform& SoundLocation, const FVector ListenerLocation, const float DistanceScale) const;
 };
 
+DEPRECATED(4.15, "FAttenuationSettings has been renamed FAudioAttenuationSettings")
+typedef FSoundAttenuationSettings FAttenuationSettings;
+
 template<>
-struct TStructOpsTypeTraits<FAttenuationSettings> : public TStructOpsTypeTraitsBase
+struct TStructOpsTypeTraits<FSoundAttenuationSettings> : public TStructOpsTypeTraitsBase
 {
 	enum 
 	{
@@ -277,5 +221,5 @@ class USoundAttenuation : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Settings)
-	FAttenuationSettings Attenuation;
+	FSoundAttenuationSettings Attenuation;
 };

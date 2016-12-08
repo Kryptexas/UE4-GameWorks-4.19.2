@@ -1306,9 +1306,11 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual void EnableInput(class APlayerController* PlayerController) override;
 	virtual void DisableInput(class APlayerController* PlayerController) override;
+protected:
 	virtual void BeginPlay() override;
 	//~ End AActor Interface
 
+public:
 	//~ Begin AController Interface
 	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false) override;
 	virtual bool IsLocalController() const override;

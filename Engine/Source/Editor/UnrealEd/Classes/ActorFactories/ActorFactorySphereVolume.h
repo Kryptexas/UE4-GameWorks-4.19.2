@@ -5,14 +5,14 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "ActorFactories/ActorFactory.h"
+#include "ActorFactories/ActorFactoryVolume.h"
 #include "ActorFactorySphereVolume.generated.h"
 
 class AActor;
 class FAssetData;
 
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)
-class UActorFactorySphereVolume : public UActorFactory
+class UActorFactorySphereVolume : public UActorFactoryVolume
 {
 	GENERATED_UCLASS_BODY()
 

@@ -62,6 +62,7 @@ namespace Audio
 		FName GetRuntimeFormat(USoundWave* InSoundWave) override;
 		bool HasCompressedAudioInfoClass(USoundWave* InSoundWave) override;
 		ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* InSoundWave) override;
+		FString GetDefaultDeviceName() override;
 		//~ End IAudioMixerPlatformInterface
 
 	private:

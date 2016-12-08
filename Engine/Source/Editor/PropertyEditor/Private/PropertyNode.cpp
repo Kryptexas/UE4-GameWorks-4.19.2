@@ -18,6 +18,7 @@
 #include "ObjectPropertyNode.h"
 #include "PropertyHandleImpl.h"
 #include "EditorSupportDelegates.h"
+#include "ConstructorHelpers.h"
 
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -1804,7 +1805,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 					bool bIsGameWorld = false;
 					// If the object we are modifying is in the PIE world, than make the PIE world the active
 					// GWorld.  Assumes all objects managed by this property window belong to the same world.
-					UWorld* OldGWorld = NULL;
+					UWorld* OldGWorld = nullptr;
 					if ( GUnrealEd && GUnrealEd->PlayWorld && !GUnrealEd->bIsSimulatingInEditor && Object->IsIn(GUnrealEd->PlayWorld))
 					{
 						OldGWorld = SetPlayInEditorWorld(GUnrealEd->PlayWorld);
@@ -1964,7 +1965,24 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 
 					// Cache the value of the property after having modified it.
 					FString ValueAfterImport;
-					Property->ExportText_Direct(ValueAfterImport, ValueTracker.GetPropertyValueAddress(), ValueTracker.GetPropertyValueAddress(), NULL, 0);
+					TheProperty->ExportText_Direct(ValueAfterImport, ValueTracker.GetPropertyValueAddress(), ValueTracker.GetPropertyValueAddress(), NULL, 0);
+
+					// If this is an instanced component property we must move the old component to the 
+					// transient package so resetting owned components on the parent doesn't find it
+					UObjectProperty* ObjectProperty = Cast<UObjectProperty>(TheProperty);
+					if (ObjectProperty 
+						&& ObjectProperty->HasAnyPropertyFlags(CPF_InstancedReference) 
+						&& ObjectProperty->PropertyClass->IsChildOf(UActorComponent::StaticClass())
+						&& PreviousValue != ValueAfterImport)
+					{
+						FString ComponentName = PreviousValue;
+						ConstructorHelpers::StripObjectClass(ComponentName);
+						if (UActorComponent* Component = Cast<UActorComponent>(StaticFindObject(UActorComponent::StaticClass(), ANY_PACKAGE, *ComponentName)))
+						{
+							Component->Modify();
+							Component->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+						}
+					}
 
 					if((Object->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
 						(Object->HasAnyFlags(RF_DefaultSubObject) && Object->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
@@ -2943,41 +2961,65 @@ void FPropertyNode::AddRestriction( TSharedRef<const class FPropertyRestriction>
 	Restrictions.AddUnique(Restriction);
 }
 
-bool FPropertyNode::IsRestricted(const FString& Value) const
+bool FPropertyNode::IsHidden(const FString& Value, TArray<FText>* OutReasons) const
 {
+	bool bIsHidden = false;
 	for( auto It = Restrictions.CreateConstIterator() ; It ; ++It )
 	{
 		TSharedRef<const FPropertyRestriction> Restriction = (*It);
-		if( Restriction->IsValueRestricted(Value) )
+		if( Restriction->IsValueHidden(Value) )
 		{
-			return true;
+			bIsHidden = true;
+			if (OutReasons)
+			{
+				OutReasons->Add(Restriction->GetReason());
+			}
+			else
+			{
+				break;
+			}
 		}
 	}
 
-	return false;
+	return bIsHidden;
+}
+
+bool FPropertyNode::IsDisabled(const FString& Value, TArray<FText>* OutReasons) const
+{
+	bool bIsDisabled = false;
+	for (const TSharedRef<const FPropertyRestriction>& Restriction : Restrictions)
+	{
+		if( Restriction->IsValueDisabled(Value) )
+		{
+			bIsDisabled = true;
+			if (OutReasons)
+			{
+				OutReasons->Add(Restriction->GetReason());
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+
+	return bIsDisabled;
 }
 
 bool FPropertyNode::IsRestricted(const FString& Value, TArray<FText>& OutReasons) const
 {
-	for( auto It = Restrictions.CreateConstIterator() ; It ; ++It )
-	{
-		TSharedRef<const FPropertyRestriction> Restriction = (*It);
-		if( Restriction->IsValueRestricted(Value) )
-		{
-			OutReasons.Add(Restriction->GetReason());
-		}
-	}
-
-	return OutReasons.Num() > 0;
+	const bool bIsHidden = IsHidden(Value, &OutReasons);
+	const bool bIsDisabled = IsDisabled(Value, &OutReasons);
+	return (bIsHidden || bIsDisabled);
 }
 
-bool FPropertyNode::GenerateRestrictionToolTip(const FString& Value, FText& OutTooltip)const
+bool FPropertyNode::GenerateRestrictionToolTip(const FString& Value, FText& OutTooltip) const
 {
 	static FText ToolTipFormat = NSLOCTEXT("PropertyRestriction", "TooltipFormat ", "{0}{1}");
 	static FText MultipleRestrictionsToolTopAdditionFormat = NSLOCTEXT("PropertyRestriction", "MultipleRestrictionToolTipAdditionFormat ", "({0} restrictions...)");
 
 	TArray<FText> Reasons;
-	bool bRestricted = IsRestricted(Value,Reasons);
+	const bool bRestricted = IsRestricted(Value, Reasons);
 
 	FText Ret;
 	if( bRestricted && Reasons.Num() > 0 )

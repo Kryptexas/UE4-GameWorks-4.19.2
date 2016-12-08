@@ -54,7 +54,7 @@ struct FBlendParameter
 	UPROPERTY(EditAnywhere, DisplayName = "Maximum Axis Value", Category=BlendParameter)
 	float Max;
 
-	/** how many grid for this parameter. */
+	/** The number of grid divisions for this parameter (axis). */
 	UPROPERTY(EditAnywhere, DisplayName = "Number of Grid Divisions", Category=BlendParameter, meta=(UIMin="1", ClampMin="1"))
 	int32 GridNum;
 
@@ -91,26 +91,38 @@ struct FBlendSample
 
 	UPROPERTY(EditAnywhere, Category=BlendSample)
 	FVector SampleValue;
+	
+	UPROPERTY(EditAnywhere, Category = BlendSample, meta=(UIMin="0.01", UIMax="2.0", ClampMin="0.01", ClampMax="64.0"))
+	float RateScale;
 
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(transient)
 	bool bIsValid;
+#endif // WITH_EDITORONLY_DATA
 
 	FBlendSample()
 		: Animation(NULL)
 		, SampleValue(0.f)
-		, bIsValid(false)
+		, RateScale(1.0f)
+#if WITH_EDITORONLY_DATA
+		, bIsValid(false)		
+#endif // WITH_EDITORONLY_DATA
 	{		
 	}
 	
 	FBlendSample(class UAnimSequence* InAnim, FVector InValue, bool bInIsValid) 
 		: Animation(InAnim)
 		, SampleValue(InValue)
+		, RateScale(1.0f)
+#if WITH_EDITORONLY_DATA
 		, bIsValid(bInIsValid)
+#endif // WITH_EDITORONLY_DATA
 	{		
 	}
 	
 	bool operator==( const FBlendSample& Other ) const 
 	{
-		return (Other.Animation == Animation && (Other.SampleValue-SampleValue).IsNearlyZero());
+		return (Other.Animation == Animation && Other.SampleValue == SampleValue && FMath::IsNearlyEqual(Other.RateScale, RateScale));
 	}
 };
 
@@ -211,6 +223,7 @@ class UBlendSpaceBase : public UAnimationAsset, public IInterpolationIndexProvid
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	//~ End UObject Interface
@@ -268,10 +281,10 @@ class UBlendSpaceBase : public UAnimationAsset, public IInterpolationIndexProvid
 	/** Initialize BlendSpace for runtime. It needs certain data to be reinitialized per instsance **/
 	ENGINE_API void InitializeFilter(FBlendFilter* Filter) const;
 	
+#if WITH_EDITOR	
 	/** Validates the contained data */
 	ENGINE_API void ValidateSampleData();
 
-#if WITH_EDITOR	
 	/** Add samples */
 	ENGINE_API bool	AddSample(UAnimSequence* AnimationSequence, const FVector& SampleValue);
 
@@ -369,15 +382,16 @@ protected:
 	/** Returns whether or not all animation set on the blend space samples match the given additive type */
 	bool ContainsMatchingSamples(EAdditiveAnimationType AdditiveType) const;
 
-	/** If around border, snap to the border to avoid empty hole of data that is not valid **/
-	virtual void SnapSamplesToClosestGridPoint() PURE_VIRTUAL(UBlendSpaceBase::SnapSamplesToClosestGridPoint, return;);
-	
 	/** Checks if the given samples points overlap */
 	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const PURE_VIRTUAL(UBlendSpaceBase::IsSameSamplePoint, return false;);	
 
 #if WITH_EDITOR
 	bool ContainsNonAdditiveSamples() const;
 	void UpdatePreviewBasePose();
+	/** If around border, snap to the border to avoid empty hole of data that is not valid **/
+	virtual void SnapSamplesToClosestGridPoint() PURE_VIRTUAL(UBlendSpaceBase::SnapSamplesToClosestGridPoint, return;);
+
+	virtual void RemapSamplesToNewAxisRange() PURE_VIRTUAL(UBlendSpaceBase::RemapSamplesToNewAxisRange, return;);
 #endif // WITH_EDITOR
 	
 public:
@@ -448,5 +462,7 @@ protected:
 private:
 	// Track whether we have updated markers so cached data can be updated
 	int32 MarkerDataUpdateCounter;
+protected:
+	FVector PreviousAxisMinMaxValues[3];
 #endif	
 };

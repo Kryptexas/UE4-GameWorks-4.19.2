@@ -334,4 +334,9 @@ private:
 
 	/** Compiled filter search terms. */
 	TSharedPtr<class FTextFilterExpressionEvaluator> TextFilterPtr;
+
+	/** Proxy object used to display and edit bone transforms in details panels */
+	class UBoneProxy* BoneProxy;
+
+	friend struct FScopedSavedSelection;
 }; 

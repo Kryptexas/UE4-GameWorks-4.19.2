@@ -17,6 +17,7 @@
 #include "Textures/SlateIcon.h"
 #include "Framework/Commands/UIAction.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "SkeletalMeshTypes.h"
 
 #define LOCTEXT_NAMESPACE "FSkeletonTreeBoneItem"
 

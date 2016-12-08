@@ -1161,6 +1161,11 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 					}
 				}
 			}
+
+			if(EngineShowFlags.MassProperties && DebugMassData.Num() > 0)
+			{
+				DebugMassData[0].DrawDebugMass(Collector.GetPDI(ViewIndex), FTransform(GetLocalToWorld()));
+			}
 	
 			if (EngineShowFlags.StaticMeshes)
 			{

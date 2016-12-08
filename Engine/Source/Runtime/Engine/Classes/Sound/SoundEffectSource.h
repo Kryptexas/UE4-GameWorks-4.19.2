@@ -8,16 +8,14 @@
 
 #include "SoundEffectSource.generated.h"
 
-class USoundEffectSource;
+class FSoundEffectSource;
+class FSoundEffectBase;
 
-/** Derived class for source effects. */
+/** This is here to make sure users don't mix up source and submix effects in the editor. Asset sorting, drag-n-drop, etc. */
 UCLASS(config = Engine, abstract, editinlinenew, BlueprintType)
 class ENGINE_API USoundEffectSourcePreset : public USoundEffectPreset
 {
 	GENERATED_UCLASS_BODY()
-
-	/** Create a new source sound effect instance. */
-	virtual USoundEffectSource* CreateNewEffect() const { return nullptr; }
 };
 
 /** Struct which has data needed to initialize the source effect. */
@@ -61,23 +59,23 @@ struct FSoundEffectSourceOutputData
 	uint8 bIsSpatialized:1;
 };
 
-UCLASS(config = Engine, hidecategories = Object, abstract, editinlinenew, BlueprintType)
-class ENGINE_API USoundEffectSource : public USoundEffectBase
+class ENGINE_API FSoundEffectSource : public FSoundEffectBase
 {
-	GENERATED_UCLASS_BODY()
+public:
+	FSoundEffectSource() {}
+	virtual ~FSoundEffectSource() {}
 
-		/** Called on an audio effect at initialization on main thread before audio processing begins. */
-		virtual void Init(const FSoundEffectSourceInitData& InSampleRate) PURE_VIRTUAL(USoundEffectSource::Init, ;);
+	/** Called on an audio effect at initialization on main thread before audio processing begins. */
+	virtual void Init(const FSoundEffectSourceInitData& InSampleRate) = 0;
 
 	/** Process the input block of audio. Called on audio thread. */
-	virtual void OnProcessAudio(const FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData) PURE_VIRTUAL(USoundEffectSource::OnProcessAudio, ;);
+	virtual void OnProcessAudio(const FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData) = 0;
 
 private:
 	/** Processes audio in the source effect. */
 	void ProcessAudio(FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData);
 
 protected:
-	UClass* GetEffectClass() const override { return GetClass(); };
 
 	// Allow FAudioMixerSubmix to call ProcessAudio
 	friend class FMixerSubmix;

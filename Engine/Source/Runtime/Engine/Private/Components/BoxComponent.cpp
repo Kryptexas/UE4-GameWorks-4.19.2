@@ -8,6 +8,7 @@
 #include "SceneManagement.h"
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PrimitiveSceneProxy.h"
 
 UBoxComponent::UBoxComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

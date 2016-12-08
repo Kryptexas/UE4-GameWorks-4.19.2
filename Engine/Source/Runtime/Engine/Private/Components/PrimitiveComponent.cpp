@@ -32,6 +32,7 @@
 #include "CollisionDebugDrawingPublic.h"
 #include "GameFramework/CheatManager.h"
 #include "Streaming/TextureStreamingHelpers.h"
+#include "PrimitiveSceneProxy.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
@@ -555,7 +556,8 @@ void UPrimitiveComponent::OnCreatePhysicsState()
 
 #if UE_WITH_PHYSICS
 			// Create the body.
-			BodyInstance.InitBody(BodySetup, BodyTransform, this, GetWorld()->GetPhysicsScene());
+			BodyInstance.InitBody(BodySetup, BodyTransform, this, GetWorld()->GetPhysicsScene());		
+			SendRenderDebugPhysics();
 #endif //UE_WITH_PHYSICS
 
 #if WITH_EDITOR
@@ -630,7 +632,44 @@ void UPrimitiveComponent::OnDestroyPhysicsState()
 		BodyInstance.TermBody();
 	}
 
+#if !UE_BUILD_SHIPPING
+	SendRenderDebugPhysics();
+#endif
+
 	Super::OnDestroyPhysicsState();
+}
+
+void UPrimitiveComponent::SendRenderDebugPhysics()
+{
+#if !UE_BUILD_SHIPPING
+	if (SceneProxy)
+	{
+		TArray<FPrimitiveSceneProxy::FDebugMassData> DebugMassData;
+		if (!IsWelded() && Mobility != EComponentMobility::Static)
+		{
+			if (FBodyInstance* BI = GetBodyInstance())
+			{
+				if (BI->IsValidBodyInstance())
+				{
+					DebugMassData.AddDefaulted();
+					FPrimitiveSceneProxy::FDebugMassData& RootMassData = DebugMassData[0];
+					const FTransform MassToWorld = BI->GetMassSpaceToWorldSpace();
+
+					RootMassData.LocalCenterOfMass = ComponentToWorld.InverseTransformPosition(MassToWorld.GetLocation());
+					RootMassData.LocalTensorOrientation = MassToWorld.GetRotation() * ComponentToWorld.GetRotation().Inverse();
+					RootMassData.MassSpaceInertiaTensor = BI->GetBodyInertiaTensor();
+					RootMassData.BoneIndex = INDEX_NONE;
+				}
+			}
+		}
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			PrimitiveComponent_SendRenderDebugPhysics, FPrimitiveSceneProxy*, UseSceneProxy, SceneProxy, TArray<FPrimitiveSceneProxy::FDebugMassData>, UseDebugMassData, DebugMassData,
+		{
+			UseSceneProxy->SetDebugMassData(UseDebugMassData);
+		});
+	}
+#endif
 }
 
 FMatrix UPrimitiveComponent::GetRenderMatrix() const
@@ -1070,8 +1109,13 @@ bool UPrimitiveComponent::ShouldRenderSelected() const
 			{
 				return true;
 			}
-			else if (AActor* ParentActor = Owner->GetParentActor())
+			else if (Owner->IsChildActor())
 			{
+				AActor* ParentActor = Owner->GetParentActor();
+				while (ParentActor->IsChildActor())
+				{
+					ParentActor = ParentActor->GetParentActor();
+				}
 				return ParentActor->IsSelected();
 			}
 		}

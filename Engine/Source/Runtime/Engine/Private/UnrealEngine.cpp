@@ -1925,10 +1925,7 @@ bool UEngine::InitializeAudioDeviceManager()
 			FString AudioDeviceModuleName;
 			if (bForceAudioMixer)
 			{
-			 	// Only implemented windows for now
-#if PLATFORM_WINDOWS
-				AudioDeviceModuleName = TEXT("AudioMixerXAudio2");
-#endif
+				GConfig->GetString(TEXT("Audio"), TEXT("AudioMixerModuleName"), AudioDeviceModuleName, GEngineIni);
 			}
 
 			// get the module name from the ini file
@@ -9865,6 +9862,15 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			}
 		}
 
+		for (ULevelStreaming* LevelStreaming : WorldContext.World()->StreamingLevels)
+		{
+			// If an unloaded levelstreaming still has a loaded level we need to mark its objects to be deleted as well
+			if ((!LevelStreaming->bShouldBeLoaded || !LevelStreaming->bShouldBeVisible) && LevelStreaming->GetLoadedLevel())
+			{
+				CastChecked<UWorld>(LevelStreaming->GetLoadedLevel()->GetOuter())->MarkObjectsPendingKill();
+			}
+		}
+
 		// Stop all audio to remove references to current level.
 		if (FAudioDevice* AudioDevice = WorldContext.World()->GetAudioDevice())
 		{
@@ -12943,7 +12949,7 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 
 						for (auto ShapeDetailsIt = StatSoundInfo.ShapeDetailsMap.CreateConstIterator(); ShapeDetailsIt; ++ShapeDetailsIt)
 						{
-							const FAttenuationSettings::AttenuationShapeDetails& ShapeDetails = ShapeDetailsIt.Value();
+							const FBaseAttenuationSettings::AttenuationShapeDetails& ShapeDetails = ShapeDetailsIt.Value();
 							switch (ShapeDetailsIt.Key())
 							{
 							case EAttenuationShape::Sphere:

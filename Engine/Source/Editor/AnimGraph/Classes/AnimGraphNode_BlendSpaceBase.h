@@ -26,4 +26,7 @@ class UAnimGraphNode_BlendSpaceBase : public UAnimGraphNode_AssetPlayerBase
 
 protected:
 	UBlendSpaceBase* GetBlendSpace() const { return Cast<UBlendSpaceBase>(GetAnimationAsset()); }
+
+	/** Util to determine is an asset class is an aim offset */
+	static bool IsAimOffsetBlendSpace(const UClass* BlendSpaceClass);
 };

@@ -8,145 +8,75 @@
 
 namespace Audio
 {
-
-	/** Represents a circulating delay line. */
+	// Circular Buffer Delay Line
 	class FDelay
 	{
 	public:
-
-		/** Constructor. */
+		// Constructor
 		FDelay();
 
-		/** Destructor. */
+		// Virtual Destructor
 		virtual ~FDelay();
 
-		/** Initializes the delay line with the given number of input samples. */
-		void Init(const int32 InSampleRate, const int32 InDelaySizeMsec = 2000.0f);
+	public:
+		// Initialization of the delay with given sample rate and max buffer size in samples.
+		void Init(const int32 InSampleRate, const int32 InBufferSizeSamples);
 
-		/** Resets the delay line to re-use for audio processing. */
+		// Resets the delay line state, flushes buffer and resets read/write pointers.
 		void Reset();
 
-		/** Sets the feedback of the delay line. */
-		void SetFeedback(const float InFeedback);
-
-		/** Sets the output gain of the delay line in dB */
-		void SetOutputGainDB(const float InOutputGainDB);
-
-		/** Sets the output gain of the delay line in linear gain. */
-		void SetOutputGain(const float InOutputGain);
-
-		/** Sets the delay length (of read index) by given fractional mSec. */
+		// Sets the delay line length. Will clamp to within range of the max initialized delay line length (won't resize).
 		void SetDelayMsec(const float InDelayMsec);
 
-		/** Reads from the delay line at the current read index without incrementing the read index. */
+		// Sets the output attenuation in DB
+		void SetOutputAttenuationDB(const float InDelayAttenDB);
+
+		// Returns the current delay line length (in samples).
+		float GetDelayLengthSamples() const { return DelayInSamples; }
+
+		// Reads the delay line at current read index without writing or incrementing read/write pointers.
 		float Read() const;
 
-		/** Reads the value of the delay line at the given tap out point in milliseconds. */
-		float TapOut(const float TapOutMsec) const;
+		// Reads the delay line at an arbitrary time in Msec without writing or incrementing read/write pointers.
+		float ReadDelayAt(const float InReadMsec) const;
 
-		/** Writes the audio sample into the delay line and increments read and write indices. */
-		void TapIn(const float InSample);
+		// Write the input and increment read/write pointers
+		void WriteDelayAndInc(const float InDelayInput);
 
-		/** Writes the input sample and returns the sample at the output of the delay line. */
-		virtual float operator()(const float InSample);
+		// Process audio input and output buffer
+		virtual void ProcessAudio(const float* pInput, float* pOutput);
 
 	protected:
-		/** The delay line audio buffer. */
-		TArray<float> AudioBuffer;
 
-		/** Feedback of the delay line. */
-		float Feedback;
+		// Updates delay line based on any recent changes to settings
+		void Update();
 
-		/** Represents this delay lines current fractional sample delay. */
-		float DelaySamples;
+		// Pointer to the circular buffer of audio.
+		float* AudioBuffer;
 
-		/** The output gain of the delay. */
-		float OutputGain;
+		// Max length of buffer (in samples)
+		int32 AudioBufferSize;
 
-		/** Where the delay line is going to read from next. */
+		// Read index for circular buffer.
 		int32 ReadIndex;
 
-		/** Where teh delay line is going write to next. */
+		// Write index for circular buffer.
 		int32 WriteIndex;
 
-		/** The sample rate of the delay line. */
+		// Sample rate
 		int32 SampleRate;
-	};
 
-	/** A delay line which can be modulated by an LFO. */
-	class FModulatedDelay
-	{
-	public:
-		/** Constructor */
-		FModulatedDelay();
+		// Delay in samples; float supports fractional delay
+		float DelayInSamples;
 
-		/** Destructor */
-		virtual ~FModulatedDelay();
+		// Delay in msec
+		float DelayMsec;
 
-		/** Initialize the modulated delay with the given sample rate. */
-		virtual void Init(int32 InSampleRate);
+		// Output attenuation value.
+		float OutputAttenuation;
 
-		/** Set the modulated delay to use the saw LFO */
-		void SetLFO(const EWaveTable::Type InLFOType);
-
-		/** Sets whether or not this modulated delay's LFOs are in quadrature phase. */
-		void SetQuadraturePhase(const bool bInIsInQuadPhase) { bIsInQuadPhase = bInIsInQuadPhase; }
-
-		/** Set the modulation feedback (between -1.0f and 1.0f) */
-		virtual void SetModulationFeedback(const float InModulationFeedback);
-
-		/** Sets the modulated delay modulation min and max delay times. */
-		void SetMinAndMaxDelayMSec(const float InMinDelayTimeMsec, const float InMaxDelayTimeMsec);
-
-		/** Sets the delay offset time. */
-		void SetModulationDelayOffsetMsec(const float InDelayOffsetMsec);
-
-		/** Sets the modulation frequency of the LFOs. */
-		void SetModulationFrequency(const float InModulationFrequency);
-
-		/** Sets the amount of wet level in the modulated delay. */
-		void SetWetLevel(const float InWetLevel);
-
-		/** Generate new sample from the given input sample. */
-		float operator()(const float InSample);
-
-	protected:
-
-		/** Wave tables used for LFOs. */
-		FSineWaveTable SinLFO;
-		FSawWaveTable SawLFO;
-		FTriangleWaveTable TriLFO;
-		FSquareWaveTable SquareLFO;
-
-		/** Ptr to the currently used wave tables */
-		FWaveTableOsc* CurrentWaveTable;
-
-		/** A delay line */
-		FDelay Delay;
-
-		/** The modulation depth */
-		float ModulationDepth;
-
-		/** The modulation frequency. */
-		float ModulationFrequency;
-
-		/** The min delay time for the flanger. */
-		float MinDelayTimeMsec;
-
-		/** The max delay time for the flanger. */
-		float MaxDelayTimeMsec;
-
-		/** An additional delay offset to use. */
-		float DelayOffsetMsec;
-
-		/** The modulation feedback. */
-		float ModulationFeedback;
-
-		/** The amount of wet level in the modulated delay line. */
-		float WetLevel;
-
-		/** Whether or not the flanger is operating in quad phase. */
-		bool bIsInQuadPhase;
+		// Attenuation in decibel
+		float OutputAttenuationDB;
 	};
 
 }

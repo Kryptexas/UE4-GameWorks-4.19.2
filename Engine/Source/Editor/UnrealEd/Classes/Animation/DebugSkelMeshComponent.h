@@ -176,6 +176,15 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	UPROPERTY(transient)
 	bool bIsUsingInGameBounds;
 	
+	/** Base skel mesh has support for suspending clothing, but single ticks are more of a debug feature when stepping through an animation
+	 *  So we control that using this flag
+	 */
+	UPROPERTY(transient)
+	bool bPerformSingleClothingTick;
+
+	UPROPERTY(transient)
+	bool bPauseClothingSimulationWithAnim;
+
 	//~ Begin USceneComponent Interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	//~ End USceneComponent Interface.
@@ -297,6 +306,12 @@ private:
 
 	// Helper function to enable overlay material
 	void EnableOverlayMaterial(bool bEnable);
+
+protected:
+
+	// Overridden to support single clothing ticks
+	virtual bool ShouldRunClothTick() const override;
+
 public:
 	/** Current turn table mode */
 	EPersonaTurnTableMode::Type TurnTableMode;

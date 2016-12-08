@@ -271,7 +271,7 @@ bool physx::Gu::computeCapsule_TriangleMeshMTD(	const PxTriangleMeshGeometry& tr
 
 		foundInitial = true;
 
-		//move the capsule to depenerate it
+		//move the capsule to depenetrate it
 		
 		distV = FSub(mtd, capsuleV.radius);
 		if(FAllGrtrOrEq(FZero(), distV))
@@ -319,7 +319,7 @@ bool physx::Gu::computeCapsule_HeightFieldMTD(const PxHeightFieldGeometry& heigh
 
 	MeshPersistentContact manifoldContacts[64]; 
 	PxU32 numContacts = 0;
-	//inflated the capsule by 1% in case of some disgreement between sweep and mtd calculation.If sweep said initial overlap, but mtd has a positive separation,
+	//inflated the capsule by 1% in case of some disagreement between sweep and mtd calculation.If sweep said initial overlap, but mtd has a positive separation,
 	//we are still be able to return a valid normal but we should zero the distance.
 	const FloatV inflatedRadiusV = FLoad(inflatedRadius*1.01f);  
 	
@@ -367,10 +367,10 @@ bool physx::Gu::computeCapsule_HeightFieldMTD(const PxHeightFieldGeometry& heigh
 			const PxU32 nbTrigs = PxMin(nbTriangles - startIndex, BATCH_TRIANGLE_NUMBER);
 			for(PxU32 k=0; k<nbTrigs; k++)
 			{
-				//triangle vertext space
+				//triangle vertex space
 				const PxU32 triangleIndex1 = tempContainer[startIndex+k];
 				hfUtil.getTriangle(pose, triangles[k], NULL, NULL, triangleIndex1, true);
-				triangles[k].extraTriData = 0x38;
+				triangles[k].extraTriData = ETD_CONVEX_EDGE_ALL;
 			}
 
 			//ML: mtd has back face culling, so if the capsule's center is below the triangle, we won't generate any contacts
@@ -387,7 +387,7 @@ bool physx::Gu::computeCapsule_HeightFieldMTD(const PxHeightFieldGeometry& heigh
 		distV = FSub(mtd, capsuleV.radius);
 		if(FAllGrtrOrEq(FZero(), distV))
 		{
-			//move the capsule to depenerate it
+			//move the capsule to depenetrate it
 			Vec3V center = capsuleV.getCenter();
 			const Vec3V t = V3Scale(normal, distV);
 			translation = V3Sub(translation, t);
@@ -538,7 +538,7 @@ bool physx::Gu::computeBox_TriangleMeshMTD(const PxTriangleMeshGeometry& triMesh
 			const PxU32 nbTrigs = PxMin(nbTriangles - startIndex, BATCH_TRIANGLE_NUMBER);
 			for(PxU32 k=0; k<nbTrigs; k++)
 			{
-				//triangle vertext space
+				//triangle vertex space
 				const PxU32 triangleIndex1 = tempContainer[startIndex+k];
 				triMesh->getLocalTriangle(triangles[k], triangleIndex1, triMeshGeom.scale.hasNegativeDeterminant());
 				triangles[k].extraTriData = getConvexEdgeFlags(extraTrigData, triangleIndex1);
@@ -679,10 +679,10 @@ bool physx::Gu::computeBox_HeightFieldMTD(	const PxHeightFieldGeometry& heightFi
 			const PxU32 nbTrigs = PxMin(nbTriangles - startIndex, BATCH_TRIANGLE_NUMBER);
 			for(PxU32 k=0; k<nbTrigs; k++)
 			{
-				//triangle vertext space
+				//triangle vertex space
 				const PxU32 triangleIndex1 = tempContainer[startIndex+k];
 				hfUtil.getTriangle(pose, triangles[k], NULL, NULL, triangleIndex1, false, false);
-				triangles[k].extraTriData = 0x38;
+				triangles[k].extraTriData = ETD_CONVEX_EDGE_ALL;
 			}
 
 			//ML: mtd has back face culling, so if the box's center is below the triangle, we won't generate any contacts
@@ -840,7 +840,7 @@ bool physx::Gu::computeConvex_TriangleMeshMTD(	const PxTriangleMeshGeometry& tri
 			const PxU32 nbTrigs = PxMin(nbTriangles - startIndex, BATCH_TRIANGLE_NUMBER);
 			for(PxU32 k=0; k<nbTrigs; k++)
 			{
-				//triangle vertext space
+				//triangle vertex space
 				const PxU32 triangleIndex1 = tempContainer[startIndex+k];
 				triMesh->getLocalTriangle(triangles[k], triangleIndex1, triMeshGeom.scale.hasNegativeDeterminant());
 				triangles[k].extraTriData = getConvexEdgeFlags(extraTrigData, triangleIndex1);
@@ -999,10 +999,10 @@ bool physx::Gu::computeConvex_HeightFieldMTD(	const PxHeightFieldGeometry& heigh
 			const PxU32 nbTrigs = PxMin(nbTriangles - startIndex, BATCH_TRIANGLE_NUMBER);
 			for(PxU32 k=0; k<nbTrigs; k++)
 			{
-				//triangle vertext space
+				//triangle vertex space
 				const PxU32 triangleIndex1 = tempContainer[startIndex+k];
 				hfUtil.getTriangle(pose, triangles[k], NULL, NULL, triangleIndex1, false, false);
-				triangles[k].extraTriData = 0x38;
+				triangles[k].extraTriData = ETD_CONVEX_EDGE_ALL;
 			}
 
 			//ML: mtd has back face culling, so if the capsule's center is below the triangle, we won't generate any contacts

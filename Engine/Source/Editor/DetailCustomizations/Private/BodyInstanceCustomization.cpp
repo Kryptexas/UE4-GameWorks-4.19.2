@@ -321,9 +321,9 @@ TSharedPtr<FString> FBodyInstanceCustomization::GetProfileString(FName ProfileNa
 	{
 		for(int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
 		{
-			if(*CollisionProfileComboList[ProfileId+1].Get() == ProfileNameString)
+			if(*CollisionProfileComboList[ProfileId+GetNumberOfSpecialProfiles()].Get() == ProfileNameString)
 			{
-				return CollisionProfileComboList[ProfileId+1];
+				return CollisionProfileComboList[ProfileId+GetNumberOfSpecialProfiles()];
 			}
 		}
 	}
@@ -1545,26 +1545,7 @@ EVisibility FBodyInstanceCustomizationHelper::IsAutoWeldVisible() const
 
 void FBodyInstanceCustomizationHelper::OnSetBodyMass(float BodyMass, ETextCommit::Type Commit)
 {
-	UPrimitiveComponent* Comp = nullptr;
-	UBodySetup* BS = nullptr;
-	
-	FScopedTransaction SetBodyMassTransaction(FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), MassInKgOverrideHandle->GetPropertyDisplayName()));
-
-	MassInKgOverrideHandle->NotifyPreChange();
-	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
-	{
-		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
-		{
-			Comp = Cast<UPrimitiveComponent>(ObjectIt->Get());
-			Comp->SetMassOverrideInKg(NAME_None, BodyMass);
-		}
-		else if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UBodySetup::StaticClass()))
-		{
-			BS = Cast<UBodySetup>(ObjectIt->Get());
-			BS->DefaultInstance.SetMassOverride(BodyMass);
-		}
-	}
-	MassInKgOverrideHandle->NotifyPostChange();
+	MassInKgOverrideHandle->SetValue(BodyMass);
 }
 
 

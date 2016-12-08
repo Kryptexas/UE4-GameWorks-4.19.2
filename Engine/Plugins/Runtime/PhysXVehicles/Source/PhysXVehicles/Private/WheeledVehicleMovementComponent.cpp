@@ -261,7 +261,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 
 				if (WheelBodySetup->AggGeom.ConvexElems.Num() == 1)
 				{
-					PxConvexMesh* ConvexMesh = WheelBodySetup->AggGeom.ConvexElems[0].ConvexMesh;
+					PxConvexMesh* ConvexMesh = WheelBodySetup->AggGeom.ConvexElems[0].GetConvexMesh();
 					PWheelShape = GPhysXSDK->createShape(PxConvexMeshGeometry(ConvexMesh, MeshScale), *WheelMaterial, /*bIsExclusive=*/true);
 					PVehicleActor->attachShape(*PWheelShape);
 				}
@@ -280,6 +280,8 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 			{
 				//fallback onto simple spheres
 				PWheelShape = GPhysXSDK->createShape(PxSphereGeometry(Wheel->ShapeRadius), *WheelMaterial, /*bIsExclusive=*/true);
+				PWheelShape->setLocalPose(PLocalPose);
+				PVehicleActor->attachShape(*PWheelShape);
 			}
 
 			// Init filter data

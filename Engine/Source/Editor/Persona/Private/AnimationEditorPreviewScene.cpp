@@ -120,6 +120,8 @@ void FAnimationEditorPreviewScene::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
 
 void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh)
 {
+	USkeletalMesh* OldPreviewMesh = SkeletalMeshComponent->SkeletalMesh;
+
 	ValidatePreviewAttachedAssets(NewPreviewMesh);
 
 	if (NewPreviewMesh != SkeletalMeshComponent->SkeletalMesh)
@@ -183,7 +185,7 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 		SourceBlueprint->SetObjectBeingDebugged(SkeletalMeshComponent->GetAnimInstance());
 	}
 
-	OnPreviewMeshChanged.Broadcast(NewPreviewMesh);
+	OnPreviewMeshChanged.Broadcast(OldPreviewMesh, NewPreviewMesh);
 }
 
 void FAnimationEditorPreviewScene::ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh)

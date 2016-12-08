@@ -161,7 +161,7 @@ public:
 	bool IsSetCameraFollowChecked() const;
 
 	/** Handle the skeletal mesh mesh component being used for preview changing */
-	void HandleSkeletalMeshChanged(class USkeletalMesh* InSkeletalMesh);
+	void HandleSkeletalMeshChanged(class USkeletalMesh* OldSkeletalMesh, class USkeletalMesh* NewSkeletalMesh);
 
 	/** Function to display bone names*/
 	void ShowBoneNames(FViewport* Viewport, FCanvas* Canvas);

@@ -299,16 +299,21 @@ namespace ClickHandlers
 
 		USceneComponent* Component = nullptr;
 
-		// Find the component in the actor that matches the PrimComponent on the hit proxy
-		TInlineComponentArray<USceneComponent*> SceneComponents;
-		ActorHitProxy->Actor->GetComponents(SceneComponents);
-		for (auto CompIt = SceneComponents.CreateConstIterator(); CompIt; ++CompIt)
+		if (ActorHitProxy->Actor->IsChildActor())
 		{
-			auto SceneComp = *CompIt;
-			if (SceneComp == ActorHitProxy->PrimComponent)
+			AActor* TestActor = ActorHitProxy->Actor;
+			do
 			{
-				Component = SceneComp;
-				break;
+				Component = TestActor->GetParentComponent();
+				TestActor = TestActor->GetParentActor();
+			} while (TestActor->IsChildActor());
+		}
+		else
+		{
+			UPrimitiveComponent* TestComponent = const_cast<UPrimitiveComponent*>(ActorHitProxy->PrimComponent);
+			if (ActorHitProxy->Actor->GetComponents().Contains(TestComponent))
+			{
+				Component = TestComponent;
 			}
 		}
 

@@ -71,27 +71,26 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 	const FBoneContainer& RequiredBones = LocalPoseContext.Pose.GetBoneContainer();
 	if (RequiredBones.GetSkeletalMeshAsset())
 	{
-		const USkeletalMeshSocket* Socket = RequiredBones.GetSkeletalMeshAsset()->FindSocket(SourceSocketName);
-		if (Socket)
+		FCSPose<FCompactPose> GlobalPose;
+		GlobalPose.InitPose(LocalPoseContext.Pose);
+
+		USkeletalMeshComponent* Component = LocalPoseContext.AnimInstanceProxy->GetSkelMeshComponent();
+		AActor* Actor = Component ? Component->GetOwner() : nullptr;
+
+		FVector BlendInput(EForceInit::ForceInitToZero);
+		if (Component && Actor && BlendSpace)
 		{
-			const FTransform SocketLocalTransform = Socket->GetSocketLocalTransform();
-
-			FBoneReference SocketBoneReference;
-			SocketBoneReference.BoneName = Socket->BoneName;
-			SocketBoneReference.Initialize(RequiredBones);
-
-			if (SocketBoneReference.IsValid(RequiredBones))
+			const USkeletalMeshSocket* Socket = RequiredBones.GetSkeletalMeshAsset()->FindSocket(SourceSocketName);
+			if (Socket)
 			{
-				const FCompactPoseBoneIndex SocketBoneIndex = SocketBoneReference.GetCompactPoseIndex(RequiredBones);
-
-				FCSPose<FCompactPose> GlobalPose;
-				GlobalPose.InitPose(LocalPoseContext.Pose);
-
-				USkeletalMeshComponent* Component = LocalPoseContext.AnimInstanceProxy->GetSkelMeshComponent();
-				AActor* Actor = Component ? Component->GetOwner() : nullptr;
-
-				if (Component && Actor &&  BlendSpace)
+				const FTransform SocketLocalTransform = Socket->GetSocketLocalTransform();
+				FBoneReference SocketBoneReference;
+				SocketBoneReference.BoneName = Socket->BoneName;
+				SocketBoneReference.Initialize(RequiredBones);
+				// Only calculate blend space input if we have a valid source socket
+				if (SocketBoneReference.IsValid(RequiredBones))
 				{
+					const FCompactPoseBoneIndex SocketBoneIndex = SocketBoneReference.GetCompactPoseIndex(RequiredBones);
 					const FTransform ActorTransform = Actor->GetTransform();
 
 					const FTransform BoneTransform = GlobalPose.GetComponentSpaceTransform(SocketBoneIndex);
@@ -109,17 +108,8 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 
 					const FVector2D CurrentCoords = FMath::GetAzimuthAndElevation(CurrentDirection, AxisX, AxisY, AxisZ);
 					const FVector2D TargetCoords = FMath::GetAzimuthAndElevation(DirectionToTarget, AxisX, AxisY, AxisZ);
-					const FVector BlendInput(
-						FRotator::NormalizeAxis(FMath::RadiansToDegrees(TargetCoords.X - CurrentCoords.X)), 
-						FRotator::NormalizeAxis(FMath::RadiansToDegrees(TargetCoords.Y - CurrentCoords.Y)),
-						0.f);
-
-					// Set X and Y, so ticking next frame is based on correct weights.
-					X = BlendInput.X;
-					Y = BlendInput.Y;
-
-					// Generate BlendSampleDataCache from inputs.
-					BlendSpace->GetSamplesFromBlendInput(BlendInput, BlendSampleDataCache);
+					BlendInput.X = FRotator::NormalizeAxis(FMath::RadiansToDegrees(TargetCoords.X - CurrentCoords.X));
+					BlendInput.Y = FRotator::NormalizeAxis(FMath::RadiansToDegrees(TargetCoords.Y - CurrentCoords.Y));
 
 #if ENABLE_DRAW_DEBUG
 					if (CVarAimOffsetLookAtDebug.GetValueOnAnyThread() == 1)
@@ -140,6 +130,13 @@ void FAnimNode_AimOffsetLookAt::UpdateFromLookAtTarget(FPoseContext& LocalPoseCo
 #endif // ENABLE_DRAW_DEBUG
 				}
 			}
+
+			// Set X and Y, so ticking next frame is based on correct weights.
+			X = BlendInput.X;
+			Y = BlendInput.Y;
+
+			// Generate BlendSampleDataCache from inputs.
+			BlendSpace->GetSamplesFromBlendInput(BlendInput, BlendSampleDataCache);
 		}
 	}
 }

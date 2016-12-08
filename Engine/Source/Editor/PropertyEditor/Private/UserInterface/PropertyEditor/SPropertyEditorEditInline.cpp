@@ -9,6 +9,7 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "Styling/SlateIconFinder.h"
+#include "ConstructorHelpers.h"
 
 class FPropertyEditorInlineClassFilter : public IClassViewerFilter
 {
@@ -189,6 +190,8 @@ void SPropertyEditorEditInline::OnClassPicked(UClass* InClass)
 
 	if( ObjectNode )
 	{
+		GEditor->BeginTransaction(TEXT("PropertyEditor"), NSLOCTEXT("PropertyEditor", "OnClassPicked", "Set Class"), PropertyNode->GetProperty());
+
 		for ( TPropObjectIterator Itor( ObjectNode->ObjectIterator() ) ; Itor ; ++Itor )
 		{
 			FString NewValue;
@@ -213,7 +216,34 @@ void SPropertyEditorEditInline::OnClassPicked(UClass* InClass)
 		}
 
 		const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
-		PropertyHandle->SetPerObjectValues( NewValues );
+
+		// If this is an instanced component property collect current component names so we can clean them properly if necessary
+		TArray<FString> PrevPerObjectValues;
+		UObjectProperty* ObjectProperty = CastChecked<UObjectProperty>(PropertyHandle->GetProperty());
+		if (ObjectProperty && ObjectProperty->HasAnyPropertyFlags(CPF_InstancedReference) && ObjectProperty->PropertyClass->IsChildOf(UActorComponent::StaticClass()))
+		{
+			PropertyHandle->GetPerObjectValues(PrevPerObjectValues);
+		}
+
+		PropertyHandle->SetPerObjectValues(NewValues);
+		check(PrevPerObjectValues.Num() == 0 || PrevPerObjectValues.Num() == NewValues.Num());
+
+		for (int32 Index = 0; Index < PrevPerObjectValues.Num(); ++Index)
+		{
+			if (PrevPerObjectValues[Index] != NewValues[Index])
+			{
+				// Move the old component to the transient package so resetting owned components on the parent doesn't find it
+				ConstructorHelpers::StripObjectClass(PrevPerObjectValues[Index]);
+				if (UActorComponent* Component = Cast<UActorComponent>(StaticFindObject(UActorComponent::StaticClass(), ANY_PACKAGE, *PrevPerObjectValues[Index])))
+				{
+					Component->Modify();
+					Component->Rename(nullptr, GetTransientPackage(), REN_DontCreateRedirectors);
+				}
+			}
+		}
+
+		// End the transaction if we called PreChange
+		GEditor->EndTransaction();
 
 		// Force a rebuild of the children when this node changes
 		PropertyNode->RequestRebuildChildren();

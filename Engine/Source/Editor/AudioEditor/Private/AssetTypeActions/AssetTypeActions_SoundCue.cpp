@@ -55,7 +55,7 @@ bool FAssetTypeActions_SoundCue::CanExecuteConsolidateCommand(TArray<TWeakObject
 
 void FAssetTypeActions_SoundCue::ExecuteConsolidateAttenuation(TArray<TWeakObjectPtr<USoundCue>> Objects)
 {
-	TMap<FAttenuationSettings*,TArray<USoundCue*>> UnmatchedAttenuations;
+	TMap<FSoundAttenuationSettings*,TArray<USoundCue*>> UnmatchedAttenuations;
 
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{

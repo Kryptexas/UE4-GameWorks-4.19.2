@@ -76,7 +76,10 @@ public:
 	virtual void PostLoad() override;
 
 #if ENABLE_VISUAL_LOG
+protected:
 	virtual void BeginPlay() override;
+
+public:
 #endif // ENABLE_VISUAL_LOG
 
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;

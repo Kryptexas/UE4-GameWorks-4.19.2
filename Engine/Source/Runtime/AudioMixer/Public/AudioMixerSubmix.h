@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AudioMixer.h"
+#include "AudioMixerSourceManager.h"
 #include "Sound/SoundSubmix.h"
 
 class USoundEffectSubmix;
@@ -19,8 +20,17 @@ namespace Audio
 		FMixerSubmix(USoundSubmix* InSoundSubmix, FMixerDevice* InMixerDevice);
 		~FMixerSubmix();
 
-		// Queries if this submix is the master submix.
-		bool IsMasterSubmix() const;
+		// Returns the mixer submix Id
+		uint32 GetId() const { return Id; }
+
+		// Sets the parent submix to the given submix
+		void SetParentSubmix(TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> Submix);
+
+		// Adds the given submix to this submix's children
+		void AddChildSubmix(TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> Submix);
+
+		// Gets this submix's parent submix
+		TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> GetParentSubmix();
 
 		// Returns the number of source voices currently a part of this submix.
 		int32 GetNumSourceVoices() const;
@@ -28,11 +38,14 @@ namespace Audio
 		// Returns the number of wet effects in this submix.
 		int32 GetNumEffects() const;
 
-		// Adds the given source voice to the submix.
-		void AddSourceVoice(FMixerSourceVoice* InSourceVoice);
+		// Add (if not already added) or sets the amount of the source voice's send amount
+		void AddOrSetSourceVoice(FMixerSourceVoice* InSourceVoice, const float DryLevel, const float WetLevel);
 
 		/** Removes the given source voice from the submix. */
 		void RemoveSourceVoice(FMixerSourceVoice* InSourceVoice);
+
+		/** Appends the effect submix to the effect submix chain. */
+		void AddSoundEffectSubmix(FSoundEffectSubmix* InSoundEffectSubmix);
 
 		// Function which processes audio.
 		void ProcessAudio(TArray<float>& OutAudio);
@@ -52,26 +65,46 @@ namespace Audio
 		// Updates the submix from the main thread.
 		void Update();
 
-	private:
+		// Returns the number of effects in this submix's effect chain
+		int32 GetNumChainEffects() const;
 
-		// UObject static data with graph information.
-		USoundSubmix* SoundSubmix;
+		// Returns the submix effect at the given effect chain index
+		FSoundEffectSubmix* GetSubmixEffect(const int32 InIndex);
+
+	protected:
+		// Down mix the given buffer to the desired down mix channel count
+		void DownmixBuffer(const int32 InputChannelCount, const TArray<float>& InBuffer, const int32 DownMixChannelCount, TArray<float>& OutDownmixedBuffer);
+
+	protected:
+		// This mixer submix's Id
+		uint32 Id;
+
+		// Parent submix. 
+		TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> ParentSubmix;
+
+		// Child submixes
+		TMap<uint32, TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe>> ChildSubmixes;
 
 		// The effect chain of this submix, based on the sound submix preset chain
-		TArray<USoundEffectSubmix*> EffectSubmixChain;
+		TArray<FSoundEffectSubmix*> EffectSubmixChain;
 
 		// Owning mixer device. 
 		FMixerDevice* MixerDevice;
 
-		// Parent submix. 
-		FMixerSubmix* Parent;
+		// Describes how to treat the source voice in the mixer submix's effect chain
+		struct FSubmixEffectSendInfo
+		{
+			float DryLevel;
+			float WetLevel;
+		};
 
-		// The source voices to be mixed by this submix. 
-		TArray<FMixerSourceVoice*> MixerSourceVoices;
+		// Map of mixer source voices with a given wet-level to use when processing
+		TMap<FMixerSourceVoice*, FSubmixEffectSendInfo> MixerSourceVoices;
 
 		TArray<float> DryBuffer;
 		TArray<float> WetBuffer;
 		TArray<float> ScratchBuffer;
+		TArray<float> DownmixedBuffer;
 
 		// The output wet level of this submix. Used by parent submix to determine how to route the output of this submix. 
 		float WetLevel;

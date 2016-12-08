@@ -32,9 +32,12 @@ public:
 	virtual bool IsValidAdditiveType(EAdditiveAnimationType AdditiveType) const override;
 protected:
 	//~ Begin UBlendSpaceBase Interface
-	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const;
-	virtual void SnapSamplesToClosestGridPoint();
+	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const;	
 	virtual EBlendSpaceAxis GetAxisToScale() const override;
 	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const override;
+#if WITH_EDITOR
+	virtual void SnapSamplesToClosestGridPoint() override;
+	virtual void RemapSamplesToNewAxisRange() override;
+#endif // WITH_EDITOR
 	//~ End UBlendSpaceBase Interface
 };

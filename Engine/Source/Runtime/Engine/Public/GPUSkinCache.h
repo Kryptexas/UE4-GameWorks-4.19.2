@@ -220,6 +220,11 @@ public:
 		uint32 InputStreamStride;
 		FShaderResourceViewRHIRef InputVertexBufferSRV;
 
+		// skin weight input
+		uint32 InputWeightStart;
+		uint32 InputWeightStride;
+		FShaderResourceViewRHIRef InputWeightStreamSRV;
+
 		// morph input
 		FShaderResourceViewRHIParamRef MorphBuffer;
 		uint32 MorphBufferOffset;

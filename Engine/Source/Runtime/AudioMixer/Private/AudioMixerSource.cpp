@@ -4,6 +4,7 @@
 #include "AudioMixerDevice.h"
 #include "AudioMixerSourceVoice.h"
 #include "IAudioExtensionPlugin.h"
+#include "Sound/AudioSettings.h"
 
 namespace Audio
 {
@@ -66,25 +67,49 @@ namespace Audio
 				return false;
 			}
 
-			// Default the submix to use to use the master submix
-			FMixerSubmix* SourceSubmix = MixerDevice->GetMasterSubmix();
-
-			// If we're told to use a different submix, then grab that submix and set it for the sound
-			if (InWaveInstance->SoundSubmix)
-			{
-				FMixerSubmix** Submix = MixerDevice->GetSubmix(InWaveInstance->SoundSubmix);
-				check(Submix);
-				SourceSubmix = *Submix;
-			}
-
 			// Initialize the source voice with the necessary format information
 			FMixerSourceVoiceInitParams InitParams;
 			InitParams.BufferQueueListener = this;
 			InitParams.NumInputChannels = InWaveInstance->WaveData->NumChannels;
 			InitParams.NumInputFrames = NumFrames;
-			InitParams.OwningSubmix = SourceSubmix;
 			InitParams.SourceVoice = MixerSourceVoice;
 			InitParams.bUseHRTFSpatialization = UseHRTSpatialization();
+
+			if (InWaveInstance->SoundSubmixSends.Num())
+			{
+				for (int32 i = 0; i < InWaveInstance->SoundSubmixSends.Num(); ++i)
+				{
+					FMixerSourceSubmixSend SubmixSend;
+					SubmixSend.Submix = MixerDevice->GetSubmixInstance(InWaveInstance->SoundSubmixSends[i].SoundSubmix);
+					SubmixSend.WetLevel = InWaveInstance->SoundSubmixSends[i].WetLevel;
+					SubmixSend.DryLevel = InWaveInstance->SoundSubmixSends[i].DryLevel;
+
+					InitParams.SubmixSends.Add(SubmixSend);
+				}
+			}
+			else
+			{
+				// Send the voice to the EQ submix if it's enabled
+				const bool bIsEQDisabled = GetDefault<UAudioSettings>()->bDisableMasterEQ;
+				if (!bIsEQDisabled && IsEQFilterApplied())
+				{
+					// Default the submix to use to use the master submix if none are set
+					FMixerSourceSubmixSend SubmixSend;
+					SubmixSend.Submix = MixerDevice->GetMasterEQSubmix();
+					SubmixSend.WetLevel = 1.0f;
+					SubmixSend.DryLevel = 0.0f;
+					InitParams.SubmixSends.Add(SubmixSend);
+				}
+				else
+				{
+					// Default the submix to use to use the master submix if none are set
+					FMixerSourceSubmixSend SubmixSend;
+					SubmixSend.Submix = MixerDevice->GetMasterSubmix();
+					SubmixSend.WetLevel = 1.0f;
+					SubmixSend.DryLevel = 0.0f;
+					InitParams.SubmixSends.Add(SubmixSend);
+				}
+			}
 
 			// Check to see if this sound has been flagged to be in debug mode
 #if AUDIO_MIXER_ENABLE_DEBUG_MODE
@@ -99,6 +124,9 @@ namespace Audio
 				InitParams.bIsDebugMode = bDebugMode;
 			}
 #endif
+
+			// We support reverb
+			SetReverbApplied(true);
 
 			if (MixerSourceVoice->Init(InitParams))
 			{
@@ -146,8 +174,6 @@ namespace Audio
 			return;
 		}
 
-		FSoundSource::UpdateCommon();
-
 		UpdatePitch();
 
 		UpdateVolume();
@@ -188,6 +214,10 @@ namespace Audio
 			LPFFrequency = MAX_FILTER_FREQUENCY;
 			LastLPFFrequency = FLT_MAX;
 			bIsFinished = false;
+
+			int32 NumBytes = InWaveInstance->WaveData->RawPCMDataSize;
+			NumTotalFrames = NumBytes / (Buffer->NumChannels * sizeof(int16));
+			check(NumTotalFrames > 0);
 
 			// We succeeded in preparing the buffer for initialization, but we are not technically initialized yet.
 			// If the buffer is asynchronously preparing a file-handle, we may not yet initialize the source.
@@ -287,6 +317,13 @@ namespace Audio
 	FString FMixerSource::Describe(bool bUseLongName)
 	{
 		return FString(TEXT("Stub"));
+	}
+
+	float FMixerSource::GetPlaybackPercent() const
+	{
+ 		int64 NumFrames = MixerSourceVoice->GetNumFramesPlayed();
+ 		AUDIO_MIXER_CHECK(NumTotalFrames > 0);
+ 		return (float)NumFrames / NumTotalFrames;
 	}
 
 	void FMixerSource::SubmitPCMBuffers()
@@ -548,9 +585,20 @@ namespace Audio
 		// Scale in the sound sample rate divided by device sample rate so pitch is 
 		// accurate independent of sound source sample rate or device sample rate
 		AUDIO_MIXER_CHECK(MixerBuffer);
-		Pitch *= (MixerBuffer->GetSampleRate() / AudioDevice->GetSampleRate());
+
+		check(WaveInstance);
+
+		Pitch = WaveInstance->Pitch;
+
+		// Don't apply global pitch scale to UI sounds
+		if (!WaveInstance->bIsUISound)
+		{
+			Pitch *= AudioDevice->GetGlobalPitchScale().GetValue();
+		}
 
 		Pitch = FMath::Clamp<float>(Pitch, AUDIO_MIXER_MIN_PITCH, AUDIO_MIXER_MAX_PITCH);
+
+		Pitch *= (MixerBuffer->GetSampleRate() / AudioDevice->GetSampleRate());
 
 		MixerSourceVoice->SetPitch(Pitch);
 	}
@@ -589,8 +637,25 @@ namespace Audio
 			LastLPFFrequency = LPFFrequency;
 		}
 
-		// TODO: Update the wet level of the sound based on game data
-		MixerSourceVoice->SetWetLevel(0.5f);
+		if (bReverbApplied)
+		{
+			// Get fraction of the sound to the 
+			if (WaveInstance->bUseSpatialization && WaveInstance->ReverbDistanceMax > WaveInstance->ReverbDistanceMin)
+			{
+				float Alpha = (WaveInstance->ListenerToSoundDistance - WaveInstance->ReverbDistanceMin) / (WaveInstance->ReverbDistanceMax - WaveInstance->ReverbDistanceMin);
+				Alpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
+				float WetLevel = FMath::Lerp(WaveInstance->ReverbWetLevelMin, WaveInstance->ReverbWetLevelMax, Alpha);
+				FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
+				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, 0.0f, WetLevel);
+			}
+			else
+			{
+				// If we're not 3d spatializing a sound, then use the default send amount, which is
+				// set to ReverbWetLevelMin in the WaveInstance initialization
+				FMixerSubmixPtr MasterReverbSubmix = MixerDevice->GetMasterReverbSubmix();
+				MixerSourceVoice->SetSubmixSendInfo(MasterReverbSubmix, 0.0f, WaveInstance->ReverbWetLevelMin);
+			}
+		}
 	}
 
 	void FMixerSource::UpdateChannelMaps()
@@ -634,7 +699,7 @@ namespace Audio
 		else if (!ChannelMap.Num())
 		{
 			// Only need to compute the 2D channel map once
-			MixerDevice->Get2DChannelMap(1, ChannelMap);
+			MixerDevice->Get2DChannelMap(1, MixerDevice->GetNumDeviceChannels(), ChannelMap);
 			return true;
 		}
 
@@ -650,9 +715,9 @@ namespace Audio
 			UpdateStereoEmitterPositions();
 
 			float AzimuthOffset = 0.0f;
-			if (WaveInstance->AttenuationDistance > 0.0f)
+			if (WaveInstance->ListenerToSoundDistance > 0.0f)
 			{
-				AzimuthOffset = FMath::Atan(0.5f * WaveInstance->StereoSpread / WaveInstance->AttenuationDistance);
+				AzimuthOffset = FMath::Atan(0.5f * WaveInstance->StereoSpread / WaveInstance->ListenerToSoundDistance);
 				AzimuthOffset = FMath::RadiansToDegrees(AzimuthOffset);
 			}
 
@@ -669,37 +734,18 @@ namespace Audio
 			}
 
 			// Reset the channel map, the stereo spatialization channel mapping calls below will append their mappings
-			StereoChannelMap.Reset();
-
-			MixerDevice->Get3DChannelMap(WaveInstance, LeftAzimuth, SpatializationParams.NormalizedOmniRadius, StereoChannelMap);
-			MixerDevice->Get3DChannelMap(WaveInstance, RightAzimuth, SpatializationParams.NormalizedOmniRadius, StereoChannelMap);
-
 			ChannelMap.Reset();
 
+			MixerDevice->Get3DChannelMap(WaveInstance, LeftAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+			MixerDevice->Get3DChannelMap(WaveInstance, RightAzimuth, SpatializationParams.NormalizedOmniRadius, ChannelMap);
+
 			int32 NumDeviceChannels = MixerDevice->GetNumDeviceChannels();
-			check(StereoChannelMap.Num() == 2 * NumDeviceChannels);
-
-			int32 LeftIndex = 0;
-			int32 RightIndex = NumDeviceChannels;
-
-			for (int32 i = 0; i < StereoChannelMap.Num(); ++i)
-			{
-				// Interleave the left and right channel maps to a single stereo source -> output channel map
-				if (i % 2 == 0)
-				{
-					ChannelMap.Add(StereoChannelMap[LeftIndex++]);
-				}
-				else
-				{
-					ChannelMap.Add(StereoChannelMap[RightIndex++]);
-				}
-			}
-
+			check(ChannelMap.Num() == 2 * NumDeviceChannels);
 			return true;
 		}
 		else if (!ChannelMap.Num())
 		{
-			MixerDevice->Get2DChannelMap(2, ChannelMap);
+			MixerDevice->Get2DChannelMap(2, MixerDevice->GetNumDeviceChannels(), ChannelMap);
 			return true;
 		}
 
@@ -718,7 +764,7 @@ namespace Audio
 		}
 		else if (!ChannelMap.Num())
 		{
-			MixerDevice->Get2DChannelMap(NumChannels, ChannelMap);
+			MixerDevice->Get2DChannelMap(NumChannels, MixerDevice->GetNumDeviceChannels(), ChannelMap);
 			return true;
 		}
 		return false;

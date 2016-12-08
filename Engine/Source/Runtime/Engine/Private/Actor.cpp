@@ -12,10 +12,8 @@
 #include "AI/Navigation/NavigationSystem.h"
 #include "Components/InputComponent.h"
 #include "Engine/Engine.h"
-#include "Components/AudioComponent.h"
 #include "UObject/UObjectHash.h"
 #include "UObject/PropertyPortFlags.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/LocalPlayer.h"
@@ -35,7 +33,6 @@
 #include "Animation/AnimInstance.h"
 #include "Engine/DemoNetDriver.h"
 #include "Components/PawnNoiseEmitterComponent.h"
-#include "Components/TimelineComponent.h"
 #include "Components/ChildActorComponent.h"
 #include "Camera/CameraComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
@@ -58,6 +55,8 @@ FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(
 #if !UE_BUILD_SHIPPING
 FOnProcessEvent AActor::ProcessEventDelegate;
 #endif
+
+uint32 AActor::BeginPlayCallDepth = 0;
 
 AActor::AActor()
 {
@@ -147,12 +146,9 @@ bool AActor::CheckActorComponents()
 	DEFINE_LOG_CATEGORY_STATIC(LogCheckComponents, Warning, All);
 
 	bool bResult = true;
-	TInlineComponentArray<UActorComponent*> Components;
-	GetComponents(Components);
 
-	for (int32 Index = 0; Index < Components.Num(); Index++)
+	for (UActorComponent* Inner : GetComponents())
 	{
-		UActorComponent* Inner = Components[Index];
 		if (!Inner)
 		{
 			continue;
@@ -760,12 +756,12 @@ void AActor::RegisterAllActorTickFunctions(bool bRegister, bool bDoComponents)
 
 		if (bDoComponents)
 		{
-			TInlineComponentArray<UActorComponent*> Components;
-			GetComponents(Components);
-
-			for (int32 Index = 0; Index < Components.Num(); Index++)
+			for (UActorComponent* Component : GetComponents())
 			{
-				Components[Index]->RegisterAllComponentTickFunctions(bRegister);
+				if (Component)
+				{
+					Component->RegisterAllComponentTickFunctions(bRegister);
+				}
 			}
 		}
 	}
@@ -878,27 +874,9 @@ void AActor::Tick( float DeltaSeconds )
 	{
 		bool bOKToDestroy = true;
 
-		// @todo: naive implementation, needs improved
-		TInlineComponentArray<UActorComponent*> Components(this);
-
-		for (UActorComponent* const Comp : Components)
+		for (UActorComponent* const Comp : GetComponents())
 		{
-			UParticleSystemComponent* const PSC = Cast<UParticleSystemComponent>(Comp);
-			if ( PSC && (PSC->bIsActive || !PSC->bWasCompleted) )
-			{
-				bOKToDestroy = false;
-				break;
-			}
-
-			UAudioComponent* const AC = Cast<UAudioComponent>(Comp);
-			if (AC && AC->IsPlaying())
-			{
-				bOKToDestroy = false;
-				break;
-			}
-
-			UTimelineComponent* const TL = Cast<UTimelineComponent>(Comp);
-			if (TL && TL->IsPlaying())
+			if (Comp && !Comp->IsReadyForOwnerToAutoDestroy())
 			{
 				bOKToDestroy = false;
 				break;
@@ -2440,6 +2418,8 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 {
 	check(Component->GetOwner() == this);
 
+	Modify();
+
 	bool bAlreadyInSet = false;
 	OwnedComponents.Add(Component, &bAlreadyInSet);
 
@@ -2463,6 +2443,8 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
 {
+	Modify();
+
 	if (OwnedComponents.Remove(Component) > 0)
 	{
 		ReplicatedComponents.Remove(Component);
@@ -2912,7 +2894,7 @@ void AActor::PostActorConstruction()
 					UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName());
 				}
 
-				bool bRunBeginPlay = !bDeferBeginPlayAndUpdateOverlaps && World->HasBegunPlay();
+				bool bRunBeginPlay = !bDeferBeginPlayAndUpdateOverlaps && (BeginPlayCallDepth > 0 || World->HasBegunPlay());
 				if (bRunBeginPlay)
 				{
 					if (AActor* ParentActor = GetParentActor())
@@ -2925,7 +2907,7 @@ void AActor::PostActorConstruction()
 				if (bRunBeginPlay)
 				{
 					SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-					BeginPlay();
+					DispatchBeginPlay();
 				}
 			}
 		}
@@ -3014,7 +2996,7 @@ void AActor::PostNetInit()
 		if (MyWorld && MyWorld->HasBegunPlay())
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-			BeginPlay();
+			DispatchBeginPlay();
 		}
 	}
 
@@ -3038,6 +3020,21 @@ void AActor::ExchangeNetRoles(bool bRemoteOwned)
 void AActor::SwapRolesForReplay()
 {
 	Swap(Role, RemoteRole);
+}
+
+void AActor::DispatchBeginPlay()
+{
+	UWorld* World = (!HasActorBegunPlay() && !IsPendingKill() ? GetWorld() : nullptr);
+
+	if (World)
+	{
+		const uint32 CurrentCallDepth = BeginPlayCallDepth++;
+
+		BeginPlay();
+
+		ensure(BeginPlayCallDepth - 1 == CurrentCallDepth);
+		BeginPlayCallDepth = CurrentCallDepth;
+	}
 }
 
 void AActor::BeginPlay()
@@ -3530,38 +3527,6 @@ bool AActor::SetRootComponent(class USceneComponent* NewRootComponent)
 	}
 
 	return false;
-}
-
-/** K2 exposed 'get location' */
-FVector AActor::K2_GetActorLocation() const
-{
-	return GetActorLocation();
-}
-
-/** K2 exposed 'get rotation' */
-FRotator AActor::K2_GetActorRotation() const
-{
-	return GetActorRotation();
-}
-
-FVector AActor::GetActorForwardVector() const
-{
-	return GetActorQuat().GetForwardVector();
-}
-
-FVector AActor::GetActorUpVector() const
-{
-	return GetActorQuat().GetUpVector();
-}
-
-FVector AActor::GetActorRightVector() const
-{
-	return GetActorQuat().GetRightVector();
-}
-
-USceneComponent* AActor::K2_GetRootComponent() const
-{
-	return GetRootComponent();
 }
 
 void AActor::GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) const
@@ -4111,13 +4076,9 @@ void AActor::ReregisterAllComponents()
 
 void AActor::UpdateComponentTransforms()
 {
-	TInlineComponentArray<UActorComponent*> Components;
-	GetComponents(Components);
-
-	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+	for (UActorComponent* ActorComp : GetComponents())
 	{
-		UActorComponent* ActorComp = Components[Idx];
-		if (ActorComp->IsRegistered())
+		if (ActorComp && ActorComp->IsRegistered())
 		{
 			ActorComp->UpdateComponentToWorld();
 		}
@@ -4126,11 +4087,9 @@ void AActor::UpdateComponentTransforms()
 
 void AActor::MarkComponentsRenderStateDirty()
 {
-	TInlineComponentArray<UActorComponent*> Components(this);
-
-	for (UActorComponent* ActorComp : Components)
+	for (UActorComponent* ActorComp : GetComponents())
 	{
-		if (ActorComp->IsRegistered())
+		if (ActorComp && ActorComp->IsRegistered())
 		{
 			ActorComp->MarkRenderStateDirty();
 			if (UChildActorComponent* ChildActorComponent = Cast<UChildActorComponent>(ActorComp))
@@ -4153,12 +4112,12 @@ void AActor::InitializeComponents()
 	{
 		if (ActorComp->IsRegistered())
 		{
-			if (!ActorComp->IsActive() && ActorComp->bAutoActivate)
+			if (ActorComp->bAutoActivate && !ActorComp->IsActive())
 			{
 				ActorComp->Activate(true);
 			}
 
-			if (ActorComp->bWantsInitializeComponent)
+			if (ActorComp->bWantsInitializeComponent && !ActorComp->HasBeenInitialized())
 			{
 				// Broadcast the activation event since Activate occurs too early to fire a callback in a game
 				ActorComp->InitializeComponent();
@@ -4214,25 +4173,13 @@ void AActor::DrawDebugComponents(FColor const& BaseColor) const
 
 void AActor::InvalidateLightingCacheDetailed(bool bTranslationOnly)
 {
-	TInlineComponentArray<UActorComponent*> Components;
-	GetComponents(Components);
-
-	for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
+	for (UActorComponent* Component : GetComponents())
 	{
-		UActorComponent* Component = Components[ComponentIndex]; 
-
 		if(Component && Component->IsRegistered())
 		{
 			Component->InvalidateLightingCacheDetailed(true, bTranslationOnly);
 		}
 	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// Validate that we didn't change it during this action
-	TInlineComponentArray<UActorComponent*> NewComponents;
-	GetComponents(NewComponents);
-	ensure(Components == NewComponents);
-#endif
 }
 
  // COLLISION

@@ -34,6 +34,7 @@ public:
 
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
 	virtual FBox GetNavigationBounds() const override;
+	virtual void RebuildNavigationData() override;
 
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;

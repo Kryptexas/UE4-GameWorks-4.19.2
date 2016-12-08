@@ -31,14 +31,16 @@ public:
 	UPROPERTY(Category=Grid, EditAnywhere, BlueprintReadOnly)
 	float BlockSpacing;
 
+protected:
 	// Begin AActor interface
 	virtual void BeginPlay() override;
 	// End AActor interface
 
+public:
+
 	/** Handle the block being clicked */
 	void AddScore();
 
-public:
 	/** Returns DummyRoot subobject **/
 	FORCEINLINE class USceneComponent* GetDummyRoot() const { return DummyRoot; }
 	/** Returns ScoreText subobject **/

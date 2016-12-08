@@ -9,6 +9,8 @@
 #include "Audio.h"
 #include "Sound/AudioVolume.h"
 #include "Sound/ReverbEffect.h"
+#include "AudioDeviceManager.h"
+#include "AudioDevice.h"
 
 /** 
  * Default settings for a null reverb effect
@@ -281,10 +283,10 @@ void FAudioEffectsManager::AddReferencedObjects( FReferenceCollector& Collector 
  * Sets new reverb mode if necessary. Otherwise interpolates to the current settings and calls SetEffect to handle
  * the platform specific aspect.
  */
-void FAudioEffectsManager::SetReverbSettings( const FReverbSettings& ReverbSettings )
+void FAudioEffectsManager::SetReverbSettings( const FReverbSettings& ReverbSettings, bool bForce)
 {
 	/** Update the settings if the reverb type has changed */
-	if( ReverbSettings.bApplyReverb && ReverbSettings.ReverbEffect != CurrentReverbAsset )
+	if( ReverbSettings.bApplyReverb && (ReverbSettings.ReverbEffect != CurrentReverbAsset || bForce))
 	{
 		FString CurrentReverbName = CurrentReverbAsset ? CurrentReverbAsset->GetName() : TEXT("None");
 		FString NextReverbName = ReverbSettings.ReverbEffect ? ReverbSettings.ReverbEffect->GetName() : TEXT("None");
@@ -296,11 +298,21 @@ void FAudioEffectsManager::SetReverbSettings( const FReverbSettings& ReverbSetti
 			UE_LOG(LogAudio, Warning, TEXT( "FAudioDevice::SetReverbSettings(): Illegal volume %g (should be 0.0f <= Volume <= 1.0f)" ), ReverbSettings.Volume );
 		}
 
+		CurrentReverbSettings = ReverbSettings;
+
 		SourceReverbEffect = CurrentReverbEffect;
 		SourceReverbEffect.Time = FApp::GetCurrentTime();
 
 		DestinationReverbEffect = ReverbSettings.ReverbEffect;
-		DestinationReverbEffect.Time = FApp::GetCurrentTime() + ReverbSettings.FadeTime;
+
+		if (bForce)
+		{
+			DestinationReverbEffect.Time = FApp::GetCurrentTime();
+		}
+		else
+		{
+			DestinationReverbEffect.Time = FApp::GetCurrentTime() + ReverbSettings.FadeTime;
+		}
 		DestinationReverbEffect.Volume = ReverbSettings.Volume;
 		if( !ReverbSettings.ReverbEffect )
 		{
@@ -405,6 +417,23 @@ void FAudioEffectsManager::Update()
 		CurrentEQMix->bChanged = false;
 		SetMixSettings(CurrentEQMix, true, true);
 	}
+
+	if (CurrentReverbAsset && CurrentReverbAsset->bChanged)
+	{
+		CurrentReverbAsset->bChanged = false;
+		class FAudioDeviceManager* DeviceManager = GEngine->GetAudioDeviceManager();
+		TArray<FAudioDevice*>& AudioDevices = DeviceManager->GetAudioDevices();
+		for (int32 i = 0; i < AudioDevices.Num(); ++i)
+		{
+			if (AudioDevices[i])
+			{
+				FAudioEffectsManager* EffectsManager = AudioDevices[i]->GetEffects();
+				EffectsManager->SetReverbSettings(CurrentReverbSettings, true);
+			}
+		}
+		
+	}
+
 #endif
 
 	Interpolate(CurrentReverbEffect, SourceReverbEffect, DestinationReverbEffect);

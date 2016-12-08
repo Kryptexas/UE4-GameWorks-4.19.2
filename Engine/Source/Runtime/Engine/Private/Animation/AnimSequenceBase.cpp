@@ -430,7 +430,9 @@ void UAnimSequenceBase::InitializeNotifyTrack()
 
 int32 UAnimSequenceBase::GetNumberOfFrames() const
 {
-	return (SequenceLength/0.033f);
+	static float DefaultSampleRateInterval = 1.f/DEFAULT_SAMPLERATE;
+	// because of float error, add small margin at the end, so it can clamp correctly
+	return (SequenceLength/DefaultSampleRateInterval + KINDA_SMALL_NUMBER);
 }
 
 int32 UAnimSequenceBase::GetFrameAtTime(const float Time) const

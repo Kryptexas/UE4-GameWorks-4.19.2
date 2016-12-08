@@ -344,11 +344,10 @@ TSharedPtr<SDockTab> FAnimationEditor::OpenNewAnimationDocumentTab(UAnimationAss
 	{
 		FString	DocumentLink;
 
-		FAnimDocumentArgs Args(PersonaToolkit->GetPreviewScene(), GetPersonaToolkit(), GetSkeletonTree()->GetEditableSkeleton(), OnPostUndo, OnCurvesChanged, OnChangeAnimNotifies, OnSectionsChanged);
+		FAnimDocumentArgs Args(PersonaToolkit->GetPreviewScene(), GetPersonaToolkit(), GetSkeletonTree()->GetEditableSkeleton(), OnPostUndo, OnChangeAnimNotifies, OnSectionsChanged);
 		Args.OnDespatchObjectsSelected = FOnObjectsSelected::CreateSP(this, &FAnimationEditor::HandleObjectsSelected);
 		Args.OnDespatchAnimNotifiesChanged = FSimpleDelegate::CreateSP(this, &FAnimationEditor::HandleAnimNotifiesChanged);
 		Args.OnDespatchInvokeTab = FOnInvokeTab::CreateSP(this, &FAssetEditorToolkit::InvokeTab);
-		Args.OnDespatchCurvesChanged = FSimpleDelegate::CreateSP(this, &FAnimationEditor::HandleCurvesChanged);
 		Args.OnDespatchSectionsChanged = FSimpleDelegate::CreateSP(this, &FAnimationEditor::HandleSectionsChanged);
 
 		FPersonaModule& PersonaModule = FModuleManager::GetModuleChecked<FPersonaModule>("Persona");
@@ -421,11 +420,6 @@ void FAnimationEditor::HandleAnimNotifiesChanged()
 	OnChangeAnimNotifies.Broadcast();
 }
 
-void FAnimationEditor::HandleCurvesChanged()
-{
-	OnCurvesChanged.Broadcast();
-}
-
 void FAnimationEditor::HandleSectionsChanged()
 {
 	OnSectionsChanged.Broadcast();
@@ -442,11 +436,6 @@ void FAnimationEditor::HandleOpenNewAsset(UObject* InNewAsset)
 UObject* FAnimationEditor::HandleGetAsset()
 {
 	return GetEditingObject();
-}
-
-void FAnimationEditor::HandleSetKeyCompleted()
-{
-	OnCurvesChanged.Broadcast();
 }
 
 bool FAnimationEditor::HasValidAnimationSequence() const
@@ -466,7 +455,7 @@ void FAnimationEditor::OnSetKey()
 	if (AnimationAsset)
 	{
 		UDebugSkelMeshComponent* Component = PersonaToolkit->GetPreviewMeshComponent();
-		Component->PreviewInstance->SetKey(FSimpleDelegate::CreateSP(this, &FAnimationEditor::HandleSetKeyCompleted));
+		Component->PreviewInstance->SetKey();
 	}
 }
 
@@ -868,7 +857,7 @@ void FAnimationEditor::ConditionalRefreshEditor(UObject* InObject)
 	if (bInterestingAsset)
 	{
 		GetPersonaToolkit()->GetPreviewScene()->InvalidateViews();
-		OpenNewAnimationDocumentTab(CastChecked<UAnimationAsset>(InObject));
+		OpenNewAnimationDocumentTab(Cast<UAnimationAsset>(InObject));
 	}
 }
 

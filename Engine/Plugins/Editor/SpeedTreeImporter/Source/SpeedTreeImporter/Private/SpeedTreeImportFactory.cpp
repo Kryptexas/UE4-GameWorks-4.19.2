@@ -1067,7 +1067,7 @@ static void MakeBodyFromCollisionObjects(UStaticMesh* StaticMesh, const SpeedTre
 
 	StaticMesh->BodySetup->ClearPhysicsMeshes();
 	StaticMesh->BodySetup->InvalidatePhysicsData();
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 }
 
 

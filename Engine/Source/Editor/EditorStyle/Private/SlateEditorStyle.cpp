@@ -5621,6 +5621,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 		Set("ClassIcon.DecalComponent", new IMAGE_BRUSH("Icons/AssetIcons/DecalActor_16x", Icon16x16));
 		Set("ClassIcon.DirectionalLightComponent", new IMAGE_BRUSH("Icons/AssetIcons/DirectionalLight_16x", Icon16x16));
 		Set("ClassIcon.ExponentialHeightFogComponent", new IMAGE_BRUSH("Icons/AssetIcons/ExponentialHeightFog_16x", Icon16x16));
+		Set("ClassIcon.ForceFeedbackComponent", new IMAGE_BRUSH("Icons/AssetIcons/ForceFeedbackEffect_16x", Icon16x16));
 		Set("ClassIcon.LandscapeComponent", new IMAGE_BRUSH("Icons/AssetIcons/Landscape_16x", Icon16x16));
 		Set("ClassIcon.LightComponent", new IMAGE_BRUSH("Icons/ActorIcons/LightActor_16x", Icon16x16));
 		Set("ClassIcon.ParticleSystemComponent", new IMAGE_BRUSH("Icons/AssetIcons/ParticleSystem_16x", Icon16x16));

@@ -9,7 +9,6 @@
 #include "EditorUndoClient.h"
 
 class IPropertyHandle;
-class SComboButton;
 
 /** Customization for the gameplay tag struct */
 class FGameplayTagCustomization : public IPropertyTypeCustomization, public FEditorUndoClient
@@ -49,9 +48,6 @@ private:
 
 	/** Returns Tag name currently selected*/
 	FText SelectedTag() const;
-
-	/** Combo Button for the drop down list. */
-	TSharedPtr<SComboButton> ComboButton;
 
 	/** Cached property handle */
 	TSharedPtr<IPropertyHandle> StructPropertyHandle;

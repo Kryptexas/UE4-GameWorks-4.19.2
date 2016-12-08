@@ -246,7 +246,7 @@ public:
 	FBox GetStreamingVolumeBounds();
 
 	/** Gets a pointer to the LoadedLevel value */
-	ENGINE_API class ULevel* GetLoadedLevel() const {	return LoadedLevel; }
+	ENGINE_API class ULevel* GetLoadedLevel() const { return LoadedLevel; }
 	
 	/** Sets the LoadedLevel value to NULL */
 	void ClearLoadedLevel() { SetLoadedLevel(nullptr); }
@@ -281,7 +281,7 @@ public:
 
 	/** Returns whether streaming level is loaded */
 	UFUNCTION(BlueprintCallable, Category="Game")
-	ENGINE_API bool IsLevelLoaded() const;
+	ENGINE_API bool IsLevelLoaded() const { return (LoadedLevel != nullptr); }
 
 	/** Returns whether level has streaming state change pending */
 	UFUNCTION(BlueprintCallable, Category="Game")

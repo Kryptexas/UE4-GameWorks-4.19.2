@@ -26,6 +26,7 @@
 #include "Net/OnlineEngineInterface.h"
 #include "SceneManagement.h"
 #include "PhysicsPublic.h"
+#include "SkeletalMeshTypes.h"
 
 
 #include "IHeadMountedDisplay.h"

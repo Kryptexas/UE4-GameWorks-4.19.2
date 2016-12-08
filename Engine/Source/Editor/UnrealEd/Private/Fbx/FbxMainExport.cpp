@@ -2698,7 +2698,7 @@ public:
 private:
 	uint32 GetConvexVerticeNumber(const FKConvexElem &ConvexElem)
 	{
-		return ConvexElem.ConvexMesh != nullptr ? ConvexElem.ConvexMesh->getNbVertices() : 0;
+		return ConvexElem.GetConvexMesh() != nullptr ? ConvexElem.GetConvexMesh()->getNbVertices() : 0;
 	}
 
 	uint32 GetBoxVerticeNumber() { return 24; }
@@ -2709,8 +2709,7 @@ private:
 
 	void AddConvexVertex(const FKConvexElem &ConvexElem)
 	{
-		const FTransform &ConvexTransform = ConvexElem.GetTransform();
-		const physx::PxConvexMesh* ConvexMesh = ConvexElem.ConvexMesh;
+		const physx::PxConvexMesh* ConvexMesh = ConvexElem.GetConvexMesh();
 		if (ConvexMesh == nullptr)
 		{
 			return;
@@ -2719,7 +2718,6 @@ private:
 		for (uint32 PosIndex = 0; PosIndex < ConvexMesh->getNbVertices(); ++PosIndex)
 		{
 			FVector Position = P2UVector(VertexArray[PosIndex]);
-			Position = ConvexTransform.TransformPosition(Position);
 			ControlPoints[CurrentVertexOffset + PosIndex] = FbxVector4(Position.X, -Position.Y, Position.Z);
 		}
 		CurrentVertexOffset += ConvexMesh->getNbVertices();
@@ -2727,8 +2725,7 @@ private:
 
 	void AddConvexNormals(const FKConvexElem &ConvexElem)
 	{
-		const FTransform &ConvexTransform = ConvexElem.GetTransform();
-		const physx::PxConvexMesh* ConvexMesh = ConvexElem.ConvexMesh;
+		const physx::PxConvexMesh* ConvexMesh = ConvexElem.GetConvexMesh();
 		if (ConvexMesh == nullptr)
 		{
 			return;
@@ -2744,7 +2741,6 @@ private:
 			}
 			const PxVec3 PPlaneNormal(PolyData.mPlane[0], PolyData.mPlane[1], PolyData.mPlane[2]);
 			FVector Normal = P2UVector(PPlaneNormal.getNormalized());
-			Normal = ConvexTransform.TransformVector(Normal);
 			FbxVector4 FbxNormal = FbxVector4(Normal.X, -Normal.Y, Normal.Z);
 			// add vertices 
 			for (PxU32 j = 0; j < PolyData.mNbVerts; ++j)
@@ -2756,7 +2752,7 @@ private:
 
 	void AddConvexPolygon(const FKConvexElem &ConvexElem)
 	{
-		const physx::PxConvexMesh* ConvexMesh = ConvexElem.ConvexMesh;
+		const physx::PxConvexMesh* ConvexMesh = ConvexElem.GetConvexMesh();
 		if (ConvexMesh == nullptr)
 		{
 			return;

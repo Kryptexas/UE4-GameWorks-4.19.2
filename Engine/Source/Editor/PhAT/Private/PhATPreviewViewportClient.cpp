@@ -795,38 +795,40 @@ void FPhATEdPreviewViewportClient::EndManipulating()
 	{
 		SharedData->bManipulating = false;
 
-			if (SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
+		if (SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
+		{
+			for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 			{
-				
-				for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
+				FPhATSharedData::FSelection & SelectedObject = SharedData->SelectedBodies[i];
+				UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SelectedObject.Index];
+
+				FKAggregateGeom* AggGeom = &BodySetup->AggGeom;
+
+				if (SelectedObject.PrimitiveType == KPT_Sphere)
 				{
-					FPhATSharedData::FSelection & SelectedObject = SharedData->SelectedBodies[i];
-					UBodySetup* BodySetup = SharedData->PhysicsAsset->SkeletalBodySetups[SelectedObject.Index];
+					AggGeom->SphereElems[SelectedObject.PrimitiveIndex].Center = (SelectedObject.ManipulateTM * AggGeom->SphereElems[SelectedObject.PrimitiveIndex].GetTransform() ).GetLocation();
+				}
+				else if (SelectedObject.PrimitiveType == KPT_Box)
+				{
+					AggGeom->BoxElems[SelectedObject.PrimitiveIndex].SetTransform(SelectedObject.ManipulateTM * AggGeom->BoxElems[SelectedObject.PrimitiveIndex].GetTransform() );
+				}
+				else if (SelectedObject.PrimitiveType == KPT_Sphyl)
+				{
+					AggGeom->SphylElems[SelectedObject.PrimitiveIndex].SetTransform(SelectedObject.ManipulateTM * AggGeom->SphylElems[SelectedObject.PrimitiveIndex].GetTransform() );
+				}
+				else if (SelectedObject.PrimitiveType == KPT_Convex)
+				{
+					FKConvexElem& Convex = AggGeom->ConvexElems[SelectedObject.PrimitiveIndex];
+					Convex.SetTransform(SelectedObject.ManipulateTM * Convex.GetTransform() );
 
-					FKAggregateGeom* AggGeom = &BodySetup->AggGeom;
-
-					if (SelectedObject.PrimitiveType == KPT_Sphere)
-					{
-						AggGeom->SphereElems[SelectedObject.PrimitiveIndex].Center = (SelectedObject.ManipulateTM * AggGeom->SphereElems[SelectedObject.PrimitiveIndex].GetTransform() ).GetLocation();
-					}
-					else if (SelectedObject.PrimitiveType == KPT_Box)
-					{
-						AggGeom->BoxElems[SelectedObject.PrimitiveIndex].SetTransform(SelectedObject.ManipulateTM * AggGeom->BoxElems[SelectedObject.PrimitiveIndex].GetTransform() );
-					}
-					else if (SelectedObject.PrimitiveType == KPT_Sphyl)
-					{
-						AggGeom->SphylElems[SelectedObject.PrimitiveIndex].SetTransform(SelectedObject.ManipulateTM * AggGeom->SphylElems[SelectedObject.PrimitiveIndex].GetTransform() );
-					}
-					else if (SelectedObject.PrimitiveType == KPT_Convex)
-					{
-						FKConvexElem& Convex = AggGeom->ConvexElems[SelectedObject.PrimitiveIndex];
-						Convex.SetTransform(SelectedObject.ManipulateTM * Convex.GetTransform() );
-					}
+					BodySetup->InvalidatePhysicsData();
+					BodySetup->CreatePhysicsMeshes();
+				}
 			}
 		}
 
 		GEditor->EndTransaction();
-
+		SharedData->RefreshPhysicsAssetChange(SharedData->PhysicsAsset);
 		Viewport->Invalidate();
 	}
 }

@@ -274,9 +274,14 @@ void FAnimationRuntime::BlendTwoPosesTogetherPerBone(
 	}
 
 	// Ensure that all of the resulting rotations are normalized
-	// @fixme: this has to be fixed with name mapping to joint in the future
 	ResultPose.NormalizeRotations();
-	ResultCurve.Lerp(SourceCurve1, SourceCurve2, 1.f);
+
+	// @note : This isn't perfect as curve can link to joint, and it would be the best to use that information
+	// but that is very expensive option as we have to have another indirect look up table to search. 
+	// For now, replacing with combine (non-zero will be overriden)
+	// in the future, we might want to do this outside if we want per bone blend to apply curve also UE-39182
+	ResultCurve.Override(SourceCurve1);
+	ResultCurve.Combine(SourceCurve2);
 }
 
 template <int32 TRANSFORM_BLEND_MODE>

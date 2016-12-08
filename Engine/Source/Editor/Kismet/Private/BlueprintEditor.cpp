@@ -861,14 +861,14 @@ void FBlueprintEditor::OnSelectionUpdated(const TArray<FSCSEditorTreeNodePtrType
 
 	// Update the selection visualization
 	AActor* EditorActorInstance = Blueprint->SimpleConstructionScript->GetComponentEditorActorInstance();
-	if (EditorActorInstance != NULL)
+	if (EditorActorInstance != nullptr)
 	{
 		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
-		EditorActorInstance->GetComponents(PrimitiveComponents);
+		EditorActorInstance->GetComponents(PrimitiveComponents, true);
 
-		for (int32 Idx = 0; Idx < PrimitiveComponents.Num(); ++Idx)
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
 		{
-			PrimitiveComponents[Idx]->PushSelectionToProxy();
+			PrimitiveComponent->PushSelectionToProxy();
 		}
 	}
 

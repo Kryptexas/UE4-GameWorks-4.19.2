@@ -202,8 +202,8 @@ static UEdGraphNode* FBlueprintMenuActionItemImpl::AutowireSpawnedNodes(UEdGraph
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiSpec, IBlueprintNodeBinder::FBindingSet const& InBindings, const FText& InNodeCategory, int32 InGrouping)
-	: FEdGraphSchemaAction(InNodeCategory, UiSpec.MenuName, UiSpec.Tooltip.ToString(), InGrouping, UiSpec.Keywords)
+FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiSpec, IBlueprintNodeBinder::FBindingSet const& InBindings, FText InNodeCategory, int32 InGrouping)
+	: FEdGraphSchemaAction(MoveTemp(InNodeCategory), UiSpec.MenuName, UiSpec.Tooltip.ToString(), InGrouping, UiSpec.Keywords)
 	, Action(NodeSpawner)
 	, IconTint(UiSpec.IconTint)
 	, IconBrush(UiSpec.Icon.GetOptionalIcon())

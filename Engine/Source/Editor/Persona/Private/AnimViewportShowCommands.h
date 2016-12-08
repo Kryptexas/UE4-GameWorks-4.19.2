@@ -143,6 +143,9 @@ public:
 	TSharedPtr< FUICommandInfo > ShowClothPhysicalMeshWire;
 
 	TSharedPtr< FUICommandInfo > ShowClothFixedVertices;	
+
+	TSharedPtr< FUICommandInfo > PauseClothWithAnim;
+
 #endif// #if WITH_APEX_CLOTHING
 
 public:

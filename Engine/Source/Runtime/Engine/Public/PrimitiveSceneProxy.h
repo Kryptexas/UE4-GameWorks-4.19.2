@@ -532,6 +532,25 @@ public:
 	 */
 	ENGINE_API bool NeedsUniformBufferUpdate() const;
 
+#if !UE_BUILD_SHIPPING
+
+	struct ENGINE_API FDebugMassData
+	{
+		//Local here just means local to ElemTM which can be different depending on how the component uses the mass data
+		FQuat LocalTensorOrientation;
+		FVector LocalCenterOfMass;
+		FVector MassSpaceInertiaTensor;
+		int32 BoneIndex;
+
+		void DrawDebugMass(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM) const;
+	};
+
+	TArray<FDebugMassData> DebugMassData;
+
+	/** Sets the primitive proxy's mass space to component space. Useful for debugging physics center of mass and inertia tensor*/
+	ENGINE_API virtual void SetDebugMassData(const TArray<FDebugMassData>& InDebugMassData);
+#endif
+
 	/**
 	 * Get the list of LCIs. Used to set the precomputed lighting uniform buffers, which can only be created by the RENDERER_API.
 	 */

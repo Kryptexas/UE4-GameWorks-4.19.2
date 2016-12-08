@@ -14,6 +14,7 @@
 #include "AnimPreviewInstance.h"
 #include "Animation/AnimComposite.h"
 #include "Animation/BlendSpaceBase.h"
+#include "SkeletalMeshTypes.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FDebugSkelMeshSceneProxy
@@ -98,6 +99,9 @@ UDebugSkelMeshComponent::UDebugSkelMeshComponent(const FObjectInitializer& Objec
 	// always shows cloth morph target when previewing in editor
 	bClothMorphTarget = false;
 #endif //#if WITH_APEX_CLOTHING
+
+	bPauseClothingSimulationWithAnim = false;
+	bPerformSingleClothingTick = false;
 }
 
 FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
@@ -428,6 +432,21 @@ void UDebugSkelMeshComponent::EnableOverlayMaterial(bool bEnable)
 		}
 	}
 }
+
+bool UDebugSkelMeshComponent::ShouldRunClothTick() const
+{
+	const bool bBaseShouldTick = Super::ShouldRunClothTick();
+	const bool bBaseCouldTick = CanSimulateClothing();
+
+	// If we could tick, but our simulation is suspended - only tick if we've attempted to step the animation
+	if(bBaseCouldTick && bClothingSimulationSuspended && bPerformSingleClothingTick)
+	{
+		return true;
+	}
+
+	return bBaseShouldTick;
+}
+
 void UDebugSkelMeshComponent::SetShowMorphTargetVerts(bool bNewShowMorphTargetVerts)
 {
 	// Check we are actually changing it!
@@ -783,5 +802,12 @@ void UDebugSkelMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 		SetRelativeRotation(Rotation);
 	}
 
+        // Brute force approach to ensure that when materials are changed the names are cached parameter names are updated 
+	bCachedMaterialParameterIndicesAreDirty = true;
+
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// The tick from our super will call ShouldRunClothTick on us which will 'consume' this flag.
+	// flip this flag here to only allow a single tick.
+	bPerformSingleClothingTick = false;
 }

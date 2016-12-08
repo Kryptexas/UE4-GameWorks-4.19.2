@@ -29,6 +29,7 @@ struct FKConvexElem : public FKShapeElem
 	UPROPERTY()
 	FBox ElemBox;
 
+private:
 	/** Transform of this element */
 	UPROPERTY()
 	FTransform Transform;
@@ -38,6 +39,9 @@ struct FKConvexElem : public FKShapeElem
 
 	/** Convex mesh for this body, flipped across X, created from cooked data in CreatePhysicsMeshes */
 	physx::PxConvexMesh*   ConvexMeshNegX;
+
+public:
+
 
 	FKConvexElem()
 		: FKShapeElem(EAggCollisionShape::Convex)
@@ -95,11 +99,28 @@ struct FKConvexElem : public FKShapeElem
 	/** Returns the volume of this element */
 	float GetVolume(const FVector& Scale) const;
 
+	/** Get the PhysX convex mesh (defined in BODY space) for this element */
+	ENGINE_API physx::PxConvexMesh* GetConvexMesh() const;
+
+	/** Set the PhysX convex mesh to use for this element */
+	ENGINE_API void SetConvexMesh(physx::PxConvexMesh* InMesh);
+
+	/** Get the PhysX convex mesh (defined in BODY space) for this element */
+	ENGINE_API physx::PxConvexMesh* GetMirroredConvexMesh() const;
+
+	/** Set the PhysX convex mesh to use for this element */
+	ENGINE_API void SetMirroredConvexMesh(physx::PxConvexMesh* InMesh);
+
+	/** Get current transform applied to convex mesh vertices */
 	FTransform GetTransform() const
 	{
 		return Transform;
 	};
 
+	/** 
+	 * Modify the transform to apply to convex mesh vertices 
+	 * NOTE: When doing this, BodySetup convex meshes need to be recooked - usually by calling InvalidatePhysicsData() and CreatePhysicsMeshes()
+	 */
 	void SetTransform(const FTransform& InTransform)
 	{
 		ensure(InTransform.IsValid());

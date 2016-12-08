@@ -74,7 +74,7 @@ public:
 		/** Called when an frame is appended in the beginning or at the end */
 		SLATE_EVENT(FOnAppendAnimSequence, OnAppendAnimSequence)
 		/** Called to zero out selected frame's translation from origin */
-		SLATE_EVENT( FSimpleDelegate, OnReZeroAnimSequence )
+		SLATE_EVENT( FOnReZeroAnimSequence, OnReZeroAnimSequence )
 		SLATE_ATTRIBUTE( bool, IsRealtimeStreamingMode )
 		/** Optional, additional values to draw on the timeline **/
 		SLATE_ATTRIBUTE( TArray<float>, DraggableBars )

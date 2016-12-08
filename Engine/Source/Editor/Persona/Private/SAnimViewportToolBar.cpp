@@ -685,6 +685,7 @@ void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
 		MenuBuilder.AddMenuEntry(Actions.ShowClothMaxDistances);
 		MenuBuilder.AddMenuEntry(Actions.ShowClothBackstop);
 		MenuBuilder.AddMenuEntry(Actions.ShowClothFixedVertices);
+		MenuBuilder.AddMenuEntry(Actions.PauseClothWithAnim);
 	}
 	MenuBuilder.EndSection();
 

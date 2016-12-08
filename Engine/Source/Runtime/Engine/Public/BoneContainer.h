@@ -12,6 +12,7 @@
 
 class USkeletalMesh;
 class USkeleton;
+class USkeletalMesh;
 
 /**
 * This is a native transient structure. Used to store virtual bone mappings for compact poses

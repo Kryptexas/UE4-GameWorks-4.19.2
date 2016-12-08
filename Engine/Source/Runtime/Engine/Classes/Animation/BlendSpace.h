@@ -21,10 +21,13 @@ public:
 	virtual bool IsValidAdditive() const override;
 protected:
 	//~ Begin UBlendSpaceBase Interface
-	virtual void SnapSamplesToClosestGridPoint();
 	virtual EBlendSpaceAxis GetAxisToScale() const override;
 	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const;
 	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const override;
+#if WITH_EDITOR
+	virtual void SnapSamplesToClosestGridPoint();
+	virtual void RemapSamplesToNewAxisRange() override;
+#endif // WITH_EDITOR
 	//~ End UBlendSpaceBase Interface
 
 	/**

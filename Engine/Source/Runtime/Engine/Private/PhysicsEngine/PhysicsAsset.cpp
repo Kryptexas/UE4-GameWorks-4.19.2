@@ -53,6 +53,8 @@ void USkeletalBodySetup::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 			//changed any setting so copy dummy UI into profile location
 			PhysProfile->PhysicalAnimationData = CurrentPhysicalAnimationProfile.PhysicalAnimationData;
 	}
+
+	OwningPhysAsset->RefreshPhysicsAssetChange();
 }
 
 FName USkeletalBodySetup::GetCurrentPhysicalAnimationProfileName() const
@@ -654,6 +656,8 @@ void UPhysicsAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	RefreshPhysicsAssetChange();
 }
 
 #endif
@@ -690,6 +694,27 @@ void UPhysicsAsset::BodyFindConstraints(int32 BodyIndex, TArray<int32>& Constrai
 		}
 	}
 }
+
+#if WITH_EDITOR
+void UPhysicsAsset::RefreshPhysicsAssetChange() const
+{
+	for (FObjectIterator Iter(USkeletalMeshComponent::StaticClass()); Iter; ++Iter)
+	{
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(*Iter);
+		if (SkeletalMeshComponent->GetPhysicsAsset() == this)
+		{
+			// it needs to recreate IF it already has been created
+			if (SkeletalMeshComponent->IsPhysicsStateCreated())
+			{
+				SkeletalMeshComponent->RecreatePhysicsState();
+				SkeletalMeshComponent->InvalidateCachedBounds();
+				SkeletalMeshComponent->UpdateBounds();
+				SkeletalMeshComponent->MarkRenderTransformDirty();
+			}
+		}
+	}
+}
+#endif
 
 void UPhysicsAsset::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {

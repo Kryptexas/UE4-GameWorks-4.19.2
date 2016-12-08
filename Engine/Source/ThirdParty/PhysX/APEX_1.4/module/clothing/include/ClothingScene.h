@@ -155,8 +155,8 @@ public:
 
 protected:
 
-	ModuleClothingImpl* 		mModule;
-	SceneIntl* 			mApexScene;
+	ModuleClothingImpl* 	mModule;
+	SceneIntl* 				mApexScene;
 #if PX_PHYSICS_VERSION_MAJOR == 3
 	PxScene*				mPhysXScene;
 #endif
@@ -189,11 +189,11 @@ protected:
 private:
 
 	class WaitForSolverTask*				mWaitForSolverTask;
-	class ClothingSceneSimulateTask*	mSimulationTask;
-	nvidia::Mutex					mSceneLock;
+	class ClothingSceneSimulateTask*		mSimulationTask;
+	nvidia::Mutex							mSceneLock;
 	int32_t									mSceneRunning;
 
-	RenderDebugInterface*						mRenderDebug;
+	RenderDebugInterface*					mRenderDebug;
 
 	DebugRenderParams*						mDebugRenderParams;
 	ClothingDebugRenderParams*				mClothingDebugRenderParams;
@@ -202,17 +202,17 @@ private:
 	nvidia::Mutex							mCookingTaskMutex;
 
 	Array<float>							mLastSimulationDeltas;
-	uint32_t									mCurrentSimulationDelta;
+	uint32_t								mCurrentSimulationDelta;
 	float									mAverageSimulationFrequency;
 
 #ifndef _DEBUG
 	// For statistics
-	uint32_t									mFramesCount;
+	uint32_t								mFramesCount;
 	float									mSimulatedTime;
 	float									mTimestep;
 #endif
 
-	nvidia::Time					mClothingSimulationTime;
+	nvidia::Time							mClothingSimulationTime;
 
 	ClothFactory							mCpuFactory;
 #if APEX_CUDA_SUPPORT

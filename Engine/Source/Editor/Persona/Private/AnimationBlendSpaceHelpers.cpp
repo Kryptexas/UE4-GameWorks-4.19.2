@@ -45,12 +45,15 @@ void FDelaunayTriangleGenerator::EmptySamplePoints()
 void FDelaunayTriangleGenerator::Reset()
 {
 	EmptyTriangles();
-	EmptySamplePoints();	
+	EmptySamplePoints();
+	IndiceMappingTable.Empty();
 }
 
-void FDelaunayTriangleGenerator::AddSamplePoint(const FVector& NewPoint)
+void FDelaunayTriangleGenerator::AddSamplePoint(const FVector& NewPoint, const int32 SampleIndex)
 {
-	SamplePointList.AddUnique(FPoint(NewPoint));
+	checkf(!SamplePointList.Contains(NewPoint), TEXT("Found duplicate points in blendspace"));
+	SamplePointList.Add(FPoint(NewPoint));
+	IndiceMappingTable.Add(SampleIndex);
 }
 
 void FDelaunayTriangleGenerator::Triangulate()
@@ -105,11 +108,12 @@ void FDelaunayTriangleGenerator::Triangulate()
 
 void FDelaunayTriangleGenerator::SortSamples()
 {
+	// Populate sorting array with sample points and their original (blend space -> sample data) indices
 	TArray<FPointWithIndex> SortedPoints;
 	SortedPoints.Reserve(SamplePointList.Num());
 	for (int32 SampleIndex = 0; SampleIndex < SamplePointList.Num(); ++SampleIndex)
 	{
-		SortedPoints.Add(FPointWithIndex(SamplePointList[SampleIndex], SampleIndex));
+		SortedPoints.Add(FPointWithIndex(SamplePointList[SampleIndex], IndiceMappingTable[SampleIndex]));
 	}
 
 	// return A-B
@@ -184,16 +188,23 @@ FDelaunayTriangleGenerator::ECircumCircleState FDelaunayTriangleGenerator::GetCi
 
 	const float Det = M00*M11*M22+M01*M12*M20+M02*M10*M21 - (M02*M11*M20+M01*M10*M22+M00*M12*M21);
 	
-	if( FMath::Abs(Det) <= KINDA_SMALL_NUMBER )
+	// When the vertices are sorted in a counterclockwise order, the determinant is positive if and only if Testpoint lies inside the circumcircle of T.
+	if (FMath::IsNegativeFloat(Det))
 	{
-		return ECCS_On;
+		return ECCS_Outside;
 	}
-	else if( Det > 0.f )
+	else
 	{
-		return ECCS_Inside;
+		// On top of the triangle edge
+		if (FMath::IsNearlyZero(Det))
+		{
+			return ECCS_On;
+		}
+		else
+		{
+			return ECCS_Inside;
+		}
 	}
-
-	return ECCS_Outside;
 }
 
 /** 
@@ -240,7 +251,6 @@ bool FDelaunayTriangleGenerator::AllCoincident(const TArray<FPoint>& InPoints)
 
 bool FDelaunayTriangleGenerator::FlipTriangles(const int32 TriangleIndexOne, const int32 TriangleIndexTwo)
 {
-	bool bFlipped = false;
 	const FTriangle* A = TriangleList[TriangleIndexOne];
 	const FTriangle* B = TriangleList[TriangleIndexTwo];
 
@@ -253,51 +263,38 @@ bool FDelaunayTriangleGenerator::FlipTriangles(const int32 TriangleIndexOne, con
 		return false;
 	}
 
+	FTriangle NewTriangles[2];
 	int32 TrianglesMade = 0;
 
-	// otherwise, try make new triangle, and flip it
-	if (IsEligibleForTriangulation(A->Vertices[0],A->Vertices[1], TestPt))
+	for (int32 VertexIndexOne = 0; VertexIndexOne < 2; ++VertexIndexOne)
 	{
-		FTriangle NewTriangle(A->Vertices[0],A->Vertices[1], TestPt);
-		// only flip if outside
-		if (GetCircumcircleState(&NewTriangle, *A->Vertices[2])==ECCS_Outside)
+		for (int32 VertexIndexTwo = VertexIndexOne + 1; VertexIndexTwo < 3; ++VertexIndexTwo)
 		{
-			// good triangle
-			AddTriangle(NewTriangle, false);
-			bFlipped=true;
-			++TrianglesMade;
-		}
-
-	}
-
-	if (IsEligibleForTriangulation(A->Vertices[0],A->Vertices[2], TestPt))
-	{
-		FTriangle NewTriangle(A->Vertices[0],A->Vertices[2], TestPt);
-		if (GetCircumcircleState(&NewTriangle, *A->Vertices[1])==ECCS_Outside)
-		{
-			// good triangle
-			AddTriangle(NewTriangle, false);
-			bFlipped=true;
-			++TrianglesMade;
+			// Check if these vertices form a valid triangle (should be non-colinear)
+			if (IsEligibleForTriangulation(A->Vertices[VertexIndexOne], A->Vertices[VertexIndexTwo], TestPt))
+			{
+				// Create the new triangle and check if the final (original) vertex falls inside or outside of it's circumcircle
+				const FTriangle NewTriangle(A->Vertices[VertexIndexOne], A->Vertices[VertexIndexTwo], TestPt);
+				const int32 VertexIndexThree = 3 - (VertexIndexTwo + VertexIndexOne);
+				if (GetCircumcircleState(&NewTriangle, *A->Vertices[VertexIndexThree]) == ECCS_Outside)
+				{
+					// If so store the triangle and increment the number of triangles
+					checkf(TrianglesMade < 2, TEXT("Incorrect number of triangles created"));
+					NewTriangles[TrianglesMade] = NewTriangle;
+					++TrianglesMade;
+				}
+			}
 		}
 	}
-
-	if (IsEligibleForTriangulation(A->Vertices[1],A->Vertices[2], TestPt))
+	
+	// In case two triangles were generated the flip was successful so we can add them to the list
+	if (TrianglesMade == 2)
 	{
-		FTriangle NewTriangle(A->Vertices[1],A->Vertices[2], TestPt);
-		if (GetCircumcircleState(&NewTriangle, *A->Vertices[0])==ECCS_Outside)
-		{
-			// good triangle
-			AddTriangle(NewTriangle, false);
-			bFlipped=true;
-			++TrianglesMade;
-		}
+		AddTriangle(NewTriangles[0], false);
+		AddTriangle(NewTriangles[1], false);
 	}
 
-	// should be 2, if not we miss triangles
-	check (	TrianglesMade==2 );
-
-	return bFlipped;
+	return TrianglesMade == 2;
 }
 
 void FDelaunayTriangleGenerator::AddTriangle(FTriangle& newTriangle, bool bCheckHalfEdge/*=true*/)
@@ -406,16 +403,6 @@ int32 FDelaunayTriangleGenerator::GenerateTriangles(TArray<FPoint>& PointList, c
 	return TriangleList.Num();
 }
 
-void FDelaunayTriangleGenerator::InitializeIndiceMapping()
-{
-	IndiceMappingTable.Empty(SamplePointList.Num());
-	IndiceMappingTable.AddUninitialized(SamplePointList.Num());
-	for (int32 SampleIndex = 0; SampleIndex < SamplePointList.Num(); ++SampleIndex)
-	{
-		IndiceMappingTable[SampleIndex] = SampleIndex;
-	}
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /**
 * Find Triangle this TestPoint is within
@@ -475,86 +462,123 @@ void FBlendSpaceGrid::GenerateGridElements(const TArray<FPoint>& SamplePoints, c
 	check (NumGridDivisions.X > 0 && NumGridDivisions.Y > 0 );
 	check ( GridDimensions.IsValid );
 
-	const int32 ElementsSize = NumGridPoints.X * NumGridPoints.Y;
+	const int32 TotalNumGridPoints = NumGridPointsForAxis.X * NumGridPointsForAxis.Y;
 
-	Elements.Empty(ElementsSize);
+	GridPoints.Empty(TotalNumGridPoints);
 
 	if (SamplePoints.Num() == 0 || TriangleList.Num() == 0)
 	{
 		return;
 	}
 
-	Elements.AddUninitialized(ElementsSize);
+	GridPoints.AddDefaulted(TotalNumGridPoints);
 
-	FVector Weights;
-	FVector PointPos;
+	FVector GridPointPosition;
 	// when it fails to find, do distance resolution
-	const int32 TotalTestPoints = (SamplePoints.Num() >= 3)? 3 : SamplePoints.Num();
+	const int32 NumSamplesInGrid = (SamplePoints.Num() >= 3)? 3 : SamplePoints.Num();
 
-	for (int32 GridPositionX = 0; GridPositionX < NumGridPoints.X; ++GridPositionX)
+	for (int32 GridPositionX = 0; GridPositionX < NumGridPointsForAxis.X; ++GridPositionX)
 	{
-		for (int32 GridPositionY = 0; GridPositionY < NumGridPoints.Y; ++GridPositionY)
+		for (int32 GridPositionY = 0; GridPositionY < NumGridPointsForAxis.Y; ++GridPositionY)
 		{
 			FTriangle * SelectedTriangle = NULL;
-			FEditorElement& Ele = Elements[ GridPositionX*NumGridPoints.Y + GridPositionY ];
+			FEditorElement& GridPoint = GridPoints[ GridPositionX*NumGridPointsForAxis.Y + GridPositionY ];
 
-			PointPos = GetPosFromIndex(GridPositionX, GridPositionY);
-			if ( FindTriangleThisPointBelongsTo(PointPos, Weights, SelectedTriangle, TriangleList) )
+			GridPointPosition = GetPosFromIndex(GridPositionX, GridPositionY);
+
+			FVector Weights;
+			if ( FindTriangleThisPointBelongsTo(GridPointPosition, Weights, SelectedTriangle, TriangleList) )
 			{
 				// found it
-				Ele.Weights[0] = Weights.X;
-				Ele.Weights[1] = Weights.Y;
-				Ele.Weights[2] = Weights.Z;
+				GridPoint.Weights[0] = Weights.X;
+				GridPoint.Weights[1] = Weights.Y;
+				GridPoint.Weights[2] = Weights.Z;
 				// need to find sample point index
 				// @todo fix this with better solution
 				// lazy me
-				Ele.Indices[0] = SamplePoints.Find(*SelectedTriangle->Vertices[0]);
-				Ele.Indices[1] = SamplePoints.Find(*SelectedTriangle->Vertices[1]);
-				Ele.Indices[2] = SamplePoints.Find(*SelectedTriangle->Vertices[2]);
+				GridPoint.Indices[0] = SamplePoints.Find(*SelectedTriangle->Vertices[0]);
+				GridPoint.Indices[1] = SamplePoints.Find(*SelectedTriangle->Vertices[1]);
+				GridPoint.Indices[2] = SamplePoints.Find(*SelectedTriangle->Vertices[2]);
 
-				check (Ele.Indices[0]!=INDEX_NONE);
-				check (Ele.Indices[1]!=INDEX_NONE);
-				check (Ele.Indices[2]!=INDEX_NONE);
+				check(GridPoint.Indices[0] != INDEX_NONE);
+				check(GridPoint.Indices[1] != INDEX_NONE);
+				check(GridPoint.Indices[2] != INDEX_NONE);
 			}
 			else
 			{
-				// error back up solution
-				// find closest point and do based on distance to the 3 points
-				TArray<FSortByDistance> SortedPoints;
-
-				// remove myself, which is the last point
-				for (int32 SamplePointIndex=0; SamplePointIndex<SamplePoints.Num(); ++SamplePointIndex)
+				TArray<FSortByDistance> SortedTriangles;
+				for (int32 TriangleIndex = 0; TriangleIndex < TriangleList.Num(); ++TriangleIndex )
 				{
-					const float Distance = (PointPos-SamplePoints[SamplePointIndex].Position).Size();
-					SortedPoints.Add(FSortByDistance(SamplePointIndex, Distance));
+					// Check if points are collinear
+					const FTriangle* Triangle = TriangleList[TriangleIndex];
+					const FVector EdgeA = Triangle->Vertices[1]->Position - Triangle->Vertices[0]->Position;
+					const FVector EdgeB = Triangle->Vertices[2]->Position - Triangle->Vertices[0]->Position;
+					const float Result = EdgeA.X * EdgeB.Y - EdgeA.Y * EdgeB.X;
+					// Only add valid triangles
+					if (Result > 0.0f)
+					{ 
+						SortedTriangles.Add(FSortByDistance(TriangleIndex, Triangle->GetDistance(GridPointPosition)));
+					}					
 				}
 
-				SortedPoints.Sort([](const FSortByDistance &A, const FSortByDistance &B) { return A.Distance < B.Distance; });
-
-				// do based on distance resolution
-				float TotalDistance = 0.f;
-
-				for (int32 TestPointIndex=0; TestPointIndex<TotalTestPoints; ++TestPointIndex)
+				if (SortedTriangles.Num())
 				{
-					TotalDistance += SortedPoints[TestPointIndex].Distance;
+					SortedTriangles.Sort([](const FSortByDistance &A, const FSortByDistance &B) { return A.Distance < B.Distance; });
+					FTriangle* ClosestTriangle = TriangleList[SortedTriangles[0].Index];
+
+					// For the closest triangle, determine which of its edges is closest to the grid point
+					TArray<FSortByDistance> Edges;
+					TArray<FVector> PointsOnEdges;
+					for (int32 EdgeIndex = 0; EdgeIndex < 3; ++EdgeIndex)
+					{
+						const FVector ClosestPoint = FMath::ClosestPointOnLine(ClosestTriangle->Edges[EdgeIndex].Vertices[0]->Position, ClosestTriangle->Edges[EdgeIndex].Vertices[1]->Position, GridPointPosition);
+						Edges.Add(FSortByDistance(EdgeIndex, (ClosestPoint - GridPointPosition).SizeSquared()));
+						PointsOnEdges.Add(ClosestPoint);
+					}
+					Edges.Sort([](const FSortByDistance &A, const FSortByDistance &B) { return A.Distance < B.Distance; });
+					
+					// Calculate weighting using the closest edge points and the clamped grid position on the line
+					const FVector GridWeights = FMath::GetBaryCentric2D(PointsOnEdges[Edges[0].Index], ClosestTriangle->Vertices[0]->Position, ClosestTriangle->Vertices[1]->Position, ClosestTriangle->Vertices[2]->Position);
+					
+					for (int32 Index = 0; Index < 3; ++Index)
+					{
+						GridPoint.Weights[Index] = GridWeights[Index];
+						GridPoint.Indices[Index] = SamplePoints.Find(*ClosestTriangle->Vertices[Index]);
+					}
 				}
-
-				const bool bNonZeroDistance = !FMath::IsNearlyZero(TotalDistance);
-
-				// now normalize
-				for (int32 TestPointIndex=0; TestPointIndex<TotalTestPoints; ++TestPointIndex)
+				else
 				{
-					// If total distance is non-zero do the division, otherwise just set to 1.0f (this was causing NANs and dissapearing meshes)
-					Ele.Weights[TestPointIndex] = bNonZeroDistance ? SortedPoints[TestPointIndex].Distance / TotalDistance : 1.0f;
-					Ele.Indices[TestPointIndex] = SortedPoints[TestPointIndex].Index;
-				}
+					// This means that there is either one point, two points or collinear triangles on the grid
+					if (SamplePoints.Num() == 1)
+					{
+						// Just one, fill all grid points to the single sample
+						GridPoint.Weights[0] = 1.0f;
+						GridPoint.Indices[0] = 0;
+					}
+					else
+					{
+						// Two points or co-linear triangles, first find the two closest samples
+						TArray<FSortByDistance> SampleDistances;
+						for (int32 PointIndex = 0; PointIndex < NumSamplesInGrid; ++PointIndex)
+						{
+							const float DistanceFromSampleToPoint= (SamplePoints[PointIndex].Position - GridPointPosition).SizeSquared2D();
+							SampleDistances.Add(FSortByDistance(PointIndex, DistanceFromSampleToPoint));
+						}
+						SampleDistances.Sort([](const FSortByDistance &A, const FSortByDistance &B) { return A.Distance < B.Distance; });
 
-				// if less than 3, add extra
-				for (int32 TestPointIndex=TotalTestPoints; TestPointIndex<3; ++TestPointIndex)
-				{
-					Ele.Weights[TestPointIndex] = 0.f;
-					Ele.Indices[TestPointIndex] = INDEX_NONE;
-				}
+						// Find closest point on line between the two samples (clamping the grid position to the line, just like clamping to the triangle edges)
+						const FPoint Samples[2] = { SamplePoints[SampleDistances[0].Index], SamplePoints[SampleDistances[1].Index] };
+						const FVector ClosestPointOnLine = FMath::ClosestPointOnLine(Samples[0].Position, Samples[1].Position, GridPointPosition);
+						const float LineLength = (Samples[0].Position - Samples[1].Position).SizeSquared2D();
+
+						// Weight the samples according to the distance from the grid point on the line to the samples
+						for (int32 SampleIndex = 0; SampleIndex < 2; ++SampleIndex)
+						{
+							GridPoint.Weights[SampleIndex] = (LineLength - (Samples[SampleIndex].Position - ClosestPointOnLine).SizeSquared2D()) / LineLength;
+							GridPoint.Indices[SampleIndex] = SamplePoints.Find(Samples[SampleIndex]);
+						}	
+					}
+				}				
 			}
 		}
 	}
@@ -579,11 +603,11 @@ const FVector FBlendSpaceGrid::GetPosFromIndex(const int32 GridX, const int32 Gr
 
 const FEditorElement& FBlendSpaceGrid::GetElement(const int32 GridX, const int32 GridY) const
 {
-	check (NumGridPoints.X >= GridX);
-	check (NumGridPoints.Y >= GridY);
+	check (NumGridPointsForAxis.X >= GridX);
+	check (NumGridPointsForAxis.Y >= GridY);
 
-	check ( Elements.Num() > 0 );
-	return Elements[GridX * NumGridPoints.Y + GridY];
+	check (GridPoints.Num() > 0 );
+	return GridPoints[GridX * NumGridPointsForAxis.Y + GridY];
 }
 
 #undef LOCTEXT_NAMESPACE

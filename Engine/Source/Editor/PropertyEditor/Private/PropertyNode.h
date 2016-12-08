@@ -267,9 +267,9 @@ public:
 	 * Init Tree Node internally (used only derived classes to pass through variables that are common to all nodes
 	 * @param InitParams	Parameters for how the node should be initialized
 	 */
-	void InitNode( const FPropertyNodeInitParams& InitParams );
+	void InitNode(const FPropertyNodeInitParams& InitParams);
 
-	/** 
+	/**
 	 * Indicates that children of this node should be rebuilt next tick.  Some topology changes will require this
 	 */
 	void RequestRebuildChildren() { bRebuildChildrenRequested = true; }
@@ -282,12 +282,12 @@ public:
 	/**
 	 * For derived windows to be able to add their nodes to the child array
 	 */
-	void AddChildNode( TSharedPtr<FPropertyNode> InNode);
+	void AddChildNode(TSharedPtr<FPropertyNode> InNode);
 
 	/**
 	 * Clears cached read address data
 	 */
-	void ClearCachedReadAddresses( bool bRecursive = true );
+	void ClearCachedReadAddresses(bool bRecursive = true);
 
 	/**
 	 * Interface function to get at the dervied FObjectPropertyNodeWx class
@@ -322,20 +322,20 @@ public:
 	 */
 	class FObjectPropertyNode* FindRootObjectItemParent();
 
-	/** 
+	/**
 	 * Used to see if any data has been destroyed from under the property tree.  Should only be called during Tick
 	 */
 	EPropertyDataValidationResult EnsureDataIsValid();
 
 	//////////////////////////////////////////////////////////////////////////
 	//Flags
-	uint32 HasNodeFlags (const EPropertyNodeFlags::Type InTestFlags) const{ return PropertyNodeFlags & InTestFlags; }
+	uint32 HasNodeFlags(const EPropertyNodeFlags::Type InTestFlags) const { return PropertyNodeFlags & InTestFlags; }
 	/**
 	 * Sets the flags used by the window and the root node
 	 * @param InFlags - flags to turn on or off
 	 * @param InOnOff - whether to toggle the bits on or off
 	 */
-	void SetNodeFlags (const EPropertyNodeFlags::Type InFlags, const bool InOnOff);
+	void SetNodeFlags(const EPropertyNodeFlags::Type InFlags, const bool InOnOff);
 
 	/**
 	 * Finds a child of this property node
@@ -343,19 +343,19 @@ public:
 	 * @param InPropertyName	The name of the property to find
 	 * @param bRecurse		true if we should recurse into children's children and so on.
 	 */
-	TSharedPtr<FPropertyNode> FindChildPropertyNode(const FName InPropertyName, bool bRecurse = false );
+	TSharedPtr<FPropertyNode> FindChildPropertyNode(const FName InPropertyName, bool bRecurse = false);
 
 	/**
 	 * Returns the parent node in the hierarchy
 	 */
-	FPropertyNode*			GetParentNode()			{ return ParentNodeWeakPtr.IsValid() ? ParentNodeWeakPtr.Pin().Get() : nullptr; }
-	const FPropertyNode*	GetParentNode() const	{ return ParentNodeWeakPtr.IsValid() ? ParentNodeWeakPtr.Pin().Get() : nullptr; }
+	FPropertyNode*			GetParentNode() { return ParentNodeWeakPtr.IsValid() ? ParentNodeWeakPtr.Pin().Get() : nullptr; }
+	const FPropertyNode*	GetParentNode() const { return ParentNodeWeakPtr.IsValid() ? ParentNodeWeakPtr.Pin().Get() : nullptr; }
 	TSharedPtr<FPropertyNode> GetParentNodeSharedPtr() { return ParentNodeWeakPtr.Pin(); }
 	/**
 	 * Returns the Property this Node represents
 	 */
-	UProperty*			GetProperty()			{ return Property.Get(); }
-	const UProperty*	GetProperty() const		{ return Property.Get(); }
+	UProperty*			GetProperty() { return Property.Get(); }
+	const UProperty*	GetProperty() const { return Property.Get(); }
 
 	/**
 	 * Accessor functions for internals
@@ -406,7 +406,7 @@ public:
 	 * @param StopParent	- Stop at this parent (if any). Does NOT include it in the path
 	 * @param bIgnoreCategories - Skip over categories
 	 */
-	virtual bool GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex, const FPropertyNode* StopParent = nullptr, bool bIgnoreCategories = false ) const;
+	virtual bool GetQualifiedName(FString& PathPlusIndex, const bool bWithArrayIndex, const FPropertyNode* StopParent = nullptr, bool bIgnoreCategories = false) const;
 
 	// The bArrayPropertiesCanDifferInSize flag is an override for array properties which want to display
 	// e.g. the "Clear" and "Empty" buttons, even though the array properties may differ in the number of elements.
@@ -423,8 +423,8 @@ public:
 	 */
 	bool GetReadAddress(FReadAddressList& OutAddresses);
 
-	/** 
-	 * Gets read addresses without accessing cached data.  Is less efficient but gets the must up to date data 
+	/**
+	 * Gets read addresses without accessing cached data.  Is less efficient but gets the must up to date data
 	 */
 	virtual bool GetReadAddressUncached(FPropertyNode& InNode, bool InRequiresSingleSelection, FReadAddressListData* OutAddresses, bool bComparePropertyContents = true, bool bObjectForceCompare = false, bool bArrayPropertiesCanDifferInSize = false) const;
 	virtual bool GetReadAddressUncached(FPropertyNode& InNode, FReadAddressListData& OutAddresses) const;
@@ -436,20 +436,20 @@ public:
 	 *
 	 * @return	a pointer to a UProperty value or UObject.  (For dynamic arrays, you'd cast this value to an FArray*)
 	 */
-	virtual uint8* GetValueBaseAddress( uint8* Base );
+	virtual uint8* GetValueBaseAddress(uint8* Base);
 
 	/**
 	 * Calculates the memory address for the data associated with this item's value.  For most properties, identical to GetValueBaseAddress.  For items corresponding
-	 * to dynamic array elements, the pointer returned will be the location for that element's data. 
+	 * to dynamic array elements, the pointer returned will be the location for that element's data.
 	 *
 	 * @return	a pointer to a UProperty value or UObject.  (For dynamic arrays, you'd cast this value to whatever type is the Inner for the dynamic array)
 	 */
-	virtual uint8* GetValueAddress( uint8* Base );
+	virtual uint8* GetValueAddress(uint8* Base);
 
 	/**
 	 * Sets the display name override to use instead of the display name
 	 */
-	virtual void SetDisplayNameOverride( const FText& InDisplayNameOverride ) {}
+	virtual void SetDisplayNameOverride(const FText& InDisplayNameOverride) {}
 
 	/**
 	* @return true if the property is mark as a favorite
@@ -472,17 +472,17 @@ public:
 	virtual bool CanDisplayFavorite() const { return false; }
 
 	/**
-	 * @return The formatted display name for the property in this node                                                              
+	 * @return The formatted display name for the property in this node
 	 */
 	virtual FText GetDisplayName() const { return FText::GetEmpty(); }
 
 	/**
 	 * Sets the tooltip override to use instead of the property tooltip
 	 */
-	virtual void SetToolTipOverride( const FText& InToolTipOverride ) {}
+	virtual void SetToolTipOverride(const FText& InToolTipOverride) {}
 
 	/**
-	 * @return The tooltip for the property in this node                                                              
+	 * @return The tooltip for the property in this node
 	 */
 	virtual FText GetToolTipText() const { return FText::GetEmpty(); }
 
@@ -492,48 +492,48 @@ public:
 	bool GetDiffersFromDefault();
 
 	/**
-	 * @return The label for displaying a reset to default value                                                              
+	 * @return The label for displaying a reset to default value
 	 */
 	FText GetResetToDefaultLabel();
 
 	/**
 	 * If there is a property, resets it to default.  Otherwise resets the entire parent structure
 	 */
-	void ResetToDefault( FNotifyHook* InNotifyHook );
+	void ResetToDefault(FNotifyHook* InNotifyHook);
 
 	/**Walks up the hierarchy and return true if any parent node is a favorite*/
-	bool IsChildOfFavorite (void) const;
+	bool IsChildOfFavorite(void) const;
 
-	void NotifyPreChange( UProperty* PropertyAboutToChange, class FNotifyHook* InNotifyHook );
+	void NotifyPreChange(UProperty* PropertyAboutToChange, class FNotifyHook* InNotifyHook);
 
-	void NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEvent, class FNotifyHook* InNotifyHook );
+	void NotifyPostChange(FPropertyChangedEvent& InPropertyChangedEvent, class FNotifyHook* InNotifyHook);
 
-	void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren );
+	void SetOnRebuildChildren(FSimpleDelegate InOnRebuildChildren);
 
-	/** 
+	/**
 	 * Propagates the property change to all instances of an archetype
 	 *
 	 * @param	ModifiedObject	Object which property has been modified
 	 * @param	NewValue		New value of the property
 	 * @param	PreviousValue	Value of the property before the modification
 	 */
-	void PropagatePropertyChange( UObject* ModifiedObject, const TCHAR* NewValue, const FString& PreviousValue);
-		
-	/** 
-	 * Propagates the property change of a container property to all instances of an archetype 
+	void PropagatePropertyChange(UObject* ModifiedObject, const TCHAR* NewValue, const FString& PreviousValue);
+
+	/**
+	 * Propagates the property change of a container property to all instances of an archetype
 	 *
 	 * @param	ModifiedObject				Object which property has been modified
 	 * @param	OriginalContainerContent	Original content of the container before the modification ( as returned by ExportText_Direct )
 	 * @param	ChangeType					In which way was the container modified
 	 * @param	Index						Index of the modified item
 	 */
-	void PropagateContainerPropertyChange( UObject* ModifiedObject, const FString& OriginalContainerContent,
-									   EPropertyArrayChangeType::Type ChangeType, int32 Index);
+	void PropagateContainerPropertyChange(UObject* ModifiedObject, const FString& OriginalContainerContent,
+		EPropertyArrayChangeType::Type ChangeType, int32 Index);
 
 	static void AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr);
 
 	/** Broadcasts when a property value changes */
-	DECLARE_EVENT( FPropertyNode, FPropertyValueChangedEvent );
+	DECLARE_EVENT(FPropertyNode, FPropertyValueChangedEvent);
 	FPropertyValueChangedEvent& OnPropertyValueChanged() { return PropertyValueChangedEvent; }
 
 	/** Broadcasts when a child of this property changes */
@@ -563,14 +563,14 @@ public:
 	/**
 	 * @return true if this node should be visible in a tree
 	 */
-	bool IsVisible() const { return HasNodeFlags( EPropertyNodeFlags::IsBeingFiltered ) == 0 || HasNodeFlags( EPropertyNodeFlags::IsSeen ) || HasNodeFlags( EPropertyNodeFlags::IsSeenDueToChildFiltering ); };
+	bool IsVisible() const { return HasNodeFlags(EPropertyNodeFlags::IsBeingFiltered) == 0 || HasNodeFlags(EPropertyNodeFlags::IsSeen) || HasNodeFlags(EPropertyNodeFlags::IsSeenDueToChildFiltering); };
 
-	static TSharedRef< FPropertyPath > CreatePropertyPath( const TSharedRef< FPropertyNode >& PropertyNode )
+	static TSharedRef< FPropertyPath > CreatePropertyPath(const TSharedRef< FPropertyNode >& PropertyNode)
 	{
 		TArray< FPropertyInfo > Properties;
 		FPropertyNode* CurrentNode = &PropertyNode.Get();
 
-		if(CurrentNode != nullptr && CurrentNode->AsCategoryNode() != nullptr)
+		if (CurrentNode != nullptr && CurrentNode->AsCategoryNode() != nullptr)
 		{
 			TSharedRef< FPropertyPath > NewPath = MakeShareable(new FPropertyPath());
 			return NewPath;
@@ -584,25 +584,25 @@ public:
 				NewPropInfo.Property = CurrentNode->GetProperty();
 				NewPropInfo.ArrayIndex = CurrentNode->GetArrayIndex();
 
-				Properties.Add( NewPropInfo );
+				Properties.Add(NewPropInfo);
 			}
 
 			CurrentNode = CurrentNode->GetParentNode();
 		}
 
-		TSharedRef< FPropertyPath > NewPath = MakeShareable( new FPropertyPath() );
+		TSharedRef< FPropertyPath > NewPath = MakeShareable(new FPropertyPath());
 
-		for( int PropertyIndex = Properties.Num() - 1; PropertyIndex >= 0; --PropertyIndex )
+		for (int PropertyIndex = Properties.Num() - 1; PropertyIndex >= 0; --PropertyIndex)
 		{
-			NewPath->AddProperty( Properties[ PropertyIndex ] );
+			NewPath->AddProperty(Properties[PropertyIndex]);
 		}
 
 		return NewPath;
 	}
 
-	static TSharedPtr< FPropertyNode > FindPropertyNodeByPath( const TSharedPtr< FPropertyPath > Path, const TSharedRef< FPropertyNode >& StartingNode )
+	static TSharedPtr< FPropertyNode > FindPropertyNodeByPath(const TSharedPtr< FPropertyPath > Path, const TSharedRef< FPropertyNode >& StartingNode)
 	{
-		if ( !Path.IsValid() || Path->GetNumProperties() == 0 )
+		if (!Path.IsValid() || Path->GetNumProperties() == 0)
 		{
 			return StartingNode;
 		}
@@ -612,25 +612,25 @@ public:
 		for (int PropertyIndex = 0; PropertyIndex < Path->GetNumProperties() && !FailedToFindProperty; PropertyIndex++)
 		{
 			FailedToFindProperty = true;
-			const FPropertyInfo& PropInfo = Path->GetPropertyInfo( PropertyIndex );
+			const FPropertyInfo& PropInfo = Path->GetPropertyInfo(PropertyIndex);
 
 			TArray< TSharedRef< FPropertyNode > > ChildrenStack;
-			ChildrenStack.Push( PropertyNode.ToSharedRef() );
-			while ( ChildrenStack.Num() > 0 )
+			ChildrenStack.Push(PropertyNode.ToSharedRef());
+			while (ChildrenStack.Num() > 0)
 			{
 				const TSharedRef< FPropertyNode > CurrentNode = ChildrenStack.Pop();
 
-				for( int32 ChildIndex = 0; ChildIndex < CurrentNode->GetNumChildNodes(); ++ChildIndex )
+				for (int32 ChildIndex = 0; ChildIndex < CurrentNode->GetNumChildNodes(); ++ChildIndex)
 				{
-					const TSharedPtr< FPropertyNode > ChildNode = CurrentNode->GetChildNode( ChildIndex );
+					const TSharedPtr< FPropertyNode > ChildNode = CurrentNode->GetChildNode(ChildIndex);
 
-					if ( ChildNode->AsItemPropertyNode() == nullptr)
+					if (ChildNode->AsItemPropertyNode() == nullptr)
 					{
-						ChildrenStack.Add( ChildNode.ToSharedRef() );
+						ChildrenStack.Add(ChildNode.ToSharedRef());
 					}
-					else if ( ChildNode.IsValid() && 
-						ChildNode->GetProperty() == PropInfo.Property.Get() && 
-						ChildNode->GetArrayIndex() == PropInfo.ArrayIndex )
+					else if (ChildNode.IsValid() &&
+						ChildNode->GetProperty() == PropInfo.Property.Get() &&
+						ChildNode->GetArrayIndex() == PropInfo.ArrayIndex)
 					{
 						PropertyNode = ChildNode;
 						FailedToFindProperty = false;
@@ -640,7 +640,7 @@ public:
 			}
 		}
 
-		if ( FailedToFindProperty )
+		if (FailedToFindProperty)
 		{
 			PropertyNode = nullptr;
 		}
@@ -649,39 +649,39 @@ public:
 	}
 
 
-	static TArray< FPropertyInfo > GetPossibleExtensionsForPath( const TSharedPtr< FPropertyPath > Path, const TSharedRef< FPropertyNode >& StartingNode )
+	static TArray< FPropertyInfo > GetPossibleExtensionsForPath(const TSharedPtr< FPropertyPath > Path, const TSharedRef< FPropertyNode >& StartingNode)
 	{
 		TArray< FPropertyInfo > PossibleExtensions;
-		TSharedPtr< FPropertyNode > PropertyNode = FindPropertyNodeByPath( Path, StartingNode );
+		TSharedPtr< FPropertyNode > PropertyNode = FindPropertyNodeByPath(Path, StartingNode);
 
-		if ( !PropertyNode.IsValid() )
+		if (!PropertyNode.IsValid())
 		{
 			return PossibleExtensions;
 		}
 
-		for( int32 ChildIndex = 0; ChildIndex < PropertyNode->GetNumChildNodes(); ++ChildIndex )
+		for (int32 ChildIndex = 0; ChildIndex < PropertyNode->GetNumChildNodes(); ++ChildIndex)
 		{
-			TSharedPtr< FPropertyNode > CurrentNode = PropertyNode->GetChildNode( ChildIndex );
+			TSharedPtr< FPropertyNode > CurrentNode = PropertyNode->GetChildNode(ChildIndex);
 
-			if ( CurrentNode.IsValid() && CurrentNode->AsItemPropertyNode() != nullptr)
+			if (CurrentNode.IsValid() && CurrentNode->AsItemPropertyNode() != nullptr)
 			{
 				FPropertyInfo NewPropInfo;
 				NewPropInfo.Property = CurrentNode->GetProperty();
 				NewPropInfo.ArrayIndex = CurrentNode->GetArrayIndex();
 
 				bool AlreadyExists = false;
-				for( auto ExtensionIter = PossibleExtensions.CreateConstIterator(); ExtensionIter; ++ExtensionIter )
+				for (auto ExtensionIter = PossibleExtensions.CreateConstIterator(); ExtensionIter; ++ExtensionIter)
 				{
-					if ( *ExtensionIter == NewPropInfo )
+					if (*ExtensionIter == NewPropInfo)
 					{
 						AlreadyExists = true;
 						break;
 					}
 				}
 
-				if ( !AlreadyExists )
+				if (!AlreadyExists)
 				{
-					PossibleExtensions.Add( NewPropInfo );
+					PossibleExtensions.Add(NewPropInfo);
 				}
 			}
 		}
@@ -693,22 +693,56 @@ public:
 	 * Adds a restriction to the possible values for this property.
 	 * @param Restriction	The restriction being added to this property.
 	 */
-	virtual void AddRestriction( TSharedRef<const class FPropertyRestriction> Restriction );
+	virtual void AddRestriction(TSharedRef<const class FPropertyRestriction> Restriction);
 
 	/**
-	 * Tests if a value is restricted for this property
-	 * @param Value			The value to test for restriction.
-	 * @return				True if this value is restricted.
-	 */
-	virtual bool IsRestricted(const FString& Value) const;
+	* Tests if a value is hidden for this property
+	* @param Value			The value to test for being hidden.
+	* @return				True if this value is hidden.
+	*/
+	bool IsHidden(const FString& Value) const
+	{
+		return IsHidden(Value, nullptr);
+	}
 
 	/**
-	 * Tests if a value is restricted for this property.
-	 * @param Value			The value to test for restriction.
-	 * @param OutReasons	Outputs an array of the reasons why this value is restricted.
-	 * @return				True if this value is restricted.
+	 * Tests if a value is disabled for this property
+	 * @param Value			The value to test for being disabled.
+	 * @return				True if this value is disabled.
 	 */
-	virtual bool IsRestricted(const FString& Value, TArray<FText>& OutReasons) const;
+	bool IsDisabled(const FString& Value) const
+	{
+		return IsDisabled(Value, nullptr);
+	}
+
+	bool IsRestricted(const FString& Value) const
+	{
+		return IsHidden(Value) || IsDisabled(Value);
+	}
+
+	/**
+	* Tests if a value is hidden for this property.
+	* @param Value			The value to test for being hidden.
+	* @param OutReasons		If hidden, the reasons why.
+	* @return				True if this value is hidden.
+	*/
+	virtual bool IsHidden(const FString& Value, TArray<FText>* OutReasons) const;
+
+	/**
+	 * Tests if a value is disabled for this property.
+	 * @param Value			The value to test for being disabled.
+	 * @param OutReasons	If disabled, the reasons why.
+	 * @return				True if this value is disabled.
+	 */
+	virtual bool IsDisabled(const FString& Value, TArray<FText>* OutReasons) const;
+
+	/**
+	* Tests if a value is restricted for this property.
+	* @param Value			The value to test for being restricted.
+	* @param OutReasons		If restricted, the reasons why.
+	* @return				True if this value is restricted.
+	*/
+	bool IsRestricted(const FString& Value, TArray<FText>& OutReasons) const;
 
 	/**
 	 * Generates a consistent tooltip describing this restriction for use in the editor.

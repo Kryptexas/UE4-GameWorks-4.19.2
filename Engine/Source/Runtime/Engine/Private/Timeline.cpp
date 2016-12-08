@@ -696,6 +696,11 @@ void UTimelineComponent::TickComponent(float DeltaTime, enum ELevelTick TickType
 	}
 }
 
+bool UTimelineComponent::IsReadyForOwnerToAutoDestroy() const
+{
+	return !IsPlaying();
+}
+
 void UTimelineComponent::Activate(bool bReset)
 {
 	Super::Activate(bReset);

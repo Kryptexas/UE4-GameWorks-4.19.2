@@ -161,10 +161,8 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 	// Calculate extended bounds
 	CalculateExtendedBounds();
 
-	if (NavCollision == NULL && !!bHasNavigationData)
-	{
-		CreateNavCollision();
-	}
+	// Update nav collision 
+	CreateNavCollision(/*bIsUpdate=*/true);
 
 	PostMeshBuild.Broadcast(this);
 

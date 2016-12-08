@@ -323,7 +323,7 @@ struct FMeshMergingSettings
 	bool bMergeMaterials;
 
 	/** Material simplification */
-	UPROPERTY(EditAnywhere, Category = MaterialSettings)
+	UPROPERTY(EditAnywhere, Category = MaterialSettings, meta = (editcondition = "bMergeMaterials"))
 	FMaterialProxySettings MaterialSettings;
 
 	/** Whether or not vertex data such as vertex colours should be baked into the resulting mesh */
@@ -335,7 +335,7 @@ struct FMeshMergingSettings
 	bool bUseVertexDataForBakingMaterial;
 
 	// Whether or not to calculate varying output texture sizes according to their importance in the final atlas texture
-	UPROPERTY(Category = MaterialSettings, EditAnywhere)
+	UPROPERTY(Category = MaterialSettings, EditAnywhere, meta = (editcondition = "bMergeMaterials"))
 	bool bUseTextureBinning;
 			
 	UPROPERTY()
@@ -348,7 +348,7 @@ struct FMeshMergingSettings
 	int32 ExportSpecificLOD_DEPRECATED;
 
 	// A given LOD level to export from the source meshes
-	UPROPERTY(EditAnywhere, Category = MeshSettings, meta = (ClampMin = "0", ClampMax = "8", EnumCondition = 1))
+	UPROPERTY(EditAnywhere, Category = MeshSettings, meta = (ClampMin = "0", ClampMax = "7", UIMin = "0", UIMax = "7", EnumCondition = 1))
 	int32 SpecificLOD;
 
 	/** Whether or not to use available landscape geometry to cull away invisible triangles */

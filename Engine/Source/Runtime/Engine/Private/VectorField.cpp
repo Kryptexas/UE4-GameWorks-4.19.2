@@ -25,6 +25,7 @@
 #include "VectorField/VectorFieldAnimated.h"
 #include "VectorField/VectorFieldStatic.h"
 #include "Components/VectorFieldComponent.h"
+#include "PrimitiveSceneProxy.h"
 
 #if WITH_EDITORONLY_DATA
 	#include "EditorFramework/AssetImportData.h"

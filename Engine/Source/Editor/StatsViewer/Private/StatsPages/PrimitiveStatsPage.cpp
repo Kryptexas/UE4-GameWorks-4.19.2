@@ -18,6 +18,7 @@
 #include "LightMap.h"
 #include "LandscapeComponent.h"
 #include "Engine/LevelStreaming.h"
+#include "SkeletalMeshTypes.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer.PrimitiveStats"
 
@@ -161,7 +162,7 @@ struct PrimitiveStatsGenerator
 				for( int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); ++LODIndex )
 				{
 					const FStaticLODModel& LODModel = SkelMeshResource->LODModels[ LODIndex ];
-					VertexColorMem += LODModel.ColorVertexBuffer.GetVertexDataSize();
+					VertexColorMem += LODModel.ColorVertexBuffer.GetAllocatedSize();
 				}
 			}
 		}

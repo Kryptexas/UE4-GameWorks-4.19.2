@@ -530,6 +530,11 @@ void SAnimTrackCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<
 	WidgetWidth = InArgs._WidgetWidth;
 	OnGetScrubValue = InArgs._OnGetScrubValue;
 
+	if (InPreviewScene->GetPreviewMeshComponent()->PreviewInstance)
+	{
+		InPreviewScene->GetPreviewMeshComponent()->PreviewInstance->SetKeyCompleteDelegate(FSimpleDelegate::CreateSP(this, &SAnimTrackCurvePanel::HandleKeyComplete));
+	}
+
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -670,8 +675,6 @@ void SAnimTrackCurvePanel::UpdatePanel()
 				Tracks.Add(CurrentTrack);
 			}
 		}
-
-		OnCurvesChanged.ExecuteIfBound();
 	}
 }
 
@@ -900,4 +903,10 @@ TSharedRef<SWidget> SAnimTrackCurvePanel::CreateCurveContextMenu(USkeleton::Anim
 
 	return MenuBuilder.MakeWidget();
 }
+
+void SAnimTrackCurvePanel::HandleKeyComplete()
+{
+	UpdatePanel();
+}
+
 #undef LOCTEXT_NAMESPACE

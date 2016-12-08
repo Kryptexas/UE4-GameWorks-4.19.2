@@ -416,8 +416,8 @@ void FPhAT::InitPhAT(const EToolkitMode::Type Mode, const TSharedPtr< class IToo
 	SharedData->SelectionChangedEvent.AddRaw(this, &FPhAT::SetPropertiesSelection);
 	SharedData->GroupSelectionChangedEvent.AddRaw(this, &FPhAT::SetPropertiesGroupSelection);
 	SharedData->HierarchyChangedEvent.AddRaw(this, &FPhAT::RefreshHierachyTree);
-	SharedData->HierarchySelectionChangedEvent.AddRaw(this, &FPhAT::RefreshHierachyTreeSelection);
 	SharedData->PreviewChangedEvent.AddRaw(this, &FPhAT::RefreshPreviewViewport);
+	SharedData->PreviewChangedEvent.AddRaw(this, &FPhAT::RefreshHierachyTreeSelection);
 
 	SharedData->PhysicsAsset = ObjectToEdit;
 
@@ -574,11 +574,9 @@ void FPhAT::SetPropertiesGroupSelection(const TArray<UObject*> & Objs)
 
 bool TreeElemSelected(FTreeElemPtr TreeElem, TSharedPtr<FPhATSharedData> SharedData, TSharedPtr< STreeView<FTreeElemPtr> > Hierarchy)
 {
-	bool bIsExpanded = Hierarchy->IsItemExpanded(TreeElem);
-
 	if(SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit)
 	{
-		if(TreeElem->BoneOrConstraintIdx != INDEX_NONE && bIsExpanded == false)	//we're selecting a bone so ignore prims, but make sure to only do this if not expanded
+		if(TreeElem->BoneOrConstraintIdx != INDEX_NONE)
 		{
 			for(int32 i=0; i<SharedData->SelectedBodies.Num(); ++i)
 			{
@@ -600,7 +598,27 @@ bool TreeElemSelected(FTreeElemPtr TreeElem, TSharedPtr<FPhATSharedData> SharedD
 		}
 	}else
 	{
-		//for(int32 i=0; i<SharedData->SetSelectedConstraint())
+		if (TreeElem->BoneOrConstraintIdx != INDEX_NONE)
+		{
+			for (int32 i = 0; i<SharedData->SelectedConstraints.Num(); ++i)
+			{
+				if (SharedData->PhysicsAsset->ConstraintSetup[SharedData->SelectedConstraints[i].Index]->DefaultInstance.JointName == (*TreeElem).Name)
+				{
+					return true;
+				}
+			}
+		}
+		else
+		{
+			FPhATSharedData::FSelection Selection(TreeElem->BodyIdx, TreeElem->CollisionType, TreeElem->CollisionIdx);
+			for (int32 i = 0; i<SharedData->SelectedConstraints.Num(); ++i)
+			{
+				if (Selection == SharedData->SelectedConstraints[i])
+				{
+					return true;
+				}
+			}
+		}
 	}
 
 	return false;
@@ -801,7 +819,7 @@ void FPhAT::PostRedo( bool bSuccess )
 		{
 			FKConvexElem& Element = Body->AggGeom.ConvexElems[ElemIdx];
 
-			if (Element.ConvexMesh == NULL)
+			if (Element.GetConvexMesh() == NULL)
 			{
 				bRecreate = true;
 				break;
@@ -1360,7 +1378,7 @@ void FPhAT::ExtendMenu()
 	AddMenuExtender(MenuExtender);
 
 	IPhATModule* PhATModule = &FModuleManager::LoadModuleChecked<IPhATModule>( "PhAT" );
-	AddMenuExtender(PhATModule->GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+	AddMenuExtender(PhATModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 }
 
 void FPhAT::BindCommands()

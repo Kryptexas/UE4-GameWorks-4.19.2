@@ -204,8 +204,10 @@ void USelection::Serialize(FArchive& Ar)
 
 		for(TWeakObjectPtr<UObject>& ObjectPtr : SelectedObjects)
 		{
-			UObject* Object = ObjectPtr.Get(true);
-			GSelectedAnnotation.Set(Object);
+			if (UObject* Object = ObjectPtr.Get(true))
+			{
+				GSelectedAnnotation.Set(Object);
+			}
 		}
 	}
 }

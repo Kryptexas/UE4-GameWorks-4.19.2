@@ -304,60 +304,119 @@ void AbcImporterUtilities::GenerateSmoothingGroups(TMultiMap<uint32, uint32> &To
 		TouchingFaces.MultiFind(FaceIndex, ConnectedFaceIndices);
 
 		// Get the vertex-averaged face normal
-		FVector FaceNormal = FaceNormals[FaceIndex];
+		const FVector FaceNormal = FaceNormals[FaceIndex];
 
 		for (int32 i = 0; i < ConnectedFaceIndices.Num(); ++i)
 		{
 			const uint32 ConnectedFaceIndex = ConnectedFaceIndices[i];
-			FVector ConnectedFaceNormal = FaceNormals[ConnectedFaceIndex];
+			const FVector ConnectedFaceNormal = FaceNormals[ConnectedFaceIndex];
 
 			// Calculate the Angle between the two connected face normals and clamp from 0-1
-			const float DotProduct = FMath::Clamp(FaceNormal | ConnectedFaceNormal, 0.0f, 1.0f);
+			const float DotProduct = FMath::Clamp(FMath::Abs(FaceNormal | ConnectedFaceNormal), 0.0f, 1.0f);
 
 			// Compare DotProduct against threshold and handle 0.0 case correctly
 			if (DotProduct > HardAngleDotThreshold || (bZeroThreshold && FMath::IsNearlyZero(DotProduct)))
 			{
 				// If the faces have a "similar" normal we can determine that they should belong to the same smoothing group so mark them as SmoothingGroupConnectedFaces
 				SmoothingGroupConnectedFaces.Add(FaceIndex, ConnectedFaceIndex);
+				SmoothingGroupConnectedFaces.Add(ConnectedFaceIndex, FaceIndex);
 			}
 		}
+
+		FaceSmoothingGroups[FaceIndex] = INDEX_NONE;
 	}
 
-	// Map holding FaceIndices and their SmoothingGroupIndex
-	TMap<uint32, uint32> SmoothingGroupFaces;
-	uint32 NumSmoothingGroups = 0;
+	
+	TArray<TArray<uint32, TInlineAllocator<12>>> FaceData;
+	int32 FaceIndex = 0;
+	int32 CurrentFaceIndex = 0;
+	int32 CurrentRecursionDepth = 0;
+	int32 PreviousRecursionDepth = 0;
+	int32 ProcessedFaces = 1;
+	int32 SmoothingGroupIndex = 0;
 
-	SmoothingGroupFaces.Reserve(NumFaces);
-
-	HighestSmoothingGroup = 0;
-	for (int32 FaceIndex = 0; FaceIndex < NumFaces; ++FaceIndex)
+	// While number of processed face is 
+	while (ProcessedFaces != NumFaces && CurrentFaceIndex < NumFaces)
 	{
-		// Find faces which are smoothing-group connected to the current face
-		TArray<uint32> ConnectedFaceIndices;
-		SmoothingGroupConnectedFaces.MultiFind(FaceIndex, ConnectedFaceIndices);
-
-		// Check if we haven't already stored a SmoothingGroupIndex for this face
-		const uint32* StoredGroupIndex = SmoothingGroupFaces.Find(FaceIndex);
-
-		// Determine which SmoothingGroupIndex to use and whether or not to increment NumSmoothingGroups 
-		uint32 SmoothingGroupIndex = (StoredGroupIndex != nullptr) ? (*StoredGroupIndex) : NumSmoothingGroups;
-		NumSmoothingGroups = (StoredGroupIndex != nullptr) ? NumSmoothingGroups : NumSmoothingGroups + 1;
-
-		// For each connected face add an entry to the SmoothingGroupFaces map using the previously determined SmoothingGroupIndex
-		for (int32 ConnectedFaceIndex = 0; ConnectedFaceIndex < ConnectedFaceIndices.Num(); ++ConnectedFaceIndex)
+		// Check if there is valid scratch data available
+		if (!FaceData.IsValidIndex(CurrentRecursionDepth))
 		{
-			SmoothingGroupFaces.Add(FaceIndex, SmoothingGroupIndex);
-			SmoothingGroupFaces.Add(ConnectedFaceIndices[ConnectedFaceIndex], SmoothingGroupIndex);
+			FaceData.AddDefaulted((CurrentRecursionDepth + 1) - FaceData.Num());
+		}
+		
+		// Retrieve scratch data for this recursion depth
+		TArray<uint32, TInlineAllocator<12>>& ConnectedFaceIndices = FaceData[CurrentRecursionDepth];
 
-			// Store the SmoothingGroupIndex in the RawMesh data structure (used for tangent calculation)				
-			FaceSmoothingGroups[ConnectedFaceIndices[ConnectedFaceIndex]] = SmoothingGroupIndex;
+		// Retrieve connected faces if we moved down a step
+		if (PreviousRecursionDepth <= CurrentRecursionDepth)
+	{
+			ConnectedFaceIndices.Empty();
+
+			// Check if this face has already been processed (assigned a face index)
+			if (FaceSmoothingGroups[CurrentFaceIndex] == INDEX_NONE)
+			{
+				SmoothingGroupConnectedFaces.MultiFind(CurrentFaceIndex, ConnectedFaceIndices);
+				FaceSmoothingGroups[CurrentFaceIndex] = SmoothingGroupIndex;
+			}
+			else
+			{
+				// If so step up to top recursion level and increment face index to process next
+				CurrentFaceIndex = ++FaceIndex;
+				CurrentRecursionDepth = 0;
+				continue;
+			}
 		}
 
-		// Store the smoothing group index for the face we are currently handling
-		FaceSmoothingGroups[FaceIndex] = SmoothingGroupIndex;
+		// Store recursion depth for next cycle
+		PreviousRecursionDepth = CurrentRecursionDepth;
 
-		HighestSmoothingGroup = FMath::Max(HighestSmoothingGroup, SmoothingGroupIndex);
+		// If there are any connected face check if they still need to be processed
+		if (ConnectedFaceIndices.Num())
+		{
+			int32 FoundFaceIndex = INDEX_NONE;
+			for (int32 FoundConnectedFaceIndex = 0; FoundConnectedFaceIndex < ConnectedFaceIndices.Num(); ++FoundConnectedFaceIndex)
+		{
+				const int32 ConnectedFaceIndex = ConnectedFaceIndices[FoundConnectedFaceIndex];
+				if (FaceSmoothingGroups[ConnectedFaceIndex] == INDEX_NONE)
+				{
+					FoundFaceIndex = ConnectedFaceIndex;
+
+					// Step down for next cycle
+					++CurrentRecursionDepth;
+					++ProcessedFaces;
+					break;
+				}
+		}
+
+			if (FoundFaceIndex != INDEX_NONE)
+			{
+				// Set next face index to process
+				CurrentFaceIndex = FoundFaceIndex;
+				// Remove the index from the connected faces list as it'll be processed
+				ConnectedFaceIndices.Remove(CurrentFaceIndex);
+			}
+			else
+			{
+				// No connected faces left so step up
+				--CurrentRecursionDepth;
+			}
+		}
+		else
+		{
+			// No connected faces left so step up
+			--CurrentRecursionDepth;
+		}
+
+		// If we reached the top of recursion stack reset the values
+		if (CurrentRecursionDepth == -1)
+		{
+			CurrentFaceIndex = ++FaceIndex;
+			CurrentRecursionDepth = 0;
+			++SmoothingGroupIndex;
 	}
+	}	
+
+	HighestSmoothingGroup = SmoothingGroupIndex;
 }
 
 void AbcImporterUtilities::GenerateSmoothingGroupsIndices(FAbcMeshSample* MeshSample, const UAbcImportSettings* ImportSettings)
@@ -991,7 +1050,8 @@ bool AbcImporterUtilities::AreVerticesEqual(const FSoftSkinVertex& V1, const FSo
 		return false;
 	}
 
-	for (int32 UVIdx = 0; UVIdx < MAX_TEXCOORDS; ++UVIdx)
+	// Set to 1 for now as we only import one UV set
+	for (int32 UVIdx = 0; UVIdx < 1/*MAX_TEXCOORDS*/; ++UVIdx)
 	{
 		if (FMath::Abs(V1.UVs[UVIdx].X - V2.UVs[UVIdx].X) >(1.0f / 1024.0f))
 			return false;
@@ -1001,22 +1061,6 @@ bool AbcImporterUtilities::AreVerticesEqual(const FSoftSkinVertex& V1, const FSo
 	}
 
 	FVector N1, N2;
-	N1 = V1.TangentX;
-	N2 = V2.TangentX;
-
-	if (FMath::Abs(N1.X - N2.X) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Y - N2.Y) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Z - N2.Z) > THRESH_NORMALS_ARE_SAME)
-	{
-		return false;
-	}
-
-	N1 = V1.TangentY;
-	N2 = V2.TangentY;
-
-	if (FMath::Abs(N1.X - N2.X) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Y - N2.Y) > THRESH_NORMALS_ARE_SAME || FMath::Abs(N1.Z - N2.Z) > THRESH_NORMALS_ARE_SAME)
-	{
-		return false;
-	}
-
 	N1 = V1.TangentZ;
 	N2 = V2.TangentZ;
 
@@ -1028,7 +1072,7 @@ bool AbcImporterUtilities::AreVerticesEqual(const FSoftSkinVertex& V1, const FSo
 	return true;
 }
 
-void AbcImporterUtilities::ApplyConversion(FAbcMeshSample* InOutSample, const FAbcConversionSettings& InConversionSettings)
+void AbcImporterUtilities::ApplyConversion(FAbcMeshSample* InOutSample, const FAbcConversionSettings& InConversionSettings, const bool bShouldInverseBuffers)
 {
 	if ( InConversionSettings.bFlipV || InConversionSettings.bFlipU )
 	{
@@ -1043,7 +1087,7 @@ void AbcImporterUtilities::ApplyConversion(FAbcMeshSample* InOutSample, const FA
 	
 	// Calculate conversion matrix	
 	const FMatrix Matrix = FScaleMatrix::Make(InConversionSettings.Scale) * FRotationMatrix::Make(FQuat::MakeFromEuler(InConversionSettings.Rotation));
-	if (!Matrix.Equals(FMatrix::Identity))
+	if (bShouldInverseBuffers && !Matrix.Equals(FMatrix::Identity))
 	{
 		// In case of negative determinant (e.g. negative scaling), invert the indice data
 		if (Matrix.Determinant() < 0.0f)
@@ -1056,6 +1100,38 @@ void AbcImporterUtilities::ApplyConversion(FAbcMeshSample* InOutSample, const FA
 			Algo::Reverse(InOutSample->MaterialIndices);
 			Algo::Reverse(InOutSample->SmoothingGroupIndices);
 		}
+	}
+}
+
+FBoxSphereBounds AbcImporterUtilities::ExtractBounds(Alembic::Abc::IBox3dProperty InBoxBoundsProperty)
+{
+	FBoxSphereBounds Bounds(EForceInit::ForceInitToZero);
+        // Extract data only if the property is found	
+	if (InBoxBoundsProperty.valid())
+	{
+		const int32 NumSamples = InBoxBoundsProperty.getNumSamples();
+		for (int32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
+		{
+			Alembic::Abc::Box3d BoundsSample;
+			InBoxBoundsProperty.get(BoundsSample, SampleIndex);
+                        // Set up bounds from Alembic data format
+			const Imath::V3d BoundSize = BoundsSample.size();
+			const Imath::V3d BoundCenter = BoundsSample.center();
+			const FBoxSphereBounds ConvertedBounds(FVector(BoundCenter.x, BoundCenter.y, BoundCenter.z), FVector(BoundSize.x  * 0.5f, BoundSize.y * 0.5f, BoundSize.z * 0.5f), (const float)BoundSize.length() * 0.5f);
+			Bounds = Bounds + ConvertedBounds;			
+		}
+	}
+
+	return Bounds;
+}
+
+void AbcImporterUtilities::ApplyConversion(FBoxSphereBounds& InOutBounds, const FAbcConversionSettings& InConversionSettings)
+{
+	// Calculate conversion matrix	
+	const FMatrix ConversionMatrix = FScaleMatrix::Make(InConversionSettings.Scale) * FRotationMatrix::Make(FQuat::MakeFromEuler(InConversionSettings.Rotation));
+	if (!ConversionMatrix.Equals(FMatrix::Identity))
+	{
+		InOutBounds = InOutBounds.TransformBy(ConversionMatrix);
 	}
 }
 

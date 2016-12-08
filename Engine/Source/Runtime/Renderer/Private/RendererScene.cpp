@@ -661,18 +661,18 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 
 	checkf(!Primitive->IsUnreachable(), TEXT("%s"), *Primitive->GetFullName());
 
-
+	const float WorldTime = GetWorld()->GetTimeSeconds();
 	// Save the world transform for next time the primitive is added to the scene
-	float DeltaTime = GetWorld()->GetTimeSeconds() - Primitive->LastSubmitTime;
+	float DeltaTime = WorldTime - Primitive->LastSubmitTime;
 	if ( DeltaTime < -0.0001f || Primitive->LastSubmitTime < 0.0001f )
 	{
 		// Time was reset?
-		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
+		Primitive->LastSubmitTime = WorldTime;
 	}
 	else if ( DeltaTime > 0.0001f )
 	{
 		// First call for the new frame?
-		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
+		Primitive->LastSubmitTime = WorldTime;
 	}
 
 	// Create the primitive's scene proxy.
@@ -785,16 +785,17 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePrimitiveTransformGT);
 
 	// Save the world transform for next time the primitive is added to the scene
-	float DeltaTime = GetWorld()->GetTimeSeconds() - Primitive->LastSubmitTime;
+	const float WorldTime = GetWorld()->GetTimeSeconds();
+	float DeltaTime = WorldTime - Primitive->LastSubmitTime;
 	if ( DeltaTime < -0.0001f || Primitive->LastSubmitTime < 0.0001f )
 	{
 		// Time was reset?
-		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
+		Primitive->LastSubmitTime = WorldTime;
 	}
 	else if ( DeltaTime > 0.0001f )
 	{
 		// First call for the new frame?
-		Primitive->LastSubmitTime = GetWorld()->GetTimeSeconds();
+		Primitive->LastSubmitTime = WorldTime;
 	}
 
 	if(Primitive->SceneProxy)

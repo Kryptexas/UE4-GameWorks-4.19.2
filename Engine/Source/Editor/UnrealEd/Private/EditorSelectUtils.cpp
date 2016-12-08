@@ -713,7 +713,23 @@ bool UUnrealEdEngine::IsComponentSelected(const UPrimitiveComponent* PrimCompone
 	bool bIsSelected = false;
 	if (GetSelectedComponentCount() > 0)
 	{
-		bIsSelected = GetSelectedComponents()->IsSelected(PrimComponent->IsEditorOnly() ? PrimComponent->GetAttachParent() : PrimComponent);
+		const UActorComponent* PotentiallySelectedComponent = nullptr;
+
+		AActor* ComponentOwner = PrimComponent->GetOwner();
+		if (ComponentOwner->IsChildActor())
+		{
+			do 
+			{
+				PotentiallySelectedComponent = ComponentOwner->GetParentComponent();
+				ComponentOwner = ComponentOwner->GetParentActor();
+			} while (ComponentOwner->IsChildActor());
+		}
+		else
+		{
+			PotentiallySelectedComponent = (PrimComponent->IsEditorOnly() ? PrimComponent->GetAttachParent() : PrimComponent);
+		}
+
+		bIsSelected = GetSelectedComponents()->IsSelected(PotentiallySelectedComponent);
 	}
 
 	return bIsSelected;

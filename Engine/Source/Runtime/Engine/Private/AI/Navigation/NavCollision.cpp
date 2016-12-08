@@ -163,7 +163,7 @@ FGuid UNavCollision::GetGuid() const
 void UNavCollision::Setup(UBodySetup* BodySetup)
 {
 	// Create meshes from cooked data if not already done
-	if (bHasConvexGeometry || BodySetup == NULL)
+	if (bHasConvexGeometry || BodySetup == NULL || BodySetupGuid == BodySetup->BodySetupGuid)
 	{
 		return;
 	}

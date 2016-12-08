@@ -830,6 +830,10 @@ private:
 
 	/** Called during editor init and whenever the vanilla status might have changed, to set the flag on the base class */
 	void UpdateIsVanillaProduct();
+
+	/** Called when hotreload adds a new class to create volume factories */
+	void CreateVolumeFactoriesForNewClasses(const TArray<UClass*>& NewClasses);
+
 public:
 	//~ End UEngine Interface.
 	

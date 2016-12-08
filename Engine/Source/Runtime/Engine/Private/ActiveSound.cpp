@@ -302,6 +302,7 @@ void FActiveSound::UpdateWaveInstances( TArray<FWaveInstance*> &InWaveInstances,
 	ParseParams.SoundClass = GetSoundClass();
 	ParseParams.SoundSubmix = GetSoundSubmix();
 	ParseParams.bIsPaused = bIsPaused;
+	ParseParams.DefaultMasterReverbSendAmount = Sound->DefaultMasterReverbSendAmount;
 
 	if (bApplyInteriorVolumes)
 	{
@@ -422,7 +423,7 @@ void FActiveSound::UpdateAdjustVolumeMultiplier(const float DeltaTime)
 	}
 } 
 
-void FActiveSound::UpdateOcclusion(const FAttenuationSettings* AttenuationSettingsPtr)
+void FActiveSound::UpdateOcclusion(const FSoundAttenuationSettings* AttenuationSettingsPtr)
 {
 	float InterpolationTime = bHasCheckedOcclusion ? AttenuationSettingsPtr->OcclusionInterpolationTime : 0.0f;
 	bHasCheckedOcclusion = true;
@@ -472,7 +473,7 @@ void FActiveSound::OcclusionTraceDone(const FTraceHandle& TraceHandle, FTraceDat
 	});
 }
 
-void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FAttenuationSettings* AttenuationSettingsPtr)
+void FActiveSound::CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FSoundAttenuationSettings* AttenuationSettingsPtr)
 {
 	check(AttenuationSettingsPtr);
 	check(AttenuationSettingsPtr->bEnableOcclusion);
@@ -801,7 +802,7 @@ void FActiveSound::SetSoundParameter(const FAudioComponentParam& Param)
 	}
 }
 
-void FActiveSound::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
+void FActiveSound::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FBaseAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
 {
 	bool bFoundAttenuationSettings = false;
 
@@ -818,7 +819,7 @@ void FActiveSound::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuati
 		SoundCue->RecursiveFindAttenuation( SoundCue->FirstNode, AttenuationNodes );
 		for (int32 NodeIndex = 0; NodeIndex < AttenuationNodes.Num(); ++NodeIndex)
 		{
-			FAttenuationSettings* AttenuationSettingsToApply = AttenuationNodes[NodeIndex]->GetAttenuationSettingsToApply();
+			FSoundAttenuationSettings* AttenuationSettingsToApply = AttenuationNodes[NodeIndex]->GetAttenuationSettingsToApply();
 			if (AttenuationSettingsToApply)
 			{
 				AttenuationSettingsToApply->CollectAttenuationShapesForVisualization(ShapeDetailsMap);
@@ -827,14 +828,14 @@ void FActiveSound::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuati
 	}
 }
 
-void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener, const FAttenuationSettings* SettingsAttenuationNode)
+void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener, const FSoundAttenuationSettings* SettingsAttenuationNode)
 {
 	float& Volume = ParseParams.Volume;
 	const FTransform& SoundTransform = ParseParams.Transform;
 	const FVector& ListenerLocation = Listener.Transform.GetTranslation();
 
 	// Get the attenuation settings to use for this application to the active sound
-	const FAttenuationSettings* Settings = SettingsAttenuationNode ? SettingsAttenuationNode : &AttenuationSettings;
+	const FSoundAttenuationSettings* Settings = SettingsAttenuationNode ? SettingsAttenuationNode : &AttenuationSettings;
 
 	FAttenuationListenerData ListenerData;
 
@@ -853,7 +854,14 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 
 		ParseParams.AttenuationDistance = ListenerData.AttenuationDistance;
 
+		ParseParams.ListenerToSoundDistance = ListenerData.ListenerToSoundDistance;
+
 		ParseParams.AbsoluteAzimuth = AbsoluteAzimuth;
+
+		ParseParams.ReverbWetLevelMin = Settings->ReverbWetLevelMin;
+		ParseParams.ReverbWetLevelMax = Settings->ReverbWetLevelMax;
+		ParseParams.ReverbDistanceMin = Settings->ReverbDistanceMin;
+		ParseParams.ReverbDistanceMax = Settings->ReverbDistanceMax;
 
 		if (Settings->bEnableListenerFocus && !Sound->bIgnoreFocus)
 		{
@@ -876,30 +884,15 @@ void FActiveSound::ApplyAttenuation(FSoundParseParameters& ParseParams, const FL
 	// Attenuate the volume based on the model
 	if (Settings->bAttenuate)
 	{
-		switch (Settings->AttenuationShape)
+		if (Settings->AttenuationShape == EAttenuationShape::Sphere)
 		{
-			case EAttenuationShape::Sphere:
-			{
-				// Update attenuation data in-case it hasn't been updated
-				AudioDevice->GetAttenuationListenerData(ListenerData, SoundTransform, *Settings, &Listener.Transform);
-				Volume *= Settings->AttenuationEval(ListenerData.AttenuationDistance, Settings->FalloffDistance, FocusDistanceScale);
-				break;
-			}
-
-			case EAttenuationShape::Box:
-			Volume *= Settings->AttenuationEvalBox(SoundTransform, ListenerLocation, FocusDistanceScale);
-			break;
-
-			case EAttenuationShape::Capsule:
-			Volume *= Settings->AttenuationEvalCapsule(SoundTransform, ListenerLocation, FocusDistanceScale);
-			break;
-
-			case EAttenuationShape::Cone:
-			Volume *= Settings->AttenuationEvalCone(SoundTransform, ListenerLocation, FocusDistanceScale);
-			break;
-
-			default:
-			check(false);
+			// Update attenuation data in-case it hasn't been updated
+			AudioDevice->GetAttenuationListenerData(ListenerData, SoundTransform, *Settings, &Listener.Transform);
+			Volume *= Settings->AttenuationEval(ListenerData.AttenuationDistance, Settings->FalloffDistance, FocusDistanceScale);
+		}
+		else
+		{
+			Volume *= Settings->Evaluate(SoundTransform, ListenerLocation, FocusDistanceScale);
 		}
 	}
 

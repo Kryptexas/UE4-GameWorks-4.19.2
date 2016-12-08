@@ -11,6 +11,7 @@
 #endif // WITH_RECAST
 #include "VisualLogger/VisualLogger.h"
 #include "AI/Navigation/NavCollision.h"
+#include "PhysicsEngine/BodySetup.h"
 
 namespace NavigationHelper
 {
@@ -196,5 +197,15 @@ namespace NavigationHelper
 	{
 		check(NewDelegate.IsBound());
 		NavLinkSegmentProcessor = NewDelegate;
+	}
+
+	bool IsBodyNavigationRelevant(const UBodySetup& BodySetup)
+	{
+		// has any colliding geometry
+		return (BodySetup.AggGeom.GetElementCount() > 0 || BodySetup.TriMeshes.Num() > 0)
+			// AND blocks any of Navigation-relevant 
+			&& (BodySetup.DefaultInstance.GetResponseToChannel(ECC_Pawn) == ECR_Block || BodySetup.DefaultInstance.GetResponseToChannel(ECC_Vehicle) == ECR_Block)
+			// AND has full colliding capabilities 
+			&& BodySetup.DefaultInstance.GetCollisionEnabled() == ECollisionEnabled::QueryAndPhysics;
 	}
 }

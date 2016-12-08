@@ -1080,7 +1080,7 @@ public:
 	 *	@param      Channel     The new channel for this component to use
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision")	
-	void SetCollisionObjectType(ECollisionChannel Channel);
+	virtual void SetCollisionObjectType(ECollisionChannel Channel);
 
 	/** Perform a line trace against a single component */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "Line Trace Component", bTraceComplex="true", UnsafeDuringActorConstruction="true"))	
@@ -1460,6 +1460,9 @@ protected:
 
 public:
 	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const override;
+
+	/** Updates the renderer with the center of mass data */
+	virtual void SendRenderDebugPhysics();
 
 	// End USceneComponentInterface
 

@@ -7,6 +7,11 @@
 /////////////////////////////////////////////////////
 // FAnimPoseByNameNode
 
+FAnimNode_PoseBlendNode::FAnimNode_PoseBlendNode()
+{
+	BlendOption = EAlphaBlendOption::Linear;
+}
+
 void FAnimNode_PoseBlendNode::Initialize(const FAnimationInitializeContext& Context)
 {
 	FAnimNode_PoseHandler::Initialize(Context);
@@ -38,7 +43,12 @@ void FAnimNode_PoseBlendNode::Evaluate(FPoseContext& Output)
 		// only give pose curve, we don't set any more curve here
 		for (int32 PoseIdx = 0; PoseIdx < PoseUIDList.Num(); ++PoseIdx)
 		{
-			PoseExtractContext.PoseCurves[PoseIdx] = SourceData.Curve.Get(PoseUIDList[PoseIdx]);
+			// Get value of input curve
+			float InputValue = SourceData.Curve.Get(PoseUIDList[PoseIdx]);
+			// Remap using chosen BlendOption
+			float RemappedValue = FAlphaBlend::AlphaToBlendOption(InputValue, BlendOption, CustomCurve);
+
+			PoseExtractContext.PoseCurves[PoseIdx] = RemappedValue;
 		}
 
 		if (CurrentPoseAsset.Get()->GetAnimationPose(CurrentPose.Pose, CurrentPose.Curve, PoseExtractContext))

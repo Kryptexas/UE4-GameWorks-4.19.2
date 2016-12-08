@@ -125,18 +125,18 @@ private:
 	shdfnd::Mutex		  access;
 };
 
-class EventQueue
+class EventPool
 {
-	PX_NOCOPY(EventQueue)
+	PX_NOCOPY(EventPool)
 public:
-	EventQueue() : evarray(PX_DEBUG_EXP("CUevent")) {}
-	void push(CUevent ev)
+	EventPool(uint32_t inflags) : flags(inflags), evarray(PX_DEBUG_EXP("CUevent")) {}
+	void add(CUevent ev)
 	{
 		access.lock();
 		evarray.pushBack(ev);
 		access.unlock();
 	}
-	CUevent popBack(uint32_t flags)
+	CUevent get()
 	{
 		access.lock();
 		CUevent ev;
@@ -151,14 +151,24 @@ public:
 		access.unlock();
 		return ev;
 	}
-	bool empty()
+	bool empty() const
 	{
 		return evarray.size() == 0;
 	}
+	void clear()
+	{
+		access.lock();
+		for (uint32_t i = 0; i < evarray.size(); i++)
+		{
+			cuEventDestroy(evarray[i]);
+		}
+		access.unlock();
+	}
 
 private:
+	uint32_t flags;
 	shdfnd::Array<CUevent> evarray;
-	shdfnd::Mutex			access;
+	shdfnd::Mutex access;
 };
 
 class StreamCache
@@ -229,7 +239,6 @@ const int SIZE_COMPLETION_RING = 1024;
 
 struct CudaBatch
 {
-	CUevent		startEvent;
 	CUevent		blockingEvent;
 	CUstream    blockingStream; // sync on stream instead of event if lsb is zero (faster)
 	PxBaseTask*   continuationTask;
@@ -263,9 +272,7 @@ public:
 	void					execute();
 	void					pollSubmitted(shdfnd::Array<ReadyTask> *ready);
 	void					processActiveTasks();
-	CUevent					startNewBatch();
-	void					flushBatch(CUevent startEvent, CUevent endEvent, CUstream, PxBaseTask* task);
-	void					launchSaturationKernel(int32_t* prof);
+	void					flushBatch(CUevent endEvent, CUstream, PxBaseTask* task);
 	void					launchCopyKernel(PxGpuCopyDesc* desc, uint32_t count, CUstream stream);
 
 	/* Blocking wait thread */
@@ -287,8 +294,8 @@ public:
 	volatile int            mCompletionRingPush;
 	volatile int            mCompletionRingPop;
 
-	EventQueue				mCachedBlockingEvents;
-	EventQueue              mCachedProfilingEvents;
+	EventPool               mCachedBlockingEvents;
+	EventPool               mCachedNonBlockingEvents;
 
 	volatile int			mCountActiveScenes;
 

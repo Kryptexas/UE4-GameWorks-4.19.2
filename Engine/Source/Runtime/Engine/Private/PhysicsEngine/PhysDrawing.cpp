@@ -401,11 +401,14 @@ void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& 
 		PxU32 NbVerts = Mesh->getNbVertices();
 		const PxVec3* Vertices = Mesh->getVertices();
 		
+		// ElemTM is element transform, but geometry is stored in body space, so we need to remove body->element transform
+		FTransform RenderTM = Transform.GetRelativeTransformReverse(ElemTM);
+
 		TArray<FVector> TransformedVerts;
 		TransformedVerts.AddUninitialized(NbVerts);
 		for(PxU32 i=0; i<NbVerts; i++)
 		{
-			TransformedVerts[i] = ElemTM.TransformPosition(P2UVector(Vertices[i]) * Scale);
+			TransformedVerts[i] = RenderTM.TransformPosition(P2UVector(Vertices[i]) * Scale);
 		}
 						
 		const PxU8* PIndexBuffer = Mesh->getIndexBuffer();
@@ -488,7 +491,7 @@ void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBu
 				int32 VertIndex = indices[j];
 
 				FDynamicMeshVertex Vert1;
-				Vert1.Position = Transform.TransformPosition( P2UVector(PVertices[VertIndex]) * Scale3D ); // Apply element transform to get geom in component space
+				Vert1.Position = P2UVector(PVertices[VertIndex]) * Scale3D;
 				Vert1.Color = VertexColor;
 				Vert1.SetTangents(
 					TangentX,

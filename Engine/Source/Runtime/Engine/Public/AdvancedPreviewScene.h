@@ -20,6 +20,7 @@ class UMaterialInstanceConstant;
 class UPostProcessComponent;
 class USkyLightComponent;
 class UStaticMeshComponent;
+class USphereReflectionCaptureComponent;
 struct FPreviewSceneProfile;
 
 #if WITH_EDITOR
@@ -54,10 +55,11 @@ public:
 protected:
 	USkyLightComponent* SkyLightComponent;
 	UStaticMeshComponent* SkyComponent;
+	USphereReflectionCaptureComponent* SphereReflectionComponent;
 	UMaterialInstanceConstant* InstancedSkyMaterial;
 	UPostProcessComponent* PostProcessComponent;
 	UStaticMeshComponent* FloorMeshComponent;
-	UAssetViewerSettings* DefaultSettings;
+	UAssetViewerSettings* DefaultSettings;	
 	bool bRotateLighting;
 
 	float CurrentRotationSpeed;
@@ -65,6 +67,8 @@ protected:
 
 	bool bSkyChanged;
 	bool bPostProcessing;
+
+	bool bUseSkylight;
 
 	int32 CurrentProfileIndex;
 };

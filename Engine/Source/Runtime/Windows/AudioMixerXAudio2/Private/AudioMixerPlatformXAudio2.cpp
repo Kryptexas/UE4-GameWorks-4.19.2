@@ -12,6 +12,8 @@
 #include "HAL/PlatformAffinity.h"
 #include "OpusAudioInfo.h"
 #include "VorbisAudioInfo.h"
+#include "CoreGlobals.h"
+#include "Misc/ConfigCacheIni.h"
 
 // Macro to check result code for XAudio2 failure, get the string version, log, and goto a cleanup
 #define XAUDIO2_CLEANUP_ON_FAIL(Result)						\
@@ -163,6 +165,7 @@ namespace Audio
 		XAUDIO2_RETURN_ON_FAIL(XAudio2System->GetDeviceDetails(InDeviceIndex, &DeviceDetails));
 
 		OutInfo.Name = FString(DeviceDetails.DisplayName);
+		OutInfo.DeviceId = FString(DeviceDetails.DeviceID);
 		OutInfo.bIsSystemDefault = (InDeviceIndex == 0);
 
 		// Get the wave format to parse there rest of the device details
@@ -431,6 +434,12 @@ namespace Audio
 			return nullptr;
 		}
 		return CompressedInfo;
+	}
+
+	FString FMixerPlatformXAudio2::GetDefaultDeviceName()
+	{
+		//GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("AudioDevice"), WindowsAudioDeviceName, GEngineIni);
+		return FString();
 	}
 
 }

@@ -203,7 +203,7 @@ bool CanCookForPlatformInThisProcess( const FString& PlatformName )
 	ConfigSetting = IniValueString.ToBool();
 
 	// this was stolen from void IsMobileHDR()
-	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+	static TConsoleVariableData<int32>* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	const bool CurrentRSetting = MobileHDRCvar->GetValueOnAnyThread() == 1;
 
 	if ( CurrentRSetting != ConfigSetting )
@@ -299,7 +299,7 @@ void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSorte
 	// Iterate over all classes searching for those which derive from AActor and are neither deprecated nor abstract.
 	// It would be nice to only check placeable classes here, but we cannot do that as some non-placeable classes
 	// still end up in the editor (with sprites) procedurally, such as prefab instances and landscape actors.
-	for ( auto* Class : TObjectRange<UClass>() )
+	for ( UClass* Class : TObjectRange<UClass>() )
 	{
 		if ( Class->IsChildOf( AActor::StaticClass() )
 		&& !( Class->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated) ) )
@@ -309,13 +309,10 @@ void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSorte
 			const AActor* CurDefaultClassActor = Class->GetDefaultObject<AActor>();
 			if ( CurDefaultClassActor )
 			{
-				TInlineComponentArray<UActorComponent*> Components;
-				CurDefaultClassActor->GetComponents(Components);
-
-				for ( auto* Comp : Components )
+				for ( UActorComponent* Comp : CurDefaultClassActor->GetComponents() )
 				{
 					const UBillboardComponent* CurSpriteComponent = Cast<UBillboardComponent>( Comp );
-					const UArrowComponent* CurArrowComponent = (CurSpriteComponent ? NULL : Cast<UArrowComponent>( Comp ));
+					const UArrowComponent* CurArrowComponent = (CurSpriteComponent ? nullptr : Cast<UArrowComponent>( Comp ));
 					if ( CurSpriteComponent )
 					{
 						Local::AddSortedSpriteInfo( OutSortedSpriteInfo, CurSpriteComponent->SpriteInfo );
@@ -394,7 +391,7 @@ void UUnrealEdEngine::Tick(float DeltaSeconds, bool bIdleMode)
 	if (!GSlowTaskOccurred)
 	{
 		// Don't increment autosave count while in game/pie/automation testing or while in Matinee
-		const bool PauseAutosave = (PlayWorld != NULL) || GIsAutomationTesting;
+		const bool PauseAutosave = (PlayWorld != nullptr) || GIsAutomationTesting;
 		if (!PauseAutosave && PackageAutoSaver.Get())
 		{
 			PackageAutoSaver->UpdateAutoSaveCount(DeltaSeconds);
@@ -545,7 +542,7 @@ void UUnrealEdEngine::AttemptModifiedPackageNotification()
 
 		TArray<FString> Files;
 		TArray<TWeakObjectPtr<UPackage>> Packages;
-		for (const auto& Package : PackagesDirtiedThisTick)
+		for (const TWeakObjectPtr<UPackage>& Package : PackagesDirtiedThisTick)
 		{
 			if (Package.IsValid())
 			{
@@ -573,7 +570,7 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 		TArray<FString> FilesToAutomaticallyCheckOut;
 
 		const UEditorLoadingSavingSettings* Settings = GetDefault<UEditorLoadingSavingSettings>();
-		for (const auto& PackagePtr : Packages)
+		for (const TWeakObjectPtr<UPackage>& PackagePtr : Packages)
 		{
 			if (PackagePtr.IsValid())
 			{
@@ -628,7 +625,7 @@ void UUnrealEdEngine::OnPackagesCheckedOut(const FSourceControlOperationRef& Sou
 
 		FSlateNotificationManager::Get().AddNotification(Notification);
 
-		for (const auto& Package : Packages)
+		for (const TWeakObjectPtr<UPackage>& Package : Packages)
 		{
 			PackageToNotifyState.Add(Package, NS_DialogPrompted);
 		}
@@ -642,7 +639,7 @@ void UUnrealEdEngine::OnPackagesCheckedOut(const FSourceControlOperationRef& Sou
 
 		FSlateNotificationManager::Get().AddNotification(ErrorNotification);
 
-		for (const auto& Package : Packages)
+		for (const TWeakObjectPtr<UPackage>& Package : Packages)
 		{
 			PackageToNotifyState.Add(Package, NS_PendingPrompt);
 		}
@@ -1077,7 +1074,7 @@ void UUnrealEdEngine::OpenTextureStatsWindow()
 void UUnrealEdEngine::GetSortedVolumeClasses( TArray< UClass* >* VolumeClasses )
 {
 	// Add all of the volume classes to the passed in array and then sort it
-	for( auto* Class : TObjectRange<UClass>() )
+	for( UClass* Class : TObjectRange<UClass>() )
 	{
 		if (Class->IsChildOf(AVolume::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NotPlaceable) && Class->ClassGeneratedBy == nullptr)
 		{
@@ -1267,7 +1264,7 @@ void UUnrealEdEngine::FixAnyInvertedBrushes(UWorld* World)
 			UE_LOG(LogUnrealEdEngine, Warning, TEXT("Brush '%s' appears to be inside out - fixing."), *Brush->GetName());
 
 			// Invert the polys of the brush
-			for (auto& Poly : Brush->BrushComponent->Brush->Polys->Element)
+			for (FPoly& Poly : Brush->BrushComponent->Brush->Polys->Element)
 			{
 				Poly.Reverse();
 				Poly.CalcNormal();

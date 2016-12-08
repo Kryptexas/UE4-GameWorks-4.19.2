@@ -229,7 +229,7 @@ public:
 	* @param NewPreviewMesh - The new preview mesh being used by Persona
 	*
 	*/
-	void OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh);
+	void OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh);
 
 	/**
 	* Filters the SListView when the user changes the search text box (NameFilterBox)

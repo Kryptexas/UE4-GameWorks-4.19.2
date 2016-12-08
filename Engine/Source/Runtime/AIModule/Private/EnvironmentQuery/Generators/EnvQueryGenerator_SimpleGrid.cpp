@@ -32,9 +32,9 @@ void UEnvQueryGenerator_SimpleGrid::GenerateItems(FEnvQueryInstance& QueryInstan
 
 	for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 	{
-		for (int32 IndexX = 0; IndexX <= ItemCount; ++IndexX)
+		for (int32 IndexX = 0; IndexX < ItemCount; ++IndexX)
 		{
-			for (int32 IndexY = 0; IndexY <= ItemCount; ++IndexY)
+			for (int32 IndexY = 0; IndexY < ItemCount; ++IndexY)
 			{
 				const FNavLocation TestPoint = FNavLocation(ContextLocations[ContextIndex] - FVector(DensityValue * (IndexX - ItemCountHalf), DensityValue * (IndexY - ItemCountHalf), 0));
 				GridPoints.Add(TestPoint);
@@ -54,7 +54,7 @@ FText UEnvQueryGenerator_SimpleGrid::GetDescriptionTitle() const
 
 FText UEnvQueryGenerator_SimpleGrid::GetDescriptionDetails() const
 {
-	FText Desc = FText::Format(LOCTEXT("SimpleGridDescription", "size: {0}, space between: {1}"),
+	FText Desc = FText::Format(LOCTEXT("SimpleGridDescription", "radius: {0}, space between: {1}"),
 		FText::FromString(GridSize.ToString()), FText::FromString(SpaceBetween.ToString()));
 
 	FText ProjDesc = ProjectionData.ToText(FEnvTraceData::Brief);

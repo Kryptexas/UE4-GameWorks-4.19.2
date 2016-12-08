@@ -423,7 +423,7 @@ bool UDialogueSoundWaveProxy::IsPlayable() const
 	return SoundWave->IsPlayable();
 }
 
-const FAttenuationSettings* UDialogueSoundWaveProxy::GetAttenuationSettingsToApply() const
+const FSoundAttenuationSettings* UDialogueSoundWaveProxy::GetAttenuationSettingsToApply() const
 {
 	return SoundWave->GetAttenuationSettingsToApply();
 }

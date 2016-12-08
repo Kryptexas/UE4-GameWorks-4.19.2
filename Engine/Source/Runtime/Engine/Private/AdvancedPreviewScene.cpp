@@ -17,6 +17,7 @@
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SphereReflectionCaptureComponent.h"
 
 #include "AssetViewerSettings.h"
 
@@ -31,16 +32,31 @@ FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFlo
 	FPreviewSceneProfile& Profile = DefaultSettings->Profiles[CurrentProfileIndex];
 
 	const FTransform Transform(FRotator(0, 0, 0), FVector(0, 0, 0), FVector(1));
-	
+
 	// Add and set up sky light using the set cube map texture
-	SkyLightComponent = NewObject<USkyLightComponent>();
-	SkyLightComponent->Cubemap = Profile.EnvironmentCubeMap.Get();
-	SkyLightComponent->SourceType = ESkyLightSourceType::SLS_SpecifiedCubemap;
-	SkyLightComponent->Mobility = EComponentMobility::Movable;
-	SkyLightComponent->bLowerHemisphereIsBlack = false;
-	SkyLightComponent->Intensity = Profile.SkyLightIntensity;
-	AddComponent(SkyLightComponent, Transform);
-	SkyLightComponent->UpdateSkyCaptureContents(PreviewWorld);
+	static const auto CVarSupportStationarySkylight = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SupportStationarySkylight"));
+	bUseSkylight = CVarSupportStationarySkylight->GetValueOnAnyThread() != 0;
+	if (bUseSkylight)
+	{
+		SkyLightComponent = NewObject<USkyLightComponent>();
+		SkyLightComponent->Cubemap = Profile.EnvironmentCubeMap.Get();
+		SkyLightComponent->SourceType = ESkyLightSourceType::SLS_SpecifiedCubemap;
+		SkyLightComponent->Mobility = EComponentMobility::Movable;
+		SkyLightComponent->bLowerHemisphereIsBlack = false;
+		SkyLightComponent->Intensity = Profile.SkyLightIntensity;
+		AddComponent(SkyLightComponent, Transform);
+		SkyLightComponent->UpdateSkyCaptureContents(PreviewWorld);
+	}
+	else
+	{
+		SphereReflectionComponent = NewObject<USphereReflectionCaptureComponent>();
+		SphereReflectionComponent->Cubemap = Profile.EnvironmentCubeMap.Get();
+		SphereReflectionComponent->ReflectionSourceType = EReflectionSourceType::SpecifiedCubemap;
+		SphereReflectionComponent->Brightness = Profile.SkyLightIntensity;
+		AddComponent(SphereReflectionComponent, Transform);
+		SphereReflectionComponent->UpdateReflectionCaptureContents(PreviewWorld);
+	}
+	
 	
 	// Large scale to prevent sphere from clipping
 	const FTransform SphereTransform(FRotator(0, 0, 0), FVector(0, 0, 0), FVector(2000));
@@ -78,11 +94,6 @@ FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFlo
 	FTransform FloorTransform(FRotator(0, 0, 0), FVector(0, 0, -(InFloorOffset)), FVector(4.0f, 4.0f, 1.0f ));
 	AddComponent(FloorMeshComponent, FloorTransform);	
 
-	// Set up directional light's cascaded shadow maps for higher shadow quality
-	DirectionalLight->DynamicShadowCascades = 4;
-	DirectionalLight->DynamicShadowDistanceMovableLight = 5000.0f;
-	DirectionalLight->ShadowBias = 0.7f;
-
 	SetLightDirection(Profile.DirectionalLightRotation);
 
 	bRotateLighting = Profile.bRotateLightingRig;
@@ -92,14 +103,21 @@ FAdvancedPreviewScene::FAdvancedPreviewScene(ConstructionValues CVS, float InFlo
 
 void FAdvancedPreviewScene::UpdateScene(FPreviewSceneProfile& Profile, bool bUpdateSkyLight /*= true*/, bool bUpdateEnvironment  /*= true*/, bool bUpdatePostProcessing /*= true*/, bool bUpdateDirectionalLight /*= true*/)
 {
-
 	if (bUpdateSkyLight)
 	{
 		// Threshold to ensure we only update the intensity if it is going to make a difference
-		if (!FMath::IsNearlyEqual(SkyLightComponent->Intensity, Profile.SkyLightIntensity, 0.05f))
+		if (!FMath::IsNearlyEqual(bUseSkylight ? SkyLightComponent->Intensity : SphereReflectionComponent->Brightness, Profile.SkyLightIntensity, 0.05f))
 		{
 			static const FName IntensityName("Intensity");
-			SkyLightComponent->SetIntensity(Profile.SkyLightIntensity);
+			if (bUseSkylight)
+			{
+				SkyLightComponent->SetIntensity(Profile.SkyLightIntensity);
+			}
+			else
+			{
+				SphereReflectionComponent->Brightness = Profile.SkyLightIntensity;
+			}
+			
 			InstancedSkyMaterial->SetScalarParameterValueEditorOnly(IntensityName, Profile.SkyLightIntensity);
 			bSkyChanged = true;
 		}
@@ -117,7 +135,15 @@ void FAdvancedPreviewScene::UpdateScene(FPreviewSceneProfile& Profile, bool bUpd
 		if (Texture != EnvironmentTexture)
 		{
 			InstancedSkyMaterial->SetTextureParameterValueEditorOnly(SkyBoxName, EnvironmentTexture);
-			SkyLightComponent->Cubemap = EnvironmentTexture;
+			if (bUseSkylight)
+			{
+				SkyLightComponent->Cubemap = EnvironmentTexture;
+			}
+			else
+			{
+				SphereReflectionComponent->Cubemap = EnvironmentTexture;
+			}
+			
 			bSkyChanged = true;
 		}
 		
@@ -133,7 +159,14 @@ void FAdvancedPreviewScene::UpdateScene(FPreviewSceneProfile& Profile, bool bUpd
 			LightDir.Yaw -= Profile.LightingRigRotation - (Rotation * 360.0f);
 			SetLightDirection(LightDir);
 			DefaultSettings->Profiles[CurrentProfileIndex].DirectionalLightRotation = LightDir;
-			SkyLightComponent->SourceCubemapAngle = Profile.LightingRigRotation;
+			if (bUseSkylight)
+			{
+				SkyLightComponent->SourceCubemapAngle = Profile.LightingRigRotation;
+			}
+			else
+			{
+				SphereReflectionComponent->SourceCubemapAngle = Profile.LightingRigRotation;
+			}
 			bSkyChanged = true;
 		}
 	}		
@@ -155,6 +188,14 @@ void FAdvancedPreviewScene::UpdateScene(FPreviewSceneProfile& Profile, bool bUpd
 	}
 
 	SkyComponent->SetVisibility(Profile.bShowEnvironment, true);
+	if (bUseSkylight)
+	{
+		SkyLightComponent->SetVisibility(Profile.bShowEnvironment, true);
+	}
+	else
+	{
+		SphereReflectionComponent->SetVisibility(Profile.bShowEnvironment, true);
+	}
 	FloorMeshComponent->SetVisibility(Profile.bShowFloor, true);
 
 	bRotateLighting = Profile.bRotateLightingRig;
@@ -193,10 +234,20 @@ void FAdvancedPreviewScene::Tick(float DeltaTime)
 
 	if (!FMath::IsNearlyEqual(PreviousRotation, Profile.LightingRigRotation, 0.05f))
 	{		
-		SkyLightComponent->SourceCubemapAngle = Profile.LightingRigRotation;
-		SkyLightComponent->SetCaptureIsDirty();
-		SkyLightComponent->MarkRenderStateDirty();
-		SkyLightComponent->UpdateSkyCaptureContents(PreviewWorld);
+		if (bUseSkylight)
+		{
+			SkyLightComponent->SourceCubemapAngle = Profile.LightingRigRotation;
+			SkyLightComponent->SetCaptureIsDirty();
+			SkyLightComponent->MarkRenderStateDirty();
+			SkyLightComponent->UpdateSkyCaptureContents(PreviewWorld);
+		}
+		else
+		{
+			SphereReflectionComponent->SourceCubemapAngle = Profile.LightingRigRotation;
+			SphereReflectionComponent->SetCaptureIsDirty();
+			SphereReflectionComponent->MarkRenderStateDirty();
+			SphereReflectionComponent->UpdateReflectionCaptureContents(PreviewWorld);
+		}
 
 		InstancedSkyMaterial->SetScalarParameterValueEditorOnly(FName("CubemapRotation"), Profile.LightingRigRotation / 360.0f);
 		InstancedSkyMaterial->PostEditChange();
@@ -210,9 +261,20 @@ void FAdvancedPreviewScene::Tick(float DeltaTime)
 	// Update the sky every tick rather than every mouse move (UpdateScene call)
 	if (bSkyChanged)
 	{
-		SkyLightComponent->SetCaptureIsDirty();
-		SkyLightComponent->MarkRenderStateDirty();
-		SkyLightComponent->UpdateSkyCaptureContents(PreviewWorld);
+		if (bUseSkylight)
+		{
+			SkyLightComponent->SetCaptureIsDirty();
+			SkyLightComponent->MarkRenderStateDirty();
+			SkyLightComponent->UpdateSkyCaptureContents(PreviewWorld);
+		}
+		else
+		{
+			SphereReflectionComponent->SetCaptureIsDirty();
+			SphereReflectionComponent->MarkRenderStateDirty();
+			SphereReflectionComponent->UpdateReflectionCaptureContents(PreviewWorld);
+		}
+
+
 		InstancedSkyMaterial->PostEditChange();
 		bSkyChanged = false;
 	}
@@ -269,13 +331,13 @@ const bool FAdvancedPreviewScene::HandleInputKey(FViewport* InViewport, int32 Co
 	const bool bHideFloor = InViewport->KeyState(EKeys::O);
 	if (bHideSky)
 	{
-		SetEnvironmentVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor);
+		SetEnvironmentVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment);
 		bResult = true;
 	}
 
 	if (bHideFloor)
 	{
-		SetFloorVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment);
+		SetFloorVisibility(!DefaultSettings->Profiles[CurrentProfileIndex].bShowFloor);
 		bResult = true;
 	}
 
@@ -315,8 +377,16 @@ void FAdvancedPreviewScene::SetEnvironmentVisibility(const bool bVisible, const 
 	}
 	else
 	{
-		// Otherwise set visiblity directly on the component
+		// Otherwise set visibility directly on the component
 		SkyComponent->SetVisibility(bVisible ? DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment : bVisible);
+		if (bUseSkylight)
+		{
+			SkyLightComponent->SetVisibility(bVisible ? DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment : bVisible);
+		}
+		else
+		{
+			SphereReflectionComponent->SetVisibility(bVisible ? DefaultSettings->Profiles[CurrentProfileIndex].bShowEnvironment : bVisible);
+		}
 	}
 }
 

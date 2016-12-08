@@ -1042,11 +1042,19 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			{
 				if (Tag.Type == NAME_StructProperty && PropID == NAME_StructProperty)
 				{
-					FName* NewName = FLinkerLoad::StructNameRedirects.Find(Tag.StructName);
-					FName StructName = CastChecked<UStructProperty>(Property)->Struct->GetFName();
-						if (NewName != nullptr && *NewName == StructName)
+					const FName NewName = FLinkerLoad::FindNewNameForStruct(Tag.StructName);
+					const FName StructName = CastChecked<UStructProperty>(Property)->Struct->GetFName();
+					if (NewName == StructName)
 					{
-						Tag.StructName = *NewName;
+						Tag.StructName = NewName;
+					}
+				}
+				else if ((PropID == NAME_EnumProperty) && ((Tag.Type == NAME_EnumProperty) || (Tag.Type == NAME_ByteProperty)))
+				{
+					const FName NewName = FLinkerLoad::FindNewNameForEnum(Tag.EnumName);
+					if (!NewName.IsNone())
+					{
+						Tag.EnumName = NewName;
 					}
 				}
 			}

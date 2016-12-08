@@ -663,6 +663,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->OmniRadius = ParseParams.OmniRadius;
 		WaveInstance->StereoSpread = ParseParams.StereoSpread;
 		WaveInstance->AttenuationDistance = ParseParams.AttenuationDistance;
+		WaveInstance->ListenerToSoundDistance = ParseParams.ListenerToSoundDistance;
 		WaveInstance->AbsoluteAzimuth = ParseParams.AbsoluteAzimuth;
 
 		bool bAlwaysPlay = false;
@@ -734,6 +735,20 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->NotifyBufferFinishedHooks = ParseParams.NotifyBufferFinishedHooks;
 		WaveInstance->LoopingMode = ((bLooping || ParseParams.bLooping) ? LOOP_Forever : LOOP_Never);
 		WaveInstance->bIsPaused = ParseParams.bIsPaused;
+
+		// If we're using spatialization, then use the dry-wet mapping function defined in attenuation settings
+		if (WaveInstance->bUseSpatialization)
+		{
+			WaveInstance->ReverbWetLevelMin = ParseParams.ReverbWetLevelMin;
+			WaveInstance->ReverbWetLevelMax = ParseParams.ReverbWetLevelMax;
+			WaveInstance->ReverbDistanceMin = ParseParams.ReverbDistanceMin;
+			WaveInstance->ReverbDistanceMax = ParseParams.ReverbDistanceMax;
+		}
+		else
+		{
+			// Otherwise, we're just goign to use the DefaultMasterReverbSendAmount defined the sound base
+			WaveInstance->ReverbWetLevelMin = ParseParams.DefaultMasterReverbSendAmount;
+		}
 
 		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationAlgorithm == SPATIALIZATION_Default)
 		{

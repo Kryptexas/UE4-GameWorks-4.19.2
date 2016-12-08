@@ -32,6 +32,7 @@
 #include "Engine/StaticMeshSocket.h"
 #include "AI/NavigationSystemHelpers.h"
 #include "AI/NavigationOctree.h"
+#include "AI/Navigation/NavigationSystem.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "EngineGlobals.h"
 #include "ComponentRecreateRenderStateContext.h"
@@ -609,6 +610,22 @@ void UStaticMeshComponent::OnUnregister()
 	RemoveSpeedTreeWind();
 
 	Super::OnUnregister();
+}
+
+void UStaticMeshComponent::OnCreatePhysicsState()
+{
+	Super::OnCreatePhysicsState();
+
+	bNavigationRelevant = IsNavigationRelevant();
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
+}
+
+void UStaticMeshComponent::OnDestroyPhysicsState()
+{
+	Super::OnDestroyPhysicsState();
+
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
+	bNavigationRelevant = IsNavigationRelevant();
 }
 
 #if WITH_EDITORONLY_DATA
@@ -1479,9 +1496,15 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 
 			// If the staticmesh changed, then the component needs a texture streaming rebuild.
 			StreamingTextureData.Empty();
+			
+			if (OverrideMaterials.Num())
+			{
+				// Static mesh was switched so we should empty out the override materials
+				OverrideMaterials.Empty(GetStaticMesh() ? GetStaticMesh()->StaticMaterials.Num() : 0);
+			}
 		}
 
-		if (PropertyThatChanged->GetName() == TEXT("overridematerials"))
+		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, OverrideMaterials))
 		{
 			// If the owning actor is part of a cluster flag it as dirty
 			IHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<IHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
@@ -2142,7 +2165,7 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 
 bool UStaticMeshComponent::IsNavigationRelevant() const
 {
-	return GetStaticMesh() != nullptr && Super::IsNavigationRelevant();
+	return GetStaticMesh() != nullptr && GetStaticMesh()->GetNavCollision() != nullptr && Super::IsNavigationRelevant();
 }
 
 void UStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) const

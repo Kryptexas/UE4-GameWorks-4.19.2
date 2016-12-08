@@ -109,17 +109,18 @@ void FUMGViewportClient::Tick(float InDeltaTime)
 	if ( !GIntraFrameDebuggingGameThread )
 	{
 		// Begin Play
-		if ( !PreviewScene->GetWorld()->bBegunPlay )
+		UWorld* PreviewWorld = PreviewScene->GetWorld();
+		if ( !PreviewWorld->bBegunPlay )
 		{
-			for ( FActorIterator It(PreviewScene->GetWorld()); It; ++It )
+			for ( FActorIterator It(PreviewWorld); It; ++It )
 			{
-				It->BeginPlay();
+				It->DispatchBeginPlay();
 			}
-			PreviewScene->GetWorld()->bBegunPlay = true;
+			PreviewWorld->bBegunPlay = true;
 		}
 
 		// Tick
-		PreviewScene->GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
+		PreviewWorld->Tick(LEVELTICK_All, InDeltaTime);
 	}
 }
 

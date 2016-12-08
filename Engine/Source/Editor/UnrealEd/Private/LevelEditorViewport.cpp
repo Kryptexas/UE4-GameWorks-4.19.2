@@ -1931,6 +1931,11 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		else if (HitProxy->IsA(HActor::StaticGetType()))
 		{
 			HActor* ActorHitProxy = (HActor*)HitProxy;
+			AActor* ConsideredActor = ActorHitProxy->Actor;
+			while (ConsideredActor->IsChildActor())
+			{
+				ConsideredActor = ConsideredActor->GetParentActor();
+			}
 
 			// We want to process the click on the component only if:
 			// 1. The actor clicked is already selected
@@ -1938,8 +1943,8 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			// 3. The actor selected is blueprintable
 			// 4. No components are already selected and the click was a double click
 			// 5. OR, a component is already selected and the click was NOT a double click
-			const bool bActorAlreadySelectedExclusively = GEditor->GetSelectedActors()->IsSelected(ActorHitProxy->Actor) && ( GEditor->GetSelectedActorCount() == 1 );
-			const bool bActorIsBlueprintable = FKismetEditorUtilities::CanCreateBlueprintOfClass(ActorHitProxy->Actor->GetClass());
+			const bool bActorAlreadySelectedExclusively = GEditor->GetSelectedActors()->IsSelected(ConsideredActor) && ( GEditor->GetSelectedActorCount() == 1 );
+			const bool bActorIsBlueprintable = FKismetEditorUtilities::CanCreateBlueprintOfClass(ConsideredActor->GetClass());
 			const bool bComponentAlreadySelected = GEditor->GetSelectedComponentCount() > 0;
 			const bool bWasDoubleClick = ( Click.GetEvent() == IE_DoubleClick );
 
@@ -1951,7 +1956,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			}
 			else
 			{
-				ClickHandlers::ClickActor(this, ActorHitProxy->Actor, Click, true);
+				ClickHandlers::ClickActor(this, ConsideredActor, Click, true);
 			}
 
 			// We clicked an actor, allow the pivot to reposition itself.

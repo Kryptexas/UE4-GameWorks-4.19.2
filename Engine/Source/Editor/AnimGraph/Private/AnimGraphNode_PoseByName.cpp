@@ -163,4 +163,17 @@ void UAnimGraphNode_PoseByName::GetMenuActions(FBlueprintActionDatabaseRegistrar
 {
 	// Intentionally empty; you can drop down a regular pose blend node and convert into a poseasset by name in the right-click menu.
 }
+
+EAnimAssetHandlerType UAnimGraphNode_PoseByName::SupportsAssetClass(const UClass* AssetClass) const
+{
+	if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
+	{
+		return EAnimAssetHandlerType::Supported;
+	}
+	else
+	{
+		return EAnimAssetHandlerType::NotSupported;
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

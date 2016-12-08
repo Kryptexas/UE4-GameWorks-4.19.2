@@ -100,14 +100,21 @@ void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedRef
 					FString Excerpt = Enum->GetEnumName(EnumIdx);
 
 					bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIdx) || Enum->HasMetaData(TEXT("Spacer"), EnumIdx);
-					if( !bShouldBeHidden && AllowedPropertyEnums.Num() != 0 )
+					if (!bShouldBeHidden && AllowedPropertyEnums.Num() != 0)
 					{
 						bShouldBeHidden = AllowedPropertyEnums.Find(Enum->GetEnum(EnumIdx)) == INDEX_NONE;
 					}
 
-					if(!bShouldBeHidden)
+					if (!bShouldBeHidden)
 					{
-						RichToolTips.Add(IDocumentation::Get()->CreateToolTip(Enum->GetToolTipText(EnumIdx), nullptr, DocLink, Excerpt));
+						// See if we specified an alternate name for this value using metadata
+						const FString EnumValueName = Enum->GetEnumName(EnumIdx);
+						bShouldBeHidden = PropertyEditor->GetPropertyHandle()->IsHidden(EnumValueName);
+					}
+				
+					if (!bShouldBeHidden)
+					{
+						RichToolTips.Add(IDocumentation::Get()->CreateToolTip(MoveTemp(ToolTips[EnumIdx]), nullptr, DocLink, MoveTemp(Excerpt)));
 					}
 				}
 			}

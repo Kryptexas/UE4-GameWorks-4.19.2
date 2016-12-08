@@ -6,25 +6,16 @@
 #include "Sound/SoundEffectPreset.h"
 
 /*-----------------------------------------------------------------------------
-	USoundEffectBase Implementation
+	FSoundEffectBase Implementation
 -----------------------------------------------------------------------------*/
 
-USoundEffectBase::USoundEffectBase(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-	, SoundEffectPreset(nullptr)
-	, PresetSettingsSize(0)
-	, bIsRunning(false)
+FSoundEffectBase::FSoundEffectBase()
+	: bIsRunning(false)
 	, bIsActive(false)
 {}
 
-USoundEffectBase::~USoundEffectBase()
+void FSoundEffectBase::SetPreset(USoundEffectPreset* InPreset)
 {
-}
-
-void USoundEffectBase::SetPreset(USoundEffectPreset* InPreset)
-{
-	check(InPreset->GetEffectClass() == this->GetEffectClass());
-
 	const FPresetSettings& PresetSettings = InPreset->GetPresetSettings();
 
 	// Reset the preset data scratch buffer to the size of the settings

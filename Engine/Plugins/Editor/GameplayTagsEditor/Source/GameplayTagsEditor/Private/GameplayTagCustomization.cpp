@@ -31,7 +31,7 @@ void FGameplayTagCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		[
-			SAssignNew(ComboButton, SComboButton)
+			SNew(SComboButton)
 			.OnGetMenuContent(this, &FGameplayTagCustomization::GetListContent)
 			.ContentPadding(FMargin(2.0f, 2.0f))
 			.MenuPlacement(MenuPlacement_BelowAnchor)
@@ -73,13 +73,13 @@ TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 		.AutoHeight()
 		.MaxHeight(400)
 		[
-            SNew(SGameplayTagWidget, EditableContainers)
-            .Filter(Categories)
-            .ReadOnly(bReadOnly)
-            .TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
-            .MultiSelect(false)
-            .OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
-            .PropertyHandle(StructPropertyHandle)
+			SNew(SGameplayTagWidget, EditableContainers)
+			.Filter(Categories)
+			.ReadOnly(bReadOnly)
+			.TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
+			.MultiSelect(false)
+			.OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
+			.PropertyHandle(StructPropertyHandle)
 		];
 }
 

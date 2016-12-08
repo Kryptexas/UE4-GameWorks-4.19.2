@@ -12,14 +12,12 @@ namespace Audio
 	*/
 
 	FMixerSourceVoice::FMixerSourceVoice(FMixerDevice* InMixerDevice, FMixerSourceManager* InSourceManager)
-		: OwningSubmix(nullptr)
-		, SourceManager(InSourceManager)
+		: SourceManager(InSourceManager)
 		, MixerDevice(InMixerDevice)
 		, NumBuffersQueued(0)
 		, Pitch(-1.0f)
 		, Volume(-1.0f)
 		, Distance(-1.0f)
-		, WetLevel(-1.0f)
 		, SourceId(INDEX_NONE)
 		, bIsPlaying(false)
 		, bIsPaused(false)
@@ -41,7 +39,10 @@ namespace Audio
 			AUDIO_MIXER_CHECK(InitParams.BufferQueueListener != nullptr);
 			AUDIO_MIXER_CHECK(InitParams.NumInputChannels > 0);
 
-			OwningSubmix = InitParams.OwningSubmix;
+			for (int32 i = 0; i < InitParams.SubmixSends.Num(); ++i)
+			{
+				SubmixSends.Add(InitParams.SubmixSends[i].Submix->GetId(), InitParams.SubmixSends[i]);
+			}
 
 			SourceManager->InitSource(SourceId, InitParams);
 			return true;
@@ -96,17 +97,6 @@ namespace Audio
 		{
 			Volume = InVolume;
 			SourceManager->SetVolume(SourceId, InVolume);
-		}
-	}
-
-	void FMixerSourceVoice::SetWetLevel(const float InWetLevel)
-	{
-		AUDIO_MIXER_CHECK_GAME_THREAD(MixerDevice);
-
-		if (WetLevel != InWetLevel)
-		{
-			WetLevel = InWetLevel;
-			SourceManager->SetWetLevel(SourceId, InWetLevel);
 		}
 	}
 
@@ -203,11 +193,33 @@ namespace Audio
 		return SourceManager->GetNumFramesPlayed(SourceId);
 	}
 
-	void FMixerSourceVoice::MixOutputBuffers(TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer) const
+	void FMixerSourceVoice::MixOutputBuffers(TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer, const float DryLevel, const float WetLevel) const
 	{
 		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
 
-		return SourceManager->MixOutputBuffers(SourceId, OutDryBuffer, OutWetBuffer);
+		return SourceManager->MixOutputBuffers(SourceId, OutDryBuffer, OutWetBuffer, DryLevel, WetLevel);
+	}
+
+	void FMixerSourceVoice::SetSubmixSendInfo(FMixerSubmixPtr Submix, const float DryLevel, const float WetLevel)
+	{
+		AUDIO_MIXER_CHECK_AUDIO_PLAT_THREAD(MixerDevice);
+
+		FMixerSourceSubmixSend* SubmixSend = SubmixSends.Find(Submix->GetId());
+		if (!SubmixSend)
+		{
+			FMixerSourceSubmixSend NewSubmixSend;
+			NewSubmixSend.Submix = Submix;
+			NewSubmixSend.WetLevel = WetLevel;
+			NewSubmixSend.DryLevel = DryLevel;
+			SubmixSends.Add(Submix->GetId(), NewSubmixSend);
+		}
+		else
+		{
+			SubmixSend->WetLevel = WetLevel;
+			SubmixSend->DryLevel = DryLevel;
+		}
+
+		SourceManager->SetSubmixSendInfo(SourceId, Submix, DryLevel, WetLevel);
 	}
 
 

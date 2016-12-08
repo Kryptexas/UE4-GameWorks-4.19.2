@@ -184,7 +184,12 @@ void AActor::OnRep_ReplicatedMovement()
 		{
 			// Sync physics state
 			checkSlow(RootComponent->IsSimulatingPhysics());
-			PostNetReceivePhysicState();
+			// If we are welded we just want the parent's update to move us.
+			UPrimitiveComponent* RootPrimComp = Cast<UPrimitiveComponent>(RootComponent);
+			if (!RootPrimComp || !RootPrimComp->IsWelded())
+			{
+				PostNetReceivePhysicState();
+			}
 		}
 		else
 		{
@@ -303,7 +308,9 @@ void AActor::GatherCurrentMovement()
 		RootPrimComp->GetRigidBodyState(RBState);
 
 		ReplicatedMovement.FillFrom(RBState, this);
-		ReplicatedMovement.bRepPhysics = true;
+		// Don't replicate movement if we're welded to another parent actor.
+		// Their replication will affect our position indirectly since we are attached.
+		ReplicatedMovement.bRepPhysics = !RootPrimComp->IsWelded();
 	}
 	else if (RootComponent != nullptr)
 	{

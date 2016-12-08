@@ -271,6 +271,7 @@ public:
 	FORCEINLINE FPerceptionListenerID GetListenerID() const { return ListenerID; }
 
 	FName GetBodyActorName() const;
+	uint32 GetBodyActorUniqueID() const;
 
 	/** Returns pointer to the actor representing this listener's physical body */
 	const AActor* GetBodyActor() const;

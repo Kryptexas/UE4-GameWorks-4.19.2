@@ -207,7 +207,6 @@ void SMontageEditor::Construct(const FArguments& InArgs, const FMontageEditorReq
 		.InputMax(this, &SAnimEditorBase::GetMaxInput)
 		.OnSetInputViewRange(this, &SAnimEditorBase::SetInputViewRange)
 		.OnGetScrubValue(this, &SAnimEditorBase::GetScrubValue)
-		.OnCurvesChanged(InArgs._OnCurvesChanged)
 	];
 
 	if (MontageObj)

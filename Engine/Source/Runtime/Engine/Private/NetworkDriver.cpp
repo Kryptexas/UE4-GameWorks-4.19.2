@@ -1402,87 +1402,101 @@ void UNetDriver::InternalProcessRemoteFunction
 		}
 	}
 
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.RPC.Debug"));
+	const bool LogAsWarning = (CVar && CVar->GetValueOnAnyThread() == 1);
+
 	FNetBitWriter TempWriter( Bunch.PackageMap, 0 );
 
 	// Use the replication layout to send the rpc parameter values
 	TSharedPtr<FRepLayout> RepLayout = GetFunctionRepLayout( Function );
 	RepLayout->SendPropertiesForRPC( Actor, Function, Ch, TempWriter, Parms );
 
-	// Make sure net field export group is registered
-	FNetFieldExportGroup* NetFieldExportGroup = Ch->GetOrCreateNetFieldExportGroupForClassNetCache( TargetObj );
-
-	int32 HeaderBits	= 0;
-	int32 ParameterBits	= 0;
-
-	// Queue unreliable multicast 
-	const bool QueueBunch = ( !Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast );
-
-	if ( QueueBunch )
+	if (TempWriter.IsError())
 	{
-		Ch->WriteFieldHeaderAndPayload( Bunch, ClassCache, FieldCache, NetFieldExportGroup, TempWriter );
-		ParameterBits = Bunch.GetNumBits();
-	}
-	else
-	{
-		FNetBitWriter TempBlockWriter( Bunch.PackageMap, 0 );
-		Ch->WriteFieldHeaderAndPayload( TempBlockWriter, ClassCache, FieldCache, NetFieldExportGroup, TempWriter );
-		ParameterBits = TempBlockWriter.GetNumBits();
-		HeaderBits = Ch->WriteContentBlockPayload( TargetObj, Bunch, false, TempBlockWriter );
-	}
-
-	// Destroy the memory used for the copied out parameters
-	for ( int32 i = 0; i < LocalOutParms.Num(); i++ )
-	{
-		check( LocalOutParms[i]->HasAnyPropertyFlags( CPF_OutParm ) );
-		LocalOutParms[i]->DestroyValue_InContainer( Parms );
-	}
-
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.RPC.Debug"));
-	bool LogAsWarning = (CVar && CVar->GetValueOnAnyThread() == 1);
-
-	// Send the bunch.
-	if( Bunch.IsError() )
-	{
-		UE_LOG(LogNet, Log, TEXT("Error: Can't send function '%s' on '%s': RPC bunch overflowed (too much data in parameters?)"), *Function->GetName(), *TargetObj->GetFullName());
-		ensureMsgf(false,TEXT("Error: Can't send function '%s' on '%s': RPC bunch overflowed (too much data in parameters?)"), *Function->GetName(), *TargetObj->GetFullName());
-	}
-	else if (Ch->Closing)
-	{
-		UE_LOG(LogNetTraffic, Log, TEXT("RPC bunch on closing channel") );
-	}
-	else
-	{
-		// Make sure we're tracking all the bits in the bunch
-		check(Bunch.GetNumBits() == HeaderBits + ParameterBits);
-
-		if (QueueBunch)
+		if (LogAsWarning)
 		{
-			// Unreliable multicast functions are queued and sent out during property replication
-			if (LogAsWarning)
-			{
-				UE_LOG(LogNetTraffic, Warning,	TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
-			}
-			else
-			{
-				UE_LOG(LogNetTraffic, Log,		TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
-			}
-
-			NETWORK_PROFILER(GNetworkProfiler.TrackQueuedRPC(Connection, TargetObj, Actor, Function, HeaderBits, ParameterBits, 0));
-			Ch->QueueRemoteFunctionBunch(TargetObj, Function, Bunch);
+			UE_LOG(LogNet, Warning, TEXT("Error: Can't send function '%s' on '%s': Failed to serialize properties"), *Function->GetName(), *TargetObj->GetFullName());
 		}
 		else
 		{
-			if (LogAsWarning)
+			UE_LOG(LogNet, Log, TEXT("Error: Can't send function '%s' on '%s': Failed to serialize properties"), *Function->GetName(), *TargetObj->GetFullName());
+		}
+	}
+	else
+	{
+		// Make sure net field export group is registered
+		FNetFieldExportGroup* NetFieldExportGroup = Ch->GetOrCreateNetFieldExportGroupForClassNetCache( TargetObj );
+
+		int32 HeaderBits	= 0;
+		int32 ParameterBits	= 0;
+
+		// Queue unreliable multicast 
+		const bool QueueBunch = ( !Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast );
+
+		if ( QueueBunch )
+		{
+			Ch->WriteFieldHeaderAndPayload( Bunch, ClassCache, FieldCache, NetFieldExportGroup, TempWriter );
+			ParameterBits = Bunch.GetNumBits();
+		}
+		else
+		{
+			FNetBitWriter TempBlockWriter( Bunch.PackageMap, 0 );
+			Ch->WriteFieldHeaderAndPayload( TempBlockWriter, ClassCache, FieldCache, NetFieldExportGroup, TempWriter );
+			ParameterBits = TempBlockWriter.GetNumBits();
+			HeaderBits = Ch->WriteContentBlockPayload( TargetObj, Bunch, false, TempBlockWriter );
+		}
+
+		// Destroy the memory used for the copied out parameters
+		for ( int32 i = 0; i < LocalOutParms.Num(); i++ )
+		{
+			check( LocalOutParms[i]->HasAnyPropertyFlags( CPF_OutParm ) );
+			LocalOutParms[i]->DestroyValue_InContainer( Parms );
+		}
+
+		// Send the bunch.
+		if( Bunch.IsError() )
+		{
+			UE_LOG(LogNet, Log, TEXT("Error: Can't send function '%s' on '%s': RPC bunch overflowed (too much data in parameters?)"), *Function->GetName(), *TargetObj->GetFullName());
+			ensureMsgf(false,TEXT("Error: Can't send function '%s' on '%s': RPC bunch overflowed (too much data in parameters?)"), *Function->GetName(), *TargetObj->GetFullName());
+		}
+		else if (Ch->Closing)
+		{
+			UE_LOG(LogNetTraffic, Log, TEXT("RPC bunch on closing channel") );
+		}
+		else
+		{
+			// Make sure we're tracking all the bits in the bunch
+			check(Bunch.GetNumBits() == HeaderBits + ParameterBits);
+
+			if (QueueBunch)
 			{
-				UE_LOG(LogNetTraffic, Warning,	TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
+				// Unreliable multicast functions are queued and sent out during property replication
+				if (LogAsWarning)
+				{
+					UE_LOG(LogNetTraffic, Warning,	TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
+				}
+				else
+				{
+					UE_LOG(LogNetTraffic, Log,		TEXT("      Queing unreliable multicast RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
+				}
+
+				NETWORK_PROFILER(GNetworkProfiler.TrackQueuedRPC(Connection, TargetObj, Actor, Function, HeaderBits, ParameterBits, 0));
+				Ch->QueueRemoteFunctionBunch(TargetObj, Function, Bunch);
 			}
 			else
 			{
-				UE_LOG(LogNetTraffic, Log,		TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
-			}
+				if (LogAsWarning)
+				{
+					UE_LOG(LogNetTraffic, Warning,	TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
+				}
+				else
+				{
+					UE_LOG(LogNetTraffic, Log,		TEXT("      Sent RPC: %s::%s [%.1f bytes]"), *Actor->GetName(), *Function->GetName(), Bunch.GetNumBits() / 8.f );
+				}
 
-			NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor, Function, HeaderBits, ParameterBits, 0, Connection));
-			Ch->SendBunch( &Bunch, 1 );
+				NETWORK_PROFILER(GNetworkProfiler.TrackSendRPC(Actor, Function, HeaderBits, ParameterBits, 0, Connection));
+				Ch->SendBunch( &Bunch, 1 );
+			}
 		}
 	}
 

@@ -181,6 +181,9 @@ public:
 	/** Returns true if the player is allowed to pause the game */
 	virtual bool AllowPausing(APlayerController* PC = nullptr);
 
+	/** Returns true if the game is paused */
+	virtual bool IsPaused() const;
+
 	/**
 	 * Overridable function to determine whether an Actor should have Reset called when the game has Reset called on it.
 	 * Default implementation returns true

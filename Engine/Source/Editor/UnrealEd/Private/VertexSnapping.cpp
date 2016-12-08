@@ -17,6 +17,7 @@
 #include "EditorModeManager.h"
 #include "StaticMeshResources.h"
 #include "Engine/Polys.h"
+#include "SkeletalMeshTypes.h"
 
 namespace VertexSnappingConstants
 {

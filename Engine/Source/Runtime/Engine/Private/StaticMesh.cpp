@@ -45,6 +45,8 @@
 #include "Engine/StaticMeshSocket.h"
 #include "EditorFramework/AssetImportData.h"
 #include "AI/Navigation/NavCollision.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "ProfilingDebugging/CookStats.h"
 #include "UObject/ReleaseObjectVersion.h"
 #include "Streaming/UVChannelDensity.h"
@@ -854,6 +856,11 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			Section.bCastShadow = Info.bCastShadow;
 		}
 
+		// Arbitrary constant used as a base in Pow(K, LODIndex) that achieves much the same progression as a
+		// conversion of the old 1 / (MaxLODs * LODIndex) passed through the newer bounds computation.
+		// i.e. this achieves much the same results, but is still fairly arbitrary.
+		const float AutoComputeLODPowerBase = 0.75f;
+
 		if (Owner->bAutoComputeLODScreenSize)
 		{
 			if (LODIndex == 0)
@@ -862,7 +869,7 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			}
 			else if(LOD.MaxDeviation <= 0.0f)
 			{
-				ScreenSize[LODIndex] = 1.0f / (MaxLODs * LODIndex);
+				ScreenSize[LODIndex] = FMath::Pow(AutoComputeLODPowerBase, LODIndex);
 			}
 			else
 			{
@@ -894,7 +901,7 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			// No valid source model and we're not auto-generating. Auto-generate in this case
 			// because we have nothing else to go on.
 			const float Tolerance = 0.01f;
-			float AutoDisplayFactor = 1.0f / (MaxLODs * LODIndex);
+			float AutoDisplayFactor = FMath::Pow(AutoComputeLODPowerBase, LODIndex);
 
 			// Make sure this fits in with the previous LOD
 			ScreenSize[LODIndex] = FMath::Clamp(AutoDisplayFactor, 0.0f, ScreenSize[LODIndex-1] - Tolerance);
@@ -1866,15 +1873,13 @@ void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
 void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
-	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, bHasNavigationData) && !bHasNavigationData)
-	{
-		NavCollision = nullptr;
-	}
-
-#if WITH_EDITORONLY_DATA
+	const FName PropertyName = PropertyThatChanged ? PropertyThatChanged->GetFName() : NAME_None;
+	
 	LightMapResolution = FMath::Max(LightMapResolution, 0);
 
-	if (PropertyChangedEvent.MemberProperty && ( (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, PositiveBoundsExtension) ) || ( PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, NegativeBoundsExtension) ) ))
+	if (PropertyChangedEvent.MemberProperty 
+		&& ((PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, PositiveBoundsExtension)) 
+			|| (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, NegativeBoundsExtension))))
 	{
 		// Update the extended bounds
 		CalculateExtendedBounds();
@@ -1882,9 +1887,8 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 
 	if (!bAutoComputeLODScreenSize
 		&& RenderData
-		&& PropertyThatChanged
-		&& PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, bAutoComputeLODScreenSize))
-		{
+		&& PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, bAutoComputeLODScreenSize))
+	{
 		for (int32 LODIndex = 1; LODIndex < SourceModels.Num(); ++LODIndex)
 		{
 			SourceModels[LODIndex].ScreenSize = RenderData->ScreenSize[LODIndex];
@@ -1895,15 +1899,21 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 
 	Build(/*bSilent=*/ true);
 
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, bHasNavigationData)
+		|| PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, BodySetup))
+	{
+		// Build called above will result in creation, update or destruction 
+		// of NavCollision. We need to let related StaticMeshComponents know
+		BroadcastNavCollisionChange();
+	}
+
 	// Only unbuild lighting for properties which affect static lighting
-	if (!PropertyThatChanged 
-		|| PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapResolution)
-		|| PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapCoordinateIndex))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapResolution)
+		|| PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapCoordinateIndex))
 	{
 		FStaticMeshComponentRecreateRenderStateContext Context(this, true);		
 		SetLightingGuid();
 	}
-#endif // #if WITH_EDITORONLY_DATA
 	
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -1953,6 +1963,22 @@ void UStaticMesh::SetLODGroup(FName NewGroup)
 #endif
 }
 
+void UStaticMesh::BroadcastNavCollisionChange()
+{
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange())
+	{
+		for (FObjectIterator Iter(UStaticMeshComponent::StaticClass()); Iter; ++Iter)
+		{
+			UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(*Iter);
+			UWorld* MyWorld = StaticMeshComponent->GetWorld();
+			if (StaticMeshComponent->GetStaticMesh() == this)
+			{
+				StaticMeshComponent->bNavigationRelevant = StaticMeshComponent->IsNavigationRelevant();
+				UNavigationSystem::UpdateComponentInNavOctree(*StaticMeshComponent);
+			}
+		}
+	}
+}
 #endif // WITH_EDITOR
 
 void UStaticMesh::BeginDestroy()
@@ -2633,14 +2659,7 @@ void UStaticMesh::PostLoad()
 		CreateBodySetup();
 	}
 
-	if (NavCollision == nullptr && bHasNavigationData)
-	{
-		CreateNavCollision();
-	}
-	else if (NavCollision && !bHasNavigationData)
-	{
-		NavCollision = nullptr;
-	}
+	CreateNavCollision();
 }
 
 //
@@ -2846,12 +2865,20 @@ void UStaticMesh::CreateBodySetup()
 	}
 }
 
-void UStaticMesh::CreateNavCollision()
+void UStaticMesh::CreateNavCollision(const bool bIsUpdate)
 {
-	if (NavCollision == NULL && BodySetup != NULL)
+	// do NOT test properties of BodySetup at load time, they still can change between PostLoad and component's OnRegister
+	if (bHasNavigationData && BodySetup != nullptr && (!bIsUpdate || NavigationHelper::IsBodyNavigationRelevant(*BodySetup)))
 	{
-		NavCollision = NewObject<UNavCollision>(this);
+		if (NavCollision == nullptr || bIsUpdate)
+		{
+			NavCollision = NewObject<UNavCollision>(this);
+		}
 		NavCollision->Setup(BodySetup);
+	}
+	else
+	{
+		NavCollision = nullptr;
 	}
 }
 

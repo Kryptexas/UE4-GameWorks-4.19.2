@@ -348,7 +348,7 @@ void FSubtitleManager::DisplaySubtitles(FCanvas* InCanvas, FIntRect& InSubtitleR
 	check(GEngine);
 	check(InCanvas);
 
-	if (!GEngine->bSubtitlesEnabled)
+	if (GEngine->bSubtitlesForcedOff || !GEngine->bSubtitlesEnabled)
 	{
 		return; // do nothing if subtitles are disabled.
 	}

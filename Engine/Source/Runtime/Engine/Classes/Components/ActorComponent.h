@@ -199,7 +199,7 @@ public:
 	uint32 bWantsInitializeComponent:1;
 
 	/** If true, we call the virtual BeginPlay */
-	DEPRECATED(4.14, "bWantsBeginPlay was inconsistently enforced and is now unused")
+	DEPRECATED(4.14, "bWantsBeginPlay was inconsistently enforced and is now unused. BeginPlay will now always be called for Actor Components.")
 	uint32 bWantsBeginPlay:1;
 
 	/** If true, the component will be excluded from non-editor builds */
@@ -612,6 +612,9 @@ private:
 	friend struct FActorComponentTickFunction;
 
 public:
+
+	/** Overridable check for a component to indicate to its Owner that it should prevent the Actor from auto destroying when finished */
+	virtual bool IsReadyForOwnerToAutoDestroy() const { return true; }
 
 	/**
 	 * Returns whether the component's owner is selected.

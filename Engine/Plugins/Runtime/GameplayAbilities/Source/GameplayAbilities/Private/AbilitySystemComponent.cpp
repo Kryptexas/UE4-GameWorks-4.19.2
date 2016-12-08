@@ -1150,12 +1150,9 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_WithParams_Imp
 	// If server generated prediction key and auto proxy, skip this message. 
 	// This is an RPC from mixed replication mode code, we will get the "real" message from our OnRep on the autonomous proxy
 	// See UAbilitySystemComponent::AddGameplayCue_Internal for more info.
-	if (PredictionKey.IsServerInitiatedKey() && AbilityActorInfo->IsLocallyControlledPlayer())
-	{
-		return;
-	}
+	bool bIsMixedReplicationFromServer = (ReplicationMode == EReplicationMode::Mixed && PredictionKey.IsServerInitiatedKey() && AbilityActorInfo->IsLocallyControlledPlayer());
 
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
+	if (IsOwnerActorAuthoritative() || (PredictionKey.IsLocalClientKey() == false && !bIsMixedReplicationFromServer))
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, Parameters);
 	}

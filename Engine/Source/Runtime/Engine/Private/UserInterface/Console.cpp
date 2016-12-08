@@ -34,6 +34,8 @@ static const uint32 MAX_AUTOCOMPLETION_LINES = 20;
 static const FName NAME_Typing = FName(TEXT("Typing"));
 static const FName NAME_Open = FName(TEXT("Open"));
 
+UConsole::FRegisterConsoleAutoCompleteEntries UConsole::RegisterConsoleAutoCompleteEntries;
+
 namespace ConsoleDefs
 {
 	/** Colors */
@@ -115,7 +117,7 @@ UConsole::UConsole(const FObjectInitializer& ObjectInitializer)
 UConsole::~UConsole()
 {
 	// At shutdown, GLog may already be null
-	if( GLog != NULL )
+	if( GLog != nullptr )
 	{
 		GLog->RemoveOutputDevice(this);
 	}
@@ -153,16 +155,19 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 		delete Node;
 	}
 
-	AutoCompleteTree.ChildNodes.Empty();
+	AutoCompleteTree.ChildNodes.Reset();
 
 	// copy the manual list first
-	AutoCompleteList.Empty();
-	AutoCompleteList.AddZeroed(ConsoleSettings->ManualAutoCompleteList.Num());
+	AutoCompleteList.Reset();
+	AutoCompleteList.AddDefaulted(ConsoleSettings->ManualAutoCompleteList.Num());
 	for (int32 Idx = 0; Idx < ConsoleSettings->ManualAutoCompleteList.Num(); Idx++)
 	{
 		AutoCompleteList[Idx] = ConsoleSettings->ManualAutoCompleteList[Idx];
 		AutoCompleteList[Idx].Color = ConsoleSettings->AutoCompleteCommandColor;
 	}
+
+	// systems that have registered to want to introduce entries
+	RegisterConsoleAutoCompleteEntries.Broadcast(AutoCompleteList);
 
 	// console variables
 	{
@@ -173,7 +178,6 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 	}
 
 	// iterate through script exec functions and append to the list
-	int32 ScriptExecCnt = 0;
 	for (TObjectIterator<UFunction> It; It; ++It)
 	{
 		UFunction *Func = *It;
@@ -184,10 +188,10 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 			&& (FuncOuter->IsChildOf(ALevelScriptActor::StaticClass()))
 			&& (FuncOuter != ALevelScriptActor::StaticClass())
 			&& (Func->ReturnValueOffset == MAX_uint16) 
-			&& (Func->GetSuperFunction() == NULL);
+			&& (Func->GetSuperFunction() == nullptr);
 
 		// exec functions that either have no parent, level script events, or are in the global state (filtering some unnecessary dupes)
-		if ( (Func->HasAnyFunctionFlags(FUNC_Exec) && (Func->GetSuperFunction() == NULL || FuncOuter))
+		if ( (Func->HasAnyFunctionFlags(FUNC_Exec) && (Func->GetSuperFunction() == nullptr || FuncOuter))
 			|| bIsLevelScriptFunction)
 		{
 			FString FuncName = Func->GetName();
@@ -200,7 +204,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 				FuncName = FString(TEXT("ce ")) + FuncName;
 			}
 
-			int32 NewIdx = AutoCompleteList.AddZeroed(1);
+			const int32 NewIdx = AutoCompleteList.AddDefaulted();
 			AutoCompleteList[NewIdx].Command = FuncName;
 			AutoCompleteList[NewIdx].Color = ConsoleSettings->AutoCompleteCommandColor;
 
@@ -214,57 +218,58 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 				Desc += FString::Printf(TEXT("%s[%s] "),*Prop->GetName(),*Prop->GetCPPType());
 			}
 			AutoCompleteList[NewIdx].Desc = Desc;
-			ScriptExecCnt++;
 		}
 	}
 
 	// enumerate maps
-	TArray<FString> Packages;
-	for (int32 PathIdx = 0; PathIdx < ConsoleSettings->AutoCompleteMapPaths.Num(); ++PathIdx)
 	{
-		FPackageName::FindPackagesInDirectory(Packages, FString::Printf(TEXT("%s%s"), *FPaths::GameDir(), *ConsoleSettings->AutoCompleteMapPaths[PathIdx]));
-	}
-	
-	// also include maps in this user's developer dir
-	FPackageName::FindPackagesInDirectory(Packages, FPaths::GameUserDeveloperDir());
-
-	for (int32 PackageIndex = 0; PackageIndex < Packages.Num(); PackageIndex++)
-	{
-		FString Pkg = Packages[PackageIndex];
-		int32 ExtIdx = Pkg.Find(*FPackageName::GetMapPackageExtension(),ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-		
-		FString MapName;
-		if (ExtIdx != INDEX_NONE && Pkg.Split(TEXT("/"),NULL,&MapName,ESearchCase::CaseSensitive, ESearchDir::FromEnd))
+		TArray<FString> Packages;
+		for (int32 PathIdx = 0; PathIdx < ConsoleSettings->AutoCompleteMapPaths.Num(); ++PathIdx)
 		{
-			// try to peel off the extension
-			FString TrimmedMapName;
-			if (!MapName.Split(TEXT("."),&TrimmedMapName,NULL,ESearchCase::CaseSensitive, ESearchDir::FromEnd))
+			FPackageName::FindPackagesInDirectory(Packages, FString::Printf(TEXT("%s%s"), *FPaths::GameDir(), *ConsoleSettings->AutoCompleteMapPaths[PathIdx]));
+		}
+	
+		// also include maps in this user's developer dir
+		FPackageName::FindPackagesInDirectory(Packages, FPaths::GameUserDeveloperDir());
+
+		for (int32 PackageIndex = 0; PackageIndex < Packages.Num(); PackageIndex++)
+		{
+			FString Pkg = MoveTemp(Packages[PackageIndex]);
+			const int32 ExtIdx = Pkg.Find(*FPackageName::GetMapPackageExtension(), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+			FString MapName;
+			if (ExtIdx != INDEX_NONE && Pkg.Split(TEXT("/"), nullptr, &MapName, ESearchCase::CaseSensitive, ESearchDir::FromEnd))
 			{
-				TrimmedMapName = MapName;
+				// try to peel off the extension
+				FString TrimmedMapName;
+				if (!MapName.Split(TEXT("."), &TrimmedMapName, nullptr, ESearchCase::CaseSensitive, ESearchDir::FromEnd))
+				{
+					TrimmedMapName = MapName;
+				}
+				int32 NewIdx;
+				// put _P maps at the front so that they match early, since those are generally the maps we want to actually open
+				if (TrimmedMapName.EndsWith(TEXT("_P")))
+				{
+					NewIdx = 0;
+					AutoCompleteList.InsertDefaulted(0, 3);
+				}
+				else
+				{
+					NewIdx = AutoCompleteList.AddDefaulted(3);
+				}
+				AutoCompleteList[NewIdx].Command = FString::Printf(TEXT("open %s"), *TrimmedMapName);
+				AutoCompleteList[NewIdx].Color = ConsoleSettings->AutoCompleteCommandColor;
+				AutoCompleteList[NewIdx + 1].Command = FString::Printf(TEXT("travel %s"), *TrimmedMapName);
+				AutoCompleteList[NewIdx + 1].Color = ConsoleSettings->AutoCompleteCommandColor;
+				AutoCompleteList[NewIdx + 2].Command = FString::Printf(TEXT("servertravel %s"), *TrimmedMapName);
+				AutoCompleteList[NewIdx + 2].Color = ConsoleSettings->AutoCompleteCommandColor;
 			}
-			int32 NewIdx;
-			// put _P maps at the front so that they match early, since those are generally the maps we want to actually open
-			if (TrimmedMapName.EndsWith(TEXT("_P")))
-			{
-				NewIdx = 0;
-				AutoCompleteList.InsertZeroed(0,3);
-			}
-			else
-			{
-				NewIdx = AutoCompleteList.AddZeroed(3);
-			}
-			AutoCompleteList[NewIdx].Command = FString::Printf(TEXT("open %s"),*TrimmedMapName);
-			AutoCompleteList[NewIdx].Color = ConsoleSettings->AutoCompleteCommandColor;
-			AutoCompleteList[NewIdx+1].Command = FString::Printf(TEXT("travel %s"),*TrimmedMapName);
-			AutoCompleteList[NewIdx+1].Color = ConsoleSettings->AutoCompleteCommandColor;
-			AutoCompleteList[NewIdx+2].Command = FString::Printf(TEXT("servertravel %s"),*TrimmedMapName);
-			AutoCompleteList[NewIdx+2].Color = ConsoleSettings->AutoCompleteCommandColor;
-			//MapNames.AddItem(Pkg);
 		}
 	}
+
 	// misc commands
 	{
-		int32 NewIdx = AutoCompleteList.AddZeroed(1);
+		const int32 NewIdx = AutoCompleteList.AddDefaulted();
 		AutoCompleteList[NewIdx].Command = FString(TEXT("open 127.0.0.1"));
 		AutoCompleteList[NewIdx].Desc = FString(TEXT("(opens connection to localhost)"));
 		AutoCompleteList[NewIdx].Color = ConsoleSettings->AutoCompleteCommandColor;
@@ -275,7 +280,7 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 	{
 		const TSet<FName>& StatGroupNames = FStatGroupGameThreadNotifier::Get().StatGroupNames;
 
-		int32 NewIdx = AutoCompleteList.AddZeroed(StatGroupNames.Num());
+		int32 NewIdx = AutoCompleteList.AddDefaulted(StatGroupNames.Num());
 		for (const FName& StatGroupName : StatGroupNames)
 		{
 			FString Command = FString(TEXT("Stat "));
@@ -378,9 +383,9 @@ void UConsole::UpdateCompleteIndices()
 
 		AutoCompleteIndex = 0;
 		AutoCompleteCursor = 0;
-		AutoComplete.Empty();
+		AutoComplete.Reset();
 
-		for (auto Command : AutoCompleteList)
+		for (const FAutoCompleteCommand& Command : AutoCompleteList)
 		{
 			if (Filter.PassesFilter(Command))
 			{
@@ -501,7 +506,7 @@ void UConsole::ConsoleCommand(const FString& Command)
 	OutputText(FString::Printf(TEXT("\n>>> %s <<<"), *Command));
 
 	UGameInstance* GameInstance = GetOuterUGameViewportClient()->GetGameInstance();
-	if(ConsoleTargetPlayer != NULL)
+	if(ConsoleTargetPlayer != nullptr)
 	{
 		// If there is a console target player, execute the command in the player's context.
 		ConsoleTargetPlayer->PlayerController->ConsoleCommand(Command);
@@ -1543,7 +1548,7 @@ void UConsole::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const c
 	}
 	else
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("con.MinLogVerbosity"));
+		static const TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("con.MinLogVerbosity"));
 
 		if(CVar)
 		{

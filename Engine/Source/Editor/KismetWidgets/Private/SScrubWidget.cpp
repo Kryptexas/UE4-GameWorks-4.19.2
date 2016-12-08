@@ -504,9 +504,14 @@ void SScrubWidget::CreateContextMenu(float CurrentFrameTime, const FPointerEvent
 			{
 				MenuBuilder.AddMenuSeparator();
 				//Menu - "ReZero"
-				Action = FUIAction(FExecuteAction::CreateSP(this, &SScrubWidget::OnReZeroCalled));
-				Label = FText::Format(LOCTEXT("ReZeroAtFrame", "ReZero at frame {0}"), FText::AsNumber(CurrentFrameNumber));
-				MenuBuilder.AddMenuEntry(Label, LOCTEXT("ReZeroAtFrame_ToolTip", "Resets the root track of the frame to (0, 0, 0), and apply the difference to all root transform of the sequence. It moves whole sequence to the amount of current root transform. "), FSlateIcon(), Action);
+				Action = FUIAction(FExecuteAction::CreateSP(this, &SScrubWidget::OnReZeroCalled, CurrentFrameNumber));
+				Label = FText::Format(LOCTEXT("ReZeroAtFrame", "Re-zero at frame {0}"), FText::AsNumber(CurrentFrameNumber));
+				MenuBuilder.AddMenuEntry(Label, FText::Format(LOCTEXT("ReZeroAtFrame_ToolTip", "Resets the root track to (0, 0, 0) at frame {0} and apply the difference to all root transform of the sequence. It moves whole sequence to the amount of current root transform."), FText::AsNumber(CurrentFrameNumber)), FSlateIcon(), Action);
+
+				const int32 FrameNumberForCurrentTime = INDEX_NONE;
+				Action = FUIAction(FExecuteAction::CreateSP(this, &SScrubWidget::OnReZeroCalled, FrameNumberForCurrentTime));
+				Label = LOCTEXT("ReZeroAtCurrentTime", "Re-zero at current time");
+				MenuBuilder.AddMenuEntry(Label, LOCTEXT("ReZeroAtCurrentTime_ToolTip", "Resets the root track to (0, 0, 0) at the animation scrub time and apply the difference to all root transform of the sequence. It moves whole sequence to the amount of current root transform."), FSlateIcon(), Action);
 			}
 		}
 		MenuBuilder.EndSection();
@@ -535,9 +540,9 @@ void SScrubWidget::OnSequenceAddedCalled(bool bBefore, int32 CurrentFrameNumber)
 	OnSetInputViewRange.ExecuteIfBound(ViewInputMin.Get(), SequenceLength.Get());
 }
 
-void SScrubWidget::OnReZeroCalled()
+void SScrubWidget::OnReZeroCalled(int32 FrameIndex)
 {
-	OnReZeroAnimSequence.ExecuteIfBound();
+	OnReZeroAnimSequence.ExecuteIfBound(FrameIndex);
 }
 
 void SScrubWidget::OnShowPopupOfAppendAnimation(bool bBegin)

@@ -37,6 +37,7 @@
 #include "Tickable.h"
 #include "IHeadMountedDisplay.h"
 #include "TimerManager.h"
+#include "Camera/CameraPhotography.h"
 
 //#include "SoundDefinitions.h"
 #include "FXSystem.h"
@@ -1425,7 +1426,14 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 				for( FConstPlayerControllerIterator Iterator = GetPlayerControllerIterator(); Iterator; ++Iterator )
 				{
 					APlayerController* PlayerController = Iterator->Get();
-					PlayerController->UpdateCameraManager(DeltaSeconds);
+					if (!bIsPaused || PlayerController->ShouldPerformFullTickWhenPaused())
+					{
+						PlayerController->UpdateCameraManager(DeltaSeconds);
+					}
+					else if (PlayerController->PlayerCameraManager && FCameraPhotographyManager::IsSupported())
+					{
+						PlayerController->PlayerCameraManager->UpdateCameraPhotographyOnly();
+					}
 				}
 
 				if( !bIsPaused )

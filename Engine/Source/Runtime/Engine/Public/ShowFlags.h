@@ -336,6 +336,7 @@ private:
 		SetVisualizeLPV(false);
 		SetStreamingBounds(false);
 		SetConstraints(false);
+		SetMassProperties(false);
 		SetCameraFrustums(false);
 		SetAudioRadius(InitMode == ESFIM_Editor);
 		SetBSPSplit(false);

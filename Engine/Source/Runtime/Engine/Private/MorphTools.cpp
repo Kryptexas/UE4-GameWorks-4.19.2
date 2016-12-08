@@ -8,7 +8,7 @@
 #include "RawIndexBuffer.h"
 #include "Engine/SkeletalMesh.h"
 #include "Animation/MorphTarget.h"
-
+#include "SkeletalMeshTypes.h"
 
 /** compare based on base mesh source vertex indices */
 struct FCompareMorphTargetDeltas

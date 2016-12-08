@@ -756,7 +756,7 @@ void FStaticMeshEditor::DuplicateSelectedPrims(const FVector* InOffset)
 		}
 
 		// refresh collision change back to staticmesh components
-		RefreshCollisionChange(StaticMesh);
+		RefreshCollisionChange(*StaticMesh);
 
 		GEditor->EndTransaction();
 
@@ -789,7 +789,7 @@ void FStaticMeshEditor::TranslateSelectedPrims(const FVector& InDrag)
 	}
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 }
 
 void FStaticMeshEditor::RotateSelectedPrims(const FRotator& InRot)
@@ -817,7 +817,7 @@ void FStaticMeshEditor::RotateSelectedPrims(const FRotator& InRot)
 	}
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 }
 
 void FStaticMeshEditor::ScaleSelectedPrims(const FVector& InScale)
@@ -861,7 +861,7 @@ void FStaticMeshEditor::ScaleSelectedPrims(const FVector& InScale)
 	}
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 }
 
 bool FStaticMeshEditor::CalcSelectedPrimsAABB(FBox &OutBox) const
@@ -1324,7 +1324,7 @@ void FStaticMeshEditor::OnRemoveCollision(void)
 	GEditor->EndTransaction();
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
@@ -1413,7 +1413,7 @@ void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 					AddSelectedPrim(FPrimData(KPT_Convex, (AggGeom->ConvexElems.Num() - (i+1))), false);
 				}
 
-				RefreshCollisionChange(StaticMesh);
+				RefreshCollisionChange(*StaticMesh);
 				// Mark static mesh as dirty, to help make sure it gets saved.
 				StaticMesh->MarkPackageDirty();
 
@@ -1456,7 +1456,7 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 
 	GEditor->EndTransaction();
 
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 	// Mark static mesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
 
@@ -1697,7 +1697,7 @@ void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 		}
 
 		// refresh collision change back to staticmesh components
-		RefreshCollisionChange(StaticMesh);
+		RefreshCollisionChange(*StaticMesh);
 
 		// Mark mesh as dirty
 		StaticMesh->MarkPackageDirty();
@@ -1808,7 +1808,7 @@ void FStaticMeshEditor::DeleteSelectedPrims()
 		StaticMesh->BodySetup->InvalidatePhysicsData();
 
 		// refresh collision change back to staticmesh components
-		RefreshCollisionChange(StaticMesh);
+		RefreshCollisionChange(*StaticMesh);
 
 		// Mark staticmesh as dirty, to help make sure it gets saved.
 		StaticMesh->MarkPackageDirty();

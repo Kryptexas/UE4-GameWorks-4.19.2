@@ -25,12 +25,12 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewNode : public FEdGraphSchemaAc
 
 	FMaterialGraphSchemaAction_NewNode() 
 		: FEdGraphSchemaAction()
-		, MaterialExpressionClass(NULL)
+		, MaterialExpressionClass(nullptr)
 	{}
 
-	FMaterialGraphSchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping, const FText& InKeywords)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping, InKeywords)
-		, MaterialExpressionClass(NULL)
+	FMaterialGraphSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping, FText InKeywords)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping, MoveTemp(InKeywords))
+		, MaterialExpressionClass(nullptr)
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface
@@ -64,8 +64,8 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewFunctionCall : public FEdGraph
 		: FEdGraphSchemaAction()
 	{}
 
-	FMaterialGraphSchemaAction_NewFunctionCall(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FMaterialGraphSchemaAction_NewFunctionCall(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface
@@ -87,8 +87,8 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewComment : public FEdGraphSchem
 		: FEdGraphSchemaAction()
 	{}
 
-	FMaterialGraphSchemaAction_NewComment(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FMaterialGraphSchemaAction_NewComment(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface
@@ -110,8 +110,8 @@ struct UNREALED_API FMaterialGraphSchemaAction_Paste : public FEdGraphSchemaActi
 		: FEdGraphSchemaAction()
 	{}
 
-	FMaterialGraphSchemaAction_Paste(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FMaterialGraphSchemaAction_Paste(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface

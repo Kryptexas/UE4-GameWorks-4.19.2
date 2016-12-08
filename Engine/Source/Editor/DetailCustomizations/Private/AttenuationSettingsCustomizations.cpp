@@ -2,18 +2,25 @@
 
 #include "AttenuationSettingsCustomizations.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Sound/SoundAttenuation.h"
+#include "PropertyRestriction.h"
+#include "Engine/Attenuation.h"
 #include "Audio.h"
 #include "IDetailChildrenBuilder.h"
 #include "DetailWidgetRow.h"
 #include "IDetailPropertyRow.h"
+#include "Settings/EditorExperimentalSettings.h"
 
-TSharedRef<IPropertyTypeCustomization> FAttenuationSettingsCustomization::MakeInstance() 
+TSharedRef<IPropertyTypeCustomization> FSoundAttenuationSettingsCustomization::MakeInstance() 
 {
-	return MakeShareable( new FAttenuationSettingsCustomization );
+	return MakeShareable( new FSoundAttenuationSettingsCustomization );
 }
 
-void FAttenuationSettingsCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+TSharedRef<IPropertyTypeCustomization> FForceFeedbackAttenuationSettingsCustomization::MakeInstance() 
+{
+	return MakeShareable( new FForceFeedbackAttenuationSettingsCustomization );
+}
+
+void FBaseAttenuationSettingsCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
@@ -27,7 +34,7 @@ void FAttenuationSettingsCustomization::CustomizeHeader( TSharedRef<class IPrope
 		];
 }
 
-void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+void FBaseAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
 	uint32 NumChildren;
 	StructPropertyHandle->GetNumChildren( NumChildren );
@@ -42,15 +49,10 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		PropertyHandles.Add(PropertyName, ChildHandle);
 	}
 
-	// We'll set up reset to default ourselves
-	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
+	AttenuationShapeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, AttenuationShape));
+	DistanceAlgorithmHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, DistanceAlgorithm));
 
-	AttenuationShapeHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, AttenuationShape));
-	DistanceAlgorithmHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, DistanceAlgorithm));
-	SpatializationAlgorithmHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, SpatializationAlgorithm));
-
-	TSharedRef<IPropertyHandle> AttenuationExtentsHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, AttenuationShapeExtents)).ToSharedRef();
+	TSharedRef<IPropertyHandle> AttenuationExtentsHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, AttenuationShapeExtents)).ToSharedRef();
 
 	uint32 NumExtentChildren;
 	AttenuationExtentsHandle->GetNumChildren( NumExtentChildren );
@@ -79,27 +81,18 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		}
 	}
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bAttenuate)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bSpatialize)).ToSharedRef());
-
-	// Check to see if a spatialization plugin is enabled
-	if (IsAudioPluginEnabled(EAudioPlugin::SPATIALIZATION))
-	{
-		ChildBuilder.AddChildProperty(SpatializationAlgorithmHandle.ToSharedRef());
-	}
-
 	ChildBuilder.AddChildProperty(DistanceAlgorithmHandle.ToSharedRef() );
 
-	IDetailPropertyRow& CustomCurveRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, CustomAttenuationCurve)).ToSharedRef());
-	CustomCurveRow.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsCustomCurveSelected));
+	IDetailPropertyRow& CustomCurveRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, CustomAttenuationCurve)).ToSharedRef());
+	CustomCurveRow.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsCustomCurveSelected));
 
-	IDetailPropertyRow& dbAttenuationRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, dBAttenuationAtMax)).ToSharedRef());
-	dbAttenuationRow.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsNaturalSoundSelected));
+	IDetailPropertyRow& dbAttenuationRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, dBAttenuationAtMax)).ToSharedRef());
+	dbAttenuationRow.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsNaturalSoundSelected));
 
 	IDetailPropertyRow& AttenuationShapeRow = ChildBuilder.AddChildProperty( AttenuationShapeHandle.ToSharedRef() );
 	
 	ChildBuilder.AddChildProperty(AttenuationExtentsHandle)
-		.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsBoxSelected))
+		.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsBoxSelected))
 		.DisplayName(NSLOCTEXT("AttenuationSettings", "BoxExtentsLabel", "Extents"))
 		.ToolTip(NSLOCTEXT("AttenuationSettings", "BoxExtents", "The dimensions of the of the box."));
 
@@ -115,7 +108,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		[
 			ExtentXHandle->CreatePropertyValueWidget()
 		]
-		.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsSphereSelected));
+		.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsSphereSelected));
 
 	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "CapsuleHalfHeightLabel", "Capsule Half Height"))
 			.NameContent()
@@ -129,7 +122,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 			[
 				ExtentXHandle->CreatePropertyValueWidget()
 			]
-		.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsCapsuleSelected));
+		.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsCapsuleSelected));
 
 	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "CapsuleRadiusLabel", "Capsule Radius"))
 		.NameContent()
@@ -143,7 +136,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		[
 			ExtentYHandle->CreatePropertyValueWidget()
 		]
-	.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsCapsuleSelected));
+	.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsCapsuleSelected));
 
 	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "ConeRadiusLabel", "Cone Radius"))
 		.NameContent()
@@ -157,7 +150,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		[
 			ExtentXHandle->CreatePropertyValueWidget()
 		]
-	.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsConeSelected));
+	.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsConeSelected));
 
 	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "ConeAngleLabel", "Cone Angle"))
 		.NameContent()
@@ -171,7 +164,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		[
 			ExtentYHandle->CreatePropertyValueWidget()
 		]
-	.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsConeSelected));
+	.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsConeSelected));
 
 	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "ConeFalloffAngleLabel", "Cone Falloff Angle"))
 		.NameContent()
@@ -185,79 +178,151 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		[
 			ExtentZHandle->CreatePropertyValueWidget()
 		]
-	.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsConeSelected));
+	.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsConeSelected));
 
-	IDetailPropertyRow& ConeOffsetRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, ConeOffset)).ToSharedRef());
-	ConeOffsetRow.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsConeSelected));
+	IDetailPropertyRow& ConeOffsetRow = ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, ConeOffset)).ToSharedRef());
+	ConeOffsetRow.Visibility(TAttribute<EVisibility>(this, &FBaseAttenuationSettingsCustomization::IsConeSelected));
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, FalloffDistance)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, OmniRadius)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, StereoSpread)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bAttenuateWithLPF)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, LPFRadiusMin)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, LPFRadiusMax)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, LPFFrequencyAtMin)).ToSharedRef());
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, LPFFrequencyAtMax)).ToSharedRef());
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FBaseAttenuationSettings, FalloffDistance)).ToSharedRef());
+}
 
-	bIsSpatializedHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bSpatialize)).ToSharedRef();
-	bIsFocusedHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bEnableListenerFocus)).ToSharedRef();
-	bIsOcclussionEnabledHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bEnableOcclusion)).ToSharedRef();
+void FSoundAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+{
+	uint32 NumChildren;
+	StructPropertyHandle->GetNumChildren( NumChildren );
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bEnableListenerFocus)).ToSharedRef());
+	TMap<FName, TSharedPtr< IPropertyHandle > > PropertyHandles;
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, FocusAzimuth)).ToSharedRef())
+	for( uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex )
+	{
+		TSharedRef<IPropertyHandle> ChildHandle = StructPropertyHandle->GetChildHandle( ChildIndex ).ToSharedRef();
+		const FName PropertyName = ChildHandle->GetProperty()->GetFName();
+
+		PropertyHandles.Add(PropertyName, ChildHandle);
+	}
+
+	bIsFocusedHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bEnableListenerFocus)).ToSharedRef();
+	bIsOcclusionEnabledHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bEnableOcclusion)).ToSharedRef();
+	bIsSpatializedHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bSpatialize)).ToSharedRef();
+
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bAttenuate)).ToSharedRef());
+	ChildBuilder.AddChildProperty(bIsSpatializedHandle.ToSharedRef());
+
+	// Check to see if a spatialization plugin is enabled
+	if (IsAudioPluginEnabled(EAudioPlugin::SPATIALIZATION))
+	{
+		TSharedPtr<IPropertyHandle> SpatializationAlgorithmHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, SpatializationAlgorithm));
+		ChildBuilder.AddChildProperty(SpatializationAlgorithmHandle.ToSharedRef());
+	}
+
+	FBaseAttenuationSettingsCustomization::CustomizeChildren(StructPropertyHandle, ChildBuilder, StructCustomizationUtils);
+	
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OmniRadius)).ToSharedRef());
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, StereoSpread)).ToSharedRef());
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bAttenuateWithLPF)).ToSharedRef());
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFRadiusMin)).ToSharedRef());
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFRadiusMax)).ToSharedRef());
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMin)).ToSharedRef());
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, LPFFrequencyAtMax)).ToSharedRef());
+
+	// The reverb wet-level mapping is an audio mixer-only feature
+	if (GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData)
+	{
+		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbWetLevelMin)).ToSharedRef());
+		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbWetLevelMax)).ToSharedRef());
+		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbDistanceMin)).ToSharedRef());
+		ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, ReverbDistanceMax)).ToSharedRef());
+	}
+
+	ChildBuilder.AddChildProperty(bIsFocusedHandle.ToSharedRef());
+
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusAzimuth)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, NonFocusAzimuth)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusAzimuth)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, FocusDistanceScale)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusDistanceScale)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, NonFocusDistanceScale)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusDistanceScale)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, FocusPriorityScale)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusPriorityScale)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, NonFocusPriorityScale)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusPriorityScale)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, FocusVolumeAttenuation)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, FocusVolumeAttenuation)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, NonFocusVolumeAttenuation)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, NonFocusVolumeAttenuation)).ToSharedRef())
 		.EditCondition(GetIsFocusEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bEnableOcclusion)).ToSharedRef());
+	ChildBuilder.AddChildProperty(bIsOcclusionEnabledHandle.ToSharedRef());
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, OcclusionTraceChannel)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionTraceChannel)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, OcclusionLowPassFilterFrequency)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionLowPassFilterFrequency)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, OcclusionVolumeAttenuation)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionVolumeAttenuation)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, OcclusionInterpolationTime)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, OcclusionInterpolationTime)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FAttenuationSettings, bUseComplexCollisionForOcclusion)).ToSharedRef())
+	ChildBuilder.AddChildProperty(PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FSoundAttenuationSettings, bUseComplexCollisionForOcclusion)).ToSharedRef())
 		.EditCondition(GetIsOcclusionEnabledAttribute(), nullptr);
 
-	if (PropertyHandles.Num() != 32)
+	if (PropertyHandles.Num() != 36)
 	{
 		FString PropertyList;
 		for (auto It(PropertyHandles.CreateConstIterator()); It; ++It)
 		{
 			PropertyList += It.Key().ToString() + TEXT(", ");
 		}
-		ensureMsgf(false, TEXT("Unexpected property handle(s) customizing FAttenuationSettings: %s"), *PropertyList);
+		ensureMsgf(false, TEXT("Unexpected property handle(s) customizing FSoundAttenuationSettings: %s"), *PropertyList);
 	}
 }
 
-bool FAttenuationSettingsCustomization::IsFocusedEnabled() const
+void FForceFeedbackAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
+{
+	FBaseAttenuationSettingsCustomization::CustomizeChildren(StructPropertyHandle, ChildBuilder, StructCustomizationUtils);
+
+	uint32 NumChildren;
+	StructPropertyHandle->GetNumChildren( NumChildren );
+
+	TMap<FName, TSharedPtr< IPropertyHandle > > PropertyHandles;
+
+	for( uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex )
+	{
+		TSharedRef<IPropertyHandle> ChildHandle = StructPropertyHandle->GetChildHandle( ChildIndex ).ToSharedRef();
+		const FName PropertyName = ChildHandle->GetProperty()->GetFName();
+
+		PropertyHandles.Add(PropertyName, ChildHandle);
+	}
+
+	TSharedPtr<FPropertyRestriction> EnumRestriction = MakeShareable(new FPropertyRestriction(NSLOCTEXT("AttenuationSettings", "NoNaturalSound", "Natural Sound is only available for Sound Attenuation")));
+	const UEnum* const AttenuationDistanceModelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAttenuationDistanceModel"));		
+	EnumRestriction->AddHiddenValue(AttenuationDistanceModelEnum->GetEnumNameStringByValue((uint8)EAttenuationDistanceModel::NaturalSound));
+	DistanceAlgorithmHandle->AddRestriction(EnumRestriction.ToSharedRef());
+
+	if (PropertyHandles.Num() != 7)
+	{
+		FString PropertyList;
+		for (auto It(PropertyHandles.CreateConstIterator()); It; ++It)
+		{
+			PropertyList += It.Key().ToString() + TEXT(", ");
+		}
+		ensureMsgf(false, TEXT("Unexpected property handle(s) customizing FForceFeedbackAttenuationSettings: %s"), *PropertyList);
+	}
+
+}
+
+bool FSoundAttenuationSettingsCustomization::IsFocusedEnabled() const
 {
 	bool bIsFocusEnabled;
 	bIsFocusedHandle->GetValue(bIsFocusEnabled);
@@ -272,16 +337,16 @@ bool FAttenuationSettingsCustomization::IsFocusedEnabled() const
 	return bIsSpatialized;
 }
 
-TAttribute<bool> FAttenuationSettingsCustomization::GetIsFocusEnabledAttribute() const
+TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsFocusEnabledAttribute() const
 {
-	return TAttribute<bool>(this, &FAttenuationSettingsCustomization::IsFocusedEnabled);
+	return TAttribute<bool>(this, &FSoundAttenuationSettingsCustomization::IsFocusedEnabled);
 }
 
-bool FAttenuationSettingsCustomization::IsOcclusionEnabled() const
+bool FSoundAttenuationSettingsCustomization::IsOcclusionEnabled() const
 {
-	bool bIsOcclussionEnabled;
-	bIsOcclussionEnabledHandle->GetValue(bIsOcclussionEnabled);
-	if (!bIsOcclussionEnabled)
+	bool bIsOcclusionEnabled;
+	bIsOcclusionEnabledHandle->GetValue(bIsOcclusionEnabled);
+	if (!bIsOcclusionEnabled)
 	{
 		return false;
 	}
@@ -292,12 +357,12 @@ bool FAttenuationSettingsCustomization::IsOcclusionEnabled() const
 	return bIsSpatialized;
 }
 
-TAttribute<bool> FAttenuationSettingsCustomization::GetIsOcclusionEnabledAttribute() const
+TAttribute<bool> FSoundAttenuationSettingsCustomization::GetIsOcclusionEnabledAttribute() const
 {
-	return TAttribute<bool>(this, &FAttenuationSettingsCustomization::IsOcclusionEnabled);
+	return TAttribute<bool>(this, &FSoundAttenuationSettingsCustomization::IsOcclusionEnabled);
 }
 
-EVisibility FAttenuationSettingsCustomization::IsConeSelected() const
+EVisibility FBaseAttenuationSettingsCustomization::IsConeSelected() const
 {
 	uint8 AttenuationShapeValue;
 	AttenuationShapeHandle->GetValue(AttenuationShapeValue);
@@ -307,7 +372,7 @@ EVisibility FAttenuationSettingsCustomization::IsConeSelected() const
 	return (AttenuationShape == EAttenuationShape::Cone ? EVisibility::Visible : EVisibility::Hidden);
 }
 
-EVisibility FAttenuationSettingsCustomization::IsSphereSelected() const
+EVisibility FBaseAttenuationSettingsCustomization::IsSphereSelected() const
 {
 	uint8 AttenuationShapeValue;
 	AttenuationShapeHandle->GetValue(AttenuationShapeValue);
@@ -317,7 +382,7 @@ EVisibility FAttenuationSettingsCustomization::IsSphereSelected() const
 	return (AttenuationShape == EAttenuationShape::Sphere ? EVisibility::Visible : EVisibility::Hidden);
 }
 
-EVisibility FAttenuationSettingsCustomization::IsBoxSelected() const
+EVisibility FBaseAttenuationSettingsCustomization::IsBoxSelected() const
 {
 	uint8 AttenuationShapeValue;
 	AttenuationShapeHandle->GetValue(AttenuationShapeValue);
@@ -327,7 +392,7 @@ EVisibility FAttenuationSettingsCustomization::IsBoxSelected() const
 	return (AttenuationShape == EAttenuationShape::Box ? EVisibility::Visible : EVisibility::Hidden);
 }
 
-EVisibility FAttenuationSettingsCustomization::IsCapsuleSelected() const
+EVisibility FBaseAttenuationSettingsCustomization::IsCapsuleSelected() const
 {
 	uint8 AttenuationShapeValue;
 	AttenuationShapeHandle->GetValue(AttenuationShapeValue);
@@ -337,22 +402,22 @@ EVisibility FAttenuationSettingsCustomization::IsCapsuleSelected() const
 	return (AttenuationShape == EAttenuationShape::Capsule ? EVisibility::Visible : EVisibility::Hidden);
 }
 
-EVisibility FAttenuationSettingsCustomization::IsNaturalSoundSelected() const
+EVisibility FBaseAttenuationSettingsCustomization::IsNaturalSoundSelected() const
 {
 	uint8 DistanceAlgorithmValue;
 	DistanceAlgorithmHandle->GetValue(DistanceAlgorithmValue);
 
-	const ESoundDistanceModel DistanceAlgorithm = (ESoundDistanceModel)DistanceAlgorithmValue;
+	const EAttenuationDistanceModel DistanceAlgorithm = (EAttenuationDistanceModel)DistanceAlgorithmValue;
 
-	return (DistanceAlgorithm == ATTENUATION_NaturalSound ? EVisibility::Visible : EVisibility::Hidden);
+	return (DistanceAlgorithm == EAttenuationDistanceModel::NaturalSound ? EVisibility::Visible : EVisibility::Hidden);
 }
 
-EVisibility FAttenuationSettingsCustomization::IsCustomCurveSelected() const
+EVisibility FBaseAttenuationSettingsCustomization::IsCustomCurveSelected() const
 {
 	uint8 DistanceAlgorithmValue;
 	DistanceAlgorithmHandle->GetValue(DistanceAlgorithmValue);
 
-	const ESoundDistanceModel DistanceAlgorithm = (ESoundDistanceModel)DistanceAlgorithmValue;
+	const EAttenuationDistanceModel DistanceAlgorithm = (EAttenuationDistanceModel)DistanceAlgorithmValue;
 
-	return (DistanceAlgorithm == ATTENUATION_Custom ? EVisibility::Visible : EVisibility::Hidden);
+	return (DistanceAlgorithm == EAttenuationDistanceModel::Custom ? EVisibility::Visible : EVisibility::Hidden);
 }

@@ -19,6 +19,11 @@ USoundClassGraphNode::USoundClassGraphNode(const FObjectInitializer& ObjectIniti
 
 bool USoundClassGraphNode::CheckRepresentsSoundClass()
 {
+	if (!SoundClass)
+	{
+		return false;
+	}
+
 	for (int32 ChildIndex = 0; ChildIndex < ChildPin->LinkedTo.Num(); ChildIndex++)
 	{
 		USoundClassGraphNode* ChildNode = CastChecked<USoundClassGraphNode>(ChildPin->LinkedTo[ChildIndex]->GetOwningNode());

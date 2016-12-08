@@ -174,9 +174,11 @@ C++ classes to Blueprints.
 				// Sets default values for this actor's properties.
 				AFPSProjectile();
 			
-				// Called when the game starts or when spawned.
+			protected:
+				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-				
+			
+			public:
 				// Called every frame.
 				virtual void Tick( float DeltaSeconds ) override;
 			
@@ -276,9 +278,11 @@ C++ classes to Blueprints.
 				// Sets default values for this character's properties.
 				AFPSCharacter();
 			
-				// Called when the game starts or when spawned.
+			protected:
+				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-				
+			
+			public:
 				// Called every frame.
 				virtual void Tick( float DeltaSeconds ) override;
 			

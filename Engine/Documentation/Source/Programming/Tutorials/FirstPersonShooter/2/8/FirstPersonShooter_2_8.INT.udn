@@ -160,10 +160,12 @@ Before continuing, download and extract our sample mesh from the following link:
 			public:
 				// Sets default values for this character's properties
 				AFPSCharacter();
-			
+
+			protected:			
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
-				
+			
+			public:	
 				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
 			

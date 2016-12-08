@@ -669,12 +669,29 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 /** Register all loaded classes */
 void UClassRegisterAllCompiledInClasses()
 {
+#if WITH_HOT_RELOAD
+	TArray<UClass*> AddedClasses;
+#endif
+
 	TArray<FFieldCompiledInInfo*>& DeferredClassRegistration = GetDeferredClassRegistration();
 	for (const FFieldCompiledInInfo* Class : DeferredClassRegistration)
 	{
-		Class->Register();
+		UClass* RegisteredClass = Class->Register();
+#if WITH_HOT_RELOAD
+		if (GIsHotReload && Class->OldClass == nullptr)
+		{
+			AddedClasses.Add(RegisteredClass);
+		}
+#endif
 	}
 	DeferredClassRegistration.Empty();
+
+#if WITH_HOT_RELOAD
+	if (AddedClasses.Num() > 0)
+	{
+		FCoreUObjectDelegates::RegisterHotReloadAddedClassesDelegate.Broadcast(AddedClasses);
+	}
+#endif
 }
 
 #if WITH_HOT_RELOAD
@@ -695,11 +712,11 @@ void UClassReplaceHotReloadClasses()
 				RegisteredClass = Class->Register();
 			}
 
-			FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate.Execute(Class->OldClass, RegisteredClass);
+			FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate.Broadcast(Class->OldClass, RegisteredClass);
 		}
 	}
 
-	FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate.ExecuteIfBound();
+	FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate.Broadcast();
 	HotReloadClasses.Empty();
 }
 

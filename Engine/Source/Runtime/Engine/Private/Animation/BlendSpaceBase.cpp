@@ -51,10 +51,34 @@ void UBlendSpaceBase::Serialize(FArchive& Ar)
 		// This will ensure that all grid points are in valid position and the bIsValid flag is set, other samples will be drawn with an error colour indicating that their are invalid
 		SnapSamplesToClosestGridPoint();
 	}
+
+	if (Ar.IsLoading() && (Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::SupportBlendSpaceRateScale))
+	{
+		for (FBlendSample& Sample : SampleData)
+		{
+			Sample.RateScale = 1.0f;
+		}
+	}
 #endif // WITH_EDITOR
 }
 
 #if WITH_EDITOR
+void UBlendSpaceBase::PreEditChange(UProperty* PropertyAboutToChange)
+{
+	Super::PreEditChange(PropertyAboutToChange);
+
+	// Cache the axis ranges if it is going to change, this so the samples can be remapped correctly
+	const FName PropertyName = PropertyAboutToChange ? PropertyAboutToChange->GetFName() : NAME_None;
+	if ( (PropertyName == GET_MEMBER_NAME_CHECKED(FBlendParameter, Min) || PropertyName == GET_MEMBER_NAME_CHECKED(FBlendParameter, Max)))
+	{
+		for (int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex)
+		{
+			PreviousAxisMinMaxValues[AxisIndex].X = BlendParameters[AxisIndex].Min;
+			PreviousAxisMinMaxValues[AxisIndex].Y = BlendParameters[AxisIndex].Max;
+		}
+	}
+}
+
 void UBlendSpaceBase::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const FName MemberPropertyName = PropertyChangedEvent.MemberProperty ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
@@ -70,10 +94,18 @@ void UBlendSpaceBase::PostEditChangeProperty( struct FPropertyChangedEvent& Prop
 		InitializePerBoneBlend();
 	}
 
-	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UBlendSpaceBase, BlendParameters) && ( PropertyName == GET_MEMBER_NAME_CHECKED(FBlendParameter, Min) || PropertyName == GET_MEMBER_NAME_CHECKED(FBlendParameter, Max) || PropertyName == GET_MEMBER_NAME_CHECKED(FBlendParameter, GridNum)))
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UBlendSpaceBase, BlendParameters))
 	{
-		// Tried and snap samples to points on the grid, those who do not fit or cannot be snapped are marked as invalid
-		SnapSamplesToClosestGridPoint();
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(FBlendParameter, GridNum))
+		{
+			// Tried and snap samples to points on the grid, those who do not fit or cannot be snapped are marked as invalid
+			SnapSamplesToClosestGridPoint();
+		}
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(FBlendParameter, Min) || PropertyName == GET_MEMBER_NAME_CHECKED(FBlendParameter, Max))
+		{
+			// Remap the samples to the new values by normalizing the axis and applying the new value range		
+			RemapSamplesToNewAxisRange();
+		}
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -350,10 +382,12 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 							float PrevSampleDataTime;
 							float& CurrentSampleDataTime = SampleEntry.Time;
 
+							const float MultipliedSampleRateScale = Sample.Animation->RateScale * Sample.RateScale;
+
 							if (!bCanDoMarkerSync || Sample.Animation->AuthoredSyncMarkers.Num() == 0) //Have already updated time if we are doing marker sync
 							{
-								const float SampleNormalizedPreviousTime = Sample.Animation->RateScale >= 0.f ? ClampedNormalizedPreviousTime : 1.f - ClampedNormalizedPreviousTime;
-								const float SampleNormalizedCurrentTime = Sample.Animation->RateScale >= 0.f ? ClampedNormalizedCurrentTime : 1.f - ClampedNormalizedCurrentTime;
+								const float SampleNormalizedPreviousTime = MultipliedSampleRateScale >= 0.f ? ClampedNormalizedPreviousTime : 1.f - ClampedNormalizedPreviousTime;
+								const float SampleNormalizedCurrentTime = MultipliedSampleRateScale >= 0.f ? ClampedNormalizedCurrentTime : 1.f - ClampedNormalizedCurrentTime;
 								PrevSampleDataTime = SampleNormalizedPreviousTime * Sample.Animation->SequenceLength;
 								CurrentSampleDataTime = SampleNormalizedCurrentTime * Sample.Animation->SequenceLength;
 							}
@@ -364,7 +398,7 @@ void UBlendSpaceBase::TickAssetPlayer(FAnimTickRecord& Instance, struct FAnimNot
 
 							// Figure out delta time 
 							float DeltaTimePosition = CurrentSampleDataTime - PrevSampleDataTime;
-							const float SampleMoveDelta = MoveDelta * Sample.Animation->RateScale;
+							const float SampleMoveDelta = MoveDelta * MultipliedSampleRateScale;
 
 							// if we went against play rate, then loop around.
 							if ((SampleMoveDelta * DeltaTimePosition) < 0.f)
@@ -670,6 +704,7 @@ void UBlendSpaceBase::InitializeFilter(FBlendFilter * Filter) const
 	}
 }
 
+#if WITH_EDITOR
 void UBlendSpaceBase::ValidateSampleData()
 {
 	// (done here since it won't be triggered in the BlendSpaceBase::PostEditChangeProperty, due to empty property during Undo)
@@ -687,14 +722,7 @@ void UBlendSpaceBase::ValidateSampleData()
 	{
 		FBlendSample& Sample = SampleData[SampleIndex];
 
-		if (Sample.Animation == nullptr)
-		{
-			SampleData.RemoveAt(SampleIndex);
-			--SampleIndex;
-
-			bSampleDataChanged = true;
-			continue;
-		}
+		Sample.bIsValid = (Sample.Animation != nullptr);
 
 		// see if same data exists, by same, same values
 		for (int32 ComparisonSampleIndex = SampleIndex + 1; ComparisonSampleIndex < SampleData.Num(); ++ComparisonSampleIndex)
@@ -708,42 +736,45 @@ void UBlendSpaceBase::ValidateSampleData()
 			}
 		}
 
-		if (Sample.Animation->SequenceLength > AnimLength)
+		if (Sample.bIsValid)
 		{
-			// @todo : should apply scale? If so, we'll need to apply also when blend
-			AnimLength = Sample.Animation->SequenceLength;
-		}
-
-		if (Sample.Animation->AuthoredSyncMarkers.Num() > 0)
-		{
-			static const TFunction<void(TArray<FName>&, TArray<FAnimSyncMarker>&)> PopulateMarkerNameArray = [](TArray<FName>& Pattern, TArray<struct FAnimSyncMarker>& AuthoredSyncMarkers)
+			if (Sample.Animation->SequenceLength > AnimLength)
 			{
-				Pattern.Reserve(AuthoredSyncMarkers.Num());
-				for (FAnimSyncMarker& Marker : AuthoredSyncMarkers)
+				// @todo : should apply scale? If so, we'll need to apply also when blend
+				AnimLength = Sample.Animation->SequenceLength;
+			}
+
+			if (Sample.Animation->AuthoredSyncMarkers.Num() > 0)
+			{
+				static const TFunction<void(TArray<FName>&, TArray<FAnimSyncMarker>&)> PopulateMarkerNameArray = [](TArray<FName>& Pattern, TArray<struct FAnimSyncMarker>& AuthoredSyncMarkers)
 				{
-					Pattern.Add(Marker.MarkerName);
-				}
-			};
+					Pattern.Reserve(AuthoredSyncMarkers.Num());
+					for (FAnimSyncMarker& Marker : AuthoredSyncMarkers)
+					{
+						Pattern.Add(Marker.MarkerName);
+					}
+				};
 
-			if (SampleWithMarkers == INDEX_NONE)
-			{
-				SampleWithMarkers = SampleIndex;
-			}
-
-			if (BlendSpacePattern.MarkerNames.Num() == 0)
-			{
-				PopulateMarkerNameArray(BlendSpacePattern.MarkerNames, Sample.Animation->AuthoredSyncMarkers);
-			}
-			else
-			{
-				TArray<FName> ThisPattern;
-				PopulateMarkerNameArray(ThisPattern, Sample.Animation->AuthoredSyncMarkers);
-				if (!BlendSpacePattern.DoesPatternMatch(ThisPattern))
+				if (SampleWithMarkers == INDEX_NONE)
 				{
-					bAllMarkerPatternsMatch = false;
+					SampleWithMarkers = SampleIndex;
+				}
+
+				if (BlendSpacePattern.MarkerNames.Num() == 0)
+				{
+					PopulateMarkerNameArray(BlendSpacePattern.MarkerNames, Sample.Animation->AuthoredSyncMarkers);
+				}
+				else
+				{
+					TArray<FName> ThisPattern;
+					PopulateMarkerNameArray(ThisPattern, Sample.Animation->AuthoredSyncMarkers);
+					if (!BlendSpacePattern.DoesPatternMatch(ThisPattern))
+					{
+						bAllMarkerPatternsMatch = false;
+					}
 				}
 			}
-		}
+		}		
 	}
 
 	// set rotation blend in mesh space
@@ -758,7 +789,6 @@ void UBlendSpaceBase::ValidateSampleData()
 	}
 }
 
-#if WITH_EDITOR
 bool UBlendSpaceBase::AddSample(UAnimSequence* AnimationSequence, const FVector& SampleValue)
 {
 	const bool bValidSampleData = ValidateSampleValue(SampleValue) && ValidateAnimationSequence(AnimationSequence);
@@ -794,6 +824,7 @@ bool UBlendSpaceBase::DeleteSample(const int32 BlendSampleIndex)
 	if (bValidRemoval)
 	{
 		SampleData.RemoveAtSwap(BlendSampleIndex);
+		UpdatePreviewBasePose();
 	}
 
 	return bValidRemoval;
@@ -973,8 +1004,9 @@ float UBlendSpaceBase::GetAnimationLengthFromSampleData(const TArray<FBlendSampl
 			const FBlendSample& Sample = SampleData[SampleDataIndex];
 			if (Sample.Animation)
 			{
+				const float MultipliedSampleRateScale = Sample.Animation->RateScale * Sample.RateScale;
 				// apply rate scale to get actual playback time
-				BlendAnimLength += (Sample.Animation->SequenceLength / (Sample.Animation->RateScale != 0.0f ? FMath::Abs(Sample.Animation->RateScale) : 1.0f))*SampleDataList[I].GetWeight();
+				BlendAnimLength += (Sample.Animation->SequenceLength / ((MultipliedSampleRateScale) != 0.0f ? FMath::Abs(MultipliedSampleRateScale) : 1.0f))*SampleDataList[I].GetWeight();
 				UE_LOG(LogAnimation, Verbose, TEXT("[%d] - Sample Animation(%s) : Weight(%0.5f) "), I+1, *Sample.Animation->GetName(), SampleDataList[I].GetWeight());
 			}
 		}
@@ -1159,7 +1191,7 @@ bool UBlendSpaceBase::ContainsMatchingSamples(EAdditiveAnimationType AdditiveTyp
 	for (const FBlendSample& Sample : SampleData)
 	{
 		const UAnimSequence* Animation = Sample.Animation;
-		bMatching &= (Animation && ((AdditiveType == AAT_None) ? true : Animation->IsValidAdditive()) && Animation->AdditiveAnimType == AdditiveType);
+		bMatching &= (Animation == nullptr) || (Animation && ((AdditiveType == AAT_None) ? true : Animation->IsValidAdditive()) && Animation->AdditiveAnimType == AdditiveType);
 
 		if (bMatching == false)
 		{
@@ -1178,9 +1210,10 @@ bool UBlendSpaceBase::ContainsNonAdditiveSamples() const
 
 void UBlendSpaceBase::UpdatePreviewBasePose()
 {
-#if WITH_EDITORONLY_DATA	
-	// Check if blendspace is additive and see if 
-	if (IsValidAdditive() && PreviewBasePose == nullptr)
+#if WITH_EDITORONLY_DATA
+	PreviewBasePose = nullptr;
+	// Check if blendspace is additive and try to find a ref pose 
+	if (IsValidAdditive())
 	{
 		for (const FBlendSample& BlendSample : SampleData)
 		{
@@ -1190,11 +1223,6 @@ void UBlendSpaceBase::UpdatePreviewBasePose()
 				break;
 			}	
 		}
-	}
-	// If not reset the preview base pose when set
-	else if (PreviewBasePose)
-	{
-		PreviewBasePose = nullptr;
 	}
 #endif // WITH_EDITORONLY_DATA
 }

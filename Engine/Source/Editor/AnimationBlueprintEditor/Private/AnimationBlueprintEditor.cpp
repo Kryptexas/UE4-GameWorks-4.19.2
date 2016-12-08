@@ -74,6 +74,7 @@ namespace AnimationBlueprintEditorTabs
 	const FName AnimBlueprintPreviewEditorTab(TEXT("AnimBlueprintPreviewEditor"));
 	const FName AssetOverridesTab(TEXT("AnimBlueprintParentPlayerEditor"));
 	const FName SlotNamesTab(TEXT("SkeletonSlotNames"));
+	const FName CurveNamesTab(TEXT("AnimCurveViewerTab"));
 };
 
 /////////////////////////////////////////////////////

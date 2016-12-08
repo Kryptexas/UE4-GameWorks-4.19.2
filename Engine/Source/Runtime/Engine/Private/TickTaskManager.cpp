@@ -262,7 +262,10 @@ public:
 				Target->ShowPrerequistes();
 			}
 		}
-		Target->ExecuteTick(Target->CalculateDeltaTime(Context), Context.TickType, CurrentThread, MyCompletionGraphEvent);
+		if (Target->IsTickFunctionEnabled())
+		{
+			Target->ExecuteTick(Target->CalculateDeltaTime(Context), Context.TickType, CurrentThread, MyCompletionGraphEvent);
+		}
 		Target->TaskPointer = nullptr;  // This is stale and a good time to clear it for safety
 	}
 };

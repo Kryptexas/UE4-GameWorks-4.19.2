@@ -8,9 +8,9 @@
 #include "Templates/SubclassOf.h"
 #include "UObject/CoreNet.h"
 #include "Components/SceneComponent.h"
-#include "GameFramework/Actor.h"
 #include "ChildActorComponent.generated.h"
 
+class AActor;
 struct FAttachedActorInfo;
 
 class ENGINE_API FChildActorComponentInstanceData : public FSceneComponentInstanceData

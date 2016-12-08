@@ -136,6 +136,10 @@ public:
 		BoneMatrices.Bind(Initializer.ParameterMap, TEXT("BoneMatrices"));
 		SkinInputStream.Bind(Initializer.ParameterMap, TEXT("SkinStreamInputBuffer"));
 		InputStreamStart.Bind(Initializer.ParameterMap, TEXT("InputStreamStart"));
+
+		InputWeightStart.Bind(Initializer.ParameterMap, TEXT("InputWeightStart"));
+		InputWeightStride.Bind(Initializer.ParameterMap, TEXT("InputWeightStride"));
+		InputWeightStream.Bind(Initializer.ParameterMap, TEXT("InputWeightStream"));
 		
 		SkinCacheBufferUAV.Bind(Initializer.ParameterMap, TEXT("SkinCacheBufferUAV"));
 
@@ -172,6 +176,11 @@ public:
 
 		SetSRVParameter(RHICmdList, ShaderRHI, SkinInputStream, DispatchData.InputVertexBufferSRV);
 
+
+		SetShaderValue(RHICmdList, ShaderRHI, InputWeightStart, DispatchData.InputWeightStart);
+		SetShaderValue(RHICmdList, ShaderRHI, InputWeightStride, DispatchData.InputWeightStride);
+		SetSRVParameter(RHICmdList, ShaderRHI, InputWeightStream, DispatchData.InputWeightStreamSRV);
+
 		// output UAV
 		SetUAVParameter(RHICmdList, ShaderRHI, SkinCacheBufferUAV, DispatchData.SkinCacheBuffer->UAV);
 		SetShaderValue(RHICmdList, ShaderRHI, SkinCacheStart, DispatchData.SkinCacheStart);
@@ -201,6 +210,9 @@ public:
 			<< NumVertices << InputStreamStart << SkinCacheStart
 			<< SkinInputStream << SkinCacheBufferUAV << BoneMatrices << MorphBuffer << MorphBufferOffset
 			<< SkinCacheDebug;
+
+		Ar << InputWeightStart << InputWeightStride << InputWeightStream;
+
 		//Ar << DebugParameter;
 		return bShaderHasOutdatedParameters;
 	}
@@ -223,6 +235,10 @@ private:
 	FShaderResourceParameter BoneMatrices;
 	FShaderResourceParameter SkinInputStream;
 	FShaderResourceParameter SkinCacheBufferUAV;
+
+	FShaderParameter InputWeightStart;
+	FShaderParameter InputWeightStride;
+	FShaderResourceParameter InputWeightStream;
 
 	FShaderResourceParameter MorphBuffer;
 	FShaderParameter MorphBufferOffset;
@@ -558,6 +574,12 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 	DispatchData.bExtraBoneInfluences = bExtraBoneInfluences;
 	check(!GSkinCacheSafety || DispatchData.InputVertexBufferSRV);
 
+	// weight buffer
+	uint32 WeightStride = LodModel.SkinWeightVertexBuffer.GetStride();
+	DispatchData.InputWeightStart = (WeightStride * BatchElement.BaseVertexIndex) / sizeof(float);
+	DispatchData.InputWeightStride = WeightStride;
+	DispatchData.InputWeightStreamSRV = LodModel.SkinWeightVertexBuffer.GetSRV();
+
 	DispatchSkinCacheProcess(
 		ShaderData.GetBoneBufferForReading(false, FrameNumber), ShaderData.GetUniformBuffer(),
 		ShaderData.MeshOrigin, ShaderData.MeshExtension,
@@ -826,7 +848,7 @@ public:
 		
 		SetShaderValue(RHICmdList, ShaderRHI, InputStreamStart, DispatchData.InputStreamStart);
 		SetShaderValue(RHICmdList, ShaderRHI, InputStreamStride, DispatchData.InputStreamStride);
- 		SetSRVParameter(RHICmdList, ShaderRHI, SkinInputStream, DispatchData.InputVertexBufferSRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, SkinInputStream, DispatchData.InputVertexBufferSRV);
 
 		// UAV
 		SetUAVParameter(RHICmdList, ShaderRHI, IntermediateAccumBufferUAV, IntermediateAccumBuffer.UAV);

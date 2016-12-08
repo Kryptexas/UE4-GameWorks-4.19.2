@@ -241,7 +241,7 @@ void UAnimInstance::UninitializeAnimation()
 		TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 		for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 		{
-			AddCurveValue(ParamsToClearCopy[i], 0.0f);
+			AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], 0.0f);
 		}
 	}
 
@@ -1132,10 +1132,12 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 
 	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
 	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
+	//	 - When clear, we have to make sure to add directly to the material curve list because 
+	//   - sometimes they don't have the flag anymore, so we can't just call AddCurveValue
 	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 	{
-		AddCurveValue(ParamsToClearCopy[i], 0.0f);
+		AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], 0.0f);
 	}
 
 	// @todo: delete me later when james g's change goes in

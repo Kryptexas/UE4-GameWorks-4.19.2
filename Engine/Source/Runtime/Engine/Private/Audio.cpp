@@ -611,9 +611,12 @@ void FNotifyBufferFinishedHooks::DispatchNotifies(FWaveInstance* WaveInstance, c
 	for (int32 NotifyIndex = Notifies.Num() - 1; NotifyIndex >= 0; --NotifyIndex)
 	{
 		// All nodes get an opportunity to handle the notify if we're forcefully stopping the sound
-		if (Notifies[NotifyIndex].NotifyNode->NotifyWaveInstanceFinished(WaveInstance) && !bStopped)
+		if (Notifies[NotifyIndex].NotifyNode)
 		{
-			break;
+			if (Notifies[NotifyIndex].NotifyNode->NotifyWaveInstanceFinished(WaveInstance) && !bStopped)
+			{
+				break;
+			}
 		}
 	}
 
@@ -655,7 +658,6 @@ uint32 FWaveInstance::TypeHashCounter = 0;
 FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	: WaveData(nullptr)
 	, SoundClass(nullptr)
-	, SoundSubmix(nullptr)
 	, ActiveSound(InActiveSound)
 	, Volume(0.0f)
 	, VolumeMultiplier(1.0f)
@@ -693,6 +695,7 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 	, OmniRadius(0.0f)
 	, StereoSpread(0.0f)
 	, AttenuationDistance(0.0f)
+	, ListenerToSoundDistance(0.0f)
 	, AbsoluteAzimuth(0.0f)
 	, UserIndex(0)
 {

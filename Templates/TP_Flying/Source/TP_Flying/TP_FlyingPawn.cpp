@@ -67,7 +67,7 @@ void ATP_FlyingPawn::NotifyHit(class UPrimitiveComponent* MyComp, class AActor* 
 	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
 
 	// Deflect along the surface when we collide.
-	FRotator CurrentRotation = GetActorRotation(RootComponent);
+	FRotator CurrentRotation = GetActorRotation();
 	SetActorRotation(FQuat::Slerp(CurrentRotation.Quaternion(), HitNormal.ToOrientationQuat(), 0.025f));
 }
 

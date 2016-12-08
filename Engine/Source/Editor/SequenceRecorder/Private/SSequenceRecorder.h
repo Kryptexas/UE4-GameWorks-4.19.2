@@ -14,7 +14,6 @@ class FActiveTimerHandle;
 class FUICommandList;
 class IDetailsView;
 class SProgressBar;
-class UActorRecording;
 
 class SSequenceRecorder : public SCompoundWidget
 {

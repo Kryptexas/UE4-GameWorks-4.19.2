@@ -591,18 +591,26 @@ void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyInde
 
 	for(int32 i=0; i<Body2->AggGeom.ConvexElems.Num(); i++)
 	{
-		// No matrix here- we transform all the vertices into the new ref frame instead.
+		FKConvexElem& Elem2 = Body2->AggGeom.ConvexElems[i];
+		FTransform Elem2TM = Elem2.GetTransform() * Bone2TM;
+		FTransform Elem2ToBone1TM = Elem2TM.GetRelativeTransform(Bone1TM);
+
+		// No transform on new element - we transform all the vertices into the new ref frame instead.
 		int32 NewPrimIndex = Body1->AggGeom.ConvexElems.Add( Body2->AggGeom.ConvexElems[i] );
 		FKConvexElem* cElem= &Body1->AggGeom.ConvexElems[NewPrimIndex];
 
 		for(int32 j=0; j<cElem->VertexData.Num(); j++)
 		{
-			cElem->VertexData[j] = Bone2ToBone1TM.TransformPosition( cElem->VertexData[j] );
+			cElem->VertexData[j] = Elem2ToBone1TM.TransformPosition( cElem->VertexData[j] );
 		}
 
 		// Update face data.
 		cElem->UpdateElemBox();
 	}
+
+	// After changing collision, need to recreate meshes
+	Body1->InvalidatePhysicsData();
+	Body1->CreatePhysicsMeshes();
 
 	// We need to update the collision disable table to shift any pairs that included body2 to include body1 instead.
 	// We remove any pairs that include body2 & body1.

@@ -3847,7 +3847,7 @@ bool ClothingActorImpl::isCookedDataReady()
 
 	if(mAsset->getModuleClothing()->allowAsyncCooking())
 	{
-		mClothingScene->submitCookingTask(nullptr); //trigger tasks to be submitted
+		mClothingScene->submitCookingTask(NULL); //trigger tasks to be submitted
 	}
 
 	return false;

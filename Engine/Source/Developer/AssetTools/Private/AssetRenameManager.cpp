@@ -607,6 +607,23 @@ void FAssetRenameManager::RenameReferencingStringAssetReferences(const TArray<UP
 			return *this;
 		}
 
+		FArchive& operator<<(FAssetPtr& AssetPtr)
+		{
+			// Fixup AssetPtrs string asset reference, as the pointed to object may have changed
+
+			UObject* Object = static_cast<UObject*>(AssetPtr.Get());
+			if (Object)
+			{
+				AssetPtr = Object;
+			}
+			else
+			{
+				*this << AssetPtr.GetUniqueID();
+			}
+
+			return *this;
+		}
+
 	private:
 		const FString& OldAssetPath;
 		const FString& NewAssetPath;

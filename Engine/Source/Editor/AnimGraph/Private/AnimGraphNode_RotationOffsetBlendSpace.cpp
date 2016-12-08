@@ -30,7 +30,14 @@ FText UAnimGraphNode_RotationOffsetBlendSpace::GetTooltipText() const
 
 FText UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (Node.BlendSpace == nullptr)
+	UBlendSpaceBase* BlendSpaceToCheck = Node.BlendSpace;
+	UEdGraphPin* BlendSpacePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_RotationOffsetBlendSpace, BlendSpace));
+	if (BlendSpacePin != nullptr && BlendSpaceToCheck == nullptr)
+	{
+		BlendSpaceToCheck = Cast<UBlendSpaceBase>(BlendSpacePin->DefaultObject);
+	}
+
+	if (BlendSpaceToCheck == nullptr)
 	{
 		if (TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
 		{
@@ -45,7 +52,7 @@ FText UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type
 	//        choose to mark this dirty when that happens for this to properly work
 	else //if (!CachedNodeTitles.IsTitleCached(TitleType, this))
 	{
-		const FText BlendSpaceName = FText::FromString(Node.BlendSpace->GetName());
+		const FText BlendSpaceName = FText::FromString(BlendSpaceToCheck->GetName());
 
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
@@ -134,18 +141,25 @@ void UAnimGraphNode_RotationOffsetBlendSpace::SetAnimationAsset(UAnimationAsset*
 
 void UAnimGraphNode_RotationOffsetBlendSpace::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
-	if (Node.BlendSpace == NULL)
+	UBlendSpaceBase* BlendSpaceToCheck = Node.BlendSpace;
+	UEdGraphPin* BlendSpacePin = FindPin(GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_RotationOffsetBlendSpace, BlendSpace));
+	if (BlendSpacePin != nullptr && BlendSpaceToCheck == nullptr)
+	{
+		BlendSpaceToCheck = Cast<UBlendSpaceBase>(BlendSpacePin->DefaultObject);
+	}
+
+	if (BlendSpaceToCheck == NULL)
 	{
 		MessageLog.Error(TEXT("@@ references an unknown blend space"), this);
 	}
-	else if (Cast<UAimOffsetBlendSpace>(Node.BlendSpace) == NULL &&
-			 Cast<UAimOffsetBlendSpace1D>(Node.BlendSpace) == NULL)
+	else if (Cast<UAimOffsetBlendSpace>(BlendSpaceToCheck) == NULL &&
+			 Cast<UAimOffsetBlendSpace1D>(BlendSpaceToCheck) == NULL)
 	{
 		MessageLog.Error(TEXT("@@ references an invalid blend space (one that is not an aim offset)"), this);
 	}
 	else
 	{
-		USkeleton* BlendSpaceSkeleton = Node.BlendSpace->GetSkeleton();
+		USkeleton* BlendSpaceSkeleton = BlendSpaceToCheck->GetSkeleton();
 		if (BlendSpaceSkeleton && // if blend space doesn't have skeleton, it might be due to blend space not loaded yet, @todo: wait with anim blueprint compilation until all assets are loaded?
 			!BlendSpaceSkeleton->IsCompatible(ForSkeleton))
 		{
@@ -187,6 +201,20 @@ void UAnimGraphNode_RotationOffsetBlendSpace::GetAllAnimationSequencesReferred(T
 void UAnimGraphNode_RotationOffsetBlendSpace::ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap)
 {
 	HandleAnimReferenceReplacement(Node.BlendSpace, AnimAssetReplacementMap);
+}
+
+
+
+EAnimAssetHandlerType UAnimGraphNode_RotationOffsetBlendSpace::SupportsAssetClass(const UClass* AssetClass) const
+{
+	if (AssetClass->IsChildOf(UBlendSpaceBase::StaticClass()) && IsAimOffsetBlendSpace(AssetClass))
+	{
+		return EAnimAssetHandlerType::PrimaryHandler;
+	}
+	else
+	{
+		return EAnimAssetHandlerType::NotSupported;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -64,63 +64,36 @@ UObject* UAnimGraphNode_AssetPlayerBase::GetAssetReferenceForPinRestoration()
 	return AssetReferenceForPinRestoration.TryLoad();
 }
 
-bool IsAimOffsetBlendSpace(const UClass* BlendSpaceClass)
-{
-	return  BlendSpaceClass->IsChildOf(UAimOffsetBlendSpace::StaticClass()) ||
-		BlendSpaceClass->IsChildOf(UAimOffsetBlendSpace1D::StaticClass());
-}
+
 
 UClass* GetNodeClassForAsset(const UClass* AssetClass)
 {
-	if (AssetClass->IsChildOf(UAnimSequence::StaticClass()))
+	UClass* NodeClass = nullptr;
+
+	// Iterate over all classes..
+	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
-		return UAnimGraphNode_SequencePlayer::StaticClass();
-	}
-	else if (AssetClass->IsChildOf(UBlendSpaceBase::StaticClass()))
-	{
-		if (IsAimOffsetBlendSpace(AssetClass))
+		UClass *Class = *ClassIt;
+		// Look for AnimGraphNode classes
+		if (Class->IsChildOf(UAnimGraphNode_Base::StaticClass()))
 		{
-			return UAnimGraphNode_RotationOffsetBlendSpace::StaticClass();
+			// See if this node is the 'primary handler' for this asset type
+			const UAnimGraphNode_Base* NodeCDO = Class->GetDefaultObject<UAnimGraphNode_Base>();
+			if (NodeCDO->SupportsAssetClass(AssetClass) == EAnimAssetHandlerType::PrimaryHandler)
+			{
+				NodeClass = Class;
+				break;
+			}
 		}
-		else
-		{
-			return UAnimGraphNode_BlendSpacePlayer::StaticClass();
-		}
 	}
-	else if (AssetClass->IsChildOf(UAnimComposite::StaticClass()))
-	{
-		return UAnimGraphNode_SequencePlayer::StaticClass();
-	}
-	else if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
-	{
-		return UAnimGraphNode_PoseBlendNode::StaticClass();
-	}
-	return nullptr;
+
+	return NodeClass;
 }
 
-bool SupportNodeClassForAsset(const UClass* AssetClass, const UClass* NodeClass)
+bool SupportNodeClassForAsset(const UClass* AssetClass, UClass* NodeClass)
 {
-	// we don't want montage to show up, so not checking AnimSequenceBase
-	if (AssetClass->IsChildOf(UAnimSequence::StaticClass()) || AssetClass->IsChildOf(UAnimComposite::StaticClass()))
-	{
-		return (UAnimGraphNode_SequencePlayer::StaticClass() == NodeClass || UAnimGraphNode_SequenceEvaluator::StaticClass() == NodeClass);
-	}
-	else if (AssetClass->IsChildOf(UBlendSpaceBase::StaticClass()))
-	{
-		if (IsAimOffsetBlendSpace(AssetClass))
-		{
-			return (UAnimGraphNode_RotationOffsetBlendSpace::StaticClass() == NodeClass);
-		}
-		else
-		{
-			return (UAnimGraphNode_BlendSpacePlayer::StaticClass() == NodeClass || UAnimGraphNode_BlendSpaceEvaluator::StaticClass() == NodeClass);
-		}
-	}
-	else if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
-	{
-		return (UAnimGraphNode_PoseBlendNode::StaticClass() == NodeClass || UAnimGraphNode_PoseByName::StaticClass() == NodeClass || UAnimGraphNode_PoseDriver::StaticClass());
-	}
-	
-	return false;
+	// Get node CDO
+	const UAnimGraphNode_Base* NodeCDO = NodeClass->GetDefaultObject<UAnimGraphNode_Base>();
+	// See if this node supports this asset type (primary or not)
+	return (NodeCDO->SupportsAssetClass(AssetClass) != EAnimAssetHandlerType::NotSupported);
 }
-

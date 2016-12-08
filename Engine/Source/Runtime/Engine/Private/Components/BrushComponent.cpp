@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "Components/BrushComponent.h"
+#include "PrimitiveSceneProxy.h"
 #include "EngineGlobals.h"
 #include "RHI.h"
 #include "RenderingThread.h"

@@ -106,9 +106,13 @@ public:
 public:
 
 	virtual void PostInitializeComponents() override;
-	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void PostLoad() override;
+
+protected:
+	virtual void BeginPlay() override;
+
+public:
 
 #if WITH_EDITOR
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;

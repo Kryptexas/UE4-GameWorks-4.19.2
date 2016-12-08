@@ -521,7 +521,7 @@ FText SAnimCurveTypeList::GetAnimCurveType() const
 //////////////////////////////////////////////////////////////////////////
 // SAnimCurveViewer
 
-void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected)
+void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected)
 {
 	OnObjectsSelected = InOnObjectsSelected;
 
@@ -539,7 +539,8 @@ void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<clas
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateSP(this, &SAnimCurveViewer::OnPreviewMeshChanged));
 	InPreviewScene->RegisterOnAnimChanged(FOnAnimChanged::CreateSP(this, &SAnimCurveViewer::OnPreviewAssetChanged));
 	InOnPostUndo.Add(FSimpleDelegate::CreateSP(this, &SAnimCurveViewer::OnPostUndo));
-	InOnCurvesChanged.Add(FSimpleDelegate::CreateSP(this, &SAnimCurveViewer::OnCurvesChanged));
+
+	SmartNameRemovedHandle = InEditableSkeleton->RegisterOnSmartNameRemoved(FOnSmartNameRemoved::FDelegate::CreateSP(this, &SAnimCurveViewer::HandleSmartNameRemoved));
 
 	// Register and bind all our menu commands
 	FCurveViewerCommands::Register();
@@ -635,6 +636,11 @@ SAnimCurveViewer::~SAnimCurveViewer()
 		PreviewScenePtr.Pin()->UnregisterOnPreviewMeshChanged(this);
 		PreviewScenePtr.Pin()->UnregisterOnAnimChanged(this);
 	}
+
+	if (EditableSkeletonPtr.IsValid())
+	{
+		EditableSkeletonPtr.Pin()->UnregisterOnSmartNameRemoved(SmartNameRemovedHandle);
+	}
 }
 
 bool SAnimCurveViewer::IsCurveFilterEnabled() const
@@ -707,7 +713,7 @@ void SAnimCurveViewer::RefreshCachePreviewInstance()
 	}
 }
 
-void SAnimCurveViewer::OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh)
+void SAnimCurveViewer::OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh)
 {
 	RefreshCachePreviewInstance();
 	RefreshCurveList();
@@ -1089,10 +1095,6 @@ void SAnimCurveViewer::OnDeleteNameClicked()
 	}
 
 	EditableSkeletonPtr.Pin()->RemoveSmartnamesAndFixupAnimations(ContainerName, SelectedUids);
-
-	AnimCurveList.Empty();
-
-	RefreshCurveList();
 }
 
 bool SAnimCurveViewer::CanDelete()
@@ -1136,6 +1138,12 @@ void SAnimCurveViewer::ApplyCurveBoneLinks(class UEditorAnimCurveBoneLinks* Edit
 	{
 		EditableSkeletonPtr.Pin()->SetCurveMetaBoneLinks(EditorObj->CurveName, EditorObj->ConnectedBones);
 	}
+}
+
+void SAnimCurveViewer::HandleSmartNameRemoved(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids)
+{
+	AnimCurveList.Empty();
+	RefreshCurveList();
 }
 
 #undef LOCTEXT_NAMESPACE

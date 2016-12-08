@@ -33,7 +33,7 @@ FPhATSharedData::FPhATSharedData()
 	, COMRenderColor(255,255,100)
 	, CopiedBodySetup(NULL)
 	, CopiedConstraintTemplate(NULL)
-	, bInsideSelChange(false)
+	, InsideSelChange(0)
 {
 	// Editor variables
 	BodyEdit_MeshViewMode = PRM_Solid;
@@ -391,18 +391,7 @@ void FPhATSharedData::RefreshPhysicsAssetChange(const UPhysicsAsset* InPhysAsset
 {
 	if (InPhysAsset)
 	{
-		for (FObjectIterator Iter(USkeletalMeshComponent::StaticClass()); Iter; ++Iter)
-		{
-			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(*Iter);
-			if  (SkeletalMeshComponent->GetPhysicsAsset() == InPhysAsset)
-			{
-				// it needs to recreate IF it already has been created
-				if (SkeletalMeshComponent->IsPhysicsStateCreated())
-				{
-					SkeletalMeshComponent->RecreatePhysicsState();
-				}
-			}
-		}
+		InPhysAsset->RefreshPhysicsAssetChange();
 
 		// Broadbcast delegate
 		FPhysicsDelegates::OnPhysicsAssetChanged.Broadcast(InPhysAsset);
@@ -454,7 +443,7 @@ void FPhATSharedData::SetSelectedBodyAnyPrim(int32 BodyIndex, bool bGroupSelect 
 
 void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect /*= false*/, bool bGroupSelectRemove /* = true */)
 {
-	if(bInsideSelChange)
+	if(InsideSelChange)
 	{
 		return;
 	}
@@ -507,9 +496,6 @@ void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect 
 		GroupSelectionChangedEvent.Broadcast(Objs);
 	}
 
-	//bInsideSelChange = true;
-	//HierarchySelectionChangedEvent.Broadcast();	//TODO: disable for now
-	bInsideSelChange = false;
 
 	ControlledBones.Empty();
 	if(!GetSelectedBody())
@@ -528,7 +514,9 @@ void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect 
 	
 
 	UpdateNoCollisionBodies();
+	++InsideSelChange;
 	PreviewChangedEvent.Broadcast();
+	--InsideSelChange;
 }
 
 void FPhATSharedData::SetSelectedBodiesFromConstraints()
@@ -618,6 +606,11 @@ void FPhATSharedData::UpdateNoCollisionBodies()
 
 void FPhATSharedData::SetSelectedConstraint(int32 ConstraintIndex, bool bGroupSelect /*= false*/)
 {
+	if(InsideSelChange)
+	{
+		return;
+	}
+
 	if(bGroupSelect == false)
 	{
 		SelectedConstraints.Empty();
@@ -660,7 +653,9 @@ void FPhATSharedData::SetSelectedConstraint(int32 ConstraintIndex, bool bGroupSe
 		GroupSelectionChangedEvent.Broadcast(Objs);
 	}	
 
+	++InsideSelChange;
 	PreviewChangedEvent.Broadcast();
+	--InsideSelChange;
 }
 
 void FPhATSharedData::SetCollisionBetweenSelected(bool bEnableCollision)

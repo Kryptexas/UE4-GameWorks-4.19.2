@@ -26,6 +26,7 @@
 #include "AssetRegistryModule.h"
 #include "ObjectTools.h"
 #include "StaticMeshResources.h"
+#include "SkeletalMeshTypes.h"
 
 #include "FbxMeshUtils.h"
 #include "Tests/FbxAutomationCommon.h"

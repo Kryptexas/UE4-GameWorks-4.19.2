@@ -2,16 +2,13 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "ComponentVisualizer.h"
+#include "AttenuatedComponentVisualizer.h"
 
-class FPrimitiveDrawInterface;
-class FSceneView;
-
-class COMPONENTVISUALIZERS_API FAudioComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FAudioComponentVisualizer : public TAttenuatedComponentVisualizer<UAudioComponent>
 {
-public:
-	//~ Begin FComponentVisualizer Interface
-	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
-	//~ End FComponentVisualizer Interface
+private:
+	virtual bool IsVisualizerEnabled(FEngineShowFlags ShowFlags) const override
+	{
+		return ShowFlags.AudioRadius;
+	}
 };

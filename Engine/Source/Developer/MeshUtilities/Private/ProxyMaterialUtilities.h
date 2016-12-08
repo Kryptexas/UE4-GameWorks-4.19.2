@@ -154,12 +154,15 @@ namespace ProxyMaterialUtilities
 			MergedTexture.AddZeroed(NumSamples);
 
 			// Merge properties into one texture using the separate colour channels
-
-			// R G B masks
-			const uint32 ColorMask[3] = { FColor::Red.DWColor(), FColor::Green.DWColor(), FColor::Blue.DWColor() };
+			const EFlattenMaterialProperties Properties[3] = { EFlattenMaterialProperties::Metallic , EFlattenMaterialProperties::Roughness, EFlattenMaterialProperties::Specular};
+			// Red mask (all properties are rendered into the red channel)
+			FColor NonAlphaRed = FColor::Red;
+			NonAlphaRed.A = 0;
+			const uint32 ColorMask = NonAlphaRed.DWColor();
+			const uint32 Shift[3] = { 0, 8, 16 };
 			for (int32 PropertyIndex = 0; PropertyIndex < 3; ++PropertyIndex)
 			{
-				EFlattenMaterialProperties Property = (EFlattenMaterialProperties)(PropertyIndex + (int32)EFlattenMaterialProperties::Metallic);
+				const EFlattenMaterialProperties Property = Properties[PropertyIndex];
 				const bool HasProperty = FlattenMaterial.DoesPropertyContainData(Property) && !FlattenMaterial.IsPropertyConstant(Property);
 
 				if (HasProperty)
@@ -168,7 +171,8 @@ namespace ProxyMaterialUtilities
 					// OR masked values (samples initialized to zero, so no random data)
 					for (int32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
 					{
-						MergedTexture[SampleIndex].DWColor() |= (PropertySamples[SampleIndex].DWColor() & ColorMask[PropertyIndex]);
+						// Black adds the alpha + red channel value shifted into the correct output channel
+						MergedTexture[SampleIndex].DWColor() |= (FColor::Black.DWColor() + ((PropertySamples[SampleIndex].DWColor() & ColorMask) >> Shift[PropertyIndex]));
 					}
 				}
 			}

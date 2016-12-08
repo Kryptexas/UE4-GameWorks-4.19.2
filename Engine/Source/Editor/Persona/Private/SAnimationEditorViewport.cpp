@@ -23,6 +23,7 @@
 #include "IEditableSkeleton.h"
 #include "EditorViewportCommands.h"
 #include "TabSpawners.h"
+#include "SkeletalMeshTypes.h"
 
 #define LOCTEXT_NAMESPACE "PersonaViewportToolbar"
 
@@ -673,6 +674,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FIsActionChecked::CreateSP( this, &SAnimationEditorViewportTabBody::IsShowingClothFixedVertices ) );
 
 	CommandList.MapAction(
+		ViewportShowMenuCommands.PauseClothWithAnim,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnPauseClothingSimWithAnim),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsPausingClothingSimWithAnim));
+
+	CommandList.MapAction(
 		ViewportShowMenuCommands.ShowAllSections,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnSetSectionsDisplayMode, (int32)UDebugSkelMeshComponent::ESectionDisplayMode::ShowAll),
 		FCanExecuteAction(),
@@ -1177,7 +1184,7 @@ bool SAnimationEditorViewportTabBody::IsUsingInGameBound() const
 	return PreviewComponent != NULL && PreviewComponent->IsUsingInGameBounds();
 }
 
-void SAnimationEditorViewportTabBody::HandlePreviewMeshChanged(class USkeletalMesh* SkeletalMesh)
+void SAnimationEditorViewportTabBody::HandlePreviewMeshChanged(class USkeletalMesh* OldSkeletalMesh, class USkeletalMesh* NewSkeletalMesh)
 {
 	PopulateNumUVChannels();
 }
@@ -1486,6 +1493,45 @@ void SAnimationEditorViewportTabBody::OnApplyClothWind()
 {
 	GetPreviewScene()->EnableWind(!GetPreviewScene()->IsWindEnabled());
 	RefreshViewport();
+}
+
+void SAnimationEditorViewportTabBody::OnPauseClothingSimWithAnim()
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+
+	if(PreviewComponent)
+	{
+		PreviewComponent->bPauseClothingSimulationWithAnim = !PreviewComponent->bPauseClothingSimulationWithAnim;
+
+		bool bShouldPause = PreviewComponent->bPauseClothingSimulationWithAnim;
+
+		if(PreviewComponent->IsPreviewOn() && PreviewComponent->PreviewInstance)
+		{
+			UAnimSingleNodeInstance* PreviewInstance = PreviewComponent->PreviewInstance;
+			const bool bPlaying = PreviewInstance->IsPlaying();
+
+			if(!bPlaying && bShouldPause)
+			{
+				PreviewComponent->SuspendClothingSimulation();
+			}
+			else if(!bShouldPause && PreviewComponent->IsClothingSimulationSuspended())
+			{
+				PreviewComponent->ResumeClothingSimulation();
+			}
+		}
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsPausingClothingSimWithAnim()
+{
+	UDebugSkelMeshComponent* PreviewComponent = GetPreviewScene()->GetPreviewMeshComponent();
+	
+	if(PreviewComponent)
+	{
+		return PreviewComponent->bPauseClothingSimulationWithAnim;
+	}
+
+	return false;
 }
 
 void SAnimationEditorViewportTabBody::SetWindStrength(float SliderPos)

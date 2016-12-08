@@ -144,7 +144,7 @@ void DynamicsContext::destroy()
 
 void DynamicsContext::resetThreadContexts()
 {
-	PxcThreadCoherantCacheIterator<ThreadContext, PxcNpMemBlockPool> threadContextIt(mThreadContextPool);
+	PxcThreadCoherentCacheIterator<ThreadContext, PxcNpMemBlockPool> threadContextIt(mThreadContextPool);
 	ThreadContext* threadContext = threadContextIt.getNext();
 
 	while(threadContext != NULL)
@@ -2315,7 +2315,7 @@ void DynamicsContext::mergeResults()
 	//OK. Sum up sim stats here...
 
 #if PX_ENABLE_SIM_STATS
-	PxcThreadCoherantCacheIterator<ThreadContext, PxcNpMemBlockPool> threadContextIt(mThreadContextPool);
+	PxcThreadCoherentCacheIterator<ThreadContext, PxcNpMemBlockPool> threadContextIt(mThreadContextPool);
 	ThreadContext* threadContext = threadContextIt.getNext();
 
 	while(threadContext != NULL)

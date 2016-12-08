@@ -257,4 +257,16 @@ void UAnimGraphNode_PoseBlendNode::GetContextMenuActions(const FGraphNodeContext
 	}
 }
 
+EAnimAssetHandlerType UAnimGraphNode_PoseBlendNode::SupportsAssetClass(const UClass* AssetClass) const
+{
+	if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
+	{
+		return EAnimAssetHandlerType::PrimaryHandler;
+	}
+	else
+	{
+		return EAnimAssetHandlerType::NotSupported;
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

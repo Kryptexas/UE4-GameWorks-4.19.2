@@ -5,6 +5,7 @@
 #include "Serialization/Archive.h"
 #include "Serialization/MemoryWriter.h"
 #include "Math/BigInt.h"
+#include "IPlatformFilePak.h"
 
 /**
  * Wrapper for writing and signing an archive

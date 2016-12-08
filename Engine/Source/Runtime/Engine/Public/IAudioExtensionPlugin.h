@@ -46,6 +46,7 @@ struct FSpatializationParams
 		, LeftChannelPosition(FVector::ZeroVector)
 		, RightChannelPosition(FVector::ZeroVector)
 		, Distance(0.0f)
+		, NormalizedOmniRadius(0.0f)
 	{}
 };
 
