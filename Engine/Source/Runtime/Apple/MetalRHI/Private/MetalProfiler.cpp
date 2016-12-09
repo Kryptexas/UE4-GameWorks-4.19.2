@@ -60,6 +60,9 @@ DEFINE_STAT(STAT_MetalTextureMemUpdate);
 DEFINE_STAT(STAT_MetalPrivateTextureCount);
 DEFINE_STAT(STAT_MetalManagedTextureCount);
 DEFINE_STAT(STAT_MetalTexturePageOnTime);
+#if STATS
+uint64 GMetalTexturePageOnTime = 0;
+#endif
 
 DEFINE_STAT(STAT_MetalCommandBufferCreatedPerFrame);
 DEFINE_STAT(STAT_MetalCommandBufferCommittedPerFrame);
@@ -363,6 +366,10 @@ void FMetalGPUProfiler::EndFrame()
 		
 #if PLATFORM_MAC
         FPlatformMisc::UpdateDriverMonitorStatistics(GetMetalDeviceContext().GetDeviceIndex());
+#endif
+#if STATS
+		SET_CYCLE_COUNTER(STAT_MetalTexturePageOnTime, GMetalTexturePageOnTime);
+		GMetalTexturePageOnTime = 0;
 #endif
 		
         if(CurrentEventNodeFrame)
