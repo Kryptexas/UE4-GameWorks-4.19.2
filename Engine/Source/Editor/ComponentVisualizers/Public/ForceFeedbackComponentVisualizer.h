@@ -8,7 +8,7 @@
 class COMPONENTVISUALIZERS_API FForceFeedbackComponentVisualizer : public TAttenuatedComponentVisualizer<UForceFeedbackComponent>
 {
 private:
-	virtual bool IsVisualizerEnabled(FEngineShowFlags ShowFlags) const override
+	virtual bool IsVisualizerEnabled(const FEngineShowFlags& ShowFlags) const override
 	{
 		return ShowFlags.ForceFeedbackRadius;
 	}

@@ -4,6 +4,8 @@
 
 #include "ComponentVisualizer.h"
 
+struct FEngineShowFlags;
+
 template<class T>
 class COMPONENTVISUALIZERS_API TAttenuatedComponentVisualizer : public FComponentVisualizer
 {
@@ -108,5 +110,5 @@ public:
 	//~ End FComponentVisualizer Interface
 
 private:
-	virtual bool IsVisualizerEnabled(FEngineShowFlags ShowFlags) const = 0;
+	virtual bool IsVisualizerEnabled(const FEngineShowFlags& ShowFlags) const = 0;
 };

@@ -7,7 +7,7 @@
 class COMPONENTVISUALIZERS_API FAudioComponentVisualizer : public TAttenuatedComponentVisualizer<UAudioComponent>
 {
 private:
-	virtual bool IsVisualizerEnabled(FEngineShowFlags ShowFlags) const override
+	virtual bool IsVisualizerEnabled(const FEngineShowFlags& ShowFlags) const override
 	{
 		return ShowFlags.AudioRadius;
 	}
