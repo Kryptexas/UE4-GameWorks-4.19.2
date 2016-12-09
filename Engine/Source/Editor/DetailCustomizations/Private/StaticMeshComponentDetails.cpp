@@ -6,6 +6,9 @@
 #include "DetailLayoutBuilder.h"
 #include "SNumericEntryBox.h"
 #include "SWidgetSwitcher.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailWidgetRow.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponentDetails"
 

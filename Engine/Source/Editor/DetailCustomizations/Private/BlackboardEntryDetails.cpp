@@ -6,6 +6,7 @@
 #include "SlateOptMacros.h"
 #include "IDetailChildrenBuilder.h"
 #include "DetailWidgetRow.h"
+#include "PropertyHandle.h"
 
 #define LOCTEXT_NAMESPACE "BlackboardEntryDetails"
 

@@ -46,7 +46,7 @@ protected:
 protected:
 	UWidgetBlueprintGeneratedClass* NewWidgetBlueprintClass;
 
-	UWidgetGraphSchema* WidgetSchema;
+	class UWidgetGraphSchema* WidgetSchema;
 
 	// Map of properties created for widgets; to aid in debug data generation
 	TMap<class UWidget*, class UProperty*> WidgetToMemberVariableMap;

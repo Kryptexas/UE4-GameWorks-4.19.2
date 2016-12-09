@@ -11,6 +11,7 @@
 
 
 #include "Components/CanvasPanel.h"
+#include "WidgetTree.h"
 
 #define LOCTEXT_NAMESPACE "UWidgetBlueprintFactory"
 
