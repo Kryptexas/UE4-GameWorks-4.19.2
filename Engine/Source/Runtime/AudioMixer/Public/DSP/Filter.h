@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BiquadFilter.h"
+#include "BiQuadFilter.h"
 
 namespace Audio
 {
