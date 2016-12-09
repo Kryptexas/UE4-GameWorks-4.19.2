@@ -35,6 +35,7 @@ class USkeletalMesh;
 class USkeletalMeshComponent;
 class USplineMeshComponent;
 class UStaticMeshComponent;
+class FColorVertexBuffer;
 struct FAnimControlTrackKey;
 struct FExpressionInput;
 struct FRichCurve;

@@ -52,6 +52,7 @@
 #include "EngineUtils.h"
 #include "ScopedTransaction.h"
 #include "Features/EditorFeatures.h"
+#include "ConfigCacheIni.h"
 
 namespace LevelEditorActionHelpers
 {

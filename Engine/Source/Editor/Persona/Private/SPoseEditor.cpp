@@ -5,6 +5,7 @@
 #include "Misc/MessageDialog.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Layout/SSplitter.h"
 #include "Animation/DebugSkelMeshComponent.h"
 #include "ScopedTransaction.h"
 #include "Widgets/Input/SSearchBox.h"
