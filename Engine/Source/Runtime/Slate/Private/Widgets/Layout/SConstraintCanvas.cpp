@@ -3,7 +3,7 @@
 #include "Widgets/Layout/SConstraintCanvas.h"
 #include "Types/PaintArgs.h"
 #include "Layout/ArrangedChildren.h"
-
+#include "SlateSettings.h"
 
 
 /* SConstraintCanvas interface
@@ -69,25 +69,41 @@ struct FSortSlotsByZOrder
 
 void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
+	FArrangedChildLayers ChildLayers;
+	ArrangeLayeredChildren(AllottedGeometry, ArrangedChildren, ChildLayers);
+}
+
+void SConstraintCanvas::ArrangeLayeredChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren, FArrangedChildLayers& ArrangedChildLayers) const
+{
 	CachedGeometry = AllottedGeometry;
 
 	if (Children.Num() > 0)
 	{
+
+		// Using a Project setting here to decide whether we automatically put children in front of all previous children
+		// or allow the explicit ZOrder value to place children in the same layer. This will allow users to have non-touching
+		// children render into the same layer and have a chance of being batched by the Slate renderer for better performance.
+#if WITH_EDITOR
+		bool bExplicitChildZOrder = GetDefault<USlateSettings>()->bExplicitCanvasChildZOrder;
+#else
+		static bool bExplicitChildZOrder = GetDefault<USlateSettings>()->bExplicitCanvasChildZOrder;
+#endif
 		// Sort the children based on zorder.
 		TArray< FChildZOrder, TInlineAllocator<64> > SlotOrder;
 		SlotOrder.Reserve(Children.Num());
 
-		for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
+		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
 		{
 			const SConstraintCanvas::FSlot& CurChild = Children[ChildIndex];
 
 			FChildZOrder Order;
 			Order.ChildIndex = ChildIndex;
 			Order.ZOrder = CurChild.ZOrderAttr.Get();
-			SlotOrder.Add( Order );
+			SlotOrder.Add(Order);
 		}
 
 		SlotOrder.Sort(FSortSlotsByZOrder());
+		float LastZOrder = -FLT_MAX;
 
 		// Arrange the children now in their proper z-order.
 		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
@@ -97,7 +113,7 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 			const TSharedRef<SWidget>& CurWidget = CurChild.GetWidget();
 
 			const EVisibility ChildVisibility = CurWidget->GetVisibility();
-			if ( ArrangedChildren.Accepts(ChildVisibility) )
+			if (ArrangedChildren.Accepts(ChildVisibility))
 			{
 				const FMargin Offset = CurChild.OffsetAttr.Get();
 				const FVector2D Alignment = CurChild.AlignmentAttr.Get();
@@ -126,7 +142,7 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 				FVector2D LocalPosition, LocalSize;
 
 				// Calculate the position and size based on the horizontal stretch or non-stretch
-				if ( bIsHorizontalStretch )
+				if (bIsHorizontalStretch)
 				{
 					LocalPosition.X = AnchorPixels.Left + Offset.Left;
 					LocalSize.X = AnchorPixels.Right - LocalPosition.X - Offset.Right;
@@ -138,7 +154,7 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 				}
 
 				// Calculate the position and size based on the vertical stretch or non-stretch
-				if ( bIsVerticalStretch )
+				if (bIsVerticalStretch)
 				{
 					LocalPosition.Y = AnchorPixels.Top + Offset.Top;
 					LocalSize.Y = AnchorPixels.Bottom - LocalPosition.Y - Offset.Bottom;
@@ -157,7 +173,21 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 					LocalPosition,
 					// Child's size
 					LocalSize
-					));
+				));
+
+				bool bNewLayer = true;
+				if (bExplicitChildZOrder)
+				{
+					// Split children into discrete layers for the paint method
+					bNewLayer = false;
+					if (CurSlot.ZOrder > LastZOrder + DELTA)
+					{
+						bNewLayer = true;
+						LastZOrder = CurSlot.ZOrder;
+					}
+
+				}
+				ArrangedChildLayers.Add(bNewLayer);
 			}
 		}
 	}
@@ -168,13 +198,15 @@ int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "SConstraintCanvas");
 
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
-	ArrangeChildren(AllottedGeometry, ArrangedChildren);
+	FArrangedChildLayers ChildLayers;
+	ArrangeLayeredChildren(AllottedGeometry, ArrangedChildren, ChildLayers);
 
 	bool bForwardedEnabled = ShouldBeEnabled(bParentEnabled);
 
 	// Because we paint multiple children, we must track the maximum layer id that they produced in case one of our parents
 	// wants to an overlay for all of its contents.
 	int32 MaxLayerId = LayerId;
+	int32 ChildLayerId = LayerId + 1;
 
 	const FPaintArgs NewArgs = Args.WithNewParent(this);
 
@@ -187,7 +219,10 @@ int32 SConstraintCanvas::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 
 		if ( bWereOverlapping )
 		{
-			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, bForwardedEnabled);
+			// Bools in ChildLayers tell us whether to paint the next child in front of all previous
+			ChildLayerId = ChildLayers[ChildIndex] ? MaxLayerId + 1 : ChildLayerId;
+
+			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint(NewArgs, CurWidget.Geometry, ChildClipRect, OutDrawElements, ChildLayerId, InWidgetStyle, bForwardedEnabled);
 
 			MaxLayerId = FMath::Max(MaxLayerId, CurWidgetsMaxLayerId);
 		}

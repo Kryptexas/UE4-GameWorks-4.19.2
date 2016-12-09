@@ -2054,14 +2054,6 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 
 	FEditorViewportClient::Tick(DeltaTime);
 
-	if (!GUnrealEd->IsPivotMovedIndependently() && GCurrentLevelEditingViewportClient == this &&
-		bIsRealtime &&
-		(Widget == NULL || !Widget->IsDragging()))
-	{
-		// @todo SIE: May be very expensive for lots of actors
-		GUnrealEd->UpdatePivotLocationForSelection();
-	}
-
 	// Update the preview mesh for the preview mesh mode. 
 	GEditor->UpdatePreviewMesh();
 

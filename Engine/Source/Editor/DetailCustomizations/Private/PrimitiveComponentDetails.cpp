@@ -109,7 +109,7 @@ void FPrimitiveComponentDetails::AddMaterialCategory( IDetailLayoutBuilder& Deta
 
 void FPrimitiveComponentDetails::AddLightingCategory(IDetailLayoutBuilder& DetailBuilder)
 {
-	IDetailCategoryBuilder& CollisionCategory = DetailBuilder.EditCategory("Lighting");
+	IDetailCategoryBuilder& LightingCategory = DetailBuilder.EditCategory("Lighting");
 }
 
 void FPrimitiveComponentDetails::AddAdvancedSubCategory( IDetailLayoutBuilder& DetailBuilder, FName MainCategoryName, FName SubCategoryName)

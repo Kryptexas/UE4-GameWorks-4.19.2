@@ -440,7 +440,7 @@ void FAutomationWorkerModule::HandleScreenShotCapturedWithName(const TArray<FCol
 			if ( FJsonObjectConverter::UStructToJsonObjectString(Metadata, Json) )
 			{
 				FString MetadataPath = FPaths::ChangeExtension(Data.Path, TEXT("json"));
-				FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8);
+				FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 			}
 		}
 	}

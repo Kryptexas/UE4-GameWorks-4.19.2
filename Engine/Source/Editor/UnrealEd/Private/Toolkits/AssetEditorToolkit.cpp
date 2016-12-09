@@ -111,7 +111,7 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 			const UEditorStyleSettings* StyleSettings = GetDefault<UEditorStyleSettings>();
 
 			FName PlaceholderId(TEXT("StandaloneToolkit"));
-			FTabManager::FSearchPreference* SearchPreference = nullptr;
+			TSharedPtr<FTabManager::FSearchPreference> SearchPreference = nullptr;
 			if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::Default )
 			{
 				// Work out where we should create this asset editor
@@ -124,37 +124,37 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 					);
 
 				PlaceholderId = ( SavedAssetEditorToolkitTabLocation == EAssetEditorToolkitTabLocation::Docked ) ? TEXT("DockedToolkit") : TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FLiveTabSearch();
+				SearchPreference = MakeShareable(new FTabManager::FLiveTabSearch());
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::NewWindow )
 			{
 				PlaceholderId = TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FRequireClosedTab();
+				SearchPreference = MakeShareable(new FTabManager::FRequireClosedTab());
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::MainWindow )
 			{
 				PlaceholderId = TEXT("DockedToolkit");
-				SearchPreference = new FTabManager::FLiveTabSearch(TEXT("LevelEditor"));
+				SearchPreference = MakeShareable(new FTabManager::FLiveTabSearch(TEXT("LevelEditor")));
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::ContentBrowser )
 			{
 				PlaceholderId = TEXT("DockedToolkit");
-				SearchPreference = new FTabManager::FLiveTabSearch(TEXT("ContentBrowserTab1"));
+				SearchPreference = MakeShareable(new FTabManager::FLiveTabSearch(TEXT("ContentBrowserTab1")));
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::LastDockedWindowOrNewWindow )
 			{
 				PlaceholderId = TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FLastMajorOrNomadTab(NAME_None);
+				SearchPreference = MakeShareable(new FTabManager::FLastMajorOrNomadTab(NAME_None));
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::LastDockedWindowOrMainWindow )
 			{
 				PlaceholderId = TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FLastMajorOrNomadTab(TEXT("LevelEditor"));
+				SearchPreference = MakeShareable(new FTabManager::FLastMajorOrNomadTab(TEXT("LevelEditor")));
 			}
 			else if ( StyleSettings->AssetEditorOpenLocation == EAssetEditorOpenLocation::LastDockedWindowOrContentBrowser )
 			{
 				PlaceholderId = TEXT("StandaloneToolkit");
-				SearchPreference = new FTabManager::FLastMajorOrNomadTab(TEXT("ContentBrowserTab1"));
+				SearchPreference = MakeShareable(new FTabManager::FLastMajorOrNomadTab(TEXT("ContentBrowserTab1")));
 			}
 			else
 			{
@@ -163,7 +163,14 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 			}
 
 			FGlobalTabmanager::Get()->InsertNewDocumentTab(PlaceholderId, *SearchPreference, NewMajorTab.ToSharedRef());
-			delete SearchPreference;
+
+			// Bring the window to front.  The tab manager will not do this for us to avoid intrusive stealing focus behavior
+			// However, here the expectation is that opening an new asset editor is something that should steal focus so the user can see their asset
+			TSharedPtr<SWindow> Window = NewMajorTab->GetParentWindow();
+			if(Window.IsValid())
+			{
+				Window->BringToFront();
+			}
 		}
 
 #if PLATFORM_MAC

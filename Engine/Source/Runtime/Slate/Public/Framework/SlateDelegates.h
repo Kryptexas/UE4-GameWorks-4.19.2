@@ -118,6 +118,9 @@ DECLARE_DELEGATE_TwoParams( FOnInt32ValueCommitted, int32, ETextCommit::Type);
 /** Notification for FLinearColor value change */
 DECLARE_DELEGATE_OneParam( FOnLinearColorValueChanged, FLinearColor )
 
+/** Notification for FVector4 value change */
+DECLARE_DELEGATE_OneParam(FOnVector4ValueChanged, FVector4&)
+
 
 template< typename ArgumentType >
 class TSlateDelegates

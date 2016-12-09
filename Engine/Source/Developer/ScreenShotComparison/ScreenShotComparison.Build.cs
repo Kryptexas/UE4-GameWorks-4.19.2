@@ -23,6 +23,9 @@ public class ScreenShotComparison : ModuleRules
 				"CoreUObject",
 				"DesktopWidgets",
 				"SourceControl",
+				"AutomationMessages",
+				"Json",
+				"JsonUtilities"
 			}
 		);
 

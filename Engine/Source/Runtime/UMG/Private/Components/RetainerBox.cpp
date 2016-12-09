@@ -69,7 +69,7 @@ TSharedRef<SWidget> URetainerBox::RebuildWidget()
 		;
 
 	MyRetainerWidget->SetRetainedRendering(IsDesignTime() ? false : true);
-
+	
 	if ( GetChildrenCount() > 0 )
 	{
 		MyRetainerWidget->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
@@ -84,6 +84,7 @@ void URetainerBox::SynchronizeProperties()
 
 	MyRetainerWidget->SetEffectMaterial(EffectMaterial);
 	MyRetainerWidget->SetTextureParameter(TextureParameter);
+	MyRetainerWidget->SetWorld(GetWorld());
 }
 
 void URetainerBox::OnSlotAdded(UPanelSlot* InSlot)

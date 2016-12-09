@@ -92,6 +92,11 @@ TSharedRef<SWidget> SMaterialPaletteItem::CreateHotkeyDisplayWidget(const FSlate
 		.Font(NameFont);
 }
 
+FText SMaterialPaletteItem::GetItemTooltip() const
+{
+	return FText::FromString(ActionPtr.Pin()->GetTooltipDescription());
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 void SMaterialPalette::Construct(const FArguments& InArgs, TWeakPtr<FMaterialEditor> InMaterialEditorPtr)

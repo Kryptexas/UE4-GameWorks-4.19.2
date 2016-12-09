@@ -53,4 +53,10 @@ public:
 
 	/** Delegate providing default functionality for ending streaming pause. */
 	FEndStreamingPauseDelegate EndDelegate;
+
+	/**
+	 * If a movie was started by BeginStreamingPause.  
+	 * This could be false if a movie was already playing when BeginStreamingPause was called
+	 */
+	bool bMovieWasStarted;
 };

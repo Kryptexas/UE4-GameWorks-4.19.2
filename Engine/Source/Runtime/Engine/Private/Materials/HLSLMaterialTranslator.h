@@ -1702,7 +1702,7 @@ protected:
 		// to allow result sharing. In cases where we detect an expression loop we must err on the side of caution
 		if (ExpressionKey.Expression && !ExpressionKey.Expression->ContainsInputLoop() && !ExpressionKey.Expression->IsResultMaterialAttributes(ExpressionKey.OutputIndex))
 		{
-			ExpressionKey.MaterialAttributeID = FGuid(0,0,0,0);
+			ExpressionKey.MaterialAttributeID = FGuid(0, 0, 0, 0);
 		}
 
 		// Check if this expression has already been translated.

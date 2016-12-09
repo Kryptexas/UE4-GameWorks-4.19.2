@@ -160,6 +160,14 @@ public:
 
 	// End SWidget overrides
 
+private:
+
+	/** An array matching the length and order of ArrangedChildren. True means the child must be placed in a layer in front of all previous children. */
+	typedef TArray<bool, TInlineAllocator<16>> FArrangedChildLayers;
+
+	/** Like ArrangeChildren but also generates an array of layering information (see FArrangedChildLayers). */
+	void ArrangeLayeredChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren, FArrangedChildLayers& ArrangedChildLayers) const;
+
 protected:
 
 	/** The ConstraintCanvas widget's children. */

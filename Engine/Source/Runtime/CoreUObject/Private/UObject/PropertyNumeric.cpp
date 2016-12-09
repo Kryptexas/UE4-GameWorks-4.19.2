@@ -30,6 +30,14 @@ uint8 UNumericProperty::ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, c
 	int64 Result = Enum->GetValueByName(EnumName);
 	if (!Enum->IsValidEnumValue(Result))
 	{
+		const int32 EnumIndex = UEnum::FindEnumRedirects(Enum, EnumName);
+		if (EnumIndex != INDEX_NONE)
+		{
+			Result = Enum->GetValueByIndex(EnumIndex);
+		}
+	}
+	if (!Enum->IsValidEnumValue(Result))
+	{
 		UE_LOG(
 			LogClass,
 			Warning,

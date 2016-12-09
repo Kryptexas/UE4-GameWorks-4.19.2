@@ -88,6 +88,9 @@ public:
 
 	/** The property this class viewer be working on. */
 	TSharedPtr<class IPropertyHandle> PropertyHandle;
+
+	/** true (the default) shows the view options at the bottom of the class picker*/
+	bool bAllowViewOptions;
 public:
 
 	/** Constructor */
@@ -103,6 +106,7 @@ public:
 		, bExpandRootNodes(true)
 		, bEnableClassDynamicLoading(true)
 		, bShowDisplayNames(false)
+		, bAllowViewOptions(true)
 	{
 	}
 };

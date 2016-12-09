@@ -830,7 +830,7 @@ void FCanvas::PushRelativeTransform(const FMatrix& Transform)
 
 void FCanvas::PushAbsoluteTransform(const FMatrix& Transform) 
 {
-	if(ensure(TransformStack.Num()>0))
+	if(TransformStack.Num()>0)
 	{
 		TransformStack.Add(FTransformEntry(Transform * TransformStack[0].GetMatrix()));
 	}

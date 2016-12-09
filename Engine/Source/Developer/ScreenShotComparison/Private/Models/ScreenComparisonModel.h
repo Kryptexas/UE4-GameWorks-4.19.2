@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "ImageComparer.h"
+#include "AutomationWorkerMessages.h"
 
 enum class EComparisonResultType
 {
@@ -24,6 +25,8 @@ public:
 	FString Folder;
 
 	TOptional<FImageComparisonResult> ComparisonResult;
+
+	TOptional<FAutomationScreenshotMetadata> Metadata;
 
 private:
 

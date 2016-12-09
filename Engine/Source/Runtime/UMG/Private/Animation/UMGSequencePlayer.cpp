@@ -35,7 +35,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 	{
 		const double AnimationLength = CurrentPlayRange.Size<double>();
 
-		const double LastTimePosition = TimeCursorPosition;
+		double LastTimePosition = TimeCursorPosition;
 		TimeCursorPosition += bIsPlayingForward ? DeltaTime * PlaybackSpeed : -DeltaTime * PlaybackSpeed;
 
 		// Check if we crossed over bounds
@@ -71,6 +71,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				else
 				{
 					TimeCursorPosition += AnimationLength;
+					LastTimePosition = TimeCursorPosition;
 				}
 			}
 		}
@@ -90,6 +91,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				else
 				{
 					TimeCursorPosition -= AnimationLength;
+					LastTimePosition = TimeCursorPosition;
 				}
 			}
 		}
@@ -111,7 +113,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 		if (RootTemplateInstance.IsValid())
 		{			
 			const FMovieSceneContext Context(
-				FMovieSceneEvaluationRange(TimeCursorPosition + AnimationStartOffset, (TimeCursorPosition - LastTimePosition) + AnimationStartOffset),
+				FMovieSceneEvaluationRange(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset),
 				PlayerStatus);
 			RootTemplateInstance.Evaluate(Context, *this);
 		}

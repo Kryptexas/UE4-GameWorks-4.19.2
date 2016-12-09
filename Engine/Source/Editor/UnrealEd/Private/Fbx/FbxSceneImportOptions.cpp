@@ -11,6 +11,7 @@ UFbxSceneImportOptions::UFbxSceneImportOptions(const FObjectInitializer& ObjectI
 	bCreateContentFolderHierarchy = false;
 	bImportAsDynamic = false;
 	HierarchyType = FBXSOCHT_CreateBlueprint;
+	bForceFrontXAxis = false;
 	bImportStaticMeshLODs = false;
 	bImportSkeletalMeshLODs = false;
 	bInvertNormalMaps = false;

@@ -177,6 +177,7 @@ void SToolSelector::BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FNa
 		]
 		+ SVerticalBox::Slot()
 		.AutoHeight()
+		.HAlign(HAlign_Center)
 		[
 			SmallIconWidget
 		]

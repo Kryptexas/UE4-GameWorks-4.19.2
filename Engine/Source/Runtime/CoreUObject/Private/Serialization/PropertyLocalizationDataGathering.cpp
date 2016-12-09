@@ -39,7 +39,7 @@ FPropertyLocalizationDataGatherer::FPropertyLocalizationDataGatherer(TArray<FGat
 	}
 }
 
-bool FPropertyLocalizationDataGatherer::ShouldProcessObject(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
+bool FPropertyLocalizationDataGatherer::ShouldProcessObject(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags) const
 {
 	if (Object->HasAnyFlags(RF_Transient))
 	{
@@ -48,9 +48,13 @@ bool FPropertyLocalizationDataGatherer::ShouldProcessObject(const UObject* Objec
 	}
 
 	// Skip objects that we've already processed to avoid repeated work and cyclic chains
-	bool bAlreadyProcessed = false;
-	ProcessedObjects.Add(FObjectAndGatherFlags(Object, GatherTextFlags), &bAlreadyProcessed);
+	const bool bAlreadyProcessed = ProcessedObjects.Contains(FObjectAndGatherFlags(Object, GatherTextFlags));
 	return !bAlreadyProcessed;
+}
+
+void FPropertyLocalizationDataGatherer::MarkObjectProcessed(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
+{
+	ProcessedObjects.Add(FObjectAndGatherFlags(Object, GatherTextFlags));
 }
 
 void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObjectWithCallbacks(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
@@ -72,11 +76,13 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObjectWithCall
 
 		if (ShouldProcessObject(Object, GatherTextFlags))
 		{
+			MarkObjectProcessed(Object, GatherTextFlags);
 			(*CustomCallback)(Object, *this, GatherTextFlags);
 		}
 	}
-	else
+	else if (ShouldProcessObject(Object, GatherTextFlags))
 	{
+		MarkObjectProcessed(Object, GatherTextFlags);
 		GatherLocalizationDataFromObject(Object, GatherTextFlags);
 	}
 }
@@ -84,11 +90,6 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObjectWithCall
 void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObject(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 {
 	checkf(IsObjectValidForGather(Object), TEXT("Cannot gather for objects outside of the current package! Package: '%s'. Object: '%s'."), *Package->GetFullName(), *Object->GetFullName());
-
-	if (!ShouldProcessObject(Object, GatherTextFlags))
-	{
-		return;
-	}
 
 	const FString Path = Object->GetPathName();
 
@@ -110,6 +111,7 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObject(const U
 	}
 
 	// Gather from anything that has us as their outer, as not all objects are reachable via a property pointer.
+	if (!(GatherTextFlags & EPropertyLocalizationGathererTextFlags::SkipSubObjects))
 	{
 		TArray<UObject*> ChildObjects;
 		GetObjectsWithOuter(Object, ChildObjects, false, RF_Transient, EInternalObjectFlags::PendingKill);
@@ -123,6 +125,8 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObject(const U
 
 void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObjectFields(const FString& PathToParent, const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 {
+	const UObject* ArchetypeObject = Object->GetArchetype();
+
 	for (TFieldIterator<const UField> FieldIt(Object->GetClass(), EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); FieldIt; ++FieldIt)
 	{
 		// Gather text from the property data
@@ -130,23 +134,38 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromObjectFields(c
 			const UProperty* PropertyField = Cast<UProperty>(*FieldIt);
 			if (PropertyField)
 			{
-				GatherLocalizationDataFromChildTextProperties(PathToParent, PropertyField, PropertyField->ContainerPtrToValuePtr<void>(Object), GatherTextFlags | (PropertyField->HasAnyPropertyFlags(CPF_EditorOnly) ? EPropertyLocalizationGathererTextFlags::ForceEditorOnly : EPropertyLocalizationGathererTextFlags::None));
+				const void* ValueAddress = PropertyField->ContainerPtrToValuePtr<void>(Object);
+				const void* DefaultValueAddress = nullptr;
+
+				if (ArchetypeObject)
+				{
+					const UProperty* ArchetypePropertyField = FindField<UProperty>(ArchetypeObject->GetClass(), *PropertyField->GetName());
+					if (ArchetypePropertyField && ArchetypePropertyField->IsA(PropertyField->GetClass()))
+					{
+						DefaultValueAddress = ArchetypePropertyField->ContainerPtrToValuePtr<void>(ArchetypeObject);
+					}
+				}
+
+				GatherLocalizationDataFromChildTextProperties(PathToParent, PropertyField, ValueAddress, DefaultValueAddress, GatherTextFlags | (PropertyField->HasAnyPropertyFlags(CPF_EditorOnly) ? EPropertyLocalizationGathererTextFlags::ForceEditorOnly : EPropertyLocalizationGathererTextFlags::None));
 			}
 		}
 
 		// Gather text from the script bytecode
 		{
 			const UStruct* StructField = Cast<UStruct>(*FieldIt);
-			if (StructField && IsObjectValidForGather(StructField))
+			if (StructField && IsObjectValidForGather(StructField) && ShouldProcessObject(StructField, GatherTextFlags))
 			{
+				MarkObjectProcessed(StructField, GatherTextFlags);
 				GatherLocalizationDataFromObject(StructField, GatherTextFlags);
 			}
 		}
 	}
 }
 
-void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromStructFields(const FString& PathToParent, const UStruct* Struct, const void* StructData, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
+void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromStructFields(const FString& PathToParent, const UStruct* Struct, const void* StructData, const void* DefaultStructData, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 {
+	const UStruct* ArchetypeStruct = Cast<UStruct>(Struct->GetArchetype());
+
 	for (TFieldIterator<const UField> FieldIt(Struct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); FieldIt; ++FieldIt)
 	{
 		// Gather text from the property data
@@ -154,22 +173,35 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromStructFields(c
 			const UProperty* PropertyField = Cast<UProperty>(*FieldIt);
 			if (PropertyField)
 			{
-				GatherLocalizationDataFromChildTextProperties(PathToParent, PropertyField, PropertyField->ContainerPtrToValuePtr<void>(StructData), GatherTextFlags | (PropertyField->HasAnyPropertyFlags(CPF_EditorOnly) ? EPropertyLocalizationGathererTextFlags::ForceEditorOnly : EPropertyLocalizationGathererTextFlags::None));
+				const void* ValueAddress = PropertyField->ContainerPtrToValuePtr<void>(StructData);
+				const void* DefaultValueAddress = nullptr;
+
+				if (ArchetypeStruct && DefaultStructData)
+				{
+					const UProperty* ArchetypePropertyField = FindField<UProperty>(ArchetypeStruct, *PropertyField->GetName());
+					if (ArchetypePropertyField && ArchetypePropertyField->IsA(PropertyField->GetClass()))
+					{
+						DefaultValueAddress = ArchetypePropertyField->ContainerPtrToValuePtr<void>(DefaultStructData);
+					}
+				}
+
+				GatherLocalizationDataFromChildTextProperties(PathToParent, PropertyField, ValueAddress, DefaultValueAddress, GatherTextFlags | (PropertyField->HasAnyPropertyFlags(CPF_EditorOnly) ? EPropertyLocalizationGathererTextFlags::ForceEditorOnly : EPropertyLocalizationGathererTextFlags::None));
 			}
 		}
 
 		// Gather text from the script bytecode
 		{
 			const UStruct* StructField = Cast<UStruct>(*FieldIt);
-			if (StructField && IsObjectValidForGather(StructField))
+			if (StructField && IsObjectValidForGather(StructField) && ShouldProcessObject(StructField, GatherTextFlags))
 			{
+				MarkObjectProcessed(StructField, GatherTextFlags);
 				GatherLocalizationDataFromObject(StructField, GatherTextFlags);
 			}
 		}
 	}
 }
 
-void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextProperties(const FString& PathToParent, const UProperty* const Property, const void* const ValueAddress, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
+void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextProperties(const FString& PathToParent, const UProperty* const Property, const void* const ValueAddress, const void* const DefaultValueAddress, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
 {
 	if (Property->HasAnyPropertyFlags(CPF_Transient))
 	{
@@ -184,103 +216,96 @@ void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromChildTextPrope
 	const UStructProperty* const StructProperty = Cast<const UStructProperty>(Property);
 	const UObjectPropertyBase* const ObjectProperty = Cast<const UObjectPropertyBase>(Property);
 
-	// Property is a text property.
-	if (TextProperty)
-	{
-		GatherLocalizationDataFromTextProperty(PathToParent, TextProperty, ValueAddress, GatherTextFlags);
-	}
-	else
-	{
-		const EPropertyLocalizationGathererTextFlags ChildPropertyGatherTextFlags = GatherTextFlags | (Property->HasAnyPropertyFlags(CPF_EditorOnly) ? EPropertyLocalizationGathererTextFlags::ForceEditorOnly : EPropertyLocalizationGathererTextFlags::None);
+	const EPropertyLocalizationGathererTextFlags ChildPropertyGatherTextFlags = GatherTextFlags | (Property->HasAnyPropertyFlags(CPF_EditorOnly) ? EPropertyLocalizationGathererTextFlags::ForceEditorOnly : EPropertyLocalizationGathererTextFlags::None);
 
-		// Handles both native, fixed-size arrays and plain old non-array properties.
-		const bool IsFixedSizeArray = Property->ArrayDim > 1;
-		for(int32 i = 0; i < Property->ArrayDim; ++i)
+	// Handles both native, fixed-size arrays and plain old non-array properties.
+	const bool IsFixedSizeArray = Property->ArrayDim > 1;
+	for(int32 i = 0; i < Property->ArrayDim; ++i)
+	{
+		const FString PathToElement = FString(PathToParent.IsEmpty() ? TEXT("") : PathToParent + TEXT(".")) + (IsFixedSizeArray ? Property->GetName() + FString::Printf(TEXT("[%d]"), i) : Property->GetName());
+		const void* const ElementValueAddress = reinterpret_cast<const uint8*>(ValueAddress) + Property->ElementSize * i;
+		const void* const DefaultElementValueAddress = DefaultValueAddress ? (reinterpret_cast<const uint8*>(DefaultValueAddress) + Property->ElementSize * i) : nullptr;
+
+		const bool bIsDefaultValue = DefaultElementValueAddress && Property->Identical(ElementValueAddress, DefaultElementValueAddress, PPF_None);
+		if (bIsDefaultValue)
 		{
-			const FString PathToElement = FString(PathToParent.IsEmpty() ? TEXT("") : PathToParent + TEXT(".")) + (IsFixedSizeArray ? Property->GetName() + FString::Printf(TEXT("[%d]"), i) : Property->GetName());
-			const void* const ElementValueAddress = reinterpret_cast<const uint8*>(ValueAddress) + Property->ElementSize * i;
-
-			// Property is a DYNAMIC array property.
-			if (ArrayProperty)
-			{
-				// Iterate over all elements of the array.
-				FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ElementValueAddress);
-				const int32 ElementCount = ScriptArrayHelper.Num();
-				for(int32 j = 0; j < ElementCount; ++j)
-				{
-					GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d)"), j), ArrayProperty->Inner, ScriptArrayHelper.GetRawPtr(j), ChildPropertyGatherTextFlags);
-				}
-			}
-			// Property is a map property.
-			else if (MapProperty)
-			{
-				// Iterate over all elements of the map.
-				FScriptMapHelper ScriptMapHelper(MapProperty, ElementValueAddress);
-				const int32 ElementCount = ScriptMapHelper.Num();
-				for(int32 j = 0; j < ElementCount; ++j)
-				{
-					if (!ScriptMapHelper.IsValidIndex(j))
-					{
-						continue;
-					}
-
-					const uint8* MapPairPtr = ScriptMapHelper.GetPairPtr(j);
-					GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d - Key)"), j), MapProperty->KeyProp, MapPairPtr + MapProperty->MapLayout.KeyOffset, ChildPropertyGatherTextFlags);
-					GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d - Value)"), j), MapProperty->ValueProp, MapPairPtr + MapProperty->MapLayout.ValueOffset, ChildPropertyGatherTextFlags);
-				}
-			}
-			// Property is a set property.
-			else if (SetProperty)
-			{
-				// Iterate over all elements of the Set.
-				FScriptSetHelper ScriptSetHelper(SetProperty, ElementValueAddress);
-				const int32 ElementCount = ScriptSetHelper.Num();
-				for(int32 j = 0; j < ElementCount; ++j)
-				{
-					if (!ScriptSetHelper.IsValidIndex(j))
-					{
-						continue;
-					}
-
-					const uint8* ElementPtr = ScriptSetHelper.GetElementPtr(j);
-					GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d)"), j), SetProperty->ElementProp, ElementPtr + SetProperty->SetLayout.ElementOffset, ChildPropertyGatherTextFlags);
-				}
-			}
-			// Property is a struct property.
-			else if (StructProperty)
-			{
-				GatherLocalizationDataFromStructFields(PathToElement, StructProperty->Struct, ElementValueAddress, ChildPropertyGatherTextFlags);
-			}
-			// Property is an object property.
-			else if (ObjectProperty)
-			{
-				const UObject* InnerObject = ObjectProperty->GetObjectPropertyValue(ElementValueAddress);
-				if (InnerObject && IsObjectValidForGather(InnerObject))
-				{
-					GatherLocalizationDataFromObjectWithCallbacks(InnerObject, ChildPropertyGatherTextFlags);
-				}
-			}
+			// Skip any properties that have the default value, as those will be gathered from the default instance
+			continue;
 		}
-	}
-}
 
-void FPropertyLocalizationDataGatherer::GatherLocalizationDataFromTextProperty(const FString& PathToParent, const UTextProperty* const TextProperty, const void* const ValueAddress, const EPropertyLocalizationGathererTextFlags GatherTextFlags)
-{
-	const bool IsFixedSizeArray = TextProperty->ArrayDim > 1;
-	for(int32 i = 0; i < TextProperty->ArrayDim; ++i)
-	{
-		const FString PathToElement = FString(PathToParent.IsEmpty() ? TEXT("") : PathToParent + TEXT(".")) + (IsFixedSizeArray ? TextProperty->GetName() + FString::Printf(TEXT("[%d]"), i) : TextProperty->GetName());
-		const FText* const ElementValueAddress = reinterpret_cast<const FText*>(reinterpret_cast<const uint8*>(ValueAddress) + TextProperty->ElementSize * i);
-
+		// Property is a text property.
+		if (TextProperty)
 		{
+			const FText* const TextElementValueAddress = static_cast<const FText*>(ElementValueAddress);
+
 			UPackage* const PropertyPackage = TextProperty->GetOutermost();
-			if( FTextInspector::GetFlags(*ElementValueAddress) & ETextFlag::ConvertedProperty )
+			if (FTextInspector::GetFlags(*TextElementValueAddress) & ETextFlag::ConvertedProperty)
 			{
 				PropertyPackage->MarkPackageDirty();
 			}
-		}
 
-		GatherTextInstance(*ElementValueAddress, PathToElement, !!(GatherTextFlags & EPropertyLocalizationGathererTextFlags::ForceEditorOnlyProperties) || TextProperty->HasAnyPropertyFlags(CPF_EditorOnly));
+			GatherTextInstance(*TextElementValueAddress, PathToElement, !!(GatherTextFlags & EPropertyLocalizationGathererTextFlags::ForceEditorOnlyProperties) || TextProperty->HasAnyPropertyFlags(CPF_EditorOnly));
+		}
+		// Property is a DYNAMIC array property.
+		else if (ArrayProperty)
+		{
+			// Iterate over all elements of the array.
+			FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ElementValueAddress);
+			const int32 ElementCount = ScriptArrayHelper.Num();
+			for(int32 j = 0; j < ElementCount; ++j)
+			{
+				GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d)"), j), ArrayProperty->Inner, ScriptArrayHelper.GetRawPtr(j), nullptr, ChildPropertyGatherTextFlags);
+			}
+		}
+		// Property is a map property.
+		else if (MapProperty)
+		{
+			// Iterate over all elements of the map.
+			FScriptMapHelper ScriptMapHelper(MapProperty, ElementValueAddress);
+			const int32 ElementCount = ScriptMapHelper.Num();
+			for(int32 j = 0; j < ElementCount; ++j)
+			{
+				if (!ScriptMapHelper.IsValidIndex(j))
+				{
+					continue;
+				}
+
+				const uint8* MapPairPtr = ScriptMapHelper.GetPairPtr(j);
+				GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d - Key)"), j), MapProperty->KeyProp, MapPairPtr + MapProperty->MapLayout.KeyOffset, nullptr, ChildPropertyGatherTextFlags);
+				GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d - Value)"), j), MapProperty->ValueProp, MapPairPtr + MapProperty->MapLayout.ValueOffset, nullptr, ChildPropertyGatherTextFlags);
+			}
+		}
+		// Property is a set property.
+		else if (SetProperty)
+		{
+			// Iterate over all elements of the Set.
+			FScriptSetHelper ScriptSetHelper(SetProperty, ElementValueAddress);
+			const int32 ElementCount = ScriptSetHelper.Num();
+			for(int32 j = 0; j < ElementCount; ++j)
+			{
+				if (!ScriptSetHelper.IsValidIndex(j))
+				{
+					continue;
+				}
+
+				const uint8* ElementPtr = ScriptSetHelper.GetElementPtr(j);
+				GatherLocalizationDataFromChildTextProperties(PathToElement + FString::Printf(TEXT("(%d)"), j), SetProperty->ElementProp, ElementPtr + SetProperty->SetLayout.ElementOffset, nullptr, ChildPropertyGatherTextFlags);
+			}
+		}
+		// Property is a struct property.
+		else if (StructProperty)
+		{
+			GatherLocalizationDataFromStructFields(PathToElement, StructProperty->Struct, ElementValueAddress, DefaultElementValueAddress, ChildPropertyGatherTextFlags);
+		}
+		// Property is an object property.
+		else if (ObjectProperty && !(GatherTextFlags & EPropertyLocalizationGathererTextFlags::SkipSubObjects))
+		{
+			const UObject* InnerObject = ObjectProperty->GetObjectPropertyValue(ElementValueAddress);
+			if (InnerObject && IsObjectValidForGather(InnerObject))
+			{
+				GatherLocalizationDataFromObjectWithCallbacks(InnerObject, ChildPropertyGatherTextFlags);
+			}
+		}
 	}
 }
 

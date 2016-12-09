@@ -17,6 +17,8 @@
 #include "ShaderCompiler.h"
 #include "IHeadMountedDisplay.h"
 #include "IStereoLayers.h"
+#include "ConfigCacheIni.h"
+#include "FileManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMoviePlayer, Log, All);
 
@@ -143,6 +145,11 @@ void FDefaultGameMoviePlayer::SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlat
 
 void FDefaultGameMoviePlayer::Initialize()
 {
+	if(bInitialized)
+	{
+		return;
+	}
+
 	UE_LOG(LogMoviePlayer, Log, TEXT("Initializing movie player"));
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(RegisterMoviePlayerTickable, FDefaultGameMoviePlayer*, MoviePlayer, this,
@@ -263,6 +270,25 @@ void FDefaultGameMoviePlayer::PassLoadingScreenWindowBackToGame() const
 void FDefaultGameMoviePlayer::SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes)
 {
 	LoadingScreenAttributes = InLoadingScreenAttributes;
+}
+
+bool FDefaultGameMoviePlayer::HasEarlyStartupMovie() const
+{
+#if PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
+	return LoadingScreenAttributes.bAllowInEarlyStartup == true;
+#else
+	return false;
+#endif
+}
+
+bool FDefaultGameMoviePlayer::PlayEarlyStartupMovies()
+{
+	if(HasEarlyStartupMovie())
+	{
+		return PlayMovie();
+	}
+
+	return false;
 }
 
 bool FDefaultGameMoviePlayer::PlayMovie()
@@ -524,30 +550,49 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 	{
 		// fill out the attributes
 		FLoadingScreenAttributes LoadingScreen;
-		LoadingScreen.bAutoCompleteWhenLoadingCompletes = !GetDefault<UMoviePlayerSettings>()->bWaitForMoviesToComplete;
-		LoadingScreen.bMoviesAreSkippable = GetDefault<UMoviePlayerSettings>()->bMoviesAreSkippable;
 
-		// look in the settings for a list of loading movies
-		GetMutableDefault<UMoviePlayerSettings>()->LoadConfig();
-		const TArray<FString>& StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
+		// Note: this code is executed too early so we cannot access UMoviePlayerSettings because the configs for that object have not been loaded and coalesced .  Have to read directly from the configs instead
+		GConfig->GetBool(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("bWaitForMoviesToComplete"), LoadingScreen.bAutoCompleteWhenLoadingCompletes, GGameIni);
+		GConfig->GetBool(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("bMoviesAreSkippable"), LoadingScreen.bMoviesAreSkippable, GGameIni);
+
+		TArray<FString> StartupMovies;
+		GConfig->GetArray(TEXT("/Script/MoviePlayer.MoviePlayerSettings"), TEXT("StartupMovies"), StartupMovies, GGameIni);
 
 		if (StartupMovies.Num() == 0)
 		{
-			LoadingScreen.MoviePaths.Add(TEXT("Default_Startup"));
+			StartupMovies.Add(TEXT("Default_Startup"));
 		}
-		else
+
+		// double check that the movies exist
+		// We dont know the extension so compare against any file in the directory with the same name for now
+		// @todo New Movie Player: movies should have the extension on them when set via the project settings
+		TArray<FString> ExistingMovieFiles;
+		IFileManager::Get().FindFiles(ExistingMovieFiles, *(FPaths::GameContentDir() + TEXT("Movies")));
+
+		bool bHasValidMovie = false;
+		for(const FString& Movie : StartupMovies)
 		{
-			for (const FString& Movie : StartupMovies)
-			{
-				if (!Movie.IsEmpty())
+			bool bFound = ExistingMovieFiles.ContainsByPredicate(
+				[&Movie](const FString& ExistingMovie)
 				{
-					LoadingScreen.MoviePaths.Add(Movie);
-				}
+					return ExistingMovie.Contains(Movie);
+				});
+
+			if(bFound)
+			{
+				bHasValidMovie = true;
+				LoadingScreen.MoviePaths.Add(Movie);
 			}
 		}
 
-		// now setup the actual loading screen
-		SetupLoadingScreen(LoadingScreen);
+		if(bHasValidMovie)
+		{
+			// These movies are all considered safe to play in very early startup sequences
+			LoadingScreen.bAllowInEarlyStartup = true;
+
+			// now setup the actual loading screen
+			SetupLoadingScreen(LoadingScreen);
+		}
 	}
 }
 

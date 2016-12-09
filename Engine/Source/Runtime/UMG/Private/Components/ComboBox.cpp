@@ -10,6 +10,7 @@
 UComboBox::UComboBox(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bIsFocusable = true;
 }
 
 void UComboBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -27,7 +28,8 @@ TSharedRef<SWidget> UComboBox::RebuildWidget()
 	MyComboBox =
 		SNew(SComboBox<UObject*>)
 		.OptionsSource(&Items)
-		.OnGenerateWidget(BIND_UOBJECT_DELEGATE(SComboBox<UObject*>::FOnGenerateWidget, HandleGenerateWidget));
+		.OnGenerateWidget(BIND_UOBJECT_DELEGATE(SComboBox<UObject*>::FOnGenerateWidget, HandleGenerateWidget))
+		.IsFocusable(bIsFocusable);
 
 	return MyComboBox.ToSharedRef();
 }

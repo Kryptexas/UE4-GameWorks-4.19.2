@@ -331,11 +331,12 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 			// The property node is visible (note categories are never visible unless they have a child that is visible )
 			bPassesAllFilters = (bPassesSearchFilter && bPassesModifiedFilter && bPassesDifferingFilter) || bPassesCategoryFilter;
 		}
-		else if( InCustomization.HasCustomWidget() )
+		else if (InCustomization.HasCustomWidget())
 		{
 			const bool bPassesTextFilter = Local::StringPassesFilter(InFilter, InCustomization.WidgetDecl->FilterTextString.ToString());
+			const bool bPassesModifiedFilter = (InFilter.bShowOnlyModifiedProperties == false || InCustomization.WidgetDecl->DiffersFromDefaultAttr.Get() == true);
 
-			bPassesAllFilters = bPassesTextFilter || bPassesCategoryFilter;
+			bPassesAllFilters = (bPassesTextFilter && bPassesModifiedFilter) || bPassesCategoryFilter;
 		}
 	}
 

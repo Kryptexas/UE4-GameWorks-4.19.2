@@ -759,7 +759,15 @@ void FEdModeFoliage::StartFoliageBrushTrace(FEditorViewportClient* ViewportClien
 		}
 		PreApplyBrush();
 		ApplyBrush(ViewportClient);
-		bToolActive = true;
+
+		if (UISettings.GetIsInQuickSingleInstantiationMode() || UISettings.GetIsInSingleInstantiationMode())
+		{
+			EndFoliageBrushTrace();
+		}
+		else
+		{
+			bToolActive = true;
+		}
 	}
 }
 
@@ -797,6 +805,7 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, co
 					{
 						// Adjust the brush location
 						BrushLocation = Hit.Location;
+						BrushNormal = Hit.Normal;
 					}
 
 					// Still want to draw the brush when resizing
@@ -889,16 +898,16 @@ void FEdModeFoliage::GetRandomVectorInBrush(FVector& OutStart, FVector& OutEnd)
 	float Ru = (2.f * FMath::FRand() - 1.f);
 	float Rv = (2.f * FMath::FRand() - 1.f) * FMath::Sqrt(1.f - FMath::Square(Ru));
 
-	// find random point in circle through brush location parallel to screen surface
+	// find random point in circle through brush location on the same plane to brush location hit surface normal
 	FVector U, V;
-	BrushTraceDirection.FindBestAxisVectors(U, V);
+	BrushNormal.FindBestAxisVectors(U, V);
 	FVector Point = Ru * U + Rv * V;
 
 	// find distance to surface of sphere brush from this point
-	FVector Rw = FMath::Sqrt(1.f - (FMath::Square(Ru) + FMath::Square(Rv))) * BrushTraceDirection;
+	FVector Rw = FMath::Sqrt(1.f - (FMath::Square(Ru) + FMath::Square(Rv))) * BrushNormal;
 
-	OutStart = BrushLocation + UISettings.GetRadius() * (Point - Rw);
-	OutEnd = BrushLocation + UISettings.GetRadius() * (Point + Rw);
+	OutStart = BrushLocation + UISettings.GetRadius() * (Point + Rw);
+	OutEnd = BrushLocation + UISettings.GetRadius() * (Point - Rw);
 }
 
 static bool IsWithinSlopeAngle(float NormalZ, float MinAngle, float MaxAngle, float Tolerance = SMALL_NUMBER)
@@ -1246,10 +1255,10 @@ void FEdModeFoliage::AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageI
 	}
 }
 
-static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, const FFoliageInstance& Instance, UActorComponent* BaseComponent)
+static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, const FFoliageUISettings* UISettings, const FFoliageInstance& Instance, UActorComponent* BaseComponent)
 {
 	// We always spawn instances in base component level
-	ULevel* TargetLevel = BaseComponent->GetComponentLevel();
+	ULevel* TargetLevel = UISettings->GetIsInSpawnInCurrentLevelMode() ? InWorld->GetCurrentLevel() : BaseComponent->GetComponentLevel();
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(TargetLevel, true);
 
 	FFoliageMeshInfo* MeshInfo;
@@ -1312,10 +1321,28 @@ void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settin
 			{
 				Inst.ProceduralGuid = PotentialInstance.DesiredInstance.ProceduralGuid;
 
-				SpawnFoliageInstance(InWorld, Settings, Inst, PotentialInstance.HitComponent);
+				SpawnFoliageInstance(InWorld, Settings, UISettings, Inst, PotentialInstance.HitComponent);
 			}
 		}
 	}
+}
+
+void FEdModeFoliage::AddSingleInstanceForBrush(UWorld* InWorld, const UFoliageType* Settings, float Pressure)
+{
+	TArray<FDesiredFoliageInstance> DesiredInstances;
+	DesiredInstances.Reserve(1);
+
+	// Simply generate a start/end around the brush location so the line check will hit the brush location
+	FVector Start = BrushLocation + BrushNormal;
+	FVector End = BrushLocation - BrushNormal;
+
+	FDesiredFoliageInstance* DesiredInstance = new (DesiredInstances)FDesiredFoliageInstance(Start, End);
+
+	// We do not apply the density limitation based on the brush size
+	TArray<int32> ExistingInstanceBuckets;
+	ExistingInstanceBuckets.AddZeroed(NUM_INSTANCE_BUCKETS);
+
+	AddInstancesImp(InWorld, Settings, DesiredInstances, ExistingInstanceBuckets, Pressure, &LandscapeLayerCaches, &UISettings);
 }
 
 /** Add instances inside the brush to match DesiredInstanceCount */
@@ -2179,12 +2206,19 @@ void FEdModeFoliage::ApplyBrush(FEditorViewportClient* ViewportClient)
 			}
 			else
 			{
-				// This is the total set of instances disregarding parameters like slope, height or layer.
-				float DesiredInstanceCountFloat = BrushArea * Settings->Density * UISettings.GetPaintDensity() / (1000.f*1000.f);
-				// Allow a single instance with a random chance, if the brush is smaller than the density
-				int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::RoundToInt(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
+				if (UISettings.GetIsInQuickSingleInstantiationMode() || UISettings.GetIsInSingleInstantiationMode())
+				{
+					AddSingleInstanceForBrush(World, Settings, Pressure);
+				}
+				else
+				{
+					// This is the total set of instances disregarding parameters like slope, height or layer.
+					float DesiredInstanceCountFloat = BrushArea * Settings->Density * UISettings.GetPaintDensity() / (1000.f*1000.f);
+					// Allow a single instance with a random chance, if the brush is smaller than the density
+					int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::RoundToInt(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
 
-				AddInstancesForBrush(World, Settings, BrushSphere, DesiredInstanceCount, Pressure);
+					AddInstancesForBrush(World, Settings, BrushSphere, DesiredInstanceCount, Pressure);
+				}
 			}
 		}
 
@@ -2417,7 +2451,7 @@ void FEdModeFoliage::ApplyPaintBucket_Add(AActor* Actor)
 			FFoliageInstance Inst;
 			if (PotentialInstance.PlaceInstance(World, Settings, Inst))
 			{
-				SpawnFoliageInstance(World, Settings, Inst, PotentialInstance.HitComponent);
+				SpawnFoliageInstance(World, Settings, &UISettings, Inst, PotentialInstance.HitComponent);
 			}
 		}
 
@@ -3118,6 +3152,14 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 
 				bHandled = true;
 			}
+		}
+		else if (Key == EKeys::I && Event == IE_Released)
+		{
+			UISettings.SetIsInQuickSingleInstantiationMode(false);
+		}
+		else if (Key == EKeys::I && Event == IE_Pressed)
+		{
+			UISettings.SetIsInQuickSingleInstantiationMode(true);
 		}
 	}
 

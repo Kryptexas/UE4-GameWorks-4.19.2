@@ -156,6 +156,9 @@ public:
 	UPROPERTY()
 	uint32 bNeedWarningForWritePermission:1;
 
+	/** Whether there is a pending package notification */
+ 	uint32 bShowPackageNotification:1;
+
 	/** Array of sorted, localized editor sprite categories */
 	UPROPERTY()
 	TArray<FString> SortedSpriteCategories_DEPRECATED;

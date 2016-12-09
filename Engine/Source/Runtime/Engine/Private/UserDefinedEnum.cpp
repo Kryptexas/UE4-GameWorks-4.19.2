@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine/UserDefinedEnum.h"
+#include "EditorObjectVersion.h"
 #if WITH_EDITOR
 #include "Kismet2/EnumEditorUtils.h"
 #endif	// WITH_EDITOR
@@ -15,12 +16,19 @@ void UUserDefinedEnum::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+
 #if WITH_EDITOR
 	if (Ar.IsLoading() && Ar.IsPersistent())
 	{
 		for (int32 i = 0; i < Names.Num(); ++i)
 		{
 			Names[i].Value = i;
+		}
+
+		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::StableUserDefinedEnumDisplayNames)
+		{
+			FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(this);
 		}
 	}
 #endif // WITH_EDITOR
@@ -67,11 +75,7 @@ void UUserDefinedEnum::PostLoad()
 {
 	Super::PostLoad();
 	FEnumEditorUtils::UpdateAfterPathChanged(this);
-
-	if (GIsEditor && !IsRunningCommandlet())
-	{
-		FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
-	}
+	FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
 }
 
 void UUserDefinedEnum::PostEditUndo()
@@ -107,12 +111,18 @@ int64 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int64 EnumeratorValue) c
 
 FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
 {
-	if (DisplayNames.IsValidIndex(InIndex))
+	const FName EnumEntryName = *GetEnumName(InIndex);
+
+	if (!EnumEntryName.IsNone())
 	{
-		return DisplayNames[InIndex];
+		const FText* EnumEntryDisplayName = DisplayNameMap.Find(EnumEntryName);
+		if (EnumEntryDisplayName)
+		{
+			return *EnumEntryDisplayName;
+		}
 	}
 
-	return Super::GetEnumText(InIndex);
+	return FText::GetEmpty();
 }
 
 bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing)

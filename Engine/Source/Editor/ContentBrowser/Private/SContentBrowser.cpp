@@ -27,6 +27,7 @@
 #include "EditorStyleSet.h"
 #include "EditorFontGlyphs.h"
 #include "Settings/ContentBrowserSettings.h"
+#include "Settings/EditorSettings.h"
 #include "Editor.h"
 #include "FileHelpers.h"
 #include "AssetRegistryModule.h"
@@ -706,6 +707,14 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 		// Make sure the sources view is initially visible if we were asked to show it
 		if( ( bSourcesViewExpanded && ( !Config->bExpandSourcesView || !Config->bUseSourcesView ) ) ||
 			( !bSourcesViewExpanded && Config->bExpandSourcesView && Config->bUseSourcesView ) )
+		{
+			SourcesViewExpandClicked();
+		}
+	}
+	else
+	{
+		// in case we do not have a config, see what the global default settings are for the Sources Panel
+		if (!bSourcesViewExpanded && GetDefault<UEditorSettings>()->bOpenSourcesPanelByDefault)
 		{
 			SourcesViewExpandClicked();
 		}

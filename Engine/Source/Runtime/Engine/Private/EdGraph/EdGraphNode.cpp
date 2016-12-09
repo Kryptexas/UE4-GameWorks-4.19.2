@@ -509,6 +509,23 @@ int32 UEdGraphNode::GetPinIndex(UEdGraphPin* Pin) const
 	return Pins.Find(Pin);
 }
 
+bool UEdGraphNode::ShouldDrawNodeAsControlPointOnly(int32& OutInputPinIndex, int32& OutOutputPinIndex) const
+{
+	OutInputPinIndex = -1;
+	OutOutputPinIndex = -1; 
+	return false;
+}
+
+
+UEdGraphPin* UEdGraphNode::GetPinAt(int32 index) const
+{
+	if (Pins.Num() > index)
+	{
+		return Pins[index];
+	}
+	return nullptr;
+}
+
 void UEdGraphNode::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const
 {
 	// Searchable - Primary label for the item in the search results

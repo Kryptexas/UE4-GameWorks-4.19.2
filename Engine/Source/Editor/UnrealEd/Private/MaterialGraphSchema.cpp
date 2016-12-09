@@ -28,11 +28,14 @@
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionReroute.h"
 
 #include "ScopedTransaction.h"
 #include "MaterialEditorUtilities.h"
 #include "GraphEditorActions.h"
 #include "AssetRegistryModule.h"
+#include "MaterialEditorActions.h"
+#include "MaterialGraphNode_Knot.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphSchema"
 
@@ -411,6 +414,12 @@ void UMaterialGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, c
 				{
 					((UMaterialGraphSchema*const)this)->GetBreakLinkToSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
 				}
+			}
+
+			// Only display Promote to Parameters on input pins
+			if (InGraphPin->Direction == EEdGraphPinDirection::EGPD_Input)
+			{
+				MenuBuilder->AddMenuEntry(FMaterialEditorCommands::Get().PromoteToParameter);
 			}
 		}
 		MenuBuilder->EndSection();
@@ -897,6 +906,41 @@ int32 UMaterialGraphSchema::GetCurrentVisualizationCacheID() const
 void UMaterialGraphSchema::ForceVisualizationCacheClear() const
 {
 	++CurrentCacheRefreshID;
+}
+
+void UMaterialGraphSchema::OnPinConnectionDoubleCicked(UEdGraphPin* PinA, UEdGraphPin* PinB, const FVector2D& GraphPosition) const
+{
+	const FScopedTransaction Transaction(LOCTEXT("CreateRerouteNodeOnWire", "Create Reroute Node"));
+
+	//@TODO: This constant is duplicated from inside of SGraphNodeKnot
+	const FVector2D NodeSpacerSize(42.0f, 24.0f);
+	const FVector2D KnotTopLeft = GraphPosition - (NodeSpacerSize * 0.5f);
+
+	// Create a new knot
+	UEdGraph* ParentGraph = PinA->GetOwningNode()->GetGraph();
+
+	{
+		UMaterialExpression* Expression = FMaterialEditorUtilities::CreateNewMaterialExpression(ParentGraph, UMaterialExpressionReroute::StaticClass(), KnotTopLeft, true, true);
+
+		// Move the connections across (only notifying the knot, as the other two didn't really change)
+		PinA->BreakLinkTo(PinB);
+		PinA->MakeLinkTo((PinA->Direction == EGPD_Output) ? CastChecked<UMaterialGraphNode_Knot>(Expression->GraphNode)->GetInputPin() : CastChecked<UMaterialGraphNode_Knot>(Expression->GraphNode)->GetOutputPin());
+		PinB->MakeLinkTo((PinB->Direction == EGPD_Output) ? CastChecked<UMaterialGraphNode_Knot>(Expression->GraphNode)->GetInputPin() : CastChecked<UMaterialGraphNode_Knot>(Expression->GraphNode)->GetOutputPin());
+		FMaterialEditorUtilities::UpdateMaterialAfterGraphChange(ParentGraph);
+	}
+}
+
+bool UMaterialGraphSchema::SafeDeleteNodeFromGraph(UEdGraph* Graph, UEdGraphNode* NodeToDelete) const
+{
+	if (NodeToDelete == nullptr || Graph == nullptr || NodeToDelete->GetGraph() != Graph)
+	{
+		return false;
+	}
+
+	TArray<UEdGraphNode*> NodesToDelete;
+	NodesToDelete.Add(NodeToDelete);
+	FMaterialEditorUtilities::DeleteNodes(Graph, NodesToDelete);
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

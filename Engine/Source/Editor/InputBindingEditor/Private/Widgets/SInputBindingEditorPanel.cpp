@@ -14,8 +14,6 @@
 #define LOCTEXT_NAMESPACE "SInputBindingEditorPanel"
 
 
-/* SChordEditor interface
- *****************************************************************************/
 
 void FInputBindingEditorPanel::Initialize(class IDetailLayoutBuilder& InDetailBuilder)
 {
@@ -25,19 +23,17 @@ void FInputBindingEditorPanel::Initialize(class IDetailLayoutBuilder& InDetailBu
 
 	FBindingContext::CommandsChanged.AddSP( SharedThis( this ), &FInputBindingEditorPanel::OnCommandsChanged );
 
-	const bool bForceRefresh = false;
-	UpdateUI(bForceRefresh);
+	UpdateUI();
 }
 
 
 void FInputBindingEditorPanel::UpdateContextMasterList()
 {
-	ContextMasterList.Empty();
-
 	TArray< TSharedPtr<FBindingContext> > Contexts;
 
 	FInputBindingManager::Get().GetKnownInputContexts( Contexts );
 	
+	ContextMasterList.Empty(Contexts.Num());
 	struct FContextNameSort
 	{
 		bool operator()( const TSharedPtr<FBindingContext>& A, const TSharedPtr<FBindingContext>& B ) const
@@ -54,21 +50,26 @@ void FInputBindingEditorPanel::UpdateContextMasterList()
 
 		TSharedRef<FChordTreeItem> TreeItem( new FChordTreeItem );
 		TreeItem->BindingContext = Context;
+		
 		ContextMasterList.Add( TreeItem );
 	}
 }
 
 
-void FInputBindingEditorPanel::OnCommandsChanged()
+void FInputBindingEditorPanel::OnCommandsChanged(const FBindingContext& ContextThatChanged)
 {
 	UpdateContextMasterList();
 
-	const bool bForceRefresh = true;
-	UpdateUI(bForceRefresh);
+	if(DetailBuilder)
+	{
+		DetailBuilder->ForceRefreshDetails();
+		// Force refreshing is going to invalidate the detail builder anyway
+		DetailBuilder = nullptr;
+		FBindingContext::CommandsChanged.RemoveAll(this);
+	}
 }
 
-
-void FInputBindingEditorPanel::UpdateUI(const bool bForceRefresh)
+void FInputBindingEditorPanel::UpdateUI()
 {
 	for(TSharedPtr<FChordTreeItem>& TreeItem : ContextMasterList)
 	{
@@ -95,11 +96,12 @@ void FInputBindingEditorPanel::UpdateUI(const bool bForceRefresh)
 					.ToolTipText(CommandInfo->GetDescription())
 				]
 				+ SVerticalBox::Slot()
-				.Padding(0.0f, 3.0f, 0.0f, 0.0f)
+				.Padding(0.0f, 3.0f, 0.0f, 3.0f)
 				.AutoHeight()
 				[
 					SNew(STextBlock)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
+					.ColorAndOpacity(FLinearColor::Gray)
 					.Text(CommandInfo->GetDescription())
 				]
 			];
@@ -113,7 +115,6 @@ void FInputBindingEditorPanel::UpdateUI(const bool bForceRefresh)
 			];
 		}
 	}
-
 }
 
 void FInputBindingEditorPanel::GetCommandsForContext(TSharedPtr<FChordTreeItem> InTreeItem, TArray< TSharedPtr< FUICommandInfo > >& OutChildren)

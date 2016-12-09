@@ -20,13 +20,32 @@
 #include "PropertyCustomizationHelpers.h"
 #include "ObjectEditorUtils.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
 
 #define LOCTEXT_NAMESPACE "PostProcessSettingsCustomization"
 
+struct FPostProcessGroup
+{
+	FString RawGroupName;
+	FString DisplayName;
+	IDetailCategoryBuilder* RootCategory;
+	TArray<TSharedPtr<IPropertyHandle>> SimplePropertyHandles;
+	TArray<TSharedPtr<IPropertyHandle>> AdvancedPropertyHandles;
+
+	bool IsValid() const
+	{
+		return !RawGroupName.IsEmpty() && !DisplayName.IsEmpty() && RootCategory;
+	}
+
+	FPostProcessGroup()
+		: RootCategory(nullptr)
+	{}
+};
+
+
 void FPostProcessSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
-	TMap<FName, IDetailGroup*> CategoryNameToGroupMap;
-
 	uint32 NumChildren = 0;
 	FPropertyAccess::Result Result = StructPropertyHandle->GetNumChildren(NumChildren);
 
@@ -36,32 +55,114 @@ void FPostProcessSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 	// a category with this name should be one level higher, should be "PostProcessSettings"
 	FName ClassName = StructProp->Struct->GetFName();
 
-	if( Result == FPropertyAccess::Success && NumChildren > 0)
+	// Create new categories in the parent layout rather than adding all post process settings to one category
+	IDetailLayoutBuilder& LayoutBuilder = StructBuilder.GetParentCategory().GetParentLayout();
+
+	TMap<FString, IDetailCategoryBuilder*> NameToCategoryBuilderMap;
+	TMap<FString, FPostProcessGroup> NameToGroupMap;
+
+	static const auto VarTonemapperFilm = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperFilm"));
+	static const FName LegacyTonemapperName("LegacyTonemapper");
+	static const FName TonemapperCategory("Tonemapper");
+
+	const bool bUseNewTonemapper = VarTonemapperFilm->GetValueOnGameThread() == 1;
+	if(Result == FPropertyAccess::Success && NumChildren > 0)
 	{
 		for( uint32 ChildIndex = 0; ChildIndex < NumChildren; ++ChildIndex )
 		{
 			TSharedPtr<IPropertyHandle> ChildHandle = StructPropertyHandle->GetChildHandle( ChildIndex );
+
+			
 			if( ChildHandle.IsValid() && ChildHandle->GetProperty() )
 			{
 				UProperty* Property = ChildHandle->GetProperty();
-				FName Category = FObjectEditorUtils::GetCategoryFName( Property );
 
-				if(Category == ClassName)
+				FName CategoryFName = FObjectEditorUtils::GetCategoryFName(Property);
+			
+				if(CategoryFName == TonemapperCategory)
 				{
-					// Some elements should be outside of the categories, they need to specify the struct nama as category
-					StructBuilder.AddChildProperty( ChildHandle.ToSharedRef() );
+					if(ChildHandle->HasMetaData(LegacyTonemapperName) && bUseNewTonemapper)
+					{
+						// Hide because property is for legacy tonemapper and we are using the new tonemapper
+						ChildHandle->MarkHiddenByCustomization();
+						continue;
+					}
+					else if(!ChildHandle->HasMetaData(LegacyTonemapperName) && !bUseNewTonemapper)
+					{
+						// Hide because property is for new tone mapper and we are using old tone mapper
+						ChildHandle->MarkHiddenByCustomization();
+						continue;
+					}
+				}
+				
+				FString RawCategoryName = CategoryFName.ToString();
+
+				TArray<FString> CategoryAndGroups;
+				RawCategoryName.ParseIntoArray(CategoryAndGroups, TEXT("|"), 1);
+
+				FString RootCategoryName = CategoryAndGroups.Num() > 0 ? CategoryAndGroups[0] : RawCategoryName;
+
+				IDetailCategoryBuilder* Category = NameToCategoryBuilderMap.FindRef(RootCategoryName);
+				if(!Category)
+				{
+					IDetailCategoryBuilder& NewCategory = LayoutBuilder.EditCategory(*RootCategoryName, FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+					NameToCategoryBuilderMap.Add(RootCategoryName, &NewCategory);
+
+					Category = &NewCategory;
+				}
+
+				if(CategoryAndGroups.Num() > 1)
+				{
+					// Only handling one group for now
+					// There are sub groups so add them now
+					FPostProcessGroup& PPGroup = NameToGroupMap.FindOrAdd(RawCategoryName);
+					
+					// Is this a new group? It wont be valid if it is
+					if(!PPGroup.IsValid())
+					{
+						PPGroup.RootCategory = Category;
+						PPGroup.RawGroupName = RawCategoryName;
+						PPGroup.DisplayName = CategoryAndGroups[1].Trim().TrimTrailing();
+					}
+	
+					bool bIsSimple = !ChildHandle->GetProperty()->HasAnyPropertyFlags(CPF_AdvancedDisplay);
+					if(bIsSimple)
+					{
+						PPGroup.SimplePropertyHandles.Add(ChildHandle);
+					}
+					else
+					{
+						PPGroup.AdvancedPropertyHandles.Add(ChildHandle);
+					}
 				}
 				else
 				{
-					IDetailGroup* Group = CategoryNameToGroupMap.FindRef( Category );
+					Category->AddProperty(ChildHandle.ToSharedRef());
+				}
 
-					if( !Group )
+			}
+		}
+
+		for(auto& NameAndGroup : NameToGroupMap)
+		{
+			const FPostProcessGroup& PPGroup = NameAndGroup.Value;
+
+			if(PPGroup.SimplePropertyHandles.Num() > 0 || PPGroup.AdvancedPropertyHandles.Num() > 0 )
+			{
+				IDetailGroup& SimpleGroup = PPGroup.RootCategory->AddGroup(*PPGroup.RawGroupName, FText::FromString(PPGroup.DisplayName));
+				for(auto& SimpleProperty : PPGroup.SimplePropertyHandles)
+				{
+					SimpleGroup.AddPropertyRow(SimpleProperty.ToSharedRef());
+				}
+
+				if(PPGroup.AdvancedPropertyHandles.Num() > 0)
+				{
+					IDetailGroup& AdvancedGroup = SimpleGroup.AddGroup(*(PPGroup.RawGroupName+TEXT("Advanced")), LOCTEXT("PostProcessAdvancedGroup", "Advanced"));
+					
+					for(auto& AdvancedProperty : PPGroup.AdvancedPropertyHandles)
 					{
-						Group = &StructBuilder.AddChildGroup( Category, FText::FromString( FName::NameToDisplayString( Category.ToString(), false ) ) );
-						CategoryNameToGroupMap.Add( Category, Group );
+						AdvancedGroup.AddPropertyRow(AdvancedProperty.ToSharedRef());
 					}
-				
-					Group->AddPropertyRow( ChildHandle.ToSharedRef() );
 				}
 			}
 		}
@@ -72,15 +173,7 @@ void FPostProcessSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 
 void FPostProcessSettingsCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
-	HeaderRow.NameContent()
-	[
-		StructPropertyHandle->CreatePropertyNameWidget()
-	];
-
-	HeaderRow.ValueContent()
-	[
-		StructPropertyHandle->CreatePropertyValueWidget()
-	];
+	// No header
 }
 
 void FWeightedBlendableCustomization::AddDirectAsset(TSharedRef<IPropertyHandle> StructPropertyHandle, UPackage* Package, TSharedPtr<IPropertyHandle> Weight, TSharedPtr<IPropertyHandle> Value, UClass* Class)

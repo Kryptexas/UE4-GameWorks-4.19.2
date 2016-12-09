@@ -44,9 +44,26 @@ TSharedRef<ITableRow> SDetailsViewBase::OnGenerateRowForDetailTree(TSharedRef<ID
 
 void SDetailsViewBase::SetRootExpansionStates(const bool bExpand, const bool bRecurse)
 {
-	for (auto Iter = RootTreeNodes.CreateIterator(); Iter; ++Iter)
+	if(ContainsMultipleTopLevelObjects())
 	{
-		SetNodeExpansionState(*Iter, bExpand, bRecurse);
+		FDetailNodeList Children;
+		for(auto Iter = RootTreeNodes.CreateIterator(); Iter; ++Iter)
+		{
+			Children.Reset();
+			(*Iter)->GetChildren(Children);
+
+			for(TSharedRef<class IDetailTreeNode>& Child : Children)
+			{
+				SetNodeExpansionState(Child, bExpand, bRecurse);
+			}
+		}
+	}
+	else
+	{
+		for(auto Iter = RootTreeNodes.CreateIterator(); Iter; ++Iter)
+		{
+			SetNodeExpansionState(*Iter, bExpand, bRecurse);
+		}
 	}
 }
 

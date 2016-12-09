@@ -25,9 +25,10 @@ FSlateFontInfo::FSlateFontInfo( )
 }
 
 
-FSlateFontInfo::FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont, const int32 InSize, const FName& InTypefaceFontName )
+FSlateFontInfo::FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont, const int32 InSize, const FName& InTypefaceFontName, const FFontOutlineSettings& InOutlineSettings )
 	: FontObject(nullptr)
 	, FontMaterial(nullptr)
+	, OutlineSettings(InOutlineSettings)
 	, CompositeFont(InCompositeFont)
 	, TypefaceFontName(InTypefaceFontName)
 	, Size(InSize)
@@ -42,9 +43,10 @@ FSlateFontInfo::FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont
 }
 
 
-FSlateFontInfo::FSlateFontInfo( const UObject* InFontObject, const int32 InSize, const FName& InTypefaceFontName )
+FSlateFontInfo::FSlateFontInfo( const UObject* InFontObject, const int32 InSize, const FName& InTypefaceFontName, const FFontOutlineSettings& InOutlineSettings )
 	: FontObject(InFontObject)
 	, FontMaterial(nullptr)
+	, OutlineSettings(InOutlineSettings)
 	, CompositeFont()
 	, TypefaceFontName(InTypefaceFontName)
 	, Size(InSize)
@@ -67,9 +69,10 @@ FSlateFontInfo::FSlateFontInfo( const UObject* InFontObject, const int32 InSize,
 }
 
 
-FSlateFontInfo::FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontHinting InHinting )
+FSlateFontInfo::FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontHinting InHinting, const FFontOutlineSettings& InOutlineSettings)
 	: FontObject(nullptr)
 	, FontMaterial(nullptr)
+	, OutlineSettings(InOutlineSettings)
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(InSize)

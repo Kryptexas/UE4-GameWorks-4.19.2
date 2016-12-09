@@ -22,6 +22,17 @@ enum class ELocalizationTargetConflictStatus : uint8
 	Clear,
 };
 
+UENUM()
+enum class ELocalizedTextCollapseMode : uint8
+{
+	/** Collapse texts with the same text identity (namespace + key) and source text (default 4.15+ behavior). */
+	IdenticalTextIdAndSource			UMETA(DisplayName = "Identical Text Identity (Namespace + Key) and Source Text"),
+	/** Collapse texts with the same package ID, text identity (namespace + key), and source text (4.14 behavior). */
+	IdenticalPackageIdTextIdAndSource	UMETA(DisplayName = "Identical Package ID, Text Identity (Namespace + Key) and Source Text"),
+	/** Collapse texts with the same namespace and source text (legacy pre-4.14 behavior). */
+	IdenticalNamespaceAndSource			UMETA(DisplayName = "Identical Namespace and Source Text"),
+};
+
 USTRUCT()
 struct FGatherTextSearchDirectory
 {
@@ -242,10 +253,15 @@ struct FLocalizationExportingSettings
 	GENERATED_BODY()
 
 	FLocalizationExportingSettings()
-		: ShouldPersistCommentsOnExport(false)
+		: CollapseMode(ELocalizedTextCollapseMode::IdenticalTextIdAndSource)
+		, ShouldPersistCommentsOnExport(false)
 		, ShouldAddSourceLocationsAsComments(true)
 	{
 	}
+
+	/* How should we collapse down text when exporting to PO? */
+	UPROPERTY(config, EditAnywhere, Category = "Collapsing")
+	ELocalizedTextCollapseMode CollapseMode;
 
 	/* Should user comments in existing PO files be persisted after export? Useful if using a third party service that stores editor/translator notes in the PO format's comment fields. */
 	UPROPERTY(config, EditAnywhere, Category = "Comments")

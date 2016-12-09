@@ -24,6 +24,8 @@
 #include "IIntroTutorials.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "SFoliagePalette.h"
+#include "SHeader.h"
+#include "SSeparator.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
 
@@ -93,6 +95,19 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 						]
 					]
 
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(StandardPadding)
+					[
+						SNew(SHeader)
+						.Visibility(this, &SFoliageEdit::GetVisibility_Options)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("OptionHeader", "Brush Options"))
+							.Font(StandardFont)
+						]
+					]
+
 					// Brush Size
 					+ SVerticalBox::Slot()
 					.AutoHeight()
@@ -122,10 +137,12 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 							.MinValue(0.0f)
 							.MaxValue(65536.0f)
 							.MaxSliderValue(8192.0f)
+							.MinDesiredValueWidth(50.0f)
 							.SliderExponent(3.0f)
 							.Value(this, &SFoliageEdit::GetRadius)
 							.OnValueChanged(this, &SFoliageEdit::SetRadius)
-						]
+							.IsEnabled(this, &SFoliageEdit::IsEnabled_BrushSize)
+						]						
 					]
 
 					// Paint Density
@@ -157,8 +174,10 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 							.MinValue(0.0f)
 							.MaxValue(2.0f)
 							.MaxSliderValue(1.0f)
+							.MinDesiredValueWidth(50.0f)
 							.Value(this, &SFoliageEdit::GetPaintDensity)
 							.OnValueChanged(this, &SFoliageEdit::SetPaintDensity)
+							.IsEnabled(this, &SFoliageEdit::IsEnabled_PaintDensity)
 						]
 					]
 
@@ -191,13 +210,82 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 							.MinValue(0.0f)
 							.MaxValue(2.0f)
 							.MaxSliderValue(1.0f)
+							.MinDesiredValueWidth(50.0f)
 							.Value(this, &SFoliageEdit::GetEraseDensity)
 							.OnValueChanged(this, &SFoliageEdit::SetEraseDensity)
+							.IsEnabled(this, &SFoliageEdit::IsEnabled_EraseDensity)
+						]
+					]					
+					
+					+ SVerticalBox::Slot()
+					.Padding(StandardPadding)
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+						.Visibility(this, &SFoliageEdit::GetVisibility_Options)
+
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(StandardPadding)
+						[
+							SNew(SWrapBox)
+							.UseAllottedWidth(true)
+							.InnerSlotPadding({6, 5})
+
+							+ SWrapBox::Slot()
+							[
+								SNew(SBox)
+								.MinDesiredWidth(150)
+								[
+									SNew(SCheckBox)
+									.Visibility(this, &SFoliageEdit::GetVisibility_SingleInstantiationMode)
+									.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_SingleInstantiationMode)
+									.IsChecked(this, &SFoliageEdit::GetCheckState_SingleInstantiationMode)
+									.ToolTipText(LOCTEXT("SingleInstantiationModeTooltips", "Paint a single foliage instance at the mouse cursor location (i + Mouse Click)"))
+									[
+										SNew(STextBlock)
+										.Text(LOCTEXT("SingleInstantiationMode", "Single Instance Mode"))
+										.Font(StandardFont)
+									]
+								]
+							]
+
+							+ SWrapBox::Slot()
+							[
+								SNew(SBox)
+								.MinDesiredWidth(150)
+								[
+									SNew(SCheckBox)
+									.Visibility(this, &SFoliageEdit::GetVisibility_SpawnInCurrentLevelMode)
+									.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_SpawnInCurrentLevelMode)
+									.IsChecked(this, &SFoliageEdit::GetCheckState_SpawnInCurrentLevelMode)
+									.ToolTipText(LOCTEXT("SpawnInCurrentLevelModeTooltips", "Wether to place foliage meshes in the current level or in the level containing the mesh being painted on."))
+									[
+										SNew(STextBlock)
+										.Text(LOCTEXT("SpawnInCurrentLevelMode", "Place in Current Level"))
+										.Font(StandardFont)
+									]
+								]
+							]
 						]
 					]
 
 					// Filters
 					+ SVerticalBox::Slot()
+					.Padding(StandardPadding)
+					.AutoHeight()
+					[
+						SNew(SHeader)
+						.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("FiltersHeader", "Filters"))
+							.Font(StandardFont)
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.Padding(StandardPadding)
 					.AutoHeight()
 					[
 						SNew(SHorizontalBox)
@@ -304,8 +392,23 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 						]
 					]
 
+					// Actions
 					+ SVerticalBox::Slot()
 					.Padding(StandardPadding)
+					.AutoHeight()
+					[
+						SNew(SHeader)
+						.Visibility(this, &SFoliageEdit::GetVisibility_Actions)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ActionsHeader", "Actions"))
+							.Font(StandardFont)
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.Padding(StandardPadding)
+					.AutoHeight()
 					[
 						SNew(SWrapBox)
 						.UseAllottedWidth(true)
@@ -487,6 +590,11 @@ TOptional<float> SFoliageEdit::GetRadius() const
 	return FoliageEditMode->UISettings.GetRadius();
 }
 
+bool SFoliageEdit::IsEnabled_BrushSize() const
+{
+	return !FoliageEditMode->UISettings.GetIsInSingleInstantiationMode() && !FoliageEditMode->UISettings.GetIsInQuickSingleInstantiationMode();
+}
+
 void SFoliageEdit::SetPaintDensity(float InDensity)
 {
 	FoliageEditMode->UISettings.SetPaintDensity(InDensity);
@@ -497,6 +605,10 @@ TOptional<float> SFoliageEdit::GetPaintDensity() const
 	return FoliageEditMode->UISettings.GetPaintDensity();
 }
 
+bool SFoliageEdit::IsEnabled_PaintDensity() const
+{
+	return !FoliageEditMode->UISettings.GetIsInSingleInstantiationMode() && !FoliageEditMode->UISettings.GetIsInQuickSingleInstantiationMode();
+}
 
 void SFoliageEdit::SetEraseDensity(float InDensity)
 {
@@ -506,6 +618,11 @@ void SFoliageEdit::SetEraseDensity(float InDensity)
 TOptional<float> SFoliageEdit::GetEraseDensity() const
 {
 	return FoliageEditMode->UISettings.GetUnpaintDensity();
+}
+
+bool SFoliageEdit::IsEnabled_EraseDensity() const
+{
+	return !FoliageEditMode->UISettings.GetIsInSingleInstantiationMode() && !FoliageEditMode->UISettings.GetIsInQuickSingleInstantiationMode();
 }
 
 EVisibility SFoliageEdit::GetVisibility_SelectionOptions() const
@@ -583,6 +700,26 @@ void SFoliageEdit::OnCheckStateChanged_Landscape(ECheckBoxState InState)
 ECheckBoxState SFoliageEdit::GetCheckState_Landscape() const
 {
 	return FoliageEditMode->UISettings.GetFilterLandscape() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SFoliageEdit::OnCheckStateChanged_SingleInstantiationMode(ECheckBoxState InState)
+{
+	FoliageEditMode->UISettings.SetIsInSingleInstantiationMode(InState == ECheckBoxState::Checked ? true : false);
+}
+
+ECheckBoxState SFoliageEdit::GetCheckState_SingleInstantiationMode() const
+{
+	return FoliageEditMode->UISettings.GetIsInSingleInstantiationMode() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SFoliageEdit::OnCheckStateChanged_SpawnInCurrentLevelMode(ECheckBoxState InState)
+{
+	FoliageEditMode->UISettings.SetSpawnInCurrentLevelMode(InState == ECheckBoxState::Checked ? true : false);
+}
+
+ECheckBoxState SFoliageEdit::GetCheckState_SpawnInCurrentLevelMode() const
+{
+	return FoliageEditMode->UISettings.GetIsInSpawnInCurrentLevelMode() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 FText SFoliageEdit::GetTooltipText_Landscape() const
@@ -753,6 +890,46 @@ EVisibility SFoliageEdit::GetVisibility_EraseDensity() const
 EVisibility SFoliageEdit::GetVisibility_Filters() const
 {
 	if (FoliageEditMode->UISettings.GetSelectToolSelected())
+	{
+		return EVisibility::Collapsed;
+	}
+
+	return EVisibility::Visible;
+}
+
+EVisibility SFoliageEdit::GetVisibility_Actions() const
+{
+	if (FoliageEditMode->UISettings.GetSelectToolSelected() || FoliageEditMode->UISettings.GetLassoSelectToolSelected())
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Collapsed;
+}
+
+EVisibility SFoliageEdit::GetVisibility_SingleInstantiationMode() const
+{
+	if (FoliageEditMode->UISettings.GetPaintToolSelected() || FoliageEditMode->UISettings.GetReapplyToolSelected() || FoliageEditMode->UISettings.GetLassoSelectToolSelected())
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Collapsed;
+}
+
+EVisibility SFoliageEdit::GetVisibility_SpawnInCurrentLevelMode() const
+{
+	if (FoliageEditMode->UISettings.GetPaintToolSelected())
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Collapsed;
+}
+
+EVisibility SFoliageEdit::GetVisibility_Options() const
+{
+	if (FoliageEditMode->UISettings.GetSelectToolSelected() || FoliageEditMode->UISettings.GetPaintBucketToolSelected())
 	{
 		return EVisibility::Collapsed;
 	}

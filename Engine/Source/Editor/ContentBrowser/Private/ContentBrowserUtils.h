@@ -7,6 +7,7 @@
 #include "Framework/SlateDelegates.h"
 #include "AssetData.h"
 #include "CollectionManagerTypes.h"
+#include "IPluginManager.h"
 
 class FViewport;
 
@@ -152,8 +153,8 @@ namespace ContentBrowserUtils
 	/** Returns true if the passed-in path is a developers folder */
 	bool IsDevelopersFolder( const FString& InPath );
 
-	/** Returns true if the passed-in path is a plugin folder */
-	bool IsPluginFolder( const FString& InPath );
+	/** Returns true if the passed-in path is a plugin folder matching the specified "where from" filter.*/
+	bool IsPluginFolder( const FString& InPath, EPluginLoadedFrom WhereFromFilter);
 
 	/** Returns true if the passed-in path is a C++ classes folder */
 	bool IsClassesFolder( const FString& InPath );
@@ -247,7 +248,10 @@ namespace ContentBrowserUtils
 	bool IsValidPackageForCooking(const FString& PackageName, FText& OutErrorMessage);
 
 	/** Syncs the specified packages from source control, other than any level assets which are currently being edited */
-	void SyncPackagesFromSourceControl(TArray<FString> PackageNames);
+	void SyncPackagesFromSourceControl(const TArray<FString>& PackageNames);
+
+	/** Syncs the content from the specified paths from source control, other than any level assets which are currently being edited */
+	void SyncPathsFromSourceControl(const TArray<FString>& ContentPaths);
 
 	// We assume the game name is 20 characters (the maximum allowed) to make sure that content can be ported between projects
 	// 260 characters is the limit on Windows, which is the shortest max path of any platforms that support cooking

@@ -451,6 +451,13 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("CommandletClass"), TEXT("InternationalizationExport") );
 
 			ConfigSection.Add( TEXT("bImportLoc"), TEXT("true") );
+
+			// Import-specific settings.
+			{
+				UEnum* LocalizedTextCollapseModeEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ELocalizedTextCollapseMode"));
+				const FName CollapseModeName = LocalizedTextCollapseModeEnum->GetNameByValue((int64)Target->Settings.ExportSettings.CollapseMode);
+				ConfigSection.Add(TEXT("LocalizedTextCollapseMode"), CollapseModeName.ToString());
+			}
 		}
 
 		Script.Dirty = true;
@@ -567,6 +574,10 @@ namespace LocalizationConfigurationScript
 
 			// Export-specific settings.
 			{
+				UEnum* LocalizedTextCollapseModeEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("ELocalizedTextCollapseMode"));
+				const FName CollapseModeName = LocalizedTextCollapseModeEnum->GetNameByValue((int64)Target->Settings.ExportSettings.CollapseMode);
+				ConfigSection.Add(TEXT("LocalizedTextCollapseMode"), CollapseModeName.ToString());
+
 				ConfigSection.Add(TEXT("ShouldPersistCommentsOnExport"), Target->Settings.ExportSettings.ShouldPersistCommentsOnExport ? TEXT("true") : TEXT("false"));
 				ConfigSection.Add(TEXT("ShouldAddSourceLocationsAsComments"), Target->Settings.ExportSettings.ShouldAddSourceLocationsAsComments ? TEXT("true") : TEXT("false"));
 			}

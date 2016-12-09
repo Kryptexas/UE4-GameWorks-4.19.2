@@ -64,6 +64,8 @@ public:
 
 	//~ End IPropertyTable Interface
 
+	static bool IsSupportedStructProperty(const UProperty* InProperty);
+
 private:
 
 	void GenerateColumnId();

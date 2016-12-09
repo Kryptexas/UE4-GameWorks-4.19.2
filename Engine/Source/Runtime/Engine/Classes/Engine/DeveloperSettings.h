@@ -32,6 +32,9 @@ public:
 	virtual FText GetSectionText() const;
 	/** Gets the description for the section, uses the classes ToolTip by default. */
 	virtual FText GetSectionDescription() const;
+
+	/** Whether or not this class supports auto registration or if the settings have a custom setup */
+	virtual bool SupportsAutoRegistration() const { return true; }
 #endif
 
 	/** Gets a custom widget for the settings.  This is only for very custom situations. */

@@ -33,6 +33,9 @@ public:
 	virtual const FText GetPaletteCategory() override;
 #endif
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Interaction)
+	bool bIsFocusable;
+
 protected:
 	TSharedRef<SWidget> HandleGenerateWidget(UObject* Item) const;
 

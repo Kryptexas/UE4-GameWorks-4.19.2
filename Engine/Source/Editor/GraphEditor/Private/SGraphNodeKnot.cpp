@@ -40,7 +40,7 @@ public:
 	// End of FDragConnection interface
 
 
-	static TSharedRef<FAmbivalentDirectionDragConnection> New(UK2Node_Knot* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const FDraggedPinTable& InStartingPins)
+	static TSharedRef<FAmbivalentDirectionDragConnection> New(UEdGraphNode* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const FDraggedPinTable& InStartingPins)
 	{
 		TSharedRef<FAmbivalentDirectionDragConnection> Operation = MakeShareable(new FAmbivalentDirectionDragConnection(InKnot, InGraphPanel, InStartingPins));
 		Operation->Construct();
@@ -49,7 +49,7 @@ public:
 	}
 
 protected:
-	FAmbivalentDirectionDragConnection(UK2Node_Knot* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const FDraggedPinTable& InStartingPins)
+	FAmbivalentDirectionDragConnection(UEdGraphNode* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const FDraggedPinTable& InStartingPins)
 		: FDragConnection(InGraphPanel, InStartingPins)
 		, KnotPtr(InKnot)
 		, StartScreenPos(FVector2D::ZeroVector)
@@ -59,7 +59,7 @@ protected:
 	}
 
 protected:
-	TWeakObjectPtr<UK2Node_Knot> KnotPtr;
+	TWeakObjectPtr<UEdGraphNode> KnotPtr;
 
 	FVector2D StartScreenPos;
 	FVector2D MostRecentScreenPos;
@@ -70,10 +70,13 @@ UEdGraphPin* FAmbivalentDirectionDragConnection::GetBestPin() const
 {
 	if (bLatchedStartScreenPos)
 	{
-		if (UK2Node_Knot* Knot = KnotPtr.Get())
+		int32 InputPinIndex = -1;
+		int32 OutputPinIndex = -1;
+
+		if (KnotPtr.Get() && KnotPtr->ShouldDrawNodeAsControlPointOnly(InputPinIndex, OutputPinIndex))
 		{
 			const bool bIsRight = MostRecentScreenPos.X >= StartScreenPos.X;
-			return bIsRight ? Knot->GetOutputPin() : Knot->GetInputPin();
+			return bIsRight ? KnotPtr->GetPinAt(OutputPinIndex) : KnotPtr->GetPinAt(InputPinIndex);
 		}
 	}
 
@@ -111,8 +114,8 @@ void FAmbivalentDirectionDragConnection::ValidateGraphPinList(TArray<UEdGraphPin
 {
 	OutValidPins.Empty(DraggingPins.Num());
 
-	if (UK2Node_Knot* Knot = KnotPtr.Get())
-	{
+   if (KnotPtr.Get() != nullptr)
+   {
 		bool bUseOutput = true;
 
 		// Pick output or input based on if the drag op is currently to the left or to the right of the starting drag point
@@ -141,14 +144,20 @@ void FAmbivalentDirectionDragConnection::ValidateGraphPinList(TArray<UEdGraphPin
 			}
 		}
 
-		// Switch the effective valid pin so it makes sense for the current drag context
-		if (bUseOutput)
+		int32 InputPinIndex = -1;
+		int32 OutputPinIndex = -1;
+
+		if (KnotPtr->ShouldDrawNodeAsControlPointOnly(InputPinIndex, OutputPinIndex))
 		{
-			OutValidPins.Add(Knot->GetOutputPin());
-		}
-		else
-		{
-			OutValidPins.Add(Knot->GetInputPin());
+			// Switch the effective valid pin so it makes sense for the current drag context
+			if (bUseOutput)
+			{
+				OutValidPins.Add(KnotPtr->GetPinAt(OutputPinIndex));
+			}
+			else
+			{
+				OutValidPins.Add(KnotPtr->GetPinAt(InputPinIndex));
+			}
 		}
 	}
 	else
@@ -199,10 +208,20 @@ void SGraphPinKnot::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEven
 		
 		if (ValidPins.Num() > 0)
 		{
-			if (UK2Node_Knot* Knot = Cast<UK2Node_Knot>(GraphPinObj->GetOwningNode()))
+			UEdGraphPin* PinToHoverOver = nullptr;
+			UEdGraphNode* Knot = GraphPinObj->GetOwningNode();
+			int32 InputPinIndex = -1;
+			int32 OutputPinIndex = -1;
+
+			if (Knot != nullptr && Knot->ShouldDrawNodeAsControlPointOnly(InputPinIndex, OutputPinIndex))
 			{
 				// Dragging to another pin, pick the opposite direction as a source to maximize connection chances
-				UEdGraphPin* PinToHoverOver = (ValidPins[0]->Direction == EGPD_Input) ? Knot->GetOutputPin() : Knot->GetInputPin();
+				PinToHoverOver = (ValidPins[0]->Direction == EGPD_Input) ? Knot->GetPinAt(OutputPinIndex) : Knot->GetPinAt(InputPinIndex);
+				check(PinToHoverOver);
+			}
+
+			if (PinToHoverOver != nullptr)
+			{
 				DragConnectionOp->SetHoveredPin(PinToHoverOver);
 
 				// Pins treat being dragged over the same as being hovered outside of drag and drop if they know how to respond to the drag action.
@@ -239,7 +258,7 @@ TSharedRef<FDragDropOperation> SGraphPinKnot::SpawnPinDragEvent(const TSharedRef
 		PinHandles.Add(PinWidget->GetPinObj());
 	}
 
-	TSharedRef<FAmbivalentDirectionDragConnection> Operation = FAmbivalentDirectionDragConnection::New(CastChecked<UK2Node_Knot>(GetPinObj()->GetOwningNode()), InGraphPanel, PinHandles);
+	TSharedRef<FAmbivalentDirectionDragConnection> Operation = FAmbivalentDirectionDragConnection::New(GetPinObj()->GetOwningNode(), InGraphPanel, PinHandles);
 	return Operation;
 }
 
@@ -254,14 +273,21 @@ FReply SGraphPinKnot::OnPinMouseDown(const FGeometry& SenderGeometry, const FPoi
 				// Normally break connections, but overloaded here to delete the node entirely
 				const FScopedTransaction Transaction(FGenericCommands::Get().Delete->GetDescription());
 
-				UK2Node_Knot* NodeToDelete = CastChecked<UK2Node_Knot>(GetPinObj()->GetOwningNode());
-				UBlueprint* OwnerBlueprint = NodeToDelete->GetBlueprint();
-				NodeToDelete->GetGraph()->Modify();
+				UEdGraphNode* NodeToDelete = GetPinObj()->GetOwningNode();
+				if (NodeToDelete != nullptr)
+				{
+					UEdGraph* Graph = NodeToDelete->GetGraph();
+					if (Graph != nullptr)
+					{
+						const UEdGraphSchema* Schema = Graph->GetSchema();
+						if (Schema != nullptr && Schema->SafeDeleteNodeFromGraph(Graph, NodeToDelete))
+						{
+							return FReply::Handled();
+						}
+					}
+				}
 
-				FBlueprintEditorUtils::RemoveNode(OwnerBlueprint, NodeToDelete, /*bDontRecompile=*/ true);
-				FBlueprintEditorUtils::MarkBlueprintAsModified(OwnerBlueprint);
-
-				return FReply::Handled();
+				return FReply::Unhandled();
 			}
 			else if (MouseEvent.IsControlDown())
 			{
@@ -278,10 +304,15 @@ FReply SGraphPinKnot::OnPinMouseDown(const FGeometry& SenderGeometry, const FPoi
 //////////////////////////////////////////////////////////////////////////
 // SGraphNodeKnot
 
-void SGraphNodeKnot::Construct(const FArguments& InArgs, UK2Node_Knot* InKnot)
+void SGraphNodeKnot::Construct(const FArguments& InArgs, UEdGraphNode* InKnot)
 {
+	int32 InputPinIndex = -1;
+	int32 OutputPinIndex = -1;
+	verify(InKnot->ShouldDrawNodeAsControlPointOnly(InputPinIndex, OutputPinIndex) == true &&
+		InputPinIndex >= 0 && OutputPinIndex >= 0);
 	SGraphNodeDefault::Construct(SGraphNodeDefault::FArguments().GraphNodeObj(InKnot));
 }
+
 
 void SGraphNodeKnot::UpdateGraphNode()
 {
@@ -387,6 +418,7 @@ void SGraphNodeKnot::AddPin(const TSharedRef<SGraphPin>& PinToAdd)
 	PinToAdd->SetOwner(SharedThis(this));
 
 	const UEdGraphPin* PinObj = PinToAdd->GetPinObj();
+	PinToAdd->SetShowLabel(false);
 
 	if (PinToAdd->GetDirection() == EEdGraphPinDirection::EGPD_Input)
 	{

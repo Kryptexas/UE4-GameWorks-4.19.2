@@ -1283,18 +1283,19 @@ bool SLevelEditor::IsModeActive( FEditorModeID ModeID )
 
 void SLevelEditor::RefreshEditorModeCommands()
 {
-	FLevelEditorModesCommands::Unregister();
-	FLevelEditorModesCommands::Register();
-	
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor" );
 
+	if(!FLevelEditorModesCommands::IsRegistered())
+	{
+		FLevelEditorModesCommands::Register();
+	}
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
 
 	// We need to remap all the actions to commands.
 	const FLevelEditorModesCommands& Commands = FLevelEditorModesCommands::Get();
 
-	int commandIndex = 0;
+	int32 CommandIndex = 0;
 	for( const FEditorModeInfo& Mode : FEditorModeRegistry::Get().GetSortedModeInfo() )
 	{
 		// If the mode isn't visible don't create a menu option for it.
@@ -1310,16 +1311,16 @@ void SLevelEditor::RefreshEditorModeCommands()
 			FInputBindingManager::Get().FindCommandInContext(Commands.GetContextName(), EditorModeCommandName);
 
 		// If a command isn't yet registered for this mode, we need to register one.
-		if ( ensure(EditorModeCommand.IsValid()) )
+		if ( EditorModeCommand.IsValid() && !LevelEditorCommands->IsActionMapped(Commands.EditorModeCommands[CommandIndex]) )
 		{
 			LevelEditorCommands->MapAction(
-				Commands.EditorModeCommands[commandIndex],
+				Commands.EditorModeCommands[CommandIndex],
 				FExecuteAction::CreateStatic( &SLevelEditor::ToggleEditorMode, Mode.ID ),
 				FCanExecuteAction(),
 				FIsActionChecked::CreateStatic( &SLevelEditor::IsModeActive, Mode.ID ));
 		}
 
-		commandIndex++;
+		CommandIndex++;
 	}
 
 	for( const auto& ToolBoxTab : ToolBoxTabs )

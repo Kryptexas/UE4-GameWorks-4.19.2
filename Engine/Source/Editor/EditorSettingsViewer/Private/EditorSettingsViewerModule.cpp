@@ -18,6 +18,7 @@
 #include "Settings/LevelEditorViewportSettings.h"
 #include "Settings/EditorExperimentalSettings.h"
 #include "Settings/EditorLoadingSavingSettings.h"
+#include "Settings/EditorSettings.h"
 #include "Preferences/PersonaOptions.h"
 #include "UnrealEdMisc.h"
 #include "Dialogs/Dialogs.h"
@@ -139,6 +140,13 @@ protected:
 
 		// @todo thomass: proper settings support for source control module
 		GetMutableDefault<UEditorLoadingSavingSettings>()->SccHackInitialize();
+
+		// global editor settings
+		SettingsModule.RegisterSettings("Editor", "General", "Global",
+			LOCTEXT("GlobalSettingsName", "Global"),
+			LOCTEXT("GlobalSettingsDescription", "Edit global settings that affect all editors."),
+			GetMutableDefault<UEditorSettings>()
+		);
 
 		// misc unsorted settings
 		SettingsModule.RegisterSettings("Editor", "General", "UserSettings",

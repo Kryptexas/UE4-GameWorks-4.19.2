@@ -287,7 +287,7 @@ void UEnum::AddNamesToMasterList()
 	for (TPair<FName, int64> Kvp : Names)
 	{
 		UEnum* Enum = AllEnumNames.FindRef(Kvp.Key);
-		if (Enum == nullptr)
+		if (Enum == nullptr || Enum->HasAnyFlags(RF_NewerVersionExists))
 		{
 			AllEnumNames.Add(Kvp.Key, this);
 		}

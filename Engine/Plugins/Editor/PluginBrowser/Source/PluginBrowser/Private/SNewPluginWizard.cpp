@@ -512,10 +512,24 @@ FReply SNewPluginWizard::OnCreatePluginClicked()
 	{
 		bHasModules = true;
 	}
+	
+	EHostType::Type ModuleDescriptorType;
+
+	TArray<TSharedPtr<FPluginTemplateDescription>> SelectedTemplates = PluginWizardDefinition->GetSelectedTemplates();
+	// @todo For now assume there is one module type and all templates share it
+	if(SelectedTemplates.Num() > 0 )
+	{
+		ModuleDescriptorType = SelectedTemplates[0]->ModuleDescriptorType;
+	}
+	else
+	{
+		// Default to runtime
+		ModuleDescriptorType = EHostType::Runtime;
+	}
 
 	// Save descriptor file as .uplugin file
 	const FString UPluginFilePath = GetPluginFilenameWithPath();
-	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath, PluginWizardDefinition->CanContainContent(), bHasModules);
+	bSucceeded = bSucceeded && WritePluginDescriptor(AutoPluginName, UPluginFilePath, PluginWizardDefinition->CanContainContent(), bHasModules, ModuleDescriptorType);
 
 	// Main plugin dir
 	const FString BasePluginFolder = GetPluginDestinationPath().ToString();
@@ -603,7 +617,7 @@ bool SNewPluginWizard::CopyFile(const FString& DestinationFile, const FString& S
 	}
 }
 
-bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules)
+bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules, EHostType::Type ModuleDescriptorType)
 {
 	FPluginDescriptor Descriptor;
 
@@ -614,7 +628,7 @@ bool SNewPluginWizard::WritePluginDescriptor(const FString& PluginModuleName, co
 
 	if (bHasModules)
 	{
-		Descriptor.Modules.Add(FModuleDescriptor(*PluginModuleName, EHostType::Developer));
+		Descriptor.Modules.Add(FModuleDescriptor(*PluginModuleName, ModuleDescriptorType));
 	}
 	Descriptor.bCanContainContent = bCanContainContent;
 

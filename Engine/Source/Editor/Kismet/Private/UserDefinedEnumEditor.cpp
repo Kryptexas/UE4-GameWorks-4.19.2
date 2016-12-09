@@ -19,11 +19,114 @@
 #include "Widgets/SToolTip.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "IDocumentation.h"
+#include "STextPropertyEditableTextBox.h"
 
 #define LOCTEXT_NAMESPACE "UserDefinedEnumEditor"
 
 const FName FUserDefinedEnumEditor::EnumeratorsTabId( TEXT( "UserDefinedEnum_EnumeratorEditor" ) );
 const FName FUserDefinedEnumEditor::UserDefinedEnumEditorAppIdentifier( TEXT( "UserDefinedEnumEditorApp" ) );
+
+/** Allows STextPropertyEditableTextBox to edit a user defined enum entry */
+class FEditableTextUserDefinedEnum : public IEditableTextProperty
+{
+public:
+	FEditableTextUserDefinedEnum(UUserDefinedEnum* InTargetEnum, const int32 InEnumeratorIndex)
+		: TargetEnum(InTargetEnum)
+		, EnumeratorIndex(InEnumeratorIndex)
+		, bCausedChange(false)
+	{
+	}
+
+	virtual bool IsMultiLineText() const override
+	{
+		return false;
+	}
+
+	virtual bool IsPassword() const override
+	{
+		return false;
+	}
+
+	virtual bool IsReadOnly() const override
+	{
+		return false;
+	}
+
+	virtual bool IsDefaultValue() const override
+	{
+		return false;
+	}
+
+	virtual FText GetToolTipText() const override
+	{
+		return FText::GetEmpty();
+	}
+
+	virtual int32 GetNumTexts() const override
+	{
+		return 1;
+	}
+
+	virtual FText GetText(const int32 InIndex) const override
+	{
+		check(InIndex == 0);
+		return FEnumEditorUtils::GetEnumeratorDisplayName(TargetEnum, EnumeratorIndex);
+	}
+
+	virtual void SetText(const int32 InIndex, const FText& InText) override
+	{
+		check(InIndex == 0);
+		bCausedChange = true;
+		FEnumEditorUtils::SetEnumeratorDisplayName(TargetEnum, EnumeratorIndex, InText);
+		bCausedChange = false;
+	}
+
+	virtual bool IsValidText(const FText& InText, FText& OutErrorMsg) const override
+	{
+		bool bValidName = true;
+
+		bool bUnchangedName = (InText.ToString() == FEnumEditorUtils::GetEnumeratorDisplayName(TargetEnum, EnumeratorIndex).ToString());
+		if (InText.IsEmpty())
+		{
+			OutErrorMsg = LOCTEXT("NameMissingError", "You must provide a name.");
+			bValidName = false;
+		}
+		else if (!FEnumEditorUtils::IsEnumeratorDisplayNameValid(TargetEnum, EnumeratorIndex, InText))
+		{
+			OutErrorMsg = FText::Format(LOCTEXT("NameInUseError", "'{0}' is already in use."), InText);
+			bValidName = false;
+		}
+
+		return bValidName && !bUnchangedName;
+	}
+
+#if USE_STABLE_LOCALIZATION_KEYS
+	virtual void GetStableTextId(const int32 InIndex, const ETextPropertyEditAction InEditAction, const FString& InTextSource, const FString& InProposedNamespace, const FString& InProposedKey, FString& OutStableNamespace, FString& OutStableKey) const override
+	{
+		check(InIndex == 0);
+		return StaticStableTextId(TargetEnum, InEditAction, InTextSource, InProposedNamespace, InProposedKey, OutStableNamespace, OutStableKey);
+	}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+	virtual void RequestRefresh() override
+	{
+	}
+
+	bool CausedChange() const
+	{
+		return bCausedChange;
+	}
+
+private:
+	/** The user defined enum being edited */
+	UUserDefinedEnum* TargetEnum;
+
+	/** Index of enumerator entry */
+	int32 EnumeratorIndex;
+
+	/** Set while we are invoking a change to the user defined enum */
+	bool bCausedChange;
+};
 
 void FUserDefinedEnumEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager)
 {
@@ -273,10 +376,16 @@ void FUserDefinedEnumLayout::GenerateChildContent( IDetailChildrenBuilder& Child
 }
 
 
+bool FUserDefinedEnumIndexLayout::CausedChange() const
+{
+	return DisplayNameEditor.IsValid() && DisplayNameEditor->CausedChange();
+}
 
 void FUserDefinedEnumIndexLayout::GenerateHeaderRowContent( FDetailWidgetRow& NodeRow )
 {
-	const bool bIsEditable = true;
+	DisplayNameEditor = MakeShared<FEditableTextUserDefinedEnum>(TargetEnum, EnumeratorIndex);
+
+	const bool bIsEditable = !DisplayNameEditor->IsReadOnly();
 	const bool bIsMoveUpEnabled = (TargetEnum->NumEnums() != 1) && (EnumeratorIndex != 0) && bIsEditable;
 	const bool bIsMoveDownEnabled = (TargetEnum->NumEnums() != 1) && (EnumeratorIndex < TargetEnum->NumEnums() - 2) && bIsEditable;
 
@@ -290,11 +399,7 @@ void FUserDefinedEnumIndexLayout::GenerateHeaderRowContent( FDetailWidgetRow& No
 
 			+SHorizontalBox::Slot()
 			[
-				SAssignNew(EnumeratorNameWidget, SEditableTextBox)
-				.OnTextCommitted(this, &FUserDefinedEnumIndexLayout::OnEnumeratorNameCommitted)
-				.OnTextChanged(this, &FUserDefinedEnumIndexLayout::OnEnumeratorNameChanged)
-				.IsEnabled(bIsEditable)
-				.Text(this, &FUserDefinedEnumIndexLayout::GetEnumeratorName)
+				SNew(STextPropertyEditableTextBox, DisplayNameEditor.ToSharedRef())
 			]
 
 			+SHorizontalBox::Slot()
@@ -333,91 +438,21 @@ void FUserDefinedEnumIndexLayout::GenerateHeaderRowContent( FDetailWidgetRow& No
 		];
 }
 
-FText FUserDefinedEnumIndexLayout::GetEnumeratorName() const
-{
-	return FText::FromString(FEnumEditorUtils::GetEnumeratorDisplayName(TargetEnum.Get(), EnumeratorIndex));
-}
-
 void FUserDefinedEnumIndexLayout::OnEnumeratorRemove()
 {
-	FEnumEditorUtils::RemoveEnumeratorFromUserDefinedEnum(TargetEnum.Get(), EnumeratorIndex);
+	FEnumEditorUtils::RemoveEnumeratorFromUserDefinedEnum(TargetEnum, EnumeratorIndex);
 }
 
 FReply FUserDefinedEnumIndexLayout::OnMoveEnumeratorUp()
 {
-	FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(TargetEnum.Get(), EnumeratorIndex, true);
+	FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(TargetEnum, EnumeratorIndex, true);
 	return FReply::Handled();
 }
 
 FReply FUserDefinedEnumIndexLayout::OnMoveEnumeratorDown()
 {
-	FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(TargetEnum.Get(), EnumeratorIndex, false);
+	FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(TargetEnum, EnumeratorIndex, false);
 	return FReply::Handled();
-}
-
-struct FScopeTrue
-{
-	bool& bRef;
-
-	FScopeTrue(bool& bInRef) : bRef(bInRef)
-	{
-		ensure(!bRef);
-		bRef = true;
-	}
-
-	~FScopeTrue()
-	{
-		ensure(bRef);
-		bRef = false;
-	}
-};
-
-void FUserDefinedEnumIndexLayout::OnEnumeratorNameCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
-{
-	const FString NewDisplayName = NewText.ToString();
-	if (FEnumEditorUtils::IsEnumeratorDisplayNameValid(TargetEnum.Get(), NewDisplayName))
-	{
-		FScopeTrue ScopeTrue(bCausedChange);
-		FEnumEditorUtils::SetEnumeratorDisplayName(TargetEnum.Get(), EnumeratorIndex, NewDisplayName);
-	}
-
-	auto EnumeratorNameWidgetSP = EnumeratorNameWidget.Pin();
-	if (EnumeratorNameWidgetSP.IsValid())
-	{
-		EnumeratorNameWidgetSP->SetError(FString());
-	}
-}
-
-void FUserDefinedEnumIndexLayout::OnEnumeratorNameChanged(const FText& NewText)
-{
-	IsValidEnumeratorDisplayName(NewText);
-}
-
-bool FUserDefinedEnumIndexLayout::IsValidEnumeratorDisplayName(const FText& NewText) const
-{
-	bool bValidName = true;
-
-	const FString NewName = NewText.ToString();
-	bool bUnchangedName = (NewName == FEnumEditorUtils::GetEnumeratorDisplayName(TargetEnum.Get(), EnumeratorIndex));
-	FText ErrorMsg;
-	if (NewText.IsEmpty())
-	{
-		ErrorMsg = LOCTEXT("NameMissingError", "You must provide a name.");
-		bValidName = false;
-	}
-	else if (!bUnchangedName && !FEnumEditorUtils::IsEnumeratorDisplayNameValid(TargetEnum.Get(), NewName))
-	{
-		ErrorMsg = FText::Format(LOCTEXT("NameInUseError", "'{0}' is already in use."), NewText);
-		bValidName = false;
-	}
-
-	auto EnumeratorNameWidgetSP = EnumeratorNameWidget.Pin();
-	if (EnumeratorNameWidgetSP.IsValid())
-	{
-		EnumeratorNameWidgetSP->SetError(ErrorMsg);
-	}
-
-	return bValidName && !bUnchangedName;
 }
 
 #undef LOCTEXT_NAMESPACE

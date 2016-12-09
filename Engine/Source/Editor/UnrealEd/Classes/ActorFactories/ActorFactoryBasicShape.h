@@ -23,4 +23,5 @@ class UActorFactoryBasicShape : public UActorFactoryStaticMesh
 	UNREALED_API static const FName BasicSphere;
 	UNREALED_API static const FName BasicCylinder;
 	UNREALED_API static const FName BasicCone;
+	UNREALED_API static const FName BasicPlane;
 };

@@ -409,6 +409,11 @@ private:
 			return bIsComposing;
 		}
 
+		FORCEINLINE void AbortComposition()
+		{
+			bIsComposing = false;
+		}
+
 		FORCEINLINE FTextRange GetCompositionRange() const
 		{
 			return FTextRange(CompositionBeginIndex, CompositionBeginIndex + CompositionLength);

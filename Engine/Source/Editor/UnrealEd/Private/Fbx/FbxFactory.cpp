@@ -91,7 +91,7 @@ bool UFbxFactory::DetectImportType(const FString& InFilename)
 		FFbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("NoImportTypeDetected", "Can't detect import type. No mesh is found or animation track.")), FFbxErrors::Generic_CannotDetectImportType);
 		return false;
 	}
-	else
+	else if(!IsAutomatedImport() || ImportUI->bAutomatedImportShouldDetectType)
 	{
 		ImportUI->MeshTypeToImport = EFBXImportType(ImportType);
 		ImportUI->OriginalImportType = ImportUI->MeshTypeToImport;
@@ -247,7 +247,8 @@ UObject* UFbxFactory::FactoryCreateBinary
 			TArray< TArray<FbxNode*>* > SkelMeshArray;
 
 			bool bImportStaticMeshLODs = ImportUI->StaticMeshImportData->bImportMeshLODs;
-			bool bCombineMeshes = ImportUI->bCombineMeshes;
+			bool bCombineMeshes = ImportUI->StaticMeshImportData->bCombineMeshes;
+			bool bCombineMeshesLOD = false;
 
 			if ( ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh )
 			{
@@ -271,9 +272,11 @@ UObject* UFbxFactory::FactoryCreateBinary
 					InterestingNodeCount = FbxImporter->GetFbxMeshCount(RootNodeToImport,bCountLODGroupMeshes,NumLODGroups);
 
 					// if there were LODs in the file, do not combine meshes even if requested
-					if( bImportStaticMeshLODs && bCombineMeshes )
+					if( bImportStaticMeshLODs && bCombineMeshes && NumLODGroups > 0)
 					{
-						bCombineMeshes = NumLODGroups == 0;
+						bCombineMeshes = false;
+						//Combine all the LOD together and export one mesh with LODs
+						bCombineMeshesLOD = true;
 					}
 				}
 			}
@@ -305,6 +308,53 @@ UObject* UFbxFactory::FactoryCreateBinary
 
 						ImportedMeshCount = NewStaticMesh ? 1 : 0;
 					}
+					else if (bCombineMeshesLOD)
+					{
+						TArray<FbxNode*> FbxMeshArray;
+						TArray<FbxNode*> FbxLodGroups;
+						TArray<TArray<FbxNode*>> FbxMeshesLod;
+						FbxImporter->FillFbxMeshAndLODGroupArray(RootNodeToImport, FbxLodGroups, FbxMeshArray);
+						FbxMeshesLod.Add(FbxMeshArray);
+						for (FbxNode* LODGroup : FbxLodGroups)
+						{
+							if (LODGroup->GetNodeAttribute() && LODGroup->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup && LODGroup->GetChildCount() > 0)
+							{
+								for (int32 GroupLodIndex = 0; GroupLodIndex < LODGroup->GetChildCount(); ++GroupLodIndex)
+								{
+									TArray<FbxNode*> AllNodeInLod;
+									FbxImporter->FindAllLODGroupNode(AllNodeInLod, LODGroup, GroupLodIndex);
+									if (AllNodeInLod.Num() > 0)
+									{
+										if (FbxMeshesLod.Num() <= GroupLodIndex)
+										{
+											FbxMeshesLod.Add(AllNodeInLod);
+										}
+										else
+										{
+											TArray<FbxNode*> &LODGroupArray = FbxMeshesLod[GroupLodIndex];
+											for (FbxNode* NodeToAdd : AllNodeInLod)
+											{
+												LODGroupArray.Add(NodeToAdd);
+											}
+										}
+									}
+								}
+							}
+						}
+
+						//Import the LOD root
+						if (FbxMeshesLod.Num() > 0)
+						{
+							TArray<FbxNode*> &LODMeshesArray = FbxMeshesLod[0];
+							NewStaticMesh = FbxImporter->ImportStaticMeshAsSingle(InParent, LODMeshesArray, Name, Flags, ImportUI->StaticMeshImportData, NULL, 0);
+						}
+						//Import all LODs
+						for (int32 LODIndex = 1; LODIndex < FbxMeshesLod.Num(); ++LODIndex)
+						{
+							TArray<FbxNode*> &LODMeshesArray = FbxMeshesLod[LODIndex];
+							FbxImporter->ImportStaticMeshAsSingle(InParent, LODMeshesArray, Name, Flags, ImportUI->StaticMeshImportData, NewStaticMesh, LODIndex);
+						}
+					}
 					else
 					{
 						TArray<UObject*> AllNewAssets;
@@ -326,10 +376,10 @@ UObject* UFbxFactory::FactoryCreateBinary
 						ImportedMeshCount = AllNewAssets.Num();
 					}
 
-					// Importing static mesh sockets only works if one mesh is being imported
-					if( ImportedMeshCount == 1 && NewStaticMesh )
+					// Importing static mesh global sockets only if one mesh is imported
+					if( ImportedMeshCount == 1 && NewStaticMesh)
 					{
-						FbxImporter->ImportStaticMeshSockets( NewStaticMesh );
+						FbxImporter->ImportStaticMeshGlobalSockets( NewStaticMesh );
 					}
 
 					NewObject = NewStaticMesh;
@@ -671,8 +721,7 @@ IImportSettingsParser* UFbxFactory::GetImportSettingsParser()
 UFbxImportUI::UFbxImportUI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bCombineMeshes = true;
-
+	bAutomatedImportShouldDetectType = true;
 	StaticMeshImportData = CreateDefaultSubobject<UFbxStaticMeshImportData>(TEXT("StaticMeshImportData"));
 	SkeletalMeshImportData = CreateDefaultSubobject<UFbxSkeletalMeshImportData>(TEXT("SkeletalMeshImportData"));
 	AnimSequenceImportData = CreateDefaultSubobject<UFbxAnimSequenceImportData>(TEXT("AnimSequenceImportData"));
@@ -710,6 +759,13 @@ void UFbxImportUI::ParseFromJson(TSharedRef<class FJsonObject> ImportSettingsJso
 	// Skip instanced object references. 
 	int64 SkipFlags = CPF_InstancedReference;
 	FJsonObjectConverter::JsonObjectToUStruct(ImportSettingsJson, GetClass(), this, 0, SkipFlags);
+
+	bAutomatedImportShouldDetectType = true;
+	if(ImportSettingsJson->TryGetField("MeshTypeToImport").IsValid())
+	{
+		// Import type was specified by the user if MeshTypeToImport exists
+		bAutomatedImportShouldDetectType = false;
+	}
 
 	const TSharedPtr<FJsonObject>* StaticMeshImportJson = nullptr;
 	ImportSettingsJson->TryGetObjectField(TEXT("StaticMeshImportData"), StaticMeshImportJson);

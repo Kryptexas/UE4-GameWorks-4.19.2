@@ -752,10 +752,31 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 	}
 
 	// Filter down to selected properties only if set.
-	// If the current property is selected then it is visible or if its parent is selected and the current property did not fail any of the above tests it should be visible.
-	if( SelectedObjectProperties.Find( &Property ) || ( PropertyAndParent.ParentProperty && SelectedObjectProperties.Find( PropertyAndParent.ParentProperty ) ) )
+	if ( SelectedObjectProperties.Find( &Property) ) 
 	{
+		// If the current property is selected, it is visible.
 		return true;
+	}
+	else if ( PropertyAndParent.ParentProperty )
+	{
+		const UProperty* ParentProperty = PropertyAndParent.ParentProperty;
+		const UProperty* ParentPropertyOuter = nullptr;
+		
+		if (ParentProperty)
+		{
+			ParentPropertyOuter = Cast<UProperty>(ParentProperty->GetOuter());
+		}
+
+		if ( SelectedObjectProperties.Find( ParentProperty ) )
+		{
+			// If its parent is selected, it should be visible
+			return true;
+		}
+		else if ( ParentPropertyOuter && SelectedObjectProperties.Find( ParentPropertyOuter ) )
+		{
+			// If its parent is part of a container and the container property is selected, it should be visible
+			return true;
+		}
 	}
 
 

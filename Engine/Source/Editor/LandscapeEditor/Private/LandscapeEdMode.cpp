@@ -355,8 +355,9 @@ void FEdModeLandscape::Enter()
 	if (CurrentGizmoActor.IsValid())
 	{
 		CurrentGizmoActor->SetTargetLandscape(CurrentToolTarget.LandscapeInfo.Get());
+
+		CastChecked<ALandscapeGizmoActiveActor>(CurrentGizmoActor.Get())->bSnapToLandscapeGrid = UISettings->bSnapGizmo;
 	}
-	CastChecked<ALandscapeGizmoActiveActor>(CurrentGizmoActor.Get())->bSnapToLandscapeGrid = UISettings->bSnapGizmo;
 
 	int32 SquaredDataTex = ALandscapeGizmoActiveActor::DataTexSize * ALandscapeGizmoActiveActor::DataTexSize;
 
@@ -1363,6 +1364,12 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 		if (CurrentBrush->GetBrushType() == ELandscapeBrushType::Splines)
 		{
 			LandscapeEditorControlType = ELandscapeFoliageEditorControlType::RequireCtrl;
+		}
+
+		// Special case to handle where user paint with Left Click then pressing a moving camera input, we do not want to process them so as long as the tool is active ignore other input
+		if (CurrentTool != nullptr && CurrentTool->IsToolActive())
+		{
+			return true;
 		}
 
 		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)

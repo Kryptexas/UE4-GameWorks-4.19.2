@@ -10,9 +10,6 @@
 // The total amount of memory freetype allocates internally
 DECLARE_MEMORY_STAT(TEXT("FreeType Total Allocated Memory"), STAT_SlateFreetypeAllocatedMemory, STATGROUP_SlateMemory);
 
-// The total true type memory we are using for resident font faces
-DECLARE_MEMORY_STAT(TEXT("Resident Font Memory (TTF/OTF)"), STAT_SlateRawFontDataMemory, STATGROUP_SlateMemory);
-
 // The active counts of resident and streaming fonts
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Resident Fonts"), STAT_SlateResidentFontCount, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Streaming Fonts"), STAT_SlateStreamingFontCount, STATGROUP_SlateMemory);
@@ -140,20 +137,19 @@ FFreeTypeLibrary::~FFreeTypeLibrary()
 }
 
 
-FFreeTypeFace::FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, TArray<uint8>&& InMemory)
+FFreeTypeFace::FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, FFontFaceDataConstRef InMemory)
 #if WITH_FREETYPE
 	: FTFace(nullptr)
 	, Memory(MoveTemp(InMemory))
 #endif // WITH_FREETYPE
 {
 #if WITH_FREETYPE
-	FT_New_Memory_Face(InFTLibrary->GetLibrary(), Memory.GetData(), static_cast<FT_Long>(Memory.Num()), 0, &FTFace);
+	FT_New_Memory_Face(InFTLibrary->GetLibrary(), Memory->GetData().GetData(), static_cast<FT_Long>(Memory->GetData().Num()), 0, &FTFace);
 
 	ParseAttributes();
 
-	if (Memory.Num() > 0)
+	if (Memory->HasData())
 	{
-		INC_DWORD_STAT_BY(STAT_SlateRawFontDataMemory, Memory.GetAllocatedSize());
 		INC_DWORD_STAT_BY(STAT_SlateResidentFontCount, 1);
 	}
 #endif // WITH_FREETYPE
@@ -189,9 +185,8 @@ FFreeTypeFace::~FFreeTypeFace()
 #if WITH_FREETYPE
 	if (FTFace)
 	{
-		if (Memory.Num() > 0)
+		if (Memory->HasData())
 		{
-			DEC_DWORD_STAT_BY(STAT_SlateRawFontDataMemory, Memory.GetAllocatedSize());
 			DEC_DWORD_STAT_BY(STAT_SlateResidentFontCount, 1);
 		}
 		else
@@ -201,7 +196,6 @@ FFreeTypeFace::~FFreeTypeFace()
 
 		FT_Done_Face(FTFace);
 
-		Memory.Empty();
 		FTStreamHandler = FFTStreamHandler();
 	}
 #endif // WITH_FREETYPE

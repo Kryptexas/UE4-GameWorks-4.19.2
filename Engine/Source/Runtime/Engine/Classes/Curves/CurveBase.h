@@ -55,6 +55,7 @@ public:
 	}
 
 	virtual void ModifyOwner() override;
+	virtual TArray<const UObject*> GetOwners() const override;
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
 

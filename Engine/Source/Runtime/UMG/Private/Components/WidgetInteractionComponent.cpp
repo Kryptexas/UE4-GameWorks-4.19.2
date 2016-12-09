@@ -23,6 +23,7 @@ UWidgetInteractionComponent::UWidgetInteractionComponent(const FObjectInitialize
 	, DebugColor(FLinearColor::Red)
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bTickEvenWhenPaused = true;
 	TraceChannel = ECC_Visibility;
 	bAutoActivate = true;
 
@@ -219,6 +220,18 @@ void UWidgetInteractionComponent::GetRelatedComponentsToIgnoreInAutomaticHitTest
 			IgnorePrimitives.Add(PrimtiveComponet);
 		}
 	}
+}
+
+bool UWidgetInteractionComponent::CanInteractWithComponent(UWidgetComponent* Component) const
+{
+	bool bCanInteract = false;
+
+	if (Component)
+	{
+		bCanInteract = !GetWorld()->IsPaused() || Component->PrimaryComponentTick.bTickEvenWhenPaused;
+	}
+
+	return bCanInteract;
 }
 
 void UWidgetInteractionComponent::SimulatePointerMovement()

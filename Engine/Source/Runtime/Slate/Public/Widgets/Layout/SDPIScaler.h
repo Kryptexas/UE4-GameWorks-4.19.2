@@ -54,7 +54,7 @@ public:
 
 protected:
 
-	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const override;
 
 	/**
 	 * The scaling factor from 1:1 pixel to slate unit (SU) ratio.

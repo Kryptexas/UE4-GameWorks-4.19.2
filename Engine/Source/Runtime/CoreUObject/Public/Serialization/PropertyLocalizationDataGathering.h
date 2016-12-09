@@ -33,6 +33,11 @@ enum class EPropertyLocalizationGathererTextFlags : uint8
 	 * Force all gathered text to be treated as editor-only data.
 	 */
 	ForceEditorOnly = ForceEditorOnlyProperties | ForceEditorOnlyScriptData,
+
+	/**
+	 * Don't process any sub-objects (either inner objects or object pointers).
+	 */
+	SkipSubObjects = 1<<3,
 };
 ENUM_CLASS_FLAGS(EPropertyLocalizationGathererTextFlags);
 
@@ -66,12 +71,14 @@ public:
 	void GatherLocalizationDataFromObjectWithCallbacks(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
 	void GatherLocalizationDataFromObject(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
 	void GatherLocalizationDataFromObjectFields(const FString& PathToParent, const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
-	void GatherLocalizationDataFromStructFields(const FString& PathToParent, const UStruct* Struct, const void* StructData, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
-	void GatherLocalizationDataFromChildTextProperties(const FString& PathToParent, const UProperty* const Property, const void* const ValueAddress, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
-	void GatherLocalizationDataFromTextProperty(const FString& PathToParent, const UTextProperty* const TextProperty, const void* const ValueAddress, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
+	void GatherLocalizationDataFromStructFields(const FString& PathToParent, const UStruct* Struct, const void* StructData, const void* DefaultStructData, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
+	void GatherLocalizationDataFromChildTextProperties(const FString& PathToParent, const UProperty* const Property, const void* const ValueAddress, const void* const DefaultValueAddress, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
 
 	void GatherTextInstance(const FText& Text, const FString& Description, const bool bIsEditorOnly);
 	void GatherScriptBytecode(const FString& PathToScript, const TArray<uint8>& ScriptData, const bool bIsEditorOnly);
+
+	bool ShouldProcessObject(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags) const;
+	void MarkObjectProcessed(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
 
 	static FLocalizationDataGatheringCallbackMap& GetTypeSpecificLocalizationDataGatheringCallbacks();
 
@@ -117,8 +124,6 @@ private:
 		EPropertyLocalizationGathererTextFlags GatherTextFlags;
 		uint32 KeyHash;
 	};
-
-	bool ShouldProcessObject(const UObject* Object, const EPropertyLocalizationGathererTextFlags GatherTextFlags);
 
 	TArray<FGatherableTextData>& GatherableTextDataArray;
 	const UPackage* Package;

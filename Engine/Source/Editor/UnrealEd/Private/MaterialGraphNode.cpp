@@ -425,6 +425,51 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 	}
 }
 
+FString UMaterialGraphNode::GetShortenPinName(const FString& PinName)
+{
+	FString InputName = PinName;
+
+	// Shorten long expression input names.
+	if (!FCString::Stricmp(*PinName, TEXT("Coordinates")))
+	{
+		InputName = TEXT("UVs");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("TextureObject")))
+	{
+		InputName = TEXT("Tex");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("Input")))
+	{
+		InputName = TEXT("");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("Exponent")))
+	{
+		InputName = TEXT("Exp");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("AGreaterThanB")))
+	{
+		InputName = TEXT("A > B");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("AEqualsB")))
+	{
+		InputName = TEXT("A == B");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("ALessThanB")))
+	{
+		InputName = TEXT("A < B");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("MipLevel")))
+	{
+		InputName = TEXT("Level");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("MipBias")))
+	{
+		InputName = TEXT("Bias");
+	}
+
+	return InputName;
+}
+
 void UMaterialGraphNode::CreateInputPins()
 {
 	const TArray<FExpressionInput*> ExpressionInputs = MaterialExpression->GetInputs();
@@ -434,43 +479,7 @@ void UMaterialGraphNode::CreateInputPins()
 		FExpressionInput* Input = ExpressionInputs[Index];
 		FString InputName = MaterialExpression->GetInputName(Index);
 
-		// Shorten long expression input names.
-		if ( !FCString::Stricmp( *InputName, TEXT("Coordinates") ) )
-		{
-			InputName = TEXT("UVs");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("TextureObject") ) )
-		{
-			InputName = TEXT("Tex");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("Input") ) )
-		{
-			InputName = TEXT("");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("Exponent") ) )
-		{
-			InputName = TEXT("Exp");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("AGreaterThanB") ) )
-		{
-			InputName = TEXT("A > B");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("AEqualsB") ) )
-		{
-			InputName = TEXT("A == B");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("ALessThanB") ) )
-		{
-			InputName = TEXT("A < B");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("MipLevel") ) )
-		{
-			InputName = TEXT("Level");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("MipBias") ) )
-		{
-			InputName = TEXT("Bias");
-		}
+		InputName = GetShortenPinName(InputName);
 
 		const UMaterialGraphSchema* Schema = CastChecked<UMaterialGraphSchema>(GetSchema());
 		FString PinCategory = MaterialExpression->IsInputConnectionRequired(Index) ? Schema->PC_Required : Schema->PC_Optional;

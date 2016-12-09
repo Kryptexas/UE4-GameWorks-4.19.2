@@ -106,13 +106,11 @@ UAnimSequence * UEditorEngine::ImportFbxAnimation( USkeleton* Skeleton, UObject*
 bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* AnimSequence, UFbxAnimSequenceImportData* ImportData, const TCHAR* InFilename)
 {
 	check(Skeleton);
-
+	bool bResult = true;
 	GWarn->BeginSlowTask( LOCTEXT("ImportingFbxAnimations", "Importing FBX animations"), true );
 
 	UnFbx::FFbxImporter* FbxImporter = UnFbx::FFbxImporter::GetInstance();
-	// logger for all error/warnings
-	// this one prints all messages that are stored in FFbxImporter	
-	UnFbx::FFbxLoggerSetter Logger(FbxImporter);	
+	
 	const bool bPrevImportMorph = (AnimSequence->RawCurveData.FloatCurves.Num() > 0) ;
 
 	if ( ImportData )
@@ -135,7 +133,7 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 	{
 		// Log the error message and fail the import.
 		FbxImporter->FlushToTokenizedErrorMessage(EMessageSeverity::Error);
-
+		bResult = false;
 	}
 	else
 	{
@@ -152,76 +150,74 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 		if (!SkeletonRoot)
 		{
 			FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, FText::Format(LOCTEXT("Error_CouldNotFindFbxTrack", "Mesh contains {0} bone as root but animation doesn't contain the root track.\nImport failed."), FText::FromName(Skeleton->GetReferenceSkeleton().GetBoneName(0)))), FFbxErrors::Animation_CouldNotFindTrack);
-
-			FbxImporter->ReleaseScene();
-			GWarn->EndSlowTask();
-			return false;
+			bResult = false;
 		}
 
-		// for now import all the time?
-		bool bImportMorphTracks = true;
-		// Check for blend shape curves that are not skinned.  Unskinned geometry can still contain morph curves
-		if( bImportMorphTracks )
+		if (bResult)
 		{
-			TArray<FbxNode*> MeshNodes;
-			FbxImporter->FillFbxMeshArray( FbxImporter->Scene->GetRootNode(), MeshNodes, FbxImporter );
-
-			for( int32 NodeIndex = 0; NodeIndex < MeshNodes.Num(); ++NodeIndex )
+			// for now import all the time?
+			bool bImportMorphTracks = true;
+			// Check for blend shape curves that are not skinned.  Unskinned geometry can still contain morph curves
+			if (bImportMorphTracks)
 			{
-				// Its possible the nodes already exist so make sure they are only added once
-				FBXMeshNodeArray.AddUnique( MeshNodes[NodeIndex] );
+				TArray<FbxNode*> MeshNodes;
+				FbxImporter->FillFbxMeshArray(FbxImporter->Scene->GetRootNode(), MeshNodes, FbxImporter);
+
+				for (int32 NodeIndex = 0; NodeIndex < MeshNodes.Num(); ++NodeIndex)
+				{
+					// Its possible the nodes already exist so make sure they are only added once
+					FBXMeshNodeArray.AddUnique(MeshNodes[NodeIndex]);
+				}
 			}
-		}
 
-		TArray<FbxNode*> SortedLinks;
-		FbxImporter->RecursiveBuildSkeleton(SkeletonRoot, SortedLinks);
+			TArray<FbxNode*> SortedLinks;
+			FbxImporter->RecursiveBuildSkeleton(SkeletonRoot, SortedLinks);
 
-		if(SortedLinks.Num() == 0)
-		{
-			FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Error_CouldNotBuildValidSkeleton", "Could not create a valid skeleton from the import data that matches the given Skeletal Mesh.  Check the bone names of both the Skeletal Mesh for this AnimSet and the animation data you are trying to import.")), FFbxErrors::Animation_CouldNotBuildSkeleton);
-		}
-		else
-		{
-			check(ImportData);
-
-			// find the correct animation based on import data
-			FbxAnimStack* CurAnimStack = nullptr;
-			
-			//ignore the source animation name if there's only one animation in the file.
-			//this is to make it easier for people who use content creation programs that only export one animation and/or ones that don't allow naming animations			
-			if (FbxImporter->Scene->GetSrcObjectCount(FbxCriteria::ObjectType(FbxAnimStack::ClassId)) > 1 && !ImportData->SourceAnimationName.IsEmpty())
+			if (SortedLinks.Num() == 0)
 			{
-				CurAnimStack = FbxCast<FbxAnimStack>(FbxImporter->Scene->FindSrcObject(FbxCriteria::ObjectType(FbxAnimStack::ClassId), TCHAR_TO_UTF8(*ImportData->SourceAnimationName), 0));
+				FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Error_CouldNotBuildValidSkeleton", "Could not create a valid skeleton from the import data that matches the given Skeletal Mesh.  Check the bone names of both the Skeletal Mesh for this AnimSet and the animation data you are trying to import.")), FFbxErrors::Animation_CouldNotBuildSkeleton);
 			}
 			else
 			{
-				CurAnimStack = FbxCast<FbxAnimStack>(FbxImporter->Scene->GetSrcObject(FbxCriteria::ObjectType(FbxAnimStack::ClassId), 0));
-			}
-			
-			if (CurAnimStack)
-			{
-				// set current anim stack
-				int32 ResampleRate = DEFAULT_SAMPLERATE;
-				if (FbxImporter->ImportOptions->bResample)
-				{
-					ResampleRate = FbxImporter->GetMaxSampleRate(SortedLinks, FBXMeshNodeArray);
-				}
-				FbxTimeSpan AnimTimeSpan = FbxImporter->GetAnimationTimeSpan(SortedLinks[0], CurAnimStack, ResampleRate);
-				// for now it's not importing morph - in the future, this should be optional or saved with asset
-				if (FbxImporter->ValidateAnimStack(SortedLinks, FBXMeshNodeArray, CurAnimStack, ResampleRate, bImportMorphTracks, AnimTimeSpan))
-				{
-					FbxImporter->ImportAnimation( Skeleton, AnimSequence, Filename, SortedLinks, FBXMeshNodeArray, CurAnimStack, ResampleRate, AnimTimeSpan);
-				}
-			}
-			else
-			{
-				// no track is found
+				check(ImportData);
 
-				FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("Error_CouldNotFindTrack", "Could not find needed track.")), FFbxErrors::Animation_CouldNotFindTrack);
+				// find the correct animation based on import data
+				FbxAnimStack* CurAnimStack = nullptr;
 
-				FbxImporter->ReleaseScene();
-				GWarn->EndSlowTask();
-				return false;
+				//ignore the source animation name if there's only one animation in the file.
+				//this is to make it easier for people who use content creation programs that only export one animation and/or ones that don't allow naming animations			
+				if (FbxImporter->Scene->GetSrcObjectCount(FbxCriteria::ObjectType(FbxAnimStack::ClassId)) > 1 && !ImportData->SourceAnimationName.IsEmpty())
+				{
+					CurAnimStack = FbxCast<FbxAnimStack>(FbxImporter->Scene->FindSrcObject(FbxCriteria::ObjectType(FbxAnimStack::ClassId), TCHAR_TO_UTF8(*ImportData->SourceAnimationName), 0));
+				}
+				else
+				{
+					CurAnimStack = FbxCast<FbxAnimStack>(FbxImporter->Scene->GetSrcObject(FbxCriteria::ObjectType(FbxAnimStack::ClassId), 0));
+				}
+
+				if (CurAnimStack)
+				{
+					// set current anim stack
+					int32 ResampleRate = DEFAULT_SAMPLERATE;
+					if (FbxImporter->ImportOptions->bResample)
+					{
+						ResampleRate = FbxImporter->GetMaxSampleRate(SortedLinks, FBXMeshNodeArray);
+					}
+					FbxTimeSpan AnimTimeSpan = FbxImporter->GetAnimationTimeSpan(SortedLinks[0], CurAnimStack, ResampleRate);
+					// for now it's not importing morph - in the future, this should be optional or saved with asset
+					if (FbxImporter->ValidateAnimStack(SortedLinks, FBXMeshNodeArray, CurAnimStack, ResampleRate, bImportMorphTracks, AnimTimeSpan))
+					{
+						FbxImporter->ImportAnimation(Skeleton, AnimSequence, Filename, SortedLinks, FBXMeshNodeArray, CurAnimStack, ResampleRate, AnimTimeSpan);
+					}
+				}
+				else
+				{
+					// no track is found
+
+					FbxImporter->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("Error_CouldNotFindTrack", "Could not find needed track.")), FFbxErrors::Animation_CouldNotFindTrack);
+
+					bResult = false;
+				}
 			}
 		}
 	}
@@ -230,7 +226,7 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 	FbxImporter->ReleaseScene();
 	GWarn->EndSlowTask();
 
-	return true;
+	return bResult;
 }
 
 // The Unroll filter expects only rotation curves, we need to walk the scene and extract the

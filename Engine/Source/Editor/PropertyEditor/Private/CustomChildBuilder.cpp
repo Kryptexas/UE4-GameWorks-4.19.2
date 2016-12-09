@@ -120,6 +120,11 @@ TSharedRef<SWidget> FCustomChildrenBuilder::GenerateStructValueWidget( TSharedRe
 	}
 }
 
+IDetailCategoryBuilder& FCustomChildrenBuilder::GetParentCategory()
+{
+	return *ParentCategory.Pin();
+}
+
 FCustomChildrenBuilder& FCustomChildrenBuilder::OverrideResetChildrenToDefault(const FResetToDefaultOverride& ResetToDefault)
 {
 	CustomResetChildToDefault = ResetToDefault;

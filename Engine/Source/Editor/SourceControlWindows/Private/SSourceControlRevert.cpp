@@ -28,6 +28,7 @@
 #include "EditorStyleSet.h"
 #include "ISourceControlModule.h"
 #include "PackageTools.h"
+#include "Settings/EditorExperimentalSettings.h"
 
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -438,40 +439,85 @@ bool FSourceControlWindows::PromptForRevert( const TArray<FString>& InPackageNam
 			if (PackagesToRevert.Num() > 0)
 			{
 				// attempt to unload the packages we are about to revert
-				TArray<UPackage*> PackagesToUnload;
+				TArray<UPackage*> LoadedPackages;
 				for (TArray<FString>::TConstIterator PackageIter(InPackageNames); PackageIter; ++PackageIter)
 				{
 					UPackage* Package = FindPackage(NULL, **PackageIter);
 					if (Package != NULL)
 					{
-						PackagesToUnload.Add(Package);
+						LoadedPackages.Add(Package);
 					}
 				}
 
-				if (PackagesToUnload.Num() == 0 || PackageTools::UnloadPackages(PackagesToUnload))
+				if (GetDefault<UEditorExperimentalSettings>()->bEnableContentHotReloading)
 				{
-					// Iterate over the names again, the UPackage*'s may be invalid if they have been GC'd
-					for (TArray<FString>::TConstIterator PackageIter(InPackageNames); PackageIter; ++PackageIter)
+					const TArray<FString> RevertPackageFilenames = SourceControlHelpers::PackageFilenames(PackagesToRevert);
+
+					// Prepare the packages to be reverted...
+					for (UPackage* Package : LoadedPackages)
 					{
-						UPackage* Package = FindPackage(NULL, **PackageIter);
-						if (Package != NULL)
+						// Detach the linkers of any loaded packages so that SCC can overwrite the files...
+						if (!Package->IsFullyLoaded())
 						{
-							Package->ClearFlags(RF_WasLoaded);
-							
-							// Create and display a notification about the revert failing (the object was still being used)
-							const FText NotificationErrorText = FText::Format(LOCTEXT("RevertFailed", "Failed to revert file {0} since it is currently in use."), 
-								FText::AsCultureInvariant(Package->GetName()));
-							FNotificationInfo Info(NotificationErrorText);
-							Info.ExpireDuration = 2.0f;
-							FSlateNotificationManager::Get().AddNotification(Info);
+							FlushAsyncLoading();
+							Package->FullyLoad();
 						}
+						ResetLoaders(Package);
 					}
 
-					SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlHelpers::PackageFilenames(PackagesToRevert));
+					// Revert everything...
+					SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), RevertPackageFilenames);
+
+					// Reverting may have deleted some packages, so we need to unload those rather than re-load them...
+					TArray<UPackage*> PackagesToUnload;
+					LoadedPackages.RemoveAll([&](UPackage* InPackage) -> bool
+					{
+						const FString PackageExtension = InPackage->ContainsMap() ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
+						const FString PackageFilename = FPackageName::LongPackageNameToFilename(InPackage->GetName(), PackageExtension);
+						if (!FPaths::FileExists(PackageFilename))
+						{
+							PackagesToUnload.Emplace(InPackage);
+							return true; // remove package
+						}
+						return false; // keep package
+					});
+
+					// Hot-reload the new packages...
+					PackageTools::ReloadPackages(LoadedPackages);
+
+					// Unload any deleted packages...
+					PackageTools::UnloadPackages(PackagesToUnload);
+
+					// Re-cache the SCC state...
+					SourceControlProvider.Execute(ISourceControlOperation::Create<FUpdateStatus>(), RevertPackageFilenames, EConcurrency::Asynchronous);
 				}
 				else
 				{
-					FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SCC_Revert_PackageUnloadFailed", "Could not unload assets when reverting files"));
+					if (LoadedPackages.Num() == 0 || PackageTools::UnloadPackages(LoadedPackages))
+					{
+						// Iterate over the names again, the UPackage*'s may be invalid if they have been GC'd
+						for (TArray<FString>::TConstIterator PackageIter(InPackageNames); PackageIter; ++PackageIter)
+						{
+							UPackage* Package = FindPackage(NULL, **PackageIter);
+							if (Package != NULL)
+							{
+								Package->ClearFlags(RF_WasLoaded);
+								
+								// Create and display a notification about the revert failing (the object was still being used)
+								const FText NotificationErrorText = FText::Format(LOCTEXT("RevertFailed", "Failed to revert file {0} since it is currently in use."), 
+									FText::AsCultureInvariant(Package->GetName()));
+								FNotificationInfo Info(NotificationErrorText);
+								Info.ExpireDuration = 2.0f;
+								FSlateNotificationManager::Get().AddNotification(Info);
+							}
+						}
+
+						SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlHelpers::PackageFilenames(PackagesToRevert));
+					}
+					else
+					{
+						FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SCC_Revert_PackageUnloadFailed", "Could not unload assets when reverting files"));
+					}
 				}
 
 				bReverted = true;

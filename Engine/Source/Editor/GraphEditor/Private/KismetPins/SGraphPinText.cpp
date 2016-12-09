@@ -65,6 +65,11 @@ namespace
 			GraphPinObj->GetSchema()->TrySetDefaultText(*GraphPinObj, InText);
 		}
 
+		virtual bool IsValidText(const FText& InText, FText& OutErrorMsg) const override
+		{
+			return true;
+		}
+
 #if USE_STABLE_LOCALIZATION_KEYS
 		virtual void GetStableTextId(const int32 InIndex, const ETextPropertyEditAction InEditAction, const FString& InTextSource, const FString& InProposedNamespace, const FString& InProposedKey, FString& OutStableNamespace, FString& OutStableKey) const override
 		{

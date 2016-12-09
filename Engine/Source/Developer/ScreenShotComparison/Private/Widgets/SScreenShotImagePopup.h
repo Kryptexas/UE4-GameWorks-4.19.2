@@ -21,7 +21,7 @@ public:
 	SLATE_BEGIN_ARGS( SScreenShotImagePopup ) {}
 	
 	/** The assest name for the screen shot */
-	SLATE_ARGUMENT( FName, ImageAssetName )
+	SLATE_ARGUMENT( TSharedPtr<FSlateDynamicImageBrush>, ImageBrush )
 
 	/** The size of the image */
 	SLATE_ARGUMENT( FIntPoint, ImageSize )

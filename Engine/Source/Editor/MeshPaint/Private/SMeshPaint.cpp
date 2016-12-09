@@ -2107,6 +2107,50 @@ void SMeshPaint::Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKi
 								.OnSelectionChanged(this, &SMeshPaint::OnVertexPaintColorViewModeChanged)
 							]
 						]
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(StandardPadding)
+						[
+							SNew(SHorizontalBox)
+							.Visibility(this, &SMeshPaint::GetResourceTypeVerticesVisibility )
+							+ SHorizontalBox::Slot()
+							.Padding(2.0f, 0.0f)
+							.AutoWidth()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SCheckBox)
+								.IsChecked(this, &SMeshPaint::IsPaintingAllLOD)
+								.OnCheckStateChanged(this, &SMeshPaint::OnAllowPaintingAllLODChanged)
+							]
+							+SHorizontalBox::Slot() 
+							.Padding(2.0f, 0.0f) 
+							.FillWidth(1) 
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("MeshPaint_VertexColorLODSelectionLabel", "Allow Paint On All LOD"))
+								.ToolTipText(LOCTEXT("MeshPaint_VertexColorLODSelectionLabelTooltip", "When uncheck, the painting on the base LOD will be propagate automatically to all other LODs when exiting the mode or changing the selection."))
+							]
+							+SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(0.0f, 0.0f, 2.0f, 0.0f) 
+							.HAlign(HAlign_Right)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SNumericEntryBox<uint32>)
+								.IsEnabled(this, &SMeshPaint::IsPaintingAllLODEnable)
+								.MinDesiredValueWidth(100)
+								.AllowSpin(true)
+								.MinSliderValue(0)
+								.MaxSliderValue(this, &SMeshPaint::GetMeshesLODMax)
+								.MinValue(0)
+								.MaxValue(this, &SMeshPaint::GetMeshesLODMax)
+								.Value(this, &SMeshPaint::GetCurrentMeshesLOD)
+								.OnValueChanged(this, &SMeshPaint::SetCurrentMeshesLOD)
+							]
+						]
 					]
 				]
 			]
@@ -2150,6 +2194,36 @@ EVisibility SMeshPaint::GetImportVertexColorsVisibility() const
 	return bShowImportOptions 
 		? EVisibility::Visible 
 		: EVisibility::Collapsed;
+}
+
+TOptional<uint32> SMeshPaint::GetMeshesLODMax() const
+{
+	return MeshPaintEditMode->GetMeshesLODMax();
+}
+
+TOptional<uint32> SMeshPaint::GetCurrentMeshesLOD() const
+{
+	return MeshPaintEditMode->GetCurrentMeshesLOD();
+}
+
+void SMeshPaint::SetCurrentMeshesLOD(const uint32 InLODIndex)
+{
+	MeshPaintEditMode->SetCurrentMeshesLOD(InLODIndex);
+}
+
+ECheckBoxState SMeshPaint::IsPaintingAllLOD() const
+{
+	return IsPaintingAllLODEnable() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+bool SMeshPaint::IsPaintingAllLODEnable() const
+{
+	return MeshPaintEditMode->IsPaintingAllLODEnable();
+}
+
+void SMeshPaint::OnAllowPaintingAllLODChanged(ECheckBoxState InCheckState)
+{
+	MeshPaintEditMode->SetAllowPaintingAllLOD(InCheckState == ECheckBoxState::Checked);
 }
 
 TOptional<float> SMeshPaint::GetBrushRadius() const

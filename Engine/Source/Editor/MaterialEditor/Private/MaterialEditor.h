@@ -180,6 +180,8 @@ struct FMaterialExpression
 {
 	FString Name;
 	UClass* MaterialClass;
+	FString CreationDescription;
+	FString CreationName;
 
 	friend bool operator==(const FMaterialExpression& A,const FMaterialExpression& B)
 	{
@@ -352,6 +354,7 @@ public:
 	virtual void PasteNodesHere(const FVector2D& Location) override;
 	virtual int32 GetNumberOfSelectedNodes() const override;
 	virtual FMaterialRenderProxy* GetExpressionPreview(UMaterialExpression* InExpression) override;
+	virtual void DeleteNodes(const TArray<class UEdGraphNode*>& NodesToDelete) override;
 
 
 	void UpdateStatsMaterials();
@@ -447,8 +450,6 @@ protected:
 	/** Whether we can select every node */
 	bool CanSelectAllNodes() const;
 
-	/** Delete an array of Material Graph Nodes and their corresponding expressions/comments */
-	void DeleteNodes(const TArray<class UEdGraphNode*>& NodesToDelete);
 	/** Whether we are able to delete the currently selected nodes */
 	bool CanDeleteNodes() const;
 	/** Delete only the currently selected nodes that can be duplicated */
@@ -575,6 +576,15 @@ private:
 	/** Bring up the search tab */
 	void OnFindInMaterial();
 
+	/** Will promote selected pin to a parameter of the pin type */
+	void OnPromoteToParameter();
+
+	/** Used to know if we can promote selected pin to a parameter of the pin type */
+	bool OnCanPromoteToParameter();
+
+	/** Will  return the UClass to create from the Pin Type */
+	UClass* GetOnPromoteToParameterClass(UEdGraphPin* TargetPin);
+
 	/** Open documentation for the selected node class */
 	void OnGoToDocumentation();
 	/** Can we open documentation for the selected node */
@@ -671,6 +681,8 @@ private:
 	TSharedRef<SDockTab> SpawnTab_Palette(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Stats(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Find(const FSpawnTabArgs& Args);
+
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
 private:
 	/** List of open tool panels; used to ensure only one exists at any one time */
 	TMap< FName, TWeakPtr<class SDockableTab> > SpawnedToolPanels;

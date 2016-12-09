@@ -26,6 +26,8 @@ public:
 	virtual void Shutdown() override {}
 	virtual void PassLoadingScreenWindowBackToGame() const override {}
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes) override {}
+	virtual bool HasEarlyStartupMovie() const override { return false; }
+	virtual bool PlayEarlyStartupMovies() override { return false; }
 	virtual bool PlayMovie() override { return false; }
 	virtual void StopMovie() override {}
 	virtual void WaitForMovieToFinish() override {}

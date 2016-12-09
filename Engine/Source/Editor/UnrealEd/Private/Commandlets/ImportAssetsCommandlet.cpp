@@ -90,7 +90,7 @@ bool UImportAssetsCommandlet::ParseParams(const FString& InParams)
 
 	ImportSettingsPath = ParamVals.FindRef(TEXT("importsettings"));
 
-	GlobalImportData->Initialize();
+	GlobalImportData->Initialize(nullptr);
 
 	if(ImportSettingsPath.IsEmpty() && (GlobalImportData->Filenames.Num() == 0 || GlobalImportData->DestinationPath.IsEmpty()))
 	{
@@ -123,26 +123,10 @@ bool UImportAssetsCommandlet::ParseImportSettings(const FString& InImportSetting
 					// Parse data from the json object
 					if(FJsonObjectConverter::JsonObjectToUStruct(ImportGroupsJsonObject.ToSharedRef(), UAutomatedAssetImportData::StaticClass(), Data, 0, 0 ))
 					{
-						Data->Initialize();
+						Data->Initialize(ImportGroupsJsonObject);
 						if(Data->IsValid())
 						{
 							ImportDataList.Add(Data);
-						}
-
-						UFactory* Factory = Data->Factory;
-						const TSharedPtr<FJsonObject>* ImportSettingsJsonObject = nullptr;
-						ImportGroupsJsonObject->TryGetObjectField(TEXT("ImportSettings"), ImportSettingsJsonObject);
-						if(Factory != nullptr && ImportSettingsJsonObject)
-						{
-							IImportSettingsParser* ImportSettings = Factory->GetImportSettingsParser();
-							if(ImportSettings)
-							{
-								ImportSettings->ParseFromJson(ImportSettingsJsonObject->ToSharedRef());
-							}
-						}
-						else if(Factory == nullptr && ImportSettingsJsonObject)
-						{
-							UE_LOG(LogAutomatedImport, Warning, TEXT("A vaild factory name must be specfied in order to specify settings"));
 						}
 					}
 					else
@@ -186,6 +170,27 @@ bool UImportAssetsCommandlet::ImportAndSave(const TArray<UAutomatedAssetImportDa
 	for(const UAutomatedAssetImportData* ImportData : AssetImportList)
 	{
 		UE_LOG(LogAutomatedImport, Log, TEXT("Importing group %s"), *ImportData->GetDisplayName() );
+
+		UFactory* Factory = ImportData->Factory;
+		const TSharedPtr<FJsonObject>* ImportSettingsJsonObject = nullptr;
+		if(ImportData->ImportGroupJsonData.IsValid())
+		{
+			ImportData->ImportGroupJsonData->TryGetObjectField(TEXT("ImportSettings"), ImportSettingsJsonObject);
+		}
+
+		if(Factory != nullptr && ImportSettingsJsonObject)
+		{
+			IImportSettingsParser* ImportSettings = Factory->GetImportSettingsParser();
+			if(ImportSettings)
+			{
+				ImportSettings->ParseFromJson(ImportSettingsJsonObject->ToSharedRef());
+			}
+		}
+		else if(Factory == nullptr && ImportSettingsJsonObject)
+		{
+			UE_LOG(LogAutomatedImport, Warning, TEXT("A vaild factory name must be specfied in order to specify settings"));
+		}
+
 		TArray<UObject*> ImportedAssets = AssetToolsModule.Get().ImportAssetsAutomated(*ImportData);
 		if(ImportedAssets.Num() > 0)
 		{
@@ -203,7 +208,6 @@ bool UImportAssetsCommandlet::ImportAndSave(const TArray<UAutomatedAssetImportDa
 			for(int32 PackageIndex = 0; PackageIndex < DirtyPackages.Num(); ++PackageIndex)
 			{
 				UPackage* PackageToSave = DirtyPackages[PackageIndex];
-				FSourceControlStateRef PackageSCState = PackageStates[PackageIndex];
 
 				FString PackageFilename = SourceControlHelpers::PackageFilename(PackageToSave);
 
@@ -211,6 +215,8 @@ bool UImportAssetsCommandlet::ImportAndSave(const TArray<UAutomatedAssetImportDa
 				bool bShouldAttemptToAdd = false;
 				if(bUseSourceControl)
 				{
+					FSourceControlStateRef PackageSCState = PackageStates[PackageIndex];
+
 					bool bPackageCanBeCheckedOut = false;
 					if(PackageSCState->IsCheckedOutOther())
 					{

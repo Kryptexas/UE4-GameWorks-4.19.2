@@ -1662,6 +1662,64 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			GetDerivedDataCacheRef();
 		}
 
+
+		// If platforms support early movie playback we have to start the rendering thread much earlier
+#if PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
+		RHIPostInit();
+
+		if(GUseThreadedRendering)
+		{
+			if(GRHISupportsRHIThread)
+			{
+				const bool DefaultUseRHIThread = true;
+				GUseRHIThread = DefaultUseRHIThread;
+				if(FParse::Param(FCommandLine::Get(), TEXT("rhithread")))
+				{
+					GUseRHIThread = true;
+				}
+				else if(FParse::Param(FCommandLine::Get(), TEXT("norhithread")))
+				{
+					GUseRHIThread = false;
+				}
+			}
+			StartRenderingThread();
+		}
+#endif
+
+#if !UE_SERVER// && !UE_EDITOR
+		if(!IsRunningDedicatedServer() && !IsRunningCommandlet())
+		{
+			TSharedRef<FSlateRenderer> SlateRenderer = GUsingNullRHI ?
+				FModuleManager::Get().LoadModuleChecked<ISlateNullRendererModule>("SlateNullRenderer").CreateSlateNullRenderer() :
+				FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
+
+			// If Slate is being used, initialize the renderer after RHIInit 
+			FSlateApplication& CurrentSlateApp = FSlateApplication::Get();
+			CurrentSlateApp.InitializeRenderer(SlateRenderer);
+
+			// Create the engine font services now that the Slate renderer is ready
+			FEngineFontServices::Create();
+
+			GetMoviePlayer()->SetSlateRenderer(SlateRenderer);
+
+			// allow the movie player to load a sequence from the .inis (a PreLoadingScreen module could have already initialized a sequence, in which case
+			// it wouldn't have anything in it's .ini file)
+			GetMoviePlayer()->SetupLoadingScreenFromIni();
+
+			if(GetMoviePlayer()->HasEarlyStartupMovie())
+			{
+				GetMoviePlayer()->Initialize();
+
+				// hide splash screen now
+				FPlatformMisc::PlatformPostInit(false);
+
+				// only allowed to play any movies marked as early startup.  These movies or widgets can have no interaction whatsoever with uobjects or engine features
+				GetMoviePlayer()->PlayEarlyStartupMovies();
+			}
+
+		}
+#endif
+
 		// In order to be able to use short script package names get all script
 		// package names from ini files and register them with FPackageName system.
 		FPackageName::RegisterShortPackageNamesForUObjectModules();
@@ -1706,44 +1764,30 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return 1;
 	}
 
-#if !UE_SERVER// && !UE_EDITOR
-	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
-	{
-		TSharedRef<FSlateRenderer> SlateRenderer = GUsingNullRHI ?
-			FModuleManager::Get().LoadModuleChecked<ISlateNullRendererModule>("SlateNullRenderer").CreateSlateNullRenderer() :
-			FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
-
-		// If Slate is being used, initialize the renderer after RHIInit 
-		FSlateApplication& CurrentSlateApp = FSlateApplication::Get();
-		CurrentSlateApp.InitializeRenderer( SlateRenderer );
-
-		GetMoviePlayer()->SetSlateRenderer(SlateRenderer);
-	}
-
-	// Create the engine font services now that the Slate renderer is ready
-	FEngineFontServices::Create();
-#endif
 
 	SlowTask.EnterProgressFrame(10);
-	
+
 	// Load up all modules that need to hook into the loading screen
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreLoadingScreen) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreLoadingScreen))
 	{
 		return 1;
 	}
 
+
+#if !UE_SERVER// && !UE_EDITOR
+	if(!IsRunningDedicatedServer() && !IsRunningCommandlet() && !GetMoviePlayer()->IsMovieCurrentlyPlaying())
+	{
+		GetMoviePlayer()->Initialize();
+
+		// Play any non-early startup loading movies.
+		GetMoviePlayer()->PlayMovie();
+	
+	}
+#endif
+
 #if !UE_SERVER
 	if ( !IsRunningDedicatedServer() )
 	{
-		// @todo ps4: If a loading movie starts earlier, which it probably should, then please see PS4's PlatformPostInit() implementation!
-
-		// allow the movie player to load a sequence from the .inis (a PreLoadingScreen module could have already initialized a sequence, in which case
-		// it wouldn't have anything in it's .ini file)
-		GetMoviePlayer()->SetupLoadingScreenFromIni();
-
-		GetMoviePlayer()->Initialize();
-		GetMoviePlayer()->PlayMovie();
-
 		// do any post appInit processing, before the render thread is started.
 		FPlatformMisc::PlatformPostInit(!GetMoviePlayer()->IsMovieCurrentlyPlaying());
 	}
@@ -1755,6 +1799,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 	SlowTask.EnterProgressFrame(5);
 
+#if !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 	RHIPostInit();
 
 	if (GUseThreadedRendering)
@@ -1774,6 +1819,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 		StartRenderingThread();
 	}
+#endif // !PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK
 	
 #if WITH_EDITOR
 	// We need to mount the shared resources for templates (if there are any) before we try and load and game classes

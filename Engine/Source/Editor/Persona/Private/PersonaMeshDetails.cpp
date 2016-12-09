@@ -52,6 +52,10 @@
 #include "Animation/AnimInstance.h"
 #include "IPersonaToolkit.h"
 #include "Widgets/Input/SNumericEntryBox.h"
+#include "IPersonaPreviewScene.h"
+#include "IDocumentation.h"
+#include "JsonObjectConverter.h"
+#include "SWrapBox.h"
 
 #define LOCTEXT_NAMESPACE "PersonaMeshDetails"
 
@@ -202,38 +206,61 @@ void SSkeletalLODActions::Construct(const FArguments& InArgs)
 	this->ChildSlot
 
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
 			[
-				SNew(SButton)
-				.OnClicked(OnRemoveLODClicked)
+				SNew(SWrapBox)
+				.UseAllottedWidth(true)
+				+ SWrapBox::Slot()
+				.Padding(FMargin(0, 0, 2, 4))
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("RemoveLOD", "Remove this LOD"))
+					SNew(SBox)
+					.WidthOverride(120.f)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.OnClicked(OnRemoveLODClicked)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("RemoveLOD", "Remove this LOD"))
+						]
+					]
 				]
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.ToolTipText(this, &SSkeletalLODActions::GetReimportButtonToolTipText)
-				.IsEnabled(this, &SSkeletalLODActions::CanReimportFromSource)
-				.OnClicked(OnReimportClicked)
+				+ SWrapBox::Slot()
+				.Padding(FMargin(0, 0, 2, 4))
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("ReimportLOD", "Reimport"))
+					SNew(SBox)
+					.WidthOverride(120.f)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.ToolTipText(this, &SSkeletalLODActions::GetReimportButtonToolTipText)
+						.IsEnabled(this, &SSkeletalLODActions::CanReimportFromSource)
+						.OnClicked(OnReimportClicked)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ReimportLOD", "Reimport"))
+						]
+					]
 				]
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.ToolTipText(this, &SSkeletalLODActions::GetReimportButtonNewFileToolTipText)
-				.OnClicked(OnReimportNewFileClicked)
+				+ SWrapBox::Slot()
+				.Padding(FMargin(0, 0, 2, 4))
 				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("ReimportLOD_NewFile", "Reimport (New File)"))
+					SNew(SBox)
+					.WidthOverride(120.f)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.ToolTipText(this, &SSkeletalLODActions::GetReimportButtonNewFileToolTipText)
+						.OnClicked(OnReimportNewFileClicked)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("ReimportLOD_NewFile", "Reimport (New File)"))
+						]
+					]
 				]
 			]
 		];
@@ -629,9 +656,357 @@ void FSkelMeshReductionSettingsLayout::OnSkinningImportanceChanged(TSharedPtr<FS
 /**
 * FPersonaMeshDetails
 */
+FPersonaMeshDetails::~FPersonaMeshDetails()
+{
+	if (HasValidPersonaToolkit())
+	{
+		TSharedRef<IPersonaPreviewScene> PreviewScene = GetPersonaToolkit()->GetPreviewScene();
+		PreviewScene->UnregisterOnPreviewMeshChanged(this);
+	}
+}
+
 TSharedRef<IDetailCustomization> FPersonaMeshDetails::MakeInstance(TSharedRef<class IPersonaToolkit> InPersonaToolkit)
 {
 	return MakeShareable( new FPersonaMeshDetails(InPersonaToolkit) );
+}
+
+void FPersonaMeshDetails::OnCopySectionList(int32 LODIndex)
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+
+		if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
+		{
+			const FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
+
+			TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
+
+			for (int32 SectionIdx = 0; SectionIdx < Model.Sections.Num(); ++SectionIdx)
+			{
+				const FSkelMeshSection& ModelSection = Model.Sections[SectionIdx];
+
+				TSharedPtr<FJsonObject> JSonSection = MakeShareable(new FJsonObject);
+
+				JSonSection->SetNumberField(TEXT("MaterialIndex"), ModelSection.MaterialIndex);
+				JSonSection->SetBoolField(TEXT("RecomputeTangent"), ModelSection.bRecomputeTangent);
+				JSonSection->SetBoolField(TEXT("CastShadow"), ModelSection.bCastShadow);
+
+				RootJsonObject->SetObjectField(FString::Printf(TEXT("Section_%d"), SectionIdx), JSonSection);
+			}
+
+			typedef TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriter;
+			typedef TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriterFactory;
+
+			FString CopyStr;
+			TSharedRef<FStringWriter> Writer = FStringWriterFactory::Create(&CopyStr);
+			FJsonSerializer::Serialize(RootJsonObject, Writer);
+
+			if (!CopyStr.IsEmpty())
+			{
+				FPlatformMisc::ClipboardCopy(*CopyStr);
+			}
+		}
+	}
+}
+
+bool FPersonaMeshDetails::OnCanCopySectionList(int32 LODIndex) const
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+
+		if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
+		{
+			return ImportedResource->LODModels[LODIndex].Sections.Num() > 0;
+		}
+	}
+
+	return false;
+}
+
+void FPersonaMeshDetails::OnPasteSectionList(int32 LODIndex)
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		FString PastedText;
+		FPlatformMisc::ClipboardPaste(PastedText);
+
+		TSharedPtr<FJsonObject> RootJsonObject;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
+		FJsonSerializer::Deserialize(Reader, RootJsonObject);
+
+		if (RootJsonObject.IsValid())
+		{
+			FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+
+			if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
+			{
+				FScopedTransaction Transaction(LOCTEXT("PersonaChangedPasteSectionList", "Pasted section list"));
+				Mesh->Modify();
+
+				FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
+
+				for (int32 SectionIdx = 0; SectionIdx < Model.Sections.Num(); ++SectionIdx)
+				{
+					FSkelMeshSection& ModelSection = Model.Sections[SectionIdx];
+
+					const TSharedPtr<FJsonObject>* JSonSection = nullptr;
+					if (RootJsonObject->TryGetObjectField(FString::Printf(TEXT("Section_%d"), SectionIdx), JSonSection))
+					{
+						int32 Value;
+						if ((*JSonSection)->TryGetNumberField(TEXT("MaterialIndex"), Value))
+						{
+							ModelSection.MaterialIndex = (uint16)Value;
+						}
+
+						(*JSonSection)->TryGetBoolField(TEXT("RecomputeTangent"), ModelSection.bRecomputeTangent);
+						(*JSonSection)->TryGetBoolField(TEXT("CastShadow"), ModelSection.bCastShadow);
+					}
+				}
+
+				Mesh->PostEditChange();
+			}
+		}
+	}
+}
+
+void FPersonaMeshDetails::OnCopySectionItem(int32 LODIndex, int32 SectionIndex)
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+
+		if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
+		{
+			const FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
+
+			TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
+
+			if (Model.Sections.IsValidIndex(SectionIndex))
+			{
+				const FSkelMeshSection& ModelSection = Model.Sections[SectionIndex];
+
+				RootJsonObject->SetNumberField(TEXT("MaterialIndex"), ModelSection.MaterialIndex);
+				RootJsonObject->SetBoolField(TEXT("RecomputeTangent"), ModelSection.bRecomputeTangent);
+				RootJsonObject->SetBoolField(TEXT("CastShadow"), ModelSection.bCastShadow);
+			}
+
+			typedef TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriter;
+			typedef TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriterFactory;
+
+			FString CopyStr;
+			TSharedRef<FStringWriter> Writer = FStringWriterFactory::Create(&CopyStr);
+			FJsonSerializer::Serialize(RootJsonObject, Writer);
+
+			if (!CopyStr.IsEmpty())
+			{
+				FPlatformMisc::ClipboardCopy(*CopyStr);
+			}
+		}
+	}
+}
+
+bool FPersonaMeshDetails::OnCanCopySectionItem(int32 LODIndex, int32 SectionIndex) const
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+
+		if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
+		{
+			return ImportedResource->LODModels[LODIndex].Sections.IsValidIndex(SectionIndex);
+		}
+	}
+
+	return false;
+}
+
+void FPersonaMeshDetails::OnPasteSectionItem(int32 LODIndex, int32 SectionIndex)
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		FString PastedText;
+		FPlatformMisc::ClipboardPaste(PastedText);
+
+		TSharedPtr<FJsonObject> RootJsonObject;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
+		FJsonSerializer::Deserialize(Reader, RootJsonObject);
+
+		if (RootJsonObject.IsValid())
+		{
+			FSkeletalMeshResource* ImportedResource = Mesh->GetImportedResource();
+
+			if (ImportedResource != nullptr && ImportedResource->LODModels.IsValidIndex(LODIndex))
+			{
+				FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
+
+				FScopedTransaction Transaction(LOCTEXT("PersonaChangedPasteSectionItem", "Pasted section item"));
+				Mesh->Modify();
+
+				if (Model.Sections.IsValidIndex(SectionIndex))
+				{
+					FSkelMeshSection& ModelSection = Model.Sections[SectionIndex];
+
+					int32 Value;
+					if (RootJsonObject->TryGetNumberField(TEXT("MaterialIndex"), Value))
+					{
+						ModelSection.MaterialIndex = (uint16)Value;
+					}
+
+					RootJsonObject->TryGetBoolField(TEXT("RecomputeTangent"), ModelSection.bRecomputeTangent);
+					RootJsonObject->TryGetBoolField(TEXT("CastShadow"), ModelSection.bCastShadow);
+				}
+
+				Mesh->PostEditChange();
+			}
+		}
+	}
+}
+
+void FPersonaMeshDetails::OnCopyMaterialList()
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		UProperty* Property = USkeletalMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(USkeletalMesh, Materials));
+		auto JsonValue = FJsonObjectConverter::UPropertyToJsonValue(Property, &Mesh->Materials, 0, 0);
+
+		typedef TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriter;
+		typedef TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriterFactory;
+
+		FString CopyStr;
+		TSharedRef<FStringWriter> Writer = FStringWriterFactory::Create(&CopyStr);
+		FJsonSerializer::Serialize(JsonValue.ToSharedRef(), TEXT(""), Writer);
+
+		if (!CopyStr.IsEmpty())
+		{
+			FPlatformMisc::ClipboardCopy(*CopyStr);
+		}
+	}
+}
+
+bool FPersonaMeshDetails::OnCanCopyMaterialList() const
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		return Mesh->Materials.Num() > 0;
+	}
+
+	return false;
+}
+
+void FPersonaMeshDetails::OnPasteMaterialList()
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		FString PastedText;
+		FPlatformMisc::ClipboardPaste(PastedText);
+
+		TSharedPtr<FJsonValue> RootJsonValue;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
+		FJsonSerializer::Deserialize(Reader, RootJsonValue);
+
+		if (RootJsonValue.IsValid())
+		{
+			UProperty* Property = USkeletalMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(USkeletalMesh, Materials));
+
+			Mesh->PreEditChange(Property);
+			FScopedTransaction Transaction(LOCTEXT("PersonaChangedPasteMaterialList", "Pasted material list"));
+			Mesh->Modify();
+
+			FJsonObjectConverter::JsonValueToUProperty(RootJsonValue, Property, &Mesh->Materials, 0, 0);
+
+			Mesh->PostEditChange();
+		}
+	}
+}
+
+void FPersonaMeshDetails::OnCopyMaterialItem(int32 CurrentSlot)
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
+
+		if (Mesh->Materials.IsValidIndex(CurrentSlot))
+		{
+			const FSkeletalMaterial& Material = Mesh->Materials[CurrentSlot];
+
+			FJsonObjectConverter::UStructToJsonObject(FSkeletalMaterial::StaticStruct(), &Material, RootJsonObject, 0, 0);
+		}
+
+		typedef TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriter;
+		typedef TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriterFactory;
+
+		FString CopyStr;
+		TSharedRef<FStringWriter> Writer = FStringWriterFactory::Create(&CopyStr);
+		FJsonSerializer::Serialize(RootJsonObject, Writer);
+
+		if (!CopyStr.IsEmpty())
+		{
+			FPlatformMisc::ClipboardCopy(*CopyStr);
+		}
+	}
+}
+
+bool FPersonaMeshDetails::OnCanCopyMaterialItem(int32 CurrentSlot) const
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		return Mesh->Materials.IsValidIndex(CurrentSlot);
+	}
+
+	return false;
+}
+
+void FPersonaMeshDetails::OnPasteMaterialItem(int32 CurrentSlot)
+{
+	USkeletalMesh* Mesh = GetPersonaToolkit()->GetMesh();
+
+	if (Mesh != nullptr)
+	{
+		FString PastedText;
+		FPlatformMisc::ClipboardPaste(PastedText);
+
+		TSharedPtr<FJsonObject> RootJsonObject;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
+		FJsonSerializer::Deserialize(Reader, RootJsonObject);
+
+		if (RootJsonObject.IsValid())
+		{
+			Mesh->PreEditChange(USkeletalMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(USkeletalMesh, Materials)));
+			FScopedTransaction Transaction(LOCTEXT("PersonaChangedPasteMaterialList", "Pasted material list"));
+			Mesh->Modify();
+
+			if (Mesh->Materials.IsValidIndex(CurrentSlot))
+			{
+				FJsonObjectConverter::JsonObjectToUStruct(RootJsonObject.ToSharedRef(), FSkeletalMaterial::StaticStruct(), &Mesh->Materials[CurrentSlot], 0, 0);
+			}
+
+			Mesh->PostEditChange();
+		}
+	}
 }
 
 void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayout)
@@ -652,6 +1027,8 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 			FString MaterialCategoryName = FString(TEXT("Materials"));
 			IDetailCategoryBuilder& MaterialCategory = DetailLayout.EditCategory(*MaterialCategoryName, FText::GetEmpty(), ECategoryPriority::Important);
 			MaterialCategory.AddCustomRow(LOCTEXT("AddLODLevelCategories_MaterialArrayOperationAdd", "Materials Operation Add Material Slot"))
+				.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FPersonaMeshDetails::OnCopyMaterialList), FCanExecuteAction::CreateSP(this, &FPersonaMeshDetails::OnCanCopyMaterialList)))
+				.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FPersonaMeshDetails::OnPasteMaterialList)))
 				.NameContent()
 				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Center)
@@ -707,6 +1084,11 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 				MaterialListDelegates.OnMaterialChanged.BindSP(this, &FPersonaMeshDetails::OnMaterialArrayChanged, 0);
 				MaterialListDelegates.OnGenerateCustomMaterialWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMaterialArray, 0);
 				MaterialListDelegates.OnMaterialListDirty.BindSP(this, &FPersonaMeshDetails::OnMaterialListDirty);
+
+				MaterialListDelegates.OnCopyMaterialItem.BindSP(this, &FPersonaMeshDetails::OnCopyMaterialItem);
+				MaterialListDelegates.OnCanCopyMaterialItem.BindSP(this, &FPersonaMeshDetails::OnCanCopyMaterialItem);
+				MaterialListDelegates.OnPasteMaterialItem.BindSP(this, &FPersonaMeshDetails::OnPasteMaterialItem);
+
 				MaterialCategory.AddCustomBuilder(MakeShareable(new FMaterialList(MaterialCategory.GetParentLayout(), MaterialListDelegates, false)));
 			}
 		}
@@ -752,9 +1134,8 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 					.Font(IDetailLayoutBuilder::GetDetailFontItalic())
 				];
 
-			// want to make sure if this data has imporetd or not
+			// want to make sure if this data has imported or not
 			LODCategory.HeaderContent(LODCategoryWidget);
-
 			{
 				FSectionListDelegates SectionListDelegates;
 
@@ -762,6 +1143,14 @@ void FPersonaMeshDetails::AddLODLevelCategories(IDetailLayoutBuilder& DetailLayo
 				SectionListDelegates.OnSectionChanged.BindSP(this, &FPersonaMeshDetails::OnSectionChanged);
 				SectionListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomNameWidgetsForSection);
 				SectionListDelegates.OnGenerateCustomSectionWidgets.BindSP(this, &FPersonaMeshDetails::OnGenerateCustomSectionWidgetsForSection);
+
+				SectionListDelegates.OnCopySectionList.BindSP(this, &FPersonaMeshDetails::OnCopySectionList, LODIndex);
+				SectionListDelegates.OnCanCopySectionList.BindSP(this, &FPersonaMeshDetails::OnCanCopySectionList, LODIndex);
+				SectionListDelegates.OnPasteSectionList.BindSP(this, &FPersonaMeshDetails::OnPasteSectionList, LODIndex);
+				SectionListDelegates.OnCopySectionItem.BindSP(this, &FPersonaMeshDetails::OnCopySectionItem);
+				SectionListDelegates.OnCanCopySectionItem.BindSP(this, &FPersonaMeshDetails::OnCanCopySectionItem);
+				SectionListDelegates.OnPasteSectionItem.BindSP(this, &FPersonaMeshDetails::OnPasteSectionItem);
+
 				LODCategory.AddCustomBuilder(MakeShareable(new FSectionList(LODCategory.GetParentLayout(), SectionListDelegates, (LODIndex > 0))));
 			}
 			// add each LOD Info to each LOD category
@@ -928,13 +1317,26 @@ FReply FPersonaMeshDetails::RemoveOneLOD(int32 LODIndex)
 	check(SkelMesh);
 	check(SkelMesh->LODInfo.IsValidIndex(LODIndex));
 
-	FSkeletalMeshUpdateContext UpdateContext;
-	UpdateContext.SkeletalMesh = SkelMesh;
-	UpdateContext.AssociatedComponents.Push(GetPersonaToolkit()->GetPreviewMeshComponent());
+	if (LODIndex > 0)
+	{
+		FText ConfirmRemoveLODText = FText::Format( LOCTEXT("PersonaRemoveLOD_Confirmation", "Areyou sure you want to remove LOD {0} from {1}?"), LODIndex, FText::FromString(SkelMesh->GetName()) );
 
-	FLODUtilities::RemoveLOD(UpdateContext, LODIndex);
+		if ( FMessageDialog::Open(EAppMsgType::YesNo, ConfirmRemoveLODText) == EAppReturnType::Yes )
+		{
+			FText RemoveLODText = FText::Format( LOCTEXT("OnPersonaRemoveLOD", "Remove LOD {0}"), LODIndex );
+			FScopedTransaction Transaction( TEXT(""), RemoveLODText, SkelMesh );
 
-	MeshDetailLayout->ForceRefreshDetails();
+			SkelMesh->Modify();
+			FSkeletalMeshUpdateContext UpdateContext;
+			UpdateContext.SkeletalMesh = SkelMesh;
+			UpdateContext.AssociatedComponents.Push(GetPersonaToolkit()->GetPreviewMeshComponent());
+
+			FLODUtilities::RemoveLOD(UpdateContext, LODIndex);
+			SkelMesh->PostEditChange();
+
+			MeshDetailLayout->ForceRefreshDetails();
+		}
+	}
 	return FReply::Handled();
 }
 
@@ -1197,6 +1599,11 @@ void FPersonaMeshDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 	const TArray<TWeakObjectPtr<UObject>>& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
 	check(SelectedObjects.Num()<=1); // The OnGenerateCustomWidgets delegate will not be useful if we try to process more than one object.
 
+	TSharedRef<IPersonaPreviewScene> PreviewScene = GetPersonaToolkit()->GetPreviewScene();
+
+	// Ensure that we only have one callback for this object registered
+	PreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateSP(this, &FPersonaMeshDetails::OnPreviewMeshChanged));
+
 	SkeletalMeshPtr = SelectedObjects.Num() > 0 ? Cast<USkeletalMesh>(SelectedObjects[0].Get()) : nullptr;
 
 	// copy temporarily to refresh Mesh details tab from the LOD settings window
@@ -1308,6 +1715,12 @@ void FPersonaMeshDetails::OnSetPostProcessBlueprint(const FAssetData& AssetData,
 	if(UAnimBlueprint* SelectedBlueprint = Cast<UAnimBlueprint>(AssetData.GetAsset()))
 	{
 		BlueprintProperty->SetValue(SelectedBlueprint->GetAnimBlueprintGeneratedClass());
+	}
+	else if(!AssetData.IsValid())
+	{
+		// Asset data is not valid so clear the result
+		UObject* Value = nullptr;
+		BlueprintProperty->SetValue(Value);
 	}
 }
 
@@ -3230,6 +3643,14 @@ FReply FPersonaMeshDetails::OnDeleteButtonClicked(int32 LODIndex, int32 SectionI
 	}
 
 	return FReply::Handled();
+}
+
+void FPersonaMeshDetails::OnPreviewMeshChanged(USkeletalMesh* OldSkeletalMesh, USkeletalMesh* NewMesh)
+{
+	if (IsApplyNeeded())
+	{
+		MeshDetailLayout->ForceRefreshDetails();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

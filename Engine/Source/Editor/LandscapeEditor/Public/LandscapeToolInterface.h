@@ -226,6 +226,7 @@ class FLandscapeTool : public FGCObject
 {
 public:
 	virtual void EnterTool() {}
+	virtual bool IsToolActive() const { return false;  }
 	virtual void ExitTool() {}
 	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) = 0;
 	virtual void EndTool(FEditorViewportClient* ViewportClient) = 0;

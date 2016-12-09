@@ -65,9 +65,11 @@ FbxNode* FFbxExporter::CreateSkeleton(const USkeletalMesh* SkelMesh, TArray<FbxN
 		FVector UnrealRotation = BoneTransform.GetRotation().Euler();
 		FbxVector4 LocalPos = Converter.ConvertToFbxPos(BoneTransform.GetTranslation());
 		FbxVector4 LocalRot = Converter.ConvertToFbxRot(UnrealRotation);
+		FbxVector4 LocalScale = Converter.ConvertToFbxScale(BoneTransform.GetScale3D());
 
 		BoneNode->LclTranslation.Set(LocalPos);
 		BoneNode->LclRotation.Set(LocalRot);
+		BoneNode->LclScaling.Set(LocalScale);
 
 
 		// If this is not the root bone, attach it to its parent

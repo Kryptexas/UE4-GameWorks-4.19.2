@@ -49,6 +49,11 @@ public:
 	static float GetViewportScale(UObject* WorldContextObject);
 
 	/**
+	 * Gets the current DPI Scale being applied to the viewport and all the Widgets.
+	 */
+	static float GetViewportScale(UGameViewportClient* ViewportClient);
+
+	/**
 	 * Gets the size of the game viewport.
 	 */
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( WorldContext="WorldContextObject" ))

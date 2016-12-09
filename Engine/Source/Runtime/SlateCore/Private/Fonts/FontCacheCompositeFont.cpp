@@ -273,34 +273,40 @@ TSharedPtr<FFreeTypeFace> FCompositeFontCache::GetFontFace(const FFontData& InFo
 	TSharedPtr<FFreeTypeFace> FaceAndMemory = FontFaceMap.FindRef(InFontData);
 	if (!FaceAndMemory.IsValid())
 	{
-#if WITH_EDITORONLY_DATA
+		// IMPORTANT: Do not log from this function until the new font has been added to the FontFaceMap, as it may be the Output Log font being loaded, which would cause an infinite recursion!
+		FString LoadLogMessage;
+
 		{
 			// If this font data is referencing an asset, we just need to load it from memory
-			TArray<uint8> FontFaceData;
-			if (InFontData.GetFontFaceData(FontFaceData))
+			FFontFaceDataConstPtr FontFaceData = InFontData.GetFontFaceData();
+			if (FontFaceData.IsValid() && FontFaceData->HasData())
 			{
-				FaceAndMemory = MakeShareable(new FFreeTypeFace(FTLibrary, MoveTemp(FontFaceData)));
+				FaceAndMemory = MakeShared<FFreeTypeFace>(FTLibrary, FontFaceData.ToSharedRef());
 			}
 		}
-#endif // WITH_EDITORONLY_DATA
 
 		// If no asset was loaded, then we go through the normal font loading process
 		if (!FaceAndMemory.IsValid())
 		{
 			switch (InFontData.GetLoadingPolicy())
 			{
-			case EFontLoadingPolicy::PreLoad:
+			case EFontLoadingPolicy::LazyLoad:
 				{
+					const double FontDataLoadStartTime = FPlatformTime::Seconds();
+
 					TArray<uint8> FontFaceData;
 					if (FFileHelper::LoadFileToArray(FontFaceData, *InFontData.GetFontFilename()))
 					{
-						FaceAndMemory = MakeShareable(new FFreeTypeFace(FTLibrary, MoveTemp(FontFaceData)));
+						const int32 FontDataSizeKB = (FontFaceData.Num() + 1023) / 1024;
+						LoadLogMessage = FString::Printf(TEXT("Took %f seconds to synchronously load lazily loaded font '%s' (%dK)"), float(FPlatformTime::Seconds() - FontDataLoadStartTime), *InFontData.GetFontFilename(), FontDataSizeKB);
+
+						FaceAndMemory = MakeShared<FFreeTypeFace>(FTLibrary, FFontFaceData::MakeFontFaceData(MoveTemp(FontFaceData)));
 					}
 				}
 				break;
 			case EFontLoadingPolicy::Stream:
 				{
-					FaceAndMemory = MakeShareable(new FFreeTypeFace(FTLibrary, InFontData.GetFontFilename()));
+					FaceAndMemory = MakeShared<FFreeTypeFace>(FTLibrary, InFontData.GetFontFilename());
 				}
 				break;
 			default:
@@ -312,6 +318,19 @@ TSharedPtr<FFreeTypeFace> FCompositeFontCache::GetFontFace(const FFontData& InFo
 		if (FaceAndMemory.IsValid() && FaceAndMemory->IsValid())
 		{
 			FontFaceMap.Add(InFontData, FaceAndMemory);
+
+			if (!LoadLogMessage.IsEmpty())
+			{
+				const bool bLogLoadAsWarning = GIsRunning && !GIsEditor;
+				if (bLogLoadAsWarning)
+				{
+					UE_LOG(LogSlate, Log, TEXT("%s"), *LoadLogMessage);
+				}
+				else
+				{
+					UE_LOG(LogSlate, Log, TEXT("%s"), *LoadLogMessage);
+				}
+			}
 		}
 		else
 		{

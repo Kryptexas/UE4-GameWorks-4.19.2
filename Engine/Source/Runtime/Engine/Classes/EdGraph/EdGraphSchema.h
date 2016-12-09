@@ -852,6 +852,14 @@ class ENGINE_API UEdGraphSchema : public UObject
 	/* When a node is removed, this method determines whether we should remove it immediately or use the old (slower) code path that results in all node being recreated: */
 	virtual bool ShouldAlwaysPurgeOnModification() const { return true; }
 
+	/** 
+	 * Perform any logic necessary to safely remove this node from the graph.  
+	 * @param Graph		Type of pin to drop onto the node
+	 * @param Node		Direction of the source pin
+	 * @return			Whether or not the node was successfully deleted.
+    */
+	virtual bool SafeDeleteNodeFromGraph(UEdGraph* Graph, UEdGraphNode* Node) const { return false; }
+
 	/*
 	 * Some schemas have nodes that support the user dynamically adding pins when dropping a connection on the node
 	 *

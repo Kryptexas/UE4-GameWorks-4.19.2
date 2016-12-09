@@ -103,6 +103,7 @@
 #include "MaterialNodes/SGraphNodeMaterialBase.h"
 #include "MaterialNodes/SGraphNodeMaterialComment.h"
 #include "MaterialNodes/SGraphNodeMaterialResult.h"
+#include "MaterialGraphNode_Knot.h"
 
 #include "MaterialPins/SGraphPinMaterialInput.h"
 
@@ -173,6 +174,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		if (UMaterialGraphNode_Root* RootMaterialNode = Cast<UMaterialGraphNode_Root>(InNode))
 		{
 			return SNew(SGraphNodeMaterialResult, RootMaterialNode);
+		}
+		else if (UMaterialGraphNode_Knot* MaterialKnot = Cast<UMaterialGraphNode_Knot>(InNode))
+		{
+			return SNew(SGraphNodeKnot, MaterialKnot);
 		}
 		else if (UMaterialGraphNode* MaterialNode = Cast<UMaterialGraphNode>(InNode))
 		{

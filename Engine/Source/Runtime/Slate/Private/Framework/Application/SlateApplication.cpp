@@ -2149,6 +2149,7 @@ TSharedPtr<IMenu> FSlateApplication::PushMenu(const TSharedRef<SWidget>& InParen
 		return MenuStack.Push(WidgetPath, InContent, SummonLocation, TransitionEffect, bFocusImmediately, SummonLocationSize, Method, bIsCollapsedByParent);
 	}
 
+	UE_LOG(LogSlate, Warning, TEXT("Menu could not be pushed.  A path to the parent widget(%s) could not be found"), *InParentWidget->ToString());
 	return TSharedPtr<IMenu>();
 }
 
@@ -3771,7 +3772,7 @@ void FSlateApplication::EnterDebuggingMode()
 	// The scissor rect stack must be reset when re-entering the tick loop to avoid graphical artifacts with existing clip rects applied new widgets
 	TOptional<FShortRect> PreviousScissorRect = GSlateScissorRect;
 	GSlateScissorRect.Reset();
-
+	
 	// Tick slate from here in the event that we should not return until the modal window is closed.
 	while (!bRequestLeaveDebugMode)
 	{
@@ -5264,7 +5265,7 @@ bool FSlateApplication::RoutePointerMoveEvent(const FWidgetPath& WidgetsUnderPoi
 				}
 				return FNoReply();
 			});
-			
+
 			FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), PointerEvent, [this]( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
 			{
 				FReply TempReply = FReply::Unhandled();
@@ -5638,6 +5639,11 @@ bool FSlateApplication::OnMouseMove()
 
 bool FSlateApplication::OnRawMouseMove( const int32 X, const int32 Y )
 {
+	if (bIsFakingTouched)
+	{
+		return OnTouchMoved(GetCursorPos(), 0, 0);
+	}
+	
 	if ( X != 0 || Y != 0 )
 	{
 		FPointerEvent MouseEvent(
@@ -5906,7 +5912,6 @@ void FSlateApplication::ProcessMotionDetectedEvent( FMotionEvent& MotionEvent )
 	
 	if ( FSlateUser* User = GetOrCreateUser(MotionEvent.GetUserIndex()) )
 	{
-
 		if (InputPreProcessor.IsValid() && InputPreProcessor->HandleMotionDetectedEvent(*this, MotionEvent))
 		{
 			return;

@@ -1303,7 +1303,9 @@ void FWidget::AbsoluteTranslationConvertMouseMovementToAxisMovement(FSceneView* 
 				Params.XAxis = InView->ViewMatrices.GetViewMatrix().GetColumn(0);
 				Params.YAxis = InView->ViewMatrices.GetViewMatrix().GetColumn(1);
 				Params.ZAxis = InView->ViewMatrices.GetViewMatrix().GetColumn(2);
-				GetPlaneNormalAndMask(Params.ZAxis, Params.PlaneNormal, Params.NormalToRemove); break;
+				GetPlaneNormalAndMask(Params.ZAxis, Params.PlaneNormal, Params.NormalToRemove);
+				//do not damp the movement in this case, we also want to snap
+				Params.bMovementLockedToCamera = false;
 				break;
 			}
 

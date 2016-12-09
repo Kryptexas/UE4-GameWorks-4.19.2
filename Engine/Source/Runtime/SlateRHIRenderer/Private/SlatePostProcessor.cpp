@@ -31,12 +31,10 @@ void FSlatePostProcessor::BlurRect(FRHICommandListImmediate& RHICmdList, IRender
 	TArray<FVector4> WeightsAndOffsets;
 	const int32 SampleCount = ComputeBlurWeights(Params.KernelSize, Params.Strength, WeightsAndOffsets);
 
-	SCOPED_DRAW_EVENTF(RHICmdList, SlatePostProcess, TEXT("Slate Post Process Blur Background %dx%d"), SampleCount, SampleCount);
 
 	const bool bDownsample = Params.DownsampleAmount > 0;
 
 	FIntPoint DestRectSize = RectParams.DestRect.GetSize().IntPoint();
-	const FIntPoint CurrentSize = FIntPoint(IntermediateTargets->GetWidth(), IntermediateTargets->GetHeight());
 	FIntPoint RequiredSize = bDownsample
 										? FIntPoint(FMath::DivideAndRoundUp(DestRectSize.X, Params.DownsampleAmount), FMath::DivideAndRoundUp(DestRectSize.Y, Params.DownsampleAmount))
 										: DestRectSize;
@@ -45,11 +43,12 @@ void FSlatePostProcessor::BlurRect(FRHICommandListImmediate& RHICmdList, IRender
 	RequiredSize.X = FMath::Min(RequiredSize.X, RectParams.SourceTextureSize.X);
 	RequiredSize.Y = FMath::Min(RequiredSize.Y, RectParams.SourceTextureSize.Y);
 	
+	SCOPED_DRAW_EVENTF(RHICmdList, SlatePostProcess, TEXT("Slate Post Process Blur Background Kernel: %dx%d Size: %dx%d"), SampleCount, SampleCount, RequiredSize.X, RequiredSize.Y);
+
+
 	const FIntPoint DownsampleSize = RequiredSize;
-	if(RequiredSize.X > CurrentSize.X || RequiredSize.Y > CurrentSize.Y)
-	{		
-		IntermediateTargets->Resize(RequiredSize);
-	}
+
+	IntermediateTargets->Update(RequiredSize);
 
 	if(bDownsample)
 	{
@@ -183,6 +182,13 @@ void FSlatePostProcessor::BlurRect(FRHICommandListImmediate& RHICmdList, IRender
 
 #endif
 	UpsampleRect(RHICmdList, RendererModule, RectParams, DownsampleSize);
+}
+
+void FSlatePostProcessor::ReleaseRenderTargets()
+{
+	check(IsInGameThread());
+	// Only release the resource not delete it.  Deleting it could cause issues on any RHI thread
+	BeginReleaseResource(IntermediateTargets);
 }
 
 void FSlatePostProcessor::DownsampleRect(FRHICommandListImmediate& RHICmdList, IRendererModule& RendererModule, const FPostProcessRectParams& Params, const FIntPoint& DownsampleSize)

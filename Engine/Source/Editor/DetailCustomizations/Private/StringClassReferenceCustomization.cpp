@@ -13,10 +13,12 @@ void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHan
 
 	const FString& MetaClassName = PropertyHandle->GetMetaData("MetaClass");
 	const FString& RequiredInterfaceName = PropertyHandle->GetMetaData("RequiredInterface");
-	const bool bAllowAbstract = PropertyHandle->GetBoolMetaData("AllowAbstract");
+	const bool bAllowAbstract = PropertyHandle->HasMetaData("AllowAbstract");
 	const bool bIsBlueprintBaseOnly = PropertyHandle->GetBoolMetaData("IsBlueprintBaseOnly");
 	const bool bAllowNone = !(PropertyHandle->GetMetaDataProperty()->PropertyFlags & CPF_NoClear);
-
+	const bool bShowTreeView = PropertyHandle->HasMetaData("ShowTreeView");
+	const bool bHideViewOptions = PropertyHandle->HasMetaData("HideViewOptions");
+	
 	const UClass* const MetaClass = !MetaClassName.IsEmpty()
 		? FEditorClassUtils::GetClassFromString(MetaClassName)
 		: UClass::StaticClass();
@@ -38,6 +40,8 @@ void FStringClassReferenceCustomization::CustomizeHeader(TSharedRef<IPropertyHan
 			.AllowAbstract(bAllowAbstract)
 			.IsBlueprintBaseOnly(bIsBlueprintBaseOnly)
 			.AllowNone(bAllowNone)
+			.ShowTreeView(bShowTreeView)
+			.HideViewOptions(bHideViewOptions)
 			.SelectedClass(this, &FStringClassReferenceCustomization::OnGetClass)
 			.OnSetClass(this, &FStringClassReferenceCustomization::OnSetClass)
 	];

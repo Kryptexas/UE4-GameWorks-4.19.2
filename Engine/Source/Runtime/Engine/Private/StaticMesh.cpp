@@ -2443,7 +2443,11 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			FStaticMeshSourceModel& SrcModel = SourceModels[i];
 			SrcModel.SerializeBulkData(Ar, this);
 		}
-		SectionInfoMap.Serialize(Ar);
+
+		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::UPropertryForMeshSection)
+		{
+			SectionInfoMap.Serialize(Ar);
+		}
 
 		// Need to set a flag rather than do conversion in place as RenderData is not
 		// created until postload and it is needed for bounding information

@@ -11,4 +11,9 @@ UCLASS(config=EditorKeyBindings, meta=(DisplayName="Keyboard Shortcuts"))
 class UEditorKeyboardShortcutSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
+
+public:
+	virtual bool SupportsAutoRegistration() const override { return false;}
 };
+
+

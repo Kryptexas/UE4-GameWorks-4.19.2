@@ -14,11 +14,17 @@
 struct FExpressionInput
 {
 #if WITH_EDITORONLY_DATA
-	/** Material expression that this input is connected to, or NULL if not connected. */
+	/** 
+	 * Material expression that this input is connected to, or NULL if not connected. 
+	 * If you want to be safe when checking against dangling Reroute nodes, please use GetCheckedInput before accessing this property.
+	*/
 	class UMaterialExpression*	Expression;
 #endif
 
-	/** Index into Expression's outputs array that this input is connected to. */
+	/** 
+	 * Index into Expression's outputs array that this input is connected to.
+	 * If you want to be safe when checking against dangling Reroute nodes, please use GetCheckedInput before accessing this property.
+	*/
 	int32						OutputIndex;
 
 	/** 
@@ -74,6 +80,9 @@ struct FExpressionInput
 
 	/** ICPPStructOps interface */
 	ENGINE_API bool Serialize(FArchive& Ar);
+
+	/** If this input goes through reroute nodes or other paths that should not affect code, trace back on the input chain.*/
+	ENGINE_API FExpressionInput GetTracedInput() const;
 };
 
 template<>

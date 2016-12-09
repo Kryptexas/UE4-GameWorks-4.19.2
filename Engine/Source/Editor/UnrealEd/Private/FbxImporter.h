@@ -9,6 +9,7 @@
 #include "Factories/FbxImportUI.h"
 #include "Logging/TokenizedMessage.h"
 #include "Factories/FbxStaticMeshImportData.h"
+#include "Factories/FbxTextureImportData.h"
 #include "Factories/FbxSceneImportFactory.h"
 
 class AActor;
@@ -144,6 +145,7 @@ struct FBXImportOptions
 	FString BaseNormalTextureName;
 	FString BaseEmmisiveTextureName;
 	FString BaseSpecularTextureName;
+	EMaterialSearchLocation::Type MaterialSearchLocation;
 	// Skeletal Mesh options
 	bool bImportMorph;
 	bool bImportAnimations;
@@ -398,6 +400,19 @@ struct FbxSceneInfo
 	double FrameRate;
 	double TotalTime;
 
+	void Reset()
+	{
+		NonSkinnedMeshNum = 0;
+		SkinnedMeshNum = 0;
+		TotalGeometryNum = 0;
+		TotalMaterialNum = 0;
+		TotalTextureNum = 0;
+		MeshInfo.Empty();
+		HierarchyInfo.Empty();
+		bHasAnimation = false;
+		FrameRate = 0.0;
+		TotalTime = 0.0;
+	}
 };
 
 /**
@@ -506,6 +521,12 @@ public:
 	bool ImportFile(FString Filename, bool bPreventMaterialNameClash = false);
 	
 	/**
+	 * Convert the scene from the current options.
+	 * The scene will be converted to RH -Y or RH X depending if we force a front X axis or not
+	 */
+	void ConvertScene();
+
+	/**
 	 * Attempt to load an FBX scene from a given filename.
 	 *
 	 * @param Filename FBX file name to import.
@@ -593,7 +614,8 @@ public:
 	*/
 	UNREALED_API bool ImportSubDSurface(USubDSurface* Out, UObject* InParent, TArray<FbxNode*>& MeshNodeArray, const FName InName, EObjectFlags Flags, UFbxStaticMeshImportData* TemplateImportData);
 
-	void ImportStaticMeshSockets( UStaticMesh* StaticMesh );
+	void ImportStaticMeshGlobalSockets( UStaticMesh* StaticMesh );
+	void ImportStaticMeshLocalSockets( UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray);
 
 	/**
 	 * re-import Unreal static mesh from updated Fbx file
@@ -776,6 +798,15 @@ public:
 	*/
 	UNREALED_API void FillFbxMeshArray(FbxNode* Node, TArray<FbxNode*>& outMeshArray, UnFbx::FFbxImporter* FFbxImporter);
 	
+	/**
+	* Get all Fbx mesh objects not under a LOD group and all LOD group node
+	*
+	* @param Node Root node to find meshes
+	* @param outLODGroupArray return Fbx LOD group
+	* @param outMeshArray return Fbx meshes with no LOD group
+	*/
+	UNREALED_API void FillFbxMeshAndLODGroupArray(FbxNode* Node, TArray<FbxNode*>& outLODGroupArray, TArray<FbxNode*>& outMeshArray);
+
 	/**
 	* Fill FBX skeletons to OutSortedLinks recursively
 	*
@@ -1224,6 +1255,15 @@ protected:
 	void CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets, bool bForSkeletalMesh);
 	
 	/**
+	* Search for an existing Unreal material based on import option settings
+	*
+	* @param BasePath Folder to start looking from, recursively.
+	* @param MaterialName Name of the material to search for.
+	* @return Material found
+	*/
+	UMaterialInterface* FindExistingUnrealMaterial(const FString& BasePath, const FString& MaterialName);
+
+	/**
 	 * Visit all materials of one node, import textures from materials.
 	 *
 	 * @param Node FBX node.
@@ -1412,6 +1452,9 @@ private:
 	void ClearLogger();
 
 	FImportedMaterialData ImportedMaterialData;
+
+	//Cache to create unique name for mesh. This is use to fix name clash
+	TArray<FString> MeshNamesCache;
 
 private:
 

@@ -8,23 +8,84 @@
 #include "Misc/FileHelper.h"
 #include "UObject/Package.h"
 #include "Misc/PackageName.h"
+#include "EditorObjectVersion.h"
 
 UFontFace::UFontFace()
+	: FontFaceData(FFontFaceData::MakeFontFaceData())
 {
+}
+
+void UFontFace::Serialize(FArchive& Ar)
+{
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+
+	const FString LocalSourceFilename = SourceFilename;
+
+	if (Ar.IsCooking())
+	{
+		// Set the cooked filename prior to serializing the properties
+		SourceFilename = GetCookedFilename();
+	}
+
+	Super::Serialize(Ar);
+
+	if (Ar.IsCooking())
+	{
+		// Restore the original filename after serializing the properties
+		SourceFilename = LocalSourceFilename;
+	}
+
+	if (Ar.IsLoading())
+	{
+		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::AddedInlineFontFaceAssets)
+		{
+#if WITH_EDITORONLY_DATA
+			// Port the old property data into the shared instance
+			FontFaceData->SetData(MoveTemp(FontFaceData_DEPRECATED));
+#endif // WITH_EDITORONLY_DATA
+		}
+		else
+		{
+			bool bLoadInlineData = false;
+			Ar << bLoadInlineData;
+
+			if (bLoadInlineData)
+			{
+				if (FontFaceData->HasData())
+				{
+					// If we already have data, make a new instance in-case the existing one is being referenced by the font cache
+					FontFaceData = FFontFaceData::MakeFontFaceData();
+				}
+				FontFaceData->Serialize(Ar);
+			}
+		}
+	}
+	else
+	{
+		// Only save the inline data in a cooked build if we're using the inline loading policy
+		bool bSaveInlineData = LoadingPolicy == EFontLoadingPolicy::Inline || !Ar.IsCooking();
+		Ar << bSaveInlineData;
+
+		if (bSaveInlineData)
+		{
+			FontFaceData->Serialize(Ar);
+		}
+	}
 }
 
 void UFontFace::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 {
 	Super::GetResourceSizeEx(CumulativeResourceSize);
 
-	// Only count the memory size for fonts that will be pre-loaded
-	if (LoadingPolicy == EFontLoadingPolicy::PreLoad)
+	// Only count the memory size for fonts that will be loaded
+	if (LoadingPolicy != EFontLoadingPolicy::Stream)
 	{
-#if WITH_EDITORONLY_DATA
+		const bool bCountInlineData = WITH_EDITORONLY_DATA || LoadingPolicy == EFontLoadingPolicy::Inline;
+		if (bCountInlineData)
 		{
-			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FontFaceData.Num());
+			CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FontFaceData->GetData().Num());
 		}
-#else  // WITH_EDITORONLY_DATA
+		else
 		{
 			const int64 FileSize = IFileManager::Get().FileSize(*SourceFilename);
 			if (FileSize > 0)
@@ -32,7 +93,6 @@ void UFontFace::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 				CumulativeResourceSize.AddDedicatedSystemMemoryBytes(FileSize);
 			}
 		}
-#endif // WITH_EDITORONLY_DATA
 	}
 }
 
@@ -64,22 +124,28 @@ void UFontFace::CookAdditionalFiles(const TCHAR* PackageFilename, const ITargetP
 {
 	Super::CookAdditionalFiles(PackageFilename, TargetPlatform);
 
-	// We replace the package name with the cooked font face name
-	// Note: This must match the replacement logic in UFontFace::GetCookedFilename
-	const FString CookedFontFilename = FPaths::GetPath(PackageFilename) / GetName() + TEXT(".ufont");
-	FFileHelper::SaveArrayToFile(FontFaceData, *CookedFontFilename);
+	if (LoadingPolicy != EFontLoadingPolicy::Inline)
+	{
+		// We replace the package name with the cooked font face name
+		// Note: This must match the replacement logic in UFontFace::GetCookedFilename
+		const FString CookedFontFilename = FPaths::GetPath(PackageFilename) / GetName() + TEXT(".ufont");
+		FFileHelper::SaveArrayToFile(FontFaceData->GetData(), *CookedFontFilename);
+	}
 }
 #endif // WITH_EDITOR
 
 #if WITH_EDITORONLY_DATA
 void UFontFace::InitializeFromBulkData(const FString& InFilename, const EFontHinting InHinting, const void* InBulkDataPtr, const int32 InBulkDataSizeBytes)
 {
-	check(InBulkDataPtr && InBulkDataSizeBytes > 0 && FontFaceData.Num() == 0);
+	check(InBulkDataPtr && InBulkDataSizeBytes > 0 && !FontFaceData->HasData());
 
 	SourceFilename = InFilename;
 	Hinting = InHinting;
-	LoadingPolicy = EFontLoadingPolicy::PreLoad;
-	FontFaceData.Append(static_cast<const uint8*>(InBulkDataPtr), InBulkDataSizeBytes);
+	LoadingPolicy = EFontLoadingPolicy::LazyLoad;
+	
+	TArray<uint8> FontData;
+	FontData.Append(static_cast<const uint8*>(InBulkDataPtr), InBulkDataSizeBytes);
+	FontFaceData->SetData(MoveTemp(FontData));
 }
 #endif // WITH_EDITORONLY_DATA
 
@@ -98,12 +164,10 @@ EFontLoadingPolicy UFontFace::GetLoadingPolicy() const
 	return LoadingPolicy;
 }
 
-#if WITH_EDITORONLY_DATA
-const TArray<uint8>& UFontFace::GetFontFaceData() const
+FFontFaceDataConstRef UFontFace::GetFontFaceData() const
 {
 	return FontFaceData;
 }
-#endif // WITH_EDITORONLY_DATA
 
 FString UFontFace::GetCookedFilename() const
 {

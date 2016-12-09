@@ -235,7 +235,12 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				FEditorClassUtils::GetDocumentationLinkWidget(ItemClass)
+				SNew(SBox)
+				.WidthOverride(32)
+				.HeightOverride(32)
+				[
+					FEditorClassUtils::GetDocumentationLinkWidget(ItemClass)
+				]
 			]
 		]
 	];

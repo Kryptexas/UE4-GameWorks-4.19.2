@@ -487,46 +487,43 @@ void SSocketManager::DeleteSelectedSocket()
 
 void SSocketManager::RefreshSocketList()
 {
-	if( StaticMesh.IsValid() )
+	// The static mesh might not be the same one we built the SocketListView with
+	// check it here and update it if necessary.
+	TSharedPtr<IStaticMeshEditor> StaticMeshEditorPinned = StaticMeshEditorPtr.Pin();
+	if (StaticMeshEditorPinned.IsValid())
 	{
-		// The static mesh might not be the same one we built the SocketListView with
-		// check it here and update it if necessary.
 		bool bIsSameStaticMesh = true;
-		TSharedPtr<IStaticMeshEditor> StaticMeshEditorPinned = StaticMeshEditorPtr.Pin();
-		if (StaticMeshEditorPinned.IsValid())
+		UStaticMesh* CurrentStaticMesh = StaticMeshEditorPinned->GetStaticMesh();
+		if (!StaticMesh.IsValid() || CurrentStaticMesh != StaticMesh.Get())
 		{
-			UStaticMesh* CurrentStaticMesh = StaticMeshEditorPinned->GetStaticMesh();
-			if (CurrentStaticMesh != StaticMesh.Get())
-			{
-				StaticMesh = CurrentStaticMesh;
-				bIsSameStaticMesh = false;
-			}
-			// Only rebuild the socket list if it differs from the static meshes socket list
-			// This is done so that an undo on a socket property doesn't cause the selected
-			// socket to be de-selected, thus hiding the socket properties on the detail view.
-			// NB: Also force a rebuild if the underlying StaticMesh has been changed.
-			if (StaticMesh->Sockets.Num() != SocketList.Num() || !bIsSameStaticMesh)
-			{
-				SocketList.Empty();
-				for (int32 i = 0; i < StaticMesh->Sockets.Num(); i++)
-				{
-					UStaticMeshSocket* Socket = StaticMesh->Sockets[i];
-					SocketList.Add(MakeShareable(new SocketListItem(Socket)));
-				}
-
-				SocketListView->RequestListRefresh();
-			}
-
-			// Set the socket on the detail view to keep it in sync with the sockets properties
-			if (SocketListView->GetSelectedItems().Num())
-			{
-				TArray< UObject* > ObjectList;
-				ObjectList.Add(SocketListView->GetSelectedItems()[0]->Socket);
-				SocketDetailsView->SetObjects(ObjectList, true);
-			}
-
-			StaticMeshEditorPinned->RefreshViewport();
+			StaticMesh = CurrentStaticMesh;
+			bIsSameStaticMesh = false;
 		}
+		// Only rebuild the socket list if it differs from the static meshes socket list
+		// This is done so that an undo on a socket property doesn't cause the selected
+		// socket to be de-selected, thus hiding the socket properties on the detail view.
+		// NB: Also force a rebuild if the underlying StaticMesh has been changed.
+		if (StaticMesh->Sockets.Num() != SocketList.Num() || !bIsSameStaticMesh)
+		{
+			SocketList.Empty();
+			for (int32 i = 0; i < StaticMesh->Sockets.Num(); i++)
+			{
+				UStaticMeshSocket* Socket = StaticMesh->Sockets[i];
+				SocketList.Add(MakeShareable(new SocketListItem(Socket)));
+			}
+
+			SocketListView->RequestListRefresh();
+		}
+
+		// Set the socket on the detail view to keep it in sync with the sockets properties
+		if (SocketListView->GetSelectedItems().Num())
+		{
+			TArray< UObject* > ObjectList;
+			ObjectList.Add(SocketListView->GetSelectedItems()[0]->Socket);
+			SocketDetailsView->SetObjects(ObjectList, true);
+		}
+
+		StaticMeshEditorPinned->RefreshViewport();
 	}
 	else
 	{

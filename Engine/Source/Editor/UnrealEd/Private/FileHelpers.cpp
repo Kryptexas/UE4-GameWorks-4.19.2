@@ -565,7 +565,8 @@ static bool SaveWorld(UWorld* World,
 			SaveErrors.Flush();
 		}
 
-		if (bSuccess)
+		// @todo Autosaving should save build data as well
+		if (bSuccess && !bAutosaving)
 		{
 			// Also save MapBuildData packages when saving the current level
 			FEditorFileUtils::SaveMapDataPackages(DuplicatedWorld ? DuplicatedWorld : World, bCheckDirty);

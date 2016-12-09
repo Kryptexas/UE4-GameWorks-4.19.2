@@ -1006,7 +1006,7 @@ FReply SNodePanel::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEven
 	return FReply::Unhandled();
 }
 
-float SNodePanel::GetRelativeLayoutScale(const FSlotBase& Child) const
+float SNodePanel::GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const
 {
 	return GetZoomAmount();
 }

@@ -618,6 +618,16 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 	return FProcHandle(ProcessHandle);
 }
 
+FProcHandle FMacPlatformProcess::OpenProcess(uint32 ProcessID)
+{
+	for (NSRunningApplication *app in[[NSWorkspace sharedWorkspace] runningApplications])
+	{
+		NSLog(@"%@",[app localizedName]);
+	}
+
+	return FProcHandle();
+}
+
 bool FMacPlatformProcess::IsProcRunning( FProcHandle& ProcessHandle )
 {
 	SCOPED_AUTORELEASE_POOL;

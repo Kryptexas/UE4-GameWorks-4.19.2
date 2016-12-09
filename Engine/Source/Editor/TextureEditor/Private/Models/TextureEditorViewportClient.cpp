@@ -129,17 +129,20 @@ void FTextureEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 		float Exposure = FMath::Pow(2.0f, (float)TextureEditorViewportPtr.Pin()->GetExposureBias());
 
-		FCanvasTileItem TileItem( FVector2D( XPos, YPos ), Texture->Resource, FVector2D( Width, Height ), FLinearColor(Exposure, Exposure, Exposure) );
-		TileItem.BlendMode = TextureEditorPtr.Pin()->GetColourChannelBlendMode();
-		TileItem.BatchedElementParameters = BatchedElementParameters;
-		Canvas->DrawItem( TileItem );
-
-		// Draw a white border around the texture to show its extents
-		if (Settings.TextureBorderEnabled)
+		if ( Texture->Resource != nullptr )
 		{
-			FCanvasBoxItem BoxItem( FVector2D(XPos, YPos), FVector2D(Width , Height ) );
-			BoxItem.SetColor( Settings.TextureBorderColor );
-			Canvas->DrawItem( BoxItem );
+			FCanvasTileItem TileItem( FVector2D( XPos, YPos ), Texture->Resource, FVector2D( Width, Height ), FLinearColor(Exposure, Exposure, Exposure) );
+			TileItem.BlendMode = TextureEditorPtr.Pin()->GetColourChannelBlendMode();
+			TileItem.BatchedElementParameters = BatchedElementParameters;
+			Canvas->DrawItem( TileItem );
+
+			// Draw a white border around the texture to show its extents
+			if (Settings.TextureBorderEnabled)
+			{
+				FCanvasBoxItem BoxItem( FVector2D(XPos, YPos), FVector2D(Width , Height ) );
+				BoxItem.SetColor( Settings.TextureBorderColor );
+				Canvas->DrawItem( BoxItem );
+			}
 		}
 	}
 }

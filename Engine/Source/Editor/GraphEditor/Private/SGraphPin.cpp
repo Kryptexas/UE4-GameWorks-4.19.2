@@ -562,15 +562,19 @@ void SGraphPin::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& 
 	
 					for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
 					{
-						if (UK2Node_Knot* OwningNode = Cast<UK2Node_Knot>(LinkedPin->GetOwningNodeUnchecked()))
+						int32 InputPinIndex = -1;
+						int32 OutputPinIndex = -1;
+						UEdGraphNode* InKnot = LinkedPin->GetOwningNodeUnchecked();
+						if (InKnot != nullptr && InKnot->ShouldDrawNodeAsControlPointOnly(InputPinIndex, OutputPinIndex) == true &&
+							InputPinIndex >= 0 && OutputPinIndex >= 0)
 						{
-							SetHovered(OwningNode);
+							SetHovered(InKnot);
 						}
 					}
 				}
 
 			private:
-				void SetHovered(UK2Node_Knot* KnotNode)
+				void SetHovered(UEdGraphNode* KnotNode)
 				{
 					bool bAlreadyTraversed = false;
 					IntermediateNodes.Add(KnotNode, &bAlreadyTraversed);
@@ -585,7 +589,7 @@ void SGraphPin::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& 
 				}
 
 			private:
-				TSet<UK2Node_Knot*> IntermediateNodes;
+				TSet<UEdGraphNode*> IntermediateNodes;
 				TSet<FEdGraphPinReference>& PinSetOut;
 				TSharedPtr<SGraphPanel>   TargetPanel;
 			};

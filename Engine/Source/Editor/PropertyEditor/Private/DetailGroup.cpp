@@ -58,6 +58,16 @@ IDetailPropertyRow& FDetailGroup::AddPropertyRow( TSharedRef<IPropertyHandle> Pr
 	return *NewCustomization.PropertyRow;
 }
 
+IDetailGroup& FDetailGroup::AddGroup(FName NewGroupName, const FText& InLocalizedDisplayName, bool bInStartExpanded)
+{
+	FDetailLayoutCustomization NewCustomization;
+	NewCustomization.DetailGroup = MakeShareable(new FDetailGroup(NewGroupName, ParentCategory.Pin().ToSharedRef(), InLocalizedDisplayName, bStartExpanded));
+
+	GroupChildren.Add(NewCustomization);
+
+	return *NewCustomization.DetailGroup;
+}
+
 void FDetailGroup::ToggleExpansion( bool bExpand )
 {
 	if( ParentCategory.IsValid() && OwnerTreeNode.IsValid() )

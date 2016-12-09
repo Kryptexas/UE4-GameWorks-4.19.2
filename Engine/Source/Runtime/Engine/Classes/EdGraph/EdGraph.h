@@ -68,6 +68,8 @@ class ENGINE_API UEdGraph : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** The schema that this graph obeys */
 	UPROPERTY()
 	TSubclassOf<class UEdGraphSchema>  Schema;
@@ -118,8 +120,9 @@ public:
 	/** Remove a listener for OnGraphChanged events */
 	void RemoveOnGraphChangedHandler( FDelegateHandle Handle );
 
-#if WITH_EDITORONLY_DATA
 	//~ Begin UObject interface
+	virtual void BuildSubobjectMapping(UObject* OtherObject, TMap<UObject*, UObject*>& ObjectMapping) const override;
+#if WITH_EDITORONLY_DATA
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;

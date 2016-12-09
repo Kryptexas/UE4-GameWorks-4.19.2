@@ -16,6 +16,15 @@
 
 #include "Kismet2/CompilerResultsLog.h"
 #include "Binding/PropertyBinding.h"
+#include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "PropertyTag.h"
+#include "WidgetBlueprint.h"
+#include "WidgetBlueprintCompiler.h"
+#include "PropertyBinding.h"
+#include "Engine/UserDefinedStruct.h"
+#include "UObject/EditorObjectVersion.h"
+#include "Classes/WidgetGraphSchema.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -504,6 +513,23 @@ UWidgetBlueprint::UWidgetBlueprint(const FObjectInitializer& ObjectInitializer)
 	WidgetTree->SetFlags(RF_Transactional);
 }
 
+void UWidgetBlueprint::ReplaceDeprecatedNodes()
+{
+	if ( GetLinkerCustomVersion(FEditorObjectVersion::GUID) < FEditorObjectVersion::WidgetGraphSchema )
+	{
+		// Update old graphs to all use the widget graph schema.
+		TArray<UEdGraph*> Graphs;
+		GetAllGraphs(Graphs);
+
+		for ( UEdGraph* Graph : Graphs )
+		{
+			Graph->Schema = UWidgetGraphSchema::StaticClass();
+		}
+	}
+
+	Super::ReplaceDeprecatedNodes();
+}
+
 void UWidgetBlueprint::PostLoad()
 {
 	Super::PostLoad();
@@ -546,6 +572,18 @@ void UWidgetBlueprint::PostLoad()
 			{
 				Binding.PropertyName = Visibility;
 			}
+		}
+	}
+
+	if ( GetLinkerCustomVersion(FEditorObjectVersion::GUID) < FEditorObjectVersion::WidgetGraphSchema )
+	{
+		// Update old graphs to all use the widget graph schema.
+		TArray<UEdGraph*> Graphs;
+		GetAllGraphs(Graphs);
+
+		for ( UEdGraph* Graph : Graphs )
+		{
+			Graph->Schema = UWidgetGraphSchema::StaticClass();
 		}
 	}
 }

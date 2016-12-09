@@ -1,57 +1,72 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Fonts/CompositeFont.h"
+#include "SlateGlobals.h"
 #include "UObject/EditorObjectVersion.h"
 #include "Fonts/FontFaceInterface.h"
 #include "Templates/Casts.h"
 #include "Fonts/FontBulkData.h"
 
+// The total true type memory we are using for resident font faces
+DECLARE_MEMORY_STAT(TEXT("Resident Font Memory (TTF/OTF)"), STAT_SlateRawFontDataMemory, STATGROUP_SlateMemory);
+
+void FFontFaceData::TrackMemoryUsage() const
+{
+	INC_DWORD_STAT_BY(STAT_SlateRawFontDataMemory, Data.GetAllocatedSize());
+}
+
+void FFontFaceData::UntrackMemoryUsage() const
+{
+	DEC_DWORD_STAT_BY(STAT_SlateRawFontDataMemory, Data.GetAllocatedSize());
+}
+
 FFontData::FFontData()
 	: FontFilename()
 	, Hinting(EFontHinting::Default)
-	, LoadingPolicy(EFontLoadingPolicy::PreLoad)
-#if WITH_EDITORONLY_DATA
+	, LoadingPolicy(EFontLoadingPolicy::LazyLoad)
 	, FontFaceAsset(nullptr)
+#if WITH_EDITORONLY_DATA
 	, BulkDataPtr_DEPRECATED(nullptr)
 	, FontData_DEPRECATED()
 #endif // WITH_EDITORONLY_DATA
 {
 }
 
-#if WITH_EDITORONLY_DATA
 FFontData::FFontData(const UObject* const InFontFaceAsset)
 	: FontFilename()
 	, Hinting(EFontHinting::Default)
-	, LoadingPolicy(EFontLoadingPolicy::PreLoad)
+	, LoadingPolicy(EFontLoadingPolicy::LazyLoad)
 	, FontFaceAsset(InFontFaceAsset)
+#if WITH_EDITORONLY_DATA
 	, BulkDataPtr_DEPRECATED(nullptr)
 	, FontData_DEPRECATED()
+#endif // WITH_EDITORONLY_DATA
 {
 	if (FontFaceAsset)
 	{
 		CastChecked<const IFontFaceInterface>(FontFaceAsset);
 	}
 }
-#endif // WITH_EDITORONLY_DATA
 
 FFontData::FFontData(FString InFontFilename, const EFontHinting InHinting, const EFontLoadingPolicy InLoadingPolicy)
 	: FontFilename(MoveTemp(InFontFilename))
 	, Hinting(InHinting)
 	, LoadingPolicy(InLoadingPolicy)
-#if WITH_EDITORONLY_DATA
 	, FontFaceAsset(nullptr)
+#if WITH_EDITORONLY_DATA
 	, BulkDataPtr_DEPRECATED(nullptr)
 	, FontData_DEPRECATED()
 #endif // WITH_EDITORONLY_DATA
 {
+	check(InLoadingPolicy != EFontLoadingPolicy::Inline);
 }
 
 FFontData::FFontData(FString InFontFilename, const UFontBulkData* const InBulkData, const EFontHinting InHinting)
 	: FontFilename(MoveTemp(InFontFilename))
 	, Hinting(InHinting)
-	, LoadingPolicy(EFontLoadingPolicy::PreLoad)
-#if WITH_EDITORONLY_DATA
+	, LoadingPolicy(EFontLoadingPolicy::LazyLoad)
 	, FontFaceAsset(nullptr)
+#if WITH_EDITORONLY_DATA
 	, BulkDataPtr_DEPRECATED(nullptr)
 	, FontData_DEPRECATED()
 #endif // WITH_EDITORONLY_DATA
@@ -60,50 +75,42 @@ FFontData::FFontData(FString InFontFilename, const UFontBulkData* const InBulkDa
 
 const FString& FFontData::GetFontFilename() const
 {
-#if WITH_EDITORONLY_DATA
 	if (FontFaceAsset)
 	{
 		const IFontFaceInterface* FontFace = CastChecked<const IFontFaceInterface>(FontFaceAsset);
 		return FontFace->GetFontFilename();
 	}
-#endif // WITH_EDITORONLY_DATA
 	return FontFilename;
 }
 
 EFontHinting FFontData::GetHinting() const
 {
-#if WITH_EDITORONLY_DATA
 	if (FontFaceAsset)
 	{
 		const IFontFaceInterface* FontFace = CastChecked<const IFontFaceInterface>(FontFaceAsset);
 		return FontFace->GetHinting();
 	}
-#endif // WITH_EDITORONLY_DATA
 	return Hinting;
 }
 
 EFontLoadingPolicy FFontData::GetLoadingPolicy() const
 {
-#if WITH_EDITORONLY_DATA
 	if (FontFaceAsset)
 	{
 		const IFontFaceInterface* FontFace = CastChecked<const IFontFaceInterface>(FontFaceAsset);
 		return FontFace->GetLoadingPolicy();
 	}
-#endif // WITH_EDITORONLY_DATA
 	return LoadingPolicy;
 }
 
-#if WITH_EDITORONLY_DATA
-bool FFontData::GetFontFaceData(TArray<uint8>& OutFontFaceData) const
+FFontFaceDataConstPtr FFontData::GetFontFaceData() const
 {
 	if (FontFaceAsset)
 	{
 		const IFontFaceInterface* FontFace = CastChecked<const IFontFaceInterface>(FontFaceAsset);
-		OutFontFaceData = FontFace->GetFontFaceData();
-		return true;
+		return FontFace->GetFontFaceData();
 	}
-	return false;
+	return nullptr;
 }
 
 const UObject* FFontData::GetFontFaceAsset() const
@@ -111,6 +118,7 @@ const UObject* FFontData::GetFontFaceAsset() const
 	return FontFaceAsset;
 }
 
+#if WITH_EDITORONLY_DATA
 bool FFontData::HasLegacyData() const
 {
 	return FontData_DEPRECATED.Num() > 0 || BulkDataPtr_DEPRECATED;
@@ -150,7 +158,6 @@ void FFontData::ConditionalUpgradeBulkDataToFontFace(UObject* InOuter, UClass* I
 
 bool FFontData::operator==(const FFontData& Other) const
 {
-#if WITH_EDITORONLY_DATA
 	if (FontFaceAsset != Other.FontFaceAsset)
 	{
 		// Using different assets
@@ -161,7 +168,6 @@ bool FFontData::operator==(const FFontData& Other) const
 		// Using the same asset
 		return true;
 	}
-#endif // WITH_EDITORONLY_DATA
 
 	// Compare inline properties
 	return FontFilename == Other.FontFilename
@@ -189,26 +195,12 @@ bool FFontData::Serialize(FArchive& Ar)
 
 	if (bIsCooked)
 	{
-		// Cooked data uses a more compact format, and doesn't persist the font face asset when loading
-		UObject* LocalFontFaceAsset = nullptr;
-#if WITH_EDITORONLY_DATA
-		LocalFontFaceAsset = const_cast<UObject*>(FontFaceAsset);
-#endif // WITH_EDITORONLY_DATA
+		// Cooked data uses a more compact format
+		UObject* LocalFontFaceAsset = const_cast<UObject*>(FontFaceAsset);
 		Ar << LocalFontFaceAsset;
+		FontFaceAsset = LocalFontFaceAsset;
 		
-		if (LocalFontFaceAsset)
-		{
-			if (Ar.IsLoading())
-			{
-				IFontFaceInterface* LocalFontFace = CastChecked<IFontFaceInterface>(LocalFontFaceAsset);
-
-				// Set the other properties from the font face asset
-				FontFilename = LocalFontFace->GetCookedFilename();
-				Hinting = LocalFontFace->GetHinting();
-				LoadingPolicy = LocalFontFace->GetLoadingPolicy();
-			}
-		}
-		else
+		if (!FontFaceAsset)
 		{
 			// Only need to serialize the other properties when we lack a font face asset
 			Ar << FontFilename;
@@ -218,15 +210,6 @@ bool FFontData::Serialize(FArchive& Ar)
 	}
 	else
 	{
-#if WITH_EDITORONLY_DATA
-		// Need to make sure the font face asset is tracked as a reference for cooking, despite being in an editor-only property
-		if (Ar.IsObjectReferenceCollector())
-		{
-			UObject* LocalFontFaceAsset = const_cast<UObject*>(FontFaceAsset);
-			Ar << LocalFontFaceAsset;
-		}
-#endif // WITH_EDITORONLY_DATA
-
 		// Uncooked data uses the standard struct serialization to avoid versioning on editor-only data
 		UScriptStruct* FontDataStruct = StaticStruct();
 		if (FontDataStruct->UseBinarySerialization(Ar))
@@ -244,8 +227,8 @@ bool FFontData::Serialize(FArchive& Ar)
 
 void FFontData::AddReferencedObjects(FReferenceCollector& Collector)
 {
-#if WITH_EDITORONLY_DATA
 	Collector.AddReferencedObject(FontFaceAsset);
+#if WITH_EDITORONLY_DATA
 	Collector.AddReferencedObject(BulkDataPtr_DEPRECATED);
 #endif // WITH_EDITORONLY_DATA
 }

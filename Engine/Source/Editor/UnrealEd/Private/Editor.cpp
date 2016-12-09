@@ -362,20 +362,27 @@ void FReimportManager::ValidateAllSourceFileAndReimport(TArray<UObject*> &ToImpo
 		TArray<FString> SourceFilenames;
 		if (this->CanReimport(Asset, &SourceFilenames))
 		{
-			bool bMissingFile = false;
-			for (FString SourceFilename : SourceFilenames)
+			if (SourceFilenames.Num() == 0)
 			{
-				if (SourceFilename.IsEmpty() || IFileManager::Get().FileSize(*SourceFilename) == INDEX_NONE)
-				{
-					MissingFileSelectedAssets.Add(Asset);
-					bMissingFile = true;
-					break;
-				}
+				MissingFileSelectedAssets.Add(Asset);
 			}
-
-			if (!bMissingFile)
+			else
 			{
-				CopyOfSelectedAssets.Add(Asset);
+				bool bMissingFile = false;
+				for (FString SourceFilename : SourceFilenames)
+				{
+					if (SourceFilename.IsEmpty() || IFileManager::Get().FileSize(*SourceFilename) == INDEX_NONE)
+					{
+						MissingFileSelectedAssets.Add(Asset);
+						bMissingFile = true;
+						break;
+					}
+				}
+
+				if (!bMissingFile)
+				{
+					CopyOfSelectedAssets.Add(Asset);
+				}
 			}
 		}
 	}
@@ -439,6 +446,18 @@ void FReimportManager::ValidateAllSourceFileAndReimport(TArray<UObject*> &ToImpo
 	}
 
 	FReimportManager::Instance()->ReimportMultiple(CopyOfSelectedAssets, /*bAskForNewFileIfMissing=*/false);
+}
+
+void FReimportManager::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	for(FReimportHandler* Handler : Handlers)
+	{
+		const UObject* Obj = Handler->GetFactoryObject();
+		if(Obj)
+		{
+			Collector.AddReferencedObject(Obj);
+		}
+	}
 }
 
 bool FReimportManager::ReimportMultiple(TArrayView<UObject*> Objects, bool bAskForNewFileIfMissing /*= false*/, bool bShowNotification /*= true*/, FString PreferedReimportFile /*= TEXT("")*/, FReimportHandler* SpecifiedReimportHandler /*= nullptr */)

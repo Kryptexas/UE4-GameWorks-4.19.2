@@ -225,6 +225,17 @@ void FCurveStructCustomization::ModifyOwner()
 	}
 }
 
+TArray<const UObject*> FCurveStructCustomization::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	if (Owner)
+	{
+		Owners.Add(Owner);
+	}
+
+	return Owners;
+}
+
 void FCurveStructCustomization::MakeTransactional()
 {
 	if (Owner)

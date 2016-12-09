@@ -179,13 +179,19 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 	SET_DWORD_STAT( STAT_SlateVertexCount, InBatchData.GetNumBatchedVertices() );
 }
 
-static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix )
+static FSceneView* CreateSceneView( FSceneViewFamilyContext* ViewFamilyContext, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix )
 {
+	// In loading screens, the engine is NULL, so we skip out.
+	if (GEngine == nullptr)
+	{
+		return nullptr;
+	}
+
 	FIntRect ViewRect(FIntPoint(0, 0), BackBuffer.GetSizeXY());
 
 	// make a temporary view
 	FSceneViewInitOptions ViewInitOptions;
-	ViewInitOptions.ViewFamily = &ViewFamilyContext;
+	ViewInitOptions.ViewFamily = ViewFamilyContext;
 	ViewInitOptions.SetViewRectangle(ViewRect);
 	ViewInitOptions.ViewOrigin = FVector::ZeroVector;
 	ViewInitOptions.ViewRotationMatrix = FMatrix::Identity;
@@ -194,7 +200,7 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	ViewInitOptions.OverlayColor = FLinearColor::White;
 
 	FSceneView* View = new FSceneView( ViewInitOptions );
-	ViewFamilyContext.Views.Add( View );
+	ViewFamilyContext->Views.Add( View );
 
 	const FIntPoint BufferSize = BackBuffer.GetSizeXY();
 
@@ -215,7 +221,7 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 
 	View->ViewUniformBuffer = TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 
-	return *View;
+	return View;
 }
 
 void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches, bool bAllowSwitchVerticalAxis)
@@ -234,19 +240,43 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 	const float DisplayGamma = bGammaCorrect ? GEngine ? GEngine->GetDisplayGamma() : 2.2f : 1.0f;
 
-	FSceneViewFamilyContext SceneViewContext
-	(
-		FSceneViewFamily::ConstructionValues
-		(
-			&BackBuffer,
-			nullptr,
-			DefaultShowFlags
-		)
-		.SetWorldTimes( TimeSeconds, DeltaTimeSeconds, RealTimeSeconds )
-		.SetGammaCorrection( DisplayGamma )
-	);
+	// In order to support MaterialParameterCollections, we need to create multiple FSceneViews for 
+	// each possible Scene that we encounter. The following code creates these as separate arrays, where the first 
+	// N entries map directly to entries from ActiveScenes. The final entry is added to represent the absence of a
+	// valid scene, i.e. a -1 in the SceneIndex parameter of the batch.
+	int32 NumScenes = ResourceManager->GetSceneCount() + 1;
+	TArray<FSceneView*, TInlineAllocator<3> > SceneViews;
+	SceneViews.SetNum(NumScenes);
+	TArray<FSceneViewFamilyContext*, TInlineAllocator<3> > SceneViewFamilyContexts;
+	SceneViewFamilyContexts.SetNum(NumScenes);
+	for (int32 i = 0; i < ResourceManager->GetSceneCount(); i++)
+	{
+		SceneViewFamilyContexts[i] = new  FSceneViewFamilyContext
+			(
+				FSceneViewFamily::ConstructionValues
+				(
+					&BackBuffer,
+					ResourceManager->GetSceneAt(i),
+					DefaultShowFlags
+				)
+				.SetWorldTimes(TimeSeconds, DeltaTimeSeconds, RealTimeSeconds)
+				.SetGammaCorrection(DisplayGamma)
+			);
+		SceneViews[i] = CreateSceneView(SceneViewFamilyContexts[i], BackBuffer, ViewProjectionMatrix);
+	}
 
-	FSceneView* SceneView = NULL;
+	SceneViewFamilyContexts[NumScenes-1] = new  FSceneViewFamilyContext
+		(
+			FSceneViewFamily::ConstructionValues
+			(
+				&BackBuffer,
+				nullptr,
+				DefaultShowFlags
+				)
+			.SetWorldTimes(TimeSeconds, DeltaTimeSeconds, RealTimeSeconds)
+			.SetGammaCorrection(DisplayGamma)
+			);
+	SceneViews[NumScenes-1] = CreateSceneView(SceneViewFamilyContexts[NumScenes-1], BackBuffer, ViewProjectionMatrix);
 
 	TShaderMapRef<FSlateElementVS> GlobalVertexShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 
@@ -462,10 +492,26 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 			{
 				check(RenderBatch.NumIndices > 0);
 				// Note: This code is only executed if the engine is loaded (in early loading screens attempting to use a material is unsupported
-				if (!SceneView)
+				int ActiveSceneIndex = RenderBatch.SceneIndex;
+
+				// We are assuming at this point that the SceneIndex from the batch is either -1, meaning no scene or a valid scene.
+				// We set up the "no scene" option as the last SceneView in the array above.
+				if (RenderBatch.SceneIndex == -1)
 				{
-					SceneView = &CreateSceneView(SceneViewContext, BackBuffer, ViewProjectionMatrix);
+					ActiveSceneIndex = NumScenes - 1;
 				}
+				else
+				{
+					ensure(RenderBatch.SceneIndex < ResourceManager->GetSceneCount());
+				}
+
+				// Handle the case where we skipped out early above
+				if (SceneViews[ActiveSceneIndex] == nullptr)
+				{
+					continue;
+				}
+
+				const FSceneView& ActiveSceneView = *SceneViews[ActiveSceneIndex];
 
 				FSlateMaterialResource* MaterialShaderResource = (FSlateMaterialResource*)ShaderResource;
 				if( MaterialShaderResource->GetMaterialObject() != nullptr )
@@ -479,7 +525,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 #endif
 					FMaterialRenderProxy* MaterialRenderProxy = MaterialShaderResource->GetRenderProxy();
 
-					const FMaterial* Material = MaterialRenderProxy->GetMaterial(SceneView->GetFeatureLevel());
+					const FMaterial* Material = MaterialRenderProxy->GetMaterial(ActiveSceneView.GetFeatureLevel());
 
 					FSlateMaterialShaderPS* PixelShader = GetMaterialPixelShader(Material, ShaderType, DrawEffects);
 
@@ -498,9 +544,9 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 						VertexShader->SetViewProjection(RHICmdList, ViewProjection);
 						VertexShader->SetVerticalAxisMultiplier(RHICmdList, bAllowSwitchVerticalAxis && RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? -1.0f : 1.0f);
-						VertexShader->SetMaterialShaderParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material);
+						VertexShader->SetMaterialShaderParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material);
 
-						PixelShader->SetParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material, DisplayGamma, ShaderParams.PixelParams);
+						PixelShader->SetParameters(RHICmdList, ActiveSceneView, MaterialRenderProxy, Material, DisplayGamma, ShaderParams.PixelParams);
 						PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
 
 						FSlateShaderResource* MaskResource = MaterialShaderResource->GetTextureMaskResource();
@@ -612,6 +658,14 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 		}
 
 	}
+
+	for (int i = 0; i < NumScenes; i++)
+	{
+		// Don't need to delete SceneViews b/c the SceneViewFamily will delete it when it goes away.
+		delete SceneViewFamilyContexts[i];
+	}
+	SceneViews.Empty();
+	SceneViewFamilyContexts.Empty();
 }
 
 
@@ -784,3 +838,19 @@ EPrimitiveType FSlateRHIRenderingPolicy::GetRHIPrimitiveType(ESlateDrawPrimitive
 
 };
 
+
+void FSlateRHIRenderingPolicy::AddSceneAt(FSceneInterface* Scene, int32 Index)
+{
+	ResourceManager->AddSceneAt(Scene, Index);
+}
+
+void FSlateRHIRenderingPolicy::ClearScenes()
+{
+	ResourceManager->ClearScenes();
+}
+
+void FSlateRHIRenderingPolicy::FlushGeneratedResources()
+{
+	PostProcessor->ReleaseRenderTargets();
+}
+	

@@ -46,6 +46,10 @@ class UFbxSceneImportOptions : public UObject
 	UPROPERTY(EditAnywhere, config, category = ImportOptions)
 	TEnumAsByte<enum EFBXSceneOptionsCreateHierarchyType> HierarchyType;
 
+	/** Whether to force the front axis to be align with X instead of -Y. */
+	UPROPERTY(EditAnywhere, config, category = ImportOptions)
+	uint32 bForceFrontXAxis : 1;
+
 	UPROPERTY()
 	FVector ImportTranslation;
 

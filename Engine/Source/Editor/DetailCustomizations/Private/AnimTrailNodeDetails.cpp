@@ -98,6 +98,17 @@ void FAnimTrailNodeDetails::FTrailRelaxCurveEditor::ModifyOwner()
 	}
 }
 
+TArray<const UObject*> FAnimTrailNodeDetails::FTrailRelaxCurveEditor::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	if (GraphNodeOwner)
+	{
+		Owners.Add(GraphNodeOwner);
+	}
+
+	return Owners;
+}
+
 void FAnimTrailNodeDetails::FTrailRelaxCurveEditor::MakeTransactional()
 {
 	if(GraphNodeOwner)

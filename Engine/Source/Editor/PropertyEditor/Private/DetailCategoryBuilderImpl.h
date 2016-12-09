@@ -165,7 +165,7 @@ public:
 	virtual void GetDefaultProperties( TArray<TSharedRef<IPropertyHandle> >& OutAllProperties, bool bSimpleProperties = true, bool bAdvancedProperties = true ) override;
 	virtual const FText& GetDisplayName() const override { return DisplayName; }
 	virtual void SetCategoryVisibility( bool bIsVisible ) override;
-
+	
 	/** IDetailTreeNode interface */
 	virtual IDetailsViewPrivate& GetDetailsView() const override{ return DetailLayoutBuilder.Pin()->GetDetailsView(); }
 	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities, bool bAllowFavoriteSystem) override;
@@ -176,6 +176,11 @@ public:
 	virtual void Tick( float DeltaTime ) override {}
 	virtual bool ShouldShowOnlyChildren() const override { return false; }
 	virtual FName GetNodeName() const override { return GetCategoryName(); }
+
+	/**
+	 * @return true if the parent layout is valid or has been destroyed by a refresh.
+	 */
+	bool IsParentLayoutValid() const { return DetailLayoutBuilder.IsValid(); }
 
 	/**
 	 * @return The name of the category

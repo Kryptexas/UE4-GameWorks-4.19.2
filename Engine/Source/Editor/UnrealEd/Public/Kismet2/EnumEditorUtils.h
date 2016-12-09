@@ -78,10 +78,11 @@ public:
 	static int64 ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int64 EnumeratorValue);
 
 	//DISPLAY NAME
-	static FString GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, int32 EnumeratorIndex);
-	static bool SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 EnumeratorIndex, FString NewDisplayName);
-	static bool IsEnumeratorDisplayNameValid(const UUserDefinedEnum* Enum, FString NewDisplayName);
+	static FText GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, int32 EnumeratorIndex);
+	static bool SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 EnumeratorIndex, FText NewDisplayName);
+	static bool IsEnumeratorDisplayNameValid(const UUserDefinedEnum* Enum, int32 EnumeratorIndex, FText NewDisplayName);
 	static void EnsureAllDisplayNamesExist(class UUserDefinedEnum* Enum);
+	static void UpgradeDisplayNamesFromMetaData(class UUserDefinedEnum* Enum);
 };
 
 #endif // __EnumEditorUtils_h__

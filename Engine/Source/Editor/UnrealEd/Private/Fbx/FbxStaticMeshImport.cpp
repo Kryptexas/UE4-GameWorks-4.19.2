@@ -41,7 +41,7 @@ static const int32 LARGE_MESH_MATERIAL_INDEX_THRESHOLD = 64;
 using namespace UnFbx;
 
 struct ExistingStaticMeshData;
-extern ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bool bSaveMaterials);
+extern ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, FBXImportOptions* ImportOptions);
 extern void RestoreExistingMeshSettings(struct ExistingStaticMeshData* ExistingMesh, UStaticMesh* NewMesh, int32 LODIndex);
 extern void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr, UStaticMesh* NewMesh);
 
@@ -813,7 +813,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportSceneStaticMesh(uint64 FbxNodeUniqueId
 		return Mesh;
 	}
 
-	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, !ImportOptions->bImportMaterials);
+	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, ImportOptions);
 
 	if (Node)
 	{
@@ -938,7 +938,7 @@ UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStat
 	ImportOptions->bImportMaterials = false;
 	ImportOptions->bImportTextures = false;
 
-	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, !ImportOptions->bImportMaterials);
+	struct ExistingStaticMeshData* ExistMeshDataPtr = SaveExistingStaticMeshData(Mesh, ImportOptions);
 
 	if (Node)
 	{
@@ -1576,6 +1576,8 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		
 		//warnings based on geometry
 		VerifyGeometry(StaticMesh);
+
+		ImportStaticMeshLocalSockets(StaticMesh, MeshNodeArray);
 	}
 
 	return StaticMesh;
@@ -1784,7 +1786,73 @@ static void FindMeshSockets( FbxNode* StartNode, TArray<FbxSocketNode>& OutFbxSo
 	}
 }
 
-void UnFbx::FFbxImporter::ImportStaticMeshSockets( UStaticMesh* StaticMesh )
+void UnFbx::FFbxImporter::ImportStaticMeshLocalSockets(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
+{
+	check(MeshNodeArray.Num());
+	FbxNode *MeshRootNode = MeshNodeArray[0];
+	const FbxAMatrix &MeshTotalMatrix = ComputeTotalMatrix(MeshRootNode);
+	for (FbxNode* RootNode : MeshNodeArray)
+	{
+		// Find all nodes that are sockets
+		TArray<FbxSocketNode> SocketNodes;
+		FindMeshSockets(RootNode, SocketNodes);
+
+		// Create a UStaticMeshSocket for each fbx socket
+		for (int32 SocketIndex = 0; SocketIndex < SocketNodes.Num(); ++SocketIndex)
+		{
+			FbxSocketNode& SocketNode = SocketNodes[SocketIndex];
+
+			UStaticMeshSocket* Socket = StaticMesh->FindSocket(SocketNode.SocketName);
+			if (!Socket)
+			{
+				// If the socket didn't exist create a new one now
+				Socket = NewObject<UStaticMeshSocket>(StaticMesh);
+				check(Socket);
+
+				Socket->SocketName = SocketNode.SocketName;
+				StaticMesh->Sockets.Add(Socket);
+			}
+
+			if (Socket)
+			{
+				const FbxAMatrix& SocketMatrix = Scene->GetAnimationEvaluator()->GetNodeLocalTransform(SocketNode.Node);
+				FbxAMatrix FinalSocketMatrix = MeshTotalMatrix * SocketMatrix;
+				FTransform SocketTransform;
+				SocketTransform.SetTranslation(Converter.ConvertPos(FinalSocketMatrix.GetT()));
+				SocketTransform.SetRotation(Converter.ConvertRotToQuat(FinalSocketMatrix.GetQ()));
+				SocketTransform.SetScale3D(Converter.ConvertScale(FinalSocketMatrix.GetS()));
+
+				Socket->RelativeLocation = SocketTransform.GetLocation();
+				Socket->RelativeRotation = SocketTransform.GetRotation().Rotator();
+				Socket->RelativeScale = SocketTransform.GetScale3D();
+			}
+		}
+		// Delete mesh sockets that were removed from the import data
+		if (StaticMesh->Sockets.Num() != SocketNodes.Num())
+		{
+			for (int32 MeshSocketIx = 0; MeshSocketIx < StaticMesh->Sockets.Num(); ++MeshSocketIx)
+			{
+				bool Found = false;
+				UStaticMeshSocket* MeshSocket = StaticMesh->Sockets[MeshSocketIx];
+				for (int32 FbxSocketIx = 0; FbxSocketIx < SocketNodes.Num(); FbxSocketIx++)
+				{
+					if (SocketNodes[FbxSocketIx].SocketName == MeshSocket->SocketName)
+					{
+						Found = true;
+						break;
+					}
+				}
+				if (!Found)
+				{
+					StaticMesh->Sockets.RemoveAt(MeshSocketIx);
+					MeshSocketIx--;
+				}
+			}
+		}
+	}
+}
+
+void UnFbx::FFbxImporter::ImportStaticMeshGlobalSockets( UStaticMesh* StaticMesh )
 {
 	FbxNode* RootNode = Scene->GetRootNode();
 
@@ -1806,11 +1874,8 @@ void UnFbx::FFbxImporter::ImportStaticMeshSockets( UStaticMesh* StaticMesh )
 
 			Socket->SocketName = SocketNode.SocketName;
 			StaticMesh->Sockets.Add(Socket);
-		}
 
-		if( Socket )
-		{
-			FbxAMatrix& SocketMatrix = Scene->GetAnimationEvaluator()->GetNodeLocalTransform(SocketNode.Node);
+			const FbxAMatrix& SocketMatrix = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(SocketNode.Node);
 			FTransform SocketTransform;
 			SocketTransform.SetTranslation(Converter.ConvertPos(SocketMatrix.GetT()));
 			SocketTransform.SetRotation(Converter.ConvertRotToQuat(SocketMatrix.GetQ()));
@@ -1819,6 +1884,29 @@ void UnFbx::FFbxImporter::ImportStaticMeshSockets( UStaticMesh* StaticMesh )
 			Socket->RelativeLocation = SocketTransform.GetLocation();
 			Socket->RelativeRotation = SocketTransform.GetRotation().Rotator();
 			Socket->RelativeScale = SocketTransform.GetScale3D();
+		}
+	}
+
+	// Delete mesh sockets that were removed from the import data
+	if (StaticMesh->Sockets.Num() != SocketNodes.Num())
+	{
+		for (int32 MeshSocketIx = 0; MeshSocketIx < StaticMesh->Sockets.Num(); ++MeshSocketIx)
+		{
+			bool Found = false;
+			UStaticMeshSocket* MeshSocket = StaticMesh->Sockets[MeshSocketIx];
+			for (int32 FbxSocketIx = 0; FbxSocketIx < SocketNodes.Num(); FbxSocketIx++)
+			{
+				if (SocketNodes[FbxSocketIx].SocketName == MeshSocket->SocketName)
+				{
+					Found = true;
+					break;
+				}
+			}
+			if (!Found)
+			{
+				StaticMesh->Sockets.RemoveAt(MeshSocketIx);
+				MeshSocketIx--;
+			}
 		}
 	}
 }

@@ -40,27 +40,19 @@ void FDirectoryPathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHan
 
 		if(bContentDir)
 		{
-			FPathPickerConfig PathPickerConfig;
-			PathPickerConfig.bAllowContextMenu = false;
-			PathPickerConfig.OnPathSelected = FOnPathSelected::CreateSP(this, &FDirectoryPathStructCustomization::OnPathPicked, PathProperty.ToSharedRef());
-
-			FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-
-			PickerWidget = SAssignNew(PickerButton, SComboButton)
+			PickerWidget = SAssignNew(PickerButton, SButton)
 			.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
 			.ToolTipText( LOCTEXT( "FolderComboToolTipText", "Choose a content directory") )
-			.ContentPadding( 2.0f )
+			.OnClicked(FOnClicked::CreateSP(this, &FDirectoryPathStructCustomization::OnPickContent, PathProperty.ToSharedRef()))
+			.ContentPadding(2.0f)
 			.ForegroundColor( FSlateColor::UseForeground() )
-			.IsFocusable( false )
-			.MenuContent()
+			.IsFocusable(false)
 			[
-				SNew(SBox)
-				.WidthOverride(300.0f)
-				.HeightOverride(300.0f)
-				[
-					ContentBrowserModule.Get().CreatePathPicker(PathPickerConfig)
-				]
-			];			
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Ellipsis"))
+				.ColorAndOpacity(FSlateColor::UseForeground())
+			];
+
 		}
 		else
 		{
@@ -106,6 +98,32 @@ void FDirectoryPathStructCustomization::CustomizeHeader( TSharedRef<IPropertyHan
 
 void FDirectoryPathStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils )
 {
+}
+
+FReply FDirectoryPathStructCustomization::OnPickContent(TSharedRef<IPropertyHandle> PropertyHandle) 
+{
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	FPathPickerConfig PathPickerConfig;
+	PathPickerConfig.bAllowContextMenu = false;
+	PathPickerConfig.OnPathSelected = FOnPathSelected::CreateSP(this, &FDirectoryPathStructCustomization::OnPathPicked, PropertyHandle);
+
+	FMenuBuilder MenuBuilder(true, NULL);
+	MenuBuilder.AddWidget(SNew(SBox)
+		.WidthOverride(300.0f)
+		.HeightOverride(300.0f)
+		[
+			ContentBrowserModule.Get().CreatePathPicker(PathPickerConfig)
+		], FText());
+
+
+	PickerMenu = FSlateApplication::Get().PushMenu(PickerButton.ToSharedRef(),
+		FWidgetPath(),
+		MenuBuilder.MakeWidget(),
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
+		);
+
+	return FReply::Handled();
 }
 
 FReply FDirectoryPathStructCustomization::OnPickDirectory(TSharedRef<IPropertyHandle> PropertyHandle, const bool bRelativeToGameContentDir, const bool bUseRelativePath, const bool bLongPackageName) const
@@ -192,7 +210,11 @@ bool FDirectoryPathStructCustomization::IsValidPath(const FString& AbsolutePath,
 
 void FDirectoryPathStructCustomization::OnPathPicked(const FString& Path, TSharedRef<IPropertyHandle> PropertyHandle)
 {
-	PickerButton->SetIsOpen(false);
+	if (PickerMenu.IsValid())
+	{
+		PickerMenu->Dismiss();
+		PickerMenu.Reset();
+	}
 
 	PropertyHandle->SetValue(Path);
 }

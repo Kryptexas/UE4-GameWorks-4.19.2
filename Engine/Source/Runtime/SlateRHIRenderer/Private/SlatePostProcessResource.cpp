@@ -9,7 +9,6 @@ FSlatePostProcessResource::FSlatePostProcessResource(int32 InRenderTargetCount)
 	: RenderTargetSize(FIntPoint::ZeroValue)
 	, RenderTargetCount(InRenderTargetCount)
 {
-	
 }
 
 FSlatePostProcessResource::~FSlatePostProcessResource()
@@ -17,29 +16,28 @@ FSlatePostProcessResource::~FSlatePostProcessResource()
 
 }
 
-void FSlatePostProcessResource::Resize(const FIntPoint& NewSize)
+void FSlatePostProcessResource::Update(const FIntPoint& NewSize)
 {
-	check(IsInRenderingThread());
-	if(RenderTargetSize != NewSize)
+	if(NewSize.X > RenderTargetSize.X || NewSize.Y > RenderTargetSize.Y || RenderTargetSize == FIntPoint::ZeroValue || RenderTargets.Num() == 0 )
 	{
-		RenderTargetSize = NewSize;
-		UpdateRHI();
+		if(!IsInitialized())
+		{
+			InitResource();
+		}
+	
+		ResizeTargets(NewSize);
 	}
 }
 
-void FSlatePostProcessResource::CleanUp()
+void FSlatePostProcessResource::ResizeTargets(const FIntPoint& NewSize)
 {
-	BeginReleaseResource(this);
+	check(IsInRenderingThread());
 
-	BeginCleanup(this);
-}
-
-void FSlatePostProcessResource::InitDynamicRHI()
-{
 	RenderTargets.Empty();
 
+	RenderTargetSize = NewSize;
 	PixelFormat = PF_B8G8R8A8;
-	if(RenderTargetSize.X > 0 && RenderTargetSize.Y > 0)
+	if (RenderTargetSize.X > 0 && RenderTargetSize.Y > 0)
 	{
 		for (int32 TexIndex = 0; TexIndex < RenderTargetCount; ++TexIndex)
 		{
@@ -67,9 +65,22 @@ void FSlatePostProcessResource::InitDynamicRHI()
 	SET_MEMORY_STAT(STAT_SLATEPPRenderTargetMem, TotalMemory);
 }
 
+void FSlatePostProcessResource::CleanUp()
+{
+	BeginReleaseResource(this);
+
+	BeginCleanup(this);
+}
+
+void FSlatePostProcessResource::InitDynamicRHI()
+{
+}
+
 void FSlatePostProcessResource::ReleaseDynamicRHI()
 {
 	SET_MEMORY_STAT(STAT_SLATEPPRenderTargetMem, 0);
+
+	RenderTargetSize = FIntPoint::ZeroValue;
 
 	RenderTargets.Empty();
 }

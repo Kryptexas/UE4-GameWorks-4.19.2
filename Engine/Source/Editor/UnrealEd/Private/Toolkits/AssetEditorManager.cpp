@@ -15,6 +15,7 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "Toolkits/SimpleAssetEditor.h"
 #include "LevelEditor.h"
+#include "PackageReload.h"
 #include "EngineAnalytics.h"
 #include "AnalyticsEventAttribute.h"
 #include "Interfaces/IAnalyticsProvider.h"
@@ -52,10 +53,14 @@ FAssetEditorManager::FAssetEditorManager()
 
 	TickDelegate = FTickerDelegate::CreateRaw(this, &FAssetEditorManager::HandleTicker);
 	FTicker::GetCoreTicker().AddTicker(TickDelegate, 1.f);
+
+	FCoreUObjectDelegates::OnPackageReloaded.AddRaw(this, &FAssetEditorManager::HandlePackageReloaded);
 }
 
 void FAssetEditorManager::OnExit()
 {
+	FCoreUObjectDelegates::OnPackageReloaded.RemoveAll(this);
+
 	SaveOpenAssetEditors(true);
 
 	TGuardValue<bool> GuardOnShutdown(bSavingOnShutdown, true);
@@ -701,6 +706,38 @@ void FAssetEditorManager::SaveOpenAssetEditors(bool bOnShutdown)
 		GConfig->SetArray(TEXT("AssetEditorManager"), TEXT("OpenAssetsAtExit"), OpenAssets, GEditorPerProjectIni);
 		GConfig->SetBool(TEXT("AssetEditorManager"), TEXT("CleanShutdown"), bOnShutdown, GEditorPerProjectIni);
 		GConfig->Flush(false, GEditorPerProjectIni);
+	}
+}
+
+void FAssetEditorManager::HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent)
+{
+	if (InPackageReloadPhase == EPackageReloadPhase::PrePackageFixup)
+	{
+		TArray<UObject*> OldAssets;
+		TArray<UObject*> NewAssets;
+
+		for (auto AssetEditorPair : OpenedAssets)
+		{
+			UObject* NewAsset = nullptr;
+			if (InPackageReloadedEvent->GetRepointedObject(AssetEditorPair.Key, NewAsset))
+			{
+				OldAssets.Add(AssetEditorPair.Key);
+				if (NewAsset)
+				{
+					NewAssets.Add(NewAsset);
+				}
+			}
+		}
+
+		for (UObject* OldAsset : OldAssets)
+		{
+			CloseAllEditorsForAsset(OldAsset);
+		}
+
+		for (UObject* NewAsset : NewAssets)
+		{
+			OpenEditorForAsset(NewAsset);
+		}
 	}
 }
 

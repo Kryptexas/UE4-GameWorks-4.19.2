@@ -21,6 +21,8 @@
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "FbxImporter.h"
+
 
 bool GBuildStaticMeshCollision = 1;
 
@@ -868,12 +870,13 @@ struct ExistingStaticMeshData
 };
 
 
-ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bool bSaveMaterials)
+ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, UnFbx::FBXImportOptions* ImportOptions)
 {
 	struct ExistingStaticMeshData* ExistingMeshDataPtr = NULL;
 
 	if (ExistingMesh)
 	{
+		bool bSaveMaterials = !ImportOptions->bImportMaterials;
 		ExistingMeshDataPtr = new ExistingStaticMeshData();
 
 		ExistingMeshDataPtr->ImportVersion = ExistingMesh->ImportVersion;
@@ -924,6 +927,11 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh, bo
 					ExistingMeshDataPtr->ExistingSectionInfoMap.Set(i, SectionIndex, Info);
 				}
 			}
+
+			//The normals, tangent and tangent space build setting depend of the import options, so we cannot restore them, we have to set them when re-importing
+			ExistingMesh->SourceModels[i].BuildSettings.bRecomputeNormals = ImportOptions->NormalImportMethod == FBXNIM_ComputeNormals;
+			ExistingMesh->SourceModels[i].BuildSettings.bRecomputeTangents = ImportOptions->NormalImportMethod != FBXNIM_ImportNormalsAndTangents;
+			ExistingMesh->SourceModels[i].BuildSettings.bUseMikkTSpace = (ImportOptions->NormalGenerationMethod == EFBXNormalGenerationMethod::MikkTSpace) && (!ImportOptions->ShouldImportNormals() || !ImportOptions->ShouldImportTangents());
 
 			ExistingMeshDataPtr->ExistingLODData[i].ExistingBuildSettings = ExistingMesh->SourceModels[i].BuildSettings;
 			ExistingMeshDataPtr->ExistingLODData[i].ExistingReductionSettings = ExistingMesh->SourceModels[i].ReductionSettings;

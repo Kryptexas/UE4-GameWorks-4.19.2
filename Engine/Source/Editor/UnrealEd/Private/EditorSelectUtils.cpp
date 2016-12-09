@@ -315,7 +315,7 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 			{
 				USelection* SelectedActors = GetSelectedActors();
 				const bool bIsOwnerSelected = SelectedActors->IsSelected(ComponentOwner);
-				check(bIsOwnerSelected);
+				ensureMsgf(bIsOwnerSelected, TEXT("Owner(%s) of %s is not selected"), *ComponentOwner->GetFullName(), *Component->GetFullName());
 
 				if (ComponentOwner->GetWorld() == GWorld)
 				{

@@ -226,6 +226,33 @@ FSlateColor FDataTableEditor::GetRowTextColor(FName RowName) const
 	return FSlateColor::UseForeground();
 }
 
+FText FDataTableEditor::GetCellText(FDataTableEditorRowListViewDataPtr InRowDataPointer, int32 ColumnIndex) const
+{
+	if (InRowDataPointer.IsValid() && ColumnIndex < InRowDataPointer->CellData.Num())
+	{
+		return InRowDataPointer->CellData[ColumnIndex];
+	}
+
+	return FText();
+}
+
+FText FDataTableEditor::GetCellToolTipText(FDataTableEditorRowListViewDataPtr InRowDataPointer, int32 ColumnIndex) const
+{
+	FText TooltipText;
+
+	if (ColumnIndex < AvailableColumns.Num())
+	{
+		TooltipText = AvailableColumns[ColumnIndex]->DisplayName;
+	}
+
+	if (InRowDataPointer.IsValid() && ColumnIndex < InRowDataPointer->CellData.Num())
+	{
+		TooltipText = FText::Format(LOCTEXT("ColumnRowNameFmt", "{0}: {1}"), TooltipText, InRowDataPointer->CellData[ColumnIndex]);
+	}
+
+	return TooltipText;
+}
+
 FOptionalSize FDataTableEditor::GetRowNameColumnWidth() const
 {
 	return FOptionalSize(RowNameColumnWidth);
@@ -360,9 +387,9 @@ TSharedRef<SWidget> FDataTableEditor::MakeCellWidget(FDataTableEditorRowListView
 				SNew(STextBlock)
 				.TextStyle(FEditorStyle::Get(), "DataTableEditor.CellText")
 				.ColorAndOpacity(this, &FDataTableEditor::GetRowTextColor, InRowDataPtr->RowId)
-				.Text(InRowDataPtr->CellData[ColumnIndex])
+				.Text(this, &FDataTableEditor::GetCellText, InRowDataPtr, ColumnIndex)
 				.HighlightText(this, &FDataTableEditor::GetFilterText)
-				.ToolTipText(FText::Format(LOCTEXT("ColumnRowNameFmt", "{0}: {1}"), AvailableColumns[ColumnIndex]->DisplayName, InRowDataPtr->CellData[ColumnIndex]))
+				.ToolTipText(this, &FDataTableEditor::GetCellToolTipText, InRowDataPtr, ColumnIndex)
 			];
 	}
 
@@ -408,6 +435,8 @@ void FDataTableEditor::OnFilterTextChanged(const FText& InFilterText)
 void FDataTableEditor::RefreshCachedDataTable(const FName InCachedSelection, const bool bUpdateEvenIfValid)
 {
 	const UDataTable* Table = GetDataTable();
+	TArray<FDataTableEditorColumnHeaderDataPtr> PreviousColumns = AvailableColumns;
+
 	FDataTableEditorUtils::CacheDataTableForEditing(Table, AvailableColumns, AvailableRows);
 
 	// Update the desired width of the row names column
@@ -454,17 +483,20 @@ void FDataTableEditor::RefreshCachedDataTable(const FName InCachedSelection, con
 		}
 	}
 
-	ColumnNamesHeaderRow->ClearColumns();
-	for (int32 ColumnIndex = 0; ColumnIndex < AvailableColumns.Num(); ++ColumnIndex)
+	if (PreviousColumns != AvailableColumns)
 	{
-		const FDataTableEditorColumnHeaderDataPtr& ColumnData = AvailableColumns[ColumnIndex];
+		ColumnNamesHeaderRow->ClearColumns();
+		for (int32 ColumnIndex = 0; ColumnIndex < AvailableColumns.Num(); ++ColumnIndex)
+		{
+			const FDataTableEditorColumnHeaderDataPtr& ColumnData = AvailableColumns[ColumnIndex];
 
-		ColumnNamesHeaderRow->AddColumn(
-			SHeaderRow::Column(ColumnData->ColumnId)
-			.DefaultLabel(ColumnData->DisplayName)
-			.ManualWidth(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateSP(this, &FDataTableEditor::GetColumnWidth, ColumnIndex)))
-			.OnWidthChanged(this, &FDataTableEditor::OnColumnResized, ColumnIndex)
+			ColumnNamesHeaderRow->AddColumn(
+				SHeaderRow::Column(ColumnData->ColumnId)
+				.DefaultLabel(ColumnData->DisplayName)
+				.ManualWidth(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateSP(this, &FDataTableEditor::GetColumnWidth, ColumnIndex)))
+				.OnWidthChanged(this, &FDataTableEditor::OnColumnResized, ColumnIndex)
 			);
+		}
 	}
 
 	UpdateVisibleRows(InCachedSelection, bUpdateEvenIfValid);
@@ -507,11 +539,15 @@ void FDataTableEditor::UpdateVisibleRows(const FName InCachedSelection, const bo
 			}
 		}
 	}
+	
+	// Abort restoring the cached selection if data was changed while the user is selecting a different row
+	if (RowNamesListView->GetSelectedItems() == CellsListView->GetSelectedItems())
+	{
+		RowNamesListView->RequestListRefresh();
+		CellsListView->RequestListRefresh();
 
-	RowNamesListView->RequestListRefresh();
-	CellsListView->RequestListRefresh();
-
-	RestoreCachedSelection(InCachedSelection, bUpdateEvenIfValid);
+		RestoreCachedSelection(InCachedSelection, bUpdateEvenIfValid);
+	}
 }
 
 void FDataTableEditor::RestoreCachedSelection(const FName InCachedSelection, const bool bUpdateEvenIfValid)

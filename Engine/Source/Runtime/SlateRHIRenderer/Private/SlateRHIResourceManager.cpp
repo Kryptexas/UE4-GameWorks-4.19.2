@@ -789,13 +789,9 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 		
 		DynamicResourceMap.AddMaterialResource(Key, MaterialResource.ToSharedRef());
 	}
-	else if( MaterialResource->GetTextureMaskResource() != TextureMask )
-	{
-		MaterialResource->UpdateMaterial( *Material, ImageSize, TextureMask );
-	}
 	else
 	{
-		MaterialResource->SlateProxy->ActualSize = ImageSize.IntPoint();
+		MaterialResource->UpdateMaterial( *Material, ImageSize, TextureMask );
 	}
 
 	GetAccessedUObjects().Add(const_cast<UMaterialInterface*>( Material ));
@@ -1201,4 +1197,33 @@ UTexture* FSlateRHIResourceManager::GetBadResourceTexture()
 	}
 
 	return BadResourceTexture;
+}
+
+
+int32 FSlateRHIResourceManager::GetSceneCount()
+{
+	checkSlow(IsInRenderingThread());
+	return ActiveScenes.Num();
+}
+
+FSceneInterface* FSlateRHIResourceManager::GetSceneAt(int32 Index)
+{
+	checkSlow(IsInRenderingThread());
+	return ActiveScenes[Index];
+}
+
+void FSlateRHIResourceManager::AddSceneAt(FSceneInterface* Scene, int32 Index)
+{
+	checkSlow(IsInRenderingThread());
+	if (ActiveScenes.Num() <= Index)
+	{
+		ActiveScenes.SetNumZeroed(Index + 1);
+	}
+	ActiveScenes[Index] = Scene;
+}
+
+void FSlateRHIResourceManager::ClearScenes()
+{
+	checkSlow(IsInRenderingThread());
+	ActiveScenes.Empty();
 }

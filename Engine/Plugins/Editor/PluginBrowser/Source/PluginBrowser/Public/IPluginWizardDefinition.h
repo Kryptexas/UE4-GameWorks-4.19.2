@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ModuleDescriptor.h"
+
 /**
  * Description of a plugin template
  */
@@ -22,12 +24,16 @@ struct FPluginTemplateDescription
 	/** Can the plugin contain content? */
 	bool bCanContainContent;
 
+	/** What is the expected ModuleDescriptor type for this plugin?*/
+	EHostType::Type ModuleDescriptorType;
+
 	/** Constructor */
-	FPluginTemplateDescription(FText InName, FText InDescription, FString InOnDiskPath, bool bInCanContainContent = false)
+	FPluginTemplateDescription(FText InName, FText InDescription, FString InOnDiskPath, bool InCanContainContent, EHostType::Type InModuleDescriptorType)
 		: Name(InName)
 		, Description(InDescription)
 		, OnDiskPath(InOnDiskPath)
-		, bCanContainContent(bInCanContainContent)
+		, bCanContainContent(InCanContainContent)
+		, ModuleDescriptorType(InModuleDescriptorType)
 	{
 	}
 };

@@ -122,6 +122,16 @@ FLocTextHelper::FLocTextHelper(FString InTargetPath, FString InManifestName, FSt
 	}
 }
 
+const FString& FLocTextHelper::GetNativeCulture() const
+{
+	return NativeCulture;
+}
+
+const TArray<FString>& FLocTextHelper::GetForeignCultures() const
+{
+	return ForeignCultures;
+}
+
 bool FLocTextHelper::HasManifest() const
 {
 	return Manifest.IsValid();
@@ -720,6 +730,11 @@ void FLocTextHelper::GetRuntimeText(const FString& InCulture, const FString& InN
 	}
 }
 
+void FLocTextHelper::AddConflict(const FString& InNamespace, const FString& InKey, const TSharedPtr<FLocMetadataObject>& InKeyMetadata, const FLocItem& InSource, const FString& InSourceLocation)
+{
+	ConflictTracker.AddConflict(InNamespace, InKey, InKeyMetadata, InSource, InSourceLocation);
+}
+
 FString FLocTextHelper::GetConflictReport() const
 {
 	return ConflictTracker.GetConflictReport();
@@ -848,7 +863,7 @@ bool FLocTextHelper::FindKeysForLegacyTranslation(const TSharedRef<const FIntern
 			}
 			else if ((!Context.KeyMetadataObj.IsValid() && !InKeyMetadataObj.IsValid()) || (*Context.KeyMetadataObj == *InKeyMetadataObj))
 			{
-				OutKeys.Add(Context.Key);
+				OutKeys.AddUnique(Context.Key);
 				bFoundKeys = true;
 			}
 		}

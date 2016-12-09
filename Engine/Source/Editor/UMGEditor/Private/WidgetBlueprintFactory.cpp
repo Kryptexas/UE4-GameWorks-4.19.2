@@ -10,6 +10,8 @@
 
 
 
+#include "Components/CanvasPanel.h"
+
 #define LOCTEXT_NAMESPACE "UWidgetBlueprintFactory"
 
 /*------------------------------------------------------------------------------
@@ -57,6 +59,13 @@ UObject* UWidgetBlueprintFactory::FactoryCreateNew(UClass* Class, UObject* InPar
 	else
 	{
 		UWidgetBlueprint* NewBP = CastChecked<UWidgetBlueprint>(FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BlueprintType, UWidgetBlueprint::StaticClass(), UWidgetBlueprintGeneratedClass::StaticClass(), CallingContext));
+
+		// Create a CanvasPanel to use as the default root widget
+		if ( NewBP->WidgetTree->RootWidget == nullptr )
+		{
+			UWidget* Root = NewBP->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+			NewBP->WidgetTree->RootWidget = Root;
+		}
 
 		return NewBP;
 	}

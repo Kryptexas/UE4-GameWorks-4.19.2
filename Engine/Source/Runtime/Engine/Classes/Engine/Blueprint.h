@@ -664,6 +664,8 @@ public:
 	/** Collect blueprints that depend on this blueprint. */
 	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const;
 
+	virtual void ReplaceDeprecatedNodes();
+
 #endif	//#if WITH_EDITOR
 
 	//~ Begin UObject Interface

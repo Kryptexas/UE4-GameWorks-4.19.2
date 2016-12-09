@@ -472,6 +472,9 @@ private:
 	/** Callback hook from the Asset Registry when an asset is loaded */
 	void OnAssetLoaded(class UObject* InAsset);
 
+	/** Callback from Kismet when a Blueprint is unloaded */
+	void OnBlueprintUnloaded(class UBlueprint* InBlueprint);
+
 	/** Callback hook from the Hot Reload manager that indicates that a module has been hot-reloaded */
 	void OnHotReload(bool bWasTriggeredAutomatically);
 

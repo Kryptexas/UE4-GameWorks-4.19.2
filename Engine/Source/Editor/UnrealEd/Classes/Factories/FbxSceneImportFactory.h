@@ -182,7 +182,7 @@ public:
 	float FarPlane;
 	float OrthoZoom;
 	float FieldOfView;
-	
+	float FocalLength;
 
 	FFbxCameraInfo()
 		: Name(TEXT(""))
@@ -194,6 +194,7 @@ public:
 		, FarPlane(0.0f)
 		, OrthoZoom(0.0f)
 		, FieldOfView(0.0f)
+		, FocalLength(0.0f)
 	{}
 };
 
@@ -378,6 +379,11 @@ class UNREALED_API UFbxSceneImportFactory : public UFactory
 	static FString DefaultOptionName;
 
 protected:
+	/** Convert the scene and remake all the transform for the SceneInfo pass in parameter.
+	 *  We need this because EvaluateGlobal and EvaluateLocal are dependent of the scene conversion.
+	 */
+	void ChangeFrontAxis(void* VoidFbxImporter, void* VoidSceneInfo, TSharedPtr<FFbxSceneInfo> SceneInfoPtr);
+
 	/** Make sure GlobalImportSettings is pointing to the correct options */
 	void ApplyMeshInfoFbxOptions(TSharedPtr<FFbxMeshInfo> MeshInfo);
 

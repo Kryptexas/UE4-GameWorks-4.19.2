@@ -542,6 +542,16 @@ bool UCurveTable::IsValidCurve(FRichCurveEditInfo CurveInfo)
 	return false;
 }
 
+
+
+TArray<const UObject*> UCurveTable::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	Owners.Add(this);
+
+	return Owners;
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 

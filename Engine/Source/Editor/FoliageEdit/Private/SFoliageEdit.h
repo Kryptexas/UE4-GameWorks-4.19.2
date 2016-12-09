@@ -63,17 +63,26 @@ private:	// BRUSH SETTINGS
 	/** Retrieves the brush Radius for the brush. */
 	TOptional<float> GetRadius() const;
 
+	/** Checks if the brush size should appear. Dependant on the current tool being used. */
+	bool IsEnabled_BrushSize() const;
+
 	/** Sets the Paint Density for the brush. */
 	void SetPaintDensity(float InDensity);
 
 	/** Retrieves the Paint Density for the brush. */
 	TOptional<float> GetPaintDensity() const;
 
+	/** Checks if the paint density should appear. Dependant on the current tool being used. */
+	bool IsEnabled_PaintDensity() const;
+
 	/** Sets the Erase Density for the brush. */
 	void SetEraseDensity(float InDensity);
 
 	/** Retrieves the Erase Density for the brush. */
 	TOptional<float> GetEraseDensity() const;
+
+	/** Checks if the erase density should appear. Dependant on the current tool being used. */
+	bool IsEnabled_EraseDensity() const;
 
 	/** Retrieves the text for the filters option */
 	FText GetFilterText() const;
@@ -83,6 +92,18 @@ private:	// BRUSH SETTINGS
 
 	/** Retrieves the filter settings for painting on Landscapes. */
 	ECheckBoxState GetCheckState_Landscape() const;
+
+	/** Sets the instantiation mode settings */
+	void OnCheckStateChanged_SingleInstantiationMode(ECheckBoxState InState);
+
+	/** Retrieves the instantiation mode settings */
+	ECheckBoxState GetCheckState_SingleInstantiationMode() const;
+
+	/** Sets the instantiation mode settings */
+	void OnCheckStateChanged_SpawnInCurrentLevelMode(ECheckBoxState InState);
+
+	/** Retrieves the instantiation mode settings */
+	ECheckBoxState GetCheckState_SpawnInCurrentLevelMode() const;
 
 	/** Retrieves the tooltip text for the landscape filter */
 	FText GetTooltipText_Landscape() const;
@@ -135,11 +156,23 @@ private:	// BRUSH SETTINGS
 	/** Checks if the filters should appear. Dependant on the current tool being used. */
 	EVisibility GetVisibility_Filters() const;
 
+	/** Checks if the actions should appear. Dependant on the current tool being used. */
+	EVisibility GetVisibility_Actions() const;
+
 	/** Checks if the text in the empty list overlay should appear. If the list is has items but the the drag and drop override is true, it will return EVisibility::Visible. */
 	EVisibility GetVisibility_EmptyList() const;
 
 	/** @return Whether selecting instances is currently possible */
 	EVisibility GetVisibility_SelectionOptions() const;
+
+	/** Checks if the Options section should be displayed. Dependant on the current tool being used. */
+	EVisibility GetVisibility_Options() const;
+
+	/** Checks if the SingleInstantiationMode checkbox should appear. Dependant on the current tool being used. */
+	EVisibility GetVisibility_SingleInstantiationMode() const;	
+
+	/** Checks if the SpawnInCurrentLevelMode checkbox should appear. Dependant on the current tool being used. */
+	EVisibility GetVisibility_SpawnInCurrentLevelMode() const;
 
 private:	// SELECTION
 

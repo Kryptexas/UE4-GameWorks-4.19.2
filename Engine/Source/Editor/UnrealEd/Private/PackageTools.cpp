@@ -2,6 +2,7 @@
 
 
 #include "PackageTools.h"
+#include "PackageReload.h"
 #include "Misc/MessageDialog.h"
 #include "Misc/Paths.h"
 #include "Misc/Guid.h"
@@ -24,13 +25,18 @@
 #include "Dialogs/Dialogs.h"
 
 #include "ObjectTools.h"
+#include "KismetEditorUtilities.h"
 #include "BusyCursor.h"
 
 
+#include "AssetRegistryModule.h"
 #include "Logging/MessageLog.h"
 #include "UObject/UObjectIterator.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/Selection.h"
+
+#include "ShaderCompiler.h"
+#include "DistanceFieldAtlas.h"
 
 #define LOCTEXT_NAMESPACE "PackageTools"
 
@@ -310,6 +316,18 @@ namespace PackageTools
 
 				GWarn->StatusUpdate( PackageIndex, PackagesToUnload.Num(), FText::Format(NSLOCTEXT("UnrealEd", "Unloadingf", "Unloading {0}..."), FText::FromString(PackageBeingUnloaded->GetName()) ) );
 
+				// Flush all pending render commands, as unloading the package may invalidate render resources.
+				FlushRenderingCommands();
+
+				// Close any open asset editors
+				ForEachObjectWithOuter(PackageBeingUnloaded, [](UObject* Obj)
+				{
+					if (Obj->IsAsset())
+					{
+						FAssetEditorManager::Get().CloseAllEditorsForAsset(Obj);
+					}
+				}, false);
+
 				PackageBeingUnloaded->bHasBeenFullyLoaded = false;
 				PackageBeingUnloaded->ClearFlags(RF_WasLoaded);
 				if ( PackageBeingUnloaded->HasAnyPackageFlags(PKG_ContainsScript) )
@@ -395,6 +413,227 @@ namespace PackageTools
 		}
 		return bResult;
 	}
+
+
+	bool ReloadPackages( const TArray<UPackage*>& TopLevelPackages )
+	{
+		FText ErrorMessage;
+		const bool bResult = ReloadPackages(TopLevelPackages, ErrorMessage, /*bInteractive*/true);
+		
+		if (!ErrorMessage.IsEmpty())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, ErrorMessage);
+		}
+
+		return bResult;
+	}
+
+
+	bool ReloadPackages( const TArray<UPackage*>& TopLevelPackages, FText& OutErrorMessage, const bool bInteractive )
+	{
+		bool bResult = false;
+
+		FTextBuilder ErrorMessageBuilder;
+
+		// Split the set of selected top level packages into packages which are dirty or in-memory (and thus cannot be reloaded) and packages that are not dirty (and thus can be reloaded).
+		TArray<UPackage*> PackagesToReload;
+		{
+			TArray<UPackage*> DirtyPackages;
+			TArray<UPackage*> InMemoryPackages;
+			for (UPackage* TopLevelPackage : TopLevelPackages)
+			{
+				if (TopLevelPackage)
+				{
+					// Get outermost packages, in case groups were selected.
+					UPackage* RealPackage = TopLevelPackage->GetOutermost() ? TopLevelPackage->GetOutermost() : TopLevelPackage;
+
+					if (RealPackage->IsDirty())
+					{
+						DirtyPackages.AddUnique(RealPackage);
+					}
+					else if (RealPackage->HasAnyPackageFlags(PKG_InMemoryOnly))
+					{
+						InMemoryPackages.AddUnique(RealPackage);
+					}
+					else
+					{
+						PackagesToReload.AddUnique(RealPackage);
+					}
+				}
+
+				// Ask the user whether dirty packages should be reloaded.
+				if (bInteractive && DirtyPackages.Num() > 0)
+				{
+					FTextBuilder ReloadDirtyPackagesMsgBuilder;
+					ReloadDirtyPackagesMsgBuilder.AppendLine(NSLOCTEXT("UnrealEd", "ShouldReloadDirtyPackagesHeader", "The following packages have been modified:"));
+					{
+						ReloadDirtyPackagesMsgBuilder.Indent();
+						for (UPackage* DirtyPackage : DirtyPackages)
+						{
+							ReloadDirtyPackagesMsgBuilder.AppendLine(DirtyPackage->GetFName());
+						}
+						ReloadDirtyPackagesMsgBuilder.Unindent();
+					}
+					ReloadDirtyPackagesMsgBuilder.AppendLine(NSLOCTEXT("UnrealEd", "ShouldReloadDirtyPackagesFooter", "Would you like to reload these packages? This will revert any changes you have made."));
+
+					if (FMessageDialog::Open(EAppMsgType::YesNo, ReloadDirtyPackagesMsgBuilder.ToText()) == EAppReturnType::Yes)
+					{
+						for (UPackage* DirtyPackage : DirtyPackages)
+						{
+							DirtyPackage->SetDirtyFlag(false);
+							PackagesToReload.AddUnique(DirtyPackage);
+						}
+						DirtyPackages.Reset();
+					}
+				}
+			}
+
+			// Inform the user that dirty packages won't be reloaded.
+			if (DirtyPackages.Num() > 0)
+			{
+				if (!ErrorMessageBuilder.IsEmpty())
+				{
+					ErrorMessageBuilder.AppendLine();
+				}
+
+				ErrorMessageBuilder.AppendLine(NSLOCTEXT("UnrealEd", "Error_ReloadDirtyPackagesHeader", "The following packages have been modified and cannot be reloaded:"));
+				{
+					ErrorMessageBuilder.Indent();
+					for (UPackage* DirtyPackage : DirtyPackages)
+					{
+						ErrorMessageBuilder.AppendLine(DirtyPackage->GetFName());
+					}
+					ErrorMessageBuilder.Unindent();
+				}
+				ErrorMessageBuilder.AppendLine(NSLOCTEXT("UnrealEd", "Error_ReloadDirtyPackagesFooter", "Saving these packages will allow them to be reloaded."));
+			}
+
+			// Inform the user that in-memory packages won't be reloaded.
+			if (InMemoryPackages.Num() > 0)
+			{
+				if (!ErrorMessageBuilder.IsEmpty())
+				{
+					ErrorMessageBuilder.AppendLine();
+				}
+
+				ErrorMessageBuilder.AppendLine(NSLOCTEXT("UnrealEd", "Error_ReloadInMemoryPackagesHeader", "The following packages are in-memory only and cannot be reloaded:"));
+				{
+					ErrorMessageBuilder.Indent();
+					for (UPackage* InMemoryPackage : InMemoryPackages)
+					{
+						ErrorMessageBuilder.AppendLine(InMemoryPackage->GetFName());
+					}
+					ErrorMessageBuilder.Unindent();
+				}
+			}
+		}
+
+		// Check to see if we need to reload the current world.
+		FName WorldNameToReload;
+		PackagesToReload.RemoveAll([&](UPackage* PackageToReload) -> bool
+		{
+			// Is this the currently loaded world? If so, we just reset the current world and load it again at the end rather than let it go 
+			// through ReloadPackage (which doesn't work for the editor due to some assumptions it makes about worlds, and their lifetimes).
+			if (UWorld* EditorWorld = GEditor->GetEditorWorldContext().World())
+			{
+				const bool bIsCurrentWorld = EditorWorld->GetOutermost() == PackageToReload;
+				if (bIsCurrentWorld)
+				{
+					WorldNameToReload = *EditorWorld->GetPathName();
+					return true; // remove world package
+				}
+			}
+			return false; // leave non-world package
+		});
+
+		// Unload the current world (if needed).
+		if (!WorldNameToReload.IsNone())
+		{
+			GEditor->CreateNewMapForEditing();
+		}
+
+		if (PackagesToReload.Num() > 0)
+		{
+			const FScopedBusyCursor BusyCursor;
+
+			// We need to sort the packages to reload so that dependencies are reloaded before the assets that depend on them
+			::SortPackagesForReload(PackagesToReload);
+
+			// Remove potential references to to-be deleted objects from the global selection set.
+			GEditor->GetSelectedObjects()->DeselectAll();
+
+			// Detach all components while loading a package.
+			// This is necessary for the cases where the load replaces existing objects which may be referenced by the attached components.
+			FGlobalComponentReregisterContext ReregisterContext;
+
+			bool bScriptPackageWasReloaded = false;
+			TArray<FReloadPackageData> PackagesToReloadData;
+			PackagesToReloadData.Reserve(PackagesToReload.Num());
+			for (UPackage* PackageToReload : PackagesToReload)
+			{
+				bScriptPackageWasReloaded |= PackageToReload->HasAnyPackageFlags(PKG_ContainsScript);
+				PackagesToReloadData.Emplace(PackageToReload, LOAD_None);
+			}
+
+			TArray<UPackage*> ReloadedPackages;
+			::ReloadPackages(PackagesToReloadData, ReloadedPackages, 500);
+
+			TArray<UPackage*> FailedPackages;
+			for (int32 PackageIndex = 0; PackageIndex < PackagesToReload.Num(); ++PackageIndex)
+			{
+				UPackage* ExistingPackage = PackagesToReload[PackageIndex];
+				UPackage* ReloadedPackage = ReloadedPackages[PackageIndex];
+
+				if (ReloadedPackage)
+				{
+					bScriptPackageWasReloaded |= ReloadedPackage->HasAnyPackageFlags(PKG_ContainsScript);
+					bResult = true;
+				}
+				else
+				{
+					FailedPackages.Add(ExistingPackage);
+				}
+			}
+
+			// Inform the user of any packages that failed to reload.
+			if (FailedPackages.Num() > 0)
+			{
+				if (!ErrorMessageBuilder.IsEmpty())
+				{
+					ErrorMessageBuilder.AppendLine();
+				}
+
+				ErrorMessageBuilder.AppendLine(NSLOCTEXT("UnrealEd", "Error_ReloadFailedPackagesHeader", "The following packages failed to reload:"));
+				{
+					ErrorMessageBuilder.Indent();
+					for (UPackage* FailedPackage : FailedPackages)
+					{
+						ErrorMessageBuilder.AppendLine(FailedPackage->GetFName());
+					}
+					ErrorMessageBuilder.Unindent();
+				}
+			}
+
+			// Update the actor browser if a script package was reloaded.
+			if (bScriptPackageWasReloaded)
+			{
+				GEditor->BroadcastClassPackageLoadedOrUnloaded();
+			}
+		}
+
+		// Load the previous world (if needed).
+		if (!WorldNameToReload.IsNone())
+		{
+			TArray<FName> WorldNamesToReload;
+			WorldNamesToReload.Add(WorldNameToReload);
+			FAssetEditorManager::Get().OpenEditorsForAssets(WorldNamesToReload);
+		}
+
+		OutErrorMessage = ErrorMessageBuilder.ToText();
+
+		return bResult;
+	}
+
 
 	/**
 	 * Wrapper method for multiple objects at once.

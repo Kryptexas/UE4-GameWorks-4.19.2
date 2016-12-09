@@ -186,8 +186,12 @@ private:
 		{
 			if (RTProvider)
 			{
-				FSlateRenderTargetRHI* SlateTarget = (FSlateRenderTargetRHI*)(RTProvider->GetViewportRenderTargetTexture());
-				return SlateTarget->GetTypedResource();
+				FSlateShaderResource* RenderTargetTexture = RTProvider->GetViewportRenderTargetTexture();
+				if( RenderTargetTexture )
+				{
+					FSlateRenderTargetRHI* RHITarget = (FSlateRenderTargetRHI*)RenderTargetTexture;
+					return RHITarget->GetTypedResource();
+				}
 			}
 			return nullptr;
 		}
@@ -234,6 +238,9 @@ public:
 	virtual void ReleaseAccessedResources(bool bImmediatelyFlush) override;
 	virtual TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList) override;
 	virtual void ReleaseCachingResourcesFor(const ILayoutCache* Cacher) override;
+	virtual int32 RegisterCurrentScene(FSceneInterface* Scene) override;
+	virtual int32 GetCurrentSceneIndex() const override;
+	virtual void ClearScenes() override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
 	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, FSlateRHIRenderer::FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
@@ -340,6 +347,10 @@ private:
 	bool bTakingAScreenShot;
 	FIntRect ScreenshotRect;
 	TArray<FColor>* OutScreenshotData;
+
+	/** These are state management variables for Scenes on the game thread. A similar copy exists on the RHI Rendering Policy for the rendering thread.*/
+	TArray<FSceneInterface*> ActiveScenes;
+	int32 CurrentSceneIndex;
 };
 
 struct FSlateEndDrawingWindowsCommand : public FRHICommand < FSlateEndDrawingWindowsCommand >

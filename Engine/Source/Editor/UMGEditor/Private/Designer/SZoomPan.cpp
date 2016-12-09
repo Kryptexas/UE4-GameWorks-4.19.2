@@ -43,7 +43,7 @@ void SZoomPan::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChi
 	}
 }
 
-float SZoomPan::GetRelativeLayoutScale(const FSlotBase& Child) const
+float SZoomPan::GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const
 {
 	return ZoomAmount.Get();
 }

@@ -211,6 +211,8 @@ public:
 	/** UObject interface */
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+
+	virtual void ReplaceDeprecatedNodes() override;
 	
 	//~ Begin UBlueprint Interface
 	virtual UClass* GetBlueprintClass() const override;

@@ -539,6 +539,7 @@ private:
 public:
 	friend class FTextCache;
 	friend class FTextFormatter;
+	friend class FTextFormatData;
 	friend class FTextSnapshot;
 	friend class FTextInspector;
 	friend class FArchive;
@@ -895,11 +896,9 @@ private:
 class CORE_API FTextBuilder
 {
 public:
-
 	FTextBuilder()
 		: IndentCount(0)
 	{
-
 	}
 
 	void Indent()
@@ -976,6 +975,11 @@ public:
 	void Clear()
 	{
 		Report.Empty();
+	}
+
+	bool IsEmpty()
+	{
+		return Report.IsEmpty();
 	}
 
 	FText ToText() const

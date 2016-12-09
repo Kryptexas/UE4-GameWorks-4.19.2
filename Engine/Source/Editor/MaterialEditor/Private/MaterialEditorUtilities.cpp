@@ -81,6 +81,16 @@ void FMaterialEditorUtilities::DeleteSelectedNodes(const class UEdGraph* Graph)
 	}
 }
 
+
+void FMaterialEditorUtilities::DeleteNodes(const class UEdGraph* Graph, const TArray<UEdGraphNode*>& NodesToDelete)
+{
+	TSharedPtr<class IMaterialEditor> MaterialEditor = GetIMaterialEditorForObject(Graph);
+	if (MaterialEditor.IsValid())
+	{
+		MaterialEditor->DeleteNodes(NodesToDelete);
+	}
+}
+
 FText FMaterialEditorUtilities::GetOriginalObjectName(const class UEdGraph* Graph)
 {
 	TSharedPtr<class IMaterialEditor> MaterialEditor = GetIMaterialEditorForObject(Graph);
@@ -579,13 +589,20 @@ void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBui
 		{
 			if (!ActionMenuBuilder.FromPin || HasCompatibleConnection(MaterialExpression.MaterialClass, FromPinType, ActionMenuBuilder.FromPin->Direction, bMaterialFunction))
 			{
+				FString CreationName = MaterialExpression.Name;
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("Name"), FText::FromString( *MaterialExpression.Name ));
-				const FText ToolTip = FText::Format( LOCTEXT( "NewMaterialExpressionTooltip", "Adds a {Name} node here" ), Arguments );
+				FString ToolTip = FText::Format(LOCTEXT("NewMaterialExpressionTooltip", "Adds a {Name} node here"), Arguments).ToString();
+				if (MaterialExpression.CreationDescription.Len() != 0)
+					ToolTip = MaterialExpression.CreationDescription;
+				if (MaterialExpression.CreationName.Len() != 0)
+					CreationName = MaterialExpression.CreationName;
+
+
 				TSharedPtr<FMaterialGraphSchemaAction_NewNode> NewNodeAction(new FMaterialGraphSchemaAction_NewNode(
 					CategoryName,
-					FText::FromString(MaterialExpression.Name),
-					ToolTip.ToString(), 0, CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords()));
+					FText::FromString(CreationName),
+					ToolTip, 0, CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords()));
 				NewNodeAction->MaterialExpressionClass = MaterialExpression.MaterialClass;
 				ActionMenuBuilder.AddAction(NewNodeAction);
 			}

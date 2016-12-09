@@ -139,10 +139,9 @@ public:
 	FUserDefinedEnumIndexLayout(UUserDefinedEnum* InTargetEnum, int32 InEnumeratorIndex)
 		: TargetEnum(InTargetEnum)
 		, EnumeratorIndex(InEnumeratorIndex)
-		, bCausedChange(false)
 	{}
 
-	bool CausedChange() const { return bCausedChange; }
+	bool CausedChange() const;
 
 private:
 	/** IDetailCustomNodeBuilder Interface*/
@@ -155,9 +154,6 @@ private:
 	virtual bool InitiallyCollapsed() const override { return false; }
 
 private:
-	/** Retrieves the enumerator's name */
-	FText GetEnumeratorName() const;
-
 	/** Moves the enumerator up in the list */
 	FReply OnMoveEnumeratorUp();
 	
@@ -167,30 +163,13 @@ private:
 	/** Deletes the enumerator */
 	void OnEnumeratorRemove();
 
-	/** Callback when the enumerator's name is committed */
-	void OnEnumeratorNameCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
-	
-	/** Callback when changing the enumerator's name to verify the name */
-	void OnEnumeratorNameChanged(const FText& NewText);
-
-	/** 
-	 * Helper function to validate the enumerator's display name
-	 *
-	 * @param NewText		The name to validate
-	 *
-	 * @return				Returns true if the name is valid
-	 */
-	bool IsValidEnumeratorDisplayName(const FText& NewText) const;
-
 private:
 	/** The target node that this argument is on */
-	TWeakObjectPtr<UUserDefinedEnum> TargetEnum;
+	UUserDefinedEnum* TargetEnum;
 
 	/** Index of enumerator */
 	int32 EnumeratorIndex;
 
-	/** The enumerator's name widget, used for setting a enumerator's name */
-	TWeakPtr< SEditableTextBox > EnumeratorNameWidget;
-
-	bool bCausedChange;
+	/** The editable text interface for the display name data */
+	TSharedPtr<class FEditableTextUserDefinedEnum> DisplayNameEditor;
 };

@@ -127,9 +127,9 @@ class UFbxTestPlan : public UObject
 	UPROPERTY(EditAnywhere, Category = ExpectedResult)
 	TArray< FFbxTestPlanExpectedResult > ExpectedResult;
 
-	/* Options use for this test plan. No UProperty since it will be serialize to json manually */
-	UPROPERTY(EditAnywhere, Instanced, Category = Options)
-	UFbxImportUI *ImportUI;
+	/* Options use for this test plan, Transient because we manually serialize the options. */
+	UPROPERTY(EditAnywhere, Transient, Instanced, Category = Options)
+	UFbxImportUI* ImportUI;
 };
 
 namespace FbxAutomationTestsAPI

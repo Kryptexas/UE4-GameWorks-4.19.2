@@ -148,6 +148,7 @@ FSlateRHIRenderer::FSlateRHIRenderer( TSharedRef<FSlateFontServices> InSlateFont
 	, EnqueuedWindowDrawBuffer(NULL)
 	, FreeBufferIndex(1)
 #endif
+	, CurrentSceneIndex(-1)
 {
 	ResourceManager = InResourceManager;
 
@@ -192,6 +193,8 @@ bool FSlateRHIRenderer::Initialize()
 
 	ElementBatcher = MakeShareable( new FSlateElementBatcher( RenderingPolicy.ToSharedRef() ) );
 
+	CurrentSceneIndex = -1;
+	ActiveScenes.Empty();
 	return true;
 }
 
@@ -234,6 +237,8 @@ void FSlateRHIRenderer::Destroy()
 	}
 
 	WindowToViewportInfo.Empty();
+	CurrentSceneIndex = -1;
+	ActiveScenes.Empty();
 }
 
 /** Returns a draw buffer that can be used by Slate windows to draw window elements */
@@ -383,8 +388,10 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 		ViewInfo->HDRColorGamut = HDRColorGamut;
 		ViewInfo->HDROutputDevice = HDROutputDevice;
 
+		PreResizeBackBufferDelegate.Broadcast(&ViewInfo->ViewportRHI);
 		if( IsValidRef( ViewInfo->ViewportRHI ) )
 		{
+			ensureMsgf(ViewInfo->ViewportRHI->GetRefCount() == 1, TEXT("Viewport backbuffer was not properly released"));
 			RHIResizeViewport(ViewInfo->ViewportRHI, NewWidth, NewHeight, bFullscreen, ViewInfo->PixelFormat);
 		}
 		else
@@ -1556,6 +1563,56 @@ ISlateAtlasProvider* FSlateRHIRenderer::GetTextureAtlasProvider()
 	return nullptr;
 }
 
+
+
+int32 FSlateRHIRenderer::RegisterCurrentScene(FSceneInterface* Scene)
+{
+	check(IsInGameThread());
+	if (Scene)
+	{
+		CurrentSceneIndex = ActiveScenes.AddUnique(Scene);
+	}
+	else
+	{
+		CurrentSceneIndex = -1;
+	}
+
+	// We need to keep the ActiveScenes array synchronized with the Policy's ActiveScenes array on
+	// the render thread.
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		RegisterCurrentSceneOnPolicy,
+		FSlateRHIRenderingPolicy*, InRenderPolicy, RenderingPolicy.Get(),
+		FSceneInterface*, InScene, Scene,
+		int32, InSceneIndex, CurrentSceneIndex,
+	{
+		InRenderPolicy->AddSceneAt(InScene, InSceneIndex);
+	});
+	return CurrentSceneIndex;
+}
+
+int32 FSlateRHIRenderer::GetCurrentSceneIndex() const
+{
+	return CurrentSceneIndex;
+}
+
+void FSlateRHIRenderer::ClearScenes()
+{
+	if(!IsInSlateThread())
+	{
+		CurrentSceneIndex = -1;
+		ActiveScenes.Empty();
+
+		// We need to keep the ActiveScenes array synchronized with the Policy's ActiveScenes array on
+		// the render thread.
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			ClearScenesOnPolicy,
+			FSlateRenderingPolicy*, InRenderPolicy, RenderingPolicy.Get(),
+			{
+				InRenderPolicy->ClearScenes();
+			});
+	}
+}
+
 bool FSlateRHIRenderer::AreShadersInitialized() const
 {
 #if WITH_EDITORONLY_DATA
@@ -1580,8 +1637,14 @@ void FSlateRHIRenderer::ReleaseAccessedResources(bool bImmediatelyFlush)
 	// Clear accessed UTexture and Material objects from the previous frame
 	ResourceManager->BeginReleasingAccessedResources(bImmediatelyFlush);
 
+	// We keep track of the Scene objects from SceneViewports on the SlateRenderer. Make sure that this gets refreshed every frame.
+	ClearScenes();
+
 	if ( bImmediatelyFlush )
 	{
+		// Release resources generated specifically by the rendering policy if we are flushing.  This should NOT be done unless flushing
+		RenderingPolicy->FlushGeneratedResources();
+
 		FlushCommands();
 	}
 }

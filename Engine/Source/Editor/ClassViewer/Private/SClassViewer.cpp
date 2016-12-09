@@ -73,6 +73,8 @@
 #include "Misc/TextFilterExpressionEvaluator.h"
 
 #include "SListViewSelectorDropdownMenu.h"
+#include "ClassViewerProjectSettings.h"
+#include "SScrollBorder.h"
 
 #define LOCTEXT_NAMESPACE "SClassViewer"
 
@@ -417,6 +419,13 @@ public:
 	*/
 	void UpdateClassInNode(const FString& InGeneratedClassPackageName, UClass* InNewClass, UBlueprint* InNewBluePrint );
 
+	/** Finds the node, recursively going deeper into the hierarchy. Does so by comparing class names.
+	*	@param InClassName			The name of the generated class package to find the node for.
+	*
+	*	@return The node.
+	*/
+	TSharedPtr< FClassViewerNode > FindNodeByClassName(const TSharedPtr< FClassViewerNode >& InRootNode, const FString& InClassName);
+
 private:
 	/** Recursive function to build a tree, will not filter.
 	 *	@param InOutRootNode						The node that this function will add the children of to the tree.
@@ -658,10 +667,17 @@ namespace ClassViewer
 		 *	@param bInOnlyPlaceables					Filter option to remove non-placeable classes.
 		 *	@param bInOnlyBlueprintBases				Filter option to remove non-blueprint base classes.
 		 *	@param bInShowUnloadedBlueprints			Filter option to not remove unloaded blueprints due to class filter options.
+		 *  @param InAllowedDeveloperType               Filter option for dealing with developer folders.
+		 *  @param bInInternalClasses                   Filter option for showing internal classes.
+		 *  @param InternalClasses                      The classes that have been marked as Internal Only.
+		 *  @param InternalPaths                        The paths that have been marked Internal Only.
 		 *
 		 *	@return Returns true if the child passed the filter.
 		 */		
-		static bool AddChildren_Tree(const FClassViewerInitializationOptions& InInitOptions, TSharedPtr< FClassViewerNode >& InOutRootNode, const TSharedPtr< FClassViewerNode >& InOriginalRootNode, const FTextFilterExpressionEvaluator& InTextFilter, bool bInOnlyActors, bool bInOnlyPlaceables, bool bInOnlyBlueprintBases, bool bInShowUnloadedBlueprints )
+		static bool AddChildren_Tree(const FClassViewerInitializationOptions& InInitOptions, TSharedPtr< FClassViewerNode >& InOutRootNode, 
+			const TSharedPtr< FClassViewerNode >& InOriginalRootNode, const FTextFilterExpressionEvaluator& InTextFilter, bool bInOnlyActors, 
+			bool bInOnlyPlaceables, bool bInOnlyBlueprintBases, bool bInShowUnloadedBlueprints, EClassViewerDeveloperType InAllowedDeveloperType, bool bInInternalClasses,
+			const TArray<UClass*>& InternalClasses, const TArray<FDirectoryPath>& InternalPaths)
 		{
 			if (bInOnlyActors && *InOriginalRootNode->GetClassName().Get() != FString(TEXT("Actor")))
 			{
@@ -675,6 +691,46 @@ namespace ClassViewer
 			bool bPassesBlueprintBaseFilter = !bInOnlyBlueprintBases || CheckIfBlueprintBase(InOriginalRootNode);
 			bool bIsUnloadedBlueprint = !InOriginalRootNode->Class.IsValid();
 			bool bPassesPlaceableFilter = false;
+
+			// Determine if we allow any developer folder classes, if so determine if this class is in one of the allowed developer folders.
+			bool bPassesDeveloperFilter = true;
+			static const FString DeveloperPathWithSlash = FPackageName::FilenameToLongPackageName(FPaths::GameDevelopersDir());
+			static const FString UserDeveloperPathWithSlash = FPackageName::FilenameToLongPackageName(FPaths::GameUserDeveloperDir());
+			if (InAllowedDeveloperType == EClassViewerDeveloperType::CVDT_None)
+			{
+				bPassesDeveloperFilter = !InOriginalRootNode->GeneratedClassPackage.StartsWith(DeveloperPathWithSlash);
+			}
+			else if (InAllowedDeveloperType == EClassViewerDeveloperType::CVDT_CurrentUser)
+			{
+				if (InOriginalRootNode->GeneratedClassPackage.StartsWith(DeveloperPathWithSlash))
+					bPassesDeveloperFilter = InOriginalRootNode->GeneratedClassPackage.StartsWith(UserDeveloperPathWithSlash);
+			}
+
+			// The INI files declare classes and folders that are considered internal only. Does this class match any of those patterns?
+			// INI path: /Script/ClassViewer.ClassViewerProjectSettings
+			bool bPassesInternalFilter = true;
+			if (!bInInternalClasses && InternalPaths.Num() > 0)
+			{
+				for (int i = 0; i < InternalPaths.Num(); i++)
+				{
+					if (InOriginalRootNode->GeneratedClassPackage.StartsWith(InternalPaths[i].Path))
+					{
+						bPassesInternalFilter = false;
+						break;
+					}
+				}
+			}
+			if (!bInInternalClasses && InternalClasses.Num() > 0 && bPassesInternalFilter && InOriginalRootNode->Class.IsValid())
+			{
+				for (int i = 0; i < InternalClasses.Num(); i++)
+				{
+					if (InOriginalRootNode->Class->IsChildOf(InternalClasses[i]))
+					{
+						bPassesInternalFilter = false;
+						break;
+					}
+				}
+			}
 
 			// When in picker mode, brushes are valid "placeable" actors
 			if (bInOnlyPlaceables && InInitOptions.Mode == EClassViewerMode::ClassPicker && IsBrush(InOriginalRootNode->Class.Get()) && IsPlaceable(InOriginalRootNode->Class.Get()))
@@ -691,13 +747,14 @@ namespace ClassViewer
 			{
 				if(bInShowUnloadedBlueprints)
 				{
-					bReturnPassesFilter = InOutRootNode->bPassesFilter = bPassesPlaceableFilter && bPassesBlueprintBaseFilter && IsClassAllowed_UnloadedBlueprint(InInitOptions, InOriginalRootNode) && PassesFilter(*InOriginalRootNode->GetClassName().Get(), InTextFilter);
+					bReturnPassesFilter = InOutRootNode->bPassesFilter = bPassesPlaceableFilter && bPassesBlueprintBaseFilter && bPassesDeveloperFilter && bPassesInternalFilter && IsClassAllowed_UnloadedBlueprint(InInitOptions, InOriginalRootNode) && PassesFilter(*InOriginalRootNode->GetClassName().Get(), InTextFilter);
 				}
 			}
 			else
 			{
-				bReturnPassesFilter = InOutRootNode->bPassesFilter = bPassesPlaceableFilter && bPassesBlueprintBaseFilter && IsClassAllowed(InInitOptions, InOriginalRootNode->Class) && PassesFilter(*InOriginalRootNode->GetClassName().Get(), InTextFilter);
+				bReturnPassesFilter = InOutRootNode->bPassesFilter = bPassesPlaceableFilter && bPassesBlueprintBaseFilter && bPassesDeveloperFilter && bPassesInternalFilter && IsClassAllowed(InInitOptions, InOriginalRootNode->Class) && PassesFilter(*InOriginalRootNode->GetClassName().Get(), InTextFilter);
 			}
+
 
 			TArray< TSharedPtr< FClassViewerNode > >& ChildList = InOriginalRootNode->GetChildrenList();
 			for(int32 ChildIdx = 0; ChildIdx < ChildList.Num(); ChildIdx++)
@@ -705,7 +762,7 @@ namespace ClassViewer
 				TSharedPtr< FClassViewerNode > NewNode = MakeShareable( new FClassViewerNode( *ChildList[ChildIdx].Get() ) );
 
 				bReturnPassesFilter |= bChildrenPassesFilter = AddChildren_Tree(InInitOptions, NewNode, ChildList[ChildIdx], InTextFilter, false, /* bInOnlyActors - false so that anything below Actor is added */
-					bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints);
+					bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints, InAllowedDeveloperType, bInInternalClasses, InternalClasses, InternalPaths);
 				if(bChildrenPassesFilter)
 				{
 					InOutRootNode->AddChild(NewNode);
@@ -724,11 +781,18 @@ namespace ClassViewer
 		 *	@param bInOnlyActors						Filter option to root the tree in the "Actor" class.
 		 *	@param bInOnlyBlueprintBases				Filter option to remove non-blueprint base classes.
 		 *	@param bInShowUnloadedBlueprints			Filter option to not remove unloaded blueprints due to class filter options.
-		 *
+		 *  @param InAllowedDeveloperType               Filter option for dealing with developer folders.
+		 *  @param bInInternalClasses                   Filter option for showing internal classes.
+		 *  @param InternalClasses                      The classes that have been marked as Internal Only.
+		 *  @param InternalPaths                        The paths that have been marked Internal Only.
 		 *	@return A fully built tree.
 		 */
-		static void GetClassTree(const FClassViewerInitializationOptions& InInitOptions, TSharedPtr< FClassViewerNode >& InOutRootNode, const FTextFilterExpressionEvaluator& InTextFilter, bool bInOnlyPlaceables, bool bInOnlyActors, bool bInOnlyBlueprintBases, bool bInShowUnloadedBlueprints )
+		static void GetClassTree(const FClassViewerInitializationOptions& InInitOptions, TSharedPtr< FClassViewerNode >& InOutRootNode, 
+			const FTextFilterExpressionEvaluator& InTextFilter, bool bInOnlyPlaceables, bool bInOnlyActors, bool bInOnlyBlueprintBases, 
+			bool bInShowUnloadedBlueprints,	EClassViewerDeveloperType InAllowedDeveloperType = EClassViewerDeveloperType::CVDT_All, bool bInInternalClasses = true, 
+			const TArray<UClass*>& InternalClasses = TArray<UClass*>(), const TArray<FDirectoryPath>& InternalPaths = TArray<FDirectoryPath>())
 		{
+			
 			const TSharedPtr< FClassViewerNode > ObjectClassRoot = ClassHierarchy->GetObjectRootNode();
 
 			// Duplicate the node, it will have no children.
@@ -739,13 +803,13 @@ namespace ClassViewer
 				for(int32 ClassIdx = 0; ClassIdx < ObjectClassRoot->GetChildrenList().Num(); ClassIdx++)
 				{
 					TSharedPtr<FClassViewerNode> ChildNode = MakeShareable(new FClassViewerNode(*ObjectClassRoot->GetChildrenList()[ClassIdx].Get()));
-					if (AddChildren_Tree(InInitOptions, ChildNode, ObjectClassRoot->GetChildrenList()[ClassIdx], InTextFilter, true, bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints))
+					if (AddChildren_Tree(InInitOptions, ChildNode, ObjectClassRoot->GetChildrenList()[ClassIdx], InTextFilter, true, bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints, InAllowedDeveloperType, bInInternalClasses, InternalClasses, InternalPaths))
 						InOutRootNode->AddChild(ChildNode);
 				}
 			}
 			else
 			{
-				AddChildren_Tree(InInitOptions, InOutRootNode, ObjectClassRoot, InTextFilter, false, bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints);				
+				AddChildren_Tree(InInitOptions, InOutRootNode, ObjectClassRoot, InTextFilter, false, bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints, InAllowedDeveloperType, bInInternalClasses, InternalClasses, InternalPaths);
 			}
 		}
 
@@ -758,10 +822,18 @@ namespace ClassViewer
 		 *	@param bInOnlyPlaceables					Filter option to remove non-placeable classes.
 		 *	@param bInOnlyBlueprintBases				Filter option to remove non-blueprint base classes.
 		 *	@param bInShowUnloadedBlueprints			Filter option to not remove unloaded blueprints due to class filter options.
+		 *  @param InAllowedDeveloperType               Filter option for dealing with developer folders.
+		 *  @param bInInternalClasses                   Filter option for showing internal classes.
+		 *  @param InternalClasses                      The classes that have been marked as Internal Only.
+		 *  @param InternalPaths                        The paths that have been marked Internal Only.
 		 *
 		 *	@return Returns true if the child passed the filter.
 		 */
-		static void AddChildren_List( const FClassViewerInitializationOptions& InInitOptions, TArray< TSharedPtr< FClassViewerNode > >& InOutNodeList, const TSharedPtr< FClassViewerNode >& InOriginalRootNode, const FTextFilterExpressionEvaluator& InTextFilter, bool bInOnlyActors, bool bInOnlyPlaceables, bool bInOnlyBlueprintBases, bool bInShowUnloadedBlueprints )
+		static void AddChildren_List(const FClassViewerInitializationOptions& InInitOptions, TArray< TSharedPtr< FClassViewerNode > >& InOutNodeList,
+			const TSharedPtr< FClassViewerNode >& InOriginalRootNode, const FTextFilterExpressionEvaluator& InTextFilter,
+			bool bInOnlyActors, bool bInOnlyPlaceables, bool bInOnlyBlueprintBases, bool bInShowUnloadedBlueprints,
+			EClassViewerDeveloperType InAllowedDeveloperType, bool bInInternalClasses,
+			const TArray<UClass*>& InternalClasses, const TArray<FDirectoryPath>& InternalPaths)
 		{
 			if (bInOnlyActors && *InOriginalRootNode->GetClassName().Get() != FString(TEXT("Actor")))
 			{
@@ -771,6 +843,46 @@ namespace ClassViewer
 			bool bPassesBlueprintBaseFilter = !bInOnlyBlueprintBases || CheckIfBlueprintBase(InOriginalRootNode);
 			bool bIsUnloadedBlueprint = !InOriginalRootNode->Class.IsValid();
 			bool bPassesPlaceableFilter = false;
+
+			// Determine if we allow any developer folder classes, if so determine if this class is in one of the allowed developer folders.
+			bool bPassesDeveloperFilter = true;
+			static const FString DeveloperPathWithSlash = FPackageName::FilenameToLongPackageName(FPaths::GameDevelopersDir());
+			static const FString UserDeveloperPathWithSlash = FPackageName::FilenameToLongPackageName(FPaths::GameUserDeveloperDir());
+			if (InAllowedDeveloperType == EClassViewerDeveloperType::CVDT_None)
+			{
+				bPassesDeveloperFilter = !InOriginalRootNode->GeneratedClassPackage.StartsWith(DeveloperPathWithSlash);
+			}
+			else if (InAllowedDeveloperType == EClassViewerDeveloperType::CVDT_CurrentUser)
+			{
+				if (InOriginalRootNode->GeneratedClassPackage.StartsWith(DeveloperPathWithSlash))
+					bPassesDeveloperFilter = InOriginalRootNode->GeneratedClassPackage.StartsWith(UserDeveloperPathWithSlash);
+			}
+
+			// The INI files declare classes and folders that are considered internal only. Does this class match any of those patterns?
+			// INI path: /Script/ClassViewer.ClassViewerProjectSettings
+			bool bPassesInternalFilter = true;
+			if (!bInInternalClasses && InternalPaths.Num() > 0)
+			{
+				for (int i = 0; i < InternalPaths.Num(); i++)
+				{
+					if (InOriginalRootNode->GeneratedClassPackage.StartsWith(InternalPaths[i].Path))
+					{
+						bPassesInternalFilter = false;
+						break;
+					}
+				}
+			}
+			if (!bInInternalClasses && InternalClasses.Num() > 0 && bPassesInternalFilter)
+			{
+				for (int i = 0; i < InternalClasses.Num(); i++)
+				{
+					if (InOriginalRootNode->Class->IsChildOf(InternalClasses[i]))
+					{
+						bPassesInternalFilter = false;
+						break;
+					}
+				}
+			}
 
 			// When in picker mode, brushes are valid "placeable" actors
 			if( bInOnlyPlaceables && InInitOptions.Mode == EClassViewerMode::ClassPicker && IsBrush(InOriginalRootNode->Class.Get()) && IsPlaceable(InOriginalRootNode->Class.Get()))
@@ -789,12 +901,12 @@ namespace ClassViewer
 			{
 				if(bInShowUnloadedBlueprints)
 				{
-					NewNode->bPassesFilter = bPassesPlaceableFilter && bPassesBlueprintBaseFilter && IsClassAllowed_UnloadedBlueprint(InInitOptions, InOriginalRootNode) && PassesFilter(*InOriginalRootNode->GetClassName().Get(), InTextFilter);
+					NewNode->bPassesFilter = bPassesPlaceableFilter && bPassesBlueprintBaseFilter && bPassesDeveloperFilter && bPassesInternalFilter && IsClassAllowed_UnloadedBlueprint(InInitOptions, InOriginalRootNode) && PassesFilter(*InOriginalRootNode->GetClassName().Get(), InTextFilter);
 				}
 			}
 			else
 			{
-				NewNode->bPassesFilter = bPassesPlaceableFilter && bPassesBlueprintBaseFilter && IsClassAllowed(InInitOptions, InOriginalRootNode->Class) && PassesFilter(*InOriginalRootNode->GetClassName().Get(), InTextFilter);
+				NewNode->bPassesFilter = bPassesPlaceableFilter && bPassesBlueprintBaseFilter && bPassesDeveloperFilter && bPassesInternalFilter &&  IsClassAllowed(InInitOptions, InOriginalRootNode->Class) && PassesFilter(*InOriginalRootNode->GetClassName().Get(), InTextFilter);
 			}
 
 			if(NewNode->bPassesFilter)
@@ -808,7 +920,7 @@ namespace ClassViewer
 			for(int32 ChildIdx = 0; ChildIdx < ChildList.Num(); ChildIdx++)
 			{
 				AddChildren_List(InInitOptions, InOutNodeList, ChildList[ChildIdx], InTextFilter, false, /* bInOnlyActors - false so that anything below Actor is added */
-					bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints);
+					bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints, InAllowedDeveloperType, bInInternalClasses, InternalClasses, InternalPaths);
 			}
 		}	
 
@@ -820,10 +932,17 @@ namespace ClassViewer
 		 *	@param bInOnlyActors						Filter option to root the tree in the "Actor" class.
 		 *	@param bInOnlyBlueprintBases				Filter option to remove non-blueprint base classes.
 		 *	@param bInShowUnloadedBlueprints			Filter option to not remove unloaded blueprints due to class filter options.
+		 *  @param InAllowedDeveloperType               Filter option for dealing with developer folders.
+		 *  @param bInInternalClasses                   Filter option for showing internal classes.
+		 *  @param InternalClasses                      The classes that have been marked as Internal Only.
+		 *  @param InternalPaths                        The paths that have been marked Internal Only.
 		 *
 		 *	@return A fully built list.
 		 */
-		static void GetClassList(const FClassViewerInitializationOptions& InInitOptions, TArray< TSharedPtr< FClassViewerNode > >& InOutNodeList, const FTextFilterExpressionEvaluator& InTextFilter, bool bInOnlyPlaceables, bool bInOnlyActors, bool bInOnlyBlueprintBases, bool bInShowUnloadedBlueprints)
+		static void GetClassList(const FClassViewerInitializationOptions& InInitOptions, TArray< TSharedPtr< FClassViewerNode > >& InOutNodeList, 
+			const FTextFilterExpressionEvaluator& InTextFilter, bool bInOnlyPlaceables, bool bInOnlyActors, bool bInOnlyBlueprintBases, bool bInShowUnloadedBlueprints,
+			EClassViewerDeveloperType InAllowedDeveloperType = EClassViewerDeveloperType::CVDT_All, bool bInInternalClasses = true,
+			const TArray<UClass*>& InternalClasses = TArray<UClass*>(), const TArray<FDirectoryPath>& InternalPaths = TArray<FDirectoryPath>())
 		{
 			const TSharedPtr< FClassViewerNode > ObjectClassRoot = ClassHierarchy->GetObjectRootNode();
 
@@ -844,7 +963,7 @@ namespace ClassViewer
 			TArray< TSharedPtr< FClassViewerNode > >& ChildList = ObjectClassRoot->GetChildrenList();
 			for(int32 ObjectChildIndex = 0; ObjectChildIndex < ChildList.Num(); ObjectChildIndex++)
 			{
-				AddChildren_List(InInitOptions, InOutNodeList, ChildList[ObjectChildIndex], InTextFilter, bInOnlyActors, bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints);			
+				AddChildren_List(InInitOptions, InOutNodeList, ChildList[ObjectChildIndex], InTextFilter, bInOnlyActors, bInOnlyPlaceables, bInOnlyBlueprintBases, bInShowUnloadedBlueprints, InAllowedDeveloperType, bInInternalClasses, InternalClasses, InternalPaths);
 			}
 		}
 
@@ -1298,7 +1417,7 @@ public:
 		bDynamicClassLoading = InArgs._bDynamicClassLoading;
 		AssociatedNode = InArgs._AssociatedNode;
 		OnDoubleClicked = InArgs._OnClassItemDoubleClicked;
-
+		
 		bool bIsBlueprint(false);
 		bool bHasBlueprint(false);
 
@@ -1323,7 +1442,6 @@ public:
 				{
 					UPackage*  Package  = Class->GetOutermost();
 					UMetaData* MetaData = Package->GetMetaData();
-
 					ToolTip = FEditorClassUtils::GetTooltip(Class);
 				}
 
@@ -1666,6 +1784,31 @@ TSharedPtr< FClassViewerNode > FClassHierarchy::FindParent(const TSharedPtr< FCl
 	return ReturnNode;
 }
 
+TSharedPtr< FClassViewerNode > FClassHierarchy::FindNodeByClassName(const TSharedPtr< FClassViewerNode >& InRootNode, const FString& InClassName)
+{
+	FString NodeClassName = InRootNode->Class.IsValid() ? InRootNode->Class->GetPathName() : FString();
+	if (NodeClassName == InClassName)
+	{
+		return InRootNode;
+	}
+
+	TSharedPtr< FClassViewerNode > ReturnNode;
+
+	// Search the children recursively, one of them might have the parent.
+	for (int32 ChildClassIndex = 0; !ReturnNode.IsValid() && ChildClassIndex < InRootNode->GetChildrenList().Num(); ChildClassIndex++)
+	{
+		// Check the child, then check the return to see if it is valid. If it is valid, end the recursion.
+		ReturnNode = FindNodeByClassName(InRootNode->GetChildrenList()[ChildClassIndex], InClassName);
+
+		if (ReturnNode.IsValid())
+		{
+			break;
+		}
+	}
+
+	return ReturnNode;
+}
+
 TSharedPtr< FClassViewerNode > FClassHierarchy::FindNodeByGeneratedClassPackageName(const TSharedPtr< FClassViewerNode >& InRootNode, const FString& InGeneratedClassPackageName)
 {
 	if(InRootNode->GeneratedClassPackage == InGeneratedClassPackageName)
@@ -1939,6 +2082,12 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitializationOptions& InInitOptions )
 {
 	bNeedsRefresh = true;
+	NumClasses = 0;
+	
+	bCanShowInternalClasses = true;
+	
+	// Listen for when view settings are changed
+	UClassViewerSettings::OnSettingChanged().AddSP(this, &SClassViewer::HandleSettingChanged);
 
 	InitOptions = InInitOptions;
 
@@ -1999,6 +2148,51 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 		OnContextMenuOpening = FOnContextMenuOpening::CreateSP(this, &SClassViewer::BuildMenuWidget);
 	}
 
+	SAssignNew(ClassList, SListView<TSharedPtr< FClassViewerNode > >)
+		.SelectionMode(ESelectionMode::Single)
+		.ListItemsSource(&RootTreeItems)
+		// Generates the actual widget for a tree item
+		.OnGenerateRow(this, &SClassViewer::OnGenerateRowForClassViewer)
+		// Generates the right click menu.
+		.OnContextMenuOpening(OnContextMenuOpening)
+		// Find out when the user selects something in the tree
+		.OnSelectionChanged(this, &SClassViewer::OnClassViewerSelectionChanged)
+		// Allow for some spacing between items with a larger item height.
+		.ItemHeight(20.0f)
+		.HeaderRow
+		(
+			SNew(SHeaderRow)
+			.Visibility(EVisibility::Collapsed)
+			+ SHeaderRow::Column(TEXT("Class"))
+			.DefaultLabel(NSLOCTEXT("ClassViewer", "Class", "Class"))
+		);
+	SAssignNew(ClassTree, STreeView<TSharedPtr< FClassViewerNode > >)
+		.SelectionMode(ESelectionMode::Single)
+		.TreeItemsSource(&RootTreeItems)
+		// Called to child items for any given parent item
+		.OnGetChildren(this, &SClassViewer::OnGetChildrenForClassViewerTree)
+		// Called to handle recursively expanding/collapsing items
+		.OnSetExpansionRecursive(this, &SClassViewer::SetAllExpansionStates_Helper)
+		// Generates the actual widget for a tree item
+		.OnGenerateRow(this, &SClassViewer::OnGenerateRowForClassViewer)
+		// Generates the right click menu.
+		.OnContextMenuOpening(OnContextMenuOpening)
+		// Find out when the user selects something in the tree
+		.OnSelectionChanged(this, &SClassViewer::OnClassViewerSelectionChanged)
+		// Called when the expansion state of an item changes
+		.OnExpansionChanged(this, &SClassViewer::OnClassViewerExpansionChanged)
+		// Allow for some spacing between items with a larger item height.
+		.ItemHeight(20.0f)
+		.HeaderRow
+		(
+			SNew(SHeaderRow)
+			.Visibility(EVisibility::Collapsed)
+			+ SHeaderRow::Column(TEXT("Class"))
+			.DefaultLabel(NSLOCTEXT("ClassViewer", "Class", "Class"))
+		);
+	TSharedRef<STreeView<TSharedPtr< FClassViewerNode > > > ClassTreeView = ClassTree.ToSharedRef();
+	TSharedRef<SListView<TSharedPtr< FClassViewerNode > > > ClassListView = ClassList.ToSharedRef();
+
 	// Holds the bulk of the class viewer's sub-widgets, to be added to the widget after construction
 	TSharedPtr< SWidget > ClassViewerContent;
 
@@ -2053,72 +2247,21 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 			+SVerticalBox::Slot()
 			.FillHeight(1.0f)
 			[
-				SAssignNew(ClassTree, STreeView<TSharedPtr< FClassViewerNode > >)
+				SNew(SScrollBorder, ClassTreeView)
 				.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::TreeView ? EVisibility::Visible : EVisibility::Collapsed)
-	
-				.SelectionMode(ESelectionMode::Single)
-
-				.TreeItemsSource( &RootTreeItems )
-				// Called to child items for any given parent item
-				.OnGetChildren( this, &SClassViewer::OnGetChildrenForClassViewerTree )
-
-				// Called to handle recursively expanding/collapsing items
-				.OnSetExpansionRecursive(this, &SClassViewer::SetAllExpansionStates_Helper )
-
-				// Generates the actual widget for a tree item
-				.OnGenerateRow( this, &SClassViewer::OnGenerateRowForClassViewer ) 
-
-				// Generates the right click menu.
-				.OnContextMenuOpening( OnContextMenuOpening )
-
-				// Find out when the user selects something in the tree
-				.OnSelectionChanged( this, &SClassViewer::OnClassViewerSelectionChanged )
-
-				// Called when the expansion state of an item changes
-				.OnExpansionChanged( this, &SClassViewer::OnClassViewerExpansionChanged )
-
-				// Allow for some spacing between items with a larger item height.
-				.ItemHeight(20.0f)
-
-				.HeaderRow
-				(
-					SNew(SHeaderRow)
-					.Visibility(EVisibility::Collapsed)
-					+ SHeaderRow::Column(TEXT("Class"))
-					.DefaultLabel(NSLOCTEXT("ClassViewer", "Class", "Class"))
-				)
+				[
+					ClassTreeView
+				]
 			]
 
 			+SVerticalBox::Slot()
 			.FillHeight(1.0f)
 			[
-				SAssignNew(ClassList, SListView<TSharedPtr< FClassViewerNode > >)
-					.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::ListView ? EVisibility::Visible : EVisibility::Collapsed)
-
-					.SelectionMode(ESelectionMode::Single)
-
-					.ListItemsSource( &RootTreeItems )
-
-					// Generates the actual widget for a tree item
-					.OnGenerateRow( this, &SClassViewer::OnGenerateRowForClassViewer ) 
-
-					// Generates the right click menu.
-					.OnContextMenuOpening( OnContextMenuOpening )
-
-					// Find out when the user selects something in the tree
-					.OnSelectionChanged( this, &SClassViewer::OnClassViewerSelectionChanged )
-
-					// Allow for some spacing between items with a larger item height.
-					.ItemHeight(20.0f)
-
-					.HeaderRow
-					(
-						SNew(SHeaderRow)
-						.Visibility(EVisibility::Collapsed)
-						+ SHeaderRow::Column(TEXT("Class"))
-						.DefaultLabel(NSLOCTEXT("ClassViewer", "Class", "Class"))
-					)
-
+				SNew(SScrollBorder, ClassListView)
+				.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::ListView ? EVisibility::Visible : EVisibility::Collapsed)
+				[
+					ClassListView
+				]
 			]
 		]
 
@@ -2130,7 +2273,58 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 			// Asset discovery indicator
 			AssetDiscoveryIndicator
 		]
+	]
+
+	// Bottom panel
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+
+		// Asset count
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.f)
+		.VAlign(VAlign_Center)
+		.Padding(8, 0)
+		[
+			SNew(STextBlock)
+			.Text(this, &SClassViewer::GetClassCountText)
+		]
+
+		// View mode combo button
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SAssignNew(ViewOptionsComboButton, SComboButton)
+			.ContentPadding(0)
+			.ForegroundColor(this, &SClassViewer::GetViewButtonForegroundColor)
+			.ButtonStyle(FEditorStyle::Get(), "ToggleButton") // Use the tool bar item style for this button
+			.OnGetMenuContent(this, &SClassViewer::GetViewButtonContent)
+			.ButtonContent()
+			[
+				SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SImage).Image(FEditorStyle::GetBrush("GenericViewButton"))
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(2, 0, 0, 0)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock).Text(LOCTEXT("ViewButton", "View Options"))
+				]
+			]
+		]
 	];
+
+	if (ViewOptionsComboButton.IsValid())
+	{
+		ViewOptionsComboButton->SetVisibility(InitOptions.bAllowViewOptions ? EVisibility::Visible : EVisibility::Collapsed);
+	}
 
 	// When using a class picker in list-view mode, the widget will auto-focus the search box
 	// and allow the up and down arrow keys to navigate and enter to pick without using the mouse ever
@@ -2177,6 +2371,9 @@ TSharedRef<SWidget> SClassViewer::GetContent()
 SClassViewer::~SClassViewer()
 {
 	ClassViewer::Helpers::PopulateClassviewerDelegate.RemoveAll(this);
+
+	// Remove the listener for when view settings are changed
+	UClassViewerSettings::OnSettingChanged().RemoveAll(this);
 }
 
 void SClassViewer::ClearSelection()
@@ -2331,6 +2528,169 @@ const TArray< TSharedPtr< FClassViewerNode > > SClassViewer::GetSelectedItems() 
 
 	return ClassTree->GetSelectedItems();
 }
+
+
+const int SClassViewer::GetNumItems() const
+{
+	return NumClasses;
+}
+
+FSlateColor SClassViewer::GetViewButtonForegroundColor() const
+{
+	static const FName InvertedForegroundName("InvertedForeground");
+	static const FName DefaultForegroundName("DefaultForeground");
+
+	return ViewOptionsComboButton->IsHovered() ? FEditorStyle::GetSlateColor(InvertedForegroundName) : FEditorStyle::GetSlateColor(DefaultForegroundName);
+}
+
+TSharedRef<SWidget> SClassViewer::GetViewButtonContent()
+{
+	// Get all menu extenders for this context menu from the content browser module
+
+	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, NULL, NULL, /*bCloseSelfOnly=*/ true);
+	MenuBuilder.BeginSection("Filters", LOCTEXT("ClassViewerFiltersHeading", "Class Filters"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowInternalClassesOption", "Show Internal Classes"),
+			LOCTEXT("ShowInternalClassesOptionToolTip", "Shows internal-use only classes in the view."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SClassViewer::ToggleShowInternalClasses),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SClassViewer::IsShowingInternalClasses)
+				),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
+	}
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection("DeveloperViewType", LOCTEXT("DeveloperViewTypeHeading", "Developer Folder Filter"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("NoneDeveloperViewOption", "None"),
+			LOCTEXT("NoneDeveloperViewOptionToolTip", "Filter classes to show no classes in developer folders."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SClassViewer::SetCurrentDeveloperViewType, EClassViewerDeveloperType::CVDT_None),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SClassViewer::IsCurrentDeveloperViewType, EClassViewerDeveloperType::CVDT_None)
+				),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("CurrentUserDeveloperViewOption", "Current Developer"),
+			LOCTEXT("CurrentUserDeveloperViewOptionToolTip", "Filter classes to allow classes in the current user's development folder."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SClassViewer::SetCurrentDeveloperViewType, EClassViewerDeveloperType::CVDT_CurrentUser),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SClassViewer::IsCurrentDeveloperViewType, EClassViewerDeveloperType::CVDT_CurrentUser)
+				),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("AllUsersDeveloperViewOption", "All Developers"),
+			LOCTEXT("AllUsersDeveloperViewOptionToolTip", "Filter classes to allow classes in all users' development folders."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SClassViewer::SetCurrentDeveloperViewType, EClassViewerDeveloperType::CVDT_All),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SClassViewer::IsCurrentDeveloperViewType, EClassViewerDeveloperType::CVDT_All)
+				),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+			);
+
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+void SClassViewer::SetCurrentDeveloperViewType(EClassViewerDeveloperType NewType)
+{
+	if (ensure((int)NewType < (int)EClassViewerDeveloperType::CVDT_Max) && NewType != GetDefault<UClassViewerSettings>()->DeveloperFolderType)
+	{
+		GetMutableDefault<UClassViewerSettings>()->DeveloperFolderType = NewType;
+		GetMutableDefault<UClassViewerSettings>()->PostEditChange();
+	}
+}
+
+EClassViewerDeveloperType SClassViewer::GetCurrentDeveloperViewType() const
+{
+	if (!InitOptions.bAllowViewOptions)
+	{
+		return EClassViewerDeveloperType::CVDT_All;
+	}
+
+	return GetDefault<UClassViewerSettings>()->DeveloperFolderType;
+}
+
+bool SClassViewer::IsCurrentDeveloperViewType(EClassViewerDeveloperType ViewType) const
+{
+	return GetCurrentDeveloperViewType() == ViewType;
+}
+
+void SClassViewer::GetInternalOnlyClasses(TArray<FStringClassReference>& Classes)
+{
+	if (!InitOptions.bAllowViewOptions)
+	{
+		return;
+	}
+
+	Classes = GetDefault<UClassViewerProjectSettings>()->InternalOnlyClasses;
+}
+
+void SClassViewer::GetInternalOnlyPaths(TArray<FDirectoryPath>& Paths)
+{
+	if (!InitOptions.bAllowViewOptions)
+	{
+		return;
+	}
+	Paths = GetDefault<UClassViewerProjectSettings>()->InternalOnlyPaths;
+}
+
+
+FText SClassViewer::GetClassCountText() const
+{
+
+	const int32 NumAssets = GetNumItems();
+	const int32 NumSelectedAssets = GetSelectedItems().Num();
+
+	FText AssetCount = FText::GetEmpty();
+	AssetCount = LOCTEXT("AssetCountLabelSingular", "1 item");
+
+	if (NumSelectedAssets == 0)
+	{
+		if (NumAssets == 1)
+		{
+			AssetCount = LOCTEXT("AssetCountLabelSingular", "1 item");
+		}
+		else
+		{
+			AssetCount = FText::Format(LOCTEXT("AssetCountLabelPlural", "{0} items"), FText::AsNumber(NumAssets));
+		}
+	}
+	else
+	{
+		if (NumAssets == 1)
+		{
+			AssetCount = FText::Format(LOCTEXT("AssetCountLabelSingularPlusSelection", "1 item ({0} selected)"), FText::AsNumber(NumSelectedAssets));
+		}
+		else
+		{
+			AssetCount = FText::Format(LOCTEXT("AssetCountLabelPluralPlusSelection", "{0} items ({1} selected)"), FText::AsNumber(NumAssets), FText::AsNumber(NumSelectedAssets));
+		}
+	}
+
+	return AssetCount;
+}
+
 
 void SClassViewer::ExpandRootNodes()
 {
@@ -2582,12 +2942,25 @@ void SClassViewer::SetExpansionStatesInTree( TSharedPtr<FClassViewerNode> InItem
 	}
 }
 
+int32 SClassViewer::CountTreeItems(FClassViewerNode* Node)
+{
+	if (Node == nullptr)
+		return 0;
+	int32 Count = 1;
+	TArray<TSharedPtr<FClassViewerNode>>& ChildArray = Node->GetChildrenList();
+	for (int i = 0; i < ChildArray.Num(); i++)
+	{
+		Count += CountTreeItems(ChildArray[i].Get());
+	}
+	return Count;
+}
+
 void SClassViewer::Populate()
 {
 	bPendingSetExpansionStates = false;
 
 	// If showing a class tree, we may need to save expansion states.
-	if( ClassTree->GetVisibility() == EVisibility::Visible )
+	if(InitOptions.DisplayMode == EClassViewerDisplayMode::TreeView)
 	{
 		if( bSaveExpansionStates )
 		{
@@ -2612,14 +2985,39 @@ void SClassViewer::Populate()
 	// Empty the tree out so it can be redone.
 	RootTreeItems.Empty();
 
+	bool ShowingInternalClasses = IsShowingInternalClasses();
+
+	TArray<FStringClassReference> InternalClassNames;
+	TArray<UClass*> InternalClasses;
+	TArray<FDirectoryPath> InternalPaths;
+	// If we aren't showing the internal classes, then we need to know what classes to consider Internal Only, so let's gather them up from the settings object.
+	if (!ShowingInternalClasses)
+	{
+		GetInternalOnlyPaths(InternalPaths);
+		GetInternalOnlyClasses(InternalClassNames);
+
+		// Take the package names for the internal only classes and convert them into their UClass
+		for (int i = 0; i < InternalClassNames.Num(); i++)
+		{
+			FString PackageClassName = InternalClassNames[i].ToString();
+			const TSharedPtr<FClassViewerNode> ClassNode = ClassViewer::Helpers::ClassHierarchy->FindNodeByClassName(ClassViewer::Helpers::ClassHierarchy->GetObjectRootNode(), PackageClassName);
+
+			if (ClassNode.IsValid())
+			{
+				InternalClasses.Add(ClassNode->Class.Get());
+			}
+		}
+	}
+
 	// Based on if the list or tree is visible we create what will be displayed differently.
-	if(ClassTree->GetVisibility() == EVisibility::Visible)
+	if(InitOptions.DisplayMode == EClassViewerDisplayMode::TreeView)
 	{
 		// The root node for the tree, will be "Object" which we will skip.
 		TSharedPtr<FClassViewerNode> RootNode;
 
 		// Get the class tree, passing in certain filter options.
-		ClassViewer::Helpers::GetClassTree(InitOptions, RootNode, *TextFilterPtr, MenuPlaceableOnly_IsChecked(), MenuActorsOnly_IsChecked(), MenuBlueprintBasesOnly_IsChecked(), bShowUnloadedBlueprints );
+		ClassViewer::Helpers::GetClassTree(InitOptions, RootNode, *TextFilterPtr, MenuPlaceableOnly_IsChecked(), MenuActorsOnly_IsChecked(), MenuBlueprintBasesOnly_IsChecked(),
+			bShowUnloadedBlueprints, GetCurrentDeveloperViewType(), ShowingInternalClasses, InternalClasses, InternalPaths);
 
 		// Check if we will restore expansion states, we will not if there is filtering happening.
 		const bool bRestoreExpansionState = TextFilterPtr->GetFilterType() == ETextFilterExpressionType::Empty;
@@ -2663,8 +3061,12 @@ void SClassViewer::Populate()
 		{
 			// @todo - It would seem smart to add this in before the other items, since it needs to be on top. However, that causes strange issues with saving/restoring expansion states. 
 			// This is likely not very efficient since the list can have hundreds and even thousands of items.
-			RootTreeItems.Insert(CreateNoneOption(), 0);
+			RootTreeItems.Insert(CreateNoneOption(), 0);			
 		}
+
+		NumClasses = 0;
+		for (int i = 0; i < RootTreeItems.Num(); i++)
+			NumClasses += CountTreeItems(RootTreeItems[i].Get());
 
 		// Now that new items are in the tree, we need to request a refresh.
 		ClassTree->RequestTreeRefresh();
@@ -2672,7 +3074,8 @@ void SClassViewer::Populate()
 	else
 	{
 		// Get the class list, passing in certain filter options.
-		ClassViewer::Helpers::GetClassList(InitOptions, RootTreeItems, *TextFilterPtr, MenuPlaceableOnly_IsChecked(), MenuActorsOnly_IsChecked(), MenuBlueprintBasesOnly_IsChecked(), bShowUnloadedBlueprints);
+		ClassViewer::Helpers::GetClassList(InitOptions, RootTreeItems, *TextFilterPtr, MenuPlaceableOnly_IsChecked(), MenuActorsOnly_IsChecked(), MenuBlueprintBasesOnly_IsChecked(), 
+			bShowUnloadedBlueprints, GetCurrentDeveloperViewType(), ShowingInternalClasses, InternalClasses, InternalPaths);
 
 		// Sort the list alphabetically.
 		struct FCompareFClassViewerNode
@@ -2696,6 +3099,10 @@ void SClassViewer::Populate()
 			// This is likely not very efficient since the list can have hundreds and even thousands of items.
 			RootTreeItems.Insert(CreateNoneOption(), 0);
 		}
+
+		NumClasses = 0;
+		for (int i = 0; i < RootTreeItems.Num(); i++)
+			NumClasses += CountTreeItems(RootTreeItems[i].Get() );
 
 		// Now that new items are in the list, we need to request a refresh.
 		ClassList->RequestListRefresh();
@@ -2784,6 +3191,37 @@ void SClassViewer::Tick( const FGeometry& AllottedGeometry, const double InCurre
 bool SClassViewer::IsClassAllowed(const UClass* InClass) const
 {
 	return ClassViewer::Helpers::IsClassAllowed(InitOptions, InClass);
+}
+
+void SClassViewer::HandleSettingChanged(FName PropertyName)
+{
+	if ((PropertyName == "DisplayInternalClasses") ||
+		(PropertyName == "DeveloperFolderType") ||
+		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now
+	{
+		Refresh();
+	}
+}
+
+void SClassViewer::ToggleShowInternalClasses()
+{
+	check(IsToggleShowInternalClassesAllowed());
+	GetMutableDefault<UClassViewerSettings>()->DisplayInternalClasses = !GetDefault<UClassViewerSettings>()->DisplayInternalClasses;
+	GetMutableDefault<UClassViewerSettings>()->PostEditChange();
+}
+
+bool SClassViewer::IsToggleShowInternalClassesAllowed() const
+{
+	return bCanShowInternalClasses;
+}
+
+bool SClassViewer::IsShowingInternalClasses() const
+{
+	if (!InitOptions.bAllowViewOptions)
+	{
+		return true;
+	}
+	return IsToggleShowInternalClassesAllowed() ? GetDefault<UClassViewerSettings>()->DisplayInternalClasses : false;
 }
 
 #undef LOCTEXT_NAMESPACE

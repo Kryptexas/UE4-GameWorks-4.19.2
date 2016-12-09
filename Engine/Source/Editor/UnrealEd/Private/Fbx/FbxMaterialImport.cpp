@@ -24,8 +24,11 @@
 #include "AssetRegistryModule.h"
 #include "IAssetTools.h"
 #include "AssetToolsModule.h"
+#include "Misc/FbxErrors.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxMaterialImport, Log, All);
+
+#define LOCTEXT_NAMESPACE "FbxMaterialImport"
 
 using namespace UnFbx;
 
@@ -536,6 +539,38 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 	else
 	{
 		UMaterialInterface* FoundMaterial = LoadObject<UMaterialInterface>(NULL, *ObjectPath.ToString(), NULL, LOAD_Quiet | LOAD_NoWarn);
+		FBXImportOptions* FbxImportOptions = GetImportOptions();
+		if (FoundMaterial == nullptr && FbxImportOptions->MaterialSearchLocation != EMaterialSearchLocation::Local)
+		{
+			// Search recursively in asset's folder
+			FString SearchPath = FPaths::GetPath(BasePackageName);
+			FoundMaterial = FindExistingUnrealMaterial(SearchPath, MaterialFullName);
+
+			if (FoundMaterial == nullptr && 
+				(FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::UnderParent ||
+				FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::UnderRoot ||
+				FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::AllAssets))
+			{
+				// Search recursively in parent's folder
+				SearchPath = FPaths::GetPath(SearchPath);
+				FoundMaterial = FindExistingUnrealMaterial(SearchPath, MaterialFullName);
+			}
+			if (FoundMaterial == nullptr && 
+				(FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::UnderRoot || 
+				FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::AllAssets))
+			{
+				// Search recursively in root folder of asset
+				FString OutPackageRoot, OutPackagePath, OutPackageName;
+				FPackageName::SplitLongPackageName(SearchPath, OutPackageRoot, OutPackagePath, OutPackageName);
+				FoundMaterial = FindExistingUnrealMaterial(OutPackageRoot, MaterialFullName);
+			}
+			if (FoundMaterial == nullptr && 
+				FbxImportOptions->MaterialSearchLocation == EMaterialSearchLocation::AllAssets)
+			{
+				// Search everywhere
+				FoundMaterial = FindExistingUnrealMaterial(TEXT("/"), MaterialFullName);
+			}
+		}
 		// do not override existing materials
 		if (FoundMaterial)
 		{
@@ -737,14 +772,99 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 int32 UnFbx::FFbxImporter::CreateNodeMaterials(FbxNode* FbxNode, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets, bool bForSkeletalMesh)
 {
 	int32 MaterialCount = FbxNode->GetMaterialCount();
+	TArray<FbxSurfaceMaterial*> UsedSurfaceMaterials;
+	FbxMesh *MeshNode = FbxNode->GetMesh();
+	TSet<int32> UsedMaterialIndexes;
+	if (MeshNode)
+	{
+		for (int32 ElementMaterialIndex = 0; ElementMaterialIndex < MeshNode->GetElementMaterialCount(); ++ElementMaterialIndex)
+		{
+			FbxGeometryElementMaterial *ElementMaterial = MeshNode->GetElementMaterial(ElementMaterialIndex);
+			switch (ElementMaterial->GetMappingMode())
+			{
+			case FbxLayerElement::eAllSame:
+				{
+					if (ElementMaterial->GetIndexArray().GetCount() > 0)
+					{
+						UsedMaterialIndexes.Add(ElementMaterial->GetIndexArray()[0]);
+					}
+				}
+				break;
+			case FbxLayerElement::eByPolygon:
+				{
+					for (int32 MaterialIndex = 0; MaterialIndex < ElementMaterial->GetIndexArray().GetCount(); ++MaterialIndex)
+					{
+						UsedMaterialIndexes.Add(ElementMaterial->GetIndexArray()[MaterialIndex]);
+					}
+				}
+				break;
+			}
+		}
+	}
 	for(int32 MaterialIndex=0; MaterialIndex < MaterialCount; ++MaterialIndex)
 	{
-		FbxSurfaceMaterial *FbxMaterial = FbxNode->GetMaterial(MaterialIndex);
-
-		if( FbxMaterial )
+		//Create only the material used by the mesh element material
+		if (MeshNode == nullptr || UsedMaterialIndexes.Contains(MaterialIndex))
 		{
-			CreateUnrealMaterial(*FbxMaterial, OutMaterials, UVSets, bForSkeletalMesh);
+			FbxSurfaceMaterial *FbxMaterial = FbxNode->GetMaterial(MaterialIndex);
+
+			if (FbxMaterial)
+			{
+				CreateUnrealMaterial(*FbxMaterial, OutMaterials, UVSets, bForSkeletalMesh);
+			}
+		}
+		else
+		{
+			OutMaterials.Add(nullptr);
 		}
 	}
 	return MaterialCount;
 }
+
+UMaterialInterface* UnFbx::FFbxImporter::FindExistingUnrealMaterial(const FString& BasePath, const FString& MaterialName)
+{
+	UMaterialInterface* Material = nullptr;
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+	TArray<FAssetData> AssetData;
+	FARFilter Filter;
+
+	AssetRegistry.SearchAllAssets(true);
+
+	Filter.bRecursiveClasses = true;
+	Filter.bRecursivePaths = true;
+	Filter.ClassNames.Add(UMaterialInterface::StaticClass()->GetFName());
+	Filter.PackagePaths.Add(FName(*BasePath));
+
+	AssetRegistry.GetAssets(Filter, AssetData);
+
+	TArray<UMaterialInterface*> FoundAssets;
+	for (const FAssetData& Data : AssetData)
+	{
+		if (Data.AssetName == FName(*MaterialName))
+		{
+			Material = Cast<UMaterialInterface>(Data.GetAsset());
+			if (Material != nullptr)
+			{
+				FoundAssets.Add(Material);
+			}
+		}
+	}
+
+	if (FoundAssets.Num() > 1)
+	{
+		check(Material != nullptr);
+		AddTokenizedErrorMessage(
+			FTokenizedMessage::Create(EMessageSeverity::Warning,
+				FText::Format(LOCTEXT("FbxMaterialImport_MultipleMaterialsFound", "While importing '{0}', found {1} materials matching name '{2}'. Using '{3}'."), 
+					FText::FromString(Parent->GetOutermost()->GetName()), 
+					FText::FromString(FString::FromInt(FoundAssets.Num())), 
+					FText::FromString(MaterialName), 
+					FText::FromString(Material->GetOutermost()->GetName()))),
+			FFbxErrors::Generic_LoadingSceneFailed);
+	}
+	return Material;
+}
+
+#undef LOCTEXT_NAMESPACE

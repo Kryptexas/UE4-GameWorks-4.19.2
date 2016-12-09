@@ -92,24 +92,24 @@ class FComponentReregisterContext : public FComponentReregisterContextBase
 {
 private:
 	/** Pointer to component we are unregistering */
-	UActorComponent* Component;
+	TWeakObjectPtr<UActorComponent> Component;
 	/** Cache pointer to world from which we were removed */
-	UWorld* World;
+	TWeakObjectPtr<UWorld> World;
 public:
 	FComponentReregisterContext(UActorComponent* InComponent)
-		: World(NULL)
+		: World(nullptr)
 	{
 		World = UnRegister(InComponent);
 		// If we didn't get a scene back NULL the component so we dont try to
 		// process it on destruction
-		Component = World ? InComponent : NULL;
+		Component = World.IsValid() ? InComponent : nullptr;
 	}
 
 	~FComponentReregisterContext()
 	{
-		if( Component != NULL )
+		if( Component.IsValid() )
 		{
-			ReRegister(Component, World);
+			ReRegister(Component.Get(), World.Get());
 		}
 	}
 };

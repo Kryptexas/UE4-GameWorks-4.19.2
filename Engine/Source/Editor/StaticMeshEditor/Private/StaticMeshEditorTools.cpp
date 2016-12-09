@@ -31,6 +31,7 @@
 #include "EngineAnalytics.h"
 #include "Widgets/Input/STextComboBox.h"
 #include "ScopedTransaction.h"
+#include "JsonObjectConverter.h"
 
 const float MaxHullAccuracy = 1.f;
 const float MinHullAccuracy = 0.f;
@@ -57,7 +58,8 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 	IDetailCategoryBuilder& LODSettingsCategory = DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings") );
 	IDetailCategoryBuilder& StaticMeshCategory = DetailBuilder.EditCategory( "StaticMesh", LOCTEXT("StaticMeshGeneralSettings", "Static Mesh Settings") );
 	IDetailCategoryBuilder& ImportCategory = DetailBuilder.EditCategory( "ImportSettings", LOCTEXT("ImportGeneralSettings", "Import Settings") );
-	
+	IDetailCategoryBuilder& CollisionCategory = DetailBuilder.EditCategory("Collision", LOCTEXT("CollisionCategory", "Collision"));
+
 	DetailBuilder.EditCategory( "Navigation", FText::GetEmpty(), ECategoryPriority::Uncommon );
 
 	LevelOfDetailSettings = MakeShareable( new FLevelOfDetailSettingsLayout( StaticMeshEditor ) );
@@ -97,7 +99,7 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 			TSharedPtr<IPropertyHandle> ChildProp = BodyPropObject->GetChildHandle(ChildIndex);
 			if( ChildProp.IsValid() && ChildProp->GetProperty() && !HiddenBodyInstanceProps.Contains(ChildProp->GetProperty()->GetFName()) )
 			{
-				StaticMeshCategory.AddProperty( ChildProp );
+				CollisionCategory.AddProperty( ChildProp );
 			}
 		}
 	}
@@ -1370,7 +1372,216 @@ void FMeshSectionSettingsLayout::AddToCategory( IDetailCategoryBuilder& Category
 	SectionListDelegates.OnSectionChanged.BindSP(this, &FMeshSectionSettingsLayout::OnSectionChanged);
 	SectionListDelegates.OnGenerateCustomNameWidgets.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateCustomNameWidgetsForSection);
 	SectionListDelegates.OnGenerateCustomSectionWidgets.BindSP(this, &FMeshSectionSettingsLayout::OnGenerateCustomSectionWidgetsForSection);
+
+	SectionListDelegates.OnCopySectionList.BindSP(this, &FMeshSectionSettingsLayout::OnCopySectionList, LODIndex);
+	SectionListDelegates.OnCanCopySectionList.BindSP(this, &FMeshSectionSettingsLayout::OnCanCopySectionList, LODIndex);
+	SectionListDelegates.OnPasteSectionList.BindSP(this, &FMeshSectionSettingsLayout::OnPasteSectionList, LODIndex);
+	SectionListDelegates.OnCopySectionItem.BindSP(this, &FMeshSectionSettingsLayout::OnCopySectionItem);
+	SectionListDelegates.OnCanCopySectionItem.BindSP(this, &FMeshSectionSettingsLayout::OnCanCopySectionItem);
+	SectionListDelegates.OnPasteSectionItem.BindSP(this, &FMeshSectionSettingsLayout::OnPasteSectionItem);
+
 	CategoryBuilder.AddCustomBuilder(MakeShareable(new FSectionList(CategoryBuilder.GetParentLayout(), SectionListDelegates, (LODIndex > 0))));
+}
+
+void FMeshSectionSettingsLayout::OnCopySectionList(int32 CurrentLODIndex)
+{
+	TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
+
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	FStaticMeshRenderData* RenderData = StaticMesh.RenderData.Get();
+
+	if (RenderData != nullptr && RenderData->LODResources.IsValidIndex(CurrentLODIndex))
+	{
+		FStaticMeshLODResources& LOD = RenderData->LODResources[CurrentLODIndex];
+
+		for (int32 SectionIndex = 0; SectionIndex < LOD.Sections.Num(); ++SectionIndex)
+		{
+			const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
+
+			TSharedPtr<FJsonObject> JSonSection = MakeShareable(new FJsonObject);
+
+			JSonSection->SetNumberField(TEXT("MaterialIndex"), Section.MaterialIndex);
+			JSonSection->SetBoolField(TEXT("EnableCollision"), Section.bEnableCollision);
+			JSonSection->SetBoolField(TEXT("CastShadow"), Section.bCastShadow);
+
+			RootJsonObject->SetObjectField(FString::Printf(TEXT("Section_%d"), SectionIndex), JSonSection);
+		}
+	}
+
+	typedef TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriter;
+	typedef TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriterFactory;
+
+	FString CopyStr;
+	TSharedRef<FStringWriter> Writer = FStringWriterFactory::Create(&CopyStr);
+	FJsonSerializer::Serialize(RootJsonObject, Writer);
+
+	if (!CopyStr.IsEmpty())
+	{
+		FPlatformMisc::ClipboardCopy(*CopyStr);
+	}
+}
+
+bool FMeshSectionSettingsLayout::OnCanCopySectionList(int32 CurrentLODIndex) const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	FStaticMeshRenderData* RenderData = StaticMesh.RenderData.Get();
+
+	if (RenderData != nullptr && RenderData->LODResources.IsValidIndex(CurrentLODIndex))
+	{
+		FStaticMeshLODResources& LOD = RenderData->LODResources[CurrentLODIndex];
+
+		return LOD.Sections.Num() > 0;
+	}
+
+	return false;
+}
+
+void FMeshSectionSettingsLayout::OnPasteSectionList(int32 CurrentLODIndex)
+{
+	FString PastedText;
+	FPlatformMisc::ClipboardPaste(PastedText);
+
+	TSharedPtr<FJsonObject> RootJsonObject;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
+	bool bResult = FJsonSerializer::Deserialize(Reader, RootJsonObject);
+
+	if (RootJsonObject.IsValid())
+	{
+		UStaticMesh& StaticMesh = GetStaticMesh();
+		FStaticMeshRenderData* RenderData = StaticMesh.RenderData.Get();
+
+		if (RenderData != nullptr && RenderData->LODResources.IsValidIndex(CurrentLODIndex))
+		{
+			UProperty* Property = UStaticMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(UStaticMesh, SectionInfoMap));
+
+			GetStaticMesh().PreEditChange(Property);
+
+			FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteSectionList", "Pasted section list"));
+			GetStaticMesh().Modify();
+
+			FStaticMeshLODResources& LOD = RenderData->LODResources[CurrentLODIndex];
+
+			for (int32 SectionIndex = 0; SectionIndex < LOD.Sections.Num(); ++SectionIndex)
+			{
+				FStaticMeshSection& Section = LOD.Sections[SectionIndex];
+
+				const TSharedPtr<FJsonObject>* JSonSection = nullptr;
+
+				if (RootJsonObject->TryGetObjectField(FString::Printf(TEXT("Section_%d"), SectionIndex), JSonSection))
+				{
+					(*JSonSection)->TryGetNumberField(TEXT("MaterialIndex"), Section.MaterialIndex);
+					(*JSonSection)->TryGetBoolField(TEXT("EnableCollision"), Section.bEnableCollision);
+					(*JSonSection)->TryGetBoolField(TEXT("CastShadow"), Section.bCastShadow);
+
+					// Update the section info
+					FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
+					Info.MaterialIndex = Section.MaterialIndex;
+					Info.bCastShadow = Section.bCastShadow;
+					Info.bEnableCollision = Section.bEnableCollision;
+
+					StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
+				}
+			}
+
+			CallPostEditChange(Property);
+		}
+	}
+}
+
+void FMeshSectionSettingsLayout::OnCopySectionItem(int32 CurrentLODIndex, int32 SectionIndex)
+{
+	TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
+
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	FStaticMeshRenderData* RenderData = StaticMesh.RenderData.Get();
+
+	if (RenderData != nullptr && RenderData->LODResources.IsValidIndex(CurrentLODIndex))
+	{
+		FStaticMeshLODResources& LOD = RenderData->LODResources[CurrentLODIndex];
+
+		if (LOD.Sections.IsValidIndex(SectionIndex))
+		{
+			const FStaticMeshSection& Section = LOD.Sections[SectionIndex];
+
+			RootJsonObject->SetNumberField(TEXT("MaterialIndex"), Section.MaterialIndex);
+			RootJsonObject->SetBoolField(TEXT("EnableCollision"), Section.bEnableCollision);
+			RootJsonObject->SetBoolField(TEXT("CastShadow"), Section.bCastShadow);
+		}
+	}
+
+	typedef TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriter;
+	typedef TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriterFactory;
+
+	FString CopyStr;
+	TSharedRef<FStringWriter> Writer = FStringWriterFactory::Create(&CopyStr);
+	FJsonSerializer::Serialize(RootJsonObject, Writer);
+
+	if (!CopyStr.IsEmpty())
+	{
+		FPlatformMisc::ClipboardCopy(*CopyStr);
+	}
+}
+
+bool FMeshSectionSettingsLayout::OnCanCopySectionItem(int32 CurrentLODIndex, int32 SectionIndex) const
+{
+	UStaticMesh& StaticMesh = GetStaticMesh();
+	FStaticMeshRenderData* RenderData = StaticMesh.RenderData.Get();
+
+	if (RenderData != nullptr && RenderData->LODResources.IsValidIndex(CurrentLODIndex))
+	{
+		FStaticMeshLODResources& LOD = RenderData->LODResources[CurrentLODIndex];
+
+		return LOD.Sections.IsValidIndex(SectionIndex);
+	}
+
+	return false;
+}
+
+void FMeshSectionSettingsLayout::OnPasteSectionItem(int32 CurrentLODIndex, int32 SectionIndex)
+{
+	FString PastedText;
+	FPlatformMisc::ClipboardPaste(PastedText);
+
+	TSharedPtr<FJsonObject> RootJsonObject;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
+	bool bResult = FJsonSerializer::Deserialize(Reader, RootJsonObject);
+
+	if (RootJsonObject.IsValid())
+	{
+		UStaticMesh& StaticMesh = GetStaticMesh();
+		FStaticMeshRenderData* RenderData = StaticMesh.RenderData.Get();
+
+		if (RenderData != nullptr && RenderData->LODResources.IsValidIndex(CurrentLODIndex))
+		{
+			UProperty* Property = UStaticMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(UStaticMesh, SectionInfoMap));
+
+			GetStaticMesh().PreEditChange(Property);
+
+			FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteSectionItem", "Pasted section item"));
+			GetStaticMesh().Modify();
+
+			FStaticMeshLODResources& LOD = RenderData->LODResources[CurrentLODIndex];
+
+			if (LOD.Sections.IsValidIndex(SectionIndex))
+			{
+				FStaticMeshSection& Section = LOD.Sections[SectionIndex];
+
+				RootJsonObject->TryGetNumberField(TEXT("MaterialIndex"), Section.MaterialIndex);
+				RootJsonObject->TryGetBoolField(TEXT("EnableCollision"), Section.bEnableCollision);
+				RootJsonObject->TryGetBoolField(TEXT("CastShadow"), Section.bCastShadow);
+
+				// Update the section info
+				FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
+				Info.MaterialIndex = Section.MaterialIndex;
+				Info.bCastShadow = Section.bCastShadow;
+				Info.bEnableCollision = Section.bEnableCollision;
+
+				StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
+			}
+
+			CallPostEditChange(Property);
+		}
+	}
 }
 
 void FMeshSectionSettingsLayout::OnGetSectionsForView(ISectionListBuilder& OutSections, int32 ForLODIndex)
@@ -1671,6 +1882,8 @@ UStaticMesh& FMeshMaterialsLayout::GetStaticMesh() const
 void FMeshMaterialsLayout::AddToCategory(IDetailCategoryBuilder& CategoryBuilder)
 {
 	CategoryBuilder.AddCustomRow(LOCTEXT("AddLODLevelCategories_MaterialArrayOperationAdd", "Add Material Slot"))
+		.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FMeshMaterialsLayout::OnCopyMaterialList), FCanExecuteAction::CreateSP(this, &FMeshMaterialsLayout::OnCanCopyMaterialList)))
+		.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FMeshMaterialsLayout::OnPasteMaterialList)))
 		.NameContent()
 		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Center)
@@ -1719,6 +1932,7 @@ void FMeshMaterialsLayout::AddToCategory(IDetailCategoryBuilder& CategoryBuilder
 				]
 			]
 		];
+
 	FMaterialListDelegates MaterialListDelegates;
 	MaterialListDelegates.OnGetMaterials.BindSP(this, &FMeshMaterialsLayout::GetMaterials);
 	MaterialListDelegates.OnMaterialChanged.BindSP(this, &FMeshMaterialsLayout::OnMaterialChanged);
@@ -1726,7 +1940,117 @@ void FMeshMaterialsLayout::AddToCategory(IDetailCategoryBuilder& CategoryBuilder
 	MaterialListDelegates.OnMaterialListDirty.BindSP(this, &FMeshMaterialsLayout::OnMaterialListDirty);
 	MaterialListDelegates.OnResetMaterialToDefaultClicked.BindSP(this, &FMeshMaterialsLayout::OnResetMaterialToDefaultClicked);
 
+	MaterialListDelegates.OnCopyMaterialItem.BindSP(this, &FMeshMaterialsLayout::OnCopyMaterialItem);
+	MaterialListDelegates.OnCanCopyMaterialItem.BindSP(this, &FMeshMaterialsLayout::OnCanCopyMaterialItem);
+	MaterialListDelegates.OnPasteMaterialItem.BindSP(this, &FMeshMaterialsLayout::OnPasteMaterialItem);
+
 	CategoryBuilder.AddCustomBuilder(MakeShareable(new FMaterialList(CategoryBuilder.GetParentLayout(), MaterialListDelegates)));
+}
+
+void FMeshMaterialsLayout::OnCopyMaterialList()
+{
+	UProperty* Property = UStaticMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(UStaticMesh, StaticMaterials));
+	check(Property != nullptr);
+
+	auto JsonValue = FJsonObjectConverter::UPropertyToJsonValue(Property, &GetStaticMesh().StaticMaterials, 0, 0);
+
+	typedef TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriter;
+	typedef TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriterFactory;
+
+	FString CopyStr;
+	TSharedRef<FStringWriter> Writer = FStringWriterFactory::Create(&CopyStr);
+	FJsonSerializer::Serialize(JsonValue.ToSharedRef(), TEXT(""), Writer);
+
+	if (!CopyStr.IsEmpty())
+	{
+		FPlatformMisc::ClipboardCopy(*CopyStr);
+	}
+}
+
+bool FMeshMaterialsLayout::OnCanCopyMaterialList() const
+{
+	return GetStaticMesh().StaticMaterials.Num() > 0;
+}
+
+void FMeshMaterialsLayout::OnPasteMaterialList()
+{
+	FString PastedText;
+	FPlatformMisc::ClipboardPaste(PastedText);
+
+	TSharedPtr<FJsonValue> RootJsonValue;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
+	FJsonSerializer::Deserialize(Reader, RootJsonValue);
+
+	if (RootJsonValue.IsValid())
+	{
+		UProperty* Property = UStaticMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(UStaticMesh, StaticMaterials));
+		check(Property != nullptr);
+
+		GetStaticMesh().PreEditChange(Property);
+		FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteMaterialList", "Pasted material list"));
+		GetStaticMesh().Modify();
+
+		FJsonObjectConverter::JsonValueToUProperty(RootJsonValue, Property, &GetStaticMesh().StaticMaterials, 0, 0);
+
+		CallPostEditChange(Property);
+	}
+}
+
+void FMeshMaterialsLayout::OnCopyMaterialItem(int32 CurrentSlot)
+{
+	TSharedRef<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject());
+
+	if (GetStaticMesh().StaticMaterials.IsValidIndex(CurrentSlot))
+	{
+		const FStaticMaterial &Material = GetStaticMesh().StaticMaterials[CurrentSlot];
+
+		FJsonObjectConverter::UStructToJsonObject(FStaticMaterial::StaticStruct(), &Material, RootJsonObject, 0, 0);
+	}
+
+	typedef TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriter;
+	typedef TJsonWriterFactory<TCHAR, TPrettyJsonPrintPolicy<TCHAR>> FStringWriterFactory;
+
+	FString CopyStr;
+	TSharedRef<FStringWriter> Writer = FStringWriterFactory::Create(&CopyStr);
+	FJsonSerializer::Serialize(RootJsonObject, Writer);
+
+	if (!CopyStr.IsEmpty())
+	{
+		FPlatformMisc::ClipboardCopy(*CopyStr);
+	}
+}
+
+bool FMeshMaterialsLayout::OnCanCopyMaterialItem(int32 CurrentSlot) const
+{
+	return GetStaticMesh().StaticMaterials.IsValidIndex(CurrentSlot);
+}
+
+void FMeshMaterialsLayout::OnPasteMaterialItem(int32 CurrentSlot)
+{
+	FString PastedText;
+	FPlatformMisc::ClipboardPaste(PastedText);
+
+	TSharedPtr<FJsonObject> RootJsonObject;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(PastedText);
+	FJsonSerializer::Deserialize(Reader, RootJsonObject);
+
+	if (RootJsonObject.IsValid())
+	{
+		UProperty* Property = UStaticMesh::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_STRING_CHECKED(UStaticMesh, StaticMaterials));
+		check(Property != nullptr);
+
+		GetStaticMesh().PreEditChange(Property);
+
+		FScopedTransaction Transaction(LOCTEXT("StaticMeshToolChangedPasteMaterialItem", "Pasted material item"));
+		GetStaticMesh().Modify();
+
+		if (GetStaticMesh().StaticMaterials.IsValidIndex(CurrentSlot))
+		{
+			FJsonObjectConverter::JsonObjectToUStruct(RootJsonObject.ToSharedRef(), FSkeletalMaterial::StaticStruct(), &GetStaticMesh().StaticMaterials[CurrentSlot], 0, 0);
+		}
+
+		CallPostEditChange(Property);
+	}
 }
 
 FReply FMeshMaterialsLayout::AddMaterialSlot()
@@ -2293,6 +2617,50 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	AddLODLevelCategories( DetailBuilder );
 }
 
+bool FLevelOfDetailSettingsLayout::CanRemoveLOD(int32 LODIndex) const
+{
+	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
+
+	if (StaticMesh != nullptr)
+	{
+		const int32 NumLODs = StaticMesh->GetNumLODs();
+		
+		// LOD0 should never be removed
+		return (NumLODs > 1 && LODIndex > 0 && LODIndex < NumLODs);
+	}
+
+	return false;
+}
+
+FReply FLevelOfDetailSettingsLayout::OnRemoveLOD(int32 LODIndex)
+{
+	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
+
+	if (StaticMesh != nullptr)
+	{
+		const int32 NumLODs = StaticMesh->GetNumLODs();
+
+		if (NumLODs > 1 && LODIndex > 0 && LODIndex < NumLODs)
+		{
+			FText RemoveLODText = FText::Format( LOCTEXT("ConfirmRemoveLOD", "Are you sure you want to remove LOD {0} from {1}?"), LODIndex, FText::FromString(StaticMesh->GetName()) );
+
+			if (FMessageDialog::Open(EAppMsgType::YesNo, RemoveLODText) == EAppReturnType::Yes)
+			{
+				FText TransactionDescription = FText::Format( LOCTEXT("OnRemoveLOD", "Remove LOD {0}"), LODIndex);
+				FScopedTransaction Transaction( TEXT(""), TransactionDescription, StaticMesh );
+
+				StaticMesh->Modify();
+				StaticMesh->SourceModels.RemoveAt(LODIndex);
+				--LODCount;
+				StaticMesh->PostEditChange();
+
+				StaticMeshEditor.RefreshTool();
+			}
+		}
+	}
+
+	return FReply::Handled();
+}
 
 void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& DetailBuilder )
 {
@@ -2359,6 +2727,24 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			FText LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber( LODIndex ) );
 
 			IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory( *CategoryName, LODLevelString, ECategoryPriority::Important );
+
+			if (LODIndex != 0)
+			{
+				LODCategory.AddCustomRow( LOCTEXT("RemoveLOD", "Remove LOD") )
+				.ValueContent()
+				.HAlign(HAlign_Left)
+				[
+					SNew(SButton)
+					.OnClicked(this, &FLevelOfDetailSettingsLayout::OnRemoveLOD, LODIndex)
+					.IsEnabled(this, &FLevelOfDetailSettingsLayout::CanRemoveLOD, LODIndex)
+					.ToolTipText( LOCTEXT("RemoveLOD_ToolTip", "Removes this LOD from the Static Mesh") )
+					[
+						SNew(STextBlock)
+						.Text( LOCTEXT("RemoveLOD", "Remove LOD") )
+						.Font( DetailBuilder.GetDetailFont() )
+					]
+				];
+			}
 
 			LODCategory.HeaderContent
 			(

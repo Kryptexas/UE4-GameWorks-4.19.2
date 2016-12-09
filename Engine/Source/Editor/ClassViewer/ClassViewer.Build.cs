@@ -27,7 +27,8 @@ public class ClassViewer : ModuleRules
                 "EditorStyle",
 				"UnrealEd",
 				"PropertyEditor",
-			}
+                "Settings",
+            }
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(

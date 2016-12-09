@@ -10,6 +10,38 @@
 #if UE_ENABLE_ICU
 #include "Internationalization/ICUBreakIterator.h"
 #include "Internationalization/ICUTextCharacterIterator.h"
+#include "IConsoleManager.h"
+
+enum class EHangulTextWrappingMethod : uint8
+{
+	/** Wrap per-syllable (default Geumchik wrapping) */
+	PerSyllable = 0,
+
+	/** Wrap per-word (preferred native wrapping) */
+	PerWord,
+};
+
+static TAutoConsoleVariable<int32> CVarHangulTextWrappingMethod(
+	TEXT("Localization.HangulTextWrappingMethod"),
+	static_cast<int32>(EHangulTextWrappingMethod::PerWord),
+	TEXT("0: PerSyllable, 1: PerWord (default)."),
+	ECVF_Default
+	);
+
+EHangulTextWrappingMethod GetHangulTextWrappingMethod()
+{
+	const int32 HangulTextWrappingMethodAsInt = CVarHangulTextWrappingMethod.AsVariable()->GetInt();
+	if (HangulTextWrappingMethodAsInt >= static_cast<int32>(EHangulTextWrappingMethod::PerSyllable) && HangulTextWrappingMethodAsInt <= static_cast<int32>(EHangulTextWrappingMethod::PerWord))
+	{
+		return static_cast<EHangulTextWrappingMethod>(HangulTextWrappingMethodAsInt);
+	}
+	return EHangulTextWrappingMethod::PerWord;
+}
+
+FORCEINLINE bool IsHangul(const TCHAR InChar)
+{
+	return InChar >= 0xAC00 && InChar <= 0xD7A3;
+}
 
 class FICULineBreakIterator : public IBreakIterator
 {
@@ -37,23 +69,14 @@ protected:
 	int32 MoveToNextImpl();
 
 	TSharedRef<icu::BreakIterator> GetInternalLineBreakIterator() const;
-	TSharedRef<icu::BreakIterator> GetInternalWordBreakIterator() const;
 
 private:
-	/**
-	 * We use both a line-break and word-break iterator here, as CJK languages use dictionary-based word-breaking which isn't supported correctly by the line-break iterator.
-	 * To compensate for that, we use both iterators in tandem and treat the word-break result as the minimum breaking point (to avoid breaking words in CJK).
-	 * For example, in Korean the line-break iterator tries to break per-glyph, whereas the word-break iterator knows where the word boundaries are; however in English, the line-break
-	 * iterator works correctly, but the word-break iterator may fall short as it doesn't handle symbols as would be expected.
-	 */
 	TWeakPtr<icu::BreakIterator> ICULineBreakIteratorHandle;
-	TWeakPtr<icu::BreakIterator> ICUWordBreakIteratorHandle;
 	int32 CurrentPosition;
 };
 
 FICULineBreakIterator::FICULineBreakIterator()
 	: ICULineBreakIteratorHandle(FICUBreakIteratorManager::Get().CreateLineBreakIterator())
-	, ICUWordBreakIteratorHandle(FICUBreakIteratorManager::Get().CreateWordBreakIterator())
 	, CurrentPosition(0)
 {
 }
@@ -62,34 +85,29 @@ FICULineBreakIterator::~FICULineBreakIterator()
 {
 	// This assumes that FICULineBreakIterator owns the iterators, and that nothing ever copies an FICULineBreakIterator instance
 	FICUBreakIteratorManager::Get().DestroyIterator(ICULineBreakIteratorHandle);
-	FICUBreakIteratorManager::Get().DestroyIterator(ICUWordBreakIteratorHandle);
 }
 
 void FICULineBreakIterator::SetString(const FText& InText)
 {
 	GetInternalLineBreakIterator()->adoptText(new FICUTextCharacterIterator(InText)); // ICUBreakIterator takes ownership of this instance
-	GetInternalWordBreakIterator()->adoptText(new FICUTextCharacterIterator(InText)); // ICUBreakIterator takes ownership of this instance
 	ResetToBeginning();
 }
 
 void FICULineBreakIterator::SetString(const FString& InString)
 {
 	GetInternalLineBreakIterator()->adoptText(new FICUTextCharacterIterator(InString)); // ICUBreakIterator takes ownership of this instance
-	GetInternalWordBreakIterator()->adoptText(new FICUTextCharacterIterator(InString)); // ICUBreakIterator takes ownership of this instance
 	ResetToBeginning();
 }
 
 void FICULineBreakIterator::SetString(const TCHAR* const InString, const int32 InStringLength)
 {
 	GetInternalLineBreakIterator()->adoptText(new FICUTextCharacterIterator(InString, InStringLength)); // ICUBreakIterator takes ownership of this instance
-	GetInternalWordBreakIterator()->adoptText(new FICUTextCharacterIterator(InString, InStringLength)); // ICUBreakIterator takes ownership of this instance
 	ResetToBeginning();
 }
 
 void FICULineBreakIterator::ClearString()
 {
 	GetInternalLineBreakIterator()->adoptText(new FICUTextCharacterIterator(FString())); // ICUBreakIterator takes ownership of this instance
-	GetInternalWordBreakIterator()->adoptText(new FICUTextCharacterIterator(FString())); // ICUBreakIterator takes ownership of this instance
 	ResetToBeginning();
 }
 
@@ -102,7 +120,6 @@ int32 FICULineBreakIterator::ResetToBeginning()
 {
 	TSharedRef<icu::BreakIterator> LineBrkIt = GetInternalLineBreakIterator();
 	CurrentPosition = LineBrkIt->first();
-	GetInternalWordBreakIterator()->first();
 	CurrentPosition = static_cast<FICUTextCharacterIterator&>(LineBrkIt->getText()).InternalIndexToSourceIndex(CurrentPosition);
 	return CurrentPosition;
 }
@@ -111,7 +128,6 @@ int32 FICULineBreakIterator::ResetToEnd()
 {
 	TSharedRef<icu::BreakIterator> LineBrkIt = GetInternalLineBreakIterator();
 	CurrentPosition = LineBrkIt->last();
-	GetInternalWordBreakIterator()->last();
 	CurrentPosition = static_cast<FICUTextCharacterIterator&>(LineBrkIt->getText()).InternalIndexToSourceIndex(CurrentPosition);
 	return CurrentPosition;
 }
@@ -141,13 +157,28 @@ int32 FICULineBreakIterator::MoveToCandidateAfter(const int32 InIndex)
 int32 FICULineBreakIterator::MoveToPreviousImpl()
 {
 	TSharedRef<icu::BreakIterator> LineBrkIt = GetInternalLineBreakIterator();
-	CurrentPosition = static_cast<FICUTextCharacterIterator&>(LineBrkIt->getText()).SourceIndexToInternalIndex(CurrentPosition);
+	FICUTextCharacterIterator& CharIt = static_cast<FICUTextCharacterIterator&>(LineBrkIt->getText());
 
-	const int32 NewLinePosition = LineBrkIt->preceding(CurrentPosition);
-	const int32 NewWordPosition = GetInternalWordBreakIterator()->preceding(CurrentPosition);
+	int32 InternalPosition = CharIt.SourceIndexToInternalIndex(CurrentPosition);
 
-	CurrentPosition = FMath::Min(NewLinePosition, NewWordPosition);
-	CurrentPosition = static_cast<FICUTextCharacterIterator&>(LineBrkIt->getText()).InternalIndexToSourceIndex(CurrentPosition);
+	// For Hangul using per-word wrapping, we walk back to the first Hangul character in the word and use that as the starting point for the 
+	// line-break iterator, as this will correctly handle the remaining Geumchik wrapping rules, without also causing per-syllable wrapping
+	if (GetHangulTextWrappingMethod() == EHangulTextWrappingMethod::PerWord)
+	{
+		CharIt.setIndex32(InternalPosition);
+
+		if (IsHangul(CharIt.current32()))
+		{
+			// Walk to the start of the Hangul characters
+			while (CharIt.hasPrevious() && IsHangul(static_cast<TCHAR>(CharIt.previous32())))
+			{
+				InternalPosition = CharIt.getIndex();
+			}
+		}
+	}
+
+	InternalPosition = LineBrkIt->preceding(InternalPosition);
+	CurrentPosition = CharIt.InternalIndexToSourceIndex(InternalPosition);
 
 	return CurrentPosition;
 }
@@ -155,13 +186,28 @@ int32 FICULineBreakIterator::MoveToPreviousImpl()
 int32 FICULineBreakIterator::MoveToNextImpl()
 {
 	TSharedRef<icu::BreakIterator> LineBrkIt = GetInternalLineBreakIterator();
-	CurrentPosition = static_cast<FICUTextCharacterIterator&>(LineBrkIt->getText()).SourceIndexToInternalIndex(CurrentPosition);
+	FICUTextCharacterIterator& CharIt = static_cast<FICUTextCharacterIterator&>(LineBrkIt->getText());
 
-	const int32 NewLinePosition = LineBrkIt->following(CurrentPosition);
-	const int32 NewWordPosition = GetInternalWordBreakIterator()->following(CurrentPosition);
+	int32 InternalPosition = CharIt.SourceIndexToInternalIndex(CurrentPosition);
 
-	CurrentPosition = FMath::Max(NewLinePosition, NewWordPosition);
-	CurrentPosition = static_cast<FICUTextCharacterIterator&>(LineBrkIt->getText()).InternalIndexToSourceIndex(CurrentPosition);
+	// For Hangul using per-word wrapping, we walk forward to the last Hangul character in the word and use that as the starting point for the 
+	// line-break iterator, as this will correctly handle the remaining Geumchik wrapping rules, without also causing per-syllable wrapping
+	if (GetHangulTextWrappingMethod() == EHangulTextWrappingMethod::PerWord)
+	{
+		CharIt.setIndex32(InternalPosition);
+
+		if (IsHangul(CharIt.current32()))
+		{
+			// Walk to the end of the Hangul characters
+			while (CharIt.hasNext() && IsHangul(static_cast<TCHAR>(CharIt.next32())))
+			{
+				InternalPosition = CharIt.getIndex();
+			}
+		}
+	}
+
+	InternalPosition = LineBrkIt->following(InternalPosition);
+	CurrentPosition = CharIt.InternalIndexToSourceIndex(InternalPosition);
 
 	return CurrentPosition;
 }
@@ -169,11 +215,6 @@ int32 FICULineBreakIterator::MoveToNextImpl()
 TSharedRef<icu::BreakIterator> FICULineBreakIterator::GetInternalLineBreakIterator() const
 {
 	return ICULineBreakIteratorHandle.Pin().ToSharedRef();
-}
-
-TSharedRef<icu::BreakIterator> FICULineBreakIterator::GetInternalWordBreakIterator() const
-{
-	return ICUWordBreakIteratorHandle.Pin().ToSharedRef();
 }
 
 TSharedRef<IBreakIterator> FBreakIterator::CreateLineBreakIterator()

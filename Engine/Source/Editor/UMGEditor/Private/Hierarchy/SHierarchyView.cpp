@@ -297,6 +297,13 @@ void SHierarchyView::RefreshTree()
 
 void SHierarchyView::RebuildTreeView()
 {
+	float OldScrollOffset = 0.0f;
+
+	if (WidgetTreeView.IsValid())
+	{
+		OldScrollOffset = WidgetTreeView->GetScrollOffset();
+	}
+
 	SAssignNew(WidgetTreeView, STreeView< TSharedPtr<FHierarchyModel> >)
 		.ItemHeight(20.0f)
 		.SelectionMode(ESelectionMode::Multi)
@@ -315,6 +322,9 @@ void SHierarchyView::RebuildTreeView()
 		[
 			WidgetTreeView.ToSharedRef()
 		]);
+
+	// Restore the previous scroll offset
+	WidgetTreeView->SetScrollOffset(OldScrollOffset);
 }
 
 void SHierarchyView::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)

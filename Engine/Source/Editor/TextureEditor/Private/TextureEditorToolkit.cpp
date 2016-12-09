@@ -333,6 +333,12 @@ UTexture* FTextureEditorToolkit::GetTexture( ) const
 }
 
 
+bool FTextureEditorToolkit::HasValidTextureResource( ) const
+{
+	return Texture != nullptr && Texture->Resource != nullptr;
+}
+
+
 bool FTextureEditorToolkit::GetUseSpecifiedMip( ) const
 {
 	if (GetMaxMipLevel().Get(MIPLEVEL_MAX) > 0)

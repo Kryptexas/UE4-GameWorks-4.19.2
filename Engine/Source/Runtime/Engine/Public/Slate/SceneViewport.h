@@ -253,6 +253,9 @@ public:
 
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() override;
 
+	/** Get the cached viewport geometry. */
+	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
+
 private:
 	/**
 	 * Called when this viewport is destroyed

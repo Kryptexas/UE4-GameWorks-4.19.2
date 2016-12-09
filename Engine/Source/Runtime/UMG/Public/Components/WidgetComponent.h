@@ -216,7 +216,14 @@ public:
 	/** @return The pivot point where the UI is rendered about the origin. */
 	FVector2D GetPivot() const { return Pivot; }
 
+	/**  */
 	void SetPivot( const FVector2D& InPivot ) { Pivot = InPivot; }
+
+	/**  */
+	bool GetDrawAtDesiredSize() const { return bDrawAtDesiredSize; }
+
+	/**  */
+	void SetDrawAtDesiredSize(bool InbDrawAtDesiredSize) { bDrawAtDesiredSize = InbDrawAtDesiredSize; }
 
 	/** Get the fake window we create for widgets displayed in the world. */
 	TSharedPtr< SWindow > GetVirtualWindow() const;
@@ -238,10 +245,15 @@ public:
 	/** @see EWidgetGeometryMode, @see GetCylinderArcAngle() */
 	EWidgetGeometryMode GetGeometryMode() const { return GeometryMode; }
 
+	bool GetReceiveHardwareInput() const { return bReceiveHardwareInput; }
+
 	/** Defines the curvature of the widget component when using EWidgetGeometryMode::Cylinder; ignored otherwise.  */
 	float GetCylinderArcAngle() const { return CylinderArcAngle; }
 
 protected:
+	void RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
+	void UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget);
+
 	void RegisterWindow();
 	void UnregisterWindow();
 	void RemoveWidgetFromScreen();
@@ -285,12 +297,7 @@ protected:
 	float RedrawTime;
 
 	/** What was the last time we rendered the widget? */
-	UPROPERTY()
-	float LastWidgetRenderTime;
-
-	/** Is the virtual window created to host the widget focusable? */
-	UPROPERTY(EditAnywhere, Category=UserInterface)
-	bool bWindowFocusable;
+	double LastWidgetRenderTime;
 
 	/**
 	 * The actual draw size, this changes based on DrawSize - or the desired size of the widget if
@@ -312,6 +319,23 @@ protected:
 	/** The Alignment/Pivot point that the widget is placed at relative to the position. */
 	UPROPERTY(EditAnywhere, Category=UserInterface)
 	FVector2D Pivot;
+
+	/**
+	 * Register with the viewport for hardware input from the true mouse and keyboard.  These widgets
+	 * will more or less react like regular 2D widgets in the viewport, e.g. they can and will steal focus
+	 * from the viewport.
+	 * 
+	 * WARNING: If you are making a VR game, definitely do not change this to true.  This option should ONLY be used
+	 * if you're making what would otherwise be a normal menu for a game, just in 3D.  If you also need the game to 
+	 * remain responsive and for the player to be able to interact with UI and move around the world (such as a keypad on a door), 
+	 * use the WidgetInteractionComponent instead.
+	 */
+	UPROPERTY(EditAnywhere, Category=Interaction)
+	bool bReceiveHardwareInput;
+
+	/** Is the virtual window created to host the widget focusable? */
+	UPROPERTY(EditAnywhere, Category=Interaction)
+	bool bWindowFocusable;
 
 	/**
 	 * The owner player for a widget component, if this widget is drawn on the screen, this controls

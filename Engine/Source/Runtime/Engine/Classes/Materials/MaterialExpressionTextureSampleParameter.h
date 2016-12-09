@@ -37,6 +37,11 @@ class ENGINE_API UMaterialExpressionTextureSampleParameter : public UMaterialExp
 	virtual bool CanRenameNode() const override { return true; }
 	virtual FString GetEditableName() const override;
 	virtual void SetEditableName(const FString& NewName) override;
+
+	virtual bool HasAParameterName() const override { return true; }
+	virtual FName GetParameterName() const override { return ParameterName; }
+	virtual void SetParameterName(const FName& Name) override { ParameterName = Name; }
+
 #endif
 	//~ End UMaterialExpression Interface
 

@@ -23,6 +23,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SEditableText.h"
 #include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Colors/SColorBlock.h"
 
 /**
  * Implementation for a box that only accepts a numeric value or that can display an undetermined value via a string
@@ -62,13 +63,18 @@ public:
 		, _BorderBackgroundColor(FLinearColor::White)
 		, _UndeterminedString( SNumericEntryBox<NumericType>::DefaultUndeterminedString )
 		, _AllowSpin(false)
+		, _UseDarkStyle(false)
+		, _ColorIndex(-1)
+		, _ShiftMouseMovePixelPerDelta(1)
 		, _Delta(0)
 		, _MinValue(TNumericLimits<NumericType>::Lowest())
 		, _MaxValue(TNumericLimits<NumericType>::Max())
 		, _MinSliderValue(0)				
 		, _MaxSliderValue(100)
 		, _SliderExponent(1.f)
+		, _SliderExponentNeutralValue(0)
 		, _MinDesiredValueWidth(0)
+		
 	{}		
 
 		/** Style to use for the editable text box within this widget */
@@ -92,6 +98,12 @@ public:
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
 		/** Whether or not the user should be able to change the value by dragging with the mouse cursor */
 		SLATE_ARGUMENT( bool, AllowSpin )
+		/** Whether or not the user should be able to change the value by dragging with the mouse cursor */
+		SLATE_ARGUMENT(bool, UseDarkStyle)
+		/** The color index to draw the line at the bottom of the numeric box (-1= no Line, 0=Red, 1=Green 2=Blue 3=White) */
+		SLATE_ARGUMENT( int32, ColorIndex )
+		/** How many pixel the mouse must move to change the value of the delta step (only use if there is a spinbox allow) */
+		SLATE_ARGUMENT( int32, ShiftMouseMovePixelPerDelta )
 		/** Delta to increment the value as the slider moves.  If not specified will determine automatically */
 		SLATE_ATTRIBUTE( NumericType, Delta )
 		/** The minimum value that can be entered into the text edit box */
@@ -104,6 +116,8 @@ public:
 		SLATE_ATTRIBUTE( TOptional< NumericType >, MaxSliderValue )
 		/** Use exponential scale for the slider */
 		SLATE_ATTRIBUTE( float, SliderExponent )
+		/** When using exponential scale specify a neutral value where we want the maximum precision (by default it is the smallest slider value)*/
+		SLATE_ATTRIBUTE(NumericType, SliderExponentNeutralValue )
 		/** The minimum desired width for the value portion of the control. */
 		SLATE_ATTRIBUTE( float, MinDesiredValueWidth )
 		/** The text margin to use if overridden. */
@@ -145,6 +159,7 @@ public:
 		BorderImageHovered = &InArgs._EditableTextBoxStyle->BackgroundImageHovered;
 		BorderImageFocused = &InArgs._EditableTextBoxStyle->BackgroundImageFocused;
 		Interface = InArgs._TypeInterface.IsValid() ? InArgs._TypeInterface : MakeShareable( new TDefaultNumericTypeInterface<NumericType> );
+		int32 InColorIndex = InArgs._ColorIndex;
 
 		TAttribute<FMargin> TextMargin = InArgs._OverrideTextMargin.IsSet() ? InArgs._OverrideTextMargin : InArgs._EditableTextBoxStyle->Padding;
 		const bool bAllowSpin = InArgs._AllowSpin;
@@ -153,11 +168,12 @@ public:
 		if( bAllowSpin )
 		{
 			SAssignNew( SpinBox, SSpinBox<NumericType> )
-				.Style( FCoreStyle::Get(), "NumericEntrySpinBox" )
+				.Style( FCoreStyle::Get(), InArgs._UseDarkStyle ? "NumericEntrySpinBox_Dark" : "NumericEntrySpinBox" )
 				.Font( InArgs._Font.IsSet() ? InArgs._Font : InArgs._EditableTextBoxStyle->Font )
 				.ContentPadding( TextMargin )
 				.Value( this, &SNumericEntryBox<NumericType>::OnGetValueForSpinBox )
 				.Delta( InArgs._Delta )
+				.ShiftMouseMovePixelPerDelta(InArgs._ShiftMouseMovePixelPerDelta)
 				.OnValueChanged( OnValueChanged )
 				.OnValueCommitted( OnValueCommitted )
 				.MinSliderValue(InArgs._MinSliderValue)
@@ -165,6 +181,7 @@ public:
 				.MaxValue(InArgs._MaxValue)
 				.MinValue(InArgs._MinValue)
 				.SliderExponent(InArgs._SliderExponent)
+				.SliderExponentNeutralValue(InArgs._SliderExponentNeutralValue)
 				.OnBeginSliderMovement(InArgs._OnBeginSliderMovement)
 				.OnEndSliderMovement(InArgs._OnEndSliderMovement)
 				.MinDesiredWidth(InArgs._MinDesiredValueWidth)
@@ -184,7 +201,32 @@ public:
 			.ContextMenuExtender( InArgs._ContextMenuExtender )
 			.MinDesiredWidth(InArgs._MinDesiredValueWidth);
 
-		TSharedRef<SHorizontalBox> HorizontalBox = SNew( SHorizontalBox );
+		TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
+		TSharedRef<SWidget> BoxToAdd = HorizontalBox;
+
+		if (InColorIndex != INDEX_NONE)
+		{
+			TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+			FColor Color[4] = { FColor::Red, FColor::Green, FColor::Blue, FColor::White };
+			//Add the horizontal box
+			VerticalBox->AddSlot()
+				.FillHeight(1)
+				.AutoHeight()
+				[
+					HorizontalBox
+				];
+			//Add the color line
+			VerticalBox->AddSlot()
+				.AutoHeight()
+				.MaxHeight(2.0f)
+				.Padding(3.0f, 0.0f)
+				[
+					SNew(SColorBlock)
+					.Color(Color[InColorIndex])
+				];
+			BoxToAdd = VerticalBox;
+		}
+		
 		if( InArgs._Label.Widget != SNullWidget::NullWidget )
 		{
 			HorizontalBox->AddSlot()
@@ -226,7 +268,7 @@ public:
 				.ForegroundColor( InArgs._BorderForegroundColor )
 				.Padding(0)
 				[
-					HorizontalBox
+					BoxToAdd
 				]
 			];
 	}

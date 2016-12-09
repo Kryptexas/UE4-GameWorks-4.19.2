@@ -149,8 +149,8 @@ bool FJsonObjectConverter::UStructToJsonAttributes(const UStruct* StructDefiniti
 {
 	if (SkipFlags == 0)
 	{
-		// If we have no specified skip flags, skip deprecated by default when writing
-		SkipFlags |= CPF_Deprecated;
+		// If we have no specified skip flags, skip deprecated, transient and skip serialization by default when writing
+		SkipFlags |= CPF_Deprecated | CPF_Transient;
 	}
 
 	if (StructDefinition == FJsonObjectWrapper::StaticStruct())

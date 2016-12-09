@@ -449,6 +449,7 @@ private:
 	FReply OnArgMoveDown();
 
 	FText OnGetArgNameText() const;
+	FText OnGetArgToolTipText() const;
 	void OnArgNameChange(const FText& InNewText);
 	void OnArgNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
 	
@@ -589,6 +590,8 @@ private:
 
 	/** Callback to determine if the "New" button for adding input/output pins is visible */
 	EVisibility GetAddNewInputOutputVisibility() const;
+
+	EVisibility OnGetSectionTextVisibility(TWeakPtr<SWidget> RowWidget) const;
 
 	/** Called to set the replication type from the details view combo */
 	static void SetNetFlags( TWeakObjectPtr<UK2Node_EditablePinBase> FunctionEntryNode, uint32 NetFlags);

@@ -751,7 +751,7 @@ void FAutomationControllerManager::HandleReceivedScreenShot( const FAutomationWo
 	if ( FJsonObjectConverter::UStructToJsonObjectString(Message.Metadata, Json) )
 	{
 		FString MetadataPath = FPaths::ChangeExtension(FileName, TEXT("json"));
-		FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8);
+		FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 	}
 
 	TSharedRef<FComparisonEntry> Comparison = MakeShareable(new FComparisonEntry());

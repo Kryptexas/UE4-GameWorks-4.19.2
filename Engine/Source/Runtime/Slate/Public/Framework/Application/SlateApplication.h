@@ -578,9 +578,6 @@ public:
 	 */
 	void SetAllUserFocus(const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
-	/** @return a pointer to the Widget that currently has the users focus; Empty pointer when the user has no focus. */
-	TSharedPtr< SWidget > GetUserFocusedWidget(uint32 UserIndex) const;
-
 	DEPRECATED(4.6, "FSlateApplication::GetJoystickCaptor() is deprecated, use FSlateApplication::GetUserFocusedWidget() instead.")
 	TSharedPtr< SWidget > GetJoystickCaptor(uint32 UserIndex) const;
 
@@ -926,18 +923,33 @@ protected:
 	 */
 	void RegisterUser(TSharedRef<FSlateUser> User);
 
+	/**
+	 * Gets the user at the given index, null if the user does not exist.
+	 */
 	FORCEINLINE const FSlateUser* GetUser(int32 UserIndex) const
 	{
-		return UserIndex < Users.Num() ? Users[UserIndex].Get() : nullptr;
+		return (UserIndex >= 0 && UserIndex < Users.Num()) ? Users[UserIndex].Get() : nullptr;
 	}
 
+	/**
+	 * Gets the user at the given index, null if the user does not exist.
+	 */
 	FORCEINLINE FSlateUser* GetUser(int32 UserIndex)
 	{
-		return UserIndex < Users.Num() ? Users[UserIndex].Get() : nullptr;
+		return ( UserIndex >= 0 && UserIndex < Users.Num() ) ? Users[UserIndex].Get() : nullptr;
 	}
 
+	/**
+	 * Locates the SlateUser object corresponding to the index, if one can't be found, it will create a slate user at
+	 * the provided index.  If the index is less than 0, null is returned.
+	 */
 	FORCEINLINE FSlateUser* GetOrCreateUser(int32 UserIndex)
 	{
+		if ( UserIndex < 0 )
+		{
+			return nullptr;
+		}
+
 		if ( FSlateUser* User = GetUser(UserIndex) )
 		{
 			return User;
@@ -1317,6 +1329,7 @@ public:
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 	virtual void SetAllUserFocusAllowingDescendantFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
+	virtual TSharedPtr<SWidget> GetUserFocusedWidget(uint32 UserIndex) const override;
 
 	DECLARE_EVENT_OneParam(FSlateApplication, FApplicationActivationStateChangedEvent, const bool /*IsActive*/)
 	virtual FApplicationActivationStateChangedEvent& OnApplicationActivationStateChanged() { return ApplicationActivationStateChangedEvent; }
@@ -1430,12 +1443,12 @@ public:
 	int32 GetUserIndexForController(int32 ControllerId) const;
 
 	/**
-	* Register for a notification when the window action occurs.
-	*
-	* @param Notification          The notification to invoke.
-	*
-	* @return Handle to the registered delegate.
-	*/
+	 * Register for a notification when the window action occurs.
+	 *
+	 * @param Notification          The notification to invoke.
+	 *
+	 * @return Handle to the registered delegate.
+	 */
 	FDelegateHandle RegisterOnWindowActionNotification(const FOnWindowAction& Notification);
 
 

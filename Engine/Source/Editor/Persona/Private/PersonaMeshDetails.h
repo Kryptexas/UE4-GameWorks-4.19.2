@@ -139,6 +139,7 @@ class FPersonaMeshDetails : public IDetailCustomization
 {
 public:
 	FPersonaMeshDetails(TSharedRef<class IPersonaToolkit> InPersonaToolkit) : PersonaToolkitPtr(InPersonaToolkit) {}
+	~FPersonaMeshDetails();
 
 	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
 	static TSharedRef<IDetailCustomization> MakeInstance(TSharedRef<class IPersonaToolkit> InPersonaToolkit);
@@ -368,6 +369,7 @@ private:
 
 	/** Access the persona toolkit ptr. It should always be valid in the lifetime of this customization */
 	TSharedRef<IPersonaToolkit> GetPersonaToolkit() const { check(PersonaToolkitPtr.IsValid()); return PersonaToolkitPtr.Pin().ToSharedRef(); }
+	bool HasValidPersonaToolkit() const { return PersonaToolkitPtr.IsValid(); }
 
 	EVisibility GetOverrideUVDensityVisibililty() const;
 	ECheckBoxState IsUVDensityOverridden(int32 MaterialIndex) const;
@@ -388,6 +390,24 @@ private:
 
 	// Handler for reimport buttons in LOD details
 	FReply OnReimportLodClicked(IDetailLayoutBuilder* DetailLayout, EReimportButtonType InReimportType, int32 InLODIndex);
+
+	void OnCopySectionList(int32 LODIndex);
+	bool OnCanCopySectionList(int32 LODIndex) const;
+	void OnPasteSectionList(int32 LODIndex);
+
+	void OnCopySectionItem(int32 LODIndex, int32 SectionIndex);
+	bool OnCanCopySectionItem(int32 LODIndex, int32 SectionIndex) const;
+	void OnPasteSectionItem(int32 LODIndex, int32 SectionIndex);
+
+	void OnCopyMaterialList();
+	bool OnCanCopyMaterialList() const;
+	void OnPasteMaterialList();
+
+	void OnCopyMaterialItem(int32 CurrentSlot);
+	bool OnCanCopyMaterialItem(int32 CurrentSlot) const;
+	void OnPasteMaterialItem(int32 CurrentSlot);
+
+	void OnPreviewMeshChanged(USkeletalMesh* OldSkeletalMesh, USkeletalMesh* NewMesh);
 
 public:
 

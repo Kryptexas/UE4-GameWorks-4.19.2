@@ -119,6 +119,17 @@ void FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::ModifyOwne
 	}
 }
 
+TArray<const UObject*> FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	if (Owner)
+	{
+		Owners.Add(Owner);
+	}
+
+	return Owners;
+}
+
 void FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::MakeTransactional()
 {
 	if (Owner)
@@ -161,6 +172,17 @@ void FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::ModifyOwner(
 	{
 		Owner->Modify();
 	}
+}
+
+TArray<const UObject*> FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	if (Owner)
+	{
+		Owners.Add(Owner);
+	}
+
+	return Owners;
 }
 
 void FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::MakeTransactional()

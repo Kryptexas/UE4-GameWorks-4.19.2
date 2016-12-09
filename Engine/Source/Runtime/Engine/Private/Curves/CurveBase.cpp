@@ -62,6 +62,14 @@ void UCurveBase::ModifyOwner()
 	Modify(true);
 }
 
+TArray<const UObject*> UCurveBase::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	Owners.Add(this);		// CurveBase owns its own curve
+
+	return Owners;
+}
+
 
 void UCurveBase::MakeTransactional() 
 {

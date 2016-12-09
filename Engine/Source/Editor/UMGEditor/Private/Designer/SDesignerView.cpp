@@ -1035,6 +1035,7 @@ FGeometry SDesignerView::MakeGeometryWindowLocal(const FGeometry& WidgetGeometry
 		TSharedRef<SWindow> CurrentWindowRef = WidgetWindow.ToSharedRef();
 
 		NewGeometry.AppendTransform(FSlateLayoutTransform(Inverse(CurrentWindowRef->GetPositionInScreen())));
+		//NewGeometry.AppendTransform(Inverse(CurrentWindowRef->GetLocalToScreenTransform()));
 	}
 
 	return NewGeometry;
@@ -1097,19 +1098,16 @@ FVector2D SDesignerView::GetExtensionPosition(TSharedRef<FDesignerSurfaceElement
 
 	if ( SelectedWidget.IsValid() )
 	{
-		FGeometry SelectedWidgetGeometry_RelativeToDesigner;
-		FGeometry SelectedWidgetParentGeometry_RelativeToDesigner;
+		FGeometry SelectedWidgetGeometry;
+		FGeometry SelectedWidgetParentGeometry;
 
-		if ( GetWidgetGeometry(SelectedWidget, SelectedWidgetGeometry_RelativeToDesigner) && GetWidgetParentGeometry(SelectedWidget, SelectedWidgetParentGeometry_RelativeToDesigner) )
+		if ( GetWidgetGeometry(SelectedWidget, SelectedWidgetGeometry) && GetWidgetParentGeometry(SelectedWidget, SelectedWidgetParentGeometry) )
 		{
-			SelectedWidgetGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedGeometry.AbsolutePosition)));
-			SelectedWidgetParentGeometry_RelativeToDesigner.AppendTransform(FSlateLayoutTransform(Inverse(CachedGeometry.AbsolutePosition)));
+			const FVector2D WidgetPostion_DesignerSpace = (SelectedWidgetGeometry.AbsolutePosition - CachedGeometry.AbsolutePosition) / CachedGeometry.Scale;
+			const FVector2D WidgetSize = SelectedWidgetGeometry.Size * GetPreviewScale();
 
-			const FVector2D WidgetPostion_DesignerSpace = SelectedWidgetGeometry_RelativeToDesigner.AbsolutePosition;
-			const FVector2D WidgetSize = SelectedWidgetGeometry_RelativeToDesigner.Size * GetPreviewScale();
-
-			const FVector2D ParentPostion_DesignerSpace = SelectedWidgetParentGeometry_RelativeToDesigner.AbsolutePosition;
-			const FVector2D ParentSize = SelectedWidgetParentGeometry_RelativeToDesigner.Size * GetPreviewScale();
+			const FVector2D ParentPostion_DesignerSpace = (SelectedWidgetParentGeometry.AbsolutePosition - CachedGeometry.AbsolutePosition) / CachedGeometry.Scale;
+			const FVector2D ParentSize = SelectedWidgetParentGeometry.Size * GetPreviewScale();
 
 			FVector2D FinalPosition(0, 0);
 

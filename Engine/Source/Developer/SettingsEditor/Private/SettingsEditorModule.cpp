@@ -233,7 +233,7 @@ private:
 				if ( Settings->HasAnyFlags(RF_ClassDefaultObject) && !Settings->GetClass()->HasAnyCastFlag(CLASS_Deprecated) )
 				{
 					// Ignore the setting if it's specifically the UDeveloperSettings or other abstract settings classes
-					if ( Settings->GetClass()->HasAnyClassFlags(CLASS_Abstract) )
+					if ( Settings->GetClass()->HasAnyClassFlags(CLASS_Abstract) || !Settings->SupportsAutoRegistration())
 					{
 						continue;
 					}

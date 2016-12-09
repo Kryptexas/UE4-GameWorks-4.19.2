@@ -26,6 +26,18 @@ class UNREALED_API UFbxAssetImportData : public UAssetImportData
 	UPROPERTY(EditAnywhere, Category=Transform, meta=(ImportType="StaticMesh|SkeletalMesh|Animation", ImportCategory="Transform"))
 	float ImportUniformScale;
 
+	/** Whether to convert scene from FBX scene. */
+	UPROPERTY(EditAnywhere, config, Category = Miscellaneous, meta = (ImportType = "StaticMesh|SkeletalMesh|Animation", ImportCategory = "Miscellaneous", ToolTip = "Convert the scene from FBX coordinate system to UE4 coordinate system"))
+	bool bConvertScene;
+
+	/** Whether to force the front axis to be align with X instead of -Y. */
+	UPROPERTY(EditAnywhere, config, Category = Miscellaneous, meta = (editcondition = "bConvertScene", ImportType = "StaticMesh|SkeletalMesh|Animation", ImportCategory = "Miscellaneous", ToolTip = "Convert the scene from FBX coordinate system to UE4 coordinate system with front X axis instead of -Y"))
+	bool bForceFrontXAxis;
+
+	/** Whether to convert the scene from FBX unit to UE4 unit (centimeter). */
+	UPROPERTY(EditAnywhere, config, Category = Miscellaneous, meta = (ImportType = "StaticMesh|SkeletalMesh|Animation", ImportCategory = "Miscellaneous", ToolTip = "Convert the scene from FBX unit to UE4 unit (centimeter)."))
+	bool bConvertSceneUnit;
+
 	/* Use by the reimport factory to answer CanReimport, if true only factory for scene reimport will return true */
 	UPROPERTY()
 	bool bImportAsScene;

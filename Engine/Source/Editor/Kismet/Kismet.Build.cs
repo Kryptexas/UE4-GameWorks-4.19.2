@@ -14,7 +14,6 @@ public class Kismet : ModuleRules
 				"AssetTools",
                 "BlueprintRuntime",
                 "ClassViewer",
-				"EditorWidgets",
 				"Analytics",
                 "DerivedDataCache",
                 "LevelEditor",
@@ -30,6 +29,7 @@ public class Kismet : ModuleRules
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
+				"EditorWidgets",
 				"Engine",
 				"Json",
 				"Merge",
@@ -61,7 +61,6 @@ public class Kismet : ModuleRules
                 "BlueprintRuntime",
                 "ClassViewer",
 				"Documentation",
-				"EditorWidgets",
 				"GameProjectGeneration",
                 "BlueprintCompilerCppBackend",
 			}

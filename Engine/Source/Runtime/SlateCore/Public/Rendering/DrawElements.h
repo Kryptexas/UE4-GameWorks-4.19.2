@@ -472,6 +472,7 @@ public:
 	FORCEINLINE const FSlateDataPayload& GetDataPayload() const { return DataPayload; }
 	FORCEINLINE uint32 GetDrawEffects() const { return DrawEffects; }
 	FORCEINLINE const TOptional<FShortRect>& GetScissorRect() const { return ScissorRect; }
+	FORCEINLINE const int32 GetSceneIndex() const { return SceneIndex; }
 
 private:
 	void Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects);
@@ -490,6 +491,7 @@ private:
 	uint32 DrawEffects;
 	EElementType ElementType;
 	TOptional<FShortRect> ScissorRect;
+	int32 SceneIndex;
 };
 
 
@@ -565,9 +567,9 @@ private:
  */
 class FSlateElementBatch
 {
-public: 
-	FSlateElementBatch(const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect, int32 InstanceCount = 0, uint32 InstanceOffset = 0, ISlateUpdatableInstanceBuffer* InstanceData = nullptr)
-		: BatchKey(InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect, InstanceCount, InstanceOffset, InstanceData)
+public:
+	FSlateElementBatch(const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect, int32 InstanceCount = 0, uint32 InstanceOffset = 0, ISlateUpdatableInstanceBuffer* InstanceData = nullptr, int32 SceneIndex = -1)
+		: BatchKey(InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect, InstanceCount, InstanceOffset, InstanceData, SceneIndex)
 		, ShaderResource(InShaderResource)
 		, NumElementsInBatch(0)
 		, VertexArrayIndex(INDEX_NONE)
@@ -622,7 +624,7 @@ public:
 	int32 GetInstanceCount() const{ return BatchKey.InstanceCount; }
 	uint32 GetInstanceOffset() const{ return BatchKey.InstanceOffset; }
 	const ISlateUpdatableInstanceBuffer* GetInstanceData() const { return BatchKey.InstanceData; }
-
+	int32 GetSceneIndex() const { return BatchKey.SceneIndex; }
 private:
 	struct FBatchKey
 	{
@@ -639,6 +641,21 @@ private:
 		const int32 InstanceCount;
 		const uint32 InstanceOffset;
 		const ISlateUpdatableInstanceBuffer* InstanceData;
+		const int32 SceneIndex;
+
+		FBatchKey(const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect, int32 InInstanceCount, uint32 InInstanceOffset, ISlateUpdatableInstanceBuffer* InInstanceBuffer, int32 InSceneIndex)
+			: ShaderParams(InShaderParams)
+			, DrawFlags(InDrawFlags)
+			, ShaderType(InShaderType)
+			, DrawPrimitiveType(InDrawPrimitiveType)
+			, DrawEffects(InDrawEffects)
+			, ScissorRect(InScissorRect)
+			, InstanceCount(InInstanceCount)
+			, InstanceOffset(InInstanceOffset)
+			, InstanceData(InInstanceBuffer)
+			, SceneIndex(InSceneIndex)
+		{
+		}
 
 		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect, int32 InInstanceCount, uint32 InInstanceOffset, ISlateUpdatableInstanceBuffer* InInstanceBuffer)
 			: ShaderParams( InShaderParams )
@@ -649,7 +666,8 @@ private:
 			, ScissorRect( InScissorRect )
 			, InstanceCount( InInstanceCount )
 			, InstanceOffset( InInstanceOffset )
-			, InstanceData( InInstanceBuffer )
+			, InstanceData(InInstanceBuffer)
+			, SceneIndex(-1)
 		{
 		}
 
@@ -663,6 +681,7 @@ private:
 			, ScissorRect( InScissorRect )
 			, InstanceCount(0)
 			, InstanceOffset(0)
+			, SceneIndex(-1)
 		{}
 
 		FBatchKey( TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InCachedRenderHandle, FVector2D InCachedRenderDataOffset, const TOptional<FShortRect>& InScissorRect)
@@ -676,6 +695,7 @@ private:
 			, ScissorRect(InScissorRect)
 			, InstanceCount(0)
 			, InstanceOffset(0)
+			, SceneIndex(-1)
 		{}
 
 		FBatchKey(TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> InLayerHandle, const TOptional<FShortRect>& InScissorRect)
@@ -688,6 +708,7 @@ private:
 			, ScissorRect(InScissorRect)
 			, InstanceCount(0)
 			, InstanceOffset(0)
+			, SceneIndex(-1)
 		{}
 
 		bool operator==( const FBatchKey& Other ) const
@@ -703,7 +724,8 @@ private:
 				&& LayerHandle == Other.LayerHandle
 				&& InstanceCount == Other.InstanceCount
 				&& InstanceOffset == Other.InstanceOffset
-				&& InstanceData == Other.InstanceData;
+				&& InstanceData == Other.InstanceData
+				&& SceneIndex == Other.SceneIndex;
 		}
 
 		/** Compute an efficient hash for this type for use in hash containers. */
@@ -720,6 +742,7 @@ private:
 			RunningHash = bHasInstances ? HashCombine(InBatchKey.InstanceCount, RunningHash) : RunningHash;
 			RunningHash = bHasInstances ? HashCombine(InBatchKey.InstanceOffset, RunningHash) : RunningHash;
 			RunningHash = InBatchKey.InstanceData ? HashCombine( PointerHash(InBatchKey.InstanceData), RunningHash ) : RunningHash;
+			RunningHash = HashCombine(InBatchKey.SceneIndex, RunningHash);
 
 			return RunningHash;
 			//return FCrc::MemCrc32(&InBatchKey.ShaderParams, sizeof(FShaderParams)) ^ ((InBatchKey.ShaderType << 16) | (InBatchKey.DrawFlags+InBatchKey.ShaderType+InBatchKey.DrawPrimitiveType+InBatchKey.DrawEffects));
@@ -764,6 +787,7 @@ public:
 		, IndexOffset( InIndexOffset )
 		, NumVertices( InNumVertices )
 		, NumIndices( InNumIndices )
+		, SceneIndex(InBatch.GetSceneIndex())
 	{}
 
 public:
@@ -812,6 +836,8 @@ public:
 	const uint32 NumVertices;
 	/** Number of indices in the batch */
 	const uint32 NumIndices;
+
+	const int32 SceneIndex;
 };
 
 

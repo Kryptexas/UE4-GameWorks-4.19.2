@@ -75,9 +75,21 @@ public:
 	UFUNCTION(BlueprintPure, Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject" ))
 	static void AbsoluteToViewport(UObject* WorldContextObject, FVector2D AbsoluteDesktopCoordinate, FVector2D& PixelPosition, FVector2D& ViewportPosition);
 
-	UFUNCTION(Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject" ))
+	/**
+	 * Translates a screen position in pixels into the local space of a widget with the given geometry. 
+	 */
+	UFUNCTION(Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject", DisplayName="ScreenToLocal" ))
 	static void ScreenToWidgetLocal(UObject* WorldContextObject, const FGeometry& Geometry, FVector2D ScreenPosition, FVector2D& LocalCoordinate);
 
-	UFUNCTION(Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject" ))
+	/**
+	 * Translates a screen position in pixels into absolute application coordinates.
+	 */
+	UFUNCTION(Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject", DisplayName="ScreenToAbsolute" ))
 	static void ScreenToWidgetAbsolute(UObject* WorldContextObject, FVector2D ScreenPosition, FVector2D& AbsoluteCoordinate);
+
+	/**
+	 * Translates a screen position in pixels into the local space of the viewport widget.
+	 */
+	UFUNCTION(Category="User Interface|Geometry", meta=( WorldContext="WorldContextObject" ))
+	static void ScreenToViewport(UObject* WorldContextObject, FVector2D ScreenPosition, FVector2D& ViewportPosition);
 };

@@ -32,10 +32,8 @@ class IFontFaceInterface
 	/** Get the enum controlling how this font should be loaded at runtime. */
 	virtual EFontLoadingPolicy GetLoadingPolicy() const = 0;
 
-#if WITH_EDITORONLY_DATA
 	/** Get the data buffer containing the data for the current font face. */
-	virtual const TArray<uint8>& GetFontFaceData() const = 0;
-#endif // WITH_EDITORONLY_DATA
+	virtual FFontFaceDataConstRef GetFontFaceData() const = 0;
 
 	/** Get the filename of the font to use when cooked. This file will be generated during cook. */
 	virtual FString GetCookedFilename() const = 0;

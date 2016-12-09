@@ -141,6 +141,9 @@ private:
 	/** Restore the assets that were previously open when the editor was last closed */
 	void RestorePreviouslyOpenAssets();
 
+	/** Handles a package being reloaded */
+	void HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent);
+
 private:
 
 	/** struct used by OpenedEditorTimes map to store editor names and times */

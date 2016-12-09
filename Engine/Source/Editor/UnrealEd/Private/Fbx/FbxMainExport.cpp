@@ -973,7 +973,32 @@ void FFbxExporter::ExportStaticMesh( UStaticMesh* StaticMesh, const TArray<FStat
 	StaticMesh->GetName(MeshName);
 	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*MeshName));
 	Scene->GetRootNode()->AddChild(MeshNode);
-	ExportStaticMeshToFbx(StaticMesh, 0, *MeshName, MeshNode, -1, NULL, MaterialOrder);
+
+	if (StaticMesh->GetNumLODs() > 1)
+	{
+		FString LodGroup_MeshName = MeshName + ("_LodGroup");
+		FbxLODGroup *FbxLodGroupAttribute = FbxLODGroup::Create(Scene, TCHAR_TO_UTF8(*LodGroup_MeshName));
+		MeshNode->AddNodeAttribute(FbxLodGroupAttribute);
+		FbxLodGroupAttribute->ThresholdsUsedAsPercentage = true;
+		//Export an Fbx Mesh Node for every LOD and child them to the fbx node (LOD Group)
+		for (int CurrentLodIndex = 0; CurrentLodIndex < StaticMesh->GetNumLODs(); ++CurrentLodIndex)
+		{
+			FString FbxLODNodeName = MeshName + TEXT("_LOD") + FString::FromInt(CurrentLodIndex);
+			FbxNode* FbxActorLOD = FbxNode::Create(Scene, TCHAR_TO_UTF8(*FbxLODNodeName));
+			MeshNode->AddChild(FbxActorLOD);
+			if (CurrentLodIndex + 1 < StaticMesh->GetNumLODs())
+			{
+				//Convert the screen size to a threshold, it is just to be sure that we set some threshold, there is no way to convert this precisely
+				double LodScreenSize = (double)(10.0f / StaticMesh->RenderData->ScreenSize[CurrentLodIndex]);
+				FbxLodGroupAttribute->AddThreshold(LodScreenSize);
+			}
+			ExportStaticMeshToFbx(StaticMesh, CurrentLodIndex, *MeshName, FbxActorLOD, -1, nullptr, MaterialOrder);
+		}
+	}
+	else
+	{
+		ExportStaticMeshToFbx(StaticMesh, 0, *MeshName, MeshNode, -1, NULL, MaterialOrder);
+	}
 }
 
 void FFbxExporter::ExportStaticMeshLightMap( UStaticMesh* StaticMesh, int32 LODIndex, int32 UVChannel )

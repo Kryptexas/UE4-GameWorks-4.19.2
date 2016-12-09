@@ -268,6 +268,14 @@ private:
 	
 	UStaticMesh& GetStaticMesh() const;
 
+	void OnCopySectionList(int32 CurrentLODIndex);
+	bool OnCanCopySectionList(int32 CurrentLODIndex) const;
+	void OnPasteSectionList(int32 CurrentLODIndex);
+
+	void OnCopySectionItem(int32 CurrentLODIndex, int32 SectionIndex);
+	bool OnCanCopySectionItem(int32 CurrentLODIndex, int32 SectionIndex) const;
+	void OnPasteSectionItem(int32 CurrentLODIndex, int32 SectionIndex);
+
 	/**
 	* Called by the material list widget when we need to get new materials for the list
 	*
@@ -389,6 +397,14 @@ private:
 
 	void CallPostEditChange(UProperty* PropertyChanged = nullptr);
 
+	void OnCopyMaterialList();
+	bool OnCanCopyMaterialList() const;
+	void OnPasteMaterialList();
+
+	void OnCopyMaterialItem(int32 CurrentSlot);
+	bool OnCanCopyMaterialItem(int32 CurrentSlot) const;
+	void OnPasteMaterialItem(int32 CurrentSlot);
+
 	IStaticMeshEditor& StaticMeshEditor;
 	
 	/* This is to know if material are used by any LODs sections. */
@@ -426,6 +442,9 @@ private:
 	void OnMinLODChanged(int32 NewValue);
 	void OnMinLODCommitted(int32 InValue, ETextCommit::Type CommitInfo);
 	int32 GetMinLOD() const;
+
+	bool CanRemoveLOD(int32 LODIndex) const;
+	FReply OnRemoveLOD(int32 LODIndex);
 
 	float GetLODScreenSize(int32 LODIndex)const;
 	FText GetLODScreenSizeTitle(int32 LODIndex) const;

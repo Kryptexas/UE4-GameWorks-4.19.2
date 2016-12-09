@@ -25,6 +25,8 @@ SAdvancedPreviewDetailsTab::SAdvancedPreviewDetailsTab()
 		RefreshDelegate = DefaultSettings->OnAssetViewerSettingsChanged().AddRaw(this, &SAdvancedPreviewDetailsTab::OnAssetViewerSettingsRefresh);
 			
 		AddRemoveProfileDelegate = DefaultSettings->OnAssetViewerProfileAddRemoved().AddLambda([this]() { this->Refresh(); });
+
+		PostUndoDelegate = DefaultSettings->OnAssetViewerSettingsPostUndo().AddRaw(this, &SAdvancedPreviewDetailsTab::OnAssetViewerSettingsPostUndo);
 	}
 
 	PerProjectSettings = GetMutableDefault<UEditorPerProjectUserSettings>();
@@ -38,6 +40,7 @@ SAdvancedPreviewDetailsTab::~SAdvancedPreviewDetailsTab()
 	{
 		DefaultSettings->OnAssetViewerSettingsChanged().Remove(RefreshDelegate);
 		DefaultSettings->OnAssetViewerProfileAddRemoved().Remove(AddRemoveProfileDelegate);
+		DefaultSettings->OnAssetViewerSettingsPostUndo().Remove(PostUndoDelegate);
 		DefaultSettings->Save();
 	}
 }
@@ -255,6 +258,12 @@ void SAdvancedPreviewDetailsTab::Refresh()
 	UpdateProfileNames();
 	PreviewScenePtr.Pin()->SetProfileIndex(ProfileIndex);
 	UpdateSettingsView();
+}
+
+void SAdvancedPreviewDetailsTab::OnAssetViewerSettingsPostUndo()
+{
+	Refresh();
+	PreviewScenePtr.Pin()->UpdateScene(DefaultSettings->Profiles[ProfileIndex]);
 }
 
 #undef LOCTEXT_NAMESPACE

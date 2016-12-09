@@ -13,6 +13,8 @@
 #include "K2Node_Variable.h"
 #include "NodeDependingOnEnumInterface.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Internationalization/TextNamespaceUtil.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
 
 #define LOCTEXT_NAMESPACE "Enum"
 
@@ -133,8 +135,6 @@ void FEnumEditorUtils::RemoveEnumeratorFromUserDefinedEnum(UUserDefinedEnum* Enu
 	Names = OldNames;
 
 	Names.RemoveAt(EnumeratorIndex);
-
-	Enum->RemoveMetaData(FEnumEditorUtilsHelper::DisplayName(), EnumeratorIndex);
 
 	// Clean up enum values.
 	for (int32 i = 0; i < Names.Num(); ++i)
@@ -440,43 +440,75 @@ int64 FEnumEditorUtils::ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int64
 	return EnumeratorValue;
 }
 
-FString FEnumEditorUtils::GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, const int32 EnumeratorIndex)
+FText FEnumEditorUtils::GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, const int32 EnumeratorIndex)
 {
-	if (Enum && Enum->DisplayNames.IsValidIndex(EnumeratorIndex))
+	if (Enum)
 	{
-		return Enum->DisplayNames[EnumeratorIndex].ToString();
+		const FName EnumEntryName = *Enum->GetEnumName(EnumeratorIndex);
+
+		if (!EnumEntryName.IsNone())
+		{
+			const FText* EnumEntryDisplayName = Enum->DisplayNameMap.Find(EnumEntryName);
+			if (EnumEntryDisplayName)
+			{
+				return *EnumEntryDisplayName;
+			}
+		}
 	}
-	return FString();
+
+	return FText::GetEmpty();
 }
 
-bool FEnumEditorUtils::SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 EnumeratorIndex, FString NewDisplayName)
+bool FEnumEditorUtils::SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 EnumeratorIndex, FText NewDisplayName)
 {
 	if (Enum && (EnumeratorIndex >= 0) && (EnumeratorIndex < Enum->NumEnums()))
 	{
-		if (IsEnumeratorDisplayNameValid(Enum, NewDisplayName))
+		if (IsEnumeratorDisplayNameValid(Enum, EnumeratorIndex, NewDisplayName))
 		{
 			PrepareForChange(Enum);
-			Enum->SetMetaData(FEnumEditorUtilsHelper::DisplayName(), *NewDisplayName, EnumeratorIndex);
-			EnsureAllDisplayNamesExist(Enum);
+			
+			const FName EnumEntryName = *Enum->GetEnumName(EnumeratorIndex);
+			check(!EnumEntryName.IsNone());
+
+			FText DisplayNameToSet = NewDisplayName;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+			// Make sure the package namespace for this display name is up-to-date
+			{
+				const FString PackageNamespace = TextNamespaceUtil::EnsurePackageNamespace(Enum);
+				if (!PackageNamespace.IsEmpty())
+				{
+					const FString DisplayNameNamespace = FTextInspector::GetNamespace(DisplayNameToSet).Get(FString());
+					const FString FullNamespace = TextNamespaceUtil::BuildFullNamespace(DisplayNameNamespace, PackageNamespace);
+					if (!DisplayNameNamespace.Equals(FullNamespace, ESearchCase::CaseSensitive))
+					{
+						// We may assign a new key when if we don't have the correct package namespace in order to avoid identity conflicts when instancing
+						DisplayNameToSet = FText::ChangeKey(FullNamespace, FGuid::NewGuid().ToString(), DisplayNameToSet);
+					}
+				}
+			}
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+			Enum->DisplayNameMap.Add(EnumEntryName, DisplayNameToSet);
+
 			BroadcastChanges(Enum, TArray<TPair<FName, int64>>(), false);
 			return true;
 		}
 	}
+
 	return false;
 }
 
-bool FEnumEditorUtils::IsEnumeratorDisplayNameValid(const UUserDefinedEnum* Enum, const FString NewDisplayName)
+bool FEnumEditorUtils::IsEnumeratorDisplayNameValid(const UUserDefinedEnum* Enum, int32 EnumeratorIndex, const FText NewDisplayName)
 {
-	if (!Enum || 
-		NewDisplayName.IsEmpty() || 
-		(NewDisplayName == FEnumEditorUtilsHelper::InvalidName()))
+	if (!Enum || NewDisplayName.IsEmptyOrWhitespace() || NewDisplayName.ToString() == FEnumEditorUtilsHelper::InvalidName())
 	{
 		return false;
 	}
 
 	for	(int32 Index = 0; Index < Enum->NumEnums(); Index++)
 	{
-		if (NewDisplayName == GetEnumeratorDisplayName(Enum, Index))
+		if (Index != EnumeratorIndex && NewDisplayName.ToString() == GetEnumeratorDisplayName(Enum, Index).ToString())
 		{
 			return false;
 		}
@@ -489,33 +521,103 @@ void FEnumEditorUtils::EnsureAllDisplayNamesExist(UUserDefinedEnum* Enum)
 {
 	if (Enum)
 	{
-		const int32 EnumeratorsToEnsure = (Enum->NumEnums() > 0) ? (Enum->NumEnums() - 1) : 0;
-		if (Enum->DisplayNames.Num() != EnumeratorsToEnsure)
+		const int32 EnumeratorsToEnsure = FMath::Max(Enum->NumEnums() - 1, 0);
+
+		// Remove any stale display names
 		{
-			Enum->DisplayNames.Empty(EnumeratorsToEnsure);
-		}
-		for	(int32 Index = 0; Index < EnumeratorsToEnsure; Index++)
-		{
-			FText DisplayNameMetaData = Enum->UEnum::GetEnumText(Index);
-			if (DisplayNameMetaData.IsEmpty())
+			TSet<FName> KnownEnumEntryNames;
+			KnownEnumEntryNames.Reserve(EnumeratorsToEnsure);
+
+			for (int32 Index = 0; Index < EnumeratorsToEnsure; ++Index)
 			{
-				const FString EnumName = Enum->GetEnumName(Index);
-				DisplayNameMetaData = FText::FromString(EnumName);
-				for(int32 AddIndex = 0; !IsEnumeratorDisplayNameValid(Enum, DisplayNameMetaData.ToString()); ++AddIndex)
+				const FName EnumEntryName = *Enum->GetEnumName(Index);
+				check(!EnumEntryName.IsNone());
+
+				KnownEnumEntryNames.Add(EnumEntryName);
+			}
+
+			for (auto DisplayNameIt = Enum->DisplayNameMap.CreateIterator(); DisplayNameIt; ++DisplayNameIt)
+			{
+				if (!KnownEnumEntryNames.Contains(DisplayNameIt->Key))
 				{
-					DisplayNameMetaData = FText::FromString(FString::Printf(TEXT("%s%d"), *EnumName, AddIndex));
+					DisplayNameIt.RemoveCurrent();
 				}
-				Enum->SetMetaData(FEnumEditorUtilsHelper::DisplayName(), *DisplayNameMetaData.ToString(), Index);
-			}
-			if (!Enum->DisplayNames.IsValidIndex(Index))
-			{
-				Enum->DisplayNames.Add(DisplayNameMetaData);
-			}
-			else if (!Enum->DisplayNames[Index].EqualTo(DisplayNameMetaData))
-			{
-				Enum->DisplayNames[Index] = DisplayNameMetaData;
 			}
 		}
+
+		Enum->DisplayNameMap.Reserve(EnumeratorsToEnsure);
+
+		// Add any missing display names
+		for	(int32 Index = 0; Index < EnumeratorsToEnsure; ++Index)
+		{
+			const FName EnumEntryName = *Enum->GetEnumName(Index);
+			check(!EnumEntryName.IsNone());
+
+			if (!Enum->DisplayNameMap.Contains(EnumEntryName))
+			{
+				FText DisplayNameToSet;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+				// Give the new text instance the full package-based namespace, and give it a brand new key; these will become its new stable identity
+				{
+					const FString PackageNamespace = GIsEditor ? TextNamespaceUtil::EnsurePackageNamespace(Enum) : TextNamespaceUtil::GetPackageNamespace(Enum);
+					const FString TextNamespace = TextNamespaceUtil::BuildFullNamespace(FString(), PackageNamespace, true);
+					const FString TextKey = FGuid::NewGuid().ToString();
+					const FString EnumEntryDisplayName = EnumEntryName.ToString();
+					DisplayNameToSet = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*EnumEntryDisplayName, *TextNamespace, *TextKey);
+				}
+#else  // USE_STABLE_LOCALIZATION_KEYS
+				DisplayNameToSet = FText::FromName(EnumEntryName);
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+				Enum->DisplayNameMap.Add(EnumEntryName, DisplayNameToSet);
+			}
+		}
+	}
+}
+
+void FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(UUserDefinedEnum* Enum)
+{
+	if (Enum)
+	{
+		const int32 EnumeratorsToEnsure = FMath::Max(Enum->NumEnums() - 1, 0);
+		Enum->DisplayNameMap.Empty(EnumeratorsToEnsure);
+
+		bool bDidUpgradeDisplayNames = false;
+		for (int32 Index = 0; Index < EnumeratorsToEnsure; ++Index)
+		{
+			const FString MetaDataEntryDisplayName = Enum->GetMetaData(FEnumEditorUtilsHelper::DisplayName(), Index);
+			if (!MetaDataEntryDisplayName.IsEmpty())
+			{
+				bDidUpgradeDisplayNames = true;
+
+				const FName EnumEntryName = *Enum->GetEnumName(Index);
+				check(!EnumEntryName.IsNone());
+
+				FText DisplayNameToSet;
+
+#if USE_STABLE_LOCALIZATION_KEYS
+				// Give the new text instance the full package-based namespace, and give it a brand new key; these will become its new stable identity
+				{
+					const FString PackageNamespace = GIsEditor ? TextNamespaceUtil::EnsurePackageNamespace(Enum) : TextNamespaceUtil::GetPackageNamespace(Enum);
+					const FString TextNamespace = TextNamespaceUtil::BuildFullNamespace(TEXT(""), PackageNamespace, true);
+					const FString TextKey = FGuid::NewGuid().ToString();
+					DisplayNameToSet = FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(*MetaDataEntryDisplayName, *TextNamespace, *TextKey);
+				}
+#else  // USE_STABLE_LOCALIZATION_KEYS
+				DisplayNameToSet = FText::FromName(EnumEntryName);
+#endif // USE_STABLE_LOCALIZATION_KEYS
+
+				Enum->DisplayNameMap.Add(EnumEntryName, DisplayNameToSet);
+			}
+		}
+
+#if USE_STABLE_LOCALIZATION_KEYS
+		if (bDidUpgradeDisplayNames)
+		{
+			UE_LOG(LogClass, Warning, TEXT("Enum '%s' was upgraded to use FText to store its display name data. Please re-save this asset to avoid issues with localization and determinstic cooking."), *Enum->GetPathName());
+		}
+#endif // USE_STABLE_LOCALIZATION_KEYS
 	}
 }
 

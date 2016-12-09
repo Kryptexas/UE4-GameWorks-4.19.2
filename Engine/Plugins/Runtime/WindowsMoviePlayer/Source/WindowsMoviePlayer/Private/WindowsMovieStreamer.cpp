@@ -66,16 +66,15 @@ void FMediaFoundationMovieStreamer::ForceCompletion()
 bool FMediaFoundationMovieStreamer::Tick(float DeltaTime)
 {
 	FSlateTexture2DRHIRef* CurrentTexture = Texture.Get();
+	check(IsInRenderingThread());
 
-	if ((CurrentTexture != nullptr) && SampleGrabberCallback->GetIsSampleReadyToUpdate())
+	if (CurrentTexture && !CurrentTexture->IsInitialized())
 	{
-		check( IsInRenderingThread() );
+		CurrentTexture->InitResource();
+	}
 
-		if( !CurrentTexture->IsInitialized() )
-		{
-			CurrentTexture->InitResource();
-		}
-
+	if (CurrentTexture && SampleGrabberCallback->GetIsSampleReadyToUpdate())
+	{
 		uint32 Stride;
 		uint8* DestTextureData = (uint8*)RHILockTexture2D( CurrentTexture->GetTypedResource(), 0, RLM_WriteOnly, Stride, false );
 		FMemory::Memcpy( DestTextureData, TextureData.GetData(), TextureData.Num() );

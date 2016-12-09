@@ -86,6 +86,8 @@ private:
 	void OnFilterTextChanged(const FText& InFilterText);
 
 	FSlateColor GetRowTextColor(FName RowName) const;
+	FText GetCellText(FDataTableEditorRowListViewDataPtr InRowDataPointer, int32 ColumnIndex) const;
+	FText GetCellToolTipText(FDataTableEditorRowListViewDataPtr InRowDataPointer, int32 ColumnIndex) const;
 
 	TSharedRef<SVerticalBox> CreateContentBox();
 

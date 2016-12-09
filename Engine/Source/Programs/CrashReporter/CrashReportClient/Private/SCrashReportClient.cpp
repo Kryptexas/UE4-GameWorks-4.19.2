@@ -179,7 +179,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 8 ) )
 							.AutoWrapText( false )
 							.IsReadOnly( true )
-							.ReadOnlyForegroundColor( FSlateColor( FLinearColor::Black ) )
+							.ReadOnlyForegroundColor( FSlateColor( FLinearColor::White * 0.8f) )
 							.BackgroundColor( FSlateColor( FLinearColor::Black ) )
 							.ForegroundColor( FSlateColor( FLinearColor::White * 0.8f ) )
 							.Text( Client, &FCrashReportClient::GetDiagnosticText )

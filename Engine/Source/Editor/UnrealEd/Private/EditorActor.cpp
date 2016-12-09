@@ -57,6 +57,7 @@
 #include "UnrealExporter.h"
 #include "LevelEditor.h"
 #include "Engine/LODActor.h"
+#include "Settings/LevelEditorMiscSettings.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 
@@ -335,9 +336,17 @@ void UUnrealEdEngine::edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool 
 		}
 		const TCHAR* Paste = *PasteString;
 
+		// Turn off automatic BSP update while pasting to save rebuilding geometry potentially multiple times
+		const bool bBSPAutoUpdate = GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate;
+		GetMutableDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate = false;
+
 		// Import the actors.
 		auto Factory = NewObject<ULevelFactory>();
 		Factory->FactoryCreateText(ULevel::StaticClass(), InWorld->GetCurrentLevel(), InWorld->GetCurrentLevel()->GetFName(), RF_Transactional, NULL, bDuplicate ? TEXT("move") : TEXT("paste"), Paste, Paste + FCString::Strlen(Paste), GWarn);
+
+		// Reinstate old BSP update setting, and force a rebuild - any levels whose geometry has changed while pasting will be rebuilt
+		GetMutableDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate = bBSPAutoUpdate;
+		RebuildAlteredBSP();
 
 		// Fire ULevel::LevelDirtiedEvent when falling out of scope.
 		FScopedLevelDirtied			LevelDirtyCallback;
@@ -738,6 +747,18 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 	int32		DeleteCount = 0;
 
 	USelection* SelectedActors = GetSelectedActors();
+	TMap<AActor*, TArray<AActor*> > ReferencingActorsMap;
+	TArray<UClass*> ClassTypesToIgnore;
+	ClassTypesToIgnore.Add(ALevelScriptActor::StaticClass());
+	// The delete warning is meant for actor references that affect gameplay.  Group actors do not affect gameplay and should not show up as a warning.
+	ClassTypesToIgnore.Add(AGroupActor::StaticClass());
+
+	// If we want to warn about references to the actors to be deleted, it is a lot more efficient to query
+	// the world first and build a map of actors referenced by other actors. We can then quickly look this up later on in the loop.
+	if (bWarnAboutReferences)
+	{
+		FBlueprintEditorUtils::GetActorReferenceMap(InWorld, ClassTypesToIgnore, ReferencingActorsMap);
+	}
 
 	for ( int32 ActorIndex = 0 ; ActorIndex < ActorsToDelete.Num() ; ++ActorIndex )
 	{
@@ -745,41 +766,45 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 
 		//If actor is referenced by script, ask user if they really want to delete
 		ULevelScriptBlueprint* LSB = Actor->GetLevel()->GetLevelScriptBlueprint(true);
-		TArray<AActor*> ReferencingActors;
-		TArray<UClass*> ClassTypesToIgnore;
-		ClassTypesToIgnore.Add( ALevelScriptActor::StaticClass() );
-		// The delete warning is meant for actor referneces that affect gameplay.  Group actors do not affect gameplay and should not show up as a warning.
-		ClassTypesToIgnore.Add( AGroupActor::StaticClass() );
+
+		// Get the array of actors that reference this actor from the cached map we built above.
+		TArray<AActor*>* ReferencingActors = nullptr;
 		if( bWarnAboutReferences )
 		{
-			FBlueprintEditorUtils::FindActorsThatReferenceActor( Actor, ClassTypesToIgnore, ReferencingActors );
+			ReferencingActors = ReferencingActorsMap.Find(Actor);
 		}
 
 		bool bReferencedByLevelScript = bWarnAboutReferences && (nullptr != LSB && FBlueprintEditorUtils::FindNumReferencesToActorFromLevelScript(LSB, Actor) > 0);
 		bool bReferencedByActor = false;
 		bool bReferencedByLODActor = false;
-		for (AActor* ReferencingActor : ReferencingActors)
+
+		// If there are any referencing actors, make sure that they are reference types that we care about.
+		if (ReferencingActors != nullptr)
 		{
-			if (ReferencingActor->IsA(ALODActor::StaticClass()))
+			for (AActor* ReferencingActor : (*ReferencingActors))
 			{
-				bReferencedByLODActor = true;
-				break;
-			}
-			// If the referencing actor is a child actor that is referencing us, do not treat it
-			// as referencing for the purposes of warning about deletion
-			UChildActorComponent* ParentComponent = ReferencingActor->GetParentComponent();
-			if (ParentComponent == nullptr || ParentComponent->GetOwner() != Actor)
-			{
-				bReferencedByActor = true;
-				break;
+				if (ReferencingActor->IsA(ALODActor::StaticClass()))
+				{
+					bReferencedByLODActor = true;
+					break;
+				}
+				// If the referencing actor is a child actor that is referencing us, do not treat it
+				// as referencing for the purposes of warning about deletion
+				UChildActorComponent* ParentComponent = ReferencingActor->GetParentComponent();
+				if (ParentComponent == nullptr || ParentComponent->GetOwner() != Actor)
+				{
+					bReferencedByActor = true;
+					break;
+				}
 			}
 		}
 
+		// We have references from one or more sources, prompt the user for feedback.
 		if (bReferencedByLevelScript || bReferencedByActor || bReferencedByLODActor)
 		{
-			if (( bReferencedByLevelScript && !bRequestedDeleteAllByLevel ) ||
-				( bReferencedByActor && !bRequestedDeleteAllByActor ) ||
-				(bReferencedByLODActor && !bRequestedDeleteAllByLODActor) )
+			if ((bReferencedByLevelScript && !bRequestedDeleteAllByLevel) ||
+				(bReferencedByActor && !bRequestedDeleteAllByActor) ||
+				(bReferencedByLODActor && !bRequestedDeleteAllByLODActor))
 			{
 				FText ConfirmDelete;
 
@@ -789,60 +814,60 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 				{
 					ConfirmDelete = FText::Format(LOCTEXT("ConfirmDeleteActorReferencedByHLOD",
 						"Actor {0} is referenced by LODActor, do you really want to delete it?"),
-						FText::FromString(Actor->GetName()));
+						FText::FromString(Actor->GetActorLabel()));
 				}
 				else if (bReferencedByLevelScript && bReferencedByActor)
 				{
-					ConfirmDelete = FText::Format(LOCTEXT( "ConfirmDeleteActorReferenceByScriptAndActor",
-														   "Actor {0} is referenced by the level blueprint and another Actor, do you really want to delete it?"),
-														   FText::FromString( Actor->GetName() ) );
+					ConfirmDelete = FText::Format(LOCTEXT("ConfirmDeleteActorReferenceByScriptAndActor",
+						"Actor {0} is referenced by the level blueprint and another Actor, do you really want to delete it?"),
+						FText::FromString(Actor->GetActorLabel()));
 				}
-				else if ( bReferencedByLevelScript )
+				else if (bReferencedByLevelScript)
 				{
-					ConfirmDelete = FText::Format(LOCTEXT( "ConfirmDeleteActorReferencedByScript",
-														   "Actor {0} is referenced by the level blueprint, do you really want to delete it?"),
-														   FText::FromString( Actor->GetName() ) );
+					ConfirmDelete = FText::Format(LOCTEXT("ConfirmDeleteActorReferencedByScript",
+						"Actor {0} is referenced by the level blueprint, do you really want to delete it?"),
+						FText::FromString(Actor->GetActorLabel()));
 				}
 				else
 				{
-					ConfirmDelete = FText::Format(LOCTEXT( "ConfirmDeleteActorReferencedByActor",
-														   "Actor {0} is referenced by another Actor, do you really want to delete it?"),
-														   FText::FromString( Actor->GetName() ) );
+					ConfirmDelete = FText::Format(LOCTEXT("ConfirmDeleteActorReferencedByActor",
+						"Actor {0} is referenced by another Actor, do you really want to delete it?"),
+						FText::FromString(Actor->GetActorLabel()));
 				}
 
-				int32 Result = FMessageDialog::Open( MessageType, ConfirmDelete );
-				if ( Result == EAppReturnType::YesAll )
+				int32 Result = FMessageDialog::Open(MessageType, ConfirmDelete);
+				if (Result == EAppReturnType::YesAll)
 				{
 					bRequestedDeleteAllByLevel |= bReferencedByLevelScript;
 					bRequestedDeleteAllByActor |= bReferencedByActor;
 					bRequestedDeleteAllByLODActor |= bReferencedByLODActor;
 				}
-				else if ( Result == EAppReturnType::NoAll )
+				else if (Result == EAppReturnType::NoAll)
 				{
 					break;
 				}
-				else if( Result == EAppReturnType::No || Result == EAppReturnType::Cancel )
-				{ 
+				else if (Result == EAppReturnType::No || Result == EAppReturnType::Cancel)
+				{
 					continue;
 				}
 			}
 
-			if ( bReferencedByLevelScript )
+			if (bReferencedByLevelScript)
 			{
 				FBlueprintEditorUtils::ModifyActorReferencedGraphNodes(LSB, Actor);
 			}
-			if ( bReferencedByActor )
+			if (bReferencedByActor && ReferencingActors != nullptr)
 			{
-				for ( int32 ReferencingActorIndex = 0; ReferencingActorIndex < ReferencingActors.Num(); ReferencingActorIndex++ )
+				for (int32 ReferencingActorIndex = 0; ReferencingActorIndex < ReferencingActors->Num(); ReferencingActorIndex++)
 				{
-					ReferencingActors[ReferencingActorIndex]->Modify();
+					(*ReferencingActors)[ReferencingActorIndex]->Modify();
 				}
 			}
-			if (bReferencedByLODActor)
+			if (bReferencedByLODActor && ReferencingActors != nullptr)
 			{
-				for (int32 ReferencingActorIndex = 0; ReferencingActorIndex < ReferencingActors.Num(); ReferencingActorIndex++)
+				for (int32 ReferencingActorIndex = 0; ReferencingActorIndex < ReferencingActors->Num(); ReferencingActorIndex++)
 				{
-					ALODActor* LODActor = Cast<ALODActor>(ReferencingActors[ReferencingActorIndex]);
+					ALODActor* LODActor = Cast<ALODActor>((*ReferencingActors)[ReferencingActorIndex]);
 					// it's possible other actor is referencing this
 					if (LODActor)
 					{
@@ -851,6 +876,7 @@ bool UUnrealEdEngine::edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletion
 				}
 			}
 		}
+	
 	
 		bool bRebuildNavigation = false;
 

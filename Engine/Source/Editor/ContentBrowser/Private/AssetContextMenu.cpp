@@ -450,6 +450,25 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 	}
 	MenuBuilder.EndSection();
 
+	if (GetDefault<UEditorExperimentalSettings>()->bEnableContentHotReloading)
+	{
+		// EXPERIMENTAL ACTIONS
+		MenuBuilder.BeginSection("AssetContextExperimental", LOCTEXT("AssetContextAdvancedExperimentalMenuHeading", "Experimental"));
+		{
+			// Reload
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("Reload", "Reload"),
+				LOCTEXT("ReloadTooltip", "Reload the selected assets."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteReload),
+					FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteReload)
+				)
+			);
+		}
+		MenuBuilder.EndSection();
+	}
+
 	// ADVANCED ACTIONS
 	MenuBuilder.BeginSection("AssetContextAdvancedActions", LOCTEXT("AssetContextAdvancedActionsMenuHeading", "Advanced"));
 	{
@@ -1826,6 +1845,72 @@ void FAssetContextMenu::ExecuteDelete()
 			LOCTEXT("FolderDeleteConfirm_No", "Cancel"),
 			AssetView.Pin().ToSharedRef(),
 			FOnClicked::CreateSP( this, &FAssetContextMenu::ExecuteDeleteFolderConfirmed ));
+	}
+}
+
+bool FAssetContextMenu::CanExecuteReload() const
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
+
+	int32 NumAssetItems, NumClassItems;
+	ContentBrowserUtils::CountItemTypes(AssetViewSelectedAssets, NumAssetItems, NumClassItems);
+
+	int32 NumAssetPaths, NumClassPaths;
+	ContentBrowserUtils::CountPathTypes(SelectedFolders, NumAssetPaths, NumClassPaths);
+
+	bool bHasSelectedCollections = false;
+	for (const FString& SelectedFolder : SelectedFolders)
+	{
+		if (ContentBrowserUtils::IsCollectionPath(SelectedFolder))
+		{
+			bHasSelectedCollections = true;
+			break;
+		}
+	}
+
+	// We can't reload classes, or folders containing classes, or any collection folders
+	return ((NumAssetItems > 0 && NumClassItems == 0) || (NumAssetPaths > 0 && NumClassPaths == 0)) && !bHasSelectedCollections;
+}
+
+void FAssetContextMenu::ExecuteReload()
+{
+	// Don't allow asset reload during PIE
+	if (GIsEditor)
+	{
+		UEditorEngine* Editor = GEditor;
+		FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext();
+		if (PIEWorldContext)
+		{
+			FNotificationInfo Notification(LOCTEXT("CannotReloadAssetInPIE", "Assets cannot be reloaded while in PIE."));
+			Notification.ExpireDuration = 3.0f;
+			FSlateNotificationManager::Get().AddNotification(Notification);
+			return;
+		}
+	}
+
+	TArray<FAssetData> AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	if (AssetViewSelectedAssets.Num() > 0)
+	{
+		TArray<UPackage*> PackagesToReload;
+
+		for (auto AssetIt = AssetViewSelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt)
+		{
+			const FAssetData& AssetData = *AssetIt;
+
+			if (AssetData.AssetClass == UObjectRedirector::StaticClass()->GetFName())
+			{
+				// Don't operate on Redirectors
+				continue;
+			}
+
+			PackagesToReload.AddUnique(AssetData.GetPackage());
+		}
+
+		if (PackagesToReload.Num() > 0)
+		{
+			PackageTools::ReloadPackages(PackagesToReload);
+		}
 	}
 }
 

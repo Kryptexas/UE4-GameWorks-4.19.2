@@ -418,6 +418,9 @@ public:
 	FString Context;
 
 	UPROPERTY(EditAnywhere, Category="Message")
+	FGuid Id;
+
+	UPROPERTY(EditAnywhere, Category="Message")
 	int32 Width;
 	UPROPERTY(EditAnywhere, Category="Message")
 	int32 Height;
@@ -493,9 +496,16 @@ public:
 
 	FAutomationScreenshotMetadata(const FAutomationScreenshotData& Data)
 	{
+		static_assert( (sizeof(FAutomationScreenshotMetadata) + sizeof(FString)) == sizeof(FAutomationScreenshotData), "These objects must match in size, to ensure we're copying all the members, except for FAutomationScreenshotData.Path, which we don't copy over." );
+
+		// Human readable name and associated context the screenshot was taken in.
 		Name = Data.Name;
 		Context = Data.Context;
 
+		// Unique Id so we know if this screenshot has already been imported.
+		Id = Data.Id;
+
+		// Resolution Details
 		Width = Data.Width;
 		Height = Data.Height;
 
@@ -522,6 +532,9 @@ public:
 		EffectsQuality = Data.EffectsQuality;
 		FoliageQuality = Data.FoliageQuality;
 
+		// Enabled Features
+		// TBD
+
 		// Comparison Requests
 		bHasComparisonRules = Data.bHasComparisonRules;
 		ToleranceRed = Data.ToleranceRed;
@@ -536,6 +549,75 @@ public:
 
 		bIgnoreAntiAliasing = Data.bIgnoreAntiAliasing;
 		bIgnoreColors = Data.bIgnoreColors;
+	}
+
+	int32 Compare(const FAutomationScreenshotMetadata& OtherMetadata) const
+	{
+		int32 Score = 0;
+
+		if ( Width != OtherMetadata.Width || Height != OtherMetadata.Height || bIsStereo != OtherMetadata.bIsStereo )
+		{
+			return 0;
+		}
+		else
+		{
+			Score += 1000;
+		}
+
+		if (ResolutionQuality == OtherMetadata.ResolutionQuality && 
+			ViewDistanceQuality == OtherMetadata.ViewDistanceQuality &&
+			AntiAliasingQuality == OtherMetadata.AntiAliasingQuality &&
+			ShadowQuality == OtherMetadata.ShadowQuality &&
+			PostProcessQuality == OtherMetadata.PostProcessQuality &&
+			TextureQuality == OtherMetadata.TextureQuality &&
+			EffectsQuality == OtherMetadata.EffectsQuality &&
+			FoliageQuality == OtherMetadata.FoliageQuality
+			)
+		{
+			Score += 100;
+		}
+
+		if ( FeatureLevel == OtherMetadata.FeatureLevel )
+		{
+			Score += 100;
+		}
+
+		if ( UniqueDeviceId == OtherMetadata.UniqueDeviceId )
+		{
+			Score += 100;
+		}
+
+		if ( Rhi == OtherMetadata.Rhi )
+		{
+			Score += 100;
+		}
+
+		if ( Platform == OtherMetadata.Platform )
+		{
+			Score += 10;
+		}
+
+		if ( Vendor == OtherMetadata.Vendor )
+		{
+			Score += 10;
+		}
+
+		if ( AdapterName == OtherMetadata.AdapterName )
+		{
+			Score += 10;
+		}
+
+		if ( AdapterInternalDriverVersion == OtherMetadata.AdapterInternalDriverVersion )
+		{
+			Score += 10;
+		}
+
+		if ( AdapterUserDriverVersion == OtherMetadata.AdapterUserDriverVersion )
+		{
+			Score += 10;
+		}
+
+		return Score;
 	}
 };
 

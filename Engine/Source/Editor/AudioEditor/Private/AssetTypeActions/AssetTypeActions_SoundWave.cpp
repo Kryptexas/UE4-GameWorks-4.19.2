@@ -202,4 +202,82 @@ void FAssetTypeActions_SoundWave::FillVoiceMenu(FMenuBuilder& MenuBuilder, TArra
 	MenuBuilder.AddWidget(VoicePicker, FText::GetEmpty(), false);
 }
 
+TSharedPtr<SWidget> FAssetTypeActions_SoundWave::GetThumbnailOverlay(const FAssetData& AssetData) const
+{
+	auto OnGetDisplayBrushLambda = [this, AssetData]() -> const FSlateBrush*
+	{
+		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
+		if (IsSoundPlaying(Sound))
+		{
+			return FEditorStyle::GetBrush("MediaAsset.AssetActions.Stop.Large");
+		}
+
+		return FEditorStyle::GetBrush("MediaAsset.AssetActions.Play.Large");
+	};
+
+	auto OnClickedLambda = [this, AssetData]() -> FReply
+	{
+		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
+		if (IsSoundPlaying(Sound))
+		{
+			StopSound();
+		}
+		else
+		{
+			PlaySound(Sound);
+		}
+		return FReply::Handled();
+	};
+
+	auto OnToolTipTextLambda = [this, AssetData]() -> FText
+	{
+		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
+		if (IsSoundPlaying(Sound))
+		{
+			return LOCTEXT("Blueprint_StopSoundToolTip", "Stop selected Sound Wave");
+		}
+
+		return LOCTEXT("Blueprint_PlaySoundToolTip", "Play selected Sound Wave");
+	};
+
+	TSharedPtr<SBox> Box;
+	SAssignNew(Box, SBox)
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(2));
+
+	auto OnGetVisibilityLambda = [this, Box, AssetData]() -> EVisibility
+	{
+		USoundBase* Sound = CastChecked<USoundBase>(AssetData.GetAsset());
+		if (Box.IsValid())
+		{
+			if (Box->IsHovered() || IsSoundPlaying(Sound))
+			{
+				return EVisibility::Visible;
+			}
+
+		}
+
+		return EVisibility::Hidden;
+	};
+
+	TSharedPtr<SButton> Widget;
+	SAssignNew(Widget, SButton)
+		.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+		.ToolTipText_Lambda(OnToolTipTextLambda)
+		.Cursor(EMouseCursor::Default) // The outer widget can specify a DragHand cursor, so we need to override that here
+		.ForegroundColor(FSlateColor::UseForeground())
+		.OnClicked_Lambda(OnClickedLambda)
+		.Visibility_Lambda(OnGetVisibilityLambda)
+		[
+			SNew(SImage)
+			.Image_Lambda(OnGetDisplayBrushLambda)
+		];
+
+	Box->SetContent(Widget.ToSharedRef());
+	Box->SetVisibility(EVisibility::Visible);
+
+	return Box;
+}
+
 #undef LOCTEXT_NAMESPACE

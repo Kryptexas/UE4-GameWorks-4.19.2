@@ -693,6 +693,11 @@ float STableViewBase::ScrollTo( float InScrollOffset )
 	return AmountScrolled;
 }
 
+float STableViewBase::GetScrollOffset() const
+{
+	return ScrollOffset;
+}
+
 void STableViewBase::SetScrollOffset( const float InScrollOffset )
 {
 	if ( ScrollOffset != InScrollOffset )

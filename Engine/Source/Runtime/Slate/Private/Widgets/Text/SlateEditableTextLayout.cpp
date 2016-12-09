@@ -203,6 +203,9 @@ FSlateEditableTextLayout::~FSlateEditableTextLayout()
 		TSharedRef<FTextInputMethodContext> TextInputMethodContextRef = TextInputMethodContext.ToSharedRef();
 		if (TextInputMethodSystem->IsActiveContext(TextInputMethodContextRef))
 		{
+			// Make sure that the composition is aborted to avoid any IME calls to EndComposition from trying to mutate our dying owner widget
+			TextInputMethodContextRef->AbortComposition();
+
 			// This can happen if an entire tree of widgets is culled, as Slate isn't notified of the focus loss, the widget is just deleted
 			TextInputMethodSystem->DeactivateContext(TextInputMethodContextRef);
 		}
@@ -1984,7 +1987,6 @@ bool FSlateEditableTextLayout::MoveCursor(const FMoveCursor& InArgs)
 		if (TextInputMethodSystem)
 		{
 			TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
-			TextInputMethodContext->CacheWindow();
 			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
 		}
 	}
@@ -2383,19 +2385,22 @@ void FSlateEditableTextLayout::UpdateCursorHighlight()
 		const FTextLocation CursorPosition = CursorInfo.GetCursorLocation();
 
 		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
-		const int32 LineTextLength = Lines[CursorPosition.GetLineIndex()].Text->Len();
+		if (Lines.IsValidIndex(CursorPosition.GetLineIndex()))
+		{
+			const int32 LineTextLength = Lines[CursorPosition.GetLineIndex()].Text->Len();
 
-		if (LineTextLength == 0)
-		{
-			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
-		}
-		else if (CursorPosition.GetOffset() == LineTextLength)
-		{
-			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
-		}
-		else
-		{
-			ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			if (LineTextLength == 0)
+			{
+				ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			}
+			else if (CursorPosition.GetOffset() == LineTextLength)
+			{
+				ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			}
+			else
+			{
+				ActiveLineHighlights.Add(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
+			}
 		}
 	}
 
@@ -3396,8 +3401,10 @@ void FSlateEditableTextLayout::FTextInputMethodContext::GetSelectionRange(uint32
 
 void FSlateEditableTextLayout::FTextInputMethodContext::SetSelectionRange(const uint32 BeginIndex, const uint32 Length, const ECaretPosition InCaretPosition)
 {
-	const uint32 MinIndex = BeginIndex;
-	const uint32 MaxIndex = MinIndex + Length;
+	const uint32 TextLength = GetTextLength();
+
+	const uint32 MinIndex = FMath::Min(BeginIndex, TextLength);
+	const uint32 MaxIndex = FMath::Min(MinIndex + Length, TextLength);
 
 	FTextLayout::FTextOffsetLocations OffsetLocations;
 	OwnerLayout->TextLayout->GetTextOffsetLocations(OffsetLocations);

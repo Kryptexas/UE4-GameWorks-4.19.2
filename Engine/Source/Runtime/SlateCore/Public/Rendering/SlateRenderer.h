@@ -15,6 +15,8 @@ class ISlateAtlasProvider;
 class ISlateStyle;
 class SWindow;
 struct Rect;
+class FSceneInterface;
+struct FSlateBrush;
 
 typedef FRHITexture2D* FTexture2DRHIParamRef;
 
@@ -431,6 +433,15 @@ public:
 	 * accessed by multiple threads when loading.
 	 */
 	FCriticalSection* GetResourceCriticalSection() { return &ResourceCriticalSection; }
+
+	/** Register the active scene pointer with the renderer. This will return the scene internal index that will be used for all subsequent elements drawn. */
+	virtual int32 RegisterCurrentScene(FSceneInterface* Scene) = 0;
+
+	/** Get the currently registered scene index (set by RegisterCurrentScene)*/
+	virtual int32 GetCurrentSceneIndex() const  = 0;
+
+	/** Reset the internal Scene tracking.*/
+	virtual void ClearScenes() = 0;
 
 private:
 

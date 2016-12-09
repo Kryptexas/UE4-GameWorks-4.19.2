@@ -233,7 +233,10 @@ FString FGenericPlatformMisc::GetUniqueDeviceId()
 
 FString FGenericPlatformMisc::GetDeviceId()
 {
-	return FString();
+	// @todo: When this function is finally removed, the functionality used will need to be moved in here.
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	return GetUniqueDeviceId();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void FGenericPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode )

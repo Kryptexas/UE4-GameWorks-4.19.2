@@ -55,6 +55,9 @@ public:
 	/** Set the text at the given index (check against GetNumTexts) */
 	virtual void SetText(const int32 InIndex, const FText& InText) = 0;
 
+	/** Check to see if the given text is valid to use */
+	virtual bool IsValidText(const FText& InText, FText& OutErrorMsg) const = 0;
+
 #if USE_STABLE_LOCALIZATION_KEYS
 	/** Get the stable text ID for the given index (check against GetNumTexts) */
 	virtual void GetStableTextId(const int32 InIndex, const ETextPropertyEditAction InEditAction, const FString& InTextSource, const FString& InProposedNamespace, const FString& InProposedKey, FString& OutStableNamespace, FString& OutStableKey) const = 0;
@@ -115,7 +118,9 @@ private:
 	FText GetToolTipText() const;
 
 	FText GetTextValue() const;
+	void OnTextChanged(const FText& NewText);
 	void OnTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo);
+	void SetTextError(const FText& InErrorMsg);
 
 	FText GetNamespaceValue() const;
 	void OnNamespaceChanged(const FText& NewText);

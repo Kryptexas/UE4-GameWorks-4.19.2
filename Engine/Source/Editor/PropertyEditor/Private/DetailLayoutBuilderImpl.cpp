@@ -183,8 +183,18 @@ void FDetailLayoutBuilderImpl::GenerateDetailLayout()
 	TArray< TSharedRef<FDetailCategoryImpl> > SimpleCategories;
 	TArray< TSharedRef<FDetailCategoryImpl> > AdvancedOnlyCategories;
 
-	BuildCategories( CustomCategoryMap, SimpleCategories, AdvancedOnlyCategories );
-	BuildCategories( DefaultCategoryMap, SimpleCategories, AdvancedOnlyCategories );
+	// Customizations can add more categories while customizing so just keep doing this until the maps are empty
+	while(DefaultCategoryMap.Num() > 0 || CustomCategoryMap.Num() > 0)
+	{
+		FCategoryMap DefaultCategoryMapCopy = DefaultCategoryMap;
+		FCategoryMap CustomCategoryMapCopy = CustomCategoryMap;
+
+		DefaultCategoryMap.Empty();
+		CustomCategoryMap.Empty();
+
+		BuildCategories(DefaultCategoryMapCopy, SimpleCategories, AdvancedOnlyCategories);
+		BuildCategories(CustomCategoryMapCopy, SimpleCategories, AdvancedOnlyCategories);
+	}
 
 	SimpleCategories.Sort( FCompareFDetailCategoryImpl() );
 	AdvancedOnlyCategories.Sort( FCompareFDetailCategoryImpl() );
@@ -194,12 +204,12 @@ void FDetailLayoutBuilderImpl::GenerateDetailLayout()
 	// Merge the two category lists in sorted order
 	for (int32 CategoryIndex = 0; CategoryIndex < SimpleCategories.Num(); ++CategoryIndex)
 	{
-		CategoryNodes.Add(SimpleCategories[CategoryIndex]);
+		CategoryNodes.AddUnique(SimpleCategories[CategoryIndex]);
 	}
 
 	for (int32 CategoryIndex = 0; CategoryIndex < AdvancedOnlyCategories.Num(); ++CategoryIndex)
 	{
-		CategoryNodes.Add(AdvancedOnlyCategories[CategoryIndex]);
+		CategoryNodes.AddUnique(AdvancedOnlyCategories[CategoryIndex]);
 	}
 
 	if(DetailsView.ContainsMultipleTopLevelObjects())

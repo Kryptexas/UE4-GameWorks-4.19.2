@@ -2564,8 +2564,6 @@ public:
 	virtual bool SameType(const UProperty* Other) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
-
-	bool HasKey(void* InMap, void* InBaseAddress, const FString& InValue) const;
 };
 
 // need to break this out a different type so that the DECLARE_CASTED_CLASS_INTRINSIC macro can digest the comma
@@ -2616,8 +2614,6 @@ public:
 	virtual bool SameType(const UProperty* Other) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
-
-	bool HasElement(void* InSet, void* InBaseAddress, const FString& InValue) const;
 };
 
 /**
@@ -3333,6 +3329,39 @@ public:
 		}
 	}
 
+	/**
+	 * Checks if a key in the map matches the specified key
+	 *
+	 * @param	InBaseAddress	The base address of the map
+	 * @param	InKeyValue		The key to find within the map
+	 *
+	 * @return	True if the key is found, false otherwise
+	 */
+	bool HasKey(const void* InBaseAddress, const FString& InKeyValue) const
+	{
+		for (int32 Index = 0, ItemsLeft = Num(); ItemsLeft > 0; ++Index)
+		{
+			if (IsValidIndex(Index))
+			{
+				--ItemsLeft;
+
+				const uint8* PairPtr = GetPairPtr(Index);
+				const uint8* KeyPtr = KeyProp->ContainerPtrToValuePtr<const uint8>(PairPtr);
+
+				FString KeyValue;
+				if (KeyPtr != InBaseAddress && KeyProp->ExportText_Direct(KeyValue, KeyPtr, KeyPtr, nullptr, 0))
+				{
+					if ((Cast<UObjectProperty>(KeyProp) != nullptr && KeyValue.Contains(InKeyValue)) || InKeyValue == KeyValue)
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
 private:
 	/**
 	 * Internal function to call into the property system to construct / initialize elements.
@@ -3772,6 +3801,38 @@ public:
 		}
 	}
 
+	/**
+	 * Checks if an element has already been added to the set
+	 *
+	 * @param	InBaseAddress	The base address of the set
+	 * @param	InElementValue	The element value to check for
+	 *
+	 * @return	True if the element is found in the set, false otherwise
+	 */
+	bool HasElement(void* InBaseAddress, const FString& InElementValue) const
+	{
+		for (int32 Index = 0, ItemsLeft = Num(); ItemsLeft > 0; ++Index)
+		{
+			if (IsValidIndex(Index))
+			{
+				--ItemsLeft;
+
+				const uint8* Element = GetElementPtr(Index);
+
+				FString ElementValue;
+				if (Element != InBaseAddress && ElementProp->ExportText_Direct(ElementValue, Element, Element, nullptr, 0))
+				{
+					if ((Cast<UObjectProperty>(ElementProp) != nullptr && ElementValue.Contains(InElementValue)) || ElementValue == InElementValue)
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
 private:
 	/**
 	* Internal function to call into the property system to construct / initialize elements.
@@ -4178,6 +4239,8 @@ namespace EPropertyChangeType
 	const Type Duplicate = 1 << 3;
 	//Interactive, e.g. dragging a slider. Will be followed by a ValueSet when finished.
 	const Type Interactive = 1 << 4;
+	//Redirected.  Used when property references are updated due to content hot-reloading, or an asset being replaced during asset deletion (aka, asset consolidation).
+	const Type Redirected = 1 << 5;
 };
 
 /**

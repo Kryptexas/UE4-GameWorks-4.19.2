@@ -267,7 +267,10 @@ class UPropertyEditorTestObject : public UObject
 	UPROPERTY(EditAnywhere, Category=StructTests)
 	FPropertyEditorTestBasicStruct StructWithMultipleInstances1;
 
-	UPROPERTY(EditAnywhere, Category=StructTests, meta=(editcondition = "bEditCondition"))
+	UPROPERTY(EditAnywhere, Category = StructTests, meta = (InlineEditConditionToggle))
+	bool bEditConditionStructWithMultipleInstances2;
+
+	UPROPERTY(EditAnywhere, Category=StructTests, meta=(editcondition = "bEditConditionStructWithMultipleInstances2"))
 	FPropertyEditorTestBasicStruct StructWithMultipleInstances2;
 
 	UPROPERTY(EditAnywhere, Category=StructTests)
@@ -282,7 +285,10 @@ class UPropertyEditorTestObject : public UObject
 	UPROPERTY(EditAnywhere, Category=AdvancedProperties, meta=(editcondition = "bEditCondition"))
 	int32 SimplePropertyWithEditCondition;
 
-	UPROPERTY(EditAnywhere, Category=StructTests, meta=(editcondition = "bEditCondition"))
+	UPROPERTY(EditAnywhere, Category = StructTests, meta = (InlineEditConditionToggle))
+	bool bEditConditionAssetReferenceCustomStructWithEditCondition;
+
+	UPROPERTY(EditAnywhere, Category=StructTests, meta=(editcondition = "bEditConditionAssetReferenceCustomStructWithEditCondition"))
 	FStringAssetReference AssetReferenceCustomStructWithEditCondition;
 
 	UPROPERTY(EditAnywhere, Category=StructTests)

@@ -210,6 +210,17 @@ void FCurveColorCustomization::ModifyOwner()
 	}
 }
 
+TArray<const UObject*> FCurveColorCustomization::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	if (Owner)
+	{
+		Owners.Add(Owner);
+	}
+
+	return Owners;
+}
+
 void FCurveColorCustomization::MakeTransactional()
 {
 	if (Owner)

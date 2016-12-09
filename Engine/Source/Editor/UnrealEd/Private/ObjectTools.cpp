@@ -754,7 +754,7 @@ namespace ObjectTools
 
 			for ( TArray<UProperty*>::TConstIterator RefPropIter( RefPropArray ); RefPropIter; ++RefPropIter )
 			{
-				FPropertyChangedEvent PropertyEvent(*RefPropIter);
+				FPropertyChangedEvent PropertyEvent(*RefPropIter, EPropertyChangeType::Redirected);
 				CurReplaceObj->PostEditChangeProperty( PropertyEvent );
 			}
 
@@ -921,6 +921,8 @@ namespace ObjectTools
 
 			FEditorDelegates::OnAssetsPreDelete.Broadcast(ReplaceInfo.ReplaceableObjects);
 
+			TSet<FString> AlreadyMappedObjectPaths;
+
 			// With all references to the objects to consolidate to eliminated from objects that are currently loaded, it should now be safe to delete
 			// the objects to be consolidated themselves, leaving behind a redirector in their place to fix up objects that were not currently loaded at the time
 			// of this operation.
@@ -931,7 +933,8 @@ namespace ObjectTools
 				UObject* CurObjToConsolidate = *ConsolIter;
 				UObject* CurObjOuter = CurObjToConsolidate->GetOuter();
 				UPackage* CurObjPackage = CurObjToConsolidate->GetOutermost();
-				FName CurObjName = CurObjToConsolidate->GetFName();
+				const FName CurObjName = CurObjToConsolidate->GetFName();
+				const FString CurObjPath = CurObjToConsolidate->GetPathName();
 				UBlueprint* BlueprintToConsolidate = Cast<UBlueprint>(CurObjToConsolidate);
 
 				// Attempt to delete the object that was consolidated
@@ -939,6 +942,11 @@ namespace ObjectTools
 				{
 					// DONT GC YET!!! we still need these objects around to notify other tools that they are gone and to create redirectors
 					ConsolidatedObjects.Add(CurObjToConsolidate);
+
+					if ( AlreadyMappedObjectPaths.Contains(CurObjPath) )
+					{
+						continue;
+					}
 
 					// Create a redirector with a unique name
 					// It will have the same name as the object that was consolidated after the garbage collect
@@ -949,10 +957,8 @@ namespace ObjectTools
 					Redirector->DestinationObject = ObjectToConsolidateTo;
 
 					// Keep track of the object name so we can rename the redirector later
-					if (!RedirectorToObjectNameMap.FindKey(CurObjName))
-					{
-						RedirectorToObjectNameMap.Add(Redirector, CurObjName);
-					}
+					RedirectorToObjectNameMap.Add(Redirector, CurObjName);
+					AlreadyMappedObjectPaths.Add(CurObjPath);
 
 					// If consolidating blueprints, make sure redirectors are created for the consolidated blueprint class and CDO
 					if ( BlueprintToConsolidateTo != NULL && BlueprintToConsolidate != NULL )
@@ -962,12 +968,14 @@ namespace ObjectTools
 						check( ClassRedirector );
 						ClassRedirector->DestinationObject = BlueprintToConsolidateTo->GeneratedClass;
 						RedirectorToObjectNameMap.Add(ClassRedirector, BlueprintToConsolidate->GeneratedClass->GetFName());
+						AlreadyMappedObjectPaths.Add(BlueprintToConsolidate->GeneratedClass->GetPathName());
 
 						// One redirector for the CDO
 						UObjectRedirector* CDORedirector = NewObject<UObjectRedirector>(CurObjOuter, NAME_None, RF_Standalone | RF_Public);
 						check( CDORedirector );
 						CDORedirector->DestinationObject = BlueprintToConsolidateTo->GeneratedClass->GetDefaultObject();
 						RedirectorToObjectNameMap.Add(CDORedirector, BlueprintToConsolidate->GeneratedClass->GetDefaultObject()->GetFName());
+						AlreadyMappedObjectPaths.Add(BlueprintToConsolidate->GeneratedClass->GetDefaultObject()->GetPathName());
 					}
 
 					DirtiedPackages.AddUnique( CurObjPackage );

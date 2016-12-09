@@ -20,6 +20,7 @@
 #include "Slate/SGameLayerManager.h"
 #include "Slate/WidgetRenderer.h"
 #include "Slate/SWorldWidgetScreenLayer.h"
+#include "SViewport.h"
 
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
 
@@ -96,6 +97,173 @@ private:
 };
 
 
+
+
+/**
+* The hit tester used by all Widget Component objects.
+*/
+class FWidget3DHitTester : public ICustomHitTestPath
+{
+public:
+	FWidget3DHitTester( UWorld* InWorld )
+		: World( InWorld )
+		, CachedFrame(-1)
+	{}
+
+	// ICustomHitTestPath implementation
+	virtual TArray<FWidgetAndPointer> GetBubblePathAndVirtualCursors(const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus) const override
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Slate3DHitTesting);
+
+		if( World.IsValid() /*&& ensure( World->IsGameWorld() )*/ )
+		{
+			UWorld* SafeWorld = World.Get();
+			if ( SafeWorld )
+			{
+				ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(SafeWorld, 0);
+
+				if( TargetPlayer && TargetPlayer->PlayerController )
+				{
+					FVector2D LocalMouseCoordinate = InGeometry.AbsoluteToLocal(DesktopSpaceCoordinate) * InGeometry.Scale;
+
+					if ( UPrimitiveComponent* HitComponent = GetHitResultAtScreenPositionAndCache(TargetPlayer->PlayerController, LocalMouseCoordinate) )
+					{
+						if ( UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>(HitComponent) )
+						{
+							if ( WidgetComponent->GetReceiveHardwareInput() )
+							{
+								if ( WidgetComponent->GetDrawSize().X != 0 && WidgetComponent->GetDrawSize().Y != 0 )
+								{
+									// Get the "forward" vector based on the current rotation system.
+									const FVector ForwardVector = WidgetComponent->GetForwardVector();
+
+									// Make sure the player is interacting with the front of the widget
+									if ( FVector::DotProduct(ForwardVector, CachedHitResult.ImpactPoint - CachedHitResult.TraceStart) < 0.f )
+									{
+										return WidgetComponent->GetHitWidgetPath(CachedHitResult.Location, bIgnoreEnabledStatus);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return TArray<FWidgetAndPointer>();
+	}
+
+	virtual void ArrangeChildren( FArrangedChildren& ArrangedChildren ) const override
+	{
+		for( TWeakObjectPtr<UWidgetComponent> Component : RegisteredComponents )
+		{
+			UWidgetComponent* WidgetComponent = Component.Get();
+			// Check if visible;
+			if ( WidgetComponent && WidgetComponent->GetSlateWindow().IsValid() )
+			{
+				FGeometry WidgetGeom;
+
+				ArrangedChildren.AddWidget( FArrangedWidget( WidgetComponent->GetSlateWindow().ToSharedRef(), WidgetGeom.MakeChild( WidgetComponent->GetDrawSize(), FSlateLayoutTransform() ) ) );
+			}
+		}
+	}
+
+	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const override
+	{
+		if ( World.IsValid() && ensure(World->IsGameWorld()) )
+		{
+			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(World.Get(), 0);
+			if ( TargetPlayer && TargetPlayer->PlayerController )
+			{
+				FVector2D LocalMouseCoordinate = ViewportGeometry.AbsoluteToLocal(ScreenSpaceMouseCoordinate) * ViewportGeometry.Scale;
+
+				// Check for a hit against any widget components in the world
+				for ( TWeakObjectPtr<UWidgetComponent> Component : RegisteredComponents )
+				{
+					UWidgetComponent* WidgetComponent = Component.Get();
+					// Check if visible;
+					if ( WidgetComponent && WidgetComponent->GetSlateWindow() == ChildWidget )
+					{
+						if ( UPrimitiveComponent* HitComponent = GetHitResultAtScreenPositionAndCache(TargetPlayer->PlayerController, LocalMouseCoordinate) )
+						{
+							if ( WidgetComponent->GetReceiveHardwareInput() )
+							{
+								if ( WidgetComponent->GetDrawSize().X != 0 && WidgetComponent->GetDrawSize().Y != 0 )
+								{
+									if ( WidgetComponent == HitComponent )
+									{
+										TSharedPtr<FVirtualPointerPosition> VirtualCursorPos = MakeShareable(new FVirtualPointerPosition);
+
+										FVector2D LocalHitLocation;
+										WidgetComponent->GetLocalHitLocation(CachedHitResult.Location, LocalHitLocation);
+
+										VirtualCursorPos->CurrentCursorPosition = LocalHitLocation;
+										VirtualCursorPos->LastCursorPosition = LocalHitLocation;
+
+										return VirtualCursorPos;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return nullptr;
+	}
+	// End ICustomHitTestPath
+
+	UPrimitiveComponent* GetHitResultAtScreenPositionAndCache(APlayerController* PlayerController, FVector2D ScreenPosition) const
+	{
+		UPrimitiveComponent* HitComponent = nullptr;
+
+		if ( GFrameNumber != CachedFrame || CachedScreenPosition != ScreenPosition )
+		{
+			CachedFrame = GFrameNumber;
+			CachedScreenPosition = ScreenPosition;
+
+			if ( PlayerController )
+			{
+				if ( PlayerController->GetHitResultAtScreenPosition(ScreenPosition, ECC_Visibility, true, CachedHitResult) )
+				{
+					return CachedHitResult.Component.Get();
+				}
+			}
+		}
+		else
+		{
+			return CachedHitResult.Component.Get();
+		}
+
+		return nullptr;
+	}
+
+	void RegisterWidgetComponent( UWidgetComponent* InComponent )
+	{
+		RegisteredComponents.AddUnique( InComponent );
+	}
+
+	void UnregisterWidgetComponent( UWidgetComponent* InComponent )
+	{
+		RegisteredComponents.RemoveSingleSwap( InComponent );
+	}
+
+	uint32 GetNumRegisteredComponents() const { return RegisteredComponents.Num(); }
+	
+	UWorld* GetWorld() const { return World.Get(); }
+
+private:
+	TArray< TWeakObjectPtr<UWidgetComponent> > RegisteredComponents;
+	TWeakObjectPtr<UWorld> World;
+
+	mutable int64 CachedFrame;
+	mutable FVector2D CachedScreenPosition;
+	mutable FHitResult CachedHitResult;
+};
+
+
+
 /** Represents a billboard sprite to the scene manager. */
 class FWidget3DSceneProxy : public FPrimitiveSceneProxy
 {
@@ -130,18 +298,20 @@ public:
 
 		Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
 
-		FMaterialRenderProxy* MaterialProxy = nullptr;
+		FMaterialRenderProxy* ParentMaterialProxy = nullptr;
 		if ( bWireframe )
 		{
-			MaterialProxy = WireframeMaterialInstance;
+			ParentMaterialProxy = WireframeMaterialInstance;
 		}
 		else
 		{
-			MaterialProxy = MaterialInstance->GetRenderProxy(IsSelected());
+			ParentMaterialProxy = MaterialInstance->GetRenderProxy(IsSelected());
 		}
 #else
-		FMaterialRenderProxy* MaterialProxy = MaterialInstance->GetRenderProxy(IsSelected());
+		FMaterialRenderProxy* ParentMaterialProxy = MaterialInstance->GetRenderProxy(IsSelected());
 #endif
+
+		//FSpriteTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FSpriteTextureOverrideRenderProxy(ParentMaterialProxy,
 
 		const FMatrix& ViewportLocalToWorld = GetLocalToWorld();
 	
@@ -173,7 +343,7 @@ public:
 							MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[1], VertexIndices[2]);
 							MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[2], VertexIndices[3]);
 
-							MeshBuilder.GetMesh(ViewportLocalToWorld, MaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
+							MeshBuilder.GetMesh(ViewportLocalToWorld, ParentMaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
 						}
 					}
 				}
@@ -250,7 +420,7 @@ public:
 								LastTangentY = TangentY;
 								LastTangentZ = TangentZ;
 							}
-							MeshBuilder.GetMesh(ViewportLocalToWorld, MaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
+							MeshBuilder.GetMesh(ViewportLocalToWorld, ParentMaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
 						}
 					}
 				}
@@ -379,6 +549,7 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	, bRedrawRequested(true)
 	, RedrawTime(0)
 	, LastWidgetRenderTime(0)
+	, bReceiveHardwareInput(false)
 	, bWindowFocusable(true)
 	, BackgroundColor( FLinearColor::Transparent )
 	, TintColorAndOpacity( FLinearColor::White )
@@ -519,6 +690,12 @@ void UWidgetComponent::OnRegister()
 	{
 		if ( Space != EWidgetSpace::Screen )
 		{
+			if ( bReceiveHardwareInput && GetWorld()->IsGameWorld() )
+			{
+				TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
+				RegisterHitTesterWithViewport(GameViewportWidget);
+			}
+
 			if ( !WidgetRenderer.IsValid() && !GUsingNullRHI )
 			{
 				WidgetRenderer = MakeShareable(new FWidgetRenderer());
@@ -532,8 +709,62 @@ void UWidgetComponent::OnRegister()
 #endif // !UE_SERVER
 }
 
+void UWidgetComponent::RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
+{
+#if !UE_SERVER
+	if ( ViewportWidget.IsValid() )
+	{
+		TSharedPtr<ICustomHitTestPath> CustomHitTestPath = ViewportWidget->GetCustomHitTestPath();
+		if ( !CustomHitTestPath.IsValid() )
+		{
+			CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
+			ViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
+		}
+
+		TSharedPtr<FWidget3DHitTester> Widget3DHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+		if ( Widget3DHitTester->GetWorld() == GetWorld() )
+		{
+			Widget3DHitTester->RegisterWidgetComponent(this);
+		}
+	}
+#endif
+
+}
+
+void UWidgetComponent::UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
+{
+#if !UE_SERVER
+	if ( bReceiveHardwareInput )
+	{
+		TSharedPtr<ICustomHitTestPath> CustomHitTestPath = ViewportWidget->GetCustomHitTestPath();
+		if ( CustomHitTestPath.IsValid() )
+		{
+			TSharedPtr<FWidget3DHitTester> WidgetHitTestPath = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+
+			WidgetHitTestPath->UnregisterWidgetComponent(this);
+
+			if ( WidgetHitTestPath->GetNumRegisteredComponents() == 0 )
+			{
+				ViewportWidget->SetCustomHitTestPath(nullptr);
+			}
+		}
+	}
+#endif
+}
+
 void UWidgetComponent::OnUnregister()
 {
+#if !UE_SERVER
+	if ( GetWorld()->IsGameWorld() )
+	{
+		TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
+		if ( GameViewportWidget.IsValid() )
+		{
+			UnregisterHitTesterWithViewport(GameViewportWidget);
+		}
+	}
+#endif
+
 #if WITH_EDITOR
 	if (!GetWorld()->IsGameWorld())
 	{
@@ -569,7 +800,7 @@ void UWidgetComponent::RegisterWindow()
 {
 	if ( SlateWindow.IsValid() )
 	{
-		if ( FSlateApplication::IsInitialized() )
+		if (!bReceiveHardwareInput && FSlateApplication::IsInitialized() )
 		{
 			FSlateApplication::Get().RegisterVirtualWindow(SlateWindow.ToSharedRef());
 		}
@@ -580,7 +811,7 @@ void UWidgetComponent::UnregisterWindow()
 {
 	if ( SlateWindow.IsValid() )
 	{
-		if ( FSlateApplication::IsInitialized() )
+		if ( !bReceiveHardwareInput && FSlateApplication::IsInitialized() )
 		{
 			FSlateApplication::Get().UnregisterVirtualWindow(SlateWindow.ToSharedRef());
 		}
@@ -607,7 +838,11 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	    {
 			if ( ShouldDrawWidget() )
 		    {
-			    DrawWidgetToRenderTarget(DeltaTime);
+				// Calculate the actual delta time since we last drew, this handles the case where we're ticking when
+				// the world is paused, this also takes care of the case where the widget component is rendering at
+				// a different rate than the rest of the world.
+				const float DeltaTimeFromLastDraw = LastWidgetRenderTime == 0 ? 0 : (FApp::GetCurrentTime() - LastWidgetRenderTime );
+			    DrawWidgetToRenderTarget(DeltaTimeFromLastDraw);
 		    }
 	    }
 	    else
@@ -673,7 +908,7 @@ bool UWidgetComponent::ShouldDrawWidget() const
 		// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
 		if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
 		{
-			if ( GetWorld()->TimeSince(LastWidgetRenderTime) >= RedrawTime )
+			if ( ( FApp::GetCurrentTime() - LastWidgetRenderTime) >= RedrawTime )
 			{
 				return bManuallyRedraw ? bRedrawRequested : true;
 			}
@@ -740,7 +975,7 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 		CurrentDrawSize,
 		DeltaTime);
 
-	LastWidgetRenderTime = GetWorld()->TimeSeconds;
+	LastWidgetRenderTime = FApp::GetCurrentTime();
 }
 
 float UWidgetComponent::ComputeComponentWidth() const
@@ -834,7 +1069,7 @@ void UWidgetComponent::ApplyComponentInstanceData(FWidgetComponentInstanceData* 
 	}
 
 	RenderTarget = WidgetInstanceData->RenderTarget;
-	if( MaterialInstance && RenderTarget )
+	if ( MaterialInstance && RenderTarget )
 	{
 		MaterialInstance->SetTextureParameterValue("SlateUI", RenderTarget);
 	}

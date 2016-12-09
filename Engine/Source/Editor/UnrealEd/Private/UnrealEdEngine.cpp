@@ -535,6 +535,11 @@ void UUnrealEdEngine::AttemptModifiedPackageNotification()
 {
 	bool bIsCooking = CookServer && CookServer->IsCookingInEditor() && CookServer->IsCookByTheBookRunning();
 
+	if (bShowPackageNotification && !bIsCooking)
+	{
+		ShowPackageNotification();
+	}
+
 	if (PackagesDirtiedThisTick.Num() > 0 && !bIsCooking)
 	{
 		// Force source control state to be updated
@@ -561,8 +566,6 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 {
 	if (ResultType == ECommandResult::Succeeded)
 	{
-		bool bShowNotification = false;
-
 		// Get the source control state of the package
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
@@ -589,13 +592,13 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 						else
 						{
 							PackageToNotifyState.Add(PackagePtr, NS_PendingPrompt);
-							bShowNotification = true;
+							bShowPackageNotification = true;
 						}
 					}
 					else if (!SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther())
 					{
 						PackageToNotifyState.Add(PackagePtr, NS_PendingWarning);
-						bShowNotification = true;
+						bShowPackageNotification = true;
 					}
 				}
 			}
@@ -604,11 +607,6 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 		if (FilesToAutomaticallyCheckOut.Num() > 0)
 		{
 			SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), SourceControlHelpers::AbsoluteFilenames(FilesToAutomaticallyCheckOut), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateUObject(this, &UUnrealEdEngine::OnPackagesCheckedOut, PackagesToAutomaticallyCheckOut));
-		}
-
-		if (bShowNotification)
-		{
-			ShowPackageNotification();
 		}
 	}
 }
@@ -643,8 +641,6 @@ void UUnrealEdEngine::OnPackagesCheckedOut(const FSourceControlOperationRef& Sou
 		{
 			PackageToNotifyState.Add(Package, NS_PendingPrompt);
 		}
-
-		ShowPackageNotification();
 	}
 }
 

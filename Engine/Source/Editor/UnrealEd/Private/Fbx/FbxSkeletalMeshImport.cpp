@@ -2179,6 +2179,11 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 
 void UnFbx::FFbxImporter::CleanUpUnusedMaterials(FSkeletalMeshImportData& ImportData)
 {
+	if (ImportData.Materials.Num() <= 0)
+	{
+		return;
+	}
+
 	TArray< VMaterial > ExistingMatList = ImportData.Materials;
 
 	TArray<uint8> UsedMaterialIndex;
@@ -2190,7 +2195,7 @@ void UnFbx::FFbxImporter::CleanUpUnusedMaterials(FSkeletalMeshImportData& Import
 		UsedMaterialIndex.AddUnique(Triangle.MatIndex);
 	}
 	//Remove any unused material.
-	if (UsedMaterialIndex.Num() != ExistingMatList.Num())
+	if (UsedMaterialIndex.Num() < ExistingMatList.Num())
 	{
 		TArray<int32> RemapIndex;
 		TArray< VMaterial > &NewMatList = ImportData.Materials;
@@ -3545,16 +3550,21 @@ FFbxLogger::~FFbxLogger()
 			}
 		}
 	}
-	if(ShowLogMessage && TokenizedErrorMessages.Num() > 0)
-	{
-		const TCHAR* LogTitle = TEXT("FBXImport");
-		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-		TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
-		LogListing->SetLabel(FText::FromString("FBX Import"));
-		LogListing->ClearMessages();
 
+	//Always clear the old message after an import or re-import
+	const TCHAR* LogTitle = TEXT("FBXImport");
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+	TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
+	LogListing->SetLabel(FText::FromString("FBX Import"));
+	LogListing->ClearMessages();
+
+	if(TokenizedErrorMessages.Num() > 0)
+	{
 		LogListing->AddMessages(TokenizedErrorMessages);
-		MessageLogModule.OpenMessageLog(LogTitle);
+		if (ShowLogMessage)
+		{
+			MessageLogModule.OpenMessageLog(LogTitle);
+		}
 	}
 }
 #undef LOCTEXT_NAMESPACE

@@ -22,16 +22,10 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 	BackgroundColorOverride = InArgs._BackgroundColor;
 	ReadOnlyForegroundColorOverride = InArgs._ReadOnlyForegroundColor;
 
-	TAttribute<FMargin> Padding = PaddingOverride.IsSet() ? PaddingOverride : InArgs._Style->Padding;
-	TAttribute<FSlateFontInfo> Font = FontOverride.IsSet() ? FontOverride : InArgs._Style->Font;
-	TAttribute<FSlateColor> BorderForegroundColor = ForegroundColorOverride.IsSet() ? ForegroundColorOverride : InArgs._Style->ForegroundColor;
-	TAttribute<FSlateColor> BackgroundColor = BackgroundColorOverride.IsSet() ? BackgroundColorOverride : InArgs._Style->BackgroundColor;
-	ReadOnlyForegroundColor = ReadOnlyForegroundColorOverride.IsSet() ? ReadOnlyForegroundColorOverride : InArgs._Style->ReadOnlyForegroundColor;
-
 	SBorder::Construct( SBorder::FArguments()
 		.BorderImage( this, &SEditableTextBox::GetBorderImage )
-		.BorderBackgroundColor( BackgroundColor )
-		.ForegroundColor( BorderForegroundColor )
+		.BorderBackgroundColor( this, &SEditableTextBox::DetermineBackgroundColor )
+		.ForegroundColor( this, &SEditableTextBox::DetermineForegroundColor )
 		.Padding( 0 )
 		[
 			SAssignNew( Box, SHorizontalBox)
@@ -42,13 +36,13 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 			.FillWidth(1)
 			[
 				SAssignNew(PaddingBox, SBox)
-				.Padding( Padding )
+				.Padding( this, &SEditableTextBox::DeterminePadding )
 				.VAlign(VAlign_Center)
 				[
 					SAssignNew( EditableText, SEditableText )
 					.Text( InArgs._Text )
 					.HintText( InArgs._HintText )
-					.Font( Font )
+					.Font( this, &SEditableTextBox::DetermineFont )
 					.IsReadOnly( InArgs._IsReadOnly )
 					.IsPassword( InArgs._IsPassword )
 					.IsCaretMovedWhenGainFocus( InArgs._IsCaretMovedWhenGainFocus )
@@ -83,7 +77,6 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 
 }
 
-
 void SEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
 {
 	Style = InStyle;
@@ -95,31 +88,6 @@ void SEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
 	}
 
 	check(Style);
-
-	if (!PaddingOverride.IsSet() && PaddingBox.IsValid())
-	{
-		PaddingBox->SetPadding(Style->Padding);
-	}
-
-	if (!FontOverride.IsSet() && EditableText.IsValid())
-	{
-		EditableText->SetFont(Style->Font);
-	}
-
-	if (!ForegroundColorOverride.IsSet())
-	{
-		SetForegroundColor(Style->ForegroundColor);
-	}
-
-	if (!BackgroundColorOverride.IsSet())
-	{
-		SetBorderBackgroundColor(Style->BackgroundColor);
-	}
-
-	if (!ReadOnlyForegroundColorOverride.IsSet())
-	{
-		ReadOnlyForegroundColor = Style->ReadOnlyForegroundColor;
-	}
 
 	BorderImageNormal = &Style->BackgroundImageNormal;
 	BorderImageHovered = &Style->BackgroundImageHovered;
@@ -271,6 +239,19 @@ FReply SEditableTextBox::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent&
 	return FReply::Unhandled();
 }
 
+FSlateColor SEditableTextBox::DetermineForegroundColor() const
+{
+	check(Style);  
+	
+	if (EditableText->IsTextReadOnly())
+	{
+		return ReadOnlyForegroundColorOverride.IsSet() ? ReadOnlyForegroundColorOverride.Get() : Style->ReadOnlyForegroundColor;
+	}
+	else
+	{
+		return ForegroundColorOverride.IsSet() ? ForegroundColorOverride.Get() : Style->ForegroundColor;
+	}
+}
 
 void SEditableTextBox::SetHintText(const TAttribute< FText >& InHintText)
 {
@@ -293,31 +274,22 @@ void SEditableTextBox::SetIsPassword(TAttribute< bool > InIsPassword)
 void SEditableTextBox::SetFont(const TAttribute<FSlateFontInfo>& InFont)
 {
 	FontOverride = InFont;
-
-	EditableText->SetFont(FontOverride.IsSet() ? FontOverride : Style->Font);
 }
-
 
 void SEditableTextBox::SetTextBoxForegroundColor(const TAttribute<FSlateColor>& InForegroundColor)
 {
 	ForegroundColorOverride = InForegroundColor;
-
-	SetForegroundColor(ForegroundColorOverride.IsSet() ? ForegroundColorOverride : Style->ForegroundColor);
 }
 
 void SEditableTextBox::SetTextBoxBackgroundColor(const TAttribute<FSlateColor>& InBackgroundColor)
 {
 	BackgroundColorOverride = InBackgroundColor;
-
-	SetBorderBackgroundColor(BackgroundColorOverride.IsSet() ? BackgroundColorOverride : Style->BackgroundColor);
 }
 
 
 void SEditableTextBox::SetReadOnlyForegroundColor(const TAttribute<FSlateColor>& InReadOnlyForegroundColor)
 {
 	ReadOnlyForegroundColorOverride = InReadOnlyForegroundColor;
-
-	ReadOnlyForegroundColor = ReadOnlyForegroundColorOverride.IsSet() ? ReadOnlyForegroundColorOverride : Style->ReadOnlyForegroundColor;
 }
 
 

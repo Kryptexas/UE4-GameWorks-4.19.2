@@ -149,6 +149,13 @@ public:
 
 void UEditorEngine::EndPlayMap()
 {
+	if ( bIsEndingPlay )
+	{
+		return;
+	}
+
+	TGuardValue<bool> GuardIsEndingPlay(bIsEndingPlay, true);
+
 	FlushAsyncLoading();
 
 	// Monitoring when PIE corrupts references between the World and the PIE generated World for UE-20486

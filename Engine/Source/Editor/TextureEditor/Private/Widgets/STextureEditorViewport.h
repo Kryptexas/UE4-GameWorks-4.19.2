@@ -119,6 +119,9 @@ private:
 	// Callback for getting the zoom slider's value.
 	float HandleZoomSliderValue( ) const;
 
+	// Checks if the texture being edited has a valid texture resource
+	bool HasValidTextureResource( ) const;
+
 private:
 
 	// Which exposure level should be used, in FStop e.g. 0:original, -1:half as bright, 1:2x as bright, 2:4x as bright.

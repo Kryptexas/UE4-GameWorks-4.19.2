@@ -1824,6 +1824,10 @@ protected:
 DECLARE_DELEGATE_RetVal_TwoParams( bool, FCheckForAutoAddDelegate, UPackage*, const FString& );
 DECLARE_DELEGATE_OneParam( FAddPackageToDefaultChangelistDelegate, const TCHAR* );
 
+/** Defined in PackageReload.h */
+enum class EPackageReloadPhase : uint8;
+class FPackageReloadedEvent;
+
 /**
  * Global CoreUObject delegates
  */
@@ -1843,6 +1847,10 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 
 	/** Delegate type for making auto backup of package */
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FAutoPackageBackupDelegate, const UPackage&);
+
+	/** Called by ReloadPackage during package reloading. It will be called several times for different phases of fix-up to allow custom code to handle updating objects as needed */
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPackageReloaded, EPackageReloadPhase, FPackageReloadedEvent*);
+	static FOnPackageReloaded OnPackageReloaded;
 
 #if WITH_EDITOR
 	// Callback for all object modifications

@@ -172,6 +172,24 @@ ISlateAtlasProvider* FSlateD3DRenderer::GetTextureAtlasProvider()
 	return nullptr;
 }
 
+int32 FSlateD3DRenderer::RegisterCurrentScene(FSceneInterface* Scene) 
+{
+	// This is a no-op
+	return -1;
+}
+
+int32 FSlateD3DRenderer::GetCurrentSceneIndex() const
+{
+	// This is a no-op
+	return -1;
+}
+
+void FSlateD3DRenderer::ClearScenes() 
+{
+	// This is a no-op
+}
+
+
 void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, const FVector2D &WindowSize )
 {
 	TSharedRef< FGenericWindow > NativeWindow = InWindow->GetNativeWindow().ToSharedRef();

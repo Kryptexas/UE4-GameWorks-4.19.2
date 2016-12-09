@@ -1164,6 +1164,29 @@ void UBodySetup::PostInitProperties()
 }
 
 #if WITH_EDITOR
+
+void UBodySetup::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if(PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UBodySetup, AggGeom))
+	{
+		UStaticMesh* StaticMesh = GetTypedOuter<UStaticMesh>();
+		if(StaticMesh)
+		{
+			for(UStaticMeshComponent* StaticMeshComponent : TObjectRange<UStaticMeshComponent>())
+			{
+				if(StaticMeshComponent->GetStaticMesh() == StaticMesh)
+				{
+					// it needs to recreate IF it already has been created
+					if(StaticMeshComponent->IsPhysicsStateCreated())
+					{
+						StaticMeshComponent->RecreatePhysicsState();
+					}
+				}
+			}
+		}
+	}
+}
+
 void UBodySetup::PostEditUndo()
 {
 	Super::PostEditUndo();

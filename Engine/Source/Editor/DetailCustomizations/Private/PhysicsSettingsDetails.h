@@ -34,12 +34,11 @@ public:
 /**
 * Implements the FriendsList
 */
-class SPhysicalSurfaceListItem
-	: public SMultiColumnTableRow< TSharedPtr<class FPhysicalSurfaceListItem> >
+class SPhysicalSurfaceEditBox : public SCompoundWidget
 {
 public:
 
-	SLATE_BEGIN_ARGS(SPhysicalSurfaceListItem) { }
+	SLATE_BEGIN_ARGS(SPhysicalSurfaceEditBox) { }
 		SLATE_ARGUMENT(TSharedPtr<FPhysicalSurfaceName>, PhysicalSurface)
 		SLATE_ARGUMENT(UEnum*, PhysicalSurfaceEnum)
 		SLATE_EVENT(FOnCommitChange, OnCommitChange)
@@ -52,8 +51,8 @@ public:
 	*
 	* @param InArgs - The Slate argument list.
 	*/
-	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView);
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
+	void Construct(const FArguments& InArgs);
+	
 	FString GetTypeString() const;
 
 	FText GetName() const;
@@ -64,7 +63,7 @@ private:
 	TSharedPtr<FPhysicalSurfaceName>	PhysicalSurface;
 	UEnum *								PhysicalSurfaceEnum;
 	FOnCommitChange						OnCommitChange;
-	TSharedPtr<SEditableTextBox>		NameBox;
+	TSharedPtr<SEditableTextBox>		NameEditBox;
 };
 
 typedef  SListView< TSharedPtr< FPhysicalSurfaceListItem > > SPhysicalSurfaceListView;
@@ -90,14 +89,11 @@ private:
 
 
 private:
-	TSharedPtr<SPhysicalSurfaceListView>				PhysicalSurfaceListView;
 	TArray< TSharedPtr< FPhysicalSurfaceListItem > >	PhysicalSurfaceList;
 
 	UPhysicsSettings *							PhysicsSettings;
 	UEnum*										PhysicalSurfaceEnum;
 	// functions
-	void UpdatePhysicalSurfaceList();
-	void RefreshPhysicalSurfaceList();
 	void OnCommitChange();
 };
 

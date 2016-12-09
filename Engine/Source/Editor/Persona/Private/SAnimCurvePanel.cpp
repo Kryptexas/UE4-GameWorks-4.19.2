@@ -93,6 +93,18 @@ public:
 		}
 	}
 
+	/** Returns the owner(s) of the curve */
+	virtual TArray<const UObject*> GetOwners() const override
+	{
+		TArray<const UObject*> Owners;
+		if (AnimSequenceBase.IsValid())
+		{
+			Owners.Add(AnimSequenceBase.Get());
+		}
+
+		return Owners;
+	}
+
 	/** Called to make curve owner transactional */
 	virtual void MakeTransactional() override
 	{

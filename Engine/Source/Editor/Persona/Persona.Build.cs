@@ -39,7 +39,9 @@ public class Persona : ModuleRules
 				"EditorWidgets",
                 "BlueprintGraph",
                 "RHI",
-			}
+                "Json",
+                "JsonUtilities",
+            }
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(

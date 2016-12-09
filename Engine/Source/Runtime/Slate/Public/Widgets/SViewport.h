@@ -13,6 +13,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Rendering/RenderingCommon.h"
 #include "Widgets/SWindow.h"
+#include "HittestGrid.h"
 
 class FActiveTimerHandle;
 class FPaintArgs;
@@ -125,6 +126,10 @@ public:
 	 */
 	void SetContent( TSharedPtr<SWidget> InContent );
 
+	void SetCustomHitTestPath( TSharedPtr<ICustomHitTestPath> CustomHitTestPath );
+
+	TSharedPtr<ICustomHitTestPath> GetCustomHitTestPath();
+
 	const TSharedPtr<SWidget> GetContent() const { return ChildSlot.GetWidget(); }
 
 	/**
@@ -209,6 +214,8 @@ public:
 	virtual TOptional<bool> OnQueryShowFocus( const EFocusCause InFocusCause ) const override;
 	virtual FPopupMethodReply OnQueryPopupMethod() const override;
 	virtual void OnFinishedPointerInput() override;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const override;
 	virtual FNavigationReply OnNavigation( const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent ) override;
 
 private:
@@ -241,6 +248,8 @@ private:
 
 	/** Size of the viewport. */
 	TAttribute<FVector2D> ViewportSize;
+
+	TSharedPtr<ICustomHitTestPath> CustomHitTestPath;
 
 	/** Whether or not this viewport renders directly to the window back-buffer. */
 	bool bRenderDirectlyToWindow;

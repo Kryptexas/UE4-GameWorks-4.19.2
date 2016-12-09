@@ -190,7 +190,6 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				PropertyNode = StaticCastSharedPtr<FPropertyHandleBase>(PropertyHandle)->GetPropertyNode();
 			}
 
-
 			FObjectPropertyNode* RootObjectNode = PropertyNode->FindRootObjectItemParent();			
 			if(RootObjectNode)
 			{
@@ -1022,7 +1021,7 @@ UClass* SPropertyEditorAsset::GetObjectPropertyClass(const UProperty* Property)
 		Class = Cast<const UInterfaceProperty>(Property)->InterfaceClass;
 	}
 
-	check(Class != NULL);
+	checkf(Class != NULL, TEXT("Property (%s) is not an object or interface class"), Property ? *Property->GetFullName() : TEXT("null"));
 	return Class;
 }
 

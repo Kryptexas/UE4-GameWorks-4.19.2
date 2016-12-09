@@ -422,6 +422,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	TArray<FStaticMeshSourceModel> SourceModels;
 
 	/** Map of LOD+Section index to per-section info. */
+	UPROPERTY()
 	FMeshSectionInfoMap SectionInfoMap;
 
 	/** The LOD group to which this mesh belongs. */

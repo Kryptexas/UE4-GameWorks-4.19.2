@@ -88,6 +88,7 @@ int32 GetCrashType()
 {
 	return GCrashType;
 }
+
 void ReportInteractiveEnsure(const TCHAR* InMessage)
 {
 	GEnsureShowsCRC = true;

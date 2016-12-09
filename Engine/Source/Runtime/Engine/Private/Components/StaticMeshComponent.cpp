@@ -188,6 +188,7 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 	SelectedEditorSection = INDEX_NONE;
 	SectionIndexPreview = INDEX_NONE;
 	StaticMeshImportVersion = BeforeImportStaticMeshVersionWasAdded;
+	bCustomOverrideVertexColorPerLOD = false;
 #endif
 }
 
@@ -1199,61 +1200,78 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 
 	// Initialize override vertex colors on any new LODs which have just been created
 	SetLODDataCount(NumLODs, LODData.Num());
-
+	bool UpdateStaticMeshDeriveDataKey = false;
 	FStaticMeshComponentLODInfo& LOD0Info = LODData[0];
-	if (LOD0Info.OverrideVertexColors)
+	if (!bCustomOverrideVertexColorPerLOD && LOD0Info.OverrideVertexColors == nullptr)
 	{
-		for (uint32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
+		return;
+	}
+
+	for (uint32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
+	{
+		FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
+		if (LODInfo.OverrideVertexColors == nullptr)
 		{
-			FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
-
-			if (LODInfo.OverrideVertexColors == nullptr)
-			{
-				LODInfo.OverrideVertexColors = new FColorVertexBuffer;
-			}
-			else
-			{
-				LODInfo.BeginReleaseOverrideVertexColors();
-				FlushRenderingCommands();
-			}
-
-			FStaticMeshLODResources& CurRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
-
-			TArray<FColor> NewOverrideColors;
-
-			if (LOD0Info.PaintedVertices.Num() > 0)
-			{
-				// Build override colors for LOD, based on LOD0
-				RemapPaintedVertexColors(
-					LOD0Info.PaintedVertices,
-					*LOD0Info.OverrideVertexColors,
-					CurRenderData.PositionVertexBuffer,
-					&CurRenderData.VertexBuffer,
-					NewOverrideColors
-					);
-			}
-
-			if (NewOverrideColors.Num())
-			{
-				LODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
-
-				// Update the PaintedVertices array
-				const int32 NumVerts = CurRenderData.GetNumVertices();
-				check(NumVerts == NewOverrideColors.Num());
-
-				LODInfo.PaintedVertices.Reserve(NumVerts);
-				for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
-				{
-					FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
-					Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
-					Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
-					Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
-				}
-			}
-
-			BeginInitResource(LODInfo.OverrideVertexColors);
+			if (bCustomOverrideVertexColorPerLOD) //No fixup required if the component is in custom LOD paint and there is no paint on a LOD
+				continue;
+			LODInfo.OverrideVertexColors = new FColorVertexBuffer;
+		}
+		else
+		{
+			LODInfo.BeginReleaseOverrideVertexColors();
+			FlushRenderingCommands();
 		}
 
+
+		FStaticMeshLODResources& CurRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
+		TArray<FColor> NewOverrideColors;
+		if (bCustomOverrideVertexColorPerLOD)
+		{
+			//Since in custom we fix paint only if the component has some, the PaintedVertices should be allocate
+			check(LODInfo.PaintedVertices.Num() > 0);
+			//Use the existing LOD custom paint and remap it on the new mesh
+			RemapPaintedVertexColors(
+				LODInfo.PaintedVertices,
+				*LODInfo.OverrideVertexColors,
+				CurRenderData.PositionVertexBuffer,
+				&CurRenderData.VertexBuffer,
+				NewOverrideColors
+				);
+		}
+		else if(LOD0Info.PaintedVertices.Num() > 0)
+		{
+			RemapPaintedVertexColors(
+				LOD0Info.PaintedVertices,
+				*LOD0Info.OverrideVertexColors,
+				CurRenderData.PositionVertexBuffer,
+				&CurRenderData.VertexBuffer,
+				NewOverrideColors
+				);
+		}
+		if (NewOverrideColors.Num())
+		{
+			LODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
+
+			// Update the PaintedVertices array
+			const int32 NumVerts = CurRenderData.GetNumVertices();
+			check(NumVerts == NewOverrideColors.Num());
+
+			LODInfo.PaintedVertices.Reserve(NumVerts);
+			for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+			{
+				FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
+				Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
+				Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
+				Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
+			}
+		}
+
+		BeginInitResource(LODInfo.OverrideVertexColors);
+		UpdateStaticMeshDeriveDataKey = true;
+	}
+
+	if (UpdateStaticMeshDeriveDataKey)
+	{
 		StaticMeshDerivedDataKey = GetStaticMesh()->RenderData->DerivedDataKey;
 	}
 

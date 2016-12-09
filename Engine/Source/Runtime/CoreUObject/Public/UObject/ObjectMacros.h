@@ -105,7 +105,7 @@ enum EPackageFlags
 	PKG_ServerSideOnly				= 0x00000004,   // Only needed on the server side.
 	PKG_CompiledIn					= 0x00000010,   // This package is from "compiled in" classes.
 	PKG_ForDiffing					= 0x00000020,	// This package was loaded just for the purposes of diffing
-	PKG_EditorOnly					= 0x00000040, // This is editor-only package (for example: editor module script package)
+	PKG_EditorOnly					= 0x00000040,	// This is editor-only package (for example: editor module script package)
 	PKG_Developer					= 0x00000080,	// Developer module
 //	PKG_Unused						= 0x00000100,
 //	PKG_Unused						= 0x00000200,
@@ -117,7 +117,7 @@ enum EPackageFlags
 	PKG_Need						= 0x00008000,	// Client needs to download this package.
 	PKG_Compiling					= 0x00010000,	// package is currently being compiled
 	PKG_ContainsMap					= 0x00020000,	// Set if the package contains a ULevel/ UWorld object
-	PKG_RequiresLocalizationGather		= 0x00040000,	// Set if the package contains any data to be gathered by localization
+	PKG_RequiresLocalizationGather	= 0x00040000,	// Set if the package contains any data to be gathered by localization
 	PKG_DisallowLazyLoading			= 0x00080000,	// Set if the archive serializing this package cannot use lazy loading
 	PKG_PlayInEditor				= 0x00100000,	// Set if the package was created for the purpose of PIE
 	PKG_ContainsScript				= 0x00200000,	// Package is allowed to contain UClass objects
@@ -473,7 +473,7 @@ enum EObjectFlags
 	RF_KeepForCooker			=0x00000800,	///< Keep this object during garbage collection because it's still being used by the cooker
 	RF_NeedPostLoad				=0x00001000,	///< Object needs to be postloaded.
 	RF_NeedPostLoadSubobjects	=0x00002000,	///< During load, indicates that the object still needs to instance subobjects and fixup serialized component references
-	//RF_Unused				=0x00004000,	///
+	RF_NewerVersionExists		=0x00004000,	///< Object has been consigned to oblivion due to its owner package being reloaded, and a newer version currently exists
 	RF_BeginDestroyed			=0x00008000,	///< BeginDestroy has been called on the object.
 	RF_FinishDestroyed			=0x00010000,	///< FinishDestroy has been called on the object.
 

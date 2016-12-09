@@ -338,6 +338,8 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, FarPlane(0.0f)
 	, bInGameViewMode(false)
 	, bShouldInvalidateViewportWidget(false)
+	, DragStartView(nullptr)
+	, DragStartViewFamily(nullptr)
 {
 	InitViewOptionsArray();
 	if (ModeTools == nullptr)
@@ -1997,15 +1999,17 @@ void FEditorViewportClient::UpdateMouseDelta()
 				//if Absolute Translation, and not just moving the camera around
 				if (IsUsingAbsoluteTranslation())
 				{
-					// Compute a view.
-					FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-						Viewport,
-						GetScene(),
-						EngineShowFlags)
-						.SetRealtimeUpdate( IsRealtime() ) );
-					FSceneView* View = CalcSceneView( &ViewFamily );
-
-					MouseDeltaTracker->AbsoluteTranslationConvertMouseToDragRot(View, this, Drag, Rot, Scale);
+					if (DragStartView == nullptr)
+					{
+						// Compute a view.
+						DragStartViewFamily = new FSceneViewFamily(FSceneViewFamily::ConstructionValues(
+							Viewport,
+							GetScene(),
+							EngineShowFlags)
+							.SetRealtimeUpdate(IsRealtime()));
+						DragStartView = CalcSceneView(DragStartViewFamily);
+					}
+					MouseDeltaTracker->AbsoluteTranslationConvertMouseToDragRot(DragStartView, this, Drag, Rot, Scale);
 				} 
 				else
 				{
@@ -2198,7 +2202,7 @@ void FEditorViewportClient::MarkMouseMovedSinceClick()
 bool FEditorViewportClient::IsUsingAbsoluteTranslation() const
 {
 	bool bIsHotKeyAxisLocked = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-	bool bCameraLockedToWidget = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
+	bool bCameraLockedToWidget = !(Widget && Widget->GetCurrentAxis() & EAxisList::Screen) && (Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift));
 	// Screen-space movement must always use absolute translation
 	bool bScreenSpaceTransformation = Widget && (Widget->GetCurrentAxis() == EAxisList::Screen);
 	bool bAbsoluteMovementEnabled = GetDefault<ULevelEditorViewportSettings>()->bUseAbsoluteTranslation || bScreenSpaceTransformation;
@@ -2414,6 +2418,12 @@ void FEditorViewportClient::StopTracking()
 {
 	if( bIsTracking )
 	{
+		DragStartView = nullptr;
+		if (DragStartViewFamily != nullptr)
+		{
+			delete DragStartViewFamily;
+			DragStartViewFamily = nullptr;
+		}
 		MouseDeltaTracker->EndTracking( this );
 
 		Widget->SetCurrentAxis( EAxisList::None );

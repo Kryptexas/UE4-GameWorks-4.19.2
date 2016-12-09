@@ -240,7 +240,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(InlineEditConditionToggle))
 	uint32 bOverrideLightMapRes:1;
 
-	/** Light map resolution to use on this component, used if bOverrideLightMapRes is true */
+	/** Light map resolution to use on this component, used if bOverrideLightMapRes is true and there is a valid StaticMesh. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(ClampMax = 4096, editcondition="bOverrideLightMapRes") )
 	int32 OverriddenLightMapRes;
 
@@ -298,6 +298,10 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** Material Bounds used for texture streaming. */
 	UPROPERTY(NonTransactional)
 	TArray<uint32> MaterialStreamingRelativeBoxes;
+
+	/** The component has some custom painting on LODs or not. */
+	UPROPERTY()
+	bool bCustomOverrideVertexColorPerLOD;
 #endif
 
 	/** The Lightmass settings for this object. */

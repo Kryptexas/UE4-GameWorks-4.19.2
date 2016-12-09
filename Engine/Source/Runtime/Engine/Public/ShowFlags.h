@@ -386,6 +386,7 @@ private:
 		SetMaterialTextureScaleAccuracy(false);
 		SetOutputMaterialTextureScales(false);
 		SetRequiredTextureResolution(false);
+		SetMotionBlur(InitMode != ESFIM_Editor);
 	}
 
 

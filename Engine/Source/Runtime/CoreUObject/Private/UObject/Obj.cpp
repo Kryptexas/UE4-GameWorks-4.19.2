@@ -1172,6 +1172,42 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 }
 
 
+void UObject::BuildSubobjectMapping(UObject* OtherObject, TMap<UObject*, UObject*>& ObjectMapping) const
+{
+	UPackage* ThisPackage = GetOutermost();
+	UPackage* OtherPackage = OtherObject->GetOutermost();
+
+	ForEachObjectWithOuter(this, [&](UObject* InSubObject)
+	{
+		if (ObjectMapping.Contains(InSubObject))
+		{
+			return;
+		}
+
+		FString NewSubObjectName = InSubObject->GetName();
+
+		UClass* OtherSubObjectClass = InSubObject->GetClass();
+		if (OtherSubObjectClass->ClassGeneratedBy && OtherSubObjectClass->ClassGeneratedBy->GetOutermost() == ThisPackage)
+		{
+			// This is a generated class type, so we actually need to use the new generated class type from the new package otherwise our type check will fail
+			FString NewClassName = OtherSubObjectClass->GetPathName(ThisPackage);
+			NewClassName = FString::Printf(TEXT("%s.%s"), *OtherPackage->GetName(), *NewClassName);
+
+			OtherSubObjectClass = LoadObject<UClass>(OtherPackage, *NewClassName);
+		}
+
+		//UObject* OtherSubObject = StaticLoadObject(OtherSubObjectClass, OtherObject, *NewSubObjectName, nullptr, LOAD_Quiet | LOAD_NoRedirects, nullptr, true);
+		UObject* OtherSubObject = StaticFindObjectFast(OtherSubObjectClass, OtherObject, *NewSubObjectName);
+		ObjectMapping.Emplace(InSubObject, OtherSubObject);
+
+		if (OtherSubObject)
+		{
+			InSubObject->BuildSubobjectMapping(OtherSubObject, ObjectMapping);
+		}
+	}, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
+}
+
+
 void UObject::CollectDefaultSubobjects( TArray<UObject*>& OutSubobjectArray, bool bIncludeNestedSubobjects/*=false*/ )
 {
 	OutSubobjectArray.Empty();
@@ -1461,7 +1497,7 @@ void UObject::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>
 }
 #endif
 
-bool UObject::IsAsset () const
+bool UObject::IsAsset() const
 {
 	// Assets are not transient or CDOs. They must be public.
 	const bool bHasValidObjectFlags = !HasAnyFlags(RF_Transient | RF_ClassDefaultObject) && HasAnyFlags(RF_Public);
@@ -1471,8 +1507,8 @@ bool UObject::IsAsset () const
 		// Don't count objects embedded in other objects (e.g. font textures, sequences, material expressions)
 		if ( UPackage* LocalOuterPackage = dynamic_cast<UPackage*>(GetOuter()) )
 		{
-			// Also exclude any objects found in the transient package.
-			return LocalOuterPackage != GetTransientPackage();
+			// Also exclude any objects found in the transient package, or in a package that is transient.
+			return LocalOuterPackage != GetTransientPackage() && !LocalOuterPackage->HasAnyFlags(RF_Transient);
 		}
 	}
 
@@ -3812,7 +3848,7 @@ void StaticUObjectInit()
 	UObjectBaseInit();
 
 	// Allocate special packages.
-	GObjTransientPkg = NewObject<UPackage>(nullptr, TEXT("/Engine/Transient"));
+	GObjTransientPkg = NewObject<UPackage>(nullptr, TEXT("/Engine/Transient"), RF_Transient);
 	GObjTransientPkg->AddToRoot();
 
 	if( FParse::Param( FCommandLine::Get(), TEXT("VERIFYGC") ) )

@@ -352,7 +352,7 @@ struct FPrimaryCrashProperties
 	FCrashProperty CrashReporterMessage;
 
 	/**
-	 *	Windows only. Non-zero integrity values are to be discounted as "genuine" crashes.
+	 *	Platform-specific UE4 Core value (integer).
 	 */
 	FCrashProperty PlatformCallbackResult;
 

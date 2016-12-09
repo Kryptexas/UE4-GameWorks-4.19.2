@@ -87,6 +87,7 @@
 #include "Engine/NetDriver.h"
 #include "Net/NetworkProfiler.h"
 #include "Interfaces/IPluginManager.h"
+#include "PackageReload.h"
 
 // needed for the RemotePropagator
 #include "AudioDevice.h"
@@ -107,7 +108,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetDebugUtilities.h"
-
+#include "Kismet2/KismetReinstanceUtilities.h"
 
 #include "AssetRegistryModule.h"
 #include "IContentBrowserSingleton.h"
@@ -177,6 +178,7 @@
 #include "PhysicsPublic.h"
 #include "Engine/CoreSettings.h"
 #include "ShaderCompiler.h"
+#include "DistanceFieldAtlas.h"
 
 #include "PixelInspectorModule.h"
 
@@ -311,6 +313,7 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 	bDisableDeltaModification = false;
 	bPlayOnLocalPcSession = false;
 	bAllowMultiplePIEWorlds = true;
+	bIsEndingPlay = false;
 	NumOnlinePIEInstances = 0;
 	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
 
@@ -619,6 +622,8 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	FCoreUObjectDelegates::IsPackageOKToSaveDelegate.BindUObject(this, &UEditorEngine::IsPackageOKToSave);
 	FCoreUObjectDelegates::AutoPackageBackupDelegate.BindStatic(&FAutoPackageBackup::BackupPackage);
 
+	FCoreUObjectDelegates::OnPackageReloaded.AddUObject(this, &UEditorEngine::HandlePackageReloaded);
+
 	extern void SetupDistanceFieldBuildNotification();
 	SetupDistanceFieldBuildNotification();
 
@@ -641,6 +646,124 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 bool UEditorEngine::HandleOpenAsset(UObject* Asset)
 {
 	return FAssetEditorManager::Get().OpenEditorForAsset(Asset);
+}
+
+void UEditorEngine::HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent)
+{
+	static TSet<UBlueprint*> BlueprintsToRecompileThisBatch;
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PrePackageFixup)
+	{
+		NotifyToolsOfObjectReplacement(InPackageReloadedEvent->GetRepointedObjects());
+
+		// Notify any Blueprint assets that are about to be unloaded.
+		ForEachObjectWithOuter(InPackageReloadedEvent->GetOldPackage(), [&](UObject* InObject)
+		{
+			if (InObject->IsAsset())
+			{
+				// Notify about any BP assets that are about to be unloaded
+				if (UBlueprint* BP = Cast<UBlueprint>(InObject))
+				{
+					FKismetEditorUtilities::OnBlueprintUnloaded.Broadcast(BP);
+				}
+			}
+		}, false, RF_Transient, EInternalObjectFlags::PendingKill);
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::OnPackageFixup)
+	{
+		for (const auto& RepointedObjectPair : InPackageReloadedEvent->GetRepointedObjects())
+		{
+			UObject* OldObject = RepointedObjectPair.Key;
+			UObject* NewObject = RepointedObjectPair.Value;
+		
+			if (OldObject->IsAsset())
+			{
+				if (const UBlueprint* OldBlueprint = Cast<UBlueprint>(OldObject))
+				{
+					FBlueprintCompileReinstancer::ReplaceInstancesOfClass(OldBlueprint->GeneratedClass, NewObject ? CastChecked<UBlueprint>(NewObject)->GeneratedClass : nullptr);
+				}
+			}
+		}
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PostPackageFixup)
+	{
+		for (TWeakObjectPtr<UObject> ObjectReferencer : InPackageReloadedEvent->GetObjectReferencers())
+		{
+			UObject* ObjectReferencerPtr = ObjectReferencer.Get();
+			if (!ObjectReferencerPtr)
+			{
+				continue;
+			}
+
+			FPropertyChangedEvent PropertyEvent(nullptr, EPropertyChangeType::Redirected);
+			ObjectReferencerPtr->PostEditChangeProperty(PropertyEvent);
+
+			// We need to recompile any Blueprints that had properties changed to make sure their generated class is up-to-date and has no lingering references to the old objects
+			UBlueprint* BlueprintToRecompile = nullptr;
+			if (UBlueprint* BlueprintReferencer = Cast<UBlueprint>(ObjectReferencerPtr))
+			{
+				BlueprintToRecompile = BlueprintReferencer;
+			}
+			else if (UClass* ClassReferencer = Cast<UClass>(ObjectReferencerPtr))
+			{
+				BlueprintToRecompile = Cast<UBlueprint>(ClassReferencer->ClassGeneratedBy);
+			}
+			else
+			{
+				BlueprintToRecompile = ObjectReferencerPtr->GetTypedOuter<UBlueprint>();
+			}
+			
+			if (BlueprintToRecompile)
+			{
+				BlueprintsToRecompileThisBatch.Add(BlueprintToRecompile);
+			}
+		}
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PreBatch)
+	{
+		// If this fires then ReloadPackages has probably bee called recursively :(
+		check(BlueprintsToRecompileThisBatch.Num() == 0);
+
+		// Flush all pending render commands, as reloading the package may invalidate render resources.
+		FlushRenderingCommands();
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PostBatchPreGC)
+	{
+		// Make sure we don't have any lingering transaction buffer references.
+		GEditor->Trans->Reset(NSLOCTEXT("UnrealEd", "ReloadedPackage", "Reloaded Package"));
+
+		// Recompile any BPs that had their references updated
+		if (BlueprintsToRecompileThisBatch.Num() > 0)
+		{
+			FScopedSlowTask CompilingBlueprintsSlowTask(BlueprintsToRecompileThisBatch.Num(), NSLOCTEXT("UnrealEd", "CompilingBlueprints", "Compiling Blueprints"));
+
+			for (UBlueprint* BlueprintToRecompile : BlueprintsToRecompileThisBatch)
+			{
+				CompilingBlueprintsSlowTask.EnterProgressFrame(1.0f);
+
+				//FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintToRecompile, FPropertyChangedEvent(nullptr, EPropertyChangeType::Redirected));
+				FKismetEditorUtilities::CompileBlueprint(BlueprintToRecompile, /*bIsRegeneratingOnLoad*/false, /*bSkipGarbageCollection*/true);
+			}
+		}
+		BlueprintsToRecompileThisBatch.Reset();
+	}
+
+	if (InPackageReloadPhase == EPackageReloadPhase::PostBatchPostGC)
+	{
+		// Tick some things that aren't processed while we're reloading packages and can result in excessive memory usage if not periodically updated.
+		if (GShaderCompilingManager)
+		{
+			GShaderCompilingManager->ProcessAsyncResults(true, false);
+		}
+		if (GDistanceFieldAsyncQueue)
+		{
+			GDistanceFieldAsyncQueue->ProcessAsyncTasks();
+		}
+	}
 }
 
 void UEditorEngine::HandleSettingChanged( FName Name )

@@ -448,6 +448,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	{
 		GEditor->RegisterForUndo(this);
 	}
+
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &SCurveEditor::OnObjectPropertyChanged);
 }
 
 FText SCurveEditor::GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const
@@ -537,6 +539,8 @@ SCurveEditor::~SCurveEditor()
 	{
 		GEditor->UnregisterForUndo(this);
 	}
+
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
 }
 
 TSharedRef<SWidget> SCurveEditor::CreateCurveSelectionWidget() const
@@ -3576,6 +3580,14 @@ void SCurveEditor::UndoAction()
 void SCurveEditor::RedoAction()
 {
 	GEditor->RedoTransaction();
+}
+
+void SCurveEditor::OnObjectPropertyChanged(UObject* Object, FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if ( CurveOwner && CurveOwner->GetOwners().Contains(Object) )
+	{
+		ValidateSelection();
+	}
 }
 
 void SCurveEditor::PostUndo(bool bSuccess)

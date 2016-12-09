@@ -17,6 +17,8 @@
 #include "Misc/FileHelper.h"
 #include "Interfaces/IImageWrapperModule.h"
 #include "Framework/Application/SlateApplication.h"
+#include "JsonObjectConverter.h"
+#include "SScreenShotImagePopup.h"
 
 #define LOCTEXT_NAMESPACE "SScreenShotBrowser"
 
@@ -35,12 +37,11 @@ void SScreenComparisonRow::Construct( const FArguments& InArgs, const TSharedRef
 		{
 			FString AddedFolder = ComparisonDirectory / Comparisons->IncomingPath / Model->Folder;
 			IFileManager::Get().FindFilesRecursive(ExternalFiles, *AddedFolder, TEXT("*.*"), true, false);
+			LoadMetadata();
 			break;
 		}
 		case EComparisonResultType::Missing:
 		{
-			FString AddedFolder = ComparisonDirectory / Comparisons->ApprovedPath / Model->Folder;
-			IFileManager::Get().FindFilesRecursive(ExternalFiles, *AddedFolder, TEXT("*.*"), true, false);
 			break;
 		}
 		case EComparisonResultType::Compared:
@@ -48,6 +49,7 @@ void SScreenComparisonRow::Construct( const FArguments& InArgs, const TSharedRef
 			const FImageComparisonResult& ComparisonResult = Model->ComparisonResult.GetValue();
 			FString IncomingImage = ComparisonDirectory / Comparisons->IncomingPath / ComparisonResult.IncomingFile;
 			FString IncomingMetadata = FPaths::ChangeExtension(IncomingImage, TEXT("json"));
+			LoadMetadata();
 
 			ExternalFiles.Add(IncomingImage);
 			ExternalFiles.Add(IncomingMetadata);
@@ -58,11 +60,56 @@ void SScreenComparisonRow::Construct( const FArguments& InArgs, const TSharedRef
 	SMultiColumnTableRow<TSharedPtr<FScreenComparisonModel>>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 }
 
+void SScreenComparisonRow::LoadMetadata()
+{
+	if ( !Model->Metadata.IsSet() )
+	{
+		FString IncomingMetadataFile;
+
+		if ( Model->ComparisonResult.IsSet() )
+		{
+			const FImageComparisonResult& ComparisonResult = Model->ComparisonResult.GetValue();
+			FString IncomingImage = ComparisonDirectory / Comparisons->IncomingPath / ComparisonResult.IncomingFile;
+			IncomingMetadataFile = FPaths::ChangeExtension(IncomingImage, TEXT("json"));
+		}
+		else
+		{
+			TArray<FString> MetadataFiles;
+			FString AddedFolder = ComparisonDirectory / Comparisons->IncomingPath / Model->Folder;
+			IFileManager::Get().FindFilesRecursive(MetadataFiles, *AddedFolder, TEXT("*.json"), true, false);
+			if ( MetadataFiles.Num() > 0 )
+			{
+				IncomingMetadataFile = MetadataFiles[0];
+			}
+		}
+
+		if ( !IncomingMetadataFile.IsEmpty() )
+		{
+			FString Json;
+			if ( FFileHelper::LoadFileToString(Json, *IncomingMetadataFile) )
+			{
+				FAutomationScreenshotMetadata Metadata;
+				if ( FJsonObjectConverter::JsonObjectStringToUStruct(Json, &Metadata, 0, 0) )
+				{
+					Model->Metadata = Metadata;
+				}
+			}
+		}
+	}
+}
+
 TSharedRef<SWidget> SScreenComparisonRow::GenerateWidgetForColumn(const FName& ColumnName)
 {
 	if ( ColumnName == "Name" )
 	{
-		return SNew(STextBlock).Text(LOCTEXT("Unknown", "Test Name?  Driver?"));
+		if ( Model->Metadata.IsSet() )
+		{
+			return SNew(STextBlock).Text(FText::FromString(Model->Metadata->Name));
+		}
+		else
+		{
+			return SNew(STextBlock).Text(LOCTEXT("Unknown", "Unknown Test, no metadata discovered."));
+		}
 	}
 	else if ( ColumnName == "Delta" )
 	{
@@ -107,10 +154,26 @@ TSharedRef<SWidget> SScreenComparisonRow::GenerateWidgetForColumn(const FName& C
 					.AutoHeight()
 					.HAlign(HAlign_Center)
 					[
-						SNew(SButton)
-						.IsEnabled(this, &SScreenComparisonRow::CanUseSourceControl)
-						.Text(LOCTEXT("ApproveNew", "Approve New!"))
-						.OnClicked(this, &SScreenComparisonRow::ReplaceOld)
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SButton)
+							.IsEnabled(this, &SScreenComparisonRow::CanReplace)
+							.Text(LOCTEXT("Replace", "Replace"))
+							.OnClicked(this, &SScreenComparisonRow::Replace)
+						]
+
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(10, 0, 0, 0)
+						[
+							SNew(SButton)
+							.IsEnabled(this, &SScreenComparisonRow::CanAddAsAlternative)
+							.Text(LOCTEXT("AddAlternative", "Add As Alternative"))
+							.OnClicked(this, &SScreenComparisonRow::AddAlternative)
+						]
 					];
 			}
 		}
@@ -129,25 +192,59 @@ TSharedRef<SWidget> SScreenComparisonRow::BuildMissingView()
 	return
 		SNew(SHorizontalBox)
 		
-		+SHorizontalBox::Slot()
-		[
-			SNew(SButton)
-			.IsEnabled(this, &SScreenComparisonRow::CanUseSourceControl)
-			.Text(LOCTEXT("RemoveOld", "Remove Old"))
-			.OnClicked(this, &SScreenComparisonRow::RemoveOld)
-		];
+		/*	+SHorizontalBox::Slot()
+			[
+				SNew(SButton)
+				.IsEnabled(this, &SScreenComparisonRow::CanUseSourceControl)
+				.Text(LOCTEXT("RemoveOld", "Remove Old"))
+				.OnClicked(this, &SScreenComparisonRow::RemoveOld)
+			]*/;
 }
 
 TSharedRef<SWidget> SScreenComparisonRow::BuildAddedView()
 {
+	TArray<FString> Images;
+
+	FString AddedFolder = ComparisonDirectory / Comparisons->IncomingPath / Model->Folder;
+	IFileManager::Get().FindFilesRecursive(ExternalFiles, *AddedFolder, TEXT("*.png"), true, false);
+
+	//TODO Automation this is no good, we need to clear out the incoming directory beforehand.
+	if ( Images.Num() > 0 )
+	{
+		UnapprovedBrush = LoadScreenshot(Images[0]);
+	}
+
 	return
-		SNew(SHorizontalBox)
+		SNew(SVerticalBox)
 		
-		+SHorizontalBox::Slot()
+		+ SVerticalBox::Slot()
+		[
+			SNew(SBox)
+			.MaxDesiredHeight(100)
+			.HAlign(HAlign_Left)
+			[
+				SNew(SScaleBox)
+				.Stretch(EStretch::ScaleToFit)
+				[
+					SNew(SHorizontalBox)
+		
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f, 4.0f)
+					[
+						SNew(SImage)
+						.Image(UnapprovedBrush.Get())
+						.OnMouseButtonDown(this, &SScreenComparisonRow::OnImageClicked, UnapprovedBrush)
+					]
+				]
+			]
+		]
+		
+		+ SVerticalBox::Slot()
 		[
 			SNew(SButton)
 			.IsEnabled(this, &SScreenComparisonRow::CanUseSourceControl)
-			.Text(LOCTEXT("AddComparison", "Add New!"))
+			.Text(LOCTEXT("AddNew", "Add New!"))
 			.OnClicked(this, &SScreenComparisonRow::AddNew)
 		];
 }
@@ -181,6 +278,7 @@ TSharedRef<SWidget> SScreenComparisonRow::BuildComparisonPreview()
 				[
 					SNew(SImage)
 					.Image(ApprovedBrush.Get())
+					.OnMouseButtonDown(this, &SScreenComparisonRow::OnImageClicked, ApprovedBrush)
 				]
 
 				+ SHorizontalBox::Slot()
@@ -189,6 +287,7 @@ TSharedRef<SWidget> SScreenComparisonRow::BuildComparisonPreview()
 				[
 					SNew(SImage)
 					.Image(ComparisonBrush.Get())
+					.OnMouseButtonDown(this, &SScreenComparisonRow::OnImageClicked, ComparisonBrush)
 				]
 
 				+ SHorizontalBox::Slot()
@@ -197,6 +296,7 @@ TSharedRef<SWidget> SScreenComparisonRow::BuildComparisonPreview()
 				[
 					SNew(SImage)
 					.Image(UnapprovedBrush.Get())
+					.OnMouseButtonDown(this, &SScreenComparisonRow::OnImageClicked, UnapprovedBrush)
 				]
 			]
 		];
@@ -209,6 +309,11 @@ void SScreenComparisonRow::GetStatus()
 	//	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 	//	SourceControlProvider.GetState(SourceControlFiles, SourceControlStates, EStateCacheUsage::Use);
 	//}
+}
+
+bool SScreenComparisonRow::CanAddNew() const
+{
+	return CanUseSourceControl();
 }
 
 FReply SScreenComparisonRow::AddNew()
@@ -241,36 +346,33 @@ FReply SScreenComparisonRow::AddNew()
 	return FReply::Handled();
 }
 
-FReply SScreenComparisonRow::RemoveOld()
+bool SScreenComparisonRow::CanReplace() const
 {
+	return CanUseSourceControl();
+}
+
+FReply SScreenComparisonRow::RemoveExistingApproved()
+{
+	TArray<FString> FilesToRemove;
+
+	FString PlatformFolder = ComparisonDirectory / Comparisons->ApprovedPath / FPaths::GetPath(Model->ComparisonResult->ApprovedFile);
+	IFileManager::Get().FindFilesRecursive(FilesToRemove, *PlatformFolder, TEXT("*.*"), true, false);
+
 	// Copy files to the approved
 	const FString& LocalApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
 	const FString ImportApprovedRoot = ComparisonDirectory / Comparisons->ApprovedPath / TEXT("");
 
 	TArray<FString> SourceControlFiles;
 
-	for ( const FString& File : ExternalFiles )
+	for ( const FString& File : FilesToRemove )
 	{
-		FString RelativeFile = ExternalFiles[0];
+		FString RelativeFile = File;
 		FPaths::MakePathRelativeTo(RelativeFile, *ImportApprovedRoot);
 
 		FString DestFilePath = LocalApprovedFolder / RelativeFile;
 		SourceControlFiles.Add(DestFilePath);
-	}
 
-	if ( ExternalFiles.Num() > 0 )
-	{
-		FString RelativeFile = ExternalFiles[0];
-		FPaths::MakePathRelativeTo(RelativeFile, *ImportApprovedRoot);
-
-		FString TestFolder = FPaths::GetPath(FPaths::GetPath(RelativeFile));
-
-		//FString ParentDir = SelectedPaths[0] / TEXT("..");
-		//FPaths::CollapseRelativeDirectories(ParentDir);
-
-		FString MissingLocalTest = LocalApprovedFolder / TestFolder;
-
-		IFileManager::Get().DeleteDirectory(*MissingLocalTest, false, true);
+		IFileManager::Get().Delete(*DestFilePath, false, true, false);
 	}
 
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
@@ -284,7 +386,60 @@ FReply SScreenComparisonRow::RemoveOld()
 	return FReply::Handled();
 }
 
-FReply SScreenComparisonRow::ReplaceOld()
+FReply SScreenComparisonRow::Replace()
+{
+	// Delete all the existing files in this area
+	RemoveExistingApproved();
+
+	// Copy files to the approved
+	const FString& LocalApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
+	const FString ImportIncomingRoot = ComparisonDirectory / Comparisons->IncomingPath / TEXT("");
+
+	TArray<FString> SourceControlFiles;
+
+	for ( const FString& File : ExternalFiles )
+	{
+		FString RelativeFile = File;
+		FPaths::MakePathRelativeTo(RelativeFile, *ImportIncomingRoot);
+
+		FString DestFilePath = LocalApprovedFolder / RelativeFile;
+		
+		SourceControlFiles.Add(DestFilePath);
+	}
+
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlFiles) == ECommandResult::Failed )
+	{
+		//TODO Error
+	}
+
+	for ( const FString& File : ExternalFiles )
+	{
+		FString RelativeFile = File;
+		FPaths::MakePathRelativeTo(RelativeFile, *ImportIncomingRoot);
+
+		FString DestFilePath = LocalApprovedFolder / RelativeFile;
+		IFileManager::Get().Copy(*DestFilePath, *File, true, true);
+	}
+
+	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), SourceControlFiles) == ECommandResult::Failed )
+	{
+		//TODO Error
+	}
+	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), SourceControlFiles) == ECommandResult::Failed )
+	{
+		//TODO Error
+	}
+
+	return FReply::Handled();
+}
+
+bool SScreenComparisonRow::CanAddAsAlternative() const
+{
+	return CanUseSourceControl() && (Model->ComparisonResult->IncomingFile != Model->ComparisonResult->ApprovedFile);
+}
+
+FReply SScreenComparisonRow::AddAlternative()
 {
 	// Copy files to the approved
 	const FString& LocalApprovedFolder = ScreenshotManager->GetLocalApprovedFolder();
@@ -298,12 +453,29 @@ FReply SScreenComparisonRow::ReplaceOld()
 		FPaths::MakePathRelativeTo(RelativeFile, *ImportIncomingRoot);
 
 		FString DestFilePath = LocalApprovedFolder / RelativeFile;
-		IFileManager::Get().Copy(*DestFilePath, *File, true, true);
 
 		SourceControlFiles.Add(DestFilePath);
 	}
 
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FRevert>(), SourceControlFiles) == ECommandResult::Failed )
+	{
+		//TODO Error
+	}
+
+	for ( const FString& File : ExternalFiles )
+	{
+		FString RelativeFile = File;
+		FPaths::MakePathRelativeTo(RelativeFile, *ImportIncomingRoot);
+
+		FString DestFilePath = LocalApprovedFolder / RelativeFile;
+		IFileManager::Get().Copy(*DestFilePath, *File, true, true);
+	}
+
+	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), SourceControlFiles) == ECommandResult::Failed )
+	{
+		//TODO Error
+	}
 	if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), SourceControlFiles) == ECommandResult::Failed )
 	{
 		//TODO Error
@@ -345,6 +517,35 @@ TSharedPtr<FSlateDynamicImageBrush> SScreenComparisonRow::LoadScreenshot(FString
 	}
 
 	return nullptr;
+}
+
+FReply SScreenComparisonRow::OnImageClicked(const FGeometry& InGeometry, const FPointerEvent& InEvent, TSharedPtr<FSlateDynamicImageBrush> Image)
+{
+	TSharedRef<SScreenShotImagePopup> PopupImage =
+		SNew(SScreenShotImagePopup)
+		.ImageBrush(Image)
+		.ImageSize(Image->ImageSize.IntPoint());
+
+	auto ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared()).ToSharedRef();
+
+	// Center ourselves in the parent window
+	auto PopupWindow = SNew(SWindow)
+		.IsPopupWindow(false)
+		.SizingRule(ESizingRule::UserSized)
+		.ClientSize(Image->ImageSize)
+		.AutoCenter(EAutoCenter::PreferredWorkArea)
+		.SupportsMaximize(true)
+		.SupportsMinimize(true)
+		.FocusWhenFirstShown(true)
+		.ActivateWhenFirstShown(true)
+		.Content()
+		[
+			PopupImage
+		];
+
+	FSlateApplication::Get().AddWindowAsNativeChild(PopupWindow, ParentWindow, true);
+
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

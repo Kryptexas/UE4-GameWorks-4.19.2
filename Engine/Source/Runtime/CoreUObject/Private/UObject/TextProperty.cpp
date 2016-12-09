@@ -84,8 +84,8 @@ bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) 
 
 void UTextProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
-	const TCppType PropertyValue = GetPropertyValue(Value);
-	Ar << *GetPropertyValuePtr(Value);
+	TCppType* TextPtr = GetPropertyValuePtr(Value);
+	Ar << *TextPtr;
 }
 
 void UTextProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const

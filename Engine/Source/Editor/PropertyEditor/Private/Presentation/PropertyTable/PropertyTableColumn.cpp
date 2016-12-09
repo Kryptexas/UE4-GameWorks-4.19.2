@@ -187,7 +187,7 @@ FORCEINLINE bool FCompareRowByColumnAscending<UNameProperty>::ComparePropertyVal
 }
 
 template<>
-FORCEINLINE bool FCompareRowByColumnAscending<UObjectProperty>::ComparePropertyValue( const TSharedPtr< IPropertyHandle >& LhsPropertyHandle, const TSharedPtr< IPropertyHandle >& RhsPropertyHandle ) const
+FORCEINLINE bool FCompareRowByColumnAscending<UObjectPropertyBase>::ComparePropertyValue( const TSharedPtr< IPropertyHandle >& LhsPropertyHandle, const TSharedPtr< IPropertyHandle >& RhsPropertyHandle ) const
 {
 	UObject* LhsValue; 
 	LhsPropertyHandle->GetValue( LhsValue );
@@ -205,7 +205,50 @@ FORCEINLINE bool FCompareRowByColumnAscending<UObjectProperty>::ComparePropertyV
 		return false;
 	}
 
-	return LhsValue->GetFullName() < RhsValue->GetFullName();
+	return LhsValue->GetName() < RhsValue->GetName();
+}
+
+template<>
+FORCEINLINE bool FCompareRowByColumnAscending<UStructProperty>::ComparePropertyValue( const TSharedPtr< IPropertyHandle >& LhsPropertyHandle, const TSharedPtr< IPropertyHandle >& RhsPropertyHandle ) const
+{
+	if ( !FPropertyTableColumn::IsSupportedStructProperty(LhsPropertyHandle->GetProperty() ) )
+	{
+		return true;
+	}
+
+	if ( !FPropertyTableColumn::IsSupportedStructProperty(RhsPropertyHandle->GetProperty() ) )
+	{
+		return false;
+	}
+
+	{
+		FVector LhsVector;
+		FVector RhsVector;
+
+		if ( LhsPropertyHandle->GetValue(LhsVector) != FPropertyAccess::Fail && RhsPropertyHandle->GetValue(RhsVector) != FPropertyAccess::Fail )
+		{
+			return LhsVector.SizeSquared() < RhsVector.SizeSquared();
+		}
+
+		FVector2D LhsVector2D;
+		FVector2D RhsVector2D;
+
+		if ( LhsPropertyHandle->GetValue(LhsVector2D) != FPropertyAccess::Fail && RhsPropertyHandle->GetValue(RhsVector2D) != FPropertyAccess::Fail )
+		{
+			return LhsVector2D.SizeSquared()  < RhsVector2D.SizeSquared();
+		}
+
+		FVector4 LhsVector4;
+		FVector4 RhsVector4;
+
+		if ( LhsPropertyHandle->GetValue(LhsVector4) != FPropertyAccess::Fail && RhsPropertyHandle->GetValue(RhsVector4) != FPropertyAccess::Fail )
+		{
+			return LhsVector4.SizeSquared()  < RhsVector4.SizeSquared();
+		}
+	}
+
+	ensureMsgf(false, TEXT("A supported struct property does not have a defined implementation for sorting a property column."));
+	return false;
 }
 
 
@@ -426,7 +469,8 @@ bool FPropertyTableColumn::CanSortBy() const
 			Property->IsA( UFloatProperty::StaticClass() ) ||
 			Property->IsA( UNameProperty::StaticClass() )  ||
 			Property->IsA( UStrProperty::StaticClass() )   ||
-			( Property->IsA( UObjectProperty::StaticClass() ) && !Property->HasAnyPropertyFlags(CPF_InstancedReference) );
+			IsSupportedStructProperty( Property )		   ||
+			( Property->IsA( UObjectPropertyBase::StaticClass() ) && !Property->HasAnyPropertyFlags(CPF_InstancedReference) );
 			//Property->IsA( UTextProperty::StaticClass() );
 	}
 
@@ -545,17 +589,30 @@ void FPropertyTableColumn::Sort( TArray< TSharedRef< class IPropertyTableRow > >
 			Rows.Sort( FCompareRowByColumnDescending< UStrProperty >( SharedThis( this ), StrProperty ) );
 		}
 	}
-	else if ( Property->IsA( UObjectProperty::StaticClass() ) )
+	else if ( Property->IsA( UObjectPropertyBase::StaticClass() ) )
 	{
-		TWeakObjectPtr<UObjectProperty> ObjectProperty( Cast< UObjectProperty >( Property ) );
+		TWeakObjectPtr<UObjectPropertyBase> ObjectProperty( Cast< UObjectPropertyBase >( Property ) );
 
 		if ( SortMode == EColumnSortMode::Ascending )
 		{
-			Rows.Sort( FCompareRowByColumnAscending< UObjectProperty >( SharedThis( this ), ObjectProperty ) );
+			Rows.Sort( FCompareRowByColumnAscending< UObjectPropertyBase >( SharedThis( this ), ObjectProperty ) );
 		}
 		else
 		{
-			Rows.Sort( FCompareRowByColumnDescending< UObjectProperty >( SharedThis( this ), ObjectProperty ) );
+			Rows.Sort( FCompareRowByColumnDescending< UObjectPropertyBase >( SharedThis( this ), ObjectProperty ) );
+		}
+	}
+	else if ( IsSupportedStructProperty( Property ) )
+	{
+		TWeakObjectPtr<UStructProperty> StructProperty(Cast < UStructProperty >( Property ) );
+
+		if (SortMode == EColumnSortMode::Ascending)
+		{
+			Rows.Sort( FCompareRowByColumnAscending< UStructProperty >( SharedThis(this), StructProperty ) );
+		}
+		else
+		{
+			Rows.Sort( FCompareRowByColumnDescending< UStructProperty >( SharedThis(this), StructProperty ) );
 		}
 	}
 	//else if ( Property->IsA( UTextProperty::StaticClass() ) )
@@ -607,6 +664,21 @@ void FPropertyTableColumn::SetFrozen(bool InIsFrozen)
 {
 	bIsFrozen = InIsFrozen;
 	FrozenStateChanged.Broadcast( SharedThis(this) );
+}
+
+bool FPropertyTableColumn::IsSupportedStructProperty(const UProperty* InProperty)
+{
+	if ( InProperty != nullptr && Cast<UStructProperty>(InProperty) != nullptr)
+	{
+		const UStructProperty* StructProp = Cast<UStructProperty>(InProperty);
+		FName StructName = StructProp->Struct->GetFName();
+
+		return StructName == NAME_Vector ||
+			StructName == NAME_Vector2D	 ||
+			StructName == NAME_Vector4;
+	}
+
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

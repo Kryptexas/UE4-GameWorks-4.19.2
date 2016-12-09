@@ -60,7 +60,7 @@ void SDPIScaler::SetDPIScale(TAttribute<float> InDPIScale)
 	DPIScale = InDPIScale;
 }
 
-float SDPIScaler::GetRelativeLayoutScale(const FSlotBase& Child) const
+float SDPIScaler::GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const
 {
 	return DPIScale.Get();
 }

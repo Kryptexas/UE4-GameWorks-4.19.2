@@ -183,6 +183,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	check(ImportUI);
 	InOutImportOptions.bImportMaterials = ImportUI->bImportMaterials;
 	InOutImportOptions.bInvertNormalMap = ImportUI->TextureImportData->bInvertNormalMaps;
+	InOutImportOptions.MaterialSearchLocation = ImportUI->TextureImportData->MaterialSearchLocation;
 	UMaterialInterface* BaseMaterialInterface = Cast<UMaterialInterface>(ImportUI->TextureImportData->BaseMaterialName.TryLoad());
 	if (BaseMaterialInterface) {
 		InOutImportOptions.BaseMaterial = BaseMaterialInterface;
@@ -195,9 +196,6 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	}
 	InOutImportOptions.bImportTextures = ImportUI->bImportTextures;
 	InOutImportOptions.bUsedAsFullName = ImportUI->bOverrideFullName;
-	InOutImportOptions.bConvertScene = ImportUI->bConvertScene;
-	InOutImportOptions.bForceFrontXAxis = ImportUI->bForceFrontXAxis;
-	InOutImportOptions.bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	InOutImportOptions.bImportAnimations = ImportUI->bImportAnimations;
 	InOutImportOptions.SkeletonForAnimation = ImportUI->Skeleton;
 
@@ -212,6 +210,9 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 		InOutImportOptions.bTransformVertexToAbsolute = StaticMeshData->bTransformVertexToAbsolute;
 		InOutImportOptions.bBakePivotInVertex		= StaticMeshData->bBakePivotInVertex;
 		InOutImportOptions.bImportStaticMeshLODs	= StaticMeshData->bImportMeshLODs;
+		InOutImportOptions.bConvertScene			= StaticMeshData->bConvertScene;
+		InOutImportOptions.bForceFrontXAxis			= StaticMeshData->bForceFrontXAxis;
+		InOutImportOptions.bConvertSceneUnit		= StaticMeshData->bConvertSceneUnit;
 	}
 	else if ( ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh )
 	{
@@ -224,6 +225,9 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 		InOutImportOptions.bTransformVertexToAbsolute	= SkeletalMeshData->bTransformVertexToAbsolute;
 		InOutImportOptions.bBakePivotInVertex			= SkeletalMeshData->bBakePivotInVertex;
 		InOutImportOptions.bImportSkeletalMeshLODs		= SkeletalMeshData->bImportMeshLODs;
+		InOutImportOptions.bConvertScene				= SkeletalMeshData->bConvertScene;
+		InOutImportOptions.bForceFrontXAxis				= SkeletalMeshData->bForceFrontXAxis;
+		InOutImportOptions.bConvertSceneUnit			= SkeletalMeshData->bConvertSceneUnit;
 
 		if(ImportUI->bImportAnimations)
 		{
@@ -232,6 +236,9 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 			AnimData->ImportTranslation				= SkeletalMeshData->ImportTranslation;
 			AnimData->ImportRotation				= SkeletalMeshData->ImportRotation;
 			AnimData->ImportUniformScale			= SkeletalMeshData->ImportUniformScale;
+			AnimData->bConvertScene					= SkeletalMeshData->bConvertScene;
+			AnimData->bForceFrontXAxis				= SkeletalMeshData->bForceFrontXAxis;
+			AnimData->bConvertSceneUnit				= SkeletalMeshData->bConvertSceneUnit;
 		}
 
 	}
@@ -242,6 +249,9 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 		InOutImportOptions.ImportTranslation	= AnimData->ImportTranslation;
 		InOutImportOptions.ImportRotation		= AnimData->ImportRotation;
 		InOutImportOptions.ImportUniformScale	= AnimData->ImportUniformScale;
+		InOutImportOptions.bConvertScene		= AnimData->bConvertScene;
+		InOutImportOptions.bForceFrontXAxis		= AnimData->bForceFrontXAxis;
+		InOutImportOptions.bConvertSceneUnit	= AnimData->bConvertSceneUnit;
 	}
 
 	InOutImportOptions.bImportMorph = ImportUI->SkeletalMeshImportData->bImportMorphTargets;
@@ -250,7 +260,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bUseT0AsRefPose = ImportUI->SkeletalMeshImportData->bUseT0AsRefPose;
 	InOutImportOptions.bPreserveSmoothingGroups = ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups;
 	InOutImportOptions.bKeepOverlappingVertices = ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices;
-	InOutImportOptions.bCombineToSingle = ImportUI->bCombineMeshes;
+	InOutImportOptions.bCombineToSingle = ImportUI->StaticMeshImportData->bCombineMeshes;
 	InOutImportOptions.VertexColorImportOption = ImportUI->StaticMeshImportData->VertexColorImportOption;
 	InOutImportOptions.VertexOverrideColor = ImportUI->StaticMeshImportData->VertexOverrideColor;
 	InOutImportOptions.bRemoveDegenerates = ImportUI->StaticMeshImportData->bRemoveDegenerates;
@@ -951,6 +961,50 @@ bool FFbxImporter::ImportFile(FString Filename, bool bPreventMaterialNameClash /
 	return Result;
 }
 
+void FFbxImporter::ConvertScene()
+{
+	if (GetImportOptions()->bConvertScene)
+	{
+		// we use -Y as forward axis here when we import. This is odd considering our forward axis is technically +X
+		// but this is to mimic Maya/Max behavior where if you make a model facing +X facing, 
+		// when you import that mesh, you want +X facing in engine. 
+		// only thing that doesn't work is hand flipping because Max/Maya is RHS but UE is LHS
+		// On the positive note, we now have import transform set up you can do to rotate mesh if you don't like default setting
+		FbxAxisSystem::ECoordSystem CoordSystem = FbxAxisSystem::eRightHanded;
+		FbxAxisSystem::EUpVector UpVector = FbxAxisSystem::eZAxis;
+		FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
+		if (GetImportOptions()->bForceFrontXAxis)
+		{
+			FrontVector = FbxAxisSystem::eParityEven;
+		}
+
+
+		FbxAxisSystem UnrealImportAxis(UpVector, FrontVector, CoordSystem);
+
+		FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
+
+		if (SourceSetup != UnrealImportAxis)
+		{
+			FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
+			UnrealImportAxis.ConvertScene(Scene);
+			FbxAMatrix JointOrientationMatrix;
+			JointOrientationMatrix.SetIdentity();
+			if (GetImportOptions()->bForceFrontXAxis)
+			{
+				JointOrientationMatrix.SetR(FbxVector4(-90.0, -90.0, 0.0));
+			}
+			FFbxDataConverter::SetJointPostConversionMatrix(JointOrientationMatrix);
+		}
+	}
+	// Convert the scene's units to what is used in this program, if needed.
+	// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
+	// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
+	if (GetImportOptions()->bConvertSceneUnit && Scene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::cm)
+	{
+		FbxSystemUnit::cm.ConvertScene(Scene);
+	}
+}
+
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
@@ -981,48 +1035,8 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 			// The imported axis system is unknown for obj files
 			if( !Type.Equals( Obj, ESearchCase::IgnoreCase ) )
 			{
-				const FBXImportOptions* ImportOption = GetImportOptions();
-				if (ImportOption->bConvertScene)
-				{
-					// we use -Y as forward axis here when we import. This is odd considering our forward axis is technically +X
-					// but this is to mimic Maya/Max behavior where if you make a model facing +X facing, 
-					// when you import that mesh, you want +X facing in engine. 
-					// only thing that doesn't work is hand flipping because Max/Maya is RHS but UE is LHS
-					// On the positive note, we now have import transform set up you can do to rotate mesh if you don't like default setting
-					FbxAxisSystem::ECoordSystem CoordSystem = FbxAxisSystem::eRightHanded;
-					FbxAxisSystem::EUpVector UpVector = FbxAxisSystem::eZAxis;
-					FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
-					if (ImportOption->bForceFrontXAxis)
-					{
-						FrontVector = FbxAxisSystem::eParityEven;
-					}
-					
-					
-					FbxAxisSystem UnrealImportAxis(UpVector, FrontVector, CoordSystem);
-					
-					FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
-
-					if (SourceSetup != UnrealImportAxis)
-					{
-						FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
-						UnrealImportAxis.ConvertScene(Scene);
-						FbxAMatrix JointOrientationMatrix;
-						JointOrientationMatrix.SetIdentity();
-						if (ImportOption->bForceFrontXAxis)
-						{
-							JointOrientationMatrix.SetR(FbxVector4(-90.0, -90.0, 0.0));
-						}
-						FFbxDataConverter::SetJointPostConversionMatrix(JointOrientationMatrix);
-					}
-				}
-
-				// Convert the scene's units to what is used in this program, if needed.
-				// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
-				// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
-				if (ImportOption->bConvertSceneUnit && Scene->GetGlobalSettings().GetSystemUnit() != FbxSystemUnit::cm)
-				{
-					FbxSystemUnit::cm.ConvertScene(Scene);
-				}
+				//Convert the scene
+				ConvertScene();
 
 				// do analytics on getting Fbx data
 				FbxDocumentInfo* DocInfo = Scene->GetSceneInfo();
@@ -1056,6 +1070,8 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type, 
 
 			//Warn the user if there is some geometry that cannot be imported because they are not reference by any scene node attribute
 			ValidateAllMeshesAreReferenceByNodeAttribute();
+
+			MeshNamesCache.Empty();
 		}
 		
 	default:
@@ -1158,16 +1174,28 @@ FName FFbxImporter::MakeNameForMesh(FString InName, FbxObject* FbxObject)
 			NewName = Name;
 		}
 
-		if ( InName == FString("None"))
+		int32 NameCount = 0;
+		FString ComposeName;
+		do 
 		{
-			OutputName = FName( *FString::Printf(TEXT("%s"), UTF8_TO_TCHAR(NewName )) );
-		}
-		else
-		{
-			OutputName = FName( *FString::Printf(TEXT("%s_%s"), *InName,UTF8_TO_TCHAR(NewName)) );
-		}
+			if ( InName == FString("None"))
+			{
+				ComposeName = FString::Printf(TEXT("%s"), UTF8_TO_TCHAR(NewName ));
+			}
+			else
+			{
+				ComposeName = FString::Printf(TEXT("%s_%s"), *InName,UTF8_TO_TCHAR(NewName));
+			}
+			if (NameCount > 0)
+			{
+				ComposeName += TEXT("_") + FString::FromInt(NameCount);
+			}
+			NameCount++;
+		} while (MeshNamesCache.Contains(ComposeName));
+		OutputName = FName(*ComposeName);
 	}
 	
+	MeshNamesCache.Add(OutputName.ToString());
 	return OutputName;
 }
 
@@ -1320,6 +1348,34 @@ void FFbxImporter::FillFbxMeshArray(FbxNode* Node, TArray<FbxNode*>& outMeshArra
 	for (ChildIndex=0; ChildIndex<Node->GetChildCount(); ++ChildIndex)
 	{
 		FillFbxMeshArray(Node->GetChild(ChildIndex), outMeshArray, FFbxImporter);
+	}
+}
+
+void FFbxImporter::FillFbxMeshAndLODGroupArray(FbxNode* Node, TArray<FbxNode*>& outLODGroupArray, TArray<FbxNode*>& outMeshArray)
+{
+	// Is this node an LOD group
+	bool bLODGroup = Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eLODGroup;
+
+	if (bLODGroup)
+	{
+		outLODGroupArray.Add(Node);
+		//Do not do LOD group childrens
+		return;
+	}
+	
+	if (Node->GetMesh())
+	{
+		if (!FillCollisionModelList(Node) && Node->GetMesh()->GetPolygonVertexCount() > 0)
+		{
+			outMeshArray.Add(Node);
+		}
+	}
+	
+	// Cycle the childrens
+	int32 ChildIndex;
+	for (ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+	{
+		FillFbxMeshAndLODGroupArray(Node->GetChild(ChildIndex), outLODGroupArray, outMeshArray);
 	}
 }
 

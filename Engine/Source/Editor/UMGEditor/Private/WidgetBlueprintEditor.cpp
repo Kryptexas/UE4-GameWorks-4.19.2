@@ -36,6 +36,7 @@
 #include "Framework/Commands/GenericCommands.h"
 #include "Kismet2/CompilerResultsLog.h"
 #include "IMessageLogListing.h"
+#include "WidgetGraphSchema.h"
 
 #include "Animation/MovieSceneWidgetMaterialTrack.h"
 #include "Animation/WidgetMaterialTrackUtilities.h"
@@ -115,14 +116,6 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 
 	// for change selected widgets on sequencer tree view
 	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
-
-	// If this blueprint is empty, add a canvas panel as the root widget.
-	if ( Blueprint->WidgetTree->RootWidget == nullptr )
-	{
-		UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-		RootWidget->SetDesignerFlags(GetCurrentDesignerFlags());
-		Blueprint->WidgetTree->RootWidget = RootWidget;
-	}
 
 	UpdatePreview(GetWidgetBlueprintObj(), true);
 
@@ -881,6 +874,11 @@ FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance(UEdGraph* InGrap
 	return AppearanceInfo;
 }
 
+TSubclassOf<UEdGraphSchema> FWidgetBlueprintEditor::GetDefaultSchemaClass() const
+{
+	return UWidgetGraphSchema::StaticClass();
+}
+
 void FWidgetBlueprintEditor::ClearHoveredWidget()
 {
 	HoveredWidget = FWidgetReference();
@@ -957,52 +955,31 @@ public:
 
 };
 
-void GetBindableObjects(UWidget* RootWidget, TArray<FObjectAndDisplayName>& BindableObjects)
+void GetBindableObjects(UWidgetTree* WidgetTree, TArray<FObjectAndDisplayName>& BindableObjects)
 {
-	TArray<UWidget*> ToTraverse;
-	ToTraverse.Add(RootWidget);
-	while (ToTraverse.Num() > 0)
-	{
-		UWidget* Widget = ToTraverse[0];
-		ToTraverse.RemoveAt(0);
+	WidgetTree->ForEachWidget([&BindableObjects] (UWidget* Widget) {
 		BindableObjects.Add(FObjectAndDisplayName(FText::FromString(Widget->GetName()), Widget));
 
-		UUserWidget* UserWidget = Cast<UUserWidget>(Widget);
-		if (UserWidget != nullptr)
-		{
-			TArray<FName> SlotNames;
-			UserWidget->GetSlotNames(SlotNames);
-			for (FName SlotName : SlotNames)
-			{
-				UWidget* Content = UserWidget->GetContentForSlot(SlotName);
-				if (Content != nullptr)
-				{
-					ToTraverse.Add(Content);
-				}
-			}
-		}
-
 		UPanelWidget* PanelWidget = Cast<UPanelWidget>(Widget);
-		if (PanelWidget != nullptr)
+		if ( PanelWidget != nullptr )
 		{
-			for (UPanelSlot* Slot : PanelWidget->GetSlots())
+			for ( UPanelSlot* Slot : PanelWidget->GetSlots() )
 			{
-				if (Slot->Content != nullptr)
+				if ( Slot->Content != nullptr )
 				{
 					FText SlotDisplayName = FText::Format(LOCTEXT("AddMenuSlotFormat", "{0} ({1} Slot)"), FText::FromString(Slot->Content->GetName()), FText::FromString(PanelWidget->GetName()));
 					BindableObjects.Add(FObjectAndDisplayName(SlotDisplayName, Slot));
-					ToTraverse.Add(Slot->Content);
 				}
 			}
 		}
-	}
+	});
 }
 
 void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer)
 {
 	TArray<FObjectAndDisplayName> BindableObjects;
 	{
-		GetBindableObjects(GetPreview()->GetRootWidget(), BindableObjects);
+		GetBindableObjects(GetPreview()->WidgetTree, BindableObjects);
 		BindableObjects.Sort();
 	}
 

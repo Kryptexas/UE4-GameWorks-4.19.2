@@ -15,6 +15,7 @@ UFbxSceneImportData::UFbxSceneImportData(const FObjectInitializer& ObjectInitial
 	BluePrintFullName.Empty();
 	SceneInfoSourceData = nullptr;
 	bCreateFolderHierarchy = false;
+	bForceFrontXAxis = false;
 	bImportScene = true;
 	HierarchyType = FBXSOCHT_CreateLevelActors;
 #endif
@@ -267,11 +268,12 @@ FString UFbxSceneImportData::ToJson() const
 	Json.Reserve(1024);
 	//data array start
 	Json += TEXT("[ { ");
-	Json += FString::Printf(TEXT("\"bImportScene\" : \"%d\", \"bCreateFolderHierarchy\" : \"%d\", \"HierarchyType\" : \"%d\", \"BluePrintFullName\" : \"%s\" "),
+	Json += FString::Printf(TEXT("\"bImportScene\" : \"%d\", \"bCreateFolderHierarchy\" : \"%d\", \"HierarchyType\" : \"%d\", \"BluePrintFullName\" : \"%s\", \"bForceFrontXAxis\" : \"%d\" "),
 		bImportScene ? 1 : 0,
 		bCreateFolderHierarchy ? 1 : 0,
 		HierarchyType,
-		*BluePrintFullName
+		*BluePrintFullName,
+		bForceFrontXAxis ? 1 : 0
 		);
 		
 	if (NameOptionsMap.Num() > 0)
@@ -368,164 +370,173 @@ void UFbxSceneImportData::FromJson(FString InJsonString)
 		SceneInfoObj->TryGetBoolField("bCreateFolderHierarchy", bCreateFolderHierarchy);
 		SceneInfoObj->TryGetNumberField("HierarchyType", HierarchyType);
 		SceneInfoObj->TryGetStringField("BluePrintFullName", BluePrintFullName);
+		SceneInfoObj->TryGetBoolField("bForceFrontXAxis", bForceFrontXAxis);
 
 		//Read Options
 		const TArray<TSharedPtr<FJsonValue>>* JSONOptions;
-		SceneInfoObj->TryGetArrayField("FbxOptions", JSONOptions);
-		for (const auto& OptionJsonValue : *JSONOptions)
+		if (SceneInfoObj->TryGetArrayField("FbxOptions", JSONOptions))
 		{
-			FString OptionName;
-			UnFbx::FBXImportOptions *Option = JSONToFbxOption(OptionJsonValue, OptionName);
-			if (Option != nullptr)
+			for (const auto& OptionJsonValue : *JSONOptions)
 			{
-				NameOptionsMap.Add(OptionName, Option);
+				FString OptionName;
+				UnFbx::FBXImportOptions *Option = JSONToFbxOption(OptionJsonValue, OptionName);
+				if (Option != nullptr)
+				{
+					NameOptionsMap.Add(OptionName, Option);
+				}
 			}
 		}
 
 		//Read Meshes
 		const TArray<TSharedPtr<FJsonValue>>* JSONMeshes;
-		SceneInfoObj->TryGetArrayField("MeshInfo", JSONMeshes);
-		for (const auto& MeshJsonValue : *JSONMeshes)
+		if (SceneInfoObj->TryGetArrayField("MeshInfo", JSONMeshes))
 		{
-			const TSharedPtr<FJsonObject>& MeshInfoObj = MeshJsonValue->AsObject();
-			if (!MeshInfoObj.IsValid())
+			for (const auto& MeshJsonValue : *JSONMeshes)
 			{
-				continue;
+				const TSharedPtr<FJsonObject>& MeshInfoObj = MeshJsonValue->AsObject();
+				if (!MeshInfoObj.IsValid())
+				{
+					continue;
+				}
+				TSharedPtr<FFbxMeshInfo> MeshInfo = MakeShareable(new FFbxMeshInfo());
+
+				if (!MeshInfoObj->TryGetStringField("Name", MeshInfo->Name)) continue;
+
+				FString UniqueIDStr;
+				if (!MeshInfoObj->TryGetStringField("UniqueId", UniqueIDStr)) continue;
+				MeshInfo->UniqueId = FCString::Atoi64(*UniqueIDStr);
+
+				MeshInfoObj->TryGetBoolField("bImportAttribute", MeshInfo->bImportAttribute);
+
+				MeshInfoObj->TryGetStringField("OptionName", MeshInfo->OptionName);
+
+				MeshInfoObj->TryGetBoolField("bIsSkelMesh", MeshInfo->bIsSkelMesh);
+
+				MeshInfoObj->TryGetStringField("OriginalImportPath", MeshInfo->OriginalImportPath);
+
+				MeshInfoObj->TryGetStringField("OriginalFullImportName", MeshInfo->OriginalFullImportName);
+
+				MeshInfoObj->TryGetBoolField("bOverridePath", MeshInfo->bOverridePath);
+
+				MeshInfoObj->TryGetStringField("OverrideImportPath", MeshInfo->OverrideImportPath);
+
+				MeshInfoObj->TryGetStringField("OverrideFullImportName", MeshInfo->OverrideFullImportName);
+
+				if (MeshInfoObj->TryGetStringField("PivotNodeUid", UniqueIDStr))
+				{
+					MeshInfo->PivotNodeUid = FCString::Atoi64(*UniqueIDStr);
+				}
+
+				MeshInfoObj->TryGetStringField("LODGroup", MeshInfo->LODGroup);
+
+				MeshInfoObj->TryGetNumberField("LODLevel", MeshInfo->LODLevel);
+
+				MeshInfoObj->TryGetBoolField("IsLod", MeshInfo->IsLod);
+
+				SceneInfoSourceData->MeshInfo.Add(MeshInfo);
 			}
-			TSharedPtr<FFbxMeshInfo> MeshInfo = MakeShareable(new FFbxMeshInfo());
-
-			if (!MeshInfoObj->TryGetStringField("Name", MeshInfo->Name)) continue;
-
-			FString UniqueIDStr;
-			if (!MeshInfoObj->TryGetStringField("UniqueId", UniqueIDStr)) continue;
-			MeshInfo->UniqueId = FCString::Atoi64(*UniqueIDStr);
-
-			MeshInfoObj->TryGetBoolField("bImportAttribute", MeshInfo->bImportAttribute);
-
-			MeshInfoObj->TryGetStringField("OptionName", MeshInfo->OptionName);
-
-			MeshInfoObj->TryGetBoolField("bIsSkelMesh", MeshInfo->bIsSkelMesh);
-
-			MeshInfoObj->TryGetStringField("OriginalImportPath", MeshInfo->OriginalImportPath);
-
-			MeshInfoObj->TryGetStringField("OriginalFullImportName", MeshInfo->OriginalFullImportName);
-
-			MeshInfoObj->TryGetBoolField("bOverridePath", MeshInfo->bOverridePath);
-
-			MeshInfoObj->TryGetStringField("OverrideImportPath", MeshInfo->OverrideImportPath);
-
-			MeshInfoObj->TryGetStringField("OverrideFullImportName", MeshInfo->OverrideFullImportName);
-
-			if (MeshInfoObj->TryGetStringField("PivotNodeUid", UniqueIDStr))
-			{
-				MeshInfo->PivotNodeUid = FCString::Atoi64(*UniqueIDStr);
-			}
-
-			MeshInfoObj->TryGetStringField("LODGroup", MeshInfo->LODGroup);
-
-			MeshInfoObj->TryGetNumberField("LODLevel", MeshInfo->LODLevel);
-
-			MeshInfoObj->TryGetBoolField("IsLod", MeshInfo->IsLod);
-				
-			SceneInfoSourceData->MeshInfo.Add(MeshInfo);
 		}
 
 		//Read Hierarchy
 		const TArray<TSharedPtr<FJsonValue>>* JSONHierarchyNodes;
-		SceneInfoObj->TryGetArrayField("Hierarchy", JSONHierarchyNodes);
-		for (const auto& NodeJsonValue : *JSONHierarchyNodes)
+		if (SceneInfoObj->TryGetArrayField("Hierarchy", JSONHierarchyNodes))
 		{
-			const TSharedPtr<FJsonObject>& NodeInfoObj = NodeJsonValue->AsObject();
-			if (!NodeInfoObj.IsValid())
+			for (const auto& NodeJsonValue : *JSONHierarchyNodes)
 			{
-				continue;
-			}
-			TSharedPtr<FFbxNodeInfo> NodeInfo = MakeShareable(new FFbxNodeInfo());
-
-			if (!NodeInfoObj->TryGetStringField("NodeName", NodeInfo->NodeName)) continue;
-
-			NodeInfoObj->TryGetStringField("NodeHierarchyPath", NodeInfo->NodeHierarchyPath);
-
-			FString UniqueIDStr;
-			if (!NodeInfoObj->TryGetStringField("UniqueId", UniqueIDStr)) continue;
-			NodeInfo->UniqueId = FCString::Atoi64(*UniqueIDStr);
-
-			NodeInfoObj->TryGetBoolField("bImportNode", NodeInfo->bImportNode);
-
-			//Find the parent
-			if (NodeInfoObj->TryGetStringField("ParentUniqueId", UniqueIDStr))
-			{
-				uint64 ParentUniqueId = FCString::Atoi64(*UniqueIDStr);
-				if (ParentUniqueId != 0)
-				{
-					//Find the parent
-					for (TSharedPtr<FFbxNodeInfo> SearchNodeInfo : SceneInfoSourceData->HierarchyInfo)
-					{
-						if (SearchNodeInfo->UniqueId == ParentUniqueId)
-						{
-							NodeInfo->ParentNodeInfo = SearchNodeInfo;
-							SearchNodeInfo->Childrens.Add(NodeInfo);
-							break;
-						}
-					}
-				}
-			}
-
-			NodeInfoObj->TryGetStringField("AttributeType", NodeInfo->AttributeType);
-
-			if (NodeInfoObj->TryGetStringField("AttributeUniqueId", UniqueIDStr))
-			{
-				NodeInfo->AttributeUniqueId = FCString::Atoi64(*UniqueIDStr);
-				if (NodeInfo->AttributeUniqueId != 0)
-				{
-					//Find the attribute info
-					for (TSharedPtr<FFbxMeshInfo> MeshInfo : SceneInfoSourceData->MeshInfo)
-					{
-						if (MeshInfo->UniqueId == NodeInfo->AttributeUniqueId)
-						{
-							NodeInfo->AttributeInfo = MeshInfo;
-							break;
-						}
-					}
-				}
-			}
-
-			//Materials
-			const TArray<TSharedPtr<FJsonValue>>* JSONMaterials;
-			NodeInfoObj->TryGetArrayField("Materials", JSONMaterials);
-			for (const auto& MaterialJsonValue : *JSONMaterials)
-			{
-				const TSharedPtr<FJsonObject>& MaterialObj = MaterialJsonValue->AsObject();
-				if (!MaterialObj.IsValid())
+				const TSharedPtr<FJsonObject>& NodeInfoObj = NodeJsonValue->AsObject();
+				if (!NodeInfoObj.IsValid())
 				{
 					continue;
 				}
+				TSharedPtr<FFbxNodeInfo> NodeInfo = MakeShareable(new FFbxNodeInfo());
 
-				TSharedPtr<FFbxMaterialInfo> MaterialInfo = MakeShareable(new FFbxMaterialInfo());
+				if (!NodeInfoObj->TryGetStringField("NodeName", NodeInfo->NodeName)) continue;
 
-				if (!MaterialObj->TryGetStringField("Name", MaterialInfo->Name)) continue;
+				NodeInfoObj->TryGetStringField("NodeHierarchyPath", NodeInfo->NodeHierarchyPath);
 
-				MaterialObj->TryGetStringField("HierarchyPath", MaterialInfo->HierarchyPath);
+				FString UniqueIDStr;
+				if (!NodeInfoObj->TryGetStringField("UniqueId", UniqueIDStr)) continue;
+				NodeInfo->UniqueId = FCString::Atoi64(*UniqueIDStr);
 
-				if (!MaterialObj->TryGetStringField("UniqueId", UniqueIDStr)) continue;
-				MaterialInfo->UniqueId = FCString::Atoi64(*UniqueIDStr);
+				NodeInfoObj->TryGetBoolField("bImportNode", NodeInfo->bImportNode);
 
-				MaterialObj->TryGetBoolField("bImportAttribute", MaterialInfo->bImportAttribute);
+				//Find the parent
+				if (NodeInfoObj->TryGetStringField("ParentUniqueId", UniqueIDStr))
+				{
+					uint64 ParentUniqueId = FCString::Atoi64(*UniqueIDStr);
+					if (ParentUniqueId != 0)
+					{
+						//Find the parent
+						for (TSharedPtr<FFbxNodeInfo> SearchNodeInfo : SceneInfoSourceData->HierarchyInfo)
+						{
+							if (SearchNodeInfo->UniqueId == ParentUniqueId)
+							{
+								NodeInfo->ParentNodeInfo = SearchNodeInfo;
+								SearchNodeInfo->Childrens.Add(NodeInfo);
+								break;
+							}
+						}
+					}
+				}
 
-				MaterialObj->TryGetStringField("OriginalImportPath", MaterialInfo->OriginalImportPath);
+				NodeInfoObj->TryGetStringField("AttributeType", NodeInfo->AttributeType);
 
-				MaterialObj->TryGetStringField("OriginalFullImportName", MaterialInfo->OriginalFullImportName);
+				if (NodeInfoObj->TryGetStringField("AttributeUniqueId", UniqueIDStr))
+				{
+					NodeInfo->AttributeUniqueId = FCString::Atoi64(*UniqueIDStr);
+					if (NodeInfo->AttributeUniqueId != 0)
+					{
+						//Find the attribute info
+						for (TSharedPtr<FFbxMeshInfo> MeshInfo : SceneInfoSourceData->MeshInfo)
+						{
+							if (MeshInfo->UniqueId == NodeInfo->AttributeUniqueId)
+							{
+								NodeInfo->AttributeInfo = MeshInfo;
+								break;
+							}
+						}
+					}
+				}
 
-				MaterialObj->TryGetBoolField("bOverridePath", MaterialInfo->bOverridePath);
+				//Materials
+				const TArray<TSharedPtr<FJsonValue>>* JSONMaterials;
+				if (NodeInfoObj->TryGetArrayField("Materials", JSONMaterials))
+				{
+					for (const auto& MaterialJsonValue : *JSONMaterials)
+					{
+						const TSharedPtr<FJsonObject>& MaterialObj = MaterialJsonValue->AsObject();
+						if (!MaterialObj.IsValid())
+						{
+							continue;
+						}
 
-				MaterialObj->TryGetStringField("OverrideImportPath", MaterialInfo->OverrideImportPath);
+						TSharedPtr<FFbxMaterialInfo> MaterialInfo = MakeShareable(new FFbxMaterialInfo());
 
-				MaterialObj->TryGetStringField("OverrideFullImportName", MaterialInfo->OverrideFullImportName);
+						if (!MaterialObj->TryGetStringField("Name", MaterialInfo->Name)) continue;
 
-				NodeInfo->Materials.Add(MaterialInfo);
+						MaterialObj->TryGetStringField("HierarchyPath", MaterialInfo->HierarchyPath);
+
+						if (!MaterialObj->TryGetStringField("UniqueId", UniqueIDStr)) continue;
+						MaterialInfo->UniqueId = FCString::Atoi64(*UniqueIDStr);
+
+						MaterialObj->TryGetBoolField("bImportAttribute", MaterialInfo->bImportAttribute);
+
+						MaterialObj->TryGetStringField("OriginalImportPath", MaterialInfo->OriginalImportPath);
+
+						MaterialObj->TryGetStringField("OriginalFullImportName", MaterialInfo->OriginalFullImportName);
+
+						MaterialObj->TryGetBoolField("bOverridePath", MaterialInfo->bOverridePath);
+
+						MaterialObj->TryGetStringField("OverrideImportPath", MaterialInfo->OverrideImportPath);
+
+						MaterialObj->TryGetStringField("OverrideFullImportName", MaterialInfo->OverrideFullImportName);
+
+						NodeInfo->Materials.Add(MaterialInfo);
+					}
+				}
+
+				SceneInfoSourceData->HierarchyInfo.Add(NodeInfo);
 			}
-
-			SceneInfoSourceData->HierarchyInfo.Add(NodeInfo);
 		}
 	}
 }

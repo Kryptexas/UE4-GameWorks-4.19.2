@@ -99,6 +99,8 @@ FCoreUObjectDelegates::FReinstanceHotReloadedClassesDelegate FCoreUObjectDelegat
 FCoreUObjectDelegates::FIsPackageOKToSaveDelegate FCoreUObjectDelegates::IsPackageOKToSaveDelegate;
 FCoreUObjectDelegates::FAutoPackageBackupDelegate FCoreUObjectDelegates::AutoPackageBackupDelegate;
 
+FCoreUObjectDelegates::FOnPackageReloaded FCoreUObjectDelegates::OnPackageReloaded;
+
 FCoreUObjectDelegates::FOnPreObjectPropertyChanged FCoreUObjectDelegates::OnPreObjectPropertyChanged;
 FCoreUObjectDelegates::FOnObjectPropertyChanged FCoreUObjectDelegates::OnObjectPropertyChanged;
 
@@ -718,12 +720,17 @@ bool ResolveName(UObject*& InPackage, FString& InOutName, bool Create, bool Thro
 			Create         = false;
 		}
 
-		// In case this is a short script package name, convert to long name before passing to CreatePackage/FindObject.
-		FName* ScriptPackageName = FPackageName::FindScriptPackageName(*PartialName);
-		if (ScriptPackageName)
+		FName* ScriptPackageName = nullptr;
+		if (!bSubobjectPath)
 		{
-			PartialName = ScriptPackageName->ToString();
+			// In case this is a short script package name, convert to long name before passing to CreatePackage/FindObject.
+			ScriptPackageName = FPackageName::FindScriptPackageName(*PartialName);
+			if (ScriptPackageName)
+			{
+				PartialName = ScriptPackageName->ToString();
+			}
 		}
+
 		// Only long package names are allowed so don't even attempt to create one because whatever the name represents
 		// it's not a valid package name anyway.
 		

@@ -6,6 +6,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Components/PanelSlot.h"
 #include "Components/Widget.h"
+#include "Blueprint/UserWidget.h"
 #include "PanelWidget.generated.h"
 
 /** The base class for all UMG panel widgets.  Panel widgets layout a collection of child widgets. */

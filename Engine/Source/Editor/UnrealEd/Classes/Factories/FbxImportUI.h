@@ -50,18 +50,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Miscellaneous, meta=(OBJRestrict="true"))
 	uint32 bOverrideFullName:1;
 
-	/** Whether to convert scene from FBX scene. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Miscellaneous, meta=(OBJRestrict="true", ToolTip="Convert the scene from FBX coordinate system to UE4 coordinate system"))
-	uint32 bConvertScene:1;
-	
-	/** Whether to force the front axis to be align with X instead of -Y. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Miscellaneous, meta = (editcondition = "bConvertScene", OBJRestrict = "true", ToolTip = "Convert the scene from FBX coordinate system to UE4 coordinate system with front X axis instead of -Y"))
-	uint32 bForceFrontXAxis : 1;
-
-	/** Whether to convert the scene from FBX unit to UE4 unit (centimeter). */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category = Miscellaneous, meta = (OBJRestrict = "true", ToolTip = "Convert the scene from FBX unit to UE4 unit (centimeter)."))
-	uint32 bConvertSceneUnit : 1;
-
 	/** Whether to import the incoming FBX as a skeletal object */
 	UPROPERTY(EditAnywhere, Category = Mesh, meta = (ImportType = "StaticMesh|SkeletalMesh", DisplayName="Skeletal Mesh"))
 	bool bImportAsSkeletal;
@@ -73,10 +61,6 @@ public:
 	/** Whether to import the mesh. Allows animation only import when importing a skeletal mesh. */
 	UPROPERTY(EditAnywhere, Category=Mesh, meta=(ImportType="SkeletalMesh"))
 	bool bImportMesh;
-
-	/** For static meshes, enabling this option will combine all meshes in the FBX into a single monolithic mesh in Unreal */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Mesh, meta=(ToolTip="If enabled, combines all meshes into a single mesh", ImportType="StaticMesh"))
-	uint32 bCombineMeshes:1;
 
 	/** Skeleton to use for imported asset. When importing a mesh, leaving this as "None" will create a new skeleton. When importing an animation this MUST be specified to import the asset. */
 	UPROPERTY(EditAnywhere, Category=Mesh, meta=(ImportType="SkeletalMesh|Animation"))
@@ -111,20 +95,24 @@ public:
 	uint32 bImportTextures:1;
 
 	/** Import data used when importing static meshes */
-	UPROPERTY(EditAnywhere, Instanced, Category = Mesh, meta=(ImportType = "StaticMesh"))
+	UPROPERTY(EditAnywhere, Transient, Instanced, Category = Mesh, meta=(ImportType = "StaticMesh"))
 	class UFbxStaticMeshImportData* StaticMeshImportData;
 
 	/** Import data used when importing skeletal meshes */
-	UPROPERTY(EditAnywhere, Instanced, Category=Mesh, meta=(ImportType = "SkeletalMesh"))
+	UPROPERTY(EditAnywhere, Transient, Instanced, Category=Mesh, meta=(ImportType = "SkeletalMesh"))
 	class UFbxSkeletalMeshImportData* SkeletalMeshImportData;
 
 	/** Import data used when importing animations */
-	UPROPERTY(EditAnywhere, Instanced, Category=Animation, meta=(editcondition="bImportAnimations", ImportType = "Animation"))
+	UPROPERTY(EditAnywhere, Transient, Instanced, Category=Animation, meta=(editcondition="bImportAnimations", ImportType = "Animation"))
 	class UFbxAnimSequenceImportData* AnimSequenceImportData;
 
 	/** Import data used when importing textures */
-	UPROPERTY(EditAnywhere, Instanced, Category=Material)
+	UPROPERTY(EditAnywhere, Transient, Instanced, Category=Material)
 	class UFbxTextureImportData* TextureImportData;
+
+	/** If true the automated import path should detect the import type.  If false the import type was specified by the user */
+	UPROPERTY()
+	bool bAutomatedImportShouldDetectType;
 
 	/** UObject Interface */
 	virtual bool CanEditChange( const UProperty* InProperty ) const override;

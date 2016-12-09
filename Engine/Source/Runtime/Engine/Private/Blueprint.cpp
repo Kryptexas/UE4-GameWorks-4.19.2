@@ -1507,6 +1507,19 @@ void UBlueprint::GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependen
 
 }
 
+void UBlueprint::ReplaceDeprecatedNodes()
+{
+	TArray<UEdGraph*> Graphs;
+	GetAllGraphs(Graphs);
+
+	for ( auto It = Graphs.CreateIterator(); It; ++It )
+	{
+		UEdGraph* const Graph = *It;
+		const UEdGraphSchema* Schema = Graph->GetSchema();
+		Schema->BackwardCompatibilityNodeConversion(Graph, true);
+	}
+}
+
 UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bCreateIfNecessary)
 {
 	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);

@@ -72,10 +72,12 @@ void FCameraDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		}
 	}
 
+	DetailLayout.EditCategory("Current Camera Settings", FText::GetEmpty(), ECategoryPriority::Important);
+
 	if (bCameraSettingsHidden == false)
 	{
 		IDetailCategoryBuilder& CameraCategory = DetailLayout.EditCategory( "CameraSettings", FText::GetEmpty(), ECategoryPriority::Important );
-	
+
 		// Organize the properties
 		CameraCategory.AddProperty(ProjectionModeProperty);
 

@@ -280,6 +280,9 @@ protected:
 	 */
 	void GetRelatedComponentsToIgnoreInAutomaticHitTesting(TArray<UPrimitiveComponent*>& IgnorePrimitives) const;
 
+	/** Returns true if the inteaction component can interact with the supplied widget component */
+	bool CanInteractWithComponent(UWidgetComponent* Component) const;
+
 protected:
 
 	/** The last widget path under the hit result. */

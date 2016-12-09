@@ -42,6 +42,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Enable Details Panel Favorites"))
 	bool bEnableFavoriteSystem;
 
+	/** Enables content hot-reloading in the editor (eg, when syncing new assets via source control) */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Content Hot-Reloading"))
+	bool bEnableContentHotReloading;
+
 	/** Enable being able to subclass components in blueprints */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(ConfigRestartRequired=true))
 	bool bBlueprintableComponents;

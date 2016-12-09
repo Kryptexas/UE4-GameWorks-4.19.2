@@ -163,6 +163,9 @@ public:
 	/** Create component mask node */
 	TSharedPtr< FUICommandInfo > CreateComponentMaskNode;
 
+	/** Create component mask node */
+	TSharedPtr< FUICommandInfo > PromoteToParameter;
+
 
 	/**
 	 * Initialize commands

@@ -190,147 +190,156 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	EHorizontalAlignment HorizontalAlignment = HAlign_Fill;
 	EVerticalAlignment VerticalAlignment = VAlign_Fill;
 
-	if( InCustomization->IsValidCustomization() )
+	const bool bIsValidTreeNode = InOwnerTreeNode->GetParentCategory().IsValid() && InOwnerTreeNode->GetParentCategory()->IsParentLayoutValid();
+	if(bIsValidTreeNode)
 	{
-		FDetailWidgetRow Row = InCustomization->GetWidgetRow();
-
-		TSharedPtr<SWidget> NameWidget;
-		TSharedPtr<SWidget> ValueWidget;
-	
-		NameWidget = Row.NameWidget.Widget;
-		if( Row.IsEnabledAttr.IsBound() )
+		if(InCustomization->IsValidCustomization())
 		{
-			NameWidget->SetEnabled( Row.IsEnabledAttr );
-		}
-		
-		ValueWidget =
-			SNew( SConstrainedBox )
-			.MinWidth( Row.ValueWidget.MinWidth )
-			.MaxWidth( Row.ValueWidget.MaxWidth )
-			[
-				Row.ValueWidget.Widget
-			];
+			FDetailWidgetRow Row = InCustomization->GetWidgetRow();
 
-		ValueWidget = CreateExtensionWidget(ValueWidget.ToSharedRef(), *Customization, InOwnerTreeNode );
+			TSharedPtr<SWidget> NameWidget;
+			TSharedPtr<SWidget> ValueWidget;
 
-		if( Row.IsEnabledAttr.IsBound() )
-		{
-			ValueWidget->SetEnabled( Row.IsEnabledAttr );
-		}
+			NameWidget = Row.NameWidget.Widget;
+			if(Row.IsEnabledAttr.IsBound())
+			{
+				NameWidget->SetEnabled(Row.IsEnabledAttr);
+			}
 
-		TSharedRef<SWidget> KeyFrameButton = CreateKeyframeButton( *Customization, InOwnerTreeNode );
-		TAttribute<bool> IsPropertyEditingEnabled = InOwnerTreeNode->IsPropertyEditingEnabled();
+			ValueWidget =
+				SNew(SConstrainedBox)
+				.MinWidth(Row.ValueWidget.MinWidth)
+				.MaxWidth(Row.ValueWidget.MaxWidth)
+				[
+					Row.ValueWidget.Widget
+				];
 
-		bool const bEnableFavoriteSystem = GIsRequestingExit ? false : (GetDefault<UEditorExperimentalSettings>()->bEnableFavoriteSystem && bAllowFavoriteSystem);
+			ValueWidget = CreateExtensionWidget(ValueWidget.ToSharedRef(), *Customization, InOwnerTreeNode);
 
-		TSharedRef<SHorizontalBox> InternalLeftColumnRowBox = SNew(SHorizontalBox);
+			if(Row.IsEnabledAttr.IsBound())
+			{
+				ValueWidget->SetEnabled(Row.IsEnabledAttr);
+			}
 
-		if (bEnableFavoriteSystem)
-		{
+			TSharedRef<SWidget> KeyFrameButton = CreateKeyframeButton(*Customization, InOwnerTreeNode);
+			TAttribute<bool> IsPropertyEditingEnabled = InOwnerTreeNode->IsPropertyEditingEnabled();
+
+			bool const bEnableFavoriteSystem = GIsRequestingExit ? false : (GetDefault<UEditorExperimentalSettings>()->bEnableFavoriteSystem && bAllowFavoriteSystem);
+
+			TSharedRef<SHorizontalBox> InternalLeftColumnRowBox = SNew(SHorizontalBox);
+
+			if(bEnableFavoriteSystem)
+			{
+				InternalLeftColumnRowBox->AddSlot()
+					.Padding(0.0f, 0.0f)
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.IsFocusable(false)
+						.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+						.OnClicked(this, &SDetailSingleItemRow::OnFavoriteToggle)
+						[
+							SNew(SImage).Image(this, &SDetailSingleItemRow::GetFavoriteButtonBrush)
+						]
+					];
+			}
 			InternalLeftColumnRowBox->AddSlot()
-				.Padding(0.0f, 0.0f)
+				.Padding(3.0f, 0.0f)
 				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Center)
 				.AutoWidth()
 				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
+					SNew(SExpanderArrow, SharedThis(this))
+					.BaseIndentLevel(1)
+				];
+
+
+			if(bHasMultipleColumns)
+			{
+				NameWidget->SetEnabled(IsPropertyEditingEnabled);
+				TSharedPtr<SHorizontalBox> HBox;
+
+				InternalLeftColumnRowBox->AddSlot()
+					.HAlign(Row.NameWidget.HorizontalAlignment)
+					.VAlign(Row.NameWidget.VerticalAlignment)
+					.Padding(DetailWidgetConstants::LeftRowPadding)
+					[
+						NameWidget.ToSharedRef()
+					];
+				InternalLeftColumnRowBox->AddSlot()
+					.Padding(3.0f, 0.0f)
+					.HAlign(HAlign_Right)
 					.VAlign(VAlign_Center)
-					.IsFocusable(false)
-					.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-					.OnClicked(this, &SDetailSingleItemRow::OnFavoriteToggle)
+					.AutoWidth()
 					[
-						SNew(SImage).Image(this, &SDetailSingleItemRow::GetFavoriteButtonBrush)
+						KeyFrameButton
+					];
+
+				TSharedRef<SSplitter> Splitter =
+					SNew(SSplitter)
+					.Style(FEditorStyle::Get(), "DetailsView.Splitter")
+					.PhysicalSplitterHandleSize(1.0f)
+					.HitDetectionSplitterHandleSize(5.0f)
+					+ SSplitter::Slot()
+					.Value(ColumnSizeData.LeftColumnWidth)
+					.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SDetailSingleItemRow::OnLeftColumnResized))
+					[
+						InternalLeftColumnRowBox
 					]
-				];
-		}
-		InternalLeftColumnRowBox->AddSlot()
-			.Padding(3.0f, 0.0f)
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			[
-				SNew(SExpanderArrow, SharedThis(this))
-				.BaseIndentLevel(1)
-			];
-		
-
-		if( bHasMultipleColumns )
-		{
-			NameWidget->SetEnabled(IsPropertyEditingEnabled);
-			TSharedPtr<SHorizontalBox> HBox;
-			
-			InternalLeftColumnRowBox->AddSlot()
-				.HAlign(Row.NameWidget.HorizontalAlignment)
-				.VAlign(Row.NameWidget.VerticalAlignment)
-				.Padding(DetailWidgetConstants::LeftRowPadding)
-				[
-					NameWidget.ToSharedRef()
-				];
-			InternalLeftColumnRowBox->AddSlot()
-				.Padding(3.0f, 0.0f)
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					KeyFrameButton
-				];
-
-			TSharedRef<SSplitter> Splitter = 
-				SNew( SSplitter )
-				.Style( FEditorStyle::Get(), "DetailsView.Splitter" )
-				.PhysicalSplitterHandleSize( 1.0f )
-				.HitDetectionSplitterHandleSize( 5.0f )
-				+ SSplitter::Slot()
-				.Value( ColumnSizeData.LeftColumnWidth )
-				.OnSlotResized( SSplitter::FOnSlotResized::CreateSP( this, &SDetailSingleItemRow::OnLeftColumnResized ) )
-				[
-					InternalLeftColumnRowBox
-				]
-				+ SSplitter::Slot()
-				.Value( ColumnSizeData.RightColumnWidth )
-				.OnSlotResized( ColumnSizeData.OnWidthChanged )
-				[
-					SNew( SHorizontalBox )
-					+ SHorizontalBox::Slot()
+					+ SSplitter::Slot()
+					.Value(ColumnSizeData.RightColumnWidth)
+					.OnSlotResized(ColumnSizeData.OnWidthChanged)
 					[
-						SAssignNew(HBox, SHorizontalBox)
+						SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot()
-						.Padding(DetailWidgetConstants::RightRowPadding)
-						.HAlign(Row.ValueWidget.HorizontalAlignment)
-						.VAlign(Row.ValueWidget.VerticalAlignment)
 						[
-							SNew(SBox)
-							.IsEnabled(IsPropertyEditingEnabled)
+							SAssignNew(HBox, SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.Padding(DetailWidgetConstants::RightRowPadding)
+							.HAlign(Row.ValueWidget.HorizontalAlignment)
+							.VAlign(Row.ValueWidget.VerticalAlignment)
 							[
-								ValueWidget.ToSharedRef()
+								SNew(SBox)
+								.IsEnabled(IsPropertyEditingEnabled)
+								[
+									ValueWidget.ToSharedRef()
+								]
 							]
 						]
-					]
-				];
+					];
 				Widget = Splitter;
-		}
-		else
-		{
-			Row.WholeRowWidget.Widget->SetEnabled(IsPropertyEditingEnabled);
-			InternalLeftColumnRowBox->AddSlot()
-				.HAlign(Row.WholeRowWidget.HorizontalAlignment)
-				.VAlign(Row.WholeRowWidget.VerticalAlignment)
-				.Padding(DetailWidgetConstants::LeftRowPadding)
-				[
-					Row.WholeRowWidget.Widget
-				];
-			InternalLeftColumnRowBox->AddSlot()
-				.Padding(3.0f, 0.0f)
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				[
-					KeyFrameButton
-				];
-			Widget = InternalLeftColumnRowBox;
+			}
+			else
+			{
+				Row.WholeRowWidget.Widget->SetEnabled(IsPropertyEditingEnabled);
+				InternalLeftColumnRowBox->AddSlot()
+					.HAlign(Row.WholeRowWidget.HorizontalAlignment)
+					.VAlign(Row.WholeRowWidget.VerticalAlignment)
+					.Padding(DetailWidgetConstants::LeftRowPadding)
+					[
+						Row.WholeRowWidget.Widget
+					];
+				InternalLeftColumnRowBox->AddSlot()
+					.Padding(3.0f, 0.0f)
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
+					[
+						KeyFrameButton
+					];
+				Widget = InternalLeftColumnRowBox;
+			}
 		}
 	}
-
+	else
+	{
+		// details panel layout became invalid.  This is probably a scenario where a widget is coming into view in the parent tree but some external event previous in the frame has invalidated the contents of the details panel.
+		// The next frame update of the details panel will fix it
+		Widget = SNew(SSpacer);
+	}
 
 	this->ChildSlot
 	[	

@@ -2850,6 +2850,9 @@ private:
 	bool bPlayUsingLauncherHasCode;
 	bool bPlayUsingLauncherHasCompiler;
 
+	/** Used to prevent reentrant calls to EndPlayMap(). */
+	bool bIsEndingPlay;
+
 	/** List of files we are deferring adding to source control */
 	TArray<FString> DeferredFilesToAddToSourceControl;
 
@@ -2910,6 +2913,9 @@ protected:
 
 	// Handle requests from slate application to open assets.
 	bool HandleOpenAsset(UObject* Asset);
+
+	// Handles a package being reloaded.
+	void HandlePackageReloaded(const EPackageReloadPhase InPackageReloadPhase, FPackageReloadedEvent* InPackageReloadedEvent);
 
 public:
 	/** True if world assets are enabled */

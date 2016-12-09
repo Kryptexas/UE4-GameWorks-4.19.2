@@ -55,6 +55,11 @@ public:
 	 */
 	virtual void DeleteSelectedNodes() {};
 
+	/** 
+	 * Delete an array of Material Graph Nodes and their corresponding expressions/comments
+	*/
+	virtual void DeleteNodes(const TArray<class UEdGraphNode*>& NodesToDelete) {}
+
 	/**
 	 * Gets the name of the material or material function that we are editing
 	 */

@@ -64,62 +64,11 @@ void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedRef
 {
 	PropertyEditor = InPropertyEditor;
 	
-	// Important to find certain info out about the combo box.
-	TArray< TSharedPtr<FString> > ComboItems;
-	TArray< FText > ToolTips;
-	TArray< bool > Restrictions;
-	GenerateComboBoxStrings( ComboItems, ToolTips, Restrictions );
-
+	TArray<TSharedPtr<FString>> ComboItems;
+	TArray<bool> Restrictions;
 	TArray<TSharedPtr<SToolTip>> RichToolTips;
 
-	// For enums, look for rich tooltip information
-	if(PropertyEditor.IsValid())
-	{
-		if(const UProperty* Property = PropertyEditor->GetProperty())
-		{
-			UEnum* Enum = nullptr;
-			
-			if(const UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
-			{
-				Enum = ByteProperty->Enum;
-			}
-			else if (const UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
-			{
-				Enum = EnumProperty->GetEnum();
-			}
-
-			if(Enum)
-			{
-				TArray<FName> AllowedPropertyEnums = PropertyEditorHelpers::GetValidEnumsFromPropertyOverride(Property, Enum);
-
-				// Get enum doc link (not just GetDocumentationLink as that is the documentation for the struct we're in, not the enum documentation)
-				FString DocLink = PropertyEditorHelpers::GetEnumDocumentationLink(Property);
-			
-				for(int32 EnumIdx = 0; EnumIdx < Enum->NumEnums() - 1; ++EnumIdx)
-				{
-					FString Excerpt = Enum->GetEnumName(EnumIdx);
-
-					bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIdx) || Enum->HasMetaData(TEXT("Spacer"), EnumIdx);
-					if (!bShouldBeHidden && AllowedPropertyEnums.Num() != 0)
-					{
-						bShouldBeHidden = AllowedPropertyEnums.Find(Enum->GetEnum(EnumIdx)) == INDEX_NONE;
-					}
-
-					if (!bShouldBeHidden)
-					{
-						// See if we specified an alternate name for this value using metadata
-						const FString EnumValueName = Enum->GetEnumName(EnumIdx);
-						bShouldBeHidden = PropertyEditor->GetPropertyHandle()->IsHidden(EnumValueName);
-					}
-				
-					if (!bShouldBeHidden)
-					{
-						RichToolTips.Add(IDocumentation::Get()->CreateToolTip(MoveTemp(ToolTips[EnumIdx]), nullptr, DocLink, MoveTemp(Excerpt)));
-					}
-				}
-			}
-		}
-	}
+	GenerateComboBoxStrings(ComboItems, RichToolTips, Restrictions);
 
 	SAssignNew(ComboBox, SPropertyComboBox)
 		.Font( InArgs._Font )
@@ -158,10 +107,62 @@ FString SPropertyEditorCombo::GetDisplayValueAsString() const
 	return (bUsesAlternateDisplayValues) ? PropertyEditor->GetValueAsDisplayString() : PropertyEditor->GetValueAsString();
 }
 
-void SPropertyEditorCombo::GenerateComboBoxStrings( TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray< FText >& OutToolTips, TArray<bool>& OutRestrictedItems )
+
+void SPropertyEditorCombo::GenerateComboBoxStrings( TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray<TSharedPtr<SToolTip>>& RichToolTips, TArray<bool>& OutRestrictedItems )
 {
+	TArray<FText> BasicTooltips;
 	const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
-	bUsesAlternateDisplayValues = PropertyHandle->GeneratePossibleValues(OutComboBoxStrings, OutToolTips, OutRestrictedItems);
+	bUsesAlternateDisplayValues = PropertyHandle->GeneratePossibleValues(OutComboBoxStrings, BasicTooltips, OutRestrictedItems);
+
+
+	// For enums, look for rich tooltip information
+	if(PropertyEditor.IsValid())
+	{
+		if(const UProperty* Property = PropertyEditor->GetProperty())
+		{
+			UEnum* Enum = nullptr;
+
+			if(const UByteProperty* ByteProperty = Cast<UByteProperty>(Property))
+			{
+				Enum = ByteProperty->Enum;
+			}
+			else if(const UEnumProperty* EnumProperty = Cast<UEnumProperty>(Property))
+			{
+				Enum = EnumProperty->GetEnum();
+			}
+
+			if(Enum)
+			{
+				TArray<FName> AllowedPropertyEnums = PropertyEditorHelpers::GetValidEnumsFromPropertyOverride(Property, Enum);
+
+				// Get enum doc link (not just GetDocumentationLink as that is the documentation for the struct we're in, not the enum documentation)
+				FString DocLink = PropertyEditorHelpers::GetEnumDocumentationLink(Property);
+
+				for(int32 EnumIdx = 0; EnumIdx < Enum->NumEnums() - 1; ++EnumIdx)
+				{
+					FString Excerpt = Enum->GetEnumName(EnumIdx);
+
+					bool bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), EnumIdx) || Enum->HasMetaData(TEXT("Spacer"), EnumIdx);
+					if(!bShouldBeHidden && AllowedPropertyEnums.Num() != 0)
+					{
+						bShouldBeHidden = AllowedPropertyEnums.Find(Enum->GetEnum(EnumIdx)) == INDEX_NONE;
+					}
+
+					if (!bShouldBeHidden)
+					{
+						// See if we specified an alternate name for this value using metadata
+						const FString EnumValueName = Enum->GetEnumName(EnumIdx);
+						bShouldBeHidden = PropertyEditor->GetPropertyHandle()->IsHidden(EnumValueName);
+					}
+				
+					if(!bShouldBeHidden)
+					{
+						RichToolTips.Add(IDocumentation::Get()->CreateToolTip(MoveTemp(BasicTooltips[EnumIdx]), nullptr, DocLink, MoveTemp(Excerpt)));
+					}
+				}
+			}
+		}
+	}
 }
 
 void SPropertyEditorCombo::OnComboSelectionChanged( TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo )
@@ -174,6 +175,13 @@ void SPropertyEditorCombo::OnComboSelectionChanged( TSharedPtr<FString> NewValue
 
 void SPropertyEditorCombo::OnComboOpening()
 {
+	TArray<TSharedPtr<FString>> ComboItems;
+	TArray<TSharedPtr<SToolTip>> RichToolTips;
+	TArray<bool> Restrictions;
+	GenerateComboBoxStrings(ComboItems, RichToolTips, Restrictions);
+
+	ComboBox->SetItemList(ComboItems, RichToolTips, Restrictions);
+
 	// try and re-sync the selection in the combo list in case it was changed since Construct was called
 	// this would fail if the displayed value doesn't match the equivalent value in the combo list
 	FString CurrentDisplayValue = GetDisplayValueAsString();

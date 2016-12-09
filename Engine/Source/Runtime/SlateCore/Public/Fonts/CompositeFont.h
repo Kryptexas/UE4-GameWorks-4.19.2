@@ -9,6 +9,7 @@
 #include "CompositeFont.generated.h"
 
 class UFontBulkData;
+struct FFontFaceData;
 
 UENUM()
 enum class EFontHinting : uint8
@@ -28,10 +29,97 @@ enum class EFontHinting : uint8
 UENUM()
 enum class EFontLoadingPolicy : uint8
 {
-	/** Pre-load the entire font into memory. This will consume more memory, however there will be zero file-IO when rendering glyphs within the font. */
-	PreLoad,
-	/** Stream the font from disk. This will consume less memory, however there will be file-IO when rendering glyphs, which may cause hitches under certain circumstances or on certain platforms. */
+	/** Lazy load the entire font into memory. This will consume more memory than Streaming, however there will be zero file-IO when rendering glyphs within the font, although the initial load may cause a hitch. */
+	LazyLoad,
+	/** Stream the font from disk. This will consume less memory than LazyLoad or Inline, however there will be file-IO when rendering glyphs, which may cause hitches under certain circumstances or on certain platforms. */
 	Stream,
+	/** Embed the font data within the asset. This will consume more memory than Streaming, however it is guaranteed to be hitch free (only valid for font data within a Font Face asset). */
+	Inline,
+};
+
+typedef TSharedPtr<FFontFaceData, ESPMode::ThreadSafe> FFontFaceDataPtr;
+typedef TSharedRef<FFontFaceData, ESPMode::ThreadSafe> FFontFaceDataRef;
+typedef TSharedPtr<const FFontFaceData, ESPMode::ThreadSafe> FFontFaceDataConstPtr;
+typedef TSharedRef<const FFontFaceData, ESPMode::ThreadSafe> FFontFaceDataConstRef;
+
+/** 
+ * Raw font data for a Font Face asset.
+ * @note Exists as a struct so it can be shared between its owner asset and the font cache without worrying about UObject lifetimes. 
+ */
+struct SLATECORE_API FFontFaceData
+{
+public:
+	/** Default constructor */
+	FFontFaceData()
+	{
+	}
+
+	/** Construct from an existing block of font data */
+	FFontFaceData(TArray<uint8>&& InData)
+		: Data(MoveTemp(InData))
+	{
+		TrackMemoryUsage();
+	}
+
+	/** Destructor */
+	~FFontFaceData()
+	{
+		UntrackMemoryUsage();
+	}
+
+	/** @return true if this instance has data set on it */
+	bool HasData() const
+	{
+		return Data.Num() > 0;
+	}
+
+	/** Set from an existing block of font data */
+	void SetData(TArray<uint8>&& InData)
+	{
+		UntrackMemoryUsage();
+		Data = MoveTemp(InData);
+		TrackMemoryUsage();
+	}
+
+	/** @return The data set on this instance */
+	const TArray<uint8>& GetData() const
+	{
+		return Data;
+	}
+
+	/** Serialize the data on this instance to/from an archive */
+	void Serialize(FArchive& Ar)
+	{
+		if (Ar.IsLoading())
+		{
+			UntrackMemoryUsage();
+		}
+		Ar << Data;
+		if (Ar.IsLoading())
+		{
+			TrackMemoryUsage();
+		}
+	}
+
+	/** Helper function to construct a default font face data */
+	static FFontFaceDataRef MakeFontFaceData()
+	{
+		return MakeShared<FFontFaceData, ESPMode::ThreadSafe>();
+	}
+
+	/** Helper function to construct a font face data from an existing block of font data */
+	static FFontFaceDataRef MakeFontFaceData(TArray<uint8>&& InData)
+	{
+		return MakeShared<FFontFaceData, ESPMode::ThreadSafe>(MoveTemp(InData));
+	}
+
+private:
+	/** Memory stat tracking */
+	void TrackMemoryUsage() const;
+	void UntrackMemoryUsage() const;
+
+	/** Internal data */
+	TArray<uint8> Data;
 };
 
 /** Payload data describing an individual font in a typeface. Keep this lean as it's also used as a key! */
@@ -43,10 +131,8 @@ struct SLATECORE_API FFontData
 	/** Default constructor */
 	FFontData();
 
-#if WITH_EDITORONLY_DATA
 	/** Construct the raw data from a font face asset */
 	explicit FFontData(const UObject* const InFontFaceAsset);
-#endif // WITH_EDITORONLY_DATA
 
 	/** Construct the raw data from a filename and the font data attributes */
 	FFontData(FString InFontFilename, const EFontHinting InHinting, const EFontLoadingPolicy InLoadingPolicy);
@@ -64,13 +150,13 @@ struct SLATECORE_API FFontData
 	/** Get the enum controlling how this font should be loaded at runtime. */
 	EFontLoadingPolicy GetLoadingPolicy() const;
 
-#if WITH_EDITORONLY_DATA
 	/** Get the data buffer containing the data for the current font face. */
-	bool GetFontFaceData(TArray<uint8>& OutFontFaceData) const;
+	FFontFaceDataConstPtr GetFontFaceData() const;
 
 	/** Get the font face asset used by this data (if any). */
 	const UObject* GetFontFaceAsset() const;
 
+#if WITH_EDITORONLY_DATA
 	/** True if this object contains any legacy data that needs to be upgraded PostLoad by calling the functions below (in order). */
 	bool HasLegacyData() const;
 
@@ -92,13 +178,11 @@ struct SLATECORE_API FFontData
 	{
 		uint32 KeyHash = 0;
 
-#if WITH_EDITORONLY_DATA
 		if (Key.FontFaceAsset)
 		{
 			KeyHash = HashCombine(KeyHash, GetTypeHash(Key.FontFaceAsset));
 		}
 		else
-#endif
 		{
 			KeyHash = HashCombine(KeyHash, GetTypeHash(Key.FontFilename));
 			KeyHash = HashCombine(KeyHash, GetTypeHash(Key.Hinting));
@@ -141,13 +225,13 @@ private:
 	UPROPERTY()
 	EFontLoadingPolicy LoadingPolicy;
 
-#if WITH_EDITORONLY_DATA
 	/**
 	 * Font data v3. This points to a font face asset.
 	 */
 	UPROPERTY()
 	const UObject* FontFaceAsset;
 
+#if WITH_EDITORONLY_DATA
 	/**
 	 * Legacy font data v2. This used to be where font data was stored prior to font face assets. 
 	 * This can be removed once we no longer support loading packages older than FEditorObjectVersion::AddedFontFaceAssets (as can UFontBulkData itself).

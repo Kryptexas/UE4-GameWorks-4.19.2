@@ -1403,6 +1403,8 @@ public:
 		return true;
 	}
 
+	virtual bool IsToolActive() const override { return bToolActive;  }
+
 protected:
 	TArray<FLandscapeToolInteractorPosition> InteractorPositions;
 	FVector2D LastInteractorPosition;

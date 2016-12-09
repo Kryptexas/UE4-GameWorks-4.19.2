@@ -143,7 +143,7 @@ public:
 	void SetIgnoreInheritedScale(bool InIgnoreInheritedScale);
 	
 protected:
-	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const override;
 
 	float GetLayoutScale() const;
 	void RefreshSafeZoneScale();

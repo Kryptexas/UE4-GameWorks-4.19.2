@@ -162,6 +162,26 @@ void FSequencerCurveOwner::ModifyOwner()
 	}
 }
 
+TArray<const UObject*> FSequencerCurveOwner::GetOwners() const
+{
+	TArray<UMovieSceneSection*> Owners;
+	EditInfoToSectionMap.GenerateValueArray( Owners );
+
+	TArray<const UObject*> CastedOwners;
+	CastedOwners.Reserve(Owners.Num());
+	for (auto Owner : Owners)
+	{
+		const UObject* CastedOwner = Cast<const UObject>(Owner);
+
+		if (CastedOwner)
+		{
+			CastedOwners.Add(CastedOwner);
+		}
+	}
+
+	return CastedOwners;
+}
+
 void FSequencerCurveOwner::MakeTransactional()
 {
 	TArray<UMovieSceneSection*> Owners;

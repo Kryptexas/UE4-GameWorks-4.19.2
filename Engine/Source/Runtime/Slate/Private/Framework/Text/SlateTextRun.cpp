@@ -112,11 +112,29 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	// Draw the optional shadow
 	if (ShouldDropShadow)
 	{
+		FShapedGlyphSequenceRef ShadowShapedText = ShapedText;
+		if(Style.ShadowColorAndOpacity != Style.Font.OutlineSettings.OutlineColor)
+		{
+			// Copy font info for shadow to replace the outline color
+			FSlateFontInfo ShadowFontInfo = Style.Font;
+			ShadowFontInfo.OutlineSettings.OutlineColor = Style.ShadowColorAndOpacity;
+			ShadowFontInfo.OutlineSettings.OutlineMaterial = nullptr;
+			
+			// Create new shaped text for drop shadow
+			ShadowShapedText = ShapedTextCacheUtil::GetShapedTextSubSequence(
+				BlockTextContext.ShapedTextCache,
+				FCachedShapedTextKey(Line.Range, AllottedGeometry.GetAccumulatedLayoutTransform().GetScale(), BlockTextContext, ShadowFontInfo),
+				BlockRange,
+				**Text,
+				BlockTextContext.TextDirection
+				);
+		}
+
 		FSlateDrawElement::MakeShapedText(
 			OutDrawElements,
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset() + DrawShadowOffset))),
-			ShapedText,
+			ShadowShapedText,
 			ClippingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * Style.ShadowColorAndOpacity

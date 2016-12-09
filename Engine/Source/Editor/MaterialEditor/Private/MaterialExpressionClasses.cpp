@@ -101,12 +101,24 @@ void MaterialExpressionClasses::InitMaterialExpressionClasses()
 							// Trim the material expression name and add it to the list used for filtering.
 							static const FString ExpressionPrefix = TEXT("MaterialExpression");
 							FString ClassName = *Class->GetName();
+
+							if (Class->HasMetaData("DisplayName"))
+							{
+								ClassName = Class->GetDisplayNameText().ToString();
+							}
+
 							if (ClassName.StartsWith(ExpressionPrefix, ESearchCase::CaseSensitive))
 							{
 								ClassName = ClassName.Mid(ExpressionPrefix.Len());
 							}
 							MaterialExpression.Name = ClassName;
 							MaterialExpression.MaterialClass = Class;
+							UMaterialExpression* TempObject = Cast<UMaterialExpression>(Class->GetDefaultObject());
+							if (TempObject)
+							{
+								MaterialExpression.CreationDescription = TempObject->GetCreationDescription();
+								MaterialExpression.CreationName = TempObject->GetCreationName();
+							}
 
 							AllExpressionClasses.Add(MaterialExpression);
 
@@ -130,7 +142,6 @@ void MaterialExpressionClasses::InitMaterialExpressionClasses()
 							}
 
 							// Category fill...
-							UMaterialExpression* TempObject = Cast<UMaterialExpression>(Class->GetDefaultObject());
 							if (TempObject)
 							{
 								if (TempObject->MenuCategories.Num() == 0)

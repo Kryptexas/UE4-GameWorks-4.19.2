@@ -108,6 +108,7 @@ public:
 		, _MaxListHeight(450.0f)
 		, _HasDownArrow( true )
 		, _EnableGamepadNavigationMode(false)
+		, _IsFocusable( true )
 		{}
 		
 		/** Slot for this button's content (optional) */
@@ -150,11 +151,14 @@ public:
 		 */
 		SLATE_ARGUMENT( bool, HasDownArrow )
 
-		/** 
-		 *  When false, directional keys will change the selection. When true, ComboBox 
+		/**
+		 *  When false, directional keys will change the selection. When true, ComboBox
 		 *	must be activated and will only capture arrow input while activated.
 		*/
 		SLATE_ARGUMENT(bool, EnableGamepadNavigationMode)
+
+		/** When true, allows the combo box to receive keyboard focus */
+		SLATE_ARGUMENT( bool, IsFocusable )
 				
 	SLATE_END_ARGS()
 
@@ -219,7 +223,7 @@ public:
 			.ContentPadding( InArgs._ContentPadding )
 			.ForegroundColor( InArgs._ForegroundColor )
 			.OnMenuOpenChanged(this, &SComboBox< OptionType >::OnMenuOpenChanged)
-
+			.IsFocusable(InArgs._IsFocusable)
 		);
 		SetMenuContentWidgetToFocus(ComboListView);
 
@@ -365,7 +369,7 @@ protected:
 
 	virtual bool SupportsKeyboardFocus() const override
 	{
-		return true;
+		return bIsFocusable;
 	}
 
 	virtual bool IsInteractable() const

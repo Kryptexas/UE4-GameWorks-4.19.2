@@ -10,7 +10,7 @@
 #include "Widgets/SToolTip.h"
 
 
-FSimpleMulticastDelegate FBindingContext::CommandsChanged;
+FOnBindingContextChanged FBindingContext::CommandsChanged;
 
 
 FUICommandInfoDecl FBindingContext::NewCommand( const FName InCommandName, const FText& InCommandLabel, const FText& InCommandDesc )

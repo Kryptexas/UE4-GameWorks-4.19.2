@@ -26,7 +26,7 @@ public:
 	bool IsValid() const;
 
 	/** Initalizes the group */
-	void Initialize();
+	void Initialize(TSharedPtr<FJsonObject> InImportGroupJsonData);
 
 	/** @return the display name of the group */
 	FString GetDisplayName() const; 
@@ -58,5 +58,8 @@ public:
 	/** Pointer to the factory currently being sued */
 	UPROPERTY()
 	UFactory* Factory;
+
+	/** Json data to be read when importing this group */
+	TSharedPtr<FJsonObject> ImportGroupJsonData;
 
 };

@@ -353,7 +353,7 @@ public:
 			return FVector2D::ZeroVector;
 		}
 
-		virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override
+		virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const override
 		{
 			const FNodeSlot& ThisSlot = static_cast<const FNodeSlot&>(Child);
 			if ( !ThisSlot.AllowScale.Get() )
@@ -400,7 +400,7 @@ public:
 						CurChild.GetWidget(),
 						CurChild.Offset.Get(),
 						Size,
-						GetRelativeLayoutScale(CurChild)
+						GetRelativeLayoutScale(CurChild, AllottedGeometry.Scale)
 					);
 					ArrangedChildren.AddWidget( ChildVisibility, ChildGeom );
 				}
@@ -650,7 +650,7 @@ public:
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent ) override;
 	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
-	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const override;
 	// End of SWidget interface
 public:
 	/**

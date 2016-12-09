@@ -43,6 +43,15 @@ public:
 	virtual class IDetailPropertyRow& AddPropertyRow( TSharedRef<IPropertyHandle> PropertyHandle ) = 0;
 
 	/**
+	 * Adds a group to the category
+	 *
+	 * @param NewGroupName	The name of the group
+	 * @param LocalizedDisplayName	The display name of the group
+	 * @param true if the group should start expanded
+	 */
+	virtual IDetailGroup& AddGroup(FName NewGroupName, const FText& InLocalizedDisplayName, bool bInStartExpanded = false) = 0;
+
+	/**
 	 * Toggles expansion on the group
 	 *
 	 * @param bExpand	true to expand the group, false to collapse

@@ -115,7 +115,7 @@ private:
 class FFreeTypeFace
 {
 public:
-	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, TArray<uint8>&& InMemory);
+	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, FFontFaceDataConstRef InMemory);
 	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, const FString& InFilename);
 	~FFreeTypeFace();
 
@@ -151,7 +151,7 @@ private:
 
 #if WITH_FREETYPE
 	FT_Face FTFace;
-	TArray<uint8> Memory;
+	FFontFaceDataConstPtr Memory;
 
 	/** Custom FreeType stream handler for reading font data via the Unreal File System */
 	struct FFTStreamHandler

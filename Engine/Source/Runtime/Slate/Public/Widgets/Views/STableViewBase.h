@@ -100,6 +100,9 @@ public:
 	/** Scrolls the view to the bottom */
 	void ScrollToBottom();
 
+	/** Gets the scroll offset of this view (in items) */
+	float GetScrollOffset() const;
+
 	/** Set the scroll offset of this view (in items) */
 	void SetScrollOffset( const float InScrollOffset );
 

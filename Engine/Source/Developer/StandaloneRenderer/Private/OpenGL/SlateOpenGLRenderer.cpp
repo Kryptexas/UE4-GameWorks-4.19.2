@@ -282,3 +282,21 @@ ISlateAtlasProvider* FSlateOpenGLRenderer::GetTextureAtlasProvider()
 
 	return nullptr;
 }
+
+int32 FSlateOpenGLRenderer::RegisterCurrentScene(FSceneInterface* Scene) 
+{
+	// This is a no-op
+	return -1;
+}
+
+int32 FSlateOpenGLRenderer::GetCurrentSceneIndex() const
+{
+	// This is a no-op
+	return -1;
+}
+
+
+void FSlateOpenGLRenderer::ClearScenes() 
+{
+	// This is a no-op
+}

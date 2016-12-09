@@ -4,7 +4,13 @@
 
 #include "CoreMinimal.h"
 
+
 class FSlateFontServices;
+class FSlateElementBatch;
+class FSlateShaderResource;
+struct FSlateVertex;
+class FSceneInterface;
+
 
 /**
  * Abstract base class for Slate rendering policies.
@@ -18,13 +24,13 @@ public:
 	 *
 	 * @param InPixelCenterOffset
 	 */
-	FSlateRenderingPolicy( const TSharedRef<class FSlateFontServices>& InFontServices, float InPixelCenterOffset )
-		: FontServices( InFontServices )
-		, PixelCenterOffset( InPixelCenterOffset )
+	FSlateRenderingPolicy(const TSharedRef<class FSlateFontServices>& InFontServices, float InPixelCenterOffset)
+		: FontServices(InFontServices)
+		, PixelCenterOffset(InPixelCenterOffset)
 	{ }
 
 	/** Virtual destructor. */
-	virtual ~FSlateRenderingPolicy( ) { }
+	virtual ~FSlateRenderingPolicy() { }
 
 	TSharedRef<class FSlateFontCache> GetFontCache() const;
 	TSharedRef<class FSlateFontServices> GetFontServices() const;
@@ -37,6 +43,10 @@ public:
 	{
 		return PixelCenterOffset;
 	}
+
+
+	virtual void AddSceneAt(FSceneInterface* Scene, int32 Index){};
+	virtual void ClearScenes() {};
 
 private:
 

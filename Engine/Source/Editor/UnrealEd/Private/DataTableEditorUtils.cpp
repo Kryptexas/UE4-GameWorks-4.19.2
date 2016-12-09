@@ -196,6 +196,9 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 		return;
 	}
 
+	TArray<FDataTableEditorColumnHeaderDataPtr> OldColumns = OutAvailableColumns;
+	TArray<FDataTableEditorRowListViewDataPtr> OldRows = OutAvailableRows;
+
 	// First build array of properties
 	TArray<const UProperty*> StructProps;
 	for (TFieldIterator<const UProperty> It(DataTable->RowStruct); It; ++It)
@@ -211,11 +214,25 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 
 	// Populate the column data
 	OutAvailableColumns.Reset(StructProps.Num());
-	for (const UProperty* Prop : StructProps)
+	for (int32 Index = 0; Index < StructProps.Num(); ++Index)
 	{
-		FDataTableEditorColumnHeaderDataPtr CachedColumnData = MakeShareable(new FDataTableEditorColumnHeaderData());
-		CachedColumnData->ColumnId = Prop->GetFName();
-		CachedColumnData->DisplayName = FText::FromString(DataTableUtils::GetPropertyDisplayName(Prop, Prop->GetName()));
+		const UProperty* Prop = StructProps[Index];
+		const FText PropertyDisplayName = FText::FromString(DataTableUtils::GetPropertyDisplayName(Prop, Prop->GetName()));
+
+		FDataTableEditorColumnHeaderDataPtr CachedColumnData;
+		
+		// If at all possible, attempt to reuse previous columns if their data has not changed
+		if (Index >= OldColumns.Num() || OldColumns[Index]->ColumnId != Prop->GetFName() || !OldColumns[Index]->DisplayName.EqualTo(PropertyDisplayName))
+		{
+			CachedColumnData = MakeShareable(new FDataTableEditorColumnHeaderData());
+			CachedColumnData->ColumnId = Prop->GetFName();
+			CachedColumnData->DisplayName = PropertyDisplayName;
+		}
+		else
+		{
+			CachedColumnData = OldColumns[Index];
+		}
+
 		CachedColumnData->DesiredColumnWidth = FontMeasure->Measure(CachedColumnData->DisplayName, CellTextStyle.Font).X + CellPadding;
 
 		OutAvailableColumns.Add(CachedColumnData);
@@ -223,14 +240,29 @@ void FDataTableEditorUtils::CacheDataTableForEditing(const UDataTable* DataTable
 
 	// Populate the row data
 	OutAvailableRows.Reset(DataTable->RowMap.Num());
-	for (auto RowIt = DataTable->RowMap.CreateConstIterator(); RowIt; ++RowIt)
+	int32 Index = 0;
+	for (auto RowIt = DataTable->RowMap.CreateConstIterator(); RowIt; ++RowIt, ++Index)
 	{
-		FDataTableEditorRowListViewDataPtr CachedRowData = MakeShareable(new FDataTableEditorRowListViewData());
-		CachedRowData->RowId = RowIt->Key;
-		CachedRowData->DisplayName = FText::FromName(RowIt->Key);
+		FText RowName = FText::FromName(RowIt->Key);
+		FDataTableEditorRowListViewDataPtr CachedRowData;
+
+		// If at all possible, attempt to reuse previous rows if their data has not changed.
+		if (Index >= OldRows.Num() || OldRows[Index]->RowId != RowIt->Key || !OldRows[Index]->DisplayName.EqualTo(RowName))
+		{
+			CachedRowData = MakeShareable(new FDataTableEditorRowListViewData());
+			CachedRowData->RowId = RowIt->Key;
+			CachedRowData->DisplayName = RowName;
+			CachedRowData->CellData.Reserve(StructProps.Num());
+		}
+		else
+		{
+			CachedRowData = OldRows[Index];
+			CachedRowData->CellData.Reset(StructProps.Num());
+		}
+
 		CachedRowData->DesiredRowHeight = FontMeasure->GetMaxCharacterHeight(CellTextStyle.Font);
 
-		CachedRowData->CellData.Reserve(StructProps.Num());
+		// Always rebuild cell data
 		{
 			uint8* RowData = RowIt.Value();
 			for (int32 ColumnIndex = 0; ColumnIndex < StructProps.Num(); ++ColumnIndex)

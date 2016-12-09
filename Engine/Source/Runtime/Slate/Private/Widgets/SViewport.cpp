@@ -137,14 +137,22 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 			Brush = FCoreStyle::Get().GetBrush(TEXT("SoftwareCursor_CardinalCross"));
 		}
 
+		FVector2D CursorPositionLocalSpace = ViewportInterfacePin->GetSoftwareCursorPosition() / AllottedGeometry.Scale;
+
 		LayerId++;
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId,
-			AllottedGeometry.ToPaintGeometry( ViewportInterfacePin->GetSoftwareCursorPosition() - ( Brush->ImageSize / 2 ), Brush->ImageSize ),
+			AllottedGeometry.ToPaintGeometry( CursorPositionLocalSpace - ( Brush->ImageSize / 2 ), Brush->ImageSize ),
 			Brush,
 			MyClippingRect
 		);
+	}
+
+	// If there are any custom hit testable widgets in the 3D world we need to register their custom hit test path here.
+	if ( CustomHitTestPath.IsValid() )
+	{
+		Args.InsertCustomHitTestPath(CustomHitTestPath.ToSharedRef(), LastHitTestIndex);
 	}
 
 	return Layer;
@@ -260,6 +268,16 @@ void SViewport::SetContent( TSharedPtr<SWidget> InContent )
 	];
 }
 
+void SViewport::SetCustomHitTestPath( TSharedPtr<ICustomHitTestPath> InCustomHitTestPath )
+{
+	CustomHitTestPath = InCustomHitTestPath;
+}
+
+TSharedPtr<ICustomHitTestPath> SViewport::GetCustomHitTestPath()
+{
+	return CustomHitTestPath;
+}
+
 void SViewport::OnWindowClosed( const TSharedRef<SWindow>& WindowBeingClosed )
 {
 	if (ViewportInterface.IsValid())
@@ -331,6 +349,25 @@ void SViewport::OnFinishedPointerInput()
 	{
 		PinnedInterface->OnFinishedPointerInput();
 	}
+}
+
+void SViewport::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
+{
+	SCompoundWidget::OnArrangeChildren(AllottedGeometry, ArrangedChildren);
+	if( ArrangedChildren.Allows3DWidgets() && CustomHitTestPath.IsValid() )
+	{
+		CustomHitTestPath->ArrangeChildren( ArrangedChildren );
+	}
+}
+
+TSharedPtr<FVirtualPointerPosition> SViewport::TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const
+{
+	if( CustomHitTestPath.IsValid() )
+	{
+		return CustomHitTestPath->TranslateMouseCoordinateFor3DChild( ChildWidget, MyGeometry, ScreenSpaceMouseCoordinate, LastScreenSpaceMouseCoordinate );
+	}
+
+	return nullptr;
 }
 
 FNavigationReply SViewport::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)

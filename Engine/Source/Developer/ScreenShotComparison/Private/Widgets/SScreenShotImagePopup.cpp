@@ -13,7 +13,7 @@
 void SScreenShotImagePopup::Construct( const FArguments& InArgs )
 {
 	// Load the image
-	DynamicImageBrush = MakeShareable(new FSlateDynamicImageBrush( InArgs._ImageAssetName, InArgs._ImageSize ) );
+	DynamicImageBrush = InArgs._ImageBrush;
 
 	// Create the screen shot popup widget.
 	ChildSlot

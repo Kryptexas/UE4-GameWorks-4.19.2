@@ -477,6 +477,8 @@ void SClassPropertyEntryBox::Construct(const FArguments& InArgs)
 				.AllowAbstract(InArgs._AllowAbstract)
 				.IsBlueprintBaseOnly(InArgs._IsBlueprintBaseOnly)
 				.AllowNone(InArgs._AllowNone)
+				.ShowViewOptions(!InArgs._HideViewOptions)
+				.ShowTree(InArgs._ShowTreeView)
 				.SelectedClass(InArgs._SelectedClass)
 				.OnSetClass(InArgs._OnSetClass)
 		]
@@ -1003,6 +1005,9 @@ void FMaterialList::Tick( float DeltaTime )
 
 void FMaterialList::GenerateHeaderRowContent( FDetailWidgetRow& NodeRow )
 {
+	NodeRow.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FMaterialList::OnCopyMaterialList), FCanExecuteAction::CreateSP(this, &FMaterialList::OnCanCopyMaterialList)));
+	NodeRow.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FMaterialList::OnPasteMaterialList)));
+
 	if (bAllowCollpase)
 	{
 		NodeRow.NameContent()
@@ -1104,6 +1109,58 @@ void FMaterialList::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilde
 		];
 	}		
 }
+
+bool FMaterialList::OnCanCopyMaterialList() const
+{
+	if (MaterialListDelegates.OnCanCopyMaterialList.IsBound())
+	{
+		return MaterialListDelegates.OnCanCopyMaterialList.Execute();
+	}
+
+	return false;
+}
+
+void FMaterialList::OnCopyMaterialList()
+{
+	if (MaterialListDelegates.OnCopyMaterialList.IsBound())
+	{
+		MaterialListDelegates.OnCopyMaterialList.Execute();
+	}
+}
+
+void FMaterialList::OnPasteMaterialList()
+{
+	if (MaterialListDelegates.OnPasteMaterialList.IsBound())
+	{
+		MaterialListDelegates.OnPasteMaterialList.Execute();
+	}
+}
+
+bool FMaterialList::OnCanCopyMaterialItem(int32 CurrentSlot) const
+{
+	if (MaterialListDelegates.OnCanCopyMaterialItem.IsBound())
+	{
+		return MaterialListDelegates.OnCanCopyMaterialItem.Execute(CurrentSlot);
+	}
+
+	return false;
+}
+
+void FMaterialList::OnCopyMaterialItem(int32 CurrentSlot)
+{
+	if (MaterialListDelegates.OnCopyMaterialItem.IsBound())
+	{
+		MaterialListDelegates.OnCopyMaterialItem.Execute(CurrentSlot);
+	}
+}
+
+void FMaterialList::OnPasteMaterialItem(int32 CurrentSlot)
+{
+	if (MaterialListDelegates.OnPasteMaterialItem.IsBound())
+	{
+		MaterialListDelegates.OnPasteMaterialItem.Execute(CurrentSlot);
+	}
+}
 			
 void FMaterialList::AddMaterialItem( FDetailWidgetRow& Row, int32 CurrentSlot, const FMaterialListItem& Item, bool bDisplayLink )
 {
@@ -1134,6 +1191,9 @@ void FMaterialList::AddMaterialItem( FDetailWidgetRow& Row, int32 CurrentSlot, c
 		RightSideContent = NewView->CreateValueContent( DetailLayoutBuilder.GetThumbnailPool() );
 		ViewedMaterials.Add( NewView );
 	}
+
+	Row.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FMaterialList::OnCopyMaterialItem, Item.SlotIndex), FCanExecuteAction::CreateSP(this, &FMaterialList::OnCanCopyMaterialItem, Item.SlotIndex)));
+	Row.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FMaterialList::OnPasteMaterialItem, Item.SlotIndex)));
 
 	Row.NameContent()
 	[
@@ -1696,6 +1756,9 @@ void FSectionList::Tick(float DeltaTime)
 
 void FSectionList::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
+	NodeRow.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnCopySectionList), FCanExecuteAction::CreateSP(this, &FSectionList::OnCanCopySectionList)));
+	NodeRow.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnPasteSectionList)));
+
 	NodeRow.NameContent()
 	[
 		SNew(STextBlock)
@@ -1748,6 +1811,58 @@ void FSectionList::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 	}
 }
 
+bool FSectionList::OnCanCopySectionList() const
+{
+	if (SectionListDelegates.OnCanCopySectionList.IsBound())
+	{
+		return SectionListDelegates.OnCanCopySectionList.Execute();
+	}
+
+	return false;
+}
+
+void FSectionList::OnCopySectionList()
+{
+	if (SectionListDelegates.OnCopySectionList.IsBound())
+	{
+		SectionListDelegates.OnCopySectionList.Execute();
+	}
+}
+
+void FSectionList::OnPasteSectionList()
+{
+	if (SectionListDelegates.OnPasteSectionList.IsBound())
+	{
+		SectionListDelegates.OnPasteSectionList.Execute();
+	}
+}
+
+bool FSectionList::OnCanCopySectionItem(int32 LODIndex, int32 SectionIndex) const
+{
+	if (SectionListDelegates.OnCanCopySectionItem.IsBound())
+	{
+		return SectionListDelegates.OnCanCopySectionItem.Execute(LODIndex, SectionIndex);
+	}
+
+	return false;
+}
+
+void FSectionList::OnCopySectionItem(int32 LODIndex, int32 SectionIndex)
+{
+	if (SectionListDelegates.OnCopySectionItem.IsBound())
+	{
+		SectionListDelegates.OnCopySectionItem.Execute(LODIndex, SectionIndex);
+	}
+}
+
+void FSectionList::OnPasteSectionItem(int32 LODIndex, int32 SectionIndex)
+{
+	if (SectionListDelegates.OnPasteSectionItem.IsBound())
+	{
+		SectionListDelegates.OnPasteSectionItem.Execute(LODIndex, SectionIndex);
+	}
+}
+
 void FSectionList::AddSectionItem(FDetailWidgetRow& Row, int32 LodIndex, const struct FSectionListItem& Item, bool bDisplayLink)
 {
 	uint32 NumSections = SectionListBuilder->GetNumSections(LodIndex);
@@ -1777,6 +1892,9 @@ void FSectionList::AddSectionItem(FDetailWidgetRow& Row, int32 LodIndex, const s
 		RightSideContent = NewView->CreateValueContent(DetailLayoutBuilder.GetThumbnailPool());
 		ViewedSections.Add(NewView);
 	}
+
+	Row.CopyAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnCopySectionItem, LodIndex, Item.SectionIndex), FCanExecuteAction::CreateSP(this, &FSectionList::OnCanCopySectionItem, LodIndex, Item.SectionIndex)));
+	Row.PasteAction(FUIAction(FExecuteAction::CreateSP(this, &FSectionList::OnPasteSectionItem, LodIndex, Item.SectionIndex)));
 
 	Row.NameContent()
 		[

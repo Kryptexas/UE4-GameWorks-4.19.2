@@ -102,6 +102,7 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 					.ForegroundColor(InArgs._ForegroundColor)
 					.SelectAllTextWhenFocused(false)
 					.ClearKeyboardFocusOnCommit(false)
+					.OnTextChanged(this, &STextPropertyEditableTextBox::OnTextChanged)
 					.OnTextCommitted(this, &STextPropertyEditableTextBox::OnTextCommitted)
 					.SelectAllTextOnCommit(false)
 					.IsReadOnly(this, &STextPropertyEditableTextBox::IsReadOnly)
@@ -134,6 +135,7 @@ void STextPropertyEditableTextBox::Construct(const FArguments& InArgs, const TSh
 					.ForegroundColor(InArgs._ForegroundColor)
 					.SelectAllTextWhenFocused(true)
 					.ClearKeyboardFocusOnCommit(false)
+					.OnTextChanged(this, &STextPropertyEditableTextBox::OnTextChanged)
 					.OnTextCommitted(this, &STextPropertyEditableTextBox::OnTextCommitted)
 					.SelectAllTextOnCommit(true)
 					.IsReadOnly(this, &STextPropertyEditableTextBox::IsReadOnly)
@@ -383,7 +385,13 @@ FText STextPropertyEditableTextBox::GetToolTipText() const
 
 		if (bIsLocalized)
 		{
-			LocalizedTextToolTip = FText::Format(LOCTEXT("LocalizedTextToolTipFmt", "--- Localized Text ---\nNamespace: {0}\nKey: {1}\nSource: {2}"), FText::FromString(Namespace), FText::FromString(Key), FText::FromString(*SourceString));
+			const FString PackageNamespace = TextNamespaceUtil::ExtractPackageNamespace(Namespace);
+			const FString TextNamespace = TextNamespaceUtil::StripPackageNamespace(Namespace);
+
+			LocalizedTextToolTip = FText::Format(
+				LOCTEXT("LocalizedTextToolTipFmt", "--- Localized Text ---\nPackage: {0}\nNamespace: {1}\nKey: {2}\nSource: {3}"), 
+				FText::FromString(PackageNamespace), FText::FromString(TextNamespace), FText::FromString(Key), FText::FromString(*SourceString)
+				);
 		}
 	}
 	
@@ -417,13 +425,42 @@ FText STextPropertyEditableTextBox::GetTextValue() const
 	return TextValue;
 }
 
+void STextPropertyEditableTextBox::OnTextChanged(const FText& NewText)
+{
+	const int32 NumTexts = EditableTextProperty->GetNumTexts();
+
+	FText TextErrorMsg;
+
+	// Don't validate the Multiple Values text if there are multiple properties being set
+	if (NumTexts > 0 && (NumTexts == 1 || NewText.ToString().Equals(MultipleValuesText.ToString(), ESearchCase::CaseSensitive)))
+	{
+		EditableTextProperty->IsValidText(NewText, TextErrorMsg);
+	}
+
+	// Update or clear the error message
+	SetTextError(TextErrorMsg);
+}
+
 void STextPropertyEditableTextBox::OnTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo)
 {
 	const int32 NumTexts = EditableTextProperty->GetNumTexts();
 
 	// Don't commit the Multiple Values text if there are multiple properties being set
-	if (NumTexts > 0 && (NumTexts == 1 || NewText.ToString() != MultipleValuesText.ToString()))
+	if (NumTexts > 0 && (NumTexts == 1 || NewText.ToString().Equals(MultipleValuesText.ToString(), ESearchCase::CaseSensitive)))
 	{
+		FText TextErrorMsg;
+		if (EditableTextProperty->IsValidText(NewText, TextErrorMsg))
+		{
+			// Valid text; clear any error
+			SetTextError(FText::GetEmpty());
+		}
+		else
+		{
+			// Invalid text; set the error and prevent the new text from being set
+			SetTextError(TextErrorMsg);
+			return;
+		}
+
 		const FString& SourceString = NewText.ToString();
 		for (int32 TextIndex = 0; TextIndex < NumTexts; ++TextIndex)
 		{
@@ -477,6 +514,19 @@ void STextPropertyEditableTextBox::OnTextCommitted(const FText& NewText, ETextCo
 
 			EditableTextProperty->SetText(TextIndex, FText::ChangeKey(NewNamespace, NewKey, NewText));
 		}
+	}
+}
+
+void STextPropertyEditableTextBox::SetTextError(const FText& InErrorMsg)
+{
+	if (MultiLineWidget.IsValid())
+	{
+		MultiLineWidget->SetError(InErrorMsg);
+	}
+
+	if (SingleLineWidget.IsValid())
+	{
+		SingleLineWidget->SetError(InErrorMsg);
 	}
 }
 

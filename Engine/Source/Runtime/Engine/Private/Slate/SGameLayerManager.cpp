@@ -190,7 +190,15 @@ float SGameLayerManager::GetGameViewportDPIScale() const
 	if ( const FSceneViewport* Viewport = SceneViewport.Get() )
 	{
 		FIntPoint ViewportSize = Viewport->GetSize();
-		return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(ViewportSize);
+		const float GameUIScale = GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(ViewportSize);
+
+		// Remove the platform DPI scale from the incoming size.  Since the platform DPI is already
+		// attempt to normalize the UI for a high DPI, and the DPI scale curve is based on raw resolution
+		// for what a assumed platform scale of 1, extract that scale the calculated scale, since that will
+		// already be applied by slate.
+		const float FinalUIScale = GameUIScale / Viewport->GetCachedGeometry().Scale;
+
+		return FinalUIScale;
 	}
 
 	return 1;

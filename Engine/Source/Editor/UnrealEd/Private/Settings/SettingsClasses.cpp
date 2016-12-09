@@ -10,11 +10,13 @@
 #include "EditorStyleSettings.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "Model.h"
+#include "ISourceControlModule.h"
 #include "Settings/ContentBrowserSettings.h"
 #include "Settings/DestructableMeshEditorSettings.h"
 #include "Settings/LevelEditorPlaySettings.h"
 #include "Settings/LevelEditorViewportSettings.h"
-#include "ISourceControlModule.h"
+#include "Settings/EditorProjectSettings.h"
+#include "Settings/ClassViewerSettings.h"
 #include "Settings/EditorExperimentalSettings.h"
 #include "Settings/EditorLoadingSavingSettings.h"
 #include "Settings/EditorMiscSettings.h"
@@ -29,10 +31,7 @@
 #include "CrashReporterSettings.h"
 #include "AutoReimport/AutoReimportUtilities.h"
 
-#include "Settings/EditorProjectSettings.h"
-
 #include "SourceCodeNavigation.h"
-
 #include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 
 #define LOCTEXT_NAMESPACE "SettingsClasses"
@@ -64,6 +63,32 @@ void UContentBrowserSettings::PostEditChangeProperty( struct FPropertyChangedEve
 	SettingChangedEvent.Broadcast(Name);
 }
 
+/* UClassViewerSettings interface
+*****************************************************************************/
+
+UClassViewerSettings::FSettingChangedEvent UClassViewerSettings::SettingChangedEvent;
+
+UClassViewerSettings::UClassViewerSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+
+void UClassViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
+
+	if (!FUnrealEdMisc::Get().IsDeletePreferences())
+	{
+		SaveConfig();
+	}
+
+	SettingChangedEvent.Broadcast(Name);
+}
 
 /* UDestructableMeshEditorSettings interface
  *****************************************************************************/

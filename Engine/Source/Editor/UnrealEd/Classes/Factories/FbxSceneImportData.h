@@ -43,6 +43,9 @@ public:
 	/* Is the original import create a folder hierarchy */
 	bool bCreateFolderHierarchy;
 
+	/* Is the original import force front X axis */
+	bool bForceFrontXAxis;
+
 	/* Which type of hierarchy was create see */
 	int32 HierarchyType;
 

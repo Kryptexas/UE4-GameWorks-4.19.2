@@ -22,8 +22,9 @@ bool UAutomatedAssetImportData::IsValid() const
 	return Filenames.Num() > 0 && !DestinationPath.IsEmpty() && (FactoryName.IsEmpty() || Factory != nullptr);
 }
 
-void UAutomatedAssetImportData::Initialize()
+void UAutomatedAssetImportData::Initialize(TSharedPtr<FJsonObject> InImportGroupJsonData)
 {
+	ImportGroupJsonData = InImportGroupJsonData;
 	if(Filenames.Num() > 0)
 	{
 		// IF a factory doesn't have a vaild full path assume it is an unreal internal factory

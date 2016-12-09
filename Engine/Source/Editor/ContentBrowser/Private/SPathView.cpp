@@ -780,7 +780,8 @@ TSharedPtr<struct FTreeItem> SPathView::AddRootItem( const FString& InFolderName
 	}
 
 	if ( (bDisplayEngine || !ContentBrowserUtils::IsEngineFolder(InFolderName)) && 
-		 (bDisplayPlugins || !ContentBrowserUtils::IsPluginFolder(InFolderName)) )
+ 		 ((bDisplayEngine && bDisplayPlugins) || !ContentBrowserUtils::IsPluginFolder(InFolderName, EPluginLoadedFrom::Engine)) &&
+		 (bDisplayPlugins || !ContentBrowserUtils::IsPluginFolder(InFolderName, EPluginLoadedFrom::GameProject)) )
 		{
 			const FText DisplayName = ContentBrowserUtils::GetRootDirDisplayName(InFolderName);
 			NewItem = MakeShareable( new FTreeItem(DisplayName, InFolderName, FString(TEXT("/")) + InFolderName, TSharedPtr<FTreeItem>()));

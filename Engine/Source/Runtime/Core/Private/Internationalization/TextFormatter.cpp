@@ -50,7 +50,7 @@ FORCEINLINE bool IsLiteralBreakChar(const TCHAR InChar)
 /** Token representing a literal string inside the text */
 struct FStringLiteral
 {
-	FStringLiteral(const FStringToken& InString)
+	explicit FStringLiteral(const FStringToken& InString)
 		: StringStartPos(InString.GetTokenStartPos())
 		, StringLen(InString.GetTokenEndPos() - InString.GetTokenStartPos())
 	{
@@ -66,7 +66,7 @@ struct FStringLiteral
 /** Token representing a format argument */
 struct FArgumentTokenSpecifier
 {
-	FArgumentTokenSpecifier(const FStringToken& InArgument)
+	explicit FArgumentTokenSpecifier(const FStringToken& InArgument)
 		: ArgumentNameStartPos(InArgument.GetTokenStartPos())
 		, ArgumentNameLen(InArgument.GetTokenEndPos() - InArgument.GetTokenStartPos())
 		, ArgumentIndex(INDEX_NONE)
@@ -105,10 +105,18 @@ struct FArgumentTokenSpecifier
 /** Token representing a format argument modifier */
 struct FArgumentModifierTokenSpecifier
 {
-	FArgumentModifierTokenSpecifier(TSharedRef<ITextFormatArgumentModifier> InTextFormatArgumentModifier)
-		: TextFormatArgumentModifier(MoveTemp(InTextFormatArgumentModifier))
+	FArgumentModifierTokenSpecifier(const FStringToken& InModifierPatternWithPipe, TSharedRef<ITextFormatArgumentModifier> InTextFormatArgumentModifier)
+		: ModifierPatternStartPos(InModifierPatternWithPipe.GetTokenStartPos() + 1) // We don't want to store the pipe
+		, ModifierPatternLen(InModifierPatternWithPipe.GetTokenEndPos() - InModifierPatternWithPipe.GetTokenStartPos() - 1)
+		, TextFormatArgumentModifier(MoveTemp(InTextFormatArgumentModifier))
 	{
 	}
+
+	/** The start of the pattern this modifier was generated from */
+	const TCHAR* ModifierPatternStartPos;
+
+	/** The length of the pattern this modifier was generated from */
+	int32 ModifierPatternLen;
 
 	/** The compiled argument modifier that should be evaluated */
 	TSharedRef<ITextFormatArgumentModifier> TextFormatArgumentModifier;
@@ -117,7 +125,7 @@ struct FArgumentModifierTokenSpecifier
 /** Token representing an escaped character */
 struct FEscapedCharacter
 {
-	FEscapedCharacter(TCHAR InChar)
+	explicit FEscapedCharacter(TCHAR InChar)
 		: Character(InChar)
 	{
 	}
@@ -259,7 +267,7 @@ TOptional<FExpressionError> ParseArgumentModifier(FExpressionTokenConsumer& Cons
 	}
 
 	// Add the token to the consumer - this moves the read position in the stream to the end of the token
-	Consumer.Add(EntireToken, FArgumentModifierTokenSpecifier(CompiledTextArgumentModifier.ToSharedRef()));
+	Consumer.Add(EntireToken, FArgumentModifierTokenSpecifier(EntireToken, CompiledTextArgumentModifier.ToSharedRef()));
 	return TOptional<FExpressionError>();
 }
 
@@ -669,6 +677,7 @@ void FTextFormatData::ConditionalCompile_NoLock()
 
 	if (bRequiresCompile)
 	{
+		bRequiresCompile = false;
 		if (!CompiledTextSnapshot.IdenticalTo(SourceText))
 		{
 			if (!CompiledTextSnapshot.IsDisplayStringEqualTo(SourceText))
@@ -687,6 +696,11 @@ void FTextFormatData::ConditionalCompile_NoLock()
 
 FString FTextFormatData::Format_NoLock(const FPrivateTextFormatArguments& InFormatArgs)
 {
+	if (SourceType == ESourceType::Text && InFormatArgs.bRebuildText)
+	{
+		SourceText.Rebuild();
+	}
+
 	ConditionalCompile_NoLock();
 
 	if (LexedExpression.Num() == 0)
@@ -736,6 +750,13 @@ FString FTextFormatData::Format_NoLock(const FPrivateTextFormatArguments& InForm
 				ResultString.AppendChars(ArgumentToken->ArgumentNameStartPos, ArgumentToken->ArgumentNameLen);
 				ResultString.AppendChar(TextFormatTokens::ArgEndChar);
 			}
+		}
+		else if (const auto* ArgumentModifierToken = Token.Node.Cast<TextFormatTokens::FArgumentModifierTokenSpecifier>())
+		{
+			// If we find an argument modifier token on its own then it means an argument value failed to evaluate (likely due to InFormatArgs.GetArgumentValue returning null)
+			// In this case we just write the literal value of the argument modifier back into the final string...
+			ResultString.AppendChar(TextFormatTokens::ArgModChar);
+			ResultString.AppendChars(ArgumentModifierToken->ModifierPatternStartPos, ArgumentModifierToken->ModifierPatternLen);
 		}
 	}
 
@@ -939,7 +960,23 @@ FText FTextFormatter::Format(FTextFormat&& InFmt, TArray<FFormatArgumentData>&& 
 
 FString FTextFormatter::Format(const FTextFormat& InFmt, const FPrivateTextFormatArguments& InFormatArgs)
 {
-	return InFmt.TextFormatData->Format(InFormatArgs);
+	FTextFormat FmtPattern = InFmt;
+
+	// If we're rebuilding as source then we need to handle that before we call Format
+	// We don't need to worry about any rebuilding that needs to happen as non-source, as Format takes care of that internally
+	if (InFormatArgs.bRebuildAsSource)
+	{
+		FText FmtText = InFmt.GetSourceText();
+
+		if (InFormatArgs.bRebuildText)
+		{
+			FmtText.Rebuild();
+		}
+
+		FmtPattern = FTextFormat(FmtText.BuildSourceString());
+	}
+
+	return FmtPattern.TextFormatData->Format(InFormatArgs);
 }
 
 void FTextFormatter::ArgumentValueToFormattedString(const FFormatArgumentValue& InValue, const FPrivateTextFormatArguments& InFormatArgs, FString& OutResult)

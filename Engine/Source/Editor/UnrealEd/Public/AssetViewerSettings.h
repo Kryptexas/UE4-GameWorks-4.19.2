@@ -9,7 +9,7 @@
 #include "UObject/ObjectRedirector.h"
 #include "Engine/Scene.h"
 #include "Engine/TextureCube.h"
-
+#include "EditorUndoClient.h"
 #include "AssetViewerSettings.generated.h"
 
 /**
@@ -118,11 +118,13 @@ struct FPreviewSceneProfile
 * Default asset viewer settings.
 */
 UCLASS(config=Editor, defaultconfig, meta=(DisplayName = "Asset Viewer"))
-class UNREALED_API UAssetViewerSettings : public UObject
+class UNREALED_API UAssetViewerSettings : public UObject, public FEditorUndoClient
 {
 	GENERATED_BODY()
 public:
 	UAssetViewerSettings();
+	virtual ~UAssetViewerSettings();
+
 	static UAssetViewerSettings* Get();
 	
 	/** Saves the config data out to the ini files */
@@ -134,10 +136,18 @@ public:
 	DECLARE_EVENT(UAssetViewerSettings, FOnAssetViewerProfileAddRemovedEvent);
 	FOnAssetViewerProfileAddRemovedEvent& OnAssetViewerProfileAddRemoved() { return OnAssetViewerProfileAddRemovedEvent; }
 
+	DECLARE_EVENT(UAssetViewerSettings, FOnAssetViewerSettingsPostUndo);
+	FOnAssetViewerSettingsPostUndo& OnAssetViewerSettingsPostUndo() { return OnAssetViewerSettingsPostUndoEvent; }
+
 	/** Begin UObject */
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostInitProperties() override;
 	/** End UObject */
+
+	/** Begin FEditorUndoClient */
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
+	/** End FEditorUndoClient */
 
 	/** Collection of scene profiles */
 	UPROPERTY(EditAnywhere, config, Category = Settings, meta=(ShowOnlyInnerProperties))
@@ -150,4 +160,6 @@ protected:
 	FOnAssetViewerSettingsChangedEvent OnAssetViewerSettingsChangedEvent;
 
 	FOnAssetViewerProfileAddRemovedEvent OnAssetViewerProfileAddRemovedEvent;
+
+	FOnAssetViewerSettingsPostUndo OnAssetViewerSettingsPostUndoEvent;
 };

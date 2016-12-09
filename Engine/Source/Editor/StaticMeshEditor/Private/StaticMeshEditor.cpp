@@ -1868,6 +1868,11 @@ void FStaticMeshEditor::OnObjectReimported(UObject* InObject)
 	if(StaticMesh == InObject)
 	{
 		SetEditorMesh(Cast<UStaticMesh>(InObject));
+
+		if (SocketManager.IsValid())
+		{
+			SocketManager->UpdateStaticMesh();
+		}
 	}
 }
 
@@ -1987,6 +1992,7 @@ void FStaticMeshEditor::RedoAction()
 void FStaticMeshEditor::PostUndo( bool bSuccess )
 {
 	RemoveInvalidPrims();
+	RefreshTool();
 
 	OnPostUndo.Broadcast();
 }
@@ -1994,6 +2000,7 @@ void FStaticMeshEditor::PostUndo( bool bSuccess )
 void FStaticMeshEditor::PostRedo( bool bSuccess )
 {
 	RemoveInvalidPrims();
+	RefreshTool();
 
 	OnPostUndo.Broadcast();
 }

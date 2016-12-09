@@ -57,7 +57,14 @@ struct SLATECORE_API FFontOutlineSettings
 	FFontOutlineSettings()
 		: OutlineSize(0)
 		, OutlineMaterial(nullptr)
-		, OutlineColor(FColor::Black)
+		, OutlineColor(FLinearColor::Black)
+		, bSeparateFillAlpha(false)
+	{}
+
+	FFontOutlineSettings(int32 InOutlineSize, FLinearColor InColor = FLinearColor::Black)
+		: OutlineSize(InOutlineSize)
+		, OutlineMaterial(nullptr)
+		, OutlineColor(InColor)
 		, bSeparateFillAlpha(false)
 	{}
 
@@ -140,7 +147,7 @@ public:
 	 * @param InSize The size of the font.
 	 * @param InTypefaceFontName The name of the font to use from the default typeface (None will use the first entry)
 	 */
-	FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont, const int32 InSize, const FName& InTypefaceFontName = NAME_None );
+	FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont, const int32 InSize, const FName& InTypefaceFontName = NAME_None, const FFontOutlineSettings& InOutlineSettings = FFontOutlineSettings());
 
 	/**
 	 * Creates and initializes a new instance with the specified font, size, and emphasis.
@@ -149,7 +156,7 @@ public:
 	 * @param InSize The size of the font.
 	 * @param InFamilyFontName The name of the font to use from the default typeface (None will use the first entry)
 	 */
-	FSlateFontInfo( const UObject* InFontObject, const int32 InSize, const FName& InTypefaceFontName = NAME_None );
+	FSlateFontInfo( const UObject* InFontObject, const int32 InSize, const FName& InTypefaceFontName = NAME_None, const FFontOutlineSettings& InOutlineSettings = FFontOutlineSettings());
 
 	/**
 	 * DEPRECATED - Creates and initializes a new instance with the specified font name and size.
@@ -158,7 +165,7 @@ public:
 	 * @param InSize The size of the font.
 	 * @param InHinting The type of hinting to use for the font.
 	 */
-	FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontHinting InHinting = EFontHinting::Default );
+	FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontHinting InHinting = EFontHinting::Default, const FFontOutlineSettings& InOutlineSettings = FFontOutlineSettings());
 
 	/**
 	 * DEPRECATED - Creates and initializes a new instance with the specified font name and size.

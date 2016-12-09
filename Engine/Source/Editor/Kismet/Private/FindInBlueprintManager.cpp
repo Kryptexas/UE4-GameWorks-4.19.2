@@ -32,6 +32,7 @@
 
 #include "Engine/SimpleConstructionScript.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "ImaginaryBlueprintData.h"
@@ -1347,6 +1348,7 @@ FFindInBlueprintSearchManager::~FFindInBlueprintSearchManager()
 		AssetRegistryModule->Get().OnAssetRemoved().RemoveAll(this);
 		AssetRegistryModule->Get().OnAssetRenamed().RemoveAll(this);
 	}
+	FKismetEditorUtilities::OnBlueprintUnloaded.RemoveAll(this);
 	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
 	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
 	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
@@ -1378,6 +1380,8 @@ void FFindInBlueprintSearchManager::Initialize()
 			UE_LOG(LogBlueprint, Warning, TEXT("Find-in-Blueprints could not pre-cache all unloaded Blueprints due to the Asset Registry module being unable to initialize because a package is currently being saved. Pre-cache will not be reattempted!"));
 		}
 	}
+
+	FKismetEditorUtilities::OnBlueprintUnloaded.AddRaw(this, &FFindInBlueprintSearchManager::OnBlueprintUnloaded);
 
 	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::PauseFindInBlueprintSearch);
 	FCoreUObjectDelegates::PostGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::UnpauseFindInBlueprintSearch);
@@ -1591,6 +1595,11 @@ void FFindInBlueprintSearchManager::OnAssetLoaded(UObject* InAsset)
 	}
 }
 
+void FFindInBlueprintSearchManager::OnBlueprintUnloaded(UBlueprint* InBlueprint)
+{
+	RemoveBlueprintByPath(*InBlueprint->GetPathName());
+}
+
 void FFindInBlueprintSearchManager::OnHotReload(bool bWasTriggeredAutomatically)
 {
 	CachedAssetClasses.Reset();
@@ -1721,10 +1730,10 @@ void FFindInBlueprintSearchManager::AddOrUpdateBlueprintSearchMetadata(UBlueprin
 	else
 	{
 		Index = *IndexPtr;
+		SearchArray[Index].Blueprint = InBlueprint; // Blueprint instance may change due to reloading
 	}
 
 	// Build the search data
-	SearchArray[Index].BlueprintPath = BlueprintPath;
 	if (UProperty* ParentClassProp = InBlueprint->GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UBlueprint, ParentClass)))
 	{
 		ParentClassProp->ExportTextItem(SearchArray[Index].ParentClass, ParentClassProp->ContainerPtrToValuePtr<uint8>(InBlueprint), nullptr, InBlueprint, 0);

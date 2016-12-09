@@ -351,6 +351,20 @@ public:
 	 */
 	float SizeSquared3() const;
 
+	/**
+	 * Get the length (magnitude) of this vector, taking the W component into account
+	 *
+	 * @return The length of this vector
+	 */
+	float Size() const;
+
+	/**
+	 * Get the squared length of this vector, taking the W component into account
+	 *
+	 * @return The squared length of this vector
+	 */
+	float SizeSquared() const;
+
 	/** Utility to check if there are any non-finite values (NaN or Inf) in this vector. */
 	bool ContainsNaN() const;
 
@@ -634,6 +648,16 @@ FORCEINLINE float FVector4::Size3() const
 FORCEINLINE float FVector4::SizeSquared3() const
 {
 	return X*X + Y*Y + Z*Z;
+}
+
+FORCEINLINE float FVector4::Size() const
+{
+	return FMath::Sqrt(X*X + Y*Y + Z*Z + W*W);
+}
+
+FORCEINLINE float FVector4::SizeSquared() const
+{
+	return X*X + Y*Y + Z*Z + W*W;
 }
 
 

@@ -90,11 +90,13 @@ void FPersonaToolkit::CreatePreviewScene()
 		PersonaModule.OnPreviewSceneCreated().Broadcast(PreviewScene.ToSharedRef());
 
 		bool bSetMesh = false;
+		USkeletalMesh* SkeletonPreviewMesh = nullptr;
 
 		// Set the mesh
 		if (Mesh != nullptr)
 		{
 			PreviewScene->SetPreviewMesh(Mesh);
+			SkeletonPreviewMesh = Mesh;
 			bSetMesh = true;
 		}
 		else if (AnimationAsset != nullptr)
@@ -103,6 +105,7 @@ void FPersonaToolkit::CreatePreviewScene()
 			if (AssetMesh)
 			{
 				PreviewScene->SetPreviewMesh(AssetMesh);
+				SkeletonPreviewMesh = AssetMesh;
 				bSetMesh = true;
 			}
 		}
@@ -114,8 +117,11 @@ void FPersonaToolkit::CreatePreviewScene()
 			if (PreviewMesh)
 			{
 				PreviewScene->SetPreviewMesh(PreviewMesh);
+				SkeletonPreviewMesh = PreviewMesh;
 			}
 		}
+
+		EditableSkeleton->SetPreviewMesh(SkeletonPreviewMesh);
 	}
 }
 

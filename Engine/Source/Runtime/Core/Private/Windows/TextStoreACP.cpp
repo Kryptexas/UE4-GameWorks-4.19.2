@@ -567,22 +567,20 @@ STDAPI FTextStoreACP::QueryInsert(LONG acpInsertStart, LONG acpInsertEnd, ULONG 
 {
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("QueryInsert"));
 
-	const LONG StringLength = TextContext->GetTextLength();
-
-	// Query range is invalid.
-	if(acpInsertStart < 0 || acpInsertStart > StringLength || acpInsertEnd < 0 || acpInsertEnd > StringLength)
-	{
-		return E_INVALIDARG;
-	}
-
 	// Can't successfully query if there's nowhere to write a result.
 	if(!pacpResultStart || !pacpResultEnd)
 	{
 		return E_INVALIDARG;
 	}
 
-	*pacpResultStart = acpInsertStart;
-	*pacpResultEnd = acpInsertEnd;
+	uint32 BeginIndex;
+	uint32 Length;
+	ITextInputMethodContext::ECaretPosition CaretPosition;
+	TextContext->GetSelectionRange(BeginIndex, Length, CaretPosition);
+
+	// Workaround for Microsoft IMEs that expect QueryInsert to return the current selection range (since they omit a call to GetSelection).
+	*pacpResultStart = static_cast<LONG>(BeginIndex);
+	*pacpResultEnd = static_cast<LONG>(BeginIndex + Length);
 
 	return S_OK;
 }

@@ -591,13 +591,15 @@ void SDetailsView::SetObjectArrayPrivate(const TArray< TWeakObjectPtr< UObject >
 	{
 		// if the object is the default metaobject for a UClass, use the UClass's name instead
 		UObject* Object = RootPropertyNodes[0]->AsObjectNode()->GetUObject(0);
-		FString ObjectName = Object->GetName();
-		if ( Object->GetClass()->GetDefaultObject() == Object )
+
+		FString ObjectName;
+		if ( Object && Object->GetClass()->GetDefaultObject() == Object )
 		{
 			ObjectName = Object->GetClass()->GetName();
 		}
-		else
+		else if( Object )
 		{
+			ObjectName = Object->GetName();
 			// Is this an actor?  If so, it might have a friendly name to display
 			const AActor* Actor = Cast<const  AActor >( Object );
 			if( Actor != nullptr)

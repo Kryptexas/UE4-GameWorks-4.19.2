@@ -6,6 +6,7 @@
 #include "WidgetBlueprint.h"
 #include "KismetCompiler.h"
 
+
 //////////////////////////////////////////////////////////////////////////
 // FWidgetBlueprintCompiler
 
@@ -28,7 +29,7 @@ protected:
 	void ValidateWidgetNames();
 
 	// FKismetCompilerContext
-	//virtual UEdGraphSchema_K2* CreateSchema() override;
+	virtual UEdGraphSchema_K2* CreateSchema() override;
 	virtual void CreateFunctionList() override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
 	virtual void PrecompileFunction(FKismetFunctionContext& Context) override;
@@ -44,6 +45,8 @@ protected:
 
 protected:
 	UWidgetBlueprintGeneratedClass* NewWidgetBlueprintClass;
+
+	UWidgetGraphSchema* WidgetSchema;
 
 	// Map of properties created for widgets; to aid in debug data generation
 	TMap<class UWidget*, class UProperty*> WidgetToMemberVariableMap;

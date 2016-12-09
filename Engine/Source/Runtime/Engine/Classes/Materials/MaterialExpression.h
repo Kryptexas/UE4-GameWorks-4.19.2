@@ -248,6 +248,9 @@ class ENGINE_API UMaterialExpression : public UObject
 #if WITH_EDITOR
 	virtual uint32 GetInputType(int32 InputIndex);
 	virtual uint32 GetOutputType(int32 OutputIndex);
+
+	virtual FString GetCreationDescription() const;
+	virtual FString GetCreationName() const;
 #endif
 
 	/**
@@ -391,6 +394,15 @@ class ENGINE_API UMaterialExpression : public UObject
 	 * Only valid to call on a node that previously returned CanRenameNode() = true.
 	 */
 	virtual void SetEditableName(const FString& NewName);
+
+	/** 
+	* Parameter Name functions, this is requires as multiple class have ParameterName
+	* but are not UMaterialExpressionParameter due to class hierarchy. */
+	virtual bool HasAParameterName() const { return false; }
+	virtual void ValidateParameterName();
+
+	virtual FName GetParameterName() const { return NAME_None; }
+	virtual void SetParameterName(const FName& Name) {}
 
 #endif // WITH_EDITOR
 

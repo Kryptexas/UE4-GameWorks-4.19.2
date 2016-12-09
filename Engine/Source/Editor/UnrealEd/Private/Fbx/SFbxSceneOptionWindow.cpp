@@ -190,6 +190,7 @@ void SFbxSceneOptionWindow::OnFinishedChangingPropertiesSceneTabDetailView(const
 		MaterialsTabListView->UpdateMaterialBasePath();
 	}
 	//Set the Global Import setting
+	GlobalImportSettings->bForceFrontXAxis = SceneImportOptionsDisplay->bForceFrontXAxis;
 	GlobalImportSettings->bBakePivotInVertex = SceneImportOptionsDisplay->bBakePivotInVertex;
 	GlobalImportSettings->bInvertNormalMap = SceneImportOptionsDisplay->bInvertNormalMaps;
 	GlobalImportSettings->ImportTranslation = SceneImportOptionsDisplay->ImportTranslation;

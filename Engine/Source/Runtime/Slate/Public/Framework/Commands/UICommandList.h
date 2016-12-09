@@ -105,6 +105,13 @@ public:
 	void UnmapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo );
 
 	/**
+	 * Checks if an action is already mapped
+	 * 
+	 * @return True if an action is already mapped or false otherwise
+	 */
+	bool IsActionMapped( const TSharedPtr< const FUICommandInfo > InUICommandInfo ) const;
+
+	/**
 	 * Executes the action associated with the provided command info
 	 * Note: It is assumed at this point that CanExecuteAction was already checked
 	 *

@@ -1364,6 +1364,7 @@ void UUnrealEdEngine::ShowPackageNotification()
 
 		if( bCanPrompt )
 		{
+			bShowPackageNotification = false;
 			bool bNeedWarningDialog = false;
 			for (const auto& Entry : PackageToNotifyState)
 			{

@@ -45,6 +45,10 @@ public:
 		SLATE_ARGUMENT(bool, AllowNone)
 		/** Attribute used to get the currently selected class (required if PropertyEditor == null) */
 		SLATE_ATTRIBUTE(const UClass*, SelectedClass)
+		/** Should we show the view options button at the bottom of the class picker?*/
+		SLATE_ARGUMENT(bool, ShowViewOptions)
+		/** Should we show the class picker in tree mode or list mode?*/
+		SLATE_ARGUMENT(bool, ShowTree)
 		/** Delegate used to set the currently selected class (required if PropertyEditor == null) */
 		SLATE_EVENT(FOnSetClass, OnSetClass)
 	SLATE_END_ARGS()
@@ -98,6 +102,10 @@ private:
 	bool bAllowNone;
 	/** Should only placeable classes be displayed? */
 	bool bAllowOnlyPlaceable;
+	/** Should we show the view options button at the bottom of the class picker?*/
+	bool bShowViewOptions;
+	/** Should we show the class picker in tree mode or list mode?*/
+	bool bShowTree;
 
 	/** Attribute used to get the currently selected class (required if PropertyEditor == null) */
 	TAttribute<const UClass*> SelectedClass;

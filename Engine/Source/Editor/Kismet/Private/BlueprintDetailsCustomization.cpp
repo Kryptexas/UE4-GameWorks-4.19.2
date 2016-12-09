@@ -2387,6 +2387,7 @@ void FBlueprintGraphArgumentGroupLayout::SetOnRebuildChildren( FSimpleDelegate I
 
 void FBlueprintGraphArgumentGroupLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
+	bool WasContentAdded = false;
 	if(TargetNode.IsValid())
 	{
 		TArray<TSharedPtr<FUserPinInfo>> Pins = TargetNode->UserDefinedPins;
@@ -2403,16 +2404,27 @@ void FBlueprintGraphArgumentGroupLayout::GenerateChildContent( IDetailChildrenBu
 					FName(*FString::Printf(bIsInputNode ? TEXT("InputArgument%i") : TEXT("OutputArgument%i"), i)),
 					bIsInputNode));
 				ChildrenBuilder.AddChildCustomBuilder(BlueprintArgumentLayout);
+				WasContentAdded = true;
 			}
 		}
-		else
-		{
-			// Add a null widget for this section, keeps it around for callbacks to refresh
-			ChildrenBuilder.AddChildContent(FText::GetEmpty()).ValueContent()
-				[
-					SNullWidget::NullWidget
-				];
-		}
+	}
+	if (!WasContentAdded)
+	{
+		// Add a text widget to let the user know to hit the + icon to add parameters.
+		ChildrenBuilder.AddChildContent(FText::GetEmpty()).WholeRowContent()
+			.MaxDesiredWidth(980.f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("NoArgumentsAddedForBlueprint", "Please press the + icon above to add parameters"))
+						.Font(IDetailLayoutBuilder::GetDetailFont())
+					]
+			];
 	}
 }
 
@@ -2455,7 +2467,8 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 			SAssignNew(ArgumentNameWidget, SEditableTextBox)
 				.Text( this, &FBlueprintGraphArgumentLayout::OnGetArgNameText )
 				.OnTextChanged(this, &FBlueprintGraphArgumentLayout::OnArgNameChange)
-				.OnTextCommitted( this, &FBlueprintGraphArgumentLayout::OnArgNameTextCommitted )
+				.OnTextCommitted(this, &FBlueprintGraphArgumentLayout::OnArgNameTextCommitted)
+				.ToolTipText(this, &FBlueprintGraphArgumentLayout::OnGetArgToolTipText)
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 				.IsEnabled(!ShouldPinBeReadOnly())
 		]
@@ -2479,12 +2492,42 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 				.IsEnabled(!ShouldPinBeReadOnly(true))
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 		]
-		+SHorizontalBox::Slot()
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.ContentPadding(0)
+			.IsEnabled(!IsPinEditingReadOnly())
+			.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveUp)
+			.ToolTipText(LOCTEXT("FunctionArgDetailsArgMoveUpTooltip", "Move this parameter up in the list."))
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgUpButton"))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2, 0)
+		[
+			SNew(SButton)
+			.ContentPadding(0)
+			.IsEnabled(!IsPinEditingReadOnly())
+			.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveDown)
+			.ToolTipText(LOCTEXT("FunctionArgDetailsArgMoveDownTooltip", "Move this parameter down in the list."))
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgDownButton"))
+			]
+		]
+		+ SHorizontalBox::Slot()
 		.HAlign(HAlign_Right)
 		.VAlign(VAlign_Center)
+		.Padding(10, 0, 0, 0)
+		.AutoWidth()
 		[
-			PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(this, &FBlueprintGraphArgumentLayout::OnRemoveClicked), FText(), !IsPinEditingReadOnly())
+			PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(this, &FBlueprintGraphArgumentLayout::OnRemoveClicked), LOCTEXT("FunctionArgDetailsClearTooltip", "Remove this parameter."), !IsPinEditingReadOnly())
 		]
+
 	];
 }
 
@@ -2497,7 +2540,7 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 		[
 			SNew(STextBlock)
 				.Text( LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ) )
-				.ToolTipText( LOCTEXT("FunctionArgDetailsDefaultValueTooltip", "The name of the argument that will be visible to users of this graph.") )
+				.ToolTipText( LOCTEXT("FunctionArgDetailsDefaultValueParamTooltip", "The default value of the parameter.") )
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 		]
 		.ValueContent()
@@ -2526,42 +2569,7 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 		];
 	}
 		
-	// Read only graphs can't have their pins re-organized
-	if ( !IsPinEditingReadOnly() )
-	{
-		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsMoving", "Moving" ) )
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				[
-					SNew(SSpacer)
-				]
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(2, 0)
-					[
-						SNew(SButton)
-						.ContentPadding(0)
-						.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveUp)
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgUpButton"))
-						]
-					]
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(2, 0)
-					[
-						SNew(SButton)
-						.ContentPadding(0)
-						.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveDown)
-						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgDownButton"))
-						]
-					]
-			];
-	}
+	
 }
 
 namespace {
@@ -2691,6 +2699,16 @@ FText FBlueprintGraphArgumentLayout::OnGetArgNameText() const
 		return FText::FromString(ParamItemPtr.Pin()->PinName);
 	}
 	return FText();
+}
+
+FText FBlueprintGraphArgumentLayout::OnGetArgToolTipText() const
+{
+	if (ParamItemPtr.IsValid())
+	{
+		FText PinTypeText = UEdGraphSchema_K2::TypeToText(ParamItemPtr.Pin()->PinType);
+		return FText::Format(LOCTEXT("BlueprintArgToolTipText", "Name: {0}\nType: {1}"), FText::FromString(ParamItemPtr.Pin()->PinName), PinTypeText);
+	}
+	return FText::GetEmpty();
 }
 
 void FBlueprintGraphArgumentLayout::OnArgNameChange(const FText& InNewText)
@@ -3216,41 +3234,104 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 		TSharedRef<FBlueprintGraphArgumentGroupLayout> InputArgumentGroup =
 			MakeShareable(new FBlueprintGraphArgumentGroupLayout(SharedThis(this), FunctionEntryNode));
 		InputsCategory.AddCustomBuilder(InputArgumentGroup);
-		
-		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New") )
-		[
-			SNew(SBox)
-			.HAlign(HAlign_Right)
+
+		TSharedRef<SHorizontalBox> InputsHeaderContentWidget = SNew(SHorizontalBox);
+		TWeakPtr<SWidget> WeakInputsHeaderWidget = InputsHeaderContentWidget;
+		InputsHeaderContentWidget->AddSlot()
+			[
+				SNew(SHorizontalBox)
+			];
+		InputsHeaderContentWidget->AddSlot()
+			.AutoWidth()
 			[
 				SNew(SButton)
-				.Text(LOCTEXT("FunctionNewInputArg", "New"))
+				.ButtonStyle(FEditorStyle::Get(), "RoundButton")
+				.ForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
+				.ContentPadding(FMargin(2, 0))
 				.OnClicked(this, &FBlueprintGraphActionDetails::OnAddNewInputClicked)
 				.Visibility(this, &FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility)
-			]
-		];
+				.HAlign(HAlign_Right)
+				.ToolTipText(LOCTEXT("FunctionNewInputArgTooltip", "Create a new input argument"))
+				.VAlign(VAlign_Center)
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("FunctionNewInputArg")))
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(FMargin(0, 1))
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("Plus"))
+						]
+
+					+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						.Padding(FMargin(2, 0, 0, 0))
+						[
+							SNew(STextBlock)
+							.Font(IDetailLayoutBuilder::GetDetailFontBold())
+							.Text(LOCTEXT("FunctionNewInputArg", "New Parameter"))
+							.Visibility(this, &FBlueprintGraphActionDetails::OnGetSectionTextVisibility, WeakInputsHeaderWidget)
+							.ShadowOffset(FVector2D(1, 1))
+						]
+				]
+			];
+		InputsCategory.HeaderContent(InputsHeaderContentWidget);
 
 		if (bHasAGraph)
 		{
 			IDetailCategoryBuilder& OutputsCategory = DetailLayout.EditCategory("Outputs", LOCTEXT("FunctionDetailsOutputs", "Outputs"));
 		
-			if (FunctionResultNode)
-			{
-				TSharedRef<FBlueprintGraphArgumentGroupLayout> OutputArgumentGroup =
-					MakeShareable(new FBlueprintGraphArgumentGroupLayout(SharedThis(this), FunctionResultNode));
-				OutputsCategory.AddCustomBuilder(OutputArgumentGroup);
-			}
-
-			OutputsCategory.AddCustomRow( LOCTEXT("FunctionNewOutputArg", "New") )
-			[
-				SNew(SBox)
-				.HAlign(HAlign_Right)
+			TSharedRef<FBlueprintGraphArgumentGroupLayout> OutputArgumentGroup =
+				MakeShareable(new FBlueprintGraphArgumentGroupLayout(SharedThis(this), FunctionResultNode));
+			OutputsCategory.AddCustomBuilder(OutputArgumentGroup);
+		
+			TSharedRef<SHorizontalBox> OutputsHeaderContentWidget = SNew(SHorizontalBox);
+			TWeakPtr<SWidget> WeakOutputsHeaderWidget = OutputsHeaderContentWidget;
+			OutputsHeaderContentWidget->AddSlot()
+				[
+					SNew(SHorizontalBox)
+				];
+			OutputsHeaderContentWidget->AddSlot()
+				.AutoWidth()
 				[
 					SNew(SButton)
-					.Text(LOCTEXT("FunctionNewOutputArg", "New"))
+					.ButtonStyle(FEditorStyle::Get(), "RoundButton")
+					.ForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
+					.ContentPadding(FMargin(2, 0))
 					.OnClicked(this, &FBlueprintGraphActionDetails::OnAddNewOutputClicked)
 					.Visibility(this, &FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility)
+					.HAlign(HAlign_Right)
+					.ToolTipText(LOCTEXT("FunctionNewOutputArgTooltip", "Create a new output argument"))
+					.VAlign(VAlign_Center)
+					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("FunctionNewOutputArg")))
+					[
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(FMargin(0, 1))
+					[
+						SNew(SImage)
+							.Image(FEditorStyle::GetBrush("Plus"))
+					]
+
+				+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(FMargin(2, 0, 0, 0))
+					[
+						SNew(STextBlock)
+						.Font(IDetailLayoutBuilder::GetDetailFontBold())
+						.Text(LOCTEXT("FunctionNewOutputArg", "New Parameter"))
+						.Visibility(this, &FBlueprintGraphActionDetails::OnGetSectionTextVisibility, WeakOutputsHeaderWidget)
+						.ShadowOffset(FVector2D(1, 1))
+					]
 				]
 			];
+			OutputsCategory.HeaderContent(OutputsHeaderContentWidget);
 		}
 	}
 	else
@@ -4511,6 +4592,21 @@ EVisibility FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility() const
 		}
 	}
 	return EVisibility::Visible;
+}
+
+EVisibility FBlueprintGraphActionDetails::OnGetSectionTextVisibility(TWeakPtr<SWidget> RowWidget) const
+{
+	bool ShowText = RowWidget.Pin()->IsHovered();
+
+	// If the row is currently hovered, or a menu is being displayed for a button, keep the button expanded.
+	if (ShowText)
+	{
+		return EVisibility::SelfHitTestInvisible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
+	}
 }
 
 FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()

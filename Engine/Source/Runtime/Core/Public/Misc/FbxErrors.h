@@ -17,6 +17,8 @@ struct CORE_API FFbxErrors
 	/** Generic */
 	static FName Generic_ImportingNewObjectFailed;
 
+	static FName Generic_ReimportingObjectFailed;
+
 	static FName Generic_LoadingSceneFailed;
 
 	static FName Generic_InvalidCharacterInName;
@@ -76,6 +78,8 @@ struct CORE_API FFbxErrors
 	static FName SkeletalMesh_DuplicateBones;
 
 	static FName SkeletalMesh_NoInfluences;
+
+	static FName SkeletalMesh_TooManyInfluences;
 
 	static FName SkeletalMesh_RestoreSortingMismatchedStrips;
 

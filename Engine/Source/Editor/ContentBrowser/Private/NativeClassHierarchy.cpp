@@ -94,10 +94,11 @@ void FNativeClassHierarchy::GetClassFolders(TArray<FName>& OutClassRoots, TArray
 
 	for(const auto& RootNode : RootNodes)
 	{
-		const bool bRootNodePassesFilter = 
+		bool bRootNodePassesFilter =
 			(RootNode.Key == GameRootNodeName) ||								// Always include game classes
-			(RootNode.Key == EngineRootNodeName && bIncludeEngineClasses) ||	// Only include engine classes if we were asked for them
-			(RootNode.Key != EngineRootNodeName && bIncludePluginClasses);		// Only include plugin classes if we were asked for them
+			(RootNode.Key == EngineRootNodeName && bIncludeEngineClasses) ||  	// Only include engine classes if we were asked for them
+			(bIncludePluginClasses && RootNode.Value->LoadedFrom == EPluginLoadedFrom::GameProject) || // Only include Game plugin classes if we were asked for them
+			(bIncludePluginClasses && bIncludeEngineClasses && RootNode.Value->LoadedFrom == EPluginLoadedFrom::Engine); //  Only include engine plugin classes if we were asked for them
 
 		if(bRootNodePassesFilter)
 		{
@@ -186,7 +187,7 @@ void FNativeClassHierarchy::PopulateHierarchy()
 	RootNodes.Empty();
 
 	TSet<FName> GameModules = GetGameModules();
-	TMap<FName, FName> PluginModules = GetPluginModules();
+	TMap<FName, FNativeClassHierarchyPluginModuleInfo> PluginModules = GetPluginModules();
 
 	for(TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
@@ -211,7 +212,7 @@ void FNativeClassHierarchy::AddClassesForModule(const FName& InModuleName)
 	}
 
 	TSet<FName> GameModules = GetGameModules();
-	TMap<FName, FName> PluginModules = GetPluginModules();
+	TMap<FName, FNativeClassHierarchyPluginModuleInfo> PluginModules = GetPluginModules();
 
 	TArray<UObject*> PackageObjects;
 	GetObjectsWithOuter(ClassPackage, PackageObjects, false);
@@ -254,7 +255,7 @@ void FNativeClassHierarchy::RemoveClassesForModule(const FName& InModuleName)
 	}
 }
 
-void FNativeClassHierarchy::AddClass(UClass* InClass, const TSet<FName>& InGameModules, const TMap<FName, FName>& InPluginModules, FAddClassMetrics& AddClassMetrics)
+void FNativeClassHierarchy::AddClass(UClass* InClass, const TSet<FName>& InGameModules, const TMap<FName, FNativeClassHierarchyPluginModuleInfo>& InPluginModules, FAddClassMetrics& AddClassMetrics)
 {
 	// Ignore deprecated and temporary classes
 	if(InClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) || FKismetEditorUtilities::IsClassABlueprintSkeleton(InClass))
@@ -276,7 +277,8 @@ void FNativeClassHierarchy::AddClass(UClass* InClass, const TSet<FName>& InGameM
 	}
 
 	// Work out which root this class should go under
-	const FName RootNodeName = GetClassPathRootForModule(ClassModuleName, InGameModules, InPluginModules);
+	EPluginLoadedFrom WhereLoadedFrom;
+	const FName RootNodeName = GetClassPathRootForModule(ClassModuleName, InGameModules, InPluginModules, WhereLoadedFrom);
 
 	// Work out the final path to this class within the hierarchy (which isn't the same as the path on disk)
 	const FString ClassModuleRelativePath = ClassModuleRelativeIncludePath.Left(ClassModuleRelativeIncludePath.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd));
@@ -287,6 +289,7 @@ void FNativeClassHierarchy::AddClass(UClass* InClass, const TSet<FName>& InGameM
 	if(!RootNode.IsValid())
 	{
 		RootNode = FNativeClassHierarchyNode::MakeFolderEntry(RootNodeName, TEXT("/") + RootNodeName.ToString());
+		RootNode->LoadedFrom = WhereLoadedFrom;
 		++AddClassMetrics.NumFoldersAdded;
 	}
 
@@ -392,10 +395,11 @@ bool FNativeClassHierarchy::GetClassPath(UClass* InClass, FString& OutClassPath,
 	}
 
 	TSet<FName> GameModules = GetGameModules();
-	TMap<FName, FName> PluginModules = GetPluginModules();
+	TMap<FName, FNativeClassHierarchyPluginModuleInfo> PluginModules = GetPluginModules();
 
 	// Work out which root this class should go under
-	const FName RootNodeName = GetClassPathRootForModule(ClassModuleName, GameModules, PluginModules);
+	EPluginLoadedFrom WhereLoadedFrom;
+	const FName RootNodeName = GetClassPathRootForModule(ClassModuleName, GameModules, PluginModules, WhereLoadedFrom);
 
 	// Work out the final path to this class within the hierarchy (which isn't the same as the path on disk)
 	const FString ClassModuleRelativePath = ClassModuleRelativeIncludePath.Left(ClassModuleRelativeIncludePath.Find(TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd));
@@ -448,21 +452,25 @@ FName FNativeClassHierarchy::GetClassModuleName(UClass* InClass)
 	return NAME_None;
 }
 
-FName FNativeClassHierarchy::GetClassPathRootForModule(const FName& InModuleName, const TSet<FName>& InGameModules, const TMap<FName, FName>& InPluginModules)
+FName FNativeClassHierarchy::GetClassPathRootForModule(const FName& InModuleName, const TSet<FName>& InGameModules, const TMap<FName, FNativeClassHierarchyPluginModuleInfo>& InPluginModules, EPluginLoadedFrom& OutWhereLoadedFrom)
 {
 	static const FName EngineRootNodeName = "Classes_Engine";
 	static const FName GameRootNodeName = "Classes_Game";
 
 	// Work out which root this class should go under (anything that isn't a game or plugin module goes under engine)
 	FName RootNodeName = EngineRootNodeName;
+	OutWhereLoadedFrom = EPluginLoadedFrom::Engine;
+
 	if(InGameModules.Contains(InModuleName))
 	{
 		RootNodeName = GameRootNodeName;
+		OutWhereLoadedFrom = EPluginLoadedFrom::GameProject;
 	}
 	else if(InPluginModules.Contains(InModuleName))
 	{
-		const FName PluginName = InPluginModules.FindRef(InModuleName);
-		RootNodeName = FName(*(FString(TEXT("Classes_")) + PluginName.ToString()));
+		const FNativeClassHierarchyPluginModuleInfo PluginInfo = InPluginModules.FindRef(InModuleName);
+		RootNodeName = FName(*(FString(TEXT("Classes_")) + PluginInfo.Name.ToString()));
+		OutWhereLoadedFrom = PluginInfo.LoadedFrom;
 	}
 
 	return RootNodeName;
@@ -486,19 +494,22 @@ TSet<FName> FNativeClassHierarchy::GetGameModules()
 	return GameModules;
 }
 
-TMap<FName, FName> FNativeClassHierarchy::GetPluginModules()
+TMap<FName, FNativeClassHierarchyPluginModuleInfo> FNativeClassHierarchy::GetPluginModules()
 {
 	IPluginManager& PluginManager = IPluginManager::Get();
 
 	// Build up a map of plugin modules -> plugin names - used to work out which modules populate a given Classes_PluginName
-	TMap<FName, FName> PluginModules;
+	TMap<FName, FNativeClassHierarchyPluginModuleInfo> PluginModules;
 	{
 		TArray<FPluginStatus> Plugins = PluginManager.QueryStatusForAllPlugins();
 		for(const FPluginStatus& Plugin: Plugins)
 		{
 			for(const FModuleDescriptor& PluginModule: Plugin.Descriptor.Modules)
 			{
-				PluginModules.Add(PluginModule.Name, FName(*Plugin.Name));
+				FNativeClassHierarchyPluginModuleInfo info;
+				info.Name = FName(*Plugin.Name);
+				info.LoadedFrom = Plugin.LoadedFrom;
+				PluginModules.Add(PluginModule.Name, info);
 			}
 		}
 	}

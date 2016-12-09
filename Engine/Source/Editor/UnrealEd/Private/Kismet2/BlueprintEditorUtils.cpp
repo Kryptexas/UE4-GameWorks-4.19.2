@@ -586,14 +586,7 @@ void FBlueprintEditorUtils::ReconstructAllNodes(UBlueprint* Blueprint)
 
 void FBlueprintEditorUtils::ReplaceDeprecatedNodes(UBlueprint* Blueprint)
 {
-	TArray<UEdGraph*> Graphs;
-	Blueprint->GetAllGraphs(Graphs);
-	for (auto It = Graphs.CreateIterator(); It; ++It)
-	{
-		UEdGraph* const Graph = *It;
-		const UEdGraphSchema* Schema = Graph->GetSchema();
-		Schema->BackwardCompatibilityNodeConversion(Graph, true);
-	}
+	Blueprint->ReplaceDeprecatedNodes();
 }
 
 void FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(UBlueprint* Blueprint, UStruct* RefreshOnlyChild)
@@ -6697,6 +6690,44 @@ void FBlueprintEditorUtils::FindActorsThatReferenceActor( AActor* InActor, TArra
 				if ( References.Contains( InActor ) )
 				{
 					OutReferencingActors.Add( CurrentActor );
+				}
+			}
+		}
+	}
+}
+
+void FBlueprintEditorUtils::GetActorReferenceMap(UWorld* InWorld, TArray<UClass*>& InClassesToIgnore, TMap<AActor*, TArray<AActor*> >& OutReferencingActors)
+{
+	// Iterate all actors in the same world as InActor
+	for (FActorIterator ActorIt(InWorld); ActorIt; ++ActorIt)
+	{
+		AActor* CurrentActor = *ActorIt;
+		if (CurrentActor)
+		{
+			bool bShouldIgnore = false;
+
+			// Ignore Actors if they are of a type we were instructed to ignore.
+			for (int32 IgnoreIndex = 0; IgnoreIndex < InClassesToIgnore.Num() && !bShouldIgnore; IgnoreIndex++)
+			{
+				if (CurrentActor->IsA(InClassesToIgnore[IgnoreIndex]))
+				{
+					bShouldIgnore = true;
+				}
+			}
+
+			if (!bShouldIgnore)
+			{
+				// Get all references from CurrentActor and see if any Actors
+				TArray<UObject*> References;
+				FReferenceFinder Finder(References);
+				Finder.FindReferences(CurrentActor);
+
+				for (int32 RefIdx = 0; RefIdx < References.Num(); RefIdx++)
+				{
+					if (References[RefIdx] && References[RefIdx]->IsA(AActor::StaticClass()))
+					{
+						OutReferencingActors.FindOrAdd(Cast<AActor>(References[RefIdx])).Add(CurrentActor);
+					}
 				}
 			}
 		}

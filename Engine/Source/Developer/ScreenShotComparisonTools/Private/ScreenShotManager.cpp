@@ -32,6 +32,9 @@ FScreenShotManager::FScreenShotManager()
 	ScreenshotDeltaFolder = FPaths::GameSavedDir() / TEXT("Automation/Delta/");
 	ScreenshotResultsFolder = FPaths::GameSavedDir() / TEXT("Automation/");
 	ScreenshotApprovedFolder = FPaths::GameDir() / TEXT("Test/Screenshots/");
+
+	// Clear the incoming directory when we initialize, we don't care about previous runs.
+	//IFileManager::Get().DeleteDirectory(*ScreenshotUnapprovedFolder, false, true);
 }
 
 FString FScreenShotManager::GetLocalUnapprovedFolder() const
@@ -235,56 +238,84 @@ FImageComparisonResult FScreenShotManager::CompareScreensot(FString ExistingImag
 		return FImageComparisonResult();
 	}
 
-	// Look for an exact adapter match so we're comparing apples to apples.
-	
+	// Load the metadata for the incoming unapproved image.
 	FString UnapprovedFileName = FPaths::GetCleanFilename(ExistingImage);
-
-	FString* ExistingApprovedAdapter = ApprovedDeviceShots.FindByPredicate([&UnapprovedFileName] (const FString& ApprovedPath) {
-		FString ApprovedFileName = FPaths::GetCleanFilename(ApprovedPath);
-		return ApprovedFileName == UnapprovedFileName;
-	});
-
-	FString ExistingApproved;
-
-	if ( ExistingApprovedAdapter )
-	{
-		ExistingApproved = FPaths::GetCleanFilename(*ExistingApprovedAdapter);
-	}
-	else
-	{
-		ExistingApproved = FPaths::GetCleanFilename(ApprovedDeviceShots[0]);
-		// TODO No good, this should find closest resolution, maybe some other stuff as well?
-	}
-
-	FString ApprovedFullPath = FPaths::Combine(TestApprovedFolder, ExistingApproved);
 	FString UnapprovedFullPath = FPaths::Combine(TestUnapprovedFolder, UnapprovedFileName);
 
-	// Always read the metadata file from the unapproved location, as we may have introduced new comparison rules.
-	FString MetadataFile = FPaths::ChangeExtension(UnapprovedFullPath, ".json");
+	TOptional<FAutomationScreenshotMetadata> ExistingMetadata;
 
-	FImageTolerance Tolerance = DefaultTolerance;
-
-	FString Json;
-	if ( FFileHelper::LoadFileToString(Json, *MetadataFile) )
 	{
-		FAutomationScreenshotMetadata Metadata;
-		if ( FJsonObjectConverter::JsonObjectStringToUStruct(Json, &Metadata, 0, 0) )
+		// Always read the metadata file from the unapproved location, as we may have introduced new comparison rules.
+		FString MetadataFile = FPaths::ChangeExtension(UnapprovedFullPath, ".json");
+
+		FString Json;
+		if ( FFileHelper::LoadFileToString(Json, *MetadataFile) )
 		{
-			if ( Metadata.bHasComparisonRules )
+			FAutomationScreenshotMetadata Metadata;
+			if ( FJsonObjectConverter::JsonObjectStringToUStruct(Json, &Metadata, 0, 0) )
 			{
-				Tolerance.Red = Metadata.ToleranceRed;
-				Tolerance.Green = Metadata.ToleranceGreen;
-				Tolerance.Blue = Metadata.ToleranceBlue;
-				Tolerance.Alpha = Metadata.ToleranceAlpha;
-				Tolerance.MinBrightness = Metadata.ToleranceMinBrightness;
-				Tolerance.MaxBrightness = Metadata.ToleranceMaxBrightness;
-				Tolerance.IgnoreAntiAliasing = Metadata.bIgnoreAntiAliasing;
-				Tolerance.IgnoreColors = Metadata.bIgnoreColors;
-				Tolerance.MaximumLocalError = Metadata.MaximumLocalError;
-				Tolerance.MaximumGlobalError = Metadata.MaximumGlobalError;
+				ExistingMetadata = Metadata;
 			}
 		}
 	}
+
+	FString NearestExistingApprovedImage;
+	TOptional<FAutomationScreenshotMetadata> NearestExistingApprovedImageMetadata;
+	int32 MatchScore = 0;
+
+	if ( ExistingMetadata.IsSet() )
+	{
+		for ( FString ApprovedShot : ApprovedDeviceShots )
+		{
+			FString ApprovedShotFile = FPaths::GetCleanFilename(ApprovedDeviceShots[0]);
+			FString ApprovedShotFileFull = FPaths::Combine(TestApprovedFolder, ApprovedShotFile);
+
+			FString ApprovedMetadataFile = FPaths::ChangeExtension(ApprovedShotFileFull, ".json");
+
+			FString Json;
+			if ( FFileHelper::LoadFileToString(Json, *ApprovedMetadataFile) )
+			{
+				FAutomationScreenshotMetadata Metadata;
+				if ( FJsonObjectConverter::JsonObjectStringToUStruct(Json, &Metadata, 0, 0) )
+				{
+					int32 Comparison = Metadata.Compare(ExistingMetadata.GetValue());
+					if ( Comparison > MatchScore )
+					{
+						MatchScore = Comparison;
+						NearestExistingApprovedImage = ApprovedShotFile;
+						NearestExistingApprovedImageMetadata = Metadata;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		// TODO no metadata how do I pick a good shot?
+		NearestExistingApprovedImage = FPaths::GetCleanFilename(ApprovedDeviceShots[0]);
+	}
+
+	FString ApprovedFullPath = FPaths::Combine(TestApprovedFolder, NearestExistingApprovedImage);
+
+	FImageTolerance Tolerance = DefaultTolerance;
+
+	if ( ExistingMetadata.IsSet() && ExistingMetadata->bHasComparisonRules )
+	{
+		Tolerance.Red = ExistingMetadata->ToleranceRed;
+		Tolerance.Green = ExistingMetadata->ToleranceGreen;
+		Tolerance.Blue = ExistingMetadata->ToleranceBlue;
+		Tolerance.Alpha = ExistingMetadata->ToleranceAlpha;
+		Tolerance.MinBrightness = ExistingMetadata->ToleranceMinBrightness;
+		Tolerance.MaxBrightness = ExistingMetadata->ToleranceMaxBrightness;
+		Tolerance.IgnoreAntiAliasing = ExistingMetadata->bIgnoreAntiAliasing;
+		Tolerance.IgnoreColors = ExistingMetadata->bIgnoreColors;
+		Tolerance.MaximumLocalError = ExistingMetadata->MaximumLocalError;
+		Tolerance.MaximumGlobalError = ExistingMetadata->MaximumGlobalError;
+	}
+
+	// TODO Think about using SSIM, but needs local SSIM as well as Global SSIM, same as the basic comparison.
+	//double SSIM = Comparer.CompareStructuralSimilarity(ApprovedFullPath, UnapprovedFullPath, FImageComparer::EStructuralSimilarityComponent::Luminance);
+	//printf("%f\n", SSIM);
 
 	return Comparer.Compare(ApprovedFullPath, UnapprovedFullPath, Tolerance);
 }
@@ -379,7 +410,7 @@ void FScreenShotManager::SaveComparisonResults(const FComparisonResults& Results
 	FString Json;
 	if ( FJsonObjectConverter::UStructToJsonObjectString(Results, Json) )
 	{
-		FFileHelper::SaveStringToFile(Json, *GetComparisonResultsJsonFilename(), FFileHelper::EEncodingOptions::ForceUTF8);
+		FFileHelper::SaveStringToFile(Json, *GetComparisonResultsJsonFilename(), FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 	}
 }
 

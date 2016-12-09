@@ -295,6 +295,12 @@ public:
 	/** Gets the index for a pin */
 	int32 GetPinIndex(UEdGraphPin* Pin) const;
 
+	/** Gets the pin at a given index 
+	* @param Index The zero-based index of the pin to access.
+	* @return The pin found at this location or nullptr if invalid index.
+	*/
+	UEdGraphPin* GetPinAt(int32 Index) const;
+
 	/** Break all links on this node */
 	void BreakAllNodeLinks();
 
@@ -513,6 +519,14 @@ public:
 
 	/** Return whether to draw this node as a comment node */
 	virtual bool ShouldDrawNodeAsComment() const { return false; }
+
+	/** 
+	* Returns whether to draw this node as a control point only (knot/reroute node). Note that this means that the node should only have on input and output pin.
+	* @param OutInputPinIndex The index in the pins array associated with the control point input pin.
+	* @param OutOutputPinIndex The index in the pins array associated with the control point output pin.
+	* @return Whether or not to draw this node as a control point.
+	*/
+	virtual bool ShouldDrawNodeAsControlPointOnly(int32& OutInputPinIndex, int32& OutOutputPinIndex) const;
 
 	/**
 	 * Add's node data to the search metadata, override to collect more data that may be desirable to search for

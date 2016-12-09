@@ -233,12 +233,12 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	float InitialAverageFrameRate;
 
 	// PhysicalMaterial Surface Types
-	UPROPERTY(config)
+	UPROPERTY(config, EditAnywhere, Category=PhysicalSurfaces)
 	TArray<FPhysicalSurfaceName> PhysicalSurfaces;
 
 public:
 
-	static UPhysicsSettings * Get() { return CastChecked<UPhysicsSettings>(UPhysicsSettings::StaticClass()->GetDefaultObject()); }
+	static UPhysicsSettings* Get() { return CastChecked<UPhysicsSettings>(UPhysicsSettings::StaticClass()->GetDefaultObject()); }
 
 	virtual void PostInitProperties() override;
 

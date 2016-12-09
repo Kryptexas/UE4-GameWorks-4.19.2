@@ -30,6 +30,8 @@ public:
 	virtual void Shutdown() override;
 	virtual void PassLoadingScreenWindowBackToGame() const override;
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& LoadingScreenAttributes) override;
+	virtual bool HasEarlyStartupMovie() const override;
+	virtual bool PlayEarlyStartupMovies() override;
 	virtual bool PlayMovie() override;
 	virtual void StopMovie() override;
 	virtual void WaitForMovieToFinish() override;

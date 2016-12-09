@@ -6619,6 +6619,23 @@ void UEdGraphSchema_K2::ForceVisualizationCacheClear() const
 	++CurrentCacheRefreshID;
 }
 
+
+bool UEdGraphSchema_K2::SafeDeleteNodeFromGraph(UEdGraph* Graph, UEdGraphNode* NodeToDelete) const 
+{
+	UK2Node* Node = Cast<UK2Node>(NodeToDelete);
+	if (Node == nullptr || Graph == nullptr || NodeToDelete->GetGraph() != Graph)
+	{
+		return false;
+	}
+
+	UBlueprint* OwnerBlueprint = Node->GetBlueprint();
+	Graph->Modify();
+
+	FBlueprintEditorUtils::RemoveNode(OwnerBlueprint, Node, /*bDontRecompile=*/ true);
+	FBlueprintEditorUtils::MarkBlueprintAsModified(OwnerBlueprint);
+	return true;
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

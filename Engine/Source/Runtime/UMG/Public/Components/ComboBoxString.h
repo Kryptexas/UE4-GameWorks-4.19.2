@@ -77,6 +77,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style, meta=(DesignerRebuild))
 	FSlateColor ForegroundColor;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Interaction)
+	bool bIsFocusable;
+
 public: // Events
 
 	/** Called when the widget is needed for the item. */

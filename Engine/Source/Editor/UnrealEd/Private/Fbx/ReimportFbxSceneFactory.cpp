@@ -239,7 +239,6 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	GlobalImportSettings->ImportUniformScale = 1.0f;
 
 	GlobalImportSettings->bConvertScene = true;
-	GlobalImportSettings->bForceFrontXAxis = false;
 	GlobalImportSettings->bConvertSceneUnit = true;
 
 
@@ -285,6 +284,7 @@ bool GetFbxSceneReImportOptions(UnFbx::FFbxImporter* FbxImporter
 	//Set the bakepivot option in the SceneImportOptions
 	SceneImportOptions->bBakePivotInVertex = GlobalImportSettings->bBakePivotInVertex;
 	//setup all options
+	GlobalImportSettings->bForceFrontXAxis = SceneImportOptions->bForceFrontXAxis;
 	GlobalImportSettings->bImportStaticMeshLODs = SceneImportOptions->bImportStaticMeshLODs;
 	GlobalImportSettings->bImportSkeletalMeshLODs = SceneImportOptions->bImportSkeletalMeshLODs;
 	SceneImportOptions->bInvertNormalMaps = GlobalImportSettings->bInvertNormalMap;
@@ -381,7 +381,6 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 
 	//Always convert the scene
 	GlobalImportSettings->bConvertScene = true;
-	GlobalImportSettings->bForceFrontXAxis = false;
 	GlobalImportSettings->bConvertSceneUnit = true;
 	GlobalImportSettings->bImportScene = ReimportData->bImportScene;
 	if (ReimportData->NameOptionsMap.Contains(DefaultOptionName))
@@ -390,7 +389,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 		GlobalImportSettings->bBakePivotInVertex = DefaultOption->bBakePivotInVertex;
 		GlobalImportSettings->bInvertNormalMap = DefaultOption->bInvertNormalMap;
 	}
-
+	bool OriginalForceFrontXAxis = GlobalImportSettings->bForceFrontXAxis;
 	//Read the fbx and store the hierarchy's information so we can reuse it after importing all the model in the fbx file
 	if (!FbxImporter->ImportFromFile(*FbxImportFileName, FPaths::GetExtension(FbxImportFileName), true))
 	{
@@ -456,6 +455,7 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	FbxSceneReimportStatusMap NodeStatusMap;
 	bool bCanReimportHierarchy = ReimportData->HierarchyType == (int32)EFBXSceneOptionsCreateHierarchyType::FBXSOCHT_CreateBlueprint && !ReimportData->BluePrintFullName.IsEmpty();
 
+	SceneImportOptions->bForceFrontXAxis = GlobalImportSettings->bForceFrontXAxis;
 	if (!GetFbxSceneReImportOptions(FbxImporter
 		, SceneInfoPtr
 		, ReimportData->SceneInfoSourceData
@@ -479,6 +479,13 @@ EReimportResult::Type UReimportFbxSceneFactory::Reimport(UObject* Obj)
 	
 	GlobalImportSettingsReference = new UnFbx::FBXImportOptions();
 	SFbxSceneOptionWindow::CopyFbxOptionsToFbxOptions(GlobalImportSettings, GlobalImportSettingsReference);
+
+	//Convert the scene to the correct axis system. Option like force front X
+	//We need to get the new convert transform
+	if (OriginalForceFrontXAxis != GlobalImportSettings->bForceFrontXAxis)
+	{
+		ChangeFrontAxis(FbxImporter, &SceneInfo, SceneInfoPtr);
+	}
 
 	//Overwrite the reimport asset data with the new data
 	ReimportData->SceneInfoSourceData = SceneInfoPtr;
@@ -1158,6 +1165,12 @@ EReimportResult::Type UReimportFbxSceneFactory::ImportStaticMesh(void* VoidFbxIm
 		}
 		return EReimportResult::Failed;
 	}
+	else
+	{
+		//Mark any re-imported package dirty
+		NewObject->MarkPackageDirty();
+	}
+
 	AllNewAssets.Add(MeshInfo, NewObject);
 	AssetToSyncContentBrowser.Add(NewObject);
 	return EReimportResult::Succeeded;

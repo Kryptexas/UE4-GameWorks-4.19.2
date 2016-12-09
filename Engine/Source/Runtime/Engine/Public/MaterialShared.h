@@ -1155,7 +1155,7 @@ public:
 		OutstandingCompileShaderMapIds.Remove( OldOutstandingCompileShaderMapId );
 	}
 
-	void AddReferencedObjects(FReferenceCollector& Collector);
+	ENGINE_API virtual void AddReferencedObjects(FReferenceCollector& Collector);
 
 	virtual const TArray<UTexture*>& GetReferencedTextures() const = 0;
 
@@ -1706,6 +1706,8 @@ public:
 	ENGINE_API virtual void LegacySerialize(FArchive& Ar) override;
 
 	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const override;
+
+	ENGINE_API virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	ENGINE_API virtual bool GetAllowDevelopmentShaderCompile() const override;
 

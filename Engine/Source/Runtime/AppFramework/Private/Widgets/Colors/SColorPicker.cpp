@@ -549,6 +549,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
+											.MaxWidth(72.0f)
 											[
 												SNew(SEditableTextBox)
 													.MinDesiredWidth(72.0f)
@@ -577,6 +578,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
+											.MaxWidth(72.0f)
 											[
 												SNew(SEditableTextBox)
 												.MinDesiredWidth(72.0f)
@@ -981,7 +983,10 @@ TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels Channel
 	default:
 		return SNullWidget::NullWidget;
 	}
-	
+
+	// Define a maximum size for the spin box containers to prevent them from stretching out the color picker window
+	static const float MaxSpinBoxSize = 192.0f;
+
 	return SNew(SHorizontalBox)
 
 	+ SHorizontalBox::Slot()
@@ -995,6 +1000,7 @@ TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels Channel
 
 	+ SHorizontalBox::Slot()
 		.FillWidth(1.0f)
+		.MaxWidth(MaxSpinBoxSize)
 		[
 			SNew(SVerticalBox)
 				.ToolTipText(SliderTooltip)

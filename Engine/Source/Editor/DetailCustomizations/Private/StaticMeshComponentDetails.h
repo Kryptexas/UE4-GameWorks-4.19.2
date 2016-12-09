@@ -19,12 +19,15 @@ public:
 
 private:
 	/**
-	 * @return Whether or not override lightmap res is enabled
+	 * @return Which UI to show whether or not override lightmap res is enabled
 	 */
-	bool IsOverrideLightmapResEnabled() const;
+	int HandleNoticeSwitcherWidgetIndex() const;
 
-	bool IsDefaultCollisionSupported() const;
+	/**
+	* @return Accessor for the static mesh's light resolution value.
+	*/
+	TOptional<int32> GetStaticMeshLightResValue() const;
 private:
-	TSharedPtr<IPropertyHandle> EnableOverrideLightmapRes;
 	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
+	TSharedPtr<IPropertyHandle> OverrideLightResProperty;
 };

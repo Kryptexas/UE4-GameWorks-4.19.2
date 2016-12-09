@@ -826,26 +826,32 @@ void SWindow::MoveWindowTo( FVector2D NewPosition )
 
 void SWindow::ReshapeWindow( FVector2D NewPosition, FVector2D NewSize )
 {
-	if (NativeWindow.IsValid())
-	{
-#if 1//PLATFORM_LINUX
-		// Slate code often expects cached screen position to be accurate immediately after the move.
-		// This expectation is generally invalid (see UE-1308) as there may be a delay before the OS reports it back.
-		// This hack sets the position speculatively, keeping Slate happy while also giving the OS chance to report it
-		// correctly after or even during the actual call.
-		FVector2D SpeculativeScreenPosition(FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y));
-		SetCachedScreenPosition(SpeculativeScreenPosition);
-#endif // PLATFORM_LINUX
+	const FVector2D CurrentPosition = GetPositionInScreen();
+	const FVector2D CurrentSize = GetSizeInScreen();
 
-		NativeWindow->ReshapeWindow( FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y), FMath::RoundToInt(NewSize.X), FMath::RoundToInt(NewSize.Y) );
-	}
-	else
-	{
-		InitialDesiredScreenPosition = NewPosition;
-		InitialDesiredSize = NewSize;
-	}
+	const FVector2D NewPositionTruncated = FVector2D(FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y));
+	const FVector2D NewSizeRounded = FVector2D(FMath::RoundToInt(NewSize.X), FMath::RoundToInt(NewSize.Y));
 
-	SetCachedSize( NewSize );
+	if ( CurrentPosition != NewPositionTruncated || CurrentSize != NewSizeRounded )
+	{
+		if ( NativeWindow.IsValid() )
+		{
+			// Slate code often expects cached screen position to be accurate immediately after the move.
+			// This expectation is generally invalid (see UE-1308) as there may be a delay before the OS reports it back.
+			// This hack sets the position speculatively, keeping Slate happy while also giving the OS chance to report it
+			// correctly after or even during the actual call.
+			SetCachedScreenPosition(NewPositionTruncated);
+
+			NativeWindow->ReshapeWindow(NewPositionTruncated.X, NewPositionTruncated.Y, NewSizeRounded.X, NewSizeRounded.Y);
+		}
+		else
+		{
+			InitialDesiredScreenPosition = NewPosition;
+			InitialDesiredSize = NewSize;
+		}
+
+		SetCachedSize(NewSize);
+	}
 }
 
 void SWindow::ReshapeWindow( const FSlateRect& InNewShape )
@@ -1456,6 +1462,15 @@ bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 		if (WindowMode != EWindowMode::Fullscreen && WidgetToFocusOnActivate.IsValid() && WidgetToFocusOnActivate.Pin()->HasMouseCapture() && !FSlateApplicationBase::Get().IsExternalUIOpened())
 		{
 			WidgetToFocusOnActivate.Reset();
+		}
+		else if (SupportsKeyboardFocus())
+		{
+			// If we have no specific widget to focus then cache the currently focused widget so we can restore its focus when we regain focus
+			WidgetToFocusOnActivate = FSlateApplicationBase::Get().GetKeyboardFocusedWidget();
+			if (!WidgetToFocusOnActivate.IsValid())
+			{
+				WidgetToFocusOnActivate = FSlateApplicationBase::Get().GetUserFocusedWidget(0);
+			}
 		}
 	}
 	else

@@ -34,7 +34,9 @@ public class StaticMeshEditor : ModuleRules
 				"RawMesh",
                 "PropertyEditor",
 				"MeshUtilities",
-			}
+                "Json",
+                "JsonUtilities",
+            }
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(

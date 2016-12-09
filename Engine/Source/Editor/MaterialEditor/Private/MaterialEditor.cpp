@@ -55,12 +55,16 @@
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
+#include "Materials/MaterialExpressionTextureObjectParameter.h"
 #include "Materials/MaterialExpressionTextureObject.h"
 #include "Materials/MaterialExpressionTextureSampleParameter2D.h"
 #include "Materials/MaterialExpressionTextureSampleParameterCube.h"
 #include "Materials/MaterialExpressionTextureSampleParameterSubUV.h"
 #include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionStaticBoolParameter.h"
+#include "Materials/MaterialFunction.h"
+#include "Materials/MaterialParameterCollection.h"
 
 #include "MaterialEditorActions.h"
 #include "MaterialExpressionClasses.h"
@@ -103,6 +107,7 @@
 #include "Framework/Commands/GenericCommands.h"
 #include "CanvasTypes.h"
 #include "Engine/Selection.h"
+#include "Materials/Material.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -702,6 +707,8 @@ void FMaterialEditor::CreateInternalWidgets()
 		LayoutCollectionParameterDetails
 		);
 
+	MaterialDetailsView->OnFinishedChangingProperties().AddSP(this, &FMaterialEditor::OnFinishedChangingProperties);
+
 	PropertyEditorModule.RegisterCustomClassLayout( UMaterial::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FMaterialDetailCustomization::MakeInstance ) );
 
 	Palette = SNew(SMaterialPalette, SharedThis(this));
@@ -758,6 +765,22 @@ void FMaterialEditor::CreateInternalWidgets()
 	RegenerateCodeView();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+void FMaterialEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		UStructProperty* Property = Cast<UStructProperty>(PropertyChangedEvent.Property);
+
+		if (Property != nullptr)
+		{
+			if (Property->Struct->GetFName() == TEXT("LinearColor") || Property->Struct->GetFName() == TEXT("Color")) // if we changed a color property refresh the previews
+			{
+				RefreshExpressionPreviews();
+			}
+		}
+	}
+}
 
 FName FMaterialEditor::GetToolkitFName() const
 {
@@ -2543,6 +2566,119 @@ void FMaterialEditor::OnFindInMaterial()
 	FindResults->FocusForUse();
 }
 
+UClass* FMaterialEditor::GetOnPromoteToParameterClass(UEdGraphPin* TargetPin)
+{
+	UMaterialGraphNode_Root* RootPinNode = Cast<UMaterialGraphNode_Root>(TargetPin->GetOwningNode());
+	UMaterialGraphNode* OtherPinNode = Cast<UMaterialGraphNode>(TargetPin->GetOwningNode());
+
+	if (RootPinNode != nullptr)
+	{
+		EMaterialProperty propertyId = (EMaterialProperty)FCString::Atoi(*TargetPin->PinType.PinSubCategory);
+
+		switch (propertyId)
+		{
+			case MP_Opacity:
+			case MP_Metallic:
+			case MP_Specular:
+			case MP_Roughness:
+			case MP_TessellationMultiplier:
+			case MP_CustomData0:
+			case MP_CustomData1:
+			case MP_AmbientOcclusion:
+			case MP_Refraction:
+			case MP_PixelDepthOffset:
+			case MP_OpacityMask: return UMaterialExpressionScalarParameter::StaticClass();
+
+			case MP_WorldPositionOffset:
+			case MP_WorldDisplacement:
+			case MP_EmissiveColor:
+			case MP_BaseColor:
+			case MP_SubsurfaceColor:
+			case MP_SpecularColor:
+			case MP_Normal:	return UMaterialExpressionVectorParameter::StaticClass();
+		}
+	}
+	else if (OtherPinNode)
+	{
+		const TArray<FExpressionInput*> ExpressionInputs = OtherPinNode->MaterialExpression->GetInputs();
+		FString TargetPinName = OtherPinNode->GetShortenPinName(TargetPin->PinName);
+
+		for (int32 Index = 0; Index < ExpressionInputs.Num(); ++Index)
+		{
+			FExpressionInput* Input = ExpressionInputs[Index];
+			FString InputName = OtherPinNode->MaterialExpression->GetInputName(Index);
+			InputName = OtherPinNode->GetShortenPinName(InputName);
+
+			if (InputName == TargetPinName)
+			{
+				switch (OtherPinNode->MaterialExpression->GetInputType(Index))
+				{
+					case MCT_Float1:
+					case MCT_Float: return UMaterialExpressionScalarParameter::StaticClass();
+
+					case MCT_Float2:
+					case MCT_Float3:
+					case MCT_Float4: return UMaterialExpressionVectorParameter::StaticClass();
+					
+					case MCT_StaticBool: return UMaterialExpressionStaticBoolParameter::StaticClass();
+
+					case MCT_Texture2D:
+					case MCT_TextureCube: 
+					case MCT_Texture: return UMaterialExpressionTextureObjectParameter::StaticClass();
+				}
+
+				break;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+void FMaterialEditor::OnPromoteToParameter()
+{
+	UEdGraphPin* TargetPin = GraphEditor->GetGraphPinForMenu();
+	UMaterialGraphNode_Base* PinNode = Cast<UMaterialGraphNode_Base>(TargetPin->GetOwningNode());
+
+	FMaterialGraphSchemaAction_NewNode Action;	
+	Action.MaterialExpressionClass = GetOnPromoteToParameterClass(TargetPin);
+
+	if (Action.MaterialExpressionClass != nullptr)
+	{
+		check(PinNode);
+		UEdGraph* GraphObj = PinNode->GetGraph();
+		check(GraphObj);
+
+		const FScopedTransaction Transaction(LOCTEXT("PromoteToParameter", "Promote To Parameter"));
+		GraphObj->Modify();
+
+		// Set position of new node to be close to node we clicked on
+		FVector2D NewNodePos;
+		NewNodePos.X = PinNode->NodePosX - 100;
+		NewNodePos.Y = PinNode->NodePosY;
+
+		UMaterialGraphNode* MaterialNode = Cast<UMaterialGraphNode>(Action.PerformAction(GraphObj, TargetPin, NewNodePos));
+
+		if (MaterialNode->MaterialExpression->HasAParameterName())
+		{
+			MaterialNode->MaterialExpression->SetParameterName(FName(*TargetPin->PinName));
+			MaterialNode->MaterialExpression->ValidateParameterName();
+		}
+	}
+}
+
+bool FMaterialEditor::OnCanPromoteToParameter()
+{
+	UEdGraphPin* TargetPin = GraphEditor->GetGraphPinForMenu();
+
+	if (TargetPin->LinkedTo.Num() == 0)
+	{
+		return GetOnPromoteToParameterClass(TargetPin) != nullptr;
+	}
+
+	return false;
+}
+
 FString FMaterialEditor::GetDocLinkForSelectedNode()
 {
 	FString DocumentationLink;
@@ -3032,12 +3168,9 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 
 		NewExpression->UpdateParameterGuid(true, true);
 
-		UMaterialExpressionTextureSampleParameter* TextureParameterExpression = Cast<UMaterialExpressionTextureSampleParameter>( NewExpression );
-		if( (TextureParameterExpression != nullptr) && TextureParameterExpression->CanRenameNode() )
+		if (NewExpression->HasAParameterName())
 		{
-			// Change the parameter's name on creation to mirror the object's name; this avoids issues of having colliding parameter
-			// names and having the name left as "None"
-			TextureParameterExpression->ParameterName = TextureParameterExpression->GetFName();
+			NewExpression->ValidateParameterName();
 		}
 
 		UMaterialExpressionComponentMask* ComponentMaskExpression = Cast<UMaterialExpressionComponentMask>( NewExpression );
@@ -3428,6 +3561,13 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 			UMaterialExpression* NewExpression = GraphNode->MaterialExpression;
 			NewExpression->Material = Material;
 			NewExpression->Function = MaterialFunction;
+
+			// Make sure the param name is valid after the paste
+			if (NewExpression->HasAParameterName())
+			{
+				NewExpression->ValidateParameterName();
+			}
+
 			Material->Expressions.Add(NewExpression);
 
 			// There can be only one default mesh paint texture.
@@ -3954,6 +4094,12 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 		GraphEditorCommands->MapAction(FGraphEditorCommands::Get().GoToDocumentation,
 			FExecuteAction::CreateSP(this, &FMaterialEditor::OnGoToDocumentation),
 			FCanExecuteAction::CreateSP(this, &FMaterialEditor::CanGoToDocumentation)
+			);
+
+
+		GraphEditorCommands->MapAction(FMaterialEditorCommands::Get().PromoteToParameter,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnPromoteToParameter),
+			FCanExecuteAction::CreateSP(this, &FMaterialEditor::OnCanPromoteToParameter)
 			);
 
 	}

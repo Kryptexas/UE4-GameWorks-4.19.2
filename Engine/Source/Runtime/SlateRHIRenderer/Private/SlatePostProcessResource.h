@@ -21,7 +21,8 @@ public:
 		return RenderTargets[Index]; 
 	}
 
-	void Resize(const FIntPoint& NewSize);
+	/** Performs per frame updates to this resource */
+	void Update(const FIntPoint& NewSize);
 
 	void CleanUp();
 
@@ -36,8 +37,10 @@ public:
 
 
 private:
+	/** Resizes targets to the new size */
+	void ResizeTargets(const FIntPoint& NewSize);
 
-
+	/** FDeferredCleanupInterface */
 	virtual void FinishCleanup();
 
 private:

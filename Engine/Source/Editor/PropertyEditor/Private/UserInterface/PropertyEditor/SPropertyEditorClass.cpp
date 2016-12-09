@@ -106,6 +106,8 @@ void SPropertyEditorClass::Construct(const FArguments& InArgs, const TSharedPtr<
 		bIsBlueprintBaseOnly = Property->GetOwnerProperty()->HasMetaData(TEXT("BlueprintBaseOnly"));
 		RequiredInterface = Property->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement"));
 		bAllowNone = !(Property->PropertyFlags & CPF_NoClear);
+		bShowViewOptions = Property->GetOwnerProperty()->HasMetaData(TEXT("HideViewOptions")) ? false : true;
+		bShowTree = Property->GetOwnerProperty()->HasMetaData(TEXT("ShowTreeView"));
 	}
 	else
 	{
@@ -119,9 +121,13 @@ void SPropertyEditorClass::Construct(const FArguments& InArgs, const TSharedPtr<
 		bIsBlueprintBaseOnly = InArgs._IsBlueprintBaseOnly;
 		bAllowNone = InArgs._AllowNone;
 		bAllowOnlyPlaceable = false;
+		bShowViewOptions = InArgs._ShowViewOptions;
+		bShowTree = InArgs._ShowTree;
 
 		SelectedClass = InArgs._SelectedClass;
 		OnSetClass = InArgs._OnSetClass;
+
+
 	}
 	
 	SAssignNew(ComboButton, SComboButton)
@@ -204,6 +210,8 @@ TSharedRef<SWidget> SPropertyEditorClass::GenerateClassPicker()
 	ClassFilter->bAllowAbstract = bAllowAbstract;
 	Options.bIsBlueprintBaseOnly = bIsBlueprintBaseOnly;
 	Options.bIsPlaceableOnly = bAllowOnlyPlaceable;
+	Options.DisplayMode = bShowTree ? EClassViewerDisplayMode::TreeView : EClassViewerDisplayMode::ListView;
+	Options.bAllowViewOptions = bShowViewOptions;
 
 	FOnClassPicked OnPicked(FOnClassPicked::CreateRaw(this, &SPropertyEditorClass::OnClassPicked));
 

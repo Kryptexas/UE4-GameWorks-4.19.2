@@ -188,8 +188,13 @@ FVector2D SScaleBox::ComputeDesiredSize(float InScale) const
 	return LayoutScale * SCompoundWidget::ComputeDesiredSize(InScale);
 }
 
-float SScaleBox::GetRelativeLayoutScale(const FSlotBase& Child) const
+float SScaleBox::GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const
 {
+	if ( IgnoreInheritedScale.Get(false) )
+	{
+		return GetLayoutScale() / LayoutScaleMultiplier;
+	}
+
 	return GetLayoutScale();
 }
 

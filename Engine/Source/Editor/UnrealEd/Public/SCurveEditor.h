@@ -589,6 +589,8 @@ private:
 
 	TSharedPtr<FCurveViewModel> GetViewModelForCurve(FRichCurve* InCurve);
 
+	void OnObjectPropertyChanged(UObject* Object, FPropertyChangedEvent& PropertyChangedEvent);
+
 protected:
 
 	/** Set Default output values when range is too small **/

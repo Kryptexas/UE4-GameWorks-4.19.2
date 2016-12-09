@@ -89,18 +89,18 @@ class FComparableImage;
 class FPixelOperations
 {
 public:
-	static FORCEINLINE float GetBrightness(const FColor& Color)
+	static FORCEINLINE double GetLuminance(const FColor& Color)
 	{
 		// https://en.wikipedia.org/wiki/Relative_luminance
-		return 0.2126 * Color.R + 0.7152 * Color.G + 0.0722 * Color.B;
+		return (0.2126 * Color.R + 0.7152 * Color.G + 0.0722 * Color.B) * (Color.A / 255.0);
 	}
 
 	static bool IsBrightnessSimilar(const FColor& ColorA, const FColor& ColorB, const FImageTolerance& Tolerance)
 	{
 		const bool AlphaSimilar = FMath::IsNearlyEqual((float)ColorA.A, ColorB.A, Tolerance.Alpha);
 
-		const float BrightnessA = FPixelOperations::GetBrightness(ColorA);
-		const float BrightnessB = FPixelOperations::GetBrightness(ColorB);
+		const float BrightnessA = FPixelOperations::GetLuminance(ColorA);
+		const float BrightnessB = FPixelOperations::GetLuminance(ColorB);
 		const bool BrightnessSimilar = FMath::IsNearlyEqual(BrightnessA, BrightnessB, Tolerance.MinBrightness);
 
 		return BrightnessSimilar && AlphaSimilar;
@@ -125,8 +125,8 @@ public:
 
 	static FORCEINLINE bool IsContrasting(const FColor& ColorA, const FColor& ColorB, const FImageTolerance& Tolerance)
 	{
-		const float BrightnessA = FPixelOperations::GetBrightness(ColorA);
-		const float BrightnessB = FPixelOperations::GetBrightness(ColorB);
+		const float BrightnessA = FPixelOperations::GetLuminance(ColorA);
+		const float BrightnessB = FPixelOperations::GetLuminance(ColorB);
 
 		return FMath::Abs(BrightnessA - BrightnessB) > Tolerance.MaxBrightness;
 	}
@@ -151,12 +151,12 @@ public:
 		, GreenTotal(0)
 		, BlueTotal(0)
 		, AlphaTotal(0)
-		, BrightnessTotal(0)
+		, LuminanceTotal(0)
 		, RedAverage(0)
 		, GreenAverage(0)
 		, BlueAverage(0)
 		, AlphaAverage(0)
-		, BbrightnessAverage(0)
+		, LuminanceAverage(0)
 	{
 	}
 
@@ -185,13 +185,13 @@ public:
 	double GreenTotal;
 	double BlueTotal;
 	double AlphaTotal;
-	double BrightnessTotal;
+	double LuminanceTotal;
 
 	double RedAverage;
 	double GreenAverage;
 	double BlueAverage;
 	double AlphaAverage;
-	double BbrightnessAverage;
+	double LuminanceAverage;
 };
 
 /**
@@ -309,6 +309,17 @@ public:
 	FImageComparer();
 
 	FImageComparisonResult Compare(const FString& ImagePathA, const FString& ImagePathB, FImageTolerance Tolerance);
+
+	enum class EStructuralSimilarityComponent : uint8
+	{
+		Luminance,
+		Color
+	};
+
+	/**
+	 * https://en.wikipedia.org/wiki/Structural_similarity
+	 */
+	double CompareStructuralSimilarity(const FString& ImagePathA, const FString& ImagePathB, EStructuralSimilarityComponent InCompareComponent);
 
 private:
 	TSharedPtr<FComparableImage> Open(const FString& ImagePath, FText& OutError);

@@ -39,6 +39,7 @@ protected:
 	FReply RemoveProfileButtonClick();
 protected:
 	void OnAssetViewerSettingsRefresh(const FName& InPropertyName);
+	void OnAssetViewerSettingsPostUndo();
 protected:
 	/** Property viewing widget */
 	TSharedPtr<IDetailsView> SettingsView;
@@ -51,6 +52,7 @@ protected:
 
 	FDelegateHandle RefreshDelegate;
 	FDelegateHandle AddRemoveProfileDelegate;
+	FDelegateHandle PostUndoDelegate;
 
 	UEditorPerProjectUserSettings* PerProjectSettings;
 };

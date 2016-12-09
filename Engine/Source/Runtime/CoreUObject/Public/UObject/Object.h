@@ -803,6 +803,14 @@ public:
 	UFunction* FindFunctionChecked( FName InName ) const;
 
 	/**
+	 * Given OtherObject (which will be the same type as 'this'), recursively find any matching sub-objects from 'this' that also exist within OtherObject, and add the mappings to ObjectMapping.
+	 *
+	 * @param	OtherObject		The to find matching sub-objects within.
+	 * @param	ObjectMapping	The complete mapping between this object hierarchy and the other object hierarchy.
+	 */
+	virtual void BuildSubobjectMapping(UObject* OtherObject, TMap<UObject*, UObject*>& ObjectMapping) const;
+
+	/**
 	 * Uses the TArchiveObjectReferenceCollector to build a list of all components referenced by this object which have this object as the outer
 	 *
 	 * @param	OutDefaultSubobjects	the array that should be populated with the default subobjects "owned" by this object

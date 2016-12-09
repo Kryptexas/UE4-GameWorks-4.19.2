@@ -10,5 +10,6 @@ USlateSettings::USlateSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bVirtualKeyboardSendsTextChanged(false)
 	, bVirtualKeyboardDisplayOnFocus(true)
+	, bExplicitCanvasChildZOrder(false)
 {
 }

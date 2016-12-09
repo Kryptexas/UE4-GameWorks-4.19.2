@@ -28,13 +28,11 @@ class ENGINE_API UUserDefinedEnum : public UEnum
 #endif //WITH_EDITORONLY_DATA
 
 	/**
-	 * Names stored in "DisplayName" meta data. They are duplicated here, 
-	 * so functions like UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName can use them
-	 * outside the editor. (When meta data are not loaded).
-	 * To sync DisplayNames with meta-data use FEnumEditorUtils::EnsureAllDisplayNamesExist.
+	 * De-facto display names for enum entries mapped against their raw enum name (UEnum::GetEnumName).
+	 * To sync DisplayNameMap use FEnumEditorUtils::EnsureAllDisplayNamesExist.
 	 */
 	UPROPERTY()
-	TArray<FText> DisplayNames;
+	TMap<FName, FText> DisplayNameMap;
 
 public:
 	//~ Begin UObject Interface.

@@ -12,17 +12,18 @@
 #include "Widgets/Views/STableViewBase.h"
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Views/STreeView.h"
+#include "Settings/ClassViewerSettings.h"
 
 class FClassViewerNode;
 class FMenuBuilder;
 class FTextFilterExpressionEvaluator;
 class UBlueprint;
+class SComboButton;
+class FClassViewerNode;
+class FTextFilterExpressionEvaluator;
 
 //////////////////////////////////////////////////////////////////////////
 // SClassViewer
-
-class FClassViewerNode;
-class FTextFilterExpressionEvaluator;
 
 class SClassViewer : public SCompoundWidget
 {
@@ -178,6 +179,50 @@ private:
 	/** Expands all of the root nodes */
 	virtual void ExpandRootNodes();
 
+	/** Returns the foreground color for the view button */
+	FSlateColor GetViewButtonForegroundColor() const;
+
+	/** Handler for when the view combo button is clicked */
+	TSharedRef<SWidget> GetViewButtonContent();
+
+	/** Gets the text for the class count label */
+	FText GetClassCountText() const;
+
+	/** Sets the view type and updates lists accordingly */
+	void SetCurrentDeveloperViewType(EClassViewerDeveloperType NewType);
+
+	/** Clears the reference to the current view and creates a new one, based on CurrentViewType */
+	void CreateCurrentDeveloperView();
+
+	/** Gets the current view type (list or tile) */
+	EClassViewerDeveloperType GetCurrentDeveloperViewType() const;
+
+	/** Returns true if ViewType is the current view type */
+	bool IsCurrentDeveloperViewType(EClassViewerDeveloperType ViewType) const;
+
+	/** Toggle whether internal use classes should be shown or not */
+	void ToggleShowInternalClasses();
+
+	/** Whether or not it's possible to show internal use classes */
+	bool IsShowingInternalClasses() const;
+	
+	/** Whether or not it's possible to show internal use classes */
+	bool IsToggleShowInternalClassesAllowed() const;
+
+	/** Get the total number of classes passing the current filters.*/
+	const int GetNumItems() const;
+
+	/** Count the number of tree items in the specified hierarchy*/
+	int32 CountTreeItems(FClassViewerNode* Node);
+
+	/** Handle the settings for ClassViewer changing.*/
+	void HandleSettingChanged(FName PropertyName);
+
+	/** Accessor for the classnames that have been marked as internal only in settings */
+	void GetInternalOnlyClasses(TArray<FStringClassReference>& Classes);
+	
+	/** Accessor for the class paths that have been marked as internal only in settings */
+	void GetInternalOnlyPaths(TArray<FDirectoryPath>& Paths);
 private:
 	/** Init options, cached */
 	FClassViewerInitializationOptions InitOptions;
@@ -238,4 +283,13 @@ private:
 
 	/** True if we need to set the tree expansion states according to our local copy next tick */
 	bool bPendingSetExpansionStates;
+
+	/** Indicates if the 'Show Internal Classes' option should be enabled or disabled */
+	bool bCanShowInternalClasses;
+
+	/** The button that displays view options */
+	TSharedPtr<SComboButton> ViewOptionsComboButton;
+
+	/** Number of classes that passed the filter*/
+	int NumClasses;
 };

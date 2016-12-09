@@ -1977,7 +1977,8 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 	if (!(DirtyFlags & ETextLayoutDirtyState::Layout))
 	{
 		//Lots of room for additional optimization
-		float OffsetAdjustment = 0;
+		float OffsetAdjustment = 0.0f;
+		float HeightAdjustment = 0.0f;
 
 		for (int32 ViewIndex = 0; ViewIndex < LineViews.Num(); ViewIndex++)
 		{
@@ -1985,15 +1986,11 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 
 			if (LineView.ModelIndex == LineIndex)
 			{
-				if (ViewIndex - 1 <= 0)
+				HeightAdjustment += LineView.Size.Y;
+
+				if (LineViews.IsValidIndex(ViewIndex + 1))
 				{
-					OffsetAdjustment += LineView.Offset.Y;
-				}
-				else
-				{
-					//Since the offsets are not relative to other lines, if we aren't removing the top line then
-					//we don't aggregate the offset from any previous removals as we'd be double counting.
-					OffsetAdjustment = (LineView.Offset.Y - LineViews[ViewIndex - 1].Offset.Y);
+					OffsetAdjustment += (LineViews[ViewIndex + 1].Offset.Y - LineView.Offset.Y);
 				}
 
 				LineViews.RemoveAt(ViewIndex);
@@ -2014,6 +2011,8 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 				}
 			}
 		}
+
+		TextLayoutSize.Height -= HeightAdjustment;
 	}
 
 	return true;

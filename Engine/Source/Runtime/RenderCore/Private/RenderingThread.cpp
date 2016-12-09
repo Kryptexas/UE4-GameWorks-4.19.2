@@ -922,7 +922,9 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 				}
 				bDone = Event->Wait(WaitTime);
 
-				if (!bDone && !GIsEditor) // editor threads can block for quite a while...
+				// editor threads can block for quite a while... 
+				// Also dont do this when attached to the debugger as long pauses on breakpoints will cause this to trigger
+				if (!bDone && !GIsEditor && !FPlatformMisc::IsDebuggerPresent())
 				{
 					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
 					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).

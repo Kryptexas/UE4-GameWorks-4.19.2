@@ -15,7 +15,7 @@ struct FViewportClick;
 class UNREALED_API FComponentVisualizerManager
 {
 public:
-	FComponentVisualizerManager() {}
+	FComponentVisualizerManager();
 	virtual ~FComponentVisualizerManager() {}
 
 
@@ -52,4 +52,7 @@ public:
 private:
 	/** Currently 'active' visualizer that we should pass input to etc */
 	TWeakPtr<class FComponentVisualizer> EditedVisualizerPtr;
+
+	/** The viewport client for the currently active visualizer */
+	FEditorViewportClient* EditedVisualizerViewportClient;
 };

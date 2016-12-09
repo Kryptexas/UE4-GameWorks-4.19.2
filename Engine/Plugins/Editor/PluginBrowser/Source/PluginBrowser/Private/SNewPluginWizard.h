@@ -9,11 +9,13 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SCompoundWidget.h"
 #include "IPluginWizardDefinition.h"
+#include "ModuleDescriptor.h"
 
 class ITableRow;
 class SFilePathBlock;
 class STableViewBase;
 enum class ECheckBoxState : uint8;
+
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPluginWizard, Log, All);
 
@@ -115,9 +117,12 @@ private:
 	 * Writes a plugin descriptor file to disk
 	 * @param PluginModuleName Name of the plugin and its module
 	 * @param UPluginFilePath Path where the descriptor file should be written
+	 * @param bCanContainContent Can this plugin contain content
+	 * @param bHasModules Does this plugin have Source?
+	 * @param ModuleDescriptorType If this plugin has Source, what is the type of Source included (so it can potentially be excluded in the right builds)
 	 * @return Whether the files was written successfully
 	 */
-	bool WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules);
+	bool WritePluginDescriptor(const FString& PluginModuleName, const FString& UPluginFilePath, bool bCanContainContent, bool bHasModules, EHostType::Type InModuleDescriptorType);
 
 	/**
 	 * Displays an editor pop up error notification

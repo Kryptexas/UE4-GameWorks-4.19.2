@@ -9,6 +9,10 @@
 #include "Widgets/SWidget.h"
 #include "Slate/SlateTextures.h"
 
+// In order for a platform to support early movie playback, the platform must support the rendering thread 
+// starting very early and support rendering as soon as it is started and the module containing the movie streamer for the platform must already be loaded
+#define PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK 0
+
 UENUM()
 enum EMoviePlaybackType
 {
@@ -105,6 +109,7 @@ struct MOVIEPLAYER_API FLoadingScreenAttributes
 		, bAutoCompleteWhenLoadingCompletes(true)
 		, bMoviesAreSkippable(true)
 		, bWaitForManualStop(false)
+		, bAllowInEarlyStartup(false)
 		, PlaybackType(EMoviePlaybackType::MT_Normal) {}
 
 	/** The widget to be displayed on top of the movie or simply standalone if there is no movie. */
@@ -124,6 +129,9 @@ struct MOVIEPLAYER_API FLoadingScreenAttributes
 
 	/** If true, movie playback continues until Stop is called. */
 	bool bWaitForManualStop;
+
+	/** If true loading screens here cannot have any uobjects of any kind or use any engine features at all. This will start the movies very early as a result on platforms that support it */
+	bool bAllowInEarlyStartup;
 
 	/** Should we just play back, loop, etc.  NOTE: if the playback type is MT_LoopLast, then bAutoCompleteWhenLoadingCompletes will be togged on when the last movie is hit*/
 	TEnumAsByte<EMoviePlaybackType> PlaybackType;
@@ -161,6 +169,18 @@ public:
 	/** Called before playing a movie if the loading screen has not been prepared. */
 	DECLARE_EVENT(IGameMoviePlayer, FOnPrepareLoadingScreen)
 	virtual FOnPrepareLoadingScreen& OnPrepareLoadingScreen() = 0;
+
+	/**
+	 * @return true if the movie player has been set up with an early startup movie
+	 */
+	virtual bool HasEarlyStartupMovie() const = 0;
+
+	/**
+	 * Play any early start up movies that have been set up
+	 *
+	 * @return true if a movie started playing
+	 */
+	virtual bool PlayEarlyStartupMovies() = 0;
 
 	/** 
 	 * Starts playing the movie given the last FLoadingScreenAttributes passed in
