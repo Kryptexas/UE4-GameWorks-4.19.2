@@ -3,8 +3,7 @@
 #pragma once
 
 #include "ComponentVisualizer.h"
-
-struct FEngineShowFlags;
+#include "ShowFlags.h"
 
 template<class T>
 class COMPONENTVISUALIZERS_API TAttenuatedComponentVisualizer : public FComponentVisualizer

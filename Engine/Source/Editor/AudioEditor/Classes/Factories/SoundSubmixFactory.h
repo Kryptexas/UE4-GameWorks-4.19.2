@@ -5,6 +5,7 @@
 //~=============================================================================
 
 #pragma once
+#include "Factories/Factory.h"
 #include "SoundSubmixFactory.generated.h"
 
 UCLASS(MinimalAPI, hidecategories=Object)

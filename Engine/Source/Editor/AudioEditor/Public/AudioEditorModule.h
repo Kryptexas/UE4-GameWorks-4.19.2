@@ -12,6 +12,7 @@
 class UDialogueWave;
 class USoundClass;
 class USoundCue;
+class USoundSubmix;
 class USoundNode;
 class USoundWave;
 struct FDialogueContextMapping;

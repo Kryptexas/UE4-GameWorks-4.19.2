@@ -7,6 +7,7 @@
 #include "Sound/SoundSubmix.h"
 #include "SoundSubmixGraph/SoundSubmixGraphNode.h"
 #include "GraphEditor.h"
+#include "UObject/Package.h"
 
 class FSoundSubmixAudioEditor : public ISoundSubmixAudioEditor
 {

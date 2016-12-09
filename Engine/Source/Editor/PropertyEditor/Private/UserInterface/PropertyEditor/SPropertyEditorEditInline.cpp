@@ -10,6 +10,7 @@
 #include "ClassViewerFilter.h"
 #include "Styling/SlateIconFinder.h"
 #include "ConstructorHelpers.h"
+#include "Editor/EditorEngine.h"
 
 class FPropertyEditorInlineClassFilter : public IClassViewerFilter
 {
