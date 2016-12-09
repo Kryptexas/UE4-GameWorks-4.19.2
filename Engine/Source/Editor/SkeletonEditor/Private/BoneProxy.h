@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "TickableEditorObject.h"
 #include "BoneProxy.generated.h"
 
 class UDebugSkelMeshComponent;
