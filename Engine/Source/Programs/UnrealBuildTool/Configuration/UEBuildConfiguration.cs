@@ -407,7 +407,6 @@ namespace UnrealBuildTool
 			bEditorDependsOnShaderCompileWorker = true;
             bForceCompileDevelopmentAutomationTests = false;
             bForceCompilePerformanceAutomationTests = false;
-			bEventDrivenLoader = false;
 		}
 
 		/// <summary>

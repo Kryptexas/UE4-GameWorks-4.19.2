@@ -171,6 +171,10 @@ public:
 	{
 		return nullptr;
 	}
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		check(false);
+	}
 
 	virtual const TCHAR* GetName() const override
 	{

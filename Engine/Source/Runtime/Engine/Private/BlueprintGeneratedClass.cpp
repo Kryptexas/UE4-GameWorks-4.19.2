@@ -1052,10 +1052,6 @@ void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 	{
 		OutDeps.Add(UberGraphFunction);
 	}
-	if (UInheritableComponentHandler* Handler = GetInheritableComponentHandler())
-	{
-		OutDeps.Add(Handler);
-	}
 	
 	UObject *CDO = GetDefaultObject();
 	if (CDO)

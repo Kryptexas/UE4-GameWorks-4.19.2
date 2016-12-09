@@ -109,7 +109,7 @@ extern "C" void Java_com_epicgames_ue4_AmazonStoreHelper_nativeQueryComplete(JNI
 			jenv->ReleaseStringUTFChars(NextPrice, charsPrice);
 			jenv->DeleteLocalRef(NextPrice);
 
-			LexicalConversion::FromString(NewProductInfo.RawPrice, *NewProductInfo.DisplayPrice);
+			Lex::FromString(NewProductInfo.RawPrice, *NewProductInfo.DisplayPrice);
 
 			ProvidedProductInformation.Add(NewProductInfo);
 

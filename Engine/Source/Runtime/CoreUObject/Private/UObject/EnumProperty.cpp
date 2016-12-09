@@ -23,7 +23,7 @@ namespace UE4EnumProperty_Private
 				LogClass,
 				Warning,
 				TEXT("Failed to find valid enum value '%s' for enum type '%s' when converting property '%s' during property loading - setting to '%s'"),
-				*LexicalConversion::ToString(OldValue),
+				*Lex::ToString(OldValue),
 				*Enum->GetName(),
 				*EnumProp->GetName(),
 				*Enum->GetNameByValue(Enum->GetMaxEnumValue()).ToString()

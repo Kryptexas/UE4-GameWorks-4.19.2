@@ -3809,25 +3809,25 @@ bool ReadCookedAssetRegistry(const FString& Filename, TArray<FCookedAssetPackage
 					FString DependentPackageHash;
 					if (JsonPackage->TryGetStringField(TEXT("DependentPackageHash"), DependentPackageHash))
 					{
-						LexicalConversion::FromString(PackageInfo.DependentPackageHash, *DependentPackageHash);
+						Lex::FromString(PackageInfo.DependentPackageHash, *DependentPackageHash);
 					}
 
 					FString FullPackageHash;
 					if (JsonPackage->TryGetStringField(TEXT("FullPackageHash"), FullPackageHash))
 					{
-						LexicalConversion::FromString(PackageInfo.FullPackageHash, *FullPackageHash);
+						Lex::FromString(PackageInfo.FullPackageHash, *FullPackageHash);
 					}
 
 					FString IsEditorPackage;
 					if (JsonPackage->TryGetStringField(TEXT("IsEditorOnly"), IsEditorPackage))
 					{
-						LexicalConversion::FromString(PackageInfo.IsEditorPackage, *IsEditorPackage);
+						Lex::FromString(PackageInfo.IsEditorPackage, *IsEditorPackage);
 					}
 
 					FString SucceededSave;
 					if (JsonPackage->TryGetStringField(TEXT("SucceededSave"), SucceededSave))
 					{
-						LexicalConversion::FromString(PackageInfo.SucceededSave, *SucceededSave);
+						Lex::FromString(PackageInfo.SucceededSave, *SucceededSave);
 					}
 
 
@@ -3998,13 +3998,13 @@ bool UCookOnTheFlyServer::SaveCookedAssetRegistry(const FString& InCookedAssetRe
 		{
 			FMD5Hash Hash;
 			PDInfoModule.DeterminePackageDependentHash(*RelativePath, Hash);
-			FString DependentPackageHashString = LexicalConversion::ToString(Hash);
+			FString DependentPackageHashString = Lex::ToString(Hash);
 			Json->WriteValue(TEXT("DependentPackageHash"), *DependentPackageHashString);
 		}
 		{
 			FMD5Hash Hash;
 			PDInfoModule.DetermineFullPackageHash(*RelativePath, Hash);
-			FString FullPackageHashString = LexicalConversion::ToString(Hash);
+			FString FullPackageHashString = Lex::ToString(Hash);
 			Json->WriteValue(TEXT("FullPackageHash"), *FullPackageHashString);
 		}
 
@@ -5902,6 +5902,12 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	}
 
 	InitializeSandbox();
+
+	if (CurrentCookMode == ECookMode::CookByTheBook && !IsCookFlagSet(ECookInitializationFlags::Iterative))
+	{
+		StartSavingEDLCookInfoForVerification();
+	}
+
 
 	bool bRunConversion = FParse::Param(FCommandLine::Get(), TEXT("NativizeAssets"));
 	if (bRunConversion)

@@ -292,7 +292,7 @@ TOptional<FNumericUnit<NumericType>> FNumericUnit<NumericType>::TryParseString(c
 	}
 
 	NumericType NewValue;
-	LexicalConversion::FromString(NewValue, InSource);
+	Lex::FromString(NewValue, InSource);
 
 	// Now parse the units
 	while(FChar::IsWhitespace(*NumberEnd)) ++NumberEnd;
@@ -412,7 +412,7 @@ template <typename NumericType>
 struct TNumericLimits<FNumericUnit<NumericType>> : public TNumericLimits<NumericType>
 { };
 
-namespace LexicalConversion
+namespace Lex
 {
 	template<typename T>
 	FString ToString(const FNumericUnit<T>& NumericUnit)

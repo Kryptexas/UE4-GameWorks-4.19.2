@@ -151,7 +151,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
                             Branch = c.Branch,
                             CrashType = c.CrashType,
                             EpicId = c.EpicAccountId,
-                            BuggId = c.Buggs.First().Id
+                            BuggId = c.Bugg.Id
                         }
                     );
 

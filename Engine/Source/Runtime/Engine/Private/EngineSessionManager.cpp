@@ -65,13 +65,13 @@ namespace
 {
 	FString TimestampToString(FDateTime InTimestamp)
 	{
-		return LexicalConversion::ToString(InTimestamp.ToUnixTimestamp());
+		return Lex::ToString(InTimestamp.ToUnixTimestamp());
 	}
 
 	FDateTime StringToTimestamp(FString InString)
 	{
 		int64 TimestampUnix;
-		if (LexicalConversion::TryParseString(TimestampUnix, *InString))
+		if (Lex::TryParseString(TimestampUnix, *InString))
 		{
 			return FDateTime::FromUnixTimestamp(TimestampUnix);
 		}

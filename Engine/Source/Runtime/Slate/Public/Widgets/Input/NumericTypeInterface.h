@@ -30,7 +30,7 @@ struct TDefaultNumericTypeInterface : INumericTypeInterface<NumericType>
 	/** Convert the type to/from a string */
 	virtual FString ToString(const NumericType& Value) const override
 	{
-		return LexicalConversion::ToSanitizedString(Value);
+		return Lex::ToSanitizedString(Value);
 	}
 	virtual TOptional<NumericType> FromString(const FString& InString, const NumericType& InExistingValue) override
 	{

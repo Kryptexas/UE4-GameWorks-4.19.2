@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreTypes.h"
+#include "Traits/ElementType.h"
 
 namespace AlgoImpl
 {
@@ -114,7 +115,7 @@ namespace Algo
 	template <typename ContainerType>
 	FORCEINLINE bool IsSorted(const ContainerType& Container)
 	{
-		return AlgoImpl::IsSorted(Container.GetData(), Container.Num(), AlgoImpl::TLess<typename ContainerType::ElementType>());
+		return AlgoImpl::IsSorted(Container.GetData(), Container.Num(), AlgoImpl::TLess<typename TElementType<ContainerType>::Type>());
 	}
 
 	/**

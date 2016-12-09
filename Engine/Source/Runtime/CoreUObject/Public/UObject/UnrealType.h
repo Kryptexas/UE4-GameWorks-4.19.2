@@ -1280,8 +1280,8 @@ protected:
 			TEXT("Potential data loss during conversion of integer property %s of %s - was (%s) now (%s) - for package: %s"),
 			*this->GetName(),
 			*Ar.GetArchiveName(),
-			*LexicalConversion::ToString(OldValue),
-			*LexicalConversion::ToString(NewValue),
+			*Lex::ToString(OldValue),
+			*Lex::ToString(NewValue),
 			*Ar.GetArchiveName()
 			);
 	}
@@ -1374,11 +1374,11 @@ public:
 	}
 	virtual void SetNumericPropertyValueFromString(void* Data, TCHAR const* Value) const override
 	{
-		LexicalConversion::FromString(*TTypeFundamentals::GetPropertyValuePtr(Data), Value);
+		Lex::FromString(*TTypeFundamentals::GetPropertyValuePtr(Data), Value);
 	}
 	virtual FString GetNumericPropertyValueToString(void const* Data) const override
 	{
-		return LexicalConversion::ToString(TTypeFundamentals::GetPropertyValue(Data));
+		return Lex::ToString(TTypeFundamentals::GetPropertyValue(Data));
 	}
 	virtual int64 GetSignedIntPropertyValue(void const* Data) const override
 	{

@@ -99,6 +99,52 @@ IPlatformFile* FPlatformFileManager::GetPlatformFile(const TCHAR* Name)
 	return PlatformFile;
 }
 
+void FPlatformFileManager::RemovePlatformFile(IPlatformFile* PlatformFileToRemove)
+{
+	check(TopmostPlatformFile != nullptr);
+	check(PlatformFileToRemove != nullptr);
+
+	IPlatformFile* HigherLevelPlatformFile = nullptr;
+	IPlatformFile* FoundElement = nullptr;
+	for (FoundElement = TopmostPlatformFile; FoundElement && FoundElement != PlatformFileToRemove; FoundElement = FoundElement->GetLowerLevel())
+	{
+		HigherLevelPlatformFile = FoundElement;
+	}
+	check(FoundElement == PlatformFileToRemove);
+	if (HigherLevelPlatformFile)
+	{
+		check(HigherLevelPlatformFile->GetLowerLevel() == PlatformFileToRemove);
+		HigherLevelPlatformFile->SetLowerLevel(PlatformFileToRemove->GetLowerLevel());
+	}
+	else
+	{
+		check(TopmostPlatformFile == PlatformFileToRemove);
+		check(PlatformFileToRemove->GetLowerLevel());
+		SetPlatformFile(*PlatformFileToRemove->GetLowerLevel());
+	}
+}
+
+void FPlatformFileManager::InitializeNewAsyncIO()
+{
+	// Removed the cached file wrapper because it doesn't work well with EDL
+	if (GEventDrivenLoaderEnabled)
+	{
+		IPlatformFile* CachedWrapper = FindPlatformFile(FCachedReadPlatformFile::GetTypeName());
+		if (CachedWrapper)
+		{
+			RemovePlatformFile(CachedWrapper);
+		}
+	}
+	// Make sure all platform wrappers know about new async IO and EDL
+	if (GNewAsyncIO)
+	{
+		for (IPlatformFile* ChainElement = TopmostPlatformFile; ChainElement; ChainElement = ChainElement->GetLowerLevel())
+		{
+			ChainElement->InitializeNewAsyncIO();
+		}
+	}
+}
+
 FPlatformFileManager& FPlatformFileManager::Get()
 {
 	static FPlatformFileManager Singleton;

@@ -46,7 +46,7 @@ namespace SCT
 					FString Vers = Switch.Mid(8);
 					if(Vers.IsNumeric())
 					{
-						LexicalConversion::FromString(GameVersion, *Vers);
+						Lex::FromString(GameVersion, *Vers);
 					}
 				}
 				else

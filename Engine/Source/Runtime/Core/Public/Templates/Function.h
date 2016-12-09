@@ -283,6 +283,7 @@ namespace UE4Function_Private
 			return Callable(Derived->GetPtr(), Params...);
 		}
 
+	protected:
 		template <typename FunctorType>
 		void Set(FunctorType* Functor)
 		{

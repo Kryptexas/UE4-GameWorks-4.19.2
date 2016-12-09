@@ -89,9 +89,7 @@ public:
  */
 extern CORE_API FQueuedThreadPool* GThreadPool;
 
-#if USE_NEW_ASYNC_IO
 extern CORE_API FQueuedThreadPool* GIOThreadPool;
-#endif // USE_NEW_ASYNC_IO
 
 #if WITH_EDITOR
 extern CORE_API FQueuedThreadPool* GLargeThreadPool;

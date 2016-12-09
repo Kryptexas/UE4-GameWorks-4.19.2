@@ -120,7 +120,7 @@ int32 GetVisualStudioVersionForSolution(const FString& InSolutionFile)
 			}
 
 			int32 Version = 0;
-			LexicalConversion::FromString(Version, *VersionString);
+			Lex::FromString(Version, *VersionString);
 			return Version;
 		}
 	}

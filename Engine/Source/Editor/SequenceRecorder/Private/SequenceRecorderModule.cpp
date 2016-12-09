@@ -579,7 +579,7 @@ class FSequenceRecorderModule : public ISequenceRecorder, private FSelfRegisteri
 	{
 		if (Handle == AudioFactoryHandle)
 		{
-			AudioFactory.Unset();
+			AudioFactory = nullptr;
 			AudioFactoryHandle = FDelegateHandle();
 		}
 	}

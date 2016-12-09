@@ -329,7 +329,6 @@ private:
 	/** Local copy/ cache of mip data between creation and first call to InitRHI.							*/
 	void*				MipData[MAX_TEXTURE_MIP_COUNT];
 
-#if USE_NEW_ASYNC_IO
 	/**  Async handle */
 	class IAsyncReadFileHandle* IORequestHandle;
 	FString IORequestFilename;
@@ -338,10 +337,10 @@ private:
 
 	/** Potentially outstanding texture I/O requests.														*/
 	TArray<class IAsyncReadRequest*> IORequests;
-#else
+
 	/** Potentially outstanding texture I/O requests.														*/
 	uint64				IORequestIndices[MAX_TEXTURE_MIP_COUNT];
-#endif
+
 	/** Number of file I/O requests for current request. The use of this is crazy confusing.				*/
 	int32					IORequestCount;
 
@@ -418,14 +417,12 @@ private:
 	*/
 	void HintDoneWithStreamedTextureFiles();
 
-#if USE_NEW_ASYNC_IO
 	/**
 	* Block until all requests are done.
 	* A time limit of zero means infinite
 	*/
 	bool BlockTillAllRequestsFinished(float TimeLimit = 0.0f);
 	void AsyncPrep(const FByteBulkData& BulkData);
-#endif
 
 };
 

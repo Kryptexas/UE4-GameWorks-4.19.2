@@ -245,9 +245,6 @@ public:
 	}
 	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-		return false; // this stuff is awful for the EDL
-#else
 		// Default to false on platforms that already do platform file level caching
 		bool bResult = !PLATFORM_PS4 && !PLATFORM_WINDOWS && FPlatformProperties::RequiresCookedData();
 
@@ -268,13 +265,15 @@ public:
 		}
 #endif
 		return bResult;
-#endif
 	}
 	IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
 	}
-
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
+	}
 	virtual const TCHAR* GetName() const override
 	{
 		return FCachedReadPlatformFile::GetTypeName();
@@ -397,10 +396,8 @@ public:
 	{
 		return LowerLevel->SendMessageToServer(Message, Handler);
 	}
-#if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
 		return LowerLevel->OpenAsyncRead(Filename);
 	}
-#endif // USE_NEW_ASYNC_IO
 };

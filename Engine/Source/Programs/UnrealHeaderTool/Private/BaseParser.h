@@ -45,7 +45,8 @@ class FBaseParser
 {
 protected:
 	FBaseParser();
-protected:
+
+public:
 	// Input text.
 	const TCHAR* Input;
 
@@ -72,7 +73,7 @@ protected:
 
 	// Total number of lines parsed.
 	int32 LinesParsed;
-protected:
+
 	void ResetParser(const TCHAR* SourceBuffer, int32 StartingLineNumber = 1);
 
 	// Low-level parsing functions.
@@ -126,7 +127,7 @@ protected:
 	// Doesn't quit if StopChar is found inside a double-quoted string, but does not support quote escapes
 	bool GetRawTokenRespectingQuotes( FToken& Token, TCHAR StopChar = TCHAR('\n') );
 
-	void UngetToken( FToken& Token );
+	void UngetToken( const FToken& Token );
 	bool GetIdentifier( FToken& Token, bool bNoConsts = false );
 	bool GetSymbol( FToken& Token );
 
@@ -175,7 +176,6 @@ protected:
 	// Reads a set of specifiers (with optional values) inside the () of a new-style metadata macro like UPROPERTY or UFUNCTION
 	void ReadSpecifierSetInsideMacro(TArray<FPropertySpecifier>& SpecifiersFound, const FString& TypeOfSpecifier, TMap<FName, FString>& MetaData);
 
-public:
 	// Validates and inserts one key-value pair into the meta data map
 	static void InsertMetaDataPair(TMap<FName, FString>& MetaData, const FString& InKey, const FString& InValue);
 

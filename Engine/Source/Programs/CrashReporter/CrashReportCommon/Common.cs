@@ -69,6 +69,10 @@ namespace Tools.CrashReporter.CrashReportCommon
 		[XmlElement]
 		public string EngineMode = "";
 
+		/// <summary>Extended mode info (Vanilla, Dirty, Unset).</summary>
+		[XmlElement]
+		public string EngineModeEx = "";
+
 		/// <summary>The four component version of the app e.g. 4.4.1.0</summary>
 		[XmlElement]
 		public string EngineVersion = "";

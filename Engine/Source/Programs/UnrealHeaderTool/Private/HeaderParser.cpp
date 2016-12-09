@@ -83,6 +83,13 @@ namespace
 {
 	bool ProbablyAMacro(const TCHAR* Identifier)
 	{
+		// Macros must start with a capitalized alphanumeric character or underscore
+		TCHAR FirstChar = Identifier[0];
+		if (FirstChar != TEXT('_') && (FirstChar < TEXT('A') || FirstChar > TEXT('Z')))
+		{
+			return false;
+		}
+
 		// Test for known delegate and event macros.
 		TCHAR MulticastDelegateStart[] = TEXT("DECLARE_MULTICAST_DELEGATE");
 		if (!FCString::Strncmp(Identifier, MulticastDelegateStart, ARRAY_COUNT(MulticastDelegateStart) - 1))
@@ -103,15 +110,93 @@ namespace
 		}
 
 		// Failing that, we'll guess about it being a macro based on it being a fully-capitalized identifier.
-		while (TCHAR Ch = *Identifier++)
+		while (TCHAR Ch = *++Identifier)
 		{
-			if (Ch != TEXT('_') && (Ch < TEXT('A') || Ch > TEXT('Z')))
+			if (Ch != TEXT('_') && (Ch < TEXT('A') || Ch > TEXT('Z')) && (Ch < TEXT('0') || Ch > TEXT('9')))
 			{
 				return false;
 			}
 		}
 
 		return true;
+	}
+
+	/**
+	 * Tests if an identifier looks like a macro which doesn't have a following open parenthesis.
+	 *
+	 * @param HeaderParser  The parser to retrieve the next token.
+	 * @param Token         The token to test for being callable-macro-like.
+	 *
+	 * @return true if it looks like a non-callable macro, false otherwise.
+	 */
+	bool ProbablyAnUnknownObjectLikeMacro(FHeaderParser& HeaderParser, FToken Token)
+	{
+		// Non-identifiers are not macros
+		if (Token.TokenType != TOKEN_Identifier)
+		{
+			return false;
+		}
+
+		// Macros must start with a capitalized alphanumeric character or underscore
+		TCHAR FirstChar = Token.Identifier[0];
+		if (FirstChar != TEXT('_') && (FirstChar < TEXT('A') || FirstChar > TEXT('Z')))
+		{
+			return false;
+		}
+
+		// We'll guess about it being a macro based on it being fully-capitalized with at least one underscore.
+		const TCHAR* IdentPtr = Token.Identifier;
+		int32 UnderscoreCount = 0;
+		while (TCHAR Ch = *++IdentPtr)
+		{
+			if (Ch == TEXT('_'))
+			{
+				++UnderscoreCount;
+			}
+			else if ((Ch < TEXT('A') || Ch > TEXT('Z')) && (Ch < TEXT('0') || Ch > TEXT('9')))
+			{
+				return false;
+			}
+		}
+
+		// We look for at least one underscore as a convenient way of whitelisting many known macros
+		// like FORCEINLINE and CONSTEXPR, and non-macros like FPOV and TCHAR.
+		if (UnderscoreCount == 0)
+		{
+			return false;
+		}
+
+		// Identifiers which end in _API are known
+		if (IdentPtr - Token.Identifier > 4 && IdentPtr[-4] == TEXT('_') && IdentPtr[-3] == TEXT('A') && IdentPtr[-2] == TEXT('P') && IdentPtr[-1] == TEXT('I'))
+		{
+			return false;
+		}
+
+		// Ignore certain known macros or identifiers that look like macros.
+		// IMPORTANT: needs to be in lexicographical order.
+		static const TCHAR* Whitelist[] =
+		{
+			TEXT("FORCEINLINE_DEBUGGABLE"),
+			TEXT("FORCEINLINE_STATS"),
+			TEXT("SIZE_T")
+		};
+		if (Algo::FindSortedStringCaseInsensitive(Token.Identifier, Whitelist, ARRAY_COUNT(Whitelist)) >= 0)
+		{
+			return false;
+		}
+
+		// Check if there's an open parenthesis following the token.
+		//
+		// Rather than ungetting the bracket token, we unget the original identifier token,
+		// then get it again, so we don't lose any comments which may exist between the token 
+		// and the non-bracket.
+		FToken PossibleBracketToken;
+		HeaderParser.GetToken(PossibleBracketToken);
+		HeaderParser.UngetToken(Token);
+		HeaderParser.GetToken(Token);
+
+		bool bResult = PossibleBracketToken.TokenType != TOKEN_Symbol || FCString::Strcmp(PossibleBracketToken.Identifier, TEXT("("));
+		return bResult;
 	}
 
 	/**
@@ -2225,6 +2310,10 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 				}
 			}
 		}
+		else if (ProbablyAnUnknownObjectLikeMacro(*this, Token))
+		{
+			// skip it
+		}
 		else
 		{
 			if ( !Token.Matches( TEXT("}") ) )
@@ -2239,8 +2328,8 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses)
 			{
 				MatchSemi();
 				break;
-			}			
-		}		
+			}
+		}
 	}
 
 	// Validation
@@ -4860,9 +4949,9 @@ bool FHeaderParser::CompileDeclaration(FClasses& AllClasses, TArray<UDelegateFun
 		}
 	}
 
-	if (Token.Matches(TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS")) || Token.Matches(TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS")))
+	// Skip anything that looks like a macro followed by no bracket that we don't know about
+	if (ProbablyAnUnknownObjectLikeMacro(*this, Token))
 	{
-		// Skip these macros
 		return true;
 	}
 
@@ -8089,7 +8178,7 @@ bool FHeaderParser::DefaultValueStringCppFormatToInnerFormat(const UProperty* Pr
 			int64 Value;
 			if (FDefaultValueHelper::ParseInt64(CppForm, Value))
 			{
-				OutForm = LexicalConversion::ToString(Value);
+				OutForm = Lex::ToString(Value);
 				return EnumProp->GetUnderlyingProperty()->CanHoldValue(Value);
 			}
 		}

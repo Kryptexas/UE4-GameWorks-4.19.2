@@ -30,5 +30,5 @@ struct CORE_API FAES
 	 * @param NumBytes the size of the buffer
 	 * @param Key a null terminated string that is a 32 byte multiple length
 	 */
-	static void DecryptData(uint8* Contents, uint32 NumBytes, ANSICHAR* Key);
+	static void DecryptData(uint8* Contents, uint32 NumBytes, const ANSICHAR* Key);
 };

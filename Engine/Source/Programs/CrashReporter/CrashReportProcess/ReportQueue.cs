@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Tools.CrashReporter.CrashReportCommon;
 using Tools.DotNETCommon.XmlHandler;
 
@@ -548,7 +547,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 		/// <summary> 
 		/// Decompresses a compressed crash report. 
 		/// </summary>
-		unsafe static protected bool DecompressReport(string CompressedReportPath, FCompressedCrashInformation Meta)
+		static protected bool DecompressReport(string CompressedReportPath, FCompressedCrashInformation Meta)
 		{
 			string ReportPath = Path.GetDirectoryName(CompressedReportPath);
 			using (FileStream FileStream = File.OpenRead(CompressedReportPath))
@@ -566,15 +565,12 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 				FileStream.Read(CompressedBufferArray, 0, CompressedSize);
 
-				fixed (byte* UncompressedBufferPtr = UncompressedBufferArray, CompressedBufferPtr = CompressedBufferArray)
+				int UncompressResult = NativeMethods.UncompressMemoryZlib(UncompressedBufferArray, CompressedBufferArray);
+				if (UncompressResult < 0)
 				{
-					Int32 UncompressResult = NativeMethods.UE4UncompressMemoryZLIB((IntPtr)UncompressedBufferPtr, UncompressedSize, (IntPtr)CompressedBufferPtr, CompressedSize);
-					if (UncompressResult < 0)
-					{
-						CrashReporterProcessServicer.WriteFailure("! DecompressReport() failed in UE4UncompressMemoryZLIB() with " + NativeMethods.GetUncompressError(UncompressResult));
-						CrashReporterProcessServicer.WriteFailure("! ZLibFail in DecompressReport(): Path=" + ReportPath);
-						return false;
-					}
+					CrashReporterProcessServicer.WriteFailure("! DecompressReport() failed in UncompressMemoryZlib() with " + NativeMethods.GetZlibError(UncompressResult));
+					CrashReporterProcessServicer.WriteFailure("! ZLibFail in DecompressReport(): Path=" + ReportPath);
+					return false;
 				}
 
 				using (BinaryReader BinaryData = new BinaryReader(new MemoryStream(UncompressedBufferArray, false)))
@@ -706,25 +702,5 @@ namespace Tools.CrashReporter.CrashReportProcess
 		private readonly int DecimateWaitingCountEnd = Int32.MaxValue;
 
 		private float DecimationCounter;
-	}
-}
-
-static class NativeMethods
-{
-	[DllImport("CompressionHelper.dll", CallingConvention = CallingConvention.Cdecl)]
-	public extern static Int32 UE4UncompressMemoryZLIB( /*void**/IntPtr UncompressedBuffer, Int32 UncompressedSize, /*const void**/IntPtr CompressedBuffer, Int32 CompressedSize);
-
-	public static string GetUncompressError(Int32 ErrorCode)
-	{
-		if (ErrorCode == 0) return "Z_OK";
-		else if (ErrorCode == 1) return "Z_STREAM_END";
-		else if (ErrorCode == 2) return "Z_NEED_DICT";
-		else if (ErrorCode == -1) return "Z_ERRNO";
-		else if (ErrorCode == -2) return "Z_STREAM_ERROR";
-		else if (ErrorCode == -3) return "Z_DATA_ERROR";
-		else if (ErrorCode == -4) return "Z_MEM_ERROR";
-		else if (ErrorCode == -5) return "Z_BUF_ERROR";
-		else if (ErrorCode == -6) return "Z_VERSION_ERROR";
-		else return "UnknownZLibError";
 	}
 }

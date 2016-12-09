@@ -1,7 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Serialization/AsyncIOSystemBase.h"
-#if !USE_NEW_ASYNC_IO
 
 /*=============================================================================
 	AsyncIOSystemBase.h: Base implementation of the async IO system
@@ -892,6 +891,8 @@ static FAsyncIOSystemBase* AsyncIOSystem = NULL;
 
 FIOSystem& FIOSystem::Get()
 {
+	check(GConfig); // Otherwise GNewAsyncIO may not be initialized properly
+	check(!GNewAsyncIO); // We don't want to use this old class with the new async IO
 	if (!AsyncIOThread)
 	{
 		check(!AsyncIOSystem);
@@ -928,5 +929,3 @@ bool FIOSystem::HasShutdown()
 {
 	return AsyncIOThread == nullptr || AsyncIOThread == (FRunnableThread*)-1;
 }
-
-#endif

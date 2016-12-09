@@ -2762,17 +2762,16 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleFreezeAllCommand( Cmd, Ar, InWorld );
 	}
-#if !USE_NEW_ASYNC_IO
-	else if( FParse::Command(&Cmd, TEXT("FLUSHIOMANAGER")) )
+	
+	else if( !GNewAsyncIO && FParse::Command(&Cmd, TEXT("FLUSHIOMANAGER")) )
 	{
 		return HandleFlushIOManagerCommand( Cmd, Ar );
 	}
 	// This will list out the packages which are in the precache list and have not been "loaded" out.  (e.g. could be just there taking up memory!)
-	else if (FParse::Command(&Cmd, TEXT("ListPrecacheMapPackages")))
+	else if ( !GNewAsyncIO && FParse::Command(&Cmd, TEXT("ListPrecacheMapPackages")))
 	{
 		return HandleListPreCacheMapPackagesCommand(Cmd, Ar);
 	}
-#endif
 
 	else if( FParse::Command(&Cmd,TEXT("ToggleRenderingThread")) )
 	{
@@ -3406,14 +3405,15 @@ bool UEngine::HandleFreezeAllCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 	return true;
 }
 
-#if !USE_NEW_ASYNC_IO
 bool UEngine::HandleFlushIOManagerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
+	check(!GNewAsyncIO);
 	FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
 	return true;
 }
 bool UEngine::HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
+	check(!GNewAsyncIO);
 	TArray<FString> Packages;
 	FLinkerLoad::GetListOfPackagesInPackagePrecacheMap(Packages);
 
@@ -3429,8 +3429,6 @@ bool UEngine::HandleListPreCacheMapPackagesCommand(const TCHAR* Cmd, FOutputDevi
 
 	return true;
 }
-
-#endif
 
 bool UEngine::HandleFreezeRenderingCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld  )
 {

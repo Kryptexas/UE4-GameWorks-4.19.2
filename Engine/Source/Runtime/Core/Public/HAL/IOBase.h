@@ -5,7 +5,6 @@
 #include "CoreTypes.h"
 #include "GenericPlatform/GenericPlatformFile.h"
 
-#if !USE_NEW_ASYNC_IO
 /*-----------------------------------------------------------------------------
 	FIOSystem.
 -----------------------------------------------------------------------------*/
@@ -136,4 +135,3 @@ struct CORE_API FIOSystem
 	virtual void FlushLog() = 0;
 };
 
-#endif

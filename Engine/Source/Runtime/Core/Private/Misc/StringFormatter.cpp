@@ -31,9 +31,9 @@ void AppendToString(const FStringFormatArg& Arg, FString& StringToAppendTo)
 {
 	switch(Arg.Type)
 	{
-		case FStringFormatArg::Int: 			StringToAppendTo.Append(LexicalConversion::ToString(Arg.IntValue)); break;
-		case FStringFormatArg::UInt: 			StringToAppendTo.Append(LexicalConversion::ToString(Arg.UIntValue)); break;
-		case FStringFormatArg::Double: 			StringToAppendTo.Append(LexicalConversion::ToString(Arg.DoubleValue)); break;
+		case FStringFormatArg::Int: 			StringToAppendTo.Append(Lex::ToString(Arg.IntValue)); break;
+		case FStringFormatArg::UInt: 			StringToAppendTo.Append(Lex::ToString(Arg.UIntValue)); break;
+		case FStringFormatArg::Double: 			StringToAppendTo.Append(Lex::ToString(Arg.DoubleValue)); break;
 		case FStringFormatArg::String: 			StringToAppendTo.AppendChars(*Arg.StringValue, Arg.StringValue.Len()); break;
 		case FStringFormatArg::StringLiteral: 	StringToAppendTo += Arg.StringLiteralValue; break;
 	}

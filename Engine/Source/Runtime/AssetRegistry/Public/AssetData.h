@@ -413,7 +413,7 @@ inline bool FAssetData::GetTagValue(const FName InTagName, ValueType& OutTagValu
 	if (const FString* FoundValue = TagsAndValues.Find(InTagName))
 	{
 		FMemory::Memzero(&OutTagValue, sizeof(ValueType));
-		LexicalConversion::FromString(OutTagValue, **FoundValue);
+		Lex::FromString(OutTagValue, **FoundValue);
 		return true;
 	}
 	return false;
@@ -444,7 +444,7 @@ inline ValueType FAssetData::GetTagValueRef(const FName InTagName) const
 	FMemory::Memzero(&TmpValue, sizeof(ValueType));
 	if (const FString* FoundValue = TagsAndValues.Find(InTagName))
 	{
-		LexicalConversion::FromString(TmpValue, **FoundValue);
+		Lex::FromString(TmpValue, **FoundValue);
 	}
 	return TmpValue;
 }

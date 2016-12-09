@@ -69,7 +69,7 @@ struct CORE_API FStatConstants
 	static const FStatNameAndInfo AdvanceFrame;
 };
 
-namespace LexicalConversion
+namespace Lex
 {
 	inline void FromString(FName& OutValue, const TCHAR* Buffer )
 	{
@@ -78,7 +78,7 @@ namespace LexicalConversion
 }
 
 /** Parse a typed value into the specified out parameter.
- * 	Expects to find a FromString function that takes a reference to T. Defaults are provided in the LexicalConversion namespace.
+ * 	Expects to find a FromString function that takes a reference to T. Defaults are provided in the Lex namespace.
  */
 template <typename T>
 void ParseTypedValue( const TCHAR* Stream, const TCHAR* Match, T& Out )
@@ -86,7 +86,7 @@ void ParseTypedValue( const TCHAR* Stream, const TCHAR* Match, T& Out )
 	TCHAR Temp[64] = TEXT( "" );
 	if( FParse::Value( Stream, Match, Temp, ARRAY_COUNT( Temp ) ) )
 	{
-		using namespace LexicalConversion;
+		using namespace Lex;
 		FromString( Out, Temp );
 	}
 }

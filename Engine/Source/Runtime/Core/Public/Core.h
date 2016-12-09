@@ -164,7 +164,6 @@ MONOLITHIC_HEADER_BOILERPLATE()
 #include "HAL/ThreadSafeCounter64.h"
 #include "HAL/ThreadSafeBool.h"
 #include "Misc/NoopCounter.h"
-#include "Misc/MultiReaderSingleWriterGT.h"
 #include "Misc/ScopeLock.h"
 #include "HAL/TlsAutoCleanup.h"
 #include "HAL/ThreadSingleton.h"

@@ -74,7 +74,7 @@ FGearVRSplash::FGearVRSplash(FGearVR* InPlugin) :
 		{
 			break;
 		}
-		num = LexicalConversion::ToString(i);
+		num = Lex::ToString(i);
 	}
 
 	// set loading icon mode in the case if:

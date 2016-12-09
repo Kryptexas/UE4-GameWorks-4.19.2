@@ -15,7 +15,6 @@
 #include "HAL/FileManagerGeneric.h"
 #include "HAL/IPlatformFileModule.h"
 #include "SignedArchiveReader.h"
-#include "PublicKey.inl"
 #include "Misc/AES.h"
 #include "GenericPlatform/GenericPlatformChunkInstall.h"
 #include "Async/AsyncFileHandle.h"
@@ -39,7 +38,7 @@ TPakChunkHash ComputePakChunkHash(const void* InData, int64 InDataSizeInBytes)
 }
 
 #ifndef EXCLUDE_NONPAK_UE_EXTENSIONS
-#define EXCLUDE_NONPAK_UE_EXTENSIONS USE_NEW_ASYNC_IO	// Use .Build.cs file to disable this if the game relies on accessing loose files
+#define EXCLUDE_NONPAK_UE_EXTENSIONS 1	// Use .Build.cs file to disable this if the game relies on accessing loose files
 #endif
 
 FFilenameSecurityDelegate& FPakPlatformFile::GetFilenameSecurityDelegate()
@@ -48,17 +47,34 @@ FFilenameSecurityDelegate& FPakPlatformFile::GetFilenameSecurityDelegate()
 	return Delegate;
 }
 
-#if USE_NEW_ASYNC_IO && !IS_PROGRAM && !WITH_EDITOR
-	#define USE_PAK_PRECACHE (1) // you can turn this off to use the async IO stuff without the precache
-#else
-	#define USE_PAK_PRECACHE (0)
-#endif
+#define USE_PAK_PRECACHE (!IS_PROGRAM && !WITH_EDITOR) // you can turn this off to use the async IO stuff without the precache
 
 /**
 * Precaching
 */
 
-#ifdef AES_KEY
+const ANSICHAR* FPakPlatformFile::GetPakEncryptionKey()
+{
+	FCoreDelegates::FPakEncryptionKeyDelegate& Delegate = FCoreDelegates::GetPakEncryptionKeyDelegate();
+	if (Delegate.IsBound())
+	{
+		return Delegate.Execute();
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+void FPakPlatformFile::GetPakSigningKeys(FString& OutExponent, FString& OutModulus)
+{
+	FCoreDelegates::FPakSigningKeysDelegate& Delegate = FCoreDelegates::GetPakSigningKeysDelegate();
+	if (Delegate.IsBound())
+	{
+		return Delegate.Execute(OutExponent, OutModulus);
+	}
+}
+
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("PakCache Sync Decrypts (Uncompressed Path)"), STAT_PakCache_SyncDecrypts, STATGROUP_PakFile);
 DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("PakCache Decrypt Time"), STAT_PakCache_DecryptTime, STATGROUP_PakFile);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("PakCache Async Decrypts (Compressed Path)"), STAT_PakCache_CompressedDecrypts, STATGROUP_PakFile);
@@ -67,9 +83,10 @@ DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("PakCache Async Decrypts (Uncompressed Path)
 inline void DecryptData(uint8* InData, uint32 InDataSize)
 {
 	SCOPE_SECONDS_ACCUMULATOR(STAT_PakCache_DecryptTime);
-	FAES::DecryptData(InData, InDataSize);
+	const ANSICHAR* Key = FPakPlatformFile::GetPakEncryptionKey();
+	check(Key);
+	FAES::DecryptData(InData, InDataSize, Key);
 }
-#endif
 
 #if USE_PAK_PRECACHE
 #include "TaskGraphInterfaces.h"
@@ -107,9 +124,6 @@ static FAutoConsoleVariableRef CVar_MaxRequestSizeToLowerLevelKB(
 	GPakCache_MaxRequestSizeToLowerLevelKB,
 	TEXT("Controls the maximum size (in KB) of IO requests submitted to the OS filesystem.")
 	);
-
-//@todoio this won't work with UT etc, need *_API or a real api to work with the pak precacher.
-bool GPakCache_AcceptPrecacheRequests = true;
 
 class FPakPrecacher;
 
@@ -2430,7 +2444,6 @@ public:
 	}
 };
 
-#ifdef AES_KEY
 class FPakEncryptedReadRequest : public FPakReadRequestBase
 {
 	int64 OriginalOffset;
@@ -2506,7 +2519,6 @@ public:
 		}
 	}
 };
-#endif
 
 class FPakSizeRequest : public IAsyncReadRequest
 {
@@ -2861,11 +2873,7 @@ public:
 
 			if (FileEntry->bEncrypted)
 			{
-#ifdef AES_KEY
 				return new FPakEncryptedReadRequest(PakFile, PakFileSize, CompleteCallback, OffsetInPak, Offset, BytesToRead, Priority, UserSuppliedMemory);
-#else
-				UE_LOG(LogPakFile, Fatal, TEXT("Encountered an encrypted file in pak file but the executable wasn't compiled with the decryption key!"));
-#endif
 			}
 			else
 			{
@@ -2962,13 +2970,11 @@ public:
 		FCachedAsyncBlock& Block = Blocks[BlockIndex];
 		check(Block.Raw && Block.RawSize && !Block.Processed);
 
-#ifdef AES_KEY
 		if (FileEntry->bEncrypted)
 		{
 			INC_DWORD_STAT(STAT_PakCache_CompressedDecrypts);
 			DecryptData(Block.Raw, Align(Block.RawSize, FAES::AESBlockSize));
 		}
-#endif
 
 		check(Block.ProcessedSize);
 		INC_MEMORY_STAT_BY(STAT_AsyncFileMemory, Block.ProcessedSize);
@@ -3174,14 +3180,12 @@ void FAsyncIOCPUWorkTask::DoTask(ENamedThreads::Type CurrentThread, const FGraph
 	Owner.DoProcessing(BlockIndex);
 }
 
-#endif
-
-
-#if USE_NEW_ASYNC_IO
+#endif  
 
 
 IAsyncReadFileHandle* FPakPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 {
+	check(GConfig && GNewAsyncIO);
 #if USE_PAK_PRECACHE
 	if (FPlatformProcess::SupportsMultithreading() && GPakCache_Enable > 0)
 	{
@@ -3193,10 +3197,9 @@ IAsyncReadFileHandle* FPakPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 		}
 	}
 #endif
+
 	return IPlatformFile::OpenAsyncRead(Filename);
 }
-
-#endif // USE_NEW_ASYNC_IO
 
 /**
  * Class to handle correctly reading from a compressed file within a compressed package
@@ -3216,10 +3219,8 @@ public:
 
 	static FORCEINLINE void DecryptBlock(void* Data, int64 Size)
 	{
-#ifdef AES_KEY
 		INC_DWORD_STAT(STAT_PakCache_SyncDecrypts);
 		DecryptData((uint8*)Data, Size);
-#endif
 	}
 };
 
@@ -3836,16 +3837,20 @@ FPakPlatformFile::~FPakPlatformFile()
 	FCoreDelegates::OnUnmountPak.Unbind();
 
 #if USE_PAK_PRECACHE
-	FPakPrecacher::Shutdown();
-#endif
-#if !USE_NEW_ASYNC_IO
-	// We need to flush async IO... if it hasn't been shut down already.
-	if (FIOSystem::HasShutdown() == false)
+	if (GNewAsyncIO)
 	{
-		FIOSystem& IOSystem = FIOSystem::Get();
-		IOSystem.BlockTillAllRequestsFinishedAndFlushHandles();
+		FPakPrecacher::Shutdown();
 	}
 #endif
+	if (!GNewAsyncIO)
+	{
+		// We need to flush async IO... if it hasn't been shut down already.
+		if (FIOSystem::HasShutdown() == false)
+		{
+			FIOSystem& IOSystem = FIOSystem::Get();
+			IOSystem.BlockTillAllRequestsFinishedAndFlushHandles();
+		}
+	}
 
 	{
 		FScopeLock ScopedLock(&PakListCritical);
@@ -3970,8 +3975,11 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 #endif
 
 	FEncryptionKey DecryptionKey;
-	DecryptionKey.Exponent.Parse(DECRYPTION_KEY_EXPONENT);
-	DecryptionKey.Modulus.Parse(DECRYPTION_KEY_MODULUS);
+	FString PakSigningKeyExponent, PakSigningKeyModulus;
+	GetPakSigningKeys(PakSigningKeyExponent, PakSigningKeyModulus);
+	DecryptionKey.Exponent.Parse(PakSigningKeyExponent);
+	DecryptionKey.Modulus.Parse(PakSigningKeyModulus);
+
 	bSigned = !DecryptionKey.Exponent.IsZero() && !DecryptionKey.Modulus.IsZero();
 	
 	bool bMountPaks = true;
@@ -4041,9 +4049,22 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 
 	FCoreDelegates::OnMountPak.BindRaw(this, &FPakPlatformFile::HandleMountPakDelegate);
 	FCoreDelegates::OnUnmountPak.BindRaw(this, &FPakPlatformFile::HandleUnmountPakDelegate);
-#if USE_PAK_PRECACHE
-	if (!WITH_EDITOR && FPlatformProcess::SupportsMultithreading())
+
+
+	return !!LowerLevel;
+}
+
+void FPakPlatformFile::InitializeNewAsyncIO()
+{
+#if USE_PAK_PRECACHE 
+	if (!WITH_EDITOR && FPlatformProcess::SupportsMultithreading() && GNewAsyncIO)
 	{
+		FEncryptionKey DecryptionKey;
+		FString PakSigningKeyExponent, PakSigningKeyModulus;
+		GetPakSigningKeys(PakSigningKeyExponent, PakSigningKeyModulus);
+		DecryptionKey.Exponent.Parse(PakSigningKeyExponent);
+		DecryptionKey.Modulus.Parse(PakSigningKeyModulus);
+
 		FPakPrecacher::Init(LowerLevel, DecryptionKey);
 	}
 	else
@@ -4051,8 +4072,6 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 		GPakCache_Enable = 0;
 	}
 #endif
-
-	return !!LowerLevel;
 }
 
 bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, uint32 PakOrder, const TCHAR* InPath /*= NULL*/)

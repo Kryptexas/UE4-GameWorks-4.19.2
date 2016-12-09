@@ -71,6 +71,12 @@ public:
 	// Callback for handling accepting invitations - generally for engine code
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteAccepted, const FString&, const FString&);
 
+	// Callback for accessing pak encryption key, if it exists
+	DECLARE_DELEGATE_RetVal(const ANSICHAR*, FPakEncryptionKeyDelegate);
+
+	// Callback for gathering pak signing keys, if they exist
+	DECLARE_DELEGATE_TwoParams(FPakSigningKeysDelegate, FString&, FString&);
+
 	// Callback for handling the Controller connection / disconnection
 	// first param is true for a connection, false for a disconnection.
 	// second param is UserID, third is UserIndex / ControllerId.
@@ -105,6 +111,9 @@ public:
 
 	// Called when an actor label is changed
 	static FOnActorLabelChanged OnActorLabelChanged;
+
+	static FPakEncryptionKeyDelegate& GetPakEncryptionKeyDelegate();
+	static FPakSigningKeysDelegate& GetPakSigningKeysDelegate();
 
 #if WITH_EDITOR
 	// Called before the editor displays a modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls

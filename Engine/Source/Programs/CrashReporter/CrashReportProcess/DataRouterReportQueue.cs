@@ -151,25 +151,19 @@ namespace Tools.CrashReporter.CrashReportProcess
 			return UnpackedRecordCount;
 		}
 
-		private static unsafe bool DecompressDataRouterContent(byte[] CompressedBufferArray, string InLandingZone)
+		private static bool DecompressDataRouterContent(byte[] CompressedBufferArray, string InLandingZone)
 		{
 			// Decompress to landing zone
 			byte[] UncompressedBufferArray = new byte[Config.Default.MaxUncompressedS3RecordSize];
-			int UncompressedSize = 0;
-			fixed (byte* UncompressedBufferPtr = UncompressedBufferArray, CompressedBufferPtr = CompressedBufferArray)
+
+			int UncompressedSize = NativeMethods.UncompressMemoryZlib(UncompressedBufferArray, CompressedBufferArray);
+			if (UncompressedSize < 0)
 			{
-				Int32 UncompressResult = NativeMethods.UE4UncompressMemoryZLIB((IntPtr) UncompressedBufferPtr,
-					UncompressedBufferArray.Length,
-					(IntPtr) CompressedBufferPtr, CompressedBufferArray.Length);
-				if (UncompressResult < 0)
-				{
-					string FailString = "! DecompressDataRouterContent() failed in UE4UncompressMemoryZLIB() with " +
-					                    NativeMethods.GetUncompressError(UncompressResult);
-					CrashReporterProcessServicer.WriteFailure(FailString);
-					CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ReadS3RecordFailedEvent);
-					return false;
-				}
-				UncompressedSize = UncompressResult;
+				string FailString = "! DecompressDataRouterContent() failed in UncompressMemoryZlib() with " +
+									NativeMethods.GetZlibError(UncompressedSize);
+				CrashReporterProcessServicer.WriteFailure(FailString);
+				CrashReporterProcessServicer.StatusReporter.IncrementCount(StatusReportingEventNames.ReadS3RecordFailedEvent);
+				return false;
 			}
 
 			using (BinaryReader BinaryData = new BinaryReader(new MemoryStream(UncompressedBufferArray, 0, UncompressedSize, false)))

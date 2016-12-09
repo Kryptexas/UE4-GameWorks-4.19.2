@@ -388,6 +388,11 @@ COREUOBJECT_API void CancelAsyncLoading();
 COREUOBJECT_API bool IsEventDrivenLoaderEnabledInCookedBuilds();
 
 /**
+* Returns true if the event driven loader is enabled in the current build
+*/
+COREUOBJECT_API bool IsEventDrivenLoaderEnabled();
+
+/**
  * Returns the async load percentage for a package in flight with the passed in name or -1 if there isn't one.
  * THIS IS SLOW. MAY BLOCK ASYNC LOADING.
  *

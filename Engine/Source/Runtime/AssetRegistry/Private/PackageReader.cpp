@@ -103,9 +103,7 @@ bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 	// check if this is a compressed package and decompress header 
 	if ( !!(PackageFileSummary.PackageFlags & PKG_StoreCompressed) )
 	{
-#if USE_NEW_ASYNC_IO
-		check(!"Package level compression cannot be used with the async io scheme.");
-#else
+		checkf(!GNewAsyncIO, TEXT("Package level compression cannot be used with the async io scheme."));
 		check(PackageFileSummary.CompressedChunks.Num() > 0);
 
 		int64 CurPos = Loader->Tell();
@@ -121,7 +119,6 @@ bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 		}
 		
 		Seek(Loader->Tell());
-#endif
 	}
 
 	//make sure the filereader gets the correct version number (it defaults to latest version)

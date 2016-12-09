@@ -36,7 +36,7 @@ struct FAnalyticsPerfTracker : FTickerObjectBase
 			LogFile.Serialize(TEXT("Date,CL,RunID,Time,WindowSeconds,ProfiledSeconds,Frames,Flushes,Events,Bytes"), ELogVerbosity::Log, FName());
 			LastSubmitTime = StartTime;
 			StartDate = FDateTime::UtcNow().ToIso8601();
-			CL = LexicalConversion::ToString(FEngineVersion::Current().GetChangelist());
+			CL = Lex::ToString(FEngineVersion::Current().GetChangelist());
 		}
 	}
 

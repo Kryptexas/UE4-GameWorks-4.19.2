@@ -16,8 +16,6 @@
 #include "Misc/SingleThreadRunnable.h"
 #include "HAL/IOBase.h"
 
-#if !USE_NEW_ASYNC_IO
-
 /**
  * Base implementation of an async IO system allowing most of the code to be shared across platforms.
  */
@@ -449,5 +447,3 @@ protected:
 	/** Low level file system that we use for our requests.											*/
 	IPlatformFile&					LowLevel;
 };
-
-#endif

@@ -1750,9 +1750,7 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 		OuterImport->ObjectName = Import.ObjectRef.PackageName;
 
 		if ((Import.ObjectRef.ClassName == DynamicClassName) 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-			&& GIsInitialLoad
-#endif 
+			&& (!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 			&& (Import.ObjectRef.ClassPackageName == DynamicClassPackageName))
 		{
 			const FString DynamicClassPath = Import.ObjectRef.PackageName.ToString() + TEXT(".") + Import.ObjectRef.ObjectName.ToString();
@@ -1780,8 +1778,8 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 		DynamicTypeExport->ObjectFlags |= RF_Public;
 	}
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-
+	if (GEventDrivenLoaderEnabled)
+	{
 	const FString DynamicTypePath = GetExportPathName(DynamicTypeExportIndex);
 	const FName DynamicTypeClassName = GetDynamicTypeClassName(*DynamicTypePath);
 	ensure(DynamicTypeClassName != NAME_None);
@@ -1891,11 +1889,11 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 			HandleDependencyTypeForExport(EDependencyType::CreateBeforeCreate);
 		}
 	}
-#endif
-
-#if !USE_EVENT_DRIVEN_ASYNC_LOAD
+	}
+	else
+	{
 	LinkerRoot->SetPackageFlags(LinkerRoot->GetPackageFlags() | PKG_CompiledIn);
-#endif
+	}
 }
 
 /*******************************************************************************
@@ -2270,8 +2268,7 @@ void FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(UDynamicClas
 	TArray<FBlueprintDependencyData> UsedAssetdData;
 	GetUsedAssets(UsedAssetdData);
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	if (!GIsInitialLoad)
+	if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 	{
 		FLinkerLoad* Linker = DynamicClass->GetOutermost()->LinkerLoad;
 		if (Linker)
@@ -2290,7 +2287,6 @@ void FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(UDynamicClas
 		}
 		check(0);
 	}
-#endif
 
 	for (FBlueprintDependencyData& ItData : UsedAssetdData)
 	{

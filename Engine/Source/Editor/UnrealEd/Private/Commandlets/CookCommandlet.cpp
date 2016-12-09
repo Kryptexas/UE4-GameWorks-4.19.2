@@ -206,13 +206,13 @@ namespace DetailedCookStats
 				double AssetTimeSec = 0.0;
 				if (AssetTimeSecAttr)
 				{
-					LexicalConversion::FromString(AssetTimeSec, *AssetTimeSecAttr->Value);
+					Lex::FromString(AssetTimeSec, *AssetTimeSecAttr->Value);
 				}
 				const FCookStatsManager::StringKeyValue* AssetSizeMBAttr = StatAttributes.FindByPredicate([](const FCookStatsManager::StringKeyValue& Item) { return Item.Key == TEXT("MB"); });
 				double AssetSizeMB = 0.0;
 				if (AssetSizeMBAttr)
 				{
-					LexicalConversion::FromString(AssetSizeMB, *AssetSizeMBAttr->Value);
+					Lex::FromString(AssetSizeMB, *AssetSizeMBAttr->Value);
 				}
 				const FCookStatsManager::StringKeyValue* ThreadNameAttr = StatAttributes.FindByPredicate([](const FCookStatsManager::StringKeyValue& Item) { return Item.Key == TEXT("ThreadName"); });
 				bool bIsGameThreadTime = ThreadNameAttr != nullptr && ThreadNameAttr->Value == TEXT("GameThread");
@@ -225,7 +225,7 @@ namespace DetailedCookStats
 					const FCookStatsManager::StringKeyValue* CountAttr = StatAttributes.FindByPredicate([](const FCookStatsManager::StringKeyValue& Item) { return Item.Key == TEXT("Count"); });
 					if (CountAttr)
 					{
-						LexicalConversion::FromString(AssetsBuilt, *CountAttr->Value);
+						Lex::FromString(AssetsBuilt, *CountAttr->Value);
 					}
 				}
 
@@ -1550,6 +1550,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 			CookOnTheFlyServer->StartCookByTheBook(StartupOptions);
 		}
 
+
 		// Garbage collection should happen when either
 		//	1. We have cooked a map (configurable asset type)
 		//	2. We have cooked non-map packages and...
@@ -1728,6 +1729,8 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 			}
 		}
 	} while (bTestCook);
+
+	VerifyEDLCookInfo();
 
 	return true;
 }

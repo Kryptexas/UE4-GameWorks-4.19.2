@@ -25,7 +25,7 @@ FModuleManager::ModuleInfoPtr FModuleManager::FindModule(FName InModuleName)
 {
 	FModuleManager::ModuleInfoPtr Result = nullptr;
 
-	FReadScopeLock Lock(&ModulesCriticalSection);
+	FScopeLock Lock(&ModulesCriticalSection);
 	if ( FModuleManager::ModuleInfoRef* FoundModule = Modules.Find(InModuleName))
 	{
 		Result = *FoundModule;
@@ -36,7 +36,7 @@ FModuleManager::ModuleInfoPtr FModuleManager::FindModule(FName InModuleName)
 
 FModuleManager::ModuleInfoRef FModuleManager::FindModuleChecked(FName InModuleName)
 {
-	FReadScopeLock Lock(&ModulesCriticalSection);
+	FScopeLock Lock(&ModulesCriticalSection);
 	return Modules.FindChecked(InModuleName);
 }
 
@@ -203,7 +203,7 @@ bool FindNewestModuleFile(TArray<FString>& FilesToSearch, const FDateTime& Newer
 void FModuleManager::AddModuleToModulesList(const FName InModuleName, FModuleManager::ModuleInfoRef& InModuleInfo)
 {
 	{
-		FWriteScopeLock Lock(&ModulesCriticalSection);
+		FScopeLock Lock(&ModulesCriticalSection);
 
 		// Update hash table
 		Modules.Add(InModuleName, InModuleInfo);
@@ -852,7 +852,7 @@ bool FModuleManager::QueryModule( const FName InModuleName, FModuleStatus& OutMo
 void FModuleManager::QueryModules( TArray< FModuleStatus >& OutModuleStatuses ) const
 {
 	OutModuleStatuses.Reset();
-	FReadScopeLock Lock(&ModulesCriticalSection);
+	FScopeLock Lock(&ModulesCriticalSection);
 	for (const TPair<FName, ModuleInfoRef>& ModuleIt : Modules)
 	{
 		const FModuleInfo& CurModule = *ModuleIt.Value;
@@ -1351,6 +1351,8 @@ FModuleManager::ModuleInfoRef FModuleManager::GetOrCreateModule(FName InModuleNa
 
 int32 FModuleManager::GetModuleCount() const
 {
-	FReadScopeLock Lock(&ModulesCriticalSection);
+	// Theoretically thread safe but by the time we return new modules could've been added
+	// so no point in locking here. ModulesCriticalSection should be locked by the caller
+	// if it wants to rely on the returned value.
 	return Modules.Num();
 }

@@ -897,7 +897,7 @@ bool FBaseParser::PeekIdentifier( const TCHAR* Match )
 //
 // Unget the most recently gotten token.
 //
-void FBaseParser::UngetToken( FToken& Token )
+void FBaseParser::UngetToken( const FToken& Token )
 {
 	InputPos = Token.StartPos;
 	InputLine = Token.StartLine;

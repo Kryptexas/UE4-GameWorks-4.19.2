@@ -3261,6 +3261,44 @@ namespace UnrealBuildTool
 				Result.Add("#endif");
 			}
 
+			// Write functions for accessing embedded pak signing keys
+			String EncryptionKey;
+			String[] PakSigningKeys;
+			GetEncryptionAndSigningKeys(out EncryptionKey, out PakSigningKeys);
+			bool bRegisterEncryptionKey = false;
+			bool bRegisterPakSigningKeys = false;
+
+			if (!string.IsNullOrEmpty(EncryptionKey))
+			{
+				Result.Add("extern void RegisterEncryptionKey(const char*);");
+				bRegisterEncryptionKey = true;
+			}
+
+			if (PakSigningKeys != null && PakSigningKeys.Length == 3 && !string.IsNullOrEmpty(PakSigningKeys[1]) && !string.IsNullOrEmpty(PakSigningKeys[2]))
+			{
+				Result.Add("extern void RegisterPakSigningKeys(const char*, const char*);");
+				bRegisterPakSigningKeys = true;
+			}
+
+			if (bRegisterEncryptionKey || bRegisterPakSigningKeys)
+			{
+				Result.Add("struct FEncryptionAndSigningKeyRegistration");
+				Result.Add("{");
+				Result.Add("\tFEncryptionAndSigningKeyRegistration()");
+				Result.Add("\t{");
+				if (bRegisterEncryptionKey)
+				{
+					Result.Add(string.Format("\t\tRegisterEncryptionKey(\"{0}\");", EncryptionKey));
+				}
+				if (bRegisterPakSigningKeys)
+				{
+					Result.Add(string.Format("\t\tRegisterPakSigningKeys(\"{0}\", \"{1}\");", PakSigningKeys[2], PakSigningKeys[1]));
+				}
+				Result.Add("\t}");
+				Result.Add("};");
+				Result.Add("FEncryptionAndSigningKeyRegistration GEncryptionAndSigningKeyRegistration;");
+			}
+
 			// Add a function that is not referenced by anything that invokes all the empty functions in the different static libraries
 			Result.Add("void " + LinkerFixupsName + "()");
 			Result.Add("{");
@@ -4026,12 +4064,7 @@ namespace UnrealBuildTool
 				}
 				GlobalCompileEnvironment.Config.Definitions.Add(String.Format("IS_PROGRAM={0}", TargetType == TargetRules.TargetType.Program ? "1" : "0"));
 			}
-
-			if (!bUseSharedBuildEnvironment)
-			{
-				SetupEncryptionAndSingningKeys();
-			}
-
+			
 			// Validate UE configuration - needs to happen before setting any environment mojo and after argument parsing.
 			PlatformContext.ValidateUEBuildConfiguration();
 			UEBuildConfiguration.ValidateConfiguration();
@@ -4270,15 +4303,6 @@ namespace UnrealBuildTool
 			SetUpConfigurationEnvironment();
 			SetUpProjectEnvironment(Configuration);
 
-			if (UEBuildConfiguration.bEventDrivenLoader && !bUseSharedBuildEnvironment)
-			{
-				GlobalCompileEnvironment.Config.Definitions.Add("USE_NEW_ASYNC_IO=1");
-			}
-			else
-			{
-				GlobalCompileEnvironment.Config.Definitions.Add("USE_NEW_ASYNC_IO=0");
-			}
-
 			// Validates current settings and updates if required.
 			BuildConfiguration.ValidateConfiguration(
 				GlobalCompileEnvironment.Config.Configuration,
@@ -4287,35 +4311,21 @@ namespace UnrealBuildTool
 				PlatformContext);
 		}
 
-		private void SetupEncryptionAndSingningKeys()
+		private void GetEncryptionAndSigningKeys(out String AESKey, out String[] PakSigningKeys)
 		{
-			String[] RSAKeys;
-			String AESKey;
-			ParseEncryptionIni(ProjectDirectory, Platform, out RSAKeys, out AESKey);
-			bool bSigningEnabledByIniFile = false;
-
-			if (RSAKeys != null)
-			{
-				GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + RSAKeys[1] + "\"");
-				GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + RSAKeys[2] + "\"");
-
-				bSigningEnabledByIniFile = true;
-			}
+			ParseEncryptionIni(ProjectDirectory, Platform, out PakSigningKeys, out AESKey);
 
 			if (!String.IsNullOrEmpty(AESKey))
 			{
 				if (AESKey.Length < 32)
 				{
 					Log.TraceError("AES key specified in configs must be at least 32 characters long!");
-				}
-				else
-				{
-					GlobalCompileEnvironment.Config.Definitions.Add("AES_KEY=\"" + AESKey + "\"");
+					AESKey = String.Empty;
 				}
 			}
 
 			// If we didn't extract any keys from the new ini file setup, try looking for the old keys text file
-			if (!bSigningEnabledByIniFile && !string.IsNullOrEmpty(Rules.PakSigningKeysFile))
+			if (PakSigningKeys == null && !string.IsNullOrEmpty(Rules.PakSigningKeysFile))
 			{
 				string FullFilename = Path.Combine(ProjectDirectory.FullName, Rules.PakSigningKeysFile);
 
@@ -4338,8 +4348,9 @@ namespace UnrealBuildTool
 
 					if (Keys.Count == 3)
 					{
-						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_MODULUS=\"" + Keys[1] + "\"");
-						GlobalCompileEnvironment.Config.Definitions.Add("DECRYPTION_KEY_EXPONENT=\"" + Keys[2] + "\"");
+						PakSigningKeys = new String[2];
+						PakSigningKeys[0] = Keys[1];
+						PakSigningKeys[1] = Keys[2];
 					}
 					else
 					{

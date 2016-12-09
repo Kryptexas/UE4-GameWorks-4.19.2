@@ -425,7 +425,7 @@ int32 FMallocLeakDetection::DumpPotentialLeakers(const FMallocLeakReportOptions&
 			LOG_OUTPUT(TEXT("AllocSize: %i KB, Num: %i, FirstFrame %i, LastFrame %i, KnownDeleter: %d, Baseline memory %.3fMB  Leak Rate %.2fB/frame"),
 				Callstack.Size / 1024
 				, Callstack.Count
-				, Callstack.FirstFame
+				, Callstack.FirstFrame
 				, Callstack.LastFrame
 				, KnownDeleter
 				, Callstack.Baseline / 1024.0f / 1024.0f
@@ -579,7 +579,7 @@ int32 FMallocLeakDetection::DumpOpenCallstacks(const FMallocLeakReportOptions& O
 		LOG_OUTPUT(TEXT("\nAllocSize: %i KB, Num: %i, FirstFrame %i, LastFrame %i, KnownDeleter: %d")
 			, Callstack.Size / 1024
 			, Callstack.Count
-			, Callstack.FirstFame
+			, Callstack.FirstFrame
 			, Callstack.LastFrame
 			, KnownDeleter);
 
@@ -671,7 +671,7 @@ void FMallocLeakDetection::Malloc(void* Ptr, SIZE_T Size)
 				bRecursive = true;
 				FCallstackTrack Callstack;
 				FPlatformStackWalk::CaptureStackBackTrace(Callstack.CallStack, FCallstackTrack::Depth);
-				Callstack.FirstFame = GFrameCounter;
+				Callstack.FirstFrame = GFrameCounter;
 				Callstack.LastFrame = GFrameCounter;
 				Callstack.Size = Size;
 				AddCallstack(Callstack);

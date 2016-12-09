@@ -7,7 +7,6 @@
 
 struct FCompressedChunk;
 
-#if !USE_NEW_ASYNC_IO
 /*----------------------------------------------------------------------------
 	FArchiveAsync.
 ----------------------------------------------------------------------------*/
@@ -175,7 +174,6 @@ private:
 	bool PlatformIsSinglethreaded;
 };
 
-#else
 
 COREUOBJECT_API FArchive* NewFArchiveAsync2(const TCHAR* InFileName);
 
@@ -183,5 +181,4 @@ COREUOBJECT_API void HintFutureReadDone(const TCHAR * FileName);
 
 COREUOBJECT_API void HintFutureRead(const TCHAR * FileName);
 
-#endif // USE_NEW_ASYNC_IO
 

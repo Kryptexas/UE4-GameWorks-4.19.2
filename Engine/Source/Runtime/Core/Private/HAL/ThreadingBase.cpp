@@ -15,9 +15,7 @@ DECLARE_DWORD_COUNTER_STAT( TEXT( "ThreadPoolDummyCounter" ), STAT_ThreadPoolDum
 /** The global thread pool */
 FQueuedThreadPool* GThreadPool = nullptr;
 
-#if USE_NEW_ASYNC_IO
 FQueuedThreadPool* GIOThreadPool = nullptr;
-#endif // USE_NEW_ASYNC_IO
 
 #if WITH_EDITOR
 FQueuedThreadPool* GLargeThreadPool = nullptr;
@@ -777,58 +775,5 @@ void FTlsAutoCleanup::Register()
 	if( RunnableThread )
 	{
 		RunnableThread->TlsInstances.Add( this );
-	}
-}
-
-void FMultiReaderSingleWriterGT::LockRead()
-{
-	if (!IsInGameThread())
-	{		
-		SCOPE_CYCLE_COUNTER(STAT_Sleep);
-
-		FThreadIdleStats::FScopeIdle Scope;
-		while (!CanRead())
-		{
-			FPlatformProcess::SleepNoStats(0.0f);
-		}
-	}
-	CriticalSection.ReadCounter.Increment();
-}
-
-void FMultiReaderSingleWriterGT::UnlockRead()
-{
-	if (CriticalSection.ReadCounter.Decrement() != 0)
-	{
-		return;
-	}
-
-	if (!IsInGameThread())
-	{
-		FPlatformAtomics::InterlockedExchange(&CriticalSection.Action, NoAction);
-	}
-}
-
-void FMultiReaderSingleWriterGT::LockWrite()
-{
-	check(IsInGameThread());
-
-	{
-		SCOPE_CYCLE_COUNTER(STAT_Sleep);
-
-		FThreadIdleStats::FScopeIdle Scope;
-		while (!CanWrite())
-		{
-			FPlatformProcess::SleepNoStats(0.0f);
-		}
-	}
-
-	CriticalSection.WriteCounter.Increment();
-}
-
-void FMultiReaderSingleWriterGT::UnlockWrite()
-{
-	if (CriticalSection.WriteCounter.Decrement() == 0)
-	{
-		FPlatformAtomics::InterlockedExchange(&CriticalSection.Action, NoAction);
 	}
 }

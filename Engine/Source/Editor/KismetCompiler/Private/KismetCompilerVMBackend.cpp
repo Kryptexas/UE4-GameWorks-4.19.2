@@ -680,14 +680,14 @@ public:
 			else if (FLiteralTypeHelper::IsInt64(&Term->Type, CoerceProperty))
 			{
 				int64 Value = 0;
-				LexicalConversion::FromString(Value, *(Term->Name));
+				Lex::FromString(Value, *(Term->Name));
 				Writer << EX_Int64Const;
 				Writer << Value;
 			}
 			else if (FLiteralTypeHelper::IsUInt64(&Term->Type, CoerceProperty))
 			{
 				uint64 Value = 0;
-				LexicalConversion::FromString(Value, *(Term->Name));
+				Lex::FromString(Value, *(Term->Name));
 				Writer << EX_UInt64Const;
 				Writer << Value;
 			}

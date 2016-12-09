@@ -131,7 +131,10 @@ public:
 	{
 		return LowerLevel;
 	}
-
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
+	}
 	virtual const TCHAR* GetName() const override
 	{
 		return FLoggedPlatformFile::GetTypeName();
@@ -443,7 +446,6 @@ public:
 	}
 	void HandleDumpCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
-#if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
 		FString DataStr = FString::Printf(TEXT("OpenAsyncRead %s"), Filename);
@@ -456,6 +458,4 @@ public:
 		//@todo no wrapped logging for async file handles (yet)
 		return Result;
 	}
-#endif // USE_NEW_ASYNC_IO
-
 };

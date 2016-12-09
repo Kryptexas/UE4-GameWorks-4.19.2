@@ -223,7 +223,6 @@
 #include "GenericPlatform/GenericPlatformCompression.h"
 #include "Misc/SecureHash.h"
 #include "Modules/ModuleManager.h"
-#include "Misc/MultiReaderSingleWriterGT.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
 #include "Serialization/ArchiveProxy.h"
 #include "UObject/DebugSerializationFlags.h"

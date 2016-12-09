@@ -223,7 +223,6 @@
 #include "Containers/ResourceArray.h"
 #include "Containers/DynamicRHIResourceArray.h"
 #include "Modules/ModuleManager.h"
-#include "Misc/MultiReaderSingleWriterGT.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
 #include "Misc/BufferedOutputDevice.h"
 #include "HAL/ThreadSafeBool.h"

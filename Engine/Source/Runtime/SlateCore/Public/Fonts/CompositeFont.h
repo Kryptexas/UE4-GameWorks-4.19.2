@@ -206,7 +206,7 @@ struct SLATECORE_API FTypefaceEntry
 		, Font(MoveTemp(InFontFilename), InBulkData, InHinting)
 	{
 	}
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS; /** Do not remove this semi-colon; it exists to stop UHT failing to parse any properties that may follow this macro */
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	/** Name used to identify this font within its typeface */
 	UPROPERTY()

@@ -9,8 +9,6 @@
 #include "Async/AsyncWork.h"
 #include "UniquePtr.h"
 
-#if USE_NEW_ASYNC_IO
-
 #include "AsyncFileHandle.h"
 
 class FGenericBaseRequest;
@@ -294,14 +292,13 @@ bool FGenericReadRequest::CheckForPrecache()
 
 IAsyncReadFileHandle* IPlatformFile::OpenAsyncRead(const TCHAR* Filename)
 {
+	check(GNewAsyncIO);
 	return new FGenericAsyncReadFileHandle(this, Filename);
 }
 
 DEFINE_STAT(STAT_AsyncFileMemory);
 DEFINE_STAT(STAT_AsyncFileHandles);
 DEFINE_STAT(STAT_AsyncFileRequests);
-
-#endif //USE_NEW_ASYNC_IO
 
 int64 IFileHandle::Size()
 {

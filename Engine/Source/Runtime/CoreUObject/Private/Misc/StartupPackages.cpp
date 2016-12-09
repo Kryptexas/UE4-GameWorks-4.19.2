@@ -33,9 +33,9 @@ void FStartupPackages::GetStartupPackageNames(TArray<FString>& PackageNames, con
 	}
 }
 
-#if !USE_NEW_ASYNC_IO
 static void AsyncPreloadPackageList(const TArray<FString>& PackageNames)
 {
+	check(!GNewAsyncIO);
 	// Iterate over all native script packages and preload them.
 	for (int32 PackageIndex=0; PackageIndex<PackageNames.Num(); PackageIndex++)
 	{
@@ -43,7 +43,6 @@ static void AsyncPreloadPackageList(const TArray<FString>& PackageNames)
 		FLinkerLoad::AsyncPreloadPackage(*PackageNames[PackageIndex]);
 	}
 }
-#endif
 
 void FStartupPackages::LoadPackageList(const TArray<FString>& PackageNames)
 {
@@ -69,21 +68,5 @@ bool FStartupPackages::LoadAll()
 		FStartupPackages::GetStartupPackageNames(StartupPackages);
 	}
 
-//@todoio this doesn't seem to work with !USE_NEW_ASYNC_IO anymore...and honestly I can't see how it ever worked well in UE4
-#if 0 && !USE_NEW_ASYNC_IO
-	// should startup packages load from memory?
-	bool bSerializeStartupPackagesFromMemory = false;
-	GConfig->GetBool(TEXT("Engine.StartupPackages"), TEXT("bSerializeStartupPackagesFromMemory"), bSerializeStartupPackagesFromMemory, GEngineIni);
-
-	if (bSerializeStartupPackagesFromMemory)
-	{
-		// @todo: this needs proper support in the cooker
-		if (FPlatformProperties::RequiresCookedData())
-		{
-			// kick them off to be preloaded
-			AsyncPreloadPackageList(StartupPackages);
-		}
-	}
-#endif
 	return bReturn;
 }

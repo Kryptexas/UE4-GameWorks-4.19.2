@@ -37,6 +37,9 @@ enum class ESavePackageResult
 	GenerateStub
 };
 
+COREUOBJECT_API void StartSavingEDLCookInfoForVerification();
+COREUOBJECT_API void VerifyEDLCookInfo();
+
 /**
  * A package.
  */

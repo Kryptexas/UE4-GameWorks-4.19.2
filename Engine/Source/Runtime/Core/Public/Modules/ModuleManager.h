@@ -13,7 +13,6 @@
 #include "Delegates/Delegate.h"
 #include "Misc/Optional.h"
 #include "Misc/CoreMisc.h"
-#include "Misc/MultiReaderSingleWriterGT.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
 
@@ -611,7 +610,7 @@ private:
 	TArray<FString> GameBinariesDirectories;
 
 	/** Critical section object controlling R/W access to Modules. */
-	mutable FMultiReaderSingleWriterGT ModulesCriticalSection;
+	mutable FCriticalSection ModulesCriticalSection;
 };
 
 /**

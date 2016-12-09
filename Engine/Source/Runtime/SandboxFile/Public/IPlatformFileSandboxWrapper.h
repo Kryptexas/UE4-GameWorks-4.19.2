@@ -204,6 +204,10 @@ public:
 	{
 		return LowerLevel;
 	}
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
+	}
 
 	virtual const TCHAR* GetName() const override
 	{
@@ -618,7 +622,7 @@ public:
 
 	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
 	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
-#if USE_NEW_ASYNC_IO
+
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
 		FString UserFilename(*ConvertToSandboxPath(Filename));
@@ -628,7 +632,7 @@ public:
 		}
 		return LowerLevel->OpenAsyncRead(Filename);
 	}
-#endif // USE_NEW_ASYNC_IO
+
 };
 
 

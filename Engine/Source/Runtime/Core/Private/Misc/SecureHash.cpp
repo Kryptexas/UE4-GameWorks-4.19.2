@@ -458,7 +458,7 @@ void FMD5::Decode( uint32* output, const uint8* input, int32 len )
 // 		(((uint32)input[j+2]) << 16) | (((uint32)input[j+3]) << 24);
 // }
 
-namespace LexicalConversion
+namespace Lex
 {
 	FString ToString(const FMD5Hash& Hash)
 	{

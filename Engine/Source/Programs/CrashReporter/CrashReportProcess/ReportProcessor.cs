@@ -40,12 +40,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		private static DateTime LoggingDate = DateTime.UtcNow.Date;
 
-		private static Object TickStaticLock = new Object();
-
-		private static Object MinidumpDiagnosticsLock = new Object();
-
-		private static Object FailedUploadLock = new Object();
-		private static int ConsecutiveFailedUploads = 0;
+		private static object TickStaticLock = new object();
 
 		/// <summary>The thread that handles detection of new crashes.</summary>
 		public ReportWatcher Watcher = null;
@@ -255,7 +250,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 						try
 						{
 							string S3IDPrefix = string.Format("/{0}_{1}_{2}/{3}/{4}/", S3KeyTime.Year, S3KeyTime.Month, S3KeyTime.Day, S3KeyTime.Hour, LeafReportName);
-							UploadFileToS3(InvalidFile, Config.Default.AWSS3InvalidKeyPrefix + S3IDPrefix + InvalidFile.Name);
+							UploadFileToS3(InvalidFile, Config.Default.AWSS3InvalidKeyPrefix + S3IDPrefix + InvalidFile.Name, false);
 							FilesMoved++;
 						}
 						catch (Exception Ex)
@@ -331,6 +326,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 				NewCrash.GameName = NewContext.PrimaryCrashProperties.GameName;
 				NewCrash.Platform = NewContext.PrimaryCrashProperties.PlatformFullName;
 				NewCrash.EngineMode = NewContext.PrimaryCrashProperties.EngineMode;
+				NewCrash.EngineModeEx = NewContext.PrimaryCrashProperties.GetEngineModeEx();
 				NewCrash.EngineVersion = EngineVersion.VersionNumber;
 			    NewCrash.BuildVersion = NewContext.PrimaryCrashProperties.BuildVersion;
 
@@ -429,12 +425,10 @@ namespace Tools.CrashReporter.CrashReportProcess
 						RequestString = "http://localhost:80/Crashes/AddCrash/-1"; 
 					}
 
-					string ErrorMessage = string.Empty;
-
-					const int MaxRetries = 1;
-					for (int AddCrashTry = 0; AddCrashTry < MaxRetries + 1; ++AddCrashTry)
+					int Attempt = 1;
+					Func<bool> TryUpload = () =>
 					{
-						string ResponseString = SimpleWebRequest.GetWebServiceResponse(RequestString, Payload, Config.Default.AddCrashRequestTimeoutMillisec);
+						string ResponseString = SimpleWebRequest.GetWebServiceResponse(RequestString, Payload, Config.Default.AddCrashRequestTimeoutSeconds * 1000);
 						if (ResponseString.Length > 0)
 						{
 							// Convert response into a string
@@ -442,17 +436,30 @@ namespace Tools.CrashReporter.CrashReportProcess
 							if (Result.ID > 0)
 							{
 								NewID = Result.ID;
-								break;
+								return true;
 							}
-							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response timeout (attempt {1} of {2}): {3}", ProcessorIndex, AddCrashTry + 1, MaxRetries + 1, ErrorMessage));
-							ErrorMessage = Result.Message;
-						}
-						Thread.Sleep(Config.Default.AddCrashRetryDelayMillisec);
-					}
 
-					if (NewID == -1)
+							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash response invalid (upload attempt {1}): {2}", ProcessorIndex, Attempt, Result.Message));
+						}
+						return false;
+					};
+					Action<bool> OnRetry = bUploaded =>
 					{
-						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "UploadCrash failed: " + ErrorMessage);
+						if (!bUploaded)
+						{
+							Thread.Sleep(Config.Default.AddCrashRetryDelaySeconds*1000);
+							CrashReporterProcessServicer.WriteEvent(string.Format("PROC-{0} UploadCrash retrying upload attempt {1}", ProcessorIndex, Attempt));
+							Attempt++;
+						}
+					};
+
+					for (bool bUploaded = false; !bUploaded; OnRetry(bUploaded))
+					{
+						bUploaded = TryUpload();
+						CrashReporterProcessServicer.StatusReporter.AlertOnConsecutiveFails("AddCrash",
+						                                                                    "Cannot contact CR website. CRP is paused!",
+						                                                                    "Contact with CR website restored.",
+						                                                                    TimeSpan.FromSeconds(Config.Default.FailedWebAddAlertTimeSeconds), bUploaded);
 					}
 				}
 #if DEBUG
@@ -498,25 +505,11 @@ namespace Tools.CrashReporter.CrashReportProcess
 				// Upload the crash to the database, and retrieve the new row id
 				int ReportID = UploadCrash(CrashDetails);
 
-				lock (FailedUploadLock)
+				if (ReportID <= 0)
 				{
-					if (ReportID <= 0)
-					{
-						// Upload failed
-						ConsecutiveFailedUploads++;
-						if (ConsecutiveFailedUploads == Config.Default.ConsecutiveFailedWebAddLimit)
-						{
-							CrashReporterProcessServicer.StatusReporter.Alert("ReportProcessor.AddReport.NoContact", "Cannot contact Crash Report website.", Config.Default.SlackAlertRepeatMinimumMinutes);
-							CrashReporterProcessServicer.WriteFailure("Cannot contact Crash Report website.");
-						}
-						CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "! NoUpload: Path=" + NewContext.CrashDirectory);
-						string PayloadFailedFileName = Path.Combine(DirInfo.FullName, "PayloadFailed.xml");
-						File.WriteAllText(PayloadFailedFileName, CrashDetails);
-						return false;
-					}
-
-					// Upload succeeded
-					ConsecutiveFailedUploads = 0;
+					// Upload failed
+					CrashReporterProcessServicer.WriteFailure(string.Format("PROC-{0} ", ProcessorIndex) + "! NoUpload: Path=" + NewContext.CrashDirectory);
+					return false;
 				}
 
 				bool bToS3 = Config.Default.CrashFilesToAWS && CrashReporterProcessServicer.OutputAWS.IsS3Valid;
@@ -545,7 +538,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 						if (bToS3)
 						{
 							WriteToS3Timer.Start();
-							UploadFileToS3(LogInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + "Launch.log");
+							UploadFileToS3(LogInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + "Launch.log", Config.Default.CompressCrashFilesOnAWS, Config.Default.AWSS3CompressedSuffix);
 							WriteToS3Timer.Stop();
 						}
 						if (bToDisk)
@@ -565,7 +558,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 					if (bToS3)
 					{
 						WriteToS3Timer.Start();
-						UploadFileToS3(CrashContextInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + FGenericCrashContext.CrashContextRuntimeXMLName);
+						UploadFileToS3(CrashContextInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + FGenericCrashContext.CrashContextRuntimeXMLName, false);
 						WriteToS3Timer.Stop();
 					}
 					if (bToDisk)
@@ -585,7 +578,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 						if (bToS3)
 						{
 							WriteToS3Timer.Start();
-							UploadFileToS3(DumpInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + "MiniDump.dmp");
+							UploadFileToS3(DumpInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + "MiniDump.dmp", Config.Default.CompressCrashFilesOnAWS, Config.Default.AWSS3CompressedSuffix);
 							WriteToS3Timer.Stop();
 						}
 						if (bToDisk)
@@ -609,7 +602,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 						if (bToS3)
 						{
 							WriteToS3Timer.Start();
-							UploadFileToS3(VideoInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + CrashReporterConstants.VideoFileName);
+							UploadFileToS3(VideoInfo, Config.Default.AWSS3OutputKeyPrefix + S3IDPrefix + CrashReporterConstants.VideoFileName, Config.Default.CompressCrashFilesOnAWS, Config.Default.AWSS3CompressedSuffix);
 							WriteToS3Timer.Stop();
 						}
 						if (bToDisk)
@@ -656,17 +649,55 @@ namespace Tools.CrashReporter.CrashReportProcess
 			return false;
 		}
 
-		private static void UploadFileToS3(FileInfo FileInfo, string DestFilename)
+		private static void UploadFileToS3(FileInfo FileInfo, string DestFilepath, bool bCompressed, string CompressedSuffix = null)
 		{
 			try
 			{
-				PutObjectResponse Response = CrashReporterProcessServicer.OutputAWS.PutS3ObjectFromFile(Config.Default.AWSS3OutputBucket,
-																										DestFilename,
-																										FileInfo.FullName);
-
-				if (Response == null || Response.HttpStatusCode != HttpStatusCode.OK)
+				if (bCompressed)
 				{
-					throw new CrashReporterException(string.Format("Failed to upload {0} to {1}", FileInfo.FullName, DestFilename));
+					string LocalCompressedFilepath = FileInfo.FullName;
+					if (CompressedSuffix != null)
+					{
+						LocalCompressedFilepath += CompressedSuffix;
+					}
+					else
+					{
+						LocalCompressedFilepath += ".gz";
+					}
+
+					byte[] UncompressedBytes = File.ReadAllBytes(FileInfo.FullName);
+
+					int ReturnCode = NativeMethods.CompressFileGZIP(LocalCompressedFilepath, UncompressedBytes);
+					if (ReturnCode < 0)
+					{
+						throw new CrashReporterException(string.Format("Failed to compress {0} to gzip file with error {1}", FileInfo.FullName, NativeMethods.GetZlibError(ReturnCode)));
+					}
+
+					string CompressedDestFilepath = DestFilepath;
+					if (CompressedSuffix != null)
+					{
+						CompressedDestFilepath += CompressedSuffix;
+					}
+
+					PutObjectResponse Response = CrashReporterProcessServicer.OutputAWS.PutS3ObjectFromFile(Config.Default.AWSS3OutputBucket,
+																											CompressedDestFilepath,
+																											LocalCompressedFilepath);
+
+					if (Response == null || Response.HttpStatusCode != HttpStatusCode.OK)
+					{
+						throw new CrashReporterException(string.Format("Failed to upload compressed gzip {0} to {1}", LocalCompressedFilepath, CompressedDestFilepath));
+					}
+				}
+				else
+				{
+					PutObjectResponse Response = CrashReporterProcessServicer.OutputAWS.PutS3ObjectFromFile(Config.Default.AWSS3OutputBucket,
+																											DestFilepath,
+																											FileInfo.FullName);
+
+					if (Response == null || Response.HttpStatusCode != HttpStatusCode.OK)
+					{
+						throw new CrashReporterException(string.Format("Failed to upload {0} to {1}", FileInfo.FullName, DestFilepath));
+					}
 				}
 			}
 			catch (Exception Ex)

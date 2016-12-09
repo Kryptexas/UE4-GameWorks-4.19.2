@@ -217,7 +217,6 @@
 #include "Templates/ScopedPointer.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
-#include "Misc/MultiReaderSingleWriterGT.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
 #include "Async/Future.h"
 #include "Serialization/ArchiveProxy.h"

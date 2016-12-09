@@ -171,7 +171,6 @@
 #include "HAL/ThreadSafeCounter.h"
 #include "Modules/ModuleInterface.h"
 #include "Misc/CoreMisc.h"
-#include "Misc/MultiReaderSingleWriterGT.h"
 #include "Modules/ModuleManager.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
 #include "HAL/PlatformTime.h"

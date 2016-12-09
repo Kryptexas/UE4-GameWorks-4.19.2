@@ -193,7 +193,7 @@ bool operator==(const FNumericUnit<NumericType>& LHS, const FNumericUnit<OtherTy
 template<typename NumericType, typename OtherType>
 bool operator!=(const FNumericUnit<NumericType>& LHS, const FNumericUnit<OtherType>& RHS);
 
-namespace LexicalConversion
+namespace Lex
 {
 	template<typename T>
 	FString ToString(const FNumericUnit<T>& NumericUnit);

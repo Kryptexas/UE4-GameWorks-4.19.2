@@ -64,7 +64,7 @@ FOculusRiftSplash::FOculusRiftSplash(FOculusRiftHMD* InPlugin) :
 		{
 			AddSplash(SplashDesc);
 		}
-		num = LexicalConversion::ToString(i);
+		num = Lex::ToString(i);
 	}
 }
 

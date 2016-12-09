@@ -2394,6 +2394,8 @@ public:
 					T* Repush = IncomingQueue.Pop(); 
 					if (!Repush)
 					{
+						FPlatformMisc::MemoryBarrier();
+						DequeueLock = 0;
 						break;
 					}
 					bResult = false;
@@ -2536,6 +2538,8 @@ public:
 					T* Repush = IncomingQueue.Pop();
 					if (!Repush)
 					{
+						FPlatformMisc::MemoryBarrier();
+						DequeueLock = 0;
 						break;
 					}
 					bResult = false;

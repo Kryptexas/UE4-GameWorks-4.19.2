@@ -66,7 +66,7 @@ FCrashProperty& FCrashProperty::operator=(const bool NewValue)
 FCrashProperty& FCrashProperty::operator=(const int64 NewValue)
 {
 	bSet = true;
-	CachedValue = LexicalConversion::ToString( NewValue );
+	CachedValue = Lex::ToString( NewValue );
 	Owner->SetCrashProperty( MainCategory, SecondCategory, CachedValue );
 	return *this;
 }

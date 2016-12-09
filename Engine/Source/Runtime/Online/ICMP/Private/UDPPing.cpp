@@ -76,7 +76,7 @@ FIcmpEchoResult UDPEchoImpl(ISocketSubsystem* SocketSub, const FString& TargetAd
 	}
 
 	int32 Port = 0;
-	LexicalConversion::FromString(Port, *PortStr);
+	Lex::FromString(Port, *PortStr);
 
 	//ISocketSubsystem* SocketSub = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 	if (SocketSub)

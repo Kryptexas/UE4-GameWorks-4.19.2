@@ -13,10 +13,8 @@ AudioStreaming.cpp: Implementation of audio streaming classes.
 #include "Serialization/MemoryReader.h"
 #include "HAL/PlatformFile.h"
 #include "HAL/PlatformFilemanager.h"
-
-#if USE_NEW_ASYNC_IO
 #include "AsyncFileHandle.h"
-#endif
+
 /*------------------------------------------------------------------------------
 	Streaming chunks from the derived data cache.
 ------------------------------------------------------------------------------*/
@@ -73,43 +71,42 @@ void FAsyncStreamDerivedChunkWorker::DoWork()
 
 FStreamingWaveData::FStreamingWaveData()
 	: SoundWave(NULL)
-#if USE_NEW_ASYNC_IO
 	, IORequestHandle(nullptr)
-#endif
 {
-#if USE_NEW_ASYNC_IO
-	AsyncFileCallBack =
-		[this](bool bWasCancelled, IAsyncReadRequest* Req)
+	if (GNewAsyncIO)
 	{
-		uint8* Mem = Req->GetReadResults();
-		if (Mem)
+		AsyncFileCallBack =
+			[this](bool bWasCancelled, IAsyncReadRequest* Req)
 		{
-			bool bFound = false;
-			for (FLoadedAudioChunk& LoadedChunk : LoadedChunks)
+			uint8* Mem = Req->GetReadResults();
+			if (Mem)
 			{
-				if (LoadedChunk.IORequest == Req)
+				bool bFound = false;
+				for (FLoadedAudioChunk& LoadedChunk : LoadedChunks)
 				{
-					check(!LoadedChunk.Data);
-					LoadedChunk.Data = Mem;
-					DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, LoadedChunk.DataSize);
-					INC_DWORD_STAT_BY(STAT_AudioMemorySize, LoadedChunk.DataSize);
-					INC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.DataSize);
-					bFound = true;
-					break;
+					if (LoadedChunk.IORequest == Req)
+					{
+						check(!LoadedChunk.Data);
+						LoadedChunk.Data = Mem;
+						DEC_MEMORY_STAT_BY(STAT_AsyncFileMemory, LoadedChunk.DataSize);
+						INC_DWORD_STAT_BY(STAT_AudioMemorySize, LoadedChunk.DataSize);
+						INC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.DataSize);
+						bFound = true;
+						break;
+					}
 				}
+				check(bFound);
 			}
-			check(bFound);
-		}
-		// else was canceled
-		PendingChunkChangeRequestStatus.Decrement();
-	};
-#endif
+			// else was canceled
+			PendingChunkChangeRequestStatus.Decrement();
+		};
+	}
 }
 
 FStreamingWaveData::~FStreamingWaveData()
 {
 	// Make sure there are no pending requests in flight.
-#if USE_NEW_ASYNC_IO
+	if (GNewAsyncIO)
 	{
 		for (int32 Pass = 0; Pass < 3; Pass++)
 		{
@@ -121,36 +118,32 @@ FStreamingWaveData::~FStreamingWaveData()
 			check(Pass < 2); // we should be done after two passes. Pass 0 will start anything we need and pass 1 will complete those requests
 		}
 	}
-#else
+	else
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(FStreamingWaveData_Destructor_Spin);
 		while (UpdateStreamingStatus() == true)
 		{
 			// Give up timeslice.
-			check(!USE_NEW_ASYNC_IO); // should be done because we block on it above
+			check(!GNewAsyncIO); // should be done because we block on it above
 			FPlatformProcess::SleepNoStats(0.001f);
 		}
 	}
-#endif
 
 	for (FLoadedAudioChunk& LoadedChunk : LoadedChunks)
 	{
 		FreeLoadedChunk(LoadedChunk);
 	}
-#if USE_NEW_ASYNC_IO
-	if (IORequestHandle)
+	if (GNewAsyncIO && IORequestHandle)
 	{
 		delete IORequestHandle;
 		IORequestHandle = nullptr;
 	}
-#endif
 }
 
 void FStreamingWaveData::Initialize(USoundWave* InSoundWave)
 {
-#if USE_NEW_ASYNC_IO
-	check(!IORequestHandle);
-#endif
+	check(!GNewAsyncIO || !IORequestHandle);
+
 	SoundWave = InSoundWave;
 
 	// Always get the first chunk of data so we can play immediately
@@ -185,7 +178,7 @@ bool FStreamingWaveData::UpdateStreamingStatus()
 			if (UE_LOG_ACTIVE(LogAudio, Log) && IndicesToLoad.Num() > 0)
 			{
 				FString LogString = FString::Printf(TEXT("Finalised loading of chunk(s) %d"), IndicesToLoad[0]);
-				for (int32 Index = 1; Index < IndicesToLoad.Num(); ++ Index)
+				for (int32 Index = 1; Index < IndicesToLoad.Num(); ++Index)
 				{
 					LogString += FString::Printf(TEXT(", %d"), IndicesToLoad[Index]);
 				}
@@ -198,18 +191,19 @@ bool FStreamingWaveData::UpdateStreamingStatus()
 			bFailedRequests = FinishDDCRequests();
 #endif //WITH_EDITORONLY_DATA
 
-#if USE_NEW_ASYNC_IO
-			// could maybe iterate over the things we know are done, but I couldn't tell if that was IndicesToLoad or not.
-			for (FLoadedAudioChunk& LoadedChunk : LoadedChunks)
+			if (GNewAsyncIO)
 			{
-				if (LoadedChunk.IORequest && LoadedChunk.IORequest->PollCompletion())
+				// could maybe iterate over the things we know are done, but I couldn't tell if that was IndicesToLoad or not.
+				for (FLoadedAudioChunk& LoadedChunk : LoadedChunks)
 				{
-					LoadedChunk.IORequest->WaitCompletion();
-					delete LoadedChunk.IORequest;
-					LoadedChunk.IORequest = nullptr;
+					if (LoadedChunk.IORequest && LoadedChunk.IORequest->PollCompletion())
+					{
+						LoadedChunk.IORequest->WaitCompletion();
+						delete LoadedChunk.IORequest;
+						LoadedChunk.IORequest = nullptr;
+					}
 				}
 			}
-#endif
 
 			PendingChunkChangeRequestStatus.Decrement();
 			bHasPendingRequestInFlight = false;
@@ -232,10 +226,11 @@ void FStreamingWaveData::UpdateChunkRequests(FWaveRequest& InWaveRequest)
 
 	CurrentRequest = InWaveRequest;
 
-#if !USE_NEW_ASYNC_IO
-	// Clear last batch of request indices
-	IORequestIndices.Empty();
-#endif
+	if (!GNewAsyncIO)
+	{
+		// Clear last batch of request indices
+		IORequestIndices.Empty();
+	}
 }
 
 bool FStreamingWaveData::HasPendingRequests(TArray<uint32>& IndicesToLoad, TArray<uint32>& IndicesToFree) const
@@ -277,35 +272,39 @@ void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoa
 		UE_LOG(LogAudio, Log, TEXT("%s"), *LogString);
 	}
 
-	// Mark Chunks for removal in case they can be reused
-#if USE_NEW_ASYNC_IO
-	for (auto Index : IndicesToFree)
-	{
-		for (int32 ChunkIndex = 0; ChunkIndex < LoadedChunks.Num(); ++ChunkIndex)
-		{
-			if (LoadedChunks[ChunkIndex].Index == Index)
-			{
-				FreeLoadedChunk(LoadedChunks[ChunkIndex]);
-				LoadedChunks.RemoveAt(ChunkIndex);
-				break;
-			}
-		}
-	}
-#else
 	TArray<uint32> FreeChunkIndices;
-	for (auto Index : IndicesToFree)
+
+	// Mark Chunks for removal in case they can be reused
+	if (GNewAsyncIO)
 	{
-		for (int32 ChunkIndex = 0; ChunkIndex < LoadedChunks.Num(); ++ChunkIndex)
+		for (auto Index : IndicesToFree)
 		{
-			if (LoadedChunks[ChunkIndex].Index == Index)
+			for (int32 ChunkIndex = 0; ChunkIndex < LoadedChunks.Num(); ++ChunkIndex)
 			{
-				check(!FreeChunkIndices.Contains(ChunkIndex));
-				FreeChunkIndices.Add(ChunkIndex);
-				break;
+				if (LoadedChunks[ChunkIndex].Index == Index)
+				{
+					FreeLoadedChunk(LoadedChunks[ChunkIndex]);
+					LoadedChunks.RemoveAt(ChunkIndex);
+					break;
+				}
 			}
 		}
 	}
-#endif
+	else
+	{		
+		for (auto Index : IndicesToFree)
+		{
+			for (int32 ChunkIndex = 0; ChunkIndex < LoadedChunks.Num(); ++ChunkIndex)
+			{
+				if (LoadedChunks[ChunkIndex].Index == Index)
+				{
+					check(!FreeChunkIndices.Contains(ChunkIndex));
+					FreeChunkIndices.Add(ChunkIndex);
+					break;
+				}
+			}
+		}
+	}
 
 	if (IndicesToLoad.Num() > 0)
 	{
@@ -319,19 +318,21 @@ void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoa
 
 			FLoadedAudioChunk* ChunkStorage = NULL;
 
-#if !USE_NEW_ASYNC_IO
-			for (auto FreeIndex : FreeChunkIndices)
+			if (!GNewAsyncIO)
 			{
-				if (LoadedChunks[FreeIndex].MemorySize >= ChunkSize)
+				for (auto FreeIndex : FreeChunkIndices)
 				{
-					FreeChunkIndices.Remove(FreeIndex);
-					ChunkStorage = &LoadedChunks[FreeIndex];
-					ChunkStorage->DataSize = ChunkSize;
-					ChunkStorage->Index = Index;
-					break;
+					if (LoadedChunks[FreeIndex].MemorySize >= ChunkSize)
+					{
+						FreeChunkIndices.Remove(FreeIndex);
+						ChunkStorage = &LoadedChunks[FreeIndex];
+						ChunkStorage->DataSize = ChunkSize;
+						ChunkStorage->Index = Index;
+						break;
+					}
 				}
 			}
-#endif
+
 			if (ChunkStorage == NULL)
 			{
 				ChunkStorage = AddNewLoadedChunk(ChunkSize);
@@ -362,13 +363,9 @@ void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoa
 #endif // #if WITH_EDITORONLY_DATA
 			{
 				check(Chunk.BulkData.GetFilename().Len());
-#if USE_NEW_ASYNC_IO
-				if (Chunk.BulkData.IsStoredCompressedOnDisk())
+				if (GNewAsyncIO)
 				{
-					check(!"USE_NEW_ASYNC_IO does not support compression at the package level.");
-				}
-				else
-				{
+					UE_CLOG(Chunk.BulkData.IsStoredCompressedOnDisk(), LogAudio, Fatal, TEXT("GNewAsyncIO does not support compression at the package level."));
 					check(!ChunkStorage->IORequest);
 					if (!IORequestHandle)
 					{
@@ -382,38 +379,38 @@ void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoa
 						// we failed for some reason; file not found I guess.
 						PendingChunkChangeRequestStatus.Decrement();
 					}
-
 				}
-#else
-				if (Chunk.BulkData.IsStoredCompressedOnDisk())
-				{
-					IORequestIndices.AddUnique(FIOSystem::Get().LoadCompressedData(
-						Chunk.BulkData.GetFilename(),						// filename
-						Chunk.BulkData.GetBulkDataOffsetInFile(),			// offset
-						Chunk.BulkData.GetBulkDataSizeOnDisk(),				// compressed size
-						Chunk.BulkData.GetBulkDataSize(),					// uncompressed size
-						ChunkStorage->Data,									// dest pointer
-						Chunk.BulkData.GetDecompressionFlags(),				// compressed data format
-						&PendingChunkChangeRequestStatus,					// counter to decrement
-						AsyncIOPriority										// priority
-						)
-						);
-				}
-				// Load async.
 				else
 				{
-					IORequestIndices.AddUnique(FIOSystem::Get().LoadData(
-						Chunk.BulkData.GetFilename(),						// filename
-						Chunk.BulkData.GetBulkDataOffsetInFile(),			// offset
-						Chunk.BulkData.GetBulkDataSize(),					// size
-						ChunkStorage->Data,									// dest pointer
-						&PendingChunkChangeRequestStatus,					// counter to decrement
-						AsyncIOPriority										// priority
+					if (Chunk.BulkData.IsStoredCompressedOnDisk())
+					{
+						IORequestIndices.AddUnique(FIOSystem::Get().LoadCompressedData(
+							Chunk.BulkData.GetFilename(),						// filename
+							Chunk.BulkData.GetBulkDataOffsetInFile(),			// offset
+							Chunk.BulkData.GetBulkDataSizeOnDisk(),				// compressed size
+							Chunk.BulkData.GetBulkDataSize(),					// uncompressed size
+							ChunkStorage->Data,									// dest pointer
+							Chunk.BulkData.GetDecompressionFlags(),				// compressed data format
+							&PendingChunkChangeRequestStatus,					// counter to decrement
+							AsyncIOPriority										// priority
 						)
 						);
+					}
+					// Load async.
+					else
+					{
+						IORequestIndices.AddUnique(FIOSystem::Get().LoadData(
+							Chunk.BulkData.GetFilename(),						// filename
+							Chunk.BulkData.GetBulkDataOffsetInFile(),			// offset
+							Chunk.BulkData.GetBulkDataSize(),					// size
+							ChunkStorage->Data,									// dest pointer
+							&PendingChunkChangeRequestStatus,					// counter to decrement
+							AsyncIOPriority										// priority
+						)
+						);
+					}
+					check(IORequestIndices[IORequestIndices.Num() - 1]);
 				}
-				check(IORequestIndices[IORequestIndices.Num() - 1]);
-#endif
 			}
 		}
 
@@ -426,22 +423,23 @@ void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoa
 		PendingChunkChangeRequestStatus.Set(AudioState_ReadyFor_Finalization);
 	}
 
-#if !USE_NEW_ASYNC_IO
-	// Ensure indices are in order so we can step through backwards
-	FreeChunkIndices.Sort();
-
-	for (int32 FreeIndex = FreeChunkIndices.Num() - 1; FreeIndex >= 0; --FreeIndex)
+	if (!GNewAsyncIO)
 	{
-		FreeLoadedChunk(LoadedChunks[FreeChunkIndices[FreeIndex]]);
-		LoadedChunks.RemoveAt(FreeChunkIndices[FreeIndex]);
-	}
-#endif
-}
+		// Ensure indices are in order so we can step through backwards
+		FreeChunkIndices.Sort();
 
-#if USE_NEW_ASYNC_IO
+		for (int32 FreeIndex = FreeChunkIndices.Num() - 1; FreeIndex >= 0; --FreeIndex)
+		{
+			FreeLoadedChunk(LoadedChunks[FreeChunkIndices[FreeIndex]]);
+			LoadedChunks.RemoveAt(FreeChunkIndices[FreeIndex]);
+		}
+	}
+}
 
 bool FStreamingWaveData::BlockTillAllRequestsFinished(float TimeLimit)
 {
+	check(GNewAsyncIO);
+
 	QUICK_SCOPE_CYCLE_COUNTER(FStreamingWaveData_BlockTillAllRequestsFinished);
 	if (TimeLimit == 0.0f)
 	{
@@ -475,7 +473,6 @@ bool FStreamingWaveData::BlockTillAllRequestsFinished(float TimeLimit)
 	}
 	return true;
 }
-#endif
 
 #if WITH_EDITORONLY_DATA
 bool FStreamingWaveData::FinishDDCRequests()
@@ -499,12 +496,15 @@ FLoadedAudioChunk* FStreamingWaveData::AddNewLoadedChunk(int32 ChunkSize)
 {
 	int32 NewIndex = LoadedChunks.Num();
 	LoadedChunks.AddDefaulted();
-#if !USE_NEW_ASYNC_IO
-	LoadedChunks[NewIndex].MemorySize = ChunkSize;
-	LoadedChunks[NewIndex].Data = static_cast<uint8*>(FMemory::Malloc(ChunkSize));
-	INC_DWORD_STAT_BY(STAT_AudioMemorySize, ChunkSize);
-	INC_DWORD_STAT_BY(STAT_AudioMemory, ChunkSize);
-#endif
+
+	if (!GNewAsyncIO)
+	{
+		LoadedChunks[NewIndex].MemorySize = ChunkSize;
+		LoadedChunks[NewIndex].Data = static_cast<uint8*>(FMemory::Malloc(ChunkSize));
+		INC_DWORD_STAT_BY(STAT_AudioMemorySize, ChunkSize);
+		INC_DWORD_STAT_BY(STAT_AudioMemory, ChunkSize);
+	}
+
 	LoadedChunks[NewIndex].DataSize = ChunkSize;
 
 	return &LoadedChunks[NewIndex];
@@ -512,34 +512,33 @@ FLoadedAudioChunk* FStreamingWaveData::AddNewLoadedChunk(int32 ChunkSize)
 
 void FStreamingWaveData::FreeLoadedChunk(FLoadedAudioChunk& LoadedChunk)
 {
-#if USE_NEW_ASYNC_IO
-	if (LoadedChunk.IORequest)
+	if (GNewAsyncIO && LoadedChunk.IORequest)
 	{
 		LoadedChunk.IORequest->Cancel();
 		LoadedChunk.IORequest->WaitCompletion();
 		delete LoadedChunk.IORequest;
 		LoadedChunk.IORequest = nullptr;
 	}
-#endif
+
 	if (LoadedChunk.Data != NULL)
 	{
 		FMemory::Free(LoadedChunk.Data);
 
 		// Stat housekeeping
-#if USE_NEW_ASYNC_IO
-		DEC_DWORD_STAT_BY(STAT_AudioMemorySize, LoadedChunk.DataSize);
-		DEC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.DataSize);
-#else
-		DEC_DWORD_STAT_BY(STAT_AudioMemorySize, LoadedChunk.MemorySize);
-		DEC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.MemorySize);
-#endif
-
+		if (GNewAsyncIO)
+		{
+			DEC_DWORD_STAT_BY(STAT_AudioMemorySize, LoadedChunk.DataSize);
+			DEC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.DataSize);
+		}
+		else
+		{
+			DEC_DWORD_STAT_BY(STAT_AudioMemorySize, LoadedChunk.MemorySize);
+			DEC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.MemorySize);
+		}
 	}
 	LoadedChunk.Data = NULL;
 	LoadedChunk.DataSize = 0;
-#if !USE_NEW_ASYNC_IO
 	LoadedChunk.MemorySize = 0;
-#endif
 	LoadedChunk.Index = 0;
 }
 
@@ -610,7 +609,7 @@ void FAudioStreamingManager::UpdateResourceStreaming(float DeltaTime, bool bProc
 
 int32 FAudioStreamingManager::BlockTillAllRequestsFinished(float TimeLimit, bool)
 {
-#if USE_NEW_ASYNC_IO
+	if (GNewAsyncIO)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(FAudioStreamingManager_BlockTillAllRequestsFinished);
 		if (TimeLimit == 0.0f)
@@ -635,7 +634,6 @@ int32 FAudioStreamingManager::BlockTillAllRequestsFinished(float TimeLimit, bool
 		}
 	}
 
-#endif
 	// Not sure yet whether this will work the same as textures - aside from just before destroying
 	return 0;
 }

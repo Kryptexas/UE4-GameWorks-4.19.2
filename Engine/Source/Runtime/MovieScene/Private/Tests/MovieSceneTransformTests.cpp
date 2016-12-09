@@ -27,7 +27,7 @@ bool IsNearly(TRange<float> A, TRange<float> B)
 	return IsNearly(A.GetLowerBound(), B.GetLowerBound()) && IsNearly(A.GetUpperBound(), B.GetUpperBound());
 }
 
-namespace LexicalConversion
+namespace Lex
 {
 	FString ToString(const TRange<float>& InRange)
 	{
@@ -52,7 +52,7 @@ namespace LexicalConversion
 
 bool TestTransform(FAutomationTestBase& Test, FMovieSceneSequenceTransform Transform, TArrayView<TRange<float>> InSource, TArrayView<TRange<float>> InExpected, const TCHAR* TestName)
 {
-	using namespace LexicalConversion;
+	using namespace Lex;
 
 	check(InSource.Num() == InExpected.Num());
 

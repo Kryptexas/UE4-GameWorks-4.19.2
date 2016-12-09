@@ -49,7 +49,10 @@ public:
 	{
 		return InnerPlatformFile;
 	}
-
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		InnerPlatformFile = NewLowerLevel;
+	}
 	virtual void GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB)
 	{
 		OutTimeStampA = GetTimeStamp(PathA);

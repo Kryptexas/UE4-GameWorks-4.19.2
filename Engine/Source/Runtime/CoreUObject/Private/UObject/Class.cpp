@@ -48,10 +48,6 @@ DEFINE_LOG_CATEGORY(LogClass);
 	#endif
 #endif
 
-#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
-#endif
-
 //////////////////////////////////////////////////////////////////////////
 
 FThreadSafeBool& InternalSafeGetTokenStreamDirtyFlag()
@@ -529,8 +525,7 @@ void UStruct::StaticLink(bool bRelinkExistingProperties)
 void UStruct::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 {
 	Super::GetPreloadDependencies(OutDeps);
-	UStruct* InheritanceSuper = GetInheritanceSuper();
-	OutDeps.Add(InheritanceSuper);
+	OutDeps.Add(SuperStruct);
 
 	for (UField* Field = Children; Field; Field = Field->Next)
 	{
@@ -2664,12 +2659,11 @@ UObject* UClass::CreateDefaultObject()
 		{
 			UObjectForceRegistration(ParentClass);
 			ParentDefaultObject = ParentClass->GetDefaultObject(); // Force the default object to be constructed if it isn't already
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-			if (!GIsInitialLoad)
+			check(GConfig);
+			if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 			{ 
 				check(ParentDefaultObject && !ParentDefaultObject->HasAnyFlags(RF_NeedLoad));
 			}
-#endif
 		}
 
 		if ( (ParentDefaultObject != NULL) || (this == UObject::StaticClass()) )
@@ -3638,17 +3632,20 @@ void UClass::Serialize( FArchive& Ar )
 	{
 		if (ClassDefaultObject == NULL)
 		{
-
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+			check(GConfig);
+			if (GEventDrivenLoaderEnabled)
+			{
 			ClassDefaultObject = GetDefaultObject();
 			// we do this later anyway, once we find it and set it in the export table. 
 			// ClassDefaultObject->SetFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects);
-#else
+			}
+			else
+			{
 			UE_LOG(LogClass, Error, TEXT("CDO for class %s did not load!"), *GetPathName());
 			ensure(ClassDefaultObject != NULL);
 			ClassDefaultObject = GetDefaultObject();
 			Ar.ForceBlueprintFinalization();
-#endif
+			}
 		}
 	}
 }

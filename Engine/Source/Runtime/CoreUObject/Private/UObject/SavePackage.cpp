@@ -91,7 +91,7 @@ namespace SavePackageStats
 		// Don't use FCookStatsManager::CreateKeyValueArray because there's just too many arguments. Don't need to overburden the compiler here.
 		TArray<FCookStatsManager::StringKeyValue> StatsList;
 		StatsList.Empty(15);
-		#define ADD_COOK_STAT(Name) StatsList.Emplace(TEXT(#Name), FCookStatsManager::ToString(Name))
+		#define ADD_COOK_STAT(Name) StatsList.Emplace(TEXT(#Name), Lex::ToString(Name))
 		ADD_COOK_STAT(NumPackagesSaved);
 		ADD_COOK_STAT(SavePackageTimeSec);
 		ADD_COOK_STAT(TagPackageExportsPresaveTimeSec);
@@ -459,7 +459,6 @@ void AsyncWriteFile(FLargeMemoryPtr Data, const int64 DataSize, const TCHAR* Fil
 	(new FAutoDeleteAsyncTask<FAsyncWriteWorker>(Filename, MoveTemp(Data), DataSize, TimeStamp, bUseTempFilename))->StartBackgroundTask();
 }
 
-#if SPLIT_COOKED_FILES
 void AsyncWriteFileWithSplitExports(FLargeMemoryPtr Data, const int64 DataSize, const int64 HeaderSize, const TCHAR* Filename, const FDateTime& TimeStamp, bool bUseTempFilename = true)
 {
 	class FAsyncWriteWorkerWithSplitExports : public FNonAbandonableTask
@@ -609,7 +608,7 @@ void AsyncWriteFileWithSplitExports(FLargeMemoryPtr Data, const int64 DataSize, 
 	OutstandingAsyncWrites.Increment();
 	(new FAutoDeleteAsyncTask<FAsyncWriteWorkerWithSplitExports>(Filename, MoveTemp(Data), DataSize, HeaderSize, TimeStamp, bUseTempFilename))->StartBackgroundTask();
 }
-#endif
+
 /** 
  * Helper object for all of the cross object state that is needed only while saving a package.
  */
@@ -931,6 +930,39 @@ FArchive& FArchiveSaveTagExports::operator<<( UObject*& Obj )
 			{
 				// In EDL we don't always load this object, so mark it appropriately client/server only
 				ConditionallyExcludeObjectForTarget(Obj, *this);
+
+				UObject* CDO = Obj;
+
+				// Gets all subobjects defined in a class, including the CDO, CDO components and blueprint-created components
+				TArray<UObject*> ObjectTemplates;
+				ObjectTemplates.Add(CDO);
+
+				TArray<UObject*> CurrentSubobjects;
+				TArray<UObject*> NextSubobjects;
+
+				// Recursively search for subobjects. Only care about ones that have a full subobject chain as some nested objects are set wrong
+				GetObjectsWithOuter(CDO->GetClass(), NextSubobjects, false);
+				GetObjectsWithOuter(CDO, NextSubobjects, false);
+
+				while (NextSubobjects.Num() > 0)
+				{
+					CurrentSubobjects = NextSubobjects;
+					NextSubobjects.Empty();
+					for (UObject* SubObj : CurrentSubobjects)
+					{
+						if (SubObj->HasAnyFlags(RF_DefaultSubObject | RF_ArchetypeObject))
+						{
+							ObjectTemplates.Add(SubObj);
+							GetObjectsWithOuter(SubObj, NextSubobjects, false);
+						}
+					}
+				}
+
+				for (UObject* ObjTemplate : ObjectTemplates)
+				{
+					*this << ObjTemplate;
+				}
+
 			}
 		}
 		else
@@ -3660,6 +3692,140 @@ public:
 
 #endif
 
+
+struct FEDLCookChecker
+{
+	bool bIsActive;
+	TMultiMap<FString, FString> ImportToImportingPackage;
+	TSet<FString> Exports;
+	TMultiMap<FString, FString> NodePrereqs;
+
+	FEDLCookChecker()
+		: bIsActive(false)
+	{
+	}
+
+	void Reset()
+	{
+		ImportToImportingPackage.Empty();
+		Exports.Empty();
+		NodePrereqs.Empty();
+		bIsActive = false;
+	}
+
+	void AddImport(UObject* Import, UPackage* ImportingPackage)
+	{
+		if (bIsActive)
+		{
+			if (!Import->GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn))
+			{
+				ImportToImportingPackage.Add(Import->GetFullName(), ImportingPackage->GetPathName());
+			}
+		}
+	}
+	void AddExport(UObject* Export)
+	{
+		if (bIsActive)
+		{
+			Exports.Add(Export->GetFullName());
+			AddArc(Export, false, Export, true); // every export must be created before it can be serialize...these arcs are implicit and not listed in any table.
+		}
+	}
+
+	void AddArc(UObject* DepObject, bool bDepIsSerialize, UObject* Export, bool bExportIsSerialize)
+	{
+		if (bIsActive)
+		{
+			NodePrereqs.Add(NodeName(Export, bExportIsSerialize), NodeName(DepObject, bDepIsSerialize));
+		}
+	}
+
+	bool CheckForCyclesInner(TSet<FString>& Visited, TSet<FString>& Stack, const FString& Visit, FString& FailNode)
+	{
+		bool bResult = false;
+		if (Stack.Contains(Visit))
+		{
+			FailNode = Visit;
+			bResult = true;
+		}
+		else
+		{
+			bool bWasAlreadyTested = false;
+			Visited.Add(Visit, &bWasAlreadyTested);
+			if (!bWasAlreadyTested)
+			{
+				Stack.Add(Visit);
+				for (auto It = NodePrereqs.CreateConstKeyIterator(Visit); !bResult && It; ++It)
+				{
+					bResult = CheckForCyclesInner(Visited, Stack, It.Value(), FailNode);
+				}
+				Stack.Remove(Visit);
+			}
+		}
+		UE_CLOG(bResult && Stack.Contains(FailNode), LogSavePackage, Error, TEXT("Cycle Node %s"), *Visit);
+		return bResult;
+	}
+
+	void Verify()
+	{
+		if (bIsActive && Exports.Num())
+		{
+			double StartTime = FPlatformTime::Seconds();
+			// imports to things that are not exports...
+			for (auto& Pair : ImportToImportingPackage)
+			{
+				if (!Exports.Contains(Pair.Key))
+				{
+					UE_LOG(LogSavePackage, Warning, TEXT("%s imported %s, but it was never saved as an export."), *Pair.Value, *Pair.Key);
+				}
+			}
+			// cycles in the dep graph
+			TSet<FString> Visited;
+			TSet<FString> Stack;
+			bool bHadCycle = false;
+			for (FString& Export : Exports)
+			{
+				FString FailNode;
+				if (CheckForCyclesInner(Visited, Stack, Prefix(true) + Export, FailNode))
+				{
+					UE_LOG(LogSavePackage, Error, TEXT("----- %s contained a cycle (listed above)."), *FailNode);
+					bHadCycle = true;
+				}
+			}
+			if (bHadCycle)
+			{
+				UE_LOG(LogSavePackage, Fatal, TEXT("EDL dep graph contained a cycle (see errors, above). This is fatal at runtime so it is fatal at cook time."));
+			}
+			UE_LOG(LogSavePackage, Display, TEXT("Took %fs to verify the EDL loading graph."), float(FPlatformTime::Seconds() - StartTime));
+		}
+		Reset();
+	}
+
+	static FString Prefix(bool bDepIsSerialize)
+	{
+		return FString(bDepIsSerialize ? TEXT("Serialize:") : TEXT("Create:"));
+	}
+
+	static FString NodeName(UObject* DepObject, bool bDepIsSerialize)
+	{
+		return Prefix(bDepIsSerialize) + DepObject->GetFullName();
+	}
+};
+
+static FEDLCookChecker GEDLCookChecker;
+
+void StartSavingEDLCookInfoForVerification()
+{
+	GEDLCookChecker.Reset();
+	GEDLCookChecker.bIsActive = IsEventDrivenLoaderEnabledInCookedBuilds();
+}
+
+void VerifyEDLCookInfo()
+{
+	GEDLCookChecker.Verify();
+}
+
+
 extern FGCCSyncObject GGarbageCollectionGuardCritical;
 
 ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
@@ -3742,9 +3908,10 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 
 		(*GFlushStreamingFunc)();
 
-#if !USE_NEW_ASYNC_IO
-		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
-#endif
+		if (!GNewAsyncIO)
+		{
+			FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
+		}
 
 		uint32 Time = 0; CLOCK_CYCLES(Time);
 
@@ -4799,6 +4966,18 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						checkf(Conform != NULL, TEXT("NULL XObject for import %i - Object: %s Class: %s"), i, *Linker->ImportMap[i].ObjectName.ToString(), *Linker->ImportMap[i].ClassName.ToString());
 					}
 				}
+				if (IsEventDrivenLoaderEnabledInCookedBuilds() && TargetPlatform)
+				{
+					GEDLCookChecker.AddExport(InOuter); // the package isn't actually in the export map, but that is ok, we add it as export anyway for error checking
+					for (int32 i = 0; i < Linker->ImportMap.Num(); i++)
+					{
+						UObject* Object = Linker->ImportMap[i].XObject;
+						if (Object != NULL)
+						{
+							GEDLCookChecker.AddImport(Object, InOuter);
+						}
+					}
+				}
 
 				// Convert the searchable names map from UObject to packageindex
 				for (const TPair<const UObject *, TArray<FName>>& SearchableNamePair : Linker->SearchableNamesObjectMap)
@@ -5061,10 +5240,10 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						FObjectExport& Export = Linker->ExportMap[i];
 						if (Export.Object)
 						{
+							GEDLCookChecker.AddExport(Export.Object);
 							TSet<FPackageIndex> SerializationBeforeCreateDependencies;
 							{
 								IncludeIndexAsDependency(SerializationBeforeCreateDependencies, Export.ClassIndex);
-								IncludeIndexAsDependency(SerializationBeforeCreateDependencies, Export.SuperIndex);
 								UObject* CDO = Export.Object->GetArchetype();
 								IncludeObjectAsDependency(SerializationBeforeCreateDependencies, CDO, Export.Object, true);
 								Subobjects.Reset();
@@ -5082,9 +5261,14 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							{
 								TArray<UObject*> Deps;
 								Export.Object->GetPreloadDependencies(Deps);
+
 								for (UObject* Obj : Deps)
 								{
 									IncludeObjectAsDependency(SerializationBeforeSerializationDependencies, Obj, Export.Object, false);
+								}
+								if (Export.Object->HasAnyFlags(RF_ArchetypeObject | RF_ClassDefaultObject) && !Export.Object->GetOuter()->IsA(UPackage::StaticClass()))
+								{
+									IncludeObjectAsDependency(SerializationBeforeSerializationDependencies, Export.Object->GetOuter(), Export.Object, true);
 								}
 							}
 
@@ -5105,7 +5289,20 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							TSet<FPackageIndex> CreateBeforeCreateDependencies;
 							{
 								IncludeIndexAsDependency(CreateBeforeCreateDependencies, Export.OuterIndex);
+								IncludeIndexAsDependency(CreateBeforeCreateDependencies, Export.SuperIndex);
 							}
+
+							auto AddArcForDepChecking = [Linker, &Export](bool bExportIsSerialize, FPackageIndex Dep, bool bDepIsSerialize)
+							{
+								check(Export.Object);
+								check(!Dep.IsNull());
+								UObject* DepObject = Dep.IsExport() ? Linker->Exp(Dep).Object : Linker->Imp(Dep).XObject;
+								check(DepObject);
+
+								Linker->DepListForErrorChecking.Add(Dep);
+
+								GEDLCookChecker.AddArc(DepObject, bDepIsSerialize, Export.Object, bExportIsSerialize);
+							};
 
 							for (FPackageIndex Index : SerializationBeforeSerializationDependencies)
 							{
@@ -5121,7 +5318,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								Linker->Summary.PreloadDependencyCount++;
 								Export.SerializationBeforeSerializationDependencies++;
 								*Linker << Index;
-								Linker->DepListForErrorChecking.Add(Index);
+								AddArcForDepChecking(true, Index, true);
 							}
 							for (FPackageIndex Index : CreateBeforeSerializationDependencies)
 							{
@@ -5133,6 +5330,10 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								{
 									continue; // if the other thing must be serialized before we serialize, then this is a redundant dep
 								}
+								if (CreateBeforeCreateDependencies.Contains(Index))
+								{
+									continue; // if the other thing must be created before we are created, then this is a redundant dep
+								}
 								if (Export.FirstExportDependency == -1)
 								{
 									Export.FirstExportDependency = Linker->Summary.PreloadDependencyCount;
@@ -5141,7 +5342,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								Linker->Summary.PreloadDependencyCount++;
 								Export.CreateBeforeSerializationDependencies++;
 								*Linker << Index;
-								Linker->DepListForErrorChecking.Add(Index);
+								AddArcForDepChecking(true, Index, false);
 							}
 							for (FPackageIndex Index : SerializationBeforeCreateDependencies)
 							{
@@ -5153,7 +5354,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								Linker->Summary.PreloadDependencyCount++;
 								Export.SerializationBeforeCreateDependencies++;
 								*Linker << Index;
-								Linker->DepListForErrorChecking.Add(Index);
+								AddArcForDepChecking(false, Index, true);
 							}
 							for (FPackageIndex Index : CreateBeforeCreateDependencies)
 							{
@@ -5165,7 +5366,7 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 								Linker->Summary.PreloadDependencyCount++;
 								Export.CreateBeforeCreateDependencies++;
 								*Linker << Index;
-								Linker->DepListForErrorChecking.Add(Index);
+								AddArcForDepChecking(false, Index, false);
 							}
 						}
 					}
@@ -5287,13 +5488,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							{
 								bEnable = false;
 							}
-#if SPLIT_COOKED_FILES
 							if (IsEventDrivenLoaderEnabledInCookedBuilds())
 							{
 								// Always split bulk data when splitting cooked files
 								bEnable = true;
 							}
-#endif
 						}
 					} ShouldUseSeperateBulkDataFiles;
 
@@ -5578,13 +5777,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							int64 DataSize = Writer->TotalSize();
 							FLargeMemoryPtr DataPtr(Writer->GetData());
 							Writer->ReleaseOwnership();
-#if SPLIT_COOKED_FILES
 							if (IsEventDrivenLoaderEnabledInCookedBuilds() && Linker->IsCooking())
 							{
 								AsyncWriteFileWithSplitExports(MoveTemp(DataPtr), DataSize, Linker->Summary.TotalHeaderSize, *NewPath, FinalTimeStamp);
 							}
 							else
-#endif
 							{
 								AsyncWriteFile(MoveTemp(DataPtr), DataSize, *NewPath, FinalTimeStamp);
 							}

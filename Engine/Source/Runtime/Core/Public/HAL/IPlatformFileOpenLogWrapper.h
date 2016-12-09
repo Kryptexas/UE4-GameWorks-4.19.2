@@ -96,6 +96,10 @@ public:
 	{
 		return LowerLevel;
 	}
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
+	}
 	static const TCHAR* GetTypeName()
 	{
 		return TEXT("FileOpenLog");
@@ -227,7 +231,6 @@ public:
 	{
 		return LowerLevel->SendMessageToServer(Message, Handler);
 	}
-#if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
 		IAsyncReadFileHandle* Result = LowerLevel->OpenAsyncRead(Filename);
@@ -247,7 +250,6 @@ public:
 		}
 		return Result;
 	}
-#endif // USE_NEW_ASYNC_IO
 };
 
 #endif // !UE_BUILD_SHIPPING

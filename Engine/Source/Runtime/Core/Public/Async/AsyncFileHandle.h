@@ -7,16 +7,9 @@
 #include "Templates/Function.h"
 #include "Stats/Stats.h"
 #include "GenericPlatform/GenericPlatformFile.h"
-
-#if !defined(USE_NEW_ASYNC_IO)
-#error "USE_NEW_ASYNC_IO must be defined."
-#endif
+#include "Function.h"
 
 class IAsyncReadRequest;
-
-#if USE_NEW_ASYNC_IO
-
-#include "Function.h"
 
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Async File Handle Memory"), STAT_AsyncFileMemory, STATGROUP_Memory, CORE_API);
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Num Async File Handles"), STAT_AsyncFileHandles, STATGROUP_Memory, CORE_API);
@@ -193,6 +186,3 @@ public:
 	**/
 	virtual IAsyncReadRequest* ReadRequest(int64 Offset, int64 BytesToRead, EAsyncIOPriority Priority = AIOP_Normal, FAsyncFileCallBack* CompleteCallback = nullptr, uint8* UserSuppliedMemory = nullptr) = 0;
 };
-
-
-#endif // USE_NEW_ASYNC_IO

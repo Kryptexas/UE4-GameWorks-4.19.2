@@ -196,7 +196,6 @@
 #include "Containers/StaticArray.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/ModuleManager.h"
-#include "Misc/MultiReaderSingleWriterGT.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformProcess.h"

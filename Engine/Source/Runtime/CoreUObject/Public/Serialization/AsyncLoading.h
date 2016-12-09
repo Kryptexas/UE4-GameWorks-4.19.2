@@ -21,18 +21,8 @@ struct FFlushTree;
 
 #define PERF_TRACK_DETAILED_ASYNC_STATS (0)
 
-#ifndef USE_EVENT_DRIVEN_ASYNC_LOAD
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
-#endif
-
-
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-
-#if !USE_NEW_ASYNC_IO
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD requires USE_NEW_ASYNC_IO"
-#endif
-
 struct FAsyncPackage;
+/** [EDL] Async Package Loading State */
 enum class EAsyncPackageLoadingState : uint8
 {
 	NewPackage,
@@ -48,7 +38,7 @@ enum class EAsyncPackageLoadingState : uint8
 	PackageComplete,
 };
 
-// This version is an ordinary pointer. We can swap in the safer version to verify assumptions.
+/** [EDL] This version is an ordinary pointer. We can swap in the safer version to verify assumptions */
 struct FUnsafeWeakAsyncPackagePtr
 {
 	FAsyncPackage* Package;
@@ -72,6 +62,7 @@ struct FUnsafeWeakAsyncPackagePtr
 	FName HumanReadableStringForDebugging() const;
 };
 
+/**  [EDL] Weak pointer to the async package */
 struct FWeakAsyncPackagePtr
 {
 	FName PackageName;
@@ -100,6 +91,7 @@ typedef FWeakAsyncPackagePtr FCheckedWeakAsyncPackagePtr;
 typedef FUnsafeWeakAsyncPackagePtr FCheckedWeakAsyncPackagePtr;
 #endif
 
+/** [EDL] Event Load Node */
 enum class EEventLoadNode
 {
 	Package_LoadSummary,
@@ -127,7 +119,7 @@ enum class EEventLoadNode
 // Export: EEventLoadNode::Export_StartIO -> EEventLoadNode::ImportOrExport_Serialize: can't serialize until the IO request is ready
 // Import: EEventLoadNode::ImportOrExport_Serialize -> EEventLoadNode::Package_ExportsSerialized: can't consider the package done with event driven loading until all exports are serialized
 
-
+/** [EDL] Event Load Node Pointer */
 struct FEventLoadNodePtr
 {
 	FCheckedWeakAsyncPackagePtr WaitingPackage;
@@ -191,6 +183,7 @@ struct FEventLoadNodePtr
 	FString HumanReadableStringForDebugging() const;
 };
 
+/** [EDL] Event Load Node */
 struct FEventLoadNode
 {
 #if USE_IMPLICIT_ARCS
@@ -211,6 +204,7 @@ struct FEventLoadNode
 	}
 };
 
+/** [EDL] Event Load Node Array */
 struct FEventLoadNodeArray
 {
 	FEventLoadNode PackageNodes[int(EEventLoadNode::Package_NumPhases)];
@@ -287,7 +281,7 @@ private:
 
 };
 
-
+/** [EDL] Event Load Graph */
 struct FEventLoadGraph
 {
 	TSet<FCheckedWeakAsyncPackagePtr> PackagesWithNodes;
@@ -307,6 +301,7 @@ struct FEventLoadGraph
 #endif
 };
 
+/** [EDL] Event Load Graph */
 struct FAsyncLoadEventArgs
 {
 	double TickStartTime;
@@ -327,14 +322,12 @@ struct FAsyncLoadEventArgs
 	}
 };
 
-// this is a little wrapper that does random pops for further randomization
+/** [EDL] this is a little wrapper that does random pops for further randomization */
 class FImportOrImportIndexArray : public TArray<int32>
 {
 public:
 	void HeapPop(int32& OutItem, bool bAllowShrinking = true);
 };
-
-#endif
 
 /**
 * Structure containing intermediate data required for async loading of all imports and exports of a
@@ -589,7 +582,8 @@ private:
 
 public:
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+	/** [EDL] Begin Event driven loader specific stuff */
+
 	EAsyncPackageLoadingState AsyncPackageLoadingState;
 	int32 SerialNumber;
 
@@ -715,7 +709,7 @@ public:
 		bUseFullTimeLimit = Args.bUseFullTimeLimit;
 	}
 
-#endif
+	/** [EDL] End Event driven loader specific stuff */
 
 
 #if PERF_TRACK_DETAILED_ASYNC_STATS
@@ -842,6 +836,12 @@ private:
 	 */
 	EAsyncPackageState::Type PreLoadObjects();
 	/**
+	* Preloads aka serializes all loaded objects for the new async IO.
+	*
+	* @return true if we finished serializing all loaded objects, false otherwise.
+	*/
+	EAsyncPackageState::Type PreLoadObjectsForNewAsyncIO();
+	/**
 	 * Route PostLoad to all loaded objects. This might load further objects!
 	 *
 	 * @return true if we finished calling PostLoad on all loaded objects and no new ones were created, false otherwise
@@ -898,7 +898,6 @@ private:
 #endif // PERF_TRACK_DETAILED_ASYNC_STATS
 };
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 struct FScopedAsyncPackageEvent
 {
 	/** Current scope package */
@@ -909,7 +908,6 @@ struct FScopedAsyncPackageEvent
 	FScopedAsyncPackageEvent(FAsyncPackage* InPackage);
 	~FScopedAsyncPackageEvent();
 };
-#endif
 
 
 

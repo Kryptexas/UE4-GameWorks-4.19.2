@@ -438,7 +438,7 @@ private:
 		else
 		{
 			NumericType NumericValue;
-			if (LexicalConversion::TryParseString(NumericValue, *NewValue.ToString()))
+			if (Lex::TryParseString(NumericValue, *NewValue.ToString()))
 			{
 				OnValueChanged.ExecuteIfBound( NumericValue );
 			}

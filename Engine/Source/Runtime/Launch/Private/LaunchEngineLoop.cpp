@@ -1341,17 +1341,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 			verify(GThreadPool->Create(NumThreadsInThreadPool, 128 * 1024));
 		}
-#if USE_NEW_ASYNC_IO
-		{
-			GIOThreadPool = FQueuedThreadPool::Allocate();
-			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfIOWorkerThreadsToSpawn();
-			if (FPlatformProperties::IsServerOnly())
-			{
-				NumThreadsInThreadPool = 2;
-			}
-			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 16 * 1024, TPri_AboveNormal));
-		}
-#endif // USE_NEW_ASYNC_IO
 
 #if WITH_EDITOR
 		// when we are in the editor we like to do things like build lighting and such
@@ -1374,6 +1363,25 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return 1;
 	}
 	
+#if WITH_COREUOBJECT
+	GNewAsyncIO = IsEventDrivenLoaderEnabled();
+	FPlatformFileManager::Get().InitializeNewAsyncIO();
+#endif
+
+	if (FPlatformProcess::SupportsMultithreading())
+	{
+		if (GNewAsyncIO)
+		{
+			GIOThreadPool = FQueuedThreadPool::Allocate();
+			int32 NumThreadsInThreadPool = FPlatformMisc::NumberOfIOWorkerThreadsToSpawn();
+			if (FPlatformProperties::IsServerOnly())
+			{
+				NumThreadsInThreadPool = 2;
+			}
+			verify(GIOThreadPool->Create(NumThreadsInThreadPool, 16 * 1024, TPri_AboveNormal));
+		}
+	}
+
 #if WITH_ENGINE
 	// Initialize system settings before anyone tries to use it...
 	GSystemSettings.Initialize( bHasEditorToken );
@@ -1522,9 +1530,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		InitializeStdOutDevice();
 	}
 
-#if !USE_NEW_ASYNC_IO
-	FIOSystem::Get(); // force it to be created if it isn't already
-#endif
+	if (!GNewAsyncIO)
+	{
+		FIOSystem::Get(); // force it to be created if it isn't already
+	}
 
 	// allow the platform to start up any features it may need
 	IPlatformFeaturesModule::Get();
@@ -2622,9 +2631,10 @@ void FEngineLoop::Exit()
 
 	FTaskGraphInterface::Shutdown();
 	IStreamingManager::Shutdown();
-#if !USE_NEW_ASYNC_IO
-	FIOSystem::Shutdown();
-#endif
+	if (!GNewAsyncIO)
+	{
+		FIOSystem::Shutdown();
+	}
 }
 
 
@@ -3566,12 +3576,11 @@ void FEngineLoop::AppPreExit( )
 	{
 		GThreadPool->Destroy();
 	}
-#if USE_NEW_ASYNC_IO
+
 	if (GIOThreadPool != nullptr)
 	{
 		GIOThreadPool->Destroy();
 	}
-#endif // USE_NEW_ASYNC_IO
 
 #if WITH_ENGINE
 	if ( GShaderCompilingManager )

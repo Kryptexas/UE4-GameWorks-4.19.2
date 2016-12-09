@@ -821,15 +821,9 @@ bool UObject::ConditionalFinishDestroy()
 	}
 }
 
-#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
-#endif
-
 void UObject::ConditionalPostLoad()
 {
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	check(!HasAnyFlags(RF_NeedLoad)); //@todoio Added this as "nicks rule"
-#endif
+	check(!GEventDrivenLoaderEnabled || !HasAnyFlags(RF_NeedLoad)); //@todoio Added this as "nicks rule"
 									  // PostLoad only if the object needs it and has already been serialized
 	//@todoio note this logic should be unchanged compared to main
 	if (HasAnyFlags(RF_NeedPostLoad))
@@ -875,25 +869,18 @@ void UObject::ConditionalPostLoad()
 	}
 }
 
-#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined."
-#endif
-
-
 void UObject::PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph/*=NULL*/ )
 {
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	check(!HasAnyFlags(RF_NeedLoad));
-#endif
+	check(!GEventDrivenLoaderEnabled || !HasAnyFlags(RF_NeedLoad));
+
 	if( GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) )
 	{
 		UObject* ObjOuter = GetOuter();
 		// make sure our Outer has already called ConditionalPostLoadSubobjects
 		if (ObjOuter != NULL && ObjOuter->HasAnyFlags(RF_NeedPostLoadSubobjects) )
 		{
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-			check(!ObjOuter->HasAnyFlags(RF_NeedLoad));
-#endif
+			check(!GEventDrivenLoaderEnabled || !ObjOuter->HasAnyFlags(RF_NeedLoad));
+
 			if (ObjOuter->HasAnyFlags(RF_NeedPostLoad) )
 			{
 				ObjOuter->ConditionalPostLoad();

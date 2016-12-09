@@ -276,13 +276,6 @@ namespace UnrealBuildTool
 					UEBuildConfiguration.bCompileCEF3 = bValue;
 				}
 
-				if (Target != null && Target.IsCooked)
-				{
-					if (Ini.GetBool("/Script/Engine.StreamingSettings", "s.EventDrivenLoaderEnabled", out bValue))
-					{
-						UEBuildConfiguration.bEventDrivenLoader = bValue;
-					}
-				}
 				bInitializedProject = true;
 			}
             else
@@ -820,11 +813,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
 		{
-			if(!DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/Engine.StreamingSettings", new string[] { "s.EventDrivenLoaderEnabled" }, null, null))
-			{
-				return false;
-			}
-
 			string[] BoolKeys = new string[] {
 				"bCompileApex", "bCompileBox2D", "bCompileICU", "bCompileSimplygon", "bCompileSimplygonSSF",
 				"bCompileLeanAndMeanUE", "bIncludeADO", "bCompileRecast", "bCompileSpeedTree", 

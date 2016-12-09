@@ -123,27 +123,23 @@ public:
 		return Attrs;
 	}
 
-	/** ToString abstraction that can convert anything into a string. Differs from LexicalConversion in that it is legal to pass a string or TCHAR* to it. */
-	static const FString& ToString(const FString& InStr) { return InStr; }
-	static FString ToString(const TCHAR* InStr) { return FString(InStr); }
-	template <typename T> static FString ToString(T&&Val) { return LexicalConversion::ToString(Forward<T>(Val)); }
 private:
 	template <typename KeyType>
 	static void ImplCreateKeyValueArray(TArray<FCookStatsManager::StringKeyValue>& Attrs, KeyType&& Key)
 	{
-		Attrs.Emplace(ToString(Forward<KeyType>(Key)), TEXT(""));
+		Attrs.Emplace(Lex::ToString(Forward<KeyType>(Key)), TEXT(""));
 	}
 
 	template <typename KeyType, typename ValueType>
 	static void ImplCreateKeyValueArray(TArray<FCookStatsManager::StringKeyValue>& Attrs, KeyType&& Key, ValueType&& Value)
 	{
-		Attrs.Emplace(ToString(Forward<KeyType>(Key)), ToString(Forward<ValueType>(Value)));
+		Attrs.Emplace(Lex::ToString(Forward<KeyType>(Key)), Lex::ToString(Forward<ValueType>(Value)));
 	}
 
 	template <typename KeyType, typename ValueType, typename...ArgTypes>
 	static void ImplCreateKeyValueArray(TArray<FCookStatsManager::StringKeyValue>& Attrs, KeyType&& Key, ValueType&& Value, ArgTypes&&...Args)
 	{
-		Attrs.Emplace(ToString(Forward<KeyType>(Key)), ToString(Forward<ValueType>(Value)));
+		Attrs.Emplace(Lex::ToString(Forward<KeyType>(Key)), Lex::ToString(Forward<ValueType>(Value)));
 		ImplCreateKeyValueArray(Attrs, Forward<ArgTypes>(Args)...);
 	}
 

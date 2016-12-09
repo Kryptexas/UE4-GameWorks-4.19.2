@@ -970,6 +970,16 @@ public:
 	static void GetPakFolders(const TCHAR* CmdLine, TArray<FString>& OutPakFolders);
 
 	/**
+	* Helper function for accessing pak encryption key
+	*/
+	static const ANSICHAR* GetPakEncryptionKey();
+
+	/**
+	* Helper function for accessing pak signing keys
+	*/
+	static void GetPakSigningKeys(FString& OutExponent, FString& OutModulus);
+
+	/**
 	 * Constructor.
 	 * 
 	 * @param InLowerLevel Wrapper platform file.
@@ -983,10 +993,15 @@ public:
 
 	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
 	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override;
+	virtual void InitializeNewAsyncIO() override;
 
 	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
+	}
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
 	}
 
 	virtual const TCHAR* GetName() const override
@@ -1159,13 +1174,9 @@ public:
 		FDateTime Result = FDateTime::MinValue();
 		if (IsNonPakFilenameAllowed(Filename))
 		{
-#if USE_NEW_ASYNC_IO
-			double StartTime(UE_LOG_ACTIVE(LogPakFile, Verbose) ? FPlatformTime::Seconds() : 0.0);
-#endif
+			double StartTime = (GNewAsyncIO && UE_LOG_ACTIVE(LogPakFile, Verbose)) ? FPlatformTime::Seconds() : 0.0;
 			Result = LowerLevel->GetTimeStamp(Filename);
-#if USE_NEW_ASYNC_IO
-			UE_LOG(LogPakFile, Verbose, TEXT("GetTimeStamp on disk (!!) for %s took %6.2fms."), Filename, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
-#endif
+			UE_CLOG(GNewAsyncIO, LogPakFile, Verbose, TEXT("GetTimeStamp on disk (!!) for %s took %6.2fms."), Filename, float(FPlatformTime::Seconds() - StartTime) * 1000.0f);
 		}
 		return Result;
 	}
@@ -1588,9 +1599,7 @@ public:
 
 	virtual bool CopyFile(const TCHAR* To, const TCHAR* From, EPlatformFileRead ReadFlags = EPlatformFileRead::None, EPlatformFileWrite WriteFlags = EPlatformFileWrite::None) override;
 
-#if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override;
-#endif // USE_NEW_ASYNC_IO
 
 	/**
 	 * Converts a filename to a path inside pak file.

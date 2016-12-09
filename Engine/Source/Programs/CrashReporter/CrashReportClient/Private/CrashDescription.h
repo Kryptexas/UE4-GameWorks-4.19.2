@@ -78,7 +78,7 @@ struct FAnalyticsEventAttribute;
 	"bAllowToBeContacted"
  */
 
-namespace LexicalConversion
+namespace Lex
 {
 	inline void FromString( ECrashDescVersions& OutValue, const TCHAR* Buffer )
 	{
@@ -455,7 +455,7 @@ protected:
 			const FXmlNode* CategoryNode = MainNode->FindChildNode( SecondCategory );
 			if (CategoryNode)
 			{
-				LexicalConversion::FromString( out_ReadValue, *FGenericCrashContext::UnescapeXMLString( CategoryNode->GetContent() ) );
+				Lex::FromString( out_ReadValue, *FGenericCrashContext::UnescapeXMLString( CategoryNode->GetContent() ) );
 			}
 		}
 	}

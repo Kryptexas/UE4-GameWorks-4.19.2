@@ -1188,11 +1188,12 @@ void FAES::DecryptData(uint8 *Contents, uint32 NumBytes)
 #endif
 }
 
-void FAES::DecryptData( uint8 *Contents, uint32 NumBytes, ANSICHAR* Key )
+void FAES::DecryptData( uint8 *Contents, uint32 NumBytes, const ANSICHAR* Key )
 {
 	uint32 rk[RKLENGTH(AES_KEYBITS)] = { 0 };
 	int32 nrounds;
 
+	check(Key != nullptr);
 	checkf( ( NumBytes & ( AESBlockSize - 1 ) ) == 0, TEXT( "NumBytes needs to tbe a multiple of 16 bytes" ) );
 	checkf( TCString<ANSICHAR>::Strlen( Key ) >= KEYLENGTH( AES_KEYBITS ), TEXT( "AES_KEY needs to be at least %d characters" ), KEYLENGTH( AES_KEYBITS ) );
 

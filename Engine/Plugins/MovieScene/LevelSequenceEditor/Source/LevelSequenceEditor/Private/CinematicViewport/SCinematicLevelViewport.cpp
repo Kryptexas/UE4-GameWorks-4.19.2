@@ -692,7 +692,7 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		else
 		{
 			// Just use the FoV
-			UIData.Filmback = FText::FromString(LexicalConversion::ToString(FNumericUnit<float>(CameraComponent->FieldOfView, EUnit::Degrees)));
+			UIData.Filmback = FText::FromString(Lex::ToString(FNumericUnit<float>(CameraComponent->FieldOfView, EUnit::Degrees)));
 		}
 	}
 	else

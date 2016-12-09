@@ -1229,9 +1229,10 @@ UPackage* FindOrConstructDynamicTypePackage(const TCHAR* PackageName)
 	if (!Package)
 	{
 		Package = CreatePackage(nullptr, PackageName);
-#if !USE_EVENT_DRIVEN_ASYNC_LOAD
-		Package->SetPackageFlags(PKG_CompiledIn);
-#endif
+		if (!GEventDrivenLoaderEnabled)
+		{
+			Package->SetPackageFlags(PKG_CompiledIn);
+		}
 	}
 	check(Package);
 	return Package;

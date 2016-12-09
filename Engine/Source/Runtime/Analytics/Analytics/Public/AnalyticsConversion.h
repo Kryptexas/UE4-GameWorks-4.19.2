@@ -44,18 +44,18 @@ namespace AnalyticsConversion
 		return Value.ToString();
 	}
 
-	/** Double conversion. LexicalConversion is broken to doubles (won't use SanitizeFloat), so overload this directly. */
+	/** Double conversion. Lex is broken to doubles (won't use SanitizeFloat), so overload this directly. */
 	inline FString ToString(double Value)
 	{
 		return FString::SanitizeFloat(Value);
 	}
 
 
-	/** Lexical conversion. Allow any type that we have a LexicalConversion for. */
+	/** Lexical conversion. Allow any type that we have a Lex for. */
 	template <typename T>
 	inline typename TEnableIf<TIsArithmetic<T>::Value, FString>::Type ToString(T Value)
 	{
-		return LexicalConversion::ToSanitizedString(Value);
+		return Lex::ToSanitizedString(Value);
 	}
 
 	/** Array conversion. Creates comma-separated list. */

@@ -80,21 +80,36 @@ struct FUObjectItem
 			{
 				break;
 			}
-			int32 OldValue = (int32)FPlatformAtomics::InterlockedCompareExchange((int32*)&Flags, StartValue & ~int32(FlagToClear), StartValue);
-			// We know the flag was set when we entered this iteration,
-			// so if the old value returned by atomics had the flag set, we must have cleared it.
-			// (there is always a chance that another thread cleared some other flag and the above function did nothing)
-			// But we only care about the flags we want to clear
-			if (!(Flags & int32(FlagToClear)) && (OldValue & int32(FlagToClear)) == (StartValue & int32(FlagToClear)))
+			int32 NewValue = StartValue & ~int32(FlagToClear);
+			checkSlow(NewValue != StartValue);
+			if ((int32)FPlatformAtomics::InterlockedCompareExchange((int32*)&Flags, NewValue, StartValue) == StartValue)
 			{
-				// if (the flag has actually been cleared) && (the previous value had the flag set) we must have cleared it
 				bIChangedIt = true;
 				break;
 			}
-			// We didn't clear the flag, probably because some other thread changed flags in the meantime (either the one we want to clear or some other). Try again.
 		}
-		// Make sure the flag was actually cleared
-		checkSlow((Flags & int32(FlagToClear)) == 0);
+		return bIChangedIt;
+	}
+
+	FORCEINLINE bool ThisThreadAtomicallySetFlag(EInternalObjectFlags FlagToSet)
+	{
+		static_assert(sizeof(int32) == sizeof(Flags), "Flags must be 32-bit for atomics.");
+		bool bIChangedIt = false;
+		while (1)
+		{
+			int32 StartValue = int32(Flags);
+			if (StartValue & int32(FlagToSet))
+			{
+				break;
+			}
+			int32 NewValue = StartValue | int32(FlagToSet);
+			checkSlow(NewValue != StartValue);
+			if ((int32)FPlatformAtomics::InterlockedCompareExchange((int32*)&Flags, NewValue, StartValue) == StartValue)
+			{
+				bIChangedIt = true;
+				break;
+			}
+		}
 		return bIChangedIt;
 	}
 

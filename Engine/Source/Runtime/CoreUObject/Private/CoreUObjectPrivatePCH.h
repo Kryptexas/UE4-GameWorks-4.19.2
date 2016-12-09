@@ -204,7 +204,6 @@
 #include "HAL/IConsoleManager.h"
 #include "HAL/FileManager.h"
 #include "Modules/ModuleManager.h"
-#include "Misc/MultiReaderSingleWriterGT.h"
 #include "Modules/ModuleInterface.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
 #include "HAL/Event.h"

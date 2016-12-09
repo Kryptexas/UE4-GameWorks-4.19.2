@@ -18,12 +18,7 @@
 
 class IAssetRegistryInterface;
 
-#ifndef USE_EVENT_DRIVEN_ASYNC_LOAD
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
-#endif
-
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-
+/** [EDL] Event Driven loader event */
 struct FAsyncLoadEvent
 {
 	enum
@@ -71,6 +66,7 @@ struct FAsyncLoadEvent
 	}
 };
 
+/** [EDL] Event queue for the event driven loader */
 struct FAsyncLoadEventQueue
 {
 	//FCriticalSection AsyncLoadEventQueueCritical; //@todoio maybe this doesn't need to be protected by a critical section. 
@@ -108,8 +104,6 @@ struct FAsyncLoadEventQueue
 		return bResult;
 	}
 };
-
-#endif
 
 /** Package dependency tree used for flushing specific packages */
 struct FFlushTree
@@ -189,11 +183,10 @@ class FAsyncLoadingThread : public FRunnable
 	/** [ASYNC THREAD] Array of packages that are being preloaded */
 	TArray<FAsyncPackage*> AsyncPackages;
 	TMap<FName, FAsyncPackage*> AsyncPackageNameLookup;
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 public:
+	/** [EDL] Async Packages that are ready for tick */
 	TArray<FAsyncPackage*> AsyncPackagesReadyForTick;
 private:
-#endif 
 
 #if THREADSAFE_UOBJECTS
 	/** We only lock AsyncPackages array to make GetAsyncLoadPercentage thread safe, so we only care about locking Add/Remove operations on the async thread */
@@ -243,9 +236,10 @@ public:
 	/** Returns the async loading thread singleton */
 	static FAsyncLoadingThread& Get();
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+	/** [EDL] Event queue */
 	FAsyncLoadEventQueue EventQueue;
 
+	/** [EDL] Gets a package from a weak pointer */
 	FORCEINLINE FAsyncPackage* GetPackage(FWeakAsyncPackagePtr Ptr)
 	{
 		if (Ptr.PackageName != NAME_None && Ptr.SerialNumber)
@@ -259,16 +253,24 @@ public:
 		return nullptr;
 	}
 
+	/** [EDL] Queues CreateLinker event */
 	void QueueEvent_CreateLinker(FAsyncPackage* Pkg, int32 EventSystemPriority = 0);
+	/** [EDL] Queues FinishLinker event */
 	void QueueEvent_FinishLinker(FWeakAsyncPackagePtr WeakPtr, int32 EventSystemPriority = 0);
+	/** [EDL] Queues StartImportPackages event */
 	void QueueEvent_StartImportPackages(FAsyncPackage* Pkg, int32 EventSystemPriority = 0);
+	/** [EDL] Queues SetupImports event */
 	void QueueEvent_SetupImports(FAsyncPackage* Pkg, int32 EventSystemPriority = 0);
+	/** [EDL] Queues SetupExports event */
 	void QueueEvent_SetupExports(FAsyncPackage* Pkg, int32 EventSystemPriority = 0);
+	/** [EDL] Queues ProcessImportsAndExports event */
 	void QueueEvent_ProcessImportsAndExports(FAsyncPackage* Pkg, int32 EventSystemPriority = 0);
+	/** [EDL] Queues ExportsDone event */
 	void QueueEvent_ExportsDone(FAsyncPackage* Pkg, int32 EventSystemPriority = 0);
+	/** [EDL] Queues ProcessPostload event */
 	void QueueEvent_ProcessPostloadWait(FAsyncPackage* Pkg, int32 EventSystemPriority = 0);
+	/** [EDL] Queues StartPostLoad event */
 	void QueueEvent_StartPostLoad(FAsyncPackage* Pkg, int32 EventSystemPriority = 0);
-#endif
 
 	/** True if multithreaded async loading should be used. */
 	static FORCEINLINE bool IsMultithreaded()
@@ -439,12 +441,10 @@ public:
 	*/
 	EAsyncPackageState::Type ProcessAsyncLoading(int32& OutPackagesProcessed, bool bUseTimeLimit = false, bool bUseFullTimeLimit = false, float TimeLimit = 0.0f, FFlushTree* FlushTree = nullptr);
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 	/**
-	* [ASYNC* THREAD] Checks fopr cycles in the event driven loader and does fatal errors in that case
+	* [EDL] [ASYNC* THREAD] Checks fopr cycles in the event driven loader and does fatal errors in that case
 	*/
 	void CheckForCycles();
-#endif
 
 	/**
 	* [GAME THREAD] Ticks game thread side of async loading.

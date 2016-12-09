@@ -2434,11 +2434,11 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 	const float BoundsSize = FixedRelativeBoundingBox.GetSize().GetMax();
 	OutTags.Add(FAssetRegistryTag("FixedBoundsSize", bUseFixedRelativeBoundingBox ? FString::Printf(TEXT("%.2f"), BoundsSize) : FString(TEXT("None")), FAssetRegistryTag::TT_Numerical));
 
-	OutTags.Add(FAssetRegistryTag("NumEmitters", LexicalConversion::ToString(Emitters.Num()), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("NumEmitters", Lex::ToString(Emitters.Num()), FAssetRegistryTag::TT_Numerical));
 
-	OutTags.Add(FAssetRegistryTag("NumLODs", LexicalConversion::ToString(LODDistances.Num()), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("NumLODs", Lex::ToString(LODDistances.Num()), FAssetRegistryTag::TT_Numerical));
 
-	OutTags.Add(FAssetRegistryTag("WarmupTime", LexicalConversion::ToString(WarmupTime), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("WarmupTime", Lex::ToString(WarmupTime), FAssetRegistryTag::TT_Numerical));
 
 	// Done here instead of as an AssetRegistrySearchable string to avoid the long prefix on the enum value string
 	FString LODMethodString = TEXT("Unknown");
@@ -2473,10 +2473,10 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 			++NumEmittersAtEachSig[(int32)Emitter->SignificanceLevel];			
 		}
 	}
-	OutTags.Add(FAssetRegistryTag("Critical Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Critical]), FAssetRegistryTag::TT_Numerical));
-	OutTags.Add(FAssetRegistryTag("High Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::High]), FAssetRegistryTag::TT_Numerical));
-	OutTags.Add(FAssetRegistryTag("Medium Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Medium]), FAssetRegistryTag::TT_Numerical));
-	OutTags.Add(FAssetRegistryTag("Low Emitters", LexicalConversion::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Low]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Critical Emitters", Lex::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Critical]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("High Emitters", Lex::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::High]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Medium Emitters", Lex::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Medium]), FAssetRegistryTag::TT_Numerical));
+	OutTags.Add(FAssetRegistryTag("Low Emitters", Lex::ToString(NumEmittersAtEachSig[(int32)EParticleSignificanceLevel::Low]), FAssetRegistryTag::TT_Numerical));
 
 	Super::GetAssetRegistryTags(OutTags);
 }

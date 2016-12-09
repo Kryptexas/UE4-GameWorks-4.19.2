@@ -200,7 +200,6 @@
 #include "Misc/CoreMisc.h"
 #include "Containers/StaticArray.h"
 #include "Modules/ModuleManager.h"
-#include "Misc/MultiReaderSingleWriterGT.h"
 #include "Modules/Boilerplate/ModuleBoilerplate.h"
 #include "GenericPlatform/GenericPlatformAffinity.h"
 #include "HAL/Runnable.h"

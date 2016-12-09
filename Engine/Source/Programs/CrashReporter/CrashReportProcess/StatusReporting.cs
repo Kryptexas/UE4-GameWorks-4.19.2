@@ -154,6 +154,48 @@ namespace Tools.CrashReporter.CrashReportProcess
 			}
         }
 
+		public void AlertOnConsecutiveFails(string AlertKey, string AlertText, string RecoveredText, TimeSpan TimeSinceSuccessThreshold, bool bSucceeded)
+		{
+			try
+			{
+				lock (DataLock)
+				{
+					if (bSucceeded)
+					{
+						// Success - clear from list of failing keys
+						DateTime FailAlertStartTime;
+						if (FailAlertStartTimes.TryGetValue(AlertKey, out FailAlertStartTime))
+						{
+							if (FailAlertStartTime == DateTime.MaxValue)
+							{
+								Alert(AlertKey, RecoveredText, 0);
+							}
+							FailAlertStartTimes.Remove(AlertKey);
+						}
+					}
+					else if (!FailAlertStartTimes.ContainsKey(AlertKey))
+					{
+						// Failed but no record yet - first failure so note the time
+						FailAlertStartTimes.Add(AlertKey, DateTime.UtcNow);
+					}
+					else
+					{
+						// Failed and not the first consecutive fail
+						TimeSpan TimeSinceStartedFailing = DateTime.UtcNow - FailAlertStartTimes[AlertKey];
+						if (TimeSinceStartedFailing > TimeSinceSuccessThreshold)
+						{
+							FailAlertStartTimes[AlertKey] = DateTime.MaxValue; // forces future fails to make TimeSinceStartedFailing negative until at least one success
+							Alert(AlertKey, AlertText, 0);
+						}
+					}
+				}
+			}
+			catch (Exception Ex)
+			{
+				CrashReporterProcessServicer.WriteException("AlertOnConsecutiveFails failed: " + Ex, Ex);
+			}
+		}
+
 		public void Start()
 		{
 			CrashReporterProcessServicer.WriteSlack(string.Format("CRP started (version {0})", Config.Default.VersionString));
@@ -267,7 +309,7 @@ namespace Tools.CrashReporter.CrashReportProcess
 			if (Config.Default.MonitorPerformance)
 			{
 				StatusReportLoops.Add(
-					new PerfStatusReport(TimeSpan.FromMinutes(15), (InLoop, InPeriod) =>
+					new PerfStatusReport(TimeSpan.FromMinutes(10), (InLoop, InPeriod) =>
 					                     {
 											 PerfStatusReport ThisLoop = (PerfStatusReport)InLoop;
 											 StringBuilder PerfReportMessage = new StringBuilder();
@@ -362,24 +404,27 @@ namespace Tools.CrashReporter.CrashReportProcess
 
 		private bool CheckRecentAlerts(string AlertKey, int RepeatMinimumMinutes)
 		{
-			// Check RecentAlerts for a matching entry without the time period
-			// that limits repeats Config.Default.SlackAlertRepeatMinimumMinutes
-			if (RecentAlerts.ContainsKey(AlertKey))
+			lock (DataLock)
 			{
-				DateTime LastMatchingAlert = RecentAlerts[AlertKey];
-				TimeSpan RepeatMinimum = TimeSpan.FromMinutes(RepeatMinimumMinutes);
-
-				if (LastMatchingAlert < DateTime.UtcNow - RepeatMinimum)
+				// Check RecentAlerts for a matching entry without the time period
+				// that limits repeats Config.Default.SlackAlertRepeatMinimumMinutes
+				if (RecentAlerts.ContainsKey(AlertKey))
 				{
-					RecentAlerts[AlertKey] = DateTime.UtcNow;
-					return true;
+					DateTime LastMatchingAlert = RecentAlerts[AlertKey];
+					TimeSpan RepeatMinimum = TimeSpan.FromMinutes(RepeatMinimumMinutes);
+
+					if (LastMatchingAlert < DateTime.UtcNow - RepeatMinimum)
+					{
+						RecentAlerts[AlertKey] = DateTime.UtcNow;
+						return true;
+					}
+
+					return false;
 				}
 
-				return false;
+				RecentAlerts.Add(AlertKey, DateTime.UtcNow);
+				return true;
 			}
-
-			RecentAlerts.Add(AlertKey, DateTime.UtcNow);
-			return true;
 		}
 
 		private IEnumerable<StatusReportLoop> ReporterTasks;
@@ -391,5 +436,6 @@ namespace Tools.CrashReporter.CrashReportProcess
 		private readonly Object DataLock = new Object();
 		private int SetQueueSizesCallCount = 0;
 		private readonly Dictionary<string, DateTime> RecentAlerts = new Dictionary<string, DateTime>();
+		private readonly Dictionary<string, DateTime> FailAlertStartTimes = new Dictionary<string, DateTime>();
 	}
 }
