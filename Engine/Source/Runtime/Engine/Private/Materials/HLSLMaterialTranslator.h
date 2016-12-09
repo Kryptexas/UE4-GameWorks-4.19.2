@@ -2692,11 +2692,14 @@ protected:
 			{
 				if (FeatureLevel < ERHIFeatureLevel::ES3_1)
 				{
-					Errorf(TEXT("World position excluding shader offsets is not available on ES2"));
-					return INDEX_NONE;
+					// World position excluding shader offsets is not available on ES2
+					FunctionNamePattern = TEXT("Get<PREV>WorldPosition");
 				}
-				bNeedsWorldPositionExcludingShaderOffsets = true;
-				FunctionNamePattern = TEXT("Get<PREV>WorldPosition<NO_MATERIAL_OFFSETS>");
+				else
+				{
+					bNeedsWorldPositionExcludingShaderOffsets = true;
+					FunctionNamePattern = TEXT("Get<PREV>WorldPosition<NO_MATERIAL_OFFSETS>");
+				}
 				break;
 			}
 
@@ -2710,11 +2713,14 @@ protected:
 			{
 				if (FeatureLevel < ERHIFeatureLevel::ES3_1)
 				{
-					Errorf(TEXT("World position excluding shader offsets is not available on ES2"));
-					return INDEX_NONE;
+					// World position excluding shader offsets is not available on ES2
+					FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition");
 				}
-				bNeedsWorldPositionExcludingShaderOffsets = true;
-				FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition<NO_MATERIAL_OFFSETS>");
+				else
+				{
+					bNeedsWorldPositionExcludingShaderOffsets = true;
+					FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition<NO_MATERIAL_OFFSETS>");
+				}
 				break;
 			}
 
