@@ -20,6 +20,7 @@ JavaVM* GJavaVM;
 // Pointer to target widget for virtual keyboard contents
 static IVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
 
+extern FString GFileExternalStorage;
 extern FString GFilePathBase;
 extern FString GExternalFilePath;
 extern FString GFontPathBase;
@@ -989,7 +990,8 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	jstring pathString = (jstring)Env->CallObjectMethod(externalStoragePath, getFilePath, nullptr);
 	const char *nativePathString = Env->GetStringUTFChars(pathString, 0);
 	// Copy that somewhere safe 
-	GFilePathBase = FString(nativePathString);
+	GFileExternalStorage = FString(nativePathString);
+	GFilePathBase = GFileExternalStorage;
 
 	// then release...
 	Env->ReleaseStringUTFChars(pathString, nativePathString);
@@ -1020,7 +1022,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 //Native-defined functions
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeSetGlobalActivity();"
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIEnv* jenv, jobject thiz /*, jobject googleServices*/)
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIEnv* jenv, jobject thiz, jboolean bUseExternalFilesDir /*, jobject googleServices*/)
 {
 	if (!FJavaWrapper::GameActivityThis)
 	{
@@ -1051,6 +1053,12 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIE
 		const char *nativeExternalFilesPathString = jenv->GetStringUTFChars(externalFilesPathString, 0);
 		// Copy that somewhere safe 
 		GExternalFilePath = FString(nativeExternalFilesPathString);
+
+		if (bUseExternalFilesDir)
+		{
+			GFilePathBase = GExternalFilePath;
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Path overridden to '%s'\n"), *GFilePathBase);
+		}
 
 		// then release...
 		jenv->ReleaseStringUTFChars(externalFilesPathString, nativeExternalFilesPathString);

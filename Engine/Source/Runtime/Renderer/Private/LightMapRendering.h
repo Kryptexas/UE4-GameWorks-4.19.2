@@ -157,27 +157,6 @@ struct TDistanceFieldShadowsAndLightMapPolicy : public TLightMapPolicy< Lightmap
 	}
 };
 
-class FDistanceFieldShadowsLightMapAndCSMLightingPolicy : public TDistanceFieldShadowsAndLightMapPolicy < LQ_LIGHTMAP >
-{
-	typedef TDistanceFieldShadowsAndLightMapPolicy < LQ_LIGHTMAP >	Super;
-
-public:
-	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
-	{
-		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
-		const bool bMobileEnableStaticAndCSMShadowReceivers = CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnAnyThread() == 1;
-		return bMobileEnableStaticAndCSMShadowReceivers && (Material->GetShadingModel() != MSM_Unlit) && Super::ShouldCache(Platform, Material, VertexFactoryType);
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
-		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_MOBILE_SHADOWCASCADES)), MAX_MOBILE_SHADOWCASCADES);
-
-		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
-	}
-};
-
 /**
  * Policy for 'fake' texture lightmaps, such as the LightMap density rendering mode
  */
@@ -464,12 +443,50 @@ struct FSimpleStationaryLightSingleSampleShadowsLightingPolicy : public FCachedP
 	}
 };
 
-/** Combines an unshadowed directional light with indirect lighting from a single SH sample. */
+/** Mobile Specific: Combines a distance field shadow with LQ lightmaps. */
+class FMobileDistanceFieldShadowsAndLQLightMapPolicy : public TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>
+{
+	typedef TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>	Super;
+public:
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		static auto* CVarMobileAllowDistanceFieldShadows = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowDistanceFieldShadows"));
+		const bool bMobileAllowDistanceFieldShadows = CVarMobileAllowDistanceFieldShadows->GetValueOnAnyThread() == 1;
+		return bMobileAllowDistanceFieldShadows && Super::ShouldCache(Platform, Material, VertexFactoryType);
+	}
+};
+
+/** Mobile Specific: Combines an distance field shadow with LQ lightmaps and CSM. */
+class FMobileDistanceFieldShadowsLightMapAndCSMLightingPolicy : public FMobileDistanceFieldShadowsAndLQLightMapPolicy
+{
+	typedef FMobileDistanceFieldShadowsAndLQLightMapPolicy Super;
+
+public:
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		static auto* CVarMobileEnableStaticAndCSMShadowReceivers = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.EnableStaticAndCSMShadowReceivers"));
+		const bool bMobileEnableStaticAndCSMShadowReceivers = CVarMobileEnableStaticAndCSMShadowReceivers->GetValueOnAnyThread() == 1;
+		return bMobileEnableStaticAndCSMShadowReceivers && (Material->GetShadingModel() != MSM_Unlit) && Super::ShouldCache(Platform, Material, VertexFactoryType);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_MOBILE_SHADOWCASCADES)), MAX_MOBILE_SHADOWCASCADES);
+
+		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+};
+
+/** Mobile Specific: Combines an unshadowed directional light with indirect lighting from a single SH sample. */
 struct FMobileDirectionalLightAndSHIndirectPolicy
 {
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return Material->GetShadingModel() != MSM_Unlit && FCachedPointIndirectLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		static auto* CVarAllowStaticLighting = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+		const bool bAllowStaticLighting = CVarAllowStaticLighting->GetValueOnAnyThread() != 0;
+
+		return bAllowStaticLighting && Material->GetShadingModel() != MSM_Unlit && FCachedPointIndirectLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -478,9 +495,17 @@ struct FMobileDirectionalLightAndSHIndirectPolicy
 	}
 };
 
-/** Combines a movable directional light with indirect lighting from a single SH sample. */
-struct FMobileDirectionalLightAndSHDirectionalIndirectPolicy : public FMobileDirectionalLightAndSHIndirectPolicy
+/** Mobile Specific: Combines a movable directional light with indirect lighting from a single SH sample. */
+struct FMobileMovableDirectionalLightAndSHIndirectPolicy : public FMobileDirectionalLightAndSHIndirectPolicy
 {
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		static auto* CVarMobileAllowMovableDirectionalLights = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowMovableDirectionalLights"));
+		const bool bMobileAllowMovableDirectionalLights = CVarMobileAllowMovableDirectionalLights->GetValueOnAnyThread() != 0;
+
+		return bMobileAllowMovableDirectionalLights && FMobileDirectionalLightAndSHIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+	}
+	
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT"), TEXT("1"));
@@ -489,19 +514,19 @@ struct FMobileDirectionalLightAndSHDirectionalIndirectPolicy : public FMobileDir
 	}
 };
 
-/** Combines a movable directional light with CSM with indirect lighting from a single SH sample. */
-struct FMobileDirectionalLightAndSHDirectionalCSMIndirectPolicy : public FMobileDirectionalLightAndSHDirectionalIndirectPolicy
+/** Mobile Specific: Combines a movable directional light with CSM with indirect lighting from a single SH sample. */
+struct FMobileMovableDirectionalLightCSMAndSHIndirectPolicy : public FMobileMovableDirectionalLightAndSHIndirectPolicy
 {
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
 		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_MOBILE_SHADOWCASCADES)), MAX_MOBILE_SHADOWCASCADES);
-		FMobileDirectionalLightAndSHDirectionalIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		FMobileMovableDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 };
 
-/** Combines an directional light with CSM with indirect lighting from a single SH sample. */
-class FMobileDirectionalLightAndSHCSMIndirectPolicy : public FMobileDirectionalLightAndSHIndirectPolicy
+/** Mobile Specific: Combines a directional light with CSM with indirect lighting from a single SH sample. */
+class FMobileDirectionalLightCSMAndSHIndirectPolicy : public FMobileDirectionalLightAndSHIndirectPolicy
 {
 public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -512,11 +537,15 @@ public:
 	}
 };
 
-struct FMovableDirectionalLightLightingPolicy
+/** Mobile Specific */
+struct FMobileMovableDirectionalLightLightingPolicy
 {
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return Material->GetShadingModel() != MSM_Unlit;
+		static auto* CVarMobileAllowMovableDirectionalLights = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowMovableDirectionalLights"));
+		const bool bMobileAllowMovableDirectionalLights = CVarMobileAllowMovableDirectionalLights->GetValueOnAnyThread() != 0;
+
+		return bMobileAllowMovableDirectionalLights && Material->GetShadingModel() != MSM_Unlit;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -525,23 +554,41 @@ struct FMovableDirectionalLightLightingPolicy
 	}
 };
 
-struct FMovableDirectionalLightCSMLightingPolicy
+/** Mobile Specific */
+struct FMobileMovableDirectionalLightCSMLightingPolicy
 {
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
-		return Material->GetShadingModel() != MSM_Unlit;
+		static auto* CVarMobileAllowMovableDirectionalLights = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowMovableDirectionalLights"));
+		const bool bMobileAllowMovableDirectionalLights = CVarMobileAllowMovableDirectionalLights->GetValueOnAnyThread() != 0;
+
+		return bMobileAllowMovableDirectionalLights && Material->GetShadingModel() != MSM_Unlit;
 	}	
 
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT(PREPROCESSOR_TO_STRING(MAX_MOBILE_SHADOWCASCADES)), MAX_MOBILE_SHADOWCASCADES);
+
+		FNoLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
 };
 
-struct FMovableDirectionalLightWithLightmapLightingPolicy : public TLightMapPolicy<LQ_LIGHTMAP>
+/** Mobile Specific */
+struct FMobileMovableDirectionalLightWithLightmapPolicy : public TLightMapPolicy<LQ_LIGHTMAP>
 {
 	typedef TLightMapPolicy<LQ_LIGHTMAP> Super;
 
 	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
 	{
-		return (Material->GetShadingModel() != MSM_Unlit) && Super::ShouldCache(Platform, Material, VertexFactoryType);
+		static auto* CVarMobileAllowMovableDirectionalLights = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Mobile.AllowMovableDirectionalLights"));
+		const bool bMobileAllowMovableDirectionalLights = CVarMobileAllowMovableDirectionalLights->GetValueOnAnyThread() != 0;
+
+		static auto* CVarAllowStaticLighting = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+		const bool bAllowStaticLighting = (!CVarAllowStaticLighting || CVarAllowStaticLighting->GetValueOnAnyThread() != 0);
+
+		return bAllowStaticLighting && bMobileAllowMovableDirectionalLights && (Material->GetShadingModel() != MSM_Unlit) && Super::ShouldCache(Platform, Material, VertexFactoryType);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -553,13 +600,14 @@ struct FMovableDirectionalLightWithLightmapLightingPolicy : public TLightMapPoli
 	}
 };
 
-struct FMovableDirectionalLightCSMWithLightmapLightingPolicy : public FMovableDirectionalLightWithLightmapLightingPolicy
+/** Mobile Specific */
+struct FMobileMovableDirectionalLightCSMWithLightmapPolicy : public FMobileMovableDirectionalLightWithLightmapPolicy
 {
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		OutEnvironment.SetDefine(TEXT("DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
 
-		FMovableDirectionalLightWithLightmapLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		FMobileMovableDirectionalLightWithLightmapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 	}
 };
 
@@ -577,16 +625,16 @@ enum ELightMapPolicyType
 	LMP_HQ_LIGHTMAP,
 	LMP_DISTANCE_FIELD_SHADOWS_AND_HQ_LIGHTMAP,
 	// Mobile specific
-	LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP,
-	LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM,
+	LMP_MOBILE_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP,
+	LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM,
 	LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT,
-	LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT,
-	LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT,
-	LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT,
-	LMP_MOVABLE_DIRECTIONAL_LIGHT,
-	LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM,
-	LMP_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP,
-	LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP,
+	LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT,
+	LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT,
+	LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT,
+	LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT,
+	LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM,
+	LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP,
+	LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP,
 	// LightMapDensity
 	LMP_DUMMY
 };
@@ -705,26 +753,26 @@ public:
 
 		// Mobile specific
 		
-		case LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
-			return TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ShouldCache(Platform, Material, VertexFactoryType);
-		case LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
-			return FDistanceFieldShadowsLightMapAndCSMLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_MOBILE_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
+			return FMobileDistanceFieldShadowsAndLQLightMapPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
+			return FMobileDistanceFieldShadowsLightMapAndCSMLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 		case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
 			return FMobileDirectionalLightAndSHIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
-		case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT:
-			return FMobileDirectionalLightAndSHDirectionalIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
-		case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
-			return FMobileDirectionalLightAndSHCSMIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
-		case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT:
-			return FMobileDirectionalLightAndSHDirectionalCSMIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
-		case LMP_MOVABLE_DIRECTIONAL_LIGHT:
-			return FMovableDirectionalLightLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
-		case LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM:
-			return FMovableDirectionalLightCSMLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
-		case LMP_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP:
-			return FMovableDirectionalLightWithLightmapLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
-		case LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP:
-			return FMovableDirectionalLightCSMWithLightmapLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
+			return FMobileMovableDirectionalLightAndSHIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT:
+			return FMobileDirectionalLightCSMAndSHIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT:
+			return FMobileMovableDirectionalLightCSMAndSHIndirectPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT:
+			return FMobileMovableDirectionalLightLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM:
+			return FMobileMovableDirectionalLightCSMLightingPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP:
+			return FMobileMovableDirectionalLightWithLightmapPolicy::ShouldCache(Platform, Material, VertexFactoryType);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP:
+			return FMobileMovableDirectionalLightCSMWithLightmapPolicy::ShouldCache(Platform, Material, VertexFactoryType);
 
 		// LightMapDensity
 	
@@ -779,35 +827,35 @@ public:
 			break;
 
 		// Mobile specific
-		case LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
-			TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		case LMP_MOBILE_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
+			FMobileDistanceFieldShadowsAndLQLightMapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
-		case LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
-			FDistanceFieldShadowsLightMapAndCSMLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		case LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
+			FMobileDistanceFieldShadowsLightMapAndCSMLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
 		case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
 			FMobileDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
-		case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT:
-			FMobileDirectionalLightAndSHDirectionalIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
+			FMobileMovableDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
-		case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
-			FMobileDirectionalLightAndSHCSMIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		case LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT:
+			FMobileDirectionalLightCSMAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
-		case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT:
-			FMobileDirectionalLightAndSHDirectionalCSMIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT:
+			FMobileMovableDirectionalLightCSMAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
-		case LMP_MOVABLE_DIRECTIONAL_LIGHT:
-			FMovableDirectionalLightLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT:
+			FMobileMovableDirectionalLightLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
-		case LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM:
-			FMovableDirectionalLightCSMLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM:
+			FMobileMovableDirectionalLightCSMLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
-		case LMP_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP:
-			FMovableDirectionalLightWithLightmapLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP:
+			FMobileMovableDirectionalLightWithLightmapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
-		case LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP:
-			FMovableDirectionalLightCSMWithLightmapLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		case LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP:
+			FMobileMovableDirectionalLightCSMWithLightmapPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 			break;
 
 		// LightMapDensity

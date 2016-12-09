@@ -1153,9 +1153,10 @@ void ALandscape::PostLoad()
 	else
 	{
 #if WITH_EDITOR
-		for (ALandscape* Landscape : TActorRange<ALandscape>(GetWorld()))
+		UWorld* CurrentWorld = GetWorld();
+		for (ALandscape* Landscape : TObjectRange<ALandscape>(RF_ClassDefaultObject | RF_BeginDestroyed))
 		{
-			if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
+			if (Landscape && Landscape != this && Landscape->LandscapeGuid == LandscapeGuid && Landscape->GetWorld() == CurrentWorld)
 			{
 				// Duplicated landscape level, need to generate new GUID
 				Modify();
@@ -1885,7 +1886,7 @@ void ULandscapeInfo::RegisterActor(ALandscapeProxy* Proxy, bool bMapCheck)
 	// register
 	if (ALandscape* Landscape = Cast<ALandscape>(Proxy))
 	{
-		check(!LandscapeActor || LandscapeActor == Landscape)
+		checkf(!LandscapeActor || LandscapeActor == Landscape, TEXT("Multiple landscapes with the same GUID detected: %s vs %s"), *LandscapeActor->GetPathName(), *Landscape->GetPathName());
 		LandscapeActor = Landscape;
 		// In world composition user is not allowed to move landscape in editor, only through WorldBrowser 
 		LandscapeActor->bLockLocation = (OwningWorld->WorldComposition != nullptr);

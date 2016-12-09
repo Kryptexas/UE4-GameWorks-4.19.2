@@ -178,22 +178,25 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 
 		if (bRequiresMosaic)
 		{
-			const int32 OldMaxWidth = MaxWidth;
-			const int32 OldMaxHeight = MaxHeight;
-
-			if (GAndroidIsPortrait)
-			{
-				MaxHeight = FPlatformMath::Min(MaxHeight, 1024);
-				MaxWidth = MaxHeight * AspectRatio;
-			}
-			else
-			{
-				MaxWidth = FPlatformMath::Min(MaxWidth, 1024);
-				MaxHeight = MaxWidth / AspectRatio;
-			}
-
 			UE_LOG(LogAndroid, Log, TEXT("Using mosaic rendering due to lack of Framebuffer Fetch support."));
-			UE_LOG(LogAndroid, Log, TEXT("Limiting MaxWidth=%d and MaxHeight=%d due to mosaic rendering (was %dx%d)"), MaxWidth, MaxHeight, OldMaxWidth, OldMaxHeight);
+			if (!FAndroidMisc::SupportsES30())
+			{
+				const int32 OldMaxWidth = MaxWidth;
+				const int32 OldMaxHeight = MaxHeight;
+
+				if (GAndroidIsPortrait)
+				{
+					MaxHeight = FPlatformMath::Min(MaxHeight, 1024);
+					MaxWidth = MaxHeight * AspectRatio;
+				}
+				else
+				{
+					MaxWidth = FPlatformMath::Min(MaxWidth, 1024);
+					MaxHeight = MaxWidth / AspectRatio;
+				}
+
+				UE_LOG(LogAndroid, Log, TEXT("Limiting MaxWidth=%d and MaxHeight=%d due to mosaic rendering on ES2 device (was %dx%d)"), MaxWidth, MaxHeight, OldMaxWidth, OldMaxHeight);
+			}
 		}
 	}
 

@@ -9,6 +9,7 @@
 #define OPENGL_SUPPORTS_SM5 1
 
 #include "AndroidEGL.h"
+#include "RenderingThread.h"
 
 #include <EGL/eglext.h>
 #include <EGL/eglplatform.h>

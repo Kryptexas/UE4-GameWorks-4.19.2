@@ -555,6 +555,7 @@ public:
 	TRefCountPtr<IPooledRenderTarget> QuadOverdrawBuffer;
 	// used by the CustomDepth material feature, is allocated on demand or if r.CustomDepth is 2
 	TRefCountPtr<IPooledRenderTarget> CustomDepth;
+	TRefCountPtr<IPooledRenderTarget> MobileCustomStencil;
 	// used by the CustomDepth material feature for stencil
 	TRefCountPtr<FRHIShaderResourceView> CustomStencilSRV;
 	// optional in case this RHI requires a color render target (adjust up if necessary)

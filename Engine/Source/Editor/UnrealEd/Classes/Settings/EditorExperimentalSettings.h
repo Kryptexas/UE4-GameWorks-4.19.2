@@ -101,10 +101,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools)
 	bool bLiveStreamingFromEditor;
 
-	/** Enables Metal/High-end mobile rendering path preview on Desktop */
-	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Enable Metal/Vulkan/High-end mobile Preview Rendering Level in editor"))
-	bool bFeatureLevelES31Preview;
-
 	/** Enable late joining in PIE */
 	UPROPERTY(EditAnywhere, config, Category = PIE, meta = (DisplayName = "Allow late joining"))
 	bool bAllowLateJoinInPIE;

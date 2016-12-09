@@ -158,6 +158,10 @@ void AndroidEGL::DestroySurface()
 		eglDestroySurface( PImplData->eglDisplay, PImplData->auxSurface);
 		PImplData->auxSurface = EGL_NO_SURFACE;
 	}
+
+	PImplData->RenderingContext.eglSurface = EGL_NO_SURFACE;
+	PImplData->SingleThreadedContext.eglSurface = EGL_NO_SURFACE;
+	PImplData->SharedContext.eglSurface = EGL_NO_SURFACE;
 }
 
 void AndroidEGL::TerminateEGL()

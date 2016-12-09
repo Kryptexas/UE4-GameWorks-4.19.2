@@ -1639,8 +1639,37 @@ static void MakeES2PreviewPlatformOverrideMenu(FMenuBuilder& MenuBuilder)
 	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "ES2PreviewPlatformOverrideHeading", "Preview Platform"));
 	{
 		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_DefaultES2);
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_AndroidES2);
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_IOSES2);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_AndroidGLES2);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_IOSGLES2);
+	}
+	MenuBuilder.EndSection();
+}
+
+static void MakeES31PreviewPlatformOverrideMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "ES31PreviewPlatformOverrideHeading", "Preview Platform"));
+	{
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_DefaultES31);
+
+		bool bAndroidBuildForES31 = false;
+		bool bAndroidSupportsVulkan = false;
+		bool bIOSSupportsMetal = false;
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bBuildForES31"), bAndroidBuildForES31, GEngineIni);
+		GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bSupportsVulkan"), bAndroidSupportsVulkan, GEngineIni);
+		GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetal"), bIOSSupportsMetal, GEngineIni);
+
+		if(bAndroidBuildForES31)
+		{
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_AndroidGLES31);
+		}
+		if(bAndroidSupportsVulkan)
+		{
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_AndroidVulkanES31);
+		}
+		if(bIOSSupportsMetal)
+		{
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewPlatformOverride_IOSMetalES31);
+		}
 	}
 	MenuBuilder.EndSection();
 }
@@ -1662,16 +1691,22 @@ static void MakeShaderModelPreviewMenu(FMenuBuilder& MenuBuilder)
 	{
 		for (int32 i = GMaxRHIFeatureLevel; i >= 0; --i)
 		{
-			if (i == ERHIFeatureLevel::ES2)
+			switch (i)
 			{
-				MenuBuilder.AddSubMenu(
-					FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetLabel(),
-					FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetDescription(),
-					FNewMenuDelegate::CreateStatic(&MakeES2PreviewPlatformOverrideMenu));
-			}
-			else if (i != ERHIFeatureLevel::ES3_1 || GetDefault<UEditorExperimentalSettings>()->bFeatureLevelES31Preview)
-			{
-				MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FeatureLevelPreview[i]);
+				case ERHIFeatureLevel::ES2:
+					MenuBuilder.AddSubMenu(
+						FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetLabel(),
+						FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetDescription(),
+						FNewMenuDelegate::CreateStatic(&MakeES2PreviewPlatformOverrideMenu));
+					break;
+				case ERHIFeatureLevel::ES3_1:
+					MenuBuilder.AddSubMenu(
+						FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetLabel(),
+						FLevelEditorCommands::Get().FeatureLevelPreview[i]->GetDescription(),
+						FNewMenuDelegate::CreateStatic(&MakeES31PreviewPlatformOverrideMenu));
+					break;
+				default:
+					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FeatureLevelPreview[i]);
 			}
 		}
 	}

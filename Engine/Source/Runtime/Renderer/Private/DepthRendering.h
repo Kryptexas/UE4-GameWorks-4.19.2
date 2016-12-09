@@ -59,7 +59,8 @@ public:
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
 		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
-		ERHIFeatureLevel::Type InFeatureLevel
+		ERHIFeatureLevel::Type InFeatureLevel,
+		float MobileColorValue
 		);
 
 	// FMeshDrawingPolicy interface.
@@ -72,7 +73,8 @@ public:
 		 	DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
 			DRAWING_POLICY_MATCH(bNeedsPixelShader == Other.bNeedsPixelShader) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
-			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader);
+			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
+			DRAWING_POLICY_MATCH(MobileColorValue == Other.MobileColorValue);
 		DRAWING_POLICY_MATCH_END
 	}
 
@@ -109,6 +111,7 @@ private:
 	FShaderPipeline* ShaderPipeline;
 	TDepthOnlyVS<false>* VertexShader;
 	FDepthOnlyPS* PixelShader;
+	float MobileColorValue;
 };
 
 /**
@@ -186,12 +189,14 @@ public:
 	struct ContextType
 	{
 		EDepthDrawingMode DepthDrawingMode;
+		float MobileColorValue;
 
 		/** Uses of FDepthDrawingPolicyFactory that are not the depth pre-pass will not want the bUseAsOccluder flag to interfere. */
 		bool bRespectUseAsOccluderFlag;
 
 		ContextType(EDepthDrawingMode InDepthDrawingMode, bool bInRespectUseAsOccluderFlag) :
 			DepthDrawingMode(InDepthDrawingMode),
+			MobileColorValue(0.0f),
 			bRespectUseAsOccluderFlag(bInRespectUseAsOccluderFlag)
 		{}
 	};

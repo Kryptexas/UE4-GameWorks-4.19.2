@@ -104,6 +104,10 @@ UITextFieldDelegate>
 
 -(void) ParseCommandLineOverrides;
 
+-(int)GetAudioVolume;
+-(bool)AreHeadphonesPluggedIn;
+-(int)GetBatteryLevel;
+
 /** TRUE if the device is playing background music and we want to allow that */
 @property (assign) bool bUsingBackgroundMusic;
 

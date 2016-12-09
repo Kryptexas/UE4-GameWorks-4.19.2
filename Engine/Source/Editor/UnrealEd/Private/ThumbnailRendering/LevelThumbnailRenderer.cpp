@@ -25,6 +25,7 @@ void ULevelThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Wid
 
 		ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
 		ViewFamily.EngineShowFlags.MotionBlur = 0;
+		ViewFamily.EngineShowFlags.SetDistanceCulledPrimitives(true); // show distance culled objects
 		ViewFamily.EngineShowFlags.SetPostProcessing(false);
 
 		GetView(Level, &ViewFamily, X, Y, Width, Height);

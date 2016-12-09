@@ -463,7 +463,7 @@ GLint CompileCurrentShader(const GLuint Resource, const FAnsiCharArray& GlslCode
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
 	}
 #endif
-#if (PLATFORM_HTML5 || PLATFORM_ANDROID) && !UE_BUILD_SHIPPING
+#if (PLATFORM_HTML5 || PLATFORM_ANDROID || PLATFORM_IOS) && !UE_BUILD_SHIPPING
 	if (!FOpenGL::IsCheckingShaderCompilerHacks())
 	{
 		glGetShaderiv(Resource, GL_COMPILE_STATUS, &CompileStatus);
@@ -705,6 +705,11 @@ void OPENGLDRV_API GLSLToDeviceCompatibleGLSL(FAnsiCharArray& GlslCodeOriginal, 
 	{
 		AppendCString(GlslCode, "#version 330\n");
 		ReplaceCString(GlslCodeOriginal, "#version 150", "");
+	}
+	else if (Capabilities.TargetPlatform == EOpenGLShaderTargetPlatform::OGLSTP_iOS)
+	{
+		AppendCString(GlslCode, "#version 100\n");
+		ReplaceCString(GlslCodeOriginal, "#version 100", "");
 	}
 
 	if (bEmitMobileMultiView)

@@ -170,7 +170,7 @@ class FPostProcessSelectionOutlinePS : public FGlobalShader
 			}
 		}
 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
+		return IsPCPlatform(Platform);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
 #include "AndroidRuntimeSettings.generated.h"
 
 UENUM()
@@ -142,6 +143,18 @@ namespace EGoogleVRMode
 	};
 }
 
+UENUM()
+namespace EAndroidGraphicsDebugger
+{
+	enum Type
+	{
+		None = 0 UMETA(DisplayName = "None"),
+		Mali = 1 UMETA(DisplayName = "Mali Graphics Debugger", ToolTip = "Configure for Mali Graphics Debugger."),
+		Adreno = 2 UMETA(DisplayName = "Adreno Profiler", ToolTip = "Configure for Adreno Profiler.")
+	};
+}
+
+
 /**
  * Implements the settings for the Android runtime platform.
  */
@@ -190,6 +203,10 @@ public:
 	// Disable the verification of an OBB file when it is downloaded or on first start when in a distribution build. 
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Disable verify OBB on first start/update."))
 	bool bDisableVerifyOBBOnStartUp;
+
+	// If checked, UE4Game files will be placed in ExternalFilesDir which is removed on uninstall. Only used for Distribution packages.
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Use ExternalFilesDir for UE4Game files?"))
+	bool bUseExternalFilesDir;
 
 	// The permitted orientation of the application on the device
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging)
@@ -342,7 +359,15 @@ public:
 	/** Android Audio encoding options */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DataCooker, meta = (DisplayName = "Audio encoding"))
 	TEnumAsByte<EAndroidAudio::Type> AndroidAudio;
-	
+
+	// Several Android graphics debuggers require configuration changes to be made to your application in order to operate. Choosing an option from this menu will configure your project to work with that graphics debugger. 
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GraphicsDebugger)
+	TEnumAsByte<EAndroidGraphicsDebugger::Type> AndroidGraphicsDebugger;
+
+	/** The path to your Mali Graphics Debugger installation (eg C:/Program Files/ARM/Mali Developer Tools/Mali Graphics Debugger v4.2.0) */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GraphicsDebugger)
+	FDirectoryPath MaliGraphicsDebuggerPath;
+
 	/** Include ETC1 textures when packaging with the Android (Multi) variant. ETC1 will be included if no other formats are selected. */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = MultiTextureFormats, meta = (DisplayName = "Include ETC1 textures"))
 	bool bMultiTargetFormat_ETC1;

@@ -25,8 +25,8 @@ public:
 	bool HasPlatformQualitySettings(EShaderPlatform ShaderPlatform, EMaterialQualityLevel::Type QualityLevel);
 
 #if WITH_EDITOR
-	// Override GetForwardShadingQuality() return value with the specified platform's settings.
-	// An empty PlatformName or otherwise non existant platform will cause GetForwardShadingQuality() 
+	// Override GetShaderPlatformQualitySettings() return value with the specified platform's settings.
+	// An empty PlatformName or otherwise non existent platform will cause GetShaderPlatformQualitySettings() 
 	// to revert to its default behaviour.
 	void SetPreviewPlatform(FName PlatformName);
 	const FName& GetPreviewPlatform();

@@ -351,6 +351,21 @@ bool FIOSPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 	return true;
 }
 
+int FIOSPlatformMisc::GetAudioVolume()
+{
+	return [[IOSAppDelegate GetDelegate] GetAudioVolume];
+}
+
+bool FIOSPlatformMisc::AreHeadphonesPluggedIn()
+{
+	return [[IOSAppDelegate GetDelegate] AreHeadphonesPluggedIn];
+}
+
+int FIOSPlatformMisc::GetBatteryLevel()
+{
+	return [[IOSAppDelegate GetDelegate] GetBatteryLevel];
+}
+
 int32 FIOSPlatformMisc::NumberOfCores()
 {
 	// cache the number of cores

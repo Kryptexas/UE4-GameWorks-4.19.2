@@ -848,12 +848,18 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::SetSharedState(F
 		bIsTwoSided = true;
 	}
 
+	// Invert culling order when mobile HDR == false.
+	auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
+	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+	check(MobileHDRCvar);
+	const bool bPlatformReversesCulling = (RHINeedsToSwitchVerticalAxis(ShaderPlatform) && MobileHDRCvar->GetValueOnAnyThread() == 0);
+
 	// Set the rasterizer state only once per draw list bucket, instead of once per mesh in SetMeshRenderState as an optimization
 	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
 		FM_Solid,
 		bIsTwoSided ? CM_None :
 			// Have to flip culling when doing one pass point light shadows for some reason
-			(XOR(View->bReverseCulling, XOR(bReverseCulling, bOnePassPointLightShadow)) ? CM_CCW : CM_CW)
+			(XOR(bPlatformReversesCulling, XOR(View->bReverseCulling, XOR(bReverseCulling, bOnePassPointLightShadow))) ? CM_CCW : CM_CW)
 		));
 }
 

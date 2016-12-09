@@ -126,6 +126,12 @@ static TAutoConsoleVariable<int32> CVarMaxShadowCascades(
 	ECVF_Scalability | ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarMaxMobileShadowCascades(
+	TEXT("r.Shadow.CSM.MaxMobileCascades"),
+	2,
+	TEXT("The maximum number of cascades with which to render dynamic directional light shadows when using the mobile renderer."),
+	ECVF_Scalability | ECVF_RenderThreadSafe
+);
 
 static TAutoConsoleVariable<int32> CVarForwardShading(
 	TEXT("r.ForwardShading"),
@@ -430,7 +436,8 @@ void FViewInfo::Init()
 		TranslucencyLightingVolumeSize[CascadeIndex] = FVector(0);
 	}
 
-	const int32 MaxShadowCascadeCountUpperBound = GetFeatureLevel() >= ERHIFeatureLevel::SM4 ? 10 : MAX_MOBILE_SHADOWCASCADES;
+	const int32 MaxMobileShadowCascadeCount = FMath::Clamp(CVarMaxMobileShadowCascades.GetValueOnAnyThread(), 1, MAX_MOBILE_SHADOWCASCADES);
+	const int32 MaxShadowCascadeCountUpperBound = GetFeatureLevel() >= ERHIFeatureLevel::SM4 ? 10 : MaxMobileShadowCascadeCount;
 
 	MaxShadowCascades = FMath::Clamp<int32>(CVarMaxShadowCascades.GetValueOnAnyThread(), 1, MaxShadowCascadeCountUpperBound);
 

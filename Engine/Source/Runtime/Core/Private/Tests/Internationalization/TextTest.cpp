@@ -906,68 +906,68 @@ bool FTextFormatArgModifierTest::RunTest(const FString& Parameters)
 	}
 
 	{
-		const FText Consonant = FText::FromString(TEXT("\uC0AC\uB78C")/*사람*/);
-		const FText ConsonantRieul = FText::FromString(TEXT("\uC11C\uC6B8")/*서울*/);
-		const FText Vowel = FText::FromString(TEXT("\uC0AC\uC790")/*사자*/);
+		const FText Consonant = FText::FromString(TEXT("\uC0AC\uB78C")/* 사람 */);
+		const FText ConsonantRieul = FText::FromString(TEXT("\uC11C\uC6B8")/* 서울 */);
+		const FText Vowel = FText::FromString(TEXT("\uC0AC\uC790")/* 사자 */);
 
 		{
-			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC740,\uB294)"));/*은/는*/
+			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC740,\uB294)"));/* 은/는 */
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Consonant).ToString(), TEXT("\uC0AC\uB78C\uC740"), TEXT("HppResultConsonant"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), ConsonantRieul).ToString(), TEXT("\uC11C\uC6B8\uC740"), TEXT("HppResultConsonantRieul"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Vowel).ToString(), TEXT("\uC0AC\uC790\uB294"), TEXT("HppResultVowel"), HppFormatText.GetSourceText().ToString());
 		}
 
 		{
-			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC774,\uAC00)"));/*이/가*/
+			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC774,\uAC00)"));/* 이/가 */
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Consonant).ToString(), TEXT("\uC0AC\uB78C\uC774"), TEXT("HppResultConsonant"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), ConsonantRieul).ToString(), TEXT("\uC11C\uC6B8\uC774"), TEXT("HppResultConsonantRieul"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Vowel).ToString(), TEXT("\uC0AC\uC790\uAC00"), TEXT("HppResultVowel"), HppFormatText.GetSourceText().ToString());
 		}
 
 		{
-			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC744,\uB97C)"));/*을/를*/
+			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC744,\uB97C)"));/* 을/를 */
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Consonant).ToString(), TEXT("\uC0AC\uB78C\uC744"), TEXT("HppResultConsonant"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), ConsonantRieul).ToString(), TEXT("\uC11C\uC6B8\uC744"), TEXT("HppResultConsonantRieul"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Vowel).ToString(), TEXT("\uC0AC\uC790\uB97C"), TEXT("HppResultVowel"), HppFormatText.GetSourceText().ToString());
 		}
 
 		{
-			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uACFC,\uC640)"));/*과/와*/
+			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uACFC,\uC640)"));/* 과/와 */
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Consonant).ToString(), TEXT("\uC0AC\uB78C\uACFC"), TEXT("HppResultConsonant"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), ConsonantRieul).ToString(), TEXT("\uC11C\uC6B8\uACFC"), TEXT("HppResultConsonantRieul"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Vowel).ToString(), TEXT("\uC0AC\uC790\uC640"), TEXT("HppResultVowel"), HppFormatText.GetSourceText().ToString());
 		}
 
 		{
-			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC544,\uC57C)"));/*아/야*/
+			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC544,\uC57C)"));/* 아/야 */
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Consonant).ToString(), TEXT("\uC0AC\uB78C\uC544"), TEXT("HppResultConsonant"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), ConsonantRieul).ToString(), TEXT("\uC11C\uC6B8\uC544"), TEXT("HppResultConsonantRieul"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Vowel).ToString(), TEXT("\uC0AC\uC790\uC57C"), TEXT("HppResultVowel"), HppFormatText.GetSourceText().ToString());
 		}
 
 		{
-			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC774\uC5B4,\uC5EC)"));/*이어/여*/
+			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC774\uC5B4,\uC5EC)"));/* 이어/여 */
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Consonant).ToString(), TEXT("\uC0AC\uB78C\uC774\uC5B4"), TEXT("HppResultConsonant"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), ConsonantRieul).ToString(), TEXT("\uC11C\uC6B8\uC774\uC5B4"), TEXT("HppResultConsonantRieul"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Vowel).ToString(), TEXT("\uC0AC\uC790\uC5EC"), TEXT("HppResultVowel"), HppFormatText.GetSourceText().ToString());
 		}
 
 		{
-			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC774\uC5D0,\uC608)"));/*이에/예*/
+			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC774\uC5D0,\uC608)"));/* 이에/예 */
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Consonant).ToString(), TEXT("\uC0AC\uB78C\uC774\uC5D0"), TEXT("HppResultConsonant"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), ConsonantRieul).ToString(), TEXT("\uC11C\uC6B8\uC774\uC5D0"), TEXT("HppResultConsonantRieul"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Vowel).ToString(), TEXT("\uC0AC\uC790\uC608"), TEXT("HppResultVowel"), HppFormatText.GetSourceText().ToString());
 		}
 
 		{
-			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC774\uC5C8,​\uC600)"));/*이었/​였*/
+			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC774\uC5C8,​\uC600)"));/* 이었/​였 */
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Consonant).ToString(), TEXT("\uC0AC\uB78C\uC774\uC5C8"), TEXT("HppResultConsonant"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), ConsonantRieul).ToString(), TEXT("\uC11C\uC6B8\uC774\uC5C8"), TEXT("HppResultConsonantRieul"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Vowel).ToString(), TEXT("\uC0AC\uC790​\uC600"), TEXT("HppResultVowel"), HppFormatText.GetSourceText().ToString());
 		}
 
 		{
-			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC73C\uB85C,\uB85C)"));/*으로/로*/
+			const FTextFormat HppFormatText = FText::FromString(TEXT("{Arg}|hpp(\uC73C\uB85C,\uB85C)"));/* 으로/로 */
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Consonant).ToString(), TEXT("\uC0AC\uB78C\uC73C\uB85C"), TEXT("HppResultConsonant"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), ConsonantRieul).ToString(), TEXT("\uC11C\uC6B8\uB85C"), TEXT("HppResultConsonantRieul"), HppFormatText.GetSourceText().ToString());
 			EnsureValidResult(FText::FormatNamed(HppFormatText, TEXT("Arg"), Vowel).ToString(), TEXT("\uC0AC\uC790\uB85C"), TEXT("HppResultVowel"), HppFormatText.GetSourceText().ToString());

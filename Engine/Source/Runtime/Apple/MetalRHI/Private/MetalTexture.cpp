@@ -647,6 +647,61 @@ FMetalSurface::FMetalSurface(FMetalSurface& Source, NSRange const MipRange, EPix
 	FMemory::Memzero(LockedMemory, sizeof(LockedMemory));
 }
 
+static MTLPixelFormat ToSRGBFormat(MTLPixelFormat LinMTLFormat)
+{
+	MTLPixelFormat MTLFormat = LinMTLFormat;
+
+	switch (LinMTLFormat)
+	{
+		case MTLPixelFormatRGBA8Unorm:
+			MTLFormat = MTLPixelFormatRGBA8Unorm_sRGB;
+			break;
+		case MTLPixelFormatBGRA8Unorm:
+			MTLFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+			break;
+#if PLATFORM_MAC
+		case MTLPixelFormatBC1_RGBA:
+			MTLFormat = MTLPixelFormatBC1_RGBA_sRGB;
+			break;
+		case MTLPixelFormatBC2_RGBA:
+			MTLFormat = MTLPixelFormatBC2_RGBA_sRGB;
+			break;
+		case MTLPixelFormatBC3_RGBA:
+			MTLFormat = MTLPixelFormatBC3_RGBA_sRGB;
+			break;
+#endif //PLATFORM_MAC
+#if PLATFORM_IOS
+		case MTLPixelFormatR8Unorm: 
+			MTLFormat = MTLPixelFormatR8Unorm_sRGB; 
+			break;
+		case MTLPixelFormatPVRTC_RGBA_2BPP:
+			MTLFormat = MTLPixelFormatPVRTC_RGBA_2BPP_sRGB;
+			break;
+		case MTLPixelFormatPVRTC_RGBA_4BPP:
+			MTLFormat = MTLPixelFormatPVRTC_RGBA_4BPP_sRGB;
+			break;
+		case MTLPixelFormatASTC_4x4_LDR:
+			MTLFormat = MTLPixelFormatASTC_4x4_sRGB;
+			break;
+		case MTLPixelFormatASTC_6x6_LDR:
+			MTLFormat = MTLPixelFormatASTC_6x6_sRGB;
+			break;
+		case MTLPixelFormatASTC_8x8_LDR:
+			MTLFormat = MTLPixelFormatASTC_8x8_sRGB;
+			break;
+		case MTLPixelFormatASTC_10x10_LDR:
+			MTLFormat = MTLPixelFormatASTC_10x10_sRGB;
+			break;
+		case MTLPixelFormatASTC_12x12_LDR:
+			MTLFormat = MTLPixelFormatASTC_12x12_sRGB;
+			break;
+#endif //PLATFORM_IOS	
+		default:
+			break;
+	}
+
+	return MTLFormat;
+}
 
 FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format, uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 NumSamples, bool bArray, uint32 ArraySize, uint32 NumMips, uint32 InFlags, FResourceBulkDataInterface* BulkData)
 	: Type(ResourceType)
@@ -686,42 +741,26 @@ FMetalSurface::FMetalSurface(ERHIResourceType ResourceType, EPixelFormat Format,
 	}
 	
 	MTLPixelFormat MTLFormat = (MTLPixelFormat)GPixelFormats[Format].PlatformFormat;
-#if PLATFORM_MAC
+	
 	if (Flags & TexCreate_SRGB)
 	{
-		switch (MTLFormat)
+#if PLATFORM_MAC 
+		// For now R8 sRGB expansion is 2D only, log other usage for later.
+		if (MTLFormat == MTLPixelFormatR8Unorm)
 		{
-			case MTLPixelFormatBC1_RGBA:
-				MTLFormat = MTLPixelFormatBC1_RGBA_sRGB;
-				break;
-			case MTLPixelFormatBC2_RGBA:
-				MTLFormat = MTLPixelFormatBC2_RGBA_sRGB;
-				break;
-			case MTLPixelFormatBC3_RGBA:
-				MTLFormat = MTLPixelFormatBC3_RGBA_sRGB;
-				break;
-			case MTLPixelFormatRGBA8Unorm:
-				MTLFormat = MTLPixelFormatRGBA8Unorm_sRGB;
-				break;
-			case MTLPixelFormatBGRA8Unorm:
-				MTLFormat = MTLPixelFormatBGRA8Unorm_sRGB;
-				break;
-			case MTLPixelFormatR8Unorm:
-				// For now R8 sRGB expansion is 2D only, log other usage for later.
-				if(Type == RRT_Texture2D)
-				{
-					MTLFormat = MTLPixelFormatRGBA8Unorm_sRGB;
-				}
-				else
-				{
-					UE_LOG(LogMetal, Error, TEXT("Attempting to use unsupported MTLPixelFormatR8Unorm_sRGB on Mac with texture type: %d, no format expansion will be provided so rendering errors may occur."), Type);
-				}
-				break;
-			default:
-				break;
+			if (Type == RRT_Texture2D)
+			{
+				MTLFormat = MTLPixelFormatRGBA8Unorm;
+			}
+			else
+			{
+				UE_LOG(LogMetal, Error, TEXT("Attempting to use unsupported MTLPixelFormatR8Unorm_sRGB on Mac with texture type: %d, no format expansion will be provided so rendering errors may occur."), Type);
+			}
 		}
-	}
 #endif
+		MTLFormat = ToSRGBFormat(MTLFormat);
+	}
+
 	uint8* Key = PixelFormatKeyMap.Find(MTLFormat);
 	if (Key == NULL)
 	{

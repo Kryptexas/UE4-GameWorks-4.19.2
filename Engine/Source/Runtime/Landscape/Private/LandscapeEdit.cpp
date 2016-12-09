@@ -289,7 +289,7 @@ void ULandscapeComponent::UpdateMaterialInstances_Internal(FMaterialUpdateContex
 		if (bTessellationEnabled)
 		{
 			ULandscapeMaterialInstanceConstant*& TessellationMaterialInstance = (ULandscapeMaterialInstanceConstant*&)MaterialInstances[1];
-			if (!TessellationMaterialInstance)
+			if (TessellationMaterialInstance == nullptr || GetOutermost() != TessellationMaterialInstance->GetOutermost())
 			{
 				TessellationMaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
 			}

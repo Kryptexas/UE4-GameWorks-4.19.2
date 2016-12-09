@@ -138,6 +138,10 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static void ResetGamepadAssignmentToController(int32 ControllerId);
 	static bool IsControllerAssignedToGamepad(int32 ControllerId);
 
+	static int GetAudioVolume();
+	static bool AreHeadphonesPluggedIn();
+	static int GetBatteryLevel();
+
 	static void RegisterForRemoteNotifications();
 
 	static class IPlatformChunkInstall* GetPlatformChunkInstall();

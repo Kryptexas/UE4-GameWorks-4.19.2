@@ -8,6 +8,8 @@ public class VulkanRHI : ModuleRules
 {
 	public VulkanRHI(TargetInfo Target)
 	{
+		bOutputPubliclyDistributable = true;
+
 		PrivateIncludePaths.Add("Runtime/Vulkan/Private");
 
 		PrivateDependencyModuleNames.AddRange(

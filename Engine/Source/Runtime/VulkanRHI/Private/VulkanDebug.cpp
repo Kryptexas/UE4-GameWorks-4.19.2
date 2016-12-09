@@ -946,8 +946,8 @@ namespace VulkanRHI
 	{
 		if (CVarVulkanDumpLayer.GetValueOnAnyThread())
 		{
-			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateImageView(Info=%p, OutImageView=%p)"), CreateInfo, ImageView));
-			DebugLog += FString::Printf(TEXT("%sVkImageViewCreateInfo: Flags=%d, Image=%p, ViewType=%s, Format=%s, Components=%s\n"), Tabs, CreateInfo->flags, CreateInfo->image, 
+			DevicePrintfBegin(Device, FString::Printf(TEXT("vkCreateImageView(Info=%p, OutImageView=%llu)"), CreateInfo, (uint64)ImageView));
+			DebugLog += FString::Printf(TEXT("%sVkImageViewCreateInfo: Flags=%d, Image=%llu, ViewType=%s, Format=%s, Components=%s\n"), Tabs, CreateInfo->flags, (uint64)CreateInfo->image, 
 				*GetImageViewTypeString(CreateInfo->viewType), *GetVkFormatString(CreateInfo->format), *GetComponentMappingString(CreateInfo->components));
 			DebugLog += FString::Printf(TEXT("%s\tSubresourceRange=(%s)"), Tabs, *GetImageSubResourceRangeString(CreateInfo->subresourceRange));
 		}
@@ -1146,16 +1146,16 @@ namespace VulkanRHI
 			DevicePrintfBegin(Device, FString::Printf(TEXT("vkUpdateDescriptorSets(NumWrites=%d, Writes=%p, NumCopies=%d, Copies=%p)[...]"), DescriptorWriteCount, DescriptorWrites, DescriptorCopyCount, DescriptorCopies));
 			for (uint32 Index = 0; Index < DescriptorWriteCount; ++Index)
 			{
-				DebugLog += FString::Printf(TEXT("%sWrite[%d]: Set=%p Binding=%d DstArrayElem=%d NumDesc=%d DescType=%s "), Tabs, Index, 
-					DescriptorWrites[Index].dstSet, DescriptorWrites[Index].dstBinding, DescriptorWrites[Index].dstArrayElement, DescriptorWrites[Index].descriptorCount, *GetDescriptorTypeString(DescriptorWrites[Index].descriptorType));
+				DebugLog += FString::Printf(TEXT("%sWrite[%d]: Set=%llu Binding=%d DstArrayElem=%d NumDesc=%d DescType=%s "), Tabs, Index, 
+					(uint64)DescriptorWrites[Index].dstSet, DescriptorWrites[Index].dstBinding, DescriptorWrites[Index].dstArrayElement, DescriptorWrites[Index].descriptorCount, *GetDescriptorTypeString(DescriptorWrites[Index].descriptorType));
 
 				if (DescriptorWrites[Index].pImageInfo)
 				{
 					DebugLog += FString::Printf(TEXT("pImageInfo=%p\n"), DescriptorWrites[Index].pImageInfo);
 					for (uint32 SubIndex = 0; SubIndex < DescriptorWrites[Index].descriptorCount; ++SubIndex)
 					{
-						DebugLog += FString::Printf(TEXT("%s\tpImageInfo[%d]: Sampler=%p, ImageView=%p, imageLayout=%s"), Tabs, SubIndex,
-							DescriptorWrites[Index].pImageInfo->sampler, DescriptorWrites[Index].pImageInfo->imageView, *GetImageLayoutString(DescriptorWrites[Index].pImageInfo->imageLayout));
+						DebugLog += FString::Printf(TEXT("%s\tpImageInfo[%d]: Sampler=%llu, ImageView=%llu, imageLayout=%s"), Tabs, SubIndex,
+							(uint64)DescriptorWrites[Index].pImageInfo->sampler, (uint64)DescriptorWrites[Index].pImageInfo->imageView, *GetImageLayoutString(DescriptorWrites[Index].pImageInfo->imageLayout));
 					}
 				}
 
@@ -1426,8 +1426,9 @@ namespace VulkanRHI
 					}					
 				};
 			CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdBeginRenderPass(BeginInfo=%p, Contents=%s)"), RenderPassBegin, *GetSubpassContents(Contents)));
-			DebugLog += FString::Printf(TEXT("%sBeginInfo: RenderPass=%p, Framebuffer=%p, renderArea=(x:%d, y:%d, %s), clearValues=%d\n"),
-				Tabs, RenderPassBegin->renderPass, RenderPassBegin->framebuffer, 
+
+			DebugLog += FString::Printf(TEXT("%sBeginInfo: RenderPass=%llu, Framebuffer=%llu, renderArea=(x:%d, y:%d, %s), clearValues=%d\n"),
+				Tabs, (uint64)RenderPassBegin->renderPass, (uint64)RenderPassBegin->framebuffer,
 				RenderPassBegin->renderArea.offset.x, RenderPassBegin->renderArea.offset.y, 
 				*GetExtentString(RenderPassBegin->renderArea.extent),
 				RenderPassBegin->clearValueCount);

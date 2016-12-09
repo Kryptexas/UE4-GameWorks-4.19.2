@@ -646,6 +646,11 @@ bool FAndroidMisc::SupportsShaderFramebufferFetch()
 	return FAndroidGPUInfo::Get().bSupportsFrameBufferFetch;
 }
 
+bool FAndroidMisc::SupportsES30()
+{
+	return FAndroidGPUInfo::Get().bES30Support;
+}
+
 bool FAndroidMisc::SupportsShaderIOBlocks()
 {
 	return FAndroidGPUInfo::Get().bSupportsShaderIOBlocks;

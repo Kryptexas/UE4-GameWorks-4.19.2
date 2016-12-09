@@ -405,7 +405,7 @@ FTextFormatArgumentModifier_HangulPostPositions::FTextFormatArgumentModifier_Han
 	, SuffixMode(ESuffixMode::ConsonantOrVowel)
 {
 	// We shouldn't treat Rieul as a consonant when using (eu)ro)
-	if (ConsonantSuffix.StringLen == 2 && VowelSuffix.StringLen == 1 && FCString::Strncmp(ConsonantSuffix.StringPtr, TEXT("\uC73C\uB85C")/*으로*/, 2) == 0 && FCString::Strncmp(VowelSuffix.StringPtr, TEXT("\uB85C")/*로*/, 1) == 0)
+	if (ConsonantSuffix.StringLen == 2 && VowelSuffix.StringLen == 1 && FCString::Strncmp(ConsonantSuffix.StringPtr, TEXT("\uC73C\uB85C")/* 으로 */, 2) == 0 && FCString::Strncmp(VowelSuffix.StringPtr, TEXT("\uB85C")/* 로 */, 1) == 0)
 	{
 		SuffixMode = ESuffixMode::ConsonantNotRieulOrVowel;
 	}

@@ -356,6 +356,40 @@ void InstallSignalHandlers()
 	return Session.otherAudioPlaying;
 }
 
+- (int)GetAudioVolume
+{
+	float vol = [[AVAudioSession sharedInstance] outputVolume];
+	int roundedVol = (int)((vol * 100.0f) + 0.5f);
+	return roundedVol;
+}
+
+- (bool)AreHeadphonesPluggedIn
+{
+	AVAudioSessionRouteDescription *route = [[AVAudioSession sharedInstance] currentRoute];
+
+	bool headphonesFound = false;
+	for (AVAudioSessionPortDescription *portDescription in route.outputs)
+	{
+		//compare to the iOS constant for headphones
+		if ([portDescription.portType isEqualToString : AVAudioSessionPortHeadphones])
+		{
+			headphonesFound = true;
+			break;
+		}
+	}
+	return headphonesFound;
+}
+
+- (int)GetBatteryLevel
+{
+	UIDevice *myDevice = [UIDevice currentDevice];
+
+	//must enable battery monitoring in order to get a valid value here
+	[myDevice setBatteryMonitoringEnabled : YES];
+	//battery level is from 0.0 to 1.0, get it in terms of 0-100
+	return ((int)([myDevice batteryLevel] * 100));
+}
+
 /**
  * @return the single app delegate object
  */

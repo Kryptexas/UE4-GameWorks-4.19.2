@@ -12,8 +12,9 @@ public class AndroidRuntimeSettings : ModuleRules
 			new string[]
 			{
 				"Core",
-				"CoreUObject"
-			}
+				"CoreUObject",
+                "Engine",
+            }
 		);
 
         if (Target.Type == TargetRules.TargetType.Editor || Target.Type == TargetRules.TargetType.Program)

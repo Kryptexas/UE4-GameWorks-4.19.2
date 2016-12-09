@@ -130,6 +130,8 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	{
 		LODParentComponentId = LODParent->ComponentId;
 	}
+
+	FMemory::Memzero(CachedReflectionCaptureProxies);
 }
 
 FPrimitiveSceneInfo::~FPrimitiveSceneInfo()

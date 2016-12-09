@@ -2690,6 +2690,11 @@ protected:
 
 		case WPT_ExcludeAllShaderOffsets:
 			{
+				if (FeatureLevel < ERHIFeatureLevel::ES3_1)
+				{
+					Errorf(TEXT("World position excluding shader offsets is not available on ES2"));
+					return INDEX_NONE;
+				}
 				bNeedsWorldPositionExcludingShaderOffsets = true;
 				FunctionNamePattern = TEXT("Get<PREV>WorldPosition<NO_MATERIAL_OFFSETS>");
 				break;
@@ -2703,6 +2708,11 @@ protected:
 
 		case WPT_CameraRelativeNoOffsets:
 			{
+				if (FeatureLevel < ERHIFeatureLevel::ES3_1)
+				{
+					Errorf(TEXT("World position excluding shader offsets is not available on ES2"));
+					return INDEX_NONE;
+				}
 				bNeedsWorldPositionExcludingShaderOffsets = true;
 				FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition<NO_MATERIAL_OFFSETS>");
 				break;
@@ -3191,7 +3201,8 @@ protected:
 	{
 		const bool bSupportedOnMobile = InSceneTextureId == PPI_PostProcessInput0 ||
 										InSceneTextureId == PPI_CustomDepth ||
-										InSceneTextureId == PPI_SceneDepth;
+										InSceneTextureId == PPI_SceneDepth ||
+										InSceneTextureId == PPI_CustomStencil;
 
 		if (!bSupportedOnMobile	&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{

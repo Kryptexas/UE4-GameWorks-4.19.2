@@ -300,6 +300,12 @@ namespace UnrealBuildTool
 			bool bRemoteNotificationsSupported = false;
 			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport", out bRemoteNotificationsSupported);
 
+			// Get any Location Services permission descriptions added 
+			string LocationAlwaysUsageDescription = "";
+			string LocationWhenInUseDescription = "";
+			Ini.GetString("/Script/LocationServicesIOSEditor.LocationServicesIOSSettings", "LocationAlwaysUsageDescription", out LocationAlwaysUsageDescription);
+			Ini.GetString("/Script/LocationServicesIOSEditor.LocationServicesIOSSettings", "LocationWhenInUseDescription", out LocationWhenInUseDescription);
+
 			// extra plist data
 			string ExtraData = "";
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalPlistData", out ExtraData);
@@ -493,6 +499,11 @@ namespace UnrealBuildTool
 			// disable exempt encryption
 			Text.AppendLine("\t<key>ITSAppUsesNonExemptEncryption</key>");
 			Text.AppendLine("\t<false/>");
+			// add location services descriptions if used
+			Text.AppendLine ("\t<key>NSLocationAlwaysUsageDescription</key>");
+			Text.AppendLine (string.Format("\t<string>{0}</string>", LocationAlwaysUsageDescription));
+			Text.AppendLine ("\t<key>NSLocationWhenInUseUsageDescription</key>");
+			Text.AppendLine (string.Format("\t<string>{0}></string>", LocationWhenInUseDescription));
 			
 			// disable HTTPS requirement
             if (bDisableHTTPS)

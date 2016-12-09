@@ -205,6 +205,7 @@ FSceneRenderTargets::FSceneRenderTargets(const FViewInfo& View, const FSceneRend
 	, ScreenSpaceAO(GRenderTargetPool.MakeSnapshot(SnapshotSource.ScreenSpaceAO))
 	, QuadOverdrawBuffer(GRenderTargetPool.MakeSnapshot(SnapshotSource.QuadOverdrawBuffer))
 	, CustomDepth(GRenderTargetPool.MakeSnapshot(SnapshotSource.CustomDepth))
+	, MobileCustomStencil(GRenderTargetPool.MakeSnapshot(SnapshotSource.MobileCustomStencil))
 	, CustomStencilSRV(SnapshotSource.CustomStencilSRV)
 	, SkySHIrradianceMap(GRenderTargetPool.MakeSnapshot(SnapshotSource.SkySHIrradianceMap))
 	, MobileMultiViewSceneColor(GRenderTargetPool.MakeSnapshot(SnapshotSource.MobileMultiViewSceneColor))
@@ -1029,12 +1030,23 @@ bool FSceneRenderTargets::BeginRenderingCustomDepth(FRHICommandListImmediate& RH
 	if(CustomDepthRenderTarget)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingCustomDepth);
-		
-		FRHIDepthRenderTargetView DepthView(CustomDepthRenderTarget->GetRenderTargetItem().ShaderResourceTexture);
-		FRHISetRenderTargetsInfo Info(0, nullptr, DepthView);
-		Info.bClearStencil = IsCustomDepthPassWritingStencil();
-		check(DepthView.Texture->GetStencilClearValue() == 0);
 
+		const bool bWritesCustomStencilValues = IsCustomDepthPassWritingStencil();
+		const bool bRequiresStencilColorTarget = (bWritesCustomStencilValues && CurrentFeatureLevel <= ERHIFeatureLevel::ES3_1);
+
+		int32 NumColorTargets = 0;
+		FRHIRenderTargetView ColorView = {};
+		if (bRequiresStencilColorTarget)
+		{
+			checkSlow(MobileCustomStencil.IsValid());
+			ColorView =	FRHIRenderTargetView(MobileCustomStencil->GetRenderTargetItem().ShaderResourceTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+			NumColorTargets = 1;
+		}
+
+		FRHIDepthRenderTargetView DepthView(CustomDepthRenderTarget->GetRenderTargetItem().ShaderResourceTexture);
+		FRHISetRenderTargetsInfo Info(NumColorTargets, &ColorView, DepthView);
+		Info.bClearStencil = bWritesCustomStencilValues;
+		check(DepthView.Texture->GetStencilClearValue() == 0);
 		RHICmdList.SetRenderTargetsAndClear(Info);
 
 		return true;
@@ -1048,6 +1060,11 @@ void FSceneRenderTargets::FinishRenderingCustomDepth(FRHICommandListImmediate& R
 	SCOPED_DRAW_EVENT(RHICmdList, FinishRenderingCustomDepth);
 
 	RHICmdList.CopyToResolveTarget(CustomDepth->GetRenderTargetItem().TargetableTexture, CustomDepth->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
+	
+	if (CurrentFeatureLevel <= ERHIFeatureLevel::ES3_1 && IsCustomDepthPassWritingStencil() && MobileCustomStencil.IsValid())
+	{
+		RHICmdList.CopyToResolveTarget(MobileCustomStencil->GetRenderTargetItem().TargetableTexture, MobileCustomStencil->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
+	}
 
 	bCustomDepthIsValid = true;
 }
@@ -1890,6 +1907,7 @@ void FSceneRenderTargets::ReleaseAllTargets()
 	LightAccumulation.SafeRelease();
 	DirectionalOcclusion.SafeRelease();
 	CustomDepth.SafeRelease();
+	MobileCustomStencil.SafeRelease();
 	CustomStencilSRV.SafeRelease();
 
 	for (int32 i = 0; i < ARRAY_COUNT(OptionalShadowDepthColor); i++)
@@ -2046,15 +2064,37 @@ IPooledRenderTarget* FSceneRenderTargets::GetGBufferVelocityRT()
 IPooledRenderTarget* FSceneRenderTargets::RequestCustomDepth(FRHICommandListImmediate& RHICmdList, bool bPrimitives)
 {
 	int Value = CVarCustomDepth.GetValueOnRenderThread();
+	const bool bCustomDepthPassWritingStencil = IsCustomDepthPassWritingStencil();
+	const bool bMobilePath = (CurrentFeatureLevel <= ERHIFeatureLevel::ES3_1);
 
-	if((Value == 1  && bPrimitives) || Value == 2 || IsCustomDepthPassWritingStencil())
+	if ((Value == 1 && bPrimitives) || Value == 2 || bCustomDepthPassWritingStencil)
 	{
-		if (!CustomStencilSRV.GetReference() || !CustomDepth.GetReference() || BufferSize != CustomDepth->GetDesc().Extent)
+		bool bHasValidCustomDepth = (CustomDepth.IsValid() && BufferSize == CustomDepth->GetDesc().Extent);
+		bool bHasValidCustomStencil;
+		if (bMobilePath)
+		{
+			bHasValidCustomStencil = (MobileCustomStencil.IsValid() && BufferSize == MobileCustomStencil->GetDesc().Extent);
+		}
+		else
+		{
+			bHasValidCustomStencil = CustomStencilSRV.IsValid();
+		}
+						
+		if (!(bHasValidCustomDepth && bHasValidCustomStencil))
 		{
 			// Todo: Could check if writes stencil here and create min viable target
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CustomDepth, TEXT("CustomDepth"));
-			CustomStencilSRV = RHICreateShaderResourceView((FTexture2DRHIRef&)CustomDepth->GetRenderTargetItem().TargetableTexture, 0, 1, PF_X24_G8);
+			
+			if (bMobilePath)
+			{
+				FPooledRenderTargetDesc MobileCustomStencilDesc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_B8G8R8A8, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
+				GRenderTargetPool.FindFreeElement(RHICmdList, MobileCustomStencilDesc, MobileCustomStencil, TEXT("MobileCustomStencil"));
+			}
+			else
+			{
+				CustomStencilSRV = RHICreateShaderResourceView((FTexture2DRHIRef&)CustomDepth->GetRenderTargetItem().TargetableTexture, 0, 1, PF_X24_G8);
+			}
 		}
 		return CustomDepth;
 	}
@@ -2166,6 +2206,9 @@ void FSceneTextureShaderParameters::Bind(const FShaderParameterMap& ParameterMap
 	SceneDepthSurfaceParameter.Bind(ParameterMap,TEXT("SceneDepthSurface"));
 	DirectionalOcclusionSampler.Bind(ParameterMap, TEXT("DirectionalOcclusionSampler"));
 	DirectionalOcclusionTexture.Bind(ParameterMap, TEXT("DirectionalOcclusionTexture"));
+	//
+	MobileCustomStencilTexture.Bind(ParameterMap, TEXT("MobileCustomStencilTexture"));
+	MobileCustomStencilTextureSampler.Bind(ParameterMap, TEXT("MobileCustomStencilTextureSampler"));
 }
 
 template< typename ShaderRHIParamRef, typename TRHICmdList >
@@ -2285,6 +2328,21 @@ void FSceneTextureShaderParameters::Set(
 				}
 			}
 		}
+
+		if (FeatureLevel <= ERHIFeatureLevel::ES3_1)
+		{
+			if (MobileCustomStencilTexture.IsBound() && SceneContext.MobileCustomStencil.IsValid())
+			{
+				SetTextureParameter(
+					RHICmdList, 
+					ShaderRHI,
+					MobileCustomStencilTexture,
+					MobileCustomStencilTextureSampler,
+					TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+					SceneContext.MobileCustomStencil->GetRenderTargetItem().ShaderResourceTexture
+					);
+			}
+		}
 	}
 	else if (TextureMode == ESceneRenderTargetsMode::DontSet)
 	{
@@ -2371,6 +2429,8 @@ FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& Parameters)
 	Ar << Parameters.SceneDepthTextureNonMS;
 	Ar << Parameters.DirectionalOcclusionSampler;
 	Ar << Parameters.DirectionalOcclusionTexture;
+	Ar << Parameters.MobileCustomStencilTexture;
+	Ar << Parameters.MobileCustomStencilTextureSampler;
 	return Ar;
 }
 

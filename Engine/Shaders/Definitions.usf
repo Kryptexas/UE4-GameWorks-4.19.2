@@ -82,6 +82,10 @@
 #define COMPILER_GLSL_ES3_1								0
 #endif
 
+#ifndef COMPILER_GLSL_ES3_1_EXT
+#define COMPILER_GLSL_ES3_1_EXT							0
+#endif
+
 #ifndef COMPILER_METAL
 #define COMPILER_METAL									0
 #endif

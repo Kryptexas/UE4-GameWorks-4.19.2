@@ -1378,19 +1378,6 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		// This becomes even more important with some limited VRam (XBoxOne).
 		SceneContext.SetSceneColor(0);
 	}
-
-	if (ViewFamily.Scene && ViewFamily.Scene->GetShadingPath() == EShadingPath::Mobile)
-	{
-		// Double buffer tonemapper output for temporal AA.
-		if(View.AntiAliasingMethod == AAM_TemporalAA)
-		{
-			FSceneViewState* ViewState = (FSceneViewState*)View.State;
-			if(ViewState) 
-			{
-				ViewState->MobileAaColor0 = PassOutputs[0].PooledRenderTarget;
-			}
-		}
-	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -1747,9 +1734,11 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
-
+		// clear target when processing first view in case of splitscreen
+		const bool bFirstView = (&View == View.Family->Views[0]);
+		
 		// Full clear to avoid restore
-		if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
+		if ((View.StereoPass == eSSP_FULL && bFirstView) || View.StereoPass == eSSP_LEFT_EYE)
 		{
 			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
 		}
@@ -1762,7 +1751,10 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	switch(ConfigIndexMobile)
+	const int32 ConfigOverride = CVarTonemapperOverride->GetInt();
+	const uint32 FinalConfigIndex = ConfigOverride == -1 ? ConfigIndexMobile : (int32)ConfigOverride;
+
+	switch(FinalConfigIndex)
 	{
 		using namespace PostProcessTonemap_ES2Util;
 		case 0:	SetShaderTemplES2<0>(Context, bUsedFramebufferFetch); break;
@@ -1823,16 +1815,6 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
-
-	// Double buffer tonemapper output for temporal AA.
-	if(Context.View.AntiAliasingMethod == AAM_TemporalAA)
-	{
-		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
-		if(ViewState) 
-		{
-			ViewState->MobileAaColor0 = PassOutputs[0].PooledRenderTarget;
-		}
-	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOutputId InPassOutputId) const

@@ -26,6 +26,7 @@ public:
 	bool bSupportsFloatingPointRenderTargets;
 	bool bSupportsFrameBufferFetch;
 	bool bSupportsShaderIOBlocks;
+	bool bES30Support;
 	TArray<FString> TargetPlatformNames;
 
 private:
@@ -63,7 +64,7 @@ private:
 
 		GLVersion = (const ANSICHAR*)glGetString(GL_VERSION);
 
-		const bool bES30Support = GLVersion.Contains(TEXT("OpenGL ES 3."));
+		bES30Support = GLVersion.Contains(TEXT("OpenGL ES 3."));
 
 #if PLATFORM_ANDROIDESDEFERRED
 		TargetPlatformNames.Add(TEXT("Android_ESDEFERRED"));

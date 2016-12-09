@@ -61,6 +61,9 @@ private:
 	FShaderResourceParameter SceneDepthTextureNonMS;
 	FShaderResourceParameter DirectionalOcclusionSampler;
 	FShaderResourceParameter DirectionalOcclusionTexture;
+
+	FShaderResourceParameter MobileCustomStencilTexture;
+	FShaderResourceParameter MobileCustomStencilTextureSampler;
 };
 
 /** Pixel shader parameters needed for deferred passes. */

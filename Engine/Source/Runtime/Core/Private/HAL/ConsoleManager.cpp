@@ -1796,6 +1796,25 @@ static TAutoConsoleVariable<int32> CVarMobileEnableStaticAndCSMShadowReceivers(
 	TEXT("1: Primitives can receive both CSM and static shadowing from stationary lights. (default)"),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarAllReceiveDynamicCSM(
+	TEXT("r.AllReceiveDynamicCSM"),
+	1,
+	TEXT("Which primitives should receive dynamic-only CSM shadows. 0: Only primitives marked bReceiveCSMFromDynamicObjects. 1: All primitives (default)"));
+
+static TAutoConsoleVariable<int32> CVarMobileAllowDistanceFieldShadows(
+	TEXT("r.Mobile.AllowDistanceFieldShadows"),
+	1,
+	TEXT("0: Do not generate shader permutations to render distance field shadows from stationary directional lights.\n")
+	TEXT("1: Generate shader permutations to render distance field shadows from stationary directional lights. (default)"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarMobileAllowMovableDirectionalLights(
+	TEXT("r.Mobile.AllowMovableDirectionalLights"),
+	1,
+	TEXT("0: Do not generate shader permutations to render movable directional lights.\n")
+	TEXT("1: Generate shader permutations to render movable directional lights. (default)"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarMobileHDR32bppMode(
 	TEXT("r.MobileHDR32bppMode"),
 	0,

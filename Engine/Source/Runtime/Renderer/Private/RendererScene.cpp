@@ -684,6 +684,10 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		return;
 	}
 
+	// Create the primitive scene info.
+	FPrimitiveSceneInfo* PrimitiveSceneInfo = new FPrimitiveSceneInfo(Primitive, this);
+	PrimitiveSceneProxy->PrimitiveSceneInfo = PrimitiveSceneInfo;
+
 	// Cache the primitive's initial transform.
 	FMatrix RenderMatrix = Primitive->GetRenderMatrix();
 	FVector AttachmentRootPosition(0);
@@ -727,10 +731,6 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		// Create any RenderThreadResources required.
 		SceneProxy->CreateRenderThreadResources();
 	});
-
-	// Create the primitive scene info.
-	FPrimitiveSceneInfo* PrimitiveSceneInfo = new FPrimitiveSceneInfo(Primitive,this);
-	PrimitiveSceneProxy->PrimitiveSceneInfo = PrimitiveSceneInfo;
 
 	INC_DWORD_STAT_BY( STAT_GameToRendererMallocTotal, PrimitiveSceneProxy->GetMemoryFootprint() + PrimitiveSceneInfo->GetMemoryFootprint() );
 

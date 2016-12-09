@@ -32,7 +32,7 @@ public class ConsoleCmdReceiver extends BroadcastReceiver {
 	@Override
     public void onReceive(Context context, Intent intent) {
 			// example usage
-			// adb shell am broadcast -a android.intent.action.RUN -e cmd "stat fps"
+			// adb shell "am broadcast -a android.intent.action.RUN -e cmd 'stat fps'"
 			String action = intent.getAction();
 			if (action != null && action == Intent.ACTION_RUN) {
 				String cmd = intent.getStringExtra("cmd");

@@ -96,6 +96,13 @@ namespace OpenGLConsoleVariables
 		bRebindTextureBuffers,
 		TEXT("If true, rebind GL_TEXTURE_BUFFER's to their GL_TEXTURE name whenever the buffer is modified.")
 		);
+
+	int32 bUseBufferDiscard = 1;
+	static FAutoConsoleVariableRef CVarUseBufferDiscard(
+		TEXT("OpenGL.UseBufferDiscard"),
+		bUseBufferDiscard,
+		TEXT("If true, use dynamic buffer orphaning hint.")
+		);
 	
 	static TAutoConsoleVariable<int32> CVarUseSeparateShaderObjects(
 		TEXT("OpenGL.UseSeparateShaderObjects"),
@@ -2337,6 +2344,21 @@ void FOpenGLDynamicRHI::OnVertexBufferDeletion( GLuint VertexBufferResource )
 		if( RenderingContextState.VertexAttrs[AttribIndex].Buffer == VertexBufferResource )
 		{
 			RenderingContextState.VertexAttrs[AttribIndex].Pointer = FOpenGLCachedAttr_Invalid;	// that'll enforce state update on next cache test
+		}
+	}
+
+	for (GLuint StreamIndex = 0; StreamIndex < NUM_OPENGL_VERTEX_STREAMS; StreamIndex++)
+	{
+		if (SharedContextState.VertexStreams[StreamIndex].VertexBuffer != nullptr && SharedContextState.VertexStreams[StreamIndex].VertexBuffer->Resource == VertexBufferResource)
+		{
+			FOpenGL::BindVertexBuffer(StreamIndex, 0, 0, 0); // brianh@nvidia: work around driver bug 1809000
+			SharedContextState.VertexStreams[StreamIndex].VertexBuffer = nullptr;
+		}
+
+		if (RenderingContextState.VertexStreams[StreamIndex].VertexBuffer != nullptr && RenderingContextState.VertexStreams[StreamIndex].VertexBuffer->Resource == VertexBufferResource)
+		{
+			FOpenGL::BindVertexBuffer(StreamIndex, 0, 0, 0); // brianh@nvidia: work around driver bug 1809000
+			RenderingContextState.VertexStreams[StreamIndex].VertexBuffer = nullptr;
 		}
 	}
 }

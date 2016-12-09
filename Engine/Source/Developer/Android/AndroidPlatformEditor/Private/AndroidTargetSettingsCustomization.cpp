@@ -80,6 +80,7 @@ void FAndroidTargetSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder&
 	BuildIconSection(DetailLayout);
 	BuildLaunchImageSection(DetailLayout);
 	BuildDaydreamAppTileImageSection(DetailLayout);
+	BuildGraphicsDebuggerSection(DetailLayout);
 }
 
 static void OnBrowserLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
@@ -501,6 +502,146 @@ void FAndroidTargetSettingsCustomization::OnAppIDModified()
 		Updater.ReplaceKey(AppIDTag, ClosingTag, NewIDString);
 
 		Updater.Finalize(GameGooglePlayAppIDPath);
+	}
+}
+
+static EVisibility GraphicsDebuggerSettingsVisibility(EAndroidGraphicsDebugger::Type DebuggerType, TSharedPtr<IPropertyHandle> AndroidGraphicsDebuggerProperty)
+{
+	uint8 ValueAsByte = 0;
+	FPropertyAccess::Result Result = AndroidGraphicsDebuggerProperty->GetValue(ValueAsByte);
+	if (Result == FPropertyAccess::Success && ValueAsByte == static_cast<uint8>(DebuggerType))
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Hidden;
+}
+
+static FText GetMaliGraphicsDebuggerHelpText()
+{
+	const static FText InstallText(LOCTEXT("MGDInstallText", "Run the following command from a host command line from the target/android-non-root directory located in the installation directory of the MGD tool, to install the MGD Daemon application on your device."));
+	const static FString InstallCommand(TEXT("adb install -r MGDDaemon.apk"));
+	const static FText RunText1(LOCTEXT("MGDIRunText1", "Run the following command from your host to establish a tunnel between your PC and the MGD Daemon. This needs to be done each time you connect your device by USB."));
+	const static FString RunCommand(TEXT("adb forward tcp:5002 tcp:5002"));
+	const static FText RunText2(LOCTEXT("MGDIRunText2", "Next, ensure you are running the daemon. Run the MGD Daemon application and switch it to the \"ON\" state"));
+	const static FText AddInfoText(LOCTEXT("MGDAddInfo", "Applications configured for the Mali Graphics Debugger may crash when launched on non-Mali based devices."));
+	
+	FFormatOrderedArguments Args;
+	Args.Add(InstallText);
+	Args.Add(FText::FromString(InstallCommand));
+	Args.Add(RunText1);
+	Args.Add(FText::FromString(RunCommand));
+	Args.Add(RunText2);
+	Args.Add(AddInfoText);
+
+	return FText::Format(LOCTEXT("MaliGraphicsDebuggerHelpText","<RichTextBlock.TextHighlight>Installation</>\n{0}\n{1}\n\n<RichTextBlock.TextHighlight>Run</>\n{2}\n{3}\n{4}\n\n<RichTextBlock.TextHighlight>Note</>\n{5}"), 
+		Args);
+}
+
+static FText GetAdrenoProfilerHelpText()
+{
+	const static FText RunText(LOCTEXT("AdrenoRunText", "Before profiling, and after rebooting your Android device, you must enable debug mode by setting the following property from the command line:"));
+	const static FString RunCommand(TEXT("adb shell setprop debug.egl.profiler 1"));
+		
+	FFormatOrderedArguments Args;
+	Args.Add(RunText);
+	Args.Add(FText::FromString(RunCommand));
+
+	return FText::Format(LOCTEXT("AdrenoHelpText","{0}\n{1}"), Args);
+}
+
+void FAndroidTargetSettingsCustomization::BuildGraphicsDebuggerSection(IDetailLayoutBuilder& DetailLayout)
+{
+	IDetailCategoryBuilder& GraphicsDebuggerCategory = DetailLayout.EditCategory(TEXT("GraphicsDebugger"));
+
+	TSharedPtr<IPropertyHandle> AndroidGraphicsDebuggerProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, AndroidGraphicsDebugger));
+	GraphicsDebuggerCategory.AddProperty(AndroidGraphicsDebuggerProperty);
+
+	// Mali Graphics Debugger settings
+	{
+		TAttribute<EVisibility> MaliSettingsVisibility(
+			TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(GraphicsDebuggerSettingsVisibility, EAndroidGraphicsDebugger::Mali, AndroidGraphicsDebuggerProperty))
+		);
+		
+		TSharedPtr<IPropertyHandle> MaliGraphicsDebuggerPathProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, MaliGraphicsDebuggerPath));
+		DetailLayout.HideProperty(MaliGraphicsDebuggerPathProperty);
+		GraphicsDebuggerCategory.AddProperty(MaliGraphicsDebuggerPathProperty).Visibility(MaliSettingsVisibility);
+
+		FText MGDHelpText = GetMaliGraphicsDebuggerHelpText();
+
+		GraphicsDebuggerCategory.AddCustomRow(LOCTEXT("MaliGraphicsDebuggerInfo", "Mali Graphics Debugger Info"), false)
+		.Visibility(MaliSettingsVisibility)
+		.WholeRowWidget
+		[
+			SNew(SBorder)
+			.Padding(1)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.Padding(FMargin(10, 10, 10, 10))
+				.AutoHeight()
+				[
+					SNew(SRichTextBlock)
+					.Text(MGDHelpText)
+					.TextStyle(FEditorStyle::Get(), "MessageLog")
+					.DecoratorStyleSet(&FEditorStyle::Get())
+					.AutoWrapText(true)
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FMargin(10, 10, 10, 10))
+				[	
+					SNew(SBox)
+					.HAlign(HAlign_Left)
+					[
+						SNew(SHyperlinkLaunchURL, TEXT("http://malideveloper.arm.com/resources/tools/mali-graphics-debugger/"))
+						.Text(LOCTEXT("MaliGraphicsDebuggerPage", "Mali Graphics Debugger home page"))
+						.ToolTipText(LOCTEXT("MaliGraphicsDebuggerPageTooltip", "Opens the Mali Graphics Debugger home page on ARM's website"))
+					]
+				]
+			]
+		];
+	}
+	// Adreno Profiler settings
+	{
+		TAttribute<EVisibility> AdrenoSettingsVisibility(
+			TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(GraphicsDebuggerSettingsVisibility, EAndroidGraphicsDebugger::Adreno, AndroidGraphicsDebuggerProperty))
+		);
+
+		FText AdrenoHelpText = GetAdrenoProfilerHelpText();
+		
+		GraphicsDebuggerCategory.AddCustomRow(LOCTEXT("AdrenoProfilerInfo", "Adreno Profiler Info"), false)
+		.Visibility(AdrenoSettingsVisibility)
+		.WholeRowWidget
+		[
+			SNew(SBorder)
+			.Padding(1)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.Padding(FMargin(10, 10, 10, 10))
+				.AutoHeight()
+				[
+					SNew(SRichTextBlock)
+					.Text(AdrenoHelpText)
+					.TextStyle(FEditorStyle::Get(), "MessageLog")
+					.DecoratorStyleSet(&FEditorStyle::Get())
+					.AutoWrapText(true)
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FMargin(10, 10, 10, 10))
+				[	
+					SNew(SBox)
+					.HAlign(HAlign_Left)
+					[
+						SNew(SHyperlinkLaunchURL, TEXT("https://developer.qualcomm.com/software/adreno-gpu-profiler"))
+						.Text(LOCTEXT("AdrenoProfilerPage", "Adreno Profiler home page"))
+						.ToolTipText(LOCTEXT("AdrenoProfilerPageTooltip", "Opens the Adreno Profiler home page on the Qualcomm website"))
+					]
+				]
+			]
+		];
 	}
 }
 

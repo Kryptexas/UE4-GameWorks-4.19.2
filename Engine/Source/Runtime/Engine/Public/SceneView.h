@@ -446,7 +446,7 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-static const int MAX_MOBILE_SHADOWCASCADES = 2;
+static const int MAX_MOBILE_SHADOWCASCADES = 4;
 
 /** The uniform shader parameters for a mobile directional light and its shadow.
   * One uniform buffer will be created for the first directional light in each lighting channel.

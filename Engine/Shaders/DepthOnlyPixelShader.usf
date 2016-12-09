@@ -12,6 +12,11 @@
 bool bApplyDepthOffset;
 #endif
 
+#if (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
+// used to write custom stencil values to color target
+float MobileColorValue;
+#endif
+
 void Main(
 #if !MATERIALBLENDING_SOLID || OUTPUT_PIXEL_DEPTH_OFFSET
 	FVertexFactoryInterpolantsVSToPS FactoryInterpolants,
@@ -51,5 +56,9 @@ void Main(
 	#endif
 #endif
 
+#if (FEATURE_LEVEL <= FEATURE_LEVEL_ES3_1)
+	OutColor = MobileColorValue;
+#else
 	OutColor = 0;
+#endif
 }

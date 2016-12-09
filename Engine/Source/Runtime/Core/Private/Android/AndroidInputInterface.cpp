@@ -773,6 +773,10 @@ void FAndroidInputInterface::SendControllerEvents()
 						CurrentDevice.bRightStickZRZ = false;
 						CurrentDevice.bRightStickRXRY = true;
 					}
+					else if (CurrentDevice.DeviceInfo.Name.StartsWith(TEXT("Mad Catz C.T.R.L.R")))
+					{
+						CurrentDevice.bSupportsHat = true;
+					}
 
 					FCoreDelegates::OnControllerConnectionChange.Broadcast(true, -1, DeviceIndex);
 

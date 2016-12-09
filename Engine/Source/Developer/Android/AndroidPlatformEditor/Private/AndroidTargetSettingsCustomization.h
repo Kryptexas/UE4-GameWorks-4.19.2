@@ -29,6 +29,7 @@ private:
 	void BuildIconSection(IDetailLayoutBuilder& DetailLayout);
 	void BuildLaunchImageSection(IDetailLayoutBuilder& DetailLayout);
 	void BuildDaydreamAppTileImageSection(IDetailLayoutBuilder& DetailLayout);
+	void BuildGraphicsDebuggerSection(IDetailLayoutBuilder& DetailLayout);
 
 	// Navigates to the build files in the explorer or finder
 	FReply OpenBuildFolder();

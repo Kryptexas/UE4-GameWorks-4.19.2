@@ -1699,19 +1699,40 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 
 	ActionList.MapAction(
 		Commands.PreviewPlatformOverride_DefaultES2,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, FName()),
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, FName(), ERHIFeatureLevel::ES2),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, FName()));
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, FName(), ERHIFeatureLevel::ES2));
 	ActionList.MapAction(
-		Commands.PreviewPlatformOverride_AndroidES2,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_ANDROID)),
+		Commands.PreviewPlatformOverride_AndroidGLES2,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_ANDROID), ERHIFeatureLevel::ES2),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_ANDROID)));
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_ANDROID), ERHIFeatureLevel::ES2));
 	ActionList.MapAction(
-		Commands.PreviewPlatformOverride_IOSES2,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_IOS)),
+		Commands.PreviewPlatformOverride_IOSGLES2,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_IOS), ERHIFeatureLevel::ES2),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked,LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_IOS)));
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked,LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES2_IOS), ERHIFeatureLevel::ES2));
+
+	ActionList.MapAction(
+		Commands.PreviewPlatformOverride_DefaultES31,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, FName(), ERHIFeatureLevel::ES3_1),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, FName(), ERHIFeatureLevel::ES3_1));
+	ActionList.MapAction(
+		Commands.PreviewPlatformOverride_AndroidGLES31,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES3_1_ANDROID), ERHIFeatureLevel::ES3_1),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_OPENGL_ES3_1_ANDROID), ERHIFeatureLevel::ES3_1));
+	ActionList.MapAction(
+		Commands.PreviewPlatformOverride_AndroidVulkanES31,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_VULKAN_ES3_1_ANDROID), ERHIFeatureLevel::ES3_1),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_VULKAN_ES3_1_ANDROID), ERHIFeatureLevel::ES3_1));
+	ActionList.MapAction(
+		Commands.PreviewPlatformOverride_IOSMetalES31,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetPreviewPlatform, LegacyShaderPlatformToShaderFormat(SP_METAL), ERHIFeatureLevel::ES3_1),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsPreviewPlatformChecked, LegacyShaderPlatformToShaderFormat(SP_METAL), ERHIFeatureLevel::ES3_1));
 
 	ActionList.MapAction(
 		Commands.OpenMergeActor,

@@ -36,7 +36,14 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 				FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
 				if (bWriteCustomStencilValues)
 				{
-					DrawRenderStateLocal.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), PrimitiveSceneProxy->GetCustomDepthStencilValue());
+					const uint32 CustomDepthStencilValue = PrimitiveSceneProxy->GetCustomDepthStencilValue();
+					DrawRenderStateLocal.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), CustomDepthStencilValue);
+
+					if (View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1)
+					{
+						// On mobile platforms write custom stencil value to color target
+						Context.MobileColorValue = CustomDepthStencilValue/255.0f;
+					}
 				}
 
 				// Note: As for custom depth rendering the order doesn't matter we actually could iterate View.DynamicMeshElements without this indirection	

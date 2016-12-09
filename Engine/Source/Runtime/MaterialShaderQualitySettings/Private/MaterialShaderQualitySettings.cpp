@@ -94,8 +94,8 @@ const UShaderPlatformQualitySettings* UMaterialShaderQualitySettings::GetShaderP
 	// TODO: discuss this, in order to preview render quality settings we override the 
 	// requested platform's settings.
 	// However we do not know if we are asking for the editor preview window (override able) or for thumbnails, cooking purposes etc.. (Must not override)
-	// The code below 'works' because desktop platforms do not cook for ES2 preview.
-	if (IsPCPlatform(ShaderPlatform) && IsES2Platform(ShaderPlatform))
+	// The code below 'works' because desktop platforms do not cook for ES2/ES31 preview.
+	if (IsPCPlatform(ShaderPlatform) && GetMaxSupportedFeatureLevel(ShaderPlatform) <= ERHIFeatureLevel::ES3_1)
 	{
 		// Can check this cant be cooked by iterating through target platforms and shader formats to ensure it's not covered.
 		if (PreviewPlatformSettings != nullptr)

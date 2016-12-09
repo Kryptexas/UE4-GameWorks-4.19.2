@@ -207,24 +207,29 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		// Compile for materials that are masked.
-		return (!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected() || Material->IsTranslucencyWritingCustomDepth());
+		return 
+			// Compile for materials that are masked.
+			(!Material->WritesEveryPixel() || Material->HasPixelDepthOffsetConnected() || Material->IsTranslucencyWritingCustomDepth()) 
+			// Mobile uses default material pixel shader to write custom stencil to color target
+			|| (IsMobilePlatform(Platform) && Material->IsDefaultMaterial());
 	}
 
 	FDepthOnlyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FMeshMaterialShader(Initializer)
 	{
 		ApplyDepthOffsetParameter.Bind(Initializer.ParameterMap, TEXT("bApplyDepthOffset"));
+		MobileColorValue.Bind(Initializer.ParameterMap, TEXT("MobileColorValue"));
 	}
 
 	FDepthOnlyPS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& MaterialResource,const FSceneView* View, const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer)
+	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& MaterialResource,const FSceneView* View, const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer, float InMobileColorValue)
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,ViewUniformBuffer,ESceneRenderTargetsMode::DontSet);
 
 		// For debug view shaders, don't apply the depth offset as their base pass PS are using global shaders with depth equal.
 		SetShaderValue(RHICmdList, GetPixelShader(), ApplyDepthOffsetParameter, !View || !View->Family->UseDebugViewPS());
+		SetShaderValue(RHICmdList, GetPixelShader(), MobileColorValue, InMobileColorValue);
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement,const FDrawingPolicyRenderState& DrawRenderState)
@@ -236,10 +241,12 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		Ar << ApplyDepthOffsetParameter;
+		Ar << MobileColorValue;
 		return bShaderHasOutdatedParameters;
 	}
 
 	FShaderParameter ApplyDepthOffsetParameter;
+	FShaderParameter MobileColorValue;
 };
 
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FDepthOnlyPS,TEXT("DepthOnlyPixelShader"),TEXT("Main"),SF_Pixel);
@@ -260,11 +267,16 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource,
 	const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
-	ERHIFeatureLevel::Type InFeatureLevel	
+	ERHIFeatureLevel::Type InFeatureLevel,
+	float InMobileColorValue	
 	) :
 	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, InMaterialResource, InOverrideSettings, DVSM_None)
 {
-	bNeedsPixelShader = (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset() || InMaterialResource.IsTranslucencyWritingCustomDepth());
+	const bool bUsesMobileColorValue = (InMobileColorValue != 0.0f);
+	MobileColorValue = InMobileColorValue;
+	
+	bNeedsPixelShader = bUsesMobileColorValue || (!InMaterialResource.WritesEveryPixel() || InMaterialResource.MaterialUsesPixelDepthOffset() || InMaterialResource.IsTranslucencyWritingCustomDepth());
+
 	if (!bNeedsPixelShader)
 	{
 		PixelShader = nullptr;
@@ -399,7 +411,7 @@ void FDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSce
 
 	if (bNeedsPixelShader)
 	{
-		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, DrawRenderState.GetViewUniformBuffer());
+		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, DrawRenderState.GetViewUniformBuffer(), MobileColorValue);
 	}
 
 	// Set the shared mesh resources.
@@ -456,6 +468,7 @@ int32 CompareDrawingPolicy(const FDepthDrawingPolicy& A,const FDepthDrawingPolic
 	COMPAREDRAWINGPOLICYMEMBERS(PixelShader);
 	COMPAREDRAWINGPOLICYMEMBERS(VertexFactory);
 	COMPAREDRAWINGPOLICYMEMBERS(MaterialRenderProxy);
+	COMPAREDRAWINGPOLICYMEMBERS(MobileColorValue);
 	return 0;
 }
 
@@ -542,7 +555,8 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* Stati
 			MaterialRenderProxy,
 			*Material,
 			OverrideSettings,
-			FeatureLevel
+			FeatureLevel,
+			0.0f // MobileColorValue
 			);
 
 		// only draw if required
@@ -587,7 +601,8 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* Stati
 				MaterialRenderProxy,
 				*MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel()),
 				OverrideSettings,
-				FeatureLevel
+				FeatureLevel,
+				0.0f // MobileColorValue
 				);
 
 			// Add the static mesh to the opaque depth-only draw list.
@@ -624,6 +639,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 		const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
 		const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 		const EBlendMode BlendMode = Material->GetBlendMode();
+		const bool bUsesMobileColorValue = (DrawingContext.MobileColorValue != 0.0f);
 
 		// Check to see if the primitive is currently fading in or out using the screen door effect.  If it is,
 		// then we can't assume the object is opaque as it may be forcibly masked.
@@ -636,6 +652,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 			&& Mesh.VertexFactory->SupportsPositionOnlyStream() 
 			&& !Material->MaterialModifiesMeshPosition_RenderThread()
 			&& Material->WritesEveryPixel()
+			&& !bUsesMobileColorValue
 			)
 		{
 			//render opaque primitives that support a separate position-only vertex buffer
@@ -711,7 +728,8 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 					MaterialRenderProxy, 
 					*MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), 
 					OverrideSettings,
-					View.GetFeatureLevel()
+					View.GetFeatureLevel(),
+					DrawingContext.MobileColorValue
 					);
 
 				FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
@@ -1244,7 +1262,7 @@ bool FDeferredShadingSceneRenderer::RenderPrePass(FRHICommandListImmediate& RHIC
 			}
 			RHICmdList.SetViewport(FullViewRect.Min.X, FullViewRect.Min.Y, 0, FullViewRect.Max.X, FullViewRect.Max.Y, 1);
 		}
-		RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthTexture(), EClearDepthStencil::Stencil, 0.f, 0, FIntRect());
+		RHICmdList.ClearDepthStencilTexture(SceneContext.GetSceneDepthSurface(), EClearDepthStencil::Stencil, 0.f, 0, FIntRect());
 	}
 
 	SceneContext.FinishRenderingPrePass(RHICmdList);

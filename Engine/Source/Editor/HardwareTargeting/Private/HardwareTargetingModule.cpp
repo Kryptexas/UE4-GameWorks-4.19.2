@@ -118,12 +118,19 @@ FText FMetaSettingGatherer::ValueToString(EAntiAliasingMethod Value)
 	}
 }
 
+static FName HardwareTargetingConsoleVariableMetaFName(TEXT("ConsoleVariable"));
+
 #define UE_META_SETTING_ENTRY(Builder, Class, PropertyName, TargetValue) \
 { \
 	Class* SettingsObject = GetMutableDefault<Class>(); \
 	bool bModified = SettingsObject->PropertyName != (TargetValue); \
-	if (!Builder.bReadOnly) { SettingsObject->PropertyName = (TargetValue); } \
-	Builder.AddEntry(SettingsObject, FindFieldChecked<UProperty>(Class::StaticClass(), GET_MEMBER_NAME_CHECKED(Class, PropertyName)), FMetaSettingGatherer::ValueToString(TargetValue), bModified); \
+	UProperty* Property = FindFieldChecked<UProperty>(Class::StaticClass(), GET_MEMBER_NAME_CHECKED(Class, PropertyName)); \
+	if (!Builder.bReadOnly) { \
+		FString CVarName = Property->GetMetaData(HardwareTargetingConsoleVariableMetaFName); \
+		if (!CVarName.IsEmpty()) { IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName); \
+			if (CVar) { CVar->Set(TargetValue, ECVF_SetByProjectSetting); } } \
+		SettingsObject->PropertyName = (TargetValue); } \
+	Builder.AddEntry(SettingsObject, Property, FMetaSettingGatherer::ValueToString(TargetValue), bModified); \
 }
 
 //////////////////////////////////////////////////////////////////////////

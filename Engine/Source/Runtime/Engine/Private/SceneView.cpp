@@ -771,7 +771,7 @@ void FSceneView::SetupAntiAliasingMethod()
 
 		if (!bWillApplyTemporalAA || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
-			|| (FeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnAnyThread() == 0)
+			|| (FeatureLevel <= ERHIFeatureLevel::ES3_1 && MobileHDRCvar->GetValueOnAnyThread() == 0)
 			|| (FeatureLevel <= ERHIFeatureLevel::ES3_1 && (MSAAValue > 1))
 			|| Family->EngineShowFlags.VisualizeBloom
 			|| Family->EngineShowFlags.VisualizeDOF)

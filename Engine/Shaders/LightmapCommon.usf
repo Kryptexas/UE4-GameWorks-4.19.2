@@ -146,7 +146,7 @@ half4 GetPrecomputedShadowMasks(FVertexFactoryInterpolantsVSToPS Interpolants)
 	#endif
 }
 
-// Used by forward renderer only
+// Used by mobile renderer only
 half GetPrimaryPrecomputedShadowMask(FVertexFactoryInterpolantsVSToPS Interpolants)
 {
 	#if STATICLIGHTING_TEXTUREMASK && STATICLIGHTING_SIGNEDDISTANCEFIELD
@@ -172,8 +172,8 @@ half GetPrimaryPrecomputedShadowMask(FVertexFactoryInterpolantsVSToPS Interpolan
 
 	#else
 
-		// Mark as unshadowed by default
-		return 1;
+		// output per-primitive directional light shadowing if requested
+		return Primitive.UseSingleSampleShadowFromStationaryLights > 0 ? PrecomputedLightingBuffer.DirectionalLightShadowing : 1;
 
 	#endif
 }

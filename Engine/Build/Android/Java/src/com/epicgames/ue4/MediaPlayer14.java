@@ -5,9 +5,7 @@ package com.epicgames.ue4;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Rect;
-import android.opengl.GLES20;
-import android.opengl.GLES11Ext;
-import android.opengl.Matrix;
+import android.opengl.*;
 import android.os.Build;
 import java.io.File;
 import java.io.IOException;
@@ -399,11 +397,102 @@ public class MediaPlayer14
 		private boolean mTriangleVerticesDirty = true;
 		private boolean mTextureSizeChanged = true;
 
+		private boolean mUseOwnContext = true;
+
 		private int GL_TEXTURE_EXTERNAL_OES = 0x8D65;
-		
+
+		private EGLDisplay mEglDisplay;
+		private EGLContext mEglContext;
+		private EGLSurface mEglSurface;
+
+		private EGLDisplay mSavedDisplay;
+		private EGLContext mSavedContext;
+		private EGLSurface mSavedSurfaceDraw;
+		private EGLSurface mSavedSurfaceRead;
+
 		public BitmapRenderer()
 		{
-			initSurfaceTexture();
+			mEglSurface = EGL14.EGL_NO_SURFACE;
+			mEglContext = EGL14.EGL_NO_CONTEXT;
+			mEglDisplay = EGL14.eglGetCurrentDisplay();
+			mUseOwnContext = true;
+
+			String RendererString = GLES20.glGetString(GLES20.GL_RENDERER);
+
+			// Do not use shared context if Adreno before 400 or on older Android than Marshmallow
+			if (RendererString.contains("Adreno (TM) "))
+			{
+				int AdrenoVersion = Integer.parseInt(RendererString.substring(12));
+				if (AdrenoVersion < 400 || android.os.Build.VERSION.SDK_INT < 22)
+				{
+					GameActivity.Log.debug("MediaPlayer14: disabled shared GL context on " + RendererString);
+					mUseOwnContext = false;
+				}
+			}
+
+			if (mUseOwnContext)
+			{
+				initContext();
+				saveContext();
+				makeCurrent();
+				initSurfaceTexture();
+				restoreContext();
+			}
+			else
+			{
+				initSurfaceTexture();
+			}
+		}
+
+		private void initContext()
+		{
+			EGLContext shareContext = EGL14.eglGetCurrentContext();
+			int[] configSpec = new int[]
+			{
+				EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
+				EGL14.EGL_SURFACE_TYPE, EGL14.EGL_PBUFFER_BIT,
+				EGL14.EGL_NONE
+			};
+			EGLConfig[] configs = new EGLConfig[1];
+			int[] num_config = new int[1];
+			EGL14.eglChooseConfig(mEglDisplay, configSpec, 0, configs, 0, 1, num_config, 0);
+			int[] contextAttribs = new int[]
+			{
+				EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
+				EGL14.EGL_NONE
+			};
+			mEglContext = EGL14.eglCreateContext(mEglDisplay, configs[0], shareContext, contextAttribs, 0);
+
+			if (EGL14.eglQueryString(mEglDisplay, EGL14.EGL_EXTENSIONS).contains("EGL_KHR_surfaceless_context"))
+			{
+				mEglSurface = EGL14.EGL_NO_SURFACE;
+			}
+			else
+			{
+				int[] pbufferAttribs = new int[]
+				{
+					EGL14.EGL_NONE
+				};
+				mEglSurface = EGL14.eglCreatePbufferSurface(mEglDisplay, configs[0], pbufferAttribs, 0);
+			}
+		}
+
+		private void saveContext()
+		{
+			mSavedDisplay = EGL14.eglGetCurrentDisplay();
+			mSavedContext = EGL14.eglGetCurrentContext();
+			mSavedSurfaceDraw = EGL14.eglGetCurrentSurface(EGL14.EGL_DRAW);
+			mSavedSurfaceRead = EGL14.eglGetCurrentSurface(EGL14.EGL_READ);
+		}
+
+		private void makeCurrent()
+		{
+			EGL14.eglMakeCurrent(mEglDisplay, mEglSurface, mEglSurface, mEglContext);
+		}
+
+		private void restoreContext()
+		{
+			EGL14.eglMakeCurrent(mSavedDisplay, mSavedSurfaceDraw, mSavedSurfaceRead, mSavedContext);
 		}
 
 		private void initSurfaceTexture()
@@ -431,40 +520,41 @@ public class MediaPlayer14
 			}
 
 			// Special shaders for blit of movie texture.
-            mBlitVertexShaderID = createShader(GLES20.GL_VERTEX_SHADER, mBlitVextexShader);
-            if (mBlitVertexShaderID == 0)
+			mBlitVertexShaderID = createShader(GLES20.GL_VERTEX_SHADER, mBlitVextexShader);
+			if (mBlitVertexShaderID == 0)
 			{
 				release();
 				return;
 			}
-            int mBlitFragmentShaderID = createShader(GLES20.GL_FRAGMENT_SHADER,
+			int mBlitFragmentShaderID = createShader(GLES20.GL_FRAGMENT_SHADER,
 				SwizzlePixels ? mBlitFragmentShaderBGRA : mBlitFragmentShaderRGBA);
-            if (mBlitFragmentShaderID == 0)
+			if (mBlitFragmentShaderID == 0)
 			{
 				release();
 				return;
 			}
-            mProgram = GLES20.glCreateProgram();
+			mProgram = GLES20.glCreateProgram();
 			if (mProgram <= 0)
 			{
 				release();
 				return;
 			}
-            GLES20.glAttachShader(mProgram, mBlitVertexShaderID);
-            GLES20.glAttachShader(mProgram, mBlitFragmentShaderID);
-            GLES20.glLinkProgram(mProgram);
-            int[] linkStatus = new int[1];
-            GLES20.glGetProgramiv(mProgram, GLES20.GL_LINK_STATUS, linkStatus, 0);
-            if (linkStatus[0] != GLES20.GL_TRUE)
+			GLES20.glAttachShader(mProgram, mBlitVertexShaderID);
+			GLES20.glAttachShader(mProgram, mBlitFragmentShaderID);
+			GLES20.glLinkProgram(mProgram);
+			int[] linkStatus = new int[1];
+			GLES20.glGetProgramiv(mProgram, GLES20.GL_LINK_STATUS, linkStatus, 0);
+			if (linkStatus[0] != GLES20.GL_TRUE)
 			{
-                GameActivity.Log.error("Could not link program: ");
-                GameActivity.Log.error(GLES20.glGetProgramInfoLog(mProgram));
-                GLES20.glDeleteProgram(mProgram);
-                mProgram = 0;
+				GameActivity.Log.error("Could not link program: ");
+				GameActivity.Log.error(GLES20.glGetProgramInfoLog(mProgram));
+				GLES20.glDeleteProgram(mProgram);
+				mProgram = 0;
+				release();
 				return;
-            }
-            mPositionAttrib = GLES20.glGetAttribLocation(mProgram, "Position");
-            mTexCoordsAttrib = GLES20.glGetAttribLocation(mProgram, "TexCoords");
+			}
+			mPositionAttrib = GLES20.glGetAttribLocation(mProgram, "Position");
+			mTexCoordsAttrib = GLES20.glGetAttribLocation(mProgram, "TexCoords");
 			mTextureUniform = GLES20.glGetUniformLocation(mProgram, "VideoTexture");
 
 			GLES20.glGenBuffers(1,glInt,0);
@@ -476,10 +566,19 @@ public class MediaPlayer14
 			}
 
 			// Create blit mesh.
-            mTriangleVertices = java.nio.ByteBuffer.allocateDirect(
-                mTriangleVerticesData.length * FLOAT_SIZE_BYTES)
-                    .order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer();
+			mTriangleVertices = java.nio.ByteBuffer.allocateDirect(
+				mTriangleVerticesData.length * FLOAT_SIZE_BYTES)
+					.order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer();
 			mTriangleVerticesDirty = true;
+
+			// Set up GL state
+			GLES20.glDisable(GLES20.GL_BLEND);
+			GLES20.glDisable(GLES20.GL_CULL_FACE);
+			GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
+			GLES20.glDisable(GLES20.GL_STENCIL_TEST);
+			GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+			GLES20.glDisable(GLES20.GL_DITHER);
+			GLES20.glColorMask(true,true,true,true);
 		}
 		
 		private void UpdateVertexData()
@@ -491,7 +590,7 @@ public class MediaPlayer14
 
 			// fill it in
 			mTriangleVertices.position(0);
-            mTriangleVertices.put(mTriangleVerticesData).position(0);
+			mTriangleVertices.put(mTriangleVerticesData).position(0);
 
 			// save VBO state
 			int[] glInt = new int[1];
@@ -517,25 +616,25 @@ public class MediaPlayer14
 			return mSurfaceTexture != null;
 		}
 
-        private int createShader(int shaderType, String source)
+		private int createShader(int shaderType, String source)
 		{
-            int shader = GLES20.glCreateShader(shaderType);
-            if (shader != 0)
+			int shader = GLES20.glCreateShader(shaderType);
+			if (shader != 0)
 			{
-                GLES20.glShaderSource(shader, source);
-                GLES20.glCompileShader(shader);
-                int[] compiled = new int[1];
-                GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0);
-                if (compiled[0] == 0)
+				GLES20.glShaderSource(shader, source);
+				GLES20.glCompileShader(shader);
+				int[] compiled = new int[1];
+				GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0);
+				if (compiled[0] == 0)
 				{
-                    GameActivity.Log.error("Could not compile shader " + shaderType + ":");
-                    GameActivity.Log.error(GLES20.glGetShaderInfoLog(shader));
-                    GLES20.glDeleteShader(shader);
-                    shader = 0;
-                }
-            }
-            return shader;
-        }
+					GameActivity.Log.error("Could not compile shader " + shaderType + ":");
+					GameActivity.Log.error(GLES20.glGetShaderInfoLog(shader));
+					GLES20.glDeleteShader(shader);
+					shader = 0;
+				}
+			}
+			return shader;
+		}
 
 		public void onFrameAvailable(android.graphics.SurfaceTexture st)
 		{
@@ -640,14 +739,10 @@ public class MediaPlayer14
 				{
 					mFrameData = java.nio.ByteBuffer.allocateDirect(mTextureWidth*mTextureHeight*4);
 				}
-				if (!updateFrameTexture())
+				// Copy surface texture to frame data.
+				if (!copyFrameTexture(0, mFrameData))
 				{
 					return null;
-				}
-				if (null != mSurfaceTexture)
-				{
-					// Copy surface texture to frame data.
-					copyFrameTexture(0, mFrameData);
 				}
 			}
 			return mFrameData;
@@ -657,17 +752,18 @@ public class MediaPlayer14
 		{
 			synchronized(this)
 			{
-				if (!updateFrameTexture())
+				// Copy surface texture to destination texture.
+				if (!copyFrameTexture(destTexture, null))
 				{
 					return false;
 				}
-				// Copy surface texture to destination texture.
-				copyFrameTexture(destTexture, null);
 			}
 			return true;
 		}
 
-		private boolean updateFrameTexture()
+		// Copy the surface texture to another texture, or to raw data.
+		// Note: copying to raw data creates a temporary FBO texture.
+		private boolean copyFrameTexture(int destTexture, java.nio.Buffer destData)
 		{
 			if (!mFrameAvailable)
 			{
@@ -686,8 +782,44 @@ public class MediaPlayer14
 				return false;
 			}
 
-			// Clear gl errors as they can creap in from the UE4 renderer.
-			GLES20.glGetError();
+			int[] glInt = new int[1];
+			boolean[] glBool = new boolean[1];
+
+			// Either use own context or save states
+			boolean previousBlend=false, previousCullFace=false, previousScissorTest=false, previousStencilTest=false, previousDepthTest=false, previousDither=false;
+			int previousFBO=0, previousVBO=0, previousMinFilter=0, previousMagFilter=0;
+			int[] previousViewport = new int[4];
+			if (mUseOwnContext)
+			{
+				saveContext();
+				makeCurrent();
+			}
+			else
+			{
+				// Clear gl errors as they can creep in from the UE4 renderer.
+				GLES20.glGetError();
+
+				previousBlend = GLES20.glIsEnabled(GLES20.GL_BLEND);
+				previousCullFace = GLES20.glIsEnabled(GLES20.GL_CULL_FACE);
+				previousScissorTest = GLES20.glIsEnabled(GLES20.GL_SCISSOR_TEST);
+				previousStencilTest = GLES20.glIsEnabled(GLES20.GL_STENCIL_TEST);
+				previousDepthTest = GLES20.glIsEnabled(GLES20.GL_DEPTH_TEST);
+				previousDither = GLES20.glIsEnabled(GLES20.GL_DITHER);
+				GLES20.glGetIntegerv(GLES20.GL_FRAMEBUFFER_BINDING, glInt, 0);
+				previousFBO = glInt[0];
+				GLES20.glGetIntegerv(GLES20.GL_ARRAY_BUFFER_BINDING, glInt, 0);
+				previousVBO = glInt[0];
+				GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, previousViewport, 0);
+
+				GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+				GLES20.glGetTexParameteriv(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, glInt, 0);
+				previousMinFilter = glInt[0];
+				GLES20.glGetTexParameteriv(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, glInt, 0);
+				previousMagFilter = glInt[0];
+
+				glVerify("save state");
+			}
+
 			// Get the latest video texture frame.
 			mSurfaceTexture.updateTexImage();
 
@@ -717,48 +849,28 @@ public class MediaPlayer14
 				//GameActivity.Log.debug("V = " + mTriangleVerticesData[11] + ", " + mTriangleVerticesData[3]);
 			}
 
-			return true;
-		}
-
-		// Copy the surface texture to another texture, or to raw data. Note,
-		// copying to raw data creates a temporary FBO texture.
-		private void copyFrameTexture(int destTexture, java.nio.Buffer destData)
-		{
-			int[] glInt = new int[1];
-			boolean[] glBool = new boolean[1];
-
 			if (null != destData)
 			{
 				// Rewind data so that we can write to it.
 				destData.position(0);
 			}
 
-			// Save and reset state.
-			boolean previousBlend = GLES20.glIsEnabled(GLES20.GL_BLEND);
-			boolean previousCullFace = GLES20.glIsEnabled(GLES20.GL_CULL_FACE);
-			boolean previousScissorTest = GLES20.glIsEnabled(GLES20.GL_SCISSOR_TEST);
-			boolean previousStencilTest = GLES20.glIsEnabled(GLES20.GL_STENCIL_TEST);
-			boolean previousDepthTest = GLES20.glIsEnabled(GLES20.GL_DEPTH_TEST);
-			boolean previousDither = GLES20.glIsEnabled(GLES20.GL_DITHER);
-			GLES20.glGetIntegerv(GLES20.GL_FRAMEBUFFER_BINDING, glInt, 0);
-			int previousFBO = glInt[0];
-			GLES20.glGetIntegerv(GLES20.GL_ARRAY_BUFFER_BINDING, glInt, 0);
-			int previousVBO = glInt[0];
-			int[] previousViewport = new int[4];
-			GLES20.glGetIntegerv(GLES20.GL_VIEWPORT, previousViewport, 0);
+			if (!mUseOwnContext)
+			{
+				GLES20.glDisable(GLES20.GL_BLEND);
+				GLES20.glDisable(GLES20.GL_CULL_FACE);
+				GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
+				GLES20.glDisable(GLES20.GL_STENCIL_TEST);
+				GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+				GLES20.glDisable(GLES20.GL_DITHER);
+				GLES20.glColorMask(true,true,true,true);
 
-			glVerify("save state");
+				glVerify("reset state");
+			}
 
-			GLES20.glDisable(GLES20.GL_BLEND);
-			GLES20.glDisable(GLES20.GL_CULL_FACE);
-			GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
-			GLES20.glDisable(GLES20.GL_STENCIL_TEST);
-			GLES20.glDisable(GLES20.GL_DEPTH_TEST);
-			GLES20.glDisable(GLES20.GL_DITHER);
-			GLES20.glColorMask(true,true,true,true);
 			GLES20.glViewport(0, 0, mTextureWidth, mTextureHeight);
 
-			glVerify("reset state");
+			glVerify("set viewport");
 
 			// Set-up FBO target texture..
 			int FBOTextureID = 0;
@@ -774,11 +886,6 @@ public class MediaPlayer14
 				FBOTextureID = destTexture;
 			}
 			// Set the FBO to draw into the texture one-to-one.
-			GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-			GLES20.glGetTexParameteriv(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, glInt, 0);
-			int previousMinFilter = glInt[0];
-			GLES20.glGetTexParameteriv(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, glInt, 0);
-			int previousMagFilter = glInt[0];
 			GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, FBOTextureID);
 			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,
 				GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
@@ -832,9 +939,10 @@ public class MediaPlayer14
 
 			glVerify("setup movie texture read");
 
-            GLES20.glClear( GLES20.GL_COLOR_BUFFER_BIT);
+			GLES20.glClear( GLES20.GL_COLOR_BUFFER_BIT);
 
-			// connect 'VideoTexture' to video source texture (mTextureID) in texture unit 0.
+			// connect 'VideoTexture' to video source texture (mTextureID).
+			// mTextureID is bound to GL_TEXTURE_EXTERNAL_OES in updateTexImage
 			GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 			GLES20.glBindTexture(GL_TEXTURE_EXTERNAL_OES, mTextureID);
 			GLES20.glUniform1i(mTextureUniform, 0);
@@ -856,52 +964,71 @@ public class MediaPlayer14
 			glVerify("draw & read movie texture");
 
 			// Restore state and cleanup.
-			if (previousFBO > 0)
+			if (mUseOwnContext)
 			{
-				GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, previousFBO);
+				GLES20.glFramebufferTexture2D(
+					GLES20.GL_FRAMEBUFFER,
+					GLES20.GL_COLOR_ATTACHMENT0,
+					GLES20.GL_TEXTURE_2D, 0, 0);
+
+				if (null != destData && FBOTextureID > 0)
+				{
+					glInt[0] = FBOTextureID;
+					GLES20.glDeleteTextures(1, glInt, 0);
+				}
+
+				restoreContext();
 			}
-			if (null != destData && FBOTextureID > 0)
+			else
 			{
-				glInt[0] = FBOTextureID;
-				GLES20.glDeleteTextures(1, glInt, 0);
-			}
-			if (previousVBO > 0)
-			{
-				GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, previousVBO);
+				if (previousFBO > 0)
+				{
+					GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, previousFBO);
+				}
+				if (null != destData && FBOTextureID > 0)
+				{
+					glInt[0] = FBOTextureID;
+					GLES20.glDeleteTextures(1, glInt, 0);
+				}
+				if (previousVBO > 0)
+				{
+					GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, previousVBO);
+				}
+
+				GLES20.glViewport(previousViewport[0], previousViewport[1],	previousViewport[2], previousViewport[3]);
+				if (previousBlend) GLES20.glEnable(GLES20.GL_BLEND);
+				if (previousCullFace) GLES20.glEnable(GLES20.GL_CULL_FACE);
+				if (previousScissorTest) GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
+				if (previousStencilTest) GLES20.glEnable(GLES20.GL_STENCIL_TEST);
+				if (previousDepthTest) GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+				if (previousDither) GLES20.glEnable(GLES20.GL_DITHER);
+
+				GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, previousMinFilter);
+				GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, previousMagFilter);
 			}
 
-			GLES20.glViewport(previousViewport[0], previousViewport[1],
-				previousViewport[2], previousViewport[3]);
-			if (previousBlend) GLES20.glEnable(GLES20.GL_BLEND);
-			if (previousCullFace) GLES20.glEnable(GLES20.GL_CULL_FACE);
-			if (previousScissorTest) GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
-			if (previousStencilTest) GLES20.glEnable(GLES20.GL_STENCIL_TEST);
-			if (previousDepthTest) GLES20.glEnable(GLES20.GL_DEPTH_TEST);
-			if (previousDither) GLES20.glEnable(GLES20.GL_DITHER);
-
-			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, previousMinFilter);
-			GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, previousMagFilter);
+			return true;
 		}
 
-        private void glVerify(String op)
+		private void glVerify(String op)
 		{
-            int error;
-            while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR)
+			int error;
+			while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR)
 			{
-                GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError " + error);
-                throw new RuntimeException(op + ": glGetError " + error);
-            }
-        }
+				GameActivity.Log.error("MediaPlayer$BitmapRenderer: " + op + ": glGetError " + error);
+				throw new RuntimeException(op + ": glGetError " + error);
+			}
+		}
 
 
-        private void glWarn(String op)
+		private void glWarn(String op)
 		{
-            int error;
-            while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR)
+			int error;
+			while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR)
 			{
-                GameActivity.Log.warn("MediaPlayer$BitmapRenderer: " + op + ": glGetError " + error);
-            }
-        }
+				GameActivity.Log.warn("MediaPlayer$BitmapRenderer: " + op + ": glGetError " + error);
+			}
+		}
 
 		public void release()
 		{
@@ -948,6 +1075,16 @@ public class MediaPlayer14
 				glInt[0] = mTextureID;
 				GLES20.glDeleteTextures(1,glInt,0);
 				mTextureID = -1;
+			}
+			if (mEglSurface != EGL14.EGL_NO_SURFACE)
+			{
+				EGL14.eglDestroySurface(mEglDisplay, mEglSurface);
+				mEglSurface = EGL14.EGL_NO_SURFACE;
+			}
+			if (mEglContext != EGL14.EGL_NO_CONTEXT)
+			{
+				EGL14.eglDestroyContext(mEglDisplay, mEglContext);
+				mEglContext = EGL14.EGL_NO_CONTEXT;
 			}
 		}
 	};
