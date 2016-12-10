@@ -1576,7 +1576,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TArray<FbxNode*>& MeshNodeArray)
 {
-	TArray<FFbxMaterial> MeshMaterials;
+	TArray<FString> MeshMaterials;
 	for (int32 MeshIndex = 0; MeshIndex < MeshNodeArray.Num(); MeshIndex++)
 	{
 		FbxNode* Node = MeshNodeArray[MeshIndex];
@@ -1586,17 +1586,13 @@ void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TAr
 
 			for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; MaterialIndex++)
 			{
-				FFbxMaterial* NewMaterial = new(MeshMaterials) FFbxMaterial;
+				//Get the original fbx import name
 				FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
-				NewMaterial->FbxMaterial = FbxMaterial;
-				FString MaterialFullName = GetMaterialFullName(*FbxMaterial);
-				FString BasePackageName = PackageTools::SanitizePackageName(FPackageName::GetLongPackagePath(StaticMesh->GetOutermost()->GetName()) / MaterialFullName);
-				UMaterialInterface* UnrealMaterialInterface = FindObject<UMaterialInterface>(NULL, *(BasePackageName + TEXT(".") + MaterialFullName));
-				if (UnrealMaterialInterface == NULL)
+				FString FbxMaterialName = FbxMaterial ? ANSI_TO_TCHAR(FbxMaterial->GetName()) : TEXT("None");
+				if (!MeshMaterials.Contains(FbxMaterialName))
 				{
-					UnrealMaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
+					MeshMaterials.Add(FbxMaterialName);
 				}
-				NewMaterial->Material = UnrealMaterialInterface;
 			}
 		}
 	}
@@ -1608,12 +1604,12 @@ void UnFbx::FFbxImporter::ReorderMaterialToFbxOrder(UStaticMesh* StaticMesh, TAr
 	TArray<FStaticMaterial> NewStaticMaterials;
 	for (int32 FbxMaterialIndex = 0; FbxMaterialIndex < MeshMaterials.Num(); ++FbxMaterialIndex)
 	{
-		FFbxMaterial &FbxMaterial = MeshMaterials[FbxMaterialIndex];
+		const FString &FbxMaterial = MeshMaterials[FbxMaterialIndex];
 		int32 FoundMaterialIndex = INDEX_NONE;
 		for (int32 BuildMaterialIndex = 0; BuildMaterialIndex < StaticMesh->StaticMaterials.Num(); ++BuildMaterialIndex)
 		{
 			FStaticMaterial &BuildMaterial = StaticMesh->StaticMaterials[BuildMaterialIndex];
-			if (FbxMaterial.Material == BuildMaterial.MaterialInterface)
+			if (FbxMaterial.Compare(BuildMaterial.ImportedMaterialSlotName.ToString()) == 0)
 			{
 				FoundMaterialIndex = BuildMaterialIndex;
 				break;
