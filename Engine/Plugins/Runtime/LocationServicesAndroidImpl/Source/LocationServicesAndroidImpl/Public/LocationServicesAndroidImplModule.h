@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "ModuleInterface.h"
+#include "ModuleManager.h"
 
 class ULocationServicesAndroidImpl;
 /**

@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LocationServicesIOSImplPCH.h"
+#include "LocationServicesIOSImpl.h"
 #include <CoreLocation/CoreLocation.h>
 
 DEFINE_LOG_CATEGORY(LogLocationServicesIOS);

@@ -1,7 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LocationServicesAndroidImplPCH.h"
-
+#include "LocationServicesAndroidImplModule.h"
 #include "Classes/LocationServicesBPLibrary.h"
 
 IMPLEMENT_MODULE(FLocationServicesAndroidImplModule, LocationServicesAndroidImpl)

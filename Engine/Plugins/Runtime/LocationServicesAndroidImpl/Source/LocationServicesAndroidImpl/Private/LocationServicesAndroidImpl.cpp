@@ -1,6 +1,6 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-#include "LocationServicesAndroidImplPCH.h"
+#include "LocationServicesAndroidImpl.h"
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidApplication.h"
 
