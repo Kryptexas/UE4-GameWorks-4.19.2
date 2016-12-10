@@ -650,6 +650,17 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 				}
 			}
 		}
+		
+		if (NewObject)
+		{
+			//Reorder the material
+			TArray<FbxNode*> Nodes;
+			FbxImporter->FindAllLODGroupNode(Nodes, Node, 0);
+			if (Nodes.Num() > 0)
+			{
+				FbxImporter->ReorderMaterialToFbxOrder(Cast<UStaticMesh>(NewObject), Nodes);
+			}
+		}
 	}
 	else
 	{
@@ -661,6 +672,11 @@ UObject* UFbxFactory::RecursiveImportNode(void* VoidFbxImporter, void* VoidNode,
 
 			if ( NewObject )
 			{
+				//Reorder the material
+				TArray<FbxNode*> Nodes;
+				Nodes.Add(Node);
+				FbxImporter->ReorderMaterialToFbxOrder(Cast<UStaticMesh>(NewObject), Nodes);
+
 				OutNewAssets.Add(NewObject);
 			}
 		}

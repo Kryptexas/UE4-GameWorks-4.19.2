@@ -9,7 +9,7 @@ UFbxAssetImportData::UFbxAssetImportData(const FObjectInitializer& ObjectInitial
 	, ImportUniformScale(1.0f)
 	, bConvertScene(true)
 	, bForceFrontXAxis(false)
-	, bConvertSceneUnit(true)
+	, bConvertSceneUnit(false)
 	, bImportAsScene(false)
 	, FbxSceneImportDataReference(nullptr)
 {
