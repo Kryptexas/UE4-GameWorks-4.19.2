@@ -7,6 +7,7 @@
 #include "RenderingThread.h"
 #include "UObject/UObjectIterator.h"
 #include "Components/PrimitiveComponent.h"
+#include "Engine/World.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "ContentStreaming.h"
 
