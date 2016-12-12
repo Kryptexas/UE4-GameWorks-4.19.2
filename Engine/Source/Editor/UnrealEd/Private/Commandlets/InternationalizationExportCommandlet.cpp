@@ -746,7 +746,7 @@ bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, 
 
 				if (NamespacesAndKeys.Num() == 0)
 				{
-					UE_LOG(LogInternationalizationExportCommandlet, Warning, TEXT("Could not import PO entry as it did not map to any known entries in the collapsed manifest data.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId);
+					UE_LOG(LogInternationalizationExportCommandlet, Log, TEXT("Could not import PO entry as it did not map to any known entries in the collapsed manifest data.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId);
 					continue;
 				}
 				
