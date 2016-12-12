@@ -3698,13 +3698,10 @@ UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName Subobj
 			bool bOwnerArchetypeIsNotNative;
 			UClass* OuterArchetypeClass;
 
-			if (bIsTransient)
-			{
-				SubobjectFlags |= RF_Transient;
-			}
+			// It is not safe to mark this component as properly transient, that results in it being nulled incorrectly
 
-				OuterArchetypeClass = Outer->GetArchetype()->GetClass();
-				bOwnerArchetypeIsNotNative = !OuterArchetypeClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
+			OuterArchetypeClass = Outer->GetArchetype()->GetClass();
+			bOwnerArchetypeIsNotNative = !OuterArchetypeClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic);
 
 			const bool bOwnerTemplateIsNotCDO = ObjectArchetype != nullptr && ObjectArchetype != Outer->GetClass()->GetDefaultObject(false) && !Outer->HasAnyFlags(RF_ClassDefaultObject);
 #if !UE_BUILD_SHIPPING
