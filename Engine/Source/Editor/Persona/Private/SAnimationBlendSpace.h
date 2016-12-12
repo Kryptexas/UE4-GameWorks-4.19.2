@@ -152,22 +152,11 @@ struct FTriangle
 		Edges[2] = FHalfEdge(Vertices[2], Vertices[0]);
 	}
 
-	FTriangle()
-	{
-		Vertices[0] = nullptr;
-		Vertices[1] = nullptr;
-		Vertices[2] = nullptr;
-	}
-
 	~FTriangle()
 	{
-		for (int32 VertexIndex = 0; VertexIndex < 3; ++VertexIndex)
-		{
-			if (Vertices[VertexIndex])
-			{
-				Vertices[VertexIndex]->RemoveTriangle(this);
-			}
-		}
+		Vertices[0]->RemoveTriangle(this);
+		Vertices[1]->RemoveTriangle(this);
+		Vertices[2]->RemoveTriangle(this);
 	}
 
 	bool Contains (const FPoint& Other) const
