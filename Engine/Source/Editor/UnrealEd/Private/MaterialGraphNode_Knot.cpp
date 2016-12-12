@@ -5,6 +5,7 @@
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "MaterialEditorUtilities.h"
+#include "EdGraph/EdGraphPin.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode_Knot"
 

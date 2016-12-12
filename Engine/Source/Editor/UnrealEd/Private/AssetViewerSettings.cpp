@@ -3,6 +3,7 @@
 #include "AssetViewerSettings.h"
 #include "UObject/UnrealType.h"
 #include "Editor/EditorPerProjectUserSettings.h"
+#include "Editor.h"
 
 
 UAssetViewerSettings::UAssetViewerSettings()

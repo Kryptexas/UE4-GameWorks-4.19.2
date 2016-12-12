@@ -5,6 +5,7 @@
 #include "AudioDeviceManager.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"
+#include "UObject/UObjectIterator.h"
 
 #if WITH_EDITOR
 TSharedPtr<ISoundSubmixAudioEditor> USoundSubmix::SoundSubmixAudioEditor = nullptr;

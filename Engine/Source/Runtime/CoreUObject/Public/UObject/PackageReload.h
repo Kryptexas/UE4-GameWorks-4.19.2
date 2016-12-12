@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ArrayView.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/WeakObjectPtr.h"
 
 class IAssetRegistryInterface;
 

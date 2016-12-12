@@ -19,6 +19,7 @@
 #include "Misc/Timespan.h"
 #include "InputCoreTypes.h"
 #include "GenericApplicationMessageHandler.h"
+#include "Framework/Application/SlateApplication.h"
 
 
 class FStep

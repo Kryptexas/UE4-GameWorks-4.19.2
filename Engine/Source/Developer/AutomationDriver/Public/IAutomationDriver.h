@@ -4,6 +4,7 @@
 #include "AsyncResult.h"
 #include "Misc/Timespan.h"
 #include "WaitUntil.h"
+#include "GenericPlatform/GenericApplication.h"
 
 class IElementLocator;
 

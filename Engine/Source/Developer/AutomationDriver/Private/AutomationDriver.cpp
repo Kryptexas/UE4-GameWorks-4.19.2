@@ -11,6 +11,7 @@
 #include "WaitUntil.h"
 
 #include "Async.h"
+#include "Framework/Application/SlateApplication.h"
 
 FAsyncAutomationDriver::~FAsyncAutomationDriver()
 {

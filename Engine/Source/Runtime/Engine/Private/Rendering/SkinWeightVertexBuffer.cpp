@@ -2,6 +2,7 @@
 
 #include "Rendering/SkinWeightVertexBuffer.h"
 #include "SkeletalMeshTypes.h"
+#include "EngineUtils.h"
 
 ///
 

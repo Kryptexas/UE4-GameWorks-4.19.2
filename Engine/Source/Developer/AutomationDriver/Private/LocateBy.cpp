@@ -3,6 +3,7 @@
 #include "LocateBy.h"
 #include "SlateWidgetLocatorByDelegate.h"
 #include "SlateWidgetLocatorByPath.h"
+#include "Framework/Application/SlateApplication.h"
 
 TSharedRef<IElementLocator, ESPMode::ThreadSafe> By::Delegate(const FLocateSlateWidgetElementDelegate& Value)
 {

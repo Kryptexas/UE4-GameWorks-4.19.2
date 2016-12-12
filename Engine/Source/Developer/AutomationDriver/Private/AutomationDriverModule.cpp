@@ -4,6 +4,7 @@
 #include "PassThroughMessageHandler.h"
 #include "AutomatedApplication.h"
 #include "AutomationDriver.h"
+#include "Framework/Application/SlateApplication.h"
 
 class FAutomationDriverModule
 	: public IAutomationDriverModule

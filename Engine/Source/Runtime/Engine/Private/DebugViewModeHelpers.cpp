@@ -8,6 +8,8 @@
 #include "ShaderCompiler.h"
 #include "ScopedSlowTask.h"
 #include "FeedbackContext.h"
+#include "Engine/World.h"
+#include "Components/PrimitiveComponent.h"
 
 #define LOCTEXT_NAMESPACE "LogDebugViewMode"
 

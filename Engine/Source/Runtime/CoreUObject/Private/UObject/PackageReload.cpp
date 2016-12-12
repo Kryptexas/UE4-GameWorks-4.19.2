@@ -6,6 +6,10 @@
 #include "UObjectHash.h"
 #include "Misc/AssetRegistryInterface.h"
 #include "Misc/ScopedSlowTask.h"
+#include "UObject/Package.h"
+#include "UObject/Linker.h"
+#include "Templates/Casts.h"
+#include "UObject/UObjectIterator.h"
 
 namespace PackageReloadInternal
 {

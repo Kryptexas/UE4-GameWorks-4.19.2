@@ -7,6 +7,7 @@
 #include "AutomationDriverSpecSuiteViewModel.h"
 #include "Ticker.h"
 #include "Async.h"
+#include "Framework/Application/SlateApplication.h"
 
 #define TEST_TRUE(expression) \
 	EPIC_TEST_BOOLEAN_(TEXT(#expression), expression, true)

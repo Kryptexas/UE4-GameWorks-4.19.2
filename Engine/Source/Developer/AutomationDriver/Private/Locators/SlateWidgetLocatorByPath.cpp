@@ -5,6 +5,8 @@
 #include "IElementLocator.h"
 #include "DriverIdMetaData.h"
 #include "AutomationDriverLogging.h"
+#include "Widgets/SWidget.h"
+#include "Framework/Application/SlateApplication.h"
 
 class FSlateWidgetLocatorByPath
 	: public IElementLocator

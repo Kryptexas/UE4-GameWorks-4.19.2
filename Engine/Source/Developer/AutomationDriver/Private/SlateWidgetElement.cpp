@@ -2,6 +2,7 @@
 
 #include "SlateWidgetElement.h"
 #include "IApplicationElement.h"
+#include "Framework/Application/SlateApplication.h"
 
 #include "SlateWidgetLocatorByUniqueTag.h"
 #include "DriverUniqueTagMetaData.h"
@@ -10,6 +11,9 @@
 #include "SRichTextBlock.h"
 #include "SMultiLineEditableTextBox.h"
 #include "SMultiLineEditableText.h"
+#include "STextBlock.h"
+#include "SEditableText.h"
+#include "SEditableTextBox.h"
 
 class FSlateWidgetElement
 	: public IApplicationElement

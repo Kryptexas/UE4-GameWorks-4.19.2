@@ -8,6 +8,7 @@
 #include "Localization/PortableObjectFormatDOM.h"
 #include "TextNamespaceUtil.h"
 #include "LocalizationTargetTypes.h"
+#include "UObject/Package.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogInternationalizationExportCommandlet, Log, All);
 

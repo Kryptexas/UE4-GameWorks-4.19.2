@@ -9,6 +9,7 @@
 #include "Serialization/ObjectWriter.h"
 #include "Serialization/ObjectReader.h"
 #include "Components/SkinnedMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
 #include "UObject/ReleaseObjectVersion.h"
 #include "Logging/MessageLog.h"

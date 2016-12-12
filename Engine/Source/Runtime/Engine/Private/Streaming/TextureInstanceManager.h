@@ -11,6 +11,7 @@ TextureInstanceManager.h: Definitions of classes used for texture streaming.
 #include "ContentStreaming.h"
 #include "Streaming/TextureStreamingHelpers.h"
 #include "Components/PrimitiveComponent.h"
+#include "Async/AsyncWork.h"
 
 #define MAX_TEXTURE_SIZE (float(1 << (MAX_TEXTURE_MIP_COUNT - 1)))
 

@@ -1,6 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "GenericPlatform/ICursor.h"
+
 class GenericApplication;
 class FGenericApplicationMessageHandler;
 class IPassThroughMessageHandlerFactory;

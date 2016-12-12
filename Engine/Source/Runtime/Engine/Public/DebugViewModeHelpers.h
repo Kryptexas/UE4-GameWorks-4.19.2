@@ -8,6 +8,9 @@
 
 #include "CoreMinimal.h"
 #include "RHIDefinitions.h"
+#include "SceneTypes.h"
+
+class UMaterialInterface;
 
 /** 
  * Enumeration for different Quad Overdraw visualization mode.

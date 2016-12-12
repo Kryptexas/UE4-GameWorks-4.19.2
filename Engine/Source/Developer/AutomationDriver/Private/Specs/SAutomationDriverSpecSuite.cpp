@@ -9,7 +9,9 @@
 #include "SScrollBox.h"
 #include "STileView.h"
 #include "SListView.h"
+#include "SOverlay.h"
 #include "SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
 
 class SAutomationDriverSpecSuiteImpl
 	: public SAutomationDriverSpecSuite

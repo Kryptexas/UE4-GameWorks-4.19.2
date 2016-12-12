@@ -38,6 +38,7 @@
 #include "ActorEditorUtils.h"
 #include "MaterialUtilities.h"
 #include "UnrealEngine.h"
+#include "DebugViewModeHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildUtils, Log, All);
 

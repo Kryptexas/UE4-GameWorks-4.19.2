@@ -8,6 +8,7 @@
 #include "Misc/MapErrors.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
 #include "Engine/CollisionProfile.h"
+#include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshActor"
 

@@ -5,6 +5,7 @@
 #include "GameFramework/ForceFeedbackEffect.h"
 #include "Engine/Canvas.h"
 #include "IInputInterface.h"
+#include "Engine/Texture2D.h"
 
 TArray<FForceFeedbackManager*> FForceFeedbackManager::PerWorldForceFeedbackManagers;
 FDelegateHandle FForceFeedbackManager::OnWorldCleanupHandle;

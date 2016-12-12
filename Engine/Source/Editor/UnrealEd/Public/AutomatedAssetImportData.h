@@ -8,6 +8,7 @@
 #include "AutomatedAssetImportData.generated.h"
 
 class UFactory;
+class FJsonObject;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAutomatedImport, Log, All);
 

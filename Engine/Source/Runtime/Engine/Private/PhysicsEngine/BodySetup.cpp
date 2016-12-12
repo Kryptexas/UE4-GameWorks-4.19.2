@@ -9,13 +9,16 @@
 #include "HAL/IConsoleManager.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/Engine.h"
+#include "Engine/StaticMesh.h"
 #include "Components/SkinnedMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformManagerModule.h"
 #include "Animation/AnimStats.h"
 #include "DerivedDataCacheInterface.h"
+#include "UObject/UObjectIterator.h"
 
 #if WITH_PHYSX
 	#include "PhysXPublic.h"

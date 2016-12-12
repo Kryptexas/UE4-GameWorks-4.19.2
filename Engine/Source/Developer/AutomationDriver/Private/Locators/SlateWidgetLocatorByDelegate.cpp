@@ -3,6 +3,7 @@
 #include "SlateWidgetLocatorByDelegate.h"
 #include "SlateWidgetElement.h"
 #include "IElementLocator.h"
+#include "Framework/Application/SlateApplication.h"
 
 class FSlateWidgetLocatorByWidgetDelegate
 	: public IElementLocator

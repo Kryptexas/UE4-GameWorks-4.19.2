@@ -19,6 +19,7 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "EngineGlobals.h"
 #include "PrimitiveSceneProxy.h"
+#include "Engine/CollisionProfile.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinnedMeshComp, Log, All);
 

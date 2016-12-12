@@ -25,6 +25,7 @@
 #include "IAssetTools.h"
 #include "AssetToolsModule.h"
 #include "Misc/FbxErrors.h"
+#include "ARFilter.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxMaterialImport, Log, All);
 

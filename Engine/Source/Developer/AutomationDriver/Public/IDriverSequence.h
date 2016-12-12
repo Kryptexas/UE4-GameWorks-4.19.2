@@ -3,6 +3,8 @@
 
 #include "WaitUntil.h"
 #include "Misc/Timespan.h"
+#include "InputCoreTypes.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
 
 class IElementLocator;
 

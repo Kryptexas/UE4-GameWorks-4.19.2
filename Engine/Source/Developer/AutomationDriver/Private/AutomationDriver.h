@@ -4,6 +4,7 @@
 #include "IAutomationDriver.h"
 #include "WaitUntil.h"
 #include "Misc/Timespan.h"
+#include "InputCoreTypes.h"
 
 class FAutomatedApplication;
 class IElementLocator;

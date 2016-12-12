@@ -3,6 +3,8 @@
 
 #include "IElementLocator.h"
 #include "AsyncResult.h"
+#include "InputCoreTypes.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
 
 /**
  * Represents the async API for a potential application element

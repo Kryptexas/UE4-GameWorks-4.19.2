@@ -8,6 +8,7 @@
 #include "UObject/Package.h"
 #include "UObject/UnrealType.h"
 #include "UObject/TextProperty.h"
+#include "UObject/PropertyPortFlags.h"
 #include "Internationalization/TextNamespaceUtil.h"
 #include "Internationalization/TextPackageNamespaceUtil.h"
 

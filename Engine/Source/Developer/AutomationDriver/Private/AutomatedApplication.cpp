@@ -2,6 +2,8 @@
 
 #include "AutomatedApplication.h"
 #include "PassThroughMessageHandler.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
 
 class FAutomatedCursor
 	: public ICursor

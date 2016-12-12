@@ -23,6 +23,7 @@
 #include "ISourceControlModule.h"
 #include "Editor.h"
 #include "Dialogs/Dialogs.h"
+#include "Toolkits/AssetEditorManager.h"
 
 #include "ObjectTools.h"
 #include "KismetEditorUtilities.h"

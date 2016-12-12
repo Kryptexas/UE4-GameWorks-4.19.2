@@ -11,6 +11,8 @@
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "Materials/MaterialInterface.h"
+#include "MaterialShared.h"
+#include "Engine/Texture2D.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewportCommands"
 

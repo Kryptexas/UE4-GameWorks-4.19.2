@@ -4,6 +4,7 @@
 #include "SlateWidgetElement.h"
 #include "IElementLocator.h"
 #include "DriverUniqueTagMetaData.h"
+#include "Framework/Application/SlateApplication.h"
 
 class FSlateWidgetLocatorByUniqueTag
 	: public IElementLocator
