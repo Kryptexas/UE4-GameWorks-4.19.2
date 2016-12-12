@@ -455,24 +455,23 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 			Canvas->GetFeatureLevel(),
 			Canvas->GetShaderPlatform()
 		};
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			BatchedDrawCommand,
-			FBatchedDrawParameters,Parameters,DrawParameters,
-		{
-			// draw batched items
-			Parameters.RenderData->BatchedElements.Draw(
-				RHICmdList,
-				Parameters.FeatureLevel,
-				Parameters.bNeedsToSwitchVerticalAxis,
-				FBatchedElements::CreateProxySceneView(Parameters.RenderData->Transform.GetMatrix(),FIntRect(0, 0, Parameters.ViewportSizeX, Parameters.ViewportSizeY)),
-				Parameters.bHitTesting,
-				Parameters.DisplayGamma
-				);
-			if( Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender )
+		EnqueueUniqueRenderCommand("BatchedDrawCommand",
+			[DrawParameters](FRHICommandList& RHICmdList)
 			{
-				delete Parameters.RenderData;
-			}
-		});
+				// draw batched items
+				DrawParameters.RenderData->BatchedElements.Draw(
+					RHICmdList,
+						DrawParameters.FeatureLevel,
+						DrawParameters.bNeedsToSwitchVerticalAxis,
+					FBatchedElements::CreateProxySceneView(DrawParameters.RenderData->Transform.GetMatrix(),FIntRect(0, 0, DrawParameters.ViewportSizeX, DrawParameters.ViewportSizeY)),
+						DrawParameters.bHitTesting,
+						DrawParameters.DisplayGamma
+					);
+				if(DrawParameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender )
+				{
+					delete DrawParameters.RenderData;
+				}
+			});
 	}
 	if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
 	{
@@ -759,25 +758,24 @@ void FCanvas::Flush_GameThread(bool bForce)
 	};
 	bool bEmitCanvasDrawEvents = GEmitDrawEvents;
 
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		CanvasFlushSetupCommand,
-		FCanvasFlushParameters,Parameters,FlushParameters,
-	{
-		// Set the RHI render target.
-		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
-		// disable depth test & writes
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-
-		if (Parameters.bIsScaledToRenderTarget)
+	EnqueueUniqueRenderCommand("CanvasFlushSetupCommand",
+		[FlushParameters](FRHICommandList& RHICmdList)
 		{
-			FIntPoint CanvasSize = Parameters.CanvasRenderTarget->GetSizeXY();
-			Parameters.ViewRect = FIntRect(0, 0, CanvasSize.X, CanvasSize.Y);
-		}
+			// Set the RHI render target.
+			::SetRenderTarget(RHICmdList, FlushParameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
+			// disable depth test & writes
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-		const FIntRect& ViewportRect = Parameters.ViewRect;
-		// set viewport to RT size
-		RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
-	});
+			FIntRect ViewportRect = FlushParameters.ViewRect;
+			if (FlushParameters.bIsScaledToRenderTarget)
+			{
+				FIntPoint CanvasSize = FlushParameters.CanvasRenderTarget->GetSizeXY();
+				ViewportRect = FIntRect(0, 0, CanvasSize.X, CanvasSize.Y);
+			}
+
+			// set viewport to RT size
+			RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
+		});
 
 	// iterate over the FCanvasSortElements in sorted order and render all the batched items for each entry
 	for( int32 Idx=0; Idx < SortedElements.Num(); Idx++ )
@@ -899,27 +897,25 @@ void FCanvas::SetRenderTargetRect( const FIntRect& InViewRect )
 	ViewRect = InViewRect;
 }
 
-void FCanvas::Clear(const FLinearColor& LinearColor)
+void FCanvas::Clear(const FLinearColor& ClearColor)
 {
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		ClearCommand,
-		FLinearColor, ClearColor, LinearColor,
-		FRenderTarget*, CanvasRenderTarget, GetRenderTarget(),
-	{
-		SCOPED_DRAW_EVENT(RHICmdList, CanvasClear);
-		if( CanvasRenderTarget )
+	FRenderTarget* CanvasRenderTarget = GetRenderTarget();
+	EnqueueUniqueRenderCommand("ClearCommand",
+		[ClearColor, CanvasRenderTarget](FRHICommandList& RHICmdList)
 		{
-			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
-			RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
-			RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
-		}
-		else
-		{
-			//#todo-rco!
-			ensure(0);
-			//RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
-		}
-	});
+			SCOPED_DRAW_EVENT(RHICmdList, CanvasClear);
+			if( CanvasRenderTarget )
+			{
+				::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
+				RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
+				RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
+			}
+			else
+			{
+				ensureMsgf(0, TEXT("What is the current render target here?"));
+				//RHICmdList.ClearColorTexture(CanvasRenderTarget->GetRenderTargetTexture(), ClearColor, FIntRect());
+			}
+		});
 }
 
 void FCanvas::DrawTile( float X, float Y, float SizeX,	float SizeY, float U, float V, float SizeU, float SizeV, const FLinearColor& Color,	const FTexture* Texture, bool AlphaBlend )

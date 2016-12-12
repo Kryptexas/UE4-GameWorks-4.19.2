@@ -592,7 +592,7 @@ bool FD3D12Viewport::Present(bool bLockToVsync)
 	DefaultContext.CommandListHandle.FlushResourceBarriers();
 
 	// Stop Timing at the very last moment
-	Adapter->GetGPUProfiler().EndFrame();
+	Adapter->GetGPUProfiler().EndFrame(Device->GetOwningRHI());
 
 	// Execute the current command lists, and then open a new command list with a new command allocator.
 	DefaultContext.ReleaseCommandAllocator();

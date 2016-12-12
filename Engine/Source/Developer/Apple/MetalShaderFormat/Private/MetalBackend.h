@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 
+#define USE_VS_HS_ATTRIBUTES 1
+
 #include "hlslcc.h"
 THIRD_PARTY_INCLUDES_START
 	#include "ir.h"
@@ -39,18 +41,30 @@ public:
 	virtual bool CanConvertBetweenHalfAndFloat() const override { return false; }
 
 	virtual bool NeedsAtomicLoadStore() const override { return true; }
+	
+	virtual bool SplitInputVariableStructs() const { return false; }
 };
 
 struct FBuffers;
+struct FMetalTessellationOutputs;
+
+enum EMetalAccess
+{
+    EMetalAccessRead = 1,
+    EMetalAccessWrite = 2,
+    EMetalAccessReadWrite = 3,
+};
 
 // Generates Metal compliant code from IR tokens
 struct FMetalCodeBackend : public FCodeBackend
 {
-	FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, bool bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks);
+	FMetalCodeBackend(FMetalTessellationOutputs& Attribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 Version, bool bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks);
 
 	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override;
 
 	virtual bool GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState) override;
+
+	void CallPatchConstantFunction(_mesa_glsl_parse_state* ParseState, ir_variable* OutputPatchVar, ir_variable* internalPatchIDVar, ir_function_signature* PatchConstantSig, exec_list& DeclInstructions, exec_list &PostCallInstructions, int &onAttribute);
 
 	// Return false if there were restrictions that made compilation fail
 	virtual bool ApplyAndVerifyPlatformRestrictions(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override;
@@ -63,7 +77,15 @@ struct FMetalCodeBackend : public FCodeBackend
 	void ConvertHalfToFloatUniformsAndSamples(exec_list* ir, _mesa_glsl_parse_state* State, bool bConvertUniforms, bool bConvertSamples);
 	void BreakPrecisionChangesVisitor(exec_list* ir, _mesa_glsl_parse_state* State);
 
+    TMap<ir_variable*, uint32> ImageRW;
+    FMetalTessellationOutputs& TessAttribs;
+    
+    uint8 Version;
 	bool bIsDesktop;
 	bool bZeroInitialise;
 	bool bBoundsChecks;
+
+	bool bIsTessellationVSHS = false;
+	unsigned int inputcontrolpoints = 0;
+	unsigned int patchesPerThreadgroup = 0;
 };

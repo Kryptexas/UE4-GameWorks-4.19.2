@@ -246,7 +246,7 @@ FShader* FGlobalShaderType::FinishCompileShader(const FShaderCompileJob& Current
 		if (!Shader)
 		{
 			Shader = (*ConstructCompiledRef)(CompiledShaderInitializerType(this, CurrentJob.Output, Resource, GGlobalShaderMapHash, ShaderPipelineType, nullptr));
-			CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(), (EShaderFrequency)CurrentJob.Output.Target.Frequency, CurrentJob.VFType);
+			CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(), CurrentJob.Output.Target, CurrentJob.VFType);
 		}
 	}
 

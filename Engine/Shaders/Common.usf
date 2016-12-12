@@ -220,6 +220,8 @@
 
 #endif
 
+#define METAL_TESSELLATION_PROFILE ((METAL_PROFILE || METAL_SM5_PROFILE) && USING_TESSELLATION)
+
 // non-editor platforms generally never want development/editor features.
 #define PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ESDEFERRED_PROFILE && !SWITCH_PROFILE)
 #define USE_DEVELOPMENT_SHADERS (COMPILE_SHADERS_FOR_DEVELOPMENT && PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS)
@@ -350,7 +352,18 @@ float2 Tile1Dto2D(float xsize, float idx)
 	return xyidx;
 }
 
-float4 PseudoVolumeTexture(Texture2D Tex, SamplerState TexSampler, float3 inPos, float xsize, float numframes)
+// return a pseudovolume texture sample.
+// useful for simulating 3D texturing with a 2D texture or as a texture flipbook with lerped transitions
+// treats 2d layout of frames a 3d texture and performs bilinear filtering by blending with an offset Z frame.
+// @param Tex          = Input Texture Object storing Volume Data
+// @param inPos        = Input float3 for Position, 0-1
+// @param xsize        = Input float for num frames in x,y directions
+// @param numFrames    = Input float for num total frames
+// @param mipmode      = Sampling mode: 0 = use miplevel, 1 = use UV computed gradients, 2 = Use gradients (default=0)
+// @param miplevel     = MIP level to use in mipmode=0 (default 0)
+// @param InDDX, InDDY = Texture gradients in mipmode=2
+float4 PseudoVolumeTexture(Texture2D Tex, SamplerState TexSampler, float3 inPos, float xsize, float numframes,
+	uint mipmode = 0, float miplevel = 0, float2 InDDX = 0, float2 InDDY = 0)
 {
 	float zframe = ceil(inPos.z * numframes);
 	float zphase = frac(inPos.z * numframes);
@@ -360,19 +373,27 @@ float4 PseudoVolumeTexture(Texture2D Tex, SamplerState TexSampler, float3 inPos,
 	float2 curframe = Tile1Dto2D(xsize, zframe) / xsize;
 	float2 nextframe = Tile1Dto2D(xsize, zframe + 1) / xsize;
 
-	float4 sampleA = Tex.SampleLevel(TexSampler, uv + curframe, 0);
-	float4 sampleB = Tex.SampleLevel(TexSampler, uv + nextframe, 0);
+	float4 sampleA = 0, sampleB = 0;
+	switch (mipmode)
+	{
+	case 0: // Mip level
+		sampleA = Tex.SampleLevel(TexSampler, uv + curframe, miplevel);
+		sampleB = Tex.SampleLevel(TexSampler, uv + nextframe, miplevel);
+		break;
+	case 1: // Gradients automatic from UV
+		sampleA = Texture2DSample(Tex, TexSampler, uv + curframe);
+		sampleB = Texture2DSample(Tex, TexSampler, uv + nextframe);
+		break;
+	case 2: // Deriviatives provided
+		sampleA = Tex.SampleGrad(TexSampler, uv + curframe,  InDDX, InDDY);
+		sampleB = Tex.SampleGrad(TexSampler, uv + nextframe, InDDX, InDDY);
+		break;
+	default:
+		break;
+	}
 
 	return lerp(sampleA, sampleB, zphase);
 }
-
-// return a pseudovolume texture sample.
-// useful for simulating 3D texturing with a 2D texture or as a texture flipbook with lerped transitions
-// treats 2d layout of frames a 3d texture and performs bilinear filtering by blending with an offset Z frame.
-// @param Tex       = Input Texture Object storing Volume Data
-// @param inPos     = Input float3 for Position, 0-1
-// @param xsize     = Input float for num frames in x,y directions
-// @param numFrames = Input float for num total frames
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5 // Cubemap arrays are not supported in SM4 feature level
 	MaterialFloat4 TextureCubeArraySampleLevel(TextureCubeArray Tex, SamplerState Sampler, float3 UV, float ArrayIndex, MaterialFloat Mip)

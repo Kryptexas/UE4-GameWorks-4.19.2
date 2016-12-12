@@ -341,13 +341,19 @@ private:
 	  * @param LightSceneInfo Represents the current light
 	  * @param LightIndex The light's index into FScene::Lights
 	  */
-	bool RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared);
+	bool RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared, bool bProjectingForForwardShading);
 
 	/** Renders a light function indicating that whole scene shadowing being displayed is for previewing only, and will go away in game. */
 	bool RenderPreviewShadowsIndicator(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared);
 
 	/** Renders a light function with the given material. */
-	bool RenderLightFunctionForMaterial(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bLightAttenuationCleared, bool bRenderingPreviewShadowsIndicator);
+	bool RenderLightFunctionForMaterial(
+		FRHICommandListImmediate& RHICmdList, 
+		const FLightSceneInfo* LightSceneInfo, 
+		const FMaterialRenderProxy* MaterialProxy, 
+		bool bLightAttenuationCleared,
+		bool bProjectingForForwardShading, 
+		bool bRenderingPreviewShadowsIndicator);
 
 	/**
 	  * Used by RenderLights to render a light to the scene color buffer.

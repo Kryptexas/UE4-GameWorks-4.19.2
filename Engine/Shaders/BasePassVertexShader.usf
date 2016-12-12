@@ -6,6 +6,11 @@
 
 #include "BasePassVertexCommon.usf"
 
+// Metal needs to combine the vertex & hull shaders for tesellation support.
+#if COMPILER_METAL && USING_TESSELLATION
+#include "BasePassTessellationShaders.usf"
+#endif
+
 #if WRITES_VELOCITY_TO_GBUFFER
 //@todo-rco: Move to pixel shader
 float SkipOutputVelocity;

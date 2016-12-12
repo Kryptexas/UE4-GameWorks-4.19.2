@@ -10,27 +10,13 @@
 #include "MetalCommandEncoder.h"
 #include "MetalCommandQueue.h"
 #include "MetalCommandList.h"
+#include "MetalRenderPass.h"
 #if PLATFORM_IOS
 #include "IOSView.h"
 #endif
 #include "LockFreeList.h"
 
 #define NUM_SAFE_FRAMES 4
-
-/**
- * Enumeration for submission hints to avoid unclear bool values.
- */
-enum EMetalSubmitFlags
-{
-	/** No submission flags. */
-	EMetalSubmitFlagsNone = 0,
-	/** Create the next command buffer. */
-	EMetalSubmitFlagsCreateCommandBuffer = 1 << 0,
-	/** Wait on the submitted command buffer. */
-	EMetalSubmitFlagsWaitOnCommandBuffer = 1 << 1,
-	/** Break a single logical command-buffer into parts to keep the GPU active. */
-	EMetalSubmitFlagsBreakCommandBuffer = 1 << 2,
-};
 
 class FMetalRHICommandContext;
 
@@ -46,17 +32,9 @@ public:
 	id<MTLDevice> GetDevice();
 	FMetalCommandQueue& GetCommandQueue();
 	FMetalCommandList& GetCommandList();
-	FMetalCommandEncoder& GetCommandEncoder();
-	id<MTLRenderCommandEncoder> GetRenderContext();
-	id<MTLBlitCommandEncoder> GetBlitContext();
 	id<MTLCommandBuffer> GetCurrentCommandBuffer();
 	FMetalStateCache& GetCurrentState() { return StateCache; }
-	
-	/** Return an auto-released command buffer, caller will need to retain it if it needs to live awhile */
-	id<MTLCommandBuffer> CreateCommandBuffer(bool bRetainReferences)
-	{
-		return bRetainReferences ? CommandQueue.CreateRetainedCommandBuffer() : CommandQueue.CreateUnretainedCommandBuffer();
-	}
+	FMetalRenderPass& GetCurrentRenderPass() { return RenderPass; }
 	
 	void InsertCommandBufferFence(FMetalCommandBufferFence& Fence);
 	
@@ -69,9 +47,10 @@ public:
 	/**
 	 * Do anything necessary to prepare for any kind of draw call 
 	 * @param PrimitiveType The UE4 primitive type for the draw call, needed to compile the correct render pipeline.
+	 * @param IndexType The index buffer type (none, uint16, uint32), needed to compile the correct tessellation compute pipeline.
 	 * @returns True if the preparation completed and the draw call can be encoded, false to skip.
 	 */
-	bool PrepareToDraw(uint32 PrimitiveType);
+	bool PrepareToDraw(uint32 PrimitiveType, EMetalIndexType IndexType = EMetalIndexType_None);
 	
 	/**
 	 * Set the color, depth and stencil render targets, and then make the new command buffer/encoder
@@ -82,10 +61,7 @@ public:
 	 * Allocate from a dynamic ring buffer - by default align to the allowed alignment for offset field when setting buffers
 	 */
 	uint32 AllocateFromRingBuffer(uint32 Size, uint32 Alignment=0);
-	id<MTLBuffer> GetRingBuffer()
-	{
-		return RingBuffer->Buffer;
-	}
+	id<MTLBuffer> GetRingBuffer();
 
 	TSharedRef<FMetalQueryBufferPool, ESPMode::ThreadSafe> GetQueryBufferPool()
 	{
@@ -99,8 +75,41 @@ public:
 	void SubmitCommandBufferAndWait();
 	void ResetRenderCommandEncoder();
 	
-	void SetShaderResourceView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV);
-	void SetShaderUnorderedAccessView(EShaderFrequency ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV);
+	void DrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances);
+	
+	void DrawPrimitiveIndirect(uint32 PrimitiveType, FMetalVertexBuffer* VertexBuffer, uint32 ArgumentOffset);
+	
+	void DrawIndexedPrimitive(id<MTLBuffer> IndexBuffer, uint32 IndexStride, MTLIndexType IndexType, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 FirstInstance,
+							  uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances);
+	
+	void DrawIndexedIndirect(FMetalIndexBuffer* IndexBufferRHI, uint32 PrimitiveType, FMetalStructuredBuffer* VertexBufferRHI, int32 DrawArgumentsIndex, uint32 NumInstances);
+	
+	void DrawIndexedPrimitiveIndirect(uint32 PrimitiveType,FMetalIndexBuffer* IndexBufferRHI,FMetalVertexBuffer* VertexBufferRHI,uint32 ArgumentOffset);
+	
+	void DrawPatches(uint32 PrimitiveType, id<MTLBuffer> IndexBuffer, uint32 IndexBufferStride, int32 BaseVertexIndex, uint32 FirstInstance, uint32 StartIndex,
+					 uint32 NumPrimitives, uint32 NumInstances);
+	
+	void CopyFromTextureToBuffer(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLBuffer> toBuffer, uint32 destinationOffset, uint32 destinationBytesPerRow, uint32 destinationBytesPerImage, MTLBlitOption options);
+	
+	void CopyFromBufferToTexture(id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
+	
+	void CopyFromTextureToTexture(id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
+	
+    id<MTLCommandBuffer> BeginAsyncCommands(void);
+    
+    void AsyncCopyFromBufferToTexture(id<MTLCommandBuffer> CmdBuf, id<MTLBuffer> Buffer, uint32 sourceOffset, uint32 sourceBytesPerRow, uint32 sourceBytesPerImage, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
+    
+    void AsyncCopyFromTextureToTexture(id<MTLCommandBuffer> CmdBuf, id<MTLTexture> Texture, uint32 sourceSlice, uint32 sourceLevel, MTLOrigin sourceOrigin, MTLSize sourceSize, id<MTLTexture> toTexture, uint32 destinationSlice, uint32 destinationLevel, MTLOrigin destinationOrigin);
+    
+    void GenerateMipmapsForTexture(id<MTLCommandBuffer> CmdBuf, id<MTLTexture> Texture);
+    
+    void EndAsyncCommands(id<MTLCommandBuffer> CmdBuf, bool const bWait);
+    
+	void SynchronizeTexture(id<MTLTexture> Texture, uint32 Slice, uint32 Level);
+	
+	void SynchroniseResource(id<MTLResource> Resource);
+	
+	void FillBuffer(id<MTLBuffer> Buffer, NSRange Range, uint8 Value);
 
 	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
 #if METAL_API_1_1
@@ -115,48 +124,6 @@ public:
 	void FinishFrame();
 
 protected:
-	/** Create & set the current command buffer, waiting on outstanding command buffers if required. */
-	void CreateCurrentCommandBuffer(bool bWait);
-
-	/**
-	 * Possibly switch from blit or compute to graphics
-	 */
-	void ConditionalSwitchToGraphics(bool bRTChangePending = false, bool bRTChangeForce = false);
-	
-	/**
-	 * Switch to blitting
-	 */
-	void ConditionalSwitchToBlit();
-	
-	/**
-	 * Switch to compute
-	 */
-	void ConditionalSwitchToCompute();
-	
-	/** Conditionally submit based on the number of outstanding draw/dispatch ops. */
-	void ConditionalSubmit(bool bRTChangePending = false, bool bRTChangeForce = false);
-	
-	/** Apply the SRT before drawing */
-	void CommitGraphicsResourceTables();
-	
-	void CommitNonComputeShaderConstants();
-	
-private:
-	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FRHITexture* RESTRICT TextureRHI, float CurrentTime);
-	
-	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalShaderResourceView* RESTRICT SRV, float CurrentTime);
-	
-	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState, float CurrentTime);
-	
-	FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalUnorderedAccessView* RESTRICT UAV, float CurrentTime);
-	
-	template <typename MetalResourceType>
-	inline int32 SetShaderResourcesFromBuffer(uint32 ShaderStage, FMetalUniformBuffer* RESTRICT Buffer, const uint32* RESTRICT ResourceMap, int32 BufferIndex);
-	
-	template <class ShaderType>
-	void SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage);
-	
-protected:
 	/** The underlying Metal device */
 	id<MTLDevice> Device;
 	
@@ -166,20 +133,14 @@ protected:
 	/** The wrapper around commabd buffers for ensuring correct parallel execution order */
 	FMetalCommandList CommandList;
 	
-	/** The wrapper for encoding commands into the current command buffer. */
-	FMetalCommandEncoder CommandEncoder;
-	
 	/** The cache of all tracked & accessible state. */
 	FMetalStateCache StateCache;
 	
-	/** The current command buffer that receives new commands. */
-	id<MTLCommandBuffer> CurrentCommandBuffer;
+	/** The render pass handler that actually encodes our commands. */
+	FMetalRenderPass RenderPass;
 	
 	/** A sempahore used to ensure that wait for previous frames to complete if more are in flight than we permit */
 	dispatch_semaphore_t CommandBufferSemaphore;
-	
-	/** A simple fixed-size ring buffer for dynamic data */
-	TSharedPtr<FRingBuffer, ESPMode::ThreadSafe> RingBuffer;
 	
 	/** A pool of buffers for writing visibility query results. */
 	TSharedPtr<FMetalQueryBufferPool, ESPMode::ThreadSafe> QueryBuffer;
@@ -192,12 +153,6 @@ protected:
 	
 	/** the slot to store a per-thread context ref */
 	static uint32 CurrentContextTLSSlot;
-	
-	/** The side table for runtiem validation of buffer access */
-	uint32 BufferSideTable[SF_NumFrequencies][MaxMetalStreams];
-	
-	/** The number of outstanding draw & dispatch commands in the current command buffer, used to commit command buffers at encoder boundaries when sufficiently large. */
-	uint32 OutstandingOpCount;
 	
 	/** Whether the validation layer is enabled */
 	bool bValidationEnabled;

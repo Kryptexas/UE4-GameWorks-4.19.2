@@ -28,6 +28,7 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init();
 	virtual void Shutdown();
+	virtual const TCHAR* GetName() override { return TEXT("Empty"); }
 
 	template<typename TRHIType>
 	static FORCEINLINE typename TEmptyResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)

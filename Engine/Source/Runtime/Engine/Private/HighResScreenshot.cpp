@@ -35,6 +35,7 @@ FHighResScreenshotConfig::FHighResScreenshotConfig()
 {
 	ChangeViewport(TWeakPtr<FSceneViewport>());
 	SetHDRCapture(false);
+	SetForce128BitRendering(false);
 }
 
 void FHighResScreenshotConfig::Init(uint32 NumAsyncWriters)
@@ -150,6 +151,11 @@ void FHighResScreenshotConfig::SetHDRCapture(bool bCaptureHDRIN)
 	bCaptureHDR = bCaptureHDRIN;
 }
 
+void FHighResScreenshotConfig::SetForce128BitRendering(bool bForce)
+{
+	bForce128BitRendering = bForce;
+}
+
 bool FHighResScreenshotConfig::SetResolution(uint32 ResolutionX, uint32 ResolutionY, float ResolutionScale)
 {
 	if ( ResolutionX > GetMax2DTextureDimension() || ResolutionY > GetMax2DTextureDimension() )
@@ -193,12 +199,23 @@ template<> struct FPixelTypeTraits<FFloat16Color>
 	}
 };
 
+template<> struct FPixelTypeTraits<FLinearColor>
+{
+	static const ERGBFormat::Type SourceChannelLayout = ERGBFormat::RGBA;
+
+	static FORCEINLINE bool IsWritingHDRImage(const bool bCaptureHDR)
+	{
+		static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
+		return bCaptureHDR || CVarDumpFramesAsHDR->GetValueOnAnyThread();
+	}
+};
+
 template<typename TPixelType>
 bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixelType>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const
 {
 	typedef FPixelTypeTraits<TPixelType> Traits;
 
-	static_assert(ARE_TYPES_EQUAL(TPixelType, FFloat16Color) || ARE_TYPES_EQUAL(TPixelType, FColor), "Source format must be either FColor or FFloat16Color");
+	static_assert(ARE_TYPES_EQUAL(TPixelType, FFloat16Color) || ARE_TYPES_EQUAL(TPixelType, FColor) || ARE_TYPES_EQUAL(TPixelType, FLinearColor), "Source format must be either FColor, FLinearColor or FFloat16Color");
 	const int32 x = BitmapSize.X;
 	const int32 y = BitmapSize.Y;
 	check(Bitmap.Num() == x * y);
@@ -273,6 +290,7 @@ bool FHighResScreenshotConfig::SaveImage(const FString& File, const TArray<TPixe
 
 template ENGINE_API bool FHighResScreenshotConfig::SaveImage<FColor>(const FString& File, const TArray<FColor>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const;
 template ENGINE_API bool FHighResScreenshotConfig::SaveImage<FFloat16Color>(const FString& File, const TArray<FFloat16Color>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const;
+template ENGINE_API bool FHighResScreenshotConfig::SaveImage<FLinearColor>(const FString& File, const TArray<FLinearColor>& Bitmap, const FIntPoint& BitmapSize, FString* OutFilename) const;
 
 FHighResScreenshotConfig::FImageWriter::FImageWriter(const TSharedPtr<class IImageWrapper>& InWrapper)
 	: ImageWrapper(InWrapper)

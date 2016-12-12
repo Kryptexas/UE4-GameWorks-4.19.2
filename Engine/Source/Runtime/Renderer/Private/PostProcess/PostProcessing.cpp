@@ -87,8 +87,10 @@ static TAutoConsoleVariable<int32> CVarUpscaleQuality(
 	TEXT("Defines the quality in which ScreenPercentage and WindowedFullscreen scales the 3d rendering.\n")
 	TEXT(" 0: Nearest filtering\n")
 	TEXT(" 1: Simple Bilinear\n")
-	TEXT(" 2: 4 tap bilinear\n")
-	TEXT(" 3: Directional blur with unsharp mask upsample. (default)"),
+	TEXT(" 2: Directional blur with unsharp mask upsample.\n")
+	TEXT(" 3: 5-tap Catmull-Rom bicubic, approximating Lanczos 2. (default)\n")
+	TEXT(" 4: 13-tap Lanczos 3.\n")
+	TEXT(" 5: 36-tap Gaussian-filtered unsharp mask (very expensive, but good for extreme upsampling).\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CDownsampleQuality(
@@ -318,9 +320,9 @@ static FRCPassPostProcessTonemap* AddTonemapper(
 	const FEngineShowFlags& EngineShowFlags = View.Family->EngineShowFlags;
 
 	FRenderingCompositeOutputRef TonemapperCombinedLUTOutputRef;
-	if (View.State && (StereoPass != eSSP_RIGHT_EYE))
+	if (StereoPass != eSSP_RIGHT_EYE)
 	{
-		FRenderingCompositePass* CombinedLUT = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs(View.GetShaderPlatform()));
+		FRenderingCompositePass* CombinedLUT = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCombineLUTs(View.GetShaderPlatform(), View.State == nullptr));
 		TonemapperCombinedLUTOutputRef =  FRenderingCompositeOutputRef(CombinedLUT);
 	}
 
@@ -1909,8 +1911,8 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			if (PaniniConfig.IsEnabled() || bDoScreenPercentage)
 			{
 				int32 UpscaleQuality = CVarUpscaleQuality.GetValueOnRenderThread();
-				UpscaleQuality = FMath::Clamp(UpscaleQuality, 0, 3);
-				FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(UpscaleQuality, PaniniConfig));
+				UpscaleQuality = FMath::Clamp(UpscaleQuality, 0, 5);
+				FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(View, UpscaleQuality, PaniniConfig));
 				Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput)); // Bilinear sampling.
 				Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput)); // Point sampling.
 				Context.FinalOutput = FRenderingCompositeOutputRef(Node);

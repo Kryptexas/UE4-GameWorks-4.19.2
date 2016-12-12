@@ -447,6 +447,10 @@ public:
 
 	int32 GetNumGBufferTargets() const;
 
+	int32 GetMSAACount() const { return CurrentMSAACount; }
+
+	bool HasLightAttenuation() const { return LightAttenuation.IsValid(); }
+
 	// ---
 
 	// needs to be called between AllocSceneColor() and ReleaseSceneColor()
@@ -490,12 +494,6 @@ public:
 
 	TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
 
-	/**
-	 * Takes the requested buffer size and quantizes it to an appropriate size for the rest of the
-	 * rendering pipeline. Currently ensures that sizes are multiples of 8 so that they can safely
-	 * be halved in size several times.
-	 */
-	static void QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY);
 
 	bool IsSeparateTranslucencyActive(const FViewInfo& View) const;
 

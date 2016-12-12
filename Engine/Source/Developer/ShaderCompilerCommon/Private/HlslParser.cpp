@@ -691,7 +691,11 @@ namespace CrossCompiler
 				do
 				{
 					auto* IdentifierToken = Scanner.GetCurrentToken();
-					if (!Scanner.MatchToken(EHlslToken::Identifier))
+					if (Scanner.MatchToken(EHlslToken::Texture) || Scanner.MatchToken(EHlslToken::Sampler) || Scanner.MatchToken(EHlslToken::Buffer))
+					{
+						// Continue, handles the case of 'float3 Texture'...
+					}
+					else if (!Scanner.MatchToken(EHlslToken::Identifier))
 					{
 						Scanner.SetCurrentTokenIndex(OriginalToken);
 						return EParseResult::NotMatched;

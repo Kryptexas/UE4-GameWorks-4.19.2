@@ -135,7 +135,8 @@ public:
 	inline uint32 GetNumColorAttachments() const { return NumColorAttachments; }
 	inline bool GetHasDepthStencil() const { return bHasDepthStencil; }
 	inline bool GetHasResolveAttachments() const { return bHasResolveAttachments; }
-	inline uint32 GetNumAttachments() const { return NumAttachments; }
+	inline uint32 GetNumAttachmentDescriptions() const { return NumAttachmentDescriptions; }
+	inline uint32 GetNumSamples() const { return NumSamples; }
 
 	inline const VkAttachmentReference* GetColorAttachmentReferences() const { return NumColorAttachments > 0 ? ColorReferences : nullptr; }
 	inline const VkAttachmentReference* GetResolveAttachmentReferences() const { return bHasResolveAttachments ? ResolveReferences : nullptr; }
@@ -148,10 +149,11 @@ protected:
 
 	VkAttachmentDescription Desc[MaxSimultaneousRenderTargets * 2 + 1];
 
-	uint32 NumAttachments;
+	uint32 NumAttachmentDescriptions;
 	uint32 NumColorAttachments;
 	bool bHasDepthStencil;
 	bool bHasResolveAttachments;
+	uint32 NumSamples;
 
 	uint32 Hash;
 
@@ -168,7 +170,7 @@ protected:
 		FMemory::Memzero(ResolveReferences);
 		FMemory::Memzero(DepthStencilReference);
 		FMemory::Memzero(Desc);
-		NumAttachments = 0;
+		NumAttachmentDescriptions = 0;
 		NumColorAttachments = 0;
 		bHasDepthStencil = 0;
 		bHasResolveAttachments = 0;

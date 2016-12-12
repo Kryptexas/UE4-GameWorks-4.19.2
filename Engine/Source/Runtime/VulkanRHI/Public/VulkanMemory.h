@@ -375,7 +375,7 @@ namespace VulkanRHI
 	class FOldResourceHeapPage
 	{
 	public:
-		FOldResourceHeapPage(FOldResourceHeap* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation);
+		FOldResourceHeapPage(FOldResourceHeap* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation, uint32 InID);
 		~FOldResourceHeapPage();
 
 		FOldResourceAllocation* TryAllocate(uint32 Size, uint32 Alignment, const char* File, uint32 Line);
@@ -394,6 +394,11 @@ namespace VulkanRHI
 			return Owner;
 		}
 
+		inline uint32 GetID() const
+		{
+			return ID;
+		}
+
 	protected:
 		FOldResourceHeap* Owner;
 		FDeviceMemoryAllocation* DeviceMemoryAllocation;
@@ -402,6 +407,7 @@ namespace VulkanRHI
 		uint32 UsedSize;
 		int32 PeakNumAllocations;
 		uint32 FrameFreed;
+		uint32 ID;
 
 		bool JoinFreeBlocks();
 
@@ -659,6 +665,11 @@ namespace VulkanRHI
 		{
 			return bIsLazilyAllocatedSupported;
 		}
+		
+		inline uint32 GetMemoryTypeIndex() const
+		{
+			return MemoryTypeIndex;
+		}
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		void DumpMemory();
@@ -674,6 +685,7 @@ namespace VulkanRHI
 		uint32 DefaultPageSize;
 		uint32 PeakPageSize;
 		uint64 UsedMemory;
+		uint32 PageIDCounter;
 
 		TArray<FOldResourceHeapPage*> UsedBufferPages;
 		TArray<FOldResourceHeapPage*> UsedImagePages;
@@ -731,7 +743,20 @@ namespace VulkanRHI
 			bool bMapped = (MemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			if (!ResourceTypeHeaps[TypeIndex])
 			{
-				UE_LOG(LogVulkanRHI, Fatal, TEXT("Missing memory type index %d, MemSize %d, MemPropTypeBits %u, MemPropertyFlags %u, %s(%d)"), TypeIndex, (uint32)MemoryReqs.size, (uint32)MemoryReqs.memoryTypeBits, (uint32)MemoryPropertyFlags, ANSI_TO_TCHAR(File), Line);
+				// Try another heap type
+				uint32 OriginalTypeIndex = TypeIndex;
+				if (DeviceMemoryManager->GetMemoryTypeFromPropertiesExcluding(MemoryReqs.memoryTypeBits, MemoryPropertyFlags, TypeIndex, &TypeIndex) != VK_SUCCESS)
+				{
+					UE_LOG(LogVulkanRHI, Fatal, TEXT("Unable to find alternate type for index %d, MemSize %d, MemPropTypeBits %u, MemPropertyFlags %u, %s(%d)"), OriginalTypeIndex, (uint32)MemoryReqs.size, (uint32)MemoryReqs.memoryTypeBits, (uint32)MemoryPropertyFlags, ANSI_TO_TCHAR(File), Line);
+				}
+
+				if (!ResourceTypeHeaps[TypeIndex])
+				{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+					DumpMemory();
+#endif
+					UE_LOG(LogVulkanRHI, Fatal, TEXT("Missing memory type index %d (originally requested %d), MemSize %d, MemPropTypeBits %u, MemPropertyFlags %u, %s(%d)"), TypeIndex, OriginalTypeIndex, (uint32)MemoryReqs.size, (uint32)MemoryReqs.memoryTypeBits, (uint32)MemoryPropertyFlags, ANSI_TO_TCHAR(File), Line);
+				}
 			}
 
 			if (!ResourceTypeHeaps[TypeIndex]->IsHostCachedSupported())
@@ -884,7 +909,7 @@ namespace VulkanRHI
 	class FFence
 	{
 	public:
-		FFence(FVulkanDevice* InDevice, FFenceManager* InOwner);
+		FFence(FVulkanDevice* InDevice, FFenceManager* InOwner, bool bCreateSignaled);
 
 		inline VkFence GetHandle() const
 		{
@@ -934,7 +959,7 @@ namespace VulkanRHI
 		void Init(FVulkanDevice* InDevice);
 		void Deinit();
 
-		FFence* AllocateFence();
+		FFence* AllocateFence(bool bCreateSignaled = false);
 
 		inline bool IsFenceSignaled(FFence* Fence)
 		{

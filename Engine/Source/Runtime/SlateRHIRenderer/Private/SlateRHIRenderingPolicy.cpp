@@ -210,6 +210,7 @@ static FSceneView* CreateSceneView( FSceneViewFamilyContext* ViewFamilyContext, 
 	View->SetupCommonViewUniformBufferParameters(
 		ViewUniformShaderParameters,
 		BufferSize,
+		1,
 		ViewRect,
 		View->ViewMatrices,
 		FViewMatrices()

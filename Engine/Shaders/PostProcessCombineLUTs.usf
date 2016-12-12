@@ -368,7 +368,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	}
 
 	// ACES 1000nit transform with PQ/2084 encoding, user specified gamut 
-	else if( GetOutputDevice() == 3 )
+	else if( GetOutputDevice() == 3 || GetOutputDevice() == 5 )
 	{		
 		// 1000 nit ODT
 		float3 ODTColor = ACESOutputTransforms1000( GradedColor );
@@ -381,7 +381,7 @@ void MainPS(noperspective float4 InUV : TEXCOORD0, out float4 OutColor : SV_Targ
 	}
 
 	// ACES 2000nit transform with PQ/2084 encoding, user specified gamut 
-	else if( GetOutputDevice() == 4 )
+	else if( GetOutputDevice() == 4 || GetOutputDevice() == 6 )
 	{		
 		// 2000 nit ODT
 		float3 ODTColor = ACESOutputTransforms2000( GradedColor );

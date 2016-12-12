@@ -513,7 +513,7 @@ public:
 	virtual bool IsPersistent() const override { return false; }
 	virtual FGuid GetMaterialId() const override { return Id; }
 
-	const UMaterialInterface* GetMaterialInterface() const
+	virtual UMaterialInterface* GetMaterialInterface() const override
 	{
 		return MaterialInterface;
 	}

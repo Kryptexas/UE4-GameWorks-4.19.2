@@ -2787,6 +2787,11 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 			{
 				// Hide loaded level, incrementally if necessary
 				RemoveFromWorld(Level, IsGameWorld() );
+
+				if (Scene)
+				{
+					Scene->OnLevelRemovedFromWorld(this, Level->bIsLightingScenario);
+				}
 			}
 		}
 

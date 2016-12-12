@@ -468,7 +468,7 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 // Limited platform support for HDR UI composition
 bool SupportsUICompositionRendering(const EShaderPlatform Platform)
 {
-	return IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM5) && RHISupportsGeometryShaders(Platform);
+	return IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM5) && (RHISupportsGeometryShaders(Platform) || RHISupportsVertexShaderLayer(Platform));
 }
 
 // Pixel shader to generate LUT for HDR UI composition
@@ -766,7 +766,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 				SetRenderTarget(RHICmdList, ViewportInfo.ColorSpaceLUTRT, FTextureRHIRef());
 
 				TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
-				TShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
+				TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
 				TShaderMapRef<FCompositeLUTGenerationPS> PixelShader(ShaderMap);
 				const FVolumeBounds VolumeBounds(CompositionLUTSize);
 
@@ -774,7 +774,10 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 				VertexShader->SetParameters(RHICmdList, VolumeBounds, VolumeBounds.MaxX - VolumeBounds.MinX);
-				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				if(GeometryShader.IsValid())
+				{
+					GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				}
 				PixelShader->SetParameters(RHICmdList);
 
 				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -794,10 +797,11 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 				SetRenderTarget(RHICmdList, FinalBuffer, FTextureRHIRef());
 
-			TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
+				TShaderMapRef<FScreenVS> VertexShader(ShaderMap);
 
-				if (IsRHIDeviceNVIDIA()) // Nvidia-specific scRGB encoding
+				if (HDROutputDevice == 5 || HDROutputDevice == 6)
 				{
+					// ScRGB encoding
 					TShaderMapRef<FCompositePS<1>> PixelShader(ShaderMap);
 					static FGlobalBoundShaderState BoundShaderState;
 					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
@@ -805,22 +809,23 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 				}
 				else
 				{
+					// ST2084 (PQ) encoding
 					TShaderMapRef<FCompositePS<0>> PixelShader(ShaderMap);
-			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
+					static FGlobalBoundShaderState BoundShaderState;
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, RendererModule.GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
 					PixelShader->SetParameters(RHICmdList, ViewportInfo.UITargetSRV, ViewportInfo.HDRSourceSRV, ViewportInfo.ColorSpaceLUTSRV);
 				}
 
-			RendererModule.DrawRectangle(
-				RHICmdList,
-				0, 0,
-				ViewportWidth, ViewportHeight,
-				0, 0,
-				ViewportWidth, ViewportHeight,
-				FIntPoint(ViewportWidth, ViewportHeight),
-				FIntPoint(ViewportWidth, ViewportHeight),
-				*VertexShader,
-				EDRF_UseTriangleOptimization);
+				RendererModule.DrawRectangle(
+					RHICmdList,
+					0, 0,
+					ViewportWidth, ViewportHeight,
+					0, 0,
+					ViewportWidth, ViewportHeight,
+					FIntPoint(ViewportWidth, ViewportHeight),
+					FIntPoint(ViewportWidth, ViewportHeight),
+					*VertexShader,
+					EDRF_UseTriangleOptimization);
 			}
 		}
 	}

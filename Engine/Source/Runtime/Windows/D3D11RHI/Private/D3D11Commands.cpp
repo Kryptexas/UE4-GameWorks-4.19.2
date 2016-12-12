@@ -19,6 +19,7 @@
 // For Depth Bounds Test interface
 #include "AllowWindowsPlatformTypes.h"
 	#include "nvapi.h"
+	#include "amd_ags.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
 
@@ -72,6 +73,87 @@ void FD3D11BaseShaderResource::SetDirty(bool bInDirty, uint32 CurrentFrame)
 		LastFrameWritten = CurrentFrame;
 	}
 	ensureMsgf((GEnableDX11TransitionChecks == 0) || !(CurrentGPUAccess == EResourceTransitionAccess::EReadable && bDirty), TEXT("ShaderResource is dirty, but set to Readable."));
+}
+
+//MultiGPU
+void FD3D11DynamicRHI::RHIBeginUpdateMultiFrameResource(FTextureRHIParamRef RHITexture)
+{
+	if (!IsRHIDeviceNVIDIA() || GNumActiveGPUsForRendering == 1) return;
+
+	FD3D11TextureBase* Texture = GetD3D11TextureFromRHITexture(RHITexture);
+
+	if (!Texture)
+	{
+		return;
+	}
+
+	if (!Texture->GetIHVResourceHandle())
+	{
+		// get a resource handle for this texture
+		void* IHVHandle = nullptr;
+		NvAPI_D3D_GetObjectHandleForResource(Direct3DDevice, Texture->GetResource(), (NVDX_ObjectHandle*)&(IHVHandle));
+		Texture->SetIHVResourceHandle(IHVHandle);
+	}
+	
+	RHIPushEvent(TEXT("BeginMFUpdate"), FColor::Black);
+	NvAPI_D3D_BeginResourceRendering(Direct3DDevice, (NVDX_ObjectHandle)Texture->GetIHVResourceHandle(), 0);
+	RHIPopEvent();
+}
+
+void FD3D11DynamicRHI::RHIEndUpdateMultiFrameResource(FTextureRHIParamRef RHITexture)
+{
+	if (!IsRHIDeviceNVIDIA() || GNumActiveGPUsForRendering == 1) return;
+
+	FD3D11TextureBase* Texture = GetD3D11TextureFromRHITexture(RHITexture);
+
+	if (!Texture || !Texture->GetIHVResourceHandle())
+	{
+		return;
+	}
+
+	RHIPushEvent(TEXT("EndMFUpdate"), FColor::Black);
+	NvAPI_D3D_EndResourceRendering(Direct3DDevice, (NVDX_ObjectHandle)Texture->GetIHVResourceHandle(), 0);
+	RHIPopEvent();	
+}
+
+void FD3D11DynamicRHI::RHIBeginUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAVRHI)
+{
+	if (!IsRHIDeviceNVIDIA() || GNumActiveGPUsForRendering == 1) return;
+
+	FD3D11UnorderedAccessView* UAV = ResourceCast(UAVRHI);
+	
+	if (!UAV)
+	{
+		return;
+	}
+
+	if (!UAV->IHVResourceHandle)
+	{
+		// get a resource handle for this texture		
+		ID3D11Resource* D3DResource = nullptr;
+		UAV->View->GetResource(&D3DResource);
+		NvAPI_D3D_GetObjectHandleForResource(Direct3DDevice, D3DResource, (NVDX_ObjectHandle*)&(UAV->IHVResourceHandle));
+	}
+	
+	RHIPushEvent(TEXT("BeginMFUpdateUAV"), FColor::Black);
+	NvAPI_D3D_BeginResourceRendering(Direct3DDevice, (NVDX_ObjectHandle)UAV->IHVResourceHandle, 0);
+	RHIPopEvent();
+}
+
+void FD3D11DynamicRHI::RHIEndUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAVRHI)
+{
+	if (!IsRHIDeviceNVIDIA() || GNumActiveGPUsForRendering == 1) return;
+
+	FD3D11UnorderedAccessView* UAV = ResourceCast(UAVRHI);
+
+	if (!UAV || !UAV->IHVResourceHandle)
+	{
+		return;
+	}
+
+	RHIPushEvent(TEXT("EndMFUpdateUAV"), FColor::Black);
+	NvAPI_D3D_EndResourceRendering(Direct3DDevice, (NVDX_ObjectHandle)UAV->IHVResourceHandle, 0);
+	RHIPopEvent();
 }
 
 // Vertex state.
@@ -2255,7 +2337,7 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 void FD3D11DynamicRHI::RHIEnableDepthBoundsTest(bool bEnable,float MinDepth,float MaxDepth)
 {
 #if PLATFORM_DESKTOP
-	if(!IsRHIDeviceNVIDIA()) return;
+	if(!IsRHIDeviceNVIDIA() && !IsRHIDeviceAMD()) return;
 
 	if(MinDepth > MaxDepth)
 	{
@@ -2274,14 +2356,30 @@ void FD3D11DynamicRHI::RHIEnableDepthBoundsTest(bool bEnable,float MinDepth,floa
 	if(MaxDepth > 1) MaxDepth = 1.f;
 	else if(MaxDepth < 0) MaxDepth = 0.f;
 
-	auto result = NvAPI_D3D11_SetDepthBoundsTest( Direct3DDevice, bEnable, MinDepth, MaxDepth );
-	if(result != NVAPI_OK)
+	if (IsRHIDeviceNVIDIA())
 	{
-		static bool bOnce = false;
-		if (!bOnce)
+		auto result = NvAPI_D3D11_SetDepthBoundsTest( Direct3DDevice, bEnable, MinDepth, MaxDepth );
+		if(result != NVAPI_OK)
 		{
-			bOnce = true;
-			UE_LOG(LogD3D11RHI, Error,TEXT("NvAPI_D3D11_SetDepthBoundsTest(%i,%f, %f) returned error code %i. **********PLEASE UPDATE YOUR VIDEO DRIVERS*********"),bEnable,MinDepth,MaxDepth,(unsigned int)result);
+			static bool bOnce = false;
+			if (!bOnce)
+			{
+				bOnce = true;
+				UE_LOG(LogD3D11RHI, Error,TEXT("NvAPI_D3D11_SetDepthBoundsTest(%i,%f, %f) returned error code %i. **********PLEASE UPDATE YOUR VIDEO DRIVERS*********"),bEnable,MinDepth,MaxDepth,(unsigned int)result);
+			}
+		}
+	}
+	else if (IsRHIDeviceAMD())
+	{
+		auto result = agsDriverExtensionsDX11_SetDepthBounds( AmdAgsContext, bEnable, MinDepth, MaxDepth );
+		if(result != AGS_SUCCESS)
+		{
+			static bool bOnce = false;
+			if (!bOnce)
+			{
+				bOnce = true;
+				UE_LOG(LogD3D11RHI, Error,TEXT("agsDriverExtensionsDX11_SetDepthBounds(%i,%f, %f) returned error code %i. **********PLEASE UPDATE YOUR VIDEO DRIVERS*********"),bEnable,MinDepth,MaxDepth,(unsigned int)result);
+			}
 		}
 	}
 #endif

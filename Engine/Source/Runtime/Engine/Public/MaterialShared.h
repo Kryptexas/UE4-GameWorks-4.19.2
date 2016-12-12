@@ -1048,6 +1048,7 @@ public:
 	 * Should shaders compiled for this material be saved to disk?
 	 */
 	virtual bool IsPersistent() const = 0;
+	virtual UMaterialInterface* GetMaterialInterface() const { return NULL; }
 
 	/**
 	* Called when compilation of an FMaterial finishes, after the GameThreadShaderMap is set and the render command to set the RenderThreadShaderMap is queued
@@ -1432,6 +1433,7 @@ public:
 	virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const = 0;
 	/** Returns the FMaterial, without using a fallback if the FMaterial doesn't have a valid shader map. Can return NULL. */
 	virtual FMaterial* GetMaterialNoFallback(ERHIFeatureLevel::Type InFeatureLevel) const { return NULL; }
+	virtual UMaterialInterface* GetMaterialInterface() const { return NULL; }
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const = 0;
 	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const = 0;
 	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const = 0;
@@ -1680,6 +1682,7 @@ public:
 	ENGINE_API virtual float GetRefractionDepthBiasValue() const override;
 	ENGINE_API virtual float GetMaxDisplacement() const override;
 	ENGINE_API virtual bool UseTranslucencyVertexFog() const override;
+	ENGINE_API virtual UMaterialInterface* GetMaterialInterface() const override;
 	/**
 	 * Should shaders compiled for this material be saved to disk?
 	 */

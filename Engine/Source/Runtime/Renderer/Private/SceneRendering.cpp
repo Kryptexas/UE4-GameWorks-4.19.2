@@ -577,13 +577,11 @@ void FViewInfo::SetupUniformBufferParameters(
 	SetupCommonViewUniformBufferParameters(
 		ViewUniformShaderParameters, 
 		SceneContext.GetBufferSizeXY(),
+		SceneContext.GetMSAACount(),
 		EffectiveViewRect,
 		InViewMatrices,
 		InPrevViewMatrices
 	);
-
-	// TODO: MSAA should be set as same as ViewRect.
-	ViewUniformShaderParameters.BufferMSAA = FSceneRenderTargets::GetNumSceneColorMSAASamples(FeatureLevel);
 
 	const bool bCheckerboardSubsurfaceRendering = FRCPassPostProcessSubsurface::RequiresCheckerboardSubsurfaceRendering( SceneContext.GetSceneColorFormat() );
 	ViewUniformShaderParameters.bCheckerboardSubsurfaceProfileRendering = bCheckerboardSubsurfaceRendering ? 1.0f : 0.0f;
@@ -1271,13 +1269,14 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 		}
 		
 		extern int32 GDistanceFieldAO;
-		bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
+		const bool bShowDFAODisabledWarning = !GDistanceFieldAO && (ViewFamily.EngineShowFlags.VisualizeMeshDistanceFields || ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO);
 
 		const bool bShowAtmosphericFogWarning = Scene->AtmosphericFog != nullptr && !Scene->ReadOnlyCVARCache.bEnableAtmosphericFog;
 		const bool bShowSkylightWarning = (Scene->ShouldRenderSkylight_Internal(BLEND_Opaque) || Scene->ShouldRenderSkylight_Internal(BLEND_Translucent)) && !Scene->ReadOnlyCVARCache.bEnableStationarySkylight;
 		const bool bShowPointLightWarning = UsedWholeScenePointLightNames.Num() > 0 && !Scene->ReadOnlyCVARCache.bEnablePointLightShadows;
+		const bool bShowShadowedLightOverflowWarning = Scene->OverflowingDynamicShadowedLights.Num() > 0;
 
-		const bool bAnyWarning = bShowPrecomputedVisibilityWarning || bShowGlobalClipPlaneWarning || bShowAtmosphericFogWarning || bShowSkylightWarning || bShowPointLightWarning || bShowDFAODisabledWarning;
+		const bool bAnyWarning = bShowPrecomputedVisibilityWarning || bShowGlobalClipPlaneWarning || bShowAtmosphericFogWarning || bShowSkylightWarning || bShowPointLightWarning || bShowDFAODisabledWarning || bShowShadowedLightOverflowWarning;
 
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{	
@@ -1335,7 +1334,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 					}
 					if (bShowSkylightWarning)
 					{
-						static const FText Message = NSLOCTEXT("Renderer", "Skylight", "PROJECT DOES NOT SUPPORT STATIONARY SKYLIGHT OR MOVABLE SKYLIGHT IN SIMPLEFORWARD MODE: ");
+						static const FText Message = NSLOCTEXT("Renderer", "Skylight", "PROJECT DOES NOT SUPPORT STATIONARY SKYLIGHT: ");
 						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
 						Y += 14;
 					}
@@ -1346,6 +1345,18 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 						Y += 14;
 
 						for (FName LightName : UsedWholeScenePointLightNames)
+						{
+							Canvas.DrawShadowedText(10, Y, FText::FromString(LightName.ToString()), GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+							Y += 14;
+						}
+					}
+					if (bShowShadowedLightOverflowWarning)
+					{
+						static const FText Message = NSLOCTEXT("Renderer", "ShadowedLightOverflow", "TOO MANY OVERLAPPING SHADOWED MOVABLE LIGHTS, SHADOW CASTING DISABLED: ");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
+
+						for (FName LightName : Scene->OverflowingDynamicShadowedLights)
 						{
 							Canvas.DrawShadowedText(10, Y, FText::FromString(LightName.ToString()), GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
 							Y += 14;

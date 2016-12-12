@@ -142,6 +142,7 @@ public:
 
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void PostLoad() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const override;

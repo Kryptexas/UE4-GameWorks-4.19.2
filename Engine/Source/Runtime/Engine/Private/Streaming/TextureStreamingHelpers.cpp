@@ -20,11 +20,13 @@ DECLARE_MEMORY_STAT_POOL(TEXT("Required Pool"), STAT_Streaming05_RequiredPool, S
 DECLARE_MEMORY_STAT_POOL(TEXT("Visible Mips"), STAT_Streaming06_VisibleMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
 DECLARE_MEMORY_STAT_POOL(TEXT("Hidden Mips"), STAT_Streaming07_HiddenMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
 DECLARE_MEMORY_STAT_POOL(TEXT("Forced Mips"), STAT_Streaming08_ForcedMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
-DECLARE_MEMORY_STAT_POOL(TEXT("Cached Mips"), STAT_Streaming09_CachedMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("UnkownRef Mips"), STAT_Streaming09_UnkownRefMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("LastRenderTime Mips"), STAT_Streaming10_LastRenderTimeMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Cached Mips"), STAT_Streaming11_CachedMips, STATGROUP_Streaming, FPlatformMemory::MCR_StreamingPool);
 
-DECLARE_MEMORY_STAT_POOL(TEXT("Wanted Mips"), STAT_Streaming10_WantedMips, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
-DECLARE_MEMORY_STAT_POOL(TEXT("Inflight Requests"), STAT_Streaming11_InflightRequests, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
-DECLARE_MEMORY_STAT_POOL(TEXT("IO Bandwidth"), STAT_Streaming12_MipIOBandwidth, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Wanted Mips"), STAT_Streaming12_WantedMips, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("Inflight Requests"), STAT_Streaming13_InflightRequests, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
+DECLARE_MEMORY_STAT_POOL(TEXT("IO Bandwidth"), STAT_Streaming14_MipIOBandwidth, STATGROUP_Streaming, FPlatformMemory::MCR_UsedStreamingPool);
 
 DECLARE_CYCLE_STAT(TEXT("Setup Async Task"), STAT_Streaming01_SetupAsyncTask, STATGROUP_Streaming);
 DECLARE_CYCLE_STAT(TEXT("Update Streaming Data"), STAT_Streaming02_UpdateStreamingData, STATGROUP_Streaming);
@@ -44,7 +46,7 @@ DEFINE_LOG_CATEGORY(LogContentStreaming);
 ENGINE_API TAutoConsoleVariable<int32> CVarStreamingUseNewMetrics(
 	TEXT("r.Streaming.UseNewMetrics"),
 	1,
-	TEXT("If non-zero, will use tight AABB bounds and improved texture factors."),
+	TEXT("If non-zero, will use improved set of metrics and heuristics."),
 	ECVF_Default);
 
 TAutoConsoleVariable<float> CVarStreamingBoost(
@@ -187,22 +189,37 @@ TAutoConsoleVariable<int32> CVarStreamingDefragDynamicBounds(
 	TEXT("If non-zero, unused dynamic bounds will be removed from the update loop"),
 	ECVF_Default);
 
+// Don't split small mips as the overhead of 2 load is significant.
+TAutoConsoleVariable<int32> CVarStreamingMinMipForSplitRequest(
+	TEXT("r.Streaming.MinMipForSplitRequest"),
+	10, // => 512
+	TEXT("If non-zero, the minimum hidden mip for which load requests will first load the visible mip"),
+	ECVF_Default);
+
+
 void FTextureStreamingSettings::Update()
 {
 	MaxEffectiveScreenSize = CVarStreamingScreenSizeEffectiveMax.GetValueOnAnyThread();
 	MaxTempMemoryAllowed = CVarStreamingMaxTempMemoryAllowed.GetValueOnAnyThread();
 	DropMips = CVarStreamingDropMips.GetValueOnAnyThread();
 	HLODStrategy = CVarStreamingHLODStrategy.GetValueOnAnyThread();
-	HiddenPrimitiveScale = CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread();
 	MipBias = FMath::Max<float>(0.f, CVarStreamingMipBias.GetValueOnAnyThread());
 	PoolSize = CVarStreamingPoolSize.GetValueOnAnyThread();
 	bUsePerTextureBias = !GIsEditor && CVarStreamingUsePerTextureBias.GetValueOnAnyThread() != 0;
-	bUseMaterialData = CVarStreamingUseMaterialData.GetValueOnAnyThread() != 0;
 	bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0;
 	bLimitPoolSizeToVRAM = !GIsEditor && CVarStreamingLimitPoolSizeToVRAM.GetValueOnAnyThread() != 0;
 	bFullyLoadUsedTextures = CVarStreamingFullyLoadUsedTextures.GetValueOnAnyThread() != 0;
 	bUseAllMips = CVarStreamingUseAllMips.GetValueOnAnyThread() != 0;
 	bScaleTexturesByGlobalMyBias = CVarScaleTexturesByGlobalMyBias.GetValueOnAnyThread() != 0;
+	MinMipForSplitRequest = CVarStreamingMinMipForSplitRequest.GetValueOnAnyThread();
+
+	bUseMaterialData = bUseNewMetrics && CVarStreamingUseMaterialData.GetValueOnAnyThread() != 0;
+	HiddenPrimitiveScale = bUseNewMetrics ? CVarStreamingHiddenPrimitiveScale.GetValueOnAnyThread() : 1.f;
+
+	if (MinMipForSplitRequest <= 0)
+	{
+		MinMipForSplitRequest = MAX_TEXTURE_MIP_COUNT + 1;
+	}
 
 	if (bUseAllMips)
 	{
@@ -255,11 +272,13 @@ void FTextureStreamingStats::Apply()
 	SET_MEMORY_STAT(STAT_Streaming06_VisibleMips, VisibleMips);
 	SET_MEMORY_STAT(STAT_Streaming07_HiddenMips, HiddenMips);
 	SET_MEMORY_STAT(STAT_Streaming08_ForcedMips, ForcedMips);
-	SET_MEMORY_STAT(STAT_Streaming09_CachedMips, CachedMips);
-		
-	SET_MEMORY_STAT(STAT_Streaming10_WantedMips, WantedMips);
-	SET_MEMORY_STAT(STAT_Streaming11_InflightRequests, PendingRequests);	
-	SET_MEMORY_STAT(STAT_Streaming12_MipIOBandwidth, MipIOBandwidth);
+	SET_MEMORY_STAT(STAT_Streaming09_UnkownRefMips, UnkownRefMips);
+	SET_MEMORY_STAT(STAT_Streaming10_LastRenderTimeMips, LastRenderTimeMips);
+	SET_MEMORY_STAT(STAT_Streaming11_CachedMips, CachedMips);
+
+	SET_MEMORY_STAT(STAT_Streaming12_WantedMips, WantedMips);
+	SET_MEMORY_STAT(STAT_Streaming13_InflightRequests, PendingRequests);	
+	SET_MEMORY_STAT(STAT_Streaming14_MipIOBandwidth, MipIOBandwidth);
 
 	SET_CYCLE_COUNTER(STAT_Streaming01_SetupAsyncTask, SetupAsyncTaskCycles);
 	SET_CYCLE_COUNTER(STAT_Streaming02_UpdateStreamingData, UpdateStreamingDataCycles);

@@ -1735,7 +1735,7 @@ uint DiscardMaterialWithPixelCoverage(FMaterialPixelParameters MaterialParameter
 	float OriginalMask = GetMaterialMaskInputRaw(PixelMaterialInputs);
 	float MaskClip = GetMaterialOpacityMaskClipValue();
 
-	if (View.BufferMSAA > 1)
+	if (View.NumSceneColorMSAASamples > 1)
 	{
 		float Mask = (OriginalMask - MaskClip) / (1.0 - MaskClip);
 		uint CurrentPixelCoverage = GetDerivativeCoverageFromMask(Mask);

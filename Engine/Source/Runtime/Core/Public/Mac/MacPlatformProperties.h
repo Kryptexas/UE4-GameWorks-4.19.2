@@ -112,4 +112,9 @@ struct FMacPlatformProperties
 
 		return 1.0f;
 	}
+	
+	static FORCEINLINE bool SupportsTessellation()
+	{
+		return true;
+	}
 };

@@ -62,6 +62,12 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 							+SVerticalBox::Slot()
 							.VAlign(VAlign_Center)
 							[
+								SAssignNew(Force128BitRenderingLabel, STextBlock)
+								.Text(NSLOCTEXT("HighResScreenshot", "Force128BitPipeline", "Force 128-bit buffers for rendering pipeline"))
+							]
+							+SVerticalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
 								SNew( STextBlock )
 								.Text( NSLOCTEXT("HighResScreenshot", "UseCustomDepth", "Use custom depth as mask") )
 							]
@@ -104,6 +110,13 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 								SAssignNew(HDRCheckBox, SCheckBox)
 								.OnCheckStateChanged(this, &SHighResScreenshotDialog::OnHDREnabledChanged)
 								.IsChecked(this, &SHighResScreenshotDialog::GetHDRCheckboxUIState)
+							]
+							+ SVerticalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
+								SAssignNew(Force128BitRenderingCheckBox, SCheckBox)
+								.OnCheckStateChanged(this, &SHighResScreenshotDialog::OnForce128BitRenderingChanged)
+								.IsChecked(this, &SHighResScreenshotDialog::GetForce128BitRenderingCheckboxUIState)
 							]
 							+SVerticalBox::Slot()
 							.VAlign(VAlign_Center)
@@ -224,6 +237,7 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 		];
 
 	SetHDRUIEnableState(Config.bDumpBufferVisualizationTargets);
+	SetForce128BitRenderingState(Config.bDumpBufferVisualizationTargets);
 	bCaptureRegionControlsVisible = false;
 }
 

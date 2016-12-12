@@ -94,6 +94,7 @@ public:
 	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const override;
 	/** Get the FMaterial that should be used for rendering, but might not be in a valid state to actually use.  Can return NULL. */
 	virtual FMaterial* GetMaterialNoFallback(ERHIFeatureLevel::Type FeatureLevel) const override;
+	virtual UMaterialInterface* GetMaterialInterface() const override;
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override;
 	virtual bool GetScalarValue(const FName ParameterName,float* OutValue, const FMaterialRenderContext& Context) const override;
 	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override;

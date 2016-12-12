@@ -61,7 +61,7 @@ FArchive& operator<<(FArchive& Ar, const FShaderPipelineType*& TypeRef)
 }
 
 
-void FShaderParameterMap::VerifyBindingsAreComplete(const TCHAR* ShaderTypeName, EShaderFrequency Frequency, FVertexFactoryType* InVertexFactoryType) const
+void FShaderParameterMap::VerifyBindingsAreComplete(const TCHAR* ShaderTypeName, FShaderTarget Target, FVertexFactoryType* InVertexFactoryType) const
 {
 #if WITH_EDITORONLY_DATA
 	// Only people working on shaders (and therefore have LogShaders unsuppressed) will want to see these errors
@@ -87,11 +87,13 @@ void FShaderParameterMap::VerifyBindingsAreComplete(const TCHAR* ShaderTypeName,
 		if (!bBindingsComplete)
 		{
 			FString ErrorMessage = FString(TEXT("Found unbound parameters being used in shadertype ")) + ShaderTypeName + TEXT(" (VertexFactory: ") + VertexFactoryName + TEXT(")\n") + UnBoundParameters;
-			// An unbound parameter means the engine is not going to set its value (because it was never bound) 
-			// but it will be used in rendering, which will most likely cause artifacts
 
-			// We use a non-Slate message box to avoid problem where we haven't compiled the shaders for Slate.
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage, TEXT("Error"));
+			// There will be unbound parameters for Metal's "Hull" shader stage as it is merely a placeholder to provide binding indices to the RHI
+			if(!IsMetalPlatform((EShaderPlatform)Target.Platform) || Target.Frequency != SF_Hull)
+			{
+				// We use a non-Slate message box to avoid problem where we haven't compiled the shaders for Slate.
+				FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *ErrorMessage, TEXT("Error"));
+			}
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
@@ -1811,6 +1813,13 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 			}
 		}
 	}
+    
+    // Encode the Metal standard into the shader compile options so that they recompile if the settings change.
+    if (IsMetalPlatform(Platform))
+    {
+        uint32 ShaderVersion = RHIGetShaderLanguageVersion(Platform);
+        KeyString += FString::Printf(TEXT("_MTLSTD%u_"), ShaderVersion);
+    }
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.StencilForLODDither"));

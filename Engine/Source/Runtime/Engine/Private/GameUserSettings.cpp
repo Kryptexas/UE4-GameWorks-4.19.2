@@ -196,6 +196,9 @@ void UGameUserSettings::SetToDefaults()
 	{
 		UpdateResolutionQuality();
 	}
+
+	bUseHDRDisplayOutput = false;
+	HDRDisplayOutputNits = 1000;
 }
 
 bool UGameUserSettings::IsVersionValid()
@@ -334,6 +337,11 @@ void UGameUserSettings::ValidateSettings()
 		LastUserConfirmedResolutionSizeY = ResolutionSizeY;
 	}
 
+	if (bUseHDRDisplayOutput && !SupportsHDRDisplayOutput())
+	{
+		bUseHDRDisplayOutput = false;
+	}
+
 	// The user settings have now been validated for the current version.
 	UpdateVersion();
 }
@@ -377,6 +385,11 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 	}
 
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
+
+	if (bUseHDRDisplayOutput)
+	{
+		EnableHDRDisplayOutput(true, HDRDisplayOutputNits);
+	}
 }
 
 void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrides)
@@ -716,4 +729,85 @@ void UGameUserSettings::ApplyHardwareBenchmarkResults()
 	Scalability::SaveState(GGameUserSettingsIni);
 
 	SaveSettings();
+}
+
+bool UGameUserSettings::SupportsHDRDisplayOutput()
+{
+	return GRHISupportsHDROutput;
+}
+
+void UGameUserSettings::EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits /*= 1000*/)
+{
+	static IConsoleVariable* CVarHDROutputDevice = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HDR.Display.OutputDevice"));
+	static IConsoleVariable* CVarHDRColorGamut = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HDR.Display.ColorGamut"));
+	static IConsoleVariable* CVarHDROutputEnabled = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HDR.EnableHDROutput"));
+
+	if (ensure(CVarHDROutputDevice && CVarHDRColorGamut && CVarHDROutputEnabled))
+	{
+		if (bEnable && !GRHISupportsHDROutput)
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("Tried to enable HDR display output but unsupported, forcing off."));
+			bEnable = false;
+		}
+
+		// Only support 1000 and 2000 nit curves so push to closest
+		int32 DisplayNitLevel = (DisplayNits < 1500) ? 1000 : 2000;
+
+		// Apply device-specific output encoding
+		if (bEnable)
+		{
+			int32 OutputDevice = 0;
+			int32 ColorGamut = 0;
+
+#if PLATFORM_WINDOWS
+			if (IsRHIDeviceNVIDIA())
+			{
+				// ScRGB, 1000 or 2000 nits, Rec2020
+				OutputDevice = (DisplayNitLevel == 1000) ? 5 : 6;
+				ColorGamut = 2;
+
+				// Force exclusive fullscreen
+				SetPreferredFullscreenMode(0);
+				SetFullscreenMode(GetPreferredFullscreenMode());
+				ApplyResolutionSettings(false);
+			}
+#elif PLATFORM_PS4
+			{
+				// PQ, 1000 or 2000 nits, Rec2020
+				OutputDevice = (DisplayNitLevel == 1000) ? 3 : 4;
+				ColorGamut = 2;
+			}
+#elif PLATFORM_MAC
+			{
+				// ScRGB, 1000 or 2000 nits, DCI-P3
+				OutputDevice = (DisplayNitLevel == 1000) ? 5 : 6;
+				ColorGamut = 1;
+			}
+#endif
+
+			if (ensure(OutputDevice > 0 && ColorGamut > 0))
+			{
+				CVarHDROutputDevice->Set(OutputDevice, ECVF_SetByGameSetting);
+				CVarHDRColorGamut->Set(ColorGamut, ECVF_SetByGameSetting);
+				CVarHDROutputEnabled->Set(1, ECVF_SetByGameSetting);
+			}
+			else
+			{
+				UE_LOG(LogConsoleResponse, Display, TEXT("Tried to enable HDR display output but failed to find platform defaults, forcing off."));
+				bEnable = false;
+			}
+		}
+
+		// Always test this branch as can be used to flush errors
+		if (!bEnable)
+		{
+			CVarHDROutputDevice->Set(0, ECVF_SetByGameSetting);
+			CVarHDRColorGamut->Set(0, ECVF_SetByGameSetting);
+			CVarHDROutputEnabled->Set(0, ECVF_SetByGameSetting);
+		}
+
+		// Update final requested state for saved config
+		bUseHDRDisplayOutput = bEnable;
+		HDRDisplayOutputNits = DisplayNitLevel;
+	}
 }

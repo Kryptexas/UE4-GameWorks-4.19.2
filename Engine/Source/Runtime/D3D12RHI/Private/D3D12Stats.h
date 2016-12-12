@@ -302,6 +302,6 @@ namespace D3D12RHI
 
 		void BeginFrame(class FD3D12DynamicRHI* InRHI);
 
-		void EndFrame();
+		void EndFrame(class FD3D12DynamicRHI* InRHI);
 	};
 }

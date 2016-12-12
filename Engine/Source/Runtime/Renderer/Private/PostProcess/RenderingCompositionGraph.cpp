@@ -312,6 +312,19 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(FRenderingComposi
 		}
 
 		Output->RenderTargetDesc = Pass->ComputeOutputDesc(PassOutputId);
+
+		// Allow format overrides for high-precision work
+		static const auto CVarPostProcessingColorFormat = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessingColorFormat"));
+
+		if (CVarPostProcessingColorFormat->GetValueOnRenderThread() == 1)
+		{
+			if (Output->RenderTargetDesc.Format == PF_FloatRGBA ||
+				Output->RenderTargetDesc.Format == PF_FloatRGB ||
+				Output->RenderTargetDesc.Format == PF_FloatR11G11B10)
+			{
+				Output->RenderTargetDesc.Format = PF_A32B32G32R32F;
+			}
+		}
 	}
 }
 
@@ -403,6 +416,16 @@ TFuture<void> FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePa
 			Context.RHICmdList.ReadSurfaceFloatData(Texture, SourceRect, Bitmap, (ECubeFace)0, 0, 0);
 
 			return FAsyncBufferWriteQueue::Dispatch(TAsyncBufferWrite<FFloat16Color>(Filename, DestSize, MoveTemp(Bitmap)));
+		}
+
+		case PF_A32B32G32R32F:
+		{
+			FReadSurfaceDataFlags ReadDataFlags(RCM_MinMax);
+			ReadDataFlags.SetLinearToGamma(false);
+			TArray<FLinearColor> Bitmap;
+			Context.RHICmdList.ReadSurfaceData(Texture, SourceRect, Bitmap, ReadDataFlags);
+
+			return FAsyncBufferWriteQueue::Dispatch(TAsyncBufferWrite<FLinearColor>(Filename, DestSize, MoveTemp(Bitmap)));
 		}
 
 		case PF_R8G8B8A8:

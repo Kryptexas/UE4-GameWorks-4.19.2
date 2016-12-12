@@ -80,8 +80,8 @@ public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-
 	void ApplyComponentInstanceData(class FWidgetComponentInstanceData* ComponentInstanceData);
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 
 	// Begin UObject
 	virtual void PostLoad() override;

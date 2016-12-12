@@ -172,9 +172,14 @@ void FRCPassPostProcessEyeAdaptation::Process(FRenderingCompositePassContext& Co
 
 	FIntPoint DestSize = EyeAdaptation->GetDesc().Extent;
 
+	const FSceneRenderTargetItem& DestRenderTarget = EyeAdaptation->GetRenderTargetItem();
+
+	// Inform MultiGPU systems that we're starting to update this texture for this frame
+	Context.RHICmdList.BeginUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+
 	// we render to our own output render target, not the intermediate one created by the compositing system
 	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, EyeAdaptation->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), true);
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), true);
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f );
 
 	// set the state
@@ -204,7 +209,10 @@ void FRCPassPostProcessEyeAdaptation::Process(FRenderingCompositePassContext& Co
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	Context.RHICmdList.CopyToResolveTarget(EyeAdaptation->GetRenderTargetItem().TargetableTexture, EyeAdaptation->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	// Inform MultiGPU systems that we've finished updating this texture for this frame
+	Context.RHICmdList.EndUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
 
 	Context.View.SetValidEyeAdaptation();
 }
@@ -484,9 +492,14 @@ void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContex
 
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, PostProcessBasicEyeAdaptation, TEXT("PostProcessBasicEyeAdaptation %dx%d"), SrcSize.X, SrcSize.Y);
 
+	const FSceneRenderTargetItem& DestRenderTarget = EyeAdaptationThisFrameRT->GetRenderTargetItem();
+
+	// Inform MultiGPU systems that we're starting to update this texture for this frame
+	Context.RHICmdList.BeginUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+
 	// we render to our own output render target, not the intermediate one created by the compositing system
 	// Set the view family's render target/viewport.
-	SetRenderTarget(Context.RHICmdList, EyeAdaptationThisFrameRT->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), true);
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef(), true);
 	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
 	// set the state
@@ -518,7 +531,10 @@ void FRCPassPostProcessBasicEyeAdaptation::Process(FRenderingCompositePassContex
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	Context.RHICmdList.CopyToResolveTarget(EyeAdaptationThisFrameRT->GetRenderTargetItem().TargetableTexture, EyeAdaptationThisFrameRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	// Inform MultiGPU systems that we've finished with this texture for this frame
+	Context.RHICmdList.EndUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
 
 	Context.View.SetValidEyeAdaptation();
 }

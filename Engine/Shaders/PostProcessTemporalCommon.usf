@@ -92,6 +92,11 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_DYNAMIC_ANTIGHOST 0
 #endif
 
+// Compute alpha accurately according samples' to tone weights.
+#ifndef AA_ACCURATE_ALPHA
+	#define AA_ACCURATE_ALPHA 0
+#endif
+
 	float2 ScreenPos = ( UV * PostprocessInput0Size.xy - 0.5 - ScreenPosToPixel.zw ) / ScreenPosToPixel.xy;
 
 	// FIND MOTION OF PIXEL AND NEAREST IN NEIGHBORHOOD
@@ -208,19 +213,56 @@ which can be configured via defines for various temporal AA passes.
 		Neighbor5.rgb = RGBToYCoCg(Neighbor5.rgb);
 		Neighbor7.rgb = RGBToYCoCg(Neighbor7.rgb);
 		#if AA_TONE
-			Neighbor1.xyz *= HdrWeightY(Neighbor1.x, InExposureScale);
-			Neighbor3.xyz *= HdrWeightY(Neighbor3.x, InExposureScale);
-			Neighbor4.xyz *= HdrWeightY(Neighbor4.x, InExposureScale);
-			Neighbor5.xyz *= HdrWeightY(Neighbor5.x, InExposureScale);
-			Neighbor7.xyz *= HdrWeightY(Neighbor7.x, InExposureScale);
+			float NeighborWeight1 = HdrWeightY(Neighbor1.x, InExposureScale);
+			float NeighborWeight3 = HdrWeightY(Neighbor3.x, InExposureScale);
+			float NeighborWeight4 = HdrWeightY(Neighbor4.x, InExposureScale);
+			float NeighborWeight5 = HdrWeightY(Neighbor5.x, InExposureScale);
+			float NeighborWeight7 = HdrWeightY(Neighbor7.x, InExposureScale);
+			Neighbor1.xyz *= NeighborWeight1;
+			Neighbor3.xyz *= NeighborWeight3;
+			Neighbor4.xyz *= NeighborWeight4;
+			Neighbor5.xyz *= NeighborWeight5;
+			Neighbor7.xyz *= NeighborWeight7;
 		#endif
 		#if AA_FILTERED
-			float4 Filtered = 
-				Neighbor1 * PlusWeights[0] +
-				Neighbor3 * PlusWeights[1] +
-				Neighbor4 * PlusWeights[2] +
-				Neighbor5 * PlusWeights[3] +
-				Neighbor7 * PlusWeights[4];
+			#if AA_ACCURATE_ALPHA
+				float NeighborFilteringWeight1 = NeighborWeight1 * PlusWeights[0];
+				float NeighborFilteringWeight3 = NeighborWeight3 * PlusWeights[1];
+				float NeighborFilteringWeight4 = NeighborWeight4 * PlusWeights[2];
+				float NeighborFilteringWeight5 = NeighborWeight5 * PlusWeights[3];
+				float NeighborFilteringWeight7 = NeighborWeight7 * PlusWeights[4];
+				float FilteredWeight = 
+					NeighborFilteringWeight1 +
+					NeighborFilteringWeight3 +
+					NeighborFilteringWeight4 +
+					NeighborFilteringWeight5 +
+					NeighborFilteringWeight7;
+
+				// Filter neighbors YCoCg in in HDR space.
+				float4 Filtered;
+				Filtered.xyz =
+					Neighbor1.xyz * PlusWeights[0] +
+					Neighbor3.xyz * PlusWeights[1] +
+					Neighbor4.xyz * PlusWeights[2] +
+					Neighbor5.xyz * PlusWeights[3] +
+					Neighbor7.xyz * PlusWeights[4];
+
+				// Filter neighbors alpha in linear space according to HDR space weights.
+				Filtered.a = (
+					Neighbor1.a * NeighborFilteringWeight1 +
+					Neighbor3.a * NeighborFilteringWeight3 +
+					Neighbor4.a * NeighborFilteringWeight4 +
+					Neighbor5.a * NeighborFilteringWeight5 +
+					Neighbor7.a * NeighborFilteringWeight7) / FilteredWeight;
+			#else
+				// Filter neighbors YCoCg and alpha. Might be in linear or HDR space.
+				float4 Filtered = 
+					Neighbor1 * PlusWeights[0] +
+					Neighbor3 * PlusWeights[1] +
+					Neighbor4 * PlusWeights[2] +
+					Neighbor5 * PlusWeights[3] +
+					Neighbor7 * PlusWeights[4];
+			#endif
 			#if AA_BORDER
 				// Use unfiltered for 1 pixel border.
 				float2 TestPos = abs(ScreenPos);
@@ -230,29 +272,48 @@ which can be configured via defines for various temporal AA passes.
 				if(FilteredOffScreen) 
 				{
 					Filtered = Neighbor4;
+					#if AA_ACCURATE_ALPHA
+						FilteredWeight = NeighborWeight4;
+					#endif
 				}
 			#endif
-		#else
+		#else // AA_FILTERED
 			// Unfiltered.
 			float4 Filtered = Neighbor4;
-		#endif
-#if 1
-		// Neighborhood seems to only need the "+" pattern.
-		float4 NeighborMin = min(min(min(Neighbor1, Neighbor3), min(Neighbor4, Neighbor5)), Neighbor7);
-		float4 NeighborMax = max(max(max(Neighbor1, Neighbor3), max(Neighbor4, Neighbor5)), Neighbor7);
-#else
-		float4 m1, m2;
-		m1  = Neighbor1; m2  = Neighbor1 * Neighbor1;
-		m1 += Neighbor3; m2 += Neighbor3 * Neighbor3;
-		m1 += Neighbor4; m2 += Neighbor4 * Neighbor4;
-		m1 += Neighbor5; m2 += Neighbor5 * Neighbor5;
-		m1 += Neighbor7; m2 += Neighbor7 * Neighbor7;
-
-		float4 mu = m1 * (1.0 / 5.0);
-		float4 Sigma = sqrt( abs(m2 * (1.0 / 5.0) - mu * mu) );
-		float4 NeighborMin = mu - 1.0 * Sigma;
-		float4 NeighborMax = mu + 1.0 * Sigma;
-#endif
+			#if AA_ACCURATE_ALPHA
+				float FilteredWeight = NeighborWeight4;
+			#endif
+		#endif // AA_FILTERED
+		
+		float4 NeighborMin;
+		float4 NeighborMax;
+		NeighborMin.xyz = min(min(min(Neighbor1.xyz, Neighbor3.xyz), min(Neighbor4.xyz, Neighbor5.xyz)), Neighbor7.xyz);
+		NeighborMax.xyz = max(max(max(Neighbor1.xyz, Neighbor3.xyz), max(Neighbor4.xyz, Neighbor5.xyz)), Neighbor7.xyz);
+			
+		NeighborMin.w = Neighbor1.w;
+		NeighborMax.w = Neighbor1.w;
+		float NeighborMinAlphaWeight = NeighborWeight1;
+		float NeighborMaxAlphaWeight = NeighborWeight1;
+			
+		WeightTrackedAlphaClamping(
+			NeighborMin.a, NeighborMinAlphaWeight,
+			NeighborMax.a, NeighborMaxAlphaWeight,
+			Neighbor3.a, NeighborWeight3);
+			
+		WeightTrackedAlphaClamping(
+			NeighborMin.a, NeighborMinAlphaWeight,
+			NeighborMax.a, NeighborMaxAlphaWeight,
+			Neighbor4.a, NeighborWeight4);
+			
+		WeightTrackedAlphaClamping(
+			NeighborMin.a, NeighborMinAlphaWeight,
+			NeighborMax.a, NeighborMaxAlphaWeight,
+			Neighbor5.a, NeighborWeight5);
+			
+		WeightTrackedAlphaClamping(
+			NeighborMin.a, NeighborMinAlphaWeight,
+			NeighborMax.a, NeighborMaxAlphaWeight,
+			Neighbor7.a, NeighborWeight7);
 	#else
 		float4 Neighbor0 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0, int2(-1, -1));
 		float4 Neighbor1 = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0, int2( 0, -1));
@@ -338,18 +399,19 @@ which can be configured via defines for various temporal AA passes.
 	// FETCH HISTORY
 	// -------------
 	#if AA_BICUBIC
-		OutColor = Texture2DSampleBicubic( PostprocessInput1, PostprocessInput1Sampler, BackN.xy, PostprocessInput1Size.xy );
+		float4 HistoryColor = Texture2DSampleBicubic( PostprocessInput1, PostprocessInput1Sampler, BackN.xy, PostprocessInput1Size.xy );
 	#else
-		OutColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0);
+		float4 HistoryColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0);
 	#endif
 
 	#if AA_YCOCG
-		OutColor.rgb = RGBToYCoCg(OutColor.rgb);
+		HistoryColor.rgb = RGBToYCoCg(HistoryColor.rgb);
 		#if AA_TONE
-			OutColor.xyz *= HdrWeightY(OutColor.x, InExposureScale);
+			float HistoryWeight = HdrWeightY(HistoryColor.x, InExposureScale);
+			HistoryColor.xyz *= HistoryWeight;
 		#endif
 	#else
-		OutColor.rgb *= HdrWeight4(OutColor.rgb, InExposureScale);
+		HistoryColor.rgb *= HdrWeight4(HistoryColor.rgb, InExposureScale);
 	#endif
 
 	#if AA_DYNAMIC_ANTIGHOST && AA_DYNAMIC && !AA_ALPHA
@@ -360,10 +422,10 @@ which can be configured via defines for various temporal AA passes.
 		bool Dynamic7 = PostprocessInput3.SampleLevel(PostprocessInput3Sampler, UV, 0, int2( 0,  1)).x > 0;
 
 		bool Dynamic = Dynamic1 || Dynamic3 || Dynamic4 || Dynamic5 || Dynamic7;
-		if( !Dynamic && OutColor.a > 0 )
+		if( !Dynamic && HistoryColor.a > 0 )
 		{
-			OutColor = Filtered;
-			OutColor.a = 0;
+			HistoryColor = Filtered;
+			HistoryColor.a = 0;
 		}
 	#endif
 
@@ -382,21 +444,35 @@ which can be configured via defines for various temporal AA passes.
 	float LumaContrast = LumaMax - LumaMin;
 	#if AA_CLAMP
 		#if AA_YCOCG
-			OutColor.rgb = clamp(OutColor.rgb, NeighborMin.rgb, NeighborMax.rgb);
+			HistoryColor.rgb = clamp(HistoryColor.rgb, NeighborMin.rgb, NeighborMax.rgb);
 			#if AA_ALPHA
-				OutColor.a = clamp(OutColor.a, NeighborMin.a, NeighborMax.a);
+				#if AA_ACCURATE_ALPHA
+					// Clamp history's alpha with sample weight tracking.
+					if (HistoryColor.a < NeighborMin.a)
+					{
+						HistoryColor.a = NeighborMin.a;
+						HistoryWeight = NeighborMinAlphaWeight;
+					}
+					else if (HistoryColor.a > NeighborMax.a)
+					{
+						HistoryColor.a = NeighborMax.a;
+						HistoryWeight = NeighborMaxAlphaWeight;
+					}
+				#else
+					HistoryColor.a = clamp(HistoryColor.a, NeighborMin.a, NeighborMax.a);
+				#endif
 			#endif
 		#else
 			#if AA_AABB
 				// Clamp history, this uses color AABB intersection for tighter fit.
-				float ClampBlend = HistoryClamp(OutColor.rgb, Filtered.rgb, NeighborMin.rgb, NeighborMax.rgb);
+				float ClampBlend = HistoryClamp(HistoryColor.rgb, Filtered.rgb, NeighborMin.rgb, NeighborMax.rgb);
 				#if AA_ALPHA
-					OutColor.rgba = lerp(OutColor.rgba, Filtered.rgba, ClampBlend);
+					HistoryColor.rgba = lerp(HistoryColor.rgba, Filtered.rgba, ClampBlend);
 				#else
-					OutColor.rgb = lerp(OutColor.rgb, Filtered.rgb, ClampBlend);
+					HistoryColor.rgb = lerp(HistoryColor.rgb, Filtered.rgb, ClampBlend);
 				#endif
 			#else
-				OutColor = clamp(OutColor, NeighborMin, NeighborMax);
+				HistoryColor = clamp(HistoryColor, NeighborMin, NeighborMax);
 			#endif
 		#endif
 	#endif
@@ -447,9 +523,12 @@ which can be configured via defines for various temporal AA passes.
 	#endif
 	if(OffScreen) 
 	{
-		OutColor = Filtered;
+		HistoryColor = Filtered;
+		#if AA_YCOCG && AA_ACCURATE_ALPHA
+			HistoryWeight = FilteredWeight;
+		#endif
 		#if !AA_ALPHA
-			OutColor.a = 0.0;
+			HistoryColor.a = 0.0;
 		#endif
 		#if AA_LERP
 			FixedLerp = 1.0;
@@ -460,23 +539,35 @@ which can be configured via defines for various temporal AA passes.
 	// -------------------------------------------------
 	#if (AA_LERP == 0)
 		#if AA_ALPHA
-			OutColor = lerp(OutColor, Filtered, BlendFinal);
-			#if AA_FORCE_ALPHA_CLAMP
-				OutColor.a = clamp(OutColor.a, NeighborMin.a, NeighborMax.a);
+			#if AA_ACCURATE_ALPHA
+				HistoryColor.a *= HistoryWeight;
+				Filtered.a *= FilteredWeight;
+			#endif
+			OutColor = lerp(HistoryColor, Filtered, BlendFinal);
+			#if AA_YCOCG && AA_ACCURATE_ALPHA
+				float BlendWeight = lerp(HistoryWeight, FilteredWeight, BlendFinal);
+			#elif AA_FORCE_ALPHA_CLAMP
+				OutColor.a = clamp(HistoryColor.a, NeighborMin.a, NeighborMax.a);
 			#endif
 		#else
 			// Blend in linear to hit luma target.
-			OutColor.rgb = lerp(OutColor.rgb, Filtered.rgb, BlendFinal);
+			OutColor.rgb = lerp(HistoryColor.rgb, Filtered.rgb, BlendFinal);
 			#if RESPONSIVE
-				OutColor.a = max(OutColor.a, 1.0/2.0);
+				OutColor.a = max(HistoryColor.a, 1.0/2.0);
 			#endif
 		#endif
 	#else
-		OutColor = lerp(OutColor, Filtered, FixedLerp);
+		OutColor = lerp(HistoryColor, Filtered, FixedLerp);
 	#endif
 	#if AA_YCOCG
 		#if AA_TONE
 			OutColor.xyz *= HdrWeightInvY(OutColor.x, InExposureScale);
+			#if AA_ACCURATE_ALPHA
+				OutColor.a *= 1 / BlendWeight;
+				#if AA_FORCE_ALPHA_CLAMP
+					OutColor.a = clamp(OutColor.a, NeighborMin.a, NeighborMax.a);
+				#endif
+			#endif
 		#endif
 		OutColor.rgb = YCoCgToRGB(OutColor.rgb);
 	#else
@@ -509,3 +600,4 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_TONE
 #undef AA_CLAMP
 #undef AA_DYNAMIC_ANTIGHOST
+#undef AA_ACCURATE_ALPHA

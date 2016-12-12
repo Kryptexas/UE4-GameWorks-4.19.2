@@ -219,6 +219,11 @@ public:
 		return Material->GetMaterialResource(InFeatureLevel);
 	}
 
+	virtual UMaterialInterface* GetMaterialInterface() const override
+	{
+		return Material;
+	}
+
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
 		const FMaterialResource* MaterialResource = Material->GetMaterialResource(Context.Material.GetFeatureLevel());

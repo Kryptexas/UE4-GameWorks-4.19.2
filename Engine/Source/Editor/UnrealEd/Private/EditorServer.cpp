@@ -6716,20 +6716,24 @@ bool UEditorEngine::HandleBuildMaterialTextureStreamingData( const TCHAR* Cmd, F
 	}
 
 	FScopedSlowTask SlowTask(3.f); // { Sync Pending Shader, Wait for Compilation, Export }
-	CompileDebugViewModeShaders(DVSM_OutputMaterialTextureScales, QualityLevel, FeatureLevel, true, true, Materials, SlowTask);
-	FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
-	for (UMaterialInterface* MaterialInterface : Materials)
+	SlowTask.MakeDialog(true);
+
+	if (CompileDebugViewModeShaders(DVSM_OutputMaterialTextureScales, QualityLevel, FeatureLevel, true, true, Materials, SlowTask))
 	{
-		if (MaterialInterface && FMaterialUtilities::ExportMaterialUVDensities(MaterialInterface, QualityLevel, FeatureLevel, ExportErrors))
+		FMaterialUtilities::FExportErrorManager ExportErrors(FeatureLevel);
+		for (UMaterialInterface* MaterialInterface : Materials)
 		{
-			// Only mark dirty if there is now data, when there wasn't before.
-			if (MaterialInterface->HasTextureStreamingData())
+			if (MaterialInterface && FMaterialUtilities::ExportMaterialUVDensities(MaterialInterface, QualityLevel, FeatureLevel, ExportErrors))
 			{
-				MaterialInterface->MarkPackageDirty();
+				// Only mark dirty if there is now data, when there wasn't before.
+				if (MaterialInterface->HasTextureStreamingData())
+				{
+					MaterialInterface->MarkPackageDirty();
+				}
 			}
 		}
+		ExportErrors.OutputToLog();
 	}
-	ExportErrors.OutputToLog();
 
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	return true;

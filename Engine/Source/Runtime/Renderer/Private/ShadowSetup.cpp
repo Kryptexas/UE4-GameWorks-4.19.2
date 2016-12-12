@@ -2784,9 +2784,9 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 			}
 
 			if (IsForwardShadingEnabled(FeatureLevel) 
-				&& (!ProjectedShadowInfo->GetLightSceneInfo().Proxy->HasStaticShadowing() || ProjectedShadowInfo->GetLightSceneInfo().Proxy->GetPreviewShadowMapChannel() == -1))
+				&& ProjectedShadowInfo->GetLightSceneInfo().GetDynamicShadowMapChannel() == -1)
 			{
-				// With forward shading, dynamic shadows are projected into channels of the light attenuation texture based on their assigned ShadowMapChannel
+				// With forward shading, dynamic shadows are projected into channels of the light attenuation texture based on their assigned DynamicShadowMapChannel
 				bShadowIsVisible = false;
 			}
 
@@ -3364,7 +3364,7 @@ void FSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 
 			// Only consider lights that may have shadows.
-			if (LightSceneInfoCompact.bCastStaticShadow || LightSceneInfoCompact.bCastDynamicShadow)
+			if ((LightSceneInfoCompact.bCastStaticShadow || LightSceneInfoCompact.bCastDynamicShadow) && GetShadowQuality() > 0)
 			{
 				// see if the light is visible in any view
 				bool bIsVisibleInAnyView = false;

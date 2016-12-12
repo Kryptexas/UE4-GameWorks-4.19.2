@@ -442,7 +442,7 @@ void FProjectedShadowInfo::SetBlendStateForProjection(FRHICommandListImmediate& 
 {
 	SetBlendStateForProjection(
 		RHICmdList, 
-		GetLightSceneInfo().Proxy->GetPreviewShadowMapChannel(), 
+		GetLightSceneInfo().GetDynamicShadowMapChannel(), 
 		IsWholeSceneDirectionalShadow(),
 		CascadeSettings.FadePlaneLength > 0 && !bRayTracedDistanceField,
 		bProjectingForForwardShading, 

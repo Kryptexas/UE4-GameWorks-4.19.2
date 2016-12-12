@@ -68,7 +68,10 @@ namespace VulkanRHI
 	void DumpCmdClearDepthStencilImage(VkCommandBuffer CommandBuffer, VkImage Image, VkImageLayout ImageLayout, const VkClearDepthStencilValue* DepthStencil, uint32 RangeCount, const VkImageSubresourceRange* Ranges);
 	void DumpQueuePresent(VkQueue Queue, const VkPresentInfoKHR* PresentInfo);
 	void DumpCreateGraphicsPipelines(VkDevice Device, VkPipelineCache PipelineCache, uint32 CreateInfoCount, const VkGraphicsPipelineCreateInfo* CreateInfos, VkPipeline* Pipelines);
-
+	void TrackImageViewAdd(VkImageView View, VkImage Image);
+	void TrackImageViewRemove(VkImageView View);
+	void TrackBufferViewAdd(VkBufferView View, VkBuffer Buffer);
+	void TrackBufferViewRemove(VkBufferView View);
 #else
 	#define FlushDebugWrapperLog()
 	#define DevicePrintfBeginResult(d, x)
@@ -128,6 +131,10 @@ namespace VulkanRHI
 	#define DumpCmdClearDepthStencilImage(c, i, il, ds, rc, r)
 	#define DumpQueuePresent(q, i)
 	#define DumpCreateGraphicsPipelines(d, pc, cic, ci, p)
+	#define TrackImageViewAdd(v, i)
+	#define TrackImageViewRemove(v)
+	#define TrackBufferViewAdd(v, b)
+	#define TrackBufferViewRemove(v)
 #endif
 
 	FORCEINLINE_DEBUGGABLE VkResult  vkCreateInstance(const VkInstanceCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkInstance* Instance)
@@ -581,6 +588,8 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateBufferView(Device, CreateInfo, Allocator, View);
 
+		TrackBufferViewAdd(*View, CreateInfo->buffer);
+
 		PrintResultAndNamedHandle(Result, TEXT("BufferView"), *View);
 		return Result;
 	}
@@ -588,6 +597,8 @@ namespace VulkanRHI
 	static FORCEINLINE_DEBUGGABLE void  vkDestroyBufferView(VkDevice Device, VkBufferView BufferView, const VkAllocationCallbacks* Allocator)
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkDestroyBufferView(BufferView=%p)"), BufferView));
+
+		TrackBufferViewRemove(BufferView);
 
 		VULKANAPINAMESPACE::vkDestroyBufferView(Device, BufferView, Allocator);
 	}
@@ -623,7 +634,7 @@ namespace VulkanRHI
 		DumpCreateImageView(Device, CreateInfo, View);
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateImageView(Device, CreateInfo, Allocator, View);
-
+		TrackImageViewAdd(*View, CreateInfo->image);
 		PrintResultAndNamedHandle(Result, TEXT("ImageView"), *View);
 		return Result;
 	}
@@ -631,7 +642,7 @@ namespace VulkanRHI
 	static FORCEINLINE_DEBUGGABLE void  vkDestroyImageView(VkDevice Device, VkImageView ImageView, const VkAllocationCallbacks* Allocator)
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkDestroyImageView(ImageView=%p)"), ImageView));
-
+		TrackImageViewRemove(ImageView);
 		VULKANAPINAMESPACE::vkDestroyImageView(Device, ImageView, Allocator);
 	}
 

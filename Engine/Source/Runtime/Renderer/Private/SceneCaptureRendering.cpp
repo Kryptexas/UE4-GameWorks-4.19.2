@@ -247,7 +247,7 @@ static void UpdateSceneCaptureContentDeferred_RenderThread(
 		// Note: When the ViewFamily.SceneCaptureSource requires scene textures (i.e. SceneCaptureSource != SCS_FinalColorLDR), the copy to RenderTarget 
 		// will be done in CopySceneCaptureComponentToTarget while the GBuffers are still alive for the frame.
 		RHICmdList.CopyToResolveTarget(RenderTarget->GetRenderTargetTexture(), RenderTargetTexture->TextureRHI, false, ResolveParams);
-	}
+			}
 
 	FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
 }
@@ -261,7 +261,7 @@ static void UpdateSceneCaptureContent_RenderThread(
 	const FResolveParams& ResolveParams)
 {
 	switch (SceneRenderer->Scene->GetShadingPath())
-	{
+			{
 		case EShadingPath::Mobile:
 		{
 			UpdateSceneCaptureContentMobile_RenderThread(
@@ -287,7 +287,7 @@ static void UpdateSceneCaptureContent_RenderThread(
 		default:
 			checkNoEntry();
 			break;
-	}
+		}
 }
 
 void BuildProjectionMatrix(FIntPoint RenderTargetSize, ECameraProjectionMode::Type ProjectionType, float FOV, float InOrthoWidth, FMatrix& ProjectionMatrix)
@@ -520,7 +520,14 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 		FIntPoint CaptureSize(CaptureComponent->TextureTarget->GetSurfaceWidth(), CaptureComponent->TextureTarget->GetSurfaceHeight());
 
 		FMatrix ProjectionMatrix;
-		BuildProjectionMatrix(CaptureSize, CaptureComponent->ProjectionType, FOV, CaptureComponent->OrthoWidth, ProjectionMatrix);
+		if (CaptureComponent->bUseCustomProjectionMatrix)
+		{
+			ProjectionMatrix = CaptureComponent->CustomProjectionMatrix;
+		}
+		else
+		{
+			BuildProjectionMatrix(CaptureSize, CaptureComponent->ProjectionType, FOV, CaptureComponent->OrthoWidth, ProjectionMatrix);
+		}
 
 		const bool bUseSceneColorTexture = CaptureComponent->CaptureSource != SCS_FinalColorLDR;
 
@@ -540,6 +547,18 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 
 		SceneRenderer->ViewFamily.SceneCaptureSource = CaptureComponent->CaptureSource;
 		SceneRenderer->ViewFamily.SceneCaptureCompositeMode = CaptureComponent->CompositeMode;
+
+		if (CaptureComponent->bEnableClipPlane)
+		{
+			FPlane ClipPlane = FPlane(CaptureComponent->ClipPlaneBase, CaptureComponent->ClipPlaneNormal.GetSafeNormal());
+
+			for (int32 ViewIndex = 0; ViewIndex < SceneRenderer->Views.Num(); ++ViewIndex)
+			{
+				SceneRenderer->Views[ViewIndex].GlobalClippingPlane = ClipPlane;
+				// Jitter can't be removed completely due to the clipping plane
+				SceneRenderer->Views[ViewIndex].bAllowTemporalJitter = false;
+			}
+		}
 
 		FTextureRenderTargetResource* TextureRenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
 		const FName OwnerName = CaptureComponent->GetOwner() ? CaptureComponent->GetOwner()->GetFName() : NAME_None;

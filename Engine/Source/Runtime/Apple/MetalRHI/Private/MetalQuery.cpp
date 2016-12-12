@@ -120,11 +120,11 @@ void FMetalRenderQuery::Begin(FMetalContext* Context)
 		
 		if ((GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4) && GetMetalDeviceContext().SupportsFeature(EMetalFeaturesCountingQueries))
 		{
-			Context->GetCommandEncoder().SetVisibilityResultMode(MTLVisibilityResultModeCounting, Buffer.Offset);
+			Context->GetCurrentState().SetVisibilityResultMode(MTLVisibilityResultModeCounting, Buffer.Offset);
 		}
 		else
 		{
-			Context->GetCommandEncoder().SetVisibilityResultMode(MTLVisibilityResultModeBoolean, Buffer.Offset);
+			Context->GetCurrentState().SetVisibilityResultMode(MTLVisibilityResultModeBoolean, Buffer.Offset);
 		}
 	}
 }
@@ -134,7 +134,7 @@ void FMetalRenderQuery::End(FMetalContext* Context)
 	if(Type == RQT_Occlusion)
 	{
 		// switch back to non-occlusion rendering
-		Context->GetCommandEncoder().SetVisibilityResultMode(MTLVisibilityResultModeDisabled, 0);
+		Context->GetCurrentState().SetVisibilityResultMode(MTLVisibilityResultModeDisabled, 0);
 		Context->InsertCommandBufferFence(Buffer.CommandBufferFence);
 	}
 }

@@ -228,6 +228,8 @@ void FMeshElementCollector::AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch)
 	checkSlow(MeshBatch.VertexFactory && MeshBatch.MaterialRenderProxy);
 	checkSlow(PrimitiveSceneProxy);
 
+	PrimitiveSceneProxy->VerifyUsedMaterial(MeshBatch.MaterialRenderProxy);
+
 	if (MeshBatch.bCanApplyViewModeOverrides)
 	{
 		FSceneView* View = Views[ViewIndex];

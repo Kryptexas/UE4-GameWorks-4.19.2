@@ -205,6 +205,23 @@ float4 HdrLerp(float4 ColorA, float4 ColorB, float Blend, float Exposure)
 	return ColorA * BlendA + ColorB * BlendB;
 }
 
+void WeightTrackedAlphaClamping(
+		inout float NeighborAlphaMin, inout float NeighborMinWeight,
+		inout float NeighborAlphaMax, inout float NeighborMaxWeight,
+		in float NeighborAlpha, in float NeighborWeight)
+{
+	if (NeighborAlpha < NeighborAlphaMin)
+	{
+		NeighborAlphaMin = NeighborAlpha;
+		NeighborMinWeight = NeighborWeight;
+	}
+	else if (NeighborAlpha > NeighborAlphaMax)
+	{
+		NeighborAlphaMax = NeighborAlpha;
+		NeighborMaxWeight = NeighborWeight;
+	}
+}
+
 #define MINIMAL_REPROJECTION_DEBUG 0
 
 // Useful for verifying that the camera motion reprojection is correct, and the history texture contains the right values
@@ -329,6 +346,7 @@ void MainTemporalAAPS(
 		#define AA_AABB 1
 		#define AA_YCOCG 1
 		#define AA_BICUBIC 1
+		#define AA_ACCURATE_ALPHA (SCENE_ALPHA)
 		#define AA_DYNAMIC_ANTIGHOST 1
 		#include "PostProcessTemporalCommon.usf"
 	#endif
@@ -354,6 +372,7 @@ void MainFastTemporalAAPS(
 	#define AA_CROSS 2
 	#define AA_YCOCG 1
 	#define AA_BICUBIC 1
+	#define AA_ACCURATE_ALPHA (SCENE_ALPHA)
 	#include "PostProcessTemporalCommon.usf"
 #else
 	OutColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0);

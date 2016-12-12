@@ -296,6 +296,12 @@ FVisualizeTexture::FVisualizeTexture()
 	bEnabled = true;
 }
 
+void FVisualizeTexture::Destroy()
+{
+	VisualizeTextureContent.SafeRelease();
+	StencilSRV.SafeRelease();
+}
+
 FIntRect FVisualizeTexture::ComputeVisualizeTextureRect(FIntPoint InputTextureSize) const
 {
 	FIntRect ret = ViewRect;

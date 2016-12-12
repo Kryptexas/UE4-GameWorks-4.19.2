@@ -888,6 +888,19 @@ void FViewport::HighResScreenshot()
 	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(GetHighResScreenshotConfig().bMaskEnabled);
 	ViewportClient->GetEngineShowFlags()->SetMotionBlur(false);
 
+	// Forcing 128-bit rendering pipeline
+	static auto CVarSceneColorFormat = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SceneColorFormat"));
+	static auto CVarPostColorFormat = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessingColorFormat"));
+	check(CVarSceneColorFormat && CVarPostColorFormat);
+	const int32 OldSceneColorFormat = CVarSceneColorFormat->GetInt();
+	const int32 OldPostColorFormat = CVarPostColorFormat->GetInt();
+
+	if (GetHighResScreenshotConfig().bForce128BitRendering)
+	{
+		CVarSceneColorFormat->Set(5, ECVF_SetByCode);
+		CVarPostColorFormat->Set(1, ECVF_SetByCode);
+	}
+
 	// Render the requested number of frames (at least once)
 	static const auto HighResScreenshotDelay = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighResScreenshotDelay"));
 	const uint32 DefaultScreenshotDelay = 4;
@@ -913,6 +926,9 @@ void FViewport::HighResScreenshot()
 	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(MaskShowFlagBackup);
 	ViewportClient->GetEngineShowFlags()->MotionBlur = MotionBlurShowFlagBackup;
 	ViewportClient->ProcessScreenShots(DummyViewport);
+
+	CVarSceneColorFormat->Set(OldSceneColorFormat, ECVF_SetByCode);
+	CVarPostColorFormat->Set(OldPostColorFormat, ECVF_SetByCode);
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		EndDrawingCommand,

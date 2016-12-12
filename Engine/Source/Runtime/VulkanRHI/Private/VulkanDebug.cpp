@@ -170,6 +170,10 @@ namespace VulkanRHI
 
 	static const TCHAR* Tabs = TEXT("\t\t\t\t\t\t\t\t\t");
 
+	static FCriticalSection GTrackLock;
+	static TMap<VkImageView, VkImage> GImageViewTracker;
+	static TMap<VkBufferView, VkBuffer> GBufferViewTracker;
+
 	void FlushDebugWrapperLog()
 	{
 		if (DebugLog.Len() > 0)
@@ -1154,8 +1158,8 @@ namespace VulkanRHI
 					DebugLog += FString::Printf(TEXT("pImageInfo=%p\n"), DescriptorWrites[Index].pImageInfo);
 					for (uint32 SubIndex = 0; SubIndex < DescriptorWrites[Index].descriptorCount; ++SubIndex)
 					{
-						DebugLog += FString::Printf(TEXT("%s\tpImageInfo[%d]: Sampler=%llu, ImageView=%llu, imageLayout=%s"), Tabs, SubIndex,
-							(uint64)DescriptorWrites[Index].pImageInfo->sampler, (uint64)DescriptorWrites[Index].pImageInfo->imageView, *GetImageLayoutString(DescriptorWrites[Index].pImageInfo->imageLayout));
+						DebugLog += FString::Printf(TEXT("%s\tpImageInfo[%d]: Sampler=%p, ImageView=%p(I:%p), imageLayout=%s"), Tabs, SubIndex,
+							DescriptorWrites[Index].pImageInfo->sampler, DescriptorWrites[Index].pImageInfo->imageView, GImageViewTracker.FindChecked(DescriptorWrites[Index].pImageInfo->imageView), *GetImageLayoutString(DescriptorWrites[Index].pImageInfo->imageLayout));
 					}
 				}
 
@@ -1174,7 +1178,7 @@ namespace VulkanRHI
 					DebugLog += FString::Printf(TEXT("pTexelBufferView=%p\n"), DescriptorWrites[Index].pTexelBufferView);
 					for (uint32 SubIndex = 0; SubIndex < DescriptorWrites[Index].descriptorCount; ++SubIndex)
 					{
-						DebugLog += FString::Printf(TEXT("%s\tpTexelBufferView[%d]=%p\n"), Tabs, SubIndex, DescriptorWrites[Index].pTexelBufferView[SubIndex]);
+						DebugLog += FString::Printf(TEXT("%s\tpTexelBufferView[%d]=%p(B:%p)\n"), Tabs, SubIndex, DescriptorWrites[Index].pTexelBufferView[SubIndex], GBufferViewTracker.FindChecked(DescriptorWrites[Index].pTexelBufferView[SubIndex]));
 					}
 				}
 
@@ -1205,7 +1209,7 @@ namespace VulkanRHI
 			DebugLog += FString::Printf(TEXT("%sVkFramebufferCreateInfo: Flags=%d, RenderPass=%p, NumAttachments=%d\n"), Tabs, CreateInfo->flags, CreateInfo->renderPass, CreateInfo->attachmentCount);
 			for (uint32 Index = 0; Index < CreateInfo->attachmentCount; ++Index)
 			{
-				DebugLog += FString::Printf(TEXT("%s\tAttachment[%d]: ImageView=%p\n"), Tabs, Index, CreateInfo->pAttachments[Index]);
+				DebugLog += FString::Printf(TEXT("%s\tAttachment[%d]: ImageView=%p(I:%p)\n"), Tabs, Index, CreateInfo->pAttachments[Index], GImageViewTracker.FindChecked(CreateInfo->pAttachments[Index]));
 			}
 			DebugLog += FString::Printf(TEXT("%s\twidth=%d, height=%d, layers=%d"), Tabs, CreateInfo->width, CreateInfo->height, CreateInfo->layers);
 		}
@@ -1614,6 +1618,30 @@ namespace VulkanRHI
 */
 			}
 		}
+	}
+
+	void TrackImageViewAdd(VkImageView View, VkImage Image)
+	{
+		FScopeLock Lock(&GTrackLock);
+		GImageViewTracker.Add(View, Image);
+	}
+
+	void TrackImageViewRemove(VkImageView View)
+	{
+		FScopeLock Lock(&GTrackLock);
+		GImageViewTracker.Remove(View);
+	}
+
+	void TrackBufferViewAdd(VkBufferView View, VkBuffer Buffer)
+	{
+		FScopeLock Lock(&GTrackLock);
+		GBufferViewTracker.Add(View, Buffer);
+	}
+
+	void TrackBufferViewRemove(VkBufferView View)
+	{
+		FScopeLock Lock(&GTrackLock);
+		GBufferViewTracker.Remove(View);
 	}
 
 

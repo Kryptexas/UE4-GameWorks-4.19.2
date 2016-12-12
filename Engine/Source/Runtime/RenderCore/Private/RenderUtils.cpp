@@ -426,9 +426,9 @@ RENDERCORE_API const uint32 GDiffuseConvolveMipLevel = 4;
 class FSolidColorTextureCube : public FTexture
 {
 public:
-
-	FSolidColorTextureCube(const FColor& InColor)
-	:	Color(InColor)
+	FSolidColorTextureCube(const FColor& InColor, EPixelFormat InPixelFormat = PF_B8G8R8A8)
+	: Color(InColor)
+	, PixelFormat(InPixelFormat)
 	{}
 
 	// FRenderResource interface.
@@ -436,7 +436,7 @@ public:
 	{
 		// Create the texture RHI.
 		FRHIResourceCreateInfo CreateInfo;
-		FTextureCubeRHIRef TextureCube = RHICreateTextureCube(1,PF_B8G8R8A8,1,0,CreateInfo);
+		FTextureCubeRHIRef TextureCube = RHICreateTextureCube(1, PixelFormat,1,0,CreateInfo);
 		TextureRHI = TextureCube;
 
 		// Write the contents of the texture.
@@ -466,8 +466,8 @@ public:
 	}
 
 private:
-
 	FColor Color;
+	EPixelFormat PixelFormat;
 };
 
 /** A white cube texture. */
@@ -485,6 +485,14 @@ public:
 	FBlackTextureCube(): FSolidColorTextureCube(FColor::Black) {}
 };
 FTexture* GBlackTextureCube = new TGlobalResource<FBlackTextureCube>;
+
+/** A black cube texture. */
+class FBlackTextureDepthCube : public FSolidColorTextureCube
+{
+public:
+	FBlackTextureDepthCube() : FSolidColorTextureCube(FColor::Black, PF_ShadowDepth) {}
+};
+FTexture* GBlackTextureDepthCube = new TGlobalResource<FBlackTextureDepthCube>;
 
 class FBlackCubeArrayTexture : public FTexture
 {
@@ -900,4 +908,14 @@ RENDERCORE_API FVertexBufferRHIRef& GetUnitCubeVertexBuffer()
 RENDERCORE_API FIndexBufferRHIRef& GetUnitCubeIndexBuffer()
 {
 	return GUnitCubeIndexBuffer.IndexBufferRHI;
+}
+
+RENDERCORE_API void QuantizeSceneBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY)
+{
+	// Ensure sizes are dividable by DividableBy to get post processing effects with lower resolution working well
+	const uint32 DividableBy = 4;
+
+	const uint32 Mask = ~(DividableBy - 1);
+	InOutBufferSizeX = (InOutBufferSizeX + DividableBy - 1) & Mask;
+	InOutBufferSizeY = (InOutBufferSizeY + DividableBy - 1) & Mask;
 }

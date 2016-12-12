@@ -864,9 +864,14 @@ void FPixelShaderInOut_MainPS(
 		GetPrecomputedIndirectLightingAndSkyLight(MaterialParameters, Interpolants, BasePassInterpolants, DiffuseDir, DiffuseIndirectLighting, SubsurfaceIndirectLighting, IndirectIrradiance);
 		
 		float IndirectOcclusion = 1.0f;
+		float2 NearestResolvedDepthScreenUV = 0;
 
 		#if FORWARD_SHADING && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED)
-			IndirectOcclusion = GetIndirectOcclusion(MaterialParameters.ScreenPosition, GBuffer);
+			float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
+			float2 ScreenUV = NDC * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz;
+			NearestResolvedDepthScreenUV = CalculateNearestResolvedDepthScreenUV(ScreenUV, MaterialParameters.ScreenPosition.w);
+
+			IndirectOcclusion = GetIndirectOcclusion(NearestResolvedDepthScreenUV, GBuffer);
 			DiffuseIndirectLighting *= IndirectOcclusion;
 			SubsurfaceIndirectLighting *= IndirectOcclusion;
 			IndirectIrradiance *= IndirectOcclusion;
@@ -891,15 +896,7 @@ void FPixelShaderInOut_MainPS(
 				GridIndex = ComputeLightGridCellIndex((uint2)(MaterialParameters.SvPosition.xy - ResolvedView.ViewRectMin.xy), MaterialParameters.SvPosition.w, EyeIndex);
 
 				#if FORWARD_SHADING || TRANSLUCENCY_LIGHTING_SURFACE_FORWARDSHADING
-					float4 DynamicShadowFactors = 1;
-
-					#if MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED
-						float2 NDC = MaterialParameters.ScreenPosition.xy / MaterialParameters.ScreenPosition.w;
-						float2 ScreenUV = NDC * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz;
-						DynamicShadowFactors = GetPerPixelLightAttenuation(ScreenUV);
-					#endif
-
-					Color += GetForwardDirectLighting(GridIndex, MaterialParameters.AbsoluteWorldPosition, MaterialParameters.CameraVector, GBuffer, DynamicShadowFactors, EyeIndex);
+					Color += GetForwardDirectLighting(GridIndex, MaterialParameters.AbsoluteWorldPosition, MaterialParameters.CameraVector, GBuffer, NearestResolvedDepthScreenUV, EyeIndex);
 				#endif
 			#endif
 

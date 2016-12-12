@@ -25,7 +25,16 @@ public:
 	/**
 	 * Initialize/allocate textures if not already.
 	 */
-	void InitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel);
+	inline void InitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel)
+	{
+		if (bTexturesInitialized && FeatureLevelInitializedTo >= InFeatureLevel)
+		{
+			// Already initialized up to at least the feature level we need, so do nothing
+			return;
+		}
+
+		InternalInitializeTextures(RHICmdList, InFeatureLevel);
+	}
 
 	// FRenderResource interface.
 	/**
@@ -58,9 +67,12 @@ public:
 	// float4(0.5,0.5,0.5,1)
 	TRefCountPtr<IPooledRenderTarget> MidGrayDummy;
 
+protected:
 	/** Maximum feature level that the textures have been initialized up to */
 	ERHIFeatureLevel::Type FeatureLevelInitializedTo;
 	bool bTexturesInitialized;
+
+	void InternalInitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel);
 };
 
 /** The global system textures used for scene rendering. */

@@ -72,7 +72,7 @@ struct FVertexFactoryInput
 #endif
 
 /** Optional instance ID for vertex layered rendering */
-#if PARTICLE_MESH_INSTANCED
+#if (PARTICLE_MESH_INSTANCED || (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER))
 	uint InstanceId	: SV_InstanceID;
 #endif
 };

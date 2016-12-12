@@ -157,6 +157,14 @@ public:
 	TArray<FVertexColorLODData> VertexColorLODs;
 
 	FLightMapInstanceData CachedStaticLighting;
+
+	/** Texture streaming build data */
+	TArray<FStreamingTextureBuildInfo> StreamingTextureData;
+
+#if WITH_EDITORONLY_DATA
+	/** Texture streaming editor data (for viewmodes) */
+	TArray<uint32> MaterialStreamingRelativeBoxes;
+#endif
 };
 
 UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
@@ -2077,15 +2085,21 @@ FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() co
 {
 	FStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
 
-		StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
+	StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
 
-		// Fill in info
-		StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
+	// Fill in info
+	StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
 
-		for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
-		{
+	for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
+	{
 		StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds.Add(LODDataEntry.MapBuildDataId);
-		}
+	}
+
+	// Backup the texture streaming data.
+	StaticMeshInstanceData->StreamingTextureData = StreamingTextureData;
+#if WITH_EDITORONLY_DATA
+	StaticMeshInstanceData->MaterialStreamingRelativeBoxes = MaterialStreamingRelativeBoxes;
+#endif
 
 	// Cache instance vertex colors
 	for( int32 LODIndex = 0; LODIndex < LODData.Num(); ++LODIndex )
@@ -2146,6 +2160,12 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		FComponentReregisterContext ReregisterStaticMesh(this);
 		StaticMeshInstanceData->ApplyVertexColorData(this);
 	}
+
+	// Restore the texture streaming data.
+	StreamingTextureData = StaticMeshInstanceData->StreamingTextureData;
+#if WITH_EDITORONLY_DATA
+	MaterialStreamingRelativeBoxes = StaticMeshInstanceData->MaterialStreamingRelativeBoxes;
+#endif
 }
 
 bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const

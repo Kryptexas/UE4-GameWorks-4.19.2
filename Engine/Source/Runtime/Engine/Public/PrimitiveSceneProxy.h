@@ -156,6 +156,9 @@ public:
 	/** Helper for components that want to render bounds. */
 	ENGINE_API void RenderBounds(FPrimitiveDrawInterface* PDI, const FEngineShowFlags& EngineShowFlags, const FBoxSphereBounds& Bounds, bool bRenderInEditor) const;
 
+	/** Verifies that a material used for rendering was present in the component's GetUsedMaterials list. */
+	ENGINE_API void VerifyUsedMaterial(const class FMaterialRenderProxy* MaterialRenderProxy) const;
+
 	/** Returns the LOD that the primitive will render at for this view. */
 	virtual int32 GetLOD(const FSceneView* View) const { return INDEX_NONE; }
 	
@@ -765,6 +768,8 @@ protected:
 	/** true by default, if set to false will make given proxy never drawn with selection outline */
 	uint32 bWantsSelectionOutline : 1;
 
+	uint32 bVerifyUsedMaterials : 1;
+
 private:
 
 	/** If this is True, this primitive will be used to occlusion cull other primitives. */
@@ -875,6 +880,8 @@ private:
 	*	How many invalid lights for this primitive, just refer for scene outliner
 	*/
 	int32 NumUncachedStaticLightingInteractions;
+
+	TArray<UMaterialInterface*> UsedMaterialsForVerification;
 #endif
 
 	/**

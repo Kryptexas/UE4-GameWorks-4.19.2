@@ -11,6 +11,7 @@
 #else
 #include "IOSAppDelegate.h"
 #endif
+#include "RenderCommandFence.h"
 
 extern int32 GMetalSupportsIntermediateBackBuffer;
 
@@ -41,7 +42,7 @@ extern int32 GMetalSupportsIntermediateBackBuffer;
 
 #endif
 
-FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
+FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen,EPixelFormat Format)
 : Drawable(nil)
 {
 #if PLATFORM_MAC
@@ -64,8 +65,13 @@ FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY
 		Layer.magnificationFilter = kCAFilterNearest;
 		Layer.minificationFilter = kCAFilterNearest;
 
+		if (GRHISupportsHDROutput)
+		{
+			[Layer setWantsExtendedDynamicRangeContent:YES];
+		}
+
 		[Layer setDevice:GetMetalDeviceContext().GetDevice()];
-		[Layer setPixelFormat:MTLPixelFormatBGRA8Unorm];
+		[Layer setPixelFormat:(Format == PF_FloatRGBA && GRHISupportsHDROutput) ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm];
 		[Layer setFramebufferOnly:NO];
 		[Layer removeAllAnimations];
 
@@ -75,7 +81,7 @@ FMetalViewport::FMetalViewport(void* WindowHandle, uint32 InSizeX,uint32 InSizeY
 		[[Window standardWindowButton:NSWindowCloseButton] setAction:@selector(performClose:)];
 	}, NSDefaultRunLoopMode, true);
 #endif
-	Resize(InSizeX, InSizeY, bInIsFullscreen);
+	Resize(InSizeX, InSizeY, bInIsFullscreen, Format);
 }
 
 FMetalViewport::~FMetalViewport()
@@ -115,22 +121,45 @@ uint32 FMetalViewport::GetViewportIndex(EMetalViewportAccessFlag Accessor) const
 	}
 }
 
-void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen)
+void FMetalViewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen,EPixelFormat Format)
 {
 	uint32 Index = GetViewportIndex(EMetalViewportAccessGame);
 	
 	FRHIResourceCreateInfo CreateInfo;
+
+	Format = (Format == PF_FloatRGBA && GRHISupportsHDROutput) ? PF_FloatRGBA : PF_B8G8R8A8;
+	MTLPixelFormat MetalFormat = (Format == PF_FloatRGBA && GRHISupportsHDROutput) ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
+	if (IsValidRef(BackBuffer[Index]) && Format != BackBuffer[Index]->GetFormat())
+	{
+		// Really need to flush the RHI thread & GPU here...
+		ENQUEUE_UNIQUE_RENDER_COMMAND(
+									  FlushPendingRHICommands,
+									  {
+										  GRHICommandList.GetImmediateCommandList().BlockUntilGPUIdle();
+									  }
+									  );
+		
+		// Issue a fence command to the rendering thread and wait for it to complete.
+		FRenderCommandFence Fence;
+		Fence.BeginFence();
+		Fence.Wait();
+	}
+
 	if (GMetalSupportsIntermediateBackBuffer)
 	{
-		BackBuffer[Index] = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable, CreateInfo);
+		BackBuffer[Index] = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, Format, 1, 1, TexCreate_RenderTargetable, CreateInfo);
 	}
 	else
 	{
-		BackBuffer[Index] = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
+		BackBuffer[Index] = (FMetalTexture2D*)(FTexture2DRHIParamRef)GDynamicRHI->RHICreateTexture2D(InSizeX, InSizeY, Format, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
 	}
 #if PLATFORM_MAC
 	MainThreadCall(^{
-	((CAMetalLayer*)View.layer).drawableSize = CGSizeMake(InSizeX, InSizeY);
+		((CAMetalLayer*)View.layer).drawableSize = CGSizeMake(InSizeX, InSizeY);
+		if (MetalFormat != ((CAMetalLayer*)View.layer).pixelFormat)
+		{
+			((CAMetalLayer*)View.layer).pixelFormat = MetalFormat;
+		}
 	}, NSDefaultRunLoopMode, true);
 #else
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
@@ -171,10 +200,10 @@ id<MTLDrawable> FMetalViewport::GetDrawable(EMetalViewportAccessFlag Accessor)
 	#else
 			Drawable = [[[IOSAppDelegate GetDelegate].IOSView MakeDrawable] retain];
 	#endif
-#if PLATFORM_MAC && METAL_DEBUG_OPTIONS
-			if (CurrentLayer.drawableSize.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || CurrentLayer.drawableSize.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY())
+#if METAL_DEBUG_OPTIONS
+			if (((id<CAMetalDrawable>)Drawable).layer.drawableSize.width != BackBuffer[GetViewportIndex(Accessor)]->GetSizeX() || ((id<CAMetalDrawable>)Drawable).layer.drawableSize.height != BackBuffer[GetViewportIndex(Accessor)]->GetSizeY())
 			{
-				UE_LOG(LogMetal, Display, TEXT("Viewport Size Mismatch: Drawable W:%f H:%f, Viewport W:%u H:%u"), CurrentLayer.drawableSize.width, CurrentLayer.drawableSize.height, BackBuffer[GetViewportIndex(Accessor)]->GetSizeX(), BackBuffer[GetViewportIndex(Accessor)]->GetSizeY());
+				UE_LOG(LogMetal, Display, TEXT("Viewport Size Mismatch: Drawable W:%f H:%f, Viewport W:%u H:%u"), ((id<CAMetalDrawable>)Drawable).layer.drawableSize.width, ((id<CAMetalDrawable>)Drawable).layer.drawableSize.height, BackBuffer[GetViewportIndex(Accessor)]->GetSizeX(), BackBuffer[GetViewportIndex(Accessor)]->GetSizeY());
 			}
 #endif
 			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
@@ -187,10 +216,14 @@ id<MTLDrawable> FMetalViewport::GetDrawable(EMetalViewportAccessFlag Accessor)
 id<MTLTexture> FMetalViewport::GetDrawableTexture(EMetalViewportAccessFlag Accessor)
 {
 	id<CAMetalDrawable> CurrentDrawable = (id<CAMetalDrawable>)GetDrawable(Accessor);
+#if METAL_DEBUG_OPTIONS
 	@autoreleasepool
 	{
-#if PLATFORM_MAC && METAL_DEBUG_OPTIONS
+#if PLATFORM_MAC
 		CAMetalLayer* CurrentLayer = (CAMetalLayer*)[View layer];
+#else
+		CAMetalLayer* CurrentLayer = (CAMetalLayer*)[[IOSAppDelegate GetDelegate].IOSView layer];
+#endif
 		
 		uint32 Index = GetViewportIndex(Accessor);
 		CGSize Size = CurrentLayer.drawableSize;
@@ -198,8 +231,8 @@ id<MTLTexture> FMetalViewport::GetDrawableTexture(EMetalViewportAccessFlag Acces
 		{
 			UE_LOG(LogMetal, Display, TEXT("Viewport Size Mismatch: Drawable W:%f H:%f, Texture W:%llu H:%llu, Viewport W:%u H:%u"), Size.width, Size.height, CurrentDrawable.texture.width, CurrentDrawable.texture.height, BackBuffer[Index]->GetSizeX(), BackBuffer[Index]->GetSizeY());
 		}
-#endif
 	}
+#endif
 	return CurrentDrawable.texture;
 }
 
@@ -226,18 +259,23 @@ NSWindow* FMetalViewport::GetWindow() const
 /*=============================================================================
  *	The following RHI functions must be called from the main thread.
  *=============================================================================*/
-FViewportRHIRef FMetalDynamicRHI::RHICreateViewport(void* WindowHandle,uint32 SizeX,uint32 SizeY,bool bIsFullscreen,EPixelFormat PreferredPixelFormat /* ignored */)
+FViewportRHIRef FMetalDynamicRHI::RHICreateViewport(void* WindowHandle,uint32 SizeX,uint32 SizeY,bool bIsFullscreen,EPixelFormat PreferredPixelFormat)
 {
 	check( IsInGameThread() );
-	return new FMetalViewport(WindowHandle, SizeX, SizeY, bIsFullscreen);
+	return new FMetalViewport(WindowHandle, SizeX, SizeY, bIsFullscreen, PreferredPixelFormat);
 }
 
-void FMetalDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI,uint32 SizeX,uint32 SizeY,bool bIsFullscreen)
+void FMetalDynamicRHI::RHIResizeViewport(FViewportRHIParamRef Viewport, uint32 SizeX, uint32 SizeY, bool bIsFullscreen)
+{
+	RHIResizeViewport(Viewport, SizeX, SizeY, bIsFullscreen, PF_Unknown);
+}
+
+void FMetalDynamicRHI::RHIResizeViewport(FViewportRHIParamRef ViewportRHI,uint32 SizeX,uint32 SizeY,bool bIsFullscreen,EPixelFormat Format)
 {
 	check( IsInGameThread() );
 
 	FMetalViewport* Viewport = ResourceCast(ViewportRHI);
-	Viewport->Resize(SizeX, SizeY, bIsFullscreen);
+	Viewport->Resize(SizeX, SizeY, bIsFullscreen, Format);
 }
 
 void FMetalDynamicRHI::RHITick( float DeltaTime )

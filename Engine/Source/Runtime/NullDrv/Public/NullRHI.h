@@ -18,6 +18,7 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init();
 	virtual void Shutdown();
+	virtual const TCHAR* GetName() override { return TEXT("Null"); }
 
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override
 	{ 

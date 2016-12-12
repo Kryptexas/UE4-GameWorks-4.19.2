@@ -312,6 +312,9 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	// Inform MultiGPU systems that we're starting to update the texture
+	Context.RHICmdList.BeginUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
@@ -351,6 +354,10 @@ void FRCPassPostProcessDOFTemporalAA::Process(FRenderingCompositePassContext& Co
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	ViewState->DOFHistoryRT = PassOutputs[0].PooledRenderTarget;
+
+	// Inform MultiGPU systems that we've finished with this texture for this frame
+	Context.RHICmdList.EndUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+
 	check( ViewState->DOFHistoryRT );
 }
 
@@ -394,6 +401,9 @@ void FRCPassPostProcessDOFTemporalAANear::Process(FRenderingCompositePassContext
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
+	// Inform MultiGPU systems that we're starting to update this texture for this frame
+	Context.RHICmdList.BeginUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	// is optimized away if possible (RT size=view size, )
@@ -433,6 +443,10 @@ void FRCPassPostProcessDOFTemporalAANear::Process(FRenderingCompositePassContext
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	ViewState->DOFHistoryRT2 = PassOutputs[0].PooledRenderTarget;
+
+	// Inform MultiGPU systems that we've finished with this texture for this frame
+	Context.RHICmdList.EndUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
+
 	check( ViewState->DOFHistoryRT2 );
 }
 
@@ -554,6 +568,9 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	SCOPED_DRAW_EVENTF(Context.RHICmdList, TemporalAA, TEXT("TemporalAA %dx%d"), SrcRect.Width(), SrcRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+
+	// Inform MultiGPU systems that we're starting to update this resource
+	Context.RHICmdList.BeginUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
 
 	//Context.SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
@@ -723,6 +740,9 @@ void FRCPassPostProcessTemporalAA::Process(FRenderingCompositePassContext& Conte
 	}
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	// Inform MultiGPU systems that we've finished with this texture for this frame
+	Context.RHICmdList.EndUpdateMultiFrameResource(DestRenderTarget.ShaderResourceTexture);
 
 	if( CVarTemporalAAPauseCorrect.GetValueOnRenderThread() )
 	{

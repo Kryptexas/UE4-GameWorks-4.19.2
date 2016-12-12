@@ -34,8 +34,8 @@ UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInit
 	FogMaxOpacity = 1.0f;
 	StartDistance = 0.0f;
 
-	// Effectively disabled by default
-	FogCutoffDistance = WORLD_MAX * 10;
+	// disabled by default
+	FogCutoffDistance = 0;
 }
 
 void UExponentialHeightFogComponent::AddFogIfNeeded()

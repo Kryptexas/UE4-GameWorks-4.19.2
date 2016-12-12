@@ -1355,6 +1355,8 @@ void FRenderTargetPool::ReleaseDynamicRHI()
 	check(IsInRenderingThread());
 	WaitForTransitionFence();
 
+	VisualizeTexture.Destroy();
+
 	PooledRenderTargets.Empty();
 	if (PooledRenderTargetSnapshots.Num())
 	{

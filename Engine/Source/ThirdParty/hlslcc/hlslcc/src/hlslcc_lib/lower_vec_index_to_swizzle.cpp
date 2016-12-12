@@ -81,6 +81,11 @@ ir_rvalue * ir_vec_index_to_swizzle_visitor::convert_vec_index_to_swizzle(ir_rva
 		return ir;
 	}
 
+	if (deref->array->type->is_patch())
+	{
+		return ir;
+	}
+
 	check(deref->array_index->type->base_type == GLSL_TYPE_INT ||
 		deref->array_index->type->base_type == GLSL_TYPE_UINT);
 	ir_constant = deref->array_index->constant_expression_value();

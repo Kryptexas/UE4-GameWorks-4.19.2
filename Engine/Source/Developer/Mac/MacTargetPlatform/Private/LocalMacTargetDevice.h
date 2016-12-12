@@ -82,7 +82,7 @@ public:
 
 	virtual FString GetOperatingSystemName( ) override
 	{
-		return TEXT("OS X");
+		return TEXT("macOS");
 	}
 
 	virtual int32 GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) override

@@ -68,6 +68,8 @@ public:
 	FShaderParameter DepthOfFieldParams;
 	FShaderParameter SeparateTranslucencyResMultParam;
 	FShaderResourceParameter LowResDepthTexture;
+	FShaderResourceParameter BilinearClampedSampler;
+	FShaderResourceParameter PointClampedSampler;
 
 	/** Initialization constructor. */
 	FPostProcessBokehDOFRecombinePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -78,13 +80,15 @@ public:
 		DepthOfFieldParams.Bind(Initializer.ParameterMap,TEXT("DepthOfFieldParams"));
 		SeparateTranslucencyResMultParam.Bind(Initializer.ParameterMap, TEXT("SeparateTranslucencyResMult"));
 		LowResDepthTexture.Bind(Initializer.ParameterMap, TEXT("LowResDepthTexture"));
+		BilinearClampedSampler.Bind(Initializer.ParameterMap, TEXT("BilinearClampedSampler"));
+		PointClampedSampler.Bind(Initializer.ParameterMap, TEXT("PointClampedSampler"));
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DepthOfFieldParams << DeferredParameters << SeparateTranslucencyResMultParam << LowResDepthTexture;
+		Ar << PostprocessParameter << DepthOfFieldParams << DeferredParameters << SeparateTranslucencyResMultParam << LowResDepthTexture << BilinearClampedSampler << PointClampedSampler;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -119,6 +123,9 @@ public:
 
 			const auto& BuiltinSamplersUBParameter = GetUniformBufferParameter<FBuiltinSamplersParameters>();
 			SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, BuiltinSamplersUBParameter, GBuiltinSamplersUniformBuffer.GetUniformBufferRHI());
+
+			SetSamplerParameter(Context.RHICmdList, ShaderRHI, BilinearClampedSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+			SetSamplerParameter(Context.RHICmdList, ShaderRHI, PointClampedSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 		}
 		else
 		{

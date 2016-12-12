@@ -21,6 +21,7 @@ public class D3D11RHI : ModuleRules
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target, "DX11");
         AddEngineThirdPartyPrivateStaticDependencies(Target, "NVAPI");
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "AMD_AGS");
 
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{

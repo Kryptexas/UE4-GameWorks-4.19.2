@@ -49,6 +49,29 @@ class ENGINE_API USceneCaptureComponent2D : public USceneCaptureComponent
 	UPROPERTY(interp, Category=PostProcessVolume, BlueprintReadWrite, meta=(UIMin = "0.0", UIMax = "1.0"))
 	float PostProcessBlendWeight;
 
+	/** Whether a custom projection matrix will be used during rendering. Use with caution. Does not currently affect culling */
+	UPROPERTY(BlueprintReadWrite, AdvancedDisplay, Category = Projection)
+	bool bUseCustomProjectionMatrix;
+
+	/** The custom projection matrix to use */
+	UPROPERTY(BlueprintReadWrite, AdvancedDisplay, Category = Projection)
+	FMatrix CustomProjectionMatrix;
+
+	/** 
+	 * Enables a clip plane while rendering the scene capture which is useful for portals.  
+	 * The global clip plane must be enabled in the renderer project settings for this to work.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=SceneCapture)
+	bool bEnableClipPlane;
+
+	/** Base position for the clip plane, can be any position on the plane. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=SceneCapture)
+	FVector ClipPlaneBase;
+
+	/** Normal for the plane. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=SceneCapture)
+	FVector ClipPlaneNormal;
+
 	//~ Begin UActorComponent Interface
 	virtual void OnRegister() override;
 	virtual void SendRenderTransform_Concurrent() override;

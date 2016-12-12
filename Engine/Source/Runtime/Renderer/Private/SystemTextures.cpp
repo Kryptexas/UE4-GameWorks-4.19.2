@@ -15,14 +15,8 @@ SystemTextures
 /** The global render targets used for scene rendering. */
 TGlobalResource<FSystemTextures> GSystemTextures;
 
-void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel)
+void FSystemTextures::InternalInitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if (bTexturesInitialized && FeatureLevelInitializedTo >= InFeatureLevel)
-	{
-		// Already initialized up to at least the feature level we need, so do nothing
-		return;
-	}
-
 	// First initialize textures that are common to all feature levels. This is always done the first time we come into this function, as doesn't care about the
 	// requested feature level
 	if (!bTexturesInitialized)
@@ -444,6 +438,8 @@ void FSystemTextures::ReleaseDynamicRHI()
 	PreintegratedGF.SafeRelease();
 	MaxFP16Depth.SafeRelease();
 	DepthDummy.SafeRelease();
+	GreenDummy.SafeRelease();
+	MidGrayDummy.SafeRelease();
 
 	GRenderTargetPool.FreeUnusedResources();
 

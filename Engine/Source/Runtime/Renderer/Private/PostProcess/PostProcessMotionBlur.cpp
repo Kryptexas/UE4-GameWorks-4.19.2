@@ -16,6 +16,7 @@
 #include "CompositionLighting/PostProcessAmbientOcclusion.h"
 #include "PostProcess/PostProcessing.h"
 #include "DeferredShadingRenderer.h"
+#include "ClearQuad.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarMotionBlurFiltering(
@@ -651,12 +652,16 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 	FIntRect SrcRect = View.ViewRect / ScaleFactor;
 	FIntRect DestRect = SrcRect;
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, MotionBlurNew, TEXT("MotionBlur %dx%d"), SrcRect.Width(), SrcRect.Height());
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, MotionBlur, TEXT("MotionBlur %dx%d"), SrcRect.Width(), SrcRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+
+	// Is optimized away if possible (RT size=view size, )
+	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
+
 	Context.SetViewportAndCallRHI(SrcRect);
 	
 	// is optimized away if possible (RT size=view size, )

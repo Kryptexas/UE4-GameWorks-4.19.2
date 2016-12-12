@@ -331,9 +331,6 @@ public:
 	 */
 	virtual void RHIWaitComputeFence(FComputeFenceRHIParamRef InFence) final override;
 
-protected:
-	// Helper for ClearMRT so that it can properly perform volumetric clears
-	void RHIDrawInstancedPrimitiveUP( FRHICommandList& RHICmdList, uint32 PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride, uint32 InstanceCount );
 	
 protected:
 	static TGlobalResource<TBoundShaderStateHistory<10000>> BoundShaderStateHistory;

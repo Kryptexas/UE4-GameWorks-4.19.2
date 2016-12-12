@@ -521,8 +521,9 @@ void MainPS(
 			OutColor.rgb = InvertACESTonemapping( OutColor.rgb );
 		#endif
 
+		// We always process in PQ for precision but can output in ScRGB
 		BRANCH
-		if (EncodeHDROutput)
+		if (GetOutputDevice() == 5 || GetOutputDevice() == 6)
 		{
 			OutColor.xyz = ST2084ToScRGB(OutColor.xyz, GetOutputDevice());
 		}

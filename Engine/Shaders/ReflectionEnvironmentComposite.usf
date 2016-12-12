@@ -182,7 +182,7 @@ float3 CompositeReflectionCapturesAndSkylight(
 
 	ImageBasedReflections.rgb += ImageBasedReflections.a * ExtraIndirectSpecular;
 
-	return ImageBasedReflections.rgb;
+	return ImageBasedReflections.rgb * View.IndirectLightingColorScale;
 }
 
 float3 CompositeReflectionCapturesAndSkylight(

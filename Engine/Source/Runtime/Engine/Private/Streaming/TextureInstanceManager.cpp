@@ -10,6 +10,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Engine/Texture2D.h"
 #include "UObject/UObjectHash.h"
+#include "RefCounting.h"
 
 FTextureInstanceState::FBounds4::FBounds4()
 :	OriginX( 0, 0, 0, 0 )
@@ -174,6 +175,7 @@ void FTextureInstanceState::FTextureLinkConstIterator::OutputToLog(float MaxNorm
 	const UPrimitiveComponent* Component = GetComponent();
 	FBoxSphereBounds Bounds = GetBounds();
 	float TexelFactor = GetTexelFactor();
+	bool bForceLoad = GetForceLoad();
 
 	// Log the component reference.
 	if (Component)
@@ -186,7 +188,7 @@ void FTextureInstanceState::FTextureLinkConstIterator::OutputToLog(float MaxNorm
 	}
 	
 	// Log the wanted mips.
-	if (TexelFactor == FLT_MAX)
+	if (TexelFactor == FLT_MAX || bForceLoad)
 	{
 		UE_LOG(LogContentStreaming, Log, TEXT("    Forced FullyLoad"));
 	}
@@ -220,8 +222,7 @@ void FTextureInstanceState::FTextureLinkConstIterator::OutputToLog(float MaxNorm
 	}
 
 	// Log the bounds
-	const bool bUseNewMetrics = CVarStreamingUseNewMetrics.GetValueOnAnyThread() != 0;
-	if (bUseNewMetrics)
+	if (CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0) // New metrics uses AABB while previous metrics used spheres.
 	{
 		if (TexelFactor >= 0 && TexelFactor < FLT_MAX)
 		{
@@ -301,7 +302,7 @@ void FTextureInstanceState::RemoveBounds(int32 BoundsIndex)
 	}
 }
 
-void FTextureInstanceState::AddElement(const UPrimitiveComponent* InComponent, const UTexture2D* InTexture, int InBoundsIndex, float InTexelFactor, int32*& ComponentLink)
+void FTextureInstanceState::AddElement(const UPrimitiveComponent* InComponent, const UTexture2D* InTexture, int InBoundsIndex, float InTexelFactor, bool InForceLoad, int32*& ComponentLink)
 {
 	ensure(!AsyncUpdateLastRenderTimeTask.IsValid()); // Dynamic path does not use the async task.
 	check(InComponent && InTexture);
@@ -327,12 +328,14 @@ void FTextureInstanceState::AddElement(const UPrimitiveComponent* InComponent, c
 					{
 						// Abort inserting a new element, and merge the 2 entries together.
 						TextureElement.TexelFactor = FMath::Max(TextureElement.TexelFactor, InTexelFactor);
+						TextureElement.bForceLoad |= InForceLoad;
 						return;
 					}
 					else if (InTexelFactor < 0 && TextureElement.TexelFactor < 0)
 					{
 						// Negative are forced resolution.
 						TextureElement.TexelFactor = FMath::Min(TextureElement.TexelFactor, InTexelFactor);
+						TextureElement.bForceLoad |= InForceLoad;
 						return;
 					}
 				}
@@ -364,6 +367,7 @@ void FTextureInstanceState::AddElement(const UPrimitiveComponent* InComponent, c
 	Element.Texture = InTexture;
 	Element.BoundsIndex = InBoundsIndex;
 	Element.TexelFactor = InTexelFactor;
+	Element.bForceLoad = InForceLoad;
 
 	if (TextureLink)
 	{
@@ -396,7 +400,7 @@ void FTextureInstanceState::AddElement(const UPrimitiveComponent* InComponent, c
 	// This will happen when not all components could be inserted in the incremental build.
 	if (HasCompiledElements()) 
 	{
-		CompiledTextureMap.FindOrAdd(Element.Texture).Add(FCompiledElement(Element.BoundsIndex, Element.TexelFactor));
+		CompiledTextureMap.FindOrAdd(Element.Texture).Add(FCompiledElement(Element.BoundsIndex, Element.TexelFactor, Element.bForceLoad));
 	}
 }
 
@@ -411,7 +415,7 @@ void FTextureInstanceState::RemoveElement(int32 ElementIndex, int32& NextCompone
 	// Removed compiled elements. This happens when a static component is not registered after the level became visible.
 	if (HasCompiledElements())
 	{
-		verify(CompiledTextureMap.FindChecked(Element.Texture).RemoveSingleSwap(FCompiledElement(Element.BoundsIndex, Element.TexelFactor), false) == 1);
+		verify(CompiledTextureMap.FindChecked(Element.Texture).RemoveSingleSwap(FCompiledElement(Element.BoundsIndex, Element.TexelFactor, Element.bForceLoad), false) == 1);
 	}
 
 	// Unlink textures
@@ -463,7 +467,7 @@ static bool operator==(const FBoxSphereBounds& A, const FBoxSphereBounds& B)
 
 bool FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext)
 {
-	ensure(!AsyncUpdateLastRenderTimeTask.IsValid()); // Dynamic path does not use the async task.
+	ensure(!AsyncUpdateLastRenderTimeTask.IsValid()); // No async task must be running as we update.
 
 	TArray<FStreamingTexturePrimitiveInfo> TextureInstanceInfos;
 	Component->GetStreamingTextureInfoWithNULLRemoval(LevelContext, TextureInstanceInfos);
@@ -530,7 +534,7 @@ bool FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component, F
 			}
 
 			// Handle force mip streaming by over scaling the texel factor. 
-			AddElement(Component, Info.Texture, BoundsIndex, Component->bForceMipStreaming ? FLT_MAX : Info.TexelFactor, ComponentLink);
+			AddElement(Component, Info.Texture, BoundsIndex, Info.TexelFactor, Component->bForceMipStreaming, ComponentLink);
 		}
 	}
 
@@ -557,7 +561,7 @@ bool FTextureInstanceState::AddComponent(const UPrimitiveComponent* Component)
 			int32* ComponentLink = ComponentMap.Find(Component);
 			for (const FStreamingTexturePrimitiveInfo& Info : TextureInstanceInfos)
 			{
-				AddElement(Component, Info.Texture, BoundsIndex, Info.TexelFactor, ComponentLink);
+				AddElement(Component, Info.Texture, BoundsIndex, Info.TexelFactor, Component->bForceMipStreaming, ComponentLink);
 			}
 
 			return true;
@@ -797,6 +801,7 @@ int32 FTextureInstanceState::CompileElements()
 		{
 			CompiledElemements[CompiledElementCount].BoundsIndex = ElementIt.GetBoundsIndex();
 			CompiledElemements[CompiledElementCount].TexelFactor = ElementIt.GetTexelFactor();
+			CompiledElemements[CompiledElementCount].bForceLoad = ElementIt.GetForceLoad();
 			++CompiledElementCount;
 		}
 	}
@@ -1109,7 +1114,7 @@ void FTextureInstanceAsyncView::UpdateBoundSizes_Async(const TArray<FStreamingVi
 	}
 }
 
-void FTextureInstanceAsyncView::ProcessElement(const FBoundsViewInfo& BoundsVieWInfo, float TexelFactor, float& MaxSize, float& MaxSize_VisibleOnly) const
+void FTextureInstanceAsyncView::ProcessElement(const FBoundsViewInfo& BoundsVieWInfo, float TexelFactor, bool bForceLoad, float& MaxSize, float& MaxSize_VisibleOnly) const
 {
 	if (TexelFactor == FLT_MAX) // If this is a forced load component.
 	{
@@ -1120,11 +1125,24 @@ void FTextureInstanceAsyncView::ProcessElement(const FBoundsViewInfo& BoundsVieW
 	{
 		MaxSize = FMath::Max(MaxSize, TexelFactor * BoundsVieWInfo.MaxNormalizedSize);
 		MaxSize_VisibleOnly = FMath::Max(MaxSize_VisibleOnly, TexelFactor * BoundsVieWInfo.MaxNormalizedSize_VisibleOnly);
+
+		// Force load will load the immediatly visible part, and later the full texture.
+		if (bForceLoad && (BoundsVieWInfo.MaxNormalizedSize > 0 || BoundsVieWInfo.MaxNormalizedSize_VisibleOnly > 0))
+		{
+			MaxSize = FLT_MAX;
+		}
 	}
 	else // Negative texel factors map to fixed resolution. Currently used for lanscape.
 	{
 		MaxSize = FMath::Max(MaxSize, -TexelFactor);
 		MaxSize_VisibleOnly = FMath::Max(MaxSize_VisibleOnly, -TexelFactor);
+
+		// Force load will load the immediatly visible part, and later the full texture.
+		if (bForceLoad && (BoundsVieWInfo.MaxNormalizedSize > 0 || BoundsVieWInfo.MaxNormalizedSize_VisibleOnly > 0))
+		{
+			MaxSize = FLT_MAX;
+			MaxSize_VisibleOnly = FLT_MAX;
+		}
 	}
 }
 
@@ -1149,7 +1167,7 @@ void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float&
 				while (CompiledElementIndex < NumCompiledElements && MaxSize_VisibleOnly < MAX_TEXTURE_SIZE)
 				{
 					const FTextureInstanceState::FCompiledElement& CompiledElement = CompiledElementData[CompiledElementIndex];
-					ProcessElement(BoundsViewInfo[CompiledElement.BoundsIndex], CompiledElement.TexelFactor, MaxSize, MaxSize_VisibleOnly);
+					ProcessElement(BoundsViewInfo[CompiledElement.BoundsIndex], CompiledElement.TexelFactor, CompiledElement.bForceLoad, MaxSize, MaxSize_VisibleOnly);
 					++CompiledElementIndex;
 				}
 
@@ -1166,7 +1184,7 @@ void FTextureInstanceAsyncView::GetTexelSize(const UTexture2D* InTexture, float&
 			for (auto It = State->GetElementIterator(InTexture); It && (MaxSize_VisibleOnly < MAX_TEXTURE_SIZE || LogPrefix); ++It)
 			{
 				const FBoundsViewInfo& BoundsVieWInfo = BoundsViewInfo[It.GetBoundsIndex()];
-				ProcessElement(BoundsVieWInfo, It.GetTexelFactor(), MaxSize, MaxSize_VisibleOnly);
+				ProcessElement(BoundsVieWInfo, It.GetTexelFactor(), It.GetForceLoad(), MaxSize, MaxSize_VisibleOnly);
 				if (LogPrefix)
 				{
 					It.OutputToLog(BoundsVieWInfo.MaxNormalizedSize, BoundsVieWInfo.MaxNormalizedSize_VisibleOnly, LogPrefix);

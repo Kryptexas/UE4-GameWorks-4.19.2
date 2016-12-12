@@ -55,7 +55,7 @@ public:
 	//				2: 4 tap Bilinear (with radius adjustment)
 	//				3: Directional blur with unsharp mask upsample.
 	// @param InPaniniConfig - the panini configuration parameter
-	FRCPassPostProcessUpscale(uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig = PaniniParams::Default);
+	FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig = PaniniParams::Default);
 
 	// interface FRenderingCompositePass ---------
 
@@ -72,5 +72,8 @@ private:
 
 	// Panini projection's parameter
 	PaniniParams PaniniConfig;
+
+	// Extent of upscaled output
+	FIntPoint OutputExtent;
 };
 

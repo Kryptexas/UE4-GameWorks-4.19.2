@@ -308,6 +308,7 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init();
 	virtual void Shutdown();
+	virtual const TCHAR* GetName() override { return TEXT("OpenGL"); }
 
 	template<typename TRHIType>
 	static FORCEINLINE typename TOpenGLResourceTraits<TRHIType>::TConcreteType* ResourceCast(TRHIType* Resource)

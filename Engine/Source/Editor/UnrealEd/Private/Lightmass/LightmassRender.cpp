@@ -517,7 +517,7 @@ public:
 		return Material->StateId;
 	}
 
-	const UMaterialInterface* GetMaterialInterface() const
+	virtual UMaterialInterface* GetMaterialInterface() const override
 	{
 		return MaterialInterface;
 	}

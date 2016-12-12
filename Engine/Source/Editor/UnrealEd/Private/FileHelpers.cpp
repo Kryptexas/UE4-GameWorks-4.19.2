@@ -1394,6 +1394,10 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 							PkgsWhichFailedWritable += FString::Printf( TEXT("\n%s"), *PackageToMakeWritable->GetName() );
 						}
 					}
+					else if (OutPackagesCheckedOutOrMadeWritable)
+					{
+						OutPackagesCheckedOutOrMadeWritable->Append(PackagesToCheckOut);
+					}
 				}
 
 				if ( bPackageFailedWritable ) 

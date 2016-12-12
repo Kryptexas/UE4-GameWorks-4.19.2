@@ -7,6 +7,7 @@
 #include "PostProcess/PostProcessTonemap.h"
 #include "EngineGlobals.h"
 #include "ScenePrivate.h"
+#include "RendererModule.h"
 #include "PostProcess/SceneFilterRendering.h"
 #include "PostProcess/PostProcessCombineLUTs.h"
 #include "PostProcess/PostProcessMobile.h"
@@ -20,6 +21,7 @@ static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("   1: full strength"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+// Note: These values are directly referenced in code, please update all paths if changing
 static TAutoConsoleVariable<int32> CVarDisplayColorGamut(
 	TEXT("r.HDR.Display.ColorGamut"),
 	0,
@@ -31,15 +33,18 @@ static TAutoConsoleVariable<int32> CVarDisplayColorGamut(
 	TEXT("4: ACEScg, D60\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+// Note: These values are directly referenced in code, please update all paths if changing
 static TAutoConsoleVariable<int32> CVarDisplayOutputDevice(
 	TEXT("r.HDR.Display.OutputDevice"),
 	0,
 	TEXT("Device format of the output display:\n")
-	TEXT("0: sRGB\n")
-	TEXT("1: Rec709\n")
-	TEXT("2: Explicit gamma mapping\n")
-	TEXT("3: ACES 1000 nit ST-2084 (Dolby PQ) for HDR displays\n")
-	TEXT("4: ACES 2000 nit ST-2084 (Dolby PQ) for HDR displays\n"),
+	TEXT("0: sRGB (LDR)\n")
+	TEXT("1: Rec709 (LDR)\n")
+	TEXT("2: Explicit gamma mapping (LDR)\n")
+	TEXT("3: ACES 1000 nit ST-2084 (Dolby PQ) (HDR)\n")
+	TEXT("4: ACES 2000 nit ST-2084 (Dolby PQ) (HDR)\n")
+	TEXT("5: ACES 1000 nit ScRGB (HDR)\n")
+	TEXT("6: ACES 2000 nit ScRGB (HDR)\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 	
 static TAutoConsoleVariable<int32> CVarHDROutputEnabled(
@@ -1045,13 +1050,6 @@ public:
 
 			PostprocessParameter.SetPS(ShaderRHI, Context, 0, eFC_0000, Filters);
 		}
-		
-		// Display format
-		int32 OutputGamutValue = CVarDisplayColorGamut.GetValueOnRenderThread();
-		SetShaderValue(Context.RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
-
-		int32 HDROutputEncodingValue = (CVarHDROutputEnabled.GetValueOnRenderThread() != 0 && IsRHIDeviceNVIDIA()) ? 1 : 0; // Nvidia-specific scRGB encoding
-		SetShaderValue(Context.RHICmdList, ShaderRHI, EncodeHDROutput, HDROutputEncodingValue);
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
 
@@ -1110,6 +1108,14 @@ public:
 			}
 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, OutputDevice, OutputDeviceValue);
+
+			// Display format
+			int32 OutputGamutValue = CVarDisplayColorGamut.GetValueOnRenderThread();
+			SetShaderValue(Context.RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
+
+			// ScRGB output encoding
+			int32 HDROutputEncodingValue = (CVarHDROutputEnabled.GetValueOnRenderThread() != 0 && (OutputDeviceValue == 5 || OutputDeviceValue == 6)) ? 1 : 0;
+			SetShaderValue(Context.RHICmdList, ShaderRHI, EncodeHDROutput, HDROutputEncodingValue);
 		}
 
 		FVector GrainValue;
@@ -1143,15 +1149,36 @@ public:
 			// Indicates the Tonemapper combined LUT node was nominally in the network.
 			const bool bUseLUT = (OutputRef != NULL);
 
+			const FTextureRHIRef* SrcTexture = nullptr;
 			if (bUseLUT)
 			{
-				const FTextureRHIRef* SrcTexture = Context.View.GetTonemappingLUTTexture();
-			
-				if (SrcTexture)
+				SrcTexture = Context.View.GetTonemappingLUTTexture();
+				
+				if (!SrcTexture)
 				{
-						SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), *SrcTexture);
+					FRenderingCompositeOutput* Input = OutputRef->GetOutput();
+					
+					if(Input)
+					{
+						TRefCountPtr<IPooledRenderTarget> InputPooledElement = Input->RequestInput();
+						
+						if(InputPooledElement)
+						{
+							check(!InputPooledElement->IsFree());
+							
+							SrcTexture = &InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
+						}
+					}
 				}
+			}
 
+			if (SrcTexture && *SrcTexture)
+			{
+				SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), *SrcTexture);
+			}
+			else
+			{
+				UE_LOG(LogRenderer, Error, TEXT("No Color LUT texture to sample: output will be invalid."));
 			}
 		}
 

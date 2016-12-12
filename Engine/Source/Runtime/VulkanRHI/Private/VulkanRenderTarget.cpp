@@ -170,6 +170,10 @@ void FVulkanCommandListContext::FTransitionState::BeginRenderPass(FVulkanCommand
 		SetKeyBits(GfxKey, OFFSET_DEPTH_STENCIL_STORE, NUMBITS_STORE_OP, VK_ATTACHMENT_STORE_OP_DONT_CARE);
 	}
 
+	ensure(RTLayout.GetNumSamples() > 0);
+	ensure(RTLayout.GetNumSamples() <= (1 << NUMBITS_NUM_SAMPLES_MINUS_ONE));
+	SetKeyBits(GfxKey, OFFSET_NUM_SAMPLES_MINUS_ONE, NUMBITS_NUM_SAMPLES_MINUS_ONE, RTLayout.GetNumSamples() - 1);
+
 	CmdBuffer->BeginRenderPass(RenderPass->GetLayout(), RenderPass->GetHandle(), Framebuffer->GetHandle(), ClearValues);
 
 	{
@@ -242,7 +246,7 @@ void FVulkanCommandListContext::RHISetRenderTargets(uint32 NumSimultaneousRender
 	FRHISetRenderTargetsInfo RenderTargetsInfo(NumSimultaneousRenderTargets, NewRenderTargets, DepthView);
 
 	FVulkanRenderTargetLayout RTLayout(RenderTargetsInfo);
-	uint32 RTLayoutHash = RTLayout.GetHash();
+	const uint32 RTLayoutHash = RTLayout.GetHash();
 	FVulkanRenderPass* RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayoutHash);
 	FVulkanFramebuffer* Framebuffer = TransitionState.GetOrCreateFramebuffer(*Device, RenderTargetsInfo, RTLayout, RenderPass);
 	if (Framebuffer == TransitionState.CurrentFramebuffer && RenderPass == TransitionState.CurrentRenderPass)
@@ -290,7 +294,7 @@ void FVulkanCommandListContext::RHISetRenderTargetsAndClear(const FRHISetRenderT
 		RenderTargetsInfo.NumColorRenderTargets == 1 && RenderTargetsInfo.ColorRenderTarget[0].Texture)
 	{
 		FVulkanRenderTargetLayout RTLayout(RenderTargetsInfo);
-		uint32 RTLayoutHash = RTLayout.GetHash();
+		const uint32 RTLayoutHash = RTLayout.GetHash();
 		FVulkanRenderPass* RenderPass = TransitionState.GetOrCreateRenderPass(*Device, RTLayout, RTLayoutHash);
 		FVulkanFramebuffer* Framebuffer = TransitionState.GetOrCreateFramebuffer(*Device, RenderTargetsInfo, RTLayout, RenderPass);
 
@@ -933,8 +937,9 @@ struct FRenderTargetLayoutHashableStruct
 	bool bClearDepth;
 	bool bClearStencil;
 	bool bClearColor;
+	uint8 NumSamples;
 
-	void Set(const FRHISetRenderTargetsInfo& RTInfo)
+	void Set(const FRHISetRenderTargetsInfo& RTInfo, uint32 InNumSamples)
 	{
 		FMemory::Memzero(*this);
 		for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
@@ -958,14 +963,16 @@ struct FRenderTargetLayoutHashableStruct
 		bClearDepth = RTInfo.bClearDepth;
 		bClearStencil = RTInfo.bClearStencil;
 		bClearColor = RTInfo.bClearColor;
+		NumSamples = InNumSamples;
 	}
 };
 
 FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsInfo& RTInfo)
-	: NumAttachments(0)
+	: NumAttachmentDescriptions(0)
 	, NumColorAttachments(0)
 	, bHasDepthStencil(false)
 	, bHasResolveAttachments(false)
+	, NumSamples(0)
 	, Hash(0)
 {
 	FMemory::Memzero(ColorReferences);
@@ -975,7 +982,7 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 	FMemory::Memzero(Extent);
 
 	bool bSetExtent = false;
-		
+
 	for (int32 Index = 0; Index < RTInfo.NumColorRenderTargets; ++Index)
 	{
 		const FRHIRenderTargetView& RTView = RTInfo.ColorRenderTarget[Index];
@@ -998,9 +1005,10 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 			    Extent.Extent3D.depth = Texture->Surface.Depth;
 		    }
     
-		    uint32 NumSamples = RTView.Texture->GetNumSamples();
+			ensure(!NumSamples || NumSamples == RTView.Texture->GetNumSamples());
+			NumSamples = RTView.Texture->GetNumSamples();
 	    
-		    VkAttachmentDescription& CurrDesc = Desc[NumAttachments];
+		    VkAttachmentDescription& CurrDesc = Desc[NumAttachmentDescriptions];
 		    
 		    //@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
 		    CurrDesc.samples = static_cast<VkSampleCountFlagBits>(NumSamples);
@@ -1011,22 +1019,34 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		    CurrDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		    CurrDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		    CurrDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		    ColorReferences[NumColorAttachments].attachment = NumAttachments;
+		    ColorReferences[NumColorAttachments].attachment = NumAttachmentDescriptions;
 		    ColorReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_GENERAL;
-		    NumAttachments++;
-		    NumColorAttachments++;
+			if (CurrDesc.samples > VK_SAMPLE_COUNT_1_BIT)
+			{
+				Desc[NumAttachmentDescriptions + 1] = Desc[NumAttachmentDescriptions];
+				Desc[NumAttachmentDescriptions + 1].samples = VK_SAMPLE_COUNT_1_BIT;
+				ResolveReferences[NumColorAttachments].attachment = NumAttachmentDescriptions + 1;
+				ResolveReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_GENERAL;
+				++NumAttachmentDescriptions;
+				bHasResolveAttachments = true;
+			}
+
+			++NumAttachmentDescriptions;
+			NumColorAttachments++;
 		}
 	}
 
 	if (RTInfo.DepthStencilRenderTarget.Texture)
 	{
-		VkAttachmentDescription& CurrDesc = Desc[NumAttachments];
+		VkAttachmentDescription& CurrDesc = Desc[NumAttachmentDescriptions];
 		FMemory::Memzero(CurrDesc);
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RTInfo.DepthStencilRenderTarget.Texture);
 		check(Texture);
 
 		//@TODO: Check this, it should be a power-of-two. Might be a VulkanConvert helper function.
 		CurrDesc.samples = static_cast<VkSampleCountFlagBits>(RTInfo.DepthStencilRenderTarget.Texture->GetNumSamples());
+		ensure(!NumSamples || CurrDesc.samples == NumSamples);
+		NumSamples = CurrDesc.samples;
 		CurrDesc.format = UEToVkFormat(RTInfo.DepthStencilRenderTarget.Texture->GetFormat(), false);
 		CurrDesc.loadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.DepthLoadAction);
 		CurrDesc.stencilLoadOp = RenderTargetLoadActionToVulkan(RTInfo.DepthStencilRenderTarget.StencilLoadAction);
@@ -1044,11 +1064,21 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 		CurrDesc.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		CurrDesc.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		
-		DepthStencilReference.attachment = NumAttachments;
+		DepthStencilReference.attachment = NumAttachmentDescriptions;
 		DepthStencilReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		++NumAttachmentDescriptions;
+/*
+		if (CurrDesc.samples > VK_SAMPLE_COUNT_1_BIT)
+		{
+			Desc[NumAttachments + 1] = Desc[NumAttachments];
+			Desc[NumAttachments + 1].samples = VK_SAMPLE_COUNT_1_BIT;
+			ResolveReferences[NumColorAttachments].attachment = NumAttachments + 1;
+			ResolveReferences[NumColorAttachments].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			++NumAttachments;
+			bHasResolveAttachments = true;
+		}*/
 
 		bHasDepthStencil = true;
-		NumAttachments++;
 
 		if (bSetExtent)
 		{
@@ -1066,7 +1096,7 @@ FVulkanRenderTargetLayout::FVulkanRenderTargetLayout(const FRHISetRenderTargetsI
 
 	FRenderTargetLayoutHashableStruct RTHash;
 	FMemory::Memzero(RTHash);
-	RTHash.Set(RTInfo);
+	RTHash.Set(RTInfo, NumSamples);
 	RTHash.Extents = Extent.Extent2D;
 	Hash = FCrc::MemCrc32(&RTHash, sizeof(RTHash));
 }

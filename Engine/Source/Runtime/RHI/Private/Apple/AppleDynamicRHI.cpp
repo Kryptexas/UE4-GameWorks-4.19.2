@@ -28,11 +28,11 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 
 	bool const bIsMetalSupported = FPlatformMisc::HasPlatformFeature(TEXT("Metal"));
 	bool const bAllowMetal = (GAppleMetalEnabled && bIsMetalSupported);
-	bool const bAllowOpenGL = !GAppleOpenGLDisabled;
+	bool const bAllowOpenGL = !GAppleOpenGLDisabled && !PLATFORM_MAC;
 
 #if PLATFORM_MAC
 	bool bForceMetal = bAllowMetal && (FParse::Param(FCommandLine::Get(),TEXT("metal")) || FParse::Param(FCommandLine::Get(),TEXT("metalsm5")));
-	bool bForceOpenGL = bAllowOpenGL && (FParse::Param(FCommandLine::Get(),TEXT("opengl")) || (!GAppleOpenGLDisabled && !bIsMetalSupported)); // Force OpenGL if Metal is not supported on this Mac
+	bool bForceOpenGL = false; // OpenGL is no longer supported on Mac
 #else
 	bool bForceMetal = bAllowMetal && (FParse::Param(FCommandLine::Get(),TEXT("metal")) || FParse::Param(FCommandLine::Get(),TEXT("metalmrt")));
 	bool bForceOpenGL = bAllowOpenGL && FParse::Param(FCommandLine::Get(),TEXT("es2"));
@@ -82,7 +82,7 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 			if (bAllowMetal == true || !IsMetalPlatform(TargetedPlatform))
 			{
 				bForceMetal = IsMetalPlatform(TargetedPlatform);
-				bForceOpenGL = IsOpenGLPlatform(TargetedPlatform);
+				bForceOpenGL = IsOpenGLPlatform(TargetedPlatform) && !PLATFORM_MAC;
 				RequestedFeatureLevel = GetMaxSupportedFeatureLevel(TargetedPlatform);
 				break;
 			}
@@ -133,7 +133,7 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 	{
 		FText Title = NSLOCTEXT("AppleDynamicRHI", "OpenGLNotSupportedTitle","OpenGL Not Supported");
 #if PLATFORM_MAC
-		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("MacPlatformCreateDynamicRHI", "OpenGLNotSupported.", "You must have a Metal compatible graphics card and be running Mac OS X 10.11.4 or later to launch this process."), &Title);
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("MacPlatformCreateDynamicRHI", "OpenGLNotSupported.", "You must have a Metal compatible graphics card and be running Mac OS X 10.11.6 or later to launch this process."), &Title);
 #else
 		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("AppleDynamicRHI", "OpenGLNotSupported.", "You must have a Metal compatible iOS or tvOS device with iOS 8 or later to launch this app."), &Title);
 #endif

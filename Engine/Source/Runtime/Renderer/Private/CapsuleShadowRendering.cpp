@@ -691,7 +691,6 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderCapsuleShadows);
 
-		FSceneRenderTargets::Get(RHICmdList).FinishRenderingLightAttenuation(RHICmdList);
 		TRefCountPtr<IPooledRenderTarget> RayTracedShadowsRT;
 
 		{
@@ -845,7 +844,7 @@ bool FDeferredShadingSceneRenderer::RenderCapsuleDirectShadows(
 				
 					FProjectedShadowInfo::SetBlendStateForProjection(
 						RHICmdList,
-						LightSceneInfo.Proxy->GetPreviewShadowMapChannel(),
+						LightSceneInfo.GetDynamicShadowMapChannel(),
 						false,
 						false,
 						bProjectingForForwardShading,
@@ -1090,6 +1089,7 @@ void FDeferredShadingSceneRenderer::SetupIndirectCapsuleShadows(FRHICommandListI
 		{
 			size_t CapsuleLightSourceDataSize = CapsuleLightSourceData.Num() * CapsuleLightSourceData.GetTypeSize();
 			const int32 DataSize = CapsuleLightSourceDataSize + DistanceFieldCasterLightSourceData.Num() * DistanceFieldCasterLightSourceData.GetTypeSize();
+			check(DataSize > 0);
 
 			if (!IsValidRef(View.ViewState->IndirectShadowLightDirectionVertexBuffer) || (int32)View.ViewState->IndirectShadowLightDirectionVertexBuffer->GetSize() < DataSize)
 			{

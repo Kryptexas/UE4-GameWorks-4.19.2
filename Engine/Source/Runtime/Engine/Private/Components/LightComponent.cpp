@@ -1157,7 +1157,7 @@ void ULightComponent::ReassignStationaryLightChannels(UWorld* TargetWorld, bool 
 		{
 			ULevel* LightLevel = LightOwner->GetLevel();
 
-			if (!LightingScenario || LightLevel == LightingScenario)
+			if (!LightingScenario || !LightLevel->bIsLightingScenario || LightLevel == LightingScenario)
 			{				
 				if (LightComponent->bAffectsWorld
 					&& LightComponent->CastShadows 

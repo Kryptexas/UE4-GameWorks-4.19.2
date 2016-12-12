@@ -118,6 +118,9 @@ extern RENDERCORE_API class FTexture* GWhiteTextureCube;
 /** A global black cube texture. */
 extern RENDERCORE_API class FTexture* GBlackTextureCube;
 
+/** A global black cube depth texture. */
+extern RENDERCORE_API class FTexture* GBlackTextureDepthCube;
+
 /** A global black cube array texture. */
 extern RENDERCORE_API class FTexture* GBlackCubeArrayTexture;
 
@@ -330,3 +333,10 @@ RENDERCORE_API FVertexBufferRHIRef& GetUnitCubeVertexBuffer();
 
 /** Unit cube index buffer */
 RENDERCORE_API FIndexBufferRHIRef& GetUnitCubeIndexBuffer();
+
+/**
+* Takes the requested buffer size and quantizes it to an appropriate size for the rest of the
+* rendering pipeline. Currently ensures that sizes are multiples of 4 so that they can safely
+* be halved in size several times.
+*/
+RENDERCORE_API void QuantizeSceneBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY);

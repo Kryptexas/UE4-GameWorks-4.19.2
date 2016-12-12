@@ -85,6 +85,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bSupportsHeightfieldRepresentation(false)
 ,	bNeedsLevelAddedToWorldNotification(false)
 ,	bWantsSelectionOutline(true)
+,	bVerifyUsedMaterials(true)
 ,	bUseAsOccluder(InComponent->bUseAsOccluder)
 ,	bAllowApproximateOcclusion(InComponent->Mobility != EComponentMobility::Movable)
 ,	bSelectable(InComponent->bSelectable)
@@ -168,6 +169,10 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 	ULevel* ComponentLevel = InComponent->GetComponentLevel();
 	bRequiresVisibleLevelToRender = (ComponentLevel && ComponentLevel->bRequireFullVisibilityToRender);
 	bIsComponentLevelVisible = (!ComponentLevel || ComponentLevel->bIsVisible);
+
+#if WITH_EDITOR
+	InComponent->GetUsedMaterials(UsedMaterialsForVerification);
+#endif
 }
 
 FPrimitiveSceneProxy::~FPrimitiveSceneProxy()
@@ -572,6 +577,27 @@ void FPrimitiveSceneProxy::RenderBounds(
 		DrawCircle(PDI, InBounds.Origin, FVector(1, 0, 0), FVector(0, 0, 1), FColor::Yellow, InBounds.SphereRadius, 32, DrawBoundsDPG);
 		DrawCircle(PDI, InBounds.Origin, FVector(0, 1, 0), FVector(0, 0, 1), FColor::Yellow, InBounds.SphereRadius, 32, DrawBoundsDPG);
 	}
+}
+
+void FPrimitiveSceneProxy::VerifyUsedMaterial(const FMaterialRenderProxy* MaterialRenderProxy) const
+{
+	// Only verify GetUsedMaterials if uncooked and we can compile shaders, because FShaderCompilingManager::PropagateMaterialChangesToPrimitives is what needs GetUsedMaterials to be accurate
+#if WITH_EDITOR
+
+	if (bVerifyUsedMaterials)
+	{
+		const UMaterialInterface* MaterialInterface = MaterialRenderProxy->GetMaterialInterface();
+
+		if (MaterialInterface 
+			&& !UsedMaterialsForVerification.Contains(MaterialInterface)
+			&& MaterialInterface != UMaterial::GetDefaultMaterial(MD_Surface))
+		{
+			// Shader compiling uses GetUsedMaterials to detect which components need their scene proxy recreated, so we can only render with materials present in that list
+			ensureMsgf(false, TEXT("PrimitiveComponent tried to render with Material %s, which was not present in the component's GetUsedMaterials results\n    Owner: %s, Resource: %s"), *MaterialInterface->GetName(), *GetOwnerName().ToString(), *GetResourceName().ToString());
+		}
+	}
+	
+#endif
 }
 
 void FPrimitiveSceneProxy::DrawArc(FPrimitiveDrawInterface* PDI, const FVector& Start, const FVector& End, const float Height, const uint32 Segments, const FLinearColor& Color, uint8 DepthPriorityGroup, const float Thickness, const bool bScreenSpace)

@@ -385,8 +385,6 @@ private:
 	FString ShaderCompileWorkerName;
 	/** Whether the SCW has crashed and we should fall back to calling the compiler dll's directly. */
 	bool bFallBackToDirectCompiles;
-	/** Whether a recreate should be done when compiling is finished. */
-	bool bRecreateComponentRenderStateOutstanding;
 
 	/** 
 	 * Tracks the total time that shader compile workers have been busy since startup.  
@@ -409,7 +407,10 @@ private:
 	void BlockOnAllShaderMapCompletion(TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps);
 
 	/** Finalizes the given shader map results and optionally assigns the affected shader maps to materials, while attempting to stay within an execution time budget. */
-	void ProcessCompiledShaderMaps(TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, float TimeBudget, bool bRecreateComponentRenderState);
+	void ProcessCompiledShaderMaps(TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, float TimeBudget);
+
+	/** Propagate the completed compile to primitives that might be using the materials compiled. */
+	void PropagateMaterialChangesToPrimitives(const TMap<FMaterial*, class FMaterialShaderMap*>& MaterialsToUpdate);
 
 	/** Recompiles shader jobs with errors if requested, and returns true if a retry was needed. */
 	bool HandlePotentialRetryOnError(TMap<int32, FShaderMapFinalizeResults>& CompletedShaderMaps);

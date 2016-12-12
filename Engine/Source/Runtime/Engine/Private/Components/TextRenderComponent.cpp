@@ -715,6 +715,9 @@ FTextRenderSceneProxy::FTextRenderSceneProxy( UTextRenderComponent* Component) :
 	{
 		FontMIDs = FTextRenderComponentMIDCache::Get().GetMIDData(TextMaterial, Font);
 	}
+
+	// The MID from the cache isn't known by the UTextRenderComponent
+	bVerifyUsedMaterials = false;
 }
 
 FTextRenderSceneProxy::~FTextRenderSceneProxy()

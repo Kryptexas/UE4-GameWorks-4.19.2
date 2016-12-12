@@ -1054,6 +1054,11 @@ bool FMaterialResource::GetBlendableOutputAlpha() const
 	return Material->BlendableOutputAlpha;
 }
 
+UMaterialInterface* FMaterialResource::GetMaterialInterface() const 
+{ 
+	return MaterialInstance ? (UMaterialInterface*)MaterialInstance : (UMaterialInterface*)Material;
+}
+
 void FMaterialResource::NotifyCompilationFinished()
 {
 	UMaterial::NotifyCompilationFinished(MaterialInstance ? (UMaterialInterface*)MaterialInstance : (UMaterialInterface*)Material);

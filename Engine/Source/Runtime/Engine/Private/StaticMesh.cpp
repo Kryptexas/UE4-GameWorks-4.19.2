@@ -570,7 +570,8 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 	const auto MaxShaderPlatform = GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel];
 
 	// Initialize the vertex and index buffers.
-	if (IsES2Platform(MaxShaderPlatform))
+	// All platforms supporting Metal also support 32-bit indices.
+	if (IsES2Platform(MaxShaderPlatform) && !IsMetalPlatform(MaxShaderPlatform))
 	{
 		if (IndexBuffer.Is32Bit())
 		{

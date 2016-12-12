@@ -17,6 +17,10 @@
 #include "Interfaces/ITargetPlatform.h"
 #include "Interfaces/ITargetPlatformModule.h"
 #include "SExternalImageReference.h"
+#include "SNumericDropDown.h"
+#include "Dialogs/Dialogs.h"
+#include "Widgets/Notifications/SErrorText.h"
+#include "IDetailPropertyRow.h"
 
 namespace MacTargetSettingsDetailsConstants
 {
@@ -98,13 +102,60 @@ static FString GetIconFilename(EMacImageScope::Type Scope)
 
 void FMacTargetSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
+	FSimpleDelegate OnUpdateShaderStandardWarning = FSimpleDelegate::CreateSP(this, &FMacTargetSettingsDetails::UpdateShaderStandardWarning);
+	
 	// Setup the supported/targeted RHI property view
 	TargetShaderFormatsDetails = MakeShareable(new FMacShaderFormatsPropertyDetails(&DetailBuilder, TEXT("TargetedRHIs"), TEXT("Targeted RHIs")));
+	TargetShaderFormatsDetails->SetOnUpdateShaderWarning(OnUpdateShaderStandardWarning);
 	TargetShaderFormatsDetails->CreateTargetShaderFormatsPropertyView();
 	
 	// Setup the supported/targeted RHI property view
 	CachedShaderFormatsDetails = MakeShareable(new FMacShaderFormatsPropertyDetails(&DetailBuilder, TEXT("CachedShaderFormats"), TEXT("Cached Shader Formats")));
 	CachedShaderFormatsDetails->CreateTargetShaderFormatsPropertyView();
+    
+    // Setup the shader version property view
+    // Handle max. shader version a little specially.
+    {
+        IDetailCategoryBuilder& RenderCategory = DetailBuilder.EditCategory(TEXT("Rendering"));
+        ShaderVersionPropertyHandle = DetailBuilder.GetProperty(TEXT("MaxShaderLanguageVersion"));
+		
+		// Drop-downs for setting type of lower and upper bound normalization
+		IDetailPropertyRow& ShaderVersionPropertyRow = RenderCategory.AddProperty(ShaderVersionPropertyHandle.ToSharedRef());
+		ShaderVersionPropertyRow.CustomWidget()
+		.NameContent()
+		[
+			ShaderVersionPropertyHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		.HAlign(HAlign_Fill)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2)
+			[
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &FMacTargetSettingsDetails::OnGetShaderVersionContent)
+				.ContentPadding(FMargin( 2.0f, 2.0f ))
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.Text(this, &FMacTargetSettingsDetails::GetShaderVersionDesc)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Fill)
+			.Padding(2)
+			[
+				SAssignNew(ShaderVersionWarningTextBox, SErrorText)
+				.AutoWrapText(true)
+			]
+		];
+		
+		UpdateShaderStandardWarning();
+    }
 	
 	// Add the splash image customization
 	const FText EditorSplashDesc(LOCTEXT("EditorSplashLabel", "Editor Splash"));
@@ -230,12 +281,68 @@ bool FMacTargetSettingsDetails::HandlePostExternalIconCopy(const FString& InChos
 	return true;
 }
 
+TSharedRef<SWidget> FMacTargetSettingsDetails::OnGetShaderVersionContent()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+	
+	UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EMacMetalShaderStandard"), true);
+	
+	for (int32 i = 0; i < Enum->GetMaxEnumValue(); i++)
+	{
+		if (Enum->IsValidEnumValue(i))
+		{
+			FUIAction ItemAction(FExecuteAction::CreateSP(this, &FMacTargetSettingsDetails::SetShaderStandard, i));
+			MenuBuilder.AddMenuEntry(Enum->GetEnumTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
+		}
+	}
+	
+	return MenuBuilder.MakeWidget();
+}
+
+FText FMacTargetSettingsDetails::GetShaderVersionDesc() const
+{
+	uint8 EnumValue;
+	ShaderVersionPropertyHandle->GetValue(EnumValue);
+	
+	UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EMacMetalShaderStandard"), true);
+	
+	if (EnumValue < Enum->GetMaxEnumValue() && Enum->IsValidEnumValue(EnumValue))
+	{
+		return Enum->GetEnumTextByValue(EnumValue);
+	}
+	
+	return FText::GetEmpty();
+}
+
+void FMacTargetSettingsDetails::SetShaderStandard(int32 Value)
+{
+	if (Value > 1 && TargetShaderFormatsDetails->IsTargetedRHIChecked(TEXT("SF_METAL_SM4")) != ECheckBoxState::Checked)
+	{
+		FText Message = LOCTEXT("MacMetalShaderVersion1_2","Enabling Mac Metal Shader Standard v1.2 increases the minimum operating system requirement for Metal Shader Model 5 from OS X El Capitan 10.11.5 or later to macOS Sierra 10.12.0 or later. Either set the minimum supported OS version to 10.12.0 or enable Metal Shader Model 4 support in \"Targeted RHIs\" which will be used on OS X El Capitan.");
+		ShaderVersionWarningTextBox->SetError(Message);
+	}
+	else
+	{
+		ShaderVersionWarningTextBox->SetError(TEXT(""));
+	}
+	FPropertyAccess::Result Res = ShaderVersionPropertyHandle->SetValue((uint8)Value);
+	check(Res == FPropertyAccess::Success);
+}
+
+void FMacTargetSettingsDetails::UpdateShaderStandardWarning()
+{
+	// Update the UI
+	uint8 EnumValue;
+	ShaderVersionPropertyHandle->GetValue(EnumValue);
+	SetShaderStandard(EnumValue);
+}
+
 FText GetFriendlyNameFromRHINameMac(const FString& InRHIName)
 {
 	FText FriendlyRHIName = LOCTEXT("UnknownRHI", "UnknownRHI");
 	if (InRHIName == TEXT("GLSL_150_MAC"))
 	{
-		FriendlyRHIName = LOCTEXT("OpenGL3", "OpenGL 3 (SM4)");
+		FriendlyRHIName = LOCTEXT("OpenGL3", "OpenGL 3 (SM4, Deprecated)");
 	}
 	else if (InRHIName == TEXT("SF_METAL_MACES3_1"))
 	{
@@ -243,11 +350,11 @@ FText GetFriendlyNameFromRHINameMac(const FString& InRHIName)
 	}
 	else if (InRHIName == TEXT("SF_METAL_SM4"))
 	{
-		FriendlyRHIName = LOCTEXT("MetalSM4", "Metal (SM4)");
+		FriendlyRHIName = LOCTEXT("MetalSM4", "Metal (SM4, OS X El Capitan 10.11.4 or later)");
 	}
 	else if (InRHIName == TEXT("SF_METAL_SM5"))
 	{
-		FriendlyRHIName = LOCTEXT("MetalSM5", "Metal (SM5, Experimental)");
+		FriendlyRHIName = LOCTEXT("MetalSM5", "Metal (SM5, OS X El Capitan 10.11.5 or later)");
 	}
 	
 	return FriendlyRHIName;
@@ -260,6 +367,11 @@ FMacShaderFormatsPropertyDetails::FMacShaderFormatsPropertyDetails(IDetailLayout
 {
 	ShaderFormatsPropertyHandle = DetailBuilder->GetProperty(*Property);
 	ensure(ShaderFormatsPropertyHandle.IsValid());
+}
+
+void FMacShaderFormatsPropertyDetails::SetOnUpdateShaderWarning(FSimpleDelegate const& Delegate)
+{
+	ShaderFormatsPropertyHandle->SetOnPropertyValueChanged(Delegate);
 }
 
 void FMacShaderFormatsPropertyDetails::CreateTargetShaderFormatsPropertyView()

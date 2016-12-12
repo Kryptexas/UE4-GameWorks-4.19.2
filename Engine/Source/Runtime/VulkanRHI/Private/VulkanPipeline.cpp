@@ -10,7 +10,7 @@
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 
-static const double HitchTime = 2.0 / 60.0;
+static const double HitchTime = 0.003;
 
 void FVulkanGfxPipelineState::Reset()
 {
@@ -679,7 +679,7 @@ FArchive& operator << (FArchive& Ar, FVulkanPipelineStateCache::FGfxPipelineEntr
 
 void FVulkanPipelineStateCache::FGfxPipelineEntry::FRenderTargets::ReadFrom(const FVulkanRenderTargetLayout& RTLayout)
 {
-	NumAttachments =			RTLayout.NumAttachments;
+	NumAttachments =			RTLayout.NumAttachmentDescriptions;
 	NumColorAttachments =		RTLayout.NumColorAttachments;
 
 	bHasDepthStencil =			RTLayout.bHasDepthStencil;
@@ -711,7 +711,7 @@ void FVulkanPipelineStateCache::FGfxPipelineEntry::FRenderTargets::ReadFrom(cons
 
 void FVulkanPipelineStateCache::FGfxPipelineEntry::FRenderTargets::WriteInto(FVulkanRenderTargetLayout& Out) const
 {
-	Out.NumAttachments =			NumAttachments;
+	Out.NumAttachmentDescriptions =	NumAttachments;
 	Out.NumColorAttachments =		NumColorAttachments;
 
 	Out.bHasDepthStencil =			bHasDepthStencil;
@@ -926,13 +926,14 @@ void FVulkanPipelineStateCache::CreateGfxPipelineFromEntry(const FGfxPipelineEnt
 	double Delta = EndTime - BeginTime;
 	if (Delta > HitchTime)
 	{
-		UE_LOG(LogVulkanRHI, Warning, TEXT("Hitchy pipeline key 0x%08x%08x 0x%08x%08x VtxInKey 0x%08x VS %s GS %s PS %s"), 
+		UE_LOG(LogVulkanRHI, Warning, TEXT("Hitchy pipeline key 0x%08x%08x 0x%08x%08x VtxInKey 0x%08x VS %s GS %s PS %s (%.3f seconds)"), 
 			(uint32)((GfxEntry->GraphicsKey.Key[0] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[0] & 0xffffffff),
 			(uint32)((GfxEntry->GraphicsKey.Key[1] >> 32) & 0xffffffff), (uint32)(GfxEntry->GraphicsKey.Key[1] & 0xffffffff),
 			GfxEntry->VertexInputKey,
 			*BSS->VertexShader->DebugName,
 			BSS->GeometryShader ? *BSS->GeometryShader->DebugName : TEXT("nullptr"),
-			BSS->PixelShader ? *BSS->PixelShader->DebugName : TEXT("nullptr"));
+			BSS->PixelShader ? *BSS->PixelShader->DebugName : TEXT("nullptr"),
+			(float)Delta);
 	}
 }
 

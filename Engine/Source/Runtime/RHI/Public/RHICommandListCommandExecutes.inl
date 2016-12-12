@@ -73,6 +73,30 @@ struct FRHICommandUpdateTextureReference;
 enum class ECmdList;
 template <typename TShaderRHIParamRef> struct FRHICommandSetLocalUniformBuffer;
 
+void FRHICommandBeginUpdateMultiFrameResource::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(BeginUpdateMultiFrameResource);
+	INTERNAL_DECORATOR(RHIBeginUpdateMultiFrameResource)(Texture);
+}
+
+void FRHICommandEndUpdateMultiFrameResource::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(EndUpdateMultiFrameResource);
+	INTERNAL_DECORATOR(RHIEndUpdateMultiFrameResource)(Texture);
+}
+
+void FRHICommandBeginUpdateMultiFrameUAV::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(BeginUpdateMultiFrameUAV);
+	INTERNAL_DECORATOR(RHIBeginUpdateMultiFrameResource)(UAV);
+}
+
+void FRHICommandEndUpdateMultiFrameUAV::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(EndUpdateMultiFrameUAV);
+	INTERNAL_DECORATOR(RHIEndUpdateMultiFrameResource)(UAV);
+}
+
 void FRHICommandSetRasterizerState::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(SetRasterizerState);

@@ -906,7 +906,6 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 		{
 			check(!Scene->DistanceFieldSceneData.HasPendingOperations());
 
-			FSceneRenderTargets::Get(RHICmdList).FinishRenderingLightAttenuation(RHICmdList);
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
 			int32 NumPlanes = 0;

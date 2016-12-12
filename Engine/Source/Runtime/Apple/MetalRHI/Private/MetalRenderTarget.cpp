@@ -26,8 +26,6 @@ void FMetalRHICommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceT
 	}
 	if(SourceTextureRHI != DestTextureRHI)
 	{
-		id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
-		
 		FMetalSurface* Source = GetMetalSurfaceFromRHITexture(SourceTextureRHI);
 		FMetalSurface* Destination = GetMetalSurfaceFromRHITexture(DestTextureRHI);
 		
@@ -85,11 +83,7 @@ void FMetalRHICommandContext::RHICopyToResolveTarget(FTextureRHIParamRef SourceT
 			Profiler->RegisterGPUWork();
 		}
 		
-		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHICopyToResolveTarget(SourceTextureRHI %p, DestTextureRHI %p, bKeepOriginalSurface %d)", SourceTextureRHI, DestTextureRHI, (uint32)bKeepOriginalSurface);
-		
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Source->Texture);
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Destination->Texture);
-		[Blitter copyFromTexture:Source->Texture sourceSlice:SrcIndex sourceLevel:ResolveParams.MipIndex sourceOrigin:Origin sourceSize:Size toTexture:Destination->Texture destinationSlice:DestIndex destinationLevel:ResolveParams.MipIndex destinationOrigin:Origin];
+		Context->CopyFromTextureToTexture(Source->Texture, SrcIndex, ResolveParams.MipIndex, Origin, Size, Destination->Texture, DestIndex, ResolveParams.MipIndex, Origin);
 	}
 }
 
@@ -492,12 +486,7 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 			
 			TempTexture = [GetMetalDeviceContext().GetDevice() newTextureWithDescriptor:Desc];
 			
-			METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIReadSurfaceData(copyFromTexture:toTexture:(TextureRHI %p))", TextureRHI);
-			
-			id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Texture);
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), TempTexture);
-			[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toTexture:TempTexture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0, 0, 0)];
+			Context->CopyFromTextureToTexture(Texture, 0, 0, Region.origin, Region.size, TempTexture, 0, 0, MTLOriginMake(0, 0, 0));
 			
 			Texture = TempTexture;
 			Region = MTLRegionMake2D(0, 0, SizeX, SizeY);
@@ -506,10 +495,7 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 		if(Texture.storageMode == MTLStorageModeManaged)
 		{
 			// Synchronise the texture with the CPU
-			id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
-			METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIReadSurfaceData(synchronizeTexture(TextureRHI %p))", TextureRHI);
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Texture);
-			[Blitter synchronizeTexture:Texture slice:0 level:0];
+			Context->SynchronizeTexture(Texture, 0, 0);
 		}
 #endif
 #endif
@@ -545,30 +531,20 @@ void FMetalDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI, FIntRe
 			// Synchronise the texture with the CPU
 			SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 			
-			id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
 			if (Surface->PixelFormat != PF_DepthStencil)
 			{
-				METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIReadSurfaceData(copyFromTexture:toBuffer:(TextureRHI %p))", TextureRHI);
-				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Texture);
-				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Buffer.Buffer);
-				[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage];
+				Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionNone);
 			}
 #if METAL_API_1_1
 			else if (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthStencilBlitOptions))
 			{
 				if (!InFlags.GetOutputStencil())
 				{
-					METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIReadSurfaceData(copyFromTexture:toBuffer:(TextureRHI %p))", TextureRHI);
-					METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Texture);
-					METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Buffer.Buffer);
-					[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage options:MTLBlitOptionDepthFromDepthStencil];
+					Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionDepthFromDepthStencil);
 				}
 				else
 				{
-					METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIReadSurfaceData(copyFromTexture:toBuffer:(TextureRHI %p))", TextureRHI);
-					METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Texture);
-					METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Buffer.Buffer);
-					[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage options:MTLBlitOptionStencilFromDepthStencil];
+					Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionStencilFromDepthStencil);
 				}
 			}
 #endif
@@ -654,11 +630,7 @@ void FMetalDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI, F
 		// Synchronise the texture with the CPU
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 		
-		id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Texture);
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Buffer.Buffer);
-		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIReadSurfaceFloatData(copyFromTexture:toBuffer:(TextureRHI %p))", TextureRHI);
-		[Blitter copyFromTexture:Texture sourceSlice:ArrayIndex sourceLevel:MipIndex sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage];
+		Context->CopyFromTextureToBuffer(Texture, ArrayIndex, MipIndex, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionNone);
 		
 		//kick the current command buffer.
 		Context->SubmitCommandBufferAndWait();
@@ -724,11 +696,7 @@ void FMetalDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 		// Synchronise the texture with the CPU
 		SCOPE_CYCLE_COUNTER(STAT_MetalTexturePageOffTime);
 		
-		id<MTLBlitCommandEncoder> Blitter = Context->GetBlitContext();
-		METAL_DEBUG_COMMAND_BUFFER_BLIT_LOG(Context, @"RHIRead3DSurfaceFloatData(copyFromTexture:toBuffer:(TextureRHI %p))", TextureRHI);
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Texture);
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(Context->GetCurrentCommandBuffer(), Buffer.Buffer);
-		[Blitter copyFromTexture:Texture sourceSlice:0 sourceLevel:0 sourceOrigin:Region.origin sourceSize:Region.size toBuffer:Buffer.Buffer destinationOffset:0 destinationBytesPerRow:AlignedStride destinationBytesPerImage:BytesPerImage];
+		Context->CopyFromTextureToBuffer(Texture, 0, 0, Region.origin, Region.size, Buffer.Buffer, 0, AlignedStride, BytesPerImage, MTLBlitOptionNone);
 		
 		//kick the current command buffer.
 		Context->SubmitCommandBufferAndWait();

@@ -625,7 +625,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				// Render light function to the attenuation buffer.
 				if (bDirectLighting)
 				{
-					const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows);
+					const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows, false);
 					bUsedLightAttenuation |= bLightFunctionRendered;
 
 					if (ViewFamily.EngineShowFlags.PreviewShadowsIndicator

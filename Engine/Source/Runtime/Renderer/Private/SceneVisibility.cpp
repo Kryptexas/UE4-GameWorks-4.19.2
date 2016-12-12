@@ -1601,6 +1601,7 @@ struct FRelevancePacket
 		int32 NumVisibleStaticMeshElements = 0;
 		FViewInfo& WriteView = const_cast<FViewInfo&>(View);
 		FFrozenSceneViewMatricesGuard FrozenMatricesGuard(WriteView);
+		const FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
 		const bool bHLODActive = Scene->SceneLODHierarchy.IsActive();
 
@@ -1612,8 +1613,8 @@ struct FRelevancePacket
 			const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
 
 			FLODMask LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ViewData.ForcedLODLevel, ViewData.LODScale);
-			const bool bIsHLODFading = bHLODActive && Scene->SceneLODHierarchy.IsNodeFading(PrimitiveIndex);
-			const bool bIsHLODFadingOut = bHLODActive && Scene->SceneLODHierarchy.IsNodeFadingOut(PrimitiveIndex);
+			const bool bIsHLODFading = bHLODActive && ViewState && ViewState->HLODVisibilityState.IsNodeFading(PrimitiveIndex);
+			const bool bIsHLODFadingOut = bHLODActive && ViewState && ViewState->HLODVisibilityState.IsNodeFadingOut(PrimitiveIndex);
 			const bool bIsLODDithered = LODToRender.IsDithered();
 
 			float DistanceSquared = (Bounds.Origin - ViewData.ViewOrigin).SizeSquared();
@@ -3000,34 +3001,53 @@ void FLODSceneTree::UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitive
 
 void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 {
-	PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
-	PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
-	FSceneBitArray& VisibilityFlags = View.PrimitiveVisibilityMap;
-	TArray<FPrimitiveViewRelevance, SceneRenderingAllocator>& RelevanceMap = View.PrimitiveViewRelevanceMap;
+	if (FSceneViewState* ViewState = (FSceneViewState*)View.State)
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		// Skip update logic when frozen
+		if (ViewState->bIsFrozen)
+		{
+			return;
+		}
+#endif
 
-	++UpdateCount;
-
-	if (const FSceneViewState* ViewState = (FSceneViewState*)View.State)
-	{		
 		const float HLODDistanceScale = FMath::Max(0.0f, CVarHLODDistanceScale.GetValueOnRenderThread());
+
+		// Per-frame initialization
+		FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
+		TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState>& VisibilityStates = ViewState->HLODSceneNodeVisibilityStates;
+
+		HLODState.PrimitiveFadingLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+		HLODState.PrimitiveFadingOutLODMap.Init(false, View.PrimitiveVisibilityMap.Num());
+		FSceneBitArray& VisibilityFlags = View.PrimitiveVisibilityMap;
+		TArray<FPrimitiveViewRelevance, SceneRenderingAllocator>& RelevanceMap = View.PrimitiveViewRelevanceMap;
+
+		int32 UpdateCount = ++HLODState.UpdateCount;
 
 		// Update persistent state on temporal dither sync frames
 		const FTemporalLODState& LODState = ViewState->GetTemporalLODState();
 		bool bSyncFrame = false;
 		
-		if (TemporalLODSyncTime != LODState.TemporalLODTime[0])
+		if (HLODState.TemporalLODSyncTime != LODState.TemporalLODTime[0])
 		{
-			TemporalLODSyncTime = LODState.TemporalLODTime[0];
+			HLODState.TemporalLODSyncTime = LODState.TemporalLODTime[0];
 			bSyncFrame = true;
 		}
 
 		for (auto Iter = SceneNodes.CreateIterator(); Iter; ++Iter)
 		{
 			FLODSceneNode& Node = Iter.Value();
+
+			if (!Node.SceneInfo)
+			{
+				continue;
+			}
+
+			FHLODSceneNodeVisibilityState& NodeVisibility = VisibilityStates.FindOrAdd(Node.SceneInfo->PrimitiveComponentId);
 			const TIndirectArray<FStaticMesh>& NodeMeshes = Node.SceneInfo->StaticMeshes;
 
 			// Ignore already updated nodes, or those that we can't work with
-			if (Node.LatestUpdateCount == UpdateCount || !Node.SceneInfo || NodeMeshes.Num() == 0)
+			if (NodeVisibility.UpdateCount == UpdateCount || NodeMeshes.Num() == 0)
 			{
 				continue;
 			}
@@ -3049,7 +3069,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			const float DistanceSquared = (Bounds.Origin - View.ViewMatrices.GetViewOrigin()).SizeSquared();
 			const bool bIsInDrawRange = DistanceSquared >= Bounds.MinDrawDistanceSq;
 
-			const bool bWasFadingPreUpdate = Node.bIsFading;
+			const bool bWasFadingPreUpdate = !!NodeVisibility.bIsFading;
 
 			// Update fading state
 			if (NodeMeshes[0].bDitheredLODTransition)
@@ -3057,58 +3077,58 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 				// Fade when HLODs change threshold on-screen, else snap
 				// TODO: This logic can still be improved to clear state and
 				//       transitions when off-screen, but needs better detection
-				const bool bChangedRange = bIsInDrawRange != Node.bWasVisible;
-				const bool bIsOnScreen = bIsVisible || Node.bWasVisible;
+				const bool bChangedRange = bIsInDrawRange != !!NodeVisibility.bWasVisible;
+				const bool bIsOnScreen = bIsVisible || NodeVisibility.bWasVisible;
 				
 				// Update with syncs
 				if (bSyncFrame)
 				{
-					if (Node.bIsFading)
+					if (NodeVisibility.bIsFading)
 					{
-						Node.bIsFading = false;
+						NodeVisibility.bIsFading = false;
 					}
 					else if (bChangedRange && bIsOnScreen)
 					{
-						Node.bIsFading = true;	
+						NodeVisibility.bIsFading = true;	
 					}
 
-					Node.bWasVisible = Node.bIsVisible;
-					Node.bIsVisible = bIsInDrawRange;
+					NodeVisibility.bWasVisible = NodeVisibility.bIsVisible;
+					NodeVisibility.bIsVisible = bIsInDrawRange;
 				}
 
 				// Flag as fading or freeze visibility if waiting for a fade
-				if (Node.bIsFading)
+				if (NodeVisibility.bIsFading)
 				{
-					PrimitiveFadingLODMap[NodeIndex] = true;
-					PrimitiveFadingOutLODMap[NodeIndex] = !Node.bIsVisible;
+					HLODState.PrimitiveFadingLODMap[NodeIndex] = true;
+					HLODState.PrimitiveFadingOutLODMap[NodeIndex] = !NodeVisibility.bIsVisible;
 				}
 				else if (bChangedRange && bIsOnScreen)
 				{
-					VisibilityFlags[NodeIndex] = Node.bWasVisible;
-					bIsVisible = Node.bWasVisible;
+					VisibilityFlags[NodeIndex] = !!NodeVisibility.bWasVisible;
+					bIsVisible = !!NodeVisibility.bWasVisible;
 				}
 			}
 			else
 			{
 				// Instant transitions without dithering
-				Node.bWasVisible = Node.bIsVisible;
-				Node.bIsVisible = bIsInDrawRange;
-				Node.bIsFading = false;
+				NodeVisibility.bWasVisible = NodeVisibility.bIsVisible;
+				NodeVisibility.bIsVisible = bIsInDrawRange;
+				NodeVisibility.bIsFading = false;
 			}
 
-			if (Node.bIsFading)
+			if (NodeVisibility.bIsFading)
 			{
 				// Fade until state back in sync
-				ApplyNodeFadingToChildren(Node, VisibilityFlags, true, Node.bIsVisible);
+				ApplyNodeFadingToChildren(ViewState, Node, VisibilityFlags, true, !!NodeVisibility.bIsVisible);
 			}
 			else if (bIsVisible)
 			{
 				// If stable and visible, override hierarchy visibility
-				HideNodeChildren(Node, VisibilityFlags);
+				HideNodeChildren(ViewState, Node, VisibilityFlags);
 			}
 
 			// Flush cached lighting data when changing visible contents
-			if (Node.bIsVisible != Node.bWasVisible || bWasFadingPreUpdate || Node.bIsFading)
+			if (NodeVisibility.bIsVisible != NodeVisibility.bWasVisible || bWasFadingPreUpdate || NodeVisibility.bIsFading)
 			{
 				FLightPrimitiveInteraction* NodeLightList = Node.SceneInfo->LightList;
 				while (NodeLightList)
@@ -3119,7 +3139,7 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 			}
 
 			// Force fully disabled view relevance so shadows don't attempt to recompute
-			if (!Node.bIsVisible)
+			if (!NodeVisibility.bIsVisible)
 			{
 				FPrimitiveViewRelevance& ViewRelevance = RelevanceMap[NodeIndex];
 				FMemory::Memzero(&ViewRelevance, sizeof(FPrimitiveViewRelevance));
@@ -3130,11 +3150,16 @@ void FLODSceneTree::UpdateAndApplyVisibilityStates(FViewInfo& View)
 	}	
 }
 
-void FLODSceneTree::ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut)
+void FLODSceneTree::ApplyNodeFadingToChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut)
 {
+	checkSlow(ViewState);
+	FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
+	TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState>& VisibilityStates = ViewState->HLODSceneNodeVisibilityStates;
+	FHLODSceneNodeVisibilityState& NodeVisibility = VisibilityStates.FindOrAdd(Node.SceneInfo->PrimitiveComponentId);
+
 	if (Node.SceneInfo)
 	{
-		Node.LatestUpdateCount = UpdateCount;
+		NodeVisibility.UpdateCount = HLODState.UpdateCount;
 
 		// Force visibility during fades
 		const int32 NodeIndex = Node.SceneInfo->GetIndex();
@@ -3144,24 +3169,29 @@ void FLODSceneTree::ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArra
 		{
 			const int32 ChildIndex = Child->GetIndex();
 
-			PrimitiveFadingLODMap[ChildIndex] = bIsFading;
-			PrimitiveFadingOutLODMap[ChildIndex] = bIsFadingOut;
+			HLODState.PrimitiveFadingLODMap[ChildIndex] = bIsFading;
+			HLODState.PrimitiveFadingOutLODMap[ChildIndex] = bIsFadingOut;
 			VisibilityFlags[ChildIndex] = true;
 
 			// Fading only occurs at the adjacent hierarchy level, below should be hidden
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
 			{
-				HideNodeChildren(*ChildNode, VisibilityFlags);
+				HideNodeChildren(ViewState, *ChildNode, VisibilityFlags);
 			}
 		}
 	}
 }
 
-void FLODSceneTree::HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags)
+void FLODSceneTree::HideNodeChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags)
 {
-	if (Node.LatestUpdateCount != UpdateCount)
+	checkSlow(ViewState);
+	FHLODVisibilityState& HLODState = ViewState->HLODVisibilityState;
+	TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState>& VisibilityStates = ViewState->HLODSceneNodeVisibilityStates;
+	FHLODSceneNodeVisibilityState& NodeVisibility = VisibilityStates.FindOrAdd(Node.SceneInfo->PrimitiveComponentId);
+
+	if (NodeVisibility.UpdateCount != HLODState.UpdateCount)
 	{
-		Node.LatestUpdateCount = UpdateCount;
+		NodeVisibility.UpdateCount = HLODState.UpdateCount;
 
 		for (const auto& Child : Node.ChildrenSceneInfos)
 		{
@@ -3170,7 +3200,7 @@ void FLODSceneTree::HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& Visibi
 
 			if (FLODSceneNode* ChildNode = SceneNodes.Find(Child->PrimitiveComponentId))
 			{
-				HideNodeChildren(*ChildNode, VisibilityFlags);
+				HideNodeChildren(ViewState, *ChildNode, VisibilityFlags);
 			}
 		}
 	}

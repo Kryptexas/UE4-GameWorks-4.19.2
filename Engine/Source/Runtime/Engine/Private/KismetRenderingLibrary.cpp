@@ -35,14 +35,13 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 		&& TextureRenderTarget->Resource
 		&& World)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			ClearRTCommand,
-			FTextureRenderTargetResource*,RenderTargetResource,TextureRenderTarget->GameThread_GetRenderTargetResource(),
-			FLinearColor,ClearColor,ClearColor,
-		{
-			SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
-			RHICmdList.ClearColorTexture(RenderTargetResource->GetRenderTargetTexture(), ClearColor, FIntRect());
-		});
+		FTextureRenderTargetResource* RenderTargetResource = TextureRenderTarget->GameThread_GetRenderTargetResource();
+		EnqueueUniqueRenderCommand("ClearRTCommand",
+			[RenderTargetResource, ClearColor](FRHICommandList& RHICmdList)
+			{
+				SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
+				RHICmdList.ClearColorTexture(RenderTargetResource->GetRenderTargetTexture(), ClearColor, FIntRect());
+			});
 	}
 }
 
@@ -89,26 +88,25 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 
 		TDrawEvent<FRHICommandList>* DrawMaterialToTargetEvent = new TDrawEvent<FRHICommandList>();
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			BeginDrawEventCommand,
-			FName,RTName,TextureRenderTarget->GetFName(),
-			TDrawEvent<FRHICommandList>*,DrawMaterialToTargetEvent,DrawMaterialToTargetEvent,
-		{
-			BEGIN_DRAW_EVENTF(
-				RHICmdList, 
-				DrawCanvasToTarget, 
-				(*DrawMaterialToTargetEvent), 
-				*RTName.ToString());
-		});
+		FName RTName = TextureRenderTarget->GetFName();
+		EnqueueUniqueRenderCommand("BeginDrawEventCommand",
+			[&RTName ,DrawMaterialToTargetEvent](FRHICommandList& RHICmdList)
+			{
+				BEGIN_DRAW_EVENTF(
+					RHICmdList, 
+					DrawCanvasToTarget, 
+					(*DrawMaterialToTargetEvent), 
+					*RTName.ToString());
+			});
 
 		Canvas->K2_DrawMaterial(Material, FVector2D(0, 0), FVector2D(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY), FVector2D(0, 0));
 
 		RenderCanvas.Flush_GameThread();
 		Canvas->Canvas = NULL;
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			CanvasRenderTargetResolveCommand, FTextureRenderTargetResource*, RenderTargetResource, TextureRenderTarget->GameThread_GetRenderTargetResource(),
-			TDrawEvent<FRHICommandList>*,DrawMaterialToTargetEvent,DrawMaterialToTargetEvent,
+		FTextureRenderTargetResource* RenderTargetResource = TextureRenderTarget->GameThread_GetRenderTargetResource();
+		EnqueueUniqueRenderCommand("CanvasRenderTargetResolveCommand",
+			[RenderTargetResource, DrawMaterialToTargetEvent](FRHICommandList& RHICmdList)
 			{
 				RHICmdList.CopyToResolveTarget(RenderTargetResource->GetRenderTargetTexture(), RenderTargetResource->TextureRHI, true, FResolveParams());
 				STOP_DRAW_EVENT((*DrawMaterialToTargetEvent));
@@ -246,17 +244,17 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 
 		Context.DrawEvent = new TDrawEvent<FRHICommandList>();
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			BeginDrawEventCommand,
-			FName,RTName,TextureRenderTarget->GetFName(),
-			TDrawEvent<FRHICommandList>*,DrawEvent,Context.DrawEvent,
-		{
-			BEGIN_DRAW_EVENTF(
-				RHICmdList, 
-				DrawCanvasToTarget, 
-				(*DrawEvent), 
-				*RTName.ToString());
-		});
+		FName RTName = TextureRenderTarget->GetFName();
+		TDrawEvent<FRHICommandList>* DrawEvent = Context.DrawEvent;
+		EnqueueUniqueRenderCommand("BeginDrawEventCommand",
+			[RTName, DrawEvent](FRHICommandList& RHICmdList)
+			{
+				BEGIN_DRAW_EVENTF(
+					RHICmdList, 
+					DrawCanvasToTarget, 
+					(*DrawEvent), 
+					*RTName.ToString());
+			});
 	}
 	else if (!World)
 	{
@@ -286,9 +284,10 @@ void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextO
 		
 		if (Context.RenderTarget)
 		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				CanvasRenderTargetResolveCommand, FTextureRenderTargetResource*, RenderTargetResource, Context.RenderTarget->GameThread_GetRenderTargetResource(),
-				TDrawEvent<FRHICommandList>*,DrawEvent,Context.DrawEvent,
+			FTextureRenderTargetResource* RenderTargetResource = Context.RenderTarget->GameThread_GetRenderTargetResource();
+			TDrawEvent<FRHICommandList>* DrawEvent = Context.DrawEvent;
+			EnqueueUniqueRenderCommand("CanvasRenderTargetResolveCommand",
+				[RenderTargetResource, DrawEvent](FRHICommandList& RHICmdList)
 				{
 					RHICmdList.CopyToResolveTarget(RenderTargetResource->GetRenderTargetTexture(), RenderTargetResource->TextureRHI, true, FResolveParams());
 					STOP_DRAW_EVENT((*DrawEvent));

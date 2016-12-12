@@ -16,6 +16,7 @@
 #include "HdrCustomResolveShaders.h"
 #include "WideCustomResolveShaders.h"
 #include "ClearQuad.h"
+#include "RenderUtils.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct,TEXT("GBuffers"));
 
@@ -87,7 +88,7 @@ static TAutoConsoleVariable<int32> CVarMobileMSAA(
 	TEXT("2: Use 2x MSAA (Temporal AA disabled)\n")
 	TEXT("4: Use 4x MSAA (Temporal AA disabled)\n")
 	TEXT("8: Use 8x MSAA (Temporal AA disabled)"),
-	ECVF_RenderThreadSafe
+	ECVF_RenderThreadSafe | ECVF_ReadOnly
 	);
 
 static TAutoConsoleVariable<int32> CVarGBufferFormat(
@@ -355,16 +356,22 @@ uint16 FSceneRenderTargets::GetNumSceneColorMSAASamples(ERHIFeatureLevel::Type I
 		if (IsForwardShadingEnabled(InFeatureLevel) && Method == AAM_MSAA)
 		{
 			NumSamples = CVarMSAACount.GetValueOnRenderThread();
+
+			if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
+			{
+				UE_LOG(LogRenderer, Warning, TEXT("Requested %d samples for MSAA, but this is not supported; falling back to 1 sample"), NumSamples);
+				NumSamples = 1;
+			}
 		}
 	}
 	else
 	{
 		NumSamples = CVarMobileMSAA.GetValueOnRenderThread();
-	}
-
-	if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4 && NumSamples != 8)
-	{
-		NumSamples = 1;
+		if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4 && NumSamples != 8)
+		{
+			UE_LOG(LogRenderer, Warning, TEXT("Requested %d samples for MSAA, but this is not supported; falling back to 1 sample"), NumSamples);
+			NumSamples = 1;
+		}
 	}
 
 	if (NumSamples > 1 && !RHISupportsMSAA(GShaderPlatformForFeatureLevel[InFeatureLevel]))
@@ -406,7 +413,7 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 
 	FIntPoint DesiredBufferSize = ComputeDesiredSize(ViewFamily);
 	check(DesiredBufferSize.X > 0 && DesiredBufferSize.Y > 0);
-	QuantizeBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
+	QuantizeSceneBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
 
 	int GBufferFormat = CVarGBufferFormat.GetValueOnRenderThread();
 
@@ -1484,19 +1491,9 @@ void FSceneRenderTargets::InitEditorPrimitivesDepth(FRHICommandList& RHICmdList)
 	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, EditorPrimitivesDepth, TEXT("EditorPrimitivesDepth"));
 }
 
-void FSceneRenderTargets::QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY)
-{
-	// ensure sizes are dividable by DividableBy to get post processing effects with lower resolution working well
-	const uint32 DividableBy = 4;
-
-	const uint32 Mask = ~(DividableBy - 1);
-	InOutBufferSizeX = (InOutBufferSizeX + DividableBy - 1) & Mask;
-	InOutBufferSizeY = (InOutBufferSizeY + DividableBy - 1) & Mask;
-}
-
 void FSceneRenderTargets::SetBufferSize(int32 InBufferSizeX, int32 InBufferSizeY)
 {
-	QuantizeBufferSize(InBufferSizeX, InBufferSizeY);
+	QuantizeSceneBufferSize(InBufferSizeX, InBufferSizeY);
 	BufferSize.X = InBufferSizeX;
 	BufferSize.Y = InBufferSizeY;
 }

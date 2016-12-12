@@ -11,8 +11,13 @@
 #include "MetalResources.h"
 #include "ShaderCache.h"
 #include "MetalProfiler.h"
+#include "MetalCommandBuffer.h"
 #include "Serialization/MemoryReader.h"
 #include "Misc/FileHelper.h"
+
+#define SHADERCOMPILERCOMMON_API
+#	include "Developer/ShaderCompilerCommon/Public/ShaderCompilerCommon.h"
+#undef SHADERCOMPILERCOMMON_API
 
 /** Set to 1 to enable shader debugging (makes the driver save the shader source) */
 #define DEBUG_METAL_SHADERS (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
@@ -155,7 +160,6 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 	Function = [GetMetalCompiledShaderCache().FindRef(Key) retain];
 	if (!Function)
 	{
-		id<MTLLibrary> Library;
 		if (bOfflineCompile && bHasShaderSource)
 		{
 			// For debug/dev/test builds we can use the stored code for debugging - but shipping builds shouldn't have this as it is inappropriate.
@@ -235,10 +239,15 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 			}
 			
 			MTLCompileOptions *CompileOptions = [[MTLCompileOptions alloc] init];
-			CompileOptions.fastMathEnabled = (BOOL)Header.bFastMath;
+			CompileOptions.fastMathEnabled = (BOOL)(!(Header.CompileFlags & (1 << CFLAG_NoFastMath)));
+			if (GetMetalDeviceContext().SupportsFeature(EMetalFeaturesShaderVersions))
+			{
 #if PLATFORM_MAC
-			CompileOptions.languageVersion = MTLLanguageVersion1_1;
+				CompileOptions.languageVersion = Header.Version == 0 ? MTLLanguageVersion1_1 : (MTLLanguageVersion)((1 << 16) + Header.Version);
+#else
+				CompileOptions.languageVersion = (MTLLanguageVersion)((1 << 16) + Header.Version);
 #endif
+			}
 #if DEBUG_METAL_SHADERS
 			NSDictionary *PreprocessorMacros = @{ @"MTLSL_ENABLE_DEBUG_INFO" : @(1)};
 			[CompileOptions setPreprocessorMacros : PreprocessorMacros];
@@ -262,12 +271,16 @@ TMetalBaseShader<BaseResourceType, ShaderType>::TMetalBaseShader(const TArray<ui
 			[GlslCodeNSString retain];
 		}
 
-		// assume there's only one function called 'Main', and use that to get the function from the library
-		Function = [[Library newFunctionWithName:@"Main"] retain];
-		check(Function);
-		GetMetalCompiledShaderCache().Add(Key, Function);
-		[Library release];
-		TRACK_OBJECT(STAT_MetalFunctionCount, Function);
+		if (!Header.bFunctionConstants)
+		{
+			// assume there's only one function called 'Main', and use that to get the function from the library
+			Function = [[Library newFunctionWithName:@"Main"] retain];
+			check(Function);
+			GetMetalCompiledShaderCache().Add(Key, Function);
+			[Library release];
+			Library = nil;
+			TRACK_OBJECT(STAT_MetalFunctionCount, Function);
+		}
 	}
 
 	Bindings = Header.Bindings;
@@ -290,17 +303,31 @@ TMetalBaseShader<BaseResourceType, ShaderType>::~TMetalBaseShader()
 {
 	UNTRACK_OBJECT(STAT_MetalFunctionCount, Function);
 	[Function release];
+	[Library release];
 	[GlslCodeNSString release];
 }
 
 FMetalComputeShader::FMetalComputeShader(const TArray<uint8>& InCode)
 	: TMetalBaseShader<FRHIComputeShader, SF_Compute>(InCode)
+	, Reflection(nil)
 //	, NumThreadsX(0)
 //	, NumThreadsY(0)
 //	, NumThreadsZ(0)
 {
 	NSError* Error;
-	Kernel = [GetMetalDeviceContext().GetDevice() newComputePipelineStateWithFunction:Function error:&Error];
+	
+#if METAL_DEBUG_OPTIONS
+	if (GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation)
+	{
+		MTLAutoreleasedComputePipelineReflection ComputeReflection;
+		Kernel = [GetMetalDeviceContext().GetDevice() newComputePipelineStateWithFunction:Function options:MTLPipelineOptionArgumentInfo reflection:&ComputeReflection error:&Error];
+		Reflection = [ComputeReflection retain];
+	}
+	else
+#endif
+	{
+		Kernel = [GetMetalDeviceContext().GetDevice() newComputePipelineStateWithFunction:Function error:&Error];
+	}
 	
 	if (Kernel == nil)
 	{
@@ -315,11 +342,47 @@ FMetalComputeShader::FMetalComputeShader(const TArray<uint8>& InCode)
 FMetalComputeShader::~FMetalComputeShader()
 {
 	UNTRACK_OBJECT(STAT_MetalComputePipelineStateCount, Kernel);
+	[Reflection release];
+}
+
+FMetalVertexShader::FMetalVertexShader(const TArray<uint8>& InCode)
+	: TMetalBaseShader<FRHIVertexShader, SF_Vertex>(InCode)
+{
+}
+
+FMetalDomainShader::FMetalDomainShader(const TArray<uint8>& InCode)
+	: TMetalBaseShader<FRHIDomainShader, SF_Domain>(InCode)
+{
 }
 
 FVertexShaderRHIRef FMetalDynamicRHI::RHICreateVertexShader(const TArray<uint8>& Code)
 {
 	FMetalVertexShader* Shader = new FMetalVertexShader(Code);
+	FShaderCodeReader ShaderCode(Code);
+	FMemoryReader Ar(Code, true);
+	Ar.SetLimitSize(ShaderCode.GetActualShaderCodeSize());
+
+	// was the shader already compiled offline?
+	uint8 OfflineCompiledFlag;
+	Ar << OfflineCompiledFlag;
+
+	// get the header
+	FMetalCodeHeader Header = { 0 };
+	Ar << Header;
+
+	// for VSHS
+	Shader->TessellationOutputAttribs = Header.TessellationOutputAttribs;
+	Shader->TessellationPatchCountBuffer = Header.TessellationPatchCountBuffer;
+	Shader->TessellationIndexBuffer = Header.TessellationIndexBuffer;
+	Shader->TessellationHSOutBuffer = Header.TessellationHSOutBuffer;
+	Shader->TessellationHSTFOutBuffer = Header.TessellationHSTFOutBuffer;
+	Shader->TessellationControlPointOutBuffer = Header.TessellationControlPointOutBuffer;
+	Shader->TessellationControlPointIndexBuffer = Header.TessellationControlPointIndexBuffer;
+	Shader->TessellationOutputControlPoints = Header.TessellationOutputControlPoints;
+	Shader->TessellationDomain = Header.TessellationDomain;
+	Shader->TessellationInputControlPoints = Header.TessellationInputControlPoints;
+	Shader->TessellationMaxTessFactor = Header.TessellationMaxTessFactor;
+	Shader->TessellationPatchesPerThreadGroup = Header.TessellationPatchesPerThreadGroup;
 	return Shader;
 }
 
@@ -338,6 +401,37 @@ FHullShaderRHIRef FMetalDynamicRHI::RHICreateHullShader(const TArray<uint8>& Cod
 FDomainShaderRHIRef FMetalDynamicRHI::RHICreateDomainShader(const TArray<uint8>& Code) 
 { 
 	FMetalDomainShader* Shader = new FMetalDomainShader(Code);
+	FShaderCodeReader ShaderCode(Code);
+	FMemoryReader Ar(Code, true);
+	Ar.SetLimitSize(ShaderCode.GetActualShaderCodeSize());
+
+	// was the shader already compiled offline?
+	uint8 OfflineCompiledFlag;
+	Ar << OfflineCompiledFlag;
+
+	// get the header
+	FMetalCodeHeader Header = { 0 };
+	Ar << Header;
+	
+	Shader->TessellationHSOutBuffer = Header.TessellationHSOutBuffer;
+	Shader->TessellationControlPointOutBuffer = Header.TessellationControlPointOutBuffer;
+
+	switch (Header.TessellationOutputWinding)
+	{
+		// NOTE: cw and ccw are flipped
+		case EMetalOutputWindingMode::Clockwise:		Shader->TessellationOutputWinding = MTLWindingCounterClockwise; break;
+		case EMetalOutputWindingMode::CounterClockwise:	Shader->TessellationOutputWinding = MTLWindingClockwise; break;
+		default: check(0);
+	}
+	
+	switch (Header.TessellationPartitioning)
+	{
+		case EMetalPartitionMode::Pow2:				Shader->TessellationPartitioning = MTLTessellationPartitionModePow2; break;
+		case EMetalPartitionMode::Integer:			Shader->TessellationPartitioning = MTLTessellationPartitionModeInteger; break;
+		case EMetalPartitionMode::FractionalOdd:	Shader->TessellationPartitioning = MTLTessellationPartitionModeFractionalOdd; break;
+		case EMetalPartitionMode::FractionalEven:	Shader->TessellationPartitioning = MTLTessellationPartitionModeFractionalEven; break;
+		default: check(0);
+	}
 	return Shader;
 }
 
@@ -434,7 +528,7 @@ FMetalBoundShaderState::~FMetalBoundShaderState()
 	checkf(Err == 0, TEXT("pthread_rwlock_destroy failed with errno: %d"), Err);
 }
 
-void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedVertexDescriptor const& VertexDesc, const FMetalRenderPipelineDesc& RenderPipelineDesc, MTLRenderPipelineReflection** Reflection)
+FMetalShaderPipeline* FMetalBoundShaderState::PrepareToDraw(FMetalHashedVertexDescriptor const& VertexDesc, const FMetalRenderPipelineDesc& RenderPipelineDesc)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MetalBoundShaderPrepareDrawTime);
 	
@@ -449,11 +543,11 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 	}
 	
 	// have we made a matching state object yet?
-    id<MTLRenderPipelineState> PipelineState = nil;
-	TMap<FMetalHashedVertexDescriptor, id<MTLRenderPipelineState>>* Dict = PipelineStates.Find(PipelineHash);
+    FMetalShaderPipeline* PipelineStatePack = nil;
+	TMap<FMetalHashedVertexDescriptor, FMetalShaderPipeline*>* Dict = PipelineStates.Find(PipelineHash);
 	if (Dict)
 	{
-		PipelineState = Dict->FindRef(VertexDesc);
+		PipelineStatePack = Dict->FindRef(VertexDesc);
 	}
 	
 	if(GUseRHIThread)
@@ -464,11 +558,10 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 	}
 	
 	// make one if not
-	if (PipelineState == nil)
+	if (PipelineStatePack == nil)
 	{
-		PipelineState = RenderPipelineDesc.CreatePipelineStateForBoundShaderState(this, VertexDesc, Reflection);
-		check(PipelineState);
-		check(!Reflection || *Reflection);
+		PipelineStatePack = RenderPipelineDesc.CreatePipelineStateForBoundShaderState(this, VertexDesc);
+		check(PipelineStatePack);
 		
 		if(GUseRHIThread)
 		{
@@ -478,29 +571,22 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 		}
 		
 		Dict = PipelineStates.Find(PipelineHash);
-		id<MTLRenderPipelineState> ExistingPipeline = Dict ? Dict->FindRef(VertexDesc) : nil;
+		FMetalShaderPipeline* ExistingPipeline = Dict ? Dict->FindRef(VertexDesc) : nil;
 		if (!ExistingPipeline)
 		{
 			if (Dict)
 			{
-				Dict->Add(VertexDesc, PipelineState);
+				Dict->Add(VertexDesc, PipelineStatePack);
 			}
 			else
 			{
-				TMap<FMetalHashedVertexDescriptor, id<MTLRenderPipelineState>>& InnerDict = PipelineStates.Add(PipelineHash);
-				InnerDict.Add(VertexDesc, PipelineState);
+				TMap<FMetalHashedVertexDescriptor, FMetalShaderPipeline*>& InnerDict = PipelineStates.Add(PipelineHash);
+				InnerDict.Add(VertexDesc, PipelineStatePack);
 			}
 		}
 		else
 		{
-			PipelineState = ExistingPipeline;
-#if METAL_DEBUG_OPTIONS
-			if(Reflection)
-			{
-				*Reflection = RenderPipelineDesc.GetReflectionData(this, VertexDesc);
-				check(*Reflection);
-			}
-#endif
+			PipelineStatePack = ExistingPipeline;
 		}
 		
 		if(GUseRHIThread)
@@ -513,24 +599,12 @@ void FMetalBoundShaderState::PrepareToDraw(FMetalContext* Context, FMetalHashedV
 #if METAL_DEBUG_OPTIONS
 		if (GFrameCounter > 3)
 		{
-#if PLATFORM_MAC
-			NSLog(@"Created a hitchy pipeline state for hash %llx%llx vertex desc: %llx (this = %p)", (uint64)PipelineHash, (uint64)(PipelineHash >> 64), (uint64)VertexDesc.VertexDescHash, this);
-#else
-			NSLog(@"Created a hitchy pipeline state for hash %llx vertex desc: %llx (this = %p)", (uint64)PipelineHash, (uint64)VertexDesc.VertexDescHash, this);
-#endif
+			NSLog(@"Created a hitchy pipeline state for hash %llx%llx%llx (this = %p)", (uint64)PipelineHash.RasterBits, (uint64)(PipelineHash.TargetBits), (uint64)VertexDesc.VertexDescHash, this);
 		}
 #endif
 	}
-#if METAL_DEBUG_OPTIONS
-	else if(Reflection)
-	{
-		*Reflection = RenderPipelineDesc.GetReflectionData(this, VertexDesc);
-		check(*Reflection);
-	}
-#endif
-	
-	// set it now
-	Context->GetCommandEncoder().SetRenderPipelineState(PipelineState);
+
+	return PipelineStatePack;
 }
 
 FBoundShaderStateRHIRef FMetalDynamicRHI::RHICreateBoundShaderState(
@@ -671,7 +745,7 @@ void FMetalShaderParameterCache::Set(uint32 BufferIndexName, uint32 ByteOffset, 
 	FMemory::Memcpy(PackedGlobalUniforms[BufferIndex] + ByteOffset, NewValues, NumBytes);
 }
 
-void FMetalShaderParameterCache::CommitPackedGlobals(FMetalContext* Context, int32 Stage, const FMetalShaderBindings& Bindings)
+void FMetalShaderParameterCache::CommitPackedGlobals(FMetalStateCache* Cache, FMetalCommandEncoder* Encoder, EShaderFrequency Frequency, const FMetalShaderBindings& Bindings)
 {
 	// copy the current uniform buffer into the ring buffer to submit
 	for (int32 Index = 0; Index < Bindings.PackedGlobalArrays.Num(); ++Index)
@@ -687,30 +761,16 @@ void FMetalShaderParameterCache::CommitPackedGlobals(FMetalContext* Context, int
 			//@todo-rco: Temp workaround
 			SizeToUpload = TotalSize;
 			
-			// allocate memory in the ring buffer
-			uint32 Offset = Context->AllocateFromRingBuffer(TotalSize);
-			id<MTLBuffer> RingBuffer = Context->GetRingBuffer();
-			
 			//@todo-rco: Temp workaround
-			FMemory::Memcpy(((uint8*)[RingBuffer contents]) + Offset, PackedGlobalUniforms[UniformBufferIndex], FMath::Min(TotalSize, SizeToUpload));
+			uint8 const* Bytes = PackedGlobalUniforms[UniformBufferIndex];
+			uint32 Size = FMath::Min(TotalSize, SizeToUpload);
 			
-			switch (Stage)
-			{
-				case CrossCompiler::SHADER_STAGE_VERTEX:
-					Context->GetCommandEncoder().SetShaderBuffer(SF_Vertex, RingBuffer, Offset, UniformBufferIndex);
-					break;
-					
-				case CrossCompiler::SHADER_STAGE_PIXEL:
-					Context->GetCommandEncoder().SetShaderBuffer(SF_Pixel, RingBuffer, Offset, UniformBufferIndex);
-					break;
-					
-				case CrossCompiler::SHADER_STAGE_COMPUTE:
-					Context->GetCommandEncoder().SetShaderBuffer(SF_Compute, RingBuffer, Offset, UniformBufferIndex);
-					break;
-					
-					
-				default:check(0);
-			}
+			uint32 Offset = Encoder->GetRingBuffer()->Allocate(Size, 0);
+			id<MTLBuffer> Buffer = Encoder->GetRingBuffer()->Buffer;
+			
+			FMemory::Memcpy((uint8*)[Buffer contents] + Offset, Bytes, Size);
+			
+			Cache->SetShaderBuffer(Frequency, Buffer, nil, Offset, Size, UniformBufferIndex);
 
 			// mark as clean
 			PackedGlobalUniformDirty[UniformBufferIndex].HighVector = 0;
@@ -728,11 +788,20 @@ void FMetalShaderParameterCache::CommitPackedUniformBuffers(TRefCountPtr<FMetalB
 		return;
 	}
 
-	auto& Bindings = Stage == CrossCompiler::SHADER_STAGE_VERTEX ? BoundShaderState->VertexShader->Bindings :
-	(Stage == CrossCompiler::SHADER_STAGE_COMPUTE ? ComputeShader->Bindings : BoundShaderState->PixelShader->Bindings);
-	check(Bindings.NumUniformBuffers <= RHIUniformBuffers.Num());
+	auto& Bindings = [this, &Stage, &BoundShaderState, ComputeShader]() -> FMetalShaderBindings& {
+		switch(Stage) {
+			default: check(0);
+			case CrossCompiler::SHADER_STAGE_VERTEX: return BoundShaderState->VertexShader->Bindings;
+			case CrossCompiler::SHADER_STAGE_PIXEL: return BoundShaderState->PixelShader->Bindings;
+			case CrossCompiler::SHADER_STAGE_COMPUTE: return ComputeShader->Bindings;
+			case CrossCompiler::SHADER_STAGE_HULL: return BoundShaderState->HullShader->Bindings;
+			case CrossCompiler::SHADER_STAGE_DOMAIN: return BoundShaderState->DomainShader->Bindings;
+		}
+	}();
+
 	if (!Bindings.bHasRegularUniformBuffers)
 	{
+		check(Bindings.NumUniformBuffers <= RHIUniformBuffers.Num());
 		int32 LastInfoIndex = 0;
 		for (int32 BufferIndex = 0; BufferIndex < Bindings.NumUniformBuffers; ++BufferIndex)
 		{

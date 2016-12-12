@@ -295,6 +295,11 @@
 #define USING_VERTEX_SHADER_LAYER	0
 #endif
 
+/** Defined only for Metal's combined Vertex + Hull shader */
+#ifndef TESSELLATIONSHADER
+#define TESSELLATIONSHADER 0
+#endif
+
 // 'static' asserts
 #if COMPILER_GLSL || COMPILER_GLSL_ES2 || COMPILER_GLSL_ES3_1 || VULKAN_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE
 #if !COMPILER_HLSLCC

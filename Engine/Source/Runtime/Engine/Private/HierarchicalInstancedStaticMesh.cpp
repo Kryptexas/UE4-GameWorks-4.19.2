@@ -1822,6 +1822,12 @@ void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 	}
 }
 
+void UHierarchicalInstancedStaticMeshComponent::PostDuplicate(bool bDuplicateForPIE)
+{
+	Super::PostDuplicate(bDuplicateForPIE);
+	BuildTree();
+}
+
 void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex)
 {
 	PartialNavigationUpdate(InstanceIndex);
@@ -1964,7 +1970,7 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 	// if we are only updating rotation/scale we update the instance directly in the cluster tree
 	const bool bIsOmittedInstance = (RenderIndex == INDEX_NONE);
 	const bool bIsBuiltInstance = !bIsOmittedInstance && RenderIndex < NumBuiltRenderInstances;
-	const bool bDoInPlaceUpdate = !bIsOmittedInstance && (!bIsBuiltInstance || NewLocalLocation.Equals(OldTransform.GetOrigin()));
+	const bool bDoInPlaceUpdate = !bIsOmittedInstance && (bIsBuiltInstance || NewLocalLocation.Equals(OldTransform.GetOrigin()));
 
 	bool Result = Super::UpdateInstanceTransform(InstanceIndex, NewInstanceTransform, bWorldSpace, bMarkRenderStateDirty, bTeleport);
 	
@@ -1975,20 +1981,12 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 
 		if (bDoInPlaceUpdate)
 		{
-			if (bIsBuiltInstance)
+			// If the new bounds are larger than the old ones, then expand the bounds on the tree to make sure culling works correctly
+			const FBox OldInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(OldTransform);
+			if (!OldInstanceBounds.IsInside(NewInstanceBounds))
 			{
-				// If the new bounds are larger than the old ones, then expand the bounds on the tree to make sure culling works correctly
-				const FBox OldInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(OldTransform);
-				if (!OldInstanceBounds.IsInside(NewInstanceBounds))
-				{
-					BuiltInstanceBounds += NewInstanceBounds;
-					bDirtyRenderState = true;
-				}
-			}
-			else
-			{
-				UnbuiltInstanceBounds += NewInstanceBounds;
-				UnbuiltInstanceBoundsList[RenderIndex - NumBuiltRenderInstances] = NewInstanceBounds;
+				BuiltInstanceBounds += NewInstanceBounds;
+				bDirtyRenderState = true;
 			}
 		}
 		else

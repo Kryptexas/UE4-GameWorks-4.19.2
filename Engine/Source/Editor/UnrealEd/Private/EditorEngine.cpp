@@ -6414,23 +6414,11 @@ void UEditorEngine::UpdateAutoLoadProject()
 #if PLATFORM_MAC
 	if ( !GIsBuildMachine )
 	{
-		FString OSVersion, OSSubVersion;
-		FPlatformMisc::GetOSVersions(OSVersion, OSSubVersion);
-		
-		TArray<FString> Components;
-		OSVersion.ParseIntoArray(Components, TEXT("."), true);
-		uint8 ComponentValues[3] = {0};
-		
-		for(uint32 i = 0; i < Components.Num() && i < 3; i++)
-		{
-			TTypeFromString<uint8>::FromString(ComponentValues[i], *Components[i]);
-		}
-		
-		if(ComponentValues[0] < 10 || ComponentValues[1] < 12 || (ComponentValues[1] == 12 && ComponentValues[2] < 0))
+		if(FPlatformMisc::MacOSXVersionCompare(10,12,2) < 0)
 		{
 			if(FSlateApplication::IsInitialized())
 			{
-				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorSettingsIni );
+				FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of macOS for best performance."), LOCTEXT("UpdateMacOSX_Title","Update macOS"), TEXT("UpdateMacOSX"), GEditorSettingsIni );
 				Info.ConfirmText = LOCTEXT( "OK", "OK");
 				Info.bDefaultToSuppressInTheFuture = true;
 				FSuppressableWarningDialog OSUpdateWarning( Info );
@@ -6438,7 +6426,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			}
 			else
 			{
-				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of Mac OS X for best performance."));
+				UE_LOG(LogEditor, Warning, TEXT("Please update to the latest version of macOS for best performance."));
 			}
 		}
 		

@@ -5510,7 +5510,11 @@ bool UMaterialExpressionPreviousFrameSwitch::IsResultMaterialAttributes(int32 Ou
 
 int32 UMaterialExpressionPreviousFrameSwitch::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex)
 {
-	return Compiler->PreviousFrameSwitch(CurrentFrame.Compile(Compiler), PreviousFrame.Compile(Compiler));
+	if (Compiler->IsCurrentlyCompilingForPreviousFrame())
+	{
+		return PreviousFrame.Compile(Compiler);
+	}
+	return CurrentFrame.Compile(Compiler);
 }
 
 void UMaterialExpressionPreviousFrameSwitch::GetCaption(TArray<FString>& OutCaptions) const

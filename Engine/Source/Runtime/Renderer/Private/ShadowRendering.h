@@ -1706,7 +1706,7 @@ public:
 			: GBlackTextureCube->TextureRHI.GetReference();
         if (!ShadowDepthTextureValue)
         {
-            ShadowDepthTextureValue = GBlackTextureCube->TextureRHI.GetReference();
+            ShadowDepthTextureValue = GBlackTextureDepthCube->TextureRHI.GetReference();
         }
 
 		SetTextureParameter(

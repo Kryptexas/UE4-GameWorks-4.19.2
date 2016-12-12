@@ -154,6 +154,13 @@ public:
 			bRenderingPreviewShadowIndicator ? 1.0f : 0.0f));
 
 		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
+
+		auto DeferredLightParameter = GetUniformBufferParameter<FDeferredLightUniformStruct>();
+
+		if (DeferredLightParameter.IsBound())
+		{
+			SetDeferredLightParameters(RHICmdList, ShaderRHI, DeferredLightParameter, LightSceneInfo, View);
+		}
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -242,11 +249,11 @@ bool FDeferredShadingSceneRenderer::CheckForLightFunction( const FLightSceneInfo
  *
  * @param LightSceneInfo Represents the current light
  */
-bool FDeferredShadingSceneRenderer::RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared)
+bool FDeferredShadingSceneRenderer::RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared, bool bProjectingForForwardShading)
 {
 	if (ViewFamily.EngineShowFlags.LightFunctions)
 	{
-		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, LightSceneInfo->Proxy->GetLightFunctionMaterial(), bLightAttenuationCleared, false);
+		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, LightSceneInfo->Proxy->GetLightFunctionMaterial(), bLightAttenuationCleared, bProjectingForForwardShading, false);
 	}
 	
 	return false;
@@ -256,13 +263,19 @@ bool FDeferredShadingSceneRenderer::RenderPreviewShadowsIndicator(FRHICommandLis
 {
 	if (GEngine->PreviewShadowsIndicatorMaterial)
 	{
-		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, GEngine->PreviewShadowsIndicatorMaterial->GetRenderProxy(false), bLightAttenuationCleared, true);
+		return RenderLightFunctionForMaterial(RHICmdList, LightSceneInfo, GEngine->PreviewShadowsIndicatorMaterial->GetRenderProxy(false), bLightAttenuationCleared, false, true);
 	}
 
 	return false;
 }
 
-bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bLightAttenuationCleared, bool bRenderingPreviewShadowsIndicator)
+bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(
+	FRHICommandListImmediate& RHICmdList, 
+	const FLightSceneInfo* LightSceneInfo, 
+	const FMaterialRenderProxy* MaterialProxy, 
+	bool bLightAttenuationCleared, 
+	bool bProjectingForForwardShading, 
+	bool bRenderingPreviewShadowsIndicator)
 {
 	bool bRenderedLightFunction = false;
 
@@ -323,11 +336,13 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandLi
 						}
 						else
 						{
-							// Light attenuation buffer has been remapped. 
-							// Light function shadows now write to the blue channel.
-
-							// Use modulated blending to BA since light functions are combined in the same buffer as normal shadows
-							RHICmdList.SetBlendState(TStaticBlendState<CW_BA,BO_Add,BF_DestColor,BF_Zero,BO_Add,BF_Zero,BF_One>::GetRHI());
+							FProjectedShadowInfo::SetBlendStateForProjection(
+								RHICmdList, 
+								LightSceneInfo->GetDynamicShadowMapChannel(), 
+								false,
+								false,
+								bProjectingForForwardShading, 
+								false);
 						}
 					}
 					else
@@ -364,12 +379,6 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandLi
 
 		// Restore states.
 		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
-
-		if (bRenderedLightFunction)
-		{
-			// Restore stencil buffer to all 0's which is the assumed default state
-			RHICmdList.ClearDepthStencilTexture(FSceneRenderTargets::Get(RHICmdList).GetSceneDepthTexture(), EClearDepthStencil::Stencil, (float)ERHIZBuffer::FarPlane, 0, FIntRect());
-		}
 	}
 	return bRenderedLightFunction;
 }

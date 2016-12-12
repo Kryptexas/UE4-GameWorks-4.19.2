@@ -179,13 +179,13 @@ void FSkeletalMeshObjectGPUSkin::ReleaseResources()
 	}
 	// also release morph resources
 	ReleaseMorphResources();
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		WaitRHIThreadFenceForDynamicData,
-		FSkeletalMeshObjectGPUSkin*, MeshObject, this,
-	{
-		FScopeCycleCounter Context(MeshObject->GetStatId());
-		MeshObject->WaitForRHIThreadFenceForDynamicData();
-	}
+	FSkeletalMeshObjectGPUSkin* MeshObject = this;
+	EnqueueUniqueRenderCommand("WaitRHIThreadFenceForDynamicData",
+		[MeshObject](FRHICommandList& RHICmdList)
+		{
+			FScopeCycleCounter Context(MeshObject->GetStatId());
+			MeshObject->WaitForRHIThreadFenceForDynamicData();
+		}
 	);
 }
 
@@ -208,15 +208,17 @@ void FSkeletalMeshObjectGPUSkin::InitMorphResources(bool bInUsePerBoneMotionBlur
 
 	if (MorphTargetWeights.Num() > 0)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(InitMorphWeightsVertexBuffer,
-			int32, NumWeights, MorphTargetWeights.Num(),
-			FVertexBufferAndSRV&, MorphWeightsVertexBuffer, MorphWeightsVertexBuffer,
+		int32 NumWeights = MorphTargetWeights.Num();
+		FVertexBufferAndSRV* MorphWeightsVertexBufferPtr = &MorphWeightsVertexBuffer;
+		EnqueueUniqueRenderCommand("InitMorphWeightsVertexBuffer",
+			[NumWeights, MorphWeightsVertexBufferPtr](FRHICommandList& RHICmdList)
 			{
 				const uint32 Size = (uint32)NumWeights * sizeof(float);
 				FRHIResourceCreateInfo CreateInfo;
-				MorphWeightsVertexBuffer.VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Dynamic | BUF_ShaderResource, CreateInfo);
-				MorphWeightsVertexBuffer.VertexBufferSRV = RHICreateShaderResourceView(MorphWeightsVertexBuffer.VertexBufferRHI, sizeof(float), PF_R32_UINT);
-			});
+				MorphWeightsVertexBufferPtr->VertexBufferRHI = RHICreateVertexBuffer(Size, BUF_Dynamic | BUF_ShaderResource, CreateInfo);
+				MorphWeightsVertexBufferPtr->VertexBufferSRV = RHICreateShaderResourceView(MorphWeightsVertexBufferPtr->VertexBufferRHI, sizeof(float), PF_R32_UINT);
+			}
+		);
 	}
 }
 
@@ -231,12 +233,14 @@ void FSkeletalMeshObjectGPUSkin::ReleaseMorphResources()
 
 	if (MorphWeightsVertexBuffer.VertexBufferRHI)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(InitMorphWeightsVertexBuffer,
-			FVertexBufferAndSRV&, MorphWeightsVertexBuffer, MorphWeightsVertexBuffer,
+		FVertexBufferAndSRV* MorphWeightsVertexBufferPtr = &MorphWeightsVertexBuffer;
+		EnqueueUniqueRenderCommand("InitMorphWeightsVertexBuffer",
+			[MorphWeightsVertexBufferPtr](FRHICommandList& RHICmdList)
 			{
-				MorphWeightsVertexBuffer.VertexBufferRHI.SafeRelease();
-				MorphWeightsVertexBuffer.VertexBufferSRV.SafeRelease();
-			});
+				MorphWeightsVertexBufferPtr->VertexBufferRHI.SafeRelease();
+				MorphWeightsVertexBufferPtr->VertexBufferSRV.SafeRelease();
+			}
+		);
 	}
 
 	bMorphResourcesInitialized = false;
@@ -261,15 +265,13 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 	uint32 FrameNumberToPrepare = GFrameNumber + 1;
 
 	// queue a call to update this data
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-		SkelMeshObjectUpdateDataCommand,
-		FSkeletalMeshObjectGPUSkin*, MeshObject, this,
-		uint32, FrameNumberToPrepare, FrameNumberToPrepare, 
-		FDynamicSkelMeshObjectDataGPUSkin*, NewDynamicData, NewDynamicData,
-	{
-		FScopeCycleCounter Context(MeshObject->GetStatId());
-		MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare);
-	}
+	FSkeletalMeshObjectGPUSkin* MeshObject = this;
+	EnqueueUniqueRenderCommand("SkelMeshObjectUpdateDataCommand",
+		[MeshObject, FrameNumberToPrepare, NewDynamicData](FRHICommandListImmediate& RHICmdList)
+		{
+			FScopeCycleCounter Context(MeshObject->GetStatId());
+			MeshObject->UpdateDynamicData_RenderThread(RHICmdList, NewDynamicData, FrameNumberToPrepare);
+		}
 	);
 
 	if( GIsEditor )
@@ -285,12 +287,9 @@ void FSkeletalMeshObjectGPUSkin::Update(int32 LODIndex,USkinnedMeshComponent* In
 void FSkeletalMeshObjectGPUSkin::UpdateRecomputeTangent(int32 MaterialIndex, int32 LODIndex, bool bRecomputeTangent)
 {
 	// queue a call to update this data
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
-		SkelMeshObjectUpdateMaterialDataCommand,
-		FSkeletalMeshObjectGPUSkin*, MeshObject, this,
-		int32, MaterialIndex, MaterialIndex, 
-		int32, LODIndex, LODIndex,
-		bool, bRecomputeTangent, bRecomputeTangent,
+	FSkeletalMeshObjectGPUSkin* MeshObject = this;
+	EnqueueUniqueRenderCommand("SkelMeshObjectUpdateMaterialDataCommand",
+		[MeshObject, MaterialIndex, LODIndex, bRecomputeTangent](FRHICommandList& RHICmdList)
 		{
 			// iterate through section and find the section that matches MaterialIndex, if so, set that flag
 			for (int32 LodIdx = 0; LodIdx < MeshObject->SkeletalMeshResource->LODModels.Num(); ++LodIdx)
@@ -464,15 +463,16 @@ void FSkeletalMeshObjectGPUSkin::ProcessUpdatedDynamicData(FRHICommandListImmedi
 				}
 
 				{
-					extern TAutoConsoleVariable<int32> CVarGPUSkinCacheRecomputeTangents;
-					if(CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() == 2)
+#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+					// In this mode the SkinCache should only be used for RecomputeTangent meshes
+					if (GEnableGPUSkinCache == 2)
 					{
-						if(!Section.bRecomputeTangent)
+						if (!Section.bRecomputeTangent)
 						{
-							// In this mode the SkinCache should only be used for RecomputeTangent meshes
 							bUseSkinCache = false;
 						}
 					}
+#endif
 				}
 			}
 
@@ -899,17 +899,6 @@ public:
 	
 };
 
-ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER_DECLARE_TEMPLATE(
-InitGPUSkinVertexFactory,VertexFactoryType,
-TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdateData,
-{
-	typename VertexFactoryType::FDataType Data;
-	InitGPUSkinVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
-	VertexUpdateData.VertexFactory->SetData(Data);
-	VertexUpdateData.VertexFactory->GetShaderData().MeshOrigin = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshOrigin();
-	VertexUpdateData.VertexFactory->GetShaderData().MeshExtension = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshExtension();
-});
-
 /**
  * Creates a vertex factory entry for the given type and initialize it on the render thread
  */
@@ -919,16 +908,23 @@ static VertexFactoryType* CreateVertexFactory(TArray<TUniquePtr<VertexFactoryTyp
 						 ERHIFeatureLevel::Type FeatureLevel
 						 )
 {
-	auto* VertexFactory = new VertexFactoryType(FeatureLevel);
+	VertexFactoryType* VertexFactory = new VertexFactoryType(FeatureLevel);
 	VertexFactories.Add(TUniquePtr<VertexFactoryTypeBase>(VertexFactory));
 
 	// Setup the update data for enqueue
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory,InVertexBuffers);
 
 	// update vertex factory components and sync it
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER_CREATE_TEMPLATE(
-	InitGPUSkinVertexFactory,VertexFactoryType,
-	TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData);
+	EnqueueUniqueRenderCommand("InitGPUSkinVertexFactory",
+		[VertexUpdateData](FRHICommandList& CmdList)
+		{
+			typename VertexFactoryType::FDataType Data;
+			InitGPUSkinVertexFactoryComponents<VertexFactoryType>(&Data, VertexUpdateData.VertexBuffers);
+			VertexUpdateData.VertexFactory->SetData(Data);
+			VertexUpdateData.VertexFactory->GetShaderData().MeshOrigin = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshOrigin();
+			VertexUpdateData.VertexFactory->GetShaderData().MeshExtension = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshExtension();
+		}
+	);
 
 	// init rendering resource	
 	BeginInitResource(VertexFactory);
@@ -936,42 +932,24 @@ static VertexFactoryType* CreateVertexFactory(TArray<TUniquePtr<VertexFactoryTyp
 	return VertexFactory;
 }
 
-ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER_DECLARE_TEMPLATE(
-InitPassthroughGPUSkinVertexFactory, VertexFactoryType,
-FGPUSkinPassthroughVertexFactory*, PassthroughVertexFactory, PassthroughVertexFactory,
-VertexFactoryType*, SourceVertexFactory, SourceVertexFactory,
-{
-	SourceVertexFactory->CopyDataTypeForPassthroughFactory(PassthroughVertexFactory);
-});
-
 template<typename VertexFactoryType>
 static void CreatePassthroughVertexFactory(TArray<TUniquePtr<FGPUSkinPassthroughVertexFactory>>& PassthroughVertexFactories,
 	VertexFactoryType* SourceVertexFactory)
 {
-	auto* VertexFactory = new FGPUSkinPassthroughVertexFactory();
-	PassthroughVertexFactories.Add(TUniquePtr<FGPUSkinPassthroughVertexFactory>(VertexFactory));
+	FGPUSkinPassthroughVertexFactory* NewPassthroughVertexFactory = new FGPUSkinPassthroughVertexFactory();
+	PassthroughVertexFactories.Add(TUniquePtr<FGPUSkinPassthroughVertexFactory>(NewPassthroughVertexFactory));
 
 	// update vertex factory components and sync it
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER_CREATE_TEMPLATE(
-		InitPassthroughGPUSkinVertexFactory, VertexFactoryType,
-		FGPUSkinPassthroughVertexFactory, VertexFactory,
-		VertexFactoryType, SourceVertexFactory);
+	EnqueueUniqueRenderCommand("InitPassthroughGPUSkinVertexFactory",
+		[NewPassthroughVertexFactory, SourceVertexFactory](FRHICommandList& RHICmdList)
+		{
+			SourceVertexFactory->CopyDataTypeForPassthroughFactory(NewPassthroughVertexFactory);
+		}
+	);
 
 	// init rendering resource	
-	BeginInitResource(VertexFactory);
+	BeginInitResource(NewPassthroughVertexFactory);
 }
-
-ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER_DECLARE_TEMPLATE(
-InitGPUSkinVertexFactoryMorph,VertexFactoryType,
-TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdateData,
-{
-	typename VertexFactoryType::FDataType Data;
-	InitGPUSkinVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
-	InitMorphVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
-	VertexUpdateData.VertexFactory->SetData(Data);
-	VertexUpdateData.VertexFactory->GetShaderData().MeshOrigin = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshOrigin();
-	VertexUpdateData.VertexFactory->GetShaderData().MeshExtension = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshExtension();
-});
 
 /**
  * Creates a vertex factory entry for the given type and initialize it on the render thread
@@ -983,16 +961,24 @@ static VertexFactoryType* CreateVertexFactoryMorph(TArray<TUniquePtr<VertexFacto
 						 )
 
 {
-	auto* VertexFactory = new VertexFactoryType(FeatureLevel);
+	VertexFactoryType* VertexFactory = new VertexFactoryType(FeatureLevel);
 	VertexFactories.Add(TUniquePtr<VertexFactoryTypeBase>(VertexFactory));
 						
 	// Setup the update data for enqueue
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
 
 	// update vertex factory components and sync it
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER_CREATE_TEMPLATE(
-	InitGPUSkinVertexFactoryMorph,VertexFactoryType,
-	TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData);
+	EnqueueUniqueRenderCommand("InitGPUSkinVertexFactoryMorph",
+		[VertexUpdateData](FRHICommandList& RHICmdList)
+		{
+			typename VertexFactoryType::FDataType Data;
+			InitGPUSkinVertexFactoryComponents<VertexFactoryType>(&Data, VertexUpdateData.VertexBuffers);
+			InitMorphVertexFactoryComponents<VertexFactoryType>(&Data, VertexUpdateData.VertexBuffers);
+			VertexUpdateData.VertexFactory->SetData(Data);
+			VertexUpdateData.VertexFactory->GetShaderData().MeshOrigin = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshOrigin();
+			VertexUpdateData.VertexFactory->GetShaderData().MeshExtension = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshExtension();
+		}
+	);
 
 	// init rendering resource	
 	BeginInitResource(VertexFactory);
@@ -1001,17 +987,6 @@ static VertexFactoryType* CreateVertexFactoryMorph(TArray<TUniquePtr<VertexFacto
 }
 
 // APEX cloth
-ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER_DECLARE_TEMPLATE(
-InitGPUSkinAPEXClothVertexFactory,VertexFactoryType,
-TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData,VertexUpdateData,
-{
-	typename VertexFactoryType::FDataType Data;
-	InitGPUSkinVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
-	InitAPEXClothVertexFactoryComponents<VertexFactoryType>(&Data,VertexUpdateData.VertexBuffers);
-	VertexUpdateData.VertexFactory->SetData(Data);
-	VertexUpdateData.VertexFactory->GetShaderData().MeshOrigin = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshOrigin();
-	VertexUpdateData.VertexFactory->GetShaderData().MeshExtension = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshExtension();
-});
 
 /**
  * Creates a vertex factory entry for the given type and initialize it on the render thread
@@ -1030,9 +1005,17 @@ static void CreateVertexFactoryCloth(TArray<TUniquePtr<VertexFactoryTypeBase>>& 
 	TDynamicUpdateVertexFactoryData<VertexFactoryType> VertexUpdateData(VertexFactory, InVertexBuffers);
 
 	// update vertex factory components and sync it
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER_CREATE_TEMPLATE(
-	InitGPUSkinAPEXClothVertexFactory,VertexFactoryType,
-	TDynamicUpdateVertexFactoryData<VertexFactoryType>,VertexUpdateData);
+	EnqueueUniqueRenderCommand("InitGPUSkinAPEXClothVertexFactory",
+		[VertexUpdateData](FRHICommandList& RHICmdList)
+		{
+			typename VertexFactoryType::FDataType Data;
+			InitGPUSkinVertexFactoryComponents<VertexFactoryType>(&Data, VertexUpdateData.VertexBuffers);
+			InitAPEXClothVertexFactoryComponents<VertexFactoryType>(&Data, VertexUpdateData.VertexBuffers);
+			VertexUpdateData.VertexFactory->SetData(Data);
+			VertexUpdateData.VertexFactory->GetShaderData().MeshOrigin = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshOrigin();
+			VertexUpdateData.VertexFactory->GetShaderData().MeshExtension = VertexUpdateData.VertexBuffers.VertexBufferGPUSkin->GetMeshExtension();
+		}
+	);
 
 	// init rendering resource	
 	BeginInitResource(VertexFactory);
@@ -1088,12 +1071,12 @@ void FSkeletalMeshObjectGPUSkin::FVertexFactoryData::InitVertexFactories(
 		{
 			if (VertexBuffers.SkinWeightVertexBuffer->HasExtraBoneInfluences())
 			{
-				auto* VertexFactory = CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<true> >(VertexFactories, VertexBuffers, InFeatureLevel);
+				TGPUSkinVertexFactory<true>* VertexFactory = CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<true> >(VertexFactories, VertexBuffers, InFeatureLevel);
 				CreatePassthroughVertexFactory<TGPUSkinVertexFactory<true>>(PassthroughVertexFactories, VertexFactory);
 			}
 			else
 			{
-				auto* VertexFactory = CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<false> >(VertexFactories, VertexBuffers, InFeatureLevel);
+				TGPUSkinVertexFactory<false>* VertexFactory = CreateVertexFactory< FGPUBaseSkinVertexFactory, TGPUSkinVertexFactory<false> >(VertexFactories, VertexBuffers, InFeatureLevel);
 				CreatePassthroughVertexFactory<TGPUSkinVertexFactory<false>>(PassthroughVertexFactories, VertexFactory);
 			}
 		}

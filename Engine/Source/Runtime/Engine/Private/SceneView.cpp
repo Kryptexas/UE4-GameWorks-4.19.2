@@ -22,6 +22,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"
+#include "RenderUtils.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
@@ -1944,12 +1945,12 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		}
 #endif
 
-
 		// Upscale if needed
 		if (Fraction != 1.0f)
 		{
 			// compute the view rectangle with the ScreenPercentage applied
-			const FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
+			FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
+			QuantizeSceneBufferSize(ScreenPercentageAffectedViewRect.Max.X, ScreenPercentageAffectedViewRect.Max.Y);
 			SetScaledViewRect(ScreenPercentageAffectedViewRect);
 		}
 	}
@@ -2093,8 +2094,10 @@ void FSceneView::SetupViewRectUniformBufferParameters(FViewUniformShaderParamete
 
 }
 
-void FSceneView::SetupCommonViewUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters,
+void FSceneView::SetupCommonViewUniformBufferParameters(
+	FViewUniformShaderParameters& ViewUniformShaderParameters,
 	const FIntPoint& BufferSize,
+	int32 NumMSAASamples,
 	const FIntRect& EffectiveViewRect,
 	const FViewMatrices& InViewMatrices,
 	const FViewMatrices& InPrevViewMatrices) const
@@ -2127,6 +2130,7 @@ void FSceneView::SetupCommonViewUniformBufferParameters(FViewUniformShaderParame
 
 #endif
 
+	ViewUniformShaderParameters.NumSceneColorMSAASamples = NumMSAASamples;
 	ViewUniformShaderParameters.ViewToTranslatedWorld = InViewMatrices.GetOverriddenInvTranslatedViewMatrix();
 	ViewUniformShaderParameters.TranslatedWorldToClip = InViewMatrices.GetTranslatedViewProjectionMatrix();
 	ViewUniformShaderParameters.WorldToClip = InViewMatrices.GetViewProjectionMatrix();

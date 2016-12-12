@@ -241,23 +241,69 @@ bool UPrimitiveComponent::HasStaticLighting() const
 	return ((Mobility == EComponentMobility::Static) || bLightAsIfStatic) && SupportsStaticLighting();
 }
 
+void UPrimitiveComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
+{
+	if (CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0)
+	{
+		LevelContext.BindBuildData(nullptr);
+
+		TArray<UMaterialInterface*> UsedMaterials;
+		GetUsedMaterials(UsedMaterials);
+
+		if (UsedMaterials.Num())
+		{
+			// As we have no idea what this component is doing, we assume something very conservative
+			// by specifying that the texture is stretched across the bounds. To do this, we use a density of 1
+			// while also specifying the component scale as the bound radius. 
+			// Note that material UV scaling will  still apply.
+			static FMeshUVChannelInfo UVChannelData;
+			if (!UVChannelData.bInitialized)
+			{
+				UVChannelData.bInitialized = true;
+				for (float& Density : UVChannelData.LocalUVDensities)
+				{
+					Density = 1.f;
+				}
+			}
+
+			FPrimitiveMaterialInfo MaterialData;
+			MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
+			MaterialData.UVChannelData = &UVChannelData;
+
+			TArray<UTexture*> UsedTextures;
+			for (UMaterialInterface* MaterialInterface : UsedMaterials)
+			{
+				if (MaterialInterface)
+				{
+					MaterialData.Material = MaterialInterface;
+					LevelContext.ProcessMaterial(Bounds, MaterialData, Bounds.SphereRadius, OutStreamingTextures);
+				}
+			}
+		}
+	}
+}
+
+
 void UPrimitiveComponent::GetStreamingTextureInfoWithNULLRemoval(FStreamingTextureLevelContext& LevelContext, TArray<struct FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
-	for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
+	if (!IsRegistered() || SceneProxy) // If registered but without a scene proxy, then this is not visible.
 	{
-		const FStreamingTexturePrimitiveInfo& Info = OutStreamingTextures[Index];
-		if (!IsStreamingTexture(Info.Texture))
+		GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
+		for (int32 Index = 0; Index < OutStreamingTextures.Num(); Index++)
 		{
-			OutStreamingTextures.RemoveAt(Index--);
-		}
-		else
-		{
-			// Other wise check that everything is setup right. If the component is not yet registered, then the bound data is irrelevant.
-			const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && (Info.Bounds.SphereRadius > SMALL_NUMBER || !IsRegistered()) && ensure(FMath::IsFinite(Info.TexelFactor));
-			if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
+			const FStreamingTexturePrimitiveInfo& Info = OutStreamingTextures[Index];
+			if (!IsStreamingTexture(Info.Texture))
 			{
 				OutStreamingTextures.RemoveAt(Index--);
+			}
+			else
+			{
+				// Other wise check that everything is setup right. If the component is not yet registered, then the bound data is irrelevant.
+				const bool bCanBeStreamedByDistance = Info.TexelFactor > SMALL_NUMBER && (Info.Bounds.SphereRadius > SMALL_NUMBER || !IsRegistered()) && ensure(FMath::IsFinite(Info.TexelFactor));
+				if (!bForceMipStreaming && !bCanBeStreamedByDistance && !(Info.TexelFactor < 0 && Info.Texture->LODGroup == TEXTUREGROUP_Terrain_Heightmap))
+				{
+					OutStreamingTextures.RemoveAt(Index--);
+				}
 			}
 		}
 	}

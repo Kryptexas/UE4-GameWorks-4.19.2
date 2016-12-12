@@ -57,7 +57,7 @@ struct FDebugPipelineKey
 			uint64 RenderTargetStore7	: NUMBITS_STORE_OP;
 			uint64 BackStencilOp		: NUMBITS_STENCIL_STATE;
 			uint64 StencilTestEnabled	: 1;
-			uint64 MSAAEnabled			: 1;
+			uint64 NumSamplesMinusOne	: NUMBITS_NUM_SAMPLES_MINUS_ONE;
 			uint64 NumColorBlends		: NUMBITS_NUM_COLOR_BLENDS;
 			uint64: 0;
 		};
@@ -76,40 +76,54 @@ struct FDebugPipelineKey
 	FMemory::Memzero(*this);\
 	FMemory::Memzero(CurrentKeys);\
 	uint32 Value = (1 << NumBits) - 1;\
-	/*SetKeyBits(CurrentKeys, Offset, NumBits, Value);*/\
+	SetKeyBits(CurrentKeys, Offset, NumBits, Value);\
 	Member = Value;\
-	/*check(CurrentKeys.Key[0] == Key[0] && CurrentKeys.Key[1] == Key[1] && Member == Member);*/\
+	check(CurrentKeys.Key[0] == Key[0] && CurrentKeys.Key[1] == Key[1] && Member == Member);\
 }
+
+#define TEST_GROUP_KEY(Table, Index, NumBits, Member)	\
+{\
+	FMemory::Memzero(*this);\
+	FMemory::Memzero(CurrentKeys);\
+	uint32 Value = (1 << NumBits) - 1;\
+	SetKeyBits(CurrentKeys, Table[Index], NumBits, Value);\
+	Member = Value;\
+	check(CurrentKeys.Key[0] == Key[0] && CurrentKeys.Key[1] == Key[1] && Member == Member);\
+}
+
 			TEST_KEY(OFFSET_BLEND_STATE, NUMBITS_BLEND_STATE, BlendState);
 
-			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT0, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat0);
-			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT1, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat1);
-			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT2, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat2);
-			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT3, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat3);
-			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT4, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat4);
-			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT5, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat5);
-			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT6, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat6);
-			TEST_KEY(OFFSET_RENDER_TARGET_FORMAT7, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat7);
+			TEST_GROUP_KEY(RTFormatBitOffsets, 0, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat0);
+			TEST_GROUP_KEY(RTFormatBitOffsets, 1, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat1);
+			TEST_GROUP_KEY(RTFormatBitOffsets, 2, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat2);
+			TEST_GROUP_KEY(RTFormatBitOffsets, 3, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat3);
+			TEST_GROUP_KEY(RTFormatBitOffsets, 4, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat4);
+			TEST_GROUP_KEY(RTFormatBitOffsets, 5, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat5);
+			TEST_GROUP_KEY(RTFormatBitOffsets, 6, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat6);
+			TEST_GROUP_KEY(RTFormatBitOffsets, 7, NUMBITS_RENDER_TARGET_FORMAT, RenderTargetFormat7);
+
 			TEST_KEY(OFFSET_DEPTH_STENCIL_FORMAT, NUMBITS_RENDER_TARGET_FORMAT, DepthStencilFormat);
 
-			TEST_KEY(OFFSET_RENDER_TARGET_LOAD0, NUMBITS_LOAD_OP, RenderTargetLoad0);
-			TEST_KEY(OFFSET_RENDER_TARGET_LOAD1, NUMBITS_LOAD_OP, RenderTargetLoad1);
-			TEST_KEY(OFFSET_RENDER_TARGET_LOAD2, NUMBITS_LOAD_OP, RenderTargetLoad2);
-			TEST_KEY(OFFSET_RENDER_TARGET_LOAD3, NUMBITS_LOAD_OP, RenderTargetLoad3);
-			TEST_KEY(OFFSET_RENDER_TARGET_LOAD4, NUMBITS_LOAD_OP, RenderTargetLoad4);
-			TEST_KEY(OFFSET_RENDER_TARGET_LOAD5, NUMBITS_LOAD_OP, RenderTargetLoad5);
-			TEST_KEY(OFFSET_RENDER_TARGET_LOAD6, NUMBITS_LOAD_OP, RenderTargetLoad6);
-			TEST_KEY(OFFSET_RENDER_TARGET_LOAD7, NUMBITS_LOAD_OP, RenderTargetLoad7);
+			TEST_GROUP_KEY(RTLoadBitOffsets, 0, NUMBITS_LOAD_OP, RenderTargetLoad0);
+			TEST_GROUP_KEY(RTLoadBitOffsets, 1, NUMBITS_LOAD_OP, RenderTargetLoad1);
+			TEST_GROUP_KEY(RTLoadBitOffsets, 2, NUMBITS_LOAD_OP, RenderTargetLoad2);
+			TEST_GROUP_KEY(RTLoadBitOffsets, 3, NUMBITS_LOAD_OP, RenderTargetLoad3);
+			TEST_GROUP_KEY(RTLoadBitOffsets, 4, NUMBITS_LOAD_OP, RenderTargetLoad4);
+			TEST_GROUP_KEY(RTLoadBitOffsets, 5, NUMBITS_LOAD_OP, RenderTargetLoad5);
+			TEST_GROUP_KEY(RTLoadBitOffsets, 6, NUMBITS_LOAD_OP, RenderTargetLoad6);
+			TEST_GROUP_KEY(RTLoadBitOffsets, 7, NUMBITS_LOAD_OP, RenderTargetLoad7);
+
 			TEST_KEY(OFFSET_DEPTH_STENCIL_LOAD, NUMBITS_LOAD_OP, DepthStencilLoad);
 
-			TEST_KEY(OFFSET_RENDER_TARGET_STORE0, NUMBITS_STORE_OP, RenderTargetStore0);
-			TEST_KEY(OFFSET_RENDER_TARGET_STORE1, NUMBITS_STORE_OP, RenderTargetStore1);
-			TEST_KEY(OFFSET_RENDER_TARGET_STORE2, NUMBITS_STORE_OP, RenderTargetStore2);
-			TEST_KEY(OFFSET_RENDER_TARGET_STORE3, NUMBITS_STORE_OP, RenderTargetStore3);
-			TEST_KEY(OFFSET_RENDER_TARGET_STORE4, NUMBITS_STORE_OP, RenderTargetStore4);
-			TEST_KEY(OFFSET_RENDER_TARGET_STORE5, NUMBITS_STORE_OP, RenderTargetStore5);
-			TEST_KEY(OFFSET_RENDER_TARGET_STORE6, NUMBITS_STORE_OP, RenderTargetStore6);
-			TEST_KEY(OFFSET_RENDER_TARGET_STORE7, NUMBITS_STORE_OP, RenderTargetStore7);
+			TEST_GROUP_KEY(RTStoreBitOffsets, 0, NUMBITS_STORE_OP, RenderTargetStore0);
+			TEST_GROUP_KEY(RTStoreBitOffsets, 1, NUMBITS_STORE_OP, RenderTargetStore1);
+			TEST_GROUP_KEY(RTStoreBitOffsets, 2, NUMBITS_STORE_OP, RenderTargetStore2);
+			TEST_GROUP_KEY(RTStoreBitOffsets, 3, NUMBITS_STORE_OP, RenderTargetStore3);
+			TEST_GROUP_KEY(RTStoreBitOffsets, 4, NUMBITS_STORE_OP, RenderTargetStore4);
+			TEST_GROUP_KEY(RTStoreBitOffsets, 5, NUMBITS_STORE_OP, RenderTargetStore5);
+			TEST_GROUP_KEY(RTStoreBitOffsets, 6, NUMBITS_STORE_OP, RenderTargetStore6);
+			TEST_GROUP_KEY(RTStoreBitOffsets, 7, NUMBITS_STORE_OP, RenderTargetStore7);
+
 			TEST_KEY(OFFSET_DEPTH_STENCIL_STORE, NUMBITS_STORE_OP, DepthStencilStore);
 
 			TEST_KEY(OFFSET_CULL_MODE, NUMBITS_CULL_MODE, CullMode);
@@ -125,7 +139,8 @@ struct FDebugPipelineKey
 			TEST_KEY(OFFSET_BACK_STENCIL_STATE, NUMBITS_STENCIL_STATE, BackStencilOp);
 			TEST_KEY(OFFSET_STENCIL_TEST_ENABLED, 1, StencilTestEnabled);
 
-			TEST_KEY(OFFSET_MSAA_ENABLED, 1, MSAAEnabled);
+			TEST_KEY(OFFSET_NUM_SAMPLES_MINUS_ONE, NUMBITS_NUM_SAMPLES_MINUS_ONE, NumSamplesMinusOne);
+
 			TEST_KEY(OFFSET_NUM_COLOR_BLENDS, NUMBITS_NUM_COLOR_BLENDS, NumColorBlends);
 		}
 	}

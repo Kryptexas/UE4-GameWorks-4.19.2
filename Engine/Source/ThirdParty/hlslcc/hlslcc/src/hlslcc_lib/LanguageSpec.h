@@ -27,6 +27,9 @@ struct ILanguageSpec
 
 	// Experimental!
 	virtual bool UseSamplerInnerType() const { return false; }
+	
+	// Some platforms require input variable structs to be split, others require that they aren't
+	virtual bool SplitInputVariableStructs() const { return true; }
 };
 
 enum

@@ -113,9 +113,10 @@ half4 GetExponentialHeightFog(float3 WorldPositionRelativeToCamera)
 	half ExpFogFactor = max(saturate(exp2(-ExponentialHeightLineIntegral)), MinFogOpacity);
 
 	FLATTEN
-	if (CameraToReceiverLength > ExponentialFogParameters3.w)
+	if (ExponentialFogParameters3.w > 0 && CameraToReceiverLength > ExponentialFogParameters3.w)
 	{
 		ExpFogFactor = 1;
+		DirectionalInscattering = 0;
 	}
 
 	return half4((Inscattering) * (1 - ExpFogFactor) + DirectionalInscattering, ExpFogFactor);

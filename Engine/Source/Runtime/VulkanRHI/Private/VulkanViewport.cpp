@@ -154,7 +154,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 	, RTInfo(InRTInfo)
 	, NumColorAttachments(0)
 {
-	AttachmentViews.Empty(RTLayout.GetNumAttachments());
+	AttachmentViews.Empty(RTLayout.GetNumAttachmentDescriptions());
 	uint32 MipIndex = 0;
 
 	for (int32 Index = 0; Index < InRTInfo.NumColorRenderTargets; ++Index)
@@ -166,37 +166,7 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		}
 
 		FVulkanTextureBase* Texture = FVulkanTextureBase::Cast(RHITexture);
-	#if VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS
-		if (Texture->MSAASurface)
-		{
-#if 1//VULKAN_USE_NEW_RENDERPASSES
-			ensure(0);
-#else
-#if 1//VULKAN_USE_NEW_COMMAND_BUFFERS
-			check(0);
-#endif
-			AttachmentViews.Add(Texture->MSAAView.View);
 
-		    // Create a write-barrier
-		    WriteBarriers.AddZeroed();
-		    VkImageMemoryBarrier& Barrier = WriteBarriers.Last();
-		    Barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		    //Barrier.pNext = NULL;
-		    Barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		    Barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		    Barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-		    Barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-		    Barrier.image = Texture->Surface.Image;
-		    Barrier.subresourceRange.aspectMask = Texture->MSAASurface->GetFullAspectMask();
-		    //Barrier.subresourceRange.baseMipLevel = 0;
-		    Barrier.subresourceRange.levelCount = 1;
-		    //Barrier.subresourceRange.baseArrayLayer = 0;
-		    Barrier.subresourceRange.layerCount = 1;
-			Barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			Barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-#endif
-		}
-	#endif
 		MipIndex = InRTInfo.ColorRenderTarget[Index].MipIndex;
 
 		VkImageView RTView = VK_NULL_HANDLE;
@@ -217,10 +187,16 @@ FVulkanFramebuffer::FVulkanFramebuffer(FVulkanDevice& Device, const FRHISetRende
 		{
 			ensure(0);
 		}
+
+		if (Texture->MSAASurface)
+		{
+			AttachmentViews.Add(Texture->MSAAView.View);
+		}
+
 		AttachmentViews.Add(RTView);
 		AttachmentViewsToDelete.Add(RTView);
 
-		NumColorAttachments++;
+		++NumColorAttachments;
 	}
 
 	if (RTLayout.GetHasDepthStencil())

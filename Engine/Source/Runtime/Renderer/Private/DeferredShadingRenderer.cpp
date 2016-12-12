@@ -34,13 +34,13 @@ TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("  x: use built in heuristic (default is 3)"),
 	ECVF_Scalability);
 
-int32 GEarlyZPassMovable = 0;
+int32 GEarlyZPassMovable = 1;
 
 /** Affects static draw lists so must reload level to propagate. */
 static FAutoConsoleVariableRef CVarEarlyZPassMovable(
 	TEXT("r.EarlyZPassMovable"),
 	GEarlyZPassMovable,
-	TEXT("Whether to render movable objects into the depth only pass.  Movable objects are typically not good occluders so this defaults to off.\n")
+	TEXT("Whether to render movable objects into the depth only pass. Defaults to on.\n")
 	TEXT("Note: also look at r.EarlyZPass"),
 	ECVF_RenderThreadSafe | ECVF_Scalability
 	);
@@ -234,7 +234,7 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	else if (ShouldForceFullDepthPass(FeatureLevel))
 	{
 		// DBuffer decals and stencil LOD dithering force a full prepass
-		EarlyZPassMode = DDM_AllOccluders;
+		EarlyZPassMode = DDM_AllOpaque;
 		bEarlyZPassMovable = true;
 	}
 }
@@ -776,8 +776,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	check(bDidAfterTaskWork);
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterPrePass));
 	ServiceLocalQueue();
-
-	SceneContext.ResolveSceneDepthTexture(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 	const bool bShouldRenderVelocities = ShouldRenderVelocities();
 	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();

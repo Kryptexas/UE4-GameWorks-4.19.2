@@ -6,6 +6,11 @@
 
 #pragma once
 
+namespace VulkanRHI
+{
+	class FFence;
+}
+
 class FVulkanQueue;
 
 class FVulkanSwapChain
@@ -28,7 +33,7 @@ protected:
 	int32 SemaphoreIndex;
 	VkInstance Instance;
 	TArray<FVulkanSemaphore*> ImageAcquiredSemaphore;
-	TArray<VkFence> ImageAcquiredFences;
+	TArray<VulkanRHI::FFence*> ImageAcquiredFences;
 
 	int32 AcquireImageIndex(FVulkanSemaphore** OutSemaphore);
 

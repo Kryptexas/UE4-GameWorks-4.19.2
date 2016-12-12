@@ -274,6 +274,7 @@ namespace VulkanRHI
 		, Line(InLine)
 #endif
 	{
+		//UE_LOG(LogVulkanRHI, Display, TEXT("*** OldResourceAlloc HeapType %d PageID %d Handle %p Offset %d Size %d @ %s %d"), InOwner->GetOwner()->GetMemoryTypeIndex(), InOwner->GetID(), InDeviceMemoryAllocation->GetHandle(), InAllocationOffset, InAllocationSize, ANSI_TO_TCHAR(InFile), InLine);
 	}
 
 	FOldResourceAllocation::~FOldResourceAllocation()
@@ -307,13 +308,14 @@ namespace VulkanRHI
 		VERIFYVULKANRESULT(Result);
 	}
 
-	FOldResourceHeapPage::FOldResourceHeapPage(FOldResourceHeap* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation)
+	FOldResourceHeapPage::FOldResourceHeapPage(FOldResourceHeap* InOwner, FDeviceMemoryAllocation* InDeviceMemoryAllocation, uint32 InID)
 		: Owner(InOwner)
 		, DeviceMemoryAllocation(InDeviceMemoryAllocation)
 		, MaxSize(0)
 		, UsedSize(0)
 		, PeakNumAllocations(0)
 		, FrameFreed(0)
+		, ID(InID)
 	{
 		MaxSize = InDeviceMemoryAllocation->GetSize();
 		FRange FullRange;
@@ -415,6 +417,7 @@ namespace VulkanRHI
 		, DefaultPageSize(InPageSize)
 		, PeakPageSize(0)
 		, UsedMemory(0)
+		, PageIDCounter(0)
 	{
 	}
 
@@ -438,11 +441,11 @@ namespace VulkanRHI
 					Owner->GetParent()->GetResourceHeapManager().DumpMemory();
 					GLog->Flush();
 #endif
-					ensure(0);
+					UE_LOG(LogVulkanRHI, Error, TEXT("Memory leak!"));
 				}
 			}
 
-			check(UsedPages.Num() == 0);
+			ensure(UsedPages.Num() == 0);
 		};
 		DeletePages(UsedBufferPages);
 		DeletePages(UsedImagePages);
@@ -514,7 +517,7 @@ namespace VulkanRHI
 				SubAllocUsedMemory += UsedPages[Index]->UsedSize;
 				NumSuballocations += UsedPages[Index]->ResourceAllocations.Num();
 
-				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d: %4d suballocs, %4d free chunks (%d used/%d free/%d max) DeviceMemory %p"), Index, UsedPages[Index]->ResourceAllocations.Num(), UsedPages[Index]->FreeList.Num(), UsedPages[Index]->UsedSize, UsedPages[Index]->MaxSize - UsedPages[Index]->UsedSize, UsedPages[Index]->MaxSize, (void*)UsedPages[Index]->DeviceMemoryAllocation->GetHandle());
+				UE_LOG(LogVulkanRHI, Display, TEXT("\t\t%d: ID %4d %4d suballocs, %4d free chunks (%d used/%d free/%d max) DeviceMemory %p"), Index, UsedPages[Index]->GetID(), UsedPages[Index]->ResourceAllocations.Num(), UsedPages[Index]->FreeList.Num(), UsedPages[Index]->UsedSize, UsedPages[Index]->MaxSize - UsedPages[Index]->UsedSize, UsedPages[Index]->MaxSize, (void*)UsedPages[Index]->DeviceMemoryAllocation->GetHandle());
 			}
 
 			UE_LOG(LogVulkanRHI, Display, TEXT("\tUsed Memory %d in %d Suballocations"), SubAllocUsedMemory, NumSuballocations);
@@ -568,7 +571,8 @@ namespace VulkanRHI
 		uint32 AllocationSize = FMath::Max(Size, DefaultPageSize);
 #endif
 		FDeviceMemoryAllocation* DeviceMemoryAllocation = Owner->GetParent()->GetMemoryManager().Alloc(AllocationSize, MemoryTypeIndex, File, Line);
-		FOldResourceHeapPage* NewPage = new FOldResourceHeapPage(this, DeviceMemoryAllocation);
+		++PageIDCounter;
+		FOldResourceHeapPage* NewPage = new FOldResourceHeapPage(this, DeviceMemoryAllocation, PageIDCounter);
 		UsedPages.Add(NewPage);
 
 		UsedMemory += AllocationSize;
@@ -689,9 +693,23 @@ namespace VulkanRHI
 		{
 			uint32 TypeIndex = 0;
 			{
-				VkResult HostCached = MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, &TypeIndex);
-				VkResult Host = MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &TypeIndex);
-				ensure(HostCached == VK_SUCCESS || Host == VK_SUCCESS);
+				uint32 HostVisCachedIndex = 0;
+				VkResult HostCachedResult = MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, &HostVisCachedIndex);
+				uint32 HostVisIndex = 0;
+				VkResult HostResult = MemoryManager.GetMemoryTypeFromProperties(TypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &HostVisIndex);
+				if (HostCachedResult == VK_SUCCESS)
+				{
+					TypeIndex = HostVisCachedIndex;
+				}
+				else if (HostResult == VK_SUCCESS)
+				{
+					TypeIndex = HostVisIndex;
+				}
+				else
+				{
+					// Redundant as it would have asserted above...
+					UE_LOG(LogVulkanRHI, Fatal, TEXT("No Memory Type found supporting VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT!"));
+				}
 			}
 			uint64 HeapSize = MemoryProperties.memoryHeaps[MemoryProperties.memoryTypes[TypeIndex].heapIndex].size;
 			DownloadToCPUHeap = new FOldResourceHeap(this, TypeIndex, STAGING_HEAP_PAGE_SIZE);
@@ -715,6 +733,7 @@ namespace VulkanRHI
 		for (int32 Index = 0; Index < ResourceTypeHeaps.Num(); ++Index)
 		{
 			delete ResourceTypeHeaps[Index];
+			ResourceTypeHeaps[Index] = nullptr;
 		}
 		ResourceTypeHeaps.Empty(0);
 	}
@@ -1218,13 +1237,14 @@ namespace VulkanRHI
 		}
 	}
 
-	FFence::FFence(FVulkanDevice* InDevice, FFenceManager* InOwner)
-		: State(FFence::EState::NotReady)
+	FFence::FFence(FVulkanDevice* InDevice, FFenceManager* InOwner, bool bCreateSignaled)
+		: State(bCreateSignaled ? FFence::EState::Signaled : FFence::EState::NotReady)
 		, Owner(InOwner)
 	{
 		VkFenceCreateInfo Info;
 		FMemory::Memzero(Info);
 		Info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		Info.flags = bCreateSignaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 		VERIFYVULKANRESULT(VulkanRHI::vkCreateFence(InDevice->GetInstanceHandle(), &Info, nullptr, &Handle));
 	}
 
@@ -1262,7 +1282,7 @@ namespace VulkanRHI
 		}
 	}
 
-	FFence* FFenceManager::AllocateFence()
+	FFence* FFenceManager::AllocateFence(bool bCreateSignaled)
 	{
 		FScopeLock Lock(&GFenceLock);
 		if (FreeFences.Num() != 0)
@@ -1273,7 +1293,7 @@ namespace VulkanRHI
 			return Fence;
 		}
 
-		FFence* NewFence = new FFence(Device, this);
+		FFence* NewFence = new FFence(Device, this, bCreateSignaled);
 		UsedFences.Add(NewFence);
 		return NewFence;
 	}

@@ -1157,7 +1157,7 @@ struct FPostProcessSettings
 		FilmChannelMixerBlue = FLinearColor(0.0f,0.0f,1.0f);
 		FilmContrast = 0.03f;
 		FilmDynamicRange = 4.0f;
-		FilmHealAmount = 0.18f;
+		FilmHealAmount = 1.0f;
 		FilmToeAmount = 1.0f;
 		FilmShadowTint = FLinearColor(1.0f,1.0f,1.0f);
 		FilmShadowTintBlend = 0.5;
@@ -1173,23 +1173,23 @@ struct FPostProcessSettings
 		SceneColorTint = FLinearColor(1, 1, 1);
 		SceneFringeIntensity = 0.0f;
 		// next value might get overwritten by r.DefaultFeature.Bloom
-		BloomIntensity = 1.0f;
-		BloomThreshold = 1.0f;
-		Bloom1Tint = FLinearColor(0.5f, 0.5f, 0.5f);
+		BloomIntensity = 0.675f;
+		BloomThreshold = -1.0f;	
 		// default is 4 to maintain old settings after fixing something that caused a factor of 4
 		BloomSizeScale = 4.0;
-		Bloom1Size = 1.0f;
-		Bloom2Tint = FLinearColor(0.5f, 0.5f, 0.5f);
-		Bloom2Size = 4.0f;
-		Bloom3Tint = FLinearColor(0.5f, 0.5f, 0.5f);
-		Bloom3Size = 16.0f;
-		Bloom4Tint = FLinearColor(0.5f, 0.5f, 0.5f);
-		Bloom4Size = 32.0f;
-		Bloom5Tint = FLinearColor(0.5f, 0.5f, 0.5f);
-		Bloom5Size = 64.0f;
-		Bloom6Tint = FLinearColor(0.5f, 0.5f, 0.5f);
+		Bloom1Tint = FLinearColor(0.3465f, 0.3465f, 0.3465f);
+		Bloom1Size = 0.3f;
+		Bloom2Tint = FLinearColor(0.138f, 0.138f, 0.138f);
+		Bloom2Size = 1.0f;
+		Bloom3Tint = FLinearColor(0.1176f, 0.1176f, 0.1176f);
+		Bloom3Size = 2.0f;
+		Bloom4Tint = FLinearColor(0.066f, 0.066f, 0.066f);
+		Bloom4Size = 10.0f;
+		Bloom5Tint = FLinearColor(0.066f, 0.066f, 0.066f);
+		Bloom5Size = 30.0f;
+		Bloom6Tint = FLinearColor(0.061f, 0.061f, 0.061f);
 		Bloom6Size = 64.0f;
-		BloomDirtMaskIntensity = 1.0f;
+		BloomDirtMaskIntensity = 0.0f;
 		BloomDirtMaskTint = FLinearColor(0.5f, 0.5f, 0.5f);
 		AmbientCubemapIntensity = 1.0f;
 		AmbientCubemapTint = FLinearColor(1, 1, 1);

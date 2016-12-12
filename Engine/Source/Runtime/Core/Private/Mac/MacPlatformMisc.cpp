@@ -106,7 +106,7 @@ struct FMacApplicationInfo
 		OSVersion = FString::Printf(TEXT("%ld.%ld.%ld"), OSXVersion.majorVersion, OSXVersion.minorVersion, OSXVersion.patchVersion);
 		FCStringAnsi::Strcpy(OSVersionUTF8, PATH_MAX+1, TCHAR_TO_UTF8(*OSVersion));
 		
-		// OS X build number is only accessible on non-sandboxed applications as it resides outside the accessible sandbox
+		// macOS build number is only accessible on non-sandboxed applications as it resides outside the accessible sandbox
 		if(!bIsSandboxed)
 		{
 			NSDictionary* SystemVersion = [NSDictionary dictionaryWithContentsOfFile: @"/System/Library/CoreServices/SystemVersion.plist"];
@@ -406,7 +406,7 @@ void FMacPlatformMisc::PlatformPreInit()
 
 void FMacPlatformMisc::PlatformInit()
 {
-	UE_LOG(LogInit, Log, TEXT("OS X %s (%s)"), *GMacAppInfo.OSVersion, *GMacAppInfo.OSBuild);
+	UE_LOG(LogInit, Log, TEXT("macOS %s (%s)"), *GMacAppInfo.OSVersion, *GMacAppInfo.OSBuild);
 	UE_LOG(LogInit, Log, TEXT("Model: %s"), *GMacAppInfo.MachineModel);
 	UE_LOG(LogInit, Log, TEXT("CPU: %s"), UTF8_TO_TCHAR(GMacAppInfo.MachineCPUString));
 	
@@ -490,7 +490,7 @@ void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 
 	if (!MacApplication)
 	{
-		// No MacApplication means that app is a dedicated server, commandline tool or the editor running a commandlet. In these cases we don't want OS X to put our app into App Nap mode.
+		// No MacApplication means that app is a dedicated server, commandline tool or the editor running a commandlet. In these cases we don't want macOS to put our app into App Nap mode.
 		CommandletActivity = [[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityUserInitiated reason:IsRunningCommandlet() ? @"Running commandlet" : @"Running dedicated server"];
 		[CommandletActivity retain];
 	}
@@ -2224,7 +2224,7 @@ void FMacCrashContext::GenerateInfoInFolder(char const* const InfoFolder, bool b
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, "/" );
 		FCStringAnsi::Strcat(FilePath, PATH_MAX, FGenericCrashContext::CrashContextRuntimeXMLNameA );
-		//SerializeAsXML( FilePath ); @todo uncomment after verification - need to do a bit more work on this for OS X
+		//SerializeAsXML( FilePath ); @todo uncomment after verification - need to do a bit more work on this for macOS
 		
 		// copy log
 		FCStringAnsi::Strncpy(FilePath, CrashInfoFolder, PATH_MAX);
@@ -2342,7 +2342,7 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 			}
 		}
 		// We no longer wait here because on return the OS will scribble & crash again due to the behaviour of the XPC function
-		// OS X uses internally to launch/wait on the CrashReportClient. It is simpler, easier & safer to just die here like a good little Mac.app.
+		// macOS uses internally to launch/wait on the CrashReportClient. It is simpler, easier & safer to just die here like a good little Mac.app.
 	}
 	
 	// Sandboxed applications re-raise the signal to trampoline into the system crash reporter as suppressing it may fall foul of Apple's Mac App Store rules.
@@ -2444,7 +2444,7 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 	{
 		bool bHasMetal = false;
 		
-		if (!FParse::Param(FCommandLine::Get(),TEXT("opengl")) && FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
+		if (FModuleManager::Get().ModuleExists(TEXT("MetalRHI")))
 		{
 			// Find out if there are any Metal devices on the system - some Mac's have none
 			void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
@@ -2463,16 +2463,7 @@ bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
 				FPlatformProcess::FreeDllHandle(DLLHandle);
 			}
 		}
-		
-		// Metal is only permitted on 10.11.4 and above now because of all the bug-fixes Apple made for us in 10.11.4.
-		if (bHasMetal && FPlatformMisc::MacOSXVersionCompare(10, 11, 4) < 0)
-		{
-			bHasMetal = false;
-			FText Title = NSLOCTEXT("MacPlatform", "UpdateMacOSTitle","Update Mac OS");
-			FText Msg = NSLOCTEXT("MacPlatform", "UpdateMacOS.", "Please update to Mac OS X 10.11.4 or later (macOS Sierra 10.12 or later strongly recommended) to enable Metal rendering support for improved compatibility and performance.");
-			FMacPlatformMisc::MessageBoxExt(EAppMsgType::Ok, *Msg.ToString(), *Title.ToString());
-		}
-		
+
 		return bHasMetal;
 	}
 

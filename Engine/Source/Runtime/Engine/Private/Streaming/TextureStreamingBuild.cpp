@@ -81,6 +81,7 @@ ENGINE_API bool BuildTextureStreamingComponentData(UWorld* InWorld, EMaterialQua
 		}
 
 		TSet<FGuid> ResourceGuids;
+		TSet<FGuid> DummyResourceGuids;
 
 		for (AActor* Actor : Level->Actors)
 		{
@@ -102,13 +103,16 @@ ENGINE_API bool BuildTextureStreamingComponentData(UWorld* InWorld, EMaterialQua
 
 			for (UPrimitiveComponent* Primitive : Primitives)
 			{
-				//@TODO : Non transactional primitives, like the one created from blueprints, fail to save/load their built data.
-				if (!Primitive || !Primitive->HasAnyFlags(RF_Transactional))
+				if (!Primitive)
 				{
 					continue;
 				}
-
-				if (!Primitive->BuildTextureStreamingData(bFullRebuild ? TSB_MapBuild : TSB_ViewMode, QualityLevel, FeatureLevel, ResourceGuids))
+				else if (!Primitive->HasAnyFlags(RF_Transactional))
+				{
+					// For non transactional primitives, like the one created from blueprints, we tolerate fails and we also don't store the guids.
+					Primitive->BuildTextureStreamingData(bFullRebuild ? TSB_MapBuild : TSB_ViewMode, QualityLevel, FeatureLevel, DummyResourceGuids);
+				}
+				else if (!Primitive->BuildTextureStreamingData(bFullRebuild ? TSB_MapBuild : TSB_ViewMode, QualityLevel, FeatureLevel, ResourceGuids))
 				{
 					++Level->NumTextureStreamingUnbuiltComponents;
 				}
@@ -320,7 +324,7 @@ void FStreamingTextureLevelContext::BindBuildData(const TArray<FStreamingTexture
 	// Using a timestamp allows to not reset state in between components.
 	++BuildDataTimestamp;
 
-	if (TextureGuidToLevelIndex) // No point in binding data if there is no possible remapping.
+	if (TextureGuidToLevelIndex && CVarStreamingUseNewMetrics.GetValueOnGameThread() != 0) // No point in binding data if there is no possible remapping.
 	{
 		// Process the build data in order to be able to map a texture object to the build data entry.
 		ComponentBuildData = BuildData;
@@ -469,7 +473,7 @@ void CheckTextureStreamingBuildValidity(UWorld* InWorld)
 
 					for (UPrimitiveComponent* Primitive : Primitives)
 					{
-						//@TODO : Non transactional primitives, like the one created from blueprints, fail to save/load their built data.
+						// Non transactional primitives like blueprints, can not invalidate the texture build for now.
 						if (!Primitive || !Primitive->HasAnyFlags(RF_Transactional))
 						{
 							continue;

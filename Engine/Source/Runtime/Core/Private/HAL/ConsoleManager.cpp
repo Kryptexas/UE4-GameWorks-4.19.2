@@ -1927,6 +1927,14 @@ static TAutoConsoleVariable<int32> CVarSceneColorFormat(
 	TEXT(" 5: PF_A32B32G32R32F 128Bit (unreasonable but good for testing)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarPostProcessingColorFormat(
+	TEXT("r.PostProcessingColorFormat"),
+	0,
+	TEXT("Defines the memory layout (RGBA) used for most of the post processing chain buffers.\n")
+	TEXT(" 0: Default\n")
+	TEXT(" 1: Force PF_A32B32G32R32F 128Bit (unreasonable but good for testing)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<int32> CVarDepthOfFieldQuality(
 	TEXT("r.DepthOfFieldQuality"),
 	2,
@@ -1959,7 +1967,7 @@ static TAutoConsoleVariable<int32> CVarHighResScreenshotDelay(
 	TEXT("r.HighResScreenshotDelay"),
 	4,
 	TEXT("When high-res screenshots are requested there is a small delay to allow temporal effects to converge.\n")
-	TEXT("Default: 4."),
+	TEXT("Default: 4. Using a value below the default will disable TemporalAA for improved image quality."),
 	ECVF_Default);
 
 static TAutoConsoleVariable<int32> CVarMaterialQualityLevel(
@@ -2243,12 +2251,12 @@ static TAutoConsoleVariable<int32> CVarDetailMode(
 
 static TAutoConsoleVariable<int32> CVarDBuffer(
 	TEXT("r.DBuffer"),
-	0,
+	1,
 	TEXT("Enables DBuffer decal material blend modes.\n")
 	TEXT("DBuffer decals are rendered before the base pass, allowing them to affect static lighting and skylighting correctly. \n")
 	TEXT("When enabled, a full prepass will be forced which adds CPU / GPU cost.  Several texture lookups will be done in the base pass to fetch the decal properties, which adds pixel work.\n")
 	TEXT(" 0: off\n")
-	TEXT(" 1: on"),
+	TEXT(" 1: on (default)"),
 	ECVF_RenderThreadSafe | ECVF_ReadOnly);
 
 static TAutoConsoleVariable<float> CVarSkeletalMeshLODRadiusScale(

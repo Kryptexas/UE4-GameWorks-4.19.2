@@ -29,6 +29,7 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init();
 	virtual void Shutdown();
+	virtual const TCHAR* GetName() override { return TEXT("Vulkan"); }
 
 	void InitInstance();
 	void IssueLongGPUTask();

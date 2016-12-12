@@ -1077,6 +1077,14 @@ void UWidgetComponent::ApplyComponentInstanceData(FWidgetComponentInstanceData* 
 	MarkRenderStateDirty();
 }
 
+void UWidgetComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+{
+	if (MaterialInstance)
+	{
+		OutMaterials.AddUnique(MaterialInstance);
+	}
+}
+
 #if WITH_EDITORONLY_DATA
 void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {

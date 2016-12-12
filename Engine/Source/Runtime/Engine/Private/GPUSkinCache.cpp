@@ -57,7 +57,8 @@ static TAutoConsoleVariable<int32> CVarEnableGPUSkinCache(
 	TEXT("This will perform skinning on a compute job and not skin on the vertex shader.\n")
 	TEXT("Requires r.SkinCache.CompileShaders=1\n")
 	TEXT(" 0: off\n")
-	TEXT(" 1: on(default)"),
+	TEXT(" 1: on(default)")
+	TEXT(" 2: only use skin cache for skinned meshes that ticked the Recompute Tangents checkbox (unavailable in shipping builds)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -67,8 +68,8 @@ TAutoConsoleVariable<int32> CVarGPUSkinCacheRecomputeTangents(
 	TEXT("This option enables recomputing the vertex tangents on the GPU.\n")
 	TEXT("Can be changed at runtime, requires both r.SkinCache.CompileShaders=1 and r.SkinCache.Mode=1\n")
 	TEXT(" 0: off\n")
-	TEXT(" 1: on, forces all skinned object to recompute tangents\n")
-	TEXT(" 2: on, SkinCache only objects that would require the RecomputTangents feature (default)"),
+	TEXT(" 1: on, forces all skinned object to Tecompute Tangents\n")
+	TEXT(" 2: on, only recompute tangents on skinned objects who ticked the Tecompute Tangents checkbox(default)\n"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -103,13 +104,13 @@ static TAutoConsoleVariable<float> CVarGPUSkinCacheDebug(
 ENGINE_API bool DoSkeletalMeshIndexBuffersNeedSRV()
 {
 	// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-	return GMaxRHIShaderPlatform == SP_PCD3D_SM5 && GEnableGPUSkinCacheShaders != 0;
+	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && GEnableGPUSkinCacheShaders != 0;
 }
 
 ENGINE_API bool DoRecomputeSkinTangentsOnGPU_RT()
 {
 	// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-	return GMaxRHIShaderPlatform == SP_PCD3D_SM5 && GEnableGPUSkinCacheShaders && GEnableGPUSkinCache && CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0;
+	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && GEnableGPUSkinCacheShaders && GEnableGPUSkinCache && CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0;
 }
 
 TGlobalResource<FGPUSkinCache> GGPUSkinCache;
@@ -587,10 +588,10 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 	
 	TargetVertexFactory->UpdateVertexDeclaration(VertexFactory, DispatchData.SkinCacheBuffer);
 
-	const bool bRecomputeTangents = CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0;
-	if (bRecomputeTangents)
+	int32 RecomputeTangentsMode = CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread();
+	if (RecomputeTangentsMode > 0)
 	{
-		if (BatchElement.bRecomputeTangent)
+		if (BatchElement.bRecomputeTangent || RecomputeTangentsMode == 1)
 		{
 			FRawStaticIndexBuffer16or32Interface* IndexBuffer = LodModel.MultiSizeIndexContainer.GetIndexBuffer();
 
@@ -796,7 +797,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-		return Platform == SP_PCD3D_SM5;
+		return Platform == SP_PCD3D_SM5 || Platform == SP_METAL_SM5;
 	}
 
 	static const uint32 ThreadGroupSizeX = 64;
@@ -921,7 +922,7 @@ class FRecomputeTangentsPerVertexPassCS : public FGlobalShader
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-		return Platform == SP_PCD3D_SM5;
+		return Platform == SP_PCD3D_SM5 || Platform == SP_METAL_SM5;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1093,15 +1094,16 @@ void FGPUSkinCache::CVarSinkFunction()
 
 	if (NewGPUSkinCacheValue != GEnableGPUSkinCache)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(DoEnableSkinCaching, 
-			int32, SkinValue, NewGPUSkinCacheValue,
-		{
-			GEnableGPUSkinCache = SkinValue;
-			if (SkinValue)
+		EnqueueUniqueRenderCommand("DoEnableSkinCaching", 
+			[NewGPUSkinCacheValue](FRHICommandList& RHICmdList)
 			{
-				GGPUSkinCache.TransitionAllToWriteable(RHICmdList);
+				GEnableGPUSkinCache = NewGPUSkinCacheValue;
+				if (NewGPUSkinCacheValue)
+				{
+					GGPUSkinCache.TransitionAllToWriteable(RHICmdList);
+				}
 			}
-		});
+		);
 	}
 }
 

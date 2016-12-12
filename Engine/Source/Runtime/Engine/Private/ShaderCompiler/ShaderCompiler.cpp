@@ -36,6 +36,7 @@
 #include "EngineModule.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "ProfilingDebugging/CookStats.h"
+#include "Components/PrimitiveComponent.h"
 
 DEFINE_LOG_CATEGORY(LogShaderCompilers);
 
@@ -1312,7 +1313,6 @@ FShaderCompilingManager::FShaderCompilingManager() :
 {
 	WorkersBusyTime = 0;
 	bFallBackToDirectCompiles = false;
-	bRecreateComponentRenderStateOutstanding = false;
 
 	// Threads must use absolute paths on Windows in case the current directory is changed on another thread!
 	ShaderCompileWorkerName = FPaths::ConvertRelativePathToFull(ShaderCompileWorkerName);
@@ -1555,11 +1555,6 @@ void FShaderCompilingManager::BlockOnShaderMapCompletion(const TArray<int32>& Sh
 						{
 							CompiledShaderMaps.Add(ShaderMapIdsToFinishCompiling[ShaderMapIndex], FShaderMapFinalizeResults(Results));
 							ShaderMapJobs.Remove(ShaderMapIdsToFinishCompiling[ShaderMapIndex]);
-
-							if (Results.bRecreateComponentRenderStateOnCompletion)
-							{
-								bRecreateComponentRenderStateOutstanding = true;
-							}
 						}
 						else
 						{
@@ -1599,11 +1594,6 @@ void FShaderCompilingManager::BlockOnShaderMapCompletion(const TArray<int32>& Sh
 
 				CompiledShaderMaps.Add(ShaderMapIdsToFinishCompiling[ShaderMapIndex], FShaderMapFinalizeResults(Results));
 				ShaderMapJobs.Remove(ShaderMapIdsToFinishCompiling[ShaderMapIndex]);
-
-				if (Results.bRecreateComponentRenderStateOnCompletion)
-				{
-					bRecreateComponentRenderStateOutstanding = true;
-				}
 			}
 		}
 	}
@@ -1672,8 +1662,7 @@ void FShaderCompilingManager::BlockOnAllShaderMapCompletion(TMap<int32, FShaderM
 
 void FShaderCompilingManager::ProcessCompiledShaderMaps(
 	TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, 
-	float TimeBudget,
-	bool bRecreateComponentRenderState)
+	float TimeBudget)
 {
 	// Keeps shader maps alive as they are passed from the shader compiler and applied to the owning FMaterial
 	TArray<TRefCountPtr<FMaterialShaderMap> > LocalShaderMapReferences;
@@ -1879,13 +1868,7 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 			Material->NotifyCompilationFinished();
 		}
 
-		if (bRecreateComponentRenderState)
-		{
-			// This is necessary because scene proxies cache material / shadermap state, like material view relevance
-			//@todo - find a way to only recreate the components referencing materials that have been updated
-			FGlobalComponentRecreateRenderStateContext Context;
-			bRecreateComponentRenderStateOutstanding = false;
-		}
+		PropagateMaterialChangesToPrimitives(MaterialsToUpdate);
 
 #if WITH_EDITOR
 		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
@@ -1893,6 +1876,56 @@ void FShaderCompilingManager::ProcessCompiledShaderMaps(
 	}
 }
 
+void FShaderCompilingManager::PropagateMaterialChangesToPrimitives(const TMap<FMaterial*, FMaterialShaderMap*>& MaterialsToUpdate)
+{
+	TArray<UMaterialInterface*> UsedMaterials;
+	TIndirectArray<FComponentRecreateRenderStateContext> ComponentContexts;
+
+	for (TObjectIterator<UPrimitiveComponent> PrimitiveIt; PrimitiveIt; ++PrimitiveIt)
+	{
+		UPrimitiveComponent* PrimitiveComponent = *PrimitiveIt;
+
+		if (PrimitiveComponent->IsRenderStateCreated())
+		{
+			UsedMaterials.Reset();
+			bool bPrimitiveIsDependentOnMaterial = false;
+
+			// Note: relying on GetUsedMaterials to be accurate, or else we won't propagate to the right primitives and the renderer will crash later
+			// FPrimitiveSceneProxy::VerifyUsedMaterial is used to make sure that all materials used for rendering are reported in GetUsedMaterials
+			PrimitiveComponent->GetUsedMaterials(UsedMaterials);
+
+			if (UsedMaterials.Num() > 0)
+			{
+				for (TMap<FMaterial*, FMaterialShaderMap*>::TConstIterator MaterialIt(MaterialsToUpdate); MaterialIt; ++MaterialIt)
+				{
+					FMaterial* UpdatedMaterial = MaterialIt.Key();
+					UMaterialInterface* UpdatedMaterialInterface = UpdatedMaterial->GetMaterialInterface();
+						
+					if (UpdatedMaterialInterface)
+					{
+						for (int32 MaterialIndex = 0; MaterialIndex < UsedMaterials.Num(); MaterialIndex++)
+						{
+							UMaterialInterface* TestMaterial = UsedMaterials[MaterialIndex];
+
+							if (TestMaterial && (TestMaterial == UpdatedMaterialInterface || TestMaterial->IsDependent(UpdatedMaterialInterface)))
+							{
+								bPrimitiveIsDependentOnMaterial = true;
+								break;
+							}
+						}
+					}
+				}
+
+				if (bPrimitiveIsDependentOnMaterial)
+				{
+					new(ComponentContexts) FComponentRecreateRenderStateContext(PrimitiveComponent);
+				}
+			}
+		}
+	}
+
+	ComponentContexts.Empty();
+}
 
 /**
  * Shutdown the shader compile manager
@@ -2194,8 +2227,7 @@ void FShaderCompilingManager::FinishCompilation(const TCHAR* MaterialName, const
 	} 
 	while (bRetry);
 
-	const bool bRecreateComponentRenderState = bRecreateComponentRenderStateOutstanding;
-	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, bRecreateComponentRenderState);
+	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
 	check(CompiledShaderMaps.Num() == 0);
 
 	const double EndTime = FPlatformTime::Seconds();
@@ -2220,7 +2252,7 @@ void FShaderCompilingManager::FinishAllCompilation()
 	} 
 	while (bRetry);
 
-	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX, false);
+	ProcessCompiledShaderMaps(CompiledShaderMaps, FLT_MAX);
 	check(CompiledShaderMaps.Num() == 0);
 
 	const double EndTime = FPlatformTime::Seconds();
@@ -2267,11 +2299,6 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 
 					if (GetNumTotalJobs(Results.FinishedJobs) == Results.NumJobsQueued)
 					{
-						if (Results.bRecreateComponentRenderStateOnCompletion)
-						{
-							bRecreateComponentRenderStateOutstanding = true;
-						}
-
 						PendingFinalizeShaderMaps.Add(It.Key(), FShaderMapFinalizeResults(Results));
 						ShaderMapsToRemove.Add(It.Key());
 					}
@@ -2297,9 +2324,7 @@ void FShaderCompilingManager::ProcessAsyncResults(bool bLimitExecutionTime, bool
 				while (bRetry);
 
 				const float TimeBudget = bLimitExecutionTime ? ProcessGameThreadTargetTime : FLT_MAX;
-				// Only do the recreate when we are finished all compiling, to limit the number of hitchy global render state recreates
-				const bool bRecreateComponentRenderState = bRecreateComponentRenderStateOutstanding && NumCompilingShaderMaps == 0;
-				ProcessCompiledShaderMaps(PendingFinalizeShaderMaps, TimeBudget, bRecreateComponentRenderState);
+				ProcessCompiledShaderMaps(PendingFinalizeShaderMaps, TimeBudget);
 				check(bLimitExecutionTime || PendingFinalizeShaderMaps.Num() == 0);
 			}
 
@@ -2682,6 +2707,12 @@ void GlobalBeginCompileShader(
 			Input.Environment.SetDefine(TEXT("SHADER_PDB_ROOT"), *ShaderPDBRoot);
 		}
 	}
+    
+    if (IsMetalPlatform(EShaderPlatform(Target.Platform)))
+    {
+		uint32 ShaderVersion = RHIGetShaderLanguageVersion(EShaderPlatform(Target.Platform));
+        Input.Environment.SetDefine(TEXT("MAX_SHADER_LANGUAGE_VERSION"), ShaderVersion);
+    }
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ClearCoatNormal"));

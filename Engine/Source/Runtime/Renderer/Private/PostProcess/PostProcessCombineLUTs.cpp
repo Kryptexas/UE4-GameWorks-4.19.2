@@ -45,7 +45,7 @@ static FAutoConsoleVariableRef CVarLUTSize(
 
 static TAutoConsoleVariable<int32> CVarTonemapperFilm(
 	TEXT("r.TonemapperFilm"),
-	0,
+	1,
 	TEXT("Use new film tone mapper"),
 	ECVF_RenderThreadSafe
 	);
@@ -54,8 +54,7 @@ static TAutoConsoleVariable<int32> CVarTonemapperFilm(
 // USE_VOLUME_LUT: needs to be the same for C++ and HLSL
 bool UseVolumeTextureLUT(EShaderPlatform Platform) 
 {
-	// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
-	return (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && Platform != EShaderPlatform::SP_OPENGL_SM4_MAC && RHISupportsGeometryShaders(Platform));
+	return (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && (RHISupportsGeometryShaders(Platform) || RHISupportsVertexShaderLayer(Platform)));
 }
 
 // including the neutral one at index 0
@@ -595,12 +594,15 @@ static void SetLUTBlenderShader(FRenderingCompositePassContext& Context, uint32 
 	if(UseVolumeTextureLUT(Context.View.GetShaderPlatform()))
 	{
 		TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
-		TShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
+		TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
 
 		SetGlobalBoundShaderState(Context.RHICmdList, FeatureLevel, *LocalBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, LocalPixelShader, *GeometryShader);
 
 		VertexShader->SetParameters(Context.RHICmdList, VolumeBounds, VolumeBounds.MaxX - VolumeBounds.MinX);
-		GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds);
+		if(GeometryShader.IsValid())
+		{
+			GeometryShader->SetParameters(Context.RHICmdList, VolumeBounds);
+		}
 	}
 	else
 	{
@@ -769,8 +771,8 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 	// The view owns this texture.  For stereo rendering the combine LUT pass should only be executed for eSSP_LEFT_EYE
 	// and the result is reused by eSSP_RIGHT_EYE.   Eye-adaptation for stereo works in a similar way.
 	// Fundamentally, this relies on the fact that the view is recycled when doing stereo rendering and the LEFT eye is done first.
-	const FSceneRenderTargetItem* DestRenderTarget = 
-		Context.View.GetTonemappingLUTRenderTarget(Context.RHICmdList, GLUTSize, bUseVolumeTextureLUT);
+	const FSceneRenderTargetItem* DestRenderTarget = !bAllocateOutput ?
+	Context.View.GetTonemappingLUTRenderTarget(Context.RHICmdList, GLUTSize, bUseVolumeTextureLUT) : &PassOutputs[0].RequestSurface(Context);
 	
 	check(DestRenderTarget);
 
@@ -819,8 +821,29 @@ FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOu
 	// Specify invalid description to avoid the creation of an intermediate rendertargets.
 	// We want to use ViewState->GetTonemappingLUTRT instead.
 	FPooledRenderTargetDesc Ret;
-
-	Ret.DebugName = TEXT("DummyLUT");
+	
+	if (!bAllocateOutput)
+	{
+		Ret.DebugName = TEXT("DummyLUT");
+	}
+	else
+	{
+		EPixelFormat LUTPixelFormat = PF_A2B10G10R10;
+		if (!GPixelFormats[LUTPixelFormat].Supported)
+		{
+			LUTPixelFormat = PF_R8G8B8A8;
+		}
+		
+		Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(GLUTSize * GLUTSize, GLUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
+		
+		if(UseVolumeTextureLUT(ShaderPlatform))
+		{
+			Ret.Extent = FIntPoint(GLUTSize, GLUTSize);
+			Ret.Depth = GLUTSize;
+		}
+		
+		Ret.DebugName = TEXT("CombineLUTs");
+	}
 
 	return Ret;
 }

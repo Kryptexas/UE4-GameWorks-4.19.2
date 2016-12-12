@@ -27,7 +27,7 @@ ENGINE_API void ClearAllDebugViewMaterials()
 TMap<FDebugViewModeMaterialProxy::FMaterialUsagePair, FDebugViewModeMaterialProxy*> FDebugViewModeMaterialProxy::DebugMaterialShaderMap;
 volatile bool FDebugViewModeMaterialProxy::bReentrantCall = false;
 
-void FDebugViewModeMaterialProxy::AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage)
+void FDebugViewModeMaterialProxy::AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bSynchronousCompilation, EMaterialShaderMapUsage::Type InUsage)
 {
 	if (!InMaterialInterface) return;
 
@@ -37,7 +37,7 @@ void FDebugViewModeMaterialProxy::AddShader(UMaterialInterface* InMaterialInterf
 	FMaterialUsagePair ShaderMapKey(Material, InUsage);
 	if (!DebugMaterialShaderMap.Contains(ShaderMapKey))
 	{
-		DebugMaterialShaderMap.Add(ShaderMapKey, new FDebugViewModeMaterialProxy(InMaterialInterface, QualityLevel, FeatureLevel, InUsage));
+		DebugMaterialShaderMap.Add(ShaderMapKey, new FDebugViewModeMaterialProxy(InMaterialInterface, QualityLevel, FeatureLevel, bSynchronousCompilation, InUsage));
 	}
 }
 
@@ -94,20 +94,28 @@ void FDebugViewModeMaterialProxy::ValidateAllShaders(TSet<UMaterialInterface*>& 
 		}
 		else if (DebugMaterial)
 		{
-			UE_LOG(TextureStreamingBuild, Verbose, TEXT("Can't get valid shadermap for %s, skipping shader"), *DebugMaterial->GetMaterialInterface()->GetName());
+			// When using synchronous compilation, it is normal for the original material to not be ready yet.
+			// In this case, we can't validate that the shader will be 100% compatible for overrides, meaning it is risky to use for viewmodes.
+			// This implies that viewmode can't use synchronous compilation.
+			if (!DebugMaterial->GetGameThreadShaderMap() || !DebugMaterial->RequiresSynchronousCompilation())
+			{
+				UE_LOG(TextureStreamingBuild, Verbose, TEXT("Can't get valid shadermap for %s, skipping shader"), *DebugMaterial->GetMaterialInterface()->GetName());
 
-			// Here we can't destroy the invalid material because it would trigger ClearAllShaders.
-			DebugMaterial->MarkAsInvalid();
-			Materials.Remove(const_cast<UMaterialInterface*>(DebugMaterial->GetMaterialInterface()));
+				// Here we can't destroy the invalid material because it would trigger ClearAllShaders.
+				DebugMaterial->MarkAsInvalid();
+				Materials.Remove(const_cast<UMaterialInterface*>(DebugMaterial->GetMaterialInterface()));
+			}
 		}
 	}
 }
 
-FDebugViewModeMaterialProxy::FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage)
+FDebugViewModeMaterialProxy::FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool InSynchronousCompilation, EMaterialShaderMapUsage::Type InUsage)
 	: FMaterial()
 	, MaterialInterface(InMaterialInterface)
 	, Material(nullptr)
 	, Usage(InUsage)
+	, bValid(true)
+	, bSynchronousCompilation(InSynchronousCompilation)
 {
 	SetQualityLevelProperties(QualityLevel, false, FeatureLevel);
 	Material = InMaterialInterface->GetMaterial();
@@ -132,6 +140,11 @@ FDebugViewModeMaterialProxy::FDebugViewModeMaterialProxy(UMaterialInterface* InM
 	ResourceId.Usage = InUsage;
 
 	CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
+}
+
+bool FDebugViewModeMaterialProxy::RequiresSynchronousCompilation() const
+{ 
+	return bSynchronousCompilation;
 }
 
 const FMaterial* FDebugViewModeMaterialProxy::GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const

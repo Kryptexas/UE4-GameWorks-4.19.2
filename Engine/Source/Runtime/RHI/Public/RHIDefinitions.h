@@ -747,15 +747,6 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 	return InFeatureLevel <= GetMaxSupportedFeatureLevel(InShaderPlatform);
 }
 
-inline bool RHISupportsTessellation(const EShaderPlatform Platform)
-{
-	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5))
-	{
-		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
-	}
-	return false;
-}
-
 inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
 {
 	// ES2 & ES3.1 need to flip when rendering to an RT that will be post processed
@@ -781,11 +772,6 @@ inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 }
 
-inline bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform)
-{
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform);
-}
-
 inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 {
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsMetalPlatform(Platform) && Platform != SP_VULKAN_PCES3_1 && Platform != SP_VULKAN_ES3_1_ANDROID;
@@ -803,7 +789,7 @@ inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 
 inline bool RHISupportsVertexShaderLayer(const EShaderPlatform Platform)
 {
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && IsMetalPlatform(Platform);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && IsPCPlatform(Platform) && IsMetalPlatform(Platform);
 }
 
 // Return what the expected number of samplers will be supported by a feature level

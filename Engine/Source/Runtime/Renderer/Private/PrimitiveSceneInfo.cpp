@@ -48,6 +48,8 @@ public:
 #if DO_CHECK
 			Mesh.CheckUniformBuffers();
 #endif
+			PrimitiveSceneInfo->Proxy->VerifyUsedMaterial(Mesh.MaterialRenderProxy);
+
 			FStaticMesh* StaticMesh = new(PrimitiveSceneInfo->StaticMeshes) FStaticMesh(
 				PrimitiveSceneInfo,
 				Mesh,

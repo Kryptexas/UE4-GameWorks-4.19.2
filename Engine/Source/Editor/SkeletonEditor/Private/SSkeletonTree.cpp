@@ -436,26 +436,25 @@ void SSkeletonTree::CreateTreeColumns()
 	{
 		FScopedSavedSelection ScopedSelection(SharedThis(this));
 
+		SkeletonTreeView = SNew(STreeView<TSharedPtr<ISkeletonTreeItem>>)
+		.TreeItemsSource(&FilteredItems)
+		.OnGenerateRow(this, &SSkeletonTree::MakeTreeRowWidget)
+		.OnGetChildren(this, &SSkeletonTree::GetFilteredChildren)
+		.OnContextMenuOpening(this, &SSkeletonTree::CreateContextMenu)
+		.OnSelectionChanged(this, &SSkeletonTree::OnSelectionChanged)
+		.OnItemScrolledIntoView(this, &SSkeletonTree::OnItemScrolledIntoView)
+		.OnMouseButtonDoubleClick(this, &SSkeletonTree::OnTreeDoubleClick)
+		.OnSetExpansionRecursive(this, &SSkeletonTree::SetTreeItemExpansionRecursive)
+		.ItemHeight(24)
+		.HeaderRow
+		(
+			TreeHeaderRow
+		);
+	
 		TreeHolder->ClearChildren();
 		TreeHolder->AddSlot()
 		[
 			SNew(SScrollBorder, SkeletonTreeView.ToSharedRef())
-			[
-				SAssignNew(SkeletonTreeView, STreeView<TSharedPtr<ISkeletonTreeItem>>)
-				.TreeItemsSource(&FilteredItems)
-				.OnGenerateRow(this, &SSkeletonTree::MakeTreeRowWidget)
-				.OnGetChildren(this, &SSkeletonTree::GetFilteredChildren)
-				.OnContextMenuOpening(this, &SSkeletonTree::CreateContextMenu)
-				.OnSelectionChanged(this, &SSkeletonTree::OnSelectionChanged)
-				.OnItemScrolledIntoView(this, &SSkeletonTree::OnItemScrolledIntoView)
-				.OnMouseButtonDoubleClick(this, &SSkeletonTree::OnTreeDoubleClick)
-				.OnSetExpansionRecursive(this, &SSkeletonTree::SetTreeItemExpansionRecursive)
-				.ItemHeight(24)
-				.HeaderRow
-				(
-					TreeHeaderRow
-				)
-			]
 		];
 	}
 

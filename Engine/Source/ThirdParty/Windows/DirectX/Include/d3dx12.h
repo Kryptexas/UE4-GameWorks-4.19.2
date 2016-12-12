@@ -54,6 +54,71 @@ struct CD3DX12_RECT : public D3D12_RECT
 };
 
 //------------------------------------------------------------------------------------------------
+struct CD3DX12_VIEWPORT : public D3D12_VIEWPORT
+{
+    CD3DX12_VIEWPORT()
+    {}
+    explicit CD3DX12_VIEWPORT( const D3D12_VIEWPORT& o ) :
+        D3D12_VIEWPORT( o )
+    {}
+    explicit CD3DX12_VIEWPORT(
+        FLOAT topLeftX,
+        FLOAT topLeftY,
+        FLOAT width,
+        FLOAT height,
+        FLOAT minDepth = D3D12_MIN_DEPTH,
+        FLOAT maxDepth = D3D12_MAX_DEPTH )
+    {
+        TopLeftX = topLeftX;
+        TopLeftY = topLeftY;
+        Width = width;
+        Height = height;
+        MinDepth = minDepth;
+        MaxDepth = maxDepth;
+    }
+    explicit CD3DX12_VIEWPORT(
+        _In_ ID3D12Resource* pResource,
+        UINT mipSlice = 0,
+        FLOAT topLeftX = 0.0f,
+        FLOAT topLeftY = 0.0f,
+        FLOAT minDepth = D3D12_MIN_DEPTH,
+        FLOAT maxDepth = D3D12_MAX_DEPTH )
+    {
+        D3D12_RESOURCE_DESC Desc = pResource->GetDesc();
+        const UINT64 SubresourceWidth = Desc.Width >> mipSlice;
+        const UINT64 SubresourceHeight = Desc.Height >> mipSlice;
+        switch (Desc.Dimension)
+        {
+        case D3D12_RESOURCE_DIMENSION_BUFFER:
+            TopLeftX = topLeftX;
+            TopLeftY = 0.0f;
+            Width = Desc.Width - topLeftX;
+            Height = 1.0f;
+            break;
+        case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
+            TopLeftX = topLeftX;
+            TopLeftY = 0.0f;
+            Width = (SubresourceWidth ? SubresourceWidth : 1.0f) - topLeftX;
+            Height = 1.0f;
+            break;
+        case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
+        case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
+            TopLeftX = topLeftX;
+            TopLeftY = topLeftY;
+            Width = (SubresourceWidth ? SubresourceWidth : 1.0f) - topLeftX;
+            Height = (SubresourceHeight ? SubresourceHeight: 1.0f) - topLeftY;
+            break;
+        default: break;
+        }
+
+        MinDepth = minDepth;
+        MaxDepth = maxDepth;
+    }
+    ~CD3DX12_VIEWPORT() {}
+    operator const D3D12_VIEWPORT&() const { return *this; }
+};
+
+//------------------------------------------------------------------------------------------------
 struct CD3DX12_BOX : public D3D12_BOX
 {
     CD3DX12_BOX()
@@ -453,13 +518,13 @@ struct CD3DX12_SHADER_BYTECODE : public D3D12_SHADER_BYTECODE
         D3D12_SHADER_BYTECODE(o)
     {}
     CD3DX12_SHADER_BYTECODE(
-        ID3DBlob* pShaderBlob )
+        _In_ ID3DBlob* pShaderBlob )
     {
         pShaderBytecode = pShaderBlob->GetBufferPointer();
         BytecodeLength = pShaderBlob->GetBufferSize();
     }
     CD3DX12_SHADER_BYTECODE(
-        void* _pShaderBytecode,
+        _In_reads_(bytecodeLength) const void* _pShaderBytecode,
         SIZE_T bytecodeLength )
     {
         pShaderBytecode = _pShaderBytecode;
@@ -1857,11 +1922,12 @@ inline HRESULT D3DX12SerializeVersionedRootSignature(
     _Outptr_ ID3DBlob** ppBlob,
     _Always_(_Outptr_opt_result_maybenull_) ID3DBlob** ppErrorBlob)
 {
-	if (ppErrorBlob)
-	{
-		*ppErrorBlob = NULL;
-	}
-	switch (MaxVersion)
+    if (ppErrorBlob != NULL)
+    {
+        *ppErrorBlob = NULL;
+    }
+
+    switch (MaxVersion)
     {
         case D3D_ROOT_SIGNATURE_VERSION_1_0:
             switch (pRootSignatureDesc->Version)
@@ -1876,7 +1942,7 @@ inline HRESULT D3DX12SerializeVersionedRootSignature(
 
                     const SIZE_T ParametersSize = sizeof(D3D12_ROOT_PARAMETER) * desc_1_1.NumParameters;
                     void* pParameters = (ParametersSize > 0) ? HeapAlloc(GetProcessHeap(), 0, ParametersSize) : NULL;
-                    if (ParametersSize > 0 && !pParameters)
+                    if (ParametersSize > 0 && pParameters == NULL)
                     {
                         hr = E_OUTOFMEMORY;
                     }
@@ -1910,7 +1976,7 @@ inline HRESULT D3DX12SerializeVersionedRootSignature(
 
                                 const SIZE_T DescriptorRangesSize = sizeof(D3D12_DESCRIPTOR_RANGE) * table_1_1.NumDescriptorRanges;
                                 void* pDescriptorRanges = (DescriptorRangesSize > 0 && SUCCEEDED(hr)) ? HeapAlloc(GetProcessHeap(), 0, DescriptorRangesSize) : NULL;
-                                if (DescriptorRangesSize > 0 && !pDescriptorRanges)
+                                if (DescriptorRangesSize > 0 && pDescriptorRanges == NULL)
                                 {
                                     hr = E_OUTOFMEMORY;
                                 }
@@ -1942,20 +2008,17 @@ inline HRESULT D3DX12SerializeVersionedRootSignature(
                         hr = D3D12SerializeRootSignature(&desc_1_0, D3D_ROOT_SIGNATURE_VERSION_1, ppBlob, ppErrorBlob);
                     }
 
-					if (pParameters)
-					{
+                    if (pParameters)
+                    {
                         for (UINT n = 0; n < desc_1_1.NumParameters; n++)
                         {
                             if (desc_1_1.pParameters[n].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
                             {
-					            if (pParameters_1_0[n].DescriptorTable.pDescriptorRanges)
-					            {
-	                                HeapFree(GetProcessHeap(), 0, reinterpret_cast<void*>(const_cast<D3D12_DESCRIPTOR_RANGE*>(pParameters_1_0[n].DescriptorTable.pDescriptorRanges)));
-							    }
+                                HeapFree(GetProcessHeap(), 0, reinterpret_cast<void*>(const_cast<D3D12_DESCRIPTOR_RANGE*>(pParameters_1_0[n].DescriptorTable.pDescriptorRanges)));
                             }
                         }
-                    	HeapFree(GetProcessHeap(), 0, pParameters);
-					}
+                        HeapFree(GetProcessHeap(), 0, pParameters);
+                    }
                     return hr;
                 }
             }
@@ -1967,6 +2030,7 @@ inline HRESULT D3DX12SerializeVersionedRootSignature(
 
     return E_INVALIDARG;
 }
+
 
 #endif // defined( __cplusplus )
 

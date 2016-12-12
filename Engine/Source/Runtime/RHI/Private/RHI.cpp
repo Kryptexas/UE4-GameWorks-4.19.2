@@ -6,6 +6,7 @@
 
 #include "RHI.h"
 #include "Modules/ModuleManager.h"
+#include "Misc/ConfigCacheIni.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, RHI);
 
@@ -244,6 +245,7 @@ FString GRHIAdapterDriverDate;
 uint32 GRHIVendorId = 0;
 uint32 GRHIDeviceId = 0;
 uint32 GRHIDeviceRevision = 0;
+bool GRHIDeviceIsAMDPreGCNArchitecture = false;
 bool GSupportsRenderDepthTargetableShaderResources = true;
 bool GSupportsRenderTargetFormat_PF_G8 = true;
 bool GSupportsRenderTargetFormat_PF_FloatRGBA = true;
@@ -542,4 +544,56 @@ RHI_API const TCHAR* RHIVendorIdToString()
 	case 0x8086: return TEXT("Intel");
 	default: return TEXT("Unknown");
 	}
+}
+
+RHI_API uint32 RHIGetShaderLanguageVersion(const EShaderPlatform Platform)
+{
+	static int32 MaxShaderVersion = -1;
+	if (MaxShaderVersion < 0)
+	{
+		MaxShaderVersion = 0;
+		if (Platform == SP_METAL_SM5)
+		{
+			if(!GConfig->GetInt(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
+			{
+				MaxShaderVersion = 1;
+			}
+		}
+		else
+		{
+			if(!GConfig->GetInt(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
+			{
+				MaxShaderVersion = 0;
+			}
+		}
+	}
+	return (uint32)MaxShaderVersion;
+}
+
+RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform)
+{
+	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform))
+	{
+		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
+	}
+    // For Metal we can only support tessellation if we are willing to sacrifice backward compatibility with OS versions.
+    // As such it becomes an opt-in project setting.
+	else if (Platform == SP_METAL_SM5)
+	{
+		return (RHIGetShaderLanguageVersion(Platform) >= 2);
+	}
+	return false;
+}
+
+RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform)
+{
+	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform))
+	{
+		return true;
+	}
+	else if (Platform == SP_METAL_SM5)
+	{
+		return (RHIGetShaderLanguageVersion(Platform) >= 2);
+	}
+	return false;
 }

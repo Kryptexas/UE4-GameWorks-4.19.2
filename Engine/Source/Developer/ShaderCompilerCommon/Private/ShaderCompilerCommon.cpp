@@ -1007,7 +1007,7 @@ namespace CrossCompiler
 				return false;
 			}
 		}
-
+	
 		return ParseCustomHeaderEntries(ShaderSource);
 	}
 

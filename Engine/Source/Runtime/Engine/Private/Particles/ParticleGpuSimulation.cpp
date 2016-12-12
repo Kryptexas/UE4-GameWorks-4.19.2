@@ -4530,35 +4530,51 @@ void FFXSystem::SimulateGPUParticles(
 
 	const float FixDeltaSeconds = CVarGPUParticleFixDeltaSeconds.GetValueOnRenderThread();
 
-	{
-		// Grab resources.
-		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
-		FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
+	// Grab resources.
+	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();	
 
-	
+	// Setup render states.
+	FTextureRHIParamRef CurrentStateRenderTargets[2] = { CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.VelocityTextureTargetRHI };
+	FTextureRHIParamRef PreviousStateRenderTargets[2] = { PrevStateTextures.PositionTextureTargetRHI, PrevStateTextures.VelocityTextureTargetRHI };
+
+	{	
+
 		// On some platforms, the textures are filled with garbage after creation, so we need to clear them to black the first time we use them
 		if ( !CurrentStateTextures.bTexturesCleared )
 		{
+
+			RHICmdList.BeginUpdateMultiFrameResource(CurrentStateRenderTargets[0]);
+			RHICmdList.BeginUpdateMultiFrameResource(CurrentStateRenderTargets[1]);
+
 			SetRenderTarget(RHICmdList, CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			SetRenderTarget(RHICmdList, CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 
 			CurrentStateTextures.bTexturesCleared = true;
+
+			RHICmdList.EndUpdateMultiFrameResource(CurrentStateRenderTargets[0]);
+			RHICmdList.EndUpdateMultiFrameResource(CurrentStateRenderTargets[1]);
 		}
 
 		if ( !PrevStateTextures.bTexturesCleared )
 		{
+			RHICmdList.BeginUpdateMultiFrameResource(PreviousStateRenderTargets[0]);
+			RHICmdList.BeginUpdateMultiFrameResource(PreviousStateRenderTargets[1]);
+
 			SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 			RHICmdList.CopyToResolveTarget(PrevStateTextures.PositionTextureTargetRHI, PrevStateTextures.PositionTextureTargetRHI, true, FResolveParams());
 			RHICmdList.CopyToResolveTarget(PrevStateTextures.VelocityTextureTargetRHI, PrevStateTextures.VelocityTextureTargetRHI, true, FResolveParams());
 		
 			PrevStateTextures.bTexturesCleared = true;
-		}
 
-		// Setup render states.
-		FTextureRHIParamRef RenderTargets[2] = { CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.VelocityTextureTargetRHI };
-		SetRenderTargets(RHICmdList, 2, RenderTargets, FTextureRHIParamRef(), 0, NULL);
-	}
+			RHICmdList.EndUpdateMultiFrameResource(PreviousStateRenderTargets[0]);
+			RHICmdList.EndUpdateMultiFrameResource(PreviousStateRenderTargets[1]);
+		}
+	}	
+	
+
+	SetRenderTargets(RHICmdList, 2, CurrentStateRenderTargets, FTextureRHIParamRef(), 0, NULL);
 
 	RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
@@ -4696,9 +4712,7 @@ void FFXSystem::SimulateGPUParticles(
 	if (NewParticles.Num())
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ParticleInjection);
-		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);
-
-		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+		SCOPED_GPU_STAT(RHICmdList, Stat_GPU_ParticleSimulation);		
 
 		// Set render targets.
 		FTextureRHIParamRef InjectRenderTargets[4] =
@@ -4732,17 +4746,22 @@ void FFXSystem::SimulateGPUParticles(
 			);
 	}
 
+	// finish current state render
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, CurrentStateRenderTargets, 2);
+	RHICmdList.EndUpdateMultiFrameResource(CurrentStateRenderTargets[0]);
+	RHICmdList.EndUpdateMultiFrameResource(CurrentStateRenderTargets[1]);
+
 
 	if (SimulationCommands.Num() && FixDeltaSeconds > 0)
 	{
-		// Transition from
-		FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
-		FTextureRHIParamRef CurrentStateRHIs[2] = { CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.VelocityTextureTargetRHI };
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, CurrentStateRHIs, 2);
+		
 
 		FParticleStateTextures& VisualizeStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
 		FTextureRHIParamRef VisualizeStateRHIs[2] = { VisualizeStateTextures.PositionTextureTargetRHI, VisualizeStateTextures.VelocityTextureTargetRHI };
-		RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, VisualizeStateRHIs, 2);	
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, VisualizeStateRHIs, 2);
+
+		RHICmdList.BeginUpdateMultiFrameResource(VisualizeStateRHIs[0]);
+		RHICmdList.BeginUpdateMultiFrameResource(VisualizeStateRHIs[1]);
 		SetRenderTargets(RHICmdList, 2, VisualizeStateRHIs, FTextureRHIParamRef(), 0, NULL);
 
 		ExecuteSimulationCommands(
@@ -4757,6 +4776,10 @@ void FFXSystem::SimulateGPUParticles(
 					Phase,
 					false
 					);
+
+		RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, VisualizeStateRHIs, 2);
+		RHICmdList.EndUpdateMultiFrameResource(VisualizeStateRHIs[0]);
+		RHICmdList.EndUpdateMultiFrameResource(VisualizeStateRHIs[1]);
 	}
 
 	SimulationCommands.Reset();

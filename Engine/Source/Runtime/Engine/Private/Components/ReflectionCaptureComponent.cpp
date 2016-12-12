@@ -98,6 +98,7 @@ void UWorld::UpdateAllReflectionCaptures()
 		return;
 	}
 	
+	TArray<UPackage*> Packages;	
 	for (TObjectIterator<UReflectionCaptureComponent> It; It; ++It)
 	{
 		UReflectionCaptureComponent* CaptureComponent = *It;
@@ -106,6 +107,15 @@ void UWorld::UpdateAllReflectionCaptures()
 		{
 			// Purge cached derived data and force an update
 			CaptureComponent->SetCaptureIsDirty();			
+			Packages.AddUnique(CaptureComponent->GetOutermost());
+		}
+	}
+	for (UPackage* Package : Packages)
+	{
+		if (Package)
+		{
+			// Need to dirty capture packages for new HDR data
+			Package->MarkPackageDirty();
 		}
 	}
 	UReflectionCaptureComponent::UpdateReflectionCaptureContents(this);

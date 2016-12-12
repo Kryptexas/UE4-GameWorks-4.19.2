@@ -389,6 +389,52 @@ private:
 	FGraphEventRef QuerySubmittedFences[NumBufferedFrames];
 };
 
+/** HLOD tree persistent fading and visibility state */
+class FHLODVisibilityState
+{
+public:
+	FHLODVisibilityState()
+		: TemporalLODSyncTime(0.0f)
+		, UpdateCount(0)
+	{}
+
+	bool IsNodeFading(const int32 PrimIndex) const
+	{
+		checkSlow(PrimitiveFadingLODMap.IsValidIndex(PrimIndex));
+		return PrimitiveFadingLODMap[PrimIndex];
+	}
+
+	bool IsNodeFadingOut(const int32 PrimIndex) const
+	{
+		checkSlow(PrimitiveFadingOutLODMap.IsValidIndex(PrimIndex));
+		return PrimitiveFadingOutLODMap[PrimIndex];
+	}
+
+	TBitArray<>	PrimitiveFadingLODMap;
+	TBitArray<>	PrimitiveFadingOutLODMap;
+	float		TemporalLODSyncTime;
+	uint16		UpdateCount;
+};
+
+/** HLOD scene node persistent fading and visibility state */
+struct FHLODSceneNodeVisibilityState
+{
+	FHLODSceneNodeVisibilityState()
+		: UpdateCount(0)
+		, bWasVisible(0)
+		, bIsVisible(0)
+		, bIsFading(0)
+	{}
+
+	/** Last updated FrameCount */
+	uint16 UpdateCount;
+
+	/** Persistent visibility states */
+	uint16 bWasVisible	: 1;
+	uint16 bIsVisible	: 1;
+	uint16 bIsFading	: 1;
+};
+
 /**
  * The scene manager's private implementation of persistent view state.
  * This class is associated with a particular camera across multiple frames by the game thread.
@@ -500,6 +546,10 @@ public:
 	/** The cache view matrices at the time of freezing or the cached debug fly cam's view matrices. */
 	FViewMatrices CachedViewMatrices;
 #endif
+
+	/** HLOD persistent fading and visibility state */
+	FHLODVisibilityState HLODVisibilityState;
+	TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState> HLODSceneNodeVisibilityStates;
 
 private:
 
@@ -1623,12 +1673,8 @@ class FLODSceneTree
 public:
 	FLODSceneTree(FScene* InScene)
 		: Scene(InScene)
-		, TemporalLODSyncTime(0.0f)
 		, LastHLODDistanceScale(-1.0f)
-		, UpdateCount(0)
 	{
-		PrimitiveFadingLODMap.Empty();
-		PrimitiveFadingOutLODMap.Empty();
 	}
 
 	/** Information about the primitives that are attached together. */
@@ -1640,23 +1686,12 @@ public:
 		/** The primitive. */
 		FPrimitiveSceneInfo* SceneInfo;
 
-		/** Last updated FrameCount */
-		int32 LatestUpdateCount;
-
-		/** Persistent visibility states */
-		bool bWasVisible;
-		bool bIsVisible;
-		bool bIsFading;
-
 		FLODSceneNode()
 			: SceneInfo(nullptr)
-			, LatestUpdateCount(INDEX_NONE)
-			, bWasVisible(false)
-			, bIsVisible(false)
-			, bIsFading(false)
-		{}
+		{
+		}
 
-		void AddChild(FPrimitiveSceneInfo * NewChild)
+		void AddChild(FPrimitiveSceneInfo* NewChild)
 		{
 			if(NewChild && !ChildrenSceneInfos.Contains(NewChild))
 			{
@@ -1664,7 +1699,7 @@ public:
 			}
 		}
 
-		void RemoveChild(FPrimitiveSceneInfo * ChildToDelete)
+		void RemoveChild(FPrimitiveSceneInfo* ChildToDelete)
 		{
 			if(ChildToDelete && ChildrenSceneInfos.Contains(ChildToDelete))
 			{
@@ -1678,18 +1713,6 @@ public:
 
 	void UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* SceneInfo);
 	void UpdateAndApplyVisibilityStates(FViewInfo& View);
-
-	bool IsNodeFading(const int32 Index) const
-	{
-		checkSlow(PrimitiveFadingLODMap.IsValidIndex(Index));
-		return PrimitiveFadingLODMap[Index];
-	}
-
-	bool IsNodeFadingOut(const int32 Index) const
-	{
-		checkSlow(PrimitiveFadingOutLODMap.IsValidIndex(Index));
-		return PrimitiveFadingOutLODMap[Index];
-	}
 
 	bool IsActive() const { return (SceneNodes.Num() > 0); }
 
@@ -1706,18 +1729,12 @@ private:
 	/** The LOD groups in the scene.  The map key is the current primitive who has children. */
 	TMap<FPrimitiveComponentId, FLODSceneNode> SceneNodes;
 
-	/** Persistent HLOD fading state */
-	TBitArray<> PrimitiveFadingLODMap;
-	TBitArray<>	PrimitiveFadingOutLODMap;
-	float		TemporalLODSyncTime;
-	float		LastHLODDistanceScale;
-
-	/**  Update Count. This is used to skip Child node that has been updated */
-	int32 UpdateCount;
+	/** Transition distance scaling */
+	float LastHLODDistanceScale;
 
 	/** Recursive state updates */
-	void ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut);
-	void HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags);
+	void ApplyNodeFadingToChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut);
+	void HideNodeChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags);
 };
 
 typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
@@ -1860,6 +1877,9 @@ public:
 	 * Lights in this array cannot be in the Lights array.  They also are not fully set up, as AddLightSceneInfo_RenderThread is not called for them.
 	 */
 	TSparseArray<FLightSceneInfoCompact> InvisibleLights;
+
+	/** Shadow casting lights that couldn't get a shadowmap channel assigned and therefore won't have valid dynamic shadows, forward renderer only. */
+	TArray<FName> OverflowingDynamicShadowedLights;
 
 	/** The mobile quality level for which static draw lists have been built. */
 	bool bStaticDrawListsMobileHDR;
@@ -2143,6 +2163,7 @@ public:
 	virtual void ApplyWorldOffset(FVector InOffset) override;
 
 	virtual void OnLevelAddedToWorld(FName InLevelName, UWorld* InWorld, bool bIsLightingScenario) override;
+	virtual void OnLevelRemovedFromWorld(UWorld* InWorld, bool bIsLightingScenario) override;
 
 	virtual bool HasAnyLights() const override 
 	{ 
@@ -2220,11 +2241,14 @@ private:
 	/** Updates a single primitive's lighting attachment root. */
 	void UpdatePrimitiveLightingAttachmentRoot(UPrimitiveComponent* Primitive);
 
+	void AssignAvailableShadowMapChannelForLight(FLightSceneInfo* LightSceneInfo);
+
 	/**
 	 * Adds a light to the scene.  Called in the rendering thread by AddLight.
 	 * @param LightSceneInfo - The light being added.
 	 */
 	void AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo);
+
 	/**
 	 * Adds a decal to the scene.  Called in the rendering thread by AddDecal or RemoveDecal.
 	 * @param Component - The object that should being added or removed.

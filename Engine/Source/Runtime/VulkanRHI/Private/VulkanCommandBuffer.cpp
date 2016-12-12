@@ -59,7 +59,7 @@ void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, 
 	Info.renderArea.offset.x = 0;
 	Info.renderArea.offset.y = 0;
 	Info.renderArea.extent = Layout.GetExtent2D();
-	Info.clearValueCount = Layout.GetNumAttachments();
+	Info.clearValueCount = Layout.GetNumAttachmentDescriptions();
 	Info.pClearValues = AttachmentClearValues;
 
 	VulkanRHI::vkCmdBeginRenderPass(CommandBufferHandle, &Info, VK_SUBPASS_CONTENTS_INLINE);

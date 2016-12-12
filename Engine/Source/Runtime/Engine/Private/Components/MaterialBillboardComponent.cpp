@@ -345,3 +345,11 @@ void UMaterialBillboardComponent::SetMaterial(int32 ElementIndex, class UMateria
 		MarkRenderStateDirty();
 	}
 }
+
+void UMaterialBillboardComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+{
+	for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
+	{
+		OutMaterials.AddUnique(GetMaterial(ElementIndex));
+	}
+}

@@ -22,11 +22,11 @@ enum EMetalViewportAccessFlag
 class FMetalViewport : public FRHIViewport
 {
 public:
-	FMetalViewport(void* WindowHandle, uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen);
+	FMetalViewport(void* WindowHandle, uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen,EPixelFormat Format);
 	~FMetalViewport();
 
 	void BeginDrawingViewport();
-	void Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen);
+	void Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen,EPixelFormat Format);
 	
 	FMetalTexture2D* GetBackBuffer(EMetalViewportAccessFlag Accessor) const;
 	id<MTLDrawable> GetDrawable(EMetalViewportAccessFlag Accessor);

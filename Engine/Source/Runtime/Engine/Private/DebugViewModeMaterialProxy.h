@@ -24,22 +24,24 @@ class UTexture;
 class FDebugViewModeMaterialProxy : public FMaterial, public FMaterialRenderProxy
 {
 public:
+
 	FDebugViewModeMaterialProxy()
 		: FMaterial()
 		, MaterialInterface(nullptr)
 		, Material(nullptr)
 		, Usage(EMaterialShaderMapUsage::Default)
 		, bValid(true)
+		, bSynchronousCompilation(true)
 	{
 		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 	}
 
+	FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bSynchronousCompilation, EMaterialShaderMapUsage::Type InUsage);
+
 	void MarkAsInvalid() { bValid = false; }
 	bool IsValid() const { return bValid; }
-
-	FDebugViewModeMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage);
-
-	virtual bool RequiresSynchronousCompilation() const override { return false; };
+	
+	virtual bool RequiresSynchronousCompilation() const override;
 
 	/**
 	* Should shaders compiled for this material be saved to disk?
@@ -85,7 +87,7 @@ public:
 
 	virtual FString GetFriendlyName() const override { return FString::Printf(TEXT("FDebugViewModeMaterialProxy %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 
-	const UMaterialInterface* GetMaterialInterface() const
+	virtual UMaterialInterface* GetMaterialInterface() const override
 	{
 		return MaterialInterface;
 	}
@@ -119,7 +121,7 @@ public:
 
 	////////////////
 
-	static void AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, EMaterialShaderMapUsage::Type InUsage);
+	static void AddShader(UMaterialInterface* InMaterialInterface, EMaterialQualityLevel::Type QualityLevel, ERHIFeatureLevel::Type FeatureLevel, bool bSynchronousCompilation, EMaterialShaderMapUsage::Type InUsage);
 	static const FMaterial* GetShader(const FMaterial* Material, EMaterialShaderMapUsage::Type Usage);
 	static void ClearAllShaders();
 	static bool HasAnyShaders() { return DebugMaterialShaderMap.Num() > 0; }
@@ -135,6 +137,7 @@ private:
 
 	/** Whether this debug material should be used or not. */
 	bool bValid;
+	bool bSynchronousCompilation;
 
 	struct FMaterialUsagePair
 	{

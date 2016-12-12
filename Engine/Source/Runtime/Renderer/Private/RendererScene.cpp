@@ -1005,6 +1005,47 @@ void FScene::ReleasePrimitive( UPrimitiveComponent* PrimitiveComponent )
 	});
 }
 
+void FScene::AssignAvailableShadowMapChannelForLight(FLightSceneInfo* LightSceneInfo)
+{
+	bool bChannelAvailable[4] = { true, true, true, true };
+
+	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator It(Lights); It; ++It)
+	{
+		const FLightSceneInfoCompact& OtherLightInfo = *It;
+
+		if (OtherLightInfo.LightSceneInfo != LightSceneInfo
+			&& OtherLightInfo.LightSceneInfo->Proxy->CastsDynamicShadow()
+			&& OtherLightInfo.LightSceneInfo->GetDynamicShadowMapChannel() >= 0
+			&& OtherLightInfo.LightSceneInfo->Proxy->AffectsBounds(LightSceneInfo->Proxy->GetBoundingSphere()))
+		{
+			const int32 OtherShadowMapChannel = OtherLightInfo.LightSceneInfo->GetDynamicShadowMapChannel();
+
+			if (OtherShadowMapChannel < ARRAY_COUNT(bChannelAvailable))
+			{
+				bChannelAvailable[OtherShadowMapChannel] = false;
+			}
+		}
+	}
+
+	int32 AvailableShadowMapChannel = -1;
+
+	for (int32 TestChannelIndex = 0; TestChannelIndex < ARRAY_COUNT(bChannelAvailable); TestChannelIndex++)
+	{
+		if (bChannelAvailable[TestChannelIndex])
+		{
+			AvailableShadowMapChannel = TestChannelIndex;
+			break;
+		}
+	}
+
+	LightSceneInfo->SetDynamicShadowMapChannel(AvailableShadowMapChannel);
+
+	if (AvailableShadowMapChannel == -1)
+	{
+		OverflowingDynamicShadowedLights.AddUnique(LightSceneInfo->Proxy->GetComponentName());
+	}
+}
+
 void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AddSceneLightTime);
@@ -1039,6 +1080,44 @@ void FScene::AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 		    		bScenesPrimitivesNeedStaticMeshElementUpdate = true;
 				}
 		    }
+		}
+	}
+
+	const bool bForwardShading = IsForwardShadingEnabled(FeatureLevel);
+
+	if (bForwardShading && LightSceneInfo->Proxy->CastsDynamicShadow())
+	{
+		if (LightSceneInfo->Proxy->HasStaticShadowing())
+		{
+			// If we are a stationary light being added, reassign all movable light shadowmap channels
+			for (TSparseArray<FLightSceneInfoCompact>::TConstIterator It(Lights); It; ++It)
+			{
+				const FLightSceneInfoCompact& OtherLightInfo = *It;
+
+				if (OtherLightInfo.LightSceneInfo != LightSceneInfo
+					&& !OtherLightInfo.LightSceneInfo->Proxy->HasStaticShadowing()
+					&& OtherLightInfo.LightSceneInfo->Proxy->CastsDynamicShadow())
+				{
+					OtherLightInfo.LightSceneInfo->SetDynamicShadowMapChannel(-1);
+				}
+			}
+
+			for (TSparseArray<FLightSceneInfoCompact>::TConstIterator It(Lights); It; ++It)
+			{
+				const FLightSceneInfoCompact& OtherLightInfo = *It;
+
+				if (OtherLightInfo.LightSceneInfo != LightSceneInfo
+					&& !OtherLightInfo.LightSceneInfo->Proxy->HasStaticShadowing()
+					&& OtherLightInfo.LightSceneInfo->Proxy->CastsDynamicShadow())
+				{
+					AssignAvailableShadowMapChannelForLight(OtherLightInfo.LightSceneInfo);
+				}
+			}
+		}
+		else
+		{
+			// If we are a movable light being added, assign a shadowmap channel
+			AssignAvailableShadowMapChannelForLight(LightSceneInfo);
 		}
 	}
 
@@ -1688,6 +1767,13 @@ void FScene::RemoveLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo)
 
 		// Remove the light from the lights list.
 		Lights.RemoveAt(LightSceneInfo->Id);
+
+		if (!LightSceneInfo->Proxy->HasStaticShadowing()
+			&& LightSceneInfo->Proxy->CastsDynamicShadow()
+			&& LightSceneInfo->GetDynamicShadowMapChannel() == -1)
+		{
+			OverflowingDynamicShadowedLights.Remove(LightSceneInfo->Proxy->GetComponentName());
+		}
 	}
 	else
 	{
@@ -2173,12 +2259,6 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(FRHICommandListImmedi
 			check(MaterialForRendering.GetRenderingThreadShaderMap()->IsValidForRendering());
 		}
 	}
-
-	// Update static draw lists, which cache shader references from materials, but the shader map has now changed
-	if (bFoundAnyInitializedMaterials)
-	{
-		UpdateStaticDrawListsForMaterials_RenderThread(RHICmdList, MaterialArray);
-	}
 }
 
 void FScene::SetShaderMapsOnMaterialResources(const TMap<FMaterial*, class FMaterialShaderMap*>& MaterialsToUpdate)
@@ -2657,6 +2737,14 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 				Proxy->OnLevelAddedToWorld();
 			}
 		}
+	}
+}
+
+void FScene::OnLevelRemovedFromWorld(UWorld* InWorld, bool bIsLightingScenario)
+{
+	if (bIsLightingScenario)
+	{
+		InWorld->PropagateLightingScenarioChange();
 	}
 }
 

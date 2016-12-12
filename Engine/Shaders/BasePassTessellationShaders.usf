@@ -4,7 +4,19 @@
 	BasePassTessellationShaders.usf: Base pass domain and hull shaders
 =============================================================================*/
 
-#include "BasePassVertexCommon.usf"
+// Metal's include graph is different due to combined VS + HS stage.
+#if COMPILER_METAL
+	#pragma once
+	#if !METAL_PROFILE
+		#if DOMAINSHADER
+			#include "BasePassVertexCommon.usf"
+		#elif !TESSELLATIONSHADER
+			#include "BasePassVertexShader.usf"
+		#endif
+	#endif
+#else
+	#include "BasePassVertexCommon.usf"
+#endif
 
 FBasePassVSToDS PassInterpolate(FBasePassVSToDS a, float aInterp, FBasePassVSToDS b, float bInterp)
 {

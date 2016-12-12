@@ -71,6 +71,7 @@ public:
 		IndirectOcclusionTexture.Bind(ParameterMap, TEXT("IndirectOcclusionTexture"));
 		IndirectOcclusionTextureSampler.Bind(ParameterMap, TEXT("IndirectOcclusionTextureSampler"));
 		ReflectionCaptureBuffer.Bind(ParameterMap, TEXT("ReflectionCapture"));
+		ResolvedSceneDepthTexture.Bind(ParameterMap, TEXT("ResolvedSceneDepthTexture"));
 	}
 
 	template<typename RHICommandListType, typename ShaderRHIParamRef>
@@ -92,10 +93,10 @@ public:
 			InstancedCulledLightDataGrid.SetBuffer(RHICmdList, ShaderRHI, InstancedView.ForwardLightingResources->CulledLightDataGrid);
 		}
 
+		FSceneRenderTargets& SceneRenderTargets = FSceneRenderTargets::Get(RHICmdList);
+
 		if (LightAttenuationTexture.IsBound() || IndirectOcclusionTexture.IsBound())
 		{
-			FSceneRenderTargets& SceneRenderTargets = FSceneRenderTargets::Get(RHICmdList);
-
 			SetTextureParameter(
 				RHICmdList, 
 				ShaderRHI,
@@ -123,6 +124,23 @@ public:
 		}
 
 		SetUniformBufferParameter(RHICmdList, ShaderRHI, ReflectionCaptureBuffer, View.ReflectionCaptureUniformBuffer);
+
+		if (ResolvedSceneDepthTexture.IsBound())
+		{
+			FTextureRHIParamRef ResolvedSceneDepthTextureValue = GSystemTextures.WhiteDummy->GetRenderTargetItem().ShaderResourceTexture;
+
+			if (SceneRenderTargets.GetMSAACount() > 1)
+			{
+				ResolvedSceneDepthTextureValue = SceneRenderTargets.SceneDepthZ->GetRenderTargetItem().ShaderResourceTexture;
+			}
+
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				ResolvedSceneDepthTexture,
+				ResolvedSceneDepthTextureValue
+				);
+		}
 	}
 
 	template<typename ShaderRHIParamRef>
@@ -176,6 +194,7 @@ public:
 		Ar << P.IndirectOcclusionTexture;
 		Ar << P.IndirectOcclusionTextureSampler;
 		Ar << P.ReflectionCaptureBuffer;
+		Ar << P.ResolvedSceneDepthTexture;
 		return Ar;
 	}
 
@@ -196,6 +215,8 @@ private:
 	FShaderResourceParameter IndirectOcclusionTexture;
 	FShaderResourceParameter IndirectOcclusionTextureSampler;
 	FShaderUniformBufferParameter ReflectionCaptureBuffer;
+
+	FShaderResourceParameter ResolvedSceneDepthTexture;
 };
 
 /** Parameters needed for looking up into translucency lighting volumes. */

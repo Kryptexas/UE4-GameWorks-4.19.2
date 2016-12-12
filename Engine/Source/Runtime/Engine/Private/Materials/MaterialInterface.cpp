@@ -461,15 +461,15 @@ void UMaterialInterface::SortTextureStreamingData(bool bForceSort, bool bFinalSo
 {
 #if WITH_EDITORONLY_DATA
 	// In cook that was already done in the save.
-	if (!FPlatformProperties::RequiresCookedData() && (!bTextureStreamingDataSorted || bForceSort))
+	if (!bTextureStreamingDataSorted || bForceSort)
 	{
 		for (int32 Index = 0; Index < TextureStreamingData.Num(); ++Index)
 		{
 			FMaterialTextureInfo& TextureData = TextureStreamingData[Index];
-			UObject* Texture = TextureData.TextureReference.TryLoad();
+			UObject* Texture = TextureData.TextureReference.ResolveObject();
 
 			// In the final data it must also be a streaming texture, to make the data leaner.
-			if (Texture && (!bFinalSort || IsStreamingTexture(Cast<UTexture2D>(Texture))))
+			if (Texture)
 			{
 				TextureData.TextureName = Texture->GetFName();
 			}
@@ -483,6 +483,7 @@ void UMaterialInterface::SortTextureStreamingData(bool bForceSort, bool bFinalSo
 				TextureData.TextureName = NAME_None;
 			}
 		}
+
 		// Sort by name to be compatible with FindTextureStreamingDataIndexRange
 		TextureStreamingData.Sort([](const FMaterialTextureInfo& Lhs, const FMaterialTextureInfo& Rhs) { return Lhs.TextureName < Rhs.TextureName; });
 		bTextureStreamingDataSorted = true;
@@ -508,12 +509,10 @@ bool UMaterialInterface::FindTextureStreamingDataIndexRange(FName TextureName, i
 	const_cast<UMaterialInterface*>(this)->SortTextureStreamingData(false, false);
 #endif
 
-#if !UE_BUILD_SHIPPING
-	if (CVarStreamingUseMaterialData.GetValueOnGameThread() == 0)
+	if (CVarStreamingUseMaterialData.GetValueOnGameThread() == 0 || CVarStreamingUseNewMetrics.GetValueOnGameThread() == 0)
 	{
 		return false;
 	}
-#endif
 
 	const int32 MatchingIndex = Algo::BinarySearch(TextureStreamingData, FNameSearch(TextureName));
 	if (MatchingIndex != INDEX_NONE)
@@ -582,7 +581,6 @@ bool UMaterialInterface::UseAnyStreamingTexture() const
 void UMaterialInterface::PreSave(const class ITargetPlatform* TargetPlatform)
 {
 	Super::PreSave(TargetPlatform);
-
 	if (TargetPlatform && TargetPlatform->RequiresCookedData())
 	{
 		SortTextureStreamingData(true, true);

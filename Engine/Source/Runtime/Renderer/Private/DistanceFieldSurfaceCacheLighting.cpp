@@ -2733,6 +2733,9 @@ void ListDistanceFieldLightingMemory(const FViewInfo& View)
 bool SupportsDistanceFieldAO(ERHIFeatureLevel::Type FeatureLevel, EShaderPlatform ShaderPlatform)
 {
 	return GDistanceFieldAO 
+		// Pre-GCN AMD cards have a driver bug that prevents the global distance field from being generated correctly
+		// Better to disble entirely than to display garbage
+		&& !GRHIDeviceIsAMDPreGCNArchitecture
 		&& FeatureLevel >= ERHIFeatureLevel::SM5
 		&& (!IsMetalPlatform(ShaderPlatform) || !IsRHIDeviceIntel())
 		&& DoesPlatformSupportDistanceFieldAO(ShaderPlatform);

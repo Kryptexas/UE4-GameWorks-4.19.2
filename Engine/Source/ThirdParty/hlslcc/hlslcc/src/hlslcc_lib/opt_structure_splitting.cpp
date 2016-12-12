@@ -44,6 +44,7 @@
 #include "ir_print_visitor.h"
 #include "ir_rvalue_visitor.h"
 #include "glsl_types.h"
+#include "LanguageSpec.h"
 
 static bool debug = false;
 
@@ -350,6 +351,8 @@ bool do_structure_splitting(exec_list *instructions, _mesa_glsl_parse_state * st
 	ir_structure_reference_visitor refs;
 
 	visit_list_elements(&refs, instructions);
+	
+	bool const bSplitInputVariables = state->LanguageSpec->SplitInputVariableStructs();
 
 	/* Trim out variables we can't split. */
 	foreach_iter(exec_list_iterator, iter, refs.variable_list)
@@ -364,6 +367,10 @@ bool do_structure_splitting(exec_list *instructions, _mesa_glsl_parse_state * st
 		}
 
 		if (!entry->declaration || entry->whole_structure_access || entry->var->is_interface_block)
+		{
+			entry->remove();
+		}
+		else if (!bSplitInputVariables && entry->var->mode == ir_var_in)
 		{
 			entry->remove();
 		}

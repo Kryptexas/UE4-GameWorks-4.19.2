@@ -8,9 +8,11 @@
 
 #include "MetalCommandEncoder.h"
 #include "MetalCommandBuffer.h"
+#include "MetalComputeCommandEncoder.h"
+#include "MetalRenderCommandEncoder.h"
 #include "MetalProfiler.h"
 
-const uint32 EncoderRingBufferSize = 64 * 1024;
+const uint32 EncoderRingBufferSize = 1024 * 1024;
 
 #if METAL_DEBUG_OPTIONS
 extern int32 GMetalBufferScribble;
@@ -20,48 +22,21 @@ extern int32 GMetalBufferScribble;
 
 FMetalCommandEncoder::FMetalCommandEncoder(FMetalCommandList& CmdList)
 : CommandList(CmdList)
-, FrontFacingWinding(MTLWindingClockwise)
-, CullMode(MTLCullModeNone)
-#if METAL_API_1_1 && PLATFORM_MAC
-, DepthClipMode(MTLDepthClipModeClip)
-#endif
-, FillMode(MTLTriangleFillModeFill)
-, DepthStencilState(nil)
-, VisibilityMode(MTLVisibilityResultModeDisabled)
-, VisibilityOffset(0)
-, PipelineStatsBuffer(nil)
-, PipelineStatsOffset(0)
-, PipelineStatsMask(0)
 , RenderPassDesc(nil)
-, RenderPassDescApplied(0)
 , CommandBuffer(nil)
 , RenderCommandEncoder(nil)
-, RenderPipelineState(nil)
 , ComputeCommandEncoder(nil)
-, ComputePipelineState(nil)
 , BlitCommandEncoder(nil)
 , DebugGroups([NSMutableArray new])
 {
-	Viewport = {0.0, 0.0, 0.0, 0.0, FLT_MIN, FLT_MAX};
-	DepthBias[0] = DepthBias[1] = 0.0f;
-	DepthBias[2] = FLT_MAX;
-	ScissorRect = {0,0, 1,1};
-	FMemory::Memzero(BlendColor);
-	StencilRef[0] = StencilRef[1] = 0xff;
-	
 	FMemory::Memzero(ShaderBuffers);
-	FMemory::Memzero(ShaderTextures);
-	FMemory::Memzero(ShaderSamplers);
-	
-	if (!CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
-	{
-		RingBuffer = MakeShareable(new FRingBuffer(CommandList.GetCommandQueue().GetDevice(), EncoderRingBufferSize, BufferOffsetAlignment));
-	}
+
+	RingBuffer = MakeShareable(new FRingBuffer(CommandList.GetCommandQueue().GetDevice(), EncoderRingBufferSize, BufferOffsetAlignment));
 }
 
 FMetalCommandEncoder::~FMetalCommandEncoder(void)
 {
-	if (CommandBuffer)
+	if(CommandBuffer)
 	{
 		EndEncoding();
 		CommitCommandBuffer(false);
@@ -71,18 +46,6 @@ FMetalCommandEncoder::~FMetalCommandEncoder(void)
 	check(!IsComputeCommandEncoderActive());
 	check(!IsBlitCommandEncoderActive());
 	
-	if(ComputePipelineState)
-	{
-		[ComputePipelineState release];
-	}
-	if(RenderPipelineState)
-	{
-		[RenderPipelineState release];
-	}
-	if(DepthStencilState)
-	{
-		[DepthStencilState release];
-	}
 	[RenderPassDesc release];
 	RenderPassDesc = nil;
 
@@ -90,38 +53,14 @@ FMetalCommandEncoder::~FMetalCommandEncoder(void)
 	{
 		[DebugGroups release];
 	}
-	
-	for(int32 i = 0; i < SF_NumFrequencies; i++)
-	{
-		for(int32 j = 0; j < ML_MaxSamplers; j++)
-		{
-			if(ShaderSamplers[i].Samplers[j])
-			{
-				[ShaderSamplers[i].Samplers[j] release];
-			}
-		}
-	}
 }
 
 void FMetalCommandEncoder::Reset(void)
 {
-	check(!CommandBuffer);
-	
-	if(ComputePipelineState)
-	{
-		[ComputePipelineState release];
-		ComputePipelineState = nil;
-	}
-	if(RenderPipelineState)
-	{
-		[RenderPipelineState release];
-		RenderPipelineState = nil;
-	}
-	if(DepthStencilState)
-	{
-		[DepthStencilState release];
-		DepthStencilState = nil;
-	}
+    check(!CommandBuffer);
+    check(IsRenderCommandEncoderActive() == false
+          && IsComputeCommandEncoderActive() == false
+          && IsBlitCommandEncoderActive() == false);
 	
 	if(RenderPassDesc)
 	{
@@ -129,71 +68,44 @@ void FMetalCommandEncoder::Reset(void)
 		[RenderPassDesc release];
 		RenderPassDesc = nil;
 	}
-	RenderPassDescApplied = 0;
+    
+    FMemory::Memzero(ShaderBuffers);
 	
 	[DebugGroups removeAllObjects];
-	
-	FrontFacingWinding = MTLWindingClockwise;
-	CullMode = MTLCullModeNone;
-#if METAL_API_1_1 && PLATFORM_MAC
-	DepthClipMode = MTLDepthClipModeClip;
-#endif
-	FillMode = MTLTriangleFillModeFill;
-	VisibilityMode = MTLVisibilityResultModeDisabled;
-	
-	Viewport = {0.0, 0.0, 0.0, 0.0, FLT_MIN, FLT_MAX};
-	DepthBias[0] = DepthBias[1] = 0.0f;
-	DepthBias[2] = FLT_MAX;
-	ScissorRect = {0,0, 1,1};
-	FMemory::Memzero(BlendColor);
-	StencilRef[0] = StencilRef[1] = 0xff;
-	
-	FMemory::Memzero(ShaderBuffers);
-	FMemory::Memzero(ShaderTextures);
-	for(int32 i = 0; i < SF_NumFrequencies; i++)
-	{
-		for(int32 j = 0; j < ML_MaxSamplers; j++)
-		{
-			if(ShaderSamplers[i].Samplers[j])
-			{
-				[ShaderSamplers[i].Samplers[j] release];
-			}
-			ShaderSamplers[i].Samplers[j] = nil;
-		}
-		ShaderSamplers[i].Bound = 0;
-	}
 }
 
 #pragma mark - Public Command Buffer Mutators -
 
-void FMetalCommandEncoder::StartCommandBuffer(id<MTLCommandBuffer> const InCommandBuffer)
+void FMetalCommandEncoder::StartCommandBuffer(void)
 {
-	check(InCommandBuffer);
 	check(!CommandBuffer);
-	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
+	check(IsRenderCommandEncoderActive() == false
+          && IsComputeCommandEncoderActive() == false
+          && IsBlitCommandEncoderActive() == false);
 
-	[InCommandBuffer retain];
-	id<MTLCommandBuffer> OldCommandBuffer = CommandBuffer;
-	CommandBuffer = InCommandBuffer;
-	[OldCommandBuffer release];
+	CommandBuffer = CommandList.GetCommandQueue().CreateCommandBuffer();
+	TRACK_OBJECT(STAT_MetalCommandBufferCount, CommandBuffer);
 	
 	if ([DebugGroups count] > 0)
 	{
-		[InCommandBuffer setLabel:[DebugGroups lastObject]];
+		[CommandBuffer setLabel:[DebugGroups lastObject]];
 	}
 }
 	
-void FMetalCommandEncoder::CommitCommandBuffer(bool const bWait)
+void FMetalCommandEncoder::CommitCommandBuffer(uint32 const Flags)
 {
 	check(CommandBuffer);
-	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
-	
-	if (CommandBuffer.label == nil && [DebugGroups count] > 0)
+	check(IsRenderCommandEncoderActive() == false
+          && IsComputeCommandEncoderActive() == false
+          && IsBlitCommandEncoderActive() == false);
+
+	if(CommandBuffer.label == nil && [DebugGroups count] > 0)
 	{
 		[CommandBuffer setLabel:[DebugGroups lastObject]];
 	}
 	
-	if (!CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
+	bool const bWait = (Flags & EMetalSubmitFlagsWaitOnCommandBuffer);
+	if (!(Flags & EMetalSubmitFlagsBreakCommandBuffer))
 	{
 		uint32 RingBufferOffset = RingBuffer->GetOffset();
 		uint32 StartOffset = RingBuffer->LastWritten;
@@ -225,11 +137,15 @@ void FMetalCommandEncoder::CommitCommandBuffer(bool const bWait)
 			delete WeakRingBufferRef;
 		}];
 	}
-	
-	CommandList.Commit(CommandBuffer, bWait);
 
-	[CommandBuffer release];
+	CommandList.Commit(CommandBuffer, bWait);
+	
 	CommandBuffer = nil;
+	if (Flags & EMetalSubmitFlagsCreateCommandBuffer)
+	{
+		StartCommandBuffer();
+		check(CommandBuffer);
+	}
 }
 
 #pragma mark - Public Command Encoder Accessors -
@@ -281,264 +197,22 @@ void FMetalCommandEncoder::BeginRenderCommandEncoding(void)
 	check(RenderPassDesc);
 	check(CommandBuffer);
 	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
-	
+    
 	RenderCommandEncoder = [[CommandBuffer renderCommandEncoderWithDescriptor:RenderPassDesc] retain];
-	RenderPassDescApplied++;
 	
 	if(GEmitDrawEvents)
 	{
 		NSString* Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[RenderCommandEncoder setLabel:Label];
-#if METAL_DEBUG_OPTIONS
-		if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
-		{
-			FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-			[Buf beginRenderCommandEncoder:Label withDescriptor:RenderPassDesc];
-		}
-#endif
 		
 		if([DebugGroups count])
 		{
 			for (NSString* Group in DebugGroups)
 			{
 				[RenderCommandEncoder pushDebugGroup:Group];
-#if METAL_DEBUG_OPTIONS
-				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
-				{
-					FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-					[Buf pushDebugGroup:Group];
-				}
-#endif
 			}
 		}
     }
-	
-#if METAL_DEBUG_OPTIONS
-	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
-	{
-		if(RenderPassDesc.colorAttachments)
-		{
-			for(uint i = 0; i< 8; i++)
-			{
-				MTLRenderPassColorAttachmentDescriptor* Desc = [RenderPassDesc.colorAttachments objectAtIndexedSubscript:i];
-				if(Desc)
-				{
-					METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, Desc.texture);
-				}
-			}
-		}
-		if(RenderPassDesc.depthAttachment)
-		{
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPassDesc.depthAttachment.texture);
-		}
-		if(RenderPassDesc.stencilAttachment)
-		{
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPassDesc.stencilAttachment.texture);
-		}
-		if(RenderPassDesc.visibilityResultBuffer)
-		{
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPassDesc.visibilityResultBuffer);
-		}
-	}
-#endif
-}
-
-void FMetalCommandEncoder::RestoreRenderCommandEncoding(void)
-{
-	check(RenderPassDesc);
-	check(CommandBuffer);
-	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
-	
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-	if ((GetMetalDeviceContext().GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelValidation) && RenderPassDescApplied == 1)
-	{
-		bool bAllLoadActionsOK = true;
-		if(RenderPassDesc.colorAttachments)
-		{
-			for(uint i = 0; i< 8; i++)
-			{
-				MTLRenderPassColorAttachmentDescriptor* Desc = [RenderPassDesc.colorAttachments objectAtIndexedSubscript:i];
-				if(Desc)
-				{
-					bAllLoadActionsOK |= (Desc.loadAction == MTLLoadActionLoad);
-				}
-			}
-		}
-		if(RenderPassDesc.depthAttachment)
-		{
-			bAllLoadActionsOK |= (RenderPassDesc.depthAttachment.loadAction == MTLLoadActionLoad);
-		}
-		if(RenderPassDesc.stencilAttachment)
-		{
-			bAllLoadActionsOK |= (RenderPassDesc.stencilAttachment.loadAction == MTLLoadActionLoad);
-		}
-		
-		if (!bAllLoadActionsOK)
-		{
-			UE_LOG(LogMetal, Warning, TEXT("Called RestoreRenderCommandEncoding after the first use of a render-pass to restore the render pass with a clear operation - this would erroneously re-clear any existing draw calls."));
-			
-			if(RenderPassDesc.colorAttachments)
-			{
-				for(uint i = 0; i< 8; i++)
-				{
-					MTLRenderPassColorAttachmentDescriptor* Desc = [RenderPassDesc.colorAttachments objectAtIndexedSubscript:i];
-					if(Desc)
-					{
-						Desc.loadAction = MTLLoadActionLoad;
-					}
-				}
-			}
-			if(RenderPassDesc.depthAttachment)
-			{
-				RenderPassDesc.depthAttachment.loadAction = MTLLoadActionLoad;
-			}
-			if(RenderPassDesc.stencilAttachment)
-			{
-				RenderPassDesc.stencilAttachment.loadAction = MTLLoadActionLoad;
-			}
-		}
-	}
-#endif
-	
-	BeginRenderCommandEncoding();
-	RestoreRenderCommandEncodingState();
-}
-
-void FMetalCommandEncoder::RestoreRenderCommandEncodingState(void)
-{
-	check(RenderCommandEncoder);
-	
-	PushDebugGroup(@"RestoreRenderCommandEncodingState");
-	
-	METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPipelineState);
-	[RenderCommandEncoder setRenderPipelineState:RenderPipelineState];
-	[RenderCommandEncoder setViewport:Viewport];
-	[RenderCommandEncoder setFrontFacingWinding:FrontFacingWinding];
-	[RenderCommandEncoder setCullMode:CullMode];
-#if METAL_API_1_1 && PLATFORM_MAC
-	if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthClipMode))
-	{
-		[RenderCommandEncoder setDepthClipMode:DepthClipMode];
-	}
-#endif
-	[RenderCommandEncoder setDepthBias:DepthBias[0] slopeScale:DepthBias[1] clamp:DepthBias[2]];
-	
-	CGRect ViewportRect = CGRectMake(Viewport.originX, Viewport.originY, Viewport.width, Viewport.height);
-	CGRect Scissor = CGRectMake(ScissorRect.x, ScissorRect.y, ScissorRect.width, ScissorRect.height);
-	CGRect Unified = CGRectIntersection(ViewportRect, Scissor);
-	MTLScissorRect UnifiedScissorRect = {(NSUInteger)Unified.origin.x, (NSUInteger)Unified.origin.y, (NSUInteger)Unified.size.width, (NSUInteger)Unified.size.height};
-	
-	[RenderCommandEncoder setScissorRect:UnifiedScissorRect];
-	[RenderCommandEncoder setTriangleFillMode:FillMode];
-	[RenderCommandEncoder setBlendColorRed:BlendColor[0] green:BlendColor[1] blue:BlendColor[2] alpha:BlendColor[3]];
-	METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, DepthStencilState);
-	[RenderCommandEncoder setDepthStencilState:DepthStencilState];
-#if METAL_API_1_1
-	if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSeparateStencil))
-	{
-		[RenderCommandEncoder setStencilFrontReferenceValue: StencilRef[0] backReferenceValue:StencilRef[1]];
-	}
-	else
-#endif
-	{
-		[RenderCommandEncoder setStencilReferenceValue: StencilRef[0]];
-	}
-	[RenderCommandEncoder setVisibilityResultMode:VisibilityMode offset:VisibilityOffset];
-	
-	for(uint32 i = 0; i < ML_MaxBuffers; i++)
-	{
-		if (ShaderBuffers[SF_Vertex].Bound & (1 << i))
-		{
-			if (ShaderBuffers[SF_Vertex].Buffers[i] != nil)
-			{
-				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderBuffers[SF_Vertex].Buffers[i]);
-				[RenderCommandEncoder setVertexBuffer:ShaderBuffers[SF_Vertex].Buffers[i] offset:ShaderBuffers[SF_Vertex].Offsets[i] atIndex:i];
-			}
-			else if (ShaderBuffers[SF_Vertex].Bytes[i] != nil)
-			{
-				uint8 const* Bytes = (((uint8 const*)ShaderBuffers[SF_Vertex].Bytes[i].bytes) + ShaderBuffers[SF_Vertex].Offsets[i]);
-				uint32 Len = ShaderBuffers[SF_Vertex].Bytes[i].length - ShaderBuffers[SF_Vertex].Offsets[i];
-				
-#if METAL_API_1_1
-				if (CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
-				{
-					[RenderCommandEncoder setVertexBytes:Bytes length:Len atIndex:i];
-				}
-				else
-#endif
-				{
-					uint32 RingOffset = RingBuffer->Allocate(Len, BufferOffsetAlignment);
-					id<MTLBuffer> RingBufferInner = RingBuffer->Buffer;
-					
-					FMemory::Memcpy(((uint8*)[RingBufferInner contents]) + RingOffset, Bytes, Len);
-					
-					METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, RingBufferInner);
-					[RenderCommandEncoder setVertexBuffer:RingBufferInner offset:RingOffset atIndex:i];
-				}
-			}
-		}
-		if (ShaderBuffers[SF_Pixel].Bound & (1 << i))
-		{
-			if (ShaderBuffers[SF_Pixel].Buffers[i] != nil)
-			{
-				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderBuffers[SF_Pixel].Buffers[i]);
-				[RenderCommandEncoder setFragmentBuffer:ShaderBuffers[SF_Pixel].Buffers[i] offset:ShaderBuffers[SF_Pixel].Offsets[i] atIndex:i];
-			}
-			else if (ShaderBuffers[SF_Pixel].Bytes[i] != nil)
-			{
-				uint8 const* Bytes = (((uint8 const*)ShaderBuffers[SF_Pixel].Bytes[i].bytes) + ShaderBuffers[SF_Pixel].Offsets[i]);
-				uint32 Len = ShaderBuffers[SF_Pixel].Bytes[i].length - ShaderBuffers[SF_Pixel].Offsets[i];
-				
-#if METAL_API_1_1
-				if (CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
-				{
-					[RenderCommandEncoder setFragmentBytes:Bytes length:Len atIndex:i];
-				}
-				else
-#endif
-				{
-					uint32 RingOffset = RingBuffer->Allocate(Len, BufferOffsetAlignment);
-					id<MTLBuffer> RingBufferInner = RingBuffer->Buffer;
-					
-					FMemory::Memcpy(((uint8*)[RingBufferInner contents]) + RingOffset, Bytes, Len);
-					
-					METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, RingBufferInner);
-					[RenderCommandEncoder setFragmentBuffer:RingBufferInner offset:RingOffset atIndex:i];
-				}
-			}
-		}
-	}
-	
-	for(uint32 i = 0; i < ML_MaxTextures; i++)
-	{
-		if(ShaderTextures[SF_Vertex].Textures[i] && (ShaderTextures[SF_Vertex].Bound & (1 << i)))
-		{
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderTextures[SF_Vertex].Textures[i]);
-			[RenderCommandEncoder setVertexTexture:ShaderTextures[SF_Vertex].Textures[i] atIndex:i];
-		}
-		
-		if(ShaderTextures[SF_Pixel].Textures[i] && (ShaderTextures[SF_Pixel].Bound & (1 << i)))
-		{
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderTextures[SF_Pixel].Textures[i]);
-			[RenderCommandEncoder setFragmentTexture:ShaderTextures[SF_Pixel].Textures[i] atIndex:i];
-		}
-	}
-	
-	for(uint32 i = 0; i < ML_MaxSamplers; i++)
-	{
-		if(ShaderSamplers[SF_Vertex].Samplers[i] != nil && (ShaderSamplers[SF_Vertex].Bound & (1 << i)))
-		{
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, ShaderSamplers[SF_Vertex].Samplers[i]);
-			[RenderCommandEncoder setVertexSamplerState:ShaderSamplers[SF_Vertex].Samplers[i]  atIndex:i];
-		}
-		if(ShaderSamplers[SF_Pixel].Samplers[i] != nil && (ShaderSamplers[SF_Pixel].Bound & (1 << i)))
-		{
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, ShaderSamplers[SF_Pixel].Samplers[i]);
-			[RenderCommandEncoder setFragmentSamplerState:ShaderSamplers[SF_Pixel].Samplers[i] atIndex:i];
-		}
-	}
-	
-	PopDebugGroup();
 }
 
 void FMetalCommandEncoder::BeginComputeCommandEncoding(void)
@@ -552,100 +226,15 @@ void FMetalCommandEncoder::BeginComputeCommandEncoding(void)
 	{
 		NSString* Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[ComputeCommandEncoder setLabel:Label];
-#if METAL_DEBUG_OPTIONS
-		if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
-		{
-			FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-			[Buf beginComputeCommandEncoder:Label];
-		}
-#endif
 		
 		if([DebugGroups count])
 		{
 			for (NSString* Group in DebugGroups)
 			{
 				[ComputeCommandEncoder pushDebugGroup:Group];
-#if METAL_DEBUG_OPTIONS
-				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
-				{
-					FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-					[Buf pushDebugGroup:Group];
-				}
-#endif
 			}
 		}
 	}
-	
-    for(uint32 i = 0; i < SF_NumFrequencies; i++)
-    {
-		ShaderBuffers[i].Bound = 0;
-		ShaderTextures[i].Bound = 0;
-		ShaderSamplers[i].Bound = 0;
-    }
-}
-
-void FMetalCommandEncoder::RestoreComputeCommandEncodingState(void)
-{
-	check(ComputeCommandEncoder);
-	
-	PushDebugGroup(@"RestoreComputeCommandEncodingState");
-	
-	[ComputeCommandEncoder setComputePipelineState:ComputePipelineState];
-	
-	for(uint32 i = 0; i < ML_MaxBuffers; i++)
-	{
-		if (ShaderBuffers[SF_Compute].Buffers[i] != nil)
-		{
-			ShaderBuffers[SF_Compute].Bound |= (1 << i);
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderBuffers[SF_Compute].Buffers[i]);
-			[ComputeCommandEncoder setBuffer:ShaderBuffers[SF_Compute].Buffers[i] offset:ShaderBuffers[SF_Compute].Offsets[i] atIndex:i];
-		}
-		else if (ShaderBuffers[SF_Compute].Bytes[i] != nil)
-		{
-			ShaderBuffers[SF_Compute].Bound |= (1 << i);
-			uint8 const* Bytes = (((uint8 const*)ShaderBuffers[SF_Compute].Bytes[i].bytes) + ShaderBuffers[SF_Compute].Offsets[i]);
-			uint32 Len = ShaderBuffers[SF_Compute].Bytes[i].length - ShaderBuffers[SF_Compute].Offsets[i];
-			
-#if METAL_API_1_1
-			if (CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
-			{
-				[ComputeCommandEncoder setBytes:Bytes length:Len atIndex:i];
-			}
-			else
-#endif
-			{
-				uint32 RingOffset = RingBuffer->Allocate(Len, BufferOffsetAlignment);
-				id<MTLBuffer> RingBufferInner = RingBuffer->Buffer;
-					
-				FMemory::Memcpy(((uint8*)[RingBufferInner contents]) + RingOffset, Bytes, Len);
-				METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, RingBufferInner);
-					
-				[ComputeCommandEncoder setBuffer:RingBufferInner offset:RingOffset atIndex:i];
-			}
-		}
-	}
-	
-	for(uint32 i = 0; i < ML_MaxTextures; i++)
-	{
-		if(ShaderTextures[SF_Compute].Textures[i])
-		{
-			ShaderTextures[SF_Compute].Bound |= (1 << i);
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderTextures[SF_Compute].Textures[i]);
-			[ComputeCommandEncoder setTexture:ShaderTextures[SF_Compute].Textures[i] atIndex:i];
-		}
-	}
-	
-	for(uint32 i = 0; i < ML_MaxSamplers; i++)
-	{
-		if(ShaderSamplers[SF_Compute].Samplers[i] != nil)
-		{
-			ShaderSamplers[SF_Compute].Bound |= (1 << i);
-			METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, ShaderSamplers[SF_Compute].Samplers[i]);
-			[ComputeCommandEncoder setSamplerState:ShaderSamplers[SF_Compute].Samplers[i] atIndex:i];
-		}
-	}
-	
-	PopDebugGroup();
 }
 
 void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
@@ -659,26 +248,12 @@ void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
 	{
 		NSString* Label = [DebugGroups count] > 0 ? [DebugGroups lastObject] : (NSString*)CFSTR("InitialPass");
 		[BlitCommandEncoder setLabel:Label];
-#if METAL_DEBUG_OPTIONS
-		if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
-		{
-			FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-			[Buf beginBlitCommandEncoder:Label];
-		}
-#endif
 		
 		if([DebugGroups count])
 		{
 			for (NSString* Group in DebugGroups)
 			{
 				[BlitCommandEncoder pushDebugGroup:Group];
-#if METAL_DEBUG_OPTIONS
-				if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
-				{
-					FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-					[Buf pushDebugGroup:Group];
-				}
-#endif
 			}
 		}
 	}
@@ -686,13 +261,6 @@ void FMetalCommandEncoder::BeginBlitCommandEncoding(void)
 
 void FMetalCommandEncoder::EndEncoding(void)
 {
-#if METAL_DEBUG_OPTIONS
-	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogOperations)
-	{
-		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-		[Buf endCommandEncoder];
-	}
-#endif
 	@autoreleasepool
 	{
 		if(IsRenderCommandEncoderActive())
@@ -714,20 +282,14 @@ void FMetalCommandEncoder::EndEncoding(void)
 			BlitCommandEncoder = nil;
 		}
 	}
+    
+    FMemory::Memzero(ShaderBuffers);
 }
 
 #pragma mark - Public Debug Support -
 
 void FMetalCommandEncoder::InsertDebugSignpost(NSString* const String)
 {
-#if METAL_DEBUG_OPTIONS
-	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
-	{
-		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-		[Buf insertDebugSignpost:String];
-	}
-#endif
-	
 	if (RenderCommandEncoder)
 	{
 		[RenderCommandEncoder insertDebugSignpost:String];
@@ -744,62 +306,51 @@ void FMetalCommandEncoder::InsertDebugSignpost(NSString* const String)
 
 void FMetalCommandEncoder::PushDebugGroup(NSString* const String)
 {
-#if METAL_DEBUG_OPTIONS
-	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
+	if (String)
 	{
-		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-		[Buf pushDebugGroup:String];
-	}
-#endif
-	
-	[DebugGroups addObject:String];
-	if (RenderCommandEncoder)
-	{
-		[RenderCommandEncoder pushDebugGroup:String];
-	}
-	else if (ComputeCommandEncoder)
-	{
-		[ComputeCommandEncoder pushDebugGroup:String];
-	}
-	else if (BlitCommandEncoder)
-	{
-		[BlitCommandEncoder pushDebugGroup:String];
+		[DebugGroups addObject:String];
+		if (RenderCommandEncoder)
+		{
+			[RenderCommandEncoder pushDebugGroup:String];
+		}
+		else if (ComputeCommandEncoder)
+		{
+			[ComputeCommandEncoder pushDebugGroup:String];
+		}
+		else if (BlitCommandEncoder)
+		{
+			[BlitCommandEncoder pushDebugGroup:String];
+		}
 	}
 }
 
 void FMetalCommandEncoder::PopDebugGroup(void)
 {
-#if METAL_DEBUG_OPTIONS
-	if (CommandList.GetCommandQueue().GetRuntimeDebuggingLevel() >= EMetalDebugLevelLogDebugGroups)
+	if (DebugGroups.count > 0)
 	{
-		FMetalDebugCommandBuffer* Buf = (FMetalDebugCommandBuffer*)CommandBuffer;
-		[Buf popDebugGroup];
-	}
-#endif
-	
-	[DebugGroups removeLastObject];
-	if (RenderCommandEncoder)
-	{
-		[RenderCommandEncoder popDebugGroup];
-	}
-	else if (ComputeCommandEncoder)
-	{
-		[ComputeCommandEncoder popDebugGroup];
-	}
-	else if (BlitCommandEncoder)
-	{
-		[BlitCommandEncoder popDebugGroup];
+		[DebugGroups removeLastObject];
+		if (RenderCommandEncoder)
+		{
+			[RenderCommandEncoder popDebugGroup];
+		}
+		else if (ComputeCommandEncoder)
+		{
+			[ComputeCommandEncoder popDebugGroup];
+		}
+		else if (BlitCommandEncoder)
+		{
+			[BlitCommandEncoder popDebugGroup];
+		}
 	}
 }
 	
 #pragma mark - Public Render State Mutators -
 
-void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass, bool const bReset)
+void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* const RenderPass)
 {
 	check(IsRenderCommandEncoderActive() == false && IsComputeCommandEncoderActive() == false && IsBlitCommandEncoderActive() == false);
 	check(RenderPass);
 	
-	RenderPassDescApplied = 0;
 	if(RenderPass != RenderPassDesc)
 	{
 		[RenderPass retain];
@@ -811,80 +362,45 @@ void FMetalCommandEncoder::SetRenderPassDescriptor(MTLRenderPassDescriptor* cons
 	}
 	check(RenderPassDesc);
 	
-	if (bReset)
-	{
-		for(uint32 i = 0; i < SF_NumFrequencies; i++)
-		{
-			ShaderBuffers[i].Bound = 0;
-			ShaderTextures[i].Bound = 0;
-			ShaderSamplers[i].Bound = 0;
-		}
-	}
+	FMemory::Memzero(ShaderBuffers);
 }
 
-void FMetalCommandEncoder::SetRenderPipelineState(id<MTLRenderPipelineState> PipelineState)
+void FMetalCommandEncoder::SetRenderPipelineState(id<MTLRenderPipelineState> PipelineState, MTLRenderPipelineReflection* Reflection, NSString* VertexSource, NSString* FragmentSource)
 {
-	[PipelineState retain];
-	[RenderPipelineState release];
-	RenderPipelineState = PipelineState;
-	if (RenderCommandEncoder)
+	check (RenderCommandEncoder);
 	{
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, RenderPipelineState);
-		[RenderCommandEncoder setRenderPipelineState:RenderPipelineState];
+		[RenderCommandEncoder setRenderPipelineState:PipelineState];
+        METAL_SET_RENDER_REFLECTION(RenderCommandEncoder, Reflection, VertexSource, FragmentSource);
 	}
 }
 
 void FMetalCommandEncoder::SetViewport(MTLViewport const& InViewport)
 {
-	Viewport = InViewport;
-	if (RenderCommandEncoder)
+    check (RenderCommandEncoder);
 	{
-		[RenderCommandEncoder setViewport:Viewport];
+		[RenderCommandEncoder setViewport:InViewport];
 	}
 }
 
 void FMetalCommandEncoder::SetFrontFacingWinding(MTLWinding const InFrontFacingWinding)
 {
-	FrontFacingWinding = InFrontFacingWinding;
-	if (RenderCommandEncoder)
+    check (RenderCommandEncoder);
 	{
-		[RenderCommandEncoder setFrontFacingWinding:FrontFacingWinding];
+		[RenderCommandEncoder setFrontFacingWinding:InFrontFacingWinding];
 	}
 }
 
 void FMetalCommandEncoder::SetCullMode(MTLCullMode const InCullMode)
 {
-	CullMode = InCullMode;
-	if (RenderCommandEncoder)
+    check (RenderCommandEncoder);
 	{
 		[RenderCommandEncoder setCullMode:InCullMode];
 	}
 }
 
-#if METAL_API_1_1 && PLATFORM_MAC
-void FMetalCommandEncoder::SetDepthClipMode(MTLDepthClipMode const InDepthClipMode)
-{
-	DepthClipMode = InDepthClipMode;
-	if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesDepthClipMode))
-	{
-		if (RenderCommandEncoder)
-		{
-			[RenderCommandEncoder setDepthClipMode:InDepthClipMode];
-		}
-	}
-	else
-	{
-		UE_LOG(LogMetal, Warning, TEXT("SetDepthClipMode unsupported on the current device."));
-	}
-}
-#endif
-
 void FMetalCommandEncoder::SetDepthBias(float const InDepthBias, float const InSlopeScale, float const InClamp)
 {
-	DepthBias[0] = InDepthBias;
-	DepthBias[1] = InSlopeScale;
-	DepthBias[2] = InClamp;
-	if (RenderCommandEncoder)
+    check (RenderCommandEncoder);
 	{
 		[RenderCommandEncoder setDepthBias:InDepthBias slopeScale:InSlopeScale clamp:InClamp];
 	}
@@ -892,29 +408,23 @@ void FMetalCommandEncoder::SetDepthBias(float const InDepthBias, float const InS
 
 void FMetalCommandEncoder::SetScissorRect(MTLScissorRect const& Rect)
 {
-	ScissorRect = Rect;
-	if (RenderCommandEncoder)
+    check(RenderCommandEncoder);
 	{
-		[RenderCommandEncoder setScissorRect:ScissorRect];
+		[RenderCommandEncoder setScissorRect:Rect];
 	}
 }
 
 void FMetalCommandEncoder::SetTriangleFillMode(MTLTriangleFillMode const InFillMode)
 {
-	FillMode = InFillMode;
-	if (RenderCommandEncoder)
+    check(RenderCommandEncoder);
 	{
-		[RenderCommandEncoder setTriangleFillMode:FillMode];
+		[RenderCommandEncoder setTriangleFillMode:InFillMode];
 	}
 }
 
 void FMetalCommandEncoder::SetBlendColor(float const Red, float const Green, float const Blue, float const Alpha)
 {
-	BlendColor[0] = Red;
-	BlendColor[1] = Green;
-	BlendColor[2] = Blue;
-	BlendColor[3] = Alpha;
-	if (RenderCommandEncoder)
+	check(RenderCommandEncoder);
 	{
 		[RenderCommandEncoder setBlendColorRed:Red green:Green blue:Blue alpha:Alpha];
 	}
@@ -922,352 +432,152 @@ void FMetalCommandEncoder::SetBlendColor(float const Red, float const Green, flo
 
 void FMetalCommandEncoder::SetDepthStencilState(id<MTLDepthStencilState> const InDepthStencilState)
 {
-	[InDepthStencilState retain];
-	[DepthStencilState release];
-	DepthStencilState = InDepthStencilState;
-	if (RenderCommandEncoder)
+    check (RenderCommandEncoder);
 	{
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_STATE(CommandBuffer, InDepthStencilState);
 		[RenderCommandEncoder setDepthStencilState:InDepthStencilState];
 	}
 }
 
 void FMetalCommandEncoder::SetStencilReferenceValue(uint32 const ReferenceValue)
 {
-	StencilRef[0] = ReferenceValue;
-	StencilRef[1] = ReferenceValue;
-	if (RenderCommandEncoder)
+    check (RenderCommandEncoder);
 	{
 		[RenderCommandEncoder setStencilReferenceValue:ReferenceValue];
 	}
 }
 
-void FMetalCommandEncoder::SetStencilReferenceValue(uint32 const FrontReferenceValue, uint32 const BackReferenceValue)
-{
-	StencilRef[0] = FrontReferenceValue;
-	StencilRef[1] = BackReferenceValue;
-	if (RenderCommandEncoder)
-	{
-#if METAL_API_1_1
-		if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSeparateStencil))
-		{
-			[RenderCommandEncoder setStencilFrontReferenceValue: FrontReferenceValue backReferenceValue:BackReferenceValue];
-		}
-		else
-#endif
-		{
-			UE_LOG(LogMetal, Warning, TEXT("Attempting to set separate stencil ref on device which only supports unified stencil ref."));
-			[RenderCommandEncoder setStencilReferenceValue: FrontReferenceValue];
-		}
-	}
-}
-
 void FMetalCommandEncoder::SetVisibilityResultMode(MTLVisibilityResultMode const Mode, NSUInteger const Offset)
 {
-	VisibilityMode = Mode;
-	VisibilityOffset = Offset;
-	if (RenderCommandEncoder)
+    check (RenderCommandEncoder);
 	{
+		check(Mode == MTLVisibilityResultModeDisabled || RenderPassDesc.visibilityResultBuffer);
 		[RenderCommandEncoder setVisibilityResultMode: Mode offset:Offset];
 	}
 }
 	
 #pragma mark - Public Shader Resource Mutators -
 
-void FMetalCommandEncoder::SetShaderBuffer(EShaderFrequency Frequency, id<MTLBuffer> Buffer, NSUInteger const Offset, NSUInteger index)
+void FMetalCommandEncoder::SetShaderBuffer(MTLFunctionType const FunctionType, id<MTLBuffer> Buffer, NSUInteger const Offset, NSUInteger const Length, NSUInteger index)
 {
 	check(index < ML_MaxBuffers);
-    if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSetBufferOffset) && (ShaderBuffers[Frequency].Bound & (1 << index)) && ShaderBuffers[Frequency].Buffers[index] == Buffer)
+    if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSetBufferOffset) && Buffer && (ShaderBuffers[FunctionType].Bound & (1 << index)) && ShaderBuffers[FunctionType].Buffers[index] == Buffer)
     {
-		SetShaderBufferOffset(Frequency, Offset, index);
+		SetShaderBufferOffset(FunctionType, Offset, Length, index);
     }
     else
     {
 		if(Buffer)
 		{
-			ShaderBuffers[Frequency].Bound |= (1 << index);
+			ShaderBuffers[FunctionType].Bound |= (1 << index);
 		}
 		else
 		{
-			ShaderBuffers[Frequency].Bound &= ~(1 << index);
+			ShaderBuffers[FunctionType].Bound &= ~(1 << index);
 		}
-		ShaderBuffers[Frequency].Buffers[index] = Buffer;
-		ShaderBuffers[Frequency].Bytes[index] = nil;
-        ShaderBuffers[Frequency].Offsets[index] = Offset;
+		ShaderBuffers[FunctionType].Buffers[index] = Buffer;
+		ShaderBuffers[FunctionType].Bytes[index] = nil;
+		ShaderBuffers[FunctionType].Offsets[index] = Offset;
+		ShaderBuffers[FunctionType].Lengths[index] = Length;
 		
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Buffer);
-		
-        switch (Frequency)
-        {
-            case SF_Vertex:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setVertexBuffer:Buffer offset:Offset atIndex:index];
-				}
-                break;
-            case SF_Pixel:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setFragmentBuffer:Buffer offset:Offset atIndex:index];
-				}
-                break;
-            case SF_Compute:
-				if (ComputeCommandEncoder)
-				{
-					[ComputeCommandEncoder setBuffer:Buffer offset:Offset atIndex:index];
-				}
-                break;
-            default:
-                check(false);
-                break;
-        }
+		SetShaderBufferInternal(FunctionType, index);
     }
 }
 
-void FMetalCommandEncoder::SetShaderBytes(EShaderFrequency const Frequency, NSData* Data, NSUInteger const Offset, NSUInteger const Index)
+void FMetalCommandEncoder::SetShaderData(MTLFunctionType const FunctionType, NSData* Data, NSUInteger const Offset, NSUInteger const Index)
 {
 	check(Index < ML_MaxBuffers);
 	if(Data)
 	{
-		ShaderBuffers[Frequency].Bound |= (1 << Index);
+		ShaderBuffers[FunctionType].Bound |= (1 << Index);
 	}
 	else
 	{
-		ShaderBuffers[Frequency].Bound &= ~(1 << Index);
+		ShaderBuffers[FunctionType].Bound &= ~(1 << Index);
 	}
 	
-	ShaderBuffers[Frequency].Buffers[Index] = nil;
-	ShaderBuffers[Frequency].Bytes[Index] = Data;
-	ShaderBuffers[Frequency].Offsets[Index] = Offset;
+	ShaderBuffers[FunctionType].Buffers[Index] = nil;
+	ShaderBuffers[FunctionType].Bytes[Index] = Data;
+	ShaderBuffers[FunctionType].Offsets[Index] = Offset;
+	ShaderBuffers[FunctionType].Lengths[Index] = Data ? (Data.length - Offset) : 0;
 	
-	uint8 const* Bytes = (((uint8 const*)Data.bytes) + Offset);
-	uint32 Len = Data.length - Offset;
-	
-#if METAL_API_1_1
-	if (CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
+	SetShaderBufferInternal(FunctionType, Index);
+}
+
+void FMetalCommandEncoder::SetShaderBytes(MTLFunctionType const FunctionType, uint8 const* Bytes, NSUInteger const Length, NSUInteger const Index)
+{
+	check(Index < ML_MaxBuffers);
+	if(Bytes && Length)
 	{
-		switch (Frequency)
-		{
-			case SF_Vertex:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setVertexBytes:Bytes length:Len atIndex:Index];
-				}
-				break;
-			case SF_Pixel:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setFragmentBytes:Bytes length:Len atIndex:Index];
-				}
-				break;
-			case SF_Compute:
-				if (ComputeCommandEncoder)
-				{
-					[ComputeCommandEncoder setBytes:Bytes length:Len atIndex:Index];
-				}
-				break;
-			default:
-				check(false);
-				break;
-		}
-	}
-	else
-#endif
-	{
-		uint32 RingOffset = RingBuffer->Allocate(Len, BufferOffsetAlignment);
-		id<MTLBuffer> RingBufferInner = RingBuffer->Buffer;
-	
-		FMemory::Memcpy(((uint8*)[RingBufferInner contents]) + RingOffset, Bytes, Len);
+		ShaderBuffers[FunctionType].Bound |= (1 << Index);
+
+		uint32 Offset = RingBuffer->Allocate(Length, BufferOffsetAlignment);
+		id<MTLBuffer> Buffer = RingBuffer->Buffer;
 		
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, RingBufferInner);
-		switch (Frequency)
-		{
-			case SF_Vertex:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setVertexBuffer:RingBufferInner offset:RingOffset atIndex:Index];
-				}
-				break;
-			case SF_Pixel:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setFragmentBuffer:RingBufferInner offset:RingOffset atIndex:Index];
-				}
-				break;
-			case SF_Compute:
-				if (ComputeCommandEncoder)
-				{
-					[ComputeCommandEncoder setBuffer:RingBufferInner offset:RingOffset atIndex:Index];
-				}
-				break;
-			default:
-				check(false);
-				break;
-		}
-	}
-}
-
-bool FMetalCommandEncoder::SetShaderBufferConditional(EShaderFrequency const Frequency, id<MTLBuffer> const Buffer, NSUInteger const Offset, NSUInteger const index)
-{
-	check(index < ML_MaxBuffers);
-	check(Buffer);
-	bool bBound = (ShaderBuffers[Frequency].Bound & (1 << index));
-    if (!bBound)
-    {
-		ShaderBuffers[Frequency].Bound |= (1 << index);
-		ShaderBuffers[Frequency].Buffers[index] = Buffer;
-		ShaderBuffers[Frequency].Bytes[index] = nil;
-		ShaderBuffers[Frequency].Offsets[index] = Offset;
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Buffer);
-        switch (Frequency)
-        {
-            case SF_Vertex:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setVertexBuffer:Buffer offset:Offset atIndex:index];
-				}
-                break;
-            case SF_Pixel:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setFragmentBuffer:Buffer offset:Offset atIndex:index];
-				}
-                break;
-            case SF_Compute:
-				if (ComputeCommandEncoder)
-				{
-					[ComputeCommandEncoder setBuffer:Buffer offset:Offset atIndex:index];
-				}
-                break;
-            default:
-                check(false);
-                break;
-        }
-    }
-    
-    return !bBound;
-}
-
-void FMetalCommandEncoder::SetShaderBufferOffset(EShaderFrequency Frequency, NSUInteger const Offset, NSUInteger index)
-{
-	check(index < ML_MaxBuffers);
-    checkf(ShaderBuffers[Frequency].Buffers[index] && (ShaderBuffers[Frequency].Bound & (1 << index)), TEXT("Buffer must already be bound"));
-#if METAL_API_1_1
-	if(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSetBufferOffset))
-	{
-		ShaderBuffers[Frequency].Offsets[index] = Offset;
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, ShaderBuffers[Frequency].Buffers[index]);
-		switch (Frequency)
-		{
-			case SF_Vertex:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setVertexBufferOffset:Offset atIndex:index];
-				}
-				break;
-			case SF_Pixel:
-				if (RenderCommandEncoder)
-				{
-					[RenderCommandEncoder setFragmentBufferOffset:Offset atIndex:index];
-				}
-				break;
-			case SF_Compute:
-				if (ComputeCommandEncoder)
-				{
-					[ComputeCommandEncoder setBufferOffset:Offset atIndex:index];
-				}
-				break;
-			default:
-				check(false);
-				break;
-		}
+		ShaderBuffers[FunctionType].Buffers[Index] = Buffer;
+		ShaderBuffers[FunctionType].Bytes[Index] = nil;
+		ShaderBuffers[FunctionType].Offsets[Index] = Offset;
+		ShaderBuffers[FunctionType].Lengths[Index] = Length;
+		
+		FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, Bytes, Length);
 	}
 	else
-#endif
 	{
-		SetShaderBuffer(Frequency, ShaderBuffers[Frequency].Buffers[index], Offset, index);
+		ShaderBuffers[FunctionType].Bound &= ~(1 << Index);
+		
+		ShaderBuffers[FunctionType].Buffers[Index] = nil;
+		ShaderBuffers[FunctionType].Bytes[Index] = nil;
+		ShaderBuffers[FunctionType].Offsets[Index] = 0;
+		ShaderBuffers[FunctionType].Lengths[Index] = 0;
 	}
+	
+	SetShaderBufferInternal(FunctionType, Index);
 }
 
-void FMetalCommandEncoder::SetShaderBuffers(EShaderFrequency Frequency, id<MTLBuffer> const Buffers[], const NSUInteger Offsets[], NSRange const& Range)
+void FMetalCommandEncoder::SetShaderBufferOffset(MTLFunctionType FunctionType, NSUInteger const Offset, NSUInteger const Length, NSUInteger const index)
 {
-	for (NSUInteger i = (NSUInteger)Range.location; i < (NSUInteger)Range.length; i++)
+	check(index < ML_MaxBuffers);
+    checkf(ShaderBuffers[FunctionType].Buffers[index] && (ShaderBuffers[FunctionType].Bound & (1 << index)), TEXT("Buffer must already be bound"));
+	check(GetMetalDeviceContext().SupportsFeature(EMetalFeaturesSetBufferOffset));
+#if METAL_API_1_1
+	ShaderBuffers[FunctionType].Offsets[index] = Offset;
+	ShaderBuffers[FunctionType].Lengths[index] = Length;
+	switch (FunctionType)
 	{
-        check(i < ML_MaxBuffers);
-		if(Buffers[i])
-		{
-			ShaderBuffers[Frequency].Bound |= (1 << i);
-		}
-		else
-		{
-			ShaderBuffers[Frequency].Bound &= ~(1 << i);
-		}
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Buffers[i]);
-		ShaderBuffers[Frequency].Buffers[i] = Buffers[i];
-		ShaderBuffers[Frequency].Offsets[i] = Offsets[i];
-		ShaderBuffers[Frequency].Bytes[i] = nil;
-	}
-	switch (Frequency)
-	{
-		case SF_Vertex:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setVertexBuffers:Buffers offsets:Offsets withRange:Range];
-			}
+		case MTLFunctionTypeVertex:
+			check (RenderCommandEncoder);
+			[RenderCommandEncoder setVertexBufferOffset:Offset atIndex:index];
 			break;
-		case SF_Pixel:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setFragmentBuffers:Buffers offsets:Offsets withRange:Range];
-			}
+		case MTLFunctionTypeFragment:
+			check(RenderCommandEncoder);
+			[RenderCommandEncoder setFragmentBufferOffset:Offset atIndex:index];
 			break;
-		case SF_Compute:
-			if (ComputeCommandEncoder)
-			{
-				[ComputeCommandEncoder setBuffers:Buffers offsets:Offsets withRange:Range];
-			}
+		case MTLFunctionTypeKernel:
+			check (ComputeCommandEncoder);
+			[ComputeCommandEncoder setBufferOffset:Offset atIndex:index];
 			break;
 		default:
 			check(false);
 			break;
 	}
+#endif
 }
 
-void FMetalCommandEncoder::SetShaderTexture(EShaderFrequency Frequency, id<MTLTexture> Texture, NSUInteger index)
+void FMetalCommandEncoder::SetShaderTexture(MTLFunctionType FunctionType, id<MTLTexture> Texture, NSUInteger index)
 {
 	check(index < ML_MaxTextures);
-	
-	if(Texture)
+	switch (FunctionType)
 	{
-		ShaderTextures[Frequency].Bound |= (1 << index);
-	}
-	else
-	{
-		ShaderTextures[Frequency].Bound &= ~(1 << index);
-	}
-	
-	METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Texture);
-	ShaderTextures[Frequency].Textures[index] = Texture;
-	
-	switch (Frequency)
-	{
-		case SF_Vertex:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setVertexTexture:Texture atIndex:index];
-			}
+		case MTLFunctionTypeVertex:
+			check (RenderCommandEncoder);
+			[RenderCommandEncoder setVertexTexture:Texture atIndex:index];
 			break;
-		case SF_Pixel:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setFragmentTexture:Texture atIndex:index];
-			}
+		case MTLFunctionTypeFragment:
+			check(RenderCommandEncoder);
+			[RenderCommandEncoder setFragmentTexture:Texture atIndex:index];
 			break;
-		case SF_Compute:
-			if (ComputeCommandEncoder)
-			{
-				[ComputeCommandEncoder setTexture:Texture atIndex:index];
-			}
+		case MTLFunctionTypeKernel:
+			check (ComputeCommandEncoder);
+			[ComputeCommandEncoder setTexture:Texture atIndex:index];
 			break;
 		default:
 			check(false);
@@ -1275,86 +585,22 @@ void FMetalCommandEncoder::SetShaderTexture(EShaderFrequency Frequency, id<MTLTe
 	}
 }
 
-void FMetalCommandEncoder::SetShaderTextures(EShaderFrequency Frequency, const id<MTLTexture> Textures[], NSRange const& Range)
-{
-	for (NSUInteger i = (NSUInteger)Range.location; i < (NSUInteger)Range.length; i++)
-	{
-		check(i < ML_MaxTextures);
-		if(Textures[i])
-		{
-			ShaderTextures[Frequency].Bound |= (1 << i);
-		}
-		else
-		{
-			ShaderTextures[Frequency].Bound &= ~(1 << i);
-		}
-		
-		METAL_DEBUG_COMMAND_BUFFER_TRACK_RES(CommandBuffer, Textures[i]);
-		ShaderTextures[Frequency].Textures[i] = Textures[i];
-	}
-	
-	switch (Frequency)
-	{
-		case SF_Vertex:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setVertexTextures:Textures withRange:Range];
-			}
-			break;
-		case SF_Pixel:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setFragmentTextures:Textures withRange:Range];
-			}
-			break;
-		case SF_Compute:
-			if (ComputeCommandEncoder)
-			{
-				[ComputeCommandEncoder setTextures:Textures withRange:Range];
-			}
-			break;
-		default:
-			check(false);
-			break;
-	}
-}
-
-void FMetalCommandEncoder::SetShaderSamplerState(EShaderFrequency Frequency, id<MTLSamplerState> Sampler, NSUInteger index)
+void FMetalCommandEncoder::SetShaderSamplerState(MTLFunctionType FunctionType, id<MTLSamplerState> Sampler, NSUInteger index)
 {
 	check(index < ML_MaxSamplers);
-	[Sampler retain];
-	[ShaderSamplers[Frequency].Samplers[index] release];
-	
-	if(Sampler)
+	switch (FunctionType)
 	{
-		ShaderSamplers[Frequency].Bound |= (1 << index);
-	}
-	else
-	{
-		ShaderSamplers[Frequency].Bound &= ~(1 << index);
-	}
-	
-	ShaderSamplers[Frequency].Samplers[index] = Sampler;
-	
-	switch (Frequency)
-	{
-		case SF_Vertex:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setVertexSamplerState:Sampler atIndex:index];
-			}
+		case MTLFunctionTypeVertex:
+       		check (RenderCommandEncoder);
+			[RenderCommandEncoder setVertexSamplerState:Sampler atIndex:index];
 			break;
-		case SF_Pixel:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setFragmentSamplerState:Sampler atIndex:index];
-			}
+		case MTLFunctionTypeFragment:
+			check (RenderCommandEncoder);
+			[RenderCommandEncoder setFragmentSamplerState:Sampler atIndex:index];
 			break;
-		case SF_Compute:
-			if (ComputeCommandEncoder)
-			{
-				[ComputeCommandEncoder setSamplerState:Sampler atIndex:index];
-			}
+		case MTLFunctionTypeKernel:
+			check (ComputeCommandEncoder);
+			[ComputeCommandEncoder setSamplerState:Sampler atIndex:index];
 			break;
 		default:
 			check(false);
@@ -1362,174 +608,113 @@ void FMetalCommandEncoder::SetShaderSamplerState(EShaderFrequency Frequency, id<
 	}
 }
 
-void FMetalCommandEncoder::SetShaderSamplerStates(EShaderFrequency Frequency, const id<MTLSamplerState> Samplers[], NSRange const& Range)
+void FMetalCommandEncoder::SetShaderSideTable(MTLFunctionType const FunctionType, NSUInteger const Index)
 {
-	for (NSUInteger i = (NSUInteger)Range.location; i < (NSUInteger)Range.length; i++)
+	if (Index < ML_MaxBuffers)
 	{
-		check(i < ML_MaxSamplers);
-		[Samplers[i] retain];
-		[ShaderSamplers[Frequency].Samplers[i] release];
-		
-		if(Samplers[i])
-		{
-			ShaderSamplers[Frequency].Bound |= (1 << i);
-		}
-		else
-		{
-			ShaderSamplers[Frequency].Bound &= ~(1 << i);
-		}
-		
-		ShaderSamplers[Frequency].Samplers[i] = Samplers[i];
+		SetShaderBytes(FunctionType, (uint8*)ShaderBuffers[FunctionType].Lengths, sizeof(ShaderBuffers[FunctionType].Lengths), Index);
 	}
-	
-	switch (Frequency)
-	{
-		case SF_Vertex:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setVertexSamplerStates:Samplers withRange:Range];
-			}
-			break;
-		case SF_Pixel:
-			if (RenderCommandEncoder)
-			{
-				[RenderCommandEncoder setFragmentSamplerStates:Samplers withRange:Range];
-			}
-			break;
-		case SF_Compute:
-			if (ComputeCommandEncoder)
-			{
-				[ComputeCommandEncoder setSamplerStates:Samplers withRange:Range];
-			}
-			break;
-		default:
-			check(false);
-			break;
-	}
-}
-
-bool FMetalCommandEncoder::ValidateArgumentBindings(EShaderFrequency const Frequency, MTLRenderPipelineReflection* Reflection)
-{
-    bool bOK = true;
-    
-	NSArray<MTLArgument*>* Arguments = nil;
-	switch(Frequency)
-	{
-		case SF_Vertex:
-		{
-			Arguments = Reflection.vertexArguments;
-			break;
-		}
-		case SF_Pixel:
-		{
-			Arguments = Reflection.fragmentArguments;
-			break;
-		}
-		default:
-			check(false);
-			break;
-	}
-	
-	for (uint32 i = 0; i < Arguments.count; i++)
-	{
-		MTLArgument* Arg = [Arguments objectAtIndex:i];
-		check(Arg);
-		switch(Arg.type)
-		{
-			case MTLArgumentTypeBuffer:
-			{
-				checkf(Arg.index < ML_MaxBuffers, TEXT("Metal buffer index exceeded!"));
-				if ((ShaderBuffers[Frequency].Buffers[Arg.index] == nil && ShaderBuffers[Frequency].Bytes[Arg.index] == nil) || !(ShaderBuffers[Frequency].Bound & (1 << Arg.index)))
-				{
-                    bOK = false;
-					UE_LOG(LogMetal, Warning, TEXT("Unbound buffer at Metal index: %u which will crash the driver."), (uint32)Arg.index);
-				}
-				break;
-			}
-   			case MTLArgumentTypeThreadgroupMemory:
-			{
-				break;
-			}
-    		case MTLArgumentTypeTexture:
-			{
-				checkf(Arg.index < ML_MaxTextures, TEXT("Metal texture index exceeded!"));
-				if (ShaderTextures[Frequency].Textures[Arg.index] == nil || !(ShaderTextures[Frequency].Bound & (1 << Arg.index)))
-                {
-                    bOK = false;
-					UE_LOG(LogMetal, Warning, TEXT("Unbound texture at Metal index: %u which will crash the driver."), (uint32)Arg.index);
-				}
-				else if (ShaderTextures[Frequency].Textures[Arg.index].textureType != Arg.textureType)
-                {
-                    bOK = false;
-					UE_LOG(LogMetal, Warning, TEXT("Incorrect texture type bound at Metal index: %u which will crash the driver."), (uint32)Arg.index);
-				}
-				break;
-			}
-    		case MTLArgumentTypeSampler:
-			{
-				checkf(Arg.index < ML_MaxSamplers, TEXT("Metal sampler index exceeded!"));
-				if (ShaderSamplers[Frequency].Samplers[Arg.index] == nil || !(ShaderSamplers[Frequency].Bound & (1 << Arg.index)))
-                {
-                    bOK = false;
-					UE_LOG(LogMetal, Warning, TEXT("Unbound sampler at Metal index: %u which will crash the driver."), (uint32)Arg.index);
-				}
-				break;
-			}
-			default:
-				check(false);
-				break;
-		}	
-	}
-    
-    return bOK;
 }
 
 #pragma mark - Public Compute State Mutators -
 
-void FMetalCommandEncoder::SetComputePipelineState(id<MTLComputePipelineState> const State)
+void FMetalCommandEncoder::SetComputePipelineState(id<MTLComputePipelineState> const State, MTLComputePipelineReflection* Reflection, NSString* Source)
 {
-	[State retain];
-	[ComputePipelineState release];
-	ComputePipelineState = State;
-	if (ComputeCommandEncoder)
+	check (ComputeCommandEncoder);
 	{
+        METAL_SET_COMPUTE_REFLECTION(ComputeCommandEncoder, Reflection, Source);
 		[ComputeCommandEncoder setComputePipelineState:State];
 	}
 }
 
-#pragma mark - Public Extension Accessors -
-
-#pragma mark - Public Extension Mutators -
+#pragma mark - Public Ring-Buffer Accessor -
 	
-#pragma mark - Public Support Functions -
-
-void FMetalCommandEncoder::UnbindObject(id const Object)
+TSharedRef<FRingBuffer, ESPMode::ThreadSafe> FMetalCommandEncoder::GetRingBuffer(void) const
 {
-	for(uint32 i = 0; i < SF_NumFrequencies; i++)
+	return RingBuffer.ToSharedRef();
+}
+
+#pragma mark - Private Functions -
+
+void FMetalCommandEncoder::SetShaderBufferInternal(MTLFunctionType Function, uint32 Index)
+{
+	id<MTLBuffer> Buffer = ShaderBuffers[Function].Buffers[Index];
+	NSUInteger Offset = ShaderBuffers[Function].Offsets[Index];
+	
+	if (!Buffer && ShaderBuffers[Function].Bytes[Index] && !CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
 	{
-		for(uint32 Index = 0; Index < ML_MaxBuffers; Index++)
+		uint8 const* Bytes = (((uint8 const*)ShaderBuffers[Function].Bytes[Index].bytes) + ShaderBuffers[Function].Offsets[Index]);
+		uint32 Len = ShaderBuffers[Function].Bytes[Index].length - ShaderBuffers[Function].Offsets[Index];
+		
+		Offset = RingBuffer->Allocate(Len, BufferOffsetAlignment);
+		Buffer = RingBuffer->Buffer;
+		
+		FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, Bytes, Len);
+	}
+	
+	if (Buffer != nil)
+	{
+		switch (Function)
 		{
-			if(ShaderBuffers[i].Buffers[Index] == Object)
+			case MTLFunctionTypeVertex:
+				ShaderBuffers[Function].Bound |= (1 << Index);
+				check(RenderCommandEncoder);
+				[RenderCommandEncoder setVertexBuffer:Buffer offset:Offset atIndex:Index];
+				break;
+			case MTLFunctionTypeFragment:
+				ShaderBuffers[Function].Bound |= (1 << Index);
+				check(RenderCommandEncoder);
+				[RenderCommandEncoder setFragmentBuffer:Buffer offset:Offset atIndex:Index];
+				break;
+			case MTLFunctionTypeKernel:
+				ShaderBuffers[Function].Bound |= (1 << Index);
+				check(ComputeCommandEncoder);
+				[ComputeCommandEncoder setBuffer:Buffer offset:Offset atIndex:Index];
+				break;
+			default:
+				check(false);
+				break;
+		}
+	}
+#if METAL_API_1_1
+	else if (ShaderBuffers[Function].Bytes[Index] != nil && CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
+	{
+		uint8 const* Bytes = (((uint8 const*)ShaderBuffers[Function].Bytes[Index].bytes) + ShaderBuffers[Function].Offsets[Index]);
+		uint32 Len = ShaderBuffers[Function].Bytes[Index].length - ShaderBuffers[Function].Offsets[Index];
+		
+		if (CommandList.GetCommandQueue().SupportsFeature(EMetalFeaturesSetBytes))
+		{
+			switch (Function)
 			{
-				ShaderBuffers[i].Buffers[Index] = nullptr;
-				ShaderBuffers[i].Bound &= ~(1 << Index);
+				case MTLFunctionTypeVertex:
+					ShaderBuffers[Function].Bound |= (1 << Index);
+					check(RenderCommandEncoder);
+#if METAL_DEBUG_OPTIONS
+					[RenderCommandEncoder setVertexBuffer:nil offset:0 atIndex:Index];
+#endif
+					[RenderCommandEncoder setVertexBytes:Bytes length:Len atIndex:Index];
+					break;
+				case MTLFunctionTypeFragment:
+					ShaderBuffers[Function].Bound |= (1 << Index);
+					check(RenderCommandEncoder);
+#if METAL_DEBUG_OPTIONS
+					[RenderCommandEncoder setFragmentBuffer:nil offset:0 atIndex:Index];
+#endif
+					[RenderCommandEncoder setFragmentBytes:Bytes length:Len atIndex:Index];
+					break;
+				case MTLFunctionTypeKernel:
+					ShaderBuffers[Function].Bound |= (1 << Index);
+					check(ComputeCommandEncoder);
+#if METAL_DEBUG_OPTIONS
+					[ComputeCommandEncoder setBuffer:nil offset:0 atIndex:Index];
+#endif
+					[ComputeCommandEncoder setBytes:Bytes length:Len atIndex:Index];
+					break;
+				default:
+					check(false);
+					break;
 			}
 		}
-		for(uint32 Index = 0; Index < ML_MaxTextures; Index++)
-		{
-			if(ShaderTextures[i].Textures[Index] == Object)
-			{
-				ShaderTextures[i].Textures[Index] = nullptr;
-				ShaderTextures[i].Bound &= ~(1 << Index);
-			}
-		}
-		for(uint32 Index = 0; Index < ML_MaxSamplers; Index++)
-		{
-			if(ShaderSamplers[i].Samplers[Index] == Object)
-			{
-				ShaderSamplers[i].Samplers[Index] = nullptr;
-				ShaderSamplers[i].Bound &= ~(1 << Index);
-			}
-		}
+#endif
 	}
 }

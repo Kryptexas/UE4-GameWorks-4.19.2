@@ -141,7 +141,7 @@ namespace CCT
 				}
 				else
 				{
-					Frequency = HSF_HullShader;
+					Frequency = HSF_DomainShader;
 				}
 			}
 			else

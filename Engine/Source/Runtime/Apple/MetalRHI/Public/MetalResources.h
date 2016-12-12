@@ -14,6 +14,7 @@
 #define METAL_SUPPORTS_PARALLEL_RHI_EXECUTE PLATFORM_MAC
 
 class FMetalContext;
+@class FMetalShaderPipeline;
 
 /** The MTLVertexDescriptor and a pre-calculated hash value used to simplify comparisons (as vendor MTLVertexDescriptor implementations aren't all comparable) */
 struct FMetalHashedVertexDescriptor
@@ -93,6 +94,7 @@ public:
 	
 	// this is the compiler shader
 	id<MTLFunction> Function;
+	id<MTLLibrary> Library; // For function-constant specialisation.
 
 	/** External bindings for this shader. */
 	FMetalShaderBindings Bindings;
@@ -107,10 +109,40 @@ public:
 	NSString* GlslCodeNSString;
 };
 
-typedef TMetalBaseShader<FRHIVertexShader, SF_Vertex> FMetalVertexShader;
+class FMetalVertexShader : public TMetalBaseShader<FRHIVertexShader, SF_Vertex>
+{
+public:
+	FMetalVertexShader(const TArray<uint8>& InCode);
+	
+	// for VSHS
+	FMetalTessellationOutputs TessellationOutputAttribs;
+	float  TessellationMaxTessFactor;
+	uint32 TessellationOutputControlPoints;
+	uint32 TessellationDomain;
+	uint32 TessellationInputControlPoints;
+	uint32 TessellationPatchesPerThreadGroup;
+	uint32 TessellationPatchCountBuffer;
+	uint32 TessellationIndexBuffer;
+	uint32 TessellationHSOutBuffer;
+	uint32 TessellationHSTFOutBuffer;
+	uint32 TessellationControlPointOutBuffer;
+	uint32 TessellationControlPointIndexBuffer;
+};
+
 typedef TMetalBaseShader<FRHIPixelShader, SF_Pixel> FMetalPixelShader;
 typedef TMetalBaseShader<FRHIHullShader, SF_Hull> FMetalHullShader;
-typedef TMetalBaseShader<FRHIDomainShader, SF_Domain> FMetalDomainShader;
+
+class FMetalDomainShader : public TMetalBaseShader<FRHIDomainShader, SF_Domain>
+{
+public:
+	FMetalDomainShader(const TArray<uint8>& InCode);
+	
+	MTLWinding TessellationOutputWinding;
+	MTLTessellationPartitionMode TessellationPartitioning;
+	uint32 TessellationHSOutBuffer;
+	uint32 TessellationControlPointOutBuffer;
+};
+
 typedef TMetalBaseShader<FRHIGeometryShader, SF_Geometry> FMetalGeometryShader;
 
 class FMetalComputeShader : public TMetalBaseShader<FRHIComputeShader, SF_Compute>
@@ -122,17 +154,29 @@ public:
 	// the state object for a compute shader
 	id <MTLComputePipelineState> Kernel;
 	
+	MTLComputePipelineReflection* Reflection;
+	
 	// thread group counts
 	int32 NumThreadsX;
 	int32 NumThreadsY;
 	int32 NumThreadsZ;
 };
 
-#if PLATFORM_MAC
-typedef __uint128_t FMetalRenderPipelineHash;
-#else
-typedef uint64 FMetalRenderPipelineHash;
-#endif
+struct FMetalRenderPipelineHash
+{
+	friend uint32 GetTypeHash(FMetalRenderPipelineHash const& Hash)
+	{
+		return GetTypeHash(Hash.RasterBits) ^ GetTypeHash(Hash.TargetBits);
+	}
+	
+	friend bool operator==(FMetalRenderPipelineHash const& Left, FMetalRenderPipelineHash const& Right)
+	{
+		return Left.RasterBits == Right.RasterBits && Left.TargetBits == Right.TargetBits;
+	}
+	
+	uint64 RasterBits;
+	uint64 TargetBits;
+};
 
 /**
  * Combined shader state and vertex definition for rendering geometry.
@@ -175,11 +219,11 @@ public:
 	/**
 	 * Prepare a pipeline state object for the current state right before drawing
 	 */
-	void PrepareToDraw(FMetalContext* Context, FMetalHashedVertexDescriptor const& VertexDesc, const struct FMetalRenderPipelineDesc& RenderPipelineDesc, MTLRenderPipelineReflection** Reflection = nil);
+	FMetalShaderPipeline* PrepareToDraw(FMetalHashedVertexDescriptor const& VertexDesc, const struct FMetalRenderPipelineDesc& RenderPipelineDesc);
 
 protected:
 	pthread_rwlock_t PipelineMutex;
-	TMap<FMetalRenderPipelineHash, TMap<FMetalHashedVertexDescriptor, id<MTLRenderPipelineState>>> PipelineStates;
+	TMap<FMetalRenderPipelineHash, TMap<FMetalHashedVertexDescriptor, FMetalShaderPipeline*>> PipelineStates;
 };
 
 
@@ -447,7 +491,7 @@ public:
 	TMetalPtr(TMetalPtr const& Other)
 	: Object(nil)
 	{
-		
+		operator=(Other);
 	}
 	
 	~TMetalPtr()
@@ -466,10 +510,27 @@ public:
 		return *this;
 	}
 	
+	TMetalPtr& operator=(T const& Other)
+	{
+		if (Other != Object)
+		{
+			[Other retain];
+			[Object release];
+			Object = Other;
+		}
+		return *this;
+	}
+	
 	operator T() const
 	{
 		return Object;
 	}
+	
+	T operator*() const
+	{
+		return Object;
+	}
+	
 private:
 	T Object;
 };
@@ -734,7 +795,7 @@ public:
 	/**
 	 * Commit shader parameters to the currently bound program.
 	 */
-	void CommitPackedGlobals(FMetalContext* Context, int32 Stage, const FMetalShaderBindings& Bindings);
+	void CommitPackedGlobals(class FMetalStateCache* Cache, class FMetalCommandEncoder* Encoder, EShaderFrequency Frequency, const FMetalShaderBindings& Bindings);
 	void CommitPackedUniformBuffers(TRefCountPtr<FMetalBoundShaderState> BoundShaderState, FMetalComputeShader* ComputeShader, int32 Stage, const TArray< TRefCountPtr<FRHIUniformBuffer> >& UniformBuffers, const TArray<CrossCompiler::FUniformBufferCopyInfo>& UniformBuffersCopyInfo);
 
 private:

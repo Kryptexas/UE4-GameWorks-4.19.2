@@ -16,6 +16,7 @@ class FVisualizeTexture
 {
 public:
 	FVisualizeTexture();
+	void Destroy();
 
 	/** renders the VisualizeTextureContent to the current render target */
 	void PresentContent(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);

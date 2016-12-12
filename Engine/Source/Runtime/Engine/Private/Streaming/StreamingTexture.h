@@ -64,7 +64,7 @@ struct FStreamingTexture
 	float GetMaxAllowedSize() { return (float)(0x1 << (MaxAllowedMips - 1)); }
 
 	/** Init load order. Return wether this texture has any load/unload request */
-	bool UpdateLoadOrderPriority_Async();
+	bool UpdateLoadOrderPriority_Async(int32 MinMipForSplitRequest);
 	
 	void CancelPendingMipChangeRequest();
 	void StreamWantedMips(FStreamingManagerTexture& Manager);
@@ -166,6 +166,12 @@ struct FStreamingTexture
 	
 	/** Same as force fully load, but takes into account component settings. */
 	uint32			bForceFullyLoadHeuristic : 1; 
+
+	/** Whether this texture mips are driven by the last render time only. */
+	uint32			bUseLastRenderTimeHeuristic : 1;
+	
+	/** Whether this has not component referencing it. */
+	uint32			bUseUnkownRefHeuristic : 1;
 
 	/** Same as force fully load, but takes into account component settings. */
 	uint32			bLooksLowRes : 1; 

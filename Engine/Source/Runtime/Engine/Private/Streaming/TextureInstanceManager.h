@@ -128,6 +128,7 @@ public:
 
 		int32 BoundsIndex;		// The Index associated to this component (static component can have several bounds).
 		float TexelFactor;		// The texture scale to be applied to this instance.
+		bool bForceLoad;		// The texture needs to be force loaded.
 
 		int32 PrevTextureLink;	// The previous element which uses the same texture as this Element. The first element referred by TextureMap will have INDEX_NONE.
 		int32 NextTextureLink;	// The next element which uses the same texture as this Element. Last element will have INDEX_NONE
@@ -144,12 +145,13 @@ public:
 	struct FCompiledElement
 	{
 		FCompiledElement() {}
-		FCompiledElement(int32 InBoundsIndex, float InTexelFactor) : BoundsIndex(InBoundsIndex), TexelFactor(InTexelFactor) {}
+		FCompiledElement(int32 InBoundsIndex, float InTexelFactor, bool InForceLoad) : BoundsIndex(InBoundsIndex), TexelFactor(InTexelFactor), bForceLoad(InForceLoad) {}
 
 		int32 BoundsIndex;
 		float TexelFactor;
+		bool bForceLoad;
 
-		FORCEINLINE bool operator==(const FCompiledElement& Rhs) const { return BoundsIndex == Rhs.BoundsIndex && TexelFactor == Rhs.TexelFactor; }
+		FORCEINLINE bool operator==(const FCompiledElement& Rhs) const { return BoundsIndex == Rhs.BoundsIndex && TexelFactor == Rhs.TexelFactor && bForceLoad == Rhs.bForceLoad; }
 	};
 
 
@@ -166,6 +168,7 @@ public:
 
 		FORCEINLINE int32 GetBoundsIndex() const { return State.Elements[CurrElementIndex].BoundsIndex; }
 		FORCEINLINE float GetTexelFactor() const { return State.Elements[CurrElementIndex].TexelFactor; }
+		FORCEINLINE bool GetForceLoad() const { return State.Elements[CurrElementIndex].bForceLoad; }
 
 	protected:
 
@@ -257,7 +260,7 @@ public:
 
 private:
 
-	void AddElement(const UPrimitiveComponent* Component, const UTexture2D* Texture, int BoundsIndex, float TexelFactor, int32*& ComponentLink);
+	void AddElement(const UPrimitiveComponent* Component, const UTexture2D* Texture, int BoundsIndex, float TexelFactor, bool bForceLoad, int32*& ComponentLink);
 
 	// Returns the next elements using the same component.
 	void RemoveElement(int32 ElementIndex, int32& NextComponentLink, int32& BoundsIndex, const UTexture2D*& Texture);
@@ -416,7 +419,7 @@ private:
 	// @TODO : store data for different views continuously to improve reads.
 	TArray<FBoundsViewInfo> BoundsViewInfo;
 
-	FORCEINLINE_DEBUGGABLE void ProcessElement(const FBoundsViewInfo& BoundsVieWInfo, float TexelFactor, float& MaxSize, float& MaxSize_VisibleOnly) const;
+	FORCEINLINE_DEBUGGABLE void ProcessElement(const FBoundsViewInfo& BoundsVieWInfo, float TexelFactor, bool bForceLoad, float& MaxSize, float& MaxSize_VisibleOnly) const;
 };
 
 

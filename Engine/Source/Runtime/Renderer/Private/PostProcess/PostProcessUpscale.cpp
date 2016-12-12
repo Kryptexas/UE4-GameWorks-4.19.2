@@ -16,9 +16,10 @@
 
 static TAutoConsoleVariable<float> CVarUpscaleSoftness(
 	TEXT("r.Upscale.Softness"),
-	0.3f,
-	TEXT("To scale up with higher quality losing some sharpness\n")
-	TEXT(" 0..1 (0.3 is good for ScreenPercentage 90"),
+	1.0f,
+	TEXT("Amount of sharpening for Gaussian Unsharp filter (r.UpscaleQuality=5). Reduce if ringing is visible\n")
+	TEXT("  1: Normal sharpening (default)\n")
+	TEXT("  0: No sharpening (pure Gaussian)."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarUpscalePaniniD(
@@ -221,15 +222,28 @@ VARIATION1(0)
 VARIATION1(1)
 VARIATION1(2)
 VARIATION1(3)
+VARIATION1(4)
+VARIATION1(5)
 
 #undef VARIATION1
 
-FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig)
+FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig)
 	: UpscaleQuality(InUpscaleQuality)
 {
 	PaniniConfig.D = FMath::Max(InPaniniConfig.D, 0.0f);
 	PaniniConfig.S = InPaniniConfig.S;
 	PaniniConfig.ScreenFit = FMath::Max(InPaniniConfig.ScreenFit, 0.0f);
+
+	// Explicitly set output to viewport size, can't use input0 as downsized.
+	if (InView.Family->RenderTarget->GetRenderTargetTexture())
+	{
+		OutputExtent.X = InView.Family->RenderTarget->GetRenderTargetTexture()->GetSizeX();
+		OutputExtent.Y = InView.Family->RenderTarget->GetRenderTargetTexture()->GetSizeY();
+	}
+	else
+	{
+		OutputExtent = InView.Family->RenderTarget->GetSizeXY();
+	}
 }
 
 template <uint32 Method, uint32 bTesselatedQuad>
@@ -321,6 +335,8 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 			case 1:	VertexShader = SetShader<1, 1>(Context, PaniniConfig); break;
 			case 2:	VertexShader = SetShader<2, 1>(Context, PaniniConfig); break;
 			case 3:	VertexShader = SetShader<3, 1>(Context, PaniniConfig); break;
+			case 4:	VertexShader = SetShader<4, 1>(Context, PaniniConfig); break;
+			case 5:	VertexShader = SetShader<5, 1>(Context, PaniniConfig); break;
 			default:
 				checkNoEntry();
 				break;
@@ -334,6 +350,8 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 			case 1:	VertexShader = SetShader<1, 0>(Context, PaniniParams::Default); break;
 			case 2:	VertexShader = SetShader<2, 0>(Context, PaniniParams::Default); break;
 			case 3:	VertexShader = SetShader<3, 0>(Context, PaniniParams::Default); break;
+			case 4:	VertexShader = SetShader<4, 0>(Context, PaniniParams::Default); break;
+			case 5:	VertexShader = SetShader<5, 0>(Context, PaniniParams::Default); break;
 			default:
 				checkNoEntry();
 				break;
@@ -361,6 +379,7 @@ FPooledRenderTargetDesc FRCPassPostProcessUpscale::ComputeOutputDesc(EPassOutput
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("Upscale");
+	Ret.Extent = OutputExtent;
 
 	return Ret;
 }

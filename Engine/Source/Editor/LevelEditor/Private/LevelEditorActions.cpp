@@ -697,6 +697,7 @@ void FLevelEditorActionCallbacks::BuildLODsOnly_Execute()
 void FLevelEditorActionCallbacks::BuildTextureStreamingOnly_Execute()
 {
 	FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld());
+	GEngine->DeferredCommands.AddUnique(TEXT("MAP CHECK NOTIFYRESULTS"));
 }
 
 bool FLevelEditorActionCallbacks::IsLightingQualityChecked( ELightingBuildQuality TestQuality )

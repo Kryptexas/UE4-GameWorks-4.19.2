@@ -271,6 +271,29 @@ public:
 	// This method is queued with an RHIThread, otherwise it will flush after it is queued; without an RHI thread there is no benefit to queuing this frame advance commands
 	virtual void RHIEndScene() = 0;
 
+	/**
+		* Signals the beginning and ending of rendering to a resource to be used in the next frame on a multiGPU system
+	*/
+	virtual void RHIBeginUpdateMultiFrameResource(FTextureRHIParamRef Texture)
+	{
+		/* empty default implementation */
+	}
+
+	virtual void RHIEndUpdateMultiFrameResource(FTextureRHIParamRef Texture)
+	{
+		/* empty default implementation */
+	}
+
+	virtual void RHIBeginUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV)
+	{
+		/* empty default implementation */
+	}
+
+	virtual void RHIEndUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV)
+	{
+		/* empty default implementation */
+	}
+
 	virtual void RHISetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset) = 0;
 
 	virtual void RHISetRasterizerState(FRasterizerStateRHIParamRef NewState) = 0;
@@ -536,7 +559,7 @@ public:
 
 	virtual void RHIPopEvent() = 0;
 
-	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;
+	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;	
 };
 
 /** The interface which is implemented by the dynamically bound RHI. */
@@ -556,6 +579,7 @@ public:
 	/** Shutdown the RHI; handle shutdown and resource destruction before the RHI's actual destructor is called (so that all resources of the RHI are still available for shutdown). */
 	virtual void Shutdown() = 0;
 
+	virtual const TCHAR* GetName() = 0;
 
 	/////// RHI Methods
 

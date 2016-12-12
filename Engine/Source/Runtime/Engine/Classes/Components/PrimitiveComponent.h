@@ -1221,7 +1221,7 @@ public:
 	 * @param LevelContext - Level scope context used to process texture streaming build data.
 	 * @param OutStreamingTextures - Upon return, contains a list of the streaming textures used by the primitive.
 	 */
-	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const {}
+	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
 
 	/**
 	 * Call GetStreamingTextureInfo and remove the elements with a NULL texture

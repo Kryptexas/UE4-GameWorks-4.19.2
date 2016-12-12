@@ -257,11 +257,8 @@ FDynamicRHI* FVulkanDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type InRequest
 		GMaxRHIShaderPlatform = PLATFORM_ANDROID ? SP_VULKAN_ES3_1_ANDROID : SP_VULKAN_PCES3_1;
 	}
 
-	//#todo-rco: When is this needed?
-#if 0
 	// VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS=0 requires separate MSAA and resolve textures
-	check(RHISupportsSeparateMSAAAndResolveTextures(GMaxRHIShaderPlatform) == (true && !VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS));
-#endif
+	check(RHISupportsSeparateMSAAAndResolveTextures(GMaxRHIShaderPlatform) == (!VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS));
 
 	return new FVulkanDynamicRHI();
 }
@@ -449,7 +446,7 @@ void FVulkanDynamicRHI::CreateInstance()
 	App.pApplicationName = "UE4";
 	App.applicationVersion = 0;
 	App.pEngineName = "UE4";
-	App.engineVersion = 0;
+	App.engineVersion = 15;
 	App.apiVersion = UE_VK_API_VERSION;
 
 	VkInstanceCreateInfo InstInfo;
@@ -481,35 +478,32 @@ void FVulkanDynamicRHI::CreateInstance()
 
 	VkResult Result = VulkanRHI::vkCreateInstance(&InstInfo, nullptr, &Instance);
 	
-	if(Result == VK_ERROR_INCOMPATIBLE_DRIVER)
+	if (Result == VK_ERROR_INCOMPATIBLE_DRIVER)
 	{
-		checkf(0, TEXT(
-			"Cannot find a compatible Vulkan installable client driver \
-			(ICD).\n\nPlease look at the Getting Started guide for \
-			additional information.\n\
-			vkCreateInstance Failure"));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
+			"Cannot find a compatible Vulkan driver (ICD).\n\nPlease look at the Getting Started guide for \
+			additional information."), TEXT("Incompatible Vulkan driver found!"));
 	}
 	else if(Result == VK_ERROR_EXTENSION_NOT_PRESENT)
 	{
-		checkf(0, TEXT(
-			"Cannot find a specified extension library\
-			 .\nMake sure your layers path is set appropriately\n\
-			 vkCreateInstance Failure"));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
+			"Vulkan driver doesn't contain specified extension;\n\
+			make sure your layers path is set appropriately."), TEXT("Incomplete Vulkan driver found!"));
 	}
-	else if(Result)
+	else if (Result != VK_SUCCESS)
 	{
-		checkf(0, TEXT(
-			"vkCreateInstance failed.\n\nDo you have a compatible Vulkan \
-			 installable client driver (ICD) installed?\nPlease look at \
-			 the Getting Started guide for additional information.\n\
-			 vkCreateInstance Failure"));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
+			"Vulkan failed to create instace (apiVersion=0x%x)\n\nDo you have a compatible Vulkan \
+			 driver (ICD) installed?\nPlease look at \
+			 the Getting Started guide for additional information."), TEXT("No Vulkan driver found!"));
 	}
 
 	VERIFYVULKANRESULT(Result);
 
 	if (!LoadVulkanInstanceFunctions(Instance))
 	{
-		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points! Maybe using an older SDK/driver?"));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
+			"Failed to find all required Vulkan entry points! Try updating your driver."), TEXT("No Vulkan entry points found!"));
 	}
 
 #if !VULKAN_DISABLE_DEBUG_CALLBACK && VULKAN_HAS_DEBUGGING_ENABLED
@@ -1162,7 +1156,7 @@ FVulkanRenderPass::FVulkanRenderPass(FVulkanDevice& InDevice, const FVulkanRende
 	FMemory::Memzero(CreateInfo);
 	CreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	CreateInfo.pNext = nullptr;
-	CreateInfo.attachmentCount = RTLayout.GetNumAttachments();
+	CreateInfo.attachmentCount = RTLayout.GetNumAttachmentDescriptions();
 	CreateInfo.pAttachments = RTLayout.GetAttachmentDescriptions();
 	CreateInfo.subpassCount = 1;
 	CreateInfo.pSubpasses = &SubpassDesc;

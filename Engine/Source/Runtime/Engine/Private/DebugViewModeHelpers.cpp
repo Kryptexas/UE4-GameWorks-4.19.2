@@ -299,7 +299,7 @@ bool CompileDebugViewModeShaders(EDebugViewShaderMode ShaderMode, EMaterialQuali
 			continue;
 		}
 
-		FDebugViewModeMaterialProxy::AddShader(MaterialInterface, QualityLevel, FeatureLevel, ShaderMapUsage);
+		FDebugViewModeMaterialProxy::AddShader(MaterialInterface, QualityLevel, FeatureLevel, !bWaitForPreviousShaders, ShaderMapUsage);
 	}
 
 	for (UMaterialInterface* RemovedMaterial : MaterialsToRemove)
@@ -307,12 +307,12 @@ bool CompileDebugViewModeShaders(EDebugViewShaderMode ShaderMode, EMaterialQuali
 		Materials.Remove(RemovedMaterial);
 	}
 
-	if (WaitForShaderCompilation(LOCTEXT("CompileDebugViewModeShaders", "Compiling Optional Engine Shaders"), ProgressTask))
+	if (!bWaitForPreviousShaders || WaitForShaderCompilation(LOCTEXT("CompileDebugViewModeShaders", "Compiling Optional Engine Shaders"), ProgressTask))
 	{
 		// Check The validity of all shaders, removing invalid entries
 		FDebugViewModeMaterialProxy::ValidateAllShaders(Materials);
 
-		UE_LOG(TextureStreamingBuild, Display, TEXT("Compiling texture streaming analysis materials took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
+		UE_LOG(TextureStreamingBuild, Display, TEXT("Compiling optional shaders took %.3f seconds."), FPlatformTime::Seconds() - StartTime);
 		return true;
 	}
 	else

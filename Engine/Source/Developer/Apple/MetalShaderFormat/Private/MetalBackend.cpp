@@ -6,6 +6,8 @@
 #include "hlslcc_private.h"
 #include "MetalUtils.h"
 #include "compiler.h"
+#include "ShaderCore.h"
+#include "MetalShaderResources.h"
 
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "glsl_parser_extras.h"
@@ -23,12 +25,18 @@ PRAGMA_POP
 #define _strdup strdup
 #endif
 
+#define SIMDGROUP_MEMORY_BARRIER						"SIMDGroupMemoryBarrier"
 #define GROUP_MEMORY_BARRIER						"GroupMemoryBarrier"
 #define GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC		"GroupMemoryBarrierWithGroupSync"
 #define DEVICE_MEMORY_BARRIER					"DeviceMemoryBarrier"
 #define DEVICE_MEMORY_BARRIER_WITH_GROUP_SYNC	"DeviceMemoryBarrierWithGroupSync"
 #define ALL_MEMORY_BARRIER						"AllMemoryBarrier"
 #define ALL_MEMORY_BARRIER_WITH_GROUP_SYNC		"AllMemoryBarrierWithGroupSync"
+
+// NOTE: a lot of the comments refer to running out OUTPUT_CP rate -- not all comments were fixed...
+#define EXEC_AT_INPUT_CP_RATE 1 // exec at input CP rate
+
+#define MULTI_PATCH 1
 
 /**
  * This table must match the ir_expression_operation enum.
@@ -356,6 +364,9 @@ protected:
 	int32 NumThreadsY;
 	int32 NumThreadsZ;
 
+	// Tessellation data, may migrate to Backend in future.
+	glsl_tessellation_info tessellation;
+
 	/** Track global instructions. */
 	struct global_ir : public exec_node
 	{
@@ -417,6 +428,27 @@ protected:
 	// Do we need to add #include <compute_shaders>
 	bool bNeedsComputeInclude;
 
+    const char *shaderPrefix()
+    {
+        switch (Frequency)
+        {
+	        case vertex_shader:
+	            return "vs";
+	        case tessellation_control_shader:
+	            return "hs";
+	        case tessellation_evaluation_shader:
+	            return "ds";
+	        case fragment_shader:
+	            return "ps";
+	        case compute_shader:
+	            return "cs";
+	        default:
+	            check(0);
+	            break;
+        }
+        return "";
+    }
+    
 	/**
 	 * Fetch/generate a unique name for ir_variable.
 	 *
@@ -495,16 +527,10 @@ protected:
 		}
 		else if (t->base_type == GLSL_TYPE_INPUTPATCH)
 		{
-			ralloc_asprintf_append(buffer, "GLSL_TYPE_INPUTPATCH");
-			check(0);
-			ralloc_asprintf_append(buffer, "/* %s */ ", t->name);
 			print_base_type(t->inner_type);
 		}
 		else if (t->base_type == GLSL_TYPE_OUTPUTPATCH)
 		{
-			ralloc_asprintf_append(buffer, "GLSL_TYPE_OUTPUTPATCH");
-			check(0);
-			ralloc_asprintf_append(buffer, "/* %s */ ", t->name);
 			print_base_type(t->inner_type);
 		}
 		else if ((t->base_type == GLSL_TYPE_STRUCT)
@@ -591,16 +617,13 @@ protected:
 	{
 		if (t->base_type == GLSL_TYPE_ARRAY)
 		{
-			do 
-			{
-				ralloc_asprintf_append(buffer, "[%u]", t->length);
-				t = t->element_type();
-			}
-			while (t && t->base_type == GLSL_TYPE_ARRAY);
+			ralloc_asprintf_append(buffer, "[%u]", t->length);
+			print_type_post(t->element_type());
 		}
 		else if (t->base_type == GLSL_TYPE_INPUTPATCH || t->base_type == GLSL_TYPE_OUTPUTPATCH)
 		{
 			ralloc_asprintf_append(buffer, "[%u] /* %s */", t->patch_length, t->name);
+			print_type_post(t->inner_type);
 		}
 	}
 
@@ -639,10 +662,28 @@ protected:
 		check(0 && "ir_rvalue not handled for GLSL export.");
 	}
 	
+	bool is_struct_type(const glsl_type * type)
+	{
+		if(type->base_type != GLSL_TYPE_STRUCT && type->base_type != GLSL_TYPE_INPUTPATCH)
+		{
+			if (type->base_type == GLSL_TYPE_ARRAY && type->element_type())
+			{
+				return is_struct_type(type->element_type());
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
+		{
+			return true;
+		}
+	}
 
 	void print_zero_initialiser(const glsl_type * type)
 	{
-		check(type->base_type != GLSL_TYPE_STRUCT);
+		if(type->base_type != GLSL_TYPE_STRUCT)
 		{
 			if (type->base_type != GLSL_TYPE_ARRAY)
 			{
@@ -743,7 +784,22 @@ protected:
 					ralloc_asprintf_append(buffer, "texture%s<", Temp);
 					// UAVs require type per channel, not including # of channels
 					print_type_pre(PtrType->inner_type->get_scalar_type());
-					ralloc_asprintf_append(buffer, ", access::write> %s", unique_name(var));
+                    
+                    uint32 Access = Backend->ImageRW.FindChecked(var);
+                    switch((EMetalAccess)Access)
+                    {
+                        case EMetalAccessRead:
+                            ralloc_asprintf_append(buffer, ", access::read> %s", unique_name(var));
+                            break;
+                        case EMetalAccessWrite:
+                            ralloc_asprintf_append(buffer, ", access::write> %s", unique_name(var));
+                            break;
+                        case EMetalAccessReadWrite:
+                            ralloc_asprintf_append(buffer, ", access::read_write> %s", unique_name(var));
+                            break;
+                        default:
+                            check(false);
+                    }
 					ralloc_asprintf_append(
 						buffer,
 						" [[ texture(%d) ]]", BufferIndex
@@ -832,13 +888,17 @@ protected:
 									}
 								}
 							}
+                            
+                            int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
+                            check(BufferIndex >= 0);
+                            
 							ralloc_asprintf_append(
 								buffer,
 								"<%s> %s", InnerType, unique_name(var));
 							print_type_post(PtrType);
 							ralloc_asprintf_append(
 								buffer,
-								" [[ texture(%u) ]]", Entry->offset
+								" [[ texture(%u) ]]", BufferIndex
 								);
 						}
 					}
@@ -885,6 +945,27 @@ protected:
 							var->semantic
 							);
 					}
+					else if (Frequency == tessellation_evaluation_shader && IsMain && var->type->is_array())
+					{
+						// Generate a UAV directly as we bypass the normal path.
+						ralloc_asprintf_append(buffer, "const device ");
+						print_base_type(var->type->element_type());
+						ralloc_asprintf_append(buffer, " *%s", unique_name(var));
+						check(var->semantic);
+                        if (strlen(var->semantic) == 0)
+                        {
+                            int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
+                            check(BufferIndex >= 0 && BufferIndex <= 30);
+                            ralloc_asprintf_append(
+                                buffer,
+                                " [[ buffer(%d) ]]", BufferIndex
+                                );
+                        }
+                        else
+                        {
+                            ralloc_asprintf_append(buffer, " %s", var->semantic);
+                        }
+					}
 					else if(var->semantic && !strncmp(var->semantic,"[[", 2))
 					{
 						check(!var->type->is_record());
@@ -910,6 +991,31 @@ protected:
 							);
 						bStageInEmitted = true;
 					}
+					if(var->is_patch_constant)
+					{
+						ralloc_asprintf_append(buffer, "/*ir_var_in, is_patch_constant*/");
+					}
+				}
+				else if (Backend->bIsTessellationVSHS && IsMain && var->mode == ir_var_out && var->type->is_array())
+				{
+					// Generate a UAV directly as we bypass the normal path.
+					ralloc_asprintf_append(buffer, "device ");
+					print_base_type(var->type->element_type());
+					ralloc_asprintf_append(buffer, " *%s", unique_name(var));
+                    check(var->semantic);
+                    if (strlen(var->semantic) == 0)
+                    {
+                        int BufferIndex = Buffers.GetIndex(var, Backend->bIsDesktop);
+                        check(BufferIndex >= 0 && BufferIndex <= 30);
+                        ralloc_asprintf_append(
+                                               buffer,
+                                               " [[ buffer(%d) ]]", BufferIndex
+                                               );
+                    }
+                    else
+                    {
+                        ralloc_asprintf_append(buffer, " %s", var->semantic);
+                    }
 				}
 				else if (IsMain && var->mode == ir_var_out)
 				{
@@ -918,6 +1024,10 @@ protected:
 					print_type_pre(PtrType);
 					ralloc_asprintf_append(buffer, " %s", unique_name(var));
 					print_type_post(PtrType);
+					if(var->is_patch_constant)
+					{
+						ralloc_asprintf_append(buffer, "/*ir_var_out, is_patch_constant*/");
+					}
 				}
 				else
 				{
@@ -934,6 +1044,10 @@ protected:
 					print_type_pre(var->type);
 					ralloc_asprintf_append(buffer, " %s", unique_name(var));
 					print_type_post(var->type);
+					if(var->is_patch_constant)
+					{
+						ralloc_asprintf_append(buffer, "/*???, is_patch_constant*/");
+					}
 				}
 			}
 		}
@@ -954,7 +1068,7 @@ protected:
 		else if ((Backend && Backend->bZeroInitialise) && (var->type->base_type != GLSL_TYPE_STRUCT) && (var->mode == ir_var_auto || var->mode == ir_var_temporary || var->mode == ir_var_shared) && (Buffers.AtomicVariables.find(var) == Buffers.AtomicVariables.end()))
 		{
 			// @todo UE-34355 temporary workaround for 10.12 shader compiler error - really all arrays should be zero'd but only threadgroup shared initialisation works on the Beta drivers.
-			if (var->type->base_type != GLSL_TYPE_ARRAY || var->mode == ir_var_shared)
+			if (!is_struct_type(var->type) && (var->type->base_type != GLSL_TYPE_ARRAY || var->mode == ir_var_shared))
 			{
 				ralloc_asprintf_append(buffer, " = ");
 				print_zero_initialiser(var->type);
@@ -990,6 +1104,46 @@ protected:
             }
 		}
 
+		if(Backend && Backend->bIsTessellationVSHS)
+		{
+			check(sig->is_main);
+            
+            ir_variable* patchCount = new(ParseState)ir_variable(glsl_type::uint_type, "patchCount", ir_var_uniform);
+            patchCount->semantic = "u";
+            Buffers.Buffers.Add(patchCount);
+            
+            int32 patchIndex = Buffers.GetIndex(patchCount, Backend->bIsDesktop);
+            check(patchIndex >= 0 && patchIndex < 30);
+            
+            ir_variable* indexBuffer = new(ParseState)ir_variable(glsl_type::void_type, "indexBuffer", ir_var_in);
+            indexBuffer->semantic = "";
+            Buffers.Buffers.Add(indexBuffer);
+            
+            int32 IndexBufferIndex = Buffers.GetIndex(indexBuffer, Backend->bIsDesktop);
+            check(IndexBufferIndex >= 0 && IndexBufferIndex < 30);
+            
+            ralloc_asprintf_append(
+				buffer,
+				"uint2 thread_position_in_grid [[thread_position_in_grid]],\n"
+				"ushort2 thread_position_in_threadgroup [[thread_position_in_threadgroup]],\n"
+				"uint2 threadgroup_position_in_grid [[threadgroup_position_in_grid]],\n"
+				"constant uint *patchCount [[ buffer(%d) ]],\n"
+				"const device void *indexBuffer [[ buffer(%d) ]]", // indexBufferType == 0 means not indexed (and will strip) 1 means uint16_t* and 2 means uint32_t*
+                patchIndex, IndexBufferIndex
+			);
+			bPrintComma = true;
+		}
+		if(Frequency == tessellation_evaluation_shader)
+		{
+			check(sig->is_main);
+			ralloc_asprintf_append(
+				buffer,
+				"RealDSStageIn realDSStageIn [[stage_in]], "
+				"uint patch_id [[patch_id]]"
+			);
+			bPrintComma = true;
+		}
+
 		foreach_iter(exec_list_iterator, iter, sig->parameters)
 		{
 			ir_variable *const inst = (ir_variable *) iter.get();
@@ -1003,10 +1157,18 @@ protected:
 			inst->accept(this);
 			bPrintComma = true;
 		}
+		check(sig->is_main);
 		ralloc_asprintf_append(buffer, ")\n");
 
 		indent();
 		ralloc_asprintf_append(buffer, "{\n");
+
+		if(Frequency == tessellation_evaluation_shader)
+		{
+			check(sig->is_main);
+			ralloc_asprintf_append(buffer, "#define __DSPatch realDSStageIn.patchControlPoints\n");
+			ralloc_asprintf_append(buffer, "#define __DSStageIn (&realDSStageIn.dsStageIn)\n");
+		}
 
 		if (sig->is_main && !global_instructions.is_empty())
 		{
@@ -1026,6 +1188,8 @@ protected:
 			NumThreadsX = sig->wg_size_x;
 			NumThreadsY = sig->wg_size_y;
 			NumThreadsZ = sig->wg_size_z;
+
+			tessellation = sig->tessellation;
 		}
 
 		indentation++;
@@ -1053,10 +1217,79 @@ protected:
 				indent();
 				if (sig->is_main)
 				{
+					if (Backend->bIsTessellationVSHS)
+					{
+						check(EXEC_AT_INPUT_CP_RATE);
+						ralloc_asprintf_append(buffer, "#define GET_PATCH_COUNT() patchCount[0]\n");
+						ralloc_asprintf_append(buffer, "#define GET_PATCH_ID() (thread_position_in_grid.x / TessellationInputControlPoints)\n");
+						ralloc_asprintf_append(buffer, "#define GET_PATCH_VALID() (GET_PATCH_ID() < GET_PATCH_COUNT())\n");
+						ralloc_asprintf_append(buffer, "#define GET_INSTANCE_ID() threadgroup_position_in_grid.y\n");
+						ralloc_asprintf_append(buffer, "#define GET_INTERNAL_PATCH_ID() (GET_INSTANCE_ID() * GET_PATCH_COUNT() + GET_PATCH_ID())\n");
+						ralloc_asprintf_append(buffer, "#define GET_PATCH_ID_IN_THREADGROUP() (GET_PATCH_ID() %% TessellationPatchesPerThreadGroup)\n");
+						ralloc_asprintf_append(buffer, "#define GET_INPUT_CP_ID() (thread_position_in_grid.x %% TessellationInputControlPoints)\n");
+						/* NOTE: relies upon
+						enum EMetalIndexType
+						{
+							EMetalIndexType_None   = 0,
+							EMetalIndexType_UInt16 = 1,
+							EMetalIndexType_UInt32 = 2
+						};*/
+						ralloc_asprintf_append(buffer, "constant uint indexBufferType [[ function_constant(0) ]];\n");
+						ralloc_asprintf_append(buffer, "#define GET_VERTEX_ID() \\\n");
+						ralloc_asprintf_append(buffer, "	(indexBufferType == 0) ? thread_position_in_grid.x : \\\n");
+						ralloc_asprintf_append(buffer, "	(indexBufferType == 1) ? ((const device ushort *)indexBuffer)[thread_position_in_grid.x] : \\\n");
+						ralloc_asprintf_append(buffer, "	(indexBufferType == 2) ? ((const device uint   *)indexBuffer)[thread_position_in_grid.x] : \\\n");
+						ralloc_asprintf_append(buffer, "	thread_position_in_grid.x\n");
+						ralloc_asprintf_append(buffer, "/* optionally vertex_id = GET_VERTEX_ID() + grid_origin.x */\n");
+					}
+
 					switch (Frequency)
 					{
 					case vertex_shader:
-						ralloc_asprintf_append(buffer, "vertex ");
+						if (Backend->bIsTessellationVSHS)
+						{
+							ralloc_asprintf_append(buffer, "kernel ");
+						}
+						else
+						{
+							ralloc_asprintf_append(buffer, "vertex ");
+						}
+						break;
+					case tessellation_control_shader:
+						ralloc_asprintf_append(buffer, "kernel ");
+						break;
+					case tessellation_evaluation_shader:
+						{
+							{
+								bool hasFDSStageIn = false;
+								for (unsigned i = 0; i < ParseState->num_user_structures; i++)
+								{
+									const glsl_type *const s = ParseState->user_structures[i];
+									if(strcmp(s->name, "FDSStageIn") == 0)
+									{
+										hasFDSStageIn = true;
+										break;
+									}
+								}
+								ralloc_asprintf_append(buffer, "struct RealDSStageIn\n{\n%s\tpatch_control_point<PatchControlPointOut> patchControlPoints;\n};\n", hasFDSStageIn ? "\tFDSStageIn dsStageIn;\n" : "");
+							}
+
+							const char *domainString = NULL;
+							switch(sig->tessellation.domain)
+							{
+							case GLSL_DOMAIN_TRI:
+								domainString = "triangle";
+								break;
+							case GLSL_DOMAIN_QUAD:
+								domainString = "quad";
+								break;
+							default:
+								check(0);
+								break;
+							}
+							ralloc_asprintf_append(buffer, "[[ patch(%s, %d) ]] ", domainString, sig->tessellation.outputcontrolpoints);
+							ralloc_asprintf_append(buffer, "vertex ");
+						}
 						break;
 					case fragment_shader:
 						ralloc_asprintf_append(buffer, "fragment ");
@@ -2097,7 +2330,13 @@ protected:
 		else
 		{
 			//@todo-rco: Fix this properly
-			if (!strcmp(call->callee_name(), GROUP_MEMORY_BARRIER) || !strcmp(call->callee_name(), GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC))
+			if (!strcmp(call->callee_name(), SIMDGROUP_MEMORY_BARRIER))
+			{
+				bNeedsComputeInclude = true;
+				ralloc_asprintf_append(buffer, "simdgroup_barrier(mem_flags::mem_threadgroup)");
+				return;
+			}
+			else if (!strcmp(call->callee_name(), GROUP_MEMORY_BARRIER) || !strcmp(call->callee_name(), GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC))
 			{
 				bNeedsComputeInclude = true;
 				ralloc_asprintf_append(buffer, "threadgroup_barrier(mem_flags::mem_threadgroup)");
@@ -2312,6 +2551,44 @@ protected:
 			ralloc_asprintf_append(buffer, "{\n");
 
 			indentation++;
+
+			if (Backend->bIsTessellationVSHS)
+			{
+				// Support for MULTI_PATCH
+				// @todo make this more generic -- it should function anywhere...
+				// perhaps this can be done in hlslcc better?
+				// peephole optimization to use a reference instead of a temp array (also so it will build)
+				//		FHitProxyVSToDS t22[3] /* input_patch<FHitProxyVSToDS> */;
+				//		t22 = I[int(u4)];
+				// ->
+				//		threadgroup auto &t22 = I[int(u4)];
+				// NOTE: could instead do... (cleaner, easier to maintain and generic)
+				//		FHitProxyVSToDS t22[3] /* input_patch<FHitProxyVSToDS> */;
+				//		t22 = I[int(u4)];
+				// ->
+				//		threadgroup FHitProxyVSToDS *t22[3] /* input_patch<FHitProxyVSToDS> */;
+				//		t22 = &I[int(u4)];
+				
+				ir_instruction *head = (ir_instruction *)(expr->then_instructions.get_head());
+				check(head == nullptr || head->get_prev());
+				ir_instruction *next = (ir_instruction *)(head && head->get_next() && head->get_next()->get_next() ? head->get_next() : nullptr);
+				check(next == nullptr || next->get_next());
+				ir_variable *patch_var = head ? head->as_variable() : nullptr;
+				ir_assignment *patch_assign = next ? next->as_assignment() : nullptr;
+				if(patch_var && patch_var->type->is_patch() && patch_var->mode == ir_var_auto)
+				{
+					// we must fix this case else it will not compile
+					check(patch_assign);
+					check(patch_var == patch_assign->whole_variable_written());
+					patch_var->remove();
+					patch_assign->remove();
+					indent();
+					ralloc_asprintf_append(buffer, "threadgroup auto &%s = ", unique_name(patch_var));
+					patch_assign->rhs->accept(this);
+					ralloc_asprintf_append(buffer, ";\n");
+				}
+			}
+
 			foreach_iter(exec_list_iterator, iter, expr->then_instructions)
 			{
 				ir_instruction *const inst = (ir_instruction *)iter.get();
@@ -2567,7 +2844,7 @@ protected:
 
 			if (s->length == 0)
 			{
-				ralloc_asprintf_append(buffer, "\t float glsl_doesnt_like_empty_structs;\n");
+//				ralloc_asprintf_append(buffer, "\t float glsl_doesnt_like_empty_structs;\n"); // not needed in Metal
 			}
 			else
 			{
@@ -2577,7 +2854,7 @@ protected:
 					print_type_pre(s->fields.structure[j].type);
 					ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].name);
 					print_type_post(s->fields.structure[j].type);
-//@todo-rco
+					//@todo-rco
 					if (s->fields.structure[j].semantic)
 					{
 						if (!strncmp(s->fields.structure[j].semantic, "ATTRIBUTE", 9))
@@ -2600,6 +2877,15 @@ protected:
 						else if (!strncmp(s->fields.structure[j].semantic, "[[", 2))
 						{
 							ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].semantic);
+						}
+						else if (Backend->bIsTessellationVSHS)
+						{
+							ralloc_asprintf_append(buffer, " /* %s */", s->fields.structure[j].semantic);
+						}
+						else if (Frequency == tessellation_evaluation_shader)
+						{
+							// @todo could try and use arguments here...
+							ralloc_asprintf_append(buffer, " /* %s */", s->fields.structure[j].semantic);
 						}
 						else
 						{
@@ -2678,21 +2964,9 @@ protected:
 			}
 
 			// Try to find SRV index
-			uint32 Offset = Sampler.offset;
-			for (int i = 0; i < Buffers.Buffers.Num(); ++i)
-			{
-				if (Buffers.Buffers[i])
-				{
-					auto* Var = Buffers.Buffers[i]->as_variable();
-					if (!Var->semantic && Var->type->is_sampler() && Var->name && Sampler.CB_PackedSampler == Var->name && Var->type->sampler_buffer)
-					{
-						Offset = i;
-						break;
-					}
-				}
-			}
-
-
+			uint32 Offset = Buffers.GetIndex(Sampler.CB_PackedSampler, false);
+            check(Offset >= 0);
+            
 			ralloc_asprintf_append(
 				buffer,
 				"%s%s(%u:%u%s)",
@@ -3062,6 +3336,134 @@ protected:
 			ralloc_asprintf_append(buffer, "// @NumThreads: %d, %d, %d\n", this->NumThreadsX, this->NumThreadsY, this->NumThreadsZ);
 		}
 		
+		if (Backend->bIsTessellationVSHS || Frequency == tessellation_evaluation_shader)
+		{
+			check(tessellation.outputcontrolpoints != 0);
+			ralloc_asprintf_append(buffer, "// @TessellationOutputControlPoints: %d\n", tessellation.outputcontrolpoints);
+			ralloc_asprintf_append(buffer, "// @TessellationDomain: ");
+			switch (tessellation.domain)
+			{
+				case GLSL_DOMAIN_TRI:
+					ralloc_asprintf_append(buffer, "tri");
+					break;
+				case GLSL_DOMAIN_QUAD:
+					ralloc_asprintf_append(buffer, "quad");
+					break;
+				case GLSL_DOMAIN_NONE:
+				case GLSL_DOMAIN_ISOLINE:
+				default:
+					check(0);
+			}
+			ralloc_asprintf_append(buffer, "\n");
+		}
+
+		if (Backend->bIsTessellationVSHS)
+		{
+			check(Backend->inputcontrolpoints != 0);
+			ralloc_asprintf_append(buffer, "// @TessellationInputControlPoints: %d\n", Backend->inputcontrolpoints);
+			ralloc_asprintf_append(buffer, "// @TessellationMaxTessFactor: %g\n", tessellation.maxtessfactor);
+			check(Backend->patchesPerThreadgroup != 0);
+			ralloc_asprintf_append(buffer, "// @TessellationPatchesPerThreadGroup: %d\n", Backend->patchesPerThreadgroup);
+            
+            FCustomStdString patchCountName("patchCount");
+            int32 patchIndex = Buffers.GetIndex(patchCountName, Backend->bIsDesktop);
+            check(patchIndex >= 0 && patchIndex < 30);
+            ralloc_asprintf_append(buffer, "// @TessellationPatchCountBuffer: %d\n", patchIndex);
+
+            FCustomStdString indexBufferName("indexBuffer");
+            int32 ibIndex = Buffers.GetIndex(indexBufferName, Backend->bIsDesktop);
+            if (ibIndex >= 0)
+            {
+                check(ibIndex < 30);
+                ralloc_asprintf_append(buffer, "// @TessellationIndexBuffer: %d\n", ibIndex);
+            }
+            
+            FCustomStdString HSOutName("__HSOut");
+            int32 hsOutIndex = Buffers.GetIndex(HSOutName, Backend->bIsDesktop);
+            check(hsOutIndex >= 0 && hsOutIndex < 30);
+			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %d\n", hsOutIndex);
+			
+			FCustomStdString PatchControlPointOutBufferName("PatchControlPointOutBuffer");
+			int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName, Backend->bIsDesktop);
+			check(patchControlIndex >= 0 && patchControlIndex < 30);
+			ralloc_asprintf_append(buffer, "// @TessellationControlPointOutBuffer: %d\n", patchControlIndex);
+
+            FCustomStdString HSTFOutName("__HSTFOut");
+            int32 hstfOutIndex = Buffers.GetIndex(HSTFOutName, Backend->bIsDesktop);
+            check(hstfOutIndex >= 0 && hstfOutIndex < 30);
+            ralloc_asprintf_append(buffer, "// @TessellationHSTFOutBuffer: %d\n", hstfOutIndex);
+            
+            int32 ControlPointBuffer = Buffers.Buffers.Num();
+            for (uint32 i = 0; i < 30u && i < (uint32)Buffers.Buffers.Num(); i++)
+            {
+                if(!Buffers.Buffers[i])
+                {
+                    ControlPointBuffer = i;
+                    break;
+                }
+            }
+            if (ControlPointBuffer >= 0 && ControlPointBuffer < 30)
+            {
+                ralloc_asprintf_append(buffer, "// @TessellationControlPointIndexBuffer: %d\n", ControlPointBuffer);
+            }
+            else
+            {
+                _mesa_glsl_error(ParseState, "Couldn't assign a buffer binding point for the TessellationControlPointIndexBuffer.");
+            }
+		}
+
+		if (Frequency == tessellation_evaluation_shader)
+		{
+			ralloc_asprintf_append(buffer, "// @TessellationOutputWinding: ");
+			switch (tessellation.outputtopology)
+			{
+				case GLSL_OUTPUTTOPOLOGY_TRIANGLE_CW:
+					ralloc_asprintf_append(buffer, "cw");
+					break;
+				case GLSL_OUTPUTTOPOLOGY_TRIANGLE_CCW:
+					ralloc_asprintf_append(buffer, "ccw");
+					break;
+				case GLSL_OUTPUTTOPOLOGY_NONE:
+				case GLSL_OUTPUTTOPOLOGY_POINT:
+				case GLSL_OUTPUTTOPOLOGY_LINE:
+				default:
+					check(0);
+			}
+			ralloc_asprintf_append(buffer, "\n");
+
+			ralloc_asprintf_append(buffer, "// @TessellationPartitioning: ");
+			switch (tessellation.partitioning)
+			{
+				case GLSL_PARTITIONING_INTEGER:
+					ralloc_asprintf_append(buffer, "integer");
+					break;
+				case GLSL_PARTITIONING_FRACTIONAL_EVEN:
+					ralloc_asprintf_append(buffer, "fractional_even");
+					break;
+				case GLSL_PARTITIONING_FRACTIONAL_ODD:
+					ralloc_asprintf_append(buffer, "fractional_odd");
+					break;
+				case GLSL_PARTITIONING_POW2:
+					ralloc_asprintf_append(buffer, "pow2");
+					break;
+				case GLSL_PARTITIONING_NONE:
+				default:
+					check(0);
+			}
+			ralloc_asprintf_append(buffer, "\n");
+			
+			FCustomStdString HSOutName("__DSStageIn");
+			int32 hsOutIndex = Buffers.GetIndex(HSOutName, Backend->bIsDesktop);
+			check(hsOutIndex >= 0 && hsOutIndex < 30);
+			ralloc_asprintf_append(buffer, "// @TessellationHSOutBuffer: %d\n", hsOutIndex);
+			
+			FCustomStdString PatchControlPointOutBufferName("__DSPatch");
+			int32 patchControlIndex = Buffers.GetIndex(PatchControlPointOutBufferName, Backend->bIsDesktop);
+			check(patchControlIndex >= 0 && patchControlIndex < 30);
+			ralloc_asprintf_append(buffer, "// @TessellationControlPointOutBuffer: %d\n", patchControlIndex);
+		}
+
+		bool foundSideTable = false;
 		for (int i = 0; i < Buffers.Buffers.Num(); ++i)
 		{
 			if (Buffers.Buffers[i])
@@ -3069,6 +3471,8 @@ protected:
 				auto* Var = Buffers.Buffers[i]->as_variable();
 				if (!Var->type->is_sampler() && !Var->type->is_image() && Var->semantic && !strcmp(Var->semantic, "u") && Var->mode == ir_var_uniform && Var->name && !strcmp(Var->name, "BufferSizes"))
 				{
+					check(foundSideTable == false);
+					foundSideTable = true;
 					ralloc_asprintf_append(buffer, "// @SideTable: %s(%d)", Var->name, i);
 				}
 			}
@@ -3138,10 +3542,51 @@ public:
 		print_signature(ParseState);
 		buffer = 0;
 
+        char* metal_defines = ralloc_asprintf(mem_ctx, "");
+        buffer = &metal_defines;
+        const char *StageName = shaderPrefix();
+		if (Backend->bIsTessellationVSHS || Frequency == tessellation_evaluation_shader)
+		{
+			check(tessellation.outputcontrolpoints != 0);
+			ralloc_asprintf_append(buffer, "#define TessellationOutputControlPoints %d\n", tessellation.outputcontrolpoints);
+			ralloc_asprintf_append(buffer, "#define ");
+			switch (tessellation.domain)
+			{
+				case GLSL_DOMAIN_TRI:
+					ralloc_asprintf_append(buffer, "PRIMITIVE_TYPE_TRIANGLES");
+					break;
+				case GLSL_DOMAIN_QUAD:
+					ralloc_asprintf_append(buffer, "PRIMITIVE_TYPE_QUADS");
+					break;
+				case GLSL_DOMAIN_NONE:
+				case GLSL_DOMAIN_ISOLINE:
+				default:
+					check(0);
+			}
+			ralloc_asprintf_append(buffer, "\n");
+		}
+
+		if (Backend->bIsTessellationVSHS)
+		{
+			check(Backend->inputcontrolpoints != 0);
+			ralloc_asprintf_append(buffer, "#define TessellationInputControlPoints %d\n", Backend->inputcontrolpoints);
+			ralloc_asprintf_append(buffer, "#define TessellationMaxTessFactor %g\n", tessellation.maxtessfactor);
+			check(Backend->patchesPerThreadgroup != 0);
+			ralloc_asprintf_append(buffer, "#define TessellationPatchesPerThreadGroup %d\n", Backend->patchesPerThreadgroup);
+		}
+		
+		if (Frequency == tessellation_evaluation_shader)
+		{
+			ralloc_asprintf_append(buffer, "#define GET_INTERNAL_PATCH_ID() patch_id\n");
+		}
+
+        buffer = 0;
+
 		char* full_buffer = ralloc_asprintf(
 			ParseState,
-			"// Compiled by HLSLCC\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s",
+			"// Compiled by HLSLCC\n%s\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s",
 			signature,
+			metal_defines,
 			bNeedsComputeInclude ? "#include <metal_compute>" : "",
 			decl_buffer,
 			code_buffer
@@ -3199,7 +3644,7 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 
 		Validate(ir, state);
 	}
-//IRDump(ir);
+
 	// Generate the actual code string
 	const char* code = visitor.run(ir);
 	return _strdup(code);
@@ -3208,16 +3653,18 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 struct FMetalCheckNonComputeRestrictionsVisitor : public ir_hierarchical_visitor
 {
 	_mesa_glsl_parse_state* ParseState;
+    uint8 Version;
 	bool bErrors;
-	FMetalCheckNonComputeRestrictionsVisitor(_mesa_glsl_parse_state* InParseState)
+	FMetalCheckNonComputeRestrictionsVisitor(_mesa_glsl_parse_state* InParseState, uint8 InVersion)
 		: ParseState(InParseState)
+        , Version(InVersion)
 		, bErrors(false)
 	{
 	}
 
 	virtual ir_visitor_status visit(ir_variable* IR) override
 	{
-		if (IR->type && IR->type->is_image())
+		if (IR->type && IR->type->is_image() && (Version < 2 || ParseState->target != fragment_shader))
 		{
 			if (IR->name)
 			{
@@ -3230,6 +3677,7 @@ struct FMetalCheckNonComputeRestrictionsVisitor : public ir_hierarchical_visitor
 			bErrors = true;
 			return visit_stop;
 		}
+		// @todo validate that GLSL_OUTPUTTOPOLOGY_POINT, GLSL_OUTPUTTOPOLOGY_LINE are not used
 
 		return visit_continue;
 	}
@@ -3237,18 +3685,15 @@ struct FMetalCheckNonComputeRestrictionsVisitor : public ir_hierarchical_visitor
 
 struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
 {
+    TMap<ir_variable*, uint32>& ImageRW;
 	_mesa_glsl_parse_state* ParseState;
-	bool bErrors;
-	enum
-	{
-		Read = 1,
-		Write = 2,
-		ReadWrite = Read | Write,
-	};
-	TMap<ir_variable*, uint32> ImageRW;
+    uint8 Version;
+    bool bErrors;
 
-	FMetalCheckComputeRestrictionsVisitor(_mesa_glsl_parse_state* InParseState)
-		: ParseState(InParseState)
+	FMetalCheckComputeRestrictionsVisitor(TMap<ir_variable*, uint32>& InImageRW, _mesa_glsl_parse_state* InParseState, uint8 InVersion)
+		: ImageRW(InImageRW)
+        , ParseState(InParseState)
+        , Version(InVersion)
 		, bErrors(false)
 	{
 	}
@@ -3270,14 +3715,14 @@ struct FMetalCheckComputeRestrictionsVisitor : public ir_rvalue_visitor
 		{
 			if (bWrite)
 			{
-				ImageRW[Var] |= Write;
+				ImageRW[Var] |= EMetalAccessWrite;
 			}
 			else
 			{
-				ImageRW[Var] |= Read;
+				ImageRW[Var] |= EMetalAccessRead;
 			}
 
-			if (ImageRW[Var] == ReadWrite)
+			if (ImageRW[Var] == EMetalAccessReadWrite && Version < 2)
 			{
 				_mesa_glsl_error(ParseState, "Metal doesn't allow simultaneous read & write on RWTexture(s) %s%s%s", Var->name ? "(" : "", Var->name ? Var->name : "", Var->name ? ")" : "");
 				bErrors = true;
@@ -3317,14 +3762,14 @@ bool FMetalCodeBackend::ApplyAndVerifyPlatformRestrictions(exec_list* Instructio
 {
 	if (Frequency == HSF_ComputeShader)
 	{
-		FMetalCheckComputeRestrictionsVisitor Visitor(ParseState);
+		FMetalCheckComputeRestrictionsVisitor Visitor(ImageRW, ParseState, Version);
 		Visitor.run(Instructions);
 
 		return !Visitor.bErrors;
 	}
 	else
 	{
-		FMetalCheckNonComputeRestrictionsVisitor Visitor(ParseState);
+		FMetalCheckNonComputeRestrictionsVisitor Visitor(ParseState, Version);
 		Visitor.run(Instructions);
 
 		return !Visitor.bErrors;
@@ -3345,12 +3790,256 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	exec_list ArgInstructions;
 	exec_list PostCallInstructions;
 
+	exec_list PrePreCallInstructions; 
+	exec_list PostPostCallInstructions;
+	auto* HullEntryPointSig = FindEntryPointFunction(Instructions, ParseState, "MainHull"); // Need to use proper name here for shader combining to work!
+	auto* VertexEntryPointSig = EntryPointSig;
+	FSemanticQualifier Qualifier;
+	if(Frequency == HSF_VertexShader && HullEntryPointSig)
+	{
+		// is this a VS used for tessellation?
+		check(bIsTessellationVSHS == false);
+		bIsTessellationVSHS = true;
+		EntryPointSig = HullEntryPointSig;
+		Qualifier.Fields.bIsTessellationVSHS = bIsTessellationVSHS;
+		Qualifier.Fields.bIsPatchConstant = true;
+	}
+	if(Frequency == HSF_HullShader)
+	{
+		check(HullEntryPointSig);
+		// Find first possible vertex main function to combine Hull + Vertex, not ideal but the alternative is VS as stream out & HS as compute which will be more bandwidth...
+		VertexEntryPointSig = NULL;
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "Main");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "VSMain");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "MainVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "MainVertexShader");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "VShader");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "CapsuleShadowingUpsampleVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "ConvertToUniformMeshVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "ShadowObjectCullVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "ObjectCullVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "IrradianceCacheSplatVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "MainBenchmarkVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "HdrCustomResolveVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "HeightfieldSubsectionQuadVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "HeightfieldComponentQuadVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "DirectionalVertexMain");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "RadialVertexMain");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "DownsampleLightShaftsVertexMain");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "CopyToCubeFaceVS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "MainForGS");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "PositionOnlyMain");
+		VertexEntryPointSig = VertexEntryPointSig ? VertexEntryPointSig : FindEntryPointFunction(Instructions, ParseState, "WriteToSliceMainVS");
+
+		check(bIsTessellationVSHS == false);
+		bIsTessellationVSHS = true;
+		EntryPointSig = HullEntryPointSig;
+		Qualifier.Fields.bIsTessellationVSHS = bIsTessellationVSHS;
+		Qualifier.Fields.bIsPatchConstant = true;
+	}
+
+	ParseState->tessellation = EntryPointSig->tessellation;
+
+	// get number of input and output control points
+	foreach_iter(exec_list_iterator, Iter, EntryPointSig->parameters)
+	{
+		const ir_variable* Variable = (ir_variable*)Iter.get();
+		if (bIsTessellationVSHS && Variable->type->base_type == GLSL_TYPE_INPUTPATCH)
+		{
+			check(inputcontrolpoints == 0);
+			// get the # input control points from the templated type patch_length
+			inputcontrolpoints = Variable->type->patch_length;
+		}
+		else if (bIsTessellationVSHS && Variable->type->base_type == GLSL_TYPE_OUTPUTPATCH)
+		{
+			check(0); // this is the return of mainHull
+		}
+		else if (Frequency == HSF_DomainShader && Variable->type->base_type == GLSL_TYPE_OUTPUTPATCH)
+		{
+			check(ParseState->tessellation.outputcontrolpoints == 0);
+			// get the # output control points from the templated type patch_length
+			ParseState->tessellation.outputcontrolpoints = Variable->type->patch_length;
+		}
+	}
+
+	if (bIsTessellationVSHS)
+	{
+		// @todo can METAL_TESS_MAX_THREADS_PER_THREADGROUP change?
+		static const unsigned int METAL_TESS_MAX_THREADS_PER_THREADGROUP = 32;
+		check(inputcontrolpoints != 0);
+		check(ParseState->tessellation.outputcontrolpoints != 0);
+		patchesPerThreadgroup = METAL_TESS_MAX_THREADS_PER_THREADGROUP / FMath::Max<uint32>(inputcontrolpoints, ParseState->tessellation.outputcontrolpoints);
+		check(patchesPerThreadgroup != 0);
+		check(patchesPerThreadgroup <= METAL_TESS_MAX_THREADS_PER_THREADGROUP);
+
+#if EXEC_AT_INPUT_CP_RATE
+		// create and call GET_INPUT_CP_ID
+		ir_variable* SV_InputControlPointIDVar = NULL; // @todo it would be better to do this under GenerateInputFromSemantic (also this is ... should never be used by anything in the USF... only internal)
+		{
+			ir_function *Function = NULL;
+			// create GET_INPUT_CP_ID
+			{
+				const glsl_type* retType = glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1);
+				ir_function_signature* sig = new(ParseState)ir_function_signature(retType);
+				sig->is_builtin = true;
+				Function = new(ParseState)ir_function("GET_INPUT_CP_ID");
+				Function->add_signature(sig);
+			}
+			check(Function);
+
+			exec_list VoidParameter;
+			ir_function_signature * FunctionSig = Function->matching_signature(&VoidParameter);
+
+			ir_variable* TempVariable = new(ParseState) ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "SV_InputControlPointID", ir_var_temporary);
+			ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
+			PrePreCallInstructions.push_tail(TempVariable);
+
+			auto* Call = new(ParseState)ir_call(FunctionSig, TempVariableDeref, &VoidParameter);
+			PrePreCallInstructions.push_tail(Call);
+
+			SV_InputControlPointIDVar = TempVariable;
+			ParseState->symbols->add_variable(SV_InputControlPointIDVar);
+		}
+
+		// SV_OutputControlPointID is filled out in the loop that calls MainHull
+		ir_variable* SV_OutputControlPointIDVar = new(ParseState) ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "SV_OutputControlPointID", ir_var_temporary);
+		PrePreCallInstructions.push_tail(SV_OutputControlPointIDVar);
+		ParseState->symbols->add_variable(SV_OutputControlPointIDVar);
+
+		// special case to simplify matters -- just SV_OutputControlPointID = SV_InputControlPointID; (as no loops are necessary in this case)
+		check(inputcontrolpoints != 0);
+		check(ParseState->tessellation.outputcontrolpoints != 0);
+		if(inputcontrolpoints == ParseState->tessellation.outputcontrolpoints)
+		{
+			// NOTE: this will become dead code if inputcontrolpoints != outputcontrolpoints
+			auto* Assign = new(ParseState)ir_assignment(
+				new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID")),
+				new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_InputControlPointID"))
+				);
+			PrePreCallInstructions.push_tail(Assign);
+		}
+#else // EXEC_AT_INPUT_CP_RATE
+		// create and call GET_OUTPUT_CP_ID
+		ir_variable* SV_OutputControlPointIDVar = NULL; // @todo it would be better to do this under GenerateInputFromSemantic
+		{
+			ir_function *Function = NULL;
+			// create GET_OUTPUT_CP_ID
+			{
+				const glsl_type* retType = glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1);
+				ir_function_signature* sig = new(ParseState)ir_function_signature(retType);
+				sig->is_builtin = true;
+				Function = new(ParseState)ir_function("GET_OUTPUT_CP_ID");
+				Function->add_signature(sig);
+			}
+			check(Function);
+
+			exec_list VoidParameter;
+			ir_function_signature * FunctionSig = Function->matching_signature(&VoidParameter);
+
+			ir_variable* TempVariable = new(ParseState) ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "SV_OutputControlPointID", ir_var_temporary);
+			ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
+			PrePreCallInstructions.push_tail(TempVariable);
+
+			auto* Call = new(ParseState)ir_call(FunctionSig, TempVariableDeref, &VoidParameter);
+			PrePreCallInstructions.push_tail(Call);
+
+			SV_OutputControlPointIDVar = TempVariable;
+			ParseState->symbols->add_variable(SV_OutputControlPointIDVar);
+		}
+#endif // EXEC_AT_INPUT_CP_RATE
+		// create and call GET_PATCH_VALID
+		{
+			ir_function *Function = NULL;
+			// create GET_PATCH_VALID
+			{
+				const glsl_type* retType = glsl_type::get_instance(GLSL_TYPE_BOOL, 1, 1);
+				ir_function_signature* sig = new(ParseState)ir_function_signature(retType);
+				sig->is_builtin = true;
+				Function = new(ParseState)ir_function("GET_PATCH_VALID");
+				Function->add_signature(sig);
+			}
+			check(Function);
+
+			exec_list VoidParameter;
+			ir_function_signature * FunctionSig = Function->matching_signature(&VoidParameter);
+
+			ir_variable* TempVariable = new(ParseState) ir_variable(glsl_type::get_instance(GLSL_TYPE_BOOL, 1, 1), "isPatchValid", ir_var_temporary);
+			ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
+			PrePreCallInstructions.push_tail(TempVariable);
+
+			auto* Call = new(ParseState)ir_call(FunctionSig, TempVariableDeref, &VoidParameter);
+			PrePreCallInstructions.push_tail(Call);
+
+			ParseState->symbols->add_variable(TempVariable);
+		}
+
+		// create and call GET_PATCH_ID_IN_THREADGROUP
+		{
+			ir_function *Function = NULL;
+			// create GET_PATCH_ID_IN_THREADGROUP
+			{
+				const glsl_type* retType = glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1);
+				ir_function_signature* sig = new(ParseState)ir_function_signature(retType);
+				sig->is_builtin = true;
+				Function = new(ParseState)ir_function("GET_PATCH_ID_IN_THREADGROUP");
+				Function->add_signature(sig);
+			}
+			check(Function);
+
+			exec_list VoidParameter;
+			ir_function_signature * FunctionSig = Function->matching_signature(&VoidParameter);
+
+			ir_variable* TempVariable = new(ParseState) ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "patchIDInThreadgroup", ir_var_temporary);
+			ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
+			PrePreCallInstructions.push_tail(TempVariable);
+
+			auto* Call = new(ParseState)ir_call(FunctionSig, TempVariableDeref, &VoidParameter);
+			PrePreCallInstructions.push_tail(Call);
+
+			ParseState->symbols->add_variable(TempVariable);
+		}
+	}
+
+	ir_variable* InputPatchVar = NULL;
+
 	ParseState->symbols->push_scope();
 
 	// Find all system semantics and generate in/out globals
 	foreach_iter(exec_list_iterator, Iter, EntryPointSig->parameters)
 	{
 		const ir_variable* Variable = (ir_variable*)Iter.get();
+		if (bIsTessellationVSHS && Variable->type->base_type == GLSL_TYPE_INPUTPATCH)
+		{
+			auto InputMultiPatchType = glsl_type::get_array_instance(Variable->type, patchesPerThreadgroup);
+			ir_variable* ArgVar = new(ParseState)ir_variable(InputMultiPatchType, Variable->name, ir_var_shared);
+			PrePreCallInstructions.push_tail(ArgVar);
+			ir_dereference* ArgVarDeref =
+				new(ParseState)ir_dereference_array(
+					ArgVar,
+					new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("patchIDInThreadgroup"))
+				);
+			ArgInstructions.push_tail(ArgVarDeref);
+
+			check(Variable->mode == ir_var_in);
+
+			check(InputPatchVar == NULL);
+			InputPatchVar = ArgVar;
+		}
+		else if (bIsTessellationVSHS && Variable->type->base_type == GLSL_TYPE_OUTPUTPATCH)
+		{
+			check(0); // this is the return of mainHull
+		}
+		else if (Frequency == HSF_DomainShader && Variable->type->base_type == GLSL_TYPE_OUTPUTPATCH)
+		{
+			ir_variable* ArgVar = new(ParseState)ir_variable(Variable->type, Variable->name, ir_var_in);
+			ArgVar->read_only = true;
+			DeclInstructions.push_tail(ArgVar);
+			ir_dereference_variable* ArgVarDeref = new(ParseState)ir_dereference_variable(ArgVar);
+			ArgInstructions.push_tail(ArgVarDeref);
+
+			check(Variable->mode == ir_var_in);
+		}
+		else
 		if (Variable->semantic != NULL || Variable->type->is_record())
 		{
 			ir_dereference_variable* ArgVarDeref = NULL;
@@ -3371,6 +4060,7 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 					Frequency, bIsDesktop,
 					ParseState,
 					Variable->semantic,
+					Qualifier,
 					Variable->type,
 					&DeclInstructions,
 					&PreCallInstructions,
@@ -3387,15 +4077,720 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 			
 			ArgInstructions.push_tail(ArgVarDeref);
 		}
+		else
+		{
+			check(0);
+		}
 	}
 
+	ir_variable* OutputPatchVar = NULL;
+	if(bIsTessellationVSHS)
+	{
+		check(!EntryPointSig->return_type->is_void());
+	}
 
 	// The function's return value should have an output semantic if it's not void.
 	ir_dereference_variable* EntryPointReturn = nullptr;
 	if (!EntryPointSig->return_type->is_void())
 	{
-		EntryPointReturn = MetalUtils::GenerateOutput(Frequency, bIsDesktop, ParseState, EntryPointSig->return_semantic, EntryPointSig->return_type, &DeclInstructions, &PreCallInstructions, &PostCallInstructions);
+		if(bIsTessellationVSHS)
+		{
+			// generate
+			// OutputType EntryPointReturn;
+			// threadgroup OutputType ThreadOutputPatch[3]; // output_patch<OutputType, 3> ThreadOutputPatch;
+			// ... [done below] EntryPointReturn = MainHull(...);
+			// ThreadOutputPatch[SV_OutputControlPointID] = EntryPointReturn;
+
+			const auto OutputType = EntryPointSig->return_type;
+			// Generate a local variable to hold the output.
+			ir_variable* TempVariable = new(ParseState) ir_variable(OutputType, nullptr, ir_var_temporary);
+			ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
+			PrePreCallInstructions.push_tail(TempVariable);
+			EntryPointReturn = TempVariableDeref;
+
+			auto OutputPatchType = glsl_type::get_array_instance(OutputType, ParseState->tessellation.outputcontrolpoints);
+			auto OutputMultiPatchType = glsl_type::get_array_instance(OutputPatchType, patchesPerThreadgroup);
+			// Generate a threadgroup variable to hold all the outputs.
+			// threadgroup OutputType ThreadOutputPatch[patchesPerThreadgroup][outputcontrolpoints];
+			OutputPatchVar = new(ParseState) ir_variable(OutputMultiPatchType, "ThreadOutputMultiPatch", ir_var_shared);
+			PrePreCallInstructions.push_tail(OutputPatchVar);
+			ir_dereference_array* OutputPatchElementIndex = new(ParseState)ir_dereference_array(
+				new(ParseState)ir_dereference_array(
+					OutputPatchVar,
+					new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("patchIDInThreadgroup"))
+				),
+				new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID"))
+				);
+			PostCallInstructions.push_tail(
+				new (ParseState)ir_assignment(
+					OutputPatchElementIndex,
+					EntryPointReturn
+				)
+				);
+		}
+		else
+		{
+			EntryPointReturn = MetalUtils::GenerateOutput(Frequency, bIsDesktop, ParseState, EntryPointSig->return_semantic, Qualifier, EntryPointSig->return_type, &DeclInstructions, &PreCallInstructions, &PostCallInstructions);
+		}
 	}
+
+		/*
+		we map the HLSL vertex and hull shader to this Metal kernel function
+		for the most parts, we treat variables of InputPatch and OutputPatch as arrays of the inner type
+
+		if(!EXEC_AT_INPUT_CP_RATE) loop
+		[optional] call vertex fetch // @todo use StageInOutDescriptor
+		call vertex shader main
+		barrier
+		
+		if(EXEC_AT_INPUT_CP_RATE) loop
+		build input patch from shader input interface blocks
+		call hull shader main function with input patch and current control point id (SV_OutputControlPointID)
+		copy hull shader main result for the current control point to theadgroup memory (ThreadOutputPatch)
+		barrier
+		(so all instances have computed the per control point data)
+
+		if control point id (SV_OutputControlPointID) is 0
+		call patch constant function with the ThreadOutputPatch as an input
+		copy the patch constant result to the PatchOut and TFOut
+
+		if(EXEC_AT_INPUT_CP_RATE) loop
+		copy ThreadOutputPatch to CPOut 
+		*/
+
+		if (bIsTessellationVSHS)
+		{
+			// create and call GET_INTERNAL_PATCH_ID
+			ir_variable* internalPatchIDVar = NULL;
+			{
+				ir_function *Function = NULL;
+				// create GET_INTERNAL_PATCH_ID
+				{
+					const glsl_type* retType = glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1);
+					ir_function_signature* sig = new(ParseState)ir_function_signature(retType);
+					sig->is_builtin = true;
+					Function = new(ParseState)ir_function("GET_INTERNAL_PATCH_ID");
+					Function->add_signature(sig);
+				}
+				check(Function);
+
+				exec_list VoidParameter;
+				ir_function_signature * FunctionSig = Function->matching_signature(&VoidParameter);
+
+				ir_variable* TempVariable = new(ParseState) ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "internalPatchIDVar", ir_var_temporary);
+				ir_dereference_variable* TempVariableDeref = new(ParseState) ir_dereference_variable(TempVariable);
+				PrePreCallInstructions.push_tail(TempVariable);
+
+				auto* Call = new(ParseState)ir_call(FunctionSig, TempVariableDeref, &VoidParameter);
+				PrePreCallInstructions.push_tail(Call);
+
+				internalPatchIDVar = TempVariable;
+			}
+
+
+			exec_list VertexDeclInstructions; // will only have the inputs with semantics
+			exec_list VertexPreCallInstructions; // will only have the copy to temp-struct part
+			exec_list VertexArgInstructions;
+
+			ir_variable* OutputVertexVar = NULL;
+
+			// Find all system semantics and generate in/out globals
+			foreach_iter(exec_list_iterator, Iter, VertexEntryPointSig->parameters)
+			{
+				const ir_variable* Variable = (ir_variable*)Iter.get();
+				if (Variable->semantic != NULL || Variable->type->is_record())
+				{
+					ir_dereference_variable* ArgVarDeref = NULL;
+					switch (Variable->mode)
+					{
+					case ir_var_in:
+						ArgVarDeref = MetalUtils::GenerateInput(
+							Frequency, bIsDesktop,
+							ParseState,
+							Variable->semantic,
+							Variable->type,
+							&VertexDeclInstructions,
+							&VertexPreCallInstructions
+							);
+						break;
+					case ir_var_out:
+						{
+							// Generate a local variable to hold the output.
+							ir_variable* ArgVar = new(ParseState) ir_variable(Variable->type, Variable->name, ir_var_temporary);
+							ArgVarDeref = new(ParseState)ir_dereference_variable(ArgVar);
+							VertexPreCallInstructions.push_tail(ArgVar);
+
+							if(Variable->type->is_record())
+							{
+								check(OutputVertexVar == NULL);
+								OutputVertexVar = ArgVar;
+							}
+							else if (!Variable->semantic || strcmp(Variable->semantic, "SV_POSITION") != 0)
+							{
+								// @todo Error about the ignored variables - audit to ensure only SV_Position is duplicated
+								_mesa_glsl_error(ParseState, "Unhandled output variable %s [[%s]] found in tessellation shader.\n", Variable->name, Variable->semantic);
+							}
+						}
+						break;
+					default:
+					   _mesa_glsl_error(
+						   ParseState,
+						   "entry point parameter '%s' must be an input or output",
+						   Variable->name
+						   );
+					}
+			
+					VertexArgInstructions.push_tail(ArgVarDeref);
+				}
+			}
+			
+
+			// process VertexDeclInstructions
+			//	/*50550*//*I*/vec4 IN_ATTRIBUTE0 : [[ attribute(ATTRIBUTE0) ]];
+			//->
+			//	struct InputVertexType {
+			//		vec4 IN_ATTRIBUTE0;
+			//	} InputVertexVar;
+			std::set<ir_variable*> VSInVariables;
+
+			TArray<glsl_struct_field> VSInMembers;
+
+			uint32 usedAttributes = 0;
+			ir_variable* vertex_id = NULL;
+			ir_variable* instance_id = NULL;
+
+			foreach_iter(exec_list_iterator, Iter, VertexDeclInstructions)
+			{
+				ir_instruction* IR = (ir_instruction*)Iter.get();
+				auto* Variable = IR->as_variable();
+				check(Variable);
+				{
+					switch (Variable->mode)
+					{
+					case ir_var_in:
+						{
+							check(!Variable->type->is_array());
+							check(Variable->semantic);
+							check(Variable->semantic);
+							int attributeIndex = -1;
+#if PLATFORM_WINDOWS
+							sscanf_s(Variable->semantic, "[[ attribute(ATTRIBUTE%d) ]]", &attributeIndex);
+							sscanf_s(Variable->semantic, "[[ user(ATTRIBUTE%d) ]]", &attributeIndex);
+#else
+							sscanf(Variable->semantic, "[[ attribute(ATTRIBUTE%d) ]]", &attributeIndex);
+							sscanf(Variable->semantic, "[[ user(ATTRIBUTE%d) ]]", &attributeIndex);
+#endif
+							if(attributeIndex == -1)
+							{
+ 								if(!strcmp(Variable->semantic, "[[ vertex_id ]]"))
+ 								{
+ 									vertex_id = Variable;
+ 								}
+ 								else if(!strcmp(Variable->semantic, "[[ instance_id ]]"))
+ 								{
+ 									instance_id = Variable;
+								}
+								else if (!Variable->semantic || strcmp(Variable->semantic, "SV_POSITION") != 0)
+								{
+									// @todo Error about the ignored variables - audit to ensure only SV_Position is duplicated
+									_mesa_glsl_error(ParseState, "Unhandled input variable %s [[%s]] found in tessellation shader.\n", Variable->name, Variable->semantic);
+								}
+							}
+							else
+							{
+ 								check(attributeIndex >= 0 && attributeIndex <= 31);
+ 								glsl_struct_field Member;
+ 								Member.type = Variable->type;
+ 								Member.name = ralloc_strdup(ParseState, Variable->name);
+ 								Member.semantic = ralloc_asprintf(ParseState, "[[ attribute(%d) ]]", attributeIndex);
+ 								usedAttributes |= (1 << attributeIndex);
+								VSInMembers.Add(Member);
+								VSInVariables.insert(Variable);
+							}
+							// @todo It would be better to add "#define has_IN_ATTRIBUTE0" to VSHSDefines...
+						}
+						break;
+					default:
+						check(0);
+					}
+				}
+			}
+
+			if(vertex_id)
+			{
+				// @todo could strip out indexBuffer and indexBufferType if vertex_id == NULL
+				auto *Variable = vertex_id;
+				Variable->remove();
+				Variable->mode = ir_var_temporary;
+				VertexPreCallInstructions.push_tail(Variable);
+				// create and call GET_VERTEX_ID
+				{
+					ir_function *Function = NULL;
+					// create GET_VERTEX_ID
+					{
+						const glsl_type* retType = glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1);
+						ir_function_signature* sig = new(ParseState)ir_function_signature(retType);
+						sig->is_builtin = true;
+						Function = new(ParseState)ir_function("GET_VERTEX_ID");
+						Function->add_signature(sig);
+					}
+					check(Function);
+
+					exec_list VoidParameter;
+					ir_function_signature * FunctionSig = Function->matching_signature(&VoidParameter);
+
+					ir_dereference_variable* VariableDeref = new(ParseState) ir_dereference_variable(Variable);
+
+					auto* Call = new(ParseState)ir_call(FunctionSig, VariableDeref, &VoidParameter);
+					VertexPreCallInstructions.push_tail(Call);
+				}
+			}
+
+			if(instance_id)
+			{
+				auto *Variable = instance_id;
+				Variable->remove();
+				Variable->mode = ir_var_temporary;
+				VertexPreCallInstructions.push_tail(Variable);
+				// create and call GET_INSTANCE_ID
+				{
+					ir_function *Function = NULL;
+					// create GET_INSTANCE_ID
+					{
+						const glsl_type* retType = glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1);
+						ir_function_signature* sig = new(ParseState)ir_function_signature(retType);
+						sig->is_builtin = true;
+						Function = new(ParseState)ir_function("GET_INSTANCE_ID");
+						Function->add_signature(sig);
+					}
+					check(Function);
+
+					exec_list VoidParameter;
+					ir_function_signature * FunctionSig = Function->matching_signature(&VoidParameter);
+
+					ir_dereference_variable* VariableDeref = new(ParseState) ir_dereference_variable(Variable);
+
+					auto* Call = new(ParseState)ir_call(FunctionSig, VariableDeref, &VoidParameter);
+					VertexPreCallInstructions.push_tail(Call);
+				}
+			}
+
+			auto InputVertexType = glsl_type::get_record_instance(&VSInMembers[0], (unsigned int)VSInMembers.Num(), "InputVertexType");
+			// add and read from stage_in
+			ir_variable* InputVertexVar = new(ParseState)ir_variable(InputVertexType, "InputVertexVar", ir_var_in);
+			InputVertexVar->semantic = ralloc_asprintf(ParseState, "stage_in"); // the proper semantic will be added later
+			DeclInstructions.push_tail(InputVertexVar);
+			ParseState->symbols->add_variable(InputVertexVar);
+			ParseState->AddUserStruct(InputVertexType);
+
+			// fix VertexPreCallInstructions
+			//	/*50554*//*50553*//*50552*/Param1249.Position = /*50551*/IN_ATTRIBUTE0;
+			//->
+			//	/*50554*//*50553*//*50552*/Param1249.Position = /*50551*/InputVertexVar.IN_ATTRIBUTE0;
+			foreach_iter(exec_list_iterator, Iter, VertexPreCallInstructions)
+			{
+				ir_instruction* IR = (ir_instruction*)Iter.get();
+				auto* assign = IR->as_assignment();
+				if (assign)
+				{
+					auto Variable = assign->rhs->variable_referenced();
+					if(VSInVariables.find(Variable) != VSInVariables.end())
+					{
+						// @todo assert each VSInVariables is only hit once...
+						assign->rhs = new(ParseState)ir_dereference_record(InputVertexVar, Variable->name);
+					}
+				}
+			}
+
+
+			// optimization if inputcontrolpoints == outputcontrolpoints -- no need for a loop
+			if(EXEC_AT_INPUT_CP_RATE || inputcontrolpoints == ParseState->tessellation.outputcontrolpoints)
+			{
+				// add ... if(isPatchValid)
+				ir_if* pv_if = new(ParseState)ir_if(new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("isPatchValid")));
+				PrePreCallInstructions.push_tail(pv_if);
+
+
+				pv_if->then_instructions.append_list(&VertexPreCallInstructions);
+
+				// call VertexMain
+				pv_if->then_instructions.push_tail(new(ParseState) ir_call(VertexEntryPointSig, NULL, &VertexArgInstructions));
+
+				// assign OutputVertexVar to InputPatchVar[patchIDInThreadgroup][SV_OutputControlPointID] // NOTE: in this case SV_OutputControlPointID == inputControlPointID
+				ir_dereference_array* InputPatchElementIndex = new(ParseState)ir_dereference_array(
+					new(ParseState)ir_dereference_array(
+						InputPatchVar,
+						new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("patchIDInThreadgroup"))
+					),
+#if EXEC_AT_INPUT_CP_RATE
+					new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_InputControlPointID"))
+#else // EXEC_AT_INPUT_CP_RATE
+					new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID"))
+#endif // EXEC_AT_INPUT_CP_RATE
+					);
+				pv_if->then_instructions.push_tail(
+					new (ParseState)ir_assignment(
+						InputPatchElementIndex,
+						new (ParseState)ir_dereference_variable(OutputVertexVar)
+					)
+					);
+			}
+			else
+			{
+				check(0); // not currently a supported combination with compute stageIn attributes
+				check(!EXEC_AT_INPUT_CP_RATE); // this will never happen if EXEC_AT_INPUT_CP_RATE
+				// add ...	for(uint baseCPID = 0; baseCPID < TessellationInputControlPoints; baseCPID += TessellationOutputControlPoints)
+				ir_variable* baseCPIDVar = new(ParseState)ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "baseCPIDVar", ir_var_temporary);
+				PrePreCallInstructions.push_tail(baseCPIDVar);
+				// add ... uint baseCPID = 0
+				PrePreCallInstructions.push_tail(
+					new(ParseState)ir_assignment(
+						new(ParseState)ir_dereference_variable(baseCPIDVar),
+						new(ParseState)ir_constant((unsigned)0)
+					)
+					);
+				ir_loop* vf_loop = new(ParseState)ir_loop();
+				PrePreCallInstructions.push_tail(vf_loop);
+
+				// NOTE: cannot use from/to/increment/counter/cmp because that is used during optimizations
+				// add ... baseCPID < TessellationInputControlPoints (to break from the for loop)
+				ir_if* vf_loop_break = new(ParseState)ir_if(
+					new(ParseState)ir_expression(ir_binop_gequal,
+						new(ParseState)ir_dereference_variable(baseCPIDVar),
+						new(ParseState)ir_constant((unsigned)inputcontrolpoints)
+					)
+					);
+				vf_loop->body_instructions.push_tail(vf_loop_break);
+				vf_loop_break->then_instructions.push_tail(
+						new(ParseState)ir_loop_jump(ir_loop_jump::jump_break)
+					);
+				vf_loop->mode = ir_loop::loop_dont_care;
+
+				// add ... const uint inputCPID = baseCPID + SV_OutputControlPointID; // baseCPID + GET_OUTPUT_CP_ID()
+				ir_variable* inputCPIDVar = new(ParseState)ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "inputCPIDVar", ir_var_temporary);
+				vf_loop->body_instructions.push_tail(inputCPIDVar);
+				vf_loop->body_instructions.push_tail(
+					new(ParseState)ir_assignment(
+						new(ParseState)ir_dereference_variable(inputCPIDVar),
+						new(ParseState)ir_expression(ir_binop_add,
+							new(ParseState)ir_dereference_variable(baseCPIDVar),
+							new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID"))
+						)
+					)
+					);
+
+				// add ... if(inputCPID < TessellationInputControlPoints)
+				ir_if* vf_if = new(ParseState)ir_if(
+					new(ParseState)ir_expression(ir_binop_less,
+						new(ParseState)ir_dereference_variable(inputCPIDVar),
+						new(ParseState)ir_constant((unsigned)inputcontrolpoints)
+					)
+					);
+				vf_loop->body_instructions.push_tail(vf_if);
+				// add ... baseCPID += TessellationOutputControlPoints
+				vf_loop->body_instructions.push_tail(
+					new(ParseState)ir_assignment(
+						new(ParseState)ir_dereference_variable(baseCPIDVar),
+						new(ParseState)ir_expression(ir_binop_add,
+							new(ParseState)ir_dereference_variable(baseCPIDVar),
+							new(ParseState)ir_constant((unsigned)ParseState->tessellation.outputcontrolpoints)
+						)
+					)
+					);
+
+				// add ...	const uint vertex_id = threadgroup_position_in_grid * TessellationInputControlPoints + inputCPID;
+				ir_variable* vertex_idVar = new(ParseState)ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "vertex_idVar", ir_var_temporary);
+				vf_if->then_instructions.push_tail(vertex_idVar);
+				vf_if->then_instructions.push_tail(
+					new (ParseState)ir_assignment(
+						new(ParseState)ir_dereference_variable(vertex_idVar),
+						new(ParseState)ir_expression(ir_binop_add,
+							new(ParseState)ir_expression(ir_binop_mul,
+								new(ParseState)ir_dereference_variable(internalPatchIDVar),
+								new(ParseState)ir_constant((unsigned)inputcontrolpoints)
+							),
+							new(ParseState)ir_dereference_variable(inputCPIDVar)
+						)
+					)
+					);
+
+				check(0);
+				vf_if->then_instructions.append_list(&VertexPreCallInstructions);
+
+				// call VertexMain
+				vf_if->then_instructions.push_tail(new(ParseState) ir_call(VertexEntryPointSig, NULL, &VertexArgInstructions));
+
+				// assign OutputVertexVar to InputPatchVar[patchIDInThreadgroup][inputCPID]
+				ir_dereference_array* InputPatchElementIndex = new(ParseState)ir_dereference_array(
+					new(ParseState)ir_dereference_array(
+						InputPatchVar,
+						new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("patchIDInThreadgroup"))
+					),
+					new (ParseState)ir_dereference_variable(inputCPIDVar)
+					);
+				vf_if->then_instructions.push_tail(
+					new (ParseState)ir_assignment(
+						InputPatchElementIndex,
+						new (ParseState)ir_dereference_variable(OutputVertexVar)
+					)
+					);
+			}
+
+			// call barrier() to ensure that all threads have computed the per-input-patch computation
+			{
+				ir_function *Function = ParseState->symbols->get_function(bIsDesktop ? GROUP_MEMORY_BARRIER : SIMDGROUP_MEMORY_BARRIER);
+				check(Function);
+				check(Function->signatures.get_head() == Function->signatures.get_tail());
+				exec_list VoidParameter;
+				ir_function_signature * BarrierFunctionSig = Function->matching_signature(&VoidParameter);
+				PrePreCallInstructions.push_tail(new(ParseState)ir_call(BarrierFunctionSig, NULL, &VoidParameter));
+			}
+
+			ir_function_signature* PatchConstantSig = FindEntryPointFunction(Instructions, ParseState, ParseState->tessellation.patchconstantfunc);
+			if (!PatchConstantSig)
+			{
+				_mesa_glsl_error(ParseState, "patch constant function `%s' not found", ParseState->tessellation.patchconstantfunc);
+			}
+
+			// call barrier() to ensure that all threads have computed the per-output-patch computation
+			{
+				ir_function *Function = ParseState->symbols->get_function(bIsDesktop ? GROUP_MEMORY_BARRIER : SIMDGROUP_MEMORY_BARRIER);
+				check(Function);
+				check(Function->signatures.get_head() == Function->signatures.get_tail());
+				exec_list VoidParameter;
+				ir_function_signature * BarrierFunctionSig = Function->matching_signature(&VoidParameter);
+				PostPostCallInstructions.push_tail(new(ParseState)ir_call(BarrierFunctionSig, NULL, &VoidParameter));
+			}
+
+			// track attribute#s
+			int onAttribute = 0;
+
+			// call the entry point
+			check(PatchConstantSig);
+			{
+				CallPatchConstantFunction(ParseState, OutputPatchVar, internalPatchIDVar, PatchConstantSig, DeclInstructions, PostPostCallInstructions, onAttribute);
+			}
+
+			exec_list MainHullDeclInstructions;
+			exec_list PreMainHullCallInstructions;
+			exec_list PostMainHullCallInstructions;
+
+			const glsl_type* OutputType = NULL;
+
+			FSemanticQualifier OutQualifier;
+			OutQualifier.Fields.bIsPatchConstant = true;
+
+			{
+				auto NestedEntryPointReturn = MetalUtils::GenerateOutput(
+					HSF_HullShader, bIsDesktop,
+					ParseState,
+					EntryPointSig->return_semantic,
+					OutQualifier,
+					EntryPointSig->return_type,
+					&MainHullDeclInstructions,
+					&PreMainHullCallInstructions,
+					&PostMainHullCallInstructions
+					);
+
+				ir_dereference* deref = nullptr;
+				if(!EXEC_AT_INPUT_CP_RATE || inputcontrolpoints == ParseState->tessellation.outputcontrolpoints)
+				{
+					deref = EntryPointReturn;
+				}
+				else
+				{
+					deref = new(ParseState)ir_dereference_array(
+							new(ParseState)ir_dereference_array(
+								OutputPatchVar,
+								new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("patchIDInThreadgroup"))
+							),
+							new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID"))
+						);
+				}
+
+				auto* Assign = new(ParseState)ir_assignment(NestedEntryPointReturn, deref);
+				// insert the assign at the head of PostMainHullCallInstructions
+				PostMainHullCallInstructions.push_head(Assign);
+			}
+
+			// make a flat perControlPoint struct
+			ir_dereference_variable* OutputControlPointDeref = NULL;
+			{
+				std::set<ir_variable*> HSOutVariables;
+
+				TArray<glsl_struct_field> HSOutMembers;
+				
+				static uint8 TypeSizes[(uint8)EMetalComponentType::Max] = {4, 4, 2, 4, 1};
+				TessAttribs.PatchControlPointOutSize = 0;
+				uint32 PatchControlPointOutAlignment = 0;
+				foreach_iter(exec_list_iterator, Iter, MainHullDeclInstructions)
+				{
+					ir_instruction* IR = (ir_instruction*)Iter.get();
+					auto* Variable = IR->as_variable();
+					if (Variable)
+					{
+						switch (Variable->mode)
+						{
+						case ir_var_out:
+							{
+								check(!Variable->type->is_array());
+								glsl_struct_field Member;
+								Member.type = Variable->type;
+								Variable->name = ralloc_asprintf(ParseState, "OUT_ATTRIBUTE%d_%s", onAttribute, Variable->name);
+								Member.name = ralloc_strdup(ParseState, Variable->name);
+                                Member.semantic = ralloc_strdup(ParseState, Variable->semantic ? Variable->semantic : Variable->name);
+                                check(!Variable->type->is_array() && !Variable->type->is_record() && !Variable->type->is_matrix());
+                                FMetalAttribute Attr;
+                                Attr.Index = onAttribute;
+                                check((uint8)Variable->type->base_type < (uint8)EMetalComponentType::Max);
+                                Attr.Type = (EMetalComponentType)Variable->type->base_type;
+                                Attr.Components = Variable->type->components();
+								uint32 MemberSize = FMath::RoundUpToPowerOfTwo(TypeSizes[(uint8)Attr.Type] * Attr.Components);
+								Attr.Offset = Align(TessAttribs.PatchControlPointOutSize, MemberSize);
+								TessAttribs.PatchControlPointOutSize = Attr.Offset + MemberSize;
+								if (PatchControlPointOutAlignment == 0)
+								{
+									PatchControlPointOutAlignment = MemberSize;
+								}
+								TessAttribs.PatchControlPointOut.Add(Attr);
+								onAttribute++;
+								HSOutMembers.Add(Member);
+								HSOutVariables.insert(Variable);
+							}
+							break;
+						default:
+							check(0);
+						}
+					}
+				}
+				TessAttribs.PatchControlPointOutSize = Align(TessAttribs.PatchControlPointOutSize, PatchControlPointOutAlignment);
+
+				if (HSOutMembers.Num())
+				{
+					auto Type = glsl_type::get_record_instance(&HSOutMembers[0], (unsigned int)HSOutMembers.Num(), "PatchControlPointOut");
+					ParseState->AddUserStruct(Type);
+					OutputType = glsl_type::get_array_instance(Type, 1000); // the size is meaningless
+
+					auto OutputControlPointVar = new(ParseState)ir_variable(Type, nullptr, ir_var_temporary);
+					PostMainHullCallInstructions.push_tail(OutputControlPointVar);
+					OutputControlPointDeref = new(ParseState)ir_dereference_variable(OutputControlPointVar);
+
+					// copy to HSOut
+					for(auto &Variable : HSOutVariables)
+					{
+						Variable->remove();
+						Variable->mode = ir_var_temporary;
+						PostMainHullCallInstructions.push_head(Variable);
+						check(Variable->name);
+						ir_dereference* DeRefMember = new(ParseState)ir_dereference_record(OutputControlPointVar, Variable->name);
+						auto* Assign = new(ParseState)ir_assignment(DeRefMember, new(ParseState)ir_dereference_variable(Variable));
+						PostMainHullCallInstructions.push_tail(Assign);
+					}
+				}
+			}
+
+			ir_variable* PatchControlPointOutBuffer = new(ParseState) ir_variable(OutputType, "PatchControlPointOutBuffer", ir_var_out); // the array size of this is meaningless
+			PatchControlPointOutBuffer->semantic = ralloc_asprintf(ParseState, ""); // empty attribute for a buffer pointer means that it will be automatically choosen
+			MainHullDeclInstructions.push_tail(PatchControlPointOutBuffer);
+
+			// NOTE: other possibility
+			// device ControlPointOutputType (*PatchControlPointOutBuffer)[outputcontrolpoints] [[ buffer(...) ]]
+			// PatchControlPointOutBuffer[internalPatchID][GET_OUTPUT_CP_ID()] = OutputPatchVar[patchIDInThreadgroup][GET_OUTPUT_CP_ID()];
+
+			// PatchControlPointOutBuffer[GET_INTERNAL_PATCH_ID() * outputcontrolpoints + GET_OUTPUT_CP_ID()] = OutputPatchVar[patchIDInThreadgroup][GET_OUTPUT_CP_ID()];
+			{
+				ir_dereference_array* PatchControlPointOutBufferDeref = new(ParseState)ir_dereference_array(
+					PatchControlPointOutBuffer,
+					new(ParseState)ir_expression(ir_binop_add,
+						new(ParseState)ir_expression(ir_binop_mul,
+							new(ParseState)ir_dereference_variable(internalPatchIDVar),
+							new(ParseState)ir_constant((unsigned)ParseState->tessellation.outputcontrolpoints)
+						),
+						new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID"))
+					)
+					);
+
+				PostMainHullCallInstructions.push_tail(
+					new (ParseState)ir_assignment(
+						PatchControlPointOutBufferDeref,
+						OutputControlPointDeref
+					)
+					);
+			}
+
+			// add ... if(isPatchValid)
+			ir_if* pv_if = new(ParseState)ir_if(new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("isPatchValid")));
+			pv_if->then_instructions.append_list(&PreMainHullCallInstructions);
+			pv_if->then_instructions.append_list(&PostMainHullCallInstructions);
+			
+			DeclInstructions.append_list(&MainHullDeclInstructions);
+			if(!EXEC_AT_INPUT_CP_RATE || inputcontrolpoints == ParseState->tessellation.outputcontrolpoints)
+			{
+				PostPostCallInstructions.push_tail(pv_if);
+			}
+			else
+			{
+
+				// add ...	for(uint baseCPID = 0; baseCPID < TessellationOutputControlPoints; baseCPID += TessellationInputControlPoints)
+				ir_variable* baseCPIDVar = new(ParseState)ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "baseCPIDVar", ir_var_temporary);
+				PostPostCallInstructions.push_tail(baseCPIDVar);
+				// add ... uint baseCPID = 0
+				PostPostCallInstructions.push_tail(
+					new(ParseState)ir_assignment(
+						new(ParseState)ir_dereference_variable(baseCPIDVar),
+						new(ParseState)ir_constant((unsigned)0)
+					)
+					);
+				ir_loop* vf_loop = new(ParseState)ir_loop();
+				PostPostCallInstructions.push_tail(vf_loop);
+
+				// NOTE: cannot use from/to/increment/counter/cmp because that is used during optimizations
+				// add ... baseCPID < TessellationOutputControlPoints (to break from the for loop)
+				ir_if* vf_loop_break = new(ParseState)ir_if(
+					new(ParseState)ir_expression(ir_binop_gequal,
+						new(ParseState)ir_dereference_variable(baseCPIDVar),
+						new(ParseState)ir_constant((unsigned)ParseState->tessellation.outputcontrolpoints)
+					)
+					);
+				vf_loop->body_instructions.push_tail(vf_loop_break);
+				vf_loop_break->then_instructions.push_tail(
+						new(ParseState)ir_loop_jump(ir_loop_jump::jump_break)
+					);
+				vf_loop->mode = ir_loop::loop_dont_care;
+
+				// add ... const uint outputCPID = baseCPID + SV_InputControlPointID; // baseCPID + GET_INPUT_CP_ID()
+				vf_loop->body_instructions.push_tail(
+					new(ParseState)ir_assignment(
+						new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID")),
+						new(ParseState)ir_expression(ir_binop_add,
+							new(ParseState)ir_dereference_variable(baseCPIDVar),
+							new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_InputControlPointID"))
+						)
+					)
+					);
+
+				// add ... if(outputCPID < TessellationOutputControlPoints)
+				ir_if* vf_if = new(ParseState)ir_if(
+					new(ParseState)ir_expression(ir_binop_less,
+						new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID")),
+						new(ParseState)ir_constant((unsigned)ParseState->tessellation.outputcontrolpoints)
+					)
+					);
+				vf_loop->body_instructions.push_tail(vf_if);
+				// add ... baseCPID += TessellationInputControlPoints
+				vf_loop->body_instructions.push_tail(
+					new(ParseState)ir_assignment(
+						new(ParseState)ir_dereference_variable(baseCPIDVar),
+						new(ParseState)ir_expression(ir_binop_add,
+							new(ParseState)ir_dereference_variable(baseCPIDVar),
+							new(ParseState)ir_constant((unsigned)inputcontrolpoints)
+						)
+					)
+					);
+
+				vf_if->then_instructions.push_tail(pv_if);
+			}
+		}
 
 	ParseState->symbols->pop_scope();
 
@@ -3403,13 +4798,103 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	ir_function_signature* MainSig = new(ParseState) ir_function_signature(glsl_type::void_type);
 	MainSig->is_defined = true;
 	MainSig->is_main = true;
+	MainSig->body.append_list(&PrePreCallInstructions);
+#if EXEC_AT_INPUT_CP_RATE
+	if(!bIsTessellationVSHS)
+	{
+		MainSig->body.append_list(&PreCallInstructions);
+		// Call the original EntryPoint
+		MainSig->body.push_tail(new(ParseState) ir_call(EntryPointSig, EntryPointReturn, &ArgInstructions));
+		MainSig->body.append_list(&PostCallInstructions);
+	}
+	else
+	{
+		// add ... if(isPatchValid)
+		ir_if* pv_if = new(ParseState)ir_if(new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("isPatchValid")));
+		pv_if->then_instructions.append_list(&PreCallInstructions);
+		// Call the original EntryPoint
+		pv_if->then_instructions.push_tail(new(ParseState) ir_call(EntryPointSig, EntryPointReturn, &ArgInstructions));
+		pv_if->then_instructions.append_list(&PostCallInstructions);
+
+		if(inputcontrolpoints == ParseState->tessellation.outputcontrolpoints)
+		{
+			MainSig->body.push_tail(pv_if);
+		}
+		else
+		{
+
+			// add ...	for(uint baseCPID = 0; baseCPID < TessellationOutputControlPoints; baseCPID += TessellationInputControlPoints)
+			ir_variable* baseCPIDVar = new(ParseState)ir_variable(glsl_type::get_instance(GLSL_TYPE_UINT, 1, 1), "baseCPIDVar", ir_var_temporary);
+			MainSig->body.push_tail(baseCPIDVar);
+			// add ... uint baseCPID = 0
+			MainSig->body.push_tail(
+				new(ParseState)ir_assignment(
+					new(ParseState)ir_dereference_variable(baseCPIDVar),
+					new(ParseState)ir_constant((unsigned)0)
+				)
+				);
+			ir_loop* vf_loop = new(ParseState)ir_loop();
+			MainSig->body.push_tail(vf_loop);
+
+			// NOTE: cannot use from/to/increment/counter/cmp because that is used during optimizations
+			// add ... baseCPID < TessellationOutputControlPoints (to break from the for loop)
+			ir_if* vf_loop_break = new(ParseState)ir_if(
+				new(ParseState)ir_expression(ir_binop_gequal,
+					new(ParseState)ir_dereference_variable(baseCPIDVar),
+					new(ParseState)ir_constant((unsigned)ParseState->tessellation.outputcontrolpoints)
+				)
+				);
+			vf_loop->body_instructions.push_tail(vf_loop_break);
+			vf_loop_break->then_instructions.push_tail(
+					new(ParseState)ir_loop_jump(ir_loop_jump::jump_break)
+				);
+			vf_loop->mode = ir_loop::loop_dont_care;
+
+			// add ... const uint outputCPID = baseCPID + SV_InputControlPointID; // baseCPID + GET_INPUT_CP_ID()
+			vf_loop->body_instructions.push_tail(
+				new(ParseState)ir_assignment(
+					new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID")),
+					new(ParseState)ir_expression(ir_binop_add,
+						new(ParseState)ir_dereference_variable(baseCPIDVar),
+						new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_InputControlPointID"))
+					)
+				)
+				);
+
+			// add ... if(outputCPID < TessellationOutputControlPoints)
+			ir_if* vf_if = new(ParseState)ir_if(
+				new(ParseState)ir_expression(ir_binop_less,
+					new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("SV_OutputControlPointID")),
+					new(ParseState)ir_constant((unsigned)ParseState->tessellation.outputcontrolpoints)
+				)
+				);
+			vf_loop->body_instructions.push_tail(vf_if);
+			// add ... baseCPID += TessellationInputControlPoints
+			vf_loop->body_instructions.push_tail(
+				new(ParseState)ir_assignment(
+					new(ParseState)ir_dereference_variable(baseCPIDVar),
+					new(ParseState)ir_expression(ir_binop_add,
+						new(ParseState)ir_dereference_variable(baseCPIDVar),
+						new(ParseState)ir_constant((unsigned)inputcontrolpoints)
+					)
+				)
+				);
+
+			vf_if->then_instructions.push_tail(pv_if);
+		}
+	}
+#else // EXEC_AT_INPUT_CP_RATE
 	MainSig->body.append_list(&PreCallInstructions);
 	// Call the original EntryPoint
 	MainSig->body.push_tail(new(ParseState) ir_call(EntryPointSig, EntryPointReturn, &ArgInstructions));
 	MainSig->body.append_list(&PostCallInstructions);
+#endif // EXEC_AT_INPUT_CP_RATE
+	MainSig->body.append_list(&PostPostCallInstructions);
 	MainSig->wg_size_x = EntryPointSig->wg_size_x;
 	MainSig->wg_size_y = EntryPointSig->wg_size_y;
 	MainSig->wg_size_z = EntryPointSig->wg_size_z;
+	// NOTE: ParseState->tessellation has been modified since EntryPointSig->tessellation was used...
+	MainSig->tessellation = ParseState->tessellation;
 
 	// Generate the Main() function
 	auto* MainFunction = new(ParseState)ir_function("Main");
@@ -3420,13 +4905,248 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 
 	// Now that we have a proper Main(), move global setup to Main().
 	MoveGlobalInstructionsToMain(Instructions);
-//IRDump(Instructions);
 	return true;
 }
 
-FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, bool bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks) :
-	FCodeBackend(InHlslCompileFlags, HCT_FeatureLevelES3_1)
+void FMetalCodeBackend::CallPatchConstantFunction(_mesa_glsl_parse_state* ParseState, ir_variable* OutputPatchVar, ir_variable* internalPatchIDVar, ir_function_signature* PatchConstantSig, exec_list& DeclInstructions, exec_list &PostCallInstructions, int &onAttribute)
 {
+	exec_list PatchConstantArgs;
+	if (OutputPatchVar && !PatchConstantSig->parameters.is_empty())
+	{
+		PatchConstantArgs.push_tail(
+			new(ParseState)ir_dereference_array(
+				OutputPatchVar,
+				new (ParseState)ir_dereference_variable(ParseState->symbols->get_variable("patchIDInThreadgroup"))
+			)
+			);
+	}
+
+	ir_if* thread_if = new(ParseState)ir_if(
+		new(ParseState)ir_expression(
+		ir_binop_equal,
+		new (ParseState)ir_constant(
+		0u
+		),
+		new (ParseState)ir_dereference_variable(
+#if EXEC_AT_INPUT_CP_RATE
+		ParseState->symbols->get_variable("SV_InputControlPointID")
+#else // EXEC_AT_INPUT_CP_RATE
+		ParseState->symbols->get_variable("SV_OutputControlPointID")
+#endif // EXEC_AT_INPUT_CP_RATE
+		)
+		)
+		);
+
+	exec_list PatchConstDeclInstructions;
+	exec_list PrePatchConstCallInstructions;
+	exec_list PostPatchConstCallInstructions;
+
+	FSemanticQualifier Qualifier;
+	Qualifier.Fields.bIsPatchConstant = true;
+
+	ir_dereference_variable* PatchConstantReturn = MetalUtils::GenerateOutput(
+		HSF_HullShader, bIsDesktop,
+		ParseState,
+		PatchConstantSig->return_semantic,
+		Qualifier,
+		PatchConstantSig->return_type,
+		&PatchConstDeclInstructions,
+		&PrePatchConstCallInstructions,
+		&PostPatchConstCallInstructions
+		);
+
+	// @todo only write out if patch not culled
+	// write TFOut to TFOutBuffer (only if outputCPID == 0)
+	// write HSOut to HSOutBuffer (only if outputCPID == 0)
+	{
+		std::set<ir_variable*> HSOutVariables;
+		ir_variable* HSOut = nullptr;
+
+		std::set<ir_variable*> HSTFOutVariables;
+		ir_variable* HSTFOut = nullptr;
+
+		TArray<glsl_struct_field> HSOutMembers;
+
+		static uint8 TypeSizes[(uint8)EMetalComponentType::Max] = {4, 4, 2, 4, 1};
+		TessAttribs.HSOutSize = 0;
+		uint32 HSOutAlignment = 0;
+		
+		foreach_iter(exec_list_iterator, Iter, PatchConstDeclInstructions)
+		{
+			ir_instruction* IR = (ir_instruction*)Iter.get();
+			auto* Variable = IR->as_variable();
+			if (Variable)
+			{
+				switch (Variable->mode)
+				{
+				case ir_var_out:
+					{
+						check(!Variable->type->is_array());
+						if (Variable->semantic && FCStringAnsi::Strnicmp(Variable->semantic, "SV_", 3) == 0)
+						{
+							HSTFOutVariables.insert(Variable);
+							break;
+						}
+						glsl_struct_field Member;
+						Member.type = Variable->type;
+						Variable->name = ralloc_asprintf(ParseState, "OUT_ATTRIBUTE%d_%s", onAttribute, Variable->name);
+						Member.name = ralloc_strdup(ParseState, Variable->name);
+                        Member.semantic = ralloc_strdup(ParseState, Variable->semantic ? Variable->semantic : Variable->name);
+                        
+                        check(!Variable->type->is_array() && !Variable->type->is_record() && !Variable->type->is_matrix());
+                        FMetalAttribute Attr;
+                        Attr.Index = onAttribute;
+                        check((uint8)Variable->type->base_type < (uint8)EMetalComponentType::Max);
+                        Attr.Type = (EMetalComponentType)Variable->type->base_type;
+                        Attr.Components = Variable->type->components();
+						uint32 MemberSize = FMath::RoundUpToPowerOfTwo(TypeSizes[(uint8)Attr.Type] * Attr.Components);
+						Attr.Offset = Align(TessAttribs.HSOutSize, MemberSize);
+						TessAttribs.HSOutSize = Attr.Offset + MemberSize;
+						if (HSOutAlignment == 0)
+						{
+							HSOutAlignment = MemberSize;
+						}
+                        TessAttribs.HSOut.Add(Attr);
+                        
+						onAttribute++;
+						HSOutMembers.Add(Member);
+						HSOutVariables.insert(Variable);
+					}
+					break;
+				default:
+					check(0);
+				}
+			}
+		}
+		TessAttribs.HSOutSize = Align(TessAttribs.HSOutSize, HSOutAlignment);
+
+		if (HSOutMembers.Num())
+		{
+			auto Type = glsl_type::get_record_instance(&HSOutMembers[0], (unsigned int)HSOutMembers.Num(), "FHSOut");
+			auto OutType = glsl_type::get_array_instance(Type, 1000); // the size is meaningless
+			HSOut = new(ParseState)ir_variable(OutType, "__HSOut", ir_var_out);
+			HSOut->semantic = ralloc_asprintf(ParseState, ""); // empty attribute for a buffer pointer means that it will be automatically choosen
+			PatchConstDeclInstructions.push_tail(HSOut);
+			ParseState->symbols->add_variable(HSOut);
+
+			if (!ParseState->AddUserStruct(Type))
+			{
+				YYLTYPE loc = {0};
+				_mesa_glsl_error(&loc, ParseState, "struct '%s' previously defined", Type->name);
+			}
+
+			// copy to HSOut
+			for(auto &Variable : HSOutVariables)
+			{
+				Variable->remove();
+				Variable->mode = ir_var_temporary;
+				PrePatchConstCallInstructions.push_tail(Variable);
+				check(Variable->name);
+				ir_dereference* DeRefArray = new(ParseState)ir_dereference_array(HSOut, new(ParseState) ir_dereference_variable(internalPatchIDVar));
+				ir_dereference* DeRefMember = new(ParseState)ir_dereference_record(DeRefArray, Variable->name);
+				auto* Assign = new(ParseState)ir_assignment(DeRefMember, new(ParseState)ir_dereference_variable(Variable));
+				PostPatchConstCallInstructions.push_tail(Assign);
+			}
+		}
+		
+		// generate...
+		// struct TFType
+		// {
+		//     half SV_TessFactor...
+		//     half SV_InsideTessFactor...
+		// };
+		// device TFType *HSTFOut;
+		// if(GET_OUTPUT_CP_ID() == 0)
+		// {
+		//    TFType tf;
+		//    tf.SV_TessFactorN = SV_TessFactorN;
+		//    tf.SV_InsideTessFactorN = SV_InsideTessFactorN;
+		//    idx = GET_INTERNAL_PATCH_ID()
+		//    HSTFOut[idx] = tf;
+		// }
+		check(HSTFOutVariables.size());
+		{
+			check(ParseState->tessellation.domain == GLSL_DOMAIN_QUAD || ParseState->tessellation.domain == GLSL_DOMAIN_TRI);
+			bool isQuad = ParseState->tessellation.domain == GLSL_DOMAIN_QUAD;
+			check((isQuad && HSTFOutVariables.size() == 6) || (!isQuad && HSTFOutVariables.size() == 4));
+
+			// create TFType and HSTFOut and tf
+			ir_variable* tf = nullptr;
+			{
+				TessAttribs.HSTFOutSize = 0;
+				TArray<glsl_struct_field> TFTypeMembers;
+				for(unsigned int onTF = 0; onTF < (isQuad ? 4u : 3u); onTF++)
+				{
+					glsl_struct_field Member;
+					Member.type = glsl_type::get_instance(GLSL_TYPE_HALF, 1, 1);
+					Member.name = ralloc_asprintf(ParseState, "SV_TessFactor%u", onTF);
+					// @todo assert Member.name is in HSTFOutVariables
+					Member.semantic = Member.name;
+					TFTypeMembers.Add(Member);
+					TessAttribs.HSTFOutSize += 2;
+				}
+				for(unsigned int onTF = 0; onTF < (isQuad ? 2u : 1u); onTF++)
+				{
+					glsl_struct_field Member;
+					Member.type = glsl_type::get_instance(GLSL_TYPE_HALF, 1, 1);
+					Member.name = isQuad ? ralloc_asprintf(ParseState, "SV_InsideTessFactor%u", onTF) : "SV_InsideTessFactor";
+					// @todo assert Member.name is in HSTFOutVariables
+					Member.semantic = Member.name;
+					TFTypeMembers.Add(Member);
+					TessAttribs.HSTFOutSize += 2;
+				}
+				
+				auto TFType = glsl_type::get_record_instance(&TFTypeMembers[0], (unsigned int)TFTypeMembers.Num(), "TFType");
+				tf = new(ParseState)ir_variable(TFType, "tf", ir_var_temporary);
+				PostPatchConstCallInstructions.push_tail(tf);
+				auto TFOutType = glsl_type::get_array_instance(TFType, 1000); // the size is meaningless
+				HSTFOut = new(ParseState)ir_variable(TFOutType, "__HSTFOut", ir_var_out);
+				HSTFOut->semantic = ralloc_asprintf(ParseState, ""); // empty attribute for a buffer pointer means that it will be automatically choosen
+				PatchConstDeclInstructions.push_tail(HSTFOut);
+				ParseState->symbols->add_variable(HSTFOut);
+				ParseState->AddUserStruct(TFType);
+			}
+
+			// copy TFs to tf
+			for(auto &Variable : HSTFOutVariables)
+			{
+				Variable->remove();
+				Variable->mode = ir_var_temporary;
+				PrePatchConstCallInstructions.push_tail(Variable);
+				check(Variable->semantic);
+				ir_dereference* DeRefMember = new(ParseState)ir_dereference_record(tf, Variable->semantic);
+				Variable->semantic = NULL;
+				auto* Assign = new(ParseState)ir_assignment(DeRefMember, new(ParseState)ir_dereference_variable(Variable));
+				PostPatchConstCallInstructions.push_tail(Assign);
+			}
+
+			// copy tf to HSTFOut[idx]
+			{
+				ir_dereference* DeRefArray = new(ParseState)ir_dereference_array(HSTFOut, new(ParseState) ir_dereference_variable(internalPatchIDVar));
+				auto* Assign = new(ParseState)ir_assignment(DeRefArray, new(ParseState)ir_dereference_variable(tf));
+				PostPatchConstCallInstructions.push_tail(Assign);
+			}
+		}
+	}
+
+	DeclInstructions.append_list(&PatchConstDeclInstructions);
+
+	thread_if->then_instructions.append_list(&PrePatchConstCallInstructions);
+	thread_if->then_instructions.push_tail(new(ParseState)ir_call(PatchConstantSig, PatchConstantReturn, &PatchConstantArgs));
+	thread_if->then_instructions.append_list(&PostPatchConstCallInstructions);
+
+	// add ... if(isPatchValid)
+	ir_if* pv_if = new(ParseState)ir_if(new(ParseState)ir_dereference_variable(ParseState->symbols->get_variable("isPatchValid")));
+	PostCallInstructions.push_tail(pv_if);
+
+	pv_if->then_instructions.push_tail(thread_if);
+}
+
+FMetalCodeBackend::FMetalCodeBackend(FMetalTessellationOutputs& TessOutputAttribs, unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget, uint8 InVersion, bool bInDesktop, bool bInZeroInitialise, bool bInBoundsChecks) :
+	FCodeBackend(InHlslCompileFlags, HCT_FeatureLevelES3_1),
+	TessAttribs(TessOutputAttribs)
+{
+    Version = InVersion;
 	bIsDesktop = bInDesktop;
 	bZeroInitialise = bInZeroInitialise;
 	bBoundsChecks = bInBoundsChecks;
@@ -3491,6 +5211,7 @@ void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, 
 	// Memory sync/barriers
 	
 	{
+		make_intrinsic_genType(ir, State, SIMDGROUP_MEMORY_BARRIER, ir_invalid_opcode, IR_INTRINSIC_RETURNS_VOID, 0, 0, 0);
 		make_intrinsic_genType(ir, State, GROUP_MEMORY_BARRIER, ir_invalid_opcode, IR_INTRINSIC_RETURNS_VOID, 0, 0, 0);
 		make_intrinsic_genType(ir, State, GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC, ir_invalid_opcode, IR_INTRINSIC_RETURNS_VOID, 0, 0, 0);
 		make_intrinsic_genType(ir, State, DEVICE_MEMORY_BARRIER, ir_invalid_opcode, IR_INTRINSIC_RETURNS_VOID, 0, 0, 0);

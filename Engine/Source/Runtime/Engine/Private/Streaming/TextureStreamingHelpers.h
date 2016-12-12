@@ -89,6 +89,7 @@ struct FTextureStreamingSettings
 	bool bScaleTexturesByGlobalMyBias;
 	bool bUsePerTextureBias;
 	bool bUseMaterialData;
+	int32 MinMipForSplitRequest;
 
 protected:
 
@@ -177,6 +178,8 @@ struct FTextureStreamingStats
 	int64 VisibleMips;
 	int64 HiddenMips;
 	int64 ForcedMips;
+	int64 UnkownRefMips;
+	int64 LastRenderTimeMips;
 	int64 CachedMips;
 
 	int64 WantedMips;

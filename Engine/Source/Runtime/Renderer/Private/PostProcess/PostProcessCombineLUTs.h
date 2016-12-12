@@ -20,8 +20,9 @@ class FRCPassPostProcessCombineLUTs : public TRenderingCompositePassBase<0, 1>
 {
 public:
 	// interface FRenderingCompositePass ---------
-	FRCPassPostProcessCombineLUTs(EShaderPlatform InShaderPlatform)
+	FRCPassPostProcessCombineLUTs(EShaderPlatform InShaderPlatform, bool bInAllocateOutput)
 	: ShaderPlatform(InShaderPlatform)
+	, bAllocateOutput(bInAllocateOutput)
 	{
 		
 	}
@@ -38,6 +39,7 @@ public:
 private:
 
 	EShaderPlatform ShaderPlatform;
+	bool bAllocateOutput;
 };
 
 

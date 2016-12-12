@@ -287,6 +287,265 @@ static inline uint32 ParseNumber(const ANSICHAR* Str)
 	return Num;
 }
 
+struct FHlslccMetalHeader : public CrossCompiler::FHlslccHeader
+{
+	FHlslccMetalHeader(uint8 const Version, bool const bUsingTessellation);
+	virtual ~FHlslccMetalHeader();
+	
+	// After the standard header, different backends can output their own info
+	virtual bool ParseCustomHeaderEntries(const ANSICHAR*& ShaderSource) override;
+	
+	float  TessellationMaxTessFactor;
+	uint32 TessellationOutputControlPoints;
+	uint32 TessellationDomain; // 3 = tri, 4 = quad
+	uint32 TessellationInputControlPoints;
+    uint32 TessellationPatchesPerThreadGroup;
+    uint32 TessellationPatchCountBuffer;
+    uint32 TessellationIndexBuffer;
+    uint32 TessellationHSOutBuffer;
+    uint32 TessellationHSTFOutBuffer;
+    uint32 TessellationControlPointOutBuffer;
+    uint32 TessellationControlPointIndexBuffer;
+	EMetalOutputWindingMode TessellationOutputWinding;
+	EMetalPartitionMode TessellationPartitioning;
+	uint8 Version;
+	bool bUsingTessellation;
+};
+
+FHlslccMetalHeader::FHlslccMetalHeader(uint8 const InVersion, bool const bInUsingTessellation)
+{
+	TessellationMaxTessFactor = 0.0f;
+	TessellationOutputControlPoints = 0;
+	TessellationDomain = 0;
+	TessellationInputControlPoints = 0;
+	TessellationPatchesPerThreadGroup = 0;
+	TessellationOutputWinding = EMetalOutputWindingMode::Clockwise;
+	TessellationPartitioning = EMetalPartitionMode::Pow2;
+	
+	TessellationPatchCountBuffer = UINT_MAX;
+	TessellationIndexBuffer = UINT_MAX;
+	TessellationHSOutBuffer = UINT_MAX;
+	TessellationHSTFOutBuffer = UINT_MAX;
+	TessellationControlPointOutBuffer = UINT_MAX;
+	TessellationControlPointIndexBuffer = UINT_MAX;
+	
+	Version = InVersion;
+	bUsingTessellation = bInUsingTessellation;
+}
+
+FHlslccMetalHeader::~FHlslccMetalHeader()
+{
+	
+}
+
+bool FHlslccMetalHeader::ParseCustomHeaderEntries(const ANSICHAR*& ShaderSource)
+{
+#define DEF_PREFIX_STR(Str) \
+static const ANSICHAR* Str##Prefix = "// @" #Str ": "; \
+static const int32 Str##PrefixLen = FCStringAnsi::Strlen(Str##Prefix)
+	DEF_PREFIX_STR(TessellationOutputControlPoints);
+	DEF_PREFIX_STR(TessellationDomain);
+	DEF_PREFIX_STR(TessellationInputControlPoints);
+	DEF_PREFIX_STR(TessellationMaxTessFactor);
+	DEF_PREFIX_STR(TessellationOutputWinding);
+	DEF_PREFIX_STR(TessellationPartitioning);
+    DEF_PREFIX_STR(TessellationPatchesPerThreadGroup);
+    DEF_PREFIX_STR(TessellationPatchCountBuffer);
+    DEF_PREFIX_STR(TessellationIndexBuffer);
+    DEF_PREFIX_STR(TessellationHSOutBuffer);
+    DEF_PREFIX_STR(TessellationHSTFOutBuffer);
+    DEF_PREFIX_STR(TessellationControlPointOutBuffer);
+    DEF_PREFIX_STR(TessellationControlPointIndexBuffer);
+#undef DEF_PREFIX_STR
+	
+	// Early out for non-tessellation...
+	if (Version < 2 || !bUsingTessellation)
+	{
+		return true;
+	}
+	
+	auto ParseUInt32Attribute = [&ShaderSource](const ANSICHAR* prefix, int32 prefixLen, uint32& attributeOut)
+	{
+		if (FCStringAnsi::Strncmp(ShaderSource, prefix, prefixLen) == 0)
+		{
+			ShaderSource += prefixLen;
+			
+			if (!CrossCompiler::ParseIntegerNumber(ShaderSource, attributeOut))
+			{
+				return false;
+			}
+			
+			if (!CrossCompiler::Match(ShaderSource, '\n'))
+			{
+				return false;
+			}
+		}
+		
+		return true;
+	};
+ 
+	// Read number of tessellation output control points
+	if (!ParseUInt32Attribute(TessellationOutputControlPointsPrefix, TessellationOutputControlPointsPrefixLen, TessellationOutputControlPoints))
+	{
+		return false;
+	}
+	
+	// Read the tessellation domain (tri vs quad)
+	if (FCStringAnsi::Strncmp(ShaderSource, TessellationDomainPrefix, TessellationDomainPrefixLen) == 0)
+	{
+		ShaderSource += TessellationDomainPrefixLen;
+		
+		if (FCStringAnsi::Strncmp(ShaderSource, "tri", 3) == 0)
+		{
+			ShaderSource += 3;
+			TessellationDomain = 3;
+		}
+		else if (FCStringAnsi::Strncmp(ShaderSource, "quad", 4) == 0)
+		{
+			ShaderSource += 4;
+			TessellationDomain = 4;
+		}
+		else
+		{
+			return false;
+		}
+		
+		if (!CrossCompiler::Match(ShaderSource, '\n'))
+		{
+			return false;
+		}
+	}
+	
+	// Read number of tessellation input control points
+	if (!ParseUInt32Attribute(TessellationInputControlPointsPrefix, TessellationInputControlPointsPrefixLen, TessellationInputControlPoints))
+	{
+		return false;
+	}
+	
+	// Read max tessellation factor
+	if (FCStringAnsi::Strncmp(ShaderSource, TessellationMaxTessFactorPrefix, TessellationMaxTessFactorPrefixLen) == 0)
+	{
+		ShaderSource += TessellationMaxTessFactorPrefixLen;
+		
+#if PLATFORM_WINDOWS
+		if (sscanf_s(ShaderSource, "%g\n", &TessellationMaxTessFactor) != 1)
+#else
+		if (sscanf(ShaderSource, "%g\n", &TessellationMaxTessFactor) != 1)
+#endif
+		{
+			return false;
+		}
+		
+		while (*ShaderSource != '\n')
+		{
+			++ShaderSource;
+		}
+		++ShaderSource; // to match the newline
+	}
+	
+	// Read tessellation output winding mode
+	if (FCStringAnsi::Strncmp(ShaderSource, TessellationOutputWindingPrefix, TessellationOutputWindingPrefixLen) == 0)
+	{
+		ShaderSource += TessellationOutputWindingPrefixLen;
+		
+		if (FCStringAnsi::Strncmp(ShaderSource, "cw", 2) == 0)
+		{
+			ShaderSource += 2;
+			TessellationOutputWinding = EMetalOutputWindingMode::Clockwise;
+		}
+		else if (FCStringAnsi::Strncmp(ShaderSource, "ccw", 3) == 0)
+		{
+			ShaderSource += 3;
+			TessellationOutputWinding = EMetalOutputWindingMode::CounterClockwise;
+		}
+		else
+		{
+			return false;
+		}
+		
+		if (!CrossCompiler::Match(ShaderSource, '\n'))
+		{
+			return false;
+		}
+	}
+	
+	// Read tessellation partition mode
+	if (FCStringAnsi::Strncmp(ShaderSource, TessellationPartitioningPrefix, TessellationPartitioningPrefixLen) == 0)
+	{
+		ShaderSource += TessellationPartitioningPrefixLen;
+		
+		static char const* partitionModeNames[] =
+		{
+			// order match enum order
+			"pow2",
+			"integer",
+			"fractional_odd",
+			"fractional_even",
+		};
+		
+		bool match = false;
+		for (size_t i = 0; i < sizeof(partitionModeNames) / sizeof(partitionModeNames[0]); ++i)
+		{
+			size_t partitionModeNameLen = strlen(partitionModeNames[i]);
+			if (FCStringAnsi::Strncmp(ShaderSource, partitionModeNames[i], partitionModeNameLen) == 0)
+			{
+				ShaderSource += partitionModeNameLen;
+				TessellationPartitioning = (EMetalPartitionMode)i;
+				match = true;
+				break;
+			}
+		}
+		
+		if (!match)
+		{
+			return false;
+		}
+		
+		if (!CrossCompiler::Match(ShaderSource, '\n'))
+		{
+			return false;
+		}
+	}
+	
+	// Read number of tessellation patches per threadgroup
+	if (!ParseUInt32Attribute(TessellationPatchesPerThreadGroupPrefix, TessellationPatchesPerThreadGroupPrefixLen, TessellationPatchesPerThreadGroup))
+	{
+		return false;
+	}
+    
+    if (!ParseUInt32Attribute(TessellationPatchCountBufferPrefix, TessellationPatchCountBufferPrefixLen, TessellationPatchCountBuffer))
+    {
+		TessellationPatchCountBuffer = UINT_MAX;
+    }
+    
+    if (!ParseUInt32Attribute(TessellationIndexBufferPrefix, TessellationIndexBufferPrefixLen, TessellationIndexBuffer))
+	{
+		TessellationIndexBuffer = UINT_MAX;
+    }
+    
+    if (!ParseUInt32Attribute(TessellationHSOutBufferPrefix, TessellationHSOutBufferPrefixLen, TessellationHSOutBuffer))
+	{
+		TessellationHSOutBuffer = UINT_MAX;
+    }
+    
+    if (!ParseUInt32Attribute(TessellationControlPointOutBufferPrefix, TessellationControlPointOutBufferPrefixLen, TessellationControlPointOutBuffer))
+	{
+		TessellationControlPointOutBuffer = UINT_MAX;
+	}
+	
+	if (!ParseUInt32Attribute(TessellationHSTFOutBufferPrefix, TessellationHSTFOutBufferPrefixLen, TessellationHSTFOutBuffer))
+	{
+		TessellationHSTFOutBuffer = UINT_MAX;
+	}
+	
+    if (!ParseUInt32Attribute(TessellationControlPointIndexBufferPrefix, TessellationControlPointIndexBufferPrefixLen, TessellationControlPointIndexBuffer))
+	{
+		TessellationControlPointIndexBuffer = UINT_MAX;
+    }
+	
+	return true;
+}
+
 /**
  * Construct the final microcode from the compiled and verified shader source.
  * @param ShaderOutput - Where to store the microcode and parameter map.
@@ -298,12 +557,18 @@ static void BuildMetalShaderOutput(
 	const FShaderCompilerInput& ShaderInput, 
 	const ANSICHAR* InShaderSource,
 	int32 SourceLen,
+	uint8 Version,
 	TCHAR const* Standard,
-	TArray<FShaderCompilerError>& OutErrors
+	TArray<FShaderCompilerError>& OutErrors,
+    FMetalTessellationOutputs const& TessOutputAttribs
 	)
 {
 	const ANSICHAR* USFSource = InShaderSource;
-	CrossCompiler::FHlslccHeader CCHeader;
+	
+	FString const* UsingTessellationDefine = ShaderInput.Environment.GetDefinitions().Find(TEXT("USING_TESSELLATION"));
+	bool bUsingTessellation = (UsingTessellationDefine != nullptr && FString("1") == *UsingTessellationDefine);
+	
+	FHlslccMetalHeader CCHeader(Version, bUsingTessellation);
 	if (!CCHeader.Read(USFSource, SourceLen))
 	{
 		UE_LOG(LogMetalShaderCompiler, Fatal, TEXT("Bad hlslcc header found"));
@@ -312,7 +577,12 @@ static void BuildMetalShaderOutput(
 	const ANSICHAR* SideTableString = FCStringAnsi::Strstr(USFSource, "@SideTable: ");
 
 	FMetalCodeHeader Header = {0};
-	Header.bFastMath = !ShaderInput.Environment.CompilerFlags.Contains(CFLAG_NoFastMath);
+	Header.CompileFlags = 1 << (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_Debug) ? CFLAG_Debug : 0);
+	Header.CompileFlags |= 1 << (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_NoFastMath) ? CFLAG_NoFastMath : 0);
+	Header.CompileFlags |= 1 << (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) ? CFLAG_KeepDebugInfo : 0);
+	Header.CompileFlags |= 1 << (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_ZeroInitialise) ? CFLAG_ZeroInitialise : 0);
+	Header.CompileFlags |= 1 << (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_BoundsChecking) ? CFLAG_BoundsChecking : 0);
+	Header.Version = Version;
 	Header.SideTable = -1;
 	if (SideTableString)
 	{
@@ -559,7 +829,23 @@ static void BuildMetalShaderOutput(
 	Header.NumThreadsX = CCHeader.NumThreads[0];
 	Header.NumThreadsY = CCHeader.NumThreads[1];
 	Header.NumThreadsZ = CCHeader.NumThreads[2];
-
+	
+	Header.TessellationOutputControlPoints 		= CCHeader.TessellationOutputControlPoints;
+	Header.TessellationDomain					= CCHeader.TessellationDomain;
+	Header.TessellationInputControlPoints       = CCHeader.TessellationInputControlPoints;
+	Header.TessellationMaxTessFactor            = CCHeader.TessellationMaxTessFactor;
+	Header.TessellationOutputWinding			= CCHeader.TessellationOutputWinding;
+	Header.TessellationPartitioning				= CCHeader.TessellationPartitioning;
+    Header.TessellationPatchesPerThreadGroup    = CCHeader.TessellationPatchesPerThreadGroup;
+    Header.TessellationPatchCountBuffer         = CCHeader.TessellationPatchCountBuffer;
+    Header.TessellationIndexBuffer              = CCHeader.TessellationIndexBuffer;
+    Header.TessellationHSOutBuffer              = CCHeader.TessellationHSOutBuffer;
+    Header.TessellationHSTFOutBuffer            = CCHeader.TessellationHSTFOutBuffer;
+    Header.TessellationControlPointOutBuffer    = CCHeader.TessellationControlPointOutBuffer;
+    Header.TessellationControlPointIndexBuffer  = CCHeader.TessellationControlPointIndexBuffer;
+	Header.TessellationOutputAttribs            = TessOutputAttribs;
+	Header.bFunctionConstants					= (FCStringAnsi::Strstr(USFSource, "[[ function_constant(") != nullptr);
+	
 	// Build the SRT for this shader.
 	{
 		// Build the generic SRT for this shader.
@@ -626,9 +912,9 @@ static void BuildMetalShaderOutput(
 #endif
 		FString InputFilename = FPaths::CreateTempFilename(TempDir, TEXT("ShaderIn"), TEXT(""));
 		FString ObjFilename = InputFilename + TEXT(".o");
-		FString ArFilename = InputFilename + TEXT(".ar");
 		FString OutputFilename = InputFilename + TEXT(".lib");
 		InputFilename = InputFilename + TEXT(".metal");
+		FString InputFilePath = InputFilename;
 		
 		// write out shader source
 		FFileHelper::SaveStringToFile(MetalCode, *InputFilename);
@@ -638,6 +924,10 @@ static void BuildMetalShaderOutput(
 		FString Errors;
 		bool bCompileAtRuntime = true;
 		bool bSucceeded = false;
+
+		// metal commandlines
+		FString DebugInfo = ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) ? TEXT("-gline-tables-only") : TEXT("");
+		FString MathMode = ShaderInput.Environment.CompilerFlags.Contains(CFLAG_NoFastMath) ? TEXT("-fno-fast-math") : TEXT("-ffast-math");
 
 #if METAL_OFFLINE_COMPILE
 	#if PLATFORM_MAC
@@ -662,11 +952,48 @@ static void BuildMetalShaderOutput(
 
 			if (IFileManager::Get().FileSize(*MetalPath) > 0)
 			{
-				// metal commandlines
-				FString DebugInfo = ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) ? TEXT("-gline-tables-only") : TEXT("");
-				FString MathMode = Header.bFastMath ? TEXT("-ffast-math") : TEXT("-fno-fast-math");
+				bool bUseSharedPCH = false;
+
+				FString MetalStdlibPCHFilename = FString::Printf(TEXT("metal_stdlib%s.pch"), Standard);
+				 // get rid of some not so filename-friendly characters ('=',' ' -> '_')
+				MetalStdlibPCHFilename = MetalStdlibPCHFilename.Replace(TEXT("="), TEXT("_")).Replace(TEXT(" "), TEXT("_"));
+				FString MetalStdlibPCHPath = FString::Printf(TEXT("%s/%s"), TempDir, *MetalStdlibPCHFilename);
+
+				// Unset the SDKROOT to avoid problems with the incorrect path being used when compiling with the shared PCH.
+				TCHAR SdkRoot[4096];
+				FPlatformMisc::GetEnvironmentVariable(TEXT("SDKROOT"), SdkRoot, ARRAY_COUNT(SdkRoot));
+				if (FCStringWide::Strlen(SdkRoot))
+				{
+					unsetenv("SDKROOT");
+				}
+			
+				if (IFileManager::Get().FileSize(*MetalStdlibPCHPath) <= 0)
+				{
+					// build the PCH file for metal_stdlib
+					// NOTE: multiple compilers will build this PCH at the same time -- this is ok because metal is atomic for this so one will "win"
+					//   that means there is some loss to this method
+					FString Params = FString::Printf(TEXT("-x metal-header %s %s/../lib/clang/3.5/include/metal/metal_stdlib -o %s"), Standard, *MetalToolsPath, *MetalStdlibPCHPath);
+
+					bUseSharedPCH = FPlatformProcess::ExecProcess( *MetalPath, *Params, &ReturnCode, &Results, &Errors );
+					
+					if (!bUseSharedPCH || ReturnCode != 0)
+					{
+						bUseSharedPCH = false;
+						UE_LOG(LogMetalShaderCompiler, Warning, TEXT("Metal Shared PCH generation failed - compilation will proceed without a shared PCH: %s."), *Errors);
+						// NOTE: if metal fails because of the PCH file -- simply delete the PCH file to make it recreate it
+						IFileManager::Get().Delete(*MetalStdlibPCHPath);
+					}
+				}
 				
-				FString Params = FString::Printf(TEXT("%s %s -Wno-null-character %s %s -o %s"), *DebugInfo, *MathMode, Standard, *InputFilename, *ObjFilename);
+				FString Params;
+				if (bUseSharedPCH && IFileManager::Get().FileSize(*MetalStdlibPCHPath) > 0)
+				{
+					Params = FString::Printf(TEXT("-include-pch %s %s %s -Wno-null-character %s %s -o %s"), *MetalStdlibPCHPath, *DebugInfo, *MathMode, Standard, *InputFilename, *ObjFilename);
+				}
+				else
+				{
+					Params = FString::Printf(TEXT("%s %s -Wno-null-character %s %s -o %s"), *DebugInfo, *MathMode, Standard, *InputFilename, *ObjFilename);
+				}
 				
 				FPlatformProcess::ExecProcess( *MetalPath, *Params, &ReturnCode, &Results, &Errors );
 
@@ -681,12 +1008,12 @@ static void BuildMetalShaderOutput(
 				}
 				else
 				{
-					Params = FString::Printf(TEXT("r %s %s"), *ArFilename, *ObjFilename);
-					FString MetalArPath = MetalToolsPath + TEXT("/metal-ar");
-					FPlatformProcess::ExecProcess( *MetalArPath, *Params, &ReturnCode, &Results, &Errors );
-
+					Params = FString::Printf(TEXT("-o %s %s"), *OutputFilename, *ObjFilename);
+					FString MetalLibPath = MetalToolsPath + TEXT("/metallib");
+					FPlatformProcess::ExecProcess( *MetalLibPath, *Params, &ReturnCode, &Results, &Errors );
+			
 					// handle compile error
-					if (ReturnCode != 0 || IFileManager::Get().FileSize(*ArFilename) <= 0)
+					if (ReturnCode != 0 || IFileManager::Get().FileSize(*OutputFilename) <= 0)
 					{
 						FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
 						Error->ErrorFile = InputFilename;
@@ -696,51 +1023,16 @@ static void BuildMetalShaderOutput(
 					}
 					else
 					{
-						Params = FString::Printf(TEXT("-o %s %s"), *OutputFilename, *ArFilename);
-						FString MetalLibPath = MetalToolsPath + TEXT("/metallib");
-						FPlatformProcess::ExecProcess( *MetalLibPath, *Params, &ReturnCode, &Results, &Errors );
-				
-						// handle compile error
-						if (ReturnCode != 0 || IFileManager::Get().FileSize(*OutputFilename) <= 0)
-						{
-							FShaderCompilerError* Error = new(OutErrors) FShaderCompilerError();
-							Error->ErrorFile = InputFilename;
-							Error->ErrorLineString = TEXT("0");
-							Error->StrippedErrorMessage = Results + Errors;
-							bSucceeded = false;
-						}
-						else
-						{
-							bCompileAtRuntime = false;
-							
-							// Write out the header and compiled shader code
-							FMemoryWriter Ar(ShaderOutput.ShaderCode.GetWriteAccess(), true);
-							uint8 PrecompiledFlag = 1;
-							Ar << PrecompiledFlag;
-							Ar << Header;
-
-							// load output
-							TArray<uint8> CompiledShader;
-							FFileHelper::LoadFileToArray(CompiledShader, *OutputFilename);
-							
-							// jam it into the output bytes
-							Ar.Serialize(CompiledShader.GetData(), CompiledShader.Num());
-							
-							// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
-							ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
-
-							if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
-							{
-								ShaderOutput.ShaderCode.AddOptionalData('c', TCHAR_TO_UTF8(*MetalCode));
-								ShaderOutput.ShaderCode.AddOptionalData('p', TCHAR_TO_UTF8(*InputFilename));
-							}
-							
-							ShaderOutput.NumInstructions = 0;
-							ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
-							ShaderOutput.bSucceeded = true;
-							bSucceeded = true;
-						}
+						bCompileAtRuntime = false;
+						bSucceeded = true;
+						ShaderOutput.bSucceeded = true;
 					}
+				}
+				
+				// Reset the SDKROOT environment we unset earlier.
+				if (FCStringWide::Strlen(SdkRoot))
+				{
+					setenv("SDKROOT", TCHAR_TO_UTF8(SdkRoot), 1);
 				}
 			}
 			else
@@ -775,23 +1067,18 @@ static void BuildMetalShaderOutput(
 
 		if (remoteBuildingConfigured)
 		{
-			FString DebugInfo = ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo) ? TEXT("-gline-tables-only") : TEXT("");
-			FString MathMode = Header.bFastMath ? TEXT("-ffast-math") : TEXT("-fno-fast-math");
-			
-			FString MetalArPath = MetalPath + TEXT("-ar");
 			FString MetalLibPath = MetalPath + TEXT("lib");
 
 			const FString RemoteFolder = MakeRemoteTempFolder();
 			const FString RemoteInputFile = LocalPathToRemote(InputFilename, RemoteFolder);			// Input file to the compiler - Copied from local machine to remote machine
 			const FString RemoteObjFile = LocalPathToRemote(ObjFilename, RemoteFolder);				// Output from the compiler -> Input file to the archiver
-			const FString RemoteArFile = LocalPathToRemote(ArFilename, RemoteFolder);				// Output from the archiver -> Input file to the library generator
 			const FString RemoteOutputFilename = LocalPathToRemote(OutputFilename, RemoteFolder);	// Output from the library generator - Copied from remote machine to local machine
 			CopyLocalFileToRemote(InputFilename, RemoteInputFile);
+			InputFilePath = RemoteInputFile;
 			
 			FString MetalParams = FString::Printf(TEXT("%s %s -Wno-null-character %s %s -o %s"), *DebugInfo, *MathMode, Standard, *RemoteInputFile, *RemoteObjFile);
-			FString ArchiveParams = FString::Printf(TEXT("r %s %s"), *RemoteArFile, *RemoteObjFile);
-			FString LibraryParams = FString::Printf(TEXT("-o %s %s"), *RemoteOutputFilename, *RemoteArFile);
-			ExecRemoteProcess(*FString::Printf(TEXT("%s %s && %s %s && %s %s"), *MetalPath, *MetalParams, *MetalArPath, *ArchiveParams, *MetalLibPath, *LibraryParams), &ReturnCode, &Results, &Errors);
+			FString LibraryParams = FString::Printf(TEXT("-o %s %s"), *RemoteOutputFilename, *RemoteObjFile);
+			ExecRemoteProcess(*FString::Printf(TEXT("%s %s && %s %s"), *MetalPath, *MetalParams, *MetalLibPath, *LibraryParams), &ReturnCode, &Results, &Errors);
 
 			bSucceeded = ReturnCode == 0;
 			if (bSucceeded)
@@ -809,27 +1096,6 @@ static void BuildMetalShaderOutput(
 			if(bSucceeded)
 			{
 				bCompileAtRuntime = false;
-
-				// Write out the header and compiled shader code
-				FMemoryWriter Ar(ShaderOutput.ShaderCode.GetWriteAccess(), true);
-				uint8 PrecompiledFlag = 1;
-				Ar << PrecompiledFlag;
-				Ar << Header;
-
-				// load output
-				TArray<uint8> CompiledShader;
-				FFileHelper::LoadFileToArray(CompiledShader, *OutputFilename);
-
-				// jam it into the output bytes
-				Ar.Serialize(CompiledShader.GetData(), CompiledShader.Num());
-
-				// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
-				// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared. 
-				//			uncommenting this will cause the project to have non deterministic materials and will hurt patch sizes
-				//ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
-
-				ShaderOutput.NumInstructions = 0;
-				ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
 				ShaderOutput.bSucceeded = true;
 			}
 		}
@@ -851,31 +1117,37 @@ static void BuildMetalShaderOutput(
 		bSucceeded = true;
 #endif	// PLATFORM_MAC
 
-		if (bCompileAtRuntime)
+		// Write out the header and compiled shader code
+		FMemoryWriter Ar(ShaderOutput.ShaderCode.GetWriteAccess(), true);
+		uint8 PrecompiledFlag = bCompileAtRuntime ? 0 : 1;
+		Ar << PrecompiledFlag;
+		Ar << Header;
+
+		if (!bCompileAtRuntime)
 		{
-			// Write out the header and shader source code.
-			FMemoryWriter Ar(ShaderOutput.ShaderCode.GetWriteAccess(), true);
-			uint8 PrecompiledFlag = 0;
-			Ar << PrecompiledFlag;
-			Ar << Header;
-			Ar.Serialize((void*)USFSource, SourceLen + 1 - (USFSource - InShaderSource));
+			// load output
+			TArray<uint8> CompiledShader;
+			FFileHelper::LoadFileToArray(CompiledShader, *OutputFilename);
 			
-			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
-			// Daniel L: This GenerateShaderName does not generate a deterministic output among shaders as the shader code can be shared. 
-			//			uncommenting this will cause the project to have non deterministic materials and will hurt patch sizes
-			//ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
+			// jam it into the output bytes
+			Ar.Serialize(CompiledShader.GetData(), CompiledShader.Num());
 			
-			ShaderOutput.NumInstructions = 0;
-			ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
-			ShaderOutput.bSucceeded = bSucceeded || ShaderOutput.bSucceeded;
-		}
-		else
-		{
 			IFileManager::Get().Delete(*InputFilename);
 			IFileManager::Get().Delete(*ObjFilename);
-			IFileManager::Get().Delete(*ArFilename);
 			IFileManager::Get().Delete(*OutputFilename);
 		}
+		
+		if (ShaderInput.Environment.CompilerFlags.Contains(CFLAG_KeepDebugInfo))
+		{
+			// store data we can pickup later with ShaderCode.FindOptionalData('n'), could be removed for shipping
+			ShaderOutput.ShaderCode.AddOptionalData('n', TCHAR_TO_UTF8(*ShaderInput.GenerateShaderName()));
+			ShaderOutput.ShaderCode.AddOptionalData('c', TCHAR_TO_UTF8(*MetalCode));
+			ShaderOutput.ShaderCode.AddOptionalData('p', TCHAR_TO_UTF8(*InputFilePath));
+		}
+		
+		ShaderOutput.NumInstructions = 0;
+		ShaderOutput.NumTextureSamplers = Header.Bindings.NumSamplers;
+		ShaderOutput.bSucceeded |= bCompileAtRuntime;
 	}
 }
 
@@ -904,8 +1176,31 @@ static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString
 	return CrossCompiler::CreateBatchFileContents(ShaderFile, OutputFile, Frequency, EntryPoint, VersionSwitch, CCFlags, TEXT(""));
 }
 
-void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput& Output,const FString& WorkingDirectory)
+// For Metal <= 1.1
+static const EHlslShaderFrequency FrequencyTable1[] =
 {
+	HSF_VertexShader,
+	HSF_InvalidFrequency,
+	HSF_InvalidFrequency,
+	HSF_PixelShader,
+	HSF_InvalidFrequency,
+	HSF_ComputeShader
+};
+
+// For Metal >= 1.2
+static const EHlslShaderFrequency FrequencyTable2[] =
+{
+	HSF_VertexShader,
+	HSF_HullShader,
+	HSF_DomainShader,
+	HSF_PixelShader,
+	HSF_InvalidFrequency,
+	HSF_ComputeShader
+};
+
+void CompileShader_Metal(const FShaderCompilerInput& _Input,FShaderCompilerOutput& Output,const FString& WorkingDirectory)
+{
+	auto Input = _Input;
 	FString PreprocessedShader;
 	FShaderCompilerDefinitions AdditionalDefines;
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1; // Always ES3.1 for now due to the way RCO has configured the MetalBackend
@@ -938,22 +1233,54 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 	static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
 	
-	TCHAR const* Standard = TEXT("-std=ios-metal1.0");
-	bool bIsDesktop = false;
+    bool bIsDesktop = false;
+    TCHAR const* StandardPlatform = TEXT("ios");
+    TCHAR const* StandardVersion = nullptr;
 
+    FString const* MaxVersion = Input.Environment.GetDefinitions().Find(TEXT("MAX_SHADER_LANGUAGE_VERSION"));
+	uint8 VersionEnum = 0;
+	if (MaxVersion)
+    {
+        if(MaxVersion->IsNumeric())
+        {
+            LexicalConversion::FromString(VersionEnum, *(*MaxVersion));
+            switch(VersionEnum)
+            {
+                case 2:
+                	// Enable full SM5 feature support so tessellation & fragment UAVs compile
+                    StandardVersion = TEXT("1.2");
+                    HlslCompilerTarget = HCT_FeatureLevelSM5;
+                    break;
+                case 1:
+                    StandardVersion = TEXT("1.1");
+                    break;
+                case 0:
+                default:
+                    StandardVersion = nullptr;
+                    break;
+            }
+        }
+    }
+	
 	if (Input.ShaderFormat == NAME_SF_METAL)
 	{
-		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
+        AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
+		VersionEnum = StandardVersion ? VersionEnum : 0;
+		StandardVersion = VersionEnum > 0 ? StandardVersion : TEXT("1.0"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
 	{
-		AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
+        AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
+		VersionEnum = StandardVersion ? VersionEnum : 0;
+		StandardVersion = VersionEnum > 0 ? StandardVersion : TEXT("1.0"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_MACES2)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_ES2_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
-		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
+		StandardPlatform = TEXT("osx");
+        StandardVersion = TEXT("1.1"); // Always standard 1.1
+		VersionEnum = 1;
 		MetalCompilerTarget = HCT_FeatureLevelES2;
 		bIsDesktop = true;
 	}
@@ -961,24 +1288,32 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("FORCE_FLOATS"), 1); // Force floats to avoid radr://24884199 & radr://24884860
-		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
-		MetalCompilerTarget = HCT_FeatureLevelES3_1;
+        StandardPlatform = TEXT("osx");
+		VersionEnum = StandardVersion ? VersionEnum : 1;
+		VersionEnum = VersionEnum > 0 ? VersionEnum : 1;
+		StandardVersion = VersionEnum > 1 ? StandardVersion : TEXT("1.1"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
+        MetalCompilerTarget = HCT_FeatureLevelES3_1;
 		bIsDesktop = true;
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_SM4)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_SM4_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
-		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
-		MetalCompilerTarget = HCT_FeatureLevelSM4;
+        StandardPlatform = TEXT("osx");
+        StandardVersion = TEXT("1.1");
+		VersionEnum = 1;
+        MetalCompilerTarget = HCT_FeatureLevelSM4;
 		bIsDesktop = true;
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_SM5)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_SM5_PROFILE"), 1);
 		AdditionalDefines.SetDefine(TEXT("USING_VERTEX_SHADER_LAYER"), 1);
-		Standard = TEXT("-std=osx-metal1.1 -mmacosx-version-min=10.11");
-		MetalCompilerTarget = HCT_FeatureLevelSM5;
+        StandardPlatform = TEXT("osx");
+		VersionEnum = StandardVersion ? VersionEnum : 1;
+		VersionEnum = VersionEnum > 0 ? VersionEnum : 1;
+        StandardVersion = VersionEnum > 1 ? StandardVersion : TEXT("1.1"); // May require SHADER_LANGUAGE_VERSION for fragment UAVs and/or tessellation.
+        MetalCompilerTarget = HCT_FeatureLevelSM5;
 		bIsDesktop = true;
 	}
 	else
@@ -987,6 +1322,8 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		new(Output.Errors) FShaderCompilerError(*FString::Printf(TEXT("Invalid shader format '%s' passed to compiler."), *Input.ShaderFormat.ToString()));
 		return;
 	}
+    
+    FString Standard = FString::Printf(TEXT("-std=%s-metal%s"), StandardPlatform, StandardVersion);
 	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
 
@@ -999,6 +1336,32 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)0);
 	}
 
+	FString const* UsingTessellationDefine = Input.Environment.GetDefinitions().Find(TEXT("USING_TESSELLATION"));
+	bool bUsingTessellation = (UsingTessellationDefine != nullptr && FString("1") == *UsingTessellationDefine);
+	if (bUsingTessellation && (Input.Target.Frequency == SF_Vertex))
+	{
+		// force HULLSHADER on so that VS that is USING_TESSELLATION can be built together with the proper HS
+		FString const* VertexShaderDefine = Input.Environment.GetDefinitions().Find(TEXT("VERTEXSHADER"));
+		check(VertexShaderDefine && FString("1") == *VertexShaderDefine);
+		FString const* HullShaderDefine = Input.Environment.GetDefinitions().Find(TEXT("HULLSHADER"));
+		check(HullShaderDefine && FString("0") == *HullShaderDefine);
+		Input.Environment.SetDefine(TEXT("HULLSHADER"), 1u);
+	}
+	if (Input.Target.Frequency == SF_Hull)
+	{
+		check(bUsingTessellation);
+		// force VERTEXSHADER on so that HS that is USING_TESSELLATION can be built together with the proper VS
+		FString const* VertexShaderDefine = Input.Environment.GetDefinitions().Find(TEXT("VERTEXSHADER"));
+		check(VertexShaderDefine && FString("0") == *VertexShaderDefine);
+		FString const* HullShaderDefine = Input.Environment.GetDefinitions().Find(TEXT("HULLSHADER"));
+		check(HullShaderDefine && FString("1") == *HullShaderDefine);
+
+		// enable VERTEXSHADER so that this HS will hash uniquely with its associated VS
+		// We do not want a given HS to be shared among numerous VS'Sampler
+		// this should accomplish that goal -- see GenerateOutputHash
+		Input.Environment.SetDefine(TEXT("VERTEXSHADER"), 1u);
+	}
+
 	if (PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines))
 	{
 		// Disable instanced stereo until supported for metal
@@ -1007,17 +1370,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		char* MetalShaderSource = NULL;
 		char* ErrorLog = NULL;
 
-		const EHlslShaderFrequency FrequencyTable[] =
-		{
-			HSF_VertexShader,
-			HSF_InvalidFrequency,
-			HSF_InvalidFrequency,
-			HSF_PixelShader,
-			HSF_InvalidFrequency,
-			HSF_ComputeShader
-		};
-
-		const EHlslShaderFrequency Frequency = FrequencyTable[Input.Target.Frequency];
+		const EHlslShaderFrequency Frequency = HlslCompilerTarget < HCT_FeatureLevelSM5 ? FrequencyTable1[Input.Target.Frequency] : FrequencyTable2[Input.Target.Frequency];
 		if (Frequency == HSF_InvalidFrequency)
 		{
 			Output.bSucceeded = false;
@@ -1059,7 +1412,6 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		{
 			CCFlags |= HLSLCC_FixAtomicReferences;
 		}
-		//CCFlags |= HLSLCC_FlattenUniformBuffers | HLSLCC_FlattenUniformBufferStructures;
 
 		if (bDumpDebugInfo)
 		{
@@ -1078,7 +1430,8 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		bool const bZeroInitialise = Input.Environment.CompilerFlags.Contains(CFLAG_ZeroInitialise);
 		bool const bBoundsChecks = Input.Environment.CompilerFlags.Contains(CFLAG_BoundsChecking);
 		
-		FMetalCodeBackend MetalBackEnd(CCFlags, MetalCompilerTarget, bIsDesktop, bZeroInitialise, bBoundsChecks);
+		FMetalTessellationOutputs Attribs;
+		FMetalCodeBackend MetalBackEnd(Attribs, CCFlags, MetalCompilerTarget, VersionEnum, bIsDesktop, bZeroInitialise, bBoundsChecks);
 		FMetalLanguageSpec MetalLanguageSpec;
 
 		int32 Result = 0;
@@ -1121,7 +1474,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		if (Result != 0)
 		{
 			Output.Target = Input.Target;
-			BuildMetalShaderOutput(Output, Input, MetalShaderSource, SourceLen, Standard, Output.Errors);
+			BuildMetalShaderOutput(Output, Input, MetalShaderSource, SourceLen, VersionEnum, *Standard, Output.Errors, Attribs);
 		}
 		else
 		{

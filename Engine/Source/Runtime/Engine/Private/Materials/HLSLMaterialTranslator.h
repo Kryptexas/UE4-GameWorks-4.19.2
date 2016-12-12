@@ -2037,15 +2037,6 @@ protected:
 		return AddCodeChunk(PropertyMeta.Type, *Code);
 	}
 
-	virtual int32 PreviousFrameSwitch(int32 CurrentX, int32 PrevX) override
-	{
-		if (bCompilingPreviousFrame)
-		{
-			return PrevX;
-		}
-		return CurrentX;
-	}
-
 	virtual int32 GameTime(bool bPeriodic, float Period) override
 	{
 		if (!bPeriodic)
