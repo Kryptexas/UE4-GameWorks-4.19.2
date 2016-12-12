@@ -81,7 +81,7 @@ DEFINE_LOG_CATEGORY(LogLocationServicesIOS);
         oldLocation = nil;
     }
     
-    FLocationData locationData;
+	FLocationServicesData locationData;
     locationData.Timestamp = (float)newLocation.timestamp.timeIntervalSince1970;
     locationData.Longitude = (float)newLocation.coordinate.longitude;
     locationData.Latitude = (float)newLocation.coordinate.latitude;
@@ -156,9 +156,9 @@ bool ULocationServicesIOSImpl::StopLocationService()
     return false;
 }
 
-FLocationData ULocationServicesIOSImpl::GetLastKnownLocation()
+FLocationServicesData ULocationServicesIOSImpl::GetLastKnownLocation()
 {  
-	FLocationData LocData;
+	FLocationServicesData LocData;
 
 	if (LocationDelegate != nil)
 	{

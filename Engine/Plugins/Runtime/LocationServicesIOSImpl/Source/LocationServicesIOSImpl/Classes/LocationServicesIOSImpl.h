@@ -46,7 +46,7 @@ public:
 	* a default-value-filled struct.
 	* @return - the last known location from updates
 	*/
-	virtual FLocationData GetLastKnownLocation() override;
+	virtual FLocationServicesData GetLastKnownLocation() override;
 
 	/**
 	* Checks if the supplied Accuracy is available on the current device.
