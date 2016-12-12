@@ -41,7 +41,6 @@ FString FindOrAddPackageNamespace(UPackage* InPackage, const bool bCanAdd)
 				if (PackageLocalizationNamespaceValue.IsEmpty())
 				{
 					PackageLocalizationNamespaceValue = FGuid::NewGuid().ToString();
-					InPackage->MarkPackageDirty();
 				}
 				return PackageLocalizationNamespaceValue;
 			}
@@ -68,10 +67,7 @@ void ClearPackageNamespace(UPackage* InPackage)
 		if (!FPackageName::IsScriptPackage(PackageName))
 		{
 			UMetaData* PackageMetaData = InPackage->GetMetaData();
-			if (PackageMetaData->RootMetaDataMap.Remove(PackageLocalizationNamespaceKey) > 0)
-			{
-				InPackage->MarkPackageDirty();
-			}
+			PackageMetaData->RootMetaDataMap.Remove(PackageLocalizationNamespaceKey);
 		}
 	}
 }
@@ -88,7 +84,6 @@ void ForcePackageNamespace(UPackage* InPackage, const FString& InNamespace)
 
 			FString& PackageLocalizationNamespaceValue = PackageMetaData->RootMetaDataMap.FindOrAdd(PackageLocalizationNamespaceKey);
 			PackageLocalizationNamespaceValue = InNamespace;
-			InPackage->MarkPackageDirty();
 		}
 	}
 }
