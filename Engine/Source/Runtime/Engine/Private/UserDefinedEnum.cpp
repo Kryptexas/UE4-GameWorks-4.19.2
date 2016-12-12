@@ -113,13 +113,10 @@ FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
 {
 	const FName EnumEntryName = *GetEnumName(InIndex);
 
-	if (!EnumEntryName.IsNone())
+	const FText* EnumEntryDisplayName = DisplayNameMap.Find(EnumEntryName);
+	if (EnumEntryDisplayName)
 	{
-		const FText* EnumEntryDisplayName = DisplayNameMap.Find(EnumEntryName);
-		if (EnumEntryDisplayName)
-		{
-			return *EnumEntryDisplayName;
-		}
+		return *EnumEntryDisplayName;
 	}
 
 	return FText::GetEmpty();
