@@ -8,6 +8,7 @@
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SLeafWidget.h"
 #include "Framework/SlateDelegates.h"
+#include "SCompoundWidget.h"
 
 /** Callback to get the current FVector4 value */
 DECLARE_DELEGATE_OneParam(FOnGetCurrentVector4Value, FVector4&)

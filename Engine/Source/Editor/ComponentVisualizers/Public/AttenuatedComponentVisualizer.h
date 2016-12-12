@@ -4,6 +4,8 @@
 
 #include "ComponentVisualizer.h"
 #include "ShowFlags.h"
+#include "SceneView.h"
+#include "SceneManagement.h"
 
 template<class T>
 class COMPONENTVISUALIZERS_API TAttenuatedComponentVisualizer : public FComponentVisualizer

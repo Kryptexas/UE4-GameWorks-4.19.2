@@ -2,8 +2,10 @@
 
 #pragma once
 
+#include "UObject/ScriptMacros.h"
 #include "SlateWrapperTypes.h"
 #include "PanelSlot.h"
+#include "Layout/Margin.h"
 #include "BackgroundBlurSlot.generated.h"
 
 

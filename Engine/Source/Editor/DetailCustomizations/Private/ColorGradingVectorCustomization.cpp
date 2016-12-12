@@ -6,6 +6,8 @@
 #include "IDetailChildrenBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/Layout/SBox.h"
 
 FColorGradingVectorCustomization::FColorGradingVectorCustomization()
 {

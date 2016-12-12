@@ -3,6 +3,7 @@
 #include "LocalizationConfigurationScript.h"
 #include "LocalizationTargetTypes.h"
 #include "LocalizationSettings.h"
+#include "UObject/Package.h"
 
 namespace
 {

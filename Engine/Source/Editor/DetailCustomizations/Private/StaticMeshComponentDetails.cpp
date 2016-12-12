@@ -9,6 +9,7 @@
 #include "IDetailPropertyRow.h"
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponentDetails"
 

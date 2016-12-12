@@ -20,6 +20,7 @@
 #include "SoundSubmixGraph/SoundSubmixGraphSchema.h"
 #include "AudioEditorModule.h"
 #include "SSoundSubmixActionMenu.h"
+#include "Editor.h"
 
 #define LOCTEXT_NAMESPACE "SoundSubmixEditor"
 DEFINE_LOG_CATEGORY_STATIC( LogSoundSubmixEditor, Log, All );

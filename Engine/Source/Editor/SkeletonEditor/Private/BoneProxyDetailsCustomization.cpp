@@ -10,6 +10,9 @@
 #include "IDetailPropertyRow.h"
 #include "Animation/DebugSkelMeshComponent.h"
 #include "ScopedTransaction.h"
+#include "MultiBoxBuilder.h"
+#include "SComboButton.h"
+#include "SBox.h"
 
 #define LOCTEXT_NAMESPACE "FBoneProxyDetailsCustomization"
 

@@ -9,6 +9,8 @@
 //////////////////////////////////////////////////////////////////////////
 // FSoundSubmixEditor
 
+class USoundSubmix;
+
 class FSoundSubmixEditor :	public ISoundSubmixEditor, 
 							public FGCObject, 
 							public FEditorUndoClient

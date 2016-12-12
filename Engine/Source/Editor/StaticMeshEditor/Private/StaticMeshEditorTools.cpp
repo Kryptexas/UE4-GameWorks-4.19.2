@@ -32,6 +32,7 @@
 #include "Widgets/Input/STextComboBox.h"
 #include "ScopedTransaction.h"
 #include "JsonObjectConverter.h"
+#include "Engine/SkeletalMesh.h"
 
 const float MaxHullAccuracy = 1.f;
 const float MinHullAccuracy = 0.f;

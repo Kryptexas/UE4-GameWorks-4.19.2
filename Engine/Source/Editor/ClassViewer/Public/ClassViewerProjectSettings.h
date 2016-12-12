@@ -3,7 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Misc/StringClassReference.h"
 #include "ClassViewerProjectSettings.generated.h"
+
 
 /**
  * Implements the settings for the Class Viewer Project Settings

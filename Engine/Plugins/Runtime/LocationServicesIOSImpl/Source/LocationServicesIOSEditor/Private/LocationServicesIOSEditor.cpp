@@ -2,10 +2,15 @@
 
 #include "LocationServicesIOSEditor.h"
 #include "LocationServicesIOSSettings.h"
+#include "ModuleManager.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+
 #if WITH_EDITOR
 #include "ISettingsModule.h"
 #include "ISettingsSection.h"
 #endif
+
 
 IMPLEMENT_MODULE( FLocationServicesIOSEditorModule, LocationServicesIOSEditorModule );
 

@@ -26,6 +26,7 @@
 #include "IAssetTools.h"
 #include "Factories/SoundClassFactory.h"
 #include "UObject/Package.h"
+#include "UObjectIterator.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassEditor"
 DEFINE_LOG_CATEGORY_STATIC( LogSoundClassEditor, Log, All );

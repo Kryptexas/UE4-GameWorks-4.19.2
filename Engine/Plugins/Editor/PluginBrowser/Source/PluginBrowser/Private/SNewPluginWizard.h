@@ -16,6 +16,8 @@ class SFilePathBlock;
 class STableViewBase;
 enum class ECheckBoxState : uint8;
 
+template <typename ItemType>
+class SListView;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPluginWizard, Log, All);
 

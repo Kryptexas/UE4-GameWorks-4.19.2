@@ -2,8 +2,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "TickableEditorObject.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
 #include "BoneProxy.generated.h"
+
 
 class UDebugSkelMeshComponent;
 

@@ -4,6 +4,8 @@
 #include "PluginStyle.h"
 #include "Interfaces/IPluginManager.h"
 #include "HAL/PlatformFilemanager.h"
+#include "App.h"
+#include "GenericPlatformFile.h"
 
 #define LOCTEXT_NAMESPACE "NewPluginWizard"
 

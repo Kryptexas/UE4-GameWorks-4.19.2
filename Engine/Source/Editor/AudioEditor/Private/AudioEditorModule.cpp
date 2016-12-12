@@ -32,6 +32,7 @@
 #include "AssetTypeActions/AssetTypeActions_SoundSubmix.h"
 #include "AssetTypeActions/AssetTypeActions_SoundEffectPreset.h"
 #include "Utils.h"
+#include "UObject/UObjectIterator.h"
 
 const FName AudioEditorAppIdentifier = FName(TEXT("AudioEditorApp"));
 

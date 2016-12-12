@@ -9,6 +9,7 @@
 
 class SButton;
 class SComboButton;
+class IMenu;
 
 class FDirectoryPathStructCustomization : public IPropertyTypeCustomization
 {

@@ -9,6 +9,7 @@
 #include "SoundSubmixEditorUtilities.h"
 #include "Sound/SoundSubmix.h"
 #include "GenericCommands.h"
+#include "MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "SoundSubmixSchema"
 

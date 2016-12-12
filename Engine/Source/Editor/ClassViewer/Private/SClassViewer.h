@@ -13,6 +13,8 @@
 #include "Widgets/Views/STableRow.h"
 #include "Widgets/Views/STreeView.h"
 #include "Settings/ClassViewerSettings.h"
+#include "Engine/EngineTypes.h"
+#include "Misc/StringClassReference.h"
 
 class FClassViewerNode;
 class FMenuBuilder;

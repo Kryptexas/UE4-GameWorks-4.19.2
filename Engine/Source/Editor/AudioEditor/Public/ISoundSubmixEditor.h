@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Toolkits/IToolkitHost.h"
+#include "Toolkits/AssetEditorToolkit.h"
 
 class UEdGraphPin;
 

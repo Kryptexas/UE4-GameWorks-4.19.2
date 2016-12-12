@@ -51,7 +51,7 @@ public:
 	/**
 	 * Gets the current DPI Scale being applied to the viewport and all the Widgets.
 	 */
-	static float GetViewportScale(UGameViewportClient* ViewportClient);
+	static float GetViewportScale(class UGameViewportClient* ViewportClient);
 
 	/**
 	 * Gets the size of the game viewport.

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UObject/Object.h"
 #include "LocationServicesIOSSettings.generated.h"
 
 UCLASS(config = Engine, defaultconfig)

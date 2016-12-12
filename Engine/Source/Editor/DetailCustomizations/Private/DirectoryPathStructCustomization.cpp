@@ -15,6 +15,7 @@
 #include "DesktopPlatformModule.h"
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
+#include "MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "DirectoryPathStructCustomization"
 

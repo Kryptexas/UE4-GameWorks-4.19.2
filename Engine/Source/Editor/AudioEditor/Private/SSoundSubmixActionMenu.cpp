@@ -3,6 +3,10 @@
 #include "SSoundSubmixActionMenu.h"
 #include "SoundSubmixGraph/SoundSubmixGraphSchema.h"
 #include "GraphEditor.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "EdGraph/EdGraph.h"
+#include "EditorStyleSet.h"
+#include "SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "SSoundSubmixActionMenu"
 

@@ -13,6 +13,7 @@
 #include "Fonts/SlateFontInfo.h"
 #include "Widgets/SToolTip.h"
 #include "Misc/NotifyHook.h"
+#include "Animation/AnimationAsset.h"
 
 class FPaintArgs;
 class FSlateWindowElementList;

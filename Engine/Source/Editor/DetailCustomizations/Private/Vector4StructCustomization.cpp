@@ -6,6 +6,7 @@
 #include "IDetailChildrenBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
+#include "UObject/UnrealType.h"
 
 TSharedRef<IPropertyTypeCustomization> FVector4StructCustomization::MakeInstance()
 {

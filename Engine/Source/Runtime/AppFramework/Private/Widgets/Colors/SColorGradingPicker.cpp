@@ -2,6 +2,7 @@
 #include "SColorGradingPicker.h"
 #include "SColorGradingWheel.h"
 #include "SNumericEntryBox.h"
+#include "SBox.h"
 
 
 #define LOCTEXT_NAMESPACE "ColorGradingWheel"

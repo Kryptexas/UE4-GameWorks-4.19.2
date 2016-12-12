@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UObject/Object.h"
 #include "LocationServicesAndroidSettings.generated.h"
 
 UCLASS(config = Engine, defaultconfig)
