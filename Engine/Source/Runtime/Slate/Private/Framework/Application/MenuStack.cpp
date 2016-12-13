@@ -7,6 +7,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SPopup.h"
+#include "Framework/Application/Menu.h"
 
 #define LOCTEXT_NAMESPACE "MenuStack"
 

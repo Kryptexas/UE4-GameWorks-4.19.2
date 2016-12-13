@@ -4,6 +4,7 @@
 #include "Voice.h"
 #include "OnlineSubsystemOculus.h"
 #include "Components/AudioComponent.h"
+#include "Misc/ConfigCacheIni.h"
 
 #include "Runtime/Engine/Classes/Sound/SoundWaveProcedural.h"
 #include "OnlineSubsystemUtils.h"

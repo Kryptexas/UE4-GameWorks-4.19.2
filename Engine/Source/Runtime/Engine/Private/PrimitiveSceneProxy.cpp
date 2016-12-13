@@ -11,6 +11,7 @@
 #include "Components/BrushComponent.h"
 #include "SceneManagement.h"
 #include "PrimitiveSceneInfo.h"
+#include "Materials/Material.h"
 
 static TAutoConsoleVariable<int32> CVarForceSingleSampleShadowingFromStationary(
 	TEXT("r.Shadow.ForceSingleSampleShadowingFromStationary"),

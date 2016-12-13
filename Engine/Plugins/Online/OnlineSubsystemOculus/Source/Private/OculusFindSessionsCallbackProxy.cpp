@@ -4,6 +4,7 @@
 #include "CoreOnline.h"
 #include "Online.h"
 #include "OnlineSessionInterfaceOculus.h"
+#include "OnlineSubsystemOculusPrivate.h"
 
 UOculusFindSessionsCallbackProxy::UOculusFindSessionsCallbackProxy(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -8,6 +8,7 @@
 class IDetailLayoutBuilder;
 class IPropertyHandle;
 class SErrorText;
+class SWidget;
 
 enum class ECheckBoxState : uint8;
 
