@@ -10,11 +10,14 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SwarmCoordinatorInterface</RootNamespace>
     <AssemblyName>SwarmCoordinatorInterface</AssemblyName>
-    <SccProjectName>Perforce Project</SccProjectName>
-    <SccLocalPath>..\..\..</SccLocalPath>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
     <SccAuxPath>
     </SccAuxPath>
-    <SccProvider>MSSCCI:Perforce SCM</SccProvider>
+    <SccProvider>
+    </SccProvider>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
     <OldToolsVersion>3.5</OldToolsVersion>

@@ -410,7 +410,7 @@ void FD3D12Viewport::Resize(uint32 InSizeX, uint32 InSizeY, bool bInIsFullscreen
 static bool IsCompositionEnabled()
 {
 	BOOL bDwmEnabled = false;
-#if D3D12_WITH_DWMAPI
+#if defined(D3D12_WITH_DWMAPI) && D3D12_WITH_DWMAPI
 	DwmIsCompositionEnabled(&bDwmEnabled);
 #endif	//D3D12_WITH_DWMAPI
 	return !!bDwmEnabled;
@@ -454,7 +454,7 @@ bool FD3D12Viewport::PresentChecked(int32 SyncInterval)
 /** Blocks the CPU to synchronize with vblank by communicating with DWM. */
 void FD3D12Viewport::PresentWithVsyncDWM()
 {
-#if D3D12_WITH_DWMAPI
+#if defined(D3D12_WITH_DWMAPI) && D3D12_WITH_DWMAPI
 	LARGE_INTEGER Cycles;
 	DWM_TIMING_INFO TimingInfo;
 
@@ -829,6 +829,6 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef
 	return BackBuffer;
 }
 
-#if D3D12_WITH_DWMAPI
+#if defined(D3D12_WITH_DWMAPI) && D3D12_WITH_DWMAPI
 #include "HideWindowsPlatformTypes.h"
 #endif	//D3D12_WITH_DWMAPI

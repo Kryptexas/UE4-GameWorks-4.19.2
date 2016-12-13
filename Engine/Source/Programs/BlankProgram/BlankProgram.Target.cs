@@ -8,6 +8,7 @@ public class BlankProgramTarget : TargetRules
 	public BlankProgramTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	//
@@ -24,11 +25,6 @@ public class BlankProgramTarget : TargetRules
 			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
 											InModuleNames: new List<string>() { "BlankProgram" } )
 			);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

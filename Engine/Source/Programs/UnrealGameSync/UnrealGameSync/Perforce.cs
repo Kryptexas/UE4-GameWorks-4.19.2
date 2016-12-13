@@ -155,6 +155,18 @@ namespace UnrealGameSync
 		public string DepotPath;
 	}
 
+	class PerforceSyncOptions
+	{
+		public int NumRetries;
+		public int NumThreads;
+		public int TcpBufferSize;
+
+		public PerforceSyncOptions Clone()
+		{
+			return (PerforceSyncOptions)MemberwiseClone();
+		}
+	}
+
 	class PerforceSpec
 	{
 		public List<KeyValuePair<string, string>> Sections;
@@ -733,6 +745,13 @@ namespace UnrealGameSync
 			return true;
 		}
 
+		public bool HasOpenFiles(TextWriter Log)
+		{
+			List<PerforceFileRecord> Records = new List<PerforceFileRecord>();
+			bool bResult = RunCommand("opened -m 1", out Records, CommandOptions.None, Log);
+			return bResult && Records.Count > 0;
+		}
+
 		public bool SwitchStream(string NewStream, TextWriter Log)
 		{
 			return RunCommand(String.Format("client -f -s -S \"{0}\" \"{1}\"", NewStream, ClientName), CommandOptions.None, Log);
@@ -784,7 +803,7 @@ namespace UnrealGameSync
 			return RunCommand("sync " + Filter, CommandOptions.IgnoreFilesUpToDateError, Log);
 		}
 
-		public bool Sync(List<string> DepotPaths, int ChangeNumber, Action<PerforceFileRecord> SyncOutput, List<string> TamperedFiles, TextWriter Log)
+		public bool Sync(List<string> DepotPaths, int ChangeNumber, Action<PerforceFileRecord> SyncOutput, List<string> TamperedFiles, PerforceSyncOptions Options, TextWriter Log)
 		{
 			// Write all the files we want to sync to a temp file
 			string TempFileName = Path.GetTempFileName();
@@ -800,7 +819,22 @@ namespace UnrealGameSync
 			bool bResult;
 			using(PerforceTagRecordParser Parser = new PerforceTagRecordParser(x => SyncOutput(new PerforceFileRecord(x))))
 			{
-				bResult = RunCommand(String.Format("-x \"{0}\" -z tag sync", TempFileName), null, Line => FilterSyncOutput(Line, Parser, TamperedFiles, Log), CommandOptions.NoFailOnErrors | CommandOptions.IgnoreFilesUpToDateError | CommandOptions.IgnoreExitCode, Log);
+				StringBuilder CommandLine = new StringBuilder();
+				CommandLine.AppendFormat("-x \"{0}\" -z tag", TempFileName);
+				if(Options != null && Options.NumRetries > 0)
+				{
+					CommandLine.AppendFormat(" -r {0}", Options.NumRetries);
+				}
+				if(Options != null && Options.TcpBufferSize > 0)
+				{
+					CommandLine.AppendFormat(" -v net.tcpsize={0}", Options.TcpBufferSize);
+				}
+				CommandLine.Append(" sync");
+				if(Options != null && Options.NumThreads > 1)
+				{
+					CommandLine.AppendFormat(" --parallel=threads={0}", Options.NumThreads);
+				}
+				bResult = RunCommand(CommandLine.ToString(), null, Line => FilterSyncOutput(Line, Parser, TamperedFiles, Log), CommandOptions.NoFailOnErrors | CommandOptions.IgnoreFilesUpToDateError | CommandOptions.IgnoreExitCode, Log);
 			}
 			return bResult;
 		}

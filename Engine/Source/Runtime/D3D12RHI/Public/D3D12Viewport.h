@@ -9,6 +9,8 @@
 #include "CoreMinimal.h"
 #include "HAL/Runnable.h"
 
+#define ALTERNATE_TIMESTAMP_METRIC 0
+
 static DXGI_FORMAT GetRenderTargetFormat(EPixelFormat PixelFormat)
 {
 	DXGI_FORMAT	DXFormat = (DXGI_FORMAT)GPixelFormats[PixelFormat].PlatformFormat;

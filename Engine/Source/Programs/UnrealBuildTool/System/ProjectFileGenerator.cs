@@ -419,7 +419,7 @@ namespace UnrealBuildTool
                 MasterProjectName += "_" + Path.GetFileName(MasterProjectPath.ToString());
             }
 
-			bool bCleanProjectFiles = UnrealBuildTool.CommandLineContains( "-CleanProjects" );
+			bool bCleanProjectFiles = Arguments.Any(x => x.Equals("-CleanProjects", StringComparison.InvariantCultureIgnoreCase));
 			if (bCleanProjectFiles)
 			{
 				CleanProjectFiles(MasterProjectPath, MasterProjectName, IntermediateProjectFilesPath);
@@ -609,7 +609,7 @@ namespace UnrealBuildTool
 				EliminateRedundantMasterProjectSubFolders( RootFolder, "" );
 
 	
-				bool bWriteFileManifest = UnrealBuildTool.CommandLineContains("-filemanifest");
+				bool bWriteFileManifest = Arguments.Any(x => x.Equals("-filemanifest", StringComparison.InvariantCultureIgnoreCase));
 
 				if (bWriteFileManifest == false)
 				{
@@ -1459,10 +1459,10 @@ namespace UnrealBuildTool
 			foreach (UnrealTargetPlatform Platform in PlatformEnums)
 			{
 				// project is in the explicit platform list or we include them all, we add the valid desktop platforms as they are required
-				bool bInProjectPlatformsList = (ProjectPlatforms.Count > 0) ? (UnrealBuildTool.IsValidDesktopPlatform(Platform) || ProjectPlatforms.Contains(Platform)) : true;
+				bool bInProjectPlatformsList = (ProjectPlatforms.Count > 0) ? (IsValidDesktopPlatform(Platform) || ProjectPlatforms.Contains(Platform)) : true;
 
 				// project is a desktop platform or we have specified some platforms explicitly
-				bool IsRequiredPlatform = (UnrealBuildTool.IsValidDesktopPlatform(Platform) || ProjectPlatforms.Count > 0);
+				bool IsRequiredPlatform = (IsValidDesktopPlatform(Platform) || ProjectPlatforms.Count > 0);
 
 				// Only include desktop platforms unless we were explicitly asked to include all platforms or restricted to a single platform.
 				if (bInProjectPlatformsList && (IncludeAllPlatforms || IsRequiredPlatform))
@@ -1498,6 +1498,26 @@ namespace UnrealBuildTool
 			}
 
 			SupportedPlatformNames = SupportedPlatformsString.ToString();
+		}
+
+		/// <summary>
+		/// Is this a valid platform. Used primarily for Installed vs non-Installed builds.
+		/// </summary>
+		/// <param name="InPlatform"></param>
+		/// <returns>true if valid, false if not</returns>
+		static public bool IsValidDesktopPlatform(UnrealTargetPlatform InPlatform)
+		{
+			switch (BuildHostPlatform.Current.Platform)
+			{
+				case UnrealTargetPlatform.Linux:
+					return InPlatform == UnrealTargetPlatform.Linux;
+				case UnrealTargetPlatform.Mac:
+					return InPlatform == UnrealTargetPlatform.Mac;
+				case UnrealTargetPlatform.Win64:
+					return ((InPlatform == UnrealTargetPlatform.Win32) || (InPlatform == UnrealTargetPlatform.Win64));
+				default:
+					throw new BuildException("Invalid RuntimePlatform:" + BuildHostPlatform.Current.Platform);
+			}
 		}
 
 		/// <summary>
@@ -1723,8 +1743,7 @@ namespace UnrealBuildTool
 
 					FileReference ProjectFilePath = FileReference.Combine(IntermediateProjectFilesPath, ProjectFileNameBase + ProjectFileExtension);
 
-					if (TargetRules.IsGameType(TargetRulesObject.Type) &&
-						(TargetRules.IsEditorType(TargetRulesObject.Type) == false))
+					if (TargetRulesObject.Type == TargetRules.TargetType.Game || TargetRulesObject.Type == TargetRules.TargetType.Client || TargetRulesObject.Type == TargetRules.TargetType.Server)
 					{
 						// Allow platforms to generate stub projects here...
 						UEPlatformProjectGenerator.GenerateGameProjectStubs(
@@ -1795,9 +1814,9 @@ namespace UnrealBuildTool
 
 					foreach (ProjectTarget ExistingProjectTarget in ProjectFile.ProjectTargets)
 					{
-						if (ExistingProjectTarget.TargetRules.ConfigurationName.Equals(TargetRulesObject.ConfigurationName, StringComparison.InvariantCultureIgnoreCase))
+						if (ExistingProjectTarget.TargetRules.Type == TargetRulesObject.Type)
 						{
-							throw new BuildException("Not expecting project {0} to already have a target rules of with configuration name {1} ({2}) while trying to add: {3}", ProjectFilePath, TargetRulesObject.ConfigurationName, ExistingProjectTarget.TargetRules.ToString(), TargetRulesObject.ToString());
+							throw new BuildException("Not expecting project {0} to already have a target rules of with configuration name {1} ({2}) while trying to add: {3}", ProjectFilePath, TargetRulesObject.Type.ToString(), ExistingProjectTarget.TargetRules.ToString(), TargetRulesObject.ToString());
 						}
 
 						// Not expecting to have both a game and a program in the same project.  These would alias because we share the project and solution configuration names (just because it makes sense to)
@@ -1812,7 +1831,9 @@ namespace UnrealBuildTool
 						{
 							TargetRules = TargetRulesObject,
 							TargetFilePath = TargetFilePath,
-							ProjectFilePath = ProjectFilePath
+							ProjectFilePath = ProjectFilePath,
+							SupportedPlatforms = UEBuildTarget.GetSupportedPlatforms(TargetRulesObject).Where(x => UEBuildPlatform.GetBuildPlatform(x, true) != null).ToArray(),
+							CreateRulesDelegate = (Platform, Configuration) => RulesAssembly.CreateTargetRules(TargetName, new TargetInfo(Platform, Configuration, ""), false)
                         };
 
                     if (TargetName == "UnrealCodeAnalyzer")
@@ -2145,6 +2166,7 @@ namespace UnrealBuildTool
 			}
 			
 			ProjectTarget ProjectTarget = new ProjectTarget();
+			ProjectTarget.SupportedPlatforms = new UnrealTargetPlatform[0];
 			if( bForceDevelopmentConfiguration )
 			{
 				ProjectTarget.ForceDevelopmentConfiguration = true;
@@ -2208,7 +2230,7 @@ namespace UnrealBuildTool
 			else
 			{
 				// For existing project files, just support the default desktop platforms and configurations
-				UnrealBuildTool.GetAllDesktopPlatforms(ref ProjectTarget.ExtraSupportedPlatforms, false);
+				ProjectTarget.ExtraSupportedPlatforms.AddRange(Utils.GetPlatformsInClass(UnrealPlatformClass.Desktop));
 				// Debug and Development only
 				ProjectTarget.ExtraSupportedConfigurations.Add(UnrealTargetConfiguration.Debug);
 				ProjectTarget.ExtraSupportedConfigurations.Add(UnrealTargetConfiguration.Development);

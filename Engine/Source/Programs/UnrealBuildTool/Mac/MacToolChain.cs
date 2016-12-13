@@ -146,9 +146,14 @@ namespace UnrealBuildTool
 				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
 			}
 
-			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
+			if (CompileEnvironment.Config.bEnableShadowVariableWarnings)
 			{
 				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors ? "" : " -Wno-error=shadow");
+			}
+
+			if (CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings)
+			{
+				Result += " -Wundef" + (BuildConfiguration.bUndefinedIdentifierErrors ? "" : " -Wno-error=undef");
 			}
 
 			// @todo: Remove these two when the code is fixed and they're no longer needed
@@ -997,15 +1002,7 @@ namespace UnrealBuildTool
 					BinariesPath = Path.GetDirectoryName(BinariesPath.Substring(0, BinariesPath.IndexOf(".app")));
 					AppendMacLine(FinalizeAppBundleScript, "cd \"{0}\"", ConvertPath(BinariesPath).Replace("$", "\\$"));
 
-					string BundleVersion = null;
-					foreach(string CmdLineArg in UnrealBuildTool.CmdLine)
-					{
-						const string BundleVersionPrefix = "-BundleVersion=";
-						if(CmdLineArg.StartsWith(BundleVersionPrefix, StringComparison.InvariantCultureIgnoreCase))
-						{
-							BundleVersion = CmdLineArg.Substring(BundleVersionPrefix.Length);
-						}
-					}
+					string BundleVersion = BuildConfiguration.BundleVersion;
 					if(BundleVersion == null)
 					{
 						BundleVersion = LoadEngineDisplayVersion();

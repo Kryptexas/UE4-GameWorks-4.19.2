@@ -13,7 +13,7 @@
 #include "UObject/UObjectArray.h"
 #include "UObject/UObjectMarks.h"
 
-#if _MSC_VER == 1900
+#if defined(_MSC_VER) && _MSC_VER == 1900
 	#ifdef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
@@ -737,8 +737,9 @@ struct FScopeCycleCounterUObject
 };
 #endif
 
-#if _MSC_VER == 1900
+#if defined(_MSC_VER) && _MSC_VER == 1900
 	#ifdef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
 #endif
+

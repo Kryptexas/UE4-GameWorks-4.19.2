@@ -13,6 +13,7 @@
 extern "C" CORE_API Windows::HINSTANCE hInstance;
 
 // SIMD intrinsics
+THIRD_PARTY_INCLUDES_START
 #include <intrin.h>
 
 #include <stdint.h>
@@ -38,6 +39,7 @@ extern "C" CORE_API Windows::HINSTANCE hInstance;
 // MSVC-specific attributes so there should never be collisions.
 using namespace vc_attributes;
 #endif
+THIRD_PARTY_INCLUDES_END
 
 #ifndef OUT
 #define OUT

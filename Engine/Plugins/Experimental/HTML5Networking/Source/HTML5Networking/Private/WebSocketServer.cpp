@@ -7,7 +7,9 @@
 #if !PLATFORM_HTML5
 // Work around a conflict between a UI namespace defined by engine code and a typedef in OpenSSL
 #define UI UI_ST
+THIRD_PARTY_INCLUDES_START
 #include "libwebsockets.h"
+THIRD_PARTY_INCLUDES_END
 #undef UI
 #endif
 

@@ -49,6 +49,7 @@ static TAutoConsoleVariable<float> CVarEncroachEpsilon(
 	TEXT("0: use full sized shape. > 0: shrink shape size by this amount (world units)"),
 	ECVF_Default);
 
+#define LINE_CHECK_TRACING 0
 
 #if LINE_CHECK_TRACING
 

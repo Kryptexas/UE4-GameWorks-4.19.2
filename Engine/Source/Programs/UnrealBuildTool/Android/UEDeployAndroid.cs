@@ -61,23 +61,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private Dictionary<string, ConfigCacheIni> ConfigCache = null;
-
-		private ConfigCacheIni GetConfigCacheIni(string baseIniName)
+		private ConfigHierarchy GetConfigCacheIni(ConfigHierarchyType Type)
 		{
-			if (ConfigCache == null)
-			{
-				ConfigCache = new Dictionary<string, ConfigCacheIni>();
-			}
-
-			ConfigCacheIni config = null;
-			if (!ConfigCache.TryGetValue(baseIniName, out config))
-			{
-				config = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", DirectoryReference.FromFile(ProjectFile));
-				ConfigCache.Add(baseIniName, config);
-			}
-
-			return config;
+			return ConfigCache.ReadHierarchy(Type, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Android);
 		}
 
 		private string CachedSDKLevel = null;
@@ -86,7 +72,7 @@ namespace UnrealBuildTool
 			if (CachedSDKLevel == null)
 			{
 				// ask the .ini system for what version to use
-				ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+				ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 				string SDKLevel;
 				Ini.GetString("/Script/AndroidPlatformEditor.AndroidSDKSettings", "SDKAPILevel", out SDKLevel);
 
@@ -165,7 +151,7 @@ namespace UnrealBuildTool
 			return VersionString;
 		}
 
-		public bool PackageDataInsideApk(bool bDisallowPackagingDataInApk, ConfigCacheIni Ini = null)
+		public bool PackageDataInsideApk(bool bDisallowPackagingDataInApk, ConfigHierarchy Ini = null)
 		{
 			if (bDisallowPackagingDataInApk)
 			{
@@ -175,7 +161,7 @@ namespace UnrealBuildTool
 			// make a new one if one wasn't passed in
 			if (Ini == null)
 			{
-				Ini = GetConfigCacheIni("Engine");
+				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			}
 
 			// we check this a lot, so make it easy 
@@ -185,7 +171,7 @@ namespace UnrealBuildTool
 			return bPackageDataInsideApk;
 		}
 
-		public bool UseExternalFilesDir(bool bDisallowExternalFilesDir, ConfigCacheIni Ini = null)
+		public bool UseExternalFilesDir(bool bDisallowExternalFilesDir, ConfigHierarchy Ini = null)
 		{
 			if (bDisallowExternalFilesDir)
 			{
@@ -195,7 +181,7 @@ namespace UnrealBuildTool
 			// make a new one if one wasn't passed in
 			if (Ini == null)
 			{
-				Ini = GetConfigCacheIni("Engine");
+				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			}
 
 			// we check this a lot, so make it easy 
@@ -205,12 +191,12 @@ namespace UnrealBuildTool
 			return bUseExternalFilesDir;
 		}
 
-		public bool DisableVerifyOBBOnStartUp(ConfigCacheIni Ini = null)
+		public bool DisableVerifyOBBOnStartUp(ConfigHierarchy Ini = null)
 		{
 			// make a new one if one wasn't passed in
 			if (Ini == null)
 			{
-				Ini = GetConfigCacheIni("Engine");
+				Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			}
 
 			// we check this a lot, so make it easy 
@@ -424,7 +410,7 @@ namespace UnrealBuildTool
 
 			Log.TraceInformation("\n==== Writing to OBB data file {0} ====", FileName);
 
-			var Ini = GetConfigCacheIni("Engine");
+			var Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			int StoreVersion;
 			Ini.GetInt32("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "StoreVersion", out StoreVersion);
 
@@ -640,7 +626,7 @@ namespace UnrealBuildTool
 		private void CopyGfxDebugger(string UE4BuildPath, string UE4Arch, string NDKArch)
 		{
 			string AndroidGraphicsDebugger;
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "AndroidGraphicsDebugger", out AndroidGraphicsDebugger);
 
 			switch (AndroidGraphicsDebugger.ToLower())
@@ -648,7 +634,7 @@ namespace UnrealBuildTool
 				case "mali":
 					{
 						string MaliGraphicsDebuggerPath;
-						Ini.GetPath("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "MaliGraphicsDebuggerPath", out MaliGraphicsDebuggerPath);
+						AndroidPlatformSDK.GetPath(Ini, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "MaliGraphicsDebuggerPath", out MaliGraphicsDebuggerPath);
 						if (Directory.Exists(MaliGraphicsDebuggerPath))
 						{
 							Directory.CreateDirectory(Path.Combine(UE4BuildPath, "libs", NDKArch));
@@ -661,14 +647,14 @@ namespace UnrealBuildTool
 					}
 					break;
 					// @TODO: Add NVIDIA Gfx Debugger
-					/*
+			/*
 					case "nvidia":
 						{
-							Directory.CreateDirectory(UE4BuildPath + "/libs/" + NDKArch);
-							File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvPmApi.Core.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvPmApi.Core.so", true);
-							File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvidia_gfx_debugger.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvidia_gfx_debugger.so", true);
+			Directory.CreateDirectory(UE4BuildPath + "/libs/" + NDKArch);
+			File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvPmApi.Core.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvPmApi.Core.so", true);
+			File.Copy("F:/NVPACK/android-kk-egl-t124-a32/Stripped_libNvidia_gfx_debugger.so", UE4BuildPath + "/libs/" + NDKArch + "/libNvidia_gfx_debugger.so", true);
 						}
-					*/
+			*/
 				default:
 					break;
 			}
@@ -737,7 +723,7 @@ namespace UnrealBuildTool
 			string StringsXMLPath = Path.Combine(UE4BuildPath, "res/values/strings.xml");
 
 			ApplicationDisplayName = null;
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "ApplicationDisplayName", out ApplicationDisplayName);
 
 			// use project name if display name is left blank
@@ -892,13 +878,15 @@ namespace UnrealBuildTool
 			CurrentSettings.AppendLine(string.Format("bUseExternalFilesDir={0}", bUseExternalFilesDir));
 
 			// all AndroidRuntimeSettings ini settings in here
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
-			ConfigCacheIni.IniSection Section = Ini.FindSection("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
+			ConfigHierarchySection Section = Ini.FindSection("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings");
 			if (Section != null)
 			{
-				foreach (string Key in Section.Keys)
+				foreach (string Key in Section.KeyNames)
 				{
-					List<string> Values = Section[Key];
+					IEnumerable<string> Values;
+					Section.TryGetValues(Key, out Values);
+
 					foreach (string Value in Values)
 					{
 						CurrentSettings.AppendLine(string.Format("{0}={1}", Key, Value));
@@ -909,9 +897,10 @@ namespace UnrealBuildTool
 			Section = Ini.FindSection("/Script/AndroidPlatformEditor.AndroidSDKSettings");
 			if (Section != null)
 			{
-				foreach (string Key in Section.Keys)
+				foreach (string Key in Section.KeyNames)
 				{
-					List<string> Values = Section[Key];
+					IEnumerable<string> Values;
+					Section.TryGetValues(Key, out Values);
 					foreach (string Value in Values)
 					{
 						CurrentSettings.AppendLine(string.Format("{0}={1}", Key, Value));
@@ -1051,7 +1040,7 @@ namespace UnrealBuildTool
 
 		private void DetermineScreenOrientationRequirements(out bool bNeedPortrait, out bool bNeedLandscape)
 		{
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			string Orientation;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "Orientation", out Orientation);
 
@@ -1158,7 +1147,7 @@ namespace UnrealBuildTool
 		
 		private void PackageForDaydream(string UE4BuildPath)
         {
-            ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+            ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
             bool bPackageForDaydream;
             Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForDaydream", out bPackageForDaydream);
 
@@ -1185,7 +1174,7 @@ namespace UnrealBuildTool
 
 		private void PickSplashScreenOrientation(string UE4BuildPath, bool bNeedPortrait, bool bNeedLandscape)
 		{
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			bool bShowLaunchImage = false;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
 			bool bPackageForGearVR;
@@ -1259,7 +1248,7 @@ namespace UnrealBuildTool
 
 		private string GetPackageName(string ProjectName)
 		{
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			string PackageName;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "PackageName", out PackageName);
 			// replace some variables
@@ -1270,7 +1259,7 @@ namespace UnrealBuildTool
 
 		private string GetPublicKey()
 		{
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			string PlayLicenseKey = "";
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "GooglePlayLicenseKey", out PlayLicenseKey);
 			return PlayLicenseKey;
@@ -1293,7 +1282,7 @@ namespace UnrealBuildTool
 			}
 
 			// ini file to get settings from
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			string PackageName = GetPackageName(ProjectName);
 			bool bEnableGooglePlaySupport;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bEnableGooglePlaySupport", out bEnableGooglePlaySupport);
@@ -1707,7 +1696,7 @@ namespace UnrealBuildTool
 
 		private void ValidateGooglePlay(string UE4BuildPath)
 		{
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			bool bEnableGooglePlaySupport;
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bEnableGooglePlaySupport", out bEnableGooglePlaySupport);
 
@@ -2149,7 +2138,7 @@ namespace UnrealBuildTool
 			bool HasNDKPath = File.Exists(NDKBuildPath);
 
 			// get Ant verbosity level
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			string AntVerbosity;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "AntVerbosity", out AntVerbosity);
 
@@ -2322,7 +2311,7 @@ namespace UnrealBuildTool
 		private void PrepareToSignApk(string BuildPath)
 		{
 			// ini file to get settings from
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			string KeyAlias, KeyStore, KeyStorePassword, KeyPassword;
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "KeyAlias", out KeyAlias);
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "KeyStore", out KeyStore);
@@ -2368,7 +2357,7 @@ namespace UnrealBuildTool
 			return PluginExtras;
 		}
 
-		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
+		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
 			//Log.TraceInformation("$$$$$$$$$$$$$$ PrepTargetForDeployment $$$$$$$$$$$$$$$$$");
 			AndroidToolChain ToolChain = new AndroidToolChain(InTarget.ProjectFile); 
@@ -2414,7 +2403,7 @@ namespace UnrealBuildTool
 			// 			return bSeparateApks;
 		}
 
-		public override bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+		public bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
 		{
 			//Log.TraceInformation("$$$$$$$$$$$$$$ PrepForUATPackageOrDeploy $$$$$$$$$$$$$$$$$");
 
@@ -2482,7 +2471,7 @@ namespace UnrealBuildTool
 			string LoadLibraryDefaults = "";
 
 			string AndroidGraphicsDebugger;
-			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			ConfigHierarchy Ini = GetConfigCacheIni(ConfigHierarchyType.Engine);
 			Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "AndroidGraphicsDebugger", out AndroidGraphicsDebugger);
 
 			switch (AndroidGraphicsDebugger.ToLower())
@@ -2502,7 +2491,7 @@ namespace UnrealBuildTool
 			Dictionary<string, string> Replacements = new Dictionary<string, string>{
 				{ "//$${gameActivityImportAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityImportAdditions", "")},
 				{ "//$${gameActivityPostImportAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityPostImportAdditions", "")},
-  				{ "//$${gameActivityClassAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityClassAdditions", "")},
+				{ "//$${gameActivityClassAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityClassAdditions", "")},
 				{ "//$${gameActivityReadMetadataAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityReadMetadataAdditions", "")},
 				{ "//$${gameActivityOnCreateAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnCreateAdditions", "")},
 				{ "//$${gameActivityOnDestroyAdditions}$$", UPL.ProcessPluginNode(NDKArch, "gameActivityOnDestroyAdditions", "")},

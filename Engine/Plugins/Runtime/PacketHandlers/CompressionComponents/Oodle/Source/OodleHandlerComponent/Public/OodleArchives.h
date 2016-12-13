@@ -6,6 +6,17 @@
 #include "Serialization/ArchiveProxy.h"
 #include "Misc/CommandLine.h"
 
+/**
+ * Whether or not to enable Oodle dev code (packet capturing, dictionary training, and automatic dictionary finding) in shipping mode.
+ *
+ * This may be useful for multiplayer game mod authors, to optimize netcode compression for their mod (not officially supported).
+ * However, Oodle compression makes the games network protocol harder to reverse-engineer - enabling this removes that slight benefit.
+ */
+#ifndef OODLE_DEV_SHIPPING
+#define OODLE_DEV_SHIPPING	0
+#endif
+
+
 #if HAS_OODLE_SDK
 
 #define CAPTURE_HEADER_MAGIC		0x41091CC4

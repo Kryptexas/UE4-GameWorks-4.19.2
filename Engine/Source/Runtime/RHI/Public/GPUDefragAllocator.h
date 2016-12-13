@@ -17,6 +17,8 @@
 #define TRACK_RELOCATIONS (VALIDATE_SYNC_SIZE || VALIDATE_MOVES)
 #define VALIDATE_MEMORY_PROTECTION		0
 
+#define USE_ALLOCATORFIXEDSIZEFREELIST	0
+
 class FAsyncReallocationRequest;
 class FScopedGPUDefragLock;
 

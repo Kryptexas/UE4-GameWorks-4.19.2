@@ -395,9 +395,14 @@ namespace UnrealBuildTool
 			// we use this feature to allow static FNames.
 			Result += " -Wno-gnu-string-literal-operator-template";
 
-			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
+			if (CompileEnvironment.Config.bEnableShadowVariableWarnings)
 			{
 				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors ? "" : " -Wno-error=shadow");
+			}
+
+			if (CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings)
+			{
+				Result += " -Wundef" + (BuildConfiguration.bUndefinedIdentifierErrors ? "" : " -Wno-error=undef");
 			}
 
 			//Result += " -DOPERATOR_NEW_INLINE=FORCENOINLINE";

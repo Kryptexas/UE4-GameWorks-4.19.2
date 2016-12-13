@@ -3,6 +3,7 @@
 #include "SkeletalMeshTools.h"
 #include "Engine/SkeletalMesh.h"
 #include "MeshBuild.h"
+#include "RawIndexBuffer.h"
 
 namespace SkeletalMeshTools
 {

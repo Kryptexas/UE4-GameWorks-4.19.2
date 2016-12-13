@@ -68,7 +68,7 @@ public abstract class LocalizationProvider
 	{
 		public string RootWorkingDirectory;
 		public string RemoteFilenamePrefix;
-		public CommandUtils CommandUtils;
+		public BuildCommand Command;
 		public int PendingChangeList;
 	};
 
@@ -76,11 +76,11 @@ public abstract class LocalizationProvider
 	{
 		RootWorkingDirectory = InArgs.RootWorkingDirectory;
 		RemoteFilenamePrefix = InArgs.RemoteFilenamePrefix;
-		CommandUtils = InArgs.CommandUtils;
+		Command = InArgs.Command;
 		PendingChangeList = InArgs.PendingChangeList;
 
-		LocalizationBranchName = CommandUtils.ParseParamValue("LocalizationBranch");
-		bUploadAllCultures = CommandUtils.ParseParam("UploadAllCultures");
+		LocalizationBranchName = Command.ParseParamValue("LocalizationBranch");
+		bUploadAllCultures = Command.ParseParam("UploadAllCultures");
 	}
 
 	public virtual string GetLocalizationProviderId()
@@ -160,7 +160,7 @@ public abstract class LocalizationProvider
 	protected string LocalizationBranchName;
 	protected string RemoteFilenamePrefix;
 	protected bool bUploadAllCultures;
-	protected CommandUtils CommandUtils;
+	protected BuildCommand Command;
 	protected int PendingChangeList;
 
 	private static Dictionary<string, Type> CachedLocalizationProviderTypes;

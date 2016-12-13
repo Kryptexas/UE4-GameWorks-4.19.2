@@ -670,7 +670,7 @@ static void DrawAngles(FCanvas* Canvas, int32 XPos, int32 YPos, EAxisList::Type 
 
 void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas )
 {
-#if TODO_STATICMESH
+#ifdef TODO_STATICMESH
 	if ( StaticMesh->bHasBeenSimplified && SimplygonLogo && SimplygonLogo->Resource )
 	{
 		const float LogoSizeX = 64.0f;

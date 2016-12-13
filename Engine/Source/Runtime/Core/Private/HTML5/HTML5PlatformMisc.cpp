@@ -18,8 +18,10 @@ THIRD_PARTY_INCLUDES_START
 	#include "unicode/locid.h"
 THIRD_PARTY_INCLUDES_END
 #include "GenericPlatformCrashContext.h"
-#include <SDL.h>
-#include <ctime>
+THIRD_PARTY_INCLUDES_START
+	#include <SDL.h>
+	#include <ctime>
+THIRD_PARTY_INCLUDES_END
 
 #include "MapPakDownloaderModule.h"
 #include "MapPakDownloader.h"

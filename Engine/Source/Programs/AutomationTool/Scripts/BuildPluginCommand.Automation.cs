@@ -173,7 +173,7 @@ class BuildPlugin : BuildCommand
 				Arguments += String.Format(" -module {0}", ModuleName);
 			}
 
-			string Architecture = UEBuildPlatform.GetBuildPlatform(Platform).CreateContext(HostProjectFile).GetActiveArchitecture();
+			string Architecture = UEBuildPlatform.GetBuildPlatform(Platform).CreateContext(HostProjectFile, null).GetActiveArchitecture();
 
 			string ReceiptFileName = TargetReceipt.GetDefaultPath(HostProjectPluginFile.Directory.FullName, TargetName, Platform, Configuration, Architecture);
 			Arguments += String.Format(" -receipt {0}", CommandUtils.MakePathSafeToUseWithCommandLine(ReceiptFileName));

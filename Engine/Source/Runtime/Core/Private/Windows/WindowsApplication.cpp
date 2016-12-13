@@ -25,6 +25,7 @@
 
 // Allow Windows Platform types in the entire file.
 #include "Windows/AllowWindowsPlatformTypes.h"
+THIRD_PARTY_INCLUDES_START
 #include <ShlObj.h>
 #include <objbase.h>
 #include <SetupAPI.h>
@@ -32,6 +33,7 @@
 #include <dwmapi.h>
 #include <cfgmgr32.h>
 #include <windowsx.h>
+THIRD_PARTY_INCLUDES_END
 
 // Platform code uses IsMaximized which is defined to IsZoomed by windowsx.h
 #pragma push_macro("IsMaximized")

@@ -277,7 +277,7 @@ id<MTLDevice> GMetalDevice = nil;
 			check(glGetError() == 0);
 			check(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
-#if USE_DETAILED_IPHONE_MEM_TRACKING
+#if defined(USE_DETAILED_IPHONE_MEM_TRACKING) && USE_DETAILED_IPHONE_MEM_TRACKING
 			//This value is used to allow the engine to track gl allocated memory see GetIPhoneOpenGLBackBufferSize
 			uint32 SingleBufferSize = OnScreenWidth * OnScreenHeight * 4/*rgba8*/;
 			IPhoneBackBufferMemSize = singleBufferSize * 3/*iphone back buffer system is tripple buffered*/;

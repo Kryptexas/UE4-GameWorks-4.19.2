@@ -11,6 +11,8 @@
 #include "RenderResource.h"
 #include "Containers/DynamicRHIResourceArray.h"
 
+#define DISALLOW_32BIT_INDICES 0
+
 class FRawIndexBuffer : public FIndexBuffer
 {
 public:

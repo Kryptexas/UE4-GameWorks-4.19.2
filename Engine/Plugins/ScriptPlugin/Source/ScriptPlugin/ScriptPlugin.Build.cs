@@ -73,6 +73,7 @@ namespace UnrealBuildTool.Rules
 			else
 			{
 				Log.TraceVerbose("LUA Integration NOT enabled");
+				Definitions.Add("WITH_LUA=0");
 			}
 		}
 	}

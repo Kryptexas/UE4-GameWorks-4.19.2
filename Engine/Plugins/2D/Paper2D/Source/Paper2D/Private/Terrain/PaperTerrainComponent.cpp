@@ -16,6 +16,7 @@
 #include "PaperTerrainMaterial.h"
 
 #define PAPER_USE_MATERIAL_SLOPES 1
+#define PAPER_TERRAIN_DRAW_DEBUG 0
 
 DECLARE_CYCLE_STAT(TEXT("Terrain Spline Proxy"), STAT_TerrainSpline_GetDynamicMeshElements, STATGROUP_Paper2D);
 
@@ -670,7 +671,7 @@ void UPaperTerrainComponent::OnSplineEdited()
 				GenerateFillRenderDataFromPolygon(FillSprite, FillDrawCall, TextureSize, TriangulatedPolygonVertices);
 
 				//@TODO: Add support for the fill sprite being smaller than the entire texture
-#if NOT_WORKING
+#ifdef NOT_WORKING
 				const float StartingDivisionPointX = FMath::CeilToFloat(SplineBounds.Min.X / TextureSize.X);
 				const float StartingDivisionPointY = FMath::CeilToFloat(SplineBounds.Min.Y / TextureSize.Y);
 

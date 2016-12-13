@@ -108,7 +108,7 @@ private:
 };
 
 //@todo.VC10: Apparent VC10 compiler bug here causes an access violation in UnlockMip in Shipping builds
-#if _MSC_VER
+#ifdef _MSC_VER
 PRAGMA_ENABLE_OPTIMIZATION
 #endif
 

@@ -3,11 +3,13 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealTargetPlatform.Mac)]
 public class UE4EditorServicesTarget : TargetRules
 {
 	public UE4EditorServicesTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	//
@@ -25,16 +27,6 @@ public class UE4EditorServicesTarget : TargetRules
 			);
 	}
 
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		OutPlatforms.Add( UnrealTargetPlatform.Mac );
-		return true;
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
-	}
 
 	public override void SetupGlobalEnvironment(
 		TargetInfo Target,

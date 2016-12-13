@@ -12,6 +12,9 @@
 #include "IMediaOptions.h"
 #include "IMediaPlayerFactory.h"
 #include "WmfMediaSettings.h"
+#if PLATFORM_WINDOWS
+	#include "WindowsHWrapper.h"
+#endif
 
 #if WITH_EDITOR
 	#include "ISettingsModule.h"
@@ -141,7 +144,7 @@ public:
 		SupportedFileExtensions.Add(TEXT("wmv"));
 
 		// supported platforms
-#if WINVER >= _WIN32_WINNT_VISTA
+#if defined(WINVER) && WINVER >= _WIN32_WINNT_VISTA
 		SupportedPlatforms.Add(TEXT("Windows"));
 #endif
 

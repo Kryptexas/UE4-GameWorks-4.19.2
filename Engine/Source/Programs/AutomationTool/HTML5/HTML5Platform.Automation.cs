@@ -38,7 +38,7 @@ public class HTML5Platform : Platform
 		}
 		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
 
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath.FullName), CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine"));
+		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.HTML5);
 
 		if (HTMLPakAutomation.CanCreateMapPaks(Params))
 		{
@@ -428,7 +428,7 @@ public class HTML5Platform : Platform
 		// open the webpage
 		Int32 ServerPort = 8000;
 
-		var ConfigCache = new UnrealBuildTool.ConfigCacheIni(UnrealTargetPlatform.HTML5, "Engine", Path.GetDirectoryName(Params.RawProjectPath.FullName), CombinePaths(CmdEnv.LocalRoot, "Engine"));
+		var ConfigCache = UnrealBuildTool.ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), UnrealTargetPlatform.HTML5);
 		ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "DeployServerPort", out ServerPort);
 		string WorkingDirectory = Path.GetDirectoryName(ClientApp);
 		string url = Path.GetFileName(ClientApp) +".html";
@@ -520,7 +520,7 @@ public class HTML5Platform : Platform
 #region AMAZON S3
 	public void UploadToS3(DeploymentContext SC)
 	{
-		ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", DirectoryReference.FromFile(SC.RawProjectPath));
+		ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(SC.RawProjectPath), SC.StageTargetPlatform.PlatformType);
 		bool Upload = false;
 
 		string KeyId = "";

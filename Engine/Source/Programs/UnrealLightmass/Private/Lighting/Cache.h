@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "LightingMesh.h"
 #include "LMOctree.h"
+#include "Lighting.h"
 
 namespace Lightmass
 {

@@ -22,9 +22,10 @@
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Misc/EngineBuildSettings.h"
 
+THIRD_PARTY_INCLUDES_START
 #include <strsafe.h>
-
 #include <wincodec.h>
+THIRD_PARTY_INCLUDES_END
 
 #pragma comment( lib, "windowscodecs.lib" )
 

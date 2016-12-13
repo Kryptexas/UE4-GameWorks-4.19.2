@@ -59,13 +59,14 @@ static const FName WorldClassName = FName("World");
 #define VALIDATE_INITIALIZECORECLASSES 0
 #define EXPORT_SORTING_DETAILED_LOGGING 0
 
-#if ENABLE_COOK_STATS
 // Uncomment this code to measure UObject::Serialize time taken per UClass type during save.
 // This code tracks each type in a hash, so is too heavyweight to leave on in general,
 // but can be really useful for telling what classes are causing the most save time.
 #define ENABLE_PACKAGE_CLASS_SERIALIZATION_TIMES 0
 // uncomment this code to measure UObject::PreSave time taken per uclass type during save
 #define ENABLE_TAGEXPORTS_CLASS_PRESAVE_TIMES 0
+
+#if ENABLE_COOK_STATS
 #include "ProfilingDebugging/ScopedTimers.h"
 
 namespace SavePackageStats

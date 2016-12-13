@@ -61,6 +61,12 @@ namespace UnrealBuildTool
 		public static bool bShadowVariableErrors;
 
 		/// <summary>
+		/// Forces the use of undefined identifiers in conditional expressions to be treated as errors on platforms that support it.
+		/// </summary>
+		[XmlConfig]
+		public static bool bUndefinedIdentifierErrors;
+
+		/// <summary>
 		/// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
 		/// </summary>
 		[XmlConfig]
@@ -594,6 +600,17 @@ namespace UnrealBuildTool
 		public static bool bCreateMapFile;
 
 		/// <summary>
+		/// Whether to skip checking for files identified by the junk manifest
+		/// </summary>
+		[XmlConfig]
+		public static bool bIgnoreJunk;
+
+		/// <summary>
+		/// Bundle version for Mac apps
+		/// </summary>
+		public static string BundleVersion;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -775,6 +792,12 @@ namespace UnrealBuildTool
 			// Don't create a map file by default
 			bCreateMapFile = false;
 
+			// Always check the junk manifest by default
+			bIgnoreJunk = false;
+
+			// No manually overriden bundle version
+			BundleVersion = null;
+
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -929,14 +952,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public static void PostReset()
 		{
-			// Analyzing UCA is disabled for debugging convenience.
-			if (UnrealBuildTool.CommandLineContains(@"UnrealCodeAnalyzer")
-				// UHT is necessary to generate code for proper compilation.
-				|| UnrealBuildTool.CommandLineContains(@"UnrealHeaderTool"))
-			{
-				BuildConfiguration.bRunUnrealCodeAnalyzer = false;
-			}
-
 			// Couple flags have to be set properly when running UCA.
 			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
 			{

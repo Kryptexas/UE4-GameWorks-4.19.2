@@ -8,6 +8,7 @@ public class CrossCompilerToolTarget : TargetRules
 	public CrossCompilerToolTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	//
@@ -24,11 +25,6 @@ public class CrossCompilerToolTarget : TargetRules
 			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
 											InModuleNames: new List<string>() { "CrossCompilerTool" } )
 			);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

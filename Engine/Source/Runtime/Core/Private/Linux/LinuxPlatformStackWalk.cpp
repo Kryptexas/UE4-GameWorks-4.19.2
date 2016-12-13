@@ -17,10 +17,12 @@
 #include <stdio.h>
 
 // these are not actually system headers, but a TPS library (see ThirdParty/elftoolchain)
+THIRD_PARTY_INCLUDES_START
 #include <libelf.h>
 #include <_libelf.h>
 #include <libdwarf.h>
 #include <dwarf.h>
+THIRD_PARTY_INCLUDES_END
 
 #ifndef DW_AT_MIPS_linkage_name
 	#define DW_AT_MIPS_linkage_name		0x2007			// common extension, used before DW_AT_linkage_name became standard

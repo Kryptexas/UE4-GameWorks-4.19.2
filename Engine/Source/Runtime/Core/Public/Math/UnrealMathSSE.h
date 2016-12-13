@@ -4,7 +4,7 @@
 
 struct FMath;
 
-#if __cplusplus_cli
+#ifdef __cplusplus_cli
 // there are compile issues with this file in managed mode, so use the FPU version
 #include "UnrealMathFPU.h"
 #else

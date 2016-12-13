@@ -3,10 +3,12 @@
 #include "HTML5Window.h"
 #include "HAL/OutputDevices.h"
 
-#if !PLATFORM_HTML5_WIN32
-#include <emscripten/emscripten.h>
-#endif
-#include <SDL.h>
+THIRD_PARTY_INCLUDES_START
+	#if !PLATFORM_HTML5_WIN32
+		#include <emscripten/emscripten.h>
+	#endif
+	#include <SDL.h>
+THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5Window, Log, All);
 

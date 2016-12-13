@@ -6801,7 +6801,7 @@ void UEditorEngine::UnregisterForUndo( FEditorUndoClient* Client)
 
 void UEditorEngine::AutoMergeStaticMeshes()
 {
-#if TODO_STATICMESH
+#ifdef TODO_STATICMESH
 	TArray<AStaticMeshActor*> SMAs;
 	for (FActorIterator It; It; ++It)
 	{

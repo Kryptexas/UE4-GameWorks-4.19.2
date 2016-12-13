@@ -172,7 +172,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Whether to warn about the use of shadow variables
 		/// </summary>
-		public bool bEnableShadowVariableWarning = false;
+		public bool bEnableShadowVariableWarnings = false;
+
+		/// <summary>
+		/// Whether to warn about the use of undefined identifiers in #if expressions
+		/// </summary>
+		public bool bEnableUndefinedIdentifierWarnings = false;
 
 		/// <summary>
 		/// True if compiler optimizations should be enabled. This setting is distinct from the configuration (see CPPTargetConfiguration).
@@ -256,7 +261,8 @@ namespace UnrealBuildTool
 			MinFilesUsingPrecompiledHeaderOverride = InCopyEnvironment.MinFilesUsingPrecompiledHeaderOverride;
 			bBuildLocallyWithSNDBS = InCopyEnvironment.bBuildLocallyWithSNDBS;
 			bEnableExceptions = InCopyEnvironment.bEnableExceptions;
-			bEnableShadowVariableWarning = InCopyEnvironment.bEnableShadowVariableWarning;
+			bEnableShadowVariableWarnings = InCopyEnvironment.bEnableShadowVariableWarnings;
+			bEnableUndefinedIdentifierWarnings = InCopyEnvironment.bEnableUndefinedIdentifierWarnings;
 			bOptimizeCode = InCopyEnvironment.bOptimizeCode;
 			bCreateDebugInfo = InCopyEnvironment.bCreateDebugInfo;
 			bIsBuildingLibrary = InCopyEnvironment.bIsBuildingLibrary;

@@ -37,11 +37,6 @@ public:
 	TKeyFrameManipulator(const TKeyFrameManipulator&) = default;
 	TKeyFrameManipulator& operator=(const TKeyFrameManipulator&) = default;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_CONSTRUCTORS
-	TKeyFrameManipulator(TKeyFrameManipulator&&) = default;
-	TKeyFrameManipulator& operator=(TKeyFrameManipulator&&) = default;
-#endif
-
 private:
 
 	/** Called when a new key time has been added */

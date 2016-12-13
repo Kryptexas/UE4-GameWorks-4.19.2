@@ -226,7 +226,7 @@ UAISystem::FBlackboardDataToComponentsIterator UAISystem::CreateBlackboardDataTo
 
 void UAISystem::ConditionalLoadDebuggerPlugin()
 {
-#if ENABLED_GAMEPLAY_DEBUGGER
+#if defined(ENABLED_GAMEPLAY_DEBUGGER) && ENABLED_GAMEPLAY_DEBUGGER
 	if (bEnableDebuggerPlugin)
 	{
 		LoadDebuggerPlugin();

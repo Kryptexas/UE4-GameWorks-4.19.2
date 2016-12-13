@@ -7,8 +7,9 @@
 /** Maximum light intensity stored in vertex/ texture lightmaps. */
 #define MAX_LIGHT_INTENSITY	16.f
 
-
+THIRD_PARTY_INCLUDES_START
 #include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
+THIRD_PARTY_INCLUDES_END
 
 namespace Lightmass
 {

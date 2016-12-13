@@ -33,5 +33,9 @@ public class WebSockets : ModuleRules
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL", "libWebSockets", "zlib");
 			PrivateDependencyModuleNames.Add("SSL");
 		}
+		else
+		{
+			Definitions.Add("WITH_WEBSOCKETS=0");
+		}
 	}
 }

@@ -51,7 +51,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_CallFunction
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4750)
 #endif
@@ -810,7 +810,7 @@ FString FKCHandler_CallFunction::GetFunctionNameFromNode(UEdGraphNode* Node) con
 	}
 }
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 

@@ -327,9 +327,9 @@ bool FTextTest::RunTest (const FString& Parameters)
 	{
 		TArray<FText> CorrectlySortedValues;
 		CorrectlySortedValues.Add( FText::FromString( TEXT("cote") ) );
-		CorrectlySortedValues.Add( FText::FromString( TEXT("coté") ) );
-		CorrectlySortedValues.Add( FText::FromString( TEXT("côte") ) );
-		CorrectlySortedValues.Add( FText::FromString( TEXT("côté") ) );
+		CorrectlySortedValues.Add( FText::FromString( TEXT("cot\u00e9") ) );
+		CorrectlySortedValues.Add( FText::FromString( TEXT("c\u00f4te") ) );
+		CorrectlySortedValues.Add( FText::FromString( TEXT("c\u00f4t\u00e9") ) );
 
 		{
 			// Make unsorted.

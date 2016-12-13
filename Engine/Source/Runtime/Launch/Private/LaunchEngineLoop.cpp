@@ -163,11 +163,14 @@ class FFeedbackContext;
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
-#if ENABLE_VISUAL_LOG
-	#include "VisualLogger/VisualLogger.h"
+#if WITH_ENGINE
+	#include "EngineDefines.h"
+	#if ENABLE_VISUAL_LOG
+		#include "VisualLogger/VisualLogger.h"
+	#endif
 #endif
 
-#if WITH_LAUNCHERCHECK
+#if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 	#include "LauncherCheck.h"
 #endif
 
@@ -867,7 +870,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		return -1;
 	}
 
-#if WITH_LAUNCHERCHECK
+#if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 	if (ILauncherCheckModule::Get().WasRanFromLauncher() == false)
 	{
 		// Tell Launcher to run us instead

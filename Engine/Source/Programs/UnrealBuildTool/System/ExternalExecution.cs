@@ -261,7 +261,7 @@ namespace UnrealBuildTool
 
 		public UHTManifest(UEBuildTarget Target, string InRootLocalPath, string InRootBuildPath, IEnumerable<UHTModuleInfo> ModuleInfo)
 		{
-			IsGameTarget = TargetRules.IsGameType(Target.TargetType);
+			IsGameTarget = (Target.TargetType != TargetRules.TargetType.Program);
 			RootLocalPath = InRootLocalPath;
 			RootBuildPath = InRootBuildPath;
 			TargetName = Target.GetTargetName();
@@ -968,25 +968,25 @@ namespace UnrealBuildTool
 						// NOTE: We disable mutex when launching UBT from within UBT to compile UHT
 						UBTArguments.Append(" -NoMutex");
 
-						if (UnrealBuildTool.CommandLineContains("-noxge"))
+						if (!BuildConfiguration.bAllowXGE)
 						{
 							UBTArguments.Append(" -noxge");
 						}
 
 						// Propagate command-line options
-						if ( UnrealBuildTool.CommandLineContains( "-2017" ) )
+						if ( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017 )
 						{
 							UBTArguments.Append(" -2017");
 						}
-						if ( UnrealBuildTool.CommandLineContains( "-2015" ) )
+						if ( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 )
 						{
-							UBTArguments.Append( " -2015" );
+							UBTArguments.Append(" -2015");
 						}
-						if ( UnrealBuildTool.CommandLineContains( "-2013" ) )
+						if ( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013 )
 						{
 							UBTArguments.Append(" -2013");
 						}
-						if ( UnrealBuildTool.CommandLineContains( "-ignorejunk" ) )
+						if ( BuildConfiguration.bIgnoreJunk )
 						{
 							UBTArguments.Append(" -ignorejunk");
 						}

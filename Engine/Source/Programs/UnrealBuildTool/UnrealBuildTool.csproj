@@ -108,14 +108,25 @@
     </When>
   </Choose>
   <ItemGroup>
+    <Compile Include="Configuration\ModuleRules.cs" />
+    <Compile Include="Configuration\TargetInfo.cs" />
+    <Compile Include="Configuration\TargetRules.cs" />
     <Compile Include="Mac\MacToolChain.cs" />
     <Compile Include="Mac\UEBuildMac.cs" />
     <Compile Include="Mac\MacProjectGenerator.cs" />
     <Compile Include="Mac\UEDeployMac.cs" />
+    <Compile Include="System\ConfigCache.cs" />
+    <Compile Include="System\ConfigFile.cs" />
+    <Compile Include="System\ConfigFileAttribute.cs" />
+    <Compile Include="System\ConfigHierarchy.cs" />
     <Compile Include="System\CustomBuildSteps.cs" />
     <Compile Include="System\FileSystemReference.cs" />
     <Compile Include="System\InstalledPlatformInfo.cs" />
     <Compile Include="System\LocalizationDescriptor.cs" />
+    <Compile Include="System\ObsoleteOverrideAttribute.cs" />
+    <Compile Include="System\RulesAssembly.cs" />
+    <Compile Include="System\SupportedConfigurationsAttribute.cs" />
+    <Compile Include="System\SupportedPlatformsAttribute.cs" />
     <Compile Include="System\TargetReceipt.cs" />
     <Compile Include="System\VersionManifest.cs" />
     <Compile Include="ToolChain\AppleToolChain.cs" />
@@ -131,6 +142,8 @@
     <Compile Include="System\UnrealPluginLanguage.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Utilities\BinaryReaderExtensions.cs" />
+    <Compile Include="Utilities\BinaryWriterExtensions.cs" />
     <Compile Include="Utilities\HashSetExtensions.cs" />
     <Compile Include="Windows\WindowsDeploy.cs" />
     <Compile Include="Windows\WinResources.cs" />
@@ -234,7 +247,6 @@
     <Compile Include="Utilities\GraphVisualization.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Configuration\EngineConfiguration.cs" />
     <Compile Include="Utilities\JsonObject.cs" />
     <Compile Include="Utilities\XmlConfigLoader.cs" />
     <Compile Include="Windows\UEBuildWindows.cs" />

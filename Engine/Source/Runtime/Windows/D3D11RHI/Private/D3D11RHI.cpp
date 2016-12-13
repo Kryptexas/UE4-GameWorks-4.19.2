@@ -8,10 +8,6 @@
 #include "RHIStaticStates.h"
 #include "StaticBoundShaderState.h"
 
-#ifndef WITH_DX_PERF
-	#define WITH_DX_PERF	1
-#endif
-
 #if WITH_DX_PERF
 	// For perf events
 	#include "AllowWindowsPlatformTypes.h"

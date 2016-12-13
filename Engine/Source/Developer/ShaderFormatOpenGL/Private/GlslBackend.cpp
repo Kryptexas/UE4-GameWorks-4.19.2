@@ -3631,7 +3631,7 @@ static void ConfigureInOutVariableLayout(EHlslShaderFrequency Frequency,
 		}
 		else
 		{
-#if DEBUG
+#ifdef DEBUG
 	#define _mesh_glsl_report _mesa_glsl_warning
 #else
 	#define _mesh_glsl_report _mesa_glsl_error

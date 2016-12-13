@@ -14,7 +14,7 @@ namespace UnrealBuildTool
 	public class UEDeployTVOS : UEDeployIOS
 	{
 
-        public UEDeployTVOS(FileReference InProjectFile, IOSPlatformContext inIOSPlatformContext) : base(InProjectFile, inIOSPlatformContext)
+        public UEDeployTVOS()
         {
         }
 
@@ -50,7 +50,7 @@ namespace UnrealBuildTool
 			// get the settings from the ini file
 			// plist replacements
 			// @todo tvos: Are we going to make TVOS specific .ini files?
-			ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", bIsUE4Game? null : new DirectoryReference(ProjectDirectory));
+			ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, bIsUE4Game? null : new DirectoryReference(ProjectDirectory), UnrealTargetPlatform.IOS);
 
 			// bundle display name
 			string BundleDisplayName;
@@ -327,7 +327,7 @@ namespace UnrealBuildTool
 			return bSkipDefaultPNGs;
 		}
 
-		public override bool GeneratePList(string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
+		public override bool GeneratePList(UnrealTargetConfiguration Config, string ProjectDirectory, bool bIsUE4Game, string GameName, string ProjectName, string InEngineDir, string AppDirectory)
 		{
 			return GenerateTVOSPList(ProjectDirectory, bIsUE4Game, GameName, ProjectName, InEngineDir, AppDirectory, this);
 		}

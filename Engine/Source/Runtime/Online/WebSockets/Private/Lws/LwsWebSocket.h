@@ -15,7 +15,9 @@
 #	include "AllowWindowsPlatformTypes.h"
 #endif
 
+THIRD_PARTY_INCLUDES_START
 #include "libwebsockets.h"
+THIRD_PARTY_INCLUDES_END
 
 #if PLATFORM_WINDOWS
 #	include "HideWindowsPlatformTypes.h"

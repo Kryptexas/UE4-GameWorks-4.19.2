@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "VectorVM.h"
 
+#define ENABLE_VM_DEBUGGING 0
+
 struct FVectorVMContext;
 
 namespace VectorVM

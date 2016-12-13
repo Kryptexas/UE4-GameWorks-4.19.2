@@ -16,6 +16,8 @@
 #include "GameFramework/WorldSettings.h"
 #include "Engine/MapBuildDataRegistry.h"
 
+#define VISUALIZE_PACKING 0
+
 DEFINE_LOG_CATEGORY_STATIC(LogLightMap, Log, All);
 
 FLightmassDebugOptions GLightmassDebugOptions;

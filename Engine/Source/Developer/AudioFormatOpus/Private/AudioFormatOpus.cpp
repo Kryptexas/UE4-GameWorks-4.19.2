@@ -11,8 +11,10 @@
 // Need to define this so that resampler.h compiles - probably a way around this somehow
 #define OUTSIDE_SPEEX
 
+THIRD_PARTY_INCLUDES_START
 #include "opus_multistream.h"
 #include "speex_resampler.h"
+THIRD_PARTY_INCLUDES_END
 
 /** Use UE4 memory allocation or Opus */
 #define USE_UE4_MEM_ALLOC 1

@@ -17,7 +17,7 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			if(!UnrealBuildTool.IsDesktopPlatform(Target.Platform))
+			if(Target.Platform != UnrealTargetPlatform.Win32 && Target.Platform != UnrealTargetPlatform.Win64 && Target.Platform != UnrealTargetPlatform.Linux && Target.Platform != UnrealTargetPlatform.Mac)
 			{
 				PrecompileForTargets = PrecompileTargetsType.None;
 			}

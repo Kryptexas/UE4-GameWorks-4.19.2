@@ -51,6 +51,7 @@ template <class ElementType> class TLinkedList;
 #define ME_STD_LABEL_PAD		16
 #define ME_STD_TAB_HEIGHT		21
 
+#define HANDLE_CUSTOM_OUTPUTS_AS_MATERIAL_ATTRIBUTES 0
 
 #define ALLOW_DITHERED_LOD_FOR_INSTANCED_STATIC_MESHES (1)
 

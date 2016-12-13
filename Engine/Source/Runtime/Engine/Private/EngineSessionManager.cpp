@@ -17,6 +17,10 @@
 #include "EngineGlobals.h"
 #include "EngineBuildSettings.h"
 #include "SlateApplication.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CommandLine.h"
+#include "Misc/App.h"
+#include "HAL/PlatformProcess.h"
 
 
 #define LOCTEXT_NAMESPACE "SessionManager"

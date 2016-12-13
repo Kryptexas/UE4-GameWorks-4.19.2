@@ -31,6 +31,10 @@ namespace UnrealBuildTool.Rules
 				PrivateDependencyModuleNames.Add("GameplayDebugger");
 				Definitions.Add("WITH_GAMEPLAY_DEBUGGER=1");
 			}
+			else
+			{
+				Definitions.Add("WITH_GAMEPLAY_DEBUGGER=0");
+			}
 		}
 	}
 }

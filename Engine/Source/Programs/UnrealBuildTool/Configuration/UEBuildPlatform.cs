@@ -190,7 +190,7 @@ namespace UnrealBuildTool
 					EngineIniPath = UnrealBuildTool.GetRemoteIniPath();
 				}
 				DirectoryReference EngineIniDir = !String.IsNullOrEmpty(EngineIniPath) ? new DirectoryReference(EngineIniPath) : null;
-				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", EngineIniDir);
+				ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, EngineIniDir, Platform);
 
 				bool bValue = UEBuildConfiguration.bCompileAPEX;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
@@ -311,13 +311,6 @@ namespace UnrealBuildTool
 		/// <param name="Platform">The platform to create a toolchain for</param>
 		/// <returns>New toolchain instance.</returns>
 		public abstract UEToolChain CreateToolChain(CPPTargetPlatform Platform);
-
-		/// <summary>
-		/// Create a build deployment handler
-		/// </summary>
-		/// <param name="DeploymentHandler">The output deployment handler</param>
-		/// <returns>Deployment handler for this platform, or null if not required</returns>
-		public abstract UEBuildDeploy CreateDeploymentHandler();
 	}
 
 	public abstract class UEBuildPlatform
@@ -761,8 +754,8 @@ namespace UnrealBuildTool
 
 		protected static bool DoProjectSettingsMatchDefault(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName, string Section, string[] BoolKeys, string[] IntKeys, string[] StringKeys)
 		{
-			ConfigCacheIni ProjIni = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", ProjectDirectoryName);
-			ConfigCacheIni DefaultIni = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", (DirectoryReference)null);
+			ConfigHierarchy ProjIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, ProjectDirectoryName, Platform);
+			ConfigHierarchy DefaultIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, (DirectoryReference)null, Platform);
 
 			// look at all bool values
 			if (BoolKeys != null) foreach (string Key in BoolKeys)
@@ -828,8 +821,15 @@ namespace UnrealBuildTool
 		/// Creates a context for the given project on the current platform.
 		/// </summary>
 		/// <param name="ProjectFile">The project file for the current target</param>
+		/// <param name="Target">Rules for the target being built</param>
 		/// <returns>New platform context object</returns>
-		public abstract UEBuildPlatformContext CreateContext(FileReference ProjectFile);
+		public abstract UEBuildPlatformContext CreateContext(FileReference ProjectFile, TargetRules Target);
+
+		/// <summary>
+		/// Deploys the given target
+		/// </summary>
+		/// <param name="Target">Information about the target being deployed</param>
+		public abstract void Deploy(UEBuildDeployTarget Target);
 	}
 
 	public abstract class UEBuildPlatformSDK

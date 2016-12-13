@@ -1001,7 +1001,7 @@ bool FD3D12SubAllocatedOnlineHeap::RollOver()
 	// Notify other layers of heap change
 	CPUBase = SubDesc.ParentHeap->GetCPUSlotHandle(CurrentSubAllocation.BaseSlot);
 	GPUBase = SubDesc.ParentHeap->GetGPUSlotHandle(CurrentSubAllocation.BaseSlot);
-	return false;	// Sub-allocated descriptor heaps don’t change, so no need to set descriptor heaps.
+	return false;	// Sub-allocated descriptor heaps don't change, so no need to set descriptor heaps.
 }
 
 void FD3D12SubAllocatedOnlineHeap::NotifyCurrentCommandList(const FD3D12CommandListHandle& CommandListHandle)

@@ -16,7 +16,7 @@ namespace AutomationTool
 	[Help("ForceNonUnity", "Toggle to disable the unity build system")]
 	[Help("ForceUnity", "Toggle to force enable the unity build system")]
 	[Help("Licensee", "If set, this build is being compiled by a licensee")]
-	public class UE4Build : CommandUtils
+	public class UE4Build
 	{
 		private BuildCommand OwnerCommand;
 
@@ -28,14 +28,14 @@ namespace AutomationTool
 			{
 				if (DeleteProduct && DeleteBuildProducts)
 				{
-					DeleteFile(File);
+					CommandUtils.DeleteFile(File);
 				}
 			}
 		}
 
 		public bool HasBuildProduct(string InFile)
 		{
-			string File = CombinePaths(InFile);
+			string File = CommandUtils.CombinePaths(InFile);
 			foreach (var ExistingFile in BuildProductFiles)
 			{
 				if (ExistingFile.Equals(File, StringComparison.InvariantCultureIgnoreCase))
@@ -48,8 +48,8 @@ namespace AutomationTool
 
 		public void AddBuildProduct(string InFile)
 		{
-			string File = CombinePaths(InFile);
-			if (!FileExists(File))
+			string File = CommandUtils.CombinePaths(InFile);
+			if (!CommandUtils.FileExists(File))
 			{
 				throw new AutomationException("BUILD FAILED specified file to AddBuildProduct {0} does not exist.", File);
 			}
@@ -61,7 +61,7 @@ namespace AutomationTool
 
 		BuildManifest PrepareManifest(string ManifestName, bool bAddReceipt)
 		{
-			if (FileExists(ManifestName) == false)
+			if (CommandUtils.FileExists(ManifestName) == false)
 			{
 				throw new AutomationException("BUILD FAILED UBT Manifest {0} does not exist.", ManifestName);
 			}
@@ -69,7 +69,7 @@ namespace AutomationTool
 			string OutFile;
 			while (true)
 			{
-				OutFile = CombinePaths(CmdEnv.LogFolder, String.Format("UBTManifest.{0}", FileNum) + Path.GetExtension(ManifestName));
+				OutFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, String.Format("UBTManifest.{0}", FileNum) + Path.GetExtension(ManifestName));
 				FileInfo ItemInfo = new FileInfo(OutFile);
 				if (!ItemInfo.Exists)
 				{
@@ -77,11 +77,11 @@ namespace AutomationTool
 				}
 				FileNum++;
 			}
-			CopyFile(ManifestName, OutFile);
-			LogLog("Copied UBT manifest to {0}", OutFile);
+			CommandUtils.CopyFile(ManifestName, OutFile);
+			CommandUtils.LogLog("Copied UBT manifest to {0}", OutFile);
 
 
-			UnrealBuildTool.BuildManifest Manifest = ReadManifest(ManifestName);
+			UnrealBuildTool.BuildManifest Manifest = CommandUtils.ReadManifest(ManifestName);
 			foreach (string Item in Manifest.BuildProducts)
 			{
 				if(bAddReceipt && IsBuildReceipt(Item))
@@ -102,19 +102,19 @@ namespace AutomationTool
 
 		static bool IsBuildReceipt(string FileName)
 		{
-			return FileName.EndsWith(".target", StringComparison.InvariantCultureIgnoreCase);
+			return FileName.EndsWith(".target", StringComparison.InvariantCultureIgnoreCase) || FileName.EndsWith(".modules", StringComparison.InvariantCultureIgnoreCase);
 		}
 
 		void AddBuildProductsFromManifest(string ManifestName)
 		{
-			if (FileExists(ManifestName) == false)
+			if (CommandUtils.FileExists(ManifestName) == false)
 			{
 				throw new AutomationException("BUILD FAILED UBT Manifest {0} does not exist.", ManifestName);
 			}
-			UnrealBuildTool.BuildManifest Manifest = ReadManifest(ManifestName);
+			UnrealBuildTool.BuildManifest Manifest = CommandUtils.ReadManifest(ManifestName);
 			foreach (string Item in Manifest.BuildProducts)
 			{
-				if (!FileExists_NoExceptions(Item))
+				if (!CommandUtils.FileExists_NoExceptions(Item))
 				{
 					throw new AutomationException("BUILD FAILED {0} was in manifest but was not produced.", Item);
 				}
@@ -140,19 +140,19 @@ namespace AutomationTool
                 string RebuildString = "";
                 if (!GlobalCommandLine.IncrementalBuildUBT)
                 {
-                    DeleteFile(UBTExecutable);
+                    CommandUtils.DeleteFile(UBTExecutable);
                     RebuildString = " /target:Rebuild";
                 }
 
-				MsBuild(CmdEnv,
-						CmdEnv.LocalRoot + @"/Engine/Source/Programs/UnrealBuildTool/" + HostPlatform.Current.UBTProjectName + @".csproj",
+				CommandUtils.MsBuild(CommandUtils.CmdEnv,
+						CommandUtils.CmdEnv.LocalRoot + @"/Engine/Source/Programs/UnrealBuildTool/" + HostPlatform.Current.UBTProjectName + @".csproj",
 						"/verbosity:minimal /nologo" + RebuildString + " /property:Configuration=Development /property:Platform=AnyCPU",
 						"BuildUBT");
 
 				bIsUBTReady = true;
 			}
 
-			if (FileExists(UBTExecutable) == false)
+			if (CommandUtils.FileExists(UBTExecutable) == false)
 			{
 				throw new AutomationException("UBT does not exist in {0}.", UBTExecutable);
 			}
@@ -199,14 +199,14 @@ namespace AutomationTool
 
             string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
 
-			DeleteFile(UBTManifest);
+			CommandUtils.DeleteFile(UBTManifest);
 			XGEItem Result = new XGEItem();
 
 			ClearExportedXGEXML();
 
 			using(TelemetryStopwatch GenerateManifestStopwatch = new TelemetryStopwatch("GenerateXGEManifest.{0}.{1}.{2}", TargetName, Platform.ToString(), Config))
 			{
-				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-generatemanifest -nobuilduht -xgeexport" + AddArgs, EnvVars: EnvVars);
+				CommandUtils.RunUBT(CommandUtils.CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-generatemanifest -nobuilduht -xgeexport" + AddArgs, EnvVars: EnvVars);
 			}
 
 			PrepareManifest(UBTManifest, true);
@@ -215,16 +215,16 @@ namespace AutomationTool
 			Result.Config = Config;
 			Result.TargetName = TargetName;
 			Result.UProjectPath = UprojectPath;
-			Result.Manifest = ReadManifest(UBTManifest);
+			Result.Manifest = CommandUtils.ReadManifest(UBTManifest);
 			Result.OutputCaption = String.Format("{0}-{1}-{2}", TargetName, Platform.ToString(), Config.ToString());
-			DeleteFile(UBTManifest);
+			CommandUtils.DeleteFile(UBTManifest);
 
-			Result.CommandLine = UBTExecutable + " " + UBTCommandline(Project: UprojectPath, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-noxge -nobuilduht" + AddArgs);
+			Result.CommandLine = UBTExecutable + " " + CommandUtils.UBTCommandline(Project: UprojectPath, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-noxge -nobuilduht" + AddArgs);
 
 			Result.XgeXmlFiles = new List<string>();
 			foreach (var XGEFile in FindXGEFiles())
 			{
-				if (!FileExists_NoExceptions(XGEFile))
+				if (!CommandUtils.FileExists_NoExceptions(XGEFile))
 				{
 					throw new AutomationException("BUILD FAILED: Couldn't find file: {0}", XGEFile);
 				}
@@ -232,7 +232,7 @@ namespace AutomationTool
 				string OutFile;
 				while (true)
 				{
-					OutFile = CombinePaths(CmdEnv.LogFolder, String.Format("UBTExport.{0}.xge.xml", FileNum));
+					OutFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, String.Format("UBTExport.{0}.xge.xml", FileNum));
 					FileInfo ItemInfo = new FileInfo(OutFile);
 					if (!ItemInfo.Exists)
 					{
@@ -240,7 +240,7 @@ namespace AutomationTool
 					}
 					FileNum++;
 				}
-				CopyFile(XGEFile, OutFile);
+				CommandUtils.CopyFile(XGEFile, OutFile);
 				Result.XgeXmlFiles.Add(OutFile);
 			}
 			ClearExportedXGEXML();
@@ -251,13 +251,16 @@ namespace AutomationTool
 		{
 			if(!Item.CommandLine.Contains("-nolink"))
 			{
-				// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-				Platform.GetPlatform(Item.Platform).PostBuildTarget(this, Item.UProjectPath, Item.TargetName, Item.Config);
+				// run the deployment steps, if necessary
+				foreach(string DeployTargetFile in Item.Manifest.DeployTargetFiles)
+				{
+					CommandUtils.RunUBT(CommandUtils.CmdEnv, UBTExecutable, String.Format("-deploy=\"{0}\" -nomutex", DeployTargetFile));
+				}
 			}
 
 			foreach (string ManifestItem in Item.Manifest.BuildProducts)
 			{
-				if (!FileExists_NoExceptions(ManifestItem))
+				if (!CommandUtils.FileExists_NoExceptions(ManifestItem))
 				{
 					throw new AutomationException("BUILD FAILED {0} was in manifest but was not produced.", ManifestItem);
 				}
@@ -269,7 +272,7 @@ namespace AutomationTool
 		{
 			foreach (string Item in Manifest.BuildProducts)
 			{
-				DeleteFile(Item);
+				CommandUtils.DeleteFile(Item);
 			}
 		}
 
@@ -305,7 +308,7 @@ namespace AutomationTool
 			PrepareUBT();
 			using(TelemetryStopwatch CleanStopwatch = new TelemetryStopwatch("CleanWithUBT.{0}.{1}.{2}", TargetName, Platform.ToString(), Config))
 			{
-				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-clean" + AddArgs, EnvVars: EnvVars);
+				CommandUtils.RunUBT(CommandUtils.CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-clean" + AddArgs, EnvVars: EnvVars);
 			}
         }
 
@@ -352,23 +355,17 @@ namespace AutomationTool
 			{
                 string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
 
-				DeleteFile(UBTManifest);
+				CommandUtils.DeleteFile(UBTManifest);
 				using(TelemetryStopwatch PrepareManifestStopwatch = new TelemetryStopwatch("PrepareUBTManifest.{0}.{1}.{2}", TargetName, TargetPlatform.ToString(), Config))
 				{
-					RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs + " -generatemanifest", EnvVars: EnvVars);
+					CommandUtils.RunUBT(CommandUtils.CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs + " -generatemanifest", EnvVars: EnvVars);
 				}
                 Manifest = PrepareManifest(UBTManifest, false);
 			}
 
 			using(TelemetryStopwatch CompileStopwatch = new TelemetryStopwatch("Compile.{0}.{1}.{2}", TargetName, TargetPlatform.ToString(), Config))
 			{
-				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs, EnvVars: EnvVars);
-			}
-
-			if(!AddArgs.Contains("-nolink"))
-			{
-				// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
-				Platform.GetPlatform(TargetPlatform).PostBuildTarget(this, UprojectPath, TargetName, Config);
+				CommandUtils.RunUBT(CommandUtils.CmdEnv, UBTExecutable: UBTExecutable, Project: UprojectPath, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs, EnvVars: EnvVars);
 			}
 
 			if (UseManifest)
@@ -377,7 +374,7 @@ namespace AutomationTool
 
 				AddBuildProductsFromManifest(UBTManifest);
 
-				DeleteFile(UBTManifest);
+				CommandUtils.DeleteFile(UBTManifest);
 			}
 			return Manifest;
 		}
@@ -409,7 +406,7 @@ namespace AutomationTool
 
 		void PrepareBuildProductsForCSharpProj(string CsProj)
 		{
-			string BaseOutput = CmdEnv.LocalRoot + @"/Engine/Binaries/DotNET/" + Path.GetFileNameWithoutExtension(CsProj);
+			string BaseOutput = CommandUtils.CmdEnv.LocalRoot + @"/Engine/Binaries/DotNET/" + Path.GetFileNameWithoutExtension(CsProj);
 			foreach (var Ext in DotNetProductExtenstions())
 			{
 				PrepareBuildProduct(BaseOutput + Ext, false); // we don't delete these because we are not sure they are actually a build product
@@ -418,10 +415,10 @@ namespace AutomationTool
 
 		void AddBuildProductsForCSharpProj(string CsProj)
 		{
-			string BaseOutput = CmdEnv.LocalRoot + @"/Engine/Binaries/DotNET/" + Path.GetFileNameWithoutExtension(CsProj);
+			string BaseOutput = CommandUtils.CmdEnv.LocalRoot + @"/Engine/Binaries/DotNET/" + Path.GetFileNameWithoutExtension(CsProj);
 			foreach (var Ext in DotNetProductExtenstions())
 			{
-				if (FileExists(BaseOutput + Ext))
+				if (CommandUtils.FileExists(BaseOutput + Ext))
 				{
 					AddBuildProduct(BaseOutput + Ext);
 				}
@@ -430,10 +427,10 @@ namespace AutomationTool
 
 		void AddIOSBuildProductsForCSharpProj(string CsProj)
 		{
-			string BaseOutput = CmdEnv.LocalRoot + @"/Engine/Binaries/DotNET/IOS/" + Path.GetFileNameWithoutExtension(CsProj);
+			string BaseOutput = CommandUtils.CmdEnv.LocalRoot + @"/Engine/Binaries/DotNET/IOS/" + Path.GetFileNameWithoutExtension(CsProj);
 			foreach (var Ext in DotNetProductExtenstions())
 			{
-				if (FileExists(BaseOutput + Ext))
+				if (CommandUtils.FileExists(BaseOutput + Ext))
 				{
 					AddBuildProduct(BaseOutput + Ext);
 				}
@@ -444,18 +441,18 @@ namespace AutomationTool
 		{
 			foreach (var SwarmProduct in SwarmBuildProducts())
 			{
-				string DotNETOutput = CmdEnv.LocalRoot + @"/Engine/Binaries/DotNET/" + SwarmProduct;
-				string Win64Output = CmdEnv.LocalRoot + @"/Engine/Binaries/Win64/" + SwarmProduct;
+				string DotNETOutput = CommandUtils.CmdEnv.LocalRoot + @"/Engine/Binaries/DotNET/" + SwarmProduct;
+				string Win64Output = CommandUtils.CmdEnv.LocalRoot + @"/Engine/Binaries/Win64/" + SwarmProduct;
 				foreach (var Ext in DotNetProductExtenstions())
 				{
-					if (FileExists(DotNETOutput + Ext))
+					if (CommandUtils.FileExists(DotNETOutput + Ext))
 					{
 						AddBuildProduct(DotNETOutput + Ext);
 					}
 				}
 				foreach (var Ext in DotNetProductExtenstions())
 				{
-					if (FileExists(Win64Output + Ext))
+					if (CommandUtils.FileExists(Win64Output + Ext))
 					{
 						AddBuildProduct(Win64Output + Ext);
 					}
@@ -469,11 +466,12 @@ namespace AutomationTool
 		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true, int? ChangelistNumberOverride = null, int? CompatibleChangelistNumberOverride = null, string Build = null)
 		{
 			bool bIsLicenseeVersion = ParseParam("Licensee");
+			bool bIsPromotedBuild = (ParseParamInt("Promoted", 1) != 0);
 			bool bDoUpdateVersionFiles = CommandUtils.P4Enabled && ActuallyUpdateVersionFiles;		
 			int ChangelistNumber = 0;
 			if (bDoUpdateVersionFiles)
 			{
-				ChangelistNumber = ChangelistNumberOverride.HasValue? ChangelistNumberOverride.Value : P4Env.Changelist;
+				ChangelistNumber = ChangelistNumberOverride.HasValue? ChangelistNumberOverride.Value : CommandUtils.P4Env.Changelist;
 			}
 			int CompatibleChangelistNumber = ChangelistNumber;
 			if(bDoUpdateVersionFiles && CompatibleChangelistNumberOverride.HasValue)
@@ -481,11 +479,11 @@ namespace AutomationTool
 				CompatibleChangelistNumber = CompatibleChangelistNumberOverride.Value;
 			}
 
-			string Branch = P4Enabled ? P4Env.BuildRootEscaped : "";
-			return StaticUpdateVersionFiles(ChangelistNumber, CompatibleChangelistNumber, Branch, Build, bIsLicenseeVersion, bDoUpdateVersionFiles);
+			string Branch = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootEscaped : "";
+			return StaticUpdateVersionFiles(ChangelistNumber, CompatibleChangelistNumber, Branch, Build, bIsLicenseeVersion, bIsPromotedBuild, bDoUpdateVersionFiles);
 		}
 
-		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, int CompatibleChangelistNumber, string Branch, string Build, bool bIsLicenseeVersion, bool bDoUpdateVersionFiles)
+		public static List<string> StaticUpdateVersionFiles(int ChangelistNumber, int CompatibleChangelistNumber, string Branch, string Build, bool bIsLicenseeVersion, bool bIsPromotedBuild, bool bDoUpdateVersionFiles)
 		{
 			string ChangelistString = (ChangelistNumber != 0 && bDoUpdateVersionFiles)? ChangelistNumber.ToString() : String.Empty;
 
@@ -494,11 +492,12 @@ namespace AutomationTool
 				string VerFile = BuildVersion.GetDefaultFileName();
 				if (bDoUpdateVersionFiles)
 				{
-					LogLog("Updating {0} with:", VerFile);
-					LogLog("  Changelist={0}", ChangelistNumber);
-					LogLog("  CompatibleChangelist={0}", CompatibleChangelistNumber);
-					LogLog("  IsLicenseeVersion={0}", bIsLicenseeVersion? 1 : 0);
-					LogLog("  BranchName={0}", Branch);
+					CommandUtils.LogLog("Updating {0} with:", VerFile);
+					CommandUtils.LogLog("  Changelist={0}", ChangelistNumber);
+					CommandUtils.LogLog("  CompatibleChangelist={0}", CompatibleChangelistNumber);
+					CommandUtils.LogLog("  IsLicenseeVersion={0}", bIsLicenseeVersion? 1 : 0);
+					CommandUtils.LogLog("  IsPromotedBuild={0}", bIsPromotedBuild? 1 : 0);
+					CommandUtils.LogLog("  BranchName={0}", Branch);
 
 					BuildVersion Version;
 					if(!BuildVersion.TryRead(VerFile, out Version))
@@ -512,6 +511,7 @@ namespace AutomationTool
 						Version.CompatibleChangelist = CompatibleChangelistNumber;
 					}
 					Version.IsLicenseeVersion = bIsLicenseeVersion? 1 : 0;
+					Version.IsPromotedBuild = bIsPromotedBuild? 1 : 0;
 					Version.BranchName = Branch;
 
 					VersionFileUpdater.MakeFileWriteable(VerFile);
@@ -520,28 +520,29 @@ namespace AutomationTool
 				}
 				else
 				{
-					LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
+					CommandUtils.LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
 				}
 				Result.Add(VerFile);
 			}
 
-            string EngineVersionFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Launch", "Resources", "Version.h");
+            string EngineVersionFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Launch", "Resources", "Version.h");
             {
                 string VerFile = EngineVersionFile;
 				if (bDoUpdateVersionFiles)
 				{
-					LogLog("Updating {0} with:", VerFile);
-					LogLog(" #define	BRANCH_NAME  {0}", Branch);
-					LogLog(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
+					CommandUtils.LogLog("Updating {0} with:", VerFile);
+					CommandUtils.LogLog(" #define	BRANCH_NAME  {0}", Branch);
+					CommandUtils.LogLog(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
 					if(CompatibleChangelistNumber > 0)
 					{
-						LogLog(" #define	ENGINE_COMPATIBLE_CL_VERSION  {0}", CompatibleChangelistNumber);
+						CommandUtils.LogLog(" #define	ENGINE_COMPATIBLE_CL_VERSION  {0}", CompatibleChangelistNumber);
 					}
 					if (Build != null)
 					{
-						LogLog(" #define	BUILD_VERSION  {0}", Build);
+						CommandUtils.LogLog(" #define	BUILD_VERSION  {0}", Build);
 					}
-					LogLog(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
+					CommandUtils.LogLog(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
+					CommandUtils.LogLog(" #define   ENGINE_IS_PROMOTED_BUILD  {0}", bIsPromotedBuild? "1" : "0");
 
 					VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
 					VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + Branch + "\"");
@@ -555,26 +556,27 @@ namespace AutomationTool
 						VersionH.ReplaceLine("#define ENGINE_COMPATIBLE_CL_VERSION", CompatibleChangelistNumber.ToString(), bIsLicenseeVersion? 0 : 1);
 					}
 					VersionH.ReplaceLine("#define ENGINE_IS_LICENSEE_VERSION ", bIsLicenseeVersion ? "1" : "0");
+					VersionH.ReplaceLine("#define ENGINE_IS_PROMOTED_BUILD ", bIsPromotedBuild? "1" : "0");
 
                     VersionH.Commit();
                 }
 				else
 				{
-					LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
+					CommandUtils.LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
 				}
                 Result.Add(VerFile);
             }
 
             {
                 // Use Version.h data to update MetaData.cs so the assemblies match the engine version.
-                string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Programs", "DotNETCommon", "MetaData.cs");
+                string VerFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source", "Programs", "DotNETCommon", "MetaData.cs");
 
 				if (bDoUpdateVersionFiles)
                 {
                     // Get the MAJOR/MINOR/PATCH from the Engine Version file, as it is authoritative. The rest we get from the P4Env.
                     string NewInformationalVersion = FEngineVersionSupport.FromVersionFile(EngineVersionFile, ChangelistNumber).ToString();
 
-                    LogLog("Updating {0} with AssemblyInformationalVersion: {1}", VerFile, NewInformationalVersion);
+                    CommandUtils.LogLog("Updating {0} with AssemblyInformationalVersion: {1}", VerFile, NewInformationalVersion);
 
                     VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
                     VersionH.SetAssemblyInformationalVersion(NewInformationalVersion);
@@ -582,7 +584,7 @@ namespace AutomationTool
                 }
                 else
                 {
-                    LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
+                    CommandUtils.LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
                 }
                 Result.Add(VerFile);
             }
@@ -608,15 +610,15 @@ namespace AutomationTool
 				}
 				else
 				{
-					LogError("{0} doesn't look like a valid encryption key file or value.", KeyFilename);
+					CommandUtils.LogError("{0} doesn't look like a valid encryption key file or value.", KeyFilename);
 				}
 			}
 
-			string VerFile = CmdEnv.LocalRoot + @"/Engine/Source/Runtime/PakFile/Private/PublicKey.inl";
+			string VerFile = CommandUtils.CmdEnv.LocalRoot + @"/Engine/Source/Runtime/PakFile/Private/PublicKey.inl";
 
-			LogVerbose("Updating {0} with:", VerFile);
-			LogVerbose(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);
-			LogVerbose(" #define DECRYPTION_KEY_MODULUS {0}", Modulus);
+			CommandUtils.LogVerbose("Updating {0} with:", VerFile);
+			CommandUtils.LogVerbose(" #define DECRYPTION_KEY_EXPONENT {0}", PublicKeyExponent);
+			CommandUtils.LogVerbose(" #define DECRYPTION_KEY_MODULUS {0}", Modulus);
 
 			VersionFileUpdater PublicKeyInl = new VersionFileUpdater(VerFile);
 			PublicKeyInl.ReplaceLine("#define DECRYPTION_KEY_EXPONENT ", PublicKeyExponent);
@@ -638,7 +640,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				Values = ReadAllLines(KeyFilenameOrValues);
+				Values = CommandUtils.ReadAllLines(KeyFilenameOrValues);
 			}
 			return Values;
 		}
@@ -767,8 +769,8 @@ namespace AutomationTool
 		public List<string> FindXGEFiles()
 		{
 			var Result = new List<string>();
-			var Root = CombinePaths(CmdEnv.LocalRoot, @"\Engine\Intermediate\Build");			
-			Result.AddRange(FindFiles_NoExceptions("*.xge.xml", false, Root));
+			var Root = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"\Engine\Intermediate\Build");			
+			Result.AddRange(CommandUtils.FindFiles_NoExceptions("*.xge.xml", false, Root));
 			Result.Sort();
 			return Result;
 		}
@@ -783,7 +785,7 @@ namespace AutomationTool
 					try
 					{
 						string FullPath = Path.Combine(PathDir, "xgConsole" + Platform.GetExeExtension(UnrealBuildTool.BuildHostPlatform.Current.Platform));
-						if (FileExists(FullPath))
+						if (CommandUtils.FileExists(FullPath))
 						{
 							XGEConsoleExePath = FullPath;
 							break;
@@ -806,11 +808,11 @@ namespace AutomationTool
 			{
 				if (DeleteBuildProducts)
 				{
-					throw new AutomationException("Unable to find xge xmls: " + CombinePaths(CmdEnv.LogFolder, "*.xge.xml"));
+					throw new AutomationException("Unable to find xge xmls: " + CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "*.xge.xml"));
 				}
 				else
 				{
-					LogVerbose("Incremental build, apparently everything was up to date, no XGE jobs produced.");
+					CommandUtils.LogVerbose("Incremental build, apparently everything was up to date, no XGE jobs produced.");
 				}
 			}
 			else
@@ -848,7 +850,7 @@ namespace AutomationTool
 				{
 					XGETaskDocument.Save(OutputFileStream);
 				}
-				if (!FileExists(TaskFilePath))
+				if (!CommandUtils.FileExists(TaskFilePath))
 				{
 					throw new AutomationException("Unable to find xge xml: " + TaskFilePath);
 				}
@@ -857,7 +859,7 @@ namespace AutomationTool
 
 				if(XGETool == null)
 				{
-					PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
+					CommandUtils.PushDir(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"\Engine\Source"));
 					try
 					{
 						int ExitCode = ParallelExecutor.Execute(TaskFilePath, OwnerCommand.ParseParam("StopOnErrors"));
@@ -868,7 +870,7 @@ namespace AutomationTool
 					}
 					finally
 					{
-						PopDir();
+						CommandUtils.PopDir();
 					}
 				}
 				else
@@ -883,16 +885,16 @@ namespace AutomationTool
 							{
 								while (true)
 								{
-									LogVerbose("Running {0} *******", XGETool);
-									PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
+									CommandUtils.LogVerbose("Running {0} *******", XGETool);
+									CommandUtils.PushDir(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"\Engine\Source"));
 									int SuccesCode;
-									string LogFile = GetRunAndLogOnlyName(CmdEnv, XGETool);
-									string Output = RunAndLog(XGETool, Args, out SuccesCode, LogFile);
+									string LogFile = CommandUtils.GetRunAndLogOnlyName(CommandUtils.CmdEnv, XGETool);
+									string Output = CommandUtils.RunAndLog(XGETool, Args, out SuccesCode, LogFile);
 									bool bOutputContainsProject = Output.Contains("------Project:");
-									PopDir();
+									CommandUtils.PopDir();
 									if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !bOutputContainsProject && XGETool != null)
 									{
-										LogWarning(String.Format("{0} failure on the local connection timeout", XGETool));
+										CommandUtils.LogWarning(String.Format("{0} failure on the local connection timeout", XGETool));
 										if (ConnectionRetries < 2)
 										{
 											System.Threading.Thread.Sleep(60000);
@@ -905,7 +907,7 @@ namespace AutomationTool
 										throw new AutomationException("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
 																		XGETool, Args, Path.GetFileName(LogFile), SuccesCode);
 									}
-									LogVerbose("{0} {1} Done *******", XGETool, Args);
+									CommandUtils.LogVerbose("{0} {1} Done *******", XGETool, Args);
 									break;
 								}
 								break;
@@ -916,7 +918,7 @@ namespace AutomationTool
 								{
 									throw;
 								}
-								LogWarning("{0} failed on try {1}, deleting products to force a rebuild: {2}", XGETool, i + 1, Ex.ToString());
+								CommandUtils.LogWarning("{0} failed on try {1}, deleting products to force a rebuild: {2}", XGETool, i + 1, Ex.ToString());
 								foreach (var Item in Actions)
 								{
 									XGEDeleteBuildProducts(Item.Manifest);
@@ -958,13 +960,13 @@ namespace AutomationTool
 				var CurrentDependencies = new List<string>();
 				foreach (var XGEFile in Item.XgeXmlFiles)
 				{
-					if (!FileExists_NoExceptions(XGEFile))
+					if (!CommandUtils.FileExists_NoExceptions(XGEFile))
 					{
 						throw new AutomationException("BUILD FAILED: Couldn't find file: {0}", XGEFile);
 					}
 					var TargetFile = TaskFilePath + "." + Path.GetFileName(XGEFile);
-					CopyFile(XGEFile, TargetFile);
-					CopyFile_NoExceptions(XGEFile, TaskFilePath);
+					CommandUtils.CopyFile(XGEFile, TargetFile);
+					CommandUtils.CopyFile_NoExceptions(XGEFile, TaskFilePath);
 
 					XmlReaderSettings XmlSettings = new XmlReaderSettings();
 					XmlSettings.DtdProcessing = DtdProcessing.Ignore;
@@ -976,7 +978,7 @@ namespace AutomationTool
 						UBTTask.Load(Reader);
 					}
 
-					DeleteFile(XGEFile);
+					CommandUtils.DeleteFile(XGEFile);
 
 					var All = new List<string>();
 					{
@@ -1071,7 +1073,7 @@ namespace AutomationTool
 											if (PCHFileName.Contains(@"\SharedPCHs\") && PCHFileName.Contains(@"\UE4Editor\"))
 											{
 												Key = "SharedEditorPCH$ " + PCHFileName;
-												LogLog("Hack: detected Shared PCH, which will use a different key {0}", Key);
+												CommandUtils.LogLog("Hack: detected Shared PCH, which will use a different key {0}", Key);
 											}
 										}
 									}
@@ -1132,10 +1134,10 @@ namespace AutomationTool
 										int EndIndex = Parms.IndexOf("\"");
 										if (EndIndex > 0)
 										{
-											string ResLocation = CombinePaths(Parms.Substring(0, EndIndex));
-											if (!DirectoryExists_NoExceptions(GetDirectoryName(ResLocation)))
+											string ResLocation = CommandUtils.CombinePaths(Parms.Substring(0, EndIndex));
+											if (!CommandUtils.DirectoryExists_NoExceptions(CommandUtils.GetDirectoryName(ResLocation)))
 											{
-												CreateDirectory(GetDirectoryName(ResLocation));
+												CommandUtils.CreateDirectory(CommandUtils.GetDirectoryName(ResLocation));
 											}
 										}
 									}
@@ -1238,7 +1240,7 @@ namespace AutomationTool
 		{
 			foreach (var XGEFile in FindXGEFiles())
 			{
-				DeleteFile(XGEFile);
+				CommandUtils.DeleteFile(XGEFile);
 			}
 		}
 
@@ -1257,10 +1259,10 @@ namespace AutomationTool
 			string AdditionalArguments = "";
 			foreach (var Target in Agenda.Targets)
 			{
-				RunUBT(CmdEnv, UBTExecutable, Target.UprojectPath, Target.TargetName, Target.Platform.ToString(), Target.Config.ToString(), "-generateexternalfilelist" + AdditionalArguments + " " + Target.UBTArgs);
+				CommandUtils.RunUBT(CommandUtils.CmdEnv, UBTExecutable, Target.UprojectPath, Target.TargetName, Target.Platform.ToString(), Target.Config.ToString(), "-generateexternalfilelist" + AdditionalArguments + " " + Target.UBTArgs);
 				AdditionalArguments = " -mergeexternalfilelist";
 			}
-			return CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"/Engine/Intermediate/Build/ExternalFiles.xml");
+			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"/Engine/Intermediate/Build/ExternalFiles.xml");
 		}
 
 		public string[] GetExternalFileList(BuildAgenda Agenda)
@@ -1269,7 +1271,7 @@ namespace AutomationTool
 			return UnrealBuildTool.Utils.ReadClass<UnrealBuildTool.ExternalFileList>(FileListPath).FileNames.ToArray();
 		}
 
-		private new bool ParseParam(string Name)
+		private bool ParseParam(string Name)
 		{
 			return OwnerCommand != null && OwnerCommand.ParseParam(Name);
 		}
@@ -1277,6 +1279,11 @@ namespace AutomationTool
 		private string ParseParamValue(string Name)
 		{
 			return (OwnerCommand != null)? OwnerCommand.ParseParamValue(Name) : null;
+		}
+
+		private int ParseParamInt(string Name, int Default = 0)
+		{
+			return (OwnerCommand != null)? OwnerCommand.ParseParamInt(Name, Default) : Default;
 		}
 
 		/// <summary>
@@ -1289,7 +1296,7 @@ namespace AutomationTool
 		/// <param name="InUseParallelExecutor">If true AND XGE not present or not being used then use ParallelExecutor</param>
 		public void Build(BuildAgenda Agenda, bool? InDeleteBuildProducts = null, bool InUpdateVersionFiles = true, bool InForceNoXGE = false, bool InUseParallelExecutor = false, bool InForceNonUnity = false, bool InForceUnity = false, bool InShowProgress = false, Dictionary<UnrealBuildTool.UnrealTargetPlatform, Dictionary<string, string>> PlatformEnvVars = null, int? InChangelistNumberOverride = null, Dictionary<BuildTarget, BuildManifest> InTargetToManifest = null)
 		{
-			if (!CmdEnv.HasCapabilityToCompile)
+			if (!CommandUtils.CmdEnv.HasCapabilityToCompile)
 			{
 				throw new AutomationException("You are attempting to compile on a machine that does not have a supported compiler!");
 			}
@@ -1320,65 +1327,65 @@ namespace AutomationTool
 
 			foreach (var File in Agenda.ExtraDotNetFiles)
 			{
-				PrepareBuildProductsForCSharpProj(Path.Combine(CmdEnv.LocalRoot, File));
+				PrepareBuildProductsForCSharpProj(Path.Combine(CommandUtils.CmdEnv.LocalRoot, File));
 			}
 
 			if (Agenda.SwarmProject != "")
 			{
-				string SwarmSolution = Path.Combine(CmdEnv.LocalRoot, Agenda.SwarmProject);
+				string SwarmSolution = Path.Combine(CommandUtils.CmdEnv.LocalRoot, Agenda.SwarmProject);
 				PrepareBuildProductsForCSharpProj(SwarmSolution);
 
-				BuildSolution(CmdEnv, SwarmSolution, "Development", "Mixed Platforms");
+				CommandUtils.BuildSolution(CommandUtils.CmdEnv, SwarmSolution, "Development", "Mixed Platforms");
 				AddSwarmBuildProducts();
 			}
 
 			foreach (var DotNetSolution in Agenda.DotNetSolutions)
 			{
-				string Solution = Path.Combine(CmdEnv.LocalRoot, DotNetSolution);
+				string Solution = Path.Combine(CommandUtils.CmdEnv.LocalRoot, DotNetSolution);
 
 				PrepareBuildProductsForCSharpProj(Solution);
 
-				BuildSolution(CmdEnv, Solution, "Development", "Any CPU");
+				CommandUtils.BuildSolution(CommandUtils.CmdEnv, Solution, "Development", "Any CPU");
 
 				AddBuildProductsForCSharpProj(Solution);
 			}
 
 			foreach (var DotNetProject in Agenda.DotNetProjects)
 			{
-				string CsProj = Path.Combine(CmdEnv.LocalRoot, DotNetProject);
+				string CsProj = Path.Combine(CommandUtils.CmdEnv.LocalRoot, DotNetProject);
 
 				PrepareBuildProductsForCSharpProj(CsProj);
 
-				BuildCSharpProject(CmdEnv, CsProj);
+				CommandUtils.BuildCSharpProject(CommandUtils.CmdEnv, CsProj);
 
 				AddBuildProductsForCSharpProj(CsProj);
 			}
 
 			foreach (var IOSDotNetProject in Agenda.IOSDotNetProjects)
 			{
-				string IOSCsProj = Path.Combine(CmdEnv.LocalRoot, IOSDotNetProject);
+				string IOSCsProj = Path.Combine(CommandUtils.CmdEnv.LocalRoot, IOSDotNetProject);
 
 				PrepareBuildProductsForCSharpProj(IOSCsProj);
 
-				BuildCSharpProject(CmdEnv, IOSCsProj);
+				CommandUtils.BuildCSharpProject(CommandUtils.CmdEnv, IOSCsProj);
 
 				AddIOSBuildProductsForCSharpProj(IOSCsProj);
 			}
 
 			foreach (var HTML5DotNetProject in Agenda.HTML5DotNetProjects)
 			{
-				string CsProj = Path.Combine(CmdEnv.LocalRoot, HTML5DotNetProject);
+				string CsProj = Path.Combine(CommandUtils.CmdEnv.LocalRoot, HTML5DotNetProject);
 
 				PrepareBuildProductsForCSharpProj(CsProj);
 
-				BuildCSharpProject(CmdEnv, CsProj);
+				CommandUtils.BuildCSharpProject(CommandUtils.CmdEnv, CsProj);
 
 				AddBuildProductsForCSharpProj(CsProj);
 			}
 
 			foreach (var File in Agenda.ExtraDotNetFiles)
 			{
-				AddBuildProductsForCSharpProj(Path.Combine(CmdEnv.LocalRoot, File));
+				AddBuildProductsForCSharpProj(Path.Combine(CommandUtils.CmdEnv.LocalRoot, File));
 			}
 
 			bool bForceMonolithic = ParseParam("ForceMonolithic");
@@ -1390,23 +1397,23 @@ namespace AutomationTool
 			string XGEConsole = XGEConsoleExe();
 			if (bCanUseXGE && string.IsNullOrEmpty(XGEConsole))
 			{
-				LogLog("XGE was requested, but is unavailable, so we won't use it.");
+				CommandUtils.LogLog("XGE was requested, but is unavailable, so we won't use it.");
 				bCanUseXGE = false;
 			}
 
 			// only run ParallelExecutor if not running XGE (and we've requested ParallelExecutor and it exists)
 			bool bCanUseParallelExecutor = !bCanUseXGE && InUseParallelExecutor && (HostPlatform.Current.HostEditorPlatform == UnrealTargetPlatform.Win64);
-			LogLog("************************* UE4Build:");
-			LogLog("************************* ForceMonolithic: {0}", bForceMonolithic);
-			LogLog("************************* ForceNonUnity:{0} ", bForceNonUnity);
-			LogLog("************************* ForceDebugInfo: {0}", bForceDebugInfo);
-			LogLog("************************* UseXGE: {0}", bCanUseXGE);
-			LogLog("************************* UseParallelExecutor: {0}", bCanUseParallelExecutor);
+			CommandUtils.LogLog("************************* UE4Build:");
+			CommandUtils.LogLog("************************* ForceMonolithic: {0}", bForceMonolithic);
+			CommandUtils.LogLog("************************* ForceNonUnity:{0} ", bForceNonUnity);
+			CommandUtils.LogLog("************************* ForceDebugInfo: {0}", bForceDebugInfo);
+			CommandUtils.LogLog("************************* UseXGE: {0}", bCanUseXGE);
+			CommandUtils.LogLog("************************* UseParallelExecutor: {0}", bCanUseParallelExecutor);
 
 			// process XGE files
 			if (bCanUseXGE || bCanUseParallelExecutor)
 			{
-				string TaskFilePath = CombinePaths(CmdEnv.LogFolder, @"UAT_XGE.xml");
+				string TaskFilePath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, @"UAT_XGE.xml");
 
 				if (DeleteBuildProducts)
 				{
@@ -1421,7 +1428,7 @@ namespace AutomationTool
 					{
 						// When building a target for Mac or iOS, use UBT's -flushmac option to clean up the remote builder
 						bool bForceFlushMac = DeleteBuildProducts && (Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac || Target.Platform == UnrealBuildTool.UnrealTargetPlatform.IOS);
-						LogSetProgress(InShowProgress, "Building header tool...");
+						CommandUtils.LogSetProgress(InShowProgress, "Building header tool...");
 						BuildManifest Manifest = BuildWithUBT(Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, !bCanUseXGE || !CanUseXGE(Target.Platform), Target.UBTArgs, bForceUnity);
 						if(InTargetToManifest != null)
 						{
@@ -1431,7 +1438,7 @@ namespace AutomationTool
 				}
 
 				List<XGEItem> XGEItems = new List<XGEItem>();
-				LogSetProgress(InShowProgress, "Generating headers...");
+				CommandUtils.LogSetProgress(InShowProgress, "Generating headers...");
 				foreach (var Target in Agenda.Targets)
 				{
 					if (Target.TargetName != "UnrealHeaderTool" && CanUseXGE(Target.Platform))
@@ -1463,7 +1470,7 @@ namespace AutomationTool
 						throw new AutomationException("BUILD FAILED: no tool present to process XGE files");
 					}
 
-					LogSetProgress(InShowProgress, "Building...");
+					CommandUtils.LogSetProgress(InShowProgress, "Building...");
 					if (!ProcessXGEItems(XGEItems, XGETool, Args, TaskFilePath, Agenda.DoRetries, Agenda.SpecialTestFlag, InShowProgress))
 					{
 						throw new AutomationException("BUILD FAILED: {0} failed, retries not enabled:", XGETool);
@@ -1512,23 +1519,23 @@ namespace AutomationTool
 		{
 			// Check build products
 			{
-				LogLog("Build products *******");
+				CommandUtils.LogLog("Build products *******");
 				if (BuildProductFiles.Count < 1)
 				{
-					Log("No build products were made");
+					CommandUtils.Log("No build products were made");
 				}
 				else
 				{
 					foreach (var Product in BuildProductFiles)
 					{
-						if (!FileExists(Product))
+						if (!CommandUtils.FileExists(Product))
 						{
 							throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", Product);
 						}
-						LogLog(Product);
+						CommandUtils.LogLog(Product);
 					}
 				}
-				LogLog("End Build products *******");
+				CommandUtils.LogLog("End Build products *******");
 			}
 		}
 
@@ -1539,32 +1546,32 @@ namespace AutomationTool
 		/// <param name="Files">List of files to check out</param>
 		public static void AddBuildProductsToChangelist(int WorkingCL, List<string> Files)
 		{
-			Log("Adding {0} build products to changelist {1}...", Files.Count, WorkingCL);
+			CommandUtils.Log("Adding {0} build products to changelist {1}...", Files.Count, WorkingCL);
 			foreach (var File in Files)
 			{
-				P4.Sync("-f -k " + CommandUtils.MakePathSafeToUseWithCommandLine(File) + "#head"); // sync the file without overwriting local one
-				if (!FileExists(File))
+				CommandUtils.P4.Sync("-f -k " + CommandUtils.MakePathSafeToUseWithCommandLine(File) + "#head"); // sync the file without overwriting local one
+				if (!CommandUtils.FileExists(File))
 				{
 					throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", File);
 				}
 
-				P4.ReconcileNoDeletes(WorkingCL, CommandUtils.MakePathSafeToUseWithCommandLine(File));
+				CommandUtils.P4.ReconcileNoDeletes(WorkingCL, CommandUtils.MakePathSafeToUseWithCommandLine(File));
 
 				// Change file type on binary files to be always writeable.
-				var FileStats = P4.FStat(File);
+				var FileStats = CommandUtils.P4.FStat(File);
 
-                if (IsProbablyAMacOrIOSExe(File))
+                if (CommandUtils.IsProbablyAMacOrIOSExe(File))
                 {
                     if (FileStats.Type == P4FileType.Binary && (FileStats.Attributes & (P4FileAttributes.Executable | P4FileAttributes.Writeable)) != (P4FileAttributes.Executable | P4FileAttributes.Writeable))
                     {
-                        P4.ChangeFileType(File, (P4FileAttributes.Executable | P4FileAttributes.Writeable));
+                        CommandUtils.P4.ChangeFileType(File, (P4FileAttributes.Executable | P4FileAttributes.Writeable));
                     }
                 }
                 else
                 {
 					if (IsBuildProduct(File, FileStats) && (FileStats.Attributes & P4FileAttributes.Writeable) != P4FileAttributes.Writeable)
                     {
-                        P4.ChangeFileType(File, P4FileAttributes.Writeable);
+                        CommandUtils.P4.ChangeFileType(File, P4FileAttributes.Writeable);
                     }
 
                 }                    
@@ -1594,7 +1601,7 @@ namespace AutomationTool
 		{
 			if (!GlobalCommandLine.Compile)
 			{
-				LogVerbose("We are being asked to copy the UBT build products, but we are running precompiled, so this does not make much sense.");
+				CommandUtils.LogVerbose("We are being asked to copy the UBT build products, but we are running precompiled, so this does not make much sense.");
 			}
 
 			var UBTLocation = Path.GetDirectoryName(GetUBTExecutable());
@@ -1606,8 +1613,8 @@ namespace AutomationTool
 
 			foreach (var UBTFile in UBTFiles)
 			{
-				var UBTProduct = CombinePaths(UBTLocation, UBTFile);
-				if (!FileExists_NoExceptions(UBTProduct))
+				var UBTProduct = CommandUtils.CombinePaths(UBTLocation, UBTFile);
+				if (!CommandUtils.FileExists_NoExceptions(UBTProduct))
 				{
 					throw new AutomationException("Cannot add UBT to the build products because {0} does not exist.", UBTProduct);
 				}
@@ -1620,7 +1627,7 @@ namespace AutomationTool
 		/// </summary>
 		public void AddUATLauncherFilesToBuildProducts()
 		{
-            var DotNetOutputLocation = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET");
+            var DotNetOutputLocation = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET");
 
 			var UATFiles = new List<string>(new string[] 
 					{
@@ -1630,8 +1637,8 @@ namespace AutomationTool
 
 			foreach (var UATFile in UATFiles)
 			{
-				var OutputFile = CombinePaths(DotNetOutputLocation, UATFile);
-				if (!FileExists_NoExceptions(OutputFile))
+				var OutputFile = CommandUtils.CombinePaths(DotNetOutputLocation, UATFile);
+				if (!CommandUtils.FileExists_NoExceptions(OutputFile))
 				{
 					throw new AutomationException("Cannot add UAT to the build products because {0} does not exist.", OutputFile);
 				}
@@ -1646,10 +1653,10 @@ namespace AutomationTool
 		{
 			// Find all DLLs (scripts and their dependencies)
 			const string ScriptsPostfix = ".dll";
-            var DotNetOutputLocation = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET");
-			var UATScriptsLocation = CombinePaths(DotNetOutputLocation, "AutomationScripts");
+            var DotNetOutputLocation = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET");
+			var UATScriptsLocation = CommandUtils.CombinePaths(DotNetOutputLocation, "AutomationScripts");
 			var UATScripts = Directory.GetFiles(UATScriptsLocation, "*" + ScriptsPostfix, SearchOption.AllDirectories);
-			if (IsNullOrEmpty(UATScripts))
+			if (CommandUtils.IsNullOrEmpty(UATScripts))
 			{
 				throw new AutomationException("No automation scripts found in {0}. Cannot add UAT files to the build products.", UATScriptsLocation);
 			}
@@ -1667,8 +1674,8 @@ namespace AutomationTool
 
 			foreach (var UATFile in UATFiles)
 			{
-				var OutputFile = CombinePaths(DotNetOutputLocation, UATFile);
-				if (!FileExists_NoExceptions(OutputFile))
+				var OutputFile = CommandUtils.CombinePaths(DotNetOutputLocation, UATFile);
+				if (!CommandUtils.FileExists_NoExceptions(OutputFile))
 				{
 					throw new AutomationException("Cannot add UAT to the build products because {0} does not exist.", OutputFile);
 				}
@@ -1678,7 +1685,7 @@ namespace AutomationTool
 			// All scripts are expected to exist in DotNET/AutomationScripts subfolder.
 			foreach (var UATScriptFilePath in UATScripts)
 			{
-				if (!FileExists_NoExceptions(UATScriptFilePath))
+				if (!CommandUtils.FileExists_NoExceptions(UATScriptFilePath))
 				{
 					throw new AutomationException("Cannot add UAT to the build products because {0} does not exist.", UATScriptFilePath);
 				}
@@ -1696,13 +1703,13 @@ namespace AutomationTool
 			}
 			else
 			{
-				return CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"/Engine/Intermediate/Build/Manifest.xml");
+				return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"/Engine/Intermediate/Build/Manifest.xml");
 			}
 		}
 
 		public static string GetUBTExecutable()
 		{
-			return CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/UnrealBuildTool.exe");
+			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/UnrealBuildTool.exe");
 		}
 
 		public string UBTExecutable

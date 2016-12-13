@@ -334,7 +334,7 @@ public partial class Project : CommandUtils
 		}
 		SC.StageFiles(StagedFileType.NonUFS, GetIntermediateCommandlineDir(SC), CommandLineFile, false, null, "", true, false);
 
-        ConfigCacheIni PlatformGameConfig = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.IniPlatformType, "Game", new DirectoryReference(CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName)));
+        ConfigHierarchy PlatformGameConfig = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirectoryReference.FromFile(Params.RawProjectPath), SC.StageTargetPlatform.IniPlatformType);
         var ProjectContentRoot = CombinePaths(SC.ProjectRoot, "Content");
         var StageContentRoot = CombinePaths(SC.RelativeProjectRootForStage, "Content");
         
@@ -554,7 +554,7 @@ public partial class Project : CommandUtils
 
             // CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
             // @todo Make CrashReportClient more portable so we don't have to do this
-            if (SC.bStageCrashReporter && UnrealBuildTool.UnrealBuildTool.PlatformSupportsCrashReporter(SC.StageTargetPlatform.PlatformType))
+            if (SC.bStageCrashReporter && PlatformSupportsCrashReporter(SC.StageTargetPlatform.PlatformType))
             {
                 //If the .dat file needs to be staged as NonUFS for non-Windows/Linux hosts we need to change the casing as we do with the build properties file above.
                 SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"));
@@ -570,7 +570,7 @@ public partial class Project : CommandUtils
                     var BuildPlatform = UEBuildPlatform.GetBuildPlatform(SC.StageTargetPlatform.PlatformType, true);
                     if (BuildPlatform != null)
                     {
-                        Architecture = BuildPlatform.CreateContext(Params.RawProjectPath).GetActiveArchitecture();
+                        Architecture = BuildPlatform.CreateContext(Params.RawProjectPath, null).GetActiveArchitecture();
                     }
                 }
 
@@ -599,7 +599,7 @@ public partial class Project : CommandUtils
 
 			// check if the game will be verifying ssl connections - if not, we can skip staging files that won't be needed
 			bool bStageSSLCertificates = false;
-			ConfigCacheIni PlatformEngineConfig = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.IniPlatformType, "Engine", new DirectoryReference(CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName)));
+			ConfigHierarchy PlatformEngineConfig = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(Params.RawProjectPath), SC.StageTargetPlatform.IniPlatformType);
 			if (PlatformEngineConfig != null)
 			{
 				PlatformEngineConfig.GetBool("/Script/Engine.NetworkSettings", "n.VerifyPeer", out bStageSSLCertificates);
@@ -1019,7 +1019,7 @@ public partial class Project : CommandUtils
             PatchSourceContentPath = SC.StageTargetPlatform.GetReleasePakFilePath(SC, Params, PakFilename);
         }
 
-		ConfigCacheIni PlatformGameConfig = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.IniPlatformType, "Game", new DirectoryReference(CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName)));
+		ConfigHierarchy PlatformGameConfig = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, DirectoryReference.FromFile(Params.RawProjectPath), SC.StageTargetPlatform.IniPlatformType);
 		bool PackageSettingsEncryptIniFiles = false;
 		PlatformGameConfig.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "bEncryptIniFiles", out PackageSettingsEncryptIniFiles);
 
@@ -1037,7 +1037,7 @@ public partial class Project : CommandUtils
 			{
 				String EngineDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
 				String ProjectDir = CommandUtils.GetDirectoryName(Params.RawProjectPath.FullName);
-				String Platform = ConfigCacheIni.GetIniPlatformName(SC.StageTargetPlatform.IniPlatformType);
+				String Platform = ConfigHierarchy.GetIniPlatformName(SC.StageTargetPlatform.IniPlatformType);
 				RunUnrealPak(UnrealPakResponseFile, OutputLocation, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed, Params.EncryptIniFiles || PackageSettingsEncryptIniFiles, Params.EncryptEverything, PatchSourceContentPath, EngineDir, ProjectDir, Platform);
 			}
 		}
@@ -1784,7 +1784,7 @@ public partial class Project : CommandUtils
                             var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ReceiptPlatform, true);
                             if (BuildPlatform != null)
                             {
-                                Architecture = BuildPlatform.CreateContext(Params.RawProjectPath).GetActiveArchitecture();
+                                Architecture = BuildPlatform.CreateContext(Params.RawProjectPath, null).GetActiveArchitecture();
                             }
                         }
 						string ReceiptFileName = TargetReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, Architecture);

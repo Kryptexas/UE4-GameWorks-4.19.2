@@ -186,6 +186,10 @@ public class Core : ModuleRules
 				PrivateIncludePaths.Add(PerfIncludeDirectory);
 				Definitions.Add("WITH_VS_PERF_PROFILER=1");
 			}
+			else
+			{
+				Definitions.Add("WITH_VS_PERF_PROFILER=0");
+			}
 		}
 
 

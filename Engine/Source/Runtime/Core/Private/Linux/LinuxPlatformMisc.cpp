@@ -774,7 +774,7 @@ void FLinuxPlatformMisc::LoadStartupModules()
 	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
 #endif // !IS_PROGRAM && !UE_SERVER
 
-#if WITH_STEAMCONTROLLER
+#if defined(WITH_STEAMCONTROLLER) && WITH_STEAMCONTROLLER
 	FModuleManager::Get().LoadModule(TEXT("SteamController"));
 #endif // WITH_STEAMCONTROLLER
 

@@ -6,6 +6,8 @@
 
 #include "OpenGL/SlateOpenGLRenderer.h"
 
+#define USE_709 0
+
 /**
  * Returns the current program log for a GLSL program                   
  */

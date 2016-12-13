@@ -21,7 +21,7 @@ typedef FIOSPlatformTypes FPlatformTypes;
 // Base defines, must define these for the platform, there are no defaults
 #define PLATFORM_DESKTOP				0
 
-#if __LP64__
+#ifdef __LP64__
 #define PLATFORM_64BITS					1
 #else
 #define PLATFORM_64BITS					0

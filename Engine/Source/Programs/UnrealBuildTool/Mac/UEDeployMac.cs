@@ -13,7 +13,7 @@ namespace UnrealBuildTool
 {
 	class UEDeployMac : UEBuildDeploy
 	{
-		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
+		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
 			Log.TraceInformation("Deploying now!");
 			return true;

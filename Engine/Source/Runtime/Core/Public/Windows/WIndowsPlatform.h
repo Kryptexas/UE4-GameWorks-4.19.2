@@ -61,7 +61,7 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #define PLATFORM_USES_MICROSOFT_LIBC_FUNCTIONS				1
 #define PLATFORM_SUPPORTS_TBB								1
 #define PLATFORM_SUPPORTS_NAMED_PIPES						1
-#if _MSC_VER < 1900
+#if defined(_MSC_VER) && _MSC_VER < 1900
 	#define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS		0
 #endif
 #define PLATFORM_COMPILER_HAS_TCHAR_WMAIN					1
@@ -157,3 +157,13 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #else
 	#define FUNCTION_CHECK_RETURN_START __declspec("SAL_checkReturn")	/* Warn that callers should not ignore the return value. */
 #endif
+
+// Other macros
+#ifndef ENABLE_WIN_ALLOC_TRACKING
+#define ENABLE_WIN_ALLOC_TRACKING 0
+#endif
+
+#ifndef USE_SECURE_CRT
+#define USE_SECURE_CRT 0
+#endif
+

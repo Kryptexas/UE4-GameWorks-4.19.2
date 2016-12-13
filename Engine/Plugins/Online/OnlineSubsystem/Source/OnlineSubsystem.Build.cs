@@ -17,6 +17,7 @@ public class OnlineSubsystem : ModuleRules
         PrivateIncludePaths.Add("OnlineSubsystem/Private");
 
         Definitions.Add("ONLINESUBSYSTEM_PACKAGE=1");
+		Definitions.Add("DEBUG_LAN_BEACON=0");
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] { 

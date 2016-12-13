@@ -15,7 +15,7 @@ namespace UnrealBuildTool
 	{
 
         // public virtual bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
-        public override bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
+        public bool PrepForUATPackageOrDeploy(FileReference ProjectFile, string ProjectName, string ProjectDirectory, string ExecutablePath, string EngineDirectory, bool bForDistribution, string CookFlavor, bool bIsDataDeploy)
         {
             string ApplicationIconPath = Path.Combine(ProjectDirectory, "Build/Windows/Application.ico");
             // Does a Project icon exist?
@@ -51,16 +51,13 @@ namespace UnrealBuildTool
 
 
 
-		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
+		public override bool PrepTargetForDeployment(UEBuildDeployTarget InTarget)
 		{
 			if ((InTarget.TargetType != TargetRules.TargetType.Editor && InTarget.TargetType != TargetRules.TargetType.Program) && (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64))
 			{
 				string InAppName = InTarget.AppName;
 				Log.TraceInformation("Prepping {0} for deployment to {1}", InAppName, InTarget.Platform.ToString());
 				System.DateTime PrepDeployStartTime = DateTime.UtcNow;
-
-				string TargetFilename = InTarget.RulesAssembly.GetTargetFileName(InAppName).FullName;
-				string ProjectSourceFolder = new FileInfo(TargetFilename).DirectoryName + "/";
 
                 PrepForUATPackageOrDeploy(InTarget.ProjectFile, InAppName, InTarget.ProjectDirectory.FullName, InTarget.OutputPath.FullName, BuildConfiguration.RelativeEnginePath, false, "", false);
 			}

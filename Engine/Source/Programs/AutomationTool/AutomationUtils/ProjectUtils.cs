@@ -72,12 +72,12 @@ namespace AutomationTool
 		/// <summary>
 		/// List of all Engine ini files for this project
 		/// </summary>
-		public Dictionary<UnrealTargetPlatform, ConfigCacheIni> EngineConfigs = new Dictionary<UnrealTargetPlatform,ConfigCacheIni>();
+		public Dictionary<UnrealTargetPlatform, ConfigHierarchy> EngineConfigs = new Dictionary<UnrealTargetPlatform,ConfigHierarchy>();
 
 		/// <summary>
 		/// List of all Game ini files for this project
 		/// </summary>
-		public Dictionary<UnrealTargetPlatform, ConfigCacheIni> GameConfigs = new Dictionary<UnrealTargetPlatform, ConfigCacheIni>();
+		public Dictionary<UnrealTargetPlatform, ConfigHierarchy> GameConfigs = new Dictionary<UnrealTargetPlatform, ConfigHierarchy>();
 
 		/// <summary>
 		/// List of all programs detected for this project.
@@ -340,12 +340,11 @@ namespace AutomationTool
 			{
 				CommandUtils.LogVerbose("Loading ini files for {0}", RawProjectPath);
 
-				var EngineDirectory = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
 				foreach (UnrealTargetPlatform TargetPlatformType in Enum.GetValues(typeof(UnrealTargetPlatform)))
 				{
 					if (TargetPlatformType != UnrealTargetPlatform.Unknown)
 					{
-						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Engine", RawProjectPath.Directory, new DirectoryReference(EngineDirectory));
+						var Config = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, RawProjectPath.Directory, TargetPlatformType);
 						Properties.EngineConfigs.Add(TargetPlatformType, Config);
 					}
 				}
@@ -354,7 +353,7 @@ namespace AutomationTool
 				{
 					if (TargetPlatformType != UnrealTargetPlatform.Unknown)
 					{
-						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Game", RawProjectPath.Directory);
+						var Config = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, RawProjectPath.Directory, TargetPlatformType);
 						Properties.GameConfigs.Add(TargetPlatformType, Config);
 					}
 				}

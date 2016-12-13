@@ -14,12 +14,14 @@
 #if PLATFORM_WINDOWS
 #include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
+THIRD_PARTY_INCLUDES_START
 	#include "Windows/PreWindowsApi.h"
 	#include <objbase.h>
 	#include <assert.h>
 	#include <stdio.h>
 	#include "Windows/PostWindowsApi.h"
 	#include "Windows/MinWindows.h"
+THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformTypes.h"
 #endif
 

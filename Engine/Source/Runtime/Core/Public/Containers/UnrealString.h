@@ -158,7 +158,7 @@ public:
 		}
 	}
 
-#if __OBJC__
+#ifdef __OBJC__
 	/** Convert Objective-C NSString* to FString */
 	FORCEINLINE FString(const NSString* In)
 	{
@@ -353,7 +353,7 @@ public:
 		return Data;
 	}
 
-#if __OBJC__
+#ifdef __OBJC__
 	/** Convert FString to Objective-C NSString */
 	FORCEINLINE NSString* GetNSString() const
 	{

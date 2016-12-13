@@ -63,7 +63,22 @@ public partial class Project : CommandUtils
         return ScriptPluginArgs;
     }
 
-    public static void Build(BuildCommand Command, ProjectParams Params, int WorkingCL = -1, ProjectBuildTargets TargetMask = ProjectBuildTargets.All)
+	/// <summary>
+	/// PlatformSupportsCrashReporter
+	/// </summary>
+	/// <param name="InPlatform">The platform of interest</param>
+	/// <returns>True if the given platform supports a crash reporter client (i.e. it can be built for it)</returns>
+	static public bool PlatformSupportsCrashReporter(UnrealTargetPlatform InPlatform)
+	{
+		return (
+			(InPlatform == UnrealTargetPlatform.Win64) ||
+			(InPlatform == UnrealTargetPlatform.Win32) ||
+			(InPlatform == UnrealTargetPlatform.Linux) ||
+			(InPlatform == UnrealTargetPlatform.Mac)
+			);
+	}
+
+	public static void Build(BuildCommand Command, ProjectParams Params, int WorkingCL = -1, ProjectBuildTargets TargetMask = ProjectBuildTargets.All)
 	{
 		Params.ValidateAndLog();
 
@@ -149,7 +164,7 @@ public partial class Project : CommandUtils
 		{
 			foreach (var CrashReportPlatform in CrashReportPlatforms)
 			{
-				if (UnrealBuildTool.UnrealBuildTool.PlatformSupportsCrashReporter(CrashReportPlatform))
+				if (PlatformSupportsCrashReporter(CrashReportPlatform))
 				{
 					Agenda.AddTarget("CrashReportClient", CrashReportPlatform, UnrealTargetConfiguration.Shipping, InAddArgs: " -remoteini=\"" + Params.RawProjectPath.Directory.FullName + "\"");
 				}

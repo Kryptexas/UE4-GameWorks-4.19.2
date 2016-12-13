@@ -19,9 +19,11 @@
 
 #include "AllowWindowsPlatformTypes.h"
 #include "AllowWindowsPlatformAtomics.h"
+THIRD_PARTY_INCLUDES_START
 	#include <xapobase.h>
 	#include <xapofx.h>
 	#include <xaudio2fx.h>
+THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 

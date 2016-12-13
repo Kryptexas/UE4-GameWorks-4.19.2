@@ -399,12 +399,12 @@ void LoadVorbisLibraries()
 		FString RootVorbisPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/Vorbis/") / PlatformString / VSVersion;
 
 		FString DLLToLoad = RootOggPath + TEXT("libogg") + DLLNameStub;
-		verifyf(LoadLibraryW(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
+		verifyf(FPlatformProcess::GetDllHandle(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
 		// Load the Vorbis dlls
 		DLLToLoad = RootVorbisPath + TEXT("libvorbis") + DLLNameStub;
-		verifyf(LoadLibraryW(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
+		verifyf(FPlatformProcess::GetDllHandle(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
 		DLLToLoad = RootVorbisPath + TEXT("libvorbisfile") + DLLNameStub;
-		verifyf(LoadLibraryW(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
+		verifyf(FPlatformProcess::GetDllHandle(*DLLToLoad), TEXT("Failed to load DLL %s"), *DLLToLoad);
 #endif	//PLATFORM_WINDOWS
 	}
 }

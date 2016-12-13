@@ -13,6 +13,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
 #include "PhysXPublic.h"
 
+#define USE_MATERIAL_MAP 0
+
 #if WITH_APEX
 
 // Utilities

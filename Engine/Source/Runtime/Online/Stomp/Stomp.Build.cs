@@ -37,5 +37,9 @@ public class Stomp : ModuleRules
 				}
 			);
 		}
+		else
+		{
+			Definitions.Add("WITH_STOMP=0");
+		}
 	}
 }

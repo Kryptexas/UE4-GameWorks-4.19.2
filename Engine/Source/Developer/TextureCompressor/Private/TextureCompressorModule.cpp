@@ -1864,9 +1864,9 @@ public:
 	{
 #if PLATFORM_WINDOWS
 	#if PLATFORM_64BITS
-		nvTextureToolsHandle = LoadLibraryW(TEXT("../../../Engine/Binaries/ThirdParty/nvTextureTools/Win64/nvtt_64.dll"));
+		nvTextureToolsHandle = FPlatformProcess::GetDllHandle(TEXT("../../../Engine/Binaries/ThirdParty/nvTextureTools/Win64/nvtt_64.dll"));
 	#else	//32-bit platform
-		nvTextureToolsHandle = LoadLibraryW(TEXT("../../../Engine/Binaries/ThirdParty/nvTextureTools/Win32/nvtt_.dll"));
+		nvTextureToolsHandle = FPlatformProcess::GetDllHandle(TEXT("../../../Engine/Binaries/ThirdParty/nvTextureTools/Win32/nvtt_.dll"));
 	#endif
 #endif	//PLATFORM_WINDOWS
 	}
@@ -1874,7 +1874,7 @@ public:
 	void ShutdownModule()
 	{
 #if PLATFORM_WINDOWS
-		FreeLibrary(nvTextureToolsHandle);
+		FPlatformProcess::FreeDllHandle(nvTextureToolsHandle);
 		nvTextureToolsHandle = 0;
 #endif
 	}
@@ -1882,7 +1882,7 @@ public:
 private:
 #if PLATFORM_WINDOWS
 	// Handle to the nvtt dll
-	HMODULE nvTextureToolsHandle;
+	void* nvTextureToolsHandle;
 #endif	//PLATFORM_WINDOWS
 
 	bool BuildTextureMips(

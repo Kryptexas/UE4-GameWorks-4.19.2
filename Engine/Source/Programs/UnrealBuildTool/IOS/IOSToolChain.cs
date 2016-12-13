@@ -172,9 +172,14 @@ namespace UnrealBuildTool
 
 			Result += " -Wall -Werror";
 
-			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
+			if (CompileEnvironment.Config.bEnableShadowVariableWarnings)
 			{
 				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors ? "" : " -Wno-error=shadow");
+			}
+
+			if (CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings)
+			{
+				Result += " -Wundef" + (BuildConfiguration.bUndefinedIdentifierErrors ? "" : " -Wno-error=undef");
 			}
 
 			Result += " -Wno-unused-variable";
@@ -1225,13 +1230,13 @@ namespace UnrealBuildTool
 					if (Directory.Exists(Project))
 					{
                         // ensure the plist, entitlements, and provision files are properly copied
-                        var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(new FileReference(Project), PlatformContext) : new UEDeployTVOS(new FileReference(Project), PlatformContext));
-                        DeployHandler.PrepTargetForDeployment(Target);
+                        var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+                        DeployHandler.PrepTargetForDeployment(new UEBuildDeployTarget(Target));
 
 						var ConfigName = Target.Configuration.ToString();
-						if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+						if (Target.Rules.Type != TargetRules.TargetType.Game && Target.Rules.Type != TargetRules.TargetType.Program)
 						{
-							ConfigName += " " + Target.Rules.ConfigurationName;
+							ConfigName += " " + Target.Rules.Type.ToString();
 						}
 
 						// code sign the project
@@ -1361,8 +1366,8 @@ namespace UnrealBuildTool
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
                     // ensure the plist, entitlements, and provision files are properly copied
-                    var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(Target.ProjectFile, PlatformContext) : new UEDeployTVOS(Target.ProjectFile, PlatformContext));
-                    DeployHandler.PrepTargetForDeployment(Target);
+                    var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+                    DeployHandler.PrepTargetForDeployment(new UEBuildDeployTarget(Target));
 
 					if (!bUseDangerouslyFastMode)
 					{
@@ -1414,9 +1419,9 @@ namespace UnrealBuildTool
 					}
 
 					var SchemeConfiguration = Target.Configuration.ToString();
-					if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+					if (Target.Rules.Type != TargetRules.TargetType.Game && Target.Rules.Type != TargetRules.TargetType.Program)
 					{
-						SchemeConfiguration += " " + Target.Rules.ConfigurationName;
+						SchemeConfiguration += " " + Target.Rules.Type.ToString();
 					}
 
 					if (bUseDangerouslyFastMode)

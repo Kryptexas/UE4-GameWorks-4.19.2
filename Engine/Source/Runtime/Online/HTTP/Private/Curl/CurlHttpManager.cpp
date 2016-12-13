@@ -10,6 +10,7 @@
 #include "Misc/LocalTimestampDirectoryVisitor.h"
 #include "Curl/CurlHttpThread.h"
 #include "Curl/CurlHttp.h"
+#include "Modules/ModuleManager.h"
 
 #if WITH_LIBCURL
 

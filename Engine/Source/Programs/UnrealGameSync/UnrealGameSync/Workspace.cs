@@ -52,6 +52,7 @@ namespace UnrealGameSync
 		public List<ConfigObject> UserBuildStepObjects;
 		public HashSet<Guid> CustomBuildSteps;
 		public Dictionary<string, string> Variables;
+		public PerforceSyncOptions PerforceSyncOptions;
 
 		public WorkspaceUpdateContext(int InChangeNumber, WorkspaceUpdateOptions InOptions, string[] InSyncFilter, Dictionary<Guid, ConfigObject> InDefaultBuildSteps, List<ConfigObject> InUserBuildSteps, HashSet<Guid> InCustomBuildSteps, Dictionary<string, string> InVariables)
 		{
@@ -276,7 +277,7 @@ namespace UnrealGameSync
 					// Sync them all
 					List<string> TamperedFiles = new List<string>();
 					HashSet<string> RemainingFiles = new HashSet<string>(SyncFiles, StringComparer.InvariantCultureIgnoreCase);
-					if(!Perforce.Sync(SyncFiles, PendingChangeNumber, Record => UpdateSyncProgress(Record, RemainingFiles, SyncFiles.Count), TamperedFiles, Log))
+					if(!Perforce.Sync(SyncFiles, PendingChangeNumber, Record => UpdateSyncProgress(Record, RemainingFiles, SyncFiles.Count), TamperedFiles, Context.PerforceSyncOptions, Log))
 					{
 						StatusMessage = "Aborted sync due to errors.";
 						return WorkspaceUpdateResult.FailedToSync;
@@ -357,6 +358,7 @@ namespace UnrealGameSync
 							Dictionary<string, string> BuildVersionStrings = new Dictionary<string,string>();
 							BuildVersionStrings["\"Changelist\":"] = String.Format(" {0},", VersionChangeNumber);
 							BuildVersionStrings["\"BranchName\":"] = String.Format(" \"{0}\"", BranchOrStreamName.Replace('/', '+'));
+							BuildVersionStrings["\"IsPromotedBuild\":"] = " 0,";
 							if(!UpdateVersionFile(ClientRootPath + BuildVersionFileName, BuildVersionStrings, PendingChangeNumber))
 							{
 								StatusMessage = String.Format("Failed to update {0}.", BuildVersionFileName);

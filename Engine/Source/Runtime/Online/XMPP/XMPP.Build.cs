@@ -30,6 +30,11 @@ public class XMPP : ModuleRules
 			Target.Platform == UnrealTargetPlatform.PS4 )
 		{
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "WebRTC");
+			Definitions.Add("WITH_XMPP_JINGLE=1");
+		}
+		else
+		{
+			Definitions.Add("WITH_XMPP_JINGLE=0");
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Win64 ||

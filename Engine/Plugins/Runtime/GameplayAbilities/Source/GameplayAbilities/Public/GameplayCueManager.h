@@ -16,6 +16,8 @@
 #include "GameplayCueTranslator.h"
 #include "GameplayCueManager.generated.h"
 
+#define GAMEPLAYCUE_DEBUG 0
+
 class AGameplayCueNotify_Actor;
 class UAbilitySystemComponent;
 class UObjectLibrary;

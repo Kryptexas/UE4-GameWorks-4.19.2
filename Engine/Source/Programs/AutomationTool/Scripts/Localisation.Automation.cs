@@ -222,7 +222,7 @@ class Localise : BuildCommand
 			LocalizationProvider.LocalizationProviderArgs LocProviderArgs;
 			LocProviderArgs.RootWorkingDirectory = RootWorkingDirectory;
 			LocProviderArgs.RemoteFilenamePrefix = LocalizationBatch.RemoteFilenamePrefix;
-			LocProviderArgs.CommandUtils = this;
+			LocProviderArgs.Command = this;
 			LocProviderArgs.PendingChangeList = PendingChangeList;
 			LocProvider = LocalizationProvider.GetLocalizationProvider(LocalizationProviderName, LocProviderArgs);
 		}
@@ -373,7 +373,8 @@ class Localise : BuildCommand
 	{
 		var ProjectImportExportInfo = new ProjectImportExportInfo();
 
-		var LocalizationConfig = new ConfigCacheIni(new FileReference(LocalizationConfigFile));
+		ConfigFile File = new ConfigFile(new FileReference(LocalizationConfigFile), ConfigLineAction.Add);
+		var LocalizationConfig = new ConfigHierarchy(new ConfigFile[] { File });
 
 		if (!LocalizationConfig.GetString("CommonSettings", "DestinationPath", out ProjectImportExportInfo.DestinationPath))
 		{

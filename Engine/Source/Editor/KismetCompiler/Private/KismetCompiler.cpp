@@ -55,6 +55,8 @@
 
 static bool bDebugPropertyPropagation = false;
 
+#define USE_TRANSIENT_SKELETON 0
+
 #define LOCTEXT_NAMESPACE "KismetCompiler"
 
 //////////////////////////////////////////////////////////////////////////

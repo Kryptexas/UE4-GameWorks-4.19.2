@@ -7,11 +7,11 @@
 #endif
 
 THIRD_PARTY_INCLUDES_START
-	#include <Alembic/AbcCoreHDF5/All.h>
-	#include <Alembic/AbcCoreOgawa/All.h>
-	#include <Alembic/AbcCoreFactory/All.h>
-	#include <Alembic/AbcCoreAbstract/TimeSampling.h>
-	#include <Alembic/AbcCoreHDF5/All.h>
+#include <Alembic/AbcCoreHDF5/All.h>
+#include <Alembic/AbcCoreOgawa/All.h>
+#include <Alembic/AbcCoreFactory/All.h>
+#include <Alembic/AbcCoreAbstract/TimeSampling.h>
+#include <Alembic/AbcCoreHDF5/All.h>
 THIRD_PARTY_INCLUDES_END
 
 #include "AbcImportData.h"
@@ -55,6 +55,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogAbcImporter, Verbose, All);
 #define OBJECT_TYPE_SWITCH(a, b, c) if (AbcImporterUtilities::IsType<a>(ObjectMetaData)) { \
 	a TypedObject = a(b, Alembic::Abc::kWrapExisting); \
 	ParseAbcObject<a>(TypedObject, c); bHandled = true; }
+
+#define PRINT_UNIQUE_VERTICES 0
 
 // Static variable to define the first sample index (sample zero for now)
 const int32 FAbcImporter::FirstSampleIndex = 0;
