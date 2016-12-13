@@ -8,8 +8,8 @@
 /**
  * SteamVR Extensions Function Library
  */
-UCLASS(MinimalAPI, meta = (BlueprintSpawnableComponent), ClassGroup = SteamVR)
-class USteamVRChaperoneComponent : public UActorComponent
+UCLASS(meta = (BlueprintSpawnableComponent), ClassGroup = SteamVR)
+class STEAMVR_API USteamVRChaperoneComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 

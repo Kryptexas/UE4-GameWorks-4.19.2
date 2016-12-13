@@ -209,6 +209,7 @@ class FGameFrame : public FHMDGameFrame
 {
 public:
 	ovrTrackingState	InitialTrackingState;		// tracking state at start of frame
+	ovrTrackingState	RenderThreadTrackingState;	// tracking state on renderthread
 	ovrPosef			CurHeadPose;				// current head pose
 	ovrPosef			CurEyeRenderPose[2];		// current eye render poses
 	ovrPosef			HeadPose;					// position of head actually used

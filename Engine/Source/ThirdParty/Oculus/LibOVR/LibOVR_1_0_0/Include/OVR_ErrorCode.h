@@ -68,6 +68,8 @@ typedef enum ovrSuccessTypes_
     /// calling SubmitFrame, but not do any rendering. When the result becomes
     /// ovrSuccess, rendering should continue as usual.
     ovrSuccess_NotVisible                 = 1000,
+    ovrSuccess_BoundaryInvalid            = 1001,  ///< Boundary is invalid due to sensor change or was not setup.
+    ovrSuccess_DeviceUnavailable          = 1002,  ///< Device is not available for the requested operation.
 
 } ovrSuccessTypes;
 
@@ -119,6 +121,7 @@ typedef enum ovrErrorType_
     ovrError_LibSignCheck               = -3021,   ///< LibOVRRT signature check failure.
     ovrError_LibPath                    = -3022,   ///< LibOVRRT path failure.
     ovrError_LibSymbols                 = -3023,   ///< LibOVRRT symbol resolution failure.
+    ovrError_RemoteSession              = -3024,   ///< Failed to connect to the service because remote connections to the service are not allowed.
 
     /* Rendering errors */
     ovrError_DisplayLost                = -6000,   ///< In the event of a system-wide graphics reset or cable unplug this is returned to the app.
@@ -140,7 +143,6 @@ typedef enum ovrErrorType_
     ovrError_MisformattedBlock          = -9002,   ///< Result of a bad calibration block due to lengths
 
     /* Other errors */
-    ovrError_BoundaryInvalid            = -10000,  ///< Boundary is invalid or was not setup.
 
 
 } ovrErrorType;

@@ -208,10 +208,10 @@ public:
 	FQuat					BaseOrientation;	// base orientation
 
 	/** Viewports for each eye, in render target texture coordinates */
-	FIntRect				EyeRenderViewport[2];
+	FIntRect				EyeRenderViewport[3];
 
 	/** Maximum adaptive resolution viewports for each eye, in render target texture coordinates */
-	FIntRect				EyeMaxRenderViewport[2];
+	FIntRect				EyeMaxRenderViewport[3];
 
 	/** Deprecated position offset */
 	FVector					PositionOffset;
@@ -236,11 +236,13 @@ public:
 	uint64					FrameNumber; // current frame number.
 	TSharedPtr<FHMDSettings, ESPMode::ThreadSafe>	Settings;
 
+	float					MonoCullingDistance;
+
 	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
 	float					WorldToMetersScale;
 	FVector					CameraScale3D;
 
-	FRotator				CachedViewRotation[2]; // cached view rotations
+	FRotator				CachedViewRotation[3]; // cached view rotations
 
 	FQuat					LastHmdOrientation; // contains last APPLIED ON GT HMD orientation
 	FVector					LastHmdPosition;    // contains last APPLIED ON GT HMD position
@@ -289,9 +291,9 @@ public:
 
 	float GetWorldToMetersScale() const;
 	void SetWorldToMetersScale( const float NewWorldToMetersScale );
+	float WorldToMetersScaleWhileInFrame;
 
 private:
-	float WorldToMetersScaleWhileInFrame;
 
 };
 
@@ -432,8 +434,6 @@ public:
 
 	FHMDLayerDesc& operator=(const FHMDLayerDesc&);
 
-	bool HasPendingTextureCopy() const { return bTextureCopyPending; }
-	void ClearPendingTextureCopy() const { bTextureCopyPending = false; }
 	bool IsTextureChanged() const { return bTextureHasChanged; }
 	void MarkTextureChanged() const { bTextureHasChanged = true; }
 	bool IsTransformChanged() const { return bTransformHasChanged; }
@@ -457,7 +457,6 @@ protected:
 	bool			bHeadLocked  : 1; // the layer is head-locked; Transform becomes relative to HMD
 	bool			bTorsoLocked : 1; // locked to torso (to player's orientation / location)
 	mutable bool	bTextureHasChanged : 1;
-	mutable bool	bTextureCopyPending : 1;
 	bool			bTransformHasChanged : 1;
 	bool			bNewLayer : 1;
 	bool			bAlreadyAdded : 1; // internal flag indicating the layer is already added into render layers.

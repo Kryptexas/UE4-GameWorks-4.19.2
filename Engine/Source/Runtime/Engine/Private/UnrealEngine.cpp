@@ -1979,6 +1979,7 @@ class FFakeStereoRenderingDevice : public IStereoRendering
 public:
 	FFakeStereoRenderingDevice() 
 	: FOVInDegrees(100)
+	, MonoCullingDistance(0.0f)
 	, Width(640)
 	, Height(480)
 	{
@@ -2011,7 +2012,7 @@ public:
 	virtual void AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const override
 	{
 		SizeX = SizeX / 2;
-		if( StereoPass == eSSP_RIGHT_EYE )
+		if (StereoPass == eSSP_RIGHT_EYE)
 		{
 			X += SizeX;
 		}
@@ -2019,7 +2020,7 @@ public:
 
 	virtual void CalculateStereoViewOffset(const enum EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) override
 	{
-		if( StereoPassType != eSSP_FULL)
+		if (StereoPassType != eSSP_FULL && StereoPassType != eSSP_MONOSCOPIC_EYE)
 		{
 			float EyeOffset = 3.20000005f;
 			const float PassOffset = (StereoPassType == eSSP_LEFT_EYE) ? EyeOffset : -EyeOffset;
@@ -2029,27 +2030,28 @@ public:
 
 	virtual FMatrix GetStereoProjectionMatrix(const enum EStereoscopicPass StereoPassType, const float FOV) const override
 	{
-		const float ProjectionCenterOffset = 0.151976421f;
-		const float PassProjectionOffset = (StereoPassType == eSSP_LEFT_EYE) ? ProjectionCenterOffset : -ProjectionCenterOffset;
-
 		const float HalfFov = FMath::DegreesToRadians(FOVInDegrees) / 2.f;
 		const float InWidth = Width;
 		const float InHeight = Height;
-		const float XS = 1.0f / tan(HalfFov);
-		const float YS = InWidth / tan(HalfFov) / InHeight;
+		const float XS = 1.0f / FMath::Tan(HalfFov);
+		const float YS = InWidth / FMath::Tan(HalfFov) / InHeight;
+		const float NearZ = (StereoPassType != eSSP_MONOSCOPIC_EYE) ? GNearClippingPlane : MonoCullingDistance;
 
-		const float InNearZ = GNearClippingPlane;
 		return FMatrix(
-			FPlane(XS,                      0.0f,								    0.0f,							0.0f),
-			FPlane(0.0f,					YS,	                                    0.0f,							0.0f),
-			FPlane(0.0f,	                0.0f,								    0.0f,							1.0f),
-			FPlane(0.0f,					0.0f,								    InNearZ,						0.0f))
- 
-			* FTranslationMatrix(FVector(PassProjectionOffset,0,0));
-
+			FPlane(XS, 0.0f, 0.0f, 0.0f),
+			FPlane(0.0f, YS, 0.0f, 0.0f),
+			FPlane(0.0f, 0.0f, 0.0f, 1.0f),
+			FPlane(0.0f, 0.0f, NearZ, 0.0f));
 	}
 
-	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override {}
+	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override
+	{
+		if (InView != nullptr && InView->Family != nullptr)
+		{
+			const FSceneViewFamily& ViewFamily = *InView->Family;
+			MonoCullingDistance = ViewFamily.MonoParameters.CullingDistance - ViewFamily.MonoParameters.OverlapDistance;
+		}
+	}
 
 	virtual void GetEyeRenderParams_RenderThread(const struct FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override
 	{
@@ -2082,6 +2084,7 @@ public:
 	}
 
 	float FOVInDegrees;		// max(HFOV, VFOV) in degrees of imaginable HMD
+	float MonoCullingDistance;
 	int32 Width, Height;	// resolution of imaginable HMD
 };
 

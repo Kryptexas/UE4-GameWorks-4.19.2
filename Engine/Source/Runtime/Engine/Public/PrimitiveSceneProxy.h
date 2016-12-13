@@ -443,6 +443,7 @@ public:
 	inline bool UseEditorCompositing(const FSceneView* View) const { return GIsEditor && bUseEditorCompositing && !View->bIsGameView; }
 	inline const FVector& GetActorPosition() const { return ActorPosition; }
 	inline const bool ReceivesDecals() const { return bReceivesDecals; }
+	inline const bool RenderInMono() const { return bRenderInMono; }
 	inline bool WillEverBeLit() const { return bWillEverBeLit; }
 	inline bool HasValidSettingsForStaticLighting() const { return bHasValidSettingsForStaticLighting; }
 	inline bool AlwaysHasVelocity() const { return bAlwaysHasVelocity; }
@@ -616,6 +617,7 @@ private:
 	uint32 bIsLocalToWorldDeterminantNegative : 1;
 	uint32 DrawInGame : 1;
 	uint32 DrawInEditor : 1;
+	uint32 bRenderInMono : 1;
 	uint32 bReceivesDecals : 1;
 	uint32 bOnlyOwnerSee : 1;
 	uint32 bOwnerNoSee : 1;

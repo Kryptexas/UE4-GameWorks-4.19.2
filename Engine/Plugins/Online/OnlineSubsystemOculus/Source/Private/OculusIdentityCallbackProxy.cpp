@@ -15,7 +15,6 @@ UOculusIdentityCallbackProxy* UOculusIdentityCallbackProxy::GetOculusIdentity(in
 	UOculusIdentityCallbackProxy* Proxy = NewObject<UOculusIdentityCallbackProxy>();
 	Proxy->LocalUserNum = LocalUserNum;
 	Proxy->SetFlags(RF_StrongRefOnFrame);
-	Proxy->Activate();
 	return Proxy;
 }
 
@@ -43,7 +42,7 @@ void UOculusIdentityCallbackProxy::OnLoginCompleteDelegate(int32 Unused, bool bW
 	Online::GetIdentityInterface()->ClearOnLoginCompleteDelegate_Handle(LocalUserNum, DelegateHandle);
 	if (bWasSuccessful)
 	{
-    auto PlayerNickName = Online::GetIdentityInterface()->GetPlayerNickname(LocalUserNum);
+		auto PlayerNickName = Online::GetIdentityInterface()->GetPlayerNickname(LocalUserNum);
 		OnSuccess.Broadcast(UserId.ToString(), PlayerNickName);
 	}
 	else

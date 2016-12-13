@@ -8,6 +8,10 @@
 #include "OnlineSubsystemOculusTypes.h"
 #include "OnlineSubsystemOculusPackage.h"
 
+#define SETTING_OCULUS_POOL FName(TEXT("OCULUSPOOL"))
+
+#define SEARCH_OCULUS_MODERATED_ROOMS_ONLY FName(TEXT("OCULUSMODERATEDROOMSONLY"))
+
 /**
  * Interface definition for the online services session services
  * Session services are defined as anything related managing a session
@@ -56,6 +60,11 @@ PACKAGE_SCOPE:
 
 	void TickPendingInvites(float DeltaTime);
 
+	bool CreateRoomSession(int32 HostingPlayerNum, FName SessionName, FNamedOnlineSession& Session, const FOnlineSessionSettings& NewSessionSettings);
+	bool CreateMatchmakingSession(int32 HostingPlayerNum, FName SessionName, FNamedOnlineSession& Session, const FOnlineSessionSettings& NewSessionSettings);
+
+	bool FindModeratedRoomSessions(const TSharedRef<FOnlineSessionSearch>& SearchSettings);
+	bool FindMatchmakingSessions(const FString Pool, const TSharedRef<FOnlineSessionSearch>& SearchSettings);
 public:
 
 	FOnlineSessionOculus(FOnlineSubsystemOculus& InSubsystem);

@@ -417,6 +417,11 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 
 	int GBufferFormat = CVarGBufferFormat.GetValueOnRenderThread();
 
+	// Set default clear values
+	const bool bUseMonoClearValue = ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off && ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::StereoNoClipping;
+	SetDefaultColorClear(bUseMonoClearValue ? FClearValueBinding() : FClearValueBinding::Black);
+	SetDefaultDepthClear(bUseMonoClearValue ? FClearValueBinding(ViewFamily.MonoParameters.StereoDepthClip, 0) : FClearValueBinding::DepthFar);
+
 	int SceneColorFormat;
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFormat"));
@@ -500,6 +505,10 @@ void FSceneRenderTargets::Allocate(FRHICommandList& RHICmdList, const FSceneView
 	// Do allocation of render targets if they aren't available for the current shading path
 	CurrentFeatureLevel = NewFeatureLevel;
 	AllocateRenderTargets(RHICmdList);
+	if (ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off)
+	{
+		AllocSceneMonoRenderTargets(RHICmdList, *ViewFamily.Views[2]);
+	}
 }
 
 void FSceneRenderTargets::BeginRenderingSceneColor(FRHICommandList& RHICmdList, ESimpleRenderTargetMode RenderTargetMode/*=EUninitializedColorExistingDepth*/, FExclusiveDepthStencil DepthStencilAccess, bool bTransitionWritable)
@@ -508,6 +517,13 @@ void FSceneRenderTargets::BeginRenderingSceneColor(FRHICommandList& RHICmdList, 
 	AllocSceneColor(RHICmdList);
 	SetRenderTarget(RHICmdList, GetSceneColorSurface(), GetSceneDepthSurface(), RenderTargetMode, DepthStencilAccess, bTransitionWritable);
 } 
+
+void FSceneRenderTargets::BeginRenderingSceneMonoColor(FRHICommandList& RHICmdList, ESimpleRenderTargetMode RenderTargetMode, FExclusiveDepthStencil DepthStencilAccess)
+{
+	SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingSceneMonoColor);
+
+	SetRenderTarget(RHICmdList, GetSceneMonoColorSurface(), GetSceneMonoDepthSurface(), RenderTargetMode, DepthStencilAccess, true);
+}
 
 int32 FSceneRenderTargets::GetGBufferRenderTargets(ERenderTargetLoadAction ColorLoadAction, FRHIRenderTargetView OutRenderTargets[MaxSimultaneousRenderTargets], int32& OutVelocityRTIndex)
 {
@@ -673,6 +689,25 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 
 void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 {
+	TRefCountPtr<IPooledRenderTarget>& SceneColorTarget = GetSceneColorForCurrentShadingPath();
+	if (SceneColorTarget && 
+		SceneColorTarget->GetRenderTargetItem().TargetableTexture->HasClearValue() && 
+		!(SceneColorTarget->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultColorClear))
+	{
+		const FLinearColor CurrentClearColor = SceneColorTarget->GetRenderTargetItem().TargetableTexture->GetClearBinding().GetClearColor();
+		const FLinearColor NewClearColor = DefaultColorClear.GetClearColor();
+		UE_LOG(LogRenderer, Log, TEXT("Releasing previous color target to switch default clear from: %f %f %f %f to: %f %f %f %f"), 
+			CurrentClearColor.R, 
+			CurrentClearColor.G, 
+			CurrentClearColor.B, 
+			CurrentClearColor.A, 
+			NewClearColor.R, 
+			NewClearColor.G, 
+			NewClearColor.B, 
+			NewClearColor.A);
+		SceneColorTarget.SafeRelease();
+	}
+
 	if (GetSceneColorForCurrentShadingPath())
 	{
 		return;
@@ -682,7 +717,7 @@ void FSceneRenderTargets::AllocSceneColor(FRHICommandList& RHICmdList)
 
 	// Create the scene color.
 	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, SceneColorBufferFormat, DefaultColorClear, TexCreate_None, TexCreate_RenderTargetable, false));
 
 		Desc.Flags |= TexCreate_FastVRAM;
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
@@ -731,6 +766,42 @@ void FSceneRenderTargets::AllocMobileMultiViewDepth(FRHICommandList& RHICmdList)
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, MobileMultiViewSceneDepthZ, TEXT("MobileMultiViewSceneDepthZ"));
 	}
 	check(MobileMultiViewSceneDepthZ);
+}
+
+void FSceneRenderTargets::AllocSceneMonoRenderTargets(FRHICommandList& RHICmdList, const FSceneView& MonoView)
+{
+	if (SceneMonoColor && SceneMonoDepthZ)
+	{
+		return;
+	}
+
+	const EPixelFormat SceneColorBufferFormat = GetSceneColorFormat();
+
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MonoView.ViewRect.Max, SceneColorBufferFormat, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
+	
+		Desc.Flags |= TexCreate_FastVRAM;
+		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
+
+		if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5 && Desc.NumSamples == 1)
+		{
+			Desc.TargetableFlags |= TexCreate_UAV;
+		}
+
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneMonoColor, TEXT("SceneMonoColor"));
+	}
+
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(MonoView.ViewRect.Max, PF_DepthStencil, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
+		Desc.Flags |= TexCreate_FastVRAM;
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneMonoDepthZ, TEXT("SceneMonoDepthZ"));
+	}
+
+	UE_LOG(LogRenderer, Log, TEXT("Allocating monoscopic scene render targets to support %ux%u"), MonoView.ViewRect.Max.X, MonoView.ViewRect.Max.Y);
+
+	check(SceneMonoColor);
+	check(SceneMonoDepthZ);
 }
 
 void FSceneRenderTargets::AllocLightAttenuation(FRHICommandList& RHICmdList)
@@ -1635,10 +1706,20 @@ void FSceneRenderTargets::AllocateDebugViewModeTargets(FRHICommandList& RHICmdLi
 
 void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList)
 {
+	if (SceneDepthZ && !(SceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultDepthClear))
+	{
+		uint32 StencilCurrent, StencilNew;
+		float DepthCurrent, DepthNew;
+		SceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding().GetDepthStencil(DepthCurrent, StencilCurrent);
+		DefaultDepthClear.GetDepthStencil(DepthNew, StencilNew);
+		UE_LOG(LogRenderer, Log, TEXT("Releasing previous depth to switch default clear from depth: %f stencil: %u to depth: %f stencil: %u"), DepthCurrent, StencilCurrent, DepthNew, StencilNew);
+		SceneDepthZ.SafeRelease();
+	}
+
 	if (!SceneDepthZ)
 	{
 		// Create a texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, DefaultDepthClear, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		Desc.NumSamples = GetNumSceneColorMSAASamples(CurrentFeatureLevel);
 		Desc.Flags |= TexCreate_FastVRAM;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SceneDepthZ, TEXT("SceneDepthZ"));
@@ -1648,11 +1729,10 @@ void FSceneRenderTargets::AllocateCommonDepthTargets(FRHICommandList& RHICmdList
 	// When targeting DX Feature Level 10, create an auxiliary texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
 	if (!AuxiliarySceneDepthZ && !GSupportsDepthFetchDuringDepthTest)
 	{
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, FClearValueBinding::DepthFar, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, DefaultDepthClear, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		Desc.AutoWritable = false;
 		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, AuxiliarySceneDepthZ, TEXT("AuxiliarySceneDepthZ"));
 	}
-
 }
 
 const FTexture2DRHIRef& FSceneRenderTargets::GetOptionalShadowDepthColorSurface(FRHICommandList& RHICmdList, int32 Width, int32 Height) const
@@ -1862,7 +1942,7 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 
 void FSceneRenderTargets::AllocateRenderTargets(FRHICommandList& RHICmdList)
 {
-	if (BufferSize.X > 0 && BufferSize.Y > 0 && !AreShadingPathRenderTargetsAllocated(GetSceneColorFormatType()))
+	if (BufferSize.X > 0 && BufferSize.Y > 0 && (!AreShadingPathRenderTargetsAllocated(GetSceneColorFormatType()) || !AreRenderTargetClearsValid(GetSceneColorFormatType())))
 	{
 		if ((EShadingPath)CurrentShadingPath == EShadingPath::Mobile)
 		{
@@ -1880,6 +1960,11 @@ void FSceneRenderTargets::ReleaseSceneColor()
 	for (auto i = 0; i < (int32)ESceneColorFormatType::Num; ++i)
 	{
 		SceneColor[i].SafeRelease();
+	}
+	if (SceneMonoColor)
+	{
+		SceneMonoColor.SafeRelease();
+		SceneMonoDepthZ.SafeRelease();
 	}
 }
 
@@ -2154,6 +2239,24 @@ int32 FSceneRenderTargets::GetCubeShadowDepthZResolution(int32 ShadowIndex) cons
 		CVarMinShadowResolution->GetValueOnRenderThread()
 	};
 	return SurfaceSizes[ShadowIndex];
+}
+
+bool FSceneRenderTargets::AreRenderTargetClearsValid(ESceneColorFormatType InSceneColorFormatType) const
+{
+	switch (InSceneColorFormatType)
+	{
+	case ESceneColorFormatType::Mobile:
+		{
+			const TRefCountPtr<IPooledRenderTarget>& SceneColorTarget = GetSceneColorForCurrentShadingPath();
+			const bool bColorValid = SceneColorTarget && (SceneColorTarget->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultColorClear);
+			const bool bDepthValid = SceneDepthZ && (SceneDepthZ->GetRenderTargetItem().TargetableTexture->GetClearBinding() == DefaultDepthClear);
+			return bColorValid && bDepthValid;
+		}
+	default:
+		{
+			return true;
+		}
+	}
 }
 
 bool FSceneRenderTargets::AreShadingPathRenderTargetsAllocated(ESceneColorFormatType InSceneColorFormatType) const

@@ -4,6 +4,7 @@
 #define OVR_VOIP_H
 
 #include "OVR_Platform_Defs.h"
+#include "OVR_SystemVoipStatus.h"
 #include "OVR_Types.h"
 #include "OVR_VoipMuteState.h"
 #include "OVR_VoipSampleRate.h"
@@ -43,6 +44,12 @@ OVRP_PUBLIC_FUNCTION(size_t) ovr_Voip_GetPCMFloat(ovrID senderID, float *outputB
 /// 
 /// This function can be safely called from any thread.
 OVRP_PUBLIC_FUNCTION(size_t) ovr_Voip_GetPCMSize(ovrID senderID);
+
+/// Returns SystemVoip microphone's mute state.
+OVRP_PUBLIC_FUNCTION(ovrVoipMuteState) ovr_Voip_GetSystemVoipMicrophoneMuted();
+
+/// Returns SystemVoip status.
+OVRP_PUBLIC_FUNCTION(ovrSystemVoipStatus) ovr_Voip_GetSystemVoipStatus();
 
 /// This function allows you to set a callback that will be called every time
 /// audio data is captured by the microphone. The callback function must match

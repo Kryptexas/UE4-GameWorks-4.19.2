@@ -180,11 +180,5 @@ private:
 
 	/**  Stores a list of FBoundaryTestResults passed to OnOuterBoundaryTriggered delegate functions and by GetTriggeredOuterBoundaryInfo() */
 	TArray<FBoundaryTestResult> OuterBoundsInteractionList;
-
-	/** Maximum number of boundary points returned for outer boundaries or play area */
-	static const int MaxNumBoundaryPoints = 256;
-
-	/** Used to store list of outer boundary or play area points */
-	ovrVector3f BoundaryPoints[MaxNumBoundaryPoints];
 #endif
 };

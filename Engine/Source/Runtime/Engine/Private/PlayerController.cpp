@@ -3636,6 +3636,9 @@ void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffec
 			ActiveHapticEffect_Right.Reset();
 			ActiveHapticEffect_Right = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 			break;
+		case EControllerHand::Gun:
+			ActiveHapticEffect_Gun.Reset();
+			ActiveHapticEffect_Gun = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 		default:
 			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand, *HapticEffect->GetName());
 			break;
@@ -3665,6 +3668,10 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 	else if (Hand == EControllerHand::Right)
 	{
 		ActiveHapticEffect_Right.Reset();
+	}
+	else if (Hand == EControllerHand::Gun)
+	{
+		ActiveHapticEffect_Gun.Reset();
 	}
 	else
 	{
@@ -3711,9 +3718,10 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 
 	ForceFeedbackValues.LeftLarge = ForceFeedbackValues.LeftSmall = ForceFeedbackValues.RightLarge = ForceFeedbackValues.RightSmall = 0.f;
 
-	FHapticFeedbackValues LeftHaptics, RightHaptics;
+	FHapticFeedbackValues LeftHaptics, RightHaptics, GunHaptics;
 	bool bLeftHapticsNeedUpdate = false;
 	bool bRightHapticsNeedUpdate = false;
+	bool bGunHapticsNeedUpdate = false;
 
 	if (!bGamePaused)
 	{
@@ -3759,6 +3767,17 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			bRightHapticsNeedUpdate = true;
 		}
 
+		if (ActiveHapticEffect_Gun.IsValid())
+		{
+			const bool bPlaying = ActiveHapticEffect_Gun->Update(DeltaTime, GunHaptics);
+			if (!bPlaying)
+			{
+				ActiveHapticEffect_Gun->bLoop ? ActiveHapticEffect_Gun->Restart() : ActiveHapticEffect_Gun.Reset();
+			}
+
+			bGunHapticsNeedUpdate = true;
+		}
+
 	}
 
 	if (FSlateApplication::IsInitialized())
@@ -3784,6 +3803,10 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 				{
 					InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Right, RightHaptics);
 				}
+			}
+			if (bGunHapticsNeedUpdate)
+			{
+				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Gun, GunHaptics);
 			}
 		}
 	}

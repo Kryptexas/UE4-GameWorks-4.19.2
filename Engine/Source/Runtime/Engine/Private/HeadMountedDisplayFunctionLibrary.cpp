@@ -18,6 +18,11 @@ bool UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled()
 	return GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed();
 }
 
+bool UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayConnected()
+{
+	return GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected();
+}
+
 bool UHeadMountedDisplayFunctionLibrary::EnableHMD(bool bEnable)
 {
 	if (GEngine->HMDDevice.IsValid())

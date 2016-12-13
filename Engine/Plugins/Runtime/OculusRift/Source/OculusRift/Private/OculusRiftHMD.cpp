@@ -741,7 +741,7 @@ bool FOculusRiftHMD::GetTrackingSensorProperties(uint8 InSensorIndex, FVector& O
 	OutNearPlane = TrackerDesc.FrustumNearZInMeters * WorldToMetersScale;
 	OutFarPlane = TrackerDesc.FrustumFarZInMeters * WorldToMetersScale;
 
-	// Check if the sensor pose is available
+	// Check if the sensor pose is availables
 	if (TrackerPose.TrackerFlags & (ovrTracker_Connected | ovrTracker_PoseTracked))
 	{
 		FQuat Orient;
@@ -1557,9 +1557,6 @@ void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPas
 
 		if (StereoPassType != eSSP_FULL || frame->Settings->Flags.bHeadTrackingEnforced)
 		{
-			frame->PlayerLocation = ViewLocation;
-			this->LastPlayerLocation = frame->PlayerLocation;
-
 			if (!frame->Flags.bOrientationChanged)
 			{
 				UE_LOG(LogHMD, Log, TEXT("Orientation wasn't applied to a camera in frame %d"), int(CurrentFrameNumber.GetValue()));
@@ -1583,6 +1580,9 @@ void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPas
 			// we just need to apply delta between EyeRenderPose.Position and the HeadPose.Position. 
 			// EyeRenderPose and HeadPose are captured by the same call to GetEyePoses.
 			const FVector HmdToEyeOffset = CurEyePosition - HeadPosition;
+
+			frame->PlayerLocation = ViewLocation - HeadPosition;
+			this->LastPlayerLocation = frame->PlayerLocation;
 
 			// Calculate the difference between the final ViewRotation and EyeOrientation:
 			// we need to rotate the HmdToEyeOffset by this differential quaternion.
@@ -1681,8 +1681,10 @@ FMatrix FOculusRiftHMD::GetStereoProjectionMatrix(EStereoscopicPass StereoPassTy
 	FMatrix proj = ToFMatrix(FrameSettings->EyeProjectionMatrices[idx]);
 
 	// correct far and near planes for reversed-Z projection matrix
-	const float InNearZ = (FrameSettings->NearClippingPlane) ? FrameSettings->NearClippingPlane : GNearClippingPlane;
-	const float InFarZ = (FrameSettings->FarClippingPlane) ? FrameSettings->FarClippingPlane : GNearClippingPlane;
+	const float WorldScale = frame->GetWorldToMetersScale() * (1.0 / 100.0f); // physical scale is 100 UUs/meter
+	const float InNearZ = (FrameSettings->NearClippingPlane) ? FrameSettings->NearClippingPlane : (GNearClippingPlane * WorldScale);
+	const float InFarZ = (FrameSettings->FarClippingPlane) ? FrameSettings->FarClippingPlane : (GNearClippingPlane * WorldScale);
+
 	proj.M[3][3] = 0.0f;
 	proj.M[2][3] = 1.0f;
 
@@ -2220,7 +2222,13 @@ void FOculusRiftHMD::UpdateStereoRenderingParams()
 
 		if (CurrentSettings->PixelDensityAdaptive)
 		{
-			pixelDensity *= FMath::Sqrt(ovr_GetFloat(OvrSession, "AdaptiveGpuPerformanceScale", 1.0f));
+			ovrPerfStats perfStats;
+			ovrResult result = ovr_GetPerfStats(OvrSession, &perfStats);
+
+			if(OVR_SUCCESS(result))
+			{
+				pixelDensity *= FMath::Sqrt(perfStats.AdaptiveGpuPerformanceScale);
+			}
 		}
 
 		CurrentSettings->PixelDensityMin = FMath::Min(CurrentSettings->PixelDensityMin, CurrentSettings->PixelDensityMax);

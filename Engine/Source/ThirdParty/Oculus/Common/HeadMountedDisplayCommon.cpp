@@ -49,7 +49,7 @@ FHMDSettings::FHMDSettings() :
 	Flags.bPlayerControllerFollowsHmd = true;
 	Flags.bPlayerCameraManagerFollowsHmdOrientation = true;
 	Flags.bPlayerCameraManagerFollowsHmdPosition = true;
-	EyeRenderViewport[0] = EyeRenderViewport[1] = FIntRect(0, 0, 0, 0);
+	EyeRenderViewport[0] = EyeRenderViewport[1] = EyeRenderViewport[2] = FIntRect(0, 0, 0, 0);
 
 	CameraScale3D = FVector(1.0f, 1.0f, 1.0f);
 	PositionScale3D = FVector(1.0f, 1.0f, 1.0f);
@@ -84,6 +84,7 @@ float FHMDSettings::GetActualScreenPercentage() const
 
 FHMDGameFrame::FHMDGameFrame() :
 	FrameNumber(0),
+	MonoCullingDistance(0.0f),
 	WorldToMetersScaleWhileInFrame(100.f)
 {
 	LastHmdOrientation = FQuat::Identity;
@@ -556,15 +557,14 @@ bool FHeadMountedDisplay::IsStereoEnabled() const
 		{
 			// If IsStereoEnabled is called when a game frame hasn't started, then always return false.
 			// In the case when you need to check if stereo is GOING TO be enabled in next frame,
-			// use explicit call to Settings->IsStereoEnabled()
+			// use explicit call to IsStereoEnabledOnNextFrame()
 			return false;
 		}
 	}
 	else
 	{
-		check(0);
+		return false;
 	}
-	return false;
 }
 
 bool FHeadMountedDisplay::IsStereoEnabledOnNextFrame() const
@@ -1953,7 +1953,6 @@ FHMDLayerDesc& FHMDLayerDesc::operator=(const FHMDLayerDesc& InSrc)
 
 void FHMDLayerDesc::ResetChangedFlags()
 {
-	bTextureCopyPending |= !!bTextureHasChanged;
 	bTextureHasChanged = bTransformHasChanged = bNewLayer = bAlreadyAdded = false;
 }
 
@@ -2271,7 +2270,6 @@ void FHMDLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RH
 			{
 				LayersToRender.Add(CreateRenderLayer_RenderThread(*pLayer.Get()));
 			}
-			pLayer->ResetChangedFlags();
 		}
 		for (uint32 i = 0, n = DebugLayers.Num(); i < n; ++i)
 		{
@@ -2281,7 +2279,6 @@ void FHMDLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RH
 			{
 				LayersToRender.Add(CreateRenderLayer_RenderThread(*pLayer.Get()));
 			}
-			pLayer->ResetChangedFlags();
 		}
 
 		struct Comparator

@@ -33,7 +33,7 @@ public:
 	}
 
 	/**
-	 * Returns true if HMD is currently connected.
+	 * Returns true if HMD is currently connected.  It may or may not be in use.
 	 */
 	virtual bool IsHMDConnected() = 0;
 

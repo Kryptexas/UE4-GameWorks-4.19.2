@@ -9,6 +9,7 @@
 #include "OnlineLeaderboardInterfaceOculus.h"
 #include "OnlineSessionInterfaceOculus.h"
 #include "OnlineUserCloudOculus.h"
+#include "OnlineVoiceOculus.h"
 
 #if PLATFORM_ANDROID
 #include "AndroidApplication.h"
@@ -55,7 +56,7 @@ IOnlineLeaderboardsPtr FOnlineSubsystemOculus::GetLeaderboardsInterface() const
 
 IOnlineVoicePtr FOnlineSubsystemOculus::GetVoiceInterface() const
 {
-	return nullptr;
+	return VoiceInterface;
 }
 
 IOnlineExternalUIPtr FOnlineSubsystemOculus::GetExternalUIInterface() const
@@ -150,6 +151,11 @@ bool FOnlineSubsystemOculus::Tick(float DeltaTime)
 		SessionInterface->TickPendingInvites(DeltaTime);
 	}
 
+	if (VoiceInterface.IsValid())
+	{
+		VoiceInterface->Tick(DeltaTime);
+	}
+
 	if (MessageTaskManager.IsValid())
 	{
 		if (!MessageTaskManager->Tick(DeltaTime))
@@ -200,6 +206,11 @@ bool FOnlineSubsystemOculus::Init()
 		SessionInterface = MakeShareable(new FOnlineSessionOculus(*this));
 		LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardOculus(*this));
 		UserCloudInterface = MakeShareable(new FOnlineUserCloudOculus(*this));
+		VoiceInterface = MakeShareable(new FOnlineVoiceOculus(*this));
+		if (!VoiceInterface->Init())
+		{
+			VoiceInterface.Reset();
+		}
 	}
 	else
 	{
@@ -272,6 +283,7 @@ bool FOnlineSubsystemOculus::Shutdown()
 	SessionInterface.Reset();
 	LeaderboardsInterface.Reset();
 	UserCloudInterface.Reset();
+	VoiceInterface.Reset();
 
 	if (MessageTaskManager.IsValid())
 	{

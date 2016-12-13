@@ -2038,6 +2038,8 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 	FD3D12Adapter* Adapter = &GetAdapter();
 
 	D3D12_RESOURCE_DESC TextureDesc = Resource->GetDesc();
+	TextureDesc.Alignment = 0;
+
 	uint32 SizeX = TextureDesc.Width;
 	uint32 SizeY = TextureDesc.Height;
 	uint32 SizeZ = TextureDesc.DepthOrArraySize;
@@ -2105,6 +2107,7 @@ FTexture2DRHIRef FD3D12DynamicRHI::RHICreateTexture2DFromD3D12Resource(uint8 For
 
 		FD3D12ResourceLocation& Location = Texture2D->ResourceLocation;
 		Location.AsStandAlone(TextureResource);
+		TextureResource->AddRef();
 		
 		if (bCreateRTV)
 		{

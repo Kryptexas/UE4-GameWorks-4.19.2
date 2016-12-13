@@ -62,6 +62,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	KillZDamageType = ConstructorStatics.DmgType_Environmental_Object.Object;
 
 	WorldToMeters = 100.f;
+	MonoCullingDistance = 750.f;
 
 	DefaultPhysicsVolumeClass = ADefaultPhysicsVolume::StaticClass();
 	GameNetworkManagerClass = AGameNetworkManager::StaticClass();

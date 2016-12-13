@@ -921,31 +921,10 @@ void FCanvas::Clear(const FLinearColor& ClearColor)
 void FCanvas::DrawTile( float X, float Y, float SizeX,	float SizeY, float U, float V, float SizeU, float SizeV, const FLinearColor& Color,	const FTexture* Texture, bool AlphaBlend )
 {
 	SCOPE_CYCLE_COUNTER(STAT_Canvas_DrawTextureTileTime);
-	const float Z = 1.0f;
-	FLinearColor ActualColor = Color;
-	ActualColor.A *= AlphaModulate;
 
-	const FTexture* FinalTexture = Texture ? Texture : GWhiteTexture;
-	const ESimpleElementBlendMode BlendMode = AlphaBlend ? SE_BLEND_Translucent : SE_BLEND_Opaque;
-	FBatchedElementParameters* BatchedElementParameters = NULL;
-	FBatchedElements* BatchedElements = GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, FinalTexture, BlendMode);
-	FHitProxyId HitProxyId = GetHitProxyId();
-
-
-	// Correct for Depth. This only works because we won't be applying a transform later--otherwise we'd have to adjust the transform instead.
-	float Left, Top, Right, Bottom;
-	Left = X * Z;
-	Top = Y * Z;
-	Right = (X + SizeX) * Z;
-	Bottom = (Y + SizeY) * Z;
-
-	int32 V00 = BatchedElements->AddVertex(FVector4(Left,	  Top,	0,Z),FVector2D(U,			V),			ActualColor,HitProxyId);
-	int32 V10 = BatchedElements->AddVertex(FVector4(Right,    Top,	0,Z),FVector2D(U + SizeU,	V),			ActualColor,HitProxyId);
-	int32 V01 = BatchedElements->AddVertex(FVector4(Left,	  Bottom,	0,Z),FVector2D(U,			V + SizeV),	ActualColor,HitProxyId);
-	int32 V11 = BatchedElements->AddVertex(FVector4(Right,    Bottom,	0,Z),FVector2D(U + SizeU,	V + SizeV),	ActualColor,HitProxyId);
-
-	BatchedElements->AddTriangle(V00,V10,V11,FinalTexture,BlendMode);
-	BatchedElements->AddTriangle(V00,V11,V01,FinalTexture,BlendMode);
+	FCanvasTileItem TileItem(FVector2D(X,Y), Texture ? Texture : GWhiteTexture, FVector2D(SizeX,SizeY), FVector2D(U,V), FVector2D(SizeU,SizeV), Color);
+	TileItem.BlendMode = AlphaBlend ? SE_BLEND_Translucent : SE_BLEND_Opaque;
+	DrawItem(TileItem);
 }
 
 int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,const UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor )

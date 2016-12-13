@@ -5,6 +5,7 @@
 #include "IHeadMountedDisplay.h"
 #include "IGearVRPlugin.h"
 #include "RHIStaticStates.h"
+#include "HeadMountedDisplayCommon.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS
 
@@ -16,8 +17,6 @@
 #include "Android/AndroidJNI.h"
 #include "Android/AndroidEGL.h"
 #endif
-
-#define OCULUS_STRESS_TESTS_ENABLED	0
 
 #if OCULUS_STRESS_TESTS_ENABLED
 #include "OculusStressTests.h"
@@ -665,12 +664,12 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		return;
 	}
 
-	const int eyeIdx = (View.StereoPass == eSSP_LEFT_EYE) ? 0 : 1;
+	const int32 ViewIndex = ViewIndexFromStereoPass(View.StereoPass);
 	if (ShowFlags.Rendering && CurrentFrame->Settings->Flags.bUpdateOnRT)
 	{
 		FQuat	CurrentEyeOrientation;
 		FVector	CurrentEyePosition;
-		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurEyeRenderPose[eyeIdx], CurrentEyeOrientation, CurrentEyePosition);
+		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->CurEyeRenderPose[ViewIndex], CurrentEyeOrientation, CurrentEyePosition);
 
 		const FQuat ViewOrientation = View.ViewRotation.Quaternion();
 
@@ -678,10 +677,10 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		FVector GameEyePosition;
 		FQuat GameEyeOrient;
 
-		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->EyeRenderPose[eyeIdx], GameEyeOrient, GameEyePosition);
+		CurrentFrame->PoseToOrientationAndPosition(CurrentFrame->EyeRenderPose[ViewIndex], GameEyeOrient, GameEyePosition);
 		const FQuat DeltaControlOrientation = ViewOrientation * GameEyeOrient.Inverse();
 		// make sure we use the same viewrotation as we had on a game thread
-		check(View.ViewRotation == CurrentFrame->CachedViewRotation[eyeIdx]);
+		check(View.ViewRotation == CurrentFrame->CachedViewRotation[ViewIndex]);
 
 		if (CurrentFrame->Flags.bOrientationChanged)
 		{
@@ -1388,7 +1387,9 @@ void FCustomPresent::PushBlack(const FGameFrame* frame, bool isFinal)
 	{
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("+++++++ PushBlack() ++++++, On RT! tid = %d, final = %b"), FPlatformTLS::GetCurrentThreadId(), isFinal);
 		
+#if PLATFORM_ANDROID
 		check(JavaRT.Vm != nullptr);
+#endif
 		ovrFrameParms frameParms = vrapi_DefaultFrameParms(&JavaRT, isFinal ? VRAPI_FRAME_INIT_BLACK_FINAL : VRAPI_FRAME_INIT_BLACK, vrapi_GetTimeInSeconds(), nullptr);
 		frameParms.PerformanceParms = DefaultPerfParms;
 		frameParms.Java = JavaRT;
@@ -1422,7 +1423,9 @@ void FCustomPresent::PushFrame(FLayerManager* pInLayerMgr, const FGameFrame* InC
 		}
 		else
 		{
+#if PLATFORM_ANDROID
 			check(JavaRT.Vm != nullptr);
+#endif
 			ovrFrameParms frameParms = vrapi_DefaultFrameParms(&JavaRT, VRAPI_FRAME_INIT_DEFAULT, vrapi_GetTimeInSeconds(), nullptr);
 			frameParms.MinimumVsyncs = MinimumVsyncs;
 			frameParms.ExtraLatencyMode = (bExtraLatencyMode) ? VRAPI_EXTRA_LATENCY_MODE_ON : VRAPI_EXTRA_LATENCY_MODE_OFF;

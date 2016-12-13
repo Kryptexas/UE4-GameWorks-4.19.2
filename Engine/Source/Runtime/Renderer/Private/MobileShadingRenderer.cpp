@@ -217,6 +217,11 @@ void FMobileSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	RenderModulatedShadowProjections(RHICmdList);
 
+	if (ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off)
+	{
+		CompositeMonoscopicFarField(RHICmdList);
+	}
+
 	// Draw translucency.
 	if (ViewFamily.EngineShowFlags.Translucency)
 	{

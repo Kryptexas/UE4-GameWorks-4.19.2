@@ -205,6 +205,8 @@ protected:
 		bRequireSceneColorAlpha(false),
 		bAllocateVelocityGBuffer(false),
 		bSnapshot(false),
+		DefaultColorClear(FClearValueBinding::Black),
+		DefaultDepthClear(FClearValueBinding::DepthFar),
 		QuadOverdrawIndex(INDEX_NONE)
 		{
 		}
@@ -237,6 +239,8 @@ public:
 	 * Called when finished rendering to the scene color surface
 	 */
 	void FinishRenderingSceneColor(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
+
+	void BeginRenderingSceneMonoColor(FRHICommandList& RHICmdList, ESimpleRenderTargetMode RenderTargetMode = ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil DepthStencilAccess = FExclusiveDepthStencil::DepthWrite_StencilWrite);
 
 	// @return true: call FinishRenderingCustomDepth after rendering, false: don't render it, feature is disabled
 	bool BeginRenderingCustomDepth(FRHICommandListImmediate& RHICmdList, bool bPrimitives);
@@ -281,6 +285,16 @@ public:
 
 	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite = false);
 	void FinishRenderingLightAttenuation(FRHICommandList& RHICmdList);
+
+	void SetDefaultColorClear(const FClearValueBinding ColorClear)
+	{
+		DefaultColorClear = ColorClear;
+	}
+
+	void SetDefaultDepthClear(const FClearValueBinding DepthClear)
+	{
+		DefaultDepthClear = DepthClear;
+	}
 
 	void GetSeparateTranslucencyDimensions(FIntPoint& OutScaledSize, float& OutScale)
 	{
@@ -343,6 +357,10 @@ public:
 	const FTexture2DRHIRef& GetSceneAlphaCopyTexture() const { return (const FTexture2DRHIRef&)SceneAlphaCopy->GetRenderTargetItem().ShaderResourceTexture; }
 	bool HasSceneAlphaCopyTexture() const { return SceneAlphaCopy.GetReference() != 0; }
 	const FTexture2DRHIRef& GetSceneDepthTexture() const { return (const FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().ShaderResourceTexture; }
+
+	const FTexture2DRHIRef& GetSceneMonoColorTexture() const { return (const FTexture2DRHIRef&)SceneMonoColor->GetRenderTargetItem().ShaderResourceTexture; }
+	const FTexture2DRHIRef& GetSceneMonoDepthTexture() const { return (const FTexture2DRHIRef&)SceneMonoDepthZ->GetRenderTargetItem().ShaderResourceTexture; }
+
 	const FTexture2DRHIRef& GetAuxiliarySceneDepthTexture() const
 	{ 
 		check(!GSupportsDepthFetchDuringDepthTest);
@@ -381,6 +399,8 @@ public:
 	const FTextureRHIRef& GetSceneColorSurface() const;
 	const FTexture2DRHIRef& GetSceneAlphaCopySurface() const						{ return (const FTexture2DRHIRef&)SceneAlphaCopy->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetSceneDepthSurface() const							{ return (const FTexture2DRHIRef&)SceneDepthZ->GetRenderTargetItem().TargetableTexture; }
+	const FTexture2DRHIRef& GetSceneMonoColorSurface() const						{ return (const FTexture2DRHIRef&)SceneMonoColor->GetRenderTargetItem().TargetableTexture; }
+	const FTexture2DRHIRef& GetSceneMonoDepthSurface() const						{ return (const FTexture2DRHIRef&)SceneMonoDepthZ->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetSmallDepthSurface() const							{ return (const FTexture2DRHIRef&)SmallDepthZ->GetRenderTargetItem().TargetableTexture; }
 	const FTexture2DRHIRef& GetOptionalShadowDepthColorSurface(FRHICommandList& RHICmdList, int32 Width, int32 Height) const;
 	const FTexture2DRHIRef& GetLightAttenuationSurface() const					{ return (const FTexture2DRHIRef&)GetLightAttenuation()->GetRenderTargetItem().TargetableTexture; }
@@ -486,6 +506,8 @@ public:
 
 	void AllocLightAttenuation(FRHICommandList& RHICmdList);
 
+	void AllocSceneMonoRenderTargets(FRHICommandList& RHICmdList, const FSceneView& MonoView);
+
 	void AllocateReflectionTargets(FRHICommandList& RHICmdList, int32 TargetSize);
 
 	void AllocateLightingChannelTexture(FRHICommandList& RHICmdList);
@@ -531,6 +553,10 @@ public:
 	TRefCountPtr<IPooledRenderTarget> AuxiliarySceneDepthZ;
 	// Quarter-sized version of the scene depths
 	TRefCountPtr<IPooledRenderTarget> SmallDepthZ;
+
+	// VR monoscopic far field rendering render targets
+	TRefCountPtr<IPooledRenderTarget> SceneMonoColor;
+	TRefCountPtr<IPooledRenderTarget> SceneMonoDepthZ;
 
 	// GBuffer: Geometry Buffer rendered in base pass for deferred shading, only available between AllocGBufferTargets() and FreeGBufferTargets()
 	TRefCountPtr<IPooledRenderTarget> GBufferA;
@@ -655,6 +681,9 @@ private:
 	/** Determine whether the render targets for a particular shading path have been allocated */
 	bool AreShadingPathRenderTargetsAllocated(ESceneColorFormatType InSceneColorFormatType) const;
 
+	/** Determine if the default clear values for color and depth match the allocated scene render targets. Mobile only. */
+	bool AreRenderTargetClearsValid(ESceneColorFormatType InSceneColorFormatType) const;
+
 	/** Determine whether the render targets for any shading path have been allocated */
 	bool AreAnyShadingPathRenderTargetsAllocated() const 
 	{ 
@@ -735,6 +764,12 @@ private:
 
 	/** true is this is a snapshot on the scene allocator */
 	bool bSnapshot;
+
+	/** Clear color value, defaults to FClearValueBinding::Black */
+	FClearValueBinding DefaultColorClear;
+
+	/** Clear depth value, defaults to FClearValueBinding::DepthFar */
+	FClearValueBinding DefaultDepthClear;
 
 	/** Helpers to track the bound index of the quad overdraw UAV. Needed because UAVs overlap RTs in DX11 */
 	int32 QuadOverdrawIndex;

@@ -1383,6 +1383,12 @@ protected:
 	void RenderDistortion(FRHICommandListImmediate& RHICmdList);
 	void RenderDistortionES2(FRHICommandListImmediate& RHICmdList);
 
+	/** Composites the monoscopic far field view into the stereo views. */
+	void CompositeMonoscopicFarField(FRHICommandListImmediate& RHICmdList);
+
+	/** Renders a depth mask into the monoscopic far field view to ensure we only render visible pixels. */
+	void RenderMonoscopicFarFieldMask(FRHICommandListImmediate& RHICmdList);
+
 	static int32 GetRefractionQuality(const FSceneViewFamily& ViewFamily);
 
 	void UpdatePrimitivePrecomputedLightingBuffers();

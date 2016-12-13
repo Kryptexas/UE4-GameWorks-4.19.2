@@ -470,6 +470,10 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=VR)
 	float WorldToMeters;
 
+	/** Distance from the player after which content will be rendered in mono if monoscopic far field rendering is activated */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=VR)
+	float MonoCullingDistance;
+
 	/************************************/
 	/** EDITOR ONLY SETTINGS **/
 	

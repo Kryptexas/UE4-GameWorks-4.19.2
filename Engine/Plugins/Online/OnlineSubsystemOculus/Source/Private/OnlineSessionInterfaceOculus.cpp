@@ -103,6 +103,7 @@ bool FOnlineSessionOculus::CreateSession(int32 HostingPlayerNum, FName SessionNa
 
 	// Create a new session and deep copy the game settings
 	Session = AddNamedSession(SessionName, NewSessionSettings);
+
 	check(Session);
 	Session->SessionState = EOnlineSessionState::Creating;
 	Session->NumOpenPrivateConnections = NewSessionSettings.NumPrivateConnections;
@@ -115,6 +116,57 @@ bool FOnlineSessionOculus::CreateSession(int32 HostingPlayerNum, FName SessionNa
 	// Unique identifier of this build for compatibility
 	Session->SessionSettings.BuildUniqueId = GetBuildUniqueId();
 
+	if (NewSessionSettings.Settings.Contains(SETTING_OCULUS_POOL))
+	{
+		return CreateMatchmakingSession(HostingPlayerNum, SessionName, *Session, NewSessionSettings);
+	}
+
+	return CreateRoomSession(HostingPlayerNum, SessionName, *Session, NewSessionSettings);
+}
+
+bool FOnlineSessionOculus::CreateMatchmakingSession(int32 HostingPlayerNum, FName SessionName, FNamedOnlineSession& Session, const FOnlineSessionSettings& NewSessionSettings)
+{
+	auto PoolSettings = NewSessionSettings.Settings.Find(SETTING_OCULUS_POOL);
+	FString Pool;
+	PoolSettings->Data.GetValue(Pool);
+	OculusSubsystem.AddRequestDelegate(
+		ovr_Matchmaking_CreateAndEnqueueRoom2(TCHAR_TO_ANSI(*Pool), nullptr),
+		FOculusMessageOnCompleteDelegate::CreateLambda([this, SessionName, &Session](ovrMessageHandle Message, bool bIsError)
+	{
+		if (bIsError)
+		{
+			auto Error = ovr_Message_GetError(Message);
+			auto ErrorMessage = ovr_Error_GetMessage(Error);
+			UE_LOG_ONLINE(Error, TEXT("%s"), *FString(ErrorMessage));
+			RemoveNamedSession(SessionName);
+			TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+			return;
+		}
+
+		auto EnqueueResultAndRoom = ovr_Message_GetMatchmakingEnqueueResultAndRoom(Message);
+
+		auto Room = ovr_MatchmakingEnqueueResultAndRoom_GetRoom(EnqueueResultAndRoom);
+		auto RoomId = ovr_Room_GetID(Room);
+		auto MaxUsers = ovr_Room_GetMaxUsers(Room);
+		Session.SessionInfo = MakeShareable(new FOnlineSessionInfoOculus(RoomId));
+
+		Session.NumOpenPublicConnections = MaxUsers;
+		Session.NumOpenPrivateConnections = 0;
+
+		Session.RegisteredPlayers.Add(Session.OwningUserId.ToSharedRef());
+		Session.NumOpenPublicConnections--;
+
+		// Waiting for new players
+		Session.SessionState = EOnlineSessionState::Pending;
+
+		TriggerOnCreateSessionCompleteDelegates(SessionName, true);
+	}));
+
+	return true;
+}
+
+bool FOnlineSessionOculus::CreateRoomSession(int32 HostingPlayerNum, FName SessionName, FNamedOnlineSession& Session, const FOnlineSessionSettings& NewSessionSettings)
+{
 	// Setup the host session info
 	ovrRoomJoinPolicy JoinPolicy = ovrRoom_JoinPolicyInvitedUsers;
 	if (NewSessionSettings.bShouldAdvertise)
@@ -138,15 +190,15 @@ bool FOnlineSessionOculus::CreateSession(int32 HostingPlayerNum, FName SessionNa
 
 	unsigned int MaxUsers = NewSessionSettings.NumPublicConnections + NewSessionSettings.NumPrivateConnections;
 
-	Session->RegisteredPlayers.Add(Session->OwningUserId.ToSharedRef());
-	Session->NumOpenPublicConnections--;
-
 	OculusSubsystem.AddRequestDelegate(
 		ovr_Room_CreateAndJoinPrivate(JoinPolicy, MaxUsers, /* subscribeToUpdates */ true),
-		FOculusMessageOnCompleteDelegate::CreateLambda([this, SessionName, Session](ovrMessageHandle Message, bool bIsError)
+		FOculusMessageOnCompleteDelegate::CreateLambda([this, SessionName, &Session](ovrMessageHandle Message, bool bIsError)
 	{
 		if (bIsError)
 		{
+			auto Error = ovr_Message_GetError(Message);
+			auto ErrorMessage = ovr_Error_GetMessage(Error);
+			UE_LOG_ONLINE(Error, TEXT("%s"), *FString(ErrorMessage));
 			RemoveNamedSession(SessionName);
 			TriggerOnCreateSessionCompleteDelegates(SessionName, false);
 			return;
@@ -154,10 +206,13 @@ bool FOnlineSessionOculus::CreateSession(int32 HostingPlayerNum, FName SessionNa
 
 		auto Room = ovr_Message_GetRoom(Message);
 		auto RoomId = ovr_Room_GetID(Room);
-		Session->SessionInfo = MakeShareable(new FOnlineSessionInfoOculus(RoomId));
+		Session.SessionInfo = MakeShareable(new FOnlineSessionInfoOculus(RoomId));
+
+		Session.RegisteredPlayers.Add(Session.OwningUserId.ToSharedRef());
+		Session.NumOpenPublicConnections--;
 
 		// Waiting for new players
-		Session->SessionState = EOnlineSessionState::Pending;
+		Session.SessionState = EOnlineSessionState::Pending;
 
 		TriggerOnCreateSessionCompleteDelegates(SessionName, true);
 	}));
@@ -275,12 +330,15 @@ bool FOnlineSessionOculus::StartMatchmaking(const TArray< TSharedRef<const FUniq
 		return false;
 	}
 
-	// Sessions with the same map name should be in the same pool
 	FString Pool;
-	if (!SearchSettings->QuerySettings.Get(SETTING_MAPNAME, Pool))
+	if (!SearchSettings->QuerySettings.Get(SETTING_OCULUS_POOL, Pool))
 	{
-		UE_LOG_ONLINE(Warning, TEXT("No pool specified. %s is required in SearchSettings->QuerySettings"), *SETTING_MAPNAME.ToString());
-		return false;
+		UE_LOG_ONLINE(Warning, TEXT("No oculus pool specified. %s is required in SearchSettings->QuerySettings"), *SETTING_OCULUS_POOL.ToString());
+		// Fall back to using the map name as the pool name
+		if (!SearchSettings->QuerySettings.Get(SETTING_MAPNAME, Pool))
+		{
+			return false;
+		}
 	}
 
 	if (NewSessionSettings.NumPrivateConnections > 0)
@@ -299,7 +357,7 @@ bool FOnlineSessionOculus::StartMatchmaking(const TArray< TSharedRef<const FUniq
 	InProgressMatchmakingSearchName = SessionName;
 
 	OculusSubsystem.AddRequestDelegate(
-		ovr_Matchmaking_Enqueue(TCHAR_TO_UTF8(*Pool), nullptr),
+		ovr_Matchmaking_Enqueue2(TCHAR_TO_UTF8(*Pool), nullptr),
 		FOculusMessageOnCompleteDelegate::CreateLambda([this, SessionName, SearchSettings](ovrMessageHandle Message, bool bIsError)
 	{
 		if (bIsError)
@@ -353,20 +411,174 @@ bool FOnlineSessionOculus::CancelMatchmaking(const FUniqueNetId& SearchingPlayer
 
 bool FOnlineSessionOculus::FindSessions(int32 SearchingPlayerNum, const TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
-	/* TODO: #10920536 */
+	if (SearchSettings->MaxSearchResults <= 0)
+	{
+		UE_LOG_ONLINE(Warning, TEXT("Invalid MaxSearchResults"));
+		SearchSettings->SearchState = EOnlineAsyncTaskState::Failed;
+		TriggerOnFindSessionsCompleteDelegates(false);
+		return false;
+	}
+
+	bool bFindOnlyModeratedRooms = false;
+	if (SearchSettings->QuerySettings.Get(SEARCH_OCULUS_MODERATED_ROOMS_ONLY, bFindOnlyModeratedRooms) && bFindOnlyModeratedRooms)
+	{
+		return FindModeratedRoomSessions(SearchSettings);
+	}
+
+	FString Pool;
+	if (SearchSettings->QuerySettings.Get(SETTING_OCULUS_POOL, Pool))
+	{
+		return FindMatchmakingSessions(Pool, SearchSettings);
+	}
+
 	return false;
 }
 
 bool FOnlineSessionOculus::FindSessions(const FUniqueNetId& SearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
-	/* TODO: #10920536 */
-	return false;
+	return FindSessions(0, SearchSettings);
+}
+
+bool FOnlineSessionOculus::FindModeratedRoomSessions(const TSharedRef<FOnlineSessionSearch>& SearchSettings)
+{
+	SearchSettings->SearchState = EOnlineAsyncTaskState::InProgress;
+	OculusSubsystem.AddRequestDelegate(
+		ovr_Room_GetModeratedRooms(),
+		FOculusMessageOnCompleteDelegate::CreateLambda([this, SearchSettings](ovrMessageHandle Message, bool bIsError)
+	{
+		if (bIsError)
+		{
+			SearchSettings->SearchState = EOnlineAsyncTaskState::Failed;
+			TriggerOnFindSessionsCompleteDelegates(false);
+			return;
+		}
+
+		auto RoomArray = ovr_Message_GetRoomArray(Message);
+
+		auto SearchResultsSize = ovr_RoomArray_GetSize(RoomArray);
+		bool bHasPaging = ovr_RoomArray_HasNextPage(RoomArray);
+
+		if (SearchResultsSize > SearchSettings->MaxSearchResults)
+		{
+			// Only return up to MaxSearchResults
+			SearchResultsSize = SearchSettings->MaxSearchResults;
+		}
+		else if (bHasPaging)
+		{
+			// Log warning if there was still more moderated rooms that could be returned
+			UE_LOG_ONLINE(Warning, TEXT("Truncated moderated rooms results returned from the server"));
+		}
+
+		SearchSettings->SearchResults.Reset(SearchResultsSize);
+
+		for (size_t i = 0; i < SearchResultsSize; i++)
+		{
+			auto Room = ovr_RoomArray_GetElement(RoomArray, i);
+			auto Session = CreateSessionFromRoom(Room);
+			auto SearchResult = FOnlineSessionSearchResult();
+			SearchResult.Session = Session.Get();
+			SearchResult.PingInMs = 0; // Ping is not included in the result, but it shouldn't be considered as unreachable
+			SearchSettings->SearchResults.Add(MoveTemp(SearchResult));
+		}
+
+		SearchSettings->SearchState = EOnlineAsyncTaskState::Done;
+		TriggerOnFindSessionsCompleteDelegates(true);
+	}));
+
+	return true;
+}
+
+bool FOnlineSessionOculus::FindMatchmakingSessions(const FString Pool, const TSharedRef<FOnlineSessionSearch>& SearchSettings)
+{
+	SearchSettings->SearchState = EOnlineAsyncTaskState::InProgress;
+	OculusSubsystem.AddRequestDelegate(
+		ovr_Matchmaking_Browse2(TCHAR_TO_UTF8(*Pool), nullptr),
+		FOculusMessageOnCompleteDelegate::CreateLambda([this, SearchSettings](ovrMessageHandle Message, bool bIsError)
+	{
+		if (bIsError)
+		{
+			SearchSettings->SearchState = EOnlineAsyncTaskState::Failed;
+			TriggerOnFindSessionsCompleteDelegates(false);
+			return;
+		}
+
+		auto BrowseResult = ovr_Message_GetMatchmakingBrowseResult(Message);
+
+		auto RoomArray = ovr_MatchmakingBrowseResult_GetRooms(BrowseResult);
+
+		auto SearchResultsSize = ovr_MatchmakingRoomArray_GetSize(RoomArray);
+
+		if (SearchResultsSize > SearchSettings->MaxSearchResults)
+		{
+			// Only return up to MaxSearchResults
+			SearchResultsSize = SearchSettings->MaxSearchResults;
+		}
+		// there is no paging for this array
+
+		SearchSettings->SearchResults.Reset(SearchResultsSize);
+
+		for (size_t i = 0; i < SearchResultsSize; i++)
+		{
+			auto MatchmakingRoom = ovr_MatchmakingRoomArray_GetElement(RoomArray, i);
+			auto Room = ovr_MatchmakingRoom_GetRoom(MatchmakingRoom);
+			auto Session = CreateSessionFromRoom(Room);
+			auto SearchResult = FOnlineSessionSearchResult();
+			SearchResult.Session = Session.Get();
+			SearchResult.PingInMs = ovr_MatchmakingRoom_HasPingTime(MatchmakingRoom) ? ovr_MatchmakingRoom_GetPingTime(MatchmakingRoom) : 0;
+			SearchSettings->SearchResults.Add(MoveTemp(SearchResult));
+		}
+
+		SearchSettings->SearchState = EOnlineAsyncTaskState::Done;
+		TriggerOnFindSessionsCompleteDelegates(true);
+	}));
+
+	return true;
 }
 
 bool FOnlineSessionOculus::FindSessionById(const FUniqueNetId& SearchingUserId, const FUniqueNetId& SessionId, const FUniqueNetId& FriendId, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate)
 {
-	/* TODO: #10920536 */
-	return false;
+	auto LoggedInPlayerId = OculusSubsystem.GetIdentityInterface()->GetUniquePlayerId(0);
+	if (!LoggedInPlayerId.IsValid() || SearchingUserId != *LoggedInPlayerId)
+	{
+		UE_LOG_ONLINE(Warning, TEXT("Can only search session with logged in player"));
+		return false;
+	}
+
+	if (FriendId.IsValid())
+	{
+		UE_LOG_ONLINE(Warning, TEXT("Optional FriendId param not supported.  Use FindFriendSession() instead."));
+		return false;
+	}
+
+	auto RoomId = static_cast<const FUniqueNetIdOculus&>(SessionId);
+	OculusSubsystem.AddRequestDelegate(
+		ovr_Room_Get(RoomId.GetID()),
+		FOculusMessageOnCompleteDelegate::CreateLambda([this, CompletionDelegate](ovrMessageHandle Message, bool bIsError)
+	{
+		auto SearchResult = FOnlineSessionSearchResult();
+
+		if (bIsError)
+		{
+			CompletionDelegate.ExecuteIfBound(0, false, SearchResult);
+			return;
+		}
+
+		auto Room = ovr_Message_GetRoom(Message);
+
+		if (Room == nullptr)
+		{
+			CompletionDelegate.ExecuteIfBound(0, false, SearchResult);
+			return;
+		}
+
+		auto Session = CreateSessionFromRoom(Room);
+		SearchResult.Session = Session.Get();
+
+		auto RoomJoinability = ovr_Room_GetJoinability(Room);
+		CompletionDelegate.ExecuteIfBound(0, RoomJoinability == ovrRoom_JoinabilityCanJoin, SearchResult);
+	}));
+	
+	return true;
 }
 
 bool FOnlineSessionOculus::CancelFindSessions()
@@ -818,6 +1030,9 @@ TSharedRef<FOnlineSession> FOnlineSessionOculus::CreateSessionFromRoom(ovrRoomHa
 {
 	auto RoomId = ovr_Room_GetID(Room);
 	auto RoomOwner = ovr_Room_GetOwner(Room);
+	auto RoomMaxUsers = ovr_Room_GetMaxUsers(Room);
+	auto RoomUsers = ovr_Room_GetUsers(Room);
+	auto RoomCurrentUsersSize = ovr_UserArray_GetSize(RoomUsers);
 
 	auto SessionSettings = FOnlineSessionSettings();
 
@@ -825,6 +1040,9 @@ TSharedRef<FOnlineSession> FOnlineSessionOculus::CreateSessionFromRoom(ovrRoomHa
 
 	Session->OwningUserId = MakeShareable(new FUniqueNetIdOculus(ovr_User_GetID(RoomOwner)));
 	Session->OwningUserName = ovr_User_GetOculusID(RoomOwner);
+
+	Session->SessionSettings.NumPublicConnections = RoomMaxUsers;
+	Session->NumOpenPublicConnections = RoomMaxUsers - RoomCurrentUsersSize;
 
 	Session->SessionInfo = MakeShareable(new FOnlineSessionInfoOculus(RoomId));
 

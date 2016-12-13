@@ -59,6 +59,14 @@ class ENGINE_API UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionL
 	static bool IsHeadMountedDisplayEnabled();
 
 	/**
+	* Returns whether or not the HMD hardware is connected and ready to use.  It may or may not actually be in use.
+	*
+	* @return (Boolean)  status whether the HMD hardware is connected and ready to use.  It may or may not actually be in use. 
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|HeadMountedDisplay")
+	static bool IsHeadMountedDisplayConnected();
+
+	/**
 	 * Switches to/from using HMD and stereo rendering.
 	 *
 	 * @param bEnable			(in) 'true' to enable HMD / stereo; 'false' otherwise

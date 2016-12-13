@@ -28,7 +28,8 @@ public class OnlineSubsystemOculus : ModuleRules
 				"OnlineSubsystem",
 				"Projects",
 				"PacketHandler",
-			}
+                "Voice",
+            }
 			);
 
 		PublicDependencyModuleNames.AddRange(new string[] { "LibOVRPlatform" });

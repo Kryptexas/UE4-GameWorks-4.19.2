@@ -191,23 +191,30 @@ static bool AddInteractionPairsToList(ovrSession OculusSession, TArray<FBoundary
 /**
  * Helper that gets geometry (3D points) of outer boundaries or play area (specified by BoundaryType)
  * @param OculusSession Specifies current ovrSession
- * @param BoundaryPoints Empty array of 3D points preallocated to size MaxNumBoundaryPoints
  * @param BoundaryType Must be ovrBoundary_Outer or ovrBoundary_PlayArea, specifies the type of boundary geometry to retrieve
  * @return Array of 3D points in Unreal world coordinate space corresponding to boundary geometry.
  */
-static TArray<FVector> GetBoundaryPoints(ovrSession OculusSession, ovrVector3f* BoundaryPoints, ovrBoundaryType BoundaryType)
+static TArray<FVector> GetBoundaryPoints(ovrSession OculusSession, ovrBoundaryType BoundaryType)
 {
 	TArray<FVector> BoundaryPointList;
+    
 	int NumPoints;
-	ovrResult ovrRes = ovr_GetBoundaryGeometry(OculusSession, BoundaryType, BoundaryPoints, &NumPoints);
+	const ovrResult ovrRes = ovr_GetBoundaryGeometry(OculusSession, BoundaryType, nullptr, &NumPoints);
 
 	if (OVR_SUCCESS(ovrRes))
 	{
-		for (int i = 0; i < NumPoints; i++)
-		{
-			FVector point = PointToWorldSpace(BoundaryPoints[i]);
-			BoundaryPointList.Add(point);
-		}
+		TArray<ovrVector3f> BoundaryPoints;
+		BoundaryPoints.Reserve(NumPoints);
+		BoundaryPoints.AddUninitialized(NumPoints);
+
+        const ovrResult ovrRes2 = ovr_GetBoundaryGeometry(OculusSession, BoundaryType, BoundaryPoints.GetData(), &NumPoints);
+        if (OVR_SUCCESS(ovrRes2))
+        {
+            for (int i = 0; i < NumPoints; ++i)
+            {
+                BoundaryPointList.Add(PointToWorldSpace(BoundaryPoints[i]));
+            }
+        }
 	}
 
 	return BoundaryPointList;
@@ -327,7 +334,7 @@ bool UOculusRiftBoundaryComponent::IsOuterBoundaryTriggered()
 bool UOculusRiftBoundaryComponent::SetOuterBoundaryColor(const FColor InBoundaryColor)
 {
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
-	ovrColorf NewColor = { InBoundaryColor.R, InBoundaryColor.G, InBoundaryColor.B, InBoundaryColor.A };
+	ovrColorf NewColor = { InBoundaryColor.R / 255.f, InBoundaryColor.G / 255.f, InBoundaryColor.B / 255.f, InBoundaryColor.A / 255.f };
 	ovrBoundaryLookAndFeel OuterBoundaryProperties;
 	OuterBoundaryProperties.Color = NewColor;
 
@@ -357,7 +364,7 @@ bool UOculusRiftBoundaryComponent::ResetOuterBoundaryColor()
 TArray<FVector> UOculusRiftBoundaryComponent::GetPlayAreaPoints()
 {
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
-	return GetBoundaryPoints(Session, BoundaryPoints, ovrBoundary_PlayArea);
+	return GetBoundaryPoints(Session, ovrBoundary_PlayArea);
 #else
 	TArray<FVector> ReturnValue;
 	return ReturnValue;
@@ -367,7 +374,7 @@ TArray<FVector> UOculusRiftBoundaryComponent::GetPlayAreaPoints()
 TArray<FVector> UOculusRiftBoundaryComponent::GetOuterBoundaryPoints()
 {
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
-	return GetBoundaryPoints(Session, BoundaryPoints, ovrBoundary_Outer);
+	return GetBoundaryPoints(Session, ovrBoundary_Outer);
 #else
 	TArray<FVector> ReturnValue;
 	return ReturnValue;

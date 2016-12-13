@@ -38,7 +38,8 @@ enum EStereoscopicPass
 {
 	eSSP_FULL,
 	eSSP_LEFT_EYE,
-	eSSP_RIGHT_EYE
+	eSSP_RIGHT_EYE,
+	eSSP_MONOSCOPIC_EYE
 };
 
 

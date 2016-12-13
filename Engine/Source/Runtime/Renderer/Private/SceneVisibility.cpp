@@ -317,6 +317,9 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 			float FadeRadius = GDisableLODFade ? 0.0f : GDistanceFadeMaxTravel;
 			uint8 CustomVisibilityFlags = EOcclusionFlags::CanBeOccluded | EOcclusionFlags::HasPrecomputedVisibility;
 
+			// Primitives may be explicitly removed from stereo views when using mono
+			const bool UseMonoCulling = View.Family->MonoParameters.Mode != EMonoscopicFarFieldMode::Off && (View.StereoPass == eSSP_LEFT_EYE || View.StereoPass == eSSP_RIGHT_EYE);
+
 			const int32 TaskWordOffset = TaskIndex * FrustumCullNumWordsPerTask;
 
 			for (int32 WordIndex = TaskWordOffset; WordIndex < TaskWordOffset + FrustumCullNumWordsPerTask && WordIndex * NumBitsPerDWORD < BitArrayNumInner; WordIndex++)
@@ -349,7 +352,8 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 						(DistanceSquared < Bounds.MinDrawDistanceSq) ||
 						(UseCustomCulling && !View.CustomVisibilityQuery->IsVisible(VisibilityId, FBoxSphereBounds(Bounds.Origin, Bounds.BoxExtent, Bounds.SphereRadius))) ||
 						(bAlsoUseSphereTest && View.ViewFrustum.IntersectSphere(Bounds.Origin, Bounds.SphereRadius) == false) ||
-						View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false)
+						View.ViewFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent) == false ||
+						(UseMonoCulling && Scene->Primitives[Index]->Proxy->RenderInMono()))
 					{
 						STAT(NumCulledPrimitives.Increment());
 					}

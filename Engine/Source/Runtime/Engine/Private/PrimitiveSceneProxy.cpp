@@ -39,6 +39,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	Mobility(InComponent->Mobility)
 ,	DrawInGame(InComponent->IsVisible())
 ,	DrawInEditor(InComponent->bVisible)
+,	bRenderInMono(InComponent->bRenderInMono)
 ,	bReceivesDecals(InComponent->bReceivesDecals)
 ,	bOnlyOwnerSee(InComponent->bOnlyOwnerSee)
 ,	bOwnerNoSee(InComponent->bOwnerNoSee)

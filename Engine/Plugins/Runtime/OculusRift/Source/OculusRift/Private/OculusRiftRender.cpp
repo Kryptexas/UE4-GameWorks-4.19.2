@@ -87,7 +87,12 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 			(!CurrentFrame->Flags.bOrientationChanged && !CurrentFrame->Flags.bPositionChanged))
 		{
 			// get latest orientation/position and cache it
-			CurrentFrame->GetHeadAndEyePoses(CurrentFrame->GetTrackingState(OvrSession), CurrentFrame->CurHeadPose, CurrentFrame->CurEyeRenderPose);
+			CurrentFrame->RenderThreadTrackingState = CurrentFrame->GetTrackingState(OvrSession);
+			CurrentFrame->GetHeadAndEyePoses(CurrentFrame->RenderThreadTrackingState, CurrentFrame->CurHeadPose, CurrentFrame->CurEyeRenderPose);
+		}
+		else
+		{
+			CurrentFrame->RenderThreadTrackingState = CurrentFrame->InitialTrackingState;
 		}
 	}
 

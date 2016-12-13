@@ -3071,6 +3071,15 @@ void UPrimitiveComponent::SetRenderInMainPass(bool bValue)
 	}
 }
 
+void UPrimitiveComponent::SetRenderInMono(bool bValue)
+{
+	if (bRenderInMono != bValue)
+	{
+		bRenderInMono = bValue;
+		MarkRenderStateDirty();
+	}
+}
+
 void UPrimitiveComponent::SetLODParentPrimitive(UPrimitiveComponent * InLODParentPrimitive)
 {
 	// @todo, what do we do with old parent. We can't just reset undo parent because the parent migh be used by other primitive

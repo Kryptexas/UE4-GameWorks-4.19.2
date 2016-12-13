@@ -3739,6 +3739,17 @@ bool UWorld::AreActorsInitialized() const
 	return bActorsInitialized && PersistentLevel && PersistentLevel->Actors.Num();
 }
 
+float UWorld::GetMonoFarFieldCullingDistance() const
+{
+	float Result = 0.0f;
+	const AWorldSettings* const WorldSettings = GetWorldSettings();
+	if (WorldSettings != nullptr)
+	{
+		Result = WorldSettings->MonoCullingDistance;
+	}
+	return Result;
+}
+
 void UWorld::CreatePhysicsScene()
 {
 	SetPhysicsScene(new FPhysScene());

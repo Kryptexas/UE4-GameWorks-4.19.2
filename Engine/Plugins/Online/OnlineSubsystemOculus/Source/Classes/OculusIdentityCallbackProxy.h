@@ -26,7 +26,7 @@ GENERATED_UCLASS_BODY()
 	UPROPERTY(BlueprintAssignable)
 	FOculusIdentityFailureResult OnFailure;
 
-	// Kick off entitlement check. Asynchronous-- see OnUserPrivilegeCompleteDelegate for results.
+	// Kick off GetOculusIdentity. Asynchronous-- see OnLoginCompleteDelegate for results.
 	UFUNCTION(BlueprintCallable, Category = "Oculus|Identity", meta = (BlueprintInternalUseOnly = "true"))
 	static UOculusIdentityCallbackProxy* GetOculusIdentity(int32 LocalUserNum);
 

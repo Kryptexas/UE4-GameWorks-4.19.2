@@ -986,7 +986,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		{
 			APlayerController* PlayerController = LocalPlayer->PlayerController;
 
-			int32 NumViews = bStereoRendering ? 2 : 1;
+			const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
+			const int32 NumViews = bStereoRendering ? ((ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off) ? 3 : 2) : 1;
 
 			for (int32 i = 0; i < NumViews; ++i)
 			{
@@ -994,7 +995,23 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 				FVector		ViewLocation;
 				FRotator	ViewRotation;
 
-				EStereoscopicPass PassType = !bStereoRendering ? eSSP_FULL : ((i == 0) ? eSSP_LEFT_EYE : eSSP_RIGHT_EYE);
+				EStereoscopicPass PassType;
+				if (!bStereoRendering)
+				{
+					PassType = eSSP_FULL;
+				}
+				else if (i == 0)
+				{
+					PassType = eSSP_LEFT_EYE;
+				}
+				else if (i == 1)
+				{
+					PassType = eSSP_RIGHT_EYE;
+				}
+				else
+				{
+					PassType = eSSP_MONOSCOPIC_EYE;
+				}
 
 				FSceneView* View = LocalPlayer->CalcSceneView(&ViewFamily, ViewLocation, ViewRotation, InViewport, &GameViewDrawer, PassType);
 

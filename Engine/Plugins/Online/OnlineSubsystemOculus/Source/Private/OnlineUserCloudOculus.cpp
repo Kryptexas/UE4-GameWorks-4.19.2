@@ -150,12 +150,14 @@ bool FOnlineUserCloudOculus::WriteUserFile(const FUniqueNetId& UserId, const FSt
 
 	auto DelegateLambda = FOculusMessageOnCompleteDelegate::CreateLambda([this, BucketName, Key, LoggedInPlayerId, FileName, TmpBuffer](ovrMessageHandle Message, bool bIsError)
 	{
-		check(BucketName == UTF8_TO_TCHAR(ovr_CloudStorageUpdateResponse_GetBucket(ovr_Message_GetCloudStorageUpdateResponse(Message))));
-		check(Key == UTF8_TO_TCHAR(ovr_CloudStorageUpdateResponse_GetKey(ovr_Message_GetCloudStorageUpdateResponse(Message))));
-
 		if (bIsError)
 		{
 			UE_LOG_ONLINE(Warning, TEXT("Failed to Save: %s%s%s"), *BucketName, *SEPARATOR, *Key);
+		}
+		else
+		{
+			check(BucketName == UTF8_TO_TCHAR(ovr_CloudStorageUpdateResponse_GetBucket(ovr_Message_GetCloudStorageUpdateResponse(Message))));
+			check(Key == UTF8_TO_TCHAR(ovr_CloudStorageUpdateResponse_GetKey(ovr_Message_GetCloudStorageUpdateResponse(Message))));
 		}
 
 		delete TmpBuffer;
@@ -190,16 +192,16 @@ bool FOnlineUserCloudOculus::ReadUserFile(const FUniqueNetId& UserId, const FStr
 		ovr_CloudStorage_Load(TCHAR_TO_UTF8(*BucketName), TCHAR_TO_UTF8(*Key)),
 		FOculusMessageOnCompleteDelegate::CreateLambda([this, BucketName, Key, LoggedInPlayerId, FileName](ovrMessageHandle Message, bool bIsError)
 	{
-		ovrCloudStorageDataHandle response = ovr_Message_GetCloudStorageData(Message);
-		check(BucketName == UTF8_TO_TCHAR(ovr_CloudStorageData_GetBucket(response)));
-		check(Key == UTF8_TO_TCHAR(ovr_CloudStorageData_GetKey(response)));
-
 		if (bIsError)
 		{
 			UE_LOG_ONLINE(Warning, TEXT("Failed to Load: %s%s%s"), *BucketName, *SEPARATOR, *Key);
 		}
 		else
 		{
+			ovrCloudStorageDataHandle response = ovr_Message_GetCloudStorageData(Message);
+			check(BucketName == UTF8_TO_TCHAR(ovr_CloudStorageData_GetBucket(response)));
+			check(Key == UTF8_TO_TCHAR(ovr_CloudStorageData_GetKey(response)));
+
 			int64 BlobSize = ovr_CloudStorageData_GetDataSize(response);
 			const void* RawBlob = ovr_CloudStorageData_GetData(response);
 

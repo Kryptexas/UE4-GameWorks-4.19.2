@@ -224,8 +224,7 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 {
 	if (bLockToHmd && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
 	{
-		ResetRelativeTransform();
-		const FTransform ParentWorld = GetComponentToWorld();
+		const FTransform ParentWorld = CalcNewComponentToWorld(FTransform());
 		GEngine->HMDDevice->SetupLateUpdate(ParentWorld, this);
 
 		FQuat Orientation;
@@ -233,6 +232,10 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 		if (GEngine->HMDDevice->UpdatePlayerCamera(Orientation, Position))
 		{
 			SetRelativeTransform(FTransform(Orientation, Position));
+		}
+		else
+		{
+			ResetRelativeTransform();
 		}
 	}
 

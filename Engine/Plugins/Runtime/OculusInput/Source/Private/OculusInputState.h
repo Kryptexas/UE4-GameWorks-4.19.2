@@ -167,8 +167,14 @@ struct FOculusTouchCapacitiveState
  */
 struct FOculusTouchControllerState
 {
-	/** True if the device is connected and actively being tracked, otherwise false */
-	bool bIsCurrentlyTracked;
+	/** True if the device is connected, otherwise false */
+	bool bIsConnected;
+
+	/** True if position is being tracked, otherwise false */
+	bool bIsPositionTracked;
+
+	/** True if orientation is being tracked, otherwise false */
+	bool bIsOrientationTracked;
 
 	/** Location of the controller in the local tracking space */
 	FVector Location;
@@ -203,7 +209,9 @@ struct FOculusTouchControllerState
 
 	/** Explicit constructor sets up sensible defaults */
 	FOculusTouchControllerState( const EControllerHand Hand )
-		: bIsCurrentlyTracked( false ),
+		: bIsConnected( false ),
+		  bIsPositionTracked( false ),
+		  bIsOrientationTracked( false ),
 		  Location( FVector::ZeroVector ),
 		  Orientation( FQuat::Identity ),
 		  TriggerAxis( 0.0f ),

@@ -4,9 +4,14 @@
 #define OVR_MATCHMAKINGENQUEUERESULT_H
 
 #include "OVR_Platform_Defs.h"
+#include "OVR_MatchmakingAdminSnapshot.h"
 #include <stddef.h>
 
 typedef struct ovrMatchmakingEnqueueResult *ovrMatchmakingEnqueueResultHandle;
+
+/// If 'IsDebug' is set in ovrMatchmakingOptionsHandle, this will return with
+/// the enqueue results.
+OVRP_PUBLIC_FUNCTION(ovrMatchmakingAdminSnapshotHandle) ovr_MatchmakingEnqueueResult_GetAdminSnapshot(const ovrMatchmakingEnqueueResultHandle obj);
 
 /// The average amount of time (mean average) that users in this queue have
 /// waited during the last hour or more. The wait times, whether the users

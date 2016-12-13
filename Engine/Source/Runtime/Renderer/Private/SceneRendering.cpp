@@ -819,7 +819,7 @@ void FViewInfo::SetupUniformBufferParameters(
 	// Padding between the left and right eye may be introduced by an HMD, which instanced stereo needs to account for.
 	if ((Family != nullptr) && (StereoPass != eSSP_FULL) && (Family->Views.Num() > 1))
 	{
-		check(Family->Views.Num() == 2);
+		check(Family->Views.Num() >= 2);
 		const float FamilySizeX = static_cast<float>(Family->InstancedStereoWidth);
 		const float EyePaddingSize = static_cast<float>(Family->Views[1]->ViewRect.Min.X - Family->Views[0]->ViewRect.Max.X);
 		ViewUniformShaderParameters.HMDEyePaddingOffset = (FamilySizeX - EyePaddingSize) / FamilySizeX;
@@ -1508,7 +1508,7 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 			FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-			
+
 			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<>::GetRHI());
 
 			const bool bWriteCustomStencilValues = SceneContext.IsCustomDepthPassWritingStencil();
