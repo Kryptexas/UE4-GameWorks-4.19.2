@@ -6834,6 +6834,8 @@ void UParticleSystemComponent::GetUsedMaterials( TArray<UMaterialInterface*>& Ou
 			}
 		}
 	}
+
+	OutMaterials.Append(EmitterMaterials);
 }
 
 FBodyInstance* UParticleSystemComponent::GetBodyInstance(FName BoneName /*= NAME_None*/, bool bGetWelded /*= true*/) const
