@@ -72,7 +72,6 @@ public:
 		, _MinSliderValue(0)				
 		, _MaxSliderValue(100)
 		, _SliderExponent(1.f)
-		, _SliderExponentNeutralValue(0)
 		, _MinDesiredValueWidth(0)
 		
 	{}		
