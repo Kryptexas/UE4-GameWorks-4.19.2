@@ -515,7 +515,7 @@ protected:                                                                      
 
 #ifndef DISABLE_CUDA_PHYSX
 //CUDA is currently supported only on windows 
-#define PX_SUPPORT_GPU_PHYSX ((PX_WINDOWS_FAMILY && PX_VC < 14) || (PX_LINUX && PX_X64))
+#define PX_SUPPORT_GPU_PHYSX ((PX_WINDOWS_FAMILY) || (PX_LINUX && PX_X64))
 #else
 #define PX_SUPPORT_GPU_PHYSX 0
 #endif
