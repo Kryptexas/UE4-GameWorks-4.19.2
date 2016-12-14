@@ -2,6 +2,7 @@
 
 #include "Framework/Text/Android/AndroidPlatformTextField.h"
 #include "Widgets/Input/IVirtualKeyboardEntry.h"
+#include "Misc/CommandLine.h"
 
 // Java InputType class
 #define TYPE_CLASS_TEXT						0x00000001
@@ -19,41 +20,69 @@
 
 void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget)
 {
-	if(bShow)
+	// Set the EditBox inputType based on keyboard type
+	int32 InputType;
+	
+	if (bShow)
 	{
-		// Set the EditBox inputType based on keyboard type
-		int32 InputType;
 		switch (TextEntryWidget->GetVirtualKeyboardType())
 		{
-		case EKeyboardType::Keyboard_Number:
-			InputType = TYPE_CLASS_NUMBER | TYPE_TEXT_VARIATION_NORMAL;
-			break;
-		case EKeyboardType::Keyboard_Web:
-			InputType = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_URI;
-			break;
-		case EKeyboardType::Keyboard_Email:
-			InputType = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_EMAIL_ADDRESS;
-			break;
-		case EKeyboardType::Keyboard_Password:
-			InputType = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_PASSWORD;
-			break;
-		case EKeyboardType::Keyboard_AlphaNumeric:
-		case EKeyboardType::Keyboard_Default:
-		default:
-			InputType = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_NORMAL;
-			break;
+			case EKeyboardType::Keyboard_Number:
+				InputType = TYPE_CLASS_NUMBER | TYPE_TEXT_VARIATION_NORMAL;
+				break;
+			case EKeyboardType::Keyboard_Web:
+				InputType = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_URI;
+				break;
+			case EKeyboardType::Keyboard_Email:
+				InputType = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_EMAIL_ADDRESS;
+				break;
+			case EKeyboardType::Keyboard_Password:
+				InputType = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_PASSWORD;
+				break;
+			case EKeyboardType::Keyboard_AlphaNumeric:
+			case EKeyboardType::Keyboard_Default:
+			default:
+				InputType = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_NORMAL;
+				break;
 		}
-
+		
 		// Do not make suggestions as user types
 		InputType |= TYPE_TEXT_FLAG_NO_SUGGESTIONS;
-
-		// Show alert for input
-		extern void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry>, int32, const FString&, const FString&);
-		AndroidThunkCpp_ShowVirtualKeyboardInput(TextEntryWidget, InputType, TextEntryWidget->GetHintText().ToString(), TextEntryWidget->GetText().ToString());
+	}
+	
+	// This option is tied to a command line parameter (same as IOS)
+	static int IsUsingIntegratedKeyboard = -1;
+	if (IsUsingIntegratedKeyboard == -1)
+	{
+		IsUsingIntegratedKeyboard = FParse::Param(FCommandLine::Get(), TEXT("NewKeyboard")) ? 1 : 0;
+	}
+	
+	if (IsUsingIntegratedKeyboard > 0)
+	{
+		if (bShow)
+		{
+			// Show alert for input
+			extern void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry>, int32, const FString&, const FString&);
+			AndroidThunkCpp_ShowVirtualKeyboardInput(TextEntryWidget, InputType, TextEntryWidget->GetHintText().ToString(), TextEntryWidget->GetText().ToString());
+		}
+		else
+		{
+			extern void AndroidThunkCpp_HideVirtualKeyboardInput();
+			AndroidThunkCpp_HideVirtualKeyboardInput();
+		}
 	}
 	else
 	{
-		extern void AndroidThunkCpp_HideVirtualKeyboardInput();
-		AndroidThunkCpp_HideVirtualKeyboardInput();
+		if (bShow)
+		{
+			// Show alert for input
+			extern void AndroidThunkCpp_ShowVirtualKeyboardInputDialog(TSharedPtr<IVirtualKeyboardEntry>, int32, const FString&, const FString&);
+			AndroidThunkCpp_ShowVirtualKeyboardInputDialog(TextEntryWidget, InputType, TextEntryWidget->GetHintText().ToString(), TextEntryWidget->GetText().ToString());
+		}
+		else
+		{
+			extern void AndroidThunkCpp_HideVirtualKeyboardInputDialog();
+			AndroidThunkCpp_HideVirtualKeyboardInputDialog();
+		}
 	}
 }

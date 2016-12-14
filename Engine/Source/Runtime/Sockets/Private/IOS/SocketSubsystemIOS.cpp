@@ -71,9 +71,11 @@ bool FSocketSubsystemIOS::HasNetworkDevice()
 
 FSocket* FSocketSubsystemIOS::CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP)
 {
-	FSocketBSD* NewSocket = (FSocketBSD*)FSocketSubsystemBSD::CreateSocket(SocketType, SocketDescription, bForceUDP);
+	FSocketBSDIPv6* NewSocket = (FSocketBSDIPv6*)FSocketSubsystemBSDIPv6::CreateSocket(SocketType, SocketDescription, bForceUDP);
 	if (NewSocket)
 	{
+		NewSocket->SetIPv6Only(false);
+
 		// disable the SIGPIPE exception 
 		int bAllow = 1;
 		setsockopt(NewSocket->GetNativeSocket(), SOL_SOCKET, SO_NOSIGPIPE, &bAllow, sizeof(bAllow));

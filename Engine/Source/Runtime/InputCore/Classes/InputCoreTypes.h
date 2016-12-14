@@ -475,6 +475,10 @@ struct INPUTCORE_API EKeys
 	static const FKey Android_Volume_Down;
 	static const FKey Android_Menu;
 
+	// Virtual buttons that use other buttons depending on the platform
+	static const FKey Virtual_Accept;
+	static const FKey Virtual_Back;
+
 	static const FKey Invalid;
 
 	static const int32 NUM_TOUCH_KEYS = 11;

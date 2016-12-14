@@ -4371,7 +4371,7 @@ namespace UnrealBuildTool
 			}
 
 			// Set the define for whether we're compiling with CEF3
-			if (UEBuildConfiguration.bCompileCEF3 && (Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64 || Platform == UnrealTargetPlatform.Mac))
+			if (UEBuildConfiguration.bCompileCEF3 && (Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64 || Platform == UnrealTargetPlatform.Mac || Platform == UnrealTargetPlatform.Linux))
 			{
 				GlobalCompileEnvironment.Config.Definitions.Add("WITH_CEF3=1");
 			}

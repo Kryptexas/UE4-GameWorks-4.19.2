@@ -1784,8 +1784,12 @@ FString FMacPlatformMisc::GetXcodePath()
 
 float FMacPlatformMisc::GetDPIScaleFactorAtPoint(float X, float Y)
 {
-	TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
-	return Screen->Screen.backingScaleFactor;
+	if (MacApplication && MacApplication->IsHighDPIModeEnabled())
+	{
+		TSharedRef<FMacScreen> Screen = FMacApplication::FindScreenBySlatePosition(X, Y);
+		return Screen->Screen.backingScaleFactor;
+	}
+	return 1.0f;
 }
 
 /** Global pointer to crash handler */

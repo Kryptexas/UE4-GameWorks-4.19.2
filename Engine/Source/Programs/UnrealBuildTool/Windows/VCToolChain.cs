@@ -135,7 +135,7 @@ namespace UnrealBuildTool
 
 				if (!WindowsPlatform.bUseVCCompilerArgs)
 				{
-					Arguments.Add("-std=c++11");
+					Arguments.Add("-std=c++14");
 					Arguments.Add("-fdiagnostics-format=msvc");
 					Arguments.Add("-Xclang -relaxed-aliasing -Xclang --dependent-lib=msvcrt -Xclang --dependent-lib=oldnames -gline-tables-only -ffunction-sections");
 				}
@@ -701,7 +701,7 @@ namespace UnrealBuildTool
 			// Intel compiler options.
 			if (WindowsPlatform.bCompileWithICL)
 			{
-				Arguments.Add("/Qstd=c++11");
+				Arguments.Add("/Qstd=c++14");
 				Arguments.Add("/fp:precise");
 				Arguments.Add("/nologo");
 			}

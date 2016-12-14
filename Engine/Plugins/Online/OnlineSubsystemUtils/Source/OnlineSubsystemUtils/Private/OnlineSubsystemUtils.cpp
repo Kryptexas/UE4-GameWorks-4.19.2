@@ -292,8 +292,26 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						bool bTestLAN = FParse::Command(&Cmd, TEXT("LAN")) ? true : false;
 						bool bTestPresence = FParse::Command(&Cmd, TEXT("PRESENCE")) ? true : false;
 
+						FOnlineSessionSettings SettingsOverride;
+
+						FString ParamOverride;
+						while (FParse::Token(Cmd, ParamOverride, false))
+						{
+							FString Value;
+							FParse::Token(Cmd, Value, false);
+
+							if (Value.IsNumeric())
+							{
+								SettingsOverride.Set(FName(*ParamOverride), FCString::Atoi(*Value));
+							}
+							else
+							{
+								SettingsOverride.Set(FName(*ParamOverride), Value);
+							}
+						}
+
 						// This class deletes itself once done
-						(new FTestSessionInterface(SubName, true))->Test(InWorld, bTestLAN, bTestPresence);
+						(new FTestSessionInterface(SubName, true))->Test(InWorld, bTestLAN, bTestPresence, false, SettingsOverride);
 						bWasHandled = true;
 					}
 					// Spawn the object that will exercise all of the session methods as client
@@ -302,8 +320,34 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						bool bTestLAN = FParse::Command(&Cmd, TEXT("LAN")) ? true : false;
 						bool bTestPresence = FParse::Command(&Cmd, TEXT("PRESENCE")) ? true : false;
 
+						FOnlineSessionSettings SettingsOverride;
+
 						// This class deletes itself once done
-						(new FTestSessionInterface(SubName, false))->Test(InWorld, bTestLAN, bTestPresence);
+						(new FTestSessionInterface(SubName, false))->Test(InWorld, bTestLAN, bTestPresence, false, SettingsOverride);
+						bWasHandled = true;
+					}
+					else if (FParse::Command(&Cmd, TEXT("STARTMATCHMAKING")))
+					{
+						FOnlineSessionSettings SettingsOverride;
+
+						FString ParamOverride;
+						while (FParse::Token(Cmd, ParamOverride, false))
+						{
+							FString Value;
+							FParse::Token(Cmd, Value, false);
+
+							if (Value.IsNumeric())
+							{
+								SettingsOverride.Set(FName(*ParamOverride), FCString::Atoi(*Value));
+							}
+							else
+							{
+								SettingsOverride.Set(FName(*ParamOverride), Value);
+							}
+						}
+
+						// This class deletes itself once done
+						(new FTestSessionInterface(SubName, false))->Test(InWorld, false, false, true, SettingsOverride);
 						bWasHandled = true;
 					}
 					else if (FParse::Command(&Cmd, TEXT("CLOUD")))

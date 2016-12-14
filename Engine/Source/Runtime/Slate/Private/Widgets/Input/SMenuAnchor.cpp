@@ -144,7 +144,7 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 		// passed down in FGeometry, along with the window DPI Scale, as one extra value code can take into account if it needs to.
 		const FVector2D NewSize = PopupGeometry.GetDrawSize() / ( AllottedGeometry.GetAccumulatedLayoutTransform().GetScale() / PopupWindow->GetLocalToWindowTransform().GetScale() );
 
-		const FSlateRect NewShape = FSlateRect( NewPosition.X, NewPosition.Y, NewPosition.X + NewSize.X, NewPosition.Y + NewSize.Y );
+		const FSlateRect NewShape = FSlateRect( FMath::RoundToFloat(NewPosition.X), FMath::RoundToFloat(NewPosition.Y), NewPosition.X + NewSize.X, NewPosition.Y + NewSize.Y );
 
 		// We made a window for showing the popup.
 		// Update the window's position!

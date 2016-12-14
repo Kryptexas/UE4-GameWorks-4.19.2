@@ -723,7 +723,7 @@ bool FMetalDynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolu
 	if (AllModes)
 	{
 		const int32 NumModes = CFArrayGetCount(AllModes);
-		const int32 Scale = FMacApplication::GetPrimaryScreenBackingScaleFactor();
+		const int32 Scale = (int32)FMacApplication::GetPrimaryScreenBackingScaleFactor();
 		
 		for (int32 Index = 0; Index < NumModes; Index++)
 		{

@@ -1425,6 +1425,11 @@ void UEngine::ParseCommandline()
 		bUseSound = false;
 	}
 
+	if (FParse::Param(FCommandLine::Get(), TEXT("enablesound")))
+	{
+		bUseSound = true;
+	}
+
 	if( FParse::Param( FCommandLine::Get(), TEXT("noailogging")) )
 	{
 		bDisableAILogging = true;

@@ -18,6 +18,9 @@ ADD_LIBRARY(PhysXCharacterKinematic STATIC
 # Target specific compile options
 
 TARGET_INCLUDE_DIRECTORIES(PhysXCharacterKinematic 
+
+	PRIVATE ${PHYSXCHARACTERKINEMATICS_PLATFORM_INCLUDES}
+
 	PRIVATE ${PXSHARED_ROOT_DIR}/include
 	PRIVATE ${PXSHARED_ROOT_DIR}/src/foundation/include
 	PRIVATE ${PXSHARED_ROOT_DIR}/src/fastxml/include

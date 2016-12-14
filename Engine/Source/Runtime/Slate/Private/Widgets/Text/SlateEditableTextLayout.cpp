@@ -940,7 +940,7 @@ FReply FSlateEditableTextLayout::HandleKeyDown(const FKeyEvent& InKeyEvent)
 
 FReply FSlateEditableTextLayout::HandleKeyUp(const FKeyEvent& InKeyEvent)
 {
-	if (FPlatformMisc::GetRequiresVirtualKeyboard() && InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Bottom)
+	if (FPlatformMisc::GetRequiresVirtualKeyboard() && InKeyEvent.GetKey() == EKeys::Virtual_Accept)
 	{
 		if (!OwnerWidget->IsTextReadOnly())
 		{

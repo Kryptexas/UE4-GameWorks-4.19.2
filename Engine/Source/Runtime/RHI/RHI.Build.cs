@@ -29,7 +29,8 @@ public class RHI : ModuleRules
 			}
 
 			// need to dynamically load an assembly to check if the SDK exists (not everyone will have access to this)
-			if (Target.Platform == UnrealTargetPlatform.Win64)
+			// don't include in monolithic builds, however, because we don't want to put it into the UE4Game in the binary builds
+			if (Target.Platform == UnrealTargetPlatform.Win64 && !Target.IsMonolithic)
 			{
 				System.Type SwitchSDKType = System.Type.GetType("UnrealBuildTool.SwitchPlatformSDK,UnrealBuildTool");
 				if (SwitchSDKType != null)

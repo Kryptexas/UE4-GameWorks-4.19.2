@@ -77,6 +77,9 @@ class TestOnlineSearchSettings;
 	/** Delegate for joining a new session after previously destroying it */
 	FOnDestroySessionCompleteDelegate OnDestroyForJoinSessionCompleteDelegate;
 
+	/** Delegate for matchmaking */
+	FOnMatchmakingCompleteDelegate OnMatchmakingCompleteDelegate;
+
 	/** Handles for the above delegates */
 	FDelegateHandle OnReadFriendsListCompleteDelegateHandle;
 	FDelegateHandle OnSessionUserInviteAcceptedDelegateHandle;
@@ -92,6 +95,7 @@ class TestOnlineSearchSettings;
 	FDelegateHandle OnJoinSessionCompleteDelegateHandle;
 	FDelegateHandle OnEndForJoinSessionCompleteDelegateHandle;
 	FDelegateHandle OnDestroyForJoinSessionCompleteDelegateHandle;
+	FDelegateHandle OnMatchmakingCompleteDelegateHandle;
 
 	/** Delegate for joining a friend (JIP) */
 	FOnFindFriendSessionCompleteDelegate OnFindFriendSessionCompleteDelegate;
@@ -257,6 +261,14 @@ class TestOnlineSearchSettings;
 	 */
 	void OnCancelFindSessionsComplete(bool bWasSuccessful);
 
+	/**
+	 * Delegate fired when matchmaking has been completed
+	 *
+	 * @param SessionName the name of the session this callback is for
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 */
+	void OnMatchmakingComplete(FName SessionName, bool bWasSuccessful);
+
 	/** Allows the world pointer to be cleaned up if it is going to be destroyed */
 	void WorldDestroyed( UWorld* InWorld );
 
@@ -317,10 +329,10 @@ class TestOnlineSearchSettings;
 
 	/**
 	 * Kicks off all of the testing process
-	 *
+	 *z
 	 * @param bTestLAN setup settings for LAN test
 	 */
-	void Test(UWorld* InWorld, bool bTestLAN, bool bIsPresence);
+	void Test(UWorld* InWorld, bool bTestLAN, bool bIsPresence, bool bIsMatchmaking, const FOnlineSessionSettings& SettingsOverride);
 
 	/**
 	 * Clear out any existing delegates created

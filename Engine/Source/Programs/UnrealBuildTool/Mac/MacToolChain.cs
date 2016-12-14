@@ -205,7 +205,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -216,7 +216,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -227,7 +227,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -245,7 +245,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++-header";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}

@@ -4,10 +4,6 @@
 
 #include "CoreMinimal.h"
 
-class Error;
-class FWebJSScripting;
-struct FWebJSParam;
-
 #if WITH_CEF3
 #include "WebJSFunction.h"
 #include "WebJSScripting.h"
@@ -27,6 +23,13 @@ THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
+#endif
+
+class Error;
+class FWebJSScripting;
+struct FWebJSParam;
+
+#if WITH_CEF3
 
 /**
  * Implements handling of bridging UObjects client side with JavaScript renderer side.

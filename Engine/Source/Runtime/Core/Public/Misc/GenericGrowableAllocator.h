@@ -21,7 +21,6 @@
 /////////////
 
 
-
 struct FGrowableAllocationBase
 {
 	uint64 Size;
@@ -505,11 +504,8 @@ public:
 		if (AvailableChunk == nullptr || Result == nullptr)
 		{
 			OutOfMemory(AlignedSize);
+			return nullptr;
 		}
-
-#if DEBUG_LOGS
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FGrowableAllocator::Malloc  %f KB %d B"), AlignedSize / 1024.f, AlignedSize);
-#endif
 
 #if !UE_BUILD_SHIPPING
 		// track per type allocation info

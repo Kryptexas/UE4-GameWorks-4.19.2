@@ -1044,6 +1044,12 @@ public:
 	void GetUnsolicitedPackages(TArray<UPackage*>& PackagesToSave, bool &ContainsFullGCAssetClasses, const TArray<FName>& TargetPlatformNames) const;
 
 	/**
+	 * PostLoadPackageFixup
+	 * after a package is loaded we might want to fix up some stuff before it gets saved
+	 */
+	void PostLoadPackageFixup(UPackage* Package);
+
+	/**
 	 * Handles cook package requests until there are no more requests, then returns
 	 *
 	 * @param  CookFlags output of the things that might have happened in the cook on the side

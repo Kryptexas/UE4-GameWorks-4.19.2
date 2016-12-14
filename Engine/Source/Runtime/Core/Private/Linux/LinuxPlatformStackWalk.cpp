@@ -960,6 +960,21 @@ void FLinuxPlatformStackWalk::CaptureStackBackTrace( uint64* BackTrace, uint32 M
 	}
 }
 
+void FLinuxPlatformStackWalk::ThreadStackWalkAndDump(ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, int32 IgnoreCount, uint32 ThreadId)
+{
+	// This is intentional on servers. Right now we cannot symbolicate the other thread, so we crash it instead, which also helps in identifying lock ups
+	if (UE_SERVER)
+	{
+		if (kill(ThreadId, SIGQUIT) == 0)
+		{
+			// do not exit, crash is imminent anyway (signals are delivered asynchronously)
+			for(;;)
+			{
+			}
+		}
+	}
+}
+
 static FCriticalSection EnsureLock;
 static bool bReentranceGuard = false;
 

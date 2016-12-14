@@ -161,7 +161,18 @@ namespace UnrealBuildTool
 			Result += " -pipe";
 			Result += " -fpascal-strings";
 
-			Result += " -fno-exceptions";
+
+			// Optionally enable exception handling (off by default since it generates extra code needed to propagate exceptions)
+			if (CompileEnvironment.Config.bEnableExceptions || UEBuildConfiguration.bForceEnableExceptions)
+			{
+				Result += " -fexceptions";
+			}
+			else
+			{
+				Result += " -fno-exceptions";
+			}
+
+
 			Result += GetRTTIFlag(CompileEnvironment);
 			Result += " -fvisibility=hidden"; // hides the linker warnings with PhysX
 
@@ -265,7 +276,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -276,7 +287,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -287,7 +298,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -303,7 +314,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 			Result += " -x objective-c++-header";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}

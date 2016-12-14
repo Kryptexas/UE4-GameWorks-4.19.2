@@ -27,11 +27,11 @@ public:
 	{
 		// Make Boundaries between payloads, add a visual marker for easier debugging.
 
-		uint32 Marker = 0xDeadBeef;
-		uint32 Size = Out.Num();
-
-		OutBuffer.Append((uint8*)&Marker,sizeof(uint32));
-		OutBuffer.Append((uint8*)&Size,sizeof(uint32));
+//		uint32 Marker = 0xDeadBeef;
+//		uint32 Size = Out.Num();
+//
+//		OutBuffer.Append((uint8*)&Marker,sizeof(uint32));
+//		OutBuffer.Append((uint8*)&Size,sizeof(uint32));
 		OutBuffer.Append(Out);
 
 		return true;
@@ -457,6 +457,10 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 		}
 		break;
 	case LWS_CALLBACK_CLOSED_HTTP:
+
+		if ( BufferInfo == NULL )
+			break;
+
 		// client went away or
 		//clean up.
 		BufferInfo->In.Empty();

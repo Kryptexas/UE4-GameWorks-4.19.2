@@ -3551,6 +3551,7 @@ static FSystemValue PixelSystemValueTable[] =
 	{ "SV_RenderTargetArrayIndex", glsl_type::int_type, "gl_Layer", ir_var_in, false, false, false, false },
 	{ "SV_Target0", glsl_type::half4_type, "gl_FragColor", ir_var_out, false, false, false, true },
 	{ "SV_ViewID", glsl_type::uint_type, "gl_ViewID_OVR", ir_var_in, false, false, false, true }, // Mobile multi-view support
+	{ "SV_SampleIndex", glsl_type::uint_type, "gl_SampleID", ir_var_in, false, false, false, false }, // Mobile multi-view support
 	{ NULL, NULL, NULL, ir_var_auto, false, false, false }
 };
 

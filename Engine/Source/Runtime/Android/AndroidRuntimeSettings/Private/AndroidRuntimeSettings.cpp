@@ -3,7 +3,7 @@
 #include "AndroidRuntimeSettings.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UnrealType.h"
-
+#include "Misc/CoreDelegates.h"
 
 #if WITH_EDITOR
 #include "IAndroid_MultiTargetPlatformModule.h"
@@ -30,6 +30,57 @@ UAndroidRuntimeSettings::UAndroidRuntimeSettings(const FObjectInitializer& Objec
 }
 
 #if WITH_EDITOR
+static void InvalidateAllAndroidPlatforms()
+{
+	ITargetPlatformModule* Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("AndroidTargetPlatform");
+	if (Module != nullptr)
+	{
+		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
+	}
+
+	Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("Android_PVRTCTargetPlatform");
+	if (Module != nullptr)
+	{
+		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
+	}
+
+	Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("Android_ATCTargetPlatform");
+	if (Module != nullptr)
+	{
+		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
+	}
+
+	Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("Android_DXTTargetPlatform");
+	if (Module != nullptr)
+	{
+		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
+	}
+
+	Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("Android_ETC1TargetPlatform");
+	if (Module != nullptr)
+	{
+		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
+	}
+
+	Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("Android_ETC2TargetPlatform");
+	if (Module != nullptr)
+	{
+		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
+	}
+
+	Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("Android_ASTCTargetPlatform");
+	if (Module != nullptr)
+	{
+		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
+	}
+
+	Module = FModuleManager::GetModulePtr<IAndroid_MultiTargetPlatformModule>("Android_MultiTargetPlatform");
+	if (Module != nullptr)
+	{
+		FCoreDelegates::OnTargetPlatformChangedSupportedFormats.Broadcast(Module->GetTargetPlatform());
+	}
+}
+
 void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -41,11 +92,26 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForArmV7)), GetDefaultConfigFilename());
 	}
 
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		if (PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForESDeferred) ||
+			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bSupportsVulkan) ||
+			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES2) ||
+			PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES31))
+		{
+			// Supported shader formats changed so invalidate cache
+			InvalidateAllAndroidPlatforms();
+		}
+	}
+
 	// Ensure that at least one GPU architecture is supported
 	if (!bBuildForES2 && !bBuildForESDeferred && !bSupportsVulkan && !bBuildForES31)
 	{
 		bBuildForES2 = true;
 		UpdateSinglePropertyInConfigFile(GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, bBuildForES2)), GetDefaultConfigFilename());
+
+		// Supported shader formats changed so invalidate cache
+		InvalidateAllAndroidPlatforms();
 	}
 
 	if (PropertyChangedEvent.Property != nullptr && PropertyChangedEvent.Property->GetName().StartsWith(TEXT("bMultiTargetFormat")))

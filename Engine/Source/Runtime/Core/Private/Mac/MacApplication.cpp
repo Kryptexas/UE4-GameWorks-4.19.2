@@ -34,6 +34,31 @@ extern "C" void MTDeviceStart(void*, int);
 extern "C" bool MTDeviceIsBuiltIn(void*);
 #endif
 
+static bool IsAppHighResolutionCapable()
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	static bool bIsAppHighResolutionCapable = false;
+	static bool bInitialized = false;
+
+	if (!bInitialized)
+	{
+		NSDictionary<NSString *,id>* BundleInfo = [[NSBundle mainBundle] infoDictionary];
+		if (BundleInfo)
+		{
+			NSNumber* Value = (NSNumber*)[BundleInfo objectForKey:@"NSHighResolutionCapable"];
+			if (Value)
+			{
+				bIsAppHighResolutionCapable = [Value boolValue];
+			}
+		}
+
+		bInitialized = true;
+	}
+
+	return bIsAppHighResolutionCapable;
+}
+
 FMacApplication* FMacApplication::CreateMacApplication()
 {
 	MacApplication = new FMacApplication();
@@ -90,6 +115,8 @@ FMacApplication::FMacApplication()
 
 	MouseMovedEventMonitor = [NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event) { DeferEvent(Event); }];
 	EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* Event) { return HandleNSEvent(Event); }];
+
+	bIsHighDPIModeEnabled = IsAppHighResolutionCapable();
 
 	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 
@@ -1336,18 +1363,21 @@ void FMacApplication::UpdateScreensArray()
 		CurScreen->VisibleFrame.origin.y = WholeWorkspace.origin.y + WholeWorkspace.size.height - CurScreen->VisibleFrame.size.height - CurScreen->VisibleFrame.origin.y;
 	}
 
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+
 	TArray<TSharedRef<FMacScreen>> SortedScreens;
 
 	for (TSharedRef<FMacScreen> CurScreen : AllScreens)
 	{
+		const float DPIScaleFactor = bUseHighDPIMode ? CurScreen->Screen.backingScaleFactor : 1.0f;
 		CurScreen->FramePixels.origin.x = CurScreen->Frame.origin.x;
 		CurScreen->FramePixels.origin.y = CurScreen->Frame.origin.y;
-		CurScreen->FramePixels.size.width = CurScreen->Frame.size.width * CurScreen->Screen.backingScaleFactor;
-		CurScreen->FramePixels.size.height = CurScreen->Frame.size.height * CurScreen->Screen.backingScaleFactor;
-		CurScreen->VisibleFramePixels.origin.x = CurScreen->Frame.origin.x + (CurScreen->VisibleFrame.origin.x - CurScreen->Frame.origin.x) * CurScreen->Screen.backingScaleFactor;
-		CurScreen->VisibleFramePixels.origin.y = CurScreen->Frame.origin.y + (CurScreen->VisibleFrame.origin.y - CurScreen->Frame.origin.y) * CurScreen->Screen.backingScaleFactor;
-		CurScreen->VisibleFramePixels.size.width = CurScreen->VisibleFrame.size.width * CurScreen->Screen.backingScaleFactor;
-		CurScreen->VisibleFramePixels.size.height = CurScreen->VisibleFrame.size.height * CurScreen->Screen.backingScaleFactor;
+		CurScreen->FramePixels.size.width = CurScreen->Frame.size.width * DPIScaleFactor;
+		CurScreen->FramePixels.size.height = CurScreen->Frame.size.height * DPIScaleFactor;
+		CurScreen->VisibleFramePixels.origin.x = CurScreen->Frame.origin.x + (CurScreen->VisibleFrame.origin.x - CurScreen->Frame.origin.x) * DPIScaleFactor;
+		CurScreen->VisibleFramePixels.origin.y = CurScreen->Frame.origin.y + (CurScreen->VisibleFrame.origin.y - CurScreen->Frame.origin.y) * DPIScaleFactor;
+		CurScreen->VisibleFramePixels.size.width = CurScreen->VisibleFrame.size.width * DPIScaleFactor;
+		CurScreen->VisibleFramePixels.size.height = CurScreen->VisibleFrame.size.height * DPIScaleFactor;
 
 		SortedScreens.Add(CurScreen);
 	}
@@ -1357,13 +1387,14 @@ void FMacApplication::UpdateScreensArray()
 	for (int32 Index = 0; Index < SortedScreens.Num(); ++Index)
 	{
 		TSharedRef<FMacScreen> CurScreen = SortedScreens[Index];
-		if (CurScreen->Screen.backingScaleFactor != 1.0f)
+		const float DPIScaleFactor = bUseHighDPIMode ? CurScreen->Screen.backingScaleFactor : 1.0f;
+		if (DPIScaleFactor != 1.0f)
 		{
 			for (int32 OtherIndex = Index + 1; OtherIndex < SortedScreens.Num(); ++OtherIndex)
 			{
 				TSharedRef<FMacScreen> OtherScreen = SortedScreens[OtherIndex];
-				const float DiffFrame = (OtherScreen->Frame.origin.x - CurScreen->Frame.origin.x) * CurScreen->Screen.backingScaleFactor;
-				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.x - CurScreen->VisibleFrame.origin.x) * CurScreen->Screen.backingScaleFactor;
+				const float DiffFrame = (OtherScreen->Frame.origin.x - CurScreen->Frame.origin.x) * DPIScaleFactor;
+				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.x - CurScreen->VisibleFrame.origin.x) * DPIScaleFactor;
 				OtherScreen->FramePixels.origin.x = CurScreen->Frame.origin.x + DiffFrame;
 				OtherScreen->VisibleFramePixels.origin.x = CurScreen->VisibleFrame.origin.x + DiffVisibleFrame;
 			}
@@ -1375,13 +1406,14 @@ void FMacApplication::UpdateScreensArray()
 	for (int32 Index = 0; Index < SortedScreens.Num(); ++Index)
 	{
 		TSharedRef<FMacScreen> CurScreen = SortedScreens[Index];
-		if (CurScreen->Screen.backingScaleFactor != 1.0f)
+		const float DPIScaleFactor = bUseHighDPIMode ? CurScreen->Screen.backingScaleFactor : 1.0f;
+		if (DPIScaleFactor != 1.0f)
 		{
 			for (int32 OtherIndex = Index + 1; OtherIndex < SortedScreens.Num(); ++OtherIndex)
 			{
 				TSharedRef<FMacScreen> OtherScreen = SortedScreens[OtherIndex];
-				const float DiffFrame = (OtherScreen->Frame.origin.y - CurScreen->Frame.origin.y) * CurScreen->Screen.backingScaleFactor;
-				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.y - CurScreen->VisibleFrame.origin.y) * CurScreen->Screen.backingScaleFactor;
+				const float DiffFrame = (OtherScreen->Frame.origin.y - CurScreen->Frame.origin.y) * DPIScaleFactor;
+				const float DiffVisibleFrame = (OtherScreen->VisibleFrame.origin.y - CurScreen->VisibleFrame.origin.y) * DPIScaleFactor;
 				OtherScreen->FramePixels.origin.y = CurScreen->Frame.origin.y + DiffFrame;
 				OtherScreen->VisibleFramePixels.origin.y = CurScreen->VisibleFrame.origin.y + DiffVisibleFrame;
 			}
@@ -1422,10 +1454,11 @@ FVector2D FMacApplication::CalculateScreenOrigin(NSScreen* Screen)
 	return FVector2D(ScreenFrame.origin.x, WholeWorkspace.size.height - ScreenFrame.size.height - ScreenFrame.origin.y);
 }
 
-int32 FMacApplication::GetPrimaryScreenBackingScaleFactor()
+float FMacApplication::GetPrimaryScreenBackingScaleFactor()
 {
 	FScopeLock Lock(&GAllScreensMutex);
-	return (int32)AllScreens[0]->Screen.backingScaleFactor;
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	return bUseHighDPIMode ? AllScreens[0]->Screen.backingScaleFactor : 1.0f;
 }
 
 TSharedRef<FMacScreen> FMacApplication::FindScreenBySlatePosition(float X, float Y)
@@ -1469,21 +1502,27 @@ TSharedRef<FMacScreen> FMacApplication::FindScreenByCocoaPosition(float X, float
 FVector2D FMacApplication::ConvertSlatePositionToCocoa(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.origin.y + Screen->FramePixels.size.height - Y) / Screen->Screen.backingScaleFactor;
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const float DPIScaleFactor = bUseHighDPIMode ? Screen->Screen.backingScaleFactor : 1.0f;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Screen->FramePixels.origin.y + Screen->FramePixels.size.height - Y) / DPIScaleFactor;
 	return FVector2D(Screen->Screen.frame.origin.x + OffsetOnScreen.X, Screen->Screen.frame.origin.y + OffsetOnScreen.Y);
 }
 
 FVector2D FMacApplication::ConvertCocoaPositionToSlate(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenByCocoaPosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.origin.y + Screen->Screen.frame.size.height - Y) * Screen->Screen.backingScaleFactor;
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const float DPIScaleFactor = bUseHighDPIMode ? Screen->Screen.backingScaleFactor : 1.0f;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->Screen.frame.origin.x, Screen->Screen.frame.origin.y + Screen->Screen.frame.size.height - Y) * DPIScaleFactor;
 	return FVector2D(Screen->FramePixels.origin.x + OffsetOnScreen.X, Screen->FramePixels.origin.y + OffsetOnScreen.Y);
 }
 
 CGPoint FMacApplication::ConvertSlatePositionToCGPoint(float X, float Y)
 {
 	TSharedRef<FMacScreen> Screen = FindScreenBySlatePosition(X, Y);
-	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Y - Screen->FramePixels.origin.y) / Screen->Screen.backingScaleFactor;
+	const bool bUseHighDPIMode = MacApplication ? MacApplication->IsHighDPIModeEnabled() : IsAppHighResolutionCapable();
+	const float DPIScaleFactor = bUseHighDPIMode ? Screen->Screen.backingScaleFactor : 1.0f;
+	const FVector2D OffsetOnScreen = FVector2D(X - Screen->FramePixels.origin.x, Y - Screen->FramePixels.origin.y) / DPIScaleFactor;
 	return CGPointMake(Screen->Frame.origin.x + OffsetOnScreen.X, Screen->Frame.origin.y + OffsetOnScreen.Y);
 }
 

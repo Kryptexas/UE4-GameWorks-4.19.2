@@ -4,11 +4,6 @@
 
 #include "CoreMinimal.h"
 
-class FCEFBrowserPopupFeatures;
-class FCEFWebBrowserWindow;
-class IWebBrowserWindow;
-struct Rect;
-
 #if WITH_CEF3
 
 #if PLATFORM_WINDOWS
@@ -30,9 +25,15 @@ THIRD_PARTY_INCLUDES_END
 #endif
 
 #include "IWebBrowserWindow.h"
+
+#endif
+
+class IWebBrowserWindow;
+struct Rect;
 class FCEFWebBrowserWindow;
 class FCEFBrowserPopupFeatures;
 
+#if WITH_CEF3
 
 /**
  * Implements CEF Client and other Browser level interfaces.

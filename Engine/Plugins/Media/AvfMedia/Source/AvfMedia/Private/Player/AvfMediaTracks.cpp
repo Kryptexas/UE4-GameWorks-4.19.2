@@ -1198,6 +1198,9 @@ void FAvfMediaTracks::InitializeVideoSink()
 FAvfVideoSampler::FAvfVideoSampler()
 : VideoSink(nullptr)
 , Output(nil)
+#if WITH_ENGINE && !PLATFORM_MAC
+, MetalTextureCache(nullptr)
+#endif
 {
 	
 }

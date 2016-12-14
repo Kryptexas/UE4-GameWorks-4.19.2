@@ -267,7 +267,7 @@ protected:
 	/** Handle key presses that SListView ignores */
 	virtual FReply OnHandleKeyPressed(FKey KeyPressed)
 	{
-		if (KeyPressed == EKeys::Enter || KeyPressed == EKeys::SpaceBar || KeyPressed == EKeys::Gamepad_FaceButton_Bottom)
+		if (KeyPressed == EKeys::Enter || KeyPressed == EKeys::SpaceBar || KeyPressed == EKeys::Virtual_Accept)
 		{
 			TArray<OptionType> SelectedItems = ComboListView->GetSelectedItems();
 			if (SelectedItems.Num() > 0)
@@ -296,7 +296,7 @@ protected:
 			{
 				// The controller's bottom face button must be pressed once to begin manipulating the combobox's value.
 				// Navigation away from the widget is prevented until the button has been pressed again or focus is lost.
-				if (KeyPressed == EKeys::Enter || KeyPressed == EKeys::SpaceBar || KeyPressed == EKeys::Gamepad_FaceButton_Bottom)
+				if (KeyPressed == EKeys::Enter || KeyPressed == EKeys::SpaceBar || KeyPressed == EKeys::Virtual_Accept)
 				{
 					if (bControllerInputCaptured == false)
 					{
@@ -325,7 +325,7 @@ protected:
 					}
 
 				}
-				else if (KeyPressed == EKeys::Escape || KeyPressed == EKeys::Gamepad_FaceButton_Right || KeyPressed == EKeys::BackSpace)
+				else if (KeyPressed == EKeys::Escape || KeyPressed == EKeys::Virtual_Back || KeyPressed == EKeys::BackSpace)
 				{
 					OnMenuOpenChanged(false);
 				}

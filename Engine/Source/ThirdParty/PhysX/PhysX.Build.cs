@@ -101,13 +101,6 @@ public class PhysX : ModuleRules
 
 		string PhysXIncludeDir = PhysXDir + "Include/";
 		string PxSharedIncludeDir = PxSharedDir + "include/";
-		if (Target.Platform == UnrealTargetPlatform.Switch)
-		{
-			// all physx includes in a Switch subdir
-			PhysXIncludeDir = PhysXIncludeDir + "Switch/";
-			PxSharedIncludeDir = PxSharedIncludeDir + "Switch/";
-		}
-
 
 		PublicSystemIncludePaths.AddRange(
 			new string[] {
@@ -457,12 +450,26 @@ public class PhysX : ModuleRules
 					"PsFastXml"
 				};
 
+			string OpimizationSuffix = "";
+			if (UEBuildConfiguration.bCompileForSize)
+			{
+				OpimizationSuffix = "_Oz";
+			}
+			else
+			{
+				if (Target.Configuration == UnrealTargetConfiguration.Development)
+				{
+					OpimizationSuffix = "_O2";
+				}
+				else if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+				{
+					OpimizationSuffix = "_O3";
+				}
+			}
+
 			foreach (var lib in PhysXLibs)
 			{
-				if (!lib.Contains("Cooking") || Target.IsCooked == false)
-				{
-					PublicAdditionalLibraries.Add(PhysXLibDir + lib + (UEBuildConfiguration.bCompileForSize ? "_Oz" : "") + ".bc");
-				}
+				PublicAdditionalLibraries.Add(PhysXLibDir + lib + OpimizationSuffix + ".bc");
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)

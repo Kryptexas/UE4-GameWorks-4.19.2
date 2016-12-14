@@ -6,7 +6,7 @@
 #include "IHeadMountedDisplay.h"
 #include "UObject/ObjectMacros.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
-#include "iOculusRiftPlugin.h"
+#include "IOculusRiftPlugin.h"
 #include "OculusFunctionLibrary.generated.h"
 
 USTRUCT(BlueprintType, meta = (DisplayName = "HMD User Profile Data Field"))

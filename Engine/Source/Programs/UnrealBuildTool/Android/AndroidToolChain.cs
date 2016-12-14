@@ -541,7 +541,7 @@ namespace UnrealBuildTool
 			string Result = "";
 
 			Result += " -x c++";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 
 			// optimization level
 			if (bDisableOptimizations)
@@ -580,7 +580,7 @@ namespace UnrealBuildTool
 			string Result = "";
 
 			Result += " -x c++-header";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 
 			// optimization level
 			if (bDisableOptimizations)

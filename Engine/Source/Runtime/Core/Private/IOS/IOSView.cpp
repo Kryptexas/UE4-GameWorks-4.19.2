@@ -312,8 +312,11 @@ id<MTLDevice> GMetalDevice = nil;
 			// grab the MetalLayer and typecast it to match what's in layerClass
 			CAMetalLayer* MetalLayer = (CAMetalLayer*)self.layer;
 			CGSize drawableSize = CGSizeMake(Width, Height);
-			check( FMath::TruncToInt(drawableSize.width) == FMath::TruncToInt(self.bounds.size.width * self.contentScaleFactor) && 
-				   FMath::TruncToInt(drawableSize.height) == FMath::TruncToInt(self.bounds.size.height * self.contentScaleFactor));
+			checkf( FMath::TruncToInt(drawableSize.width) == FMath::TruncToInt(self.bounds.size.width * self.contentScaleFactor) && 
+				   FMath::TruncToInt(drawableSize.height) == FMath::TruncToInt(self.bounds.size.height * self.contentScaleFactor),
+				TEXT("[IOSView UpdateRenderWidth:andHeight:] passed in size doesn't match what we expected. Width: %d, Expected Width = %d (%.2f * %.2f). Height = %d, Expected Height = %d (%.2f * %.2f)"),
+				FMath::TruncToInt(drawableSize.width), FMath::TruncToInt(self.bounds.size.width * self.contentScaleFactor), (float)self.bounds.size.width, self.contentScaleFactor,
+				FMath::TruncToInt(drawableSize.height), FMath::TruncToInt(self.bounds.size.height * self.contentScaleFactor), (float)self.bounds.size.height, self.contentScaleFactor);
 			MetalLayer.drawableSize = drawableSize;
 		}
 		return;

@@ -4,10 +4,6 @@
 
 #include "CoreMinimal.h"
 
-class FCEFJSScripting;
-class IStructSerializerBackend;
-struct FStructSerializerState;
-
 #if WITH_CEF3
 
 #include "Containers/UnrealString.h"
@@ -15,14 +11,6 @@ struct FStructSerializerState;
 #include "UObject/UnrealType.h"
 #include "IStructSerializerBackend.h"
 #include "CEFJSScripting.h"
-
-class FWebJSScripting;
-class UObject;
-
-
-// forward declarations
-class UProperty;
-class UStruct;
 
 #if PLATFORM_WINDOWS
 	#include "WindowsHWrapper.h"
@@ -40,6 +28,17 @@ THIRD_PARTY_INCLUDES_END
 	#include "HideWindowsPlatformTypes.h"
 #endif
 
+#endif
+
+class FCEFJSScripting;
+class IStructSerializerBackend;
+struct FStructSerializerState;
+class FWebJSScripting;
+class UObject;
+class UProperty;
+class UStruct;
+
+#if WITH_CEF3
 
 /**
  * Implements a writer for UStruct serialization using CefDictionary.

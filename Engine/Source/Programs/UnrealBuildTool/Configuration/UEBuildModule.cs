@@ -59,8 +59,10 @@ namespace UnrealBuildTool
 					// Extra checks for PS4 and XboxOne folders, which are equivalent to NotForLicensees
 					string PS4FolderName = String.Format("{0}ps4{0}", Path.DirectorySeparatorChar);
 					string XboxFolderName = String.Format("{0}xboxone{0}", Path.DirectorySeparatorChar);
+					string SwitchFolderName = String.Format("{0}switch{0}", Path.DirectorySeparatorChar);
 					if (FilePath.IndexOf(PS4FolderName, StringComparison.InvariantCultureIgnoreCase) >= 0
-					|| FilePath.IndexOf(XboxFolderName, StringComparison.InvariantCultureIgnoreCase) >= 0)
+					|| FilePath.IndexOf(XboxFolderName, StringComparison.InvariantCultureIgnoreCase) >= 0
+					|| FilePath.IndexOf(SwitchFolderName, StringComparison.InvariantCultureIgnoreCase) >= 0)
 					{
 						return UEBuildModuleDistribution.NotForLicensees;
 					}

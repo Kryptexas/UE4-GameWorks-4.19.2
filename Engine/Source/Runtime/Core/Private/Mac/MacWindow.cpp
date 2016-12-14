@@ -43,8 +43,9 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	PositionX = Definition->XDesiredPositionOnScreen;
 	PositionY = Definition->YDesiredPositionOnScreen >= TargetScreen->VisibleFramePixels.origin.y ? Definition->YDesiredPositionOnScreen : TargetScreen->VisibleFramePixels.origin.y;
 
+	const float ScreenDPIScaleFactor = MacApplication->IsHighDPIModeEnabled() ? TargetScreen->Screen.backingScaleFactor : 1.0f;
 	const FVector2D CocoaPosition = FMacApplication::ConvertSlatePositionToCocoa(PositionX, PositionY);
-	const NSRect ViewRect = NSMakeRect(CocoaPosition.X, CocoaPosition.Y - (SizeY / TargetScreen->Screen.backingScaleFactor) + 1, SizeX / TargetScreen->Screen.backingScaleFactor, SizeY / TargetScreen->Screen.backingScaleFactor);
+	const NSRect ViewRect = NSMakeRect(CocoaPosition.X, CocoaPosition.Y - (SizeY / ScreenDPIScaleFactor) + 1, SizeX / ScreenDPIScaleFactor, SizeY / ScreenDPIScaleFactor);
 
 	uint32 WindowStyle = 0;
 	if( Definition->IsRegularWindow )
@@ -283,8 +284,9 @@ bool FMacWindow::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Hei
 	const FVector2D SlatePosition = FMacApplication::ConvertCocoaPositionToSlate(Frame.origin.x, Frame.origin.y - Frame.size.height + 1.0f);
 	X = SlatePosition.X;
 	Y = SlatePosition.Y;
-	Width = Frame.size.width * WindowHandle.screen.backingScaleFactor;
-	Height = Frame.size.height * WindowHandle.screen.backingScaleFactor;
+	const float DPIScaleFactor = MacApplication->IsHighDPIModeEnabled() ? WindowHandle.screen.backingScaleFactor : 1.0f;
+	Width = Frame.size.width * DPIScaleFactor;
+	Height = Frame.size.height * DPIScaleFactor;
 	return true;
 }
 
@@ -474,8 +476,9 @@ bool FMacWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32& 
 
 		const FVector2D SlatePosition = FMacApplication::ConvertCocoaPositionToSlate(Frame.origin.x, Frame.origin.y);
 
-		Width = Frame.size.width * WindowHandle.screen.backingScaleFactor;
-		Height = Frame.size.height * WindowHandle.screen.backingScaleFactor;
+		const float DPIScaleFactor = MacApplication->IsHighDPIModeEnabled() ? WindowHandle.backingScaleFactor : 1.0f;
+		Width = Frame.size.width * DPIScaleFactor;
+		Height = Frame.size.height * DPIScaleFactor;
 
 		X = SlatePosition.X;
 		Y = SlatePosition.Y - Height + 1;
@@ -588,7 +591,7 @@ void FMacWindow::AdjustCachedSize( FVector2D& Size ) const
 
 float FMacWindow::GetDPIScaleFactor() const
 {
-	return WindowHandle.backingScaleFactor;
+	return MacApplication->IsHighDPIModeEnabled() ? WindowHandle.backingScaleFactor : 1.0f;
 }
 
 void FMacWindow::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags)

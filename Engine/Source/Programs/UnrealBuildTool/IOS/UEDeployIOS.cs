@@ -913,7 +913,8 @@ namespace UnrealBuildTool
 			Text.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
 			Text.AppendLine("<plist version=\"1.0\">");
 			Text.AppendLine("<dict>");
-			Text.AppendLine(string.Format("\t<key>get-task-allow</key><{0}/>",	/*Config.bForDistribution ? "false" : */"true"));
+			Text.AppendLine("\t<key>get-task-allow</key>");
+			Text.AppendLine(string.Format("\t<{0}/>", bForDistribution ? "false" : "true"));
 
 			if (bCloudKitSupported)
 			{
@@ -938,7 +939,24 @@ namespace UnrealBuildTool
 
 			Text.AppendLine("</dict>");
 			Text.AppendLine("</plist>");
-			File.WriteAllText(OutputFilename, Text.ToString());
+
+			if (File.Exists(OutputFilename))
+			{
+				// read existing file
+				string ExisitingFileContents = File.ReadAllText(OutputFilename);
+
+				bool bFileChanged = !ExisitingFileContents.Equals(Text.ToString(), StringComparison.Ordinal);
+
+				// overwrite file if there are content changes
+				if (bFileChanged)
+				{
+					File.WriteAllText(OutputFilename, Text.ToString());
+				}
+			}
+			else
+			{
+				File.WriteAllText(OutputFilename, Text.ToString());
+			}
 		}
 
 		static void SafeFileCopy(FileInfo SourceFile, string DestinationPath, bool bOverwrite)

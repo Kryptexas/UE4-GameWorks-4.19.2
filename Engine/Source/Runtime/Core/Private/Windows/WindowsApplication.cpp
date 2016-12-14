@@ -1785,7 +1785,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 									if (TouchIndex >= 0)
 									{
 										TouchIDs[TouchIndex] = TOptional<int32>( Input.dwID );
-										MessageHandler->OnTouchStarted( CurrentNativeEventWindowPtr, Location, TouchIndex + 1, 0 );
+										UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchStarted at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex + 1, Input.dwID);
+										MessageHandler->OnTouchStarted(CurrentNativeEventWindowPtr, Location, TouchIndex + 1, 0);
 									}
 									else
 									{
@@ -1798,7 +1799,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
 								if ( TouchIndex >= 0 )
 								{
-									MessageHandler->OnTouchMoved( Location, TouchIndex + 1, 0 );
+									UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchMoved at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex + 1, Input.dwID);
+									MessageHandler->OnTouchMoved(Location, TouchIndex + 1, 0);
 								}
 							}
 							else if ( Input.dwFlags & TOUCHEVENTF_UP )
@@ -1807,7 +1809,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 								if ( TouchIndex >= 0 )
 								{
 									TouchIDs[TouchIndex] = TOptional<int32>();
-									MessageHandler->OnTouchEnded( Location, TouchIndex + 1, 0 );
+									UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchEnded at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex + 1, Input.dwID);
+									MessageHandler->OnTouchEnded(Location, TouchIndex + 1, 0);
 								}
 								else
 								{

@@ -78,6 +78,10 @@ FBasePassVSToPS PassFinalizeTessellationOutput(FBasePassVSToDS Interpolants, flo
 		O.BasePassInterpolants.PixelPositionExcludingWPO = Interpolants.BasePassInterpolants.WorldPositionExcludingWPO;
 	#endif
 
+#if COMPILER_HLSLCC && NEEDS_BASEPASS_FOGGING  // workaround for hlslcc miscompilation, see UE-39489
+	O.BasePassInterpolants.VertexFog = Interpolants.BasePassInterpolants.VertexFog;
+#endif // COMPILER_HLSLCC && NEEDS_BASEPASS_FOGGING
+
 	return O;
 }
 

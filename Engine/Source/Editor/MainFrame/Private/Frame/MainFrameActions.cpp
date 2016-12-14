@@ -211,7 +211,7 @@ FReply FMainFrameActionCallbacks::OnUnhandledKeyDownEvent(const FKeyEvent& InKey
 	{
 		return FReply::Handled();
 	}
-	else if(FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings(InKeyEvent))
+	else if(FPlayWorldCommands::GlobalPlayWorldActions.IsValid() && FPlayWorldCommands::GlobalPlayWorldActions->ProcessCommandBindings(InKeyEvent))
 	{
 		return FReply::Handled();
 	}

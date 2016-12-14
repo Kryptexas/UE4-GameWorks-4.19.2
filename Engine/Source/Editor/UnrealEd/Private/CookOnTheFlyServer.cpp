@@ -865,8 +865,8 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 		NetworkFileServers.Add(TcpFileServer);
 	}
 
-	//only needed for html5 and constantly crashes cookonthefly servers
-#if 0
+	// cookonthefly server for html5 -- NOTE: if this is crashing COTF servers, please ask for Nick.Shin (via Josh.Adams)
+#if 1
 	INetworkFileServer *HttpFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
 		.CreateNetworkFileServer(true, BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate, ENetworkFileServerProtocol::NFSP_Http);
 	if ( HttpFileServer )
@@ -1406,8 +1406,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 		bool bWasUpToDate = false;
 
-		bool bLastLoadWasMap = false;
-		FString LastLoadedMapName;
 
 		const FString BuildFilename = ToBuild.GetFilename().ToString();
 
@@ -1493,62 +1491,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			else
 			{
 				check(Package);
-
-
-				if (Package->ContainsMap())
-				{
-					// load sublevels
-					UWorld* World = UWorld::FindWorldInPackage(Package);
-					check(World);
-
-					World->PersistentLevel->HandleLegacyMapBuildData();
-
-					// child cookers can't process maps
-					// check(IsChildCooker() == false);
-					if ( IsCookByTheBookMode() )
-					{
-						GIsCookerLoadingPackage = true;
-						// TArray<FString> PreviouslyCookedPackages;
-						if (World->StreamingLevels.Num())
-						{
-							//World->LoadSecondaryLevels(true, &PreviouslyCookedPackages);
-							World->LoadSecondaryLevels(true, NULL);
-						}
-						GIsCookerLoadingPackage = false;
-						TArray<FString> NewPackagesToCook;
-
-						// Collect world composition tile packages to cook
-						if (World->WorldComposition)
-						{
-							World->WorldComposition->CollectTilesToCook(NewPackagesToCook);
-						}
-
-						for ( auto PackageName : NewPackagesToCook )
-						{
-							FString Filename;
-							if ( FPackageName::DoesPackageExist(PackageName, NULL, &Filename) )
-							{
-								FString StandardFilename = FPaths::ConvertRelativePathToFull(Filename);
-								FPaths::MakeStandardFilename(StandardFilename);
-								FName StandardPackageFName = FName(*StandardFilename);
-								if (IsChildCooker())
-								{
-									check(IsCookByTheBookMode());
-									// notify the main cooker that it should make sure this package gets cooked
-									CookByTheBookOptions->ChildUnsolicitedPackages.Add(StandardPackageFName);
-								}
-								else
-								{
-									CookRequests.EnqueueUnique(FFilePlatformRequest(StandardPackageFName, TargetPlatformNames));
-								}
-							}
-						}
-
-						LastLoadedMapName = Package->GetName();
-						bLastLoadWasMap = true;
-					}
-
-				}
 
 				FString Name = Package->GetPathName();
 				FString PackageFilename( GetCachedStandardPackageFilename( Package ) );
@@ -1791,6 +1733,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		// generate a list of other packages which were loaded with this one
 		if ( !IsCookByTheBookMode() || (CookByTheBookOptions->bDisableUnsolicitedPackages == false))
 		{
+			{
+				SCOPE_TIMER(PostLoadPackageFixup);
+				for (TObjectIterator<UPackage> It; It; ++It )
+				{
+					PostLoadPackageFixup(*It);
+				}
+			}
 			//GRedirectCollector.ResolveStringAssetReference();
 			SCOPE_TIMER(UnsolicitedMarkup);
 			bool ContainsFullAssetGCClasses = false;
@@ -2092,7 +2041,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					if (SavePackageResult != ESavePackageResult::ReferencedOnlyByEditorOnlyData)
 					{
 						CookedPackages.Add(FileRequest);
-
 						if ((CurrentCookMode == ECookMode::CookOnTheFly) && (I >= FirstUnsolicitedPackage))
 						{
 							// this is an unsolicited package
@@ -2165,6 +2113,71 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 	return Result;
 }
+
+
+void UCookOnTheFlyServer::PostLoadPackageFixup( UPackage* Package )
+{
+	const FName StandardPackageName = GetCachedStandardPackageFileFName(Package);
+	const TArray<FName> EmptyTargets;
+	if ( CookedPackages.Exists(StandardPackageName, EmptyTargets) )
+	{
+		return;
+	}
+
+
+	if (Package->ContainsMap())
+	{
+		// load sublevels
+		UWorld* World = UWorld::FindWorldInPackage(Package);
+		check(World);
+
+		World->PersistentLevel->HandleLegacyMapBuildData();
+
+		// child cookers can't process maps
+		// check(IsChildCooker() == false);
+		if (IsCookByTheBookMode())
+		{
+			GIsCookerLoadingPackage = true;
+			// TArray<FString> PreviouslyCookedPackages;
+			if (World->StreamingLevels.Num())
+			{
+				//World->LoadSecondaryLevels(true, &PreviouslyCookedPackages);
+				World->LoadSecondaryLevels(true, NULL);
+			}
+			GIsCookerLoadingPackage = false;
+			TArray<FString> NewPackagesToCook;
+
+			// Collect world composition tile packages to cook
+			if (World->WorldComposition)
+			{
+				World->WorldComposition->CollectTilesToCook(NewPackagesToCook);
+			}
+
+			for (auto PackageName : NewPackagesToCook)
+			{
+				FString Filename;
+				if (FPackageName::DoesPackageExist(PackageName, NULL, &Filename))
+				{
+					FString StandardFilename = FPaths::ConvertRelativePathToFull(Filename);
+					FPaths::MakeStandardFilename(StandardFilename);
+					FName StandardPackageFName = FName(*StandardFilename);
+					if (IsChildCooker())
+					{
+						check(IsCookByTheBookMode());
+						// notify the main cooker that it should make sure this package gets cooked
+						CookByTheBookOptions->ChildUnsolicitedPackages.Add(StandardPackageFName);
+					}
+					else
+					{
+						RequestPackage(StandardPackageFName, false);
+					}
+				}
+			}
+		}
+
+	}
+}
+
 
 void UCookOnTheFlyServer::TickPrecacheObjectsForPlatforms(const float TimeSlice, const TArray<const ITargetPlatform*>& TargetPlatforms) 
 {
@@ -2307,8 +2320,8 @@ void UCookOnTheFlyServer::GetUnsolicitedPackages(TArray<UPackage*>& PackagesToSa
 		PackagesToSaveSet.Add(Package);
 	}
 	PackagesToSave.Empty();
-			
-	TArray<UObject *> ObjectsInOuter;
+
+	TArray<UObject*> ObjectsInOuter;
 	{
 		SCOPE_TIMER(GetObjectsWithOuter);
 		GetObjectsWithOuter(NULL, ObjectsInOuter, false);
@@ -2440,9 +2453,7 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 		// find all packages which depend on this one
 		MarkDependentPackagesDirtyForCooker( Package->GetFName() );
 
-#if DEBUG_COOKONTHEFLY
-		UE_LOG(LogCook, Display, TEXT("Modification detected to package %s"), *PackageFFileName.ToString());
-#endif
+		UE_LOG(LogCook, Verbose, TEXT("Modification detected to package %s"), *PackageFFileName.ToString());
 
 		if ( CurrentCookMode == ECookMode::CookByTheBookFromTheEditor )
 		{
@@ -2908,10 +2919,7 @@ ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uin
 			}
 			else
 			{
-#if DEBUG_COOKONTHEFLY
-				UE_LOG(LogCook, Display, TEXT("Up to date: %s"), *PlatFilename);
-#endif
-
+				UE_LOG(LogCook, Verbose, TEXT("Up to date: %s"), *PlatFilename);
 				bOutWasUpToDate = true;
 			}
 		}
@@ -4388,9 +4396,11 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 				if (bShouldKeep && CookedPackageInfo->DependentPackageHash != PackageDependentHash)
 				{
 					++NumPackagesDependentHashMissmatch;
-					if (IsCookFlagSet(ECookInitializationFlags::LogDebugInfo))
+
+					if (UE_LOG_ACTIVE(LogCook, Verbose) )
+					// if (IsCookFlagSet(ECookInitializationFlags::LogDebugInfo))
 					{
-						UE_LOG(LogCook, Display, TEXT("Tracing package dependency which caused iterative cook to fail for: %s could be slow"), *UncookedFilenameString);
+						UE_LOG(LogCook, Verbose, TEXT("Tracing package dependency which caused iterative cook to fail for: %s could be slow"), *UncookedFilenameString);
 						TMap<FString, FMD5Hash> CurrentPackageHashes;
 						PDInfoModule.RecursiveGetDependentPackageHashes(*UncookedFilenameString, CurrentPackageHashes);
 						for (const auto& CurrentPackageHash : CurrentPackageHashes)
@@ -4399,7 +4409,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 							FCookedAssetPackageInfo* CurrentCookedPackageInfo = CookedPackageInfoLookup.FindRef(PackageName);
 							if (CurrentCookedPackageInfo && CurrentCookedPackageInfo->FullPackageHash != CurrentPackageHash.Value)
 							{
-								UE_LOG(LogCook, Display, TEXT("\tinvalidated because full package hash for package: %s doesn't match"), *CurrentPackageHash.Key);
+								UE_LOG(LogCook, Verbose, TEXT("\tinvalidated because full package hash for package: %s doesn't match"), *CurrentPackageHash.Key);
 							}
 						}
 
@@ -4419,10 +4429,10 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk(const TArray<ITargetPla
 							DependencyString += Dependency;
 						}
 
-						UE_LOG(LogCook, Display, TEXT("Verifing package dependency count and order %d != %d %s"), CookedPackageInfo->DependentPackages.Num(), CurrentPackageDependencies.Num(), *DependencyString);
+						UE_LOG(LogCook, Verbose, TEXT("Verifing package dependency count and order %d != %d %s"), CookedPackageInfo->DependentPackages.Num(), CurrentPackageDependencies.Num(), *DependencyString);
 
 						
-						UE_LOG(LogCook, Display, TEXT("Finish trace of: %s"), *UncookedFilenameString);
+						UE_LOG(LogCook, Verbose, TEXT("Finish trace of: %s"), *UncookedFilenameString);
 					}
 					bShouldKeep = false;
 				}

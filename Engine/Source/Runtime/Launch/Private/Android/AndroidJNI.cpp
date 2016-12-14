@@ -49,6 +49,8 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	GameActivityClassID = (jclass)Env->NewGlobalRef(localGameActivityClass);
 	Env->DeleteLocalRef(localGameActivityClass);
 	AndroidThunkJava_ShowConsoleWindow = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_ShowConsoleWindow", "(Ljava/lang/String;)V", bIsOptional);
+    AndroidThunkJava_ShowVirtualKeyboardInputDialog = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_ShowVirtualKeyboardInputDialog", "(ILjava/lang/String;Ljava/lang/String;)V", bIsOptional);
+    AndroidThunkJava_HideVirtualKeyboardInputDialog = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_HideVirtualKeyboardInputDialog", "()V", bIsOptional);
 	AndroidThunkJava_ShowVirtualKeyboardInput = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_ShowVirtualKeyboardInput", "(ILjava/lang/String;Ljava/lang/String;)V", bIsOptional);
 	AndroidThunkJava_HideVirtualKeyboardInput = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_HideVirtualKeyboardInput", "()V", bIsOptional);
 	AndroidThunkJava_LaunchURL = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_LaunchURL", "(Ljava/lang/String;)V", bIsOptional);
@@ -217,6 +219,8 @@ bool FJavaWrapper::CallBooleanMethod(JNIEnv* Env, jobject Object, jmethodID Meth
 jclass FJavaWrapper::GameActivityClassID;
 jobject FJavaWrapper::GameActivityThis;
 jmethodID FJavaWrapper::AndroidThunkJava_ShowConsoleWindow;
+jmethodID FJavaWrapper::AndroidThunkJava_ShowVirtualKeyboardInputDialog;
+jmethodID FJavaWrapper::AndroidThunkJava_HideVirtualKeyboardInputDialog;
 jmethodID FJavaWrapper::AndroidThunkJava_ShowVirtualKeyboardInput;
 jmethodID FJavaWrapper::AndroidThunkJava_HideVirtualKeyboardInput;
 jmethodID FJavaWrapper::AndroidThunkJava_LaunchURL;
@@ -506,6 +510,40 @@ void AndroidThunkCpp_ShowConsoleWindow()
 		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_ShowConsoleWindow, ConsoleTextJava);
 		Env->DeleteLocalRef(ConsoleTextJava);
 	}
+}
+
+void AndroidThunkCpp_ShowVirtualKeyboardInputDialog(TSharedPtr<IVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
+{
+    if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+    {
+        // remember target widget for contents
+        VirtualKeyboardWidget = &(*TextWidget);
+        
+        // call the java side
+        jstring LabelJava = Env->NewStringUTF(TCHAR_TO_UTF8(*Label));
+        jstring ContentsJava = Env->NewStringUTF(TCHAR_TO_UTF8(*Contents));
+        FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_ShowVirtualKeyboardInputDialog, InputType, LabelJava, ContentsJava);
+        Env->DeleteLocalRef(ContentsJava);
+        Env->DeleteLocalRef(LabelJava);
+    }
+}
+
+void AndroidThunkCpp_HideVirtualKeyboardInputDialog()
+{
+    // Make sure virtual keyboard currently open
+    if (VirtualKeyboardWidget == NULL)
+    {
+        return;
+    }
+    
+    if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+    {
+        // ignore anything it might return
+        VirtualKeyboardWidget = NULL;
+        
+        // call the java side
+        FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, FJavaWrapper::AndroidThunkJava_HideVirtualKeyboardInputDialog);
+    }
 }
 
 void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)

@@ -4,20 +4,12 @@
 
 #include "CoreMinimal.h"
 
-class FCEFJSScripting;
-class IStructDeserializerBackend;
-enum class EStructDeserializerBackendTokens;
-
 #if WITH_CEF3
 
 #include "WebBrowserSingleton.h"
 #include "UObject/UnrealType.h"
 #include "IStructDeserializerBackend.h"
 #include "CEFJSScripting.h"
-
-// forward declarations
-class UProperty;
-class UStruct;
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -34,6 +26,15 @@ THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformTypes.h"
 #endif
 
+#endif
+
+class FCEFJSScripting;
+class IStructDeserializerBackend;
+enum class EStructDeserializerBackendTokens;
+class UProperty;
+class UStruct;
+
+#if WITH_CEF3
 
 class ICefContainerWalker
 	: public TSharedFromThis<ICefContainerWalker>

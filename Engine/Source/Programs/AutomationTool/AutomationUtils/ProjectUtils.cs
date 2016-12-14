@@ -237,7 +237,15 @@ namespace AutomationTool
 					bool bPluginEnabledForProject = UProjectInfo.IsPluginEnabledForProject(Plugin, Project, TargetPlatformType, TargetRules.TargetType.Game);
 					if ((bPluginEnabledForProject && !Plugin.Descriptor.bEnabledByDefault) || (bPluginEnabledForProject && Plugin.Descriptor.bInstalled))
 					{
-						if(Plugin.Descriptor.Modules.Any(Module => Module.IsCompiledInConfiguration(TargetPlatformType, TargetRules.TargetType.Game, bBuildDeveloperTools: false, bBuildEditor: false)))
+						// NOTE: this code was only marking plugins that compiled for the platform to upgrade to code project, however
+						// this doesn't work in practice, because the runtime code will look for the plugin, without a .uplugin file,
+						// and will fail. This is the safest way to make sure all platforms are acting the same. However, if you 
+						// whitelist the plugin in the .uproject file, the above UProjectInfo.IsPluginEnabledForProject check won't pass
+						// so you won't get in here. Leaving this commented out code in there, because someone is bound to come looking 
+						// for why a non-whitelisted platform module is causing a project to convert to code-based. 
+						// As an aside, if you run the project with UE4Game (not your Project's binary) from the debugger, it will work
+						// _in this case_ because the .uplugin file will have been staged, and there is no needed library 
+						// if(Plugin.Descriptor.Modules.Any(Module => Module.IsCompiledInConfiguration(TargetPlatformType, TargetRules.TargetType.Game, bBuildDeveloperTools: false, bBuildEditor: false)))
 						{
 							RetVal = true;
 							break;

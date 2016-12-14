@@ -5,6 +5,7 @@
 #include "GameFramework/GameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemSessionSettings.h"
 
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -15,7 +16,7 @@
 class TestOnlineGameSettings : public FOnlineSessionSettings
 {
  public:
- 	TestOnlineGameSettings(bool bTestingLAN = false, bool bTestingPresence = false)
+ 	TestOnlineGameSettings(bool bTestingLAN = false, bool bTestingPresence = false, const FOnlineSessionSettings& SettingsOverride = FOnlineSessionSettings())
 	{
  		NumPublicConnections = 10;
 		NumPrivateConnections = 0;
@@ -27,12 +28,24 @@ class TestOnlineGameSettings : public FOnlineSessionSettings
 		bAllowJoinViaPresence = true;
 		bAllowJoinViaPresenceFriendsOnly = false;
 
-		Set(FName(TEXT("TESTSETTING1")), (int32)5, EOnlineDataAdvertisementType::ViaOnlineService);
-		Set(FName(TEXT("TESTSETTING2")), (float)5.0f, EOnlineDataAdvertisementType::ViaOnlineService);
-		Set(FName(TEXT("TESTSETTING3")), FString(TEXT("Hello")), EOnlineDataAdvertisementType::ViaOnlineService);
+		Set(FName(TEXT("TESTSETTING1")), (int32)5, EOnlineDataAdvertisementType::ViaOnlineService, 0);
+		Set(FName(TEXT("TESTSETTING2")), (float)5.0f, EOnlineDataAdvertisementType::ViaOnlineService, 1);
+		Set(FName(TEXT("TESTSETTING3")), FString(TEXT("Hello")), EOnlineDataAdvertisementType::ViaOnlineService, 2);
 		Set(FName(TEXT("TESTSETTING4")), FString(TEXT("Test4")), EOnlineDataAdvertisementType::ViaPingOnly);
 		Set(FName(TEXT("TESTSETTING5")), FString(TEXT("Test5")), EOnlineDataAdvertisementType::ViaPingOnly);
+		Set(SETTING_CUSTOM, FString(TEXT("CustomData123")), EOnlineDataAdvertisementType::ViaOnlineService);
 
+		for (FSessionSettings::TConstIterator It(SettingsOverride.Settings); It; ++It)
+		{
+			FName Key = It.Key();
+			const FOnlineSessionSetting& Setting = It.Value();
+
+			FOnlineSessionSetting* HostSetting = Settings.Find(Key);
+			if (HostSetting)
+			{
+				HostSetting->Data = Setting.Data;
+			}
+		}
  	}
  	
  	virtual ~TestOnlineGameSettings()
@@ -71,20 +84,33 @@ class TestOnlineGameSettings : public FOnlineSessionSettings
 class TestOnlineSearchSettings : public FOnlineSessionSearch
 {
 public:
-	TestOnlineSearchSettings(bool bSearchingLAN = false, bool bSearchingPresence = false)
+	TestOnlineSearchSettings(bool bSearchingLAN = false, bool bSearchingPresence = false, const FOnlineSessionSettings& SettingsOverride = FOnlineSessionSettings())
 	{
 		bIsLanQuery = bSearchingLAN;
 		MaxSearchResults = 10;
 		PingBucketSize = 50;
 
-		QuerySettings.Set(FName(TEXT("TESTSETTING1")), (int32)5, EOnlineComparisonOp::Equals);
-		QuerySettings.Set(FName(TEXT("TESTSETTING2")), (float)5.0f, EOnlineComparisonOp::Equals);
-		QuerySettings.Set(FName(TEXT("TESTSETTING3")), FString(TEXT("Hello")), EOnlineComparisonOp::Equals);
+		QuerySettings.Set(FName(TEXT("TESTSETTING1")), (int32)5, EOnlineComparisonOp::Equals, 0);
+		QuerySettings.Set(FName(TEXT("TESTSETTING2")), (float)5.0f, EOnlineComparisonOp::Equals, 1);
+		QuerySettings.Set(FName(TEXT("TESTSETTING3")), FString(TEXT("Hello")), EOnlineComparisonOp::Equals, 2);
 
 		if (bSearchingPresence)
 		{
 			QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 		}
+
+		for (FSessionSettings::TConstIterator It(SettingsOverride.Settings); It; ++It)
+		{
+			FName Key = It.Key();
+			const FOnlineSessionSetting& Setting = It.Value();
+
+			FOnlineSessionSearchParam* QuerySetting = QuerySettings.SearchParams.Find(Key);
+			if (QuerySetting)
+			{
+				QuerySetting->Data = Setting.Data;
+			}
+		}
+
 	}
 
 	virtual ~TestOnlineSearchSettings()
@@ -93,10 +119,10 @@ public:
 	}
 };
 
-void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresence)
+void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresence, bool bIsMatchmaking, const FOnlineSessionSettings& SettingsOverride)
 {
 	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld, FName(*Subsystem));
-	check(OnlineSub); 
+	check(OnlineSub);
 
 	World = InWorld;
 	GEngine->OnWorldDestroyed().AddRaw(this, &FTestSessionInterface::WorldDestroyed);
@@ -105,7 +131,7 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 	{
 		UserId = OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0);
 	}
-	
+
 	// Cache interfaces
 	Identity = OnlineSub->GetIdentityInterface();
 	SessionInt = OnlineSub->GetSessionInterface();
@@ -131,6 +157,8 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 
 	OnFindSessionsCompleteDelegate = FOnFindSessionsCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnFindSessionsComplete);
 	OnCancelFindSessionsCompleteDelegate = FOnCancelFindSessionsCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnCancelFindSessionsComplete);
+	
+	OnMatchmakingCompleteDelegate = FOnMatchmakingCompleteDelegate::CreateRaw(this, &FTestSessionInterface::OnMatchmakingComplete);
 
 	// Read friends list and cache it
 	if (Friends.IsValid())
@@ -138,17 +166,33 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 		Friends->ReadFriendsList(0, EFriendsLists::ToString(EFriendsLists::Default), FOnReadFriendsListComplete::CreateRaw(this, &FTestSessionInterface::OnReadFriendsListComplete));
 	}
 
-	// Setup sessions
-	if (bIsHost)
+	if (bIsMatchmaking)
 	{
- 		HostSettings = MakeShareable(new TestOnlineGameSettings(bTestLAN, bIsPresence));
+		HostSettings = MakeShareable(new TestOnlineGameSettings(bTestLAN, bIsPresence, SettingsOverride));
 		HostSettings->AddWorldSettings(InWorld);
- 		OnCreateSessionCompleteDelegateHandle = SessionInt->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
- 		SessionInt->CreateSession(0, GameSessionName, *HostSettings);
+
+		SearchSettings = MakeShareable(new TestOnlineSearchSettings(bTestLAN, bIsPresence, SettingsOverride));
+		TSharedRef<FOnlineSessionSearch> SearchSettingsRef = SearchSettings.ToSharedRef();
+
+		OnMatchmakingCompleteDelegateHandle = SessionInt->AddOnMatchmakingCompleteDelegate_Handle(OnMatchmakingCompleteDelegate);
+
+		TArray<TSharedRef<const FUniqueNetId>> LocalPlayers;
+		LocalPlayers.Add(UserId.ToSharedRef());
+
+		SessionInt->StartMatchmaking(LocalPlayers, GameSessionName, *HostSettings, SearchSettingsRef);
+	}
+	// Setup sessions
+	else if (bIsHost)
+	{
+		HostSettings = MakeShareable(new TestOnlineGameSettings(bTestLAN, bIsPresence, SettingsOverride));
+		HostSettings->AddWorldSettings(InWorld);
+
+		OnCreateSessionCompleteDelegateHandle = SessionInt->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
+		SessionInt->CreateSession(0, GameSessionName, *HostSettings);
 	}
 	else
 	{
-		SearchSettings = MakeShareable(new TestOnlineSearchSettings(bTestLAN, bIsPresence));
+		SearchSettings = MakeShareable(new TestOnlineSearchSettings(bTestLAN, bIsPresence, SettingsOverride));
 		TSharedRef<FOnlineSessionSearch> SearchSettingsRef = SearchSettings.ToSharedRef();
 
 		OnFindSessionsCompleteDelegateHandle = SessionInt->AddOnFindSessionsCompleteDelegate_Handle(OnFindSessionsCompleteDelegate);
@@ -316,7 +360,8 @@ void FTestSessionInterface::OnFindFriendSessionComplete(int32 LocalUserNum, bool
 	OnFindFriendSessionCompleteDelegateHandles.Remove(LocalUserNum);
 	if (bWasSuccessful)
 	{
-		if (SearchResult.IsValid())
+		// Can't just use SearchResult.IsValid() here - it's possible the SessionInfo pointer is valid, but not the data until we actually join the session
+		if (SearchResult.Session.OwningUserId.IsValid() && SearchResult.Session.SessionInfo.IsValid())
 		{
 			JoinSession(LocalUserNum, GameSessionName, SearchResult);
 		}
@@ -344,6 +389,16 @@ void FTestSessionInterface::OnCancelFindSessionsComplete(bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnCancelFindSessionsComplete bSuccess: %d"), bWasSuccessful);
 	SessionInt->ClearOnCancelFindSessionsCompleteDelegate_Handle(OnCancelFindSessionsCompleteDelegateHandle);
+}
+
+void FTestSessionInterface::OnMatchmakingComplete(FName SessionName, bool bWasSuccessful)
+{
+	SessionInt->ClearOnMatchmakingCompleteDelegate_Handle(OnMatchmakingCompleteDelegateHandle);
+	UE_LOG(LogOnline, Verbose, TEXT("OnMatchmakingComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
+	if (bWasSuccessful)
+	{
+		SessionInt->DumpSessionState();
+	}
 }
 
 bool FTestSessionInterface::Tick(float DeltaTime)

@@ -315,6 +315,14 @@ const FName EKeys::NAME_GamepadCategory("Gamepad");
 const FName EKeys::NAME_MouseCategory("Mouse");
 const FName EKeys::NAME_KeyboardCategory("Key");
 
+#if PLATFORM_USES_FACE_BUTTON_RIGHT_FOR_ACCEPT
+const FKey EKeys::Virtual_Accept = EKeys::Gamepad_FaceButton_Right;
+const FKey EKeys::Virtual_Back = EKeys::Gamepad_FaceButton_Bottom;
+#else
+const FKey EKeys::Virtual_Accept = EKeys::Gamepad_FaceButton_Bottom;
+const FKey EKeys::Virtual_Back = EKeys::Gamepad_FaceButton_Right;
+#endif
+
 bool EKeys::bInitialized = false;
 TMap<FKey, TSharedPtr<FKeyDetails> > EKeys::InputKeys;
 TMap<FName, EKeys::FCategoryDisplayInfo> EKeys::MenuCategoryDisplayInfo;

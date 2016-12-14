@@ -44,7 +44,6 @@ FIOSAudioSoundBuffer::FIOSAudioSoundBuffer(FIOSAudioDevice* InAudioDevice, USoun
 	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 	check(AudioDeviceManager != nullptr);
 
-	AudioDeviceManager->TrackResource(InWave, this);
 	// There is no need to track this resource with the AudioDeviceManager since there is a one to one mapping between FIOSAudioSoundBuffer objects and FIOSAudioSoundSource objects
 	//	and this object will be deleted when the corresponding FIOSAudioSoundSource no longer needs it
 }
@@ -142,7 +141,7 @@ FIOSAudioSoundBuffer* FIOSAudioSoundBuffer::Init(FIOSAudioDevice* IOSAudioDevice
 	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
 
 	FIOSAudioSoundBuffer *Buffer = NULL;
-	bool	streaming = false;
+	bool	bIsStreaming = false;
 	
 	switch (static_cast<EDecompressionType>(InWave->DecompressionType))
 	{
@@ -154,18 +153,18 @@ FIOSAudioSoundBuffer* FIOSAudioSoundBuffer::Init(FIOSAudioDevice* IOSAudioDevice
 			return Init(IOSAudioDevice, InWave);
 			
 		case DTYPE_Streaming:
-			streaming = true;
+			bIsStreaming = true;
 			// fall through to next case
-			
-		case DTYPE_Native:
-			// Always create a new FIOSAudioSoundBuffer since positional information about the sound is kept track off in this object
-			Buffer = new FIOSAudioSoundBuffer(IOSAudioDevice, InWave, streaming);
+						
+		case DTYPE_RealTime:
+			// Always create a new FIOSAudioSoundBuffer since positional information about the sound is kept track of in this object
+			Buffer = new FIOSAudioSoundBuffer(IOSAudioDevice, InWave, bIsStreaming);
 			break;
 			
+		case DTYPE_Native:
 		case DTYPE_Invalid:
 		case DTYPE_Preview:
 		case DTYPE_Procedural:
-		case DTYPE_RealTime:
 		default:
 			// Invalid will be set if the wave cannot be played
 			UE_LOG( LogIOSAudio, Warning, TEXT("Init Buffer on unsupported sound type name = %s type = %d"), *InWave->GetName(), int32(InWave->DecompressionType));

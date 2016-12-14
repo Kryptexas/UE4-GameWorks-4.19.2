@@ -184,7 +184,8 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 		UE_LOG(LogInit, Log, TEXT("Initializing SDL."));
 
 		SDL_SetHint("SDL_VIDEO_X11_REQUIRE_XRANDR", "1");  // workaround for misbuilt SDL libraries on X11.
-		if (SDL_Init(SDL_INIT_EVERYTHING | SDL_INIT_NOPARACHUTE) != 0)
+		// we don't use SDL for audio
+		if (SDL_Init((SDL_INIT_EVERYTHING ^ SDL_INIT_AUDIO) | SDL_INIT_NOPARACHUTE) != 0)
 		{
 			const char * SDLError = SDL_GetError();
 

@@ -191,15 +191,24 @@ private:
 	 */
 	void DestroyPendingWindows();
 
-	/** Gets the touch index for a given finger. */
-	inline uint32 GetTouchIndexForFinger(SDL_FingerID FingerId)
-	{
-		// SDL ids are 64-bit while our touches are 32-bit. Collision due to wrapping shouldn't be a practical problem though
-		return static_cast<uint32>(FingerId & 0xFFFFFFFF);
-	}
-
 	/** Gets the location from a given touch event. */
 	FVector2D GetTouchEventLocation(SDL_Event TouchEvent);
+
+	/** Stores context information about a currently active touch. */
+	struct FTouchContext
+	{
+		/** Internal touch index (0-9 normally). */
+		int TouchIndex;
+
+		/** Device id */
+		SDL_TouchID DeviceId;
+
+		/** Last known location. */
+		FVector2D Location;
+	};
+
+	/** Holds currently active touches (i.e. fingers pressed but not released) */
+	TMap<uint64, FTouchContext> Touches;
 
 	struct SDLControllerState
 	{

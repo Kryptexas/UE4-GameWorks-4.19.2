@@ -180,7 +180,7 @@ namespace UnrealBuildTool
 
 			if (CompileEnvironment.Config.Architecture != "-win32") // ! simulator
 			{
-				Result = " -std=c++11";
+				Result = " -std=c++14";
 			}
 
 			return Result;

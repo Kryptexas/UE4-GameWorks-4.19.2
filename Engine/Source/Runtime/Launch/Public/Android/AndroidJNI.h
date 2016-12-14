@@ -19,6 +19,8 @@ public:
 	static jclass GameActivityClassID;
 	static jobject GameActivityThis;
 	static jmethodID AndroidThunkJava_ShowConsoleWindow;
+    static jmethodID AndroidThunkJava_ShowVirtualKeyboardInputDialog;
+    static jmethodID AndroidThunkJava_HideVirtualKeyboardInputDialog;
 	static jmethodID AndroidThunkJava_ShowVirtualKeyboardInput;
 	static jmethodID AndroidThunkJava_HideVirtualKeyboardInput;
 	static jmethodID AndroidThunkJava_LaunchURL;

@@ -36,10 +36,17 @@ namespace UnrealBuildTool
 			string PathVariable = Environment.GetEnvironmentVariable("PATH");
 			foreach (string SearchPath in PathVariable.Split(Path.PathSeparator))
 			{
-				string PotentialPath = Path.Combine(SearchPath, XgConsole);
-				if(File.Exists(PotentialPath))
+				try
 				{
-					return true;
+					string PotentialPath = Path.Combine(SearchPath, XgConsole);
+					if(File.Exists(PotentialPath))
+					{
+						return true;
+					}
+				}
+				catch(ArgumentException)
+				{
+					// PATH variable may contain illegal characters; just ignore them.
 				}
 			}
 			return false;

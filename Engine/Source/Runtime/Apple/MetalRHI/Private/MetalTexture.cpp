@@ -1679,11 +1679,9 @@ FTexture2DRHIRef FMetalDynamicRHI::RHIAsyncReallocateTexture2D(FTexture2DRHIPara
 	
 	for (uint32 MipIndex = 0; MipIndex < NumSharedMips; ++MipIndex)
 	{
-		const uint32 UnalignedMipSizeX = FMath::Max<uint32>(1, NewSizeX >> (MipIndex + DestMipOffset));
-		const uint32 UnalignedMipSizeY = FMath::Max<uint32>(1, NewSizeY >> (MipIndex + DestMipOffset));
-		const uint32 MipSizeX = (!PLATFORM_MAC && (!bPixelFormatBC || UnalignedMipSizeX >= BlockSizeX)) ? AlignArbitrary(UnalignedMipSizeX, BlockSizeX) : UnalignedMipSizeX;
-		const uint32 MipSizeY = (!PLATFORM_MAC && (!bPixelFormatBC || UnalignedMipSizeY >= BlockSizeY)) ? AlignArbitrary(UnalignedMipSizeY, BlockSizeY) : UnalignedMipSizeY;
-        
+		const uint32 MipSizeX = FMath::Max<uint32>(1, NewSizeX >> (MipIndex + DestMipOffset));
+		const uint32 MipSizeY = FMath::Max<uint32>(1, NewSizeY >> (MipIndex + DestMipOffset));
+
         GetInternalContext().AsyncCopyFromTextureToTexture(CommandBuffer, OldTexture->Surface.Texture, SliceIndex, MipIndex + SourceMipOffset, Origin, MTLSizeMake(MipSizeX, MipSizeY, 1), NewTexture->Surface.Texture, SliceIndex, MipIndex + DestMipOffset, Origin);
 	}
 

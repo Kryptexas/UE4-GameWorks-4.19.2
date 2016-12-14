@@ -650,7 +650,7 @@ namespace UnrealBuildTool
 			string[] BoolKeys = new string[] {
 				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
 				"bShipForArm64", "bShipForArmV7S", "bShipForBitcode", "bGeneratedSYMFile",
-				"bGeneratedSYMBundle", "bEnableRemoteNotificationsSupport"
+				"bGeneratedSYMBundle", "bEnableRemoteNotificationsSupport", "bEnableCloudKitSupport"
 			};
 			string[] StringKeys = new string[] {
 				"MinimumiOSVersion", 
