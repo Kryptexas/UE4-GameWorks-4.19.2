@@ -820,6 +820,8 @@ namespace UnrealBuildTool
 			}
 
 			var Result = new List<string>();
+			Result.Add("#include \"CoreTypes.h\"");
+			Result.Add("");
 			foreach (string Arch in Arches)
 			{
 				switch (Arch)
