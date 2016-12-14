@@ -135,9 +135,13 @@ namespace UnrealBuildTool
 			}
 
 			// Otherwise, get the default for the target type
-			if (Rules.Type == TargetRules.TargetType.Program || Rules.Type == TargetRules.TargetType.Editor)
+			if (Rules.Type == TargetRules.TargetType.Program)
 			{
 				return new[] { UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development };
+			}
+			else if(Rules.Type == TargetRules.TargetType.Editor)
+			{
+				return new[] { UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.DebugGame, UnrealTargetConfiguration.Development };
 			}
 			else
 			{
