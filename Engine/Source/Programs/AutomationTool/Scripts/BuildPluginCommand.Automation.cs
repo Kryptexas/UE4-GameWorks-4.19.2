@@ -49,13 +49,6 @@ class BuildPlugin : BuildCommand
 			throw new AutomationException("Output directory for packaged plugin must be outside engine directory");
 		}
 
-		// Whether to create a new sub folder with the name of the plugin to prevent deletion of everything in the package directory
-		bool bCreateSubFolder = ParseParam("CreateSubFolder");
-		if (bCreateSubFolder)
-		{
-			PackageDir = DirectoryReference.Combine(PackageDir, PluginFile.GetFileNameWithoutExtension());
-		}
-
 		// Clear the output directory of existing stuff
 		if (PackageDir.Exists())
 		{
