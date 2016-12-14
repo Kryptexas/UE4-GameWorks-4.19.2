@@ -49,6 +49,13 @@ class BuildPlugin : BuildCommand
 			throw new AutomationException("Output directory for packaged plugin must be outside engine directory");
 		}
 
+		// Whether to create a new sub folder with the name of the plugin to prevent deletion of everything in the package directory
+		bool bCreateSubFolder = ParseParam("CreateSubFolder");
+		if (bCreateSubFolder)
+		{
+			PackageDir = DirectoryReference.Combine(PackageDir, PluginFile.GetFileNameWithoutExtension());
+		}
+
 		// Clear the output directory of existing stuff
 		if (PackageDir.Exists())
 		{
@@ -154,13 +161,16 @@ class BuildPlugin : BuildCommand
 	{
 		// Find a list of modules that need to be built for this plugin
 		List<string> ModuleNames = new List<string>();
-		foreach(ModuleDescriptor Module in Plugin.Modules)
+		if (Plugin.Modules != null)
 		{
-			bool bBuildDeveloperTools = (TargetType == TargetRules.TargetType.Editor || TargetType == TargetRules.TargetType.Program);
-			bool bBuildEditor = (TargetType == TargetRules.TargetType.Editor);
-			if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
+			foreach (ModuleDescriptor Module in Plugin.Modules)
 			{
-				ModuleNames.Add(Module.Name);
+				bool bBuildDeveloperTools = (TargetType == TargetRules.TargetType.Editor || TargetType == TargetRules.TargetType.Program);
+				bool bBuildEditor = (TargetType == TargetRules.TargetType.Editor);
+				if (Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
+				{
+					ModuleNames.Add(Module.Name);
+				}
 			}
 		}
 
