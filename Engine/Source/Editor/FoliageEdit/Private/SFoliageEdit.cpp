@@ -592,7 +592,7 @@ TOptional<float> SFoliageEdit::GetRadius() const
 
 bool SFoliageEdit::IsEnabled_BrushSize() const
 {
-	return !FoliageEditMode->UISettings.GetIsInSingleInstantiationMode() && !FoliageEditMode->UISettings.GetIsInQuickSingleInstantiationMode();
+	return !FoliageEditMode->UISettings.IsInAnySingleInstantiationMode();
 }
 
 void SFoliageEdit::SetPaintDensity(float InDensity)
@@ -607,7 +607,7 @@ TOptional<float> SFoliageEdit::GetPaintDensity() const
 
 bool SFoliageEdit::IsEnabled_PaintDensity() const
 {
-	return !FoliageEditMode->UISettings.GetIsInSingleInstantiationMode() && !FoliageEditMode->UISettings.GetIsInQuickSingleInstantiationMode();
+	return !FoliageEditMode->UISettings.IsInAnySingleInstantiationMode();
 }
 
 void SFoliageEdit::SetEraseDensity(float InDensity)
@@ -622,7 +622,7 @@ TOptional<float> SFoliageEdit::GetEraseDensity() const
 
 bool SFoliageEdit::IsEnabled_EraseDensity() const
 {
-	return !FoliageEditMode->UISettings.GetIsInSingleInstantiationMode() && !FoliageEditMode->UISettings.GetIsInQuickSingleInstantiationMode();
+	return !FoliageEditMode->UISettings.IsInAnySingleInstantiationMode();
 }
 
 EVisibility SFoliageEdit::GetVisibility_SelectionOptions() const

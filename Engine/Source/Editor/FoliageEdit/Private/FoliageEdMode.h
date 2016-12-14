@@ -64,8 +64,8 @@ struct FFoliageUISettings
 	bool GetReapplyPaintBucketToolSelected() const { return bReapplyPaintBucketToolSelected ? true : false; }
 	void SetReapplyPaintBucketToolSelected(bool InbReapplyPaintBucketToolSelected) { bReapplyPaintBucketToolSelected = InbReapplyPaintBucketToolSelected; }
 
-	float GetRadius() const { return (GetIsInSingleInstantiationMode() || GetIsInQuickSingleInstantiationMode()) ? SingleInstanceModeBrushSize : Radius; }
-	void SetRadius(float InRadius) { Radius = InRadius; }
+	float GetRadius() const { return (IsInAnySingleInstantiationMode()) ? SingleInstanceModeBrushSize : Radius; }
+	void SetRadius(float InRadius) { if (!IsInAnySingleInstantiationMode()) Radius = InRadius; }
 	float GetPaintDensity() const { return PaintDensity; }
 	void SetPaintDensity(float InPaintDensity) { PaintDensity = InPaintDensity; }
 	float GetUnpaintDensity() const { return UnpaintDensity; }
@@ -80,6 +80,8 @@ struct FFoliageUISettings
 	void SetFilterFoliage(bool InbFilterFoliage) { bFilterFoliage = InbFilterFoliage; }
 	bool GetFilterTranslucent() const { return bFilterTranslucent; }
 	void SetFilterTranslucent(bool InbFilterTranslucent) { bFilterTranslucent = InbFilterTranslucent; }
+
+	bool IsInAnySingleInstantiationMode() const { return GetIsInSingleInstantiationMode() || GetIsInQuickSingleInstantiationMode(); }
 
 	bool GetIsInSingleInstantiationMode() const { return IsInSingleInstantiationMode; }
 	void SetIsInSingleInstantiationMode(bool InIsInSingleInstantiationMode) { IsInSingleInstantiationMode = InIsInSingleInstantiationMode; }
