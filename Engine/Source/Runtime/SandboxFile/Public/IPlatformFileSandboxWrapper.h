@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/Paths.h"
+#include "UniquePtr.h"
+
+class IAsyncReadFileHandle;
 
 /**
  * Wrapper to log the low level file system
@@ -11,8 +19,8 @@ DECLARE_LOG_CATEGORY_EXTERN(SandboxFile, Log, All);
 
 class SANDBOXFILE_API FSandboxFileHandle : public IFileHandle
 {
-	TAutoPtr<IFileHandle>	FileHandle;
-	FString				Filename;
+	TUniquePtr<IFileHandle>	FileHandle;
+	FString					Filename;
 
 public:
 
@@ -195,6 +203,10 @@ public:
 	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
+	}
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
 	}
 
 	virtual const TCHAR* GetName() const override
@@ -610,7 +622,7 @@ public:
 
 	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
 	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
-#if USE_NEW_ASYNC_IO
+
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
 		FString UserFilename(*ConvertToSandboxPath(Filename));
@@ -620,7 +632,7 @@ public:
 		}
 		return LowerLevel->OpenAsyncRead(Filename);
 	}
-#endif // USE_NEW_ASYNC_IO
+
 };
 
 

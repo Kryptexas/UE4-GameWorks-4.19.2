@@ -1,12 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieScene.h"
-#include "MovieSceneTrack.h"
-#include "MovieScenePropertyTrack.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieSceneBoolTrack.generated.h"
-
 
 /**
  * Handles manipulation of float properties in a movie scene

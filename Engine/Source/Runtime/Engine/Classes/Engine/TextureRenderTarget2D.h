@@ -1,9 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "RenderUtils.h"
-#include "TextureRenderTarget.h"
+#include "Engine/TextureRenderTarget.h"
 #include "TextureRenderTarget2D.generated.h"
+
+class FTextureResource;
+class UTexture2D;
+struct FPropertyChangedEvent;
+
+extern ENGINE_API int32 GTextureRenderTarget2DMaxSizeX;
+extern ENGINE_API int32 GTextureRenderTarget2DMaxSizeY;
 
 /**
  * TextureRenderTarget2D

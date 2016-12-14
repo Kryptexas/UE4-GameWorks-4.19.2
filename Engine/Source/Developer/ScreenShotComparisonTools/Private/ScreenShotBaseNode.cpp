@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenShotData.cpp: Implements the FScreenShotData class.
 =============================================================================*/
 
-#include "ScreenShotComparisonToolsPrivatePCH.h"
+#include "ScreenShotBaseNode.h"
+#include "ScreenShotScreenNode.h"
 
 
 /* IScreenShotData interface

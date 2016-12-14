@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AssetTypeActions_SoundBase.h"
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "AssetTypeActions/AssetTypeActions_SoundBase.h"
+
+class FMenuBuilder;
+class USoundCue;
 
 class FAssetTypeActions_SoundCue : public FAssetTypeActions_SoundBase
 {

@@ -1,30 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "AI/Navigation/RecastNavMeshGenerator.h"
+#include "AI/Navigation/NavRelevantInterface.h"
+#include "Components/PrimitiveComponent.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Serialization/MemoryWriter.h"
+#include "EngineGlobals.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Engine.h"
 #if WITH_RECAST
 
-#include "PhysicsPublic.h"
 
 #if WITH_PHYSX
-	#include "../../PhysicsEngine/PhysXSupport.h"
+	#include "PhysXPublic.h"
 #endif
-#include "RecastNavMeshGenerator.h"
-#include "PImplRecastNavMesh.h"
-#include "SurfaceIterators.h"
-#include "AI/Navigation/NavMeshBoundsVolume.h"
-#include "AI/NavigationOctree.h"
+#include "AI/Navigation/PImplRecastNavMesh.h"
 
 // recast includes
-#include "Recast.h"
-#include "DetourCommon.h"
-#include "DetourNavMeshBuilder.h"
-#include "DetourNavMeshQuery.h"
-#include "RecastAlloc.h"
-#include "DetourTileCache.h"
-#include "DetourTileCacheBuilder.h"
-#include "RecastHelpers.h"
-#include "NavigationSystemHelpers.h"
-#include "VisualLogger/VisualLogger.h"
+#include "Detour/DetourNavMeshBuilder.h"
+#include "DetourTileCache/DetourTileCacheBuilder.h"
+#include "AI/Navigation/RecastHelpers.h"
+#include "AI/NavigationSystemHelpers.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "PhysicsEngine/ConvexElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
 #define SEAMLESS_REBUILDING_ENABLED 1
@@ -705,15 +704,15 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodyConvexElements(UBodySetup& BodySetup,
 		ShapeBuffer.Add(VertexBuffer.Num() / 3);
 
 		// Get verts/triangles from this hull.
-		if (!ConvexElem->ConvexMesh && ConvexElem->ConvexMeshNegX)
+		if (!ConvexElem->GetConvexMesh() && ConvexElem->GetMirroredConvexMesh())
 		{
 			// If there is only a NegX mesh (e.g. a mirrored volume), use it
-			ExportPxConvexMesh(ConvexElem->ConvexMeshNegX, NegXScale * ConvexElem->Transform * LocalToWorld, VertexBuffer, IndexBuffer, UnrealBounds);
+			ExportPxConvexMesh(ConvexElem->GetMirroredConvexMesh(), NegXScale * LocalToWorld, VertexBuffer, IndexBuffer, UnrealBounds);
 		}
 		else
 		{
 			// Otherwise use the regular mesh in the case that both exist
-			ExportPxConvexMesh(ConvexElem->ConvexMesh, ConvexElem->Transform * LocalToWorld, VertexBuffer, IndexBuffer, UnrealBounds);
+			ExportPxConvexMesh(ConvexElem->GetConvexMesh(), LocalToWorld, VertexBuffer, IndexBuffer, UnrealBounds);
 		}
 	}
 #endif // WITH_PHYSX
@@ -2543,7 +2542,7 @@ bool FRecastTileGenerator::GenerateNavigationData(FNavMeshBuildContext& BuildCon
 
 	for (int32 iLayer = 0; iLayer < CompressedLayers.Num(); iLayer++)
 	{
-		if (DirtyLayers[iLayer] == false)
+		if (DirtyLayers[iLayer] == false || !CompressedLayers[iLayer].IsValid())
 		{
 			// skip layers not marked for rebuild
 			continue;
@@ -2821,24 +2820,24 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 		return;
 	}
 
+	const float ExpandBy = TileConfig.AgentRadius;
+
 	// Expand by 1 cell height up and down to cover for voxel grid inaccuracy
 	const float OffsetZMax = TileConfig.ch;
-	const float OffsetZMin = -TileConfig.ch - (Modifier.ShouldIncludeAgentHeight() ? TileConfig.AgentHeight : 0.0f);
+	const float OffsetZMin = TileConfig.ch + (Modifier.ShouldIncludeAgentHeight() ? TileConfig.AgentHeight : 0.0f);
 
 	// Check whether modifier affects this layer
 	const FBox LayerUnrealBounds = Recast2UnrealBox(Layer.header->bmin, Layer.header->bmax);
 	FBox ModifierBounds = Modifier.GetBounds().TransformBy(LocalToWorld);
-	ModifierBounds.Max.Z += OffsetZMax;
-	ModifierBounds.Min.Z += OffsetZMin;
+	ModifierBounds.Min -= FVector(ExpandBy, ExpandBy, OffsetZMin);
+	ModifierBounds.Max += FVector(ExpandBy, ExpandBy, OffsetZMax);
 
 	if (!LayerUnrealBounds.Intersect(ModifierBounds))
 	{
 		return;
 	}
 
-	const float ExpandBy = TileConfig.AgentRadius;
 	const float* LayerRecastOrig = Layer.header->bmin;
-
 	switch (Modifier.GetShapeType())
 	{
 	case ENavigationShapeType::Cylinder:
@@ -2852,7 +2851,7 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 			CylinderData.Radius *= FMath::Max(Scale3D.X, Scale3D.Y);
 			CylinderData.Origin = LocalToWorld.TransformPosition(CylinderData.Origin);
 			
-			const float OffsetZMid = (OffsetZMin + OffsetZMax) * 0.5f;
+			const float OffsetZMid = (OffsetZMax - OffsetZMin) * 0.5f;
 			CylinderData.Origin.Z += OffsetZMid;
 			CylinderData.Height += FMath::Abs(OffsetZMid) * 2.f;
 			CylinderData.Radius += ExpandBy;
@@ -2879,7 +2878,7 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 
 			FBox WorldBox = FBox::BuildAABB(BoxData.Origin, BoxData.Extent).TransformBy(LocalToWorld);
 			WorldBox = WorldBox.ExpandBy(FVector(ExpandBy, ExpandBy, 0));
-			WorldBox.Min.Z += OffsetZMin;
+			WorldBox.Min.Z -= OffsetZMin;
 			WorldBox.Max.Z += OffsetZMax;
 
 			FBox RacastBox = Unreal2RecastBox(WorldBox);
@@ -2909,7 +2908,7 @@ void FRecastTileGenerator::MarkDynamicArea(const FAreaNavModifier& Modifier, con
 
 			TArray<FVector> ConvexVerts;
 			GrowConvexHull(ExpandBy, ConvexData.Points, ConvexVerts);
-			ConvexData.MinZ += OffsetZMin;
+			ConvexData.MinZ -= OffsetZMin;
 			ConvexData.MaxZ += OffsetZMax;
 
 			if (ConvexVerts.Num())
@@ -3958,7 +3957,7 @@ void FRecastNavMeshGenerator::SortPendingBuildTiles()
 	// Collect players positions
 	for (FConstPlayerControllerIterator PlayerIt = CurWorld->GetPlayerControllerIterator(); PlayerIt; ++PlayerIt)
 	{
-		if (*PlayerIt && (*PlayerIt)->GetPawn() != NULL)
+		if (PlayerIt->IsValid() && PlayerIt->Get()->GetPawn() != NULL)
 		{
 			const FVector2D SeedLoc((*PlayerIt)->GetPawn()->GetActorLocation());
 			SeedLocations.Add(SeedLoc);
@@ -4023,6 +4022,7 @@ TArray<uint32> FRecastNavMeshGenerator::ProcessTileTasks(const int32 NumTasksToS
 		if (!RunningDirtyTiles.Contains(RunningElement))
 		{
 			// Spawn async task
+#if RECAST_ASYNC_REBUILDING
 			TUniquePtr<FRecastTileGeneratorTask> TileTask = MakeUnique<FRecastTileGeneratorTask>(CreateTileGenerator(PendingElement.Coord, PendingElement.DirtyAreas));
 
 			// Start it in background in case it has something to build
@@ -4034,6 +4034,30 @@ TArray<uint32> FRecastNavMeshGenerator::ProcessTileTasks(const int32 NumTasksToS
 				RunningDirtyTiles.Add(RunningElement);
 				NumSubmittedTasks++;
 			}
+#else
+			TSharedRef<FRecastTileGenerator> TileGenerator = CreateTileGenerator(PendingElement.Coord, PendingElement.DirtyAreas);
+			if (TileGenerator->HasDataToBuild())
+			{
+				FRecastTileGenerator& TileGeneratorRef = TileGenerator.Get();
+				TileGeneratorRef.DoWork();
+
+				TArray<uint32> UpdatedTileIndices = AddGeneratedTiles(TileGeneratorRef);
+				UpdatedTiles.Append(UpdatedTileIndices);
+
+				// Store compressed tile cache layers so it can be reused later
+				if (TileGeneratorRef.GetCompressedLayers().Num())
+				{
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMeshGenerator_StoringCompressedLayers);
+					DestNavMesh->AddTileCacheLayers(PendingElement.Coord.X, PendingElement.Coord.Y, TileGeneratorRef.GetCompressedLayers());
+				}
+				else
+				{
+					DestNavMesh->MarkEmptyTileCacheLayers(PendingElement.Coord.X, PendingElement.Coord.Y);
+				}
+
+				NumSubmittedTasks++;
+			}
+#endif
 			else if (!bGameStaticNavMesh)
 			{
 				// If there is nothing to generate remove all tiles from navmesh at specified grid coordinates

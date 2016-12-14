@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 #include "IDetailCustomization.h"
-#include "ILocalizationServiceProvider.h"
 
-class ULocalizationTarget;
+class IDetailLayoutBuilder;
 class IPropertyHandle;
+class ULocalizationTarget;
 class ULocalizationTargetSet;
-class IDetailCategoryBuilder;
 
 class FLocalizationTargetSetDetailCustomization : public IDetailCustomization
 {

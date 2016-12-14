@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AtmosphereTextures.h: System textures definitions.
@@ -6,8 +6,11 @@
 
 #pragma once
 
-#include "ShaderParameters.h"
-#include "RenderTargetPool.h"
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "RendererInterface.h"
+
+struct FAtmospherePrecomputeParameters;
 
 /**
  * Encapsulates the system textures used for scene rendering.

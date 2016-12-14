@@ -1,13 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	SimpleElementShaders.h: Definitions for simple element shaders.
 ==============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ShaderParameterUtils.h"
 #include "SimpleElementShaders.h"
-#include "SceneTypes.h"
+#include "ShaderParameterUtils.h"
 
 /*------------------------------------------------------------------------------
 	Simple element vertex shader.

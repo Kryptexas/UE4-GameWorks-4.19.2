@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -22,8 +22,12 @@
 #ifndef DETOURLOCALBOUNDARY_H
 #define DETOURLOCALBOUNDARY_H
 
-#include "DetourNavMeshQuery.h"
-#include "DetourSharedBoundary.h"
+#include "CoreMinimal.h"
+#include "Detour/DetourNavMesh.h"
+
+class dtNavMeshQuery;
+class dtQueryFilter;
+class dtSharedBoundary;
 
 class NAVMESH_API dtLocalBoundary
 {

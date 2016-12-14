@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "BlueprintEditor.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Profiler/BPProfilerStatisticWidgets.h"
 
 // Shared pointer to a performance stat
 typedef TSharedPtr<class FBPProfilerStatWidget> FBPStatWidgetPtr;

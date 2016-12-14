@@ -1,16 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnArchive.cpp: Core archive classes.
 =============================================================================*/
-#include "CorePrivatePCH.h"
 #include "Serialization/Archive.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "UObject/ObjectVersion.h"
+#include "Serialization/ArchiveProxy.h"
+#include "Serialization/NameAsStringProxyArchive.h"
+#include "Misc/CommandLine.h"
+#include "Internationalization/Text.h"
+#include "Stats/StatsMisc.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
 #include "Serialization/CustomVersion.h"
-#include "EngineVersion.h"
-#include "NetworkVersion.h"
-#include "TargetPlatform.h"
-#include "GenericPlatformCompression.h"
-#include "CompressedChunkInfo.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/NetworkVersion.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Serialization/CompressedChunkInfo.h"
 
 /*-----------------------------------------------------------------------------
 	FArchive implementation.
@@ -44,6 +57,7 @@ FArchive::FArchive(const FArchive& ArchiveToCopy)
 	// Don't know why this is set to false, but this is what the original copying code did
 	ArIsFilterEditorOnly  = false;
 
+	bCustomVersionsAreReset = ArchiveToCopy.bCustomVersionsAreReset;
 	CustomVersionContainer = new FCustomVersionContainer(*ArchiveToCopy.CustomVersionContainer);
 }
 
@@ -58,6 +72,7 @@ FArchive& FArchive::operator=(const FArchive& ArchiveToCopy)
 	// Don't know why this is set to false, but this is what the original copying code did
 	ArIsFilterEditorOnly  = false;
 
+	bCustomVersionsAreReset = ArchiveToCopy.bCustomVersionsAreReset;
 	*CustomVersionContainer = *ArchiveToCopy.CustomVersionContainer;
 	return *this;
 }
@@ -258,6 +273,40 @@ FArchive& FArchive::operator<<(struct FWeakObjectPtr& Value)
 	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FWeakObjectPtr serialization. Use FArchiveUObject instead."));
 	return *this;
 }
+
+#if WITH_EDITOR
+FArchive& FArchive::operator<<( bool& D )
+{
+	// Serialize bool as if it were UBOOL (legacy, 32 bit int).
+	uint32 OldUBoolValue;
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
+	const uint8 * RESTRICT Src = this->ActiveFPLB->StartFastPathLoadBuffer;
+	if (Src + sizeof(uint32) <= this->ActiveFPLB->EndFastPathLoadBuffer)
+	{
+#if PLATFORM_SUPPORTS_UNALIGNED_INT_LOADS
+		OldUBoolValue = *(uint32* RESTRICT)Src;
+#else
+		static_assert(sizeof(uint32) == 4, "assuming sizeof(uint32) == 4");
+		OldUBoolValue = Src[0] | Src[1] | Src[2] | Src[3];
+#endif
+		this->ActiveFPLB->StartFastPathLoadBuffer += 4;
+	}
+	else
+#endif
+	{
+		OldUBoolValue = D ? 1 : 0;
+		this->Serialize(&OldUBoolValue, sizeof(OldUBoolValue));
+	}
+	if (OldUBoolValue > 1)
+	{
+		UE_LOG( LogSerialization, Error, TEXT("Invalid boolean encountered while reading archive - stream is most likely corrupted."));
+
+		this->ArIsError = true;
+	}
+	D = !!OldUBoolValue;
+	return *this;
+}
+#endif
 
 const FCustomVersionContainer& FArchive::GetCustomVersions() const
 {

@@ -1,20 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "SPoseEditor.h"
-#include "ObjectTools.h"
-#include "AssetRegistryModule.h"
+#include "Misc/MessageDialog.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Animation/DebugSkelMeshComponent.h"
 #include "ScopedTransaction.h"
-#include "SSearchBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Animation/AnimSingleNodeInstance.h"
-#include "IPersonaPreviewScene.h"
-#include "IPersonaToolkit.h"
-#include "IEditableSkeleton.h"
 
-#include "SInlineEditableTextBlock.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
 
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "PoseEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "AnimPoseEditor"
@@ -38,8 +37,8 @@ void SPoseEditor::Construct(const FArguments& InArgs, const TSharedRef<class IPe
 		.DisplayAnimInfoBar(false),
 		InPreviewScene);
 
- 	EditorPanels->AddSlot()
- 	.AutoHeight()
+	NonScrollEditorPanels->AddSlot()
+ 	.FillHeight(1)
  	.Padding(0, 10)
 	[
  		SNew( SPoseViewer, InPersonaToolkit, InEditableSkeleton, InPreviewScene)
@@ -315,60 +314,63 @@ void SPoseViewer::Construct(const FArguments& InArgs, const TSharedRef<IPersonaT
 
 	ChildSlot
 	[
-		SNew(SHorizontalBox)
+		SNew(SSplitter)
+		.Orientation(EOrientation::Orient_Horizontal)
 
 		// Pose List
-		+SHorizontalBox::Slot()
-		.FillWidth(1)
-		.Padding(3)
+		+SSplitter::Slot()
+		.Value(1)
 		[
-			SNew(SVerticalBox)
-
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0, 2)
+			SNew(SBox)
+			.Padding(5)
 			[
-				SNew(SHorizontalBox)
-				// Filter entry
-				+ SHorizontalBox::Slot()
-				.FillWidth(1)
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0, 2)
 				[
-					SAssignNew(NameFilterBox, SSearchBox)
-					.SelectAllTextWhenFocused(true)
-					.OnTextChanged(this, &SPoseViewer::OnFilterTextChanged)
-					.OnTextCommitted(this, &SPoseViewer::OnFilterTextCommitted)
+					SNew(SHorizontalBox)
+					// Filter entry
+					+ SHorizontalBox::Slot()
+					.FillWidth(1)
+					[
+						SAssignNew(NameFilterBox, SSearchBox)
+						.SelectAllTextWhenFocused(true)
+						.OnTextChanged(this, &SPoseViewer::OnFilterTextChanged)
+						.OnTextCommitted(this, &SPoseViewer::OnFilterTextCommitted)
+					]
 				]
-			]
 
-			+ SVerticalBox::Slot()
-			.FillHeight(1)
-			.Padding(0, 2)
-			[
-				SAssignNew(PoseListView, SPoseListType)
-				.ListItemsSource(&PoseList)
-				.OnGenerateRow(this, &SPoseViewer::GeneratePoseRow)
-				.OnContextMenuOpening(this, &SPoseViewer::OnGetContextMenuContent)
-				.OnMouseButtonDoubleClick(this, &SPoseViewer::OnListDoubleClick)
-				.ItemHeight(22.0f)
-				.HeaderRow
-				(
-					SNew(SHeaderRow)
-					+ SHeaderRow::Column(ColumnId_PoseNameLabel)
-					.DefaultLabel(LOCTEXT("PoseNameLabel", "Pose Name"))
+				+ SVerticalBox::Slot()
+				.FillHeight(1)
+				.Padding(0, 2)
+				[
+					SAssignNew(PoseListView, SPoseListType)
+					.ListItemsSource(&PoseList)
+					.OnGenerateRow(this, &SPoseViewer::GeneratePoseRow)
+					.OnContextMenuOpening(this, &SPoseViewer::OnGetContextMenuContent)
+					.OnMouseButtonDoubleClick(this, &SPoseViewer::OnListDoubleClick)
+					.ItemHeight(22.0f)
+					.HeaderRow
+					(
+						SNew(SHeaderRow)
+						+ SHeaderRow::Column(ColumnId_PoseNameLabel)
+						.DefaultLabel(LOCTEXT("PoseNameLabel", "Pose Name"))
 
-					+ SHeaderRow::Column(ColumnID_PoseWeightLabel)
-					.DefaultLabel(LOCTEXT("PoseWeightLabel", "Weight"))
-					)
+						+ SHeaderRow::Column(ColumnID_PoseWeightLabel)
+						.DefaultLabel(LOCTEXT("PoseWeightLabel", "Weight"))
+						)
+				]
 			]
 		]
 
 		// Curve List
-		+ SHorizontalBox::Slot()
-		.FillWidth(1)
-		.Padding(5)
+		+SSplitter::Slot()
+		.Value(1)
 		[
 			SNew(SBorder)
-			.Padding(3)
+			.Padding(8)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder"))
 			[
 				SAssignNew(CurveListView, SCurveListType)
@@ -419,7 +421,7 @@ void SPoseViewer::RefreshCachePreviewInstance()
 	}
 }
 
-void SPoseViewer::OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh)
+void SPoseViewer::OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh)
 {
 	RefreshCachePreviewInstance();
 	CreatePoseList(NameFilterBox->GetText().ToString());

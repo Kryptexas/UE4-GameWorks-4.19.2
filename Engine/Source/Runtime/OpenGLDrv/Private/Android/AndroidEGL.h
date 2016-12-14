@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidEGL.h: Private EGL definitions for Android-specific functionality
@@ -7,6 +7,8 @@
 
 #if PLATFORM_ANDROID
 
+#include "CoreMinimal.h"
+#include "Logging/LogMacros.h"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>

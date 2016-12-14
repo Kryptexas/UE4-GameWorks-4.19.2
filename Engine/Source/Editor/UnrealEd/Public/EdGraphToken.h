@@ -1,15 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TokenizedMessage.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Logging/TokenizedMessage.h"
 
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#pragma once
-
-#include "TokenizedMessage.h"
-#include "WeakObjectPtr.h"
+class FCompilerResultsLog;
 
 /**
  * A Message Log token that links to an elemnt (node or pin) in an EdGraph

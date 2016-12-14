@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	XeAudioDevice.cpp: Unreal XAudio2 Audio interface object.
@@ -11,12 +11,12 @@
 	Audio includes.
 ------------------------------------------------------------------------------------*/
 
-#include "XAudio2PrivatePCH.h"
 #include "XAudio2Device.h"
 #include "XAudio2Effects.h"
-#include "Engine.h"
 #include "XAudio2Support.h"
 #include "IAudioExtensionPlugin.h"
+#include "ActiveSound.h"
+#include "Sound/AudioSettings.h"
 
 /*------------------------------------------------------------------------------------
 	For muting user soundtracks during cinematics
@@ -373,16 +373,18 @@ bool FXAudio2SoundSource::CreateSource( void )
 	// Create a source that goes to the spatialisation code and reverb effect
 	Destinations[NumSends].pOutputVoice = Effects->DryPremasterVoice;
 
-	// EQFilter Causes sound devices on AMD boards to lag and starve important game threads. Hack disable for AMD until a long term solution is put into place.
-	static const bool bIsAMD = (FPlatformMisc::GetCPUVendor() == TEXT("AuthenticAMD"));
-	if (!bIsAMD && IsEQFilterApplied())
+	// EQFilter Causes some sound devices to lag and starve important game threads. Hack disable until a long term solution is put into place.
+
+	const bool bIsEQDisabled = GetDefault<UAudioSettings>()->bDisableMasterEQ;
+	if (!bIsEQDisabled && IsEQFilterApplied())
 	{
 		Destinations[NumSends].pOutputVoice = Effects->EQPremasterVoice;
 	}
 
 	NumSends++;
 
-	if( bReverbApplied )
+	const bool bIsReverbDisabled = GetDefault<UAudioSettings>()->bDisableMasterReverb;
+	if( bReverbApplied && !bIsReverbDisabled)
 	{
 		Destinations[NumSends].pOutputVoice = Effects->ReverbEffectVoice;
 		NumSends++;

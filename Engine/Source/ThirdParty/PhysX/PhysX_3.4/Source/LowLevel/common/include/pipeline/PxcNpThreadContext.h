@@ -38,7 +38,7 @@
 #include "PxcConstraintBlockStream.h"
 #include "GuContactBuffer.h"
 #include "PxvContext.h"
-#include "PxcThreadCoherantCache.h"
+#include "PxcThreadCoherentCache.h"
 #include "CmBitMap.h"
 #include "../pcm/GuPersistentContactManifold.h"
 
@@ -69,7 +69,7 @@ struct PxcDataStreamPool
 	PxU32 mDataStreamSize;
 	PxU32 mSharedDataIndexGPU;
 
-	bool isOverflown()
+	bool isOverflown()	const
 	{
 		//FD: my expectaton is that reading those variables is atomic, shared indices are non-decreasing, 
 		//so we can only get a false overflow alert because of concurrency issues, which is not a big deal as it means 
@@ -122,7 +122,7 @@ struct PxcNpContext
 					Cm::RenderOutput			getRenderOutput()					{ return Cm::RenderOutput(mRenderBuffer);	}
 };
 
-class PxcNpThreadContext : public PxcThreadCoherantCache<PxcNpThreadContext, PxcNpContext>::EntryBase
+class PxcNpThreadContext : public PxcThreadCoherentCache<PxcNpThreadContext, PxcNpContext>::EntryBase
 {
 												PX_NOCOPY(PxcNpThreadContext)
 public:
@@ -147,7 +147,7 @@ public:
 
 	PX_FORCE_INLINE Cm::BitMap&					getLocalChangeTouch()							{ return mLocalChangeTouch;					}
 
-	PX_FORCE_INLINE Cm::BitMap&					getLocalPatchChangeMap()							{ return mLocalPatchCountChange;					}
+	PX_FORCE_INLINE Cm::BitMap&					getLocalPatchChangeMap()						{ return mLocalPatchCountChange;			}
 
 	void										reset(PxU32 cmCount);
 	// debugging
@@ -198,7 +198,7 @@ public:
 
 					PxcDataStreamPool*			mContactStreamPool;
 					PxcDataStreamPool*			mPatchStreamPool;
-					PxcDataStreamPool*			mForceAndIndiceStreamPool; //this stream is used to story the force buffer and triangle index if we are performancing mesh/heightfield contact gen
+					PxcDataStreamPool*			mForceAndIndiceStreamPool; //this stream is used to store the force buffer and triangle index if we are performing mesh/heightfield contact gen
 					PxcDataStreamPool*			mConstraintWriteBackStreamPool;
 					PxsMaterialManager*			mMaterialManager;
 private:

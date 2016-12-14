@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // DefaultPawns are simple pawns that can fly around the world.
@@ -6,10 +6,14 @@
 //=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/Pawn.h"
 #include "DefaultPawn.generated.h"
 
-class UFloatingPawnMovement;
+class UInputComponent;
+class UPawnMovementComponent;
 class USphereComponent;
 class UStaticMeshComponent;
 

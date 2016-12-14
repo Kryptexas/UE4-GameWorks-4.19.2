@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Commands.h"
-
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/Commands.h"
 
 class FMenuBuilder;
-class FUICommandInfo;
-
 
 /**
  * Class that holds all profiler commands.

@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Materials/MaterialExpressionParameter.h"
 #include "MaterialExpressionVectorParameter.generated.h"
+
+struct FPropertyChangedEvent;
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionVectorParameter : public UMaterialExpressionParameter
@@ -12,6 +17,9 @@ class UMaterialExpressionVectorParameter : public UMaterialExpressionParameter
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionVectorParameter)
 	FLinearColor DefaultValue;
+
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionVectorParameter)
+	FColor DefaultValue2;
 
 	//~ Begin UMaterialExpression Interface
 #if WITH_EDITOR

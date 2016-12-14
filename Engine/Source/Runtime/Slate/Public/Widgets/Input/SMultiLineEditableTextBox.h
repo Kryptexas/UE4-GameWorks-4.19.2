@@ -1,6 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "SlateGlobals.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateColor.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/Text/IRun.h"
+#include "Framework/Text/TextLayout.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "Widgets/Text/SMultiLineEditableText.h"
+
+class IErrorReportingWidget;
+class ITextLayoutMarshaller;
+class SBox;
+class SHorizontalBox;
+enum class ETextShapingMethod : uint8;
 
 #if WITH_FANCY_TEXT
 
@@ -367,9 +389,6 @@ protected:
 	/** Read-only foreground color (overrides style) */
 	TAttribute<FSlateColor> ReadOnlyForegroundColorOverride;
 
-	/** Read-only foreground color */
-	TAttribute<FSlateColor> ReadOnlyForegroundColor;
-
 	/** Whether to disable the context menu */
 	TAttribute< bool > AllowContextMenu;
 
@@ -401,6 +420,14 @@ protected:
 private:
 
 	const FEditableTextBoxStyle* Style;
+
+	FMargin FORCEINLINE DeterminePadding() const { check(Style);  return PaddingOverride.IsSet() ? PaddingOverride.Get() : Style->Padding; }
+	FMargin FORCEINLINE DetermineHScrollBarPadding() const { check(Style);  return HScrollBarPaddingOverride.IsSet() ? HScrollBarPaddingOverride.Get() : Style->HScrollBarPadding; }
+	FMargin FORCEINLINE DetermineVScrollBarPadding() const { check(Style);  return VScrollBarPaddingOverride.IsSet() ? VScrollBarPaddingOverride.Get() : Style->VScrollBarPadding; }
+	FSlateFontInfo FORCEINLINE DetermineFont() const { check(Style);  return FontOverride.IsSet() ? FontOverride.Get() : Style->Font; }
+	FSlateColor FORCEINLINE DetermineBackgroundColor() const { check(Style);  return BackgroundColorOverride.IsSet() ? BackgroundColorOverride.Get() : Style->BackgroundColor; }
+
+	FSlateColor DetermineForegroundColor() const;
 
 	/** Styling: border image to draw when not hovered or focused */
 	const FSlateBrush* BorderImageNormal;

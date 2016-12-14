@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Modules/ModuleInterface.h"
+#include "Widgets/SWindow.h"
+
+class SEditableTextBox;
 
 /** Style of the debug console */
 namespace EDebugConsoleStyle

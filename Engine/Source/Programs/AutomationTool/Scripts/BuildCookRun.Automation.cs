@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -332,7 +332,7 @@ public class BuildCookRun : BuildCommand
 						{
 							ProjectFullPath = GameProj.FilePath;
 						}
-						if (!FileExists_NoExceptions(ProjectFullPath.FullName))
+						if (ProjectFullPath == null || !FileExists_NoExceptions(ProjectFullPath.FullName))
 						{
 							throw new AutomationException("Could not find a project file {0}.", ProjectName);
 						}

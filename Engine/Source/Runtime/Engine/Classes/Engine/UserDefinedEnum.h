@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,9 @@
  *	- Full enumerator name has form: '<enumeration path>::<short, user defined enumerator name>'
  */
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
 #include "UserDefinedEnum.generated.h"
 
 /** 
@@ -25,13 +28,11 @@ class ENGINE_API UUserDefinedEnum : public UEnum
 #endif //WITH_EDITORONLY_DATA
 
 	/**
-	 * Names stored in "DisplayName" meta data. They are duplicated here, 
-	 * so functions like UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName can use them
-	 * outside the editor. (When meta data are not loaded).
-	 * To sync DisplayNames with meta-data use FEnumEditorUtils::EnsureAllDisplayNamesExist.
+	 * De-facto display names for enum entries mapped against their raw enum name (UEnum::GetEnumName).
+	 * To sync DisplayNameMap use FEnumEditorUtils::EnsureAllDisplayNamesExist.
 	 */
 	UPROPERTY()
-	TArray<FText> DisplayNames;
+	TMap<FName, FText> DisplayNameMap;
 
 public:
 	//~ Begin UObject Interface.
@@ -52,14 +53,14 @@ public:
 	 *	@param EnumeratorIndex	old index
 	 *	@return	new index
 	 */
-	virtual int32 ResolveEnumerator(FArchive& Ar, int32 EnumeratorValue) const override;
+	virtual int64 ResolveEnumerator(FArchive& Ar, int64 EnumeratorValue) const override;
 
 	/**
 	 * @return	The enum string at the specified index.
 	 */
 	virtual FText GetEnumText(int32 InIndex) const override;
 
-	virtual bool SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing = true) override;
+	virtual bool SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing = true) override;
 
 #if WITH_EDITOR
 	//~ Begin UObject Interface

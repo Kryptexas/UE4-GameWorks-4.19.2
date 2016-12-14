@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieScenePropertyTemplates.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
 
 #include "MovieSceneVisibilityTemplate.generated.h"
 
 class UMovieSceneBoolSection;
-
+class UMovieScenePropertyTrack;
 
 USTRUCT()
 struct FMovieSceneVisibilitySectionTemplate : public FMovieSceneBoolPropertySectionTemplate

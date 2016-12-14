@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -7,7 +7,8 @@ GenericPlatformCompression.h: Generic platform compress and decompress.
 
 #pragma once
 
-#include "Compression.h"
+#include "CoreTypes.h"
+#include "Misc/Compression.h"
 
 /**
 * Interface for platform specific compression routines

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -39,8 +39,10 @@ namespace UnrealBuildTool
 																	"/Script/BuildSettings.BuildSettings", "/Script/IOSRuntimeSettings.IOSRuntimeSettings", "/Script/WindowsTargetPlatform.WindowsTargetSettings",
 																	"/Script/UnrealEd.ProjectPackagingSettings", "/Script/PS4PlatformEditor.PS4TargetSettings", "/Script/XboxOnePlatformEditor.XboxOneTargetSettings",
 																	"/Script/HTML5PlatformEditor.HTML5TargetSettings","PS4SymbolServer","/Script/EngineSettings.GeneralProjectSettings",
-                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "OnlineSubsystemGooglePlay.Store","/Script/Engine.StreamingSettings",
-                                                                    "/Script/WolfRuntimeSettings.WolfRuntimeSettings", "/Script/Engine.NetworkSettings", "/Script/SourceCodeAccess.SourceCodeAccessSettings"};
+                                                                    "/Script/UnrealEd.ProjectPackagingSettings", "InstalledPlatforms", "OnlineSubsystemGooglePlay.Store", "Core.Encryption",
+                                                                    "/Script/SwitchRuntimeSettings.SwitchRuntimeSettings", "/Script/Engine.NetworkSettings", "/Script/SourceCodeAccess.SourceCodeAccessSettings",
+																	"/Script/LinuxTargetPlatform.LinuxTargetSettings", "BuildConfiguration", "UEBuildConfiguration", "/Script/WolfRuntimeSettings.WolfRuntimeSettings", 
+																	"/Script/LocationServicesIOSEditor.LocationServicesIOSSettings"};
 
 		// static creation functions for ini files
 		public static ConfigCacheIni CreateConfigCacheIni(UnrealTargetPlatform Platform, string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory = null)
@@ -807,10 +809,22 @@ namespace UnrealBuildTool
 				// Engine/Config/Platform/Platform* ini
 				yield return FileReference.Combine(EngineDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
 
+				// Engine/Config/NotForLicensees/Platform/Platform* ini
+				yield return FileReference.Combine(EngineDirectory, "Config", "NotForLicensees", PlatformName, PlatformName + BaseIniName + ".ini");
+
+				// Engine/Config/NoRedist/Platform/Platform* ini
+				yield return FileReference.Combine(EngineDirectory, "Config", "NoRedist", PlatformName, PlatformName + BaseIniName + ".ini");
+
 				if (ProjectDirectory != null)
 				{
 					// Game/Config/Platform/Platform* ini
 					yield return FileReference.Combine(ProjectDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
+
+					// Engine/Config/NotForLicensees/Platform/Platform* ini
+					yield return FileReference.Combine(ProjectDirectory, "Config", "NotForLicensees", PlatformName, PlatformName + BaseIniName + ".ini");
+
+					// Engine/Config/NoRedist/Platform/Platform* ini
+					yield return FileReference.Combine(ProjectDirectory, "Config", "NoRedist", PlatformName, PlatformName + BaseIniName + ".ini");
 				}
 			}
 
@@ -853,7 +867,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns the platform name to use as part of platform-specific config files
 		/// </summary>
-		private static string GetIniPlatformName(UnrealTargetPlatform TargetPlatform)
+		public static string GetIniPlatformName(UnrealTargetPlatform TargetPlatform)
 		{
 			if (TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64)
 			{

@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/PackageMapClient.h"
+#include "NetcodeUnitTest.h"
 #include "UnitTestPackageMap.generated.h"
+
+class UNetConnection;
 
 /**
  * Package map override, for blocking the creation of actor channels for specific actors (by detecting the actor class being created)

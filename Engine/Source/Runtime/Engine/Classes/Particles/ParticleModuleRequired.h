@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "RenderCommandFence.h"
 #include "Particles/ParticleModule.h"
-#include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSpriteEmitter.h"
-#include "SubUVAnimation.h"
+#include "Particles/SubUVAnimation.h"
 #include "ParticleModuleRequired.generated.h"
 
 class UInterpCurveEdSetup;
+class UParticleLODLevel;
+struct FCurveEdEntry;
 
 UENUM()
 enum class EParticleUVFlipMode : uint8

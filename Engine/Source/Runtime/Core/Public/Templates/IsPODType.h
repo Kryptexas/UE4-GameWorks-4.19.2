@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AndOrNot.h"
-#include "IsArithmetic.h"
-#include "IsPointer.h"
+#include "CoreTypes.h"
+#include "Templates/IsPointer.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/IsArithmetic.h"
 
 /**
  * Traits class which tests if a type is POD.

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanQuery.cpp: Vulkan query RHI implementation.
@@ -7,7 +7,7 @@
 #include "VulkanRHIPrivate.h"
 #include "VulkanContext.h"
 #include "VulkanCommandBuffer.h"
-
+#include "EngineGlobals.h"
 
 struct FRHICommandWaitForFence : public FRHICommand<FRHICommandWaitForFence>
 {

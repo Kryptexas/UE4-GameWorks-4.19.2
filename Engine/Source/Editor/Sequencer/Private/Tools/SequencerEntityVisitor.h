@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSequencerDisplayNode;
-class UMovieSceneSection;
+#include "CoreMinimal.h"
+#include "Curves/KeyHandle.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "DisplayNodes/SequencerSectionKeyAreaNode.h"
+#include "ISequencerSection.h"
+
+class FSequencerTrackNode;
 class IKeyArea;
-class FSequencerSectionKeyAreaNode;
-class ISequencerSection;
 
 /** Enum of different types of entities that are available in the sequencer */
 namespace ESequencerEntity

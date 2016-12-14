@@ -1,17 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "FontCacheHarfBuzz.h"
-#include "IBreakIterator.h"
+#include "CoreMinimal.h"
+#include "Fonts/FontCache.h"
+#include "Fonts/FontCacheFreeType.h"
+#include "Fonts/FontCacheHarfBuzz.h"
 
-class FFreeTypeFace;
-class FFreeTypeGlyphCache;
-class FFreeTypeAdvanceCache;
 class FCompositeFontCache;
 class FSlateFontRenderer;
-class FSlateFontCache;
-
+class IBreakIterator;
 
 /**
  * Internal class used to hold the FreeType data within the shaped glyph sequence.

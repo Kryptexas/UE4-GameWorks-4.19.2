@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnalyticsETPrivatePCH.h"
 #include "HttpServiceTracker.h"
+#include "HAL/PlatformTime.h"
 #include "AnalyticsEventAttribute.h"
-#include "AnalyticsET.h"
 #include "IAnalyticsProviderET.h"
-#include "IHttpResponse.h"
+#include "AnalyticsET.h"
+#include "Interfaces/IHttpResponse.h"
 
 bool FHttpServiceTracker::Tick(float DeltaTime)
 {
@@ -41,7 +41,7 @@ bool FHttpServiceTracker::Tick(float DeltaTime)
 				// one attribute per response code.
 				for (const auto& ResponseCodeMapPair : MetricsMapPair.Value.ResponseCodes)
 				{
-					Attrs.Emplace(FString(TEXT("Code-")) + LexicalConversion::ToString(ResponseCodeMapPair.Key), ResponseCodeMapPair.Value);
+					Attrs.Emplace(FString(TEXT("Code-")) + Lex::ToString(ResponseCodeMapPair.Key), ResponseCodeMapPair.Value);
 				}
 				AnalyticsProvider->RecordEvent(MetricsMapPair.Key.ToString(), Attrs);
 			}

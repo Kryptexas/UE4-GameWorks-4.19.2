@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InterpCurveEdSetup.cpp: Implementation of distribution classes.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Matinee/InterpTrack.h"
 #include "Engine/InterpCurveEdSetup.h"
+#include "Templates/Casts.h"
+#include "Distributions/DistributionFloat.h"
+#include "Distributions/DistributionVector.h"
+#include "Matinee/InterpTrack.h"
 
 
 void UInterpCurveEdSetup::PostLoad()

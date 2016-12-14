@@ -1,15 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Material.cpp: 
 	Material-related particle module implementations.
 =============================================================================*/
-#include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
+
+#include "CoreMinimal.h"
+#include "Particles/Material/ParticleModuleMaterialBase.h"
 #include "Particles/Material/ParticleModuleMeshMaterial.h"
-#include "Particles/ParticleLODLevel.h"
-#include "Particles/ParticleModuleRequired.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/ParticleLODLevel.h"
 
 UParticleModuleMaterialBase::UParticleModuleMaterialBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

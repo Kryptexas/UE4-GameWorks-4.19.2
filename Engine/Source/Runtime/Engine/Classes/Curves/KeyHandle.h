@@ -1,7 +1,11 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
 #include "KeyHandle.generated.h"
-
 
 /**
  * Key handles are used to keep a handle to a key. They are completely transient.
@@ -71,6 +75,12 @@ public:
 		P.Serialize(Ar);
 		return Ar;
 	}
+
+	// Ensures that all indices have a valid handle and that there are no handles left to invalid indices
+	void EnsureAllIndicesHaveHandles(int32 NumIndices);
+	
+	// Ensures a handle exists for the specified Index
+	void EnsureIndexHasAHandle(int32 KeyIndex);
 
 private:
 

@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AlembicLibraryPublicPCH.h"
+#include "AbcImporter.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 THIRD_PARTY_INCLUDES_START
 	#include <Alembic/AbcCoreHDF5/All.h>
@@ -10,14 +14,20 @@ THIRD_PARTY_INCLUDES_START
 	#include <Alembic/AbcCoreHDF5/All.h>
 THIRD_PARTY_INCLUDES_END
 
-#include "AbcImporter.h"
-
 #include "AbcImportData.h"
+#include "Misc/Paths.h"
+#include "Misc/FeedbackContext.h"
+#include "Stats/StatsMisc.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/UObjectHash.h"
+#include "RawIndexBuffer.h"
+#include "Misc/ScopedSlowTask.h"
 
 #include "PackageTools.h"
 #include "RawMesh.h"
 #include "ObjectTools.h"
 
+#include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
 #include "SkelImport.h"
 #include "Animation/AnimSequence.h"
@@ -101,6 +111,17 @@ const EAbcImportError FAbcImporter::OpenAbcFileForImport(const FString InFilePat
 	FGuid ZeroGuid;
 	TraverseAbcHierarchy(TopObject, AbcHierarchy, ZeroGuid);
 
+	// Determine top level archive bounding box
+	Alembic::AbcCoreAbstract::ObjectHeader Header = TopObject.getHeader();
+	const Alembic::Abc::MetaData ObjectMetaData = TopObject.getMetaData();
+	Alembic::Abc::ICompoundProperty Properties = TopObject.getProperties();
+	
+	Alembic::Abc::IBox3dProperty ArchiveBoundsProperty = Alembic::AbcGeom::GetIArchiveBounds(Archive, Alembic::Abc::ErrorHandler::kQuietNoopPolicy);
+	if (ArchiveBoundsProperty.valid())
+	{
+		ImportData->ArchiveBounds = AbcImporterUtilities::ExtractBounds(ArchiveBoundsProperty);
+	}	
+	
 	if (ImportData->PolyMeshObjects.Num() == 0)
 	{
 		return AbcImportError_NoMeshes;
@@ -145,8 +166,25 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 		}
 	}	
 
+        // If there were not bounds available at the archive level just sum all child bounds
+	if (FMath::IsNearlyZero(ImportData->ArchiveBounds.SphereRadius))
+	{
+		for (const TSharedPtr<FAbcPolyMeshObject>& PolyMeshObject : ImportData->PolyMeshObjects)
+		{
+			ImportData->ArchiveBounds = ImportData->ArchiveBounds + PolyMeshObject->SelfBounds + PolyMeshObject->ChildBounds;
+		}
+
+		for (const TSharedPtr<FAbcTransformObject>& TransformObject : ImportData->TransformObjects)
+		{
+			ImportData->ArchiveBounds = ImportData->ArchiveBounds + TransformObject->SelfBounds + TransformObject->ChildBounds;
+		}	
+	}
+
+	// Apply conversion to bounds as well
+	AbcImporterUtilities::ApplyConversion(ImportData->ArchiveBounds, ImportSettings->ConversionSettings);
+
 	// Determining sampling time/types and when to start and stop sampling
-	uint32 StartFrameIndex = SamplingSettings.bSkipEmpty ? ImportData->MinFrameIndex : SamplingSettings.FrameStart;
+	uint32 StartFrameIndex = SamplingSettings.bSkipEmpty ? (SamplingSettings.FrameStart > ImportData->MinFrameIndex ? SamplingSettings.FrameStart : ImportData->MinFrameIndex ): SamplingSettings.FrameStart;
 	uint32 EndFrameIndex = SamplingSettings.FrameEnd;
 
 	// When importing static meshes optimize frame import span
@@ -282,6 +320,7 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 	{
 		// Remove invalid or empty samples
 		MeshObject->MeshSamples.RemoveAll([&](FAbcMeshSample* In) { return In == nullptr; });
+		MeshObject->NumSamples = MeshObject->MeshSamples.Num();
 
 		const bool bFramesAvailable = MeshObject->MeshSamples.Num() > 0;
 		if (!bFramesAvailable)
@@ -379,6 +418,8 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 					{
 						AbcImporterUtilities::CalculateNormalsWithSmoothingGroups(MeshSample, MeshObject->MeshSamples[FirstSampleIndex]->SmoothingGroupIndices, MeshObject->MeshSamples[FirstSampleIndex]->NumSmoothingGroups);
 
+						
+
 						// Copy smoothing masks from frame 0
 						MeshSample->SmoothingGroupIndices = MeshObject->MeshSamples[FirstSampleIndex]->SmoothingGroupIndices;
 					}
@@ -441,13 +482,52 @@ const EAbcImportError FAbcImporter::ImportTrackData(const int32 InNumThreads, UA
 		});
 	}
 
-	// Apply conversion according to user set scale/rotation and uv flipping
+	const bool bApplyTransformation = (ImportData->ImportSettings->ImportType == EAlembicImportType::StaticMesh && ImportData->ImportSettings->StaticMeshSettings.bMergeMeshes && ImportData->ImportSettings->StaticMeshSettings.bPropagateMatrixTransformations)
+		|| (ImportData->ImportSettings->ImportType == EAlembicImportType::Skeletal && ImportData->ImportSettings->CompressionSettings.bBakeMatrixAnimation);
+
+	const bool bInverseIndices = bApplyTransformation || (ImportData->ImportSettings->ImportType == EAlembicImportType::GeometryCache);
 	ParallelFor(ImportData->PolyMeshObjects.Num(), [&](int32 MeshObjectIndex)
 	{
 		TSharedPtr<FAbcPolyMeshObject>& MeshObject = ImportData->PolyMeshObjects[MeshObjectIndex];
+		const bool bFramesAvailable = MeshObject->MeshSamples.Num() > 0;
+		if (bApplyTransformation && bFramesAvailable)
+		{
+			TSharedPtr<FCachedHierarchyTransforms>& CachedHierarchyTransforms = ImportData->CachedHierarchyTransforms.FindChecked(MeshObject->HierarchyGuid);
+
+			const bool bStaticMesh = MeshObject->bConstant &&  MeshObject->bConstantTransformation;
+
+			// Loop through entire imported framespan
+			for (uint32 FrameIndex = StartFrameIndex; FrameIndex < EndFrameIndex; ++FrameIndex)
+			{	
+				// If we are dealing with a static mesh only apply matrix to 1 sample after that break out
+				if (bStaticMesh && FrameIndex > ImportData->ImportSettings->SamplingSettings.FrameStart)
+				{
+					break;
+				}
+				// If we are dealing with a mesh for which samples start after T0, wait until we reach their starting frame
+				if (MeshObject->StartFrameIndex > FrameIndex)
+				{
+					continue;
+				}
+
+				// Determine the sample offset into the MeshObject's samples array (optimized to store only necessary samples)
+				const int32 SampleOffset = ( ImportData->ImportSettings->SamplingSettings.bSkipEmpty && MeshObject->StartFrameIndex > StartFrameIndex) || (MeshObject->StartFrameIndex > StartFrameIndex ) ? MeshObject->StartFrameIndex : StartFrameIndex;
+				// If completely constant there is only one sample, otherwise calculate correct index using the sample offset
+				const int32 SampleIndex = bStaticMesh ? 0 : FrameIndex - SampleOffset;
+				FAbcMeshSample* Sample = MeshObject->MeshSamples[SampleIndex];
+
+				const int32 MatrixIndex = FrameIndex - ImportData->ImportSettings->SamplingSettings.FrameStart;
+				checkf(MeshObject->bConstantTransformation || CachedHierarchyTransforms->MatrixSamples.IsValidIndex(MatrixIndex), TEXT("Trying to sample an invalid matrix sample"));
+				const FMatrix& Transform = MeshObject->bConstantTransformation ? CachedHierarchyTransforms->MatrixSamples[0] : CachedHierarchyTransforms->MatrixSamples[MatrixIndex];
+
+				AbcImporterUtilities::PropogateMatrixTransformationToSample(Sample, Transform);
+			}
+		}
+			
+		// Apply conversion according to user set scale/rotation and uv flipping
 		for (FAbcMeshSample* Sample : MeshObject->MeshSamples)
 		{
-			AbcImporterUtilities::ApplyConversion(Sample, ImportData->ImportSettings->ConversionSettings);
+			AbcImporterUtilities::ApplyConversion(Sample, ImportData->ImportSettings->ConversionSettings, bInverseIndices);
 		}
 	});
 	
@@ -532,6 +612,8 @@ void FAbcImporter::ParseAbcObject<Alembic::AbcGeom::IPolyMesh>(Alembic::AbcGeom:
 	Alembic::AbcGeom::IPolyMeshSchema Schema = InPolyMesh.getSchema();
 	PolyMeshObject->NumSamples = Schema.getNumSamples();
 	PolyMeshObject->bConstant = Schema.isConstant();
+	PolyMeshObject->SelfBounds = AbcImporterUtilities::ExtractBounds(Schema.getSelfBoundsProperty());
+	PolyMeshObject->ChildBounds = AbcImporterUtilities::ExtractBounds(Schema.getChildBoundsProperty());
 	
 	PolyMeshObject->HierarchyGuid = InHierarchyGuid;
 
@@ -898,9 +980,8 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 			AbcImporterUtilities::AppendMeshSample(MergedMeshSample, Data.AverageSample);
 		}
 
-		/* TODO calculate bounding box according to animation */
-		FBox BoundingBox(MergedMeshSample->Vertices.GetData(), MergedMeshSample->Vertices.Num());
-		SkeletalMesh->SetImportedBounds(BoundingBox);
+		/* Bounding box according to animation */
+		SkeletalMesh->SetImportedBounds(ImportData->ArchiveBounds.GetBox());
 
 		bool bBuildSuccess = false;
 		TArray<int32> MorphTargetVertexRemapping;
@@ -1008,8 +1089,10 @@ USkeletalMesh* FAbcImporter::ImportAsSkeletalMesh(UObject* InParent, EObjectFlag
 		Sequence->RawCurveData.RefreshName(NameMapping);
 		Sequence->MarkRawDataAsModified();
 		Sequence->PostEditChange();
+		Sequence->SetPreviewMesh(SkeletalMesh);
 		Sequence->MarkPackageDirty();
 
+		Skeleton->SetPreviewMesh(SkeletalMesh);
 		Skeleton->PostEditChange();
 	}
 	
@@ -1615,13 +1698,17 @@ bool FAbcImporter::BuildSkeletalMesh(
 				if (FinalVertexIndex == INDEX_NONE)
 				{
 					FinalVertexIndex = TargetSection.SoftVertices.Add(NewVertex);
+#if PRINT_UNIQUE_VERTICES
+					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Vert - P(%.2f, %.2f,%.2f) N(%.2f, %.2f,%.2f) TX(%.2f, %.2f,%.2f) TY(%.2f, %.2f,%.2f) UV(%.2f, %.2f)\n"), NewVertex.Position.X, NewVertex.Position.Y, NewVertex.Position.Z, SourceSection.TangentX[FaceOffset + VertexIndex].X, 
+						SourceSection.TangentZ[FaceOffset + VertexIndex].X, SourceSection.TangentZ[FaceOffset + VertexIndex].Y, SourceSection.TangentZ[FaceOffset + VertexIndex].Z, SourceSection.TangentX[FaceOffset + VertexIndex].Y, SourceSection.TangentX[FaceOffset + VertexIndex].Z, SourceSection.TangentY[FaceOffset + VertexIndex].X, SourceSection.TangentY[FaceOffset + VertexIndex].Y, SourceSection.TangentY[FaceOffset + VertexIndex].Z, NewVertex.UVs[0].X, NewVertex.UVs[0].Y);
+#endif
+
 					FinalVertices.Add(Index, FinalVertexIndex);
 					OutUsedVertexIndicesForMorphs.Add(Index);
 					OutMorphTargetVertexRemapping.Add(SourceSection.OriginalIndices[FaceOffset + VertexIndex]);
 				}
 
 				RawPointIndices.Add(FinalVertexIndex);
-				//OutMorphTargetVertexRemapping[SourceSection.OriginalIndices[FaceOffset + VertexIndex]] = TargetSection.BaseVertexIndex + FinalVertexIndex;
 				ChunkVertexIndexRemap[VertexOffset] = TargetSection.BaseVertexIndex + FinalVertexIndex;
 				++VertexOffset;
 			}

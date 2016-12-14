@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SMenuAnchor.h"
-#include "BlueprintActionMenuUtils.h" // for EContextTargetFlags
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Layout/SBorder.h"
+#include "BlueprintActionMenuUtils.h"
 
-struct FBlueprintActionContext;
+enum class ECheckBoxState : uint8;
 
 /*******************************************************************************
  * FContextMenuTargetProfile

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // ParticleModuleLocationEmitterDirect
@@ -9,8 +9,13 @@
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleLocationEmitterDirect.generated.h"
+
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Emitter Direct Location"))
 class ENGINE_API UParticleModuleLocationEmitterDirect : public UParticleModuleLocationBase

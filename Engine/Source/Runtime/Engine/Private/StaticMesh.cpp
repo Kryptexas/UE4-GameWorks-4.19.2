@@ -1,37 +1,55 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMesh.cpp: Static mesh class implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Engine/StaticMesh.h"
+#include "Serialization/MemoryWriter.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/ScopedSlowTask.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectAnnotation.h"
+#include "RenderingThread.h"
+#include "VertexFactory.h"
+#include "LocalVertexFactory.h"
+#include "RawIndexBuffer.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/EditorObjectVersion.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "UObject/Package.h"
+#include "EngineUtils.h"
 #include "Engine/AssetUserData.h"
 #include "StaticMeshResources.h"
-#include "MeshBuild.h"
-#include "GenericOctree.h"
-#include "TessellationRendering.h"
 #include "StaticMeshVertexData.h"
-#include "TargetPlatform.h"
+#include "Interfaces/ITargetPlatform.h"
 #include "SpeedTreeWind.h"
 #include "DistanceFieldAtlas.h"
-#include "UObject/DevObjectVersion.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 
 #if WITH_EDITOR
 #include "RawMesh.h"
 #include "MeshUtilities.h"
 #include "DerivedDataCacheInterface.h"
-#include "UObjectAnnotation.h"
 #endif // #if WITH_EDITOR
 
 #include "Engine/StaticMeshSocket.h"
 #include "EditorFramework/AssetImportData.h"
 #include "AI/Navigation/NavCollision.h"
-#include "CookStats.h"
-#include "ReleaseObjectVersion.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "AI/NavigationSystemHelpers.h"
+#include "ProfilingDebugging/CookStats.h"
+#include "UObject/ReleaseObjectVersion.h"
 #include "Streaming/UVChannelDensity.h"
-#include "ScopedTimers.h"
 
 DEFINE_LOG_CATEGORY(LogStaticMesh);	
 
@@ -45,6 +63,14 @@ DECLARE_MEMORY_STAT( TEXT( "StaticMesh Total Memory" ), STAT_StaticMeshTotalMemo
 
 /** Package name, that if set will cause only static meshes in that package to be rebuilt based on SM version. */
 ENGINE_API FName GStaticMeshPackageNameToRebuild = NAME_None;
+
+#if WITH_EDITORONLY_DATA
+int32 GUpdateMeshLODGroupSettingsAtLoad = 0;
+static FAutoConsoleVariableRef CVarStaticMeshUpdateMeshLODGroupSettingsAtLoad(
+	TEXT("r.StaticMesh.UpdateMeshLODGroupSettingsAtLoad"),
+	GUpdateMeshLODGroupSettingsAtLoad,
+	TEXT("If set, LODGroup settings for static meshes will be applied at load time."));
+#endif
 
 #if ENABLE_COOK_STATS
 namespace StaticMeshCookStats
@@ -544,7 +570,8 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 	const auto MaxShaderPlatform = GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel];
 
 	// Initialize the vertex and index buffers.
-	if (IsES2Platform(MaxShaderPlatform))
+	// All platforms supporting Metal also support 32-bit indices.
+	if (IsES2Platform(MaxShaderPlatform) && !IsMetalPlatform(MaxShaderPlatform))
 	{
 		if (IndexBuffer.Is32Bit())
 		{
@@ -830,6 +857,11 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			Section.bCastShadow = Info.bCastShadow;
 		}
 
+		// Arbitrary constant used as a base in Pow(K, LODIndex) that achieves much the same progression as a
+		// conversion of the old 1 / (MaxLODs * LODIndex) passed through the newer bounds computation.
+		// i.e. this achieves much the same results, but is still fairly arbitrary.
+		const float AutoComputeLODPowerBase = 0.75f;
+
 		if (Owner->bAutoComputeLODScreenSize)
 		{
 			if (LODIndex == 0)
@@ -838,7 +870,7 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			}
 			else if(LOD.MaxDeviation <= 0.0f)
 			{
-				ScreenSize[LODIndex] = 1.0f / (MaxLODs * LODIndex);
+				ScreenSize[LODIndex] = FMath::Pow(AutoComputeLODPowerBase, LODIndex);
 			}
 			else
 			{
@@ -870,7 +902,7 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 			// No valid source model and we're not auto-generating. Auto-generate in this case
 			// because we have nothing else to go on.
 			const float Tolerance = 0.01f;
-			float AutoDisplayFactor = 1.0f / (MaxLODs * LODIndex);
+			float AutoDisplayFactor = FMath::Pow(AutoComputeLODPowerBase, LODIndex);
 
 			// Make sure this fits in with the previous LOD
 			ScreenSize[LODIndex] = FMath::Clamp(AutoDisplayFactor, 0.0f, ScreenSize[LODIndex-1] - Tolerance);
@@ -1842,15 +1874,13 @@ void UStaticMesh::PreEditChange(UProperty* PropertyAboutToChange)
 void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
-	if (PropertyThatChanged && PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, bHasNavigationData) && !bHasNavigationData)
-	{
-		NavCollision = nullptr;
-	}
-
-#if WITH_EDITORONLY_DATA
+	const FName PropertyName = PropertyThatChanged ? PropertyThatChanged->GetFName() : NAME_None;
+	
 	LightMapResolution = FMath::Max(LightMapResolution, 0);
 
-	if (PropertyChangedEvent.MemberProperty && ( (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, PositiveBoundsExtension) ) || ( PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, NegativeBoundsExtension) ) ))
+	if (PropertyChangedEvent.MemberProperty 
+		&& ((PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, PositiveBoundsExtension)) 
+			|| (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, NegativeBoundsExtension))))
 	{
 		// Update the extended bounds
 		CalculateExtendedBounds();
@@ -1858,9 +1888,8 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 
 	if (!bAutoComputeLODScreenSize
 		&& RenderData
-		&& PropertyThatChanged
-		&& PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, bAutoComputeLODScreenSize))
-		{
+		&& PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, bAutoComputeLODScreenSize))
+	{
 		for (int32 LODIndex = 1; LODIndex < SourceModels.Num(); ++LODIndex)
 		{
 			SourceModels[LODIndex].ScreenSize = RenderData->ScreenSize[LODIndex];
@@ -1871,15 +1900,21 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 
 	Build(/*bSilent=*/ true);
 
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, bHasNavigationData)
+		|| PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, BodySetup))
+	{
+		// Build called above will result in creation, update or destruction 
+		// of NavCollision. We need to let related StaticMeshComponents know
+		BroadcastNavCollisionChange();
+	}
+
 	// Only unbuild lighting for properties which affect static lighting
-	if (!PropertyThatChanged 
-		|| PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapResolution)
-		|| PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapCoordinateIndex))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapResolution)
+		|| PropertyName == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapCoordinateIndex))
 	{
 		FStaticMeshComponentRecreateRenderStateContext Context(this, true);		
 		SetLightingGuid();
 	}
-#endif // #if WITH_EDITORONLY_DATA
 	
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
@@ -1887,7 +1922,11 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 void UStaticMesh::SetLODGroup(FName NewGroup)
 {
 #if WITH_EDITORONLY_DATA
-	Modify();
+	const bool bBeforeDerivedDataCached = (RenderData == nullptr);
+	if (!bBeforeDerivedDataCached)
+	{
+		Modify();
+	}
 	LODGroup = NewGroup;
 
 	const ITargetPlatform* Platform = GetTargetPlatformManagerRef().GetRunningTargetPlatform();
@@ -1897,28 +1936,50 @@ void UStaticMesh::SetLODGroup(FName NewGroup)
 	// Set the number of LODs to at least the default. If there are already LODs they will be preserved, with default settings of the new LOD group.
 	int32 DefaultLODCount = GroupSettings.GetDefaultNumLODs();
 
-	while (SourceModels.Num() < DefaultLODCount)
-	{
-		new(SourceModels) FStaticMeshSourceModel();
-	}
-	
 	if (SourceModels.Num() > DefaultLODCount)
 	{
 		int32 NumToRemove = SourceModels.Num() - DefaultLODCount;
 		SourceModels.RemoveAt(DefaultLODCount, NumToRemove);
 	}
+	else if (DefaultLODCount > SourceModels.Num())
+	{
+		int32 NumToAdd = DefaultLODCount - SourceModels.Num();
+		SourceModels.AddDefaulted(NumToAdd);
+	}
+
+	check(SourceModels.Num() == DefaultLODCount);
 
 	// Set reduction settings to the defaults.
 	for (int32 LODIndex = 0; LODIndex < DefaultLODCount; ++LODIndex)
 	{
 		SourceModels[LODIndex].ReductionSettings = GroupSettings.GetDefaultSettings(LODIndex);
 	}
-	bAutoComputeLODScreenSize = true;
 	LightMapResolution = GroupSettings.GetDefaultLightMapResolution();
-	PostEditChange();
+	
+	if (!bBeforeDerivedDataCached)
+	{
+		bAutoComputeLODScreenSize = true;
+		PostEditChange();
+	}
 #endif
 }
 
+void UStaticMesh::BroadcastNavCollisionChange()
+{
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange())
+	{
+		for (FObjectIterator Iter(UStaticMeshComponent::StaticClass()); Iter; ++Iter)
+		{
+			UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(*Iter);
+			UWorld* MyWorld = StaticMeshComponent->GetWorld();
+			if (StaticMeshComponent->GetStaticMesh() == this)
+			{
+				StaticMeshComponent->bNavigationRelevant = StaticMeshComponent->IsNavigationRelevant();
+				UNavigationSystem::UpdateComponentInNavOctree(*StaticMeshComponent);
+			}
+		}
+	}
+}
 #endif // WITH_EDITOR
 
 void UStaticMesh::BeginDestroy()
@@ -2176,7 +2237,7 @@ static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh,
 	check(Mesh && Mesh->RenderData);
 	const FStaticMeshLODSettings& PlatformLODSettings = Platform->GetStaticMeshLODSettings();
 	FString PlatformDerivedDataKey = BuildStaticMeshDerivedDataKey(Mesh, PlatformLODSettings.GetLODGroup(Mesh->LODGroup));
-	FStaticMeshRenderData* PlatformRenderData = Mesh->RenderData;
+	FStaticMeshRenderData* PlatformRenderData = Mesh->RenderData.Get();
 
 	if (Mesh->GetOutermost()->HasAnyPackageFlags(PKG_FilterEditorOnly))
 	{
@@ -2186,7 +2247,7 @@ static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh,
 
 	while (PlatformRenderData && PlatformRenderData->DerivedDataKey != PlatformDerivedDataKey)
 	{
-		PlatformRenderData = PlatformRenderData->NextCachedRenderData;
+		PlatformRenderData = PlatformRenderData->NextCachedRenderData.Get();
 	}
 	if (PlatformRenderData == NULL)
 	{
@@ -2194,8 +2255,8 @@ static FStaticMeshRenderData& GetPlatformStaticMeshRenderData(UStaticMesh* Mesh,
 		PlatformRenderData = new FStaticMeshRenderData();
 		PlatformRenderData->Cache(Mesh, PlatformLODSettings);
 		check(PlatformRenderData->DerivedDataKey == PlatformDerivedDataKey);
-		PlatformRenderData->NextCachedRenderData.Swap(Mesh->RenderData->NextCachedRenderData);
-		Mesh->RenderData->NextCachedRenderData = PlatformRenderData;
+		Swap(PlatformRenderData->NextCachedRenderData, Mesh->RenderData->NextCachedRenderData);
+		Mesh->RenderData->NextCachedRenderData = TUniquePtr<FStaticMeshRenderData>(PlatformRenderData);
 	}
 	check(PlatformRenderData);
 	return *PlatformRenderData;
@@ -2227,7 +2288,7 @@ void UStaticMesh::CacheDerivedData()
 		}
 	}
 
-	RenderData = new FStaticMeshRenderData();
+	RenderData = MakeUnique<FStaticMeshRenderData>();
 	RenderData->Cache(this, LODSettings);
 
 	// Additionally cache derived data for any other platforms we care about.
@@ -2323,7 +2384,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 #endif
 	}
 #if WITH_EDITOR
-	else if (bHasNavigationData && BodySetup && GOutputCookingWarnings)
+	else if (bHasNavigationData && BodySetup && (Ar.GetDebugSerializationFlags() & DSF_EnableCookerWarnings))
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("This StaticMeshes (%s) NavCollision will be created dynamicaly at cook time.  Please resave %s."), *GetName(), *GetOutermost()->GetPathName())
 	}
@@ -2383,7 +2444,11 @@ void UStaticMesh::Serialize(FArchive& Ar)
 			FStaticMeshSourceModel& SrcModel = SourceModels[i];
 			SrcModel.SerializeBulkData(Ar, this);
 		}
-		SectionInfoMap.Serialize(Ar);
+
+		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::UPropertryForMeshSection)
+		{
+			SectionInfoMap.Serialize(Ar);
+		}
 
 		// Need to set a flag rather than do conversion in place as RenderData is not
 		// created until postload and it is needed for bounding information
@@ -2398,7 +2463,7 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	{	
 		if (Ar.IsLoading())
 		{
-			RenderData = new FStaticMeshRenderData();
+			RenderData = MakeUnique<FStaticMeshRenderData>();
 			RenderData->Serialize(Ar, this, bCooked);
 		}
 
@@ -2519,6 +2584,12 @@ void UStaticMesh::PostLoad()
 			}
 		}
 
+		// The LODGroup update on load must happen before CacheDerivedData so we don't have to rebuild it after
+		if (GUpdateMeshLODGroupSettingsAtLoad && LODGroup != NAME_None)
+		{
+			SetLODGroup(LODGroup);
+		}
+
 		CacheDerivedData();
 		
 		// Only required in an editor build as other builds process this in a different place
@@ -2593,14 +2664,7 @@ void UStaticMesh::PostLoad()
 		CreateBodySetup();
 	}
 
-	if (NavCollision == nullptr && bHasNavigationData)
-	{
-		CreateNavCollision();
-	}
-	else if (NavCollision && !bHasNavigationData)
-	{
-		NavCollision = nullptr;
-	}
+	CreateNavCollision();
 }
 
 //
@@ -2806,12 +2870,20 @@ void UStaticMesh::CreateBodySetup()
 	}
 }
 
-void UStaticMesh::CreateNavCollision()
+void UStaticMesh::CreateNavCollision(const bool bIsUpdate)
 {
-	if (NavCollision == NULL && BodySetup != NULL)
+	// do NOT test properties of BodySetup at load time, they still can change between PostLoad and component's OnRegister
+	if (bHasNavigationData && BodySetup != nullptr && (!bIsUpdate || NavigationHelper::IsBodyNavigationRelevant(*BodySetup)))
 	{
-		NavCollision = NewObject<UNavCollision>(this);
+		if (NavCollision == nullptr || bIsUpdate)
+		{
+			NavCollision = NewObject<UNavCollision>(this);
+		}
 		NavCollision->Setup(BodySetup);
+	}
+	else
+	{
+		NavCollision = nullptr;
 	}
 }
 

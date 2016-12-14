@@ -1,9 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/AssetPtr.h"
 #include "Sound/SoundNodeAssetReferencer.h"
 #include "SoundNodeModPlayer.generated.h"
+
+class FAudioDevice;
+class USoundMod;
+struct FActiveSound;
+struct FPropertyChangedEvent;
+struct FSoundParseParameters;
+struct FWaveInstance;
 
 /** 
  * Sound node that contains a reference to the mod file to be played

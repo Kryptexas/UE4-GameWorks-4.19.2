@@ -1,49 +1,210 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorFactories.cpp: Editor class factories.
 =============================================================================*/
 
-#include "UnrealEd.h"
-#include "AudioEditor.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/Interface.h"
+#include "Misc/PackageName.h"
+#include "Fonts/FontBulkData.h"
+#include "Fonts/CompositeFont.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboBox.h"
+#include "EditorStyleSet.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/Level.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
+#include "Engine/World.h"
+#include "Materials/MaterialInterface.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Model.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
+#include "Curves/KeyHandle.h"
+#include "MaterialExpressionIO.h"
+#include "Materials/MaterialExpression.h"
+#include "Materials/MaterialFunction.h"
+#include "Materials/Material.h"
+#include "Animation/AnimSequence.h"
+#include "Curves/CurveBase.h"
+#include "Curves/CurveFloat.h"
+#include "Engine/Font.h"
+#include "Animation/AnimInstance.h"
+#include "Engine/Brush.h"
+#include "Editor/EditorEngine.h"
+#include "Engine/Selection.h"
+#include "Factories/Factory.h"
+#include "Factories/BlendSpaceFactory1D.h"
+#include "Factories/AimOffsetBlendSpaceFactory1D.h"
+#include "Factories/BlendSpaceFactoryNew.h"
+#include "Factories/AimOffsetBlendSpaceFactoryNew.h"
+#include "Factories/BlueprintFactory.h"
+#include "Factories/BlueprintFunctionLibraryFactory.h"
+#include "Factories/BlueprintMacroFactory.h"
+#include "Factories/BlueprintInterfaceFactory.h"
+#include "Factories/CameraAnimFactory.h"
+#include "Factories/CurveFactory.h"
+#include "Factories/CurveImportFactory.h"
+#include "Factories/DataAssetFactory.h"
+#include "Factories/DataTableFactory.h"
+#include "Factories/DestructibleMeshFactory.h"
+#include "Factories/ReimportDestructibleMeshFactory.h"
+#include "Factories/DialogueVoiceFactory.h"
+#include "Factories/DialogueWaveFactory.h"
+#include "Factories/EnumFactory.h"
+#include "Factories/ReimportFbxAnimSequenceFactory.h"
+#include "Factories/ReimportFbxSkeletalMeshFactory.h"
+#include "Factories/ReimportFbxStaticMeshFactory.h"
+#include "Factories/FontFactory.h"
+#include "Factories/FontFileImportFactory.h"
+#include "Factories/ForceFeedbackEffectFactory.h"
+#include "Factories/HapticFeedbackEffectCurveFactory.h"
+#include "Factories/HapticFeedbackEffectBufferFactory.h"
+#include "Factories/HapticFeedbackEffectSoundWaveFactory.h"
+#include "Factories/InterpDataFactoryNew.h"
+#include "Factories/LevelFactory.h"
+#include "Factories/MaterialFactoryNew.h"
+#include "Factories/MaterialFunctionFactoryNew.h"
+#include "Factories/MaterialInstanceConstantFactoryNew.h"
+#include "Factories/MaterialParameterCollectionFactoryNew.h"
+#include "Factories/ModelFactory.h"
+#include "Factories/ObjectLibraryFactory.h"
+#include "Factories/PackageFactory.h"
+#include "Factories/ParticleSystemFactoryNew.h"
+#include "Factories/PhysicalMaterialFactoryNew.h"
+#include "Factories/PolysFactory.h"
+#include "Factories/ReverbEffectFactory.h"
+#include "Factories/SoundAttenuationFactory.h"
+#include "Factories/SoundConcurrencyFactory.h"
+#include "Factories/SoundClassFactory.h"
+#include "Factories/SoundCueFactoryNew.h"
+#include "Factories/ReimportSoundFactory.h"
+#include "Factories/SoundMixFactory.h"
+#include "Factories/ReimportSoundSurroundFactory.h"
+#include "Factories/StructureFactory.h"
+#include "Factories/SubsurfaceProfileFactory.h"
+#include "Factories/SubDSurfaceFactory.h"
+#include "Factories/Texture2dFactoryNew.h"
+#include "Engine/Texture.h"
+#include "Factories/TextureFactory.h"
+#include "Factories/ReimportTextureFactory.h"
+#include "Factories/TextureRenderTargetCubeFactoryNew.h"
+#include "Factories/TextureRenderTargetFactoryNew.h"
+#include "Factories/TouchInterfaceFactory.h"
+#include "Factories/FbxAssetImportData.h"
+#include "Factories/FbxAnimSequenceImportData.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxStaticMeshImportData.h"
+#include "Factories/FbxImportUI.h"
+#include "Editor/GroupActor.h"
+#include "Particles/ParticleSystem.h"
+#include "Engine/Texture2D.h"
+#include "Engine/TextureLightProfile.h"
+#include "SoundCueGraph/SoundCueGraphNode.h"
+#include "Exporters/TextureCubeExporterHDR.h"
+#include "Exporters/TextureExporterBMP.h"
+#include "Exporters/TextureExporterHDR.h"
+#include "Exporters/RenderTargetExporterHDR.h"
+#include "Exporters/TextureExporterPCX.h"
+#include "Exporters/TextureExporterTGA.h"
+#include "EngineGlobals.h"
+#include "GameFramework/ForceFeedbackEffect.h"
+#include "Engine/StaticMesh.h"
+#include "Sound/SoundWave.h"
+#include "GameFramework/DefaultPhysicsVolume.h"
+#include "Engine/SubsurfaceProfile.h"
+#include "Engine/SubDSurface.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/LevelScriptActor.h"
+#include "Engine/DataAsset.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Camera/CameraAnim.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveVector.h"
+#include "Engine/DataTable.h"
+#include "Sound/DialogueVoice.h"
+#include "Sound/DialogueWave.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Engine/ObjectLibrary.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/Polys.h"
+#include "Sound/ReverbEffect.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundMix.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTarget.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/CanvasRenderTarget2D.h"
+#include "Engine/TextureRenderTargetCube.h"
+#include "GameFramework/TouchInterface.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Editor.h"
 #include "Matinee/InterpData.h"
 #include "Matinee/InterpGroupCamera.h"
 #include "Materials/MaterialExpressionTextureSample.h"
-#include "Materials/MaterialFunction.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundNodeAttenuation.h"
+#include "Sound/SoundNodeModulator.h"
 #include "Factories.h"
 #include "NormalMapIdentification.h"
-#include "SoundDefinitions.h"
-#include "PhysicsPublic.h"
-#include "BlueprintUtilities.h"
+#include "AudioDeviceManager.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "BmpImageSupport.h"
 #include "ScopedTransaction.h"
-#include "BusyCursor.h"
 #include "BSPOps.h"
 #include "LevelUtils.h"
-#include "ObjectTools.h"
 #include "PackageTools.h"
 #include "SSkeletonWidget.h"
+#include "AssetToolsModule.h"
+#include "IAssetTools.h"
 
 #include "DDSLoader.h"
-#include "HDRLoader.h"
-#include "IESLoader.h"
-#include "ImageWrapper.h"
+#include "Factories/HDRLoader.h"
+#include "Factories/IESLoader.h"
+#include "Interfaces/IImageWrapperModule.h"
 
 #include "FbxImporter.h"
+#include "FbxErrors.h"
 
 #include "AssetRegistryModule.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
-#include "SClassPickerDialog.h"
-#include "MessageLog.h"
-#include "EnumEditorUtils.h"
-#include "StructureEditorUtils.h"
+#include "Kismet2/SClassPickerDialog.h"
+#include "Logging/MessageLog.h"
+#include "Kismet2/EnumEditorUtils.h"
+#include "Kismet2/StructureEditorUtils.h"
 
 #include "InstancedFoliageActor.h"
 
-#include "Particles/ParticleSystem.h"
 
 #include "Engine/DestructibleMesh.h"
 #if WITH_APEX
@@ -52,54 +213,29 @@
 
 #if PLATFORM_WINDOWS
 // Needed for DDS support.
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 	#include <ddraw.h>
 #include "HideWindowsPlatformTypes.h"
 #endif
 
 #if WITH_EDITOR
-#include "CubemapUnwrapUtils.h"			// FMipLevelBatchedElementParameters
+#include "CubemapUnwrapUtils.h"
 #endif
-#include "GameFramework/WorldSettings.h"
-#include "Materials/MaterialInstanceConstant.h"
-#include "Engine/Polys.h"
-#include "GameFramework/DefaultPhysicsVolume.h"
 #include "Components/BrushComponent.h"
-#include "Materials/MaterialParameterCollection.h"
 #include "EngineUtils.h"
-#include "Engine/Selection.h"
-#include "PhysicalMaterials/PhysicalMaterial.h"
-#include "Engine/TextureRenderTarget2D.h"
-#include "Engine/TextureRenderTargetCube.h"
-#include "Engine/TextureCube.h"
-#include "Engine/Font.h"
+#include "Engine/AssetUserData.h"
+#include "Animation/BlendSpace1D.h"
 #include "Engine/FontFace.h"
 #include "Components/AudioComponent.h"
-#include "Engine/StaticMesh.h"
-#include "Engine/AssetUserData.h"
-#include "Engine/LevelScriptActor.h"
-#include "Engine/BlueprintGeneratedClass.h"
-#include "Curves/CurveFloat.h"
-#include "Engine/ObjectLibrary.h"
-#include "Engine/DataAsset.h"
-#include "Animation/BlendSpace1D.h"
 #include "AI/Navigation/NavCollision.h"
-#include "Kismet/BlueprintFunctionLibrary.h"
 #include "Animation/BlendSpace.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
-#include "Animation/AnimInstance.h"
-#include "Engine/UserDefinedEnum.h"
-#include "Engine/UserDefinedStruct.h"
-#include "GameFramework/ForceFeedbackEffect.h"
+#include "GameFramework/ForceFeedbackAttenuation.h"
 #include "Haptics/HapticFeedbackEffect_Curve.h"
 #include "Haptics/HapticFeedbackEffect_Buffer.h"
 #include "Haptics/HapticFeedbackEffect_SoundWave.h"
-#include "Engine/SubsurfaceProfile.h"
-#include "Engine/SubDSurface.h"
-#include "Camera/CameraAnim.h"
-#include "GameFramework/TouchInterface.h"
-#include "Engine/DataTable.h"
 #include "DataTableEditorUtils.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "Factories/SubUVAnimationFactory.h"
@@ -109,10 +245,7 @@
 #include "ImageUtils.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "Factories/PreviewMeshCollectionFactory.h"
-#include "Factories/CurveFactory.h"
-#include "Factories/CurveImportFactory.h"
-#include "Factories/DataAssetFactory.h"
-#include "Factories/DataTableFactory.h"
+#include "Factories/ForceFeedbackAttenuationFactory.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -2723,7 +2856,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 				/*NumMips=*/ 1,
 				TextureFormat
 				);
-			Texture->SRGB = true;
+			Texture->SRGB = BitDepth < 16;
 			const TArray<uint8>* RawPNG = nullptr;
 			if ( PngImageWrapper->GetRaw( Format, BitDepth, RawPNG ) )
 			{
@@ -2799,7 +2932,7 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 					/*NumMips=*/ 1,
 					TextureFormat
 					);
-				Texture->SRGB = true;
+				Texture->SRGB = BitDepth < 16;
 			
 				uint8* MipData = Texture->Source.LockMip( 0 );
 				FMemory::Memcpy( MipData, RawJPEG->GetData(), RawJPEG->Num() );
@@ -4264,7 +4397,10 @@ UObject* UFontFileImportFactory::FactoryCreateBinary(UClass* InClass, UObject* I
 	if (FontFace)
 	{
 		FontFace->SourceFilename = GetCurrentFilename();
-		FontFace->FontFaceData.Append(InBuffer, InBufferEnd - InBuffer);
+
+		TArray<uint8> FontData;
+		FontData.Append(InBuffer, InBufferEnd - InBuffer);
+		FontFace->FontFaceData->SetData(MoveTemp(FontData));
 	}
 
 	FEditorDelegates::OnAssetPostImport.Broadcast(this, FontFace);
@@ -4799,6 +4935,10 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	
 	UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
 	UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+	
+	//Pop the message log in case of error
+	UnFbx::FFbxLoggerSetter Logger(FFbxImporter, true);
+
 	//Clean up the options
 	UnFbx::FBXImportOptions::ResetOptions(ImportOptions);
 
@@ -4807,18 +4947,11 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	UFbxImportUI* ReimportUI = NewObject<UFbxImportUI>();
 	ReimportUI->MeshTypeToImport = FBXIT_StaticMesh;
 	ReimportUI->bOverrideFullName = false;
-	ReimportUI->bCombineMeshes = true;
+	ReimportUI->StaticMeshImportData->bCombineMeshes = true;
 
 	if (!ImportUI)
 	{
 		ImportUI = NewObject<UFbxImportUI>(this, NAME_None, RF_Public);
-	}
-	else
-	{
-		//Set misc options
-		ReimportUI->bConvertScene = ImportUI->bConvertScene;
-		ReimportUI->bForceFrontXAxis = ImportUI->bForceFrontXAxis;
-		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 
 	if( ImportData )
@@ -4929,6 +5062,8 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 				{
 					Mesh->MarkPackageDirty();
 				}
+
+				FFbxImporter->ImportStaticMeshGlobalSockets(Mesh);
 			}
 			else
 			{
@@ -5050,13 +5185,6 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	if (!ImportUI)
 	{
 		ImportUI = NewObject<UFbxImportUI>(this, NAME_None, RF_Public);
-	}
-	else
-	{
-		//Set misc options
-		ReimportUI->bConvertScene = ImportUI->bConvertScene;
-		ReimportUI->bForceFrontXAxis = ImportUI->bForceFrontXAxis;
-		ReimportUI->bConvertSceneUnit = ImportUI->bConvertSceneUnit;
 	}
 
 	bool bSuccess = false;
@@ -5271,6 +5399,9 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 
 	UnFbx::FFbxImporter* Importer = UnFbx::FFbxImporter::GetInstance();
 
+	//Pop the message log in case of error
+	UnFbx::FFbxLoggerSetter Logger(Importer, true);
+
 	CurrentFilename = Filename;
 
 	USkeleton* Skeleton = AnimSequence->GetSkeleton();
@@ -5283,6 +5414,7 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 			// If skeleton wasn't found or the user canceled out of the dialog, we cannot proceed, but this reimport factory 
 			// has still technically "handled" the reimport, so return true instead of false
 			UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed") );
+			Importer->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("Error_CouldNotFindSkeleton", "Cannot re-import animation with no skeleton.\nImport failed.")), FFbxErrors::SkeletalMesh_NoBoneFound);
 			return EReimportResult::Succeeded;
 		}
 	}
@@ -5307,6 +5439,7 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 	else
 	{
 		UE_LOG(LogEditorFactories, Warning, TEXT("-- import failed") );
+		Importer->AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("Error_CouldNotReimportAnimation", "Cannot re-import animation.")), FFbxErrors::Generic_ReimportingObjectFailed);
 	}
 
 	Importer->ReleaseScene(); 
@@ -5918,6 +6051,7 @@ UObject* UDataAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 
 #include "EditorPhysXSupport.h"
 #if WITH_APEX_CLOTHING
+#include "PhysicsPublic.h"
 #include "ApexClothingUtils.h"
 #endif // #if WITH_APEX_CLOTHING
 /*------------------------------------------------------------------------------
@@ -6352,6 +6486,24 @@ UObject* UStructureFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 {
 	ensure(UUserDefinedStruct::StaticClass() == Class);
 	return FStructureEditorUtils::CreateUserDefinedStruct(InParent, Name, Flags);
+}
+
+/*-----------------------------------------------------------------------------
+UForceFeedbackAttenuationFactory implementation.
+-----------------------------------------------------------------------------*/
+UForceFeedbackAttenuationFactory::UForceFeedbackAttenuationFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+	SupportedClass = UForceFeedbackAttenuation::StaticClass();
+	bCreateNew = true;
+	bEditorImport = false;
+	bEditAfterNew = true;
+}
+
+UObject* UForceFeedbackAttenuationFactory::FactoryCreateNew( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn )
+{
+	return NewObject<UForceFeedbackAttenuation>(InParent, InName, Flags);
 }
 
 /*-----------------------------------------------------------------------------

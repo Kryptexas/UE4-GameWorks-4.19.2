@@ -1,18 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Functionality for computing SH diffuse irradiance from a cubemap
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessing.h"
-#include "UniformBuffer.h"
+#include "CoreMinimal.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
 #include "ShaderParameters.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
+#include "RHIStaticStates.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "PostProcess/SceneFilterRendering.h"
 #include "ScreenRendering.h"
-#include "ReflectionEnvironment.h"
-#include "ReflectionEnvironmentCapture.h"
 
 extern int32 GDiffuseIrradianceCubemapSize;
 

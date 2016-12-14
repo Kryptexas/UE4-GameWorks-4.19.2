@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GPUVertexFactory.cpp: GPU skin vertex factory implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GPUSkinVertexFactory.h"
+#include "SceneView.h"
+#include "MeshBatch.h"
 #include "GPUSkinCache.h"
-#include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 
 // Changing this is currently unsupported after content has been chunked with the previous setting

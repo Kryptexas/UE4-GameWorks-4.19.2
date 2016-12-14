@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/PrimitiveComponent.h"
 #include "DrawFrustumComponent.generated.h"
+
+class FPrimitiveSceneProxy;
 
 /**
  *	Utility component for drawing a view frustum. Origin is at the component location, frustum points down position X axis.

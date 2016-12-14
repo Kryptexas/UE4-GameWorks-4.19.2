@@ -37,6 +37,7 @@
 #include "ScActorSim.h"
 #include "ScInteraction.h"
 #include "BpSimpleAABBManager.h"
+#include "ScObjectIDTracker.h"
 
 namespace physx
 {
@@ -108,17 +109,15 @@ namespace Sc
 
 		PX_FORCE_INLINE	ActorSim&				getActor()					const	{ return mActor; }
 
-		PX_FORCE_INLINE	Scene&					getScene()					const;
+		PX_FORCE_INLINE	Scene&					getScene()					const	{ return mActor.getScene();	}
 
 		PX_FORCE_INLINE	ElementType::Enum		getElementType()			const	{ return ElementType::Enum(mType); }
 
-		PX_FORCE_INLINE PxU32					getElementID() const { return mElementID; }
-		PX_FORCE_INLINE bool					isInBroadPhase() const { return mInBroadPhase; }
+		PX_FORCE_INLINE PxU32					getElementID()				const	{ return mElementID;	}
+		PX_FORCE_INLINE bool					isInBroadPhase()			const	{ return mInBroadPhase;	}
 		
 						void					addToAABBMgr(PxReal contactDistance, PxU32 group, bool isTrigger);
 						void					removeFromAABBMgr();
-
-
 
 		//---------- Filtering ----------
 		virtual			void					getFilterInfo(PxFilterObjectAttributes& filterAttr, PxFilterData& filterData) const = 0;
@@ -128,6 +127,17 @@ namespace Sc
 
 						void					setElementInteractionsDirty(InteractionDirtyFlag::Enum flag, PxU8 interactionFlag);
 
+		PX_FORCE_INLINE	void					initID()
+		{
+			Scene& scene = getScene();
+			mElementID = scene.getElementIDPool().createID();
+			scene.getBoundsArray().initEntry(mElementID);
+		}
+
+		PX_FORCE_INLINE	void					releaseID()
+		{
+			getScene().getElementIDPool().releaseID(mElementID);
+		}
 
 	public:
 						ElementSim*				mNextInActor;
@@ -137,17 +147,9 @@ namespace Sc
 						PxU32					mElementID : 29;
 						PxU32					mType : 2;
 						PxU32					mInBroadPhase : 1;
-						
 	}
 	PX_ALIGN_SUFFIX(16);
 } // namespace Sc
-
-
-PX_FORCE_INLINE Sc::Scene& Sc::ElementSim::getScene() const
-{
-	return mActor.getScene();
-}
-
 
 // SFD: duplicated attribute generation in SqFiltering.h
 PX_FORCE_INLINE void Sc::ElementSim::setFilterObjectAttributeType(PxFilterObjectAttributes& attr, PxFilterObjectType::Enum type) const

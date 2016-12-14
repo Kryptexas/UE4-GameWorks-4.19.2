@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // ReimportFbxSceneFactory
@@ -6,9 +6,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "AssetData.h"
+#include "EditorReimportHandler.h"
+#include "Factories/FbxSceneImportFactory.h"
 #include "Camera/CameraTypes.h"
 
 #include "ReimportFbxSceneFactory.generated.h"
+
+class UActorComponent;
+class UBlueprint;
+class USceneComponent;
+class USimpleConstructionScript;
 
 UCLASS()
 class UReimportFbxSceneFactory : public UFbxSceneImportFactory, public FReimportHandler

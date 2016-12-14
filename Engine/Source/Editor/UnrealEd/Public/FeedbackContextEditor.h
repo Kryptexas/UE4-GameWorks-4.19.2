@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FeedbackContextEditor.h: Feedback context tailored to UnrealEd
@@ -6,6 +6,14 @@
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FeedbackContext.h"
+#include "Widgets/SWindow.h"
+
+class FContextSupplier;
+class SBuildProgressWidget;
 
 /**
  * A FFeedbackContext implementation for use in UnrealEd.

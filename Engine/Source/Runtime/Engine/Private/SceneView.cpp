@@ -1,24 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneView.cpp: SceneView implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "SceneView.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "EngineGlobals.h"
+#include "PrimitiveUniformShaderParameters.h"
+#include "Engine/Engine.h"
+#include "Widgets/SWindow.h"
 #include "SceneManagement.h"
 #include "EngineModule.h"
-#include "StereoRendering.h"
-#include "HighResScreenshot.h"
-#include "Slate/SceneViewport.h"
-#include "RendererInterface.h"
 #include "BufferVisualizationData.h"
 #include "Interfaces/Interface_PostProcessVolume.h"
 #include "Engine/TextureCube.h"
 #include "IHeadMountedDisplay.h"
-#include "Classes/Engine/RendererSettings.h"
+#include "Engine/RendererSettings.h"
 #include "LightPropagationVolumeBlendable.h"
-#include "SceneViewExtension.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "HighResScreenshot.h"
+#include "Slate/SceneViewport.h"
+#include "RenderUtils.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
@@ -712,7 +716,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 
 	// Query instanced stereo and multi-view state
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.InstancedStereo"));
-	bIsInstancedStereoEnabled = (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnAnyThread() != 0) : false) : false;
+	bIsInstancedStereoEnabled = (ShaderPlatform == EShaderPlatform::SP_PCD3D_SM5 || ShaderPlatform == EShaderPlatform::SP_PS4) ? (CVar ? (CVar->GetValueOnAnyThread() != false) : false) : false;
 
 	static const auto MultiViewCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MultiView"));
 	bIsMultiViewEnabled = ShaderPlatform == EShaderPlatform::SP_PS4 && (MultiViewCVar && MultiViewCVar->GetValueOnAnyThread() != 0);
@@ -768,7 +772,7 @@ void FSceneView::SetupAntiAliasingMethod()
 
 		if (!bWillApplyTemporalAA || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
-			|| (FeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnAnyThread() == 0)
+			|| (FeatureLevel <= ERHIFeatureLevel::ES3_1 && MobileHDRCvar->GetValueOnAnyThread() == 0)
 			|| (FeatureLevel <= ERHIFeatureLevel::ES3_1 && (MSAAValue > 1))
 			|| Family->EngineShowFlags.VisualizeBloom
 			|| Family->EngineShowFlags.VisualizeDOF)
@@ -903,7 +907,22 @@ void FSceneView::UpdateViewMatrix()
 	ViewMatrices.UpdateViewMatrix(StereoViewLocation, ViewRotation);
 
 	// Derive the view frustum from the view projection matrix.
-	GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(), false);
+	if ((StereoPass == eSSP_LEFT_EYE || StereoPass == eSSP_RIGHT_EYE) && Family->MonoParameters.Mode != EMonoscopicFarFieldMode::Off)
+	{
+		// Stereo views use mono far field plane when using mono far field rendering
+		const FPlane FarPlane(ViewMatrices.GetViewOrigin() + GetViewDirection() * Family->MonoParameters.CullingDistance, GetViewDirection());
+		GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(), FarPlane, true, false);
+	}
+	else if (StereoPass == eSSP_MONOSCOPIC_EYE)
+	{
+		// Mono view uses near plane
+		GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(), true);
+	}
+	else
+	{
+		// Standard rendering setup
+		GetViewFrustumBounds(ViewFrustum, ViewMatrices.GetViewProjectionMatrix(), false);
+	}
 
 	// We need to keep ShadowViewMatrices in sync.
 	ShadowViewMatrices = ViewMatrices;
@@ -1164,7 +1183,7 @@ bool FSceneView::ProjectWorldToScreen(const FVector& WorldPosition, const FIntRe
 			( NormalizedY * (float)ViewRect.Height() )
 			);
 
-		out_ScreenPos = RayStartViewRectSpace;
+		out_ScreenPos = RayStartViewRectSpace + FVector2D(static_cast<float>(ViewRect.Min.X), static_cast<float>(ViewRect.Min.Y));
 
 		return true;
 	}
@@ -1941,12 +1960,12 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		}
 #endif
 
-
 		// Upscale if needed
 		if (Fraction != 1.0f)
 		{
 			// compute the view rectangle with the ScreenPercentage applied
-			const FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
+			FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
+			QuantizeSceneBufferSize(ScreenPercentageAffectedViewRect.Max.X, ScreenPercentageAffectedViewRect.Max.Y);
 			SetScaledViewRect(ScreenPercentageAffectedViewRect);
 		}
 	}
@@ -2090,8 +2109,10 @@ void FSceneView::SetupViewRectUniformBufferParameters(FViewUniformShaderParamete
 
 }
 
-void FSceneView::SetupCommonViewUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters,
+void FSceneView::SetupCommonViewUniformBufferParameters(
+	FViewUniformShaderParameters& ViewUniformShaderParameters,
 	const FIntPoint& BufferSize,
+	int32 NumMSAASamples,
 	const FIntRect& EffectiveViewRect,
 	const FViewMatrices& InViewMatrices,
 	const FViewMatrices& InPrevViewMatrices) const
@@ -2124,6 +2145,7 @@ void FSceneView::SetupCommonViewUniformBufferParameters(FViewUniformShaderParame
 
 #endif
 
+	ViewUniformShaderParameters.NumSceneColorMSAASamples = NumMSAASamples;
 	ViewUniformShaderParameters.ViewToTranslatedWorld = InViewMatrices.GetOverriddenInvTranslatedViewMatrix();
 	ViewUniformShaderParameters.TranslatedWorldToClip = InViewMatrices.GetTranslatedViewProjectionMatrix();
 	ViewUniformShaderParameters.WorldToClip = InViewMatrices.GetViewProjectionMatrix();
@@ -2255,6 +2277,8 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 
 	DebugViewShaderMode = ChooseDebugViewShaderMode();
 	ViewModeParam = CVS.ViewModeParam;
+	ViewModeParamName = CVS.ViewModeParamName;
+
 	if (!AllowDebugViewPS(DebugViewShaderMode, GetShaderPlatform()))
 	{
 		DebugViewShaderMode = DVSM_None;
@@ -2287,6 +2311,45 @@ FSceneViewFamily::FSceneViewFamily(const ConstructionValues& CVS)
 	bDrawBaseInfo = true;
 	bNullifyWorldSpacePosition = false;
 #endif
+
+	// Setup mono far field for VR
+	static const auto CVarMono = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("vr.MonoscopicFarField"));
+	bool bIsStereoEnabled = false;
+	if (GEngine != nullptr && GEngine->StereoRenderingDevice.IsValid())
+	{
+		bIsStereoEnabled = GEngine->StereoRenderingDevice->IsStereoEnabledOnNextFrame();
+	}
+
+	const bool bIsMobile = FSceneInterface::GetShadingPath(GetFeatureLevel()) == EShadingPath::Mobile;
+
+	if (bIsStereoEnabled && bIsMobile && CVarMono)
+	{
+		const int32 MonoMode = CVarMono->GetValueOnAnyThread();
+		switch (MonoMode)
+		{
+		case 1:
+			MonoParameters.Mode = EMonoscopicFarFieldMode::On;
+			break;
+
+		case 2:
+			MonoParameters.Mode = EMonoscopicFarFieldMode::StereoOnly;
+			break;
+
+		case 3:
+			MonoParameters.Mode = EMonoscopicFarFieldMode::StereoNoClipping;
+			break;
+
+		case 4:
+			MonoParameters.Mode = EMonoscopicFarFieldMode::MonoOnly;
+			break;
+
+		default:
+			MonoParameters.Mode = EMonoscopicFarFieldMode::Off;
+			break;
+		}
+
+		MonoParameters.CullingDistance = CVS.MonoFarFieldCullingDistance;
+	}
 }
 
 void FSceneViewFamily::ComputeFamilySize()
@@ -2421,65 +2484,11 @@ EDebugViewShaderMode FSceneViewFamily::ChooseDebugViewShaderMode() const
 	{
 		return DVSM_MaterialTextureScaleAccuracy;
 	}
-	return DVSM_None;
-}
-
-static bool PlatformSupportsDebugViewShaders(EShaderPlatform Platform)
-{
-	// List of platforms that have been tested and proven functional. 
-	return Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_SM5 || Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_METAL_SM4;
-}
-
-bool AllowDebugViewPS(EDebugViewShaderMode ShaderMode, EShaderPlatform Platform)
-{
-#if WITH_EDITOR
-	// Those options are used to test compilation on specific platforms
-	static const bool bForceQuadOverdraw = FParse::Param(FCommandLine::Get(), TEXT("quadoverdraw"));
-	static const bool bForceStreamingAccuracy = FParse::Param(FCommandLine::Get(), TEXT("streamingaccuracy"));
-	static const bool bForceTextureStreamingBuild = FParse::Param(FCommandLine::Get(), TEXT("streamingbuild"));
-
-	switch (ShaderMode)
+	else if (EngineShowFlags.RequiredTextureResolution)
 	{
-	case DVSM_None:
-		return false;
-	case DVSM_ShaderComplexity:
-		return true;
-	case DVSM_ShaderComplexityContainedQuadOverhead:
-	case DVSM_ShaderComplexityBleedingQuadOverhead:
-	case DVSM_QuadComplexity:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && (bForceQuadOverdraw || PlatformSupportsDebugViewShaders(Platform));
-	case DVSM_PrimitiveDistanceAccuracy:
-	case DVSM_MeshUVDensityAccuracy:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceStreamingAccuracy || PlatformSupportsDebugViewShaders(Platform));
-	case DVSM_MaterialTextureScaleAccuracy:
-	case DVSM_OutputMaterialTextureScales:
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForceTextureStreamingBuild || PlatformSupportsDebugViewShaders(Platform));
-	default:
-		return false;
+		return DVSM_RequiredTextureResolution;
 	}
-#else
-	return ShaderMode == DVSM_ShaderComplexity;
-#endif
-}
-
-bool AllowDebugViewVSDSHS(EShaderPlatform Platform)
-{
-#if WITH_EDITOR
-	// Those options are used to test compilation on specific platforms
-	static const bool bForce = 
-		FParse::Param(FCommandLine::Get(), TEXT("quadoverdraw")) || 
-		FParse::Param(FCommandLine::Get(), TEXT("streamingaccuracy")) || 
-		FParse::Param(FCommandLine::Get(), TEXT("streamingbuild"));
-
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && (bForce || PlatformSupportsDebugViewShaders(Platform));
-#else
-	return false;
-#endif
-}
-
-bool AllowDebugViewShaderMode(EDebugViewShaderMode ShaderMode)
-{
-	return AllowDebugViewPS(ShaderMode, GMaxRHIShaderPlatform);
+	return DVSM_None;
 }
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Shared/UdpMessageSegment.h"
 
-enum class EUdpMessageSegments : uint8;
-
+class FInternetAddr;
+class FSocket;
+struct FIPv4Endpoint;
 
 /**
  * Implements a beacon sender thread.

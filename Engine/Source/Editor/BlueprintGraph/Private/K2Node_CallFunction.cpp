@@ -1,17 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "K2Node_CallFunction.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Interface.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "GraphEditorSettings.h"
+#include "EdGraph/EdGraph.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Event.h"
+#include "K2Node_AssignmentStatement.h"
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_IfThenElse.h"
+#include "K2Node_TemporaryVariable.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "EditorStyleSettings.h"
+#include "Editor.h"
+#include "EdGraphUtilities.h"
 
-#include "CompilerResultsLog.h"
+#include "KismetCompiler.h"
 #include "CallFunctionHandler.h"
 #include "K2Node_SwitchEnum.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
 #include "Kismet2/KismetDebugUtilities.h"
 #include "K2Node_PureAssignmentStatement.h"
-#include "GraphEditorSettings.h"
 #include "BlueprintActionFilter.h"
-#include "Editor/Kismet/Public/FindInBlueprintManager.h"
+#include "FindInBlueprintManager.h"
 #include "SPinTypeSelector.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
@@ -705,22 +723,36 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 		if(bWantsEnumToExecExpansion)
 		{
 			const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
-			UByteProperty* EnumProp = FindField<UByteProperty>(Function, FName(*EnumParamName));
-			if(EnumProp != NULL && EnumProp->Enum != NULL)
+
+			UProperty* Prop = nullptr;
+			UEnum* Enum = nullptr;
+
+			if(UByteProperty* ByteProp = FindField<UByteProperty>(Function, FName(*EnumParamName)))
 			{
-				const bool bIsFunctionInput = !EnumProp->HasAnyPropertyFlags(CPF_ReturnParm) &&
-					(!EnumProp->HasAnyPropertyFlags(CPF_OutParm) ||
-					 EnumProp->HasAnyPropertyFlags(CPF_ReferenceParm));
+				Prop = ByteProp;
+				Enum = ByteProp->Enum;
+			}
+			else if(UEnumProperty* EnumProp = FindField<UEnumProperty>(Function, FName(*EnumParamName)))
+			{
+				Prop = EnumProp;
+				Enum = EnumProp->GetEnum();
+			}
+
+			if(Prop != nullptr && Enum != nullptr)
+			{
+				const bool bIsFunctionInput = !Prop->HasAnyPropertyFlags(CPF_ReturnParm) &&
+					(!Prop->HasAnyPropertyFlags(CPF_OutParm) ||
+					 Prop->HasAnyPropertyFlags(CPF_ReferenceParm));
 				const EEdGraphPinDirection Direction = bIsFunctionInput ? EGPD_Input : EGPD_Output;
 				
 				// yay, found it! Now create exec pin for each
-				int32 NumExecs = (EnumProp->Enum->NumEnums() - 1);
+				int32 NumExecs = (Enum->NumEnums() - 1);
 				for(int32 ExecIdx=0; ExecIdx<NumExecs; ExecIdx++)
 				{
-					bool const bShouldBeHidden = EnumProp->Enum->HasMetaData(TEXT("Hidden"), ExecIdx) || EnumProp->Enum->HasMetaData(TEXT("Spacer"), ExecIdx);
+					bool const bShouldBeHidden = Enum->HasMetaData(TEXT("Hidden"), ExecIdx) || Enum->HasMetaData(TEXT("Spacer"), ExecIdx);
 					if (!bShouldBeHidden)
 					{
-						FString ExecName = EnumProp->Enum->GetEnumName(ExecIdx);
+						FString ExecName = Enum->GetEnumName(ExecIdx);
 						CreatePin(Direction, K2Schema->PC_Exec, TEXT(""), NULL, false, false, ExecName);
 					}
 				}
@@ -764,7 +796,7 @@ void UK2Node_CallFunction::DetermineWantsEnumToExecExpansion(const UFunction* Fu
 	{
 		const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
 		UByteProperty* EnumProp = FindField<UByteProperty>(Function, FName(*EnumParamName));
-		if(EnumProp != NULL && EnumProp->Enum != NULL)
+		if((EnumProp != NULL && EnumProp->Enum != NULL) || FindField<UEnumProperty>(Function, FName(*EnumParamName)))
 		{
 			bWantsEnumToExecExpansion = true;
 		}
@@ -1967,9 +1999,20 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 		{
 			// Get the metadata that identifies which param is the enum, and try and find it
 			const FString& EnumParamName = Function->GetMetaData(FBlueprintMetadata::MD_ExpandEnumAsExecs);
-			UByteProperty* EnumProp = FindField<UByteProperty>(Function, FName(*EnumParamName));
+
+			UEnum* Enum = nullptr;
+
+			if (UByteProperty* ByteProp = FindField<UByteProperty>(Function, FName(*EnumParamName)))
+			{
+				Enum = ByteProp->Enum;
+			}
+			else if (UEnumProperty* EnumProp = FindField<UEnumProperty>(Function, FName(*EnumParamName)))
+			{
+				Enum = EnumProp->GetEnum();
+			}
+
 			UEdGraphPin* EnumParamPin = FindPinChecked(EnumParamName);
-			if(EnumProp != NULL && EnumProp->Enum != NULL)
+			if(Enum != nullptr)
 			{
 				// Expanded as input execs pins
 				if (EnumParamPin->Direction == EGPD_Input)
@@ -1980,7 +2023,7 @@ void UK2Node_CallFunction::ExpandNode(class FKismetCompilerContext& CompilerCont
 					// Create temp enum variable
 					UK2Node_TemporaryVariable* TempEnumVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
 					TempEnumVarNode->VariableType.PinCategory = Schema->PC_Byte;
-					TempEnumVarNode->VariableType.PinSubCategoryObject = EnumProp->Enum;
+					TempEnumVarNode->VariableType.PinSubCategoryObject = Enum;
 					TempEnumVarNode->AllocateDefaultPins();
 					// Get the output pin
 					UEdGraphPin* TempEnumVarOutput = TempEnumVarNode->GetVariablePin();

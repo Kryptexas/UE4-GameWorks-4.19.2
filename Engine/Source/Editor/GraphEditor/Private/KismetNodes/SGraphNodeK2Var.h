@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SGraphNodeK2Var_h__
 #define __SGraphNodeK2Var_h__
 
-#include "SGraphNodeK2Base.h"
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "KismetNodes/SGraphNodeK2Base.h"
 
 class UK2Node;
 

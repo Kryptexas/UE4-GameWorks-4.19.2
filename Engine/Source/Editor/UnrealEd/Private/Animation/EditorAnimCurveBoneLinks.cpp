@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorAnimCurveBones.cpp: Montage classes that contains slots
 =============================================================================*/ 
 
-#include "UnrealEd.h"
-#include "Classes/Animation/EditorAnimCurveBoneLinks.h"
+#include "Animation/EditorAnimCurveBoneLinks.h"
 
 #define LOCTEXT_NAMESPACE "UEditorAnimCurveBoneLinks"
 

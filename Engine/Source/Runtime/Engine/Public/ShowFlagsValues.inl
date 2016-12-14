@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // usage
 //
@@ -106,6 +106,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(Specular, SFG_LightingComponents, LOCTEXT("SpecularSF
 SHOWFLAG_FIXED_IN_SHIPPING(0, SelectionOutline, SFG_Hidden, LOCTEXT("SelectionOutlineSF", "Selection Outline"))
 /** If screen space reflections are enabled, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
 SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenSpaceReflections, SFG_LightingFeatures, LOCTEXT("ScreenSpaceReflectionsSF", "Screen Space Reflections"))
+/** If Screen space contact shadows are enabled. */
+SHOWFLAG_ALWAYS_ACCESSIBLE(ContactShadows, SFG_LightingFeatures, LOCTEXT("ContactShadows", "Screen Space Contact Shadows"))
 /** If Screen Space Subsurface Scattering enabled */
 SHOWFLAG_FIXED_IN_SHIPPING(1, SubsurfaceScattering, SFG_LightingFeatures, LOCTEXT("SubsurfaceScatteringSF", "Subsurface Scattering (Screen Space)"))
 /** If Screen Space Subsurface Scattering visualization is enabled */
@@ -160,10 +162,14 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, LightMapDensity, SFG_Hidden, LOCTEXT("LightMapDens
 SHOWFLAG_FIXED_IN_SHIPPING(0, StreamingBounds, SFG_Advanced, LOCTEXT("StreamingBoundsSF", "Streaming Bounds"))
 /** Render joint limits */
 SHOWFLAG_FIXED_IN_SHIPPING(0, Constraints, SFG_Advanced, LOCTEXT("ConstraintsSF", "Constraints"))
+/** Render mass debug data */
+SHOWFLAG_FIXED_IN_SHIPPING(0, MassProperties, SFG_Advanced, LOCTEXT("MassPropertiesSF", "Mass Properties"))
 /** Draws camera frustums */
 SHOWFLAG_FIXED_IN_SHIPPING(0, CameraFrustums, SFG_Advanced, LOCTEXT("CameraFrustumsSF", "Camera Frustums"))
 /** Draw sound actor radii */
 SHOWFLAG_FIXED_IN_SHIPPING(0, AudioRadius, SFG_Advanced, LOCTEXT("AudioRadiusSF", "Audio Radius"))
+/** Draw force feedback radii */
+SHOWFLAG_FIXED_IN_SHIPPING(0, ForceFeedbackRadius, SFG_Advanced, LOCTEXT("ForceFeedbackSF", "Force Feedback Radius"))
 /** Colors BSP based on model component association */
 SHOWFLAG_FIXED_IN_SHIPPING(0, BSPSplit, SFG_Advanced, LOCTEXT("BSPSplitSF", "BSP Split"))
 /** show editor (wireframe) brushes, for now SHOWFLAG_ALWAYS_ACCESSIBLE because it's exposed in SceneCapture */
@@ -304,6 +310,8 @@ SHOWFLAG_FIXED_IN_SHIPPING(0, MeshUVDensityAccuracy, SFG_Hidden, LOCTEXT("MeshUV
 SHOWFLAG_FIXED_IN_SHIPPING(0, MaterialTextureScaleAccuracy, SFG_Hidden, LOCTEXT("MaterialTextureScaleAccuracy", "Material Texture Scales Accuracy"))
 /** Outputs the material texture scales. */
 SHOWFLAG_FIXED_IN_SHIPPING(0, OutputMaterialTextureScales, SFG_Hidden, LOCTEXT("OutputMaterialTextureScales", "Output Material Texture Scales"))
+/** Compare the required texture resolution to the actual resolution. */
+SHOWFLAG_FIXED_IN_SHIPPING(0, RequiredTextureResolution, SFG_Hidden, LOCTEXT("RequiredTextureResolution", "Required Texture Resolution"))
 /** If WidgetComponents should be rendered in the scene */
 SHOWFLAG_ALWAYS_ACCESSIBLE(WidgetComponents, SFG_Normal, LOCTEXT("WidgetComponentsSF", "Widget Components"))
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE

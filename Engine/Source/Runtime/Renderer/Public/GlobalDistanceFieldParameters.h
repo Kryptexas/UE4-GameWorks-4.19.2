@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GlobalDistanceFieldParameters.h
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "RenderUtils.h"
+#include "RHIStaticStates.h"
+
+class FShaderParameterMap;
 
 /** Must match global distance field shaders. */
 const int32 GMaxGlobalDistanceFieldClipmaps = 4;

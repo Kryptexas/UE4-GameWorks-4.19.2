@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ConvexDecompTool.h: Utility for turning graphics mesh into convex hulls.
@@ -6,6 +6,10 @@
 
 #ifndef __CONVEXDECOMPTOOL_H__
 #define __CONVEXDECOMPTOOL_H__
+
+#include "CoreMinimal.h"
+
+class UBodySetup;
 
 /** 
  *	Utlity for turning arbitary mesh into convex hulls.

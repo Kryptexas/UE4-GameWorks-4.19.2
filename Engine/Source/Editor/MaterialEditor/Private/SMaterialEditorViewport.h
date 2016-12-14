@@ -1,12 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/GCObject.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
 #include "PreviewScene.h"
+#include "EditorViewportClient.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
 #include "SEditorViewport.h"
 #include "Editor/UnrealEd/Public/SCommonEditorViewportToolbarBase.h"
 
-struct FSlateMaterialBrush;
+class FMaterialEditorViewportClient;
+class IMaterialEditor;
+class SMaterialEditorUIPreviewZoomer;
+class UMaterialInterface;
+class UMeshComponent;
 
 /**
  * Material Editor Preview viewport widget

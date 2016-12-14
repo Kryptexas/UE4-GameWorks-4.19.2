@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-//
-#include "OculusRiftPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "OculusRiftSplash.h"
 #include "OculusRiftHMD.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
-
-#include "OculusRiftSplash.h"
 
 FOculusRiftSplash::FOculusRiftSplash(FOculusRiftHMD* InPlugin) : 
 	LayerMgr(MakeShareable(new OculusRift::FLayerManager(InPlugin->GetCustomPresent_Internal())))
@@ -66,7 +64,7 @@ FOculusRiftSplash::FOculusRiftSplash(FOculusRiftHMD* InPlugin) :
 		{
 			AddSplash(SplashDesc);
 		}
-		num = LexicalConversion::ToString(i);
+		num = Lex::ToString(i);
 	}
 }
 

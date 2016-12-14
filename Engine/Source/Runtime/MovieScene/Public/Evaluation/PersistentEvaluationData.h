@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "MovieSceneSequenceID.h"
 #include "MovieSceneFwd.h"
-#include "MovieSceneEvaluationKey.h"
-
-class UMovieSceneSequence;
-class IMovieScenePlayer;
-
+#include "Evaluation/MovieSceneEvaluationKey.h"
 
 /**
  * Structure that describes an object that is to be animated. Used as an abstraction of the actual objects bound to object bindings.

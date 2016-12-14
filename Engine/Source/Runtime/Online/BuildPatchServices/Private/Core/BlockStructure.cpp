@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "../BuildPatchServicesPrivatePCH.h"
-#include "BlockStructure.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+#include "Core/BlockStructure.h"
 
 namespace BuildPatchServices
 {

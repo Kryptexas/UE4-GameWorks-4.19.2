@@ -1,17 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CubemapUnwapUtils.cpp: Pixel and Vertex shader to render a cube map as 2D texture
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CubemapUnwrapUtils.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
 #include "ShaderParameterUtils.h"
-#include "CubemapUnwrapUtils.h" 
-#include "RHIStaticStates.h"
+#include "SimpleElementShaders.h"
+#include "TextureResource.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/TextureCube.h"
 #include "Engine/TextureRenderTargetCube.h"
-#include "CanvasTypes.h"
 
 IMPLEMENT_SHADER_TYPE(,FCubemapTexturePropertiesVS,TEXT("SimpleElementVertexShader"),TEXT("Main"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(template<>,FCubemapTexturePropertiesPS<false>,TEXT("SimpleElementPixelShader"),TEXT("CubemapTextureProperties"),SF_Pixel);

@@ -1,7 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SimplygonSwarmPrivatePCH.h"
+#include "SimplygonSwarmCommon.h"
 #include "SimplygonSwarmHelpers.h"
+#include "SimplygonRESTClient.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Object.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Interfaces/IImageWrapperModule.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/MonitoredProcess.h"
+#include "UniquePtr.h"
 THIRD_PARTY_INCLUDES_START
 #include <algorithm>
 THIRD_PARTY_INCLUDES_END
@@ -1639,12 +1649,12 @@ bool ZipContentsForUpload(FString InputDirectoryPath, FString OutputFileName)
 	}
 };
 
-TScopedPointer<FSimplygonSwarm> GSimplygonMeshReduction;
+TUniquePtr<FSimplygonSwarm> GSimplygonMeshReduction;
 
 
 void FSimplygonSwarmModule::StartupModule()
 {
-	GSimplygonMeshReduction = FSimplygonSwarm::Create();
+	GSimplygonMeshReduction.Reset(FSimplygonSwarm::Create());
 }
 
 void FSimplygonSwarmModule::ShutdownModule()
@@ -1664,7 +1674,7 @@ IMeshReduction* FSimplygonSwarmModule::GetSkeletalMeshReductionInterface()
 
 IMeshMerging* FSimplygonSwarmModule::GetMeshMergingInterface()
 {
-	return GSimplygonMeshReduction;
+	return GSimplygonMeshReduction.Get();
 }
 
 

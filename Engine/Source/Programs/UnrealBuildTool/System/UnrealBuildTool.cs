@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -57,6 +57,11 @@ namespace UnrealBuildTool
 		/// How much time was spent scanning for include dependencies for outdated C++ files
 		/// </summary>
 		public static double TotalDeepIncludeScanTime = 0.0;
+
+		/// <summary>
+		/// Total time spent executing actions
+		/// </summary>
+		static public double TotalExecutorTime = 0;
 
 		/// <summary>
 		/// The command line
@@ -653,8 +658,9 @@ namespace UnrealBuildTool
 			// Then let the command lines override any configs necessary.
 			const string UCAUsageThresholdString = "-ucausagethreshold=";
 			const string UCAModuleToAnalyzeString = "-ucamoduletoanalyze=";
-			foreach (string LowercaseArg in Arguments.Select(arg => arg.ToLowerInvariant()))
+			foreach (string Argument in Arguments)
 			{
+				string LowercaseArg = Argument.ToLowerInvariant();
 				if (LowercaseArg == "-verbose")
 				{
 					BuildConfiguration.bPrintDebugInfo = true;
@@ -722,6 +728,14 @@ namespace UnrealBuildTool
 				{
 					BuildConfiguration.bXGEExport = true;
 					BuildConfiguration.bAllowXGE = true;
+				}
+				else if (LowercaseArg == "-jsonexport")
+				{
+					BuildConfiguration.JsonExportFile = FileReference.Combine(EngineDirectory, "Intermediate", "Target.json").FullName;
+				}
+				else if (LowercaseArg.StartsWith("-jsonexport="))
+				{
+					BuildConfiguration.JsonExportFile = new FileReference(Argument.Substring("-jsonexport=".Length)).FullName;
 				}
 				else if (LowercaseArg == "-stresstestunity")
 				{
@@ -805,6 +819,10 @@ namespace UnrealBuildTool
 				{
 					BuildConfiguration.bUseUHTMakefiles = true;
 				}
+				else if (LowercaseArg == "-formal")
+				{
+					UEBuildConfiguration.bFormalBuild = true;
+				}
 				else if (LowercaseArg == "-nosimplygon")
 				{
 					UEBuildConfiguration.bCompileSimplygon = false;
@@ -872,6 +890,10 @@ namespace UnrealBuildTool
 				{
 					BuildConfiguration.bEnableCodeAnalysis = true;
 				}
+				else if(LowercaseArg == "-skipbuild")
+				{
+					BuildConfiguration.bSkipBuild = true;
+				}
 			}
 		}
 
@@ -892,6 +914,31 @@ namespace UnrealBuildTool
                     new ConsoleTraceListener(),
                     !string.IsNullOrEmpty(BuildConfiguration.LogFilename) ? new TextWriterTraceListener(new StreamWriter(new FileStream(BuildConfiguration.LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) { AutoFlush = true }) : null,
                 });
+		}
+
+		/// <summary>
+		/// Reads configuration settings for a class from a hierarchy of ini files
+		/// </summary>
+		/// <param name="Ini">Config file cache</param>
+		/// <param name="Type">The type to read settings for. Settings will be read from the section with a name corresponding to this type.</param>
+		static void ReadGlobalIniSettings(ConfigCacheIni Ini, Type Type)
+		{
+			ConfigCacheIni.IniSection Section = Ini.FindSection(Type.Name);
+			if(Section != null)
+			{
+				foreach (KeyValuePair<string, ConfigCacheIni.IniValues> Pair in Section)
+				{
+					FieldInfo Field = Type.GetField(Pair.Key);
+					if(Field == null || !XmlConfigLoader.IsConfigurableField(Field))
+					{
+						Log.TraceWarning("Invalid setting: {0}.{1}", Type.Name, Pair.Key);
+					}
+					else
+					{
+						Field.SetValue(null, XmlConfigLoader.ParseFieldData(Field.FieldType, String.Join("\n", Pair.Value)));
+					}
+				}
+			}
 		}
 
 		private static int DoPostStartupStuffThatCanAccessConfigs(string[] Arguments)
@@ -1216,6 +1263,11 @@ namespace UnrealBuildTool
 						}
 					}
 
+					// Read any global configuration settings for the project, now that we have a path to the project file.
+					ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Engine", (ProjectFile == null)? null : ProjectFile.Directory, EngineDirectory);
+					ReadGlobalIniSettings(Ini, typeof(BuildConfiguration));
+					ReadGlobalIniSettings(Ini, typeof(UEBuildConfiguration));
+
 					// Get the build version
 					BuildVersion Version;
 					if (!BuildVersion.TryRead("../Build/Build.version", out Version))
@@ -1363,13 +1415,13 @@ namespace UnrealBuildTool
 					double BuildDuration = (DateTime.UtcNow - StartTime).TotalSeconds;
 					if (BuildConfiguration.bPrintPerformanceInfo)
 					{
-						Log.TraceInformation("GetIncludes time: " + CPPEnvironment.TotalTimeSpentGettingIncludes + "s (" + CPPEnvironment.TotalIncludesRequested + " includes)");
-						Log.TraceInformation("DirectIncludes cache miss time: " + CPPEnvironment.DirectIncludeCacheMissesTotalTime + "s (" + CPPEnvironment.TotalDirectIncludeCacheMisses + " misses)");
-						Log.TraceInformation("FindIncludePaths calls: " + CPPEnvironment.TotalFindIncludedFileCalls + " (" + CPPEnvironment.IncludePathSearchAttempts + " searches)");
+						Log.TraceInformation("GetIncludes time: " + CPPHeaders.TotalTimeSpentGettingIncludes + "s (" + CPPHeaders.TotalIncludesRequested + " includes)");
+						Log.TraceInformation("DirectIncludes cache miss time: " + CPPHeaders.DirectIncludeCacheMissesTotalTime + "s (" + CPPHeaders.TotalDirectIncludeCacheMisses + " misses)");
+						Log.TraceInformation("FindIncludePaths calls: " + CPPHeaders.TotalFindIncludedFileCalls + " (" + CPPHeaders.IncludePathSearchAttempts + " searches)");
 						Log.TraceInformation("PCH gen time: " + UEBuildModuleCPP.TotalPCHGenTime + "s");
 						Log.TraceInformation("PCH cache time: " + UEBuildModuleCPP.TotalPCHCacheTime + "s");
 						Log.TraceInformation("Deep C++ include scan time: " + UnrealBuildTool.TotalDeepIncludeScanTime + "s");
-						Log.TraceInformation("Include Resolves: {0} ({1} misses, {2:0.00}%)", CPPEnvironment.TotalDirectIncludeResolves, CPPEnvironment.TotalDirectIncludeResolveCacheMisses, (float)CPPEnvironment.TotalDirectIncludeResolveCacheMisses / (float)CPPEnvironment.TotalDirectIncludeResolves * 100);
+						Log.TraceInformation("Include Resolves: {0} ({1} misses, {2:0.00}%)", CPPHeaders.TotalDirectIncludeResolves, CPPHeaders.TotalDirectIncludeResolveCacheMisses, (float)CPPHeaders.TotalDirectIncludeResolveCacheMisses / (float)CPPHeaders.TotalDirectIncludeResolves * 100);
 						Log.TraceInformation("Total FileItems: {0} ({1} missing)", FileItem.TotalFileItemCount, FileItem.MissingFileItemCount);
 
 						Log.TraceInformation("Execution time: {0}s", BuildDuration);
@@ -1539,17 +1591,15 @@ namespace UnrealBuildTool
 			}
 		}
 
-
 		public static ECompilationResult RunUBT(string[] Arguments, FileReference ProjectFile)
 		{
 			bool bSuccess = true;
-
 
 			DateTime RunUBTInitStartTime = DateTime.UtcNow;
 
 
 			// Reset global configurations
-			ActionGraph.ResetAllActions();
+			ActionGraph ActionGraph = new ActionGraph();
 
 			// We need to allow the target platform to perform the 'reset' as well...
 			UnrealTargetPlatform ResetPlatform = UnrealTargetPlatform.Unknown;
@@ -1569,6 +1619,7 @@ namespace UnrealBuildTool
 
 			Thread CPPIncludesThread = null;
 
+			List<UEBuildTarget> Targets = null;
 			try
 			{
 				List<string[]> TargetSettings = ParseCommandLineFlags(Arguments);
@@ -1748,14 +1799,24 @@ namespace UnrealBuildTool
 							foreach (TargetDescriptor Desc in TargetDescs)
 							{
 								DirectoryReference ProjectDirectory = DirectoryReference.FromFile(ProjectFile);
-								foreach (FileReference IniFilename in ConfigCacheIni.EnumerateCrossPlatformIniFileNames(ProjectDirectory, UnrealBuildTool.EngineDirectory, Desc.Platform, "Engine", false))
+								String[] IniBaseNames = new String[] { "Engine", "Encryption" };
+
+								foreach (String BaseName in IniBaseNames)
 								{
-									FileInfo IniFileInfo = new FileInfo(IniFilename.FullName);
-									if (UBTMakefileInfo.LastWriteTime.CompareTo(IniFileInfo.LastWriteTime) < 0)
+									foreach (FileReference IniFilename in ConfigCacheIni.EnumerateCrossPlatformIniFileNames(ProjectDirectory, UnrealBuildTool.EngineDirectory, Desc.Platform, BaseName, false))
 									{
-										// Ini files are newer than UBTMakefile
-										UBTMakefile = null;
-										ReasonNotLoaded = "ini files are newer that UBTMakefile";
+										FileInfo IniFileInfo = new FileInfo(IniFilename.FullName);
+										if (UBTMakefileInfo.LastWriteTime.CompareTo(IniFileInfo.LastWriteTime) < 0)
+										{
+											// Ini files are newer than UBTMakefile
+											UBTMakefile = null;
+											ReasonNotLoaded = "ini files are newer that UBTMakefile";
+											break;
+										}
+									}
+
+									if (UBTMakefile == null)
+									{
 										break;
 									}
 								}
@@ -1791,7 +1852,6 @@ namespace UnrealBuildTool
 				}
 
 
-				List<UEBuildTarget> Targets;
 				if (UBTMakefile != null && !IsGatheringBuild && IsAssemblingBuild)
 				{
 					// If we've loaded a makefile, then we can fill target information from this file!
@@ -1835,7 +1895,7 @@ namespace UnrealBuildTool
 					if (!(!UnrealBuildTool.IsGatheringBuild && UnrealBuildTool.IsAssemblingBuild))
 					{
 						// Load the direct include dependency cache.
-						CPPEnvironment.IncludeDependencyCache.Add(Target, DependencyCache.Create(DependencyCache.GetDependencyCachePathForTarget(Target)));
+						Target.Headers.IncludeDependencyCache = DependencyCache.Create(DependencyCache.GetDependencyCachePathForTarget(Target.ProjectFile, Target.GetTargetName()));
 					}
 
 					// We don't need this dependency cache in 'gather only' mode
@@ -1844,14 +1904,14 @@ namespace UnrealBuildTool
 					{
 						// Load the cache that contains the list of flattened resolved includes for resolved source files
 						// @todo ubtmake: Ideally load this asynchronously at startup and only block when it is first needed and not finished loading
-						CPPEnvironment.FlatCPPIncludeDependencyCache.Add(Target, FlatCPPIncludeDependencyCache.Create(Target));
+						Target.Headers.FlatCPPIncludeDependencyCache = FlatCPPIncludeDependencyCache.Create(Target);
 					}
 
 					if (UnrealBuildTool.IsGatheringBuild)
 					{
 						List<FileItem> TargetOutputItems;
 						List<UHTModuleInfo> TargetUObjectModules;
-						BuildResult = Target.Build(ToolChain, out TargetOutputItems, out TargetUObjectModules);
+						BuildResult = Target.Build(ToolChain, out TargetOutputItems, out TargetUObjectModules, ActionGraph);
 						if (BuildResult != ECompilationResult.Succeeded)
 						{
 							break;
@@ -1884,7 +1944,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				if (BuildResult == ECompilationResult.Succeeded &&
+				if (BuildResult == ECompilationResult.Succeeded && !BuildConfiguration.bSkipBuild &&
 					(
 						(BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) ||
 						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !UEBuildConfiguration.bGenerateExternalFileList && !UEBuildConfiguration.bListBuildFolders)
@@ -1937,7 +1997,7 @@ namespace UnrealBuildTool
 							// the same for every invocation on that makefile, but we need a new suffix each time.
 							if (bIsHotReload)
 							{
-								PatchActionHistoryForHotReloadAssembling(HotReloadTargetDesc.OnlyModules);
+								PatchActionHistoryForHotReloadAssembling(ActionGraph, HotReloadTargetDesc.OnlyModules);
 							}
 
 
@@ -1948,12 +2008,15 @@ namespace UnrealBuildTool
 							}
 
 							// Execute all the pre-build steps
-							foreach(UEBuildTarget Target in Targets)
+							if(!ProjectFileGenerator.bGenerateProjectFiles)
 							{
-								if(!Target.ExecuteCustomPreBuildSteps())
+								foreach(UEBuildTarget Target in Targets)
 								{
-									BuildResult = ECompilationResult.OtherCompilationError;
-									break;
+									if(!Target.ExecuteCustomPreBuildSteps())
+									{
+										BuildResult = ECompilationResult.OtherCompilationError;
+										break;
+									}
 								}
 							}
 
@@ -2033,7 +2096,9 @@ namespace UnrealBuildTool
 
 							// Execute the actions.
 							string TargetInfoForTelemetry = String.Join("|", Targets.Select(x => String.Format("{0} {1} {2}{3}", x.TargetName, x.Platform, x.Configuration, BuildConfiguration.bUseUnityBuild? "" : " NonUnity")));
+							DateTime ExecutorStartTime = DateTime.UtcNow;
 							bSuccess = ActionGraph.ExecuteActions(ActionsToExecute, out ExecutorName, TargetInfoForTelemetry, bIsHotReload);
+							TotalExecutorTime += (DateTime.UtcNow - ExecutorStartTime).TotalSeconds;
 
 							// if the build succeeded, write the receipts and do any needed syncing
 							if (bSuccess)
@@ -2058,7 +2123,7 @@ namespace UnrealBuildTool
 						}
 
 						// Execute all the post-build steps
-						if(BuildResult.Succeeded())
+						if(BuildResult.Succeeded() && !ProjectFileGenerator.bGenerateProjectFiles)
 						{
 							foreach(UEBuildTarget Target in Targets)
 							{
@@ -2091,58 +2156,57 @@ namespace UnrealBuildTool
 			}
 
 			// Save the include dependency cache.
+			if(Targets != null)
 			{
-				// NOTE: It's very important that we save the include cache, even if a build exception was thrown (compile error, etc), because we need to make sure that
-				//    any C++ include dependencies that we computed for out of date source files are saved.  Remember, the build may fail *after* some build products
-				//    are successfully built.  If we didn't save our dependency cache after build failures, source files for those build products that were successsfully
-				//    built before the failure would not be considered out of date on the next run, so this is our only chance to cache C++ includes for those files!
-
-				foreach (DependencyCache DependencyCache in CPPEnvironment.IncludeDependencyCache.Values)
+				foreach(UEBuildTarget Target in Targets)
 				{
-					DependencyCache.Save();
-				}
-				CPPEnvironment.IncludeDependencyCache.Clear();
+					// NOTE: It's very important that we save the include cache, even if a build exception was thrown (compile error, etc), because we need to make sure that
+					//    any C++ include dependencies that we computed for out of date source files are saved.  Remember, the build may fail *after* some build products
+					//    are successfully built.  If we didn't save our dependency cache after build failures, source files for those build products that were successsfully
+					//    built before the failure would not be considered out of date on the next run, so this is our only chance to cache C++ includes for those files!
 
-				foreach (FlatCPPIncludeDependencyCache FlatCPPIncludeDependencyCache in CPPEnvironment.FlatCPPIncludeDependencyCache.Values)
-				{
-					FlatCPPIncludeDependencyCache.Save();
+					if(Target.Headers.IncludeDependencyCache != null)
+					{
+						Target.Headers.IncludeDependencyCache.Save();
+					}
+
+					if(Target.Headers.FlatCPPIncludeDependencyCache != null)
+					{
+						Target.Headers.FlatCPPIncludeDependencyCache.Save();
+					}
 				}
-				CPPEnvironment.FlatCPPIncludeDependencyCache.Clear();
 			}
 
 			// Figure out how long we took to execute.
-			double BuildDuration = (DateTime.UtcNow - StartTime).TotalSeconds;
-			if (ExecutorName == "Local" || ExecutorName == "Distcc" || ExecutorName == "SNDBS")
+			if(ExecutorName != "Unknown")
 			{
-				Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
-					LogEventType.Console,
-					"Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
-					System.Environment.ProcessorCount,
-					TotalBuildProjectTime,
-					TotalCompileTime,
-					TotalCreateAppBundleTime,
-					TotalGenerateDebugInfoTime,
-					TotalLinkTime,
-					TotalOtherActionsTime
-				);
+				double BuildDuration = (DateTime.UtcNow - StartTime).TotalSeconds;
+				Log.TraceInformation("Total build time: {0:0.00} seconds ({1} executor: {2:0.00} seconds)", BuildDuration, ExecutorName, TotalExecutorTime);
 
-				Log.TraceInformation("Total build time: {0:0.00} seconds", BuildDuration);
-
-				// reset statistics
-				TotalBuildProjectTime = 0;
-				TotalCompileTime = 0;
-				TotalCreateAppBundleTime = 0;
-				TotalGenerateDebugInfoTime = 0;
-				TotalLinkTime = 0;
-				TotalOtherActionsTime = 0;
-			}
-			else
-			{
-				if (ExecutorName == "XGE")
+				if (ExecutorName != "XGE")
 				{
-					Log.TraceInformation("XGE execution time: {0:0.00} seconds", BuildDuration);
+					Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
+						LogEventType.Console,
+						"Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
+						System.Environment.ProcessorCount,
+						TotalBuildProjectTime,
+						TotalCompileTime,
+						TotalCreateAppBundleTime,
+						TotalGenerateDebugInfoTime,
+						TotalLinkTime,
+						TotalOtherActionsTime
+					);
 				}
 			}
+
+			// reset statistics
+			TotalBuildProjectTime = 0;
+			TotalCompileTime = 0;
+			TotalCreateAppBundleTime = 0;
+			TotalGenerateDebugInfoTime = 0;
+			TotalLinkTime = 0;
+			TotalOtherActionsTime = 0;
+			TotalExecutorTime = 0;
 
 			return BuildResult;
 		}
@@ -2290,7 +2354,7 @@ namespace UnrealBuildTool
 							// Invoke our deep include scanner to figure out whether any of the files included by this source file have
 							// changed since the build product was built
 							UEBuildPlatform FileBuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
-							CPPEnvironment.FindAndCacheAllIncludedFiles(Target, PrerequisiteItem, FileBuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies: false);
+							Target.Headers.FindAndCacheAllIncludedFiles(PrerequisiteItem, FileBuildPlatform, PrerequisiteItem.CachedCPPIncludeInfo, bOnlyCachedDependencies: false);
 						}
 					}
 				}));
@@ -2628,7 +2692,7 @@ namespace UnrealBuildTool
 				// * There are any newer files contain data which needs processing by UHT, but weren't not previously in the makefile
 				foreach (string Filename in HFilesNewerThanMakefile)
 				{
-					bool bContainsUHTData = CPPEnvironment.DoesFileContainUObjects(Filename);
+					bool bContainsUHTData = CPPHeaders.DoesFileContainUObjects(Filename);
 					bool bWasProcessed = AllUHTHeaders.Contains(Filename);
 					if (bContainsUHTData != bWasProcessed)
 					{
@@ -2806,7 +2870,7 @@ namespace UnrealBuildTool
 		/// Patch action history for hot reload when running in assembler mode.  In assembler mode, the suffix on the output file will be
 		/// the same for every invocation on that makefile, but we need a new suffix each time.
 		/// </summary>
-		protected static void PatchActionHistoryForHotReloadAssembling(List<OnlyModule> OnlyModules)
+		static void PatchActionHistoryForHotReloadAssembling(ActionGraph ActionGraph, List<OnlyModule> OnlyModules)
 		{
 			// Gather all of the response files for link actions.  We're going to need to patch 'em up after we figure out new
 			// names for all of the output files and import libraries

@@ -1,4 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "WindowsHWrapper.h"
 
 #ifndef WINDOWS_PLATFORM_TYPES_GUARD
 	#define WINDOWS_PLATFORM_TYPES_GUARD
@@ -14,10 +16,5 @@
 #define DWORD ::DWORD
 #define FLOAT ::FLOAT
 
-#ifndef TRUE
-	#define TRUE 1
-#endif
-
-#ifndef FALSE
-	#define FALSE 0
-#endif
+#define TRUE 1
+#define FALSE 0

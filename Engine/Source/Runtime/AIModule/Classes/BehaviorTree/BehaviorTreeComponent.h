@@ -1,27 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EngineDefines.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
+#include "GameplayTagContainer.h"
 #include "AITypes.h"
 #include "BrainComponent.h"
-#include "BehaviorTreeTypes.h"
-#include "GameplayTagContainer.h"
 #include "BehaviorTreeComponent.generated.h"
 
-class UBTNode;
-class UBTCompositeNode;
-class UBTTaskNode;
-class UBTDecorator;
-class UBTTask_RunBehavior;
-class UBTTask_RunBehaviorDynamic;
 class FBehaviorTreeDebugger;
 class UBehaviorTree;
 class UBTAuxiliaryNode;
-struct FBehaviorTreeInstance;
-struct FBehaviorTreeInstanceId;
-struct FBTNodeIndex;
-struct FBehaviorTreeSearchData;
-struct FBehaviorTreeSearchUpdate;
+class UBTCompositeNode;
+class UBTDecorator;
+class UBTNode;
+class UBTTask_RunBehavior;
+class UBTTask_RunBehaviorDynamic;
+class UBTTaskNode;
 
 struct FBTNodeExecutionInfo
 {

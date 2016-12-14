@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	 GestureRecognizer - handles detecting when gestures happen
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
 
 class FGestureRecognizer
 {

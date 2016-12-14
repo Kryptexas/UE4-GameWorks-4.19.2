@@ -1,19 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationGraphSchema.cpp
 =============================================================================*/
 
-#include "AnimGraphPrivatePCH.h"
-#include "BlueprintUtilities.h"
-#include "GraphEditorActions.h"
-#include "ScopedTransaction.h"
-#include "AssetData.h"
 #include "AnimationGraphSchema.h"
-#include "K2Node_TransitionRuleGetter.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimBlueprint.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "K2Node.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Animation/AnimSequence.h"
 #include "AnimStateNode.h"
+#include "Animation/BlendSpace.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
+#include "Animation/AnimNodeBase.h"
+#include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "AnimGraphNode_ComponentToLocalSpace.h"
@@ -21,9 +25,11 @@
 #include "AnimGraphNode_Root.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "AnimGraphNode_SequencePlayer.h"
+#include "Animation/PoseAsset.h"
 #include "AnimGraphNode_PoseBlendNode.h"
 #include "AnimGraphNode_PoseByName.h"
 #include "AnimGraphCommands.h"
+#include "K2Node_Knot.h"
 
 #define LOCTEXT_NAMESPACE "AnimationGraphSchema"
 
@@ -310,47 +316,14 @@ void UAnimationGraphSchema::UpdateNodeWithAsset(UK2Node* K2Node, UAnimationAsset
 {
 	if (Asset != NULL)
 	{
-		if (UAnimGraphNode_SequencePlayer* SequencePlayerNode = Cast<UAnimGraphNode_SequencePlayer>(K2Node))
+		if (UAnimGraphNode_AssetPlayerBase* AssetPlayerNode = Cast<UAnimGraphNode_AssetPlayerBase>(K2Node))
 		{
-			if (UAnimSequence* Sequence = Cast<UAnimSequence>(Asset))
+			if (AssetPlayerNode->SupportsAssetClass(Asset->GetClass()) != EAnimAssetHandlerType::NotSupported)
 			{
-				// Skeleton matches, and it's a sequence player; replace the existing sequence with the dragged one
-				SequencePlayerNode->Node.Sequence = Sequence;
-			}
-		}
-		else if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(Asset))
-		{
-			if (IsAimOffsetBlendSpace(BlendSpace))
-			{
-				if (UAnimGraphNode_RotationOffsetBlendSpace* RotationOffsetNode = Cast<UAnimGraphNode_RotationOffsetBlendSpace>(K2Node))
-				{
-					// Skeleton matches, and it's a blendspace player; replace the existing blendspace with the dragged one
-					RotationOffsetNode->Node.BlendSpace = BlendSpace;
-				}
-			}
-			else
-			{
-				if (UAnimGraphNode_BlendSpacePlayer* BlendSpacePlayerNode = Cast<UAnimGraphNode_BlendSpacePlayer>(K2Node))
-				{
-					// Skeleton matches, and it's a blendspace player; replace the existing blendspace with the dragged one
-					BlendSpacePlayerNode->Node.BlendSpace = BlendSpace;
-				}
-			}
-		}
-		else if (UPoseAsset* PoseAsset = Cast<UPoseAsset>(Asset))
-		{
-			if (UAnimGraphNode_PoseBlendNode* PoseBlendNode = Cast<UAnimGraphNode_PoseBlendNode>(K2Node))
-			{
-				// Skeleton matches, and it's a blendspace player; replace the existing blendspace with the dragged one
-				PoseBlendNode->Node.PoseAsset = PoseAsset;
-			}
-			else
-			{
-				if (UAnimGraphNode_PoseByName* PoseByNameNode = Cast<UAnimGraphNode_PoseByName>(K2Node))
-				{
-					// Skeleton matches, and it's a blendspace player; replace the existing blendspace with the dragged one
-					PoseByNameNode->Node.PoseAsset = PoseAsset;
-				}
+				AssetPlayerNode->SetAnimationAsset(Asset);
+
+				K2Node->GetSchema()->ForceVisualizationCacheClear();
+				K2Node->ReconstructNode();
 			}
 		}
 	}
@@ -397,28 +370,7 @@ void UAnimationGraphSchema::GetAssetsNodeHoverMessage(const TArray<FAssetData>& 
 		return;
 	}
 
-	const UK2Node* PlayerNodeUnderCursor = NULL;
-	if (Asset->IsA(UAnimSequence::StaticClass()))
-	{
-		PlayerNodeUnderCursor = Cast<const UAnimGraphNode_SequencePlayer>(HoverNode);
-	}
-	else if (Asset->IsA(UBlendSpace::StaticClass()))
-	{
-		UBlendSpace* BlendSpace = CastChecked<UBlendSpace>(Asset);
-		if (IsAimOffsetBlendSpace(BlendSpace))
-		{
-			PlayerNodeUnderCursor = Cast<const UAnimGraphNode_RotationOffsetBlendSpace>(HoverNode);
-		}
-		else
-		{
-			PlayerNodeUnderCursor = Cast<const UAnimGraphNode_BlendSpacePlayer>(HoverNode);
-		}
-	}
-	else if (Asset->IsA(UPoseAsset::StaticClass()))
-	{
-		UPoseAsset* PoseAsset = CastChecked<UPoseAsset>(Asset);
-		PlayerNodeUnderCursor = Cast<const UAnimGraphNode_PoseBlendNode>(HoverNode);
-	}
+	bool bCanPlayAsset = SupportNodeClassForAsset(Asset->GetClass(), HoverNode->GetClass());
 
 	// this one only should happen when there is an Anim Blueprint
 	UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(FBlueprintEditorUtils::FindBlueprintForNode(HoverNode));
@@ -429,15 +381,15 @@ void UAnimationGraphSchema::GetAssetsNodeHoverMessage(const TArray<FAssetData>& 
 		OutOkIcon = false;
 		OutTooltipText = FString::Printf(TEXT("Skeletons are not compatible"));
 	}
-	else if (PlayerNodeUnderCursor != NULL)
+	else if (bCanPlayAsset)
 	{
 		OutOkIcon = true;
-		OutTooltipText = FString::Printf(TEXT("Change node to play %s"), *(Asset->GetName()));
+		OutTooltipText = FString::Printf(TEXT("Change node to play '%s'"), *(Asset->GetName()));
 	}
 	else
 	{
 		OutOkIcon = false;
-		OutTooltipText = FString::Printf(TEXT("Cannot replace '%s' with a sequence player"), *(HoverNode->GetName()));
+		OutTooltipText = FString::Printf(TEXT("Cannot play '%s' on this node type"), *(Asset->GetName()));
 	}
 }
 

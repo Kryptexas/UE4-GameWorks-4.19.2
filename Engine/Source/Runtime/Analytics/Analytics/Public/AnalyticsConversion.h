@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 
 /** Helpers for converting various common types to strings that analytics providers can consume. */
 namespace AnalyticsConversion
@@ -43,18 +44,18 @@ namespace AnalyticsConversion
 		return Value.ToString();
 	}
 
-	/** Double conversion. LexicalConversion is broken to doubles (won't use SanitizeFloat), so overload this directly. */
+	/** Double conversion. Lex is broken to doubles (won't use SanitizeFloat), so overload this directly. */
 	inline FString ToString(double Value)
 	{
 		return FString::SanitizeFloat(Value);
 	}
 
 
-	/** Lexical conversion. Allow any type that we have a LexicalConversion for. */
+	/** Lexical conversion. Allow any type that we have a Lex for. */
 	template <typename T>
 	inline typename TEnableIf<TIsArithmetic<T>::Value, FString>::Type ToString(T Value)
 	{
-		return LexicalConversion::ToSanitizedString(Value);
+		return Lex::ToSanitizedString(Value);
 	}
 
 	/** Array conversion. Creates comma-separated list. */

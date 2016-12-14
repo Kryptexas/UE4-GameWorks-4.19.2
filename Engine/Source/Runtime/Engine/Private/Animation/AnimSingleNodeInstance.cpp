@@ -1,20 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UAnimSingleNodeInstance.cpp: Single Node Tree Instance 
 	Only plays one animation at a time. 
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "Animation/AnimNodeBase.h"
 #include "Animation/AnimSingleNodeInstance.h"
-#include "AnimationRuntime.h"
-#include "Animation/BlendSpace.h"
 #include "Animation/BlendSpaceBase.h"
-#include "Animation/AnimComposite.h"
-#include "Animation/AimOffsetBlendSpace.h"
-#include "Animation/AimOffsetBlendSpace1D.h"
-#include "Animation/AnimMontage.h"
+#include "Animation/BlendSpace.h"
 #include "Animation/AnimSingleNodeInstanceProxy.h"
 
 /////////////////////////////////////////////////////
@@ -157,8 +150,11 @@ void UAnimSingleNodeInstance::UpdateMontageWeightForTimeSkip(float TimeDifferenc
 
 		UpdateMontageEvaluationData();
 
-		const FName CurrentSlotNodeName = Montage->SlotAnimTracks[0].SlotName;
-		Proxy.UpdateMontageWeightForSlot(CurrentSlotNodeName, 1.f);
+		if(Montage->SlotAnimTracks.Num() > 0)
+		{
+			const FName CurrentSlotNodeName = Montage->SlotAnimTracks[0].SlotName;
+			Proxy.UpdateMontageWeightForSlot(CurrentSlotNodeName, 1.f);
+		}
 	}
 }
 

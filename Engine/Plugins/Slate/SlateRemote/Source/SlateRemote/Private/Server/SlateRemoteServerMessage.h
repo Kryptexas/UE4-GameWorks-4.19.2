@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 // magic number that must match UDKRemote
 #define SLATE_REMOTE_SERVER_MESSAGE_MAGIC_ID 0xAB

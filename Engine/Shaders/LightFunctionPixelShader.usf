@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightFunction.usf: Pixel shader for computing a light function.
@@ -7,6 +7,7 @@
 #include "Common.usf"
 #include "Material.usf"
 #include "LightFunctionCommon.usf"
+#include "DynamicLightingCommon.usf"
 
 // used like this: mul(float4(SvPosition.xyz, 1), SvPositionToLight);
 float4x4 SvPositionToLight;
@@ -50,8 +51,14 @@ void Main(
 	// Fade to disabled based on ShadowFadeFraction
 	GreyScale = lerp(LightFunctionParameters2.y, GreyScale, LightFunctionParameters.y);
 
+#if FORWARD_SHADING
+	float LightInfluenceMask = GetLightInfluenceMask(AbsoluteWorldPosition);
+	GreyScale = lerp(1, GreyScale, LightInfluenceMask);
+	OutColor = EncodeLightAttenuation(GreyScale);
+#else
 	float EncodedLightAttenuation = EncodeLightAttenuation(GreyScale);
 
 	// Light function shadows write to the blue channel.
 	OutColor = lerp(float4(1, 1, EncodedLightAttenuation, 1), EncodedLightAttenuation.xxxx, LightFunctionParameters2.z);
+#endif
 }

@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
-#include "UnrealString.h"
-#include "LocTextHelper.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Commandlets/Commandlet.h"
+#include "LocTextHelper.h"
 #include "GatherTextCommandletBase.generated.h"
+
+class FAssetData;
+class IAssetRegistry;
 
 class FWordCountReportData
 {

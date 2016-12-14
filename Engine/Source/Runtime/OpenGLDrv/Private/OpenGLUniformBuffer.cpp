@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLUniformBuffer.cpp: OpenGL Uniform buffer RHI implementation.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
+#include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
 
 

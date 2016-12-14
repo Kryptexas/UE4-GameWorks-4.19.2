@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocBinned.cpp: Binned memory allocator
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "HAL/MallocBinned2.h"
+#include "Logging/LogMacros.h"
+#include "Misc/ScopeLock.h"
+#include "Templates/Function.h"
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
 
-#include "MallocBinned2.h"
-#include "MemoryMisc.h"
 
 #if BINNED2_ALLOW_RUNTIME_TWEAKING
 
@@ -892,7 +896,7 @@ void FMallocBinned2::FlushCurrentThreadCache()
 	}
 }
 
-#include "TaskGraphInterfaces.h"
+#include "Async/TaskGraphInterfaces.h"
 
 void FMallocBinned2::Trim()
 {

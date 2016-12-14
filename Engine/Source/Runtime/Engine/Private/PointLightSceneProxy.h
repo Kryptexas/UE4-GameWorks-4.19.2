@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PointLightSceneProxy.h: Point light scene info definition.
@@ -6,8 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Components/PointLightComponent.h"
-
+#include "SceneManagement.h"
 
 /** The parts of the point light scene info that aren't dependent on the light policy type. */
 class FPointLightSceneProxyBase : public FLightSceneProxy

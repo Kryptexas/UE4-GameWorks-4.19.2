@@ -1,6 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AssetRegistryPCH.h"
+#include "PackageReader.h"
+#include "HAL/FileManager.h"
+#include "UObject/Class.h"
+#include "Serialization/ArchiveAsync.h"
+#include "Misc/PackageName.h"
+#include "AssetRegistryPrivate.h"
+#include "AssetData.h"
+#include "AssetRegistry.h"
 
 FPackageReader::FPackageReader()
 {
@@ -96,9 +103,7 @@ bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 	// check if this is a compressed package and decompress header 
 	if ( !!(PackageFileSummary.PackageFlags & PKG_StoreCompressed) )
 	{
-#if USE_NEW_ASYNC_IO
-		check(!"Package level compression cannot be used with the async io scheme.");
-#else
+		checkf(!GNewAsyncIO, TEXT("Package level compression cannot be used with the async io scheme."));
 		check(PackageFileSummary.CompressedChunks.Num() > 0);
 
 		int64 CurPos = Loader->Tell();
@@ -114,7 +119,6 @@ bool FPackageReader::OpenPackageFile(EOpenPackageResult* OutErrorCode)
 		}
 		
 		Seek(Loader->Tell());
-#endif
 	}
 
 	//make sure the filereader gets the correct version number (it defaults to latest version)

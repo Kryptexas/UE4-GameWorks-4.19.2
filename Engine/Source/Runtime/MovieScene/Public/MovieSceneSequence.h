@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieSceneEvaluationTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "MovieSceneSignedObject.h"
+#include "MovieSceneTrack.h"
+#include "Evaluation/MovieSceneEvaluationTemplate.h"
 #include "MovieSceneSequence.generated.h"
 
+class ITargetPlatform;
 class UMovieScene;
-struct FMovieSceneSequenceTemplateStore;
 
 /**
  * Abstract base class for movie scene animations (C++ version).

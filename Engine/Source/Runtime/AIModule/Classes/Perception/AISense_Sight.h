@@ -1,15 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Engine/EngineTypes.h"
-#include "Perception/AIPerceptionSystem.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GenericTeamAgentInterface.h"
 #include "Perception/AISense.h"
 #include "AISense_Sight.generated.h"
 
 class IAISightTargetInterface;
-class UAISenseConfig_Sight;
 class UAISense_Sight;
+class UAISenseConfig_Sight;
 
 namespace ESightPerceptionEventName
 {
@@ -47,7 +48,7 @@ struct AIMODULE_API FAISightEvent
 
 struct FAISightTarget
 {
-	typedef FName FTargetId;
+	typedef uint32 FTargetId;
 	static const FTargetId InvalidTargetId;
 
 	TWeakObjectPtr<AActor> Target;
@@ -125,9 +126,8 @@ public:
 		FDigestedSightProperties(const UAISenseConfig_Sight& SenseConfig);
 	};	
 	
-	//TChunkedArray<FDigestedSightProperties> DigestedProps
-
-	TMap<FAISightTarget::FTargetId, FAISightTarget> ObservedTargets;
+	typedef TMap<FAISightTarget::FTargetId, FAISightTarget> FTargetsContainer;
+	FTargetsContainer ObservedTargets;
 	TMap<FPerceptionListenerID, FDigestedSightProperties> DigestedProperties;
 
 	TArray<FAISightQuery> SightQueryQueue;

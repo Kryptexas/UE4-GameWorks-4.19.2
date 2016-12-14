@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -104,7 +104,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 				// Create a threadsafe text writer
 				LogFile = new StreamWriter( LogFileName, true, Encoding.UTF8 );
 
-				Print( AppName + ", Copyright 2014-2016 Epic Games, Inc." );
+				Print( AppName + ", Copyright 2014-2017 Epic Games, Inc." );
 
 				// Don't close the previous log file until the new one is up and running
 				if( OldLogFile != null )

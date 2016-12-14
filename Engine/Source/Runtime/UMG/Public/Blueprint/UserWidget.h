@@ -1,21 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
 #include "Components/SlateWrapperTypes.h"
 #include "Components/Widget.h"
-#include "Geometry.h"
-#include "Engine/GameInstance.h"
-#include "Layout/Anchors.h"
-#include "NamedSlotInterface.h"
+#include "Components/NamedSlotInterface.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
 #include "Engine/LocalPlayer.h"
+#include "Widgets/Layout/Anchors.h"
 #include "Logging/MessageLog.h"
 
 #include "UserWidget.generated.h"
 
-class UWidget;
+class Error;
+class FSlateWindowElementList;
+class UDragDropOperation;
+class UTexture2D;
+class UUMGSequencePlayer;
 class UWidgetAnimation;
-struct FLocalPlayerContext;
 
 /**
  * The state passed into OnPaint that we can expose as a single painting structure to blueprints to
@@ -239,7 +251,7 @@ public:
 	ULocalPlayer* GetOwningLocalPlayer() const;
 
 	/**
-	 * Sets the local player associated with this UI.
+	 * Sets the player associated with this UI via LocalPlayer reference.
 	 * @param LocalPlayer The local player you want to be the conceptual owner of this UI.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
@@ -251,6 +263,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
 	class APlayerController* GetOwningPlayer() const;
+
+	/**
+	 * Sets the local player associated with this UI via PlayerController reference.
+	 * @param LocalPlayerController The PlayerController of the local player you want to be the conceptual owner of this UI.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
+	void SetOwningPlayer(APlayerController* LocalPlayerController);
 
 	/**
 	 * Gets the player pawn associated with this UI.
@@ -1061,6 +1080,11 @@ private:
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+namespace CreateWidgetHelpers
+{
+	UMG_API bool ValidateUserWidgetClass(UClass* UserWidgetClass);
+}
+
 template< class T >
 T* CreateWidget(UWorld* World, UClass* UserWidgetClass  = T::StaticClass() )
 {
@@ -1070,15 +1094,8 @@ T* CreateWidget(UWorld* World, UClass* UserWidgetClass  = T::StaticClass() )
 		return nullptr;
 	}
 
-	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	if (!CreateWidgetHelpers::ValidateUserWidgetClass(UserWidgetClass))
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NotUserWidget", "CreateWidget can only be used on UUserWidget children."));
-		return nullptr;
-	}
-
-	if ( UserWidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NewerVersionExists | CLASS_Deprecated) )
-	{
-		FMessageLog("PIE").Error(LOCTEXT("NotValidClass", "Abstract, Deprecated or Replaced classes are not allowed to be used to construct a user widget."));
 		return nullptr;
 	}
 
@@ -1105,27 +1122,26 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass = T::St
 		return nullptr;
 	}
 
-	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	if (!CreateWidgetHelpers::ValidateUserWidgetClass(UserWidgetClass))
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NotUserWidget", "CreateWidget can only be used on UUserWidget children."));
-		return nullptr;
-	}
-
-	if ( UserWidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NewerVersionExists | CLASS_Deprecated) )
-	{
-		FMessageLog("PIE").Error(LOCTEXT("NotValidClass", "Abstract, Deprecated or Replaced classes are not allowed to be used to construct a user widget."));
 		return nullptr;
 	}
 
 	if ( !OwningPlayer->IsLocalPlayerController() )
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NotLocalPlayer", "Only Local Player Controllers can be assigned to widgets."));
+		const FText FormatPattern = LOCTEXT("NotLocalPlayer", "Only Local Player Controllers can be assigned to widgets. {PlayerController} is not a Local Player Controller.");
+		FFormatNamedArguments FormatPatternArgs;
+		FormatPatternArgs.Add(TEXT("PlayerController"), FText::FromName(OwningPlayer->GetFName()));
+		FMessageLog("PIE").Error(FText::Format(FormatPattern, FormatPatternArgs));
 		return nullptr;
 	}
 
 	if (!OwningPlayer->Player)
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NoPLayer", "CreateWidget cannot be used on Player Controller with no attached player."));
+		const FText FormatPattern = LOCTEXT("NoPlayer", "CreateWidget cannot be used on Player Controller with no attached player. {PlayerController} has no Player attached.");
+		FFormatNamedArguments FormatPatternArgs;
+		FormatPatternArgs.Add(TEXT("PlayerController"), FText::FromName(OwningPlayer->GetFName()));
+		FMessageLog("PIE").Error(FText::Format(FormatPattern, FormatPatternArgs));
 		return nullptr;
 	}
 
@@ -1148,16 +1164,9 @@ T* CreateWidget(UGameInstance* OwningGame, UClass* UserWidgetClass = T::StaticCl
 		FMessageLog("PIE").Error(LOCTEXT("GameNull", "Unable to create a widget outered to a null game instance."));
 		return nullptr;
 	}
-
-	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	
+	if (!CreateWidgetHelpers::ValidateUserWidgetClass(UserWidgetClass))
 	{
-		FMessageLog("PIE").Error(LOCTEXT("NotUserWidget", "CreateWidget can only be used on UUserWidget children."));
-		return nullptr;
-	}
-
-	if ( UserWidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NewerVersionExists | CLASS_Deprecated) )
-	{
-		FMessageLog("PIE").Error(LOCTEXT("NotValidClass", "Abstract, Deprecated or Replaced classes are not allowed to be used to construct a user widget."));
 		return nullptr;
 	}
 

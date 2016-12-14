@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "InheritableComponentHandler.generated.h"
 
-class  USCS_Node;
-class  UActorComponent;
+class UActorComponent;
+class UBlueprint;
+class USCS_Node;
 struct FUCSComponentId;
-class  UBlueprint;
-class  UBlueprintGeneratedClass;
 
 USTRUCT()
 struct ENGINE_API FComponentKey
@@ -148,6 +153,11 @@ public:
 private:
 	const FComponentOverrideRecord* FindRecord(const FComponentKey Key) const;
 	
+	/** All component records */
 	UPROPERTY()
 	TArray<FComponentOverrideRecord> Records;
+
+	/** List of components that were marked unnecessary, need to keep these around so it doesn't regenerate them when a child asks for one */
+	UPROPERTY(Transient)
+	TArray<UActorComponent*> UnnecessaryComponents;
 };

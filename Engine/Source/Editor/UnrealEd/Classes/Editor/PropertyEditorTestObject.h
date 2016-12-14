@@ -1,8 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptInterface.h"
+#include "Misc/StringAssetReference.h"
+#include "Engine/BlendableInterface.h"
 #include "PropertyEditorTestObject.generated.h"
+
+class AActor;
+class IAnimClassInterface;
+class UMaterialInterface;
+class UPrimitiveComponent;
+class UStaticMesh;
+class UStaticMeshComponent;
+class UTexture;
 
 UENUM()
 enum PropertEditorTestEnum
@@ -120,6 +134,9 @@ class UPropertyEditorTestObject : public UObject
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
 	float FloatProperty;
+
+	UPROPERTY(EditAnywhere, Category=BasicProperties)
+	double DoubleProperty;
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
 	FName NameProperty;
@@ -250,7 +267,10 @@ class UPropertyEditorTestObject : public UObject
 	UPROPERTY(EditAnywhere, Category=StructTests)
 	FPropertyEditorTestBasicStruct StructWithMultipleInstances1;
 
-	UPROPERTY(EditAnywhere, Category=StructTests, meta=(editcondition = "bEditCondition"))
+	UPROPERTY(EditAnywhere, Category = StructTests, meta = (InlineEditConditionToggle))
+	bool bEditConditionStructWithMultipleInstances2;
+
+	UPROPERTY(EditAnywhere, Category=StructTests, meta=(editcondition = "bEditConditionStructWithMultipleInstances2"))
 	FPropertyEditorTestBasicStruct StructWithMultipleInstances2;
 
 	UPROPERTY(EditAnywhere, Category=StructTests)
@@ -265,7 +285,10 @@ class UPropertyEditorTestObject : public UObject
 	UPROPERTY(EditAnywhere, Category=AdvancedProperties, meta=(editcondition = "bEditCondition"))
 	int32 SimplePropertyWithEditCondition;
 
-	UPROPERTY(EditAnywhere, Category=StructTests, meta=(editcondition = "bEditCondition"))
+	UPROPERTY(EditAnywhere, Category = StructTests, meta = (InlineEditConditionToggle))
+	bool bEditConditionAssetReferenceCustomStructWithEditCondition;
+
+	UPROPERTY(EditAnywhere, Category=StructTests, meta=(editcondition = "bEditConditionAssetReferenceCustomStructWithEditCondition"))
 	FStringAssetReference AssetReferenceCustomStructWithEditCondition;
 
 	UPROPERTY(EditAnywhere, Category=StructTests)

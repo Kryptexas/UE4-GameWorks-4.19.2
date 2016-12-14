@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Copyright (C) Microsoft. All rights reserved.
 
 /*=============================================================================
@@ -35,10 +35,20 @@
 
 #pragma once
 
-#include "Array.h"
-#include "RHIResources.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "RHI.h"
 #include "RenderResource.h"
+#include "ShaderParameters.h"
 #include "UniformBuffer.h"
+#include "GPUSkinPublicDefs.h"
+
+class FGPUSkinPassthroughVertexFactory;
+class FShader;
+class FSkeletalMeshObjectGPUSkin;
+class FVertexFactory;
+struct FSkelMeshSection;
 
 typedef FRHIShaderResourceView* FShaderResourceViewRHIParamRef;
 
@@ -209,6 +219,11 @@ public:
 		// in bytes
 		uint32 InputStreamStride;
 		FShaderResourceViewRHIRef InputVertexBufferSRV;
+
+		// skin weight input
+		uint32 InputWeightStart;
+		uint32 InputWeightStride;
+		FShaderResourceViewRHIRef InputWeightStreamSRV;
 
 		// morph input
 		FShaderResourceViewRHIParamRef MorphBuffer;

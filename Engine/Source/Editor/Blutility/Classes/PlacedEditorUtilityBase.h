@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Base class of all placed Blutility editor utilities.
@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "PlacedEditorUtilityBase.generated.h"
 
 UCLASS(Abstract, hideCategories=(Object, Actor)/*, Blueprintable*/)

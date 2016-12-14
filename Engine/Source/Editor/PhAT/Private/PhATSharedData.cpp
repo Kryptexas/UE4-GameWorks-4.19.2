@@ -1,20 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PhATPrivatePCH.h"
+#include "PhATSharedData.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "PhysicsEngine/RigidBodyIndexPair.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectIterator.h"
+#include "Widgets/SWindow.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Preferences/PhATSimOptions.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/CollisionProfile.h"
+#include "Editor.h"
 #include "PhATModule.h"
-#include "PhysicsPublic.h"
 #include "EditorSupportDelegates.h"
 #include "ScopedTransaction.h"
 #include "SPhATNewAssetDlg.h"
 #include "PhATEdSkeletalMeshComponent.h"
-#include "PhATSharedData.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
-#include "PhysicsEngine/BodySetup.h"
-#include "Engine/CollisionProfile.h"
+#include "MeshUtilities.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
-#include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
-#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "PhATShared"
 
@@ -23,7 +33,7 @@ FPhATSharedData::FPhATSharedData()
 	, COMRenderColor(255,255,100)
 	, CopiedBodySetup(NULL)
 	, CopiedConstraintTemplate(NULL)
-	, bInsideSelChange(false)
+	, InsideSelChange(0)
 {
 	// Editor variables
 	BodyEdit_MeshViewMode = PRM_Solid;
@@ -381,18 +391,7 @@ void FPhATSharedData::RefreshPhysicsAssetChange(const UPhysicsAsset* InPhysAsset
 {
 	if (InPhysAsset)
 	{
-		for (FObjectIterator Iter(USkeletalMeshComponent::StaticClass()); Iter; ++Iter)
-		{
-			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(*Iter);
-			if  (SkeletalMeshComponent->GetPhysicsAsset() == InPhysAsset)
-			{
-				// it needs to recreate IF it already has been created
-				if (SkeletalMeshComponent->IsPhysicsStateCreated())
-				{
-					SkeletalMeshComponent->RecreatePhysicsState();
-				}
-			}
-		}
+		InPhysAsset->RefreshPhysicsAssetChange();
 
 		// Broadbcast delegate
 		FPhysicsDelegates::OnPhysicsAssetChanged.Broadcast(InPhysAsset);
@@ -444,7 +443,7 @@ void FPhATSharedData::SetSelectedBodyAnyPrim(int32 BodyIndex, bool bGroupSelect 
 
 void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect /*= false*/, bool bGroupSelectRemove /* = true */)
 {
-	if(bInsideSelChange)
+	if(InsideSelChange)
 	{
 		return;
 	}
@@ -497,9 +496,6 @@ void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect 
 		GroupSelectionChangedEvent.Broadcast(Objs);
 	}
 
-	//bInsideSelChange = true;
-	//HierarchySelectionChangedEvent.Broadcast();	//TODO: disable for now
-	bInsideSelChange = false;
 
 	ControlledBones.Empty();
 	if(!GetSelectedBody())
@@ -518,7 +514,9 @@ void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect 
 	
 
 	UpdateNoCollisionBodies();
+	++InsideSelChange;
 	PreviewChangedEvent.Broadcast();
+	--InsideSelChange;
 }
 
 void FPhATSharedData::SetSelectedBodiesFromConstraints()
@@ -608,6 +606,11 @@ void FPhATSharedData::UpdateNoCollisionBodies()
 
 void FPhATSharedData::SetSelectedConstraint(int32 ConstraintIndex, bool bGroupSelect /*= false*/)
 {
+	if(InsideSelChange)
+	{
+		return;
+	}
+
 	if(bGroupSelect == false)
 	{
 		SelectedConstraints.Empty();
@@ -650,7 +653,9 @@ void FPhATSharedData::SetSelectedConstraint(int32 ConstraintIndex, bool bGroupSe
 		GroupSelectionChangedEvent.Broadcast(Objs);
 	}	
 
+	++InsideSelChange;
 	PreviewChangedEvent.Broadcast();
+	--InsideSelChange;
 }
 
 void FPhATSharedData::SetCollisionBetweenSelected(bool bEnableCollision)

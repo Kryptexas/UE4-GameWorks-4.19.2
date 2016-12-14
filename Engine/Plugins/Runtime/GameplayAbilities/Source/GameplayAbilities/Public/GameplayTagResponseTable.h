@@ -1,13 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayTags.h"
-#include "AbilitySystemComponent.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameplayTagContainer.h"
+#include "Engine/DataAsset.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayEffect.h"
 #include "GameplayTagResponseTable.generated.h"
 
-
-class UGameplayEffect;
 class UAbilitySystemComponent;
 
 USTRUCT()
@@ -91,6 +94,8 @@ protected:
 	};
 
 	TMap< TWeakObjectPtr<UAbilitySystemComponent>, TArray< FGameplayTagResponseAppliedInfo> > RegisteredASCs;
+
+	float LastASCPurgeTime;
 
 	void Remove(UAbilitySystemComponent* ASC, TArray<FActiveGameplayEffectHandle>& Handles);
 

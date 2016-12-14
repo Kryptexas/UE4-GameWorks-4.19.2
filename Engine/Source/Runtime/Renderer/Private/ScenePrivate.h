@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScenePrivate.h: Private scene manager definitions.
@@ -6,102 +6,62 @@
 
 #pragma once
 
-class SceneRenderingAllocator;
-class USceneCaptureComponent;
-class UTextureRenderTarget;
-
-class SceneRenderingBitArrayAllocator
-	: public TInlineAllocator<4,SceneRenderingAllocator>
-{
-};
-
-class SceneRenderingSparseArrayAllocator
-	: public TSparseArrayAllocator<SceneRenderingAllocator,SceneRenderingBitArrayAllocator>
-{
-};
-
-class SceneRenderingSetAllocator
-	: public TSetAllocator<SceneRenderingSparseArrayAllocator,TInlineAllocator<1,SceneRenderingAllocator> >
-{
-};
-
-typedef TBitArray<SceneRenderingBitArrayAllocator> FSceneBitArray;
-typedef TConstSetBitIterator<SceneRenderingBitArrayAllocator> FSceneSetBitIterator;
-typedef TConstDualSetBitIterator<SceneRenderingBitArrayAllocator,SceneRenderingBitArrayAllocator> FSceneDualSetBitIterator;
-
-// Forward declarations.
-class FScene;
-
-class FOcclusionQueryHelpers
-{
-public:
-
-	enum
-	{
-		MaxBufferedOcclusionFrames = 2
-	};
-
-	// get the system-wide number of frames of buffered occlusion queries.
-	static int32 GetNumBufferedFrames();
-
-	// get the index of the oldest query based on the current frame and number of buffered frames.
-	static uint32 GetQueryLookupIndex(int32 CurrentFrame, int32 NumBufferedFrames)
-	{
-		// queries are currently always requested earlier in the frame than they are issued.
-		// thus we can always overwrite the oldest query with the current one as we never need them
-		// to coexist.  This saves us a buffer entry.
-		const uint32 QueryIndex = CurrentFrame % NumBufferedFrames;
-		return QueryIndex;
-	}
-
-	// get the index of the query to overwrite for new queries.
-	static uint32 GetQueryIssueIndex(int32 CurrentFrame, int32 NumBufferedFrames)
-	{
-		// queries are currently always requested earlier in the frame than they are issued.
-		// thus we can always overwrite the oldest query with the current one as we never need them
-		// to coexist.  This saves us a buffer entry.
-		const uint32 QueryIndex = CurrentFrame % NumBufferedFrames;
-		return QueryIndex;
-	}
-};
-
-
-
 // Dependencies.
-#include "StaticBoundShaderState.h"
-#include "BatchedElements.h"
-#include "PostProcess/SceneRenderTargets.h"
-#include "GenericOctree.h"
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Math/RandomStream.h"
+#include "Engine/EngineTypes.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
+#include "SceneTypes.h"
+#include "UniformBuffer.h"
+#include "SceneInterface.h"
+#include "SceneView.h"
+#include "RendererInterface.h"
+#include "SceneUtils.h"
+#include "SceneManagement.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "TextureLayout3d.h"
+#include "ScenePrivateBase.h"
+#include "PostProcess/RenderTargetPool.h"
 #include "SceneCore.h"
 #include "PrimitiveSceneInfo.h"
 #include "LightSceneInfo.h"
-#include "ShaderBaseClasses.h"
-#include "DrawingPolicy.h"
 #include "DepthRendering.h"
 #include "SceneHitProxyRendering.h"
-#include "DebugViewModeRendering.h"
-#include "ShaderComplexityRendering.h"
 #include "ShadowRendering.h"
+#include "TextureLayout.h"
 #include "SceneRendering.h"
 #include "StaticMeshDrawList.h"
-#include "DeferredShadingRenderer.h"
-#include "FogRendering.h"
+#include "LightMapRendering.h"
+#include "VelocityRendering.h"
 #include "BasePassRendering.h"
 #include "MobileBasePassRendering.h"
-#include "DynamicPrimitiveDrawing.h"
-#include "TranslucentRendering.h"
-#include "VelocityRendering.h"
-#include "LightMapDensityRendering.h"
-#include "TextureLayout.h"
-#include "TextureLayout3d.h"
-#include "ScopedPointer.h"
-#include "ClearQuad.h"
-#include "AtmosphereRendering.h"
-#include "GlobalDistanceFieldParameters.h"
-#include "LightPropagationVolume.h"
+#include "VolumeRendering.h"
 
 /** Factor by which to grow occlusion tests **/
 #define OCCLUSION_SLOP (1.0f)
+
+class AWorldSettings;
+class FAtmosphericFogSceneInfo;
+class FLightPropagationVolume;
+class FMaterialParameterCollectionInstanceResource;
+class FPrecomputedLightVolume;
+class FScene;
+class UAtmosphericFogComponent;
+class UDecalComponent;
+class UExponentialHeightFogComponent;
+class ULightComponent;
+class UPlanarReflectionComponent;
+class UPrimitiveComponent;
+class UReflectionCaptureComponent;
+class USkyLightComponent;
+class UStaticMesh;
+class UStaticMeshComponent;
+class UTextureCube;
+class UWindDirectionalSourceComponent;
 
 /** Holds information about a single primitive's occlusion. */
 class FPrimitiveOcclusionHistory
@@ -429,11 +389,50 @@ private:
 	FGraphEventRef QuerySubmittedFences[NumBufferedFrames];
 };
 
-class FDeferredGlobalDistanceFieldUpdateInfo
+/** HLOD tree persistent fading and visibility state */
+class FHLODVisibilityState
 {
 public:
-	int32 ClipmapIndex;
-	int32 FramesLeft;
+	FHLODVisibilityState()
+		: TemporalLODSyncTime(0.0f)
+		, UpdateCount(0)
+	{}
+
+	bool IsNodeFading(const int32 PrimIndex) const
+	{
+		checkSlow(PrimitiveFadingLODMap.IsValidIndex(PrimIndex));
+		return PrimitiveFadingLODMap[PrimIndex];
+	}
+
+	bool IsNodeFadingOut(const int32 PrimIndex) const
+	{
+		checkSlow(PrimitiveFadingOutLODMap.IsValidIndex(PrimIndex));
+		return PrimitiveFadingOutLODMap[PrimIndex];
+	}
+
+	TBitArray<>	PrimitiveFadingLODMap;
+	TBitArray<>	PrimitiveFadingOutLODMap;
+	float		TemporalLODSyncTime;
+	uint16		UpdateCount;
+};
+
+/** HLOD scene node persistent fading and visibility state */
+struct FHLODSceneNodeVisibilityState
+{
+	FHLODSceneNodeVisibilityState()
+		: UpdateCount(0)
+		, bWasVisible(0)
+		, bIsVisible(0)
+		, bIsFading(0)
+	{}
+
+	/** Last updated FrameCount */
+	uint16 UpdateCount;
+
+	/** Persistent visibility states */
+	uint16 bWasVisible	: 1;
+	uint16 bIsVisible	: 1;
+	uint16 bIsFading	: 1;
 };
 
 /**
@@ -528,7 +527,8 @@ public:
 
 	TMap<int32, FIndividualOcclusionHistory> PlanarReflectionOcclusionHistories;
 
-	TArray<FDeferredGlobalDistanceFieldUpdateInfo> DeferredGlobalDistanceFieldUpdates;
+	// Array of ClipmapIndex
+	TArray<int32> DeferredGlobalDistanceFieldUpdates;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Are we currently in the state of freezing rendering? (1 frame where we gather what was rendered) */
@@ -546,6 +546,10 @@ public:
 	/** The cache view matrices at the time of freezing or the cached debug fly cam's view matrices. */
 	FViewMatrices CachedViewMatrices;
 #endif
+
+	/** HLOD persistent fading and visibility state */
+	FHLODVisibilityState HLODVisibilityState;
+	TMap<FPrimitiveComponentId, FHLODSceneNodeVisibilityState> HLODSceneNodeVisibilityStates;
 
 private:
 
@@ -607,6 +611,13 @@ private:
 
 	// eye adaptation is only valid after it has been computed, not on allocation of the RT
 	bool bValidEyeAdaptation;
+
+	// The LUT used by tonemapping.  In stereo this is only computed and stored by the Left Eye.
+	TRefCountPtr<IPooledRenderTarget> CombinedLUTRenderTarget;
+
+	// LUT is only valid after it has been computed, not on allocation of the RT
+	bool bValidTonemappingLUT;
+
 
 	// used by the Postprocess Material Blending system to avoid recreation and garbage collection of MIDs
 	TArray<UMaterialInstanceDynamic*> MIDPool;
@@ -870,6 +881,59 @@ public:
 		bValidEyeAdaptation = true;
 	}
 
+	bool HasValidTonemappingLUT() const
+	{
+		return bValidTonemappingLUT;
+	}
+
+	void SetValidTonemappingLUT(bool bValid = true)
+	{
+		bValidTonemappingLUT = bValid;
+	}
+	
+
+	// Returns a reference to the render target used for the LUT.  Allocated on the first request.
+	FSceneRenderTargetItem& GetTonemappingLUTRenderTarget(FRHICommandList& RHICmdList, const int32 LUTSize, const bool bUseVolumeLUT)
+	{
+		
+
+		if (CombinedLUTRenderTarget.IsValid() == false|| CombinedLUTRenderTarget->GetDesc().Extent.Y != LUTSize) 
+		{
+			// Create the texture needed for the tonemapping LUT
+
+			EPixelFormat LUTPixelFormat = PF_A2B10G10R10;
+			if (!GPixelFormats[LUTPixelFormat].Supported)
+			{
+				LUTPixelFormat = PF_R8G8B8A8;
+			}
+
+			FPooledRenderTargetDesc Desc = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(LUTSize * LUTSize, LUTSize), LUTPixelFormat, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
+
+			if (bUseVolumeLUT)
+			{
+				Desc.Extent = FIntPoint(LUTSize, LUTSize);
+				Desc.Depth = LUTSize;
+			}
+
+			Desc.DebugName = TEXT("CombineLUTs");
+			
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, CombinedLUTRenderTarget, Desc.DebugName);
+
+		}
+
+		FSceneRenderTargetItem& RenderTarget = CombinedLUTRenderTarget.GetReference()->GetRenderTargetItem();
+		return RenderTarget;
+	}
+
+	const FTextureRHIRef* GetTonemappingLUTTexture() const {
+		const FTextureRHIRef* ShaderResourceTexture = NULL;
+	
+		if (CombinedLUTRenderTarget.IsValid()) {
+			ShaderResourceTexture = &CombinedLUTRenderTarget->GetRenderTargetItem().ShaderResourceTexture;
+		}
+		return ShaderResourceTexture;
+	}
+
 
 	// FRenderResource interface.
 	virtual void InitDynamicRHI() override
@@ -888,6 +952,7 @@ public:
 		OcclusionQueryPool.Release();
 		HZBOcclusionTests.ReleaseDynamicRHI();
 		EyeAdaptationRTManager.SafeRelease();
+		CombinedLUTRenderTarget.SafeRelease();
 		TemporalAAHistoryRT.SafeRelease();
 		PendingTemporalAAHistoryRT.SafeRelease();
 		DOFHistoryRT.SafeRelease();
@@ -1102,6 +1167,13 @@ public:
 	 * This reallocates the resource but does not copy over the old contents. 
 	 */
 	void UpdateMaxCubemaps(uint32 InMaxCubemaps, int32 CubemapSize);
+
+	/**
+	* Updates the maximum number of cubemaps that this array is allocated for.
+	* This reallocates the resource and copies over the old contents, preserving indices
+	*/
+	void ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 CubemapSize, const TArray<int32>& IndexRemapping);
+
 	int32 GetMaxCubemaps() const { return MaxCubemaps; }
 	int32 GetCubemapSize() const { return CubemapSize; }
 	bool IsValid() const { return IsValidRef(ReflectionEnvs); }
@@ -1153,6 +1225,9 @@ public:
 	 */
 	FReflectionEnvironmentCubemapArray CubemapArray;
 
+	/** We track the cubemaps removed since the last reallocation to allow us to remap them reallocating the array */
+	TArray<uint32> CubemapIndicesRemovedSinceLastRealloc;
+
 	/** Rendering thread map from component to scene state.  This allows storage of RT state that needs to persist through a component re-register. */
 	TMap<const UReflectionCaptureComponent*, FCaptureComponentSceneState> AllocatedReflectionCaptureState;
 
@@ -1170,6 +1245,9 @@ public:
 		CubemapArray(InFeatureLevel),
 		MaxAllocatedReflectionCubemapsGameThread(0)
 	{}
+
+
+	void ResizeCubemapArrayGPU(uint32 InMaxCubemaps, int32 InCubemapSize);
 };
 
 class FPrimitiveAndInstance
@@ -1429,6 +1507,8 @@ private:
 	/** Internal helper to determine if indirect lighting is enabled at all */
 	bool IndirectLightingAllowed(FScene* Scene, FSceneRenderer& Renderer) const;
 
+	void ProcessPrimitiveUpdate(FScene* Scene, FViewInfo& View, int32 PrimitiveIndex, bool bAllowUnbuiltPreview, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate);
+
 	/** Internal helper to perform the work of updating the cache primitives.  Can be done on any thread as a task */
 	void UpdateCachePrimitivesInternal(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate);
 
@@ -1593,12 +1673,8 @@ class FLODSceneTree
 public:
 	FLODSceneTree(FScene* InScene)
 		: Scene(InScene)
-		, TemporalLODSyncTime(0.0f)
 		, LastHLODDistanceScale(-1.0f)
-		, UpdateCount(0)
 	{
-		PrimitiveFadingLODMap.Empty();
-		PrimitiveFadingOutLODMap.Empty();
 	}
 
 	/** Information about the primitives that are attached together. */
@@ -1610,23 +1686,12 @@ public:
 		/** The primitive. */
 		FPrimitiveSceneInfo* SceneInfo;
 
-		/** Last updated FrameCount */
-		int32 LatestUpdateCount;
-
-		/** Persistent visibility states */
-		bool bWasVisible;
-		bool bIsVisible;
-		bool bIsFading;
-
 		FLODSceneNode()
 			: SceneInfo(nullptr)
-			, LatestUpdateCount(INDEX_NONE)
-			, bWasVisible(false)
-			, bIsVisible(false)
-			, bIsFading(false)
-		{}
+		{
+		}
 
-		void AddChild(FPrimitiveSceneInfo * NewChild)
+		void AddChild(FPrimitiveSceneInfo* NewChild)
 		{
 			if(NewChild && !ChildrenSceneInfos.Contains(NewChild))
 			{
@@ -1634,7 +1699,7 @@ public:
 			}
 		}
 
-		void RemoveChild(FPrimitiveSceneInfo * ChildToDelete)
+		void RemoveChild(FPrimitiveSceneInfo* ChildToDelete)
 		{
 			if(ChildToDelete && ChildrenSceneInfos.Contains(ChildToDelete))
 			{
@@ -1648,18 +1713,6 @@ public:
 
 	void UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* SceneInfo);
 	void UpdateAndApplyVisibilityStates(FViewInfo& View);
-
-	bool IsNodeFading(const int32 Index) const
-	{
-		checkSlow(PrimitiveFadingLODMap.IsValidIndex(Index));
-		return PrimitiveFadingLODMap[Index];
-	}
-
-	bool IsNodeFadingOut(const int32 Index) const
-	{
-		checkSlow(PrimitiveFadingOutLODMap.IsValidIndex(Index));
-		return PrimitiveFadingOutLODMap[Index];
-	}
 
 	bool IsActive() const { return (SceneNodes.Num() > 0); }
 
@@ -1676,18 +1729,12 @@ private:
 	/** The LOD groups in the scene.  The map key is the current primitive who has children. */
 	TMap<FPrimitiveComponentId, FLODSceneNode> SceneNodes;
 
-	/** Persistent HLOD fading state */
-	TBitArray<> PrimitiveFadingLODMap;
-	TBitArray<>	PrimitiveFadingOutLODMap;
-	float		TemporalLODSyncTime;
-	float		LastHLODDistanceScale;
-
-	/**  Update Count. This is used to skip Child node that has been updated */
-	int32 UpdateCount;
+	/** Transition distance scaling */
+	float LastHLODDistanceScale;
 
 	/** Recursive state updates */
-	void ApplyNodeFadingToChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut);
-	void HideNodeChildren(FLODSceneNode& Node, FSceneBitArray& VisibilityFlags);
+	void ApplyNodeFadingToChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags, const bool bIsFading, const bool bIsFadingOut);
+	void HideNodeChildren(FSceneViewState* ViewState, FLODSceneNode& Node, FSceneBitArray& VisibilityFlags);
 };
 
 typedef TMap<FMaterial*, FMaterialShaderMap*> FMaterialsToUpdateMap;
@@ -1831,6 +1878,9 @@ public:
 	 */
 	TSparseArray<FLightSceneInfoCompact> InvisibleLights;
 
+	/** Shadow casting lights that couldn't get a shadowmap channel assigned and therefore won't have valid dynamic shadows, forward renderer only. */
+	TArray<FName> OverflowingDynamicShadowedLights;
+
 	/** The mobile quality level for which static draw lists have been built. */
 	bool bStaticDrawListsMobileHDR;
 	bool bStaticDrawListsMobileHDR32bpp;
@@ -1908,6 +1958,9 @@ public:
 
 	/** The wind sources in the scene. */
 	TArray<class FWindSourceSceneProxy*> WindSources;
+
+	/** Wind source components, tracked so the game thread can also access wind parameters */
+	TArray<UWindDirectionalSourceComponent*> WindComponents_GameThread;
 
 	/** SpeedTree wind objects in the scene. FLocalVertexFactoryShaderParameters needs to lookup by FVertexFactory, but wind objects are per tree (i.e. per UStaticMesh)*/
 	TMap<const UStaticMesh*, struct FSpeedTreeWindComputation*> SpeedTreeWindComputationMap;
@@ -2003,6 +2056,7 @@ public:
 	virtual void RemoveWindSource(UWindDirectionalSourceComponent* WindComponent) override;
 	virtual const TArray<FWindSourceSceneProxy*>& GetWindSources_RenderThread() const override;
 	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
+	virtual void GetWindParameters_GameThread(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
 	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
 	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh) override;
 	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh) override;
@@ -2109,6 +2163,7 @@ public:
 	virtual void ApplyWorldOffset(FVector InOffset) override;
 
 	virtual void OnLevelAddedToWorld(FName InLevelName, UWorld* InWorld, bool bIsLightingScenario) override;
+	virtual void OnLevelRemovedFromWorld(UWorld* InWorld, bool bIsLightingScenario) override;
 
 	virtual bool HasAnyLights() const override 
 	{ 
@@ -2186,11 +2241,14 @@ private:
 	/** Updates a single primitive's lighting attachment root. */
 	void UpdatePrimitiveLightingAttachmentRoot(UPrimitiveComponent* Primitive);
 
+	void AssignAvailableShadowMapChannelForLight(FLightSceneInfo* LightSceneInfo);
+
 	/**
 	 * Adds a light to the scene.  Called in the rendering thread by AddLight.
 	 * @param LightSceneInfo - The light being added.
 	 */
 	void AddLightSceneInfo_RenderThread(FLightSceneInfo* LightSceneInfo);
+
 	/**
 	 * Adds a decal to the scene.  Called in the rendering thread by AddDecal or RemoveDecal.
 	 * @param Component - The object that should being added or removed.

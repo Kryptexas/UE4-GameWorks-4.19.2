@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EngineVersionBase.h"
-
+#include "CoreTypes.h"
+#include "Misc/EngineVersionBase.h"
+#include "Containers/UnrealString.h"
 
 /** Utility functions. */
 class CORE_API FEngineVersion : public FEngineVersionBase

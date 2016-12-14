@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 
 #define PIXEL_INSPECTOR_SHADINGMODELID_UNLIT 0
 #define PIXEL_INSPECTOR_SHADINGMODELID_DEFAULT_LIT 1

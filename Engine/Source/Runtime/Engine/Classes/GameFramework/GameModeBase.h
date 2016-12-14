@@ -1,20 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/Info.h"
+#include "UObject/CoreOnline.h"
+#include "GameFramework/PlayerController.h"
 #include "GameModeBase.generated.h"
 
-class FDebugDisplayInfo;
-class FUniqueNetId;
-struct FUniqueNetIdRepl;
-class AGameStateBase;
 class AGameSession;
-class AController;
-class APlayerController;
-class APlayerState;
+class AGameStateBase;
 class AHUD;
-class APawn;
+class APlayerState;
 class ASpectatorPawn;
+class UNetConnection;
 class UPlayer;
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogGameMode, Log, All);
@@ -176,6 +180,9 @@ public:
 
 	/** Returns true if the player is allowed to pause the game */
 	virtual bool AllowPausing(APlayerController* PC = nullptr);
+
+	/** Returns true if the game is paused */
+	virtual bool IsPaused() const;
 
 	/**
 	 * Overridable function to determine whether an Actor should have Reset called when the game has Reset called on it.

@@ -1,13 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FTranslationEditor;
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "ILocalizationServiceProvider.h"
+
 class FInternationalizationArchive;
 class FInternationalizationManifest;
+class FJsonObject;
+class ULocalizationTarget;
 class UTranslationUnit;
-
-#include "ILocalizationServiceProvider.h"
 
 class FTranslationDataManager : public TSharedFromThis<FTranslationDataManager>
 {

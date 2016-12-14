@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/IToolkitHost.h"
+#include "CoreMinimal.h"
+#include "Toolkits/AssetEditorToolkit.h"
+
+class USoundCue;
+struct Rect;
 
 class ISoundCueEditor : public FAssetEditorToolkit
 {

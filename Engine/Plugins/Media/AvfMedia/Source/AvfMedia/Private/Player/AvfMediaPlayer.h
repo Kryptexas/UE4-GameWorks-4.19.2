@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "../AvfMediaPrivate.h"
+#include "CoreMinimal.h"
 #include "AvfMediaTracks.h"
 #include "IMediaControls.h"
 #include "IMediaPlayer.h"
+#include "Containers/Ticker.h"
 
 
 @class AVPlayer;
@@ -88,6 +91,9 @@ private:
 
 	/** The duration of the media. */
     FTimespan Duration;
+
+	/** Media information string. */
+	FString Info;
 
 	/** Holds an event delegate that is invoked when a media event occurred. */
 	FOnMediaEvent MediaEvent;

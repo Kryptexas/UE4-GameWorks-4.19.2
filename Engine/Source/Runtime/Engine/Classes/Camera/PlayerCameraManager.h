@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
 #include "GameFramework/Actor.h"
-#include "CameraTypes.h"
-#include "CameraShake.h"
+#include "Camera/CameraTypes.h"
+#include "Camera/CameraShake.h"
 #include "PlayerCameraManager.generated.h"
+
+class AEmitterCameraLensEffectBase;
+class APlayerController;
+class FDebugDisplayInfo;
 
 /** 
  * Options that define how to blend when changing view targets. 
@@ -511,6 +519,11 @@ public:
 	 */
 	virtual void UpdateCamera(float DeltaTime);
 
+	/**
+	* Performs a photography camera tick even when the camera wouldn't normally be ticking.
+	*/
+	void UpdateCameraPhotographyOnly();
+
 	/** 
 	 * Creates and initializes a new camera modifier of the specified class. 
 	 * @param ModifierClass - The class of camera modifier to create.
@@ -608,9 +621,6 @@ protected:
 	/** Internal function conditionally called from UpdateCamera to do the actual work of updating the camera. */
 	virtual void DoUpdateCamera(float DeltaTime);
 
-	/** Whether to only run photography overrides */
-	bool IsOnlyPhotography() const;
-	
 	/** Internal. Applies appropriate audio fading to the audio system. */
 	virtual void ApplyAudioFade();
 	virtual void StopAudioFade();

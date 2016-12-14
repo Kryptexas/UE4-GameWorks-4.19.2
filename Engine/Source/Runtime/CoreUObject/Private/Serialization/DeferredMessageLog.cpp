@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnAsyncLoading.cpp: Unreal async messsage log.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
 #include "Serialization/DeferredMessageLog.h"
+#include "Misc/ScopeLock.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
 
 TMap<FName, TArray<TSharedRef<FTokenizedMessage>>*> FDeferredMessageLog::Messages;
 FCriticalSection FDeferredMessageLog::MessagesCritical;

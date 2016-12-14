@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Containers/ContainersFwd.h"
+#include "CoreTypes.h"
+#include "Templates/PointerIsConvertibleFromTo.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
 #include "Containers/Map.h"
-#include "Templates/UnrealTemplate.h"
+#include "CoreGlobals.h"
 
 
 /**
@@ -106,7 +110,7 @@
  */
 
 // SharedPointerInternals.h contains the implementation of reference counting structures we need
-#include "SharedPointerInternals.h"
+#include "Templates/SharedPointerInternals.h"
 
 
 /**
@@ -121,7 +125,17 @@ FORCEINLINE TSharedRef< CastToType, Mode > StaticCastSharedRef( TSharedRef< Cast
 }
 
 
-class UObjectBase;
+namespace UE4SharedPointer_Private
+{
+	// Needed to work around an Android compiler bug - we need to construct a TSharedRef
+	// from MakeShared without making MakeShared a friend in order to access the private constructor.
+	template <typename ObjectType, ESPMode Mode>
+	FORCEINLINE TSharedRef<ObjectType, Mode> MakeSharedRef(ObjectType* InObject, SharedPointerInternals::FReferenceControllerBase* InSharedReferenceCount)
+	{
+		return TSharedRef<ObjectType, Mode>(InObject, InSharedReferenceCount);
+	}
+}
+
 
 /**
  * TSharedRef is a non-nullable, non-intrusive reference-counted authoritative object reference.
@@ -132,9 +146,6 @@ class UObjectBase;
 template< class ObjectType, ESPMode Mode >
 class TSharedRef
 {
-	// TSharedRefs with UObjects are illegal.
-	static_assert(!TPointerIsConvertibleFromTo<ObjectType, const UObjectBase>::Value, "You cannot use TSharedRef with UObjects.");
-
 public:
 
 	// NOTE: TSharedRef has no default constructor as it does not support empty references.  You must
@@ -255,20 +266,23 @@ public:
 		: Object( const_cast< ObjectType* >( InSharedRef.Object ) )
 		, SharedReferenceCount( InSharedRef.SharedReferenceCount )
 	{ }
-	  
+
 	/**
-	 * Special constructor used internally to create a shared reference from an existing shared reference,
-	 * while using the specified object reference instead of the incoming shared reference's object
-	 * pointer.  This is used by with the TSharedFromThis feature (by UpdateWeakReferenceInternal)
+	 * Aliasing constructor used to create a shared reference which shares its reference count with
+	 * another shared object, but pointing to a different object, typically a subobject.
 	 *
-	 * @param  OtherSharedRef  The shared reference whose reference count 
-	 * @param  InObject  The object pointer to use (instead of the incoming shared reference's object)
+	 * @param  OtherSharedRef  The shared reference whose reference count should be shared.
+	 * @param  InObject  The object pointer to use (instead of the incoming shared pointer's object)
 	 */
 	template <typename OtherType>
 	FORCEINLINE TSharedRef( TSharedRef< OtherType, Mode > const& OtherSharedRef, ObjectType* InObject )
 		: Object( InObject )
 		, SharedReferenceCount( OtherSharedRef.SharedReferenceCount )
-	{ }
+	{
+		// If the following assert goes off, it means a TSharedRef was initialized from a nullptr object pointer.
+		// Shared references must never be nullptr, so either pass a valid object or consider using TSharedPtr instead.
+		check( InObject != nullptr );
+	}
 
 	FORCEINLINE TSharedRef( TSharedRef const& InSharedRef )
 		: Object( InSharedRef.Object )
@@ -471,8 +485,17 @@ private:
 		controller object is shared by all shared and weak pointers that refer to the object */
 	SharedPointerInternals::FSharedReferencer< Mode > SharedReferenceCount;
 
-	template <typename InObjectType, ESPMode InMode, typename... InArgTypes>
-	friend TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
+	// VC emits an erroneous warning here - there is no inline specifier!
+	#ifdef _MSC_VER
+		#pragma warning(push)
+		#pragma warning(disable : 4396) // warning: the inline specifier cannot be used when a friend declaration refers to a specialization of a function template
+	#endif
+
+	friend TSharedRef UE4SharedPointer_Private::MakeSharedRef<ObjectType, Mode>(ObjectType* InObject, SharedPointerInternals::FReferenceControllerBase* InSharedReferenceCount);
+
+	#ifdef _MSC_VER
+		#pragma warning(pop)
+	#endif
 
 	FORCEINLINE explicit TSharedRef(ObjectType* InObject, SharedPointerInternals::FReferenceControllerBase* InSharedReferenceCount)
 		: Object(InObject)
@@ -503,10 +526,6 @@ struct FMakeReferenceTo<void>
 };
 
 
-template <typename InObjectType, ESPMode InMode = ESPMode::Fast, typename... InArgTypes>
-TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
-
-
 /**
  * TSharedPtr is a non-intrusive reference-counted authoritative object pointer.  This shared pointer
  * will be conditionally thread-safe when the optional Mode template argument is set to ThreadSafe.
@@ -514,9 +533,6 @@ TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args);
 template< class ObjectType, ESPMode Mode >
 class TSharedPtr
 {
-	// TSharedPtrs with UObjects are illegal.
-	static_assert(!TPointerIsConvertibleFromTo<ObjectType, const UObjectBase>::Value, "You cannot use TSharedPtr or TWeakPtr with UObjects. Consider a UPROPERTY() pointer or TWeakObjectPtr.");
-
 	enum
 	{
 		ObjectTypeHasSameModeSharedFromThis     = TPointerIsConvertibleFromTo<ObjectType, TSharedFromThis<ObjectType, Mode>>::Value,
@@ -670,19 +686,46 @@ public:
 		: Object( const_cast< ObjectType* >( InSharedPtr.Object ) )
 		, SharedReferenceCount( InSharedPtr.SharedReferenceCount )
 	{ }
-  
+
 	/**
-	 * Special constructor used internally to create a shared pointer from an existing shared pointer,
-	 * while using the specified object pointer instead of the incoming shared pointer's object
-	 * pointer.  This is used by with the TSharedFromThis feature (by UpdateWeakReferenceInternal)
+	 * Aliasing constructor used to create a shared pointer which shares its reference count with
+	 * another shared object, but pointing to a different object, typically a subobject.
 	 *
-	 * @param  OtherSharedPtr  The shared pointer whose reference count 
+	 * @param  OtherSharedPtr  The shared pointer whose reference count should be shared.
 	 * @param  InObject  The object pointer to use (instead of the incoming shared pointer's object)
 	 */
 	template <typename OtherType>
 	FORCEINLINE TSharedPtr( TSharedPtr< OtherType, Mode > const& OtherSharedPtr, ObjectType* InObject )
 		: Object( InObject )
 		, SharedReferenceCount( OtherSharedPtr.SharedReferenceCount )
+	{ }
+
+	/**
+	 * Aliasing constructor used to create a shared pointer which shares its reference count with
+	 * another shared object, but pointing to a different object, typically a subobject.
+	 *
+	 * @param  OtherSharedPtr  The shared pointer whose reference count should be shared.
+	 * @param  InObject  The object pointer to use (instead of the incoming shared pointer's object)
+	 */
+	template <typename OtherType>
+	FORCEINLINE TSharedPtr( TSharedPtr< OtherType, Mode >&& OtherSharedPtr, ObjectType* InObject )
+		: Object( InObject )
+		, SharedReferenceCount( MoveTemp(OtherSharedPtr.SharedReferenceCount) )
+	{
+		OtherSharedPtr.Object = nullptr;
+	}
+
+	/**
+	 * Aliasing constructor used to create a shared pointer which shares its reference count with
+	 * another shared object, but pointing to a different object, typically a subobject.
+	 *
+	 * @param  OtherSharedRef  The shared reference whose reference count should be shared.
+	 * @param  InObject  The object pointer to use (instead of the incoming shared pointer's object)
+	 */
+	template <typename OtherType>
+	FORCEINLINE TSharedPtr( TSharedRef< OtherType, Mode > const& OtherSharedRef, ObjectType* InObject )
+		: Object( InObject )
+		, SharedReferenceCount( OtherSharedRef.SharedReferenceCount )
 	{ }
 
 	/**
@@ -1628,11 +1671,11 @@ FORCEINLINE SharedPointerInternals::FRawPtrProxy< ObjectType > MakeShareable( Ob
  * MakeShared utility function.  Allocates a new ObjectType and reference controller in a single memory block.
  * Equivalent to std::make_shared.
  */
-template <typename InObjectType, ESPMode InMode, typename... InArgTypes>
+template <typename InObjectType, ESPMode InMode = ESPMode::Fast, typename... InArgTypes>
 FORCEINLINE TSharedRef<InObjectType, InMode> MakeShared(InArgTypes&&... Args)
 {
 	SharedPointerInternals::TIntrusiveReferenceController<InObjectType>* Controller = SharedPointerInternals::NewIntrusiveReferenceController<InObjectType>(Forward<InArgTypes>(Args)...);
-	return TSharedRef<InObjectType, InMode>(Controller->GetObjectPtr(), (SharedPointerInternals::FReferenceControllerBase*)Controller);
+	return UE4SharedPointer_Private::MakeSharedRef<InObjectType, InMode>(Controller->GetObjectPtr(), (SharedPointerInternals::FReferenceControllerBase*)Controller);
 }
 
 
@@ -1676,4 +1719,4 @@ FORCEINLINE void CleanupPointerMap(TMap< TWeakPtr<KeyType>, ValueType >& Pointer
 
 
 // Shared pointer testing
-#include "SharedPointerTesting.inl"
+#include "Templates/SharedPointerTesting.inl"

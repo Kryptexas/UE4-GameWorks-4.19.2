@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * APlanarReflection
  */
 
 #pragma once
-#include "SceneCapture.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/SceneCapture.h"
 #include "PlanarReflection.generated.h"
+
+class UBillboardComponent;
 
 UCLASS(hidecategories=(Collision, Material, Attachment, Actor), MinimalAPI)
 class APlanarReflection : public ASceneCapture

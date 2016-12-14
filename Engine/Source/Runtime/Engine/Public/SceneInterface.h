@@ -1,16 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSkyLightSceneProxy;
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "SceneTypes.h"
+#include "Math/SHMath.h"
+
+class AWorldSettings;
+class FAtmosphericFogSceneInfo;
 class FMaterial;
 class FMaterialShaderMap;
-class ULightComponent;
-class USkyLightComponent;
-class FAtmosphericFogSceneInfo;
-class FPrimitiveComponentId;
 class FPrimitiveSceneInfo;
+class FRenderResource;
 class FRenderTarget;
+class FSkyLightSceneProxy;
+class FTexture;
+class FVertexFactory;
+class UDecalComponent;
+class ULightComponent;
+class UPlanarReflectionComponent;
+class UPrimitiveComponent;
+class UReflectionCaptureComponent;
+class USkyLightComponent;
+class UStaticMeshComponent;
+class UTextureCube;
 
 enum EBasePassDrawListType
 {
@@ -225,6 +239,9 @@ public:
 	/** Accesses wind parameters.  XYZ will contain wind direction * Strength, W contains wind speed. */
 	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const = 0;
 
+	/** Accesses wind parameters safely for game thread applications */
+	virtual void GetWindParameters_GameThread(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const = 0;
+
 	/** Same as GetWindParameters, but ignores point wind sources. */
 	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const = 0;
 
@@ -332,6 +349,7 @@ public:
 	 * @param	InLevelName		Level name
 	 */
 	virtual void OnLevelAddedToWorld(FName InLevelName, UWorld* InWorld, bool bIsLightingScenario) {}
+	virtual void OnLevelRemovedFromWorld(UWorld* InWorld, bool bIsLightingScenario) {}
 
 	/**
 	 * @return True if there are any lights in the scene

@@ -1,20 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "NetworkFilePrivatePCH.h"
 #include "NetworkPlatformFile.h"
-#include "MultichannelTCP.h"
+#include "Templates/ScopedPointer.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopedEvent.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/ScopeLock.h"
+#include "Stats/StatsMisc.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/LocalTimestampDirectoryVisitor.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
 #include "DerivedDataCacheInterface.h"
-#include "PackageName.h"
-
+#include "Misc/PackageName.h"
 
 #include "HTTPTransport.h"
 #include "TCPTransport.h"
+
+#include "HAL/IPlatformFileModule.h"
+#include "UniquePtr.h"
 
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	#include "Developer/PackageDependencyInfo/Public/PackageDependencyInfo.h"
 #endif	//WITH_UNREAL_DEVELOPER_TOOLS
 
-#include "IPlatformFileModule.h"
 
 
 DEFINE_LOG_CATEGORY(LogNetworkPlatformFile);
@@ -895,8 +907,8 @@ public:
 			FString TempFilename = Filename + TEXT(".tmp");
 			InnerPlatformFile.CreateDirectoryTree(*FPaths::GetPath(Filename));
 			{
-				TAutoPtr<IFileHandle> FileHandle;
-				FileHandle = InnerPlatformFile.OpenWrite(*TempFilename);
+				TUniquePtr<IFileHandle> FileHandle;
+				FileHandle.Reset(InnerPlatformFile.OpenWrite(*TempFilename));
 
 				if (!FileHandle)
 				{
@@ -1053,11 +1065,11 @@ bool FNetworkPlatformFile::IsAdditionalCookedFileExtension(const TCHAR* Ext)
 {
 	if (*Ext != TEXT('.'))
 	{
-		return BulkFileExtension.EndsWith(Ext) || ExpFileExtension.EndsWith(Ext) || FontFileExtension.EndsWith(Ext);
+		return BulkFileExtension.EndsWith(Ext) || FontFileExtension.EndsWith(Ext) || ExpFileExtension.EndsWith(Ext);
 	}
 	else
 	{
-		return BulkFileExtension == Ext || ExpFileExtension == Ext || FontFileExtension == Ext;
+		return BulkFileExtension == Ext || FontFileExtension == Ext || ExpFileExtension == Ext;
 	}
 }
 
@@ -1302,8 +1314,8 @@ class FNetworkFileModule : public IPlatformFileModule
 public:
 	virtual IPlatformFile* GetPlatformFile() override
 	{
-		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FNetworkPlatformFile());
-		return AutoDestroySingleton.GetOwnedPointer();
+		static TUniquePtr<IPlatformFile> AutoDestroySingleton = MakeUnique<FNetworkPlatformFile>();
+		return AutoDestroySingleton.Get();
 	}
 };
 IMPLEMENT_MODULE(FNetworkFileModule, NetworkFile);

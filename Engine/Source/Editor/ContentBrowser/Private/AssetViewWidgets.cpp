@@ -1,21 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "ContentBrowserPCH.h"
-#include "ISourceControlModule.h"
-#include "AssetThumbnail.h"
-#include "AssetViewTypes.h"
 #include "AssetViewWidgets.h"
-#include "SThumbnailEditModeTools.h"
-#include "AssetSourceFilenameCache.h"
+#include "UObject/UnrealType.h"
+#include "Widgets/SOverlay.h"
+#include "Engine/GameViewportClient.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Materials/Material.h"
+#include "ISourceControlProvider.h"
+#include "ISourceControlModule.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Engine/Texture2D.h"
+#include "ARFilter.h"
+#include "AssetRegistryModule.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "CollectionManagerTypes.h"
+#include "ICollectionManager.h"
 #include "CollectionManagerModule.h"
+#include "AssetViewTypes.h"
+#include "SThumbnailEditModeTools.h"
+#include "AutoReimport/AssetSourceFilenameCache.h"
 #include "CollectionViewUtils.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
 #include "DragDropHandler.h"
-#include "BreakIterator.h"
-#include "SInlineEditableTextBlock.h"
-#include "EngineBuildSettings.h"
+#include "Internationalization/BreakIterator.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Misc/EngineBuildSettings.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1056,12 +1070,25 @@ void SAssetViewItem::CacheToolTipTags()
 					{
 						DisplayName = Field->GetDisplayNameText();
 
-						// Strip off enum prefixes if they exist
-						if (UByteProperty* ByteProperty = Cast<UByteProperty>(Field))
+						UProperty* Prop = nullptr;
+						UEnum* Enum = nullptr;
+						if (UByteProperty* ByteProp = Cast<UByteProperty>(Field))
 						{
-							if (ByteProperty->Enum)
+							Prop = ByteProp;
+							Enum = ByteProp->Enum;
+						}
+						else if (UEnumProperty* EnumProp = Cast<UEnumProperty>(Field))
+						{
+							Prop = EnumProp;
+							Enum = EnumProp->GetEnum();
+						}
+
+						// Strip off enum prefixes if they exist
+						if (Prop)
+						{
+							if (Enum)
 							{
-								const FString EnumPrefix = ByteProperty->Enum->GenerateEnumPrefix();
+								const FString EnumPrefix = Enum->GenerateEnumPrefix();
 								if (EnumPrefix.Len() && ValueString.StartsWith(EnumPrefix))
 								{
 									ValueString = ValueString.RightChop(EnumPrefix.Len() + 1);	// +1 to skip over the underscore

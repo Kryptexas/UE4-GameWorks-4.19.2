@@ -1,11 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectBase.cpp: Unreal UObject base class
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "GCObject.h"
+#include "UObject/UObjectBase.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectAllocator.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/GCObject.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectBase, Log, All);
 DEFINE_STAT(STAT_UObjectsStatGroupTester);
@@ -321,8 +332,10 @@ void UObjectBase::EmitBaseReferences(UClass *RootClass)
 /** Enqueue the registration for this object. */
 void UObjectBase::Register(const TCHAR* PackageName,const TCHAR* InName)
 {
+	TMap<UObjectBase*, FPendingRegistrantInfo>& PendingRegistrants = FPendingRegistrantInfo::GetMap();
+
 	FPendingRegistrant* PendingRegistration = new FPendingRegistrant(this);
-	FPendingRegistrantInfo::GetMap().Add(this, FPendingRegistrantInfo(InName, PackageName));
+	PendingRegistrants.Add(this, FPendingRegistrantInfo(InName, PackageName));
 	if(GLastPendingRegistrant)
 	{
 		GLastPendingRegistrant->NextAutoRegister = PendingRegistration;
@@ -381,12 +394,14 @@ static void UObjectProcessRegistrants()
 
 void UObjectForceRegistration(UObjectBase* Object)
 {
-	FPendingRegistrantInfo* Info = FPendingRegistrantInfo::GetMap().Find(Object);
+	TMap<UObjectBase*, FPendingRegistrantInfo>& PendingRegistrants = FPendingRegistrantInfo::GetMap();
+
+	FPendingRegistrantInfo* Info = PendingRegistrants.Find(Object);
 	if (Info)
 	{
 		const TCHAR* PackageName = Info->PackageName;
 		const TCHAR* Name = Info->Name;
-		FPendingRegistrantInfo::GetMap().Remove(Object);  // delete this first so that it doesn't try to do it twice
+		PendingRegistrants.Remove(Object);  // delete this first so that it doesn't try to do it twice
 		Object->DeferredRegister(UClass::StaticClass(),PackageName,Name);
 	}
 }
@@ -654,12 +669,29 @@ void UObjectCompiledInDefer(UClass *(*InRegister)(), UClass *(*InStaticClass)(),
 /** Register all loaded classes */
 void UClassRegisterAllCompiledInClasses()
 {
+#if WITH_HOT_RELOAD
+	TArray<UClass*> AddedClasses;
+#endif
+
 	TArray<FFieldCompiledInInfo*>& DeferredClassRegistration = GetDeferredClassRegistration();
 	for (const FFieldCompiledInInfo* Class : DeferredClassRegistration)
 	{
-		Class->Register();
+		UClass* RegisteredClass = Class->Register();
+#if WITH_HOT_RELOAD
+		if (GIsHotReload && Class->OldClass == nullptr)
+		{
+			AddedClasses.Add(RegisteredClass);
+		}
+#endif
 	}
 	DeferredClassRegistration.Empty();
+
+#if WITH_HOT_RELOAD
+	if (AddedClasses.Num() > 0)
+	{
+		FCoreUObjectDelegates::RegisterHotReloadAddedClassesDelegate.Broadcast(AddedClasses);
+	}
+#endif
 }
 
 #if WITH_HOT_RELOAD
@@ -680,11 +712,11 @@ void UClassReplaceHotReloadClasses()
 				RegisteredClass = Class->Register();
 			}
 
-			FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate.Execute(Class->OldClass, RegisteredClass);
+			FCoreUObjectDelegates::RegisterClassForHotReloadReinstancingDelegate.Broadcast(Class->OldClass, RegisteredClass);
 		}
 	}
 
-	FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate.ExecuteIfBound();
+	FCoreUObjectDelegates::ReinstanceHotReloadedClassesDelegate.Broadcast();
 	HotReloadClasses.Empty();
 }
 
@@ -1197,9 +1229,10 @@ UPackage* FindOrConstructDynamicTypePackage(const TCHAR* PackageName)
 	if (!Package)
 	{
 		Package = CreatePackage(nullptr, PackageName);
-#if !USE_EVENT_DRIVEN_ASYNC_LOAD
-		Package->SetPackageFlags(PKG_CompiledIn);
-#endif
+		if (!GEventDrivenLoaderEnabled)
+		{
+			Package->SetPackageFlags(PKG_CompiledIn);
+		}
 	}
 	check(Package);
 	return Package;

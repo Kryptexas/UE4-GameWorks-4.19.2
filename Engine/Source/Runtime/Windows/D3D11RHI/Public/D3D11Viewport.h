@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Viewport.h: D3D viewport RHI definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "RenderUtils.h"
 
 /** A D3D event query resource. */
 class FD3D11EventQuery : public FRenderResource

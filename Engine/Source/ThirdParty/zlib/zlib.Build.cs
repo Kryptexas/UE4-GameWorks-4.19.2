@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
 
 public class zlib : ModuleRules
@@ -97,10 +97,10 @@ public class zlib : ModuleRules
                 PublicAdditionalLibraries.Add("zlib125_XboxOne.lib");
             }
         }
-		else if (Target.Platform == UnrealTargetPlatform.WolfPlat)
+		else if (Target.Platform == UnrealTargetPlatform.Switch)
 		{
 			PublicIncludePaths.Add(OldzlibPath + "inc");
-			PublicAdditionalLibraries.Add(System.IO.Path.Combine(OldzlibPath, "Lib/WolfPlat/libz.a"));
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(OldzlibPath, "Lib/Switch/libz.a"));
 		}
     }
 }

@@ -1,9 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "RuntimeAssetCachePublicPCH.h"
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+#include "Delegates/Delegate.h"
+#include "UObject/ScriptMacros.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Stack.h"
+#include "RuntimeAssetCacheInterface.h"
+#include "RuntimeAssetCachePluginInterface.h"
 #include "RuntimeAssetCacheBuilders.generated.h"
+
+class FArchive;
+class UTexture2D;
 
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnAssetCacheComplete, URuntimeAssetCacheBuilder_ObjectBase*, CachedAssetBuilder, bool, Success);
 

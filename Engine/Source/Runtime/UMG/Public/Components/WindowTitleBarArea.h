@@ -1,10 +1,17 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SWindowTitleBarArea.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Layout/Margin.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "Widgets/SWidget.h"
+#include "Components/ContentWidget.h"
 
 #include "WindowTitleBarArea.generated.h"
+
+class SWindowTitleBarArea;
 
 /**
 * A panel for defining a region of the UI that should allow users to drag the window on desktop platforms.

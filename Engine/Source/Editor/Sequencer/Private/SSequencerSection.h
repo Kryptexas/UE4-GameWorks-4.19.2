@@ -1,10 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Geometry.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "SequencerSelectedKey.h"
+#include "Rendering/RenderingCommon.h"
+#include "DisplayNodes/SequencerTrackNode.h"
 #include "SectionLayout.h"
 
+class FPaintArgs;
+class FSequencer;
 class FSequencerSectionPainter;
+class FSlateWindowElementList;
+struct ISequencerHotspot;
 
 class SSequencerSection : public SCompoundWidget
 {

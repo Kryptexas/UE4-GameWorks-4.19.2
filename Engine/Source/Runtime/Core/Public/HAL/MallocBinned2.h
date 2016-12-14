@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AlignmentTemplates.h"
-#include "Allocators/CachedOSPageAllocator.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/MemoryBase.h"
+#include "HAL/UnrealMemory.h"
 #include "Math/NumericLimits.h"
+#include "Templates/AlignmentTemplates.h"
+#include "HAL/CriticalSection.h"
+#include "HAL/PlatformTLS.h"
+#include "HAL/Allocators/CachedOSPageAllocator.h"
 #include "HAL/PlatformMath.h"
 
 #define BINNED2_MAX_CACHED_OS_FREES (64)

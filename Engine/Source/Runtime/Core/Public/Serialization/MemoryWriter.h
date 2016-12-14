@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MemoryArchive.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Math/NumericLimits.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "Serialization/MemoryArchive.h"
 
 /**
  * Archive for storing arbitrary data to the specified memory location

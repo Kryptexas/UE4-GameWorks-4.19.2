@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
 
 #ifdef _WINDOWS_
 	#pragma message ( " " )
@@ -59,4 +61,4 @@
 #define NORPC
 
 // Finally now we can include windows.h
-#include <windows.h>
+#include <Windows.h>

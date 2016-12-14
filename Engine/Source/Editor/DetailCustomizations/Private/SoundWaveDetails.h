@@ -1,6 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "IDetailCustomization.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "PropertyHandle.h"
+
+class IDetailLayoutBuilder;
+class USoundWave;
 
 class FSoundWaveDetails : public IDetailCustomization
 {

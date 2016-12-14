@@ -1,10 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSceneViewport;
-class ULocalPlayer;
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Geometry.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SCanvas.h"
 
+class FPaintArgs;
+class FSceneViewport;
+class FSlateWindowElementList;
+class SOverlay;
+class STooltipPresenter;
+class UGameViewportClient;
+class ULocalPlayer;
 
 /**
  * Allows you to provide a custom layer that multiple sources can contribute to.  Unlike

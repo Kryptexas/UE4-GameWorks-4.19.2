@@ -1,41 +1,69 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ContentBrowserPCH.h"
-#include "AssetViewTypes.h"
 #include "AssetContextMenu.h"
+#include "Templates/SubclassOf.h"
+#include "Styling/SlateTypes.h"
+#include "Framework/Commands/UIAction.h"
+#include "Textures/SlateIcon.h"
+#include "Engine/Blueprint.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopedSlowTask.h"
+#include "UObject/UObjectIterator.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
+#include "EditorReimportHandler.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "UnrealClient.h"
+#include "Materials/MaterialFunction.h"
+#include "Materials/Material.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
+#include "ISourceControlModule.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "FileHelpers.h"
+#include "AssetRegistryModule.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "ContentBrowserUtils.h"
+#include "SAssetView.h"
 #include "ContentBrowserModule.h"
 
-#include "Editor/UnrealEd/Public/ObjectTools.h"
-#include "Editor/UnrealEd/Public/PackageTools.h"
-#include "Editor/UnrealEd/Public/FileHelpers.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "ObjectTools.h"
+#include "PackageTools.h"
+#include "Editor.h"
 #include "Toolkits/AssetEditorManager.h"
-#include "Toolkits/ToolkitManager.h"
+#include "PropertyEditorModule.h"
 #include "Toolkits/GlobalEditorCommonCommands.h"
 #include "ConsolidateWindow.h"
 #include "ReferenceViewer.h"
 #include "ISizeMapModule.h"
 
 #include "ReferencedAssetsUtils.h"
-#include "PackageLocalizationUtil.h"
+#include "Internationalization/PackageLocalizationUtil.h"
 
-#include "ISourceControlModule.h"
-#include "ISourceControlRevision.h"
 #include "SourceControlWindows.h"
-#include "KismetEditorUtilities.h"
-#include "AssetToolsModule.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #include "CollectionAssetManagement.h"
 #include "ComponentAssetBroker.h"
-#include "SNumericEntryBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 
 #include "SourceCodeNavigation.h"
 #include "IDocumentation.h"
 #include "EditorClassUtils.h"
 
-#include "SColorPicker.h"
-#include "GenericCommands.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Internationalization/Culture.h"
+#include "Widgets/Colors/SColorPicker.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/LevelStreaming.h"
 #include "ContentBrowserCommands.h"
 
@@ -421,6 +449,25 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 			);
 	}
 	MenuBuilder.EndSection();
+
+	if (GetDefault<UEditorExperimentalSettings>()->bEnableContentHotReloading)
+	{
+		// EXPERIMENTAL ACTIONS
+		MenuBuilder.BeginSection("AssetContextExperimental", LOCTEXT("AssetContextAdvancedExperimentalMenuHeading", "Experimental"));
+		{
+			// Reload
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("Reload", "Reload"),
+				LOCTEXT("ReloadTooltip", "Reload the selected assets."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteReload),
+					FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteReload)
+				)
+			);
+		}
+		MenuBuilder.EndSection();
+	}
 
 	// ADVANCED ACTIONS
 	MenuBuilder.BeginSection("AssetContextAdvancedActions", LOCTEXT("AssetContextAdvancedActionsMenuHeading", "Advanced"));
@@ -1798,6 +1845,72 @@ void FAssetContextMenu::ExecuteDelete()
 			LOCTEXT("FolderDeleteConfirm_No", "Cancel"),
 			AssetView.Pin().ToSharedRef(),
 			FOnClicked::CreateSP( this, &FAssetContextMenu::ExecuteDeleteFolderConfirmed ));
+	}
+}
+
+bool FAssetContextMenu::CanExecuteReload() const
+{
+	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
+
+	int32 NumAssetItems, NumClassItems;
+	ContentBrowserUtils::CountItemTypes(AssetViewSelectedAssets, NumAssetItems, NumClassItems);
+
+	int32 NumAssetPaths, NumClassPaths;
+	ContentBrowserUtils::CountPathTypes(SelectedFolders, NumAssetPaths, NumClassPaths);
+
+	bool bHasSelectedCollections = false;
+	for (const FString& SelectedFolder : SelectedFolders)
+	{
+		if (ContentBrowserUtils::IsCollectionPath(SelectedFolder))
+		{
+			bHasSelectedCollections = true;
+			break;
+		}
+	}
+
+	// We can't reload classes, or folders containing classes, or any collection folders
+	return ((NumAssetItems > 0 && NumClassItems == 0) || (NumAssetPaths > 0 && NumClassPaths == 0)) && !bHasSelectedCollections;
+}
+
+void FAssetContextMenu::ExecuteReload()
+{
+	// Don't allow asset reload during PIE
+	if (GIsEditor)
+	{
+		UEditorEngine* Editor = GEditor;
+		FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext();
+		if (PIEWorldContext)
+		{
+			FNotificationInfo Notification(LOCTEXT("CannotReloadAssetInPIE", "Assets cannot be reloaded while in PIE."));
+			Notification.ExpireDuration = 3.0f;
+			FSlateNotificationManager::Get().AddNotification(Notification);
+			return;
+		}
+	}
+
+	TArray<FAssetData> AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
+	if (AssetViewSelectedAssets.Num() > 0)
+	{
+		TArray<UPackage*> PackagesToReload;
+
+		for (auto AssetIt = AssetViewSelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt)
+		{
+			const FAssetData& AssetData = *AssetIt;
+
+			if (AssetData.AssetClass == UObjectRedirector::StaticClass()->GetFName())
+			{
+				// Don't operate on Redirectors
+				continue;
+			}
+
+			PackagesToReload.AddUnique(AssetData.GetPackage());
+		}
+
+		if (PackagesToReload.Num() > 0)
+		{
+			PackageTools::ReloadPackages(PackagesToReload);
+		}
 	}
 }
 

@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ConvexVolume.cpp: Convex volume implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "ConvexVolume.h"
+#include "SceneManagement.h"
 #include "Engine/Polys.h"
 
 /**

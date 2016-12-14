@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Array.h"
+#include "CoreTypes.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Containers/Array.h"
 
 /*-----------------------------------------------------------------------------
 	MRU array.

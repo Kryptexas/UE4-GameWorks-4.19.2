@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectHash.cpp: Unreal object name hashes
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "UObjectHash.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUObjectHash, Log, All);
 
@@ -467,7 +469,6 @@ UObject* StaticFindObjectFastInternalThreadSafe(FUObjectHashTables& ThreadHash, 
 					Or, if the object is a top-level package then accept it immediately.*/
 					&& (bAnyPackage || !Object->GetOuter())
 
-
 					/** If a class was specified, check that the object is of the correct class */
 					&& (ObjectClass == nullptr || (bExactClass ? Object->GetClass() == ObjectClass : Object->IsA(ObjectClass)))
 
@@ -505,7 +506,7 @@ UObject* StaticFindObjectFastInternal(UClass* ObjectClass, UObject* ObjectPackag
 	check(ObjectPackage != ANY_PACKAGE); // this could never have returned anything but nullptr
 	// If they specified an outer use that during the hashing
 	auto& ThreadHash = FUObjectHashTables::Get();
-	UObject* Result = StaticFindObjectFastInternalThreadSafe(ThreadHash, ObjectClass, ObjectPackage, ObjectName, bExactClass, bAnyPackage, ExcludeFlags, ExclusiveInternalFlags);
+	UObject* Result = StaticFindObjectFastInternalThreadSafe(ThreadHash, ObjectClass, ObjectPackage, ObjectName, bExactClass, bAnyPackage, ExcludeFlags | RF_NewerVersionExists, ExclusiveInternalFlags);
 	return Result;
 }
 

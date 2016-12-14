@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/IToolkit.h"
+#include "CoreMinimal.h"
 #include "Toolkits/AssetEditorToolkit.h"
 
+class UDestructibleMesh;
 
 /** DestructibleMesh Editor public interface */
 class IDestructibleMeshEditor : public FAssetEditorToolkit

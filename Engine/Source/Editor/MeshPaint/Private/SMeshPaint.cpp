@@ -1,18 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MeshPaintPrivatePCH.h"
-#include "MeshPaintEdMode.h"
 #include "SMeshPaint.h"
-
-#include "SNumericEntryBox.h"
-#include "PackageTools.h"
-#include "AssetToolsModule.h"
-#include "DesktopPlatformModule.h"
+#include "Brushes/SlateDynamicImageBrush.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Engine/Texture2D.h"
+#include "Components/StaticMeshComponent.h"
+#include "Misc/MessageDialog.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Layout/SWrapBox.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Colors/SColorBlock.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
 #include "ISourceControlModule.h"
-#include "SColorPicker.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/Selection.h"
-#include "Engine/StaticMesh.h"
+#include "FileHelpers.h"
+
+#include "Widgets/Input/SNumericEntryBox.h"
+#include "PackageTools.h"
+#include "DesktopPlatformModule.h"
+#include "Widgets/Colors/SColorPicker.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -2090,6 +2107,50 @@ void SMeshPaint::Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKi
 								.OnSelectionChanged(this, &SMeshPaint::OnVertexPaintColorViewModeChanged)
 							]
 						]
+						+SVerticalBox::Slot()
+						.AutoHeight()
+						.Padding(StandardPadding)
+						[
+							SNew(SHorizontalBox)
+							.Visibility(this, &SMeshPaint::GetResourceTypeVerticesVisibility )
+							+ SHorizontalBox::Slot()
+							.Padding(2.0f, 0.0f)
+							.AutoWidth()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SCheckBox)
+								.IsChecked(this, &SMeshPaint::IsPaintingAllLOD)
+								.OnCheckStateChanged(this, &SMeshPaint::OnAllowPaintingAllLODChanged)
+							]
+							+SHorizontalBox::Slot() 
+							.Padding(2.0f, 0.0f) 
+							.FillWidth(1) 
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("MeshPaint_VertexColorLODSelectionLabel", "Allow Paint On All LOD"))
+								.ToolTipText(LOCTEXT("MeshPaint_VertexColorLODSelectionLabelTooltip", "When uncheck, the painting on the base LOD will be propagate automatically to all other LODs when exiting the mode or changing the selection."))
+							]
+							+SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(0.0f, 0.0f, 2.0f, 0.0f) 
+							.HAlign(HAlign_Right)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SNumericEntryBox<uint32>)
+								.IsEnabled(this, &SMeshPaint::IsPaintingAllLODEnable)
+								.MinDesiredValueWidth(100)
+								.AllowSpin(true)
+								.MinSliderValue(0)
+								.MaxSliderValue(this, &SMeshPaint::GetMeshesLODMax)
+								.MinValue(0)
+								.MaxValue(this, &SMeshPaint::GetMeshesLODMax)
+								.Value(this, &SMeshPaint::GetCurrentMeshesLOD)
+								.OnValueChanged(this, &SMeshPaint::SetCurrentMeshesLOD)
+							]
+						]
 					]
 				]
 			]
@@ -2133,6 +2194,36 @@ EVisibility SMeshPaint::GetImportVertexColorsVisibility() const
 	return bShowImportOptions 
 		? EVisibility::Visible 
 		: EVisibility::Collapsed;
+}
+
+TOptional<uint32> SMeshPaint::GetMeshesLODMax() const
+{
+	return MeshPaintEditMode->GetMeshesLODMax();
+}
+
+TOptional<uint32> SMeshPaint::GetCurrentMeshesLOD() const
+{
+	return MeshPaintEditMode->GetCurrentMeshesLOD();
+}
+
+void SMeshPaint::SetCurrentMeshesLOD(const uint32 InLODIndex)
+{
+	MeshPaintEditMode->SetCurrentMeshesLOD(InLODIndex);
+}
+
+ECheckBoxState SMeshPaint::IsPaintingAllLOD() const
+{
+	return IsPaintingAllLODEnable() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+bool SMeshPaint::IsPaintingAllLODEnable() const
+{
+	return MeshPaintEditMode->IsPaintingAllLODEnable();
+}
+
+void SMeshPaint::OnAllowPaintingAllLODChanged(ECheckBoxState InCheckState)
+{
+	MeshPaintEditMode->SetAllowPaintingAllLOD(InCheckState == ECheckBoxState::Checked);
 }
 
 TOptional<float> SMeshPaint::GetBrushRadius() const

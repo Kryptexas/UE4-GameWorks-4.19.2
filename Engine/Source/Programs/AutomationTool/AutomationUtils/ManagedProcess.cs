@@ -1,4 +1,6 @@
-﻿using Microsoft.Win32.SafeHandles;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

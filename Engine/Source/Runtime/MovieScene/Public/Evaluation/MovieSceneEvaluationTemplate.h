@@ -1,15 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneFwd.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
 #include "MovieSceneTrack.h"
-#include "MovieSceneEvaluationField.h"
-#include "MovieSceneEvaluationTrack.h"
-#include "MovieSceneSequenceHierarchy.h"
+#include "Evaluation/MovieSceneTrackIdentifier.h"
+#include "Evaluation/MovieSceneEvaluationField.h"
+#include "Containers/ArrayView.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
+#include "Evaluation/MovieSceneSequenceHierarchy.h"
 #include "Compilation/IMovieSceneTemplateGenerator.h"
-#include "MovieSceneSequenceTemplateStore.h"
+#include "Evaluation/MovieSceneSequenceTemplateStore.h"
 #include "MovieSceneEvaluationTemplate.generated.h"
+
+class UMovieSceneSequence;
 
 USTRUCT()
 struct FMovieSceneGenerationLedger

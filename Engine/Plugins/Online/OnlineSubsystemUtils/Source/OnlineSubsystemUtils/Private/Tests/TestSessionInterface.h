@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "OnlineSessionInterface.h"
-#include "OnlineFriendsInterface.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Containers/Ticker.h"
+#include "UObject/CoreOnline.h"
+#include "OnlineSubsystemTypes.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
+#include "Interfaces/OnlineSessionInterface.h"
+
+class TestOnlineGameSettings;
+class TestOnlineSearchSettings;
 
 #if WITH_DEV_AUTOMATION_TESTS
 

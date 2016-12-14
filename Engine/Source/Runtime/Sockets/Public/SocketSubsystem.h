@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "SocketTypes.h"
+
+class Error;
+class FInternetAddr;
 
 SOCKETS_API DECLARE_LOG_CATEGORY_EXTERN(LogSockets, Log, All);
 
@@ -26,8 +29,8 @@ SOCKETS_API DECLARE_LOG_CATEGORY_EXTERN(LogSockets, Log, All);
 		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("XBOXONE"))
 	#elif PLATFORM_HTML5
 		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("HTML5"))
-	#elif PLATFORM_WOLF
-		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("WOLF"))
+	#elif PLATFORM_SWITCH
+		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT("SWITCH"))
 	#else
 		#define PLATFORM_SOCKETSUBSYSTEM FName(TEXT(""))
 	#endif

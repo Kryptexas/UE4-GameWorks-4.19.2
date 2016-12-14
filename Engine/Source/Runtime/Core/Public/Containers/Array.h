@@ -1,17 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include <initializer_list>
-
-#include "Containers/ContainerAllocationPolicies.h"
-#include "HAL/Platform.h"
-#include "HAL/PlatformMath.h"
-#include "Serialization/Archive.h"
-#include "Templates/EnableIf.h"
-#include "Templates/Sorting.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/UnrealTypeTraits.h"
 #include "Templates/UnrealTemplate.h"
-#include "Traits/IsContiguousContainer.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Serialization/Archive.h"
+
+#include "Templates/Less.h"
+#include "Templates/Sorting.h"
 
 #define DEBUG_HEAP 0
 
@@ -22,8 +23,6 @@
 #endif
 
 #define AGRESSIVE_ARRAY_FORCEINLINE
-
-class UClass;
 
 /**
  * Generic iterator which can operate on types that expose the following:
@@ -1234,6 +1233,7 @@ public:
 	 *
 	 * @param Index Tells where to insert the new elements.
 	 * @param Count Number of elements to add.
+	 * @see Insert, InsertZeroed, InsertDefaulted
 	 */
 	void InsertUninitialized(int32 Index, int32 Count = 1)
 	{
@@ -1259,12 +1259,26 @@ public:
 	 *
 	 * @param Index Tells where to insert the new elements.
 	 * @param Count Number of elements to add.
-	 * @see Insert, InsertUninitialized
+	 * @see Insert, InsertUninitialized, InsertDefaulted
 	 */
 	void InsertZeroed(int32 Index, int32 Count = 1)
 	{
 		InsertUninitialized(Index, Count);
 		FMemory::Memzero((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count * sizeof(ElementType));
+	}
+
+	/**
+	 * Inserts a given number of default-constructed elements into the array at a given
+	 * location.
+	 *
+	 * @param Index Tells where to insert the new elements.
+	 * @param Count Number of elements to add.
+	 * @see Insert, InsertUninitialized, InsertZeroed
+	 */
+	void InsertDefaulted(int32 Index, int32 Count = 1)
+	{
+		InsertUninitialized(Index, Count);
+		DefaultConstructItems<ElementType>((uint8*)AllocatorInstance.GetAllocation() + Index * sizeof(ElementType), Count);
 	}
 
 	/**

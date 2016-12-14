@@ -1,6 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Text/SlateHyperlinkRun.h"
+#include "EditorUndoClient.h"
+
+class AActor;
+class FSCSEditorTreeNode;
+class FUICommandList;
+class IDetailsView;
+class SBox;
+class SSCSEditor;
+class SSplitter;
+class UBlueprint;
 
 /**
  * Wraps a details panel customized for viewing actors

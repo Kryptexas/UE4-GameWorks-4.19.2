@@ -1,15 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IMessageContext.h"
-
 
 enum class EMessageScope : uint8;
 struct FMessageAddress;
 class IMessageAttachment;
-class UScriptStruct;
-
 
 /**
  * Interface for mutable message contexts.

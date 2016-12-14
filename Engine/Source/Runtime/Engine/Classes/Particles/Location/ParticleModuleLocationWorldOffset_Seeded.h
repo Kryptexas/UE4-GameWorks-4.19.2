@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Particles/Location/ParticleModuleLocationWorldOffset.h"
 #include "ParticleModuleLocationWorldOffset_Seeded.generated.h"
+
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, meta=(DisplayName = "World Offset (Seed)"))
 class ENGINE_API UParticleModuleLocationWorldOffset_Seeded : public UParticleModuleLocationWorldOffset

@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreUObject.h"
-#include "TaskGraphInterfaces.h"
-
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Async/TaskGraphInterfaces.h"
 
 class IMessageAttachment;
-class UScriptStruct;
-
 
 /**
  * Structure for message endpoint addresses.

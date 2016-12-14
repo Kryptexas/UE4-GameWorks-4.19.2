@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Viewport.h: D3D viewport RHI definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/Runnable.h"
 
 static DXGI_FORMAT GetRenderTargetFormat(EPixelFormat PixelFormat)
 {
@@ -117,6 +120,8 @@ public:
 
 	inline const bool IsFullscreen() const { return bIsFullscreen; }
 
+	FD3D12Fence& GetFence() { return Fence; }
+
 private:
 
 	/** Presents the frame synchronizing with DWM. */
@@ -158,7 +163,9 @@ private:
 	uint32 CurrentBackBufferIndex;
 
 	/** A fence value used to track the GPU's progress. */
+	FD3D12Fence Fence;
 	uint64 LastSignaledValue;
+	ID3D12CommandQueue* pCommandQueue;
 
 	// Determine how deep the swapchain should be (based on AFR or not)
 	void CalculateSwapChainDepth();

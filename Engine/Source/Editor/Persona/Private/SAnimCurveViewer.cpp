@@ -1,21 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "SAnimCurveViewer.h"
-#include "ObjectTools.h"
-#include "AssetRegistryModule.h"
-#include "ScopedTransaction.h"
-#include "SSearchBox.h"
-#include "SInlineEditableTextBlock.h"
-#include "STextEntryPopup.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "EditorStyleSet.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Widgets/Input/STextEntryPopup.h"
 #include "Animation/AnimSingleNodeInstance.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "IPersonaPreviewScene.h"
 #include "IEditableSkeleton.h"
 
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "CurveViewerCommands.h"
 #include "Animation/EditorAnimCurveBoneLinks.h"
 
@@ -517,7 +521,7 @@ FText SAnimCurveTypeList::GetAnimCurveType() const
 //////////////////////////////////////////////////////////////////////////
 // SAnimCurveViewer
 
-void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected)
+void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected)
 {
 	OnObjectsSelected = InOnObjectsSelected;
 
@@ -535,7 +539,8 @@ void SAnimCurveViewer::Construct(const FArguments& InArgs, const TSharedRef<clas
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateSP(this, &SAnimCurveViewer::OnPreviewMeshChanged));
 	InPreviewScene->RegisterOnAnimChanged(FOnAnimChanged::CreateSP(this, &SAnimCurveViewer::OnPreviewAssetChanged));
 	InOnPostUndo.Add(FSimpleDelegate::CreateSP(this, &SAnimCurveViewer::OnPostUndo));
-	InOnCurvesChanged.Add(FSimpleDelegate::CreateSP(this, &SAnimCurveViewer::OnCurvesChanged));
+
+	SmartNameRemovedHandle = InEditableSkeleton->RegisterOnSmartNameRemoved(FOnSmartNameRemoved::FDelegate::CreateSP(this, &SAnimCurveViewer::HandleSmartNameRemoved));
 
 	// Register and bind all our menu commands
 	FCurveViewerCommands::Register();
@@ -631,6 +636,11 @@ SAnimCurveViewer::~SAnimCurveViewer()
 		PreviewScenePtr.Pin()->UnregisterOnPreviewMeshChanged(this);
 		PreviewScenePtr.Pin()->UnregisterOnAnimChanged(this);
 	}
+
+	if (EditableSkeletonPtr.IsValid())
+	{
+		EditableSkeletonPtr.Pin()->UnregisterOnSmartNameRemoved(SmartNameRemovedHandle);
+	}
 }
 
 bool SAnimCurveViewer::IsCurveFilterEnabled() const
@@ -703,7 +713,7 @@ void SAnimCurveViewer::RefreshCachePreviewInstance()
 	}
 }
 
-void SAnimCurveViewer::OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh)
+void SAnimCurveViewer::OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh)
 {
 	RefreshCachePreviewInstance();
 	RefreshCurveList();
@@ -1085,10 +1095,6 @@ void SAnimCurveViewer::OnDeleteNameClicked()
 	}
 
 	EditableSkeletonPtr.Pin()->RemoveSmartnamesAndFixupAnimations(ContainerName, SelectedUids);
-
-	AnimCurveList.Empty();
-
-	RefreshCurveList();
 }
 
 bool SAnimCurveViewer::CanDelete()
@@ -1132,6 +1138,12 @@ void SAnimCurveViewer::ApplyCurveBoneLinks(class UEditorAnimCurveBoneLinks* Edit
 	{
 		EditableSkeletonPtr.Pin()->SetCurveMetaBoneLinks(EditorObj->CurveName, EditorObj->ConnectedBones);
 	}
+}
+
+void SAnimCurveViewer::HandleSmartNameRemoved(const FName& InContainerName, const TArray<SmartName::UID_Type>& InNameUids)
+{
+	AnimCurveList.Empty();
+	RefreshCurveList();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticLightingTextureMapping.cpp: Static lighting texture mapping implementation.
 =============================================================================*/
 
-#include "UnrealEd.h"
-#include "StaticLightingPrivate.h"
+#include "CoreMinimal.h"
+#include "StaticLighting.h"
+#include "StaticLightingSystem/StaticLightingPrivate.h"
 #include "LightMap.h"
 
 // Doxygen cannot not parse this definition since the declaration is in Engine, not UnrealEd

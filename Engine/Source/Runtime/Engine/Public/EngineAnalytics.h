@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class IAnalyticsProviderET;
+#include "CoreMinimal.h"
+
 class FEngineSessionManager;
+class IAnalyticsProvider;
+class IAnalyticsProviderET;
 
 /**
  * The public interface for the engine's analytics provider singleton.

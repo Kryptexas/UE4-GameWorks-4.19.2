@@ -1,14 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "AttributeSet.h"
-#include "AbilitySystemComponent.h"
-#include "HAL/OutputDevices.h"
+#include "Stats/StatsMisc.h"
+#include "EngineDefines.h"
+#include "Engine/Blueprint.h"
+#include "AssetData.h"
+#include "Engine/ObjectLibrary.h"
+#include "VisualLogger/VisualLogger.h"
+#include "AbilitySystemLog.h"
+#include "GameplayEffectAggregator.h"
+#include "AbilitySystemStats.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "AbilitySystemGlobals.h"
-#include "VisualLogger.h"
+#include "AbilitySystemComponent.h"
 
-#include "ComponentReregisterContext.h"
-#include "PropertyTag.h"
+
+#if WITH_EDITOR
+#include "EditorReimportHandler.h"
+#endif
 
 #if ENABLE_VISUAL_LOG
 namespace
@@ -62,7 +72,7 @@ FGameplayAttribute::FGameplayAttribute(UProperty *NewProperty)
 	}
 }
 
-void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttributeSet* Dest) const
+void FGameplayAttribute::SetNumericValueChecked(float& NewValue, class UAttributeSet* Dest) const
 {
 	check(Dest);
 
@@ -150,7 +160,7 @@ float FGameplayAttribute::GetNumericValueChecked(const UAttributeSet* Src) const
 
 FGameplayAttributeData* FGameplayAttribute::GetGameplayAttributeData(UAttributeSet* Src) const
 {
-	if (IsGameplayAttributeDataProperty(Attribute))
+	if (Src && IsGameplayAttributeDataProperty(Attribute))
 	{
 		UStructProperty* StructProperty = Cast<UStructProperty>(Attribute);
 		check(StructProperty);
@@ -162,7 +172,7 @@ FGameplayAttributeData* FGameplayAttribute::GetGameplayAttributeData(UAttributeS
 
 FGameplayAttributeData* FGameplayAttribute::GetGameplayAttributeDataChecked(UAttributeSet* Src) const
 {
-	if (IsGameplayAttributeDataProperty(Attribute))
+	if (Src && IsGameplayAttributeDataProperty(Attribute))
 	{
 		UStructProperty* StructProperty = Cast<UStructProperty>(Attribute);
 		check(StructProperty);
@@ -299,6 +309,8 @@ void UAttributeSet::PostNetReceive()
 	FScopedAggregatorOnDirtyBatch::EndNetReceiveLock();
 }
 
+int32 FScalableFloat::GlobalCachedCurveID = 1;
+
 FAttributeMetaData::FAttributeMetaData()
 	: MinValue(0.f)
 	, MaxValue(1.f)
@@ -310,23 +322,18 @@ float FScalableFloat::GetValueAtLevel(float Level, const FString* ContextString)
 {
 	if (Curve.CurveTable != nullptr)
 	{
-		// We want to cache the FinalCurve when possible. However there are issue with this in CookOnTheFly scenerios where the backing UCurveTable
-		// will be destroyed and reallocated at the same memory adress via StaticAllocateObject. This will keep the UCurveTable* the same, but will shift
-		// the internal UCurveTable::RowMap memory, making our FinalCurve* into it invalid.
-		//
-		// Therefor: only do the caching in non editor builds. In editor builds we will also look up the FinalCurve* from our current UCurveTable*.
-		// 
-		// If this problems does happen in a mono build, we should consider caching the entire curve in the FScalableFloat, or have look into refactoring
-		// some of UCurveTable such that the actual curve data is stored in a global, more stable location.
+		// This is a simple mechanism for invalidating our cached curve. If someone calls FScalableFloat::InvalidateAllCachedCurves (static method)
+		// all cached curve tables are invalidated and will be updated the next time they are accessed
+		if (LocalCachedCurveID != GlobalCachedCurveID)
+		{
+			FinalCurve = nullptr;
+		}
 
-
-#if !WITH_EDITOR						// If not an editor build
-		if (FinalCurve == nullptr)		//		Only if we don't have a cached FRichCurve*, look it up
-#endif
-		
+		if (FinalCurve == nullptr)
 		{
 			static const FString DefaultContextString = TEXT("FScalableFloat::GetValueAtLevel");
 			FinalCurve = Curve.GetCurve(ContextString ? *ContextString : DefaultContextString);
+			LocalCachedCurveID = GlobalCachedCurveID;
 		}
 
 		if (FinalCurve != nullptr)
@@ -340,56 +347,21 @@ float FScalableFloat::GetValueAtLevel(float Level, const FString* ContextString)
 
 void FScalableFloat::SetValue(float NewValue)
 {
-	UnRegisterOnCurveTablePostReimport();
-
 	Value = NewValue;
 	Curve.CurveTable = nullptr;
 	Curve.RowName = NAME_None;
 	FinalCurve = nullptr;
+	LocalCachedCurveID = INDEX_NONE;
 }
 
 void FScalableFloat::SetScalingValue(float InCoeffecient, FName InRowName, UCurveTable * InTable)
 {
-	UnRegisterOnCurveTablePostReimport();
-
 	Value = InCoeffecient;
 	Curve.RowName = InRowName;
 	Curve.CurveTable = InTable;
 	FinalCurve = nullptr;
+	LocalCachedCurveID = INDEX_NONE;
 }
-
-void FScalableFloat::RegisterOnCurveTablePostReimport() const
-{
-#if WITH_EDITOR
-	if (GIsEditor && !OnCurveTablePostReimportHandle.IsValid())
-	{
-		// Register our interest in knowing when our referenced curve table is changed, so that we can update FinalCurve appropriately
-		OnCurveTablePostReimportHandle = FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FScalableFloat::OnCurveTablePostReimport);
-	}
-#endif // WITH_EDITOR
-}
-
-void FScalableFloat::UnRegisterOnCurveTablePostReimport() const
-{
-#if WITH_EDITOR
-	if (GIsEditor && OnCurveTablePostReimportHandle.IsValid())
-	{
-		FReimportManager::Instance()->OnPostReimport().Remove(OnCurveTablePostReimportHandle);
-		OnCurveTablePostReimportHandle.Reset();
-	}
-#endif // WITH_EDITOR
-}
-
-#if WITH_EDITOR
-void FScalableFloat::OnCurveTablePostReimport(UObject* InObject, bool)
-{
-	if (Curve.CurveTable && Curve.CurveTable == InObject)
-	{
-		// Reset FinalCurve so that GetValueAtLevel will re-cache it the next time it gets called
-		FinalCurve = nullptr;
-	}
-}
-#endif // WITH_EDITOR
 
 bool FScalableFloat::SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar)
 {
@@ -453,14 +425,13 @@ void FScalableFloat::operator=(const FScalableFloat& Src)
 {
 	Value = Src.Value;
 	Curve = Src.Curve;
-
-#if WITH_EDITOR
-	if (Src.OnCurveTablePostReimportHandle.IsValid())
-	{
-		RegisterOnCurveTablePostReimport();
-	}
-#endif
+	LocalCachedCurveID = Src.LocalCachedCurveID;
 	FinalCurve = Src.FinalCurve;
+}
+
+void FScalableFloat::InvalidateAllCachedCurves()
+{
+	GlobalCachedCurveID++;
 }
 
 

@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 #include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "UObject/UnrealType.h"
+
+struct FStackEntry;
 
 /*=============================================================================
 	FastReferenceCollector.h: Unreal realtime garbage collection helpers

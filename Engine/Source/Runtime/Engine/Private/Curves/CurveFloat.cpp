@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CurveFloat.cpp
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Curves/CurveFloat.h"
 
 FRuntimeFloatCurve::FRuntimeFloatCurve()
 	: ExternalCurve(NULL)

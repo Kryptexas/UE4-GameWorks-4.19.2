@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformOutputDevices.mm: iOS implementations of OutputDevices functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "IOSPlatformOutputDevices.h"
+#include "Misc/OutputDeviceFile.h"
 
 #include "FeedbackContextAnsi.h"
 #include "../Private/IOS/IOSPlatformOutputDevicesPrivate.h"

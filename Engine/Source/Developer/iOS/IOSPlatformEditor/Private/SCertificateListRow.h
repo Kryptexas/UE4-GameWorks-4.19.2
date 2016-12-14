@@ -1,6 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/STableRow.h"
+#include "IOSTargetSettingsCustomization.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Views/SListView.h"
+#include "SlateOptMacros.h"
 
 DECLARE_DELEGATE_OneParam(FOnCertificateChanged, FString);
 

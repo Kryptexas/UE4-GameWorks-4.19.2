@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Kismet/KismetStringLibrary.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -294,7 +293,7 @@ FString UKismetStringLibrary::BuildString_Name(const FString& AppendTo, const FS
 
 FString UKismetStringLibrary::GetSubstring(const FString& SourceString, int32 StartIndex, int32 Length)
 {
-	return SourceString.Mid(StartIndex, Length);
+	return (Length >= 0 ? SourceString.Mid(StartIndex, Length) : FString());
 }
 
 int32 UKismetStringLibrary::FindSubstring(const FString& SearchIn, const FString& Substring, bool bUseCase, bool bSearchFromEnd, int32 StartPosition)

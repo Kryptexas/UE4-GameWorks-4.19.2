@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineLeaderboardInterface.h"
-#include "OnlineSubsystemNullTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
+#include "OnlineSubsystemTypes.h"
+#include "OnlineStats.h"
+#include "Interfaces/OnlineLeaderboardInterface.h"
 #include "OnlineSubsystemNullPackage.h"
+
+class FOnlineSubsystemNull;
 
 /**
  * Interface definition for the online services leaderboard services 

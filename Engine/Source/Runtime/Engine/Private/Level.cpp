@@ -1,37 +1,58 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 Level.cpp: Level-related functions
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Engine/Level.h"
+#include "Misc/ScopedSlowTask.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "Templates/ScopedPointer.h"
+#include "UObject/Package.h"
+#include "Serialization/AsyncLoading.h"
+#include "EngineStats.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "RenderingThread.h"
+#include "RawIndexBuffer.h"
+#include "GameFramework/Pawn.h"
+#include "Engine/World.h"
+#include "SceneInterface.h"
+#include "AI/Navigation/NavigationData.h"
+#include "PrecomputedLightVolume.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "Model.h"
+#include "Engine/Brush.h"
+#include "Engine/Engine.h"
+#include "Containers/TransArray.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Misc/PackageName.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/NavigationObjectBase.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/Texture2D.h"
+#include "ContentStreaming.h"
 #include "Engine/AssetUserData.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "Engine/LevelScriptActor.h"
 #include "Engine/WorldComposition.h"
-#include "Net/UnrealNetwork.h"
-#include "Model.h"
 #include "StaticLighting.h"
-#include "SoundDefinitions.h"
-#include "PrecomputedLightVolume.h"
 #include "TickTaskManagerInterface.h"
-#include "BlueprintUtilities.h"
-#include "DynamicMeshBuilder.h"
-#include "Engine/LevelBounds.h"
-#include "ReleaseObjectVersion.h"
-#include "RenderingObjectVersion.h"
+#include "UObject/ReleaseObjectVersion.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "EngineGlobals.h"
+#include "Engine/LevelBounds.h"
 #if WITH_EDITOR
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #endif
+#include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
-#include "TargetPlatform.h"
-#include "ContentStreaming.h"
-#include "Engine/NavigationObjectBase.h"
-#include "Engine/ShadowMapTexture2D.h"
 #include "Components/ModelComponent.h"
-#include "Engine/LightMapTexture2D.h"
 DEFINE_LOG_CATEGORY(LogLevel);
 
 /*-----------------------------------------------------------------------------
@@ -944,6 +965,42 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 	}
 }
 
+
+bool ULevel::IncrementalUnregisterComponents(int32 NumComponentsToUnregister)
+{
+	// A value of 0 means that we want to unregister all components.
+	if (NumComponentsToUnregister != 0)
+	{
+		// Only the game can use incremental update functionality.
+		checkf(OwningWorld->IsGameWorld(), TEXT("Cannot call IncrementalUnregisterComponents with non 0 argument in the Editor/ commandlets."));
+	}
+
+	// Find next valid actor to process components unregistration
+	int32 NumComponentsUnregistered = 0;
+	while (CurrentActorIndexForUnregisterComponents < Actors.Num())
+	{
+		AActor* Actor = Actors[CurrentActorIndexForUnregisterComponents];
+		if (Actor)
+		{
+			int32 NumComponents = Actor->GetComponents().Num();
+			NumComponentsUnregistered += NumComponents;
+			Actor->UnregisterAllComponents();
+		}
+		CurrentActorIndexForUnregisterComponents++;
+		if (NumComponentsUnregistered > NumComponentsToUnregister )
+		{
+			break;
+		}
+	}
+
+	if (CurrentActorIndexForUnregisterComponents == Actors.Num())
+	{
+		CurrentActorIndexForUnregisterComponents = 0;
+		return true;
+	}
+	return false;
+}
+
 #if WITH_EDITOR
 
 void ULevel::MarkLevelComponentsRenderStateDirty()
@@ -1249,11 +1306,11 @@ void ULevel::UpdateModelComponents()
 	}
 
 	// Initialize the model's index buffers.
-	for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers);
+	for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers);
 		IndexBufferIt;
 		++IndexBufferIt)
 	{
-		BeginInitResource(IndexBufferIt.Value());
+		BeginInitResource(IndexBufferIt->Value.Get());
 	}
 
 	// Can now release the model's vertex buffer, will have been used for collision
@@ -1444,11 +1501,11 @@ void ULevel::CommitModelSurfaces()
 		}
 
 		// Initialize the model's index buffers.
-		for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers);
+		for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers);
 			IndexBufferIt;
 			++IndexBufferIt)
 		{
-			BeginInitResource(IndexBufferIt.Value());
+			BeginInitResource(IndexBufferIt->Value.Get());
 		}
 
 		Model->bOnlyRebuildMaterialIndexBuffers = false;
@@ -1588,6 +1645,14 @@ void ULevel::InitializeNetworkActors()
 				if (Actor->bNetLoadOnClient)
 				{
 					Actor->bNetStartup = true;
+
+					for (UActorComponent* Component : Actor->GetComponents())
+					{
+						if (Component)
+						{
+							Component->SetIsNetStartupComponent(true);
+						}
+					}
 				}
 
 				if (!bIsServer)
@@ -1691,7 +1756,7 @@ void ULevel::RouteActorInitialize()
 	{
 		AActor* Actor = ActorsToBeginPlay[ActorIndex];
 		SCOPE_CYCLE_COUNTER(STAT_ActorBeginPlay);
-		Actor->BeginPlay();			
+		Actor->DispatchBeginPlay();
 	}
 }
 
@@ -1979,7 +2044,7 @@ void ULevel::PushPendingAutoReceiveInput(APlayerController* InPlayerController)
 	int32 Index = 0;
 	for( FConstPlayerControllerIterator Iterator = InPlayerController->GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if (InPlayerController == PlayerController)
 		{
 			PlayerIndex = Index;
@@ -2061,3 +2126,10 @@ bool ULevel::HasVisibilityRequestPending() const
 {
 	return (OwningWorld && this == OwningWorld->CurrentLevelPendingVisibility);
 }
+
+bool ULevel::HasVisibilityChangeRequestPending() const
+{
+	return (OwningWorld && ( this == OwningWorld->CurrentLevelPendingVisibility || this == OwningWorld->CurrentLevelPendingInvisibility ) );
+}
+
+

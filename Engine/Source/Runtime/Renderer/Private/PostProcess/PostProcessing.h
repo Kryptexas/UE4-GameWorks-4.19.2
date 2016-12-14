@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessing.h: The center for all post processing activities.
@@ -6,9 +6,11 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
-#include "PostProcessInput.h"
-#include "PostProcessOutput.h"
+#include "CoreMinimal.h"
+#include "Shader.h"
+#include "GlobalShader.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+#include "SceneRendering.h"
 
 /** The context used to setup a post-process pass. */
 class FPostprocessContext

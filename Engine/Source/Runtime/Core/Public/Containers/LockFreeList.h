@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/NoopCounter.h"
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogLockFreeList, Log, All);
 
@@ -33,8 +39,8 @@ namespace ELockFreeAligment
 #if USE_LOCKFREELIST_128==1
 #include "LockFreeVoidPointerListBase128.h"
 #else
-#include "LockFreeVoidPointerListBase.h"
+#include "Containers/LockFreeVoidPointerListBase.h"
 #endif
 
-#include "LockFreeListImpl.h"
+#include "Containers/LockFreeListImpl.h"
 

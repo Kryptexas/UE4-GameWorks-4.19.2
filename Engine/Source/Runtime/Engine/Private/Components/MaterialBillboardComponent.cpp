@@ -1,9 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "LevelUtils.h"
-#include "LocalVertexFactory.h"
 #include "Components/MaterialBillboardComponent.h"
+#include "EngineGlobals.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "VertexFactory.h"
+#include "PackedNormal.h"
+#include "LocalVertexFactory.h"
+#include "PrimitiveViewRelevance.h"
+#include "Materials/MaterialInterface.h"
+#include "PrimitiveSceneProxy.h"
+#include "Engine/CollisionProfile.h"
+#include "Curves/CurveFloat.h"
+#include "SceneManagement.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
+#include "LevelUtils.h"
+#include "PrimitiveSceneProxy.h"
 
 /** A material sprite vertex. */
 struct FMaterialSpriteVertex
@@ -330,5 +343,13 @@ void UMaterialBillboardComponent::SetMaterial(int32 ElementIndex, class UMateria
 		Elements[ElementIndex].Material = Material;
 
 		MarkRenderStateDirty();
+	}
+}
+
+void UMaterialBillboardComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+{
+	for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
+	{
+		OutMaterials.AddUnique(GetMaterial(ElementIndex));
 	}
 }

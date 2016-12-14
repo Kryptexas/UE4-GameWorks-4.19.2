@@ -166,7 +166,6 @@ class PvdImpl : public PsPvd, public shdfnd::UserAllocated
 	bool isConnected(bool useCachedStatus = true);
 	void flush();
 
-	PsPvd* getPvdInternal();
 	PxPvdTransport* getTransport();
 	PxPvdInstrumentationFlags getInstrumentationFlags();
 
@@ -186,10 +185,6 @@ class PvdImpl : public PsPvd, public shdfnd::UserAllocated
 
 	static bool initialize();
 	static PvdImpl* getInstance();
-
-	virtual void setUserProfiler(physx::PxProfilerCallback *callback);
-
-	virtual physx::PxProfilerCallback* getUserProfiler();
 
 	// Profiling
 
@@ -213,7 +208,6 @@ class PvdImpl : public PsPvd, public shdfnd::UserAllocated
 	bool								mIsNVTXSupportEnabled;
 	uint32_t							mNVTXContext;
 	uint64_t							mNextStreamId;
-	physx::PxProfilerCallback*			mUserProfilerCallback;
 	physx::profile::PxProfileZoneManager*mProfileZoneManager;
 	PvdProfileZoneClient*				mProfileClient;
 	physx::profile::PxProfileZone*		mProfileZone;

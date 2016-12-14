@@ -1,18 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ThumbnailSection.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Layout/Margin.h"
+#include "Sections/ThumbnailSection.h"
 
-
-class FThumbnailSection;
-class FTrackEditorThumbnail;
+class FCinematicShotTrackEditor;
+class FMenuBuilder;
+class FSequencerSectionPainter;
 class FTrackEditorThumbnailPool;
-class FCinematicShotTrackEditor; 
-class IMenu;
-class ISectionLayoutBuilder;
 class UMovieSceneCinematicShotSection;
-
 
 /**
  * CinematicShot section, which paints and ticks the appropriate section.

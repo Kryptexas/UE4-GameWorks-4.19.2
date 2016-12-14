@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SkeletalMeshTypes.h"
-#include "BoneContainer.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 #include "BoneIndices.h"
+#include "Animation/AnimTypes.h"
 #include "CustomBoneIndexArray.h"
 #include "AnimEncoding.h"
 #include "Animation/AnimStats.h"
-#include "Animation/AnimTypes.h"
 
 struct FBoneTransform
 {

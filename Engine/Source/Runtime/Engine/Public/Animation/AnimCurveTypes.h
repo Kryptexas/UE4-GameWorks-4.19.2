@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Curves/CurveBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Animation/AnimTypes.h"
+#include "Animation/SmartName.h"
 #include "Animation/Skeleton.h"
-#include "BoneContainer.h"
+#include "Curves/RichCurve.h"
 #include "AnimCurveTypes.generated.h"
 
 /** This is curve flags that are saved in asset and **/

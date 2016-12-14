@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Runtime/Core/Public/GenericPlatform/GenericPlatformProcess.h"
-#include "Runtime/Core/Public/Misc/Timespan.h"
-#include "Runtime/Core/Public/Containers/Queue.h"
-
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Timespan.h"
+#include "Logging/LogMacros.h"
+#include "Delegates/Delegate.h"
+#include "Misc/DateTime.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/Runnable.h"
+#include "Containers/Queue.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogInteractiveProcess, Log, All);
 

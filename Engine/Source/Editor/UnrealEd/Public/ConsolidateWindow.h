@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ConsolidationWindow.h: Dialog for displaying the asset consolidation tool.
@@ -6,6 +6,8 @@
 
 #ifndef __SCONSOLIDATEWINDOW_H__
 #define __SCONSOLIDATEWINDOW_H__
+
+#include "CoreMinimal.h"
 
 class SConsolidateToolWidget;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanRHI.cpp: Vulkan device RHI implementation.
@@ -11,7 +11,9 @@
 #include "VulkanResources.h"
 #include "VulkanPendingState.h"
 #include "VulkanContext.h"
+#include "Misc/CommandLine.h"
 #include "GenericPlatformDriver.h"
+#include "Modules/ModuleManager.h"
 
 #ifdef VK_API_VERSION
 // Check the SDK is least the API version we want to use
@@ -255,11 +257,8 @@ FDynamicRHI* FVulkanDynamicRHIModule::CreateRHI(ERHIFeatureLevel::Type InRequest
 		GMaxRHIShaderPlatform = PLATFORM_ANDROID ? SP_VULKAN_ES3_1_ANDROID : SP_VULKAN_PCES3_1;
 	}
 
-	//#todo-rco: When is this needed?
-#if 0
 	// VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS=0 requires separate MSAA and resolve textures
-	check(RHISupportsSeparateMSAAAndResolveTextures(GMaxRHIShaderPlatform) == (true && !VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS));
-#endif
+	check(RHISupportsSeparateMSAAAndResolveTextures(GMaxRHIShaderPlatform) == (!VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS));
 
 	return new FVulkanDynamicRHI();
 }
@@ -272,7 +271,8 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	, Device(InDevice)
 	, bIsImmediate(bInIsImmediate)
 	, bSubmitAtNextSafePoint(false)
-	, UBRingBuffer(nullptr)
+	, bAutomaticFlushAfterComputeShader(true)
+	, UniformBufferUploader(nullptr)
 	, PendingNumVertices(0)
 	, PendingVertexDataStride(0)
 	, PendingPrimitiveIndexType(VK_INDEX_TYPE_MAX_ENUM)
@@ -297,7 +297,7 @@ FVulkanCommandListContext::FVulkanCommandListContext(FVulkanDynamicRHI* InRHI, F
 	FVulkanDescriptorPool* Pool = new FVulkanDescriptorPool(Device);
 	DescriptorPools.Add(Pool);
 
-	UBRingBuffer = new FVulkanRingBuffer(InDevice, VULKAN_UB_RING_BUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	UniformBufferUploader = new FVulkanUniformBufferUploader(Device, VULKAN_UB_RING_BUFFER_SIZE);
 }
 
 FVulkanCommandListContext::~FVulkanCommandListContext()
@@ -308,7 +308,7 @@ FVulkanCommandListContext::~FVulkanCommandListContext()
 
 	TransitionState.Destroy(*Device);
 
-	delete UBRingBuffer;
+	delete UniformBufferUploader;
 	delete PendingGfxState;
 	delete PendingComputeState;
 
@@ -446,7 +446,7 @@ void FVulkanDynamicRHI::CreateInstance()
 	App.pApplicationName = "UE4";
 	App.applicationVersion = 0;
 	App.pEngineName = "UE4";
-	App.engineVersion = 0;
+	App.engineVersion = 15;
 	App.apiVersion = UE_VK_API_VERSION;
 
 	VkInstanceCreateInfo InstInfo;
@@ -478,35 +478,32 @@ void FVulkanDynamicRHI::CreateInstance()
 
 	VkResult Result = VulkanRHI::vkCreateInstance(&InstInfo, nullptr, &Instance);
 	
-	if(Result == VK_ERROR_INCOMPATIBLE_DRIVER)
+	if (Result == VK_ERROR_INCOMPATIBLE_DRIVER)
 	{
-		checkf(0, TEXT(
-			"Cannot find a compatible Vulkan installable client driver \
-			(ICD).\n\nPlease look at the Getting Started guide for \
-			additional information.\n\
-			vkCreateInstance Failure"));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
+			"Cannot find a compatible Vulkan driver (ICD).\n\nPlease look at the Getting Started guide for \
+			additional information."), TEXT("Incompatible Vulkan driver found!"));
 	}
 	else if(Result == VK_ERROR_EXTENSION_NOT_PRESENT)
 	{
-		checkf(0, TEXT(
-			"Cannot find a specified extension library\
-			 .\nMake sure your layers path is set appropriately\n\
-			 vkCreateInstance Failure"));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
+			"Vulkan driver doesn't contain specified extension;\n\
+			make sure your layers path is set appropriately."), TEXT("Incomplete Vulkan driver found!"));
 	}
-	else if(Result)
+	else if (Result != VK_SUCCESS)
 	{
-		checkf(0, TEXT(
-			"vkCreateInstance failed.\n\nDo you have a compatible Vulkan \
-			 installable client driver (ICD) installed?\nPlease look at \
-			 the Getting Started guide for additional information.\n\
-			 vkCreateInstance Failure"));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
+			"Vulkan failed to create instace (apiVersion=0x%x)\n\nDo you have a compatible Vulkan \
+			 driver (ICD) installed?\nPlease look at \
+			 the Getting Started guide for additional information."), TEXT("No Vulkan driver found!"));
 	}
 
 	VERIFYVULKANRESULT(Result);
 
 	if (!LoadVulkanInstanceFunctions(Instance))
 	{
-		UE_LOG(LogVulkanRHI, Fatal, TEXT("Failed to find all required Vulkan entry points! Maybe using an older SDK/driver?"));
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT(
+			"Failed to find all required Vulkan entry points! Try updating your driver."), TEXT("No Vulkan entry points found!"));
 	}
 
 #if !VULKAN_DISABLE_DEBUG_CALLBACK && VULKAN_HAS_DEBUGGING_ENABLED
@@ -1112,7 +1109,7 @@ void FVulkanBufferView::Create(FVulkanResourceMultiBuffer* Buffer, EPixelFormat 
 	// @todo vulkan: Because the buffer could be the ring buffer, maybe we should pass in a size here as well (for the sub part of the ring buffer)
 	ViewInfo.offset = Offset;
 	ViewInfo.range = Size;
-	Flags = Buffer->GetBufferUsageFlags() & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+	Flags = Buffer->GetBufferUsageFlags() & (VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT);
 	check(Flags);
 
 	VERIFYVULKANRESULT(VulkanRHI::vkCreateBufferView(GetParent()->GetInstanceHandle(), &ViewInfo, nullptr, &View));
@@ -1159,7 +1156,7 @@ FVulkanRenderPass::FVulkanRenderPass(FVulkanDevice& InDevice, const FVulkanRende
 	FMemory::Memzero(CreateInfo);
 	CreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	CreateInfo.pNext = nullptr;
-	CreateInfo.attachmentCount = RTLayout.GetNumAttachments();
+	CreateInfo.attachmentCount = RTLayout.GetNumAttachmentDescriptions();
 	CreateInfo.pAttachments = RTLayout.GetAttachmentDescriptions();
 	CreateInfo.subpassCount = 1;
 	CreateInfo.pSubpasses = &SubpassDesc;
@@ -1253,14 +1250,14 @@ void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRH
 		1, &ResolveDesc);
 }
 
-FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, VkFlags Usage)
+FVulkanRingBuffer::FVulkanRingBuffer(FVulkanDevice* InDevice, uint64 TotalSize, VkFlags Usage, VkMemoryPropertyFlags MemPropertyFlags)
 	: VulkanRHI::FDeviceChild(InDevice)
 	, BufferOffset(0)
 	, BufferSize(TotalSize)
 	, MinAlignment(0)
 {
 	FRHIResourceCreateInfo CreateInfo;
-	BufferSuballocation = InDevice->GetResourceHeapManager().AllocateBuffer(TotalSize, Usage, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, __FILE__, __LINE__);
+	BufferSuballocation = InDevice->GetResourceHeapManager().AllocateBuffer(TotalSize, Usage, MemPropertyFlags, __FILE__, __LINE__);
 	MinAlignment = BufferSuballocation->GetBufferAllocation()->GetAlignment();
 }
 

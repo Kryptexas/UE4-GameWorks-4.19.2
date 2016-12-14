@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5Misc.cpp: HTML5 implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "HTML5PlatformMisc.h"
 #include "HTML5Application.h"
+#include "HTML5PlatformProcess.h"
 
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"

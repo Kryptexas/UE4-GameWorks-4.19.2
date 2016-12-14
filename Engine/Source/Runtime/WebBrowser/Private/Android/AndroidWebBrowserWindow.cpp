@@ -1,6 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "WebBrowserPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidWebBrowserWindow.h"
 #include "AndroidWebBrowserDialog.h"
@@ -21,12 +19,12 @@ namespace {
 
 }
 
-FAndroidWebBrowserWindow::FAndroidWebBrowserWindow(FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
+FAndroidWebBrowserWindow::FAndroidWebBrowserWindow(FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency, bool bInJSBindingToLoweringEnabled)
 	: CurrentUrl(MoveTemp(InUrl))
 	, ContentsToLoad(MoveTemp(InContentsToLoad))
 	, DocumentState(EWebBrowserDocumentState::NoDocument)
 	, ErrorCode(0)
-	, Scripting(new FAndroidJSScripting())
+	, Scripting(new FAndroidJSScripting(bInJSBindingToLoweringEnabled))
 {
 }
 
@@ -128,6 +126,10 @@ FReply FAndroidWebBrowserWindow::OnMouseButtonDoubleClick(const FGeometry& MyGeo
 FReply FAndroidWebBrowserWindow::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)
 {
 	return FReply::Unhandled();
+}
+
+void FAndroidWebBrowserWindow::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
 }
 
 FReply FAndroidWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup)

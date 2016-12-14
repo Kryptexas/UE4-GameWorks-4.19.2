@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalRHIPrivate.h: Private Metal RHI definitions.
@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "Engine.h"
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CommandLine.h"
 
 // UE4 has a Max of 8 RTs, but we can spend less time looping with 6
 const uint32 MaxMetalRenderTargets = 6;
@@ -104,6 +106,36 @@ void UntrackMetalObject(NSObject* Object);
 #define UNTRACK_OBJECT(Stat, Obj) DEC_DWORD_STAT(Stat)
 #endif
 
+enum EMetalIndexType
+{
+	EMetalIndexType_None   = 0,
+	EMetalIndexType_UInt16 = 1,
+	EMetalIndexType_UInt32 = 2
+};
+
+FORCEINLINE MTLIndexType GetMetalIndexType(EMetalIndexType IndexType)
+{
+	switch (IndexType)
+	{
+		case EMetalIndexType_UInt16: return MTLIndexTypeUInt16;
+		case EMetalIndexType_UInt32: return MTLIndexTypeUInt32;
+		case EMetalIndexType_None:
+		{
+			UE_LOG(LogMetal, Fatal, TEXT("There is not equivalent MTLIndexType for EMetalIndexType_None"));
+			return MTLIndexTypeUInt16;
+		}
+	}
+}
+
+FORCEINLINE EMetalIndexType GetRHIMetalIndexType(MTLIndexType IndexType)
+{
+	switch (IndexType)
+	{
+		case MTLIndexTypeUInt16: return EMetalIndexType_UInt16;
+		case MTLIndexTypeUInt32: return EMetalIndexType_UInt32;
+	}
+}
+
 FORCEINLINE int32 GetMetalCubeFace(ECubeFace Face)
 {
 	// According to Metal docs these should match now: https://developer.apple.com/library/prerelease/ios/documentation/Metal/Reference/MTLTexture_Ref/index.html#//apple_ref/c/tdef/MTLTextureType
@@ -141,5 +173,10 @@ FORCEINLINE MTLStoreAction GetMetalRTStoreAction(ERenderTargetStoreAction StoreA
 	}
 }
 
+uint32 TranslateElementTypeToSize(EVertexElementType Type);
+
+MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType);
+
 #include "MetalStateCache.h"
 #include "MetalContext.h"
+

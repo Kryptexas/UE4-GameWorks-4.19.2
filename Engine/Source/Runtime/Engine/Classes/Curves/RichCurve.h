@@ -1,9 +1,13 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
-#include "Curves/IndexedCurve.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
 #include "Curves/KeyHandle.h"
+#include "Curves/IndexedCurve.h"
 #include "RichCurve.generated.h"
-
 
 /** Method of interpolation between this key and the next. */
 UENUM()
@@ -335,13 +339,13 @@ public:
 	UPROPERTY()
 	TEnumAsByte<ERichCurveExtrapolation> PostInfinityExtrap;
 
-	/** Sorted array of keys */
-	UPROPERTY(EditAnywhere, EditFixedSize, Category="Curve")
-	TArray<FRichCurveKey> Keys;
-
 	/** Default value */
 	UPROPERTY(EditAnywhere, Category="Curve")
 	float DefaultValue;
+
+	/** Sorted array of keys */
+	UPROPERTY(EditAnywhere, EditFixedSize, Category="Curve")
+	TArray<FRichCurveKey> Keys;
 };
 
 

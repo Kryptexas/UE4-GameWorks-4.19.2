@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchAnalytics.h: Declares static helper class for sending analytics events
@@ -8,7 +8,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Interfaces/IHttpRequest.h"
+
 class FHttpServiceTracker;
+class IAnalyticsProvider;
 struct FAnalyticsEventAttribute;
 
 /**

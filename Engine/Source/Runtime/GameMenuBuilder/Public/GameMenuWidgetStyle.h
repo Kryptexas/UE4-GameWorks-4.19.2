@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateWidgetStyleContainerBase.h"
+#include "CoreMinimal.h"
+#include "UObject/NameTypes.h"
+#include "UObject/ObjectMacros.h"
+#include "Layout/Margin.h"
+#include "Sound/SlateSound.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateBrush.h"
+#include "Styling/SlateWidgetStyle.h"
+#include "Styling/SlateWidgetStyleContainerBase.h"
 #include "GameMenuWidgetStyle.generated.h"
 
 UENUM()

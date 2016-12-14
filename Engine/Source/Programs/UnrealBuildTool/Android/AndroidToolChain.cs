@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -227,7 +227,7 @@ namespace UnrealBuildTool
 							 select Arch + GPUArch).ToList();
 		}
 
-		static public string GetGLESVersionFromGPUArch(string GPUArch)
+		static public string GetGLESVersionFromGPUArch(string GPUArch, bool bES30Minimum)
 		{
 			GPUArch = GPUArch.Substring(1); // drop the '-' from the start
 			string GLESversion = "";
@@ -242,6 +242,10 @@ namespace UnrealBuildTool
 				default:
 					GLESversion = "0x00020000";
 					break;
+			}
+			if (bES30Minimum && (GLESversion[6] < '3'))
+			{
+				GLESversion = "0x00030000";
 			}
 
 			return GLESversion;
@@ -400,7 +404,7 @@ namespace UnrealBuildTool
 			}
 
 			// shipping builds will cause this warning with "ensure", so disable only in those case
-			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
+			if (CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Shipping)
 			{
 				Result += " -Wno-unused-value";
 			}
@@ -412,7 +416,7 @@ namespace UnrealBuildTool
 			}
 
 			// optimization level
-			if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+			if (!CompileEnvironment.Config.bOptimizeCode)
 			{
 				Result += " -O0";
 			}
@@ -428,6 +432,29 @@ namespace UnrealBuildTool
 				}
 			}
 
+
+			// Optionally enable exception handling (off by default since it generates extra code needed to propagate exceptions)
+			if (CompileEnvironment.Config.bEnableExceptions || UEBuildConfiguration.bForceEnableExceptions)
+			{
+				Result += " -fexceptions";
+			}
+			else
+			{
+				Result += " -fno-exceptions";           
+			}
+
+			// Conditionally enable (default disabled) generation of information about every class with virtual functions for use by the C++ runtime type identification features 
+			// (`dynamic_cast' and `typeid'). If you don't use those parts of the language, you can save some space by using -fno-rtti. 
+			// Note that exception handling uses the same information, but it will generate it as needed. 
+			if (CompileEnvironment.Config.bUseRTTI)
+			{
+				Result += " -frtti";
+			}
+			else
+			{
+				Result += " -fno-rtti";
+			}
+
 			//@todo android: these are copied verbatim from UE3 and probably need adjustment
 			if (Architecture == "-armv7")
 			{
@@ -437,8 +464,6 @@ namespace UnrealBuildTool
 				//		Result += " -mlong-calls";				// Perform function calls by first loading the address of the function into a reg and then performing the subroutine call
 				Result += " -fno-strict-aliasing";		// Prevents unwanted or invalid optimizations that could produce incorrect code
 				Result += " -fpic";						// Generates position-independent code (PIC) suitable for use in a shared library
-				Result += " -fno-exceptions";			// Do not enable exception handling, generates extra code needed to propagate exceptions
-				Result += " -fno-rtti";					// 
 				Result += " -fno-short-enums";			// Do not allocate to an enum type only as many bytes as it needs for the declared range of possible values
 				//		Result += " -finline-limit=64";			// GCC limits the size of functions that can be inlined, this flag allows coarse control of this limit
 				//		Result += " -Wno-psabi";				// Warn when G++ generates code that is probably not compatible with the vendor-neutral C++ ABI
@@ -448,7 +473,7 @@ namespace UnrealBuildTool
 				Result += " -mfpu=vfpv3-d16";			//@todo android: UE3 was just vfp. arm7a should all support v3 with 16 registers
 
 				// Add flags for on-device debugging	
-				if (CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Config.Configuration == CPPTargetConfiguration.Debug)
 				{
 					Result += " -fno-omit-frame-pointer";	// Disable removing the save/restore frame pointer for better debugging
 					if (ClangVersionFloat >= 3.6f)
@@ -458,7 +483,7 @@ namespace UnrealBuildTool
 				}
 
 				// Some switches interfere with on-device debugging
-				if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Config.Configuration != CPPTargetConfiguration.Debug)
 				{
 					Result += " -ffunction-sections";   // Places each function in its own section of the output file, linker may be able to perform opts to improve locality of reference
 				}
@@ -471,10 +496,7 @@ namespace UnrealBuildTool
 				Result += " -fstack-protector";			// Emits extra code to check for buffer overflows
 				Result += " -fno-strict-aliasing";		// Prevents unwanted or invalid optimizations that could produce incorrect code
 				Result += " -fpic";						// Generates position-independent code (PIC) suitable for use in a shared library
-				Result += " -fno-exceptions";			// Do not enable exception handling, generates extra code needed to propagate exceptions
-				Result += " -fno-rtti";					// 
 				Result += " -fno-short-enums";          // Do not allocate to an enum type only as many bytes as it needs for the declared range of possible values
-
 				Result += " -D__arm64__";				// for some reason this isn't defined and needed for PhysX
 
 				Result += " -march=armv8-a";
@@ -482,7 +504,7 @@ namespace UnrealBuildTool
 				//Result += " -mfpu=vfpv3-d16";			//@todo android: UE3 was just vfp. arm7a should all support v3 with 16 registers
 
 				// Some switches interfere with on-device debugging
-				if (CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+				if (CompileEnvironment.Config.Configuration != CPPTargetConfiguration.Debug)
 				{
 					Result += " -ffunction-sections";   // Places each function in its own section of the output file, linker may be able to perform opts to improve locality of reference
 				}
@@ -495,8 +517,6 @@ namespace UnrealBuildTool
 				Result += " -fno-omit-frame-pointer";
 				Result += " -fno-strict-aliasing";
 				Result += " -fno-short-enums";
-				Result += " -fno-exceptions";
-				Result += " -fno-rtti";
 				Result += " -march=atom";
 			}
 			else if (Architecture == "-x64")
@@ -505,8 +525,6 @@ namespace UnrealBuildTool
 				Result += " -fno-omit-frame-pointer";
 				Result += " -fno-strict-aliasing";
 				Result += " -fno-short-enums";
-				Result += " -fno-exceptions";
-				Result += " -fno-rtti";
 				Result += " -march=atom";
 			}
 
@@ -861,7 +879,7 @@ namespace UnrealBuildTool
 		}
 
 		static private bool bHasPrintedApiLevel = false;
-		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
+		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName, ActionGraph ActionGraph)
 		{
 			if (Arches.Count == 0)
 			{
@@ -894,7 +912,7 @@ namespace UnrealBuildTool
 				BaseArguments += string.Format(" -D \"{0}\"", Definition);
 			}
 
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Platform);
 			var NDKRoot = Environment.GetEnvironmentVariable("NDKROOT").Replace("\\", "/");
 
 			string BasePCHName = "";
@@ -959,7 +977,7 @@ namespace UnrealBuildTool
 
 					foreach (FileItem SourceFile in SourceFiles)
 					{
-						Action CompileAction = new Action(ActionType.Compile);
+						Action CompileAction = ActionGraph.Add(ActionType.Compile);
 						string FileArguments = "";
 						bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
 						bool bDisableShadowWarning = false;
@@ -967,12 +985,12 @@ namespace UnrealBuildTool
 						// should we disable optimizations on this file?
 						// @todo android - We wouldn't need this if we could disable optimizations per function (via pragma)
 						bool bDisableOptimizations = false;// SourceFile.AbsolutePath.ToUpperInvariant().IndexOf("\\SLATE\\") != -1;
-						if (bDisableOptimizations && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Debug)
+						if (bDisableOptimizations && CompileEnvironment.Config.bOptimizeCode)
 						{
 							Log.TraceWarning("Disabling optimizations on {0}", SourceFile.AbsolutePath);
 						}
 
-						bDisableOptimizations = bDisableOptimizations || CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug;
+						bDisableOptimizations = bDisableOptimizations || !CompileEnvironment.Config.bOptimizeCode;
 
 						// Add C or C++ specific compiler arguments.
 						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
@@ -998,7 +1016,7 @@ namespace UnrealBuildTool
 						}
 
 						// Add the C++ source file and its included files to the prerequisite item list.
-						AddPrerequisiteSourceFile(Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
+						AddPrerequisiteSourceFile(BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
 
 						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 						{
@@ -1081,7 +1099,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
+		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly, ActionGraph ActionGraph)
 		{
 			return null;
 		}
@@ -1104,7 +1122,7 @@ namespace UnrealBuildTool
 			return Pathname;
 		}
 
-		public override FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
+		public override FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly, ActionGraph ActionGraph)
 		{
 			List<FileItem> Outputs = new List<FileItem>();
 
@@ -1149,7 +1167,7 @@ namespace UnrealBuildTool
 					}
 
 					// Create an action that invokes the linker.
-					Action LinkAction = new Action(ActionType.Link);
+					Action LinkAction = ActionGraph.Add(ActionType.Link);
 					LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 
 					if (LinkEnvironment.Config.bIsBuildingLibrary)
@@ -1280,7 +1298,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile)
+		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile, ActionGraph ActionGraph)
 		{
 			throw new BuildException("Android cannot compile C# files");
 		}

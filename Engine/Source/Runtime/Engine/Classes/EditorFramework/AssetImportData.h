@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/SecureHash.h"
 #include "AssetImportData.generated.h"
 
 /** Struct that is used to store an array of asset import data as an asset registry tag */
@@ -61,6 +65,9 @@ class ENGINE_API UAssetImportData : public UObject
 {
 public:
 	GENERATED_UCLASS_BODY()
+
+	/** Only valid in the editor */
+	virtual bool IsEditorOnly() const override { return true; }
 
 #if WITH_EDITORONLY_DATA
 

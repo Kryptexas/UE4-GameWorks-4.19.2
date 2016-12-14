@@ -1,8 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Geometry.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SLeafWidget.h"
+#include "Framework/SlateDelegates.h"
 #include "VisualizerEvents.h"
+
+class FPaintArgs;
+class FSlateWindowElementList;
+struct FSlateBrush;
 
 /** A graph bar widget.*/
 class TASKGRAPH_API SGraphBar : public SLeafWidget

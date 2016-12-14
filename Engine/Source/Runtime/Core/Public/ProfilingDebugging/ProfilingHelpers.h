@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Here are a number of profiling helper functions so we do not have to duplicate a lot of the glue
@@ -7,6 +7,10 @@
  */
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Delegates/Delegate.h"
 
 enum EStreamingStatus
 {

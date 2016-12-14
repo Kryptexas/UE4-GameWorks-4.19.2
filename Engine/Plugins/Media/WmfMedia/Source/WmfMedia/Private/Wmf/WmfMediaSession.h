@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "../WmfMediaPrivate.h"
 #include "IMediaControls.h"
-#include "AllowWindowsPlatformTypes.h"
 
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
+#include "AllowWindowsPlatformTypes.h"
 
 // forward declarations
 enum class EMediaPlaybackDirections;
@@ -213,3 +216,5 @@ private:
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif

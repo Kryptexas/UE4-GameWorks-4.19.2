@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSTargetPlatform.h: Declares the FIOSTargetPlatform class.
@@ -6,7 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "TargetPlatformBase.h"
+#include "IOSPlatformProperties.h"
 #include "Ticker.h"
+#include "IOSMessageProtocol.h"
+#include "IMessageContext.h"
+#include "IOSTargetDevice.h"
+#include "IOSDeviceHelper.h"
+#include "Misc/ConfigCacheIni.h"
 
 #if WITH_ENGINE
 #include "StaticMeshResources.h"

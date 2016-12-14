@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Styling/ISlateStyle.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Models/MessagingDebuggerModel.h"
+#include "Misc/NotifyHook.h"
 
-class FMessagingDebuggerModel;
 class IStructureDetailsView;
-
+class SMultiLineEditableTextBox;
+struct FPropertyChangedEvent;
 
 /**
  * Implements the message data panel.

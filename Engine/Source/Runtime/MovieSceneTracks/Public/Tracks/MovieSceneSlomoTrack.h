@@ -1,14 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneFloatTrack.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieSceneFloatTrack.h"
 #include "MovieSceneSlomoTrack.generated.h"
-
-
-class IMovieSceneTrackInstance;
-class UMovieSceneSection;
-
 
 /**
  * Implements a movie scene track that controls a movie scene's playback speed.

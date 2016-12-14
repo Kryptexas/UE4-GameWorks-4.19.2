@@ -1,13 +1,19 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "FontFaceInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Fonts/FontFaceInterface.h"
 #include "FontFace.generated.h"
+
+class ITargetPlatform;
+struct FPropertyChangedEvent;
 
 /**
  * A font face asset contains the raw payload data for a source TTF/OTF file as used by FreeType.
- * During cook this asset type generates a ".ufont" file containing the raw payload data.
+ * During cook this asset type generates a ".ufont" file containing the raw payload data (unless loaded "Inline").
  */
 UCLASS(hidecategories=Object, autoexpandcategories=FontFace, MinimalAPI, BlueprintType)
 class UFontFace : public UObject, public IFontFaceInterface
@@ -19,6 +25,7 @@ public:
 	UFontFace();
 
 	//~ Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -35,9 +42,7 @@ public:
 	virtual const FString& GetFontFilename() const override;
 	virtual EFontHinting GetHinting() const override;
 	virtual EFontLoadingPolicy GetLoadingPolicy() const override;
-#if WITH_EDITORONLY_DATA
-	virtual const TArray<uint8>& GetFontFaceData() const override;
-#endif // WITH_EDITORONLY_DATA
+	virtual FFontFaceDataConstRef GetFontFaceData() const override;
 	virtual FString GetCookedFilename() const override;
 	//~ End IFontFaceInterface interface
 
@@ -53,9 +58,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FontFace)
 	EFontLoadingPolicy LoadingPolicy;
 
+	/** The data associated with the font face. This should always be filled in providing the source filename is valid. */
+	FFontFaceDataRef FontFaceData;
+
 #if WITH_EDITORONLY_DATA
 	/** The data associated with the font face. This should always be filled in providing the source filename is valid. */
 	UPROPERTY()
-	TArray<uint8> FontFaceData;
+	TArray<uint8> FontFaceData_DEPRECATED;
 #endif // WITH_EDITORONLY_DATA
 };

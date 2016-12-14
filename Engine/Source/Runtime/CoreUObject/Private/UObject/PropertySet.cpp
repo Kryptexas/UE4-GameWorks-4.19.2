@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "PropertyHelper.h"
-#include "ScopeExit.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/PropertyTag.h"
+#include "UObject/UnrealType.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/PropertyHelper.h"
+#include "Misc/ScopeExit.h"
 
 namespace UE4SetProperty_Private
 {
@@ -865,38 +869,6 @@ bool USetProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8*
 	return false;
 }
 
-/**
- * Checks to see if this property already has the supplied value as an element
- * @param	InSet			The address of the set
- * @param	InBaseAddress	The base address of the set
- * @param	InValue			The value to find in the set
- * @return True if InValue is an element in the set, false otherwise
- */
-bool USetProperty::HasElement(void* InSet, void* InBaseAddress, const FString& InValue) const
-{
-	FScriptSetHelper SetHelper(this, InSet);
-
-	for ( int32 Index = 0, ItemsLeft = SetHelper.Num(); ItemsLeft > 0; ++Index )
-	{
-		if (SetHelper.IsValidIndex(Index))
-		{
-			--ItemsLeft;
-
-			uint8* Element = SetHelper.GetElementPtr(Index);
-
-			FString ElementValue;
-			if (Element != InBaseAddress && ElementProp->ExportText_Direct(ElementValue, Element, Element, nullptr, 0))
-			{
-				if ( (Cast<UObjectProperty>(ElementProp) != nullptr && ElementValue.Contains(InValue)) || ElementValue == InValue)
-				{
-					return true;
-				}
-			}
-		}
-	}
-
-	return false;
-}
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(USetProperty, UProperty,
 	{

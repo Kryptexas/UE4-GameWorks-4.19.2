@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHICommandList.inl: RHI Command List inline definitions.
 =============================================================================*/
 
 #pragma once
+
+class FRHICommandListBase;
+class FRHICommandListExecutor;
+class FRHICommandListImmediate;
+class FRHIResource;
+class FScopedRHIThreadStaller;
+struct FRHICommandBase;
 
 FORCEINLINE_DEBUGGABLE void FRHICommandListBase::Flush()
 {

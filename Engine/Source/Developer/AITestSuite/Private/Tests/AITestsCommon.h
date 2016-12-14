@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Misc/AutomationTest.h"
+#include "TestLogger.h"
+#include "Actions/PawnActionsComponent.h"
 
 #define ENSURE_FAILED_TESTS 1
 

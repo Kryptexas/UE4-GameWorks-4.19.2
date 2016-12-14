@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DepthRendering.h: Depth rendering definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "HitProxies.h"
+#include "DrawingPolicy.h"
+
+class FDepthOnlyPS;
+class FPrimitiveSceneProxy;
+class FScene;
+class FStaticMesh;
+class FViewInfo;
 
 enum EDepthDrawingMode
 {
@@ -36,14 +47,10 @@ public:
 
 	struct ContextDataType : public FMeshDrawingPolicy::ContextDataType
 	{
-		explicit ContextDataType(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer, const bool InbIsInstancedStereo) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), ViewUniformBuffer(InViewUniformBuffer), bIsInstancedStereoEmulated(false) {};
-		ContextDataType(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer, const bool InbIsInstancedStereo, const bool InbIsInstancedStereoEmulated) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), ViewUniformBuffer(InViewUniformBuffer), bIsInstancedStereoEmulated(InbIsInstancedStereoEmulated) {};
-		ContextDataType(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer) : ViewUniformBuffer(InViewUniformBuffer), bIsInstancedStereoEmulated(false) {};
+		explicit ContextDataType( const bool InbIsInstancedStereo) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(false) {};
+		ContextDataType(const bool InbIsInstancedStereo, const bool InbIsInstancedStereoEmulated) : FMeshDrawingPolicy::ContextDataType(InbIsInstancedStereo), bIsInstancedStereoEmulated(InbIsInstancedStereoEmulated) {};
+		ContextDataType() : bIsInstancedStereoEmulated(false) {};
 		
-		//this has been explicitly deleted to force an error message when the default constructor is used (by some template code) In this case the ContextDataType has to be provided explicitly with the uniform buffer or else we will crash later.
-		ContextDataType() = delete;
-
-		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer;
 		bool bIsInstancedStereoEmulated;
 	};
 
@@ -51,13 +58,14 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
-		bool bIsTwoSided,
-		ERHIFeatureLevel::Type InFeatureLevel
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings,
+		ERHIFeatureLevel::Type InFeatureLevel,
+		float MobileColorValue
 		);
 
 	// FMeshDrawingPolicy interface.
 
-	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+	void ApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
 
 	FDrawingPolicyMatchResult Matches(const FDepthDrawingPolicy& Other) const
 	{
@@ -65,13 +73,14 @@ public:
 		 	DRAWING_POLICY_MATCH(FMeshDrawingPolicy::Matches(Other)) &&
 			DRAWING_POLICY_MATCH(bNeedsPixelShader == Other.bNeedsPixelShader) &&
 			DRAWING_POLICY_MATCH(VertexShader == Other.VertexShader) &&
-			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader);
+			DRAWING_POLICY_MATCH(PixelShader == Other.PixelShader) &&
+			DRAWING_POLICY_MATCH(MobileColorValue == Other.MobileColorValue);
 		DRAWING_POLICY_MATCH_END
 	}
 
 	void SetInstancedEyeIndex(FRHICommandList& RHICmdList, const uint32 EyeIndex) const;
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const FDepthDrawingPolicy::ContextDataType PolicyContext) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const FDepthDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
 
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
@@ -79,7 +88,7 @@ public:
 	* @param DynamicStride - optional stride for dynamic vertex data
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 
@@ -87,8 +96,7 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const;
@@ -103,6 +111,7 @@ private:
 	FShaderPipeline* ShaderPipeline;
 	TDepthOnlyVS<false>* VertexShader;
 	FDepthOnlyPS* PixelShader;
+	float MobileColorValue;
 };
 
 /**
@@ -125,13 +134,12 @@ public:
 		const FVertexFactory* InVertexFactory,
 		const FMaterialRenderProxy* InMaterialRenderProxy,
 		const FMaterial& InMaterialResource,
-		bool bIsTwoSided,
-		bool bIsWireframe
+		const FMeshDrawingPolicyOverrideSettings& InOverrideSettings
 		);
 
 	// FMeshDrawingPolicy interface.
 
-	static FMeshDrawingRenderState GetDitheredLODTransitionState(const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither = false);
+	void ApplyDitheredLODTransitionState(FRHICommandList& RHICmdList, FDrawingPolicyRenderState& DrawRenderState, const FViewInfo& ViewInfo, const FStaticMesh& Mesh, const bool InAllowStencilDither);
 
 	FDrawingPolicyMatchResult Matches(const FPositionOnlyDepthDrawingPolicy& Other) const
 	{
@@ -141,14 +149,14 @@ public:
 		DRAWING_POLICY_MATCH_END
 	}
 
-	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const FPositionOnlyDepthDrawingPolicy::ContextDataType PolicyContext) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const FPositionOnlyDepthDrawingPolicy::ContextDataType PolicyContext, FDrawingPolicyRenderState& DrawRenderState) const;
 
-	/** 
+	/**
 	* Create bound shader state using the vertex decl from the mesh draw policy
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel) const;
 
 	void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 
@@ -156,8 +164,7 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const;
@@ -181,16 +188,15 @@ public:
 	enum { bAllowSimpleElements = false };
 	struct ContextType
 	{
-		const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer;
-
 		EDepthDrawingMode DepthDrawingMode;
+		float MobileColorValue;
 
 		/** Uses of FDepthDrawingPolicyFactory that are not the depth pre-pass will not want the bUseAsOccluder flag to interfere. */
 		bool bRespectUseAsOccluderFlag;
 
-		ContextType(const TUniformBufferRef<FViewUniformShaderParameters>& InViewUniformBuffer, EDepthDrawingMode InDepthDrawingMode, bool bInRespectUseAsOccluderFlag) :
-			ViewUniformBuffer(InViewUniformBuffer),
+		ContextType(EDepthDrawingMode InDepthDrawingMode, bool bInRespectUseAsOccluderFlag) :
 			DepthDrawingMode(InDepthDrawingMode),
+			MobileColorValue(0.0f),
 			bRespectUseAsOccluderFlag(bInRespectUseAsOccluderFlag)
 		{}
 	};
@@ -201,8 +207,8 @@ public:
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
-		bool bBackFace,
 		bool bPreFog,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId,
 		const bool bIsInstancedStereo = false,
@@ -216,7 +222,7 @@ public:
 		const FStaticMesh& StaticMesh,
 		const uint64& BatchElementMask,
 		bool bPreFog,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId, 
 		const bool bIsInstancedStereo = false,
@@ -234,8 +240,7 @@ private:
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
 		const uint64& BatchElementMask,
-		bool bBackFace,
-		const FMeshDrawingRenderState& DrawRenderState,
+		const FDrawingPolicyRenderState& DrawRenderState,
 		bool bPreFog,
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId, 

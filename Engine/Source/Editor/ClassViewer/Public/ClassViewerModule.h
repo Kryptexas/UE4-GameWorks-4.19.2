@@ -1,5 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+
+class IClassViewerFilter;
+class IPropertyHandle;
 
 /** Delegate used with the Class Viewer in 'class picking' mode.  You'll bind a delegate when the
     class viewer widget is created, which will be fired off when a class is selected in the list */
@@ -81,6 +88,9 @@ public:
 
 	/** The property this class viewer be working on. */
 	TSharedPtr<class IPropertyHandle> PropertyHandle;
+
+	/** true (the default) shows the view options at the bottom of the class picker*/
+	bool bAllowViewOptions;
 public:
 
 	/** Constructor */
@@ -96,6 +106,7 @@ public:
 		, bExpandRootNodes(true)
 		, bEnableClassDynamicLoading(true)
 		, bShowDisplayNames(false)
+		, bAllowViewOptions(true)
 	{
 	}
 };

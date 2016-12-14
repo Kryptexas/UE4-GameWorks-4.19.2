@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TextWidgetTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWidget.h"
+#include "Components/TextWidgetTypes.h"
 #include "MultiLineEditableTextBox.generated.h"
+
+class SMultiLineEditableTextBox;
+class USlateWidgetStyleAsset;
 
 /**
  * Allows a user to enter multiple lines of text

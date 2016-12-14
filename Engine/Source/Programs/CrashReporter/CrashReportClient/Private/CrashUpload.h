@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Http.h"
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+#include "Internationalization/Text.h"
+#include "Interfaces/IHttpRequest.h"
 #include "PlatformErrorReport.h"
+
+struct FCompressedData;
+struct FCompressedHeader;
 
 class FCrashUploadBase
 {

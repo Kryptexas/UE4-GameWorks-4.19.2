@@ -14,8 +14,13 @@
  */
 
 #include "GoogleVRController.h"
+#include "GoogleVRControllerPrivate.h"
+#include "CoreDelegates.h"
 #include "IHeadMountedDisplay.h"
 #include "Classes/GoogleVRControllerFunctionLibrary.h"
+#include "Engine/Engine.h"
+#include "Misc/Paths.h"
+#include "HAL/FileManager.h"
 
 #if GOOGLEVRCONTROLLER_SUPPORTED_ANDROID_PLATFORMS
 #include "Android/AndroidJNI.h"

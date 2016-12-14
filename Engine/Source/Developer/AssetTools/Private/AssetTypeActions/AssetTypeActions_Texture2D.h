@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/Texture2D.h"
+#include "AssetTypeActions/AssetTypeActions_Texture.h"
+
+class FMenuBuilder;
 
 class FAssetTypeActions_Texture2D : public FAssetTypeActions_Texture
 {

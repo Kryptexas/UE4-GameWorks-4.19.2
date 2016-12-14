@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "DragAndDrop.h"
+#include "CoreMinimal.h"
+#include "Input/DragAndDrop.h"
+#include "Framework/Commands/UICommandInfo.h"
+
+class SWidget;
 
 /**
  * A drag drop operation for UI Commands

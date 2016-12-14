@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Editor/PropertyEditor/Public/IPropertyTypeCustomization.h"
 #include "SGameplayTagQueryWidget.h"
 #include "EditorUndoClient.h"
+
+class IPropertyHandle;
+class SWindow;
 
 /** Customization for the gameplay tag query struct */
 class FGameplayTagQueryCustomization : public IPropertyTypeCustomization, public FEditorUndoClient

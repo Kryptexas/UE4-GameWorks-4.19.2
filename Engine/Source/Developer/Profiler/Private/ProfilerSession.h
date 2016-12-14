@@ -1,20 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IProfilerServiceManager.h"
-#include "ProfilerDataSource.h"
+#include "CoreMinimal.h"
+#include "Containers/LockFreeList.h"
+#include "Misc/Guid.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "ProfilerCommon.h"
 #include "ProfilerSample.h"
+#include "ProfilerDataSource.h"
+#include "ISessionInstanceInfo.h"
+#include "Containers/Ticker.h"
+#include "IProfilerServiceManager.h"
+#include "Stats/StatsData.h"
 #include "ProfilerStream.h"
 
-
-class FEventGraphData;
 class FFPSAnalyzer;
-class FGraphDataSource;
-class FProfilerStatMetaData;
+class FProfilerGroup;
 class IDataProvider;
-class ISessionInstanceInfo;
-
 
 /**
  * Enumerates profiler session type.

@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SNumericDropDown.h"
+#include "CoreMinimal.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "Widgets/Input/SNumericDropDown.h"
 
 #define LOCTEXT_NAMESPACE "SequencerHelpers"
 
+class FSequencer;
+class IKeyArea;
+class UMovieSceneSection;
 
 class SequencerHelpers
 {

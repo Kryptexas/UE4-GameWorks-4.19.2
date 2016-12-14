@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-class IProfilerClient;
-
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "IProfilerClient.h"
 
 /**
  * Interface for ProfilerClient modules.

@@ -1,15 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
-#include "ScopedTransaction.h"
-#include "LevelUtils.h"
-#include "Editor/StatsViewer/Public/StatsViewerModule.h"
-#include "SnappingUtils.h"
-#include "MessageLog.h"
-#include "ComponentEditorUtils.h"
+#include "CoreMinimal.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Components/PrimitiveComponent.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Editor/GroupActor.h"
 #include "Components/ChildActorComponent.h"
 #include "Components/DecalComponent.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Engine/Selection.h"
+#include "EdMode.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "Dialogs/Dialogs.h"
+#include "UnrealEdGlobals.h"
+#include "ScopedTransaction.h"
+#include "Engine/LevelStreaming.h"
+#include "LevelUtils.h"
+#include "StatsViewerModule.h"
+#include "SnappingUtils.h"
+#include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "EditorSelectUtils"
 
@@ -300,7 +315,7 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 			{
 				USelection* SelectedActors = GetSelectedActors();
 				const bool bIsOwnerSelected = SelectedActors->IsSelected(ComponentOwner);
-				check(bIsOwnerSelected);
+				ensureMsgf(bIsOwnerSelected, TEXT("Owner(%s) of %s is not selected"), *ComponentOwner->GetFullName(), *Component->GetFullName());
 
 				if (ComponentOwner->GetWorld() == GWorld)
 				{
@@ -698,7 +713,23 @@ bool UUnrealEdEngine::IsComponentSelected(const UPrimitiveComponent* PrimCompone
 	bool bIsSelected = false;
 	if (GetSelectedComponentCount() > 0)
 	{
-		bIsSelected = GetSelectedComponents()->IsSelected(PrimComponent->IsEditorOnly() ? PrimComponent->GetAttachParent() : PrimComponent);
+		const UActorComponent* PotentiallySelectedComponent = nullptr;
+
+		AActor* ComponentOwner = PrimComponent->GetOwner();
+		if (ComponentOwner->IsChildActor())
+		{
+			do 
+			{
+				PotentiallySelectedComponent = ComponentOwner->GetParentComponent();
+				ComponentOwner = ComponentOwner->GetParentActor();
+			} while (ComponentOwner->IsChildActor());
+		}
+		else
+		{
+			PotentiallySelectedComponent = (PrimComponent->IsEditorOnly() ? PrimComponent->GetAttachParent() : PrimComponent);
+		}
+
+		bIsSelected = GetSelectedComponents()->IsSelected(PotentiallySelectedComponent);
 	}
 
 	return bIsSelected;

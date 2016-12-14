@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocVerify.h: Helper class to track memory allocations
@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "Allocators/AnsiAllocator.h"
+#include "CoreTypes.h"
+#include "HAL/MemoryBase.h"
+#include "Containers/Set.h"
+#include "Misc/ScopeLock.h"
+#include "HAL/Allocators/AnsiAllocator.h"
 
 #define MALLOC_VERIFY 0
 

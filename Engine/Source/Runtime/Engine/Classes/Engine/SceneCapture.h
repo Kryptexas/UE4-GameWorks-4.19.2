@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Base class for all SceneCapture actors
@@ -6,6 +6,10 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "SceneCapture.generated.h"
 
 UCLASS(abstract, hidecategories=(Collision, Attachment, Actor), MinimalAPI)

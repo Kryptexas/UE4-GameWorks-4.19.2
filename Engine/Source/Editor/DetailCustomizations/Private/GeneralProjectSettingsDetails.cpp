@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "DetailCustomizationsPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "GeneralProjectSettingsDetails.h"
+#include "Misc/Paths.h"
+#include "Misc/App.h"
+#include "Layout/Margin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "DetailCategoryBuilder.h"
+
 #include "SExternalImageReference.h"
 
 #define LOCTEXT_NAMESPACE "FGeneralProjectSettingsDetails"

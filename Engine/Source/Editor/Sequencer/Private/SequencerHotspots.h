@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "SequencerSelectedKey.h"
 #include "ISequencerHotspot.h"
-#include "SequencerDisplayNode.h"
-#include "ISequencerSection.h"
+#include "DisplayNodes/SequencerTrackNode.h"
 
+class FMenuBuilder;
+class ISequencer;
+class ISequencerEditToolDragOperation;
 
 /** A hotspot representing a key */
 struct FKeyHotspot

@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphSchema.h"
 #include "AIGraphTypes.h"
 #include "AIGraphSchema.generated.h"
+
+class FSlateRect;
+class UEdGraph;
 
 /** Action to add a node to the graph */
 USTRUCT()
@@ -20,8 +26,8 @@ struct AIGRAPH_API FAISchemaAction_NewNode : public FEdGraphSchemaAction
 		, NodeTemplate(nullptr)
 	{}
 
-	FAISchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FAISchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, NodeTemplate(nullptr)
 	{}
 
@@ -61,8 +67,8 @@ struct AIGRAPH_API FAISchemaAction_NewSubNode : public FEdGraphSchemaAction
 		, ParentNode(nullptr)
 	{}
 
-	FAISchemaAction_NewSubNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	FAISchemaAction_NewSubNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 		, NodeTemplate(nullptr)
 		, ParentNode(nullptr)
 	{}

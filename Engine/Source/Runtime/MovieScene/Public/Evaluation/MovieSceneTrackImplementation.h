@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneEvalTemplateBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Misc/InlineValue.h"
+#include "Evaluation/MovieSceneEvalTemplateBase.h"
 #include "MovieSceneTrackImplementation.generated.h"
+
+struct FMovieSceneEvaluationTrack;
+struct FMovieSceneExecutionTokens;
 
 /**
  * Structure that allows the implementation of setup/teardown/initialization/evaluation logic at the track level.

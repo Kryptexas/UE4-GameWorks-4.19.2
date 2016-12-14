@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/AutomationTest.h"
+
+class IAutomationReport;
+template< typename ItemType > class TFilterCollection;
 
 /**
 * The automation filter collection - used for updating the automation report list

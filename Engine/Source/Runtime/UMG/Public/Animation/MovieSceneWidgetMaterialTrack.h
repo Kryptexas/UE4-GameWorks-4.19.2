@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneMaterialTrack.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieSceneMaterialTrack.h"
 #include "MovieSceneWidgetMaterialTrack.generated.h"
-
 
 /**
  * A material track which is specialized for materials which are owned by widget brushes.

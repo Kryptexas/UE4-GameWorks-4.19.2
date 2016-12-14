@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayAbilityTargetActor.h"
-#include "GameplayAbilityWorldReticle.h"
-#include "GameplayAbilityTargetDataFilter.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
 #include "GameplayAbilityTargetActor_Radius.generated.h"
+
+class UGameplayAbility;
 
 /** Selects everything within a given radius of the source actor. */
 UCLASS(Blueprintable, notplaceable)

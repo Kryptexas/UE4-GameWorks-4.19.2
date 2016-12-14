@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieSceneSequenceTransform.h"
+#include "CoreMinimal.h"
+#include "Evaluation/MovieSceneSequenceTransform.h"
 #include "IMovieScenePlayer.h"
 
 /** Enumeration specifying whether we're playing forwards or backwards */

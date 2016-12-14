@@ -1,14 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateEnums.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Widgets/SWidget.h"
 #include "ITypedTableView.generated.h"
 
-
 class ITableRow;
-struct FPointerEvent;
-
 
 UENUM()
 namespace ESelectionMode

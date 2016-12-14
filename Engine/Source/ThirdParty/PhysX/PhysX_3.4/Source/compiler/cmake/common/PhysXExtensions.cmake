@@ -31,6 +31,7 @@ ADD_LIBRARY(PhysXExtensions STATIC
 	${LL_SOURCE_DIR}/ExtPrismaticJointSolverPrep.cpp
 	${LL_SOURCE_DIR}/ExtPvd.cpp
 	${LL_SOURCE_DIR}/ExtPxStringTable.cpp
+	${LL_SOURCE_DIR}/ExtRaycastCCD.cpp
 	${LL_SOURCE_DIR}/ExtRevoluteJoint.cpp
 	${LL_SOURCE_DIR}/ExtRevoluteJointSolverPrep.cpp
 	${LL_SOURCE_DIR}/ExtRigidBodyExt.cpp

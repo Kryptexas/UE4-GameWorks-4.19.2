@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessStreamingAccuracyLegend.h: PP to apply the streaming accuracy legend
@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
-#include "PostProcessPassThrough.h"
+#include "CoreMinimal.h"
+#include "CompositionLighting/PostProcessPassThrough.h"
 
-
+class FCanvas;
 
 class FRCPassPostProcessStreamingAccuracyLegend : public FRCPassPostProcessPassThrough
 {

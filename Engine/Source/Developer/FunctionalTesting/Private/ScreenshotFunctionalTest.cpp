@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "FunctionalTestingPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "ScreenshotFunctionalTest.h"
+
+#include "Engine/GameViewportClient.h"
 #include "AutomationBlueprintFunctionLibrary.h"
 #include "BufferVisualizationData.h"
-#include "AutomationScreenshotOptions.h"
+#include "Camera/CameraComponent.h"
+#include "Camera/PlayerCameraManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+#include "Misc/AutomationTest.h"
 
 AScreenshotFunctionalTest::AScreenshotFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	: AFunctionalTest(ObjectInitializer)

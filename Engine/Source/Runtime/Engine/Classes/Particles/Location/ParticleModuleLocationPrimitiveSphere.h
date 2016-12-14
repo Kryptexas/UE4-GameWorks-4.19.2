@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // ParticleModuleLocationPrimitiveSphere
@@ -6,8 +6,13 @@
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Particles/Location/ParticleModuleLocationPrimitiveBase.h"
 #include "ParticleModuleLocationPrimitiveSphere.generated.h"
+
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Sphere"))
 class ENGINE_API UParticleModuleLocationPrimitiveSphere : public UParticleModuleLocationPrimitiveBase

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -7,7 +7,9 @@ public class UnrealEd : ModuleRules
 {
 	public UnrealEd(TargetInfo Target)
 	{
-		SharedPCHHeaderFile = "Editor/UnrealEd/Public/UnrealEd.h";
+		PrivatePCHHeaderFile = "Private/UnrealEdPrivatePCH.h";
+
+		SharedPCHHeaderFile = "Public/UnrealEdSharedPCH.h";
 
 		PrivateIncludePaths.AddRange(
 			new string[] 
@@ -138,7 +140,8 @@ public class UnrealEd : ModuleRules
                 "VectorVM",
 				"TreeMap",
                 "MaterialUtilities",
-                "LocalizationService",
+				"Localization",
+				"LocalizationService",
 				"AddContentDialog",
 				"GameProjectGeneration",
                 "HierarchicalLODUtilities",

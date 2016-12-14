@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // EndUserSettings.h
@@ -9,7 +9,11 @@
 //=============================================================================
 
 #pragma once
-#include "ImportantToggleSettingInterface.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/ImportantToggleSettingInterface.h"
 #include "EndUserSettings.generated.h"
 
 UCLASS(MinimalAPI, hidecategories=Object, config=Engine, defaultconfig)

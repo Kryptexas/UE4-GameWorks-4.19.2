@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ProjectDescriptor.h"
+#include "CoreMinimal.h"
+#include "Interfaces/IProjectManager.h"
+
+struct FProjectDescriptor;
 
 /**
  * ProjectAndPluginManager manages available code and content extensions (both loaded and not loaded.)

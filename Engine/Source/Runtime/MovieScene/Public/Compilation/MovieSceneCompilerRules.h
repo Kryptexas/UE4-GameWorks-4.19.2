@@ -1,8 +1,11 @@
-
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneSegmentCompiler.h"
+#include "CoreMinimal.h"
+#include "MovieSceneTrack.h"
+#include "Evaluation/MovieSceneSegment.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
 
 namespace MovieSceneSegmentCompiler
 {

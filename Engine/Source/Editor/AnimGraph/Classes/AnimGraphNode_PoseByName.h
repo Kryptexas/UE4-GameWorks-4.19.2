@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AnimGraphNode_Base.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphNodeUtils.h"
 #include "AnimGraphNode_AssetPlayerBase.h"
 #include "AnimNodes/AnimNode_PoseByName.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "AnimGraphNode_PoseByName.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
 
 UCLASS(MinimalAPI)
 class UAnimGraphNode_PoseByName : public UAnimGraphNode_AssetPlayerBase
@@ -29,6 +33,7 @@ class UAnimGraphNode_PoseByName : public UAnimGraphNode_AssetPlayerBase
 	virtual UAnimationAsset* GetAnimationAsset() const override;
 	virtual void GetAllAnimationSequencesReferred(TArray<UAnimationAsset*>& AnimationAssets) const override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimationAsset*, UAnimationAsset*>& AnimAssetReplacementMap) override;
+	virtual EAnimAssetHandlerType SupportsAssetClass(const UClass* AssetClass) const override;
 	// End of UAnimGraphNode_Base
 
 	// UK2Node interface
@@ -37,7 +42,9 @@ class UAnimGraphNode_PoseByName : public UAnimGraphNode_AssetPlayerBase
 	//virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	// End of UK2Node interface
 
+	// UAnimGraphNode_AssetPlayerBase interface
 	virtual void SetAnimationAsset(UAnimationAsset* Asset) override;
+	// End of UAnimGraphNode_AssetPlayerBase interface
 
 private:
 	FText GetNodeTitleForPoseAsset(ENodeTitleType::Type TitleType, UPoseAsset* InPoseAsset) const;

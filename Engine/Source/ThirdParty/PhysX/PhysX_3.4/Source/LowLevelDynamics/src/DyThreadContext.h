@@ -35,7 +35,7 @@
 #include "PxvConfig.h"
 #include "CmBitMap.h"
 #include "CmMatrix34.h"
-#include "PxcThreadCoherantCache.h"
+#include "PxcThreadCoherentCache.h"
 #include "DyThresholdTable.h"
 #include "PsAllocator.h"
 #include "PsAllocator.h"
@@ -64,7 +64,7 @@ Not thread-safe, so remember to have one object per thread!
 TODO! refactor this and rename(it is a general per thread cache). Move transform cache into its own class.
 */
 class ThreadContext : 
-	public PxcThreadCoherantCache<ThreadContext, PxcNpMemBlockPool>::EntryBase
+	public PxcThreadCoherentCache<ThreadContext, PxcNpMemBlockPool>::EntryBase
 {
 	PX_NOCOPY(ThreadContext)
 public:

@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SGraphNodeDefault_h__
 #define __SGraphNodeDefault_h__
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SGraphNode.h"
 
 class SGraphNodeDefault : public SGraphNode
 {

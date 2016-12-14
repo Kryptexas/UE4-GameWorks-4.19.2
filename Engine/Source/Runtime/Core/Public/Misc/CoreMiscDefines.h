@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -82,10 +82,6 @@
 	#define CA_SUPPRESS( WarningNumber )
 	#define CA_ASSUME( Expr )
 	#define CA_CONSTANT_IF(Condition) if (Condition)
-#endif
-
-#ifndef USING_SIGNED_CONTENT
-	#define USING_SIGNED_CONTENT 0
 #endif
 
 enum {INDEX_NONE	= -1				};

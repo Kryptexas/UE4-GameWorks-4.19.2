@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Scalability.h"
+#include "GenericPlatform/GenericPlatformSurvey.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
 #include "SynthBenchmark.h"
 #include "EngineAnalytics.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 
 static TAutoConsoleVariable<float> CVarResolutionQuality(
 	TEXT("sg.ResolutionQuality"),
@@ -265,6 +268,12 @@ static void SetGroupQualityLevel(const TCHAR* InGroupName, int32 InQualityLevel,
 	{
 		ApplyCVarSettingsGroupFromIni(InGroupName, InQualityLevel, *GScalabilityIni, ECVF_SetByScalability);
 	}	
+}
+
+float GetResolutionScreenPercentage()
+{
+	static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ScreenPercentage"));
+	return CVar->GetFloat();
 }
 
 static void SetResolutionQualityLevel(float InResolutionQualityLevel)

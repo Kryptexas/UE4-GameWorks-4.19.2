@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysCollision.cpp: Skeletal mesh collision code
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "PhysicsEngine/ShapeElem.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/AggregateGeom.h"
-#include "Collision.h"
 #include "Engine/Polys.h"
-#include "PhysicsEngine/PhysXSupport.h"
+#include "PhysXIncludes.h"
 
 #define MIN_HULL_VERT_DISTANCE		(0.1f)
 #define MIN_HULL_VALID_DIMENSION	(0.5f)
@@ -155,7 +160,7 @@ static void RemoveDuplicateVerts(TArray<FVector>& InVerts)
 	}
 }
 
-// Weisstein, Eric W. "Point-Line Distance--3-Dimensional." From MathWorld--A Wolfram Web Resource. http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html 
+// Weisstein, Eric W. "Point-Line Distance--3-Dimensional." From MathWorld--A Switchram Web Resource. http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html 
 static float DistanceToLine(const FVector& LineStart, const FVector& LineEnd, const FVector& Point)
 {
 	const FVector StartToEnd = LineEnd - LineStart;

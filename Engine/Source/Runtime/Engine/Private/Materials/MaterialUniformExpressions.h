@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 /*=============================================================================
 	UniformExpressions.h: Uniform expression definitions.
 =============================================================================*/
 
 #pragma once
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Materials/MaterialInterface.h"
 #include "MaterialShared.h"
+#include "TextureResource.h"
+#include "Engine/Texture.h"
 #include "Materials/MaterialExpressionTextureProperty.h"
-#include "RenderingObjectVersion.h"
+#include "UObject/RenderingObjectVersion.h"
 
 /**
  */

@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "FbxSceneImportFactory.h"
+
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Factories/FbxSceneImportFactory.h"
 
 #include "FbxSceneImportData.generated.h"
 
@@ -37,6 +42,9 @@ public:
 
 	/* Is the original import create a folder hierarchy */
 	bool bCreateFolderHierarchy;
+
+	/* Is the original import force front X axis */
+	bool bForceFrontXAxis;
 
 	/* Which type of hierarchy was create see */
 	int32 HierarchyType;

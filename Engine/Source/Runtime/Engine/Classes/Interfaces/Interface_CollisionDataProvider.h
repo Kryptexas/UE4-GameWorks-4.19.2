@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Interface for objects that have a PhysX collision representation and need their geometry cooked
@@ -6,6 +6,10 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Interface.h"
 #include "Interface_CollisionDataProvider.generated.h"
 
 // Vertex indices necessary to describe the vertices listed in TriMeshCollisionData

@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ConvexDecompTool.cpp: Utility for turning graphics mesh into convex hulls.
 =============================================================================*/
 
+#include "ConvexDecompTool.h"
+
 // Only enabling on windows until other platforms can test!
 #define USE_VHACD (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC)
 
-#include "UnrealEd.h"
-#include "PhysicsEngine/BodySetup.h"
+#include "Misc/FeedbackContext.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "PhysicsEngine/ConvexElem.h"
 
 #if USE_VHACD
 
@@ -36,7 +39,6 @@
 
 
 
-#include "ConvexDecompTool.h"
 #include "PhysicsEngine/BodySetup.h"
 
 

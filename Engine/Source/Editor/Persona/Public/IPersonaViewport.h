@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/SCompoundWidget.h"
 
 /** Opaque state interface for saving and restoring viewport state */
 struct IPersonaViewportState

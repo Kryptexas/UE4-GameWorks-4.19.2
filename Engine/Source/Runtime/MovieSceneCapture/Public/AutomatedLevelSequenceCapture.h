@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneCapture.h"
-#include "LevelSequenceActor.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringAssetReference.h"
 #include "LevelSequencePlayer.h"
+#include "MovieSceneCapture.h"
 #include "AutomatedLevelSequenceCapture.generated.h"
 
 class ALevelSequenceActor;
+class FJsonObject;
+class FSceneViewport;
+class ULevelSequenceBurnInOptions;
 
 UCLASS(config=EditorSettings)
 class MOVIESCENECAPTURE_API UAutomatedLevelSequenceCapture : public UMovieSceneCapture

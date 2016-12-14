@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "TimerManager.h"
+#include "AbilitySystemGlobals.h"
 
 UAbilityTask_WaitDelay::UAbilityTask_WaitDelay(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -12,6 +13,8 @@ UAbilityTask_WaitDelay::UAbilityTask_WaitDelay(const FObjectInitializer& ObjectI
 
 UAbilityTask_WaitDelay* UAbilityTask_WaitDelay::WaitDelay(UGameplayAbility* OwningAbility, float Time)
 {
+	UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(Time);
+
 	auto MyObj = NewAbilityTask<UAbilityTask_WaitDelay>(OwningAbility);
 	MyObj->Time = Time;
 	return MyObj;

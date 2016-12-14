@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieScenePropertyTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieScenePropertyTemplate.h"
 #include "Curves/IntegralCurve.h"
 #include "MovieSceneActorReferenceTemplate.generated.h"
 

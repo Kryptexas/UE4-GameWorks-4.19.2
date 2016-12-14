@@ -1,41 +1,95 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
-
-#include "UObject/DevObjectVersion.h"
-#include "Engine/LevelScriptBlueprint.h"
-#include "Kismet/BlueprintSetLibrary.h"
+#include "EdGraphSchema_K2.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Interface.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
+#include "UObject/ConstructorHelpers.h"
+#include "Engine/Blueprint.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/MemberReference.h"
+#include "Components/ActorComponent.h"
+#include "Misc/Attribute.h"
+#include "GameFramework/Actor.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Engine/CollisionProfile.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/LevelScriptActor.h"
+#include "Components/ChildActorComponent.h"
+#include "Engine/Selection.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "GraphEditorSettings.h"
+#include "K2Node.h"
+#include "EdGraphSchema_K2_Actions.h"
+#include "K2Node_EditablePinBase.h"
+#include "K2Node_Event.h"
+#include "K2Node_ActorBoundEvent.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_Variable.h"
+#include "K2Node_BreakStruct.h"
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_CallParentFunction.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "K2Node_Tunnel.h"
+#include "K2Node_Composite.h"
+#include "K2Node_CreateDelegate.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_DynamicCast.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_FunctionTerminator.h"
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_FunctionResult.h"
+#include "K2Node_Knot.h"
+#include "K2Node_Literal.h"
+#include "K2Node_MacroInstance.h"
+#include "K2Node_MakeArray.h"
+#include "K2Node_MakeStruct.h"
+#include "K2Node_Select.h"
+#include "K2Node_SpawnActor.h"
+#include "K2Node_SpawnActorFromClass.h"
+#include "K2Node_Switch.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
+#include "K2Node_SetFieldsInStruct.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "EditorStyleSettings.h"
+#include "Editor.h"
+
+#include "Kismet/BlueprintSetLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GraphEditorActions.h"
-#include "GraphEditorSettings.h"
 #include "ScopedTransaction.h"
 #include "ComponentAssetBroker.h"
 #include "BlueprintEditorSettings.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetDebugUtilities.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "EdGraphUtilities.h"
 #include "KismetCompiler.h"
-#include "ComponentAssetBroker.h"
-#include "AssetData.h"
-#include "Editor/UnrealEd/Public/EdGraphUtilities.h"
-#include "DefaultValueHelper.h"
+#include "Misc/DefaultValueHelper.h"
 #include "ObjectEditorUtils.h"
-#include "ActorEditorUtils.h"
-#include "TextPackageNamespaceUtil.h"
 #include "ComponentTypeRegistry.h"
+#include "BlueprintNodeBinder.h"
 #include "BlueprintComponentNodeSpawner.h"
 #include "AssetRegistryModule.h"
-#include "HotReloadInterface.h"
+#include "Misc/HotReloadInterface.h"
 
 #include "K2Node_CastByteToEnum.h"
 #include "K2Node_ClassDynamicCast.h"
 #include "K2Node_GetEnumeratorName.h"
 #include "K2Node_GetEnumeratorNameAsString.h"
-#include "K2Node_Tunnel.h"
-#include "K2Node_SetFieldsInStruct.h"
 #include "K2Node_ConvertAsset.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -2119,6 +2173,13 @@ static FText GetPinIncompatibilityReason(const UEdGraphPin* PinA, const UEdGraph
 
 			MessageFormat = LOCTEXT("CannotGetClass", "'{PinAName}' and '{PinBName}' are not inherently compatible ('{InputName}' is an object type, and '{OutputName}' is a reference to an object instance).\nWe cannot use {OutputName}'s class because it is not a child of {InputType}.");
 		}
+		else if (InputType.PinCategory == UEdGraphSchema_K2::PC_Object)
+		{
+			if (bIsFatalOut != nullptr)
+			{
+				*bIsFatalOut = true;
+			}
+		}
 	}
 
 	return FText::Format(MessageFormat, MessageArgs);
@@ -3238,6 +3299,26 @@ bool UEdGraphSchema_K2::GetPropertyCategoryInfo(const UProperty* TestProperty, F
 			OutSubCategoryObject = ByteProperty->Enum;
 		}
 	}
+	else if (const UEnumProperty* EnumProperty = Cast<const UEnumProperty>(TestProperty))
+	{
+		// K2 only supports byte enums right now - any violations should have been caught by UHT or the editor
+		if (!EnumProperty->GetUnderlyingProperty()->IsA<UByteProperty>())
+		{
+			OutCategory = TEXT("unsupported_enum_type");
+			return false;
+		}
+
+		OutCategory = PC_Byte;
+
+		if (TestProperty->HasMetaData(FBlueprintMetadata::MD_Bitmask))
+		{
+			OutSubCategory = PSC_Bitmask;
+		}
+		else
+		{
+			OutSubCategoryObject = EnumProperty->GetEnum();
+		}
+	}
 	else if (Cast<const UNameProperty>(TestProperty) != NULL)
 	{
 		OutCategory = PC_Name;
@@ -3429,7 +3510,7 @@ FText UEdGraphSchema_K2::TypeToText(UProperty* const Property)
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("SetType"), TypeToText(Set->ElementProp));
-			return FText::Format(LOCTEXT("ArrayPropertyText", "Set of {SetType}"), Args);
+			return FText::Format(LOCTEXT("SetPropertyText", "Set of {SetType}"), Args);
 		}
 	}
 	else if (UMapProperty* Map = Cast<UMapProperty>(Property))
@@ -3439,7 +3520,7 @@ FText UEdGraphSchema_K2::TypeToText(UProperty* const Property)
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("MapKeyType"), TypeToText(Map->KeyProp));
 			Args.Add(TEXT("MapValueType"), TypeToText(Map->ValueProp));
-			return FText::Format(LOCTEXT("ArrayPropertyText", "Map of {MapKeyType} to {MapValueType}"), Args);
+			return FText::Format(LOCTEXT("MapPropertyText", "Map of {MapKeyType} to {MapValueType}"), Args);
 		}
 	}
 	
@@ -3749,6 +3830,10 @@ namespace
 	{
 		bool bResult = false;
 		bool bIsNonNativeClass = false;
+		if(UClass* TargetAsClass = const_cast<UClass*>(Cast<UClass>(InTargetStruct)))
+		{
+			InTargetStruct = TargetAsClass->GetAuthoritativeClass();
+		}
 		if (UClass* SourceAsClass = const_cast<UClass*>(Cast<UClass>(InSourceStruct)))
 		{
 			if (SourceAsClass->ClassGeneratedBy)
@@ -6532,6 +6617,23 @@ int32 UEdGraphSchema_K2::GetCurrentVisualizationCacheID() const
 void UEdGraphSchema_K2::ForceVisualizationCacheClear() const
 {
 	++CurrentCacheRefreshID;
+}
+
+
+bool UEdGraphSchema_K2::SafeDeleteNodeFromGraph(UEdGraph* Graph, UEdGraphNode* NodeToDelete) const 
+{
+	UK2Node* Node = Cast<UK2Node>(NodeToDelete);
+	if (Node == nullptr || Graph == nullptr || NodeToDelete->GetGraph() != Graph)
+	{
+		return false;
+	}
+
+	UBlueprint* OwnerBlueprint = Node->GetBlueprint();
+	Graph->Modify();
+
+	FBlueprintEditorUtils::RemoveNode(OwnerBlueprint, Node, /*bDontRecompile=*/ true);
+	FBlueprintEditorUtils::MarkBlueprintAsModified(OwnerBlueprint);
+	return true;
 }
 
 /////////////////////////////////////////////////////

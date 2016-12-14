@@ -1,30 +1,37 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+
+/* Boilerplate
+ *****************************************************************************/
+
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
 
 
 /* Public dependencies
  *****************************************************************************/
 
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 
 /* Public interfaces
  *****************************************************************************/
 
-#include "TargetDeviceId.h"
+#include "Interfaces/TargetDeviceId.h"
 
-#include "ITargetDevice.h"
-#include "ITargetPlatform.h"
-#include "ITargetPlatformModule.h"
-#include "ITargetPlatformManagerModule.h"
-#include "ITargetDeviceOutput.h"
+#include "Interfaces/ITargetDevice.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformModule.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/ITargetDeviceOutput.h"
 
-#include "IAudioFormat.h"
-#include "IAudioFormatModule.h"
+#include "Interfaces/IAudioFormat.h"
+#include "Interfaces/IAudioFormatModule.h"
 
-#include "IShaderFormat.h"
-#include "IShaderFormatModule.h"
+#include "Interfaces/IShaderFormat.h"
+#include "Interfaces/IShaderFormatModule.h"
 
-#include "ITextureFormat.h"
-#include "ITextureFormatModule.h"
+#include "Interfaces/ITextureFormat.h"
+#include "Interfaces/ITextureFormatModule.h"

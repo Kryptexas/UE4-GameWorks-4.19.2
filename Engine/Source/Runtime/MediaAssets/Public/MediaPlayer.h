@@ -1,20 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
 #include "IMediaOverlaySink.h"
 #include "MediaPlayer.generated.h"
 
-
-class FMediaOverlaySink;
-class UMediaPlaylist;
-class UMediaSource;
-class UMediaSoundWave;
-class UMediaTexture;
 class IMediaOptions;
 class IMediaPlayer;
+class UMediaPlaylist;
+class UMediaSoundWave;
+class UMediaSource;
+class UMediaTexture;
 enum class EMediaEvent;
-
 
 /** Multicast delegate that is invoked when a media event occurred in the player. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMediaPlayerMediaEvent);

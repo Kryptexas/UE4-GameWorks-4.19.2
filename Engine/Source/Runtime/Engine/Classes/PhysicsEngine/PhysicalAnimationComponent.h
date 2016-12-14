@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ConstraintInstance.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/ActorComponent.h"
+#include "EngineDefines.h"
+#include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicalAnimationComponent.generated.h"
+
+class FPrimitiveDrawInterface;
+class USkeletalMeshComponent;
 
 namespace physx
 {

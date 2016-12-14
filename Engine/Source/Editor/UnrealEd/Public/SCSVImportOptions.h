@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * UI to pick options when importing a data table
  */
 
 #pragma once
-#include "Factories/CSVImportFactory.h"
 
+#include "CoreMinimal.h"
+#include "Factories/CSVImportFactory.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Input/SComboBox.h"
 
 class UNREALED_API SCSVImportOptions : public SCompoundWidget
 {

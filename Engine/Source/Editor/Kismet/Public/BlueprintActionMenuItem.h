@@ -1,17 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EdGraph/EdGraphSchema.h" // for FEdGraphSchemaAction
-#include "SlateColor.h"
-#include "BlueprintNodeBinder.h" // for IBlueprintNodeBinder::FBindingSet
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateBrush.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "BlueprintNodeBinder.h"
 #include "BlueprintActionMenuItem.generated.h"
 
-// Forward declarations
-class  UBlueprintNodeSpawner;
-struct FSlateBrush;
-struct FBlueprintActionUiSpec;
+class UBlueprintNodeSpawner;
+class UEdGraph;
 struct FBlueprintActionContext;
+struct FBlueprintActionUiSpec;
 
 /**
  * Wrapper around a UBlueprintNodeSpawner, which takes care of specialized
@@ -28,7 +30,7 @@ struct FBlueprintActionMenuItem : public FEdGraphSchemaAction
 public:	
 	/** Constructors */
 	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner = nullptr) : Action(NodeSpawner), IconTint(FLinearColor::White), IconBrush(nullptr) {}
-	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiDef, IBlueprintNodeBinder::FBindingSet const& Bindings = IBlueprintNodeBinder::FBindingSet(), const FText& InNodeCategory = FText(), int32 InGrouping = 0);
+	FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiDef, IBlueprintNodeBinder::FBindingSet const& Bindings = IBlueprintNodeBinder::FBindingSet(), FText InNodeCategory = FText(), int32 InGrouping = 0);
 	
 	// FEdGraphSchemaAction interface
 	virtual FName         GetTypeId() const final { return StaticGetTypeId(); }

@@ -1,6 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "IDetailCustomization.h"
+
+class AActor;
+class IDetailLayoutBuilder;
+class UBlueprint;
+class ULevel;
+struct FSelectedActorInfo;
+struct FSlateBrush;
 
 class FActorDetails : public IDetailCustomization
 {

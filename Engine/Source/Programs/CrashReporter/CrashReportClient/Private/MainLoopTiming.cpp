@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "CrashReportClientApp.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MainLoopTiming.h"
-#include "LaunchEngineLoop.h"
-#include "TaskGraphInterfaces.h"
+#include "HAL/PlatformProcess.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/Ticker.h"
+#include "CrashReportClientApp.h"
+
+#include "Async/TaskGraphInterfaces.h"
+
+#if !CRASH_REPORT_UNATTENDED_ONLY
+	#include "Framework/Application/SlateApplication.h"
+#endif
 
 FMainLoopTiming::FMainLoopTiming(float InIdealTickRate, EMainLoopOptions::Type Options)
 	: IdealFrameTime(1.f / InIdealTickRate)

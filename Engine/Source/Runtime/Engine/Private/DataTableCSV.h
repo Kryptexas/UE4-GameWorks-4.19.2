@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "DataTableUtils.h"
+#include "CoreMinimal.h"
 
 class UDataTable;
+enum class EDataTableExportFlags : uint8;
 
 #if WITH_EDITOR
 

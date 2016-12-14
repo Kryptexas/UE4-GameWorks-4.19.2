@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 SkeletalMeshSorting.cpp: Static sorting for skeletal mesh triangles
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "SkeletalMeshSorting.h"
+#include "Modules/ModuleManager.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"

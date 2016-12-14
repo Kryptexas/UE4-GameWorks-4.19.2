@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Fonts/SlateFontInfo.h"
+#include "EditorStyleSet.h"
+#include "AssetThumbnail.h"
+#include "PropertyHandle.h"
+
 class IDetailCategoryBuilder;
-class IPropertyHandle;
-class IArrayPropertyHelper;
 
 namespace ECategoryPriority
 {

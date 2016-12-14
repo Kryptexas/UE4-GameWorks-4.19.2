@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "UObject/WeakObjectPtr.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "SequencerSelectedKey.h"
 
 class UMovieSceneSection;
-class FSequencerDisplayNode;
-
 
 /**
  * Manages the selection of keys, sections, and outliner nodes for the sequencer.

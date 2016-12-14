@@ -1,13 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Containers/ContainersFwd.h"
-#include "GenericPlatform/GenericPlatformMisc.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Templates/Function.h"
 
+class Error;
+struct FProcHandle;
 
-class FString;
 template <typename FuncType> class TFunctionRef;
 
 namespace EProcessResource
@@ -342,6 +343,14 @@ struct CORE_API FGenericPlatformProcess
 	 * @return	The process handle for use in other process functions
 	 */
 	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWriteChild, void * PipeReadChild = nullptr);
+
+	/**
+	 * Opens an existing process. 
+	 *
+	 * @param ProcessID				The process id of the process for which we want to obtain a handle.
+	 * @return The process handle for use in other process functions
+	 */
+	static FProcHandle OpenProcess(uint32 ProcessID);
 
 	/**
 	 * Returns true if the specified process is running 

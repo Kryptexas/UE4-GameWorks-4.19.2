@@ -1,16 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/Package.h"
 #include "AssetTypeCategories.h"
 
-
+class FAssetData;
 class IAssetTypeActions;
 class IClassTypeActions;
-class FAssetData;
 class UFactory;
-
 
 struct FAssetRenameData
 {

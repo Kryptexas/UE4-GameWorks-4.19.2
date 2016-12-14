@@ -1,20 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IAuthorizeMessageRecipients.h"
-#include "IMessageBus.h"
+#include "CoreMinimal.h"
 #include "IMessageContext.h"
-
+#include "IMessageSubscription.h"
+#include "IMessageAttachment.h"
+#include "IMessageInterceptor.h"
+#include "IAuthorizeMessageRecipients.h"
+#include "IMessageTracer.h"
+#include "IMessageBus.h"
 
 class FMessageRouter;
-class FRunnableThread;
-class IMessageInterceptor;
-class IMessageSubscription;
 class IMessageReceiver;
 class IMessageSender;
-class IMessageTracer;
-
 
 /**
  * Implements a message bus.

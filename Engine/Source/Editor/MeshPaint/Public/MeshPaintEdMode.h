@@ -1,14 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GenericOctree.h"
-#include "GenericOctreePublic.h"
-#include "Engine/StaticMesh.h"
-#include "IVREditorModule.h"
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "EdMode.h"
 
-
+class FEditorModeTools;
+class FEditorViewportClient;
+class FMeshPaintParameters;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FScopedTransaction;
+class FViewport;
 class IMeshPaintGeometryAdapter;
+class UFactory;
+class UMaterialInterface;
+class UMeshComponent;
+class UStaticMeshComponent;
+class UTexture;
+class UTexture2D;
+class UTextureRenderTarget2D;
+struct FStaticMeshLODResources;
 
 /** Mesh paint resource types */
 namespace EMeshPaintResource
@@ -439,10 +452,10 @@ public:
 	void ApplyVertexColorsToAllLODs();
 
 	/** Forces all selected meshes to their best LOD, or removes the forcing. */
-	void ApplyOrRemoveForceBestLOD(bool bApply);
+	void ApplyOrRemoveForceBestLOD(bool bApply, uint32 LODIndex);
 
 	/** Forces the static mesh component to it's best LOD, or removes the forcing. */
-	void ApplyOrRemoveForceBestLOD(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent, bool bApply);
+	void ApplyOrRemoveForceBestLOD(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent, bool bApply, uint32 LODIndex);
 
 	/** Applies vertex color painting on LOD0 to all lower LODs. */
 	void ApplyVertexColorsToAllLODs(const IMeshPaintGeometryAdapter& GeometryInfo, UMeshComponent* InMeshComponent);
@@ -461,6 +474,21 @@ public:
 
 	/** Returns information about the currently selected mesh */
 	bool GetSelectedMeshInfo( int32& OutTotalBaseVertexColorBytes, int32& OutTotalInstanceVertexColorBytes, bool& bOutHasInstanceMaterialAndTexture ) const;
+
+	/** Returns the maximum LOD index for the mesh we paint*/
+	uint32 GetMeshesLODMax() const;
+
+	/** Returns the current LOD index we paint*/
+	uint32 GetCurrentMeshesLOD() const;
+
+	/** Call when the user change the current LOD index we paint */
+	void SetCurrentMeshesLOD(const uint32 InLODIndex);
+
+	/** Return if we paint on all LOD or just on the base LOD */
+	bool IsPaintingAllLODEnable() const;
+
+	/** Call when the user change the AllowPaintingAllLOD option */
+	void SetAllowPaintingAllLOD(bool InAllowPaintingAllLOD);
 
 	/** Sets the default brush radius size */
 	void SetBrushRadiiDefault( float InBrushRadius );
@@ -765,7 +793,11 @@ private:
 
 	/** Which mesh LOD index we're painting */
 	// @todo MeshPaint: Allow painting on other LODs?
-	static const uint32 PaintingMeshLODIndex = 0;
+	uint32 PaintingMeshLODIndex;
+
+	bool AllowPaintingAllLOD;
+
+	bool IsUserPaintAnySubLOD;
 
 	/** Texture paint: The mesh components that we're currently painting */
 	UMeshComponent* TexturePaintingCurrentMeshComponent;

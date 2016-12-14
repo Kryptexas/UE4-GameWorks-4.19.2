@@ -1,15 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Structs used for passing parameters to scene query functions
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 
 /** Macro to convert ECollisionChannels to bit flag **/
 #define ECC_TO_BITFIELD(x)	(1<<(x))
 /** Macro to convert from CollisionResponseContainer to bit flag **/
 #define CRC_TO_BITFIELD(x)	(1<<(x))
+
+class AActor;
+class UPrimitiveComponent;
 
 enum class EQueryMobilityType
 {

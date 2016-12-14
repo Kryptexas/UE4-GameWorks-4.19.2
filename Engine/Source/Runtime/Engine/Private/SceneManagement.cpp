@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "SceneManagement.h"
+#include "Misc/App.h"
+#include "Engine/StaticMesh.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 #include "StaticMeshResources.h"
-#include "../../Renderer/Private/ScenePrivate.h"
+#include "Private/SceneRendering.h"
+#include "Async/ParallelFor.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
 
-bool GDrawListsLocked = false;
+ENGINE_API bool GDrawListsLocked = false;
 
 static TAutoConsoleVariable<float> CVarLODTemporalLag(
 	TEXT("lod.TemporalLag"),
@@ -222,6 +227,8 @@ void FMeshElementCollector::AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch)
 	checkSlow(MeshBatch.GetNumPrimitives() > 0);
 	checkSlow(MeshBatch.VertexFactory && MeshBatch.MaterialRenderProxy);
 	checkSlow(PrimitiveSceneProxy);
+
+	PrimitiveSceneProxy->VerifyUsedMaterial(MeshBatch.MaterialRenderProxy);
 
 	if (MeshBatch.bCanApplyViewModeOverrides)
 	{

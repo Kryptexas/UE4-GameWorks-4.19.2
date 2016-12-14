@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 class FTrackEditorThumbnail;
-
+class ISequencer;
 
 /**
  * Track Editor Thumbnail pool, which keeps a list of thumbnails that

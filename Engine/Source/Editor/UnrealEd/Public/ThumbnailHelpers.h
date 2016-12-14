@@ -1,14 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
 #include "PreviewScene.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "ThumbnailHelpers.generated.h"
 
 class FSceneViewFamily;
-class USCS_Node;
+class USceneThumbnailInfo;
 
 class UNREALED_API FThumbnailPreviewScene : public FPreviewScene
 {

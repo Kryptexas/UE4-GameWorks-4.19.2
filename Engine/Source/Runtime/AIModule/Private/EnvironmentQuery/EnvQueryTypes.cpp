@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "DataProviders/AIDataProvider_QueryParams.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
-#include "EnvironmentQuery/EnvQuery.h"
-#include "EnvironmentQuery/EnvQueryContext.h"
-#include "EnvironmentQuery/Items/EnvQueryItemType.h"
-#include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
+#include "UObject/Package.h"
+#include "AI/Navigation/NavAgentInterface.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "AI/Navigation/RecastNavMesh.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
+#include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
+#include "BehaviorTree/BTNode.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
+#include "VisualLogger/VisualLogger.h"
+#include "DataProviders/AIDataProvider_QueryParams.h"
+#include "EnvironmentQuery/EnvQuery.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Float.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Int.h"
@@ -256,6 +260,7 @@ void FEnvTraceData::OnPostLoad()
 	TraceChannel = UEngineTypes::ConvertToTraceType(SerializedChannel);
 	VersionNum = 1;
 }
+
 
 //----------------------------------------------------------------------//
 // namespace FEQSHelpers

@@ -1,15 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __MaterialEditorModule_h__
 #define __MaterialEditorModule_h__
 
-#include "UnrealEd.h"
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/IToolkit.h"
-#include "IMaterialEditor.h"
 
-
+class IMaterialEditor;
+class UMaterial;
+class UMaterialFunction;
+class UMaterialInstance;
+class UMaterialInterface;
 
 extern const FName MaterialEditorAppIdentifier;
 extern const FName MaterialInstanceEditorAppIdentifier;

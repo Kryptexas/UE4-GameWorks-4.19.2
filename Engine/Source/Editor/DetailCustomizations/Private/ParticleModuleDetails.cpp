@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "ParticleModuleDetails.h"
-#include "SharedPointer.h"
-#include "PropertyRestriction.h"
+#include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleModule.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "PropertyRestriction.h"
 
 DECLARE_LOG_CATEGORY_CLASS(LogParticleModuleDetails, Log, All);
 
-static const FText GetNotAllowedOnGPUEmitterText()
+static const FText& GetNotAllowedOnGPUEmitterText()
 {
 	static FText RetText = NSLOCTEXT("ParticleModuleDetails", "NotAllowedOnGPU", "Not allowed on a GPU emitter.");
 	return RetText;
@@ -25,7 +26,7 @@ TSharedRef<const FPropertyRestriction> FParticleModuleDetailsBase::GetDistributi
 		
 		for( int32 ValueIdx=0; ValueIdx < RestrictedDistributions.Num() ; ++ValueIdx )
 		{
-			Restriction->AddValue(RestrictedDistributions[ValueIdx]);
+			Restriction->AddDisabledValue(RestrictedDistributions[ValueIdx]);
 		}
 	}
 
@@ -81,8 +82,9 @@ void FParticleModuleRequiredDetails::CustomizeDetails( IDetailLayoutBuilder& Det
 	if( !RandomRandomBlendRestriction.IsValid() )
 	{
 		RandomRandomBlendRestriction = MakeShareable( new FPropertyRestriction(GetNotAllowedOnGPUEmitterText()) );
-		RandomRandomBlendRestriction->AddValue(FString(TEXT("PSUVIM_Random")));
-		RandomRandomBlendRestriction->AddValue(FString(TEXT("PSUVIM_Random_Blend")));
+		const UEnum* const ParticleSubUVInterpMethodEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EParticleSubUVInterpMethod"));		
+		RandomRandomBlendRestriction->AddDisabledValue(ParticleSubUVInterpMethodEnum->GetEnumNameStringByValue((uint8)EParticleSubUVInterpMethod::PSUVIM_Random));
+		RandomRandomBlendRestriction->AddDisabledValue(ParticleSubUVInterpMethodEnum->GetEnumNameStringByValue((uint8)EParticleSubUVInterpMethod::PSUVIM_Random_Blend));
 	}
 
 	TRestrictionList RestrictionList;

@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-// forward declarations
-class FRunnableThread;
-class FSocket;
-class FTcpMessageTransportConnection;
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Transport/TcpSerializedMessage.h"
+#include "HAL/Runnable.h"
+#include "Containers/Queue.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "Common/UdpSocketReceiver.h"
+
+class FTcpDeserializedMessage;
 
 /** Delegate type for announcing a connection state change */
 DECLARE_DELEGATE(FOnTcpMessageTransportConnectionStateChanged)

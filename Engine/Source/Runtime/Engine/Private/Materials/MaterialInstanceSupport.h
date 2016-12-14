@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialInstance.h: MaterialInstance definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "RenderingThread.h"
+#include "MaterialShared.h"
+#include "Materials/MaterialInstance.h"
+
+class UTexture;
 
 /**
  * Cache uniform expressions for the given material instance.
@@ -87,6 +94,7 @@ public:
 	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const override;
 	/** Get the FMaterial that should be used for rendering, but might not be in a valid state to actually use.  Can return NULL. */
 	virtual FMaterial* GetMaterialNoFallback(ERHIFeatureLevel::Type FeatureLevel) const override;
+	virtual UMaterialInterface* GetMaterialInterface() const override;
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override;
 	virtual bool GetScalarValue(const FName ParameterName,float* OutValue, const FMaterialRenderContext& Context) const override;
 	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override;

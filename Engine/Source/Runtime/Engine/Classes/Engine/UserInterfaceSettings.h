@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringClassReference.h"
 #include "Curves/CurveFloat.h"
+#include "Engine/DeveloperSettings.h"
 #include "UserInterfaceSettings.generated.h"
+
+class UDPICustomScalingRule;
 
 /** When to render the Focus Brush for widgets that have user focus. Based on the EFocusCause. */
 UENUM()
@@ -89,6 +95,9 @@ public:
 		XAxisName="Resolution",
 		YAxisName="Scale"))
 	FRuntimeFloatCurve UIScaleCurve;
+
+	UPROPERTY(config, EditAnywhere, Category = "Widgets", meta = (ToolTip = "If false, widget references will be stripped during cook for server builds and not loaded at runtime."))
+	bool bLoadWidgetsOnDedicatedServer;
 
 public:
 

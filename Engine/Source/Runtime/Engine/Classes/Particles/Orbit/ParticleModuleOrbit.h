@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Distributions/DistributionVector.h"
 #include "Particles/Orbit/ParticleModuleOrbitBase.h"
 #include "ParticleModuleOrbit.generated.h"
+
+class UParticleLODLevel;
+class UParticleModuleTypeDataBase;
+struct FParticleEmitterInstance;
 
 UENUM()
 enum EOrbitChainMode

@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "AI/NavigationModifier.h"
 #include "AI/Navigation/NavModifierVolume.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "AI/NavigationModifier.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
 #include "AI/NavigationOctree.h"
 
@@ -35,12 +35,13 @@ void ANavModifierVolume::SetAreaClass(TSubclassOf<UNavArea> NewAreaClass)
 	{
 		AreaClass = NewAreaClass;
 
-		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-		if (NavSys != nullptr)
-		{
-			NavSys->UpdateActorInNavOctree(*this);
-		}
+		UNavigationSystem::UpdateActorInNavOctree(*this);
 	}
+}
+
+void ANavModifierVolume::RebuildNavigationData()
+{
+	UNavigationSystem::UpdateActorInNavOctree(*this);
 }
 
 #if WITH_EDITOR

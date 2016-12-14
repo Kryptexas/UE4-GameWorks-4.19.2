@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataBunch.h: Unreal bunch class.
 =============================================================================*/
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/NetworkGuid.h"
+#include "UObject/CoreNet.h"
+#include "EngineLogs.h"
+
+class UChannel;
+class UNetConnection;
 
 //
 // A bunch of data to send.

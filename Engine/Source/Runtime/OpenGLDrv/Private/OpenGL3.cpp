@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGL3.cpp: OpenGL 3.2 implementation.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
 
 #if OPENGL_GL3

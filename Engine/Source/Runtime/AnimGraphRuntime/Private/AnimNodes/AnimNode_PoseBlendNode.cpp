@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphRuntimePrivatePCH.h"
 #include "AnimNodes/AnimNode_PoseBlendNode.h"
+#include "AnimationRuntime.h"
 #include "Animation/AnimInstanceProxy.h"
 
 /////////////////////////////////////////////////////
 // FAnimPoseByNameNode
+
+FAnimNode_PoseBlendNode::FAnimNode_PoseBlendNode()
+{
+	BlendOption = EAlphaBlendOption::Linear;
+}
 
 void FAnimNode_PoseBlendNode::Initialize(const FAnimationInitializeContext& Context)
 {
@@ -38,7 +43,12 @@ void FAnimNode_PoseBlendNode::Evaluate(FPoseContext& Output)
 		// only give pose curve, we don't set any more curve here
 		for (int32 PoseIdx = 0; PoseIdx < PoseUIDList.Num(); ++PoseIdx)
 		{
-			PoseExtractContext.PoseCurves[PoseIdx] = SourceData.Curve.Get(PoseUIDList[PoseIdx]);
+			// Get value of input curve
+			float InputValue = SourceData.Curve.Get(PoseUIDList[PoseIdx]);
+			// Remap using chosen BlendOption
+			float RemappedValue = FAlphaBlend::AlphaToBlendOption(InputValue, BlendOption, CustomCurve);
+
+			PoseExtractContext.PoseCurves[PoseIdx] = RemappedValue;
 		}
 
 		if (CurrentPoseAsset.Get()->GetAnimationPose(CurrentPose.Pose, CurrentPose.Curve, PoseExtractContext))

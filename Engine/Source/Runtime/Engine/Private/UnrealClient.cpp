@@ -1,26 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
+#include "UnrealClient.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/App.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "RenderingThread.h"
+#include "Templates/ScopedPointer.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Misc/ConfigCacheIni.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/LocalPlayer.h"
+#include "UnrealEngine.h"
 #include "Components/PostProcessComponent.h"
-#include "Engine/Font.h"
 #include "Matinee/MatineeActor.h"
 #include "EditorSupportDelegates.h"
-#include "RenderCore.h"
-#include "RenderResource.h"
-#include "RHIStaticStates.h"
-#include "../../Renderer/Private/ScenePrivate.h"
 #include "HighResScreenshot.h"
 
-#include "SlateBasics.h"
-#include "SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/PostProcessVolume.h"
+#include "RendererInterface.h"
 #include "EngineModule.h"
-#include "EngineModule.h"
-#include "ContentStreaming.h"
-#include "SceneUtils.h"
-#include "NotificationManager.h"
 #include "Performance/EnginePerformanceTargets.h"
+#include "UniquePtr.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogClient, Log, All);
 
@@ -882,6 +888,19 @@ void FViewport::HighResScreenshot()
 	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(GetHighResScreenshotConfig().bMaskEnabled);
 	ViewportClient->GetEngineShowFlags()->SetMotionBlur(false);
 
+	// Forcing 128-bit rendering pipeline
+	static auto CVarSceneColorFormat = IConsoleManager::Get().FindConsoleVariable(TEXT("r.SceneColorFormat"));
+	static auto CVarPostColorFormat = IConsoleManager::Get().FindConsoleVariable(TEXT("r.PostProcessingColorFormat"));
+	check(CVarSceneColorFormat && CVarPostColorFormat);
+	const int32 OldSceneColorFormat = CVarSceneColorFormat->GetInt();
+	const int32 OldPostColorFormat = CVarPostColorFormat->GetInt();
+
+	if (GetHighResScreenshotConfig().bForce128BitRendering)
+	{
+		CVarSceneColorFormat->Set(5, ECVF_SetByCode);
+		CVarPostColorFormat->Set(1, ECVF_SetByCode);
+	}
+
 	// Render the requested number of frames (at least once)
 	static const auto HighResScreenshotDelay = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighResScreenshotDelay"));
 	const uint32 DefaultScreenshotDelay = 4;
@@ -907,6 +926,9 @@ void FViewport::HighResScreenshot()
 	ViewportClient->GetEngineShowFlags()->SetHighResScreenshotMask(MaskShowFlagBackup);
 	ViewportClient->GetEngineShowFlags()->MotionBlur = MotionBlurShowFlagBackup;
 	ViewportClient->ProcessScreenShots(DummyViewport);
+
+	CVarSceneColorFormat->Set(OldSceneColorFormat, ECVF_SetByCode);
+	CVarPostColorFormat->Set(OldPostColorFormat, ECVF_SetByCode);
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		EndDrawingCommand,
@@ -1077,7 +1099,7 @@ bool GCaptureCompositionNextFrame = false;
 void FViewport::Draw( bool bShouldPresent /*= true */)
 {
 	UWorld* World = GetClient()->GetWorld();
-	static TScopedPointer<FSuspendRenderingThread> GRenderingThreadSuspension;
+	static TUniquePtr<FSuspendRenderingThread> GRenderingThreadSuspension;
 
 	// Ignore reentrant draw calls, since we can only redraw one viewport at a time.
 	static bool bReentrant = false;
@@ -1094,7 +1116,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 		{
 			// To capture the CompositionGraph we go into single threaded for one frame
 			// so that the Slate UI gets the data on the game thread.
-			GRenderingThreadSuspension.Reset(new FSuspendRenderingThread(true));
+			GRenderingThreadSuspension = MakeUnique<FSuspendRenderingThread>(true);
 		}
 
 		// if this is a game viewport, and game rendering is disabled, then we don't want to actually draw anything
@@ -1184,7 +1206,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 		{
 			for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 				if (PlayerController && PlayerController->PlayerCameraManager)
 				{
 					PlayerController->PlayerCameraManager->bGameCameraCutThisFrame = false;

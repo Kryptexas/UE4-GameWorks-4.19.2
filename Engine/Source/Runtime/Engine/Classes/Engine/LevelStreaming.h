@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
+#include "Engine/LatentActionManager.h"
 #include "LatentActions.h"
+
+class ALevelScriptActor;
+class ULevelStreaming;
 
 // Stream Level Action
 class FStreamLevelAction : public FPendingLatentAction
@@ -237,7 +246,7 @@ public:
 	FBox GetStreamingVolumeBounds();
 
 	/** Gets a pointer to the LoadedLevel value */
-	ENGINE_API class ULevel* GetLoadedLevel() const {	return LoadedLevel; }
+	ENGINE_API class ULevel* GetLoadedLevel() const { return LoadedLevel; }
 	
 	/** Sets the LoadedLevel value to NULL */
 	void ClearLoadedLevel() { SetLoadedLevel(nullptr); }
@@ -272,7 +281,7 @@ public:
 
 	/** Returns whether streaming level is loaded */
 	UFUNCTION(BlueprintCallable, Category="Game")
-	ENGINE_API bool IsLevelLoaded() const;
+	ENGINE_API bool IsLevelLoaded() const { return (LoadedLevel != nullptr); }
 
 	/** Returns whether level has streaming state change pending */
 	UFUNCTION(BlueprintCallable, Category="Game")

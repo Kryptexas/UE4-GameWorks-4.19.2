@@ -1,8 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SDockTab.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+#include "Framework/Docking/SDockingNode.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Framework/Docking/SDockingTabStack.h"
+
+class FArrangedChildren;
+class FPaintArgs;
+class FSlateWindowElementList;
 
 struct FDockingConstants
 {

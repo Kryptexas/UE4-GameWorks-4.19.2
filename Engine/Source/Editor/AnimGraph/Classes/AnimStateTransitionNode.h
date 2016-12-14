@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Animation/AnimInstance.h"
-#include "AnimStateNodeBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Animation/AnimTypes.h"
 #include "Animation/AnimStateMachineTypes.h"
+#include "AnimStateNodeBase.h"
 
 #include "AnimStateTransitionNode.generated.h"
+
+class UBlendProfile;
+class UCurveFloat;
+class UEdGraph;
+class UEdGraphPin;
 
 UCLASS(MinimalAPI, config=Editor)
 class UAnimStateTransitionNode : public UAnimStateNodeBase

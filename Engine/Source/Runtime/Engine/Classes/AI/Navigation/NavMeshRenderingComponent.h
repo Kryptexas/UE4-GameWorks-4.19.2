@@ -1,16 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "DebugRenderSceneProxy.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "PrimitiveViewRelevance.h"
+#include "RenderResource.h"
+#include "MaterialShared.h"
 #include "DynamicMeshBuilder.h"
+#include "DebugRenderSceneProxy.h"
+#include "Components/PrimitiveComponent.h"
+#include "MeshBatch.h"
 #include "LocalVertexFactory.h"
 #include "GenericOctree.h"
-#include "Components/PrimitiveComponent.h"
 #include "NavMeshRenderingComponent.generated.h"
 
-class UNavMeshRenderingComponent;
+class APlayerController;
 class ARecastNavMesh;
+class FMeshElementCollector;
+class FPrimitiveDrawInterface;
+class UCanvas;
+class UNavMeshRenderingComponent;
 
 enum class ENavMeshDetailFlags : uint8
 {

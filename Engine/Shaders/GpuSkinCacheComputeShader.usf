@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GpuSkinCacheComputeShader.usf: Perform vertex skinning into a buffer to avoid skinning in the vertex shader.
@@ -106,12 +106,16 @@ uint SkinCacheStart;
 uint InputStreamStride;
 uint NumVertices;
 
+uint InputWeightStart;
+uint InputWeightStride;
+Buffer<float> InputWeightStream;
+
 float3 MeshOrigin;
 float3 MeshExtension;
 // see r.SkinCache.Debug, default is 1.0f
 float SkinCacheDebug;
 
-FVertexUnpacked UnpackedVertex(uint VertexIndex, uint Offset )
+FVertexUnpacked UnpackedVertex(uint VertexIndex, uint Offset, uint WeightOffset )
 {
 	FVertexUnpacked Unpacked;
 
@@ -125,25 +129,25 @@ FVertexUnpacked UnpackedVertex(uint VertexIndex, uint Offset )
 	Unpacked.TangentZ.y = (float((Tangent >> 8) & 0xff) / 128.0f) - 1.0f;
 	Unpacked.TangentZ.z = (float((Tangent >> 16) & 0xff) / 128.0f) - 1.0f;
 
-	uint BlendIndices = asuint(SkinStreamInputBuffer[Offset + GPUSKIN_VB_OFFSET_INFLUENCEBONES]);
+	uint BlendIndices = asuint(InputWeightStream[WeightOffset + GPUSKIN_VB_OFFSET_INFLUENCEBONES]);
 	Unpacked.BlendIndices.x = BlendIndices & 0xff;
 	Unpacked.BlendIndices.y = BlendIndices >> 8 & 0xff;
 	Unpacked.BlendIndices.z = BlendIndices >> 16 & 0xff;
 	Unpacked.BlendIndices.w = BlendIndices >> 24 & 0xff;
 #if GPUSKIN_USE_EXTRA_INFLUENCES
-	BlendIndices = asuint(SkinStreamInputBuffer[Offset + GPUSKIN_VB_OFFSET_INFLUENCEBONES + 1]);
+	BlendIndices = asuint(InputWeightStream[WeightOffset + GPUSKIN_VB_OFFSET_INFLUENCEBONES + 1]);
 	Unpacked.BlendIndices2.x = BlendIndices & 0xff;
 	Unpacked.BlendIndices2.y = BlendIndices >> 8 & 0xff;
 	Unpacked.BlendIndices2.z = BlendIndices >> 16 & 0xff;
 	Unpacked.BlendIndices2.w = BlendIndices >> 24 & 0xff;
 #endif
-	uint BlendWeights = asuint(SkinStreamInputBuffer[Offset + GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS]);
+	uint BlendWeights = asuint(InputWeightStream[WeightOffset + GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS]);
 	Unpacked.BlendWeights.x = float(BlendWeights & 0xff) / 255.0f;
 	Unpacked.BlendWeights.y = float(BlendWeights >> 8 & 0xff) / 255.0f;
 	Unpacked.BlendWeights.z = float(BlendWeights >> 16 & 0xff) / 255.0f;
 	Unpacked.BlendWeights.w = float(BlendWeights >> 24 & 0xff) / 255.0f;
 #if GPUSKIN_USE_EXTRA_INFLUENCES
-	BlendWeights = asuint(SkinStreamInputBuffer[Offset + GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS + 1]);
+	BlendWeights = asuint(InputWeightStream[WeightOffset + GPUSKIN_VB_OFFSET_INFLUENCEWEIGHTS + 1]);
 	Unpacked.BlendWeights2.x = float(BlendWeights & 0xff) / 255.0f;
 	Unpacked.BlendWeights2.y = float(BlendWeights >> 8 & 0xff) / 255.0f;
 	Unpacked.BlendWeights2.z = float(BlendWeights >> 16 & 0xff) / 255.0f;
@@ -176,13 +180,17 @@ void SkinCacheUpdateBatchCS(uint3 GroupID : SV_GroupID,
 		return;
 	}
 
+	// Find offset for regular (position/tangent/UV) vertex buffer
 	uint FloatsPerVertex = InputStreamStride / 4;
 	uint VBOffset = VertexIndex * FloatsPerVertex;
 	uint RWOffset = VertexIndex * GPUSKIN_RWBUFFER_NUM_FLOATS;
 	uint InputOffset = InputStreamStart + VBOffset;
 	uint OutputOffset = SkinCacheStart + RWOffset;
 
-	FVertexUnpacked	Unpacked = UnpackedVertex(VertexIndex, InputOffset);
+	// Find offset for skin weight buffer
+	uint WeightOffset = InputWeightStart + (VertexIndex * (InputWeightStride/4));
+
+	FVertexUnpacked	Unpacked = UnpackedVertex(VertexIndex, InputOffset, WeightOffset);
 
 	// Perform the skinning
 	FVertexFactoryIntermediates	Intermediates = (FVertexFactoryIntermediates)0;

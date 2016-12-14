@@ -1,27 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Runtime/RenderCore/Public/UniformBuffer.h"
-#include "Engine/GameViewportClient.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "RenderResource.h"
+#include "UniformBuffer.h"
 #include "Engine/World.h"
-#include "ConvexVolume.h"
-#include "FinalPostProcessSettings.h"
-#include "SceneInterface.h"
 #include "SceneTypes.h"
-#include "ShaderParameters.h"
-#include "RendererInterface.h"
-#include "RHIStaticStates.h"
+#include "ShowFlags.h"
+#include "ConvexVolume.h"
+#include "Engine/GameViewportClient.h"
+#include "SceneInterface.h"
+#include "FinalPostProcessSettings.h"
 #include "GlobalDistanceFieldParameters.h"
 #include "DebugViewModeHelpers.h"
-#include "ShaderParameters.h"
 
-class FSceneViewStateInterface;
-class FViewUniformShaderParameters;
-class FInstancedViewUniformShaderParameters;
-class FViewElementDrawer;
-class FSceneViewFamily;
 class FForwardLightingViewResources;
+class FSceneView;
+class FSceneViewFamily;
+class FSceneViewStateInterface;
+class FViewElementDrawer;
+class ISceneViewExtension;
 
 // Projection data for a FSceneView
 struct FSceneViewProjectionData
@@ -73,6 +74,59 @@ public:
 	FMatrix ComputeViewProjectionMatrix() const
 	{
 		return FTranslationMatrix(-ViewOrigin) * ViewRotationMatrix * ProjectionMatrix;
+	}
+};
+
+enum EMonoscopicFarFieldMode
+{
+	// Disabled
+	Off = 0,
+
+	// Enabled
+	On = 1,
+
+	// Render only the stereo views up to the far field clipping plane
+	StereoOnly = 2,
+
+	// Render only the stereo views, but without the far field clipping plane enabled.
+	// This is useful for finding meshes that pass the culling test, but aren't 
+	// actually visible in the stereo view and should be explicitly set to far field.
+	// Like a sky box.
+	StereoNoClipping = 3,
+
+	// Render only the far field view behind the far field clipping plane
+	MonoOnly = 4,
+};
+
+// Parameters defining monoscopic far field VR rendering
+struct FMonoscopicFarFieldParameters
+{
+	// Culling plane in unreal units between stereo and mono far field
+	float CullingDistance;
+
+	// Culling plane distance for stereo views in NDC depth [0:1]
+	float StereoDepthClip;
+
+	// Culling plane distance for the mono far field view in NDC depth [0:1]
+	// This is the same the stereo depth clip, but with the overlap distance bias applied.
+	float MonoDepthClip;
+
+	// Stereo disparity lateral offset between a stereo view and the mono far field view at the culling plane distance for reprojection.
+	float LateralOffset;
+
+	// Distance to overlap the mono and stereo views in unreal units to handle precision artifacts
+	float OverlapDistance;
+
+	EMonoscopicFarFieldMode Mode;
+
+	FMonoscopicFarFieldParameters() :
+		CullingDistance(0.0f),
+		StereoDepthClip(0.0f),
+		MonoDepthClip(0.0f), 
+		LateralOffset(0.0f),
+		OverlapDistance(50.0f),
+		Mode(EMonoscopicFarFieldMode::Off)
+	{
 	}
 };
 
@@ -445,7 +499,7 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 
-static const int MAX_MOBILE_SHADOWCASCADES = 2;
+static const int MAX_MOBILE_SHADOWCASCADES = 4;
 
 /** The uniform shader parameters for a mobile directional light and its shadow.
   * One uniform buffer will be created for the first directional light in each lighting channel.
@@ -521,6 +575,7 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, ViewRectMin, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, ViewSizeAndInvSize) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FVector4, BufferSizeAndInvSize) \
+	VIEW_UNIFORM_BUFFER_MEMBER(int32, NumSceneColorMSAASamples) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, ExposureScale, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, DiffuseOverrideParameter, EShaderPrecisionModifier::Half) \
 	VIEW_UNIFORM_BUFFER_MEMBER_EX(FVector4, SpecularOverrideParameter, EShaderPrecisionModifier::Half) \
@@ -574,7 +629,7 @@ enum ETranslucencyVolumeCascade
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, AtmosphericFogRenderMask) \
 	VIEW_UNIFORM_BUFFER_MEMBER(uint32, AtmosphericFogInscatterAltitudeSampleNum) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, AtmosphericFogSunColor) \
-	VIEW_UNIFORM_BUFFER_MEMBER(FVector2D, NormalCurvatureToRoughnessScaleBias) \
+	VIEW_UNIFORM_BUFFER_MEMBER(FVector, NormalCurvatureToRoughnessScaleBias) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, RenderingReflectionCaptureMask) \
 	VIEW_UNIFORM_BUFFER_MEMBER(FLinearColor, AmbientCubemapTint) \
 	VIEW_UNIFORM_BUFFER_MEMBER(float, AmbientCubemapIntensity) \
@@ -1060,6 +1115,7 @@ public:
 	 */
 	void SetupCommonViewUniformBufferParameters(FViewUniformShaderParameters& ViewUniformShaderParameters,
 		const FIntPoint& InBufferSize,
+		int32 NumMSAASamples,
 		const FIntRect& InEffectiveViewRect,
 		const FViewMatrices& InViewMatrices,
 		const FViewMatrices& InPrevViewMatrices) const;
@@ -1124,6 +1180,7 @@ public:
 		,	DeltaWorldTime(0.0f)
 		,	CurrentRealTime(0.0f)
 		,	GammaCorrection(1.0f)
+		,	MonoFarFieldCullingDistance(0.0f)
 		,	bRealtimeUpdate(false)
 		,	bDeferClear(false)
 		,	bResolveScene(true)			
@@ -1139,6 +1196,7 @@ public:
 					DeltaWorldTime = World->GetDeltaSeconds();
 					CurrentRealTime = World->GetRealTimeSeconds();
 					bTimesSet = true;
+					MonoFarFieldCullingDistance = World->GetMonoFarFieldCullingDistance();
 				}
 			}
 		}
@@ -1153,6 +1211,8 @@ public:
 
 		/** Additional view params related to the current viewmode (example : texcoord index) */
 		int32 ViewModeParam;
+		/** An name bound to the current viewmode param. (example : texture name) */
+		FName ViewModeParamName;
 
 		/** The current world time. */
 		float CurrentWorldTime;
@@ -1165,6 +1225,9 @@ public:
 
 		/** Gamma correction used when rendering this family. Default is 1.0 */
 		float GammaCorrection;
+
+		/** Distance from the camera to set the mono far field culling plane in unreal units. */
+		float MonoFarFieldCullingDistance;
 
 		/** Indicates whether the view family is updated in real-time. */
 		uint32 bRealtimeUpdate:1;
@@ -1194,7 +1257,7 @@ public:
 		ConstructionValues& SetGammaCorrection(const float Value) { GammaCorrection = Value; return *this; }		
 
 		/** Set the view param. */
-		ConstructionValues& SetViewModeParam(const int InViewModeParam) { ViewModeParam = InViewModeParam; return *this; }		
+		ConstructionValues& SetViewModeParam(const int InViewModeParam, const FName& InViewModeParamName) { ViewModeParam = InViewModeParam; ViewModeParamName = InViewModeParamName; return *this; }		
 	};
 	
 	/** The views which make up the family. */
@@ -1224,6 +1287,9 @@ public:
 
 	/** The new show flags for the views (meant to replace the old system). */
 	FEngineShowFlags EngineShowFlags;
+
+	/** Monoscopic rendering parameters for VR */
+	FMonoscopicFarFieldParameters MonoParameters;
 
 	/** The current world time. */
 	float CurrentWorldTime;
@@ -1303,15 +1369,19 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	EDebugViewShaderMode DebugViewShaderMode;
 	int32 ViewModeParam;
+	FName ViewModeParamName;
+
 	bool bUsedDebugViewPSVSHS;
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DebugViewShaderMode; }
 	FORCEINLINE int32 GetViewModeParam() const { return ViewModeParam; }
+	FORCEINLINE const FName& GetViewModeParamName() const { return ViewModeParamName; }
 	EDebugViewShaderMode ChooseDebugViewShaderMode() const;
 	FORCEINLINE bool UseDebugViewVSDSHS() const { return bUsedDebugViewPSVSHS; }
 	FORCEINLINE bool UseDebugViewPS() const { return DebugViewShaderMode != DVSM_None; }
 #else
 	FORCEINLINE EDebugViewShaderMode GetDebugViewShaderMode() const { return DVSM_None; }
 	FORCEINLINE int32 GetViewModeParam() const { return -1; }
+	FORCEINLINE FName GetViewModeParamName() const { return NAME_None; }
 	FORCEINLINE bool UseDebugViewVSDSHS() const { return false; }
 	FORCEINLINE bool UseDebugViewPS() const { return false; }
 #endif

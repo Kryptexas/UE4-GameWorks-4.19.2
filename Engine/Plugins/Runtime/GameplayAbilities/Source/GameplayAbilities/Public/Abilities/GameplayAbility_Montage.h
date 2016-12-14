@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayAbility.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameplayAbilitySpec.h"
+#include "GameplayEffect.h"
+#include "Abilities/GameplayAbility.h"
 #include "GameplayAbility_Montage.generated.h"
+
+class UAbilitySystemComponent;
+class UAnimMontage;
 
 /**
  *	A gameplay ability that plays a single montage and applies a GameplayEffect

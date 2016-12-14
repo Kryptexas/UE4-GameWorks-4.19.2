@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSceneViewport;
+#include "CoreMinimal.h"
 
-struct ICaptureProtocolHost;
-struct FFrameMetrics;
+class FSceneViewport;
 struct FCaptureProtocolInitSettings;
+struct FFrameMetrics;
+struct ICaptureProtocolHost;
 
 /** A capture protocol responsible for dealing with captured frames using some custom method (writing out to disk, streaming, etc) */
 struct IMovieSceneCaptureProtocol

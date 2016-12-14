@@ -1,21 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
 #include "SGameplayTagWidget.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Images/SImage.h"
+#include "EditorStyleSet.h"
+#include "Widgets/SWindow.h"
+#include "Dialogs/Dialogs.h"
+#include "GameplayTagsModule.h"
 #include "ScopedTransaction.h"
-#include "Editor/PropertyEditor/Public/PropertyHandle.h"
-#include "SSearchBox.h"
-#include "SScaleBox.h"
-#include "AssetEditorManager.h"
+#include "Textures/SlateIcon.h"
+#include "PropertyHandle.h"
+#include "Widgets/Input/SSearchBox.h"
+#include "GameplayTagsEditorModule.h"
+#include "Widgets/Layout/SScaleBox.h"
+#include "Toolkits/AssetEditorManager.h"
 #include "AssetToolsModule.h"
-#include "SHyperlink.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "SSearchBox.h"
+#include "Widgets/Input/SHyperlink.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
 #include "GameplayTagsSettings.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
 #include "SAddNewGameplayTagWidget.h"
 #include "SRenameGameplayTagDialog.h"
+#include "AssetData.h"
 #include "Editor/ReferenceViewer/Public/ReferenceViewer.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagWidget"
 
@@ -111,7 +125,7 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 				SAssignNew( AddNewTagWidget, SAddNewGameplayTagWidget )
 				.Visibility(this, &SGameplayTagWidget::DetermineAddNewTagWidgetVisibility)
 				.OnGameplayTagAdded(this, &SGameplayTagWidget::OnGameplayTagAdded)
-			]
+				]
 
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -203,18 +217,18 @@ void SGameplayTagWidget::Construct(const FArguments& InArgs, const TArray<FEdita
 }
 
 void SGameplayTagWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-{
+	{
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	if (bDelayRefresh)
-	{
+{
 		RefreshTags();
 		bDelayRefresh = false;
-	}
 }
+	}
 
 FVector2D SGameplayTagWidget::ComputeDesiredSize(float LayoutScaleMultiplier) const
-{
+	{
 	FVector2D WidgetSize = SCompoundWidget::ComputeDesiredSize(LayoutScaleMultiplier);
 
 	FVector2D TagTreeContainerSize = TagTreeContainerWidget->GetDesiredSize();
@@ -301,9 +315,25 @@ TSharedRef<ITableRow> SGameplayTagWidget::OnGenerateRow(TSharedPtr<FGameplayTagN
 
 		Manager.GetTagEditorData(TagName, TagComment, TagSource);
 
-		FText TagNameText = FText::FromName(TagName);
+		FString TooltipString = TagName.ToString();
 
-		TooltipText = !TagComment.IsEmpty() ? FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), TagNameText, FText::FromString(TagComment)) : TagNameText;
+		// Add Tag source in management mode
+		if (GameplayTagUIMode == EGameplayTagUIMode::ManagementMode)
+		{
+			if (TagSource == NAME_None)
+			{
+				TagSource = FName(TEXT("Implicit"));
+			}
+
+			TooltipString.Append(FString::Printf(TEXT(" (%s)"), *TagSource.ToString()));
+		}
+
+		if (!TagComment.IsEmpty())
+		{
+			TooltipString.Append(FString::Printf(TEXT("\n\n%s"), *TagComment));
+		}
+
+		TooltipText = FText::FromString(TooltipString);
 	}
 
 	return SNew(STableRow< TSharedPtr<FGameplayTagNode> >, OwnerTable)
@@ -313,7 +343,8 @@ TSharedRef<ITableRow> SGameplayTagWidget::OnGenerateRow(TSharedPtr<FGameplayTagN
 
 			// Tag Selection (selection mode only)
 			+SHorizontalBox::Slot()
-			.AutoWidth()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Left)
 			[
 				SNew(SCheckBox)
 				.OnCheckStateChanged(this, &SGameplayTagWidget::OnTagCheckStatusChanged, InItem)
@@ -329,7 +360,8 @@ TSharedRef<ITableRow> SGameplayTagWidget::OnGenerateRow(TSharedPtr<FGameplayTagN
 
 			// Normal Tag Display (management mode only)
 			+SHorizontalBox::Slot()
-			.AutoWidth()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Left)
 			[
 				SNew( STextBlock )
 				.ToolTip( FSlateApplication::Get().MakeToolTip(TooltipText) )
@@ -339,11 +371,12 @@ TSharedRef<ITableRow> SGameplayTagWidget::OnGenerateRow(TSharedPtr<FGameplayTagN
 
 			// Add Subtag
 			+SHorizontalBox::Slot()
-			.FillWidth(1.0f)
+			.AutoWidth()
 			.HAlign(HAlign_Right)
 			[
 				SNew( SButton )
 				.ToolTipText( LOCTEXT("AddSubtag", "Add Subtag") )
+				.Visibility(this, &SGameplayTagWidget::DetermineExpandableUIVisibility)
 				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
 				.OnClicked( this, &SGameplayTagWidget::OnAddSubtagClicked, InItem )
 				.DesiredSizeScale(FVector2D(0.75f, 0.75f))
@@ -608,10 +641,18 @@ FReply SGameplayTagWidget::OnAddSubtagClicked(TSharedPtr<FGameplayTagNode> InTag
 
 TSharedRef<SWidget> SGameplayTagWidget::MakeTagActionsMenu(TSharedPtr<FGameplayTagNode> InTagNode)
 {
+	bool bShowManagement = (GameplayTagUIMode == EGameplayTagUIMode::ManagementMode && !bReadOnly);
+	UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
+
+	if (!Manager.ShouldImportTagsFromINI())
+	{
+		bShowManagement = false;
+	}
+
 	FMenuBuilder MenuBuilder(true, NULL);
 
 	// Rename
-	if (GameplayTagUIMode == EGameplayTagUIMode::ManagementMode && !bReadOnly)
+	if (bShowManagement)
 	{
 		FExecuteAction RenameAction = FExecuteAction::CreateSP(this, &SGameplayTagWidget::OnRenameTag, InTagNode);
 
@@ -619,7 +660,7 @@ TSharedRef<SWidget> SGameplayTagWidget::MakeTagActionsMenu(TSharedPtr<FGameplayT
 	}
 
 	// Delete
-	if (GameplayTagUIMode == EGameplayTagUIMode::ManagementMode && !bReadOnly)
+	if (bShowManagement)
 	{
 		FExecuteAction DeleteAction = FExecuteAction::CreateSP(this, &SGameplayTagWidget::OnDeleteTag, InTagNode);
 
@@ -735,7 +776,12 @@ void SGameplayTagWidget::VerifyAssetTagValidity()
 
 			for (auto It = Container->CreateConstIterator(); It; ++It)
 			{
-				if (!LibraryTags.HasTagExact(*It))
+				FGameplayTag TagToCheck = *It;
+
+				// Check redirectors, these will get fixed on load time
+				UGameplayTagsManager::Get().RedirectSingleGameplayTag(TagToCheck, nullptr);
+
+				if (!LibraryTags.HasTagExact(TagToCheck))
 				{
 					InvalidTags.Add(*It);
 				}

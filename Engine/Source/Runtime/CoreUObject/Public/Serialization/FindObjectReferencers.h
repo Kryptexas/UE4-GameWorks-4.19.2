@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
-#include "FindReferencersArchive.h"
+#include "CoreMinimal.h"
+#include "UObject/Package.h"
+#include "UObject/UObjectIterator.h"
+#include "Serialization/FindReferencersArchive.h"
 
 /**
  * This class is used to find which objects reference any element from a list of "TargetObjects".  When invoked,

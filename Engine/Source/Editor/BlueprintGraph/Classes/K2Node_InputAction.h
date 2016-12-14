@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraph.h"
+#include "Textures/SlateIcon.h"
+#include "EdGraph/EdGraphNodeUtils.h"
+#include "BlueprintNodeSignature.h"
 #include "K2Node.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_InputAction.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
+class FKismetCompilerContext;
 
 UCLASS(MinimalAPI)
 class UK2Node_InputAction : public UK2Node

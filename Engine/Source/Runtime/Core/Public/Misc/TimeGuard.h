@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Build.h"
+#include "CoreTypes.h"
+#include "Containers/Map.h"
+#include "CoreGlobals.h"
+#include "Misc/DateTime.h"
+#include "HAL/PlatformTime.h"
 
 #ifndef DO_TIMEGUARD
 	// By default we are enabled based on STATS, but DO_TIMEGUARD can be set in XXX.Target.cs if so desired%

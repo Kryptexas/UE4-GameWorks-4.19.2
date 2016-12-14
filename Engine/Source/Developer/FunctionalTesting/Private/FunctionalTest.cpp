@@ -1,16 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "FunctionalTestingPrivatePCH.h"
+#include "FunctionalTest.h"
+#include "Misc/Paths.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/LatentActionManager.h"
+#include "Components/BillboardComponent.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "UObject/ConstructorHelpers.h"
+#include "ProfilingDebugging/ProfilingHelpers.h"
+#include "Misc/AutomationTest.h"
+#include "GameFramework/PlayerController.h"
+#include "Components/TextRenderComponent.h"
+#include "Engine/Selection.h"
+#include "FuncTestManager.h"
+#include "FuncTestRenderingComponent.h"
 #include "ObjectEditorUtils.h"
 #include "VisualLogger/VisualLogger.h"
-#if WITH_EDITORONLY_DATA
-#include "FuncTestRenderingComponent.h"
-#endif // WITH_EDITORONLY_DATA
-#if WITH_EDITOR
-#include "Engine/Selection.h"
-#endif // WITH_EDITOR
-
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Engine/Texture2D.h"
 #include "DelayForFramesLatentAction.h"
+#include "Engine/DebugCameraController.h"
 
 namespace
 {
@@ -289,7 +300,7 @@ void AFunctionalTest::FinishTest(EFunctionalTestResult TestResult, const FString
 	}
 
 	const FText ResultText = FTestResultTypeEnum->GetEnumText( (int32)TestResult );
-	const FString OutMessage = FString::Printf(TEXT("%s %s: \"%s\'")
+	const FString OutMessage = FString::Printf(TEXT("%s %s: \"%s\"")
 		, *GetName()
 		, *ResultText.ToString()
 		, Message.IsEmpty() == false ? *Message : TEXT("Test finished") );
@@ -468,11 +479,31 @@ void AFunctionalTest::GoToObservationPoint()
 	UWorld* World = GetWorld();
 	if (World && World->GetGameInstance())
 	{
-		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
-		if (PC && PC->GetPawn())
+		APlayerController* TargetPC = nullptr;
+		for (FConstPlayerControllerIterator PCIterator = World->GetPlayerControllerIterator(); PCIterator; ++PCIterator)
 		{
-			PC->GetPawn()->TeleportTo(ObservationPoint->GetActorLocation(), ObservationPoint->GetActorRotation(), /*bIsATest=*/false, /*bNoCheck=*/true);
-			PC->SetControlRotation(ObservationPoint->GetActorRotation());
+			APlayerController* PC = PCIterator->Get();
+
+			// Don't use debug camera player controllers.
+			// While it's tempting to teleport the camera if the user is debugging something then moving the camera around will them.
+			if (PC && !PC->IsA(ADebugCameraController::StaticClass()))
+			{
+				TargetPC = PC;
+				break;
+			}
+		}
+
+		if (TargetPC)
+		{
+			if (TargetPC->GetPawn())
+			{
+				TargetPC->GetPawn()->TeleportTo(ObservationPoint->GetActorLocation(), ObservationPoint->GetActorRotation(), /*bIsATest=*/false, /*bNoCheck=*/true);
+				TargetPC->SetControlRotation(ObservationPoint->GetActorRotation());
+			}
+			else
+			{
+				TargetPC->SetViewTarget(ObservationPoint);
+			}
 		}
 	}
 }

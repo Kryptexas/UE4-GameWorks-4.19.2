@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveProxy.h"
+#include "Misc/CommandLine.h"
+
 #if HAS_OODLE_SDK
-#include "ArchiveProxy.h"
 
 #define CAPTURE_HEADER_MAGIC		0x41091CC4
 #define CAPTURE_FILE_VERSION		0x00000002

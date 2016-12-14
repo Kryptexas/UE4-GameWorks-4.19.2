@@ -1,15 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompress_RemoveLinearKeys.cpp: Keyframe reduction algorithm that simply removes every second key.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
 #include "Animation/AnimCompress_RemoveLinearKeys.h"
-#include "AnimationUtils.h"
-#include "AnimEncoding.h"
 #include "AnimationCompression.h"
-
+#include "AnimEncoding.h"
+#include "Misc/FeedbackContext.h"
 
 // Define to 1 to enable timing of the meat of linear key removal done in DoReduction
 // The times are non-trivial, but the extra log spam isn't useful if one isn't optimizing DoReduction runtime

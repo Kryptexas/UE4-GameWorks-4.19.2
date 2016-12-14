@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialExpressionMaterialFunctionCall - an expression which allows a material to use a material function
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "MaterialExpressionIO.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionMaterialFunctionCall.generated.h"
+
+class UMaterialFunction;
+struct FPropertyChangedEvent;
 
 /** Struct that stores information about a function input which is needed to maintain connections and implement the function call. */
 USTRUCT()

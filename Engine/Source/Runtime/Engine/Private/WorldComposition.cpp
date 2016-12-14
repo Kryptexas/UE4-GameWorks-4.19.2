@@ -1,11 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldComposition.cpp: UWorldComposition implementation
 =============================================================================*/
-#include "EnginePrivate.h"
 #include "Engine/WorldComposition.h"
-#include "LevelUtils.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/Paths.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/PropertyPortFlags.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LocalPlayer.h"
 #include "Engine/LevelStreamingKismet.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorldComposition, Log, All);
@@ -424,9 +436,9 @@ void UWorldComposition::OnTileInfoUpdated(const FName& InPackageName, const FWor
 	UPackage* LevelPackage = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, Tile->PackageName));
 	if (LevelPackage)
 	{
-		if (LevelPackage->WorldTileInfo == NULL)
+		if (LevelPackage->WorldTileInfo == nullptr)
 		{
-			LevelPackage->WorldTileInfo = new FWorldTileInfo(Tile->Info);
+			LevelPackage->WorldTileInfo = MakeUnique<FWorldTileInfo>(Tile->Info);
 			PackageDirty = true;
 		}
 		else
@@ -887,7 +899,7 @@ void UWorldComposition::OnLevelPostLoad(ULevel* InLevel)
 		const bool bIsDefault = (Info == FWorldTileInfo());
 		if (!bIsDefault)
 		{
-			LevelPackage->WorldTileInfo = new FWorldTileInfo(Info);
+			LevelPackage->WorldTileInfo = MakeUnique<FWorldTileInfo>(Info);
 		}
 	}
 }

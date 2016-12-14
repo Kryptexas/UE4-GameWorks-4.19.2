@@ -1,23 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
-#include "Runtime/MovieScene/Public/IMovieScenePlayer.h"
-#include "Editor/SequencerWidgets/Public/ITimeSlider.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Widgets/SWidget.h"
+#include "Containers/ArrayView.h"
+#include "IMovieScenePlayer.h"
 #include "KeyPropertyParams.h"
+#include "Widgets/Input/NumericTypeInterface.h"
+#include "Editor/SequencerWidgets/Public/ITimeSlider.h"
 
-
+class AActor;
 class FSequencerSelection;
 class FSequencerSelectionPreview;
-class UMovieSceneSequence;
-class UAnimSequence;
-class UMovieScene;
-class UMovieSceneSection;
-class UMovieSceneSubSection;
+class FUICommandList;
 class ISequencerKeyCollection;
+class UMovieSceneSequence;
+class UMovieSceneSubSection;
 enum class EMapChangeType : uint8;
-
 
 /**
  * Defines auto-key modes.

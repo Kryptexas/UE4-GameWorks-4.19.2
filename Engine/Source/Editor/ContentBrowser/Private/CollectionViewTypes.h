@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "CollectionManagerTypes.h"
 
 /** Status states that a collection item can be in */
 enum class ECollectionItemStatus : uint8

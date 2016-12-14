@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/World.h"
 #include "Layers/ILayers.h"
+
+class FLevelEditorViewportClient;
+class UEditorEngine;
+class ULayer;
 
 class FLayers : public ILayers
 {

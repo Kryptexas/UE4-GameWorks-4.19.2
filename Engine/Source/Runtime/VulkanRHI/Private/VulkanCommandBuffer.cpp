@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanCommandBuffer.cpp: Vulkan device RHI implementation.
 =============================================================================*/
 
 #include "VulkanRHIPrivate.h"
-#include "VulkanCommandBuffer.h"
 #include "VulkanContext.h"
 
 FVulkanCmdBuffer::FVulkanCmdBuffer(FVulkanDevice* InDevice, FVulkanCommandBufferManager* InCommandBufferManager)
@@ -60,7 +59,7 @@ void FVulkanCmdBuffer::BeginRenderPass(const FVulkanRenderTargetLayout& Layout, 
 	Info.renderArea.offset.x = 0;
 	Info.renderArea.offset.y = 0;
 	Info.renderArea.extent = Layout.GetExtent2D();
-	Info.clearValueCount = Layout.GetNumAttachments();
+	Info.clearValueCount = Layout.GetNumAttachmentDescriptions();
 	Info.pClearValues = AttachmentClearValues;
 
 	VulkanRHI::vkCmdBeginRenderPass(CommandBufferHandle, &Info, VK_SUBPASS_CONTENTS_INLINE);

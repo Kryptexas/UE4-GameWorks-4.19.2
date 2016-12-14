@@ -1,13 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AimOffsetBlendSpace.cpp: AimOffsetBlendSpace functionality
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "Animation/BlendSpaceBase.h"
 #include "Animation/AimOffsetBlendSpace.h"
-#include "Animation/AnimSequence.h"
 
 UAimOffsetBlendSpace::UAimOffsetBlendSpace(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

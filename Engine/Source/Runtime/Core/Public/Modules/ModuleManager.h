@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "Delegate.h"
-#include "Boilerplate/ModuleBoilerplate.h"
-
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTemplate.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "UObject/NameTypes.h"
+#include "Templates/SharedPointer.h"
+#include "Delegates/Delegate.h"
+#include "Misc/Optional.h"
+#include "Misc/CoreMisc.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/Boilerplate/ModuleBoilerplate.h"
 
 #if WITH_HOT_RELOAD
 	/** If true, we are reloading a class for HotReload */
@@ -601,7 +610,7 @@ private:
 	TArray<FString> GameBinariesDirectories;
 
 	/** Critical section object controlling R/W access to Modules. */
-	mutable FMultiReaderSingleWriterGT ModulesCriticalSection;
+	mutable FCriticalSection ModulesCriticalSection;
 };
 
 /**

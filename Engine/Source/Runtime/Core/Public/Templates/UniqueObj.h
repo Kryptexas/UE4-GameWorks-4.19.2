@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UniquePtr.h"
+#include "CoreTypes.h"
+#include "Templates/UniquePtr.h"
 
 // This is essentially a reference version of TUniquePtr
 // Useful to force heap allocation of a value, e.g. in a TMap to give similar behaviour to TIndirectArray

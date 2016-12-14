@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -19,13 +19,11 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
-#include <math.h>
-#include "DebugDraw.h"
-#include "DetourDebugDraw.h"
-#include "DetourNavMesh.h"
-#include "DetourCommon.h"
-#include "DetourNode.h"
+#include "DebugUtils/DetourDebugDraw.h"
+#include "DebugUtils/DebugDraw.h"
+#include "Detour/DetourNavMeshQuery.h"
+#include "DetourTileCache/DetourTileCacheBuilder.h"
+#include "Detour/DetourNode.h"
 
 inline const dtLink& getLinkHelper(const dtMeshTile* tile, unsigned int link)
 {

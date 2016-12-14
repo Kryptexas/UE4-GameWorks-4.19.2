@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Math/Vector2D.h"
 #include "Templates/SharedPointer.h"
 #include "Misc/Optional.h"
 
-
 class FGenericWindow;
-
 
 namespace EMouseButtons
 {

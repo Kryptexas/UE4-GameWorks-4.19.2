@@ -1,12 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ScriptMacros.h"
+#include "UObject/Interface.h"
+#include "UObject/TextProperty.h"
 #include "Engine/LatentActionManager.h"
-#include "BlueprintFunctionLibrary.h"
-#include "Engine/CollisionProfile.h"
-#include "AssetPtr.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "KismetSystemLibrary.generated.h"
+
+class AActor;
+class ACameraActor;
+class APlayerController;
+class UPrimitiveComponent;
+class USceneComponent;
+struct FCollisionProfileName;
+
+template<class TClass> class TAssetSubclassOf;
 
 UENUM(BlueprintType)
 namespace EDrawDebugTrace
@@ -1386,3 +1402,54 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Utilities")
 	static FString GetCommandLine();
 };
+
+
+
+//////////////////////////////////////////////////////////////////////////
+// UKismetSystemLibrary inlines
+
+
+FORCEINLINE_DEBUGGABLE bool UKismetSystemLibrary::IsValid(const UObject* Object)
+{
+	return ::IsValid(Object);
+}
+
+FORCEINLINE_DEBUGGABLE bool UKismetSystemLibrary::IsValidClass(UClass* Class)
+{
+	return ::IsValid(Class);
+}
+
+FORCEINLINE int32 UKismetSystemLibrary::MakeLiteralInt(int32 Value)
+{
+	return Value;
+}
+
+FORCEINLINE float UKismetSystemLibrary::MakeLiteralFloat(float Value)
+{
+	return Value;
+}
+
+FORCEINLINE bool UKismetSystemLibrary::MakeLiteralBool(bool Value)
+{
+	return Value;
+}
+
+FORCEINLINE FName UKismetSystemLibrary::MakeLiteralName(FName Value)
+{
+	return Value;
+}
+
+FORCEINLINE uint8 UKismetSystemLibrary::MakeLiteralByte(uint8 Value)
+{
+	return Value;
+}
+
+FORCEINLINE FString UKismetSystemLibrary::MakeLiteralString(const FString& Value)
+{
+	return Value;
+}
+
+FORCEINLINE FText UKismetSystemLibrary::MakeLiteralText(FText Value)
+{
+	return Value;
+}

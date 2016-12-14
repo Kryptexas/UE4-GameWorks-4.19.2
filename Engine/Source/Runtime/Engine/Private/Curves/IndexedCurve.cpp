@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Curves/IndexedCurve.h"
 
 
@@ -35,23 +34,14 @@ void FIndexedCurve::EnsureAllIndicesHaveHandles() const
 	const int32 NumKeys = GetNumKeys();
 	if (KeyHandlesToIndices.Num() != NumKeys)
 	{
-		KeyHandlesToIndices.Empty();
-		for (int32 i = 0; i < NumKeys; ++i)
-		{
-			EnsureIndexHasAHandle(i);
-		}
+		KeyHandlesToIndices.EnsureAllIndicesHaveHandles(NumKeys);
 	}
 }
 
 
 void FIndexedCurve::EnsureIndexHasAHandle(int32 KeyIndex) const
 {
-	const FKeyHandle* KeyHandle = KeyHandlesToIndices.FindKey(KeyIndex);
-	if (!KeyHandle)
-	{
-		FKeyHandle OutKeyHandle = FKeyHandle();
-		KeyHandlesToIndices.Add(OutKeyHandle, KeyIndex);
-	}
+	KeyHandlesToIndices.EnsureIndexHasAHandle(KeyIndex);
 }
 
 

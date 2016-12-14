@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineIdentityInterfaceGameCircle.h"
@@ -10,6 +11,7 @@
 #include "OnlineExternalUIInterfaceGameCircle.h"
 #include "OnlineFriendsInterfaceGameCircle.h"
 #include "OnlineAGSCallbackManager.h"
+#include "OnlineStoreInterfaceGameCircle.h"
 #include "UniquePtr.h"
 
 #include <string>

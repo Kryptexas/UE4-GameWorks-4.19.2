@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderResource.h: Render resource definitions.
@@ -6,9 +6,10 @@
 
 #pragma once
 
-#include "RenderCore.h"
+#include "CoreMinimal.h"
+#include "Containers/List.h"
 #include "RHI.h"
-#include "RenderingThread.h"
+#include "RenderCore.h"
 
 /**
  * A rendering resource which is owned by the rendering thread.

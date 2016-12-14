@@ -15,6 +15,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IHeadMountedDisplay.h"
+#include "IGoogleVRHMDPlugin.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "GoogleVRHMDFunctionLibrary.generated.h"
 
 /** Enum to specify distortion mesh size */

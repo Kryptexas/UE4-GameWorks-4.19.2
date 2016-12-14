@@ -1,43 +1,48 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameEngine.cpp: Unreal game engine.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
-#include "SoundDefinitions.h"
-#include "Net/UnrealNetwork.h"
-#include "AllocatorFixedSizeFreeList.h"
-#include "Database.h"
-#include "MallocProfiler.h"
+#include "Engine/GameEngine.h"
+#include "GenericPlatform/GenericPlatformSurvey.h"
+#include "Misc/CommandLine.h"
+#include "Misc/TimeGuard.h"
+#include "Misc/App.h"
+#include "GameMapsSettings.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "RenderingThread.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/PlatformInterfaceBase.h"
+#include "ContentStreaming.h"
+#include "UnrealEngine.h"
+#include "HAL/PlatformSplash.h"
+#include "UObject/Package.h"
+#include "GameFramework/GameModeBase.h"
+#include "EngineUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "AudioDeviceManager.h"
 #include "Net/NetworkProfiler.h"
-#include "ConfigCacheIni.h"
+#include "RendererInterface.h"
 #include "EngineModule.h"
-#include "Engine/GameInstance.h"
-#include "Engine/RendererSettings.h"
-#include "Engine/UserInterfaceSettings.h"
 #include "GeneralProjectSettings.h"
+#include "Misc/PackageName.h"
 
-#include "SlateBasics.h"
 #include "Slate/SceneViewport.h"
-#include "SVirtualJoystick.h"
 
+#include "IMovieSceneCapture.h"
 #include "MovieSceneCaptureModule.h"
-#include "MovieSceneCaptureSettings.h"
 
-#include "AssetRegistryModule.h"
 #include "SynthBenchmark.h"
 
-#include "IHeadMountedDisplay.h"
-#include "RendererInterface.h"
-#include "HotReloadInterface.h"
-#include "SGameLayerManager.h"
+#include "Misc/HotReloadInterface.h"
+#include "Engine/LocalPlayer.h"
+#include "Slate/SGameLayerManager.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/ReflectionCaptureComponent.h"
-#include "Engine/GameEngine.h"
 #include "GameFramework/GameUserSettings.h"
-#include "GameFramework/GameModeBase.h"
 #include "GameDelegates.h"
 #include "Engine/CoreSettings.h"
 #include "EngineAnalytics.h"
@@ -57,6 +62,12 @@ static FAutoConsoleVariableRef CvarSlowFrameLoggingThreshold(
 	ECVF_Default
 	);
 
+static int32 GDoAsyncEndOfFrameTasks = 0;
+static FAutoConsoleVariableRef CVarDoAsyncEndOfFrameTasks(
+	TEXT("tick.DoAsyncEndOfFrameTasks"),
+	GDoAsyncEndOfFrameTasks,
+	TEXT("Experimental option to run various things concurrently with the HUD render.")
+	);
 
 /** Benchmark results to the log */
 static void RunSynthBenchmark(const TArray<FString>& Args)
@@ -241,8 +252,8 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	// Optionally force the resolution by passing -ForceRes
 	const bool bForceRes = FParse::Param(FCommandLine::Get(), TEXT("ForceRes"));
 
-	//Dont allow a resolution bigger then the desktop found a convenient one
-	if (!bForceRes && !IsRunningDedicatedServer() && ((ResolutionX <= 0 || ResolutionX >= MaxResolutionX) || (ResolutionY <= 0 || ResolutionY >= MaxResolutionY)))
+	//Don't allow a resolution bigger then the desktop found a convenient one
+	if (!bForceRes && !IsRunningDedicatedServer() && ((ResolutionX <= 0 || ResolutionX > MaxResolutionX) || (ResolutionY <= 0 || ResolutionY > MaxResolutionY)))
 	{
 		ResolutionX = MaxResolutionX;
 		ResolutionY = MaxResolutionY;
@@ -745,6 +756,11 @@ bool UGameEngine::NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReadi
 	}
 
 	return false;
+}
+
+bool UGameEngine::ShouldDoAsyncEndOfFrameTasks() const
+{
+	return FApp::ShouldUseThreadingForPerformance() && ENamedThreads::RenderThread != ENamedThreads::GameThread && !!GDoAsyncEndOfFrameTasks;
 }
 
 /*-----------------------------------------------------------------------------

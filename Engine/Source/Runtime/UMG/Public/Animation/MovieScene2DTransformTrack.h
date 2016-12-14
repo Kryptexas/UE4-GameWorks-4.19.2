@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieScenePropertyTrack.h"
-#include "Slate/WidgetTransform.h"
-#include "KeyParams.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieScene2DTransformTrack.generated.h"
 
+struct FWidgetTransform;
 
 /**
  * Handles manipulation of 2D transforms in a movie scene

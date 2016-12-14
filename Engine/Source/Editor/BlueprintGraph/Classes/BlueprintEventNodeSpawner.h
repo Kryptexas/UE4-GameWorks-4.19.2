@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "BlueprintNodeSignature.h"
 #include "BlueprintNodeSpawner.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
+#include "K2Node_Event.h"
 #include "BlueprintEventNodeSpawner.generated.h"
 
-class UK2Node_Event;
+class UEdGraph;
 
 /**
  * Takes care of spawning UK2Node_Event nodes. Acts as the "action" portion of

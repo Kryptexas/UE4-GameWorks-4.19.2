@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
+#include "GenericPlatform/GenericWindow.h"
 #include "Scalability.h"
 #include "GameUserSettings.generated.h"
 
@@ -277,6 +282,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Settings)
 	virtual void ApplyHardwareBenchmarkResults();
 
+	/** Whether the curently running system supports HDR display output */
+	UFUNCTION(BlueprintCallable, Category=Settings)
+	bool SupportsHDRDisplayOutput();
+
+	/** Enables or disables HDR display output. Can be called again to change the desired nit level */
+	UFUNCTION(BlueprintCallable, Category=Settings)
+	void EnableHDRDisplayOutput(bool bEnable, int32 DisplayNits = 1000);
+
 	/** Whether to use VSync or not. (public to allow UI to connect to it) */
 	UPROPERTY(config)
 	bool bUseVSync;
@@ -382,6 +395,14 @@ protected:
 	UPROPERTY(config)
 	float LastGPUBenchmarkMultiplier;
 
+	/** HDR */
+	UPROPERTY(config)
+	bool bUseHDRDisplayOutput;
+
+	/** HDR */
+	UPROPERTY(config)
+	int32 HDRDisplayOutputNits;
+
 public:
 	/** Returns the last CPU benchmark result (set by RunHardwareBenchmark) */
 	float GetLastCPUBenchmarkResult() const
@@ -425,12 +446,13 @@ protected:
 
 	/** Returns the effective frame rate limit (by default it returns the FrameRateLimit member) */
 	virtual float GetEffectiveFrameRateLimit();
+
+	void UpdateResolutionQuality();
+
 private:
 
 	UPROPERTY(BlueprintAssignable, meta = (AllowPrivateAccess = "true"))
 	FOnGameUserSettingsUINeedsUpdate OnGameUserSettingsUINeedsUpdate;
-
-	void UpdateResolutionQuality();
 
 	void SetPreferredFullscreenMode(int32 Mode);
 };

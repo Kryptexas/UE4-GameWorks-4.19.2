@@ -1,18 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FXSystem.cpp: Implementation of the effects system.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "SystemSettings.h"
-#include "RHI.h"
-#include "RHIStaticStates.h"
-#include "RenderResource.h"
-#include "FXSystemPrivate.h"
-#include "../VectorField.h"
-#include "../GPUSort.h"
-#include "ParticleCurveTexture.h"
+#include "FXSystem.h"
+#include "RenderingThread.h"
+#include "VectorField.h"
+#include "Particles/FXSystemPrivate.h"
+#include "GPUSort.h"
+#include "Particles/ParticleCurveTexture.h"
 #include "VectorField/VectorField.h"
 #include "Components/VectorFieldComponent.h"
 

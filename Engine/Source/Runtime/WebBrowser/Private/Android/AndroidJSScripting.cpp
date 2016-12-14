@@ -1,6 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "WebBrowserPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidJSScripting.h"
 #include "AndroidApplication.h"
@@ -12,6 +10,7 @@
 #include "AndroidJSStructDeserializerBackend.h"
 #include "StructSerializer.h"
 #include "StructDeserializer.h"
+#include "UObject/UnrealType.h"
 
 // For UrlDecode/Encode
 #include "Http.h"
@@ -330,9 +329,9 @@ FString FAndroidJSScripting::ConvertObject(UObject* Object)
 		{
 			first = false;
 		}
-		Result.Append(*Function->GetName());
+		Result.Append(*GetBindingName(Function));
 		Result.Append(TEXT(": function "));
-		Result.Append(*Function->GetName());
+		Result.Append(*GetBindingName(Function));
 		Result.Append(TEXT(" ("));
 
 		bool firstArg = true;
@@ -352,7 +351,7 @@ FString FAndroidJSScripting::ConvertObject(UObject* Object)
 					{
 						firstArg = false;
 					}
-					Result.Append(*Param->GetName());
+					Result.Append(*GetBindingName(Param));
 				}
 			}
 		}
@@ -511,7 +510,7 @@ bool FAndroidJSScripting::HandleExecuteUObjectMethodMessage(const TArray<FString
 			FString ResultJS = ReturnBackend.ToString();
 
 			ResultJS.Append(TEXT("['"));
-			ResultJS.Append(ReturnParam->GetName().ReplaceCharWithEscapedChar());
+			ResultJS.Append(GetBindingName(ReturnParam).ReplaceCharWithEscapedChar());
 			ResultJS.Append(TEXT("']"));
 
 			InvokeJSFunctionRaw(ResultCallbackId, ResultJS, false);
@@ -546,7 +545,7 @@ void FAndroidJSScripting::PageLoaded(TSharedRef<class FAndroidWebBrowserWindow> 
 	InWindow->ExecuteJavascript(Script);
 }
 
-FAndroidJSScripting::FAndroidJSScripting()
-	: FWebJSScripting()
+FAndroidJSScripting::FAndroidJSScripting(bool bJSBindingToLoweringEnabled)
+	: FWebJSScripting(bJSBindingToLoweringEnabled)
 {
 }

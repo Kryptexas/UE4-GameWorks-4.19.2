@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // Emitter actor class.
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "Emitter.generated.h"
+
+class UPhysicalMaterial;
 
 /** Fires when a particle is spawned
 	* @param EventName - Custom event name for the Spawn Event.

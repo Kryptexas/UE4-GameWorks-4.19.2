@@ -1,19 +1,22 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "SceneComponentDetails.h"
-#include "AssetSelection.h"
-#include "PropertyEditing.h"
-#include "PropertyRestriction.h"
-#include "IPropertyUtilities.h"
-#include "ComponentTransformDetails.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "Engine/BlueprintGeneratedClass.h"
-#include "Engine/InheritableComponentHandler.h"
+#include "UObject/Class.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
 #include "Components/LightComponentBase.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "DetailLayoutBuilder.h"
+#include "IDetailsView.h"
+#include "DetailCategoryBuilder.h"
+#include "Customizations/MobilityCustomization.h"
+#include "PropertyRestriction.h"
+#include "ComponentTransformDetails.h"
+#include "Engine/InheritableComponentHandler.h"
 #include "ComponentUtils.h"
-#include "MobilityCustomization.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponentDetails"
 
@@ -178,8 +181,9 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 			FText RestrictReason;
 			if (IsMobilitySettingProhibited(EComponentMobility::Static, SceneComponent, RestrictReason))
 			{
-				 TSharedPtr<FPropertyRestriction> StaticRestriction = MakeShareable(new FPropertyRestriction(RestrictReason));
-				 StaticRestriction->AddValue(TEXT("Static"));
+				 TSharedPtr<FPropertyRestriction> StaticRestriction = MakeShareable(new FPropertyRestriction(MoveTemp(RestrictReason)));
+				 const UEnum* const ComponentMobilityEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EComponentMobility"));		
+				 StaticRestriction->AddDisabledValue(ComponentMobilityEnum->GetEnumNameStringByValue((uint8)EComponentMobility::Static));
 				 MobilityHandle->AddRestriction(StaticRestriction.ToSharedRef());
 
 				 RestrictedMobilityBits |= FMobilityCustomization::StaticMobilityBitMask;
@@ -192,8 +196,9 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 			FText RestrictReason;
 			if (IsMobilitySettingProhibited(EComponentMobility::Stationary, SceneComponent, RestrictReason))
 			{
-				TSharedPtr<FPropertyRestriction> StationaryRestriction = MakeShareable(new FPropertyRestriction(RestrictReason));
-				StationaryRestriction->AddValue(TEXT("Stationary"));
+				TSharedPtr<FPropertyRestriction> StationaryRestriction = MakeShareable(new FPropertyRestriction(MoveTemp(RestrictReason)));
+				const UEnum* const ComponentMobilityEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EComponentMobility"));		
+				StationaryRestriction->AddDisabledValue(ComponentMobilityEnum->GetEnumNameStringByValue((uint8)EComponentMobility::Stationary));
 				MobilityHandle->AddRestriction(StationaryRestriction.ToSharedRef());
 
 				RestrictedMobilityBits |= FMobilityCustomization::StationaryMobilityBitMask;

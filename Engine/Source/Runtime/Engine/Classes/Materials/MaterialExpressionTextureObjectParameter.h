@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Node which creates a texture parameter and outputs the texture object itself, instead of sampling the texture first.
@@ -6,10 +6,13 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "MaterialExpressionTextureObjectParameter.generated.h"
 
-UCLASS(collapsecategories, hidecategories=(Object, MaterialExpressionTextureSample))
+UCLASS(collapsecategories, hidecategories=(Object, MaterialExpressionTextureSample), MinimalAPI)
 class UMaterialExpressionTextureObjectParameter : public UMaterialExpressionTextureSampleParameter
 {
 	GENERATED_UCLASS_BODY()

@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IBreakIterator.h"
+#include "CoreTypes.h"
+#include "Containers/Set.h"
+#include "Templates/SharedPointer.h"
+#include "Internationalization/IBreakIterator.h"
 
 #if UE_ENABLE_ICU
 

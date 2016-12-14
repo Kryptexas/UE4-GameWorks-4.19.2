@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "DerivedDataBackendInterface.h"
+#include "ProfilingDebugging/CookStats.h"
+#include "DerivedDataCacheUsageStats.h"
 
 /** 
  * Helper class for placing a footer at the end of of a cache file.

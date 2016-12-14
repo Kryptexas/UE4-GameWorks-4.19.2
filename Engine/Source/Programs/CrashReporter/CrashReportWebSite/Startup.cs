@@ -1,4 +1,6 @@
-﻿using Hangfire;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using Hangfire;
 using Microsoft.Owin;
 using Owin;
 using Tools.CrashReporter.CrashReportWebSite;

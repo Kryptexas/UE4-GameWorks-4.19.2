@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "../../../ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
-#pragma comment( lib, "../../../ThirdParty/zlib/zlib-1.2.5/Lib/Win64/zlib_64.lib" )
+#include "../../../ThirdParty/zlib/v1.2.8/include/Win64/VS2013/zlib.h"
+#pragma comment( lib, "../../../ThirdParty/zlib/v1.2.8/lib/Win64/VS2013/zlibstatic.lib" )
 
 // Taken from GenericPlatform.h
 
@@ -19,19 +19,18 @@ typedef signed long long	int64;		// 64-bit signed.
 
 // Taken from Compression.cpp
 
-/**
- * Thread-safe abstract compression routine. Compresses memory from uncompressed buffer and writes it to compressed
- * buffer. Updates CompressedSize with size of compressed data.
- *
- * @param	UncompressedBuffer			Buffer containing uncompressed data
- * @param	UncompressedSize			Size of uncompressed data in bytes
- * @param	CompressedBuffer			Buffer compressed data is going to be read from
- * @param	CompressedSize				Size of CompressedBuffer data in bytes
- * @return  Less than zero values are error codes if the uncompress fails, greater than zero is the uncompressed size in bytes
- */
 extern "C"
 {
-
+	/**
+	 * Thread-safe abstract decompression routine. Decompresses memory from compressed buffer and writes it to uncompressed
+	 * buffer. Returns actual uncompressed data size or a negative error code.
+	 *
+	 * @param	UncompressedBuffer			Buffer containing uncompressed data
+	 * @param	UncompressedSize			Size of uncompressed data in bytes
+	 * @param	CompressedBuffer			Buffer compressed data is going to be read from
+	 * @param	CompressedSize				Size of CompressedBuffer data in bytes
+	 * @return  Less than zero values are error codes if the uncompress fails, greater than zero is the uncompressed size in bytes
+	 */
 	__declspec(dllexport)
 	int32 __cdecl UE4UncompressMemoryZLIB(void* UncompressedBuffer, int32 UncompressedSize, const void* CompressedBuffer, int32 CompressedSize)
 	{
@@ -42,8 +41,59 @@ extern "C"
 		// Uncompress data.
 		int32 Result = uncompress((uint8*)UncompressedBuffer, &ZUncompressedSize, (const uint8*)CompressedBuffer, ZCompressedSize);
 
-		// Sanity check to make sure we uncompressed as much data as we expected to.
 		return (Result == Z_OK) ? (int32)ZUncompressedSize : Result;
 	}
 
+	/**
+	 * Thread-safe abstract compression routine. Compresses memory from uncompressed buffer and writes it to compressed
+	 * buffer. Returns actual compressed data size or a negative error code.
+	 *
+	 * @param	CompressedBuffer			Buffer compressed data
+	 * @param	CompressedSize				Size of CompressedBuffer data in bytes
+	 * @param	UncompressedBuffer			Buffer containing uncompressed data is going to be read from
+	 * @param	UncompressedSize			Size of uncompressed data in bytes
+	 * @return  Less than zero values are error codes if the compress fails, greater than zero is the compressed size in bytes
+	 */
+	__declspec(dllexport)
+	int32 __cdecl UE4CompressMemoryZLIB(void* CompressedBuffer, int32 CompressedSize, const void* UncompressedBuffer, int32 UncompressedSize)
+	{
+		// Zlib wants to use unsigned long.
+		unsigned long ZCompressedSize = CompressedSize;
+		unsigned long ZUncompressedSize = UncompressedSize;
+
+		// Uncompress data.
+		int32 Result = compress2((uint8*)CompressedBuffer, &ZCompressedSize, (const uint8*)UncompressedBuffer, ZUncompressedSize, Z_DEFAULT_COMPRESSION);
+
+		return (Result == Z_OK) ? (int32)ZCompressedSize : Result;
+	}
+
+	/**
+	 * Thread-safe file compression routine. Compresses memory from uncompressed buffer and writes it to compressed
+	 * gzip file.
+	 *
+	 * @param	Path						File path to write a new compressed gzip file
+	 * @param	UncompressedBuffer			Buffer containing uncompressed data is going to be read from
+	 * @param	UncompressedSize			Size of uncompressed data in bytes
+	 * @return  Less than zero values are error codes if the compress fails, Z_OK if succeeded.
+	 */
+	__declspec(dllexport)
+	int32 __cdecl UE4CompressFileGZIP(const char* Path, const void* UncompressedBuffer, int32 UncompressedSize)
+	{
+		// Zlib wants to use unsigned long.
+		unsigned ZUncompressedSize = UncompressedSize;
+
+		gzFile FilePtr = gzopen(Path, "wb");
+		if (FilePtr == nullptr)
+		{
+			return Z_ERRNO;
+		}
+
+		int ZCompressedSize = gzwrite(FilePtr, UncompressedBuffer, ZUncompressedSize);
+		if (ZCompressedSize == 0)
+		{
+			return Z_ERRNO;
+		}
+
+		return gzclose(FilePtr);
+	}
 }

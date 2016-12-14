@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Package.h"
 #include "SequencerSettings.generated.h"
+
+struct FPropertyChangedEvent;
+enum class EAutoKeyMode : uint8;
+enum class EMovieSceneKeyInterpolation : uint8;
 
 UENUM()
 enum ESequencerSpawnPosition

@@ -1,10 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ModuleManager.h"
 #include "IInputDeviceModule.h"
-#include "InputDevice.h"
+#include "IInputDevice.h"
 #include "RawInput.h"
 #include "WindowsApplication.h"
 #include "RawInputFunctionLibrary.h"
@@ -18,6 +18,7 @@
 class FRawInputWindows;
 class AHUD;
 class UCanvas;
+class FDebugDisplayInfo;
 
 /* Helper class to provide an interface into the HID API via the DLL */
 struct FDLLPointers

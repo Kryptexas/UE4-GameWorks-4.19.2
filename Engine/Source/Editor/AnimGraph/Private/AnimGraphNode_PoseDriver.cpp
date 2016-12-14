@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_PoseDriver.h"
-#include "CompilerResultsLog.h"
+#include "Kismet2/CompilerResultsLog.h"
 #include "AnimNodeEditModes.h"
 
 #define LOCTEXT_NAMESPACE "A3Nodes"
@@ -42,6 +41,18 @@ void UAnimGraphNode_PoseDriver::ValidateAnimNodeDuringCompilation(USkeleton* For
 FEditorModeID UAnimGraphNode_PoseDriver::GetEditorMode() const
 {
 	return AnimNodeEditModes::PoseDriver;
+}
+
+EAnimAssetHandlerType UAnimGraphNode_PoseDriver::SupportsAssetClass(const UClass* AssetClass) const
+{
+	if (AssetClass->IsChildOf(UPoseAsset::StaticClass()))
+	{
+		return EAnimAssetHandlerType::Supported;
+	}
+	else
+	{
+		return EAnimAssetHandlerType::NotSupported;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

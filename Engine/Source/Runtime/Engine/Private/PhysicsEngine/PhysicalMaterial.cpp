@@ -1,17 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysicalMaterial.cpp
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 #include "PhysicsPublic.h"
+#include "PhysicalMaterials/PhysicalMaterialPropertyBase.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 
 #if WITH_PHYSX
-	#include "PhysXSupport.h"
+	#include "PhysicsEngine/PhysXSupport.h"
 #endif // WITH_PHYSX
-#include "PhysicalMaterials/PhysicalMaterial.h"
 
 UDEPRECATED_PhysicalMaterialPropertyBase::UDEPRECATED_PhysicalMaterialPropertyBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

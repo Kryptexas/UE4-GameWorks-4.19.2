@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5PlatformMemory.cpp: HTML5 platform memory functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "HTML5PlatformMemory.h"
 #include "MallocBinned.h"
 #include "MallocAnsi.h"
+#include "Misc/CoreStats.h"
+#include "CoreGlobals.h"
 
 void FHTML5PlatformMemory::Init()
 {

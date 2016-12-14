@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Modules/ModuleInterface.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Toolkits/AssetEditorToolkit.h"
 #include "IAnimationBlueprintEditor.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnimationBlueprintEditor, Log, All);

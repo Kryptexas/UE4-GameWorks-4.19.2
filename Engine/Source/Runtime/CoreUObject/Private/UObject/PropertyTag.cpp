@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "PropertyTag.h"
+#include "UObject/PropertyTag.h"
+#include "UObject/DebugSerializationFlags.h"
+#include "Serialization/SerializedPropertyScope.h"
+#include "UObject/UnrealType.h"
+#include "EnumProperty.h"
 #include "UObject/BlueprintsObjectVersion.h"
 
 /*-----------------------------------------------------------------------------
@@ -43,6 +46,10 @@ FPropertyTag::FPropertyTag( FArchive& InSaveAr, UProperty* Property, int32 InInd
 		{
 			StructName = StructProperty->Struct->GetFName();
 			StructGuid = StructProperty->Struct->GetCustomGuid();
+		}
+		else if (UEnumProperty* EnumProp = Cast<UEnumProperty>(Property))
+		{
+			EnumName = EnumProp->GetEnum()->GetFName();
 		}
 		else if (UByteProperty* ByteProp = Cast<UByteProperty>(Property))
 		{
@@ -116,8 +123,8 @@ FArchive& operator<<( FArchive& Ar, FPropertyTag& Tag )
 	{
 		Ar << Tag.BoolVal;
 	}
-	// only need to serialize this for bytes
-	else if (Tag.Type == NAME_ByteProperty)
+	// only need to serialize this for bytes/enums
+	else if (Tag.Type == NAME_ByteProperty || Tag.Type == NAME_EnumProperty)
 	{
 		Ar << Tag.EnumName;
 	}

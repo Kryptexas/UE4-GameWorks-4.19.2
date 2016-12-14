@@ -1,10 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Layout/Margin.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Styling/StyleDefaults.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/STableRow.h"
+#include "Models/ProjectLauncherModel.h"
+#include "Widgets/SProjectLauncherDelegates.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "EditorStyleSet.h"
+#include "PlatformInfo.h"
+#include "Widgets/Shared/SProjectLauncherBuildConfigurationSelector.h"
+#include "Widgets/Shared/SProjectLauncherCookModeSelector.h"
+#include "Widgets/Shared/SProjectLauncherProfileLaunchButton.h"
+#include "Widgets/Shared/SProjectLauncherVariantSelector.h"
 
 #define LOCTEXT_NAMESPACE "SProjectLauncherSimpleDeviceListRow"
-
 
 /**
  * Implements a row widget for the launcher's device proxy list.

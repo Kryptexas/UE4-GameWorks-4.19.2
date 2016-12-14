@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CubemapUnwapUtils.h: Pixel and Vertex shader to render a cube map as 2D texture
@@ -6,8 +6,14 @@
 
 #pragma once
 
-#include "GlobalShader.h" 
-#include "SimpleElementShaders.h" 
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "BatchedElements.h"
+#include "GlobalShader.h"
+
+class UTextureCube;
+class UTextureRenderTargetCube;
 
 namespace CubemapHelpers
 {

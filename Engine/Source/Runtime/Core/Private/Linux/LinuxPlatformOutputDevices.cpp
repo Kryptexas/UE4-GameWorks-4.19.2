@@ -1,17 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinuxOutputDevices.cpp: Linux implementations of OutputDevices functions
 =============================================================================*/
 
 
-#include "CorePrivatePCH.h"
-#include "LinuxPlatformOutputDevices.h"
-#include "FeedbackContextAnsi.h"
-#include "LinuxApplication.h"
-#include "LinuxPlatformOutputDevicesPrivate.h"
-#include "LinuxPlatformFeedbackContextPrivate.h"
+#include "Linux/LinuxPlatformOutputDevices.h"
+#include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/OutputDeviceHelper.h"
+#include "Misc/CoreDelegates.h"
 #include "Misc/App.h"
+#include "Linux/LinuxApplication.h"
+#include "Linux/LinuxPlatformOutputDevicesPrivate.h"
+#include "Linux/LinuxPlatformFeedbackContextPrivate.h"
 
 #define CONSOLE_RED		"\x1b[31m"
 #define CONSOLE_GREEN	"\x1b[32m"

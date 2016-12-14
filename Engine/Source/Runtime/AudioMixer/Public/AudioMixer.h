@@ -1,17 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "Engine.h"
-
-AUDIOMIXER_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioMixer, Log, All);
-AUDIOMIXER_API DECLARE_LOG_CATEGORY_EXTERN(LogAudioMixerDebug, Log, All);
-
-#include "SoundDefinitions.h"
+#include "CoreMinimal.h"
+#include "AudioMixerLog.h"
 #include "AudioDecompress.h"
 #include "AudioEffect.h"
 #include "AudioMixerTypes.h"
+#include "HAL/Runnable.h"
 
 // defines used for AudioMixer.h
 #define AUDIO_PLATFORM_ERROR(INFO)			(OnAudioMixerPlatformError(INFO, FString(__FILE__), __LINE__))
@@ -44,6 +40,9 @@ namespace Audio
 	{
 		/** The name of the audio device */
 		FString Name;
+
+		/** ID of the device. */
+		FString DeviceId;
 
 		/** The number of channels supported by the audio device */
 		int32 NumChannels;
@@ -80,6 +79,7 @@ namespace Audio
 		void Reset()
 		{
 			Name = TEXT("Unknown");
+			DeviceId = TEXT("Unknown");
 			NumChannels = 0;
 			SampleRate = 0;
 			DefaultSampleRate = 0;
@@ -99,7 +99,17 @@ namespace Audio
 	public:
 		/** Callback to generate a new audio stream buffer. */
 		virtual bool OnProcessAudioStream(TArray<float>& OutputBuffer) = 0;
+
+		/** Function to implement when an audio hardware device is added to the system. */
+		virtual void OnAudioDeviceAdded(const FString& DeviceId) {}
+
+		virtual void OnDefaultDeviceOutputChanged(const FString& DeviceId) {}
+
+		virtual void OnDefaultInputOutputChanged(const FString& DeviceId) {}
+
+
 	};
+
 
 	/** Defines parameters needed for opening a new audio stream to device. */
 	struct FAudioMixerOpenStreamParams
@@ -228,6 +238,9 @@ namespace Audio
 
 		/** Creates a Compressed audio info class suitable for decompressing this SoundWave. */
 		virtual ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) = 0;
+
+		/** Return any optional device name defined in platform configuratio. */
+		virtual FString GetDefaultDeviceName() = 0;
 
 	public: // Public Functions
 		//~ Begin FRunnable

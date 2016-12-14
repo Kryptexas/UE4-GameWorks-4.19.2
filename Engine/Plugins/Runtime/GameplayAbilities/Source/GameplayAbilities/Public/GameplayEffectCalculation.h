@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayEffectCalculation.generated.h"
-
-struct FGameplayEffectSpec;
-class UAbilitySystemComponent;
 
 /** Abstract base for specialized gameplay effect calculations; Capable of specifing attribute captures */
 UCLASS(BlueprintType, Blueprintable, Abstract)

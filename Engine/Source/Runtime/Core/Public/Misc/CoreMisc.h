@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IntPoint.h"
-#include "Map.h"
-#include "ThreadingBase.h"
-#include "Containers/ArrayView.h"
+#include "CoreTypes.h"
+#include "Misc/Exec.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Math/IntPoint.h"
+#include "UObject/NameTypes.h"
+#include "CoreGlobals.h"
+#include "HAL/ThreadSingleton.h"
 
 /**
  * Exec handler that registers itself and is being routed via StaticExec.

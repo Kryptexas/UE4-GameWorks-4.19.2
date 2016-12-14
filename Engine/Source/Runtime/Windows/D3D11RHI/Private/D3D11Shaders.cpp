@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Shaders.cpp: D3D shader RHI implementation.
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
+#include "Serialization/MemoryReader.h"
 
 template <typename TShaderType>
 static inline void ReadShaderOptionalData(FShaderCodeReader& InShaderCode, TShaderType& OutShader)

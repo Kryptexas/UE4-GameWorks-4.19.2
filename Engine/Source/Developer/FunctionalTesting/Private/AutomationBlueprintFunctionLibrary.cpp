@@ -1,19 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "FunctionalTestingPrivatePCH.h"
-
-#include "AutomationCommon.h"
-#include "AutomationTest.h"
-#include "DelayForFramesLatentAction.h"
+#include "AutomationBlueprintFunctionLibrary.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/AutomationTest.h"
+#include "EngineGlobals.h"
+#include "UnrealClient.h"
+#include "Camera/CameraActor.h"
+#include "Camera/PlayerCameraManager.h"
+#include "Engine/Texture.h"
+#include "Engine/GameViewportClient.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/Engine.h"
+#include "Tests/AutomationCommon.h"
+#include "Logging/MessageLog.h"
 #include "TakeScreenshotAfterTimeLatentAction.h"
-#include "Engine/LatentActionManager.h"
-#include "SlateBasics.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"
 #include "Tests/AutomationTestSettings.h"
 #include "Slate/WidgetRenderer.h"
 #include "DelayAction.h"
-
+#include "Widgets/SViewport.h"
+#include "Framework/Application/SlateApplication.h"
+#include "ShaderCompiler.h"
 #include "AutomationBlueprintFunctionLibrary.h"
 
 #define LOCTEXT_NAMESPACE "Automation"
@@ -245,6 +253,9 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 	// Force all mip maps to load before taking the screenshot.
 	UTexture::ForceUpdateTextureStreaming();
 
+	// Force all shader compiling to finish.
+	GShaderCompilingManager->FinishAllCompilation();
+
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 	FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
 #endif
@@ -263,7 +274,9 @@ bool UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotInternal(const
 			if ( !GEngine->GameViewport->GetGameViewport()->TakeHighResScreenShot() )
 			{
 				// If we failed to take the screenshot, we're going to need to cleanup the automation screenshot taker.
+#if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 				delete TempObject;
+#endif 
 				return false;
 			}
 
@@ -365,7 +378,6 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 				{
 #if (WITH_DEV_AUTOMATION_TESTS || WITH_PERF_AUTOMATION_TESTS)
 					FAutomationScreenshotTaker* TempObject = new FAutomationScreenshotTaker(Name, Options);
-#endif
 
 					FAutomationScreenshotData Data = AutomationCommon::BuildScreenshotData(GWorld->GetName(), Name, OutSize.X, OutSize.Y);
 
@@ -383,6 +395,7 @@ void UAutomationBlueprintFunctionLibrary::TakeAutomationScreenshotOfUI(UObject* 
 					Data.MaximumGlobalError = Options.MaximumGlobalError;
 
 					GEngine->GameViewport->OnScreenshotCaptured().Broadcast(OutSize.X, OutSize.Y, OutColorData);
+#endif
 				}
 
 				FLatentActionManager& LatentActionManager = World->GetLatentActionManager();

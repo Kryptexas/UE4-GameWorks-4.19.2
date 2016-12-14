@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneEvalTemplate.h"
-#include "MovieScene3DPathSection.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Curves/RichCurve.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Sections/MovieScene3DPathSection.h"
 #include "MovieScene3DPathTemplate.generated.h"
-
-class UMovieScene3DPathSection;
 
 USTRUCT()
 struct FMovieScene3DPathSectionTemplate : public FMovieSceneEvalTemplate

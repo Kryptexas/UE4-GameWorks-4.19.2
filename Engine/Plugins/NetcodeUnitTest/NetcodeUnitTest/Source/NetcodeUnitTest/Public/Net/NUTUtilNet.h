@@ -1,14 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/Channel.h"
+#include "NetcodeUnitTest.h"
+#include "Engine/PendingNetGame.h"
+#include "Engine/World.h"
 #include "Sockets.h"
 
-
-// Forward declarations
+class APlayerController;
+class FInBunch;
+class FInternetAddr;
+class FOutBunch;
+class UNetConnection;
+class UNetDriver;
 class UUnitTestChannel;
 class UUnitTestNetDriver;
-
+struct FUniqueNetIdRepl;
 
 /**
  * A transparent FSocket-hook, for capturing lowest-level socket operations (use Attach/Detach functions for hooking)

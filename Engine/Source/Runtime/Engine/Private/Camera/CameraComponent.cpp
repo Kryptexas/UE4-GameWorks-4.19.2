@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
 #include "Camera/CameraComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineGlobals.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/Controller.h"
+#include "Components/StaticMeshComponent.h"
+#include "Camera/CameraActor.h"
+#include "Engine/Engine.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/StaticMesh.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #include "Components/DrawFrustumComponent.h"
 #include "IHeadMountedDisplay.h"
 
@@ -215,8 +224,7 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 {
 	if (bLockToHmd && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
 	{
-		ResetRelativeTransform();
-		const FTransform ParentWorld = GetComponentToWorld();
+		const FTransform ParentWorld = CalcNewComponentToWorld(FTransform());
 		GEngine->HMDDevice->SetupLateUpdate(ParentWorld, this);
 
 		FQuat Orientation;
@@ -224,6 +232,10 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 		if (GEngine->HMDDevice->UpdatePlayerCamera(Orientation, Position))
 		{
 			SetRelativeTransform(FTransform(Orientation, Position));
+		}
+		else
+		{
+			ResetRelativeTransform();
 		}
 	}
 

@@ -1,6 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Layout/LayoutGeometry.h"
+#include "Widgets/SWidget.h"
+#include "SlotBase.h"
+#include "Layout/Children.h"
+#include "Styling/CoreStyle.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Widgets/SPanel.h"
+#include "Styling/SlateTypes.h"
+
+class FArrangedChildren;
+class FPaintArgs;
+class FSlateWindowElementList;
 
 namespace ESplitterResizeMode
 {

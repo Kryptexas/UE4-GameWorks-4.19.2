@@ -1,25 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchServices.h: BuildPatchServices module public header file.
 =============================================================================*/
 
-#ifndef __BuildPatchServices_h__
-#define __BuildPatchServices_h__
-
 #pragma once
+
+/* Boilerplate
+ *****************************************************************************/
+
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
 
 /* Dependencies
 *****************************************************************************/
 #include "Core.h"
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 /* Private includes
 *****************************************************************************/
+#include "BuildPatchVerify.h"
 #include "BuildPatchSettings.h"
-#include "IBuildInstaller.h"
-#include "IBuildManifest.h"
-#include "IBuildPatchServicesModule.h"
+#include "BuildPatchState.h"
+#include "Interfaces/IBuildInstaller.h"
+#include "Interfaces/IBuildManifest.h"
+#include "Interfaces/IBuildPatchServicesModule.h"
 
-
-#endif // __BuildPatchServices_h__

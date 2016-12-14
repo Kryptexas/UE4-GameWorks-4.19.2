@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringAssetReference.h"
+#include "Engine/DeveloperSettings.h"
 #include "AudioSettings.generated.h"
-
 
 USTRUCT()
 struct ENGINE_API FAudioQualitySettings
@@ -45,10 +48,6 @@ class ENGINE_API UAudioSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (AllowedClasses = "SoundConcurrency", DisplayName = "Default Sound Concurrency"))
 	FStringAssetReference DefaultSoundConcurrencyName;
 
-	/** The SoundSubmix assigned to newly created sounds */
-	UPROPERTY(config, EditAnywhere, Category = "Audio", meta = (AllowedClasses = "SoundSubmix", DisplayName = "Default Sound Submix"))
-	FStringAssetReference DefaultSoundSubmixName;
-
 	/** The SoundMix to use as base when no other system has specified a Base SoundMix */
 	UPROPERTY(config, EditAnywhere, Category="Audio", meta=(AllowedClasses="SoundMix"))
 	FStringAssetReference DefaultBaseSoundMix;
@@ -70,6 +69,14 @@ class ENGINE_API UAudioSettings : public UDeveloperSettings
 	/** Allows sounds to play at 0 volume. */
 	UPROPERTY(config, EditAnywhere, Category = "Quality")
 	uint32 bAllowVirtualizedSounds:1;
+
+	/** Disables master EQ effect in the audio DSP graph. */
+	UPROPERTY(config, EditAnywhere, Category = "Quality")
+	uint32 bDisableMasterEQ : 1;
+
+	/** Disables master reverb effect in the audio DSP graph. */
+	UPROPERTY(config, EditAnywhere, Category = "Quality")
+	uint32 bDisableMasterReverb : 1;
 
 	/**
 	 * The format string to use when generating the filename for contexts within dialogue waves. This must generate unique names for your project.

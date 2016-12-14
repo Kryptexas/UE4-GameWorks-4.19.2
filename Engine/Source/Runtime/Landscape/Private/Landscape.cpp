@@ -1,43 +1,51 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 Landscape.cpp: Terrain rendering
 =============================================================================*/
 
-#include "LandscapePrivatePCH.h"
 #include "Landscape.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/BufferArchive.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/ConstructorHelpers.h"
+#include "UObject/LinkerLoad.h"
 #include "LandscapeStreamingProxy.h"
+#include "LandscapeInfo.h"
+#include "LightMap.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "ShadowMap.h"
+#include "LandscapeComponent.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapeInfoMap.h"
 #include "EditorSupportDelegates.h"
-#include "LandscapeDataAccess.h"
+#include "LandscapeMeshProxyComponent.h"
 #include "LandscapeRender.h"
 #include "LandscapeRenderMobile.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #include "DerivedDataCacheInterface.h"
-#include "TargetPlatform.h"
+#include "Interfaces/ITargetPlatform.h"
 #include "LandscapeMeshCollisionComponent.h"
-#include "LandscapeMaterialInstanceConstant.h"
-#include "LandscapeSplinesComponent.h"
-#include "LandscapeInfoMap.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
-#include "Engine/CollisionProfile.h"
 #include "Materials/Material.h"
-#include "EngineGlobals.h"
-#include "Engine/Engine.h"
-#include "AI/Navigation/NavigationSystem.h"
-#include "EngineUtils.h"
-#include "Engine/StaticMesh.h"
-#include "LandscapeMeshProxyComponent.h"
+#include "LandscapeMaterialInstanceConstant.h"
+#include "Engine/CollisionProfile.h"
 #include "LandscapeMeshProxyActor.h"
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
 #include "Materials/MaterialExpressionLandscapeLayerSwitch.h"
 #include "Materials/MaterialExpressionLandscapeLayerSample.h"
 #include "Materials/MaterialExpressionLandscapeLayerBlend.h"
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
-#include "CookStats.h"
-#include "RenderingObjectVersion.h"
+#include "ProfilingDebugging/CookStats.h"
+#include "LandscapeSplinesComponent.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "EngineUtils.h"
 #include "ComponentRecreateRenderStateContext.h"
 
 #if WITH_EDITOR
@@ -1145,13 +1153,17 @@ void ALandscape::PostLoad()
 	else
 	{
 #if WITH_EDITOR
-		for (ALandscape* Landscape : TActorRange<ALandscape>(GetWorld()))
+		UWorld* CurrentWorld = GetWorld();
+		for (ALandscape* Landscape : TObjectRange<ALandscape>(RF_ClassDefaultObject | RF_BeginDestroyed))
 		{
-			if (Landscape && Landscape != this && !Landscape->HasAnyFlags(RF_BeginDestroyed) && Landscape->LandscapeGuid == LandscapeGuid)
+			if (Landscape && Landscape != this && Landscape->LandscapeGuid == LandscapeGuid && Landscape->GetWorld() == CurrentWorld)
 			{
 				// Duplicated landscape level, need to generate new GUID
 				Modify();
 				LandscapeGuid = FGuid::NewGuid();
+
+
+				// Show MapCheck window
 
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("ProxyName1"), FText::FromString(Landscape->GetName()));
@@ -1874,7 +1886,7 @@ void ULandscapeInfo::RegisterActor(ALandscapeProxy* Proxy, bool bMapCheck)
 	// register
 	if (ALandscape* Landscape = Cast<ALandscape>(Proxy))
 	{
-		check(!LandscapeActor || LandscapeActor == Landscape)
+		checkf(!LandscapeActor || LandscapeActor == Landscape, TEXT("Multiple landscapes with the same GUID detected: %s vs %s"), *LandscapeActor->GetPathName(), *Landscape->GetPathName());
 		LandscapeActor = Landscape;
 		// In world composition user is not allowed to move landscape in editor, only through WorldBrowser 
 		LandscapeActor->bLockLocation = (OwningWorld->WorldComposition != nullptr);

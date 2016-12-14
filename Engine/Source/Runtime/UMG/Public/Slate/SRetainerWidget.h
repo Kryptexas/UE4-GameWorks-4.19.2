@@ -1,10 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Layout/Visibility.h"
+#include "Layout/SlateRect.h"
+#include "Layout/Geometry.h"
+#include "Input/Events.h"
+#include "Layout/ArrangedWidget.h"
+#include "Widgets/SWidget.h"
+#include "Styling/SlateBrush.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Children.h"
+#include "UObject/GCObject.h"
+#include "Widgets/SCompoundWidget.h"
 #include "Input/HittestGrid.h"
-#include "WidgetRenderer.h"
+#include "Slate/WidgetRenderer.h"
 
+class FArrangedChildren;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
 
 DECLARE_MULTICAST_DELEGATE( FOnRetainedModeChanged );
 
@@ -68,6 +84,8 @@ public:
 		return CachedAllottedGeometry;
 	}
 
+	void SetWorld(UWorld* World);
+
 protected:
 	// BEGIN SLeafWidget interface
 	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
@@ -107,6 +125,7 @@ private:
 
 	TSharedPtr<SVirtualWindow> Window;
 	TSharedPtr<FHittestGrid> HitTestGrid;
+	TWeakObjectPtr<UWorld> OuterWorld;
 
 	STAT(TStatId MyStatId;)
 

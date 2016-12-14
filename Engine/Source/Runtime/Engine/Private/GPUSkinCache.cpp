@@ -1,18 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Copyright (C) Microsoft. All rights reserved.
 
 /*=============================================================================
 	GPUSkinCache.cpp: Performs skinning on a compute shader into a buffer to avoid vertex buffer skinning.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "GlobalShader.h"
-#include "SceneManagement.h"
-#include "GPUSkinVertexFactory.h"
-#include "SkeletalRenderGPUSkin.h"
 #include "GPUSkinCache.h"
-#include "ShaderParameterUtils.h"
+#include "RawIndexBuffer.h"
+#include "Shader.h"
 #include "SceneUtils.h"
+#include "GlobalShader.h"
+#include "SkeletalRenderGPUSkin.h"
+#include "ShaderParameterUtils.h"
 
 DEFINE_STAT(STAT_GPUSkinCache_TotalNumChunks);
 DEFINE_STAT(STAT_GPUSkinCache_TotalNumVertices);
@@ -58,7 +57,8 @@ static TAutoConsoleVariable<int32> CVarEnableGPUSkinCache(
 	TEXT("This will perform skinning on a compute job and not skin on the vertex shader.\n")
 	TEXT("Requires r.SkinCache.CompileShaders=1\n")
 	TEXT(" 0: off\n")
-	TEXT(" 1: on(default)"),
+	TEXT(" 1: on(default)")
+	TEXT(" 2: only use skin cache for skinned meshes that ticked the Recompute Tangents checkbox (unavailable in shipping builds)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -68,8 +68,8 @@ TAutoConsoleVariable<int32> CVarGPUSkinCacheRecomputeTangents(
 	TEXT("This option enables recomputing the vertex tangents on the GPU.\n")
 	TEXT("Can be changed at runtime, requires both r.SkinCache.CompileShaders=1 and r.SkinCache.Mode=1\n")
 	TEXT(" 0: off\n")
-	TEXT(" 1: on, forces all skinned object to recompute tangents\n")
-	TEXT(" 2: on, SkinCache only objects that would require the RecomputTangents feature (default)"),
+	TEXT(" 1: on, forces all skinned object to Tecompute Tangents\n")
+	TEXT(" 2: on, only recompute tangents on skinned objects who ticked the Tecompute Tangents checkbox(default)\n"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -104,13 +104,13 @@ static TAutoConsoleVariable<float> CVarGPUSkinCacheDebug(
 ENGINE_API bool DoSkeletalMeshIndexBuffersNeedSRV()
 {
 	// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-	return GMaxRHIShaderPlatform == SP_PCD3D_SM5 && GEnableGPUSkinCacheShaders != 0;
+	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && GEnableGPUSkinCacheShaders != 0;
 }
 
 ENGINE_API bool DoRecomputeSkinTangentsOnGPU_RT()
 {
 	// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-	return GMaxRHIShaderPlatform == SP_PCD3D_SM5 && GEnableGPUSkinCacheShaders && GEnableGPUSkinCache && CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0;
+	return (GMaxRHIShaderPlatform == SP_PCD3D_SM5 || GMaxRHIShaderPlatform == SP_METAL_SM5) && GEnableGPUSkinCacheShaders && GEnableGPUSkinCache && CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0;
 }
 
 TGlobalResource<FGPUSkinCache> GGPUSkinCache;
@@ -137,6 +137,10 @@ public:
 		BoneMatrices.Bind(Initializer.ParameterMap, TEXT("BoneMatrices"));
 		SkinInputStream.Bind(Initializer.ParameterMap, TEXT("SkinStreamInputBuffer"));
 		InputStreamStart.Bind(Initializer.ParameterMap, TEXT("InputStreamStart"));
+
+		InputWeightStart.Bind(Initializer.ParameterMap, TEXT("InputWeightStart"));
+		InputWeightStride.Bind(Initializer.ParameterMap, TEXT("InputWeightStride"));
+		InputWeightStream.Bind(Initializer.ParameterMap, TEXT("InputWeightStream"));
 		
 		SkinCacheBufferUAV.Bind(Initializer.ParameterMap, TEXT("SkinCacheBufferUAV"));
 
@@ -173,6 +177,11 @@ public:
 
 		SetSRVParameter(RHICmdList, ShaderRHI, SkinInputStream, DispatchData.InputVertexBufferSRV);
 
+
+		SetShaderValue(RHICmdList, ShaderRHI, InputWeightStart, DispatchData.InputWeightStart);
+		SetShaderValue(RHICmdList, ShaderRHI, InputWeightStride, DispatchData.InputWeightStride);
+		SetSRVParameter(RHICmdList, ShaderRHI, InputWeightStream, DispatchData.InputWeightStreamSRV);
+
 		// output UAV
 		SetUAVParameter(RHICmdList, ShaderRHI, SkinCacheBufferUAV, DispatchData.SkinCacheBuffer->UAV);
 		SetShaderValue(RHICmdList, ShaderRHI, SkinCacheStart, DispatchData.SkinCacheStart);
@@ -202,6 +211,9 @@ public:
 			<< NumVertices << InputStreamStart << SkinCacheStart
 			<< SkinInputStream << SkinCacheBufferUAV << BoneMatrices << MorphBuffer << MorphBufferOffset
 			<< SkinCacheDebug;
+
+		Ar << InputWeightStart << InputWeightStride << InputWeightStream;
+
 		//Ar << DebugParameter;
 		return bShaderHasOutdatedParameters;
 	}
@@ -224,6 +236,10 @@ private:
 	FShaderResourceParameter BoneMatrices;
 	FShaderResourceParameter SkinInputStream;
 	FShaderResourceParameter SkinCacheBufferUAV;
+
+	FShaderParameter InputWeightStart;
+	FShaderParameter InputWeightStride;
+	FShaderResourceParameter InputWeightStream;
 
 	FShaderResourceParameter MorphBuffer;
 	FShaderParameter MorphBufferOffset;
@@ -337,13 +353,13 @@ void FGPUSkinCache::Initialize(FRHICommandListImmediate& RHICmdList)
 		// We clear once in the beginning and then each time in the PerVertexPass (this saves the clear or another Dispatch)
 		uint32 Value[4] = { 0, 0, 0, 0 };
 		RHICmdList.ClearUAV(SkinTangentIntermediate.UAV, Value);
-	}
-
-	TransitionAllToWriteable(RHICmdList);
+	}	
 
 	CachedElements.Reserve(MaxCachedElements);
 
 	bInitialized = true;
+
+	TransitionAllToWriteable(RHICmdList);
 }
 
 void FGPUSkinCache::Cleanup()
@@ -559,6 +575,12 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 	DispatchData.bExtraBoneInfluences = bExtraBoneInfluences;
 	check(!GSkinCacheSafety || DispatchData.InputVertexBufferSRV);
 
+	// weight buffer
+	uint32 WeightStride = LodModel.SkinWeightVertexBuffer.GetStride();
+	DispatchData.InputWeightStart = (WeightStride * BatchElement.BaseVertexIndex) / sizeof(float);
+	DispatchData.InputWeightStride = WeightStride;
+	DispatchData.InputWeightStreamSRV = LodModel.SkinWeightVertexBuffer.GetSRV();
+
 	DispatchSkinCacheProcess(
 		ShaderData.GetBoneBufferForReading(false, FrameNumber), ShaderData.GetUniformBuffer(),
 		ShaderData.MeshOrigin, ShaderData.MeshExtension,
@@ -566,10 +588,10 @@ int32 FGPUSkinCache::StartCacheMesh(FRHICommandListImmediate& RHICmdList, uint32
 	
 	TargetVertexFactory->UpdateVertexDeclaration(VertexFactory, DispatchData.SkinCacheBuffer);
 
-	const bool bRecomputeTangents = CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread() != 0;
-	if (bRecomputeTangents)
+	int32 RecomputeTangentsMode = CVarGPUSkinCacheRecomputeTangents.GetValueOnRenderThread();
+	if (RecomputeTangentsMode > 0)
 	{
-		if (BatchElement.bRecomputeTangent)
+		if (BatchElement.bRecomputeTangent || RecomputeTangentsMode == 1)
 		{
 			FRawStaticIndexBuffer16or32Interface* IndexBuffer = LodModel.MultiSizeIndexContainer.GetIndexBuffer();
 
@@ -775,7 +797,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-		return Platform == SP_PCD3D_SM5;
+		return Platform == SP_PCD3D_SM5 || Platform == SP_METAL_SM5;
 	}
 
 	static const uint32 ThreadGroupSizeX = 64;
@@ -827,7 +849,7 @@ public:
 		
 		SetShaderValue(RHICmdList, ShaderRHI, InputStreamStart, DispatchData.InputStreamStart);
 		SetShaderValue(RHICmdList, ShaderRHI, InputStreamStride, DispatchData.InputStreamStride);
- 		SetSRVParameter(RHICmdList, ShaderRHI, SkinInputStream, DispatchData.InputVertexBufferSRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, SkinInputStream, DispatchData.InputVertexBufferSRV);
 
 		// UAV
 		SetUAVParameter(RHICmdList, ShaderRHI, IntermediateAccumBufferUAV, IntermediateAccumBuffer.UAV);
@@ -900,7 +922,7 @@ class FRecomputeTangentsPerVertexPassCS : public FGlobalShader
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		// currently only implemented and tested on Window SM5 (needs Compute, Atomics, SRV for index buffers, UAV for VertexBuffers)
-		return Platform == SP_PCD3D_SM5;
+		return Platform == SP_PCD3D_SM5 || Platform == SP_METAL_SM5;
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -1072,15 +1094,16 @@ void FGPUSkinCache::CVarSinkFunction()
 
 	if (NewGPUSkinCacheValue != GEnableGPUSkinCache)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(DoEnableSkinCaching, 
-			int32, SkinValue, NewGPUSkinCacheValue,
-		{
-			GEnableGPUSkinCache = SkinValue;
-			if (SkinValue)
+		EnqueueUniqueRenderCommand("DoEnableSkinCaching", 
+			[NewGPUSkinCacheValue](FRHICommandList& RHICmdList)
 			{
-				GGPUSkinCache.TransitionAllToWriteable(RHICmdList);
+				GEnableGPUSkinCache = NewGPUSkinCacheValue;
+				if (NewGPUSkinCacheValue)
+				{
+					GGPUSkinCache.TransitionAllToWriteable(RHICmdList);
+				}
 			}
-		});
+		);
 	}
 }
 

@@ -1,14 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompress_LeastDestructive.cpp: Uses the Bitwise compressor with really light settings
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
 #include "Animation/AnimCompress_LeastDestructive.h"
 #include "Animation/AnimCompress_BitwiseCompressOnly.h"
-#include "AnimationUtils.h"
-#include "AnimEncoding.h"
 
 UAnimCompress_LeastDestructive::UAnimCompress_LeastDestructive(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

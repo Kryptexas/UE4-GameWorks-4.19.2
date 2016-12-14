@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineKeyValuePair.h"
 #include "OnlineSubsystemPackage.h"
-#include "OnlineSubsystemSessionSettings.h"
 
 /** Setting describing the name of the current map (value is FString) */
 #define SETTING_MAPNAME FName(TEXT("MAPNAME"))

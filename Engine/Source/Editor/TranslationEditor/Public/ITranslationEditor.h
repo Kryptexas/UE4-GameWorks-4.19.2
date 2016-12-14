@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/IToolkit.h"
+#include "CoreMinimal.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "TranslationEditorModule.h"
-#include "Private/TranslationPickerWidget.h"
 #include "LocalizationTargetTypes.h"
 
 /** Translation Editor public interface */

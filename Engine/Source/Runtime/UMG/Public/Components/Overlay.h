@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SOverlay.h"
+#include "Components/PanelWidget.h"
 #include "Overlay.generated.h"
+
+class UOverlaySlot;
 
 /**
  * Allows widgets to be stacked on top of each other, uses simple flow layout for content on each layer.

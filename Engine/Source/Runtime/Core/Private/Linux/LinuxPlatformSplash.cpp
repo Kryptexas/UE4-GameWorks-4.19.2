@@ -1,14 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	SplashScreen.cpp: Splash screen for game/editor startup
 ================================================================================*/
 
 
-#include "CorePrivatePCH.h"
+#include "Linux/LinuxPlatformSplash.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Misc/EngineVersionBase.h"
+#include "Containers/Array.h"
+#include "Containers/StringConv.h"
+#include "Containers/UnrealString.h"
+#include "UObject/NameTypes.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "Misc/Parse.h"
+#include "Misc/FileHelper.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Internationalization.h"
 #include "Misc/App.h"
-#include "EngineVersion.h"
-#include "EngineBuildSettings.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/EngineBuildSettings.h"
+#include "Modules/ModuleManager.h"
 
 #if WITH_EDITOR
 
@@ -17,7 +33,7 @@
 #include "SDL.h"
 #include "SDL_thread.h"
 #include "SDL_timer.h"
-#include "ImageWrapper.h"
+#include "Interfaces/IImageWrapperModule.h"
 
 #include "ft2build.h"
 #include FT_FREETYPE_H
@@ -1014,7 +1030,7 @@ void FLinuxPlatformSplash::Show( )
 
 		// Display copyright information in editor splash screen
 		{
-			const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2016   Epic Games, Inc.   All rights reserved." );
+			const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2017   Epic Games, Inc.   All rights reserved." );
 			StartSetSplashText( SplashTextType::CopyrightInfo, CopyrightInfo );
 		}
 	}

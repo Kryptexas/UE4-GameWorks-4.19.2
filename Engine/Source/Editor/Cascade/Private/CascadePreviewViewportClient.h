@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "PreviewScene.h"
+#include "EditorViewportClient.h"
+#include "Utils.h"
 
+class FCanvas;
 class FCascade;
 class SCascadePreviewViewport;
-
+class UStaticMeshComponent;
 
 /*-----------------------------------------------------------------------------
    FCascadeViewportClient

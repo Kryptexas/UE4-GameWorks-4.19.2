@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLQuery.cpp: OpenGL query RHI implementation.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
-#include "RenderCore.h"
 
 void FOpenGLDynamicRHI::RHIBeginOcclusionQueryBatch()
 {

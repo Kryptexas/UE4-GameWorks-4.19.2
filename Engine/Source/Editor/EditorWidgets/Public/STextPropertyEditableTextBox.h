@@ -1,6 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Styling/CoreStyle.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Types/SlateStructs.h"
+
+class SEditableTextBox;
+class SMultiLineEditableTextBox;
 
 /** Interface to allow STextPropertyEditableTextBox to be used to edit both properties and Blueprint pins */
 class IEditableTextProperty
@@ -38,6 +54,9 @@ public:
 
 	/** Set the text at the given index (check against GetNumTexts) */
 	virtual void SetText(const int32 InIndex, const FText& InText) = 0;
+
+	/** Check to see if the given text is valid to use */
+	virtual bool IsValidText(const FText& InText, FText& OutErrorMsg) const = 0;
 
 #if USE_STABLE_LOCALIZATION_KEYS
 	/** Get the stable text ID for the given index (check against GetNumTexts) */
@@ -99,7 +118,9 @@ private:
 	FText GetToolTipText() const;
 
 	FText GetTextValue() const;
+	void OnTextChanged(const FText& NewText);
 	void OnTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo);
+	void SetTextError(const FText& InErrorMsg);
 
 	FText GetNamespaceValue() const;
 	void OnNamespaceChanged(const FText& NewText);

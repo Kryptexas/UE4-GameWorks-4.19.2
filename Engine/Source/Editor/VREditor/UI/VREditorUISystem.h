@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "VREditorUISystem.generated.h"
 
-class UVREditorInteractor;
-class UViewportInteractor;
+class AVREditorDockableWindow;
+class AVREditorFloatingUI;
+class FProxyTabmanager;
 class SColorPicker;
+class UViewportInteractor;
+class UVREditorInteractor;
 
 
 /** Stores the animation playback state of a VR UI element */

@@ -1,12 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/AssetEditorToolkit.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Toolkits/IToolkitHost.h"
+#include "ISoundCueEditor.h"
+#include "Misc/NotifyHook.h"
 #include "EditorUndoClient.h"
 
+class IDetailsView;
+class SDockableTab;
 class SGraphEditor;
-
+class SSoundCuePalette;
+class UEdGraphNode;
+class USoundCue;
+struct FPropertyChangedEvent;
+struct Rect;
 
 /*-----------------------------------------------------------------------------
    FSoundCueEditor

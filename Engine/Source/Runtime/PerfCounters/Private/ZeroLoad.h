@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PerfCountersModule.h"
-#include "ThreadingBase.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
 #include "ProfilingDebugging/Histogram.h"
+#include "HAL/Runnable.h"
 
 class FZeroLoad : public FRunnable
 {

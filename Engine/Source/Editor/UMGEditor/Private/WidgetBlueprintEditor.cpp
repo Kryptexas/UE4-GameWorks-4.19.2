@@ -1,38 +1,50 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
-
-#include "SKismetInspector.h"
 #include "WidgetBlueprintEditor.h"
+#include "MovieSceneBinding.h"
 #include "MovieScene.h"
-#include "MovieSceneSequenceInstance.h"
-#include "MovieScene2DTransformTrack.h"
-#include "Editor/Sequencer/Public/ISequencerModule.h"
+#include "Animation/WidgetAnimation.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "WidgetBlueprint.h"
+#include "Editor.h"
+
+#if WITH_EDITOR
+	#include "EditorStyleSet.h"
+#endif // WITH_EDITOR
+#include "Components/PanelSlot.h"
+#include "Components/PanelWidget.h"
+#include "Settings/WidgetDesignerSettings.h"
+
+#include "Tracks/MovieScenePropertyTrack.h"
+#include "ISequencerModule.h"
 #include "ObjectEditorUtils.h"
 
 #include "PropertyCustomizationHelpers.h"
 
-#include "WidgetBlueprintApplicationModes.h"
+#include "BlueprintModes/WidgetBlueprintApplicationModes.h"
+#include "Blueprint/WidgetTree.h"
 #include "WidgetBlueprintEditorUtils.h"
-#include "WidgetDesignerApplicationMode.h"
-#include "WidgetGraphApplicationMode.h"
+#include "WorkflowOrientedApp/ApplicationMode.h"
+#include "BlueprintModes/WidgetDesignerApplicationMode.h"
+#include "BlueprintModes/WidgetGraphApplicationMode.h"
 
 #include "WidgetBlueprintEditorToolbar.h"
-#include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
-#include "GenericCommands.h"
-#include "WidgetBlueprint.h"
-#include "Engine/SimpleConstructionScript.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "Kismet2/CompilerResultsLog.h"
 #include "IMessageLogListing.h"
+#include "WidgetGraphSchema.h"
 
-#include "MovieSceneWidgetMaterialTrack.h"
-#include "WidgetMaterialTrackUtilities.h"
+#include "Animation/MovieSceneWidgetMaterialTrack.h"
+#include "Animation/WidgetMaterialTrackUtilities.h"
 
 #include "ScopedTransaction.h"
 
-#include "NotificationManager.h"
-#include "SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -102,15 +114,8 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 	// register for any objects replaced
 	GEditor->OnObjectsReplaced().AddSP(this, &FWidgetBlueprintEditor::OnObjectsReplaced);
 
+	// for change selected widgets on sequencer tree view
 	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
-
-	// If this blueprint is empty, add a canvas panel as the root widget.
-	if ( Blueprint->WidgetTree->RootWidget == nullptr )
-	{
-		UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-		RootWidget->SetDesignerFlags(GetCurrentDesignerFlags());
-		Blueprint->WidgetTree->RootWidget = RootWidget;
-	}
 
 	UpdatePreview(GetWidgetBlueprintObj(), true);
 
@@ -494,11 +499,8 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 
 		return MigratePropertyValue(SourceObjectProperty, DestionationObjectProperty, PropertyChainNode->GetNextNode(), PropertyChainNode->GetNextNode()->GetValue(), bIsModify);
 	}
-	else if ( UArrayProperty* CurrentArrayProperty = Cast<UArrayProperty>(CurrentProperty) )
-	{
-		// Arrays!
-	}
 
+	// ExportText/ImportText works on all property types
 	return MigratePropertyValue(SourceObject, DestinationObject, PropertyChainNode->GetNextNode(), MemberProperty, bIsModify);
 }
 
@@ -872,6 +874,11 @@ FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance(UEdGraph* InGrap
 	return AppearanceInfo;
 }
 
+TSubclassOf<UEdGraphSchema> FWidgetBlueprintEditor::GetDefaultSchemaClass() const
+{
+	return UWidgetGraphSchema::StaticClass();
+}
+
 void FWidgetBlueprintEditor::ClearHoveredWidget()
 {
 	HoveredWidget = FWidgetReference();
@@ -948,52 +955,31 @@ public:
 
 };
 
-void GetBindableObjects(UWidget* RootWidget, TArray<FObjectAndDisplayName>& BindableObjects)
+void GetBindableObjects(UWidgetTree* WidgetTree, TArray<FObjectAndDisplayName>& BindableObjects)
 {
-	TArray<UWidget*> ToTraverse;
-	ToTraverse.Add(RootWidget);
-	while (ToTraverse.Num() > 0)
-	{
-		UWidget* Widget = ToTraverse[0];
-		ToTraverse.RemoveAt(0);
+	WidgetTree->ForEachWidget([&BindableObjects] (UWidget* Widget) {
 		BindableObjects.Add(FObjectAndDisplayName(FText::FromString(Widget->GetName()), Widget));
 
-		UUserWidget* UserWidget = Cast<UUserWidget>(Widget);
-		if (UserWidget != nullptr)
-		{
-			TArray<FName> SlotNames;
-			UserWidget->GetSlotNames(SlotNames);
-			for (FName SlotName : SlotNames)
-			{
-				UWidget* Content = UserWidget->GetContentForSlot(SlotName);
-				if (Content != nullptr)
-				{
-					ToTraverse.Add(Content);
-				}
-			}
-		}
-
 		UPanelWidget* PanelWidget = Cast<UPanelWidget>(Widget);
-		if (PanelWidget != nullptr)
+		if ( PanelWidget != nullptr )
 		{
-			for (UPanelSlot* Slot : PanelWidget->GetSlots())
+			for ( UPanelSlot* Slot : PanelWidget->GetSlots() )
 			{
-				if (Slot->Content != nullptr)
+				if ( Slot->Content != nullptr )
 				{
 					FText SlotDisplayName = FText::Format(LOCTEXT("AddMenuSlotFormat", "{0} ({1} Slot)"), FText::FromString(Slot->Content->GetName()), FText::FromString(PanelWidget->GetName()));
 					BindableObjects.Add(FObjectAndDisplayName(SlotDisplayName, Slot));
-					ToTraverse.Add(Slot->Content);
 				}
 			}
 		}
-	}
+	});
 }
 
 void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer)
 {
 	TArray<FObjectAndDisplayName> BindableObjects;
 	{
-		GetBindableObjects(GetPreview()->GetRootWidget(), BindableObjects);
+		GetBindableObjects(GetPreview()->WidgetTree, BindableObjects);
 		BindableObjects.Sort();
 	}
 

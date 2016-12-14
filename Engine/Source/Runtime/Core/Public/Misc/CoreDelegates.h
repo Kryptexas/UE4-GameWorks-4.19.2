@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Delegates/Delegate.h"
+#include "Math/IntVector.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+
 class AActor;
+class Error;
 
 // delegates for hotfixes
 namespace EHotfixDelegates
@@ -62,6 +71,12 @@ public:
 	// Callback for handling accepting invitations - generally for engine code
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteAccepted, const FString&, const FString&);
 
+	// Callback for accessing pak encryption key, if it exists
+	DECLARE_DELEGATE_RetVal(const ANSICHAR*, FPakEncryptionKeyDelegate);
+
+	// Callback for gathering pak signing keys, if they exist
+	DECLARE_DELEGATE_TwoParams(FPakSigningKeysDelegate, FString&, FString&);
+
 	// Callback for handling the Controller connection / disconnection
 	// first param is true for a connection, false for a disconnection.
 	// second param is UserID, third is UserIndex / ControllerId.
@@ -96,6 +111,9 @@ public:
 
 	// Called when an actor label is changed
 	static FOnActorLabelChanged OnActorLabelChanged;
+
+	static FPakEncryptionKeyDelegate& GetPakEncryptionKeyDelegate();
+	static FPakSigningKeysDelegate& GetPakSigningKeysDelegate();
 
 #if WITH_EDITOR
 	// Called before the editor displays a modal window, allowing other windows the opportunity to disable themselves to avoid reentrant calls
@@ -173,7 +191,11 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnFConfigFileDeleted, const FConfigFile *);
 	static FOnFConfigFileCreated OnFConfigCreated;
 	static FOnFConfigFileDeleted OnFConfigDeleted;
-
+#if WITH_EDITOR
+	// called when a target platform changes it's return value of supported formats.  This is so anything caching those results can reset (like cached shaders for cooking)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnTargetPlatformChangedSupportedFormats, const ITargetPlatform*); 
+	static FOnTargetPlatformChangedSupportedFormats OnTargetPlatformChangedSupportedFormats;
+#endif
 	// called when the user grants permission to register for remote notifications
 	static FApplicationRegisteredForRemoteNotificationsDelegate ApplicationRegisteredForRemoteNotificationsDelegate;
 

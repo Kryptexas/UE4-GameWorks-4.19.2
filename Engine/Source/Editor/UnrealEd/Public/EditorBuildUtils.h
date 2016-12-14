@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorBuildUtils.h: Utilities for building in the editor
@@ -6,6 +6,9 @@
 
 #ifndef __EditorBuildUtils_h__
 #define __EditorBuildUtils_h__
+
+#include "CoreMinimal.h"
+#include "Engine/EngineBaseTypes.h"
 
 /** Names of the built-in editor build types. */
 struct FBuildOptions
@@ -123,13 +126,22 @@ public:
 	/**
 	 * Perform an editor build for texture streaming
 	 *
-	 * @param	InWorld					WorldContext
-	 * @param	SelectedViewMode		The viewmode to build the data for. Unkown when running the full build.
-	 * @param	bDebugDataOnly			true if the build should only update data useful for accuracy viewmodes.
+	 * @param	InWorld				WorldContext
+	 * @param	SelectedViewMode	The viewmode to build the data for. Unkown when running the full build.
 	 *
 	 * @return	true if the build completed successfully; false if it did not (or was manually canceled)
 	 */
 	static UNREALED_API bool EditorBuildTextureStreaming( UWorld* InWorld, EViewModeIndex SelectedViewMode = VMI_Unknown);
+
+	/**
+	 * Compiled required shader for the given viewmode
+	 *
+	 * @param	InWorld				WorldContext to find out which shader to build.
+	 * @param	InViewMode			Viewmode to build the data for.
+	 *
+	 * @return	true if the build completed successfully; false if it did not (or was manually canceled)
+	 */
+	static UNREALED_API bool CompileViewModeShaders(UWorld* InWorld, EViewModeIndex InViewMode);
 
 	/** 
 	* check if navigation build was was triggered from editor as user request

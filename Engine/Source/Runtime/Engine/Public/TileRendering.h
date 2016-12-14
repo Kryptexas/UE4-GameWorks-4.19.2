@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TileRendering.h: Simple tile rendering implementation.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HitProxies.h"
+
+class FMaterialRenderProxy;
+class FRHICommandListImmediate;
 
 class FTileRenderer
 {

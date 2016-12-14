@@ -1,8 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Framework/Commands/UIAction.h"
+#include "IDetailCustomNodeBuilder.h"
+#include "Widgets/Input/NumericTypeInterface.h"
 #include "AssetSelection.h"
+
+class FDetailWidgetRow;
+class FMenuBuilder;
+class FNotifyHook;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
 
 namespace ETransformField
 {

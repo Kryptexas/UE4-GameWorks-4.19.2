@@ -1,10 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AutomationControllerPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/App.h"
+#include "Interfaces/IAutomationReport.h"
+#include "AutomationWorkerMessages.h"
+#include "IMessageContext.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Modules/ModuleManager.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "AssetEditorMessages.h"
+#include "ImageComparer.h"
+#include "AutomationControllerManager.h"
+#include "Interfaces/IScreenShotToolsModule.h"
+#include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
+#include "Misc/EngineVersion.h"
+#include "Misc/FileHelper.h"
 
 #if WITH_EDITOR
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 #endif
 
 namespace AutomationControllerConstants
@@ -732,7 +751,7 @@ void FAutomationControllerManager::HandleReceivedScreenShot( const FAutomationWo
 	if ( FJsonObjectConverter::UStructToJsonObjectString(Message.Metadata, Json) )
 	{
 		FString MetadataPath = FPaths::ChangeExtension(FileName, TEXT("json"));
-		FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8);
+		FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 	}
 
 	TSharedRef<FComparisonEntry> Comparison = MakeShareable(new FComparisonEntry());

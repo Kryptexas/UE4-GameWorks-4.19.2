@@ -1,15 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "EditorViewportClient.h"
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "GameFramework/Actor.h"
 #include "Camera/CameraComponent.h"
+#include "UnrealWidget.h"
+#include "EditorViewportClient.h"
 
-// Forward declarations.
-
-class IMatineeBase;
-
+class FAssetData;
+class FCanvas;
+class FDragTool;
+class HModel;
+class ILevelEditor;
+class SLevelViewport;
+class UActorFactory;
+class UModel;
+struct FWorldContext;
 
 /** Describes an object that's currently hovered over in the level viewport */
 struct FViewportHoverTarget

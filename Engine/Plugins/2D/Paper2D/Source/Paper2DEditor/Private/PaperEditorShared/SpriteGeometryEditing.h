@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/GCObject.h"
+
+class FCanvas;
+class FPrimitiveDrawInterface;
+class FSceneView;
 class FSelectedItem;
+class FViewport;
+class UMaterial;
 struct FSpriteGeometryCollection;
 
 //////////////////////////////////////////////////////////////////////////

@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
-#include "PropertyTag.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UnrealType.h"
 
 /*-----------------------------------------------------------------------------
 	UByteProperty.
@@ -17,7 +20,7 @@ void UByteProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaul
 {
 	if(Enum && Ar.UseToResolveEnumerators())
 	{
-		 const int32 ResolvedIndex = Enum->ResolveEnumerator(Ar, *(uint8*)Value);
+		 const int64 ResolvedIndex = Enum->ResolveEnumerator(Ar, *(uint8*)Value);
 		 *(uint8*)Value = static_cast<uint8>(ResolvedIndex);
 		 return;
 	}
@@ -172,6 +175,15 @@ bool UByteProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8
 		uint8 PreviousValue;
 		if (Tag.EnumName == NAME_None)
 		{
+			// If we're a nested property the EnumName tag got lost. Fail to read in this case
+			UProperty* const PropertyOwner = Cast<UProperty>(GetOuterUField());
+
+			if (PropertyOwner)
+			{
+				bOutAdvanceProperty = false;
+				return bOutAdvanceProperty;
+			}
+
 			// simply pretend the property still doesn't have an enum and serialize the single byte
 			Ar << PreviousValue;
 		}
@@ -180,6 +192,15 @@ bool UByteProperty::ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8
 			// attempt to find the old enum and get the byte value from the serialized enum name
 			PreviousValue = ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
 		}
+
+		// now copy the value into the object's address space
+		SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
+	}
+	else if (Tag.Type == NAME_EnumProperty && (Enum == nullptr || Tag.EnumName == Enum->GetFName()))
+	{
+		// an enum property became a byte
+		// attempt to find the old enum and get the byte value from the serialized enum name
+		uint8 PreviousValue = ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
 
 		// now copy the value into the object's address space
 		SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);

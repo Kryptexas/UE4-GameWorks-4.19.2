@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CustomDepthRendering.h: CustomDepth rendering implementation.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "SceneView.h"
+#include "DrawingPolicy.h"
+
+class FPrimitiveSceneProxy;
 
 /** 
 * Set of custom depth scene prims  
@@ -18,7 +25,7 @@ public:
 	* @param ViewInfo - current view used to draw items
 	* @return true if anything was drawn
 	*/
-	bool DrawPrims(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, const class TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer, bool bWriteCustomStencilValues);
+	bool DrawPrims(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState, bool bWriteCustomStencilValues);
 
 	/**
 	* Adds a new primitives to the list of distortion prims

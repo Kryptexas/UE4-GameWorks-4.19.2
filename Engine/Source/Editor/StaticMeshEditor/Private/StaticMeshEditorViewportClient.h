@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UnrealWidget.h"
 #include "EditorViewportClient.h"
+#include "Components.h"
 
-class SStaticMeshEditorViewport;
 class FAdvancedPreviewScene;
+class FCanvas;
+class IStaticMeshEditor;
+class SStaticMeshEditorViewport;
+class UStaticMesh;
+class UStaticMeshComponent;
+class UStaticMeshSocket;
 
 /** Viewport Client for the preview viewport */
 class FStaticMeshEditorViewportClient : public FEditorViewportClient, public TSharedFromThis<FStaticMeshEditorViewportClient>

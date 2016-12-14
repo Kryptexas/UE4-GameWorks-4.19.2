@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Engine/Scene.h"
 #include "BlendableManager.h"
+
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
+class UTexture;
 
 /** All blended postprocessing in one place, non lerpable data is stored in non merged form */
 class FFinalPostProcessSettings : public FPostProcessSettings

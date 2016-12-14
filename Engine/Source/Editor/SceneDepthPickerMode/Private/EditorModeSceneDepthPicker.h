@@ -1,6 +1,14 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "SceneDepthPickerMode.h"
+#include "EdMode.h"
+
+class FEditorViewportClient;
+class FViewport;
 
 enum class ESceneDepthPickState : uint8
 {

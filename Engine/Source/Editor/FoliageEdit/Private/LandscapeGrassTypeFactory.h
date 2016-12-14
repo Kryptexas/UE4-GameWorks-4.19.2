@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Factory for LandscapeGrassType assets
@@ -6,8 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/Factory.h"
 #include "LandscapeGrassTypeFactory.generated.h"
-
 
 UCLASS()
 class ULandscapeGrassTypeFactory : public UFactory

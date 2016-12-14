@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	VectorFieldVisualization.h: Visualization of vector fields.
 ==============================================================================*/
 
 #pragma once
-#include "VertexFactory.h"
+
+#include "CoreMinimal.h"
 #include "UniformBuffer.h"
+#include "VertexFactory.h"
+
+class FMaterial;
+class FMeshElementCollector;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FVectorFieldInstance;
 
 /*------------------------------------------------------------------------------
 	Forward declarations.

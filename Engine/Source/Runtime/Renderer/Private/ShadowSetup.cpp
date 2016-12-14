@@ -1,12 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowSetup.cpp: Dynamic shadow setup implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "HAL/IConsoleManager.h"
+#include "EngineDefines.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "ConvexVolume.h"
+#include "SceneTypes.h"
+#include "SceneInterface.h"
+#include "RendererInterface.h"
+#include "PrimitiveViewRelevance.h"
+#include "SceneManagement.h"
+#include "ScenePrivateBase.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GenericOctree.h"
+#include "LightSceneInfo.h"
+#include "ShadowRendering.h"
+#include "TextureLayout.h"
+#include "SceneRendering.h"
+#include "DynamicPrimitiveDrawing.h"
 #include "LightPropagationVolume.h"
+#include "ScenePrivate.h"
+#include "RendererModule.h"
 #include "LightPropagationVolumeBlendable.h"
 #include "CapsuleShadowRendering.h"
 
@@ -1729,7 +1750,20 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 					for (int32 ChildIndex = 0; ChildIndex < ShadowGroupPrimitives.Num(); ChildIndex++)
 					{
 						FPrimitiveSceneInfo* ShadowChild = ShadowGroupPrimitives[ChildIndex];
-						ProjectedPreShadowInfo->AddReceiverPrimitive(ShadowChild);
+						bool bChildIsVisibleInAnyView = false;
+						for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+						{
+							const FViewInfo& View = Views[ViewIndex];
+							if (View.PrimitiveVisibilityMap[ShadowChild->GetIndex()])
+							{
+								bChildIsVisibleInAnyView = true;
+								break;
+							}
+						}
+						if (bChildIsVisibleInAnyView)
+						{
+							ProjectedPreShadowInfo->AddReceiverPrimitive(ShadowChild);
+						}
 					}
 				}
 			}
@@ -2750,9 +2784,9 @@ void FSceneRenderer::AllocateShadowDepthTargets(FRHICommandListImmediate& RHICmd
 			}
 
 			if (IsForwardShadingEnabled(FeatureLevel) 
-				&& (!ProjectedShadowInfo->GetLightSceneInfo().Proxy->HasStaticShadowing() || ProjectedShadowInfo->GetLightSceneInfo().Proxy->GetPreviewShadowMapChannel() == -1))
+				&& ProjectedShadowInfo->GetLightSceneInfo().GetDynamicShadowMapChannel() == -1)
 			{
-				// With forward shading, dynamic shadows are projected into channels of the light attenuation texture based on their assigned ShadowMapChannel
+				// With forward shading, dynamic shadows are projected into channels of the light attenuation texture based on their assigned DynamicShadowMapChannel
 				bShadowIsVisible = false;
 			}
 
@@ -3330,7 +3364,7 @@ void FSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 			FVisibleLightInfo& VisibleLightInfo = VisibleLightInfos[LightSceneInfo->Id];
 
 			// Only consider lights that may have shadows.
-			if (LightSceneInfoCompact.bCastStaticShadow || LightSceneInfoCompact.bCastDynamicShadow)
+			if ((LightSceneInfoCompact.bCastStaticShadow || LightSceneInfoCompact.bCastDynamicShadow) && GetShadowQuality() > 0)
 			{
 				// see if the light is visible in any view
 				bool bIsVisibleInAnyView = false;

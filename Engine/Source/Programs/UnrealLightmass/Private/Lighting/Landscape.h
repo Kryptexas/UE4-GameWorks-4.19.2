@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "LightingMesh.h"
+#include "Mappings.h"
 
 #define LANDSCAPE_ZSCALE	(1.0f/128.0f)
 

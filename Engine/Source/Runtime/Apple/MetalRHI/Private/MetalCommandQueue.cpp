@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalCommandQueue.cpp: Metal command queue wrapper.
@@ -55,12 +55,12 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 	NSOperatingSystemVersion Vers = [[NSProcessInfo processInfo] operatingSystemVersion];
 	if(Vers.majorVersion >= 9)
 	{
-		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions;
+		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesShaderVersions;
 
 #if PLATFORM_TVOS
 		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v2])
 		{
-			Features |= EMetalFeaturesStencilView;
+			Features |= EMetalFeaturesStencilView | EMetalFeaturesGraphicsUAVs;
 		}
 #else
 		if ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
@@ -70,7 +70,12 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 		
 		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && ([Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v3] || [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v3]))
 		{
-			Features |= EMetalFeaturesStencilView;
+			Features |= EMetalFeaturesStencilView | EMetalFeaturesGraphicsUAVs;
+		}
+		
+		if(!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v2])
+		{
+			Features |= EMetalFeaturesTessellation;
 		}
 #endif
 	}
@@ -79,10 +84,10 @@ FMetalCommandQueue::FMetalCommandQueue(id<MTLDevice> Device, uint32 const MaxNum
 		Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset;
 	}
 #else // Assume that Mac & other platforms all support these from the start. They can diverge later.
-	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer | EMetalFeaturesLayeredRendering;
+	Features = EMetalFeaturesSeparateStencil | EMetalFeaturesSetBufferOffset | EMetalFeaturesDepthClipMode | EMetalFeaturesResourceOptions | EMetalFeaturesDepthStencilBlitOptions | EMetalFeaturesCountingQueries | EMetalFeaturesBaseVertexInstance | EMetalFeaturesIndirectBuffer | EMetalFeaturesLayeredRendering | EMetalFeaturesShaderVersions;
     if (!FParse::Param(FCommandLine::Get(),TEXT("nometalv2")) && [Device supportsFeatureSet:MTLFeatureSet_OSX_GPUFamily1_v2])
     {
-        Features |= EMetalFeaturesStencilView | EMetalFeaturesDepth16;
+        Features |= EMetalFeaturesStencilView | EMetalFeaturesDepth16 | EMetalFeaturesTessellation | EMetalFeaturesGraphicsUAVs;
         
         // Assume that set*Bytes only works on macOS Sierra and above as no-one has tested it anywhere else.
         Features |= EMetalFeaturesSetBytes;
@@ -106,24 +111,7 @@ FMetalCommandQueue::~FMetalCommandQueue(void)
 	
 #pragma mark - Public Command Buffer Mutators -
 
-id<MTLCommandBuffer> FMetalCommandQueue::CreateRetainedCommandBuffer(void)
-{
-	@autoreleasepool
-	{
-		id<MTLCommandBuffer> CmdBuffer = [[CommandQueue commandBuffer] retain];
-#if METAL_DEBUG_OPTIONS
-		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
-		{
-			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
-		}
-#endif
-		INC_DWORD_STAT(STAT_MetalCommandBufferCreatedPerFrame);
-		TRACK_OBJECT(STAT_MetalCommandBufferCount, CmdBuffer);
-		return CmdBuffer;
-	}
-}
-
-id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
+id<MTLCommandBuffer> FMetalCommandQueue::CreateCommandBuffer(void)
 {
 	static bool bUnretainedRefs = !FParse::Param(FCommandLine::Get(),TEXT("metalretainrefs"));
 	id<MTLCommandBuffer> CmdBuffer = nil;
@@ -131,7 +119,7 @@ id<MTLCommandBuffer> FMetalCommandQueue::CreateUnretainedCommandBuffer(void)
 	{
 		CmdBuffer = bUnretainedRefs ? [[CommandQueue commandBufferWithUnretainedReferences] retain] : [[CommandQueue commandBuffer] retain];
 #if METAL_DEBUG_OPTIONS
-		if (RuntimeDebuggingLevel >= EMetalDebugLevelLogDebugGroups)
+		if (RuntimeDebuggingLevel >= EMetalDebugLevelValidation)
 		{
 			CmdBuffer = [[FMetalDebugCommandBuffer alloc] initWithCommandBuffer:CmdBuffer];
 		}
@@ -159,6 +147,7 @@ void FMetalCommandQueue::CommitCommandBuffer(id<MTLCommandBuffer> const CommandB
 	}
 #endif
 	
+	UNTRACK_OBJECT(STAT_MetalCommandBufferCount, CommandBuffer);
 	[CommandBuffer release];
 }
 

@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateEnums.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 
 #include "NavigationReply.generated.h"
 
 class SWidget;
+enum class EUINavigation : uint8;
 
 UENUM(BlueprintType)
 enum class EUINavigationRule : uint8

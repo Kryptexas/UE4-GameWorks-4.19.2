@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "AbilitySystemPrivatePCH.h"
-#include "AbilitySystemComponent.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #include "GameplayDebuggerCategory_Abilities.h"
+#include "GameplayTagContainer.h"
+#include "GameplayAbilitySpec.h"
+#include "GameplayEffect.h"
+#include "AbilitySystemComponent.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
 

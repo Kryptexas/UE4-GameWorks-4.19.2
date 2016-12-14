@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "CoreUObject.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
 #include "Containers/EnumAsByte.h" 
+#include "Engine/MaterialMerging.h"
 #include "SimplygonSDK.h"
 
 #include "SimplygonTypes.generated.h"

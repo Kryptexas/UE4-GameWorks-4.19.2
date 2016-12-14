@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
 #include "Animation/AnimationRecordingSettings.h"
 #include "SequenceRecorderActorFilter.h"
 #include "SequenceRecorderSettings.generated.h"
+
+class ALevelSequenceActor;
 
 /** Enum denoting if (and how) to record audio */
 UENUM()
@@ -112,6 +121,10 @@ public:
 	/** Whether to record the world settings actor in the sequence (some games use this to attach world SFX) */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
 	bool bRecordWorldSettingsActor;
+
+	/** Whether to remove keyframes within a tolerance from the recorded tracks */
+	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")
+	bool bReduceKeys;
 
 	/** Filter to check spawned actors against to see if they should be recorded */
 	UPROPERTY(Config, EditAnywhere, Category = "Sequence Recording")

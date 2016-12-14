@@ -1,8 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EdGraph/EdGraphNode_Documentation.h"
+#include "CoreMinimal.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "K2Node_EditablePinBase.h"
+#include "IDetailCustomization.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Colors/SColorBlock.h"
+#include "IDetailCustomNodeBuilder.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "SMyBlueprint.h"
+
+class Error;
+class FBlueprintGlobalOptionsDetails;
+class FDetailWidgetRow;
+class FSCSEditorTreeNode;
+class FStructOnScope;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
+class SEditableTextBox;
+class SMultiLineEditableTextBox;
+class UEdGraphNode_Documentation;
+class UK2Node_Variable;
 
 /**
  * Variable network replication options.
@@ -425,6 +449,7 @@ private:
 	FReply OnArgMoveDown();
 
 	FText OnGetArgNameText() const;
+	FText OnGetArgToolTipText() const;
 	void OnArgNameChange(const FText& InNewText);
 	void OnArgNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
 	
@@ -565,6 +590,8 @@ private:
 
 	/** Callback to determine if the "New" button for adding input/output pins is visible */
 	EVisibility GetAddNewInputOutputVisibility() const;
+
+	EVisibility OnGetSectionTextVisibility(TWeakPtr<SWidget> RowWidget) const;
 
 	/** Called to set the replication type from the details view combo */
 	static void SetNetFlags( TWeakObjectPtr<UK2Node_EditablePinBase> FunctionEntryNode, uint32 NetFlags);

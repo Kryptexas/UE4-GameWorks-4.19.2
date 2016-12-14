@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AssetData.h"
-#include "ARFilter.h"
-#include "AssetRegistryInterface.h"
+#include "Misc/AssetRegistryInterface.h"
 
+struct FARFilter;
 
 namespace EAssetAvailability
 {
@@ -40,7 +41,7 @@ public:
 	 * @param PackageName the package name for the requested assets
 	 * @param OutAssetData the list of assets in this path
 	 */
-	virtual bool GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData) const = 0;
+	virtual bool GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets = false) const = 0;
 
 	/**
 	 * Gets asset data for all assets in the supplied folder path
@@ -49,7 +50,7 @@ public:
 	 * @param OutAssetData the list of assets in this path
 	 * @param bRecursive if true, all supplied paths will be searched recursively
 	 */
-	virtual bool GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive = false) const = 0;
+	virtual bool GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive = false, bool bIncludeOnlyOnDiskAssets = false) const = 0;
 
 	/**
 	 * Gets asset data for all assets with the supplied class

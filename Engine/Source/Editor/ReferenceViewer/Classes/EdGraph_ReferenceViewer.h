@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AssetRegistryModule.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "AssetData.h"
+#include "EdGraph/EdGraph.h"
+#include "Misc/AssetRegistryInterface.h"
 #include "EdGraph_ReferenceViewer.generated.h"
+
+class FAssetThumbnailPool;
+class UEdGraphNode_Reference;
 
 UCLASS()
 class UEdGraph_ReferenceViewer : public UEdGraph

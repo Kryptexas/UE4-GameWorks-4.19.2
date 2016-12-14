@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnRedirector.cpp: Object redirector implementation.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/ObjectRedirector.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/PropertyPortFlags.h"
 
 /*-----------------------------------------------------------------------------
 	UObjectRedirector

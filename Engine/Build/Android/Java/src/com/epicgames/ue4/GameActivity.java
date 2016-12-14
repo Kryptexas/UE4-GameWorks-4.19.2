@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 //This file needs to be here so the "ant" build step doesnt fail when looking for a /src folder.
 
 package com.epicgames.ue4;
@@ -100,6 +100,8 @@ import com.epicgames.ue4.DownloadShim;
 
 //$${gameActivityImportAdditions}$$
 
+//$${gameActivityPostImportAdditions}$$
+
 //Extending NativeActivity so that this Java class is instantiated
 //from the beginning of the program.  This will allow the user
 //to instantiate other Java libraries from here, that the user
@@ -199,6 +201,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	
 	/** Check to see if we should be verifying the files once we have them */
 	public boolean VerifyOBBOnStartUp = false;
+
+	/** Use ExternalFilesDir for UE4Game files */
+	public boolean UseExternalFilesDir = false;
 
 	/** Flag to ensure we have finished startup before allowing nativeOnActivityResult to get called */
 	private boolean InitCompletedOK = false;
@@ -605,6 +610,16 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				Log.debug( "UI hiding not found. Leaving as " + ShouldHideUI);
 			}
 
+			if(bundle.containsKey("com.epicgames.ue4.GameActivity.bUseExternalFilesDir"))
+			{
+				UseExternalFilesDir = bundle.getBoolean("com.epicgames.ue4.GameActivity.bUseExternalFilesDir");
+				Log.debug( "UseExternalFilesDir set to " + UseExternalFilesDir);
+			}
+			else
+			{
+				Log.debug( "UseExternalFilesDir not found. Leaving as " + UseExternalFilesDir);
+			}
+
 //$${gameActivityReadMetadataAdditions}$$
 		}
 		catch (NameNotFoundException e)
@@ -617,7 +632,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 
 		// tell the engine if this is a portrait app
-		nativeSetGlobalActivity();
+		nativeSetGlobalActivity(UseExternalFilesDir);
 		nativeSetWindowInfo(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT, DepthBufferPreference);
 
 		// get the full language code, like en-US
@@ -2010,7 +2025,9 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		new DeviceInfoData(0x0955, 0x7203, "NVIDIA Corporation NVIDIA Controller v01.01"),
 		new DeviceInfoData(0x0955, 0x7210, "NVIDIA Corporation NVIDIA Controller v01.03"),
 		new DeviceInfoData(0x1949, 0x0404, "Amazon Fire TV Remote"),
-		new DeviceInfoData(0x1949, 0x0406, "Amazon Fire Game Controller")
+		new DeviceInfoData(0x1949, 0x0406, "Amazon Fire Game Controller"),
+		new DeviceInfoData(0x0738, 0x5263, "Mad Catz C.T.R.L.R (Smart)"),
+		new DeviceInfoData(0x0738, 0x5266, "Mad Catz C.T.R.L.R")
 	};
 
 	public class InputDeviceInfo {
@@ -2199,7 +2216,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	}
 
 	public native boolean nativeIsShippingBuild();
-	public native void nativeSetGlobalActivity();
+	public native void nativeSetGlobalActivity(boolean bUseExternalFilesDir);
 	public native void nativeSetWindowInfo(boolean bIsPortrait, int DepthBufferPreference);
 	public native void nativeSetObbInfo(String ProjectName, String PackageName, int Version, int PatchVersion);
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel, String OSLanguage );

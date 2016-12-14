@@ -31,7 +31,9 @@
 #define PXFOUNDATION_PXPREPROCESSOR_H
 
 #include <stddef.h>
-
+#if !(defined(__clang__) && (defined(_WIN32) || defined(_WIN64)))
+#include <ciso646>  // detect std::lib, unless clang on windows is used (PxMetaDataGenerator issue)
+#endif
 /** \addtogroup foundation
   @{
 */
@@ -113,7 +115,8 @@ SIMD defines
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64) || (defined (__EMSCRIPTEN__) && defined(__SSE2__))
 #define PX_SSE2 1
 #endif
-#if defined(_M_ARM) || defined(__ARM_NEON__)
+// [RCL] FIXME? __ARM_NEON__ is obsolete, only __ARM_NEON should be enough
+#if defined(_M_ARM) || defined(__ARM_NEON__) || defined(__ARM_NEON)
 #define PX_NEON 1
 #endif
 #if defined(_M_PPC) || defined(__CELLOS_LV2__)
@@ -222,6 +225,15 @@ family shortcuts
 #define PX_INTEL_FAMILY (PX_X64 || PX_X86)
 #define PX_ARM_FAMILY (PX_ARM || PX_A64)
 #define PX_P64_FAMILY (PX_X64 || PX_A64) // shortcut for 64-bit architectures
+
+/**
+C++ standard library defines
+*/
+#if defined(_LIBCPP_VERSION) || PX_WIN64 || PX_WIN32 || PX_PS4 || PX_XBOXONE || PX_EMSCRIPTEN
+#define PX_LIBCPP 1
+#else
+#define PX_LIBCPP 0
+#endif
 
 // legacy define for PhysX
 #define PX_WINDOWS (PX_WINDOWS_FAMILY && !PX_ARM_FAMILY)
@@ -510,7 +522,7 @@ protected:                                                                      
 
 #ifndef DISABLE_CUDA_PHYSX
 //CUDA is currently supported only on windows 
-#define PX_SUPPORT_GPU_PHYSX ((PX_WINDOWS_FAMILY && PX_VC < 14) || (PX_LINUX && PX_X64))
+#define PX_SUPPORT_GPU_PHYSX ((PX_WINDOWS_FAMILY) || (PX_LINUX && PX_X64))
 #else
 #define PX_SUPPORT_GPU_PHYSX 0
 #endif

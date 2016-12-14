@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieSceneTracksPrivatePCH.h"
-#include "MovieScenePropertyTemplates.h"
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneFloatSection.h"
-#include "MovieSceneByteSection.h"
-#include "MovieSceneIntegerSection.h"
-#include "MovieSceneVectorSection.h"
-#include "MovieSceneStringSection.h"
-#include "MovieScenePropertyTrack.h"
+#include "Evaluation/MovieScenePropertyTemplates.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "Sections/MovieSceneFloatSection.h"
+#include "Sections/MovieSceneByteSection.h"
+#include "Sections/MovieSceneEnumSection.h"
+#include "Sections/MovieSceneIntegerSection.h"
+#include "Sections/MovieSceneVectorSection.h"
+#include "Sections/MovieSceneStringSection.h"
+#include "Tracks/MovieScenePropertyTrack.h"
+#include "MovieScene.h"
 
 namespace
 {
@@ -69,6 +70,23 @@ void FMovieSceneBytePropertySectionTemplate::Evaluate(const FMovieSceneEvaluatio
 	}
 	
 	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<uint8>());
+}
+
+FMovieSceneEnumPropertySectionTemplate::FMovieSceneEnumPropertySectionTemplate(const UMovieSceneEnumSection& Section, const UMovieScenePropertyTrack& Track)
+	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())
+	, EnumCurve(Section.GetCurve())
+{}
+
+void FMovieSceneEnumPropertySectionTemplate::Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const
+{
+	using namespace PropertyTemplate;
+
+	for (TCachedValue<int64>& ObjectAndValue : PersistentData.GetSectionData<TCachedSectionData<int64>>().ObjectsAndValues)
+	{
+		ObjectAndValue.Value = EnumCurve.Evaluate(Context.GetTime(), ObjectAndValue.Value);
+	}
+	
+	ExecutionTokens.Add(TCachedPropertyTrackExecutionToken<int64>());
 }
 
 FMovieSceneIntegerPropertySectionTemplate::FMovieSceneIntegerPropertySectionTemplate(const UMovieSceneIntegerSection& Section, const UMovieScenePropertyTrack& Track)

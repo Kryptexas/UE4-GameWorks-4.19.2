@@ -1,24 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneProxy.h: Primitive scene proxy definition.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/MemStack.h"
+#include "PrimitiveViewRelevance.h"
+#include "SceneTypes.h"
+#include "Engine/Scene.h"
+#include "UniformBuffer.h"
 #include "SceneView.h"
 #include "PrimitiveUniformShaderParameters.h"
-#include "PrimitiveViewRelevance.h"
 
-// Forward declarations.
-class FSimpleLightEntry;
-class HHitProxy;
-class FStaticPrimitiveDrawInterface;
-class FPrimitiveSceneInfo;
-class FLightSceneProxy;
 class FLightSceneInfo;
+class FLightSceneProxy;
 class FPrimitiveDrawInterface;
-
-struct FPrimitiveMaterialInfo;
+class FPrimitiveSceneInfo;
+class FStaticPrimitiveDrawInterface;
+class UPrimitiveComponent;
+class UTexture2D;
+struct FMeshBatch;
 
 /** Data for a simple dynamic light. */
 class FSimpleLightEntry
@@ -151,6 +156,9 @@ public:
 	/** Helper for components that want to render bounds. */
 	ENGINE_API void RenderBounds(FPrimitiveDrawInterface* PDI, const FEngineShowFlags& EngineShowFlags, const FBoxSphereBounds& Bounds, bool bRenderInEditor) const;
 
+	/** Verifies that a material used for rendering was present in the component's GetUsedMaterials list. */
+	ENGINE_API void VerifyUsedMaterial(const class FMaterialRenderProxy* MaterialRenderProxy) const;
+
 	/** Returns the LOD that the primitive will render at for this view. */
 	virtual int32 GetLOD(const FSceneView* View) const { return INDEX_NONE; }
 	
@@ -248,6 +256,8 @@ public:
 		NumInstances = 0;
 		BoundsSurfaceArea = 0;
 	}
+
+	virtual bool HeightfieldHasPendingStreaming() const { return false; }
 
 	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription)
 	{
@@ -433,6 +443,7 @@ public:
 	inline bool UseEditorCompositing(const FSceneView* View) const { return GIsEditor && bUseEditorCompositing && !View->bIsGameView; }
 	inline const FVector& GetActorPosition() const { return ActorPosition; }
 	inline const bool ReceivesDecals() const { return bReceivesDecals; }
+	inline const bool RenderInMono() const { return bRenderInMono; }
 	inline bool WillEverBeLit() const { return bWillEverBeLit; }
 	inline bool HasValidSettingsForStaticLighting() const { return bHasValidSettingsForStaticLighting; }
 	inline bool AlwaysHasVelocity() const { return bAlwaysHasVelocity; }
@@ -525,6 +536,25 @@ public:
 	 */
 	ENGINE_API bool NeedsUniformBufferUpdate() const;
 
+#if !UE_BUILD_SHIPPING
+
+	struct ENGINE_API FDebugMassData
+	{
+		//Local here just means local to ElemTM which can be different depending on how the component uses the mass data
+		FQuat LocalTensorOrientation;
+		FVector LocalCenterOfMass;
+		FVector MassSpaceInertiaTensor;
+		int32 BoneIndex;
+
+		void DrawDebugMass(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM) const;
+	};
+
+	TArray<FDebugMassData> DebugMassData;
+
+	/** Sets the primitive proxy's mass space to component space. Useful for debugging physics center of mass and inertia tensor*/
+	ENGINE_API virtual void SetDebugMassData(const TArray<FDebugMassData>& InDebugMassData);
+#endif
+
 	/**
 	 * Get the list of LCIs. Used to set the precomputed lighting uniform buffers, which can only be created by the RENDERER_API.
 	 */
@@ -587,6 +617,7 @@ private:
 	uint32 bIsLocalToWorldDeterminantNegative : 1;
 	uint32 DrawInGame : 1;
 	uint32 DrawInEditor : 1;
+	uint32 bRenderInMono : 1;
 	uint32 bReceivesDecals : 1;
 	uint32 bOnlyOwnerSee : 1;
 	uint32 bOwnerNoSee : 1;
@@ -739,6 +770,8 @@ protected:
 	/** true by default, if set to false will make given proxy never drawn with selection outline */
 	uint32 bWantsSelectionOutline : 1;
 
+	uint32 bVerifyUsedMaterials : 1;
+
 private:
 
 	/** If this is True, this primitive will be used to occlusion cull other primitives. */
@@ -849,6 +882,8 @@ private:
 	*	How many invalid lights for this primitive, just refer for scene outliner
 	*/
 	int32 NumUncachedStaticLightingInteractions;
+
+	TArray<UMaterialInterface*> UsedMaterialsForVerification;
 #endif
 
 	/**

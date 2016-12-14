@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessWeightedSampleSum.cpp: Post processing weight sample sum implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessWeightedSampleSum.h"
+#include "PostProcess/PostProcessWeightedSampleSum.h"
+#include "ClearQuad.h"
+#include "RendererModule.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
 
 // maximum number of sample using the shader that has the dynamic loop
 #define MAX_FILTER_SAMPLES	128

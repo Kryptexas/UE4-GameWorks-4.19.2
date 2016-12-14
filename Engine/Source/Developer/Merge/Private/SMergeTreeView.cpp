@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "MergePrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SMergeTreeView.h"
+#include "Widgets/Layout/SSplitter.h"
+
+#include "SCSDiff.h"
 
 void SMergeTreeView::Construct(const FArguments InArgs
 	, const FBlueprintMergeData& InData

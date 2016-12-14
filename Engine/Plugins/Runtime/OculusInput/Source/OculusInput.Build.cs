@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 namespace UnrealBuildTool.Rules
 {
@@ -6,22 +6,29 @@ namespace UnrealBuildTool.Rules
 	{
 		public OculusInput(TargetInfo Target)
 		{
-			PrivateDependencyModuleNames.AddRange(
+            PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "MediaAssets", "HeadMountedDisplay", "Launch", "RHI", "RenderCore", "Renderer", "OculusRift" });
+
+            PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
 					"CoreUObject",
 					"InputCore",
 					"Engine",
-				}
-				);
+                    "OculusRift",
+                    "UtilityShaders",
+                }
+                );
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"../../OculusRift/Source/OculusRift/Private",
+                    "../../../../Source/Runtime/Renderer/Private",
+                     "../../../../Source/ThirdParty/Oculus/Common",
+                    "../../../../Source/Runtime/Engine/Classes/Components"
 					// ... add other private include paths required here ...
 				}
-				);
+                );
 
 			PublicIncludePathModuleNames.AddRange( new string[] {"OculusRift"} );
 
@@ -30,9 +37,11 @@ namespace UnrealBuildTool.Rules
 				{
 					"OculusRift",			// For IOculusRiftPlugin.h
                     "InputDevice",			// For IInputDevice.h
-					"HeadMountedDisplay"	// For IMotionController.h
-				}
-				);
+					"HeadMountedDisplay",	// For IMotionController.h
+                    "ImageWrapper",
+
+                }
+                );
 
             // Currently, the Rift is only supported on win64
             if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)

@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "SAnimationBlendSpace1D.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "BlendSpace1DEditor"
 
@@ -24,7 +28,10 @@ void SBlendSpaceEditor1D::ResampleData()
 		for (const FBlendSample& Sample : BlendSamples)
 		{
 			// Add X value from sample (this is the only valid value to be set for 1D blend spaces / aim offsets
-			ElementGenerator.SamplePointList.Add(Sample.SampleValue.X);
+			if (Sample.bIsValid)
+			{
+				ElementGenerator.SamplePointList.Add(Sample.SampleValue.X);
+			}
 		}
 		ElementGenerator.CalculateEditorElements();
 

@@ -1327,6 +1327,19 @@ OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingState(ovrSession session, d
     return API.ovr_GetTrackingState.Ptr(session, absTime, latencyMarker);
 }
 
+OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingStateWithSensorData(ovrSession session, double absTime, ovrBool latencyMarker, ovrSensorData* sensorData)
+{
+    if (!API.ovr_GetTrackingStateWithSensorData.Ptr)
+    {
+        ovrTrackingState nullTrackingState;
+        memset(&nullTrackingState, 0, sizeof(nullTrackingState));
+        if (sensorData)
+            memset(&sensorData, 0, sizeof(sensorData));
+        return nullTrackingState;
+    }
+
+    return API.ovr_GetTrackingStateWithSensorData.Ptr(session, absTime, latencyMarker, sensorData);
+}
 
 OVR_PUBLIC_FUNCTION(ovrTrackerPose) ovr_GetTrackerPose(ovrSession session, unsigned int trackerPoseIndex)
 {
@@ -1685,6 +1698,21 @@ OVR_PUBLIC_FUNCTION(ovrEyeRenderDesc) ovr_GetRenderDesc(ovrSession session, ovrE
     return API.ovr_GetRenderDesc.Ptr(session, eyeType, fov);
 }
 
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetPerfStats(ovrSession session, ovrPerfStats* outPerfStats)
+{
+    if (!API.ovr_GetPerfStats.Ptr)
+        return ovrError_NotInitialized;
+
+    return API.ovr_GetPerfStats.Ptr(session, outPerfStats);
+}
+
+OVR_PUBLIC_FUNCTION(ovrResult) ovr_ResetPerfStats(ovrSession session)
+{
+    if (!API.ovr_ResetPerfStats.Ptr)
+        return ovrError_NotInitialized;
+
+    return API.ovr_ResetPerfStats.Ptr(session);
+}
 
 OVR_PUBLIC_FUNCTION(double) ovr_GetPredictedDisplayTime(ovrSession session, long long frameIndex)
 {

@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Editor/PropertyEditor/Public/IPropertyTypeCustomization.h"
 #include "SGameplayTagWidget.h"
 #include "EditorUndoClient.h"
+
+class IPropertyHandle;
 
 /** Customization for the gameplay tag struct */
 class FGameplayTagCustomization : public IPropertyTypeCustomization, public FEditorUndoClient
@@ -44,9 +48,6 @@ private:
 
 	/** Returns Tag name currently selected*/
 	FText SelectedTag() const;
-
-	/** Combo Button for the drop down list. */
-	TSharedPtr<SComboButton> ComboButton;
 
 	/** Cached property handle */
 	TSharedPtr<IPropertyHandle> StructPropertyHandle;

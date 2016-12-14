@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRender.h: Definitions and inline code for rendering SkeletalMeshComponet
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "SkeletalMeshTypes.h"
+
+class USkinnedMeshComponent;
 
 // smallest blend weight for vertex anims
 extern const float MinMorphTargetBlendWeight;

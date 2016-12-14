@@ -1,14 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Styling/SlateColor.h"
+#include "UnrealClient.h"
+#include "Tickable.h"
 #include "UnitTestManager.generated.h"
 
-// Forward declarations
 class FLogWindowManager;
-class UUnitTest;
 class SLogWindow;
-
+class SWindow;
+class UUnitTest;
 
 /**
  * Manages centralized execution and tracking of unit tests, as well as handling console commands,

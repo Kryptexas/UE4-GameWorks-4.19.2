@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
 #include "Widgets/SWidget.h"
-#include "Input/Events.h"
-#include "ActiveTimerHandle.h"
-#include "SlateStats.h"
+#include "Types/PaintArgs.h"
+#include "Layout/ArrangedChildren.h"
+#include "Layout/Children.h"
+#include "SlateGlobals.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/IToolTip.h"
+#include "Misc/Paths.h"
+#include "HAL/IConsoleManager.h"
+#include "Types/NavigationMetaData.h"
+#include "Application/SlateApplicationBase.h"
+#include "Styling/CoreStyle.h"
+#include "Application/ActiveTimerHandle.h"
+#include "Stats/SlateStats.h"
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Total Widgets"), STAT_SlateTotalWidgets, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Painted Widgets"), STAT_SlateNumPaintedWidgets, STATGROUP_Slate);
@@ -69,6 +78,11 @@ void SWidget::CreateStatID() const
 	StatID = FDynamicStats::CreateStatId<FStatGroup_STATGROUP_SlateVeryVerbose>( ToString() );
 #endif
 }
+
+FName NAME_MouseButtonDown(TEXT("MouseButtonDown"));
+FName NAME_MouseButtonUp(TEXT("MouseButtonUp"));
+FName NAME_MouseMove(TEXT("MouseMove"));
+FName NAME_MouseDoubleClick(TEXT("MouseDoubleClick"));
 
 SWidget::SWidget()
 	: Cursor( TOptional<EMouseCursor::Type>() )
@@ -210,40 +224,48 @@ FReply SWidget::OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPo
 
 FReply SWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (MouseButtonDownHandler.IsBound())
+	if ( FPointerEventHandler* Event = PointerEvents.Find(NAME_MouseButtonDown) )
 	{
-		// If a handler is assigned, call it.
-		return MouseButtonDownHandler.Execute(MyGeometry, MouseEvent);
+		if ( Event->IsBound() )
+		{
+			return Event->Execute(MyGeometry, MouseEvent);
+		}
 	}
 	return FReply::Unhandled();
 }
 
 FReply SWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (MouseButtonUpHandler.IsBound())
+	if ( FPointerEventHandler* Event = PointerEvents.Find(NAME_MouseButtonUp) )
 	{
-		// If a handler is assigned, call it.
-		return MouseButtonUpHandler.Execute(MyGeometry, MouseEvent);
+		if ( Event->IsBound() )
+		{
+			return Event->Execute(MyGeometry, MouseEvent);
+		}
 	}
 	return FReply::Unhandled();
 }
 
 FReply SWidget::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (MouseMoveHandler.IsBound())
+	if ( FPointerEventHandler* Event = PointerEvents.Find(NAME_MouseMove) )
 	{
-		// A valid handler is assigned for mouse move; let it handle the event.
-		return MouseMoveHandler.Execute(MyGeometry, MouseEvent);
+		if ( Event->IsBound() )
+		{
+			return Event->Execute(MyGeometry, MouseEvent);
+		}
 	}
 	return FReply::Unhandled();
 }
 
 FReply SWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	if (MouseDoubleClickHandler.IsBound())
+	if ( FPointerEventHandler* Event = PointerEvents.Find(NAME_MouseDoubleClick) )
 	{
-		// A valid handler is assigned; let it handle the event.
-		return MouseDoubleClickHandler.Execute(MyGeometry, MouseEvent);
+		if ( Event->IsBound() )
+		{
+			return Event->Execute(MyGeometry, MouseEvent);
+		}
 	}
 	return FReply::Unhandled();
 }
@@ -251,11 +273,23 @@ FReply SWidget::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPoi
 void SWidget::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
 	bIsHovered = true;
+
+	if (MouseEnterHandler.IsBound())
+	{
+		// A valid handler is assigned; let it handle the event.
+		MouseEnterHandler.Execute(MyGeometry, MouseEvent);
+	}
 }
 
 void SWidget::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	bIsHovered = false;
+
+	if (MouseLeaveHandler.IsBound())
+	{
+		// A valid handler is assigned; let it handle the event.
+		MouseLeaveHandler.Execute(MouseEvent);
+	}
 }
 
 FReply SWidget::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -305,21 +339,6 @@ FReply SWidget::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& D
 }
 
 FReply SWidget::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
-{
-	return FReply::Unhandled();
-}
-
-FReply SWidget::OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-{
-	return FReply::Unhandled();
-}
-
-FReply SWidget::OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
-{
-	return FReply::Unhandled();
-}
-
-FReply SWidget::OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent )
 {
 	return FReply::Unhandled();
 }
@@ -449,9 +468,9 @@ void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 
 			if ( Child->Visibility.Get() != EVisibility::Collapsed )
 			{
-				const float ChildLayoutScaleMultiplier = GetRelativeLayoutScale(MyChildren->GetSlotAt(ChildIndex));
+				const float ChildLayoutScaleMultiplier = GetRelativeLayoutScale(MyChildren->GetSlotAt(ChildIndex), LayoutScaleMultiplier);
 				// Recur: Descend down the widget tree.
-				Child->SlatePrepass(LayoutScaleMultiplier*ChildLayoutScaleMultiplier);
+				Child->SlatePrepass(LayoutScaleMultiplier * ChildLayoutScaleMultiplier);
 			}
 		}
 	}
@@ -637,12 +656,20 @@ FName SWidget::GetType() const
 
 FString SWidget::GetReadableLocation() const
 {
+#if !UE_BUILD_SHIPPING
 	return FString::Printf(TEXT("%s(%d)"), *FPaths::GetCleanFilename(this->CreatedInLocation.GetPlainNameString()), this->CreatedInLocation.GetNumber());
+#else
+	return FString();
+#endif
 }
 
 FName SWidget::GetCreatedInLocation() const
 {
+#if !UE_BUILD_SHIPPING
 	return CreatedInLocation;
+#else
+	return NAME_None;
+#endif
 }
 
 FName SWidget::GetTag() const
@@ -698,8 +725,11 @@ void SWidget::SetCursor( const TAttribute< TOptional<EMouseCursor::Type> >& InCu
 void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int32 OnLine )
 {
 	TypeOfWidget = InType;
+
+#if !UE_BUILD_SHIPPING
 	CreatedInLocation = FName( InFile );
 	CreatedInLocation.SetNumber(OnLine);
+#endif
 }
 
 int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
@@ -730,14 +760,16 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 		return VolatileLayerId;
 	}
 
+	// Cache the geometry for tick to allow external users to get the last geometry that was used,
+	// or would have been used to tick the Widget.
+	CachedGeometry = AllottedGeometry;
+	CachedGeometry.AppendTransform(FSlateLayoutTransform(Args.GetWindowToDesktopTransform()));
+
 	if ( bFoldTick && bCanTick )
 	{
-		FGeometry TickGeometry = AllottedGeometry;
-		TickGeometry.AppendTransform( FSlateLayoutTransform(Args.GetWindowToDesktopTransform()) );
-
 		SWidget* MutableThis = const_cast<SWidget*>(this);
 		MutableThis->ExecuteActiveTimers( Args.GetCurrentTime(), Args.GetDeltaTime() );
-		MutableThis->Tick( TickGeometry, Args.GetCurrentTime(), Args.GetDeltaTime() );
+		MutableThis->Tick( CachedGeometry, Args.GetCurrentTime(), Args.GetDeltaTime() );
 	}
 
 	// Record hit test geometry, but only if we're not caching.
@@ -764,7 +796,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 					MyClippingRect,
 					ESlateDrawEffect::None,
 					BrushResource->GetTint(InWidgetStyle)
-					);
+				);
 			}
 		}
 	}
@@ -777,7 +809,7 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	return NewLayerID;
 }
 
-float SWidget::GetRelativeLayoutScale(const FSlotBase& Child) const
+float SWidget::GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const
 {
 	return 1.0f;
 }
@@ -823,20 +855,30 @@ void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
 
 void SWidget::SetOnMouseButtonDown(FPointerEventHandler EventHandler)
 {
-	MouseButtonDownHandler = EventHandler;
+	PointerEvents.Add(NAME_MouseButtonDown, EventHandler);
 }
 
 void SWidget::SetOnMouseButtonUp(FPointerEventHandler EventHandler)
 {
-	MouseButtonUpHandler = EventHandler;
+	PointerEvents.Add(NAME_MouseButtonUp, EventHandler);
 }
 
 void SWidget::SetOnMouseMove(FPointerEventHandler EventHandler)
 {
-	MouseMoveHandler = EventHandler;
+	PointerEvents.Add(NAME_MouseMove, EventHandler);
 }
 
 void SWidget::SetOnMouseDoubleClick(FPointerEventHandler EventHandler)
 {
-	MouseDoubleClickHandler = EventHandler;
+	PointerEvents.Add(NAME_MouseDoubleClick, EventHandler);
+}
+
+void SWidget::SetOnMouseEnter(FNoReplyPointerEventHandler EventHandler)
+{
+	MouseEnterHandler = EventHandler;
+}
+
+void SWidget::SetOnMouseLeave(FSimpleNoReplyPointerEventHandler EventHandler)
+{
+	MouseLeaveHandler = EventHandler;
 }

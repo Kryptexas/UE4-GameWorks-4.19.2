@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "IPropertyTypeCustomization.h"
+#include "PropertyHandle.h"
 
-class IPropertyHandle;
-class IPropertyHandleArray;
 class FDetailWidgetRow;
 class IDetailChildrenBuilder;
 

@@ -1,14 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashReportClientApp.h"
+#include "SCrashReportClient.h"
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
-#include "SCrashReportClient.h"
 #include "CrashReportClientStyle.h"
 #include "SlateStyle.h"
 #include "SThrobber.h"
 #include "CrashDescription.h"
+#include "Framework/Text/SlateHyperlinkRun.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Text/SRichTextBlock.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Widgets/Colors/SColorBlock.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Framework/Application/SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
@@ -169,7 +179,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 							.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT( "Slate/Fonts/Roboto-Regular.ttf" ), 8 ) )
 							.AutoWrapText( false )
 							.IsReadOnly( true )
-							.ReadOnlyForegroundColor( FSlateColor( FLinearColor::Black ) )
+							.ReadOnlyForegroundColor( FSlateColor( FLinearColor::White * 0.8f) )
 							.BackgroundColor( FSlateColor( FLinearColor::Black ) )
 							.ForegroundColor( FSlateColor( FLinearColor::White * 0.8f ) )
 							.Text( Client, &FCrashReportClient::GetDiagnosticText )

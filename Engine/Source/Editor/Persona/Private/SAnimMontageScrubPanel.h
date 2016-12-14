@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __SAnimMontageScrubPanel_h__
 #define __SAnimMontageScrubPanel_h__
+
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPersonaPreviewScene.h"
 #include "SAnimationScrubPanel.h"
+#include "SMontageEditor.h"
 
 class SAnimMontageScrubPanel : public SAnimationScrubPanel
 {

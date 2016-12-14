@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using AutomationTool;
 using System;
@@ -359,6 +359,8 @@ namespace AutomationTool
 			AddRule(".../PS4/...", FileFilterType.Exclude);
 			AddRule(".../XboxOne/...", FileFilterType.Exclude);
 			AddRule(".../Switch/...", FileFilterType.Exclude);
+			AddRule(".../Wolf/...", FileFilterType.Exclude);
+			AddRule(".../WolfPlat/...", FileFilterType.Exclude);
 		}
 
 		/// <summary>

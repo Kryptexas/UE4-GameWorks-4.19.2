@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Widgets/SWidget.h"
 #include "VREditorBaseActor.h"
 #include "VREditorFloatingUI.generated.h"
 
+class UVREditorBaseUserWidget;
+class UVREditorUISystem;
 
 /**
  * Represents an interactive floating UI panel in the VR Editor

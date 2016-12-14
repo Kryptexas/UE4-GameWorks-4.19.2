@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	SimpleElementShaders.h: Definitions for simple element shaders.
@@ -6,8 +6,10 @@
 
 #pragma once
 
-#include "GlobalShader.h"
+#include "CoreMinimal.h"
 #include "ShaderParameters.h"
+#include "Shader.h"
+#include "GlobalShader.h"
 
 /**
  * A vertex shader for rendering a texture on a simple element.

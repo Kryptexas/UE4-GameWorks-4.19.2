@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class FEngineSessionManager;
 struct FAnalyticsEventAttribute;
 
 namespace EAnalyticsErrorCodes
@@ -60,6 +63,7 @@ namespace EAnalyticsErrorCodes
 		MissingExecutable = 103,
 		DeviceNotSetupForDevelopment = 150,
 		DeviceOSNewerThanSDK = 151,
+		TestFailure = 152,
 	};
 };
 

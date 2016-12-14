@@ -1,18 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateIcon.h"
-#include "WorkspaceItem.h"
-#include "SlateEnums.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/SWindow.h"
+#include "Framework/Docking/WorkspaceItem.h"
 
+class FJsonObject;
 class FMenuBuilder;
 class FMultiBox;
-class FTabManager;
+class FProxyTabmanager;
 class SDockingArea;
-class SDockTab;
 class SDockingTabStack;
-class SWindow;
 struct FTabMatcher;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(

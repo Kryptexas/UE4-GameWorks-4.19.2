@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AISenseConfig.h"
-#include "AISense_Damage.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Perception/AISense.h"
+#include "Perception/AISenseConfig.h"
+#include "Perception/AISense_Damage.h"
 #include "AISenseConfig_Damage.generated.h"
-
-class UAISense_Damage;
 
 UCLASS(meta = (DisplayName = "AI Damage sense config"))
 class AIMODULE_API UAISenseConfig_Damage : public UAISenseConfig

@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IMenu.h"
+#include "CoreMinimal.h"
+#include "Input/PopupMethodReply.h"
+#include "Framework/Application/IMenu.h"
+
+class SWidget;
+class SWindow;
 
 /**
  * Represents the base class of popup menus.

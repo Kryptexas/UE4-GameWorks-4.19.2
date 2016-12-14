@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScopedDebugInfo.h: Scoped debug info definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
 
 /** Debug info that is stored on the stack and handled by stack unwinding. */
 class CORE_API FScopedDebugInfo

@@ -1,16 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Landscape.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "LandscapeProxy.h"
+#include "LandscapeToolInterface.h"
+#include "LandscapeEdMode.h"
+#include "EditorViewportClient.h"
+#include "LandscapeEdit.h"
+#include "LandscapeComponent.h"
+#include "LandscapeDataAccess.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "InstancedFoliageActor.h"
+#include "VREditorInteractor.h"
 #include "AI/Navigation/NavigationSystem.h"
 
 // VR Editor
-#include "IVREditorModule.h"
-#include "ViewportWorldInteraction.h"
-#include "VREditorInteractor.h"
 
 //
 //	FNoiseParameter - Perlin noise
@@ -151,7 +157,7 @@ private:
 
 
 #if WITH_KISSFFT
-#include "tools/kiss_fftnd.h" // Kiss FFT for Real component...
+#include "tools/kiss_fftnd.h"
 #endif
 
 template<typename DataType>
@@ -1396,6 +1402,8 @@ public:
 
 		return true;
 	}
+
+	virtual bool IsToolActive() const override { return bToolActive;  }
 
 protected:
 	TArray<FLandscapeToolInteractorPosition> InteractorPositions;

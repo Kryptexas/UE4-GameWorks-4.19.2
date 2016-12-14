@@ -1,16 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDOF.cpp: Post process Depth of Field implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessBokehDOF.h"
-#include "PostProcessDOF.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessDOF.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessBokehDOF.h"
+#include "SceneRenderTargetParameters.h"
+#include "PostProcess/PostProcessing.h"
+#include "ClearQuad.h"
 
 
 /** Encapsulates the DOF setup pixel shader. */

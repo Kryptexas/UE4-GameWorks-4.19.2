@@ -1,6 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Delegates/Delegate.h"
+#include "Internationalization/Text.h"
+#include "Layout/Visibility.h"
+#include "Styling/ISlateStyle.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "GameFramework/PlayerController.h"
+#include "GameMenuWidgetStyle.h"
+
+struct FGeometry;
+struct FPointerEvent;
 
 // Menu item widget
 class GAMEMENUBUILDER_API SGameMenuItemWidget : public SCompoundWidget

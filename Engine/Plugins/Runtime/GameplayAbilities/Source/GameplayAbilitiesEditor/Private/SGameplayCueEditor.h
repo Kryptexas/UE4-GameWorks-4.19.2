@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SCompoundWidget.h"
-#include "GameplayTagContainer.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SUserWidget.h"
 
 /** Main CollisionAnalyzer UI widget */
 class SGameplayCueEditor : public SUserWidget

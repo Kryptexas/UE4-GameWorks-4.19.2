@@ -1,6 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
+
+#include "CoreMinimal.h"
+#include "Features/IModularFeatures.h"
+#include "Modules/ModuleInterface.h"
+#include "Features/IModularFeature.h"
+#include "Modules/ModuleManager.h"
+
+class APlayerCameraManager;
+class ICameraPhotography;
+struct FMinimalViewInfo;
 
 /**
 * The public interface of the CameraPhotographyModule

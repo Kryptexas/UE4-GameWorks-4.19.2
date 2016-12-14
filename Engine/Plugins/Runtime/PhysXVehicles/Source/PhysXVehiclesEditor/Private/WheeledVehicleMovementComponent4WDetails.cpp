@@ -1,12 +1,15 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesEditorPrivatePCH.h"
 #include "WheeledVehicleMovementComponent4WDetails.h"
+#include "WheeledVehicleMovementComponent4W.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
 #include "ScopedTransaction.h"
 #include "ObjectEditorUtils.h"
-#include "WheeledVehicleMovementComponent4W.h"
 #include "IDocumentation.h"
-#include "SCurveEditor.h"
 
 #define LOCTEXT_NAMESPACE "WheeledVehicleMovementComponent4WDetails"
 
@@ -116,6 +119,17 @@ void FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::ModifyOwne
 	}
 }
 
+TArray<const UObject*> FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	if (Owner)
+	{
+		Owners.Add(Owner);
+	}
+
+	return Owners;
+}
+
 void FWheeledVehicleMovementComponent4WDetails::FSteeringCurveEditor::MakeTransactional()
 {
 	if (Owner)
@@ -158,6 +172,17 @@ void FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::ModifyOwner(
 	{
 		Owner->Modify();
 	}
+}
+
+TArray<const UObject*> FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	if (Owner)
+	{
+		Owners.Add(Owner);
+	}
+
+	return Owners;
 }
 
 void FWheeledVehicleMovementComponent4WDetails::FTorqueCurveEditor::MakeTransactional()

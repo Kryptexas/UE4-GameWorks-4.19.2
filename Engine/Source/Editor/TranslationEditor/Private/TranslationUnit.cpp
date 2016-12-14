@@ -1,6 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "TranslationEditorPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #include "TranslationUnit.h"
+#include "UObject/UnrealType.h"
 
 UTranslationUnit::UTranslationUnit( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)

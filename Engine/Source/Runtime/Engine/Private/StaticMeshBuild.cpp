@@ -1,18 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshBuild.cpp: Static mesh building.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Serialization/BulkData.h"
+#include "Components/StaticMeshComponent.h"
+#include "GenericOctreePublic.h"
+#include "GenericOctree.h"
+#include "Engine/StaticMesh.h"
+#include "UObject/UObjectIterator.h"
 #include "StaticMeshResources.h"
 #include "PhysicsEngine/BodySetup.h"
 
 #if WITH_EDITOR
-#include "RawMesh.h"
-#include "MeshUtilities.h"
-#include "TargetPlatform.h"
-#include "GenericOctree.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/App.h"
 #endif // #if WITH_EDITOR
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
@@ -157,10 +161,8 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 	// Calculate extended bounds
 	CalculateExtendedBounds();
 
-	if (NavCollision == NULL && !!bHasNavigationData)
-	{
-		CreateNavCollision();
-	}
+	// Update nav collision 
+	CreateNavCollision(/*bIsUpdate=*/true);
 
 	PostMeshBuild.Broadcast(this);
 

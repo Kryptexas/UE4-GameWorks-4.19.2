@@ -1,7 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-using System;
-using System.Xml.Serialization;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 namespace Tools.CrashReporter.CrashReportCommon
 {

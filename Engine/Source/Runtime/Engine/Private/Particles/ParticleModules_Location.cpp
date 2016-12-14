@@ -1,14 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Location.cpp: 
 	Location-related particle module implementations.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Distributions/DistributionVectorConstantCurve.h"
-#include "ParticleDefinitions.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Stats/Stats.h"
+#include "GameFramework/Actor.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "RawIndexBuffer.h"
+#include "ParticleHelper.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionFloatConstant.h"
+#include "Distributions/DistributionVectorConstant.h"
+#include "Distributions/DistributionVectorUniform.h"
+#include "Distributions/DistributionVectorConstantCurve.h"
+#include "Particles/Location/ParticleModuleLocationBase.h"
 #include "Particles/Location/ParticleModuleLocation.h"
 #include "Particles/Location/ParticleModuleLocationBoneSocket.h"
 #include "Particles/Location/ParticleModuleLocationDirect.h"
@@ -27,10 +36,10 @@
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
-#include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "SkeletalMeshTypes.h"
+
 UParticleModuleLocationBase::UParticleModuleLocationBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -2177,6 +2186,9 @@ UParticleModuleLocationSkelVertSurface::UParticleModuleLocationSkelVertSurface(c
 	SkelMeshActorParamName = ConstructorStatics.NAME_VertSurfaceActor;
 	bOrientMeshEmitters = true;
 	bEnforceNormalCheck = false;
+	bInheritUV = false;
+	InheritUVChannel = 0;
+	InheritVelocityScale = 1.0f;
 }
 
 DEFINE_STAT(STAT_ParticleSkelMeshSurfTime);
@@ -2349,7 +2361,7 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 				const int32 VelocityIndex = InstancePayload->ValidAssociatedBoneIndices.Find(ActiveBoneIndex);
 				if(VelocityIndex != INDEX_NONE)
 				{
-					Particle.BaseVelocity = InstancePayload->BoneVelocities[VelocityIndex];
+					Particle.BaseVelocity = FMath::Lerp(Particle.BaseVelocity, InstancePayload->BoneVelocities[VelocityIndex], InheritVelocityScale);
 					ensureMsgf(!Particle.BaseVelocity.ContainsNaN(), TEXT("NaN in Particle Base Velocity. Template: %s, Component: %s"), Owner->Component ? *GetNameSafe(Owner->Component->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Owner->Component));
 				}
 			}
@@ -2379,6 +2391,42 @@ void UParticleModuleLocationSkelVertSurface::Spawn(FParticleEmitterInstance* Own
 				}
 				Particle.Color = UseColor;
 				Particle.BaseColor = UseColor;
+			}
+					
+			if (bInheritUV)
+			{
+				FVector2D UseUV;
+				if (SourceType == VERTSURFACESOURCE_Vert)
+				{
+					UseUV = SourceComponent->GetVertexUV(SourceIndex, InheritUVChannel);
+				}
+				else if (SourceType == VERTSURFACESOURCE_Surface)
+				{
+					int32 VertIndex[3];
+					FVector2D VertUVs[3];
+
+					VertIndex[0] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex);
+					VertIndex[1] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 1);
+					VertIndex[2] = LODModel.MultiSizeIndexContainer.GetIndexBuffer()->Get(SourceIndex + 2);
+					VertUVs[0] = SourceComponent->GetVertexUV(VertIndex[0], InheritUVChannel);
+					VertUVs[1] = SourceComponent->GetVertexUV(VertIndex[1], InheritUVChannel);
+					VertUVs[2] = SourceComponent->GetVertexUV(VertIndex[2], InheritUVChannel);
+					UseUV.X = (VertUVs[0].X + VertUVs[1].X + VertUVs[2].X) / 3;
+					UseUV.Y = (VertUVs[0].Y + VertUVs[1].Y + VertUVs[2].Y) / 3;
+
+					// TODO: Barycentric interpolation instead of triangle average. Position is in same struct during vertex fetch above
+					/*FVector BarycentricUV = FMath::GetBaryCentric2D(Point, VertA, VertB, VertC);
+					FVector2D UseUV = VertUVs[0] * BarycentricUV.X + VertUVs[1] * BarycentricUV.Y + VertUVs[2] * BarycentricUV.Z;*/
+				}
+
+				const int32 DynParamOffset = Owner->DynamicParameterDataOffset;
+				if (DynParamOffset > 0)
+				{
+					// Override dynamic parameters to allow vertex colors to be used
+					FEmitterDynamicParameterPayload& DynamicPayload = *((FEmitterDynamicParameterPayload*)((uint8*)&Particle + DynParamOffset));
+					DynamicPayload.DynamicParameterValue[0] = UseUV.X;
+					DynamicPayload.DynamicParameterValue[1] = UseUV.Y;
+				}
 			}
 
 			if (bMeshRotationActive)
@@ -2870,7 +2918,7 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBone(FParticl
 			}
 		}
 
-		return Model.VertexBufferGPUSkin.HasExtraBoneInfluences()
+		return Model.SkinWeightVertexBuffer.HasExtraBoneInfluences()
 			? VertInfluencedByActiveBoneTyped<true>(Model, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex)
 			: VertInfluencedByActiveBoneTyped<false>(Model, Section, VertIndex, InSkelMeshComponent, InstancePayload, OutBoneIndex);
 	}
@@ -2881,8 +2929,8 @@ template<bool bExtraBoneInfluencesT>
 bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(FStaticLODModel& Model, const FSkelMeshSection& Section, int32 VertIndex, USkeletalMeshComponent* InSkelMeshComponent, FModuleLocationVertSurfaceInstancePayload* InstancePayload, int32* OutBoneIndex)
 {
 	const TArray<int32>& MasterBoneMap = InSkelMeshComponent->GetMasterBoneMap();
-	// Do soft skinning for this vertex.
-	const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcSoftVertex = Model.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Section.GetVertexBufferIndex()+VertIndex);
+	// Get weights on this vertex
+	const TSkinWeightInfo<bExtraBoneInfluencesT>* SrcSkinWeights = Model.SkinWeightVertexBuffer.GetSkinWeightPtr<bExtraBoneInfluencesT>(Section.GetVertexBufferIndex() + VertIndex);
 
 #if !PLATFORM_LITTLE_ENDIAN
 	// uint8[] elements in LOD.VertexBufferGPUSkin have been swapped for VET_UBYTE4 vertex stream use
@@ -2891,7 +2939,7 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(FSt
 	for(int32 InfluenceIndex = 0;InfluenceIndex < Section.MaxBoneInfluences;InfluenceIndex++)
 #endif
 	{
-		int32 BoneIndex = Section.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
+		int32 BoneIndex = Section.BoneMap[SrcSkinWeights->InfluenceBones[InfluenceIndex]];
 		if(InSkelMeshComponent->MasterPoseComponent.IsValid())
 		{		
 			check(MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());

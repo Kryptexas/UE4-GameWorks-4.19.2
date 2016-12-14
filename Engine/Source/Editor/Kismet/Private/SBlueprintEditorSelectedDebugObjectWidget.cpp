@@ -1,26 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "BlueprintEditorCommands.h"
-#include "BlueprintEditor.h"
-#include "SBlueprintEditorToolbar.h"
-#include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "SSCSEditor.h"
-#include "SSCSEditorViewport.h"
-#include "GraphEditorActions.h"
-#include "ISourceControlModule.h"
-#include "ISourceControlRevision.h"
-#include "AssetToolsModule.h"
-#include "BlueprintEditorModes.h"
-#include "WorkflowOrientedApp/SModeWidget.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
+#include "SBlueprintEditorSelectedDebugObjectWidget.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EngineGlobals.h"
+#include "Editor.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "EditorStyleSet.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "PropertyCustomizationHelpers.h"
+#include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
 #include "SLevelOfDetailBranchNode.h"
-#include "SBlueprintEditorSelectedDebugObjectWidget.h"
-#include "Engine/GameInstance.h"
-#include "STextComboBox.h"
+#include "Widgets/Input/STextComboBox.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 
@@ -564,19 +559,21 @@ TSharedPtr<FString> SBlueprintEditorSelectedDebugObjectWidget::GetDebugObjectNam
 TSharedPtr<FString> SBlueprintEditorSelectedDebugObjectWidget::GetDebugWorldName() const
 {
 	check(GetBlueprintObj());
-	check(DebugWorlds.Num() == DebugWorldNames.Num());
-	if (UObject* DebugObj = GetBlueprintObj()->GetObjectBeingDebugged())
+	if (ensure(DebugWorlds.Num() == DebugWorldNames.Num()))
 	{
-		for (int32 WorldIdx = 0; WorldIdx < DebugWorlds.Num(); ++WorldIdx)
+		if (UObject* DebugObj = GetBlueprintObj()->GetObjectBeingDebugged())
 		{
-			if (DebugObj->IsIn(DebugWorlds[WorldIdx].Get()))
+			for (int32 WorldIdx = 0; WorldIdx < DebugWorlds.Num(); ++WorldIdx)
 			{
-				return DebugWorldNames[WorldIdx];
+				if (DebugObj->IsIn(DebugWorlds[WorldIdx].Get()))
+				{
+					return DebugWorldNames[WorldIdx];
+				}
 			}
 		}
 	}
-	return DebugWorldNames[0];
 
+	return DebugWorldNames[0];
 }
 
 void SBlueprintEditorSelectedDebugObjectWidget::DebugWorldSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)

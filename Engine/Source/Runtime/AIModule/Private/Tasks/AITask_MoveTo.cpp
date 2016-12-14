@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "GameplayTasksComponent.h"
 #include "Tasks/AITask_MoveTo.h"
+#include "UObject/Package.h"
+#include "TimerManager.h"
+#include "AISystem.h"
+#include "AIController.h"
+#include "VisualLogger/VisualLogger.h"
+#include "AIResources.h"
+#include "GameplayTasksComponent.h"
 
 UAITask_MoveTo::UAITask_MoveTo(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -81,7 +86,7 @@ void UAITask_MoveTo::FinishMoveTask(EPathFollowingResult::Type InResult)
 	}
 	else
 	{
-		OnMoveFinished.Broadcast(InResult);
+		OnMoveFinished.Broadcast(InResult, OwnerController);
 	}
 }
 

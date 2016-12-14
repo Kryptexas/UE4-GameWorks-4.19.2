@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringAssetReference.h"
 #include "BlueprintNativeCodeGenManifest.generated.h"
 
-// Forward declarations
-struct FNativeCodeGenCommandlineParams;
-class  FAssetData;
+class FAssetData;
 struct FBlueprintNativeCodeGenPaths;
 
 /*******************************************************************************

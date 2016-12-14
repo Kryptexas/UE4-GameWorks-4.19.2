@@ -1,11 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptCore.cpp: Kismet VM execution and support code.
 =============================================================================*/
-#include "CoreUObjectPrivate.h"
-#include "MallocProfiler.h"
-#include "HotReloadInterface.h"
+
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+#include "Logging/LogScopedCategoryAndVerbosityOverride.h"
+#include "Stats/Stats.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ScriptInterface.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/Object.h"
+#include "UObject/CoreNative.h"
+#include "UObject/Class.h"
+#include "Templates/Casts.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UnrealType.h"
+#include "UObject/Stack.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "UObject/ScriptMacros.h"
+#include "Misc/HotReloadInterface.h"
 #include "UObject/UObjectThreadContext.h"
 
 DEFINE_LOG_CATEGORY(LogScriptFrame);
@@ -840,13 +861,15 @@ void ClearReturnValue(UProperty* ReturnProp, RESULT_DECL)
 {
 	if (ReturnProp != NULL)
 	{
-		// destroy old value if necessary
-		if (!ReturnProp->HasAllPropertyFlags(CPF_NoDestructor))
+		uint8* Data = (uint8*)RESULT_PARAM;
+		for (int32 ArrayIdx = 0; ArrayIdx < ReturnProp->ArrayDim; ArrayIdx++, Data += ReturnProp->ElementSize)
 		{
-			ReturnProp->DestroyValue(RESULT_PARAM);
+			// destroy old value if necessary
+			ReturnProp->DestroyValue(Data);
+
+			// copy zero value for return property into Result, or default construct as necessary
+			ReturnProp->ClearValue(Data);
 		}
-		// copy zero value for return property into Result
-		FMemory::Memzero(RESULT_PARAM, ReturnProp->ArrayDim * ReturnProp->ElementSize);
 	}
 }
 
@@ -971,13 +994,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	else
 	{
 		UProperty* ReturnProp = (Function)->GetReturnProperty();
-		if (ReturnProp != NULL)
-		{
-			// destroy old value if necessary
-			ReturnProp->DestroyValue(RESULT_PARAM);
-			// copy zero value for return property into Result
-			FMemory::Memzero(RESULT_PARAM, ReturnProp->ArrayDim * ReturnProp->ElementSize);
-		}
+		ClearReturnValue(ReturnProp, RESULT_PARAM);
 	}
 }
 
@@ -1072,7 +1089,7 @@ bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& A
 			// we need to use the whole remaining string as an argument, regardless of quotes, spaces etc.
 			if (PropertyParam == LastParameter && PropertyParam->IsA<UStrProperty>() && FCString::Strcmp(Str, TEXT("")) != 0)
 			{
-				ArgStr = RemainingStr;
+				ArgStr = FString(RemainingStr).Trim();
 			}
 
 			const TCHAR* Result = It->ImportText(*ArgStr, It->ContainerPtrToValuePtr<uint8>(Parms), ExportFlags, NULL );
@@ -1295,8 +1312,8 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 
 		// Call native function or UObject::ProcessInternal.
 		const bool bHasReturnParam = Function->ReturnValueOffset != MAX_uint16;
-		uint8* ReturnValueAdress = bHasReturnParam ? ((uint8*)Parms + Function->ReturnValueOffset) : nullptr;
-		Function->Invoke(this, NewStack, ReturnValueAdress);
+		uint8* ReturnValueAddress = bHasReturnParam ? ((uint8*)Parms + Function->ReturnValueOffset) : nullptr;
+		Function->Invoke(this, NewStack, ReturnValueAddress);
 
 		if (!bUsePersistentFrame)
 		{

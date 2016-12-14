@@ -1,19 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // This needed to be UnrealString.h to avoid conflicting with
 // the Windows platform SDK string.h
 
 #pragma once
 
-#include "Containers/Array.h"
+#include "CoreTypes.h"
+#include "Misc/VarArgs.h"
+#include "Misc/OutputDevice.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/IsArithmetic.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Templates/UnrealTemplate.h"
 #include "Math/NumericLimits.h"
-#include "Math/UnrealMathUtility.h"
-#include "Misc/Crc.h"
+#include "Containers/Array.h"
 #include "Misc/CString.h"
-#include "Templates/MemoryOps.h"
-#include "Traits/IsContiguousContainer.h"
+#include "Misc/Crc.h"
+#include "Math/UnrealMathUtility.h"
 
 struct FStringFormatArg;
+template<typename KeyType,typename ValueType,typename SetAllocator ,typename KeyFuncs > class TMap;
 
 /** Determines case sensitivity options for string comparisons. */
 namespace ESearchCase
@@ -1868,7 +1875,7 @@ inline int32 HexToBytes( const FString& HexString, uint8* OutBytes )
 }
 
 /** Namespace that houses lexical conversion for various types. User defined conversions can be implemented externally */
-namespace LexicalConversion
+namespace Lex
 {
 	/**
 	 *	Expected functions in this namespace are as follows:
@@ -1913,6 +1920,16 @@ namespace LexicalConversion
 		return Value ? TEXT("true") : TEXT("false");
 	}
 
+	FORCEINLINE FString ToString(FString&& Str)
+	{
+		return MoveTemp(Str);
+	}
+
+	FORCEINLINE FString ToString(const FString& Str)
+	{
+		return Str;
+	}
+
 	/** Helper template to convert to sanitized strings */
 	template<typename T>
 	FString ToSanitizedString(const T& Value)
@@ -1950,17 +1967,21 @@ namespace LexicalConversion
 	}
 }
 
-/** Shorthand legacy use for LexicalConversion functions */
+// Deprecated alias for old LexicalConversion namespace.
+// Namespace alias deprecation doesn't work on our compilers, so we can't actually mark it with the DEPRECATED() macro.
+namespace LexicalConversion = Lex;
+
+/** Shorthand legacy use for Lex functions */
 template<typename T>
 struct TTypeToString
 {
-	static FString ToString(const T& Value)				{ return LexicalConversion::ToString(Value); }
-	static FString ToSanitizedString(const T& Value)	{ return LexicalConversion::ToSanitizedString(Value); }
+	static FString ToString(const T& Value)				{ return Lex::ToString(Value); }
+	static FString ToSanitizedString(const T& Value)	{ return Lex::ToSanitizedString(Value); }
 };
 template<typename T>
 struct TTypeFromString
 {
-	static void FromString(T& Value, const TCHAR* Buffer) { return LexicalConversion::FromString(Value, Buffer); }
+	static void FromString(T& Value, const TCHAR* Buffer) { return Lex::FromString(Value, Buffer); }
 };
 
 /*----------------------------------------------------------------------------

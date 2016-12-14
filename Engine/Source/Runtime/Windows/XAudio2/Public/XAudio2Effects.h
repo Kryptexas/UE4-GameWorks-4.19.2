@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	XAudio2Effects.h: Unreal XAudio2 audio effects interface object.
 =============================================================================*/
 
 #pragma once
+
+#include "AudioEffect.h"
+#include "XAudio2Device.h"
 
 /** 
  * XAudio2 effects manager

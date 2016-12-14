@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Engine/DeveloperSettings.h"
 #include "AnalyticsSettings.generated.h"
+
+struct FPropertyChangedEvent;
 
 UCLASS(Abstract)
 class ANALYTICSVISUALEDITING_API UAnalyticsSettingsBase

@@ -1,8 +1,40 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+#include "MaterialEditor.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EngineGlobals.h"
+#include "Engine/SkeletalMesh.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/Engine.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
+#include "EdGraph/EdGraph.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "MaterialGraph/MaterialGraphNode_Comment.h"
+#include "Editor/UnrealEdEngine.h"
+#include "MaterialEditor/MaterialEditorInstanceConstant.h"
+#include "Preferences/MaterialEditorOptions.h"
+#include "MaterialGraph/MaterialGraphNode.h"
+#include "MaterialGraph/MaterialGraphNode_Root.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
+#include "MaterialEditor/PreviewMaterial.h"
+#include "ThumbnailRendering/SceneThumbnailInfoWithPrimitive.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Engine/TextureCube.h"
+#include "Dialogs/Dialogs.h"
+#include "UnrealEdGlobals.h"
+#include "Editor.h"
 #include "MaterialEditorModule.h"
 
-#include "MaterialGraph/MaterialGraphNode_Comment.h"
 
 #include "Materials/MaterialExpressionBreakMaterialAttributes.h"
 #include "Materials/MaterialExpressionCollectionParameter.h"
@@ -17,17 +49,20 @@
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionParameter.h"
+#include "Materials/MaterialExpressionTextureBase.h"
+#include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionParticleSubUV.h"
-#include "Materials/MaterialExpressionRotateAboutAxis.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
+#include "Materials/MaterialExpressionTextureObjectParameter.h"
 #include "Materials/MaterialExpressionTextureObject.h"
 #include "Materials/MaterialExpressionTextureSampleParameter2D.h"
 #include "Materials/MaterialExpressionTextureSampleParameterCube.h"
 #include "Materials/MaterialExpressionTextureSampleParameterSubUV.h"
 #include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialFunction.h"
 #include "Materials/MaterialParameterCollection.h"
 
@@ -35,43 +70,44 @@
 #include "MaterialExpressionClasses.h"
 #include "MaterialCompiler.h"
 #include "EditorSupportDelegates.h"
-#include "Toolkits/IToolkitHost.h"
-#include "Editor/EditorWidgets/Public/EditorWidgets.h"
 #include "AssetRegistryModule.h"
+#include "IAssetTools.h"
+#include "IAssetTypeActions.h"
 #include "AssetToolsModule.h"
-#include "SMaterialEditorViewport.h"
 #include "SMaterialEditorTitleBar.h"
-#include "PreviewScene.h"
 #include "ScopedTransaction.h"
 #include "BusyCursor.h"
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "PropertyEditorModule.h"
 #include "MaterialEditorDetailCustomization.h"
 #include "MaterialInstanceEditor.h"
 
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "EditorViewportCommands.h"
 
 #include "GraphEditor.h"
 #include "GraphEditorActions.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Logging/TokenizedMessage.h"
 #include "EdGraphUtilities.h"
 #include "SNodePanel.h"
 #include "MaterialEditorUtilities.h"
 #include "SMaterialPalette.h"
 #include "FindInMaterial.h"
-#include "SColorPicker.h"
+#include "Misc/FeedbackContext.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Widgets/Colors/SColorPicker.h"
 #include "EditorClassUtils.h"
 #include "IDocumentation.h"
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
 
+#include "Developer/MessageLog/Public/IMessageLogListing.h"
+#include "Developer/MessageLog/Public/MessageLogInitializationOptions.h"
 #include "Developer/MessageLog/Public/MessageLogModule.h"
-#include "Particles/ParticleSystemComponent.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "CanvasTypes.h"
 #include "Engine/Selection.h"
-#include "Engine/TextureCube.h"
+#include "Materials/Material.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -79,7 +115,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogMaterialEditor, Log, All);
 
 static TAutoConsoleVariable<int32> CVarMaterialEdUseDevShaders(
 	TEXT("r.MaterialEditor.UseDevShaders"),
-	0,
+	1,
 	TEXT("Toggles whether the material editor will use shaders that include extra overhead incurred by the editor. Material editor must be re-opened if changed at runtime."),
 	ECVF_RenderThreadSafe);
 
@@ -671,6 +707,8 @@ void FMaterialEditor::CreateInternalWidgets()
 		LayoutCollectionParameterDetails
 		);
 
+	MaterialDetailsView->OnFinishedChangingProperties().AddSP(this, &FMaterialEditor::OnFinishedChangingProperties);
+
 	PropertyEditorModule.RegisterCustomClassLayout( UMaterial::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FMaterialDetailCustomization::MakeInstance ) );
 
 	Palette = SNew(SMaterialPalette, SharedThis(this));
@@ -727,6 +765,22 @@ void FMaterialEditor::CreateInternalWidgets()
 	RegenerateCodeView();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+void FMaterialEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		UStructProperty* Property = Cast<UStructProperty>(PropertyChangedEvent.Property);
+
+		if (Property != nullptr)
+		{
+			if (Property->Struct->GetFName() == TEXT("LinearColor") || Property->Struct->GetFName() == TEXT("Color")) // if we changed a color property refresh the previews
+			{
+				RefreshExpressionPreviews();
+			}
+		}
+	}
+}
 
 FName FMaterialEditor::GetToolkitFName() const
 {
@@ -1291,15 +1345,18 @@ void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 		ExpressionPreviewMaterial->PreEditChange( NULL );
 		ExpressionPreviewMaterial->PostEditChange();
 	}
-	else 
+	
 	{
 		FMaterialUpdateContext UpdateContext(FMaterialUpdateContext::EOptions::SyncWithRenderingThread);
 		UpdateContext.AddMaterial(Material);
 
-		// Update the regular preview material when not previewing an expression.
-		Material->PreEditChange( NULL );
+		// Update the regular preview material even when previewing an expression to allow code view regeneration.
+		Material->PreEditChange(NULL);
 		Material->PostEditChange();
+	}
 
+	if (!PreviewExpression)
+	{
 		UpdateStatsMaterials();
 
 		// Null out the expression preview material so they can be GC'ed
@@ -2509,6 +2566,119 @@ void FMaterialEditor::OnFindInMaterial()
 	FindResults->FocusForUse();
 }
 
+UClass* FMaterialEditor::GetOnPromoteToParameterClass(UEdGraphPin* TargetPin)
+{
+	UMaterialGraphNode_Root* RootPinNode = Cast<UMaterialGraphNode_Root>(TargetPin->GetOwningNode());
+	UMaterialGraphNode* OtherPinNode = Cast<UMaterialGraphNode>(TargetPin->GetOwningNode());
+
+	if (RootPinNode != nullptr)
+	{
+		EMaterialProperty propertyId = (EMaterialProperty)FCString::Atoi(*TargetPin->PinType.PinSubCategory);
+
+		switch (propertyId)
+		{
+			case MP_Opacity:
+			case MP_Metallic:
+			case MP_Specular:
+			case MP_Roughness:
+			case MP_TessellationMultiplier:
+			case MP_CustomData0:
+			case MP_CustomData1:
+			case MP_AmbientOcclusion:
+			case MP_Refraction:
+			case MP_PixelDepthOffset:
+			case MP_OpacityMask: return UMaterialExpressionScalarParameter::StaticClass();
+
+			case MP_WorldPositionOffset:
+			case MP_WorldDisplacement:
+			case MP_EmissiveColor:
+			case MP_BaseColor:
+			case MP_SubsurfaceColor:
+			case MP_SpecularColor:
+			case MP_Normal:	return UMaterialExpressionVectorParameter::StaticClass();
+		}
+	}
+	else if (OtherPinNode)
+	{
+		const TArray<FExpressionInput*> ExpressionInputs = OtherPinNode->MaterialExpression->GetInputs();
+		FString TargetPinName = OtherPinNode->GetShortenPinName(TargetPin->PinName);
+
+		for (int32 Index = 0; Index < ExpressionInputs.Num(); ++Index)
+		{
+			FExpressionInput* Input = ExpressionInputs[Index];
+			FString InputName = OtherPinNode->MaterialExpression->GetInputName(Index);
+			InputName = OtherPinNode->GetShortenPinName(InputName);
+
+			if (InputName == TargetPinName)
+			{
+				switch (OtherPinNode->MaterialExpression->GetInputType(Index))
+				{
+					case MCT_Float1:
+					case MCT_Float: return UMaterialExpressionScalarParameter::StaticClass();
+
+					case MCT_Float2:
+					case MCT_Float3:
+					case MCT_Float4: return UMaterialExpressionVectorParameter::StaticClass();
+					
+					case MCT_StaticBool: return UMaterialExpressionStaticBoolParameter::StaticClass();
+
+					case MCT_Texture2D:
+					case MCT_TextureCube: 
+					case MCT_Texture: return UMaterialExpressionTextureObjectParameter::StaticClass();
+				}
+
+				break;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+void FMaterialEditor::OnPromoteToParameter()
+{
+	UEdGraphPin* TargetPin = GraphEditor->GetGraphPinForMenu();
+	UMaterialGraphNode_Base* PinNode = Cast<UMaterialGraphNode_Base>(TargetPin->GetOwningNode());
+
+	FMaterialGraphSchemaAction_NewNode Action;	
+	Action.MaterialExpressionClass = GetOnPromoteToParameterClass(TargetPin);
+
+	if (Action.MaterialExpressionClass != nullptr)
+	{
+		check(PinNode);
+		UEdGraph* GraphObj = PinNode->GetGraph();
+		check(GraphObj);
+
+		const FScopedTransaction Transaction(LOCTEXT("PromoteToParameter", "Promote To Parameter"));
+		GraphObj->Modify();
+
+		// Set position of new node to be close to node we clicked on
+		FVector2D NewNodePos;
+		NewNodePos.X = PinNode->NodePosX - 100;
+		NewNodePos.Y = PinNode->NodePosY;
+
+		UMaterialGraphNode* MaterialNode = Cast<UMaterialGraphNode>(Action.PerformAction(GraphObj, TargetPin, NewNodePos));
+
+		if (MaterialNode->MaterialExpression->HasAParameterName())
+		{
+			MaterialNode->MaterialExpression->SetParameterName(FName(*TargetPin->PinName));
+			MaterialNode->MaterialExpression->ValidateParameterName();
+		}
+	}
+}
+
+bool FMaterialEditor::OnCanPromoteToParameter()
+{
+	UEdGraphPin* TargetPin = GraphEditor->GetGraphPinForMenu();
+
+	if (TargetPin->LinkedTo.Num() == 0)
+	{
+		return GetOnPromoteToParameterClass(TargetPin) != nullptr;
+	}
+
+	return false;
+}
+
 FString FMaterialEditor::GetDocLinkForSelectedNode()
 {
 	FString DocumentationLink;
@@ -2998,12 +3168,9 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 
 		NewExpression->UpdateParameterGuid(true, true);
 
-		UMaterialExpressionTextureSampleParameter* TextureParameterExpression = Cast<UMaterialExpressionTextureSampleParameter>( NewExpression );
-		if( (TextureParameterExpression != nullptr) && TextureParameterExpression->CanRenameNode() )
+		if (NewExpression->HasAParameterName())
 		{
-			// Change the parameter's name on creation to mirror the object's name; this avoids issues of having colliding parameter
-			// names and having the name left as "None"
-			TextureParameterExpression->ParameterName = TextureParameterExpression->GetFName();
+			NewExpression->ValidateParameterName();
 		}
 
 		UMaterialExpressionComponentMask* ComponentMaskExpression = Cast<UMaterialExpressionComponentMask>( NewExpression );
@@ -3394,6 +3561,13 @@ void FMaterialEditor::PasteNodesHere(const FVector2D& Location)
 			UMaterialExpression* NewExpression = GraphNode->MaterialExpression;
 			NewExpression->Material = Material;
 			NewExpression->Function = MaterialFunction;
+
+			// Make sure the param name is valid after the paste
+			if (NewExpression->HasAParameterName())
+			{
+				NewExpression->ValidateParameterName();
+			}
+
 			Material->Expressions.Add(NewExpression);
 
 			// There can be only one default mesh paint texture.
@@ -3920,6 +4094,12 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 		GraphEditorCommands->MapAction(FGraphEditorCommands::Get().GoToDocumentation,
 			FExecuteAction::CreateSP(this, &FMaterialEditor::OnGoToDocumentation),
 			FCanExecuteAction::CreateSP(this, &FMaterialEditor::CanGoToDocumentation)
+			);
+
+
+		GraphEditorCommands->MapAction(FMaterialEditorCommands::Get().PromoteToParameter,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnPromoteToParameter),
+			FCanExecuteAction::CreateSP(this, &FMaterialEditor::OnCanPromoteToParameter)
 			);
 
 	}

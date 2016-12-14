@@ -1,17 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerModule.cpp
 =============================================================================*/
 
-#include "KismetCompilerPrivatePCH.h"
-
+#include "KismetCompilerModule.h"
+#include "Stats/Stats.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "Engine/Blueprint.h"
+#include "Stats/StatsMisc.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/MetaData.h"
+#include "Animation/AnimBlueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Kismet2/CompilerResultsLog.h"
+#include "KismetCompilerMisc.h"
 #include "KismetCompiler.h"
+
 #include "AnimBlueprintCompiler.h"
 
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetDebugUtilities.h"
+#include "Kismet2/KismetReinstanceUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #include "UserDefinedStructureCompilerUtils.h"
 #include "Engine/UserDefinedStruct.h"

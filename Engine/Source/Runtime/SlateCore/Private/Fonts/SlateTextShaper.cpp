@@ -1,12 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "SlateTextShaper.h"
-#include "SlateFontRenderer.h"
-#include "FontCacheFreeType.h"
-#include "FontCacheCompositeFont.h"
-#include "FontCache.h"
-#include "BreakIterator.h"
+#include "Fonts/SlateTextShaper.h"
+#include "Fonts/FontCacheCompositeFont.h"
+#include "Fonts/SlateFontRenderer.h"
+#include "Internationalization/BreakIterator.h"
 
 
 namespace
@@ -599,8 +596,8 @@ bool FSlateTextShaper::InsertSubstituteGlyphs(const TCHAR* InText, const int32 I
 			ShapedGlyphEntry.XOffset = 0;
 			ShapedGlyphEntry.YOffset = 0;
 			ShapedGlyphEntry.Kerning = 0;
-			ShapedGlyphEntry.NumCharactersInGlyph = 1;
-			ShapedGlyphEntry.NumGraphemeClustersInGlyph = 1;
+			ShapedGlyphEntry.NumCharactersInGlyph = (SpaceIndex == 0) ? 1 : 0;
+			ShapedGlyphEntry.NumGraphemeClustersInGlyph = (SpaceIndex == 0) ? 1 : 0;
 			ShapedGlyphEntry.TextDirection = TextBiDi::ETextDirection::LeftToRight;
 			ShapedGlyphEntry.bIsVisible = false;
 		}

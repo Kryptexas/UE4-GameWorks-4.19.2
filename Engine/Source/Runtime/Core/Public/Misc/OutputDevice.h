@@ -1,14 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
-#include "HAL/PlatformMisc.h"
+#include "CoreTypes.h"
+#include "CoreFwd.h"
+#include "Logging/LogVerbosity.h"
 #include "Misc/CoreMiscDefines.h"
-#include "VarArgs.h"
-
-class FText;
-class FString;
+#include "Misc/VarArgs.h"
 
 #if !PLATFORM_DESKTOP
 	// don't support colorized text on consoles

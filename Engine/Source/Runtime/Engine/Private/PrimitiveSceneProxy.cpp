@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneProxy.cpp: Primitive scene proxy implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "PrimitiveSceneProxy.h"
+#include "Engine/Brush.h"
+#include "UObject/Package.h"
+#include "EngineUtils.h"
 #include "Components/BrushComponent.h"
+#include "SceneManagement.h"
 #include "PrimitiveSceneInfo.h"
+#include "Materials/Material.h"
 
 static TAutoConsoleVariable<int32> CVarForceSingleSampleShadowingFromStationary(
 	TEXT("r.Shadow.ForceSingleSampleShadowingFromStationary"),
@@ -36,6 +40,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	Mobility(InComponent->Mobility)
 ,	DrawInGame(InComponent->IsVisible())
 ,	DrawInEditor(InComponent->bVisible)
+,	bRenderInMono(InComponent->bRenderInMono)
 ,	bReceivesDecals(InComponent->bReceivesDecals)
 ,	bOnlyOwnerSee(InComponent->bOnlyOwnerSee)
 ,	bOwnerNoSee(InComponent->bOwnerNoSee)
@@ -82,6 +87,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bSupportsHeightfieldRepresentation(false)
 ,	bNeedsLevelAddedToWorldNotification(false)
 ,	bWantsSelectionOutline(true)
+,	bVerifyUsedMaterials(true)
 ,	bUseAsOccluder(InComponent->bUseAsOccluder)
 ,	bAllowApproximateOcclusion(InComponent->Mobility != EComponentMobility::Movable)
 ,	bSelectable(InComponent->bSelectable)
@@ -165,6 +171,10 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 	ULevel* ComponentLevel = InComponent->GetComponentLevel();
 	bRequiresVisibleLevelToRender = (ComponentLevel && ComponentLevel->bRequireFullVisibilityToRender);
 	bIsComponentLevelVisible = (!ComponentLevel || ComponentLevel->bIsVisible);
+
+#if WITH_EDITOR
+	InComponent->GetUsedMaterials(UsedMaterialsForVerification);
+#endif
 }
 
 FPrimitiveSceneProxy::~FPrimitiveSceneProxy()
@@ -203,7 +213,7 @@ FPrimitiveViewRelevance FPrimitiveSceneProxy::GetViewRelevance(const FSceneView*
 
 static TAutoConsoleVariable<int32> CVarDeferUniformBufferUpdatesUntilVisible(
 	TEXT("r.DeferUniformBufferUpdatesUntilVisible"),
-	!WITH_EDITOR,
+	1,
 	TEXT("If > 0, then don't update the primitive uniform buffer until it is visible."));
 
 void FPrimitiveSceneProxy::UpdateUniformBufferMaybeLazy()
@@ -291,6 +301,13 @@ bool FPrimitiveSceneProxy::UseSingleSampleShadowFromStationaryLights() const
 	return bSingleSampleShadowFromStationaryLights || CVarForceSingleSampleShadowingFromStationary.GetValueOnRenderThread() != 0; 
 }
 
+#if !UE_BUILD_SHIPPING
+void FPrimitiveSceneProxy::SetDebugMassData(const TArray<FDebugMassData>& InDebugMassData)
+{
+	DebugMassData = InDebugMassData;
+}
+#endif
+
 /**
  * Updates selection for the primitive proxy. This is called in the rendering thread by SetSelection_GameThread.
  * @param bInSelected - true if the parent actor is selected in the editor
@@ -351,6 +368,36 @@ void FPrimitiveSceneProxy::SetHovered_GameThread(const bool bInHovered)
 		PrimitiveSceneProxy->SetHovered_RenderThread(bNewHovered);
 	});
 }
+
+#if !UE_BUILD_SHIPPING
+void FPrimitiveSceneProxy::FDebugMassData::DrawDebugMass(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM) const
+{
+	const FQuat MassOrientationToWorld = ElemTM.GetRotation() * LocalTensorOrientation;
+	const FVector COMWorldPosition = ElemTM.TransformPosition(LocalCenterOfMass);
+
+	const float Size = 15.f;
+	const FVector XAxis = MassOrientationToWorld * FVector(1.f, 0.f, 0.f);
+	const FVector YAxis = MassOrientationToWorld * FVector(0.f, 1.f, 0.f);
+	const FVector ZAxis = MassOrientationToWorld * FVector(0.f, 0.f, 1.f);
+
+	DrawCircle(PDI, COMWorldPosition, XAxis, YAxis, FColor(255, 255, 100), Size, 25, SDPG_World);
+	DrawCircle(PDI, COMWorldPosition, ZAxis, YAxis, FColor(255, 255, 100), Size, 25, SDPG_World);
+
+	const float InertiaSize = FMath::Max(MassSpaceInertiaTensor.Size(), KINDA_SMALL_NUMBER);
+	const float XSize = Size * MassSpaceInertiaTensor.X / InertiaSize;
+	const float YSize = Size * MassSpaceInertiaTensor.Y / InertiaSize;
+	const float ZSize = Size * MassSpaceInertiaTensor.Z / InertiaSize;
+
+	const float Thickness = 2.f * FMath::Sqrt(3.f);	//We end up normalizing by inertia size. If the sides are all even we'll end up dividing by sqrt(3) since 1/sqrt(1+1+1)
+	const float XThickness = Thickness * MassSpaceInertiaTensor.X / InertiaSize;
+	const float YThickness = Thickness * MassSpaceInertiaTensor.Y / InertiaSize;
+	const float ZThickness = Thickness * MassSpaceInertiaTensor.Z / InertiaSize;
+
+	PDI->DrawLine(COMWorldPosition + XAxis * Size, COMWorldPosition - Size * XAxis, FColor(255, 0, 0), SDPG_World, XThickness);
+	PDI->DrawLine(COMWorldPosition + YAxis * Size, COMWorldPosition - Size * YAxis, FColor(0, 255, 0), SDPG_World, YThickness);
+	PDI->DrawLine(COMWorldPosition + ZAxis * Size, COMWorldPosition - Size * ZAxis, FColor(0, 0, 255), SDPG_World, ZThickness);
+}
+#endif
 
 /**
  * Updates the hidden editor view visibility map on the game thread which just enqueues a command on the render thread
@@ -532,6 +579,27 @@ void FPrimitiveSceneProxy::RenderBounds(
 		DrawCircle(PDI, InBounds.Origin, FVector(1, 0, 0), FVector(0, 0, 1), FColor::Yellow, InBounds.SphereRadius, 32, DrawBoundsDPG);
 		DrawCircle(PDI, InBounds.Origin, FVector(0, 1, 0), FVector(0, 0, 1), FColor::Yellow, InBounds.SphereRadius, 32, DrawBoundsDPG);
 	}
+}
+
+void FPrimitiveSceneProxy::VerifyUsedMaterial(const FMaterialRenderProxy* MaterialRenderProxy) const
+{
+	// Only verify GetUsedMaterials if uncooked and we can compile shaders, because FShaderCompilingManager::PropagateMaterialChangesToPrimitives is what needs GetUsedMaterials to be accurate
+#if WITH_EDITOR
+
+	if (bVerifyUsedMaterials)
+	{
+		const UMaterialInterface* MaterialInterface = MaterialRenderProxy->GetMaterialInterface();
+
+		if (MaterialInterface 
+			&& !UsedMaterialsForVerification.Contains(MaterialInterface)
+			&& MaterialInterface != UMaterial::GetDefaultMaterial(MD_Surface))
+		{
+			// Shader compiling uses GetUsedMaterials to detect which components need their scene proxy recreated, so we can only render with materials present in that list
+			ensureMsgf(false, TEXT("PrimitiveComponent tried to render with Material %s, which was not present in the component's GetUsedMaterials results\n    Owner: %s, Resource: %s"), *MaterialInterface->GetName(), *GetOwnerName().ToString(), *GetResourceName().ToString());
+		}
+	}
+	
+#endif
 }
 
 void FPrimitiveSceneProxy::DrawArc(FPrimitiveDrawInterface* PDI, const FVector& Start, const FVector& End, const float Height, const uint32 Segments, const FLinearColor& Color, uint8 DepthPriorityGroup, const float Thickness, const bool bScreenSpace)

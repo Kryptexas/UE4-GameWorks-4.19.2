@@ -1,10 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HeightfieldLighting.h
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "ShaderParameters.h"
+#include "Engine/Texture2D.h"
+#include "RHIStaticStates.h"
+#include "RendererInterface.h"
+#include "PrimitiveSceneProxy.h"
+
+class FAOScreenGridResources;
+class FDistanceFieldAOParameters;
+class FLightSceneInfo;
+class FLightTileIntersectionResources;
+class FProjectedShadowInfo;
+class FScene;
+class FViewInfo;
+struct Rect;
 
 class FHeightfieldLightingAtlas : public FRenderResource
 {

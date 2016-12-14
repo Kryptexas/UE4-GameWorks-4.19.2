@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IDetailCustomization.h"
+
 class IMaterialListBuilder;
+class UMaterialInterface;
 
 /**
  * Creates details for the level editor details view that are not specific to any selected actor type

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidDeviceDetection.h: AndroidDeviceDetection module public header file.
@@ -7,14 +7,20 @@
 #pragma once
 
 
+/* Boilerplate
+ *****************************************************************************/
+
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
+
 /* Dependencies
  *****************************************************************************/
 
 #include "Core.h"
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 /* Interfaces
  *****************************************************************************/
 
-#include "IAndroidDeviceDetection.h"
-#include "IAndroidDeviceDetectionModule.h"
+#include "Interfaces/IAndroidDeviceDetection.h"
+#include "Interfaces/IAndroidDeviceDetectionModule.h"

@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 // Set up compiler pragmas, etc
+
+#include "CoreTypes.h"
 #include "Linux/LinuxPlatformCompilerSetup.h"
 
 #include <string.h>
@@ -36,13 +38,14 @@
 #include <sys/utsname.h>
 #include <libgen.h>
 
-struct RECT
+struct tagRECT
 {
 	int32 left;
 	int32 top;
 	int32 right;
 	int32 bottom;
 };
+typedef struct tagRECT RECT;
 
 #define OUT
 #define IN

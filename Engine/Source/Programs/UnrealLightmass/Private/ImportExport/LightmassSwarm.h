@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,9 @@
 #define SWARMINTERFACE_API
 #endif
 
+#include "CoreMinimal.h"
+#include "HAL/PlatformTime.h"
+#include "LMThreading.h"
 #include "Editor/SwarmInterface/Public/SwarmDefines.h"
 #include "Editor/SwarmInterface/Public/SwarmInterface.h"
 

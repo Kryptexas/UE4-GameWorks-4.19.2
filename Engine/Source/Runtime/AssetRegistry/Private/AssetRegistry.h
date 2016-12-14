@@ -1,7 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "AssetData.h"
+#include "IAssetRegistry.h"
+#include "Runtime/AssetRegistry/Private/PathTree.h"
+#include "Runtime/AssetRegistry/Private/PackageDependencyData.h"
+#include "Runtime/AssetRegistry/Private/AssetDataGatherer.h"
+
+class FDependsNode;
+struct FARFilter;
 
 /**
  * The AssetRegistry singleton gathers information about .uasset files in the background so things
@@ -14,8 +24,8 @@ public:
 	virtual ~FAssetRegistry();
 
 	// IAssetRegistry implementation
-	virtual bool GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData) const override;
-	virtual bool GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive = false) const override;
+	virtual bool GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets = false) const override;
+	virtual bool GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive = false, bool bIncludeOnlyOnDiskAssets = false) const override;
 	virtual bool GetAssetsByClass(FName ClassName, TArray<FAssetData>& OutAssetData, bool bSearchSubClasses = false) const override;
 	virtual bool GetAssetsByTagValues(const TMultiMap<FName, FString>& AssetTagsAndValues, TArray<FAssetData>& OutAssetData) const override;
 	virtual bool GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutAssetData) const override;

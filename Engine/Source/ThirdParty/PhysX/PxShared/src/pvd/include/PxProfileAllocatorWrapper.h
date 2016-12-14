@@ -74,7 +74,7 @@ namespace physx { namespace profile {
 	{
 		static const char* getName()
 		{
-#if PX_LINUX || PX_ANDROID || PX_PS4 || PX_IOS || PX_OSX ||PX_EMSCRIPTEN
+#if PX_LINUX || PX_ANDROID || PX_PS4 || PX_IOS || PX_OSX || PX_EMSCRIPTEN
 			return __PRETTY_FUNCTION__;
 #else
 			return typeid(T).name();

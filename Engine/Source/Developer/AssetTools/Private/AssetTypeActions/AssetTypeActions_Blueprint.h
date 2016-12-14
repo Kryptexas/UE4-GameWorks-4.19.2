@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AssetTypeActions_ClassTypeBase.h"
+#include "CoreMinimal.h"
+#include "Engine/Blueprint.h"
+#include "Toolkits/IToolkitHost.h"
+#include "AssetTypeActions/AssetTypeActions_ClassTypeBase.h"
+
+class FAssetData;
+class FMenuBuilder;
+class IClassTypeActions;
+class UFactory;
 
 class ASSETTOOLS_API FAssetTypeActions_Blueprint : public FAssetTypeActions_ClassTypeBase
 {

@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
 #include "GameplayDebuggerLocalController.generated.h"
 
+class AActor;
 class AGameplayDebuggerCategoryReplicator;
 class AGameplayDebuggerPlayerManager;
-class FGameplayDebuggerExtension;
+class FGameplayDebuggerCanvasContext;
+class FGameplayDebuggerCategory;
 class UInputComponent;
+struct FKey;
 
 UCLASS(NotBlueprintable, NotBlueprintType, noteditinlinenew, hidedropdown, Transient)
 class UGameplayDebuggerLocalController : public UObject

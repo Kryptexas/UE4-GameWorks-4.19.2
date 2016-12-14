@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AggregateGeometry2D.generated.h"
 
+class FMaterialRenderProxy;
 
 /** One convex hull, used for simplified collision. */
 USTRUCT()

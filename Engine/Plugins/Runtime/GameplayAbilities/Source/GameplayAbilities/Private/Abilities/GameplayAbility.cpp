@@ -1,13 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility.h"
-#include "GameplayEffect.h"
+#include "TimerManager.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/NetDriver.h"
+#include "AbilitySystemStats.h"
+#include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
-#include "AbilitySystemBlueprintLibrary.h"
-#include "AbilityTask.h"
-#include "VisualLogger.h"
-#include "GameplayCueManager.h"
+#include "Abilities/Tasks/AbilityTask.h"
+#include "GameplayCue_Types.h"
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -510,7 +511,9 @@ void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, co
 		}
 
 		// End the ability but don't replicate it, we replicate the CancelAbility call directly
-		EndAbility(Handle, ActorInfo, ActivationInfo, false);
+		bool bReplicateEndAbility = false;
+		bool bWasCancelled = true;
+		EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 	}
 }
 
@@ -542,13 +545,13 @@ bool UGameplayAbility::IsEndAbilityValid(const FGameplayAbilitySpecHandle Handle
 	return true;
 }
 
-void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility)
+void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
 	if (IsEndAbilityValid(Handle, ActorInfo))
 	{
 		if (ScopeLockCount > 0)
 		{
-			WaitingToExecute.Add(FPostLockDelegate::CreateUObject(this, &UGameplayAbility::EndAbility, Handle, ActorInfo, ActivationInfo, bReplicateEndAbility));
+			WaitingToExecute.Add(FPostLockDelegate::CreateUObject(this, &UGameplayAbility::EndAbility, Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled));
 			return;
 		}
 
@@ -620,7 +623,7 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 			}
 
 			// Tell owning AbilitySystemComponent that we ended so it can do stuff (including MarkPendingKill us)
-			ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(Handle, this);
+			ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(Handle, this, bWasCancelled);
 		}
 	}
 }
@@ -642,7 +645,9 @@ void UGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
 		else
 		{
 			UE_LOG(LogAbilitySystem, Warning, TEXT("Ability %s expects event data but none is being supplied. Use Activate Ability instead of Activate Ability From Event."), *GetName());
-			EndAbility(Handle, ActorInfo, ActivationInfo, false);
+			bool bReplicateEndAbility = false;
+			bool bWasCancelled = true;
+			EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 		}
 	}
 	else
@@ -994,7 +999,9 @@ void UGameplayAbility::K2_EndAbility()
 {
 	check(CurrentActorInfo);
 
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
+	bool bReplicateEndAbility = true;
+	bool bWasCancelled = false;
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 // --------------------------------------------------------------------

@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Distributions/DistributionFloat.h"
 #include "Particles/Collision/ParticleModuleCollisionBase.h"
 #include "ParticleModuleCollisionGPU.generated.h"
+
+class UParticleEmitter;
+class UParticleLODLevel;
 
 /**
  * How particles respond to collision events.
@@ -45,6 +52,18 @@ class UParticleModuleCollisionGPU : public UParticleModuleCollisionBase
 	 */
 	UPROPERTY(EditAnywhere, Category=Collision)
 	float Friction;
+	
+	/** 
+	 * Controls how wide the bouncing particles are distributed (0 = disabled).
+	 */
+	UPROPERTY(EditAnywhere, Category=Collision, meta=(UIMin=0, ClampMin=0, UIMax=1, ClampMax=1))
+	float RandomSpread;
+	
+	/** 
+	 * Controls bouncing particles distribution (1 = uniform distribution; 2 = squared distribution).
+	 */
+	UPROPERTY(EditAnywhere, Category=Collision, meta=(UIMin=1, ClampMin=1))
+	float RandomDistribution;
 
 	/**
 	 * Scale applied to the size of the particle to obtain the collision radius.

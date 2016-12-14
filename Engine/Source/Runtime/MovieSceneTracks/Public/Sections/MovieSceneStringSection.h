@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Curves/KeyHandle.h"
 #include "MovieSceneSection.h"
-#include "IKeyframeSection.h"
+#include "Sections/IKeyframeSection.h"
 #include "Curves/StringCurve.h"
 #include "MovieSceneStringSection.generated.h"
-
 
 /**
  * A single string section

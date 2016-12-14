@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Engine/Blueprint.h"
+#include "Framework/Commands/UICommandList.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/IToolkit.h"
 #include "WorkflowOrientedApp/WorkflowCentricApplication.h"
+
+class FSCSEditorTreeNode;
+class UUserDefinedEnum;
+class UUserDefinedStruct;
+struct Rect;
 
 extern const FName BlueprintEditorAppName;
 

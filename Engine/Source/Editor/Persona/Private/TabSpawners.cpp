@@ -1,25 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "TabSpawners.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
 #include "SSkeletonAnimNotifies.h"
-#include "IDocumentation.h"
 #include "SAnimBlueprintParentPlayerList.h"
 #include "SSkeletonSlotNames.h"
-#include "SDockTab.h"
 #include "SAdvancedPreviewDetailsTab.h"
+#include "ISkeletonTree.h"
 #include "ISkeletonEditorModule.h"
 #include "SPersonaDetails.h"
-#include "Editor/KismetWidgets/Public/SSingleObjectDetailsPanel.h"
-#include "Kismet2/BlueprintEditorUtils.h"
 #include "PersonaUtils.h"
-#include "IPersonaPreviewScene.h"
 #include "SMorphTargetViewer.h"
 #include "SAnimCurveViewer.h"
 #include "SAnimationSequenceBrowser.h"
 #include "SAnimationEditorViewport.h"
 #include "SRetargetManager.h"
 #include "SKismetInspector.h"
+#include "Widgets/Input/SButton.h"
 
 #define LOCTEXT_NAMESPACE "PersonaModes"
 
@@ -144,11 +144,10 @@ TSharedRef<SWidget> FMorphTargetTabSummoner::CreateTabBody(const FWorkflowTabSpa
 /////////////////////////////////////////////////////
 // FAnimCurveViewerTabSummoner
 
-FAnimCurveViewerTabSummoner::FAnimCurveViewerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected)
+FAnimCurveViewerTabSummoner::FAnimCurveViewerTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, const TSharedRef<IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected)
 	: FWorkflowTabFactory(FPersonaTabs::AnimCurveViewID, InHostingApp)
 	, EditableSkeleton(InEditableSkeleton)
 	, PreviewScene(InPreviewScene)
-	, OnCurvesChanged(InOnCurvesChanged)
 	, OnPostUndo(InOnPostUndo)
 	, OnObjectsSelected(InOnObjectsSelected)
 {
@@ -164,7 +163,7 @@ FAnimCurveViewerTabSummoner::FAnimCurveViewerTabSummoner(TSharedPtr<class FAsset
 
 TSharedRef<SWidget> FAnimCurveViewerTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	return SNew(SAnimCurveViewer, EditableSkeleton.Pin().ToSharedRef(), PreviewScene.Pin().ToSharedRef(), OnCurvesChanged, OnPostUndo, OnObjectsSelected);
+	return SNew(SAnimCurveViewer, EditableSkeleton.Pin().ToSharedRef(), PreviewScene.Pin().ToSharedRef(), OnPostUndo, OnObjectsSelected);
 }
 
 /////////////////////////////////////////////////////
@@ -538,9 +537,9 @@ FText FAdvancedPreviewSceneTabSummoner::GetTabToolTipText(const FWorkflowTabSpaw
 }
 
 /////////////////////////////////////////////////////
-// FDetailsTabSummoner
+// FPersonaDetailsTabSummoner
 
-FDetailsTabSummoner::FDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, FOnDetailsCreated InOnDetailsCreated)
+FPersonaDetailsTabSummoner::FPersonaDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp, FOnDetailsCreated InOnDetailsCreated)
 	: FWorkflowTabFactory(FPersonaTabs::DetailsID, InHostingApp)
 	, OnDetailsCreated(InOnDetailsCreated)
 {
@@ -556,12 +555,12 @@ FDetailsTabSummoner::FDetailsTabSummoner(TSharedPtr<class FAssetEditorToolkit> I
 	OnDetailsCreated.ExecuteIfBound(PersonaDetails->DetailsView.ToSharedRef());
 }
 
-TSharedRef<SWidget> FDetailsTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+TSharedRef<SWidget> FPersonaDetailsTabSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
 	return PersonaDetails.ToSharedRef();
 }
 
-FText FDetailsTabSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
+FText FPersonaDetailsTabSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
 {
 	return LOCTEXT("PersonaDetailsToolTip", "Edit the details of selected objects.");
 }

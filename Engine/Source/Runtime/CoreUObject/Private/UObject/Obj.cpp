@@ -1,20 +1,53 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObj.cpp: Unreal object manager.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Logging/LogScopedCategoryAndVerbosityOverride.h"
+#include "Stats/Stats.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/EnumProperty.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "Templates/Casts.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/PropertyPortFlags.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ObjectRedirector.h"
+#include "UObject/UObjectAnnotation.h"
+#include "UObject/ReferenceChainSearch.h"
+#include "Serialization/ArchiveCountMem.h"
+#include "Serialization/ArchiveShowReferences.h"
+#include "Serialization/ArchiveFindCulprit.h"
+#include "Serialization/ArchiveTraceRoute.h"
+#include "Misc/PackageName.h"
+#include "Serialization/BulkData.h"
+#include "UObject/LinkerLoad.h"
+#include "Misc/RedirectCollector.h"
 
-#include "UObjectAnnotation.h"
-#include "ModuleManager.h"
-#include "MallocProfiler.h"
 
 #include "Serialization/ArchiveDescribeReference.h"
-#include "FindStronglyConnected.h"
-#include "HotReloadInterface.h"
+#include "UObject/FindStronglyConnected.h"
 #include "UObject/UObjectThreadContext.h"
-#include "ExclusiveLoadPackageTimeTracker.h"
+#include "Misc/ExclusiveLoadPackageTimeTracker.h"
 #include "Serialization/DeferredMessageLog.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
@@ -788,15 +821,9 @@ bool UObject::ConditionalFinishDestroy()
 	}
 }
 
-#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined"
-#endif
-
 void UObject::ConditionalPostLoad()
 {
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	check(!HasAnyFlags(RF_NeedLoad)); //@todoio Added this as "nicks rule"
-#endif
+	check(!GEventDrivenLoaderEnabled || !HasAnyFlags(RF_NeedLoad)); //@todoio Added this as "nicks rule"
 									  // PostLoad only if the object needs it and has already been serialized
 	//@todoio note this logic should be unchanged compared to main
 	if (HasAnyFlags(RF_NeedPostLoad))
@@ -842,25 +869,18 @@ void UObject::ConditionalPostLoad()
 	}
 }
 
-#if !defined(USE_EVENT_DRIVEN_ASYNC_LOAD)
-#error "USE_EVENT_DRIVEN_ASYNC_LOAD must be defined."
-#endif
-
-
 void UObject::PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph/*=NULL*/ )
 {
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	check(!HasAnyFlags(RF_NeedLoad));
-#endif
+	check(!GEventDrivenLoaderEnabled || !HasAnyFlags(RF_NeedLoad));
+
 	if( GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) )
 	{
 		UObject* ObjOuter = GetOuter();
 		// make sure our Outer has already called ConditionalPostLoadSubobjects
 		if (ObjOuter != NULL && ObjOuter->HasAnyFlags(RF_NeedPostLoadSubobjects) )
 		{
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-			check(!ObjOuter->HasAnyFlags(RF_NeedLoad));
-#endif
+			check(!GEventDrivenLoaderEnabled || !ObjOuter->HasAnyFlags(RF_NeedLoad));
+
 			if (ObjOuter->HasAnyFlags(RF_NeedPostLoad) )
 			{
 				ObjOuter->ConditionalPostLoad();
@@ -1152,6 +1172,42 @@ void UObject::SerializeScriptProperties( FArchive& Ar ) const
 }
 
 
+void UObject::BuildSubobjectMapping(UObject* OtherObject, TMap<UObject*, UObject*>& ObjectMapping) const
+{
+	UPackage* ThisPackage = GetOutermost();
+	UPackage* OtherPackage = OtherObject->GetOutermost();
+
+	ForEachObjectWithOuter(this, [&](UObject* InSubObject)
+	{
+		if (ObjectMapping.Contains(InSubObject))
+		{
+			return;
+		}
+
+		FString NewSubObjectName = InSubObject->GetName();
+
+		UClass* OtherSubObjectClass = InSubObject->GetClass();
+		if (OtherSubObjectClass->ClassGeneratedBy && OtherSubObjectClass->ClassGeneratedBy->GetOutermost() == ThisPackage)
+		{
+			// This is a generated class type, so we actually need to use the new generated class type from the new package otherwise our type check will fail
+			FString NewClassName = OtherSubObjectClass->GetPathName(ThisPackage);
+			NewClassName = FString::Printf(TEXT("%s.%s"), *OtherPackage->GetName(), *NewClassName);
+
+			OtherSubObjectClass = LoadObject<UClass>(OtherPackage, *NewClassName);
+		}
+
+		//UObject* OtherSubObject = StaticLoadObject(OtherSubObjectClass, OtherObject, *NewSubObjectName, nullptr, LOAD_Quiet | LOAD_NoRedirects, nullptr, true);
+		UObject* OtherSubObject = StaticFindObjectFast(OtherSubObjectClass, OtherObject, *NewSubObjectName);
+		ObjectMapping.Emplace(InSubObject, OtherSubObject);
+
+		if (OtherSubObject)
+		{
+			InSubObject->BuildSubobjectMapping(OtherSubObject, ObjectMapping);
+		}
+	}, false, RF_NoFlags, EInternalObjectFlags::PendingKill);
+}
+
+
 void UObject::CollectDefaultSubobjects( TArray<UObject*>& OutSubobjectArray, bool bIncludeNestedSubobjects/*=false*/ )
 {
 	OutSubobjectArray.Empty();
@@ -1381,7 +1437,7 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 			else if ( Class->IsChildOf(UByteProperty::StaticClass()) )
 			{
 				// bytes are numerical, enums are alphabetical
-				UByteProperty* ByteProp = dynamic_cast<UByteProperty*>(*FieldIt);
+				UByteProperty* ByteProp = static_cast<UByteProperty*>(*FieldIt);
 				if ( ByteProp->Enum )
 				{
 					TagType = FAssetRegistryTag::TT_Alphabetical;
@@ -1390,6 +1446,11 @@ void UObject::FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(co
 				{
 					TagType = FAssetRegistryTag::TT_Numerical;
 				}
+			}
+			else if ( Class->IsChildOf(UEnumProperty::StaticClass()) )
+			{
+				// enums are alphabetical
+				TagType = FAssetRegistryTag::TT_Alphabetical;
 			}
 			else if ( Class->IsChildOf(UArrayProperty::StaticClass()) )
 			{
@@ -1436,7 +1497,7 @@ void UObject::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>
 }
 #endif
 
-bool UObject::IsAsset () const
+bool UObject::IsAsset() const
 {
 	// Assets are not transient or CDOs. They must be public.
 	const bool bHasValidObjectFlags = !HasAnyFlags(RF_Transient | RF_ClassDefaultObject) && HasAnyFlags(RF_Public);
@@ -1446,8 +1507,8 @@ bool UObject::IsAsset () const
 		// Don't count objects embedded in other objects (e.g. font textures, sequences, material expressions)
 		if ( UPackage* LocalOuterPackage = dynamic_cast<UPackage*>(GetOuter()) )
 		{
-			// Also exclude any objects found in the transient package.
-			return LocalOuterPackage != GetTransientPackage();
+			// Also exclude any objects found in the transient package, or in a package that is transient.
+			return LocalOuterPackage != GetTransientPackage() && !LocalOuterPackage->HasAnyFlags(RF_Transient);
 		}
 	}
 
@@ -2182,7 +2243,7 @@ static void StaticShutdownAfterError()
 /*-----------------------------------------------------------------------------
    Command line.
 -----------------------------------------------------------------------------*/
-#include "ClassTree.h"
+#include "UObject/ClassTree.h"
 
 static void ShowIntrinsicClasses( FOutputDevice& Ar )
 {
@@ -3787,7 +3848,7 @@ void StaticUObjectInit()
 	UObjectBaseInit();
 
 	// Allocate special packages.
-	GObjTransientPkg = NewObject<UPackage>(nullptr, TEXT("/Engine/Transient"));
+	GObjTransientPkg = NewObject<UPackage>(nullptr, TEXT("/Engine/Transient"), RF_Transient);
 	GObjTransientPkg->AddToRoot();
 
 	if( FParse::Param( FCommandLine::Get(), TEXT("VERIFYGC") ) )

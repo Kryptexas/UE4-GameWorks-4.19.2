@@ -1,15 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SplineMeshActor.cpp: Spline mesh actor class implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
 #include "Engine/SplineMeshActor.h"
 #include "Components/SplineMeshComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "SplineMeshActor"
 

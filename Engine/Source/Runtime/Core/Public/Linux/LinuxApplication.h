@@ -1,14 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GenericApplication.h"
-#include "LinuxWindow.h"
-#include "LinuxCursor.h"
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Math/Vector2D.h"
+#include "Templates/SharedPointer.h"
+#include "Misc/CoreMisc.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "GenericPlatform/GenericWindowDefinition.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Linux/LinuxWindow.h"
+#include "Linux/LinuxCursor.h"
 
-class FLinuxWindow;
-class FGenericApplicationMessageHandler;
-
+class IInputDevice;
 
 class FLinuxApplication : public GenericApplication, public FSelfRegisteringExec
 {
@@ -121,6 +130,7 @@ public:
 	void DestroyNativeWindow(SDL_HWindow NativeWindow);
 
 	virtual bool IsMouseAttached() const override;
+
 private:
 
 	FLinuxApplication();
@@ -180,6 +190,16 @@ private:
 	 * Checks if we need to destroy any of PendingDestroy windows.
 	 */
 	void DestroyPendingWindows();
+
+	/** Gets the touch index for a given finger. */
+	inline uint32 GetTouchIndexForFinger(SDL_FingerID FingerId)
+	{
+		// SDL ids are 64-bit while our touches are 32-bit. Collision due to wrapping shouldn't be a practical problem though
+		return static_cast<uint32>(FingerId & 0xFFFFFFFF);
+	}
+
+	/** Gets the location from a given touch event. */
+	FVector2D GetTouchEventLocation(SDL_Event TouchEvent);
 
 	struct SDLControllerState
 	{

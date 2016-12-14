@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Movement component meant for use with Pawns.
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/NavMovementComponent.h"
 #include "PawnMovementComponent.generated.h"
+
+class APawn;
 
 /** 
  * PawnMovementComponent can be used to update movement for an associated Pawn.

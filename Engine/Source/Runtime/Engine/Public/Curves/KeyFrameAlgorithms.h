@@ -1,6 +1,11 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
-#include "KeyFrameManipulator.h"
+#include "CoreMinimal.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/IKeyFrameManipulator.h"
+#include "Curves/KeyFrameManipulator.h"
 
 namespace KeyFrameAlgorithms
 {

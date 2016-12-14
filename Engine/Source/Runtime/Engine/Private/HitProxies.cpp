@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HitProxies.cpp: Hit proxy implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "HitProxies.h"
+#include "Misc/ScopeLock.h"
 
 IMPLEMENT_HIT_PROXY_BASE( HHitProxy, NULL );
 IMPLEMENT_HIT_PROXY(HObject,HHitProxy);

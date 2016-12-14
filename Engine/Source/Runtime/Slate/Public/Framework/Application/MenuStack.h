@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-// forward declarations
-class IMenu;
-class FMenuBase;
-class IMenuHost;
+#include "CoreMinimal.h"
+#include "Input/PopupMethodReply.h"
+#include "Framework/Application/IMenu.h"
+#include "Layout/SlateRect.h"
+#include "Widgets/SWidget.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SWindow.h"
+#include "Application/ThrottleManager.h"
+
+class FWidgetPath;
 class SMenuPanel;
+class FMenuBase;
 
 typedef TArray<TSharedPtr<SWindow>> FMenuWindowList;	// deprecated
 

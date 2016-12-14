@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -624,7 +624,7 @@ namespace UnrealBuildTool
 					{
 						FileReference TruePath = FileReference.Combine(ProjectFilePath.Directory, AliasedFile.FileSystemPath);
 						FileItem SourceFile = FileItem.GetItemByFileReference(TruePath);
-						List <DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetUncachedDirectIncludeDependencies(SourceFile, BuildPlatform);
+						List <DependencyInclude> DirectlyIncludedFilenames = CPPHeaders.GetUncachedDirectIncludeDependencies(SourceFile, BuildPlatform);
 						if (DirectlyIncludedFilenames.Count > 0)
 						{
 							PCHFileName = DirectlyIncludedFilenames[0].IncludeName;

@@ -1,11 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-// Forward declarations
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UObject/GCObject.h"
+#include "UnrealWidget.h"
+#include "EdMode.h"
+
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FViewport;
 class ULandscapeInfo;
 class ULandscapeLayerInfoObject;
+class UMaterialInstance;
+class UMaterialInterface;
 class UViewportInteractor;
+struct FViewportClick;
 
 // FLandscapeToolMousePosition - Struct to store mouse positions since the last time we applied the brush
 struct FLandscapeToolInteractorPosition
@@ -193,9 +205,9 @@ struct FLandscapeToolTarget
 	FName LayerName;
 
 	FLandscapeToolTarget()
-		: LandscapeInfo(NULL)
+		: LandscapeInfo()
 		, TargetType(ELandscapeToolTargetType::Heightmap)
-		, LayerInfo(NULL)
+		, LayerInfo()
 		, LayerName(NAME_None)
 	{
 	}
@@ -214,6 +226,7 @@ class FLandscapeTool : public FGCObject
 {
 public:
 	virtual void EnterTool() {}
+	virtual bool IsToolActive() const { return false;  }
 	virtual void ExitTool() {}
 	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation, const UViewportInteractor* Interactor = nullptr) = 0;
 	virtual void EndTool(FEditorViewportClient* ViewportClient) = 0;

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PackageTools.h: Object-related utilities
@@ -7,7 +7,9 @@
 
 #pragma once
 
-class FLocalizationExportFilter;
+#include "CoreMinimal.h"
+
+class ULevel;
 
 namespace PackageTools
 {
@@ -68,6 +70,26 @@ namespace PackageTools
 	UNREALED_API bool UnloadPackages( const TArray<UPackage*>& PackagesToUnload, FText& OutErrorMessage );
 
 	/**
+	 * Helper function that attempts to reload the specified top-level packages.
+	 *
+	 * @param	PackagesToReload	The list of packages that should be reloaded
+	 *
+	 * @return	true if the set of loaded packages was changed
+	 */
+	UNREALED_API bool ReloadPackages( const TArray<UPackage*>& PackagesToReload );
+
+	/**
+	 * Helper function that attempts to reload the specified top-level packages.
+	 *
+	 * @param	PackagesToReload	The list of packages that should be reloaded
+	 * @param	OutErrorMessage		An error message specifying any problems with reloading packages
+	 * @param	bInteractive		Whether the function is allowed to ask the user questions (such as whether to reload dirty packages)
+	 *
+	 * @return	true if the set of loaded packages was changed
+	 */
+	UNREALED_API bool ReloadPackages( const TArray<UPackage*>& PackagesToReload, FText& OutErrorMessage, const bool bInteractive = true );
+
+	/**
 	 *	Exports the given packages to files.
 	 *
 	 * @param	PackagesToExport		The set of packages to export.
@@ -117,7 +139,7 @@ namespace PackageTools
 	 * @param	OutObjectsWithExternalRefs		List of objects gathered from within the given ULevel that have external references
 	 * @return	true if PackagesToCheck has references to an externally loaded package
 	 */
-	UNREALED_API bool CheckForReferencesToExternalPackages(const TArray<UPackage*>* PackagesToCheck, TArray<UPackage*>* OutPackagesWithExternalRefs, class ULevel* LevelToCheck=NULL, TArray<UObject*>* OutObjectsWithExternalRefs=NULL );
+	UNREALED_API bool CheckForReferencesToExternalPackages(const TArray<UPackage*>* PackagesToCheck, TArray<UPackage*>* OutPackagesWithExternalRefs, ULevel* LevelToCheck=NULL, TArray<UObject*>* OutObjectsWithExternalRefs=NULL );
 
 	/**
 	 * Checks if the package has only one asset which shares its name

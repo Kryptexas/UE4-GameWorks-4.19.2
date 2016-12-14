@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 //
 // websocket based implementation of the net driver
 //
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/NetDriver.h"
 #include "WebSocketNetDriver.generated.h"
+
+class FWebSocket;
+class FWebSocketServer;
 
 UCLASS(transient, config = Engine)
 class HTML5NETWORKING_API UWebSocketNetDriver : public UNetDriver

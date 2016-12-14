@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "VisualLogger.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "VisualLogger/VisualLogger.h"
 
 // Intended categories:
 //	Log - This happened. What gameplay programmers may care about to debug
@@ -13,6 +15,7 @@
 
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystem, Display, All);
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(VLogAbilitySystem, Display, All);
+GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogGameplayEffects, Display, All);
 
 #if NO_LOGGING || !PLATFORM_DESKTOP
 

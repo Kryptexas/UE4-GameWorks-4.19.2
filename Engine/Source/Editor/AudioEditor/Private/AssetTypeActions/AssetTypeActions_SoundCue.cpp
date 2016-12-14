@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "AssetToolsModule.h"
+#include "AssetTypeActions/AssetTypeActions_SoundCue.h"
+#include "Sound/SoundAttenuation.h"
+#include "Misc/PackageName.h"
+#include "Sound/SoundCue.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Factories/SoundAttenuationFactory.h"
 #include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "AudioEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -49,7 +55,7 @@ bool FAssetTypeActions_SoundCue::CanExecuteConsolidateCommand(TArray<TWeakObject
 
 void FAssetTypeActions_SoundCue::ExecuteConsolidateAttenuation(TArray<TWeakObjectPtr<USoundCue>> Objects)
 {
-	TMap<FAttenuationSettings*,TArray<USoundCue*>> UnmatchedAttenuations;
+	TMap<FSoundAttenuationSettings*,TArray<USoundCue*>> UnmatchedAttenuations;
 
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{

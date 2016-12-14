@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformMisc.mm: iOS implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "IOSPlatformMisc.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "IOSApplication.h"
@@ -12,6 +12,8 @@
 #include "IOSView.h"
 #include "IOSChunkInstaller.h"
 #include "IOSInputInterface.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
 
 #include "Apple/ApplePlatformCrashContext.h"
 
@@ -347,6 +349,21 @@ bool FIOSPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
 	[AppDelegate EnableIdleTimer : (Action == FGenericPlatformMisc::Enable)];
 	return true;
+}
+
+int FIOSPlatformMisc::GetAudioVolume()
+{
+	return [[IOSAppDelegate GetDelegate] GetAudioVolume];
+}
+
+bool FIOSPlatformMisc::AreHeadphonesPluggedIn()
+{
+	return [[IOSAppDelegate GetDelegate] AreHeadphonesPluggedIn];
+}
+
+int FIOSPlatformMisc::GetBatteryLevel()
+{
+	return [[IOSAppDelegate GetDelegate] GetBatteryLevel];
 }
 
 int32 FIOSPlatformMisc::NumberOfCores()
@@ -902,7 +919,7 @@ FString FIOSPlatformMisc::GetLocalCurrencySymbol()
 
 void FIOSPlatformMisc::RegisterForRemoteNotifications()
 {
-#if !PLATFORM_TVOS
+#if !PLATFORM_TVOS && NOTIFICATIONS_ENABLED
 	UIApplication* application = [UIApplication sharedApplication];
 	if ([application respondsToSelector : @selector(registerUserNotificationSettings:)])
 	{

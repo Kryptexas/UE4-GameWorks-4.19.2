@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "XmppConnection.h"
+
 #if WITH_XMPP_JINGLE
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 #endif
 
 THIRD_PARTY_INCLUDES_START
@@ -42,6 +47,7 @@ THIRD_PARTY_INCLUDES_START
 THIRD_PARTY_INCLUDES_END
 
 #if PLATFORM_WINDOWS
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
 
@@ -60,6 +66,9 @@ public:
 
 	static void ConvertToJid(FXmppUserJid& OutJid, const buzz::Jid& InJid);
 	static void ConvertFromJid(buzz::Jid& OutJid, const FXmppUserJid& InJid);
+
+	/** Adds a Correlation ID to a stanza.  If none is provided, one will be generated */
+	static void AddCorrIdToStanza(buzz::XmlElement& Stanza, const TCHAR* const CorrId = nullptr);
 };
 
 #endif //WITH_XMPP_JINGLE

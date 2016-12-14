@@ -1,19 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineGlobals.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/Controller.h"
+#include "AISystem.h"
+#include "VisualLogger/VisualLogger.h"
 #include "EnvironmentQuery/EnvQuery.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvironmentQuery/EnvQueryOption.h"
-#include "EnvironmentQuery/EnvQueryManager.h"
-#include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvironmentQuery/EQSTestingPawn.h"
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
-#include "EnvironmentQuery/EnvQueryInstanceBlueprintWrapper.h"
+#include "Engine/Engine.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Package.h"
 
 #if WITH_EDITOR
-#include "UnrealEd.h"
-#include "Engine/Brush.h"
+#include "Editor/EditorEngine.h"
 #include "EngineUtils.h"
 
 extern UNREALED_API UEditorEngine* GEditor;
@@ -319,7 +324,7 @@ void UEnvQueryManager::Tick(float DeltaTime)
 
 			const TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
 
-			if (QueryInstance->IsFinished())
+			if (!QueryInstance.IsValid() || QueryInstance->IsFinished())
 			{
 				// If this query is already finished, skip it.
 				++Index;
@@ -340,10 +345,11 @@ void UEnvQueryManager::Tick(float DeltaTime)
 					QueryInstance->ExecuteOneStep(TimeLeft);
 				}
 
+				const float QueryExecutionTime = QueryInstance->GetTotalExecutionTime();
 				if (QueryInstance->IsFinished())
 				{
 					// Always log that we executed total execution time at the end of the query.
-					if (QueryInstance->GetTotalExecutionTime() > ExecutionTimeWarningSeconds)
+					if (QueryExecutionTime > ExecutionTimeWarningSeconds)
 					{
 						UE_LOG(LogEQS, Warning, TEXT("Finished query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
 					}
@@ -375,7 +381,7 @@ void UEnvQueryManager::Tick(float DeltaTime)
 					++Index;
 				}
 
-				if (!QueryInstance->HasLoggedTimeLimitWarning() && (QueryInstance->GetTotalExecutionTime() > ExecutionTimeWarningSeconds))
+				if (QueryExecutionTime > ExecutionTimeWarningSeconds && QueryInstance.IsValid() && !QueryInstance->HasLoggedTimeLimitWarning())
 				{
 					UE_LOG(LogEQS, Warning, TEXT("Query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
 					QueryInstance->SetHasLoggedTimeLimitWarning();
@@ -415,13 +421,16 @@ void UEnvQueryManager::Tick(float DeltaTime)
 				for (int32 Index = RunningQueries.Num() - 1, FinishedQueriesCounter = NumQueriesFinished; Index >= 0 && FinishedQueriesCounter > 0; --Index)
 				{
 					TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
+					if (!QueryInstance.IsValid())
+					{
+						RunningQueries.RemoveAt(Index, 1, /*bAllowShrinking=*/false);
+						continue;
+					}
 
 					if (QueryInstance->IsFinished())
 					{
 						FinishedQueriesTotalTime += FPlatformTime::Seconds() - QueryInstance->GetQueryStartTime();
-
 						RunningQueries.RemoveAt(Index, 1, /*bAllowShrinking=*/false);
-
 						--FinishedQueriesCounter;
 					}
 				}

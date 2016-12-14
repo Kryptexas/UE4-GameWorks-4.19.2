@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
 
 /** 
  * Meant to represent a specific object property that is setup to reference a 
@@ -163,19 +167,18 @@ public:
 		if (OldObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) &&
 			NewObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference))
 		{
-			TArray<FInstancedSubObjRef> OldEditInlineObjects;
-			GetInstancedSubObjects(OldObject, OldEditInlineObjects);
-			if (OldEditInlineObjects.Num())
+			TArray<FInstancedSubObjRef> OldInstancedSubObjects;
+			GetInstancedSubObjects(OldObject, OldInstancedSubObjects);
+			if (OldInstancedSubObjects.Num() > 0)
 			{
-				TArray<FInstancedSubObjRef> NewEditInlineObjects;
-				GetInstancedSubObjects(NewObject, NewEditInlineObjects);
-				for (auto Obj : NewEditInlineObjects)
+				TArray<FInstancedSubObjRef> NewInstancedSubObjects;
+				GetInstancedSubObjects(NewObject, NewInstancedSubObjects);
+				for (const FInstancedSubObjRef& Obj : NewInstancedSubObjects)
 				{
-					const bool bProperOuter = (Obj->GetOuter() == OldObject);
-					const bool bEditInlineNew = Obj->GetClass()->HasAnyClassFlags(CLASS_EditInlineNew | CLASS_DefaultToInstanced);
-					if (bProperOuter && bEditInlineNew)
+					const bool bNewObjectHasOldOuter = (Obj->GetOuter() == OldObject);
+					if (bNewObjectHasOldOuter)
 					{
-						const bool bKeptByOld = OldEditInlineObjects.Contains(Obj);
+						const bool bKeptByOld = OldInstancedSubObjects.Contains(Obj);
 						const bool bNotHandledYet = !ReferenceReplacementMap.Contains(Obj);
 						if (bKeptByOld && bNotHandledYet)
 						{

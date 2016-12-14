@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Optional.h"
-#include "ValueOrError.h"
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Delegates/Delegate.h"
+#include "Misc/Optional.h"
+#include "Internationalization/Text.h"
+#include "Templates/ValueOrError.h"
 
-#include "ExpressionParser.h"
+template<typename NumericType> struct FNumericUnit;
 
 /** Enum *must* be zero-indexed and sequential. Must be grouped by relevance and ordered by magnitude. */
 /** Enum *must* match the mirrored enum that exists in CoreUObject/Classes/Object.h for the purposes of UObject reflection */
@@ -188,7 +193,7 @@ bool operator==(const FNumericUnit<NumericType>& LHS, const FNumericUnit<OtherTy
 template<typename NumericType, typename OtherType>
 bool operator!=(const FNumericUnit<NumericType>& LHS, const FNumericUnit<OtherType>& RHS);
 
-namespace LexicalConversion
+namespace Lex
 {
 	template<typename T>
 	FString ToString(const FNumericUnit<T>& NumericUnit);
@@ -205,4 +210,4 @@ namespace LexicalConversion
 
 
 // Include template definitions
-#include "UnitConversion.inl"
+#include "Math/UnitConversion.inl"

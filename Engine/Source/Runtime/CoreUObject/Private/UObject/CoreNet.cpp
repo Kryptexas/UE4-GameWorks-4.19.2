@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnCoreNet.cpp: Core networking support.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
+#include "UObject/CoreNet.h"
+#include "UObject/UnrealType.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCoreNet, Log, All);
 

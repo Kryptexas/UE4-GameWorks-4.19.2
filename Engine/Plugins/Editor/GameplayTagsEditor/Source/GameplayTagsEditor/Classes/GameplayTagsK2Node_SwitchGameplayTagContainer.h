@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphPin.h"
 #include "K2Node_Switch.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagsK2Node_SwitchGameplayTagContainer.generated.h"
 
-struct FGameplayTagContainer;
+class FBlueprintActionDatabaseRegistrar;
 
 UCLASS(MinimalAPI)
 class UGameplayTagsK2Node_SwitchGameplayTagContainer : public UK2Node_Switch

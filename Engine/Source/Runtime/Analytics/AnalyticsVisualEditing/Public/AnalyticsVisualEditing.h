@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 
 /**
  * This module holds the base UObject class that allows visual editing of configuration settings in the Unreal Editor.

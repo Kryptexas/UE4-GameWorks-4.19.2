@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved..
 
 /*=============================================================================
 	VulkanCommandBuffer.h: Private Vulkan RHI definitions.
@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "VulkanRHIPrivate.h"
 #include "VulkanConfiguration.h"
 
 class FVulkanDevice;

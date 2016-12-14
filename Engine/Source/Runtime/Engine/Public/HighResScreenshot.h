@@ -1,5 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeBool.h"
+
+class FSceneViewport;
+class IImageWrapper;
+class UMaterial;
 
 struct ENGINE_API FHighResScreenshotConfig
 {
@@ -15,6 +22,7 @@ struct ENGINE_API FHighResScreenshotConfig
 	TWeakPtr<FSceneViewport> TargetViewport;
 	bool bDisplayCaptureRegion;
 	bool bCaptureHDR;
+	bool bForce128BitRendering;
 
 	// Materials used in the editor to help with the capture of highres screenshots
 	UMaterial* HighResScreenshotMaterial;
@@ -39,6 +47,9 @@ struct ENGINE_API FHighResScreenshotConfig
 
 	/** Enable/disable HDR capable captures **/
 	void SetHDRCapture(bool bCaptureHDRIN);
+
+	/** Enable/disable forcing 128-bit rendering pipeline for capture **/
+	void SetForce128BitRendering(bool bForce);
 
 	/** Configure taking a high res screenshot */
 	bool SetResolution(uint32 ResolutionX, uint32 ResolutionY, float ResolutionScale = 1.0f);

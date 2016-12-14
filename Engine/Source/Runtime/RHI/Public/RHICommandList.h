@@ -1,17 +1,64 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHICommandList.h: RHI Command List definitions for queueing up & executing later.
 =============================================================================*/
 
 #pragma once
-#include "LockFreeFixedSizeAllocator.h"
-#include "TaskGraphInterfaces.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/AlignOf.h"
+#include "Templates/UnrealTemplate.h"
+#include "Math/Color.h"
+#include "Math/IntPoint.h"
+#include "Math/IntRect.h"
+#include "Math/Box2D.h"
+#include "Math/PerspectiveMatrix.h"
+#include "Math/TranslationMatrix.h"
+#include "Math/ScaleMatrix.h"
+#include "Math/Float16Color.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include "Misc/MemStack.h"
+#include "Misc/App.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+
+class FApp;
+class FBlendStateInitializerRHI;
+class FGraphicsPipelineStateInitializer;
+class FLastRenderTimeContainer;
+class FReadSurfaceDataFlags;
+class FRHICommandListBase;
+class FRHIComputeShader;
+class FRHIDepthRenderTargetView;
+class FRHIRenderTargetView;
+class FRHISetRenderTargetsInfo;
+class IRHICommandContext;
+class IRHIComputeContext;
+struct FBoundShaderStateInput;
+struct FDepthStencilStateInitializerRHI;
+struct FRasterizerStateInitializerRHI;
+struct FResolveParams;
+struct FRHIResourceCreateInfo;
+struct FRHIResourceInfo;
+struct FRHIUniformBufferLayout;
+struct FSamplerStateInitializerRHI;
+struct FTextureMemoryStats;
+struct Rect;
+enum class EAsyncComputeBudget;
+enum class EClearDepthStencil;
+enum class EResourceTransitionAccess;
+enum class EResourceTransitionPipeline;
 
 DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
 
 // set this one to get a stat for each RHI command 
 #define RHI_STATS 0
+
+#define RHI_PSO_X_VALIDATION UE_BUILD_DEBUG
 
 #if RHI_STATS
 DECLARE_STATS_GROUP(TEXT("RHICommands"),STATGROUP_RHI_COMMANDS, STATCAT_Advanced);
@@ -26,7 +73,7 @@ extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasks;
 class FRHICommandListBase;
 
 #ifdef CONTINUABLE_PSO_VERIFY
-#define PSO_VERIFY ensureAlways
+#define PSO_VERIFY ensure
 #else
 #define PSO_VERIFY	check
 #endif
@@ -173,7 +220,7 @@ public:
 		return bExecuting;
 	}
 
-	inline bool Bypass();
+	bool Bypass();
 
 	FORCEINLINE void ExchangeCmdList(FRHICommandListBase& Other)
 	{
@@ -271,9 +318,19 @@ public:
 	TStaticArray<FRHIRenderTargetView, MaxSimultaneousRenderTargets> CachedRenderTargets;
 	FRHIDepthRenderTargetView CachedDepthStencilTarget;
 
+#if RHI_PSO_X_VALIDATION
+	void ValidatePsoState(const FBlendStateRHIParamRef BlendState, const FDepthStencilStateRHIParamRef DepthStencilState);
+#endif
+
 protected:
 	struct FRHICommandSetRasterizerState* CachedRasterizerState;
 	struct FRHICommandSetDepthStencilState* CachedDepthStencilState;
+
+#if RHI_PSO_X_VALIDATION
+	friend struct FDrawingPolicyRenderState;
+	FBlendStateRHIParamRef			VerifyableBlendState;
+	FDepthStencilStateRHIParamRef	VerifyableDepthStencilState;
+#endif
 
 	void CacheActiveRenderTargets(
 		uint32 NewNumSimultaneousRenderTargets,
@@ -296,6 +353,11 @@ public:
 	{
 		CachedRasterizerState = nullptr;
 		CachedDepthStencilState = nullptr;
+
+#if RHI_PSO_X_VALIDATION
+		VerifyableBlendState = nullptr;
+		VerifyableDepthStencilState = nullptr;
+#endif
 	}
 
 
@@ -319,23 +381,24 @@ public:
 	FDrawUpData DrawUPData; 
 };
 
-class ScopedStrictGraphicsPipelineStateUse
+class FScopedStrictGraphicsPipelineStateUse
 {
 public:
-	ScopedStrictGraphicsPipelineStateUse(
-		FRHICommandListBase& InRHICmdList
-	)
-		: RHICmdList(InRHICmdList)
+	FScopedStrictGraphicsPipelineStateUse(
+		FRHICommandListBase& InRHICmdList,
+		bool Enabled = true)
+	: PreviousStrictGraphicsPipelineStateUse(InRHICmdList.StrictGraphicsPipelineStateUse), RHICmdList(InRHICmdList)
 	{
-		RHICmdList.StrictGraphicsPipelineStateUse = 1;
+		RHICmdList.StrictGraphicsPipelineStateUse = Enabled;
 	}
 
-	~ScopedStrictGraphicsPipelineStateUse()
+	~FScopedStrictGraphicsPipelineStateUse()
 	{
-		RHICmdList.StrictGraphicsPipelineStateUse = 0;
+		RHICmdList.StrictGraphicsPipelineStateUse = PreviousStrictGraphicsPipelineStateUse;
 	}
 
 private:
+	const uint32 PreviousStrictGraphicsPipelineStateUse;
 	const FRHICommandListBase& RHICmdList;
 };
 
@@ -353,6 +416,46 @@ struct FRHICommand : public FRHICommandBase
 		ThisCmd->Execute(CmdList);
 		ThisCmd->~TCmd();
 	}
+};
+
+struct  FRHICommandBeginUpdateMultiFrameResource : public FRHICommand<FRHICommandBeginUpdateMultiFrameResource>
+{
+	FTextureRHIParamRef Texture;
+	FORCEINLINE_DEBUGGABLE FRHICommandBeginUpdateMultiFrameResource(FTextureRHIParamRef InTexture)
+		: Texture(InTexture)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct  FRHICommandEndUpdateMultiFrameResource : public FRHICommand<FRHICommandEndUpdateMultiFrameResource>
+{
+	FTextureRHIParamRef Texture;
+	FORCEINLINE_DEBUGGABLE FRHICommandEndUpdateMultiFrameResource(FTextureRHIParamRef InTexture)
+		: Texture(InTexture)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct  FRHICommandBeginUpdateMultiFrameUAV : public FRHICommand<FRHICommandBeginUpdateMultiFrameResource>
+{
+	FUnorderedAccessViewRHIParamRef UAV;
+	FORCEINLINE_DEBUGGABLE FRHICommandBeginUpdateMultiFrameUAV(FUnorderedAccessViewRHIParamRef InUAV)
+		: UAV(InUAV)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct  FRHICommandEndUpdateMultiFrameUAV : public FRHICommand<FRHICommandEndUpdateMultiFrameResource>
+{
+	FUnorderedAccessViewRHIParamRef UAV;
+	FORCEINLINE_DEBUGGABLE FRHICommandEndUpdateMultiFrameUAV(FUnorderedAccessViewRHIParamRef InUAV)
+		: UAV(InUAV)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
 struct FRHICommandSetRasterizerState : public FRHICommand<FRHICommandSetRasterizerState>
@@ -1531,6 +1634,46 @@ public:
 		return Result;
 	}
 
+	FORCEINLINE_DEBUGGABLE void BeginUpdateMultiFrameResource( FTextureRHIParamRef Texture)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHIBeginUpdateMultiFrameResource)( Texture);
+			return;
+		}
+		new (AllocCommand<FRHICommandBeginUpdateMultiFrameResource>()) FRHICommandBeginUpdateMultiFrameResource( Texture);
+	}
+
+	FORCEINLINE_DEBUGGABLE void EndUpdateMultiFrameResource(FTextureRHIParamRef Texture)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHIEndUpdateMultiFrameResource)(Texture);
+			return;
+		}
+		new (AllocCommand<FRHICommandEndUpdateMultiFrameResource>()) FRHICommandEndUpdateMultiFrameResource(Texture);
+	}
+
+	FORCEINLINE_DEBUGGABLE void BeginUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHIBeginUpdateMultiFrameResource)(UAV);
+			return;
+		}
+		new (AllocCommand<FRHICommandBeginUpdateMultiFrameUAV>()) FRHICommandBeginUpdateMultiFrameUAV(UAV);
+	}
+
+	FORCEINLINE_DEBUGGABLE void EndUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(RHIEndUpdateMultiFrameResource)(UAV);
+			return;
+		}
+		new (AllocCommand<FRHICommandEndUpdateMultiFrameUAV>()) FRHICommandEndUpdateMultiFrameUAV(UAV);
+	}
+
 	FORCEINLINE_DEBUGGABLE void SetLocalBoundShaderState(FLocalBoundShaderState LocalBoundShaderState)
 	{
 		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
@@ -1749,7 +1892,9 @@ public:
 	FORCEINLINE_DEBUGGABLE void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White)
 	{
 		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
-
+#if RHI_PSO_X_VALIDATION
+		VerifyableBlendState = State;
+#endif
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetBlendState)(State, BlendFactor);
@@ -1801,7 +1946,9 @@ public:
 	void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
 	{
 		PSO_VERIFY(StrictGraphicsPipelineStateUse == 0);
-
+#if RHI_PSO_X_VALIDATION
+		VerifyableDepthStencilState = NewStateRHI;
+#endif
 		if (Bypass())
 		{
 			CMD_CONTEXT(RHISetDepthStencilState)(NewStateRHI, StencilRef);
@@ -2583,8 +2730,8 @@ class FScopedRHIThreadStaller
 {
 	class FRHICommandListImmediate* Immed; // non-null if we need to unstall
 public:
-	inline FScopedRHIThreadStaller(class FRHICommandListImmediate& InImmed);
-	inline ~FScopedRHIThreadStaller();
+	FScopedRHIThreadStaller(class FRHICommandListImmediate& InImmed);
+	~FScopedRHIThreadStaller();
 };
 
 class RHI_API FRHICommandListImmediate : public FRHICommandList
@@ -2599,7 +2746,7 @@ class RHI_API FRHICommandListImmediate : public FRHICommandList
 	}
 public:
 
-	inline void ImmediateFlush(EImmediateFlushType::Type FlushType);
+	void ImmediateFlush(EImmediateFlushType::Type FlushType);
 	bool StallRHIThread();
 	void UnStallRHIThread();
 	static bool IsStalled();

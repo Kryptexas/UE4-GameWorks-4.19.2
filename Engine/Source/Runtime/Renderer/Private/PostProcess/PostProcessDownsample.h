@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDownsample.h: Post processing down sample implementation.
@@ -6,8 +6,9 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
-#include "PostProcessing.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: Color input

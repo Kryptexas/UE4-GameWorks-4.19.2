@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLUtil.h: OpenGL RHI utility implementation.
 =============================================================================*/
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "OpenGLDrv.h"
 #include "OpenGLDrvPrivate.h"
 
 void VerifyOpenGLResult(GLenum ErrorCode, const TCHAR* Msg1, const TCHAR* Msg2, const TCHAR* Filename, uint32 Line)

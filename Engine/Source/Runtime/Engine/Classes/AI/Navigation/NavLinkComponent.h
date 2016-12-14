@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Components/PrimitiveComponent.h"
 #include "AI/Navigation/NavLinkDefinition.h"
 #include "AI/Navigation/NavLinkHostInterface.h"
 #include "NavLinkComponent.generated.h"
+
+class FPrimitiveSceneProxy;
+struct FNavigationRelevantData;
 
 UCLASS(ClassGroup = (Navigation), meta = (BlueprintSpawnableComponent), hidecategories = (Activation))
 class ENGINE_API UNavLinkComponent : public UPrimitiveComponent, public INavLinkHostInterface

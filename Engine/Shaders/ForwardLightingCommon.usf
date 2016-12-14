@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ForwardLightingCommon.usf
@@ -10,6 +10,65 @@
 #include "DeferredLightingCommon.usf"
 #include "LightGridCommon.usf"
 
+Texture2D ResolvedSceneDepthTexture;
+
+void UpdateNearestSample(float Z, float2 UV, float FullResZ, inout float MinDist, inout float2 NearestUV)
+{
+    float DepthDelta = abs(Z - FullResZ);
+
+	FLATTEN
+    if (DepthDelta < MinDist)
+    {
+        MinDist = DepthDelta;
+        NearestUV = UV;
+    }
+}
+
+float2 CalculateNearestResolvedDepthScreenUV(float2 ScreenUV, float SceneDepth)
+{
+	float2 EffectiveScreenUV = ScreenUV;
+
+	if (View.NumSceneColorMSAASamples > 1)
+	{
+		int2 IntScreenUV = int2(trunc(ScreenUV * View.BufferSizeAndInvSize.xy));
+
+		float DeferredShadowingDepth = ConvertFromDeviceZ(ResolvedSceneDepthTexture.Load(int3(IntScreenUV, 0)).r);
+		float RelativeDepthThreshold = .01f;
+
+		// Fragment depth doesn't match what we used for deferred shadowing, search neighbors in cross pattern
+		// Even with this nearest depth upsampling there can be edge artifacts from deferred shadowing, 
+		// Since depth testing and stencil testing used during shadow projection are done per-sample and we're fetching from the resolved light attenuation
+		if (abs(DeferredShadowingDepth - SceneDepth) / SceneDepth > RelativeDepthThreshold)
+		{
+			float2 TexelSize = View.BufferSizeAndInvSize.zw;
+			float MinDist = 1.e8f;
+
+			float2 LeftUV = ScreenUV + float2(-TexelSize.x, 0);
+			float LeftDepth = ConvertFromDeviceZ(ResolvedSceneDepthTexture.Load(int3(IntScreenUV.x - 1, IntScreenUV.y, 0)).r);
+			UpdateNearestSample(LeftDepth, LeftUV, SceneDepth, MinDist, EffectiveScreenUV);
+
+			float2 UpUV = ScreenUV + float2(0, TexelSize.y);
+			float UpDepth = ConvertFromDeviceZ(ResolvedSceneDepthTexture.Load(int3(IntScreenUV.x, IntScreenUV.y + 1, 0)).r);
+			UpdateNearestSample(UpDepth, UpUV, SceneDepth, MinDist, EffectiveScreenUV);
+
+			float2 RightUV = ScreenUV + float2(TexelSize.x, 0);
+			float RightDepth = ConvertFromDeviceZ(ResolvedSceneDepthTexture.Load(int3(IntScreenUV.x + 1, IntScreenUV.y, 0)).r);
+			UpdateNearestSample(RightDepth, RightUV, SceneDepth, MinDist, EffectiveScreenUV);
+
+			float2 BottomUV = ScreenUV + float2(0, -TexelSize.y);
+			float BottomDepth = ConvertFromDeviceZ(ResolvedSceneDepthTexture.Load(int3(IntScreenUV.x, IntScreenUV.y - 1, 0)).r);
+			UpdateNearestSample(BottomDepth, BottomUV, SceneDepth, MinDist, EffectiveScreenUV);
+		}
+	}
+
+	return EffectiveScreenUV;
+}
+
+float4 GetForwardDynamicShadowFactors(float2 ScreenUV)
+{
+	return GetPerPixelLightAttenuation(ScreenUV);
+}
+
 float4 UnpackShadowMapChannelMask(uint ShadowMapChannelMaskPacked)
 {
 	return float4((ShadowMapChannelMaskPacked & 1) ? 1.0f : 0.0f, (ShadowMapChannelMaskPacked & 2) ? 1.0f : 0.0f, (ShadowMapChannelMaskPacked & 4) ? 1.0f : 0.0f, (ShadowMapChannelMaskPacked & 8) ? 1.0f : 0.0f);
@@ -18,11 +77,8 @@ float4 UnpackShadowMapChannelMask(uint ShadowMapChannelMaskPacked)
 Texture2D IndirectOcclusionTexture;
 SamplerState IndirectOcclusionTextureSampler;
 
-float GetIndirectOcclusion(float4 ScreenPosition, FGBufferData GBufferData)
+float GetIndirectOcclusion(float2 ScreenUV, FGBufferData GBufferData)
 {
-	float2 NDC = ScreenPosition.xy / ScreenPosition.w;
-	float2 ScreenUV = NDC * ResolvedView.ScreenPositionScaleBias.xy + ResolvedView.ScreenPositionScaleBias.wz;
-	
 	float IndirectOcclusion;
 #if SUPPORTS_INDEPENDENT_SAMPLERS
 	IndirectOcclusion = Texture2DSampleLevel(IndirectOcclusionTexture, LightAttenuationTextureSampler, ScreenUV, 0).x;
@@ -95,8 +151,14 @@ LocalLightData GetLocalLightData(uint GridIndex, uint EyeIndex)
 	return Result;
 }
 
-float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 CameraVector, FGBufferData GBufferData, float4 DynamicShadowFactors, uint EyeIndex)
+float3 GetForwardDirectLighting(uint GridIndex, float3 WorldPosition, float3 CameraVector, FGBufferData GBufferData, float2 ScreenUV, uint EyeIndex)
 {
+	float4 DynamicShadowFactors = 1;
+
+	#if MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED
+		DynamicShadowFactors = GetForwardDynamicShadowFactors(ScreenUV);
+	#endif
+
 	float3 DirectLighting = 0;
 
 	// Prevent 0 Roughness which causes NaNs in Vis_SmithJointApprox

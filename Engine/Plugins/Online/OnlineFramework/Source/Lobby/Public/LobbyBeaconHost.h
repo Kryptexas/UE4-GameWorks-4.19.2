@@ -1,16 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameFramework/OnlineReplStructs.h"
-
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/AssetPtr.h"
 #include "OnlineBeaconHostObject.h"
+
 #include "LobbyBeaconHost.generated.h"
 
-struct FJoinabilitySettings;
+class ALobbyBeaconClient;
 class ALobbyBeaconPlayerState;
 class ALobbyBeaconState;
-class ALobbyBeaconClient;
+class AOnlineBeaconClient;
+struct FJoinabilitySettings;
+struct FUniqueNetIdRepl;
 
 /**
  * Host object for maintaining a lobby before players actually join a server ready to receive them

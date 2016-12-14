@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,17 +6,12 @@
 /* Public Dependencies
  *****************************************************************************/
 
-#include "UnrealEd.h"
-#include "ModuleInterface.h"
-#include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/IToolkit.h"
+#include "CoreMinimal.h"
 
 
 /* Public Includes
  *****************************************************************************/
 
-#include "ITextureEditorToolkit.h"
-#include "ITextureEditorModule.h"
 
 
 extern const FName TextureEditorAppIdentifier;

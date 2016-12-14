@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "LandscapeEditorDetailCustomization_Base.h"
-#include "LandscapeEditorDetailCustomization_NewLandscape.h"
-#include "LandscapeEditorDetailCustomization_ResizeLandscape.h"
-#include "LandscapeEditorDetailCustomization_CopyPaste.h"
-#include "LandscapeEditorDetailCustomization_MiscTools.h"
-#include "LandscapeEditorDetailCustomization_AlphaBrush.h"
-#include "LandscapeEditorDetailCustomization_TargetLayers.h"
+#include "Private/LandscapeEditorDetailCustomization_Base.h"
+#include "Private/LandscapeEditorDetailCustomization_NewLandscape.h"
+#include "Private/LandscapeEditorDetailCustomization_ResizeLandscape.h"
+#include "Private/LandscapeEditorDetailCustomization_CopyPaste.h"
+#include "Private/LandscapeEditorDetailCustomization_MiscTools.h"
+#include "Private/LandscapeEditorDetailCustomization_AlphaBrush.h"
+#include "Private/LandscapeEditorDetailCustomization_TargetLayers.h"

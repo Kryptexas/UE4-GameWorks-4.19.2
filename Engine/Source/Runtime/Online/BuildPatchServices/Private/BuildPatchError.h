@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchError.h: Declares classes involved setting and getting error information.
@@ -8,6 +8,10 @@
 #define __BuildPatchError_h__
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+enum class EBuildPatchInstallError;
 
 // Protect against namespace collision.
 namespace BuildPatchConstants

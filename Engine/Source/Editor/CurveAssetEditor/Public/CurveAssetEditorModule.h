@@ -1,13 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "Toolkits/IToolkit.h"	// For EAssetEditorMode
-#include "Toolkits/AssetEditorToolkit.h" // For FExtensibilityManager
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Toolkits/AssetEditorToolkit.h"
 #include "ICurveAssetEditor.h"
+#include "Modules/ModuleInterface.h"
 
-class IDataTableEditor;
+class UCurveBase;
 
 /** DataTable Editor module */
 class FCurveAssetEditorModule : public IModuleInterface,

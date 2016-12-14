@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGL.h: Public OpenGL base definitions for non-common functionality
 =============================================================================*/
 #pragma once
-	
+
+#include "Containers/ContainersFwd.h"
+
+struct FPlatformOpenGLContext;
+struct FPlatformOpenGLDevice;
 
 /** OpenGL Logging. */
 OPENGLDRV_API DECLARE_LOG_CATEGORY_EXTERN(LogOpenGL,Log,VeryVerbose);

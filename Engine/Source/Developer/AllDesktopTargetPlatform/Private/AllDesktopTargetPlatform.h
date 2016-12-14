@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AllDesktopTargetPlatform.h: Declares the FDesktopTargetPlatform class.
@@ -6,9 +6,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Common/TargetPlatformBase.h"
+
 #if WITH_ENGINE
 #include "StaticMeshResources.h"
 #endif // WITH_ENGINE
+
+class UTextureLODSettings;
 
 class FAllDesktopPlatformProperties : public FGenericPlatformProperties
 {

@@ -1,6 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/IntegralCurve.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "ScopedTransaction.h"
+#include "Styling/SlateTypes.h"
+#include "Editor.h"
+#include "ISequencer.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "EditorStyleSet.h"
 
 #define LOCTEXT_NAMESPACE "IntegralCurveKeyEditor"
 
@@ -140,5 +153,4 @@ private:
 	FIntegralCurve* Curve;
 	TAttribute<TOptional<IntegralType>> ExternalValue;
 };
-
 #undef LOCTEXT_NAMESPACE

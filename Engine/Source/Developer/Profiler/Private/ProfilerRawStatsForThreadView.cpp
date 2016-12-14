@@ -1,8 +1,10 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerDataProvider.h"
 #include "ProfilerRawStatsForThreadView.h"
+#include "HAL/FileManager.h"
+#include "Templates/ScopedPointer.h"
+#include "Serialization/MemoryReader.h"
+#include "ProfilerDataProvider.h"
 
 
 // Only copied from ProfilerSession, still not working.
@@ -149,7 +151,7 @@ void FRawProfilerSession::PrepareLoading()
 		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *Filepath );
 		return;
 	}
-	TAutoPtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *Filepath ) );
+	TUniquePtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *Filepath ) );
 	if( !FileReader )
 	{
 		UE_LOG( LogStats, Error, TEXT( "Could not open: %s" ), *Filepath );

@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SOutputLog.h"
-#include "TargetDeviceId.h"
-#include "ITargetDevice.h"
+#include "Interfaces/TargetDeviceId.h"
+#include "Interfaces/ITargetDevice.h"
+
+class SComboButton;
 
 struct FTargetDeviceEntry
 {

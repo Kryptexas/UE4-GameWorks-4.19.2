@@ -1,7 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
+#include "Layout/Children.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SPanel.h"
+
+class FArrangedChildren;
+class FPaintArgs;
+class FSlateWindowElementList;
 
 /**
  * SBox is the simplest layout element.

@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MacTargetPlatformPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "GenericMacTargetPlatform.h"
 #include "ModuleManager.h"
 #include "ISettingsModule.h"
-
+#include "Interfaces/ITargetPlatformModule.h"
+#include "Modules/ModuleManager.h"
+#include "MacTargetSettings.h"
+#include "UObject/Package.h"
+#include "UObject/WeakObjectPtr.h"
 
 #define LOCTEXT_NAMESPACE "FMacTargetPlatformModule"
 
@@ -57,7 +62,11 @@ public:
 		TargetSettings = NewObject<UMacTargetSettings>(GetTransientPackage(), "MacTargetSettings", RF_Standalone);
 		
 		// We need to manually load the config properties here, as this module is loaded before the UObject system is setup to do this
-		GConfig->GetArray(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("TargetedRHIs"), TargetSettings->TargetedRHIs, GEngineIni);
+        GConfig->GetArray(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("TargetedRHIs"), TargetSettings->TargetedRHIs, GEngineIni);
+        GConfig->GetArray(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("CachedShaderFormats"), TargetSettings->CachedShaderFormats, GEngineIni);
+        int32 Value = 1;
+        GConfig->GetInt(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("MaxShaderLanguageVersion"), Value, GEngineIni);
+        TargetSettings->MaxShaderLanguageVersion = FMath::Max(Value, 1);
 		
 		TargetSettings->AddToRoot();
 

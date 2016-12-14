@@ -1,8 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "KeyParams.h"
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ObjectKey.h"
+#include "Curves/KeyHandle.h"
+
+class AActor;
+class UCameraComponent;
+class UMovieSceneSection;
+class USceneComponent;
+struct FRichCurve;
+enum class EMovieSceneKeyInterpolation : uint8;
 
 class MOVIESCENE_API MovieSceneHelpers
 {
@@ -125,6 +136,14 @@ public:
 	}
 
 	/**
+	 * Calls the setter function for a specific runtime object or if the setter function does not exist, the property is set directly
+	 *
+	 * @param InRuntimeObject The runtime object whose function to call
+	 * @param PropertyValue The new value to assign to the property
+	 */
+	void CallFunctionForEnum( UObject& InRuntimeObject, int64 PropertyValue );
+
+	/**
 	 * Rebuilds the property and function mappings for a single runtime object, and adds them to the cache
 	 *
 	 * @param InRuntimeObject	The object to cache mappings for
@@ -161,6 +180,14 @@ public:
 
 		return ValueType();
 	}
+
+	/**
+	 * Gets the current value of a property on an object
+	 *
+	 * @param Object	The object to get the property from
+	 * @return ValueType	The current value
+	 */
+	int64 GetCurrentValueForEnum(const UObject& Object);
 
 	/**
 	 * Sets the current value of a property on an object

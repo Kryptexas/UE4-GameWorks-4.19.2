@@ -1,6 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "HTML5NetworkingPCH.h"
+#include "HTML5NetworkingPrivate.h"
 
 #include "IPAddress.h"
 #include "Sockets.h"
@@ -11,6 +11,7 @@
 #include "WebSocketNetDriver.h"
 #include "WebSocket.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
+#include "PacketHandlers/StatelessConnectHandlerComponent.h"
 
 /*-----------------------------------------------------------------------------
 Declarations.
@@ -74,9 +75,17 @@ void UWebSocketConnection::LowLevelSend(void* Data, int32 CountBytes, int32 Coun
 	{
 		const ProcessedPacket ProcessedData = Handler->Outgoing(reinterpret_cast<uint8*>(Data), CountBits);
 
-		DataToSend = ProcessedData.Data;
-		CountBytes = FMath::DivideAndRoundUp(ProcessedData.CountBits, 8);
-		CountBits = ProcessedData.CountBits;
+		if (!ProcessedData.bError)
+		{
+			DataToSend = ProcessedData.Data;
+			CountBytes = FMath::DivideAndRoundUp(ProcessedData.CountBits, 8);
+			CountBits = ProcessedData.CountBits;
+		}
+		else
+		{
+			CountBytes = 0;
+			CountBits = 0;
+		}
 	}
 
 	if ( CountBytes > MaxPacket )
@@ -151,7 +160,7 @@ void UWebSocketConnection::ReceivedRawPacket(void* Data,int32 Count)
 									Driver->ConnectionlessHandler->IncomingConnectionless(LowLevelGetRemoteAddress(true), DataRef, Count);
 	
 			TSharedPtr<StatelessConnectHandlerComponent> StatelessConnect = Driver->StatelessConnectComponent.Pin();
-			if (StatelessConnect->HasPassedChallenge(LowLevelGetRemoteAddress(true)))
+			if (!UnProcessedPacket.bError && StatelessConnect->HasPassedChallenge(LowLevelGetRemoteAddress(true)))
 			{
 				bChallengeHandshake = false; // i.e. bPassedChallenge
 				UE_LOG(LogNet, Warning, TEXT("UWebSocketConnection::bChallengeHandshake: %s"), *LowLevelDescribe());

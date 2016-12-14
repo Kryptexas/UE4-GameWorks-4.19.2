@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ShapeElem.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "PhysicsEngine/ShapeElem.h"
 #include "SphereElem.generated.h"
 
+class FMaterialRenderProxy;
 
 /** Sphere shape used for collision */
 USTRUCT()

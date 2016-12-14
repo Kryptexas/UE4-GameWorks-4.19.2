@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneSequence.h"
 #include "LevelSequenceObject.h"
 #include "LevelSequenceObjectReference.h"
 #include "LevelSequence.generated.h"
+
+class UMovieScene;
 
 /**
  * Movie scene animation for Actors.

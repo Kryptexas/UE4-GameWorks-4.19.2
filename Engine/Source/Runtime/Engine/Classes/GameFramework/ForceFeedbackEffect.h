@@ -1,7 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Curves/CurveFloat.h"
 #include "ForceFeedbackEffect.generated.h"
+
+class UForceFeedbackEffect;
+struct FForceFeedbackValues;
 
 USTRUCT()
 struct FForceFeedbackChannelDetails
@@ -62,6 +69,9 @@ struct ENGINE_API FActiveForceFeedbackEffect
 
 	// Updates the final force feedback values based on this effect.  Returns true if the effect should continue playing, false if it is finished.
 	bool Update(const float DeltaTime, struct FForceFeedbackValues& Values);
+
+	// Gets the current values at the stored play time
+	void GetValues(struct FForceFeedbackValues& Values) const;
 };
 
 /**
@@ -85,5 +95,5 @@ class UForceFeedbackEffect : public UObject
 
 	float GetDuration();
 
-	void GetValues(const float EvalTime, FForceFeedbackValues& Values) const;
+	void GetValues(const float EvalTime, FForceFeedbackValues& Values, float ValueMultiplier = 1.f) const;
 };

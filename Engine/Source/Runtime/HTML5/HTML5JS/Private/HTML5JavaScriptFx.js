@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 var UE_JavaScriptLibary = {
   UE_SendAndRecievePayLoad: function (url, indata, insize, outdataptr, outsizeptr) {

@@ -1,16 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	Texture2DPreview.h: Implementation for previewing 2D Textures and normal maps.
 ==============================================================================*/
 
-#include "UnrealEd.h"
 #include "Texture2DPreview.h"
-#include "SimpleElementShaders.h"
+#include "Shader.h"
 #include "GlobalShader.h"
-#include "ShaderParameters.h"
+#include "SimpleElementShaders.h"
 #include "ShaderParameterUtils.h"
-#include "RHIStaticStates.h"
 
 /*------------------------------------------------------------------------------
 	Batched element shaders for previewing 2d textures.

@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParllelFor.h: TaskGraph library
 =============================================================================*/
 
 #pragma once
-#include "TaskGraphInterfaces.h"
-#include "Function.h"
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/UnrealMathUtility.h"
+#include "Templates/Function.h"
+#include "Templates/SharedPointer.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "Misc/App.h"
 
 // struct to hold the working data; this outlives the ParallelFor call; lifetime is controlled by a shared pointer
 struct FParallelForData

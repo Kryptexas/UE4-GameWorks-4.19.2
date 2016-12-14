@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffectExecutionCalculation.h"
 #include "AbilitySystemComponent.h"
 
@@ -11,10 +10,11 @@ FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParamete
 {
 }
 
-FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedInTags)
+FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedInTags, const FPredictionKey& InPredictionKey)
 	: OwningSpec(&InOwningSpec)
 	, TargetAbilitySystemComponent(InTargetAbilityComponent)
 	, PassedInTags(InPassedInTags)
+	, PredictionKey(InPredictionKey)
 {
 	check(InOwningSpec.Def);
 
@@ -46,8 +46,8 @@ FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParamete
 	}
 }
 
-FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedInTags, const TArray<FActiveGameplayEffectHandle>& InIgnoreHandles)
-	: FGameplayEffectCustomExecutionParameters(InOwningSpec, InScopedMods, InTargetAbilityComponent, InPassedInTags)
+FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedInTags, const FPredictionKey& InPredictionKey, const TArray<FActiveGameplayEffectHandle>& InIgnoreHandles)
+	: FGameplayEffectCustomExecutionParameters(InOwningSpec, InScopedMods, InTargetAbilityComponent, InPassedInTags, InPredictionKey)
 {
 	IgnoreHandles = InIgnoreHandles;
 }
@@ -83,6 +83,11 @@ const FGameplayTagContainer& FGameplayEffectCustomExecutionParameters::GetPassed
 TArray<FActiveGameplayEffectHandle> FGameplayEffectCustomExecutionParameters::GetIgnoreHandles() const
 {
 	return IgnoreHandles;
+}
+	
+FPredictionKey FGameplayEffectCustomExecutionParameters::GetPredictionKey() const
+{
+	return PredictionKey;
 }
 
 bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttributeMagnitude(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const

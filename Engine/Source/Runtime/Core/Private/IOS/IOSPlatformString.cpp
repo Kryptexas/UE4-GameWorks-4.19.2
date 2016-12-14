@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformString.mm: Additional NSString methods
 =============================================================================*/
-#include "CorePrivatePCH.h"
+
+#include "IOSPlatformString.h"
+#include "IOSSystemIncludes.h"
+#include "UnrealString.h"
+#include "Containers/StringConv.h"
 
 @implementation NSString (FString_Extensions)
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __EdGraphCompilerUtilities_h__
@@ -6,9 +6,13 @@
 
 #pragma once
 
-#include "Engine.h"
-#include "BlueprintUtilities.h"
-#include "EdGraphUtilities.h"
+#include "CoreMinimal.h"
+#include "Templates/SubclassOf.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
+
+class FCompilerResultsLog;
+class UEdGraph;
 
 //////////////////////////////////////////////////////////////////////////
 

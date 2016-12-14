@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AudioDecompress.h: Unreal audio vorbis decompression interface object.
@@ -6,12 +6,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
 #include "Sound/SoundWave.h"
+#include "Misc/ScopeLock.h"
 
 // 186ms of 44.1KHz data
 // 372ms of 22KHz data
 #define MONO_PCM_BUFFER_SAMPLES		8192
 #define MONO_PCM_BUFFER_SIZE		( MONO_PCM_BUFFER_SAMPLES * sizeof( int16 ) )
+
+struct FSoundQualityInfo;
 
 /**
  * Interface class to decompress various types of audio data

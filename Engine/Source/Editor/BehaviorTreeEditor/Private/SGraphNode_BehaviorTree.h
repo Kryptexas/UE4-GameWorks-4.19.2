@@ -1,8 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Styling/SlateColor.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SNodePanel.h"
+#include "BehaviorTreeEditorTypes.h"
+#include "SGraphNode.h"
+#include "SGraphPin.h"
 #include "SGraphNodeAI.h"
+
+class SHorizontalBox;
+class SToolTip;
+class SVerticalBox;
+class UBehaviorTreeGraphNode;
 
 class SGraphNode_BehaviorTree : public SGraphNodeAI
 {

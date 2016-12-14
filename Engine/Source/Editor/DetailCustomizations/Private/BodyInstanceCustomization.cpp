@@ -1,11 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "BodyInstanceCustomization.h"
-#include "ScopedTransaction.h"
-#include "Editor/Documentation/Public/IDocumentation.h"
+#include "Components/SceneComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/ShapeComponent.h"
 #include "Engine/CollisionProfile.h"
-#include "SNumericEntryBox.h"
+#include "Components/DestructibleComponent.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "IDetailGroup.h"
+#include "IDetailChildrenBuilder.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
+#include "ScopedTransaction.h"
+#include "Widgets/SToolTip.h"
+#include "IDocumentation.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "ObjectEditorUtils.h"
@@ -304,9 +321,9 @@ TSharedPtr<FString> FBodyInstanceCustomization::GetProfileString(FName ProfileNa
 	{
 		for(int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
 		{
-			if(*CollisionProfileComboList[ProfileId+1].Get() == ProfileNameString)
+			if(*CollisionProfileComboList[ProfileId+GetNumberOfSpecialProfiles()].Get() == ProfileNameString)
 			{
-				return CollisionProfileComboList[ProfileId+1];
+				return CollisionProfileComboList[ProfileId+GetNumberOfSpecialProfiles()];
 			}
 		}
 	}
@@ -1528,26 +1545,7 @@ EVisibility FBodyInstanceCustomizationHelper::IsAutoWeldVisible() const
 
 void FBodyInstanceCustomizationHelper::OnSetBodyMass(float BodyMass, ETextCommit::Type Commit)
 {
-	UPrimitiveComponent* Comp = nullptr;
-	UBodySetup* BS = nullptr;
-	
-	FScopedTransaction SetBodyMassTransaction(FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), MassInKgOverrideHandle->GetPropertyDisplayName()));
-
-	MassInKgOverrideHandle->NotifyPreChange();
-	for (auto ObjectIt = ObjectsCustomized.CreateConstIterator(); ObjectIt; ++ObjectIt)
-	{
-		if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UPrimitiveComponent::StaticClass()))
-		{
-			Comp = Cast<UPrimitiveComponent>(ObjectIt->Get());
-			Comp->SetMassOverrideInKg(NAME_None, BodyMass);
-		}
-		else if (ObjectIt->IsValid() && (*ObjectIt)->IsA(UBodySetup::StaticClass()))
-		{
-			BS = Cast<UBodySetup>(ObjectIt->Get());
-			BS->DefaultInstance.SetMassOverride(BodyMass);
-		}
-	}
-	MassInKgOverrideHandle->NotifyPostChange();
+	MassInKgOverrideHandle->SetValue(BodyMass);
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,8 +7,15 @@
  *
  */
 
-#include "AnimationAsset.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/SmartName.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimCurveTypes.h"
 #include "PoseAsset.generated.h"
+
+class UAnimSequence;
+class USkeletalMeshComponent;
 
 /** 
  * Pose data 

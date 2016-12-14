@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Interfaces/IHttpResponse.h"
+#include "IHttpThreadedRequest.h"
+
+class FCurlHttpResponse;
+
 #if WITH_LIBCURL
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #endif
 	#include "curl/curl.h"

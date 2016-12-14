@@ -1,14 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 =============================================================================*/
-#include "EnginePrivate.h"
 #include "EngineUtils.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "Misc/EngineVersion.h"
+#include "GameFramework/PlayerController.h"
+#include "EngineGlobals.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
 #include "Engine/Console.h"
 
-#include "DiagnosticTable.h"
-#include "TargetPlatform.h"
-#include "SoundDefinitions.h"
+#include "ProfilingDebugging/DiagnosticTable.h"
+#include "Interfaces/ITargetPlatform.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngineUtils, Log, All);
 
@@ -397,7 +406,7 @@ TArray<FSubLevelStatus> GetSubLevelsStatus( UWorld* World )
 
 	for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 
 		if( PlayerController->GetPawn() != NULL )
 		{

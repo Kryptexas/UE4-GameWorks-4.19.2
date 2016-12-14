@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "Widgets/Notifications/SProgressBar.h"
+#include "Rendering/DrawElements.h"
 
 
 void SProgressBar::Construct( const FArguments& InArgs )

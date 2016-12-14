@@ -1,21 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "WidgetComponent.h"
-#include "HittestGrid.h"
-#if !UE_SERVER
-	#include "ISlateRHIRendererModule.h"
-	#include "ISlate3DRenderer.h"
-#endif // !UE_SERVER
+#include "Components/WidgetComponent.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EngineGlobals.h"
+#include "MaterialShared.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/Engine.h"
+#include "Widgets/SWindow.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Input/HittestGrid.h"
+#include "SceneManagement.h"
 #include "DynamicMeshBuilder.h"
-#include "Scalability.h"
-#include "WidgetLayoutLibrary.h"
+#include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "SGameLayerManager.h"
+#include "Slate/SGameLayerManager.h"
 #include "Slate/WidgetRenderer.h"
 #include "Slate/SWorldWidgetScreenLayer.h"
-#include "Widgets/LayerManager/STooltipPresenter.h"
-#include "Widgets/Layout/SPopup.h"
+#include "SViewport.h"
 
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
 
@@ -92,6 +97,173 @@ private:
 };
 
 
+
+
+/**
+* The hit tester used by all Widget Component objects.
+*/
+class FWidget3DHitTester : public ICustomHitTestPath
+{
+public:
+	FWidget3DHitTester( UWorld* InWorld )
+		: World( InWorld )
+		, CachedFrame(-1)
+	{}
+
+	// ICustomHitTestPath implementation
+	virtual TArray<FWidgetAndPointer> GetBubblePathAndVirtualCursors(const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus) const override
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Slate3DHitTesting);
+
+		if( World.IsValid() /*&& ensure( World->IsGameWorld() )*/ )
+		{
+			UWorld* SafeWorld = World.Get();
+			if ( SafeWorld )
+			{
+				ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(SafeWorld, 0);
+
+				if( TargetPlayer && TargetPlayer->PlayerController )
+				{
+					FVector2D LocalMouseCoordinate = InGeometry.AbsoluteToLocal(DesktopSpaceCoordinate) * InGeometry.Scale;
+
+					if ( UPrimitiveComponent* HitComponent = GetHitResultAtScreenPositionAndCache(TargetPlayer->PlayerController, LocalMouseCoordinate) )
+					{
+						if ( UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>(HitComponent) )
+						{
+							if ( WidgetComponent->GetReceiveHardwareInput() )
+							{
+								if ( WidgetComponent->GetDrawSize().X != 0 && WidgetComponent->GetDrawSize().Y != 0 )
+								{
+									// Get the "forward" vector based on the current rotation system.
+									const FVector ForwardVector = WidgetComponent->GetForwardVector();
+
+									// Make sure the player is interacting with the front of the widget
+									if ( FVector::DotProduct(ForwardVector, CachedHitResult.ImpactPoint - CachedHitResult.TraceStart) < 0.f )
+									{
+										return WidgetComponent->GetHitWidgetPath(CachedHitResult.Location, bIgnoreEnabledStatus);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return TArray<FWidgetAndPointer>();
+	}
+
+	virtual void ArrangeChildren( FArrangedChildren& ArrangedChildren ) const override
+	{
+		for( TWeakObjectPtr<UWidgetComponent> Component : RegisteredComponents )
+		{
+			UWidgetComponent* WidgetComponent = Component.Get();
+			// Check if visible;
+			if ( WidgetComponent && WidgetComponent->GetSlateWindow().IsValid() )
+			{
+				FGeometry WidgetGeom;
+
+				ArrangedChildren.AddWidget( FArrangedWidget( WidgetComponent->GetSlateWindow().ToSharedRef(), WidgetGeom.MakeChild( WidgetComponent->GetDrawSize(), FSlateLayoutTransform() ) ) );
+			}
+		}
+	}
+
+	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const override
+	{
+		if ( World.IsValid() && ensure(World->IsGameWorld()) )
+		{
+			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(World.Get(), 0);
+			if ( TargetPlayer && TargetPlayer->PlayerController )
+			{
+				FVector2D LocalMouseCoordinate = ViewportGeometry.AbsoluteToLocal(ScreenSpaceMouseCoordinate) * ViewportGeometry.Scale;
+
+				// Check for a hit against any widget components in the world
+				for ( TWeakObjectPtr<UWidgetComponent> Component : RegisteredComponents )
+				{
+					UWidgetComponent* WidgetComponent = Component.Get();
+					// Check if visible;
+					if ( WidgetComponent && WidgetComponent->GetSlateWindow() == ChildWidget )
+					{
+						if ( UPrimitiveComponent* HitComponent = GetHitResultAtScreenPositionAndCache(TargetPlayer->PlayerController, LocalMouseCoordinate) )
+						{
+							if ( WidgetComponent->GetReceiveHardwareInput() )
+							{
+								if ( WidgetComponent->GetDrawSize().X != 0 && WidgetComponent->GetDrawSize().Y != 0 )
+								{
+									if ( WidgetComponent == HitComponent )
+									{
+										TSharedPtr<FVirtualPointerPosition> VirtualCursorPos = MakeShareable(new FVirtualPointerPosition);
+
+										FVector2D LocalHitLocation;
+										WidgetComponent->GetLocalHitLocation(CachedHitResult.Location, LocalHitLocation);
+
+										VirtualCursorPos->CurrentCursorPosition = LocalHitLocation;
+										VirtualCursorPos->LastCursorPosition = LocalHitLocation;
+
+										return VirtualCursorPos;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return nullptr;
+	}
+	// End ICustomHitTestPath
+
+	UPrimitiveComponent* GetHitResultAtScreenPositionAndCache(APlayerController* PlayerController, FVector2D ScreenPosition) const
+	{
+		UPrimitiveComponent* HitComponent = nullptr;
+
+		if ( GFrameNumber != CachedFrame || CachedScreenPosition != ScreenPosition )
+		{
+			CachedFrame = GFrameNumber;
+			CachedScreenPosition = ScreenPosition;
+
+			if ( PlayerController )
+			{
+				if ( PlayerController->GetHitResultAtScreenPosition(ScreenPosition, ECC_Visibility, true, CachedHitResult) )
+				{
+					return CachedHitResult.Component.Get();
+				}
+			}
+		}
+		else
+		{
+			return CachedHitResult.Component.Get();
+		}
+
+		return nullptr;
+	}
+
+	void RegisterWidgetComponent( UWidgetComponent* InComponent )
+	{
+		RegisteredComponents.AddUnique( InComponent );
+	}
+
+	void UnregisterWidgetComponent( UWidgetComponent* InComponent )
+	{
+		RegisteredComponents.RemoveSingleSwap( InComponent );
+	}
+
+	uint32 GetNumRegisteredComponents() const { return RegisteredComponents.Num(); }
+	
+	UWorld* GetWorld() const { return World.Get(); }
+
+private:
+	TArray< TWeakObjectPtr<UWidgetComponent> > RegisteredComponents;
+	TWeakObjectPtr<UWorld> World;
+
+	mutable int64 CachedFrame;
+	mutable FVector2D CachedScreenPosition;
+	mutable FHitResult CachedHitResult;
+};
+
+
+
 /** Represents a billboard sprite to the scene manager. */
 class FWidget3DSceneProxy : public FPrimitiveSceneProxy
 {
@@ -105,6 +277,8 @@ public:
 		, MaterialInstance( InComponent->GetMaterialInstance() )
 		, BodySetup( InComponent->GetBodySetup() )
 		, BlendMode( InComponent->GetBlendMode() )
+		, GeometryMode(InComponent->GetGeometryMode())
+		, ArcAngle(FMath::DegreesToRadians(InComponent->GetCylinderArcAngle()))
 	{
 		bWillEverBeLit = false;
 
@@ -124,48 +298,130 @@ public:
 
 		Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
 
-		FMaterialRenderProxy* MaterialProxy = nullptr;
+		FMaterialRenderProxy* ParentMaterialProxy = nullptr;
 		if ( bWireframe )
 		{
-			MaterialProxy = WireframeMaterialInstance;
+			ParentMaterialProxy = WireframeMaterialInstance;
 		}
 		else
 		{
-			MaterialProxy = MaterialInstance->GetRenderProxy(IsSelected());
+			ParentMaterialProxy = MaterialInstance->GetRenderProxy(IsSelected());
 		}
 #else
-		FMaterialRenderProxy* MaterialProxy = MaterialInstance->GetRenderProxy(IsSelected());
+		FMaterialRenderProxy* ParentMaterialProxy = MaterialInstance->GetRenderProxy(IsSelected());
 #endif
 
-		const FMatrix& ViewportLocalToWorld = GetLocalToWorld();
+		//FSpriteTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FSpriteTextureOverrideRenderProxy(ParentMaterialProxy,
 
+		const FMatrix& ViewportLocalToWorld = GetLocalToWorld();
+	
 		if( RenderTarget )
 		{
 			FTextureResource* TextureResource = RenderTarget->Resource;
 			if ( TextureResource )
 			{
-				float U = -RenderTarget->SizeX * Pivot.X;
-				float V = -RenderTarget->SizeY * Pivot.Y;
-				float UL = RenderTarget->SizeX * ( 1.0f - Pivot.X );
-				float VL = RenderTarget->SizeY * ( 1.0f - Pivot.Y );
-
-				int32 VertexIndices[4];
-
-				for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
+				if (GeometryMode == EWidgetGeometryMode::Plane)
 				{
-					FDynamicMeshBuilder MeshBuilder;
+					float U = -RenderTarget->SizeX * Pivot.X;
+					float V = -RenderTarget->SizeY * Pivot.Y;
+					float UL = RenderTarget->SizeX * (1.0f - Pivot.X);
+					float VL = RenderTarget->SizeY * (1.0f - Pivot.Y);
 
-					if ( VisibilityMap & ( 1 << ViewIndex ) )
+					int32 VertexIndices[4];
+
+					for ( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 					{
-						VertexIndices[0] = MeshBuilder.AddVertex(-FVector(0, U, V), FVector2D(0, 0), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
-						VertexIndices[1] = MeshBuilder.AddVertex(-FVector(0, U, VL), FVector2D(0, 1), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
-						VertexIndices[2] = MeshBuilder.AddVertex(-FVector(0, UL, VL), FVector2D(1, 1), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
-						VertexIndices[3] = MeshBuilder.AddVertex(-FVector(0, UL, V), FVector2D(1, 0), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor::White);
+						FDynamicMeshBuilder MeshBuilder;
 
-						MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[1], VertexIndices[2]);
-						MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[2], VertexIndices[3]);
+						if ( VisibilityMap & ( 1 << ViewIndex ) )
+						{
+							VertexIndices[0] = MeshBuilder.AddVertex(-FVector(0, U, V ),  FVector2D(0, 0), FVector(0, -1, 0), FVector(0, 0, -1), FVector(1, 0, 0), FColor::White);
+							VertexIndices[1] = MeshBuilder.AddVertex(-FVector(0, U, VL),  FVector2D(0, 1), FVector(0, -1, 0), FVector(0, 0, -1), FVector(1, 0, 0), FColor::White);
+							VertexIndices[2] = MeshBuilder.AddVertex(-FVector(0, UL, VL), FVector2D(1, 1), FVector(0, -1, 0), FVector(0, 0, -1), FVector(1, 0, 0), FColor::White);
+							VertexIndices[3] = MeshBuilder.AddVertex(-FVector(0, UL, V),  FVector2D(1, 0), FVector(0, -1, 0), FVector(0, 0, -1), FVector(1, 0, 0), FColor::White);
 
-						MeshBuilder.GetMesh(ViewportLocalToWorld, MaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
+							MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[1], VertexIndices[2]);
+							MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[2], VertexIndices[3]);
+
+							MeshBuilder.GetMesh(ViewportLocalToWorld, ParentMaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
+						}
+					}
+				}
+				else
+				{
+					ensure(GeometryMode == EWidgetGeometryMode::Cylinder);
+
+					const int32 NumSegments = FMath::Lerp(4, 32, ArcAngle/PI);
+
+
+					const float Radius = RenderTarget->SizeX / ArcAngle;
+					const float Apothem = Radius * FMath::Cos(0.5f*ArcAngle);
+					const float ChordLength = 2.0f * Radius * FMath::Sin(0.5f*ArcAngle);
+					
+					const float PivotOffsetX = ChordLength * (0.5-Pivot.X);
+					const float V = -RenderTarget->SizeY * Pivot.Y;
+					const float VL = RenderTarget->SizeY * (1.0f - Pivot.Y);
+
+					int32 VertexIndices[4];
+
+					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+					{
+						FDynamicMeshBuilder MeshBuilder;
+
+						if (VisibilityMap & (1 << ViewIndex))
+						{
+							const float RadiansPerStep = ArcAngle / NumSegments;
+
+							FVector LastTangentX;
+							FVector LastTangentY;
+							FVector LastTangentZ;
+
+							for (int32 Segment = 0; Segment < NumSegments; Segment++ )
+							{
+								const float Angle = -ArcAngle / 2 + Segment * RadiansPerStep;
+								const float NextAngle = Angle + RadiansPerStep;
+								
+								// Polar to Cartesian
+								const float X0 = Radius * FMath::Cos(Angle) - Apothem;
+								const float Y0 = Radius * FMath::Sin(Angle);
+								const float X1 = Radius * FMath::Cos(NextAngle) - Apothem;
+								const float Y1 = Radius * FMath::Sin(NextAngle);
+
+								const float U0 = static_cast<float>(Segment) / NumSegments;
+								const float U1 = static_cast<float>(Segment+1) / NumSegments;
+
+								const FVector Vertex0 = -FVector(X0, PivotOffsetX + Y0, V);
+								const FVector Vertex1 = -FVector(X0, PivotOffsetX + Y0, VL);
+								const FVector Vertex2 = -FVector(X1, PivotOffsetX + Y1, VL);
+								const FVector Vertex3 = -FVector(X1, PivotOffsetX + Y1, V);
+
+								FVector TangentX = Vertex3 - Vertex0;
+								TangentX.Normalize();
+								FVector TangentY = Vertex1 - Vertex0;
+								TangentY.Normalize();
+								FVector TangentZ = FVector::CrossProduct(TangentX, TangentY);
+
+								if (Segment == 0)
+								{
+									LastTangentX = TangentX;
+									LastTangentY = TangentY;
+									LastTangentZ = TangentZ;
+								}
+
+								VertexIndices[0] = MeshBuilder.AddVertex(Vertex0, FVector2D(U0, 0), LastTangentX, LastTangentY, LastTangentZ, FColor::White);
+								VertexIndices[1] = MeshBuilder.AddVertex(Vertex1, FVector2D(U0, 1), LastTangentX, LastTangentY, LastTangentZ, FColor::White);
+								VertexIndices[2] = MeshBuilder.AddVertex(Vertex2, FVector2D(U1, 1), TangentX, TangentY, TangentZ, FColor::White);
+								VertexIndices[3] = MeshBuilder.AddVertex(Vertex3, FVector2D(U1, 0), TangentX, TangentY, TangentZ, FColor::White);
+
+								MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[1], VertexIndices[2]);
+								MeshBuilder.AddTriangle(VertexIndices[0], VertexIndices[2], VertexIndices[3]);
+
+								LastTangentX = TangentX;
+								LastTangentY = TangentY;
+								LastTangentZ = TangentZ;
+							}
+							MeshBuilder.GetMesh(ViewportLocalToWorld, ParentMaterialProxy, SDPG_World, false, true, ViewIndex, Collector);
+						}
 					}
 				}
 			}
@@ -277,6 +533,8 @@ private:
 	FMaterialRelevance MaterialRelevance;
 	UBodySetup* BodySetup;
 	EWidgetBlendMode BlendMode;
+	EWidgetGeometryMode GeometryMode;
+	float ArcAngle;
 };
 
 
@@ -291,6 +549,7 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	, bRedrawRequested(true)
 	, RedrawTime(0)
 	, LastWidgetRenderTime(0)
+	, bReceiveHardwareInput(false)
 	, bWindowFocusable(true)
 	, BackgroundColor( FLinearColor::Transparent )
 	, TintColorAndOpacity( FLinearColor::White )
@@ -300,6 +559,8 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	, TickWhenOffscreen( false )
 	, SharedLayerName(TEXT("WidgetComponentScreenLayer"))
 	, LayerZOrder(-100)
+	, GeometryMode(EWidgetGeometryMode::Plane)
+	, CylinderArcAngle( 180.0f )
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
@@ -429,6 +690,12 @@ void UWidgetComponent::OnRegister()
 	{
 		if ( Space != EWidgetSpace::Screen )
 		{
+			if ( bReceiveHardwareInput && GetWorld()->IsGameWorld() )
+			{
+				TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
+				RegisterHitTesterWithViewport(GameViewportWidget);
+			}
+
 			if ( !WidgetRenderer.IsValid() && !GUsingNullRHI )
 			{
 				WidgetRenderer = MakeShareable(new FWidgetRenderer());
@@ -442,8 +709,62 @@ void UWidgetComponent::OnRegister()
 #endif // !UE_SERVER
 }
 
+void UWidgetComponent::RegisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
+{
+#if !UE_SERVER
+	if ( ViewportWidget.IsValid() )
+	{
+		TSharedPtr<ICustomHitTestPath> CustomHitTestPath = ViewportWidget->GetCustomHitTestPath();
+		if ( !CustomHitTestPath.IsValid() )
+		{
+			CustomHitTestPath = MakeShareable(new FWidget3DHitTester(GetWorld()));
+			ViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
+		}
+
+		TSharedPtr<FWidget3DHitTester> Widget3DHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+		if ( Widget3DHitTester->GetWorld() == GetWorld() )
+		{
+			Widget3DHitTester->RegisterWidgetComponent(this);
+		}
+	}
+#endif
+
+}
+
+void UWidgetComponent::UnregisterHitTesterWithViewport(TSharedPtr<SViewport> ViewportWidget)
+{
+#if !UE_SERVER
+	if ( bReceiveHardwareInput )
+	{
+		TSharedPtr<ICustomHitTestPath> CustomHitTestPath = ViewportWidget->GetCustomHitTestPath();
+		if ( CustomHitTestPath.IsValid() )
+		{
+			TSharedPtr<FWidget3DHitTester> WidgetHitTestPath = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+
+			WidgetHitTestPath->UnregisterWidgetComponent(this);
+
+			if ( WidgetHitTestPath->GetNumRegisteredComponents() == 0 )
+			{
+				ViewportWidget->SetCustomHitTestPath(nullptr);
+			}
+		}
+	}
+#endif
+}
+
 void UWidgetComponent::OnUnregister()
 {
+#if !UE_SERVER
+	if ( GetWorld()->IsGameWorld() )
+	{
+		TSharedPtr<SViewport> GameViewportWidget = GEngine->GetGameViewportWidget();
+		if ( GameViewportWidget.IsValid() )
+		{
+			UnregisterHitTesterWithViewport(GameViewportWidget);
+		}
+	}
+#endif
+
 #if WITH_EDITOR
 	if (!GetWorld()->IsGameWorld())
 	{
@@ -479,7 +800,7 @@ void UWidgetComponent::RegisterWindow()
 {
 	if ( SlateWindow.IsValid() )
 	{
-		if ( FSlateApplication::IsInitialized() )
+		if (!bReceiveHardwareInput && FSlateApplication::IsInitialized() )
 		{
 			FSlateApplication::Get().RegisterVirtualWindow(SlateWindow.ToSharedRef());
 		}
@@ -490,7 +811,7 @@ void UWidgetComponent::UnregisterWindow()
 {
 	if ( SlateWindow.IsValid() )
 	{
-		if ( FSlateApplication::IsInitialized() )
+		if ( !bReceiveHardwareInput && FSlateApplication::IsInitialized() )
 		{
 			FSlateApplication::Get().UnregisterVirtualWindow(SlateWindow.ToSharedRef());
 		}
@@ -517,7 +838,11 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	    {
 			if ( ShouldDrawWidget() )
 		    {
-			    DrawWidgetToRenderTarget(DeltaTime);
+				// Calculate the actual delta time since we last drew, this handles the case where we're ticking when
+				// the world is paused, this also takes care of the case where the widget component is rendering at
+				// a different rate than the rest of the world.
+				const float DeltaTimeFromLastDraw = LastWidgetRenderTime == 0 ? 0 : (FApp::GetCurrentTime() - LastWidgetRenderTime );
+			    DrawWidgetToRenderTarget(DeltaTimeFromLastDraw);
 		    }
 	    }
 	    else
@@ -583,7 +908,7 @@ bool UWidgetComponent::ShouldDrawWidget() const
 		// If we don't tick when off-screen, don't bother ticking if it hasn't been rendered recently
 		if ( TickWhenOffscreen || GetWorld()->TimeSince(LastRenderTime) <= RenderTimeThreshold )
 		{
-			if ( GetWorld()->TimeSince(LastWidgetRenderTime) >= RedrawTime )
+			if ( ( FApp::GetCurrentTime() - LastWidgetRenderTime) >= RedrawTime )
 			{
 				return bManuallyRedraw ? bRedrawRequested : true;
 			}
@@ -650,7 +975,25 @@ void UWidgetComponent::DrawWidgetToRenderTarget(float DeltaTime)
 		CurrentDrawSize,
 		DeltaTime);
 
-	LastWidgetRenderTime = GetWorld()->TimeSeconds;
+	LastWidgetRenderTime = FApp::GetCurrentTime();
+}
+
+float UWidgetComponent::ComputeComponentWidth() const
+{
+	switch (GeometryMode)
+	{
+		default:
+		case EWidgetGeometryMode::Plane:
+			return DrawSize.X;
+		break;
+
+		case EWidgetGeometryMode::Cylinder:
+			const float ArcAngleRadians = FMath::DegreesToRadians(GetCylinderArcAngle());
+			const float Radius = GetDrawSize().X / ArcAngleRadians;
+			// Chord length is 2*R*Sin(Theta/2)
+			return 2.0f * Radius * FMath::Sin(0.5f*ArcAngleRadians);
+		break;
+	}
 }
 
 void UWidgetComponent::RemoveWidgetFromScreen()
@@ -726,12 +1069,20 @@ void UWidgetComponent::ApplyComponentInstanceData(FWidgetComponentInstanceData* 
 	}
 
 	RenderTarget = WidgetInstanceData->RenderTarget;
-	if( MaterialInstance && RenderTarget )
+	if ( MaterialInstance && RenderTarget )
 	{
 		MaterialInstance->SetTextureParameterValue("SlateUI", RenderTarget);
 	}
 
 	MarkRenderStateDirty();
+}
+
+void UWidgetComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const
+{
+	if (MaterialInstance)
+	{
+		OutMaterials.AddUnique(MaterialInstance);
+	}
 }
 
 #if WITH_EDITORONLY_DATA
@@ -751,6 +1102,8 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 		static FName OpacityFromTextureName("OpacityFromTexture");
 		static FName ParabolaDistortionName(TEXT("ParabolaDistortion"));
 		static FName BlendModeName( TEXT( "BlendMode" ) );
+		static FName GeometryModeName( TEXT("GeometryMode") );
+		static FName CylinderArcAngleName( TEXT("CylinderArcAngle") );
 
 		auto PropertyName = Property->GetFName();
 
@@ -761,7 +1114,7 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 			UpdateWidget();
 			MarkRenderStateDirty();
 		}
-		else if ( PropertyName == DrawSizeName || PropertyName == PivotName )
+		else if ( PropertyName == DrawSizeName || PropertyName == PivotName || PropertyName == GeometryModeName || PropertyName == CylinderArcAngleName )
 		{
 			MarkRenderStateDirty();
 			UpdateBodySetup(true);
@@ -1000,6 +1353,11 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 		FVector Origin = FVector(.5f,
 			-( DrawSize.X * 0.5f ) + ( DrawSize.X * Pivot.X ),
 			-( DrawSize.Y * 0.5f ) + ( DrawSize.Y * Pivot.Y ));
+			const float Width = ComputeComponentWidth();
+			const float Height = DrawSize.Y;
+			Origin = FVector(.5f,
+				-( Width * 0.5f ) + ( Width * Pivot.X ),
+				-( Height * 0.5f ) + ( Height * Pivot.Y ));
 			
 		BoxElem->X = 0.01f;
 		BoxElem->Y = DrawSize.X;
@@ -1012,6 +1370,8 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 
 void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalWidgetHitLocation) const
 {
+	ensureMsgf(GeometryMode == EWidgetGeometryMode::Plane, TEXT("Method does not support non-planar widgets."));
+
 	// Find the hit location on the component
 	FVector ComponentHitLocation = ComponentToWorld.InverseTransformPosition(WorldHitLocation);
 
@@ -1026,6 +1386,121 @@ void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& 
 	FVector2D NormalizedLocation = OutLocalWidgetHitLocation / CurrentDrawSize;
 
 	OutLocalWidgetHitLocation.Y = CurrentDrawSize.Y * NormalizedLocation.Y;
+}
+
+
+TOptional<float> FindLineSphereIntersection(const FVector& Start, const FVector& Dir, float Radius)
+{
+	// Solution exist at two possible locations:
+	// (Start + Dir * t) (dot) (Start + Dir * t) = Radius^2
+	// Dir(dot)Dir*t^2 + 2*Start(dot)Dir + Start(dot)Start - Radius^2 = 0
+	//
+	// Recognize quadratic form with:
+	const float a = FVector::DotProduct(Dir,Dir);
+	const float b = 2 * FVector::DotProduct(Start,Dir);
+	const float c = FVector::DotProduct(Start,Start) - Radius*Radius;
+
+	const float Discriminant = b*b - 4 * a * c;
+	
+	if (Discriminant >= 0)
+	{
+		const float SqrtDiscr = FMath::Sqrt(Discriminant);
+		const float Soln1 = (-b + SqrtDiscr) / (2 * a);
+
+		return Soln1;
+	}
+	else
+	{
+		return TOptional<float>();
+	}
+}
+
+TTuple<FVector, FVector2D> UWidgetComponent::GetCylinderHitLocation(FVector WorldHitLocation, FVector WorldHitDirection) const
+{
+	// Turn this on to see a visualiztion of cylindrical collision testing.
+	static const bool bDrawCollisionDebug = false;
+
+	ensure(GeometryMode == EWidgetGeometryMode::Cylinder);
+		
+
+	FTransform ToWorld = GetComponentToWorld();
+
+	const FVector HitLocation_ComponentSpace = ComponentToWorld.InverseTransformPosition(WorldHitLocation);
+	const FVector HitDirection_ComponentSpace = ComponentToWorld.InverseTransformVector(WorldHitDirection);
+
+
+	const float ArcAngleRadians = FMath::DegreesToRadians(GetCylinderArcAngle());
+	const float Radius = GetDrawSize().X / ArcAngleRadians;
+	const float Apothem = Radius * FMath::Cos(0.5f*ArcAngleRadians);
+	const float ChordLength = 2.0f * Radius * FMath::Sin(0.5f*ArcAngleRadians);
+
+	const float PivotOffsetX = ChordLength * (0.5-Pivot.X);
+
+	if (bDrawCollisionDebug)
+	{
+		// Draw component-space axes
+		UKismetSystemLibrary::DrawDebugArrow((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector::ZeroVector), ToWorld.TransformPosition(FVector(50.f, 0, 0)), 2.0f, FLinearColor::Red);
+		UKismetSystemLibrary::DrawDebugArrow((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector::ZeroVector), ToWorld.TransformPosition(FVector(0, 50.f, 0)), 2.0f, FLinearColor::Green);
+		UKismetSystemLibrary::DrawDebugArrow((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector::ZeroVector), ToWorld.TransformPosition(FVector(0, 0, 50.f)), 2.0f, FLinearColor::Blue);
+
+		// Draw the imaginary circle which we use to describe the cylinder.
+		// Note that we transform all the hit locations into a space where the circle's origin is at (0,0).
+		UKismetSystemLibrary::DrawDebugCircle((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector::ZeroVector), ToWorld.GetScale3D().X*Radius, 64, FLinearColor::Green,
+			0, 1.0f, FVector(0, 1, 0), FVector(1, 0, 0));
+		UKismetSystemLibrary::DrawDebugLine((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector(-Apothem, -Radius, 0.0f)), ToWorld.TransformPosition(FVector(-Apothem, +Radius, 0.0f)), FLinearColor::Green);
+	}
+
+	const FVector HitLocation_CircleSpace( -Apothem, HitLocation_ComponentSpace.Y + PivotOffsetX, 0.0f );
+	const FVector HitDirection_CircleSpace( HitDirection_ComponentSpace.X, HitDirection_ComponentSpace.Y, 0.0f );
+
+	// DRAW HIT DIRECTION
+	if (bDrawCollisionDebug)
+	{
+		UKismetSystemLibrary::DrawDebugCircle((UWidgetComponent*)(this), ToWorld.TransformPosition(FVector(HitLocation_CircleSpace.X, HitLocation_CircleSpace.Y,0)), 2.0f);
+		FVector HitDirection_CircleSpace_Normalized = HitDirection_CircleSpace;
+		HitDirection_CircleSpace_Normalized.Normalize();
+		HitDirection_CircleSpace_Normalized *= 40;
+		UKismetSystemLibrary::DrawDebugLine(
+			(UWidgetComponent*)(this),
+			ToWorld.TransformPosition(FVector(HitLocation_CircleSpace.X, HitLocation_CircleSpace.Y, 0.0f)),
+			ToWorld.TransformPosition(FVector(HitLocation_CircleSpace.X + HitDirection_CircleSpace_Normalized.X, HitLocation_CircleSpace.Y + HitDirection_CircleSpace_Normalized.Y, 0.0f)),
+			FLinearColor::White, 0, 0.1f);
+	}
+
+	// Perform a ray vs. circle intersection test (effectively in 2D because Z coordinate is always 0)
+	const TOptional<float> Solution = FindLineSphereIntersection(HitLocation_CircleSpace, HitDirection_CircleSpace, Radius);
+	if (Solution.IsSet())
+	{
+		const float Time = Solution.GetValue();
+
+		const FVector TrueHitLocation_CircleSpace = HitLocation_CircleSpace + HitDirection_CircleSpace * Time;
+		if (bDrawCollisionDebug)
+		{
+			UKismetSystemLibrary::DrawDebugLine((UWidgetComponent*)(this),
+				ToWorld.TransformPosition(FVector(HitLocation_CircleSpace.X, HitLocation_CircleSpace.Y, 0.0f)),
+				ToWorld.TransformPosition(FVector(TrueHitLocation_CircleSpace.X, TrueHitLocation_CircleSpace.Y, 0.0f)),
+				FLinearColor(1, 0, 1, 1), 0, 0.5f);
+		 }
+			
+		// Determine the widget-space X hit coordinate.
+		const float Endpoint1 = FMath::Fmod(FMath::Atan2(-0.5f*ChordLength, -Apothem) + 2*PI, 2*PI);
+		const float Endpoint2 = FMath::Fmod(FMath::Atan2(+0.5f*ChordLength, -Apothem) + 2*PI, 2*PI);
+		const float HitAngleRads = FMath::Fmod(FMath::Atan2(TrueHitLocation_CircleSpace.Y, TrueHitLocation_CircleSpace.X) + 2*PI, 2*PI);
+		const float HitAngleZeroToOne = (HitAngleRads - FMath::Min(Endpoint1, Endpoint2)) / FMath::Abs(Endpoint2 - Endpoint1);
+
+
+		// Determine the widget-space Y hit coordinate
+		const FVector CylinderHitLocation_ComponentSpace = HitLocation_ComponentSpace + HitDirection_ComponentSpace*Time;
+		const float YHitLocation = (-CylinderHitLocation_ComponentSpace.Z + CurrentDrawSize.Y*Pivot.Y);
+
+		const FVector2D WidgetSpaceHitCoord = FVector2D(HitAngleZeroToOne * CurrentDrawSize.X, YHitLocation);
+			
+		return MakeTuple(ComponentToWorld.TransformPosition(CylinderHitLocation_ComponentSpace), WidgetSpaceHitCoord);
+	}
+	else
+	{
+		return MakeTuple(FVector::ZeroVector, FVector2D::ZeroVector);
+	}
 }
 
 UUserWidget* UWidgetComponent::GetUserWidgetObject() const
@@ -1050,10 +1525,20 @@ const TSharedPtr<SWidget>& UWidgetComponent::GetSlateWidget() const
 
 TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(FVector WorldHitLocation, bool bIgnoreEnabledStatus, float CursorRadius)
 {
+	ensure(GeometryMode == EWidgetGeometryMode::Plane);
+
 	FVector2D LocalHitLocation;
 	GetLocalHitLocation(WorldHitLocation, LocalHitLocation);
 
-	TSharedRef<FVirtualPointerPosition> VirtualMouseCoordinate = MakeShareable( new FVirtualPointerPosition );
+	return GetHitWidgetPath(LocalHitLocation, bIgnoreEnabledStatus, CursorRadius);
+}
+
+
+TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(FVector2D WidgetSpaceHitCoordinate, bool bIgnoreEnabledStatus, float CursorRadius /*= 0.0f*/)
+{
+	TSharedRef<FVirtualPointerPosition> VirtualMouseCoordinate = MakeShareable(new FVirtualPointerPosition);
+
+	const FVector2D& LocalHitLocation = WidgetSpaceHitCoordinate;
 
 	VirtualMouseCoordinate->CurrentCursorPosition = LocalHitLocation;
 	VirtualMouseCoordinate->LastCursorPosition = LastLocalHitLocation;

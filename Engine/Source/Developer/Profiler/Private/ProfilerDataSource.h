@@ -1,15 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSingleton.h"
+#include "Containers/ChunkedArray.h"
+#include "Misc/Guid.h"
+#include "ProfilerCommon.h"
 #include "ProfilerSample.h"
 
-
+class FEventGraphData;
+class FEventGraphSample;
 class FProfilerAggregatedStat;
-class FGraphDataSource;
 class FProfilerSession;
 class IDataProvider;
-
 
 /** Type definition for shared pointers to instances of FEventGraphSample. */
 typedef TSharedPtr<class FEventGraphSample> FEventGraphSamplePtr;

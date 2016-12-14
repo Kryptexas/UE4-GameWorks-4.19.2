@@ -1,22 +1,43 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerVMBackend.cpp
 =============================================================================*/
 
-#include "KismetCompilerPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "UObject/Script.h"
+#include "UObject/ObjectMacros.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/Class.h"
+#include "UObject/AssetPtr.h"
+#include "UObject/Interface.h"
+#include "UObject/UnrealType.h"
+#include "UObject/TextProperty.h"
+#include "Internationalization/TextNamespaceUtil.h"
+#include "UObject/PropertyPortFlags.h"
+#include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/LatentActionManager.h"
+#include "Engine/UserDefinedStruct.h"
+#include "BPTerminal.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_MacroInstance.h"
+#include "BlueprintCompiledStatement.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "KismetCompiledFunctionContext.h"
+#include "Misc/FeedbackContext.h"
 
+#include "KismetCompilerMisc.h"
 #include "KismetCompilerBackend.h"
 
-#include "DefaultValueHelper.h"
+#include "Misc/DefaultValueHelper.h"
 
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Engine/UserDefinedStruct.h"
+#include "Kismet2/StructureEditorUtils.h"
+#include "Kismet2/KismetDebugUtilities.h"
 
-#include "TextPackageNamespaceUtil.h"
-#include "BlueprintEditorUtils.h"
+#include "Internationalization/TextPackageNamespaceUtil.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "KismetCompilerVMBackend"
 //////////////////////////////////////////////////////////////////////////
@@ -455,7 +476,7 @@ public:
 		{
 			if (Property)
 			{
-				return Property->IsA<UByteProperty>();
+				return Property->IsA<UByteProperty>() || (Property->IsA<UEnumProperty>() && static_cast<const UEnumProperty*>(Property)->GetUnderlyingProperty()->IsA<UByteProperty>());
 			}
 			return Type && ((Type->PinCategory == UEdGraphSchema_K2::PC_Byte) || (Type->PinCategory == UEdGraphSchema_K2::PC_Enum));
 		}
@@ -659,14 +680,14 @@ public:
 			else if (FLiteralTypeHelper::IsInt64(&Term->Type, CoerceProperty))
 			{
 				int64 Value = 0;
-				LexicalConversion::FromString(Value, *(Term->Name));
+				Lex::FromString(Value, *(Term->Name));
 				Writer << EX_Int64Const;
 				Writer << Value;
 			}
 			else if (FLiteralTypeHelper::IsUInt64(&Term->Type, CoerceProperty))
 			{
 				uint64 Value = 0;
-				LexicalConversion::FromString(Value, *(Term->Name));
+				Lex::FromString(Value, *(Term->Name));
 				Writer << EX_UInt64Const;
 				Writer << Value;
 			}
@@ -674,9 +695,23 @@ public:
 			{
 				uint8 Value = 0;
 
-				UByteProperty* ByteProp = Cast< UByteProperty >(CoerceProperty);
+				UEnum* EnumPtr = nullptr;
+
+				if (UByteProperty* ByteProp = Cast< UByteProperty >(CoerceProperty))
+				{
+					EnumPtr = ByteProp->Enum;
+				}
+				else if (UEnumProperty* EnumProp = Cast< UEnumProperty >(CoerceProperty))
+				{
+					EnumPtr = EnumProp->GetEnum();
+				}
+
 				//Parameter property can represent a generic byte. we need the actual type to parse the value.
-				UEnum* EnumPtr = (ByteProp && ByteProp->Enum) ? ByteProp->Enum : Cast<UEnum>(Term->Type.PinSubCategoryObject.Get()); 
+				if (!EnumPtr)
+				{
+					EnumPtr = Cast<UEnum>(Term->Type.PinSubCategoryObject.Get());
+				}
+
 				//Check for valid enum object reference
 				if (EnumPtr)
 				{

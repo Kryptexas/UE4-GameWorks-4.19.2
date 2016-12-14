@@ -1,10 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineSubsystem.h"
+#include "CoreMinimal.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemSteamPackage.h"
+
+class FOnlineAchievementsSteam;
+class FOnlineExternalUISteam;
+class FOnlineFriendsSteam;
+class FOnlineIdentitySteam;
+class FOnlineLeaderboardsSteam;
+class FOnlineSessionSteam;
+class FOnlineSharedCloudSteam;
+class FOnlineUserCloudSteam;
+class FOnlineVoiceSteam;
 
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineSessionSteam, ESPMode::ThreadSafe> FOnlineSessionSteamPtr;

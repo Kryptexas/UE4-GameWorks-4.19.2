@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DecalRenderingShared.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "DecalRenderingShared.h"
+#include "StaticBoundShaderState.h"
+#include "Components/DecalComponent.h"
+#include "GlobalShader.h"
+#include "MaterialShaderType.h"
+#include "MaterialShader.h"
+#include "DebugViewModeRendering.h"
+#include "ScenePrivate.h"
 
 static TAutoConsoleVariable<float> CVarDecalFadeScreenSizeMultiplier(
 	TEXT("r.Decal.FadeScreenSizeMult"),

@@ -38,12 +38,12 @@
 using namespace physx;
 
 Sc::ActorCore::ActorCore(PxActorType::Enum actorType, PxU8 actorFlags, PxClientID owner, PxU8 behavior, PxDominanceGroup dominanceGroup) :
-	mSim						(NULL),
-	mAggregateIDOwnerClient		((PxU32(owner)<<24)|0x00ffffff),
-	mActorFlags					(actorFlags),
-	mActorType					(PxU8(actorType)),
-	mClientBehaviorFlags		(behavior),
-	mDominanceGroupFrozenFlag	(dominanceGroup)
+	mSim					(NULL),
+	mAggregateIDOwnerClient	((PxU32(owner)<<24)|0x00ffffff),
+	mActorFlags				(actorFlags),
+	mActorType				(PxU8(actorType)),
+	mClientBehaviorFlags	(behavior),
+	mDominanceGroup			(dominanceGroup)
 {
 	PX_ASSERT((actorType & 0xff) == actorType);
 }
@@ -67,7 +67,7 @@ void Sc::ActorCore::setActorFlags(PxActorFlags af)
 void Sc::ActorCore::setDominanceGroup(PxDominanceGroup g)
 {
 	PX_ASSERT(g<128);
-	mDominanceGroupFrozenFlag = g;
+	mDominanceGroup = g;
 	if(mSim)
 		mSim->postDominanceGroupChange();
 }

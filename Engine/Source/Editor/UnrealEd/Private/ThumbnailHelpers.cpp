@@ -1,19 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
 #include "ThumbnailHelpers.h"
-#include "FXSystem.h"
-#include "Animation/SkeletalMeshActor.h"
-#include "Particles/ParticleSystem.h"
+#include "FinalPostProcessSettings.h"
+#include "SceneView.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Animation/AnimBlueprint.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "ThumbnailRendering/SceneThumbnailInfoWithPrimitive.h"
 #include "Particles/ParticleSystemComponent.h"
-#include "ContentStreaming.h"
-#include "Components/DirectionalLightComponent.h"
-#include "Engine/StaticMeshActor.h"
-#include "Animation/AnimSingleNodeInstance.h"
-#include "Animation/BlendSpaceBase.h"
-#include "Engine/SCS_Node.h"
-#include "Engine/SimpleConstructionScript.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/DestructibleComponent.h"
+#include "UnrealEdGlobals.h"
+#include "FXSystem.h"
+#include "ContentStreaming.h"
+#include "Materials/Material.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/TextureCube.h"
 #include "Engine/DestructibleMesh.h"
 #include "PhysicsEngine/DestructibleActor.h"
@@ -43,11 +50,11 @@ FThumbnailPreviewScene::FThumbnailPreviewScene()
 
 	// Add additional lights
 	UDirectionalLightComponent* DirectionalLight2 = NewObject<UDirectionalLightComponent>();
-	DirectionalLight->Intensity = 5.0f;
+	DirectionalLight2->Intensity = 5.0f;
 	AddComponent(DirectionalLight2, FTransform( FRotator(-40,-144.678, 0) ));
 
 	UDirectionalLightComponent* DirectionalLight3 = NewObject<UDirectionalLightComponent>();
-	DirectionalLight->Intensity = 1.0f;
+	DirectionalLight3->Intensity = 1.0f;
 	AddComponent(DirectionalLight3, FTransform( FRotator(299.235,144.993, 0) ));
 
 	// Add an infinite plane
@@ -631,7 +638,10 @@ bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimati
 		if (USkeleton* Skeleton = InAnimation->GetSkeleton())
 		{
 			USkeletalMesh* PreviewSkeletalMesh = Skeleton->GetAssetPreviewMesh(InAnimation);
-
+			if (!PreviewSkeletalMesh)
+			{
+				PreviewSkeletalMesh = Skeleton->FindCompatibleMesh();
+			}
 			PreviewActor->GetSkeletalMeshComponent()->SetSkeletalMesh(PreviewSkeletalMesh);
 
 			if (PreviewSkeletalMesh)

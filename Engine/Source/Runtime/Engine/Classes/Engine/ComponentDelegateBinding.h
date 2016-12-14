@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/WeakObjectPtr.h"
 #include "Engine/DynamicBlueprintBinding.h"
 #include "ComponentDelegateBinding.generated.h"
-
 
 /** Entry for a delegate to assign after a blueprint has been instanced */
 USTRUCT()

@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
 #include "AssetTypeActions/AssetTypeActions_SoundBase.h"
+
+class FMenuBuilder;
+class USoundWave;
 
 class FAssetTypeActions_SoundWave : public FAssetTypeActions_SoundBase
 {
@@ -16,7 +21,8 @@ public:
 	virtual bool CanFilter() override { return true; }
 	virtual bool IsImportedAsset() const override { return true; }
 	virtual void GetResolvedSourceFilePaths(const TArray<UObject*>& TypeAssets, TArray<FString>& OutSourceFilePaths) const override;
-	
+	virtual TSharedPtr<SWidget> GetThumbnailOverlay(const FAssetData& AssetData) const override;
+
 private:
 
 	/** Creates a SoundCue of the same name for the sound, if one does not already exist */

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IBuildInstaller.h: Declares the IBuildInstaller interface.
@@ -6,7 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "BuildPatchState.h"
+
+class IBuildInstaller;
 
 typedef TSharedPtr< class IBuildInstaller, ESPMode::ThreadSafe > IBuildInstallerPtr;
 typedef TSharedRef< class IBuildInstaller, ESPMode::ThreadSafe > IBuildInstallerRef;

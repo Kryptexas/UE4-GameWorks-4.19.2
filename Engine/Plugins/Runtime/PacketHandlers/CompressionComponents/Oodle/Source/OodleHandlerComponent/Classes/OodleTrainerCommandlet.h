@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "OodleHandlerComponent.h"
 #include "Commandlets/Commandlet.h"
 
 #include "OodleTrainerCommandlet.generated.h"
-
 
 /**
  * Commandlet for processing UE4 packet captures, through Oodle's training API, for generating compressed state dictionaries.

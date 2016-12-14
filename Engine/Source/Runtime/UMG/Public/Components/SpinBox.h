@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Components/Widget.h"
 #include "SpinBox.generated.h"
 
 /**

@@ -1,13 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 
-#include "GraphEditorCommon.h"
-#include "SGraphNodeK2Base.h"
-#include "SGraphNodeK2Var.h"
-#include "SlateIconFinder.h"
-#include "IDocumentation.h"
-#include "BlueprintEditorUtils.h"
+#include "KismetNodes/SGraphNodeK2Var.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "GraphEditorSettings.h"
+#include "SCommentBubble.h"
+#include "K2Node.h"
+#include "K2Node_StructOperation.h"
+#include "K2Node_StructMemberGet.h"
+#include "K2Node_Literal.h"
+#include "K2Node_StructMemberSet.h"
+#include "K2Node_MakeStruct.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_VariableSet.h"
+#include "Styling/SlateIconFinder.h"
 #include "TutorialMetaData.h"
 
 void SGraphNodeK2Var::Construct( const FArguments& InArgs, UK2Node* InNode )

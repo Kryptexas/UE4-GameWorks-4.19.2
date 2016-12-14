@@ -1,17 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
-#include "SAnimCurvePanel.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "IPersonaPreviewScene.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "IEditableSkeleton.h"
+#include "IPersonaToolkit.h"
+#include "Widgets/Views/SListView.h"
 #include "SAnimEditorBase.h"
-#include "Animation/AnimInstance.h"
 #include "Animation/PoseAsset.h"
-
+#include "Animation/AnimInstance.h"
 
 class SPoseViewer;
+class UAnimSingleNodeInstance;
 
 //////////////////////////////////////////////////////////////////////////
 // FDisplayedPoseInfo
@@ -220,7 +229,7 @@ public:
 	* @param NewPreviewMesh - The new preview mesh being used by Persona
 	*
 	*/
-	void OnPreviewMeshChanged(class USkeletalMesh* NewPreviewMesh);
+	void OnPreviewMeshChanged(class USkeletalMesh* OldPreviewMesh, class USkeletalMesh* NewPreviewMesh);
 
 	/**
 	* Filters the SListView when the user changes the search text box (NameFilterBox)

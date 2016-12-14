@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AlembicLibraryPublicPCH.h"
+#include "CoreMinimal.h"
+#include "Materials/Material.h"
 
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
+
+THIRD_PARTY_INCLUDES_START
 #include <Alembic/AbcCoreHDF5/All.h>
 #include <Alembic/AbcCoreOgawa/All.h>
 #include <Alembic/AbcCoreFactory/All.h>
@@ -11,6 +17,7 @@
 #include <Alembic/AbcCoreHDF5/All.h>
 #include <Alembic/Abc/All.h>
 #include <Alembic/AbcGeom/All.h>
+THIRD_PARTY_INCLUDES_END
 
 class FAbcImporter;
 class UAbcImportSettings;
@@ -111,6 +118,10 @@ struct FAbcPolyMeshObject
 	/** Frame index of first frame containing data */
 	uint32 StartFrameIndex;
 
+	/** Cached self and child bounds for entire duration of the animation */
+	FBoxSphereBounds SelfBounds;
+	FBoxSphereBounds ChildBounds;
+
 	/** GUID identifying the hierarchy for this object (parent structure) */
 	FGuid HierarchyGuid;
 
@@ -161,6 +172,10 @@ struct FAbcTransformObject
 	float StartFrameTime;
 	/** Frame index of first frame containing data */
 	uint32 StartFrameIndex;
+
+	/** Cached self and child bounds for entire duration of the animation */
+	FBoxSphereBounds SelfBounds;
+	FBoxSphereBounds ChildBounds;
 
 	/** Matrix samples taken for this object */
 	TArray<FMatrix> MatrixSamples;
@@ -213,6 +228,7 @@ public:
 	FAbcImportData() : NumFrames(0)
 		, FramesPerSecond(0)
 		, SecondsPerFrame(0.0f)
+		, ArchiveBounds(EForceInit::ForceInitToZero)
 		, MinTime(TNumericLimits<float>::Max())
 		, MaxTime(TNumericLimits<float>::Min())
 		, MinFrameIndex(TNumericLimits<uint32>::Max())
@@ -255,6 +271,9 @@ public:
 	uint32 FramesPerSecond;
 	/** Seconds per frame (calculated according to FPS) */
 	float SecondsPerFrame;
+
+	/** Entire bounds of the archive over time */
+	FBoxSphereBounds ArchiveBounds;
 
 	/** Min and maximum time found in the Alembic file*/
 	float MinTime;

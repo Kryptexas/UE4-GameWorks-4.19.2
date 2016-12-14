@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Camera/CameraShake.h"
+#include "Misc/InlineValue.h"
 #include "MovieSceneNameableTrack.h"
 #include "MovieSceneCameraShakeTrack.generated.h"
 
-class UCameraShake;
-class UMovieSceneCameraShakeSection;
+struct FMovieSceneEvaluationTrack;
+struct FMovieSceneSegmentCompilerRules;
 
 /**
  * 

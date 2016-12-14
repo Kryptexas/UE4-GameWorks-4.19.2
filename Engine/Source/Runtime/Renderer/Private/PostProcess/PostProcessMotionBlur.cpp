@@ -1,19 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMotionBlur.cpp: Post process MotionBlur implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessAmbientOcclusion.h"
-#include "PostProcessMotionBlur.h"
-#include "PostProcessAmbientOcclusion.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessMotionBlur.h"
+#include "StaticBoundShaderState.h"
+#include "CanvasTypes.h"
+#include "RenderTargetTemp.h"
 #include "SceneUtils.h"
-#include "GPUSkinVertexFactory.h"
-#include "../../Engine/Private/SkeletalRenderGPUSkin.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRenderTargetParameters.h"
+#include "ScenePrivate.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "CompositionLighting/PostProcessAmbientOcclusion.h"
+#include "PostProcess/PostProcessing.h"
+#include "DeferredShadingRenderer.h"
+#include "ClearQuad.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarMotionBlurFiltering(
@@ -649,12 +652,16 @@ void FRCPassPostProcessMotionBlur::Process(FRenderingCompositePassContext& Conte
 	FIntRect SrcRect = View.ViewRect / ScaleFactor;
 	FIntRect DestRect = SrcRect;
 
-	SCOPED_DRAW_EVENTF(Context.RHICmdList, MotionBlurNew, TEXT("MotionBlur %dx%d"), SrcRect.Width(), SrcRect.Height());
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, MotionBlur, TEXT("MotionBlur %dx%d"), SrcRect.Width(), SrcRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+
+	// Is optimized away if possible (RT size=view size, )
+	DrawClearQuad(Context.RHICmdList, Context.GetFeatureLevel(), true, FLinearColor::Black, false, 0, false, 0, DestSize, SrcRect);
+
 	Context.SetViewportAndCallRHI(SrcRect);
 	
 	// is optimized away if possible (RT size=view size, )
@@ -720,7 +727,10 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlur::ComputeOutputDesc(EPassOut
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
-	Ret.Format = PF_FloatRGB;
+	if (!SupportSceneAlpha())
+	{
+		Ret.Format = PF_FloatRGB;
+	}
 	Ret.DebugName = TEXT("MotionBlur");
 	Ret.AutoWritable = false;
 

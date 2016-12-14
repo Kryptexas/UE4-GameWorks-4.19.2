@@ -1,8 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SSplitter.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Margin.h"
+#include "Widgets/SOverlay.h"
+#include "Layout/ArrangedChildren.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SSplitter.h"
 
 /** Splitter used on the sequencer as an overlay. Input is disabled on all areas except the draggable positions */
 class SSequencerSplitterOverlay : public SOverlay

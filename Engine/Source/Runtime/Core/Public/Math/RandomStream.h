@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Math/UnrealMathUtility.h"
+#include "Math/Vector.h"
+#include "Math/Matrix.h"
+#include "Math/RotationMatrix.h"
+#include "Math/Transform.h"
 
 /**
  * Implements a thread-safe SRand based RNG.
@@ -10,12 +16,11 @@
  */
 struct FRandomStream
 {
-#if !defined(COREUOBJECT_API)
-	#define MAYBE_COREUOBJECT_API
+#ifdef COREUOBJECT_API
+	friend COREUOBJECT_API class UScriptStruct* Z_Construct_UScriptStruct_FRandomStream();
 #else
-	#define MAYBE_COREUOBJECT_API COREUOBJECT_API
+	friend class UScriptStruct* Z_Construct_UScriptStruct_FRandomStream();
 #endif
-	friend MAYBE_COREUOBJECT_API class UScriptStruct* Z_Construct_UScriptStruct_FRandomStream();
 	
 public:
 

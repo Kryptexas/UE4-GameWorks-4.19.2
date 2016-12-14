@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SpriteEditorOnlyTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Engine/EngineTypes.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
+#include "SpriteEditorOnlyTypes.h"
 #include "Slate/SlateTextureAtlasInterface.h"
 #include "PaperSprite.generated.h"
+
+class UMaterialInterface;
+class UPaperSpriteAtlas;
 
 //@TODO: Should have some nice UI and enforce unique names, etc...
 USTRUCT()

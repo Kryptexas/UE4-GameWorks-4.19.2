@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "InternationalizationPrivatePCH.h"
 #include "LocTextHelper.h"
+#include "Misc/Paths.h"
 
-#include "Json.h"
-#include "JsonInternationalizationManifestSerializer.h"
-#include "JsonInternationalizationArchiveSerializer.h"
-#include "JsonInternationalizationMetadataSerializer.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonInternationalizationManifestSerializer.h"
+#include "Serialization/JsonInternationalizationArchiveSerializer.h"
+#include "Serialization/JsonInternationalizationMetadataSerializer.h"
 
 #define LOCTEXT_NAMESPACE "LocTextHelper"
 
@@ -120,6 +120,16 @@ FLocTextHelper::FLocTextHelper(FString InTargetPath, FString InManifestName, FSt
 	{
 		ForeignCultures.Remove(NativeCulture);
 	}
+}
+
+const FString& FLocTextHelper::GetNativeCulture() const
+{
+	return NativeCulture;
+}
+
+const TArray<FString>& FLocTextHelper::GetForeignCultures() const
+{
+	return ForeignCultures;
 }
 
 bool FLocTextHelper::HasManifest() const
@@ -720,6 +730,11 @@ void FLocTextHelper::GetRuntimeText(const FString& InCulture, const FString& InN
 	}
 }
 
+void FLocTextHelper::AddConflict(const FString& InNamespace, const FString& InKey, const TSharedPtr<FLocMetadataObject>& InKeyMetadata, const FLocItem& InSource, const FString& InSourceLocation)
+{
+	ConflictTracker.AddConflict(InNamespace, InKey, InKeyMetadata, InSource, InSourceLocation);
+}
+
 FString FLocTextHelper::GetConflictReport() const
 {
 	return ConflictTracker.GetConflictReport();
@@ -848,7 +863,7 @@ bool FLocTextHelper::FindKeysForLegacyTranslation(const TSharedRef<const FIntern
 			}
 			else if ((!Context.KeyMetadataObj.IsValid() && !InKeyMetadataObj.IsValid()) || (*Context.KeyMetadataObj == *InKeyMetadataObj))
 			{
-				OutKeys.Add(Context.Key);
+				OutKeys.AddUnique(Context.Key);
 				bFoundKeys = true;
 			}
 		}

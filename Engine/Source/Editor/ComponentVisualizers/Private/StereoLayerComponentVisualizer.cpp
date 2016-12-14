@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "ComponentVisualizersPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "StereoLayerComponentVisualizer.h"
+#include "SceneManagement.h"
+
 #include "Components/StereoLayerComponent.h"
 
 

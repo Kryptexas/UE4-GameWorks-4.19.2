@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DebugRenderSceneProxy.h: Useful scene proxy for rendering non performance-critical information.
@@ -6,8 +6,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "PrimitiveSceneProxy.h"
+#include "Materials/Material.h"
 #include "DynamicMeshBuilder.h"
+
+class APlayerController;
+class FMeshElementCollector;
+class FPrimitiveDrawInterface;
+class UCanvas;
+class UPrimitiveComponent;
 
 DECLARE_DELEGATE_TwoParams(FDebugDrawDelegate, class UCanvas*, class APlayerController*);
 

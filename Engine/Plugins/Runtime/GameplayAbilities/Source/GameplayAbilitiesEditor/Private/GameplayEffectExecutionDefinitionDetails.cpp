@@ -1,14 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayEffectExecutionDefinitionDetails.h"
+#include "IDetailChildrenBuilder.h"
+
 #include "DetailWidgetRow.h"
 #include "IDetailPropertyRow.h"
-#include "PropertyHandle.h"
-#include "GameplayEffect.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayEffect.h"
 #include "GameplayEffectExecutionCalculation.h"
-#include "DetailLayoutBuilder.h"
 #include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "GameplayEffectExecutionDefinitionDetailsCustomization"
@@ -36,7 +35,7 @@ void FGameplayEffectExecutionDefinitionDetails::CustomizeChildren(TSharedRef<IPr
 	if (StructPropertyHandle->GetNumOuterObjects() == 1)
 	{
 		CalculationClassPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, CalculationClass));
-		TSharedPtr<IPropertyHandle> LinkedEffectsPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, ConditionalGameplayEffectClasses));
+		TSharedPtr<IPropertyHandle> ConditionalEffectsPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, ConditionalGameplayEffects));
 		TSharedPtr<IPropertyHandle> CalcModPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, CalculationModifiers));
 		TSharedPtr<IPropertyHandle> PassedInTagsHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, PassedInTags));
 		CalculationModifiersArrayPropHandle = CalcModPropHandle.IsValid() ? CalcModPropHandle->AsArray() : nullptr;
@@ -54,9 +53,9 @@ void FGameplayEffectExecutionDefinitionDetails::CustomizeChildren(TSharedRef<IPr
 			PropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayEffectExecutionDefinitionDetails::GetCalculationModifierVisibility)));
 		}
 
-		if (LinkedEffectsPropHandle.IsValid())
+		if (ConditionalEffectsPropHandle.IsValid())
 		{
-			StructBuilder.AddChildProperty(LinkedEffectsPropHandle.ToSharedRef());
+			StructBuilder.AddChildProperty(ConditionalEffectsPropHandle.ToSharedRef());
 		}
 
 		if (PassedInTagsHandle.IsValid())

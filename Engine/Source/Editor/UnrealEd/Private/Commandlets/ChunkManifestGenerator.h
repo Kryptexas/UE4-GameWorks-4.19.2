@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "AssetData.h"
+#include "Misc/AssetRegistryInterface.h"
+#include "UObject/UObjectHash.h"
+
+class FSandboxPlatformFile;
+class IAssetRegistry;
+class ITargetPlatform;
 class UChunkDependencyInfo;
 struct FChunkDependencyTreeNode;
 
@@ -113,6 +122,12 @@ class FChunkManifestGenerator
 				ExistingChunkIDs.AddUnique(ChunkIndex);
 			}
 		}
+
+		if ( StartupPackages.Contains(PackageFName ))
+		{
+			ExistingChunkIDs.AddUnique(0);
+		}
+
 		return ExistingChunkIDs;
 	}
 
@@ -305,14 +320,6 @@ public:
 	 */
 	bool LoadAssetRegistry(const FString& SandboxPath, const TSet<FName>* PackagesToLoadMask = nullptr);
 
-	/**
-	 * Saves cooked package and asset information about all the cooked packages and assets contained within for stats purposes
-	 * in json format
-	 *
-	 * @param Sandbox path to save the registry to
-	 * @param Append to the previous registry if there is one
-	 */
-	bool SaveCookedPackageAssetRegistry( const FString& SandboxPath, const bool Append );
 
 	/**
 	* Follows an assets dependency chain to build up a list of package names in the same order as the runtime would attempt to load them

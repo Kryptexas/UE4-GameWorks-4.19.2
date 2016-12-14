@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneSequenceID.h"
-#include "MovieSceneTrackIdentifier.h"
+#include "Evaluation/MovieSceneTrackIdentifier.h"
 #include "MovieSceneEvaluationField.generated.h"
 
 /** A pointer to a track held within an evaluation template */

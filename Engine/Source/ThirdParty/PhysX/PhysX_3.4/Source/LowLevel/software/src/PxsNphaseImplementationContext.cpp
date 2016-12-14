@@ -870,8 +870,7 @@ void PxsNphaseImplementationContext::unregisterContactManagerInternal(PxU32 npIn
 
 	PxsContactManager* replaceManager = managers.mContactManagerMapping[replaceIndex];
 
-	mContext.destroyCache(managers.mCaches[index], PxU8(managers.mContactManagerMapping[index]->getWorkUnit().geomType0), 
-		PxU8(managers.mContactManagerMapping[index]->getWorkUnit().geomType1));
+	mContext.destroyCache(managers.mCaches[index]);
 
 	managers.mContactManagerMapping[index] = replaceManager;
 	managers.mCaches[index] = managers.mCaches[replaceIndex];

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace Tools.CrashReporter.CrashReportReceiver
 	/// Mainly to cope with multiple clients fighting to upload the same report. This shouldn't happen, but the service
 	/// should be resilient against it even so.
 	/// </remarks>
-	public class FUploadsInProgress
+	public sealed class FUploadsInProgress : IDisposable
 	{
 		/// <summary> Background thread used to monitor CPU/network usage. </summary>
 		private Thread PerformancePooler;
@@ -64,6 +64,16 @@ namespace Tools.CrashReporter.CrashReportReceiver
 		{
 			FUploadsInProgress This = (FUploadsInProgress)Obj;
 			This.PoolPerformanceData();
+		}
+
+		/// <summary>Dispose of any resources owned by this instance.</summary>
+		public void Dispose()
+		{
+			if (PerfCounterProcessorTime != null)
+			{
+				PerfCounterProcessorTime.Dispose();
+				PerfCounterProcessorTime = null;
+			}
 		}
 
 		private void PoolPerformanceData()

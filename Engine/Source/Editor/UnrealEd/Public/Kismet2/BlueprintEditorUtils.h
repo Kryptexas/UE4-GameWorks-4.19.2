@@ -1,14 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor/ClassViewer/Public/ClassViewerModule.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/UnrealType.h"
+#include "Engine/Blueprint.h"
+#include "Widgets/SWidget.h"
 #include "EdGraph/EdGraph.h"
-#include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
-#include "Engine/LevelScriptBlueprint.h"
+#include "Editor/ClassViewer/Public/ClassViewerModule.h"
+#include "EdGraphSchema_K2.h"
 
-class  USCS_Node;
+class AActor;
+class ALevelScriptActor;
+class FBlueprintEditor;
+class FCompilerResultsLog;
+class INameValidatorInterface;
+class UActorComponent;
+class UK2Node_Variable;
+class ULevelScriptBlueprint;
+class USCS_Node;
+class UTimelineTemplate;
+struct FBlueprintCookedComponentInstancingData;
 struct FComponentKey;
 
 /** 
@@ -1199,6 +1216,14 @@ public:
 	 */
 	static void FindActorsThatReferenceActor( AActor* InActor, TArray<UClass*>& InClassesToIgnore, TArray<AActor*>& OutReferencingActors );
 
+	/**
+	 * Go through the world and build a map of all actors that are referenced by other actors.
+	 * @param InWorld The world to scan for Actors.
+	 * @param InClassesToIgnore  An array of class types to ignore, even if there is an instance of one that references another Actor
+	 * @param OutReferencingActors A map of Actors that are referenced by a list of other Actors.
+	*/
+	static void GetActorReferenceMap(UWorld* InWorld, TArray<UClass*>& InClassesToIgnore, TMap<AActor*, TArray<AActor*> >& OutReferencingActors);
+
 	//////////////////////////////////////////////////////////////////////////
 	// Diagnostics
 
@@ -1454,7 +1479,6 @@ struct UNREALED_API FBlueprintDuplicationScopeFlags
 	TGuardValue<uint32> Guard;
 	FBlueprintDuplicationScopeFlags(uint32 InFlags) : Guard(bStaticFlags, InFlags) {}
 };
-
 struct UNREALED_API FMakeClassSpawnableOnScope
 {
 	UClass* Class;

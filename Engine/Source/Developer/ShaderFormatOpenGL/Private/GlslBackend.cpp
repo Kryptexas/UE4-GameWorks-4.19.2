@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // .
 
 // This code is largely based on that in ir_print_glsl_visitor.cpp from
@@ -30,11 +30,8 @@
 	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include "Core.h"
-#include "ShaderFormatOpenGL.h"
-#include "hlslcc.h"
-#include "hlslcc_private.h"
 #include "GlslBackend.h"
+#include "hlslcc_private.h"
 #include "compiler.h"
 
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
@@ -5406,7 +5403,7 @@ void FGlslLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, e
 {
 	if (bIsES2)
 	{
-		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
+		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 0, 4, 4);
 		make_intrinsic_genType(ir, State, DEPTHBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 3, 1, 1);
 		make_intrinsic_genType(ir, State, GET_HDR_32BPP_HDR_ENCODE_MODE_ES2, ir_invalid_opcode, IR_INTRINSIC_ALL_FLOATING, 0);
 	}

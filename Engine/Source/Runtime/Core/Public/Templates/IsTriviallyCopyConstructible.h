@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AndOrNot.h"
-#include "IsPODType.h"
+#include "CoreTypes.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/IsPODType.h"
 
 /**
  * Traits class which tests if a type has a trivial copy constructor.

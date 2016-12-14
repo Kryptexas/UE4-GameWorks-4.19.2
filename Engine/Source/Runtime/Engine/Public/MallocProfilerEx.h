@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocProfilerEx.h: Extended memory profiling support.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class FMallocProfiler;
 
 #if USE_MALLOC_PROFILER
 

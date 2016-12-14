@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptInterface.h"
 #include "Animation/AnimNodeBase.h"
 #include "Animation/CurveSourceInterface.h"
 
 #include "AnimNode_CurveSource.generated.h"
+
+class UAnimInstance;
 
 /** Supply curves from some external source (e.g. audio) */
 USTRUCT()

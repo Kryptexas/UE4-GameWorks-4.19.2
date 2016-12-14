@@ -1,6 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "KismetNodes/SGraphNodeK2Base.h"
+
+class SToolTip;
+class UEdGraph;
+class UK2Node_Composite;
 
 class SGraphNodeK2Composite : public SGraphNodeK2Base
 {

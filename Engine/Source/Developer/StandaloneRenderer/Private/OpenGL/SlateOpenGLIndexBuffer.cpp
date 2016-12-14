@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "StandaloneRendererPrivate.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OpenGL/SlateOpenGLIndexBuffer.h"
+#include "Rendering/RenderingCommon.h"
+#include "OpenGL/SlateOpenGLExtensions.h"
+
 
 FSlateOpenGLIndexBuffer::FSlateOpenGLIndexBuffer()
 	: MaxNumIndices(0)

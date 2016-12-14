@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphPin.h"
 #include "K2Node_Switch.h"
 #include "K2Node_SwitchInteger.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
 
 UCLASS(MinimalAPI)
 class UK2Node_SwitchInteger : public UK2Node_Switch

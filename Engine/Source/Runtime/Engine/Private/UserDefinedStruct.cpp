@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Engine/UserDefinedStruct.h"
+#include "UObject/UObjectHash.h"
+#include "Serialization/PropertyLocalizationDataGathering.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/UnrealType.h"
+#include "UObject/LinkerLoad.h"
+#include "Misc/SecureHash.h"
+#include "UObject/PropertyPortFlags.h"
 
 #if WITH_EDITOR
-#include "StructureEditorUtils.h"
+#include "UserDefinedStructure/UserDefinedStructEditorData.h"
+#include "Kismet2/StructureEditorUtils.h"
 #endif //WITH_EDITOR
-#include "Engine/UserDefinedStruct.h"
-#include "TextReferenceCollector.h"
+#include "Serialization/TextReferenceCollector.h"
 
 #if WITH_EDITORONLY_DATA
 namespace
@@ -22,11 +29,7 @@ namespace
 		FStructOnScope StructData(UserDefinedStruct);
 		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct, StructData.GetStructMemory());
 
-		// Iterate over all fields of the object's class.
-		for (TFieldIterator<const UProperty> PropIt(StructData.GetStruct(), EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
-		{
-			PropertyLocalizationDataGatherer.GatherLocalizationDataFromChildTextProperties(PathToObject, *PropIt, PropIt->ContainerPtrToValuePtr<void>(StructData.GetStructMemory()), GatherTextFlags);
-		}
+		PropertyLocalizationDataGatherer.GatherLocalizationDataFromStructFields(PathToObject, StructData.GetStruct(), StructData.GetStructMemory(), nullptr, GatherTextFlags);
 	}
 
 	void CollectUserDefinedStructTextReferences(UObject* Object, FArchive& Ar)

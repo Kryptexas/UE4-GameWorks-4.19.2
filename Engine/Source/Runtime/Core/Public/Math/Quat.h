@@ -1,8 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UnrealMathUtility.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "Math/Vector.h"
+#include "Math/VectorRegister.h"
+#include "Math/Rotator.h"
+#include "Math/Matrix.h"
+
+class Error;
 
 /**
  * Floating point quaternion that can represent a rotation about an axis in 3-D space.

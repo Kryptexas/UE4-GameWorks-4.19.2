@@ -1,14 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Sound/SoundWaveProcedural.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sound/SoundWave.h"
 #include "IMediaAudioSink.h"
 #include "MediaSoundWave.generated.h"
-
-
-class UMediaPlayer;
-
 
 /**
  * Implements a playable sound asset for audio streams from UMediaPlayer assets.

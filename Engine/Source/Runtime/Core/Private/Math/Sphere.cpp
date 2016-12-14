@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Sphere.cpp: Implements the FSphere class.
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "Math/Sphere.h"
+#include "Math/Box.h"
+#include "Math/Transform.h"
 
 
 /* FSphere structors

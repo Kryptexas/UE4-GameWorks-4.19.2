@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Components/WrapBox.h"
+#include "Components/WrapBoxSlot.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -14,6 +15,9 @@ UWrapBox::UWrapBox(const FObjectInitializer& ObjectInitializer)
 
 	SWrapBox::FArguments Defaults;
 	Visibility = Visiblity_DEPRECATED = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
+
+	WrapWidth = 500;
+	bExplicitWrapWidth = false;
 }
 
 void UWrapBox::ReleaseSlateResources(bool bReleaseChildren)
@@ -58,7 +62,8 @@ UWrapBoxSlot* UWrapBox::AddChildWrapBox(UWidget* Content)
 TSharedRef<SWidget> UWrapBox::RebuildWidget()
 {
 	MyWrapBox = SNew(SWrapBox)
-		.UseAllottedWidth(true);
+		.UseAllottedWidth(!bExplicitWrapWidth)
+		.PreferredWidth(WrapWidth);
 
 	for ( UPanelSlot* PanelSlot : Slots )
 	{
@@ -77,6 +82,8 @@ void UWrapBox::SynchronizeProperties()
 	Super::SynchronizeProperties();
 
 	MyWrapBox->SetInnerSlotPadding(InnerSlotPadding);
+	MyWrapBox->SetUseAllottedWidth(!bExplicitWrapWidth);
+	MyWrapBox->SetWrapWidth(WrapWidth);
 }
 
 void UWrapBox::SetInnerSlotPadding(FVector2D InPadding)

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -202,6 +202,9 @@ class Localise : BuildCommand
 					P4.Revert(P4RevertCommandline.ToString());
 				}
 			}
+
+			// Revert any other unchanged files
+			P4.RevertUnchanged(PendingChangeList);
 
 			int SubmittedChangeList;
 			P4.Submit(PendingChangeList, out SubmittedChangeList);

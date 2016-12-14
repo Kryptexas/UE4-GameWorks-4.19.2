@@ -1,5 +1,20 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Layout/Margin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+
+class FArrangedChildren;
+class FPaintArgs;
+class FSlateWindowElementList;
+class SWindow;
+
+template< typename ObjectType > class TAttribute;
 
 class SLATE_API SWindowTitleBarArea
 	: public SPanel

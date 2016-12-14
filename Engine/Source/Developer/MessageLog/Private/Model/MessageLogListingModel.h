@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TokenizedMessage.h"
+#include "CoreMinimal.h"
+#include "Containers/List.h"
+#include "Logging/TokenizedMessage.h"
 
 /** Define the container type for all the messages */
 typedef TArray< TSharedRef<FTokenizedMessage> > MessageContainer;

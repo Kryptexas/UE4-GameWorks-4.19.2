@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ViewportInteractorData.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineTypes.h"
+#include "ViewportInteractionTypes.h"
+#include "Editor/ViewportInteraction/ViewportInteractorData.h"
 #include "ViewportInteractor.generated.h"
+
+class AActor;
 
 /**
  * Represents the interactor in the world

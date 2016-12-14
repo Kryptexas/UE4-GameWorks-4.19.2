@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #if !PLATFORM_ANDROIDESDEFERRED
 
+#include "OpenGLDrvPrivate.h"
+#include "AndroidOpenGL.h"
 #include "OpenGLDrvPrivate.h"
 #include "OpenGLES2.h"
 #include "AndroidWindow.h"
@@ -642,6 +644,11 @@ bool FAndroidMisc::SupportsFloatingPointRenderTargets()
 bool FAndroidMisc::SupportsShaderFramebufferFetch()
 {
 	return FAndroidGPUInfo::Get().bSupportsFrameBufferFetch;
+}
+
+bool FAndroidMisc::SupportsES30()
+{
+	return FAndroidGPUInfo::Get().bES30Support;
 }
 
 bool FAndroidMisc::SupportsShaderIOBlocks()

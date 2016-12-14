@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessHistogram.usf: PostProcessing histogram
@@ -72,12 +72,7 @@ void MainCS(
 					float Weight0 = 1.0f - Weight1;
 			
 					// accumulate the weight to the nearby history buckets
-
-					// good hack to prevent adapting to extreme darks
-					if(Bucket0 != 0)
-					{
-						SharedHistogram[Bucket0][GroupThreadId.x][GroupThreadId.y] += Weight0;
-					}
+					SharedHistogram[Bucket0][GroupThreadId.x][GroupThreadId.y] += Weight0;
 					SharedHistogram[Bucket1][GroupThreadId.x][GroupThreadId.y] += Weight1;
 				}
 			}
@@ -88,21 +83,33 @@ void MainCS(
 
 	// accumulate all histograms into one
 
-	if(GroupIndex < HISTOGRAM_SIZE / 4)
+	if(GroupIndex < HISTOGRAM_SIZE)
 	{
-		float4 Sum = 0;
-
-		LOOP for(uint y = 0; y < THREADGROUP_SIZEY; ++y)
+		float Sum = 0;
+		// good hack to prevent adapting to extreme darks
+		if(GroupIndex != 0)
 		{
-			LOOP for(uint x = 0; x < THREADGROUP_SIZEX; ++x)
+			LOOP for(uint y = 0; y < THREADGROUP_SIZEY; ++y)
 			{
-				Sum += float4(
-					SharedHistogram[GroupIndex * 4 + 0][x][y],
-					SharedHistogram[GroupIndex * 4 + 1][x][y],
-					SharedHistogram[GroupIndex * 4 + 2][x][y],
-					SharedHistogram[GroupIndex * 4 + 3][x][y]);
+				LOOP for(uint x = 0; x < THREADGROUP_SIZEX; ++x)
+				{
+					Sum += SharedHistogram[GroupIndex][x][y];
+				}
 			}
 		}
+
+		SharedHistogram[GroupIndex][0][0] = Sum;
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	if(GroupIndex < HISTOGRAM_SIZE / 4)
+	{
+		float4 Sum = float4(
+			SharedHistogram[GroupIndex * 4 + 0][0][0],
+			SharedHistogram[GroupIndex * 4 + 1][0][0],
+			SharedHistogram[GroupIndex * 4 + 2][0][0],
+			SharedHistogram[GroupIndex * 4 + 3][0][0]);
 
 		float2 MaxExtent = float2(THREADGROUP_SIZEX * LOOP_SIZEX, THREADGROUP_SIZEY * LOOP_SIZEY);
 	//	float2 Extent = min(MaxExtent, HistogramParameters.xy - LeftTop);

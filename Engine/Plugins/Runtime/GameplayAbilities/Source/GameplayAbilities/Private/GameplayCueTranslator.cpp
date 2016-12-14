@@ -1,10 +1,13 @@
-#include "AbilitySystemPrivatePCH.h"
-#include "GameplayCueTranslator.h"
-#include "GameplayCueSet.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
+#include "GameplayCueTranslator.h"
+#include "HAL/IConsoleManager.h"
+#include "GameplayCueSet.h"
+#include "GameplayTagsManager.h"
+#include "GameplayTagsModule.h"
+#include "Stats/StatsMisc.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameplayCueTranslator, Display, All);
 
@@ -183,7 +186,7 @@ void FGameplayCueTranslationManager::ResetTranslationLUT()
 void FGameplayCueTranslationManager::BuildTagTranslationTable()
 {
 #if WITH_EDITOR
-	SCOPE_LOG_TIME_IN_SECONDS(*FString::Printf(TEXT("FGameplayCueTranslatorManager::BuildTagTranslationTables")), nullptr)
+	//SCOPE_LOG_TIME_IN_SECONDS(*FString::Printf(TEXT("FGameplayCueTranslatorManager::BuildTagTranslationTables")), nullptr)
 #endif
 
 	TagManager = &UGameplayTagsManager::Get();
@@ -618,4 +621,3 @@ bool FGameplayCueTranslationManager::GetTranslatedTags(const FName& ParentTag, T
 	return Children.Num() > 0;
 }
 #endif
-

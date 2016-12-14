@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UniformBuffer.h"
+#include "HitProxies.h"
 #include "MaterialShared.h"
+#include "Engine/Scene.h"
 #include "PrimitiveUniformShaderParameters.h"
 
 class FLightCacheInterface;
+
 /**
  * A batch mesh element definition.
  */

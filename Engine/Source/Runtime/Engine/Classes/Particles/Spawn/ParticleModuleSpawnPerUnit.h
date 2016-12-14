@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Distributions/DistributionFloat.h"
 #include "Particles/Spawn/ParticleModuleSpawnBase.h"
 #include "ParticleModuleSpawnPerUnit.generated.h"
+
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, MinimalAPI, hidecategories=Object, meta=(DisplayName = "Spawn PerUnit"))
 class UParticleModuleSpawnPerUnit : public UParticleModuleSpawnBase

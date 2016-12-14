@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once 
+
+#include "CoreMinimal.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Widgets/SWidget.h"
+#include "Framework/Commands/Commands.h"
+#include "EditorStyleSet.h"
+#include "Engine/TextureStreamingTypes.h"
+
+class FUICommandList;
 
 /**
  * Class containing commands for editor viewport actions common to all viewports
@@ -86,6 +95,9 @@ public:
 	TSharedPtr< FUICommandInfo > TexStreamAccMaterialTextureScaleMode;
 	TSharedPtr< FUICommandInfo > TexStreamAccMaterialTextureScaleAll; // Similar as TexStreamAccMaterialTextureScaleMode, but used in the view mode options menu.
 	TSharedPtr< FUICommandInfo > TexStreamAccMaterialTextureScaleSingle[TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL];
+
+	TSharedPtr< FUICommandInfo > RequiredTextureResolutionMode;
+	TSharedPtr< FUICommandInfo > RequiredTextureResolutionSingle[TEXSTREAM_MAX_NUM_TEXTURES_PER_MATERIAL];
 
 	/** Changes the viewport to stationary light overlap mode */
 	TSharedPtr< FUICommandInfo > StationaryLightOverlapMode;
@@ -222,7 +234,9 @@ UNREALED_API FText GetViewModeOptionsMenuLabel(EViewModeIndex ViewModeIndex);
  * 
  * @param	CommandList		The command list to be used with the menu builder.
  * @param	ViewModeIndex	The current viewmode, as the options change  per viewmode.
+ * @param	FeatureLevel	The feature level to build the option menu for.
+ * @param	ParamNameMaps	A map allowing to convert from each menu index to an asset name.
 
  * @return	The widget containing the viewmode options.
  */
-UNREALED_API TSharedRef<SWidget> BuildViewModeOptionsMenu(TSharedPtr<FUICommandList> CommandList, EViewModeIndex ViewModeIndex);
+UNREALED_API TSharedRef<SWidget> BuildViewModeOptionsMenu(TSharedPtr<FUICommandList> CommandList, EViewModeIndex ViewModeIndex, ERHIFeatureLevel::Type FeatureLevel, TMap<int32, FName>& ParamNameMap);

@@ -1,9 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Rendering/RenderingCommon.h"
 
+class FSlateBatchData;
+class FSlateDrawElement;
+class FSlateDrawLayer;
+class FSlateElementBatch;
+class FSlateRenderingPolicy;
 class FSlateShaderResource;
+class FSlateWindowElementList;
+struct FShaderParams;
 
 /**
  * A class which batches Slate elements for rendering
@@ -27,13 +36,16 @@ public:
 	 */
 	bool RequiresVsync() const { return bRequiresVsync; }
 
+	/** Whether or not any post process passes were batched */
+	bool HasFXPassses() const { return NumPostProcessPasses > 0;}
+
 	/** 
 	 * Resets all stored data accumulated during the batching process
 	 */
 	void ResetBatches();
 
 private:
-	void AddElements(FSlateDrawLayer& InDrawLayer);
+	void AddElements(const FSlateWindowElementList& ElementList, FSlateDrawLayer& InDrawLayer);
 	
 	FColor PackVertexColor(const FLinearColor& InLinearColor);
 
@@ -100,6 +112,8 @@ private:
 
 	void AddLayer(const FSlateDrawElement& DrawElement);
 
+	void AddPostProcessPass(const FSlateDrawElement& DrawElement, const FVector2D& WindowSize);
+
 	/** 
 	 * Finds an batch for an element based on the passed in parameters
 	 * Elements with common parameters and layers will batched together.
@@ -110,6 +124,8 @@ private:
 	 * @param PrimitiveType	The primitive type( triangles, lines ) to use when drawing the batch
 	 * @param ShaderType	The shader to use when rendering this batch
 	 * @param DrawFlags		Any optional draw flags for this batch
+	 * @param ScissorRect   Optional scissor rectangle for this batch
+	 * @param SceneIndex    Index in the slate renderer's scenes array associated with this element.
 	 */	
 	FSlateElementBatch& FindBatchForElement( uint32 Layer, 
 											 const FShaderParams& ShaderParams, 
@@ -118,7 +134,8 @@ private:
 											 ESlateShader::Type ShaderType, 
 											 ESlateDrawEffect::Type DrawEffects, 
 											 ESlateBatchDrawFlag::Type DrawFlags,
-											 const TOptional<FShortRect>& ScissorRect);
+											 const TOptional<FShortRect>& ScissorRect,
+											 int32 SceneIndex = -1);
 private:
 	/** Batch data currently being filled in */
 	FSlateBatchData* BatchData;
@@ -137,6 +154,9 @@ private:
 
 	/** Track the number of drawn texts from the previous frame to report to stats. */
 	int32 NumDrawnTextsStat;
+
+	/** How many post process passes are needed */
+	int32 NumPostProcessPasses;
 
 	/** Offset to use when supporting 1:1 texture to pixel snapping */
 	const float PixelCenterOffset;

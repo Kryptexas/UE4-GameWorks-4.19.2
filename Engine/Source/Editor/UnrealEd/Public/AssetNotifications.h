@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __ASSETNOTIFICATIONS_H__
 #define __ASSETNOTIFICATIONS_H__
 
-#include "Core.h"
+#include "CoreMinimal.h"
 
 class FAssetNotifications
 {

@@ -1,24 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleTrail2EmitterInstance.cpp: 
 	Particle trail2 emitter instance implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "Components/MeshComponent.h"
+#include "Engine/Engine.h"
+#include "Materials/Material.h"
 #include "ParticleHelper.h"
+#include "ParticleEmitterInstances.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "Particles/Event/ParticleModuleEventGenerator.h"
 #include "Particles/Lifetime/ParticleModuleLifetime.h"
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/Spawn/ParticleModuleSpawnPerUnit.h"
 #include "Particles/Trail/ParticleModuleTrailSource.h"
+#include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
 #include "Particles/TypeData/ParticleModuleTypeDataRibbon.h"
 #include "Particles/ParticleLODLevel.h"
-#include "Particles/ParticleEmitter.h"
-#include "Particles/ParticleSpriteEmitter.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleModuleRequired.h"
 #include "Scalability.h"
 /** trail stats */

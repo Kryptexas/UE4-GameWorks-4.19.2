@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Curves/KeyHandle.h"
+#include "MovieSceneSection.h"
 #include "Curves/NameCurve.h"
 #include "Curves/CurveInterface.h"
-#include "MovieSceneSection.h"
+#include "UObject/StructOnScope.h"
+#include "Serialization/MemoryReader.h"
+#include "Engine/Engine.h"
 #include "MovieSceneEventSection.generated.h"
 
+struct EventData;
 
 USTRUCT()
 struct FMovieSceneEventParameters

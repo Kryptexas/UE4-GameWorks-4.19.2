@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineBlueprintCallProxyBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Interfaces/OnlineIdentityInterface.h"
+#include "Net/OnlineBlueprintCallProxyBase.h"
 #include "ConnectionCallbackProxy.generated.h"
+
+class APlayerController;
+class Error;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnlineConnectionResult, int32, ErrorCode);
 

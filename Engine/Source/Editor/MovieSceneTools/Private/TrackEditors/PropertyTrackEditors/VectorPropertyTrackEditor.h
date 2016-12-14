@@ -1,14 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneVectorSection.h"
-#include "MovieSceneVectorTrack.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "KeyPropertyParams.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
+#include "Tracks/MovieSceneVectorTrack.h"
+#include "Sections/MovieSceneVectorSection.h"
 
 /**
  * A property track editor for vectors.

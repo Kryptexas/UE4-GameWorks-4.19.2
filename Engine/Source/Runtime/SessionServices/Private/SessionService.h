@@ -1,18 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IMessageContext.h"
+#include "IMessageBus.h"
+#include "Helpers/MessageEndpoint.h"
 #include "ISessionService.h"
 
-
-struct FMessageAddress;
-class FMessageEndpoint;
 struct FSessionServiceLogSubscribe;
 struct FSessionServiceLogUnsubscribe;
 struct FSessionServicePing;
-class IMessageBus;
-class IMessageContext;
-
 
 /**
  * Implements an application session service.

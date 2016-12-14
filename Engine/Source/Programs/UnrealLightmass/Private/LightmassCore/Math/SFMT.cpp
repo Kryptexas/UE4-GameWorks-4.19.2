@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SFMT.cpp: Modified version of 'SIMD-oriented Fast Mersenne Twister (SFMT)' version 1.3.3 to work for Lightmass.  
@@ -7,7 +7,9 @@
 	And flatten a few header files into this self contained file.
 =============================================================================*/
 
-#include "LightmassPCH.h"
+#include "CoreMinimal.h"
+#include "LMMath.h"
+#include "LMMathSSE.h"
 
 /** 
  * @file  SFMT.c

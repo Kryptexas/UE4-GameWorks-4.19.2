@@ -1,13 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagCustomization.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "MainFrame.h"
-#include "SGameplayTagWidget.h"
-#include "GameplayTagContainer.h"
-#include "ScopedTransaction.h"
-#include "SScaleBox.h"
+#include "Widgets/Input/SComboButton.h"
+
+#include "Editor.h"
+#include "PropertyHandle.h"
+#include "DetailWidgetRow.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagCustomization"
 
@@ -33,7 +31,7 @@ void FGameplayTagCustomization::CustomizeHeader(TSharedRef<class IPropertyHandle
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		[
-			SAssignNew(ComboButton, SComboButton)
+			SNew(SComboButton)
 			.OnGetMenuContent(this, &FGameplayTagCustomization::GetListContent)
 			.ContentPadding(FMargin(2.0f, 2.0f))
 			.MenuPlacement(MenuPlacement_BelowAnchor)
@@ -75,13 +73,13 @@ TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 		.AutoHeight()
 		.MaxHeight(400)
 		[
-            SNew(SGameplayTagWidget, EditableContainers)
-            .Filter(Categories)
-            .ReadOnly(bReadOnly)
-            .TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
-            .MultiSelect(false)
-            .OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
-            .PropertyHandle(StructPropertyHandle)
+			SNew(SGameplayTagWidget, EditableContainers)
+			.Filter(Categories)
+			.ReadOnly(bReadOnly)
+			.TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
+			.MultiSelect(false)
+			.OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
+			.PropertyHandle(StructPropertyHandle)
 		];
 }
 

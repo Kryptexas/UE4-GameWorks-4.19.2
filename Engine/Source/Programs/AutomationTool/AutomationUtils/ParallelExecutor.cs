@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -71,12 +73,12 @@ namespace AutomationTool
 			}
 		}
 
-		public static int Execute(string ActionsFileName)
+		public static int Execute(string ActionsFileName, bool bStopOnErrors)
 		{
-			return Execute(ActionsFileName, Environment.ProcessorCount);
+			return Execute(ActionsFileName, Environment.ProcessorCount, bStopOnErrors);
 		}
 
-		public static int Execute(string ActionsFileName, int MaxProcesses)
+		public static int Execute(string ActionsFileName, int MaxProcesses, bool bStopOnErrors)
 		{
 			List<BuildAction> Actions = ReadActions(ActionsFileName);
 
@@ -172,7 +174,7 @@ namespace AutomationTool
 					}
 
 					// If we've already got a non-zero exit code, clear out the list of queued actions so nothing else will run
-					if(ExitCode != 0)
+					if(ExitCode != 0 && bStopOnErrors)
 					{
 						QueuedActions.Clear();
 					}

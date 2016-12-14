@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-#include "OnlineSubsystemOculusPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+#include "CoreMinimal.h"
+#include "OnlineSubsystemOculusPrivate.h"
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 
 /************************************************************************************
@@ -655,8 +657,10 @@ OVRPL_PUBLIC_FUNCTION(void) ovr_PlatformInitializeStandaloneAccessToken(const ch
 OVRP_PUBLIC_FUNCTION(void) ovr_UnityResetTestPlatform();
 OVRPL_PUBLIC_FUNCTION(void) ovr_ResetInitAndContext()
 {
-	ovr_UnityResetTestPlatform();
-	InitializeResult = ovrPlatformInitialize_Uninitialized;
+	if (InitializeResult == ovrPlatformInitialize_Success) {
+		ovr_UnityResetTestPlatform();
+		InitializeResult = ovrPlatformInitialize_Uninitialized;
+	}
 }
 
 #endif

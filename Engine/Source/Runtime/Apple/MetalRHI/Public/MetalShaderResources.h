@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalShaderResources.h: Metal shader resource RHI definitions.
@@ -133,19 +133,100 @@ inline FArchive& operator<<(FArchive& Ar, FMetalShaderBindings& Bindings)
 	return Ar;
 }
 
+enum class EMetalOutputWindingMode : uint8
+{
+	Clockwise = 0,
+	CounterClockwise = 1,
+};
+
+enum class EMetalPartitionMode : uint8
+{
+	Pow2 = 0,
+	Integer = 1,
+	FractionalOdd = 2,
+	FractionalEven = 3,
+};
+
+enum class EMetalComponentType : uint8
+{
+	Uint = 0,
+	Int,
+	Half,
+	Float,
+	Bool,
+	Max
+};
+
+struct FMetalAttribute
+{
+	uint32 Index;
+	EMetalComponentType Type;
+	uint32 Components;
+	uint32 Offset;
+	
+	friend FArchive& operator<<(FArchive& Ar, FMetalAttribute& Attr)
+	{
+		Ar << Attr.Index;
+		Ar << Attr.Type;
+		Ar << Attr.Components;
+		Ar << Attr.Offset;
+		return Ar;
+	}
+};
+
+struct FMetalTessellationOutputs
+{
+	uint32 HSOutSize;
+	uint32 HSTFOutSize;
+	uint32 PatchControlPointOutSize;
+	TArray<FMetalAttribute> HSOut;
+	TArray<FMetalAttribute> PatchControlPointOut;
+	
+	friend FArchive& operator<<(FArchive& Ar, FMetalTessellationOutputs& Attrs)
+	{
+		Ar << Attrs.HSOutSize;
+		Ar << Attrs.HSTFOutSize;
+		Ar << Attrs.PatchControlPointOutSize;
+		Ar << Attrs.HSOut;
+		Ar << Attrs.PatchControlPointOut;
+		return Ar;
+	}
+};
+
 struct FMetalCodeHeader
 {
 	uint32 Frequency;
 	FMetalShaderBindings Bindings;
 	TArray<CrossCompiler::FUniformBufferCopyInfo> UniformBuffersCopyInfo;
-	FString ShaderName;
-	int32 SideTable;
+    FString ShaderName;
+    
+    FMetalTessellationOutputs TessellationOutputAttribs;
 
+	uint32 TessellationOutputControlPoints;
+	uint32 TessellationDomain; // 3 = tri, 4 = quad // TODO unused
+	uint32 TessellationInputControlPoints; // TODO unused
+	uint32 TessellationPatchesPerThreadGroup;
+    uint32 TessellationPatchCountBuffer;
+    uint32 TessellationIndexBuffer;
+    uint32 TessellationHSOutBuffer;
+    uint32 TessellationHSTFOutBuffer;
+    uint32 TessellationControlPointOutBuffer;
+    uint32 TessellationControlPointIndexBuffer;
+	float  TessellationMaxTessFactor;
+
+	uint16 CompileFlags;
+	
 	uint8 NumThreadsX;
 	uint8 NumThreadsY;
 	uint8 NumThreadsZ;
-
-	bool bFastMath;
+	
+	uint8 Version;
+	int8 SideTable;
+	
+	EMetalOutputWindingMode TessellationOutputWinding;
+	EMetalPartitionMode TessellationPartitioning;
+	
+	bool bFunctionConstants;
 };
 
 inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
@@ -174,14 +255,34 @@ inline FArchive& operator<<(FArchive& Ar, FMetalCodeHeader& Header)
 	}
 	
 	Ar << Header.ShaderName;
-	
-	Ar << Header.SideTable;
 
+    Ar << Header.TessellationOutputAttribs;
+    
+	Ar << Header.TessellationOutputControlPoints;
+	Ar << Header.TessellationDomain;
+	Ar << Header.TessellationInputControlPoints;
+	Ar << Header.TessellationPatchesPerThreadGroup;
+	Ar << Header.TessellationMaxTessFactor;
+    
+    Ar << Header.TessellationPatchCountBuffer;
+    Ar << Header.TessellationIndexBuffer;
+    Ar << Header.TessellationHSOutBuffer;
+    Ar << Header.TessellationHSTFOutBuffer;
+    Ar << Header.TessellationControlPointOutBuffer;
+    Ar << Header.TessellationControlPointIndexBuffer;
+	
+	Ar << Header.CompileFlags;
+	
 	Ar << Header.NumThreadsX;
 	Ar << Header.NumThreadsY;
 	Ar << Header.NumThreadsZ;
 	
-	Ar << Header.bFastMath;
+	Ar << Header.Version;
+	Ar << Header.SideTable;
+	
+	Ar << Header.TessellationOutputWinding;
+	Ar << Header.TessellationPartitioning;
+	Ar << Header.bFunctionConstants;
 
     return Ar;
 }

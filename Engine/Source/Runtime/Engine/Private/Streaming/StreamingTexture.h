@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 StreamingTexture.h: Definitions of classes used for texture streaming.
@@ -6,7 +6,11 @@ StreamingTexture.h: Definitions of classes used for texture streaming.
 
 #pragma once
 
-#include "TextureStreamingHelpers.h"
+#include "CoreMinimal.h"
+#include "Engine/Texture2D.h"
+
+struct FStreamingManagerTexture;
+struct FTextureStreamingSettings;
 
 /*-----------------------------------------------------------------------------
 	FStreamingTexture, the streaming system's version of UTexture2D.
@@ -60,7 +64,7 @@ struct FStreamingTexture
 	float GetMaxAllowedSize() { return (float)(0x1 << (MaxAllowedMips - 1)); }
 
 	/** Init load order. Return wether this texture has any load/unload request */
-	bool UpdateLoadOrderPriority_Async();
+	bool UpdateLoadOrderPriority_Async(int32 MinMipForSplitRequest);
 	
 	void CancelPendingMipChangeRequest();
 	void StreamWantedMips(FStreamingManagerTexture& Manager);
@@ -69,6 +73,15 @@ struct FStreamingTexture
 
 	// Whether this texture can be affected by Global Bias and Budget Bias per texture.
 	FORCEINLINE bool IsMaxResolutionAffectedByGlobalBias() const { return LODGroup != TEXTUREGROUP_HierarchicalLOD && !bIsTerrainTexture && !(Texture && Texture->bIgnoreStreamingMipBias); }
+
+	FORCEINLINE bool HasUpdatePending(bool bIsStreamingPaused, bool bHasViewPoint) const 
+	{
+		const bool bBudgetedMipsIsValid = bHasViewPoint || bForceFullyLoadHeuristic; // Force fully load don't need any viewpoint info.
+		// If paused, nothing will update anytime soon.
+		// If more mips will be streamed in eventually, wait.
+		// Otherwise, if the distance based computation had no viewpoint, wait.
+		return !bIsStreamingPaused && (BudgetedMips > ResidentMips || !bBudgetedMipsIsValid);
+	}
 
 	/***************************************************************
 	 * Members initialized when this is constructed => NEVER CHANGES
@@ -132,6 +145,9 @@ struct FStreamingTexture
 	/** Whether an attemp to cancel the inflight request has been attempted. */
 	uint32			bCancelRequestAttempted : 1;
 
+	/** Wheter the streamer has streaming plans for this texture. */
+	uint32			bHasUpdatePending : 1;
+
 	/** If non-zero, the most recent time an instance location was removed for this texture. */
 	double			InstanceRemovedTimestamp;
 
@@ -150,6 +166,12 @@ struct FStreamingTexture
 	
 	/** Same as force fully load, but takes into account component settings. */
 	uint32			bForceFullyLoadHeuristic : 1; 
+
+	/** Whether this texture mips are driven by the last render time only. */
+	uint32			bUseLastRenderTimeHeuristic : 1;
+	
+	/** Whether this has not component referencing it. */
+	uint32			bUseUnkownRefHeuristic : 1;
 
 	/** Same as force fully load, but takes into account component settings. */
 	uint32			bLooksLowRes : 1; 

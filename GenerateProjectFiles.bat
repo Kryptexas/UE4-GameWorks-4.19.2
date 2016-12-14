@@ -1,7 +1,5 @@
 @echo off
 
-cmd.exe /v /c "%~dp0Engine\Build\BatchFiles\CopyVisualizers.bat"
-
 if not exist "%~dp0Engine\Build\BatchFiles\GenerateProjectFiles.bat" goto Error_BatchFileInWrongLocation
 call "%~dp0Engine\Build\BatchFiles\GenerateProjectFiles.bat" %*
 exit /B %ERRORLEVEL%

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealTypeTraits.h: Unreal type traits definitions.
@@ -7,21 +7,18 @@
 =============================================================================*/
 
 #pragma once
-#include "AndOrNot.h"
-#include "AreTypesEqual.h"
-#include "RemoveCV.h"
 
-#include "IsArithmetic.h"
-#include "IsFloatingPoint.h"
-#include "IsIntegral.h"
-#include "IsPODType.h"
-#include "IsPointer.h"
-#include "IsSigned.h"
-#include "IsTriviallyCopyAssignable.h"
-#include "IsTriviallyCopyConstructible.h"
+#include "CoreTypes.h"
+#include "Templates/IsPointer.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/AndOrNot.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/IsArithmetic.h"
+#include "Templates/RemoveCV.h"
 
-#include "AssertionMacros.h"
-#include "Misc/OutputDevice.h"
+#include "Templates/IsPODType.h"
+#include "Templates/IsTriviallyCopyConstructible.h"
+
 
 /*-----------------------------------------------------------------------------
  * Macros to abstract the presence of certain compiler intrinsic type traits 

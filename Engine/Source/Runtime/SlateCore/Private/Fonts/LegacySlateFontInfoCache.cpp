@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "LegacySlateFontInfoCache.h"
+#include "Fonts/LegacySlateFontInfoCache.h"
+#include "Misc/Paths.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/FileHelper.h"
+#include "Fonts/FontBulkData.h"
 
 TSharedPtr<FLegacySlateFontInfoCache> FLegacySlateFontInfoCache::Singleton;
 
@@ -61,7 +64,7 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetCompositeFont(con
 	// Don't allow GC while we perform this allocation
 	FGCScopeGuard GCGuard;
 
-	TSharedRef<const FCompositeFont> NewCompositeFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, LegacyFontPath, InLegacyFontHinting, EFontLoadingPolicy::PreLoad));
+	TSharedRef<const FCompositeFont> NewCompositeFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, LegacyFontPath, InLegacyFontHinting, EFontLoadingPolicy::LazyLoad));
 	LegacyFontNameToCompositeFont.Add(LegacyFontKey, NewCompositeFont);
 	return NewCompositeFont;
 }
@@ -79,7 +82,7 @@ TSharedPtr<const FCompositeFont> FLegacySlateFontInfoCache::GetSystemFont()
 			const FString FontFilename = FPaths::EngineIntermediateDir() / TEXT("DefaultSystemFont.ttf");
 			if (FFileHelper::SaveArrayToFile(FontBytes, *FontFilename))
 			{
-				SystemFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, FontFilename, EFontHinting::Default, EFontLoadingPolicy::PreLoad));
+				SystemFont = MakeShareable(new FStandaloneCompositeFont(NAME_None, FontFilename, EFontHinting::Default, EFontLoadingPolicy::LazyLoad));
 			}
 		}
 	}
@@ -113,7 +116,7 @@ const FFontData& FLegacySlateFontInfoCache::GetLocalizedFallbackFontData()
 
 		if (!LocalizedFallbackFontData.IsValid())
 		{
-			LocalizedFallbackFontData = MakeShareable(new FFontData(FallbackFontPath, EFontHinting::Default, EFontLoadingPolicy::PreLoad));
+			LocalizedFallbackFontData = MakeShareable(new FFontData(FallbackFontPath, EFontHinting::Default, EFontLoadingPolicy::LazyLoad));
 			AllLocalizedFallbackFontData.Add(FallbackFontPath, LocalizedFallbackFontData);
 		}
 
@@ -157,7 +160,7 @@ const FFontData& FLegacySlateFontInfoCache::GetLastResortFontData()
 		FGCScopeGuard GCGuard;
 
 		const FString LastResortFontPath = FPaths::EngineContentDir() / TEXT("SlateDebug/Fonts/LastResort.ttf");
-		LastResortFontData = MakeShareable(new FFontData(LastResortFontPath, EFontHinting::Default, EFontLoadingPolicy::PreLoad));
+		LastResortFontData = MakeShareable(new FFontData(LastResortFontPath, EFontHinting::Default, EFontLoadingPolicy::LazyLoad));
 	}
 
 	return *LastResortFontData;

@@ -1,35 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Containers/EnumAsByte.h"
+#include "CoreTypes.h"
+#include "Misc/VarArgs.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/EnableIf.h"
+#include "Templates/IsEnumClass.h"
 #include "HAL/PlatformProperties.h"
 #include "Misc/Compression.h"
 #include "Misc/EngineVersionBase.h"
-#include "TextNamespaceFwd.h"
-#include "Templates/EnableIf.h"
-#include "Templates/IsEnumClass.h"
+#include "Internationalization/TextNamespaceFwd.h"
 
-class FAssetPtr;
 class FCustomVersionContainer;
-class FLazyObjectPtr;
-struct FStringAssetReference;
+class ITargetPlatform;
 struct FUntypedBulkData;
-struct FWeakObjectPtr;
+template<class TEnum> class TEnumAsByte;
 
 // this is the master switch
 //@todoio if this is off, then we should leave the package file format completely unchanged....!!!!! this is really important to fix before we merge to main
 //#define COOK_FOR_EVENT_DRIVEN_LOAD (1)
 
-#define SPLIT_COOKED_FILES (1)
-
-#if !defined(USE_NEW_ASYNC_IO)
-#error "USE_NEW_ASYNC_IO must be defined"
-#endif
-
-// We only use event driven loading if we have cooked for it and it is a cooked platform
-#define USE_EVENT_DRIVEN_ASYNC_LOAD (!WITH_EDITORONLY_DATA && USE_NEW_ASYNC_IO)
-#define DEVIRTUALIZE_FLinkerLoad_Serialize (USE_EVENT_DRIVEN_ASYNC_LOAD)
+#define EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME (!GIsInitialLoad) // set to (!GIsInitialLoad) to avoid using the EDL at boot time
+#define DEVIRTUALIZE_FLinkerLoad_Serialize (!WITH_EDITORONLY_DATA)
 
 /**
  * Base class for archives that can be used for loading, saving, and garbage
@@ -279,10 +272,12 @@ public:
 	 * @param Ar The archive to serialize from or to.
 	 * @param Value The value to serialize.
 	 */
+#if WITH_EDITOR
+	FArchive& operator<<( bool& D );
+#else
 	FORCEINLINE friend FArchive& operator<<( FArchive& Ar, bool& D )
 	{
 		// Serialize bool as if it were UBOOL (legacy, 32 bit int).
-
 #if DEVIRTUALIZE_FLinkerLoad_Serialize
 		const uint8 * RESTRICT Src = Ar.ActiveFPLB->StartFastPathLoadBuffer;
 		if (Src + sizeof(uint32) <= Ar.ActiveFPLB->EndFastPathLoadBuffer)
@@ -304,6 +299,7 @@ public:
 		}
 		return Ar;
 	}
+#endif
 
 	/**
 	 * Serializes a signed 32-bit integer value from or into an archive.
@@ -918,17 +914,17 @@ public:
 	 *
 	 * @return The container of custom versions in the archive.
 	 */
-	const FCustomVersionContainer& GetCustomVersions() const;
+	virtual const FCustomVersionContainer& GetCustomVersions() const;
 
 	/**
 	 * Sets the custom version numbers for this archive.
 	 *
 	 * @param CustomVersionContainer - The container of custom versions to copy into the archive.
 	 */
-	void SetCustomVersions(const FCustomVersionContainer& CustomVersionContainer);
+	virtual void SetCustomVersions(const FCustomVersionContainer& CustomVersionContainer);
 
 	/** Resets the custom version numbers for this archive. */
-	void ResetCustomVersions();
+	virtual void ResetCustomVersions();
 
 	/**
 	 * Sets a specific custom version

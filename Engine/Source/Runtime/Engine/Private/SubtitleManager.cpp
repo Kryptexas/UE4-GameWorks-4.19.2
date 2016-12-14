@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "SubtitleManager.h"
-#include "SoundDefinitions.h"
-#include "Engine/Font.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Audio.h"
+#include "Components/AudioComponent.h"
 #include "AudioThread.h"
 
 
@@ -345,7 +348,7 @@ void FSubtitleManager::DisplaySubtitles(FCanvas* InCanvas, FIntRect& InSubtitleR
 	check(GEngine);
 	check(InCanvas);
 
-	if (!GEngine->bSubtitlesEnabled)
+	if (GEngine->bSubtitlesForcedOff || !GEngine->bSubtitlesEnabled)
 	{
 		return; // do nothing if subtitles are disabled.
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -378,7 +378,7 @@ public abstract class XLocLocalizationProvider : LocalizationProvider
 
 	protected XLocConfig Config;
 
-	protected Dictionary<string, string> GetEpicCultureToXLocLanguageId()
+	virtual protected Dictionary<string, string> GetEpicCultureToXLocLanguageId()
 	{
 		return new Dictionary<string, string>
 		{

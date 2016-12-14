@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WeakObjectPtr.h: Weak pointer to UObject
@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "AutoPointer.h"
-#include "UObjectArray.h"
+#include "CoreMinimal.h"
+#include "UObject/UObjectArray.h"
 
 /***
  * 

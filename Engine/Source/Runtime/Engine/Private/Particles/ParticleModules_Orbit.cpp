@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Orbit.cpp: Orbit particle modules implementation.
 =============================================================================*/
-#include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
+
+#include "CoreMinimal.h"
+#include "ParticleHelper.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionVectorUniform.h"
+#include "Particles/Orbit/ParticleModuleOrbitBase.h"
 #include "Particles/Orbit/ParticleModuleOrbit.h"
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/ParticleLODLevel.h"
-#include "Particles/ParticleSystemComponent.h"
 
 UParticleModuleOrbitBase::UParticleModuleOrbitBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

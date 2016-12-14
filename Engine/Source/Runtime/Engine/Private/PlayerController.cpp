@@ -1,45 +1,63 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "GameFramework/PlayerController.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
+#include "EngineGlobals.h"
+#include "TimerManager.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "CollisionQueryParams.h"
+#include "Engine/World.h"
+#include "SceneView.h"
+#include "Components/PrimitiveComponent.h"
+#include "Camera/CameraActor.h"
+#include "UObject/Package.h"
+#include "Engine/Canvas.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/PlayerStart.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/AudioComponent.h"
+#include "Components/ForceFeedbackComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "LatentActions.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/NetConnection.h"
+#include "ContentStreaming.h"
+#include "DrawDebugHelpers.h"
+#include "EngineUtils.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SViewport.h"
 #include "Engine/Console.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "Interfaces/NetworkPredictionInterface.h"
-#include "ConfigCacheIni.h"
-#include "SoundDefinitions.h"
 #include "Net/OnlineEngineInterface.h"
 #include "GameFramework/OnlineSession.h"
 #include "IHeadMountedDisplay.h"
-#include "IMotionController.h"
-#include "IInputInterface.h"
-#include "SlateBasics.h"
 #include "GameFramework/TouchInterface.h"
 #include "DisplayDebugHelpers.h"
 #include "Matinee/InterpTrackInstDirector.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/ActorChannel.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "GameFramework/HUD.h"
-#include "ContentStreaming.h"
-#include "GameFramework/PawnMovementComponent.h"
-#include "Camera/CameraActor.h"
 #include "Engine/InputDelegateBinding.h"
-#include "SVirtualJoystick.h"
+#include "Widgets/Input/SVirtualJoystick.h"
 #include "GameFramework/LocalMessage.h"
-#include "GameFramework/PlayerStart.h"
 #include "GameFramework/CheatManager.h"
+#include "GameFramework/PlayerInput.h"
 #include "GameFramework/InputSettings.h"
 #include "GameFramework/PlayerState.h"
-#include "GameFramework/GameState.h"
-#include "GameFramework/GameMode.h"
+#include "GameFramework/GameStateBase.h"
 #include "Haptics/HapticFeedbackEffect_Base.h"
 #include "Engine/ChildConnection.h"
-#include "Engine/GameEngine.h"
-#include "Engine/GameInstance.h"
 #include "VisualLogger/VisualLogger.h"
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 
@@ -477,7 +495,7 @@ ACameraActor* APlayerController::GetAutoActivateCameraForPlayer() const
 	int32 PlayerIndex = INDEX_NONE;
 	for( FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator, ++IterIndex )
 	{
-		const APlayerController* PlayerController = *Iterator;
+		const APlayerController* PlayerController = Iterator->Get();
 		if (PlayerController == this)
 		{
 			PlayerIndex = IterIndex;
@@ -490,7 +508,7 @@ ACameraActor* APlayerController::GetAutoActivateCameraForPlayer() const
 		// Find the matching camera
 		for( /*CameraIterater initialized above*/; CameraIterator; ++CameraIterator)
 		{
-			ACameraActor* CameraActor = *CameraIterator;
+			ACameraActor* CameraActor = CameraIterator->Get();
 			if (CameraActor && CameraActor->GetAutoActivatePlayerIndex() == PlayerIndex)
 			{
 				return CameraActor;
@@ -1195,6 +1213,11 @@ void APlayerController::ClientSetHUD_Implementation(TSubclassOf<AHUD> NewHUDClas
 
 void APlayerController::CleanupPlayerState()
 {
+	if (PlayerState)
+	{
+		// By default this destroys it, but games can override
+		PlayerState->OnDeactivated();
+	}
 	PlayerState = NULL;
 }
 
@@ -2812,7 +2835,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 
 	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
-		if (PlayerCameraManager != NULL)
+		if (PlayerCameraManager != nullptr)
 		{
 			DisplayDebugManager.DrawString(FString(TEXT("<<<< CAMERA >>>>")));
 			PlayerCameraManager->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
@@ -2862,34 +2885,51 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 		DisplayDebugManager.DrawString(FString::Printf(TEXT("Pawn: %s"), *this->AcknowledgedPawn->GetFName().ToString()));
 		
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
-		DisplayDebugManager.DrawString(TEXT("Last Played Force Feedback"));
+		DisplayDebugManager.DrawString(TEXT("-------------Last Played Force Feedback--------------"));												      
+		DisplayDebugManager.DrawString(TEXT("Name Tag Duration IsLooping StartTime"));
 		const float CurrentTime = GetWorld()->GetTimeSeconds();
 		for (int32 i = ForceFeedbackEffectHistoryEntries.Num() - 1; i >= 0; --i)
 		{
 			if (CurrentTime > ForceFeedbackEffectHistoryEntries[i].TimeShown + 5.0f)
 			{
 				ForceFeedbackEffectHistoryEntries.RemoveAtSwap(i, 1, /*bAllowShrinking=*/ false);
-				continue;
 			}
-			const FActiveForceFeedbackEffect& LastActiveEffect = ForceFeedbackEffectHistoryEntries[i].LastActiveForceFeedbackEffect;
-			DisplayDebugManager.DrawString(FString::Printf(TEXT("Object Name: %s"), *LastActiveEffect.ForceFeedbackEffect->GetFName().ToString()));
-			DisplayDebugManager.DrawString(FString::Printf(TEXT("Tag: %s"), *LastActiveEffect.Tag.ToString()));
-			DisplayDebugManager.DrawString(FString::Printf(TEXT("Looping: %s"), (LastActiveEffect.bLooping ? TEXT("true") : TEXT("false"))));
-			DisplayDebugManager.DrawString(FString::Printf(TEXT("Duration: %f"), LastActiveEffect.ForceFeedbackEffect->GetDuration()));
-			DisplayDebugManager.DrawString(FString::Printf(TEXT("Start Time: %f"), ForceFeedbackEffectHistoryEntries[i].TimeShown));
+			else
+			{
+				const FActiveForceFeedbackEffect& LastActiveEffect = ForceFeedbackEffectHistoryEntries[i].LastActiveForceFeedbackEffect;
+				const FString HistoryEntry = FString::Printf(TEXT("%s %s %f %s %f"), 
+															*LastActiveEffect.ForceFeedbackEffect->GetFName().ToString(), 
+															*LastActiveEffect.Tag.ToString(), 
+															LastActiveEffect.ForceFeedbackEffect->GetDuration(),
+															(LastActiveEffect.bLooping ? TEXT("true") : TEXT("false")),
+															ForceFeedbackEffectHistoryEntries[i].TimeShown);
+				DisplayDebugManager.DrawString(HistoryEntry);
+			}
 		}
 		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
 
-		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
-		DisplayDebugManager.DrawString(TEXT("Current Playing Force Feedback"));
+		DisplayDebugManager.DrawString(TEXT("----------Current Playing Force Feedback-------------"));
+		DisplayDebugManager.DrawString(TEXT("Name Tag/Component Distance Duration IsLooping PlayTime"));
 		for (int32 Index = ActiveForceFeedbackEffects.Num() - 1; Index >= 0; --Index)
 		{
-			FActiveForceFeedbackEffect ActiveEffect = ActiveForceFeedbackEffects[Index];
-			DisplayDebugManager.DrawString(FString::Printf(TEXT("Object Name: %s"), *ActiveEffect.ForceFeedbackEffect->GetFName().ToString()));
-			DisplayDebugManager.DrawString(FString::Printf(TEXT("Tag: %s"), *ActiveEffect.Tag.ToString()));
-			DisplayDebugManager.DrawString(FString::Printf(TEXT("Looping: %s"), (ActiveEffect.bLooping ? TEXT("true") : TEXT("false"))));
-			DisplayDebugManager.DrawString(FString::Printf(TEXT("Play Time: %f"), ActiveEffect.PlayTime));
+			const FActiveForceFeedbackEffect& ActiveEffect = ActiveForceFeedbackEffects[Index];
+			FForceFeedbackValues ActiveValues;
+			ActiveEffect.GetValues(ActiveValues);
+			if (ActiveValues.LeftLarge > 0.f || ActiveValues.LeftSmall > 0.f || ActiveValues.RightLarge > 0.f || ActiveValues.RightSmall > 0.f)
+			{
+				const FString ActiveEntry = FString::Printf(TEXT("%s %s N/A %.2f %s %.2f - LL: %.2f LS: %.2f RL: %.2f RS: %.2f"),
+					*ActiveEffect.ForceFeedbackEffect->GetFName().ToString(),
+					*ActiveEffect.Tag.ToString(),
+					ActiveEffect.ForceFeedbackEffect->GetDuration(),
+					(ActiveEffect.bLooping ? TEXT("true") : TEXT("false")),
+					ActiveEffect.PlayTime,
+					ActiveValues.LeftLarge, ActiveValues.LeftSmall, ActiveValues.RightLarge, ActiveValues.RightSmall);
+				DisplayDebugManager.DrawString(ActiveEntry);
+			}
+		}
+		if (FForceFeedbackManager* FFM = FForceFeedbackManager::Get(GetWorld()))
+		{
+			FFM->DrawDebug(GetFocalLocation(), DisplayDebugManager);
 		}
 		DisplayDebugManager.DrawString(TEXT("-----------------------------------------------------"));
 #endif
@@ -3454,11 +3494,10 @@ void APlayerController::ClientPlayForceFeedback_Implementation( UForceFeedbackEf
 			}
 		}
 
-		FActiveForceFeedbackEffect ActiveEffect(ForceFeedbackEffect, bLooping, Tag);
-		ActiveForceFeedbackEffects.Add(ActiveEffect);
+		ActiveForceFeedbackEffects.Emplace(ForceFeedbackEffect, bLooping, Tag);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		ForceFeedbackEffectHistoryEntries.Emplace(ActiveEffect, GetWorld()->GetTimeSeconds());
+		ForceFeedbackEffectHistoryEntries.Emplace(ActiveForceFeedbackEffects.Last(), GetWorld()->GetTimeSeconds());
 #endif
 	}
 }
@@ -3537,8 +3576,7 @@ public:
 				PC->DynamicForceFeedbacks.Add(LatentUUID, ForceFeedbackDetails);
 			}
 		}
-
-
+		
 		Response.FinishAndTriggerIf(bComplete, ExecutionFunction, OutputLink, CallbackTarget);
 	}
 };
@@ -3598,6 +3636,9 @@ void APlayerController::PlayHapticEffect(UHapticFeedbackEffect_Base* HapticEffec
 			ActiveHapticEffect_Right.Reset();
 			ActiveHapticEffect_Right = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 			break;
+		case EControllerHand::Gun:
+			ActiveHapticEffect_Gun.Reset();
+			ActiveHapticEffect_Gun = MakeShareable(new FActiveHapticFeedbackEffect(HapticEffect, Scale, bLoop));
 		default:
 			UE_LOG(LogPlayerController, Warning, TEXT("Invalid hand specified (%d) for haptic feedback effect %s"), (int32)Hand, *HapticEffect->GetName());
 			break;
@@ -3610,8 +3651,16 @@ void APlayerController::StopHapticEffect(EControllerHand Hand)
 	SetHapticsByValue(0.f, 0.f, Hand);
 }
 
+static TAutoConsoleVariable<int32> CVarDisableHaptics(TEXT("input.DisableHaptics"),0,TEXT("If greater than zero, no haptic feedback is processed."));
+
 void APlayerController::SetHapticsByValue(const float Frequency, const float Amplitude, EControllerHand Hand)
 {
+	bool bDisableHaptics = (CVarDisableHaptics.GetValueOnGameThread() > 0);
+	if (bDisableHaptics)
+	{
+		return;
+	}
+
 	if (Hand == EControllerHand::Left)
 	{
 		ActiveHapticEffect_Left.Reset();
@@ -3619,6 +3668,10 @@ void APlayerController::SetHapticsByValue(const float Frequency, const float Amp
 	else if (Hand == EControllerHand::Right)
 	{
 		ActiveHapticEffect_Right.Reset();
+	}
+	else if (Hand == EControllerHand::Gun)
+	{
+		ActiveHapticEffect_Gun.Reset();
 	}
 	else
 	{
@@ -3658,16 +3711,17 @@ void APlayerController::SetControllerLightColor(FColor Color)
 
 void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, const bool bGamePaused)
 {
-	if (Player == NULL)
+	if (Player == nullptr)
 	{
 		return;
 	}
 
 	ForceFeedbackValues.LeftLarge = ForceFeedbackValues.LeftSmall = ForceFeedbackValues.RightLarge = ForceFeedbackValues.RightSmall = 0.f;
 
-	FHapticFeedbackValues LeftHaptics, RightHaptics;
+	FHapticFeedbackValues LeftHaptics, RightHaptics, GunHaptics;
 	bool bLeftHapticsNeedUpdate = false;
 	bool bRightHapticsNeedUpdate = false;
+	bool bGunHapticsNeedUpdate = false;
 
 	if (!bGamePaused)
 	{
@@ -3680,9 +3734,14 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			}
 		}
 
-		for (const auto& DynamicEntry : DynamicForceFeedbacks)
+		for (const TPair<int32, FDynamicForceFeedbackDetails>& DynamicEntry : DynamicForceFeedbacks)
 		{
 			DynamicEntry.Value.Update(ForceFeedbackValues);
+		}
+
+		if (FForceFeedbackManager* ForceFeedbackManager = FForceFeedbackManager::Get(GetWorld()))
+		{
+			ForceFeedbackManager->Update(GetFocalLocation(), ForceFeedbackValues);
 		}
 
 		// --- Haptic Feedback -------------------------
@@ -3708,6 +3767,17 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 			bRightHapticsNeedUpdate = true;
 		}
 
+		if (ActiveHapticEffect_Gun.IsValid())
+		{
+			const bool bPlaying = ActiveHapticEffect_Gun->Update(DeltaTime, GunHaptics);
+			if (!bPlaying)
+			{
+				ActiveHapticEffect_Gun->bLoop ? ActiveHapticEffect_Gun->Restart() : ActiveHapticEffect_Gun.Reset();
+			}
+
+			bGunHapticsNeedUpdate = true;
+		}
+
 	}
 
 	if (FSlateApplication::IsInitialized())
@@ -3718,18 +3788,26 @@ void APlayerController::ProcessForceFeedbackAndHaptics(const float DeltaTime, co
 		if (InputInterface)
 		{
 			InputInterface->SetForceFeedbackChannelValues(ControllerId, (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
-			
-			// Haptic Updates
-			if (bLeftHapticsNeedUpdate)
-			{
-				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Left, LeftHaptics);
-			}
 
-			if (bRightHapticsNeedUpdate)
+			bool bDisableHaptics = (CVarDisableHaptics.GetValueOnGameThread() > 0);
+			if (!bDisableHaptics)
 			{
-				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Right, RightHaptics);
-			}
 
+				// Haptic Updates
+				if (bLeftHapticsNeedUpdate)
+				{
+					InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Left, LeftHaptics);
+				}
+
+				if (bRightHapticsNeedUpdate)
+				{
+					InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Right, RightHaptics);
+				}
+			}
+			if (bGunHapticsNeedUpdate)
+			{
+				InputInterface->SetHapticFeedbackValues(ControllerId, (int32)EControllerHand::Gun, GunHaptics);
+			}
 		}
 	}
 }

@@ -1,15 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompositeFactory.cpp: Factory for AnimComposite
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "Factories/AnimCompositeFactory.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/Layout/SBorder.h"
+#include "EditorStyleSet.h"
+#include "Animation/Skeleton.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/AnimCompositeBase.h"
+#include "Editor.h"
 
-#include "AssetData.h"
+#include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "Animation/AnimComposite.h"
-#include "Animation/AnimSequence.h"
 
 #define LOCTEXT_NAMESPACE "AnimCompositeFactory"
 

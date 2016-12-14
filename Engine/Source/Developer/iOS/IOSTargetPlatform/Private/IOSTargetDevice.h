@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSTargetDevice.h: Defines an IOS device for communication
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Interfaces/ITargetDevice.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "HAL/PlatformProcess.h"
+#include "IMessageContext.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Helpers/MessageEndpointBuilder.h"
 
 
 /**

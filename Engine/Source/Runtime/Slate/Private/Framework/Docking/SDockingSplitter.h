@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Framework/Docking/TabManager.h"
+#include "SDockingNode.h"
+
+class SDockingTabStack;
 
 /** Dynamic N-way splitter that provides the resizing functionality in the docking framework. */
 class SLATE_API SDockingSplitter : public SDockingNode

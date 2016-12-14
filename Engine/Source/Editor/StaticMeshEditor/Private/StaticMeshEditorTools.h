@@ -1,10 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AssetThumbnail.h"
-#include "PropertyEditing.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Engine/EngineTypes.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Engine/MeshMerging.h"
 #include "Engine/StaticMesh.h"
+#include "IDetailCustomization.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "IDetailCustomNodeBuilder.h"
+
+class FAssetData;
+class FAssetThumbnailPool;
+class FDetailWidgetRow;
+class FLevelOfDetailSettingsLayout;
+class FStaticMeshEditor;
+class IDetailCategoryBuilder;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
+class IStaticMeshEditor;
+class UMaterialInterface;
+struct FSectionLocalizer;
 
 enum ECreationModeChoice
 {
@@ -245,6 +268,14 @@ private:
 	
 	UStaticMesh& GetStaticMesh() const;
 
+	void OnCopySectionList(int32 CurrentLODIndex);
+	bool OnCanCopySectionList(int32 CurrentLODIndex) const;
+	void OnPasteSectionList(int32 CurrentLODIndex);
+
+	void OnCopySectionItem(int32 CurrentLODIndex, int32 SectionIndex);
+	bool OnCanCopySectionItem(int32 CurrentLODIndex, int32 SectionIndex) const;
+	void OnPasteSectionItem(int32 CurrentLODIndex, int32 SectionIndex);
+
 	/**
 	* Called by the material list widget when we need to get new materials for the list
 	*
@@ -366,6 +397,14 @@ private:
 
 	void CallPostEditChange(UProperty* PropertyChanged = nullptr);
 
+	void OnCopyMaterialList();
+	bool OnCanCopyMaterialList() const;
+	void OnPasteMaterialList();
+
+	void OnCopyMaterialItem(int32 CurrentSlot);
+	bool OnCanCopyMaterialItem(int32 CurrentSlot) const;
+	void OnPasteMaterialItem(int32 CurrentSlot);
+
 	IStaticMeshEditor& StaticMeshEditor;
 	
 	/* This is to know if material are used by any LODs sections. */
@@ -403,6 +442,9 @@ private:
 	void OnMinLODChanged(int32 NewValue);
 	void OnMinLODCommitted(int32 InValue, ETextCommit::Type CommitInfo);
 	int32 GetMinLOD() const;
+
+	bool CanRemoveLOD(int32 LODIndex) const;
+	FReply OnRemoveLOD(int32 LODIndex);
 
 	float GetLODScreenSize(int32 LODIndex)const;
 	FText GetLODScreenSizeTitle(int32 LODIndex) const;

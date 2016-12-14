@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 // Core includes.
-#include "CoreUObjectPrivate.h"
+#include "Misc/RedirectCollector.h"
+#include "Misc/CoreDelegates.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/UnrealType.h"
+#include "UObject/ObjectRedirector.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
 #include "UObject/UObjectThreadContext.h"
 //#include "CookStats.h"
 DEFINE_LOG_CATEGORY_STATIC(LogRedirectors, Log, All);

@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ProfilerPrivatePCH.h"
-#include "ProfilerCommands.h"
-#include "ProfilerDataProvider.h"
-#include "ProfilerDataSource.h"
 #include "ProfilerManager.h"
-#include "ProfilerSession.h"
-#include "SProfilerMiniView.h"
-#include "SProfilerWindow.h"
-
+#include "Templates/ScopedPointer.h"
+#include "Modules/ModuleManager.h"
+#include "IProfilerClientModule.h"
+#include "Stats/StatsFile.h"
+#include "ProfilerDataProvider.h"
+#include "ProfilerRawStatsForThreadView.h"
+#include "Widgets/SProfilerMiniView.h"
+#include "Widgets/SProfilerWindow.h"
+#include "UniquePtr.h"
 
 #define LOCTEXT_NAMESPACE "FProfilerCommands"
 
@@ -218,7 +219,7 @@ protected:
 
 static int32 GetNumFrameFromCaptureSlow( const FString& ProfilerCaptureFilepath )
 {
-	TAutoPtr<FStatsHeaderReader> Instance( FStatsReader<FStatsHeaderReader>::Create( *ProfilerCaptureFilepath ) );
+	TUniquePtr<FStatsHeaderReader> Instance( FStatsReader<FStatsHeaderReader>::Create( *ProfilerCaptureFilepath ) );
 	return Instance->GetNumFrames();
 }
 

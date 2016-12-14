@@ -1,17 +1,48 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Main implementation of FFbxExporter : export FBX data from Unreal
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/Guid.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/EngineVersion.h"
+#include "Components/ActorComponent.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
+#include "RawIndexBuffer.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/LightComponent.h"
+#include "Model.h"
+#include "Curves/KeyHandle.h"
+#include "Curves/RichCurve.h"
+#include "Animation/AnimTypes.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Engine/Brush.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
+#include "Particles/Emitter.h"
+#include "Components/PointLightComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Engine/Light.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/ChildActorComponent.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Engine/Polys.h"
+#include "Engine/StaticMesh.h"
+#include "Editor.h"
 
+#include "Materials/Material.h"
 #include "Materials/MaterialExpressionConstant.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionConstant2Vector.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
-#include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 
 #include "Matinee/InterpData.h"
@@ -23,47 +54,36 @@
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/InterpTrackInstAnimControl.h"
 
-#include "StaticMeshResources.h"
-#include "LandscapeDataAccess.h"
 #include "LandscapeProxy.h"
 #include "LandscapeInfo.h"
 #include "LandscapeComponent.h"
+#include "LandscapeDataAccess.h"
 #include "Components/SplineMeshComponent.h"
-#include "InstancedFoliageActor.h"
+#include "StaticMeshResources.h"
 
+#include "Matinee/InterpGroup.h"
+#include "Matinee/InterpGroupInst.h"
+#include "Matinee/MatineeActor.h"
 #include "FbxExporter.h"
 #include "RawMesh.h"
-#include "Particles/Emitter.h"
-#include "Engine/Light.h"
-#include "Engine/Polys.h"
-#include "Engine/StaticMeshActor.h"
-#include "Animation/SkeletalMeshActor.h"
 #include "Components/BrushComponent.h"
-#include "Components/SpotLightComponent.h"
-#include "Components/PointLightComponent.h"
-#include "Camera/CameraActor.h"
 #include "CineCameraComponent.h"
-#include "Components/DirectionalLightComponent.h"
-#include "Components/ChildActorComponent.h"
-#include "UnitConversion.h"
+#include "Math/UnitConversion.h"
 
 #include "MovieScene.h"
-#include "MovieSceneFwd.h"
-#include "MovieSceneBinding.h"
-#include "IMovieScenePlayer.h"
 #include "Tracks/MovieScene3DTransformTrack.h"
 #include "Tracks/MovieSceneFloatTrack.h"
 #include "Tracks/MovieSceneSkeletalAnimationTrack.h"
 #include "Sections/MovieScene3DTransformSection.h"
 #include "Sections/MovieSceneFloatSection.h"
-#include "MovieSceneEvaluationTemplateInstance.h"
+#include "Evaluation/MovieScenePlayback.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "MovieSceneSequence.h"
 
 #if WITH_PHYSX
-#include "PhysicsEngine/AggregateGeom.h"
-#include "PhysicsPublic.h"
+#include "DynamicMeshBuilder.h"
 #include "PhysXPublic.h"
-#include "PxConvexMesh.h"
+#include "geometry/PxConvexMesh.h"
 #include "PhysicsEngine/BodySetup.h"
 #endif // WITH_PHYSX
 
@@ -633,7 +653,7 @@ void FFbxExporter::ExportModel(UModel* Model, FbxNode* Node, const char* Name)
 	
 	for (auto MaterialIterator = Model->MaterialIndexBuffers.CreateIterator(); MaterialIterator; ++MaterialIterator)
 	{
-		BeginReleaseResource(MaterialIterator.Value());
+		BeginReleaseResource(MaterialIterator->Value.Get());
 	}
 	FlushRenderingCommands();
 
@@ -953,7 +973,32 @@ void FFbxExporter::ExportStaticMesh( UStaticMesh* StaticMesh, const TArray<FStat
 	StaticMesh->GetName(MeshName);
 	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*MeshName));
 	Scene->GetRootNode()->AddChild(MeshNode);
-	ExportStaticMeshToFbx(StaticMesh, 0, *MeshName, MeshNode, -1, NULL, MaterialOrder);
+
+	if (StaticMesh->GetNumLODs() > 1)
+	{
+		FString LodGroup_MeshName = MeshName + ("_LodGroup");
+		FbxLODGroup *FbxLodGroupAttribute = FbxLODGroup::Create(Scene, TCHAR_TO_UTF8(*LodGroup_MeshName));
+		MeshNode->AddNodeAttribute(FbxLodGroupAttribute);
+		FbxLodGroupAttribute->ThresholdsUsedAsPercentage = true;
+		//Export an Fbx Mesh Node for every LOD and child them to the fbx node (LOD Group)
+		for (int CurrentLodIndex = 0; CurrentLodIndex < StaticMesh->GetNumLODs(); ++CurrentLodIndex)
+		{
+			FString FbxLODNodeName = MeshName + TEXT("_LOD") + FString::FromInt(CurrentLodIndex);
+			FbxNode* FbxActorLOD = FbxNode::Create(Scene, TCHAR_TO_UTF8(*FbxLODNodeName));
+			MeshNode->AddChild(FbxActorLOD);
+			if (CurrentLodIndex + 1 < StaticMesh->GetNumLODs())
+			{
+				//Convert the screen size to a threshold, it is just to be sure that we set some threshold, there is no way to convert this precisely
+				double LodScreenSize = (double)(10.0f / StaticMesh->RenderData->ScreenSize[CurrentLodIndex]);
+				FbxLodGroupAttribute->AddThreshold(LodScreenSize);
+			}
+			ExportStaticMeshToFbx(StaticMesh, CurrentLodIndex, *MeshName, FbxActorLOD, -1, nullptr, MaterialOrder);
+		}
+	}
+	else
+	{
+		ExportStaticMeshToFbx(StaticMesh, 0, *MeshName, MeshNode, -1, NULL, MaterialOrder);
+	}
 }
 
 void FFbxExporter::ExportStaticMeshLightMap( UStaticMesh* StaticMesh, int32 LODIndex, int32 UVChannel )
@@ -2678,7 +2723,7 @@ public:
 private:
 	uint32 GetConvexVerticeNumber(const FKConvexElem &ConvexElem)
 	{
-		return ConvexElem.ConvexMesh != nullptr ? ConvexElem.ConvexMesh->getNbVertices() : 0;
+		return ConvexElem.GetConvexMesh() != nullptr ? ConvexElem.GetConvexMesh()->getNbVertices() : 0;
 	}
 
 	uint32 GetBoxVerticeNumber() { return 24; }
@@ -2689,8 +2734,7 @@ private:
 
 	void AddConvexVertex(const FKConvexElem &ConvexElem)
 	{
-		const FTransform &ConvexTransform = ConvexElem.GetTransform();
-		const physx::PxConvexMesh* ConvexMesh = ConvexElem.ConvexMesh;
+		const physx::PxConvexMesh* ConvexMesh = ConvexElem.GetConvexMesh();
 		if (ConvexMesh == nullptr)
 		{
 			return;
@@ -2699,7 +2743,6 @@ private:
 		for (uint32 PosIndex = 0; PosIndex < ConvexMesh->getNbVertices(); ++PosIndex)
 		{
 			FVector Position = P2UVector(VertexArray[PosIndex]);
-			Position = ConvexTransform.TransformPosition(Position);
 			ControlPoints[CurrentVertexOffset + PosIndex] = FbxVector4(Position.X, -Position.Y, Position.Z);
 		}
 		CurrentVertexOffset += ConvexMesh->getNbVertices();
@@ -2707,8 +2750,7 @@ private:
 
 	void AddConvexNormals(const FKConvexElem &ConvexElem)
 	{
-		const FTransform &ConvexTransform = ConvexElem.GetTransform();
-		const physx::PxConvexMesh* ConvexMesh = ConvexElem.ConvexMesh;
+		const physx::PxConvexMesh* ConvexMesh = ConvexElem.GetConvexMesh();
 		if (ConvexMesh == nullptr)
 		{
 			return;
@@ -2724,7 +2766,6 @@ private:
 			}
 			const PxVec3 PPlaneNormal(PolyData.mPlane[0], PolyData.mPlane[1], PolyData.mPlane[2]);
 			FVector Normal = P2UVector(PPlaneNormal.getNormalized());
-			Normal = ConvexTransform.TransformVector(Normal);
 			FbxVector4 FbxNormal = FbxVector4(Normal.X, -Normal.Y, Normal.Z);
 			// add vertices 
 			for (PxU32 j = 0; j < PolyData.mNbVerts; ++j)
@@ -2736,7 +2777,7 @@ private:
 
 	void AddConvexPolygon(const FKConvexElem &ConvexElem)
 	{
-		const physx::PxConvexMesh* ConvexMesh = ConvexElem.ConvexMesh;
+		const physx::PxConvexMesh* ConvexMesh = ConvexElem.GetConvexMesh();
 		if (ConvexMesh == nullptr)
 		{
 			return;

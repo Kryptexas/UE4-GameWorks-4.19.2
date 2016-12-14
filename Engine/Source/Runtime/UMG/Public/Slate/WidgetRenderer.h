@@ -1,10 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/SlateRect.h"
+#include "Layout/Geometry.h"
+#include "Input/PopupMethodReply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/HittestGrid.h"
+#include "Rendering/DrawElements.h"
+#include "Engine/Texture.h"
+#include "Widgets/SWindow.h"
+
+class FArrangedChildren;
+class FSlateDrawBuffer;
 class ISlate3DRenderer;
-class FHittestGrid;
-class SWindow;
+class STooltipPresenter;
+class UTextureRenderTarget2D;
 
 class UMG_API SVirtualWindow : public SWindow
 {

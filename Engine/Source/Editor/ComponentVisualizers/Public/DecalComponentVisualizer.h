@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ComponentVisualizer.h"
-#include "Components/DecalComponent.h"
+
+class FPrimitiveDrawInterface;
+class FSceneView;
 
 class COMPONENTVISUALIZERS_API FDecalComponentVisualizer : public FComponentVisualizer
 {

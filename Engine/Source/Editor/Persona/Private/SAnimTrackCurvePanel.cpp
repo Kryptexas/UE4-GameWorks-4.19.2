@@ -1,18 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
 
 #include "SAnimTrackCurvePanel.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Layout/SScrollBox.h"
+
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IPersonaPreviewScene.h"
 #include "ScopedTransaction.h"
 #include "SAnimCurveEd.h"
-#include "Editor/KismetWidgets/Public/SScrubWidget.h"
-#include "AssetRegistryModule.h"
-#include "Kismet2NameValidators.h"
-#include "SExpandableArea.h"
-#include "STextEntryPopup.h"
+#include "Widgets/Layout/SExpandableArea.h"
 #include "AnimPreviewInstance.h"
-#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "AnimTrackCurvePanel"
 
@@ -110,6 +120,18 @@ public:
 			BaseSequence.Get()->bNeedsRebake = true;
 			BaseSequence.Get()->Modify(true);
 		}
+	}
+
+	/** Returns the owner(s) of the curve */
+	virtual TArray<const UObject*> GetOwners() const override
+	{
+		TArray<const UObject*> Owners;
+		if (BaseSequence.IsValid())
+		{
+			Owners.Add(BaseSequence.Get());
+		}
+
+		return Owners;
 	}
 
 	/** Called to make curve owner transactional */
@@ -520,6 +542,11 @@ void SAnimTrackCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<
 	WidgetWidth = InArgs._WidgetWidth;
 	OnGetScrubValue = InArgs._OnGetScrubValue;
 
+	if (InPreviewScene->GetPreviewMeshComponent()->PreviewInstance)
+	{
+		InPreviewScene->GetPreviewMeshComponent()->PreviewInstance->SetKeyCompleteDelegate(FSimpleDelegate::CreateSP(this, &SAnimTrackCurvePanel::HandleKeyComplete));
+	}
+
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -660,8 +687,6 @@ void SAnimTrackCurvePanel::UpdatePanel()
 				Tracks.Add(CurrentTrack);
 			}
 		}
-
-		OnCurvesChanged.ExecuteIfBound();
 	}
 }
 
@@ -890,4 +915,10 @@ TSharedRef<SWidget> SAnimTrackCurvePanel::CreateCurveContextMenu(USkeleton::Anim
 
 	return MenuBuilder.MakeWidget();
 }
+
+void SAnimTrackCurvePanel::HandleKeyComplete()
+{
+	UpdatePanel();
+}
+
 #undef LOCTEXT_NAMESPACE

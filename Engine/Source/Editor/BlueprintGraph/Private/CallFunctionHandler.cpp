@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "BlueprintGraphPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "CallFunctionHandler.h"
+#include "UObject/MetaData.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Event.h"
+#include "K2Node_CallParentFunction.h"
+#include "K2Node_ExecutionSequence.h"
+
+#include "EdGraphUtilities.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "CallFunctionHandler"
 
@@ -374,7 +381,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					for(int32 i = 0; i < SelfPin->LinkedTo.Num(); i++)
 					{
 						FBPTerminal** pContextTerm = Context.NetMap.Find(SelfPin->LinkedTo[i]);
-						if(ensure(pContextTerm != nullptr))
+						if(ensureMsgf(pContextTerm != nullptr, TEXT("'%s' is missing a target input - if this is a server build, the input may be a cosmetic only property which was discarded (if this is the case, and this is expecting component variable try resaving.)"), *Node->GetPathName()))
 						{
 							CheckAndAddSelfTermLambda(*pContextTerm);
 						}

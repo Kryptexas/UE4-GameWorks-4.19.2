@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AssetTypeActions_Base.h"
+
+class FAssetData;
+class FMenuBuilder;
+class USoundBase;
 
 class FAssetTypeActions_SoundBase : public FAssetTypeActions_Base
 {
@@ -18,10 +23,17 @@ public:
 	virtual bool CanFilter() override { return false; }
 	virtual TSharedPtr<SWidget> GetThumbnailOverlay(const FAssetData& AssetData) const override;
 
+protected:
+	/** Plays the specified sound wave */
+	void PlaySound(USoundBase* Sound) const;
 
-	/** Return if the specified sound is playing*/
-	bool IsSoundPlaying(TArray<TWeakObjectPtr<USoundBase>> Objects) const;
+	/** Stops any currently playing sounds */
+	void StopSound() const;
 
+	/** Return true if the specified sound is playing */
+	bool IsSoundPlaying(USoundBase* Sound) const;
+
+private:
 	/** Handler for when PlaySound is selected */
 	void ExecutePlaySound(TArray<TWeakObjectPtr<USoundBase>> Objects) const;
 
@@ -30,11 +42,4 @@ public:
 
 	/** Returns true if only one sound is selected to play */
 	bool CanExecutePlayCommand(TArray<TWeakObjectPtr<USoundBase>> Objects) const;
-
-private:
-	/** Plays the specified sound wave */
-	void PlaySound(USoundBase* Sound) const;
-
-	/** Stops any currently playing sounds */
-	void StopSound() const;
 };

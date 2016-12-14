@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __ApexClothingUtils_h__
 #define __ApexClothingUtils_h__
 
-class USkeletalMeshComponent;
-class FPhysScene;
-struct FClothPhysicsProperties;
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "SkeletalMeshTypes.h"
+#include "Engine/SkeletalMesh.h"
 
 #if WITH_APEX_CLOTHING
 

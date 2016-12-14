@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MetalRHIPrivate.h"
 
@@ -121,6 +121,7 @@ FMetalPooledBuffer FMetalBufferPoolPolicyData::CreateResource(CreationArguments 
 					 | (Args.Storage << MTLResourceStorageModeShift)
 #endif
 					 ];
+	check(NewBuf.Buffer);
 	TRACK_OBJECT(STAT_MetalBufferCount, NewBuf.Buffer);
 	INC_DWORD_STAT(STAT_MetalPooledBufferCount);
 	INC_MEMORY_STAT_BY(STAT_MetalPooledBufferMem, BufferSize);
@@ -158,6 +159,9 @@ uint32 FMetalBufferPoolPolicyData::BucketSizes[NumPoolBucketSizes] = {
 	256, 512, 768, 1024, 2048, 4096, 8192, 16384,
 	32768, 65536, 131072, 262144, 524288, 1048576, 2097152,
 	4194304, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456
+#if PLATFORM_MAC // Mac allows for up-to 1GB but iOS does not, so add a few more sizes
+	, 402653184, 536870912, 671088640, 805306368, 939524096, 1073741824
+#endif
 };
 
 /** Destructor */

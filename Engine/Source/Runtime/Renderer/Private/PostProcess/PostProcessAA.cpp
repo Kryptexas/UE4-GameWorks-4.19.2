@@ -1,15 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessAA.cpp: Post processing anti aliasing implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessAA.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessAA.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "SceneRendering.h"
 
 /** Encapsulates the post processing anti aliasing pixel shader. */
 // Quality 1..6

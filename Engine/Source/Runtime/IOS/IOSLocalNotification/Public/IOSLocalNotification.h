@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSLocalNotification.h: Unreal IOS local notification interface object.
@@ -7,6 +7,7 @@
 #pragma once
 
 #include "LocalNotification.h"
+#include "Logging/LogMacros.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogIOSLocalNotification, Log, All);
 

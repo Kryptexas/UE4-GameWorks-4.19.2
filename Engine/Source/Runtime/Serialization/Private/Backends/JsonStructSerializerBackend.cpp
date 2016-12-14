@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SerializationPrivatePCH.h"
-#include "JsonStructSerializerBackend.h"
+#include "Backends/JsonStructSerializerBackend.h"
+#include "UObject/UnrealType.h"
+#include "UObject/EnumProperty.h"
+#include "UObject/TextProperty.h"
+#include "UObject/PropertyPortFlags.h"
 
 
 /* Internal helpers
@@ -131,6 +134,12 @@ void FJsonStructSerializerBackend::WriteProperty(const FStructSerializerState& S
 	}
 
 	// unsigned bytes & enumerations
+	else if (State.ValueType == UEnumProperty::StaticClass())
+	{
+		UEnumProperty* EnumProperty = Cast<UEnumProperty>(State.ValueProperty);
+
+		WritePropertyValue(JsonWriter, State, EnumProperty->GetEnum()->GetEnumNameStringByValue(EnumProperty->GetUnderlyingProperty()->GetSignedIntPropertyValue(EnumProperty->ContainerPtrToValuePtr<void>(State.ValueData, ArrayIndex))));
+	}
 	else if (State.ValueType == UByteProperty::StaticClass())
 	{
 		UByteProperty* ByteProperty = Cast<UByteProperty>(State.ValueProperty);

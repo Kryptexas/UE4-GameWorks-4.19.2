@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGEditorPrivatePCH.h"
+#include "Designer/SDesignSurface.h"
+#include "Rendering/DrawElements.h"
+#include "Framework/Application/SlateApplication.h"
 
-#include "SDesignSurface.h"
+#if WITH_EDITOR
+	#include "Settings/LevelEditorViewportSettings.h"
+#endif // WITH_EDITOR
+
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -104,9 +109,9 @@ struct FFixedZoomLevelsContainerDesignSurface : public FZoomLevelsContainer
 
 void SDesignSurface::Construct(const FArguments& InArgs)
 {
-	if ( !ZoomLevels.IsValid() )
+	if ( !ZoomLevels )
 	{
-		ZoomLevels = new FFixedZoomLevelsContainerDesignSurface();
+		ZoomLevels = MakeUnique<FFixedZoomLevelsContainerDesignSurface>();
 	}
 	ZoomLevel = ZoomLevels->GetDefaultZoomLevel();
 	PreviousZoomLevel = ZoomLevels->GetDefaultZoomLevel();

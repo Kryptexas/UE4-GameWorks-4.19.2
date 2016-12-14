@@ -1,15 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GenericWindow.h"
-#include "SharedPointer.h"
+#include "CoreTypes.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "Templates/SharedPointer.h"
+#include "WindowsHWrapper.h"
 
 #include "AllowWindowsPlatformTypes.h"
-#include "Ole2.h"
-#include "OleIdl.h"
+#include <Ole2.h>
+#include <oleidl.h>
 #include "HideWindowsPlatformTypes.h"
 
+class FWindowsApplication;
+struct FVector2D;
+enum class EWindowTransparency;
 
 /**
  * A platform specific implementation of FNativeWindow.
@@ -148,7 +153,7 @@ private:
 
 	/** Creates an HRGN for the window's current region.  Remember to delete this when you're done with it using
 	   ::DeleteObject, unless you're passing it to SetWindowRgn(), which will absorb the reference itself. */
-	HRGN MakeWindowRegionObject() const;
+	HRGN MakeWindowRegionObject(bool bIncludeBorderWhenMaximized) const;
 
 private:
 

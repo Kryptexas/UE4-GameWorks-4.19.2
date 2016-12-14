@@ -1,15 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Modules/ModuleInterface.h"
 
-
-// forward declarations
 class ISettingsContainer;
 class ISettingsEditorModel;
-class SWidget;
-
 
 /**
  * Interface for settings editor modules.

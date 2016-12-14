@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldLightingShared.h
@@ -6,7 +6,23 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "ShaderParameters.h"
+#include "RenderUtils.h"
+#include "RHIStaticStates.h"
 #include "DistanceFieldAtlas.h"
+#include "UniquePtr.h"
+
+class FLightSceneProxy;
+class FMaterialRenderProxy;
+class FPrimitiveSceneInfo;
+class FSceneRenderer;
+class FShaderParameterMap;
+class FViewInfo;
+
+template<typename ReferencedType> class TScopedPointer;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDistanceField, Warning, All);
 
@@ -489,7 +505,7 @@ extern void CullDistanceFieldObjectsForLight(
 	const FPlane* PlaneData, 
 	const FVector4& ShadowBoundingSphereValue,
 	float ShadowBoundingRadius,
-	TScopedPointer<class FLightTileIntersectionResources>& TileIntersectionResources);
+	TUniquePtr<class FLightTileIntersectionResources>& TileIntersectionResources);
 
 class FUniformMeshBuffers
 {

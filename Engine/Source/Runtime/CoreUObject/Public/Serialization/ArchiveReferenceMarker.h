@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Serialization/ArchiveUObject.h"
 
 /**
  * This archive marks all objects referenced by the specified "root set" of objects.

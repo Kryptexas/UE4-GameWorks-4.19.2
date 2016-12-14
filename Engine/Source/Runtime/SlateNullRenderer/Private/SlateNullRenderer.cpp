@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateNullRendererPrivatePCH.h"
+#include "SlateNullRenderer.h"
+#include "Rendering/SlateDrawBuffer.h"
 
 FSlateNullRenderer::FSlateNullRenderer(const TSharedRef<FSlateFontServices>& InSlateFontServices)
 	: FSlateRenderer(InSlateFontServices)
@@ -87,4 +88,21 @@ void FSlateNullRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture
 
 void FSlateNullRenderer::RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight )
 {
+}
+
+int32 FSlateNullRenderer::RegisterCurrentScene(FSceneInterface* Scene) 
+{
+	// This is a no-op
+	return -1;
+}
+
+int32 FSlateNullRenderer::GetCurrentSceneIndex() const
+{
+	// This is a no-op
+	return -1;
+}
+
+void FSlateNullRenderer::ClearScenes() 
+{
+	// This is a no-op
 }

@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "AssetTypeActions/AssetTypeActions_AnimationAsset.h"
+#include "Animation/AnimMontage.h"
+
+class FMenuBuilder;
 
 class FAssetTypeActions_AnimMontage : public FAssetTypeActions_AnimationAsset
 {

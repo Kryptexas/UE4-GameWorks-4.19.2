@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ArchiveProxy.h"
+#include "CoreTypes.h"
+#include "Serialization/ArchiveProxy.h"
 
 /**
  * Implements a proxy archive that serializes FNames as string data.

@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "FeedbackContext.h"
-#include "IBlueprintCompilerCppBackendModule.h"  //for FNativizationSummary
+#include "CoreMinimal.h"
+#include "IBlueprintCompilerCppBackendModule.h"
+#include "Misc/FeedbackContext.h"
+
+class SBuildProgressWidget;
+struct FBlueprintNativeCodeGenManifest;
 
 // Forward declares
 class  SBuildProgressWidget;

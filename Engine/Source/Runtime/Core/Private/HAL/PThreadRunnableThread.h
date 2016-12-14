@@ -1,8 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include <pthread.h>
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "HAL/Event.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/ThreadManager.h"
+
+#if	PLATFORM_USE_PTHREADS
 
 /**
  * This is the base interface for all runnable thread classes. It specifies the
@@ -309,3 +321,5 @@ protected:
 		return bThreadStartedAndNotCleanedUp;
 	}
 };
+
+#endif

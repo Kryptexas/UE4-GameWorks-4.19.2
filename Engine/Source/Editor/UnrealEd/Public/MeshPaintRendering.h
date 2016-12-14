@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	MeshPaintRendering.h: Mesh texture paint brush rendering
@@ -9,7 +9,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RHIDefinitions.h"
 
+class FRHICommandList;
+class UTextureRenderTarget2D;
 
 namespace MeshPaintRendering
 {

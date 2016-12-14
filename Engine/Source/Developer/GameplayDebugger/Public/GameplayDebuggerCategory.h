@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 // GAMEPLAY DEBUGGER CATEGORY
@@ -32,14 +32,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GameplayDebuggerTypes.h"
 #include "GameplayDebuggerAddonBase.h"
-#include "GameplayDebuggerCategoryReplicator.h"
 
 class AActor;
-class UPrimitiveComponent;
-class UWorld;
 class APlayerController;
 class FDebugRenderSceneProxy;
+class UPrimitiveComponent;
 struct FDebugDrawDelegateHelper;
 
 /**

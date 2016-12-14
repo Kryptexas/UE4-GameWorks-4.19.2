@@ -1,13 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateRHIRendererPrivatePCH.h"
-#include "ImageWrapper.h"
+#include "SlateRHIResourceManager.h"
+#include "RenderingThread.h"
+#include "Engine/Texture.h"
+#include "Misc/FileHelper.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Modules/ModuleManager.h"
+#include "Styling/SlateStyleRegistry.h"
+#include "Styling/ISlateStyle.h"
+#include "Rendering/SlateRenderer.h"
+#include "EngineGlobals.h"
+#include "Engine/Texture2D.h"
+#include "RenderUtils.h"
+#include "Engine/Engine.h"
+#include "Slate/SlateTextures.h"
+#include "SlateRHITextureAtlas.h"
+#include "Interfaces/IImageWrapperModule.h"
 #include "SlateNativeTextureResource.h"
 #include "SlateUTextureResource.h"
 #include "SlateMaterialResource.h"
+#include "Slate/SlateTextureAtlasInterface.h"
 #include "SlateAtlasedTextureResource.h"
 #include "ImageUtils.h"
-#include "SlateTextureAtlasInterface.h"
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Texture Atlases"), STAT_SlateNumTextureAtlases, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Non-Atlased Textures"), STAT_SlateNumNonAtlasedTextures, STATGROUP_SlateMemory);
@@ -774,13 +789,9 @@ FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObj
 		
 		DynamicResourceMap.AddMaterialResource(Key, MaterialResource.ToSharedRef());
 	}
-	else if( MaterialResource->GetTextureMaskResource() != TextureMask )
-	{
-		MaterialResource->UpdateMaterial( *Material, ImageSize, TextureMask );
-	}
 	else
 	{
-		MaterialResource->SlateProxy->ActualSize = ImageSize.IntPoint();
+		MaterialResource->UpdateMaterial( *Material, ImageSize, TextureMask );
 	}
 
 	GetAccessedUObjects().Add(const_cast<UMaterialInterface*>( Material ));
@@ -1186,4 +1197,33 @@ UTexture* FSlateRHIResourceManager::GetBadResourceTexture()
 	}
 
 	return BadResourceTexture;
+}
+
+
+int32 FSlateRHIResourceManager::GetSceneCount()
+{
+	checkSlow(IsInRenderingThread());
+	return ActiveScenes.Num();
+}
+
+FSceneInterface* FSlateRHIResourceManager::GetSceneAt(int32 Index)
+{
+	checkSlow(IsInRenderingThread());
+	return ActiveScenes[Index];
+}
+
+void FSlateRHIResourceManager::AddSceneAt(FSceneInterface* Scene, int32 Index)
+{
+	checkSlow(IsInRenderingThread());
+	if (ActiveScenes.Num() <= Index)
+	{
+		ActiveScenes.SetNumZeroed(Index + 1);
+	}
+	ActiveScenes[Index] = Scene;
+}
+
+void FSlateRHIResourceManager::ClearScenes()
+{
+	checkSlow(IsInRenderingThread());
+	ActiveScenes.Empty();
 }

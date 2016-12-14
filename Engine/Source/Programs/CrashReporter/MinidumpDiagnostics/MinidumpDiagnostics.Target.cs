@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -61,5 +61,6 @@ public class MinidumpDiagnosticsTarget : TargetRules
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
 
 		OutCPPEnvironmentConfiguration.Definitions.Add("MINIDUMPDIAGNOSTICS=1");
-	}
+        OutCPPEnvironmentConfiguration.Definitions.Add("NOINITCRASHREPORTER=1");
+    }
 }

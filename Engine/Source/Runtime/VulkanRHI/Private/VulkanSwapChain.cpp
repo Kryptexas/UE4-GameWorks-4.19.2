@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanSwapChain.h: Vulkan viewport RHI definitions.
@@ -169,11 +169,7 @@ FVulkanSwapChain::FVulkanSwapChain(VkInstance InInstance, FVulkanDevice& InDevic
 	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
 	for (uint32 BufferIndex = 0; BufferIndex < NumSwapChainImages; ++BufferIndex)
 	{
-		VkFenceCreateInfo FenceInfo;
-		FMemory::Memzero(FenceInfo);
-		FenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		FenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		VERIFYVULKANRESULT(VulkanRHI::vkCreateFence(Device.GetInstanceHandle(), &FenceInfo, nullptr, &ImageAcquiredFences[BufferIndex]));
+		ImageAcquiredFences[BufferIndex] = Device.GetFenceManager().AllocateFence(true);
 	}
 
 	ImageAcquiredSemaphore.AddUninitialized(DesiredNumBuffers);
@@ -191,7 +187,7 @@ void FVulkanSwapChain::Destroy()
 	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
 	for (int32 Index = 0; Index < ImageAcquiredFences.Num(); ++Index)
 	{
-		VulkanRHI::vkDestroyFence(Device.GetInstanceHandle(), ImageAcquiredFences[Index], nullptr);
+		FenceMgr.ReleaseFence(ImageAcquiredFences[Index]);
 	}
 
 	//#todo-rco: Enqueue for deletion as we first need to destroy the cmd buffers and queues otherwise validation fails
@@ -212,20 +208,25 @@ int32 FVulkanSwapChain::AcquireImageIndex(FVulkanSemaphore** OutSemaphore)
 	uint32 ImageIndex = 0;
 	SemaphoreIndex = (SemaphoreIndex + 1) % ImageAcquiredSemaphore.Num();
 
+	VulkanRHI::FFenceManager& FenceMgr = Device.GetFenceManager();
 	//#todo-rco: Is this the right place?
 	// Make sure the CPU doesn't get too ahead of the GPU
 	{
 		SCOPE_CYCLE_COUNTER(STAT_VulkanWaitSwapchain);
-		VERIFYVULKANRESULT(VulkanRHI::vkWaitForFences(Device.GetInstanceHandle(), 1, &ImageAcquiredFences[SemaphoreIndex], VK_TRUE, UINT32_MAX));
+		if (!ImageAcquiredFences[SemaphoreIndex]->IsSignaled())
+		{
+			bool bResult = FenceMgr.WaitForFence(ImageAcquiredFences[SemaphoreIndex], UINT32_MAX);
+			ensure(bResult);
+		}
 	}
-	VERIFYVULKANRESULT(VulkanRHI::vkResetFences(Device.GetInstanceHandle(), 1, &ImageAcquiredFences[SemaphoreIndex]));
+	FenceMgr.ResetFence(ImageAcquiredFences[SemaphoreIndex]);
 
 	VkResult Result = VulkanRHI::vkAcquireNextImageKHR(
 		Device.GetInstanceHandle(),
 		SwapChain,
 		UINT64_MAX,
 		ImageAcquiredSemaphore[SemaphoreIndex]->GetHandle(),
-		ImageAcquiredFences[SemaphoreIndex],	// Currently no fence needed
+		ImageAcquiredFences[SemaphoreIndex]->GetHandle(),
 		&ImageIndex);
 
 	*OutSemaphore = ImageAcquiredSemaphore[SemaphoreIndex];

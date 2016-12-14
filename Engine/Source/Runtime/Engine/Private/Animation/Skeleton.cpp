@@ -1,17 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Skeleton.cpp: Skeleton features
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "EngineUtils.h"
-#include "AnimationRuntime.h"
-#include "AssetRegistryModule.h"
+#include "Animation/Skeleton.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimSequence.h"
+#include "AnimationRuntime.h"
+#include "AssetData.h"
+#include "ARFilter.h"
+#include "AssetRegistryModule.h"
 #include "Animation/Rig.h"
 #include "Animation/BlendProfile.h"
-#include "MessageLog.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "ComponentReregisterContext.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Engine/PreviewMeshCollection.h"
 
@@ -344,7 +355,7 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 			// still no match, return false, no parent to look for
 			if( SkeletonBoneIndex == INDEX_NONE )
 			{
-				UE_LOG(LogAnimation, Warning, TEXT("%s : Missing joint on skeleton.  Make sure to assign to the skeleeton."), *MeshBoneName.ToString());
+				UE_LOG(LogAnimation, Warning, TEXT("%s : Missing joint on skeleton.  Make sure to assign to the skeleton."), *MeshBoneName.ToString());
 				return false;
 			}
 
@@ -389,6 +400,10 @@ int32 USkeleton::GetMeshLinkupIndex(const USkeletalMesh* InSkelMesh)
 	return LinkupIndex;
 }
 
+void USkeleton::RemoveLinkup(const USkeletalMesh* InSkelMesh)
+{
+	SkelMesh2LinkupCache.Remove(InSkelMesh);
+}
 
 int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 {
@@ -472,7 +487,7 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 void USkeleton::RebuildLinkup(const USkeletalMesh* InSkelMesh)
 {
 	// remove the key
-	SkelMesh2LinkupCache.Remove(InSkelMesh);
+	RemoveLinkup(InSkelMesh);
 	// build new one
 	BuildLinkup(InSkelMesh);
 }
@@ -1506,6 +1521,12 @@ void USkeleton::AccumulateCurveMetaData(FName CurveName, bool bMaterialSet, bool
 
 bool USkeleton::AddNewVirtualBone(const FName SourceBoneName, const FName TargetBoneName)
 {
+	FName Dummy;
+	return AddNewVirtualBone(SourceBoneName, TargetBoneName, Dummy);
+}
+
+bool USkeleton::AddNewVirtualBone(const FName SourceBoneName, const FName TargetBoneName, FName& NewVirtualBoneName)
+{
 	for (const FVirtualBone& SSBone : VirtualBones)
 	{
 		if (SSBone.SourceBoneName == SourceBoneName &&
@@ -1516,7 +1537,8 @@ bool USkeleton::AddNewVirtualBone(const FName SourceBoneName, const FName Target
 	}
 	Modify();
 	VirtualBones.Add(FVirtualBone(SourceBoneName, TargetBoneName));
-	
+	NewVirtualBoneName = VirtualBones.Last().VirtualBoneName;
+
 	RegenerateVirtualBoneGuid();
 	HandleVirtualBoneChanges();
 

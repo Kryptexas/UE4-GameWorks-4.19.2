@@ -1,23 +1,40 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "CoreUObjectPrivate.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #include "UObject/LinkerLoad.h"
-#include "SecureHash.h"
-#include "DebuggingDefines.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "EngineVersion.h"
-#include "LinkerPlaceholderClass.h"
-#include "LinkerPlaceholderExportObject.h"
-#include "LinkerPlaceholderFunction.h"
-#include "LinkerManager.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Stats/StatsMisc.h"
+#include "HAL/IOBase.h"
+#include "Misc/ConfigCacheIni.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/SlowTask.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/ObjectThumbnail.h"
+#include "Misc/App.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Package.h"
+#include "UObject/MetaData.h"
+#include "UObject/ObjectRedirector.h"
+#include "Serialization/ArchiveAsync.h"
+#include "Misc/PackageName.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "Misc/SecureHash.h"
+#include "ProfilingDebugging/DebuggingDefines.h"
+#include "Logging/TokenizedMessage.h"
+#include "UObject/LinkerPlaceholderBase.h"
+#include "UObject/LinkerPlaceholderClass.h"
+#include "UObject/LinkerPlaceholderExportObject.h"
+#include "UObject/LinkerPlaceholderFunction.h"
+#include "UObject/LinkerManager.h"
 #include "Serialization/DeferredMessageLog.h"
 #include "UObject/UObjectThreadContext.h"
-#include "GatherableTextData.h"
 #include "Serialization/AsyncLoading.h"
-#include "ModuleManager.h"
-#include "LoadTimeTracker.h"
+#include "ProfilingDebugging/LoadTimeTracker.h"
 #include "HAL/ThreadHeartBeat.h"
-#include "../Serialization/AsyncLoadingPrivate.h"
+#include "Serialization/BulkData.h"
+#include "Serialization/AsyncLoadingPrivate.h"
+
+class FTexture2DResourceMem;
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
@@ -43,14 +60,11 @@ static FAutoConsoleVariableRef CVarLinkerAllowDynamicClasses(
 	);
 #endif
 
-#if !USE_NEW_ASYNC_IO
-/** Map that keeps track of any precached full package reads															*/
-TMap<FString, FLinkerLoad::FPackagePrecacheInfo> FLinkerLoad::PackagePrecacheMap;
-#endif
-
 UClass* FLinkerLoad::UTexture2DStaticClass = NULL;
 
 FName FLinkerLoad::NAME_LoadErrors("LoadErrors");
+
+TMap<FString, FLinkerLoad::FPackagePrecacheInfo> FLinkerLoad::PackagePrecacheMap;
 
 /**
  * Here is the format for the ClassRedirection:
@@ -341,17 +355,14 @@ static FORCEINLINE bool IsCoreUObjectPackage(const FName& PackageName)
 	FLinkerLoad.
 ----------------------------------------------------------------------------*/
 
-#if !USE_NEW_ASYNC_IO
-
 void FLinkerLoad::GetListOfPackagesInPackagePrecacheMap( TArray<FString>& ListOfPackages )
 {
+	check(!GNewAsyncIO);
 	for ( TMap<FString, FLinkerLoad::FPackagePrecacheInfo>::TIterator It(PackagePrecacheMap); It; ++It )
 	{
 		ListOfPackages.Add( It.Key() );
 	}
 }
-
-#endif
 
 void FLinkerLoad::StaticInit(UClass* InUTexture2DStaticClass)
 {
@@ -384,9 +395,7 @@ FLinkerLoad* FLinkerLoad::CreateLinker(UPackage* Parent, const TCHAR* Filename, 
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 	FLinkerLoad* Linker = CreateLinkerAsync(Parent, Filename, LoadFlags
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 		, TFunction<void()>([](){})
-#endif
 		);
 	{
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
@@ -529,9 +538,7 @@ FName FLinkerLoad::FindSubobjectRedirectName(const FName& Name)
  * @return	new FLinkerLoad object for Parent/ Filename
  */
 FLinkerLoad* FLinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* Filename, uint32 LoadFlags 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 	, TFunction<void()>&& InSummaryReadyCallback
-#endif
 	)
 {
 	check(Parent);
@@ -540,31 +547,29 @@ FLinkerLoad* FLinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
 	FLinkerLoad* Linker = FindExistingLinkerForPackage(Parent);
 	if (Linker)
 	{
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+		if (GEventDrivenLoaderEnabled)
+		{
 		UE_LOG(LogStreaming, Fatal, TEXT("FLinkerLoad::CreateLinkerAsync: Found existing linker for '%s'"), *Parent->GetName());
-#else
+		}
+		else
+		{
 		UE_LOG(LogStreaming, Log, TEXT("FLinkerLoad::CreateLinkerAsync: Found existing linker for '%s'"), *Parent->GetName());
-#endif
+		}		
 	}
 
 	// Create a new linker if there isn't an existing one.
 	if( Linker == NULL )
 	{
-#if USE_NEW_ASYNC_IO
-		if (FApp::IsGame() && !GIsEditor)
+		if (GNewAsyncIO && FApp::IsGame() && !GIsEditor)
 		{
 			LoadFlags |= LOAD_Async;
 		}
-#endif
 		Linker = new FLinkerLoad(Parent, Filename, LoadFlags );
 		Parent->LinkerLoad = Linker;
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-		if (Linker)
+		if (GEventDrivenLoaderEnabled && Linker)
 		{
 			Linker->CreateLoader(Forward<TFunction<void()>>(InSummaryReadyCallback));
 		}
-#endif
-
 	}
 	
 	check(Parent->LinkerLoad == Linker);
@@ -597,21 +602,24 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 
 		do
 		{
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+			bool bCanSerializePackageFileSummary = false;
+			if (GEventDrivenLoaderEnabled)
+			{
 			check(Loader || bDynamicClassLinker);
-			if (true)
-#else
+				bCanSerializePackageFileSummary = true;
+			}
+			else
+			{
 			// Create loader, aka FArchive used for serialization and also precache the package file summary.
 			// false is returned until any precaching is complete.
-			if( true )
-			{
 				SCOPED_LOADTIMER(LinkerLoad_CreateLoader);
-				Status = CreateLoader();
+				Status = CreateLoader(TFunction<void()>([]() {}));
+
+				bCanSerializePackageFileSummary = (Status == LINKER_Loaded);
 			}
 
 			// Serialize the package file summary and presize the various arrays (name, import & export map)
-			if( Status == LINKER_Loaded )
-#endif
+			if (bCanSerializePackageFileSummary)
 			{
 				SCOPED_LOADTIMER(LinkerLoad_SerializePackageFileSummary);
 				Status = SerializePackageFileSummary();
@@ -731,14 +739,10 @@ FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InL
 , LoadFlags(InLoadFlags)
 , bHaveImportsBeenVerified(false)
 , bDynamicClassLinker(false)
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 , TemplateForGetArchetypeFromLoader(nullptr)
 , bForceSimpleIndexToObject(false)
 , bLockoutLegacyOperations(false)
-#endif
-#if USE_NEW_ASYNC_IO
 , bLoaderIsFArchiveAsync2(false)
-#endif
 , Loader(nullptr)
 , AsyncRoot(nullptr)
 , NameMapIndex(0)
@@ -834,9 +838,7 @@ bool FLinkerLoad::IsTimeLimitExceeded( const TCHAR* CurrentTask, int32 Granulari
  * Creates loader used to serialize content.
  */
 FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 	TFunction<void()>&& InSummaryReadyCallback
-#endif
 	)
 {
 	//DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FLinkerLoad::CreateLoader" ), STAT_LinkerLoad_CreateLoader, STATGROUP_LinkerLoad );
@@ -875,8 +877,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 			// In this case we can skip serializing PackageFileSummary and fill all the required info here
 			CreateDynamicTypeLoader();
 		}
-#if USE_NEW_ASYNC_IO
-		else if (!bIsAsyncLoad)		
+		else if (GNewAsyncIO)
+		{
+			if (!bIsAsyncLoad)
 		{
 			check(!FPlatformProperties::RequiresCookedData() && !FSHA1::GetFileSHAHash(*Filename, NULL));
 			Loader = IFileManager::Get().CreateFileReader(*Filename, 0);
@@ -889,9 +892,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 		else
 		{
 			Loader = new FArchiveAsync2(*Filename
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-				, Forward<TFunction<void()>>(InSummaryReadyCallback)
-#endif				
+					, GEventDrivenLoaderEnabled ? Forward<TFunction<void()>>(InSummaryReadyCallback) : TFunction<void()>([]() {})
 				);
 
 			if (!Loader)
@@ -907,7 +908,11 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 				UE_LOG(LogLinker, Warning, TEXT("Error opening file '%s'."), *Filename);
 				return LINKER_Failed;
 			}
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
 			ActiveFPLB = Loader->ActiveFPLB; // make sure my fast past loading is using the FAA2 fast path buffer
+#else
+				check(false);
+#endif
 
 			bool bHasHashEntry = FSHA1::GetFileSHAHash(*Filename, NULL);
 			if ((LoadFlags & LOAD_MemoryReader) || bHasHashEntry)
@@ -935,10 +940,12 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 				bLoaderIsFArchiveAsync2 = true;
 			}
 		}
-#else
+		} // GNewAsyncIO
+		else
+		{
 		// NOTE: Precached memory read gets highest priority, then memory reader, then seek free, then normal
 		// check to see if there is was an async preload request for this file
-		else if (FPackagePrecacheInfo* PrecacheInfo = PackagePrecacheMap.Find(*Filename))
+			if (FPackagePrecacheInfo* PrecacheInfo = PackagePrecacheMap.Find(*Filename))
 		{
 			// if so, serialize from memory (note this will have uncompressed a fully compressed package)
 			// block until the async read is complete
@@ -1014,7 +1021,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 				return LINKER_Failed;
 			}
 		}
-#endif // USE_NEW_ASYNC_IO
+		}
 
 		check(bDynamicClassLinker || Loader);
 		check(bDynamicClassLinker || !Loader->IsError());
@@ -1035,23 +1042,24 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 		// Reset all custom versions
 		ResetCustomVersions();
 	}
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	else
+	else if (GEventDrivenLoaderEnabled)
 	{
 		check(0);
 	}
+	if (GEventDrivenLoaderEnabled)
+	{
 	return LINKER_TimedOut;
-#else
+	}
+	else
+	{
 	bool bExecuteNextStep = true;
 	if( bHasSerializedPackageFileSummary == false )
 	{
-#if USE_NEW_ASYNC_IO
-		if (bLoaderIsFArchiveAsync2)
+			if (GNewAsyncIO && bLoaderIsFArchiveAsync2)
 		{
 			bExecuteNextStep = GetFArchiveAsync2Loader()->ReadyToStartReadingHeader(bUseTimeLimit, bUseFullTimeLimit, TickStartTime, TimeLimit);
 		}
 		else
-#endif
 		{
 			int64 Size = Loader->TotalSize();
 			if (Size <= 0)
@@ -1075,7 +1083,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader(
 	}
 
 	return (bExecuteNextStep && !IsTimeLimitExceeded( TEXT("creating loader") )) ? LINKER_Loaded : LINKER_TimedOut;
-#endif
+	}
 }
 
 /**
@@ -1092,12 +1100,10 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 			UE_LOG(LogLinker, Warning, TEXT("The file '%s' contains unrecognizable data, check that it is of the expected type."), *Filename);
 			return LINKER_Failed;
 		}
-#if USE_NEW_ASYNC_IO
-		if (bLoaderIsFArchiveAsync2)
+		if (GNewAsyncIO && bLoaderIsFArchiveAsync2)
 		{
 			GetFArchiveAsync2Loader()->StartReadingHeader();
 		}
-#endif
 
 #if WITH_EDITOR
 		LoadProgressScope->EnterProgressFrame(1);
@@ -1258,9 +1264,8 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		if( Summary.PackageFlags & PKG_StoreCompressed )
 #endif
 		{
-#if USE_NEW_ASYNC_IO
-			check(!"Package level compression cannot be used with the async io scheme.");
-#else
+			checkf(!GNewAsyncIO, TEXT("Package level compression cannot be used with the async io scheme."));
+
 			// Set compression mapping. Failure means Loader doesn't support package compression.
 			check( Summary.CompressedChunks.Num() );
 			if( !Loader->SetCompressionMap( &Summary.CompressedChunks, (ECompressionFlags) Summary.CompressionFlags ) )
@@ -1287,7 +1292,6 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 				// Set the compression map and verify it won't fail this time.
 				verify( Loader->SetCompressionMap( &Summary.CompressedChunks, (ECompressionFlags) Summary.CompressionFlags ) );
 			}
-#endif // USE_NEW_ASYNC_IO
 		}
 
 		UPackage* LinkerRootPackage = LinkerRoot;
@@ -1369,16 +1373,12 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeNameMap()
 		if( Summary.TotalHeaderSize > 0 )
 		{
 			// Precache name, import and export map.
-#if USE_NEW_ASYNC_IO
-			if (bLoaderIsFArchiveAsync2)
+			if (GNewAsyncIO && bLoaderIsFArchiveAsync2)
 			{
 				bFinishedPrecaching = GetFArchiveAsync2Loader()->ReadyToStartReadingHeader(bUseTimeLimit, bUseFullTimeLimit, TickStartTime, TimeLimit);
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-				check(bFinishedPrecaching);
-#endif
+				check(!GEventDrivenLoaderEnabled || bFinishedPrecaching);
 			}
 			else
-#endif
 			{
 				bFinishedPrecaching = Loader->Precache(Summary.NameOffset, Summary.TotalHeaderSize - Summary.NameOffset);
 			}
@@ -1526,6 +1526,13 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 					FString RedirectName, ResultPackage, ResultClass;
 					const FName* RedirectNameObj = ObjectNameRedirects.Find(Import.ObjectName);
 					const FName* RedirectNameClass = ObjectNameRedirects.Find(Import.ClassName);
+
+					if (bIsStruct && !RedirectNameObj)
+					{
+						// Check struct redirects as well
+						RedirectNameObj = StructNameRedirects.Find(Import.ObjectName);
+					}
+
 					int32 OldOuterIndex = 0;
 					if ( (RedirectNameObj && bIsClassOrStructOrEnum) || RedirectNameClass )
 					{
@@ -1826,9 +1833,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeThumbnails( bool bForceEnableIn
 
 
 		// Allocate a new thumbnail map if we need one
-		if( !LinkerRoot->ThumbnailMap.IsValid() )
+		if( !LinkerRoot->ThumbnailMap )
 		{
-			LinkerRoot->ThumbnailMap.Reset( new FThumbnailMap() );
+			LinkerRoot->ThumbnailMap = MakeUnique<FThumbnailMap>();
 		}
 
 
@@ -1989,8 +1996,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 			Verify();
 		}
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-		if (AsyncRoot)
+		if (GEventDrivenLoaderEnabled && AsyncRoot)
 		{
 			for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
 			{
@@ -2003,13 +2009,11 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FinalizeCreation()
 				AsyncRoot->ObjectNameToImportOrExport.Add(Exp(Index).ObjectName, Index);
 			}
 		}
-#endif
-#if USE_NEW_ASYNC_IO
-		if (bLoaderIsFArchiveAsync2)
+
+		if (GNewAsyncIO && bLoaderIsFArchiveAsync2)
 		{
 			GetFArchiveAsync2Loader()->EndReadingHeader();
 		}
-#endif
 
 		// Avoid duplicate work in the case of async linker creation.
 		bHasFinishedInitialization = true;
@@ -2236,7 +2240,7 @@ void FLinkerLoad::GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRe
 		return;
 	}
 
-	BeginLoad();
+	BeginLoad(TEXT("GatherImportDependencies"));
 
 	// load the linker and find export in sourcelinker
 	if (Import.SourceLinker == NULL || Import.SourceIndex == INDEX_NONE)
@@ -2314,9 +2318,8 @@ void FLinkerLoad::GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRe
 
 FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 {
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	check(GIsInitialLoad);
-#endif
+	check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
+
 	FObjectImport& Import = ImportMap[ImportIndex];
 
 	// keep a string of modifiers to add to the Editor Warning dialog
@@ -2487,9 +2490,7 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
  */
 bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuffix)
 {
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	check(GIsInitialLoad);
-#endif
+	check(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME);
 
 	check(IsLoading());
 
@@ -3022,6 +3023,7 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 
 		UObject* LoadedObject = CreateExportAndPreload(ExportIndex, bForcePreload);
 		// DynamicClass could be created without calling CreateImport. The imported objects will be required later when a CDO is created.
+		// intentional merge conflict, talk to Gil
 		if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(LoadedObject))
 		{
 			for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
@@ -3029,6 +3031,7 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 				CreateImport(ImportIndex);
 			}
 		}
+		// intentional merge conflict, talk to Gil
 
 		// If needed send a heartbeat, but no need to do it too often
 		if (bShouldTickHeartBeat && (ExportIndex % 10) == 0)
@@ -3242,9 +3245,7 @@ void FLinkerLoad::Preload( UObject* Object )
 	{
 		if (Object->GetLinker() == this)
 		{
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-			check(!bLockoutLegacyOperations);
-#endif
+			check(!GEventDrivenLoaderEnabled || !bLockoutLegacyOperations);
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 			bool const bIsNonNativeObject = !Object->GetOutermost()->HasAnyPackageFlags(PKG_CompiledIn);
 			// we can determine that this is a blueprint class/struct by checking if it 
@@ -3341,20 +3342,22 @@ void FLinkerLoad::Preload( UObject* Object )
 				// move to the position in the file where this object's data
 				// is stored
 				Loader->Seek(Export.SerialOffset);
-#if USE_NEW_ASYNC_IO
-				FArchiveAsync2* FAA2 = GetFArchiveAsync2Loader();
-#endif
+
+				FArchiveAsync2* FAA2 = nullptr;
+				if (GNewAsyncIO)
+				{
+					FAA2 = GetFArchiveAsync2Loader();
+				}
+
 				{
 					SCOPE_CYCLE_COUNTER(STAT_LinkerPrecache);
 					// tell the file reader to read the raw data from disk
-#if USE_NEW_ASYNC_IO
 					if (FAA2)
 					{
 						bool bReady = FAA2->Precache(Export.SerialOffset, Export.SerialSize, bUseTimeLimit, bUseFullTimeLimit, TickStartTime, TimeLimit);
 						UE_CLOG(!(bReady || !bUseTimeLimit || !FPlatformProperties::RequiresCookedData()), LogLinker, Warning, TEXT("Hitch on async loading of %s; this export was not properly precached."), *Object->GetFullName());
 					}
 					else
-#endif
 					{
 						Loader->Precache(Export.SerialOffset, Export.SerialSize);
 					}
@@ -3606,10 +3609,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 	// Check whether we already loaded the object and if not whether the context flags allow loading it.
 	if( !Export.Object && !FilterExport(Export) ) // for some acceptable position, it was not "not for" 
 	{
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-		check(!bLockoutLegacyOperations);
-#endif
-
+		check(!GEventDrivenLoaderEnabled || !bLockoutLegacyOperations);
 		check(Export.ObjectName!=NAME_None || !(Export.ObjectFlags&RF_Public));
 		check(IsLoading());
 
@@ -3708,7 +3708,10 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 				}
 				else
 				{
-					UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Parent for %s"), *GetExportFullName(Index));
+					if (!FLinkerLoad::IsKnownMissingPackage(*GetExportFullName(Index)))
+					{
+						UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Parent for %s"), *GetExportFullName(Index));
+					}
 					return NULL;
 				}
 			}
@@ -4165,9 +4168,8 @@ bool FLinkerLoad::IsImportNative(const int32 Index) const
 // Return the loaded object corresponding to an import index; any errors are fatal.
 UObject* FLinkerLoad::CreateImport( int32 Index )
 {
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	check(!bLockoutLegacyOperations);
-#endif
+	check(!GEventDrivenLoaderEnabled || !bLockoutLegacyOperations);
+
 	FScopedCreateImportCounter ScopedCounter( this, Index );
 	FObjectImport& Import = ImportMap[ Index ];
 	
@@ -4417,7 +4419,15 @@ void FLinkerLoad::DetachExport( int32 i )
 			UE_LOG(LogLinker, Fatal, TEXT("Linker object %s %s.%s mislinked!"), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), *E.ObjectName.ToString());
 		}
 	}
-	check(E.Object->GetLinkerIndex() == i);
+
+	if (E.Object->GetLinkerIndex() == -1)
+	{
+		UE_LOG(LogLinker, Warning, TEXT("Linker object %s %s.%s was already detached."), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), *E.ObjectName.ToString());
+	}
+	else
+	{
+		checkf(E.Object->GetLinkerIndex() == i, TEXT("Mismatched linker index in FLinkerLoad::DetachExport for %s in %s. Linker index was supposed to be %d, was %d"), *GetExportClassName(i).ToString(), *LinkerRoot->GetName(), i, E.Object->GetLinkerIndex());
+	}
 	ExportMap[i].Object->SetLinker( NULL, INDEX_NONE );
 }
 
@@ -4536,14 +4546,13 @@ FArchive& FLinkerLoad::operator<<( UObject*& Object )
 	FPackageIndex Index;
 	FArchive& Ar = *this;
 	Ar << Index;
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	if (bForceSimpleIndexToObject)
+
+	if (GEventDrivenLoaderEnabled && bForceSimpleIndexToObject)
 	{
 		check(Ar.IsLoading() && AsyncRoot);
 		Object = AsyncRoot->EventDrivenIndexToObject(Index, false);
 		return *this;
 	}
-#endif
 
 	UObject* Temporary = NULL;
 	Temporary = IndexToObject( Index );
@@ -4587,9 +4596,10 @@ void FLinkerLoad::BadNameIndexError(NAME_INDEX NameIndex)
 	UE_LOG(LogLinker, Error, TEXT("Bad name index %i/%i"), NameIndex, NameMap.Num());
 }
 
-#if !USE_NEW_ASYNC_IO
 void FLinkerLoad::AsyncPreloadPackage(const TCHAR* PackageName)
 {
+	check(!GNewAsyncIO);
+
 	// get package filename
 	FString PackageFilename;
 	if (!FPackageName::DoesPackageExist(PackageName, NULL, &PackageFilename))
@@ -4656,7 +4666,6 @@ void FLinkerLoad::AsyncPreloadPackage(const TCHAR* PackageName)
 
 	check(RequestId);
 }
-#endif
 
 /**
  * Called when an object begins serializing property data using script serialization.
@@ -4700,13 +4709,19 @@ bool FLinkerLoad::FindImportClassAndPackage( FName ClassName, FPackageIndex &Cla
 	return false;
 }
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+
 UObject* FLinkerLoad::GetArchetypeFromLoader(const UObject* Obj)
 {
+	if (GEventDrivenLoaderEnabled)
+	{
 	check(!TemplateForGetArchetypeFromLoader || FUObjectThreadContext::Get().SerializedObject == Obj);
 	return TemplateForGetArchetypeFromLoader;
 }
-#endif
+	else
+	{
+		return FArchiveUObject::GetArchetypeFromLoader(Obj);
+	}
+}
 
 
 /**
@@ -4788,9 +4803,33 @@ TArray<FName> FLinkerLoad::FindPreviousNamesForClass(FString CurrentClassPath, b
 	return OldNames;
 }
 
+FName FLinkerLoad::FindNewNameForEnum(const FName OldEnumName)
+{
+	if (FName* RedirectName = ObjectNameRedirects.Find(OldEnumName))
+	{
+		return *RedirectName;
+	}
+
+	return NAME_None;
+}
+
+FName FLinkerLoad::FindNewNameForStruct(const FName OldStructName)
+{
+	FName* RedirectName = StructNameRedirects.Find(OldStructName);
+
+	if (RedirectName)
+	{
+		return *RedirectName;
+	}
+	
+	RedirectName = ObjectNameRedirects.Find(OldStructName);
+
+	return (RedirectName ? *RedirectName : NAME_None);
+}
+
 FName FLinkerLoad::FindNewNameForClass(FName OldClassName, bool bIsInstance)
 {
-	FName *RedirectName = ObjectNameRedirects.Find(OldClassName);
+	FName* RedirectName = ObjectNameRedirects.Find(OldClassName);
 
 	if (RedirectName)
 	{
@@ -4810,9 +4849,14 @@ FName FLinkerLoad::FindNewNameForClass(FName OldClassName, bool bIsInstance)
 	return NAME_None;
 }
 
-bool  FLinkerLoad::IsKnownMissingPackage(FName PackageName)
+bool FLinkerLoad::IsKnownMissingPackage(FName PackageName)
 {
 	return KnownMissingPackages.Contains(PackageName);
+}
+
+void FLinkerLoad::AddKnownMissingPackage(FName PackageName)
+{
+	KnownMissingPackages.Add(PackageName);
 }
 
 #if WITH_EDITOR

@@ -1,13 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Containers/Array.h"
-#include "Containers/BitArray.h"
-#include "Templates/MemoryOps.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
 #include "Templates/IsTriviallyCopyConstructible.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Templates/AlignOf.h"
+#include "Templates/UnrealTemplate.h"
 #include "Templates/IsTriviallyDestructible.h"
-
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Templates/Less.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/ScriptArray.h"
+#include "Containers/BitArray.h"
 
 // Forward declarations.
 template<typename ElementType,typename Allocator = FDefaultSparseArrayAllocator >
@@ -267,7 +275,7 @@ public:
 			int32 ElementIndex = Data.AddUninitialized(ElementsToAdd);
 
 			// now mark the new elements as free
-			for ( int32 FreeIndex = ElementIndex; FreeIndex < ExpectedNumElements; FreeIndex++ )
+			for ( int32 FreeIndex = ExpectedNumElements - 1; FreeIndex >= ElementIndex; --FreeIndex )
 			{
 				if(NumFreeIndices)
 				{

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowDepthVertexShader.usf: Vertex shader for writing shadow depth.
@@ -124,11 +124,19 @@ struct FShadowDepthVSToDS
 	FVertexFactoryInterpolantsVSToDS FactoryInterpolants;
 	float4 Position : VS_to_DS_Position;
 	OPTIONAL_VertexID_VS_To_DS
+#if ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+	uint LayerIndex : VS_to_DS_RenderTargetArrayIndex;
+	float ClipDistance : VS_to_DS_ClipDistance0;
+#endif
 };
 
 struct FShadowDepthDSToPS : FShadowDepthVSToPS
 {
 	float4 Position : SV_POSITION;
+#if ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+	uint LayerIndex : SV_RenderTargetArrayIndex;
+	float ClipDistance : SV_ClipDistance0;
+#endif
 };
 
 #define FPassSpecificVSToDS FShadowDepthVSToDS
@@ -138,6 +146,10 @@ FShadowDepthVSToDS PassInterpolate(FShadowDepthVSToDS a, float aInterp, FShadowD
 {
 	FShadowDepthVSToDS O;
 	O.FactoryInterpolants = VertexFactoryInterpolate(a.FactoryInterpolants, aInterp, b.FactoryInterpolants, bInterp);
+#if ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+	O.LayerIndex = a.LayerIndex;
+	O.ClipDistance = a.ClipDistance;
+#endif
 	return O;
 }
 
@@ -152,6 +164,11 @@ FShadowDepthDSToPS PassFinalizeTessellationOutput(FShadowDepthVSToDS Interpolant
 
 #if ONEPASS_POINTLIGHT_SHADOW
 	O.Position = O.GSPosition = WorldPosition;
+#if USING_VERTEX_SHADER_LAYER
+	O.LayerIndex = Interpolants.LayerIndex;
+	O.Position = O.GSPosition = WorldPosition = mul(WorldPosition, ShadowViewProjectionMatrices[Interpolants.LayerIndex]);
+	O.ClipDistance = Interpolants.ClipDistance;
+#endif
 #else
 
 	float ShadowDepth;
@@ -183,12 +200,12 @@ void Main(
 	out FShadowDepthVSToDS OutParameters,
 #else
 	out FShadowDepthVSToPS OutParameters,
-#endif 	
-	OPTIONAL_VertexID
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance0,
 #endif
+#endif
+	OPTIONAL_VertexID
 	out float4 OutPosition : SV_POSITION
 	)
 {
@@ -206,7 +223,12 @@ void Main(
 	
 	// Tessellated materials need vertex coords for displacement
 	OutParameters.FactoryInterpolants = VertexFactoryGetInterpolantsVSToDS(Input, VFIntermediates, VertexParameters);
-	
+
+	#if ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER && VERTEXSHADER
+		OutParameters.LayerIndex = Input.InstanceId / InstanceCount;
+		OutParameters.ClipDistance = (MeshVisibleToFace[OutParameters.LayerIndex].x > 0) ? 1.0 : -1.0;
+	#endif
+
 #elif ONEPASS_POINTLIGHT_SHADOW
 
 	OutPosition = OutParameters.GSPosition = WorldPos;
@@ -220,7 +242,7 @@ void Main(
 		OutParameters.PixelPosition = WorldPos.xyz;
 	#endif
 
-	#if USING_VERTEX_SHADER_LAYER
+	#if USING_VERTEX_SHADER_LAYER && VERTEXSHADER
 		LayerIndex = Input.InstanceId / InstanceCount;
 		OutPosition = mul(WorldPos, ShadowViewProjectionMatrices[LayerIndex]);
 		#if INTERPOLATE_VF_ATTRIBUTES
@@ -265,19 +287,19 @@ void MainForGS(
 	out FShadowDepthVSToDS OutParameters,
 #else
 	out FShadowDepthVSToPS OutParameters,
-#endif 	
-	OPTIONAL_VertexID
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
 	out uint LayerIndex : SV_RenderTargetArrayIndex,
 	out float ClipDistance : SV_ClipDistance0,
 #endif
+#endif
+	OPTIONAL_VertexID
 	out float4 OutPosition : SV_POSITION
 	)
 {
 	Main(Input,
 		OutParameters,
 		OPTIONAL_VertexID_PARAM
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER
+#if !USING_TESSELLATION && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER)
 		LayerIndex, ClipDistance,
 #endif
 		OutPosition);
@@ -302,7 +324,7 @@ void PositionOnlyMain(
 #if ONEPASS_POINTLIGHT_SHADOW
 	OutPosition = OutParameters.GSPosition = WorldPos;
 
-#if USING_VERTEX_SHADER_LAYER
+#if USING_VERTEX_SHADER_LAYER && VERTEXSHADER
 	LayerIndex = Input.InstanceId / InstanceCount;
 	OutPosition = mul(WorldPos, ShadowViewProjectionMatrices[LayerIndex]);
 	#if INTERPOLATE_VF_ATTRIBUTES

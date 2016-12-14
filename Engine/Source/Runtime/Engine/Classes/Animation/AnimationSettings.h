@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationSettings.h: Declares the AnimationSettings class.
@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "AnimSequence.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Animation/AnimSequence.h"
+#include "Engine/DeveloperSettings.h"
 #include "AnimationSettings.generated.h"
 
 /**

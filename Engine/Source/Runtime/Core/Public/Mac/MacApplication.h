@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
 #include "GenericApplication.h"
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
@@ -191,6 +191,8 @@ public:
 	bool IsProcessingDeferredEvents() const { return bIsProcessingDeferredEvents; }
 
 	TSharedPtr<FMacWindow> FindWindowByNSWindow(FCocoaWindow* WindowHandle);
+	
+	void OnWindowWillResize(TSharedRef<FMacWindow> Window);
 
 	/** Queues a window for text layout invalidation when safe */
 	void InvalidateTextLayout(FCocoaWindow* Window);

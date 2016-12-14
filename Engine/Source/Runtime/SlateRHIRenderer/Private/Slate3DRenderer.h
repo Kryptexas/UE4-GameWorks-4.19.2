@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISlate3DRenderer.h"
+#include "CoreMinimal.h"
+#include "Rendering/SlateRenderer.h"
+#include "Interfaces/ISlate3DRenderer.h"
+#include "SlateRHIResourceManager.h"
+#include "Rendering/SlateDrawBuffer.h"
+#include "RenderingThread.h"
+#include "SlateRHIRenderingPolicy.h"
+
+class FSlateElementBatcher;
+class FTextureRenderTarget2DResource;
 
 class FSlate3DRenderer : public ISlate3DRenderer, public FDeferredCleanupInterface
 {

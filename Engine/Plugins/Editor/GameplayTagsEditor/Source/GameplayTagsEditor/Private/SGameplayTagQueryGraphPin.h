@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
-#include "SGameplayTagQueryWidget.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "SGraphPin.h"
+#include "SGameplayTagQueryWidget.h"
+
+class SComboButton;
 
 class SGameplayTagQueryGraphPin : public SGraphPin
 {

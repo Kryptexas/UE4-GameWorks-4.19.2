@@ -1,13 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*============================================================================
 	LMThreading.cpp: Threading/process functionality
 =============================================================================*/
 
-#include "LightmassPCH.h"
+#include "LMThreading.h"
 #include "LMCore.h"
 
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #endif // PLATFORM_WINDOWS
 

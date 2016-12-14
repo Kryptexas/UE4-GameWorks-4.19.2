@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateIconFinder.h"
+#include "CoreMinimal.h"
+#include "Textures/SlateIcon.h"
+#include "Styling/SlateIconFinder.h"
 
+class AActor;
 class FAssetData;
+class ISlateStyle;
+class UBlueprint;
+struct FSlateBrush;
 
 class FClassIconFinder
 {

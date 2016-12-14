@@ -1,14 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#if !USE_NEW_ASYNC_IO
+#include "Serialization/AsyncIOSystemBase.h"
 
 /*=============================================================================
 	AsyncIOSystemBase.h: Base implementation of the async IO system
 =============================================================================*/
 
-#include "Serialization/AsyncIOSystemBase.h"
-#include "CompressedChunkInfo.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "UObject/ObjectVersion.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CommandLine.h"
+#include "Stats/StatsMisc.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Serialization/CompressedChunkInfo.h"
 
 DECLARE_STATS_GROUP_VERBOSE(TEXT("AsyncIOSystem"),STATGROUP_AsyncIO_Verbose, STATCAT_Advanced);
 
@@ -882,6 +891,8 @@ static FAsyncIOSystemBase* AsyncIOSystem = NULL;
 
 FIOSystem& FIOSystem::Get()
 {
+	check(GConfig); // Otherwise GNewAsyncIO may not be initialized properly
+	check(!GNewAsyncIO); // We don't want to use this old class with the new async IO
 	if (!AsyncIOThread)
 	{
 		check(!AsyncIOSystem);
@@ -918,5 +929,3 @@ bool FIOSystem::HasShutdown()
 {
 	return AsyncIOThread == nullptr || AsyncIOThread == (FRunnableThread*)-1;
 }
-
-#endif

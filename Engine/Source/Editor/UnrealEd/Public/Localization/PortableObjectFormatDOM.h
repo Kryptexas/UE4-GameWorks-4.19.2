@@ -1,10 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
-#include "Commandlets/Commandlet.h"
-
-class FCulture;
+#include "CoreMinimal.h"
 
 /**
 * Class for handling language codes used in the Portable Object format.

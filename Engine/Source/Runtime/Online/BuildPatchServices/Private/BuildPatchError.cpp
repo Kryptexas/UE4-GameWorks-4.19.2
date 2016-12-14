@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchError.cpp: Implements classes involved setting and getting error information.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchError.h"
+#include "Misc/ScopeLock.h"
+#include "Interfaces/IBuildInstaller.h"
+#include "BuildPatchServicesPrivate.h"
 
 #define LOCTEXT_NAMESPACE "BuildPatchInstallError"
 

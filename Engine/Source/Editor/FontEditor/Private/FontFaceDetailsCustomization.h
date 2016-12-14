@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
 #include "IDetailCustomization.h"
+
+class IDetailLayoutBuilder;
 
 /**
  *  Customize the font face asset to allow you to pick a file and store the result in the asset

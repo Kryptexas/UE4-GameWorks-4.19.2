@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NetworkSerialization.h: 
@@ -7,10 +7,19 @@
 
 #pragma once
 
-#include "CoreNet.h"
-#include "CoreUObject.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Serialization/BitReader.h"
+#include "Misc/NetworkGuid.h"
+#include "UObject/CoreNet.h"
 #include "EngineLogs.h"
 #include "NetSerialization.generated.h"
+
+class Error;
+struct FFastArraySerializer;
+struct FFastArraySerializerItem;
 
 /**
  *	===================== NetSerialize and NetDeltaSerialize customization. =====================

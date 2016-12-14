@@ -1,18 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
+#include "Math/Vector2D.h"
 
-
-struct FVector2D;
-
-#if PLATFORM_WINDOWS || PLATFORM_XBOXONE
-	struct tagRECT;
-	typedef struct tagRECT RECT;
-#else
-	struct RECT;
-#endif
+struct tagRECT;
+typedef struct tagRECT RECT;
 
 
 /**
@@ -105,4 +99,6 @@ public:
 	 * @param Bounds	The bounds to lock the cursor to.  Pass NULL to unlock.
 	 */
 	virtual void Lock( const RECT* const Bounds ) = 0;
+
+	virtual void SetCustomShape(void* CursorHandle) = 0;
 };

@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/StringAssetReference.h"
+#include "GameFramework/Actor.h"
+#include "Misc/StringClassReference.h"
 #include "LevelSequencePlayer.h"
 #include "LevelSequenceActor.generated.h"
 
@@ -100,9 +106,13 @@ public:
 public:
 
 	virtual void PostInitializeComponents() override;
-	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void PostLoad() override;
+
+protected:
+	virtual void BeginPlay() override;
+
+public:
 
 #if WITH_EDITOR
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;

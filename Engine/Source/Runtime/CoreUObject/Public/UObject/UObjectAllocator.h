@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObjAllocator.h: Unreal object allocation
@@ -6,9 +6,7 @@
 
 #pragma once
 
-#include "HAL/Platform.h"
-
-class UObjectBase;
+#include "CoreMinimal.h"
 
 class COREUOBJECT_API FUObjectAllocator
 {

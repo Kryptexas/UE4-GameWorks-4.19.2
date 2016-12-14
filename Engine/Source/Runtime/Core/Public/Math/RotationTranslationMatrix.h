@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Math/UnrealMathUtility.h"
+#include "Math/VectorRegister.h"
+#include "Math/Matrix.h"
 
 /** Combined rotation and translation matrix */
 class FRotationTranslationMatrix

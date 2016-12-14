@@ -1,33 +1,37 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Templates/SubclassOf.h"
+#include "EngineDefines.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "AITypes.h"
+#include "GameplayTaskOwnerInterface.h"
 #include "GameplayTask.h"
 #include "GameFramework/Pawn.h"
-#include "AI/Navigation/NavigationTypes.h"
-#include "AI/Navigation/NavigationSystem.h"
-#include "Navigation/PathFollowingComponent.h"
 #include "GameFramework/Controller.h"
-#include "Actions/PawnActionsComponent.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "Perception/AIPerceptionListenerInterface.h"
-#include "BehaviorTree/BehaviorTreeTypes.h"
-#include "GameplayTaskOwnerInterface.h"
 #include "GenericTeamAgentInterface.h"
 #include "VisualLogger/VisualLoggerDebugSnapshotInterface.h"
 #include "AIController.generated.h"
 
-class APawn;
-class UPathFollowingComponent;
-class UBrainComponent;
-class UBlackboardComponent;
+class FDebugDisplayInfo;
 class UAIPerceptionComponent;
+class UBehaviorTree;
+class UBlackboardComponent;
+class UBlackboardData;
+class UBrainComponent;
+class UCanvas;
+class UGameplayTaskResource;
+class UGameplayTasksComponent;
 class UPawnAction;
 class UPawnActionsComponent;
-class UNavigationQueryFilter;
-class UBehaviorTree;
-class UBlackboardData;
-class UCanvas;
+struct FVisualLogEntry;
+
 #if ENABLE_VISUAL_LOG
 struct FVisualLogEntry;
 #endif // ENABLE_VISUAL_LOG
@@ -193,7 +197,7 @@ public:
 	 *  @param OutPath - optional output param, filled in with assigned path
 	 *  @return struct holding MoveId and enum code
 	 */
-	FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath = nullptr);
+	virtual FPathFollowingRequestResult MoveTo(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr* OutPath = nullptr);
 
 	/** Passes move request and path object to path following */
 	virtual FAIRequestID RequestMove(const FAIMoveRequest& MoveRequest, FNavPathSharedPtr Path);

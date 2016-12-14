@@ -1,16 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "WmfMediaPCH.h"
-
-#if WMFMEDIA_SUPPORTED_PLATFORM
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "WmfMediaPlayer.h"
 #include "WmfMediaResolver.h"
 #include "WmfMediaSession.h"
 #include "WmfMediaSampler.h"
 #include "WmfMediaUtils.h"
-#include "AllowWindowsPlatformTypes.h"
+#include "Serialization/ArrayReader.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
 
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
+#include "AllowWindowsPlatformTypes.h"
 
 /* FWmfVideoPlayer structors
  *****************************************************************************/

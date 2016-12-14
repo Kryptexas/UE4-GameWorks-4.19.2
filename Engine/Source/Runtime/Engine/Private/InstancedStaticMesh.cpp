@@ -1,18 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InstancedStaticMesh.cpp: Static mesh rendering code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "NavigationSystemHelpers.h"
+#include "InstancedStaticMesh.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "UnrealEngine.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "AI/Navigation/NavCollision.h"
 #include "AI/NavigationOctree.h"
-#include "Components/InstancedStaticMeshComponent.h"
-#include "InstancedStaticMesh.h"
-#include "../../Renderer/Private/ScenePrivate.h"
+#include "ShaderParameterUtils.h"
+#include "Misc/UObjectToken.h"
+#include "PhysXPublic.h"
+#include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsSerializer.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "GameFramework/WorldSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
 
 const int32 InstancedStaticMeshMaxTexCoord = 8;
@@ -1666,9 +1674,15 @@ bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 
 float UInstancedStaticMeshComponent::GetTextureStreamingTransformScale() const
 {
-	float TransformScale = Super::GetTextureStreamingTransformScale();
+	// By default if there are no per instance data, use a scale of 1.
+	// This is required because some derived class use the instancing system without filling the per instance data. (like landscape grass)
+	// In those cases, we assume the instance are spreaded across the bounds with a scale of 1.
+	float TransformScale = 1.f; 
+
 	if (PerInstanceSMData.Num() > 0)
 	{
+		TransformScale = Super::GetTextureStreamingTransformScale();
+
 		float WeightedAxisScaleSum = 0;
 		float WeightSum = 0;
 
@@ -1695,7 +1709,7 @@ bool UInstancedStaticMeshComponent::GetMaterialStreamingData(int32 MaterialIndex
 	{
 		MaterialData.Material = GetMaterial(MaterialIndex);
 		MaterialData.UVChannelData = GetStaticMesh()->GetUVChannelData(MaterialIndex);
-		MaterialData.Bounds = Bounds.GetBox();
+		MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
 	}
 	return MaterialData.IsValid();
 }
@@ -1713,7 +1727,8 @@ bool UInstancedStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingB
 
 void UInstancedStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const
 {
-	if (GetInstanceCount() > 0)
+	// Don't only look the instance count but also if the bound is valid, as derived classes might not set PerInstanceSMData.
+	if (GetInstanceCount() > 0 || Bounds.SphereRadius > 0)
 	{
 		return Super::GetStreamingTextureInfo(LevelContext, OutStreamingTextures);
 	}

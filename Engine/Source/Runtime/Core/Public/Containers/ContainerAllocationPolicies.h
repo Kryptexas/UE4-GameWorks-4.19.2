@@ -1,14 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/TypeCompatibleBytes.h"
 #include "HAL/PlatformMath.h"
-#include "MemoryBase.h"
-#include "Misc/OutputDevice.h"
 #include "Templates/MemoryOps.h"
 #include "Math/NumericLimits.h"
-#include "Templates/TypeCompatibleBytes.h"
 
+class FDefaultBitArrayAllocator;
 
 /** branchless pointer selection
 * return A ? A : B;

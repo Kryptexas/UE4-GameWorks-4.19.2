@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+
+class ILocalizationServiceRevision;
+class ILocalizationServiceState;
 
 typedef TSharedRef<class ILocalizationServiceState, ESPMode::ThreadSafe> FLocalizationServiceStateRef;
 typedef TSharedPtr<class ILocalizationServiceState, ESPMode::ThreadSafe> FLocalizationServiceStatePtr;

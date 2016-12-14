@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -22,8 +22,9 @@
 #ifndef DETOURTILECACHEBUILDER_H
 #define DETOURTILECACHEBUILDER_H
 
-#include "DetourAlloc.h"
-#include "DetourStatus.h"
+#include "CoreMinimal.h"
+#include "Detour/DetourAlloc.h"
+#include "Detour/DetourStatus.h"
 
 static const int DT_TILECACHE_MAGIC = 'D'<<24 | 'T'<<16 | 'L'<<8 | 'R'; ///< 'DTLR';
 static const int DT_TILECACHE_VERSION = 1;

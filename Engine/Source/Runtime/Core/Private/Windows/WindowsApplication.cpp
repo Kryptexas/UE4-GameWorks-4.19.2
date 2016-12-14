@@ -1,15 +1,22 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "WindowsApplication.h"
-#include "WindowsWindow.h"
-#include "WindowsCursor.h"
-#include "GenericApplicationMessageHandler.h"
+#include "Windows/WindowsApplication.h"
+#include "Containers/StringConv.h"
+#include "Templates/ScopedPointer.h"
+#include "CoreGlobals.h"
+#include "Internationalization/Text.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Windows/WindowsWindow.h"
+#include "Windows/WindowsCursor.h"
 #include "XInputInterface.h"
+#include "Features/IModularFeatures.h"
 #include "IInputDeviceModule.h"
 #include "IInputDevice.h"
 #include "IHapticDevice.h"
 #include "HAL/ThreadHeartBeat.h"
+#include "UniquePtr.h"
 
 #if WITH_EDITOR
 #include "ModuleManager.h"
@@ -17,11 +24,10 @@
 #endif
 
 // Allow Windows Platform types in the entire file.
-#include "AllowWindowsPlatformTypes.h"
-#include "Ole2.h"
-#include <shlobj.h>
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <ShlObj.h>
 #include <objbase.h>
-#include <SetupApi.h>
+#include <SetupAPI.h>
 #include <devguid.h>
 #include <dwmapi.h>
 #include <cfgmgr32.h>
@@ -883,11 +889,11 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 				uint32 Size = 0;
 				::GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &Size, sizeof(RAWINPUTHEADER));
 
-				TScopedPointer<uint8> RawData(new uint8[Size]);
+				TUniquePtr<uint8[]> RawData = MakeUnique<uint8[]>(Size);
 
-				if (::GetRawInputData((HRAWINPUT)lParam, RID_INPUT, RawData.GetOwnedPointer(), &Size, sizeof(RAWINPUTHEADER)) == Size )
+				if (::GetRawInputData((HRAWINPUT)lParam, RID_INPUT, RawData.Get(), &Size, sizeof(RAWINPUTHEADER)) == Size )
 				{
-					const RAWINPUT* const Raw = (const RAWINPUT* const)RawData.GetOwnedPointer();
+					const RAWINPUT* const Raw = (const RAWINPUT* const)RawData.Get();
 
 					if (Raw->header.dwType == RIM_TYPEMOUSE) 
 					{
@@ -1761,12 +1767,12 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 				UINT InputCount = LOWORD( wParam );
 				if ( InputCount > 0 )
 				{
-					TUniquePtr<TOUCHINPUT> Inputs( new TOUCHINPUT[InputCount] );
+					TUniquePtr<TOUCHINPUT[]> Inputs = MakeUnique<TOUCHINPUT[]>( InputCount );
 					if ( GetTouchInputInfo( (HTOUCHINPUT)lParam, InputCount, Inputs.Get(), sizeof(TOUCHINPUT) ) )
 					{
 						for ( uint32 i = 0; i < InputCount; i++ )
 						{
-							TOUCHINPUT Input = Inputs.Get()[i];
+							TOUCHINPUT Input = Inputs[i];
 							FVector2D Location( Input.x / 100.0f, Input.y / 100.0f );
 							if ( Input.dwFlags & TOUCHEVENTF_DOWN )
 							{
@@ -2373,19 +2379,19 @@ void FWindowsApplication::QueryConnectedMice()
 	for (const auto& Device : DeviceList)
 	{
 		UINT NameLen = 0;
-		TAutoPtr<char> Name;
+		TUniquePtr<char[]> Name;
 		if (Device.dwType != RIM_TYPEMOUSE)
 			continue;
 		//Force the use of ANSI versions of these calls
 		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, nullptr, &NameLen) == static_cast<UINT>(-1))
 			continue;
 
-		Name.Reset(new char[NameLen+1]);
-		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, Name.GetOwnedPointer(), &NameLen) == static_cast<UINT>(-1))
+		Name = MakeUnique<char[]>(NameLen+1);
+		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, Name.Get(), &NameLen) == static_cast<UINT>(-1))
 			continue;
 
 		Name[NameLen] = 0;
-		FString WName = ANSI_TO_TCHAR(Name);
+		FString WName = ANSI_TO_TCHAR(Name.Get());
 		WName.ReplaceInline(TEXT("#"), TEXT("\\"), ESearchCase::CaseSensitive);
 		/*
 		 * Name XP starts with \??\, vista+ starts \\?\ 
@@ -2494,4 +2500,4 @@ TSharedRef<FTaskbarList> FTaskbarList::Create()
 // Restore the windowsx.h macro for IsMaximized
 #pragma pop_macro("IsMaximized")
 
-#include "HideWindowsPlatformTypes.h"
+#include "Windows/HideWindowsPlatformTypes.h"

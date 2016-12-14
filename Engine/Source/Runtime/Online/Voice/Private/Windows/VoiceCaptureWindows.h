@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "VoiceCapture.h"
 #include "VoicePackage.h"
+#include "Containers/Ticker.h"
+#include "WindowsHWrapper.h"
 
 typedef struct IDirectSound8 *LPDIRECTSOUND8;
 

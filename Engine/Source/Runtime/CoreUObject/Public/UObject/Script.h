@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Script.h: Blueprint bytecode execution engine.
@@ -6,7 +6,10 @@
 
 #pragma once
 
-class UStruct;
+#include "CoreMinimal.h"
+#include "HAL/ThreadSingleton.h"
+#include "Stats/Stats.h"
+
 struct FFrame;
 
 // It's best to set only one of these, but strictly speaking you could set both.

@@ -1,33 +1,42 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "MaterialUtilitiesPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+#include "MaterialUtilities.h"
+#include "EngineDefines.h"
+#include "ShowFlags.h"
+#include "Misc/StringAssetReference.h"
+#include "Materials/MaterialInterface.h"
+#include "Materials/Material.h"
+#include "Engine/Texture2D.h"
+#include "Misc/App.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/PackageName.h"
 
-#include "Runtime/Engine/Classes/Engine/World.h"
-#include "Runtime/Engine/Classes/Materials/MaterialInterface.h"
-#include "Runtime/Engine/Classes/Materials/MaterialExpressionConstant.h"
-#include "Runtime/Engine/Classes/Materials/MaterialExpressionConstant4Vector.h"
-#include "Runtime/Engine/Classes/Materials/MaterialExpressionMultiply.h"
-#include "Runtime/Engine/Classes/Engine/TextureRenderTarget2D.h"
-#include "Runtime/Engine/Classes/Engine/Texture2D.h"
-#include "Runtime/Engine/Classes/Engine/TextureCube.h"
-#include "Runtime/Engine/Public/TileRendering.h"
-#include "Runtime/Engine/Public/EngineModule.h"
-#include "Runtime/Engine/Public/ImageUtils.h"
-#include "Runtime/Engine/Public/CanvasTypes.h"
-#include "Runtime/Engine/Public/MaterialCompiler.h"
-#include "Runtime/Engine/Classes/Engine/TextureLODSettings.h"
-#include "Runtime/Engine/Classes/DeviceProfiles/DeviceProfileManager.h"
-#include "Runtime/Engine/Classes/Materials/MaterialParameterCollection.h" 
+#include "Materials/MaterialExpressionConstant.h"
+#include "Materials/MaterialExpressionConstant4Vector.h"
+#include "Materials/MaterialExpressionMultiply.h"
+#include "Engine/TextureCube.h"
+#include "SceneView.h"
 #include "RendererInterface.h"
+#include "EngineModule.h"
+#include "ImageUtils.h"
+#include "CanvasTypes.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "MaterialCompiler.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "Materials/MaterialParameterCollection.h"
 #include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
+#include "Engine/MeshMerging.h"
+#include "Engine/StaticMesh.h"
 #include "MeshUtilities.h"
 #include "MeshRendering.h"
 #include "MeshMergeData.h"
-#include "Runtime/Engine/Classes/Engine/StaticMesh.h"
+#include "UniquePtr.h"
 
 #if WITH_EDITOR
-#include "UnrealEd.h"
-#include "ObjectTools.h"
+#include "DeviceProfiles/DeviceProfile.h"
 #include "Tests/AutomationEditorCommon.h"
 #endif // WITH_EDITOR
 
@@ -504,7 +513,7 @@ public:
 	virtual bool IsPersistent() const override { return false; }
 	virtual FGuid GetMaterialId() const override { return Id; }
 
-	const UMaterialInterface* GetMaterialInterface() const
+	virtual UMaterialInterface* GetMaterialInterface() const override
 	{
 		return MaterialInterface;
 	}
@@ -668,8 +677,8 @@ bool FMaterialUtilities::SupportsExport(EBlendMode InBlendMode, EMaterialPropert
 
 bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, UTextureRenderTarget2D* InRenderTarget, TArray<FColor>& OutBMP)
 {
-	TScopedPointer<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
-	if (MaterialProxy == NULL)
+	TUniquePtr<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
+	if (MaterialProxy == nullptr)
 	{
 		return false;
 	}
@@ -686,8 +695,8 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 
 bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint& OutSize, TArray<FColor>& OutBMP)
 {
-	TScopedPointer<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
-	if (MaterialProxy == NULL)
+	TUniquePtr<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
+	if (MaterialProxy == nullptr)
 	{
 		return false;
 	}
@@ -702,8 +711,8 @@ bool FMaterialUtilities::ExportMaterialProperty(UWorld* InWorld, UMaterialInterf
 
 bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, TArray<FColor>& OutBMP, FIntPoint& OutSize)
 {
-	TScopedPointer<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
-	if (MaterialProxy == NULL)
+	TUniquePtr<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
+	if (MaterialProxy == nullptr)
 	{
 		return false;
 	}
@@ -718,8 +727,8 @@ bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, 
 
 bool FMaterialUtilities::ExportMaterialProperty(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty, FIntPoint InSize, TArray<FColor>& OutBMP)
 {
-	TScopedPointer<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
-	if (MaterialProxy == NULL)
+	TUniquePtr<FExportMaterialProxy> MaterialProxy(new FExportMaterialProxy(InMaterial, InMaterialProperty));
+	if (MaterialProxy == nullptr)
 	{
 		return false;
 	}

@@ -1,6 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "AssetData.h"
+#include "ITreeMap.h"
+#include "STreeMap.h"
+
+class FAssetThumbnailPool;
 
 /**
  * Tree map for displaying the size of assets

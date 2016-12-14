@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "EdGraph/EdGraphSchema.h"
-#include "INiagaraCompiler.h"
 #include "EdGraphSchema_Niagara.generated.h"
+
+class UEdGraph;
+struct FNiagaraVariableInfo;
+enum class ENiagaraDataType : uint8;
 
 /** Action to add a node to the graph */
 USTRUCT()
@@ -18,12 +24,12 @@ struct NIAGARAEDITOR_API FNiagaraSchemaAction_NewNode : public FEdGraphSchemaAct
 
 	FNiagaraSchemaAction_NewNode() 
 		: FEdGraphSchemaAction()
-		, NodeTemplate(NULL)
+		, NodeTemplate(nullptr)
 	{}
 
-	FNiagaraSchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
-		, NodeTemplate(NULL)
+	FNiagaraSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
+		, NodeTemplate(nullptr)
 	{}
 
 	//~ Begin FEdGraphSchemaAction Interface

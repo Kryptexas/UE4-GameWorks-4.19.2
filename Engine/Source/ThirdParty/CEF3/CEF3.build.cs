@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -25,11 +25,13 @@ public class CEF3 : ModuleRules
 		{
 			CEFPlatform = "macosx64";
 		}
+		else if(Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			CEFPlatform = "linux64";
+		}
 
 		if (CEFPlatform.Length > 0 && UEBuildConfiguration.bCompileCEF3)
 		{
-			Definitions.Add("WITH_CEF3=1");
-
 			string PlatformPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "CEF3", "cef_binary_" + CEFVersion + "_" + CEFPlatform);
 
 			PublicSystemIncludePaths.Add(PlatformPath);
@@ -57,7 +59,7 @@ public class CEF3 : ModuleRules
 
                 PublicLibraryPaths.Add(WrapperLibraryPath);
                 PublicAdditionalLibraries.Add("libcef_dll_wrapper.lib");
-                
+
                 string[] Dlls = {
                     "d3dcompiler_43.dll",
                     "d3dcompiler_47.dll",
@@ -119,14 +121,33 @@ public class CEF3 : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
-				if (Target.IsMonolithic)
+				PublicLibraryPaths.Add(LibraryPath);
+				PublicAdditionalLibraries.Add("cef");
+
+				string Configuration;
+				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 				{
-					PublicAdditionalLibraries.Add(LibraryPath + "/libcef.a");
+					Configuration = "build_debug";
 				}
 				else
 				{
-					PublicLibraryPaths.Add(LibraryPath);
-					PublicAdditionalLibraries.Add("libcef");
+					Configuration = "build_release";
+				}
+				string WrapperLibraryPath =  Path.Combine(PlatformPath, Configuration, "libcef_dll");
+
+				PublicLibraryPaths.Add(WrapperLibraryPath);
+				PublicAdditionalLibraries.Add("cef_dll_wrapper");
+
+				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/libcef.so"));
+				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/icudtl.dat"));
+				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/natives_blob.bin"));
+				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/CEF3/" + Target.Platform.ToString() + "/snapshot_blob.bin"));
+
+				// And the entire Resources folder. Enunerate the entire directory instead of mentioning each file manually here.
+				foreach (string FileName in Directory.EnumerateFiles(Path.Combine(RuntimePath, "Resources"), "*", SearchOption.AllDirectories))
+				{
+					string DependencyName = FileName.Substring(UEBuildConfiguration.UEThirdPartyBinariesDirectory.Length).Replace('\\', '/');
+					RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/" + DependencyName));
 				}
 			}
 		}

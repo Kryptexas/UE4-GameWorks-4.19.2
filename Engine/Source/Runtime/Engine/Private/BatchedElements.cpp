@@ -1,13 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
 #include "BatchedElements.h"
-#include "GlobalShader.h"
-#include "ShaderParameters.h"
-#include "RHIStaticStates.h"
+#include "Misc/App.h"
+#include "Shader.h"
 #include "SimpleElementShaders.h"
-#include "RHICommandList.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogBatchedElements, Log, All);
@@ -340,10 +337,10 @@ static void SetBlendState(FRHICommandList& RHICmdList, ESimpleElementBlendMode B
 	}
 
 	// Override blending operations to accumulate alpha
-	static TConsoleVariableData<int32>* CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
-	static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	static const auto CVarCompositeMode = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.UI.CompositeMode"));
+	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
 
-	const bool bCompositeUI = CVarCompositeMode->GetValueOnRenderThread() != 0 && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
+	const bool bCompositeUI = CVarCompositeMode->GetValueOnRenderThread() != 0 && GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnRenderThread() != 0;
 
 	if (bCompositeUI)
 	{
@@ -431,7 +428,8 @@ static void SetHitTestingBlendState(FRHICommandList& RHICmdList, ESimpleElementB
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::SimpleBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularSRGBBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::RegularLinearBoundShaderState;
-FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedSRGBBoundShaderState;
+FBatchedElements::FSimpleElementBSSContainer FBatchedElements::MaskedLinearBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::DistanceFieldBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::HitTestingBoundShaderState;
 FBatchedElements::FSimpleElementBSSContainer FBatchedElements::ColorChannelMaskShaderState;
@@ -481,9 +479,11 @@ static TSimpleElementPixelShader* GetPixelShader(bool bEncoded, ESimpleElementBl
 	return *TShaderMapRef<TSimpleElementPixelShader>(GetGlobalShaderMap(FeatureLevel));
 }
 
-static bool Is32BppHDREncoded(const FSceneView* View)
+static bool Is32BppHDREncoded(const FSceneView* View, ERHIFeatureLevel::Type FeatureLevel)
 {
-	if (View == nullptr || View->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	// If the view has no view family then it wont be using encoding.
+	// Do not use the view's feature level, if it does not have a scene it will be invalid.
+	if (View == nullptr || FeatureLevel >= ERHIFeatureLevel::ES3_1 || View->Family == nullptr)
 	{
 		return false;
 	}
@@ -531,7 +531,7 @@ void FBatchedElements::PrepareShaders(
 	FMatrix ColorWeights( FPlane(1, 0, 0, 0), FPlane(0, 1, 0, 0), FPlane(0, 0, 1, 0), FPlane(0, 0, 0, 0) );
 
 	// bEncodedHDR requires that blend states are disabled.
-	bool bEncodedHDR = bEnableHDREncoding && Is32BppHDREncoded(View);
+	bool bEncodedHDR = bEnableHDREncoding && Is32BppHDREncoded(View, FeatureLevel);
 
 	float GammaToUse = Gamma;
 
@@ -629,7 +629,7 @@ void FBatchedElements::PrepareShaders(
 				if (Texture->bSRGB)
 				{
 					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_SRGB>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedSRGBBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, MaskedPixelShader);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
@@ -638,7 +638,7 @@ void FBatchedElements::PrepareShaders(
 				else
 				{
 					auto* MaskedPixelShader = GetPixelShader<FSimpleElementMaskedGammaPS_Linear>(bEncodedHDR, BlendMode, FeatureLevel);
-					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, MaskedLinearBoundShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, MaskedPixelShader);
 
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
@@ -703,18 +703,18 @@ void FBatchedElements::PrepareShaders(
 
 				if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
 				{
-					TShaderMapRef<FSimpleElementAlphaOnlyPS> AlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
+					auto* AlphaOnlyPixelShader = GetPixelShader<FSimpleElementAlphaOnlyPS>(bEncodedHDR, BlendMode, FeatureLevel);
 					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AlphaOnlyShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, *AlphaOnlyPixelShader);
+						*VertexShader, AlphaOnlyPixelShader);
 
 					AlphaOnlyPixelShader->SetParameters(RHICmdList, Texture);
 					AlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 				}
 				else
 				{
-					TShaderMapRef<FSimpleElementGammaAlphaOnlyPS> GammaAlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
+					auto* GammaAlphaOnlyPixelShader = GetPixelShader<FSimpleElementGammaAlphaOnlyPS>(bEncodedHDR, BlendMode, FeatureLevel);
 					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, GammaAlphaOnlyShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
-						*VertexShader, *GammaAlphaOnlyPixelShader);
+						*VertexShader, GammaAlphaOnlyPixelShader);
 
 					GammaAlphaOnlyPixelShader->SetParameters(RHICmdList, Texture, Gamma, BlendMode);
 					GammaAlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);

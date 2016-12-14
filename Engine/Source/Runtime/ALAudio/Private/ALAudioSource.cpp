@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*------------------------------------------------------------------------------------
 	FALSoundSource.
 ------------------------------------------------------------------------------------*/
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/App.h"
+#include "Audio.h"
+#include "Sound/SoundWave.h"
 #include "ALAudioDevice.h"
-#include "Engine.h"
 /**
  * Initializes a source with a given wave instance and prepares it for playback.
  *

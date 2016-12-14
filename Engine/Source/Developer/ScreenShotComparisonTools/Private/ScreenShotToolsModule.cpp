@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenShotToolsModule.cpp: Implements the FScreenShotToolsModule class.
 =============================================================================*/
 
-#include "ScreenShotComparisonToolsPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Interfaces/IScreenShotToolsModule.h"
+#include "IMessagingModule.h"
+#include "ScreenShotManager.h"
 
-#include "ModuleManager.h"
 
 
 /**

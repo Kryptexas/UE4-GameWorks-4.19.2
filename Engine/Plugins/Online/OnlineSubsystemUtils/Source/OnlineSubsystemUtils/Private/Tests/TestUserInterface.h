@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 // UE4 includes
-#include "Core.h"
+
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
 
 // Module includes
-#include "OnlineUserInterface.h"
+#include "Interfaces/OnlineUserInterface.h"
+
+class IOnlineSubsystem;
 
 #if WITH_DEV_AUTOMATION_TESTS
 

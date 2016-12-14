@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	IOSPlatformProperties.h - Basic static properties of a platform 
@@ -35,7 +35,7 @@ struct FIOSPlatformProperties
 
 	static FORCEINLINE bool IsGameOnly()
 	{
-		return UE_GAME;
+		return true;
 	}
 	
 	static FORCEINLINE bool RequiresCookedData( )
@@ -69,6 +69,11 @@ struct FIOSPlatformProperties
 	}
 
 	static FORCEINLINE bool AllowsFramerateSmoothing()
+	{
+		return true;
+	}
+
+	static FORCEINLINE bool SupportsAudioStreaming()
 	{
 		return true;
 	}

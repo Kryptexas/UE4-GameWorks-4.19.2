@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+
+class ISlateStyle;
+struct FSlateBrush;
 
 /**
 * A central repository that can be used to track and manage chunks of slate style data.

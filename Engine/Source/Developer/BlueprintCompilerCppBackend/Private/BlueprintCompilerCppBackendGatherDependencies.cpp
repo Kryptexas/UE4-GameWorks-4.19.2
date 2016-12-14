@@ -1,9 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
+#include "Misc/CoreMisc.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/UnrealType.h"
+#include "UObject/EnumProperty.h"
+#include "Engine/Blueprint.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "EdGraphSchema_K2.h"
 #include "IBlueprintCompilerCppBackendModule.h"
-#include "BlueprintEditorUtils.h"
+#include "K2Node.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "K2Node_EnumLiteral.h"
 
 struct FGatherConvertedClassDependenciesHelperBase : public FReferenceCollector
@@ -452,6 +466,11 @@ void FGatherConvertedClassDependencies::DependenciesForHeader()
 			{ 
 				// HeaderReferenceFinder.FindReferences(Obj); cannot find this enum..
 				IncludeInHeader.Add(ByteProperty->Enum);
+			}
+			else if (const UEnumProperty* EnumProperty = Cast<const UEnumProperty>(Property))
+			{ 
+				// HeaderReferenceFinder.FindReferences(Obj); cannot find this enum..
+				IncludeInHeader.Add(EnumProperty->GetEnum());
 			}
 			else
 			{

@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Particles/ParticleModule.h"
 #include "Particles/SubUV/ParticleModuleSubUV.h"
 #include "ParticleModuleSubUVMovie.generated.h"
+
+class UParticleModuleTypeDataBase;
 
 UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "SubUV Movie"))
 class UParticleModuleSubUVMovie : public UParticleModuleSubUV

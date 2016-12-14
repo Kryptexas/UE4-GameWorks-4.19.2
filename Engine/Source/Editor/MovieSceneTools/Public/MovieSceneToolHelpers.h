@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Misc/Attribute.h"
+#include "Widgets/SWidget.h"
+
 class ISequencer;
-class FMovieSceneSequenceInstance;
-class IMovieScenePlayer;
-class UMovieSceneSection;
 class UMovieScene;
+class UMovieSceneSection;
 
 DECLARE_DELEGATE_TwoParams(FOnEnumSelectionChanged, int32 /*Selection*/, ESelectInfo::Type /*SelectionType*/);
 

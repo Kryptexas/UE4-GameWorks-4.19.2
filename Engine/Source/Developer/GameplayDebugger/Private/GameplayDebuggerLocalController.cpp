@@ -1,20 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
 #include "GameplayDebuggerLocalController.h"
+#include "InputCoreTypes.h"
+#include "Framework/Commands/InputChord.h"
+#include "Components/InputComponent.h"
+#include "TimerManager.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/Controller.h"
+#include "GameplayDebuggerTypes.h"
+#include "GameplayDebuggerCategoryReplicator.h"
 #include "GameplayDebuggerPlayerManager.h"
+#include "GameplayDebuggerAddonBase.h"
+#include "GameplayDebuggerCategory.h"
 #include "GameplayDebuggerAddonManager.h"
 #include "GameplayDebuggerExtension.h"
 #include "GameplayDebuggerConfig.h"
 #include "Debug/DebugDrawService.h"
-#include "DrawDebugHelpers.h"
 #include "Engine/Selection.h"
+#include "CanvasItem.h"
 #include "Engine/Canvas.h"
 #include "Engine/DebugCameraController.h"
 #include "UnrealEngine.h"
 #include "Engine/LocalPlayer.h"
 #include "GameFramework/PlayerInput.h"
-#include "GameFramework/Pawn.h"
 
 #if WITH_EDITOR
 #include "Editor/GameplayDebuggerEdMode.h"
@@ -609,7 +617,7 @@ void UGameplayDebuggerLocalController::OnSelectActorTick()
 		const FVector ViewDir = CameraRotation.Vector();
 		for (FConstPawnIterator It = OwnerPC->GetWorld()->GetPawnIterator(); It; ++It)
 		{
-			APawn* TestPawn = *It;
+			APawn* TestPawn = It->Get();
 			if (TestPawn && !TestPawn->bHidden && TestPawn->GetActorEnableCollision() && TestPawn != OwnerPC->GetPawn())
 			{
 				FVector DirToPawn = (TestPawn->GetActorLocation() - CameraLocation);
@@ -713,7 +721,7 @@ void UGameplayDebuggerLocalController::OnCategoriesChanged()
 	}
 
 	NumCategorySlots = SlotCategoryIds.Num();
-	NumCategories = AddonManager.GetNumCategories();
+	NumCategories = AddonManager.GetNumVisibleCategories();
 
 	DataPackMap.Reset();
 }

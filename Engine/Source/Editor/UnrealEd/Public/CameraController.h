@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CameraController.h: Implements controls for a camera with pseudo-physics
@@ -9,6 +9,7 @@
 #ifndef __CameraController_h__
 #define __CameraController_h__
 
+#include "CoreMinimal.h"
 
 /**
  * FCameraControllerUserImpulseData

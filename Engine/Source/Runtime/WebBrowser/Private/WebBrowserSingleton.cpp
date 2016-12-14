@@ -1,14 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
-#include "SlateCore.h"
 #include "WebBrowserSingleton.h"
-#include "IPlatformTextField.h"
-#include "IVirtualKeyboardEntry.h"
-#include "SlateApplication.h"
-#include "Runtime/Launch/Resources/Version.h"
+#include "Misc/Paths.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Misc/CommandLine.h"
+#include "Internationalization/Culture.h"
+#include "Misc/App.h"
 #include "WebBrowserModule.h"
+#include "Misc/EngineVersion.h"
+#include "Framework/Application/SlateApplication.h"
 #include "IWebBrowserCookieManager.h"
+#include "WebBrowserLog.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 #if WITH_CEF3
 #include "CEF/CEFBrowserApp.h"
@@ -19,15 +25,13 @@
 #	endif
 #	pragma push_macro("OVERRIDE")
 #		undef OVERRIDE // cef headers provide their own OVERRIDE macro
+THIRD_PARTY_INCLUDES_START
 #		include "include/cef_app.h"
+THIRD_PARTY_INCLUDES_END
 #	pragma pop_macro("OVERRIDE")
 #	if PLATFORM_WINDOWS
 #		include "HideWindowsPlatformTypes.h"
 #	endif
-#endif
-
-#if PLATFORM_MAC || PLATFORM_LINUX
-#	include <pthread.h>
 #endif
 
 #if PLATFORM_ANDROID
@@ -204,6 +208,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	: WebBrowserWindowFactory(MakeShareable(new FNoWebBrowserWindowFactory()))
 #endif
 	, bDevToolsShortcutEnabled(UE_BUILD_DEBUG)
+	, bJSBindingsToLoweringEnabled(true)
 {
 #if WITH_CEF3
 	// The FWebBrowserSingleton must be initialized on the game thread
@@ -353,7 +358,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	bool bThumbMouseButtonNavigation = BrowserWindowParent->IsThumbMouseButtonNavigationEnabled();
 	bool bUseTransparency = BrowserWindowParent->UseTransparency();
 	FString InitialURL = BrowserWindowInfo->Browser->GetMainFrame()->GetURL().ToWString().c_str();
-	TSharedPtr<FCEFWebBrowserWindow> NewBrowserWindow(new FCEFWebBrowserWindow(BrowserWindowInfo->Browser, BrowserWindowInfo->Handler, InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+	TSharedPtr<FCEFWebBrowserWindow> NewBrowserWindow(new FCEFWebBrowserWindow(BrowserWindowInfo->Browser, BrowserWindowInfo->Handler, InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency, bJSBindingsToLoweringEnabled));
 	BrowserWindowInfo->Handler->SetBrowserWindow(NewBrowserWindow);
 
 	WindowInterfaces.Add(NewBrowserWindow);
@@ -415,7 +420,13 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 #endif
 		{
 			// Use off screen rendering so we can integrate with our windows
-			WindowInfo.SetAsWindowless(nullptr, WindowSettings.bUseTransparency);
+			WindowInfo.SetAsWindowless(
+#if PLATFORM_LINUX // may be applicable to other platforms, but I cannot test those at the moment
+						kNullWindowHandle,
+#else
+						nullptr,
+#endif // PLATFORM_LINUX
+						WindowSettings.bUseTransparency);
 			BrowserSettings.windowless_frame_rate = WindowSettings.BrowserFrameRate;
 		}
 
@@ -459,7 +470,8 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 				WindowSettings.ContentsToLoad,
 				WindowSettings.bShowErrorMessage,
 				WindowSettings.bThumbMouseButtonNavigation,
-				WindowSettings.bUseTransparency));
+				WindowSettings.bUseTransparency,
+				bJSBindingsToLoweringEnabled));
 			NewHandler->SetBrowserWindow(NewBrowserWindow);
 
 			WindowInterfaces.Add(NewBrowserWindow);
@@ -473,7 +485,8 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(const FC
 		WindowSettings.ContentsToLoad,
 		WindowSettings.bShowErrorMessage,
 		WindowSettings.bThumbMouseButtonNavigation,
-		WindowSettings.bUseTransparency));
+		WindowSettings.bUseTransparency,
+		bJSBindingsToLoweringEnabled));
 
 	//WindowInterfaces.Add(NewBrowserWindow);
 	return NewBrowserWindow;
@@ -615,4 +628,3 @@ bool FWebBrowserSingleton::UnregisterContext(const FString& ContextId)
 #undef CEF3_RESOURCES_DIR
 #undef CEF3_SUBPROCES_EXE
 #undef ApplicationCacheDir
-

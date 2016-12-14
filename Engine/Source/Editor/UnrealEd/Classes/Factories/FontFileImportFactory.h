@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // FontFactory: Creates a Font Factory
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/Factory.h"
 #include "FontFileImportFactory.generated.h"
+
+class FReimportHandler;
 
 UCLASS()
 class UNREALED_API UFontFileImportFactory : public UFactory, public FReimportHandler

@@ -1,5 +1,8 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Curves/RichCurve.h"
 
 
@@ -20,6 +23,9 @@ public:
 
 	/** Called to modify the owner of the curve */
 	virtual void ModifyOwner() = 0;
+
+	/** Returns the owner(s) of the curve */
+	virtual TArray<const UObject*> GetOwners() const = 0;
 
 	/** Called to make curve owner transactional */
 	virtual void MakeTransactional() = 0;

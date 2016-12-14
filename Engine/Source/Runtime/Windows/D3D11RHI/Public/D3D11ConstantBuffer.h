@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11ConstantBuffer.h: Public D3D Constant Buffer definitions.
@@ -7,6 +7,8 @@
 #pragma once
 
 #include "RenderResource.h"
+
+class FD3D11DynamicRHI;
 
 /** Size of the default constant buffer. */
 #define MAX_GLOBAL_CONSTANT_BUFFER_SIZE		4096

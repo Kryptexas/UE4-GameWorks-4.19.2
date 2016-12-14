@@ -1,8 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Widgets/SWidget.h"
+#include "Toolkits/IToolkitHost.h"
+#include "GraphEditor.h"
+#include "BlueprintEditor.h"
 #include "IAnimationBlueprintEditor.h"
+
+class IPersonaToolkit;
+class IPersonaViewport;
+class ISkeletonTree;
+class UAnimBlueprint;
+class UAnimGraphNode_Base;
+class UEdGraph;
+class USkeletalMesh;
 
 struct FAnimationBlueprintEditorModes
 {
@@ -36,6 +50,7 @@ namespace AnimationBlueprintEditorTabs
 	extern const FName AnimBlueprintPreviewEditorTab;
 	extern const FName AssetOverridesTab;
 	extern const FName SlotNamesTab;
+	extern const FName CurveNamesTab;
 };
 
 /**

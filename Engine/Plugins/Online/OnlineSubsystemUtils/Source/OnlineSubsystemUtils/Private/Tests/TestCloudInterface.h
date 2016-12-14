@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "OnlineUserCloudInterface.h"
-#include "OnlineSharedCloudInterface.h"
+#include "CoreMinimal.h"
+#include "Containers/Ticker.h"
+#include "UObject/CoreOnline.h"
+#include "OnlineSubsystemTypes.h"
+#include "Interfaces/OnlineUserCloudInterface.h"
+#include "Interfaces/OnlineSharedCloudInterface.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 

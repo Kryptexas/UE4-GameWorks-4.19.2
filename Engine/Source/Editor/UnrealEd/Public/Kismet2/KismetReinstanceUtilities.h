@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __KismetReinstanceUtilities_h__
@@ -6,7 +6,14 @@
 
 #pragma once
 
-#include "Engine.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Templates/SubclassOf.h"
+#include "Components/ActorComponent.h"
+#include "UObject/GCObject.h"
+
+class FReinstanceFinalizer;
+class UBlueprint;
 
 DECLARE_STATS_GROUP(TEXT("Kismet Reinstancer"), STATGROUP_KismetReinstancer, STATCAT_Advanced);
 

@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Policies/PrettyJsonPrintPolicy.h"
+#include "Curves/CurveOwnerInterface.h"
 #include "CurveTable.generated.h"
-
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogCurveTable, Log, All);
 
@@ -55,6 +60,7 @@ class UCurveTable
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
 	virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) override;
+	virtual TArray<const UObject*> GetOwners() const override;
 	//~ End FCurveOwnerInterface Interface.
 
 	//~ Begin UCurveTable Interface
@@ -88,8 +94,8 @@ class UCurveTable
 	/** Output entire contents of table as JSON */
 	ENGINE_API FString GetTableAsJSON() const;
 
-	/** Output entire contents of table as JSON */
-	ENGINE_API bool WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const;
+	/** Output entire contents of table as JSON. bAsArray true will write is as a JSON array, false will write it as a series of named objects*/
+	ENGINE_API bool WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter,bool bAsArray = true) const;
 
 	/** 
 	 *	Create table from CSV style comma-separated string. 

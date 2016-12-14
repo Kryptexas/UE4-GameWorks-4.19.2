@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * MaterialExpressionCollectionParameter.h - a node that references a single parameter in a MaterialParameterCollection
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionCollectionParameter.generated.h"
+
+struct FPropertyChangedEvent;
 
 UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialExpressionCollectionParameter : public UMaterialExpression
@@ -37,6 +43,11 @@ class UMaterialExpressionCollectionParameter : public UMaterialExpression
 #if WITH_EDITOR
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+
+	virtual bool HasAParameterName() const override { return true; }
+	virtual FName GetParameterName() const override { return ParameterName; }
+	virtual void SetParameterName(const FName& Name) override { ParameterName = Name; }
+
 #endif
 	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
 	//~ End UMaterialExpression Interface

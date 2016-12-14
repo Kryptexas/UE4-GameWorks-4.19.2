@@ -39,17 +39,18 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /************************************************************************/
 
 // RtAudio: Version 4.1.2
-#include "AudioCapture.h"
-
 #include "RtAudio.h"
+#include "AudioCapture.h"
 
 #include "AllowWindowsPlatformTypes.h"
 
-#include <iostream>
-#include <cstdlib>
-#include <cstring>
-#include <climits>
-#include <algorithm>
+THIRD_PARTY_INCLUDES_START
+	#include <iostream>
+	#include <cstdlib>
+	#include <cstring>
+	#include <climits>
+	#include <algorithm>
+THIRD_PARTY_INCLUDES_END
 
 // Static variable definitions.
 const unsigned int RtApi::MAX_SAMPLE_RATES = 14;

@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvQueryContext_BlueprintBase.generated.h"
 
-class UWorld;
-struct FEnvQueryInstance;
+class AActor;
 struct FEnvQueryContextData;
+struct FEnvQueryInstance;
 
 UCLASS(MinimalAPI, Abstract, Blueprintable)
 class UEnvQueryContext_BlueprintBase : public UEnvQueryContext

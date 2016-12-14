@@ -230,7 +230,6 @@ static PX_FORCE_INLINE void registerPvdSqHit(PvdDataStream& inStream)
 	inStream.createProperty<PvdSqHit, PxF32>("Distance");
 	inStream.createProperty<PvdSqHit, PxF32>("U");
 	inStream.createProperty<PvdSqHit, PxF32>("V");
-	inStream.createProperty<PvdSqHit, PxU32>("SweepGeometryIndex");
 }
 
 void PvdMetaDataBinding::registerSDKProperties(PvdDataStream& inStream)

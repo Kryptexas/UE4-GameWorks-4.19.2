@@ -1,16 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AppFrameworkPrivatePCH.h"
-#include "SComplexGradient.h"
-#include "SSimpleGradient.h"
-#include "SColorValueSlider.h"
-#include "SEyeDropperButton.h"
-#include "SColorPicker.h"
-#include "SColorWheel.h"
-#include "SColorSpectrum.h"
-#include "SColorThemes.h"
-#include "SExpandableArea.h"
-
+#include "Widgets/Colors/SColorPicker.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Layout/WidgetPath.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Colors/SColorBlock.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Input/SSlider.h"
+#include "Widgets/Colors/SComplexGradient.h"
+#include "Widgets/Colors/SSimpleGradient.h"
+#include "Widgets/Colors/SEyeDropperButton.h"
+#include "Widgets/Colors/SColorWheel.h"
+#include "Widgets/Colors/SColorSpectrum.h"
+#include "Widgets/Colors/SColorThemes.h"
+#include "Widgets/Layout/SExpandableArea.h"
 
 #define LOCTEXT_NAMESPACE "ColorPicker"
 
@@ -534,6 +549,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
+											.MaxWidth(72.0f)
 											[
 												SNew(SEditableTextBox)
 													.MinDesiredWidth(72.0f)
@@ -562,6 +578,7 @@ void SColorPicker::GenerateDefaultColorPickerContent( bool bAdvancedSectionExpan
 
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
+											.MaxWidth(72.0f)
 											[
 												SNew(SEditableTextBox)
 												.MinDesiredWidth(72.0f)
@@ -966,7 +983,10 @@ TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels Channel
 	default:
 		return SNullWidget::NullWidget;
 	}
-	
+
+	// Define a maximum size for the spin box containers to prevent them from stretching out the color picker window
+	static const float MaxSpinBoxSize = 192.0f;
+
 	return SNew(SHorizontalBox)
 
 	+ SHorizontalBox::Slot()
@@ -980,6 +1000,7 @@ TSharedRef<SWidget> SColorPicker::MakeColorSpinBox( EColorPickerChannels Channel
 
 	+ SHorizontalBox::Slot()
 		.FillWidth(1.0f)
+		.MaxWidth(MaxSpinBoxSize)
 		[
 			SNew(SVerticalBox)
 				.ToolTipText(SliderTooltip)

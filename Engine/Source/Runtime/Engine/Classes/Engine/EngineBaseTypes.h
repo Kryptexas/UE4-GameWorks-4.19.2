@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,9 +7,16 @@
  *  The typical use case is for structs used in the renderer and also in script code.
  */
 
-#include "TaskGraphInterfaces.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Misc/CoreMisc.h"
+#include "Async/TaskGraphInterfaces.h"
 #include "EngineBaseTypes.generated.h"
 
+class UActorComponent;
 struct FTickContext;
 
 //
@@ -935,6 +942,8 @@ enum EViewModeIndex
 	VMI_GroupLODColoration = 24,
 	/** Visualize the accuracy of the material texture scales used for texture streaming. */
 	VMI_MaterialTextureScaleAccuracy = 25,
+	/** Compare the required texture resolution to the actual resolution. */
+	VMI_RequiredTextureResolution = 26,
 
 	VMI_Max UMETA(Hidden),
 

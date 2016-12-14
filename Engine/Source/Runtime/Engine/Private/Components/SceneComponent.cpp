@@ -1,22 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneComponent.cpp
 =============================================================================*/
 
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
-#include "MessageLog.h"
-#include "Net/UnrealNetwork.h"
+#include "Components/SceneComponent.h"
+#include "EngineStats.h"
+#include "Engine/Blueprint.h"
+#include "GameFramework/Actor.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/MapBuildDataRegistry.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "Components/BillboardComponent.h"
+#include "Engine/Texture2D.h"
 #include "ComponentReregisterContext.h"
+#include "UnrealEngine.h"
+#include "PhysicsPublic.h"
+#include "Logging/MessageLog.h"
+#include "Net/UnrealNetwork.h"
 #include "ComponentUtils.h"
-#include "Engine/SCS_Node.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Components/ChildActorComponent.h"
-#include "UObjectThreadContext.h"
+#include "UObject/UObjectThreadContext.h"
+#include "Engine/SCS_Node.h"
+#include "EngineGlobals.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
@@ -2370,7 +2383,7 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 				bool bAnyPotentialOverlap = false;
 				for (auto VolumeIter = MyWorld->GetNonDefaultPhysicsVolumeIterator(); VolumeIter && !bAnyPotentialOverlap; ++VolumeIter, ++VolumeIndex)
 				{
-					const APhysicsVolume* Volume = *VolumeIter;
+					const APhysicsVolume* Volume = VolumeIter->Get();
 					if (Volume != nullptr)
 					{
 						const USceneComponent* VolumeRoot = Volume->GetRootComponent();
@@ -2569,7 +2582,7 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 bool USceneComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
 {
 	// make sure mobility is movable, otherwise you shouldn't try to move
-	if (Mobility != EComponentMobility::Movable)
+	if (Mobility != EComponentMobility::Movable && IsRegistered())
 	{
 		if (UWorld * World = GetWorld())
 		{

@@ -1,16 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_Base.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Animation/AnimInstance.h"
 #include "AnimationGraphSchema.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
-#include "Animation/AnimInstance.h"
 #include "AnimBlueprintNodeOptionalPinManager.h"
 #include "IAnimNodeEditMode.h"
 #include "AnimNodeEditModes.h"
 #include "AnimationGraph.h"
+#include "EditorModeManager.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Base
@@ -331,6 +332,12 @@ FAnimNode_Base* UAnimGraphNode_Base::FindDebugAnimNode(USkeletalMeshComponent * 
 
 	return DebugNode;
 }
+
+EAnimAssetHandlerType UAnimGraphNode_Base::SupportsAssetClass(const UClass* AssetClass) const
+{
+	return EAnimAssetHandlerType::NotSupported;
+}
+
 
 void UAnimGraphNode_Base::PinDefaultValueChanged(UEdGraphPin* Pin)
 {

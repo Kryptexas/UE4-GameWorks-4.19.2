@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,11 @@
  * well as choosing the best bitwise compression for each track independently.
  *
  */
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimSequence.h"
+#include "AnimationUtils.h"
 #include "Animation/AnimCompress_RemoveLinearKeys.h"
 #include "AnimCompress_PerTrackCompression.generated.h"
 

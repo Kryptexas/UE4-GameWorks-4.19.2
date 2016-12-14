@@ -1,15 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sections/MovieSceneParameterSection.h"
 #include "MovieSceneNameableTrack.h"
-#include "MovieSceneParameterSection.h"
 #include "MovieSceneMaterialTrack.generated.h"
-
-
-class IMovieSceneTrackInstance;
-class UMovieSceneSection;
-
 
 /**
  * Handles manipulation of material parameters in a movie scene.

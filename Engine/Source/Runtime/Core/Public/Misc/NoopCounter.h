@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
 
 /** Fake Thread safe counter, used to avoid cluttering code with ifdefs when counters are only used for debugging. */
 class FNoopCounter

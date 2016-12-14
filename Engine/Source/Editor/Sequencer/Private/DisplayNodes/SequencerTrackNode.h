@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SequencerDisplayNode.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Widgets/SWidget.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "DisplayNodes/SequencerSectionKeyAreaNode.h"
+#include "ISequencerSection.h"
+#include "IKeyArea.h"
 
-
-class FSequencerSectionKeyAreaNode;
-class IKeyArea;
-class ISequencerSection;
-
+class FMenuBuilder;
+class ISequencerTrackEditor;
+class UMovieSceneTrack;
+struct FSlateBrush;
 
 /**
  * Represents an area to display Sequencer sections (possibly on multiple lines).

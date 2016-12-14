@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ContentStreaming.h: Definitions of classes used for content streaming.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+
+class AActor;
+class FSoundSource;
+class UPrimitiveComponent;
+class USoundWave;
+class UTexture2D;
+struct FStreamingManagerTexture;
+struct FWaveInstance;
 
 /*-----------------------------------------------------------------------------
 	Stats.
@@ -436,7 +447,7 @@ struct IAudioStreamingManager : public IStreamingManager
 	 * @param ChunkIndex	Index of the chunk we want
 	 * @return Either the desired chunk or NULL if it's not loaded
 	 */
-	virtual const uint8* GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex) const = 0;
+	virtual const uint8* GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex, uint32* OutChunkSize = NULL) const = 0;
 };
 
 /**

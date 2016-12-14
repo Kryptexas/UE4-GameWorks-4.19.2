@@ -1,21 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/AssetEditorToolkit.h"
-#include "IDistCurveEditor.h"
-#include "CascadeConfiguration.h"
-#include "CascadeParticleSystemComponent.h"
-#include "Particles/ParticleEmitter.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/GCObject.h"
+#include "Widgets/SWidget.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/Application/IMenu.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Misc/NotifyHook.h"
+#include "TickableEditorObject.h"
 #include "Particles/ParticleModule.h"
 #include "EditorUndoClient.h"
+#include "ICascade.h"
+#include "IDistCurveEditor.h"
+#include "Particles/ParticleEmitter.h"
 
-class SCascadePreviewViewport;
+class FFXSystemInterface;
+class IDetailsView;
 class SCascadeEmitterCanvas;
-class UCascadeParticleSystemComponent;
+class SCascadePreviewViewport;
+class SDockableTab;
 class UCascadeConfiguration;
+class UCascadeOptions;
+class UCascadeParticleSystemComponent;
+class UParticleLODLevel;
+class UParticleSystem;
+class UParticleSystemComponent;
 class UVectorFieldComponent;
-
+struct FCurveEdEntry;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCascade, Log, All);
 

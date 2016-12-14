@@ -1,40 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
-
-#include "SAnimationEditorViewport.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "SAnimViewportToolBar.h"
-#include "AnimViewportShowCommands.h"
-#include "AnimGraphDefinitions.h"
-#include "AnimPreviewInstance.h"
 #include "AnimationEditorViewportClient.h"
-#include "AnimGraphNode_SkeletalControlBase.h"
-#include "Runtime/Engine/Classes/Components/ReflectionCaptureComponent.h"
-#include "Runtime/Engine/Classes/Components/SphereReflectionCaptureComponent.h"
-#include "UnrealWidget.h"
-#include "MouseDeltaTracker.h"
-#include "ScopedTransaction.h"
-#include "Components/DirectionalLightComponent.h"
-#include "Components/ExponentialHeightFogComponent.h"
-#include "CanvasTypes.h"
-#include "Engine/TextureCube.h"
-#include "PhysicsEngine/PhysicsAsset.h"
+#include "Modules/ModuleManager.h"
+#include "EngineGlobals.h"
+#include "Animation/AnimSequence.h"
+#include "EditorStyleSet.h"
+#include "AnimationEditorPreviewScene.h"
+#include "Materials/Material.h"
+#include "CanvasItem.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Animation/AnimBlueprint.h"
+#include "Preferences/PersonaOptions.h"
 #include "Engine/CollisionProfile.h"
-#include "Engine/SkeletalMeshSocket.h"
-#include "EngineUtils.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 #include "GameFramework/WorldSettings.h"
-#include "PhysicsEngine/PhysicsSettings.h"
-#include "Engine/StaticMesh.h"
-#include "SAnimationEditorViewport.h"
+#include "PersonaModule.h"
+
+#include "SEditorViewport.h"
+#include "CanvasTypes.h"
+#include "AnimPreviewInstance.h"
+#include "ScopedTransaction.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "Engine/SkeletalMeshSocket.h"
 #include "ISkeletonTree.h"
-#include "IEditableSkeleton.h"
-#include "PersonaPreviewSceneDescription.h"
-#include "Engine/PreviewMeshCollection.h"
+#include "SAnimationEditorViewport.h"
 #include "AssetViewerSettings.h"
 #include "IPersonaEditorModeManager.h"
-#include "PersonaModule.h"
-#include "AnimationEditorPreviewScene.h"
+#include "SkeletalMeshTypes.h"
 
 namespace {
 	// Value from UE3
@@ -131,7 +123,7 @@ FAnimationViewportClient::FAnimationViewportClient(const TSharedRef<ISkeletonTre
 	}
 
 	InPreviewScene->RegisterOnPreviewMeshChanged(FOnPreviewMeshChanged::CreateRaw(this, &FAnimationViewportClient::HandleSkeletalMeshChanged));
-	HandleSkeletalMeshChanged(InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh);
+	HandleSkeletalMeshChanged(nullptr, InPreviewScene->GetPreviewMeshComponent()->SkeletalMesh);
 	InPreviewScene->RegisterOnInvalidateViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleInvalidateViews));
 	InPreviewScene->RegisterOnFocusViews(FSimpleDelegate::CreateRaw(this, &FAnimationViewportClient::HandleFocusViews));
 
@@ -282,17 +274,20 @@ bool FAnimationViewportClient::IsSetCameraFollowChecked() const
 	return bCameraFollow;
 }
 
-void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* InSkeletalMesh)
+void FAnimationViewportClient::HandleSkeletalMeshChanged(USkeletalMesh* OldSkeletalMesh, USkeletalMesh* NewSkeletalMesh)
 {
-	GetSkeletonTree()->DeselectAll();
-
-	if (!bInitiallyFocused)
+	if (OldSkeletalMesh != NewSkeletalMesh || NewSkeletalMesh == nullptr)
 	{
-		FocusViewportOnPreviewMesh();
-		bInitiallyFocused = true;
-	}
+		GetSkeletonTree()->DeselectAll();
 
-	UpdateCameraSetup();
+		if (!bInitiallyFocused)
+		{
+			FocusViewportOnPreviewMesh();
+			bInitiallyFocused = true;
+		}
+
+		UpdateCameraSetup();
+	}
 
 	// Setup physics data from physics assets if available, clearing any physics setup on the component
 	UDebugSkelMeshComponent* PreviewMeshComponent = GetAnimPreviewScene()->GetPreviewMeshComponent();

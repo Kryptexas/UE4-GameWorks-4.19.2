@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "CrashReportClient.h"
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
+
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
 
 /**
  * UI for the crash report client app

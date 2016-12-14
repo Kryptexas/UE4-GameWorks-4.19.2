@@ -1,6 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Children.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SPanel.h"
+
+class FArrangedChildren;
 
 /**
  * Controls the DPI scale of its content. Can be used for zooming or shrinking arbitrary widget content.
@@ -44,7 +54,7 @@ public:
 
 protected:
 
-	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const override;
 
 	/**
 	 * The scaling factor from 1:1 pixel to slate unit (SU) ratio.

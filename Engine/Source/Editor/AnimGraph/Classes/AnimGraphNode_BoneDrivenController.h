@@ -1,14 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class IDetailCategoryBuilder;
-class IPropertyHandle;
-
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "BoneControllers/AnimNode_BoneDrivenController.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_BoneDrivenController.generated.h"
+
+class FCompilerResultsLog;
+class FPrimitiveDrawInterface;
+class IDetailCategoryBuilder;
+class IDetailLayoutBuilder;
+class IPropertyHandle;
+class USkeletalMeshComponent;
 
 /**
  * This is the 'source version' of a bone driven controller, which maps part of the state from one bone to another (e.g., 2 * source.x -> target.z)

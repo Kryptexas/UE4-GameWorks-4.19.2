@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -21,6 +21,8 @@
 
 #ifndef RECASTALLOC_H
 #define RECASTALLOC_H
+
+#include "CoreMinimal.h"
 
 /// Provides hint values to the memory allocator on how long the
 /// memory is expected to be used.

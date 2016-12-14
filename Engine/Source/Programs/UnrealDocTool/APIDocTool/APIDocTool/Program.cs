@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -1104,7 +1104,7 @@ namespace APIDocTool
 				// Create the output directory
 				Utility.SafeCreateDirectory(JsonDir);
 
-				string Arguments = "-run=GenerateBlueprintAPI -path=" + JsonDir + " -name=BlueprintAPI -stdout -FORCELOGFLUSH -CrashForUAT -unattended -AllowStdOutLogVerbosity" + (bBuildMachine? " -buildmachine" : "");
+				string Arguments = "-run=GenerateBlueprintAPI -path=" + JsonDir + " -name=BlueprintAPI -stdout -CrashForUAT -unattended -AllowStdOutLogVerbosity" + (bBuildMachine? " -buildmachine" : "");
 				Console.WriteLine("Running: {0} {1}", EditorPath, Arguments);
 
 				using (Process JsonExportProcess = new Process())

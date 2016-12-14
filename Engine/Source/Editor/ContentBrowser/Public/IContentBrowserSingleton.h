@@ -1,16 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "AssetData.h"
+#include "Developer/AssetTools/Public/AssetTypeCategories.h"
+#include "ARFilter.h"
 #include "ContentBrowserDelegates.h"
-#include "Runtime/AssetRegistry/Public/ARFilter.h"
 #include "Developer/CollectionManager/Public/CollectionManagerTypes.h"
-#include "IFilter.h"
-#include "FilterCollection.h"
-#include "ITypedTableView.h"
+#include "Misc/FilterCollection.h"
+#include "Framework/Views/ITypedTableView.h"
 #include "AssetThumbnail.h"
-#include "UnrealClient.h"
 
+class FViewport;
+class UFactory;
 
 typedef const FAssetData& FAssetFilterType;
 typedef TFilterCollection<FAssetFilterType> FAssetFilterCollectionType;

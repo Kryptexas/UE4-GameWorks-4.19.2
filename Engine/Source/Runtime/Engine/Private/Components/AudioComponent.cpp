@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "Components/AudioComponent.h"
+#include "Audio.h"
+#include "Engine/Texture2D.h"
+#include "ActiveSound.h"
+#include "AudioThread.h"
+#include "AudioDevice.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "Sound/SoundCue.h"
-#include "SubtitleManager.h"
-#include "Audio.h"
-#include "AudioThread.h"
-#include "TaskGraphInterfaces.h"
+#include "Components/BillboardComponent.h"
+#include "FrameworkObjectVersion.h"
 
 /*-----------------------------------------------------------------------------
 UAudioComponent implementation.
@@ -30,7 +32,7 @@ UAudioComponent::UAudioComponent(const FObjectInitializer& ObjectInitializer)
 #endif
 	VolumeMultiplier = 1.f;
 	bOverridePriority = false;
-	bOverrideSubtitlePriority = true;
+	bOverrideSubtitlePriority = false;
 	bIsPreviewSound = false;
 	bIsPaused = false;
 	Priority = 1.f;
@@ -85,6 +87,23 @@ FString UAudioComponent::GetDetailedInfoInternal( void ) const
 	}
 
 	return Result;
+}
+
+void UAudioComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FFrameworkObjectVersion::GUID);
+
+	if (Ar.IsLoading() && Ar.CustomVer(FFrameworkObjectVersion::GUID) < FFrameworkObjectVersion::ChangeAudioComponentOverrideSubtitlePriorityDefault)
+	{
+		// Since the default for overriding the priority changed delta serialize would not have written out anything for true, so if they've changed
+		// the priority we'll assume they wanted true, otherwise, we'll leave it with the new false default
+		if (SubtitlePriority != DEFAULT_SUBTITLE_PRIORITY)
+		{
+			bOverrideSubtitlePriority = true;
+		}
+	}
 }
 
 void UAudioComponent::PostLoad()
@@ -158,6 +177,11 @@ void UAudioComponent::SetSound( USoundBase* NewSound )
 	}
 }
 
+bool UAudioComponent::IsReadyForOwnerToAutoDestroy() const
+{
+	return !IsPlaying();
+}
+
 void UAudioComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
 {
 	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
@@ -209,7 +233,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 	{
 		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
-			const FAttenuationSettings* AttenuationSettingsToApply = (bAllowSpatialization ? GetAttenuationSettingsToApply() : nullptr);
+			const FSoundAttenuationSettings* AttenuationSettingsToApply = (bAllowSpatialization ? GetAttenuationSettingsToApply() : nullptr);
 
 			float MaxDistance = 0.0f;
 			float FocusFactor = 0.0f;
@@ -525,7 +549,7 @@ void UAudioComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 }
 #endif // WITH_EDITOR
 
-const FAttenuationSettings* UAudioComponent::GetAttenuationSettingsToApply() const
+const FSoundAttenuationSettings* UAudioComponent::GetAttenuationSettingsToApply() const
 {
 	if (bOverrideAttenuation)
 	{
@@ -542,9 +566,9 @@ const FAttenuationSettings* UAudioComponent::GetAttenuationSettingsToApply() con
 	return nullptr;
 }
 
-bool UAudioComponent::BP_GetAttenuationSettingsToApply(FAttenuationSettings& OutAttenuationSettings)
+bool UAudioComponent::BP_GetAttenuationSettingsToApply(FSoundAttenuationSettings& OutAttenuationSettings)
 {
-	if (const FAttenuationSettings* Settings = GetAttenuationSettingsToApply())
+	if (const FSoundAttenuationSettings* Settings = GetAttenuationSettingsToApply())
 	{
 		OutAttenuationSettings = *Settings;
 		return true;
@@ -552,9 +576,9 @@ bool UAudioComponent::BP_GetAttenuationSettingsToApply(FAttenuationSettings& Out
 	return false;
 }
 
-void UAudioComponent::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
+void UAudioComponent::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FBaseAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
 {
-	const FAttenuationSettings *AttenuationSettingsToApply = GetAttenuationSettingsToApply();
+	const FSoundAttenuationSettings *AttenuationSettingsToApply = GetAttenuationSettingsToApply();
 
 	if (AttenuationSettingsToApply)
 	{
@@ -889,7 +913,7 @@ void UAudioComponent::SetUISound(const bool bInIsUISound)
 	}
 }
 
-void UAudioComponent::AdjustAttenuation(const FAttenuationSettings& InAttenuationSettings)
+void UAudioComponent::AdjustAttenuation(const FSoundAttenuationSettings& InAttenuationSettings)
 {
 	bOverrideAttenuation = true;
 	AttenuationOverrides = InAttenuationSettings;

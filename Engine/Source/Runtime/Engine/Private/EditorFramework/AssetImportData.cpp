@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "EnginePrivate.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "EditorFramework/AssetImportData.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Misc/PackageName.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "UObject/Package.h"
+
 
 // This whole class is compiled out in non-editor
 UAssetImportData::UAssetImportData(const FObjectInitializer& ObjectInitializer)
@@ -25,7 +30,7 @@ FString FAssetImportInfo::ToJson() const
 		Json += FString::Printf(TEXT("{ \"RelativeFilename\" : \"%s\", \"Timestamp\" : \"%d\", \"FileMD5\" : \"%s\" }"),
 			*SourceFiles[Index].RelativeFilename,
 			SourceFiles[Index].Timestamp.ToUnixTimestamp(),
-			*LexicalConversion::ToString(SourceFiles[Index].FileHash)
+			*Lex::ToString(SourceFiles[Index].FileHash)
 			);
 
 		if (Index != SourceFiles.Num() - 1)
@@ -70,10 +75,10 @@ TOptional<FAssetImportInfo> FAssetImportInfo::FromJson(FString InJsonString)
 		}
 
 		int64 UnixTimestamp = 0;
-		LexicalConversion::FromString(UnixTimestamp, *TimestampString);
+		Lex::FromString(UnixTimestamp, *TimestampString);
 
 		FMD5Hash FileHash;
-		LexicalConversion::FromString(FileHash, *MD5String);
+		Lex::FromString(FileHash, *MD5String);
 
 		Info.SourceFiles.Emplace(MoveTemp(RelativeFilename), FDateTime::FromUnixTimestamp(UnixTimestamp), FileHash);
 	}

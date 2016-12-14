@@ -1,10 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MeshBatch.h"
-#include "Archive.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "EdGraph/EdGraphPin.h"
 #include "BlueprintGeneratedClass.generated.h"
+
+class AActor;
+class UActorComponent;
+class UDynamicBlueprintBinding;
+class UInheritableComponentHandler;
+class UTimelineTemplate;
 
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Persistent Uber Graph Frame memory"), STAT_PersistentUberGraphFrameMemory, STATGROUP_Memory, );
 
@@ -765,4 +777,6 @@ protected:
 private:
 	/** List of native class-owned properties that differ from defaults. This is used to optimize property initialization during post-construction by minimizing the number of native class-owned property values that get copied to the new instance. */
 	TIndirectArray<FCustomPropertyListNode> CustomPropertyListForPostConstruction;
+	/** In some cases UObject::ConditionalPostLoad() code calls PostLoadDefaultObject() on a class that's still being serialized. */
+	FCriticalSection SerializeAndPostLoadCritical;
 };

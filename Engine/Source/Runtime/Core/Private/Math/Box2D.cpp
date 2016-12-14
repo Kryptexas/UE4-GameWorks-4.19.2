@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Box2D.cpp: Implements the FBox2D class.
@@ -7,7 +7,7 @@
 /* FBox2D structors
  *****************************************************************************/
 
-#include "CorePrivatePCH.h"
+#include "Math/Box2D.h"
 
 FBox2D::FBox2D(const FVector2D* Points, const int32 Count)
 	: Min(0.f, 0.f)

@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Components/MeshComponent.h"
 #include "CableComponent.generated.h"
+
+class FPrimitiveSceneProxy;
 
 /** Struct containing information about a point along the cable */
 struct FCableParticle

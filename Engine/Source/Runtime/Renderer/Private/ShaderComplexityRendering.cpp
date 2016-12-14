@@ -1,15 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ShaderComplexityRendering.cpp: Contains definitions for rendering the shader complexity viewmode.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessVisualizeComplexity.h"
-#include "SceneUtils.h"
-#include "PostProcessing.h"
+#include "ShaderComplexityRendering.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/PostProcessVisualizeComplexity.h"
 
 IMPLEMENT_SHADER_TYPE(template<>,TShaderComplexityAccumulatePS,TEXT("ShaderComplexityAccumulatePixelShader"),TEXT("Main"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TQuadComplexityAccumulatePS,TEXT("QuadComplexityAccumulatePixelShader"),TEXT("Main"),SF_Pixel);

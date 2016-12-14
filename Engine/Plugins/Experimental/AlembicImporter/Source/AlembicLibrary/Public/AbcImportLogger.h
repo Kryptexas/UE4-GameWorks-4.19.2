@@ -1,9 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AlembicLibraryPublicPCH.h"
-
+#include "CoreMinimal.h"
 #include "Logging/TokenizedMessage.h"
 
 class FAbcImportLogger

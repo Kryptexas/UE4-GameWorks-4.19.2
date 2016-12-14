@@ -1,17 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "FontEditorModule.h"
 #include "SCompositeFontEditor.h"
-#include "SFilePathPicker.h"
-#include "SInlineEditableTextBlock.h"
-#include "SNumericEntryBox.h"
+#include "Fonts/FontCache.h"
+#include "Fonts/FontBulkData.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "EditorStyleSet.h"
+#include "EditorFontGlyphs.h"
+#include "EditorDirectories.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "IFontEditor.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 #include "ScopedTransaction.h"
+#include "Modules/ModuleManager.h"
 #include "DesktopPlatformModule.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
 #include "PropertyCustomizationHelpers.h"
 #include "Engine/Font.h"
 #include "Engine/FontFace.h"
+#include "Misc/FileHelper.h"
+#include "IContentBrowserSingleton.h"
+#include "FileHelpers.h"
 
 #define LOCTEXT_NAMESPACE "FontEditor"
 
@@ -794,8 +809,12 @@ void STypefaceEntryEditor::OnTypefaceEntryFontPathPicked(const FString& InNewFon
 	{
 		UFontFace* TempFontFace = NewObject<UFontFace>();
 		TempFontFace->SourceFilename = InNewFontFilename;
-		if (FFileHelper::LoadFileToArray(TempFontFace->FontFaceData, *TempFontFace->SourceFilename))
+
+		TArray<uint8> TempFontFaceData;
+		if (FFileHelper::LoadFileToArray(TempFontFaceData, *TempFontFace->SourceFilename))
 		{
+			TempFontFace->FontFaceData->SetData(MoveTemp(TempFontFaceData));
+
 			UFontFace* NewFontFaceAsset = SaveFontFaceAsAsset(TempFontFace, *FPaths::GetBaseFilename(TempFontFace->SourceFilename));
 			if (NewFontFaceAsset)
 			{

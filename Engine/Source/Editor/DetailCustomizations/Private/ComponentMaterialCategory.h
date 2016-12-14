@@ -1,6 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class FNotifyHook;
+class IDetailCategoryBuilder;
+class IDetailLayoutBuilder;
+class UActorComponent;
+class UMaterialInterface;
+class USceneComponent;
 
 /**
  * Encapsulates functionality for the ActorDetails material category

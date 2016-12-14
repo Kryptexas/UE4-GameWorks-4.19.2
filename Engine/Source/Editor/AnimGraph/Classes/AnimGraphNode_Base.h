@@ -1,23 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "K2Node.h"
-#include "Animation/AnimNodeBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UnrealType.h"
+#include "Animation/AnimBlueprint.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
+#include "Animation/AnimNodeBase.h"
+#include "Editor.h"
+#include "K2Node.h"
 #include "AnimGraphNode_Base.generated.h"
 
-// Forward declarations
-
-struct FEdGraphSchemaAction_K2NewNode;
-struct FPropertyChangedEvent;
-class FCompilerResultsLog;
-class UAnimGraphNode_Base;
-class USkeleton;
-class UAnimBlueprintGeneratedClass;
-class IDetailLayoutBuilder;
 class FAnimBlueprintCompiler;
 class FAnimGraphNodeDetails;
+class FBlueprintActionDatabaseRegistrar;
+class FCanvas;
+class FCompilerResultsLog;
+class FPrimitiveDrawInterface;
+class IDetailLayoutBuilder;
+class UAnimGraphNode_Base;
+class UEdGraphSchema;
+class USkeletalMeshComponent;
 
 struct FPoseLinkMappingRecord
 {
@@ -99,6 +103,14 @@ enum class EBlueprintUsage : uint8
 	NoProperties,
 	DoesNotUseBlueprint,
 	UsesBlueprint
+};
+
+/** Enum that indicates level of support of this node for a parciular asset class */
+enum class EAnimAssetHandlerType : uint8
+{
+	PrimaryHandler,
+	Supported,
+	NotSupported
 };
 
 /**
@@ -249,6 +261,12 @@ class ANIMGRAPH_API UAnimGraphNode_Base : public UK2Node
 
 		return nullptr;
 	}
+
+	/** 
+	 *	Returns whether this node supports the supplied asset class
+	 *	@param	bPrimaryAssetHandler	Is this the 'primary' handler for this asset (the node that should be created when asset is dropped)
+	 */
+	virtual EAnimAssetHandlerType SupportsAssetClass(const UClass* AssetClass) const;
 
 	// Event that observers can bind to so that they are notified about changes
 	// made to this node through the property system

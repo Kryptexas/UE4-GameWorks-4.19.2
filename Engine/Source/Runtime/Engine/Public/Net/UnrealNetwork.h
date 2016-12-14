@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealNetwork.h: Unreal networking.
@@ -10,16 +10,13 @@
 
 #pragma once
 
-#include "NetworkVersion.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/CoreNet.h"
+#include "EngineLogs.h"
+#include "UObject/UnrealType.h"
 
-class	UChannel;
-class	UControlChannel;
-class	UActorChannel;
-class	UVoiceChannel;
-class	UFileChannel;
-class	FInBunch;
-class	FOutBunch;
-class	UChannelIterator;
+class AActor;
 
 /*class	UNetDriver;*/
 class	UNetConnection;

@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/AssetEditorManager.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "PaperTileSet.h"
 #include "SPaperEditorViewport.h"
+#include "TileSetEditor/TileSetEditorViewportClient.h"
+
+struct FMarqueeOperation;
 
 //////////////////////////////////////////////////////////////////////////
 // STileSetSelectorViewport

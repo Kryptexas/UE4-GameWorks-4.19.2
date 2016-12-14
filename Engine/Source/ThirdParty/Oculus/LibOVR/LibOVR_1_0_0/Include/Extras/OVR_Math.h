@@ -17,7 +17,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <float.h>
-#include "../OVR_CAPI.h" // Currently required due to a dependence on the ovrFovPort_ declaration.
+
+#ifndef OVR_EXCLUDE_CAPI_FROM_MATH
+    #include "../OVR_CAPI.h" // Required due to a dependence on the ovrFovPort_ declaration.
+#endif
 
 #if defined(_MSC_VER)
     #pragma warning(push)
@@ -185,6 +188,7 @@ typedef struct ovrPosef_ ovrPosef;
 typedef struct ovrPosed_ ovrPosed;
 typedef struct ovrPoseStatef_ ovrPoseStatef;
 typedef struct ovrPoseStated_ ovrPoseStated;
+typedef struct ovrFovPort_ ovrFovPort;
 
 namespace OVR {
 
@@ -200,6 +204,7 @@ template<class T> class Matrix3;
 template<class T> class Matrix4;
 template<class T> class Pose;
 template<class T> class PoseState;
+struct FovPort;
 
 // CompatibleTypes::Type is used to lookup a compatible C-version of a C++ class.
 template<class C>
@@ -232,6 +237,7 @@ template<> struct CompatibleTypes<Vector4<float> >  { typedef ovrVector4f Type; 
 template<> struct CompatibleTypes<Vector4<double> > { typedef ovrVector4d Type; };
 template<> struct CompatibleTypes<Pose<float> >     { typedef ovrPosef Type; };
 template<> struct CompatibleTypes<Pose<double> >    { typedef ovrPosed Type; };
+template<> struct CompatibleTypes<FovPort >         { typedef ovrFovPort Type; };
 
 //------------------------------------------------------------------------------------//
 // ***** Math
@@ -718,6 +724,8 @@ public:
 
     // Projects this vector onto a plane defined by a normal vector
     Vector3 ProjectToPlane(const Vector3& normal) const { return *this - this->ProjectTo(normal); }
+
+    bool IsNan() const { return isnan(x) || isnan(y) || isnan(z); }
 };
 
 typedef Vector3<float>  Vector3f;
@@ -1748,6 +1756,8 @@ public:
                            w*Q[A2] + psign*Q[A1]*Q[m]);
         }
     }
+
+    bool IsNan() const { return isnan(x) || isnan(y) || isnan(z) || isnan(w); }
 };
 
 typedef Quat<float>  Quatf;
@@ -1909,6 +1919,8 @@ public:
         return Pose(Rotation.TimeIntegrate(angularVelocity, angularAcceleration, dt),
                     Translation + linearVelocity*dt + linearAcceleration*dt*dt * T(0.5));
     }
+
+    bool IsNan() const { return Translation.IsNan() || Rotation.IsNan(); }
 };
 
 typedef Pose<float>  Posef;
@@ -3727,21 +3739,24 @@ struct FovPort
     FovPort ( float u, float d, float l, float r ) :
         UpTan(u), DownTan(d), LeftTan(l), RightTan(r) { }
 
-    // C-interop support: FovPort <-> ovrFovPort (implementation in OVR_CAPI.cpp).
-    FovPort(const ovrFovPort &src)
-        : UpTan(src.UpTan), DownTan(src.DownTan), LeftTan(src.LeftTan), RightTan(src.RightTan)
-    { }
+#ifndef OVR_EXCLUDE_CAPI_FROM_MATH
+    // C-interop support.
+    typedef CompatibleTypes<FovPort >::Type CompatibleType;
 
-    operator ovrFovPort () const
+    FovPort(const CompatibleType& s)
+        : UpTan(s.UpTan)
+        , DownTan(s.DownTan)
+        , LeftTan(s.LeftTan)
+        , RightTan(s.RightTan)
+    {  }
+
+    operator const CompatibleType& () const
     {
-        ovrFovPort result;
-        result.LeftTan  = LeftTan;
-        result.RightTan = RightTan;
-        result.UpTan    = UpTan;
-        result.DownTan  = DownTan;
-        return result;
+        OVR_MATH_STATIC_ASSERT(sizeof(FovPort) == sizeof(CompatibleType), "sizeof(FovPort) failure");
+        return reinterpret_cast<const CompatibleType&>(*this);
     }
-
+#endif
+    
     static FovPort CreateFromRadians(float horizontalFov, float verticalFov)
     {
         FovPort result;

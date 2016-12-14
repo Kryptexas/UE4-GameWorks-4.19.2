@@ -1,18 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Widgets/SWidget.h"
+#include "ISequencer.h"
 #include "ISequencerSection.h"
-#include "TrackEditorThumbnail.h"
+#include "TrackEditorThumbnail/TrackEditorThumbnail.h"
 
-
+class FLevelEditorViewportClient;
+class FMenuBuilder;
+class FSceneViewport;
+class FSequencerSectionPainter;
 class FTrackEditorThumbnailPool;
-class IMenu;
 class ISectionLayoutBuilder;
-class SWidget;
-class SInlineEditableTextBlock;
-class UMovieSceneSection;
-
+struct FSlateBrush;
 
 struct FThumbnailCameraSettings
 {

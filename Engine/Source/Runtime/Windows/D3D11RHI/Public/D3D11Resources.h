@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Resources.h: D3D resource RHI definitions.
@@ -206,6 +206,7 @@ public:
 		TRefCountPtr<ID3D11DepthStencilView>* InDepthStencilViews
 		) 
 	: D3DRHI(InD3DRHI)
+	, IHVResourceHandle(nullptr)
 	, MemorySize(0)
 	, BaseShaderResource(this)
 	, Resource(InResource)
@@ -213,7 +214,7 @@ public:
 	, RenderTargetViews(InRenderTargetViews)
 	, bCreatedRTVsPerSlice(bInCreatedRTVsPerSlice)
 	, RTVArraySize(InRTVArraySize)
-	, NumDepthStencilViews(0)
+	, NumDepthStencilViews(0)	
 	{
 		// Set the DSVs for all the access type combinations
 		if ( InDepthStencilViews != nullptr )
@@ -245,6 +246,16 @@ public:
 	ID3D11Resource* GetResource() const { return Resource; }
 	ID3D11ShaderResourceView* GetShaderResourceView() const { return ShaderResourceView; }
 	FD3D11BaseShaderResource* GetBaseShaderResource() const { return BaseShaderResource; }
+
+	void SetIHVResourceHandle(void* InHandle)
+	{
+		IHVResourceHandle = InHandle;
+	}
+
+	void* GetIHVResourceHandle() const
+	{
+		return IHVResourceHandle;
+	}
 
 	/** 
 	 * Get the render target view for the specified mip and array slice.
@@ -281,12 +292,15 @@ public:
 	bool HasDepthStencilView()
 	{
 		return ( NumDepthStencilViews > 0 );
-	}
+	}	
 
 protected:
 
 	/** The D3D11 RHI that created this texture. */
 	FD3D11DynamicRHI* D3DRHI;
+
+	//Resource handle for use by IHVs for SLI and other purposes.
+	void* IHVResourceHandle;
 
 	/** Amount of memory allocated by this texture, in bytes. */
 	int32 MemorySize;
@@ -767,10 +781,12 @@ public:
 	
 	TRefCountPtr<ID3D11UnorderedAccessView> View;
 	TRefCountPtr<FD3D11BaseShaderResource> Resource;	
+	void* IHVResourceHandle;
 	
 	FD3D11UnorderedAccessView(ID3D11UnorderedAccessView* InView,FD3D11BaseShaderResource* InResource)
 	: View(InView)
 	, Resource(InResource)
+	, IHVResourceHandle(nullptr)
 	{}
 };
 

@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OculusRiftPrivatePCH.h"
+#include "OculusRiftLayers.h"
 #include "OculusRiftHMD.h"
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 
-#include "OculusRiftLayers.h"
 #include "MediaTexture.h"
 #include "ScreenRendering.h"
 #include "ScenePrivate.h"
@@ -279,8 +278,6 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 			FTextureRHIRef Texture = LayerDesc.GetTexture();
 			int32 SizeX = 16, SizeY = 16; // 16x16 default texture size for black rect (if the actual texture is not set)
 			EPixelFormat Format = EPixelFormat::PF_B8G8R8A8;
-			bool bTextureChanged = LayerDesc.IsTextureChanged();
-			bool isStatic = !(LayerDesc.GetFlags() & IStereoLayers::LAYER_FLAG_TEX_CONTINUOUS_UPDATE);
 
 			if (Texture)
 			{
@@ -303,7 +300,7 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 				}
 			}
 
-			bTextureChanged |= (Texture && LayerDesc.HasPendingTextureCopy()) ? true : false;
+			bool bTextureChanged = LayerDesc.IsTextureChanged();
 			bTextureChanged |= (LayerDesc.GetFlags() & IStereoLayers::LAYER_FLAG_TEX_CONTINUOUS_UPDATE) ? true : false;
 
 			uint32 NumMips = (LayerDesc.IsHighQuality() ? 0 : 1);
@@ -321,14 +318,7 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 			{
 				// create texture set
 				check(pPresentBridge);
-				if (isStatic)
-				{
-					RenderLayer->TextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, Format, NumMips, FCustomPresent::DefaultLinear);
-				}
-				else
-				{
-					RenderLayer->TextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, Format, NumMips, FCustomPresent::DefaultLinear);
-				}
+				RenderLayer->TextureSet = pPresentBridge->CreateTextureSet(SizeX, SizeY, Format, NumMips, FCustomPresent::DefaultLinear);
 				bTextureChanged = true;
 			}
 			RenderLayer->Layer.Quad.ColorTexture = RenderLayer->GetSwapTextureSet();
@@ -360,7 +350,6 @@ void FLayerManager::PreSubmitUpdate_RenderThread(FRHICommandListImmediate& RHICm
 						FIntRect(),
 						true,
 						!!(LayerDesc.GetFlags() & IStereoLayers::LAYER_FLAG_TEX_NO_ALPHA_CHANNEL));
-					LayerDesc.ClearPendingTextureCopy();
 				}
 				RenderLayer->CommitTextureSet(RHICmdList);
 			}

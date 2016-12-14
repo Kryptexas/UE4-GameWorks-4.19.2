@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSPlatformOutputDevicesPrivate.h: iOS implementations of output devices
 =============================================================================*/
 
 #pragma once
+
+#include "Misc/OutputDevice.h"
+#include "Misc/OutputDeviceError.h"
 
 /**
  * Generic Output device that writes to Windows Event Log

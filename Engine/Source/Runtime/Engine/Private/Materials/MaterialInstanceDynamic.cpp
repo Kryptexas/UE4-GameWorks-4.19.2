@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	MaterialInstanceDynamic.cpp: MaterialInstanceDynamic implementation.
 ==============================================================================*/
 
-#include "EnginePrivate.h"
-#include "MaterialInstanceSupport.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UObject/Package.h"
+#include "Materials/MaterialInstanceSupport.h"
+#include "Engine/Texture.h"
 
 UMaterialInstanceDynamic::UMaterialInstanceDynamic(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

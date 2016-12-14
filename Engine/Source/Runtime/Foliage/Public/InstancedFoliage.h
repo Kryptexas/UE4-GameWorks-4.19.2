@@ -1,10 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 InstancedFoliage.h: Instanced foliage type definitions.
 =============================================================================*/
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "FoliageInstanceBase.h"
+
+class AInstancedFoliageActor;
+class UActorComponent;
+class UFoliageType;
+class UHierarchicalInstancedStaticMeshComponent;
+class UPrimitiveComponent;
+struct FFoliageInstanceHash;
 
 //
 // Forward declarations.

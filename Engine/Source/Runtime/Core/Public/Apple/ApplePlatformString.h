@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	ApplePlatformString.h: Apple platform string classes, mostly implemented with ANSI C++
@@ -9,7 +9,7 @@
 #include "StandardPlatformString.h"
 #include "AssertionMacros.h"
 #include "OutputDevice.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 
 #if PLATFORM_MAC
 #include "Mac/MacSystemIncludes.h"

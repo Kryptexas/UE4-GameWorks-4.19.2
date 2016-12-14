@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "WorkflowCentricApplication.h"
-#include "SPaperEditorViewport.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Toolkits/AssetEditorToolkit.h"
+
+class STileMapEditorViewport;
+class UPaperTileMap;
 
 //////////////////////////////////////////////////////////////////////////
 // FTileMapEditor

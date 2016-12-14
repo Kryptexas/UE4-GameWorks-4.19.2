@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LocalLinuxTargetDevice.h: Declares the LocalLinuxTargetDevice class.
@@ -6,10 +6,22 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/TargetDeviceId.h"
+#include "Interfaces/ITargetDevice.h"
+#include "Misc/Paths.h"
+#include "HAL/FileManager.h"
+#include "HAL/PlatformProcess.h"
+
 #if PLATFORM_LINUX
-	#include <signal.h> // for process termination
-	#include <pwd.h> // for getting uid/gid
+	#include <signal.h>
+	#include <pwd.h>
 #endif // PLATFORM_LINUX
+
+class FLinuxTargetDevice;
+class IFileManager;
+class ITargetPlatform;
+struct FProcHandle;
 
 /**
  * Type definition for shared pointers to instances of FLinuxTargetDevice.
@@ -35,10 +47,11 @@ public:
 	 *
 	 * @param InTargetPlatform - The target platform.
 	 */
-	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId& InDeviceId, const FString& InDeviceName )
+	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId& InDeviceId, const FString& InDeviceName, TFunction<void()> InSavePlatformDevices)
 		: TargetPlatform(InTargetPlatform)
 		, DeviceName(InDeviceName)
 		, TargetDeviceId(InDeviceId)
+		, SavePlatformDevices(InSavePlatformDevices)
 	{ }
 
 
@@ -233,14 +246,17 @@ public:
 
 	virtual void SetUserCredentials( const FString& InUserName, const FString& InUserPassword ) override
 	{
-		STUBBED("FLinuxTargetDevice::SetUserCredentials");
 		UserName = InUserName;
 		UserPassword = InUserPassword;
+
+		if (SavePlatformDevices)
+		{
+			SavePlatformDevices();
+		}
 	}
 
 	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override
 	{
-		STUBBED("FLinuxTargetDevice::GetUserCredentials");
 		OutUserName = UserName;
 		OutUserPassword = UserPassword;
 		return true;
@@ -295,4 +311,7 @@ private:
 
 	/** User password on the remote machine */
 	FString UserPassword;
+
+	/** Target platform function to save device state */
+	TFunction<void()> SavePlatformDevices;
 };

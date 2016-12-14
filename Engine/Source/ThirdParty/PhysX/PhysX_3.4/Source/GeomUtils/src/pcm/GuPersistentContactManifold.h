@@ -154,7 +154,7 @@ class PersistentContactManifold
 {
 public:
 
-	PersistentContactManifold(PersistentContact* contactPointsBuff): mNumContacts(0), mNumWarmStartPoints(0), mContactPoints(contactPointsBuff)
+	PersistentContactManifold(PersistentContact* contactPointsBuff, PxU8 capacity): mNumContacts(0), mCapacity(capacity), mNumWarmStartPoints(0), mContactPoints(contactPointsBuff)
 	{
 		mRelativeTransform.Invalidate();
 	}
@@ -359,6 +359,7 @@ public:
 
 	Ps::aos::PsTransformV mRelativeTransform;//aToB
 	PxU8 mNumContacts;
+	PxU8 mCapacity;
 	PxU8 mNumWarmStartPoints;
 	PxU8 mAIndice[4];
 	PxU8 mBIndice[4]; 
@@ -369,7 +370,7 @@ PX_ALIGN_PREFIX(16)
 class LargePersistentContactManifold : public PersistentContactManifold
 {
 public:
-	LargePersistentContactManifold() : PersistentContactManifold(mContactPointsBuff)
+	LargePersistentContactManifold() : PersistentContactManifold(mContactPointsBuff, GU_MANIFOLD_CACHE_SIZE)
 	{
 	}
 
@@ -380,7 +381,7 @@ PX_ALIGN_PREFIX(16)
 class SpherePersistentContactManifold : public PersistentContactManifold
 {
 public:
-	SpherePersistentContactManifold() : PersistentContactManifold(mContactPointsBuff)
+	SpherePersistentContactManifold() : PersistentContactManifold(mContactPointsBuff, GU_SPHERE_MANIFOLD_CACHE_SIZE)
 	{
 	}
 

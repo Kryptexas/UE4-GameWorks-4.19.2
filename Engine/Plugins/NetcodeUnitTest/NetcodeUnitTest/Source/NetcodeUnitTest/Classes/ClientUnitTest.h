@@ -1,16 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineBaseTypes.h"
+#include "NetcodeUnitTest.h"
 #include "ProcessUnitTest.h"
 
 #include "ClientUnitTest.generated.h"
 
-
-// Forward declarations
-class FNetworkNotifyHook;
+class AActor;
 class ANUTActor;
-
+class AOnlineBeaconClient;
+class APlayerController;
+class FInBunch;
+class FNetworkNotifyHook;
+class UActorChannel;
+class UChannel;
+class UNetConnection;
+class UNetDriver;
+struct FFrame;
+struct FOutParmRec;
+struct FUniqueNetIdRepl;
 
 // Enum definitions
 

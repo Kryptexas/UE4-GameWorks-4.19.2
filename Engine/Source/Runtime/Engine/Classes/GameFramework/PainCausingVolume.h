@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // PhysicsVolume:  a bounding volume which affects actor physics
@@ -6,8 +6,13 @@
 //=============================================================================
 
 #pragma once
-#include "TimerManager.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "GameFramework/DamageType.h"
 #include "PainCausingVolume.generated.h"
 
 /**

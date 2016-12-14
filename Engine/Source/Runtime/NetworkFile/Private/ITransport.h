@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Interface for providing different Transports for the Network File System ( client )
  */
 
 #pragma once 
-#include "NetworkFilePrivatePCH.h"
+
+#include "CoreMinimal.h"
 
 class ITransport 
 {

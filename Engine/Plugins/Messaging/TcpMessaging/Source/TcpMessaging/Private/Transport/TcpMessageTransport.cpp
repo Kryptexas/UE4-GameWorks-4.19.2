@@ -1,7 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "TcpMessagingPrivatePCH.h"
-#include "TcpSerializeMessageTask.h"
+#include "Transport/TcpMessageTransport.h"
+#include "HAL/RunnableThread.h"
+#include "Common/TcpSocketBuilder.h"
+#include "Common/TcpListener.h"
+#include "TcpMessagingPrivate.h"
+#include "Transport/TcpDeserializedMessage.h"
+#include "Transport/TcpSerializedMessage.h"
+#include "Transport/TcpMessageTransportConnection.h"
+#include "Transport/TcpSerializeMessageTask.h"
 
 
 /* FTcpMessageTransport structors
@@ -268,13 +275,13 @@ void FTcpMessageTransport::HandleConnectionStateChanged(TSharedPtr<FTcpMessageTr
 	{
 		NodeConnectionMapUpdates.Enqueue(FNodeConnectionMapUpdate(true, NodeId, TWeakPtr<FTcpMessageTransportConnection>(Connection)));
 		NodeDiscoveredDelegate.ExecuteIfBound(NodeId);
-		UE_LOG(LogTcpMessaging, Warning, TEXT("Discovered node '%s' on connection '%s'..."), *NodeId.ToString(), *RemoteEndpoint.ToString());
+		UE_LOG(LogTcpMessaging, Verbose, TEXT("Discovered node '%s' on connection '%s'..."), *NodeId.ToString(), *RemoteEndpoint.ToString());
 	}
 	else
 	{
 		if (NodeId.IsValid())
 		{
-			UE_LOG(LogTcpMessaging, Warning, TEXT("Lost node '%s' on connection '%s'..."), *NodeId.ToString(), *RemoteEndpoint.ToString());
+			UE_LOG(LogTcpMessaging, Verbose, TEXT("Lost node '%s' on connection '%s'..."), *NodeId.ToString(), *RemoteEndpoint.ToString());
 			NodeConnectionMapUpdates.Enqueue(FNodeConnectionMapUpdate(false, NodeId, TWeakPtr<FTcpMessageTransportConnection>(Connection)));
 			NodeLostDelegate.ExecuteIfBound(NodeId);
 		}

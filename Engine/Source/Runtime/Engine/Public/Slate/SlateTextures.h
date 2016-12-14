@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-struct FSlateTextureData;
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "Textures/SlateTextureData.h"
+#include "RenderingThread.h"
+#include "Textures/SlateShaderResource.h"
+#include "TextureResource.h"
+#include "Engine/Texture.h"
+#include "Textures/SlateUpdatableTexture.h"
 
 /**
  * Encapsulates a Texture2DRHIRef for use by a Slate rendering implementation                   

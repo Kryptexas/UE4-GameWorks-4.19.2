@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXSupport.h: PhysX support
@@ -6,9 +6,17 @@
 
 #pragma once
 
-#include "PhysXPublic.h"
-
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/ScopeLock.h"
+#include "EngineDefines.h"
+#include "Containers/Queue.h"
 #include "Physics/PhysicsFiltering.h"
+
+class UBodySetup;
+class UPhysicalMaterial;
+struct FByteBulkData;
+struct FCollisionShape;
 
 #if WITH_PHYSX
 

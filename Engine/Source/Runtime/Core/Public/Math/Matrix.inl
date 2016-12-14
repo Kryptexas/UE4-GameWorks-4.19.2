@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NOTE: This file should ONLY be included by UnrealMath.h!
 =============================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "CoreFwd.h"
+
+struct FBasisVectorMatrix;
+struct FLookAtMatrix;
+struct FMath;
 
 /**
  * FMatrix inline functions.

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "GoogleVRHMDPCH.h"
+#include "GoogleVRHMDViewerPreviews.h"
 #include "GoogleVRHMD.h"
 
 #if !GOOGLEVRHMD_SUPPORTED_PLATFORMS

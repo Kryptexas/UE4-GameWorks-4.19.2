@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MRUList : Helper class for handling MRU lists
@@ -7,6 +7,8 @@
 
 #ifndef __MRULIST_H__
 #define __MRULIST_H__
+
+#include "CoreMinimal.h"
 
 /**
  * An MRU list of files.

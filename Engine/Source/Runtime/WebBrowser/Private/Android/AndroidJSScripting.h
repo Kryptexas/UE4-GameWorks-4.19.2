@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "CoreUObject.h"
+
+#include "CoreMinimal.h"
 #include "WebJSFunction.h"
 #include "WebJSScripting.h"
 
@@ -17,7 +18,7 @@ class FAndroidJSScripting
 public:
 	static const FString JSMessageTag;
 
-	FAndroidJSScripting();
+	FAndroidJSScripting(bool bJSBindingToLoweringEnabled);
 
 	virtual void BindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true) override;
 	virtual void UnbindUObject(const FString& Name, UObject* Object = nullptr, bool bIsPermanent = true) override;

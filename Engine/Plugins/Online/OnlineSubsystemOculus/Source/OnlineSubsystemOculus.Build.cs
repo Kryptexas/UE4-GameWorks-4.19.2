@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -28,7 +28,8 @@ public class OnlineSubsystemOculus : ModuleRules
 				"OnlineSubsystem",
 				"Projects",
 				"PacketHandler",
-			}
+                "Voice",
+            }
 			);
 
 		PublicDependencyModuleNames.AddRange(new string[] { "LibOVRPlatform" });

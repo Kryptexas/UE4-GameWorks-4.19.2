@@ -1,7 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/Runnable.h"
+#include "IPAddress.h"
+#include "SocketSubsystem.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "HAL/RunnableThread.h"
+#include "Common/TcpSocketBuilder.h"
 
 /**
  * Delegate type for accepted TCP connections.

@@ -1,6 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Layout/SMenuOwner.h"
+
+class FActiveTimerHandle;
 
 /**
  * Wrapper for any widget that is used in a table view that wants to handle sub-menus with the same functionality as a normal multibox menu

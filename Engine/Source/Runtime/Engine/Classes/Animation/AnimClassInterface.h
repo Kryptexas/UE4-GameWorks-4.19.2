@@ -1,15 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimStateMachineTypes.h"
-#include "AnimSequenceBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Templates/Casts.h"
+#include "UObject/Interface.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/AnimStateMachineTypes.h"
 
 #include "AnimClassInterface.generated.h"
 
-struct FBakedAnimationStateMachine;
-class  USkeleton;
-struct FAnimNotifyEvent;
+class USkeleton;
 
 UINTERFACE()
 class ENGINE_API UAnimClassInterface : public UInterface

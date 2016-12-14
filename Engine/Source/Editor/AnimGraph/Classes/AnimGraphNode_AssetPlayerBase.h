@@ -1,15 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringAssetReference.h"
+#include "Animation/AnimationAsset.h"
 #include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_AssetPlayerBase.generated.h"
 
-class UAnimSequenceBase;
-
+/** Get the default anim node class for playing a particular asset */
 ANIMGRAPH_API UClass* GetNodeClassForAsset(const UClass* AssetClass);
-ANIMGRAPH_API bool SupportNodeClassForAsset(const UClass* AssetClass, const UClass* NodeClass);
 
+/** See if a particular anim NodeClass can play a particular anim AssetClass */
+ANIMGRAPH_API bool SupportNodeClassForAsset(const UClass* AssetClass, UClass* NodeClass);
 
 /** Helper / intermediate for asset player graphical nodes */
 UCLASS(Abstract, MinimalAPI)

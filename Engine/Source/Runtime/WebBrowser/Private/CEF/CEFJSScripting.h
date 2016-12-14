@@ -1,20 +1,30 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+class Error;
+class FWebJSScripting;
+struct FWebJSParam;
+
 #if WITH_CEF3
-#include "CoreUObject.h"
 #include "WebJSFunction.h"
 #include "WebJSScripting.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
+#include "AllowWindowsPlatformAtomics.h"
 #endif
 #pragma push_macro("OVERRIDE")
 #undef OVERRIDE // cef headers provide their own OVERRIDE macro
+THIRD_PARTY_INCLUDES_START
 #include "include/cef_client.h"
 #include "include/cef_values.h"
+THIRD_PARTY_INCLUDES_END
 #pragma pop_macro("OVERRIDE")
 #if PLATFORM_WINDOWS
+#include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
 
@@ -26,8 +36,8 @@ class FCEFJSScripting
 	, public TSharedFromThis<FCEFJSScripting>
 {
 public:
-	FCEFJSScripting(CefRefPtr<CefBrowser> Browser)
-		: FWebJSScripting()
+	FCEFJSScripting(CefRefPtr<CefBrowser> Browser, bool bJSBindingToLoweringEnabled)
+		: FWebJSScripting(bJSBindingToLoweringEnabled)
 		, InternalCefBrowser(Browser)
 	{}
 

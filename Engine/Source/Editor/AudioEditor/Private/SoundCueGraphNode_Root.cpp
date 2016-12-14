@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SoundCueGraphNode_Root.cpp
 =============================================================================*/
 
-#include "AudioEditorPrivatePCH.h"
+#include "SoundCueGraph/SoundCueGraphNode_Root.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "GraphEditorSettings.h"
 #include "SoundCueGraphEditorCommands.h"
-#include "SoundCueGraph/SoundCueGraphNode_Root.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueGraphNode_Root"
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHICommandListCommandExecutes.inl: RHI Command List execute functions.
@@ -18,7 +18,84 @@
 #define INTERNAL_DECORATOR_CONTEXT(Method) IRHIComputeContext& Context = (CmdListType == ECmdList::EGfx) ? CmdList.GetContext() : CmdList.GetComputeContext(); Context.Method
 #endif
 
+class FRHICommandListBase;
+class IRHIComputeContext;
+struct FComputedBSS;
+struct FComputedGraphicsPipelineState;
+struct FComputedUniformBuffer;
+struct FMemory;
+struct FRHICommandAutomaticCacheFlushAfterComputeShader;
+struct FRHICommandBeginDrawingViewport;
+struct FRHICommandBeginFrame;
+struct FRHICommandBeginOcclusionQueryBatch;
+struct FRHICommandBeginRenderQuery;
+struct FRHICommandBeginScene;
+struct FRHICommandBindClearMRTValues;
+struct FRHICommandBuildLocalBoundShaderState;
+struct FRHICommandBuildLocalGraphicsPipelineState;
+struct FRHICommandBuildLocalUniformBuffer;
+struct FRHICommandClearColorTexture;
+struct FRHICommandClearColorTextures;
+struct FRHICommandClearDepthStencilTexture;
+struct FRHICommandClearUAV;
+struct FRHICommandCopyToResolveTarget;
+struct FRHICommandDrawIndexedIndirect;
+struct FRHICommandDrawIndexedPrimitive;
+struct FRHICommandDrawIndexedPrimitiveIndirect;
+struct FRHICommandDrawPrimitive;
+struct FRHICommandDrawPrimitiveIndirect;
+struct FRHICommandEnableDepthBoundsTest;
+struct FRHICommandEndDrawIndexedPrimitiveUP;
+struct FRHICommandEndDrawingViewport;
+struct FRHICommandEndDrawPrimitiveUP;
+struct FRHICommandEndFrame;
+struct FRHICommandEndOcclusionQueryBatch;
+struct FRHICommandEndRenderQuery;
+struct FRHICommandEndScene;
+struct FRHICommandFlushComputeShaderCache;
+struct FRHICommandSetBlendFactor;
+struct FRHICommandSetBlendState;
+struct FRHICommandSetBoundShaderState;
+struct FRHICommandSetDepthStencilState;
+struct FRHICommandSetLocalBoundShaderState;
+struct FRHICommandSetLocalGraphicsPipelineState;
+struct FRHICommandSetRasterizerState;
+struct FRHICommandSetRenderTargets;
+struct FRHICommandSetRenderTargetsAndClear;
+struct FRHICommandSetScissorRect;
+struct FRHICommandSetStencilRef;
+struct FRHICommandSetStereoViewport;
+struct FRHICommandSetStreamSource;
+struct FRHICommandSetViewport;
+struct FRHICommandTransitionTextures;
+struct FRHICommandTransitionTexturesArray;
+struct FRHICommandUpdateTextureReference;
+enum class ECmdList;
+template <typename TShaderRHIParamRef> struct FRHICommandSetLocalUniformBuffer;
 
+void FRHICommandBeginUpdateMultiFrameResource::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(BeginUpdateMultiFrameResource);
+	INTERNAL_DECORATOR(RHIBeginUpdateMultiFrameResource)(Texture);
+}
+
+void FRHICommandEndUpdateMultiFrameResource::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(EndUpdateMultiFrameResource);
+	INTERNAL_DECORATOR(RHIEndUpdateMultiFrameResource)(Texture);
+}
+
+void FRHICommandBeginUpdateMultiFrameUAV::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(BeginUpdateMultiFrameUAV);
+	INTERNAL_DECORATOR(RHIBeginUpdateMultiFrameResource)(UAV);
+}
+
+void FRHICommandEndUpdateMultiFrameUAV::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(EndUpdateMultiFrameUAV);
+	INTERNAL_DECORATOR(RHIEndUpdateMultiFrameResource)(UAV);
+}
 
 void FRHICommandSetRasterizerState::Execute(FRHICommandListBase& CmdList)
 {

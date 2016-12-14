@@ -1,6 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Framework/Text/TextLayout.h"
+#include "Framework/Text/ISlateLineHighlighter.h"
+
+class FPaintArgs;
+class FSlateRect;
+class FSlateWindowElementList;
+class FWidgetStyle;
+struct FGeometry;
+struct FSlateBrush;
+struct FTextBlockStyle;
 
 namespace SlateEditableTextTypes
 {

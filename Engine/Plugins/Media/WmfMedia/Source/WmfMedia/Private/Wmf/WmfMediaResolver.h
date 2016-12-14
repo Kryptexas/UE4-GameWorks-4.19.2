@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AllowWindowsPlatformTypes.h"
+#include "../WmfMediaPrivate.h"
 
+#if WMFMEDIA_SUPPORTED_PLATFORM
+
+#include "AllowWindowsPlatformTypes.h"
 
 class IWmfMediaResolverCallbacks;
 struct FWmfMediaResolveState;
@@ -80,3 +83,5 @@ private:
 
 
 #include "HideWindowsPlatformTypes.h"
+
+#endif

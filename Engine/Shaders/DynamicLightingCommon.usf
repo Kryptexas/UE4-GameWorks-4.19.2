@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DynamicLightingCommon.usf: Contains functions shared by dynamic light shaders.
@@ -90,4 +90,33 @@ float3 GetNormalizedLightVector(float3 WorldPosition)
 	#endif
 
 	return Ret;
+}
+
+float GetLightInfluenceMask(float3 WorldPosition)
+{
+	float LightRadiusMask = 1;
+	float SpotFalloff = 1;
+
+	if (DeferredLightUniforms.LightInvRadius > 0)
+	{
+		float3 ToLight = DeferredLightUniforms.LightPosition - WorldPosition;
+		float DistanceSqr = dot(ToLight, ToLight);
+		float3 L = ToLight * rsqrt(DistanceSqr);
+
+		if (DeferredLightUniforms.LightFalloffExponent == 0)
+		{
+			LightRadiusMask = Square(saturate( 1 - Square(DistanceSqr * Square(DeferredLightUniforms.LightInvRadius))));
+		}
+		else
+		{
+			LightRadiusMask = RadialAttenuation(ToLight * DeferredLightUniforms.LightInvRadius, DeferredLightUniforms.LightFalloffExponent);
+		}
+
+		if (DeferredLightUniforms.SpotAngles.x > -2.0f)
+		{
+			SpotFalloff = SpotAttenuation(L, -DeferredLightUniforms.NormalizedLightDirection, DeferredLightUniforms.SpotAngles);
+		}
+	}
+
+	return LightRadiusMask * SpotFalloff > 0.0f ? 1.0f : 0.0f;
 }

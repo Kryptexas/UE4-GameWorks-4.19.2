@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/Events.h"
 
+class SWidget;
 class SWindow;
-
 
 /**
  * A base class for a DragAndDrop operation which supports reflection.
@@ -256,4 +259,4 @@ protected:
 	FVector2D DecoratorPosition;
 };
 
-#include "DragAndDrop.inl"
+#include "Input/DragAndDrop.inl"

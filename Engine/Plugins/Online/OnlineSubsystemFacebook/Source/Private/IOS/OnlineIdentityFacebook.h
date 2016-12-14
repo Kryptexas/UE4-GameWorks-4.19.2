@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
  
 // Module includes
 #include "OnlineIdentityInterface.h"
+#include "OnlineJsonSerializer.h"
 #include "OnlineSubsystemFacebookPackage.h"
 
 /**

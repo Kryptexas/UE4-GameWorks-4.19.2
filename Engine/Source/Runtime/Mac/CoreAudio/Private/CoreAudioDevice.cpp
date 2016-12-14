@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	CoreAudioDevice.cpp: Unreal CoreAudio audio interface object.
@@ -12,7 +12,6 @@
 #include "VorbisAudioInfo.h"
 #include "AudioEffect.h"
 #include "CoreAudioEffects.h"
-#include "Engine.h"
 
 DEFINE_LOG_CATEGORY(LogCoreAudio);
 

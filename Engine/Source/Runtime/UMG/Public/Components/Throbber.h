@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SThrobber.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateBrush.h"
+#include "Widgets/SWidget.h"
+#include "Components/Widget.h"
+#include "Widgets/Images/SThrobber.h"
 #include "Throbber.generated.h"
 
 class USlateBrushAsset;

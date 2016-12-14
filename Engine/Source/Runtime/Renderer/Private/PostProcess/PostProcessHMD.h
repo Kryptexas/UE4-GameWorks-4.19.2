@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessHMD.h: Post processing for HMD devices 
@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
 #include "RenderingCompositionGraph.h"
 
 /** The vertex data used to filter a texture. */

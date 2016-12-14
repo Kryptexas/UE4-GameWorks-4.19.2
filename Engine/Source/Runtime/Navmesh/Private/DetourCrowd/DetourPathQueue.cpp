@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -19,13 +19,7 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
-#include <string.h>
-#include "DetourPathQueue.h"
-#include "DetourNavMesh.h"
-#include "DetourNavMeshQuery.h"
-#include "DetourAlloc.h"
-#include "DetourCommon.h"
+#include "DetourCrowd/DetourPathQueue.h"
 
 
 dtPathQueue::dtPathQueue() :

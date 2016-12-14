@@ -1,11 +1,15 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-struct FTimeToPixel;
-class UMovieSceneTrack;
-class UMovieSceneSection;
+#include "CoreMinimal.h"
+#include "Layout/SlateRect.h"
+#include "Layout/Geometry.h"
 
+class FSlateWindowElementList;
+class UMovieSceneSection;
+class UMovieSceneTrack;
+struct FTimeToPixel;
 
 /** Class that wraps up common section painting functionality */
 class SEQUENCER_API FSequencerSectionPainter

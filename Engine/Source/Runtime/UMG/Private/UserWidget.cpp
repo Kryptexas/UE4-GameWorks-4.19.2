@@ -1,13 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Blueprint/UserWidget.h"
+#include "Rendering/DrawElements.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SlateSound.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Layout/SConstraintCanvas.h"
+#include "Components/NamedSlot.h"
+#include "Slate/SObjectWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Animation/UMGSequencePlayer.h"
 
-#include "UMGSequencePlayer.h"
-#include "SceneViewport.h"
-#include "WidgetAnimation.h"
 
-#include "WidgetBlueprintLibrary.h"
-#include "WidgetLayoutLibrary.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -84,7 +92,7 @@ bool UUserWidget::Initialize()
 
 		if ( WidgetTree == nullptr )
 		{
-			WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
+			WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"), RF_Transient);
 		}
 
 		// Map the named slot bindings to the available slots.
@@ -264,7 +272,7 @@ UUMGSequencePlayer* UUserWidget::GetOrAddPlayer(UWidgetAnimation* InAnimation)
 
 		if (!FoundPlayer)
 		{
-			UUMGSequencePlayer* NewPlayer = NewObject<UUMGSequencePlayer>(this);
+			UUMGSequencePlayer* NewPlayer = NewObject<UUMGSequencePlayer>(this, NAME_None, RF_Transient);
 			ActiveSequencePlayers.Add(NewPlayer);
 
 			NewPlayer->OnSequenceFinishedPlaying().AddUObject(this, &UUserWidget::OnAnimationFinishedPlaying);
@@ -768,6 +776,14 @@ void UUserWidget::SetOwningLocalPlayer(ULocalPlayer* LocalPlayer)
 APlayerController* UUserWidget::GetOwningPlayer() const
 {
 	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : nullptr;
+}
+
+void UUserWidget::SetOwningPlayer(APlayerController* LocalPlayerController)
+{
+	if (LocalPlayerController && LocalPlayerController->IsLocalController())
+	{
+		PlayerContext = FLocalPlayerContext(LocalPlayerController);
+	}
 }
 
 class APawn* UUserWidget::GetOwningPlayerPawn() const
@@ -1431,5 +1447,34 @@ FEventReply UUserWidget::OnMotionDetected_Implementation(FGeometry MyGeometry, F
 }
 
 /////////////////////////////////////////////////////
+
+bool CreateWidgetHelpers::ValidateUserWidgetClass(UClass* UserWidgetClass)
+{
+	if (UserWidgetClass == nullptr)
+	{
+		FMessageLog("PIE").Error(LOCTEXT("WidgetClassNull", "CreateWidget called with a null class."));
+		return false;
+	}
+
+	if (!UserWidgetClass->IsChildOf(UUserWidget::StaticClass()))
+	{
+		const FText FormatPattern = LOCTEXT("NotUserWidget", "CreateWidget can only be used on UUserWidget children. {UserWidgetClass} is not a UUserWidget.");
+		FFormatNamedArguments FormatPatternArgs;
+		FormatPatternArgs.Add(TEXT("UserWidgetClass"), FText::FromName(UserWidgetClass->GetFName()));
+		FMessageLog("PIE").Error(FText::Format(FormatPattern, FormatPatternArgs));
+		return false;
+	}
+
+	if (UserWidgetClass->HasAnyClassFlags(CLASS_Abstract | CLASS_NewerVersionExists | CLASS_Deprecated))
+	{
+		const FText FormatPattern = LOCTEXT("NotValidClass", "Abstract, Deprecated or Replaced classes are not allowed to be used to construct a user widget. {UserWidgetClass} is one of these.");
+		FFormatNamedArguments FormatPatternArgs;
+		FormatPatternArgs.Add(TEXT("UserWidgetClass"), FText::FromName(UserWidgetClass->GetFName()));
+		FMessageLog("PIE").Error(FText::Format(FormatPattern, FormatPatternArgs));
+		return false;
+	}
+
+	return true;
+}
 
 #undef LOCTEXT_NAMESPACE

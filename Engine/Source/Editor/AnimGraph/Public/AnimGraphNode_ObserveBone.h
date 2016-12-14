@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "BoneControllers/AnimNode_ObserveBone.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_ObserveBone.generated.h"
+
+class FCompilerResultsLog;
+class IDetailLayoutBuilder;
+class SGraphNode;
 
 // This allows you to observe the state of a bone at a particular point in the graph, showing it in any space and optionally relative to the reference pose
 UCLASS()

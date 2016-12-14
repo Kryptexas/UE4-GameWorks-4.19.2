@@ -1,7 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Interfaces/ITargetDeviceServiceManager.h"
+#include "Widgets/Input/SComboBox.h"
+
+class SButton;
+class SEditableTextBox;
 
 /**
  * Implements a widget for manually locating target devices.

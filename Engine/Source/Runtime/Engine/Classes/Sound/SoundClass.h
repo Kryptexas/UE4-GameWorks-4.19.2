@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #if WITH_EDITOR
-#include "Classes/EdGraph/EdGraph.h"
+#include "EdGraph/EdGraph.h"
 #endif
-
 #include "SoundClass.generated.h"
 
 UENUM()
@@ -97,6 +99,10 @@ struct FSoundClassProperties
 	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
 	uint32 bReverb:1;
 
+	/** Amount of audio to send to master reverb effect for 2D sounds played with this sound class. */
+	UPROPERTY(EditAnywhere, Category = SoundClassProperties)
+	float Default2DReverbSendAmount;
+
 	/** Whether or not this sound class forces sounds to the center channel */
 	UPROPERTY(EditAnywhere, Category=SoundClassProperties)
 	uint32 bCenterChannelOnly:1;
@@ -122,6 +128,7 @@ struct FSoundClassProperties
 		, bIsUISound(false)
 		, bIsMusic(false)
 		, bReverb(true)
+		, Default2DReverbSendAmount(0.5f)
 		, bCenterChannelOnly(false)
 		, bApplyAmbientVolumes(false)
 		, OutputTarget(EAudioOutputTarget::Speaker)

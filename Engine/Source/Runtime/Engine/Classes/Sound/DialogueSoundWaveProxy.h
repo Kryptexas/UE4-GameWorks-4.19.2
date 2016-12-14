@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Sound/SoundBase.h"
 #include "DialogueSoundWaveProxy.generated.h"
 
+class USoundWave;
+struct FActiveSound;
+struct FSoundParseParameters;
 
 UCLASS()
 class UDialogueSoundWaveProxy : public USoundBase
@@ -21,7 +26,7 @@ public:
 	virtual bool IsPlayable() const override;
 
 	/** Returns a pointer to the attenuation settings that are to be applied for this node */
-	virtual const FAttenuationSettings* GetAttenuationSettingsToApply() const override;
+	virtual const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const override;
 
 	/** 
 	 * Returns the farthest distance at which the sound could be heard

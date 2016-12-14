@@ -1,12 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SpriteEditorOnlyTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/StringAssetReference.h"
+#include "Engine/Texture.h"
 #include "PaperImporterSettings.generated.h"
 
-class UPaperTileSet;
+class UMaterialInterface;
 class UPaperTileMap;
+class UPaperTileSet;
+class UTexture2D;
+struct FSpriteAssetInitParameters;
 
 enum class ESpriteInitMaterialLightingMode : uint8
 {

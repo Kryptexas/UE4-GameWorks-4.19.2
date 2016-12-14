@@ -1,12 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "HAL/PlatformMisc.h"
-#include "Misc/Build.h"
-#include "Templates/EnableIf.h"
-#include "LogVerbosity.h"
 
 /**
  * FDebug

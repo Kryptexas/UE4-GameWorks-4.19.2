@@ -87,10 +87,11 @@ void Sc::RigidCore::onShapeChange(Sc::ShapeCore& shape, ShapeChangeNotifyFlags n
 		s.onFilterDataChange();
 	if(notifyFlags & ShapeChangeNotifyFlag::eFLAGS)
 		s.onFlagChange(oldShapeFlags);
-	if (notifyFlags & ShapeChangeNotifyFlag::eCONTACTOFFSET)
+	if(notifyFlags & ShapeChangeNotifyFlag::eCONTACTOFFSET)
 		s.onContactOffsetChange();
-	if (notifyFlags & ShapeChangeNotifyFlag::eRESTOFFSET)
-		s.onRestOffsetChange();}
+	if(notifyFlags & ShapeChangeNotifyFlag::eRESTOFFSET)
+		s.onRestOffsetChange();
+}
 
 Sc::RigidSim* Sc::RigidCore::getSim() const
 {

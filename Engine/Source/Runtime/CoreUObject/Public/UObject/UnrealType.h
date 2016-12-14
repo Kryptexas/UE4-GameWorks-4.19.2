@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealType.h: Unreal engine base type definitions.
@@ -6,10 +6,23 @@
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "PropertyPortFlags.h"
-#include "PropertyTag.h"
-#include "Templates/IsTriviallyDestructible.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/CoreNetTypes.h"
+#include "UObject/ScriptInterface.h"
+#include "Templates/Casts.h"
+#include "Templates/IsFloatingPoint.h"
+#include "Templates/IsIntegral.h"
+#include "Templates/IsSigned.h"
+#include "Templates/Greater.h"
+#include "Containers/List.h"
+#include "UObject/LazyObjectPtr.h"
+#include "UObject/AssetPtr.h"
+#include "UObject/PropertyTag.h"
 #include "Serialization/SerializedPropertyScope.h"
 
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogType, Log, All);
@@ -1119,6 +1132,23 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	/** Return true if this property is for a integral or enum type **/
 	virtual bool IsInteger() const;
 
+	template <typename T>
+	bool CanHoldValue(T Value) const
+	{
+		if (!TIsFloatingPoint<T>::Value)
+		{
+			return CanHoldDoubleValueInternal(Value);
+		}
+		else if (TIsSigned<T>::Value)
+		{
+			return CanHoldSignedValueInternal(Value);
+		}
+		else
+		{
+			return CanHoldUnsignedValueInternal(Value);
+		}
+	}
+
 	/** Return true if this property is a UByteProperty with a non-null Enum **/
 	FORCEINLINE bool IsEnum() const
 	{
@@ -1188,6 +1218,11 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	// End of UNumericProperty interface
 
 	static uint8 ReadEnumAsUint8(FArchive& Ar, UStruct* DefaultsStruct, const FPropertyTag& Tag);
+
+private:
+	virtual bool CanHoldDoubleValueInternal  (double Value) const PURE_VIRTUAL(UNumericProperty::CanHoldDoubleValueInternal,   return false;);
+	virtual bool CanHoldSignedValueInternal  (int64  Value) const PURE_VIRTUAL(UNumericProperty::CanHoldSignedValueInternal,   return false;);
+	virtual bool CanHoldUnsignedValueInternal(uint64 Value) const PURE_VIRTUAL(UNumericProperty::CanHoldUnsignedValueInternal, return false;);
 };
 
 template<typename InTCppType>
@@ -1245,8 +1280,8 @@ protected:
 			TEXT("Potential data loss during conversion of integer property %s of %s - was (%s) now (%s) - for package: %s"),
 			*this->GetName(),
 			*Ar.GetArchiveName(),
-			*LexicalConversion::ToString(OldValue),
-			*LexicalConversion::ToString(NewValue),
+			*Lex::ToString(OldValue),
+			*Lex::ToString(NewValue),
 			*Ar.GetArchiveName()
 			);
 	}
@@ -1285,6 +1320,12 @@ public:
 			{
 				ConvertFromInt<int8>(Ar, Data, Tag);
 			}
+			return true;
+		}
+		else if (Tag.Type == NAME_EnumProperty)
+		{
+			uint8 PreviousValue = this->ReadEnumAsUint8(Ar, DefaultsStruct, Tag);
+			this->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
 			return true;
 		}
 		else if (Tag.Type == NAME_UInt16Property)
@@ -1333,11 +1374,11 @@ public:
 	}
 	virtual void SetNumericPropertyValueFromString(void* Data, TCHAR const* Value) const override
 	{
-		LexicalConversion::FromString(*TTypeFundamentals::GetPropertyValuePtr(Data), Value);
+		Lex::FromString(*TTypeFundamentals::GetPropertyValuePtr(Data), Value);
 	}
 	virtual FString GetNumericPropertyValueToString(void const* Data) const override
 	{
-		return LexicalConversion::ToString(TTypeFundamentals::GetPropertyValue(Data));
+		return Lex::ToString(TTypeFundamentals::GetPropertyValue(Data));
 	}
 	virtual int64 GetSignedIntPropertyValue(void const* Data) const override
 	{
@@ -1355,6 +1396,22 @@ public:
 		return TTypeFundamentals::GetPropertyValue(Data);
 	}
 	// End of UNumericProperty interface
+
+private:
+	virtual bool CanHoldDoubleValueInternal(double Value) const
+	{
+		return (double)(InTCppType)Value == Value;
+	}
+
+	virtual bool CanHoldSignedValueInternal(int64 Value) const
+	{
+		return (int64)(InTCppType)Value == Value;
+	}
+
+	virtual bool CanHoldUnsignedValueInternal(uint64 Value) const
+	{
+		return (uint64)(InTCppType)Value == Value;
+	}
 };
 
 /*-----------------------------------------------------------------------------
@@ -2507,8 +2564,6 @@ public:
 	virtual bool SameType(const UProperty* Other) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
-
-	bool HasKey(void* InMap, void* InBaseAddress, const FString& InValue) const;
 };
 
 // need to break this out a different type so that the DECLARE_CASTED_CLASS_INTRINSIC macro can digest the comma
@@ -2559,8 +2614,6 @@ public:
 	virtual bool SameType(const UProperty* Other) const override;
 	virtual bool ConvertFromType(const FPropertyTag& Tag, FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, bool& bOutAdvanceProperty) override;
 	// End of UProperty interface
-
-	bool HasElement(void* InSet, void* InBaseAddress, const FString& InValue) const;
 };
 
 /**
@@ -3276,6 +3329,39 @@ public:
 		}
 	}
 
+	/**
+	 * Checks if a key in the map matches the specified key
+	 *
+	 * @param	InBaseAddress	The base address of the map
+	 * @param	InKeyValue		The key to find within the map
+	 *
+	 * @return	True if the key is found, false otherwise
+	 */
+	bool HasKey(const void* InBaseAddress, const FString& InKeyValue) const
+	{
+		for (int32 Index = 0, ItemsLeft = Num(); ItemsLeft > 0; ++Index)
+		{
+			if (IsValidIndex(Index))
+			{
+				--ItemsLeft;
+
+				const uint8* PairPtr = GetPairPtr(Index);
+				const uint8* KeyPtr = KeyProp->ContainerPtrToValuePtr<const uint8>(PairPtr);
+
+				FString KeyValue;
+				if (KeyPtr != InBaseAddress && KeyProp->ExportText_Direct(KeyValue, KeyPtr, KeyPtr, nullptr, 0))
+				{
+					if ((Cast<UObjectProperty>(KeyProp) != nullptr && KeyValue.Contains(InKeyValue)) || InKeyValue == KeyValue)
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
 private:
 	/**
 	 * Internal function to call into the property system to construct / initialize elements.
@@ -3715,6 +3801,38 @@ public:
 		}
 	}
 
+	/**
+	 * Checks if an element has already been added to the set
+	 *
+	 * @param	InBaseAddress	The base address of the set
+	 * @param	InElementValue	The element value to check for
+	 *
+	 * @return	True if the element is found in the set, false otherwise
+	 */
+	bool HasElement(void* InBaseAddress, const FString& InElementValue) const
+	{
+		for (int32 Index = 0, ItemsLeft = Num(); ItemsLeft > 0; ++Index)
+		{
+			if (IsValidIndex(Index))
+			{
+				--ItemsLeft;
+
+				const uint8* Element = GetElementPtr(Index);
+
+				FString ElementValue;
+				if (Element != InBaseAddress && ElementProp->ExportText_Direct(ElementValue, Element, Element, nullptr, 0))
+				{
+					if ((Cast<UObjectProperty>(ElementProp) != nullptr && ElementValue.Contains(InElementValue)) || ElementValue == InElementValue)
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
 private:
 	/**
 	* Internal function to call into the property system to construct / initialize elements.
@@ -4121,6 +4239,8 @@ namespace EPropertyChangeType
 	const Type Duplicate = 1 << 3;
 	//Interactive, e.g. dragging a slider. Will be followed by a ValueSet when finished.
 	const Type Interactive = 1 << 4;
+	//Redirected.  Used when property references are updated due to content hot-reloading, or an asset being replaced during asset deletion (aka, asset consolidation).
+	const Type Redirected = 1 << 5;
 };
 
 /**

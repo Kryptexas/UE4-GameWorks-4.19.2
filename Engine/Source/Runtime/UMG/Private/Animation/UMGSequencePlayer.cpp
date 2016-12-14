@@ -1,11 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
-#include "UMGSequencePlayer.h"
+#include "Animation/UMGSequencePlayer.h"
 #include "MovieScene.h"
-#include "MovieSceneSequenceInstance.h"
-#include "MovieScene.h"
-#include "WidgetAnimation.h"
+#include "UMGPrivate.h"
+#include "Animation/WidgetAnimation.h"
 
 
 UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializer)
@@ -37,7 +35,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 	{
 		const double AnimationLength = CurrentPlayRange.Size<double>();
 
-		const double LastTimePosition = TimeCursorPosition;
+		double LastTimePosition = TimeCursorPosition;
 		TimeCursorPosition += bIsPlayingForward ? DeltaTime * PlaybackSpeed : -DeltaTime * PlaybackSpeed;
 
 		// Check if we crossed over bounds
@@ -73,6 +71,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				else
 				{
 					TimeCursorPosition += AnimationLength;
+					LastTimePosition = TimeCursorPosition;
 				}
 			}
 		}
@@ -92,6 +91,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				else
 				{
 					TimeCursorPosition -= AnimationLength;
+					LastTimePosition = TimeCursorPosition;
 				}
 			}
 		}
@@ -113,7 +113,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 		if (RootTemplateInstance.IsValid())
 		{			
 			const FMovieSceneContext Context(
-				FMovieSceneEvaluationRange(TimeCursorPosition + AnimationStartOffset, (TimeCursorPosition - LastTimePosition) + AnimationStartOffset),
+				FMovieSceneEvaluationRange(TimeCursorPosition + AnimationStartOffset, LastTimePosition + AnimationStartOffset),
 				PlayerStatus);
 			RootTemplateInstance.Evaluate(Context, *this);
 		}

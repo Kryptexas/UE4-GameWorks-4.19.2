@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CrashDebugHelperPrivatePCH.h"
 #include "CrashDebugHelperWindows.h"
+#include "CrashDebugHelperPrivate.h"
 #include "WindowsPlatformStackWalkExt.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
 
 #include "EngineVersion.h"
 #include "ISourceControlModule.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include <DbgHelp.h>
 
@@ -55,9 +58,6 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 
 			if (bInitSymbols)
 			{
-				// Set the symbol path based on the loaded modules
-				WindowsStackWalkExt.SetSymbolPathsFromModules();
-
 				// Get all the info we should ever need about the modules
 				WindowsStackWalkExt.GetModuleInfoDetailed();
 

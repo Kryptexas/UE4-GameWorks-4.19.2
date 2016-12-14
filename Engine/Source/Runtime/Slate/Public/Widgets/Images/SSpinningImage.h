@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Animation/CurveSequence.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Images/SImage.h"
+
+class FPaintArgs;
+class FSlateWindowElementList;
 
 /** A widget that displays a spinning image.*/
 class SLATE_API SSpinningImage : public SImage

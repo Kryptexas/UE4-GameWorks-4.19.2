@@ -65,8 +65,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.DataModels
     
         public virtual CallStackPattern CallStackPattern { get; set; }
         public virtual User User { get; set; }
-        public virtual ICollection<Bugg> Buggs { get; set; }
         public virtual Bugg Bugg { get; set; }
         public virtual ErrorMessage ErrorMessage { get; set; }
+        public virtual ICollection<Bugg> Buggs { get; set; }
     }
 }

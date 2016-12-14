@@ -1,17 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightRendering.cpp: Light rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "UniformBuffer.h"
-#include "ShaderParameters.h"
 #include "LightRendering.h"
+#include "EngineGlobals.h"
+#include "DeferredShadingRenderer.h"
 #include "LightPropagationVolume.h"
-#include "SceneUtils.h"
+#include "ScenePrivate.h"
+#include "PostProcess/SceneFilterRendering.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("Lights"), Stat_GPU_Lights, STATGROUP_GPU);
 
@@ -627,7 +625,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				// Render light function to the attenuation buffer.
 				if (bDirectLighting)
 				{
-					const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows);
+					const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows, false);
 					bUsedLightAttenuation |= bLightFunctionRendered;
 
 					if (ViewFamily.EngineShowFlags.PreviewShadowsIndicator

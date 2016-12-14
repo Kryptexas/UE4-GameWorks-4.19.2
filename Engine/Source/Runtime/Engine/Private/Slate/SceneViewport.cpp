@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "SlateBasics.h"
-#include "Slate/SlateTextures.h"
 #include "Slate/SceneViewport.h"
-#include "DebugCanvas.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/SViewport.h"
+#include "Misc/App.h"
+#include "EngineGlobals.h"
+#include "RenderingThread.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Canvas.h"
+#include "Application/SlateApplicationBase.h"
+#include "Layout/WidgetPath.h"
+#include "UnrealEngine.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Slate/SlateTextures.h"
+#include "Slate/DebugCanvas.h"
 
 #include "IHeadMountedDisplay.h"
 
@@ -106,8 +115,8 @@ void FSceneViewport::ShowCursor( bool bVisible )
 	{
 		if( bIsSoftwareCursorVisible )
 		{
-			const int32 ClampedMouseX = FMath::Clamp<int32>(SoftwareCursorPosition.X, 0, SizeX);
-			const int32 ClampedMouseY = FMath::Clamp<int32>(SoftwareCursorPosition.Y, 0, SizeY);
+			const int32 ClampedMouseX = FMath::Clamp<int32>(SoftwareCursorPosition.X / CachedGeometry.Scale, 0, SizeX);
+			const int32 ClampedMouseY = FMath::Clamp<int32>(SoftwareCursorPosition.Y / CachedGeometry.Scale, 0, SizeY);
 
 			CurrentReplyState.SetMousePos( CachedGeometry.LocalToAbsolute( FVector2D(ClampedMouseX, ClampedMouseY) ).IntPoint() );
 		}
@@ -298,6 +307,15 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 	// Switch to the viewport clients world before resizing
 	FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
+	// In order to get material parameter collections to function properly, we need the current world's Scene
+	// properly propagated through to any widgets that depend on that functionality. The SceneViewport and RetainerWidget are the 
+	// only locations where this information exists in Slate, so we push the current scene onto the current
+	// Slate application so that we can leverage it in later calls.
+	if (ViewportClient && ViewportClient->GetWorld() && ViewportClient->GetWorld()->Scene)
+	{
+		FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(ViewportClient->GetWorld()->Scene);
+	}
+	
 	/** Check to see if the viewport should be resized */
 	FIntPoint DrawSize = FIntPoint( FMath::RoundToInt( AllottedGeometry.GetDrawSize().X ), FMath::RoundToInt( AllottedGeometry.GetDrawSize().Y ) );
 	if( GetSizeXY() != DrawSize )

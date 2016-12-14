@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
 #include "Containers/UnrealString.h"
-#include "HAL/Platform.h"
-#include "GenericApplicationMessageHandler.h"
-#include "StaticArray.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
 
 
 #ifndef ALPHA_BLENDED_WINDOWS

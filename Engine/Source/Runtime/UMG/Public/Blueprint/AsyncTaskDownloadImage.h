@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IHttpRequest.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Interfaces/IHttpRequest.h"
 #include "Kismet/BlueprintAsyncActionBase.h"
 
 #include "AsyncTaskDownloadImage.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDownloadImageDelegate, UTexture2D*, Texture);
+class UTexture2DDynamic;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDownloadImageDelegate, UTexture2DDynamic*, Texture);
 
 UCLASS()
 class UMG_API UAsyncTaskDownloadImage : public UBlueprintAsyncActionBase

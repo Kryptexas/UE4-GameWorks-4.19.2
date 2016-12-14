@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CascadeModule.h"
 #include "CascadeEmitterHitProxies.h"
 
 IMPLEMENT_HIT_PROXY(HCascadeEdEmitterProxy,HHitProxy);

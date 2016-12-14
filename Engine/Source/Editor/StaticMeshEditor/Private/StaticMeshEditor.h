@@ -1,9 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/AssetEditorToolkit.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Misc/NotifyHook.h"
 #include "EditorUndoClient.h"
+#include "IStaticMeshEditor.h"
+#include "ISocketManager.h"
+
+class FStaticMeshDetails;
+class IDetailsView;
+class SAdvancedPreviewDetailsTab;
+class SConvexDecomposition;
+class SDockableTab;
+class SStaticMeshEditorViewport;
+class UStaticMesh;
+class UStaticMeshComponent;
+class UStaticMeshSocket;
+struct FPropertyChangedEvent;
 
 /**
  * StaticMesh Editor class

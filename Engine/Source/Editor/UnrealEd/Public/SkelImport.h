@@ -1,10 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*-----------------------------------------------------------------------------
 	Data structures only used for importing skeletal meshes and animations.
 -----------------------------------------------------------------------------*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "ReferenceSkeleton.h"
+#include "SkeletalMeshTypes.h"
+#include "Engine/SkeletalMesh.h"
+
+class UAssetImportData;
+class UMorphTarget;
+class UPhysicsAsset;
+class USkeletalMeshSocket;
+class USkeleton;
+class UThumbnailInfo;
 
 // Raw data material.
 struct VMaterial

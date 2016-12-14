@@ -1,16 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessDownsample.cpp: Post processing down sample implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessDownsample.h"
-#include "PostProcessing.h"
-#include "PostProcessWeightedSampleSum.h"
+#include "PostProcess/PostProcessDownsample.h"
+#include "ClearQuad.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "SceneRenderTargetParameters.h"
+#include "SceneRendering.h"
 
 /** Encapsulates the post processing down sample pixel shader. */
 template <uint32 Method>

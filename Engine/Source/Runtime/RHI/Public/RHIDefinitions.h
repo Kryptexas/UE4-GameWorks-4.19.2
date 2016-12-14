@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHIDefinitions.h: Render Hardware Interface definitions
@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Runtime/Engine/Public/PixelFormat.h"
 
 enum EShaderFrequency
 {
@@ -57,8 +58,8 @@ enum EShaderPlatform
 	SP_METAL_MACES3_1 	= 23,
 	SP_METAL_MACES2		= 24,
 	SP_OPENGL_ES3_1_ANDROID = 25,
-	SP_WOLF				= 26,
-	SP_WOLF_FORWARD		= 27,
+	SP_SWITCH				= 26,
+	SP_SWITCH_FORWARD		= 27,
 
 	SP_NumPlatforms		= 28,
 	SP_NumBits			= 5,
@@ -650,14 +651,14 @@ inline bool IsMobilePlatform(const EShaderPlatform Platform)
 {
 	return IsES2Platform(Platform)
 		|| Platform == SP_METAL || Platform == SP_PCD3D_ES3_1 || Platform == SP_OPENGL_PCES3_1 || Platform == SP_VULKAN_ES3_1_ANDROID
-		|| Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1 || Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_WOLF_FORWARD;
+		|| Platform == SP_VULKAN_PCES3_1 || Platform == SP_METAL_MACES3_1 || Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_SWITCH_FORWARD;
 }
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1
 		|| Platform == SP_OPENGL_ES2_ANDROID || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT
-		|| Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_WOLF || Platform == SP_WOLF_FORWARD;
+		|| Platform == SP_OPENGL_ES3_1_ANDROID || Platform == SP_SWITCH || Platform == SP_SWITCH_FORWARD;
 }
 
 inline bool IsMetalPlatform(const EShaderPlatform Platform)
@@ -709,7 +710,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_ES31_EXT:
 	case SP_METAL_SM5:
 	case SP_VULKAN_SM5:
-	case SP_WOLF:
+	case SP_SWITCH:
 		return ERHIFeatureLevel::SM5;
 	case SP_VULKAN_SM4:
 	case SP_PCD3D_SM4:
@@ -732,7 +733,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_VULKAN_PCES3_1:
 	case SP_VULKAN_ES3_1_ANDROID:
 	case SP_OPENGL_ES3_1_ANDROID:
-	case SP_WOLF_FORWARD:
+	case SP_SWITCH_FORWARD:
 		return ERHIFeatureLevel::ES3_1;
 	default:
 		checkf(0, TEXT("Unknown ShaderPlatform %d"), (int32)InShaderPlatform);
@@ -744,15 +745,6 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	return InFeatureLevel <= GetMaxSupportedFeatureLevel(InShaderPlatform);
-}
-
-inline bool RHISupportsTessellation(const EShaderPlatform Platform)
-{
-	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5))
-	{
-		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
-	}
-	return false;
 }
 
 inline bool RHINeedsToSwitchVerticalAxis(EShaderPlatform Platform)
@@ -780,11 +772,6 @@ inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 }
 
-inline bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform)
-{
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform);
-}
-
 inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 {
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !IsMetalPlatform(Platform) && Platform != SP_VULKAN_PCES3_1 && Platform != SP_VULKAN_ES3_1_ANDROID;
@@ -802,7 +789,7 @@ inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 
 inline bool RHISupportsVertexShaderLayer(const EShaderPlatform Platform)
 {
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && IsMetalPlatform(Platform);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && IsPCPlatform(Platform) && IsMetalPlatform(Platform);
 }
 
 // Return what the expected number of samplers will be supported by a feature level

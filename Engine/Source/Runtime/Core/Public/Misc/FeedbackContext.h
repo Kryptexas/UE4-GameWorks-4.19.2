@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UniquePtr.h"
-#include "OutputDeviceHelper.h"
-#include "SlowTaskStack.h"
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Templates/SharedPointer.h"
+#include "Internationalization/Text.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/SlowTask.h"
+#include "Misc/SlowTaskStack.h"
+
+class FContextSupplier;
+class SBuildProgressWidget;
 
 /** A context for displaying modal warning messages. */
 class CORE_API FFeedbackContext

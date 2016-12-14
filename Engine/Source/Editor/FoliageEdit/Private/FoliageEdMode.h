@@ -1,14 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-// Forward declarations
-class ULandscapeComponent;
-class UFoliageType;
-
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
 #include "InstancedFoliage.h"
-#include "InstancedFoliageActor.h"
+#include "UnrealWidget.h"
+#include "EdMode.h"
+#include "Widgets/Views/SHeaderRow.h"
+
+class AInstancedFoliageActor;
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FUICommandList;
+class FViewport;
+class UFoliageType;
+class ULandscapeComponent;
+class UPrimitiveComponent;
+class UStaticMeshComponent;
+class UViewportInteractor;
+struct FViewportClick;
 
 //
 // Forward declarations.
@@ -24,6 +37,8 @@ namespace EFoliagePaletteViewMode
 		Tree
 	};
 }
+
+const float SingleInstanceModeBrushSize = 20.0f;
 
 // Current user settings in Foliage UI
 struct FFoliageUISettings
@@ -49,7 +64,7 @@ struct FFoliageUISettings
 	bool GetReapplyPaintBucketToolSelected() const { return bReapplyPaintBucketToolSelected ? true : false; }
 	void SetReapplyPaintBucketToolSelected(bool InbReapplyPaintBucketToolSelected) { bReapplyPaintBucketToolSelected = InbReapplyPaintBucketToolSelected; }
 
-	float GetRadius() const { return Radius; }
+	float GetRadius() const { return (GetIsInSingleInstantiationMode() || GetIsInQuickSingleInstantiationMode()) ? SingleInstanceModeBrushSize : Radius; }
 	void SetRadius(float InRadius) { Radius = InRadius; }
 	float GetPaintDensity() const { return PaintDensity; }
 	void SetPaintDensity(float InPaintDensity) { PaintDensity = InPaintDensity; }
@@ -65,6 +80,15 @@ struct FFoliageUISettings
 	void SetFilterFoliage(bool InbFilterFoliage) { bFilterFoliage = InbFilterFoliage; }
 	bool GetFilterTranslucent() const { return bFilterTranslucent; }
 	void SetFilterTranslucent(bool InbFilterTranslucent) { bFilterTranslucent = InbFilterTranslucent; }
+
+	bool GetIsInSingleInstantiationMode() const { return IsInSingleInstantiationMode; }
+	void SetIsInSingleInstantiationMode(bool InIsInSingleInstantiationMode) { IsInSingleInstantiationMode = InIsInSingleInstantiationMode; }
+
+	bool GetIsInQuickSingleInstantiationMode() const { return IsInQuickSingleInstantiationMode; }
+	void SetIsInQuickSingleInstantiationMode(bool InIsInQuickSingleInstantiationMode) { IsInQuickSingleInstantiationMode = InIsInQuickSingleInstantiationMode; }
+
+	bool GetIsInSpawnInCurrentLevelMode() const { return IsInSpawnInCurrentLevelMode; }
+	void SetSpawnInCurrentLevelMode(bool InSpawnInCurrentLevelMode) { IsInSpawnInCurrentLevelMode = InSpawnInCurrentLevelMode; }
 
 	bool GetShowPaletteItemDetails() const { return bShowPaletteItemDetails; }
 	void SetShowPaletteItemDetails(bool InbShowPaletteItemDetails) { bShowPaletteItemDetails = InbShowPaletteItemDetails; }
@@ -93,6 +117,9 @@ struct FFoliageUISettings
 		, Radius(512.f)
 		, PaintDensity(0.5f)
 		, UnpaintDensity(0.f)
+		, IsInSingleInstantiationMode(false)
+		, IsInQuickSingleInstantiationMode(false)
+		, IsInSpawnInCurrentLevelMode(false)
 		, bFilterLandscape(true)
 		, bFilterStaticMesh(true)
 		, bFilterBSP(true)
@@ -126,6 +153,10 @@ private:
 	float Radius;
 	float PaintDensity;
 	float UnpaintDensity;
+
+	bool IsInSingleInstantiationMode;
+	bool IsInQuickSingleInstantiationMode;
+	bool IsInSpawnInCurrentLevelMode;
 
 public:
 	bool bFilterLandscape;
@@ -457,6 +488,8 @@ private:
 	/** Add instances inside the brush to match DesiredInstanceCount */
 	void AddInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, int32 DesiredInstanceCount, float Pressure);
 
+	void AddSingleInstanceForBrush(UWorld* InWorld, const UFoliageType* Settings, float Pressure);
+
 	/** Remove instances inside the brush to match DesiredInstanceCount. */
 	void RemoveInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, int32 DesiredInstanceCount, float Pressure);
 
@@ -526,6 +559,7 @@ private:
 
 	bool bBrushTraceValid;
 	FVector BrushLocation;
+	FVector BrushNormal;
 	FVector BrushTraceDirection;
 	UStaticMeshComponent* SphereBrushComponent;
 

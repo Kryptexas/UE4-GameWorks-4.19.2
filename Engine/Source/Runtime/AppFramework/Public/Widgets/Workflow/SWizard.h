@@ -1,8 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Containers/IndirectArray.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/SlateDelegates.h"
 
 /**
  * Delegate type for getting a page's enabled state.

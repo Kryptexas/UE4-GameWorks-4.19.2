@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __DebuggerCommands_h__
 #define __DebuggerCommands_h__
 
-#include "SCompoundWidget.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Commands/Commands.h"
+#include "Framework/Commands/UICommandList.h"
+
+class FToolBarBuilder;
 
 /** This class acts as a generic widget that listens to and process global play world actions */
 class UNREALED_API SGlobalPlayWorldActions : public SCompoundWidget

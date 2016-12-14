@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "IHeadMountedDisplay.h"
+#include "UObject/ObjectMacros.h"
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
+#include "iOculusRiftPlugin.h"
 #include "OculusFunctionLibrary.generated.h"
 
 USTRUCT(BlueprintType, meta = (DisplayName = "HMD User Profile Data Field"))
@@ -278,6 +283,7 @@ class OCULUSLIBRARY_API UOculusFunctionLibrary : public UBlueprintFunctionLibrar
 	 * Returns IStereoLayers interface to work with overlays.
 	 */
 	static class IStereoLayers* GetStereoLayers();
+
 protected:
 	static class FHeadMountedDisplay* GetOculusHMD();
 };

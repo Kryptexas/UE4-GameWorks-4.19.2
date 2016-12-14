@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchUtil.h: Declares miscellaneous utility functions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "BuildPatchVerification.h"
+
+struct FChunkHeader;
 
 /**
  * Some utility functions

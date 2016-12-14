@@ -1,12 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "IMovieSceneTemplateGenerator.h"
-#include "MovieSceneEvaluationTemplate.h"
-#include "MovieSceneSegmentCompiler.h"
-#include "ObjectKey.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "MovieSceneSequenceID.h"
+#include "Containers/ArrayView.h"
+#include "Compilation/IMovieSceneTemplateGenerator.h"
+#include "MovieSceneTrack.h"
+#include "Evaluation/MovieSceneEvaluationField.h"
+#include "Evaluation/MovieSceneSegment.h"
+#include "Evaluation/MovieSceneSequenceTransform.h"
+#include "Evaluation/PersistentEvaluationData.h"
+#include "Evaluation/MovieSceneEvaluationTrack.h"
+#include "Evaluation/MovieSceneSequenceHierarchy.h"
+#include "Evaluation/MovieSceneEvaluationTemplate.h"
+#include "Compilation/MovieSceneSegmentCompiler.h"
+
+class UMovieSceneSequence;
 
 /**
  * An immutable class used for efficient runtime evaluation of UMovieScene data.

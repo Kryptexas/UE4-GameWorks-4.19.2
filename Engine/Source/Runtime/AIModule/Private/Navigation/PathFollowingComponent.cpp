@@ -1,21 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "AIModulePrivate.h"
-#if WITH_RECAST
-#	include "Detour/DetourNavMeshQuery.h"
-#endif
-#include "AI/Navigation/AbstractNavData.h"
-#include "AI/Navigation/RecastNavMesh.h"
-#include "AI/Navigation/NavLinkCustomInterface.h"
-#include "GameFramework/NavMovementComponent.h"
-#include "GameFramework/Character.h"
-#include "Navigation/MetaNavMeshPath.h"
-#include "Engine/Canvas.h"
-#include "TimerManager.h"
-#include "DisplayDebugHelpers.h"
-#include "AIConfig.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Navigation/PathFollowingComponent.h"
+#include "UObject/Package.h"
+#include "TimerManager.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/Controller.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "AISystem.h"
+#include "BrainComponent.h"
+#include "Engine/Canvas.h"
+#include "AIController.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "VisualLogger/VisualLogger.h"
+#include "AI/Navigation/AbstractNavData.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
+#include "Navigation/MetaNavMeshPath.h"
+#include "AIConfig.h"
+
 
 #if UE_BUILD_TEST || UE_BUILD_SHIPPING
 #define SHIPPING_STATIC static
@@ -148,6 +150,7 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	bStopOnOverlap = true;
 	bReachTestIncludesAgentRadius = true;
 	bReachTestIncludesGoalRadius = true;
+	bMoveToGoalOnLastSegment = true;
 
 	Status = EPathFollowingStatus::Idle;
 
@@ -858,7 +861,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 			OnSegmentFinished();
 			OnPathFinished(EPathFollowingResult::Success, FPathFollowingResultFlags::None);
 		}
-		else if (bFollowingLastSegment)
+		else if (bFollowingLastSegment && bMoveToGoalOnLastSegment)
 		{
 			// use goal actor for end of last path segment
 			// UNLESS it's partial path (can't reach goal)
@@ -925,6 +928,9 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 
 	const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 	const FVector CurrentTarget = GetCurrentTargetLocation();
+	
+	// set to false by default, we will set set this back to true if appropriate
+	bIsDecelerating = false;
 
 	const bool bAccelerationBased = MovementComp->UseAccelerationForPathFollowing();
 	if (bAccelerationBased)
@@ -938,6 +944,8 @@ void UPathFollowingComponent::FollowPathSegment(float DeltaTime)
 			const bool bShouldDecelerate = DistToEndSq < FMath::Square(CachedBrakingDistance);
 			if (bShouldDecelerate)
 			{
+				bIsDecelerating = true;
+
 				const float SpeedPct = FMath::Clamp(FMath::Sqrt(DistToEndSq) / CachedBrakingDistance, 0.0f, 1.0f);
 				CurrentMoveInput *= SpeedPct;
 			}

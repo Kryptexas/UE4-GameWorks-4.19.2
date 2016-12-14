@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AttributeSet.h"
+#include "AbilitySystemGlobals.h"
+#include "Abilities/GameplayAbilityTypes.h"
+#include "AbilitySystemStats.h"
+#include "GameplayCueInterface.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
-#include "Abilities/GameplayAbilityTypes.h"
-#include "GameplayCueInterface.h"
 #include "GameplayCueManager.h"
 #include "GameplayTagResponseTable.h"
+#include "GameplayTagsManager.h"
+
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
 
 UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -43,6 +48,14 @@ void UAbilitySystemGlobals::InitGlobalData()
 
 	// Register for PreloadMap so cleanup can occur on map transitions
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UAbilitySystemGlobals::HandlePreLoadMap);
+
+#if WITH_EDITOR
+	// Register in editor for PreBeginPlay so cleanup can occur when we start a PIE session
+	if (GIsEditor)
+	{
+		FEditorDelegates::PreBeginPIE.AddUObject(this, &UAbilitySystemGlobals::OnPreBeginPIE);
+	}
+#endif
 }
 
 
@@ -269,7 +282,7 @@ void UAbilitySystemGlobals::StartAsyncLoadingObjectLibraries()
 {
 	if (GlobalGameplayCueManager != nullptr)
 	{
-		GlobalGameplayCueManager->LoadObjectLibraryFromPaths(GameplayCueNotifyPaths);
+		GlobalGameplayCueManager->InitializeRuntimeObjectLibrary();
 	}
 }
 
@@ -435,10 +448,22 @@ bool UAbilitySystemGlobals::ShouldIgnoreCosts() const
 #endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-void UAbilitySystemGlobals::HandlePreLoadMap(const FString& MapName)
+#if WITH_EDITOR
+void UAbilitySystemGlobals::OnPreBeginPIE(const bool bIsSimulatingInEditor)
+{
+	ResetCachedData();
+}
+#endif // WITH_EDITOR
+
+void UAbilitySystemGlobals::ResetCachedData()
 {
 	IGameplayCueInterface::ClearTagToFunctionMap();
 	FActiveGameplayEffectHandle::ResetGlobalHandleMap();
+}
+
+void UAbilitySystemGlobals::HandlePreLoadMap(const FString& MapName)
+{
+	ResetCachedData();
 }
 
 void UAbilitySystemGlobals::Notify_OpenAssetInEditor(FString AssetName, int AssetType)
@@ -451,3 +476,24 @@ void UAbilitySystemGlobals::Notify_FindAssetInEditor(FString AssetName, int Asse
 	AbilityFindAssetInEditorCallbacks.Broadcast(AssetName, AssetType);
 }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+float AbilitySystemGlobalScaler = 1.f;
+static FAutoConsoleVariableRef CVarOrionGlobalScaler(TEXT("AbilitySystem.GlobalAbilityScale"), AbilitySystemGlobalScaler, TEXT("Global rate for scaling ability stuff like montages and root motion tasks. Used only for testing/iteration, never for shipping."), ECVF_Cheat );
+#endif
+
+void UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Rate(float& Rate)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	Rate *= AbilitySystemGlobalScaler;
+#endif
+}
+
+void UAbilitySystemGlobals::NonShipping_ApplyGlobalAbilityScaler_Duration(float& Duration)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (AbilitySystemGlobalScaler > 0.f)
+	{
+		Duration /= AbilitySystemGlobalScaler;
+	}
+#endif
+}

@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-#include "MovieSceneMarginTrack.h"
-#include "MovieSceneMarginSection.h"
-
-
-class UMovieSceneTrack;
-
+#include "Animation/MovieSceneMarginTrack.h"
+#include "Animation/MovieSceneMarginSection.h"
 
 class FMarginTrackEditor
 	: public FPropertyTrackEditor<UMovieSceneMarginTrack, UMovieSceneMarginSection, FMarginKey>

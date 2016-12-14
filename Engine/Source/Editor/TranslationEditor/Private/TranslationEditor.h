@@ -1,13 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/AssetEditorManager.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Toolkits/IToolkitHost.h"
+#include "TranslationDataManager.h"
+#include "EditorStyleSet.h"
 #include "ITranslationEditor.h"
+#include "IPropertyTable.h"
 #include "CustomFontColumn.h"
 #include "TranslationUnit.h"
-#include "ILocalizationServiceProvider.h"
 #include "LocalizationConfigurationScript.h"
+
+class IPropertyTableRow;
+class IPropertyTableWidgetHandle;
 
 class TRANSLATIONEDITOR_API FTranslationEditor :  public ITranslationEditor
 {

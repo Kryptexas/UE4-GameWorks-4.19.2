@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ModelLight.h: Unreal model lighting.
@@ -6,8 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "StaticLighting.h"
 #include "Model.h"
+
+class FShadowMapData2D;
+class ULevel;
+class ULightComponent;
+class UModelComponent;
+struct FQuantizedLightmapData;
 
 /** Represents a BSP surface to the static lighting system. */
 class FBSPSurfaceStaticLighting : public FStaticLightingTextureMapping, public FStaticLightingMesh

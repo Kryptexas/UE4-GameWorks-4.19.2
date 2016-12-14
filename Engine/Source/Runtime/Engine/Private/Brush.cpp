@@ -1,16 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Brush.cpp: Brush Actor implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Engine/Brush.h"
+#include "EngineGlobals.h"
 #include "Engine/Polys.h"
-#include "Net/UnrealNetwork.h"
+#include "Engine/Engine.h"
 #include "Model.h"
+#include "Materials/Material.h"
 #include "Engine/BrushBuilder.h"
-#include "ActorEditorUtils.h"
 #include "Components/BrushComponent.h"
+#include "ActorEditorUtils.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -264,6 +266,11 @@ bool ABrush::IsLevelBoundsRelevant() const
 	// exclude default brush
 	ULevel* Level = GetLevel();
 	return (Level && this != Level->Actors[1]);
+}
+
+void ABrush::RebuildNavigationData()
+{
+	// empty in base class
 }
 
 FColor ABrush::GetWireColor() const

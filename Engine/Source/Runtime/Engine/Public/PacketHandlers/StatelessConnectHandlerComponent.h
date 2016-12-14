@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "PacketHandler.h"
 
+class UNetDriver;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogHandshake, Log, All);
 

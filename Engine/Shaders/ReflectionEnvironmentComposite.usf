@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ReflectionEnvironmentComposite
@@ -16,6 +16,7 @@
 
 float4 SingleCaptureOffsetAndAverageBrightness;
 float4 SingleCapturePositionAndRadius; 
+float SingleCaptureBrightness;
 
 float3 CompositeReflectionCapturesAndSkylight(
 	float CompositeAlpha, 
@@ -138,6 +139,7 @@ float3 CompositeReflectionCapturesAndSkylight(
 #else
 	float4 Sample = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, ProjectedCaptureVector, Mip);
 #endif
+	Sample.rgb *= SingleCaptureBrightness;
 	ImageBasedReflections = float4(Sample.rgb, 1 - Sample.a);
 
 	float AverageBrightness = SingleCaptureOffsetAndAverageBrightness.w;
@@ -180,7 +182,7 @@ float3 CompositeReflectionCapturesAndSkylight(
 
 	ImageBasedReflections.rgb += ImageBasedReflections.a * ExtraIndirectSpecular;
 
-	return ImageBasedReflections.rgb;
+	return ImageBasedReflections.rgb * View.IndirectLightingColorScale;
 }
 
 float3 CompositeReflectionCapturesAndSkylight(

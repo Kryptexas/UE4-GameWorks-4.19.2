@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MobileDecalRendering.cpp: Decals for mobile renderer
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "RHIDefinitions.h"
+#include "RHI.h"
 #include "SceneUtils.h"
+#include "RHIStaticStates.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "SceneRendering.h"
+#include "ScenePrivate.h"
 #include "DecalRenderingShared.h"
 
 void FMobileSceneRenderer::RenderDecals(FRHICommandListImmediate& RHICmdList)

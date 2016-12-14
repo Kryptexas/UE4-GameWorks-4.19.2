@@ -1,31 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimInstance.cpp: Anim Instance implementation
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "Animation/AnimInstance.h"
+#include "UObject/Package.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "DrawDebugHelpers.h"
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
-#include "Animation/AnimStats.h"
+#include "Animation/AnimBlueprint.h"
+#include "Animation/AnimClassInterface.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
-#include "GameFramework/Character.h"
-#include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
-#include "MessageLog.h"
 #include "Animation/BlendSpaceBase.h"
-#include "Animation/AnimComposite.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
-#include "Animation/AnimMontage.h"
+#include "Engine/Canvas.h"
 #include "Animation/AnimNodeBase.h"
-#include "Animation/AnimNode_StateMachine.h"
-#include "Animation/AnimNode_TransitionResult.h"
-#include "Animation/AnimNode_AssetPlayerBase.h"
-#include "Animation/AnimInstance.h"
 #include "Animation/AnimInstanceProxy.h"
-#include "Animation/Skeleton.h"
-#include "Animation/SmartName.h"
+#include "Animation/AnimNode_StateMachine.h"
 
 /** Anim stats */
 
@@ -214,18 +210,23 @@ void UAnimInstance::UninitializeAnimation()
 
 	StopAllMontages(0.f);
 
-	for(int32 Index = 0; Index < MontageInstances.Num(); ++Index)
+	if (MontageInstances.Num() > 0)
 	{
-		FAnimMontageInstance* MontageInstance = MontageInstances[Index];
-		if (ensure(MontageInstance != nullptr))
+		for (int32 Index = 0; Index < MontageInstances.Num(); ++Index)
 		{
-			ClearMontageInstanceReferences(*MontageInstance);
-			delete MontageInstance;
+			FAnimMontageInstance* MontageInstance = MontageInstances[Index];
+			if (ensure(MontageInstance != nullptr))
+			{
+				ClearMontageInstanceReferences(*MontageInstance);
+				delete MontageInstance;
+			}
 		}
-	}
 
-	MontageInstances.Empty();
-	ActiveMontagesMap.Empty();
+		MontageInstances.Empty();
+		ActiveMontagesMap.Empty();
+
+		OnAllMontageInstancesEnded.Broadcast();
+	}
 
 	USkeletalMeshComponent* SkelMeshComp = GetSkelMeshComponent();
 	if (SkelMeshComp)
@@ -240,7 +241,7 @@ void UAnimInstance::UninitializeAnimation()
 		TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 		for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 		{
-			AddCurveValue(ParamsToClearCopy[i], 0.0f);
+			AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], 0.0f);
 		}
 	}
 
@@ -365,6 +366,10 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds, bool bNeedsValidRootMoti
 
 	PreUpdateAnimation(DeltaSeconds);
 
+	// need to update montage BEFORE node update or Native Update.
+	// so that node knows where montage is
+	UpdateMontage(DeltaSeconds);
+
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
 		NativeUpdateAnimation(DeltaSeconds);
@@ -378,10 +383,6 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		SCOPE_CYCLE_COUNTER(STAT_BlueprintUpdateAnimation);
 		BlueprintUpdateAnimation(DeltaSeconds);
 	}
-
-	// need to update montage BEFORE node update
-	// so that node knows where montage is
-	UpdateMontage(DeltaSeconds);
 
 	if(bNeedsValidRootMotion || NeedsImmediateUpdate(DeltaSeconds))
 	{
@@ -862,7 +863,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 			DisplayDebugManager.SetLinearDrawColor((MontageInstance->IsActive()) ? ActiveColor : TextWhite);
 
-			FString MontageEntry = FString::Printf(TEXT("%i) %s CurrSec: %s NextSec: %s W:%.3f DW:%.3f"), MontageIndex, *MontageInstance->Montage->GetName(), *MontageInstance->GetCurrentSection().ToString(), *MontageInstance->GetNextSection().ToString(), MontageInstance->GetWeight(), MontageInstance->GetDesiredWeight());
+			FString MontageEntry = FString::Printf(TEXT("%i) %s CurrSec: %s NextSec: %s W:%.2f DW:%.2f"), MontageIndex, *MontageInstance->Montage->GetName(), *MontageInstance->GetCurrentSection().ToString(), *MontageInstance->GetNextSection().ToString(), MontageInstance->GetWeight(), MontageInstance->GetDesiredWeight());
 			DisplayDebugManager.DrawString(MontageEntry, Indent);
 		}
 	}
@@ -1131,10 +1132,12 @@ void UAnimInstance::UpdateCurves(const FBlendedHeapCurve& InCurve)
 
 	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
 	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
+	//	 - When clear, we have to make sure to add directly to the material curve list because 
+	//   - sometimes they don't have the flag anymore, so we can't just call AddCurveValue
 	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
 	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
 	{
-		AddCurveValue(ParamsToClearCopy[i], 0.0f);
+		AnimationCurves[(uint8)EAnimCurveType::MaterialCurve].Add(ParamsToClearCopy[i], 0.0f);
 	}
 
 	// @todo: delete me later when james g's change goes in
@@ -1279,25 +1282,43 @@ void UAnimInstance::EndNotifyStates()
 //to debug montage weight
 #define DEBUGMONTAGEWEIGHT 0
 
-float UAnimInstance::GetSlotNodeGlobalWeight(FName SlotNodeName) const
+float UAnimInstance::GetSlotNodeGlobalWeight(const FName& SlotNodeName) const
 {
 	return GetProxyOnGameThread<FAnimInstanceProxy>().GetSlotNodeGlobalWeight(SlotNodeName);
 }
 
-float UAnimInstance::GetSlotMontageGlobalWeight(FName SlotNodeName) const
+float UAnimInstance::GetSlotMontageGlobalWeight(const FName& SlotNodeName) const
 {
 	return GetProxyOnAnyThread<FAnimInstanceProxy>().GetSlotMontageGlobalWeight(SlotNodeName);
 }
 
+float UAnimInstance::GetSlotMontageLocalWeight(const FName& SlotNodeName) const
+{
+	return GetProxyOnAnyThread<FAnimInstanceProxy>().GetSlotMontageLocalWeight(SlotNodeName);
+}
+
+float UAnimInstance::CalcSlotMontageLocalWeight(const FName& SlotNodeName) const
+{
+	return GetProxyOnAnyThread<FAnimInstanceProxy>().CalcSlotMontageLocalWeight(SlotNodeName);
+}
+
 float UAnimInstance::GetCurveValue(FName CurveName)
+{
+	float Value = 0.f;
+	GetCurveValue(CurveName, Value);
+	return Value;
+}
+
+bool UAnimInstance::GetCurveValue(FName CurveName, float& OutValue)
 {
 	float* Value = AnimationCurves[(uint8)EAnimCurveType::AttributeCurve].Find(CurveName);
 	if (Value)
 	{
-		return *Value;
+		OutValue = *Value;
+		return true;
 	}
 
-	return 0.f;
+	return false;
 }
 
 void UAnimInstance::SetRootMotionMode(TEnumAsByte<ERootMotionMode::Type> Value)
@@ -1468,6 +1489,11 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 				delete MontageInstance;
 				MontageInstances.RemoveAt(InstanceIndex);
 				--InstanceIndex;
+
+				if (MontageInstances.Num() == 0)
+				{
+					OnAllMontageInstancesEnded.Broadcast();
+				}
 			}
 #if DO_CHECK && WITH_EDITORONLY_DATA && 0
 			else
@@ -2523,7 +2549,7 @@ void UAnimInstance::UpdateMontageEvaluationData()
 	FAnimInstanceProxy& Proxy = GetProxyOnGameThread<FAnimInstanceProxy>();
 
 	Proxy.GetMontageEvaluationData().Reset(MontageInstances.Num());
-	UE_LOG(LogAnimMontage, Verbose, TEXT("UpdateMontageEvaluationData Strting: Owner: %s"),	*GetNameSafe(GetOwningActor()));
+	UE_LOG(LogAnimMontage, Verbose, TEXT("UpdateMontageEvaluationData Starting: Owner: %s"),	*GetNameSafe(GetOwningActor()));
 
 	for (FAnimMontageInstance* MontageInstance : MontageInstances)
 	{

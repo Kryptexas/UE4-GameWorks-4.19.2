@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // ReimportFbxAnimSequenceFactory
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EditorReimportHandler.h"
+#include "Factories/FbxFactory.h"
 #include "ReimportFbxAnimSequenceFactory.generated.h"
 
 UCLASS(collapsecategories)

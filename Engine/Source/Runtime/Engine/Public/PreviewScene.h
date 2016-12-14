@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PreviewScene.h: Preview scene definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Engine/World.h"
+
+class FSceneInterface;
 
 /**
  * Encapsulates a simple scene setup for preview or thumbnail rendering.

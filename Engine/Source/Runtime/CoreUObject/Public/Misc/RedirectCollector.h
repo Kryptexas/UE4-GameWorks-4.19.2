@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CallbackDevice.h:  Allows the engine to do callbacks into the editor
@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "ScopedCallback.h"
+#include "CoreMinimal.h"
 
 /**
  * Container struct that holds info about a redirector that was followed. 

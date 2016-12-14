@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	IOSPlatformMisc.h: iOS platform misc functions
@@ -137,6 +137,10 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static void ResetGamepadAssignments();
 	static void ResetGamepadAssignmentToController(int32 ControllerId);
 	static bool IsControllerAssignedToGamepad(int32 ControllerId);
+
+	static int GetAudioVolume();
+	static bool AreHeadphonesPluggedIn();
+	static int GetBatteryLevel();
 
 	static void RegisterForRemoteNotifications();
 

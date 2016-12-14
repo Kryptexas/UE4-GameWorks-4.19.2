@@ -1,6 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Interfaces/ITargetDeviceService.h"
+#include "IMessageContext.h"
+#include "IMessageBus.h"
+#include "Helpers/MessageEndpoint.h"
+
+struct FTargetDeviceClaimDenied;
+struct FTargetDeviceClaimed;
+struct FTargetDeviceServiceDeployCommit;
+struct FTargetDeviceServiceDeployFile;
+struct FTargetDeviceServiceLaunchApp;
+struct FTargetDeviceServicePing;
+struct FTargetDeviceServicePowerOff;
+struct FTargetDeviceServicePowerOn;
+struct FTargetDeviceServiceReboot;
+struct FTargetDeviceServiceRunExecutable;
+struct FTargetDeviceUnclaimed;
 
 /**
  * Implements remote services for a specific target device.

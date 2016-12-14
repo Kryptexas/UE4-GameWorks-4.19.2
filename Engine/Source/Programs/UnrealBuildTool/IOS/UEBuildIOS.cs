@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -71,6 +71,11 @@ namespace UnrealBuildTool
 		/// true if bit code should be embedded
 		/// </summary>
 		private bool bShipForBitcode = false;
+
+        /// <summary>
+        /// true if notifications are enabled
+        /// </summary>
+        private bool bNotificationsEnabled = false;
 
         private bool bForDistribtion = false;
 
@@ -509,7 +514,6 @@ namespace UnrealBuildTool
 			base.ValidateBuildConfiguration(Configuration, Platform, bCreateDebugInfo);
 
 			BuildConfiguration.bUsePCHFiles = false;
-			BuildConfiguration.bUseSharedPCHs = false;
 			BuildConfiguration.bCheckExternalHeadersForModification = false;
 			BuildConfiguration.bCheckSystemHeadersForModification = false;
 			BuildConfiguration.ProcessorCountMultiplier = IOSToolChain.GetAdjustedProcessorCountMultiplier();
@@ -531,6 +535,13 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_EDITOR=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_NULL_RHI=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
+
+            ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", DirectoryReference.FromFile(ProjectFile));
+            Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableRemoteNotificationsSupport", out bNotificationsEnabled);
+            if (bNotificationsEnabled)
+            {
+                InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NOTIFICATIONS_ENABLED");
+            }
 
 			if (GetActiveArchitecture() == "-simulator")
 			{
@@ -663,7 +674,7 @@ namespace UnrealBuildTool
 			string[] BoolKeys = new string[] {
 				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
 				"bShipForArm64", "bShipForArmV7S", "bShipForBitcode", "bGeneratedSYMFile",
-				"bGeneratedSYMBundle"
+				"bGeneratedSYMBundle", "bEnableRemoteNotificationsSupport"
 			};
 			string[] StringKeys = new string[] {
 				"MinimumiOSVersion", 
@@ -741,7 +752,7 @@ namespace UnrealBuildTool
 						bBuildShaderFormats = true;
 						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
 						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
-						if (UEBuildConfiguration.bBuildDeveloperTools)
+						if (UEBuildConfiguration.bBuildDeveloperTools && UEBuildConfiguration.bCompileAgainstEngine)
 						{
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AudioFormatADPCM");
 						}

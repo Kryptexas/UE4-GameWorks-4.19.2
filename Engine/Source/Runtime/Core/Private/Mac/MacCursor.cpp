@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
 #include "MacCursor.h"
 #include "MacWindow.h"
 #include "MacApplication.h"
+#include "Math/IntRect.h"
+#include "HAL/IConsoleManager.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/Paths.h"
 
 #import <IOKit/hid/IOHIDKeys.h>
 #import <IOKit/hidsystem/IOHIDShared.h>
@@ -203,17 +206,6 @@ FMacCursor::~FMacCursor()
 				break;
 		}
 	}
-}
-
-void FMacCursor::SetCustomShape(NSCursor* CursorHandle)
-{
-	SCOPED_AUTORELEASE_POOL;
-	[CursorHandle retain];
-	if (CursorHandles[EMouseCursor::Custom] != NULL)
-	{
-		[CursorHandles[EMouseCursor::Custom] release];
-	}
-	CursorHandles[EMouseCursor::Custom] = CursorHandle;
 }
 
 FVector2D FMacCursor::GetPosition() const
@@ -540,4 +532,17 @@ const FVector2D& FMacCursor::GetMouseScaling() const
 	{
 		return FVector2D::UnitVector;
 	}
+}
+
+void FMacCursor::SetCustomShape(void* InCursorHandle)
+{
+	NSCursor* CursorHandle = (NSCursor*)InCursorHandle;
+
+	SCOPED_AUTORELEASE_POOL;
+	[CursorHandle retain];
+	if (CursorHandles[EMouseCursor::Custom] != NULL)
+	{
+		[CursorHandles[EMouseCursor::Custom] release];
+	}
+	CursorHandles[EMouseCursor::Custom] = CursorHandle;
 }

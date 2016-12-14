@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "ISequenceAudioRecorder.h"
-#include "UniquePtr.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Modules/ModuleInterface.h"
 #include "Containers/ArrayView.h"
+
+class AActor;
+class ISequenceAudioRecorder;
 
 DECLARE_DELEGATE_OneParam(FOnRecordingStarted, class UMovieSceneSequence* /*Sequence*/);
 

@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
 #include "Perception/AIPerceptionTypes.h"
+#include "Perception/AIPerceptionComponent.h"
 
 template<>
 FAISenseCounter FAINamedID<FAISenseCounter>::Counter = FAISenseCounter();
@@ -83,6 +83,12 @@ FName FPerceptionListener::GetBodyActorName() const
 {
 	const AActor* OwnerActor = Listener.IsValid() ? Listener->GetBodyActor() : NULL;
 	return OwnerActor ? OwnerActor->GetFName() : NAME_None;
+}
+
+uint32 FPerceptionListener::GetBodyActorUniqueID() const
+{
+	const AActor* OwnerActor = Listener.IsValid() ? Listener->GetBodyActor() : nullptr;
+	return OwnerActor ? OwnerActor->GetUniqueID() : FAISystem::InvalidUnsignedID;
 }
 
 const AActor* FPerceptionListener::GetBodyActor() const 

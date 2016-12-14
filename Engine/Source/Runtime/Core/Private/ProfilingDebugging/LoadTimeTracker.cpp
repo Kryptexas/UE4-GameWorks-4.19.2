@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
 * Here are a number of profiling helper functions so we do not have to duplicate a lot of the glue
@@ -7,8 +7,10 @@
 */
 
 // Core includes.
-#include "CorePrivatePCH.h"
-#include "LoadTimeTracker.h"
+#include "ProfilingDebugging/LoadTimeTracker.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "HAL/IConsoleManager.h"
 
 FLoadTimeTracker::FLoadTimeTracker()
 {

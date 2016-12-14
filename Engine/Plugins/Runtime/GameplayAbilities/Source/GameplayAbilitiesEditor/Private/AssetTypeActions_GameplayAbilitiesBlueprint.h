@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AssetTypeActions/AssetTypeActions_Blueprint.h"
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Developer/AssetTools/Private/AssetTypeActions/AssetTypeActions_Blueprint.h"
+
+class UFactory;
 
 class FAssetTypeActions_GameplayAbilitiesBlueprint : public FAssetTypeActions_Blueprint
 {

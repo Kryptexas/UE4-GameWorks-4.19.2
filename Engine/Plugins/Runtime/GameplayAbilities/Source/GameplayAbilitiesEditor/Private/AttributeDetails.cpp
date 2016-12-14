@@ -1,18 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "AttributeDetails.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "KismetEditorUtilities.h"
+#include "UObject/UnrealType.h"
+#include "SlateOptMacros.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Input/SSlider.h"
+#include "Engine/CurveTable.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "DetailCategoryBuilder.h"
 #include "AttributeSet.h"
 #include "GameplayAbilitiesModule.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "AbilitySystemGlobals.h"
-#include "SGameplayAttributeGraphPin.h"
-#include "SSearchBox.h"
-#include "STextComboBox.h"
-#include "GameplayEffect.h"
+#include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/STextComboBox.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayEffectExtension.h"
 #include "SGameplayAttributeWidget.h"
 
 #define LOCTEXT_NAMESPACE "AttributeDetailsCustomization"
@@ -355,7 +362,7 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 				.HAlign(HAlign_Fill)
 				.Padding(2.f, 0.f, 2.f, 0.f)
 				[
-					CurveTableProperty->CreatePropertyValueWidget()
+					CreateCurveTableWidget()
 				]
 
 				+SHorizontalBox::Slot()
@@ -371,6 +378,7 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 					[
 						SNew(STextBlock)
 						.Text(this, &FScalableFloatDetails::GetRowNameComboBoxContentText)
+						.ToolTipText( this, &FScalableFloatDetails::GetRowNameComboBoxContentText)
 					]
 				]
 
@@ -414,6 +422,10 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+TSharedRef<SWidget> FScalableFloatDetails::CreateCurveTableWidget()
+{
+	return CurveTableProperty->CreatePropertyValueWidget();
+}
 
 void FScalableFloatDetails::OnCurveTableChanged()
 {

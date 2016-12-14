@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Slate/SRetainerWidget.h"
+#include "Misc/App.h"
+#include "UObject/Package.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Engine/World.h"
 
-#include "Slate/SlateTextures.h"
-#include "SRetainerWidget.h"
-#include "Runtime/SlateRHIRenderer/Public/Interfaces/ISlateRHIRendererModule.h"
 
 DECLARE_CYCLE_STAT(TEXT("Retainer Widget Tick"), STAT_SlateRetainerWidgetTick, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("Retainer Widget Paint"), STAT_SlateRetainerWidgetPaint, STATGROUP_Slate);
@@ -196,6 +199,11 @@ void SRetainerWidget::SetTextureParameter(FName TextureParameter)
 {
 	DynamicEffectTextureParameter = TextureParameter;
 }
+ 
+void SRetainerWidget::SetWorld(UWorld* World)
+{
+	OuterWorld = World;
+}
 
 void SRetainerWidget::AddReferencedObjects(FReferenceCollector& Collector)
 {
@@ -227,9 +235,21 @@ void SRetainerWidget::OnTickRetainers(float DeltaTime)
 	// we should not be added to tick if we're not rendering
 	checkSlow(FApp::CanEverRender());
 
+
 	const bool bShouldRenderAnything = IsAnythingVisibleToRender();
 	if ( bRenderingOffscreen && bShouldRenderAnything )
 	{
+
+		// In order to get material parameter collections to function properly, we need the current world's Scene
+		// properly propagated through to any widgets that depend on that functionality. The SceneViewport and RetainerWidget the 
+		// only location where this information exists in Slate, so we push the current scene onto the current
+		// Slate application so that we can leverage it in later calls.
+		UWorld* TickWorld = OuterWorld.Get();
+		if (TickWorld && TickWorld->Scene && IsInGameThread())
+		{
+			FSlateApplication::Get().GetRenderer()->RegisterCurrentScene(TickWorld->Scene);
+		}
+
 		SCOPE_CYCLE_COUNTER( STAT_SlateRetainerWidgetTick );
 		if ( LastTickedFrame != GFrameCounter && ( GFrameCounter % PhaseCount ) == Phase )
 		{

@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IFilter.h"
-#include "FilterCollection.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+
+class AActor;
 
 DECLARE_DELEGATE_OneParam( FOnGetAllowedClasses, TArray<const UClass*>& );
 DECLARE_DELEGATE_OneParam( FOnActorSelected, AActor* );

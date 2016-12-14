@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/MemoryBase.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
 
 // Only use for supported platforms
 #if PLATFORM_SUPPORTS_JEMALLOC

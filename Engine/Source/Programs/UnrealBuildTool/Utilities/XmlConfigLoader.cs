@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -696,7 +696,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		private static object ParseFieldData(Type FieldType, string Text)
+		public static object ParseFieldData(Type FieldType, string Text)
 		{
 			if (FieldType.Equals(typeof(System.String)))
 			{
@@ -824,7 +824,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Field">field to check.</param>
 		/// <returns>True if the field is configurable using XML system. Otherwise false.</returns>
-		private static bool IsConfigurableField(FieldInfo Field)
+		public static bool IsConfigurableField(FieldInfo Field)
 		{
 			return Field.IsStatic && Field.IsPublic && Field.GetCustomAttributes(typeof(XmlConfigAttribute), false).Length > 0;
 		}

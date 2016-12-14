@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //
 // A network connection.
@@ -6,18 +6,24 @@
 
 #pragma once
 
-#include "Net/DataBunch.h"
-#include "Engine/Channel.h"
-#include "Engine/Player.h"
-#include "Engine/NetDriver.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Serialization/BitWriter.h"
+#include "Misc/NetworkGuid.h"
 #include "GameFramework/OnlineReplStructs.h"
-#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
+#include "Engine/NetDriver.h"
+#include "Net/DataBunch.h"
+#include "Engine/Player.h"
+#include "Engine/Channel.h"
 #include "ProfilingDebugging/Histogram.h"
 
 #include "NetConnection.generated.h"
 
 class FObjectReplicator;
-struct FNetworkObjectInfo;
+class StatelessConnectHandlerComponent;
+class UActorChannel;
+class UChildConnection;
 
 /*-----------------------------------------------------------------------------
 	Types.

@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "K2Node.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "K2Node_ConstructObjectFromClass.h"
 #include "K2Node_CreateDragDropOperation.generated.h"
+
+class UEdGraph;
 
 UCLASS()
 class UMGEDITOR_API UK2Node_CreateDragDropOperation : public UK2Node_ConstructObjectFromClass

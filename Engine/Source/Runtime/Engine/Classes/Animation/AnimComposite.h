@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Abstract base class of animation made of multiple sequences.
@@ -6,8 +6,15 @@
  */
 
 #pragma once
-#include "AnimCompositeBase.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Animation/AnimCompositeBase.h"
 #include "AnimComposite.generated.h"
+
+class UAnimSequence;
+struct FCompactPose;
 
 UCLASS(config=Engine, hidecategories=UObject, MinimalAPI, BlueprintType)
 class UAnimComposite : public UAnimCompositeBase

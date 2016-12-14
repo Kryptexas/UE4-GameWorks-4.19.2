@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * This kismet library is used for helper functions primarily used in the kismet compiler for AI related nodes
@@ -6,14 +6,19 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "GameFramework/Pawn.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "AIBlueprintHelperLibrary.generated.h"
 
-class UBehaviorTree;
-class UAnimInstance;
-class APawn;
-class AAIController; 
-class UBlackboardComponent;
+class AAIController;
 class UAIAsyncTaskBlueprintProxy;
+class UAnimInstance;
+class UBehaviorTree;
+class UBlackboardComponent;
 
 UCLASS()
 class AIMODULE_API UAIBlueprintHelperLibrary : public UBlueprintFunctionLibrary

@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptInterface.h"
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Templates/SubclassOf.h"
 #include "BlueprintGameplayTagLibrary.generated.h"
-
-// Forward declarations
-struct FGameplayTag;
-struct FGameplayTagContainer;
 
 UCLASS(MinimalAPI)
 class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
@@ -115,6 +116,16 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintPure, Category = "GameplayTags")
 	static bool DoesContainerMatchTagQuery(const FGameplayTagContainer& TagContainer, const FGameplayTagQuery& TagQuery);
+
+	/**
+	 * Get an array of all actors of a specific class (or subclass of that class) which match the specified gameplay tag query.
+	 * 
+	 * @param ActorClass			Class of actors to fetch
+	 * @param GameplayTagQuery		Query to match against
+	 * 
+	 */
+	UFUNCTION(BlueprintCallable, Category="GameplayTags",  meta=(WorldContext="WorldContextObject", DeterminesOutputType="ActorClass", DynamicOutputParam="OutActors"))
+	static void GetAllActorsOfClassMatchingTagQuery(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FGameplayTagQuery& GameplayTagQuery, TArray<AActor*>& OutActors);
 
 	/**
 	 * Adds a single tag to the passed in tag container

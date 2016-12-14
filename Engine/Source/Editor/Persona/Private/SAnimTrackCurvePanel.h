@@ -1,14 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Animation/Skeleton.h"
 #include "SAnimTrackPanel.h"
-#include "SCurveEditor.h"
-#include "SAnimNotifyPanel.h"
+#include "SAnimCurvePanel.h"
 #include "Animation/AnimSequence.h"
+
+class IPersonaPreviewScene;
+class SSplitter;
+class STransformCurveEdTrack;
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimTrackCurvePanel
@@ -47,8 +54,6 @@ public:
 	 */
 	SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
 
-	SLATE_ARGUMENT(FSimpleDelegate, OnCurvesChanged)
-
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, const TSharedRef<class IPersonaPreviewScene>& InPreviewScene);
@@ -83,7 +88,6 @@ private:
 	TAttribute<float> CurrentPosition;
 	FOnGetScrubValue OnGetScrubValue;
 	TArray<TWeakPtr<class STransformCurveEdTrack>> Tracks;
-	FSimpleDelegate OnCurvesChanged;
 
 	/**
 	 * This is to control visibility of the curves, so you can edit or not
@@ -116,4 +120,7 @@ private:
 	 * Convert a given checkbox state into a flag value in the provided curve
 	 */
 	void SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, USkeleton::AnimCurveUID CurveUid, EAnimAssetCurveFlags InFlag);
+
+	/** Handle key complete delegate */
+	void HandleKeyComplete();
 };

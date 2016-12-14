@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "EnumClassFlags.h"
-
-
-class ITimeSlider;
-class ITimeSliderController;
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/SWidget.h"
+#include "ITimeSlider.h"
+#include "Widgets/Input/NumericTypeInterface.h"
+#include "Modules/ModuleInterface.h"
 
 /** Enum denoting which time ranges to display on a time range */
 enum class EShowRange

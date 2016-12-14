@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "SlateTextRun.h"
-#include "ShapedTextCache.h"
-#include "RunUtils.h"
+#include "Framework/Text/SlateTextRun.h"
+#include "Rendering/DrawElements.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Text/DefaultLayoutBlock.h"
+#include "Framework/Text/ShapedTextCache.h"
+#include "Framework/Text/RunUtils.h"
 
 TSharedRef< FSlateTextRun > FSlateTextRun::Create( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& Style )
 {
@@ -109,11 +112,29 @@ int32 FSlateTextRun::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineVi
 	// Draw the optional shadow
 	if (ShouldDropShadow)
 	{
+		FShapedGlyphSequenceRef ShadowShapedText = ShapedText;
+		if(Style.ShadowColorAndOpacity != Style.Font.OutlineSettings.OutlineColor)
+		{
+			// Copy font info for shadow to replace the outline color
+			FSlateFontInfo ShadowFontInfo = Style.Font;
+			ShadowFontInfo.OutlineSettings.OutlineColor = Style.ShadowColorAndOpacity;
+			ShadowFontInfo.OutlineSettings.OutlineMaterial = nullptr;
+			
+			// Create new shaped text for drop shadow
+			ShadowShapedText = ShapedTextCacheUtil::GetShapedTextSubSequence(
+				BlockTextContext.ShapedTextCache,
+				FCachedShapedTextKey(Line.Range, AllottedGeometry.GetAccumulatedLayoutTransform().GetScale(), BlockTextContext, ShadowFontInfo),
+				BlockRange,
+				**Text,
+				BlockTextContext.TextDirection
+				);
+		}
+
 		FSlateDrawElement::MakeShapedText(
 			OutDrawElements,
 			++LayerId,
 			AllottedGeometry.ToPaintGeometry(TransformVector(InverseScale, Block->GetSize()), FSlateLayoutTransform(TransformPoint(InverseScale, Block->GetLocationOffset() + DrawShadowOffset))),
-			ShapedText,
+			ShadowShapedText,
 			ClippingRect,
 			DrawEffects,
 			InWidgetStyle.GetColorAndOpacityTint() * Style.ShadowColorAndOpacity

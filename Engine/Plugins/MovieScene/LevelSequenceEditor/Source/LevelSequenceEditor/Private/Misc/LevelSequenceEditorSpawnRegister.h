@@ -1,16 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Templates/ValueOrError.h"
+#include "MovieSceneSequenceID.h"
+#include "MovieSceneSpawnRegister.h"
 #include "LevelSequenceSpawnRegister.h"
-#include "ObjectKey.h"
+#include "UObject/ObjectKey.h"
 
-class AActor;
 class IMovieScenePlayer;
 class ISequencer;
-class UObject;
-class UProperty;
-
+class UMovieScene;
 
 /**
  * Spawn register used in the editor to add some usability features like maintaining selection states, and projecting spawned state onto spawnable defaults

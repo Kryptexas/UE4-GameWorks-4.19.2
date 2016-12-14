@@ -1,27 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "LevelEditor.h"
 #include "SLevelViewportToolBar.h"
-#include "Editor/UnrealEd/Public/STransformViewportToolbar.h"
-#include "SLevelViewport.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "EditorStyleSet.h"
+#include "Camera/CameraActor.h"
+#include "Misc/ConfigCacheIni.h"
+#include "GameFramework/WorldSettings.h"
+#include "EngineUtils.h"
+#include "LevelEditor.h"
+#include "STransformViewportToolbar.h"
 #include "EditorShowFlags.h"
 #include "LevelViewportActions.h"
-#include "LevelEditorActions.h"
+#include "LevelEditorViewport.h"
 #include "Layers/ILayers.h"
-#include "Editor/SceneOutliner/Public/SceneOutliner.h"
-#include "DelegateFilter.h"
-#include "Editor/SceneOutliner/Public/ISceneOutlinerColumn.h"
-#include "DeviceProfileServices.h"
 #include "DeviceProfiles/DeviceProfile.h"
+#include "IDeviceProfileServicesModule.h"
 #include "EditorViewportCommands.h"
-#include "SLevelEditor.h"
-#include "Editor/UnrealEd/Public/SEditorViewportToolBarMenu.h"
-#include "Editor/UnrealEd/Public/SEditorViewportToolBarButton.h"
-#include "Editor/UnrealEd/Public/SEditorViewportViewMenu.h"
-#include "StatsData.h"
+#include "SEditorViewportToolBarMenu.h"
+#include "SEditorViewportToolBarButton.h"
+#include "SEditorViewportViewMenu.h"
+#include "Stats/StatsData.h"
 #include "BufferVisualizationData.h"
-#include "GameFramework/WorldSettings.h"
 #include "FoliageType.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportToolBar"
@@ -922,8 +928,22 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 		ShowMenu[SFData.Group].Add( Actions.ShowFlagCommands[ ShowFlag ] );
 	}
 
+	// Get all menu extenders for this context menu from the level editor module
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	TArray<FLevelEditorModule::FLevelEditorMenuExtender> MenuExtenderDelegates = LevelEditorModule.GetAllLevelViewportShowMenuExtenders();
+
+	TArray<TSharedPtr<FExtender>> Extenders;
+	for (int32 i = 0; i < MenuExtenderDelegates.Num(); ++i)
+	{
+		if (MenuExtenderDelegates[i].IsBound())
+		{
+			Extenders.Add(MenuExtenderDelegates[i].Execute(Viewport.Pin()->GetCommandList().ToSharedRef()));
+		}
+	}
+	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
+
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder ShowMenuBuilder( bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList() );
+	FMenuBuilder ShowMenuBuilder( bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList(), MenuExtender);
 	{
 		ShowMenuBuilder.AddMenuEntry( Actions.UseDefaultShowFlags );
 		
@@ -1024,7 +1044,7 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 EVisibility SLevelViewportToolBar::GetViewModeOptionsVisibility() const
 {
 	const FLevelEditorViewportClient& ViewClient = Viewport.Pin()->GetLevelViewportClient();
-	if (ViewClient.GetViewMode() == VMI_MeshUVDensityAccuracy || ViewClient.GetViewMode() == VMI_MaterialTextureScaleAccuracy)
+	if (ViewClient.GetViewMode() == VMI_MeshUVDensityAccuracy || ViewClient.GetViewMode() == VMI_MaterialTextureScaleAccuracy || ViewClient.GetViewMode() == VMI_RequiredTextureResolution)
 	{
 		return EVisibility::SelfHitTestInvisible;
 	}
@@ -1045,8 +1065,9 @@ FText SLevelViewportToolBar::GetViewModeOptionsMenuLabel() const
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateViewModeOptionsMenu() const
 {
 	Viewport.Pin()->OnFloatingButtonClicked();
-	const FLevelEditorViewportClient& ViewClient = Viewport.Pin()->GetLevelViewportClient();
-	return BuildViewModeOptionsMenu(Viewport.Pin()->GetCommandList(), ViewClient.GetViewMode());
+	FLevelEditorViewportClient& ViewClient = Viewport.Pin()->GetLevelViewportClient();
+	const UWorld* World = ViewClient.GetWorld();
+	return BuildViewModeOptionsMenu(Viewport.Pin()->GetCommandList(), ViewClient.GetViewMode(), World ? World->FeatureLevel : GMaxRHIFeatureLevel, ViewClient.GetViewModeParamNameMap());
 }
 
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateFOVMenu() const

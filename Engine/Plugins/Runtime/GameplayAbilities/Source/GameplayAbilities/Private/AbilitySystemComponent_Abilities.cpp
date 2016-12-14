@@ -1,19 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // ActorComponent.cpp: Actor component implementation.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AbilitySystemComponent.h"
-#include "Abilities/GameplayAbility.h"
-#include "Abilities/GameplayAbilityTargetActor.h"
-#include "Abilities/Tasks/AbilityTask.h"
-#include "TickableAttributeSetInterface.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "EngineDefines.h"
+#include "Engine/NetSerialization.h"
+#include "Templates/SubclassOf.h"
+#include "Components/InputComponent.h"
+#include "GameplayTagContainer.h"
+#include "TimerManager.h"
+#include "AbilitySystemLog.h"
+#include "AttributeSet.h"
 #include "GameplayPrediction.h"
-#include "GameplayTagResponseTable.h"
-#include "Net/UnrealNetwork.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayAbilitySpec.h"
+#include "UObject/UObjectHash.h"
+#include "GameFramework/PlayerController.h"
+#include "Abilities/GameplayAbilityTypes.h"
+#include "AbilitySystemStats.h"
+#include "AbilitySystemGlobals.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimInstance.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "Abilities/GameplayAbility.h"
+#include "AbilitySystemComponent.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
+#include "TickableAttributeSetInterface.h"
+#include "GameplayTagResponseTable.h"
 #define LOCTEXT_NAMESPACE "AbilitySystemComponent"
 
 /** Enable to log out all render state create, destroy and updatetransform events */
@@ -50,6 +66,12 @@ void UAbilitySystemComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	DestroyActiveState();
 
+	// The MarkPendingKill on these attribute sets used to be done in UninitializeComponent,
+	// but it was moved here instead since it's possible for the component to be uninitialized,
+	// and later re-initialized, without being destroyed - and the attribute sets need to be preserved
+	// in this case. This can happen when the owning actor's level is removed and later re-added
+	// to the world, since EndPlay (and therefore UninitializeComponents) will be called on
+	// the owning actor when its level is removed.
 	for (UAttributeSet* Set : SpawnedAttributes)
 	{
 		if (Set)
@@ -381,7 +403,9 @@ void UAbilitySystemComponent::OnRemoveAbility(FGameplayAbilitySpec& Spec)
 			if (Instance->IsActive())
 			{
 				// End the ability but don't replicate it, OnRemoveAbility gets replicated
-				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+				bool bReplicateEndAbility = false;
+				bool bWasCancelled = false;
+				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, bReplicateEndAbility, bWasCancelled);
 			}
 			else
 			{
@@ -589,7 +613,7 @@ UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayA
 	return AbilityInstance;
 }
 
-void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability)
+void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability, bool bWasCancelled)
 {
 	check(Ability);
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
@@ -1124,7 +1148,9 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 		{
 			if (Ability->bRetriggerInstancedAbility && InstancedAbility)
 			{
-				InstancedAbility->EndAbility(Handle, ActorInfo, Spec->ActivationInfo, true);
+				bool bReplicateEndAbility = true;
+				bool bWasCancelled = false;
+				InstancedAbility->EndAbility(Handle, ActorInfo, Spec->ActivationInfo, bReplicateEndAbility, bWasCancelled);
 			}
 			else
 			{
@@ -1414,7 +1440,7 @@ void UAbilitySystemComponent::RemoteEndOrCancelAbility(FGameplayAbilitySpecHandl
 			}
 			else
 			{
-				AbilitySpec->Ability->EndAbility(AbilityToEnd, AbilityActorInfo.Get(), ActivationInfo, false);
+				AbilitySpec->Ability->EndAbility(AbilityToEnd, AbilityActorInfo.Get(), ActivationInfo, false, bWasCanceled);
 			}
 		}
 		else
@@ -1438,7 +1464,7 @@ void UAbilitySystemComponent::RemoteEndOrCancelAbility(FGameplayAbilitySpecHandl
 						}
 						else
 						{
-							Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+							Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false, bWasCanceled);
 						}
 					}
 				}
@@ -2823,7 +2849,8 @@ void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGame
 		FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(AbilityHandle);
 		if (Spec && Spec->Ability)
 		{
-			ABILITY_LOG(Warning, TEXT("Ability %s is overriding pending replicated target data."), *Spec->Ability->GetName());
+			// Can happen under normal circumstances if ServerForceClientTargetData is hit
+			ABILITY_LOG(Display, TEXT("Ability %s is overriding pending replicated target data."), *Spec->Ability->GetName());
 		}
 	}
 

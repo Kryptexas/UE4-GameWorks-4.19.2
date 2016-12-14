@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineSessionInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
+#include "OnlineSessionSettings.h"
 #include "QosRegionManager.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "QosEvaluator.generated.h"
 
 class AQosBeaconClient;
 class FQosDatacenterStats;
+class FTimerManager;
+class IAnalyticsProvider;
 struct FIcmpEchoResult;
 enum class EQosResponseType : uint8;
 

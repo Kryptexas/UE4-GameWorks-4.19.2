@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AssetTypeActions_Base.h"
+
+class FMenuBuilder;
 
 /** Base asset type actions for any classes with gameplay tagging */
 class GAMEPLAYTAGSEDITOR_API FAssetTypeActions_GameplayTagAssetBase : public FAssetTypeActions_Base

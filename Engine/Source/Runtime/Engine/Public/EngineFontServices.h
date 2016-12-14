@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateCore.h"
+#include "CoreMinimal.h"
+#include "Rendering/SlateRenderer.h"
+
+class FSlateFontCache;
+class FSlateFontMeasure;
 
 /** 
  * A shim around FSlateFontServices that provides access from the render thread (where FSlateApplication::Get() would assert)

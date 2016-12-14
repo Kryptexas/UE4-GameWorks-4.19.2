@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PreviewScene.cpp: Preview scene implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "PreviewScene.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/Package.h"
+#include "SceneInterface.h"
+#include "Components/MeshComponent.h"
+#include "AudioDevice.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/LineBatchComponent.h"
 
@@ -40,6 +43,7 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	AddComponent(DirectionalLight, FTransform(CVS.LightRotation));
 
 	LineBatcher = NewObject<ULineBatchComponent>(GetTransientPackage());
+	LineBatcher->bCalculateAccurateBounds = false;
 	AddComponent(LineBatcher, FTransform::Identity);
 }
 

@@ -1,15 +1,21 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "Internationalization/Text.h"
+#include "Misc/Parse.h"
+#include "UObject/ObjectVersion.h"
+#include "UObject/DebugSerializationFlags.h"
+#include "Internationalization/Culture.h"
+#include "Internationalization/Internationalization.h"
 
-#include "TextData.h"
-#include "TextHistory.h"
-#include "TextFormatter.h"
-#include "TextNamespaceUtil.h"
-#include "FastDecimalFormat.h"
+#include "Internationalization/TextHistory.h"
+#include "Internationalization/ITextData.h"
+#include "Internationalization/TextData.h"
+#include "Misc/Guid.h"
+#include "Internationalization/TextFormatter.h"
+#include "Internationalization/TextNamespaceUtil.h"
+#include "Internationalization/FastDecimalFormat.h"
 
-#include "DebugSerializationFlags.h"
-#include "EditorObjectVersion.h"
+#include "UObject/EditorObjectVersion.h"
 
 //DEFINE_STAT(STAT_TextFormat);
 
@@ -74,6 +80,16 @@ const FTextDisplayStringRef FTextInspector::GetSharedDisplayString(const FText& 
 uint32 FTextInspector::GetFlags(const FText& Text)
 {
 	return Text.Flags;
+}
+
+void FTextInspector::GetHistoricFormatData(const FText& Text, TArray<FHistoricTextFormatData>& OutHistoricFormatData)
+{
+	Text.GetHistoricFormatData(OutHistoricFormatData);
+}
+
+bool FTextInspector::GetHistoricNumericData(const FText& Text, FHistoricTextNumericData& OutHistoricNumericData)
+{
+	return Text.GetHistoricNumericData(OutHistoricNumericData);
 }
 
 // These default values have been duplicated to the KismetTextLibrary functions for Blueprints. Please replicate any changes there!
@@ -915,17 +931,22 @@ const FString& FText::GetSourceString() const
 	return TextData->GetDisplayString();
 }
 
+void FText::GetHistoricFormatData(TArray<FHistoricTextFormatData>& OutHistoricFormatData) const
+{
+	TextData->GetTextHistory().GetHistoricFormatData(*this, OutHistoricFormatData);
+}
+
+bool FText::GetHistoricNumericData(FHistoricTextNumericData& OutHistoricNumericData) const
+{
+	return TextData->GetTextHistory().GetHistoricNumericData(*this, OutHistoricNumericData);
+}
+
 bool FText::IdenticalTo( const FText& Other ) const
 {
 	// If both instances point to the same data or localized string, then both instances are considered identical.
 	// This is fast as it skips a lexical compare, however it can also return false for two instances that have identical strings, but in different pointers.
 	// For instance, this method will return false for two FText objects created from FText::FromString("Wooble") as they each have unique, non-shared instances.
 	return TextData == Other.TextData || TextData->GetLocalizedString() == Other.TextData->GetLocalizedString();
-}
-
-void FText::GetSourceTextsFromFormatHistory(TArray<FText>& OutSourceTexts) const
-{
-	TextData->GetTextHistory().GetSourceTextsFromFormatHistory(*this, OutSourceTexts);
 }
 
 FArchive& operator<<(FArchive& Ar, FFormatArgumentValue& Value)

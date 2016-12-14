@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
 
 #include "SAnimCurveEd.h"
+#include "Rendering/DrawElements.h"
+#include "Animation/AnimTypes.h"
 
-#include "Editor/KismetWidgets/Public/SScrubWidget.h"
+
+#include "SScrubWidget.h"
 
 #define LOCTEXT_NAMESPACE "AnimCurveEd"
 
@@ -43,8 +44,8 @@ int32 SAnimCurveEd::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 	float XPos = ScaleInfo.InputToLocalX(Value);
 
 	TArray<FVector2D> LinePoints;
-	LinePoints.Add(FVector2D(XPos-1, 0.f));
-	LinePoints.Add(FVector2D(XPos+1, AllottedGeometry.Size.Y));
+	LinePoints.Add(FVector2D(XPos, 0.f));
+	LinePoints.Add(FVector2D(XPos, AllottedGeometry.Size.Y));
 
 
 	FSlateDrawElement::MakeLines(

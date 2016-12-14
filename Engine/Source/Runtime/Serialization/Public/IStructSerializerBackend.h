@@ -1,12 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-// forward declarations
-class UProperty;
-class UStruct;
-
+#include "CoreMinimal.h"
 
 /**
  * Structure for the write state stack.

@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/Texture.h"
+#include "EditorFramework/AssetImportData.h"
 #include "TileMapAssetImportData.generated.h"
+
+class UPaperTileSet;
 
 USTRUCT()
 struct FTileSetImportMapping

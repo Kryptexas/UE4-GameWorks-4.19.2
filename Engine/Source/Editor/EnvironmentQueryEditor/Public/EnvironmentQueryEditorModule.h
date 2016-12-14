@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "AIGraphModule.h"
-#include "Toolkits/IToolkit.h"	// For EAssetEditorMode
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Modules/ModuleInterface.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "Editor/EnvironmentQueryEditor/Private/AssetTypeActions_EnvironmentQuery.h"
+#include "AIGraphTypes.h"
+
+class IEnvironmentQueryEditor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEnvironmentQueryEditor, Log, All);
 

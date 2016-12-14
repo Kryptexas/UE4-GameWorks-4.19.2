@@ -1,15 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessNoiseBlur.cpp: Post processing down sample implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessNoiseBlur.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessNoiseBlur.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "SceneRenderTargetParameters.h"
+#include "PostProcess/PostProcessing.h"
 
 /** Encapsulates the post processing noise blur shader. */
 template <uint32 Method>

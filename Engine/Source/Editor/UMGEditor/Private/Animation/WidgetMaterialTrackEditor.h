@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MaterialTrackEditor.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerTrackEditor.h"
+#include "TrackEditors/MaterialTrackEditor.h"
 
+class UMaterialInterface;
 class UMovieSceneMaterialTrack;
 
 /**

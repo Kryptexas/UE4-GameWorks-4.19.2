@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "UnitTest.h"
 
 #include "VMReflection.generated.h"
+
+class APawn;
 
 /**
  * Internal unit test for verifying the functionality of the UScript/BP VM reflection helper

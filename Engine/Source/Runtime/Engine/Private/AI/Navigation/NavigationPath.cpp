@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "VisualLogger/VisualLogger.h"
-#include "AI/Navigation/NavigationTypes.h"
-#include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/NavigationPath.h"
+#include "EngineStats.h"
+#include "EngineGlobals.h"
+#include "AI/Navigation/NavAgentInterface.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/Engine.h"
+#include "Engine/Canvas.h"
+#include "DrawDebugHelpers.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+#include "AI/Navigation/RecastNavMesh.h"
 #include "AI/Navigation/NavAreas/NavArea.h"
 #include "Debug/DebugDrawService.h"
 
@@ -518,7 +523,10 @@ void FNavMeshPath::PerformStringPulling(const FVector& StartLoc, const FVector& 
 {
 #if WITH_RECAST
 	const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
-	bStringPulled = MyOwner->FindStraightPath(StartLoc, EndLoc, PathCorridor, PathPoints, &CustomLinkIds);
+	if (PathCorridor.Num())
+	{
+		bStringPulled = MyOwner->FindStraightPath(StartLoc, EndLoc, PathCorridor, PathPoints, &CustomLinkIds);
+	}
 #endif	// WITH_RECAST
 }
 

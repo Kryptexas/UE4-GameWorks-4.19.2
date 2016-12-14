@@ -1,16 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/Crc.h"
 #include "Math/UnrealMathUtility.h"
+#include "Containers/UnrealString.h"
 #include "Misc/Parse.h"
-#include "Serialization/Archive.h"
 
-
-struct FColor;
-struct FVector;
 class FFloat16Color;
-
 
 /**
  * Enum for the different kinds of gamma spaces we expect to need to convert from/to.

@@ -1,7 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Containers/Queue.h"
+#include "IMessageTransport.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+
+class FSocket;
+class FTcpListener;
+class FTcpMessageTransportConnection;
 
 /** Entry specfying addition or removal to/from the NodeConnectionMap */
 struct FNodeConnectionMapUpdate

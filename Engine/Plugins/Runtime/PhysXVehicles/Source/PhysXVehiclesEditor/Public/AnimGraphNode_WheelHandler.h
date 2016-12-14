@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
 #include "AnimNode_WheelHandler.h"
 #include "AnimGraphNode_WheelHandler.generated.h"
+
+class UEdGraph;
 
 UCLASS(MinimalAPI, meta=(Keywords = "Modify Wheel Vehicle"))
 class UAnimGraphNode_WheelHandler : public UAnimGraphNode_SkeletalControlBase

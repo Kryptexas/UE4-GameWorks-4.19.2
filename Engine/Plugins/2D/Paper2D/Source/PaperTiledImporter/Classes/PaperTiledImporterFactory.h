@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EditorReimportHandler.h"
+#include "Factories/Factory.h"
 #include "PaperTileMap.h"
 #include "PaperTileLayer.h"
 #include "PaperTiledImporterFactory.generated.h"
+
+class FJsonObject;
+class FJsonValue;
+class UPaperTileSet;
+struct FTileMapFromTiled;
 
 enum class ETiledLayerType : uint8
 {

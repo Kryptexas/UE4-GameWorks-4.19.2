@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
-#include "Abilities/GameplayAbilityTypes.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayEffectTypes.h"
+#include "Abilities/GameplayAbilityTargetDataFilter.h"
+#include "Abilities/Tasks/AbilityTask.h"
 #include "AbilityTask_WaitGameplayEffectApplied.generated.h"
 
-
+class UAbilitySystemComponent;
 
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitGameplayEffectApplied : public UAbilityTask
@@ -39,4 +43,7 @@ protected:
 
 	UPROPERTY()
 	UAbilitySystemComponent* ExternalOwner;
+
+	// If we are in the process of broadcasting and should not accept additional GE callbacks
+	bool Locked;
 };

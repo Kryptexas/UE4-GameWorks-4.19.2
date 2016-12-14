@@ -1,58 +1,64 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Sound/SoundEffectSource.h"
-// Includes for audio dsp helper classes
+#include "DSP/EQ.h"
+#include "Sound/SoundEffectSubmix.h"
 #include "AudioMixerSubmixEffectEQ.generated.h"
 
-// ========================================================================
-// FAudiomixerSourceEffectFilterSettings
-// ========================================================================
-
 USTRUCT()
-struct FSubmixEffectEQSettings
+struct FSubmixEffectSubmixEQSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-	// TODO
+	// not applicable 
 };
 
-// ========================================================================
-// USoundEffectSubmixEQ
-// Class which processes audio streams and uses parameters defined in the preset class.
-// ========================================================================
-
-UCLASS()
-class AUDIOMIXER_API USoundEffectSubmixEQ : public USoundEffectSource
+class AUDIOMIXER_API FSubmixEffectSubmixEQ : public FSoundEffectSubmix
 {
-	GENERATED_BODY()
-	
-	// Called on an audio effect at initialization on main thread before audio processing begins.
-	void Init(const FSoundEffectSourceInitData& InSampleRate) override;
+public:
+		// Called on an audio effect at initialization on main thread before audio processing begins.
+	virtual void Init(const FSoundEffectSubmixInitData& InSampleRate) override;
 
 	// Process the input block of audio. Called on audio thread.
-	void OnProcessAudio(const FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData) override;
+	virtual void OnProcessAudio(const FSoundEffectSubmixInputData& InData, FSoundEffectSubmixOutputData& OutData) override;
+
+	// Sets the effect parameters
+	void SetEffectParameters(const FAudioEQEffect& InEQEffectParameters);
+
+protected:
+	void UpdateParameters();
+
+	struct FEQBandSettings
+	{
+		bool bEnabled;
+		float Frequency;
+		float Bandwidth;
+		float GainDB;
+	};
+
+	struct FEQSettings
+	{
+		FEQBandSettings Bands[4];
+	};
+
+	// The EQ effect
+	Audio::FEqualizer Equalizer;
+	Audio::TParams<FEQSettings> Params;
+
+	// Copy of EQ settings on render thread
+	FEQSettings EQSettings;
 };
 
-// ========================================================================
-// UMyTestSourceEffectPreset
-// This code exposes your preset settings and effect class to the editor.
-// Do not modify this code!
-// ========================================================================
-
 UCLASS()
-class AUDIOMIXER_API USoundEffectSubmixEQPreset : public USoundEffectSourcePreset
+class AUDIOMIXER_API USubmixEffectSubmixEQPreset : public USoundEffectSubmixPreset
 {
 	GENERATED_BODY()
-	
-	void* GetSettings() override { return (void*)&Settings; }
-	uint32 GetSettingsSize() const override { return sizeof(Settings); }
-	UScriptStruct* GetSettingsStruct() const override { return FSubmixEffectEQSettings::StaticStruct(); }
-	UClass* GetEffectClass() const override { return USoundEffectSubmixEQ::StaticClass(); }
-	FText GetAssetActionName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_SoundEffectSubmixEQPreset", "SoundEffectSubmixEQPreset"); }
 
-	// FSubmixEffectEQSettings Preset Settings
-	UPROPERTY(EditAnywhere, Category = SoundSourceEffect)
-	FSubmixEffectEQSettings Settings;
+public:
+
+	EFFECT_PRESET_METHODS_NO_ASSET_ACTIONS(SubmixEffectSubmixEQ)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SubmixEffectPreset)
+	FSubmixEffectSubmixEQSettings Settings;
 };

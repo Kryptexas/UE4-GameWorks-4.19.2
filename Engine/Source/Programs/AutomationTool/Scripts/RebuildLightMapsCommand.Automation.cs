@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -281,6 +281,8 @@ namespace AutomationScripts.Automation
             Message.CC.Add(new MailAddress("Andrew.Grant@epicgames.com"));
 			Message.CC.Add(new MailAddress("jordan.walker@epicgames.com"));
 			Message.CC.Add(new MailAddress("benjamin.crocker@epicgames.com"));
+			Message.CC.Add(new MailAddress("tony.oliva@epicgames.com"));
+			Message.CC.Add(new MailAddress("Jaymee.Stanford@epicgames.com"));
 			Message.Subject = String.Format("Nightly lightmap rebuild {0} for {1}", bWasSuccessful ? "[SUCCESS]" : "[FAILED]", Branch);
 			Message.Body = MessageBody;
             /*Attachment Attach = new Attachment();

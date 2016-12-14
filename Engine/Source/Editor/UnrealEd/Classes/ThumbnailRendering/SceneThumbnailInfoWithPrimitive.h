@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Thumbnail information for assets that need a scene and a primitive
@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "ThumbnailManager.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/StringAssetReference.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
 
 #include "SceneThumbnailInfoWithPrimitive.generated.h"
 

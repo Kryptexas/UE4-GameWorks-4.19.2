@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Modules/ModuleInterface.h"
 #include "HardwareTargetingSettings.h"
+
+class SWidget;
 
 DECLARE_DELEGATE_OneParam(FOnHardwareClassChanged, EHardwareClass::Type)
 DECLARE_DELEGATE_OneParam(FOnGraphicsPresetChanged, EGraphicsPreset::Type)

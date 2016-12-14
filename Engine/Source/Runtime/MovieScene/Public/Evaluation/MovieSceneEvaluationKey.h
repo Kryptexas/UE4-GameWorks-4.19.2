@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneTrackIdentifier.h"
+#include "CoreMinimal.h"
+#include "MovieSceneSequenceID.h"
+#include "Evaluation/MovieSceneTrackIdentifier.h"
 
 /** Keyable struct that represents a particular entity within an evaluation template (either a section/template or a track) */
 struct FMovieSceneEvaluationKey

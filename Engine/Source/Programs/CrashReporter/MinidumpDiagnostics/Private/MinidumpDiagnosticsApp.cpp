@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "MinidumpDiagnosticsApp.h"
 #include "ModuleManager.h"
 #include "CrashDebugHelperModule.h"
+#include "CrashDebugHelper.h"
+#include "Misc/Paths.h"
 
 int32 RunMinidumpDiagnostics(int32 ArgC, TCHAR* Argv[])
 {

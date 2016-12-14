@@ -1,101 +1,104 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*-----------------------------------------------------------------------------
 	ULineBatchComponent implementation.
 -----------------------------------------------------------------------------*/
 
-#include "EnginePrivate.h"
 #include "Components/LineBatchComponent.h"
+#include "EngineGlobals.h"
+#include "PrimitiveViewRelevance.h"
 #include "PrimitiveSceneProxy.h"
+#include "Engine/Engine.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "Engine/CollisionProfile.h"
+#include "SceneManagement.h"
 #include "DynamicMeshBuilder.h"
 
-
-/** Represents a LineBatchComponent to the scene manager. */
-class FLineBatcherSceneProxy : public FPrimitiveSceneProxy
+FLineBatcherSceneProxy::FLineBatcherSceneProxy(const ULineBatchComponent* InComponent) :
+	FPrimitiveSceneProxy(InComponent), Lines(InComponent->BatchedLines), 
+	Points(InComponent->BatchedPoints), Meshes(InComponent->BatchedMeshes)
 {
-public:
-	FLineBatcherSceneProxy(const ULineBatchComponent* InComponent) :
-		FPrimitiveSceneProxy(InComponent), Lines(InComponent->BatchedLines), 
-		Points(InComponent->BatchedPoints), Meshes(InComponent->BatchedMeshes)
-	{
-		bWillEverBeLit = false;
-		ViewRelevance.bDrawRelevance = true;
-		ViewRelevance.bDynamicRelevance = true;
-		// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
-		ViewRelevance.bSeparateTranslucencyRelevance = ViewRelevance.bNormalTranslucencyRelevance = true;
-	}
+	bWillEverBeLit = false;
+}
 
-	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_LineBatcherSceneProxy_GetDynamicMeshElements );
+void FLineBatcherSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
+{
+	QUICK_SCOPE_CYCLE_COUNTER( STAT_LineBatcherSceneProxy_GetDynamicMeshElements );
 
-		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+	{
+		if (VisibilityMap & (1 << ViewIndex))
 		{
-			if (VisibilityMap & (1 << ViewIndex))
+			const FSceneView* View = Views[ViewIndex];
+			FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+
+			for (int32 i = 0; i < Lines.Num(); i++)
 			{
-				const FSceneView* View = Views[ViewIndex];
-				FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+				PDI->DrawLine(Lines[i].Start, Lines[i].End, Lines[i].Color, Lines[i].DepthPriority, Lines[i].Thickness);
+			}
 
-				for (int32 i = 0; i < Lines.Num(); i++)
+			for (int32 i = 0; i < Points.Num(); i++)
+			{
+				PDI->DrawPoint(Points[i].Position, Points[i].Color, Points[i].PointSize, Points[i].DepthPriority);
+			}
+
+			for (int32 i = 0; i < Meshes.Num(); i++)
+			{
+				static FVector const PosX(1.f,0,0);
+				static FVector const PosY(0,1.f,0);
+				static FVector const PosZ(0,0,1.f);
+
+				FBatchedMesh const& M = Meshes[i];
+
+				// this seems far from optimal in terms of perf, but it's for debugging
+				FDynamicMeshBuilder MeshBuilder;
+
+				// set up geometry
+				for (int32 VertIdx=0; VertIdx < M.MeshVerts.Num(); ++VertIdx)
 				{
-					PDI->DrawLine(Lines[i].Start, Lines[i].End, Lines[i].Color, Lines[i].DepthPriority, Lines[i].Thickness);
+					MeshBuilder.AddVertex( M.MeshVerts[VertIdx], FVector2D::ZeroVector, PosX, PosY, PosZ, FColor::White );
+				}
+				//MeshBuilder.AddTriangles(M.MeshIndices);
+				for (int32 Idx=0; Idx < M.MeshIndices.Num(); Idx+=3)
+				{
+					MeshBuilder.AddTriangle( M.MeshIndices[Idx], M.MeshIndices[Idx+1], M.MeshIndices[Idx+2] );
 				}
 
-				for (int32 i = 0; i < Points.Num(); i++)
-				{
-					PDI->DrawPoint(Points[i].Position, Points[i].Color, Points[i].PointSize, Points[i].DepthPriority);
-				}
-
-				for (int32 i = 0; i < Meshes.Num(); i++)
-				{
-					static FVector const PosX(1.f,0,0);
-					static FVector const PosY(0,1.f,0);
-					static FVector const PosZ(0,0,1.f);
-
-					FBatchedMesh const& M = Meshes[i];
-
-					// this seems far from optimal in terms of perf, but it's for debugging
-					FDynamicMeshBuilder MeshBuilder;
-
-					// set up geometry
-					for (int32 VertIdx=0; VertIdx < M.MeshVerts.Num(); ++VertIdx)
-					{
-						MeshBuilder.AddVertex( M.MeshVerts[VertIdx], FVector2D::ZeroVector, PosX, PosY, PosZ, FColor::White );
-					}
-					//MeshBuilder.AddTriangles(M.MeshIndices);
-					for (int32 Idx=0; Idx < M.MeshIndices.Num(); Idx+=3)
-					{
-						MeshBuilder.AddTriangle( M.MeshIndices[Idx], M.MeshIndices[Idx+1], M.MeshIndices[Idx+2] );
-					}
-
-					FMaterialRenderProxy* const MaterialRenderProxy = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), M.Color);
-					MeshBuilder.GetMesh(FMatrix::Identity, MaterialRenderProxy, M.DepthPriority, false, false, ViewIndex, Collector);
-				}
+				FMaterialRenderProxy* const MaterialRenderProxy = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), M.Color);
+				MeshBuilder.GetMesh(FMatrix::Identity, MaterialRenderProxy, M.DepthPriority, false, false, ViewIndex, Collector);
 			}
 		}
 	}
+}
 
-	/**
-	*  Returns a struct that describes to the renderer when to draw this proxy.
-	*	@param		Scene view to use to determine our relevence.
-	*  @return		View relevance struct
-	*/
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
-	{
-		return ViewRelevance;
-	}
-	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
-	uint32 GetAllocatedSize( void ) const 
-	{ 
-		return( FPrimitiveSceneProxy::GetAllocatedSize() + Lines.GetAllocatedSize() + Points.GetAllocatedSize() + Meshes.GetAllocatedSize() ); 
-	}
-
-private:
-	TArray<FBatchedLine> Lines;
-	TArray<FBatchedPoint> Points;
-	TArray<FBatchedMesh> Meshes;
+/**
+*  Returns a struct that describes to the renderer when to draw this proxy.
+*	@param		Scene view to use to determine our relevence.
+*  @return		View relevance struct
+*/
+FPrimitiveViewRelevance FLineBatcherSceneProxy::GetViewRelevance(const FSceneView* View) const
+{
 	FPrimitiveViewRelevance ViewRelevance;
-};
+	ViewRelevance.bDrawRelevance = IsShown(View);
+	ViewRelevance.bDynamicRelevance = true;
+	// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
+	ViewRelevance.bSeparateTranslucencyRelevance = ViewRelevance.bNormalTranslucencyRelevance = true;
+	return ViewRelevance;
+}
+
+uint32 FLineBatcherSceneProxy::GetMemoryFootprint( void ) const
+{
+	return( sizeof( *this ) + GetAllocatedSize() );
+}
+
+uint32 FLineBatcherSceneProxy::GetAllocatedSize( void ) const 
+{ 
+	return( FPrimitiveSceneProxy::GetAllocatedSize() + Lines.GetAllocatedSize() + Points.GetAllocatedSize() + Meshes.GetAllocatedSize() ); 
+}
+
+
+
 
 ULineBatchComponent::ULineBatchComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -108,6 +111,7 @@ ULineBatchComponent::ULineBatchComponent(const FObjectInitializer& ObjectInitial
 
 	bUseEditorCompositing = true;
 	bGenerateOverlapEvents = false;
+	bCalculateAccurateBounds = true;
 }
 
 void ULineBatchComponent::DrawLine(const FVector& Start, const FVector& End, const FLinearColor& Color, uint8 DepthPriority, const float Thickness, const float LifeTime)
@@ -352,8 +356,42 @@ FPrimitiveSceneProxy* ULineBatchComponent::CreateSceneProxy()
 
 FBoxSphereBounds ULineBatchComponent::CalcBounds( const FTransform& LocalToWorld ) const 
 {
-	const FVector BoxExtent(HALF_WORLD_MAX);
-	return FBoxSphereBounds(FVector::ZeroVector, BoxExtent, BoxExtent.Size());
+	if (!bCalculateAccurateBounds)
+	{
+		const FVector BoxExtent(HALF_WORLD_MAX);
+		return FBoxSphereBounds(FVector::ZeroVector, BoxExtent, BoxExtent.Size());
+	}
+
+	FBox BBox(0);
+	for (const FBatchedLine& Line : BatchedLines)
+	{
+		BBox += Line.Start;
+		BBox += Line.End;
+	}
+
+	for (const FBatchedPoint& Point : BatchedPoints)
+	{
+		BBox += Point.Position;
+	}
+
+	for (const FBatchedMesh& Mesh : BatchedMeshes)
+	{
+		for (const FVector& Vert : Mesh.MeshVerts)
+		{
+			BBox += Vert;
+		}
+	}
+
+	if (BBox.IsValid)
+	{
+		// Points are in world space, so no need to transform.
+		return FBoxSphereBounds(BBox);
+	}
+	else
+	{
+		const FVector BoxExtent(1.f);
+		return FBoxSphereBounds(LocalToWorld.GetLocation(), BoxExtent, 1.f);
+	}
 }
 
 void ULineBatchComponent::Flush()

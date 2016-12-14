@@ -1,14 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
+#include "Widgets/Text/SMultiLineEditableText.h"
+#include "Rendering/DrawElements.h"
+#include "Types/SlateConstants.h"
+#include "Framework/Application/SlateApplication.h"
 
 #if WITH_FANCY_TEXT
 
-#include "TextEditHelper.h"
-#include "PlainTextLayoutMarshaller.h"
-#include "SlateEditableTextLayout.h"
-#include "ReflectionMetadata.h"
-#include "IMenu.h"
+#include "Framework/Text/TextEditHelper.h"
+#include "Framework/Text/PlainTextLayoutMarshaller.h"
+#include "Widgets/Text/SlateEditableTextLayout.h"
+#include "Types/ReflectionMetadata.h"
 
 SMultiLineEditableText::SMultiLineEditableText()
 	: bSelectAllTextWhenFocused(false)
@@ -503,7 +505,7 @@ FReply SMultiLineEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKe
 
 FReply SMultiLineEditableText::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	return FReply::Unhandled();
+	return EditableTextLayout->HandleKeyUp(InKeyEvent);
 }
 
 FReply SMultiLineEditableText::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) 
@@ -578,7 +580,7 @@ FReply SMultiLineEditableText::OnMouseWheel( const FGeometry& MyGeometry, const 
 {
 	if (VScrollBar.IsValid() && VScrollBar->IsNeeded())
 	{
-		const float ScrollAmount = -MouseEvent.GetWheelDelta() * WheelScrollAmount;
+		const float ScrollAmount = -MouseEvent.GetWheelDelta() * GetGlobalScrollAmount();
 
 		const FVector2D PreviousScrollOffset = EditableTextLayout->GetScrollOffset();
 		

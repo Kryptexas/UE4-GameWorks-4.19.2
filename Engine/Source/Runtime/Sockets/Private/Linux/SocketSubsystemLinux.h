@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SocketSubsystem.h"
+#include "CoreMinimal.h"
 #include "BSDSockets/SocketSubsystemBSD.h"
 #include "SocketSubsystemPackage.h"
+
+class Error;
+class FInternetAddr;
 
 /**
  * Android specific socket subsystem implementation

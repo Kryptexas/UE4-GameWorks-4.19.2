@@ -1,5 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "ScriptGeneratorPluginPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "CoreMinimal.h"
+#include "ScriptGeneratorLog.h"
 #include "GenericScriptCodeGenerator.h"
 
 FGenericScriptCodeGenerator::FGenericScriptCodeGenerator(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory, const FString& InIncludeBase)

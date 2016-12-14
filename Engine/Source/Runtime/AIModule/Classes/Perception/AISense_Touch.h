@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Perception/AIPerceptionSystem.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Perception/AISense.h"
 #include "AISense_Touch.generated.h"
 

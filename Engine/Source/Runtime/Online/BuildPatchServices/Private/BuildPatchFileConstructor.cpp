@@ -1,11 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchFileConstructor.cpp: Implements the BuildPatchFileConstructor class
 	that handles creating files in a manifest from the chunks that make it.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchFileConstructor.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "Interfaces/IBuildInstaller.h"
+#include "BuildPatchError.h"
+#include "BuildPatchChunkCache.h"
+#include "BuildPatchUtil.h"
+#include "BuildPatchAnalytics.h"
+#include "BuildPatchServicesPrivate.h"
 
 using namespace BuildPatchConstants;
 

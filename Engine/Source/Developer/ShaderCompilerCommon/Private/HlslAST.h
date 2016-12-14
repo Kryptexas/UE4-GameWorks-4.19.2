@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslAST.h - Abstract Syntax Tree interfaces for HLSL.
@@ -6,7 +6,9 @@
 
 #pragma once
 
-#include "HlslLexer.h"
+#include "CoreMinimal.h"
+#include "Developer/ShaderCompilerCommon/Private/HlslUtils.h"
+#include "Developer/ShaderCompilerCommon/Private/HlslLexer.h"
 
 namespace CrossCompiler
 {

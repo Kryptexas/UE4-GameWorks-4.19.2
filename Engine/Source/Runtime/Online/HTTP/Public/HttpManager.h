@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Ticker.h"
+#include "CoreMinimal.h"
+#include "Interfaces/IHttpRequest.h"
+#include "Runtime/Online/HTTP/Private/IHttpThreadedRequest.h"
+#include "Containers/Ticker.h"
 #include "HttpPackage.h"
 
-class IHttpRequest;
-class IHttpThreadedRequest;
 class FHttpThread;
 
 /**

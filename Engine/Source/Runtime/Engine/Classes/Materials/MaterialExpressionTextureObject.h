@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Node which outputs a texture object itself, instead of sampling the texture first.
@@ -6,8 +6,13 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "MaterialExpressionTextureObject.generated.h"
+
+struct FPropertyChangedEvent;
 
 UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTextureObject : public UMaterialExpressionTextureBase

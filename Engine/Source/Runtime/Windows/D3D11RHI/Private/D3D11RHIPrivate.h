@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11RHIPrivate.h: Private D3D RHI definitions.
@@ -6,13 +6,15 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "D3D11RHI.h"
 // Dependencies.
-#include "Core.h"
 #include "RHI.h"
 #include "GPUProfiler.h"
 #include "ShaderCore.h"
-#include "Engine.h"
+#include "Containers/ResourceArray.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogD3D11RHI, Log, All);
 
@@ -278,6 +280,9 @@ struct FD3DGPUProfiler : public FGPUProfiler
 	void EndFrame();
 };
 
+/** Forward declare the context for the AMD AGS utility library. */
+struct AGSContext;
+
 /** The interface which is implemented by the dynamically bound RHI. */
 class D3D11RHI_API FD3D11DynamicRHI : public FDynamicRHI, public IRHICommandContext
 {
@@ -300,6 +305,7 @@ public:
 	// FDynamicRHI interface.
 	virtual void Init() override;
 	virtual void Shutdown() override;
+	virtual const TCHAR* GetName() override { return TEXT("D3D11"); }
 
 	// HDR display output
 	virtual void EnableHDR( IDXGIOutput* Output);
@@ -323,6 +329,12 @@ public:
 	 * @return true if the query finished.
 	 */
 	bool GetQueryData(ID3D11Query* Query,void* Data,SIZE_T DataSize,bool bWait, ERenderQueryType QueryType);
+
+	virtual void RHIBeginUpdateMultiFrameResource(FTextureRHIParamRef Texture) override;
+	virtual void RHIEndUpdateMultiFrameResource(FTextureRHIParamRef Texture) override;
+
+	virtual void FD3D11DynamicRHI::RHIBeginUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV) override;
+	virtual void FD3D11DynamicRHI::RHIEndUpdateMultiFrameResource(FUnorderedAccessViewRHIParamRef UAV) override;
 
 	virtual FSamplerStateRHIRef RHICreateSamplerState(const FSamplerStateInitializerRHI& Initializer) final override;
 	virtual FRasterizerStateRHIRef RHICreateRasterizerState(const FRasterizerStateInitializerRHI& Initializer) final override;
@@ -592,6 +604,13 @@ protected:
 
 	/** The feature level of the device. */
 	D3D_FEATURE_LEVEL FeatureLevel;
+
+	/**
+	 * The context for the AMD AGS utility library.
+	 * AGSContext does not implement AddRef/Release.
+	 * Just use a bare pointer.
+	 */
+	AGSContext* AmdAgsContext;
 
 	// set by UpdateMSAASettings(), get by GetMSAAQuality()
 	// [SampleCount] = Quality, 0xffffffff if not supported

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "WheeledVehicle.h"
 #include "TP_VehicleAdvPawn.generated.h"
@@ -78,7 +78,10 @@ public:
 
 	// Begin Actor interface
 	virtual void Tick(float Delta) override;
+protected:
 	virtual void BeginPlay() override;
+
+public:
 	// End Actor interface
 
 	/** Handle pressing forwards */

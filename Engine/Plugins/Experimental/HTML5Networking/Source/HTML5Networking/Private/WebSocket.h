@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 //
 // libwebsocket client wrapper.
 //
 #pragma  once
-#include "HTML5NetworkingPCH.h"
+#include "HTML5NetworkingPrivate.h"
 #if !PLATFORM_HTML5_BROWSER
 #include "Runtime/Sockets/Private/BSDSockets/SocketSubsystemBSD.h"
 #else

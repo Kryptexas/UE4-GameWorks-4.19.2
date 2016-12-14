@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineIdentityInterfaceGooglePlay.h"
@@ -10,6 +11,8 @@
 #include "OnlineExternalUIInterfaceGooglePlay.h"
 #include "OnlineAsyncTaskManagerGooglePlay.h"
 #include "UniquePtr.h"
+#include "HAL/RunnableThread.h"
+#include "OnlineStoreInterfaceGooglePlay.h"
 
 #include "gpg/game_services.h"
 #include "gpg/android_platform_configuration.h"

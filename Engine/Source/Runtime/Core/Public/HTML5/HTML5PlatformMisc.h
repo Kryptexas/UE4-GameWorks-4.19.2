@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -7,7 +7,7 @@
 
 #pragma once
 #include "GenericPlatform/GenericPlatformMisc.h"
-#include "HAL/Platform.h"
+#include "CoreTypes.h"
 #include "HTML5/HTML5DebugLogging.h"
 #include "HTML5/HTML5SystemIncludes.h"
 #include <emscripten/emscripten.h>

@@ -1,14 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DestructibleActor.cpp: ADestructibleActor methods.
 =============================================================================*/
 
 
-#include "EnginePrivate.h"
-#include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsEngine/DestructibleActor.h"
 #include "Components/DestructibleComponent.h"
+#include "Engine/SkeletalMesh.h"
 
 ADestructibleActor::ADestructibleActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

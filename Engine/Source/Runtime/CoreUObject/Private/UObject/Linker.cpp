@@ -1,15 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Linker.cpp: Unreal object linker.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "SecureHash.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "LinkerManager.h"
+#include "UObject/Linker.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/UnrealType.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
+#include "Misc/SecureHash.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "UObject/LinkerManager.h"
 #include "UObject/UObjectThreadContext.h"
+#include "UObject/DebugSerializationFlags.h"
 
 DEFINE_LOG_CATEGORY(LogLinker);
 
@@ -333,6 +342,11 @@ FLinker::~FLinker()
 
 void ResetLoaders(UObject* InPkg)
 {
+	if (IsAsyncLoading())
+	{
+		UE_LOG(LogLinker, Log, TEXT("ResetLoaders(%s) is flushing async loading"), *GetPathNameSafe(InPkg));
+	}
+
 	// Make sure we're not in the middle of loading something in the background.
 	FlushAsyncLoading();
 	FLinkerManager::Get().ResetLoaders(InPkg);
@@ -508,6 +522,8 @@ FLinkerLoad* GetPackageLinker
 		return Result;
 	}
 
+	UPackage* CreatedPackage = nullptr;
+
 	FString NewFilename;
 	if( !InLongPackageName )
 	{
@@ -604,9 +620,10 @@ FLinkerLoad* GetPackageLinker
 		}
 
 		// Create the package with the provided long package name.
-		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : CreatePackage(nullptr, *PackageNameToCreate));
+		UPackage* FilenamePkg = (ExistingPackage ? ExistingPackage : (CreatedPackage = CreatePackage(nullptr, *PackageNameToCreate)));
 		if (FilenamePkg && FilenamePkg != ExistingPackage && (LoadFlags & LOAD_PackageForPIE))
 		{
+			check(FilenamePkg);
 			FilenamePkg->SetPackageFlags(PKG_PlayInEditor);
 		}
 
@@ -652,6 +669,17 @@ FLinkerLoad* GetPackageLinker
 		check(NewFilename.Len() > 0);
 
 		Result = FLinkerLoad::CreateLinker( InOuter, *NewFilename, LoadFlags );
+	}
+
+	if ( !Result && CreatedPackage )
+	{
+		// kill it with fire
+		CreatedPackage->MarkPendingKill();
+		/*static int32 FailedPackageLoadIndex = 0;
+		++FailedPackageLoadIndex;
+		FString FailedLinkerLoad = FString::Printf(TEXT("/Temp/FailedLinker_%s_%d"), *NewFilename, FailedPackageLoadIndex);
+		
+		CreatedPackage->Rename(*FailedLinkerLoad);*/
 	}
 
 	// Verify compatibility.

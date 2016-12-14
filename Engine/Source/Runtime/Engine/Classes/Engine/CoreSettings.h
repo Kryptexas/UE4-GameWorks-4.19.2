@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Curves/CurveFloat.h"
-#include "UserInterfaceSettings.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/DeveloperSettings.h"
 
 #include "CoreSettings.generated.h"
 
+struct FPropertyChangedEvent;
 
 /**
  * Rendering settings.
@@ -111,6 +113,10 @@ extern ENGINE_API float GPriorityAsyncLoadingExtraTime;
 extern ENGINE_API float GLevelStreamingActorsUpdateTimeLimit;
 /** Batching granularity used to register actor components during level streaming. */
 extern ENGINE_API int32 GLevelStreamingComponentsRegistrationGranularity;
+/** Batching granularity used to unregister actor components during level streaming.  */
+extern ENGINE_API int32 GLevelStreamingComponentsUnregistrationGranularity;
+/** Maximum allowed time to spend for actor unregistration steps during level streaming (ms per frame). If this is 0.0 then we don't timeslice.*/
+extern ENGINE_API float GLevelStreamingUnregisterComponentsTimeLimit;
 
 /**
 * Implements the settings for garbage collection.

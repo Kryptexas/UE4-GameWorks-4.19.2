@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanSwapChain.h: Vulkan viewport RHI definitions.
 =============================================================================*/
 
 #pragma once
+
+namespace VulkanRHI
+{
+	class FFence;
+}
 
 class FVulkanQueue;
 
@@ -28,7 +33,7 @@ protected:
 	int32 SemaphoreIndex;
 	VkInstance Instance;
 	TArray<FVulkanSemaphore*> ImageAcquiredSemaphore;
-	TArray<VkFence> ImageAcquiredFences;
+	TArray<VulkanRHI::FFence*> ImageAcquiredFences;
 
 	int32 AcquireImageIndex(FVulkanSemaphore** OutSemaphore);
 

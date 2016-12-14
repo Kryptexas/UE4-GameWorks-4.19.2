@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Json.h"
-#include "JsonObjectConverter.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
 
 #include "JsonObjectWrapper.generated.h"
+
+class FJsonObject;
 
 /** UStruct that holds a JsonObject, can be used by structs passed to JsonObjectConverter to pass through JsonObjects directly */
 USTRUCT()
@@ -34,7 +38,6 @@ struct TStructOpsTypeTraits<FJsonObjectWrapper> : public TStructOpsTypeTraitsBas
 		WithPostSerialize = true,
 	};
 };
-
 UCLASS()
 class UJsonUtilitiesDummyObject : public UObject
 {

@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
 #include "UObject/ObjectResource.h"
+#include "UObject/Class.h"
 
 /*-----------------------------------------------------------------------------
 	Helper functions.
@@ -146,40 +146,36 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 -----------------------------------------------------------------------------*/
 
 FObjectImport::FObjectImport()
-:	FObjectResource	()
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-,	bImportPackageHandled(false)
-, bImportSearchedFor(false)
-#endif
-
+	: FObjectResource()
+	, bImportPackageHandled(false)
+	, bImportSearchedFor(false)
+	, bImportFailed(false)
 {
 }
 
-FObjectImport::FObjectImport( UObject* InObject )
-:	FObjectResource	( InObject																)
-,	ClassPackage	( InObject ? InObject->GetClass()->GetOuter()->GetFName()	: NAME_None	)
-,	ClassName		( InObject ? InObject->GetClass()->GetFName()				: NAME_None	)
-,	XObject			( InObject																)
-,	SourceLinker	( NULL																	)
-,	SourceIndex		( INDEX_NONE															)
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-, bImportPackageHandled(false)
-, bImportSearchedFor(false)
-#endif
+FObjectImport::FObjectImport(UObject* InObject)
+	: FObjectResource(InObject)
+	, ClassPackage(InObject ? InObject->GetClass()->GetOuter()->GetFName() : NAME_None)
+	, ClassName(InObject ? InObject->GetClass()->GetFName() : NAME_None)
+	, XObject(InObject)
+	, SourceLinker(NULL)
+	, SourceIndex(INDEX_NONE)
+	, bImportPackageHandled(false)
+	, bImportSearchedFor(false)
+	, bImportFailed(false)
 {
 }
 
 FObjectImport::FObjectImport(UObject* InObject, UClass* InClass)
-:	FObjectResource	( InObject																)
-,	ClassPackage	( (InObject && InClass) ? InClass->GetOuter()->GetFName()	: NAME_None	)
-,	ClassName		( (InObject && InClass) ? InClass->GetFName()				: NAME_None	)
-,	XObject			( InObject																)
-,	SourceLinker	( NULL																	)
-,	SourceIndex		( INDEX_NONE															)
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-, bImportPackageHandled(false)
-, bImportSearchedFor(false)
-#endif
+	: FObjectResource(InObject)
+	, ClassPackage((InObject && InClass) ? InClass->GetOuter()->GetFName() : NAME_None)
+	, ClassName((InObject && InClass) ? InClass->GetFName() : NAME_None)
+	, XObject(InObject)
+	, SourceLinker(NULL)
+	, SourceIndex(INDEX_NONE)
+	, bImportPackageHandled(false)
+	, bImportSearchedFor(false)
+	, bImportFailed(false)
 {
 }
 

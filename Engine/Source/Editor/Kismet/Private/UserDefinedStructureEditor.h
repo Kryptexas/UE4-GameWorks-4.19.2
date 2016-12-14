@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Toolkits/IToolkitHost.h"
 #include "BlueprintEditorModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
+#include "IDetailsView.h"
+
+class FStructureDefaultValueView;
 
 class FUserDefinedStructureEditor : public IUserDefinedStructureEditor
 {

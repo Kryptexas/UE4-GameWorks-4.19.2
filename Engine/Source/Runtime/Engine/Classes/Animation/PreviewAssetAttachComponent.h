@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * This is a component used by USkeleton and USkeletalMesh 
@@ -8,6 +8,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/AssetPtr.h"
 #include "PreviewAssetAttachComponent.generated.h"
 
 /** Preview items that are attached to the skeleton **/

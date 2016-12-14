@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -24,12 +24,17 @@ namespace UnrealBuildTool
 		/// Visual Studio 2015 (Visual C++ 14.0)
 		VisualStudio2015,
 
-		/// Visual Studio "15" (2017?) (Visual C++ 15.0)
+		/// Visual Studio 2017 (Visual C++ 15.0)
 		VisualStudio2017,
 	}
 
 	public class WindowsPlatformContext : UEBuildPlatformContext
 	{
+		/// <summary>
+		/// Enable PIX debugging (automatically disabled in Shipping and Test configs)
+		/// </summary>
+		private bool bPixProfilingEnabled = true;
+
 		/// <summary>
 		/// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
 		/// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
@@ -37,20 +42,67 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool SupportWindowsXP;
 
+		/// <summary>
+		/// The name of the company (author, provider) that created the project.
+		/// </summary>
+		private string CompanyName;
+
+		/// <summary>
+		/// The project's copyright and/or trademark notices.
+		/// </summary>
+		private string CopyrightNotice;
+
+		/// <summary>
+		/// The project's name.
+		/// </summary>
+		private string ProductName;
+
 		public WindowsPlatformContext(UnrealTargetPlatform InPlatform, FileReference InProjectFile) : base(InPlatform, InProjectFile)
 		{
 			if(Platform == UnrealTargetPlatform.Win32)
 			{
 				// ...check if it was supported from a config.
 				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", DirectoryReference.FromFile(ProjectFile));
+				String IniPath = "/Script/WindowsTargetPlatform.WindowsTargetSettings";
+				bool bSetting = false;
+				if (Ini.GetBool(IniPath, "bEnablePIXProfiling", out bSetting))
+				{
+					bPixProfilingEnabled = bSetting;
+				}
+
 				string MinimumOS;
-				if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "MinimumOSVersion", out MinimumOS))
+				if (Ini.GetString(IniPath, "MinimumOSVersion", out MinimumOS))
 				{
 					if (string.IsNullOrEmpty(MinimumOS) == false)
 					{
-						SupportWindowsXP = MinimumOS == "MSOS_XP";
+						SupportWindowsXP = (MinimumOS == "MSOS_XP");
+						if (SupportWindowsXP)
+						{
+							Log.TraceWarningOnce("Support for Windows XP has been deprecated in this release. Please update your MinimumOSVersion setting.");
+						}
 					}
 				}
+			}
+
+			// define and load game.ini
+			ConfigCacheIni GameIni = ConfigCacheIni.CreateConfigCacheIni(InPlatform, "Game", DirectoryReference.FromFile(ProjectFile));
+
+			string IniCompanyName;
+			if (GameIni.GetString("/Script/EngineSettings.GeneralProjectSettings", "CompanyName", out IniCompanyName))
+			{
+				CompanyName = IniCompanyName;
+			}
+
+			string IniCopyrightNotice;
+			if (GameIni.GetString("/Script/EngineSettings.GeneralProjectSettings", "CopyrightNotice", out IniCopyrightNotice))
+			{
+				CopyrightNotice = IniCopyrightNotice;
+			}
+
+			string IniProjectName;
+			if (GameIni.GetString("/Script/EngineSettings.GeneralProjectSettings", "ProjectName", out IniProjectName))
+			{
+				ProductName = IniProjectName;
 			}
 		}
 
@@ -114,6 +166,16 @@ namespace UnrealBuildTool
 
 			if (ModuleName == "D3D12RHI")
 			{
+				if (bPixProfilingEnabled && Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test)
+				{
+					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=1");
+					Rules.Definitions.Add("PROFILE");
+				}
+				else
+				{
+					Rules.Definitions.Add("D3D12_PROFILING_ENABLED=0");
+				}
+
 				// To enable platform specific D3D12 RHI Types
 				Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
 			}
@@ -147,6 +209,9 @@ namespace UnrealBuildTool
 					Rules.PublicDelayLoadDLLs.Add("dxgi.dll");
 				}
 			}
+
+			// Delay-load D3D12 so we can use the latest features and still run on downlevel versions of the OS
+			Rules.PublicDelayLoadDLLs.Add("d3d12.dll");
 		}
 
 		public override void ResetBuildConfiguration(UnrealTargetConfiguration Configuration)
@@ -363,20 +428,6 @@ namespace UnrealBuildTool
 
 				// IME
 				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("imm32.lib");
-
-				// Setup assembly path for .NET modules.  This will only be used when CLR is enabled. (CPlusPlusCLR module types)
-				InBuildTarget.GlobalCompileEnvironment.Config.SystemDotNetAssemblyPaths.Add(
-					Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) +
-					"/Reference Assemblies/Microsoft/Framework/.NETFramework/v4.0");
-
-				// Setup default assemblies for .NET modules.  These will only be used when CLR is enabled. (CPlusPlusCLR module types)
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Data.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Drawing.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Xml.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Management.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("System.Windows.Forms.dll");
-				InBuildTarget.GlobalCompileEnvironment.Config.FrameworkAssemblyDependencies.Add("WindowsBase.dll");
 			}
 
 			// Disable Simplygon support if compiling against the NULL RHI.
@@ -392,12 +443,35 @@ namespace UnrealBuildTool
 			{
 				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalArguments += " /ignore:4078";
 			}
+
+			if (!TargetRules.IsEditorType(InBuildTarget.TargetType))
+			{
+				if (!string.IsNullOrEmpty(CompanyName))
+				{
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add(String.Format("PROJECT_COMPANY_NAME={0}", CompanyName));
+				}
+
+				if (!string.IsNullOrEmpty(CopyrightNotice))
+				{
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add(String.Format("PROJECT_COPYRIGHT_STRING={0}", CopyrightNotice));
+				}
+
+				if (!string.IsNullOrEmpty(ProductName))
+				{
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add(String.Format("PROJECT_PRODUCT_NAME={0}", ProductName));
+				}
+
+				if (ProjectFile != null)
+				{
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add(String.Format("PROJECT_PRODUCT_IDENTIFIER={0}", ProjectFile.GetFileNameWithoutExtension()));
+				}
+			}
 		}
 
 		/// <summary>
 		/// Setup the configuration environment for building
 		/// </summary>
-		/// <param name="InBuildTarget"> The target being built</param>
+		/// <param name="Target"> The target being built</param>
 		public override void SetUpConfigurationEnvironment(TargetInfo Target, CPPEnvironment GlobalCompileEnvironment, LinkEnvironment GlobalLinkEnvironment)
 		{
 			// Determine the C++ compile/link configuration based on the Unreal configuration.
@@ -439,8 +513,8 @@ namespace UnrealBuildTool
 			}
 
 			// Set up the global C++ compilation and link environment.
-			GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
-			GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
+			GlobalCompileEnvironment.Config.Configuration = CompileConfiguration;
+			GlobalLinkEnvironment.Config.Configuration = CompileConfiguration;
 
 			// Create debug info based on the heuristics specified by the user.
 			GlobalCompileEnvironment.Config.bCreateDebugInfo =
@@ -697,7 +771,7 @@ namespace UnrealBuildTool
 				case WindowsCompiler.VisualStudio2015:
 					return "Visual Studio 2015";
 				case WindowsCompiler.VisualStudio2017:
-					return "Visual Studio \"15\"";
+					return "Visual Studio 2017";
 				default:
 					return Compiler.ToString();
 			}
@@ -805,7 +879,7 @@ namespace UnrealBuildTool
 				DirectoryReference VSInstallDir;
 				if(TryGetVSInstallDir(Compiler, out VSInstallDir))
 				{
-					FileReference VersionPath = FileReference.Combine(VSInstallDir, "Common7", "IDE", "VisualCpp", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
+					FileReference VersionPath = FileReference.Combine(VSInstallDir, "VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
 					if(VersionPath.Exists())
 					{
 						InstallDir = VersionPath.Directory.ParentDirectory.ParentDirectory;

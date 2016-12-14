@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Animation/AnimCurveTypes.h"
 #include "Animation/AnimNodeBase.h"
+#include "Animation/AnimInstance.h"
 #include "AnimNode_SubInstance.generated.h"
+
+struct FAnimInstanceProxy;
 
 USTRUCT()
 struct ENGINE_API FAnimNode_SubInstance : public FAnimNode_Base

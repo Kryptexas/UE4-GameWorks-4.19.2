@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 #include "OnlineKeyValuePair.h"
 #include "OnlineSessionSettings.h"
-#include "Sockets.h"
+#include "IPAddress.h"
 
 /**
  * Serializes data in network byte order form into a buffer

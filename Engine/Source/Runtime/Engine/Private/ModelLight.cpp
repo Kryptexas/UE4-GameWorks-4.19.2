@@ -1,17 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ModelLight.cpp: Unreal model lighting.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "TextureLayout.h"
 #include "ModelLight.h"
+#include "EngineDefines.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "Misc/ScopedSlowTask.h"
+#include "ComponentReregisterContext.h"
+#include "UnrealEngine.h"
+#include "TextureLayout.h"
 #include "Collision.h"
-#include "Model.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
-#include "ComponentReregisterContext.h"
 #include "ComponentRecreateRenderStateContext.h"
 #include "Components/ModelComponent.h"
 
@@ -244,9 +247,9 @@ void UModelComponent::ApplyTempElements(bool bLightingWasSuccessful)
 		for (int32 ModelIndex = 0; ModelIndex < UpdatedModels.Num(); ModelIndex++)
 		{
 			UModel* Model = UpdatedModels[ModelIndex];
-			for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers); IndexBufferIt; ++IndexBufferIt)
+			for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers); IndexBufferIt; ++IndexBufferIt)
 			{
-				BeginReleaseResource(IndexBufferIt.Value());
+				BeginReleaseResource(IndexBufferIt->Value.Get());
 			}
 		}
 
@@ -266,9 +269,9 @@ void UModelComponent::ApplyTempElements(bool bLightingWasSuccessful)
 		for (int32 ModelIndex = 0; ModelIndex < UpdatedModels.Num(); ModelIndex++)
 		{
 			UModel* Model = UpdatedModels[ModelIndex];
-			for(TMap<UMaterialInterface*,TScopedPointer<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers); IndexBufferIt; ++IndexBufferIt)
+			for(TMap<UMaterialInterface*,TUniquePtr<FRawIndexBuffer16or32> >::TIterator IndexBufferIt(Model->MaterialIndexBuffers); IndexBufferIt; ++IndexBufferIt)
 			{
-				BeginInitResource(IndexBufferIt.Value());
+				BeginInitResource(IndexBufferIt->Value.Get());
 			}
 
 			// Mark the model's package as dirty.

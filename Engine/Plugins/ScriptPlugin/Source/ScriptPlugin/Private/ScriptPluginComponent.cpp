@@ -1,5 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved. 
-#include "ScriptPluginPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved. 
+
+#include "ScriptPluginComponent.h"
+#include "Engine/World.h"
 
 //////////////////////////////////////////////////////////////////////////
 

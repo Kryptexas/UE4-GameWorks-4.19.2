@@ -1,12 +1,15 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieScene.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneNameableTrack.h"
-#include "MovieSceneSpawnTrack.h"
-#include "MovieScenePropertyTrack.h"
+#include "Tracks/MovieSceneSpawnTrack.h"
+#include "Tracks/MovieScenePropertyTrack.h"
 #include "MovieSceneLevelVisibilityTrack.generated.h"
+
+struct FMovieSceneEvaluationTrack;
 
 /**
  * A track for controlling the visibility of streamed levels.

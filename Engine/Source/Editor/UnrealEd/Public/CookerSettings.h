@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CookerSettings.h: Declares the UCookerSettings class.
@@ -6,7 +6,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/DeveloperSettings.h"
 #include "CookerSettings.generated.h"
+
+struct FPropertyChangedEvent;
 
 /**
  * Various cooker settings.
@@ -51,7 +56,7 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Textures, meta = (DisplayName = "PVRTC Compression Quality (0-4, 0 is fastest)"))
 	int32 DefaultPVRTCQuality;
 
-	/** Quality of 0 means fastest, 3 means best quality */
+	/** Quality of 0 means fastest, 4 means best quality */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Textures, meta = (DisplayName = "ASTC Compression Quality vs Speed (0-4, 0 is fastest)"))
 	int32 DefaultASTCQualityBySpeed;
 

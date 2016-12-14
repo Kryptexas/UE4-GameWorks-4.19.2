@@ -1,20 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SceneTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/ScopedPointer.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Components/MeshComponent.h"
-#include "Runtime/RenderCore/Public/PackedNormal.h"
+#include "PackedNormal.h"
 #include "RawIndexBuffer.h"
+#include "UniquePtr.h"
 #include "StaticMeshComponent.generated.h"
 
 class FColorVertexBuffer;
-class UStaticMesh;
+class FLightingBuildOptions;
+class FMeshMapBuildData;
+class FPrimitiveSceneProxy;
 class FStaticMeshStaticLightingMesh;
 class ULightComponent;
-struct FEngineShowFlags;
+class UStaticMesh;
+class UStaticMeshComponent;
 struct FConvexVolume;
-struct FStreamingTextureBuildInfo;
+struct FEngineShowFlags;
+struct FNavigableGeometryExport;
+struct FNavigationRelevantData;
+struct FStaticLightingPrimitiveInfo;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
@@ -68,7 +82,7 @@ struct FStaticMeshComponentLODInfo
 	FMeshMapBuildData* LegacyMapBuildData;
 
 	/** Transient override lightmap data, used by landscape grass. */
-	TScopedPointer<FMeshMapBuildData> OverrideMapBuildData;
+	TUniquePtr<FMeshMapBuildData> OverrideMapBuildData;
 
 	/** Vertex data cached at the time this LOD was painted, if any */
 	UPROPERTY()
@@ -226,7 +240,7 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(InlineEditConditionToggle))
 	uint32 bOverrideLightMapRes:1;
 
-	/** Light map resolution to use on this component, used if bOverrideLightMapRes is true */
+	/** Light map resolution to use on this component, used if bOverrideLightMapRes is true and there is a valid StaticMesh. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, meta=(ClampMax = 4096, editcondition="bOverrideLightMapRes") )
 	int32 OverriddenLightMapRes;
 
@@ -283,7 +297,11 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 
 	/** Material Bounds used for texture streaming. */
 	UPROPERTY(NonTransactional)
-	TArray<FBox> MaterialStreamingBounds;
+	TArray<uint32> MaterialStreamingRelativeBoxes;
+
+	/** The component has some custom painting on LODs or not. */
+	UPROPERTY()
+	bool bCustomOverrideVertexColorPerLOD;
 #endif
 
 	/** The Lightmass settings for this object. */
@@ -354,6 +372,8 @@ public:
 protected: 
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
+	virtual void OnCreatePhysicsState() override;
+	virtual void OnDestroyPhysicsState() override;
 public:
 	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 	virtual UObject const* AdditionalStatObject() const override;

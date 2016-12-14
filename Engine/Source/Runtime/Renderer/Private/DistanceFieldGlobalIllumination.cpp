@@ -1,21 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldGlobalIllumination.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "UniformBuffer.h"
-#include "ShaderParameters.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
-#include "DistanceFieldLightingShared.h"
-#include "DistanceFieldSurfaceCacheLighting.h"
 #include "DistanceFieldGlobalIllumination.h"
-#include "RHICommandList.h"
-#include "SceneUtils.h"
-#include "DistanceFieldAtlas.h"
+#include "DistanceFieldLightingShared.h"
+#include "UniquePtr.h"
 
 int32 GDistanceFieldGI = 0;
 FAutoConsoleVariableRef CVarDistanceFieldGI(
@@ -376,7 +367,7 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FCullVPLsForViewCS,TEXT("DistanceFieldGlobalIllumination"),TEXT("CullVPLsForViewCS"),SF_Compute);
 
-TScopedPointer<FLightTileIntersectionResources> GVPLPlacementTileIntersectionResources;
+TUniquePtr<FLightTileIntersectionResources> GVPLPlacementTileIntersectionResources;
 
 void PlaceVPLs(
 	FRHICommandListImmediate& RHICmdList,
@@ -526,7 +517,7 @@ void PlaceVPLs(
 			TShaderMapRef<FVPLPlacementCS> ComputeShader(View.ShaderMap);
 
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-			ComputeShader->SetParameters(RHICmdList, View, DirectionalLightProxy, FVector2D(1.0f / GVPLGridDimension, 1.0f / GVPLGridDimension), DirectionalLightShadowToWorld, DirectionalLightShadowToWorld.InverseFast(), GVPLPlacementTileIntersectionResources);
+			ComputeShader->SetParameters(RHICmdList, View, DirectionalLightProxy, FVector2D(1.0f / GVPLGridDimension, 1.0f / GVPLGridDimension), DirectionalLightShadowToWorld, DirectionalLightShadowToWorld.InverseFast(), GVPLPlacementTileIntersectionResources.Get());
 			DispatchComputeShader(RHICmdList, *ComputeShader, FMath::DivideAndRoundUp<int32>(GVPLGridDimension, GDistanceFieldAOTileSizeX), FMath::DivideAndRoundUp<int32>(GVPLGridDimension, GDistanceFieldAOTileSizeY), 1);
 
 			ComputeShader->UnsetParameters(RHICmdList);
@@ -880,7 +871,7 @@ void UpdateVPLs(
 				{
 					TShaderMapRef<FLightVPLsCS> ComputeShader(View.ShaderMap);
 					RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-					ComputeShader->SetParameters(RHICmdList, View, DirectionalLightProxy, DirectionalLightWorldToShadow, Parameters, GVPLPlacementTileIntersectionResources);
+					ComputeShader->SetParameters(RHICmdList, View, DirectionalLightProxy, DirectionalLightWorldToShadow, Parameters, GVPLPlacementTileIntersectionResources.Get());
 					DispatchIndirectComputeShader(RHICmdList, *ComputeShader, GAOCulledObjectBuffers.Buffers.ObjectIndirectDispatch.Buffer, 0);
 					ComputeShader->UnsetParameters(RHICmdList);
 				}

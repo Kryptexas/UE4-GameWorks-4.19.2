@@ -1,29 +1,42 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
-#include "SoundDefinitions.h"
-#include "PlatformFeatures.h"
-#include "LatentActions.h"
-#include "IInputInterface.h"
-#include "SlateBasics.h"
-#include "Particles/ParticleSystemComponent.h"
-#include "GameFramework/Character.h"
-#include "Sound/DialogueWave.h"
-#include "Sound/SoundBase.h"
-#include "Sound/SoundCue.h"
-#include "Engine/GameInstance.h"
-#include "GameFramework/GameModeBase.h"
-#include "GameFramework/GameStateBase.h"
-#include "GameFramework/SaveGame.h"
+#include "Kismet/GameplayStatics.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/CustomVersion.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
+#include "Misc/PackageName.h"
+#include "Misc/EngineVersion.h"
 #include "GameFramework/DamageType.h"
+#include "GameFramework/Pawn.h"
+#include "WorldCollision.h"
+#include "SceneView.h"
+#include "Components/PrimitiveComponent.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/Package.h"
+#include "Audio.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/CollisionProfile.h"
+#include "ParticleHelper.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LocalPlayer.h"
+#include "ActiveSound.h"
+#include "DrawDebugHelpers.h"
+#include "EngineUtils.h"
+#include "AudioDevice.h"
+#include "SaveGameSystem.h"
+#include "DVRStreaming.h"
+#include "PlatformFeatures.h"
+#include "GameFramework/Character.h"
+#include "Sound/SoundBase.h"
+#include "Sound/DialogueWave.h"
+#include "GameFramework/SaveGame.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Components/DecalComponent.h"
+#include "Components/ForceFeedbackComponent.h"
 #include "LandscapeProxy.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
+#include "Logging/MessageLog.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "Components/LineBatchComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
 
@@ -66,7 +79,7 @@ class APlayerController* UGameplayStatics::GetPlayerController(const UObject* Wo
 		uint32 Index = 0;
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if (Index == PlayerIndex)
 			{
 				return PlayerController;
@@ -314,7 +327,7 @@ bool UGameplayStatics::ApplyRadialDamageWithFalloff(const UObject* WorldContextO
 	return bAppliedDamage;
 }
 
-void UGameplayStatics::ApplyPointDamage(AActor* DamagedActor, float BaseDamage, FVector const& HitFromDirection, FHitResult const& HitInfo, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<UDamageType> DamageTypeClass)
+float UGameplayStatics::ApplyPointDamage(AActor* DamagedActor, float BaseDamage, FVector const& HitFromDirection, FHitResult const& HitInfo, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<UDamageType> DamageTypeClass)
 {
 	if (DamagedActor && BaseDamage != 0.f)
 	{
@@ -322,11 +335,13 @@ void UGameplayStatics::ApplyPointDamage(AActor* DamagedActor, float BaseDamage, 
 		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
 		FPointDamageEvent PointDamageEvent(BaseDamage, HitInfo, HitFromDirection, ValidDamageTypeClass);
 
-		DamagedActor->TakeDamage(BaseDamage, PointDamageEvent, EventInstigator, DamageCauser);
+		return DamagedActor->TakeDamage(BaseDamage, PointDamageEvent, EventInstigator, DamageCauser);
 	}
+
+	return 0.f;
 }
 
-void UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<UDamageType> DamageTypeClass)
+float UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<UDamageType> DamageTypeClass)
 {
 	if ( DamagedActor && (BaseDamage != 0.f) )
 	{
@@ -334,8 +349,10 @@ void UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, ACont
 		TSubclassOf<UDamageType> const ValidDamageTypeClass = DamageTypeClass ? DamageTypeClass : TSubclassOf<UDamageType>(UDamageType::StaticClass());
 		FDamageEvent DamageEvent(ValidDamageTypeClass);
 
-		DamagedActor->TakeDamage(BaseDamage, DamageEvent, EventInstigator, DamageCauser);
+		return DamagedActor->TakeDamage(BaseDamage, DamageEvent, EventInstigator, DamageCauser);
 	}
+
+	return 0.f;
 }
 
 bool UGameplayStatics::CanSpawnObjectOfClass(TSubclassOf<UObject> ObjectClass, bool bAllowAbstract)
@@ -414,7 +431,7 @@ UObject* UGameplayStatics::SpawnObject(TSubclassOf<UObject> ObjectClass, UObject
 	return NewObject<UObject>(Outer, ObjectClass, NAME_None, RF_StrongRefOnFrame);
 }
 
-class AActor* UGameplayStatics::BeginSpawningActorFromBlueprint(UObject* WorldContextObject, const class UBlueprint* Blueprint, const FTransform& SpawnTransform, bool bNoCollisionFail)
+class AActor* UGameplayStatics::BeginSpawningActorFromBlueprint(const UObject* WorldContextObject, const class UBlueprint* Blueprint, const FTransform& SpawnTransform, bool bNoCollisionFail)
 {
 	if (Blueprint && Blueprint->GeneratedClass)
 	{
@@ -432,23 +449,24 @@ class AActor* UGameplayStatics::BeginSpawningActorFromBlueprint(UObject* WorldCo
 }
 
 // deprecated
-class AActor* UGameplayStatics::BeginSpawningActorFromClass(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, bool bNoCollisionFail /*= false*/, AActor* Owner /*= nullptr*/)
+class AActor* UGameplayStatics::BeginSpawningActorFromClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, bool bNoCollisionFail /*= false*/, AActor* Owner /*= nullptr*/)
 {
 	ESpawnActorCollisionHandlingMethod const CollisionHandlingOverride = bNoCollisionFail ? ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding : ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	return BeginDeferredActorSpawnFromClass(WorldContextObject, ActorClass, SpawnTransform, CollisionHandlingOverride, Owner);
 }
 
-class AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride /*= ESpawnActorCollisionHandlingMethod::Undefined*/, AActor* Owner /*= nullptr*/)
+class AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(const UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingOverride /*= ESpawnActorCollisionHandlingMethod::Undefined*/, AActor* Owner /*= nullptr*/)
 {
 	if (UClass* Class = *ActorClass)
 	{
 		// If the WorldContextObject is a Pawn we will use that as the instigator.
 		// Otherwise if the WorldContextObject is an Actor we will share its instigator.
 		// If the value is set via the exposed parameter on SpawnNode it will be overwritten anyways, so this is safe to specify here
-		APawn* AutoInstigator = Cast<APawn>(WorldContextObject);
+		UObject* MutableWorldContextObject = const_cast<UObject*>(WorldContextObject);
+		APawn* AutoInstigator = Cast<APawn>(MutableWorldContextObject);
 		if (AutoInstigator == nullptr)
 		{
-			if (AActor* ContextActor = Cast<AActor>(WorldContextObject))
+			if (AActor* ContextActor = Cast<AActor>(MutableWorldContextObject))
 			{
 				AutoInstigator = ContextActor->Instigator;
 			}
@@ -1000,6 +1018,7 @@ void UGameplayStatics::PlaySound2D(const UObject* WorldContextObject, class USou
 	{
 		FActiveSound NewActiveSound;
 		NewActiveSound.SetSound(Sound);
+		NewActiveSound.SetWorld(ThisWorld);
 
 		NewActiveSound.VolumeMultiplier = VolumeMultiplier;
 		NewActiveSound.PitchMultiplier = PitchMultiplier;
@@ -1010,6 +1029,7 @@ void UGameplayStatics::PlaySound2D(const UObject* WorldContextObject, class USou
 		NewActiveSound.bAllowSpatialization = false;
 		NewActiveSound.ConcurrencySettings = ConcurrencySettings;
 		NewActiveSound.Priority = Sound->Priority;
+		NewActiveSound.SubtitlePriority = Sound->GetSubtitlePriority();
 
 		AudioDevice->AddNewActiveSound(NewActiveSound);
 	}
@@ -1117,7 +1137,7 @@ UAudioComponent* UGameplayStatics::SpawnSoundAtLocation(const UObject* WorldCont
 		AudioComponent->bAllowSpatialization	= bIsInGameWorld;
 		AudioComponent->bIsUISound				= !bIsInGameWorld;
 		AudioComponent->bAutoDestroy			= true;
-		AudioComponent->SubtitlePriority		= DEFAULT_SUBTITLE_PRIORITY; // Fixme: pass in? Do we want that exposed to blueprints though?
+		AudioComponent->SubtitlePriority		= Sound->GetSubtitlePriority();
 		AudioComponent->Play(StartTime);
 	}
 
@@ -1178,7 +1198,7 @@ class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* So
 			AudioComponent->bAllowSpatialization = bIsInGameWorld;
 			AudioComponent->bIsUISound = !bIsInGameWorld;
 			AudioComponent->bAutoDestroy = true;
-			AudioComponent->SubtitlePriority = DEFAULT_SUBTITLE_PRIORITY; // Fixme: pass in? Do we want that exposed to blueprints though?
+			AudioComponent->SubtitlePriority = Sound->GetSubtitlePriority();
 			AudioComponent->Play(StartTime);
 		}
 	}
@@ -1487,6 +1507,56 @@ UDecalComponent* UGameplayStatics::SpawnDecalAttached(class UMaterialInterface* 
 	return nullptr;
 }
 
+UForceFeedbackComponent* CreateForceFeedbackComponent(UForceFeedbackEffect* FeedbackEffect, AActor* Actor, const bool bLooping, const float IntensityMultiplier, UForceFeedbackAttenuation* AttenuationSettings)
+{
+	UForceFeedbackComponent* ForceFeedbackComp = NewObject<UForceFeedbackComponent>(Actor);
+	ForceFeedbackComp->bAutoActivate = false;
+	ForceFeedbackComp->bAutoDestroy = true;
+	ForceFeedbackComp->bLooping = bLooping;
+	ForceFeedbackComp->ForceFeedbackEffect = FeedbackEffect;
+	ForceFeedbackComp->IntensityMultiplier = IntensityMultiplier;
+	ForceFeedbackComp->AttenuationSettings = AttenuationSettings;
+	ForceFeedbackComp->RegisterComponent();
+
+	return ForceFeedbackComp;
+}
+
+UForceFeedbackComponent* UGameplayStatics::SpawnForceFeedbackAtLocation(const UObject* WorldContextObject, UForceFeedbackEffect* ForceFeedbackEffect, const FVector Location, const FRotator Rotation, const bool bLooping, const float IntensityMultiplier, const float StartTime, UForceFeedbackAttenuation* AttenuationSettings)
+{
+	if (ForceFeedbackEffect)
+	{
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+		{
+			UForceFeedbackComponent* ForceFeedbackComp = CreateForceFeedbackComponent(ForceFeedbackEffect, World->GetWorldSettings(), bLooping, IntensityMultiplier, AttenuationSettings);
+			ForceFeedbackComp->SetWorldLocationAndRotation(Location, Rotation);
+			ForceFeedbackComp->Play(StartTime);
+			return ForceFeedbackComp;
+		}
+	}
+	return nullptr;
+}
+
+UForceFeedbackComponent* UGameplayStatics::SpawnForceFeedbackAttached(UForceFeedbackEffect* ForceFeedbackEffect, USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, const bool bStopWhenAttachedToDestroyed, const bool bLooping, const float IntensityMultiplier, const float StartTime, UForceFeedbackAttenuation* AttenuationSettings)
+{
+	if (ForceFeedbackEffect && AttachToComponent)
+	{
+		UForceFeedbackComponent* ForceFeedbackComp = CreateForceFeedbackComponent(ForceFeedbackEffect, AttachToComponent->GetOwner(), bLooping, IntensityMultiplier, AttenuationSettings);
+		ForceFeedbackComp->bStopWhenOwnerDestroyed = bStopWhenAttachedToDestroyed;
+		ForceFeedbackComp->AttachToComponent(AttachToComponent, FAttachmentTransformRules::KeepRelativeTransform, AttachPointName);
+		if (LocationType == EAttachLocation::KeepWorldPosition)
+		{
+			ForceFeedbackComp->SetWorldLocationAndRotation(Location, Rotation);
+		}
+		else
+		{
+			ForceFeedbackComp->SetRelativeLocationAndRotation(Location, Rotation);
+		}
+		ForceFeedbackComp->Play(StartTime);
+		return ForceFeedbackComp;
+	}
+	return nullptr;
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 USaveGame* UGameplayStatics::CreateSaveGameObject(TSubclassOf<USaveGame> SaveGameClass)
@@ -1724,7 +1794,7 @@ bool UGameplayStatics::SuggestProjectileVelocity(const UObject* WorldContextObje
 
 	const float TossSpeedSq = FMath::Square(TossSpeed);
 
-	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	const UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
 
 	const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? -World->GetGravityZ() : -OverrideGravityZ;
 
@@ -1887,91 +1957,254 @@ bool UGameplayStatics::SuggestProjectileVelocity(const UObject* WorldContextObje
 	return bFoundAValidSolution;
 }
 
+
 static const FName NAME_PredictProjectilePath = FName(TEXT("PredictProjectilePath"));
 
 // note: this will automatically fall back to line test if radius is small enough
-bool UGameplayStatics::PredictProjectilePath(const UObject* WorldContextObject, FHitResult& OutHit, TArray<FVector>& OutPathPositions, FVector& OutLastTraceDestination, FVector StartPos, FVector LaunchVelocity, bool bTracePath, float ProjectileRadius, const TArray<TEnumAsByte<EObjectTypeQuery> >& ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, float DrawDebugTime, float SimFrequency /*= 30.f*/, float MaxSimTime /*= 2.f*/, float OverrideGravityZ /*= 0*/)
+bool UGameplayStatics::PredictProjectilePath(const UObject* WorldContextObject, const FPredictProjectilePathParams& PredictParams, FPredictProjectilePathResult& PredictResult)
 {
-	OutPathPositions.Empty();
+	PredictResult.Reset();
 	bool bBlockingHit = false;
 
 	UWorld const* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if (World && SimFrequency > KINDA_SMALL_NUMBER)
+	if (World && PredictParams.SimFrequency > KINDA_SMALL_NUMBER)
 	{
-		float const SubstepDeltaTime = 1.f / SimFrequency;
-		int32 const StepLimit = FMath::CeilToInt(SimFrequency * MaxSimTime);
+		const float SubstepDeltaTime = 1.f / PredictParams.SimFrequency;
+		const float GravityZ = FMath::IsNearlyEqual(PredictParams.OverrideGravityZ, 0.0f) ? World->GetGravityZ() : PredictParams.OverrideGravityZ;
+		const float ProjectileRadius = PredictParams.ProjectileRadius;
 
-		const float GravityZ = FMath::IsNearlyEqual(OverrideGravityZ, 0.0f) ? World->GetGravityZ() : OverrideGravityZ;
-
-		OutPathPositions.Add(StartPos);
-
-		FVector CurrentVel = LaunchVelocity;
-		FVector TraceStart = StartPos;
-		FVector TraceEnd = TraceStart + CurrentVel * SubstepDeltaTime;
-
-		FCollisionQueryParams QueryParams(NAME_PredictProjectilePath, true);
-		QueryParams.AddIgnoredActors(ActorsToIgnore);
-		QueryParams.bTraceComplex = bTraceComplex;
-
+		FCollisionQueryParams QueryParams(NAME_PredictProjectilePath, PredictParams.bTraceComplex);
 		FCollisionObjectQueryParams ObjQueryParams;
-		for (auto Iter = ObjectTypes.CreateConstIterator(); Iter; ++Iter)
+		const bool bTraceWithChannel = (PredictParams.TraceChannel != ECC_MAX);
+		const bool bTraceWithObjectType = (PredictParams.ObjectTypes.Num() > 0);
+		const bool bTracePath = PredictParams.bTraceWithCollision && (bTraceWithChannel || bTraceWithObjectType);
+		if (bTracePath)
 		{
-			const ECollisionChannel& Channel = UCollisionProfile::Get()->ConvertToCollisionChannel(false, *Iter);
-			ObjQueryParams.AddObjectTypesToQuery(Channel);
+			QueryParams.AddIgnoredActors(PredictParams.ActorsToIgnore);
+			if (bTraceWithObjectType)
+			{
+				for (auto Iter = PredictParams.ObjectTypes.CreateConstIterator(); Iter; ++Iter)
+				{
+					const ECollisionChannel& Channel = UCollisionProfile::Get()->ConvertToCollisionChannel(false, *Iter);
+					ObjQueryParams.AddObjectTypesToQuery(Channel);
+				}
+			}
 		}
 
-		FHitResult TraceHit(0.f);
-		int32 StepCount = 0;
-		while (StepCount < StepLimit)
+		FVector CurrentVel = PredictParams.LaunchVelocity;
+		FVector TraceStart = PredictParams.StartLocation;
+		FVector TraceEnd = TraceStart;
+		float CurrentTime = 0.f;
+		PredictResult.PathData.Reserve(FMath::Min(128, FMath::CeilToInt(PredictParams.MaxSimTime * PredictParams.SimFrequency)));
+		PredictResult.AddPoint(TraceStart, CurrentVel, CurrentTime);
+
+		FHitResult ObjectTraceHit(NoInit);
+		FHitResult ChannelTraceHit(NoInit);
+		ObjectTraceHit.Time = 1.f;
+		ChannelTraceHit.Time = 1.f;
+
+		const float MaxSimTime = PredictParams.MaxSimTime;
+		while (CurrentTime < MaxSimTime)
 		{
-			OutLastTraceDestination = TraceEnd;
+			// Limit step to not go further than total time.
+			const float PreviousTime = CurrentTime;
+			const float ActualStepDeltaTime = FMath::Min(MaxSimTime - CurrentTime, SubstepDeltaTime);
+			CurrentTime += ActualStepDeltaTime;
+
+			// Integrate (Velocity Verlet method)
+			TraceStart = TraceEnd;
+			FVector OldVelocity = CurrentVel;
+			CurrentVel = OldVelocity + FVector(0.f, 0.f, GravityZ * ActualStepDeltaTime);
+			TraceEnd = TraceStart + (OldVelocity + CurrentVel) * (0.5f * ActualStepDeltaTime);
+			PredictResult.LastTraceDestination.Set(TraceEnd, CurrentVel, CurrentTime);
 
 			if (bTracePath)
 			{
-				if (World->SweepSingleByObjectType(TraceHit, TraceStart, TraceEnd, FQuat::Identity, ObjQueryParams, FCollisionShape::MakeSphere(ProjectileRadius), QueryParams))
+				bool bObjectHit = false;
+				bool bChannelHit = false;
+				if (bTraceWithObjectType)
 				{
-					// hit! we are done
-					OutHit = TraceHit;
-					OutPathPositions.Add(OutHit.Location);
+					bObjectHit = World->SweepSingleByObjectType(ObjectTraceHit, TraceStart, TraceEnd, FQuat::Identity, ObjQueryParams, FCollisionShape::MakeSphere(ProjectileRadius), QueryParams);
+				}
+				if (bTraceWithChannel)
+				{
+					bChannelHit = World->SweepSingleByChannel(ChannelTraceHit, TraceStart, TraceEnd, FQuat::Identity, PredictParams.TraceChannel, FCollisionShape::MakeSphere(ProjectileRadius), QueryParams);
+				}
+
+				// See if there were any hits.
+				if (bObjectHit || bChannelHit)
+				{
+					// Hit! We are done. Choose trace with earliest hit time.
+					PredictResult.HitResult = (ObjectTraceHit.Time < ChannelTraceHit.Time) ? ObjectTraceHit : ChannelTraceHit;
+					const float HitTimeDelta = ActualStepDeltaTime * PredictResult.HitResult.Time;
+					const float TotalTimeAtHit = PreviousTime + HitTimeDelta;
+					const FVector VelocityAtHit = OldVelocity + FVector(0.f, 0.f, GravityZ * HitTimeDelta);
+					PredictResult.AddPoint(PredictResult.HitResult.Location, VelocityAtHit, TotalTimeAtHit);
 					bBlockingHit = true;
 					break;
 				}
 			}
 
-			OutPathPositions.Add(TraceEnd);
-
-			// integrate and continue
-			TraceStart = TraceEnd;
-			CurrentVel = CurrentVel + FVector(0, 0, GravityZ * SubstepDeltaTime);
-			TraceEnd = TraceStart + CurrentVel * SubstepDeltaTime;
-
-			++StepCount;
+			PredictResult.AddPoint(TraceEnd, CurrentVel, CurrentTime);
 		}
-	}
 
+		// Draw debug path
 #if ENABLE_DRAW_DEBUG
-	if (DrawDebugType != EDrawDebugTrace::None)
-	{
-		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
-		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? DrawDebugTime : 0.f;
-
-		float const DrawRadius = (ProjectileRadius > 0.f) ? ProjectileRadius : 5.f;
-
-		// draw the path
-		for (FVector PathPt : OutPathPositions)
+		if (PredictParams.DrawDebugType != EDrawDebugTrace::None)
 		{
-			::DrawDebugSphere(World, PathPt, DrawRadius, 12, FColor::Green, bPersistent, LifeTime);
+			const bool bPersistent = PredictParams.DrawDebugType == EDrawDebugTrace::Persistent;
+			const float LifeTime = (PredictParams.DrawDebugType == EDrawDebugTrace::ForDuration) ? PredictParams.DrawDebugTime : 0.f;
+			const float DrawRadius = (ProjectileRadius > 0.f) ? ProjectileRadius : 5.f;
+
+			// draw the path
+			for (const FPredictProjectilePathPointData& PathPt : PredictResult.PathData)
+			{
+				::DrawDebugSphere(World, PathPt.Location, DrawRadius, 12, FColor::Green, bPersistent, LifeTime);
+			}
+			// draw the impact point
+			if (bBlockingHit)
+			{
+				::DrawDebugSphere(World, PredictResult.HitResult.Location, DrawRadius + 1.0f, 12, FColor::Red, bPersistent, LifeTime);
+			}
 		}
-		// draw the impact point
-		if (bBlockingHit)
-		{
-			::DrawDebugSphere(World, OutHit.Location, 15.f, 12, FColor::Red, bPersistent, LifeTime);
-		}
+#endif //ENABLE_DRAW_DEBUG
 	}
-#endif // ENABLE_DRAW_DEBUG
 
 	return bBlockingHit;
 }
+
+
+// TODO: Deprecated, remove
+bool UGameplayStatics::PredictProjectilePath(
+	const UObject* WorldContextObject,
+	FHitResult& OutHit,
+	TArray<FVector>& OutPathPositions,
+	FVector& OutLastTraceDestination,
+	FVector StartPos,
+	FVector LaunchVelocity,
+	bool bTracePath,
+	float ProjectileRadius,
+	const TArray<TEnumAsByte<EObjectTypeQuery> >& ObjectTypes,
+	bool bTraceComplex,
+	const TArray<AActor*>& ActorsToIgnore,
+	EDrawDebugTrace::Type DrawDebugType,
+	float DrawDebugTime,
+	float SimFrequency,
+	float MaxSimTime,
+	float OverrideGravityZ)
+{
+	return Blueprint_PredictProjectilePath_ByObjectType(
+		WorldContextObject,
+		OutHit,
+		OutPathPositions,
+		OutLastTraceDestination,
+		StartPos,
+		LaunchVelocity,
+		bTracePath,
+		ProjectileRadius,
+		ObjectTypes,
+		bTraceComplex,
+		ActorsToIgnore,
+		DrawDebugType,
+		DrawDebugTime,
+		SimFrequency,
+		MaxSimTime,
+		OverrideGravityZ);
+}
+
+bool UGameplayStatics::Blueprint_PredictProjectilePath_Advanced(const UObject* WorldContextObject, const FPredictProjectilePathParams& PredictParams, FPredictProjectilePathResult& PredictResult)
+{
+	return PredictProjectilePath(WorldContextObject, PredictParams, PredictResult);
+}
+
+// BP wrapper to general-purpose function.
+bool UGameplayStatics::Blueprint_PredictProjectilePath_ByObjectType(
+	const UObject* WorldContextObject,
+	FHitResult& OutHit,
+	TArray<FVector>& OutPathPositions,
+	FVector& OutLastTraceDestination,
+	FVector StartPos,
+	FVector LaunchVelocity,
+	bool bTracePath,
+	float ProjectileRadius,
+	const TArray<TEnumAsByte<EObjectTypeQuery> >& ObjectTypes,
+	bool bTraceComplex,
+	const TArray<AActor*>& ActorsToIgnore,
+	EDrawDebugTrace::Type DrawDebugType,
+	float DrawDebugTime,
+	float SimFrequency,
+	float MaxSimTime,
+	float OverrideGravityZ)
+{
+	FPredictProjectilePathParams Params = FPredictProjectilePathParams(ProjectileRadius, StartPos, LaunchVelocity, MaxSimTime);
+	Params.bTraceWithCollision = bTracePath;
+	Params.bTraceComplex = bTraceComplex;
+	Params.ActorsToIgnore = ActorsToIgnore;
+	Params.DrawDebugType = DrawDebugType;
+	Params.DrawDebugTime = DrawDebugTime;
+	Params.SimFrequency = SimFrequency;
+	Params.OverrideGravityZ = OverrideGravityZ;
+	Params.ObjectTypes = ObjectTypes; // Object trace
+
+	// Do the trace
+	FPredictProjectilePathResult PredictResult;
+	bool bHit = PredictProjectilePath(WorldContextObject, Params, PredictResult);
+
+	// Fill in results.
+	OutHit = PredictResult.HitResult;
+	OutLastTraceDestination = PredictResult.LastTraceDestination.Location;
+	OutPathPositions.Empty(PredictResult.PathData.Num());
+	for (const FPredictProjectilePathPointData& PathPoint : PredictResult.PathData)
+	{
+		OutPathPositions.Add(PathPoint.Location);
+	}
+	return bHit;
+}
+
+// BP wrapper to general-purpose function.
+bool UGameplayStatics::Blueprint_PredictProjectilePath_ByTraceChannel(
+	const UObject* WorldContextObject,
+	FHitResult& OutHit,
+	TArray<FVector>& OutPathPositions,
+	FVector& OutLastTraceDestination,
+	FVector StartPos,
+	FVector LaunchVelocity,
+	bool bTracePath,
+	float ProjectileRadius,
+	TEnumAsByte<ECollisionChannel> TraceChannel,
+	bool bTraceComplex,
+	const TArray<AActor*>& ActorsToIgnore,
+	EDrawDebugTrace::Type DrawDebugType,
+	float DrawDebugTime,
+	float SimFrequency,
+	float MaxSimTime,
+	float OverrideGravityZ)
+{
+	FPredictProjectilePathParams Params = FPredictProjectilePathParams(ProjectileRadius, StartPos, LaunchVelocity, MaxSimTime);
+	Params.bTraceWithCollision = bTracePath;
+	Params.bTraceComplex = bTraceComplex;
+	Params.ActorsToIgnore = ActorsToIgnore;
+	Params.DrawDebugType = DrawDebugType;
+	Params.DrawDebugTime = DrawDebugTime;
+	Params.SimFrequency = SimFrequency;
+	Params.OverrideGravityZ = OverrideGravityZ;
+	Params.TraceChannel = TraceChannel; // Trace by channel
+
+	// Do the trace
+	FPredictProjectilePathResult PredictResult;
+	bool bHit = PredictProjectilePath(WorldContextObject, Params, PredictResult);
+
+	// Fill in results.
+	OutHit = PredictResult.HitResult;
+	OutLastTraceDestination = PredictResult.LastTraceDestination.Location;
+	OutPathPositions.Empty(PredictResult.PathData.Num());
+	for (const FPredictProjectilePathPointData& PathPoint : PredictResult.PathData)
+	{
+		OutPathPositions.Add(PathPoint.Location);
+	}
+	return bHit;
+}
+
 
 bool UGameplayStatics::SuggestProjectileVelocity_CustomArc(const UObject* WorldContextObject, FVector& OutLaunchVelocity, FVector StartPos, FVector EndPos, float OverrideGravityZ /*= 0*/, float ArcParam /*= 0.5f */)
 {
@@ -2195,6 +2428,11 @@ int32 UGameplayStatics::GetIntOption( const FString& Options, const FString& Key
 		return FCString::Atoi(*InOpt);
 	}
 	return DefaultValue;
+}
+
+bool UGameplayStatics::HasLaunchOption(const FString& OptionToCheck)
+{
+	return FParse::Param(FCommandLine::Get(), *OptionToCheck);
 }
 
 #undef LOCTEXT_NAMESPACE

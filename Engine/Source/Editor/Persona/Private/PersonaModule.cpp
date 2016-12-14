@@ -1,38 +1,50 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
 #include "PersonaModule.h"
-#include "BlueprintUtilities.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Modules/ModuleManager.h"
+#include "EditorModeRegistry.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
+#include "Materials/Material.h"
+#include "IPersonaPreviewScene.h"
+#include "Logging/TokenizedMessage.h"
+#include "ARFilter.h"
 #include "AnimGraphDefinitions.h"
 #include "Toolkits/ToolkitManager.h"
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
-#include "PropertyEditorModule.h"
+#include "AssetRegistryModule.h"
 #include "SkeletalMeshSocketDetails.h"
 #include "AnimNotifyDetails.h"
 #include "AnimGraphNodeDetails.h"
 #include "AnimInstanceDetails.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
-#include "Animation/AnimInstance.h"
+#include "IEditableSkeleton.h"
+#include "IPersonaToolkit.h"
 #include "PersonaToolkit.h"
 #include "TabSpawners.h"
 #include "SSkeletonAnimNotifies.h"
-#include "PersonaAssetFamily.h"
 #include "SAssetFamilyShortcutBar.h"
+#include "Animation/AnimMontage.h"
 #include "SMontageEditor.h"
 #include "SSequenceEditor.h"
+#include "Animation/AnimComposite.h"
 #include "SAnimCompositeEditor.h"
+#include "Animation/PoseAsset.h"
 #include "SPoseEditor.h"
+#include "Animation/BlendSpace.h"
 #include "SAnimationBlendSpace.h"
+#include "Animation/BlendSpace1D.h"
 #include "SAnimationBlendSpace1D.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
-#include "Animation/BlendSpace1D.h"
 #include "SAnimationDlgs.h"
 #include "FbxMeshUtils.h"
+#include "IAssetTools.h"
 #include "AssetToolsModule.h"
-#include "IEditableSkeleton.h"
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 #include "AnimationCompressionPanel.h"
 #include "DesktopPlatformModule.h"
 #include "FbxAnimUtils.h"
@@ -47,8 +59,9 @@
 #include "PreviewSceneCustomizations.h"
 #include "SSkeletonSlotNames.h"
 #include "PersonaMeshDetails.h"
+#include "Animation/MorphTarget.h"
+#include "EditorDirectories.h"
 #include "PersonaCommonCommands.h"
-#include "WorkflowCentricApplication.h"
 
 IMPLEMENT_MODULE( FPersonaModule, Persona );
 
@@ -125,7 +138,7 @@ void FPersonaModule::ShutdownModule()
 		PropertyModule.UnregisterCustomClassLayout("EditorNotifyObject");
 		PropertyModule.UnregisterCustomClassLayout("AnimGraphNode_Base");
 		PropertyModule.UnregisterCustomClassLayout("BlendSpaceBase");
-		
+
 		PropertyModule.UnregisterCustomPropertyTypeLayout("InputScaleBias");
 		PropertyModule.UnregisterCustomPropertyTypeLayout("BoneReference");
 
@@ -198,7 +211,7 @@ TSharedRef<SWidget> FPersonaModule::CreateAssetFamilyShortcutWidget(const TShare
 
 TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreateDetailsTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, FOnDetailsCreated InOnDetailsCreated) const
 {
-	return MakeShareable(new FDetailsTabSummoner(InHostingApp, InOnDetailsCreated));
+	return MakeShareable(new FPersonaDetailsTabSummoner(InHostingApp, InOnDetailsCreated));
 }
 
 TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreatePersonaViewportTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<ISkeletonTree>& InSkeletonTree, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& OnPostUndo, const TSharedPtr<FBlueprintEditor>& InBlueprintEditor, FOnViewportCreated InOnViewportCreated, bool bInShowTimeline, bool bInShowStats) const
@@ -211,9 +224,9 @@ TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreateAnimNotifiesTabFacto
 	return MakeShareable(new FSkeletonAnimNotifiesSummoner(InHostingApp, InEditableSkeleton, InOnChangeAnimNotifies, InOnPostUndo, InOnObjectsSelected));
 }
 
-TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreateCurveViewerTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnCurvesChanged, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected) const
+TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreateCurveViewerTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo, FOnObjectsSelected InOnObjectsSelected) const
 {
-	return MakeShareable(new FAnimCurveViewerTabSummoner(InHostingApp, InEditableSkeleton, InPreviewScene, InOnCurvesChanged, InOnPostUndo, InOnObjectsSelected));
+	return MakeShareable(new FAnimCurveViewerTabSummoner(InHostingApp, InEditableSkeleton, InPreviewScene, InOnPostUndo, InOnObjectsSelected));
 }
 
 TSharedRef<class FWorkflowTabFactory> FPersonaModule::CreateRetargetManagerTabFactory(const TSharedRef<class FWorkflowCentricApplication>& InHostingApp, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton, const TSharedRef<IPersonaPreviewScene>& InPreviewScene, FSimpleMulticastDelegate& InOnPostUndo) const
@@ -263,12 +276,11 @@ TSharedRef<SWidget> FPersonaModule::CreateEditorWidgetForAnimDocument(const TSha
 	{
 		if (UAnimSequence* Sequence = Cast<UAnimSequence>(InAnimAsset))
 		{
-			Result = SNew(SSequenceEditor, InArgs.PreviewScene.Pin().ToSharedRef(), InArgs.EditableSkeleton.Pin().ToSharedRef(), InArgs.OnPostUndo, InArgs.OnCurvesChanged)
+			Result = SNew(SSequenceEditor, InArgs.PreviewScene.Pin().ToSharedRef(), InArgs.EditableSkeleton.Pin().ToSharedRef(), InArgs.OnPostUndo)
 				.Sequence(Sequence)
 				.OnObjectsSelected(InArgs.OnDespatchObjectsSelected)
 				.OnAnimNotifiesChanged(InArgs.OnDespatchAnimNotifiesChanged)
-				.OnInvokeTab(InArgs.OnDespatchInvokeTab)
-				.OnCurvesChanged(InArgs.OnDespatchCurvesChanged);
+				.OnInvokeTab(InArgs.OnDespatchInvokeTab);
 
 			OutDocumentLink = TEXT("Engine/Animation/Sequences");
 		}
@@ -288,7 +300,6 @@ TSharedRef<SWidget> FPersonaModule::CreateEditorWidgetForAnimDocument(const TSha
 
 			Result = SNew(SMontageEditor, RequiredArgs)
 				.Montage(Montage)
-				.OnCurvesChanged(InArgs.OnDespatchCurvesChanged)
 				.OnSectionsChanged(InArgs.OnDespatchSectionsChanged)
 				.OnInvokeTab(InArgs.OnDespatchInvokeTab)
 				.OnObjectsSelected(InArgs.OnDespatchObjectsSelected)

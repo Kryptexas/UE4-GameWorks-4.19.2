@@ -1,25 +1,42 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GenericApplicationMessageHandler.h"
-#include "MenuStack.h"
-#include "SlateDelegates.h"
-#include "SlateApplicationBase.h"
-#include "NavigationConfig.h"
-#include "Templates/Function.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "InputCoreTypes.h"
+#include "HAL/IConsoleManager.h"
+#include "Framework/Application/IMenu.h"
+#include "Layout/Visibility.h"
+#include "GenericPlatform/GenericWindow.h"
+#include "Styling/SlateColor.h"
+#include "Layout/SlateRect.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Input/Events.h"
+#include "Input/DragAndDrop.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SWindow.h"
+#include "Application/SlateWindowHelper.h"
+#include "Rendering/SlateRenderer.h"
+#include "Application/SlateApplicationBase.h"
+#include "Application/ThrottleManager.h"
+#include "Widgets/IToolTip.h"
+#include "Layout/WidgetPath.h"
+#include "Logging/IEventLogger.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/SlateDelegates.h"
 
-
-class SToolTip;
-class SViewport;
-class SWindow;
-enum class EHittestDirection;
-class FHittestGrid;
-struct FPopupTransitionEffect;
-class FMenuStack;
-class IWidgetReflector;
+class FNavigationConfig;
+class IInputInterface;
 class IInputProcessor;
-
+class IPlatformTextField;
+class ISlateSoundDevice;
+class ITextInputMethodSystem;
+class IVirtualKeyboardEntry;
+class IWidgetReflector;
+class SViewport;
 
 /** A Delegate for querying whether source code access is possible */
 DECLARE_DELEGATE_RetVal(bool, FQueryAccessSourceCode);
@@ -30,6 +47,9 @@ DECLARE_DELEGATE(FModalWindowStackEnded)
 
 /** Delegate for when window action occurs (ClickedNonClientArea, Maximize, Restore, WindowMenu). Return true if the OS layer should stop processing the action. */
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnWindowAction, const TSharedRef<FGenericWindow>&, EWindowAction::Type);
+
+/** Delegate for overriding the behavior when a navigation action is taken, Not to be confused with FNavigationDelegate which allows a specific widget to override behavior for itself */
+DECLARE_DELEGATE_RetVal_OneParam(bool, FCustomNavigationHandler, TSharedPtr<SWidget>);
 
 extern SLATE_API const FName NAME_UnrealOS;
 
@@ -466,6 +486,9 @@ public:
 	/** Delegate for after slate application ticks. */
 	FSlateTickEvent& OnPostTick()  { return PostTickEvent; }
 
+	/** Set an override handler for navigation. */
+	FCustomNavigationHandler& OnNavigationOverride() { return CustomNavigationEvent; }
+
 	/** 
 	 * Removes references to FViewportRHI's.  
 	 * This has to be done explicitly instead of using the FRenderResource mechanism because FViewportRHI's are managed by the game thread.
@@ -554,9 +577,6 @@ public:
 	 * @param ReasonFocusIsChanging the contextual reason for the focus change
 	 */
 	void SetAllUserFocus(const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
-
-	/** @return a pointer to the Widget that currently has the users focus; Empty pointer when the user has no focus. */
-	TSharedPtr< SWidget > GetUserFocusedWidget(uint32 UserIndex) const;
 
 	DEPRECATED(4.6, "FSlateApplication::GetJoystickCaptor() is deprecated, use FSlateApplication::GetUserFocusedWidget() instead.")
 	TSharedPtr< SWidget > GetJoystickCaptor(uint32 UserIndex) const;
@@ -805,6 +825,8 @@ public:
 	 */
 	void EnableMenuAnimations( const bool bEnableAnimations );
 
+	void SetPlatformApplication(const TSharedRef<class GenericApplication>& InPlatformApplication);
+
 	/** Set the global application icon */
 	void SetAppIcon(const FSlateBrush* const InAppIcon);
 
@@ -901,18 +923,33 @@ protected:
 	 */
 	void RegisterUser(TSharedRef<FSlateUser> User);
 
+	/**
+	 * Gets the user at the given index, null if the user does not exist.
+	 */
 	FORCEINLINE const FSlateUser* GetUser(int32 UserIndex) const
 	{
-		return UserIndex < Users.Num() ? Users[UserIndex].Get() : nullptr;
+		return (UserIndex >= 0 && UserIndex < Users.Num()) ? Users[UserIndex].Get() : nullptr;
 	}
 
+	/**
+	 * Gets the user at the given index, null if the user does not exist.
+	 */
 	FORCEINLINE FSlateUser* GetUser(int32 UserIndex)
 	{
-		return UserIndex < Users.Num() ? Users[UserIndex].Get() : nullptr;
+		return ( UserIndex >= 0 && UserIndex < Users.Num() ) ? Users[UserIndex].Get() : nullptr;
 	}
 
+	/**
+	 * Locates the SlateUser object corresponding to the index, if one can't be found, it will create a slate user at
+	 * the provided index.  If the index is less than 0, null is returned.
+	 */
 	FORCEINLINE FSlateUser* GetOrCreateUser(int32 UserIndex)
 	{
+		if ( UserIndex < 0 )
+		{
+			return nullptr;
+		}
+
 		if ( FSlateUser* User = GetUser(UserIndex) )
 		{
 			return User;
@@ -1292,6 +1329,7 @@ public:
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 	virtual void SetAllUserFocusAllowingDescendantFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
+	virtual TSharedPtr<SWidget> GetUserFocusedWidget(uint32 UserIndex) const override;
 
 	DECLARE_EVENT_OneParam(FSlateApplication, FApplicationActivationStateChangedEvent, const bool /*IsActive*/)
 	virtual FApplicationActivationStateChangedEvent& OnApplicationActivationStateChanged() { return ApplicationActivationStateChangedEvent; }
@@ -1405,13 +1443,24 @@ public:
 	int32 GetUserIndexForController(int32 ControllerId) const;
 
 	/**
-	* Register for a notification when the window action occurs.
-	*
-	* @param Notification          The notification to invoke.
-	*
-	* @return Handle to the registered delegate.
-	*/
+	 * Register for a notification when the window action occurs.
+	 *
+	 * @param Notification          The notification to invoke.
+	 *
+	 * @return Handle to the registered delegate.
+	 */
 	FDelegateHandle RegisterOnWindowActionNotification(const FOnWindowAction& Notification);
+
+
+	/** Event type for when Slate is ticking during a modal dialog loop */
+	DECLARE_EVENT_OneParam(FSlateApplication, FOnModalLoopTickEvent, float);
+
+	/**
+	 * Get the FOnModalLoopTickEvent for the Slate Application. Allows clients to register for callbacks during modal dialog loops.
+	 *
+	 * @return The application's FOnModalLoopTickEvent.
+	 */
+	FOnModalLoopTickEvent& GetOnModalLoopTickEvent() { return ModalLoopTickEvent; }
 
 	/**
 	* Unregister the notification because it is no longer desired.
@@ -1419,6 +1468,15 @@ public:
 	* @param Handle                Hanlde to the delegate to unregister.
 	*/
 	void UnregisterOnWindowActionNotification(FDelegateHandle Handle);
+
+	/**
+	 * Destroys an SWindow, removing it and all its children from the Slate window list.  Notifies the native window to destroy itself and releases rendering resources
+	 *
+	 * @param InNavigationType The navigation type / direction
+	 * @param InWindow The window to do the navigation within
+	 * @param InUserIndex The user that is doing the navigation
+	 */
+	void NavigateFromWidgetUnderCursor(EUINavigation InNavigationType, TSharedRef<SWindow> InWindow, uint32 InUserIndex);
 
 	/**
 	* Given an optional widget, try and get the most suitable parent window to use with dialogs (such as file and directory pickers).
@@ -1448,9 +1506,11 @@ private:
 	 *
 	 * @return if a new widget was navigated too
 	 */
-	bool AttemptNavigation(const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget);
+	bool AttemptNavigation(const FWidgetPath& NavigationSource, const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget);
 
 private:
+
+	bool SetUserFocus(FSlateUser* User, const FWidgetPath& InFocusPath, const EFocusCause InCause);
 
 	/** Lock the cursor such that it cannot leave the bounds of the specified widget. Null widget implies no cursor lock. */
 	void LockCursor(const TSharedPtr<SWidget>& Widget);
@@ -1932,8 +1992,14 @@ private:
 	/** Delegate for post slate Tick */
 	FSlateTickEvent PostTickEvent;
 
+	/** Delegate for slate Tick during modal dialogs */
+	FOnModalLoopTickEvent ModalLoopTickEvent;
+
 	/** Critical section to avoid multiple threads calling Slate Tick when we're synchronizing between the Slate Loading Thread and the Game Thread. */
 	FCriticalSection SlateTickCriticalSection;
+
+	/** Delegate for custom navigation behavior */
+	FCustomNavigationHandler CustomNavigationEvent;
 
 #if WITH_EDITOR
 	/**

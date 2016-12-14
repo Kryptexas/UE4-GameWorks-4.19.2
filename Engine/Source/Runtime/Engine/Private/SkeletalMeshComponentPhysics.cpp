@@ -1,38 +1,51 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Stats/Stats.h"
+#include "UObject/UObjectBaseUtility.h"
+#include "HAL/IConsoleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Engine/EngineTypes.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Components/PrimitiveComponent.h"
+#include "SkeletalMeshTypes.h"
+#include "ClothSimData.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "DrawDebugHelpers.h"
 #include "SkeletalRender.h"
 #include "SkeletalRenderPublic.h"
-#include "Components/SkeletalMeshComponent.h"
 
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 #include "CollisionDebugDrawingPublic.h"
 
 #if WITH_PHYSX
+	#include "SceneManagement.h"
+	#include "PhysXPublic.h"
 	#include "PhysicsEngine/PhysXSupport.h"
-	#include "Collision/PhysXCollision.h"
 #endif
 
-#include "Collision/CollisionDebugDrawing.h"
 
 #if WITH_APEX
-	#include "NvParamUtils.h"
-	#include "Apex.h"
 
 #if WITH_APEX_CLOTHING
-	#include "ClothingAsset.h"
-	#include "ClothingActor.h"
-	#include "ClothingCollision.h"
 	// for cloth morph target	
 	#include "Animation/MorphTarget.h"
 
 #endif// #if WITH_APEX_CLOTHING
 
 #endif//#if WITH_APEX
+#include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/PhysicsAsset.h"
-#include "PhysicsEngine/PhysicsSettings.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 
@@ -824,12 +837,13 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 	if(Bodies.Num() > 0)
 	{
-		UE_LOG(LogSkeletalMesh, Log, TEXT("InitArticulated: Bodies already created (%s) - call TermArticulated first."), *GetPathName());
+		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Bodies already created (%s) - call TermArticulated first."), *GetPathName());
 		return;
 	}
 
 	FVector Scale3D = ComponentToWorld.GetScale3D();
-	const float Scale = Scale3D.GetAbsMin();
+	const float ActualScale = Scale3D.GetAbsMin();
+	const float Scale = ActualScale == 0.f ? KINDA_SMALL_NUMBER : ActualScale;
 
 	// Find root physics body
 	RootBodyData.BodyIndex = INDEX_NONE;	//Reset the root body index just in case we need to refind a new one
@@ -837,7 +851,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 	if(RootBodyIndex == INDEX_NONE)
 	{
-		UE_LOG(LogSkeletalMesh, Log, TEXT("UPhysicsAssetInstance::InitInstance : Could not find root physics body: %s"), *GetName() );
+		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Could not find root physics body: %s"), *GetName() );
 		return;
 	}
 
@@ -964,7 +978,40 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		// If we have 2, joint 'em
 		if(Body1 != NULL && Body2 != NULL)
 		{
-			ConInst->InitConstraint(Body1, Body2, Scale, this, FOnConstraintBroken::CreateUObject(this, &USkeletalMeshComponent::OnConstraintBrokenWrapper));
+			// Validates the body. Bodies could be invalid due to outdated PhysAssets / bad constraint bone (or body) names.
+			auto ValidateBody = [this](const FBodyInstance* InBody, const FName& InBoneName)
+			{
+				if (!InBody->IsValidBodyInstance())
+				{
+				    // Disable log for now.
+					// UE_LOG(LogSkeletalMesh, Warning, TEXT("USkeletalMeshComponent::InitArticulated : Unable to initialize constraint (%s) -  Body Invalid %s."), *(this->GetPathName()), *(InBoneName.ToString()));
+					return false;
+				}
+
+				return true;
+			};
+
+			// Applies the adjusted / relative scale of the body instance.
+			// Also, remove component scale as it will be reapplied in InitConstraint.
+			// GetBoneTransform already accounts for component scale.
+			auto ScalePosition = [](const FBodyInstance* InBody, const float InScale, FVector& OutPosition)
+			{
+				const FBodyInstance& DefaultBody = InBody->BodySetup.Get()->DefaultInstance;
+				const FVector ScaledDefaultBodyScale = DefaultBody.Scale3D * InScale;
+				const FVector AdjustedBodyScale = InBody->Scale3D * ScaledDefaultBodyScale.Reciprocal();
+				OutPosition *= AdjustedBodyScale;
+			};
+
+			// Do this separately so both are logged if invalid.
+			const bool Body1Valid = ValidateBody(Body1, ConInst->ConstraintBone1);
+			const bool Body2Valid = ValidateBody(Body2, ConInst->ConstraintBone2);
+
+			if (Body1Valid && Body2Valid)
+			{
+				ScalePosition(Body1, Scale, ConInst->Pos1);
+				ScalePosition(Body2, Scale, ConInst->Pos2);
+				ConInst->InitConstraint(Body1, Body2, Scale, this, FOnConstraintBroken::CreateUObject(this, &USkeletalMeshComponent::OnConstraintBrokenWrapper));
+			}
 		}
 	}
 
@@ -1111,9 +1158,15 @@ void USkeletalMeshComponent::SetAllBodiesSimulatePhysics(bool bNewSimulate)
 	UpdateClothTickRegisteredState();
 }
 
+void USkeletalMeshComponent::SetCollisionObjectType(ECollisionChannel NewChannel)
+{
+	SetAllBodiesCollisionObjectType(NewChannel);
+}
 
 void USkeletalMeshComponent::SetAllBodiesCollisionObjectType(ECollisionChannel NewChannel)
 {
+	BodyInstance.SetObjectType(NewChannel);	//children bodies use the skeletal mesh override so make sure root is set properly
+
 	for(int32 i=0; i<Bodies.Num(); i++)
 	{
 		Bodies[i]->SetObjectType(NewChannel);
@@ -1122,6 +1175,8 @@ void USkeletalMeshComponent::SetAllBodiesCollisionObjectType(ECollisionChannel N
 
 void USkeletalMeshComponent::SetAllBodiesNotifyRigidBodyCollision(bool bNewNotifyRigidBodyCollision)
 {
+	BodyInstance.SetInstanceNotifyRBCollision(bNewNotifyRigidBodyCollision); //children bodies use the skeletal mesh override so make sure root is set properly
+
 	for(int32 i=0; i<Bodies.Num(); i++)
 	{
 		Bodies[i]->SetInstanceNotifyRBCollision(bNewNotifyRigidBodyCollision);
@@ -1168,7 +1223,7 @@ void USkeletalMeshComponent::SetAllMotorsAngularPositionDrive(bool bEnableSwingD
 			}
 		}
 
-		Constraints[i]->SetAngularPositionDrive(bEnableSwingDrive, bEnableTwistDrive);
+		Constraints[i]->SetOrientationDriveTwistAndSwing(bEnableTwistDrive, bEnableSwingDrive);
 	}
 }
 
@@ -1185,11 +1240,11 @@ void USkeletalMeshComponent::SetNamedMotorsAngularPositionDrive(bool bEnableSwin
 		FConstraintInstance* Instance = Constraints[i];
 		if( BoneNames.Contains(Instance->JointName) )
 		{
-			Constraints[i]->SetAngularPositionDrive(bEnableSwingDrive, bEnableTwistDrive);
+			Constraints[i]->SetOrientationDriveTwistAndSwing(bEnableTwistDrive, bEnableSwingDrive);
 		}
 		else if( bSetOtherBodiesToComplement )
 		{
-			Constraints[i]->SetAngularPositionDrive(!bEnableSwingDrive, !bEnableTwistDrive);
+			Constraints[i]->SetOrientationDriveTwistAndSwing(!bEnableTwistDrive, !bEnableSwingDrive);
 		}
 	}
 }
@@ -1207,11 +1262,11 @@ void USkeletalMeshComponent::SetNamedMotorsAngularVelocityDrive(bool bEnableSwin
 		FConstraintInstance* Instance = Constraints[i];
 		if( BoneNames.Contains(Instance->JointName) )
 		{
-			Constraints[i]->SetAngularVelocityDrive(bEnableSwingDrive, bEnableTwistDrive);
+			Constraints[i]->SetAngularVelocityDriveTwistAndSwing(bEnableTwistDrive, bEnableSwingDrive);
 		}
 		else if( bSetOtherBodiesToComplement )
 		{
-			Constraints[i]->SetAngularVelocityDrive(!bEnableSwingDrive, !bEnableTwistDrive);
+			Constraints[i]->SetAngularVelocityDriveTwistAndSwing(!bEnableTwistDrive, !bEnableSwingDrive);
 		}
 	}
 }
@@ -1235,7 +1290,7 @@ void USkeletalMeshComponent::SetAllMotorsAngularVelocityDrive(bool bEnableSwingD
 			}
 		}
 
-		Constraints[i]->SetAngularVelocityDrive(bEnableSwingDrive, bEnableTwistDrive);
+		Constraints[i]->SetAngularVelocityDriveTwistAndSwing(bEnableTwistDrive, bEnableSwingDrive);
 	}
 }
 
@@ -1492,6 +1547,7 @@ void USkeletalMeshComponent::OnCreatePhysicsState()
 	{
 		InitArticulated(GetWorld()->GetPhysicsScene());
 		USceneComponent::OnCreatePhysicsState(); // Need to route CreatePhysicsState, skip PrimitiveComponent
+		SendRenderDebugPhysics();
 	}
 	else
 	{
@@ -1525,6 +1581,42 @@ void USkeletalMeshComponent::OnDestroyPhysicsState()
 #define DEBUGBROKENCONSTRAINTUPDATE(x)
 #endif
 
+void USkeletalMeshComponent::SendRenderDebugPhysics()
+{
+#if !UE_BUILD_SHIPPING
+	if (SceneProxy)
+	{
+		TArray<FPrimitiveSceneProxy::FDebugMassData> DebugMassData;
+		DebugMassData.Reserve(Bodies.Num());
+		
+		for (FBodyInstance* BI : Bodies)
+		{
+			if (BI && BI->IsValidBodyInstance())
+			{
+				const int32 BoneIndex = BI->InstanceBoneIndex;
+				DebugMassData.AddDefaulted();
+				FPrimitiveSceneProxy::FDebugMassData& MassData = DebugMassData.Last();
+				const FTransform MassToWorld = BI->GetMassSpaceToWorldSpace();
+				const FTransform& BoneTM = GetComponentSpaceTransforms()[BoneIndex];
+				const FTransform BoneToWorld = BoneTM * ComponentToWorld;
+
+				MassData.LocalCenterOfMass = BoneToWorld.InverseTransformPosition(MassToWorld.GetLocation());
+				MassData.LocalTensorOrientation = MassToWorld.GetRotation() * BoneToWorld.GetRotation().Inverse();
+				MassData.MassSpaceInertiaTensor = BI->GetBodyInertiaTensor();
+				MassData.BoneIndex = BoneIndex;
+			}
+		}
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			SkeletalMesh_SendRenderDebugPhysics, FPrimitiveSceneProxy*, UseSceneProxy, SceneProxy, TArray<FPrimitiveSceneProxy::FDebugMassData>, UseDebugMassData, DebugMassData,
+			{
+				UseSceneProxy->SetDebugMassData(UseDebugMassData);
+			}
+		);
+		
+	}
+#endif
+}
 
 void USkeletalMeshComponent::UpdateMeshForBrokenConstraints()
 {
@@ -1590,12 +1682,12 @@ void USkeletalMeshComponent::UpdateMeshForBrokenConstraints()
 						if( ChildConstraintInst->IsAngularOrientationDriveEnabled() )
 						{
 							DEBUGBROKENCONSTRAINTUPDATE(UE_LOG(LogSkeletalMesh, Log, TEXT("      Turning off AngularPositionDrive."));)
-							ChildConstraintInst->SetAngularPositionDrive(false, false);
+							ChildConstraintInst->SetOrientationDriveTwistAndSwing(false, false);
 						}
 						if( ChildConstraintInst->IsAngularVelocityDriveEnabled() )
 						{
 							DEBUGBROKENCONSTRAINTUPDATE(UE_LOG(LogSkeletalMesh, Log, TEXT("      Turning off AngularVelocityDrive."));)
-							ChildConstraintInst->SetAngularVelocityDrive(false, false);
+							ChildConstraintInst->SetAngularVelocityDriveTwistAndSwing(false, false);
 						}
 					}
 				}
@@ -1908,6 +2000,9 @@ void USkeletalMeshComponent::SetPhysicsAsset(UPhysicsAsset* InPhysicsAsset, bool
 
 		// Indicate that 'required bones' array will need to be recalculated.
 		bRequiredBonesUpToDate = false;
+
+		SendRenderDebugPhysics();
+
 	}
 }
 
@@ -2243,7 +2338,7 @@ bool USkeletalMeshComponent::ComponentOverlapComponentImpl(class UPrimitiveCompo
 	//we do not support skeletal mesh vs skeletal mesh overlap test
 	if (PrimComp->IsA<USkeletalMeshComponent>())
 	{
-		UE_LOG(LogCollision, Log, TEXT("ComponentOverlapComponent : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
+		UE_LOG(LogCollision, Warning, TEXT("ComponentOverlapComponent : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
 		return false;
 	}
 
@@ -2614,7 +2709,7 @@ void USkeletalMeshComponent::GetWindForCloth_GameThread(FVector& WindDirection, 
 			float WindSpeed;
 			float WindMinGust;
 			float WindMaxGust;
-			World->Scene->GetWindParameters(Position, WindDirection, WindSpeed, WindMinGust, WindMaxGust);
+			World->Scene->GetWindParameters_GameThread(Position, WindDirection, WindSpeed, WindMinGust, WindMaxGust);
 
 			WindDirection *= WindUnitAmout * WindSpeed;
 			WindAdaption = FMath::Rand() % 20 * 0.1f; // make range from 0 to 2
@@ -4163,7 +4258,7 @@ void USkeletalMeshComponent::FreezeClothSection(bool bFreeze)
 bool USkeletalMeshComponent::IsValidClothingActor(const FClothingActor& ClothingActor) const
 {
 #if WITH_APEX_CLOTHING
-	return SkeletalMesh && ClothingActor.ApexClothingActor;	
+	return SkeletalMesh && !SkeletalMesh->IsPendingKill() && !SkeletalMesh->HasAnyFlags(RF_BeginDestroyed) && !SkeletalMesh->IsUnreachable() && ClothingActor.ApexClothingActor;
 #else
 	return false;
 #endif// #if WITH_APEX_CLOTHING

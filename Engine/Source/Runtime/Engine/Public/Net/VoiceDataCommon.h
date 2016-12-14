@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
 
 #ifndef MAX_VOICE_DATA_SIZE
 	#define MAX_VOICE_DATA_SIZE 8*1024
@@ -17,8 +20,6 @@
 #ifndef MAX_REMOTE_TALKERS
 	#define MAX_REMOTE_TALKERS 16
 #endif
-
-class FUniqueNetId;
 
 /** Defines the data involved in a voice packet */
 class FVoicePacket

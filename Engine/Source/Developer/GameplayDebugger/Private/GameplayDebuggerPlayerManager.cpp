@@ -1,12 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "GameplayDebuggerPrivatePCH.h"
 #include "GameplayDebuggerPlayerManager.h"
-#include "GameplayDebuggerAddonManager.h"
+#include "Engine/World.h"
+#include "Components/InputComponent.h"
 #include "GameplayDebuggerCategoryReplicator.h"
 #include "GameplayDebuggerLocalController.h"
-#include "Engine/DebugCameraController.h"
-#include "Components/InputComponent.h"
 #include "Engine/DebugCameraController.h"
 
 AGameplayDebuggerPlayerManager::AGameplayDebuggerPlayerManager(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -103,7 +101,7 @@ void AGameplayDebuggerPlayerManager::UpdateAuthReplicators()
 
 	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; It++)
 	{
-		APlayerController* TestPC = *It;
+		APlayerController* TestPC = It->Get();
 		if (TestPC && !TestPC->IsA<ADebugCameraController>())
 		{
 			const bool bNeedsReplicator = (GetReplicator(*TestPC) == nullptr);

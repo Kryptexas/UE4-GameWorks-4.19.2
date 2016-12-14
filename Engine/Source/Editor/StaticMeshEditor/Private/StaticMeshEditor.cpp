@@ -1,35 +1,43 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "StaticMeshEditorModule.h"
-#include "AssetRegistryModule.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditor.h"
+#include "AssetData.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Modules/ModuleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EditorStyleSet.h"
+#include "EditorReimportHandler.h"
+#include "Editor/UnrealEdEngine.h"
+#include "EditorFramework/AssetImportData.h"
+#include "Engine/StaticMesh.h"
+#include "Editor.h"
+#include "UnrealEdGlobals.h"
+#include "StaticMeshEditorModule.h"
+
 #include "SStaticMeshEditorViewport.h"
-#include "StaticMeshEditorViewportClient.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
+#include "IDetailCustomization.h"
 #include "StaticMeshEditorTools.h"
 #include "StaticMeshEditorActions.h"
 
-#include "UnrealEd.h"
 #include "StaticMeshResources.h"
-#include "ISocketManager.h"
-#include "PreviewScene.h"
-#include "ScopedTransaction.h"
 #include "BusyCursor.h"
-#include "FbxMeshUtils.h"
-#include "../Private/GeomFitUtils.h"
+#include "Private/GeomFitUtils.h"
 #include "EditorViewportCommands.h"
-#include "Editor/UnrealEd/Private/ConvexDecompTool.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "Private/ConvexDecompTool.h"
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
-#include "SDockTab.h"
-#include "GenericCommands.h"
-#include "STextComboBox.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "Engine/Selection.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Widgets/Input/STextComboBox.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "PhysicsEngine/SphylElem.h"
 #include "PhysicsEngine/BodySetup.h"
 
 #include "SAdvancedPreviewDetailsTab.h"
@@ -748,7 +756,7 @@ void FStaticMeshEditor::DuplicateSelectedPrims(const FVector* InOffset)
 		}
 
 		// refresh collision change back to staticmesh components
-		RefreshCollisionChange(StaticMesh);
+		RefreshCollisionChange(*StaticMesh);
 
 		GEditor->EndTransaction();
 
@@ -781,7 +789,7 @@ void FStaticMeshEditor::TranslateSelectedPrims(const FVector& InDrag)
 	}
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 }
 
 void FStaticMeshEditor::RotateSelectedPrims(const FRotator& InRot)
@@ -809,7 +817,7 @@ void FStaticMeshEditor::RotateSelectedPrims(const FRotator& InRot)
 	}
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 }
 
 void FStaticMeshEditor::ScaleSelectedPrims(const FVector& InScale)
@@ -853,7 +861,7 @@ void FStaticMeshEditor::ScaleSelectedPrims(const FVector& InScale)
 	}
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 }
 
 bool FStaticMeshEditor::CalcSelectedPrimsAABB(FBox &OutBox) const
@@ -1316,7 +1324,7 @@ void FStaticMeshEditor::OnRemoveCollision(void)
 	GEditor->EndTransaction();
 
 	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
@@ -1405,7 +1413,7 @@ void FStaticMeshEditor::OnConvertBoxToConvexCollision()
 					AddSelectedPrim(FPrimData(KPT_Convex, (AggGeom->ConvexElems.Num() - (i+1))), false);
 				}
 
-				RefreshCollisionChange(StaticMesh);
+				RefreshCollisionChange(*StaticMesh);
 				// Mark static mesh as dirty, to help make sure it gets saved.
 				StaticMesh->MarkPackageDirty();
 
@@ -1448,7 +1456,7 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 
 	GEditor->EndTransaction();
 
-	RefreshCollisionChange(StaticMesh);
+	RefreshCollisionChange(*StaticMesh);
 	// Mark static mesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
 
@@ -1689,7 +1697,7 @@ void FStaticMeshEditor::DoDecomp(float InAccuracy, int32 InMaxHullVerts)
 		}
 
 		// refresh collision change back to staticmesh components
-		RefreshCollisionChange(StaticMesh);
+		RefreshCollisionChange(*StaticMesh);
 
 		// Mark mesh as dirty
 		StaticMesh->MarkPackageDirty();
@@ -1800,7 +1808,7 @@ void FStaticMeshEditor::DeleteSelectedPrims()
 		StaticMesh->BodySetup->InvalidatePhysicsData();
 
 		// refresh collision change back to staticmesh components
-		RefreshCollisionChange(StaticMesh);
+		RefreshCollisionChange(*StaticMesh);
 
 		// Mark staticmesh as dirty, to help make sure it gets saved.
 		StaticMesh->MarkPackageDirty();
@@ -1860,6 +1868,11 @@ void FStaticMeshEditor::OnObjectReimported(UObject* InObject)
 	if(StaticMesh == InObject)
 	{
 		SetEditorMesh(Cast<UStaticMesh>(InObject));
+
+		if (SocketManager.IsValid())
+		{
+			SocketManager->UpdateStaticMesh();
+		}
 	}
 }
 
@@ -1979,6 +1992,7 @@ void FStaticMeshEditor::RedoAction()
 void FStaticMeshEditor::PostUndo( bool bSuccess )
 {
 	RemoveInvalidPrims();
+	RefreshTool();
 
 	OnPostUndo.Broadcast();
 }
@@ -1986,6 +2000,7 @@ void FStaticMeshEditor::PostUndo( bool bSuccess )
 void FStaticMeshEditor::PostRedo( bool bSuccess )
 {
 	RemoveInvalidPrims();
+	RefreshTool();
 
 	OnPostUndo.Broadcast();
 }

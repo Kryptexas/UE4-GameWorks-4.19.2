@@ -1,69 +1,105 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "SoundDefinitions.h"
-#include "LevelUtils.h"
+#include "CoreMinimal.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/Guid.h"
+#include "Stats/Stats.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "UObject/LazyObjectPtr.h"
+#include "Misc/StringAssetReference.h"
+#include "Serialization/ArchiveTraceRoute.h"
+#include "Misc/PackageName.h"
+#include "Misc/StringClassReference.h"
+#include "InputCoreTypes.h"
+#include "Layout/Margin.h"
+#include "Layout/SlateRect.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SOverlay.h"
+#include "Widgets/SWindow.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/SViewport.h"
+#include "Framework/Docking/TabManager.h"
+#include "EditorStyleSet.h"
+#include "EditorStyleSettings.h"
+#include "Engine/EngineTypes.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
+#include "Settings/LevelEditorPlaySettings.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Editor/EditorEngine.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/ProjectPackagingSettings.h"
+#include "GameMapsSettings.h"
+#include "GeneralProjectSettings.h"
+#include "Engine/NavigationObjectBase.h"
+#include "GameFramework/PlayerStart.h"
+#include "GameFramework/GameModeBase.h"
+#include "Components/AudioComponent.h"
+#include "Engine/Note.h"
+#include "Engine/Selection.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
+#include "Editor.h"
+#include "LevelEditorViewport.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "UnrealEdMisc.h"
+#include "FileHelpers.h"
+#include "UnrealEdGlobals.h"
+#include "EditorAnalytics.h"
+#include "AudioDevice.h"
 #include "BusyCursor.h"
 #include "ScopedTransaction.h"
-#include "Database.h"
 #include "PackageTools.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "BlueprintUtilities.h"
+#include "Slate/SceneViewport.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/LevelEditor/Public/SLevelViewport.h"
 #include "Toolkits/AssetEditorManager.h"
-#include "Toolkits/ToolkitManager.h"
+#include "LevelEditor.h"
+#include "ILevelViewport.h"
 #include "BlueprintEditorModule.h"
-#include "TargetPlatform.h"
-#include "MainFrame.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
-#include "LauncherServices.h"
-#include "ISettingsModule.h"
-#include "TargetDeviceServices.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
+#include "Interfaces/ITargetDeviceServicesModule.h"
+#include "Interfaces/ILauncherServicesModule.h"
 #include "GameProjectGenerationModule.h"
 #include "SourceCodeNavigation.h"
 #include "PhysicsPublic.h"
-#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "AnalyticsEventAttribute.h"
+#include "Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
-#include "Engine/GameInstance.h"
-#include "EditorAnalytics.h"
-#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
-#include "Runtime/Engine/Classes/Engine/RendererSettings.h"
-#include "SScissorRectBox.h"
-#include "SNotificationList.h"
-#include "SGameLayerManager.h"
-#include "NotificationManager.h"
-#include "Engine/Selection.h"
-#include "TimerManager.h"
-#include "AI/Navigation/NavigationSystem.h"
-
-#include "Runtime/HeadMountedDisplay/Public/HeadMountedDisplay.h"
-#include "Components/AudioComponent.h"
-#include "Engine/Note.h"
-#include "UnrealEngine.h"
-#include "GameFramework/GameModeBase.h"
-#include "Engine/NavigationObjectBase.h"
-#include "GameFramework/PlayerController.h"
-#include "GameFramework/PlayerStart.h"
-#include "GameFramework/PlayerState.h"
-#include "GameFramework/WorldSettings.h"
-#include "Engine/LevelStreaming.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Engine/LocalPlayer.h"
-#include "Components/ModelComponent.h"
-#include "EngineUtils.h"
-#include "GameMapsSettings.h"
-#include "GameFramework/Pawn.h"
-#include "GameDelegates.h"
-#include "GeneralProjectSettings.h"
-#include "OnlineEngineInterface.h"
-#include "DebuggerCommands.h"
-#include "ScopeExit.h"
+#include "Slate/SGameLayerManager.h"
 
-#include "AudioThread.h"
+#include "IHeadMountedDisplay.h"
+#include "Engine/LevelStreaming.h"
+#include "Components/ModelComponent.h"
+#include "GameDelegates.h"
+#include "Net/OnlineEngineInterface.h"
+#include "Kismet2/DebuggerCommands.h"
+#include "Misc/ScopeExit.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayLevel, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
@@ -113,6 +149,13 @@ public:
 
 void UEditorEngine::EndPlayMap()
 {
+	if ( bIsEndingPlay )
+	{
+		return;
+	}
+
+	TGuardValue<bool> GuardIsEndingPlay(bIsEndingPlay, true);
+
 	FlushAsyncLoading();
 
 	// Monitoring when PIE corrupts references between the World and the PIE generated World for UE-20486
@@ -264,8 +307,11 @@ void UEditorEngine::EndPlayMap()
 				bSeamlessTravelActive = true;
 			}
 
-			TeardownPlaySession(ThisContext);
-			
+			if (ThisContext.World())
+			{
+				TeardownPlaySession(ThisContext);
+			}
+
 			// Cleanup online subsystems instantiated during PIE
 			FName OnlineIdentifier = UOnlineEngineInterface::Get()->GetOnlineIdentifier(ThisContext);
 			if (UOnlineEngineInterface::Get()->DoesInstanceExist(OnlineIdentifier))
@@ -372,6 +418,15 @@ void UEditorEngine::EndPlayMap()
 				{
 					CastChecked<UWorld>(Level->GetOuter())->MarkObjectsPendingKill();
 				}
+			}
+		}
+
+		for (ULevelStreaming* LevelStreaming : World->StreamingLevels)
+		{
+			// If an unloaded levelstreaming still has a loaded level we need to mark its objects to be deleted as well
+			if ((!LevelStreaming->bShouldBeLoaded || !LevelStreaming->bShouldBeVisible) && LevelStreaming->GetLoadedLevel())
+			{
+				CastChecked<UWorld>(LevelStreaming->GetLoadedLevel()->GetOuter())->MarkObjectsPendingKill();
 			}
 		}
 	}
@@ -506,7 +561,7 @@ void UEditorEngine::CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers)
 	NumOnlinePIEInstances = 0;
 }
 
-void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
+void UEditorEngine::TeardownPlaySession(FWorldContext& PieWorldContext)
 {
 	check(PieWorldContext.WorldType == EWorldType::PIE);
 	PlayWorld = PieWorldContext.World();
@@ -1777,10 +1832,8 @@ struct FInternalPlayLevelUtils
 					/*bAddInstrumentation =*/false);
 
 				// Check for errors after compiling
-				for (auto CompiledIt = CompiledBlueprints.CreateIterator(); CompiledIt; ++CompiledIt)
+				for (UBlueprint* CompiledBlueprint : CompiledBlueprints)
 				{
-					UBlueprint* CompiledBlueprint = *CompiledIt;
-
 					if (CompiledBlueprint != Blueprint)
 					{
 						int32 ExistingIndex = InNeedOfRecompile.Find(CompiledBlueprint);
@@ -1918,7 +1971,7 @@ void UEditorEngine::PlayUsingLauncher()
 		ELauncherProfileCookModes::Type CurrentLauncherCookMode = ELauncherProfileCookModes::ByTheBook;
 		bool bCanCookByTheBookInEditor = true;
 		bool bCanCookOnTheFlyInEditor = true;
-		for ( const auto &PlatformName : LauncherProfile->GetCookedPlatforms() )
+		for ( const FString& PlatformName : LauncherProfile->GetCookedPlatforms() )
 		{
 			if ( CanCookByTheBookInEditor(PlatformName) == false )
 			{
@@ -2030,7 +2083,7 @@ void UEditorEngine::PlayUsingLauncher()
 		if ( LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor )
 		{
 			TArray<ITargetPlatform*> TargetPlatforms;
-			for ( const auto &PlatformName : LauncherProfile->GetCookedPlatforms() )
+			for ( const FString& PlatformName : LauncherProfile->GetCookedPlatforms() )
 			{
 				ITargetPlatform* TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(PlatformName);
 				// todo pass in all the target platforms instead of just the single platform
@@ -2321,7 +2374,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	if (ErroredBlueprints.Num() && !GIsDemoMode)
 	{
 		FString ErroredBlueprintList;
-		for (auto Blueprint : ErroredBlueprints)
+		for (UBlueprint* Blueprint : ErroredBlueprints)
 		{
 			ErroredBlueprintList += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
 		}
@@ -2344,7 +2397,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		else
 		{
 			// The user wants to ignore the compiler errors, mark the Blueprints and do not warn them again unless the Blueprint attempts to compile
-			for (auto Blueprint : ErroredBlueprints)
+			for (UBlueprint* Blueprint : ErroredBlueprints)
 			{
 				Blueprint->bDisplayCompilePIEWarning = false;
 			}
@@ -2988,9 +3041,18 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	// We need to temporarily add the GameInstance to the root because the InitPIE call can do garbage collection wiping out the GameInstance
 	GameInstance->AddToRoot();
 
-	bool bSuccess = GameInstance->InitializePIE(bAnyBlueprintErrors, InPIEInstance, bRunAsDedicated);
-	if (!bSuccess)
+	FGameInstancePIEParameters GameInstanceParams;
+	GameInstanceParams.bAnyBlueprintErrors = bAnyBlueprintErrors;
+	GameInstanceParams.bSimulateInEditor = bInSimulateInEditor;
+	GameInstanceParams.bStartInSpectatorMode = bStartInSpectatorMode;
+	GameInstanceParams.bRunAsDedicated = bRunAsDedicated;
+
+	
+	const FGameInstancePIEResult InitializeResult = GameInstance->InitializeForPlayInEditor(InPIEInstance, GameInstanceParams);
+	if (!InitializeResult.IsSuccess())
 	{
+		FMessageDialog::Open(EAppMsgType::Ok, InitializeResult.FailureReason);
+
 		FEditorDelegates::EndPIE.Broadcast(bInSimulateInEditor);
 
 		if (EditorWorld->GetNavigationSystem())
@@ -3354,10 +3416,11 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 InPIEInstance, bool bI
 	// By this point it is safe to remove the GameInstance from the root and allow it to garbage collected as per usual
 	GameInstance->RemoveFromRoot();
 
-	bSuccess = GameInstance->StartPIEGameInstance(NewLocalPlayer, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode);
-	if (!bSuccess)
+	// Start the game instance
+	const FGameInstancePIEResult StartResult = GameInstance->StartPlayInEditorGameInstance(NewLocalPlayer, GameInstanceParams);
+	if (!StartResult.IsSuccess())
 	{
-		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_CouldntStartInstance", "Failed to start PIE game instance"));
+		FMessageDialog::Open(EAppMsgType::Ok, StartResult.FailureReason);
 		RestoreEditorWorld( EditorWorld );
 		EndPlayMap();
 		return nullptr;
@@ -3428,9 +3491,8 @@ FViewport* UEditorEngine::GetPIEViewport()
 	}
 	else
 	{
-		for (auto It = WorldList.CreateIterator(); It; ++It)
+		for (const FWorldContext& WorldContext : WorldList)
 		{
-			FWorldContext &WorldContext = *It;
 			if (WorldContext.WorldType == EWorldType::PIE)
 			{
 				// We can't use FindChecked here because when using the dedicated server option we don't initialize this map 
@@ -3454,9 +3516,8 @@ void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 	// The first PIE world context is the one that can toggle between PIE and SIE
 	// Network PIE/SIE toggling is not really meant to be supported.
 	FSlatePlayInEditorInfo * SlateInfoPtr = nullptr;
-	for (auto It = WorldList.CreateIterator(); It && !SlateInfoPtr; ++It)
+	for (const FWorldContext& WorldContext : WorldList)
 	{
-		FWorldContext &WorldContext = *It;
 		if (WorldContext.WorldType == EWorldType::PIE && !WorldContext.RunAsDedicated)
 		{
 			SlateInfoPtr = SlatePlayInEditorMap.Find(WorldContext.ContextHandle);
@@ -3655,7 +3716,7 @@ bool UEditorEngine::PackageUsingExternalObjects( ULevel* LevelToCheck, bool bAdd
 	return bFoundExternal;
 }
 
-UWorld* UEditorEngine::CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName)
+UWorld* UEditorEngine::CreatePIEWorldBySavingToTemp(FWorldContext& WorldContext, UWorld* InWorld, FString &PlayWorldMapName)
 {
 	double StartTime = FPlatformTime::Seconds();
 	UWorld * LoadedWorld = NULL;
@@ -3748,13 +3809,12 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 		// Prepare string asset references for fixup
 		TArray<FString> PackageNamesBeingDuplicatedForPIE;
 		PackageNamesBeingDuplicatedForPIE.Add(PlayWorldMapName);
-		for ( auto LevelIt = InWorld->StreamingLevels.CreateConstIterator(); LevelIt; ++LevelIt )
+		for (ULevelStreaming* StreamingLevel : InWorld->StreamingLevels)
 		{
-			ULevelStreaming* StreamingLevel = *LevelIt;
 			if ( StreamingLevel )
 			{
-				const FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
-				PackageNamesBeingDuplicatedForPIE.Add(StreamingLevelPIEName);
+				FString StreamingLevelPIEName = UWorld::ConvertToPIEPackageName(StreamingLevel->GetWorldAssetPackageName(), WorldContext.PIEInstance);
+				PackageNamesBeingDuplicatedForPIE.Add(MoveTemp(StreamingLevelPIEName));
 			}
 		}
 

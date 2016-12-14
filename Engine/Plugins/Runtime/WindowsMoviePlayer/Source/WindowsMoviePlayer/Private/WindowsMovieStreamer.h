@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "MoviePlayer.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
-#include <windows.h>
 #include <mfapi.h>
 #include <mfidl.h>
 
@@ -35,6 +36,9 @@ public:
 
 	virtual FString GetMovieName() override;
 	virtual bool IsLastMovieInPlaylist() override;
+
+	FOnCurrentMovieClipFinished OnCurrentMovieClipFinishedDelegate;
+	virtual FOnCurrentMovieClipFinished& OnCurrentMovieClipFinished() override { return OnCurrentMovieClipFinishedDelegate; }
 
 	virtual FTexture2DRHIRef GetTexture() override { return Texture.IsValid() ? Texture->GetRHIRef() : nullptr; }
 

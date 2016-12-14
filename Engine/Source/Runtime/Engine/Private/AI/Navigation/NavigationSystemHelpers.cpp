@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "NavDataGenerator.h"
-#include "NavigationOctree.h"
-#if WITH_RECAST
-#include "RecastNavMeshGenerator.h"
-#endif // WITH_RECAST
 #include "AI/NavigationSystemHelpers.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
+#include "Engine/World.h"
+#include "Components/StaticMeshComponent.h"
+#include "AI/NavigationModifier.h"
+#if WITH_RECAST
+#include "AI/Navigation/RecastNavMeshGenerator.h"
+#endif // WITH_RECAST
 #include "VisualLogger/VisualLogger.h"
 #include "AI/Navigation/NavCollision.h"
+#include "PhysicsEngine/BodySetup.h"
 
 namespace NavigationHelper
 {
@@ -194,5 +197,15 @@ namespace NavigationHelper
 	{
 		check(NewDelegate.IsBound());
 		NavLinkSegmentProcessor = NewDelegate;
+	}
+
+	bool IsBodyNavigationRelevant(const UBodySetup& BodySetup)
+	{
+		// has any colliding geometry
+		return (BodySetup.AggGeom.GetElementCount() > 0 || BodySetup.TriMeshes.Num() > 0)
+			// AND blocks any of Navigation-relevant 
+			&& (BodySetup.DefaultInstance.GetResponseToChannel(ECC_Pawn) == ECR_Block || BodySetup.DefaultInstance.GetResponseToChannel(ECC_Vehicle) == ECR_Block)
+			// AND has full colliding capabilities 
+			&& BodySetup.DefaultInstance.GetCollisionEnabled() == ECollisionEnabled::QueryAndPhysics;
 	}
 }

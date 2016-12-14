@@ -1,17 +1,19 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
-#include "MovieScenePropertyRecorder.h"
-#include "MovieSceneBoolSection.h"
-#include "MovieSceneBoolTrack.h"
-#include "MovieSceneByteSection.h"
-#include "MovieSceneByteTrack.h"
-#include "MovieSceneFloatSection.h"
-#include "MovieSceneFloatTrack.h"
-#include "MovieSceneColorSection.h"
-#include "MovieSceneColorTrack.h"
-#include "MovieSceneVectorSection.h"
-#include "MovieSceneVectorTrack.h"
+#include "Sections/MovieScenePropertyRecorder.h"
+#include "MovieScene.h"
+#include "Sections/MovieSceneBoolSection.h"
+#include "Tracks/MovieSceneBoolTrack.h"
+#include "Sections/MovieSceneByteSection.h"
+#include "Tracks/MovieSceneByteTrack.h"
+#include "Sections/MovieSceneEnumSection.h"
+#include "Tracks/MovieSceneEnumTrack.h"
+#include "Sections/MovieSceneFloatSection.h"
+#include "Tracks/MovieSceneFloatTrack.h"
+#include "Sections/MovieSceneColorSection.h"
+#include "Tracks/MovieSceneColorTrack.h"
+#include "Sections/MovieSceneVectorSection.h"
+#include "Tracks/MovieSceneVectorTrack.h"
 
 // current set of compiled-in property types
 
@@ -96,6 +98,44 @@ void FMovieScenePropertyRecorder<uint8>::AddKeyToSection(UMovieSceneSection* InS
 
 template <>
 void FMovieScenePropertyRecorder<uint8>::ReduceKeys(UMovieSceneSection* InSection)
+{
+}
+
+bool FMovieScenePropertyRecorderEnum::ShouldAddNewKey(const int64& InNewValue) const
+{
+	return InNewValue != PreviousValue;
+}
+
+UMovieSceneSection* FMovieScenePropertyRecorderEnum::AddSection(UObject* InObjectToRecord, UMovieScene* InMovieScene, const FGuid& InGuid, float InTime)
+{
+	UMovieSceneEnumTrack* Track = InMovieScene->AddTrack<UMovieSceneEnumTrack>(InGuid);
+	if (Track)
+	{
+		if (InObjectToRecord)
+		{
+			Track->SetPropertyNameAndPath(*Binding.GetProperty(*InObjectToRecord)->GetDisplayNameText().ToString(), Binding.GetPropertyPath());
+		}
+
+		UMovieSceneEnumSection* Section = Cast<UMovieSceneEnumSection>(Track->CreateNewSection());
+		Section->SetDefault(PreviousValue);
+		Section->SetStartTime(InTime);
+		Section->SetEndTime(InTime);
+		Section->AddKey(InTime, PreviousValue, EMovieSceneKeyInterpolation::Break);
+
+		Track->AddSection(*Section);
+
+		return Section;
+	}
+
+	return nullptr;
+}
+
+void FMovieScenePropertyRecorderEnum::AddKeyToSection(UMovieSceneSection* InSection, const FPropertyKey<int64>& InKey)
+{
+	CastChecked<UMovieSceneEnumSection>(InSection)->AddKey(InKey.Time, InKey.Value, EMovieSceneKeyInterpolation::Break);
+}
+
+void FMovieScenePropertyRecorderEnum::ReduceKeys(UMovieSceneSection* InSection)
 {
 }
 

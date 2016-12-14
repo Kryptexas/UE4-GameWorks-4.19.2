@@ -1,20 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
-#include "MallocAnsi.h"
-#include "GenericApplication.h"
-#include "GenericPlatformChunkInstall.h"
-#include "GenericPlatformCompression.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Logging/LogMacros.h"
+#include "CoreGlobals.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Internationalization/Text.h"
+#include "Internationalization/Internationalization.h"
+#include "Misc/Guid.h"
+#include "Math/Color.h"
+#include "GenericPlatform/GenericPlatformCompression.h"
+#include "Misc/ConfigCacheIni.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Misc/App.h"
+#include "GenericPlatform/GenericPlatformChunkInstall.h"
 #include "HAL/FileManagerGeneric.h"
-#include "ModuleManager.h"
-#include "VarargsHelper.h"
-#include "SecureHash.h"
-#include "ExceptionHandling.h"
-#include "Containers/Map.h"
-#include "GenericPlatformCrashContext.h"
-#include "GenericPlatformDriver.h"
+#include "Misc/VarargsHelper.h"
+#include "Misc/SecureHash.h"
+#include "HAL/ExceptionHandling.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
+#include "GenericPlatform/GenericPlatformDriver.h"
 
-#include "UProjectInfo.h"
+#include "Misc/UProjectInfo.h"
 
 #if UE_ENABLE_ICU
 	THIRD_PARTY_INCLUDES_START
@@ -219,7 +233,10 @@ FString FGenericPlatformMisc::GetUniqueDeviceId()
 
 FString FGenericPlatformMisc::GetDeviceId()
 {
-	return FString();
+	// @todo: When this function is finally removed, the functionality used will need to be moved in here.
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	return GetUniqueDeviceId();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 void FGenericPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode )
@@ -867,7 +884,7 @@ uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint32* KeyCodes, FStrin
 	ADDKEYMAP( '\\', TEXT("Backslash") );
 	ADDKEYMAP( ']', TEXT("RightBracket") );
 	ADDKEYMAP( '\'', TEXT("Apostrophe") );
-	ADDKEYMAP( ' ', TEXT("SpaceBar") );
+	ADDKEYMAP(' ', TEXT("SpaceBar"));
 
 	// AZERTY Keys
 	ADDKEYMAP( '&', TEXT("Ampersand") );

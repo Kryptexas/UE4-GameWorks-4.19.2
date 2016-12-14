@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "DebugRenderSceneProxy.h"
-#include "EnvironmentQuery/EQSRenderingComponent.h"
 #include "EnvironmentQuery/EnvQueryDebugHelpers.h"
-#include "EnvironmentQuery/EQSQueryResultSourceInterface.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "EnvironmentQuery/EnvQueryGenerator.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
+#include "VisualLoggerExtension.h"
+#include "EnvironmentQuery/EQSRenderingComponent.h"
 
 #if USE_EQS_DEBUGGER
 void UEnvQueryDebugHelpers::QueryToBlobArray(FEnvQueryInstance& Query, TArray<uint8>& BlobArray, bool bUseCompression)
@@ -198,6 +200,13 @@ void UEnvQueryDebugHelpers::LogQueryInternal(FEnvQueryInstance& Query, const FLo
 
 		// draw test weights for best X items
 		const int32 NumItems = EQSLocalData.Items.Num();
+
+		// print sorted tests' descriptions, to be able to tie TestIdx with an actual test
+		const FEnvQueryOptionInstance& Option = Query.Options[Query.OptionIndex];
+		for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
+		{
+			Line.Line += FString::Printf(TEXT("%d: %s\n"), TestIdx, *Option.Tests[TestIdx]->GetDescriptionTitle().ToString());
+		}
 
 		// table header		
 		{

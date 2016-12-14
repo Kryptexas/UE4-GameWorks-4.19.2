@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -31,7 +31,8 @@ public class WebBrowser : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Win64
 		||  Target.Platform == UnrealTargetPlatform.Win32
-		||  Target.Platform == UnrealTargetPlatform.Mac)
+		||  Target.Platform == UnrealTargetPlatform.Mac
+		||  Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			PrivateDependencyModuleNames.Add("CEF3Utils");
 			AddEngineThirdPartyPrivateStaticDependencies(Target,
@@ -46,6 +47,10 @@ public class WebBrowser : ModuleRules
 					RuntimeDependencies.Add(new RuntimeDependency(FilePath));
 				}
 			}
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess"));
+			}
 			else
 			{
 				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe"));
@@ -56,7 +61,7 @@ public class WebBrowser : ModuleRules
 		{
 			PrivateDependencyModuleNames.Add("OnlineSubsystem");
 		}
-		
+
 		bEnableShadowVariableWarnings = false;
 	}
 }

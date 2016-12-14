@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IScreenShotComparisonModule.h: Declares the IScreenShotComparisonModule interface.
@@ -6,9 +6,13 @@
 
 #pragma once
 
-#include "Async/Async.h"
-#include "IScreenShotData.h"
-#include "../ImageComparer.h"
+#include "CoreMinimal.h"
+#include "Async/Future.h"
+#include "ImageComparer.h"
+#include "Interfaces/IScreenShotData.h"
+
+class IScreenShotManager;
+struct FScreenShotDataItem;
 
 /**
  * Type definition for shared pointers to instances of IScreenShotManager.

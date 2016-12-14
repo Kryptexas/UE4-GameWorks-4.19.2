@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessAmbientOcclusion.h: Post processing ambient occlusion implementation.
@@ -6,7 +6,12 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
+#include "CoreMinimal.h"
+#include "UniformBuffer.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+
+class FViewInfo;
 
 enum class ESSAOType
 {

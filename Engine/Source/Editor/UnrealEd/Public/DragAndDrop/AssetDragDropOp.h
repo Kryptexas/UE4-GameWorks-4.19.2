@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Runtime/AssetRegistry/Public/AssetData.h"
-#include "AssetThumbnail.h"
-#include "ClassIconFinder.h"
-#include "DecoratedDragDropOp.h"
+#include "CoreMinimal.h"
+#include "AssetData.h"
+#include "Input/DragAndDrop.h"
+#include "Layout/Visibility.h"
+#include "DragAndDrop/DecoratedDragDropOp.h"
+
+class FAssetThumbnail;
+class FAssetThumbnailPool;
+class UActorFactory;
 
 class FAssetDragDropOp : public FDecoratedDragDropOp
 {

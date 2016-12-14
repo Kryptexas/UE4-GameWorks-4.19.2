@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieScene3DPathSection.h"
-#include "MovieScene3DPathTrack.h"
-#include "ActorPickerTrackEditor.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
+#include "TrackEditors/ActorPickerTrackEditor.h"
 
+class AActor;
+class FMenuBuilder;
+class USceneComponent;
 
 /**
  * Tools for animating a transform with a path curve

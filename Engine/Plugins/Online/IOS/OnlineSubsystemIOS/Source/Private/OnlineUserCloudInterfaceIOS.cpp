@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
 #include "OnlineUserCloudInterfaceIOS.h"
+#include "HAL/PlatformProcess.h"
 
 @implementation IOSCloudStorage
 

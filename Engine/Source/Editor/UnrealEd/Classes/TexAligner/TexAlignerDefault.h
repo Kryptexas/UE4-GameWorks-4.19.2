@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // TexAlignerDefault
@@ -7,7 +7,15 @@
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "TexAligner/TexAligner.h"
 #include "TexAlignerDefault.generated.h"
+
+class FBspSurfIdx;
+class FPoly;
+class UModel;
 
 UCLASS(hidecategories=Object)
 class UTexAlignerDefault : public UTexAligner

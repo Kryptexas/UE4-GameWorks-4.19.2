@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SScreenShotBrowser.cpp: Implements the SScreenShotBrowser class.
 =============================================================================*/
 
-#include "ScreenShotComparisonPrivatePCH.h"
-#include "SDirectoryPicker.h"
-#include "SScreenComparisonRow.h"
+#include "Widgets/SScreenShotBrowser.h"
+#include "HAL/FileManager.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SDirectoryPicker.h"
+#include "Widgets/SScreenComparisonRow.h"
 #include "Models/ScreenComparisonModel.h"
+#include "Misc/FeedbackContext.h"
 
 #define LOCTEXT_NAMESPACE "ScreenshotComparison"
 
@@ -136,12 +140,13 @@ void SScreenShotBrowser::RebuildTree()
 				ComparisonList.Add(Model);
 			}
 
-			for ( FString& Missing : CurrentComparisons->Missing )
-			{
-				TSharedPtr<FScreenComparisonModel> Model = MakeShared<FScreenComparisonModel>(EComparisonResultType::Missing);
-				Model->Folder = Missing;
-				ComparisonList.Add(Model);
-			}
+			// Ignore Missing
+			//for ( FString& Missing : CurrentComparisons->Missing )
+			//{
+			//	TSharedPtr<FScreenComparisonModel> Model = MakeShared<FScreenComparisonModel>(EComparisonResultType::Missing);
+			//	Model->Folder = Missing;
+			//	ComparisonList.Add(Model);
+			//}
 
 			// Copy the comparisons to an array as shared pointers the list view can use.
 			for ( FImageComparisonResult& Result : CurrentComparisons->Comparisons )

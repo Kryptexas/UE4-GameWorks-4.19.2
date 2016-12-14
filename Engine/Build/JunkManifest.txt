@@ -109,8 +109,8 @@ Ocean\Binaries\Mac\Ocean.app\Contents\MacOS\*-LootTables.dylib
 Engine\Intermediate\Build\Win64\UE4Editor\Inc\SimplygonUtilities\*
 Engine\Build\Android\Java\JavaLibs\google-play-services_lib_rev19
 Engine\Intermediate\Build\Android\JavaLibs\google-play-services_lib_rev19
-Engine\Plugins\WolfPlatMoviePlayer\*
-Engine\Plugins\WolfPlatMoviePlayer\Source\*
-Engine\Plugins\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\*
-Engine\Plugins\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\Public\*
-Engine\Plugins\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\Private\*
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\*
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\*
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\*
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\Public\*
+Engine\Plugins\Runtime\WolfPlatMoviePlayer\Source\WolfPlatMoviePlayer\Private\*

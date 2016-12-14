@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_SimpleGrid.h"
+#include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
@@ -33,9 +32,9 @@ void UEnvQueryGenerator_SimpleGrid::GenerateItems(FEnvQueryInstance& QueryInstan
 
 	for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 	{
-		for (int32 IndexX = 0; IndexX <= ItemCount; ++IndexX)
+		for (int32 IndexX = 0; IndexX < ItemCount; ++IndexX)
 		{
-			for (int32 IndexY = 0; IndexY <= ItemCount; ++IndexY)
+			for (int32 IndexY = 0; IndexY < ItemCount; ++IndexY)
 			{
 				const FNavLocation TestPoint = FNavLocation(ContextLocations[ContextIndex] - FVector(DensityValue * (IndexX - ItemCountHalf), DensityValue * (IndexY - ItemCountHalf), 0));
 				GridPoints.Add(TestPoint);
@@ -49,13 +48,13 @@ void UEnvQueryGenerator_SimpleGrid::GenerateItems(FEnvQueryInstance& QueryInstan
 
 FText UEnvQueryGenerator_SimpleGrid::GetDescriptionTitle() const
 {
-	return FText::Format(LOCTEXT("DescriptionGenerateAroundContext", "{0}: generate around {1}"),
+	return FText::Format(LOCTEXT("SimpleGridDescriptionGenerateAroundContext", "{0}: generate around {1}"),
 		Super::GetDescriptionTitle(), UEnvQueryTypes::DescribeContext(GenerateAround));
 };
 
 FText UEnvQueryGenerator_SimpleGrid::GetDescriptionDetails() const
 {
-	FText Desc = FText::Format(LOCTEXT("SimpleGridDescription", "size: {0}, space between: {1}"),
+	FText Desc = FText::Format(LOCTEXT("SimpleGridDescription", "radius: {0}, space between: {1}"),
 		FText::FromString(GridSize.ToString()), FText::FromString(SpaceBetween.ToString()));
 
 	FText ProjDesc = ProjectionData.ToText(FEnvTraceData::Brief);

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -19,17 +19,9 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
-#include <math.h>
-#include <float.h>
-#include <string.h>
-#include "DetourNavMeshQuery.h"
-#include "DetourNavMesh.h"
-#include "DetourNode.h"
-#include "DetourCommon.h"
-#include "DetourAlloc.h"
-#include "DetourAssert.h"
-#include <new>
+#include "Detour/DetourNavMeshQuery.h"
+#include "Detour/DetourNode.h"
+#include "Detour/DetourAssert.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDebugRaycastCrash, All, All);
 
@@ -1083,7 +1075,7 @@ dtStatus dtNavMeshQuery::findNearestPoly(const float* center, const float* exten
 dtStatus dtNavMeshQuery::findNearestPoly2D(const float* center, const float* extents,
 											const dtQueryFilter* filter,
 											dtPolyRef* nearestRef, float* nearestPt,
-											const float* referencePt) const
+											const float* referencePt, float tolerance) const
 {
 	dtAssert(m_nav);
 
@@ -1095,34 +1087,57 @@ dtStatus dtNavMeshQuery::findNearestPoly2D(const float* center, const float* ext
 	if (dtStatusFailed(queryPolygons(center, extents, filter, polys, &polyCount, 128)))
 		return DT_FAILURE | DT_INVALID_PARAM;
 
+	const float toleranceSq = dtSqr(tolerance);
 	float referenceLocation[3];
 	dtVcopy(referenceLocation, referencePt ? referencePt : center);
 
 	// Find nearest polygon amongst the nearby polygons.
-	dtPolyRef nearest = 0;
+	float bestScoreInTolerance = FLT_MAX;
 	float nearestDistanceSqr = FLT_MAX;
 	float nearestVertDist = FLT_MAX;
+	int32 bestPolyInTolerance = -1;
+	int32 bestPolyOutside = -1;
+
 	for (int i = 0; i < polyCount; ++i)
 	{
 		dtPolyRef ref = polys[i];
 		float closestPtPoly[3];
 		closestPointOnPoly(ref, referenceLocation, closestPtPoly);
-		const float d = dtVdist2DSqr(referenceLocation, closestPtPoly);
+		const float dSq = dtVdist2DSqr(referenceLocation, closestPtPoly);
 		const float h = dtAbs(center[1] - closestPtPoly[1]);
+
+		if (h > extents[1])
+			continue;
 		
-		if ((d < nearestDistanceSqr && h < extents[1])
-			|| (d < nearestDistanceSqr + KINDA_SMALL_NUMBER && h < nearestVertDist))
+		// scoring depends if 2D distance to center is within tolerance value
+		if (dSq < toleranceSq)
 		{
-			if (nearestPt)
+			const float score = dtSqrt(dSq) + h;
+			if (score < bestScoreInTolerance)
+			{
 				dtVcopy(nearestPt, closestPtPoly);
-			nearestDistanceSqr = d;
-			nearestVertDist = h;
-			nearest = ref;
+				bestScoreInTolerance = score;
+				bestPolyInTolerance = i;
+			}
+		}
+		else
+		{
+			if ((dSq < nearestDistanceSqr) || (dSq < nearestDistanceSqr + KINDA_SMALL_NUMBER && h < nearestVertDist))
+			{
+				if (bestPolyInTolerance < 0)
+				{
+					dtVcopy(nearestPt, closestPtPoly);
+				}
+
+				nearestDistanceSqr = dSq;
+				nearestVertDist = h;
+				bestPolyOutside = i;
+			}
 		}
 	}
 
 	if (nearestRef)
-		*nearestRef = nearest;
+		*nearestRef = (bestPolyInTolerance >= 0) ? polys[bestPolyInTolerance] : ((bestPolyOutside >= 0) ? polys[bestPolyOutside] : 0);
 
 	return DT_SUCCESS;
 }

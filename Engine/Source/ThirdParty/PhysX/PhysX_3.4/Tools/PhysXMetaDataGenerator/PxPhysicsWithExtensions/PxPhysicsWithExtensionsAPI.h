@@ -132,6 +132,7 @@ static const char* gImportantPhysXTypes[] =
 	"PxSimulationStatistics",
 	"PxSceneDesc",
 	"PxSceneLimits",
+	"PxgDynamicsMemoryConfig",
 	"PxBroadPhaseDesc",
 #if PX_USE_PARTICLE_SYSTEM_API
 	"PxParticleSystem",

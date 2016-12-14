@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHI.h: Render Hardware Interface definitions.
@@ -6,11 +6,17 @@
 
 #pragma once
 
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 #include "RHIDefinitions.h"
-#include "StaticArray.h"
+#include "Containers/StaticArray.h"
 
 #define INVALID_FENCE_ID (0xffffffffffffffffull)
+
+class FRenderTarget;
+class FResourceArrayInterface;
+class FResourceBulkDataInterface;
+struct Rect;
 
 inline const bool IsValidFenceID( const uint64 FenceID )
 {
@@ -92,6 +98,18 @@ RHI_API bool IsRHIDeviceNVIDIA();
 
 // helper to convert GRHIVendorId into a printable string, or "Unknown" if unknown.
 RHI_API const TCHAR* RHIVendorIdToString();
+
+// helper to return the shader language version for the given shader platform.
+RHI_API uint32 RHIGetShaderLanguageVersion(const EShaderPlatform Platform);
+
+// helper to check that the shader platform supports tessellation.
+RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform);
+
+// helper to check that the shader platform supports writing to UAVs from pixel shaders.
+RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform);
+
+/** true if the GPU is AMD's Pre-GCN architecture */
+extern RHI_API bool GRHIDeviceIsAMDPreGCNArchitecture;
 
 /** true if PF_G8 render targets are supported */
 extern RHI_API bool GSupportsRenderTargetFormat_PF_G8;
@@ -256,6 +274,9 @@ extern RHI_API bool GRHISupportsBaseVertexIndex;
 /** True if the RHI supports hardware instancing */
 extern RHI_API bool GRHISupportsInstancing;
 
+/** True if the RHI supports copying cubemap faces using CopyToResolveTarget */
+extern RHI_API bool GRHISupportsResolveCubemapFaces;
+
 /** Whether or not the RHI can handle a non-zero FirstInstance - extra SetStreamSource calls will be needed if this is false */
 extern RHI_API bool GRHISupportsFirstInstance;
 
@@ -282,8 +303,11 @@ extern RHI_API bool GRHISupportsParallelRHIExecute;
 /** Whether or not the RHI can perform MSAA sample load. */
 extern RHI_API bool GRHISupportsMSAADepthSampleAccess;
 
-/** Whether the present adapter/display offers HDR output capabilities */
+/** Whether the present adapter/display offers HDR output capabilities. */
 extern RHI_API bool GRHISupportsHDROutput;
+
+/** Format used for the backbuffer when outputting to a HDR display. */
+extern RHI_API EPixelFormat GRHIHDRDisplayOutputFormat;
 
 /** Called once per frame only from within an RHI. */
 extern RHI_API void RHIPrivateBeginFrame();

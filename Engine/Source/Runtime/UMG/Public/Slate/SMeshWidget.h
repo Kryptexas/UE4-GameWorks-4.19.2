@@ -1,9 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class USlateVectorArtData;
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Textures/SlateShaderResource.h"
+#include "Rendering/RenderingCommon.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SLeafWidget.h"
 
+class FPaintArgs;
+class FSlateWindowElementList;
+class UMaterialInstanceDynamic;
+class USlateVectorArtData;
+struct FSlateBrush;
 
 /**
  * A widget that draws vertexes provided by a 2.5D StaticMesh.

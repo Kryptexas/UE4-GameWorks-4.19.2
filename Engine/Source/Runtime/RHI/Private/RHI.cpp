@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHI.cpp: Render Hardware Interface implementation.
 =============================================================================*/
 
-#include "RHIPrivatePCH.h"
 #include "RHI.h"
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/ConfigCacheIni.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, RHI);
 
@@ -48,7 +48,7 @@ const FString FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32
 };
 
 #if STATS
-#include "StatsData.h"
+#include "Stats/StatsData.h"
 static void DumpRHIMemory(FOutputDevice& OutputDevice)
 {
 	TArray<FStatMessage> Stats;
@@ -245,6 +245,7 @@ FString GRHIAdapterDriverDate;
 uint32 GRHIVendorId = 0;
 uint32 GRHIDeviceId = 0;
 uint32 GRHIDeviceRevision = 0;
+bool GRHIDeviceIsAMDPreGCNArchitecture = false;
 bool GSupportsRenderDepthTargetableShaderResources = true;
 bool GSupportsRenderTargetFormat_PF_G8 = true;
 bool GSupportsRenderTargetFormat_PF_FloatRGBA = true;
@@ -291,8 +292,10 @@ bool GSupportsParallelOcclusionQueries = false;
 bool GSupportsRenderTargetWriteMask = false;
 
 bool GRHISupportsMSAADepthSampleAccess = false;
+bool GRHISupportsResolveCubemapFaces = false;
 
 bool GRHISupportsHDROutput = false;
+EPixelFormat GRHIHDRDisplayOutputFormat = PF_FloatRGBA;
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;
@@ -394,8 +397,8 @@ static FName NAME_VULKAN_SM5(TEXT("SF_VULKAN_SM5"));
 static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
 static FName NAME_SF_METAL_MACES3_1(TEXT("SF_METAL_MACES3_1"));
 static FName NAME_SF_METAL_MACES2(TEXT("SF_METAL_MACES2"));
-static FName NAME_GLSL_WOLF(TEXT("GLSL_WOLF"));
-static FName NAME_GLSL_WOLF_FORWARD(TEXT("GLSL_WOLF_FORWARD"));
+static FName NAME_GLSL_SWITCH(TEXT("GLSL_SWITCH"));
+static FName NAME_GLSL_SWITCH_FORWARD(TEXT("GLSL_SWITCH_FORWARD"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 {
@@ -459,10 +462,10 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_VULKAN_ES3_1;
 	case SP_VULKAN_ES3_1_ANDROID:
 		return NAME_VULKAN_ES3_1_ANDROID;
-	case SP_WOLF:
-		return NAME_GLSL_WOLF;
-	case SP_WOLF_FORWARD:
-		return NAME_GLSL_WOLF_FORWARD;
+	case SP_SWITCH:
+		return NAME_GLSL_SWITCH;
+	case SP_SWITCH_FORWARD:
+		return NAME_GLSL_SWITCH_FORWARD;
 
 	default:
 		check(0);
@@ -500,8 +503,8 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL_MACES3_1)		return SP_METAL_MACES3_1;
 	if (ShaderFormat == NAME_SF_METAL_MACES2)		return SP_METAL_MACES2;
 	if (ShaderFormat == NAME_GLSL_ES3_1_ANDROID)	return SP_OPENGL_ES3_1_ANDROID;
-	if (ShaderFormat == NAME_GLSL_WOLF)				return SP_WOLF;
-	if (ShaderFormat == NAME_GLSL_WOLF_FORWARD)		return SP_WOLF_FORWARD;
+	if (ShaderFormat == NAME_GLSL_SWITCH)				return SP_SWITCH;
+	if (ShaderFormat == NAME_GLSL_SWITCH_FORWARD)		return SP_SWITCH_FORWARD;
 	
 	return SP_NumPlatforms;
 }
@@ -541,4 +544,56 @@ RHI_API const TCHAR* RHIVendorIdToString()
 	case 0x8086: return TEXT("Intel");
 	default: return TEXT("Unknown");
 	}
+}
+
+RHI_API uint32 RHIGetShaderLanguageVersion(const EShaderPlatform Platform)
+{
+	static int32 MaxShaderVersion = -1;
+	if (MaxShaderVersion < 0)
+	{
+		MaxShaderVersion = 0;
+		if (Platform == SP_METAL_SM5)
+		{
+			if(!GConfig->GetInt(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
+			{
+				MaxShaderVersion = 1;
+			}
+		}
+		else
+		{
+			if(!GConfig->GetInt(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("MaxShaderLanguageVersion"), MaxShaderVersion, GEngineIni))
+			{
+				MaxShaderVersion = 0;
+			}
+		}
+	}
+	return (uint32)MaxShaderVersion;
+}
+
+RHI_API bool RHISupportsTessellation(const EShaderPlatform Platform)
+{
+	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform))
+	{
+		return (Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5) || (Platform == SP_OPENGL_ES31_EXT) || (Platform == SP_VULKAN_SM5);
+	}
+    // For Metal we can only support tessellation if we are willing to sacrifice backward compatibility with OS versions.
+    // As such it becomes an opt-in project setting.
+	else if (Platform == SP_METAL_SM5)
+	{
+		return (RHIGetShaderLanguageVersion(Platform) >= 2);
+	}
+	return false;
+}
+
+RHI_API bool RHISupportsPixelShaderUAVs(const EShaderPlatform Platform)
+{
+	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsMetalPlatform(Platform))
+	{
+		return true;
+	}
+	else if (Platform == SP_METAL_SM5)
+	{
+		return (RHIGetShaderLanguageVersion(Platform) >= 2);
+	}
+	return false;
 }

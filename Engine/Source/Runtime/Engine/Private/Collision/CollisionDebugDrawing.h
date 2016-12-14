@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Draw functions for debugging trace/sweeps/overlaps
 
 
 #pragma once 
+
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "EngineDefines.h"
+#include "PhysicsPublic.h"
+#include "PhysXIncludes.h"
 
 #if WITH_PHYSX
 /** Draw PhysX geom with overlaps */

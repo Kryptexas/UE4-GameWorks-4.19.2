@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanUniformBuffer.cpp: Vulkan Constant buffer implementation.
@@ -190,4 +190,32 @@ FPooledUniformBufferRef& FVulkanGlobalUniformPool::GetGlobalUniformBufferFromPoo
     }
 
     return UsedGlobalUniformBuffers[UsedBucketIndex][NewIndex];
+}
+
+
+FVulkanUniformBufferUploader::FVulkanUniformBufferUploader(FVulkanDevice* InDevice, uint64 TotalSize)
+	: VulkanRHI::FDeviceChild(InDevice)
+	, CPUBuffer(nullptr)
+	, GPUBuffer(nullptr)
+{
+	if (Device->HasUnifiedMemory())
+	{
+		CPUBuffer = new FVulkanRingBuffer(InDevice, VULKAN_UB_RING_BUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		GPUBuffer = CPUBuffer;
+	}
+	else
+	{
+		CPUBuffer = new FVulkanRingBuffer(InDevice, VULKAN_UB_RING_BUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		GPUBuffer = new FVulkanRingBuffer(InDevice, VULKAN_UB_RING_BUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	}
+}
+
+FVulkanUniformBufferUploader::~FVulkanUniformBufferUploader()
+{
+	if (!Device->HasUnifiedMemory())
+	{
+		delete GPUBuffer;
+	}
+
+	delete CPUBuffer;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnParticleEmitterInstances.h: 
@@ -7,15 +7,31 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "ProfilingDebugging/ResourceSize.h"
 #include "Distributions.h"
-#include "ParticleHelper.h"
 #include "Distributions/DistributionFloat.h"
+#include "ParticleHelper.h"
 #include "Distributions/DistributionVector.h"
 #include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
-#include "ParticleHelper.h"
 
 //Temporary define to allow switching on and off of some trail optimizations until bugs can be worked out.
 #define ENABLE_TRAILS_START_END_INDEX_OPTIMIZATION (0)
+
+class UParticleEmitter;
+class UParticleLODLevel;
+class UParticleModuleBeamModifier;
+class UParticleModuleBeamNoise;
+class UParticleModuleBeamSource;
+class UParticleModuleBeamTarget;
+class UParticleModuleSpawnPerUnit;
+class UParticleModuleTrailSource;
+class UParticleModuleTypeDataAnimTrail;
+class UParticleModuleTypeDataBeam2;
+class UParticleModuleTypeDataMesh;
+class UParticleModuleTypeDataRibbon;
+class UParticleSystemComponent;
 
 /*-----------------------------------------------------------------------------
 	Forward declarations
@@ -113,6 +129,10 @@ struct FParticleEmitterBuildInfo
 	float CollisionRadiusScale;
 	/** Bias applied to the collision radius. */
 	float CollisionRadiusBias;
+	/** Factor reflection spreading cone when colliding. */
+	float CollisionRandomSpread;
+	/** Random distribution across the reflection spreading cone when colliding. */
+	float CollisionRandomDistribution;
 	/** Friction. */
 	float Friction;
 	/** Collision damping factor. */

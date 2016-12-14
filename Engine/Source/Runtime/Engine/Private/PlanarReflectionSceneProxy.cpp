@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PlanarReflectionProxy.cpp
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Components/PlanarReflectionComponent.h"
 #include "PlanarReflectionSceneProxy.h"
+#include "GameFramework/Actor.h"
+#include "Components/PlanarReflectionComponent.h"
 
 FPlanarReflectionSceneProxy::FPlanarReflectionSceneProxy(UPlanarReflectionComponent* Component, FPlanarReflectionRenderTarget* InRenderTarget) :
 	bIsStereo(false)

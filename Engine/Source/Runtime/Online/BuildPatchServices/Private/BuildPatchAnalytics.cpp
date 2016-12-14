@@ -1,16 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchAnalytics.cpp: Implements static helper class for sending analytics
 	events for the module.
 =============================================================================*/
 
-#define ERROR_EVENT_SEND_LIMIT 20
-
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchAnalytics.h"
+#include "BuildPatchHTTP.h"
 #include "HttpServiceTracker.h"
 #include "AnalyticsEventAttribute.h"
-#include "IAnalyticsProvider.h"
+#include "Interfaces/IAnalyticsProvider.h"
+
+#define ERROR_EVENT_SEND_LIMIT 20
 
 TSharedPtr< IAnalyticsProvider > FBuildPatchAnalytics::Analytics;
 

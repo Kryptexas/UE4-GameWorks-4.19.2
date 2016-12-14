@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "IMotionController.h"
 #include "InputCoreTypes.h"
+#include "GenericPlatform/GenericApplicationMessageHandler.h"
 
 #define OCULUS_INPUT_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WINVER > 0x0502) // || PLATFORM_MAC
 
@@ -166,8 +167,14 @@ struct FOculusTouchCapacitiveState
  */
 struct FOculusTouchControllerState
 {
-	/** True if the device is connected and actively being tracked, otherwise false */
-	bool bIsCurrentlyTracked;
+	/** True if the device is connected, otherwise false */
+	bool bIsConnected;
+
+	/** True if position is being tracked, otherwise false */
+	bool bIsPositionTracked;
+
+	/** True if orientation is being tracked, otherwise false */
+	bool bIsOrientationTracked;
 
 	/** Location of the controller in the local tracking space */
 	FVector Location;
@@ -202,7 +209,9 @@ struct FOculusTouchControllerState
 
 	/** Explicit constructor sets up sensible defaults */
 	FOculusTouchControllerState( const EControllerHand Hand )
-		: bIsCurrentlyTracked( false ),
+		: bIsConnected( false ),
+		  bIsPositionTracked( false ),
+		  bIsOrientationTracked( false ),
 		  Location( FVector::ZeroVector ),
 		  Orientation( FQuat::Identity ),
 		  TriggerAxis( 0.0f ),

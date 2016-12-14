@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Components/MeshComponent.h"
+#include "Materials/Material.h"
+#include "Engine/Texture2D.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "ContentStreaming.h"
 #include "Streaming/TextureStreamingHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialParameter, Warning, All);
@@ -355,7 +359,7 @@ void UMeshComponent::GetStreamingTextureInfoInner(FStreamingTextureLevelContext&
 		FPrimitiveMaterialInfo MaterialData;
 		if (GetMaterialStreamingData(MaterialIndex, MaterialData))
 		{
-			LevelContext.ProcessMaterial(MaterialData, ComponentScaling, OutStreamingTextures);
+			LevelContext.ProcessMaterial(Bounds, MaterialData, ComponentScaling, OutStreamingTextures);
 		}
 	}
 }

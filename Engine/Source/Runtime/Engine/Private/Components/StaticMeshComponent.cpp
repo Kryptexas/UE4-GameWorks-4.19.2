@@ -1,30 +1,40 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Components/StaticMeshComponent.h"
+#include "Modules/ModuleManager.h"
+#include "RenderingThread.h"
+#include "Components.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Materials/Material.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/CollisionProfile.h"
+#include "ContentStreaming.h"
+#include "ComponentReregisterContext.h"
+#include "UnrealEngine.h"
+#include "EngineUtils.h"
 #include "StaticMeshResources.h"
-#include "Components/SplineMeshComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #if WITH_EDITOR
-#include "ShowFlags.h"
 #include "Collision.h"
-#include "ConvexVolume.h"
-#include "HierarchicalLODUtilities.h"
+#include "IHierarchicalLODUtilities.h"
 #include "HierarchicalLODUtilitiesModule.h"
 #endif
-#include "ComponentInstanceDataCache.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
-#include "ComponentReregisterContext.h"
 #include "Engine/ShadowMapTexture2D.h"
 #include "AI/Navigation/NavCollision.h"
 #include "Engine/StaticMeshSocket.h"
-#include "NavigationSystemHelpers.h"
+#include "AI/NavigationSystemHelpers.h"
 #include "AI/NavigationOctree.h"
+#include "AI/Navigation/NavigationSystem.h"
 #include "PhysicsEngine/BodySetup.h"
-#include "RenderingObjectVersion.h"
+#include "EngineGlobals.h"
 #include "ComponentRecreateRenderStateContext.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
@@ -147,6 +157,14 @@ public:
 	TArray<FVertexColorLODData> VertexColorLODs;
 
 	FLightMapInstanceData CachedStaticLighting;
+
+	/** Texture streaming build data */
+	TArray<FStreamingTextureBuildInfo> StreamingTextureData;
+
+#if WITH_EDITORONLY_DATA
+	/** Texture streaming editor data (for viewmodes) */
+	TArray<uint32> MaterialStreamingRelativeBoxes;
+#endif
 };
 
 UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectInitializer)
@@ -178,6 +196,7 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 	SelectedEditorSection = INDEX_NONE;
 	SectionIndexPreview = INDEX_NONE;
 	StaticMeshImportVersion = BeforeImportStaticMeshVersionWasAdded;
+	bCustomOverrideVertexColorPerLOD = false;
 #endif
 }
 
@@ -512,7 +531,7 @@ const FMeshMapBuildData* UStaticMeshComponent::GetMeshMapBuildData(const FStatic
 
 	if (LODInfo.OverrideMapBuildData)
 	{
-		return LODInfo.OverrideMapBuildData.GetOwnedPointer();
+		return LODInfo.OverrideMapBuildData.Get();
 	}
 
 	AActor* Owner = GetOwner();
@@ -602,6 +621,22 @@ void UStaticMeshComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
+void UStaticMeshComponent::OnCreatePhysicsState()
+{
+	Super::OnCreatePhysicsState();
+
+	bNavigationRelevant = IsNavigationRelevant();
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
+}
+
+void UStaticMeshComponent::OnDestroyPhysicsState()
+{
+	Super::OnDestroyPhysicsState();
+
+	UNavigationSystem::UpdateComponentInNavOctree(*this);
+	bNavigationRelevant = IsNavigationRelevant();
+}
+
 #if WITH_EDITORONLY_DATA
 
 /** Return the total number of LOD sections in the LOD resources */
@@ -663,9 +698,9 @@ bool UStaticMeshComponent::GetMaterialStreamingData(int32 MaterialIndex, FPrimit
 		MaterialData.Material = GetMaterial(MaterialIndex);
 		MaterialData.UVChannelData = GetStaticMesh()->GetUVChannelData(MaterialIndex);
 #if WITH_EDITORONLY_DATA
-		MaterialData.Bounds = MaterialStreamingBounds.IsValidIndex(MaterialIndex) ?  MaterialStreamingBounds[MaterialIndex] : Bounds.GetBox();
+		MaterialData.PackedRelativeBox = MaterialStreamingRelativeBoxes.IsValidIndex(MaterialIndex) ?  MaterialStreamingRelativeBoxes[MaterialIndex] : PackedRelativeBox_Identity;
 #else
-		MaterialData.Bounds = Bounds.GetBox();
+		MaterialData.PackedRelativeBox = PackedRelativeBox_Identity;
 #endif
 	}
 	return MaterialData.IsValid();
@@ -680,25 +715,25 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 	{
 		AActor* ComponentActor = GetOwner();
 
-		if (!bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && GetStaticMesh() && GetStaticMesh()->RenderData)
+		if (!bIgnoreInstanceForTextureStreaming && Mobility == EComponentMobility::Static && GetStaticMesh() && GetStaticMesh()->RenderData && !bHiddenInGame)
 		{
 			// First generate the bounds. Will be used in the texture streaming build and also in the debug viewmode.
 			const int32 NumMaterials = GetNumMaterials();
 
 			// Build the material bounds if in full rebuild or if the data is incomplete.
-			if (BuildType == TSB_MapBuild || (BuildType == TSB_ViewMode && MaterialStreamingBounds.Num() != NumMaterials))
+			if (BuildType == TSB_MapBuild || (BuildType == TSB_ViewMode && MaterialStreamingRelativeBoxes.Num() != NumMaterials))
 			{
 				// Build the material bounds.
-				MaterialStreamingBounds.Empty(NumMaterials);
+				MaterialStreamingRelativeBoxes.Empty(NumMaterials);
 				for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 				{
-					MaterialStreamingBounds.Add(GetStaticMesh()->GetMaterialBox(MaterialIndex, ComponentToWorld));
+					MaterialStreamingRelativeBoxes.Add(PackRelativeBox(Bounds.GetBox(), GetStaticMesh()->GetMaterialBox(MaterialIndex, ComponentToWorld)));
 				}
 
 				// Update since proxy has a copy of the material bounds.
 				MarkRenderStateDirty();
 			}
-			else if (MaterialStreamingBounds.Num() != NumMaterials)
+			else if (MaterialStreamingRelativeBoxes.Num() != NumMaterials)
 			{
 				bBuildDataValid = false; 
 			}
@@ -710,7 +745,7 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 				if (Level)
 				{
 					// Get the data without any component scaling as the built data does not include scale.
-					FStreamingTextureLevelContext LevelContext(QualityLevel, FeatureLevel);
+					FStreamingTextureLevelContext LevelContext(QualityLevel, FeatureLevel, true); // Use the boxes that were just computed!
 					TArray<FStreamingTexturePrimitiveInfo> UnpackedData;
 					GetStreamingTextureInfoInner(LevelContext, nullptr, 1.f, UnpackedData);
 					PackStreamingTextureData(Level, UnpackedData, StreamingTextureData, Bounds);
@@ -718,9 +753,17 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 			}
 			else if (StreamingTextureData.Num() == 0)
 			{
+				// Reset the validity here even if the bounds don't fit as the material might not use any streaming textures.
+				// This is required as the texture streaming build only mark levels as dirty if they have texture related data.
+				bBuildDataValid = true; 
+
 				// In that case, check if the component refers a streaming texture. If so, the build data is missing.
 				TArray<UMaterialInterface*> UsedMaterials;
 				GetUsedMaterials(UsedMaterials);
+
+				// Reset the validity here even if the bounds don't fit as the material might not use any streaming textures.
+				// This is required as the texture streaming build only mark levels as dirty if they have texture related data.
+				bBuildDataValid = true; 
 
 				for (int32 MaterialIndex = 0; MaterialIndex < NumMaterials; ++MaterialIndex)
 				{
@@ -762,9 +805,9 @@ bool UStaticMeshComponent::BuildTextureStreamingData(ETextureStreamingBuildType 
 		{
 			StreamingTextureData.Empty();
 
-			if (MaterialStreamingBounds.Num())
+			if (MaterialStreamingRelativeBoxes.Num())
 			{
-				MaterialStreamingBounds.Empty();
+				MaterialStreamingRelativeBoxes.Empty();
 				MarkRenderStateDirty(); // Update since proxy has a copy of the material bounds.
 			}
 		}
@@ -802,6 +845,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext
 			{
 				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
 				StreamingTexture.Bounds		 = Bounds;
+				StreamingTexture.PackedRelativeBox = PackedRelativeBox_Identity; // Set the PackedRelativeBox to incremental level insertion.
 				StreamingTexture.TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
 				StreamingTexture.Texture	 = Lightmap->GetTexture(LightmapIndex);
 			}
@@ -815,6 +859,7 @@ void UStaticMeshComponent::GetStreamingTextureInfo(FStreamingTextureLevelContext
 			{
 				FStreamingTexturePrimitiveInfo& StreamingTexture = *new(OutStreamingTextures) FStreamingTexturePrimitiveInfo;
 				StreamingTexture.Bounds		 = Bounds;
+				StreamingTexture.PackedRelativeBox = PackedRelativeBox_Identity;
 				StreamingTexture.TexelFactor = GetStaticMesh()->LightmapUVDensity * TransformScale / FMath::Min(Scale.X, Scale.Y);
 				StreamingTexture.Texture	 = Shadowmap->GetTexture();
 			}
@@ -1163,61 +1208,78 @@ void UStaticMeshComponent::PrivateFixupOverrideColors()
 
 	// Initialize override vertex colors on any new LODs which have just been created
 	SetLODDataCount(NumLODs, LODData.Num());
-
+	bool UpdateStaticMeshDeriveDataKey = false;
 	FStaticMeshComponentLODInfo& LOD0Info = LODData[0];
-	if (LOD0Info.OverrideVertexColors)
+	if (!bCustomOverrideVertexColorPerLOD && LOD0Info.OverrideVertexColors == nullptr)
 	{
-		for (uint32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
+		return;
+	}
+
+	for (uint32 LODIndex = 0; LODIndex < NumLODs; ++LODIndex)
+	{
+		FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
+		if (LODInfo.OverrideVertexColors == nullptr)
 		{
-			FStaticMeshComponentLODInfo& LODInfo = LODData[LODIndex];
-
-			if (LODInfo.OverrideVertexColors == nullptr)
-			{
-				LODInfo.OverrideVertexColors = new FColorVertexBuffer;
-			}
-			else
-			{
-				LODInfo.BeginReleaseOverrideVertexColors();
-				FlushRenderingCommands();
-			}
-
-			FStaticMeshLODResources& CurRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
-
-			TArray<FColor> NewOverrideColors;
-
-			if (LOD0Info.PaintedVertices.Num() > 0)
-			{
-				// Build override colors for LOD, based on LOD0
-				RemapPaintedVertexColors(
-					LOD0Info.PaintedVertices,
-					*LOD0Info.OverrideVertexColors,
-					CurRenderData.PositionVertexBuffer,
-					&CurRenderData.VertexBuffer,
-					NewOverrideColors
-					);
-			}
-
-			if (NewOverrideColors.Num())
-			{
-				LODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
-
-				// Update the PaintedVertices array
-				const int32 NumVerts = CurRenderData.GetNumVertices();
-				check(NumVerts == NewOverrideColors.Num());
-
-				LODInfo.PaintedVertices.Reserve(NumVerts);
-				for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
-				{
-					FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
-					Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
-					Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
-					Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
-				}
-			}
-
-			BeginInitResource(LODInfo.OverrideVertexColors);
+			if (bCustomOverrideVertexColorPerLOD) //No fixup required if the component is in custom LOD paint and there is no paint on a LOD
+				continue;
+			LODInfo.OverrideVertexColors = new FColorVertexBuffer;
+		}
+		else
+		{
+			LODInfo.BeginReleaseOverrideVertexColors();
+			FlushRenderingCommands();
 		}
 
+
+		FStaticMeshLODResources& CurRenderData = GetStaticMesh()->RenderData->LODResources[LODIndex];
+		TArray<FColor> NewOverrideColors;
+		if (bCustomOverrideVertexColorPerLOD)
+		{
+			//Since in custom we fix paint only if the component has some, the PaintedVertices should be allocate
+			check(LODInfo.PaintedVertices.Num() > 0);
+			//Use the existing LOD custom paint and remap it on the new mesh
+			RemapPaintedVertexColors(
+				LODInfo.PaintedVertices,
+				*LODInfo.OverrideVertexColors,
+				CurRenderData.PositionVertexBuffer,
+				&CurRenderData.VertexBuffer,
+				NewOverrideColors
+				);
+		}
+		else if(LOD0Info.PaintedVertices.Num() > 0)
+		{
+			RemapPaintedVertexColors(
+				LOD0Info.PaintedVertices,
+				*LOD0Info.OverrideVertexColors,
+				CurRenderData.PositionVertexBuffer,
+				&CurRenderData.VertexBuffer,
+				NewOverrideColors
+				);
+		}
+		if (NewOverrideColors.Num())
+		{
+			LODInfo.OverrideVertexColors->InitFromColorArray(NewOverrideColors);
+
+			// Update the PaintedVertices array
+			const int32 NumVerts = CurRenderData.GetNumVertices();
+			check(NumVerts == NewOverrideColors.Num());
+
+			LODInfo.PaintedVertices.Reserve(NumVerts);
+			for (int32 VertIndex = 0; VertIndex < NumVerts; ++VertIndex)
+			{
+				FPaintedVertex* Vertex = new(LODInfo.PaintedVertices) FPaintedVertex;
+				Vertex->Position = CurRenderData.PositionVertexBuffer.VertexPosition(VertIndex);
+				Vertex->Normal = CurRenderData.VertexBuffer.VertexTangentZ(VertIndex);
+				Vertex->Color = LODInfo.OverrideVertexColors->VertexColor(VertIndex);
+			}
+		}
+
+		BeginInitResource(LODInfo.OverrideVertexColors);
+		UpdateStaticMeshDeriveDataKey = true;
+	}
+
+	if (UpdateStaticMeshDeriveDataKey)
+	{
 		StaticMeshDerivedDataKey = GetStaticMesh()->RenderData->DerivedDataKey;
 	}
 
@@ -1460,9 +1522,15 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 
 			// If the staticmesh changed, then the component needs a texture streaming rebuild.
 			StreamingTextureData.Empty();
+			
+			if (OverrideMaterials.Num())
+			{
+				// Static mesh was switched so we should empty out the override materials
+				OverrideMaterials.Empty(GetStaticMesh() ? GetStaticMesh()->StaticMaterials.Num() : 0);
+			}
 		}
 
-		if (PropertyThatChanged->GetName() == TEXT("overridematerials"))
+		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMeshComponent, OverrideMaterials))
 		{
 			// If the owning actor is part of a cluster flag it as dirty
 			IHierarchicalLODUtilitiesModule& Module = FModuleManager::LoadModuleChecked<IHierarchicalLODUtilitiesModule>("HierarchicalLODUtilities");
@@ -2017,15 +2085,21 @@ FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() co
 {
 	FStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
 
-		StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
+	StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
 
-		// Fill in info
-		StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
+	// Fill in info
+	StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
 
-		for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
-		{
+	for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
+	{
 		StaticMeshInstanceData->CachedStaticLighting.MapBuildDataIds.Add(LODDataEntry.MapBuildDataId);
-		}
+	}
+
+	// Backup the texture streaming data.
+	StaticMeshInstanceData->StreamingTextureData = StreamingTextureData;
+#if WITH_EDITORONLY_DATA
+	StaticMeshInstanceData->MaterialStreamingRelativeBoxes = MaterialStreamingRelativeBoxes;
+#endif
 
 	// Cache instance vertex colors
 	for( int32 LODIndex = 0; LODIndex < LODData.Num(); ++LODIndex )
@@ -2086,9 +2160,14 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 		FComponentReregisterContext ReregisterStaticMesh(this);
 		StaticMeshInstanceData->ApplyVertexColorData(this);
 	}
+
+	// Restore the texture streaming data.
+	StreamingTextureData = StaticMeshInstanceData->StreamingTextureData;
+#if WITH_EDITORONLY_DATA
+	MaterialStreamingRelativeBoxes = StaticMeshInstanceData->MaterialStreamingRelativeBoxes;
+#endif
 }
 
-#include "AI/Navigation/RecastHelpers.h"
 bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 	if (GetStaticMesh() != NULL && GetStaticMesh()->NavCollision != NULL)
@@ -2124,7 +2203,7 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 
 bool UStaticMeshComponent::IsNavigationRelevant() const
 {
-	return GetStaticMesh() != nullptr && Super::IsNavigationRelevant();
+	return GetStaticMesh() != nullptr && GetStaticMesh()->GetNavCollision() != nullptr && Super::IsNavigationRelevant();
 }
 
 void UStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) const

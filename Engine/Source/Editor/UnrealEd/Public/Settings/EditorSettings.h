@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
 #include "Scalability.h"
 #include "EditorSettings.generated.h"
 
@@ -10,12 +15,16 @@ class UNREALED_API UEditorSettings : public UObject
 	GENERATED_UCLASS_BODY()
 
 	/** When checked, the most recently loaded project will be auto-loaded at editor startup if no other project was specified on the command line */
-	UPROPERTY(EditAnywhere, Category=General)
+	UPROPERTY()
 	bool bLoadTheMostRecentlyLoadedProjectAtStartup; // Note that this property is NOT config since it is not necessary to save the value to ini. It is determined at startup in UEditorEngine::InitEditor().
 
 	/** Can the editor report usage analytics (types of assets being spawned, etc...) back to Epic in order for us to improve the editor user experience?  Note: The editor must be restarted for changes to take effect. */
 	UPROPERTY()
 	bool bEditorAnalyticsEnabled_DEPRECATED;
+
+	/** Whether the Content Browser should open the Sources Panel by default */
+	UPROPERTY(EditAnywhere, config, Category=ContentBrowser)
+	bool bOpenSourcesPanelByDefault;
 
 	// =====================================================================
 	// The following options are NOT exposed in the preferences Editor

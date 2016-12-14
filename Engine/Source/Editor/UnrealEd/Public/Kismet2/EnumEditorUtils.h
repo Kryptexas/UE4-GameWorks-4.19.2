@@ -1,21 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __EnumEditorUtils_h__
 #define __EnumEditorUtils_h__
 
 #pragma once
 
-#include "ListenerManager.h"
-
-class UUserDefinedEnum;
+#include "CoreMinimal.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Kismet2/ListenerManager.h"
 
 class UNREALED_API FEnumEditorUtils
 {
 	static void PrepareForChange(const UUserDefinedEnum* Enum);
-	static void BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, uint8>>& OldNames, bool bResolveData = true);
+	static void BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, int64>>& OldNames, bool bResolveData = true);
 
 	/** copy full enumeratos names from given enum to OutEnumNames, the last '_MAX' enumerator is skipped */
-	static void CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<TPair<FName, uint8>>& OutEnumNames);
+	static void CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<TPair<FName, int64>>& OutEnumNames);
 public:
 
 	enum EEnumEditorChangeInfo
@@ -75,13 +75,14 @@ public:
 	 *
 	 *	@return new enum 
 	 */
-	static int32 ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int32 EnumeratorValue);
+	static int64 ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int64 EnumeratorValue);
 
 	//DISPLAY NAME
-	static FString GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, int32 EnumeratorIndex);
-	static bool SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 EnumeratorIndex, FString NewDisplayName);
-	static bool IsEnumeratorDisplayNameValid(const UUserDefinedEnum* Enum, FString NewDisplayName);
+	static FText GetEnumeratorDisplayName(const UUserDefinedEnum* Enum, int32 EnumeratorIndex);
+	static bool SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 EnumeratorIndex, FText NewDisplayName);
+	static bool IsEnumeratorDisplayNameValid(const UUserDefinedEnum* Enum, int32 EnumeratorIndex, FText NewDisplayName);
 	static void EnsureAllDisplayNamesExist(class UUserDefinedEnum* Enum);
+	static void UpgradeDisplayNamesFromMetaData(class UUserDefinedEnum* Enum);
 };
 
 #endif // __EnumEditorUtils_h__

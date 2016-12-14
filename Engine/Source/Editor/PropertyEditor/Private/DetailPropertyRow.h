@@ -1,6 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "AssetThumbnail.h"
+#include "IPropertyUtilities.h"
+#include "PropertyNode.h"
+#include "IPropertyTypeCustomization.h"
+#include "DetailWidgetRow.h"
+#include "DetailCategoryBuilderImpl.h"
+#include "Presentation/PropertyEditor/PropertyEditor.h"
+#include "IDetailPropertyRow.h"
+#include "PropertyEditorHelpers.h"
+
+class FCustomChildrenBuilder;
 
 class FDetailPropertyRow : public IDetailPropertyRow, public IPropertyTypeCustomizationUtils, public TSharedFromThis<FDetailPropertyRow>
 {

@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
 
 struct FProfilerDataFrame;
 struct FStatMetaData;
-class ISessionInstanceInfo;
-
 
 /** Delegate for passing profiler data to UI */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FProfilerClientDataDelegate, const FGuid&, const FProfilerDataFrame&);

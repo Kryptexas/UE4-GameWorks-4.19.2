@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "GenericPlatform/GenericApplication.h"
+
+class FViewport;
 
 /**
  * Delegate type used by UGameViewportClient when a screenshot has been captured
@@ -52,3 +58,10 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameViewportClientPlayerAction, int32);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameViewportTick, float);
 
 DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnGameViewportInputKey, FKey, FModifierKeysState, EInputEvent);
+
+/**
+* Delegate type used by UGameViewportClient for when engine in toggling fullscreen
+*
+* @see UGameViewportClient
+*/
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnToggleFullscreen, bool);

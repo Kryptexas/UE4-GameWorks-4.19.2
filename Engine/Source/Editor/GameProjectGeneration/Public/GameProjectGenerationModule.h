@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
 #include "ModuleDescriptor.h"
 #include "AddToProjectConfig.h"
 
+struct FSlateBrush;
 struct FTemplateCategory;
 
 /** Context information used when validating that source code is being placed in the correct place for a given module */

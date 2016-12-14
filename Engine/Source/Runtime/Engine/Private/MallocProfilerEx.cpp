@@ -1,15 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocProfilerEx.cpp: Extended memory profiling support.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "MallocProfilerEx.h"
+#include "UObject/UObjectGlobals.h"
+#include "RHI.h"
 
 #if USE_MALLOC_PROFILER
 
 #include "MallocProfiler.h"
-#include "MallocProfilerEx.h"
 #include "MemoryMisc.h"
 
 // These functions are here because FMallocProfiler is in the Core

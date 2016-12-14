@@ -1,19 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Sound/SoundWave.h"
+#include "Serialization/MemoryWriter.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "UObject/Package.h"
+#include "EngineDefines.h"
+#include "Components/AudioComponent.h"
+#include "ContentStreaming.h"
 #include "ActiveSound.h"
-#include "Audio.h"
+#include "AudioThread.h"
 #include "AudioDevice.h"
 #include "AudioDecompress.h"
-#include "AudioThread.h"
-#include "TargetPlatform.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 #include "AudioDerivedData.h"
 #include "SubtitleManager.h"
 #include "DerivedDataCacheInterface.h"
 #include "EditorFramework/AssetImportData.h"
-#include "CookStats.h"
-#include "FrameworkObjectVersion.h"
+#include "ProfilingDebugging/CookStats.h"
 
 #if ENABLE_COOK_STATS
 namespace SoundWaveCookStats
@@ -659,6 +663,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->OmniRadius = ParseParams.OmniRadius;
 		WaveInstance->StereoSpread = ParseParams.StereoSpread;
 		WaveInstance->AttenuationDistance = ParseParams.AttenuationDistance;
+		WaveInstance->ListenerToSoundDistance = ParseParams.ListenerToSoundDistance;
 		WaveInstance->AbsoluteAzimuth = ParseParams.AbsoluteAzimuth;
 
 		bool bAlwaysPlay = false;
@@ -730,6 +735,20 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->NotifyBufferFinishedHooks = ParseParams.NotifyBufferFinishedHooks;
 		WaveInstance->LoopingMode = ((bLooping || ParseParams.bLooping) ? LOOP_Forever : LOOP_Never);
 		WaveInstance->bIsPaused = ParseParams.bIsPaused;
+
+		// If we're using spatialization, then use the dry-wet mapping function defined in attenuation settings
+		if (WaveInstance->bUseSpatialization)
+		{
+			WaveInstance->ReverbWetLevelMin = ParseParams.ReverbWetLevelMin;
+			WaveInstance->ReverbWetLevelMax = ParseParams.ReverbWetLevelMax;
+			WaveInstance->ReverbDistanceMin = ParseParams.ReverbDistanceMin;
+			WaveInstance->ReverbDistanceMax = ParseParams.ReverbDistanceMax;
+		}
+		else
+		{
+			// Otherwise, we're just goign to use the DefaultMasterReverbSendAmount defined the sound base
+			WaveInstance->ReverbWetLevelMin = ParseParams.DefaultMasterReverbSendAmount;
+		}
 
 		if (AudioDevice->IsHRTFEnabledForAll() && ParseParams.SpatializationAlgorithm == SPATIALIZATION_Default)
 		{

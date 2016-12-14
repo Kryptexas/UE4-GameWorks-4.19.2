@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/CoreNet.h"
+#include "Engine/Channel.h"
 #include "ControlChannel.generated.h"
 
+class FInBunch;
+class FOutBunch;
+class UNetConnection;
 
 /**
  * A queued control channel message

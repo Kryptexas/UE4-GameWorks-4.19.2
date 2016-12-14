@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "MovieSceneSequenceID.h"
 #include "MovieSceneFwd.h"
 #include "MovieSceneSpawnable.h"
-#include "ValueOrError.h"
+#include "Templates/ValueOrError.h"
+#include "UObject/WeakObjectPtr.h"
 
-class UMovieSceneSequence;
+class IMovieScenePlayer;
+class UMovieScene;
+struct FMovieSceneEvaluationState;
 
 /** Struct used for defining a new spawnable type */
 struct FNewSpawnable

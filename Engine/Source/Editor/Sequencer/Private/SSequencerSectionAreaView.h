@@ -1,9 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class FSequencerSectionKeyAreaNode;
-class FSequencerTrackNode;
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Layout/Children.h"
+#include "Widgets/SPanel.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "SSequencerSection.h"
+
+class FArrangedChildren;
+class FPaintArgs;
+class FSequencer;
+class FSlateWindowElementList;
 
 /**
  * Visualizes a section area and its children                                        

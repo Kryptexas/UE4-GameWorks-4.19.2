@@ -1,29 +1,41 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GenericPlatformMisc.cpp: Generic implementations of misc platform functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "LinuxPlatformMisc.h"
-#include "LinuxApplication.h"
-#include "LinuxPlatformCrashContext.h"
+#include "Linux/LinuxPlatformMisc.h"
+#include "Misc/AssertionMacros.h"
+#include "GenericPlatform/GenericPlatformMemory.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/UnrealTemplate.h"
+#include "Math/UnrealMathUtility.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Misc/DateTime.h"
+#include "HAL/PlatformTime.h"
+#include "Containers/StringConv.h"
+#include "Logging/LogMacros.h"
+#include "Misc/Parse.h"
+#include "Misc/CommandLine.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Misc/App.h"
+#include "Linux/LinuxApplication.h"
+#include "Linux/LinuxPlatformCrashContext.h"
 
 #if PLATFORM_HAS_CPUID
 	#include <cpuid.h>
 #endif // PLATFORM_HAS_CPUID
 #include <sys/sysinfo.h>
 #include <sched.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/vfs.h>	// statfs()
+#include <sys/vfs.h>
 #include <sys/ioctl.h>
 
-#include <ifaddrs.h>	// ethernet mac
+#include <ifaddrs.h>
 #include <net/if.h>
 #include <net/if_arp.h>
 
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 #include "HAL/ThreadHeartBeat.h"
 
 // define for glibc 2.12.2 and lower (which is shipped with CentOS 6.x and which we target by default)
@@ -651,11 +663,14 @@ int32 FLinuxPlatformMisc::NumberOfCores()
 				FMemory::Memzero(CpuInfos);
 				int MaxCoreId = 0;
 				int MaxPackageId = 0;
+				int NumCpusAvailable = 0;
 
 				for(int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
 				{
 					if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
 					{
+						++NumCpusAvailable;
+
 						sprintf(FileNameBuffer, "/sys/devices/system/cpu/cpu%d/topology/core_id", CpuIdx);
 
 						if (FILE* CoreIdFile = fopen(FileNameBuffer, "r"))
@@ -669,12 +684,12 @@ int32 FLinuxPlatformMisc::NumberOfCores()
 
 						sprintf(FileNameBuffer, "/sys/devices/system/cpu/cpu%d/topology/physical_package_id", CpuIdx);
 
-						unsigned int PackageId = 0;
 						if (FILE* PackageIdFile = fopen(FileNameBuffer, "r"))
 						{
-							if (1 != fscanf(PackageIdFile, "%d", &CpuInfos[CpuIdx].Package))
+							// physical_package_id can be -1 on embedded devices - treat all CPUs as separate in that case.
+							if (1 != fscanf(PackageIdFile, "%d", &CpuInfos[CpuIdx].Package) || CpuInfos[CpuIdx].Package < 0)
 							{
-								CpuInfos[CpuIdx].Package = 0;
+								CpuInfos[CpuIdx].Package = CpuInfos[CpuIdx].Core;
 							}
 							fclose(PackageIdFile);
 						}
@@ -687,23 +702,36 @@ int32 FLinuxPlatformMisc::NumberOfCores()
 				int NumCores = MaxCoreId + 1;
 				int NumPackages = MaxPackageId + 1;
 				int NumPairs = NumPackages * NumCores;
-				unsigned char * Pairs = reinterpret_cast<unsigned char *>(FMemory_Alloca(NumPairs * sizeof(unsigned char)));
-				FMemory::Memzero(Pairs, NumPairs * sizeof(unsigned char));
 
-				for (int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
+				// AArch64 topology seems to be incompatible with the above assumptions, particularly, core_id can be all 0 while the cores themselves are obviously independent. 
+				// Check if num CPUs available to us is more than 2 per core (i.e. more than reasonable when hyperthreading is involved), and if so, don't trust the topology.
+				if (2 * NumCores < NumCpusAvailable)
 				{
-					if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
-					{
-						Pairs[CpuInfos[CpuIdx].Package * NumCores + CpuInfos[CpuIdx].Core] = 1;
-					}
+					NumberOfCores = NumCpusAvailable;	// consider all CPUs to be separate
 				}
-
-				for (int32 Idx = 0; Idx < NumPairs; ++Idx)
+				else
 				{
-					NumberOfCores += Pairs[Idx];
+					unsigned char * Pairs = reinterpret_cast<unsigned char *>(FMemory_Alloca(NumPairs * sizeof(unsigned char)));
+					FMemory::Memzero(Pairs, NumPairs * sizeof(unsigned char));
+
+					for (int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
+					{
+						if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
+						{
+							Pairs[CpuInfos[CpuIdx].Package * NumCores + CpuInfos[CpuIdx].Core] = 1;
+						}
+					}
+
+					for (int32 Idx = 0; Idx < NumPairs; ++Idx)
+					{
+						NumberOfCores += Pairs[Idx];
+					}
 				}
 			}
 		}
+
+		// never allow it to be less than 1, we are running on something
+		NumberOfCores = FMath::Max(1, NumberOfCores);
 	}
 
 	return NumberOfCores;

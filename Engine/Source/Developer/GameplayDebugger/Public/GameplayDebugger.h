@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // GAMEPLAY DEBUGGER
 // 
@@ -40,7 +40,9 @@
 
 #pragma once
 
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
 
 enum class EGameplayDebuggerCategoryState : uint8
 {
@@ -48,6 +50,7 @@ enum class EGameplayDebuggerCategoryState : uint8
 	EnabledInGame,
 	EnabledInSimulate,
 	Disabled,
+	Hidden,
 };
 
 class IGameplayDebugger : public IModuleInterface

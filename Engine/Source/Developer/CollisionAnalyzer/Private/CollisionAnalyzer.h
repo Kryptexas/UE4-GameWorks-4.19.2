@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
+#include "ICollisionAnalyzer.h"
+
+class SWidget;
 
 /** Stores information about one collision query */
 struct FCAQuery

@@ -1,6 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "PackageDependencyData.h"
+#include "HAL/FileManager.h"
+#include "HAL/Runnable.h"
+#include "Runtime/AssetRegistry/Private/DiskCachedAssetData.h"
 
 /**
  * Minimal amount of information needed about a discovered asset file

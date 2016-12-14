@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SCOPEDTRANSACTION_H__
 #define __SCOPEDTRANSACTION_H__
+
+#include "CoreMinimal.h"
 
 /**
  * Delineates a transactable block; Begin()s a transaction when entering scope,

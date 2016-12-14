@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GenericOctree.h: Generic octree definition.
@@ -6,11 +6,14 @@
 
 #pragma once
 
-class FOctreeElementId;
+#include "CoreMinimal.h"
+#include "GenericOctreePublic.h"
 
 /** A concise iteration over the children of an octree node. */
 #define FOREACH_OCTREE_CHILD_NODE(ChildRef) \
 	for(FOctreeChildNodeRef ChildRef(0);!ChildRef.IsNULL();ChildRef.Advance())
+
+class FOctreeChildNodeRef;
 
 /** An unquantized bounding box. */
 class FBoxCenterAndExtent

@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Runtime/Renderer/Public/MaterialShader.h"
+#include "CoreMinimal.h"
+#include "Rendering/RenderingCommon.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "MaterialShaderType.h"
+#include "MaterialShader.h"
 
 class FSlateMaterialShaderVS : public FMaterialShader
 {

@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef _EditorShowFlags_h_
 #define _EditorShowFlags_h_
+
+#include "CoreMinimal.h"
+#include "Framework/Commands/InputChord.h"
+#include "ShowFlags.h"
+
+class FLevelEditorViewportClient;
 
 /**
  * @todo Slate: Copied from wxLevelViewportToolBar.  We need both systems to work for now.                   

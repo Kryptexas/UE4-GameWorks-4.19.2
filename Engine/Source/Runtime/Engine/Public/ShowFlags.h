@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShowFlags.h: Show Flag Definitions.
@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Engine/EngineBaseTypes.h"
 
 /** for FShowFlagData, order is not important, adding new elements requires updating some editor code */
@@ -335,6 +336,7 @@ private:
 		SetVisualizeLPV(false);
 		SetStreamingBounds(false);
 		SetConstraints(false);
+		SetMassProperties(false);
 		SetCameraFrustums(false);
 		SetAudioRadius(InitMode == ESFIM_Editor);
 		SetBSPSplit(false);
@@ -383,6 +385,8 @@ private:
 		SetMeshUVDensityAccuracy(false);
 		SetMaterialTextureScaleAccuracy(false);
 		SetOutputMaterialTextureScales(false);
+		SetRequiredTextureResolution(false);
+		SetMotionBlur(InitMode != ESFIM_Editor);
 	}
 
 

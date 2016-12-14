@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __SAnimationScrubPanel_h__
 #define __SAnimationScrubPanel_h__
-#include "SAnimNotifyPanel.h"
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPersonaPreviewScene.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
 #include "SScrubWidget.h"
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 
+class SScrubControlPanel;
+class UAnimationAsset;
+class UAnimInstance;
+class UAnimSequenceBase;
 struct FAnimBlueprintDebugData;
 
 class SAnimationScrubPanel : public SCompoundWidget
@@ -68,8 +77,11 @@ protected:
 	void OnAppendAnimSequence( bool bFromStart, int32 NumOfFrames );
 	void OnInsertAnimSequence( bool bBefore, int32 CurrentFrame );
 
-	/** Function to zero out translation of the selected frame */
-	void OnReZeroAnimSequence( );
+	/** 
+	 * Sets the root bone to be at the origin at the specified frame.
+	 * If FrameIndex is INDEX_NONE then the current frame is used.
+	 */
+	void OnReZeroAnimSequence(int32 FrameIndex);
 
 	// make sure viewport is freshes
 	void OnBeginSliderMovement();

@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
 #include "Styling/WidgetStyle.h"
 #include "SlateColor.generated.h"
-
 
 /**
  * Enumerates types of color values that can be held by Slate color.

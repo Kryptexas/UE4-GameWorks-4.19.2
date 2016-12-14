@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "BoneIndices.h"
+
+class USkeleton;
+struct FReferenceSkeleton;
 
 // This contains Reference-skeleton related info
 // Bone transform is saved as FTransform array

@@ -1,39 +1,46 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialShared.h: Shared material definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/RefCounting.h"
+#include "Templates/ScopedPointer.h"
 #include "Misc/SecureHash.h"
-#include "RefCounting.h"
+#include "RHI.h"
 #include "RenderResource.h"
+#include "RenderingThread.h"
 #include "UniformBuffer.h"
-#include "SceneTypes.h"
-#include "StaticParameterSet.h"
 #include "Shader.h"
 #include "VertexFactory.h"
+#include "SceneTypes.h"
+#include "StaticParameterSet.h"
+#include "Optional.h"
 
-class FMaterialShaderMap;
-class FMaterialShaderType;
 class FMaterial;
+class FMaterialCompiler;
 class FMaterialRenderProxy;
-class FMeshMaterialShaderMap;
+class FMaterialShaderType;
+class FMaterialUniformExpression;
 class FMeshMaterialShaderType;
+class FSceneView;
 class FShaderCommonCompileJob;
-class FShaderCompileJob;
-class FShaderType;
-class FShaderTypeDependency;
-class FShaderPipelineTypeDependency;
-class FVertexFactoryType;
-class FVertexFactoryTypeDependency;
 class UMaterial;
-class UMaterialInstance;
 class UMaterialExpression;
+class UMaterialExpressionMaterialFunctionCall;
+class UMaterialInstance;
 class UMaterialInterface;
+class USubsurfaceProfile;
 class UTexture;
 struct FExpressionInput;
-struct FShaderCompilerEnvironment;
+
+template <class ElementType> class TLinkedList;
 
 #define ME_CAPTION_HEIGHT		18
 #define ME_STD_VPADDING			16
@@ -241,7 +248,7 @@ protected:
 class FUniformExpressionSet : public FRefCountedObject
 {
 public:
-	FUniformExpressionSet(): UniformBufferStruct(NULL) {}
+	FUniformExpressionSet() {}
 
 	ENGINE_API void Serialize(FArchive& Ar);
 	bool IsEmpty() const;
@@ -283,7 +290,7 @@ protected:
 	TArray<FGuid> ParameterCollections;
 
 	/** The structure of a uniform buffer containing values for these uniform expressions. */
-	TScopedPointer<FUniformBufferStruct> UniformBufferStruct;
+	TOptional<FUniformBufferStruct> UniformBufferStruct;
 
 	friend class FMaterial;
 	friend class FHLSLMaterialTranslator;
@@ -368,7 +375,8 @@ namespace EMaterialShaderMapUsage
 		MaterialExportEmissive,
 		MaterialExportOpacity,
 		MaterialExportSubSurfaceColor,
-		DebugViewModeTexCoordScale
+		DebugViewModeTexCoordScale,
+		DebugViewModeRequiredTextureResolution
 	};
 }
 
@@ -1040,6 +1048,7 @@ public:
 	 * Should shaders compiled for this material be saved to disk?
 	 */
 	virtual bool IsPersistent() const = 0;
+	virtual UMaterialInterface* GetMaterialInterface() const { return NULL; }
 
 	/**
 	* Called when compilation of an FMaterial finishes, after the GameThreadShaderMap is set and the render command to set the RenderThreadShaderMap is queued
@@ -1147,7 +1156,7 @@ public:
 		OutstandingCompileShaderMapIds.Remove( OldOutstandingCompileShaderMapId );
 	}
 
-	void AddReferencedObjects(FReferenceCollector& Collector);
+	ENGINE_API virtual void AddReferencedObjects(FReferenceCollector& Collector);
 
 	virtual const TArray<UTexture*>& GetReferencedTextures() const = 0;
 
@@ -1199,9 +1208,9 @@ public:
 	static void UpdateEditorLoadedMaterialResources(EShaderPlatform InShaderPlatform);
 
 	/** Backs up any FShaders in editor loaded materials to memory through serialization and clears FShader references. */
-	static void BackupEditorLoadedMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	static void BackupEditorLoadedMaterialShadersToMemory(TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 	/** Recreates FShaders in editor loaded materials from the passed in memory, handling shader key changes. */
-	static void RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	static void RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TUniquePtr<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 protected:
 	
@@ -1424,6 +1433,7 @@ public:
 	virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const = 0;
 	/** Returns the FMaterial, without using a fallback if the FMaterial doesn't have a valid shader map. Can return NULL. */
 	virtual FMaterial* GetMaterialNoFallback(ERHIFeatureLevel::Type InFeatureLevel) const { return NULL; }
+	virtual UMaterialInterface* GetMaterialInterface() const { return NULL; }
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const = 0;
 	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const = 0;
 	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const = 0;
@@ -1672,6 +1682,7 @@ public:
 	ENGINE_API virtual float GetRefractionDepthBiasValue() const override;
 	ENGINE_API virtual float GetMaxDisplacement() const override;
 	ENGINE_API virtual bool UseTranslucencyVertexFog() const override;
+	ENGINE_API virtual UMaterialInterface* GetMaterialInterface() const override;
 	/**
 	 * Should shaders compiled for this material be saved to disk?
 	 */
@@ -1698,6 +1709,8 @@ public:
 	ENGINE_API virtual void LegacySerialize(FArchive& Ar) override;
 
 	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const override;
+
+	ENGINE_API virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	ENGINE_API virtual bool GetAllowDevelopmentShaderCompile() const override;
 
@@ -1734,9 +1747,9 @@ class FMaterialUpdateContext
 	/** Materials updated within this context. */
 	TSet<UMaterialInterface*> UpdatedMaterialInterfaces;
 	/** Active global component reregister context, if any. */
-	TScopedPointer<class FGlobalComponentReregisterContext> ComponentReregisterContext;
+	TUniquePtr<class FGlobalComponentReregisterContext> ComponentReregisterContext;
 	/** Active global component render state recreation context, if any. */
-	TScopedPointer<class FGlobalComponentRecreateRenderStateContext> ComponentRecreateRenderStateContext;
+	TUniquePtr<class FGlobalComponentRecreateRenderStateContext> ComponentRecreateRenderStateContext;
 	/** The shader platform that was being processed - can control if we need to update components */
 	EShaderPlatform ShaderPlatform;
 	/** True if the SyncWithRenderingThread option was specified. */

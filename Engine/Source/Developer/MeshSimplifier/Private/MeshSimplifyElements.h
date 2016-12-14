@@ -3,7 +3,10 @@
 
 #pragma once
 
-#include "UnrolledLinkList.h"
+#include "CoreMinimal.h"
+#include "Developer/MeshSimplifier/Private/UnrolledLinkList.h"
+
+template< typename T > class TSimpTri;
 
 enum ESimpElementFlags
 {

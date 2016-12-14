@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScalabilityOptions.cpp: Unreal engine HW compat scalability system.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
-#include "TargetPlatform.h"
+#include "SystemSettings.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Engine/Texture2D.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSystemSettings, Log, All);
 

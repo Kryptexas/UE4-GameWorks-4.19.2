@@ -1,6 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
+#include "VREditorActions.h"
 #include "VREditorModule.h"
 #include "VREditorUISystem.h"
 #include "VREditorMode.h"
@@ -11,7 +11,8 @@
 #include "VREditorTransformGizmo.h"
 #include "SLevelViewport.h"
 #include "ImageUtils.h"
-#include "VREditorActions.h"
+#include "FileHelper.h"
+
 
 #define LOCTEXT_NAMESPACE "VREditorActions"
 

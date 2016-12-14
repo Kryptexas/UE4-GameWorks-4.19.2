@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimClassInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Animation/AnimTypes.h"
+#include "Animation/AnimStateMachineTypes.h"
+#include "Animation/AnimClassInterface.h"
 #include "AnimClassData.generated.h"
+
+class USkeleton;
 
 UCLASS()
 class ENGINE_API UAnimClassData : public UObject, public IAnimClassInterface

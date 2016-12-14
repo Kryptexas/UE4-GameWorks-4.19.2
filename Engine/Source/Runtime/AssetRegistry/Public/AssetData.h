@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Misc/StringAssetReference.h"
+#include "UObject/Package.h"
+#include "UObject/ObjectRedirector.h"
+#include "Misc/PackageName.h"
+#include "UObject/LinkerLoad.h"
 #include "SharedMapView.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAssetData, Log, All);
@@ -404,7 +413,7 @@ inline bool FAssetData::GetTagValue(const FName InTagName, ValueType& OutTagValu
 	if (const FString* FoundValue = TagsAndValues.Find(InTagName))
 	{
 		FMemory::Memzero(&OutTagValue, sizeof(ValueType));
-		LexicalConversion::FromString(OutTagValue, **FoundValue);
+		Lex::FromString(OutTagValue, **FoundValue);
 		return true;
 	}
 	return false;
@@ -435,7 +444,7 @@ inline ValueType FAssetData::GetTagValueRef(const FName InTagName) const
 	FMemory::Memzero(&TmpValue, sizeof(ValueType));
 	if (const FString* FoundValue = TagsAndValues.Find(InTagName))
 	{
-		LexicalConversion::FromString(TmpValue, **FoundValue);
+		Lex::FromString(TmpValue, **FoundValue);
 	}
 	return TmpValue;
 }

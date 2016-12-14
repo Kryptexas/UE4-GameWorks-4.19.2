@@ -1,6 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ProjectsPrivatePCH.h"
+#include "PluginManager.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "ProjectDescriptor.h"
+#include "Interfaces/IProjectManager.h"
+#include "Modules/ModuleManager.h"
+#include "ProjectManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC( LogPluginManager, Log, All );
 
@@ -235,7 +248,7 @@ void FPluginManager::ReadPluginsInDirectory(const FString& PluginsDirectory, con
 				TSharedRef<FPlugin> Plugin = MakeShareable(new FPlugin(FileName, Descriptor, LoadedFrom));
 				
 				FString FullPath = FPaths::ConvertRelativePathToFull(FileName);
-				UE_LOG(LogPluginManager, Log, TEXT("Loaded Plugin %s, From %s"), *Plugin->GetName(), *FullPath);
+				UE_LOG(LogPluginManager, Verbose, TEXT("Read plugin descriptor for %s, from %s"), *Plugin->GetName(), *FullPath);
 
 				const TSharedRef<FPlugin>* ExistingPlugin = Plugins.Find(Plugin->GetName());
 				if (ExistingPlugin == nullptr)
@@ -245,7 +258,7 @@ void FPluginManager::ReadPluginsInDirectory(const FString& PluginsDirectory, con
 				else if ((*ExistingPlugin)->LoadedFrom == EPluginLoadedFrom::Engine && LoadedFrom == EPluginLoadedFrom::GameProject)
 				{
 					Plugins[Plugin->GetName()] = Plugin;
-					UE_LOG(LogPluginManager, Log, TEXT("Replacing engine version of '%s' plugin with game version"), *Plugin->GetName());
+					UE_LOG(LogPluginManager, Verbose, TEXT("Replacing engine version of '%s' plugin with game version"), *Plugin->GetName());
 				}
 				else if( (*ExistingPlugin)->LoadedFrom != EPluginLoadedFrom::GameProject || LoadedFrom != EPluginLoadedFrom::Engine)
 				{

@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AVIWriter.h: Helper class for creating AVI files.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Async/Future.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMovieCapture, Warning, All);
 

@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "BSDSockets/SocketSubsystemBSDPrivate.h"
+#include "IPAddress.h"
+
 #if PLATFORM_HAS_BSD_IPV6_SOCKETS
 
-#include "Core.h"
-#include "IPAddress.h"
 
 
 /**

@@ -920,6 +920,8 @@ void ScbScenePvdClient::sendStateDatas(Sc::ParticleSystemCore* psCore)
 
 void ScbScenePvdClient::frameStart(PxReal simulateElapsedTime)
 {	
+	PX_PROFILE_ZONE("Basic.pvdFrameStart", mScbScene.getContextId());
+
 	if(!mIsConnected)
 		return;
 
@@ -929,12 +931,12 @@ void ScbScenePvdClient::frameStart(PxReal simulateElapsedTime)
 
 void ScbScenePvdClient::frameEnd()
 {
-	if( !mIsConnected )
+	PX_PROFILE_ZONE("Basic.pvdFrameEnd", mScbScene.getContextId());
+
+	if(!mIsConnected)
 	{
-		if ( mPvd )
-		{
+		if(mPvd)
 			mPvd->flush(); // Even if we aren't connected, we may need to flush buffered events.
-		}
 		return;
 	}
 

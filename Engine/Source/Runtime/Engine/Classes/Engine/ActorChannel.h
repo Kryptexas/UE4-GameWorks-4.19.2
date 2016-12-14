@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Misc/NetworkGuid.h"
 #include "Engine/Channel.h"
+#include "Net/DataReplication.h"
 #include "ActorChannel.generated.h"
 
+class AActor;
+class FInBunch;
 class FNetFieldExportGroup;
+class FOutBunch;
+class UNetConnection;
 
 /**
  * A channel for exchanging actor and its subobject's properties and RPCs.

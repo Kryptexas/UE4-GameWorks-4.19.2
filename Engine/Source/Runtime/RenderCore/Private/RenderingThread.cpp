@@ -1,18 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingThread.cpp: Rendering thread implementation.
 =============================================================================*/
 
-#include "RenderCorePrivatePCH.h"
-#include "RenderCore.h"
 #include "RenderingThread.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/ExceptionHandling.h"
+#include "Misc/OutputDeviceRedirector.h"
+#include "Misc/CoreStats.h"
+#include "Misc/TimeGuard.h"
+#include "Misc/CoreDelegates.h"
+#include "RenderCore.h"
+#include "RenderCommandFence.h"
 #include "RHI.h"
 #include "TickableObjectRenderThread.h"
-#include "ExceptionHandling.h"
-#include "TaskGraphInterfaces.h"
-#include "StatsData.h"
-
+#include "Stats/StatsData.h"
+#include "HAL/ThreadHeartBeat.h"
 //
 // Globals
 //
@@ -427,7 +432,7 @@ public:
 	}
 
 #if PLATFORM_WINDOWS && !PLATFORM_SEH_EXCEPTIONS_DISABLED
-	static int32 FlushRHILogsAndReportCrash(LPEXCEPTION_POINTERS ExceptionInfo)
+	static int32 FlushRHILogsAndReportCrash(Windows::LPEXCEPTION_POINTERS ExceptionInfo)
 	{
 		if (GDynamicRHI)
 		{
@@ -857,6 +862,14 @@ static FAutoConsoleVariableRef CVarTimeToBlockOnRenderFence(
 	TEXT("Number of milliseconds the game thread should block when waiting on a render thread fence.")
 	);
 
+
+static int32 GTimeoutForBlockOnRenderFence = 30000;
+static FAutoConsoleVariableRef CVarTimeoutForBlockOnRenderFence(
+	TEXT("g.TimeoutForBlockOnRenderFence"),
+	GTimeoutForBlockOnRenderFence,
+	TEXT("Number of milliseconds the game thread should wait before failing when waiting on a render thread fence.")
+);
+
 /**
  * Block the game thread waiting for a task to finish on the rendering thread.
  */
@@ -895,6 +908,10 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 			// rendering thread hasn't crashed :)
 			bool bDone;
 			uint32 WaitTime = FMath::Clamp<uint32>(GTimeToBlockOnRenderFence, 0, 33);
+
+			const double StartTime = FPlatformTime::Seconds();
+			const double EndTime = StartTime + (GTimeoutForBlockOnRenderFence / 1000.0);
+
 			do
 			{
 				CheckRenderingThreadHealth();
@@ -904,6 +921,18 @@ static void GameThreadWaitForTask(const FGraphEventRef& Task, bool bEmptyGameThr
 					FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
 				}
 				bDone = Event->Wait(WaitTime);
+
+				// editor threads can block for quite a while... 
+				// Also dont do this when attached to the debugger as long pauses on breakpoints will cause this to trigger
+				if (!bDone && !WITH_EDITOR && !FPlatformMisc::IsDebuggerPresent())
+				{
+					// Fatal timeout if we run out of time and this thread is being monitor for heartbeats
+					// (We could just let the heartbeat monitor error for us, but this leads to better diagnostics).
+					if (FPlatformTime::Seconds() >= EndTime && FThreadHeartBeat::Get().IsBeating() && !FPlatformMisc::IsDebuggerPresent() )
+					{
+						UE_LOG(LogRendererCore, Fatal, TEXT("GameThread timed out waiting for RenderThread after %.02f secs"), FPlatformTime::Seconds() - StartTime);
+					}
+				}
 			}
 			while (!bDone);
 

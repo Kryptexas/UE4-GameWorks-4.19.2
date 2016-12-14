@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor/SequencerWidgets/Public/ITimeSlider.h"
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "ITimeSlider.h"
 
+class FSlateWindowElementList;
 struct FContextMenuSuppressor;
+struct FScrubRangeToScreen;
+struct FSlateBrush;
 
 struct FPaintPlaybackRangeArgs
 {

@@ -1,13 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "CoreNetTypes.h"
-#include "EdGraph/EdGraphPin.h"
-#include "EdGraph/EdGraphNode.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
 #include "Engine/EngineTypes.h"
-#include "BlueprintCore.h"
+#include "EdGraph/EdGraphPin.h"
+#include "Engine/BlueprintCore.h"
 #include "Blueprint.generated.h"
+
+class FCompilerResultsLog;
+class ITargetPlatform;
+class UActorComponent;
+class UEdGraph;
+class UInheritableComponentHandler;
 
 /**
  * Enumerates states a blueprint can be in.
@@ -653,6 +663,8 @@ public:
 
 	/** Collect blueprints that depend on this blueprint. */
 	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const;
+
+	virtual void ReplaceDeprecatedNodes();
 
 #endif	//#if WITH_EDITOR
 

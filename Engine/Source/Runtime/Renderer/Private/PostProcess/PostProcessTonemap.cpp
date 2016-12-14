@@ -1,19 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTonemap.cpp: Post processing tone mapping implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "PostProcess/PostProcessTonemap.h"
+#include "EngineGlobals.h"
 #include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessEyeAdaptation.h"
-#include "PostProcessUpscale.h"
-#include "PostProcessTonemap.h"
-#include "PostProcessing.h"
-#include "PostProcessCombineLUTs.h"
-#include "PostProcessMobile.h"
-#include "SceneUtils.h"
+#include "RendererModule.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessCombineLUTs.h"
+#include "PostProcess/PostProcessMobile.h"
 
 static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("r.Tonemapper.Sharpen"),
@@ -24,6 +21,7 @@ static TAutoConsoleVariable<float> CVarTonemapperSharpen(
 	TEXT("   1: full strength"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+// Note: These values are directly referenced in code, please update all paths if changing
 static TAutoConsoleVariable<int32> CVarDisplayColorGamut(
 	TEXT("r.HDR.Display.ColorGamut"),
 	0,
@@ -35,15 +33,18 @@ static TAutoConsoleVariable<int32> CVarDisplayColorGamut(
 	TEXT("4: ACEScg, D60\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+// Note: These values are directly referenced in code, please update all paths if changing
 static TAutoConsoleVariable<int32> CVarDisplayOutputDevice(
 	TEXT("r.HDR.Display.OutputDevice"),
 	0,
 	TEXT("Device format of the output display:\n")
-	TEXT("0: sRGB\n")
-	TEXT("1: Rec709\n")
-	TEXT("2: Explicit gamma mapping\n")
-	TEXT("3: ACES 1000 nit ST-2084 (Dolby PQ) for HDR displays\n")
-	TEXT("4: ACES 2000 nit ST-2084 (Dolby PQ) for HDR displays\n"),
+	TEXT("0: sRGB (LDR)\n")
+	TEXT("1: Rec709 (LDR)\n")
+	TEXT("2: Explicit gamma mapping (LDR)\n")
+	TEXT("3: ACES 1000 nit ST-2084 (Dolby PQ) (HDR)\n")
+	TEXT("4: ACES 2000 nit ST-2084 (Dolby PQ) (HDR)\n")
+	TEXT("5: ACES 1000 nit ScRGB (HDR)\n")
+	TEXT("6: ACES 2000 nit ScRGB (HDR)\n"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 	
 static TAutoConsoleVariable<int32> CVarHDROutputEnabled(
@@ -1049,13 +1050,6 @@ public:
 
 			PostprocessParameter.SetPS(ShaderRHI, Context, 0, eFC_0000, Filters);
 		}
-		
-		// Display format
-		int32 OutputGamutValue = CVarDisplayColorGamut.GetValueOnRenderThread();
-		SetShaderValue(Context.RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
-
-		int32 HDROutputEnabledValue = CVarHDROutputEnabled.GetValueOnRenderThread();
-		SetShaderValue(Context.RHICmdList, ShaderRHI, EncodeHDROutput, HDROutputEnabledValue);
 
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
 
@@ -1114,6 +1108,14 @@ public:
 			}
 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, OutputDevice, OutputDeviceValue);
+
+			// Display format
+			int32 OutputGamutValue = CVarDisplayColorGamut.GetValueOnRenderThread();
+			SetShaderValue(Context.RHICmdList, ShaderRHI, OutputGamut, OutputGamutValue);
+
+			// ScRGB output encoding
+			int32 HDROutputEncodingValue = (CVarHDROutputEnabled.GetValueOnRenderThread() != 0 && (OutputDeviceValue == 5 || OutputDeviceValue == 6)) ? 1 : 0;
+			SetShaderValue(Context.RHICmdList, ShaderRHI, EncodeHDROutput, HDROutputEncodingValue);
 		}
 
 		FVector GrainValue;
@@ -1139,27 +1141,44 @@ public:
 			SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, BloomDirtMaskParam, BloomDirtMaskUB);
 		}
 
-		// volume texture LUT
+		// Use a provided tonemaping LUT (provided by a CombineLUTs pass). 
 		{
+			
 			FRenderingCompositeOutputRef* OutputRef = Context.Pass->GetInput(ePId_Input3);
 
-			if(OutputRef)
+			// Indicates the Tonemapper combined LUT node was nominally in the network.
+			const bool bUseLUT = (OutputRef != NULL);
+
+			const FTextureRHIRef* SrcTexture = nullptr;
+			if (bUseLUT)
 			{
-				FRenderingCompositeOutput* Input = OutputRef->GetOutput();
-
-				if(Input)
+				SrcTexture = Context.View.GetTonemappingLUTTexture();
+				
+				if (!SrcTexture)
 				{
-					TRefCountPtr<IPooledRenderTarget> InputPooledElement = Input->RequestInput();
-
-					if(InputPooledElement)
-					{
-						check(!InputPooledElement->IsFree());
-
-						const FTextureRHIRef& SrcTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
+					FRenderingCompositeOutput* Input = OutputRef->GetOutput();
 					
-						SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), SrcTexture);
+					if(Input)
+					{
+						TRefCountPtr<IPooledRenderTarget> InputPooledElement = Input->RequestInput();
+						
+						if(InputPooledElement)
+						{
+							check(!InputPooledElement->IsFree());
+							
+							SrcTexture = &InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
+						}
 					}
 				}
+			}
+
+			if (SrcTexture && *SrcTexture)
+			{
+				SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), *SrcTexture);
+			}
+			else
+			{
+				UE_LOG(LogRenderer, Error, TEXT("No Color LUT texture to sample: output will be invalid."));
 			}
 		}
 
@@ -1386,19 +1405,6 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		// This becomes even more important with some limited VRam (XBoxOne).
 		SceneContext.SetSceneColor(0);
 	}
-
-	if (ViewFamily.Scene && ViewFamily.Scene->GetShadingPath() == EShadingPath::Mobile)
-	{
-		// Double buffer tonemapper output for temporal AA.
-		if(View.AntiAliasingMethod == AAM_TemporalAA)
-		{
-			FSceneViewState* ViewState = (FSceneViewState*)View.State;
-			if(ViewState) 
-			{
-				ViewState->MobileAaColor0 = PassOutputs[0].PooledRenderTarget;
-			}
-		}
-	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -1407,7 +1413,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutput
 
 	Ret.Reset();
 	// RGB is the color in LDR, A is the luminance for PostprocessAA
-	Ret.Format = bHDROutput ? PF_FloatRGBA : PF_B8G8R8A8;
+	Ret.Format = bHDROutput ? GRHIHDRDisplayOutputFormat : PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
 	Ret.ClearValue = FClearValueBinding(FLinearColor(0, 0, 0, 0));
 
@@ -1430,16 +1436,18 @@ class FPostProcessTonemapPS_ES2 : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		// This is only used on ES2.
-		// TODO: Make this only compile on PC/Mobile (and not console).
-		return !IsConsolePlatform(Platform);
+		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
+
+		// Only cache for ES2/3.1 shader platforms, and only compile 32bpp shaders for Android or PC emulation
+		return IsMobilePlatform(Platform) && 
+			(!TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR) || Platform == SP_OPENGL_ES2_ANDROID || (IsES2Platform(Platform) && IsPCPlatform(Platform)));
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 
-		uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
+		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
 
 		OutEnvironment.SetDefine(TEXT("USE_GAMMA_ONLY"),         TonemapperIsDefined(ConfigBitmask, TonemapperGammaOnly));
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_MATRIX"),       TonemapperIsDefined(ConfigBitmask, TonemapperColorMatrix));
@@ -1753,9 +1761,11 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	else
 	{
 		SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
-
+		// clear target when processing first view in case of splitscreen
+		const bool bFirstView = (&View == View.Family->Views[0]);
+		
 		// Full clear to avoid restore
-		if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
+		if ((View.StereoPass == eSSP_FULL && bFirstView) || View.StereoPass == eSSP_LEFT_EYE)
 		{
 			Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
 		}
@@ -1768,7 +1778,10 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	switch(ConfigIndexMobile)
+	const int32 ConfigOverride = CVarTonemapperOverride->GetInt();
+	const uint32 FinalConfigIndex = ConfigOverride == -1 ? ConfigIndexMobile : (int32)ConfigOverride;
+
+	switch(FinalConfigIndex)
 	{
 		using namespace PostProcessTonemap_ES2Util;
 		case 0:	SetShaderTemplES2<0>(Context, bUsedFramebufferFetch); break;
@@ -1829,16 +1842,6 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
-
-	// Double buffer tonemapper output for temporal AA.
-	if(Context.View.AntiAliasingMethod == AAM_TemporalAA)
-	{
-		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
-		if(ViewState) 
-		{
-			ViewState->MobileAaColor0 = PassOutputs[0].PooledRenderTarget;
-		}
-	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOutputId InPassOutputId) const

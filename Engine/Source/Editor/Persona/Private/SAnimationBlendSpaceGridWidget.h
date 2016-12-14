@@ -1,10 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PersonaPrivatePCH.h"
-#include "Core.h"
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Visibility.h"
+#include "Layout/SlateRect.h"
+#include "Input/Reply.h"
+#include "Layout/Margin.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Widgets/SToolTip.h"
+#include "Misc/NotifyHook.h"
+#include "Animation/AnimationAsset.h"
 
+class FPaintArgs;
+class FSlateWindowElementList;
+class UAnimSequence;
 class UBlendSpaceBase;
 
 DECLARE_DELEGATE_TwoParams(FOnSampleMoved, const int32, const FVector&);
@@ -83,6 +96,7 @@ public:
 	const bool IsPreviewing() const { return bSamplePreviewing; }
 
 	void InvalidateCachedData();
+	void InvalidateState();
 protected:
 	/** Drawing functionality for grid, legend, key and triangulation **/
 	void PaintBackgroundAndGrid(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const;
@@ -130,6 +144,8 @@ protected:
 	const FVector GridPositionToSampleValue(const FVector2D& GridPosition) const;
 	/** Returns the (calculated) grid rectangle given the supplied geometry */
 	const FSlateRect GetGridRectangleFromGeometry(const FGeometry& MyGeometry);
+	/** Checks whether or not the blendspace sample value is within the range of the mouse position */
+	bool IsSampleValueWithinMouseRange(const FVector& SampleValue);
 
 	/** Sets the tooltip instance on the underlying widget instance */
 	void ShowToolTip();
@@ -170,6 +186,7 @@ private:
 	/** Selection and highlight sample index/state */
 	int32 SelectedSampleIndex;
 	int32 HighlightedSampleIndex;
+	bool bHighlightPreviewPin;
 
 	/** Drag state and data (not drag/drop) */
 	EDragState DragState;
@@ -177,11 +194,12 @@ private:
 	FVector LastDragPosition;
 
 	/** Currently set preview blend sample value and state data */
-	FVector BlendPreviewValue;
 	bool bSamplePreviewing;
 	FVector2D LastPreviewingMousePosition;
 	FVector LastPreviewingSampleValue;
 	bool bPreviewPositionSet;
+	bool bAdvancedPreview;
+	TArray<FBlendSampleData> PreviewedSamples;
 
 	/** Tooltip ptr which is shown when hovering/dropping/dragging a sample*/
 	TSharedPtr<SToolTip> ToolTip;
@@ -222,8 +240,8 @@ private:
 	FOnSampleRemoved OnSampleRemoved;
 
 	/** Thresshold values for hovering, click and dragging samples */
-	float DragThresshold;
-	float ClickThresshold;
+	float DragThreshold;
+	float ClickAndHighlightThreshold;
 
 	/** Sample drawing data */
 	FVector2D KeySize;

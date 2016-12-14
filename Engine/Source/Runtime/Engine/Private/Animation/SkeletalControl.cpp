@@ -1,13 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalControl.cpp: SkeletalControl code and related.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "BoneContainer.h"
+#include "Animation/Skeleton.h"
 #include "Animation/AnimData/BoneMaskFilter.h"
-#include "AnimationUtils.h"
-#include "AnimationRuntime.h"
+#include "EngineLogs.h"
 
 DEFINE_LOG_CATEGORY(LogSkeletalControl);
 

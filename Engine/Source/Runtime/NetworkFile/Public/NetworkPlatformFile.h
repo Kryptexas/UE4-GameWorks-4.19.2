@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericPlatformFile.h"
 #include "NetworkMessage.h"
 #include "ServerTOC.h"
+
+class FScopedEvent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogNetworkPlatformFile, Log, All);
 
@@ -45,7 +49,10 @@ public:
 	{
 		return InnerPlatformFile;
 	}
-
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		InnerPlatformFile = NewLowerLevel;
+	}
 	virtual void GetTimeStampPair(const TCHAR* PathA, const TCHAR* PathB, FDateTime& OutTimeStampA, FDateTime& OutTimeStampB)
 	{
 		OutTimeStampA = GetTimeStamp(PathA);

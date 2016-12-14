@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessUpscale.h: Post processing Upscale implementation.
@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+
+class FViewInfo;
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: SceneColor (bilinear)
@@ -51,7 +55,7 @@ public:
 	//				2: 4 tap Bilinear (with radius adjustment)
 	//				3: Directional blur with unsharp mask upsample.
 	// @param InPaniniConfig - the panini configuration parameter
-	FRCPassPostProcessUpscale(uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig = PaniniParams::Default);
+	FRCPassPostProcessUpscale(const FViewInfo& InView, uint32 InUpscaleQuality, const PaniniParams& InPaniniConfig = PaniniParams::Default);
 
 	// interface FRenderingCompositePass ---------
 
@@ -68,5 +72,8 @@ private:
 
 	// Panini projection's parameter
 	PaniniParams PaniniConfig;
+
+	// Extent of upscaled output
+	FIntPoint OutputExtent;
 };
 

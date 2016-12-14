@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	A CameraAnimInst is an active instance of a CameraAnim.
@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
 #include "Camera/CameraTypes.h"
 
 #include "CameraAnimInst.generated.h"

@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineSubsystem.h"
+#include "CoreMinimal.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemNullPackage.h"
+
+class FOnlineAchievementsNull;
+class FOnlineIdentityNull;
+class FOnlineLeaderboardsNull;
+class FOnlineSessionNull;
+class FOnlineVoiceImpl;
 
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineSessionNull, ESPMode::ThreadSafe> FOnlineSessionNullPtr;

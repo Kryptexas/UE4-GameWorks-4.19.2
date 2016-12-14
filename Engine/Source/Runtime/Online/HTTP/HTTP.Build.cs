@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -32,9 +32,10 @@ public class HTTP : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.Linux ||
 			Target.Platform == UnrealTargetPlatform.Android ||
-			Target.Platform == UnrealTargetPlatform.WolfPlat)
+			Target.Platform == UnrealTargetPlatform.Switch)
 		{
             AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
+            PrivateDependencyModuleNames.Add("SSL");
 		}
 		if (Target.Platform == UnrealTargetPlatform.HTML5)
         {

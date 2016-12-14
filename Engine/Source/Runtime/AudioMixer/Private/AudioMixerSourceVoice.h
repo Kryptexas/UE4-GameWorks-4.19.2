@@ -1,17 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AudioMixerDevice.h"
 #include "AudioMixerBuffer.h"
-#include "AudioMixerSource.h"
-#include "AudioMixerSubmix.h"
 #include "AudioMixerSourceManager.h"
 
 namespace Audio
 {
 	struct FMixerSourceVoiceBuffer;
 	struct FMixerSourceVoiceFilterParams;
+	struct FMixerSourceVoiceInitParams;
+	class FMixerDevice;
 	class FMixerSubmix;
 	class FMixerSource;
 	class FMixerSourceManager;
@@ -44,9 +43,6 @@ namespace Audio
 
 		// Sets the source voice volume value.
 		void SetVolume(const float InVolume);
-	
-		// Sets the source voice wet-level value (for submix mixing).
-		void SetWetLevel(const float InWetLevel);
 
 		// Sets the source voice's LPF filter frequency.
 		void SetLPFFrequency(const float InFrequency);
@@ -82,24 +78,26 @@ namespace Audio
 		int64 GetNumFramesPlayed() const;
 
 		// Mixes the dry and wet buffer audio into the given buffers.
-		void MixOutputBuffers(TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer) const;
+		void MixOutputBuffers(TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer, const float DryLevel, const float WetLevel) const;
+
+		// Sets the submix send levels
+		void SetSubmixSendInfo(FMixerSubmixPtr Submix, const float DryLevel, const float WetLevel);
 
 		// Returns the submix that owns this source voice.
-		FMixerSubmix* GetOwningSubmix() const { return OwningSubmix; }
+		TMap<uint32, FMixerSourceSubmixSend>& GetSubmixSends() { return SubmixSends; }
 
 	private:
 
 		friend class FMixerSourceManager;
 
-		FMixerSubmix* OwningSubmix;
 		FMixerSourceManager* SourceManager;
+		TMap<uint32, FMixerSourceSubmixSend> SubmixSends;
 		FMixerDevice* MixerDevice;
 		TArray<float> ChannelMap;
 		FThreadSafeCounter NumBuffersQueued;
 		float Pitch;
 		float Volume;
 		float Distance;
-		float WetLevel;
 		float LPFFrequency;
 		int32 SourceId;
 		uint16 bIsPlaying : 1;

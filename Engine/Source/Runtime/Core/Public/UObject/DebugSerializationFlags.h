@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 DebugSerializationFlags.h: 
@@ -6,6 +6,8 @@ Set custom flags on the archive to help track issues while serializing
 =============================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
 
 // Debug serialization flags
 enum EDebugSerializationFlags

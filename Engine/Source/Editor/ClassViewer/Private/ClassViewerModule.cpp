@@ -1,11 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "ClassViewerPrivatePCH.h"
-#include "Editor/ClassViewer/Private/SClassViewer.h"
+#include "ClassViewerModule.h"
+#include "Widgets/SWidget.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Docking/TabManager.h"
+#include "EditorStyleSet.h"
+#include "SClassViewer.h"
+#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-
+#include "Widgets/Docking/SDockTab.h"
 #include "ModuleManager.h"
 #include "SDockTab.h"
+#include "ClassViewerProjectSettings.h"
+#include "ISettingsModule.h"
+
+#define LOCTEXT_NAMESPACE "ClassViewer"
 
 IMPLEMENT_MODULE( FClassViewerModule, ClassViewer );
 
@@ -36,6 +48,18 @@ void FClassViewerModule::StartupModule()
 		.SetTooltipText( NSLOCTEXT("ClassViewerApp", "TooltipText", "Displays all classes that exist within this project.") )
 		.SetGroup( WorkspaceMenu::GetMenuStructure().GetDeveloperToolsMiscCategory() )
 		.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassViewer.TabIcon") );
+
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+	if (SettingsModule != nullptr)
+	{
+		// ClassViewer Editor Settings
+		SettingsModule->RegisterSettings("Project", "Editor", "ClassViewer",
+			LOCTEXT("ClassViewerSettingsName", "Class Viewer"),
+			LOCTEXT("ClassViewerSettingsDescription", "Configure options for the Class Viewer."),
+			GetMutableDefault<UClassViewerProjectSettings>()
+			);
+	}
+
 }
 
 void FClassViewerModule::ShutdownModule()
@@ -43,6 +67,14 @@ void FClassViewerModule::ShutdownModule()
 	if (FSlateApplication::IsInitialized())
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner( ClassViewerModule::ClassViewerApp );
+	}
+
+	// Unregister the setting
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+
+	if (SettingsModule != nullptr)
+	{
+		SettingsModule->UnregisterSettings("Project", "Editor", "ClassViewer");
 	}
 
 	SClassViewer::DestroyClassHierarchy();
@@ -62,3 +94,6 @@ TSharedRef<SWidget> FClassViewerModule::CreateClassViewer(const FClassViewerInit
 	return SNew( SClassViewer, InitOptions )
 			.OnClassPickedDelegate(OnClassPickedDelegate);
 }
+
+
+#undef LOCTEXT_NAMESPACE

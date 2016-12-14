@@ -1,8 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/StaticMesh.h"
 #include "IHierarchicalLODUtilities.h"
+
+class AActor;
+class AHierarchicalLODVolume;
+class ALODActor;
+class AWorldSettings;
+class FStaticMeshRenderData;
+class ULevel;
+class UStaticMeshComponent;
+struct FHierarchicalSimplification;
 
 /**
 * FHierarchicalLODUtilities implementation

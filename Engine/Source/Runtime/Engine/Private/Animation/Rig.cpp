@@ -1,13 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	URig.cpp: Rig functionality for sharing animations
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
 #include "Animation/Rig.h"
+#include "UObject/FrameworkObjectVersion.h"
 #include "AnimationRuntime.h"
-#include "FrameworkObjectVersion.h"
 
 //@todo should move all this window stuff somewhere else. Persona?
 

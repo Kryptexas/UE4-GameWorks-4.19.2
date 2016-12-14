@@ -1,13 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ITextInputMethodSystem.h"
+#include "CoreTypes.h"
+#include "Templates/MemoryOps.h"
+#include "Containers/Array.h"
+#include "Templates/SharedPointer.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #include <TextStor.h>
 #include <msctf.h>
 #include "COMPointer.h"
+
+class ITextInputMethodContext;
 
 class FTextStoreACP : public ITextStoreACP, public ITfContextOwnerCompositionSink
 {

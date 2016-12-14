@@ -1,16 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Framework/Docking/WorkspaceItem.h"
+#include "Framework/Docking/TabManager.h"
 
 class FEdMode;
-class FTabManager;
-class FWorkspaceItem;
 class IToolkitHost;
 class SDockableTab;
-class SWidget;
-struct FKeyEvent;
-
 
 /** Some toolkits can be spawned as either standalone tools or within an existing level editing UI */
 namespace EToolkitMode

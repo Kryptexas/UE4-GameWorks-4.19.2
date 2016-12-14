@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "UObject/WeakObjectPtr.h"
+#include "IMovieSceneTrackInstance.h"
+#include "MovieSceneSequenceID.h"
 #include "MovieSceneFwd.h"
 
-class UMovieSceneSequence;
 class IMovieScenePlayer;
+class UMovieSceneSequence;
 
 /**
  * A sequence instance holds the live objects bound to the tracks in a sequence.  This is completely transient

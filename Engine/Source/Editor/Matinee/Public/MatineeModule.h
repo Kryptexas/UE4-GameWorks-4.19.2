@@ -1,13 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __MatineeModule_h__
 #define __MatineeModule_h__
 
-#include "UnrealEd.h"
-#include "ModuleInterface.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Modules/ModuleManager.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/IToolkit.h"
-#include "IMatinee.h"
+
+class AMatineeActor;
+class IMainFrameModule;
+class IMatinee;
 
 extern const FName MatineeAppIdentifier;
 

@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "Sound/SoundAttenuation.h"
 #include "Sound/SoundBase.h"
 #include "SoundCue.generated.h"
 
+class USoundCue;
+class USoundNode;
 struct FActiveSound;
 struct FSoundParseParameters;
 
@@ -87,7 +94,7 @@ class USoundCue : public USoundBase
 
 	/* Attenuation settings to use if Override Attenuation is set to true */
 	UPROPERTY(EditAnywhere, Category=Attenuation, meta=(EditCondition="bOverrideAttenuation"))
-	FAttenuationSettings AttenuationOverrides;
+	FSoundAttenuationSettings AttenuationOverrides;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
@@ -122,7 +129,7 @@ public:
 	virtual float GetPitchMultiplier() override;
 	virtual float GetMaxAudibleDistance() override;
 	virtual float GetDuration() override;
-	virtual const FAttenuationSettings* GetAttenuationSettingsToApply() const override;
+	virtual const FSoundAttenuationSettings* GetAttenuationSettingsToApply() const override;
 	//~ End USoundBase Interface.
 
 	/** Construct and initialize a node within this Cue */

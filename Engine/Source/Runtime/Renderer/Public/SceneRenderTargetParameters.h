@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRenderTargetParameters.h: Shader base classes
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+
+class FSceneView;
+class FShaderParameterMap;
 
 namespace ESceneRenderTargetsMode
 {
@@ -55,6 +61,9 @@ private:
 	FShaderResourceParameter SceneDepthTextureNonMS;
 	FShaderResourceParameter DirectionalOcclusionSampler;
 	FShaderResourceParameter DirectionalOcclusionTexture;
+
+	FShaderResourceParameter MobileCustomStencilTexture;
+	FShaderResourceParameter MobileCustomStencilTextureSampler;
 };
 
 /** Pixel shader parameters needed for deferred passes. */

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	AndroidLocalNotification.cpp: Unreal AndroidLocalNotification service interface object.
@@ -8,9 +8,9 @@
 	Includes
  ------------------------------------------------------------------------------------*/
 
-#include "Engine.h"
 #include "../Public/AndroidLocalNotification.h"
-
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
 
 DEFINE_LOG_CATEGORY(LogAndroidLocalNotification);
 

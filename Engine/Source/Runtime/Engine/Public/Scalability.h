@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*===================================================================================
 	Scalability.h: Manager class for handling scalability settings
 =====================================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 namespace Scalability
 { 
@@ -118,4 +120,7 @@ namespace Scalability
 
 	/** Maximum single axis scale for render resolution */
 	static const float MaxResolutionScale = 100.0f;
+
+	/** Returns the current screen percentage */
+	ENGINE_API float GetResolutionScreenPercentage();
 }

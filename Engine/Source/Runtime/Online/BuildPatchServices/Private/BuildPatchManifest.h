@@ -1,14 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchManifest.h: Declares the manifest classes.
 =============================================================================*/
 
-#include "CoreUObject.h"
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Interfaces/IBuildManifest.h"
 #include "BuildPatchChunk.h"
+#include "UObject/GCObject.h"
 #include "BuildPatchManifest.generated.h"
 
-#pragma once
+class FBuildPatchAppManifest;
+class FBuildPatchCustomField;
 
 typedef TSharedPtr< class FBuildPatchCustomField, ESPMode::ThreadSafe > FBuildPatchCustomFieldPtr;
 typedef TSharedRef< class FBuildPatchCustomField, ESPMode::ThreadSafe > FBuildPatchCustomFieldRef;
@@ -353,7 +361,7 @@ namespace BuildPatchServices
  * Declare the FBuildPatchAppManifest object class. This holds the UObject data, and the implemented build manifest functionality
  */
 class FBuildPatchAppManifest
-	: public IBuildManifest, FGCObject
+	: public IBuildManifest
 {
 	// Allow access to build processor classes
 	friend class FBuildDataGenerator;
@@ -592,7 +600,7 @@ public:
 	 * @param InstallDirectory	IN		The Build installation directory, so that it can be checked for missing files.
 	 * @param OutDatedFiles		OUT		The files that changed hash, are new, are wrong size, or missing on disk.
 	 */
-	void GetOutdatedFiles(const FBuildPatchAppManifestPtr& OldManifest, const FString& InstallDirectory, TSet<FString>& OutDatedFiles) const;
+	BUILDPATCHSERVICES_API void GetOutdatedFiles(const FBuildPatchAppManifestPtr& OldManifest, const FString& InstallDirectory, TSet<FString>& OutDatedFiles) const;
 
 	/**
 	 * Check a single file to see if it will be effected by patching from a previous version.
@@ -613,10 +621,6 @@ public:
 
 	/** @return True if this manifest is for the same build, i.e. same ID, Name, and Version */
 	bool IsSameAs(FBuildPatchAppManifestRef InstallManifest) const;
-public:
-
-	// FGCObject API
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 private:
 
@@ -634,8 +638,23 @@ private:
 
 private:
 
-	/** Holds the actual manifest data. Some other variables point to the memory held by this object */
-	UBuildPatchManifest* Data;
+	/** Holds the actual manifest data. Some other variables point to the memory held by these objects */
+	uint8 ManifestFileVersion;
+	bool bIsFileData;
+	uint32 AppID;
+	FString AppName;
+	FString BuildVersion;
+	FString LaunchExe;
+	FString LaunchCommand;
+	FString PrereqName;
+	FString PrereqPath;
+	FString PrereqArgs;
+	TArray<FFileManifestData> FileManifestList;
+	TArray<FChunkInfoData> ChunkList;
+	TArray<FCustomFieldData> CustomFields;
+
+	/** Holds the handle to our PreExit delegate */
+	FDelegateHandle OnPreExitHandle;
 
 	/** Some lookups to optimize data access */
 	TMap<FGuid, FString*> FileNameLookup;

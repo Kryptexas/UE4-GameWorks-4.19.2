@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVAudioSession.h>
 #import <GameKit/GKGameCenterViewController.h>
+#include "Delegates/Delegate.h"
+#include "Logging/LogMacros.h"
+#include "Containers/UnrealString.h"
 
 class CORE_API FIOSCoreDelegates
 {
@@ -100,6 +103,10 @@ UITextFieldDelegate>
 -(void)EnableIdleTimer:(bool)bEnable;
 
 -(void) ParseCommandLineOverrides;
+
+-(int)GetAudioVolume;
+-(bool)AreHeadphonesPluggedIn;
+-(int)GetBatteryLevel;
 
 /** TRUE if the device is playing background music and we want to allow that */
 @property (assign) bool bUsingBackgroundMusic;

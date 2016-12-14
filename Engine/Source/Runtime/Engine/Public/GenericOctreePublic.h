@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GenericOctreePublic.h: Generic octree definition.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 /** 
  *	An identifier for an element in the octree. 

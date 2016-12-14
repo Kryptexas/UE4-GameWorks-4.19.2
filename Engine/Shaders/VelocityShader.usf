@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VelocityShader.usf: Calculates velocity vectors.
@@ -230,6 +230,9 @@ void MainPixelShader(
 	OPTIONAL_IsFrontFace
 	OPTIONAL_OutDepthConservative
 	,out float4 OutColor : SV_Target0
+#if MATERIALBLENDING_MASKED_USING_COVERAGE
+	, out uint OutCoverage : SV_Coverage
+#endif
 	)
 {
 #if INSTANCED_STEREO
@@ -246,6 +249,10 @@ void MainPixelShader(
 
 #if OUTPUT_PIXEL_DEPTH_OFFSET
 	ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, PixelMaterialInputs, OutDepth);
+#endif
+
+#if MATERIALBLENDING_MASKED_USING_COVERAGE
+	OutCoverage = DiscardMaterialWithPixelCoverage(MaterialParameters, PixelMaterialInputs);
 #endif
 
 	// 2d velocity, includes camera an object motion

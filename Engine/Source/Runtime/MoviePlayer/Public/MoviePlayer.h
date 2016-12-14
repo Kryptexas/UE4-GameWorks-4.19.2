@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Engine.h"
-#include "ModuleInterface.h"
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Rendering/RenderingCommon.h"
+#include "Rendering/SlateRenderer.h"
+#include "Widgets/SWidget.h"
 #include "Slate/SlateTextures.h"
+
+// In order for a platform to support early movie playback, the platform must support the rendering thread 
+// starting very early and support rendering as soon as it is started and the module containing the movie streamer for the platform must already be loaded
+#define PLATFORM_SUPPORTS_EARLY_MOVIE_PLAYBACK 0
 
 UENUM()
 enum EMoviePlaybackType
@@ -84,6 +90,13 @@ public:
 	virtual FTexture2DRHIRef GetTexture() { return nullptr; }
 
 	virtual ~IMovieStreamer() {}
+
+	DECLARE_EVENT_OneParam(IMovieStreamer, FOnCurrentMovieClipFinished, const FString&)
+	virtual FOnCurrentMovieClipFinished& OnCurrentMovieClipFinished() = 0;
+
+	void BroadcastCurrentMovieClipFinished(const FString& MovieClipThatFinished) { OnCurrentMovieClipFinished().Broadcast(MovieClipThatFinished); }
+
+
 };
 
 
@@ -96,6 +109,7 @@ struct MOVIEPLAYER_API FLoadingScreenAttributes
 		, bAutoCompleteWhenLoadingCompletes(true)
 		, bMoviesAreSkippable(true)
 		, bWaitForManualStop(false)
+		, bAllowInEarlyStartup(false)
 		, PlaybackType(EMoviePlaybackType::MT_Normal) {}
 
 	/** The widget to be displayed on top of the movie or simply standalone if there is no movie. */
@@ -115,6 +129,9 @@ struct MOVIEPLAYER_API FLoadingScreenAttributes
 
 	/** If true, movie playback continues until Stop is called. */
 	bool bWaitForManualStop;
+
+	/** If true loading screens here cannot have any uobjects of any kind or use any engine features at all. This will start the movies very early as a result on platforms that support it */
+	bool bAllowInEarlyStartup;
 
 	/** Should we just play back, loop, etc.  NOTE: if the playback type is MT_LoopLast, then bAutoCompleteWhenLoadingCompletes will be togged on when the last movie is hit*/
 	TEnumAsByte<EMoviePlaybackType> PlaybackType;
@@ -153,6 +170,18 @@ public:
 	DECLARE_EVENT(IGameMoviePlayer, FOnPrepareLoadingScreen)
 	virtual FOnPrepareLoadingScreen& OnPrepareLoadingScreen() = 0;
 
+	/**
+	 * @return true if the movie player has been set up with an early startup movie
+	 */
+	virtual bool HasEarlyStartupMovie() const = 0;
+
+	/**
+	 * Play any early start up movies that have been set up
+	 *
+	 * @return true if a movie started playing
+	 */
+	virtual bool PlayEarlyStartupMovies() = 0;
+
 	/** 
 	 * Starts playing the movie given the last FLoadingScreenAttributes passed in
 	 * @return true of a movie started playing.
@@ -187,11 +216,15 @@ public:
 
 	DECLARE_EVENT(IGameMoviePlayer, FOnMoviePlaybackFinished)
 	virtual FOnMoviePlaybackFinished& OnMoviePlaybackFinished() = 0;
-	
+
+	DECLARE_EVENT_OneParam(IGameMoviePlayer, FOnMovieClipFinished, const FString&)
+	virtual FOnMovieClipFinished& OnMovieClipFinished() = 0;
+
 	/** Allows for a slate overlay widget to be set after playback. */
 	virtual void SetSlateOverlayWidget(TSharedPtr<SWidget> NewOverlayWidget) = 0;
 
 	void BroadcastMoviePlaybackFinished() { OnMoviePlaybackFinished().Broadcast(); }
+	void BroadcastMovieClipFinished(const FString& MovieClipThatFinished) { OnMovieClipFinished().Broadcast(MovieClipThatFinished); }
 
 	/** This function shouild return true if the movie will auto-complete the sequence when background loading has finished */
 	virtual bool WillAutoCompleteWhenLoadFinishes() = 0;

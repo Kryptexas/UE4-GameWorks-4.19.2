@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvQueryGenerator_CurrentLocation.generated.h"
-
-struct FEnvQueryInstance;
 
 UCLASS(meta = (DisplayName = "Current Location"))
 class AIMODULE_API UEnvQueryGenerator_CurrentLocation : public UEnvQueryGenerator

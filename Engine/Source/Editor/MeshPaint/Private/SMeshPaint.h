@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "MeshPaintEdMode.h"
+#include "Toolkits/IToolkitHost.h"
 #include "Toolkits/BaseToolkit.h"
-#include "SCompoundWidget.h"
 
+class SMeshPaint;
+class UTexture2D;
 
 namespace EMeshPaintColorSet
 {
@@ -96,6 +105,24 @@ protected:
 
 	/** Returns the visibility state of the button that imports vertex colors from TGA */
 	EVisibility GetImportVertexColorsVisibility() const;
+
+	/** Returns the maximum LOD index for the mesh we paint*/
+	TOptional<uint32> GetMeshesLODMax() const;
+
+	/** Returns the current LOD index we paint*/
+	TOptional<uint32> GetCurrentMeshesLOD() const;
+
+	/** Call when the user change the current LOD index we paint */
+	void SetCurrentMeshesLOD(const uint32 InLODIndex);
+
+	/** Return if we paint on all LOD or just on the base LOD */
+	ECheckBoxState IsPaintingAllLOD() const;
+
+	/** Return if we paint on all LOD or just on the base LOD */
+	bool IsPaintingAllLODEnable() const;
+
+	/** Call when the user change the AllowPaintingAllLOD option */
+	void OnAllowPaintingAllLODChanged(ECheckBoxState InCheckState);
 
 	/** Returns the value for the brush radius setting */
 	TOptional<float> GetBrushRadius() const;

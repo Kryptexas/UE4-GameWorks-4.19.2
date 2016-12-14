@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Engine/EngineTypes.h"
+#if PLATFORM_WINDOWS
+	#include "WindowsHWrapper.h"
+#endif
 THIRD_PARTY_INCLUDES_START
 	#include "RtAudio.h"
 THIRD_PARTY_INCLUDES_END
-#include "UnrealEd.h"
+
+class USoundWave;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMicManager, Log, All);
 

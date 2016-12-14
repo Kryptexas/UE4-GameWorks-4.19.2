@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
+#include "SNodePanel.h"
+#include "Rendering/DrawElements.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EditorStyleSettings.h"
+#include "Settings/LevelEditorViewportSettings.h"
 #include "ScopedTransaction.h"
-#include "MarqueeOperation.h"
 
 struct FZoomLevelEntry
 {
@@ -276,9 +280,9 @@ FVector2D SNodePanel::GetViewOffset() const
 
 void SNodePanel::Construct()
 {
-	if (!ZoomLevels.IsValid())
+	if (!ZoomLevels)
 	{
-		ZoomLevels = new FFixedZoomLevelsContainer();
+		ZoomLevels = MakeUnique<FFixedZoomLevelsContainer>();
 	}
 	ZoomLevel = ZoomLevels->GetDefaultZoomLevel();
 	PreviousZoomLevel = ZoomLevels->GetDefaultZoomLevel();
@@ -1002,7 +1006,7 @@ FReply SNodePanel::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEven
 	return FReply::Unhandled();
 }
 
-float SNodePanel::GetRelativeLayoutScale(const FSlotBase& Child) const
+float SNodePanel::GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const
 {
 	return GetZoomAmount();
 }

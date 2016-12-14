@@ -1,13 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BlendSpace.cpp: 2D BlendSpace functionality
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "Animation/BlendSpaceBase.h"
 #include "Animation/BlendSpace.h"
-#include "AnimationUtils.h"
 
 UBlendSpace::UBlendSpace(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -94,6 +91,7 @@ bool UBlendSpace::IsValidAdditive() const
 	return ContainsMatchingSamples(AAT_LocalSpaceBase) || ContainsMatchingSamples(AAT_RotationOffsetMeshSpace);
 }
 
+#if WITH_EDITOR
 void UBlendSpace::SnapSamplesToClosestGridPoint()
 {
 	TArray<FVector> GridPoints;
@@ -108,14 +106,14 @@ void UBlendSpace::SnapSamplesToClosestGridPoint()
 	
 	// First mark all samples as invalid
 	for (FBlendSample& BlendSample : SampleData)
-	{
+{
 		BlendSample.bIsValid = false;
-	}
+}
 
 	for (int32 GridY = 0; GridY < NumGridPoints.Y; ++GridY)
 	{
 		for (int32 GridX = 0; GridX < NumGridPoints.X; ++GridX)
-		{
+{
 			const FVector GridPoint((GridX * GridStep.X) + GridMin.X, (GridY * GridStep.Y) + GridMin.Y, 0.0f);
 			GridPoints.Add(GridPoint);
 		}
@@ -139,7 +137,7 @@ void UBlendSpace::SnapSamplesToClosestGridPoint()
 				Index = SampleIndex;
 				SmallestDistance = Distance;
 			}
-		}
+	}
 
 		ClosestSampleToGridPoint[PointIndex] = Index;
 	}
@@ -160,16 +158,34 @@ void UBlendSpace::SnapSamplesToClosestGridPoint()
 				Index = PointIndex;
 				SmallestDistance = Distance;
 			}
-		}
+	}
 
 		// Only move the sample if it is also closest to the grid point
 		if (Index != INDEX_NONE && ClosestSampleToGridPoint[Index] == SampleIndex)
-		{
+	{
 			BlendSample.SampleValue = GridPoints[Index];
 			BlendSample.bIsValid = true;
-		}
+	}
 	}
 }
+
+void UBlendSpace::RemapSamplesToNewAxisRange()
+{
+	const FVector OldGridMin(PreviousAxisMinMaxValues[0].X, PreviousAxisMinMaxValues[1].X, 0.0f);
+	const FVector OldGridMax(PreviousAxisMinMaxValues[0].Y, PreviousAxisMinMaxValues[1].Y, 1.0f);
+	const FVector OldGridRange = OldGridMax - OldGridMin;
+
+	const FVector NewGridMin(BlendParameters[0].Min, BlendParameters[1].Min, 0.0f);
+	const FVector NewGridMax(BlendParameters[0].Max, BlendParameters[1].Max, 1.0f);
+	const FVector NewGridRange = NewGridMax - NewGridMin;
+
+	for (FBlendSample& BlendSample : SampleData)
+	{
+		const FVector NormalizedValue = (BlendSample.SampleValue - OldGridMin) / OldGridRange;
+		BlendSample.SampleValue = NewGridMin + (NormalizedValue * NewGridRange);
+	}
+}
+#endif // WITH_EDITOR
 
 EBlendSpaceAxis UBlendSpace::GetAxisToScale() const
 {

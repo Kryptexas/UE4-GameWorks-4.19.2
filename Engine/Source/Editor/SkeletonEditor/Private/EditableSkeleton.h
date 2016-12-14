@@ -1,9 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IEditableSkeleton.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Animation/PreviewAssetAttachComponent.h"
+#include "BoneContainer.h"
 #include "Animation/Skeleton.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IEditableSkeleton.h"
+
+class IPersonaPreviewScene;
+class SBlendProfilePicker;
+class SSkeletonTree;
+class UBlendProfile;
+class URig;
+class USkeletalMeshSocket;
 
 /** View-model for a skeleton tree */
 class FEditableSkeleton : public IEditableSkeleton, public FGCObject, public TSharedFromThis<FEditableSkeleton>
@@ -73,6 +85,9 @@ public:
 
 	/** Handle adding a new virtual bone to the skeleton */
 	bool HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName);
+
+	/** Handle adding a new virtual bone to the skeleton */
+	bool HandleAddVirtualBone(const FName SourceBoneName, const FName TargetBoneName, FName& NewVirtualBoneName);
 
 	/** Function to customize a socket - this essentially copies a socket from the skeleton to the mesh */
 	void HandleCustomizeSocket(USkeletalMeshSocket* InSocketToCustomize, USkeletalMesh* InSkeletalMesh);

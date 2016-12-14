@@ -1,17 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EdGraph/EdGraphSchema.h" // for FEdGraphSchemaAction
-#include "BlueprintEditor.h"       // for FNodeCreationAnalytic
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Styling/SlateBrush.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "BlueprintEditor.h"
+#include "BlueprintActionFilter.h"
 #include "BlueprintDragDropMenuItem.generated.h"
 
-// Forward declarations
-class  UBlueprintNodeSpawner;
-class  FDragDropOperation;
-struct FSlateBrush;
-struct FSlateColor;
-struct FBlueprintActionContext;
+class UBlueprintNodeSpawner;
+class UEdGraph;
 
 /**
  * At certain times we want a single menu entry that represents a set of 
@@ -43,7 +43,7 @@ public:
 	 * @param  SampleAction	One of the node-spawners that this "consolidated" menu item represents (shouldn't matter which one).
 	 * @param  MenuGrouping	Defines the order in which this entry is listed in the menu.
 	 */
-	FBlueprintDragDropMenuItem(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* SampleAction, int32 MenuGrouping, const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip );
+	FBlueprintDragDropMenuItem(FBlueprintActionContext const& Context, UBlueprintNodeSpawner const* SampleAction, int32 MenuGrouping, FText InNodeCategory, FText InMenuDesc, FString InToolTip );
 	
 	// FEdGraphSchemaAction interface
 	virtual FName GetTypeId() const final { return StaticGetTypeId(); }

@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ITextInputMethodSystem.h"
+#include "CoreTypes.h"
+#include "Containers/Map.h"
+#include "GenericPlatform/ITextInputMethodSystem.h"
 #include "TextStoreACP.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #include <msctf.h>
 #include "COMPointer.h"
 
+class FGenericWindow;
 
 class FTextStoreACP;
 class FWindowsTextInputMethodSystem;

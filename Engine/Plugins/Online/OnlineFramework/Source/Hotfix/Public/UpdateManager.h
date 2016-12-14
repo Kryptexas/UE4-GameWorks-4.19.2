@@ -1,12 +1,18 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineIdentityInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/Casts.h"
+#include "Interfaces/OnlineIdentityInterface.h"
 #include "UpdateManager.generated.h"
 
+class Error;
+class UGameInstance;
 enum class EHotfixResult : uint8;
-class UEnum;
 
 /**
  * Various states the update manager flows through as it checks for patches/hotfixes

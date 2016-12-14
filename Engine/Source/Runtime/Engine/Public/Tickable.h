@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Tickable.h: Interface for tickable objects.
@@ -7,7 +7,8 @@
 
 #pragma once
 
-class UWorld;
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
 
 /**
  * Base class for tickable objects

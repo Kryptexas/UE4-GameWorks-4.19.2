@@ -1,12 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/CoreNet.h"
+#include "UObject/ScriptInterface.h"
+#include "Components/ActorComponent.h"
+#include "EngineDefines.h"
 #include "GameplayTaskOwnerInterface.h"
-#include "GameplayTaskTypes.h"
 #include "GameplayTask.h"
+#include "GameplayTaskResource.h"
 #include "GameplayTasksComponent.generated.h"
 
+class AActor;
+class Error;
 class FOutBunch;
 class UActorChannel;
 

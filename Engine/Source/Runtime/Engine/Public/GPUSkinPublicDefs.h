@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GPUSkinPublicDefs.h: Public definitions for GPU skinning.
@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 
 /** Max number of bone influences that a single skinned vert can have. */
 #define MAX_TOTAL_INFLUENCES		8

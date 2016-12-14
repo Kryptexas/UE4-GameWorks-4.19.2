@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanUtil.cpp: Vulkan Utility implementation.
@@ -307,6 +307,7 @@ void FVulkanGPUProfiler::EndFrame()
 #include "RHIStaticStates.h"
 #include "OneColorShader.h"
 #include "VulkanRHI.h"
+#include "StaticBoundShaderState.h"
 
 static FGlobalBoundShaderState LongGPUTaskBoundShaderState;
 

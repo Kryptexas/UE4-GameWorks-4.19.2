@@ -1,19 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Fonts/SlateFontInfo.h"
 #include "EditorStyleSet.h"
 
-
-class IPropertyHandle;
+class FAssetThumbnailPool;
 class FDetailWidgetRow;
+class IDetailChildrenBuilder;
 class IPropertyHandle;
 class IPropertyTypeCustomizationUtils;
 class IPropertyUtilities;
-class IDetailChildrenBuilder;
-class FAssetThumbnailPool;
-class IPropertyUtilities;
-
 
 /**
  * Base class for property type customizations

@@ -1,21 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BrushComponent.cpp: Unreal brush component implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Components/BrushComponent.h"
-#include "Engine/Polys.h"
+#include "PrimitiveSceneProxy.h"
+#include "EngineGlobals.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "RenderResource.h"
+#include "VertexFactory.h"
+#include "PackedNormal.h"
+#include "LocalVertexFactory.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
 #include "Model.h"
+#include "Engine/Brush.h"
+#include "MaterialShared.h"
+#include "Materials/Material.h"
+#include "GameFramework/Volume.h"
+#include "Engine/Polys.h"
+#include "Engine/Engine.h"
+#include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
-#if WITH_EDITOR
-#include "Collision.h"
-#include "ShowFlags.h"
-#include "ConvexVolume.h"
-#endif
-#include "DebuggingDefines.h"
 #include "ActorEditorUtils.h"
+#include "SceneManagement.h"
 #include "PhysicsEngine/BodySetup.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBrushComponent, Log, All);

@@ -1,9 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Engine.h"
-#include "Json.h"
+#include "CoreMinimal.h"
+#include "HAL/Runnable.h"
+#include "HAL/ThreadSafeBool.h"
+#include "HAL/FileManager.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/SlowTask.h"
+#include "Misc/FileHelper.h"
+#include "Misc/ScopeLock.h"
+#include "Serialization/ArrayWriter.h"
+#include "Containers/Queue.h"
+#include "SimplygonSwarmCommon.h"
 
 #include "MeshUtilities.h"
 

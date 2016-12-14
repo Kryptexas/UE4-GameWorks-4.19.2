@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessParameters.h: Shader base classes
@@ -6,8 +6,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
 #include "RHIStaticStates.h"
 
+class FShaderParameterMap;
 struct FRenderingCompositePassContext;
 
 // This is the index for the texture input of this pass.

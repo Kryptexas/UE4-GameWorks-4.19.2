@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
 #include "ProjectPackagingSettings.generated.h"
-
 
 /**
  * Enumerates the available build configurations for project packaging.
@@ -180,9 +183,9 @@ public:
 
 	
 	/**
-	* Skip editor content
+	* Don't include content in any editor folders when cooking.  This can cause issues with missing content in cooked games if the content is being used. 
 	*/
-	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Do not include editor content in this package may cause game to crash / error if you are using this content."))
+	UPROPERTY(config, EditAnywhere, Category = Packaging, AdvancedDisplay, meta = (DisplayName = "Exclude editor content when cooking"))
 	bool bSkipEditorContent;
 
 	/**

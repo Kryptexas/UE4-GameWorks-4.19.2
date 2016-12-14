@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTonemap.h: Post processing tone mapping implementation, can add bloom.
@@ -6,8 +6,16 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
-
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "RendererInterface.h"
+#include "ShaderParameters.h"
+#include "Shader.h"
+#include "RHIStaticStates.h"
+#include "GlobalShader.h"
+#include "PostProcessParameters.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+#include "PostProcess/PostProcessEyeAdaptation.h"
 
 static float GrainHalton( int32 Index, int32 Base )
 {

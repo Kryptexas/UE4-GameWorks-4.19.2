@@ -1,21 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Containers/Queue.h"
 #include "IMessageContext.h"
 #include "IMessageTracer.h"
-
-
-struct FMessageTracerEndpointInfo;
-struct FMessageTracerInterceptorInfo;
-struct FMessageTracerMessageInfo;
-struct FMessageTracerTypeInfo;
 
 class IMessageInterceptor;
 class IMessageReceiver;
 class IMessageSubscription;
 class IMessageTracerBreakpoint;
-
 
 /**
  * Implements a message bus tracers.

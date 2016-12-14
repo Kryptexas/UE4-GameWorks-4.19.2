@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessCombineLUTs.h: Post processing tone mapping implementation, can add bloom.
@@ -6,7 +6,12 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "ShaderParameters.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+
+class UTexture;
 
 bool UseVolumeTextureLUT(EShaderPlatform Platform);
 
@@ -15,8 +20,9 @@ class FRCPassPostProcessCombineLUTs : public TRenderingCompositePassBase<0, 1>
 {
 public:
 	// interface FRenderingCompositePass ---------
-	FRCPassPostProcessCombineLUTs(EShaderPlatform InShaderPlatform)
+	FRCPassPostProcessCombineLUTs(EShaderPlatform InShaderPlatform, bool bInAllocateOutput)
 	: ShaderPlatform(InShaderPlatform)
+	, bAllocateOutput(bInAllocateOutput)
 	{
 		
 	}
@@ -33,6 +39,7 @@ public:
 private:
 
 	EShaderPlatform ShaderPlatform;
+	bool bAllocateOutput;
 };
 
 

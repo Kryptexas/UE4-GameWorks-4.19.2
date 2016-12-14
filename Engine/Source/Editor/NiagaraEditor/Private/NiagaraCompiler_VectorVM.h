@@ -1,9 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "NiagaraEditorCommon.h"
+#include "INiagaraCompiler.h"
 #include "NiagaraCompiler.h"
-#include "VectorVM.h"
+
+enum class EVectorVMOp : uint8;
+enum class EVectorVMOperandLocation : uint8;
 
 /** A Niagara compiler that produces byte code to run on the VectorVM. */
 class NIAGARAEDITOR_API FNiagaraCompiler_VectorVM : public FNiagaraCompiler

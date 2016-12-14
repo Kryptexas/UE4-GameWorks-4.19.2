@@ -1,7 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Abilities/Tasks/AbilityTask.h"
+#include "AbilityTask_ApplyRootMotion_Base.h"
 #include "AbilityTask_ApplyRootMotionMoveToForce.generated.h"
+
+class UCharacterMovementComponent;
+class UCurveVector;
+class UGameplayTasksComponent;
+enum class ERootMotionFinishVelocityMode : uint8;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FApplyRootMotionMoveToForceDelegate);
 
@@ -11,7 +20,7 @@ class AActor;
  *	Applies force to character's movement
  */
 UCLASS(MinimalAPI)
-class UAbilityTask_ApplyRootMotionMoveToForce : public UAbilityTask
+class UAbilityTask_ApplyRootMotionMoveToForce : public UAbilityTask_ApplyRootMotion_Base
 {
 	GENERATED_UCLASS_BODY()
 
@@ -21,13 +30,9 @@ class UAbilityTask_ApplyRootMotionMoveToForce : public UAbilityTask
 	UPROPERTY(BlueprintAssignable)
 	FApplyRootMotionMoveToForceDelegate OnTimedOutAndDestinationReached;
 
-	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent) override;
-
 	/** Apply force to character's movement */
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_ApplyRootMotionMoveToForce* ApplyRootMotionMoveToForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector TargetLocation, float Duration, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish);
-
-	virtual void Activate() override;
+	static UAbilityTask_ApplyRootMotionMoveToForce* ApplyRootMotionMoveToForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector TargetLocation, float Duration, bool bSetNewMovementMode, EMovementMode MovementMode, bool bRestrictSpeedToExpected, UCurveVector* PathOffsetCurve, ERootMotionFinishVelocityMode VelocityOnFinishMode, FVector SetVelocityOnFinish, float ClampVelocityOnFinish);
 
 	/** Tick function for this task, if bTickingTask == true */
 	virtual void TickTask(float DeltaTime) override;
@@ -37,8 +42,9 @@ class UAbilityTask_ApplyRootMotionMoveToForce : public UAbilityTask
 
 protected:
 
-	UPROPERTY(Replicated)
-	FName ForceName;
+	virtual void SharedInitAndApply() override;
+
+protected:
 
 	UPROPERTY(Replicated)
 	FVector StartLocation;
@@ -72,16 +78,9 @@ protected:
 	UPROPERTY(Replicated)
 	FVector SetVelocityOnFinish;
 
-	uint16 RootMotionSourceID;
+	/** If VelocityOnFinish mode is "ClampVelocity", character velocity is clamped to this value when root motion finishes */
+	UPROPERTY(Replicated)
+	float ClampVelocityOnFinish;
+
 	EMovementMode PreviousMovementMode;
-
-	bool bIsFinished;
-	float StartTime;
-	float EndTime;
-
-	void SharedInitAndApply();
-
-	UPROPERTY()
-	UCharacterMovementComponent* MovementComponent;
-
 };

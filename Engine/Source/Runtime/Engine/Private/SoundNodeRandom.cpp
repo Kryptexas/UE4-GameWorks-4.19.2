@@ -1,12 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundNodeRandom.h"
+#include "ActiveSound.h"
 
 #if WITH_EDITOR
-	#include "UnrealEd.h"
+	#include "Editor.h"
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -187,7 +186,8 @@ int32 USoundNodeRandom::GetNumSounds(const UPTRINT NodeWaveInstanceHash, FActive
 
 	if (NodeIndex < ChildNodes.Num() && ChildNodes[NodeIndex])
 	{
-		return ChildNodes[NodeIndex]->GetNumSounds(NodeWaveInstanceHash, ActiveSound);
+		const UPTRINT ChildNodeWaveInstanceHash = GetNodeWaveInstanceHash(NodeWaveInstanceHash, ChildNodes[NodeIndex], NodeIndex);
+		return ChildNodes[NodeIndex]->GetNumSounds(ChildNodeWaveInstanceHash, ActiveSound);
 	}
 	return 0;
 }

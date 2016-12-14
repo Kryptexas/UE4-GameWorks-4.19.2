@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "DataTableUtils.h" // Needed here for LogDataTable and EDataTableExportFlags
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include "UObject/PropertyPortFlags.h"
+#include "DataTableUtils.h"
 #include "DataTable.generated.h"
 
+class Error;
+class UDataTable;
+template <class CharType> struct TPrettyJsonPrintPolicy;
 
 // forward declare JSON writer
 template <class CharType>
@@ -131,7 +140,7 @@ class UDataTable
 		{
 			if (bWarnIfRowMissing)
 			{
-				UE_LOG(LogDataTable, Warning, TEXT("UDataTable::FindRow : '%s' requested row '%s' not in DataTable '%s'."), *ContextString, *GetPathName(), *RowName.ToString());
+				UE_LOG(LogDataTable, Warning, TEXT("UDataTable::FindRow : '%s' requested row '%s' not in DataTable '%s'."), *ContextString, *RowName.ToString(), *GetPathName());
 			}
 			return nullptr;
 		}

@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "HitProxies.h"
+#include "Factories/Factory.h"
+
+class FPrimitiveDrawInterface;
+class FSceneView;
+struct FViewportClick;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogUtils, Log, All);
 

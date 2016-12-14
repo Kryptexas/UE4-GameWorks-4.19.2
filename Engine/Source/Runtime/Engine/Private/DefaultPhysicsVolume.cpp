@@ -1,6 +1,5 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "Components/BrushComponent.h"

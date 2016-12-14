@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "EdGraph/EdGraph.h"
+#include "GameplayTask.h"
 #include "K2Node_LatentGameplayTaskCall.h"
 #include "K2Node_LatentAbilityCall.generated.h"
+
+class FBlueprintActionDatabaseRegistrar;
 
 UCLASS()
 class UK2Node_LatentAbilityCall : public UK2Node_LatentGameplayTaskCall

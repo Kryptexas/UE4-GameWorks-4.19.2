@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/NameTypes.h"
+#include "Containers/Map.h"
+
+class FClass;
+class FClasses;
 struct FPropertySpecifier;
 
 /** Structure that holds class meta data generated from its UCLASS declaration */

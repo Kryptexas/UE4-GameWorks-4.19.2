@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "PThreadCriticalSection.h"
+#include "Containers/UnrealString.h"
+#include "Misc/Timespan.h"
 
 /**
  * Mac implementation of the FSystemWideCriticalSection. Uses exclusive file locking.

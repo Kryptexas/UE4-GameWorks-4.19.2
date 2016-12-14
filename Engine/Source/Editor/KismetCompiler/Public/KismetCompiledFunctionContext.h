@@ -1,14 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EdGraphCompilerUtilities.h"
-#include "BlueprintGraphDefinitions.h"
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "UObject/Class.h"
+#include "EdGraphSchema_K2.h"
 #include "BPTerminal.h"
 #include "BlueprintCompiledStatement.h"
+#include "Kismet2/CompilerResultsLog.h"
 
-class  UBlueprintGeneratedClass;
-struct FMemberReference;
+class Error;
+class UBlueprint;
+class UBlueprintGeneratedClass;
+class UK2Node_FunctionEntry;
+struct FNetNameMapping;
 
 namespace KismetCompilerDebugOptions
 {

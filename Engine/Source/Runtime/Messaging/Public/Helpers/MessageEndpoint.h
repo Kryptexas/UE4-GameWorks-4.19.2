@@ -1,16 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IMessageBus.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Async/TaskGraphInterfaces.h"
 #include "IMessageContext.h"
+#include "Containers/ArrayBuilder.h"
+#include "Containers/Queue.h"
+#include "IMessageAttachment.h"
+#include "IMessageBus.h"
 #include "IMessageHandler.h"
 #include "IMessageReceiver.h"
 #include "IMessageSender.h"
 
-
-class IMessageHandler;
-
+class Error;
 
 /**
  * DEPRECATED: Delegate type for error notifications.

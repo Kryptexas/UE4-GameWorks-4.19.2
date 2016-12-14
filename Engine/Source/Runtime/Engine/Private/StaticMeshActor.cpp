@@ -1,17 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshActorBase.cpp: Static mesh actor base class implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "MessageLog.h"
-#include "StaticMeshResources.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
 #include "Engine/StaticMeshActor.h"
-#include "UObject/DevObjectVersion.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+#include "Misc/MapErrors.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "StaticMeshResources.h"
+
 
 #define LOCTEXT_NAMESPACE "StaticMeshActor"
 

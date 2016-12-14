@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "KismetCompiler.h"
+#include "CoreMinimal.h"
+#include "KismetCompilerMisc.h"
 
-struct FBlueprintCompiledStatement;
+class FKismetCompilerContext;
 class UK2Node_MathExpression;
 struct FKismetFunctionContext;
 

@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PoseableMeshComponent.cpp: UPoseableMeshComponent methods.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Components/PoseableMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimStats.h"
 #include "Animation/AnimInstance.h"
-#include "Components/PoseableMeshComponent.h"
 
 UPoseableMeshComponent::UPoseableMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

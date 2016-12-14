@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Editor only class for UI of linking animation curve to joints
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "BoneContainer.h"
+#include "Animation/SmartName.h"
 #include "EditorAnimCurveBoneLinks.generated.h"
+
+class IEditableSkeleton;
+struct FPropertyChangedEvent;
 
 DECLARE_DELEGATE_OneParam( FOnAnimCurveBonesChange, class UEditorAnimCurveBoneLinks*)
 

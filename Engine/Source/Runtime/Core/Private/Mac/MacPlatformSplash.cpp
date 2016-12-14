@@ -1,6 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePCH.h"
+#include "MacPlatformSplash.h"
 #include "Misc/App.h"
 #include "EngineVersion.h"
 #include "EngineBuildSettings.h"
@@ -227,7 +227,7 @@ void FMacPlatformSplash::Show()
 
 				// Display copyright information in editor splash screen
 				{
-					const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2016   Epic Games, Inc.   All rights reserved." );
+					const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2017   Epic Games, Inc.   All rights reserved." );
 					StartSetSplashText( SplashTextType::CopyrightInfo, CopyrightInfo );
 				}
 			}

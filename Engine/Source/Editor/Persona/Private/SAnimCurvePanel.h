@@ -1,13 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "GraphEditor.h"
-#include "SNodePanel.h"
-#include "SAnimTrackPanel.h"
-#include "SCurveEditor.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Animation/Skeleton.h"
 #include "Animation/AnimSequenceBase.h"
+#include "SAnimTrackPanel.h"
+
+class FAnimCurveBaseInterface;
+class FMenuBuilder;
+class SCurveEdTrack;
+class SSplitter;
 
 DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const TArray<UObject*>& )
 DECLARE_DELEGATE( FOnUpdatePanel )
@@ -48,7 +57,6 @@ public:
 		, _InputMax()
 		, _OnSetInputViewRange()
 		, _OnGetScrubValue()
-		, _OnCurvesChanged()
 	{}
 
 	/**
@@ -72,7 +80,6 @@ public:
 	 */
 	SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
 
-	SLATE_EVENT( FSimpleDelegate, OnCurvesChanged )
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, const TSharedRef<class IEditableSkeleton>& InEditableSkeleton);
@@ -163,8 +170,6 @@ private:
 	TAttribute<float> CurrentPosition;
 	FOnGetScrubValue OnGetScrubValue;
 	TArray<TWeakPtr<class SCurveEdTrack>> Tracks;
-
-	FSimpleDelegate OnCurvesChanged;
 
 	/**
 	 * This is to control visibility of the curves, so you can edit or not

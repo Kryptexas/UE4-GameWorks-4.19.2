@@ -1,11 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "AssetData.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+
 #define LOCTEXT_NAMESPACE "SlotRefWindow"
 
+class SWindow;
 class UAnimBlueprint;
+class UAnimGraphNode_Base;
 class UAnimGraphNode_Slot;
+class UEdGraph;
 
 // This type can't exist in a SLATE_ARGUMENT macro so typedef away the template
 typedef TMultiMap<UAnimBlueprint*, UAnimGraphNode_Slot*>* NodeMapPtr;

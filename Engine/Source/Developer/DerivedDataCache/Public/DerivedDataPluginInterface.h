@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
 /** 
  * Interface for data deriving backends
  * This API will not be called concurrently, except that Build might be called on different instances if IsBuildThreadsafe.

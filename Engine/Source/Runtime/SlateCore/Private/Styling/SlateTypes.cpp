@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
+#include "Styling/SlateTypes.h"
+#include "Brushes/SlateNoResource.h"
+#include "Styling/StyleDefaults.h"
 
 
 namespace SlateTypeDefs
@@ -327,6 +329,7 @@ const FScrollBarStyle& FScrollBarStyle::GetDefault()
 
 
 FExpandableAreaStyle::FExpandableAreaStyle()
+: RolloutAnimationSeconds(0.1f)
 {
 }
 

@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayTags.h"
-#include "GameplayEffect.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameplayCueNotify_Static.h"
 #include "GameplayCueNotify_HitImpact.generated.h"
+
+class UParticleSystem;
+class USoundBase;
 
 /**
  *	Non instanced GAmeplayCueNotify for spawning particle and sound FX.

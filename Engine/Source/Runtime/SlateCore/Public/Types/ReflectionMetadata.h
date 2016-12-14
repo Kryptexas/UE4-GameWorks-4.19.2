@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ISlateMetaData.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Types/ISlateMetaData.h"
+#include "Widgets/SWidget.h"
 
 /**
  * Reflection meta-data that can be used by the widget reflector to determine

@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "DiagnosticTable.h"
-#include "MaterialShaderType.h"
+#include "MaterialShader.h"
+#include "Stats/StatsMisc.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Materials/MaterialInterface.h"
+#include "ProfilingDebugging/DiagnosticTable.h"
 #include "MeshMaterialShaderType.h"
 #include "ShaderCompiler.h"
 #include "DerivedDataCacheInterface.h"
-#include "TargetPlatform.h"
-#include "../ShaderDerivedDataVersion.h"
-#include "CookStats.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "ShaderDerivedDataVersion.h"
+#include "ProfilingDebugging/CookStats.h"
 
 int32 GCreateShadersOnLoad = 0;
 static FAutoConsoleVariableRef CVarCreateShadersOnLoad(
@@ -777,7 +780,7 @@ FShader* FMaterialShaderType::FinishCompileShader(
 	if (!Shader)
 	{
 		Shader = (*ConstructCompiledRef)(CompiledShaderInitializerType(this, CurrentJob.Output, Resource, UniformExpressionSet, MaterialShaderMapHash, ShaderPipelineType, nullptr, InDebugDescription));
-		CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(), (EShaderFrequency)CurrentJob.Output.Target.Frequency, CurrentJob.VFType);
+		CurrentJob.Output.ParameterMap.VerifyBindingsAreComplete(GetName(), CurrentJob.Output.Target, CurrentJob.VFType);
 	}
 
 	return Shader;

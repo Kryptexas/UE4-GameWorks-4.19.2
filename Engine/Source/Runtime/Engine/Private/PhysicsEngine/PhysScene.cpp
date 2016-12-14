@@ -1,15 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "HAL/IConsoleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "Engine/EngineTypes.h"
+#include "PhysxUserData.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "PhysicsEngine/RigidBodyIndexPair.h"
+#include "PhysicsPublic.h"
 
 #if WITH_PHYSX
-	#include "PhysXSupport.h"
+	#include "PhysXPublic.h"
+	#include "PhysicsEngine/PhysXSupport.h"
 #endif
 
-#include "PhysSubstepTasks.h"	//needed even if not substepping, contains common utility class for PhysX
+#include "PhysicsEngine/PhysSubstepTasks.h"
 #include "PhysicsEngine/PhysicsCollisionHandler.h"
 #include "Components/DestructibleComponent.h"
 #include "Components/LineBatchComponent.h"
@@ -268,6 +282,7 @@ FPhysScene::FPhysScene()
 	bAsyncSceneEnabled = PhysSetting->bEnableAsyncScene;
 	NumPhysScenes = bAsyncSceneEnabled ? PST_Async + 1 : PST_Cloth + 1;
 
+	FMemory::Memzero(PendingSimulationTransforms);
 
 	// Create scenes of all scene types
 	for (uint32 SceneType = 0; SceneType < NumPhysScenes; ++SceneType)
@@ -910,10 +925,10 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	OnPhysScenePreTick.Broadcast(this, SceneType, PreTickTime);
 
 	// If not substepping, call this delegate here. Otherwise we call it in FPhysSubstepTask::SubstepSimulationStart
-	if (IsSubstepping(SceneType) == false)
-	{
+		if (IsSubstepping(SceneType) == false)
+		{
 		OnPhysSceneStep.Broadcast(this, SceneType, PreTickTime);
-	}
+		}
 
 
 #if WITH_PHYSX
@@ -929,6 +944,7 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 	if (ApexScene && UseDelta > 0.f)
 #endif
 	{
+		PendingSimulationTransforms[SceneType] = true;
 		if(IsSubstepping(SceneType)) //we don't bother sub-stepping cloth
 		{
 			bTaskOutstanding = SubstepSimulation(SceneType, InOutCompletionEvent);
@@ -1162,6 +1178,8 @@ void FPhysScene::SyncComponentsToBodies_AssumesLocked(uint32 SceneType)
 		UDestructibleComponent::UpdateDestructibleChunkTM(ActiveDestructibleActors[SceneType]);
 	}
 #endif
+
+	PendingSimulationTransforms[SceneType] = false;
 }
 
 void FPhysScene::DispatchPhysNotifications_AssumesLocked()
@@ -1837,6 +1855,8 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PhysSubSteppers[SceneType] = SceneType == PST_Cloth ? NULL : new FPhysSubstepTask(PScene, this, SceneType);
 #endif
 #endif
+
+	PendingSimulationTransforms[SceneType] = false;
 
 	FPhysicsDelegates::OnPhysSceneInit.Broadcast(this, (EPhysicsSceneType)SceneType);
 

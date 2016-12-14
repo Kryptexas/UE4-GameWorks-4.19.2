@@ -1,20 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "StaticMeshEditorModule.h"
-#include "StaticMeshEditorActions.h"
-
-#include "MouseDeltaTracker.h"
-#include "ISocketManager.h"
 #include "StaticMeshEditorViewportClient.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "EngineGlobals.h"
+#include "RawIndexBuffer.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Engine/StaticMesh.h"
+#include "Editor.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Engine/Canvas.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "Engine/StaticMeshSocket.h"
+#include "Utils.h"
+#include "IStaticMeshEditor.h"
+
 #include "StaticMeshResources.h"
 #include "RawMesh.h"
 #include "DistanceFieldAtlas.h"
-#include "StaticMeshEditor.h"
-#include "BusyCursor.h"
-#include "MeshBuild.h"
-#include "PreviewScene.h"
-#include "ObjectTools.h"
+#include "SEditorViewport.h"
+#include "AdvancedPreviewScene.h"
 #include "SStaticMeshEditorViewport.h"
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
@@ -22,15 +26,7 @@
 #include "AI/Navigation/NavCollision.h"
 #include "PhysicsEngine/BodySetup.h"
 
-#if WITH_PHYSX
-#include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
-#endif
-#include "CanvasTypes.h"
 #include "Engine/AssetUserData.h"
-#include "Engine/StaticMeshSocket.h"
-#include "CanvasItem.h"
-#include "Engine/Canvas.h"
-#include "Engine/TextureCube.h"
 
 #include "AssetViewerSettings.h"
 
@@ -443,6 +439,14 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 {
 	FEditorViewportClient::Draw(View, PDI);
 
+	TSharedPtr<IStaticMeshEditor> StaticMeshEditor = StaticMeshEditorPtr.Pin();
+
+	if(!StaticMesh->RenderData->LODResources.IsValidIndex(StaticMeshEditor->GetCurrentLODIndex()))
+	{
+		// Guard against corrupted meshes
+		return;
+	}
+
 	if (bShowCollision && StaticMesh->BodySetup)
 	{
 		// Ensure physics mesh is created before we try and draw it
@@ -461,7 +465,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Sphere, i);
 			PDI->SetHitProxy(HitProxy);
 
-			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
+			const FColor CollisionColor = StaticMeshEditor->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
 			const FKSphereElem& SphereElem = AggGeom->SphereElems[i];
 			const FTransform ElemTM = SphereElem.GetTransform();
 			SphereElem.DrawElemWire(PDI, ElemTM, VectorScaleOne, CollisionColor);
@@ -474,7 +478,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Box, i);
 			PDI->SetHitProxy(HitProxy);
 
-			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
+			const FColor CollisionColor = StaticMeshEditor->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
 			const FKBoxElem& BoxElem = AggGeom->BoxElems[i];
 			const FTransform ElemTM = BoxElem.GetTransform();
 			BoxElem.DrawElemWire(PDI, ElemTM, VectorScaleOne, CollisionColor);
@@ -487,7 +491,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Sphyl, i);
 			PDI->SetHitProxy(HitProxy);
 
-			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
+			const FColor CollisionColor = StaticMeshEditor->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
 			const FKSphylElem& SphylElem = AggGeom->SphylElems[i];
 			const FTransform ElemTM = SphylElem.GetTransform();
 			SphylElem.DrawElemWire(PDI, ElemTM, VectorScaleOne, CollisionColor);
@@ -500,7 +504,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Convex, i);
 			PDI->SetHitProxy(HitProxy);
 
-			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
+			const FColor CollisionColor = StaticMeshEditor->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
 			const FKConvexElem& ConvexElem = AggGeom->ConvexElems[i];
 			const FTransform ElemTM = ConvexElem.GetTransform();
 			ConvexElem.DrawElemWire(PDI, ElemTM, 1.f, CollisionColor);
@@ -547,7 +551,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 	if( bDrawNormals || bDrawTangents || bDrawBinormals || bDrawVertices )
 	{
-		FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[StaticMeshEditorPtr.Pin()->GetCurrentLODIndex()];
+		FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[StaticMeshEditor->GetCurrentLODIndex()];
 		FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 		uint32 NumIndices = Indices.Num();
 
@@ -744,7 +748,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 	int32 CurrentLODLevel = StaticMeshEditor->GetCurrentLODLevel();
 	if (CurrentLODLevel == 0)
 	{
-		CurrentLODLevel = ComputeStaticMeshLOD(StaticMesh->RenderData, StaticMeshComponent->Bounds.Origin, StaticMeshComponent->Bounds.SphereRadius, View, StaticMesh->MinLOD);
+		CurrentLODLevel = ComputeStaticMeshLOD(StaticMesh->RenderData.Get(), StaticMeshComponent->Bounds.Origin, StaticMeshComponent->Bounds.SphereRadius, View, StaticMesh->MinLOD);
 	}
 	else
 	{
@@ -819,7 +823,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 
 	StaticMeshEditorViewport->PopulateOverlayText(TextItems);
 
-	if(bDrawUVs)
+	if(bDrawUVs && StaticMesh->RenderData->LODResources.Num() > 0)
 	{
 		const int32 YPos = 160;
 		DrawUVsForMesh(Viewport, &Canvas, YPos);
@@ -833,7 +837,7 @@ void FStaticMeshEditorViewportClient::DrawUVsForMesh(FViewport* InViewport, FCan
 
 	int32 UVChannel = StaticMeshEditorPtr.Pin()->GetCurrentUVChannel();
 
-	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords[UVChannel], StaticMeshComponent->GetStaticMesh()->RenderData, NULL);
+	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannel, SelectedEdgeTexCoords[UVChannel], StaticMeshComponent->GetStaticMesh()->RenderData.Get(), NULL);
 }
 
 void FStaticMeshEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)

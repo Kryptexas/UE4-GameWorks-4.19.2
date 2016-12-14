@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma  once 
 
@@ -8,11 +8,10 @@
 
 class FSLESAudioDevice;
 
-#include "Core.h"
-#include "Engine.h"
-#include "SoundDefinitions.h"
+#include "CoreMinimal.h"
 #include "AudioDecompress.h"
 #include "AudioEffect.h"
+#include "AudioDevice.h"
 
 #include <SLES/OpenSLES.h>
 #include "SLES/OpenSLES_Android.h"

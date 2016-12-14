@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/ArrayView.h"
+
+class ISkeletonTreeItem;
 
 /** Output struct for builders to use */
 struct SKELETONEDITOR_API FSkeletonTreeBuilderOutput
@@ -69,6 +74,9 @@ struct FSkeletonTreeFilterArgs
 class ISkeletonTreeBuilder
 {
 public:
+
+	virtual ~ISkeletonTreeBuilder() {};
+
 	/**
 	 * Build an array of skeleton tree items to display in the tree.
 	 * @param	InArgs			Parameters to use when building the tree

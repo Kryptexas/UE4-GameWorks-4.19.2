@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CoreMisc.h: General-purpose file utilities.
 =============================================================================*/
 
 #pragma once
- 
+
+#include "CoreMinimal.h"
+
+struct FPropertyChangedEvent;
 
 // Notification hook.
 class COREUOBJECT_API FNotifyHook

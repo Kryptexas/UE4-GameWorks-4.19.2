@@ -1,7 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/PlatformProcess.h"
+#include "Containers/StringConv.h"
+#include "HAL/Event.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/ThreadManager.h"
+#include "CoreGlobals.h"
+#include "Windows/WindowsHWrapper.h"
+
+class FRunnable;
 
 /**
  * This is the base interface for all runnable thread classes. It specifies the

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderCompiler.h: Platform independent shader compilation definitions.
@@ -6,7 +6,19 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Templates/RefCounting.h"
+#include "Templates/ScopedPointer.h"
+#include "HAL/PlatformProcess.h"
 #include "ShaderCore.h"
+#include "Shader.h"
+#include "HAL/RunnableThread.h"
+#include "HAL/Runnable.h"
+#include "UniquePtr.h"
+
+class FShaderCompileJob;
+class FShaderPipelineCompileJob;
+class FVertexFactoryType;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogShaderCompilers, Log, All);
 
@@ -340,7 +352,7 @@ private:
 	TMap<int32, FShaderMapFinalizeResults> PendingFinalizeShaderMaps;
 
 	/** The threads spawned for shader compiling. */
-	TScopedPointer<FShaderCompileThreadRunnableBase> Thread;
+	TUniquePtr<FShaderCompileThreadRunnableBase> Thread;
 
 	//////////////////////////////////////////////////////
 	// Configuration properties - these are set only on initialization and can be read from either thread
@@ -373,8 +385,6 @@ private:
 	FString ShaderCompileWorkerName;
 	/** Whether the SCW has crashed and we should fall back to calling the compiler dll's directly. */
 	bool bFallBackToDirectCompiles;
-	/** Whether a recreate should be done when compiling is finished. */
-	bool bRecreateComponentRenderStateOutstanding;
 
 	/** 
 	 * Tracks the total time that shader compile workers have been busy since startup.  
@@ -397,7 +407,10 @@ private:
 	void BlockOnAllShaderMapCompletion(TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps);
 
 	/** Finalizes the given shader map results and optionally assigns the affected shader maps to materials, while attempting to stay within an execution time budget. */
-	void ProcessCompiledShaderMaps(TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, float TimeBudget, bool bRecreateComponentRenderState);
+	void ProcessCompiledShaderMaps(TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps, float TimeBudget);
+
+	/** Propagate the completed compile to primitives that might be using the materials compiled. */
+	void PropagateMaterialChangesToPrimitives(const TMap<FMaterial*, class FMaterialShaderMap*>& MaterialsToUpdate);
 
 	/** Recompiles shader jobs with errors if requested, and returns true if a retry was needed. */
 	bool HandlePotentialRetryOnError(TMap<int32, FShaderMapFinalizeResults>& CompletedShaderMaps);

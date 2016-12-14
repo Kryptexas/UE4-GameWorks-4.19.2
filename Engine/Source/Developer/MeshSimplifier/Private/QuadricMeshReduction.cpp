@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Engine.h"
-#include "RawMesh.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Templates/ScopedPointer.h"
 #include "MeshUtilities.h"
 #include "MeshBuild.h"
-
+#include "RawMesh.h"
 #include "MeshSimplify.h"
+#include "UniquePtr.h"
 
 class FQuadricSimplifierMeshReductionModule : public IMeshReductionModule
 {
@@ -446,21 +448,21 @@ public:
 		return new FQuadricSimplifierMeshReduction;
 	}
 };
-TScopedPointer<FQuadricSimplifierMeshReduction> GQuadricSimplifierMeshReduction;
+TUniquePtr<FQuadricSimplifierMeshReduction> GQuadricSimplifierMeshReduction;
 
 void FQuadricSimplifierMeshReductionModule::StartupModule()
 {
-	GQuadricSimplifierMeshReduction = FQuadricSimplifierMeshReduction::Create();
+	GQuadricSimplifierMeshReduction.Reset(FQuadricSimplifierMeshReduction::Create());
 }
 
 void FQuadricSimplifierMeshReductionModule::ShutdownModule()
 {
-	GQuadricSimplifierMeshReduction = NULL;
+	GQuadricSimplifierMeshReduction = nullptr;
 }
 
 IMeshReduction* FQuadricSimplifierMeshReductionModule::GetStaticMeshReductionInterface()
 {
-	return GQuadricSimplifierMeshReduction;
+	return GQuadricSimplifierMeshReduction.Get();
 }
 
 IMeshReduction* FQuadricSimplifierMeshReductionModule::GetSkeletalMeshReductionInterface()

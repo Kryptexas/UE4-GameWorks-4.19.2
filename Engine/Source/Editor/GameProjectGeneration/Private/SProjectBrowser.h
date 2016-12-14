@@ -1,9 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-struct FProjectItem;
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Misc/TextFilter.h"
+
+class ITableRow;
+class STableViewBase;
+class SToolTip;
+class SVerticalBox;
 struct FProjectCategory;
+struct FProjectItem;
+struct FSlateBrush;
+enum class ECheckBoxState : uint8;
 
 /**
  * A list of known projects with the option to add a new one

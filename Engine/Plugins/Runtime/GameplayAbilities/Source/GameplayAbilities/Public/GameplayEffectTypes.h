@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayTagAssetInterface.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/NetSerialization.h"
+#include "GameplayTagContainer.h"
 #include "AttributeSet.h"
-#include "GameplayPrediction.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 #include "AbilitySystemLog.h"
 #include "GameplayEffectTypes.generated.h"
 
@@ -16,13 +22,12 @@
 	#define SKILL_AGG_DEBUG( Format, ... ) NULL
 #endif
 
+class Error;
 class UAbilitySystemComponent;
-class UGameplayEffect;
 class UGameplayAbility;
-
-struct FGameplayEffectSpec;
-struct FGameplayEffectModCallbackData;
 struct FActiveGameplayEffect;
+struct FGameplayEffectModCallbackData;
+struct FGameplayEffectSpec;
 
 GAMEPLAYABILITIES_API FString EGameplayModOpToString(int32 Type);
 

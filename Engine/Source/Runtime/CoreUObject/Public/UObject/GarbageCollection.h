@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GarbageCollection.h: Unreal realtime garbage collection helpers
@@ -6,7 +6,10 @@
 
 #pragma once
 
-#include "ArchiveUObject.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/UObjectGlobals.h"
+#include "Serialization/ArchiveUObject.h"
 
 /** Context sensitive keep flags for garbage collection */
 #define GARBAGE_COLLECTION_KEEPFLAGS	(GIsEditor ? RF_Standalone : RF_NoFlags)

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -14,6 +14,7 @@ public class CrashReportClientTarget : TargetRules
 	//
 	// TargetRules interface.
 	//
+
 	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 	{
 		OutPlatforms.Add(UnrealTargetPlatform.Win32);

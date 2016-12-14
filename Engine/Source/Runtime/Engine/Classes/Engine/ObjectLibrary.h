@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "AssetData.h"
 #include "ObjectLibrary.generated.h"
+
+struct FPropertyChangedEvent;
 
 /** Class that holds a library of Objects */
 UCLASS(MinimalAPI)
@@ -161,6 +167,9 @@ public:
 
 	/** Whether to set bIncludeOnlyOnDiskAssets when setting up AR filters for discovering asset data */
 	bool bIncludeOnlyOnDiskAssets;
+
+	/** Whether to set bRecursivePaths when setting up AR filters for discovering asset data */
+	bool bRecursivePaths;
 
 #if WITH_EDITOR
 	/** The paths that we will query again once assets are finished being discovered */

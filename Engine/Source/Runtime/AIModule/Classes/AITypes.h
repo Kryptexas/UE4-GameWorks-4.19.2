@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "AI/Navigation/NavigationTypes.h"
+#include "GameFramework/Actor.h"
 #include "AITypes.generated.h"
+
+class AActor;
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Overall AI Time"), STAT_AI_Overall, STATGROUP_AI, AIMODULE_API);
 
@@ -17,6 +25,7 @@ namespace FAISystem
 	static const FVector InvalidDirection = FVector::ZeroVector; 
 	static const float InvalidRange = -1.f;
 	static const float InfiniteInterval = -FLT_MAX;
+	static const uint32 InvalidUnsignedID = uint32(INDEX_NONE);
 
 	FORCEINLINE bool IsValidLocation(const FVector& TestLocation)
 	{
@@ -487,6 +496,9 @@ struct AIMODULE_API FAIMoveRequest
 	bool IsMoveToActorRequest() const { return bMoveToActor; }
 	AActor* GetGoalActor() const { return bMoveToActor ? GoalActor : nullptr; }
 	FVector GetGoalLocation() const { return GoalLocation; }
+	/** retrieves request's requested destination location, GoalActor's location 
+	 *	or GoalLocation, depending on the request itself */
+	FVector GetDestination() const { return bMoveToActor ? (GoalActor ? GoalActor->GetActorLocation() : FAISystem::InvalidLocation) : GoalLocation; }
 
 	bool IsUsingPathfinding() const { return bUsePathfinding; }
 	bool IsUsingPartialPaths() const { return bAllowPartialPath; }

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DeferredShadingRenderer.h: Scene rendering definitions.
@@ -6,7 +6,17 @@
 
 #pragma once
 
-#include "DepthRendering.h"		// EDepthDrawingMode
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "RendererInterface.h"
+#include "StaticBoundShaderState.h"
+#include "ScenePrivateBase.h"
+#include "LightSceneInfo.h"
+#include "SceneRendering.h"
+#include "DepthRendering.h"
+
+class FDistanceFieldAOParameters;
+class UStaticMeshComponent;
 
 class FLightShaftsOutput
 {
@@ -14,6 +24,8 @@ public:
 	// 0 if not rendered
 	TRefCountPtr<IPooledRenderTarget> LightShaftOcclusion;
 };
+
+extern bool SupportSceneAlpha();
 
 /**
  * Scene renderer that implements a deferred shading pipeline and associated features.
@@ -47,7 +59,7 @@ public:
 	 * Renders the dynamic scene's prepass for a particular view
 	 * @return true if anything was rendered
 	 */
-	bool RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View);
+	bool RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
 
 	/**
 	 * Renders the scene's prepass for a particular view
@@ -65,8 +77,8 @@ public:
 	void ComputeLightGrid(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the basepass for the static data of a given View. */
-	bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
-	bool RenderBasePassStaticDataType(FRHICommandList& RHICmdList, FViewInfo& View, const EBasePassDrawListType DrawType);
+	bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState);
+	bool RenderBasePassStaticDataType(FRHICommandList& RHICmdList, FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, const EBasePassDrawListType DrawType);
 
 	/** Renders the basepass for the static data of a given View. Parallel versions.*/
 	void RenderBasePassStaticDataParallel(FParallelCommandListSet& ParallelCommandListSet);
@@ -79,7 +91,7 @@ public:
 	void SortBasePassStaticData(FVector ViewPosition);
 
 	/** Renders the basepass for the dynamic data of a given View. */
-	void RenderBasePassDynamicData(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty);
+	void RenderBasePassDynamicData(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, bool& bOutDirty);
 
 	/** Renders the basepass for the dynamic data of a given View, in parallel. */
 	void RenderBasePassDynamicDataParallel(FParallelCommandListSet& ParallelCommandListSet);
@@ -278,7 +290,7 @@ private:
 
 	/** Renders the velocities for a subset of movable objects for the motion blur effect. */
 	friend class FRenderVelocityDynamicThreadTask;
-	void RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex);
+	void RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, int32 FirstIndex, int32 LastIndex);
 
 	/** Renders the velocities of movable objects for the motion blur effect. */
 	void RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
@@ -329,13 +341,19 @@ private:
 	  * @param LightSceneInfo Represents the current light
 	  * @param LightIndex The light's index into FScene::Lights
 	  */
-	bool RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared);
+	bool RenderLightFunction(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared, bool bProjectingForForwardShading);
 
 	/** Renders a light function indicating that whole scene shadowing being displayed is for previewing only, and will go away in game. */
 	bool RenderPreviewShadowsIndicator(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bLightAttenuationCleared);
 
 	/** Renders a light function with the given material. */
-	bool RenderLightFunctionForMaterial(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, const FMaterialRenderProxy* MaterialProxy, bool bLightAttenuationCleared, bool bRenderingPreviewShadowsIndicator);
+	bool RenderLightFunctionForMaterial(
+		FRHICommandListImmediate& RHICmdList, 
+		const FLightSceneInfo* LightSceneInfo, 
+		const FMaterialRenderProxy* MaterialProxy, 
+		bool bLightAttenuationCleared,
+		bool bProjectingForForwardShading, 
+		bool bRenderingPreviewShadowsIndicator);
 
 	/**
 	  * Used by RenderLights to render a light to the scene color buffer.
@@ -401,7 +419,7 @@ private:
 
 	void UpdateGlobalDistanceFieldObjectBuffers(FRHICommandListImmediate& RHICmdList);
 
-	void DrawAllTranslucencyPasses(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, ETranslucencyPass::Type TranslucenyPassType);
+	void DrawAllTranslucencyPasses(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FDrawingPolicyRenderState& DrawRenderState, ETranslucencyPass::Type TranslucenyPassType);
 
 	void CopySceneCaptureComponentToTarget(FRHICommandListImmediate& RHICmdList);
 

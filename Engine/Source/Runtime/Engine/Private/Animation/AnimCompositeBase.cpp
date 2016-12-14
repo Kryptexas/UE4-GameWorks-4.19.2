@@ -1,14 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompositeBase.cpp: Anim Composite base class that contains AnimTrack data structure/interface
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "AnimationUtils.h"
 #include "Animation/AnimCompositeBase.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimComposite.h"
+#include "BonePose.h"
 #include "AnimationRuntime.h"
 
 ///////////////////////////////////////////////////////

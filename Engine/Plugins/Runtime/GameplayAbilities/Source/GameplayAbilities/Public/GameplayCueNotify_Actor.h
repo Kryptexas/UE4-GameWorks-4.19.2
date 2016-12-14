@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayTags.h"
-#include "GameplayEffect.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "GameplayCue_Types.h"
 #include "GameplayCueNotify_Actor.generated.h"
-
 
 /**
  *	An instantiated Actor that acts as a handler of a GameplayCue. Since they are instantiated, they can maintain state and tick/update every frame if necessary. 
@@ -25,8 +27,10 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+protected:
 	virtual void BeginPlay() override;
 
+public:
 	virtual void SetOwner( AActor* NewOwner ) override;
 
 	virtual void PostInitProperties() override;

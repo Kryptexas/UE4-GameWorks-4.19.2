@@ -1,6 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "CollectionManagerTypes.h"
+#include "SCollectionView.h"
+#include "Widgets/SWindow.h"
+
+class FMenuBuilder;
+class FUICommandList;
 
 class FCollectionContextMenu : public TSharedFromThis<FCollectionContextMenu>
 {

@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HlslExpressionParser.inl - Implementation for parsing hlsl expressions.
 =============================================================================*/
 
 #pragma once
-#include "ShaderCompilerCommon.h"
-#include "HlslParser.h"
-#include "HlslAST.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Set.h"
+#include "Developer/ShaderCompilerCommon/Private/HlslParser.h"
+#include "Developer/ShaderCompilerCommon/Private/HlslAST.h"
+
+class Error;
 
 namespace CrossCompiler
 {

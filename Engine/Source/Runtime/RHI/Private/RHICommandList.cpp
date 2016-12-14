@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "RHIPrivatePCH.h"
-#include "RHICommandList.h"
+#include "CoreMinimal.h"
+#include "Misc/CommandLine.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "RHI.h"
 
 DECLARE_CYCLE_STAT(TEXT("Nonimmed. Command List Execute"), STAT_NonImmedCmdListExecuteTime, STATGROUP_RHICMDLIST);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Nonimmed. Command List memory"), STAT_NonImmedCmdListMemory, STATGROUP_RHICMDLIST);
@@ -1262,6 +1267,14 @@ void FRHICommandListBase::QueueRenderThreadCommandListSubmit(FGraphEventRef& Ren
 	}
 	new (AllocCommand<FRHICommandWaitForAndSubmitRTSubList>()) FRHICommandWaitForAndSubmitRTSubList(RenderThreadCompletionEvent, CmdList);
 }
+
+#if RHI_PSO_X_VALIDATION
+void FRHICommandListBase::ValidatePsoState(const FBlendStateRHIParamRef BlendState, const FDepthStencilStateRHIParamRef DepthStencilState)
+{
+	ensure(VerifyableDepthStencilState == DepthStencilState);
+	ensure(VerifyableBlendState == BlendState);
+}
+#endif
 
 struct FRHICommandSubmitSubList : public FRHICommand<FRHICommandSubmitSubList>
 {

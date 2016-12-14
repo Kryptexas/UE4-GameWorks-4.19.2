@@ -1,14 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "BehaviorTreeEditorPrivatePCH.h"
-#include "Toolkits/AssetEditorManager.h"
-
-#include "BehaviorTree/BlackboardData.h"
-#include "Editor/BehaviorTreeEditor/Public/BehaviorTreeEditorModule.h"
-#include "Editor/BehaviorTreeEditor/Public/IBehaviorTreeEditor.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetTypeActions_Blackboard.h"
-#include "AssetTypeActions_BehaviorTree.h"
+#include "BehaviorTreeEditorModule.h"
+
+#include "BehaviorTree/BlackboardData.h"
+
 
 #include "AIModule.h"
 

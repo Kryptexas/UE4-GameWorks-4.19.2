@@ -102,7 +102,6 @@ struct PvdSqHit
 	PxF32			mDistance;
 	PxF32			mU;
 	PxF32			mV;
-	PxU32			mSweepGeometryIndex;	// PT: TODO: remove. This seems unused these days.
 
 	PvdSqHit()
 	{
@@ -134,7 +133,6 @@ struct PvdSqHit
 		mNormal = hit.normal;
 		mDistance = hit.distance;
 		mFlags = hit.flags;
-		mSweepGeometryIndex = 0; // unused
 	}
 
   private:
@@ -146,7 +144,6 @@ struct PvdSqHit
 		mFlags = 0;
 		mImpact = mNormal = PxVec3(0.0f);
 		mDistance = mU = mV = 0.0f;
-		mSweepGeometryIndex = 0;
 	}
 };
 

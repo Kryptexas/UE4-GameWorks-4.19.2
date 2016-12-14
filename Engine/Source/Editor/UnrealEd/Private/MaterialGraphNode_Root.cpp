@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphNode_Root.cpp
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "MaterialGraph/MaterialGraphNode_Root.h"
+#include "MaterialShared.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
 #include "MaterialEditorUtilities.h"
-#include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode_Root"
@@ -50,8 +52,9 @@ void UMaterialGraphNode_Root::CreateInputPins()
 
 	for (int32 Index = 0; Index < MaterialGraph->MaterialInputs.Num(); ++Index)
 	{
-		UEdGraphPin* InputPin = CreatePin(EGPD_Input, Schema->PC_MaterialInput, TEXT(""), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, MaterialGraph->MaterialInputs[Index].GetName().ToString());
+		UEdGraphPin* InputPin = CreatePin(EGPD_Input, Schema->PC_MaterialInput, FString::Printf(TEXT("%d"), (int32)MaterialGraph->MaterialInputs[Index].GetProperty()), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, MaterialGraph->MaterialInputs[Index].GetName().ToString());
 	}
+
 }
 
 int32 UMaterialGraphNode_Root::GetInputIndex(const UEdGraphPin* InputPin) const

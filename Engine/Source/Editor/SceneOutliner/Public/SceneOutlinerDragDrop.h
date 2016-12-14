@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "SceneOutlinerFwd.h"
-#include "ActorDragDropGraphEdOp.h"
+#include "Layout/Visibility.h"
+#include "Input/DragAndDrop.h"
+#include "DragAndDrop/DecoratedDragDropOp.h"
+#include "DragAndDrop/ActorDragDropGraphEdOp.h"
 
 namespace SceneOutliner
 {

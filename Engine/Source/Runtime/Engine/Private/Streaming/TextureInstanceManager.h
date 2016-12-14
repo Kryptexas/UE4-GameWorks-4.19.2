@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 TextureInstanceManager.h: Definitions of classes used for texture streaming.
@@ -6,9 +6,58 @@ TextureInstanceManager.h: Definitions of classes used for texture streaming.
 
 #pragma once
 
-#include "TextureStreamingHelpers.h"
+#include "CoreMinimal.h"
+#include "Templates/RefCounting.h"
+#include "ContentStreaming.h"
+#include "Streaming/TextureStreamingHelpers.h"
+#include "Components/PrimitiveComponent.h"
+#include "Async/AsyncWork.h"
 
 #define MAX_TEXTURE_SIZE (float(1 << (MAX_TEXTURE_MIP_COUNT - 1)))
+
+
+class FStreamingTextureLevelContext;
+class ULevel;
+class UPrimitiveComponent;
+class UTexture2D;
+
+class FTextureInstanceState;
+
+class FUpdateLastRenderTimeTask : public FNonAbandonableTask
+{
+public:
+	/** Task arguments. */
+	struct FArguments
+	{
+		FArguments(const TRefCountPtr<FTextureInstanceState>& InLevelState, int32 InFirstIndex, int32 InLastIndex) : LevelState(InLevelState), FirstIndex(InFirstIndex), LastIndex(InLastIndex) {}
+
+		// The state to update.
+		TRefCountPtr<FTextureInstanceState> LevelState;
+		// First bound index to udpate.
+		int32 FirstIndex;
+		// Last bound index to update.
+		int32 LastIndex;
+	};
+
+	/** Initialization constructor. */
+
+	void Reserve(int32 MaxNumLevels) { LevelArgs.Empty(MaxNumLevels); }
+	bool HasLevelData() const { return LevelArgs.Num() != 0; }
+
+	void Push(const FArguments& InArg) { LevelArgs.Push(InArg); }
+
+	void DoWork();
+
+	FORCEINLINE TStatId GetStatId() const { RETURN_QUICK_DECLARE_CYCLE_STAT(FUpdateLastRenderTimeTask, STATGROUP_ThreadPoolAsyncTasks); }
+
+private:
+
+	/** Task arguments per level update. */
+	TArray<FArguments> LevelArgs;
+};
+
+class FAsyncUpdateLastRenderTimeTask : public FAsyncTask<FUpdateLastRenderTimeTask>, public FRefCountedObject
+{};
 
 // Main Thread Job Requirement : find all instance of a component and update it's bound.
 // Threaded Job Requirement : get the list of instance texture easily from the list of 
@@ -47,6 +96,9 @@ public:
 		/** Sphere radii for the bounding sphere of 4 texture instances */
 		FVector4 Radius;
 
+		/** The relative box the bound was computed with */
+		FUintVector4 PackedRelativeBox;
+
 		/** Minimal distance (between the bounding sphere origin and the view origin) for which this entry is valid */
 		FVector4 MinDistanceSq;
 		/** Minimal range distance (between the bounding sphere origin and the view origin) for which this entry is valid */
@@ -58,8 +110,9 @@ public:
 		FVector4 LastRenderTime; //(FApp::GetCurrentTime() - Component->LastRenderTime);
 
 
-		FORCEINLINE_DEBUGGABLE void Set(int32 Index, const FBoxSphereBounds& Bounds, float LastRenderTime, const FVector& RangeOrigin, float MinDistance, float MinRange, float MaxRange);
-		FORCEINLINE_DEBUGGABLE void Update(int32 Index, const FBoxSphereBounds& Bounds, float LastRenderTime);
+		FORCEINLINE_DEBUGGABLE void Set(int32 Index, const FBoxSphereBounds& Bounds, uint32 InPackedRelativeBox, float LastRenderTime, const FVector& RangeOrigin, float MinDistance, float MinRange, float MaxRange);
+		FORCEINLINE_DEBUGGABLE void UnpackBounds(int32 Index, const FBoxSphereBounds& Bounds);
+		FORCEINLINE_DEBUGGABLE void FullUpdate(int32 Index, const FBoxSphereBounds& Bounds, float LastRenderTime);
 		FORCEINLINE_DEBUGGABLE void Update(int32 Index, float LastRenderTime);
 
 		// Clears entry between 0 and 4
@@ -75,6 +128,7 @@ public:
 
 		int32 BoundsIndex;		// The Index associated to this component (static component can have several bounds).
 		float TexelFactor;		// The texture scale to be applied to this instance.
+		bool bForceLoad;		// The texture needs to be force loaded.
 
 		int32 PrevTextureLink;	// The previous element which uses the same texture as this Element. The first element referred by TextureMap will have INDEX_NONE.
 		int32 NextTextureLink;	// The next element which uses the same texture as this Element. Last element will have INDEX_NONE
@@ -90,8 +144,14 @@ public:
      **/
 	struct FCompiledElement
 	{
+		FCompiledElement() {}
+		FCompiledElement(int32 InBoundsIndex, float InTexelFactor, bool InForceLoad) : BoundsIndex(InBoundsIndex), TexelFactor(InTexelFactor), bForceLoad(InForceLoad) {}
+
 		int32 BoundsIndex;
 		float TexelFactor;
+		bool bForceLoad;
+
+		FORCEINLINE bool operator==(const FCompiledElement& Rhs) const { return BoundsIndex == Rhs.BoundsIndex && TexelFactor == Rhs.TexelFactor && bForceLoad == Rhs.bForceLoad; }
 	};
 
 
@@ -108,6 +168,7 @@ public:
 
 		FORCEINLINE int32 GetBoundsIndex() const { return State.Elements[CurrElementIndex].BoundsIndex; }
 		FORCEINLINE float GetTexelFactor() const { return State.Elements[CurrElementIndex].TexelFactor; }
+		FORCEINLINE bool GetForceLoad() const { return State.Elements[CurrElementIndex].bForceLoad; }
 
 	protected:
 
@@ -147,19 +208,25 @@ public:
 
 public:
 
+	~FTextureInstanceState()
+	{
+		WaitForAsyncUpdateLastRenderTimeTask();
+	}
+
 	// Will also remove bounds
-	void AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext);
-	void AddComponent(const UPrimitiveComponent* Component);
+	bool AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext);
+	bool AddComponent(const UPrimitiveComponent* Component);
 
 	void RemoveComponent(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures);
-	void RemoveComponentReferences(const UPrimitiveComponent* Component);
+	bool RemoveComponentReferences(const UPrimitiveComponent* Component);
 
 	bool Contains(const UPrimitiveComponent* Component) const { return ComponentMap.Contains(Component); }
 
 	void UpdateBounds(const UPrimitiveComponent* Component);
 
-	void UpdateBounds(int32 BoundIndex);
+	bool UpdateBounds(int32 BoundIndex);
 	void UpdateLastRenderTime(int32 BoundIndex);
+	void UpdateAsyncUpdateLastRenderTimeTask(const TRefCountPtr<FAsyncUpdateLastRenderTimeTask>& InAsyncUpdateLastRenderTimeTask);
 
 	FORCEINLINE int32 NumBounds() const { return Bounds4Components.Num(); }
 	FORCEINLINE int32 NumBounds4() const { return Bounds4.Num(); }
@@ -173,7 +240,7 @@ public:
 	uint32 GetAllocatedSize() const;
 
 	// Generate the compiled elements.
-	void CompileElements();
+	int32 CompileElements();
 
 	// Whether or not this state has compiled elements.
 	bool HasCompiledElements() const { return CompiledTextureMap.Num() != 0; }
@@ -181,23 +248,36 @@ public:
 	// If this has compiled elements, return the array relate to a given texture.
 	const TArray<FCompiledElement>* GetCompiledElements(const UTexture2D* Texture) const { return CompiledTextureMap.Find(Texture); }
 
+	int32 CheckRegistrationAndUnpackBounds();
+
+	/** Move around one bound to free the last bound indices. This allows to keep the number of dynamic bounds low. */
+	void MoveBound(int32 OldBoundIndex, int32 NewBoundIndex);
+	void TrimBounds();
+
+	FORCEINLINE bool HasComponent(int32 BoundIndex) const { return Bounds4Components[BoundIndex] != nullptr; }
+
+	void WaitForAsyncUpdateLastRenderTimeTask();
+
 private:
 
-	void AddElement(const UPrimitiveComponent* Component, const UTexture2D* Texture, int BoundsIndex, float TexelFactor, int32*& ComponentLink);
+	void AddElement(const UPrimitiveComponent* Component, const UTexture2D* Texture, int BoundsIndex, float TexelFactor, bool bForceLoad, int32*& ComponentLink);
 
 	// Returns the next elements using the same component.
 	void RemoveElement(int32 ElementIndex, int32& NextComponentLink, int32& BoundsIndex, const UTexture2D*& Texture);
 
-	int32 AddBounds(const FBoxSphereBounds& Bounds, const UPrimitiveComponent* Component, float LastRenderTime, const FVector4& RangeOrigin, float MinDistance, float MinRange, float MaxRange);
+	int32 AddBounds(const FBoxSphereBounds& Bounds, uint32 PackedRelativeBox, const UPrimitiveComponent* Component, float LastRenderTime, const FVector4& RangeOrigin, float MinDistance, float MinRange, float MaxRange);
 
-	FORCEINLINE int32 AddBounds(const FBoxSphereBounds& Bounds, const UPrimitiveComponent* Component, float LastRenderTime)
+	FORCEINLINE int32 AddBounds(const UPrimitiveComponent* Component)
 	{
-		return AddBounds(Bounds, Component, LastRenderTime, Bounds.Origin, 0, 0, FLT_MAX);
+		return AddBounds(Component->Bounds, PackedRelativeBox_Identity, Component, Component->LastRenderTimeOnScreen, Component->Bounds.Origin, 0, 0, FLT_MAX);
 	}
 
 	void RemoveBounds(int32 Index);
 
 private:
+
+	/** Whether inserting / removing and resizing is forbidden. Happens when the state is shared between the different threads. */
+	TRefCountPtr<FAsyncUpdateLastRenderTimeTask> AsyncUpdateLastRenderTimeTask;
 
 	TArray<FBounds4> Bounds4;
 
@@ -231,27 +311,36 @@ public:
 	FStaticTextureInstanceManager() : State(new FTextureInstanceState()), DirtyIndex(0) {}
 
 	// Update the component bounds, assumed that this would only be used with component using component bounds
-	void IncrementalUpdate(float Percentage);
+	void IncrementalUpdate(const TRefCountPtr<FAsyncUpdateLastRenderTimeTask>& InAsyncUpdateLastRenderTimeTask, float Percentage);
 
-	FORCEINLINE void AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext) { State->AddComponent(Component, LevelContext); }
-
-	void RemoveComponentReferences(const UPrimitiveComponent* Component) { State->RemoveComponentReferences(Component); }
+	FORCEINLINE int32 CheckRegistrationAndUnpackBounds() { return State->CheckRegistrationAndUnpackBounds(); }
+	FORCEINLINE bool AddComponent(const UPrimitiveComponent* Component, FStreamingTextureLevelContext& LevelContext) { return State->AddComponent(Component, LevelContext); }
+	FORCEINLINE void RemoveComponentReferences(const UPrimitiveComponent* Component) { State->RemoveComponentReferences(Component); }
 
 	// Because static data does not change, there is no need to duplicate the states.
 	TRefCountPtr<const FTextureInstanceState> GetAsyncState() 
 	{ 
+		WaitForAsyncTasks();
 		DirtyIndex = 0; // Triggers a refresh.
 		return TRefCountPtr<const FTextureInstanceState>(State.GetReference()); 
 	}
 
 	FORCEINLINE FTextureInstanceState::FTextureIterator GetTextureIterator( ) const {  return State->GetTextureIterator(); }
 
-	void NormalizeLightmapTexelFactor();
-	void CompiledElements() { State->CompileElements(); }
+	int32 NormalizeLightmapTexelFactor();
+	FORCEINLINE int32 CompileElements() { return State->CompileElements(); }
 
 	uint32 GetAllocatedSize() const
 	{
 		return State.IsValid() ? (sizeof(FTextureInstanceState) + State->GetAllocatedSize()) : 0;
+	}
+
+	void WaitForAsyncTasks()
+	{
+		if (State.IsValid())
+		{
+			State->WaitForAsyncUpdateLastRenderTimeTask();
+		}
 	}
 
 private:
@@ -274,7 +363,7 @@ public:
 	void IncrementalUpdate(float Percentage);
 
 	// Will also remove bounds
-	FORCEINLINE void AddComponent(const UPrimitiveComponent* Component) { State->AddComponent(Component); }
+	FORCEINLINE bool AddComponent(const UPrimitiveComponent* Component) { return State->AddComponent(Component); }
 	FORCEINLINE void RemoveComponent(const UPrimitiveComponent* Component, FRemovedTextureArray& RemovedTextures) { State->RemoveComponent(Component, RemovedTextures); }
 
 	TRefCountPtr<const FTextureInstanceState> GetAsyncState();
@@ -330,7 +419,7 @@ private:
 	// @TODO : store data for different views continuously to improve reads.
 	TArray<FBoundsViewInfo> BoundsViewInfo;
 
-	FORCEINLINE_DEBUGGABLE void ProcessElement(const FBoundsViewInfo& BoundsVieWInfo, float TexelFactor, float& MaxSize, float& MaxSize_VisibleOnly) const;
+	FORCEINLINE_DEBUGGABLE void ProcessElement(const FBoundsViewInfo& BoundsVieWInfo, float TexelFactor, bool bForceLoad, float& MaxSize, float& MaxSize_VisibleOnly) const;
 };
 
 
@@ -396,12 +485,12 @@ private:
 	FDynamicTextureInstanceManager DynamicInstances;
 };
 
+// The streaming data of a level.
 class FLevelTextureManager
 {
 public:
 
-	FLevelTextureManager(ULevel* InLevel) : Level(InLevel), bHasTextures(false), bToDelete(false) {}
-
+	FLevelTextureManager(ULevel* InLevel) : Level(InLevel), bIsInitialized(false), BuildStep(EStaticBuildStep::BuildTextureLookUpMap) {}
 
 	ULevel* GetLevel() const { return Level; }
 
@@ -409,10 +498,20 @@ public:
 	void Remove(FDynamicComponentTextureManager& DynamicManager, FRemovedTextureArray& RemovedTextures);
 
 	// Invalidate a component reference.
+
+	void RemoveActorReferences(const AActor* Actor)
+	{
+		StaticActorsWithNonStaticPrimitives.RemoveSingleSwap(Actor); 
+		UnprocessedStaticActors.RemoveSingleSwap(Actor); 
+	}
+
 	void RemoveComponentReferences(const UPrimitiveComponent* Component) 
 	{ 
+		// Check everywhere as the mobility can change in game.
 		StaticInstances.RemoveComponentReferences(Component); 
 		DynamicComponents.RemoveSingleSwap(Component); 
+		UnprocessedStaticComponents.RemoveSingleSwap(Component); 
+		PendingInsertionStaticPrimitives.RemoveSingleSwap(Component); 
 	}
 
 	const FStaticTextureInstanceManager& GetStaticInstances() const { return StaticInstances; }
@@ -421,19 +520,51 @@ public:
 
 	FORCEINLINE FTextureInstanceAsyncView GetAsyncView() { return FTextureInstanceAsyncView(StaticInstances.GetAsyncState()); }
 
-	void IncrementalUpdate(FDynamicComponentTextureManager& DynamicManager, FRemovedTextureArray& RemovedTextures, float Percentage, bool bUseDynamicStreaming);
+	void IncrementalUpdate(const TRefCountPtr<FAsyncUpdateLastRenderTimeTask>& InAsyncUpdateLastRenderTimeTask, FDynamicComponentTextureManager& DynamicManager, FRemovedTextureArray& RemovedTextures, int64& NumStepsLeftForIncrementalBuild, float Percentage, bool bUseDynamicStreaming);
 
 	uint32 GetAllocatedSize() const;
+
+	bool IsInitialized() const { return bIsInitialized; }
 
 private:
 
 	ULevel* Level;
 
-	uint32 bHasTextures : 1;
-	uint32 bToDelete : 1;
+	bool bIsInitialized;
 
 	FStaticTextureInstanceManager StaticInstances;
 
 	/** The list of dynamic components contained in the level. Used to removed them from the FDynamicComponentTextureManager on ::Remove. */
 	TArray<const UPrimitiveComponent*> DynamicComponents;
+
+	/** The static actors that had not only dynamic static components. */
+	TArray<const AActor*> StaticActorsWithNonStaticPrimitives;
+
+	/** Incremental build implementation. */
+
+	enum class EStaticBuildStep : uint8
+	{
+		BuildTextureLookUpMap,
+		GetActors,
+		GetComponents,
+		ProcessComponents,
+		NormalizeLightmapTexelFactors,
+		CompileElements,
+		WaitForRegistration,
+		Done,
+	};
+
+	// The current step of the incremental build.
+	EStaticBuildStep BuildStep;
+	// The actors / components left to be processed in ProcessComponents
+	TArray<const AActor*> UnprocessedStaticActors;
+	TArray<const UPrimitiveComponent*> UnprocessedStaticComponents;
+	// The components that could not be processed by the incremental build.
+	TArray<const UPrimitiveComponent*> PendingInsertionStaticPrimitives;
+	// Reversed lookup for ULevel::StreamingTextureGuids.
+	TMap<FGuid, int32> TextureGuidToLevelIndex;
+
+
+	bool NeedsIncrementalBuild(int32 NumStepsLeftForIncrementalBuild) const;
+	void IncrementalBuild(FStreamingTextureLevelContext& LevelContext, bool bForceCompletion, int64& NumStepsLeft);
 };

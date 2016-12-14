@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanCommandWrappers.h: Wrap all Vulkan API functions so we can add our own 'layers'
@@ -17,6 +17,7 @@ namespace VulkanRHI
 	void CmdPrintfBeginResult(VkCommandBuffer CmdBuffer, const FString& String);
 	void PrintResult(VkResult Result);
 	void PrintResultAndNamedHandle(VkResult Result, const TCHAR* HandleName, void* Handle);
+	void PrintResultAndNamedHandles(VkResult Result, const TCHAR* HandleName, uint32 NumHandles, uint64* Handles);
 	void PrintResultAndPointer(VkResult Result, void* Handle);
 	void PrintResultAndNamedHandle(VkResult Result, const TCHAR* HandleName, uint64 Handle);
 	void PrintResultAndPointer(VkResult Result, uint64 Handle);
@@ -67,7 +68,10 @@ namespace VulkanRHI
 	void DumpCmdClearDepthStencilImage(VkCommandBuffer CommandBuffer, VkImage Image, VkImageLayout ImageLayout, const VkClearDepthStencilValue* DepthStencil, uint32 RangeCount, const VkImageSubresourceRange* Ranges);
 	void DumpQueuePresent(VkQueue Queue, const VkPresentInfoKHR* PresentInfo);
 	void DumpCreateGraphicsPipelines(VkDevice Device, VkPipelineCache PipelineCache, uint32 CreateInfoCount, const VkGraphicsPipelineCreateInfo* CreateInfos, VkPipeline* Pipelines);
-
+	void TrackImageViewAdd(VkImageView View, VkImage Image);
+	void TrackImageViewRemove(VkImageView View);
+	void TrackBufferViewAdd(VkBufferView View, VkBuffer Buffer);
+	void TrackBufferViewRemove(VkBufferView View);
 #else
 	#define FlushDebugWrapperLog()
 	#define DevicePrintfBeginResult(d, x)
@@ -78,6 +82,7 @@ namespace VulkanRHI
 	#define PrintfBegin(x)
 	#define PrintResult(x)
 	#define PrintResultAndNamedHandle(r, n, h)
+	#define PrintResultAndNamedHandles(r, hn, nh, h)
 	#define PrintResultAndPointer(r, h)
 	#define DumpPhysicalDeviceProperties(x)
 	#define DumpAllocateMemory(d, i, m)
@@ -126,6 +131,10 @@ namespace VulkanRHI
 	#define DumpCmdClearDepthStencilImage(c, i, il, ds, rc, r)
 	#define DumpQueuePresent(q, i)
 	#define DumpCreateGraphicsPipelines(d, pc, cic, ci, p)
+	#define TrackImageViewAdd(v, i)
+	#define TrackImageViewRemove(v)
+	#define TrackBufferViewAdd(v, b)
+	#define TrackBufferViewRemove(v)
 #endif
 
 	FORCEINLINE_DEBUGGABLE VkResult  vkCreateInstance(const VkInstanceCreateInfo* CreateInfo, const VkAllocationCallbacks* Allocator, VkInstance* Instance)
@@ -579,6 +588,8 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateBufferView(Device, CreateInfo, Allocator, View);
 
+		TrackBufferViewAdd(*View, CreateInfo->buffer);
+
 		PrintResultAndNamedHandle(Result, TEXT("BufferView"), *View);
 		return Result;
 	}
@@ -586,6 +597,8 @@ namespace VulkanRHI
 	static FORCEINLINE_DEBUGGABLE void  vkDestroyBufferView(VkDevice Device, VkBufferView BufferView, const VkAllocationCallbacks* Allocator)
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkDestroyBufferView(BufferView=%p)"), BufferView));
+
+		TrackBufferViewRemove(BufferView);
 
 		VULKANAPINAMESPACE::vkDestroyBufferView(Device, BufferView, Allocator);
 	}
@@ -621,7 +634,7 @@ namespace VulkanRHI
 		DumpCreateImageView(Device, CreateInfo, View);
 
 		VkResult Result = VULKANAPINAMESPACE::vkCreateImageView(Device, CreateInfo, Allocator, View);
-
+		TrackImageViewAdd(*View, CreateInfo->image);
 		PrintResultAndNamedHandle(Result, TEXT("ImageView"), *View);
 		return Result;
 	}
@@ -629,7 +642,7 @@ namespace VulkanRHI
 	static FORCEINLINE_DEBUGGABLE void  vkDestroyImageView(VkDevice Device, VkImageView ImageView, const VkAllocationCallbacks* Allocator)
 	{
 		DevicePrintfBegin(Device, FString::Printf(TEXT("vkDestroyImageView(ImageView=%p)"), ImageView));
-
+		TrackImageViewRemove(ImageView);
 		VULKANAPINAMESPACE::vkDestroyImageView(Device, ImageView, Allocator);
 	}
 
@@ -804,7 +817,7 @@ namespace VulkanRHI
 
 		VkResult Result = VULKANAPINAMESPACE::vkAllocateDescriptorSets(Device, AllocateInfo, DescriptorSets);
 
-		PrintResultAndNamedHandle(Result, TEXT("DescriptorSet"), *DescriptorSets);
+		PrintResultAndNamedHandles(Result, TEXT("DescriptorSet"), AllocateInfo->descriptorSetCount, (uint64*)DescriptorSets);
 		return Result;
 	}
 
@@ -993,7 +1006,7 @@ namespace VulkanRHI
 	{
 		CmdPrintfBegin(CommandBuffer, FString::Printf(TEXT("vkCmdSetStencilReference(FaceMask=%d, Ref=%d)"), (int32)FaceMask, (int32)Reference));
 		
-		::vkCmdSetStencilReference(CommandBuffer, FaceMask, Reference);
+		VULKANAPINAMESPACE::vkCmdSetStencilReference(CommandBuffer, FaceMask, Reference);
 	}
 
 	static FORCEINLINE_DEBUGGABLE void  vkCmdBindDescriptorSets(VkCommandBuffer CommandBuffer, VkPipelineBindPoint PipelineBindPoint, VkPipelineLayout Layout, uint32 FirstSet, uint32 DescriptorSetCount, const VkDescriptorSet* DescriptorSets, uint32 DynamicOffsetCount, const uint32* DynamicOffsets)
@@ -1094,7 +1107,7 @@ namespace VulkanRHI
 	{
 		DumpCmdCopyImageToBuffer(CommandBuffer, SrcImage, SrcImageLayout, DstBuffer, RegionCount, Regions);
 
-		::vkCmdCopyImageToBuffer(CommandBuffer, SrcImage, SrcImageLayout, DstBuffer, RegionCount, Regions);
+		VULKANAPINAMESPACE::vkCmdCopyImageToBuffer(CommandBuffer, SrcImage, SrcImageLayout, DstBuffer, RegionCount, Regions);
 	}
 
 #if 0

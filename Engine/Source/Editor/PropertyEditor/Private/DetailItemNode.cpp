@@ -1,15 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PropertyEditorPrivatePCH.h"
 #include "DetailItemNode.h"
-#include "PropertyEditorHelpers.h"
 #include "DetailCategoryGroupNode.h"
-#include "PropertyHandleImpl.h"
 #include "DetailGroup.h"
 #include "DetailPropertyRow.h"
-#include "DetailCustomBuilderRow.h"
 #include "SDetailSingleItemRow.h"
-#include "TutorialMetaData.h"
 
 
 
@@ -336,11 +331,12 @@ static bool PassesAllFilters( const FDetailLayoutCustomization& InCustomization,
 			// The property node is visible (note categories are never visible unless they have a child that is visible )
 			bPassesAllFilters = (bPassesSearchFilter && bPassesModifiedFilter && bPassesDifferingFilter) || bPassesCategoryFilter;
 		}
-		else if( InCustomization.HasCustomWidget() )
+		else if (InCustomization.HasCustomWidget())
 		{
 			const bool bPassesTextFilter = Local::StringPassesFilter(InFilter, InCustomization.WidgetDecl->FilterTextString.ToString());
+			const bool bPassesModifiedFilter = (InFilter.bShowOnlyModifiedProperties == false || InCustomization.WidgetDecl->DiffersFromDefaultAttr.Get() == true);
 
-			bPassesAllFilters = bPassesTextFilter || bPassesCategoryFilter;
+			bPassesAllFilters = (bPassesTextFilter && bPassesModifiedFilter) || bPassesCategoryFilter;
 		}
 	}
 

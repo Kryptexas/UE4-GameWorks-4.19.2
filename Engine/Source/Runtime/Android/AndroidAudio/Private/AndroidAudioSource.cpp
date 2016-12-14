@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*------------------------------------------------------------------------------------
 	FSLESSoundSource.
@@ -6,7 +6,6 @@
 
 #include "AndroidAudioDevice.h"
 #include "AudioDecompress.h"
-#include "Engine.h"
 
 // Callback that is registered if the source needs to loop
 void OpenSLBufferQueueCallback( SLAndroidSimpleBufferQueueItf InQueueInterface, void* pContext ) 

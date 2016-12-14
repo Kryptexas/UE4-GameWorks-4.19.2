@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	XAudio2Device.h: Unreal XAudio2 audio interface object.
@@ -9,10 +9,10 @@
 /*------------------------------------------------------------------------------------
 	XAudio2 system headers
 ------------------------------------------------------------------------------------*/
-#include "Engine.h"
-#include "SoundDefinitions.h"
+#include "CoreMinimal.h"
 #include "AudioDecompress.h"
 #include "AudioEffect.h"
+#include "AudioDevice.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogXAudio2, Log, All);
 

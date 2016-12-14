@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/EngineBaseTypes.h"
+#include "UObject/GCObject.h"
+#include "Engine/World.h"
+
+class FPrimitiveDrawInterface;
+class FSceneView;
 
 #if WITH_BOX2D
 

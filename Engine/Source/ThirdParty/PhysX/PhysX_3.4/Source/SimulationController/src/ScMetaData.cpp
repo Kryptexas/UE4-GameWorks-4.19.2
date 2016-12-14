@@ -74,7 +74,7 @@ void Sc::ActorCore::getBinaryMetaData(PxOutputStream& stream)
 	PX_DEF_BIN_METADATA_ITEM(stream,	Sc::ActorCore, PxActorFlags,		mActorFlags,				0)
 	PX_DEF_BIN_METADATA_ITEM(stream,	Sc::ActorCore, PxU8,				mActorType,					0)
 	PX_DEF_BIN_METADATA_ITEM(stream,	Sc::ActorCore, PxU8,				mClientBehaviorFlags,		0)
-	PX_DEF_BIN_METADATA_ITEM(stream,	Sc::ActorCore, PxU8,				mDominanceGroupFrozenFlag,	0)
+	PX_DEF_BIN_METADATA_ITEM(stream,	Sc::ActorCore, PxU8,				mDominanceGroup,			0)
 }
 
 ///////////////////////////////////////////////////////////////////////////////

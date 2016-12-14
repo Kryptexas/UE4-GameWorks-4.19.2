@@ -1,8 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/IndirectArray.h"
+#include "UObject/ObjectMacros.h"
+#include "Model.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/PrimitiveComponent.h"
 #include "ModelComponent.generated.h"
+
+class FLightingBuildOptions;
+class FPrimitiveSceneProxy;
+class ULightComponent;
+class UMaterialInterface;
+struct FStaticLightingPrimitiveInfo;
 
 //
 // Forward declarations

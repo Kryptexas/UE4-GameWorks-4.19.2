@@ -1,49 +1,64 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "SkeletonEditorPrivatePCH.h"
 #include "SSkeletonTree.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Images/SImage.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Layout/SScrollBorder.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "EditorStyleSet.h"
+#include "ActorFactories/ActorFactory.h"
+#include "Exporters/Exporter.h"
+#include "Sound/SoundBase.h"
+#include "Editor.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
 
 #include "ScopedTransaction.h"
 #include "BoneDragDropOp.h"
 #include "SocketDragDropOp.h"
 #include "SkeletonTreeCommands.h"
+#include "Styling/SlateIconFinder.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 
 #include "AssetSelection.h"
 
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
 #include "ComponentAssetBroker.h"
 
-#include "SlateIconFinder.h"
 
-#include "Editor/UnrealEd/Public/AssetNotifications.h"
 
-#include "Animation/PreviewAssetAttachComponent.h"
 #include "AnimPreviewInstance.h"
 
-#include "Factories.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "MeshUtilities.h"
 #include "UnrealExporter.h"
-#include "SSearchBox.h"
-#include "SInlineEditableTextBlock.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "GenericCommands.h"
+#include "Widgets/Input/SSearchBox.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "Animation/BlendProfile.h"
 #include "SBlendProfilePicker.h"
 #include "IPersonaPreviewScene.h"
 #include "IDocumentation.h"
 #include "PersonaUtils.h"
-#include "SkeletonTreeBuilder.h"
-#include "ISkeletonTreeItem.h"
-#include "TextFilterExpressionEvaluator.h"
+#include "Misc/TextFilterExpressionEvaluator.h"
 #include "SkeletonTreeBoneItem.h"
 #include "SkeletonTreeSocketItem.h"
 #include "SkeletonTreeAttachedAssetItem.h"
 #include "SkeletonTreeVirtualBoneItem.h"
 
 #include "BoneSelectionWidget.h"
+#include "BoneProxy.h"
 
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 
@@ -81,6 +96,10 @@ void SSkeletonTree::Construct(const FArguments& InArgs, const TSharedRef<FEditab
 	InEditableSkeleton->RegisterOnSkeletonHierarchyChanged(USkeleton::FOnSkeletonHierarchyChanged::CreateSP(this, &SSkeletonTree::PostUndo));
 
 	RegisterOnObjectSelected(InSkeletonTreeArgs.OnObjectSelected);
+
+	BoneProxy = NewObject<UBoneProxy>(GetTransientPackage());
+	BoneProxy->AddToRoot();
+	BoneProxy->SkelMeshComponent = PreviewScene->GetPreviewMeshComponent();
 
 	// Register and bind all our menu commands
 	FSkeletonTreeCommands::Register();
@@ -175,6 +194,12 @@ SSkeletonTree::~SSkeletonTree()
 	if (EditableSkeleton.IsValid())
 	{
 		EditableSkeleton.Pin()->UnregisterOnSkeletonHierarchyChanged(this);
+	}
+
+	if (BoneProxy)
+	{
+		BoneProxy->RemoveFromRoot();
+		BoneProxy = nullptr;
 	}
 }
 
@@ -331,6 +356,59 @@ void SSkeletonTree::GetFilteredChildren(TSharedPtr<ISkeletonTreeItem> InInfo, TA
 	OutChildren = InInfo->GetFilteredChildren();
 }
 
+/** Helper struct for when we rebuild the tree because of a change to its structure */
+struct FScopedSavedSelection
+{
+	FScopedSavedSelection(TSharedPtr<SSkeletonTree> InSkeletonTree)
+		: SkeletonTree(InSkeletonTree)
+	{
+		// record selected items
+		if (SkeletonTree.IsValid() && InSkeletonTree->SkeletonTreeView.IsValid())
+		{
+			TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = InSkeletonTree->SkeletonTreeView->GetSelectedItems();
+			for (const TSharedPtr<ISkeletonTreeItem>& SelectedItem : SelectedItems)
+			{
+				SavedSelections.Add({ SelectedItem->GetRowItemName(), SelectedItem->GetTypeName() });
+			}
+		}
+	}
+
+	~FScopedSavedSelection()
+	{
+		if (SkeletonTree.IsValid() && SkeletonTree->SkeletonTreeView.IsValid())
+		{
+			// restore selection
+			for (const TSharedPtr<ISkeletonTreeItem>& Item : SkeletonTree->LinearItems)
+			{
+				if (Item->GetFilterResult() != ESkeletonTreeFilterResult::Hidden)
+				{
+					for (FSavedSelection& SavedSelection : SavedSelections)
+					{
+						if (Item->GetRowItemName() == SavedSelection.ItemName && Item->GetTypeName() == SavedSelection.ItemType)
+						{
+							SkeletonTree->SkeletonTreeView->SetItemSelection(Item, true);
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	struct FSavedSelection
+	{
+		/** Name of the selected item */
+		FName ItemName;
+
+		/** Type of the selected item */
+		FName ItemType;
+	};
+
+	TSharedPtr<SSkeletonTree> SkeletonTree;
+
+	TArray<FSavedSelection> SavedSelections;
+};
+
 void SSkeletonTree::CreateTreeColumns()
 {
 	TSharedRef<SHeaderRow> TreeHeaderRow = SNew(SHeaderRow)
@@ -355,50 +433,38 @@ void SSkeletonTree::CreateTreeColumns()
 			.FillWidth(0.25f));
 	}
 
-	TreeHolder->ClearChildren();
-	TreeHolder->AddSlot()
-	[
-		SNew(SScrollBorder, SkeletonTreeView.ToSharedRef())
+	{
+		FScopedSavedSelection ScopedSelection(SharedThis(this));
+
+		SkeletonTreeView = SNew(STreeView<TSharedPtr<ISkeletonTreeItem>>)
+		.TreeItemsSource(&FilteredItems)
+		.OnGenerateRow(this, &SSkeletonTree::MakeTreeRowWidget)
+		.OnGetChildren(this, &SSkeletonTree::GetFilteredChildren)
+		.OnContextMenuOpening(this, &SSkeletonTree::CreateContextMenu)
+		.OnSelectionChanged(this, &SSkeletonTree::OnSelectionChanged)
+		.OnItemScrolledIntoView(this, &SSkeletonTree::OnItemScrolledIntoView)
+		.OnMouseButtonDoubleClick(this, &SSkeletonTree::OnTreeDoubleClick)
+		.OnSetExpansionRecursive(this, &SSkeletonTree::SetTreeItemExpansionRecursive)
+		.ItemHeight(24)
+		.HeaderRow
+		(
+			TreeHeaderRow
+		);
+	
+		TreeHolder->ClearChildren();
+		TreeHolder->AddSlot()
 		[
-			SAssignNew(SkeletonTreeView, STreeView<TSharedPtr<ISkeletonTreeItem>>)
-			.TreeItemsSource(&FilteredItems)
-			.OnGenerateRow(this, &SSkeletonTree::MakeTreeRowWidget)
-			.OnGetChildren(this, &SSkeletonTree::GetFilteredChildren)
-			.OnContextMenuOpening(this, &SSkeletonTree::CreateContextMenu)
-			.OnSelectionChanged(this, &SSkeletonTree::OnSelectionChanged)
-			.OnItemScrolledIntoView(this, &SSkeletonTree::OnItemScrolledIntoView)
-			.OnMouseButtonDoubleClick(this, &SSkeletonTree::OnTreeDoubleClick)
-			.OnSetExpansionRecursive(this, &SSkeletonTree::SetTreeItemExpansionRecursive)
-			.ItemHeight(24)
-			.HeaderRow
-			(
-				TreeHeaderRow
-			)
-		]
-	];
+			SNew(SScrollBorder, SkeletonTreeView.ToSharedRef())
+		];
+	}
 
 	CreateFromSkeleton();
 }
 
-/** Helper struct for when we rebuild the tree because of a change to its structure */
-struct FSavedSelection
-{
-	/** Name of the selected item */
-	FName ItemName;
-
-	/** Type of the selected item */
-	FName ItemType;
-};
-
 void SSkeletonTree::CreateFromSkeleton()
 {	
 	// save selected items
-	TArray<FSavedSelection> SavedSelections;
-	TArray<TSharedPtr<ISkeletonTreeItem>> SelectedItems = SkeletonTreeView->GetSelectedItems();
-	for (const TSharedPtr<ISkeletonTreeItem>& SelectedItem : SelectedItems)
-	{
-		SavedSelections.Add({ SelectedItem->GetRowItemName(), SelectedItem->GetTypeName() });
-	}
+	FScopedSavedSelection ScopedSelection(SharedThis(this));
 
 	Items.Empty();
 	LinearItems.Empty();
@@ -407,22 +473,6 @@ void SSkeletonTree::CreateFromSkeleton()
 	FSkeletonTreeBuilderOutput Output(Items, LinearItems);
 	Builder->Build(Output);
 	ApplyFilter();
-
-	// restore selection
-	for (const TSharedPtr<ISkeletonTreeItem>& Item : LinearItems)
-	{
-		if (Item->GetFilterResult() != ESkeletonTreeFilterResult::Hidden)
-		{
-			for (FSavedSelection& SavedSelection : SavedSelections)
-			{
-				if (Item->GetRowItemName() == SavedSelection.ItemName && Item->GetTypeName() == SavedSelection.ItemType)
-				{
-					SkeletonTreeView->SetItemSelection(Item, true);
-					break;
-				}
-			}
-		}
-	}
 }
 
 void SSkeletonTree::ApplyFilter()
@@ -711,18 +761,43 @@ void SSkeletonTree::OnVirtualTargetBonePicked(FName TargetBoneName, TArray<TShar
 {
 	FSlateApplication::Get().DismissAllMenus();
 
+	TArray<FName> VirtualBoneNames;
+
 	for (const TSharedPtr<FSkeletonTreeBoneItem>& SourceBone : SourceBones)
 	{
 		if(SourceBone.IsValid())
 		{
+			FName NewVirtualBoneName;
 			FName SourceBoneName = SourceBone->GetRowItemName();
-			if(!GetEditableSkeletonInternal()->HandleAddVirtualBone(SourceBoneName, TargetBoneName))
+			if(!GetEditableSkeletonInternal()->HandleAddVirtualBone(SourceBoneName, TargetBoneName, NewVirtualBoneName))
 			{
 				UE_LOG(LogAnimation, Log, TEXT("Could not create space switch bone from %s to %s, it already exists"), *SourceBoneName.ToString(), *TargetBoneName.ToString());
 			}
 			else
 			{
-				CreateFromSkeleton();
+				VirtualBoneNames.Add(NewVirtualBoneName);
+			}
+		}
+	}
+
+	if (VirtualBoneNames.Num() > 0)
+	{
+		CreateFromSkeleton();
+		SkeletonTreeView->ClearSelection();
+
+		for (TSharedPtr<ISkeletonTreeItem> SkeletonRow : LinearItems)
+		{
+			if (SkeletonRow->IsOfType<FSkeletonTreeVirtualBoneItem>())
+			{
+				FName RowName = SkeletonRow->GetRowItemName();
+				for (const FName& VB : VirtualBoneNames)
+				{
+					if (RowName == VB)
+					{
+						SkeletonTreeView->SetItemSelection(SkeletonRow, true);
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -1092,7 +1167,8 @@ void SSkeletonTree::OnSelectionChanged(TSharedPtr<ISkeletonTreeItem> Selection, 
 						if (BoneIndex != INDEX_NONE)
 						{
 							GetPreviewScene()->SetSelectedBone(BoneName);
-							OnObjectSelectedMulticast.Broadcast(nullptr);
+							BoneProxy->BoneName = BoneName;
+							OnObjectSelectedMulticast.Broadcast(BoneProxy);
 							break;
 						}
 					}
@@ -1186,11 +1262,6 @@ void SSkeletonTree::PostUndo()
 {
 	// Rebuild the tree view whenever we undo a change to the skeleton
 	CreateTreeColumns();
-
-	if (GetPreviewScene().IsValid())
-	{
-		GetPreviewScene()->DeselectAll();
-	}
 }
 
 void SSkeletonTree::OnFilterTextChanged( const FText& SearchText )
@@ -1265,7 +1336,8 @@ void SSkeletonTree::SetSelectedBone( const FName& BoneName )
 			GetPreviewScene()->SetSelectedBone(BoneName);
 		}
 
-		OnObjectSelectedMulticast.Broadcast(nullptr);
+		BoneProxy->BoneName = BoneName;
+		OnObjectSelectedMulticast.Broadcast(BoneProxy);
 	}
 }
 

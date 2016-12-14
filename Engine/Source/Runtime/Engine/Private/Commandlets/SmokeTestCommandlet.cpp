@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SmokeTestCommandlet.cpp: Commandled used for smoke testing.
 
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Commandlets/SmokeTestCommandlet.h"
+#include "Misc/AutomationTest.h"
+#include "Misc/App.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
 USmokeTestCommandlet::USmokeTestCommandlet(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -1,8 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SAnimationGraphNode.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SNodePanel.h"
+#include "AnimationNodes/SAnimationGraphNode.h"
+
+class SVerticalBox;
+class UAnimGraphNode_Base;
 
 class SGraphNodeSequencePlayer : public SAnimationGraphNode
 {

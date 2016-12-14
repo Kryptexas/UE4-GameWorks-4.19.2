@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "IContentBrowserSingleton.h"
+#include "CoreMinimal.h"
+#include "AssetData.h"
+#include "Modules/ModuleInterface.h"
+#include "ContentBrowserDelegates.h"
+
+class IContentBrowserSingleton;
+struct FARFilter;
 
 /**
  * Content browser module

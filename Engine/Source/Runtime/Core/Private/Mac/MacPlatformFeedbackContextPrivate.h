@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformFeedbackContextPrivate.h: Unreal Mac user interface interaction.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/OutputDeviceConsole.h"
 
 /**
  * Feedback context implementation for Mac.

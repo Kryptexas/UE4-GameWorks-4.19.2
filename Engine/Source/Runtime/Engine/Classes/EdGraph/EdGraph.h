@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Templates/SubclassOf.h"
+#include "Templates/Casts.h"
+#include "EdGraph/EdGraphNode.h"
 #include "BlueprintUtilities.h"
 #include "EdGraph.generated.h"
 
+class UEdGraph;
 struct FEdGraphEditAction;
+struct FPropertyChangedEvent;
 
 USTRUCT()
 struct ENGINE_API FGraphReference
@@ -57,6 +68,8 @@ class ENGINE_API UEdGraph : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** The schema that this graph obeys */
 	UPROPERTY()
 	TSubclassOf<class UEdGraphSchema>  Schema;
@@ -107,8 +120,9 @@ public:
 	/** Remove a listener for OnGraphChanged events */
 	void RemoveOnGraphChangedHandler( FDelegateHandle Handle );
 
-#if WITH_EDITORONLY_DATA
 	//~ Begin UObject interface
+	virtual void BuildSubobjectMapping(UObject* OtherObject, TMap<UObject*, UObject*>& ObjectMapping) const override;
+#if WITH_EDITORONLY_DATA
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;

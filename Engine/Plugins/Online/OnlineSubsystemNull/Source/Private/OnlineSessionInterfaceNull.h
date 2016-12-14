@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineSessionInterface.h"
-#include "OnlineSubsystemNullTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/CoreOnline.h"
+#include "Misc/ScopeLock.h"
+#include "OnlineSessionSettings.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSubsystemNullPackage.h"
 #include "LANBeacon.h"
+
+class FOnlineSubsystemNull;
 
 /**
  * Interface definition for the online services session services 

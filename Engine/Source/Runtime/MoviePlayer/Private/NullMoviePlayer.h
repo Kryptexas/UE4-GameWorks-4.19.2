@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "MoviePlayer.h"
 
 /** An placeholder implementation of the movie player for the editor */
 class FNullGameMoviePlayer : public IGameMoviePlayer,
@@ -24,6 +26,8 @@ public:
 	virtual void Shutdown() override {}
 	virtual void PassLoadingScreenWindowBackToGame() const override {}
 	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& InLoadingScreenAttributes) override {}
+	virtual bool HasEarlyStartupMovie() const override { return false; }
+	virtual bool PlayEarlyStartupMovies() override { return false; }
 	virtual bool PlayMovie() override { return false; }
 	virtual void StopMovie() override {}
 	virtual void WaitForMovieToFinish() override {}
@@ -33,6 +37,7 @@ public:
 	virtual void SetupLoadingScreenFromIni() override {}
 	virtual FOnPrepareLoadingScreen& OnPrepareLoadingScreen() override { return OnPrepareLoadingScreenDelegate; }
 	virtual FOnMoviePlaybackFinished& OnMoviePlaybackFinished() override { return OnMoviePlaybackFinishedDelegate; }
+	virtual FOnMovieClipFinished& OnMovieClipFinished() override { return OnMovieClipFinishedDelegate; }
 	virtual void SetSlateOverlayWidget(TSharedPtr<SWidget> NewOverlayWidget) override { }
 	virtual bool WillAutoCompleteWhenLoadFinishes() override { return false; }
 	virtual FString GetMovieName() override { return TEXT(""); }
@@ -50,4 +55,6 @@ private:
 	FOnPrepareLoadingScreen OnPrepareLoadingScreenDelegate;
 
 	FOnMoviePlaybackFinished OnMoviePlaybackFinishedDelegate;
+	FOnMovieClipFinished OnMovieClipFinishedDelegate;
+
 };

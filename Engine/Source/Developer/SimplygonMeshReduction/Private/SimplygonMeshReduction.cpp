@@ -1,8 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Core.h"
-#include "UnrealEd.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
 #include "RawMesh.h"
 #include "MeshUtilities.h"
 #include "MaterialUtilities.h"
@@ -11,6 +9,16 @@
 #include "Components/SplineMeshComponent.h"
 #include "SimplygonSDK.h"
 #include "ScopedTimers.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Modules/ModuleManager.h"
+#include "HAL/Runnable.h"
+#include "HAL/RunnableThread.h"
+#include "Engine/SkeletalMesh.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "UniquePtr.h"
 
 #include "MeshMergeData.h"
 
@@ -1679,6 +1687,8 @@ private:
 				for( uint32 TexCoordIndex = 0; TexCoordIndex < TexCoordCount; ++TexCoordIndex )
 				{
 					FVector2D TexCoord = Vertex.UVs[TexCoordIndex];
+					TexCoord.X = FMath::Clamp(TexCoord.X, -1024.0f, 1024.0f);
+					TexCoord.Y = FMath::Clamp(TexCoord.Y, -1024.0f, 1024.0f);
 					TexCoords[TexCoordIndex]->SetTuple( Index, (float*)&TexCoord );
 				}
 
@@ -2743,18 +2753,18 @@ private:
 	}
 };
 
-TScopedPointer<FSimplygonMeshReduction> GSimplygonMeshReduction;
+TUniquePtr<FSimplygonMeshReduction> GSimplygonMeshReduction;
 
 
 void FSimplygonMeshReductionModule::StartupModule()
 {
-	GSimplygonMeshReduction = FSimplygonMeshReduction::Create();
+	GSimplygonMeshReduction.Reset(FSimplygonMeshReduction::Create());
 }
 
 void FSimplygonMeshReductionModule::ShutdownModule()
 {
 	FSimplygonMeshReduction::Destroy();
-	GSimplygonMeshReduction = NULL;
+	GSimplygonMeshReduction = nullptr;
 }
 
 #define USE_SIMPLYGON_SWARM 0
@@ -2762,7 +2772,7 @@ void FSimplygonMeshReductionModule::ShutdownModule()
 IMeshReduction* FSimplygonMeshReductionModule::GetStaticMeshReductionInterface()
 {
 #if !USE_SIMPLYGON_SWARM
-	return GSimplygonMeshReduction;
+	return GSimplygonMeshReduction.Get();
 #else
 	return nullptr;
 #endif
@@ -2771,7 +2781,7 @@ IMeshReduction* FSimplygonMeshReductionModule::GetStaticMeshReductionInterface()
 IMeshReduction* FSimplygonMeshReductionModule::GetSkeletalMeshReductionInterface()
 {
 #if !USE_SIMPLYGON_SWARM
-	return GSimplygonMeshReduction;
+	return GSimplygonMeshReduction.Get();
 #else
 	return nullptr;
 #endif
@@ -2780,9 +2790,9 @@ IMeshReduction* FSimplygonMeshReductionModule::GetSkeletalMeshReductionInterface
 IMeshMerging* FSimplygonMeshReductionModule::GetMeshMergingInterface()
 {
 #if !USE_SIMPLYGON_SWARM
-	return GSimplygonMeshReduction;
+	return GSimplygonMeshReduction.Get();
 #else
-return nullptr;
+	return nullptr;
 #endif
 }
 

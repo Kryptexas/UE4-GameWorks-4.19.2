@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "SlateBasics.h"
 
 /**  */
 class FVREditorStyle

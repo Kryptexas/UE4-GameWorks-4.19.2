@@ -1,7 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/ITargetDeviceProxyManager.h"
+#include "Containers/Ticker.h"
+#include "Developer/TargetDeviceServices/Private/TargetDeviceProxy.h"
+
+struct FTargetDeviceServicePong;
 
 /**
  * Implements a class which locates devices based on criteria for use in the Launcher.

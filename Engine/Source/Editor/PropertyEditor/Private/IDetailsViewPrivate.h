@@ -1,14 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "AssetThumbnail.h"
+#include "IDetailTreeNode.h"
+#include "PropertyNode.h"
 #include "IDetailsView.h"
 
 class FNotifyHook;
-class IDetailTreeNode;
-class IPropertyUtilities;
-class FPropertyNode;
-class FObjectPropertyNode;
+class IDetailPropertyExtensionHandler;
+class IDetailRootObjectCustomization;
 
 class IDetailsViewPrivate : public IDetailsView
 {

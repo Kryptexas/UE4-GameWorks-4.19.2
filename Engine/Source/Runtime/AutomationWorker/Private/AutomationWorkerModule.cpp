@@ -1,7 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AutomationWorkerPrivatePCH.h"
-#include "JsonUtilities.h"
+#include "AutomationWorkerModule.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "AutomationWorkerMessages.h"
+#include "AutomationAnalytics.h"
+#include "JsonObjectConverter.h"
+
+#if WITH_ENGINE
+#include "ImageUtils.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "UnrealClient.h"
+#include "Tests/AutomationCommon.h"
+#endif
 
 #if WITH_EDITOR
 #include "AssetRegistryModule.h"
@@ -424,7 +440,7 @@ void FAutomationWorkerModule::HandleScreenShotCapturedWithName(const TArray<FCol
 			if ( FJsonObjectConverter::UStructToJsonObjectString(Metadata, Json) )
 			{
 				FString MetadataPath = FPaths::ChangeExtension(Data.Path, TEXT("json"));
-				FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8);
+				FFileHelper::SaveStringToFile(Json, *MetadataPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
 			}
 		}
 	}

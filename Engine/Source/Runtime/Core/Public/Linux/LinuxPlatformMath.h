@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	LinuxPlatformMath.h: Linux platform Math functions
 ==============================================================================================*/
 
 #pragma once
+
+#include "CoreTypes.h"
 #include "GenericPlatform/GenericPlatformMath.h"
 #include "Linux/LinuxSystemIncludes.h"
 #if PLATFORM_ENABLE_VECTORINTRINSICS

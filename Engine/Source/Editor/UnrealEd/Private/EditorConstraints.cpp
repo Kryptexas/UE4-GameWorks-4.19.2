@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorConstraints.cpp: Editor movement constraints.
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Editor/EditorEngine.h"
+#include "Editor.h"
 #include "EditorSupportDelegates.h"
 
 float UEditorEngine::GetGridSize()

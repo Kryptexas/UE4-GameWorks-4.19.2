@@ -1,16 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "GameplayDebugger/GameplayDebuggerCategory_AI.h"
+#include "GameFramework/Pawn.h"
+#include "ShowFlags.h"
+#include "PrimitiveViewRelevance.h"
+#include "Components/PrimitiveComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+#include "AI/Navigation/RecastNavMesh.h"
+#include "Engine/Canvas.h"
+#include "AIController.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
 
+#include "Engine/Texture2D.h"
+#include "DynamicMeshBuilder.h"
 #include "DebugRenderSceneProxy.h"
 #include "GameplayTasksComponent.h"
-#include "GameplayDebuggerCategory_AI.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Animation/AnimMontage.h"
-#include "Engine/Canvas.h"
 #include "DrawDebugHelpers.h"
 
 FGameplayDebuggerCategory_AI::FGameplayDebuggerCategory_AI()
@@ -334,11 +345,11 @@ FDebugRenderSceneProxy* FGameplayDebuggerCategory_AI::CreateDebugSceneProxy(cons
 
 		FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 		{
+			const bool bCanShow = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex);
+
 			FPrimitiveViewRelevance Result;
-			Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex);// IsShown(View);
+			Result.bDrawRelevance = Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = bCanShow;
 			Result.bDynamicRelevance = true;
-			// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
-			Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = IsShown(View);
 			return Result;
 		}
 	};
@@ -447,7 +458,7 @@ void FGameplayDebuggerCategory_AI::DrawPawnIcons(UWorld* World, AActor* DebugAct
 	FString FailsafeIcon = TEXT("/Engine/EngineResources/AICON-Green.AICON-Green");
 	for (FConstPawnIterator It = World->GetPawnIterator(); It; ++It)
 	{
-		const APawn* ItPawn = *It;
+		const APawn* ItPawn = It->Get();
 		if (IsValid(ItPawn) && SkipPawn != ItPawn)
 		{
 			const FVector IconLocation = ItPawn->GetActorLocation() + FVector(0, 0, ItPawn->GetSimpleCollisionHalfHeight());

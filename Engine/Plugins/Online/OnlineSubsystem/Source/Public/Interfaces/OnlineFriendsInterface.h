@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineDelegateMacros.h"
+#include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
+#include "OnlineDelegateMacros.h"
 
 /** List of known friends list types */
 namespace EFriendsLists

@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "MeshMergingSettingsCustomization.h"
 #include "Engine/MeshMerging.h"
+#include "Misc/Attribute.h"
+#include "UObject/UnrealType.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
 #include "PropertyRestriction.h"
 
 #define LOCTEXT_NAMESPACE "FMeshMergingSettingCustomization"
@@ -40,9 +45,9 @@ void FMeshMergingSettingsObjectCustomization::CustomizeDetails(IDetailLayoutBuil
 		{
 			EnumProperty = Property;
 						
-			FText RestrictReason = FText::FromString("Unable to support this option in Merge Actor");
-			TSharedPtr<FPropertyRestriction> EnumRestriction = MakeShareable(new FPropertyRestriction(RestrictReason));
-			EnumRestriction->AddValue(TEXT("Calculate correct LOD level"));
+			TSharedPtr<FPropertyRestriction> EnumRestriction = MakeShareable(new FPropertyRestriction(LOCTEXT("NoSupport","Unable to support this option in Merge Actor")));
+			const UEnum* const MeshLODSelectionTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EMeshLODSelectionType"));		
+			EnumRestriction->AddDisabledValue(MeshLODSelectionTypeEnum->GetEnumNameStringByValue((uint8)EMeshLODSelectionType::CalculateLOD));
 			EnumProperty->AddRestriction(EnumRestriction.ToSharedRef());
 		}
 	}

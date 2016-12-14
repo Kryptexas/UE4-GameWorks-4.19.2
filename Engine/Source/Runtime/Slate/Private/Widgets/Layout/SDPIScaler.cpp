@@ -1,7 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "SDPIScaler.h"
+#include "Widgets/Layout/SDPIScaler.h"
+#include "Layout/ArrangedChildren.h"
 
 SDPIScaler::SDPIScaler()
 : ChildSlot()
@@ -60,7 +60,7 @@ void SDPIScaler::SetDPIScale(TAttribute<float> InDPIScale)
 	DPIScale = InDPIScale;
 }
 
-float SDPIScaler::GetRelativeLayoutScale(const FSlotBase& Child) const
+float SDPIScaler::GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const
 {
 	return DPIScale.Get();
 }

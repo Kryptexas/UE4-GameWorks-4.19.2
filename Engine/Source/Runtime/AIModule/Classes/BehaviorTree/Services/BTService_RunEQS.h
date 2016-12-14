@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "BehaviorTree/Services/BTService_BlackboardBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
+#include "BehaviorTree/Services/BTService_BlackboardBase.h"
 #include "BTService_RunEQS.generated.h"
 
-class UEnvQuery;
+class UBehaviorTree;
 
 struct FBTEQSServiceMemory
 {

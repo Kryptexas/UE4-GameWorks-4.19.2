@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshParticleVertexFactory.usf: Mesh particle vertex factory shader code.
@@ -72,7 +72,7 @@ struct FVertexFactoryInput
 #endif
 
 /** Optional instance ID for vertex layered rendering */
-#if PARTICLE_MESH_INSTANCED
+#if (PARTICLE_MESH_INSTANCED || (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && ONEPASS_POINTLIGHT_SHADOW && USING_VERTEX_SHADER_LAYER))
 	uint InstanceId	: SV_InstanceID;
 #endif
 };

@@ -1,24 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Runtime/InputCore/Classes/InputCoreTypes.h"
-#include "PhysicsEngine/BodyInstance.h"
-#include "Components/SceneComponent.h"
-#include "SceneTypes.h"
-#include "Engine/TextureStreamingTypes.h"
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Misc/Guid.h"
+#include "InputCoreTypes.h"
+#include "Templates/SubclassOf.h"
 #include "Engine/EngineTypes.h"
+#include "Components/SceneComponent.h"
+#include "RenderCommandFence.h"
+#include "GameFramework/Actor.h"
+#include "CollisionQueryParams.h"
+#include "SceneTypes.h"
+#include "PhysicsEngine/BodyInstance.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "AI/Navigation/NavRelevantInterface.h"
 #include "PrimitiveComponent.generated.h"
 
+class AController;
 class FPrimitiveSceneProxy;
-class AController; 
+class UMaterialInterface;
+class UPrimitiveComponent;
 class UTexture;
-struct FEngineShowFlags;
+struct FCollisionShape;
 struct FConvexVolume;
+struct FEngineShowFlags;
 struct FNavigableGeometryExport;
-struct FStreamingTexturePrimitiveInfo;
-class FStreamingTextureLevelContext;
 
 /** Determines whether a Character can attempt to step up onto a component when they walk in to it. */
 UENUM()
@@ -210,6 +220,10 @@ public:
 	/** If true, this component will be rendered in the main pass (z prepass, basepass, transparency) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bRenderInMainPass:1;
+
+	/** If true, this component will be rendered in mono only if an HMD is connected and monoscopic far field rendering is activated. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
+	uint32 bRenderInMono:1;
 
 	/** Whether the primitive receives decals. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
@@ -1070,7 +1084,7 @@ public:
 	 *	@param      Channel     The new channel for this component to use
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision")	
-	void SetCollisionObjectType(ECollisionChannel Channel);
+	virtual void SetCollisionObjectType(ECollisionChannel Channel);
 
 	/** Perform a line trace against a single component */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DisplayName = "Line Trace Component", bTraceComplex="true", UnsafeDuringActorConstruction="true"))	
@@ -1087,6 +1101,10 @@ public:
 	/** Sets bRenderInMainPass property and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering")
 	void SetRenderInMainPass(bool bValue);
+
+	/** Sets bRenderInMono property and marks the render state dirty. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering")
+	void SetRenderInMono(bool bValue);
 
 public:
 	static int32 CurrentTag;
@@ -1211,7 +1229,7 @@ public:
 	 * @param LevelContext - Level scope context used to process texture streaming build data.
 	 * @param OutStreamingTextures - Upon return, contains a list of the streaming textures used by the primitive.
 	 */
-	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const {}
+	virtual void GetStreamingTextureInfo(FStreamingTextureLevelContext& LevelContext, TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const;
 
 	/**
 	 * Call GetStreamingTextureInfo and remove the elements with a NULL texture
@@ -1450,6 +1468,9 @@ protected:
 
 public:
 	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const override;
+
+	/** Updates the renderer with the center of mass data */
+	virtual void SendRenderDebugPhysics();
 
 	// End USceneComponentInterface
 

@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MobileBasePassRendering.cpp: Base pass rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
+#include "MobileBasePassRendering.h"
+#include "DynamicPrimitiveDrawing.h"
+#include "StaticMeshDrawList.h"
 #include "ScenePrivate.h"
-#include "SceneUtils.h"
+#include "ShaderPlatformQualitySettings.h"
 #include "MaterialShaderQualitySettings.h"
 
 // Changing this causes a full shader recompile
@@ -24,16 +26,12 @@ static TAutoConsoleVariable<int32> CVarMobileDisableVertexFog(
 
 #define IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_PIXEL_SHADER_TYPE(LightMapPolicyType,LightMapPolicyName,NumDynamicPointLights) \
 	typedef TMobileBasePassPS< LightMapPolicyType, LDR_GAMMA_32, false, NumDynamicPointLights > TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##LDRGamma32; \
-	typedef TMobileBasePassPS< LightMapPolicyType, HDR_LINEAR_32, false, NumDynamicPointLights > TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##HDRLinear32; \
 	typedef TMobileBasePassPS< LightMapPolicyType, HDR_LINEAR_64, false, NumDynamicPointLights > TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##HDRLinear64; \
 	typedef TMobileBasePassPS< LightMapPolicyType, LDR_GAMMA_32, true, NumDynamicPointLights > TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##LDRGamma32##Skylight; \
-	typedef TMobileBasePassPS< LightMapPolicyType, HDR_LINEAR_32, true, NumDynamicPointLights > TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##HDRLinear32##Skylight; \
 	typedef TMobileBasePassPS< LightMapPolicyType, HDR_LINEAR_64, true, NumDynamicPointLights > TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##HDRLinear64##Skylight; \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##LDRGamma32, TEXT("MobileBasePassPixelShader"), TEXT("Main"), SF_Pixel); \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##HDRLinear32, TEXT("MobileBasePassPixelShader"), TEXT("Main"), SF_Pixel); \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##HDRLinear64, TEXT("MobileBasePassPixelShader"), TEXT("Main"), SF_Pixel); \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##LDRGamma32##Skylight, TEXT("MobileBasePassPixelShader"), TEXT("Main"), SF_Pixel); \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##HDRLinear32##Skylight, TEXT("MobileBasePassPixelShader"), TEXT("Main"), SF_Pixel); \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TMobileBasePassPS##LightMapPolicyName##NumDynamicPointLights##HDRLinear64##Skylight, TEXT("MobileBasePassPixelShader"), TEXT("Main"), SF_Pixel);
 
 static_assert(MAX_BASEPASS_DYNAMIC_POINT_LIGHTS == 4, "If you change MAX_BASEPASS_DYNAMIC_POINT_LIGHTS, you need to add shader types below");
@@ -51,16 +49,16 @@ static_assert(MAX_BASEPASS_DYNAMIC_POINT_LIGHTS == 4, "If you change MAX_BASEPAS
 // Implement shader types per lightmap policy 
 IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_NO_LIGHTMAP>, FNoLightMapPolicy);
 IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_LQ_LIGHTMAP>, TLightMapPolicyLQ);
-IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP>, TDistanceFieldShadowsAndLightMapPolicyLQ);
-IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM>, FDistanceFieldShadowsLightMapAndCSMLightingPolicy);
+IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP>, FMobileDistanceFieldShadowsAndLQLightMapPolicy);
+IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM>, FMobileDistanceFieldShadowsLightMapAndCSMLightingPolicy);
 IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT>, FMobileDirectionalLightAndSHIndirectPolicy);
-IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_INDIRECT>, FMobileDirectionalLightAndSHDirectionalIndirectPolicy);
-IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_DIRECTIONAL_CSM_INDIRECT>, FMobileDirectionalLightAndSHDirectionalCSMIndirectPolicy);
-IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT>, FMobileDirectionalLightAndSHCSMIndirectPolicy);
-IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOVABLE_DIRECTIONAL_LIGHT>, FMovableDirectionalLightLightingPolicy);
-IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM>, FMovableDirectionalLightCSMLightingPolicy);
-IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP>, FMovableDirectionalLightWithLightmapLightingPolicy);
-IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP>, FMovableDirectionalLightCSMWithLightmapLightingPolicy);
+IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT>, FMobileMovableDirectionalLightAndSHIndirectPolicy);
+IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT>, FMobileMovableDirectionalLightCSMAndSHIndirectPolicy);
+IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT>, FMobileDirectionalLightCSMAndSHIndirectPolicy);
+IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT>, FMobileMovableDirectionalLightLightingPolicy);
+IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM>, FMobileMovableDirectionalLightCSMLightingPolicy);
+IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_WITH_LIGHTMAP>, FMobileMovableDirectionalLightWithLightmapPolicy);
+IMPLEMENT_MOBILE_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(TUniformLightMapPolicy<LMP_MOBILE_MOVABLE_DIRECTIONAL_LIGHT_CSM_WITH_LIGHTMAP>, FMobileMovableDirectionalLightCSMWithLightmapPolicy);
 
 const FLightSceneInfo* GetSceneMobileDirectionalLights(FScene const* Scene, uint32 LightChannel)
 {
@@ -82,11 +80,6 @@ bool TMobileBasePassPSPolicyParamType<PixelParametersType, NumDynamicPointLights
 
 	return true;
 }
-
-static TAutoConsoleVariable<int32> CVarAllReceiveDynamicCSM(
-	TEXT("r.AllReceiveDynamicCSM"),
-	1,
-	TEXT("Which primitives should receive dynamic-only CSM shadows. 0: Only primitives marked bReceiveCSMFromDynamicObjects. 1: All primitives (default)"));
 
 FMobileBasePassDynamicPointLightInfo::FMobileBasePassDynamicPointLightInfo(const FPrimitiveSceneProxy* InSceneProxy)
 : NumDynamicPointLights(0)
@@ -196,14 +189,14 @@ public:
 				{
 					switch (LightMapPolicyType)
 					{
-						case LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
-							return LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP;
-						case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT:
+						case LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM:
+							return LMP_MOBILE_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP;
+						case LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT:
 							return LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT;
-						case LMP_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
-							return LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM;
+						case LMP_MOBILE_DISTANCE_FIELD_SHADOWS_AND_LQ_LIGHTMAP:
+							return LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM;
 						case LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_INDIRECT:
-							return LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT;
+							return LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT;
 					}
 					return LightMapPolicyType;
 				};
@@ -213,8 +206,8 @@ public:
 				if (bHasCSMCounterpart)
 				{
 					// Is the passed in lightmap policy CSM capable or not
-					const bool bIsCSMCapableLightPolicy = LightMapPolicy.GetIndirectPolicy() == LMP_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM
-					|| LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_DIRECTIONAL_LIGHT_AND_SH_CSM_INDIRECT;
+					const bool bIsCSMCapableLightPolicy = LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_DISTANCE_FIELD_SHADOWS_LIGHTMAP_AND_CSM
+					|| LightMapPolicy.GetIndirectPolicy() == LMP_MOBILE_DIRECTIONAL_LIGHT_CSM_AND_SH_INDIRECT;
 
 					if (bIsCSMCapableLightPolicy)
 					{
@@ -254,6 +247,7 @@ public:
 				Parameters.BlendMode,
 				Parameters.TextureMode,
 				Parameters.ShadingModel != MSM_Unlit && Scene->ShouldRenderSkylight(Parameters.BlendMode),
+				ComputeMeshOverrideSettings(Parameters.Mesh),
 				DVSM_None,
 				FeatureLevel,
 				Parameters.bEditorCompositeDepthTest,
@@ -302,8 +296,7 @@ class FDrawMobileBasePassDynamicMeshAction
 public:
 
 	const FViewInfo& View;
-	bool bBackFace;
-	FMeshDrawingRenderState DrawRenderState;
+	FDrawingPolicyRenderState DrawRenderState;
 	FHitProxyId HitProxyId;
 
 	inline bool ShouldPackAmbientSH() const
@@ -333,16 +326,18 @@ public:
 
 	/** Initialization constructor. */
 	FDrawMobileBasePassDynamicMeshAction(
+		FRHICommandList& InRHICmdList,
 		const FViewInfo& InView,
-		const bool bInBackFace,
-		FMeshDrawingRenderState InDrawRenderState,
+		float InDitheredLODTransitionAlpha,
+		const FDrawingPolicyRenderState& InDrawRenderState,
 		const FHitProxyId InHitProxyId
 		)
 		: View(InView)
-		, bBackFace(bInBackFace)
-		, DrawRenderState(InDrawRenderState)
+		, DrawRenderState(&InRHICmdList, InDrawRenderState)
 		, HitProxyId(InHitProxyId)
-	{}
+	{
+		DrawRenderState.SetDitheredLODTransitionAlpha(InDitheredLODTransitionAlpha);
+	}
 
 	/** Draws the translucent mesh with a specific light-map type, and shader complexity predicate. */
 	template<int32 NumDynamicPointLights>
@@ -372,13 +367,14 @@ public:
 			Parameters.BlendMode,
 			Parameters.TextureMode,
 			Parameters.ShadingModel != MSM_Unlit && Scene && Scene->ShouldRenderSkylight(Parameters.BlendMode),
+			ComputeMeshOverrideSettings(Parameters.Mesh),
 			View.Family->GetDebugViewShaderMode(),
 			View.GetFeatureLevel(),
 			Parameters.bEditorCompositeDepthTest,
 			IsMobileHDR() // bEnableReceiveDecalOutput
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
-		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType());
+		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType(), DrawRenderState);
 
 		for( int32 BatchElementIndex=0;BatchElementIndex<Parameters.Mesh.Elements.Num();BatchElementIndex++ )
 		{
@@ -391,7 +387,6 @@ public:
 				Parameters.PrimitiveSceneProxy,
 				Parameters.Mesh,
 				BatchElementIndex,
-				bBackFace,
 				DrawRenderState,
 				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ElementDataType(LightMapElementData),
 				typename TMobileBasePassDrawingPolicy<FUniformLightMapPolicy, NumDynamicPointLights>::ContextDataType()
@@ -414,16 +409,13 @@ void FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMeshTempl(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
 	ContextType DrawingContext,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const FMeshBatch& Mesh,
 	const FMaterial* Material,
-	bool bBackFace,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	FHitProxyId HitProxyId
 	)
 {
-	FMeshDrawingRenderState DrawRenderState;
-	DrawRenderState.DitheredLODTransitionAlpha = Mesh.DitheredLODTransitionAlpha;
-
 	ProcessMobileBasePassMesh<FDrawMobileBasePassDynamicMeshAction, NumDynamicPointLights>(
 		RHICmdList, 
 		FProcessBasePassMeshParameters(
@@ -436,8 +428,9 @@ void FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMeshTempl(
 			View.GetFeatureLevel()
 		),
 		FDrawMobileBasePassDynamicMeshAction(
+			RHICmdList,
 			View, 
-			bBackFace, 
+			Mesh.DitheredLODTransitionAlpha,
 			DrawRenderState, 
 			HitProxyId														
 		)																
@@ -449,8 +442,8 @@ bool FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	const FViewInfo& View,
 	ContextType DrawingContext,
 	const FMeshBatch& Mesh,
-	bool bBackFace,
 	bool bPreFog,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 	FHitProxyId HitProxyId
 	)
@@ -471,14 +464,14 @@ bool FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 
 		if (NumDynamicPointLights == 0 || bIsUnlit)
 		{
-			DrawDynamicMeshTempl<0>(RHICmdList, View, DrawingContext, Mesh, Material, bBackFace, PrimitiveSceneProxy, HitProxyId);
+			DrawDynamicMeshTempl<0>(RHICmdList, View, DrawingContext, DrawRenderState, Mesh, Material, PrimitiveSceneProxy, HitProxyId);
 		}
 		else
 		{
 			static auto* MobileDynamicPointLightsUseStaticBranchCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileDynamicPointLightsUseStaticBranch"));
 			if (MobileDynamicPointLightsUseStaticBranchCVar->GetValueOnRenderThread() == 1)
 			{
-				DrawDynamicMeshTempl<INT32_MAX>(RHICmdList, View, DrawingContext, Mesh, Material, bBackFace, PrimitiveSceneProxy, HitProxyId);
+				DrawDynamicMeshTempl<INT32_MAX>(RHICmdList, View, DrawingContext, DrawRenderState, Mesh, Material, PrimitiveSceneProxy, HitProxyId);
 			}
 			else
 			{
@@ -487,16 +480,16 @@ bool FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 				switch (NumDynamicPointLights)
 				{
 				case 1:
-					DrawDynamicMeshTempl<1>(RHICmdList, View, DrawingContext, Mesh, Material, bBackFace, PrimitiveSceneProxy, HitProxyId);
+					DrawDynamicMeshTempl<1>(RHICmdList, View, DrawingContext, DrawRenderState, Mesh, Material, PrimitiveSceneProxy, HitProxyId);
 					break;
 				case 2:
-					DrawDynamicMeshTempl<2>(RHICmdList, View, DrawingContext, Mesh, Material, bBackFace, PrimitiveSceneProxy, HitProxyId);
+					DrawDynamicMeshTempl<2>(RHICmdList, View, DrawingContext, DrawRenderState, Mesh, Material, PrimitiveSceneProxy, HitProxyId);
 					break;
 				case 3:
-					DrawDynamicMeshTempl<3>(RHICmdList, View, DrawingContext, Mesh, Material, bBackFace, PrimitiveSceneProxy, HitProxyId);
+					DrawDynamicMeshTempl<3>(RHICmdList, View, DrawingContext, DrawRenderState, Mesh, Material, PrimitiveSceneProxy, HitProxyId);
 					break;
 				default:
-					DrawDynamicMeshTempl<4>(RHICmdList, View, DrawingContext, Mesh, Material, bBackFace, PrimitiveSceneProxy, HitProxyId);
+					DrawDynamicMeshTempl<4>(RHICmdList, View, DrawingContext, DrawRenderState, Mesh, Material, PrimitiveSceneProxy, HitProxyId);
 					break;
 				}
 			}
@@ -563,6 +556,7 @@ static void DrawVisibleFrontToBack(
 	FScene* const Scene,
 	const EBasePassDrawListType DrawListType, 
 	const FViewInfo& View, 
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const FMobileCSMVisibilityInfo* const MobileCSMVisibilityInfo, 
 	const StereoPair& StereoView, 
 	const StereoPair& StereoViewCSM, 
@@ -575,24 +569,24 @@ static void DrawVisibleFrontToBack(
 	{
 		if (bIsCSM)
 		{
-			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoViewNonCSM, MaxDraws);
-			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoViewCSM, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoViewNonCSM, DrawRenderState, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoViewCSM, DrawRenderState, MaxDraws);
 		}
 		else
 		{
-			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoView, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBackMobileMultiView(RHICmdList, StereoView, DrawRenderState, MaxDraws);
 		}
 	}
 	else
 	{
 		if (bIsCSM)
 		{
-			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility, MaxDraws);
-			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility, MaxDraws);
 		}
 		else
 		{
-			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
+			MaxDraws -= Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleFrontToBack(RHICmdList, View, DrawRenderState, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, MaxDraws);
 		}
 	}
 }
@@ -603,6 +597,7 @@ static void DrawVisible(
 	FScene* const Scene,
 	const EBasePassDrawListType DrawListType,
 	const FViewInfo& View,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const FMobileCSMVisibilityInfo* const MobileCSMVisibilityInfo,
 	const StereoPair& StereoView,
 	const StereoPair& StereoViewCSM,
@@ -614,24 +609,24 @@ static void DrawVisible(
 	{
 		if (bIsCSM)
 		{
-			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoViewNonCSM);
-			Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoViewCSM);
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoViewNonCSM, DrawRenderState);
+			Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoViewCSM, DrawRenderState);
 		}
 		else
 		{
-			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoView);
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisibleMobileMultiView(RHICmdList, StereoView, DrawRenderState);
 		}
 	}
 	else
 	{
 		if (bIsCSM)
 		{
-			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility);
-			Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisible(RHICmdList, View, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility);
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisible(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileNonCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileNonCSMStaticBatchVisibility);
+			Scene->MobileBasePassUniformLightMapPolicyDrawListWithCSM[DrawListType].DrawVisible(RHICmdList, View, DrawRenderState, MobileCSMVisibilityInfo->MobileCSMStaticMeshVisibilityMap, MobileCSMVisibilityInfo->MobileCSMStaticBatchVisibility);
 		}
 		else
 		{
-			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisible(RHICmdList, View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
+			Scene->MobileBasePassUniformLightMapPolicyDrawList[DrawListType].DrawVisible(RHICmdList, View, DrawRenderState, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility);
 		}
 	}
 }
@@ -670,20 +665,27 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 			return;
 		}
 
+		FDrawingPolicyRenderState DrawRenderState(&RHICmdList, View);
+
 		const FMobileCSMVisibilityInfo* MobileCSMVisibilityInfo = View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse ? &View.MobileCSMVisibilityInfo : nullptr;
 		const FMobileCSMVisibilityInfo* MobileCSMVisibilityInfoStereo = (View.bIsMobileMultiViewEnabled && View.MobileCSMVisibilityInfo.bMobileDynamicCSMInUse && Views.Num() > 1) ? &Views[1].MobileCSMVisibilityInfo : nullptr;
+
+		if (ViewIndex == 2 && ViewFamily.MonoParameters.Mode != EMonoscopicFarFieldMode::Off)
+		{
+			RenderMonoscopicFarFieldMask(RHICmdList);
+		}
 
 		// Opaque blending
 		if (View.bIsPlanarReflection)
 		{
-			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_Zero, BF_Zero>::GetRHI());
+			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_Zero, BO_Add, BF_Zero, BF_Zero>::GetRHI());
 		}
 		else
 		{
-			RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
+			DrawRenderState.SetBlendState(RHICmdList, TStaticBlendStateWriteMask<CW_RGBA>::GetRHI());
 		}
 
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+		DrawRenderState.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
 
 		// Setup stereo views
@@ -721,11 +723,11 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 		// Render the base pass static data
 		if (SortMode == EBasePassSort::SortPerMesh)
 		{
-			DrawVisibleFrontToBack(RHICmdList, Scene, EBasePass_Default, View, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM, MaxDraws);
+			DrawVisibleFrontToBack(RHICmdList, Scene, EBasePass_Default, View, DrawRenderState, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM, MaxDraws);
 		}
 		else
 		{
-			DrawVisible(RHICmdList, Scene, EBasePass_Default, View, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM);
+			DrawVisible(RHICmdList, Scene, EBasePass_Default, View, DrawRenderState, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM);
 		}
 
 		{
@@ -739,7 +741,7 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 				if (MeshBatchAndRelevance.GetHasOpaqueOrMaskedMaterial() || ViewFamily.EngineShowFlags.Wireframe)
 				{
 					const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-					FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+					FMobileBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, true, DrawRenderState, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 				}
 			}
 
@@ -750,13 +752,13 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 				const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[FeatureLevel]) && !IsMobileHDR();
 
 				// Draw the base pass for the view's batched mesh elements.
-				DrawViewElements<FMobileBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_World, true);
+				DrawViewElements<FMobileBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_World, true);
 
 				// Draw the view's batched simple elements(lines, sprites, etc).
 				View.BatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, false);
 
 				// Draw foreground objects last
-				DrawViewElements<FMobileBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_Foreground, true);
+				DrawViewElements<FMobileBasePassOpaqueDrawingPolicyFactory>(RHICmdList, View, DrawRenderState, FMobileBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_Foreground, true);
 
 				// Draw the view's batched simple elements(lines, sprites, etc).
 				View.TopBatchedViewElements.Draw(RHICmdList, FeatureLevel, bNeedToSwitchVerticalAxis, View, false);
@@ -766,11 +768,11 @@ void FMobileSceneRenderer::RenderMobileBasePass(FRHICommandListImmediate& RHICmd
 		// Issue static draw list masked draw calls last, as PVR wants it
 		if (SortMode == EBasePassSort::SortPerMesh)
 		{
-			DrawVisibleFrontToBack(RHICmdList, Scene, EBasePass_Masked, View, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM, MaxDraws);
+			DrawVisibleFrontToBack(RHICmdList, Scene, EBasePass_Masked, View, DrawRenderState, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM, MaxDraws);
 		}
 		else
 		{
-			DrawVisible(RHICmdList, Scene, EBasePass_Masked, View, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM);
+			DrawVisible(RHICmdList, Scene, EBasePass_Masked, View, DrawRenderState, MobileCSMVisibilityInfo, StereoView, StereoViewNonCSM, StereoViewCSM);
 		}
 	}
 }

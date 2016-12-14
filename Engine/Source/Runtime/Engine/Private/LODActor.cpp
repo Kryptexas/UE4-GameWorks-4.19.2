@@ -1,18 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LODActorBase.cpp: Static mesh actor base class implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Engine/LODActor.h"
-#include "Engine/MeshMergeCullingVolume.h"
-#include "MapErrors.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/CollisionProfile.h"
+#include "Logging/TokenizedMessage.h"
+#include "Misc/MapErrors.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 
 #include "StaticMeshResources.h"
-#include "FrameworkObjectVersion.h"
+#include "EngineUtils.h"
+#include "UObject/FrameworkObjectVersion.h"
 
 #if WITH_EDITOR
 #include "Editor.h"

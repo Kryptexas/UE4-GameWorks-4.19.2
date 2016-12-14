@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Fonts/FontCache.h"
 
 #ifndef WITH_FREETYPE
 	#define WITH_FREETYPE	0
@@ -112,7 +115,7 @@ private:
 class FFreeTypeFace
 {
 public:
-	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, TArray<uint8>&& InMemory);
+	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, FFontFaceDataConstRef InMemory);
 	FFreeTypeFace(const FFreeTypeLibrary* InFTLibrary, const FString& InFilename);
 	~FFreeTypeFace();
 
@@ -148,7 +151,7 @@ private:
 
 #if WITH_FREETYPE
 	FT_Face FTFace;
-	TArray<uint8> Memory;
+	FFontFaceDataConstPtr Memory;
 
 	/** Custom FreeType stream handler for reading font data via the Unreal File System */
 	struct FFTStreamHandler

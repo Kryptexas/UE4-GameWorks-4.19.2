@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //
 // Steam sockets based implementation of the net driver
 //
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "IpNetDriver.h"
 #include "SteamNetDriver.generated.h"
+
+class Error;
+class FNetworkNotify;
 
 UCLASS(transient, config=Engine)
 class USteamNetDriver : public UIpNetDriver

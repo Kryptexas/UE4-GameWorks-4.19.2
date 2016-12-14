@@ -1,29 +1,36 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IFilter.h"
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Misc/Attribute.h"
+#include "Layout/Margin.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Framework/SlateDelegates.h"
+#include "Materials/MaterialInterface.h"
+#include "PropertyHandle.h"
 #include "IDetailCustomNodeBuilder.h"
-#include "FilterCollection.h"
+#include "DetailWidgetRow.h"
 #include "SResetToDefaultMenu.h"
 #include "ActorPickerMode.h"
 #include "SceneDepthPickerMode.h"
-#include "PropertyHandle.h"
-#include "DetailWidgetRow.h"
 
-
+class AActor;
 class FAssetData;
-class FDetailWidgetRow;
-class FMaterialListBuilder;
-struct FMaterialListItem;
+class FAssetThumbnailPool;
 class FMaterialItemView;
+class FMaterialListBuilder;
+class FPropertyEditor;
+class IDetailChildrenBuilder;
+class IDetailLayoutBuilder;
 class IMaterialListBuilder;
 class SPropertyEditorAsset;
 class SPropertyEditorClass;
-class UBoolProperty;
-class UMaterialInterface;
-class UProperty;
-
+class UFactory;
 
 namespace SceneOutliner
 {
@@ -55,7 +62,7 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeInteractiveActorPicker(FOnGetAllowedClasses OnGetAllowedClasses, FOnShouldFilterActor OnShouldFilterActor, FOnActorSelected OnActorSelectedFromPicker);
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeSceneDepthPicker(FOnSceneDepthLocationSelected OnSceneDepthLocationSelected);
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeEditConfigHierarchyButton(FSimpleDelegate OnEditConfigClicked, TAttribute<FText> OptionalToolTipText = FText(), TAttribute<bool> IsEnabled = true);
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeDocumentationButton(const TSharedRef<class FPropertyEditor>& InPropertyEditor);
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakeDocumentationButton(const TSharedRef<FPropertyEditor>& InPropertyEditor);
 
 	/** @return the UBoolProperty edit condition property if one exists. */
 	PROPERTYEDITOR_API UBoolProperty* GetEditConditionProperty(const UProperty* InProperty, bool& bNegate);
@@ -162,6 +169,8 @@ public:
 		, _AllowAbstract(false)
 		, _IsBlueprintBaseOnly(false)
 		, _AllowNone(true)
+		, _HideViewOptions(false)
+		, _ShowTreeView(false)
 	{}
 		/** The meta class that the selected class must be a child-of (required) */
 		SLATE_ARGUMENT(const UClass*, MetaClass)
@@ -173,6 +182,10 @@ public:
 		SLATE_ARGUMENT(bool, IsBlueprintBaseOnly)
 		/** Should we be able to select "None" as a class? (optional) */
 		SLATE_ARGUMENT(bool, AllowNone)
+		/** Show the View Options part of the class picker dialog*/
+		SLATE_ARGUMENT(bool, HideViewOptions)
+		/** Show the class picker as a tree view rather than a list*/
+		SLATE_ARGUMENT(bool, ShowTreeView)
 		/** Attribute used to get the currently selected class (required) */
 		SLATE_ATTRIBUTE(const UClass*, SelectedClass)
 		/** Delegate used to set the currently selected class (required) */
@@ -389,6 +402,14 @@ DECLARE_DELEGATE_TwoParams( FOnResetMaterialToDefaultClicked, UMaterialInterface
 
 DECLARE_DELEGATE_RetVal(bool, FOnMaterialListDirty);
 
+DECLARE_DELEGATE_RetVal(bool, FOnCanCopyMaterialList);
+DECLARE_DELEGATE(FOnCopyMaterialList);
+DECLARE_DELEGATE(FOnPasteMaterialList);
+
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCanCopyMaterialItem, int32);
+DECLARE_DELEGATE_OneParam(FOnCopyMaterialItem, int32);
+DECLARE_DELEGATE_OneParam(FOnPasteMaterialItem, int32);
+
 struct FMaterialListDelegates
 {
 	FMaterialListDelegates()
@@ -411,6 +432,20 @@ struct FMaterialListDelegates
 	FOnResetMaterialToDefaultClicked OnResetMaterialToDefaultClicked;
 	/** Delegate called when we tick the material list to know if the list is dirty*/
 	FOnMaterialListDirty OnMaterialListDirty;
+
+	/** Delegate called Copying a material list */
+	FOnCopyMaterialList OnCopyMaterialList;
+	/** Delegate called to know if we can copy a material list */
+	FOnCanCopyMaterialList OnCanCopyMaterialList;
+	/** Delegate called Pasting a material list */
+	FOnPasteMaterialList OnPasteMaterialList;
+
+	/** Delegate called Copying a material item */
+	FOnCopyMaterialItem OnCopyMaterialItem;
+	/** Delegate called to know if we can copy a material item */
+	FOnCanCopyMaterialItem OnCanCopyMaterialItem;
+	/** Delegate called Pasting a material item */
+	FOnPasteMaterialItem OnPasteMaterialItem;
 };
 
 
@@ -520,6 +555,13 @@ private:
 	void AddMaterialItem(FDetailWidgetRow& Row, int32 CurrentSlot, const FMaterialListItem& Item, bool bDisplayLink);
 
 private:
+	bool OnCanCopyMaterialList() const;
+	void OnCopyMaterialList();
+	void OnPasteMaterialList();
+
+	bool OnCanCopyMaterialItem(int32 CurrentSlot) const;
+	void OnCopyMaterialItem(int32 CurrentSlot);
+	void OnPasteMaterialItem(int32 CurrentSlot);
 
 	/** Delegates for the material list */
 	FMaterialListDelegates MaterialListDelegates;
@@ -584,6 +626,14 @@ DECLARE_DELEGATE_RetVal_TwoParams(TSharedRef<SWidget>, FOnGenerateWidgetsForSect
 
 DECLARE_DELEGATE_TwoParams(FOnResetSectionToDefaultClicked, int32, int32);
 
+DECLARE_DELEGATE_RetVal(bool, FOnCanCopySectionList);
+DECLARE_DELEGATE(FOnCopySectionList);
+DECLARE_DELEGATE(FOnPasteSectionList);
+
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnCanCopySectionItem, int32, int32);
+DECLARE_DELEGATE_TwoParams(FOnCopySectionItem, int32, int32);
+DECLARE_DELEGATE_TwoParams(FOnPasteSectionItem, int32, int32);
+
 struct FSectionListDelegates
 {
 	FSectionListDelegates()
@@ -604,6 +654,20 @@ struct FSectionListDelegates
 	FOnGenerateWidgetsForSection OnGenerateCustomSectionWidgets;
 	/** Delegate called when a Section list item should be reset to default */
 	FOnResetSectionToDefaultClicked OnResetSectionToDefaultClicked;
+
+	/** Delegate called Copying a section list */
+	FOnCopySectionList OnCopySectionList;
+	/** Delegate called to know if we can copy a section list */
+	FOnCanCopySectionList OnCanCopySectionList;
+	/** Delegate called Pasting a section list */
+	FOnPasteSectionList OnPasteSectionList;
+
+	/** Delegate called Copying a section item */
+	FOnCopySectionItem OnCopySectionItem;
+	/** Delegate called To know if we can copy a section item */
+	FOnCanCopySectionItem OnCanCopySectionItem;
+	/** Delegate called Pasting a section item */
+	FOnPasteSectionItem OnPasteSectionItem;
 };
 
 /**
@@ -730,6 +794,14 @@ private:
 	void AddSectionItem(class FDetailWidgetRow& Row, int32 LodIndex, const struct FSectionListItem& Item, bool bDisplayLink);
 
 private:
+	bool OnCanCopySectionList() const;
+	void OnCopySectionList();
+	void OnPasteSectionList();
+
+	bool OnCanCopySectionItem(int32 LODIndex, int32 SectionIndex) const;
+	void OnCopySectionItem(int32 LODIndex, int32 SectionIndex);
+	void OnPasteSectionItem(int32 LODIndex, int32 SectionIndex);
+
 	/** Delegates for the Section list */
 	FSectionListDelegates SectionListDelegates;
 	/** Called to rebuild the children of the detail tree */

@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/ConfigCacheIni.h"
 
 /**
  * Describes the position and size of the main window.

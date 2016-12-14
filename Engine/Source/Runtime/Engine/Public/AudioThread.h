@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AudioThread.h: Rendering thread definitions.
@@ -6,7 +6,10 @@
 
 #pragma once
 
-#include "TaskGraphInterfaces.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "HAL/Runnable.h"
 
 ////////////////////////////////////
 // Audio thread API

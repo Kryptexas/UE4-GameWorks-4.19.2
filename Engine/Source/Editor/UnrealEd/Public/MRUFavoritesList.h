@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MRUFavoritesList : Helper class for handling MRU and favorited maps
@@ -7,6 +7,7 @@
 #ifndef __MAINMRUFAVORITESLIST_H__
 #define __MAINMRUFAVORITESLIST_H__
 
+#include "CoreMinimal.h"
 #include "MRUList.h"
 
 /** Simple class to represent a combined MRU and favorite map list */

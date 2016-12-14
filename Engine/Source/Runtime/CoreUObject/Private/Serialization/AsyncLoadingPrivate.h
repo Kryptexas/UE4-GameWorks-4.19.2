@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-DECLARE_LOG_CATEGORY_EXTERN(LogLoadingDev, Fatal, All);
+#include "CoreMinimal.h"
+#include "UObject/Linker.h"
+#include "Async/AsyncFileHandle.h"
 
-#if USE_NEW_ASYNC_IO
+DECLARE_LOG_CATEGORY_EXTERN(LogLoadingDev, Fatal, All);
 
 class COREUOBJECT_API FArchiveAsync2 final: public FArchive
 {
@@ -25,9 +27,7 @@ public:
 	};
 
 	FArchiveAsync2(const TCHAR* InFileName
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
 		, TFunction<void()>&& InSummaryReadyCallback
-#endif
 		);
 	virtual ~FArchiveAsync2();
 	virtual bool Close() override;
@@ -36,7 +36,12 @@ public:
 	virtual void Serialize(void* Data, int64 Num) override;
 	FORCEINLINE virtual int64 Tell() override
 	{
+#if DEVIRTUALIZE_FLinkerLoad_Serialize
 		return CurrentPos + (ActiveFPLB->StartFastPathLoadBuffer - ActiveFPLB->OriginalFastPathLoadBuffer);
+#else
+		check(false);
+		return 0;
+#endif
 	}
 	virtual int64 TotalSize() override;
 	virtual void Seek(int64 InPos) override;
@@ -49,9 +54,8 @@ public:
 	void StartReadingHeader();
 	void EndReadingHeader();
 	void FirstExportStarting();
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+
 	IAsyncReadRequest* MakeEventDrivenPrecacheRequest(int64 Offset, int64 BytesToRead, FAsyncFileCallBack* CompleteCallback);
-#endif
 
 	void LogItem(const TCHAR* Item, int64 Offset = 0, int64 Size = 0, double StartTime = 0.0);
 
@@ -82,10 +86,10 @@ private:
 
 	IAsyncReadFileHandle* Handle;
 	IAsyncReadRequest* SizeRequestPtr;
-#if !(SPLIT_COOKED_FILES && USE_EVENT_DRIVEN_ASYNC_LOAD)
+
 	IAsyncReadRequest* SummaryRequestPtr;
 	IAsyncReadRequest* SummaryPrecacheRequestPtr;
-#endif
+
 	IAsyncReadRequest* ReadRequestPtr;
 	IAsyncReadRequest* CanceledReadRequestPtr;
 
@@ -114,11 +118,8 @@ private:
 	double OpenTime;
 	double SummaryReadTime;
 	double ExportReadTime;
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
+
 	TFunction<void()> SummaryReadyCallback;
 	FAsyncFileCallBack ReadCallbackFunctionForLinkerLoad;
-#endif
 
 };
-
-#endif

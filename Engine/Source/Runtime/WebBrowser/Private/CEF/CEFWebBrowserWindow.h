@@ -1,30 +1,56 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Input/CursorReply.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "Widgets/SViewport.h"
+#include "WebBrowserSingleton.h"
+
+class FBrowserBufferedVideo;
+class FCEFBrowserHandler;
+class FCEFJSScripting;
+class FSlateUpdatableTexture;
+class IWebBrowserPopupFeatures;
+class IWebBrowserWindow;
+struct Rect;
+enum class EWebBrowserDocumentState;
 
 #if WITH_CEF3
 
 #include "IWebBrowserWindow.h"
 #include "CEFBrowserHandler.h"
-#include "SlateCore.h"
-#include "SlateBasics.h"
-#include "CoreUObject.h"
 
 #if PLATFORM_WINDOWS
-#	include "AllowWindowsPlatformTypes.h"
+	#include "WindowsHWrapper.h"
+	#include "AllowWindowsPlatformTypes.h"
+	#include "AllowWindowsPlatformAtomics.h"
 #endif
 
+THIRD_PARTY_INCLUDES_START
 #pragma push_macro("OVERRIDE")
 #	undef OVERRIDE // cef headers provide their own OVERRIDE macro
 #	include "include/internal/cef_ptr.h"
 #	include "include/cef_render_handler.h"
 #	include "include/cef_jsdialog_handler.h"
 #pragma pop_macro("OVERRIDE")
+THIRD_PARTY_INCLUDES_END
 
 #if PLATFORM_WINDOWS
-#	include "HideWindowsPlatformTypes.h"
+	#include "HideWindowsPlatformAtomics.h"
+	#include "HideWindowsPlatformTypes.h"
 #endif
 
+class FSlateShaderResource;
+enum class EWebBrowserDocumentState;
+struct FGeometry;
+struct FPointerEvent;
+class UObject;
+struct FInputEvent;
+class FSlateUpdatableTexture;
+class FWebJSScripting;
 class FBrowserBufferedVideo;
 class FCEFJSScripting;
 
@@ -61,12 +87,16 @@ private:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InBrowser The CefBrowser object representing this browser window.
-	 * @param InUrl The Initial URL that will be loaded.
-	 * @param InContentsToLoad Optional string to load as a web page.
-	 * @param InShowErrorMessage Whether to show an error message in case of loading errors.
+	 * @param Browser The CefBrowser object representing this browser window.
+	 * @param Handler Pointer to the CEF handler for this window.
+	 * @param Url The Initial URL that will be loaded.
+	 * @param ContentsToLoad Optional string to load as a web page.
+	 * @param bShowErrorMessage Whether to show an error message in case of loading errors.
+	 * @param bThumbMouseButtonNavigation Whether to allow forward and back navigation via the mouse thumb buttons.
+	 * @param bUseTransparency Whether to enable transparency.
+	 * @param bJSBindingToLoweringEnabled Whether we ToLower all JavaScript member names.
 	 */
-	FCEFWebBrowserWindow(CefRefPtr<CefBrowser> InBrowser, CefRefPtr<FCEFBrowserHandler> InHandler, FString InUrl, TOptional<FString> InContentsToLoad, bool ShowErrorMessage, bool bThumbMouseButtonNavigation, bool bUseTransparency);
+	FCEFWebBrowserWindow(CefRefPtr<CefBrowser> Browser, CefRefPtr<FCEFBrowserHandler> Handler, FString Url, TOptional<FString> ContentsToLoad, bool bShowErrorMessage, bool bThumbMouseButtonNavigation, bool bUseTransparency, bool bJSBindingToLoweringEnabled);
 
 	/**
 	 * Create the SWidget for this WebBrowserWindow
@@ -77,7 +107,7 @@ public:
 	/** Virtual Destructor. */
 	virtual ~FCEFWebBrowserWindow();
 
-	bool IsShowingErrorMessages() { return ShowErrorMessage; }
+	bool IsShowingErrorMessages() { return bShowErrorMessage; }
 	bool IsThumbMouseButtonNavigationEnabled() { return bThumbMouseButtonNavigation; }
 	bool UseTransparency() { return bUseTransparency; }
 
@@ -103,6 +133,8 @@ public:
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
+
 	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, bool bIsPopup) override;
 	virtual void OnFocus(bool SetFocus, bool bIsPopup) override;
 	virtual void OnCaptureLost() override;
@@ -454,7 +486,7 @@ private:
 	FOnDocumentStateChanged DocumentStateChangedEvent;
 
 	/** Whether to show an error message in case of loading errors. */
-	bool ShowErrorMessage;
+	bool bShowErrorMessage;
 
 	/** Whether to allow forward and back navigation via the mouse thumb buttons. */
 	bool bThumbMouseButtonNavigation;

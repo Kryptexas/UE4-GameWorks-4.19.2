@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1294,7 +1294,6 @@ class BuildPhysX : BuildCommand
 				case UnrealTargetPlatform.PS4:
 				case UnrealTargetPlatform.XboxOne:
 				case UnrealTargetPlatform.Mac:
-				case UnrealTargetPlatform.HTML5:
 					return true;
 				case UnrealTargetPlatform.Linux:
 					// only x86_64 Linux supports it.

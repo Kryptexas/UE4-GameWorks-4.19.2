@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Materials/MaterialInstance.h"
+#include "Stats/StatsMisc.h"
+#include "EngineGlobals.h"
+#include "BatchedElements.h"
+#include "Engine/Font.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/LinkerLoad.h"
+#include "Engine/Texture.h"
+#include "Engine/Texture2D.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UnrealEngine.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
@@ -8,14 +19,13 @@
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
 #include "Materials/MaterialExpressionStaticComponentMaskParameter.h"
 #include "Materials/MaterialInstanceConstant.h"
-#include "Materials/MaterialInstanceBasePropertyOverrides.h"
-#include "MaterialUniformExpressions.h"
-#include "MaterialInstanceSupport.h"
-#include "MaterialShaderType.h"
-#include "TargetPlatform.h"
-#include "Engine/Font.h"
+#include "Materials/MaterialUniformExpressions.h"
+#include "Materials/MaterialInstanceSupport.h"
 #include "Engine/SubsurfaceProfile.h"
-#include "LoadTimeTracker.h"
+#include "ProfilingDebugging/LoadTimeTracker.h"
+#include "Interfaces/ITargetPlatform.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
+#include "Components.h"
 
 /**
  * Cache uniform expressions for the given material.
@@ -143,6 +153,11 @@ FMaterial* FMaterialInstanceResource::GetMaterialNoFallback(ERHIFeatureLevel::Ty
 		}
 	}
 	return NULL;
+}
+
+UMaterialInterface* FMaterialInstanceResource::GetMaterialInterface() const
+{
+	return Owner;
 }
 
 bool FMaterialInstanceResource::GetScalarValue(
@@ -2721,13 +2736,20 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 {
 	check(IsInGameThread());
 
+	// Always compare against the actual base material, inconsistent results comparing against instance chains
+	UMaterialInterface* BaseMaterial = Parent;
+	while (UMaterialInstance* BaseInstance = Cast<UMaterialInstance>(BaseMaterial))
+	{
+		BaseMaterial = BaseInstance->Parent;
+	}
+
 	const UMaterial* Material = GetMaterial();
-	if (Parent && Material && Material->bUsedAsSpecialEngineMaterial == false &&
-		((FMath::Abs(GetOpacityMaskClipValue() - Parent->GetOpacityMaskClipValue()) > SMALL_NUMBER) ||
-		(GetBlendMode() != Parent->GetBlendMode()) ||
-		(GetShadingModel() != Parent->GetShadingModel()) ||
-		(IsTwoSided() != Parent->IsTwoSided()) ||
-		(IsDitheredLODTransition() != Parent->IsDitheredLODTransition()))
+	if (BaseMaterial && Material && Material->bUsedAsSpecialEngineMaterial == false &&
+		((FMath::Abs(GetOpacityMaskClipValue() - BaseMaterial->GetOpacityMaskClipValue()) > SMALL_NUMBER) ||
+		(GetBlendMode() != BaseMaterial->GetBlendMode()) ||
+		(GetShadingModel() != BaseMaterial->GetShadingModel()) ||
+		(IsTwoSided() != BaseMaterial->IsTwoSided()) ||
+		(IsDitheredLODTransition() != BaseMaterial->IsDitheredLODTransition()))
 		)
 	{
 		return true;

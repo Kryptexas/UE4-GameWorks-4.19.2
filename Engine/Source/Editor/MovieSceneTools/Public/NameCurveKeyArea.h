@@ -1,14 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "Curves/KeyHandle.h"
+#include "Widgets/SWidget.h"
+#include "MovieSceneSection.h"
 #include "NamedKeyArea.h"
-#include "ClipboardTypes.h"
 
-
+class FMovieSceneClipboardBuilder;
+class FMovieSceneClipboardKeyTrack;
+class FStructOnScope;
+class ISequencer;
+struct FMovieSceneClipboardEnvironment;
 struct FNameCurve;
-class UMovieSceneSection;
-
+struct FSequencerPasteEnvironment;
 
 /**
  * A key area for FName curves.

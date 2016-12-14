@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "Internationalization/TextNamespaceFwd.h"
+#include "Serialization/Archive.h"
+#include "Containers/UnrealString.h"
+
+struct FUntypedBulkData;
 
 /**
  * Base class for archive proxies.
@@ -149,6 +154,22 @@ public:
 	{
 		return InnerArchive.IsCloseComplete(bHasError);
 	}
+
+	virtual const FCustomVersionContainer& GetCustomVersions() const override
+	{
+		return InnerArchive.GetCustomVersions();
+	}
+
+	virtual void SetCustomVersions(const FCustomVersionContainer& NewVersions) override
+	{
+		InnerArchive.SetCustomVersions(NewVersions);
+	}
+
+	virtual void ResetCustomVersions() override
+	{
+		InnerArchive.ResetCustomVersions();
+	}
+
 #if WITH_EDITOR
 	virtual void PushDebugDataString(const FName& DebugData) override
 	{

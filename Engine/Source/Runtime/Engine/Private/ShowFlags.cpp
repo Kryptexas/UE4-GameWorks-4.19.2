@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShowFlags.cpp: Show Flag Definitions.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "ShowFlags.h"
+#include "SystemSettings.h"
 
 static bool IsValidNameChar(TCHAR c)
 {
@@ -261,6 +261,7 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 		case VMI_PrimitiveDistanceAccuracy:
 		case VMI_MeshUVDensityAccuracy:
 		case VMI_MaterialTextureScaleAccuracy:
+		case VMI_RequiredTextureResolution:
 			bPostProcessing = false;
 			break;
 		case VMI_StationaryLightOverlap:
@@ -308,6 +309,7 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 	EngineShowFlags.SetPrimitiveDistanceAccuracy(ViewModeIndex == VMI_PrimitiveDistanceAccuracy);
 	EngineShowFlags.SetMeshUVDensityAccuracy(ViewModeIndex == VMI_MeshUVDensityAccuracy);
 	EngineShowFlags.SetMaterialTextureScaleAccuracy(ViewModeIndex == VMI_MaterialTextureScaleAccuracy);
+	EngineShowFlags.SetRequiredTextureResolution(ViewModeIndex == VMI_RequiredTextureResolution);
 	EngineShowFlags.SetStationaryLightOverlap(ViewModeIndex == VMI_StationaryLightOverlap);
 	EngineShowFlags.SetLightMapDensity(ViewModeIndex == VMI_LightmapDensity || ViewModeIndex == VMI_LitLightmapDensity);
 	EngineShowFlags.SetPostProcessing(bPostProcessing);
@@ -332,8 +334,12 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 		// when taking a high resolution screenshot
 		if (GIsHighResScreenshot)
 		{
-			// disabled as it requires multiple frames, AA can be done by downsampling, more control and better masking
-			EngineShowFlags.TemporalAA = 0;
+			static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighResScreenshotDelay"));
+			if(ICVar->GetValueOnGameThread() < 4)
+			{
+				// disabled as it requires multiple frames, AA can be done by downsampling, more control and better masking
+				EngineShowFlags.TemporalAA = 0;
+			}
 			// no editor gizmos / selection
 			EngineShowFlags.SetModeWidgets(false);
 			EngineShowFlags.SetSelection(false);
@@ -393,6 +399,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_PrimitiveDistanceAccuracy ||
 			ViewModeIndex == VMI_MeshUVDensityAccuracy ||
 			ViewModeIndex == VMI_MaterialTextureScaleAccuracy ||
+			ViewModeIndex == VMI_RequiredTextureResolution ||
 			ViewModeIndex == VMI_LightmapDensity ||
 			ViewModeIndex == VMI_LitLightmapDensity)
 		{
@@ -414,6 +421,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_PrimitiveDistanceAccuracy ||
 			ViewModeIndex == VMI_MeshUVDensityAccuracy ||
 			ViewModeIndex == VMI_MaterialTextureScaleAccuracy ||
+			ViewModeIndex == VMI_RequiredTextureResolution ||
 			ViewModeIndex == VMI_LightmapDensity)
 		{
 			EngineShowFlags.SetLighting(false);
@@ -451,7 +459,8 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 
 		if (ViewModeIndex == VMI_PrimitiveDistanceAccuracy ||
 			ViewModeIndex == VMI_MeshUVDensityAccuracy ||
-			ViewModeIndex == VMI_MaterialTextureScaleAccuracy)
+			ViewModeIndex == VMI_MaterialTextureScaleAccuracy || 
+			ViewModeIndex == VMI_RequiredTextureResolution)
 		{
 			EngineShowFlags.Decals = 0; // Decals require the use of FDebugPSInLean.
 			EngineShowFlags.Particles = 0; // FX are fully streamed.
@@ -562,6 +571,10 @@ EViewModeIndex FindViewMode(const FEngineShowFlags& EngineShowFlags)
 	{
 		return VMI_MaterialTextureScaleAccuracy;
 	}
+	else if(EngineShowFlags.RequiredTextureResolution)
+	{
+		return VMI_RequiredTextureResolution;
+	}
 	else if(EngineShowFlags.ShaderComplexity)
 	{
 		return VMI_ShaderComplexity;
@@ -642,6 +655,7 @@ const TCHAR* GetViewModeName(EViewModeIndex ViewModeIndex)
 		case VMI_PrimitiveDistanceAccuracy:	return TEXT("PrimitiveDistanceAccuracy");
 		case VMI_MeshUVDensityAccuracy:		return TEXT("MeshUVDensityAccuracy");
 		case VMI_MaterialTextureScaleAccuracy: return TEXT("MaterialTexturecaleAccuracy");
+		case VMI_RequiredTextureResolution: return TEXT("RequiredTextureResolution");
 		case VMI_StationaryLightOverlap:	return TEXT("StationaryLightOverlap");
 		case VMI_LightmapDensity:			return TEXT("LightmapDensity");
 		case VMI_LitLightmapDensity:		return TEXT("LitLightmapDensity");

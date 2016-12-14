@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // ShaderCacheTool.cpp: Driver for testing compilation of an individual shader
 
@@ -46,7 +46,7 @@ namespace SCT
 					FString Vers = Switch.Mid(8);
 					if(Vers.IsNumeric())
 					{
-						LexicalConversion::FromString(GameVersion, *Vers);
+						Lex::FromString(GameVersion, *Vers);
 					}
 				}
 				else

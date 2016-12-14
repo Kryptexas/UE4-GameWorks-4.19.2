@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __REFERENCEDASSETSBROWSER_H__
 #define __REFERENCEDASSETSBROWSER_H__
+
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/GCObject.h"
 
 typedef TMap< UObject*, TSet<UObject*> >	ObjectReferenceGraph;
 typedef TMap< UObject*, FString >			ObjectNameMap;

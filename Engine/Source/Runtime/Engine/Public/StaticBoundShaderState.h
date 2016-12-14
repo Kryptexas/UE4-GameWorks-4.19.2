@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticBoundShaderState.h: Static bound shader state definitions.
@@ -6,8 +6,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Containers/List.h"
 #include "RenderResource.h"
-#include "Shader.h"
+
+class FShader;
 
 /**
  * FGlobalBoundShaderState

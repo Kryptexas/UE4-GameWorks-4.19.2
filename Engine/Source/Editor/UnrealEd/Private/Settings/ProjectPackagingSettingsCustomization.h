@@ -1,11 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PropertyEditing.h"
-#include "PropertyCustomizationHelpers.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Margin.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Styling/SlateTypes.h"
+#include "Misc/Paths.h"
+#include "Styling/CoreStyle.h"
+#include "HAL/FileManager.h"
+#include "EditorStyleSet.h"
+#include "IDetailCustomization.h"
+#include "PropertyHandle.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "DetailWidgetRow.h"
+#include "Internationalization/Culture.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Settings/ProjectPackagingSettings.h"
 #include "PropertyRestriction.h"
-#include "SMultipleOptionTable.h"
+#include "Widgets/Views/SMultipleOptionTable.h"
 
 #define LOCTEXT_NAMESPACE "FProjectPackagingSettingsCustomization"
 
@@ -131,7 +152,8 @@ protected:
 			IDetailCategoryBuilder& ProjectCategory = LayoutBuilder.EditCategory("Project");
 			{
 				TSharedRef<FPropertyRestriction> BuildConfigurationRestriction = MakeShareable(new FPropertyRestriction(LOCTEXT("DebugGameRestrictionReason", "The DebugGame build configuration is not available in content-only projects.")));
-				BuildConfigurationRestriction->AddValue("DebugGame");
+				const UEnum* const ProjectPackagingBuildConfigurationsEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"));		
+				BuildConfigurationRestriction->AddDisabledValue(ProjectPackagingBuildConfigurationsEnum->GetEnumNameStringByValue((uint8)EProjectPackagingBuildConfigurations::PPBC_DebugGame));
 
 				TSharedRef<IPropertyHandle> BuildConfigurationHandle = LayoutBuilder.GetProperty("BuildConfiguration");
 				BuildConfigurationHandle->AddRestriction(BuildConfigurationRestriction);

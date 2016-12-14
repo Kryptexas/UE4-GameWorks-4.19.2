@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	ParticleLODLevel
@@ -6,10 +6,14 @@
  */
 
 #pragma once
-#include "Particles/Orientation/ParticleModuleOrientationAxisLock.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "ParticleLODLevel.generated.h"
 
 class UInterpCurveEdSetup;
+class UParticleModule;
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UParticleLODLevel : public UObject

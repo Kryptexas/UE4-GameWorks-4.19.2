@@ -14,7 +14,8 @@
 // limitations under the License.
 //
 
-#include "OSVRPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "OSVRPrivate.h"
 #include "InputCoreTypes.h"
 #include "GameFramework/InputSettings.h"
 

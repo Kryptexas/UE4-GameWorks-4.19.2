@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -143,9 +143,9 @@ public abstract class LocalizationProvider
 			{
 				return Activator.CreateInstance(LocalizationNodeType, new object[] { InLocalizationProviderArgs }) as LocalizationProvider;
 			}
-			catch
+			catch (Exception e)
 			{
-				BuildCommand.LogWarning("Unable to create an instance of the type '{0}'", LocalizationNodeType.FullName);
+				BuildCommand.LogWarning("Unable to create an instance of the type '{0}'. {1}", LocalizationNodeType.FullName, e.ToString());
 			}
 		}
 		else

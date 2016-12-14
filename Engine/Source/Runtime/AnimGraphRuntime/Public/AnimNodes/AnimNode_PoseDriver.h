@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimNode_PoseHandler.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BoneContainer.h"
+#include "Animation/AnimNodeBase.h"
+#include "AnimNodes/AnimNode_PoseHandler.h"
 #include "AnimNode_PoseDriver.generated.h"
-
-class UPoseAsset;
-
 
 /** One target pose for the bone, with parameters to drive bone approaches this orientation. */
 struct FPoseDriverPoseInfo

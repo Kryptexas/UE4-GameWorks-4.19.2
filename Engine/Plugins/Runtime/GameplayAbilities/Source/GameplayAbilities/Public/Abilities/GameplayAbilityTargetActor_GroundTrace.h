@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayAbilityTargetActor_Trace.h"
-#include "GameplayAbilityWorldReticle.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Abilities/GameplayAbilityTargetActor_Trace.h"
 #include "GameplayAbilityTargetActor_GroundTrace.generated.h"
+
+class UGameplayAbility;
 
 UCLASS(Blueprintable)
 class GAMEPLAYABILITIES_API AGameplayAbilityTargetActor_GroundTrace : public AGameplayAbilityTargetActor_Trace

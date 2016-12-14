@@ -13,11 +13,10 @@
  * limitations under the License.
  */
 
-#include "GoogleVRHMDPCH.h"
+#include "GoogleVRSplash.h"
 
 #if GOOGLEVRHMD_SUPPORTED_PLATFORMS
 #include "GoogleVRHMD.h"
-#include "GoogleVRSplash.h"
 #include "ScreenRendering.h"
 
 FGoogleVRSplash::FGoogleVRSplash(FGoogleVRHMD* InGVRHMD)

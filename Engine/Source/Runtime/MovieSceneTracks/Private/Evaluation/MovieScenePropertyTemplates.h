@@ -1,23 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "MovieScenePropertyTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Curves/RichCurve.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieScenePropertyTemplate.h"
 #include "Curves/IntegralCurve.h"
 #include "Curves/StringCurve.h"
 
 #include "MovieScenePropertyTemplates.generated.h"
 
 class UMovieSceneBoolSection;
-class UMovieSceneFloatSection;
 class UMovieSceneByteSection;
+class UMovieSceneFloatSection;
 class UMovieSceneIntegerSection;
-class UMovieSceneVectorSection;
-class UMovieSceneStringSection;
 class UMovieScenePropertyTrack;
-
+class UMovieSceneStringSection;
+class UMovieSceneVectorSection;
+class UMovieSceneEnumSection;
 
 USTRUCT()
 struct FMovieSceneBoolPropertySectionTemplate : public FMovieSceneEvalTemplate
@@ -125,6 +127,42 @@ protected:
 
 	UPROPERTY()
 	FIntegralCurve ByteCurve;
+};
+
+USTRUCT()
+struct FMovieSceneEnumPropertySectionTemplate : public FMovieSceneEvalTemplate
+{
+	GENERATED_BODY()
+	
+	FMovieSceneEnumPropertySectionTemplate(){}
+	FMovieSceneEnumPropertySectionTemplate(const UMovieSceneEnumSection& Section, const UMovieScenePropertyTrack& Track);
+
+protected:
+
+	virtual UScriptStruct& GetScriptStructImpl() const override
+	{
+		return *StaticStruct();
+	}
+	virtual void SetupOverrides() override
+	{
+		EnableOverrides(RequiresSetupFlag | RequiresInitializeFlag);
+	}
+	virtual void Setup(FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
+	{
+		PropertyData.SetupCachedTrack<int64>(PersistentData);
+	}
+	virtual void Initialize(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, FPersistentEvaluationData& PersistentData, IMovieScenePlayer& Player) const override
+	{
+		PropertyData.SetupCachedFrame<int64>(Operand, PersistentData, Player);
+	}
+
+	virtual void Evaluate(const FMovieSceneEvaluationOperand& Operand, const FMovieSceneContext& Context, const FPersistentEvaluationData& PersistentData, FMovieSceneExecutionTokens& ExecutionTokens) const override;
+
+	UPROPERTY()
+	FMovieScenePropertySectionData PropertyData;
+
+	UPROPERTY()
+	FIntegralCurve EnumCurve;
 };
 
 USTRUCT()

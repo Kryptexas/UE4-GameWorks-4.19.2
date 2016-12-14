@@ -1,10 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EditableTextWidgetStyle.h"
-#include "TextWidgetTypes.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWidget.h"
+#include "Components/Widget.h"
+#include "Components/TextWidgetTypes.h"
 #include "EditableText.generated.h"
+
+class SEditableText;
+class USlateBrushAsset;
+class USlateWidgetStyleAsset;
 
 /**
  * Editable text box widget

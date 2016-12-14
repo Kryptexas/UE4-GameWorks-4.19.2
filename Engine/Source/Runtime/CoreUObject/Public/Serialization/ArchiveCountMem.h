@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AsyncFileHandle.h"
-#include "TextPackageNamespaceUtil.h"
-struct FObjectInstancingGraph;
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
+#include "Serialization/ArchiveUObject.h"
 
 /**
  * Archive for counting memory usage.

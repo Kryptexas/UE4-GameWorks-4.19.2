@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	CoreAudioSource.cpp: Unreal CoreAudio source interface object.
@@ -10,7 +10,6 @@
 
 #include "CoreAudioDevice.h"
 #include "CoreAudioEffects.h"
-#include "Engine.h"
 
 #define AUDIO_DISTANCE_FACTOR ( 0.0127f )
 

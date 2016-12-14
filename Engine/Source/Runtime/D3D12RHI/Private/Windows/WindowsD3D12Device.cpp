@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WindowsD3D12Device.cpp: Windows D3D device RHI implementation.
 =============================================================================*/
 
 #include "D3D12RHIPrivate.h"
+#include "Modules/ModuleManager.h"
 #include "AllowWindowsPlatformTypes.h"
 	#include <delayimp.h>
 #include "HideWindowsPlatformTypes.h"
@@ -409,7 +410,7 @@ void FD3D12DynamicRHI::Init()
 	GRHIAdapterName = AdapterDesc.Description;
 	GRHIVendorId = AdapterDesc.VendorId;
 	GRHIDeviceId = AdapterDesc.DeviceId;
-	//GRHIDeviceRevision = AdapterDesc.Revision; // Uncomment this in UE4.14+
+	GRHIDeviceRevision = AdapterDesc.Revision;
 
 	UE_LOG(LogD3D12RHI, Log, TEXT("    GPU DeviceId: 0x%x (for the marketing name, search the web for \"GPU Device Id\")"),
 		AdapterDesc.DeviceId);
@@ -478,8 +479,17 @@ void FD3D12DynamicRHI::Init()
 	D3DPERF_SetOptions(1);
 #endif
 
-	// Multi-threaded resource creation is always supported in DX12.
-	GRHISupportsAsyncTextureCreation = true;
+	// Multi-threaded resource creation is always supported in DX12, but allow users to disable it.
+	GRHISupportsAsyncTextureCreation = D3D12RHI_ShouldAllowAsyncResourceCreation();
+	if (GRHISupportsAsyncTextureCreation)
+	{
+		UE_LOG(LogD3D12RHI, Log, TEXT("Async texture creation enabled"));
+	}
+	else
+	{
+		UE_LOG(LogD3D12RHI, Log, TEXT("Async texture creation disabled: %s"),
+			D3D12RHI_ShouldAllowAsyncResourceCreation() ? TEXT("no driver support") : TEXT("disabled by user"));
+	}
 
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = SP_PCD3D_ES2;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_PCD3D_ES3_1;
@@ -503,6 +513,7 @@ void FD3D12DynamicRHI::Init()
 	FHardwareInfo::RegisterHardwareInfo(NAME_RHI, TEXT("D3D12"));
 
 	GRHISupportsTextureStreaming = true;
+	GRHIRequiresEarlyBackBufferRenderTarget = false;
 	GRHISupportsFirstInstance = true;
 
 	// Indicate that the RHI needs to use the engine's deferred deletion queue.

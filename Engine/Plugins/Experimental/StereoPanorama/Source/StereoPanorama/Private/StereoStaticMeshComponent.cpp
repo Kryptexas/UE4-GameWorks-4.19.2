@@ -1,6 +1,5 @@
 // Copyright 2015 Kite & Lightning.  All rights reserved.
 
-#include "StereoPanoramaPrivatePCH.h"
 #include "StereoStaticMeshComponent.h"
 #include "StaticMeshResources.h"
 

@@ -1,6 +1,9 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "HAL/MemoryBase.h"
 
 #if !defined(WITH_EDITOR)
 #error "WITH_EDITOR must be defined"
@@ -15,7 +18,6 @@
 #ifndef USE_MALLOC_STOMP
 #define USE_MALLOC_STOMP 0
 #endif
-
 
 #if USE_MALLOC_STOMP
 /**

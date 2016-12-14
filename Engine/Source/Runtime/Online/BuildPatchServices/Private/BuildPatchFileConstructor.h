@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchFileConstructor.h: Declares the BuildPatchFileConstructor class
 	that handles creating files in a manifest from the chunks that make it.
 =============================================================================*/
 
-// Forward declarations
-class FBuildPatchAppManifest;
-struct FChunkPart;
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "BuildPatchProgress.h"
+#include "BuildPatchManifest.h"
 
 /**
  * FBuildPatchFileConstructor

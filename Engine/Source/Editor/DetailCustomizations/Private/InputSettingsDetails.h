@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Layout/Margin.h"
+#include "PropertyHandle.h"
+#include "IDetailCustomNodeBuilder.h"
+#include "IDetailCustomization.h"
+
+class FDetailWidgetRow;
+class IDetailChildrenBuilder;
+class IDetailGroup;
+class IDetailLayoutBuilder;
 
 namespace InputConstants
 {

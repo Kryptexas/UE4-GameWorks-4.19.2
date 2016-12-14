@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Curves/CurveOwnerInterface.h"
 #include "CurveEditorSettings.h"
+
+class FSequencerNodeTree;
+class UMovieSceneSection;
 
 /** A curve owner interface for displaying animation curves in sequencer. */
 class FSequencerCurveOwner : public FCurveOwnerInterface
@@ -17,6 +22,7 @@ public:
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
 	virtual TArray<FRichCurveEditInfo> GetCurves() override;
 	virtual void ModifyOwner() override;
+	virtual TArray<const UObject*> GetOwners() const override;
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged( const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos ) override;
 	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override;

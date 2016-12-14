@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraph.h"
 #include "K2Node_CallFunction.h"
-#include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_AddComponent.generated.h"
+
+class UActorComponent;
 
 UCLASS(MinimalAPI)
 class UK2Node_AddComponent : public UK2Node_CallFunction

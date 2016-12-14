@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Player: Corresponds to a real player (a local camera or remote net player).
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Player.generated.h"
+
+class APlayerController;
 
 UCLASS(MinimalAPI, transient, config=Engine)
 class UPlayer : public UObject, public FExec

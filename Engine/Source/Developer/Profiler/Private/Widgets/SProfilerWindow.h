@@ -1,17 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ProfilerDataSource.h" // @todo profiler: get rid of ProfilerDataSource typedefs
-#include "ProfilerSession.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Guid.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "ProfilerManager.h"
+#include "Input/Reply.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SOverlay.h"
+#include "Widgets/Layout/SSplitter.h"
 
-
-enum class EProfilerViewMode;
+class FActiveTimerHandle;
 class SFiltersAndPresets;
-class SProfilerMiniView;
 class SMultiDumpBrowser;
 class SProfilerGraphPanel;
-
+class SProfilerMiniView;
+class SVerticalBox;
 
 /** Type definition for shared pointers to instances of SNotificationItem. */
 typedef TSharedPtr<class SNotificationItem> SNotificationItemPtr;

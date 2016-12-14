@@ -1,24 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Player.cpp: Unreal player implementation.
 =============================================================================*/
  
-#include "EnginePrivate.h"
+#include "Engine/Player.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/NetConnection.h"
+#include "EngineUtils.h"
 
-#include "SubtitleManager.h"
-#include "Net/UnrealNetwork.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/PlayerInput.h"
-#include "Engine/GameInstance.h"
 
-#include "RenderCore.h"
-#include "ColorList.h"
-#include "SlateBasics.h"
 #include "GameFramework/CheatManager.h"
-#include "GameFramework/Pawn.h"
 #include "GameFramework/GameStateBase.h"
-#include "GameFramework/GameModeBase.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPlayer
@@ -83,7 +80,7 @@ APlayerController* UPlayer::GetPlayerController(UWorld* InWorld) const
 	{
 		if ( (*Iterator)->GetLocalPlayer() == this )
 		{
-			return *Iterator;
+			return Iterator->Get();
 		}
 	}
 

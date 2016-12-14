@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "VoiceInterface.h"
-#include "VoicePacketImpl.h"
+#include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
+#include "Interfaces/VoiceInterface.h"
+#include "Net/VoiceDataCommon.h"
+#include "VoicePacketImpl.h"
 #include "OnlineSubsystemUtilsPackage.h"
 
 /**

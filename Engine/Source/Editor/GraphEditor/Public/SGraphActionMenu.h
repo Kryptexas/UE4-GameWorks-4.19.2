@@ -1,9 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-struct FGraphActionNode;
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "UObject/GCObject.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/SExpanderArrow.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/STreeView.h"
+#include "EdGraph/EdGraphSchema.h"
+
+class IToolTip;
+class SEditableTextBox;
 struct FCreateWidgetForActionData;
+struct FGraphActionNode;
 
 /** Delegate for hooking up an inline editable text block to be notified that a rename is requested. */
 DECLARE_DELEGATE( FOnRenameRequestActionNode );

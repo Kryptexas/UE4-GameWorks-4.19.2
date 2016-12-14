@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenShotManager.cpp: Implements the FScreenShotManager class.
@@ -6,10 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Async/Future.h"
 #include "ImageComparer.h"
-#include "Async/Async.h"
+#include "Interfaces/IScreenShotManager.h"
+#include "Helpers/MessageEndpoint.h"
 
 class FScreenshotComparisons;
+struct FScreenShotDataItem;
 
 /**
  * Implements the ScreenShotManager that contains screen shot data.

@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Collision.h: Common collision code.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Engine/EngineTypes.h"
+#include "EngineDefines.h"
 
 /**
  * Collision stats

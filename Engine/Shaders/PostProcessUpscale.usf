@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessUpscale.usf: PostProcessing shader to upscale
@@ -104,18 +104,6 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 #endif
 
 #if METHOD == 2
-	// 4 Bilinear samples (good quality)
-	float2 UV = UVAndScreenPos.xy;
-	float r = UpscaleSoftness;
-	OutColor = 0;
-	OutColor += Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV + float2( -r, -r) * PostprocessInput0Size.zw);
-	OutColor += Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV + float2( +r, -r) * PostprocessInput0Size.zw);
-	OutColor += Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV + float2( -r, +r) * PostprocessInput0Size.zw);
-	OutColor += Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV + float2( +r, +r) * PostprocessInput0Size.zw);
-	OutColor /= 4;
-#endif
-
-#if METHOD == 3
 	// Directional blur with unsharp mask upsample.
 	float2 UV = UVAndScreenPos.xy;
 	float X = 0.5;
@@ -129,39 +117,119 @@ void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition :
 	float LumaNE = Luma(ColorNE);
 	float LumaSW = Luma(ColorSW);
 	float LumaSE = Luma(ColorSE);
-    LumaNE += 1.0/65536.0;
-	
-	float LumaCC = Luma(OutColor.rgb);
-	float UVShift = saturate(LumaCC) * 2.0 - 1.0;
-	
-    float DirSWMinusNE = LumaSW - LumaNE;
-    float DirSEMinusNW = LumaSE - LumaNW;
-    float2 Dir;
-    Dir.x = DirSWMinusNE + DirSEMinusNW;
-    Dir.y = DirSWMinusNE - DirSEMinusNW;
 
-	{
-		// minor rendering artifacts when using the distortion feature
-		//Dir = normalize(Dir);
+	float2 IsoBrightnessDir;
+	float DirSWMinusNE = LumaSW - LumaNE;
+	float DirSEMinusNW = LumaSE - LumaNW;
+	IsoBrightnessDir.x = DirSWMinusNE + DirSEMinusNW;
+	IsoBrightnessDir.y = DirSWMinusNE - DirSEMinusNW;
 
-		// fixed these problems
-		Dir = Dir * rsqrt(dot(Dir, Dir) + 0.0001f);
-	}
+	// avoid NaN on zero vectors by adding 2^-24 (float ulp when length==1, and also minimum representable half)
+	IsoBrightnessDir = IsoBrightnessDir * (0.125 * rsqrt(dot(IsoBrightnessDir, IsoBrightnessDir) + 6e-8));
 
-	float2 Dir90 = float2(-Dir.y, Dir.x);
-
-	UVShift = 1.0 - UVShift;
-	UVShift *= UVShift;
-	UVShift = 1.0 - UVShift;
-
-	float2 UVShifted = UV + Dir90 * PostprocessInput0Size.zw * (abs(UVShift) * (-0.125));
-
-	Dir *= 0.125;
-	float3 ColorN = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVShifted - Dir * PostprocessInput0Size.zw, 0).rgb;
-	float3 ColorP = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVShifted + Dir * PostprocessInput0Size.zw, 0).rgb;
+	float3 ColorN = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV - IsoBrightnessDir * PostprocessInput0Size.zw, 0).rgb;
+	float3 ColorP = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV + IsoBrightnessDir * PostprocessInput0Size.zw, 0).rgb;
 
 	float UnsharpMask = 0.25;
 	OutColor.rgb = (ColorN + ColorP) * ((UnsharpMask + 1.0) * 0.5) - (OutColor.rgb * UnsharpMask);
+#endif
+
+#if METHOD == 3
+	// Bicubic Catmull-Rom in five samples
+	OutColor = Texture2DSampleBicubic(PostprocessInput0, PostprocessInput0Sampler, UVAndScreenPos.xy, PostprocessInput0Size.xy);
+#endif
+
+#if METHOD == 4
+	{
+		// Lanczos 3
+		float2 UV = UVAndScreenPos.xy * PostprocessInput0Size.xy;
+		float2 tc = floor(UV - 0.5) + 0.5;
+		float2 f = UV - tc + 2;
+
+		// compute at f, f-1, f-2, f-3, f-4, and f-5 using trig angle addition
+		float4 sincos = float4(sin(f*PI), cos(f*PI)), sincos2 = float4(sin(f*PI / 3), cos(f*PI / 3));
+		const float r3 = sqrt(3.0);
+		float2 w0 = (sincos.xy * sincos2.xy) / (f*f);
+		float2 w1 = (-sincos.xy * (sincos2.xy - r3*sincos2.zw)) / ((f - 1)*(f - 1));
+		float2 w2 = (sincos.xy * (-sincos2.xy - r3*sincos2.zw)) / ((f - 2)*(f - 2));
+		float2 w3 = (-sincos.xy * (-2 * sincos2.xy)) / ((f - 3)*(f - 3));
+		float2 w4 = (sincos.xy * (-sincos2.xy + r3*sincos2.zw)) / ((f - 4)*(f - 4));
+		float2 w5 = (-sincos.xy * (sincos2.xy + r3*sincos2.zw)) / ((f - 5)*(f - 5));
+
+		// use bilinear texture weights to merge center two samples in each dimension
+		float2 Weight[5];
+		Weight[0] = w0;
+		Weight[1] = w1;
+		Weight[2] = w2 + w3;
+		Weight[3] = w4;
+		Weight[4] = w5;
+
+		float2 Sample[5];
+		Sample[0] = PostprocessInput0Size.zw * (tc - 2);
+		Sample[1] = PostprocessInput0Size.zw * (tc - 1);
+		Sample[2] = PostprocessInput0Size.zw * (tc + w3 / Weight[2]);
+		Sample[3] = PostprocessInput0Size.zw * (tc + 2);
+		Sample[4] = PostprocessInput0Size.zw * (tc + 3);
+
+		OutColor = 0;
+
+		// 5x5 footprint with corners dropped to give 13 texture taps
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[0].x, Sample[2].y), 0).rgb, 1) * Weight[0].x * Weight[2].y;
+
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[1].x, Sample[1].y), 0).rgb, 1) * Weight[1].x * Weight[1].y;
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[1].x, Sample[2].y), 0).rgb, 1) * Weight[1].x * Weight[2].y;
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[1].x, Sample[3].y), 0).rgb, 1) * Weight[1].x * Weight[3].y;
+
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[0].y), 0).rgb, 1) * Weight[2].x * Weight[0].y;
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[1].y), 0).rgb, 1) * Weight[2].x * Weight[1].y;
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[2].y), 0).rgb, 1) * Weight[2].x * Weight[2].y;
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[3].y), 0).rgb, 1) * Weight[2].x * Weight[3].y;
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[2].x, Sample[4].y), 0).rgb, 1) * Weight[2].x * Weight[4].y;
+
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[3].x, Sample[1].y), 0).rgb, 1) * Weight[3].x * Weight[1].y;
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[3].x, Sample[2].y), 0).rgb, 1) * Weight[3].x * Weight[2].y;
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[3].x, Sample[3].y), 0).rgb, 1) * Weight[3].x * Weight[3].y;
+
+		OutColor += float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, float2(Sample[4].x, Sample[2].y), 0).rgb, 1) * Weight[4].x * Weight[2].y;
+
+		OutColor /= OutColor.w;
+	}
+#endif
+
+#if METHOD == 5
+	{
+		// Gaussian filtered unsharp mask
+		float2 UV = UVAndScreenPos.xy * PostprocessInput0Size.xy;
+		float2 tc = floor(UV) + 0.5;
+
+		// estimate pixel value and derivatives
+		OutColor = 0;
+		float3 Laplacian = 0;
+		UNROLL for (int i = -3; i <= 2; ++i)
+		{
+			UNROLL for (int j = -3; j <= 2; ++j)
+			{
+				float2 TexelOffset = float2(i, j) + 0.5;
+
+				// skip corners: eliminated entirely by UNROLL
+				if (dot(TexelOffset, TexelOffset) > 9) continue;
+
+				float2 Texel = tc + TexelOffset;
+				float2 Offset = UV - Texel;
+				float OffsetSq = 2 * dot(Offset, Offset);	// texel loop is optimized for variance = 0.5
+				float Weight = exp(-0.5 * OffsetSq);
+				float4 Sample = Weight * float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, Texel * PostprocessInput0Size.zw, 0).rgb, 1);
+
+				OutColor += Sample;
+				Laplacian += Sample.rgb * (OffsetSq - 2);
+			}
+		}
+		OutColor /= OutColor.a;
+		Laplacian /= OutColor.a;
+
+		float UnsharpScale = UpscaleSoftness * (1 - PostprocessInput0Size.x * PostprocessInput0Size.y * ViewportSize.z * ViewportSize.w);
+		OutColor.rgb -= UnsharpScale * Laplacian;
+	}
 #endif
 
 #if 0

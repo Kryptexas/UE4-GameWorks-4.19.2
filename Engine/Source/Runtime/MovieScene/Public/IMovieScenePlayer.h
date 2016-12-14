@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneSpawnRegister.h"
-#include "UnrealClient.h"
-#include "MovieSceneEvaluationState.h"
-#include "MovieScenePreAnimatedState.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Evaluation/MovieSceneAnimTypeID.h"
 #include "MovieSceneSequenceInstance.h"
+#include "Evaluation/MovieSceneEvaluationKey.h"
+#include "Evaluation/MovieScenePreAnimatedState.h"
+#include "MovieSceneSpawnRegister.h"
+#include "Containers/ArrayView.h"
+#include "Evaluation/MovieSceneEvaluationState.h"
 
+class FViewportClient;
 struct FMovieSceneRootEvaluationTemplateInstance;
 
 namespace EMovieScenePlayerStatus

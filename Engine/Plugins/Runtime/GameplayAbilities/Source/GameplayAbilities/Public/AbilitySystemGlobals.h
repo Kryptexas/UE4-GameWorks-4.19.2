@@ -1,27 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayTags.h"
-#include "GameplayAbilitiesModule.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/StringAssetReference.h"
+#include "Misc/StringClassReference.h"
+#include "GameplayTagContainer.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayAbilitiesModule.h"
 #include "AbilitySystemGlobals.generated.h"
 
-class AActor;
 class UAbilitySystemComponent;
-class UCurveTable;
-class UDataTable;
 class UGameplayCueManager;
 class UGameplayTagReponseTable;
-
 struct FGameplayAbilityActorInfo;
-struct FGameplayEffectContext;
-struct FGameplayTag;
-struct FAttributeSetInitter;
 struct FGameplayEffectSpec;
 struct FGameplayEffectSpecForRPC;
-struct FGameplayCueParameters;
-struct FGameplayEffectContextHandle;
 
 /** Called when ability fails to activate, passes along the failed ability and a tag explaining why */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAbilitySystemAssetOpenedDelegate, FString , int );
@@ -149,6 +145,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Global place to accumulate debug strings for ability system component. Used when we fill up client side debug string immediately, and then wait for server to send server strings */
 	TArray<FString>	AbilitySystemDebugStrings;
 
+
+	// Helper functions for applying global scaling to various ability system tasks. This isn't meant to be a shipping feature, but to help with debugging and interation via cvar AbilitySystem.GlobalAbilityScale.
+	static void NonShipping_ApplyGlobalAbilityScaler_Rate(float& Rate);
+	static void NonShipping_ApplyGlobalAbilityScaler_Duration(float& Duration);
+
 	// Global Tags
 
 	UPROPERTY()
@@ -233,6 +234,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 	/** Simple index-based accessor to the alias name for the specified gameplay mod evaluation channel, if any */
 	const FName& GetGameplayModEvaluationChannelAlias(int32 Index) const;
 
+	virtual TArray<FString> GetGameplayCueNotifyPaths() { return GameplayCueNotifyPaths; }
+
 protected:
 
 	virtual void InitAttributeDefaults();
@@ -285,7 +288,7 @@ protected:
 	UPROPERTY(config)
 	FStringAssetReference GlobalGameplayCueManagerName;
 
-	/** Look in these paths for GameplayCueNotifies */
+	/** Look in these paths for GameplayCueNotifies. These are your "always loaded" set. */
 	UPROPERTY(config)
 	TArray<FString>	GameplayCueNotifyPaths;
 
@@ -320,8 +323,11 @@ protected:
 
 #if WITH_EDITOR
 	void OnTableReimported(UObject* InObject);
+
+	void OnPreBeginPIE(const bool bIsSimulatingInEditor);
 #endif
 
+	void ResetCachedData();
 	void HandlePreLoadMap(const FString& MapName);
 
 #if WITH_EDITORONLY_DATA

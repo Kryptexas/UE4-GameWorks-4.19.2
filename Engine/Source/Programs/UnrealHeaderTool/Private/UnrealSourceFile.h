@@ -1,13 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
 #include "Scope.h"
 #include "HeaderProvider.h"
-#include "UnrealTypeDefinitionInfo.h"
-#include "GeneratedCodeVersion.h"
 #include "SimplifiedParsingClassInfo.h"
+#include "GeneratedCodeVersion.h"
 
+class UPackage;
+class UClass;
+class UStruct;
+class FArchive;
 class FClassMetaData;
 
 /**

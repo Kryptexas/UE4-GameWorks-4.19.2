@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,7 +6,20 @@
  * Base class of all geometry mode modifiers.
  */
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "EditorGeometry.h"
 #include "GeomModifier.generated.h"
+
+class FCanvas;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FViewport;
+
 typedef TSharedPtr<class FGeomObject> FGeomObjectPtr;
 
 UCLASS(abstract, hidecategories=(Object, GeomModifier))

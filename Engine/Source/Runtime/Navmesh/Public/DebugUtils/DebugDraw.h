@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -21,6 +21,8 @@
 
 #ifndef DEBUGDRAW_H
 #define DEBUGDRAW_H
+
+#include "CoreMinimal.h"
 
 // Some math headers don't have PI defined.
 static const float DU_PI = 3.14159265f;

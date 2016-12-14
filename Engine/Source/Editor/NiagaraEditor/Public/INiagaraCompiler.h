@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "NiagaraEditorCommon.h"
 
+class Error;
+class UEdGraphPin;
 class UNiagaraNode;
 
 //Interface for Niagara compilers.

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 // [ Hoppe 1999, "New Quadric Metric for Simplifying Meshes with Appearance Attributes" ]
 // [ Hoppe 2000, "Efficient minimization of new quadric metric for simplifying meshes with appearance attributes" ]
 

@@ -1,18 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "BlueprintUtilities.h"
-#include "Engine/InputDelegateBinding.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Misc/CoreMisc.h"
+#include "Stats/StatsMisc.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/CoreNet.h"
+#include "UObject/Package.h"
+#include "UObject/LinkerLoad.h"
+#include "Serialization/ObjectWriter.h"
+#include "Engine/Blueprint.h"
+#include "Components/ActorComponent.h"
+#include "Curves/CurveFloat.h"
+#include "Engine/DynamicBlueprintBinding.h"
+#include "Components/TimelineComponent.h"
 #include "Engine/TimelineTemplate.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "Engine/SCS_Node.h"
 #include "Engine/LevelScriptActor.h"
+#include "Engine/SCS_Node.h"
 #include "Engine/InheritableComponentHandler.h"
-#include "CoreNet.h"
+#include "Misc/ScopeLock.h"
 
 #if WITH_EDITOR
-#include "BlueprintEditorUtils.h"
-#include "KismetEditorUtilities.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #endif //WITH_EDITOR
 
 DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
@@ -268,6 +277,8 @@ UObject* UBlueprintGeneratedClass::GetArchetypeForCDO() const
 
 void UBlueprintGeneratedClass::SerializeDefaultObject(UObject* Object, FArchive& Ar)
 {
+	FScopeLock SerializeAndPostLoadLock(&SerializeAndPostLoadCritical);
+
 	Super::SerializeDefaultObject(Object, Ar);
 
 	if (Ar.IsLoading() && !Ar.IsObjectReferenceCollector() && Object == ClassDefaultObject)
@@ -280,6 +291,8 @@ void UBlueprintGeneratedClass::SerializeDefaultObject(UObject* Object, FArchive&
 
 void UBlueprintGeneratedClass::PostLoadDefaultObject(UObject* Object)
 {
+	FScopeLock SerializeAndPostLoadLock(&SerializeAndPostLoadCritical);
+
 	Super::PostLoadDefaultObject(Object);
 
 	if (Object == ClassDefaultObject)
@@ -1031,22 +1044,25 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, boo
 void UBlueprintGeneratedClass::GetPreloadDependencies(TArray<UObject*>& OutDeps)
 {
 	Super::GetPreloadDependencies(OutDeps);
-	for (UField* Field = Children; Field; Field = Field->Next)
-	{
-		OutDeps.Add(Field);
-	}
-	OutDeps.Add(GetSuperClass());
+	
+	// Super handles parent class and fields
 	OutDeps.Add(GetSuperClass()->GetDefaultObject());
 
-	OutDeps.Add(UberGraphFunction);
-	OutDeps.Add(GetInheritableComponentHandler());
+	if (UberGraphFunction)
+	{
+		OutDeps.Add(UberGraphFunction);
+	}
+	
 	UObject *CDO = GetDefaultObject();
 	if (CDO)
 	{
 		ForEachObjectWithOuter(CDO, [&OutDeps](UObject* SubObj)
 		{
-			OutDeps.Add(SubObj->GetClass());
-			OutDeps.Add(SubObj->GetArchetype());
+			if (SubObj->HasAllFlags(RF_DefaultSubObject))
+			{
+				OutDeps.Add(SubObj->GetClass());
+				OutDeps.Add(SubObj->GetArchetype());
+			}
 		});
 	}
 }

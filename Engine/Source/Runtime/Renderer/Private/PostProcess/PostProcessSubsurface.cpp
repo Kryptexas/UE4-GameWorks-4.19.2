@@ -1,15 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessSubsurface.cpp: Screenspace subsurface scattering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessSubsurface.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessSubsurface.h"
+#include "EngineGlobals.h"
+#include "Engine/SubsurfaceProfile.h"
+#include "StaticBoundShaderState.h"
+#include "CanvasTypes.h"
+#include "UnrealEngine.h"
 #include "SceneUtils.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "RenderTargetTemp.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "SceneRenderTargetParameters.h"
+#include "PostProcess/PostProcessing.h"
 #include "CompositionLighting/PostProcessPassThrough.h"
 
 ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandListImmediate& RHICmdList);
@@ -238,7 +245,7 @@ void SetSubsurfaceVisualizeShader(const FRenderingCompositePassContext& Context)
 FRCPassPostProcessSubsurfaceVisualize::FRCPassPostProcessSubsurfaceVisualize(FRHICommandList& RHICmdList)
 {
 	// we need the GBuffer, we release it Process()
-	FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(RHICmdList, 1);
+	FSceneRenderTargets::Get(RHICmdList).AdjustGBufferRefCount(RHICmdList, 1);
 }
 
 void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassContext& Context)
@@ -328,7 +335,7 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceVisualize::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_Todo_PassContext().GetSceneColor()->GetDesc();
+	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_FrameConstantsOnly().GetSceneColor()->GetDesc();
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceVisualize");
@@ -528,7 +535,7 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_Todo_PassContext().GetSceneColor()->GetDesc();
+	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_FrameConstantsOnly().GetSceneColor()->GetDesc();
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceSetup");

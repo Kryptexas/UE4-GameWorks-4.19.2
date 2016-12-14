@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "LaunchPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/App.h"
+#include "Misc/OutputDeviceError.h"
+#include "Templates/ScopedPointer.h"
+#include "LaunchEngineLoop.h"
 #include <SDL.h>
 #if PLATFORM_HTML5_BROWSER
 	#include <emscripten/emscripten.h>
@@ -12,7 +16,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5Launch, Log, All);
 
-#include "PlatformIncludes.h"
 #include <string.h>
 #include "trace.h"
 
@@ -94,7 +97,7 @@ public:
 		return false;
 	}
 };
-static TAutoPtr<FHTML5Exec> GHTML5Exec;
+static TUniquePtr<FHTML5Exec> GHTML5Exec;
 
 int main(int argc, char* argv[])
 {
@@ -110,7 +113,7 @@ int main(int argc, char* argv[])
 
 	// TODO: configure this via the command line?
 	emscripten_trace_configure("http://127.0.0.1:5000/", "UE4Game");
-	GHTML5Exec = new FHTML5Exec();
+	GHTML5Exec = MakeUnique<FHTML5Exec>();
 
 	emscripten_trace_enter_context("main");
 

@@ -1,19 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/LevelScriptActor.h"
+#include "Engine/World.h"
+#include "Misc/CommandLine.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
 #include "Net/OnlineEngineInterface.h"
 #include "GameFramework/GameStateBase.h"
+#include "PhysicsEngine/BodyInstance.h"
 #include "GameFramework/DefaultPawn.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/GameSession.h"
-#include "GameFramework/GameModeBase.h"
+#include "GameFramework/PlayerStart.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/NetConnection.h"
 #include "Engine/ChildConnection.h"
 #include "Engine/PlayerStartPIE.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/Engine.h"
+#include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/LevelStreaming.h"
 
 #if WITH_EDITOR
 	#include "IMovieSceneCapture.h"
@@ -107,6 +119,11 @@ void AGameModeBase::PreInitializeComponents()
 
 TSubclassOf<AGameSession> AGameModeBase::GetGameSessionClass() const
 {
+	if (UClass* Class = GameSessionClass.Get())
+	{
+		return Class;
+	}
+
 	return AGameSession::StaticClass();
 }
 
@@ -120,7 +137,7 @@ int32 AGameModeBase::GetNumPlayers()
 	int32 PlayerCount = 0;
 	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* PlayerActor = *Iterator;
+		APlayerController* PlayerActor = Iterator->Get();
 		if (PlayerActor->PlayerState && !MustSpectate(PlayerActor))
 		{
 			PlayerCount++;
@@ -134,7 +151,7 @@ int32 AGameModeBase::GetNumSpectators()
 	int32 PlayerCount = 0;
 	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* PlayerActor = *Iterator;
+		APlayerController* PlayerActor = Iterator->Get();
 		if (PlayerActor->PlayerState && MustSpectate(PlayerActor))
 		{
 			PlayerCount++;
@@ -238,7 +255,7 @@ void AGameModeBase::ForceClearUnpauseDelegates(AActor* PauseActor)
 			// Try to find another player to be the worldsettings's Pauser
 			for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 			{
-				APlayerController* Player = *Iterator;
+				APlayerController* Player = Iterator->Get();
 				if (Player->PlayerState != nullptr
 					&&	Player->PlayerState != PC->PlayerState
 					&& !Player->IsPendingKillPending() && !Player->PlayerState->IsPendingKillPending())
@@ -262,6 +279,11 @@ bool AGameModeBase::AllowPausing(APlayerController* PC /*= nullptr*/)
 	return bPauseable || GetNetMode() == NM_Standalone;
 }
 
+bool AGameModeBase::IsPaused() const
+{
+	return Pausers.Num() > 0;
+}
+
 void AGameModeBase::Reset()
 {
 	Super::Reset();
@@ -275,12 +297,12 @@ bool AGameModeBase::ShouldReset_Implementation(AActor* ActorToReset)
 
 void AGameModeBase::ResetLevel()
 {
-	UE_LOG(LogGameMode, Log, TEXT("Reset %s"), *GetName());
+	UE_LOG(LogGameMode, Verbose, TEXT("Reset %s"), *GetName());
 
 	// Reset ALL controllers first
 	for (FConstControllerIterator Iterator = GetWorld()->GetControllerIterator(); Iterator; ++Iterator)
 	{
-		AController* Controller = *Iterator;
+		AController* Controller = Iterator->Get();
 		APlayerController* PlayerController = Cast<APlayerController>(Controller);
 		if (PlayerController)
 		{
@@ -324,7 +346,7 @@ APlayerController* AGameModeBase::ProcessClientTravel(FString& FURL, FGuid NextM
 	APlayerController* LocalPlayerController = nullptr;
 	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if (Cast<UNetConnection>(PlayerController->Player) != nullptr)
 		{
 			// Remote player
@@ -351,19 +373,19 @@ bool AGameModeBase::CanServerTravel(const FString& FURL, bool bAbsolute)
 	// There are a few issues with seamless travel using single process PIE, so we're disabling that for now while working on a fix
 	if (World->WorldType == EWorldType::PIE && bUseSeamlessTravel && !FParse::Param(FCommandLine::Get(), TEXT("MultiprocessOSS")))
 	{
-		UE_LOG(LogGameMode, Warning, TEXT("AGameModeBase::CanServerTravel: Seamless travel currently NOT supported in single process PIE."));
+		UE_LOG(LogGameMode, Warning, TEXT("CanServerTravel: Seamless travel currently NOT supported in single process PIE."));
 		return false;
 	}
 
 	if (FURL.Contains(TEXT("%")))
 	{
-		UE_LOG(LogGameMode, Error, TEXT("FURL %s Contains illegal character '%%'."), *FURL);
+		UE_LOG(LogGameMode, Error, TEXT("CanServerTravel: FURL %s Contains illegal character '%%'."), *FURL);
 		return false;
 	}
 
 	if (FURL.Contains(TEXT(":")) || FURL.Contains(TEXT("\\")))
 	{
-		UE_LOG(LogGameMode, Error, TEXT("FURL %s blocked, contains : or \\"), *FURL);
+		UE_LOG(LogGameMode, Error, TEXT("CanServerTravel: FURL %s blocked, contains : or \\"), *FURL);
 		return false;
 	}
 
@@ -382,7 +404,7 @@ bool AGameModeBase::CanServerTravel(const FString& FURL, bool bAbsolute)
 	FText InvalidPackageError;
 	if (MapName.StartsWith(TEXT("/")) && !FPackageName::IsValidLongPackageName(MapName, true, &InvalidPackageError))
 	{
-		UE_LOG(LogGameMode, Log, TEXT("FURL %s blocked (%s)"), *FURL, *InvalidPackageError.ToString());
+		UE_LOG(LogGameMode, Log, TEXT("CanServerTravel: FURL %s blocked (%s)"), *FURL, *InvalidPackageError.ToString());
 		return false;
 	}
 	
@@ -491,7 +513,7 @@ void AGameModeBase::SwapPlayerControllers(APlayerController* OldPC, APlayerContr
 	}
 	else
 	{
-		UE_LOG(LogGameMode, Warning, TEXT("SwapPlayerControllers(): Invalid OldPC, invalid NewPC, or OldPC has no Player!"));
+		UE_LOG(LogGameMode, Warning, TEXT("SwapPlayerControllers: Invalid OldPC, invalid NewPC, or OldPC has no Player!"));
 	}
 }
 
@@ -514,7 +536,7 @@ void AGameModeBase::HandleSeamlessTravelPlayer(AController*& C)
 		}
 		else
 		{
-			UE_LOG(LogGameMode, Warning, TEXT("Failed to spawn new PlayerController for %s (old class %s)"), *PC->GetHumanReadableName(), *PC->GetClass()->GetName());
+			UE_LOG(LogGameMode, Warning, TEXT("HandleSeamlessTravelPlayer: Failed to spawn new PlayerController for %s (old class %s)"), *PC->GetHumanReadableName(), *PC->GetClass()->GetName());
 			PC->Destroy();
 			return;
 		}
@@ -541,16 +563,15 @@ void AGameModeBase::PostSeamlessTravel()
 
 	// We have to make a copy of the controller list, since the code after this will destroy
 	// and create new controllers in the world's list
-	TArray<TAutoWeakObjectPtr<AController> >	OldControllerList;
+	TArray<AController*> OldControllerList;
 	for (auto It = GetWorld()->GetControllerIterator(); It; ++It)
 	{
-		OldControllerList.Add(*It);
+		OldControllerList.Add(It->Get());
 	}
 
 	// Handle players that are already loaded
-	for (FConstControllerIterator Iterator = OldControllerList.CreateConstIterator(); Iterator; ++Iterator)
+	for (AController* Controller : OldControllerList)
 	{
-		AController* Controller = *Iterator;
 		if (Controller->PlayerState)
 		{
 			APlayerController* PlayerController = Cast<APlayerController>(Controller);
@@ -619,7 +640,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	// Handle spawn failure.
 	if (NewPlayerController == nullptr)
 	{
-		UE_LOG(LogGameMode, Log, TEXT("Couldn't spawn player controller of class %s"), PlayerControllerClass ? *PlayerControllerClass->GetName() : TEXT("NULL"));
+		UE_LOG(LogGameMode, Log, TEXT("Login: Couldn't spawn player controller of class %s"), PlayerControllerClass ? *PlayerControllerClass->GetName() : TEXT("NULL"));
 		ErrorMessage = FString::Printf(TEXT("Failed to spawn player controller"));
 		return nullptr;
 	}
@@ -721,7 +742,7 @@ void AGameModeBase::InitSeamlessTravelPlayer(AController* NewController)
 
 	if (StartSpot == nullptr)
 	{
-		UE_LOG(LogGameMode, Warning, TEXT("Could not find a starting spot"));
+		UE_LOG(LogGameMode, Warning, TEXT("InitSeamlessTravelPlayer: Could not find a starting spot"));
 	}
 	else
 	{
@@ -1045,7 +1066,7 @@ AActor* AGameModeBase::FindPlayerStart_Implementation(AController* Player, const
 		}
 		else
 		{
-			UE_LOG(LogGameMode, Error, TEXT("Error - ShouldSpawnAtStartSpot returned true but the Player StartSpot was null."));
+			UE_LOG(LogGameMode, Error, TEXT("FindPlayerStart: ShouldSpawnAtStartSpot returned true but the Player StartSpot was null."));
 		}
 	}
 
@@ -1053,7 +1074,7 @@ AActor* AGameModeBase::FindPlayerStart_Implementation(AController* Player, const
 	if (BestStart == nullptr)
 	{
 		// No player start found
-		UE_LOG(LogGameMode, Log, TEXT("Warning - PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));
+		UE_LOG(LogGameMode, Log, TEXT("FindPlayerStart: PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));
 
 		// This is a bit odd, but there was a complex chunk of code that in the end always resulted in this, so we may as well just 
 		// short cut it down to this.  Basically we are saying spawn at 0,0,0 if we didn't find a proper player start
@@ -1099,7 +1120,7 @@ APawn* AGameModeBase::SpawnDefaultPawnAtTransform_Implementation(AController* Ne
 	APawn* ResultPawn = GetWorld()->SpawnActor<APawn>(PawnClass, SpawnTransform, SpawnInfo);
 	if (!ResultPawn)
 	{
-		UE_LOG(LogGameMode, Warning, TEXT("Couldn't spawn Pawn of type %s at %s"), *GetNameSafe(PawnClass), *SpawnTransform.ToHumanReadableString());
+		UE_LOG(LogGameMode, Warning, TEXT("SpawnDefaultPawnAtTransform: Couldn't spawn Pawn of type %s at %s"), *GetNameSafe(PawnClass), *SpawnTransform.ToHumanReadableString());
 	}
 	return ResultPawn;
 }
@@ -1120,7 +1141,7 @@ void AGameModeBase::RestartPlayer(AController* NewPlayer)
 		if (NewPlayer->StartSpot != nullptr)
 		{
 			StartSpot = NewPlayer->StartSpot.Get();
-			UE_LOG(LogGameMode, Warning, TEXT("Player start not found, using last start spot"));
+			UE_LOG(LogGameMode, Warning, TEXT("RestartPlayer: Player start not found, using last start spot"));
 		}	
 	}
 
@@ -1136,7 +1157,7 @@ void AGameModeBase::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
 
 	if (!StartSpot)
 	{
-		UE_LOG(LogGameMode, Warning, TEXT("Player start not found, failed to RestartPlayerAtPlayerStart"));
+		UE_LOG(LogGameMode, Warning, TEXT("RestartPlayerAtPlayerStart: Player start not found"));
 		return;
 	}
 
@@ -1146,7 +1167,7 @@ void AGameModeBase::RestartPlayerAtPlayerStart(AController* NewPlayer, AActor* S
 
 	if (MustSpectate(Cast<APlayerController>(NewPlayer)))
 	{
-		UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtTransform tried to restart a spectator-only player!"));
+		UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtPlayerStart: Tried to restart a spectator-only player!"));
 		return;
 	}
 
@@ -1185,7 +1206,7 @@ void AGameModeBase::RestartPlayerAtTransform(AController* NewPlayer, const FTran
 
 	if (MustSpectate(Cast<APlayerController>(NewPlayer)))
 	{
-		UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtTransform tried to restart a spectator-only player!"));
+		UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayerAtTransform: Tried to restart a spectator-only player!"));
 		return;
 	}
 
@@ -1291,7 +1312,7 @@ bool AGameModeBase::SpawnPlayerFromSimulate(const FVector& NewLocation, const FR
 			// Use the "auto-possess" pawn in the world, if there is one.
 			for (FConstPawnIterator Iterator = GetWorld()->GetPawnIterator(); Iterator; ++Iterator)
 			{
-				APawn* Pawn = *Iterator;
+				APawn* Pawn = Iterator->Get();
 				if (Pawn && Pawn->AutoPossessPlayer == EAutoReceiveInput::Player0)
 				{
 					if (Pawn->Controller == nullptr)

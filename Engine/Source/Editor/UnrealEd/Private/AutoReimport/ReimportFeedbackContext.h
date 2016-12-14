@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "FeedbackContext.h"
-#include "SNotificationList.h"
-#include "INotificationWidget.h"
-#include "MessageLog.h"
-#include "AutoReimportUtilities.h"
-#include "FileCacheUtilities.h"
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Logging/MessageLog.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Misc/FeedbackContext.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Notifications/INotificationWidget.h"
+
+class SReimportFeedback;
 
 /** Feedback context that overrides GWarn for import operations to prevent popup spam */
 class FReimportFeedbackContext : public FFeedbackContext, public INotificationWidget, public TSharedFromThis<FReimportFeedbackContext>

@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 PrimitiveDistanceAccuracyRendering.cpp: Contains definitions for rendering the viewmode.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "PrimitiveDistanceAccuracyRendering.h"
+#include "PrimitiveSceneProxy.h"
+#include "EngineGlobals.h"
+#include "MeshBatch.h"
+#include "Engine/Engine.h"
 
 IMPLEMENT_SHADER_TYPE(,FPrimitiveDistanceAccuracyPS,TEXT("PrimitiveDistanceAccuracyPixelShader"),TEXT("Main"),SF_Pixel);
 
@@ -41,7 +43,7 @@ void FPrimitiveDistanceAccuracyPS::SetMesh(
 	const FPrimitiveSceneProxy* Proxy,
 	int32 VisualizeLODIndex,
 	const FMeshBatchElement& BatchElement, 
-	const FMeshDrawingRenderState& DrawRenderState
+	const FDrawingPolicyRenderState& DrawRenderState
 	)
 {
 	float CPULogDistance = -1.f;

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ReflectionEnvironmentComputeShaders - functionality to apply local cubemaps.
@@ -44,7 +44,7 @@ groupshared uint SortedTileReflectionCaptureIndices[MAX_CAPTURES];
 
 // Whether to use reflection captures culled to the light grid, or tiled culling
 // .93ms -> .70ms when enabled on 970 GTX. PS4 cost is about the same.
-#define USE_LIGHT_GRID_REFLECTION_CAPTURE_CULLING 1
+#define USE_LIGHT_GRID_REFLECTION_CAPTURE_CULLING !COMPILER_METAL
 #define SORT_CAPTURES 1
 
 #if USE_LIGHT_GRID_REFLECTION_CAPTURE_CULLING
@@ -53,8 +53,10 @@ groupshared uint SortedTileReflectionCaptureIndices[MAX_CAPTURES];
 #else
 	#if SORT_CAPTURES
 		#define CompositeTileReflectionCaptureIndices SortedTileReflectionCaptureIndices
+		#define InstancedCompositeTileReflectionCaptureIndices SortedTileReflectionCaptureIndices
 	#else
 		#define CompositeTileReflectionCaptureIndices TileReflectionCaptureIndices
+		#define InstancedCompositeTileReflectionCaptureIndices TileReflectionCaptureIndices
 	#endif
 #endif
 

@@ -1,26 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimSequence.cpp: Skeletal mesh animation functions.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "AnimationCompression.h"
+#include "Animation/AnimSequence.h"
+#include "Misc/MessageDialog.h"
+#include "Logging/LogScopedVerbosityOverride.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/PropertyPortFlags.h"
+#include "EngineUtils.h"
 #include "AnimEncoding.h"
 #include "AnimationUtils.h"
+#include "BonePose.h"
 #include "AnimationRuntime.h"
-#include "TargetPlatform.h"
 #include "Animation/AnimCompress.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
-#include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/Rig.h"
 #include "Animation/AnimationSettings.h"
 #include "EditorFramework/AssetImportData.h"
-#include "Animation/AnimStats.h"
-#include "MessageLog.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "DerivedDataCacheInterface.h"
+#include "Interfaces/ITargetPlatform.h"
 #include "Animation/AnimCompressionDerivedData.h"
-#include "UObjectThreadContext.h"
-#include "FrameworkObjectVersion.h"
+#include "UObject/UObjectThreadContext.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 
 #define USE_SLERP 0
 #define LOCTEXT_NAMESPACE "AnimSequence"
@@ -2032,9 +2040,18 @@ void UAnimSequence::RequestAnimCompression(bool bAsyncCompression, TSharedPtr<FA
 	{
 		TArray<uint8> OutData;
 		FDerivedDataAnimationCompression* AnimCompressor = new FDerivedDataAnimationCompression(this, CompressContext, bDoCompressionInPlace);
-		if (AnimCompressor->CanBuild())
+		// For debugging DDC/Compression issues		
+		const bool bSkipDDC = false;
+		if (bSkipDDC)
 		{
-			GetDerivedDataCacheRef().GetSynchronous(AnimCompressor, OutData);
+			AnimCompressor->Build(OutData);
+		}
+		else
+		{
+			if (AnimCompressor->CanBuild())
+			{
+				GetDerivedDataCacheRef().GetSynchronous(AnimCompressor, OutData);
+			}
 		}
 
 		if (bUseRawDataOnly && OutData.Num() > 0)
@@ -2200,7 +2217,7 @@ void UAnimSequence::UpdateSHAWithCurves(FSHA1& Sha, const FRawCurveTracks& InRaw
 	{
 		UpdateWithData(Sha, Curve.Name.UID);
 		UpdateWithData(Sha, Curve.FloatCurve.DefaultValue);
-		UpdateSHAWithArray(Sha, Curve.FloatCurve.Keys);
+		UpdateSHAWithArray(Sha, Curve.FloatCurve.GetConstRefOfKeys());
 		UpdateWithData(Sha, Curve.FloatCurve.PreInfinityExtrap);
 		UpdateWithData(Sha, Curve.FloatCurve.PostInfinityExtrap);
 	}
@@ -3276,10 +3293,6 @@ void UAnimSequence::RemapTracksToNewSkeleton( USkeleton* NewSkeleton, bool bConv
 	}
 
 	SetSkeleton(NewSkeleton);
-
-	// We don't force gen here as that can cause us to constantly generate
-	// new anim ddc keys if users never resave anims that need to remap.
-	PostProcessSequence(false);
 }
 
 void UAnimSequence::PostProcessSequence(bool bForceNewRawDatGuid)

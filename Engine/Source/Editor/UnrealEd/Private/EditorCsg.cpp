@@ -1,14 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/ScopedSlowTask.h"
+#include "GameFramework/Actor.h"
+#include "Materials/Material.h"
+#include "Engine/Brush.h"
+#include "Editor/EditorEngine.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "EdMode.h"
+#include "EditorModeManager.h"
 #include "SurfaceIterators.h"
 #include "BSPOps.h"
 #include "ActorEditorUtils.h"
-#include "Engine/Polys.h"
+#include "Misc/FeedbackContext.h"
 #include "EngineUtils.h"
-#include "Engine/Brush.h"
-#include "Engine/Selection.h"
 
 // Globals:
 static TArray<uint8*> GFlags1;
@@ -276,7 +285,7 @@ void UEditorEngine::csgRebuild( UWorld* InWorld )
 	for( TActorIterator<ABrush> It(InWorld); It; ++It )
 	{
 		ABrush* B=*It;
-		if ( B->Brush && !B->IsStaticBrush() )
+		if ( B && B->GetLevel() == InWorld->GetCurrentLevel() && B->Brush && !B->IsStaticBrush() )
 		{
 			DynamicBrushes.Add(B);
 		}
@@ -1351,7 +1360,10 @@ static void SendTo( UWorld* InWorld, int32 bSendToFirst )
 	ULevel*	Level = InWorld->GetCurrentLevel();
 	for (AActor* Actor : Level->Actors)
 	{
-		Actor->Modify();
+		if(Actor)
+		{
+			Actor->Modify();
+		}
 	}
 	
 	// Fire ULevel::LevelDirtiedEvent when falling out of scope.

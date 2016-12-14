@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderCore.h: Render core module implementation.
 =============================================================================*/
 
-#include "RenderCorePrivatePCH.h"
 #include "RenderCore.h"
+#include "HAL/IConsoleManager.h"
 #include "UniformBuffer.h"
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, RenderCore);
 

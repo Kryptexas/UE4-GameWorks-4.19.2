@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTonemap.usf: PostProcessing tone mapping
@@ -7,7 +7,6 @@
 #include "Common.usf"
 #include "PostProcessCommon.usf"
 #include "TonemapCommon.usf"
-#include "GammaCorrectionCommon.usf"
 #include "EyeAdaptationCommon.usf"
 
 // 0 / 1(slower, visualize multiple internals side by side for the same image portion, see DebugTile)
@@ -59,8 +58,10 @@ uint GetOutputDevice()
 // LUT for color grading
 #if USE_VOLUME_LUT == 1
 	Texture3D		ColorGradingLUT;
-	SamplerState	ColorGradingLUTSampler;
-#endif
+#else
+	Texture2D       ColorGradingLUT;
+#endif 
+SamplerState        ColorGradingLUTSampler;
 
 static const float LUTSize = 32;
 
@@ -79,7 +80,8 @@ half3 ColorLookupTable( half3 LinearColor )
 #if USE_VOLUME_LUT == 1
 	half3 OutDeviceColor = ColorGradingLUT.Sample( ColorGradingLUTSampler, UVW ).rgb;
 #else
-	half3 OutDeviceColor = UnwrappedTexture3DSample( PostprocessInput3, PostprocessInput3Sampler, UVW, LUTSize ).rgb;
+	half3 OutDeviceColor = UnwrappedTexture3DSample( ColorGradingLUT, ColorGradingLUTSampler, UVW, LUTSize ).rgb;
+	//half3 OutDeviceColor = UnwrappedTexture3DSample( PostprocessInput3, PostprocessInput3Sampler, UVW, LUTSize ).rgb;
 #endif
 	
 	return OutDeviceColor * 1.05;
@@ -519,33 +521,11 @@ void MainPS(
 			OutColor.rgb = InvertACESTonemapping( OutColor.rgb );
 		#endif
 
+		// We always process in PQ for precision but can output in ScRGB
 		BRANCH
-		if (EncodeHDROutput)
+		if (GetOutputDevice() == 5 || GetOutputDevice() == 6)
 		{
-			// Nvidia HDR encoding - Remove PQ, convert to linear scRGB
-			const float3x3 AP1_2_sRGB = mul(XYZ_2_sRGB_MAT, AP1_2_XYZ_MAT);
-			const float WhitePoint = 80.f;
-
-			OutColor.xyz = ST2084ToLinear(OutColor.xyz);
-
-			// 1000 nit display
-			float MaxODTNits = 1000.0f;
-			float MinODTNits = 0.0001f;
-
-			if (GetOutputDevice() == 4)
-			{
-				// 2000 nit display
-				MaxODTNits = 2000.0f;
-				MinODTNits = 0.005f;
-			}
-
-			OutColor.xyz = clamp(OutColor.xyz, MinODTNits, MaxODTNits);
-			OutColor.x = Y_2_linCV(OutColor.x, MaxODTNits, MinODTNits);
-			OutColor.y = Y_2_linCV(OutColor.y, MaxODTNits, MinODTNits);
-			OutColor.z = Y_2_linCV(OutColor.z, MaxODTNits, MinODTNits);
-
-			float scRGBScale = MaxODTNits / WhitePoint;
-			OutColor.xyz = mul(AP1_2_sRGB, OutColor.xyz) * scRGBScale;
+			OutColor.xyz = ST2084ToScRGB(OutColor.xyz, GetOutputDevice());
 		}
 	#endif
 

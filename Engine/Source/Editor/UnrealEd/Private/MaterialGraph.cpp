@@ -1,17 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /////////////////////////////////////////////////////
 // UMaterialGraph
 
-#include "UnrealEd.h"
+#include "MaterialGraph/MaterialGraph.h"
+#include "MaterialGraph/MaterialGraphNode_Comment.h"
+#include "MaterialGraph/MaterialGraphNode.h"
+#include "MaterialGraph/MaterialGraphNode_Root.h"
 
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
+#include "Materials/MaterialExpressionReroute.h"
 
-#include "GraphEditor.h"
-#include "MaterialShared.h"
-#include "MaterialEditorUtilities.h"
+#include "MaterialGraphNode_Knot.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraph"
 
@@ -82,7 +84,18 @@ void UMaterialGraph::RebuildGraph()
 UMaterialGraphNode* UMaterialGraph::AddExpression(UMaterialExpression* Expression)
 {
 	UMaterialGraphNode* NewNode = NULL;
-	if (Expression)
+	if (Expression && Expression->IsA(UMaterialExpressionReroute::StaticClass()))
+	{
+		Modify();
+		FGraphNodeCreator<UMaterialGraphNode_Knot> NodeCreator(*this);
+		NewNode = NodeCreator.CreateNode(false);
+		NewNode->MaterialExpression = Expression;
+		NewNode->RealtimeDelegate = RealtimeDelegate;
+		NewNode->MaterialDirtyDelegate = MaterialDirtyDelegate;
+		Expression->GraphNode = NewNode;
+		NodeCreator.Finalize();
+	}
+	else if (Expression)
 	{
 		Modify();
 		FGraphNodeCreator<UMaterialGraphNode> NodeCreator(*this);

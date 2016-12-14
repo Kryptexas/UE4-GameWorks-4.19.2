@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LinuxClientTargetPlatformModule.cpp: Implements the FLinuxClientTargetPlatformModule class.
 =============================================================================*/
 
-#include "LinuxClientTargetPlatformPrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+
+#include "Interfaces/ITargetPlatformModule.h"
+
+#include "LinuxTargetDevice.h"
+#include "LinuxTargetPlatform.h"
 
 
 /**

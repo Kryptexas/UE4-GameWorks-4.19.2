@@ -1,14 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "KismetNodes/SGraphNodeK2Base.h"
+
+class ITableRow;
+class SComboButton;
+class STableViewBase;
+class SVerticalBox;
+class UK2Node;
 
 class SGraphNodeK2CreateDelegate : public SGraphNodeK2Base
 {
 public:
-	SLATE_BEGIN_ARGS(SGraphNodeK2CreateDelegate){}
+	SLATE_BEGIN_ARGS(SGraphNodeK2CreateDelegate) {}
 	SLATE_END_ARGS()
 
-	struct FFunctionItemData
+		struct FFunctionItemData
 	{
 		FName Name;
 		FString Description;

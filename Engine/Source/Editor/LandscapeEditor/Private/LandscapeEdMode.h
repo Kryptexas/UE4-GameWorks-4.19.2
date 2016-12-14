@@ -1,13 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UnrealWidget.h"
+#include "LandscapeProxy.h"
+#include "EdMode.h"
 #include "LandscapeToolInterface.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
-#include "LandscapeProxy.h"
 #include "LandscapeGizmoActiveActor.h"
-#include "LevelEditorViewport.h"
+
+class ALandscape;
+class FCanvas;
+class FEditorViewportClient;
+class FLandscapeToolSplines;
+class FPrimitiveDrawInterface;
+class FSceneView;
+class FUICommandList;
+class FViewport;
+class ULandscapeComponent;
+class ULandscapeEditorObject;
+class UViewportInteractor;
+struct FHeightmapToolTarget;
+struct FViewportActionKeyInput;
+struct FViewportClick;
+template<class ToolTarget> class FLandscapeToolCopyPaste;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLandscapeEdMode, Log, All);
 

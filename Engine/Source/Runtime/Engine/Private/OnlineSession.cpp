@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OnlineSession.cpp: Online session related implementations
 	(creating/joining/leaving/destroying sessions)
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GameFramework/OnlineSession.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
 UOnlineSession::UOnlineSession(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "UnrealTypeTraits.h"
-#include "Containers/ContainerAllocationPolicies.h"
-#include "UnrealTemplate.h"
-#include "Archive.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Templates/TypeCompatibleBytes.h"
+#include "Templates/UnrealTemplate.h"
+#include "Logging/LogMacros.h"
 
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogUnion, Log, All);

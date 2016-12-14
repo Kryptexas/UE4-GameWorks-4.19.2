@@ -1,8 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class IContentSourceProvider;
+#include "CoreMinimal.h"
+#include "IContentSourceProvider.h"
 
 /** Provides methods for registering and getting registered content source providers. */
 class FContentSourceProviderManager

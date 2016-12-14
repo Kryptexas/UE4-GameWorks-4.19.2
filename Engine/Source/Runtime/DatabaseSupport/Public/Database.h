@@ -1,10 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "UnrealString.h"
-#include "Array.h"
+#include "CoreMinimal.h"
 
 /**
  * Whether to compile in support for database connectivity and SQL execution.
@@ -18,6 +16,7 @@
 #define USE_ADO_INTEGRATION (PLATFORM_WINDOWS && !(UE_BUILD_SHIPPING && WITH_EDITOR) && WITH_DATABASE_SUPPORT && !PLATFORM_COMPILER_CLANG)
 #define USE_REMOTE_INTEGRATION (!USE_ADO_INTEGRATION && !(UE_BUILD_SHIPPING && WITH_EDITOR) && WITH_DATABASE_SUPPORT && !PLATFORM_COMPILER_CLANG)
 
+class FSocket;
 
 /**  
  * Enums for Database types.  Each Database has their own set of DB types and  

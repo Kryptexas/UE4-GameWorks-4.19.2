@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchChunk.cpp: Implements classes involved with chunks for the build system.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchChunk.h"
+#include "HAL/FileManager.h"
+#include "HAL/RunnableThread.h"
+#include "Misc/ScopeLock.h"
+#include "BuildPatchUtil.h"
 
 // The chunk header magic codeword, for quick checking that the opened file is a chunk file.
 #define CHUNK_HEADER_MAGIC		0xB1FE3AA2
@@ -231,13 +235,20 @@ uint32 FChunkWriter::FQueuedChunkWriter::Run()
 
 			// Delete the data memory
 			delete ChunkFile;
+
+			// Small sleep for next chunk
+			FPlatformProcess::Sleep(0.0f);
+		}
+		else
+		{
+			// Larger sleep for no work
+			FPlatformProcess::Sleep(0.1f);
 		}
 		double TotalTime = FStatsCollector::CyclesToSeconds(*StatFileCreateTime + *StatSerlialiseTime);
 		if (TotalTime > 0.0)
 		{
 			FStatsCollector::Set(StatDataWriteSpeed, *StatDataWritten / TotalTime);
 		}
-		FPlatformProcess::Sleep(0.0f);
 	}
 	return 0;
 }

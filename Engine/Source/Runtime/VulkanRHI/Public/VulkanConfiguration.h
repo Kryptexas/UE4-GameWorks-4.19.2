@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VulkanConfiguration.h: Vulkan resource RHI definitions.
@@ -73,10 +73,10 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 #define VULKAN_ENABLE_API_DUMP									0
 // Enables logging wrappers per Vulkan call
 #define VULKAN_ENABLE_DUMP_LAYER								0
-#define VULKAN_ENABLE_DRAW_MARKERS								PLATFORM_WINDOWS
+#define VULKAN_ENABLE_DRAW_MARKERS								PLATFORM_WINDOWS && !VULKAN_ENABLE_DUMP_LAYER
 #define VULKAN_ALLOW_MIDPASS_CLEAR								0
 
-// Keep the Vk*CreateInfo stored per object
+// Keep the Vk*CreateInfo stored per object for debugging
 #define VULKAN_KEEP_CREATE_INFO									0
 
 #define VULKAN_SINGLE_ALLOCATION_PER_RESOURCE					0
@@ -88,20 +88,19 @@ inline EDescriptorSetStage GetDescriptorSetForStage(EShaderFrequency Stage)
 // Please remove this after we are done with testing
 #if PLATFORM_WINDOWS
 	#define VULKAN_DISABLE_DEBUG_CALLBACK						0	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
-	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					0	/* 1 = use resolve attachments, 0 = Use a command buffer vkResolveImage for MSAA resolve */
 #else
 	#define VULKAN_DISABLE_DEBUG_CALLBACK						1	/* Disable the DebugReportFunction() callback in VulkanDebug.cpp */
-	#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS					1
 #endif
 
-#define VULKAN_ENABLE_AGGRESSIVE_STATS							1
+#define VULKAN_USE_MSAA_RESOLVE_ATTACHMENTS						1
+
+#define VULKAN_ENABLE_AGGRESSIVE_STATS							0
 
 #define VULKAN_ENABLE_PIPELINE_CACHE							1
 
 #define VULKAN_ENABLE_RHI_DEBUGGING								1
 
-//#todo-rco: While validation is not fixed...
-#define VULKAN_REUSE_FENCES										(VK_HEADER_VERSION < 17)
+#define VULKAN_REUSE_FENCES										1
 
 #if PLATFORM_ANDROID
 	#define VULKAN_SIGNAL_UNIMPLEMENTED()
@@ -144,4 +143,24 @@ namespace EVulkanBindingType
 
 		Count,
 	};
+
+	static inline char GetBindingTypeChar(EType Type)
+	{
+		// Make sure these do NOT alias EPackedTypeName*
+		switch (Type)
+		{
+		case UniformBuffer:			return 'b';
+		case CombinedImageSampler:	return 'c';
+		case Sampler:				return 'p';
+		case Image:					return 'w';
+		case UniformTexelBuffer:	return 'x';
+		case StorageImage:			return 'y';
+		case StorageTexelBuffer:	return 'z';
+		default:
+			check(0);
+			break;
+		}
+
+		return 0;
+	}
 }

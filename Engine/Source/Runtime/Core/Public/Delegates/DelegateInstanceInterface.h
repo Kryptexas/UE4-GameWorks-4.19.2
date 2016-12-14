@@ -1,16 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Tuple.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/TypeCompatibleBytes.h"
+#include "Delegates/Tuple.h"
+
+class FDelegateBase;
+class IDelegateInstance;
+template <typename FuncType> struct IBaseDelegateInstance;
 
 template <typename FuncType>
 struct IBaseDelegateInstance;
 
 template <typename FuncType>
 struct IBaseDelegateInstanceCommon;
-
-class FDelegateBase;
 
 template <typename RetType, typename... Args>
 struct IBaseDelegateInstanceCommon<RetType(Args...)> : public IDelegateInstance

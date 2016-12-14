@@ -1,11 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ObjectMacros.h"
-#include "EngineVersion.h"
-#include "GatherableTextData.h"
-#include "Linker.h"
+#include "CoreMinimal.h"
+#include "Serialization/ArchiveUObject.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/Linker.h"
+
+class FAssetPtr;
+class FLazyObjectPtr;
+struct FUntypedBulkData;
 
 /*----------------------------------------------------------------------------
 	FLinkerSave.

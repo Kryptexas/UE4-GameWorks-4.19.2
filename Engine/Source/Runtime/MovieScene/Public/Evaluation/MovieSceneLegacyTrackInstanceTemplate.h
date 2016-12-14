@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneFwd.h"
-#include "IMovieSceneTrackInstance.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 
 #include "MovieSceneLegacyTrackInstanceTemplate.generated.h"
+
+class UMovieSceneTrack;
 
 USTRUCT()
 struct MOVIESCENE_API FMovieSceneLegacyTrackInstanceTemplate : public FMovieSceneEvalTemplate

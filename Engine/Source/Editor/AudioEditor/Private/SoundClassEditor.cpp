@@ -1,19 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
+#include "SoundClassEditor.h"
+#include "Modules/ModuleManager.h"
+#include "EditorStyleSet.h"
+#include "EdGraph/EdGraph.h"
+#include "SoundClassGraph/SoundClassGraph.h"
+#include "SoundClassGraph/SoundClassGraphNode.h"
+#include "SoundClassGraph/SoundClassGraphSchema.h"
+#include "Sound/SoundClass.h"
+#include "Editor.h"
 
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "PropertyEditorModule.h"
+#include "IDetailsView.h"
 #include "AssetRegistryModule.h"
 
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 
-#include "GraphEditor.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "ScopedTransaction.h"
-#include "Toolkits/IToolkitHost.h"
-#include "SDockTab.h"
-#include "GenericCommands.h"
+#include "SSoundClassActionMenu.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "AudioEditorModule.h"
+#include "AssetToolsModule.h"
+#include "IAssetTools.h"
+#include "Factories/SoundClassFactory.h"
+#include "UObject/Package.h"
+#include "UObjectIterator.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassEditor"
 DEFINE_LOG_CATEGORY_STATIC( LogSoundClassEditor, Log, All );
@@ -324,19 +337,48 @@ void FSoundClassEditor::RedoGraphAction()
 	GEditor->RedoTransaction();
 }
 
-void FSoundClassEditor::CreateSoundClass(UEdGraphPin* FromPin, const FVector2D& Location, FString Name)
+void FSoundClassEditor::CreateSoundClass(UEdGraphPin* FromPin, const FVector2D& Location, const FString& Name)
 {
 	// If we have a valid name
 	if (!Name.IsEmpty() && Name != SoundClass->GetName())
 	{
-		FName NewClassName = *Name;
-		UPackage* Package = SoundClass->GetOutermost();
-		USoundClass* NewSoundClass = NewObject<USoundClass>(Package, NewClassName, RF_Public);
+		USoundClass* NewSoundClass = nullptr;
+		FName NewClassName(*Name);
+		
+		// Check if sound class exists and use that instead of trying to create a new one
+		for (TObjectIterator<USoundClass> It; It; ++It)
+		{
+			USoundClass* ExistingSoundClass = *It;
+			if (ExistingSoundClass->GetFName() == NewClassName)
+			{
+				NewSoundClass = ExistingSoundClass;
+				break;
+			}
+		}
 
-		CastChecked<USoundClassGraph>(SoundClass->SoundClassGraph)->AddNewSoundClass(FromPin, NewSoundClass, Location.X, Location.Y);
+		if (!NewSoundClass)
+		{
+			// Derive new package path from existing asset's path
+			FString PackagePath = SoundClass->GetPathName();
+			FString AssetName = FString::Printf(TEXT("/%s.%s"), *SoundClass->GetName(), *SoundClass->GetName());
+			PackagePath.RemoveFromEnd(AssetName);
 
-		NewSoundClass->PostEditChange();
-		Package->MarkPackageDirty();
+			// Create a sound class factory to create a new sound class
+			USoundClassFactory* SoundClassFactory = NewObject<USoundClassFactory>();
+
+			// Load asset tools to create the asset properly
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+			NewSoundClass = Cast<USoundClass>(AssetToolsModule.Get().CreateAsset(Name, PackagePath, USoundClass::StaticClass(), SoundClassFactory, FName("SoundClassEditorNewAsset")));
+		}
+
+		// This may fail if the asset has same name as existing asset, etc.
+		if (NewSoundClass)
+		{
+			CastChecked<USoundClassGraph>(SoundClass->SoundClassGraph)->AddNewSoundClass(FromPin, NewSoundClass, Location.X, Location.Y);
+
+			NewSoundClass->PostEditChange();
+			NewSoundClass->MarkPackageDirty();
+		}
 	}
 }
 

@@ -1,12 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-class ISessionInfo;
-class ISessionInstanceInfo;
-struct FSessionLogMessage;
-
+#include "CoreMinimal.h"
+#include "ISessionInstanceInfo.h"
+#include "ISessionInfo.h"
+#include "SessionLogMessage.h"
 
 /**
  * Interface for the session manager.

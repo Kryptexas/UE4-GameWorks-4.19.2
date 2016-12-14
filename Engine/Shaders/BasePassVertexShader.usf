@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassVertexShader.usf: Base pass vertex shader
 =============================================================================*/
 
 #include "BasePassVertexCommon.usf"
+
+// Metal needs to combine the vertex & hull shaders for tesellation support.
+#if COMPILER_METAL && USING_TESSELLATION
+#include "BasePassTessellationShaders.usf"
+#endif
 
 #if WRITES_VELOCITY_TO_GBUFFER
 //@todo-rco: Move to pixel shader

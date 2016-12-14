@@ -1,24 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "BaseToolkit.h"
-#include "LayoutService.h"
-#include "TabManager.h"
-#include "Toolkits/AssetEditorManager.h"		// For IAssetEditorInstance derive
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "UObject/GCObject.h"
+#include "Framework/Docking/TabManager.h"
+#include "Toolkits/IToolkit.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Framework/Docking/LayoutService.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Toolkits/BaseToolkit.h"
 
-
-class FExtender;
-class FUICommandList;
-class IToolkit;
-class IToolkitHost;
+class FAssetEditorModeManager;
+class FMenuBuilder;
 class SBorder;
 class SStandaloneAssetEditorToolkitHost;
-class SWidget;
-class UObject;
-struct FSlateBrush;
-struct FTabId;
-
 
 DECLARE_DELEGATE_RetVal( bool, FRequestAssetEditorClose );
 

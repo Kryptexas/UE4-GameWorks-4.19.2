@@ -1,13 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // This file contains the classes used when converting strings between
 // standards (ANSI, UNICODE, etc.)
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
 #include "Containers/ContainerAllocationPolicies.h"
-#include "HAL/Platform.h"
-#include "HAL/PlatformString.h"
+#include "Containers/Array.h"
 #include "Misc/CString.h"
 
 

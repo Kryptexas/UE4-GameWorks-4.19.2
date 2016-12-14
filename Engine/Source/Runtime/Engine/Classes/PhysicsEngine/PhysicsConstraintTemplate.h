@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // Complete constraint definition used by rigid body physics.
@@ -10,7 +10,10 @@
 
 #pragma once 
 
-#include "ConstraintInstance.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsConstraintTemplate.generated.h"
 
 USTRUCT()

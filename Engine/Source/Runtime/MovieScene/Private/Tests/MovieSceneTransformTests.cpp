@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "MovieSceneSectionParameters.h"
+#include "CoreMinimal.h"
+#include "Evaluation/MovieSceneSequenceTransform.h"
+#include "Evaluation/MovieSceneSectionParameters.h"
+#include "Containers/ArrayView.h"
+#include "Misc/AutomationTest.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneSubTrack"
 
@@ -24,7 +27,7 @@ bool IsNearly(TRange<float> A, TRange<float> B)
 	return IsNearly(A.GetLowerBound(), B.GetLowerBound()) && IsNearly(A.GetUpperBound(), B.GetUpperBound());
 }
 
-namespace LexicalConversion
+namespace Lex
 {
 	FString ToString(const TRange<float>& InRange)
 	{
@@ -49,7 +52,7 @@ namespace LexicalConversion
 
 bool TestTransform(FAutomationTestBase& Test, FMovieSceneSequenceTransform Transform, TArrayView<TRange<float>> InSource, TArrayView<TRange<float>> InExpected, const TCHAR* TestName)
 {
-	using namespace LexicalConversion;
+	using namespace Lex;
 
 	check(InSource.Num() == InExpected.Num());
 

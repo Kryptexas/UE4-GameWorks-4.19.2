@@ -1,7 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/MemoryBase.h"
+#include "Misc/ScopeLock.h"
 
 /**
  * FMalloc proxy that synchronizes access, making the used malloc thread safe.

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CanvasItem.h: Unreal canvas item definitions
@@ -6,14 +6,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Fonts/ShapedTextFwd.h"
 #include "Engine/EngineTypes.h"
+#include "Templates/Casts.h"
+#include "Fonts/SlateFontInfo.h"
 #include "Engine/Font.h"
-#include "ShapedTextFwd.h"
 #include "SceneTypes.h"
 
-class FCanvas;
 class FBatchedElementParameters;
 class FBatchedElements;
+class FCanvas;
 class FMaterialRenderProxy;
 class FTexture;
 class UMaterial;

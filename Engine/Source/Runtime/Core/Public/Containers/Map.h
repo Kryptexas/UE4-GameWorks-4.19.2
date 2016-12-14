@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Containers/Array.h"
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "Templates/UnrealTypeTraits.h"
+#include "Templates/AlignOf.h"
+#include "Templates/UnrealTemplate.h"
+#include "Templates/Sorting.h"
+#include "Misc/StructBuilder.h"
+#include "Templates/Function.h"
 #include "Containers/Set.h"
-#include "Containers/UnrealString.h"
-#include "Algo/Reverse.h"
+#include "Containers/Algo/Reverse.h"
 
 #define ExchangeB(A,B) {bool T=A; A=B; B=T;}
-
 
 /** An initializer type for pairs that's passed to the pair set when adding a new pair. */
 template <typename KeyInitType, typename ValueInitType>

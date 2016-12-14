@@ -1,11 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-class  SGraphActionMenu;
+#include "CoreMinimal.h"
+#include "Layout/Margin.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Views/SExpanderArrow.h"
+#include "Widgets/Layout/SBorder.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "GraphEditor.h"
+
+class FBlueprintEditor;
+class SBlueprintContextTargetMenu;
+class SEditableTextBox;
+class SGraphActionMenu;
+class UEdGraph;
 struct FBlueprintActionContext;
-class  SBlueprintContextTargetMenu;
+struct FCustomExpanderData;
 
 /*******************************************************************************
 * SBlueprintActionMenu

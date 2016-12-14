@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieScene3DConstraintSection.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Sections/MovieScene3DConstraintSection.h"
 #include "MovieScene3DAttachSection.generated.h"
-
 
 class AActor;
 class USceneComponent;
-
 
 /**
  * A 3D Attach section

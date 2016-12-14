@@ -1,16 +1,38 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
-#include "RichCurveEditorCommands.h"
 #include "SCurveEditor.h"
-#include "ScopedTransaction.h"
-#include "SColorGradientEditor.h"
-#include "GenericCommands.h"
-#include "SNumericEntryBox.h"
-#include "STextEntryPopup.h"
-#include "CurveEditorSettings.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Rendering/DrawElements.h"
+#include "Widgets/SBoxPanel.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/SToolTip.h"
+#include "Widgets/Notifications/SErrorText.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "EditorStyleSet.h"
+#include "Factories/Factory.h"
 #include "Factories/CurveFactory.h"
+#include "Editor.h"
+#include "RichCurveEditorCommands.h"
+#include "CurveEditorSettings.h"
+#include "ScopedTransaction.h"
+#include "Framework/Commands/GenericCommands.h"
+#include "Widgets/Input/SNumericEntryBox.h"
+#include "Widgets/Input/STextEntryPopup.h"
 
 #define LOCTEXT_NAMESPACE "SCurveEditor"
 
@@ -426,6 +448,8 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	{
 		GEditor->RegisterForUndo(this);
 	}
+
+	FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &SCurveEditor::OnObjectPropertyChanged);
 }
 
 FText SCurveEditor::GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const
@@ -515,6 +539,8 @@ SCurveEditor::~SCurveEditor()
 	{
 		GEditor->UnregisterForUndo(this);
 	}
+
+	FCoreUObjectDelegates::OnObjectPropertyChanged.RemoveAll(this);
 }
 
 TSharedRef<SWidget> SCurveEditor::CreateCurveSelectionWidget() const
@@ -3554,6 +3580,14 @@ void SCurveEditor::UndoAction()
 void SCurveEditor::RedoAction()
 {
 	GEditor->RedoTransaction();
+}
+
+void SCurveEditor::OnObjectPropertyChanged(UObject* Object, FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if ( CurveOwner && CurveOwner->GetOwners().Contains(Object) )
+	{
+		ValidateSelection();
+	}
 }
 
 void SCurveEditor::PostUndo(bool bSuccess)

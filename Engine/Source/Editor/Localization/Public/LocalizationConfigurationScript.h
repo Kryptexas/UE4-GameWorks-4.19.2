@@ -1,9 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ConfigCacheIni.h"
-#include "LocalizationTargetTypes.h"
+#include "CoreMinimal.h"
+#include "Misc/ConfigCacheIni.h"
+
+class ULocalizationTarget;
 
 struct LOCALIZATION_API FLocalizationConfigurationScript : public FConfigFile
 {

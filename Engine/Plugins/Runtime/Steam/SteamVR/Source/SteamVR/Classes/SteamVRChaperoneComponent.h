@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Components/ActorComponent.h"
 #include "SteamVRChaperoneComponent.generated.h"
 
 /**
  * SteamVR Extensions Function Library
  */
-UCLASS(MinimalAPI, meta = (BlueprintSpawnableComponent), ClassGroup = SteamVR)
-class USteamVRChaperoneComponent : public UActorComponent
+UCLASS(meta = (BlueprintSpawnableComponent), ClassGroup = SteamVR)
+class STEAMVR_API USteamVRChaperoneComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // ParticleModuleLocationEmitter
@@ -9,8 +9,13 @@
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Particles/Location/ParticleModuleLocationBase.h"
 #include "ParticleModuleLocationEmitter.generated.h"
+
+struct FParticleEmitterInstance;
 
 UENUM()
 enum ELocationEmitterSelectionMethod

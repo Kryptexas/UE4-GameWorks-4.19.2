@@ -1,13 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "MaterialShared.h"
 #include "MaterialExpressionIO.h"
 
 #include "MaterialExpression.generated.h"
 
-class FMaterialExpressionKey;
 class UEdGraphNode;
+class UMaterial;
+class UTexture;
+struct FPropertyChangedEvent;
 
 //@warning: FExpressionInput is mirrored in MaterialShared.h and manually "subclassed" in Material.h (FMaterialInput)
 #if !CPP      //noexport struct
@@ -241,6 +248,9 @@ class ENGINE_API UMaterialExpression : public UObject
 #if WITH_EDITOR
 	virtual uint32 GetInputType(int32 InputIndex);
 	virtual uint32 GetOutputType(int32 OutputIndex);
+
+	virtual FString GetCreationDescription() const;
+	virtual FString GetCreationName() const;
 #endif
 
 	/**
@@ -385,10 +395,19 @@ class ENGINE_API UMaterialExpression : public UObject
 	 */
 	virtual void SetEditableName(const FString& NewName);
 
+	/** 
+	* Parameter Name functions, this is requires as multiple class have ParameterName
+	* but are not UMaterialExpressionParameter due to class hierarchy. */
+	virtual bool HasAParameterName() const { return false; }
+	virtual void ValidateParameterName();
+
+	virtual FName GetParameterName() const { return NAME_None; }
+	virtual void SetParameterName(const FName& Name) {}
+
 #endif // WITH_EDITOR
 
 	/** Checks whether any inputs to this expression create a loop */
-	bool ContainsInputLoop();
+	bool ContainsInputLoop(const bool bStopOnFunctionCall = true);
 
 protected:
 	/**
@@ -398,7 +417,7 @@ protected:
 	 * @param ExpressionStack    List of expression keys that have been checked already in the current stack
 	 * @param VisitedExpressions List of all expression keys that have been visited
 	 */
-	bool ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions);
+	bool ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions, const bool bStopOnFunctionCall);
 };
 
 

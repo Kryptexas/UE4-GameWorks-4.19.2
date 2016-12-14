@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderCPUSkin.h: CPU skinned mesh object and resource definitions
@@ -6,9 +6,16 @@
 
 #pragma once
 
-#include "SkeletalRender.h"
-#include "SkeletalRenderPublic.h"
+#include "CoreMinimal.h"
+#include "ProfilingDebugging/ResourceSize.h"
+#include "RenderResource.h"
 #include "LocalVertexFactory.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "SkeletalRenderPublic.h"
+#include "ClothSimData.h"
+
+class FPrimitiveDrawInterface;
+class UMorphTarget;
 
 /**
  * Skeletal mesh vertices which have been skinned to their final positions 
@@ -61,7 +68,6 @@ private:
 	/** parent mesh containing the source data */
 	FSkeletalMeshResource* SkeletalMeshResource;
 
-	template <bool bExtraBoneInfluencesT>
 	void InitVertexData(FStaticLODModel& LodModel);
 };
 
@@ -160,7 +166,7 @@ public:
 	virtual ~FSkeletalMeshObjectCPUSkin();
 
 	//~ Begin FSkeletalMeshObject Interface
-	virtual void InitResources() override;
+	virtual void InitResources(USkinnedMeshComponent* InMeshComponent) override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveMorphTarget>& ActiveMorphTargets, const TArray<float>& MorphTargetsWeights) override;
 	void UpdateDynamicData_RenderThread(FRHICommandListImmediate& RHICmdList, FDynamicSkelMeshObjectDataCPUSkin* InDynamicData, uint32 FrameNumberToPrepare);

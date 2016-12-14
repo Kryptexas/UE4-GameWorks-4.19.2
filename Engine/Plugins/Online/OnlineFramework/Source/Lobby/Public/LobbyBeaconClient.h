@@ -1,18 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineBeaconClient.h"
-#include "OnlineSessionSettings.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameFramework/OnlineReplStructs.h"
+#include "UObject/TextProperty.h"
+#include "OnlineBeaconClient.h"
 
-#include "LobbyBeaconHost.h"
 
 #include "LobbyBeaconClient.generated.h"
 
-class FOnlineSessionSearchResult;
+class ALobbyBeaconPlayerState;
 class ALobbyBeaconState;
-
+class FOnlineSessionSearchResult;
 
 /**
  * Delegate called a connection with the lobby beacon is established (but not logged in yet)

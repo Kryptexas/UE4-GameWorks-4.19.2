@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #if WITH_EDITOR
-#include "Toolkits/BaseToolkit.h"
 #include "Layout/Visibility.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Toolkits/IToolkitHost.h"
+#include "Toolkits/BaseToolkit.h"
 
 class FGameplayDebuggerToolkit : public FModeToolkit
 {

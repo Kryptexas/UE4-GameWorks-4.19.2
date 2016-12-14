@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
-#include "Sorting.h"
-#include "Animation/BlendSpaceBase.h"
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "UObject/UObjectGlobals.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPersonaPreviewScene.h"
+#include "Rendering/DrawElements.h"
 #include "SAnimEditorBase.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Misc/NotifyHook.h"
+
+class SBlendSpaceGridWidget;
 
 class SBlendSpaceEditorBase : public SAnimEditorBase, public FNotifyHook
 {

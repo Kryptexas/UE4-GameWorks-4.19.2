@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DrawFrsutumComponent.cpp: UDrawFrsutumComponent implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "LevelUtils.h"
 #include "Components/DrawFrustumComponent.h"
+#include "PrimitiveViewRelevance.h"
+#include "PrimitiveSceneProxy.h"
+#include "Engine/CollisionProfile.h"
+#include "SceneManagement.h"
 
 
 /** Represents a draw frustum to the scene manager. */

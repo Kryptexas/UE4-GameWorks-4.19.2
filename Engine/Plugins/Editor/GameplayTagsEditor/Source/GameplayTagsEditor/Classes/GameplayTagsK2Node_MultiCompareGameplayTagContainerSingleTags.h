@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameplayTagsK2Node_MultiCompareBase.h"
 #include "GameplayTagsK2Node_MultiCompareGameplayTagContainerSingleTags.generated.h"
 
+class FBlueprintActionDatabaseRegistrar;
+class UEdGraph;
 
 UCLASS()
 class UGameplayTagsK2Node_MultiCompareGameplayTagContainerSingleTags : public UGameplayTagsK2Node_MultiCompareBase

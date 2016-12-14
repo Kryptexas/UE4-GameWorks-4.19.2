@@ -48,6 +48,7 @@
 #include "GuBounds.h"
 #include "PxsRigidBody.h"
 #include "ScSqBoundsManager.h"
+#include "PxsSimulationController.h"
 
 #if PX_USE_PARTICLE_SYSTEM_API
 #include "PtContext.h"
@@ -69,18 +70,22 @@ namespace physx
 	extern bool gUnifiedHeightfieldCollision;
 }
 
-
-Sc::ShapeSim::ShapeSim(RigidSim& owner, const ShapeCore& core)
-:	ElementSim			(owner, ElementType::eSHAPE)
-,	mCore				(core)
-,	mSqBoundsId			(PX_INVALID_U32)
+static PX_FORCE_INLINE void resetElementID(Sc::Scene& scene, Sc::ShapeSim& shapeSim)
 {
-	// sizeof(ShapeSim) = 32 bytes
+	PX_ASSERT(!shapeSim.isInBroadPhase());
+
+	scene.getDirtyShapeSimMap().reset(shapeSim.getElementID());
+
+	if(shapeSim.getSqBoundsId() != PX_INVALID_U32)
+		shapeSim.destroySqBounds();
+}
+
+void Sc::ShapeSim::initSubsystemsDependingOnElementID()
+{
 	Sc::Scene& scScene = getScene();
 
-	mId = scScene.getShapeIDTracker().createID();
 	Bp::BoundsArray& boundsArray = scScene.getBoundsArray();
-	PxU32 index = getElementID();	
+	const PxU32 index = getElementID();
 
 	PX_ALIGN(16, PxTransform absPos);
 	getAbsPoseAligned(&absPos);
@@ -91,58 +96,66 @@ Sc::ShapeSim::ShapeSim(RigidSim& owner, const ShapeCore& core)
 
 	boundsArray.updateBounds(absPos, mCore.getGeometryUnion(), index, !gUnifiedHeightfieldCollision);
 	
-
 	{
 		PX_PROFILE_ZONE("API.simAddShapeToBroadPhase", scScene.getContextId());
-		if (isBroadPhase(core.getFlags()))
+		if(isBroadPhase(mCore.getFlags()))
 		{
-			addToAABBMgr(core.getContactOffset(), owner.getBroadphaseGroupId(), !!(core.getCore().mShapeFlags & PxShapeFlag::eTRIGGER_SHAPE));
+			internalAddToBroadPhase();
 
 			scScene.updateContactDistance(index, getContactOffset());
 		}
 	}
 
-	if (scScene.getDirtyShapeSimMap().size() <= index)
-	{
+	if(scScene.getDirtyShapeSimMap().size() <= index)
 		scScene.getDirtyShapeSimMap().resize(PxMax(index+1, (scScene.getDirtyShapeSimMap().size()+1) * 2u));
-	}
 
-	if (owner.isDynamicRigid() && static_cast<BodySim&>(owner).isActive())
+	RigidSim& owner = getRbSim();
+	if(owner.isDynamicRigid() && static_cast<BodySim&>(owner).isActive())
 		createSqBounds();
 
-	mLLShape.mElementIndex = index;
-	mLLShape.mShapeCore = const_cast<PxsShapeCore*>(&mCore.getCore());
+	// Init LL shape
+	{
+		mLLShape.mElementIndex = index;
+		mLLShape.mShapeCore = const_cast<PxsShapeCore*>(&mCore.getCore());
 	
-	if(owner.getActorType()==PxActorType::eRIGID_STATIC)
-	{
-		mLLShape.mBodySimIndex = 0xffffffff;
+		if(owner.getActorType()==PxActorType::eRIGID_STATIC)
+		{
+			mLLShape.mBodySimIndex = 0xffffffff;
+		}
+		else
+		{
+			BodySim& bodySim = static_cast<BodySim&>(getActor());
+			const PxU32 nodeIndex = bodySim.getNodeIndex().index();
+			mLLShape.mBodySimIndex = nodeIndex;
+			//mLLShape.mLocalBound = computeBounds(mCore.getGeometry(), PxTransform(PxIdentity));
+		}
 	}
-	else
-	{
-		BodySim& bodySim = static_cast<BodySim&>(getActor());
-		const PxU32 nodeIndex = bodySim.getNodeIndex().index();
-		mLLShape.mBodySimIndex = nodeIndex;
-		//mLLShape.mLocalBound = computeBounds(mCore.getGeometry(), PxTransform(PxIdentity));
-	}
+}
+
+Sc::ShapeSim::ShapeSim(RigidSim& owner, const ShapeCore& core) :
+	ElementSim	(owner, ElementType::eSHAPE),
+	mCore		(core),
+	mSqBoundsId	(PX_INVALID_U32)
+{
+	// sizeof(ShapeSim) = 32 bytes
+	Sc::Scene& scScene = getScene();
+
+	mId = scScene.getShapeIDTracker().createID();
+
+	initSubsystemsDependingOnElementID();
 }
 
 Sc::ShapeSim::~ShapeSim()
 {
-	PX_ASSERT(!isInBroadPhase());
-
 	Sc::Scene& scScene = getScene();
-
-	scScene.getDirtyShapeSimMap().reset(getElementID());
-
+	resetElementID(scScene, *this);
 	scScene.getShapeIDTracker().releaseID(mId);
-	if(mSqBoundsId != PX_INVALID_U32)
-		destroySqBounds();
 }
 
 PX_FORCE_INLINE void Sc::ShapeSim::internalAddToBroadPhase()
 {
 	PX_ASSERT(!isInBroadPhase());
-	addToAABBMgr(getCore().getContactOffset(), getRbSim().getBroadphaseGroupId(), !!(mCore.getCore().mShapeFlags & PxShapeFlag::eTRIGGER_SHAPE));
+	addToAABBMgr(mCore.getContactOffset(), getRbSim().getBroadphaseGroupId(), !!(mCore.getCore().mShapeFlags & PxShapeFlag::eTRIGGER_SHAPE));
 }
 
 PX_FORCE_INLINE void Sc::ShapeSim::internalRemoveFromBroadPhase()
@@ -159,6 +172,7 @@ void Sc::ShapeSim::removeFromBroadPhase(bool wakeOnLostTouch)
 {
 	if(isInBroadPhase())
 	{
+		// PT: TODO: refactor with internalRemoveFromBroadPhase()
 		removeFromAABBMgr();
 		Sc::Scene& scene = getScene();
 		PxsContactManagerOutputIterator outputs = scene.getLowLevelContext()->getNphaseImplementationContext()->getContactManagerOutputs();
@@ -169,7 +183,44 @@ void Sc::ShapeSim::removeFromBroadPhase(bool wakeOnLostTouch)
 void Sc::ShapeSim::reinsertBroadPhase()
 {
 	internalRemoveFromBroadPhase();
-	internalAddToBroadPhase();
+//	internalAddToBroadPhase();
+
+	Sc::Scene& scene = getScene();
+
+	// Sc::Scene::removeShape
+	{
+		//unregisterShapeFromNphase(shape.getCore());
+
+		// PT: "getID" is const but the addShape call used LLShape, which uses elementID, so....
+		scene.getSimulationController()->removeShape(getID());
+	}
+
+	// Call ShapeSim dtor
+	{
+		resetElementID(scene, *this);
+	}
+
+	// Call ElementSim dtor
+	{
+		releaseID();
+	}
+
+	// Call ElementSim ctor
+	{
+		initID();
+	}
+
+	// Call ShapeSim ctor
+	{
+		initSubsystemsDependingOnElementID();
+	}
+
+	// Sc::Scene::addShape
+	{
+		scene.getSimulationController()->addShape(&getLLShapeSim(), getID());
+		// PT: TODO: anything else needed here?
+		//registerShapeInNphase(shapeCore);
+	}
 }
 
 void Sc::ShapeSim::onFilterDataChange()
@@ -179,7 +230,7 @@ void Sc::ShapeSim::onFilterDataChange()
 
 void Sc::ShapeSim::onResetFiltering()
 {
-	if (isInBroadPhase())
+	if(isInBroadPhase())
 		reinsertBroadPhase();
 }
 
@@ -279,7 +330,7 @@ void Sc::ShapeSim::getFilterInfo(PxFilterObjectAttributes& filterAttr, PxFilterD
 
 void Sc::ShapeSim::getAbsPoseAligned(PxTransform* PX_RESTRICT globalPose) const
 {
-	const PxTransform& shape2Actor = getCore().getCore().transform;
+	const PxTransform& shape2Actor = mCore.getCore().transform;
 	const PxTransform* actor2World = NULL;
 	if(getActor().getActorType()==PxActorType::eRIGID_STATIC)
 	{
@@ -359,7 +410,6 @@ void Sc::ShapeSim::updateContactDistance(PxReal* contactDistance, const PxReal i
 
 	contactDistance[index] = getContactOffset() + inflation + angularInflation;
 }
-
 
 Ps::IntBool Sc::ShapeSim::updateSweptBounds()
 {
@@ -449,7 +499,6 @@ void Sc::ShapeSim::onVolumeOrTransformChange(bool asPartOfActorTransformChange, 
 #endif
 #endif
 }
-
 
 void Sc::ShapeSim::createSqBounds()
 {

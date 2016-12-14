@@ -1,19 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "SGraphPin.h"
 #include "SGraphNodeDefault.h"
-#include "K2Node_Knot.h"
 
 class SCommentBubble;
 
+/** The visual representation of a control point meant to adjust how connections are routed, also known as a Reroute node.
+ * The input knot node should have properly implemented ShouldDrawNodeAsControlPointOnly to return true with valid indices for its pins.
+ */
 class SGraphNodeKnot : public SGraphNodeDefault
 {
 public:
 	SLATE_BEGIN_ARGS(SGraphNodeKnot) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, class UK2Node_Knot* InKnot);
+	void Construct(const FArguments& InArgs, class UEdGraphNode* InKnot);
 
 	// SGraphNode interface
 	virtual void UpdateGraphNode() override;

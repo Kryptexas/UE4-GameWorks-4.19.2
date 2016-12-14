@@ -1,18 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Distributions.cpp: Implementation of distribution classes.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "Distributions.h"
+#include "UObject/UnrealType.h"
+#include "Distributions/Distribution.h"
+#include "Distributions/DistributionFloat.h"
+#include "Distributions/DistributionVector.h"
+#include "Particles/ParticleModule.h"
+#include "Distributions/DistributionFloatConstant.h"
+#include "Distributions/DistributionFloatUniform.h"
+#include "Distributions/DistributionVectorConstant.h"
+#include "Distributions/DistributionVectorUniform.h"
 #include "Distributions/DistributionVectorParameterBase.h"
 #include "Distributions/DistributionVectorConstantCurve.h"
 #include "Distributions/DistributionVectorUniformCurve.h"
-#include "ParticleDefinitions.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundNode.h"
 
-#include "Particles/ParticleModule.h"
 #include "Distributions/DistributionFloatUniformCurve.h"
 #include "Distributions/DistributionFloatConstantCurve.h"
 #include "Distributions/DistributionFloatParameterBase.h"

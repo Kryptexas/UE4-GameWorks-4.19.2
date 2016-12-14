@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "../AudioEditorPrivatePCH.h"
+#include "AssetTypeActions/AssetTypeActions_SoundAttenuation.h"
+#include "Sound/SoundAttenuation.h"
 
 UClass* FAssetTypeActions_SoundAttenuation::GetSupportedClass() const
 {

@@ -1,17 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 /* Public dependencies
 *****************************************************************************/
 
-#include "SoundDefinitions.h"
-#include "AudioMixerDevice.h"
+#include "CoreMinimal.h"
 #include "AudioMixerBuffer.h"
-#include "AudioMixerSourceVoice.h"
-#include "AudioMixerSource.h"
+#include "AudioMixerSubmix.h"
 #include "DSP/OnePole.h"
 #include "IAudioExtensionPlugin.h"
+#include "Containers/Queue.h"
 
 #define ENABLE_AUDIO_OUTPUT_DEBUGGING 0
 
@@ -42,6 +41,7 @@ namespace Audio
 	struct FMixerSourceVoiceBuffer;
 
 	typedef TSharedPtr<FMixerSourceVoiceBuffer, ESPMode::ThreadSafe> FMixerSourceBufferPtr;
+	typedef TSharedPtr<FMixerSubmix, ESPMode::ThreadSafe> FMixerSubmixPtr;
 
 	class ISourceBufferQueueListener
 	{
@@ -50,10 +50,17 @@ namespace Audio
 		virtual void OnSourceBufferEnd() = 0;
 	};
 
+	struct FMixerSourceSubmixSend
+	{
+		FMixerSubmixPtr Submix;
+		float DryLevel;
+		float WetLevel;
+	};
+
 	struct FMixerSourceVoiceInitParams
 	{
 		ISourceBufferQueueListener* BufferQueueListener;
-		FMixerSubmix* OwningSubmix;
+		TArray<FMixerSourceSubmixSend> SubmixSends;
 		FMixerSourceVoice* SourceVoice;
 		int32 NumInputChannels;
 		int32 NumInputFrames;
@@ -63,7 +70,6 @@ namespace Audio
 
 		FMixerSourceVoiceInitParams()
 			: BufferQueueListener(nullptr)
-			, OwningSubmix(nullptr)
 			, SourceVoice(nullptr)
 			, NumInputChannels(0)
 			, NumInputFrames(0)
@@ -80,7 +86,7 @@ namespace Audio
 		void Reset();
 
 		void SetValue(float InValue);
-		float operator()();
+		float Update();
 
 	private:
 		float StartValue;
@@ -128,7 +134,7 @@ namespace Audio
 			OutChannelMap.Reset();
 			for (int32 i = 0; i < ChannelValues.Num(); ++i)
 			{
-				OutChannelMap.Add(ChannelValues[i]());
+				OutChannelMap.Add(ChannelValues[i].Update());
 			}
 		}
 
@@ -159,6 +165,7 @@ namespace Audio
 		void SetVolume(const int32 SourceId, const float Volume);
 		void SetSpatializationParams(const int32 SourceId, const FSpatializationParams& InParams);
 		void SetWetLevel(const int32 SourceId, const float WetLevel);
+		void SetMasterReverbWetLevel(const int32 SourceId, const float MasterReverbWetLevel);
 		void SetChannelMap(const int32 SourceId, const TArray<float>& InChannelMap);
 		void SetLPFFrequency(const int32 SourceId, const float Frequency);
 		
@@ -169,7 +176,9 @@ namespace Audio
 		bool IsDone(const int32 SourceId) const;
 
 		void ComputeNextBlockOfSamples();
-		void MixOutputBuffers(const int32 SourceId, TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer) const;
+		void MixOutputBuffers(const int32 SourceId, TArray<float>& OutDryBuffer, TArray<float>& OutWetBuffer, const float DryLevel, const float WetLevel) const;
+
+		void SetSubmixSendInfo(const int32 SourceId, FMixerSubmixPtr Submix, const float DryLevel, const float WetLevel);
 
 	private:
 
@@ -222,7 +231,6 @@ namespace Audio
 
 		TArray<FSourceParam> PitchSourceParam;
 		TArray<FSourceParam> VolumeSourceParam;
-		TArray<FSourceParam> WetLevelSourceParam;
 		TArray<FSourceParam> LPFCutoffFrequencyParam;
 
 		// Simple LPFs for all sources (all channels of all sources)
@@ -234,8 +242,7 @@ namespace Audio
 
 		// Output data, after computing a block of sample data, this is read back from mixers
 		TArray<TArray<float>> PostEffectBuffers;
-		TArray<TArray<float>> DryBuffer;
-		TArray<TArray<float>> WetBuffer;
+		TArray<TArray<float>> OutputBuffer;
 
 		// Buffer used as an intermediate buffer between effects
 		TArray<float> ScratchBuffer;

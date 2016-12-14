@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 #include "ISourceControlState.h"
+#include "Interfaces/IScreenShotManager.h"
 
 class FScreenComparisonModel;
+struct FSlateDynamicImageBrush;
 
 /**
  * Widget to display a particular view.
@@ -40,13 +48,23 @@ private:
 	TSharedRef<SWidget> BuildAddedView();
 	TSharedRef<SWidget> BuildComparisonPreview();
 
+	bool CanAddNew() const;
 	FReply AddNew();
-	FReply RemoveOld();
-	FReply ReplaceOld();
+
+	bool CanReplace() const;
+	FReply Replace();
+
+	bool CanAddAsAlternative() const;
+	FReply AddAlternative();
+
+	FReply RemoveExistingApproved();
 
 	void GetStatus();
 
 	TSharedPtr<FSlateDynamicImageBrush> LoadScreenshot(FString ImagePath);
+	void LoadMetadata();
+
+	FReply OnImageClicked(const FGeometry& InGeometry, const FPointerEvent& InEvent, TSharedPtr<FSlateDynamicImageBrush> Image);
 
 private:
 

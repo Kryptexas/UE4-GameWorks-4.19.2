@@ -1,15 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MorphTools.cpp: Morph target creation helper classes.
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
 #include "RawIndexBuffer.h"
-#include "MeshBuild.h"
-#include "PhysicsEngine/PhysXSupport.h"
+#include "Engine/SkeletalMesh.h"
 #include "Animation/MorphTarget.h"
-
+#include "SkeletalMeshTypes.h"
 
 /** compare based on base mesh source vertex indices */
 struct FCompareMorphTargetDeltas

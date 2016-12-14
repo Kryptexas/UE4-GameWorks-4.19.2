@@ -1,12 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "STableRow.h"
-#include "SMenuAnchor.h"
-#include "SComboButton.h"
-#include "SListView.h"
-#include "SlateApplication.h"
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Sound/SlateSound.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/SlateDelegates.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Framework/Views/TableViewTypeTraits.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
 
 DECLARE_DELEGATE( FOnComboBoxOpening )
 
@@ -92,6 +108,7 @@ public:
 		, _MaxListHeight(450.0f)
 		, _HasDownArrow( true )
 		, _EnableGamepadNavigationMode(false)
+		, _IsFocusable( true )
 		{}
 		
 		/** Slot for this button's content (optional) */
@@ -134,11 +151,14 @@ public:
 		 */
 		SLATE_ARGUMENT( bool, HasDownArrow )
 
-		/** 
-		 *  When false, directional keys will change the selection. When true, ComboBox 
+		/**
+		 *  When false, directional keys will change the selection. When true, ComboBox
 		 *	must be activated and will only capture arrow input while activated.
 		*/
 		SLATE_ARGUMENT(bool, EnableGamepadNavigationMode)
+
+		/** When true, allows the combo box to receive keyboard focus */
+		SLATE_ARGUMENT( bool, IsFocusable )
 				
 	SLATE_END_ARGS()
 
@@ -203,7 +223,7 @@ public:
 			.ContentPadding( InArgs._ContentPadding )
 			.ForegroundColor( InArgs._ForegroundColor )
 			.OnMenuOpenChanged(this, &SComboBox< OptionType >::OnMenuOpenChanged)
-
+			.IsFocusable(InArgs._IsFocusable)
 		);
 		SetMenuContentWidgetToFocus(ComboListView);
 
@@ -349,7 +369,7 @@ protected:
 
 	virtual bool SupportsKeyboardFocus() const override
 	{
-		return true;
+		return bIsFocusable;
 	}
 
 	virtual bool IsInteractable() const

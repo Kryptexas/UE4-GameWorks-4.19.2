@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // TetrahedronBuilder: Builds an octahedron (not tetrahedron) - experimental.
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Builders/EditorBrushBuilder.h"
 #include "TetrahedronBuilder.generated.h"
+
+class ABrush;
 
 UCLASS(MinimalAPI, autoexpandcategories=BrushSettings, EditInlineNew, meta=(DisplayName="Sphere"))
 class UTetrahedronBuilder : public UEditorBrushBuilder

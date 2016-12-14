@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Distributions.h: Declaration of distributions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Math/RandomStream.h"
 
 /** Usually checkSlow for performance. */
 #define checkDistribution check

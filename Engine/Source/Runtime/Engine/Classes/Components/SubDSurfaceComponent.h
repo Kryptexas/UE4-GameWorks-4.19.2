@@ -1,9 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Components/PrimitiveComponent.h"
 #include "SubDSurfaceComponent.generated.h"
+
+class UMaterialInterface;
+class UStaticMeshComponent;
 
 /**
  * Subdivision Surface Component (Experimental, Early work in progress)

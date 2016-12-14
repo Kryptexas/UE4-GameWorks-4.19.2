@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "IPropertyTableUtilities.h"
+#include "IPropertyTableColumn.h"
 #include "IPropertyTableCustomColumn.h"
 
+class IPropertyTableCell;
+class IPropertyTableCellPresenter;
+class UDeviceProfile;
 
 /** Delegate triggered when user opts to edit CVars **/
 DECLARE_DELEGATE_OneParam(FOnEditDeviceProfileCVarsRequestDelegate, const TWeakObjectPtr<UDeviceProfile>&);

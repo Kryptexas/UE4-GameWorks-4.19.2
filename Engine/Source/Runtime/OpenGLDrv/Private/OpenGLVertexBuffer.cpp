@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLVertexBuffer.cpp: OpenGL vertex buffer RHI implementation.
 =============================================================================*/
 
-#include "OpenGLDrvPrivate.h"
+#include "CoreMinimal.h"
+#include "Containers/ResourceArray.h"
+#include "HAL/IConsoleManager.h"
+#include "OpenGLDrv.h"
 
 namespace OpenGLConsoleVariables
 {

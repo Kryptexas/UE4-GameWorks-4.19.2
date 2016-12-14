@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/CurveTable.h"
-#include "Json.h"
-#include "CsvParser.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/Csv/CsvParser.h"
 
 #include "EditorFramework/AssetImportData.h"
 
@@ -240,7 +240,7 @@ FString UCurveTable::GetTableAsJSON() const
 	return Result;
 }
 
-bool UCurveTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const
+bool UCurveTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, bool bAsArray) const
 {
 	if(RowMap.Num() <= 0)
 	{
@@ -263,15 +263,24 @@ bool UCurveTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJ
 		}
 	}
 
-	JsonWriter->WriteArrayStart();
+	if (bAsArray)
+	{
+		JsonWriter->WriteArrayStart();
+	}
 
 	// display all the curves
 	for(int32 CurvesIdx = 0; CurvesIdx < Curves.Num(); CurvesIdx++)
 	{
-		JsonWriter->WriteObjectStart();
-		// show name of curve
-		JsonWriter->WriteValue(TEXT("Name"),Names[CurvesIdx].ToString());
-
+		if (bAsArray)
+		{
+			JsonWriter->WriteObjectStart();
+			// show name of curve
+			JsonWriter->WriteValue(TEXT("Name"),Names[CurvesIdx].ToString());
+		}
+		else
+		{
+			JsonWriter->WriteObjectStart(Names[CurvesIdx].ToString());
+		}
 		// show data of curve
 		auto LongIt(Curves[LongestCurveIndex]->GetKeyIterator());
 		for (auto It(Curves[CurvesIdx]->GetKeyIterator()); It; ++It)
@@ -282,7 +291,10 @@ bool UCurveTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJ
 		JsonWriter->WriteObjectEnd();
 	}
 
-	JsonWriter->WriteArrayEnd();
+	if(bAsArray)
+	{
+		JsonWriter->WriteArrayEnd();
+	}
 	return true;
 }
 
@@ -453,7 +465,7 @@ TArray<FString> UCurveTable::CreateTableFromJSONString(const FString& InString, 
 
 			// Make sure we have a valid float key
 			float EntryKey = 0.0f;
-			if (!LexicalConversion::TryParseString(EntryKey, *ParsedTableRowEntry.Key))
+			if (!Lex::TryParseString(EntryKey, *ParsedTableRowEntry.Key))
 			{
 				OutProblems.Add(FString::Printf(TEXT("Key '%s' on row '%s' is not a float and cannot be parsed."), *ParsedTableRowEntry.Key, *RowName.ToString()));
 				continue;
@@ -530,6 +542,16 @@ bool UCurveTable::IsValidCurve(FRichCurveEditInfo CurveInfo)
 	return false;
 }
 
+
+
+TArray<const UObject*> UCurveTable::GetOwners() const
+{
+	TArray<const UObject*> Owners;
+	Owners.Add(this);
+
+	return Owners;
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 
@@ -583,7 +605,6 @@ bool FCurveTableRowHandle::operator!=(const FCurveTableRowHandle& Other) const
 {
 	return ((Other.CurveTable != CurveTable) || (Other.RowName != RowName));
 }
-
 void FCurveTableRowHandle::PostSerialize(const FArchive& Ar)
 {
 	if (Ar.IsSaving() && !IsNull() && CurveTable)

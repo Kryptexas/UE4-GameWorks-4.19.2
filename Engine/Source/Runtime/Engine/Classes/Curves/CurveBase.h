@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
 #include "Curves/CurveOwnerInterface.h"
-#include "Curves/RichCurve.h"
 #include "CurveBase.generated.h"
-
 
 /**
  * Defines a curve of interpolated points to evaluate over a given range
@@ -53,6 +55,7 @@ public:
 	}
 
 	virtual void ModifyOwner() override;
+	virtual TArray<const UObject*> GetOwners() const override;
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
 

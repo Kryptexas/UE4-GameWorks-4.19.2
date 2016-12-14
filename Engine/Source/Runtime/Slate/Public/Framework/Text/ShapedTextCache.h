@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ShapedTextCacheFwd.h"
+#include "CoreMinimal.h"
+#include "Fonts/ShapedTextFwd.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Framework/Text/TextRange.h"
+#include "Framework/Text/IRun.h"
 
 class FSlateFontCache;
 

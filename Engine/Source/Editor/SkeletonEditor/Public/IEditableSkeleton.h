@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Animation/SmartName.h"
+#include "CoreMinimal.h"
+#include "BoneContainer.h"
+#include "Animation/Skeleton.h"
+
+class UBlendProfile;
+class USkeletalMesh;
 
 /** Delegate fired when a set of smart names is removed */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSmartNameRemoved, const FName& /*InContainerName*/, const TArray<SmartName::UID_Type>& /*InNameUids*/);

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding.h: Skeletal mesh animation compression.
@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/MemStack.h"
+#include "Animation/AnimTypes.h"
 #include "Animation/AnimSequence.h"
 
 // switches to toggle subsets of the new animation codec system
@@ -16,6 +19,8 @@
 
 // the current animation encoding package version
 #define CURRENT_ANIMATION_ENCODING_PACKAGE_VERSION ANIMATION_ENCODING_PACKAGE_ORIGINAL
+
+class FMemoryWriter;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //

@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Device.cpp: D3D device RHI implementation.
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
+#include "Misc/CommandLine.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
 #include "AllowWindowsPlatformTypes.h"
 	#include <delayimp.h>
+	#include "amd_ags.h"
 #include "HideWindowsPlatformTypes.h"
 
 
@@ -37,6 +41,7 @@ TAutoConsoleVariable<int32> CVarD3D11ZeroBufferSizeInMB(
 FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEVEL InFeatureLevel, int32 InChosenAdapter, const DXGI_ADAPTER_DESC& InChosenDescription) :
 	DXGIFactory1(InDXGIFactory1),
 	FeatureLevel(InFeatureLevel),
+	AmdAgsContext(NULL),
 	CurrentDepthTexture(NULL),
 	NumSimultaneousRenderTargets(0),
 	NumUAVs(0),
@@ -188,6 +193,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 	GMaxShadowDepthBufferSizeX = 4096;
 	GMaxShadowDepthBufferSizeY = 4096;
 	GSupportsTimestampRenderQueries = true;
+	GRHISupportsResolveCubemapFaces = true;
 
 	// Initialize the constant buffers.
 	InitConstantBuffers();
@@ -219,6 +225,14 @@ void FD3D11DynamicRHI::Shutdown()
 
 	// Cleanup the D3D device.
 	CleanupD3DDevice();
+
+	// Shut down the AMD AGS utility library
+	if (AmdAgsContext != NULL)
+	{
+		agsDeInit(AmdAgsContext);
+		GRHIDeviceIsAMDPreGCNArchitecture = false;
+		AmdAgsContext = NULL;
+	}
 
 	// Release buffered timestamp queries
 	GPUProfilingData.FrameTiming.ReleaseResource();
@@ -438,6 +452,14 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 		GIsRHIInitialized = false;
 
 		check(!GIsCriticalError);
+
+#if PLATFORM_DESKTOP
+		// Clean up the extensions
+		if (AmdAgsContext != NULL)
+		{
+			agsDriverExtensionsDX11_DeInit(AmdAgsContext);
+		}
+#endif
 
 		// Ask all initialized FRenderResources to release their RHI resources.
 		for(TLinkedList<FRenderResource*>::TIterator ResourceIt(FRenderResource::GetResourceList());ResourceIt;ResourceIt.Next())

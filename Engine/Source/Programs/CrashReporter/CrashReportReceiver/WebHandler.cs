@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -67,6 +67,11 @@ namespace Tools.CrashReporter.CrashReportReceiver
 		/// <param name="Disposing">true if the Dispose call is from user code, and not system code.</param>
 		protected virtual void Dispose( bool Disposing )
 		{
+			if (UploadsInProgress != null)
+			{
+				UploadsInProgress.Dispose();
+				UploadsInProgress = null;
+			}
 			if (ServiceHttpListener != null)
 			{
 				ServiceHttpListener.Close();

@@ -1,15 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Paper2DEditorPrivatePCH.h"
-#include "PaperFlipbookComponent.h"
-#include "FlipbookEditor.h"
-#include "SceneViewport.h"
-#include "PaperEditorViewportClient.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "InputCoreTypes.h"
 #include "PreviewScene.h"
-#include "ScopedTransaction.h"
-#include "SpriteEditor/SpriteEditorSelections.h"
+#include "PaperFlipbook.h"
+#include "PaperEditorViewportClient.h"
+
+class FCanvas;
+class UPaperFlipbookComponent;
 
 //////////////////////////////////////////////////////////////////////////
 // FFlipbookEditorViewportClient

@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ModuleInterface.h"
-#include "Toolkits/IToolkit.h"	// For EAssetEditorMode
+#include "CoreMinimal.h"
+#include "AIGraphTypes.h"
+#include "Modules/ModuleInterface.h"
+#include "Toolkits/IToolkitHost.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "AssetTypeActions_Base.h"
+
+class IBehaviorTreeEditor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBehaviorTreeEditor, Log, All);
 

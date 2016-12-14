@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -49,7 +49,11 @@ public:
 	enum
 	{
 		NumSafeFrames = 1, /** Number of frames to leave buffers before reclaiming/reusing */
+#if PLATFORM_MAC
+		NumPoolBucketSizes = 28, /** Number of pool bucket sizes */
+#else
 		NumPoolBucketSizes = 22, /** Number of pool bucket sizes */
+#endif
 		NumPoolBuckets = NumPoolBucketSizes * 3, /** Number of pool bucket sizes * 2 for Shared/Managed/Private storage */
 		NumToDrainPerFrame = 65536, /** Max. number of resources to cull in a single frame */
 		CullAfterFramesNum = 30 /** Resources are culled if unused for more frames than this */

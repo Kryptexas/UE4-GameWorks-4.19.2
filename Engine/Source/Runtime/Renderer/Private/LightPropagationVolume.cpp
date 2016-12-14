@@ -10,11 +10,14 @@
 //				Copyright (C) Microsoft. All rights reserved.
 //-----------------------------------------------------------------------------
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
 #include "LightPropagationVolume.h"
-#include "UniformBuffer.h"
+#include "RHIStaticStates.h"
+#include "Shader.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "GlobalShader.h"
+#include "DeferredShadingRenderer.h"
+#include "ScenePrivate.h"
 #include "LightPropagationVolumeBlendable.h"
 
 DECLARE_FLOAT_COUNTER_STAT(TEXT("LPV"), Stat_GPU_LPV, STATGROUP_GPU);

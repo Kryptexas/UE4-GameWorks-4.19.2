@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Manages selections of objects.  Used in the editor for selecting
@@ -7,9 +7,11 @@
 
 #pragma once
 
-#if WITH_EDITOR
-#include "ComponentEditorUtils.h"
-#endif
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Components/ActorComponent.h"
 
 #include "Selection.generated.h"
 

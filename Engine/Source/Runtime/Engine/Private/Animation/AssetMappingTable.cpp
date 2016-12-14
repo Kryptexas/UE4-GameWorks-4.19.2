@@ -1,12 +1,11 @@
-// CopyAssetMappingTableht 1998-2016 Epic Games, Inc. All AssetMappingTablehts Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UAssetMappingTable.cpp: AssetMappingTable functionality for sharing animations
 =============================================================================*/ 
 
-#include "EnginePrivate.h"
-#include "Animation/AnimSequenceBase.h"
 #include "Animation/AssetMappingTable.h"
+#include "Animation/AnimationAsset.h"
 
 //@todo should move all this window stuff somewhere else. Persona?
 

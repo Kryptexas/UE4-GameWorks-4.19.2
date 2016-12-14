@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/UObjectGlobals.h"
+#include "Modules/ModuleManager.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateStyle.h"
+#include "Styling/SlateTypes.h"
+#include "EditorStyleSet.h"
+#include "EditorStyleSettings.h"
 #include "ISettingsModule.h"
-#include "ModuleManager.h"
 
+struct FPropertyChangedEvent;
 
 /**
  * Declares the Editor's visual style.

@@ -1,6 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
 
 #define CURVEED_MAX_CURVES 6
 
@@ -20,7 +22,8 @@
 #define CURVEEDENTRY_SET_SELECTED(x, flg)			((x) = ((flg) ? ((x) | CURVEEDENTRY_SELECTED_BIT) : ((x) &~ CURVEEDENTRY_SELECTED_BIT)))
 
 class FCurveEdNotifyInterface;
-
+class UCurveEdOptions;
+class UInterpCurveEdSetup;
 
 /*-----------------------------------------------------------------------------
    FCurveEditorModKey

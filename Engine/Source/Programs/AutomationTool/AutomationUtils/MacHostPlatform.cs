@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -135,6 +135,10 @@ namespace AutomationTool
 		public override bool IsScriptModuleSupported(string ModuleName)
 		{
 			// @todo: add more unsupported modules here
+			if (String.Equals(ModuleName, "OrionGame", StringComparison.InvariantCultureIgnoreCase))
+			{
+				return false;
+			}
 			return true;
 		}
 

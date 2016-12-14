@@ -1,13 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticLightingDebug.cpp: Code for debugging static lighting
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "CoreMinimal.h"
+#include "RawIndexBuffer.h"
+#include "Components/StaticMeshComponent.h"
+#include "CanvasTypes.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
 #include "StaticMeshResources.h"
-#include "StaticLightingPrivate.h"
+#include "StaticLightingSystem/StaticLightingPrivate.h"
 #include "LightMap.h"
+#include "Engine/MapBuildDataRegistry.h"
 #include "Components/ModelComponent.h"
 
 /** Information about the texel that is selected */
@@ -354,7 +360,7 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 					for (int32 ElementIndex = 0; ElementIndex < CurrentComponent->GetElements().Num(); ElementIndex++)
 					{
 						FModelElement& Element = CurrentComponent->GetElements()[ElementIndex];
-						TScopedPointer<FRawIndexBuffer16or32>* IndexBufferRef = Model->MaterialIndexBuffers.Find(Element.Material);
+						TUniquePtr<FRawIndexBuffer16or32>* IndexBufferRef = Model->MaterialIndexBuffers.Find(Element.Material);
 						check(IndexBufferRef);
 						for(uint32 TriangleIndex = Element.FirstIndex; TriangleIndex < Element.FirstIndex + Element.NumTriangles * 3; TriangleIndex += 3)
 						{
@@ -395,7 +401,7 @@ void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model,
 				FModelVertex* ModelVertices = (FModelVertex*)Model->VertexBuffer.Vertices.GetData();
 
 				FModelElement& Element = ClosestComponent->GetElements()[ClosestElementIndex];
-				TScopedPointer<FRawIndexBuffer16or32>* IndexBufferRef = Model->MaterialIndexBuffers.Find(Element.Material);
+				TUniquePtr<FRawIndexBuffer16or32>* IndexBufferRef = Model->MaterialIndexBuffers.Find(Element.Material);
 
 				uint32 Index0 = (*IndexBufferRef)->Indices[ClosestTriangleIndex];
 				uint32 Index1 = (*IndexBufferRef)->Indices[ClosestTriangleIndex + 1];

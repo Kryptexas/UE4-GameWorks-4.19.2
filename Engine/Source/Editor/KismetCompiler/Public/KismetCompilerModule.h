@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Engine.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
 
+class FBlueprintCompileReinstancer;
 class FCompilerResultsLog;
 class UBlueprint;
+class UBlueprintGeneratedClass;
+class UUserDefinedEnum;
+class UUserDefinedStruct;
+struct FKismetCompilerOptions;
 
 #define KISMET_COMPILER_MODULENAME "KismetCompiler"
 

@@ -1,26 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldSpecularOcclusion.cpp
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "UniformBuffer.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
 #include "ShaderParameters.h"
-#include "PostProcessing.h"
-#include "SceneFilterRendering.h"
+#include "RendererInterface.h"
+#include "Shader.h"
+#include "SceneUtils.h"
+#include "GlobalShader.h"
+#include "SceneRenderTargetParameters.h"
+#include "DeferredShadingRenderer.h"
 #include "DistanceFieldLightingShared.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
-#include "DistanceFieldLightingPost.h"
-#include "DistanceFieldGlobalIllumination.h"
-#include "GlobalDistanceField.h"
-#include "PostProcessAmbientOcclusion.h"
-#include "RHICommandList.h"
-#include "SceneUtils.h"
-#include "OneColorShader.h"
-#include "BasePassRendering.h"
-#include "HeightfieldLighting.h"
 
 int32 GSpecularOcclusionDownsampleFactor = 1;
 

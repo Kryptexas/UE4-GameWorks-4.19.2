@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // LevelExporterT3D
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Exporters/Exporter.h"
 #include "LevelExporterT3D.generated.h"
+
+class FExportObjectInnerContext;
+class UActorComponent;
 
 UCLASS()
 class ULevelExporterT3D : public UExporter

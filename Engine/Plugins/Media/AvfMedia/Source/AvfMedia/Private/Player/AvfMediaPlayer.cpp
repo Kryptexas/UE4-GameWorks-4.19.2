@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AvfMediaPCH.h"
 #include "AvfMediaPlayer.h"
+#include "HAL/PlatformProcess.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "IOS/IOSAsyncTask.h"
 
 /**
  * Cocoa class that can help us with reading player item information.
@@ -151,7 +154,7 @@ void FAvfMediaPlayer::HandleStatusNotification(AVPlayerItemStatus Status)
 		{
 			if (Duration == 0.0f || State == EMediaState::Closed)
 			{
-				Tracks.Initialize(PlayerItem);
+				Tracks.Initialize(PlayerItem, Info);
 			 
 				AVF_GAME_THREAD_CALL(^AVF_GAME_THREAD_BLOCK{
 					MediaEvent.Broadcast(EMediaEvent::TracksChanged);
@@ -440,6 +443,8 @@ void FAvfMediaPlayer::Close()
 		MediaEvent.Broadcast(EMediaEvent::TracksChanged);
 	
 		Duration = CurrentTime = FTimespan::Zero();
+
+		Info.Empty();
 	
 		MediaEvent.Broadcast(EMediaEvent::MediaClosed);
 		
@@ -456,7 +461,7 @@ IMediaControls& FAvfMediaPlayer::GetControls()
 
 FString FAvfMediaPlayer::GetInfo() const
 {
-	return TEXT("AvfMedia media information not implemented yet");
+	return Info;
 }
 
 

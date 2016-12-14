@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationCompression.h: Skeletal mesh animation compression.
@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include "FloatPacker.h"
+#include "CoreMinimal.h"
 #include "Animation/AnimSequence.h"
-#include "EngineLogs.h"
+#include "Math/FloatPacker.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnimationCompression, Log, All);
 

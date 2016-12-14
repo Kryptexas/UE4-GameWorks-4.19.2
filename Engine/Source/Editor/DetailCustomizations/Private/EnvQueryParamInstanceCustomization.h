@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EnvironmentQuery/EnvQueryTypes.h"
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "IPropertyTypeCustomization.h"
+
+class IPropertyHandle;
+enum class EAIParamType : uint8;
+enum class ECheckBoxState : uint8;
 
 class FEnvQueryParamInstanceCustomization : public IPropertyTypeCustomization
 {

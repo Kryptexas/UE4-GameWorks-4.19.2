@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Distributions/DistributionVector.h"
 #include "Particles/RotationRate/ParticleModuleRotationRateBase.h"
 #include "ParticleModuleMeshRotationRate.generated.h"
+
+class UParticleEmitter;
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Init Mesh Rotation Rate"))
 class UParticleModuleMeshRotationRate : public UParticleModuleRotationRateBase

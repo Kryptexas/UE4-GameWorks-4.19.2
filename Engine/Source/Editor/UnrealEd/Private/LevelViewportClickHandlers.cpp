@@ -1,23 +1,34 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "LevelEditorViewport.h"
 #include "LevelViewportClickHandlers.h"
+#include "UObject/Class.h"
+#include "InputCoreTypes.h"
+#include "GameFramework/Actor.h"
+#include "Engine/Brush.h"
+#include "EngineUtils.h"
+#include "Materials/MaterialInterface.h"
+#include "LevelEditorViewport.h"
+#include "Components/PrimitiveComponent.h"
+#include "Model.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Components/PointLightComponent.h"
+#include "Engine/PointLight.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/TargetPoint.h"
 #include "AssetData.h"
+#include "Engine/Selection.h"
+#include "Editor.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "Dialogs/Dialogs.h"
 #include "ScopedTransaction.h"
 #include "ILevelEditor.h"
 #include "SnappingUtils.h"
-#include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
-#include "MessageLog.h"
+#include "Editor/GeometryMode/Public/GeometryEdMode.h"
+#include "Logging/MessageLog.h"
 #include "ActorEditorUtils.h"
 #include "Editor/ActorPositioning.h"
-#include "Engine/PointLight.h"
-#include "Components/PointLightComponent.h"
-#include "Engine/Selection.h"
-#include "Engine/StaticMeshActor.h"
-#include "Engine/TargetPoint.h"
-#include "EngineUtils.h"
 #include "StaticLightingSystem/StaticLightingPrivate.h"
 #include "LightMap.h"
 
@@ -288,16 +299,21 @@ namespace ClickHandlers
 
 		USceneComponent* Component = nullptr;
 
-		// Find the component in the actor that matches the PrimComponent on the hit proxy
-		TInlineComponentArray<USceneComponent*> SceneComponents;
-		ActorHitProxy->Actor->GetComponents(SceneComponents);
-		for (auto CompIt = SceneComponents.CreateConstIterator(); CompIt; ++CompIt)
+		if (ActorHitProxy->Actor->IsChildActor())
 		{
-			auto SceneComp = *CompIt;
-			if (SceneComp == ActorHitProxy->PrimComponent)
+			AActor* TestActor = ActorHitProxy->Actor;
+			do
 			{
-				Component = SceneComp;
-				break;
+				Component = TestActor->GetParentComponent();
+				TestActor = TestActor->GetParentActor();
+			} while (TestActor->IsChildActor());
+		}
+		else
+		{
+			UPrimitiveComponent* TestComponent = const_cast<UPrimitiveComponent*>(ActorHitProxy->PrimComponent);
+			if (ActorHitProxy->Actor->GetComponents().Contains(TestComponent))
+			{
+				Component = TestComponent;
 			}
 		}
 

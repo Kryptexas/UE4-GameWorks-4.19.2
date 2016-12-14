@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -8,7 +8,9 @@ public class Core : ModuleRules
 {
 	public Core(TargetInfo Target)
 	{
-		SharedPCHHeaderFile = "Runtime/Core/Public/Core.h";
+		PrivatePCHHeaderFile = "Private/CorePrivatePCH.h";
+
+		SharedPCHHeaderFile = "Public/CoreSharedPCH.h";
 
 		PublicIncludePaths.AddRange(
 			new string[] {

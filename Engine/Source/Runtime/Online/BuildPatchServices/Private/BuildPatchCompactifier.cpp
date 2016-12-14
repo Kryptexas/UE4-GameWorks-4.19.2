@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 BuildPatchCompactifier.cpp: Implements the classes that clean up chunk and file
 data that are no longer referenced by the manifests in a given cloud directory.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchCompactifier.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/Guid.h"
+#include "BuildPatchManifest.h"
+#include "BuildPatchServicesModule.h"
+#include "BuildPatchUtil.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDataCompactifier, Log, All);
 DEFINE_LOG_CATEGORY(LogDataCompactifier);

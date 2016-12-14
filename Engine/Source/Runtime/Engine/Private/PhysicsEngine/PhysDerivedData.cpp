@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "EnginePrivate.h"
-#include "PhysDerivedData.h"
-#include "TargetPlatform.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+#include "PhysicsEngine/PhysDerivedData.h"
+#include "Serialization/MemoryWriter.h"
+#include "Modules/ModuleManager.h"
+#include "Stats/Stats.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Components/SplineMeshComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Interfaces/ITargetPlatformManagerModule.h"
 
 #if WITH_PHYSX && (WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR)
 
@@ -112,22 +116,25 @@ bool FDerivedDataPhysXCooker::BuildConvex( TArray<uint8>& OutData, bool InMirror
 	check( BodySetup != NULL );
 	for( int32 ElementIndex = 0; ElementIndex < BodySetup->AggGeom.ConvexElems.Num(); ElementIndex++ )
 	{
-		const TArray<FVector>* MeshVertices = NULL;
-		TArray<FVector> MirroredVerts;
 		const FKConvexElem& ConvexElem = BodySetup->AggGeom.ConvexElems[ElementIndex];
 
-		if( InMirrored )
+		FVector Scaling = InMirrored ? FVector(-1, 1, 1) : FVector(1, 1, 1);
+
+		TArray<FVector> MeshVertices;
+		MeshVertices.AddUninitialized(ConvexElem.VertexData.Num());
+
+		FTransform ConvexTransform = ConvexElem.GetTransform();
+		if (!ConvexTransform.IsValid())
 		{
-			MirroredVerts.AddUninitialized(ConvexElem.VertexData.Num());
-			for(int32 VertIdx=0; VertIdx<ConvexElem.VertexData.Num(); VertIdx++)
-			{
-				MirroredVerts[VertIdx] = ConvexElem.VertexData[VertIdx] * FVector(-1,1,1);
-			}
-			MeshVertices = &MirroredVerts;
+			UE_LOG(LogPhysics, Warning, TEXT("Cook Convex: [%s] ConvexElem[%d] has invalid transform"), *GetPathNameSafe(BodySetup->GetOuter()), ElementIndex);
+			ConvexTransform = FTransform::Identity;
 		}
-		else
+
+		// Transform verts from element to body space, and mirror if desired
+		for(int32 VertIdx=0; VertIdx<ConvexElem.VertexData.Num(); VertIdx++)
 		{
-			MeshVertices = &ConvexElem.VertexData;
+			FVector BodySpaceVert = ConvexTransform.TransformPosition(ConvexElem.VertexData[VertIdx]);
+			MeshVertices[VertIdx] = BodySpaceVert * Scaling;
 		}
 
 		// Store info on the cooking result (1 byte)
@@ -143,7 +150,7 @@ bool FDerivedDataPhysXCooker::BuildConvex( TArray<uint8>& OutData, bool InMirror
 
 		// Cook and store Result at ResultInfoOffset
 		UE_LOG(LogPhysics, Log, TEXT("Cook Convex: %s %d (FlipX:%d)"), *BodySetup->GetOuter()->GetPathName(), ElementIndex, InMirrored);		
-		const EPhysXCookingResult Result = Cooker->CookConvex(Format, CookFlags, *MeshVertices, OutData);
+		const EPhysXCookingResult Result = Cooker->CookConvex(Format, CookFlags, MeshVertices, OutData);
 		switch (Result)
 		{
 		case EPhysXCookingResult::Succeeded:

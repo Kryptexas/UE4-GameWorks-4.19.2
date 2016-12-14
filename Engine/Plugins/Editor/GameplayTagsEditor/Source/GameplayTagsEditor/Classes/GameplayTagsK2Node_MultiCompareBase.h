@@ -1,12 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
-#include "K2Node.h"
-#include "GameplayTagContainer.h"
-#include "GameplayTagsK2Node_MultiCompareBase.generated.h"
 
-struct FGameplayTagContainer;
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "K2Node.h"
+#include "GameplayTagsK2Node_MultiCompareBase.generated.h"
 
 UCLASS()
 class UGameplayTagsK2Node_MultiCompareBase : public UK2Node

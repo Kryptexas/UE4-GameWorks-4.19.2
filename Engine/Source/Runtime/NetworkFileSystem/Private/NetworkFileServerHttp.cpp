@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "NetworkFileServerHttp.h"
+#include "NetworkFileServerConnection.h"
+#include "NetworkFileSystemLog.h"
+#include "NetworkMessage.h"
+#include "HAL/RunnableThread.h"
+#include "SocketSubsystem.h"
+#include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
+#include "IPAddress.h"
+#include "Serialization/MemoryReader.h"
 
 #if ENABLE_HTTP_FOR_NFS
-
-#include "NetworkFileSystemPrivatePCH.h"
-#include "NetworkFileServerHttp.h"
 
 class FNetworkFileServerClientConnectionHTTP : public FNetworkFileServerClientConnection
 {

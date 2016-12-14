@@ -1,15 +1,50 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleInterface.h"
+#include "Engine/Engine.h"
+#include "Sound/SoundAttenuation.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundClass.h"
+#include "Audio.h"
 #include "Sound/AudioVolume.h"
+#include "Sound/SoundConcurrency.h"
 #include "Sound/SoundMix.h"
-#include "Sound/SoundSubmix.h"
 #include "AudioDeviceManager.h"
+#include "EngineGlobals.h"
+
+class FAudioEffectsManager;
+class FCanvas;
+class FViewport;
+class FViewportClient;
+class ICompressedAudioInfo;
+class UReverbEffect;
+class USoundBase;
+class USoundEffectSourcePreset;
+class USoundEffectSubmixPreset;
+class USoundSubmix;
+class USoundWave;
+struct FActiveSound;
+struct FAudioQualitySettings;
 
 /**
  * Forward declares
  */
+class USoundClass;
+class UWorld;
+class FOutputDevice;
+class FArchive;
+class FReferenceCollector;
+struct FWaveInstance;
+class USoundWave;
+class FSoundBuffer;
+class USoundBase;
+class USoundAttenuation;
+struct FRotator;
+struct FActiveSound;
+class USoundMix;
 
 class FAudioEffectsManager;
 class FViewportClient;
@@ -305,7 +340,7 @@ struct FAudioStats
 		uint32 AudioComponentID;
 		FTransform Transform;
 		TArray<FStatWaveInstanceInfo> WaveInstanceInfos;
-		TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
+		TMultiMap<EAttenuationShape::Type, FBaseAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
 	};
 
 	struct FStatSoundMix
@@ -829,16 +864,16 @@ public:
 	void SetDeviceMuted(bool bMuted);
 
 	/** Computes and returns some geometry related to the listener and the given sound transform. */
-	void GetAttenuationListenerData(FAttenuationListenerData& OutListenerData, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FTransform* InListenerTransform = nullptr) const;
+	void GetAttenuationListenerData(FAttenuationListenerData& OutListenerData, const FTransform& SoundTransform, const FSoundAttenuationSettings& AttenuationSettings, const FTransform* InListenerTransform = nullptr) const;
 
 	/** Returns the azimuth angle of the sound relative to the sound's nearest listener. Used for 3d audio calculations. */
-	void GetAzimuth(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const FTransform& SoundTransform, const FAttenuationSettings& AttenuationSettings, const FTransform& ListenerTransform, float& OutAzimuth, float& AbsoluteAzimuth) const;
+	void GetAzimuth(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const FTransform& SoundTransform, const FSoundAttenuationSettings& AttenuationSettings, const FTransform& ListenerTransform, float& OutAzimuth, float& AbsoluteAzimuth) const;
 
 	/** Returns the focus factor of a sound based on its position and listener data. */
-	float GetFocusFactor(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const float Azimuth, const FAttenuationSettings& AttenuationSettings) const;
+	float GetFocusFactor(FAttenuationListenerData& OutListenerData, const USoundBase* Sound, const float Azimuth, const FSoundAttenuationSettings& AttenuationSettings) const;
 
 	/** Gets the max distance and focus factor of a sound. */
-	void GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float& OutMaxDistance, float& OutFocusFactor);
+	void GetMaxDistanceAndFocusFactor(USoundBase* Sound, const UWorld* World, const FVector& Location, const FSoundAttenuationSettings* AttenuationSettingsToApply, float& OutMaxDistance, float& OutFocusFactor);
 
 	/**
 	* Checks if the given sound would be audible.
@@ -850,7 +885,7 @@ public:
 	* @param FocusFactor			The focus factor of the sound.
 	* @param Returns true if the sound is audible, false otherwise.
 	*/
-	bool SoundIsAudible(USoundBase* Sound, const UWorld* World, const FVector& Location, const FAttenuationSettings* AttenuationSettingsToApply, float MaxDistance, float FocusFactor);
+	bool SoundIsAudible(USoundBase* Sound, const UWorld* World, const FVector& Location, const FSoundAttenuationSettings* AttenuationSettingsToApply, float MaxDistance, float FocusFactor);
 
 	/** Returns the index of the listener closest to the given sound transform */
 	static int32 FindClosestListenerIndex(const FTransform& SoundTransform, const TArray<FListener>& InListeners);

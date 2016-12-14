@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Serialization/JsonSerializerMacros.h"
 #include "NetworkReplayStreaming.h"
-#include "Core.h"
-#include "Engine.h"
-#include "ModuleManager.h"
-#include "UniquePtr.h"
-#include "Json.h"
 #include "Tickable.h"
+
+class FNetworkReplayVersion;
 
 /* Class to hold metadata about an entire replay */
 class FNullReplayInfo : public FJsonSerializable
@@ -74,6 +74,7 @@ public:
 	virtual void KeepReplay( const FString& ReplayName, const bool bKeep ) override {}
 	virtual FString	GetReplayID() const override { return TEXT( "" ); }
 	virtual void SetTimeBufferHintSeconds(const float InTimeBufferHintSeconds) override {}
+	virtual void RefreshHeader() override {};
 
 	/** FTickableObjectBase implementation */
 	virtual void Tick(float DeltaSeconds) override;

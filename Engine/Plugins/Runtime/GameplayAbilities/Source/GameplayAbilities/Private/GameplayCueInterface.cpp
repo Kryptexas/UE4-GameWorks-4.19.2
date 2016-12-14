@@ -1,20 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
-#include "AbilitySystemComponent.h"
 #include "GameplayCueInterface.h"
+#include "AbilitySystemStats.h"
+#include "GameplayTagsModule.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayCueSet.h"
 
 
-struct FCueNameAndUFunction
+namespace GameplayCueInterfacePrivate
 {
-	FGameplayTag Tag;
-	UFunction* Func;
-};
-typedef TMap<FGameplayTag, TArray<FCueNameAndUFunction> > FGameplayCueTagFunctionList;
-TMap<UClass*, FGameplayCueTagFunctionList > PerClassGameplayTagToFunctionMap;
-
-
+	struct FCueNameAndUFunction
+	{
+		FGameplayTag Tag;
+		UFunction* Func;
+	};
+	typedef TMap<FGameplayTag, TArray<FCueNameAndUFunction> > FGameplayCueTagFunctionList;
+	static TMap<FObjectKey, FGameplayCueTagFunctionList > PerClassGameplayTagToFunctionMap;
+}
 
 
 UGameplayCueInterface::UGameplayCueInterface(const FObjectInitializer& ObjectInitializer)
@@ -33,9 +35,8 @@ void IGameplayCueInterface::DispatchBlueprintCustomHandler(AActor* Actor, UFunct
 
 void IGameplayCueInterface::ClearTagToFunctionMap()
 {
-	PerClassGameplayTagToFunctionMap.Empty();
+	GameplayCueInterfacePrivate::PerClassGameplayTagToFunctionMap.Empty();
 }
-
 
 void IGameplayCueInterface::HandleGameplayCues(AActor *Self, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
 {
@@ -61,8 +62,9 @@ void IGameplayCueInterface::HandleGameplayCue(AActor *Self, FGameplayTag Gamepla
 	Parameters.OriginalTag = GameplayCueTag;
 
 	//Find entry for the class
-	FGameplayCueTagFunctionList& GameplayTagFunctionList = PerClassGameplayTagToFunctionMap.FindOrAdd(Class);
-	TArray<FCueNameAndUFunction>* FunctionList = GameplayTagFunctionList.Find(GameplayCueTag);
+	FObjectKey ClassObjectKey(Class);
+	GameplayCueInterfacePrivate::FGameplayCueTagFunctionList& GameplayTagFunctionList = GameplayCueInterfacePrivate::PerClassGameplayTagToFunctionMap.FindOrAdd(ClassObjectKey);
+	TArray<GameplayCueInterfacePrivate::FCueNameAndUFunction>* FunctionList = GameplayTagFunctionList.Find(GameplayCueTag);
 	if (FunctionList == NULL)
 	{
 		//generate new function list
@@ -77,7 +79,7 @@ void IGameplayCueInterface::HandleGameplayCue(AActor *Self, FGameplayTag Gamepla
 			// If the handler calls ForwardGameplayCueToParent, keep calling functions until one consumes the cue and doesn't forward it
 			while (Func)
 			{
-				FCueNameAndUFunction NewCueFunctionPair;
+				GameplayCueInterfacePrivate::FCueNameAndUFunction NewCueFunctionPair;
 				NewCueFunctionPair.Tag = *InnerTagIt;
 				NewCueFunctionPair.Func = Func;
 				FunctionList->Add(NewCueFunctionPair);
@@ -91,7 +93,7 @@ void IGameplayCueInterface::HandleGameplayCue(AActor *Self, FGameplayTag Gamepla
 
 			while (Func)
 			{
-				FCueNameAndUFunction NewCueFunctionPair;
+				GameplayCueInterfacePrivate::FCueNameAndUFunction NewCueFunctionPair;
 				NewCueFunctionPair.Tag = *InnerTagIt;
 				NewCueFunctionPair.Func = Func;
 				FunctionList->Add(NewCueFunctionPair);
@@ -107,7 +109,7 @@ void IGameplayCueInterface::HandleGameplayCue(AActor *Self, FGameplayTag Gamepla
 	bool bShouldContinue = true;
 	for (int32 FunctionIndex = 0; bShouldContinue && (FunctionIndex < FunctionList->Num()); ++FunctionIndex)
 	{
-		FCueNameAndUFunction& CueFunctionPair = FunctionList->GetData()[FunctionIndex];
+		GameplayCueInterfacePrivate::FCueNameAndUFunction& CueFunctionPair = FunctionList->GetData()[FunctionIndex];
 		UFunction* Func = CueFunctionPair.Func;
 		Parameters.MatchedTagName = CueFunctionPair.Tag;
 

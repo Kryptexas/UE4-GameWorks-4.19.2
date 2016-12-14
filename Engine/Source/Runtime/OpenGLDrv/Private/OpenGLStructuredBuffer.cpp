@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLStructuredBuffer.cpp: OpenGL Index buffer RHI implementation.
 =============================================================================*/
 
-#include "OpenGLDrvPrivate.h"
+#include "CoreMinimal.h"
+#include "Containers/ResourceArray.h"
+#include "OpenGLDrv.h"
 
 FStructuredBufferRHIRef FOpenGLDynamicRHI::RHICreateStructuredBuffer(uint32 Stride,uint32 Size,uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 {

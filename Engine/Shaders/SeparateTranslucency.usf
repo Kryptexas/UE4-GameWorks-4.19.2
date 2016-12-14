@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SeparateTranslucency.usf: 
 =============================================================================*/
 
 Texture2D<float> LowResDepthTexture;
+SamplerState BilinearClampedSampler;
+SamplerState PointClampedSampler;
 
 void UpdateNearestSample(float Z, float2 UV, float FullResZ, inout float MinDist, inout float2 NearestUV)
 {
@@ -29,7 +31,7 @@ float4 UpsampleSeparateTranslucency(float2 Position, float2 UV)
 	float MaxOperationDepth = 2000000.0f;
 
 	// Note: this upsample is specialized for half res to full res
-    float4 LowResDepthBuffer = LowResDepthTexture.GatherRed(GetBilinearClampedSampler(), UV);
+    float4 LowResDepthBuffer = LowResDepthTexture.GatherRed(BilinearClampedSampler, UV);
     float4 LowResDepth = min(float4(ConvertFromDeviceZ(LowResDepthBuffer.x), ConvertFromDeviceZ(LowResDepthBuffer.y), ConvertFromDeviceZ(LowResDepthBuffer.z), ConvertFromDeviceZ(LowResDepthBuffer.w)), MaxOperationDepth.xxxx);
 	float FullResDepth = min(ConvertFromDeviceZ(SceneDepthTexture[uint2(Position.xy)].x), MaxOperationDepth);
 
@@ -66,7 +68,7 @@ float4 UpsampleSeparateTranslucency(float2 Position, float2 UV)
     }
     else
     {
-        Output = Texture2DSampleLevel(PostprocessInput2, GetPointClampedSampler(), NearestUV, 0);
+        Output = Texture2DSampleLevel(PostprocessInput2, PointClampedSampler, NearestUV, 0);
 		//Output = float4(0, 1, 0, .1f);
     }
 	

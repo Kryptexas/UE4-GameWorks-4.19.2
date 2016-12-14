@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Vehicle.cpp: AWheeledVehicle implementation
 	TODO: Put description here
 =============================================================================*/
 
-#include "PhysXVehiclesPrivatePCH.h"
 #include "WheeledVehicle.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/CollisionProfile.h"
+#include "WheeledVehicleMovementComponent.h"
 #include "WheeledVehicleMovementComponent4W.h"
 #include "DisplayDebugHelpers.h"
 

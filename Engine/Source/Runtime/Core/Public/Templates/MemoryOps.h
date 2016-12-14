@@ -1,17 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "HAL/UnrealMemory.h"
+#include "Templates/EnableIf.h"
+#include "Templates/AreTypesEqual.h"
+#include "Templates/IsTriviallyCopyConstructible.h"
+#include "Templates/UnrealTypeTraits.h"
 #include <new>
 
-#include "UnrealMemory.h"
-#include "Platform.h"
-#include "UnrealTemplate.h"
-#include "UnrealTypeTraits.h"
-#include "AndOrNot.h"
-#include "IsTriviallyCopyAssignable.h"
-#include "IsTriviallyCopyConstructible.h"
-#include "IsTriviallyDestructible.h"
+#include "Templates/IsTriviallyCopyAssignable.h"
+#include "Templates/IsTriviallyDestructible.h"
 
 
 namespace UE4MemoryOps_Private

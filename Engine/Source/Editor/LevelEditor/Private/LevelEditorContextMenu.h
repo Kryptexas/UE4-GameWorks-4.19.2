@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __LevelViewportContextMenu_h__
 #define __LevelViewportContextMenu_h__
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Editor/UnrealEdTypes.h"
+
+class FExtender;
+class FMenuBuilder;
+class SLevelEditor;
+class SWidget;
 
 /** Enum to describe what a menu should be built for */
 enum class LevelEditorMenuContext

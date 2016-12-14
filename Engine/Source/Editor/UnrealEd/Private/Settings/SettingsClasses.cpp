@@ -1,22 +1,38 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
-#include "ISourceControlModule.h"
-#include "CrashReporterSettings.h"
-#include "Components/BillboardComponent.h"
+#include "CoreMinimal.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/StringAssetReference.h"
+#include "Misc/PackageName.h"
+#include "InputCoreTypes.h"
+#include "EditorStyleSettings.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "Model.h"
+#include "ISourceControlModule.h"
+#include "Settings/ContentBrowserSettings.h"
+#include "Settings/DestructableMeshEditorSettings.h"
+#include "Settings/LevelEditorPlaySettings.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Settings/EditorProjectSettings.h"
+#include "Settings/ClassViewerSettings.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+#include "Settings/EditorMiscSettings.h"
+#include "Settings/LevelEditorMiscSettings.h"
+#include "Settings/ProjectPackagingSettings.h"
+#include "EngineGlobals.h"
 #include "Components/ArrowComponent.h"
+#include "Components/BillboardComponent.h"
+#include "UnrealWidget.h"
+#include "EditorModeManager.h"
+#include "UnrealEdMisc.h"
+#include "CrashReporterSettings.h"
 #include "AutoReimport/AutoReimportUtilities.h"
 
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "ISettingsModule.h"
-#include "EditorProjectSettings.h"
-
 #include "SourceCodeNavigation.h"
-
 #include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
-#include "ScriptPerfData.h"
 
 #define LOCTEXT_NAMESPACE "SettingsClasses"
 
@@ -47,6 +63,32 @@ void UContentBrowserSettings::PostEditChangeProperty( struct FPropertyChangedEve
 	SettingChangedEvent.Broadcast(Name);
 }
 
+/* UClassViewerSettings interface
+*****************************************************************************/
+
+UClassViewerSettings::FSettingChangedEvent UClassViewerSettings::SettingChangedEvent;
+
+UClassViewerSettings::UClassViewerSettings(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+
+void UClassViewerSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName Name = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
+
+	if (!FUnrealEdMisc::Get().IsDeletePreferences())
+	{
+		SaveConfig();
+	}
+
+	SettingChangedEvent.Broadcast(Name);
+}
 
 /* UDestructableMeshEditorSettings interface
  *****************************************************************************/
@@ -325,7 +367,10 @@ void ULevelEditorPlaySettings::PostEditChangeProperty(struct FPropertyChangedEve
 	{
 		BuildGameBeforeLaunch = EPlayOnBuildMode::PlayOnBuild_Never;
 	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
 /* ULevelEditorViewportSettings interface
  *****************************************************************************/
 

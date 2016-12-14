@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneManagement.h: Scene manager definitions.
@@ -7,27 +7,42 @@
 #pragma once
 
 // Includes the draw mesh macros
-#include "UniformBuffer.h"
-#include "ConvexVolume.h"
-#include "Engine/TextureLightProfile.h"
+
+#include "CoreMinimal.h"
+#include "Containers/ChunkedArray.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "Misc/MemStack.h"
+#include "Misc/IQueuedWork.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "EngineDefines.h"
+#include "HitProxies.h"
 #include "SceneTypes.h"
-#include "SceneView.h"
-#include "RHIDefinitions.h"
-#include "ChunkedArray.h"
+#include "ConvexVolume.h"
+#include "RendererInterface.h"
+#include "Engine/TextureLightProfile.h"
 #include "BatchedElements.h"
 #include "MeshBatch.h"
-#include "RendererInterface.h"
 #include "SceneUtils.h"
-#include "TessellationRendering.h"
 
-// Forward declarations.
+class FCanvas;
+class FLightMap;
 class FLightSceneInfo;
+class FLightSceneProxy;
+class FPrimitiveSceneInfo;
+class FPrimitiveSceneProxy;
 class FSceneViewState;
-class ULightComponent;
+class FShadowMap;
+class FStaticMeshRenderData;
 class UDecalComponent;
-class HHitProxy;
+class ULightComponent;
+class ULightMapTexture2D;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
+class UShadowMapTexture2D;
+class USkyLightComponent;
 struct FDynamicMeshVertex;
-
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBufferVisualization, Log, All);
 
@@ -286,7 +301,7 @@ static const int32 MAX_NUM_LIGHTMAP_COEF = 2;
 
 /** Compile out low quality lightmaps to save memory */
 // @todo-mobile: Need to fix this!
-#define ALLOW_LQ_LIGHTMAPS (PLATFORM_DESKTOP || PLATFORM_IOS || PLATFORM_ANDROID || PLATFORM_HTML5 || PLATFORM_WOLF )
+#define ALLOW_LQ_LIGHTMAPS (PLATFORM_DESKTOP || PLATFORM_IOS || PLATFORM_ANDROID || PLATFORM_HTML5 || PLATFORM_SWITCH )
 
 /** Compile out high quality lightmaps to save memory */
 #define ALLOW_HQ_LIGHTMAPS 1
@@ -1287,31 +1302,32 @@ public:
 	void SetTransform(const FMatrix& InTransform);
 };
 
+/** Calculated wind data with support for accumulating other weighted wind data */
+class ENGINE_API FWindData
+{
+public:
+	FWindData()
+		: Speed(0.0f)
+		, MinGustAmt(0.0f)
+		, MaxGustAmt(0.0f)
+		, Direction(1.0f, 0.0f, 0.0f)
+	{
+	}
+
+	void PrepareForAccumulate();
+	void AddWeighted(const FWindData& InWindData, float Weight);
+	void NormalizeByTotalWeight(float TotalWeight);
+
+	float Speed;
+	float MinGustAmt;
+	float MaxGustAmt;
+	FVector Direction;
+};
+
 /** Represents a wind source component to the scene manager in the rendering thread. */
 class ENGINE_API FWindSourceSceneProxy
 {
 public:	
-
-	class ENGINE_API FWindData
-	{
-	public:
-		FWindData()
-			: Speed(0.0f)
-			, MinGustAmt(0.0f)
-			, MaxGustAmt(0.0f)
-			, Direction(1.0f, 0.0f, 0.0f)
-		{
-		}
-
-		void PrepareForAccumulate();
-		void AddWeighted(const FWindData& InWindData, float Weight);
-		void NormalizeByTotalWeight(float TotalWeight);
-
-		float Speed;
-		float MinGustAmt;
-		float MaxGustAmt;
-		FVector Direction;
-	};
 
 	/** Initialization constructor. */
 	FWindSourceSceneProxy(const FVector& InDirection, float InStrength, float InSpeed, float InMinGustAmt, float InMaxGustAmt) :

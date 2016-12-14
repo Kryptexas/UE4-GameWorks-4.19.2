@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "OnlineExternalUIInterface.h"
-#include "OnlineSubsystemTypes.h"
-#include "OnlineAsyncTaskManagerSteam.h"
+#include "CoreMinimal.h"
+#include "OnlineSubsystemSteam.h"
+#include "OnlineAsyncTaskManager.h"
+#include "Interfaces/OnlineExternalUIInterface.h"
 #include "OnlineSubsystemSteamPackage.h"
 
 /**

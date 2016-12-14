@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "GameplayEffectExtension.h"
-#include "GameplayTagContainer.h"
-#include "GameplayTagAssetInterface.h"
-#include "AttributeSet.h"
 #include "GameplayEffectExtension_LifestealTest.generated.h"
+
+class UGameplayEffect;
+struct FGameplayModifierEvaluatedData;
 
 UCLASS(BlueprintType)
 class GAMEPLAYABILITIES_API UGameplayEffectExtension_LifestealTest : public UGameplayEffectExtension

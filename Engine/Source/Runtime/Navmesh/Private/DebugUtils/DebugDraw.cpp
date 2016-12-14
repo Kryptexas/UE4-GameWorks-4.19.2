@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -19,11 +19,8 @@
 // 3. This notice may not be removed or altered from any source distribution.
 //
 
-#include "NavmeshModulePrivatePCH.h"
+#include "DebugUtils/DebugDraw.h"
 #define _USE_MATH_DEFINES
-#include <math.h>
-#include <string.h>
-#include "DebugDraw.h"
 
 
 duDebugDraw::~duDebugDraw()

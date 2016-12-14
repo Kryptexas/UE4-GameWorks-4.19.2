@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineSubsystemImpl.h"
+#include "Containers/Ticker.h"
+#include "Misc/App.h"
 #include "NamedInterfaces.h"
-#include "OnlineIdentityInterface.h"
-#include "OnlineSessionInterface.h"
-#include "OnlineFriendsInterface.h"
+#include "Interfaces/OnlineIdentityInterface.h"
+#include "Interfaces/OnlineSessionInterface.h"
+#include "Interfaces/OnlineFriendsInterface.h"
 
 namespace OSSConsoleVariables
 {
@@ -55,9 +56,12 @@ void FOnlineSubsystemImpl::ExecuteDelegateNextTick(const FNextTickDelegate& Call
 
 void FOnlineSubsystemImpl::StartTicker()
 {
-	// Register delegate for ticker callback
-	FTickerDelegate TickDelegate = FTickerDelegate::CreateRaw(this, &FOnlineSubsystemImpl::Tick);
-	TickHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, 0.0f);
+	if (!TickHandle.IsValid())
+	{
+		// Register delegate for ticker callback
+		FTickerDelegate TickDelegate = FTickerDelegate::CreateRaw(this, &FOnlineSubsystemImpl::Tick);
+		TickHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, 0.0f);
+	}
 }
 
 void FOnlineSubsystemImpl::StopTicker()

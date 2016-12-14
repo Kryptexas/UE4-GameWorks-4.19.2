@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidString.cpp: Android implementations of string functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "AndroidString.h"
+#include "Containers/StringConv.h"
+#include <stdlib.h>
+#include <cwchar>
 
 // This is a full copy of iswspace function from Android sources
 // For some reason function from libc does not work correctly for some korean characters like: 0xBE0C

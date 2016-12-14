@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DeferredMessgaeLog.h: Unreal async loading log.
@@ -6,7 +6,10 @@
 
 #pragma once
 
-#include "MessageLog.h"
+#include "CoreMinimal.h"
+
+class Error;
+class FTokenizedMessage;
 
 /**
  * Thread safe proxy for the FMessageLog while performing async loading.

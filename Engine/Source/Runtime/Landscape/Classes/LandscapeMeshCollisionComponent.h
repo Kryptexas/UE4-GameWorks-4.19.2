@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "Templates/RefCounting.h"
+#include "EngineDefines.h"
+#include "Serialization/BulkData.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 
 #include "LandscapeMeshCollisionComponent.generated.h"
+
+class UPhysicalMaterial;
+struct FNavigableGeometryExport;
 
 #if WITH_PHYSX
 namespace physx

@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "HAL/ThreadSafeCounter.h"
 
 // This class cannot be implemented on platforms that don't define 64bit atomic functions
 #if PLATFORM_HAS_64BIT_ATOMICS

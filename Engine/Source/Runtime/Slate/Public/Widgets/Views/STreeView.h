@@ -1,7 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Styling/SlateTypes.h"
+#include "Framework/Views/TableViewTypeTraits.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/Layout/Overscroll.h"
+#include "Widgets/Views/SListView.h"
 
 /** Info needed by a (relatively) small fraction of the tree items; some of them may not be visible. */
 struct FSparseItemInfo
@@ -91,7 +103,7 @@ public:
 		, _ExternalScrollbar()
 		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
 		, _AllowOverscroll(EAllowOverscroll::Yes)
-		, _WheelScrollMultiplier( WheelScrollAmount )
+		, _WheelScrollMultiplier(GetGlobalScrollAmount())
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )

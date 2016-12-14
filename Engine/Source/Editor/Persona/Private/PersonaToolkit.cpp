@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "PersonaToolkit.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimationAsset.h"
+#include "AnimationEditorPreviewScene.h"
 #include "ISkeletonEditorModule.h"
+#include "Animation/AnimBlueprint.h"
+#include "GameFramework/WorldSettings.h"
 #include "ScopedTransaction.h"
-#include "IEditableSkeleton.h"
 #include "PersonaModule.h"
 
 FPersonaToolkit::FPersonaToolkit()
@@ -86,11 +90,13 @@ void FPersonaToolkit::CreatePreviewScene()
 		PersonaModule.OnPreviewSceneCreated().Broadcast(PreviewScene.ToSharedRef());
 
 		bool bSetMesh = false;
+		USkeletalMesh* SkeletonPreviewMesh = nullptr;
 
 		// Set the mesh
 		if (Mesh != nullptr)
 		{
 			PreviewScene->SetPreviewMesh(Mesh);
+			SkeletonPreviewMesh = Mesh;
 			bSetMesh = true;
 		}
 		else if (AnimationAsset != nullptr)
@@ -99,6 +105,7 @@ void FPersonaToolkit::CreatePreviewScene()
 			if (AssetMesh)
 			{
 				PreviewScene->SetPreviewMesh(AssetMesh);
+				SkeletonPreviewMesh = AssetMesh;
 				bSetMesh = true;
 			}
 		}
@@ -110,8 +117,11 @@ void FPersonaToolkit::CreatePreviewScene()
 			if (PreviewMesh)
 			{
 				PreviewScene->SetPreviewMesh(PreviewMesh);
+				SkeletonPreviewMesh = PreviewMesh;
 			}
 		}
+
+		EditableSkeleton->SetPreviewMesh(SkeletonPreviewMesh);
 	}
 }
 
@@ -169,7 +179,6 @@ TSharedRef<IPersonaPreviewScene> FPersonaToolkit::GetPreviewScene() const
 {
 	return PreviewScene.ToSharedRef();
 }
-
 USkeletalMesh* FPersonaToolkit::GetPreviewMesh() const
 {
 	if (InitialAssetClass == UAnimationAsset::StaticClass())

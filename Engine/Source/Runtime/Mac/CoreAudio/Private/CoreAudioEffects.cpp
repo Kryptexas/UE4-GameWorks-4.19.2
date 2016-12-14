@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CodeAudioEffects.cpp: Unreal CoreAudio audio effects interface object.
@@ -8,10 +8,7 @@
  Audio includes.
  ------------------------------------------------------------------------------------*/
 
-#include "CoreAudioDevice.h"
-#include "AudioEffect.h"
 #include "CoreAudioEffects.h"
-#include "Engine.h"
 
 static CFBundleRef LoadRadioEffectComponent()
 {

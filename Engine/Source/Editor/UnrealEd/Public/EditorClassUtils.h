@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class UClass;
-class SToolTip;
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SToolTip.h"
+
+template< typename ObjectType > class TAttribute;
 
 namespace FEditorClassUtils
 {

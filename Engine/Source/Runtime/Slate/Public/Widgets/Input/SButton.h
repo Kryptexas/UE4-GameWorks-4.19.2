@@ -1,7 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Margin.h"
+#include "Sound/SlateSound.h"
+#include "Styling/SlateTypes.h"
+#include "Styling/CoreStyle.h"
+#include "Framework/SlateDelegates.h"
+#include "Styling/SlateWidgetStyleAsset.h"
+#include "Widgets/Layout/SBorder.h"
+
+class FPaintArgs;
+class FSlateWindowElementList;
+enum class ETextFlowDirection : uint8;
+enum class ETextShapingMethod : uint8;
 
 /**
  * Slate's Buttons are clickable Widgets that can contain arbitrary widgets as its Content().

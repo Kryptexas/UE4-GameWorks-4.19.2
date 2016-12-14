@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 EditorCompositeParams.h: Manages shader parameters required for editor's composited primitives.
 =============================================================================*/
 #pragma once
+
+#include "CoreMinimal.h"
+#include "ShaderParameters.h"
+
+class FMaterial;
+class FSceneView;
+class FShaderParameterMap;
 
 class FEditorCompositingParameters
 {

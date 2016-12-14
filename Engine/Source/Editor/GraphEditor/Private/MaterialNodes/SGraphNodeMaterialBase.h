@@ -1,6 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SOverlay.h"
+#include "SGraphNode.h"
+#include "SGraphPin.h"
+#include "Rendering/RenderingCommon.h"
+
+class FMaterialRenderProxy;
+class FPreviewElement;
+class FRHICommandListImmediate;
+class SVerticalBox;
+class UMaterialGraphNode;
 
 typedef TSharedPtr<class FPreviewElement, ESPMode::ThreadSafe> FThreadSafePreviewPtr;
 

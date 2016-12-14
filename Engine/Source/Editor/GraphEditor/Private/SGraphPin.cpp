@@ -1,11 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
-#include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
-#include "BlueprintUtilities.h"
+#include "SGraphPin.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SWrapBox.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SButton.h"
+#include "GraphEditorSettings.h"
+#include "SGraphPanel.h"
+#include "GraphEditorDragDropAction.h"
+#include "DragConnection.h"
+#include "K2Node_Knot.h"
+#include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/KismetDebugUtilities.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 #include "ScopedTransaction.h"
 #include "SLevelOfDetailBranchNode.h"
 #include "SPinTypeSelector.h"
@@ -552,15 +562,19 @@ void SGraphPin::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& 
 	
 					for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
 					{
-						if (UK2Node_Knot* OwningNode = Cast<UK2Node_Knot>(LinkedPin->GetOwningNodeUnchecked()))
+						int32 InputPinIndex = -1;
+						int32 OutputPinIndex = -1;
+						UEdGraphNode* InKnot = LinkedPin->GetOwningNodeUnchecked();
+						if (InKnot != nullptr && InKnot->ShouldDrawNodeAsControlPointOnly(InputPinIndex, OutputPinIndex) == true &&
+							InputPinIndex >= 0 && OutputPinIndex >= 0)
 						{
-							SetHovered(OwningNode);
+							SetHovered(InKnot);
 						}
 					}
 				}
 
 			private:
-				void SetHovered(UK2Node_Knot* KnotNode)
+				void SetHovered(UEdGraphNode* KnotNode)
 				{
 					bool bAlreadyTraversed = false;
 					IntermediateNodes.Add(KnotNode, &bAlreadyTraversed);
@@ -575,7 +589,7 @@ void SGraphPin::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& 
 				}
 
 			private:
-				TSet<UK2Node_Knot*> IntermediateNodes;
+				TSet<UEdGraphNode*> IntermediateNodes;
 				TSet<FEdGraphPinReference>& PinSetOut;
 				TSharedPtr<SGraphPanel>   TargetPanel;
 			};

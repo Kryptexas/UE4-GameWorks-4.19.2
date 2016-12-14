@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "LMOctree.h"
+#include "Mappings.h"
+#include "LightingMesh.h"
+#include "LMkDOP.h"
 
 namespace Lightmass
 {	
+class FLight;
+class FScene;
+class FStaticLightingMesh;
+class FStaticLightingMapping;
 
 const float TRIANGLE_AREA_THRESHOLD =0.00001f;
 

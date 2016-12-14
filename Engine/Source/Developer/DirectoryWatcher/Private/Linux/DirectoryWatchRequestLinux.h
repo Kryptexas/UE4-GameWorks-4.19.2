@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include "CoreMinimal.h"
+#include "IDirectoryWatcher.h"
 #include <sys/inotify.h>
 
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )

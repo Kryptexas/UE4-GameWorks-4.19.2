@@ -1,12 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HAL/Platform.h"
-
-
-class FString;
-
+#include "CoreTypes.h"
+#include "Containers/ContainersFwd.h"
 
 #if PLATFORM_SUPPORTS_NAMED_PIPES
 

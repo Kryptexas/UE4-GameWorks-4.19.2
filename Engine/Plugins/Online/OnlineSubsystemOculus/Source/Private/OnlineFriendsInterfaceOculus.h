@@ -1,13 +1,15 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "OnlineSubsystemOculus.h"
 #include "OnlineFriendsInterface.h"
 #include "OnlinePresenceInterface.h"
 #include "OnlineSubsystemOculusTypes.h"
 #include "OnlineSubsystemOculusPackage.h"
 THIRD_PARTY_INCLUDES_START
-	#include <string>
+#include <string>
 THIRD_PARTY_INCLUDES_END
 
 class FOnlineOculusFriend : public FOnlineFriend

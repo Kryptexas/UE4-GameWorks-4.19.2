@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "MovieSceneFwd.h"
 #include "KeyParams.h"
 #include "Curves/KeyHandle.h"
@@ -9,6 +11,8 @@
 #include "MovieSceneSignedObject.h"
 #include "MovieSceneSection.generated.h"
 
+class FStructOnScope;
+class UAISenseEvent;
 struct FMovieSceneEvalTemplatePtr;
 
 /** Enumeration specifying how to handle state when this section is no longer evaluated */

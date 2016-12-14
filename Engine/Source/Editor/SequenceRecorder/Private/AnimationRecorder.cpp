@@ -1,20 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequenceRecorderPrivatePCH.h"
 #include "AnimationRecorder.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Animation/AnimSequence.h"
+#include "Misc/MessageDialog.h"
+#include "UObject/Package.h"
+#include "Misc/PackageName.h"
+#include "Editor.h"
+#include "Toolkits/AssetEditorManager.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimCompress.h"
 #include "Animation/AnimCompress_BitwiseCompressOnly.h"
 #include "SCreateAnimationDlg.h"
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "EngineLogs.h"
+#include "AssetRegistryModule.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Animation/AnimationSettings.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
-#include "Toolkits/AssetEditorManager.h"
-#include "ActorRecording.h"
 
 #define LOCTEXT_NAMESPACE "FAnimationRecorder"
 
@@ -306,6 +309,8 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 
 				TArray<float> TimesToRecord;
 				TArray<float> ValuesToRecord;
+				TimesToRecord.SetNum(NumFrames);
+				ValuesToRecord.SetNum(NumFrames);
 
 				for (int32 FrameIndex = 0; FrameIndex < NumFrames; ++FrameIndex)
 				{
@@ -325,8 +330,8 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 
 					if (FloatCurveData)
 					{
-						TimesToRecord.Add(TimeToRecord);
-						ValuesToRecord.Add(CurCurve.Value);
+						TimesToRecord[FrameIndex] = TimeToRecord;
+						ValuesToRecord[FrameIndex] = CurCurve.Value;
 					}
 				}
 

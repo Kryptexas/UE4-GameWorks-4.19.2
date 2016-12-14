@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "KismetNodes/SGraphNodeK2Base.h"
+
+class SGraphPin;
+class UK2Node;
 
 class GRAPHEDITOR_API SGraphNodeK2Copy : public SGraphNodeK2Base
 {

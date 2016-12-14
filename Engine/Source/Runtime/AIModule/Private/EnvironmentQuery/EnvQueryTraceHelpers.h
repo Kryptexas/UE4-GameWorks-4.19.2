@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Engine/World.h"
+
+class ANavigationData;
+class Error;
 
 namespace FEQSHelpers
 {

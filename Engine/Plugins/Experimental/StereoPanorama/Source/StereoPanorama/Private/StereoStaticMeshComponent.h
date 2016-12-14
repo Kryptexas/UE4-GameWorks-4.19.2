@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "CoreUObject.h"
-#include "Engine.h"
+#include "CoreMinimal.h"
 #include "Components/StaticMeshComponent.h"
 #include "StereoStaticMeshComponent.generated.h"
 

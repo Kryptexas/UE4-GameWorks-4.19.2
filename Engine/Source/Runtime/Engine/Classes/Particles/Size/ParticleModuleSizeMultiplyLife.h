@@ -1,9 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Distributions/DistributionVector.h"
 #include "Particles/Size/ParticleModuleSizeBase.h"
 #include "ParticleModuleSizeMultiplyLife.generated.h"
+
+class UParticleEmitter;
+class UParticleLODLevel;
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Size By Life"))
 class UParticleModuleSizeMultiplyLife : public UParticleModuleSizeBase

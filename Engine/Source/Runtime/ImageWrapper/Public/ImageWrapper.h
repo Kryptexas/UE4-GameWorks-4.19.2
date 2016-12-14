@@ -1,16 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+
+/* Boilerplate
+ *****************************************************************************/
+
+#include "Misc/MonolithicHeaderBoilerplate.h"
+MONOLITHIC_HEADER_BOILERPLATE()
 
 
 /* Dependencies
  *****************************************************************************/
 
-#include "ModuleManager.h"
+#include "Modules/ModuleManager.h"
 
 
 /* Interfaces
  *****************************************************************************/
 
-#include "IImageWrapper.h"
-#include "IImageWrapperModule.h"
+#include "Interfaces/IImageWrapper.h"
+#include "Interfaces/IImageWrapperModule.h"

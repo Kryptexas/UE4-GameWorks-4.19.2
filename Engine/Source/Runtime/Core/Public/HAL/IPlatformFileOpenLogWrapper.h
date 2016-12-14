@@ -1,7 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/Map.h"
+#include "Misc/Parse.h"
+#include "Containers/StringConv.h"
+#include "Misc/DateTime.h"
+#include "GenericPlatform/GenericPlatformFile.h"
+#include "Misc/Paths.h"
+
+class IAsyncReadFileHandle;
 
 #if !UE_BUILD_SHIPPING
 
@@ -84,6 +95,10 @@ public:
 	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
+	}
+	virtual void SetLowerLevel(IPlatformFile* NewLowerLevel) override
+	{
+		LowerLevel = NewLowerLevel;
 	}
 	static const TCHAR* GetTypeName()
 	{
@@ -216,7 +231,6 @@ public:
 	{
 		return LowerLevel->SendMessageToServer(Message, Handler);
 	}
-#if USE_NEW_ASYNC_IO
 	virtual IAsyncReadFileHandle* OpenAsyncRead(const TCHAR* Filename) override
 	{
 		IAsyncReadFileHandle* Result = LowerLevel->OpenAsyncRead(Filename);
@@ -236,7 +250,6 @@ public:
 		}
 		return Result;
 	}
-#endif // USE_NEW_ASYNC_IO
 };
 
 #endif // !UE_BUILD_SHIPPING

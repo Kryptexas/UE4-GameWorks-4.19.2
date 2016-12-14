@@ -61,10 +61,22 @@ set(LIBRARY_OUTPUT_DIRECTORY "build")
 set(SIZEOF_VOIDP ${CMAKE_SIZEOF_VOID_P})
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(ARCH_64 TRUE)
-  set(PROCESSOR_ARCH "x64")
+  # EG BEGIN
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "(amd64)|(AMD64)")
+    set(PROCESSOR_ARCH "x64")
+  else()
+    set(PROCESSOR_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+  endif()
+  # EG END
 else()
   set(ARCH_64 FALSE)
-  set(PROCESSOR_ARCH "x86")
+  # EG BEGIN
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)")
+    set(PROCESSOR_ARCH "x86")
+  else()
+    set(PROCESSOR_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+  endif()
+  # EG END
 endif()
 set(LIBNAME SDL2)
 if(NOT LIBTYPE)
@@ -135,7 +147,9 @@ else()
 endif()
 
 # Default option knobs
-if(APPLE OR ARCH_64)
+# EG BEGIN
+if((APPLE OR ARCH_64) AND (PROCESSOR_ARCH MATCHES "(x86)|(x64)"))
+# EG END
   set(OPT_DEF_SSEMATH ON)
 endif()
 if(UNIX OR MINGW OR MSYS)

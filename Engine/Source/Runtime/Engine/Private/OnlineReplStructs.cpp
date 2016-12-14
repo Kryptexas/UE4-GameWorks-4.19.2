@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OnlineReplStructs.cpp: Unreal networking serialization helpers
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "UObject/PropertyPortFlags.h"
+#include "Dom/JsonValue.h"
+#include "EngineLogs.h"
 #include "Net/OnlineEngineInterface.h"
 
 FArchive& operator<<( FArchive& Ar, FUniqueNetIdRepl& UniqueNetId)
@@ -27,6 +32,11 @@ FArchive& operator<<( FArchive& Ar, FUniqueNetIdRepl& UniqueNetId)
 
 			UniqueNetId.UniqueIdFromString(Contents);
 		}
+	}
+	else if (Ar.IsLoading())
+	{
+		// @note: replicated a nullptr unique id
+		UniqueNetId.SetUniqueNetId(nullptr);
 	}
 
 	return Ar;

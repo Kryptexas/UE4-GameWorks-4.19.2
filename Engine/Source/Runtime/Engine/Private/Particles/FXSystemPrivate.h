@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FXSystemPrivate.h: Internal effects system interface.
@@ -6,8 +6,17 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "FXSystem.h"
-#include "../VectorField.h"
+#include "VectorField.h"
+
+class FCanvas;
+class FGlobalDistanceFieldParameterData;
+class FParticleSimulationGPU;
+class FParticleSimulationResources;
+class UVectorFieldComponent;
+struct FGPUSpriteEmitterInfo;
+struct FParticleEmitterInstance;
 
 /*-----------------------------------------------------------------------------
 	Forward declarations.

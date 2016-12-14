@@ -1,14 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
+#include "Types/SlateStructs.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Toolkits/IToolkitHost.h"
 #include "IDataTableEditor.h"
-#include "Toolkits/AssetEditorToolkit.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 #include "EditorUndoClient.h"
 #include "Kismet2/StructureEditorUtils.h"
 #include "DataTableEditorUtils.h"
 
-class UDataTable;
 class FJsonObject;
 
 DECLARE_DELEGATE_OneParam(FOnRowHighlighted, FName /*Row name*/);
@@ -80,6 +86,8 @@ private:
 	void OnFilterTextChanged(const FText& InFilterText);
 
 	FSlateColor GetRowTextColor(FName RowName) const;
+	FText GetCellText(FDataTableEditorRowListViewDataPtr InRowDataPointer, int32 ColumnIndex) const;
+	FText GetCellToolTipText(FDataTableEditorRowListViewDataPtr InRowDataPointer, int32 ColumnIndex) const;
 
 	TSharedRef<SVerticalBox> CreateContentBox();
 

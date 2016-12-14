@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+#include "MacErrorReport.h"
 #include "CrashReportClientApp.h"
 #include "../CrashReportUtil.h"
 #include "CrashDebugHelperModule.h"
-
-#include "MacErrorReport.h"
+#include "CrashDebugHelper.h"
+#include "FileHelper.h"
+#include "PlatformFilemanager.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
@@ -65,7 +67,7 @@ FString FMacErrorReport::FindCrashedAppPath() const
 
 void FMacErrorReport::FindMostRecentErrorReports(TArray<FString>& ErrorReportPaths, const FTimespan& MaxCrashReportAge)
 {
-	auto& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
 	FDateTime MinCreationTime = FDateTime::UtcNow() - MaxCrashReportAge;
 	auto ReportFinder = MakeDirectoryVisitor([&](const TCHAR* FilenameOrDirectory, bool bIsDirectory)
@@ -99,7 +101,7 @@ void FMacErrorReport::FindMostRecentErrorReports(TArray<FString>& ErrorReportPat
 FText FMacErrorReport::DiagnoseReport() const
 {
 	// Should check if there are local PDBs before doing anything
-	auto CrashDebugHelper = CrashHelperModule ? CrashHelperModule->Get() : nullptr;
+	ICrashDebugHelper* CrashDebugHelper = CrashHelperModule ? CrashHelperModule->Get() : nullptr;
 	if (!CrashDebugHelper)
 	{
 		// Not localized: should never be seen

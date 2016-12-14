@@ -1,12 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //
 // List of FPolys.
 //
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
 #include "Polys.generated.h"
 
+class ABrush;
+class UMaterialInterface;
+class UModel;
 
 // Results from FPoly.SplitWithPlane, describing the result of splitting
 // an arbitrary FPoly with an arbitrary plane.

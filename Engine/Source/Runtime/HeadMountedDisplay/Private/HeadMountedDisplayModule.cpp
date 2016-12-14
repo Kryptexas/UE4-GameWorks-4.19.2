@@ -1,6 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "HeadMountedDisplayPrivate.h"
+#include "CoreMinimal.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Templates/Casts.h"
+#include "EngineGlobals.h"
+#include "PrimitiveSceneProxy.h"
+#include "Components/PrimitiveComponent.h"
+#include "Engine/Engine.h"
+#include "IHeadMountedDisplayModule.h"
+#include "IHeadMountedDisplay.h"
 #include "PrimitiveSceneInfo.h"
 
 void IHeadMountedDisplay::GatherLateUpdatePrimitives(USceneComponent* Component, TArray<LateUpdatePrimitiveInfo>& Primitives)
@@ -42,6 +52,15 @@ static TAutoConsoleVariable<int32> CVarHiddenAreaMask(
 	TEXT("0 to disable hidden area mask, 1 to enable."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarMonoscopicFarField(
+	TEXT("vr.MonoscopicFarField"),
+	0,
+	TEXT("Experimental, mobile only")
+	TEXT(", 0 to disable (default), 1 to enable")
+	TEXT(", 2 stereo near field only")
+	TEXT(", 3 stereo near field with far field pixel depth test disabled")
+	TEXT(", 4 mono far field only"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static void SetTrackingOrigin(const TArray<FString>& Args)
 {

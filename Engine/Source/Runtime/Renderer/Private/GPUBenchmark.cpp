@@ -1,14 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GPUBenchmark.cpp: GPUBenchmark to compute performance index to set video options automatically
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
 #include "GPUBenchmark.h"
+#include "GenericPlatform/GenericPlatformSurvey.h"
+#include "RHI.h"
+#include "ShaderParameters.h"
+#include "RenderResource.h"
+#include "RendererInterface.h"
+#include "Shader.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "RHIStaticStates.h"
+#include "Containers/DynamicRHIResourceArray.h"
+#include "GlobalShader.h"
+#include "PostProcess/RenderTargetPool.h"
+#include "PostProcess/SceneFilterRendering.h"
 #include "GPUProfiler.h"
 
 static const uint32 GBenchmarkResolution = 512;

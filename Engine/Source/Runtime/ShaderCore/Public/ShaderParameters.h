@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderParameters.h: Shader parameter definitions.
@@ -6,9 +6,12 @@
 
 #pragma once
 
-#include "ShaderCore.h"
-#include "RenderResource.h"
-#include "UniformBuffer.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
+
+class FShaderParameterMap;
+class FUniformBufferStruct;
+struct FShaderCompilerEnvironment;
 
 enum EShaderParameterFlags
 {

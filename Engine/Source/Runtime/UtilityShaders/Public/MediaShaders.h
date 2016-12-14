@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Engine/EngineTypes.h"  // @todo: fix GlobalShader.h include dependencies
-#include "GlobalShader.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
 #include "RenderResource.h"
-
+#include "Shader.h"
+#include "Engine/Texture.h"
+#include "GlobalShader.h"
 
 /**
  * Stores media drawing vertices.

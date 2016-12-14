@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenShotData.h: Declares the FScreenShotBaseNode class.
@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Interfaces/IScreenShotData.h"
+
+struct FScreenShotDataItem;
 
 /**
  * Base class for screenshot nodes.

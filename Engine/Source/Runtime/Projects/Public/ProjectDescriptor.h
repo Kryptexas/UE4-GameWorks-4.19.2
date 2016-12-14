@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ModuleDescriptor.h"
-#include "PluginDescriptor.h"
 #include "CustomBuildSteps.h"
+#include "PluginDescriptor.h"
+
+class FJsonObject;
 
 /**
  * Version numbers for project descriptors.

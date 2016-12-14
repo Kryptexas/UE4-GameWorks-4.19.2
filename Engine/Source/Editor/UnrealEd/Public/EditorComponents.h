@@ -1,15 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorComponents.h: Scene components used by the editor modes.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 #include "UObject/GCObject.h"
 
 class FPrimitiveDrawInterface;
-class FReferenceCollector;
 class FSceneView;
 class UMaterial;
 class UMaterialInstanceDynamic;

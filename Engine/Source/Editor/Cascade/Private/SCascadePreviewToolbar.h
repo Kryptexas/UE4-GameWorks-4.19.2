@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,12 @@
    SCascadePreviewViewportToolBar
 -----------------------------------------------------------------------------*/
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Editor/UnrealEd/Public/SViewportToolBar.h"
+
+class FCascade;
 
 class SCascadePreviewViewportToolBar : public SViewportToolBar
 {

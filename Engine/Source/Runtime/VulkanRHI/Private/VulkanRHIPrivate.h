@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved..
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved..
 
 /*=============================================================================
 	VulkanRHIPrivate.h: Private Vulkan RHI definitions.
@@ -7,8 +7,15 @@
 #pragma once
 
 // Dependencies
+#include "CoreMinimal.h"
+#include "Misc/ScopeLock.h"
+#include "RHI.h"
+#include "RenderUtils.h"
 #include "VulkanConfiguration.h"
-#include "Engine.h"
+
+#if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
+#endif
 
 DECLARE_LOG_CATEGORY_EXTERN(LogVulkanRHI, Log, All);
 
@@ -30,7 +37,7 @@ enum
 #endif
 
 #if PLATFORM_ANDROID
-	#define VULKAN_COMMANDWRAPPERS_ENABLE VULKAN_ENABLE_API_DUMP
+	#define VULKAN_COMMANDWRAPPERS_ENABLE VULKAN_ENABLE_DUMP_LAYER
 	#define VULKAN_DYNAMICALLYLOADED 1
 #else
 	#define VULKAN_COMMANDWRAPPERS_ENABLE 1
@@ -128,7 +135,8 @@ public:
 	inline uint32 GetNumColorAttachments() const { return NumColorAttachments; }
 	inline bool GetHasDepthStencil() const { return bHasDepthStencil; }
 	inline bool GetHasResolveAttachments() const { return bHasResolveAttachments; }
-	inline uint32 GetNumAttachments() const { return NumAttachments; }
+	inline uint32 GetNumAttachmentDescriptions() const { return NumAttachmentDescriptions; }
+	inline uint32 GetNumSamples() const { return NumSamples; }
 
 	inline const VkAttachmentReference* GetColorAttachmentReferences() const { return NumColorAttachments > 0 ? ColorReferences : nullptr; }
 	inline const VkAttachmentReference* GetResolveAttachmentReferences() const { return bHasResolveAttachments ? ResolveReferences : nullptr; }
@@ -141,10 +149,11 @@ protected:
 
 	VkAttachmentDescription Desc[MaxSimultaneousRenderTargets * 2 + 1];
 
-	uint32 NumAttachments;
+	uint32 NumAttachmentDescriptions;
 	uint32 NumColorAttachments;
 	bool bHasDepthStencil;
 	bool bHasResolveAttachments;
+	uint32 NumSamples;
 
 	uint32 Hash;
 
@@ -161,7 +170,7 @@ protected:
 		FMemory::Memzero(ResolveReferences);
 		FMemory::Memzero(DepthStencilReference);
 		FMemory::Memzero(Desc);
-		NumAttachments = 0;
+		NumAttachmentDescriptions = 0;
 		NumColorAttachments = 0;
 		bHasDepthStencil = 0;
 		bHasResolveAttachments = 0;
@@ -260,26 +269,10 @@ public:
 			FRHITexture* RHITexture = RTInfo.ColorRenderTarget[Index].Texture;
 			if (RHITexture)
 			{
-				if (auto* Texture2D = RHITexture->GetTexture2D())
+				FVulkanTextureBase* Base = (FVulkanTextureBase*)RHITexture->GetTextureBaseRHI();
+				if (Image == Base->Surface.Image)
 				{
-					if (Image == ((FVulkanTexture2D*)Texture2D)->Surface.Image)
-					{
-						return true;
-					}
-				}
-				else if (auto* TextureCube = RHITexture->GetTextureCube())
-				{
-					if (Image == ((FVulkanTextureCube*)TextureCube)->Surface.Image)
-					{
-						return true;
-					}
-				}
-				else if (auto* Texture3D = RHITexture->GetTexture3D())
-				{
-					if (Image == ((FVulkanTexture3D*)Texture3D)->Surface.Image)
-					{
-						return true;
-					}
+					return true;
 				}
 			}
 		}
@@ -361,7 +354,7 @@ public:
 	// Can be called only once, the idea is that the Layout remains fixed.
 	void Compile();
 
-	inline const TArray<VkDescriptorSetLayout> GetHandles() const
+	inline const TArray<VkDescriptorSetLayout>& GetHandles() const
 	{
 		return LayoutHandles;
 	}
@@ -526,7 +519,6 @@ inline void VulkanSetImageLayoutSimple(VkCommandBuffer CmdBuffer, VkImage Image,
 void VulkanResolveImage(VkCommandBuffer Cmd, FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI);
 
 // Stats
-#include "Engine.h"
 #include "Stats2.h"
 DECLARE_STATS_GROUP(TEXT("Vulkan RHI"), STATGROUP_VulkanRHI, STATCAT_Advanced);
 //DECLARE_STATS_GROUP(TEXT("Vulkan RHI Verbose"), STATGROUP_VulkanRHIVERBOSE, STATCAT_Advanced);

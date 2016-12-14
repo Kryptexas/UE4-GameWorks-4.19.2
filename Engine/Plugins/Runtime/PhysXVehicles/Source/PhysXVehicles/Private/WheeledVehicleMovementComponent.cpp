@@ -1,19 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PhysXVehiclesPrivatePCH.h"
-#include "PhysicsPublic.h"
+#include "WheeledVehicleMovementComponent.h"
+#include "EngineGlobals.h"
+#include "GameFramework/Pawn.h"
+#include "PhysxUserData.h"
+#include "Engine/Engine.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "DrawDebugHelpers.h"
+#include "UObject/FrameworkObjectVersion.h"
+#include "Net/UnrealNetwork.h"
+#include "VehicleAnimInstance.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 #include "Physics/PhysicsFiltering.h"
 #include "GameFramework/PawnMovementComponent.h"
-#include "Net/UnrealNetwork.h"
-#include "MessageLog.h"
-#include "VehicleWheel.h"
-#include "WheeledVehicleMovementComponent.h"
+#include "Logging/MessageLog.h"
 #include "TireConfig.h"
-#include "VehicleAnimInstance.h"
 #include "DisplayDebugHelpers.h"
-#include "PhysicsEngine/ConstraintInstance.h"
-#include "PhysicsEngine/PhysicsAsset.h"
-#include "FrameworkObjectVersion.h"
 
 #include "PhysXPublic.h"
 #include "PhysXVehicleManager.h"
@@ -255,7 +261,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 
 				if (WheelBodySetup->AggGeom.ConvexElems.Num() == 1)
 				{
-					PxConvexMesh* ConvexMesh = WheelBodySetup->AggGeom.ConvexElems[0].ConvexMesh;
+					PxConvexMesh* ConvexMesh = WheelBodySetup->AggGeom.ConvexElems[0].GetConvexMesh();
 					PWheelShape = GPhysXSDK->createShape(PxConvexMeshGeometry(ConvexMesh, MeshScale), *WheelMaterial, /*bIsExclusive=*/true);
 					PVehicleActor->attachShape(*PWheelShape);
 				}
@@ -274,6 +280,8 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 			{
 				//fallback onto simple spheres
 				PWheelShape = GPhysXSDK->createShape(PxSphereGeometry(Wheel->ShapeRadius), *WheelMaterial, /*bIsExclusive=*/true);
+				PWheelShape->setLocalPose(PLocalPose);
+				PVehicleActor->attachShape(*PWheelShape);
 			}
 
 			// Init filter data
@@ -1655,7 +1663,7 @@ void UWheeledVehicleMovementComponent::CalculateAvoidanceVelocity(float DeltaTim
 	{
 		return;
 	}
-		
+	
 	UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
 	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
 

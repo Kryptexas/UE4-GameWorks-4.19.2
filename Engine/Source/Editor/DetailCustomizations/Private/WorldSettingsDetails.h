@@ -1,9 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameModeInfoCustomizer.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "IDetailCustomization.h"
+#include "PropertyHandle.h"
+#include "UnrealClient.h"
+#include "AssetThumbnail.h"
+#include "IDetailCustomNodeBuilder.h"
+#include "IDetailChildrenBuilder.h"
 
+class FDetailWidgetRow;
+class FGameModeInfoCustomizer;
+class IDetailCategoryBuilder;
+class IDetailLayoutBuilder;
 
 /**
  * Implements details panel customizations for AWorldSettings fields.

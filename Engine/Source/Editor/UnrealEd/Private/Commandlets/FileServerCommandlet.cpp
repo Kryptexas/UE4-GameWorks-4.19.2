@@ -1,15 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FileServerCommandlet.cpp: Implements the UFileServerCommandlet class.
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "Commandlets/FileServerCommandlet.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "Engine/Engine.h"
+#include "EngineGlobals.h"
+#include "FileServerMessages.h"
 
+#include "IDirectoryWatcher.h"
 #include "DirectoryWatcherModule.h"
-#include "Messaging.h"
-#include "NetworkFileSystem.h"
-#include "UnrealEdMessages.h"
+#include "IMessageContext.h"
+#include "Helpers/MessageEndpoint.h"
+#include "Helpers/MessageEndpointBuilder.h"
+#include "Interfaces/INetworkFileServer.h"
+#include "Interfaces/INetworkFileSystemModule.h"
+#include "IPAddress.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileServerCommandlet, Log, All);

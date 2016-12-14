@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WindowsD3D11Device.cpp: Windows D3D device RHI implementation.
 =============================================================================*/
 
 #include "D3D11RHIPrivate.h"
+#include "Misc/CommandLine.h"
 #include "AllowWindowsPlatformTypes.h"
 	#include <delayimp.h>
 	#include "nvapi.h"
+	#include "amd_ags.h"
 #include "HideWindowsPlatformTypes.h"
 
 #include "HardwareInfo.h"
@@ -59,6 +61,14 @@ static TAutoConsoleVariable<int32> CVarAMDDisableAsyncTextureCreation(
 	TEXT("If true, uses synchronous texture creation on AMD hardware (workaround for driver bug)\n")
 	TEXT("Changes will only take effect in new game/editor instances - can't be changed at runtime.\n"),
 	ECVF_Default);
+
+int32 GDX11ForcedGPUs = -1;
+static FAutoConsoleVariableRef CVarDX11NumGPUs(
+	TEXT("r.DX11NumForcedGPUs"),
+	GDX11ForcedGPUs,
+	TEXT("Num Forced GPUs."),
+	ECVF_Default
+	);
 
 /**
  * Console variables used by the D3D11 RHI device.
@@ -248,7 +258,9 @@ static void SetHDRMonitorMode(IDXGIOutput *Output, bool bEnableHDR, EDisplayGamu
 		NV_HDR_CAPABILITIES HDRCapabilities = {};
 		HDRCapabilities.version = NV_HDR_CAPABILITIES_VER;
 
-		if (NVAPI_OK == NvAPI_Disp_GetHdrCapabilities(DisplayId, &HDRCapabilities))
+		NvStatus = NvAPI_Disp_GetHdrCapabilities(DisplayId, &HDRCapabilities);
+
+		if (NvStatus == NVAPI_OK)
 		{
 			if (HDRCapabilities.isST2084EotfSupported)
 			{
@@ -285,14 +297,15 @@ static void SetHDRMonitorMode(IDXGIOutput *Output, bool bEnableHDR, EDisplayGamu
 				}
 			}
 		}
-		else
+		// Ignore expected failures caused by insufficient driver version and remote desktop connections
+		else if (NvStatus != NVAPI_ERROR && NvStatus != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
 		{
 			NvAPI_ShortString SzDesc;
 			NvAPI_GetErrorMessage(NvStatus, SzDesc);
 			UE_LOG(LogD3D11RHI, Warning, TEXT("NvAPI_Disp_GetHdrCapabilities returned %s (%x)"), ANSI_TO_TCHAR(SzDesc), int(NvStatus));
 		}
 	}
-	else
+	else if (NvStatus != NVAPI_ERROR && NvStatus != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
 	{
 		NvAPI_ShortString SzDesc;
 		NvAPI_GetErrorMessage(Status, SzDesc);
@@ -303,13 +316,15 @@ static void SetHDRMonitorMode(IDXGIOutput *Output, bool bEnableHDR, EDisplayGamu
 /** Enable HDR meta data transmission */
 void FD3D11DynamicRHI::EnableHDR(IDXGIOutput* Output)
 {
-	static TConsoleVariableData<int32>* CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
-	static TConsoleVariableData<int32>* CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
-	static TConsoleVariableData<int32>* CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
+	static const auto CVarHDROutputEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.EnableHDROutput"));
+	static const auto CVarHDRColorGamut = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.ColorGamut"));
+	static const auto CVarHDROutputDevice = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HDR.Display.OutputDevice"));
 
 	if (GRHISupportsHDROutput && CVarHDROutputEnabled->GetValueOnAnyThread() != 0)
 	{
-		const float DisplayMaxOutputNits = (CVarHDROutputDevice->GetValueOnAnyThread() == 4) ? 2000.f : 1000.f;
+		const int32 OutputDevice = CVarHDROutputDevice->GetValueOnAnyThread();
+
+		const float DisplayMaxOutputNits = (OutputDevice == 4 || OutputDevice == 6) ? 2000.f : 1000.f;
 		const float DisplayMinOutputNits = 0.0f;	// Min output of the display
 		const float DisplayMaxCLL = 0.0f;			// Max content light level in lumens (0.0 == unknown)
 		const float DisplayFALL = 0.0f;				// Frame average light level (0.0 == unknown)
@@ -390,7 +405,7 @@ static bool SupportsHDROutput(IDXGIOutput* Output)
 				return HdrCapabilities.isST2084EotfSupported;
 			}
 		}
-		else
+		else if (Status != NVAPI_ERROR && Status != NVAPI_NVIDIA_DEVICE_NOT_FOUND)
 		{
 			NvAPI_ShortString szDesc;
 			NvAPI_GetErrorMessage(Status, szDesc);
@@ -818,6 +833,31 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			check(!"Internal error, EnumAdapters() failed but before it worked")
 		}
 
+		if (IsRHIDeviceAMD())
+		{
+			check(AmdAgsContext == NULL);
+			AGSGPUInfo AmdGpuInfo;
+
+			// agsInit should be called before D3D device creation
+			if (agsInit(&AmdAgsContext, NULL, &AmdGpuInfo) == AGS_SUCCESS)
+			{
+				bool bFoundMatchingDevice = false;
+				// Search the device list for a matching vendor ID and device ID marked as GCN
+				for (int32 DeviceIndex = 0; DeviceIndex < AmdGpuInfo.numDevices; DeviceIndex++)
+				{
+					const AGSDeviceInfo& DeviceInfo = AmdGpuInfo.devices[DeviceIndex];
+					GRHIDeviceIsAMDPreGCNArchitecture |= (ChosenDescription.VendorId == DeviceInfo.vendorId) && (ChosenDescription.DeviceId == DeviceInfo.deviceId) && (DeviceInfo.architectureVersion == AGSDeviceInfo::ArchitectureVersion_PreGCN);
+					bFoundMatchingDevice |= (ChosenDescription.VendorId == DeviceInfo.vendorId) && (ChosenDescription.DeviceId == DeviceInfo.deviceId);
+				}
+				check(bFoundMatchingDevice);
+
+				if (GRHIDeviceIsAMDPreGCNArchitecture)
+				{
+					UE_LOG(LogD3D11RHI, Log, TEXT("AMD Pre GCN architecture detected, some driver workarounds will be in place"));
+				}
+			}
+		}
+
 		D3D_FEATURE_LEVEL ActualFeatureLevel = (D3D_FEATURE_LEVEL)0;
 
 		if (IsRHIDeviceAMD() && CVarAMDUseMultiThreadedDevice.GetValueOnAnyThread())
@@ -869,6 +909,42 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		if( IsRHIDeviceNVIDIA() )
 		{
 			GSupportsDepthBoundsTest = true;
+			NV_MULTIGPU_CAPS MultiGPUCaps;			
+			FMemory::Memzero(MultiGPUCaps);			
+
+			NvAPI_Status MultiGPUStatus = NvAPI_D3D11_MultiGPU_GetCaps(&MultiGPUCaps);			
+			if (MultiGPUStatus == NVAPI_OK)
+			{
+				if (MultiGPUCaps.nSLIGPUs > 1)
+				{
+					GNumActiveGPUsForRendering = MultiGPUCaps.nSLIGPUs;
+					UE_LOG(LogD3D11RHI, Log, TEXT("Detected %i SLI GPUs, %i Total GPUs.  Setting GNumActiveGPUsForRendering to: %i."), MultiGPUCaps.nSLIGPUs, MultiGPUCaps.nTotalGPUs, GNumActiveGPUsForRendering);
+				}
+			}
+			else
+			{
+				UE_LOG(LogD3D11RHI, Log, TEXT("NvAPI_D3D11_MultiGPU_GetCaps failed: 0x%x"), (int32)MultiGPUStatus);
+			}
+		}
+		else if( IsRHIDeviceAMD() )
+		{
+			// The AMD shader extensions are currently unused in UE4, but we have to set the associated UAV slot
+			// to something in the call below (default is 7, so just use that)
+			const uint32 AmdShaderExtensionUavSlot = 7;
+
+			// Initialize AGS's driver extensions
+			uint32 AmdSupportedExtensionFlags = 0;
+			auto AmdAgsResult = agsDriverExtensionsDX11_Init(AmdAgsContext, Direct3DDevice, AmdShaderExtensionUavSlot, &AmdSupportedExtensionFlags);
+			if (AmdAgsResult == AGS_SUCCESS && (AmdSupportedExtensionFlags & AGS_DX11_EXTENSION_DEPTH_BOUNDS_TEST) != 0)
+			{
+				GSupportsDepthBoundsTest = true;
+			}
+		}
+
+		if (GDX11ForcedGPUs > 0)
+		{
+			GNumActiveGPUsForRendering = GDX11ForcedGPUs;
+			UE_LOG(LogD3D11RHI, Log, TEXT("r.DX11NumForcedGPUs forcing GNumActiveGPUsForRendering to: %i "), GDX11ForcedGPUs);
 		}
 #endif
 
@@ -973,6 +1049,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 			if (S_OK == HRes)
 			{
 				GRHISupportsHDROutput = SupportsHDROutput(DXGIOutput);
+				GRHIHDRDisplayOutputFormat = PF_FloatRGBA;
 			}
 		}
 

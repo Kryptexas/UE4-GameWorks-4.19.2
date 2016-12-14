@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "BreakIterator.h"
-#include "ShapedTextCache.h"
+#include "Framework/Text/TextLayout.h"
+#include "Fonts/FontCache.h"
+#include "HAL/IConsoleManager.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Framework/Text/TextHitPoint.h"
+#include "Framework/Text/ILayoutBlock.h"
+#include "Internationalization/BreakIterator.h"
+#include "Framework/Text/ShapedTextCache.h"
 
 
 static TAutoConsoleVariable<int32> CVarDefaultTextFlowDirection(
@@ -1972,7 +1977,8 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 	if (!(DirtyFlags & ETextLayoutDirtyState::Layout))
 	{
 		//Lots of room for additional optimization
-		float OffsetAdjustment = 0;
+		float OffsetAdjustment = 0.0f;
+		float HeightAdjustment = 0.0f;
 
 		for (int32 ViewIndex = 0; ViewIndex < LineViews.Num(); ViewIndex++)
 		{
@@ -1980,15 +1986,11 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 
 			if (LineView.ModelIndex == LineIndex)
 			{
-				if (ViewIndex - 1 <= 0)
+				HeightAdjustment += LineView.Size.Y;
+
+				if (LineViews.IsValidIndex(ViewIndex + 1))
 				{
-					OffsetAdjustment += LineView.Offset.Y;
-				}
-				else
-				{
-					//Since the offsets are not relative to other lines, if we aren't removing the top line then
-					//we don't aggregate the offset from any previous removals as we'd be double counting.
-					OffsetAdjustment = (LineView.Offset.Y - LineViews[ViewIndex - 1].Offset.Y);
+					OffsetAdjustment += (LineViews[ViewIndex + 1].Offset.Y - LineView.Offset.Y);
 				}
 
 				LineViews.RemoveAt(ViewIndex);
@@ -2009,6 +2011,8 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 				}
 			}
 		}
+
+		TextLayoutSize.Height -= HeightAdjustment;
 	}
 
 	return true;
@@ -2156,6 +2160,11 @@ void FTextLayout::ClearLines()
 bool FTextLayout::IsEmpty() const
 {
 	return (LineModels.Num() == 0 || (LineModels.Num() == 1 && LineModels[0].Text->Len() == 0));
+}
+
+int32 FTextLayout::GetLineCount() const
+{
+	return LineModels.Num();
 }
 
 void FTextLayout::GetAsText(FString& DisplayText, FTextOffsetLocations* const OutTextOffsetLocations) const

@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Texture2DDynamic.cpp: Implementation of UTexture2DDynamic.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Engine/Texture2DDynamic.h"
+#include "UObject/Package.h"
+#include "TextureResource.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 
 /*-----------------------------------------------------------------------------
 	FTexture2DDynamicResource

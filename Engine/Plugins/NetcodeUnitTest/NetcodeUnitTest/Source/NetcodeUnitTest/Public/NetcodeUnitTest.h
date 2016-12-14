@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/EnumClassFlags.h"
 
 /**
  * Compatibility defines
@@ -60,6 +63,11 @@
  */
 #define TARGET_UE4_CL 2960134	// IMPORTANT: If you're hovering over this because compiling failed, you need to adjust this value.
 
+class Error;
+class UNetConnection;
+class UUnitTest;
+class UUnitTestBase;
+class UUnitTestManager;
 
 /**
  * Forward declarations

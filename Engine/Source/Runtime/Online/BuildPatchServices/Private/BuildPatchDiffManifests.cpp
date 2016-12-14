@@ -1,6 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BuildPatchServicesPrivatePCH.h"
+#include "BuildPatchDiffManifests.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Guid.h"
+#include "Policies/PrettyJsonPrintPolicy.h"
+#include "Policies/CondensedJsonPrintPolicy.h"
+#include "Serialization/JsonWriter.h"
+#include "BuildPatchManifest.h"
+#include "BuildPatchUtil.h"
+#include "Async/Future.h"
+#include "Async/Async.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogDiffManifests, Log, All);
 DEFINE_LOG_CATEGORY(LogDiffManifests);
@@ -76,7 +85,7 @@ bool FBuildDiffManifests::DiffManifests(const FString& ManifestFilePathA, const 
 			++NewChunksCount;
 			TotalChunkSize += ChunkInfoRef.FileSize;
 			NewChunkPaths.Add(FBuildPatchUtils::GetDataFilename(ManifestB.ToSharedRef(), TEXT("."), ChunkInfoRef.Guid));
-			UE_LOG(LogDiffManifests, Log, TEXT("New chunk discovered: Size: %10lld, Path: %s"), ChunkInfoRef.FileSize, *NewChunkPaths.Last());
+			UE_LOG(LogDiffManifests, Verbose, TEXT("New chunk discovered: Size: %10lld, Path: %s"), ChunkInfoRef.FileSize, *NewChunkPaths.Last());
 		}
 	}
 

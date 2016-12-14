@@ -1,30 +1,38 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "IOSPlatformEditorPrivatePCH.h"
-#include "SWidgetSwitcher.h"
-#include "IDetailPropertyRow.h"
 #include "IOSTargetSettingsCustomization.h"
+#include "Containers/Ticker.h"
+#include "Misc/App.h"
+#include "Misc/MonitoredProcess.h"
+#include "Widgets/Layout/SSeparator.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Text/SRichTextBlock.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
+#include "EditorStyleSet.h"
+#include "IOSRuntimeSettings.h"
+#include "PropertyHandle.h"
 #include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "IDetailPropertyRow.h"
 #include "DetailCategoryBuilder.h"
-#include "PropertyEditing.h"
 #include "DesktopPlatformModule.h"
-#include "MainFrame.h"
-
-#include "ScopedTransaction.h"
+#include "Framework/Application/SlateApplication.h"
+#include "IDetailGroup.h"
 #include "SExternalImageReference.h"
-#include "SHyperlinkLaunchURL.h"
-#include "SPlatformSetupMessage.h"
 #include "PlatformIconInfo.h"
 #include "SourceControlHelpers.h"
-#include "ManifestUpdateHelper.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "TargetPlatform.h"
-#include "GameProjectGenerationModule.h"
-#include "SHyperlink.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Widgets/Input/SHyperlink.h"
+#include "Widgets/Views/SListView.h"
 #include "SProvisionListRow.h"
 #include "SCertificateListRow.h"
-#include "EngineBuildSettings.h"
+#include "Misc/EngineBuildSettings.h"
+#include "SNumericDropDown.h"
+#include "Misc/MessageDialog.h"
+#include "Widgets/Notifications/SErrorText.h"
 
 #define LOCTEXT_NAMESPACE "IOSTargetSettings"
 DEFINE_LOG_CATEGORY_STATIC(LogIOSTargetSettings, Log, All);
@@ -712,12 +720,61 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	SETUP_PLIST_PROP(bSupportsLandscapeRightOrientation, OrientationCategory);
 	
 	SETUP_PLIST_PROP(bSupportsMetal, RenderCategory);
-	SETUP_PLIST_PROP(bSupportsOpenGLES2, RenderCategory);
+	
+	FSimpleDelegate OnUpdateShaderStandardWarning = FSimpleDelegate::CreateSP(this, &FIOSTargetSettingsCustomization::UpdateShaderStandardWarning);
+	
+	GLES2PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bSupportsOpenGLES2));
+	GLES2PropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
+	RenderCategory.AddProperty(GLES2PropertyHandle);
+    
+    // Handle max. shader version a little specially.
+    {
+        ShaderVersionPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MaxShaderLanguageVersion));
+		
+		// Drop-downs for setting type of lower and upper bound normalization
+		IDetailPropertyRow& ShaderVersionPropertyRow = RenderCategory.AddProperty(ShaderVersionPropertyHandle.ToSharedRef());
+		ShaderVersionPropertyRow.CustomWidget()
+		.NameContent()
+		[
+			ShaderVersionPropertyHandle->CreatePropertyNameWidget()
+		 ]
+		.ValueContent()
+		.HAlign(HAlign_Fill)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(2)
+			[
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &FIOSTargetSettingsCustomization::OnGetShaderVersionContent)
+				.ContentPadding(FMargin( 2.0f, 2.0f ))
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.Text(this, &FIOSTargetSettingsCustomization::GetShaderVersionDesc)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+			 ]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Fill)
+			.Padding(2)
+			[
+				SAssignNew(ShaderVersionWarningTextBox, SErrorText)
+				.AutoWrapText(true)
+			]
+		];
+		
+		UpdateShaderStandardWarning();
+    }
 
 	SETUP_PLIST_PROP(bSupportsIPad, DeviceCategory);
 	SETUP_PLIST_PROP(bSupportsIPhone, DeviceCategory);
 
-	SETUP_PLIST_PROP(MinimumiOSVersion, OSInfoCategory);
+	MinOSPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MinimumiOSVersion));
+	MinOSPropertyHandle->SetOnPropertyValueChanged(OnUpdateShaderStandardWarning);
+	OSInfoCategory.AddProperty(MinOSPropertyHandle);
 
 	SETUP_PLIST_PROP(AdditionalPlistData, ExtraCategory);
 
@@ -1479,6 +1536,82 @@ FText FIOSTargetSettingsCustomization::GetBundleText(TSharedRef<IPropertyHandle>
 	FText OutText;
 	InPropertyHandle->GetValueAsFormattedText(OutText);
 	return OutText;
+}
+
+TSharedRef<SWidget> FIOSTargetSettingsCustomization::OnGetShaderVersionContent()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+	
+	UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EIOSMetalShaderStandard"), true);
+	
+	for (int32 i = 0; i < Enum->GetMaxEnumValue(); i++)
+	{
+		if (Enum->IsValidEnumValue(i))
+		{
+			FUIAction ItemAction(FExecuteAction::CreateSP(this, &FIOSTargetSettingsCustomization::SetShaderStandard, i));
+			MenuBuilder.AddMenuEntry(Enum->GetEnumTextByValue(i), TAttribute<FText>(), FSlateIcon(), ItemAction);
+		}
+	}
+	
+	return MenuBuilder.MakeWidget();
+}
+
+FText FIOSTargetSettingsCustomization::GetShaderVersionDesc() const
+{
+	uint8 EnumValue;
+	ShaderVersionPropertyHandle->GetValue(EnumValue);
+	
+	UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EIOSMetalShaderStandard"), true);
+	
+	if (EnumValue < Enum->GetMaxEnumValue() && Enum->IsValidEnumValue(EnumValue))
+	{
+		return Enum->GetEnumTextByValue(EnumValue);
+	}
+	
+	return FText::GetEmpty();
+}
+
+void FIOSTargetSettingsCustomization::SetShaderStandard(int32 Value)
+{
+    if (Value >= 1)
+    {
+        FText Message;
+        
+		uint8 EnumValue = 0;
+		MinOSPropertyHandle->GetValue(EnumValue);
+		
+		bool bHasGL = false;
+		GLES2PropertyHandle->GetValue(bHasGL);
+		
+		if (Value == 1)
+        {
+			if ((EIOSVersion)EnumValue < EIOSVersion::IOS_9 && !bHasGL)
+			{
+				Message = LOCTEXT("iOSMetalShaderVersion1_1","Enabling Metal Shader Standard v1.1 increases the minimum operating system requirement for Metal from iOS 8.0 or later to iOS 9.0 or later - earlier OS versions would require OpenGL ES2. This does not affect tvOS.");
+			}
+        }
+        else if ((EIOSVersion)EnumValue < EIOSVersion::IOS_10 && !bHasGL)
+        {
+            Message = LOCTEXT("iOSMetalShaderVersion1_2","Enabling Metal Shader Standard v1.2 increases the minimum operating system requirement for Metal from iOS 8.0/tvOS 9.0 or later to iOS/tvOS 10.0 or later - earlier OS versions would require OpenGL ES2.");
+        }
+		
+		
+		ShaderVersionWarningTextBox->SetError(Message);
+	}
+	else
+	{
+		ShaderVersionWarningTextBox->SetError(TEXT(""));
+	}
+	FPropertyAccess::Result Res = ShaderVersionPropertyHandle->SetValue((uint8)Value);
+	check(Res == FPropertyAccess::Success);
+}
+
+void FIOSTargetSettingsCustomization::UpdateShaderStandardWarning()
+{
+	// Update the UI
+	uint8 EnumValue;
+	ShaderVersionPropertyHandle->GetValue(EnumValue);
+	SetShaderStandard(EnumValue);
 }
 
 //////////////////////////////////////////////////////////////////////////

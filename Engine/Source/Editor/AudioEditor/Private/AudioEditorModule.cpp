@@ -1,7 +1,38 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AudioEditorPrivatePCH.h"
-#include "ModuleManager.h"
+#include "AudioEditorModule.h"
+#include "Modules/ModuleManager.h"
+#include "Sound/SoundNodeDialoguePlayer.h"
+#include "EdGraphUtilities.h"
+#include "SoundCueGraphConnectionDrawingPolicy.h"
+#include "Factories/SoundFactory.h"
+#include "Factories/ReimportSoundFactory.h"
+#include "SoundCueGraph/SoundCueGraphNode.h"
+#include "SoundCueGraphNodeFactory.h"
+#include "Factories/ReimportSoundSurroundFactory.h"
+#include "AssetToolsModule.h"
+#include "SoundClassEditor.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundWave.h"
+#include "Sound/SoundSubmix.h"
+#include "Sound/SoundEffectPreset.h"
+#include "SoundCueEditor.h"
+#include "SoundSubmixEditor.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "AssetTypeActions/AssetTypeActions_DialogueVoice.h"
+#include "AssetTypeActions/AssetTypeActions_DialogueWave.h"
+#include "AssetTypeActions/AssetTypeActions_SoundAttenuation.h"
+#include "AssetTypeActions/AssetTypeActions_SoundConcurrency.h"
+#include "AssetTypeActions/AssetTypeActions_SoundBase.h"
+#include "AssetTypeActions/AssetTypeActions_SoundClass.h"
+#include "AssetTypeActions/AssetTypeActions_SoundCue.h"
+#include "AssetTypeActions/AssetTypeActions_SoundMix.h"
+#include "AssetTypeActions/AssetTypeActions_SoundWave.h"
+#include "AssetTypeActions/AssetTypeActions_ReverbEffect.h"
+#include "AssetTypeActions/AssetTypeActions_SoundSubmix.h"
+#include "AssetTypeActions/AssetTypeActions_SoundEffectPreset.h"
+#include "Utils.h"
+#include "UObject/UObjectIterator.h"
 
 const FName AudioEditorAppIdentifier = FName(TEXT("AudioEditorApp"));
 
@@ -18,6 +49,7 @@ public:
 	{
 		SoundClassExtensibility.Init();
 		SoundCueExtensibility.Init();
+		SoundSubmixExtensibility.Init();
 
 		// Register the sound cue graph connection policy with the graph editor
 		SoundCueGraphConnectionFactory = MakeShareable(new FSoundCueGraphConnectionDrawingPolicyFactory);
@@ -37,6 +69,7 @@ public:
 	{
 		SoundClassExtensibility.Reset();
 		SoundCueExtensibility.Reset();
+		SoundSubmixExtensibility.Reset();
 
 		if (SoundCueGraphConnectionFactory.IsValid())
 		{
@@ -59,6 +92,44 @@ public:
 		AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundMix));
 		AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundWave));
 		AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_ReverbEffect));
+
+		// Only register asset actions for when audio mixer data is enabled
+		if (GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData)
+		{
+			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundSubmix));
+			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectSubmixPreset));
+			AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectSourcePreset));
+		}
+	}
+
+	virtual void RegisterEffectPresetAssetActions() override
+	{
+		// Only register asset actions for the case where audio mixer data is enabled
+		if (GetDefault<UEditorExperimentalSettings>()->bShowAudioMixerData)
+		{
+			// Register the audio editor asset type actions
+			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+
+			// Look for any sound effect presets to register
+			for (TObjectIterator<UClass> It; It; ++It)
+			{
+				UClass* ChildClass = *It;
+				if (ChildClass->HasAnyClassFlags(CLASS_Abstract))
+				{
+					continue;
+				}
+
+				// Look for submix or source preset classes
+				if (ChildClass->IsChildOf<USoundEffectPreset>())
+				{
+					USoundEffectPreset* EffectPreset = ChildClass->GetDefaultObject<USoundEffectPreset>();
+					if (EffectPreset->HasAssetActions())
+					{
+						AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_SoundEffectPreset(EffectPreset)));
+					}
+				}
+			}
+		}
 	}
 
 	virtual TSharedRef<FAssetEditorToolkit> CreateSoundClassEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, USoundClass* InSoundClass ) override
@@ -66,6 +137,13 @@ public:
 		TSharedRef<FSoundClassEditor> NewSoundClassEditor(new FSoundClassEditor());
 		NewSoundClassEditor->InitSoundClassEditor(Mode, InitToolkitHost, InSoundClass);
 		return NewSoundClassEditor;
+	}
+
+	virtual TSharedRef<FAssetEditorToolkit> CreateSoundSubmixEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, USoundSubmix* InSoundSubmix) override
+	{
+		TSharedRef<FSoundSubmixEditor> NewSoundSubmixEditor(new FSoundSubmixEditor());
+		NewSoundSubmixEditor->InitSoundSubmixEditor(Mode, InitToolkitHost, InSoundSubmix);
+		return NewSoundSubmixEditor;
 	}
 
 	virtual TSharedPtr<FExtensibilityManager> GetSoundClassMenuExtensibilityManager() override
@@ -76,6 +154,16 @@ public:
 	virtual TSharedPtr<FExtensibilityManager> GetSoundClassToolBarExtensibilityManager() override
 	{
 		return SoundClassExtensibility.ToolBarExtensibilityManager;
+	}
+
+	virtual TSharedPtr<FExtensibilityManager> GetSoundSubmixMenuExtensibilityManager() override
+	{
+		return SoundSubmixExtensibility.MenuExtensibilityManager;
+	}
+
+	virtual TSharedPtr<FExtensibilityManager> GetSoundSubmixToolBarExtensibilityManager() override
+	{
+		return SoundSubmixExtensibility.ToolBarExtensibilityManager;
 	}
 
 	virtual TSharedRef<ISoundCueEditor> CreateSoundCueEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, USoundCue* SoundCue) override
@@ -163,6 +251,7 @@ private:
 
 	FExtensibilityManagers SoundCueExtensibility;
 	FExtensibilityManagers SoundClassExtensibility;
+	FExtensibilityManagers SoundSubmixExtensibility;
 
 	TSharedPtr<struct FGraphPanelPinConnectionFactory> SoundCueGraphConnectionFactory;
 

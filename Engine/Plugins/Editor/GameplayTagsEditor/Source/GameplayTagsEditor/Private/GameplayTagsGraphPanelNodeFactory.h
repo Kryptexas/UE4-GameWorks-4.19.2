@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "EdGraphUtilities.h"
+#include "SGraphNode.h"
 #include "SGraphNode_MultiCompareGameplayTag.h"
 #include "GameplayTagsK2Node_MultiCompareBase.h"
 

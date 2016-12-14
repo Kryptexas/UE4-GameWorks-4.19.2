@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Toolkits/AssetEditorToolkit.h"
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
 #include "EditorUndoClient.h"
+#include "Styling/ISlateStyle.h"
+#include "Framework/Docking/TabManager.h"
+#include "Toolkits/AssetEditorToolkit.h"
 
+class UMediaPlaylist;
 
 /**
  * Implements an Editor toolkit for media play lists.

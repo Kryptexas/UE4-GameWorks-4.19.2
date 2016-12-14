@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GlobalDistanceField.h
@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include "GlobalDistanceFieldParameters.h"
+#include "CoreMinimal.h"
+#include "DistanceFieldSurfaceCacheLighting.h"
 
 extern int32 GAOGlobalDistanceField;
 extern int32 GAOVisualizeGlobalDistanceField;

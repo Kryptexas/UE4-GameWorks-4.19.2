@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Layout/Visibility.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "SEditorViewport.h"
+#include "SAnimationEditorViewport.h"
 #include "Editor/UnrealEd/Public/SViewportToolBar.h"
+
+class FMenuBuilder;
 
 /**
  * A level viewport toolbar widget that is placed in a viewport

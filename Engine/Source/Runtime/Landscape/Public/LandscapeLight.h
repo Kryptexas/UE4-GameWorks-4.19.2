@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
   LandscapeLight.h: Static lighting for LandscapeComponents
@@ -6,11 +6,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "StaticLighting.h"
 #include "RenderUtils.h"
 
-class ULandscapeComponent;
 class FLightmassExporter;
+class FShadowMapData2D;
+class ULandscapeComponent;
+class ULevel;
+class ULightComponent;
+struct FQuantizedLightmapData;
 
 /** A texture mapping for landscapes */
 class FLandscapeStaticLightingTextureMapping : public FStaticLightingTextureMapping

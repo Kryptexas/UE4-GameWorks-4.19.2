@@ -1,3 +1,5 @@
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
 using System.Linq;
 using System.Web.Mvc;
 using Microsoft.Practices.Unity.Mvc;
@@ -21,7 +23,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.App_Start
             DependencyResolver.SetResolver(new UnityDependencyResolver(container));
 
             // TODO: Uncomment if you want to use PerRequestLifetimeManager
-            // Microsoft.Web.Infrastructure.DynamicModuleHelper.DynamicModuleUtility.RegisterModule(typeof(UnityPerRequestHttpModule));
         }
 
         /// <summary>Disposes the Unity container when the application is shut down.</summary>

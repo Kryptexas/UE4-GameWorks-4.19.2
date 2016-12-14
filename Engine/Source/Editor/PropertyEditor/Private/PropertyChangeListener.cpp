@@ -1,6 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "PropertyEditorPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #include "PropertyChangeListener.h"
+#include "UObject/UnrealType.h"
+#include "PropertyNode.h"
 #include "ObjectPropertyNode.h"
 #include "PropertyEditorHelpers.h"
 
@@ -241,7 +242,11 @@ bool FPropertyChangeListener::ScanForChanges( bool bRecacheNewValues )
 			{
 				for (auto It = ObjectNode->ObjectConstIterator(); It; ++It)
 				{
-					ObjectsThatChanged.Add(It->Get());
+					UObject* Obj = It->Get();
+					if (ensure(Obj != nullptr))
+					{
+						ObjectsThatChanged.Add(Obj);
+					}
 				}
 			}
 
@@ -276,7 +281,11 @@ void FPropertyChangeListener::TriggerAllPropertiesChangedDelegate()
 		{
 			for (auto It = ObjectNode->ObjectConstIterator(); It; ++It)
 			{
-				ObjectsThatChanged.Add(It->Get());
+				UObject* Obj = It->Get();
+				if (ensure(Obj != nullptr))
+				{
+					ObjectsThatChanged.Add(Obj);
+				}
 			}
 		}
 

@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
  
-#include "OnlineAchievementsInterface.h"
+#include "CoreMinimal.h"
+#include "OnlineSubsystemTypes.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Interfaces/OnlineAchievementsInterface.h"
 #include "OnlineSubsystemNullPackage.h"
 
 /**

@@ -1,15 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InstancedStaticMesh.cpp: Static mesh rendering code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Templates/Greater.h"
+#include "Math/RandomStream.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineStats.h"
+#include "Async/AsyncWork.h"
+#include "PrimitiveViewRelevance.h"
+#include "ConvexVolume.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "MaterialShared.h"
+#include "UObject/UObjectIterator.h"
+#include "MeshBatch.h"
+#include "RendererInterface.h"
+#include "Engine/StaticMesh.h"
+#include "UnrealEngine.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "StaticMeshResources.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedStaticMesh.h"
-#include "NavigationSystemHelpers.h"
-#include "AI/Navigation/NavCollision.h"
 
 static TAutoConsoleVariable<int32> CVarFoliageSplitFactor(
 	TEXT("foliage.SplitFactor"),
@@ -1805,6 +1822,12 @@ void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 	}
 }
 
+void UHierarchicalInstancedStaticMeshComponent::PostDuplicate(bool bDuplicateForPIE)
+{
+	Super::PostDuplicate(bDuplicateForPIE);
+	BuildTree();
+}
+
 void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex)
 {
 	PartialNavigationUpdate(InstanceIndex);
@@ -1947,7 +1970,7 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 	// if we are only updating rotation/scale we update the instance directly in the cluster tree
 	const bool bIsOmittedInstance = (RenderIndex == INDEX_NONE);
 	const bool bIsBuiltInstance = !bIsOmittedInstance && RenderIndex < NumBuiltRenderInstances;
-	const bool bDoInPlaceUpdate = !bIsOmittedInstance && (!bIsBuiltInstance || NewLocalLocation.Equals(OldTransform.GetOrigin()));
+	const bool bDoInPlaceUpdate = !bIsOmittedInstance && (bIsBuiltInstance || NewLocalLocation.Equals(OldTransform.GetOrigin()));
 
 	bool Result = Super::UpdateInstanceTransform(InstanceIndex, NewInstanceTransform, bWorldSpace, bMarkRenderStateDirty, bTeleport);
 	
@@ -1958,20 +1981,12 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 
 		if (bDoInPlaceUpdate)
 		{
-			if (bIsBuiltInstance)
+			// If the new bounds are larger than the old ones, then expand the bounds on the tree to make sure culling works correctly
+			const FBox OldInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(OldTransform);
+			if (!OldInstanceBounds.IsInside(NewInstanceBounds))
 			{
-				// If the new bounds are larger than the old ones, then expand the bounds on the tree to make sure culling works correctly
-				const FBox OldInstanceBounds = GetStaticMesh()->GetBounds().GetBox().TransformBy(OldTransform);
-				if (!OldInstanceBounds.IsInside(NewInstanceBounds))
-				{
-					BuiltInstanceBounds += NewInstanceBounds;
-					bDirtyRenderState = true;
-				}
-			}
-			else
-			{
-				UnbuiltInstanceBounds += NewInstanceBounds;
-				UnbuiltInstanceBoundsList[RenderIndex - NumBuiltRenderInstances] = NewInstanceBounds;
+				BuiltInstanceBounds += NewInstanceBounds;
+				bDirtyRenderState = true;
 			}
 		}
 		else

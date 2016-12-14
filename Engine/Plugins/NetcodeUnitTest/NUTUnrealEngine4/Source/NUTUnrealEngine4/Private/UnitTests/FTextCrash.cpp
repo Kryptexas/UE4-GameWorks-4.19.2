@@ -1,13 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "NUTUnrealEngine4PCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTests/FTextCrash.h"
+
 
 #include "NUTActor.h"
 
 #include "UnitTestEnvironment.h"
-#include "NUTUtilNet.h"
+#include "Net/NUTUtilNet.h"
 
 
 /**

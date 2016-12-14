@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Core.h"
-#include "Engine.h"
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Engine/Engine.h"
+#include "OnlineSubsystem.h"
 #include "OnlineSubsystemUtilsModule.h"
+#include "Interfaces/OnlineIdentityInterface.h"
 #include "Online.h"
-
-struct FWorldContext;
+#include "EngineGlobals.h"
 
 #ifdef ONLINESUBSYSTEMUTILS_API
 

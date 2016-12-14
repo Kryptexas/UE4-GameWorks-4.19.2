@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Components/AudioComponent.h"
 #include "Animation/CurveSourceInterface.h"
 
 #include "AudioCurveSourceComponent.generated.h"
+
+class UCurveTable;
+class USoundWave;
 
 /** An audio component that also provides curves to drive animation */
 UCLASS(ClassGroup = Audio, Experimental, meta = (BlueprintSpawnableComponent))

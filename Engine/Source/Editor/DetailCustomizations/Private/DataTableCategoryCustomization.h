@@ -1,6 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "IPropertyTypeCustomization.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SComboBox.h"
+#include "IDetailChildrenBuilder.h"
+#include "Engine/DataTable.h"
+#include "DetailWidgetRow.h"
 
 #define LOCTEXT_NAMESPACE "FDataTableCategoryCustomizationLayout"
 

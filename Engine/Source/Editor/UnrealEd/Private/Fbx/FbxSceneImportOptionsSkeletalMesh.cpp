@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "Factories/FbxSceneImportOptionsSkeletalMesh.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Factories/FbxSceneImportOptions.h"
+#include "Factories/FbxSceneImportOptionsStaticMesh.h"
 
 
 UFbxSceneImportOptionsSkeletalMesh::UFbxSceneImportOptionsSkeletalMesh(const FObjectInitializer& ObjectInitializer)

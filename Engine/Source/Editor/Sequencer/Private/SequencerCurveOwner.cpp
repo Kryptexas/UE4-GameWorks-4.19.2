@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SequencerPrivatePCH.h"
 #include "SequencerCurveOwner.h"
+#include "Containers/List.h"
+#include "ISequencer.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "DisplayNodes/SequencerSectionKeyAreaNode.h"
 #include "IKeyArea.h"
-#include "MovieSceneSection.h"
+#include "DisplayNodes/SequencerTrackNode.h"
 #include "Sequencer.h"
 
 struct FDisplayNodeAndKeyArea
@@ -157,6 +160,26 @@ void FSequencerCurveOwner::ModifyOwner()
 	{
 		Owner->Modify();
 	}
+}
+
+TArray<const UObject*> FSequencerCurveOwner::GetOwners() const
+{
+	TArray<UMovieSceneSection*> Owners;
+	EditInfoToSectionMap.GenerateValueArray( Owners );
+
+	TArray<const UObject*> CastedOwners;
+	CastedOwners.Reserve(Owners.Num());
+	for (auto Owner : Owners)
+	{
+		const UObject* CastedOwner = Cast<const UObject>(Owner);
+
+		if (CastedOwner)
+		{
+			CastedOwners.Add(CastedOwner);
+		}
+	}
+
+	return CastedOwners;
 }
 
 void FSequencerCurveOwner::MakeTransactional()

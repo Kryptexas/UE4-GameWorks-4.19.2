@@ -1,45 +1,67 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UnrealEd.h"
+#include "Editor/UnrealEdEngine.h"
+#include "HAL/PlatformFilemanager.h"
+#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/CoreDelegates.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/UObjectIterator.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Components/PrimitiveComponent.h"
+#include "CookOnTheSide/CookOnTheFlyServer.h"
+#include "Materials/Material.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "ISourceControlModule.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Settings/EditorLoadingSavingSettings.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+#include "Preferences/UnrealEdKeyBindings.h"
+#include "Preferences/UnrealEdOptions.h"
+#include "GameFramework/Volume.h"
+#include "Components/ArrowComponent.h"
+#include "Components/BillboardComponent.h"
+#include "Components/BrushComponent.h"
+#include "Engine/Selection.h"
+#include "Editor.h"
+#include "LevelEditorViewport.h"
+#include "EditorModeRegistry.h"
+#include "EditorModeManager.h"
+#include "EditorModes.h"
+#include "UnrealEdMisc.h"
+#include "UnrealEdGlobals.h"
 
 #include "Matinee/InterpData.h"
 #include "Matinee/MatineeActor.h"
 #include "Animation/AnimCompress.h"
 
 #include "EditorSupportDelegates.h"
-#include "SoundDefinitions.h"
-#include "BusyCursor.h"
 #include "EditorLevelUtils.h"
-#include "AVIWriter.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
-#include "CrashTracker.h"
-#include "AssetToolsModule.h"
-#include "EditorLoadingSavingSettingsCustomization.h"
-#include "GameMapsSettingsCustomization.h"
-#include "LevelEditorPlaySettingsCustomization.h"
-#include "ProjectPackagingSettingsCustomization.h"
-#include "Editor/StatsViewer/Public/StatsViewerModule.h"
+#include "EdMode.h"
+#include "PropertyEditorModule.h"
+#include "LevelEditor.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "Interfaces/ICrashTrackerModule.h"
+#include "Settings/EditorLoadingSavingSettingsCustomization.h"
+#include "Settings/GameMapsSettingsCustomization.h"
+#include "Settings/LevelEditorPlaySettingsCustomization.h"
+#include "Settings/ProjectPackagingSettingsCustomization.h"
+#include "StatsViewerModule.h"
 #include "SnappingUtils.h"
 #include "PackageAutoSaver.h"
 #include "PerformanceMonitor.h"
 #include "BSPOps.h"
-#include "ComponentVisualizer.h"
 #include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
 #include "SourceCodeNavigation.h"
 #include "AutoReimport/AutoReimportManager.h"
-#include "NotificationManager.h"
-#include "SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "AutoReimport/AssetSourceFilenameCache.h"
 #include "UObject/UObjectThreadContext.h"
-#include "Components/BillboardComponent.h"
-#include "Components/ArrowComponent.h"
-#include "Engine/Selection.h"
-#include "IMovieSceneCapture.h"
 #include "EngineUtils.h"
 
-#include "TargetPlatform.h"
 
 #include "CookerSettings.h"
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
@@ -136,7 +158,8 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
 		UCookerSettings const* CookerSettings = GetDefault<UCookerSettings>();
 		ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave | ECookInitializationFlags::Compressed;
-		BaseCookingFlags |= CookerSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
+		const ECookInitializationFlags IterativeFlags = ECookInitializationFlags::Iterative | ECookInitializationFlags::IterateOnHash;
+		BaseCookingFlags |= CookerSettings->bIterativeCookingForLaunchOn ? IterativeFlags : ECookInitializationFlags::None;
 
 		bool bEnableCookOnTheSide = false;
 		GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bEnableCookOnTheSide"), bEnableCookOnTheSide, GEngineIni);
@@ -180,7 +203,7 @@ bool CanCookForPlatformInThisProcess( const FString& PlatformName )
 	ConfigSetting = IniValueString.ToBool();
 
 	// this was stolen from void IsMobileHDR()
-	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+	static TConsoleVariableData<int32>* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	const bool CurrentRSetting = MobileHDRCvar->GetValueOnAnyThread() == 1;
 
 	if ( CurrentRSetting != ConfigSetting )
@@ -276,7 +299,7 @@ void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSorte
 	// Iterate over all classes searching for those which derive from AActor and are neither deprecated nor abstract.
 	// It would be nice to only check placeable classes here, but we cannot do that as some non-placeable classes
 	// still end up in the editor (with sprites) procedurally, such as prefab instances and landscape actors.
-	for ( auto* Class : TObjectRange<UClass>() )
+	for ( UClass* Class : TObjectRange<UClass>() )
 	{
 		if ( Class->IsChildOf( AActor::StaticClass() )
 		&& !( Class->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated) ) )
@@ -286,13 +309,10 @@ void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSorte
 			const AActor* CurDefaultClassActor = Class->GetDefaultObject<AActor>();
 			if ( CurDefaultClassActor )
 			{
-				TInlineComponentArray<UActorComponent*> Components;
-				CurDefaultClassActor->GetComponents(Components);
-
-				for ( auto* Comp : Components )
+				for ( UActorComponent* Comp : CurDefaultClassActor->GetComponents() )
 				{
 					const UBillboardComponent* CurSpriteComponent = Cast<UBillboardComponent>( Comp );
-					const UArrowComponent* CurArrowComponent = (CurSpriteComponent ? NULL : Cast<UArrowComponent>( Comp ));
+					const UArrowComponent* CurArrowComponent = (CurSpriteComponent ? nullptr : Cast<UArrowComponent>( Comp ));
 					if ( CurSpriteComponent )
 					{
 						Local::AddSortedSpriteInfo( OutSortedSpriteInfo, CurSpriteComponent->SpriteInfo );
@@ -371,7 +391,7 @@ void UUnrealEdEngine::Tick(float DeltaSeconds, bool bIdleMode)
 	if (!GSlowTaskOccurred)
 	{
 		// Don't increment autosave count while in game/pie/automation testing or while in Matinee
-		const bool PauseAutosave = (PlayWorld != NULL) || GIsAutomationTesting;
+		const bool PauseAutosave = (PlayWorld != nullptr) || GIsAutomationTesting;
 		if (!PauseAutosave && PackageAutoSaver.Get())
 		{
 			PackageAutoSaver->UpdateAutoSaveCount(DeltaSeconds);
@@ -515,6 +535,11 @@ void UUnrealEdEngine::AttemptModifiedPackageNotification()
 {
 	bool bIsCooking = CookServer && CookServer->IsCookingInEditor() && CookServer->IsCookByTheBookRunning();
 
+	if (bShowPackageNotification && !bIsCooking)
+	{
+		ShowPackageNotification();
+	}
+
 	if (PackagesDirtiedThisTick.Num() > 0 && !bIsCooking)
 	{
 		// Force source control state to be updated
@@ -522,7 +547,7 @@ void UUnrealEdEngine::AttemptModifiedPackageNotification()
 
 		TArray<FString> Files;
 		TArray<TWeakObjectPtr<UPackage>> Packages;
-		for (const auto& Package : PackagesDirtiedThisTick)
+		for (const TWeakObjectPtr<UPackage>& Package : PackagesDirtiedThisTick)
 		{
 			if (Package.IsValid())
 			{
@@ -541,8 +566,6 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 {
 	if (ResultType == ECommandResult::Succeeded)
 	{
-		bool bShowNotification = false;
-
 		// Get the source control state of the package
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
@@ -550,7 +573,7 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 		TArray<FString> FilesToAutomaticallyCheckOut;
 
 		const UEditorLoadingSavingSettings* Settings = GetDefault<UEditorLoadingSavingSettings>();
-		for (const auto& PackagePtr : Packages)
+		for (const TWeakObjectPtr<UPackage>& PackagePtr : Packages)
 		{
 			if (PackagePtr.IsValid())
 			{
@@ -569,13 +592,13 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 						else
 						{
 							PackageToNotifyState.Add(PackagePtr, NS_PendingPrompt);
-							bShowNotification = true;
+							bShowPackageNotification = true;
 						}
 					}
 					else if (!SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther())
 					{
 						PackageToNotifyState.Add(PackagePtr, NS_PendingWarning);
-						bShowNotification = true;
+						bShowPackageNotification = true;
 					}
 				}
 			}
@@ -584,11 +607,6 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 		if (FilesToAutomaticallyCheckOut.Num() > 0)
 		{
 			SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), SourceControlHelpers::AbsoluteFilenames(FilesToAutomaticallyCheckOut), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateUObject(this, &UUnrealEdEngine::OnPackagesCheckedOut, PackagesToAutomaticallyCheckOut));
-		}
-
-		if (bShowNotification)
-		{
-			ShowPackageNotification();
 		}
 	}
 }
@@ -605,7 +623,7 @@ void UUnrealEdEngine::OnPackagesCheckedOut(const FSourceControlOperationRef& Sou
 
 		FSlateNotificationManager::Get().AddNotification(Notification);
 
-		for (const auto& Package : Packages)
+		for (const TWeakObjectPtr<UPackage>& Package : Packages)
 		{
 			PackageToNotifyState.Add(Package, NS_DialogPrompted);
 		}
@@ -619,12 +637,10 @@ void UUnrealEdEngine::OnPackagesCheckedOut(const FSourceControlOperationRef& Sou
 
 		FSlateNotificationManager::Get().AddNotification(ErrorNotification);
 
-		for (const auto& Package : Packages)
+		for (const TWeakObjectPtr<UPackage>& Package : Packages)
 		{
 			PackageToNotifyState.Add(Package, NS_PendingPrompt);
 		}
-
-		ShowPackageNotification();
 	}
 }
 
@@ -1054,7 +1070,7 @@ void UUnrealEdEngine::OpenTextureStatsWindow()
 void UUnrealEdEngine::GetSortedVolumeClasses( TArray< UClass* >* VolumeClasses )
 {
 	// Add all of the volume classes to the passed in array and then sort it
-	for( auto* Class : TObjectRange<UClass>() )
+	for( UClass* Class : TObjectRange<UClass>() )
 	{
 		if (Class->IsChildOf(AVolume::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Deprecated | CLASS_Abstract | CLASS_NotPlaceable) && Class->ClassGeneratedBy == nullptr)
 		{
@@ -1244,7 +1260,7 @@ void UUnrealEdEngine::FixAnyInvertedBrushes(UWorld* World)
 			UE_LOG(LogUnrealEdEngine, Warning, TEXT("Brush '%s' appears to be inside out - fixing."), *Brush->GetName());
 
 			// Invert the polys of the brush
-			for (auto& Poly : Brush->BrushComponent->Brush->Polys->Element)
+			for (FPoly& Poly : Brush->BrushComponent->Brush->Polys->Element)
 			{
 				Poly.Reverse();
 				Poly.CalcNormal();

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidTargetDevice.h: Declares the AndroidTargetDevice class.
@@ -6,6 +6,18 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/UnrealString.h"
+#include "Templates/SharedPointer.h"
+#include "CoreMinimal.h"
+
+class FAndroidTargetDevice;
+class FTargetDeviceId;
+class ITargetDevice;
+class ITargetPlatform;
+struct FTargetDeviceProcessInfo;
+enum class ETargetDeviceFeatures;
+enum class ETargetDeviceTypes;
 
 /**
  * Type definition for shared pointers to instances of FAndroidTargetDevice.

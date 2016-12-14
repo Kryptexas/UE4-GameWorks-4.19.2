@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
 #include "IHeadMountedDisplay.h"
+#include "IGearVRPlugin.h"
 
 #if GEARVR_SUPPORTED_PLATFORMS
 
@@ -32,6 +35,8 @@ protected:
 	void PushFrame();
 	void PushBlackFrame();
 	void UnloadTextures();
+
+	virtual uint32 GetTotalNumberOfLayersSupported() const override;
 
 private:
 	class FGearVR*		pPlugin;

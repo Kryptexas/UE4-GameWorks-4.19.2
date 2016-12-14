@@ -1,20 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLDrv.cpp: Unreal OpenGL RHI library implementation.
 =============================================================================*/
 
+#include "OpenGLDrv.h"
+#include "Modules/ModuleManager.h"
+#include "EngineGlobals.h"
+#include "StaticBoundShaderState.h"
+#include "RHIStaticStates.h"
+#include "Engine/Engine.h"
 #include "OpenGLDrvPrivate.h"
 
 IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 
-#include "ShaderParameterUtils.h"
-#include "RHIStaticStates.h"
+#include "Shader.h"
 #include "OneColorShader.h"
-
-#if !UE_BUILD_SHIPPING
-#include "STaskGraph.h"
-#endif
 
 /** OpenGL Logging. */
 DEFINE_LOG_CATEGORY(LogOpenGL);

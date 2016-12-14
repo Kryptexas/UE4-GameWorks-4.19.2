@@ -1,10 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayAbilityTargetActor.h"
-#include "GameplayAbilityWorldReticle.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
+#include "WorldCollision.h"
+#include "Engine/CollisionProfile.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
+#include "Abilities/GameplayAbilityTargetDataFilter.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
 #include "GameplayAbilityTargetActor_Trace.generated.h"
+
+class UGameplayAbility;
 
 /** Intermediate base class for all line-trace type targeting actors. */
 UCLASS(Abstract, Blueprintable, notplaceable, config=Game)

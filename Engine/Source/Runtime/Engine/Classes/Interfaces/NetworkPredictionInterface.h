@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // INetworkPredictionInterface is an interface for objects that want to perform
@@ -6,8 +6,11 @@
 //=============================================================================
 
 #pragma once
-#include "NetworkPredictionInterface.generated.h"
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Interface.h"
+#include "NetworkPredictionInterface.generated.h"
 
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UNetworkPredictionInterface : public UInterface

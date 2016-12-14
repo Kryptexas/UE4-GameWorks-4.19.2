@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PlayerInput.cpp: Unreal input system.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "GameFramework/PlayerInput.h"
+#include "Misc/CommandLine.h"
+#include "Components/InputComponent.h"
+#include "Misc/App.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "GameFramework/PlayerController.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/LocalPlayer.h"
 #include "GameFramework/InputSettings.h"
 
 bool bExecutingBindCommand = false;
@@ -244,6 +253,8 @@ bool UPlayerInput::InputKey(FKey Key, EInputEvent Event, float AmountDepressed, 
 
 bool UPlayerInput::InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad )
 {
+	ensure((Key != EKeys::MouseX && Key != EKeys::MouseY) || NumSamples > 0);
+
 	// first event associated with this key, add it to the map
 	FKeyState& KeyState = KeyStateMap.FindOrAdd(Key);
 

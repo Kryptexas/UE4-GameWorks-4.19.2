@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneEvalTemplate.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
 #include "MovieSceneAudioTemplate.generated.h"
 
-class UMovieSceneAudioSection;
 class UAudioComponent;
+class UMovieSceneAudioSection;
+class USoundBase;
 
 USTRUCT()
 struct FMovieSceneAudioSectionTemplateData

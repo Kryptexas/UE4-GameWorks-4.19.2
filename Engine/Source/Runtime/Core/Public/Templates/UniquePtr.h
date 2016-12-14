@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "UnrealTemplate.h"
-#include "Templates/EnableIf.h"
-#include "Templates/IsArray.h"
+#include "CoreTypes.h"
 #include "Templates/PointerIsConvertibleFromTo.h"
+#include "Templates/UnrealTemplate.h"
+#include "Templates/IsArray.h"
 #include "Templates/RemoveExtent.h"
 
 // Single-ownership smart pointer in the vein of std::unique_ptr.
@@ -20,9 +20,10 @@
 template <typename T>
 struct TDefaultDelete
 {
-	TDefaultDelete()
-	{
-	}
+	TDefaultDelete() = default;
+	TDefaultDelete(const TDefaultDelete&) = default;
+	TDefaultDelete& operator=(const TDefaultDelete&) = default;
+	~TDefaultDelete() = default;
 
 	template <
 		typename U,
@@ -41,10 +42,6 @@ struct TDefaultDelete
 		return *this;
 	}
 
-	~TDefaultDelete()
-	{
-	}
-
 	void operator()(T* Ptr) const
 	{
 		delete Ptr;
@@ -54,9 +51,10 @@ struct TDefaultDelete
 template <typename T>
 struct TDefaultDelete<T[]>
 {
-	TDefaultDelete()
-	{
-	}
+	TDefaultDelete() = default;
+	TDefaultDelete(const TDefaultDelete&) = default;
+	TDefaultDelete& operator=(const TDefaultDelete&) = default;
+	~TDefaultDelete() = default;
 
 	template <
 		typename U,
@@ -73,10 +71,6 @@ struct TDefaultDelete<T[]>
 	TDefaultDelete& operator=(const TDefaultDelete<U[]>&)
 	{
 		return *this;
-	}
-
-	~TDefaultDelete()
-	{
 	}
 
 	template <typename U>

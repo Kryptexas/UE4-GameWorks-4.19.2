@@ -1,18 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Sound/AudioVolume.h"
-#include "Sound/SoundConcurrency.h"
+#include "CoreMinimal.h"
+#include "WorldCollision.h"
 #include "Sound/SoundAttenuation.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Audio.h"
+#include "Sound/SoundConcurrency.h"
 #include "Components/AudioComponent.h"
-#include "Sound/SoundSubmix.h"
+#include "Sound/AudioVolume.h"
 
-class USoundClass;
-class USoundSubmix;
+class FAudioDevice;
 class USoundBase;
-class UAudioComponent;
-class UWorld;
+class USoundSubmix;
+class USoundWave;
+struct FListener;
 
 /**
  *	Struct used for gathering the final parameters to apply to a wave instance
@@ -58,11 +61,21 @@ struct FSoundParseParameters
 	// At what distance from the source of the sound should spatialization begin
 	float OmniRadius;
 
-	// The distance from the emitter to the listener, used in sound attenuation and spatialization.
+	// The distance over which the sound is attenuated 
 	float AttenuationDistance;
+
+	// The distance from the listener to the sound
+	float ListenerToSoundDistance;
 
 	// The absolute azimuth angle of the sound relative to the forward listener vector (359 degrees to left, 1 degrees to right)
 	float AbsoluteAzimuth;
+
+	// Reverb wet-level parameters
+	float ReverbWetLevelMin;
+	float ReverbWetLevelMax;
+	float ReverbDistanceMin;
+	float ReverbDistanceMax;
+	float DefaultMasterReverbSendAmount;
 
 	// The distance between left and right channels when spatializing stereo assets
 	float StereoSpread;
@@ -109,7 +122,13 @@ struct FSoundParseParameters
 		, StartTime(-1.f)
 		, OmniRadius(0.0f)
 		, AttenuationDistance(0.0f)
+		, ListenerToSoundDistance(0.0f)
 		, AbsoluteAzimuth(0.0f)
+		, ReverbWetLevelMin(0.0f)
+		, ReverbWetLevelMax(0.0f)
+		, ReverbDistanceMin(0.0f)
+		, ReverbDistanceMax(0.0f)
+		, DefaultMasterReverbSendAmount(0.0f)
 		, StereoSpread(0.0f)
 		, SpatializationAlgorithm(SPATIALIZATION_Default)
 		, LowPassFilterFrequency(MAX_FILTER_FREQUENCY)
@@ -337,7 +356,7 @@ public:
 	/** Location last time playback was updated */
 	FVector LastLocation;
 
-	FAttenuationSettings AttenuationSettings;
+	FSoundAttenuationSettings AttenuationSettings;
 
 	/** Cache what volume settings we had last time so we don't have to search again if we didn't move */
 	FInteriorSettings InteriorSettings;
@@ -414,7 +433,7 @@ public:
 	 */
 	bool GetIntParameter(const FName InName, int32& OutInt) const;
 
-	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
+	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FBaseAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
 
 	/**
 	 * Friend archive function used for serialization.
@@ -447,7 +466,7 @@ public:
 	uint32 GetSoundConcurrencyObjectID() const;
 
 	/** Applies the active sound's attenuation settings to the input parse params using the given listener */
-	void ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener, const FAttenuationSettings* SettingsAttenuationNode = nullptr);
+	void ApplyAttenuation(FSoundParseParameters& ParseParams, const FListener& Listener, const FSoundAttenuationSettings* SettingsAttenuationNode = nullptr);
 
 	/** Returns the effective priority of the active sound */
 	float GetPriority() const { return Priority * FocusPriorityScale; }
@@ -471,9 +490,9 @@ private:
 	 * CurrentLocation is the location of this component that will be used for playback
 	 * @param ListenerLocation location of the closest listener to the sound
 	 */
-	void CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FAttenuationSettings* AttenuationSettingsPtr);
+	void CheckOcclusion(const FVector ListenerLocation, const FVector SoundLocation, const FSoundAttenuationSettings* AttenuationSettingsPtr);
 	 
-	void UpdateOcclusion(const FAttenuationSettings* AttenuationSettingsPtr);
+	void UpdateOcclusion(const FSoundAttenuationSettings* AttenuationSettingsPtr);
 
 	FTraceDelegate OcclusionTraceDelegate;
 

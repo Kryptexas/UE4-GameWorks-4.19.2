@@ -1,10 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-
-#include "GraphEditorActions.h"
-#include "ScopedTransaction.h"
 #include "AnimGraphNode_Slot.h"
+
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Slot
@@ -65,7 +62,7 @@ FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FString UAnimGraphNode_Slot::GetNodeCategory() const
 {
-	return TEXT("Blends");
+	return TEXT("Montage");
 }
 
 void UAnimGraphNode_Slot::BakeDataDuringCompilation(class FCompilerResultsLog& MessageLog)

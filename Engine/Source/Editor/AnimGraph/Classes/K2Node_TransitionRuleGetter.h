@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "K2Node.h"
 #include "K2Node_TransitionRuleGetter.generated.h"
 
-class UAnimGraphNode_Base;
+class FBlueprintActionDatabaseRegistrar;
 class FBlueprintActionFilter;
+class UAnimBlueprint;
+class UAnimGraphNode_Base;
+class UAnimStateNode;
+class UEdGraphPin;
+class UEdGraphSchema;
 
 UENUM()
 namespace ETransitionGetter

@@ -1,15 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
   PendingNetGame.cpp: Unreal pending net game class.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
+#include "Engine/PendingNetGame.h"
+#include "Misc/NetworkGuid.h"
+#include "EngineGlobals.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "Engine/Engine.h"
+#include "PacketHandlers/StatelessConnectHandlerComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Engine/LocalPlayer.h"
+#include "Misc/NetworkVersion.h"
 #include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
-#include "GeneralProjectSettings.h"
-#include "NetworkVersion.h"
 
 void UPendingNetGame::Initialize(const FURL& InURL)
 {

@@ -5149,13 +5149,13 @@ void Sc::Scene::addShape(RigidSim& owner, ShapeCore& shapeCore, PxBounds3* uninf
 	mNbGeometries[shapeCore.getGeometryType()]++;
 
 	//register shape
-	mSimulationController->addShape(&sim->getLLShapeSim(), sim->getID()); 
+	mSimulationController->addShape(&sim->getLLShapeSim(), sim->getID());
 	if (uninflatedBounds)
 		*uninflatedBounds = mBoundsArray->getBounds(sim->getElementID());
 	registerShapeInNphase(shapeCore);
 }
 
-void Sc::Scene::removeShape(ShapeSim &shape, bool wakeOnLostTouch)
+void Sc::Scene::removeShape(ShapeSim& shape, bool wakeOnLostTouch)
 {
 	//BodySim* body = shape.getBodySim();
 	//if(body)

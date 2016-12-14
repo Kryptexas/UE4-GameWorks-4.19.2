@@ -1,73 +1,86 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
+#include "LevelEditorActions.h"
+#include "SceneView.h"
+#include "Factories/Factory.h"
+#include "Animation/AnimSequence.h"
+#include "Components/LightComponent.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/App.h"
+#include "Modules/ModuleManager.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "TexAlignTools.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Materials/Material.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "ISourceControlModule.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "Factories/BlueprintFactory.h"
+#include "Editor/GroupActor.h"
+#include "Materials/MaterialInstance.h"
+#include "Engine/Light.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Engine/Selection.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineUtils.h"
+#include "EditorModes.h"
+#include "UnrealEdMisc.h"
+#include "FileHelpers.h"
+#include "EditorModeInterpolation.h"
+#include "UnrealEdGlobals.h"
+#include "Toolkits/AssetEditorManager.h"
 #include "LevelEditor.h"
 #include "Matinee/MatineeActor.h"
 #include "Engine/LevelScriptBlueprint.h"
 #include "LightingBuildOptions.h"
 #include "EditorSupportDelegates.h"
 #include "SLevelEditor.h"
-#include "LevelEditorActions.h"
-#include "SLevelViewport.h"
 #include "EditorBuildUtils.h"
-#include "Toolkits/AssetEditorManager.h"
 #include "ScopedTransaction.h"
-#include "Editor/Kismet/Public/BlueprintEditorModule.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
-#include "Editor/UnrealEd/Private/GeomFitUtils.h"
-#include "Editor/UnrealEd/Public/BSPOps.h"
-#include "Editor/LevelEditor/Public/DlgDeltaTransform.h"
-#include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "DlgDeltaTransform.h"
 #include "Editor/NewLevelDialog/Public/NewLevelDialogModule.h"
-#include "DelegateFilter.h"
-#include "BlueprintUtilities.h"
 #include "MRUFavoritesList.h"
-#include "Editor/SceneOutliner/Private/SSocketChooser.h"
+#include "Private/SSocketChooser.h"
 #include "SnappingUtils.h"
+#include "LevelEditorViewport.h"
 #include "Layers/ILayers.h"
+#include "IPlacementMode.h"
 #include "IPlacementModeModule.h"
 #include "AssetSelection.h"
 #include "IDocumentation.h"
 #include "SourceCodeNavigation.h"
-#include "Dialogs/DlgPickAssetPath.h"
-#include "AssetToolsModule.h"
-#include "BlueprintEditorUtils.h"
-#include "KismetEditorUtilities.h"
 #include "DesktopPlatformModule.h"
 #include "EngineAnalytics.h"
-#include "AnalyticsEventAttribute.h"
-#include "IAnalyticsProvider.h"
+#include "Interfaces/IAnalyticsProvider.h"
 #include "ReferenceViewer.h"
 #include "ISizeMapModule.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "EditorClassUtils.h"
-#include "ComponentEditorUtils.h"
 
 #include "EditorActorFolders.h"
 #include "ActorPickerMode.h"
-#include "EngineBuildSettings.h"
-#include "HotReloadInterface.h"
-#include "ISourceControlModule.h"
+#include "Misc/EngineBuildSettings.h"
+#include "Misc/HotReloadInterface.h"
 #include "SourceControlWindows.h"
-#include "NotificationManager.h"
-#include "SNotificationList.h"
-#include "Engine/Selection.h"
-#include "EngineUtils.h"
-#include "Engine/StaticMeshActor.h"
-#include "Engine/Polys.h"
-#include "Components/LightComponent.h"
-#include "Engine/StaticMesh.h"
-#include "Engine/Light.h"
-#include "Animation/SkeletalMeshActor.h"
-#include "Animation/AnimSequence.h"
-#include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
-#include "EditorProjectSettings.h"
-#include "HierarchicalLODUtilities.h"
-#include "HierarchicalLODUtilitiesModule.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "CreateBlueprintFromActorDialog.h"
+#include "Settings/EditorProjectSettings.h"
 #include "Engine/LODActor.h"
-#include "AsyncResult.h"
+#include "IHierarchicalLODUtilities.h"
+#include "HierarchicalLODUtilitiesModule.h"
+#include "Application/IPortalApplicationWindow.h"
+#include "IPortalServiceLocator.h"
 #include "MaterialShaderQualitySettings.h"
 #include "IVREditorModule.h"
 #include "ComponentRecreateRenderStateContext.h"
@@ -503,20 +516,23 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 	return TestQualityLevel == MaterialQualityLevel;
 }
 
-void FLevelEditorActionCallbacks::SetPreviewPlatform(FName MaterialQualityPlatform)
+void FLevelEditorActionCallbacks::SetPreviewPlatform(FName MaterialQualityPlatform, ERHIFeatureLevel::Type PreviewFeatureLevel)
 {
+	// If we have specified a MaterialQualityPlatform ensure its feature level matches the requested feature level.
+	check(MaterialQualityPlatform.IsNone() || GetMaxSupportedFeatureLevel(ShaderFormatToLegacyShaderPlatform(MaterialQualityPlatform)) == PreviewFeatureLevel);
+
 	UMaterialShaderQualitySettings* MaterialShaderQualitySettings = UMaterialShaderQualitySettings::Get();
 	const FName InitialPreviewPlatform = MaterialShaderQualitySettings->GetPreviewPlatform();
 
 	const ERHIFeatureLevel::Type InitialFeatureLevel = GetWorld()->FeatureLevel;
 	MaterialShaderQualitySettings->SetPreviewPlatform(MaterialQualityPlatform);
-	SetFeatureLevelPreview(ERHIFeatureLevel::ES2);
+	SetFeatureLevelPreview(PreviewFeatureLevel);
 
 	if (
 		// Rebuild materials if the preview platform has changed. 
 		InitialPreviewPlatform != MaterialQualityPlatform
 		// If the feature level changed then materials have been rebuilt already.
-		&& InitialFeatureLevel == ERHIFeatureLevel::ES2 )
+		&& InitialFeatureLevel == PreviewFeatureLevel)
 	{
 		FGlobalComponentRecreateRenderStateContext Recreate;
 		FlushRenderingCommands();
@@ -525,10 +541,10 @@ void FLevelEditorActionCallbacks::SetPreviewPlatform(FName MaterialQualityPlatfo
 	}
 }
 
-bool FLevelEditorActionCallbacks::IsPreviewPlatformChecked(FName MaterialQualityPlatform)
+bool FLevelEditorActionCallbacks::IsPreviewPlatformChecked(FName MaterialQualityPlatform, ERHIFeatureLevel::Type PreviewFeatureLevel)
 {
 	const FName& PreviewPlatform = UMaterialShaderQualitySettings::Get()->GetPreviewPlatform();
-	return PreviewPlatform == MaterialQualityPlatform && ERHIFeatureLevel::ES2 == GetWorld()->FeatureLevel;
+	return PreviewPlatform == MaterialQualityPlatform && PreviewFeatureLevel == GetWorld()->FeatureLevel;
 }
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
@@ -681,6 +697,7 @@ void FLevelEditorActionCallbacks::BuildLODsOnly_Execute()
 void FLevelEditorActionCallbacks::BuildTextureStreamingOnly_Execute()
 {
 	FEditorBuildUtils::EditorBuildTextureStreaming(GetWorld());
+	GEngine->DeferredCommands.AddUnique(TEXT("MAP CHECK NOTIFYRESULTS"));
 }
 
 bool FLevelEditorActionCallbacks::IsLightingQualityChecked( ELightingBuildQuality TestQuality )
@@ -1883,6 +1900,11 @@ bool FLevelEditorActionCallbacks::SaveAnimationFromSkeletalMeshComponent(AActor 
 	}
 
 	return false;
+}
+
+void FLevelEditorActionCallbacks::OpenMergeActor_Clicked()
+{
+	FGlobalTabmanager::Get()->InvokeTab(FName("MergeActors"));
 }
 
 void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
@@ -3132,8 +3154,14 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND(MaterialQualityLevel_High, "High", "Sets material quality in the scene to high.", EUserInterfaceActionType::RadioButton, FInputChord());
 
 	UI_COMMAND(PreviewPlatformOverride_DefaultES2, "Default Mobile / HTML5 Preview", "Use default mobile settings (no quality overrides).", EUserInterfaceActionType::RadioButton, FInputChord());
-	UI_COMMAND(PreviewPlatformOverride_AndroidES2, "Android Preview", "Mobile preview using Android's quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
-	UI_COMMAND(PreviewPlatformOverride_IOSES2, "iOS ES2 Preview", "Mobile preview using iOS's OpenGL ES2 quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(PreviewPlatformOverride_AndroidGLES2, "Android Preview", "Mobile preview using Android's quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(PreviewPlatformOverride_IOSGLES2, "iOS ES2 Preview", "Mobile preview using iOS's OpenGL ES2 quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
+
+	UI_COMMAND(PreviewPlatformOverride_DefaultES31, "Default High-End Mobile", "Use default mobile settings (no quality overrides).", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(PreviewPlatformOverride_AndroidGLES31, "Android GLES3.1 Preview", "Mobile preview using Android ES3.1 quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(PreviewPlatformOverride_AndroidVulkanES31, "Android Vulkan Preview", "Mobile preview using Android Vulkan quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(PreviewPlatformOverride_IOSMetalES31, "iOS Metal Preview", "Mobile preview using iOS Metal quality settings.", EUserInterfaceActionType::RadioButton, FInputChord());
+
 
 	UI_COMMAND( ConnectToSourceControl, "Connect to Source Control...", "Opens a dialog to connect to source control.", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( ChangeSourceControlSettings, "Change Source Control Settings...", "Opens a dialog to change source control settings.", EUserInterfaceActionType::Button, FInputChord());
@@ -3170,6 +3198,8 @@ void FLevelEditorCommands::RegisterCommands()
 			.UserInterfaceType(EUserInterfaceActionType::RadioButton)
 			.DefaultChord(FInputChord());
 	}
+
+	UI_COMMAND(OpenMergeActor, "Merge Actors", "Opens the Merge Actor panel", EUserInterfaceActionType::Button, FInputChord());
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

@@ -1,18 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Movement component updates position of associated PrimitiveComponent during its tick.
  */
 
 #pragma once
-#include "Components/ActorComponent.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Engine/EngineTypes.h"
+#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "MovementComponent.generated.h"
 
+class AActor;
+class APhysicsVolume;
+class UPrimitiveComponent;
 struct FCollisionQueryParams;
 struct FCollisionResponseParams;
 struct FCollisionShape;
-class USceneComponent;
 
 /**
  * Setting that controls behavior when movement is restricted to a 2D plane defined by a specific axis/normal,

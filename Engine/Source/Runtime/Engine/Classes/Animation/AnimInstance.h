@@ -1,34 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimationAsset.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Components/SkinnedMeshComponent.h"
-#include "AnimStateMachineTypes.h"
-#include "BonePose.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "Animation/AnimTypes.h"
+#include "Animation/Skeleton.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimCurveTypes.h"
+#include "Animation/AnimMontage.h"
+#include "BonePose.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimNotifyQueue.h"
-#include "Animation/AnimClassInterface.h"
 #include "AnimInstance.generated.h"
 
-struct FAnimMontageInstance;
-class UAnimMontage;
-class USkeleton;
-class AActor;
-class UAnimSequenceBase;
-class UBlendSpaceBase;
-class APawn;
-class UAnimationAsset;
-class UCanvas;
-class UWorld;
-struct FTransform;
 class FDebugDisplayInfo;
-struct FAnimNode_SubInput;
-struct FAnimNode_AssetPlayerBase;
-struct FAnimNode_Base;
+class IAnimClassInterface;
+class UAnimInstance;
+class UCanvas;
 struct FAnimInstanceProxy;
-struct FPoseSnapshot;
+struct FAnimNode_AssetPlayerBase;
+struct FAnimNode_StateMachine;
+struct FAnimNode_SubInput;
+struct FBakedAnimationStateMachine;
 
 UENUM()
 enum class EAnimCurveType : uint8 
@@ -64,6 +59,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMontageStartedMCDelegate, UAnimMo
 * bInterrupted = true if it was not property finished
 */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageEndedMCDelegate, UAnimMontage*, Montage, bool, bInterrupted);
+
+/** Delegate for when all montage instances have ended. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAllMontageInstancesEndedMCDelegate);
 
 /**
 * Delegate for when Montage started to blend out, whether interrupted or finished
@@ -367,9 +365,9 @@ class ENGINE_API UAnimInstance : public UObject
 	 * - All access of variables in the blend tree should be a direct access of a member variable
 	 * - No BlueprintUpdateAnimation event should be used (i.e. the event graph should be empty). Only native update is permitted.
 	 */
-	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate to control threaded update on a per-instance basis.")
+	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate on the UAnimBlueprint to control this.")
 	UPROPERTY()
-	bool bRunUpdatesInWorkerThreads;
+	bool bRunUpdatesInWorkerThreads_DEPRECATED;
 
 	/** 
 	 * DEPRECATED: No longer used.
@@ -378,13 +376,14 @@ class ENGINE_API UAnimInstance : public UObject
 	 * - Use of BlueprintUpdateAnimation
 	 * - Use of non 'fast-path' EvaluateGraphExposedInputs in the node graph
 	 */
-	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate to control threaded update on a per-instance basis.")
+	DEPRECATED(4.15, "This variable is no longer used. Use bUseMultiThreadedAnimationUpdate on the UAnimBlueprint to control this.")
 	UPROPERTY()
-	bool bCanUseParallelUpdateAnimation;
+	bool bCanUseParallelUpdateAnimation_DEPRECATED;
 
 	/**
 	 * Allows this anim instance to update its native update, blend tree, montages and asset players on
-	 * a worker thread. The compiler will attempt to pick up any issues that may occur with threaded update.
+	 * a worker thread. This flag is propagated from the UAnimBlueprint to this instance by the compiler.
+	 * The compiler will attempt to pick up any issues that may occur with threaded update.
 	 * For updates to run in multiple threads both this flag and the project setting "Allow Multi Threaded 
 	 * Animation Update" should be set.
 	 */
@@ -397,7 +396,7 @@ class ENGINE_API UAnimInstance : public UObject
 	 */
 	DEPRECATED(4.15, "This variable is no longer used. Use bWarnAboutBlueprintUsage on the UAnimBlueprint to control this.")
 	UPROPERTY()
-	bool bWarnAboutBlueprintUsage;
+	bool bWarnAboutBlueprintUsage_DEPRECATED;
 
 	/** Flag to check back on the game thread that indicates we need to run PostUpdateAnimation() in the post-eval call */
 	bool bNeedsUpdate;
@@ -411,14 +410,24 @@ public:
 
 	/** Get global weight in AnimGraph for this slot node.
 	* Note: this is the weight of the node, not the weight of any potential montage it is playing. */
-	float GetSlotNodeGlobalWeight(FName SlotNodeName) const;
+	float GetSlotNodeGlobalWeight(const FName& SlotNodeName) const;
 
 	// Should Extract Root Motion or not. Return true if we do. 
 	bool ShouldExtractRootMotion() const { return RootMotionMode == ERootMotionMode::RootMotionFromEverything || RootMotionMode == ERootMotionMode::IgnoreRootMotion; }
 
 	/** Get Global weight of any montages this slot node is playing.
 	* If this slot is not currently playing a montage, it will return 0. */
-	float GetSlotMontageGlobalWeight(FName SlotNodeName) const;
+	float GetSlotMontageGlobalWeight(const FName& SlotNodeName) const;
+
+	/** Get local weight of any montages this slot node is playing.
+	* If this slot is not currently playing a montage, it will return 0.
+	* This is double buffered, will return last frame data if called from Update or Evaluate. */
+	float GetSlotMontageLocalWeight(const FName& SlotNodeName) const;
+
+	/** Get local weight of any montages this slot is playing.
+	* If this slot is not current playing a montage, it will return 0.
+	* This will return up to date data if called during Update or Evaluate. */
+	float CalcSlotMontageLocalWeight(const FName& SlotNodeName) const;
 
 	// kismet event functions
 
@@ -602,6 +611,10 @@ public:
 	/** Called when a montage has ended, whether interrupted or finished*/
 	UPROPERTY(BlueprintAssignable)
 	FOnMontageEndedMCDelegate OnMontageEnded;
+
+	/** Called when all Montage instances have ended. */
+	UPROPERTY(BlueprintAssignable)
+	FOnAllMontageInstancesEndedMCDelegate OnAllMontageInstancesEnded;
 
 	/*********************************************************************************************
 	* AnimMontage native C++ interface
@@ -830,6 +843,9 @@ public:
 	/** Returns the value of a named curve. */
 	UFUNCTION(BlueprintPure, Category="Animation")
 	float GetCurveValue(FName CurveName);
+
+	/** Returns value of named curved in OutValue, returns whether the curve was actually found or not. */
+	bool GetCurveValue(FName CurveName, float& OutValue);
 
 	/** Returns the length (in seconds) of an animation AnimAsset. */
 	DEPRECATED(4.9, "GetAnimAssetPlayerLength is deprecated, use GetInstanceAssetPlayerLength instead")
@@ -1220,7 +1236,7 @@ protected:
 		}
 		return *static_cast<const T*>(AnimInstanceProxy);
 	}
-	
+
 	friend struct FAnimNode_SubInstance;
 
 protected:

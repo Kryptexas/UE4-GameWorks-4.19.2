@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshLight.h: Static mesh lighting code.
@@ -6,7 +6,18 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
 #include "StaticLighting.h"
+#include "RawIndexBuffer.h"
+
+class FShadowMapData2D;
+class ULevel;
+class ULightComponent;
+class UStaticMesh;
+class UStaticMeshComponent;
+struct FQuantizedLightmapData;
+struct FStaticMeshLODResources;
 
 /** Represents the triangles of one LOD of a static mesh primitive to the static lighting system. */
 class FStaticMeshStaticLightingMesh : public FStaticLightingMesh

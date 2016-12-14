@@ -1,15 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SWidget.h"
+#include "SequencerNodeTree.h"
 
-class IKeyArea;
-class ISequencerSection;
-class SAnimationOutlinerTreeNode;
-class SSequencerTreeViewRow;
 class FGroupedKeyArea;
+class FMenuBuilder;
+class FSequencer;
 class FSequencerDisplayNodeDragDropOp;
-
+class FSequencerObjectBindingNode;
+class IKeyArea;
+class ISequencerTrackEditor;
+class SSequencerTreeViewRow;
+class UMovieSceneTrack;
+struct FSlateBrush;
+enum class EItemDropZone;
 
 /**
  * Structure used to define padding for a particular node.

@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "CrashReportClientApp.h"
+
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
-#include "SlateBasics.h"
 #include "SlateStyle.h"
 
 /** Slate styles for the crash report client app */

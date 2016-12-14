@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchProgress.cpp: Implements classes involved with tracking the patch
 	progress information.
 =============================================================================*/
 
-#include "BuildPatchServicesPrivatePCH.h"
-#include "BuildPatchState.h"
+#include "BuildPatchProgress.h"
+#include "Misc/ScopeLock.h"
+#include "BuildPatchError.h"
+#include "BuildPatchChunk.h"
 
 /* FBuildPatchProgress implementation
 *****************************************************************************/

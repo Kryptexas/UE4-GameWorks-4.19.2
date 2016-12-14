@@ -1,16 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundSubmix.h"
+#include "AudioDeviceManager.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
+#include "UObject/UObjectIterator.h"
 
 #if WITH_EDITOR
-#include "UnrealEd.h"
-#include "SlateBasics.h"
-#include "SNotificationList.h"
-#include "NotificationManager.h"
-#include "ModuleManager.h"
+TSharedPtr<ISoundSubmixAudioEditor> USoundSubmix::SoundSubmixAudioEditor = nullptr;
 #endif
 
 USoundSubmix::USoundSubmix(const FObjectInitializer& ObjectInitializer)
@@ -66,4 +64,80 @@ void USoundSubmix::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
+bool USoundSubmix::RecurseCheckChild(USoundSubmix* ChildSoundSubmix)
+{
+	for (int32 Index = 0; Index < ChildSubmixes.Num(); Index++)
+	{
+		if (ChildSubmixes[Index])
+		{
+			if (ChildSubmixes[Index] == ChildSoundSubmix)
+			{
+				return true;
+			}
+
+			if (ChildSubmixes[Index]->RecurseCheckChild(ChildSoundSubmix))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void USoundSubmix::SetParentSubmix(USoundSubmix* InParentSubmix)
+{
+	if (ParentSubmix != InParentSubmix)
+	{
+		if (ParentSubmix != nullptr)
+		{
+			ParentSubmix->Modify();
+			ParentSubmix->ChildSubmixes.Remove(this);
+		}
+
+		Modify();
+		ParentSubmix = InParentSubmix;
+	}
+}
+
+void USoundSubmix::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	USoundSubmix* This = CastChecked<USoundSubmix>(InThis);
+
+	Collector.AddReferencedObject(This->SoundSubmixGraph, This);
+
+	Super::AddReferencedObjects(InThis, Collector);
+}
+
+void USoundSubmix::RefreshAllGraphs(bool bIgnoreThis)
+{
+	if (SoundSubmixAudioEditor.IsValid())
+	{
+		// Update the graph representation of every SoundClass
+		for (TObjectIterator<USoundSubmix> It; It; ++It)
+		{
+			USoundSubmix* SoundSubmix = *It;
+			if (!bIgnoreThis || SoundSubmix != this)
+			{
+				if (SoundSubmix->SoundSubmixGraph)
+				{
+					SoundSubmixAudioEditor->RefreshGraphLinks(SoundSubmix->SoundSubmixGraph);
+				}
+			}
+		}
+	}
+}
+
+void USoundSubmix::SetSoundSubmixAudioEditor(TSharedPtr<ISoundSubmixAudioEditor> InSoundSubmixAudioEditor)
+{
+	check(!SoundSubmixAudioEditor.IsValid());
+	SoundSubmixAudioEditor = InSoundSubmixAudioEditor;
+}
+
+TSharedPtr<ISoundSubmixAudioEditor> USoundSubmix::GetSoundSubmixAudioEditor()
+{
+	return SoundSubmixAudioEditor;
+}
+
 #endif

@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class USimpleConstructionScript;
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Components/SceneComponent.h"
+
 class USCS_Node;
-class USceneComponent;
+class USimpleConstructionScript;
 
 DECLARE_STATS_GROUP(TEXT("Component"), STATGROUP_Component, STATCAT_Advanced);
 

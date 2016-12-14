@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ImageUtils.cpp: Image utility functions.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "ImageUtils.h"
-#include "Runtime/Engine/Classes/Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2D.h"
+#include "Misc/ObjectThumbnail.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "CubemapUnwrapUtils.h"
-#include "MessageLog.h"
+#include "Logging/MessageLog.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogImageUtils, Log, All);
 

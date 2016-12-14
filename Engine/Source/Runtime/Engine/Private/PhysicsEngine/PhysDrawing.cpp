@@ -1,10 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "PhysicsPublic.h"
-#include "PhysXSupport.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "EngineGlobals.h"
+#include "RenderCommandFence.h"
+#include "RHI.h"
+#include "RenderingThread.h"
+#include "VertexFactory.h"
+#include "RenderUtils.h"
+#include "Engine/Engine.h"
+#include "SceneManagement.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "DynamicMeshBuilder.h"
+#include "PhysicsPublic.h"
+#include "PhysXPublic.h"
+#include "PhysicsEngine/ConstraintTypes.h"
+#include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/ConvexElem.h"
+#include "PhysicsEngine/BoxElem.h"
+#include "PhysicsEngine/SphereElem.h"
+#include "PhysicsEngine/SphylElem.h"
+#include "PhysicsEngine/AggregateGeom.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 
 static const int32 DrawCollisionSides = 16;
@@ -384,11 +401,14 @@ void FKConvexElem::DrawElemWire(FPrimitiveDrawInterface* PDI, const FTransform& 
 		PxU32 NbVerts = Mesh->getNbVertices();
 		const PxVec3* Vertices = Mesh->getVertices();
 		
+		// ElemTM is element transform, but geometry is stored in body space, so we need to remove body->element transform
+		FTransform RenderTM = Transform.GetRelativeTransformReverse(ElemTM);
+
 		TArray<FVector> TransformedVerts;
 		TransformedVerts.AddUninitialized(NbVerts);
 		for(PxU32 i=0; i<NbVerts; i++)
 		{
-			TransformedVerts[i] = ElemTM.TransformPosition(P2UVector(Vertices[i]) * Scale);
+			TransformedVerts[i] = RenderTM.TransformPosition(P2UVector(Vertices[i]) * Scale);
 		}
 						
 		const PxU8* PIndexBuffer = Mesh->getIndexBuffer();
@@ -471,7 +491,7 @@ void FKConvexElem::AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBu
 				int32 VertIndex = indices[j];
 
 				FDynamicMeshVertex Vert1;
-				Vert1.Position = Transform.TransformPosition( P2UVector(PVertices[VertIndex]) * Scale3D ); // Apply element transform to get geom in component space
+				Vert1.Position = P2UVector(PVertices[VertIndex]) * Scale3D;
 				Vert1.Color = VertexColor;
 				Vert1.SetTangents(
 					TangentX,

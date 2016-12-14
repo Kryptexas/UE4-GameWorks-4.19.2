@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,7 +35,13 @@ enum EMetalFeatures
 	/** Supports layered rendering */
 	EMetalFeaturesLayeredRendering = 1 << 10,
 	/** Support for specifying small buffers as byte arrays */
-	EMetalFeaturesSetBytes = 1 << 11
+	EMetalFeaturesSetBytes = 1 << 11,
+	/** Supports different shader standard versions */
+	EMetalFeaturesShaderVersions = 1 << 12,
+	/** Supports tessellation rendering */
+	EMetalFeaturesTessellation = 1 << 13,
+	/** Supports arbitrary buffer/texture writes from graphics shaders */
+	EMetalFeaturesGraphicsUAVs = 1 << 14
 };
 
 /**
@@ -63,14 +69,7 @@ public:
 	 * Instead call EndEncoding & CommitCommandBuffer before calling this.
 	 * @param CommandBuffer The new command buffer to begin encoding to.
 	 */
-	id<MTLCommandBuffer> CreateRetainedCommandBuffer(void);
-
-	/**
-	 * Start encoding to CommandBuffer. It is an error to call this with any outstanding command encoders or current command buffer.
-	 * Instead call EndEncoding & CommitCommandBuffer before calling this.
-	 * @param CommandBuffer The new command buffer to begin encoding to.
-	 */
-	id<MTLCommandBuffer> CreateUnretainedCommandBuffer(void);
+	id<MTLCommandBuffer> CreateCommandBuffer(void);
 	
 	/**
 	 * Commit the supplied command buffer immediately.

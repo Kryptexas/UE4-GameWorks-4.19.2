@@ -53,7 +53,6 @@ namespace physx { namespace profile {
 		PxProfileAllocatorWrapper					mWrapper;
 		PxProfileArray<PxProfileZone*>		mZones;
 		PxProfileArray<PxProfileZoneHandler*>	mHandlers;
-		PxUserCustomProfiler*				mUserCustomProfiler;
 		shdfnd::Mutex mMutex;
 
 		ZoneManagerImpl( const ZoneManagerImpl& inOther );
@@ -65,7 +64,6 @@ namespace physx { namespace profile {
 			: mWrapper( inFoundation )
 			, mZones( mWrapper )
 			, mHandlers( mWrapper ) 
-			, mUserCustomProfiler(NULL)
 		{}
 
 		virtual ~ZoneManagerImpl()
@@ -91,7 +89,6 @@ namespace physx { namespace profile {
 					inSDK.getProfileZoneManager()->removeProfileZone( inSDK );
 				}
 			}
-			inSDK.setUserCustomProfiler(mUserCustomProfiler);
 			mZones.pushBack( &inSDK );
 			inSDK.setProfileZoneManager( this );
 			for ( uint32_t idx =0; idx < mHandlers.size(); ++idx )
@@ -169,16 +166,6 @@ namespace physx { namespace profile {
 		virtual void release() 
 		{  
 			PX_PROFILE_DELETE( mWrapper.getAllocator(), this );
-		}
-
-		// Notify all existing zones of the new user custom profiler
-		virtual void setUserCustomProfiler(PxUserCustomProfiler* callback)
-		{
-			mUserCustomProfiler = callback;
-			for ( uint32_t idx = 0; idx < mZones.size(); ++idx )
-			{
-				mZones[idx]->setUserCustomProfiler(mUserCustomProfiler);
-			}
 		}
 	};
 } }

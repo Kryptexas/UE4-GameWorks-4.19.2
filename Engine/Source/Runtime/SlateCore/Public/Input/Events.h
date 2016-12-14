@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
 #include "InputCoreTypes.h"
+#include "Types/SlateEnums.h"
+#include "GenericPlatform/GenericApplication.h"
+#include "Layout/Geometry.h"
 #include "Events.generated.h"
 
-
-class SWindow;
 class FWidgetPath;
-
+class SWidget;
+class SWindow;
 
 /**
 * Context for focus change

@@ -1,11 +1,52 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PlacementModePrivatePCH.h"
+#include "CoreMinimal.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "EditorStyleSet.h"
+#include "GameFramework/Actor.h"
+#include "ActorFactories/ActorFactory.h"
+#include "ActorFactories/ActorFactoryAtmosphericFog.h"
+#include "ActorFactories/ActorFactoryBoxReflectionCapture.h"
+#include "ActorFactories/ActorFactoryBoxVolume.h"
+#include "ActorFactories/ActorFactoryCharacter.h"
+#include "ActorFactories/ActorFactoryDeferredDecal.h"
+#include "ActorFactories/ActorFactoryDirectionalLight.h"
+#include "ActorFactories/ActorFactoryEmptyActor.h"
+#include "ActorFactories/ActorFactoryPawn.h"
+#include "ActorFactories/ActorFactoryExponentialHeightFog.h"
+#include "ActorFactories/ActorFactoryPlayerStart.h"
+#include "ActorFactories/ActorFactoryPointLight.h"
+#include "ActorFactories/ActorFactorySkyLight.h"
+#include "ActorFactories/ActorFactorySphereReflectionCapture.h"
+#include "ActorFactories/ActorFactorySpotLight.h"
+#include "ActorFactories/ActorFactoryBasicShape.h"
+#include "ActorFactories/ActorFactoryTriggerBox.h"
+#include "ActorFactories/ActorFactoryTriggerSphere.h"
+#include "Engine/BrushBuilder.h"
+#include "Engine/Brush.h"
+#include "Engine/StaticMesh.h"
+#include "GameFramework/Volume.h"
+#include "Engine/PostProcessVolume.h"
+#include "AssetData.h"
+#include "EditorModeRegistry.h"
+#include "EditorModes.h"
+#include "IAssetTools.h"
+#include "IAssetTypeActions.h"
+#include "AssetRegistryModule.h"
+#include "ActorPlacementInfo.h"
 #include "IPlacementModeModule.h"
 #include "PlacementMode.h"
 #include "AssetToolsModule.h"
-#include "KismetEditorUtilities.h"
-#include "Classes/ActorFactories/ActorFactoryPlanarReflection.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "ActorFactories/ActorFactoryPlanarReflection.h"
 
 struct FPlacementCategory : FPlacementCategoryInfo
 {
@@ -120,6 +161,9 @@ public:
 			Category->Items.Add(CreateID(), MakeShareable( new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,*UActorFactoryBasicShape::BasicCylinder.ToString())), FName("ClassThumbnail.Cylinder"), BasicShapeColorOverride, SortOrder+=10, NSLOCTEXT("PlacementMode", "Cylinder", "Cylinder") )) );
 			// Cone
 			Category->Items.Add(CreateID(), MakeShareable( new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,*UActorFactoryBasicShape::BasicCone.ToString())), FName("ClassThumbnail.Cone"), BasicShapeColorOverride, SortOrder+=10, NSLOCTEXT("PlacementMode", "Cone", "Cone") )) );
+			// Plane
+			Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicPlane.ToString())), FName("ClassThumbnail.Plane"), BasicShapeColorOverride, SortOrder += 10, NSLOCTEXT("PlacementMode", "Plane", "Plane"))));
+
 			Category->Items.Add(CreateID(), MakeShareable( new FPlaceableItem(*UActorFactoryTriggerBox::StaticClass(), SortOrder+=10)) );
 			Category->Items.Add(CreateID(), MakeShareable( new FPlaceableItem(*UActorFactoryTriggerSphere::StaticClass(), SortOrder+=10)) );
 		}
@@ -531,6 +575,7 @@ public:
 		Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicSphere.ToString())), FName("ClassThumbnail.Sphere"), GetBasicShapeColorOverride())));
 		Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicCylinder.ToString())), FName("ClassThumbnail.Cylinder"), GetBasicShapeColorOverride())));
 		Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicCone.ToString())), FName("ClassThumbnail.Cone"), GetBasicShapeColorOverride())));
+		Category->Items.Add(CreateID(), MakeShareable(new FPlaceableItem(*UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicPlane.ToString())), FName("ClassThumbnail.Plane"), GetBasicShapeColorOverride())));
 
 		// Make a map of UClasses to ActorFactories that support them
 		const TArray< UActorFactory *>& ActorFactories = GEditor->ActorFactories;

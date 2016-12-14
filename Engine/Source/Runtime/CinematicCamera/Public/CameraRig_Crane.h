@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 //#include "Engine/Scene.h"
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameFramework/Actor.h"
 #include "CameraRig_Crane.generated.h"
 
-class USceneComponent;
+class UStaticMeshComponent;
 
 /** 
  * A simple rig for simulating crane-like camera movements.

@@ -1,24 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayCueTagDetails.h"
-#include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "KismetEditorUtilities.h"
-#include "AttributeSet.h"
-#include "GameplayAbilitiesModule.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Views/SListView.h"
+#include "PropertyHandle.h"
+#include "IDetailChildrenBuilder.h"
+#include "DetailWidgetRow.h"
 #include "AbilitySystemGlobals.h"
-#include "SGameplayAttributeGraphPin.h"
-#include "SSearchBox.h"
-#include "STextComboBox.h"
-#include "GameplayEffect.h"
-#include "AbilitySystemComponent.h"
-#include "GameplayEffectExtension.h"
 #include "GameplayCueInterface.h"
-#include "SHyperlink.h"
-#include "GameplayTagsManager.h"
+#include "Widgets/Input/SHyperlink.h"
 #include "GameplayCueManager.h"
 #include "GameplayCueSet.h"
 #include "SGameplayCueEditor.h"
+#include "SlateOptMacros.h"
 
 #define LOCTEXT_NAMESPACE "GameplayCueDetailsCustomization"
 
@@ -174,19 +168,19 @@ bool FGameplayCueTagDetails::UpdateNotifyList()
 	{
 		uint8 EnumVal;
 		GameplayTagProperty->GetValue(EnumVal);
-
-		UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
-		if (CueManager && CueManager->GlobalCueSet)
+		if (UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager())
 		{
-			if (int32* idxPtr = CueManager->GlobalCueSet->GameplayCueDataMap.Find(*Tag))
+			if (UGameplayCueSet* CueSet = CueManager->GetEditorCueSet())
 			{
-				int32 idx = *idxPtr;
-				if (CueManager->GlobalCueSet->GameplayCueData.IsValidIndex(idx))
+				if (int32* idxPtr = CueSet->GameplayCueDataMap.Find(*Tag))
 				{
-					FGameplayCueNotifyData& Data = CueManager->GlobalCueSet->GameplayCueData[*idxPtr];
-
-					TSharedRef<FStringAssetReference> Item(MakeShareable(new FStringAssetReference(Data.GameplayCueNotifyObj)));
-					NotifyList.Add(Item);
+					int32 idx = *idxPtr;
+					if (CueSet->GameplayCueData.IsValidIndex(idx))
+					{
+						FGameplayCueNotifyData& Data = CueSet->GameplayCueData[*idxPtr];
+						TSharedRef<FStringAssetReference> Item(MakeShareable(new FStringAssetReference(Data.GameplayCueNotifyObj)));
+						NotifyList.Add(Item);
+					}
 				}
 			}
 		}
@@ -202,7 +196,10 @@ FGameplayTag* FGameplayCueTagDetails::GetTag() const
 	if (GameplayTagProperty.IsValid())
 	{
 		GameplayTagProperty->AccessRawData(RawStructData);
-		Tag = (FGameplayTag*)(RawStructData[0]);
+		if (RawStructData.Num() > 0)
+		{
+			Tag = (FGameplayTag*)(RawStructData[0]);
+		}
 	}
 	return Tag;
 }

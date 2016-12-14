@@ -1,12 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SequencerDisplayNode.h"
-
-
-class FSequencerNodeTree;
-
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
 
 /**
  * A node that displays a category for other nodes

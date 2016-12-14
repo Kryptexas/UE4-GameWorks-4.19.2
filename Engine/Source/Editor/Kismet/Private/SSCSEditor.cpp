@@ -1,37 +1,54 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "Editor/PropertyEditor/Public/IDetailsView.h"
-#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
-#include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
-#include "BlueprintUtilities.h"
+#include "SSCSEditor.h"
+#include "AssetData.h"
+#include "Editor.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Components/PrimitiveComponent.h"
+#include "EngineGlobals.h"
+#include "Misc/FeedbackContext.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "Layout/WidgetPath.h"
+#include "SlateOptMacros.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Input/SButton.h"
+#include "EditorStyleSet.h"
+#include "Editor/UnrealEdEngine.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
+#include "Components/ChildActorComponent.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Engine/Selection.h"
+#include "UnrealEdGlobals.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_Variable.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "K2Node_VariableGet.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "ComponentAssetBroker.h"
 #include "ClassViewerFilter.h"
 
-#include "SSCSEditor.h"
-#include "SKismetInspector.h"
-#include "SSCSEditorViewport.h"
-#include "SComponentClassCombo.h"
 #include "PropertyPath.h"
 
 #include "AssetSelection.h"
-#include "Editor/SceneOutliner/Private/SSocketChooser.h"
 #include "ScopedTransaction.h"
 
-#include "DragAndDrop/AssetDragDropOp.h"
+#include "Styling/SlateIconFinder.h"
 #include "ClassIconFinder.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 
 #include "ObjectTools.h"
 
 #include "IDocumentation.h"
-#include "Kismet2NameValidators.h"
+#include "Kismet2/Kismet2NameValidators.h"
 #include "TutorialMetaData.h"
-#include "SInlineEditableTextBlock.h"
-#include "GenericCommands.h"
-#include "Engine/SCS_Node.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "Engine/Selection.h"
+#include "Widgets/Text/SInlineEditableTextBlock.h"
+#include "Framework/Commands/GenericCommands.h"
 
 #include "Engine/InheritableComponentHandler.h"
 
@@ -39,19 +56,16 @@
 
 #include "BPVariableDragDropAction.h"
 
-#include "SNotificationList.h"
-#include "NotificationManager.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
+#include "AddToProjectConfig.h"
 #include "GameProjectGenerationModule.h"
 #include "FeaturedClasses.inl"
 
-#include "HotReloadInterface.h"
-#include "AssetRegistryModule.h"
-#include "SCreateAssetFromObject.h"
+#include "BlueprintEditorSettings.h"
 
-#include "SourceCodeNavigation.h"
-#include "Editor/BlueprintGraph/Public/BlueprintEditorSettings.h"
-#include "Engine/BlueprintGeneratedClass.h"
+#include "Algo/Find.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 
@@ -845,14 +859,10 @@ FSCSEditorTreeNodeInstancedInheritedComponent::FSCSEditorTreeNodeInstancedInheri
 
 	InstancedComponentOwnerPtr = Owner;
 
-	TInlineComponentArray<UActorComponent*> Components;
-	Owner->GetComponents(Components);
-
 	SetComponentTemplate(nullptr);
-	for (auto It = Components.CreateConstIterator(); It; ++It)
+	for (UActorComponent* ComponentInstance : Owner->GetComponents())
 	{
-		UActorComponent* ComponentInstance = *It;
-		if (ComponentInstance->GetFName() == InstancedComponentName)
+		if (ComponentInstance && ComponentInstance->GetFName() == InstancedComponentName)
 		{
 			SetComponentTemplate(ComponentInstance);
 			break;
@@ -934,14 +944,10 @@ FSCSEditorTreeNodeInstanceAddedComponent::FSCSEditorTreeNodeInstanceAddedCompone
 
 	InstancedComponentOwnerPtr = Owner;
 
-	TInlineComponentArray<UActorComponent*> Components;
-	Owner->GetComponents(Components);
-
 	SetComponentTemplate(nullptr);
-	for (auto It = Components.CreateConstIterator(); It; ++It)
+	for (UActorComponent* ComponentInstance : Owner->GetComponents())
 	{
-		UActorComponent* ComponentInstance = *It;
-		if (ComponentInstance->GetFName() == InstancedComponentName)
+		if (ComponentInstance && ComponentInstance->GetFName() == InstancedComponentName)
 		{
 			SetComponentTemplate(ComponentInstance);
 			break;
@@ -1188,13 +1194,9 @@ UActorComponent* FSCSEditorTreeNode::FindComponentInstanceInActor(const AActor* 
 		else if (ComponentTemplate != NULL)
 		{
 			// Look for a native component instance with a name that matches the template name
-			TInlineComponentArray<UActorComponent*> Components;
-			InActor->GetComponents(Components);
-
-			for (auto It = Components.CreateConstIterator(); It; ++It)
+			for (UActorComponent* Component : InActor->GetComponents())
 			{
-				UActorComponent* Component = *It;
-				if (Component->GetFName() == ComponentTemplate->GetFName())
+				if (Component && Component->GetFName() == ComponentTemplate->GetFName())
 				{
 					ComponentInstance = Component;
 					break;
@@ -3657,7 +3659,7 @@ TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 			}
 			else
 			{
-				for (auto SelectedNode : SelectedItems)
+				for (FSCSEditorTreeNodePtrType SelectedNode : SelectedItems)
 				{
 					if (SelectedNode->GetNodeType() != FSCSEditorTreeNode::ComponentNode)
 					{
@@ -4044,13 +4046,9 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 					if (CDO)
 					{
 						// Iterate over the Components array and attempt to find a component with a matching name
-						TInlineComponentArray<UActorComponent*> Components;
-						CDO->GetComponents(Components);
-
-						for (auto It = Components.CreateConstIterator(); It; ++It)
+						for (UActorComponent* ComponentTemplate : CDO->GetComponents())
 						{
-							UActorComponent* ComponentTemplate = *It;
-							if (ComponentTemplate->GetFName() == ActorComponent->GetFName())
+							if (ComponentTemplate && ComponentTemplate->GetFName() == ActorComponent->GetFName())
 							{
 								// We found a match; redirect to the component archetype instance that may be associated with a tree node
 								ActorComponent = ComponentTemplate;
@@ -4248,28 +4246,22 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 					AddTreeNodeFromComponent(RootComponent);
 				}
 				
-				// Add the rest of the native base class SceneComponent hierarchy
-				for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
-				{
-					USceneComponent* SceneComp = Cast<USceneComponent>(*CompIter);
-					if(SceneComp != NULL)
+				for (UActorComponent* Component : Components)
+				{				
+					if (USceneComponent* SceneComp = Cast<USceneComponent>(Component))
 					{
+						// Add the rest of the native base class SceneComponent hierarchy
 						AddTreeNodeFromComponent(SceneComp);
 					}
-				}
-
-				// Add native ActorComponent nodes that aren't SceneComponents
-				for(auto CompIter = Components.CreateIterator(); CompIter; ++CompIter)
-				{
-					UActorComponent* ActorComp = *CompIter;
-					if (!ActorComp->IsA<USceneComponent>())
+					else
 					{
+						// Add native ActorComponent nodes that aren't SceneComponents
 						if (!bHasAddedSceneAndBehaviorComponentSeparator)
 						{
 							bHasAddedSceneAndBehaviorComponentSeparator = true;
 							RootNodes.Add(MakeShareable(new FSCSEditorTreeNodeSeparator()));
 						}
-						AddRootComponentTreeNode(ActorComp);
+						AddRootComponentTreeNode(Component);
 					}
 				}
 			}
@@ -4311,7 +4303,7 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 				TInlineComponentArray<UActorComponent*> Components;
 				PreviewActorInstance->GetComponents(Components);
 
-				for(auto Component : Components)
+				for (UActorComponent* Component : Components)
 				{
 					if(Component->CreationMethod == EComponentCreationMethod::UserConstructionScript)
 					{
@@ -4676,7 +4668,7 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 			}
 
 			// Construct the new component and attach as needed
-			auto NewInstanceComponent = NewObject<UActorComponent>(ActorInstance, NewComponentClass, NewComponentName, RF_Transactional);
+			UActorComponent* NewInstanceComponent = NewObject<UActorComponent>(ActorInstance, NewComponentClass, NewComponentName, RF_Transactional);
 			if (USceneComponent* NewSceneComponent = Cast<USceneComponent>(NewInstanceComponent))
 			{
 				USceneComponent* RootComponent = ActorInstance->GetRootComponent();
@@ -4824,12 +4816,34 @@ UActorComponent* SSCSEditor::AddNewNodeForInstancedComponent(UActorComponent* Ne
 
 bool SSCSEditor::IsComponentSelected(const UPrimitiveComponent* PrimComponent) const
 {
-	check(PrimComponent != NULL);
+	check(PrimComponent);
 
-	FSCSEditorTreeNodePtrType NodePtr = GetNodeFromActorComponent(PrimComponent, false);
-	if(NodePtr.IsValid() && SCSTreeWidget.IsValid())
+	if (SCSTreeWidget.IsValid())
 	{
-		return SCSTreeWidget->IsItemSelected(NodePtr);
+		FSCSEditorTreeNodePtrType NodePtr = GetNodeFromActorComponent(PrimComponent, false);
+		if (NodePtr.IsValid())
+		{
+			return SCSTreeWidget->IsItemSelected(NodePtr);
+		}
+		else
+		{
+			UChildActorComponent* PossiblySelectedComponent = nullptr;
+			AActor* ComponentOwner = PrimComponent->GetOwner();
+			while (ComponentOwner->IsChildActor())
+			{
+				PossiblySelectedComponent = ComponentOwner->GetParentComponent();
+				ComponentOwner = ComponentOwner->GetParentActor();
+			}
+
+			if (PossiblySelectedComponent)
+			{
+				NodePtr = GetNodeFromActorComponent(PossiblySelectedComponent, false);
+				if (NodePtr.IsValid())
+				{
+					return SCSTreeWidget->IsItemSelected(NodePtr);
+				}
+			}
+		}
 	}
 
 	return false;
@@ -4933,14 +4947,14 @@ void SSCSEditor::PasteNodes()
 
 		// Create a new tree node for each new (pasted) component
 		TMap<FName, FSCSEditorTreeNodePtrType> NewNodeMap;
-		for (auto NewObjectIt = NewObjectMap.CreateIterator(); NewObjectIt; ++NewObjectIt)
+		for (const TPair<FName, UActorComponent*>& NewObjectPair : NewObjectMap)
 		{
 			// Get the component object instance
-			UActorComponent* NewActorComponent = NewObjectIt->Value;
+			UActorComponent* NewActorComponent = NewObjectPair.Value;
 			check(NewActorComponent);
 
 			// Create a new SCS node to contain the new component and add it to the tree
-			NewActorComponent = AddNewNode(Blueprint->SimpleConstructionScript->CreateNodeAndRenameComponent(NewActorComponent), NULL, false, false);
+			NewActorComponent = AddNewNode(Blueprint->SimpleConstructionScript->CreateNodeAndRenameComponent(NewActorComponent), nullptr, false, false);
 
 			if (NewActorComponent)
 			{
@@ -4949,7 +4963,7 @@ void SSCSEditor::PasteNodes()
 				if (NewNodePtr.IsValid())
 				{
 					// Add the new node to the node map
-					NewNodeMap.Add(NewObjectIt->Key, NewNodePtr);
+					NewNodeMap.Add(NewObjectPair.Key, NewNodePtr);
 
 					// Update the selection to include the new node
 					SCSTreeWidget->SetItemSelection(NewNodePtr, true);
@@ -4958,17 +4972,17 @@ void SSCSEditor::PasteNodes()
 		}
 
 		// Restore the node hierarchy from the original copy
-		for (auto NodeIt = NewNodeMap.CreateConstIterator(); NodeIt; ++NodeIt)
+		for (const TPair<FName, FSCSEditorTreeNodePtrType>& NewNodePair : NewNodeMap)
 		{
 			// If an entry exists in the set of known parent nodes for the current node
-			if (ParentMap.Contains(NodeIt->Key))
+			if (ParentMap.Contains(NewNodePair.Key))
 			{
 				// Get the parent node name
-				FName ParentName = ParentMap[NodeIt->Key];
+				FName ParentName = ParentMap[NewNodePair.Key];
 				if (NewNodeMap.Contains(ParentName))
 				{
 					// Reattach the current node to the parent node (this will also handle detachment from the scene root node)
-					NewNodeMap[ParentName]->AddChild(NodeIt->Value);
+					NewNodeMap[ParentName]->AddChild(NewNodePair.Value);
 
 					// Ensure that the new node is expanded to show the child node(s)
 					SCSTreeWidget->SetItemExpansion(NewNodeMap[ParentName], true);
@@ -4983,13 +4997,11 @@ void SSCSEditor::PasteNodes()
 	{
 		// Determine where in the hierarchy to paste (default to the root)
 		USceneComponent* TargetComponent = GetActorContext()->GetRootComponent();
-		auto SelectedNodes = GetSelectedNodes();
-		for (int32 i = 0; i < SelectedNodes.Num(); ++i)
+		for (FSCSEditorTreeNodePtrType SelectedNodePtr : GetSelectedNodes())
 		{
-			FSCSEditorTreeNodePtrType SelectedNodePtr = SelectedNodes[i];
 			check(SelectedNodePtr.IsValid());
 
-			if (auto SceneComponent = Cast<USceneComponent>(SelectedNodePtr->GetComponentTemplate()))
+			if (USceneComponent* SceneComponent = Cast<USceneComponent>(SelectedNodePtr->GetComponentTemplate()))
 			{
 				TargetComponent = SceneComponent;
 				break;
@@ -5007,7 +5019,7 @@ void SSCSEditor::PasteNodes()
 			UpdateTree();
 
 			// Select the nodes that correspond to the pasted components
-			for (auto PastedComponent : PastedComponents)
+			for (UActorComponent* PastedComponent : PastedComponents)
 			{
 				FSCSEditorTreeNodePtrType PastedNode = GetNodeFromActorComponent(PastedComponent);
 				if (PastedNode.IsValid())
@@ -5053,7 +5065,7 @@ void SSCSEditor::OnDeleteNodes()
 		TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSTreeWidget->GetSelectedItems();
 		for (int32 i = 0; i < SelectedNodes.Num(); ++i)
 		{
-			auto Node = SelectedNodes[i];
+			FSCSEditorTreeNodePtrType Node = SelectedNodes[i];
 
 			USCS_Node* SCS_Node = Node->GetSCSNode();
 			if(SCS_Node != nullptr)
@@ -5619,7 +5631,7 @@ FText SSCSEditor::OnGetApplyChangesToBlueprintTooltip() const
 		AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
 		if(BlueprintCDO != NULL)
 		{
-			const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
+			const EditorUtilities::ECopyOptions::Type CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
 			NumChangedProperties += EditorUtilities::CopyActorProperties(Actor, BlueprintCDO, CopyOptions);
 		}
 		NumChangedProperties += Actor->GetInstanceComponents().Num();
@@ -5651,7 +5663,7 @@ FText SSCSEditor::OnGetResetToBlueprintDefaultsTooltip() const
 		AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
 		if(BlueprintCDO != NULL)
 		{
-			const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
+			const EditorUtilities::ECopyOptions::Type CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::PreviewOnly|EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties);
 			NumChangedProperties += EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions);
 		}
 		NumChangedProperties += Actor->GetInstanceComponents().Num();
@@ -5748,11 +5760,9 @@ struct FRestoreSelectedInstanceComponent
 			: nullptr;
 		if (Actor)
 		{
-			for (auto IterKey : ComponentKeys)
+			for (const FComponentKey& IterKey : ComponentKeys)
 			{
-				TArray<UActorComponent*> OwnedComponents;
-				Actor->GetComponents(OwnedComponents);
-				UActorComponent** ComponentPtr = OwnedComponents.FindByPredicate([&](UActorComponent* InComp)
+				UActorComponent* const* ComponentPtr = Algo::FindByPredicate(Actor->GetComponents(), [&](UActorComponent* InComp)
 				{
 					return InComp && (InComp->GetFName() == IterKey.Name) && (InComp->GetClass() == IterKey.Class.Get());
 				});
@@ -5789,7 +5799,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
 			// Mark components that are either native or from the SCS as modified so they will be restored
 			for (UActorComponent* ActorComponent : Actor->GetComponents())
 			{
-				if (ActorComponent->CreationMethod == EComponentCreationMethod::SimpleConstructionScript || ActorComponent->CreationMethod == EComponentCreationMethod::Native)
+				if (ActorComponent && (ActorComponent->CreationMethod == EComponentCreationMethod::SimpleConstructionScript || ActorComponent->CreationMethod == EComponentCreationMethod::Native))
 				{
 					ActorComponent->Modify();
 				}
@@ -5800,7 +5810,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
 				AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
 				if (BlueprintCDO != NULL)
 				{
-					const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | EditorUtilities::ECopyOptions::PropagateChangesToArchetypeInstances);
+					const EditorUtilities::ECopyOptions::Type CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | EditorUtilities::ECopyOptions::PropagateChangesToArchetypeInstances);
 					NumChangedProperties = EditorUtilities::CopyActorProperties(Actor, BlueprintCDO, CopyOptions);
 					if (Actor->GetInstanceComponents().Num() > 0)
 					{
@@ -5857,7 +5867,7 @@ void SSCSEditor::OnApplyChangesToBlueprint() const
 		}
 
 		// Add the notification to the queue
-		const auto Notification = FSlateNotificationManager::Get().AddNotification(NotificationInfo);
+		const TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(NotificationInfo);
 		Notification->SetCompletionState(CompletionState);
 	}
 }
@@ -5877,7 +5887,7 @@ void SSCSEditor::OnResetToBlueprintDefaults() const
 			AActor* BlueprintCDO = Actor->GetClass()->GetDefaultObject<AActor>();
 			if (BlueprintCDO != NULL)
 			{
-				const auto CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | EditorUtilities::ECopyOptions::CallPostEditChangeProperty);
+				const EditorUtilities::ECopyOptions::Type CopyOptions = (EditorUtilities::ECopyOptions::Type)(EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties | EditorUtilities::ECopyOptions::CallPostEditChangeProperty);
 				NumChangedProperties = EditorUtilities::CopyActorProperties(BlueprintCDO, Actor, CopyOptions);
 			}
 			NumChangedProperties += Actor->GetInstanceComponents().Num();
@@ -5916,7 +5926,7 @@ void SSCSEditor::OnResetToBlueprintDefaults() const
 		}
 
 		// Add the notification to the queue
-		const auto Notification = FSlateNotificationManager::Get().AddNotification(NotificationInfo);
+		const TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(NotificationInfo);
 		Notification->SetCompletionState(CompletionState);
 	}
 }
@@ -5947,7 +5957,7 @@ AActor* SSCSEditor::GetActorContext() const
 void SSCSEditor::SetItemExpansionRecursive(FSCSEditorTreeNodePtrType Model, bool bInExpansionState)
 {
 	SetNodeExpansionState(Model, bInExpansionState);
-	for (auto& Child : Model->GetChildren())
+	for (const FSCSEditorTreeNodePtrType& Child : Model->GetChildren())
 	{
 		if (Child.IsValid())
 		{

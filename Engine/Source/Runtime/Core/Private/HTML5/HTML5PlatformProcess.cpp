@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5Process.cpp: HTML5 implementations of Process functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "HTML5/HTML5PlatformProcess.h"
+#include "Misc/CoreStats.h"
+#include "Misc/App.h"
+#include "Misc/SingleThreadEvent.h"
 
 const TCHAR* FHTML5PlatformProcess::ComputerName()
 {

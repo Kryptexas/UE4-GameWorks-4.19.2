@@ -1,6 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  
-#include "SlatePrivatePCH.h"
+#include "Widgets/Layout/SScrollBar.h"
+#include "Widgets/Layout/SScrollBarTrack.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
 
 /**
  * Construct this widget
@@ -278,6 +283,11 @@ EVisibility SScrollBar::ShouldBeVisible() const
 bool SScrollBar::IsScrolling() const
 {
 	return bDraggingThumb;
+}
+
+EOrientation SScrollBar::GetOrientation() const
+{
+	return Orientation;
 }
 
 void SScrollBar::SetStyle(const FScrollBarStyle* InStyle)

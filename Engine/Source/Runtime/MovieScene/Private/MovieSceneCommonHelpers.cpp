@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MovieScenePrivatePCH.h"
-#include "IMovieScenePlayer.h"
 #include "MovieSceneCommonHelpers.h"
+#include "Components/SceneComponent.h"
+#include "GameFramework/Actor.h"
+#include "Camera/CameraComponent.h"
+#include "KeyParams.h"
+#include "MovieSceneSection.h"
 
 
 TArray<UMovieSceneSection*> MovieSceneHelpers::GetAllTraversedSections( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime )
@@ -346,6 +349,23 @@ FTrackInstancePropertyBindings::FPropertyAddress FTrackInstancePropertyBindings:
 	}
 }
 
+void FTrackInstancePropertyBindings::CallFunctionForEnum( UObject& InRuntimeObject, int64 PropertyValue )
+{
+	FPropertyAndFunction PropAndFunction = FindOrAdd(InRuntimeObject);
+	if (PropAndFunction.Function)
+	{
+		// ProcessEvent should really be taking const void*
+		InRuntimeObject.ProcessEvent(PropAndFunction.Function, (void*)&PropertyValue);
+	}
+	else if (PropAndFunction.PropertyAddress.Address)
+	{
+		UEnumProperty* EnumProperty = CastChecked<UEnumProperty>(PropAndFunction.PropertyAddress.Property);
+		UNumericProperty* UnderlyingProperty = EnumProperty->GetUnderlyingProperty();
+		void* ValueAddr = EnumProperty->ContainerPtrToValuePtr<void>(PropAndFunction.PropertyAddress.Address);
+		UnderlyingProperty->SetIntPropertyValue(ValueAddr, PropertyValue);
+	}
+}
+
 void FTrackInstancePropertyBindings::CacheBinding(const UObject& Object)
 {
 	FPropertyAndFunction PropAndFunction;
@@ -373,6 +393,22 @@ UProperty* FTrackInstancePropertyBindings::GetProperty(const UObject& Object) co
 	}
 
 	return Prop;
+}
+
+int64 FTrackInstancePropertyBindings::GetCurrentValueForEnum(const UObject& Object)
+{
+	FPropertyAndFunction PropAndFunction = FindOrAdd(Object);
+
+	if(PropAndFunction.PropertyAddress.Address)
+	{
+		UEnumProperty* EnumProperty = CastChecked<UEnumProperty>(PropAndFunction.PropertyAddress.Property);
+		UNumericProperty* UnderlyingProperty = EnumProperty->GetUnderlyingProperty();
+		void* ValueAddr = EnumProperty->ContainerPtrToValuePtr<void>(PropAndFunction.PropertyAddress.Address);
+		int64 Result = UnderlyingProperty->GetSignedIntPropertyValue(ValueAddr);
+		return Result;
+	}
+
+	return 0;
 }
 
 template<> void FTrackInstancePropertyBindings::CallFunction<bool>(UObject& InRuntimeObject, TCallTraits<bool>::ParamType PropertyValue)

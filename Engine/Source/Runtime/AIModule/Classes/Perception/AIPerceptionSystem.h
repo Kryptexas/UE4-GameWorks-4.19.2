@@ -1,11 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/World.h"
+#include "Perception/AIPerceptionTypes.h"
+#include "Perception/AISense.h"
 #include "Tickable.h"
-#include "AIPerceptionTypes.h"
-#include "AISense.h"
 #include "AIPerceptionSystem.generated.h"
+
+class UAIPerceptionComponent;
+class UAISenseEvent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAIPerception, Warning, All);
 

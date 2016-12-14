@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "OnlineBeaconHostObject.h"
 #include "QosBeaconHost.generated.h"
 
 class AQosBeaconClient;
-class UNetConnection;
 
 /**
  * A beacon host listening for Qos requests from a potential client

@@ -1,19 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/UObjectGlobals.h"
+#include "Engine/NetSerialization.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "WorldCollision.h"
+#include "AI/Navigation/NavigationTypes.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimMontage.h"
+#include "GameFramework/RootMotionSource.h"
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "AI/RVOAvoidanceInterface.h"
-#include "Engine/EngineBaseTypes.h"
-#include "Engine/EngineTypes.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Interfaces/NetworkPredictionInterface.h"
-#include "WorldCollision.h"
-#include "GameFramework/RootMotionSource.h"
 #include "CharacterMovementComponent.generated.h"
 
-class FDebugDisplayInfo;
 class ACharacter;
-class UCharacterMovementComponent;
+class FDebugDisplayInfo;
+class FNetworkPredictionData_Server_Character;
+class FSavedMove_Character;
+class UPrimitiveComponent;
 
 /** Data about the floor for walking movement, used by CharacterMovementComponent. */
 USTRUCT(BlueprintType)
@@ -1047,6 +1057,7 @@ public:
 
 	//BEGIN UNavMovementComponent Interface
 	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) override;
+	virtual void RequestPathMove(const FVector& MoveInput) override;
 	virtual bool CanStartPathFollowing() const override;
 	virtual bool CanStopPathFollowing() const override;
 	virtual float GetPathFollowingBrakingDistance(float MaxSpeed) const override;
@@ -1221,6 +1232,10 @@ public:
 	/** @return Maximum acceleration for the current state. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual float GetMaxAcceleration() const;
+
+	/** @return Maximum deceleration for the current state when braking (ie when there is no acceleration). */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	virtual float GetMaxBrakingDeceleration() const;
 
 	/** @return Current acceleration, computed from input vector each update. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(Keywords="Acceleration GetAcceleration"))
@@ -1894,6 +1909,9 @@ public:
 	/** Get prediction data for a server game. Should not be used if not running as a server. Allocates the data on demand and can be overridden to allocate a custom override if desired. */
 	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const override;
 
+	class FNetworkPredictionData_Client_Character* GetPredictionData_Client_Character() const;
+	class FNetworkPredictionData_Server_Character* GetPredictionData_Server_Character() const;
+
 	virtual bool HasPredictionData_Client() const override;
 	virtual bool HasPredictionData_Server() const override;
 
@@ -1903,9 +1921,6 @@ public:
 protected:
 	class FNetworkPredictionData_Client_Character* ClientPredictionData;
 	class FNetworkPredictionData_Server_Character* ServerPredictionData;
-
-	class FNetworkPredictionData_Client_Character* GetPredictionData_Client_Character() const;
-	class FNetworkPredictionData_Server_Character* GetPredictionData_Server_Character() const;
 
 	/**
 	 * Smooth mesh location for network interpolation, based on values set up by SmoothCorrection.

@@ -1,29 +1,31 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeRender.cpp: New terrain rendering
 =============================================================================*/
 
-#include "LandscapePrivatePCH.h"
+#include "LandscapeRender.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
+#include "LandscapeLayerInfoObject.h"
+#include "LandscapePrivate.h"
 #include "LandscapeMeshProxyComponent.h"
+#include "Materials/Material.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionLandscapeLayerCoords.h"
-#include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
-#include "RHIStaticStates.h"
-#include "LandscapeRender.h"
+#include "TessellationRendering.h"
 #include "LandscapeEdit.h"
-#include "LevelUtils.h"
-#include "MaterialCompiler.h"
-#include "LandscapeMaterialInstanceConstant.h"
-#include "RawIndexBuffer.h"
 #include "Engine/LevelStreaming.h"
+#include "LevelUtils.h"
+#include "Materials/MaterialExpressionTextureSample.h"
+#include "LandscapeMaterialInstanceConstant.h"
 #include "Engine/ShadowMapTexture2D.h"
-#include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "UnrealEngine.h"
 #include "LandscapeLight.h"
-#include "Algo/Find.h"
+#include "Containers/Algo/Find.h"
+
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, TEXT("LandscapeParameters"));
 
@@ -2996,6 +2998,11 @@ void ALandscapeProxy::ChangeLODDistanceFactor(float InLODDistanceFactor)
 void FLandscapeComponentSceneProxy::ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor)
 {
 	LODDistance = InLODDistanceFactor;
+}
+
+bool FLandscapeComponentSceneProxy::HeightfieldHasPendingStreaming() const
+{
+	return HeightmapTexture && HeightmapTexture->bHasStreamingUpdatePending;
 }
 
 void FLandscapeComponentSceneProxy::GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, UTexture2D*& OutDiffuseColorTexture, FHeightfieldComponentDescription& OutDescription)

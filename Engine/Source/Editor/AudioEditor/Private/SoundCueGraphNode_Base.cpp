@@ -1,12 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SoundCueGraphNode_Base.cpp
 =============================================================================*/
 
-#include "AudioEditorPrivatePCH.h"
 #include "SoundCueGraph/SoundCueGraphNode_Base.h"
-#include "EdGraph/EdGraphPin.h"
+#include "EdGraph/EdGraphSchema.h"
 #include "SoundCueGraph/SoundCueGraphSchema.h"
 
 /////////////////////////////////////////////////////

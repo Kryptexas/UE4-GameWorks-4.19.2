@@ -1,8 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Attribute.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
 #include "SScaleBox.generated.h"
+
+class FArrangedChildren;
+class FPaintArgs;
+class FSlateWindowElementList;
 
 UENUM(BlueprintType)
 namespace EStretchDirection
@@ -133,7 +143,7 @@ public:
 	void SetIgnoreInheritedScale(bool InIgnoreInheritedScale);
 	
 protected:
-	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child, float LayoutScaleMultiplier) const override;
 
 	float GetLayoutScale() const;
 	void RefreshSafeZoneScale();

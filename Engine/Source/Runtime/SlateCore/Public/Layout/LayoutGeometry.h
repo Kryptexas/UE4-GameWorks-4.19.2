@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateLayoutTransform.h"
-#include "SlateRect.h"
+#include "CoreMinimal.h"
+#include "Layout/SlateRect.h"
+#include "Rendering/SlateLayoutTransform.h"
 
 class FLayoutGeometry
 {

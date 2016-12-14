@@ -1,13 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleModules_VectorField.cpp: Vector field module implementations.
 ==============================================================================*/
 
-#include "EnginePrivate.h"
-#include "FXSystem.h"
-#include "ParticleDefinitions.h"
+#include "CoreMinimal.h"
+#include "Distributions/DistributionFloatConstant.h"
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
+#include "Particles/VectorField/ParticleModuleVectorFieldBase.h"
 #include "Particles/VectorField/ParticleModuleVectorFieldLocal.h"
 #include "Particles/VectorField/ParticleModuleVectorFieldGlobal.h"
 #include "Particles/VectorField/ParticleModuleVectorFieldRotation.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -8,8 +8,6 @@ using System.Collections.Generic;
 using Tools.DotNETCommon.XmlHandler;
 using System.Xml;
 using System.Linq;
-using System.Security;
-using System.Diagnostics;
 
 namespace Tools.CrashReporter.CrashReportCommon
 {
@@ -39,20 +37,27 @@ namespace Tools.CrashReporter.CrashReportCommon
 	/* PrimaryCrashProperties. Extracted from: FGenericCrashContext::SerializeContentToBuffer */
 	/*
 		"CrashVersion"
-		"ProcessId"
 		"CrashGUID"
+		"ProcessId"
 		"IsInternalBuild"
 		"IsPerforceBuild"
 		"IsSourceDistribution"
+		"IsEnsure"
+		"IsAssert"
+		"CrashType"
 		"SecondsSinceStart"
 		"GameName"
 		"ExecutableName"
 		"BuildConfiguration"
+		"GameSessionID"
 		"PlatformName"
 		"PlatformNameIni"
 		"PlatformFullName"
 		"EngineMode"
+		"EngineModeEx"
+		"DeploymentName"
 		"EngineVersion"
+		"BuildVersion"
 		"CommandLine"
 		"LanguageLCID"
 		"AppDefaultLocale"
@@ -69,6 +74,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 		"UserActivityHint" 
 		"ErrorMessage"
 		"CrashDumpMode"
+		"FullCrashDumpLocation"
 		"Misc.NumberOfCores"
 		"Misc.NumberOfCoresIncludingHyperthreads"
 		"Misc.Is64bitOperatingSystem"
@@ -94,6 +100,7 @@ namespace Tools.CrashReporter.CrashReportCommon
 		"MemoryStats.OOMAllocationAlignment"
 		"TimeofCrash"
 		"bAllowToBeContacted"
+		"PlatformCallbackResult"
 	*/
 
 	/// <summary> Enumerates crash description versions. </summary>
@@ -426,6 +433,15 @@ namespace Tools.CrashReporter.CrashReportCommon
 		/// <summary></summary>
 		[XmlElement]
 		public string EngineMode;
+
+		/// <summary></summary>
+		[XmlElement]
+		public string EngineModeEx;
+
+		/// <summary>
+		/// Get the engine mode ex. Can be empty but we don't want null.
+		/// </summary>
+		public string GetEngineModeEx() { return EngineModeEx ?? string.Empty; }
 
 		/// <summary></summary>
 		[XmlElement]

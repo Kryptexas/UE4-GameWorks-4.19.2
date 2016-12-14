@@ -1,10 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Developer/LocalizationService/Public/ILocalizationServiceModule.h"
+#include "CoreMinimal.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "ILocalizationServiceOperation.h"
+#include "ILocalizationServiceState.h"
+#include "ILocalizationServiceProvider.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Internationalization/Culture.h"
+#include "Containers/Queue.h"
 #include "IOneSkyLocalizationServiceWorker.h"
 #include "OneSkyLocalizationServiceState.h"
+
+class FOneSkyLocalizationServiceCommand;
+class FToolBarBuilder;
+class IDetailCategoryBuilder;
+class ULocalizationTarget;
+class ULocalizationTargetSet;
 
 DECLARE_DELEGATE_RetVal(FOneSkyLocalizationServiceWorkerRef, FGetOneSkyLocalizationServiceWorker)
 

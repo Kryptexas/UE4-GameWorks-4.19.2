@@ -1,17 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TiledDeferredLightRendering.cpp: Implementation of tiled deferred shading
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+#include "EngineGlobals.h"
+#include "RHI.h"
 #include "UniformBuffer.h"
 #include "ShaderParameters.h"
-#include "LightRendering.h"
-#include "ScreenRendering.h"
+#include "RendererInterface.h"
+#include "Shader.h"
 #include "SceneUtils.h"
+#include "RHIStaticStates.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "LightSceneInfo.h"
+#include "GlobalShader.h"
+#include "SceneRenderTargetParameters.h"
+#include "DeferredShadingRenderer.h"
+#include "ScenePrivate.h"
 
 /** 
  * Maximum number of lights that can be handled by tiled deferred in a single compute shader pass.

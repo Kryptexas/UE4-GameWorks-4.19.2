@@ -1,9 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PaperFlipbook.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/TextureStreamingTypes.h"
+#include "Components/MeshComponent.h"
 #include "PaperFlipbookComponent.generated.h"
+
+class FPrimitiveSceneProxy;
+class UBodySetup;
+class UPaperFlipbook;
+class UPaperSprite;
+class UTexture;
 
 // Event for a non-looping flipbook finishing play
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFlipbookFinishedPlaySignature);

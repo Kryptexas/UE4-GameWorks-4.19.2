@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -22,7 +22,8 @@
 #ifndef DETOURNAVMESHBUILDER_H
 #define DETOURNAVMESHBUILDER_H
 
-#include "DetourAlloc.h"
+#include "CoreMinimal.h"
+#include "Detour/DetourAlloc.h"
 
 struct dtOffMeshLinkCreateParams
 {

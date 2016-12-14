@@ -1,9 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "CollisionQueryParams.h"
+#include "Distributions/DistributionFloat.h"
+#include "Distributions/DistributionVector.h"
 #include "Particles/Collision/ParticleModuleCollisionBase.h"
 #include "ParticleModuleCollision.generated.h"
+
+class UParticleEmitter;
+class UParticleLODLevel;
+class UParticleModuleTypeDataBase;
+struct FParticleEmitterInstance;
 
 UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Actor Collision"))
 class UParticleModuleCollision : public UParticleModuleCollisionBase

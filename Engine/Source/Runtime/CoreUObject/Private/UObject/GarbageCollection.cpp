@@ -1,13 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObjGC.cpp: Unreal object garbage collection code.
 =============================================================================*/
 
-#include "CoreUObjectPrivate.h"
-#include "TaskGraphInterfaces.h"
-#include "IConsoleManager.h"
-#include "LinkerPlaceholderClass.h"
+#include "UObject/GarbageCollection.h"
+#include "HAL/ThreadSafeBool.h"
+#include "Misc/TimeGuard.h"
+#include "HAL/IConsoleManager.h"
+#include "Misc/App.h"
+#include "UObject/ScriptInterface.h"
+#include "UObject/UObjectAllocator.h"
+#include "UObject/UObjectBase.h"
+#include "UObject/Object.h"
+#include "UObject/Class.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/UnrealType.h"
+#include "UObject/LinkerLoad.h"
+#include "UObject/GCObject.h"
 #include "UObject/GCScopeLock.h"
 #include "HAL/ExceptionHandling.h"
 
@@ -343,7 +353,7 @@ public:
 
 	/** Marks all objects that can't be directly in a cluster but are referenced by it as reachable */
 	template <bool bParallel>
-	FORCEINLINE void MarkClusterMutableObjectsAsReachable(FUObjectCluster* Cluster, TArray<UObject*>& ObjectsToSerialize)
+	static FORCEINLINE void MarkClusterMutableObjectsAsReachable(FUObjectCluster* Cluster, TArray<UObject*>& ObjectsToSerialize)
 	{
 		for (int32 ReferencedMutableObjectIndex : Cluster->MutableObjects)
 		{
@@ -366,7 +376,7 @@ public:
 
 	/** Marks all clusters referenced by another cluster as rechable */
 	template <bool bParallel>
-	FORCEINLINE void MarkReferencedClustersAsReachable(int32 ClusterRootIndex, TArray<UObject*>& ObjectsToSerialize)
+	static FORCEINLINE void MarkReferencedClustersAsReachable(int32 ClusterRootIndex, TArray<UObject*>& ObjectsToSerialize)
 	{
 		FUObjectCluster* Cluster = GUObjectClusters.FindChecked(ClusterRootIndex);
 		// Also mark all referenced objects from outside of the cluster as reachable
@@ -417,6 +427,8 @@ public:
 		// Remove references to pending kill objects if we're allowed to do so.
 		if (ObjectItem->IsPendingKill() && bAllowReferenceElimination)
 		{
+			checkSlow(ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) == false);
+			checkSlow(ObjectItem->GetOwnerIndex() == 0)
 			// Null out reference.
 			Object = NULL;
 		}
@@ -477,23 +489,41 @@ public:
 		}
 		else if (ObjectItem->GetOwnerIndex() && !ObjectItem->HasAnyFlags(EInternalObjectFlags::ReachableInCluster))
 		{
-			ObjectItem->SetFlags(EInternalObjectFlags::ReachableInCluster);
-			// Make sure cluster root object is reachable too
-			const int32 OwnerIndex = ObjectItem->GetOwnerIndex();
-			FUObjectItem* RootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(OwnerIndex);
-			checkSlow(RootObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
+			bool bNeedsDoing = true;
 			if (GIsRunningParallelReachability)
 			{
-				if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
-				{
-					RootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
-					// Make sure all referenced clusters are marked as reachable too
-					MarkReferencedClustersAsReachable<true>(OwnerIndex, ObjectsToSerialize);
-				}
+				bNeedsDoing = ObjectItem->ThisThreadAtomicallySetFlag(EInternalObjectFlags::ReachableInCluster);
 			}
-			else if (RootObjectItem->IsUnreachable())
+			else
 			{
-				RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
+				ObjectItem->SetFlags(EInternalObjectFlags::ReachableInCluster);
+			}
+			if (bNeedsDoing)
+			{
+			    // Make sure cluster root object is reachable too
+			    const int32 OwnerIndex = ObjectItem->GetOwnerIndex();
+			    FUObjectItem* RootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(OwnerIndex);
+				checkSlow(RootObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
+			    if (GIsRunningParallelReachability)
+			    {
+				    if (RootObjectItem->ThisThreadAtomicallyClearedRFUnreachable())
+				    {
+						if (bStrongReference)
+						{
+					    	RootObjectItem->ThisThreadAtomicallyClearedFlag(EInternalObjectFlags::NoStrongReference);
+						}
+					    // Make sure all referenced clusters are marked as reachable too
+					    MarkReferencedClustersAsReachable<true>(OwnerIndex, ObjectsToSerialize);
+				    }
+			    }
+			    else if (RootObjectItem->IsUnreachable())
+			    {
+					RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable);
+					if (bStrongReference)
+					{
+						RootObjectItem->ClearFlags(EInternalObjectFlags::NoStrongReference);
+					}
+				}
 				// Make sure all referenced clusters are marked as reachable too
 				MarkReferencedClustersAsReachable<false>(OwnerIndex, ObjectsToSerialize);
 			}
@@ -713,6 +743,7 @@ public:
 
 		// Iterate over all objects. Note that we iterate over the UObjectArray and usually check only internal flags which
 		// are part of the array so we don't suffer from cache misses as much as we would if we were to check ObjectFlags.
+		TArray<UObjectBase*> KeepClusterRefs;
 		for (FRawObjectIterator It(true); It; ++It)
 		{
 			FUObjectItem* ObjectItem = *It;
@@ -758,11 +789,48 @@ public:
 					// IsValidLowLevel is extremely slow in this loop so only do it in debug
 					checkSlow(Object->IsValidLowLevel());
 					ObjectsToSerialize.Add(Object);
+
+					if (ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot) || ObjectItem->GetOwnerIndex())
+					{
+						KeepClusterRefs.Add(Object);
+					}
 				}
 				else
 				{
 					ObjectItem->SetFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
 				}
+			}
+		}
+		for (UObjectBase* Object : KeepClusterRefs)
+		{
+			const int32 ObjectIndex = GUObjectArray.ObjectToIndex(Object);
+			FUObjectItem* ObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(ObjectIndex);
+			if (ObjectItem->GetOwnerIndex())
+			{
+				check(!ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
+				bool bNeedsDoing = !ObjectItem->HasAnyFlags(EInternalObjectFlags::ReachableInCluster);
+				if (bNeedsDoing)
+				{
+					ObjectItem->SetFlags(EInternalObjectFlags::ReachableInCluster);
+					// Make sure cluster root object is reachable too
+					const int32 OwnerIndex = ObjectItem->GetOwnerIndex();
+					FUObjectItem* RootObjectItem = GUObjectArray.IndexToObjectUnsafeForGC(OwnerIndex);
+					check(RootObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
+					// if it is reachable via keep flags we will do this below (or maybe already have)
+					if (RootObjectItem->IsUnreachable()) 
+					{
+						RootObjectItem->ClearFlags(EInternalObjectFlags::Unreachable | EInternalObjectFlags::NoStrongReference);
+						// Make sure all referenced clusters are marked as reachable too
+						FGCReferenceProcessor::MarkReferencedClustersAsReachable<false>(OwnerIndex, ObjectsToSerialize);
+					}
+				}
+			}
+			else
+			{
+				check(ObjectItem->HasAnyFlags(EInternalObjectFlags::ClusterRoot));
+				// this thing is definitely not marked unreachable, so don't test it here
+				// Make sure all referenced clusters are marked as reachable too
+				FGCReferenceProcessor::MarkReferencedClustersAsReachable<false>(ObjectIndex, ObjectsToSerialize);
 			}
 		}
 	}
@@ -832,11 +900,31 @@ void IncrementalPurgeGarbage( bool bUseTimeLimit, float TimeLimit )
 		return;
 	}
 
+	bool bCompleted = false;
+
+	struct FResetPurgeProgress
+	{
+		bool& bCompletedRef;
+		FResetPurgeProgress(bool& bInCompletedRef)
+			: bCompletedRef(bInCompletedRef)
+		{
+			// Incremental purge is now in progress.
+			GObjIncrementalPurgeIsInProgress = true;
+			FPlatformMisc::MemoryBarrier();
+		}
+		~FResetPurgeProgress()
+		{
+			if (bCompletedRef)
+			{
+				GObjIncrementalPurgeIsInProgress = false;
+				FPlatformMisc::MemoryBarrier();
+			}
+		}
+
+	} ResetPurgeProgress(bCompleted);
+
 	// Set 'I'm garbage collecting' flag - might be checked inside UObject::Destroy etc.
 	FGCScopeLock GCLock;
-
-	// Incremental purge is now in progress.
-	GObjIncrementalPurgeIsInProgress						= true;
 
 	// Keep track of start time to enforce time limit unless bForceFullPurge is true;
 	const double		StartTime							= FPlatformTime::Seconds();
@@ -1047,8 +1135,8 @@ void IncrementalPurgeGarbage( bool bUseTimeLimit, float TimeLimit )
 
 		if( !GObjCurrentPurgeObjectIndex )
 		{
+			bCompleted = true;
 			// Incremental purge is finished, time to reset variables.
-			GObjIncrementalPurgeIsInProgress				= false;
 			GObjFinishDestroyHasBeenRoutedToAllObjects		= false;
 			GObjPurgeIsRequired								= false;
 			GObjCurrentPurgeObjectIndexNeedsReset			= true;
@@ -1139,6 +1227,10 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	// Flush streaming before GC if requested
 	if (GFlushStreamingOnGC)
 	{
+		if (IsAsyncLoading())
+		{
+			UE_LOG(LogGarbage, Log, TEXT("CollectGarbageInternal() is flushing async loading"));
+		}
 		GGarbageCollectionGuardCritical.GCUnlock();
 		FlushAsyncLoading();
 		GGarbageCollectionGuardCritical.GCLock();
@@ -1820,6 +1912,29 @@ void UClass::EmitFixedArrayEnd()
 
 void UClass::AssembleReferenceTokenStream(bool bForce)
 {
+	// Lock for non-native classes
+	struct FScopeLockIfNotNative
+	{
+		FCriticalSection& ScopeCritical;
+		const bool bNotNative;
+		FScopeLockIfNotNative(FCriticalSection& InScopeCritical, bool bIsNotNative)
+			: ScopeCritical(InScopeCritical)
+			, bNotNative(bIsNotNative)
+		{
+			if (bNotNative)
+			{
+				ScopeCritical.Lock();
+			}
+		}
+		~FScopeLockIfNotNative()
+		{
+			if (bNotNative)
+			{
+				ScopeCritical.Unlock();
+			}
+		}
+	} ReferenceTokenStreamLock(ReferenceTokenStreamCritical, !(ClassFlags & CLASS_Native));
+
 	if (!HasAnyClassFlags(CLASS_TokenStreamAssembled) || bForce)
 	{
 		if (bForce)

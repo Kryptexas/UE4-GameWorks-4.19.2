@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ALAudioDevice.cpp: Unreal OpenAL Audio interface object.
@@ -11,9 +11,8 @@
 ------------------------------------------------------------------------------------*/
 
 #include "ALAudioDevice.h"
-#include "VorbisAudioInfo.h"
 #include "AudioEffect.h"
-#include "Engine.h"
+#include "VorbisAudioInfo.h"
 
 DEFINE_LOG_CATEGORY(LogALAudio);
 

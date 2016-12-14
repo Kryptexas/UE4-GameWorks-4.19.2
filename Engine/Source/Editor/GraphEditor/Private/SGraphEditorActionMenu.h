@@ -1,11 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SGraphEditorActionMenu_h__
 #define __SGraphEditorActionMenu_h__
 
-#include "GraphEditorCommon.h"
-#include "SGraphActionMenu.h"
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "GraphEditor.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "EdGraph/EdGraphSchema.h"
+
+class SGraphActionMenu;
+class UEdGraph;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 

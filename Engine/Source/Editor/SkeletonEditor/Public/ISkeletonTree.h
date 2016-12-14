@@ -1,6 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/SCompoundWidget.h"
+
+class FAssetData;
+class IPersonaPreviewScene;
+class UBlendProfile;
+struct FSelectedSocketInfo;
 
 // Called when a bone is selected
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectSelectedMulticast, UObject* /* InObject */);
@@ -30,11 +38,11 @@ class SKELETONEDITOR_API ISkeletonTree : public SCompoundWidget
 {
 public:
 	struct Columns
-	{
+{
 		static const FName Name;
 		static const FName Retargeting;
 		static const FName BlendProfile;
-	};
+};
 
 	/** Get editable skeleton that this widget is editing */
 	virtual TSharedRef<class IEditableSkeleton> GetEditableSkeleton() const = 0;

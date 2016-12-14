@@ -1,11 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Templates/SubclassOf.h"
+#include "Layout/Visibility.h"
+#include "ISequencer.h"
+#include "MovieSceneTrack.h"
+#include "ISequencerSection.h"
+#include "Framework/Commands/UICommandList.h"
+#include "ISequencerTrackEditor.h"
 #include "KeyframeTrackEditor.h"
-#include "MovieScene3DTransformTrack.h"
-#include "MovieScene3DTransformSection.h"
+#include "Tracks/MovieScene3DTransformTrack.h"
+#include "Sections/MovieScene3DTransformSection.h"
 
+class AActor;
+class FAssetData;
+class SHorizontalBox;
 
 /**
  * Tools for animatable transforms

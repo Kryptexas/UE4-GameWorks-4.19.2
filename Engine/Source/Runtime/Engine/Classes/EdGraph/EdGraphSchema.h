@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "EdGraph/EdGraphNode.h"
+#include "EdGraph/EdGraphPin.h"
+#include "AssetData.h"
 #include "EdGraphSchema.generated.h"
 
 class FSlateRect;
-class UEdGraphNode;
-class UEdGraphPin;
-struct FEdGraphPinType;
+class UEdGraph;
 
 /** Distinguishes between different graph types. Graphs can have different properties; for example: functions have one entry point, ubergraphs can have multiples. */
 UENUM()
@@ -103,38 +107,38 @@ public:
 	
 	virtual ~FEdGraphSchemaAction() {}
 
-	FEdGraphSchemaAction(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping, const FText& InKeywords = FText(), int32 InSectionID = 0)
+	FEdGraphSchemaAction(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping, FText InKeywords = FText(), int32 InSectionID = 0)
 		: Grouping(InGrouping)
 		, SectionID(InSectionID)
 	{
-		UpdateSearchData(InMenuDesc, InToolTip, InNodeCategory, InKeywords);
+		UpdateSearchData(MoveTemp(InMenuDesc), MoveTemp(InToolTip), MoveTemp(InNodeCategory), MoveTemp(InKeywords));
 	}
 
 	/** Whether or not this action can be parented to other actions of the same type. */
 	virtual bool IsParentable() const { return false; }
 
 	/** Execute this action, given the graph and schema, and possibly a pin that we were dragged from. Returns a node that was created by this action (if any). */
-	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) { return NULL; }
+	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) { return nullptr; }
 
 	/** Execute this action, given the graph and schema, and possibly a pin that we were dragged from. Returns a node that was created by this action (if any). */
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location, bool bSelectNewNode = true)
 	{
-		UEdGraphNode* NewNode = NULL;
+		UEdGraphNode* NewNode = nullptr;
 		if (FromPins.Num() > 0)
 		{
 			NewNode = PerformAction(ParentGraph, FromPins[0], Location, bSelectNewNode);
 		}
 		else
 		{
-			NewNode = PerformAction(ParentGraph, NULL, Location, bSelectNewNode);
+			NewNode = PerformAction(ParentGraph, nullptr, Location, bSelectNewNode);
 		}
 
 		return NewNode;
 	}
 
-	void UpdateCategory(const FText& NewCategory);
+	void UpdateCategory(FText NewCategory);
 
-	void UpdateSearchData(const FText& NewMenuDescription, const FString& NewToolTipDescription, const FText& NewCategory, const FText& NewKeywords);
+	void UpdateSearchData(FText NewMenuDescription, FString NewToolTipDescription, FText NewCategory, FText NewKeywords);
 
 	int32 GetSectionID() const
 	{
@@ -215,12 +219,12 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 
 	FEdGraphSchemaAction_NewNode() 
 		: FEdGraphSchemaAction()
-		, NodeTemplate(NULL)
+		, NodeTemplate(nullptr)
 	{}
 
-	FEdGraphSchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
-		, NodeTemplate(NULL)
+	FEdGraphSchemaAction_NewNode(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
+		, NodeTemplate(nullptr)
 	{}
 
 	// FEdGraphSchemaAction interface
@@ -235,7 +239,7 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 		FEdGraphSchemaAction_NewNode Action;
 		Action.NodeTemplate = InTemplateNode;
 
-		return Cast<NodeType>(Action.PerformAction(ParentGraph, NULL, Location, bSelectNewNode));
+		return Cast<NodeType>(Action.PerformAction(ParentGraph, nullptr, Location, bSelectNewNode));
 	}
 
 	static UEdGraphNode* CreateNode(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, class UEdGraphNode* InNodeTemplate);
@@ -251,8 +255,8 @@ struct FEdGraphSchemaAction_Dummy : public FEdGraphSchemaAction
 	: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_Dummy(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)		
+	FEdGraphSchemaAction_Dummy(FText InNodeCategory, FText InMenuDesc, FString InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(MoveTemp(InNodeCategory), MoveTemp(InMenuDesc), MoveTemp(InToolTip), InGrouping)
 	{}
 };
 
@@ -272,8 +276,8 @@ public:
 	{
 	}
 
-	FPinConnectionResponse(const ECanCreateConnectionResponse InResponse, const FString& InMessage)
-		: Message(FText::FromString(InMessage))
+	FPinConnectionResponse(const ECanCreateConnectionResponse InResponse, FString InMessage)
+		: Message(FText::FromString(MoveTemp(InMessage)))
 		, Response(InResponse)
 		, bIsFatal(false)
 	{
@@ -293,8 +297,8 @@ public:
 	{
 	}
 
-	FPinConnectionResponse(const ECanCreateConnectionResponse InResponse, const FText& InMessage)
-		: Message(InMessage)
+	FPinConnectionResponse(const ECanCreateConnectionResponse InResponse, FText InMessage)
+		: Message(MoveTemp(InMessage))
 		, Response(InResponse)
 		, bIsFatal(false)
 	{
@@ -336,10 +340,10 @@ public:
 	{
 	public:
 		/** Constructor accepting a single action */
-		ENGINE_API ActionGroup( TSharedPtr<FEdGraphSchemaAction> InAction, FString const& RootCategory = TEXT("") );
+		ENGINE_API ActionGroup( TSharedPtr<FEdGraphSchemaAction> InAction, FString RootCategory = FString());
 
 		/** Constructor accepting multiple actions */
-		ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString const& RootCategory = TEXT("") );
+		ENGINE_API ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString RootCategory = FString());
 
 		/** Move constructor and move assignment operator */
 		ENGINE_API ActionGroup(ActionGroup && Other);
@@ -408,10 +412,10 @@ private:
 
 public:
 	/** Adds an action entry containing a single action */
-	ENGINE_API virtual void AddAction( const TSharedPtr<FEdGraphSchemaAction>& NewAction, FString const& Category = TEXT("") );
+	ENGINE_API virtual void AddAction( const TSharedPtr<FEdGraphSchemaAction>& NewAction, FString const& Category = FString() );
 
 	/** Adds an action entry containing multiple actions */
-	ENGINE_API virtual void AddActionList( const TArray<TSharedPtr<FEdGraphSchemaAction> >& NewActions, FString const& Category = TEXT("") );
+	ENGINE_API virtual void AddActionList( const TArray<TSharedPtr<FEdGraphSchemaAction> >& NewActions, FString const& Category = FString() );
 
 	/** Appends all the action entries from a different graph action builder */
 	ENGINE_API void Append( FGraphActionListBuilderBase& Other );
@@ -436,7 +440,7 @@ public:
 	}
 
 	FGraphActionListBuilderBase()
-		: OwnerOfTemporaries(NULL)
+		: OwnerOfTemporaries(nullptr)
 	{
 	}
 };
@@ -445,11 +449,11 @@ public:
 struct FCategorizedGraphActionListBuilder : public FGraphActionListBuilderBase
 {
 public:
-	ENGINE_API FCategorizedGraphActionListBuilder(FString const& Category = TEXT(""));
+	ENGINE_API FCategorizedGraphActionListBuilder(FString Category = FString());
 
 	// FGraphActionListBuilderBase Interface
-	ENGINE_API virtual void AddAction(const TSharedPtr<FEdGraphSchemaAction>& NewAction, FString const& Category = TEXT("") ) override;
-	ENGINE_API virtual void AddActionList(const TArray<TSharedPtr<FEdGraphSchemaAction> >& NewActions, FString const& Category = TEXT("")) override;
+	ENGINE_API virtual void AddAction(const TSharedPtr<FEdGraphSchemaAction>& NewAction, FString const& Category = FString() ) override;
+	ENGINE_API virtual void AddActionList(const TArray<TSharedPtr<FEdGraphSchemaAction> >& NewActions, FString const& Category = FString()) override;
 	// End of FGraphActionListBuilderBase Interface
 
 private:
@@ -463,7 +467,7 @@ struct FGraphActionMenuBuilder : public FGraphActionListBuilderBase
 public:
 	const UEdGraphPin* FromPin;
 public:
-	ENGINE_API FGraphActionMenuBuilder() : FromPin(NULL) {}
+	ENGINE_API FGraphActionMenuBuilder() : FromPin(nullptr) {}
 };
 
 // This context is used when building a list of actions that can be done in the current context
@@ -558,8 +562,8 @@ class ENGINE_API UEdGraphSchema : public UObject
 	template<typename PinType>
 	static bool CategorizePinsByDirection(PinType* PinA, PinType* PinB, /*out*/ PinType*& InputPin, /*out*/ PinType*& OutputPin)
 	{
-		InputPin = NULL;
-		OutputPin = NULL;
+		InputPin = nullptr;
+		OutputPin = nullptr;
 
 		if ((PinA->Direction == EGPD_Input) && (PinB->Direction == EGPD_Output))
 		{
@@ -770,7 +774,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	 * @param	InOutExtraNames	List of extra names that are in-use from the substitution should be added to this list to prevent other substitutions from attempting to use them
 	 * @return					NULL if a substitute node cannot be created; otherwise, the substitute node instance
 	 */
-	virtual UEdGraphNode* CreateSubstituteNode(UEdGraphNode* Node, const UEdGraph* Graph, FObjectInstancingGraph* InstanceGraph, TArray<FName>& InOutExtraNames) const { return NULL; }
+	virtual UEdGraphNode* CreateSubstituteNode(UEdGraphNode* Node, const UEdGraph* Graph, FObjectInstancingGraph* InstanceGraph, TArray<FName>& InOutExtraNames) const { return nullptr; }
 
 
 	/**
@@ -781,7 +785,7 @@ class ENGINE_API UEdGraphSchema : public UObject
 	virtual int32 GetNodeSelectionCount(const UEdGraph* Graph) const { return 0; }
 
 	/** Returns schema action to create comment from implemention */
-	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const { return NULL; }
+	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const { return nullptr; }
 
 	/**
 	 * Handle a graph being removed by the user (potentially removing associated bound nodes, etc...)
@@ -813,21 +817,21 @@ class ENGINE_API UEdGraphSchema : public UObject
 	/** Allows schema to generate a tooltip (icon & message) when the specified asset(s) are dragged over the specified node */
 	virtual void GetAssetsNodeHoverMessage(const TArray<class FAssetData>& Assets, const UEdGraphNode* HoverNode, FString& OutTooltipText, bool& OutOkIcon) const 
 	{ 
-		OutTooltipText = TEXT("");
+		OutTooltipText = FString();
 		OutOkIcon = false;
 	}
 
 	/** Allows schema to generate a tooltip (icon & message) when the specified asset(s) are dragged over the specified pin */
 	virtual void GetAssetsPinHoverMessage(const TArray<class FAssetData>& Assets, const UEdGraphPin* HoverPin, FString& OutTooltipText, bool& OutOkIcon) const 
 	{ 
-		OutTooltipText = TEXT("");
+		OutTooltipText = FString();
 		OutOkIcon = false;
 	}
 
 	/** Allows schema to generate a tooltip (icon & message) when the specified asset(s) are dragged over the specified graph */
 	virtual void GetAssetsGraphHoverMessage(const TArray<FAssetData>& Assets, const UEdGraph* HoverGraph, FString& OutTooltipText, bool& OutOkIcon) const
 	{
-		OutTooltipText = TEXT("");
+		OutTooltipText = FString();
 		OutOkIcon = false;
 	}
 
@@ -835,10 +839,10 @@ class ENGINE_API UEdGraphSchema : public UObject
 	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const { return true; }
 
 	/* Duplicate a given graph return the duplicate graph */
-	virtual UEdGraph* DuplicateGraph(UEdGraph* GraphToDuplicate) const { return NULL;}
+	virtual UEdGraph* DuplicateGraph(UEdGraph* GraphToDuplicate) const { return nullptr;}
 
 	/* returns new FConnectionDrawingPolicy from this schema */
-	virtual class FConnectionDrawingPolicy* CreateConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, class FSlateWindowElementList& InDrawElements, class UEdGraph* InGraphObj) const { return NULL; }
+	virtual class FConnectionDrawingPolicy* CreateConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, class FSlateWindowElementList& InDrawElements, class UEdGraph* InGraphObj) const { return nullptr; }
 
 	/* When dragging off a pin, we want to duck the alpha of some nodes */
 	virtual bool FadeNodeWhenDraggingOffPin(const UEdGraphNode* Node, const UEdGraphPin* Pin) const { return false; }
@@ -847,6 +851,14 @@ class ENGINE_API UEdGraphSchema : public UObject
 
 	/* When a node is removed, this method determines whether we should remove it immediately or use the old (slower) code path that results in all node being recreated: */
 	virtual bool ShouldAlwaysPurgeOnModification() const { return true; }
+
+	/** 
+	 * Perform any logic necessary to safely remove this node from the graph.  
+	 * @param Graph		Type of pin to drop onto the node
+	 * @param Node		Direction of the source pin
+	 * @return			Whether or not the node was successfully deleted.
+    */
+	virtual bool SafeDeleteNodeFromGraph(UEdGraph* Graph, UEdGraphNode* Node) const { return false; }
 
 	/*
 	 * Some schemas have nodes that support the user dynamically adding pins when dropping a connection on the node

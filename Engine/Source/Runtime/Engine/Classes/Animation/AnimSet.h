@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * This is a set of AnimSequences
@@ -7,7 +7,14 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "AnimSet.generated.h"
+
+class UAnimSequence;
+class USkeletalMesh;
 
 /** This is a mapping table between each bone in a particular skeletal mesh and the tracks of this animation set. */
 USTRUCT()

@@ -1,18 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PhysxUserData.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Class.h"
+#include "Engine/EngineTypes.h"
 #include "CollisionQueryParams.h"
+#include "EngineDefines.h"
+#include "PhysxUserData.h"
 #include "BodyInstance.generated.h"
 
 #define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
 
+class FPhysScene;
+class UBodySetup;
+class UPhysicalMaterial;
+class UPrimitiveComponent;
+struct FBodyInstance;
+struct FCollisionNotifyInfo;
 struct FCollisionShape;
 struct FConstraintInstance;
-class UPhysicsConstraintComponent;
-enum class ETeleportType;
-class UBodySetup;
+struct FPropertyChangedEvent;
+struct FShapeData;
 
 /** Delegate for applying custom physics forces upon the body. Can be passed to "AddCustomPhysics" so 
   * custom forces and torques can be calculated individually for every physics substep.
@@ -323,7 +333,7 @@ public:
 	float GetMassOverride() const { return MassInKgOverride; }
 
 	/** Sets the mass override */
-	void SetMassOverride(float MassInKG);
+	void SetMassOverride(float MassInKG, bool bNewOverrideMass = true);
 
 	/** 'Drag' force added to reduce linear movement */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Physics)
@@ -666,7 +676,13 @@ public:
 	void UpdateTriMeshVertices(const TArray<FVector> & NewPositions);
 
 	/** Returns the center of mass of this body (in world space) */
-	FVector GetCOMPosition() const;
+	FVector GetCOMPosition() const
+	{
+		return GetMassSpaceToWorldSpace().GetLocation();
+	}
+
+	/** Returns the mass coordinate system to world space transform (position is world center of mass, rotation is world inertia orientation) */
+	FTransform GetMassSpaceToWorldSpace() const;
 
 	/** Draws the center of mass as a wire star */
 	void DrawCOMPosition(class FPrimitiveDrawInterface* PDI, float COMRenderSize, const FColor& COMRenderColor);
@@ -1126,6 +1142,8 @@ public:
 
 private:
 
+	void UpdateDebugRendering();
+
 	struct FWeldInfo
 	{
 		FWeldInfo(FBodyInstance* InChildBI, const FTransform& InRelativeTM)
@@ -1170,6 +1188,8 @@ private:
 	/** Enum indicating what type of object this should be considered as when it moves */
 	UPROPERTY(EditAnywhere, Category=Custom)
 	TEnumAsByte<enum ECollisionChannel> ObjectType;
+
+	void SetShapeFlagsInternal_AssumesShapeLocked(struct FSetShapeParams& Params, bool& bUpdateMassProperties);
 };
 
 template<>
@@ -1218,9 +1238,4 @@ FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBody(const FVector& Pos
 FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics() const
 {
 	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
-}
-
-FORCEINLINE_DEBUGGABLE bool FBodyInstance::ShouldInstanceSimulatingPhysics() const
-{
-	return bSimulatePhysics;
 }

@@ -3,12 +3,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 #define SIMP_CACHE	1
 
-#include "HashTable.h"
-#include "BinaryHeap.h"
-#include "MeshSimplifyElements.h"
-#include "Quadric.h"
+#include "Developer/MeshSimplifier/Private/HashTable.h"
+#include "Developer/MeshSimplifier/Private/BinaryHeap.h"
+#include "Developer/MeshSimplifier/Private/MeshSimplifyElements.h"
+#include "Developer/MeshSimplifier/Private/Quadric.h"
 //#include "Cache.h"
 
 template< typename T, uint32 NumAttributes >

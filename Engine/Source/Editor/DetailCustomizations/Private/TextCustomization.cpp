@@ -1,7 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "DetailCustomizationsPrivatePCH.h"
 #include "TextCustomization.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Engine/GameViewportClient.h"
+#include "PropertyHandle.h"
+#include "DetailWidgetRow.h"
 #include "IPropertyUtilities.h"
 #include "STextPropertyEditableTextBox.h"
 
@@ -79,6 +82,11 @@ namespace
 					PropertyHandle->SetPerObjectValue(InIndex, ObjectValue);
 				}
 			}
+		}
+
+		virtual bool IsValidText(const FText& InText, FText& OutErrorMsg) const override
+		{
+			return true;
 		}
 
 #if USE_STABLE_LOCALIZATION_KEYS

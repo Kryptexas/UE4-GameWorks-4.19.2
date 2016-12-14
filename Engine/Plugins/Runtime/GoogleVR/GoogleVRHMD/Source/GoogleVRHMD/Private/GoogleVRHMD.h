@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include "IGoogleVRHMDPlugin.h"
 #include "HeadMountedDisplay.h"
 #include "IHeadMountedDisplay.h"
 #include "SceneViewExtension.h"
@@ -26,6 +27,7 @@
 #include "GoogleVRHMDViewerPreviews.h"
 #include "Classes/GoogleVRHMDFunctionLibrary.h"
 #include "GoogleVRSplash.h"
+#include "Containers/Queue.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);
 

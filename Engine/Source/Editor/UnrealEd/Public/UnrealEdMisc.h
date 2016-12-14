@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor.h" // for FEditorModeID
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "Widgets/SWindow.h"
+#include "Editor.h"
 
 class FPerformanceAnalyticsStats;
 class FTickableEditorObject;
-
+class FUICommandInfo;
 
 enum class EMapChangeType : uint8
 {

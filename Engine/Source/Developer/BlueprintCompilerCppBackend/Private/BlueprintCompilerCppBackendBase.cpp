@@ -1,9 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendBase.h"
+#include "UObject/UnrealType.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Misc/Paths.h"
+#include "UObject/Interface.h"
+#include "Engine/Blueprint.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "K2Node_Event.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_CreateDelegate.h"
+#include "SourceCodeNavigation.h"
+#include "IBlueprintCompilerCppBackendModule.h"
+#include "BlueprintCompilerCppBackendGatherDependencies.h"
 #include "BlueprintCompilerCppBackendUtils.h"
-#include "BlueprintEditorUtils.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Animation/AnimNodeBase.h"
 
 TArray<class UFunction*> IBlueprintCompilerCppBackendModule::CollectBoundFunctions(class UBlueprint* BP)
@@ -782,7 +796,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 
 	auto EnumItemName = [&](int32 InIndex)
 	{
-		const int32 ElemValue = SourceEnum->GetValueByIndex(InIndex);
+		const int64 ElemValue = SourceEnum->GetValueByIndex(InIndex);
 		if (ElemValue == SourceEnum->GetMaxEnumValue())
 		{
 			return FString::Printf(TEXT("%s_MAX"), *EnumCppName);
@@ -793,12 +807,12 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
 	{
 		const FString ElemCppName = EnumItemName(Index);
-		const int32 ElemValue = SourceEnum->GetValueByIndex(Index);
+		const int64 ElemValue = SourceEnum->GetValueByIndex(Index);
 
 		const FString& DisplayNameMD = SourceEnum->GetMetaData(TEXT("DisplayName"), ElemValue);// TODO: value or index?
 		const FString MetaDisplayName = DisplayNameMD.IsEmpty() ? FString() : FString::Printf(TEXT("DisplayName = \"%s\","), *DisplayNameMD.ReplaceCharWithEscapedChar());
 		const FString MetaOverrideName = FString::Printf(TEXT("OverrideName = \"%s\""), *SourceEnum->GetNameByIndex(Index).ToString());
-		Header.AddLine(FString::Printf(TEXT("%s = %d UMETA(%s%s),"), *ElemCppName, ElemValue, *MetaDisplayName, *MetaOverrideName));
+		Header.AddLine(FString::Printf(TEXT("%s = %lld UMETA(%s%s),"), *ElemCppName, ElemValue, *MetaDisplayName, *MetaOverrideName));
 	}
 
 	Header.DecreaseIndent();

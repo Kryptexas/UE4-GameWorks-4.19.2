@@ -1,28 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
-#include "PreviewScene.h"
-#include "SSCSEditorViewport.h"
 #include "SCSEditorViewportClient.h"
-#include "SSCSEditor.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
-#include "BlueprintEditor.h"
-#include "BlueprintEditorUtils.h"
-#include "SKismetInspector.h"
-#include "MouseDeltaTracker.h"
-#include "ScopedTransaction.h"
-#include "SoundDefinitions.h"
-#include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
-#include "ISCSEditorCustomization.h"
-#include "ComponentVisualizer.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "CanvasTypes.h"
-#include "EngineUtils.h"
-#include "GameFramework/Actor.h"
-#include "Engine/SCS_Node.h"
-#include "Engine/TextureCube.h"
-#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
+#include "CanvasItem.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Editor/UnrealEdEngine.h"
+#include "ThumbnailRendering/SceneThumbnailInfo.h"
+#include "ThumbnailRendering/ThumbnailManager.h"
 #include "Engine/StaticMesh.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "EngineUtils.h"
+#include "UnrealEdGlobals.h"
+#include "SEditorViewport.h"
+#include "EngineGlobals.h"
+#include "Editor.h"
+#include "SSCSEditor.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "SKismetInspector.h"
+#include "ScopedTransaction.h"
+#include "ISCSEditorCustomization.h"
+#include "CanvasTypes.h"
+#include "Engine/TextureCube.h"
 #include "SSCSEditorViewport.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 
@@ -167,11 +168,10 @@ void FSCSEditorViewportClient::Tick(float DeltaSeconds)
 	if (PreviewActor != nullptr)
 	{
 		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
-		PreviewActor->GetComponents(PrimitiveComponents);
+		PreviewActor->GetComponents(PrimitiveComponents, true);
 
-		for (int32 CompIdx = 0; CompIdx < PrimitiveComponents.Num(); ++CompIdx)
+		for (UPrimitiveComponent* PrimComponent : PrimitiveComponents)
 		{
-			UPrimitiveComponent* PrimComponent = PrimitiveComponents[CompIdx];
 			if (!PrimComponent->SelectionOverrideDelegate.IsBound())
 			{
 				SCSEditor->SetSelectionOverride(PrimComponent);
@@ -362,29 +362,43 @@ void FSCSEditorViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 		{
 			HActor* ActorProxy = (HActor*)HitProxy;
 			AActor* PreviewActor = GetPreviewActor();
-			if (ActorProxy && ActorProxy->Actor && ActorProxy->Actor == PreviewActor && ActorProxy->PrimComponent != NULL)
+			if (ActorProxy && ActorProxy->Actor && ActorProxy->PrimComponent)
 			{
-				TInlineComponentArray<USceneComponent*> SceneComponents;
-				ActorProxy->Actor->GetComponents(SceneComponents);
+				USceneComponent* SelectedCompInstance = nullptr;
 
-				for (auto CompIt = SceneComponents.CreateConstIterator(); CompIt; ++CompIt)
+				if (ActorProxy->Actor == PreviewActor)
 				{
-					USceneComponent* CompInstance = *CompIt;
-					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(CompInstance);
-					if (Customization.IsValid() && Customization->HandleViewportClick(AsShared(), View, HitProxy, Key, Event, HitX, HitY))
+					UPrimitiveComponent* TestComponent = const_cast<UPrimitiveComponent*>(ActorProxy->PrimComponent);
+					if (ActorProxy->Actor->GetComponents().Contains(TestComponent))
 					{
-						break;
+						SelectedCompInstance = TestComponent;
+					}
+				}
+				else if (ActorProxy->Actor->IsChildActor())
+				{
+					AActor* TestActor = ActorProxy->Actor;
+					while (TestActor->GetParentActor()->IsChildActor())
+					{
+						TestActor = TestActor->GetParentActor();
 					}
 
-					if (CompInstance == ActorProxy->PrimComponent)
+					if (TestActor->GetParentActor() == PreviewActor)
+					{
+						SelectedCompInstance = TestActor->GetParentComponent();
+					}
+				}
+
+				if (SelectedCompInstance)
+				{
+					TSharedPtr<ISCSEditorCustomization> Customization = BlueprintEditorPtr.Pin()->CustomizeSCSEditor(SelectedCompInstance);
+					if (!(Customization.IsValid() && Customization->HandleViewportClick(AsShared(), View, HitProxy, Key, Event, HitX, HitY)))
 					{
 						const bool bIsCtrlKeyDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
 						if (BlueprintEditorPtr.IsValid())
 						{
 							// Note: This will find and select any node associated with the component instance that's attached to the proxy (including visualizers)
-							BlueprintEditorPtr.Pin()->FindAndSelectSCSEditorTreeNode(CompInstance, bIsCtrlKeyDown);
+							BlueprintEditorPtr.Pin()->FindAndSelectSCSEditorTreeNode(SelectedCompInstance, bIsCtrlKeyDown);
 						}
-						break;
 					}
 				}
 			}

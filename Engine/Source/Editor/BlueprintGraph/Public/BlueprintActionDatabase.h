@@ -1,16 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GCObject.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/Object.h"
+#include "UObject/WeakObjectPtr.h"
+#include "UObject/GCObject.h"
 #include "TickableEditorObject.h"
 
-// Forward declarations
-class UBlueprint;
-class FBlueprintActionFilter;
-class UBlueprintNodeSpawner;
-class FReferenceCollector;
 class FBlueprintActionDatabaseRegistrar;
+class UBlueprint;
+class UBlueprintNodeSpawner;
 
 /**
  * Serves as a container for all available blueprint actions (no matter the 

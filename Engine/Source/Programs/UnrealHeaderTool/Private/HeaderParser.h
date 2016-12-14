@@ -1,14 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "ParserHelper.h"
 #include "BaseParser.h"
-#include "CompilationResult.h"
-#include "ScopedTimers.h"
+#include "Misc/CompilationResult.h"
 #include "Scope.h"
-#include "GeneratedCodeVersion.h"
 
+class UClass;
+enum class EGeneratedCodeVersion : uint8;
+class FFeedbackContext;
+class UPackage;
+struct FManifestModule;
+class IScriptGeneratorPluginInterface;
+class FStringOutputDevice;
+class UProperty;
+class FUnrealSourceFile;
+class UFunction;
+class UEnum;
+class UScriptStruct;
+class UDelegateFunction;
+class UStruct;
 class FClass;
 class FClasses;
 class FScope;

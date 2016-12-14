@@ -1,13 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "IDetailCustomization.h"
 
-
+class FAssetData;
+class IDetailLayoutBuilder;
 class IPropertyHandle;
 class SWidget;
-
+class UMediaSource;
 
 /**
  * Implements a details view customization for the UPlatformMediaSource class.

@@ -1,19 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayCueInterface.h"
-#include "Abilities/GameplayAbility.h"
-#include "Abilities/Tasks/AbilityTask.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "Engine/Canvas.h"
+#include "DisplayDebugHelpers.h"
+#include "Engine/Engine.h"
+#include "GameFramework/HUD.h"
+#include "AbilitySystemStats.h"
+#include "AbilitySystemGlobals.h"
 #include "GameplayCueManager.h"
 
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "MapErrors.h"
-#include "DisplayDebugHelpers.h"
-#include "VisualLogger.h"
 #include "GameplayEffectCustomApplicationRequirement.h"
 
 DEFINE_LOG_CATEGORY(LogAbilitySystemComponent);
@@ -199,7 +198,7 @@ float UAbilitySystemComponent::GetNumericAttributeBase(const FGameplayAttribute 
 	return ActiveGameplayEffects.GetAttributeBaseValue(Attribute);
 }
 
-void UAbilitySystemComponent::SetNumericAttribute_Internal(const FGameplayAttribute &Attribute, float NewFloatValue)
+void UAbilitySystemComponent::SetNumericAttribute_Internal(const FGameplayAttribute &Attribute, float& NewFloatValue)
 {
 	// Set the attribute directly: update the UProperty on the attribute set.
 	const UAttributeSet* AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
@@ -875,6 +874,15 @@ void UAbilitySystemComponent::SetActiveGameplayEffectLevel(FActiveGameplayEffect
 	ActiveGameplayEffects.SetActiveGameplayEffectLevel(ActiveHandle, NewLevel);
 }
 
+void UAbilitySystemComponent::SetActiveGameplayEffectLevelUsingQuery(FGameplayEffectQuery Query, int32 NewLevel)
+{
+	TArray<FActiveGameplayEffectHandle> ActiveGameplayEffectHandles = ActiveGameplayEffects.GetActiveEffects(Query);
+	for (FActiveGameplayEffectHandle ActiveHandle : ActiveGameplayEffectHandles)
+	{
+		SetActiveGameplayEffectLevel(ActiveHandle, NewLevel);
+	}
+}
+
 int32 UAbilitySystemComponent::GetCurrentStackCount(FActiveGameplayEffectHandle Handle) const
 {
 	if (const FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Handle))
@@ -924,6 +932,12 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHan
 void UAbilitySystemComponent::OnImmunityBlockGameplayEffect(const FGameplayEffectSpec& Spec, const FActiveGameplayEffect* ImmunityGE)
 {
 	OnImmunityBlockGameplayEffectDelegate.Broadcast(Spec, ImmunityGE);
+}
+
+void UAbilitySystemComponent::InitDefaultGameplayCueParameters(FGameplayCueParameters& Parameters)
+{
+	Parameters.Instigator = OwnerActor;
+	Parameters.EffectCauser = AvatarActor;
 }
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)
@@ -1049,8 +1063,11 @@ void UAbilitySystemComponent::RemoveGameplayCue_Internal(const FGameplayTag Game
 
 		if (bWasInList)
 		{
+			FGameplayCueParameters Parameters;
+			InitDefaultGameplayCueParameters(Parameters);
+
 			// Call on server here, clients get it from repnotify
-			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed, Parameters);
 		}
 		// Don't need to multicast broadcast this, ActiveGameplayCues replication handles it
 	}
@@ -1133,12 +1150,9 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_WithParams_Imp
 	// If server generated prediction key and auto proxy, skip this message. 
 	// This is an RPC from mixed replication mode code, we will get the "real" message from our OnRep on the autonomous proxy
 	// See UAbilitySystemComponent::AddGameplayCue_Internal for more info.
-	if (PredictionKey.IsServerInitiatedKey() && AbilityActorInfo->IsLocallyControlledPlayer())
-	{
-		return;
-	}
+	bool bIsMixedReplicationFromServer = (ReplicationMode == EReplicationMode::Mixed && PredictionKey.IsServerInitiatedKey() && AbilityActorInfo->IsLocallyControlledPlayer());
 
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsLocalClientKey() == false)
+	if (IsOwnerActorAuthoritative() || (PredictionKey.IsLocalClientKey() == false && !bIsMixedReplicationFromServer))
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, Parameters);
 	}
@@ -1726,15 +1740,12 @@ void UAbilitySystemComponent::PrintDebug()
 	Debug_Internal(DebugInfo);
 
 	// Store our local strings in the global debug array. Wait for server to respond with his.
-	if (UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Num() <= 0)
-	{
-		UAbilitySystemGlobals::Get().AbilitySystemDebugStrings = DebugInfo.Strings;
-	}
-	else
+	if (UAbilitySystemGlobals::Get().AbilitySystemDebugStrings.Num() > 0)
 	{
 		ABILITY_LOG(Warning, TEXT("UAbilitySystemComponent::PrintDebug called while AbilitySystemDebugStrings was not empty. Still waiting for server response from a previous call?"));
-		return;
 	}
+		
+	UAbilitySystemGlobals::Get().AbilitySystemDebugStrings = DebugInfo.Strings;
 
 	if (IsOwnerActorAuthoritative() == false)
 	{

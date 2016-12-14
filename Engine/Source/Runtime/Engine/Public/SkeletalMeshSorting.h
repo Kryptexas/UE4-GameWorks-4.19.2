@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshSorting.h: Static sorting for skeletal mesh triangles
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+
+struct FSoftSkinVertex;
 
 /**
 * Group triangles into connected strips 

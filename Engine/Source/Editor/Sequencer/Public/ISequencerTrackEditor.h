@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Misc/Attribute.h"
+#include "Templates/SubclassOf.h"
+#include "Framework/Commands/UICommandList.h"
+#include "ISequencerSection.h"
+#include "MovieSceneTrack.h"
 
-class ISequencerSection;
-class UMovieSceneSection;
-class UMovieSceneTrack;
+class FMenuBuilder;
+class FPaintArgs;
+class FSlateWindowElementList;
+class SHorizontalBox;
+class UMovieScene;
 
 /** Data structure containing information required to build an edit widget */
 struct FBuildEditWidgetParams

@@ -1,8 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ExpressionParser.h"
+#include "CoreTypes.h"
+#include "Misc/Optional.h"
+#include "Templates/ValueOrError.h"
+#include "Misc/ExpressionParserTypes.h"
 
 #define DEFINE_EXPRESSION_OPERATOR_NODE(TYPE, ...) \
 namespace ExpressionParser {\

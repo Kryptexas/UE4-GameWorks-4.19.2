@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -399,7 +399,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
             foreach (var bugg in sortedResultsList)
             {
                 var crash =
-                    _unitOfWork.CrashRepository.First(data => data.Buggs.Any(bg => bg.Id == bugg.Id));
+                    _unitOfWork.CrashRepository.First(data => data.BuggId == bugg.Id);
                 bugg.FunctionCalls = crash.GetCallStack().GetFunctionCalls();
             }
 

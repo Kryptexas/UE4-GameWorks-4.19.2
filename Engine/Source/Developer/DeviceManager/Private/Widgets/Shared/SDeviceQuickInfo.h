@@ -1,10 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Interfaces/ITargetDeviceService.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Misc/Paths.h"
+#include "Styling/StyleDefaults.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Text/STextBlock.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SGridPanel.h"
+#include "PlatformInfo.h"
 
 #define LOCTEXT_NAMESPACE "SDeviceQuickInfo"
-
 
 /**
  * Implements a tool tip for widget the device browser.

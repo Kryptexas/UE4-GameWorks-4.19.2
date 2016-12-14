@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLResources.h: OpenGL resource RHI definitions.
@@ -6,9 +6,26 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Misc/AssertionMacros.h"
+#include "HAL/UnrealMemory.h"
+#include "Containers/ContainerAllocationPolicies.h"
+#include "Containers/Array.h"
+#include "Math/UnrealMathUtility.h"
+#include "Logging/LogMacros.h"
+#include "Containers/BitArray.h"
+#include "Math/IntPoint.h"
+#include "Misc/CommandLine.h"
+#include "Templates/RefCounting.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
 #include "BoundShaderStateCache.h"
+#include "RenderResource.h"
 #include "OpenGLShaderResources.h"
 #include "ShaderCache.h"
+
+class FOpenGLDynamicRHI;
+class FOpenGLLinkedProgram;
 
 extern void OnVertexBufferDeletion( GLuint VertexBufferResource );
 extern void OnIndexBufferDeletion( GLuint IndexBufferResource );
@@ -29,6 +46,7 @@ namespace OpenGLConsoleVariables
 	extern int32 MaxSubDataSize;
 	extern int32 bUseStagingBuffer;
 	extern int32 bBindlessTexture;
+	extern int32 bUseBufferDiscard;
 };
 
 #if PLATFORM_WINDOWS || PLATFORM_ANDROIDESDEFERRED
@@ -207,7 +225,7 @@ public:
 		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
 		
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
-		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture )
+		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture && OpenGLConsoleVariables::bUseBufferDiscard)
 		{
 			if (BaseType::GLSupportsType())
 			{
@@ -267,7 +285,7 @@ public:
 		uint32 DiscardSize = (bDiscard && !bUseMapBuffer && InSize == RealSize && !RESTRICT_SUBDATA_SIZE) ? 0 : RealSize;
 		
 		// Don't call BufferData if Bindless is on, as bindless texture buffers make buffers immutable
-		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture )
+		if ( bDiscard && !OpenGLConsoleVariables::bBindlessTexture && OpenGLConsoleVariables::bUseBufferDiscard)
 		{
 			if (BaseType::GLSupportsType())
 			{

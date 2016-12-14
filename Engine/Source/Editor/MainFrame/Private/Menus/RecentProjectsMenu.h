@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Frame/MainFrameActions.h"
+#include "HAL/FileManager.h"
 
 #define LOCTEXT_NAMESPACE "FRecentProjectsMenu"
-
 
 /**
  * Static helper class for populating the "Recent Projects" menu.

@@ -1,12 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "PaperSprite.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Components/MeshComponent.h"
 
 #include "PaperGroupedSpriteComponent.generated.h"
 
 class FGroupedSpriteSceneProxy;
+class FPhysScene;
+class FPrimitiveSceneProxy;
+class UPaperSprite;
+class UTexture;
+struct FNavigableGeometryExport;
+struct FNavigationRelevantData;
 
 USTRUCT()
 struct FSpriteInstanceData

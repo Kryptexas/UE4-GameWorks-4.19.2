@@ -1,17 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AbilitySystemPrivatePCH.h"
 #include "GameplayEffect.h"
+#include "TimerManager.h"
+#include "GameFramework/GameStateBase.h"
+#include "Engine/PackageMapClient.h"
+#include "Engine/NetConnection.h"
+#include "AbilitySystemStats.h"
+#include "GameplayTagsModule.h"
+#include "AbilitySystemGlobals.h"
 #include "GameplayEffectExtension.h"
-#include "GameplayEffectTypes.h"
 #include "AbilitySystemComponent.h"
-#include "AbilitySystemInterface.h"
 #include "GameplayModMagnitudeCalculation.h"
 #include "GameplayEffectExecutionCalculation.h"
 #include "GameplayCueManager.h"
 
 #if ENABLE_VISUAL_LOG
-#include "VisualLoggerTypes.h"
 //#include "VisualLogger/VisualLogger.h"
 #endif // ENABLE_VISUAL_LOG
 
@@ -58,17 +61,6 @@ void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) 
 	TagContainer.AppendTags(InheritableOwnedTagsContainer.CombinedTags);
 }
 
-void UGameplayEffect::GetTargetEffects(TArray<const UGameplayEffect*, TInlineAllocator<4> >& OutEffects) const
-{
-	for ( TSubclassOf<UGameplayEffect> EffectClass : TargetEffectClasses )
-	{
-		if ( EffectClass )
-		{
-			OutEffects.Add(EffectClass->GetDefaultObject<UGameplayEffect>());
-		}
-	}
-}
-
 void UGameplayEffect::PostLoad()
 {
 	Super::PostLoad();
@@ -110,6 +102,27 @@ void UGameplayEffect::PostLoad()
 	GETCURVE_REPORTERROR(ChanceToApplyToTarget.Curve);
 	DurationMagnitude.ReportErrors(GetPathName());
 #endif // WITH_EDITOR
+
+
+	for (const TSubclassOf<UGameplayEffect>& ConditionalEffectClass : TargetEffectClasses_DEPRECATED)
+	{
+		FConditionalGameplayEffect ConditionalGameplayEffect;
+		ConditionalGameplayEffect.EffectClass = ConditionalEffectClass;
+		ConditionalGameplayEffects.Add(ConditionalGameplayEffect);
+	}
+	TargetEffectClasses_DEPRECATED.Empty();
+
+	for (FGameplayEffectExecutionDefinition& Execution : Executions)
+	{
+		for (const TSubclassOf<UGameplayEffect>& ConditionalEffectClass : Execution.ConditionalGameplayEffectClasses_DEPRECATED)
+		{
+			FConditionalGameplayEffect ConditionalGameplayEffect;
+			ConditionalGameplayEffect.EffectClass = ConditionalEffectClass;
+			Execution.ConditionalGameplayEffects.Add(ConditionalGameplayEffect);
+		}
+
+		Execution.ConditionalGameplayEffectClasses_DEPRECATED.Empty();
+	}
 }
 
 void UGameplayEffect::PostInitProperties()
@@ -549,6 +562,24 @@ void FGameplayEffectExecutionDefinition::GetAttributeCaptureDefinitions(OUT TArr
 	}
 }
 
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+//
+//	FConditionalGameplayEffect
+//
+// --------------------------------------------------------------------------------------------------------------------------------------------------------
+
+bool FConditionalGameplayEffect::CanApply(const FGameplayTagContainer& SourceTags, float SourceLevel) const
+{
+	// Right now we're just using the tags but in the future we may gate this by source level as well
+	return SourceTags.HasAll(RequiredSourceTags);
+}
+
+FGameplayEffectSpecHandle FConditionalGameplayEffect::CreateSpec(FGameplayEffectContextHandle EffectContext, float SourceLevel) const
+{
+	const UGameplayEffect* EffectCDO = EffectClass ? EffectClass->GetDefaultObject<UGameplayEffect>() : nullptr;
+	return EffectCDO ? FGameplayEffectSpecHandle(new FGameplayEffectSpec(EffectCDO, EffectContext, SourceLevel)) : FGameplayEffectSpecHandle();
+}
+
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -579,43 +610,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 	, bCompletedTargetAttributeCapture(false)
 	, bDurationLocked(false)
 {
-	check(Def);	
-	SetLevel(InLevel);
-	SetContext(InEffectContext);
-
-	// Init our ModifierSpecs
-	Modifiers.SetNum(Def->Modifiers.Num());
-
-	// Prep the spec with all of the attribute captures it will need to perform
-	SetupAttributeCaptureDefinitions();
-	
-	// Add the GameplayEffect asset tags to the source Spec tags
-	CapturedSourceTags.GetSpecTags().AppendTags(InDef->InheritableGameplayEffectTags.CombinedTags);
-
-	// Make TargetEffectSpecs too
-	TArray<const UGameplayEffect*, TInlineAllocator<4> > TargetEffectDefs;
-
-	InDef->GetTargetEffects(TargetEffectDefs);
-
-	for (const UGameplayEffect* TargetDef : TargetEffectDefs)
-	{
-		TargetEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, EffectContext, InLevel)));
-	}
-
-	// Make Granted AbilitySpecs (caller may modify these specs after creating spec, which is why we dont just reference them from the def)
-	GrantedAbilitySpecs = InDef->GrantedAbilities;
-
-	// if we're granting abilities and they don't specify a source object use the source of this GE
-	for (FGameplayAbilitySpecDef& AbilitySpecDef : GrantedAbilitySpecs)
-	{
-		if (AbilitySpecDef.SourceObject == nullptr)
-		{
-			AbilitySpecDef.SourceObject = InEffectContext.GetSourceObject();
-		}
-	}
-
-	// Everything is setup now, capture data from our source
-	CaptureDataFromSource();
+	Initialize(InDef, InEffectContext, InLevel);
 }
 
 FGameplayEffectSpec::FGameplayEffectSpec(const FGameplayEffectSpec& Other)
@@ -717,7 +712,7 @@ FGameplayEffectSpecForRPC::FGameplayEffectSpecForRPC(const FGameplayEffectSpec& 
 	// Only copy attributes that are in the gameplay cue info
 	for (int32 i = InSpec.ModifiedAttributes.Num() - 1; i >= 0; i--)
 	{
-		for (FGameplayEffectCue CueInfo : Def->GameplayCues)
+		for (const FGameplayEffectCue& CueInfo : Def->GameplayCues)
 		{
 			if (CueInfo.MagnitudeAttribute == InSpec.ModifiedAttributes[i].Attribute)
 			{
@@ -725,6 +720,52 @@ FGameplayEffectSpecForRPC::FGameplayEffectSpecForRPC(const FGameplayEffectSpec& 
 			}
 		}
 	}
+}
+
+void FGameplayEffectSpec::Initialize(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float InLevel)
+{
+	Def = InDef;
+	check(Def);	
+	SetLevel(InLevel);
+	SetContext(InEffectContext);
+
+	// Init our ModifierSpecs
+	Modifiers.SetNum(Def->Modifiers.Num());
+
+	// Prep the spec with all of the attribute captures it will need to perform
+	SetupAttributeCaptureDefinitions();
+	
+	// Add the GameplayEffect asset tags to the source Spec tags
+	CapturedSourceTags.GetSpecTags().AppendTags(InDef->InheritableGameplayEffectTags.CombinedTags);
+
+	// Make TargetEffectSpecs too
+
+	for (const FConditionalGameplayEffect& ConditionalEffect : InDef->ConditionalGameplayEffects)
+	{
+		if (ConditionalEffect.CanApply(CapturedSourceTags.GetActorTags(), InLevel))
+		{
+			FGameplayEffectSpecHandle SpecHandle = ConditionalEffect.CreateSpec(EffectContext, InLevel);
+			if (SpecHandle.IsValid())
+			{
+				TargetEffectSpecs.Add(SpecHandle);
+			}
+		}
+	}
+
+	// Make Granted AbilitySpecs (caller may modify these specs after creating spec, which is why we dont just reference them from the def)
+	GrantedAbilitySpecs = InDef->GrantedAbilities;
+
+	// if we're granting abilities and they don't specify a source object use the source of this GE
+	for (FGameplayAbilitySpecDef& AbilitySpecDef : GrantedAbilitySpecs)
+	{
+		if (AbilitySpecDef.SourceObject == nullptr)
+		{
+			AbilitySpecDef.SourceObject = InEffectContext.GetSourceObject();
+		}
+	}
+
+	// Everything is setup now, capture data from our source
+	CaptureDataFromSource();
 }
 
 void FGameplayEffectSpec::SetupAttributeCaptureDefinitions()
@@ -1028,7 +1069,10 @@ void FGameplayEffectSpec::GetAllGrantedTags(OUT FGameplayTagContainer& Container
 void FGameplayEffectSpec::GetAllAssetTags(OUT FGameplayTagContainer& Container) const
 {
 	Container.AppendTags(DynamicAssetTags);
-	Container.AppendTags(Def->InheritableGameplayEffectTags.CombinedTags);
+	if (ensure(Def))
+	{
+		Container.AppendTags(Def->InheritableGameplayEffectTags.CombinedTags);
+	}
 }
 
 void FGameplayEffectSpec::SetSetByCallerMagnitude(FName DataName, float Magnitude)
@@ -1699,7 +1743,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 			check(ExecCDO);
 
 			// Run the custom execution
-			FGameplayEffectCustomExecutionParameters ExecutionParams(SpecToUse, CurExecDef.CalculationModifiers, Owner, CurExecDef.PassedInTags);
+			FGameplayEffectCustomExecutionParameters ExecutionParams(SpecToUse, CurExecDef.CalculationModifiers, Owner, CurExecDef.PassedInTags, PredictionKey);
 			FGameplayEffectCustomExecutionOutput ExecutionOutput;
 			ExecCDO->Execute(ExecutionParams, ExecutionOutput);
 
@@ -1731,13 +1775,15 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 		if (bRunConditionalEffects)
 		{
 			// If successful, apply conditional specs
-			for (const TSubclassOf<UGameplayEffect>& TargetDefClass : CurExecDef.ConditionalGameplayEffectClasses)
+			for (const FConditionalGameplayEffect& ConditionalEffect : CurExecDef.ConditionalGameplayEffects)
 			{
-				if (*TargetDefClass != nullptr)
+				if (ConditionalEffect.CanApply(SpecToUse.CapturedSourceTags.GetActorTags(), SpecToUse.GetLevel()))
 				{
-					const UGameplayEffect* TargetDef = TargetDefClass->GetDefaultObject<UGameplayEffect>();
-
-					ConditionalEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, Spec.GetEffectContext(), Spec.GetLevel())));
+					FGameplayEffectSpecHandle SpecHandle = ConditionalEffect.CreateSpec(SpecToUse.GetEffectContext(), SpecToUse.GetLevel());
+					if (SpecHandle.IsValid())
+					{
+						ConditionalEffectSpecs.Add(SpecHandle);
+					}
 				}
 			}
 		}
@@ -2123,15 +2169,23 @@ void FActiveGameplayEffectsContainer::SetBaseAttributeValueFromReplication(FGame
 	FAggregatorRef* RefPtr = AttributeAggregatorMap.Find(Attribute);
 	if (RefPtr && RefPtr->Get())
 	{
-		FAggregator* Aggregator =  RefPtr->Get();
+		FAggregator* Aggregator = RefPtr->Get();
 		
 		FScopedAggregatorOnDirtyBatch::GlobalFromNetworkUpdate = true;
 		OnAttributeAggregatorDirty(Aggregator, Attribute);
 		FScopedAggregatorOnDirtyBatch::GlobalFromNetworkUpdate = false;
 	}
+	else
+	{
+		// No aggregators on the client but still broadcast the dirty delegate
+		if (FOnGameplayAttributeChange* Delegate = AttributeChangeDelegates.Find(Attribute))
+		{
+			Delegate->Broadcast(ServerValue, nullptr);
+		}
+	}
 }
 
-void FActiveGameplayEffectsContainer::GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies)
+void FActiveGameplayEffectsContainer::GetAllActiveGameplayEffectSpecs(TArray<FGameplayEffectSpec>& OutSpecCopies) const
 {
 	for (const FActiveGameplayEffect& ActiveEffect : this)	
 	{
@@ -2701,6 +2755,7 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(FActiv
 	}
 
 	GAMEPLAYEFFECT_SCOPE_LOCK();
+	UE_VLOG(Owner->OwnerActor ? Owner->OwnerActor : Owner->GetOuter(), LogGameplayEffects, Log, TEXT("Added: %s"), *GetNameSafe(EffectDef->GetClass()));
 
 	// Add our ongoing tag requirements to the dependency map. We will actually check for these tags below.
 	for (const FGameplayTag& Tag : EffectDef->OngoingTagRequirements.IgnoreTags)
@@ -2759,8 +2814,13 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 			// Note we assume the EvaluatedMagnitude is up to do. There is no case currently where we should recalculate magnitude based on
 			// Ongoing tags being met. We either calculate magnitude one time, or its done via OnDirty calls (or potentially a frequency timer one day)
 
+			float EvaluatedMagnitude = Effect.Spec.GetModifierMagnitude(ModIdx, true);	// Note this could cause an attribute aggregator to be created, so must do this before calling/caching the Aggregator below!
+
 			FAggregator* Aggregator = FindOrCreateAttributeAggregator(Effect.Spec.Def->Modifiers[ModIdx].Attribute).Get();
-			Aggregator->AddAggregatorMod(Effect.Spec.GetModifierMagnitude(ModIdx, true), ModInfo.ModifierOp, ModInfo.EvaluationChannelSettings.GetEvaluationChannel(), &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.PredictionKey.WasLocallyGenerated(), Effect.Handle);
+			if (ensure(Aggregator))
+			{
+				Aggregator->AddAggregatorMod(EvaluatedMagnitude, ModInfo.ModifierOp, ModInfo.EvaluationChannelSettings.GetEvaluationChannel(), &ModInfo.SourceTags, &ModInfo.TargetTags, Effect.PredictionKey.WasLocallyGenerated(), Effect.Handle);
+			}
 		}
 	}
 
@@ -2836,6 +2896,7 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 		FActiveGameplayEffect& Effect = *GetActiveGameplayEffect(ActiveGEIdx);
 		if (Effect.Handle == Handle && Effect.IsPendingRemove == false)
 		{
+			UE_VLOG(Owner->OwnerActor, LogGameplayEffects, Log, TEXT("Removed: %s"), *GetNameSafe(Effect.Spec.Def->GetClass()));
 			if (UE_LOG_ACTIVE(VLogAbilitySystem, Log))
 			{
 				ABILITY_VLOG(Owner->OwnerActor, Log, TEXT("Removed %s"), *Effect.Spec.Def->GetFName().ToString());
@@ -3239,17 +3300,23 @@ void FActiveGameplayEffectsContainer::InternalApplyExpirationEffects(const FGame
 					const UGameplayEffect* CurExpiryCDO = CurExpiryEffect->GetDefaultObject<UGameplayEffect>();
 					check(CurExpiryCDO);
 									
+					// Duplicate GE context
 					const FGameplayEffectContextHandle& ExpiringSpecContextHandle = ExpiringSpec.GetEffectContext();
-					FGameplayEffectContextHandle NewContextHandle = FGameplayEffectContextHandle(UAbilitySystemGlobals::Get().AllocGameplayEffectContext());
+					FGameplayEffectContextHandle NewContextHandle = ExpiringSpecContextHandle.Duplicate();
 					
-					// Pass along old instigator to new effect context
-					// @todo: Creation of this spec needs to include tags, etc. from the original spec as well
-					if (NewContextHandle.IsValid())
-					{
-						NewContextHandle.AddInstigator(ExpiringSpecContextHandle.GetInstigator(), ExpiringSpecContextHandle.GetEffectCauser());
-					}
-				
-					FGameplayEffectSpec NewExpirySpec(CurExpiryCDO, NewContextHandle, ExpiringSpec.GetLevel());
+					// We need to manually initialize the new GE spec. We want to pass on all of the tags from the originating GE *Except* for that GE's asset tags. (InheritableGameplayEffectTags).
+					// But its very important that the ability tags and anything else that was added to the source tags in the originating GE carries over
+					FGameplayEffectSpec NewExpirySpec;
+
+					// Make a full copy
+					NewExpirySpec.CapturedSourceTags = ExpiringSpec.CapturedSourceTags;
+
+					// But then remove the tags the originating GE added
+					NewExpirySpec.CapturedSourceTags.GetSpecTags().RemoveTags( ExpiringGE->InheritableGameplayEffectTags.CombinedTags );
+
+					// Now initialize like the normal cstor would have. Note that this will add the new GE's asset tags (in case they were removed in the line above / e.g., shared asset tags with the originating GE)					
+					NewExpirySpec.Initialize(CurExpiryCDO, NewContextHandle, ExpiringSpec.GetLevel());
+
 					Owner->ApplyGameplayEffectSpecToSelf(NewExpirySpec);
 				}
 			}
@@ -3717,7 +3784,7 @@ void FActiveGameplayEffectsContainer::ModifyActiveEffectStartTime(FActiveGamepla
 	if (Effect)
 	{
 		Effect->StartWorldTime += StartTimeDiff;
-		Effect->StartServerWorldTime = FMath::RoundToInt((float)Effect->StartServerWorldTime + StartTimeDiff);
+		Effect->StartServerWorldTime += StartTimeDiff;
 
 		// Check if we are now expired
 		CheckDuration(Handle);
@@ -4434,11 +4501,14 @@ void FActiveGameplayEffectsContainer::DecrementLock()
 		// ------------------------------------------
 		FActiveGameplayEffect* PendingGameplayEffect = PendingGameplayEffectHead;
 		FActiveGameplayEffect* Stop = *PendingGameplayEffectNext;
+		bool ModifiedArray = false;
+
 		while (PendingGameplayEffect != Stop)
 		{
 			if (!PendingGameplayEffect->IsPendingRemove)
 			{
 				GameplayEffects_Internal.Add(MoveTemp(*PendingGameplayEffect));
+				ModifiedArray = true;
 			}
 			else
 			{
@@ -4461,6 +4531,7 @@ void FActiveGameplayEffectsContainer::DecrementLock()
 			{
 				ABILITY_LOG(Verbose, TEXT("DecrementLock decrementing a pending remove: Auth: %s Handle: %s Def: %s"), IsNetAuthority() ? TEXT("TRUE") : TEXT("FALSE"), *Effect.Handle.ToString(), Effect.Spec.Def ? *Effect.Spec.Def->GetName() : TEXT("NONE"));
 				GameplayEffects_Internal.RemoveAtSwap(idx, 1, false);
+				ModifiedArray = true;
 				PendingRemoves--;
 			}
 		}
@@ -4469,6 +4540,11 @@ void FActiveGameplayEffectsContainer::DecrementLock()
 		{
 			ABILITY_LOG(Error, TEXT("~FScopedActiveGameplayEffectLock has %d pending removes after a scope lock removal"), PendingRemoves);
 			PendingRemoves = 0;
+		}
+
+		if (ModifiedArray)
+		{
+			MarkArrayDirty();
 		}
 	}
 }

@@ -1,7 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "AbilityTask.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Abilities/Tasks/AbilityTask.h"
+#include "AbilityTask_ApplyRootMotion_Base.h"
 #include "AbilityTask_ApplyRootMotionConstantForce.generated.h"
+
+class UCharacterMovementComponent;
+class UCurveFloat;
+class UGameplayTasksComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FApplyRootMotionConstantForceDelegate);
 
@@ -11,20 +19,16 @@ class AActor;
  *	Applies force to character's movement
  */
 UCLASS(MinimalAPI)
-class UAbilityTask_ApplyRootMotionConstantForce : public UAbilityTask
+class UAbilityTask_ApplyRootMotionConstantForce : public UAbilityTask_ApplyRootMotion_Base
 {
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(BlueprintAssignable)
 	FApplyRootMotionConstantForceDelegate OnFinish;
 
-	virtual void InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent) override;
-
 	/** Apply force to character's movement */
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_ApplyRootMotionConstantForce* ApplyRootMotionConstantForce(UGameplayAbility* OwningAbility, FName TaskInstanceName, FVector WorldDirection, float Strength, float Duration, bool bIsAdditive, bool bDisableImpartingVelocityOnRemoval, UCurveFloat* StrengthOverTime);
-
-	virtual void Activate() override;
 
 	/** Tick function for this task, if bTickingTask == true */
 	virtual void TickTask(float DeltaTime) override;
@@ -34,8 +38,9 @@ class UAbilityTask_ApplyRootMotionConstantForce : public UAbilityTask
 
 protected:
 
-	UPROPERTY(Replicated)
-	FName ForceName;
+	virtual void SharedInitAndApply() override;
+
+protected:
 
 	UPROPERTY(Replicated)
 	FVector WorldDirection;
@@ -60,15 +65,4 @@ protected:
 	 */
 	UPROPERTY(Replicated)
 	UCurveFloat* StrengthOverTime;
-
-	uint16 RootMotionSourceID;
-	bool bIsFinished;
-	float StartTime;
-	float EndTime;
-
-	void SharedInitAndApply();
-
-	UPROPERTY()
-	UCharacterMovementComponent* MovementComponent;
-
 };

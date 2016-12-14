@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CDKey.cpp: CD Key validation
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CDKey.h"
+#include "Misc/SecureHash.h"
 
 /*-----------------------------------------------------------------------------
 	Internal MD5 Stuff

@@ -1,7 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "OnlineSubsystemOculusPrivatePCH.h"
 #include "OnlineSubsystemOculus.h"
+#include "OnlineSubsystemOculusPrivate.h"
 
 #include "OnlineAchievementsInterfaceOculus.h"
 #include "OnlineFriendsInterfaceOculus.h"
@@ -9,6 +9,7 @@
 #include "OnlineLeaderboardInterfaceOculus.h"
 #include "OnlineSessionInterfaceOculus.h"
 #include "OnlineUserCloudOculus.h"
+#include "OnlineVoiceOculus.h"
 
 #if PLATFORM_ANDROID
 #include "AndroidApplication.h"
@@ -55,7 +56,7 @@ IOnlineLeaderboardsPtr FOnlineSubsystemOculus::GetLeaderboardsInterface() const
 
 IOnlineVoicePtr FOnlineSubsystemOculus::GetVoiceInterface() const
 {
-	return nullptr;
+	return VoiceInterface;
 }
 
 IOnlineExternalUIPtr FOnlineSubsystemOculus::GetExternalUIInterface() const
@@ -150,6 +151,11 @@ bool FOnlineSubsystemOculus::Tick(float DeltaTime)
 		SessionInterface->TickPendingInvites(DeltaTime);
 	}
 
+	if (VoiceInterface.IsValid())
+	{
+		VoiceInterface->Tick(DeltaTime);
+	}
+
 	if (MessageTaskManager.IsValid())
 	{
 		if (!MessageTaskManager->Tick(DeltaTime))
@@ -189,6 +195,8 @@ bool FOnlineSubsystemOculus::Init()
 #endif
 	if (bOculusInit)
 	{
+		// Need to manually start ticker if we are reloading the subsystem
+		StartTicker();
 		MessageTaskManager = MakeUnique<FOnlineMessageTaskManagerOculus>();
 		check(MessageTaskManager);
 
@@ -198,6 +206,11 @@ bool FOnlineSubsystemOculus::Init()
 		SessionInterface = MakeShareable(new FOnlineSessionOculus(*this));
 		LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardOculus(*this));
 		UserCloudInterface = MakeShareable(new FOnlineUserCloudOculus(*this));
+		VoiceInterface = MakeShareable(new FOnlineVoiceOculus(*this));
+		if (!VoiceInterface->Init())
+		{
+			VoiceInterface.Reset();
+		}
 	}
 	else
 	{
@@ -216,14 +229,14 @@ bool FOnlineSubsystemOculus::InitWithWindowsPlatform()
 	auto OculusAppId = GetAppId();
 	if (OculusAppId.IsEmpty())
 	{
-		UE_LOG_ONLINE(Error, TEXT("Missing OculusAppId key in OnlineSubsystemOculus of DefaultEngine.ini"));
+		UE_LOG_ONLINE(Warning, TEXT("Missing OculusAppId key in OnlineSubsystemOculus of DefaultEngine.ini"));
 		return false;
 	}
 
 	auto InitResult = ovr_PlatformInitializeWindows(TCHAR_TO_ANSI(*OculusAppId));
 	if (InitResult != ovrPlatformInitialize_Success)
 	{
-		UE_LOG_ONLINE(Warning, TEXT("Failed to initialize the Oculus Platform SDK! Error code: %d"), (int)InitResult);
+		UE_LOG_ONLINE(Warning, TEXT("Failed to initialize the Oculus Platform SDK! Failure code: %d"), (int)InitResult);
 		return false;
 	}
 	return true;
@@ -270,6 +283,7 @@ bool FOnlineSubsystemOculus::Shutdown()
 	SessionInterface.Reset();
 	LeaderboardsInterface.Reset();
 	UserCloudInterface.Reset();
+	VoiceInterface.Reset();
 
 	if (MessageTaskManager.IsValid())
 	{

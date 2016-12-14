@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // This code is based upon and adapted to UE4 from the code 
 // provided in the Sandbox project here:
@@ -29,6 +29,10 @@
 */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Dynamics Physics Update"), STAT_AnimDynamicsUpdate, STATGROUP_Physics, ENGINE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Linear Limit Pre-Update"), STAT_AnimDynamicsLinearPre, STATGROUP_Physics, ENGINE_API);

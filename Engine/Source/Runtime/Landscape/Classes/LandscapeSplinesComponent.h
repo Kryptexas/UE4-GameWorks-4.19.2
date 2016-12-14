@@ -1,16 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "LandscapeInfo.h"
 #include "Components/PrimitiveComponent.h"
 #include "LandscapeSplinesComponent.generated.h"
 
-// Forward declarations
+class ALandscapeProxy;
+class FPrimitiveSceneProxy;
+class UControlPointMeshComponent;
 class ULandscapeSplineControlPoint;
 class ULandscapeSplineSegment;
 class UMeshComponent;
 class USplineMeshComponent;
-class UControlPointMeshComponent;
+class UStaticMesh;
+class UTexture2D;
 
 // structs for ForeignWorldSplineDataMap
 // these are editor-only, but we don't have the concept of an editor-only USTRUCT

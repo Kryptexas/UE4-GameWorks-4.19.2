@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "K2Node.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "K2Node_ConstructObjectFromClass.h"
 #include "K2Node_GenericCreateObject.generated.h"
+
+class UEdGraph;
 
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_GenericCreateObject : public UK2Node_ConstructObjectFromClass

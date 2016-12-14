@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenShotChangeListNode.h: Declares the FScreenShotChangeListNode class.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "ScreenShotBaseNode.h"
+#include "ScreenShotDataItem.h"
+#include "Misc/FilterCollection.h"
 
 class FScreenShotPlatformNode : public FScreenShotBaseNode
 {

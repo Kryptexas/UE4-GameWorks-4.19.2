@@ -1,12 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DecalComponent.cpp: Decal component implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "LevelUtils.h"
 #include "Components/DecalComponent.h"
+#include "Materials/Material.h"
+#include "TimerManager.h"
+#include "SceneManagement.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 static TAutoConsoleVariable<float> CVarDecalFadeDurationScale(
 	TEXT("r.Decal.FadeDurationScale"),

@@ -1,18 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SessionInfo.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "IMessageContext.h"
+#include "IMessageBus.h"
+#include "ISessionInstanceInfo.h"
+#include "ISessionInfo.h"
+#include "SessionLogMessage.h"
 
-
-struct FEngineServicePong;
-struct FSessionLogMessage;
 class FSessionInstanceInfo;
+struct FEngineServicePong;
 struct FSessionServicePong;
-class IMessageBus;
-class IMessageContext;
-class ISessionInstanceInfo;
-
 
 /**
  * Implements a class to maintain all info related to a game session

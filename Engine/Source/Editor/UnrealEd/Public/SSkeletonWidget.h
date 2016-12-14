@@ -1,15 +1,32 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SSkeletonWidget_h__
 #define __SSkeletonWidget_h__
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+#include "EditorStyleSet.h"
+#include "AssetData.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
 #include "PreviewScene.h"
+#include "EditorViewportClient.h"
 #include "SEditorViewport.h"
 #include "EditorAnimUtils.h"
 
 class UAnimSet;
+class USkeletalMesh;
 
 using namespace EditorAnimUtils;
 

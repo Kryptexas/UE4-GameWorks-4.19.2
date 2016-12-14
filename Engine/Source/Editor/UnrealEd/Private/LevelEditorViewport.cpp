@@ -1,56 +1,73 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "UnrealEd.h"
+#include "LevelEditorViewport.h"
+#include "Materials/MaterialInterface.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/PackageName.h"
+#include "Framework/Application/SlateApplication.h"
+#include "EditorStyleSet.h"
+#include "Components/MeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Materials/Material.h"
+#include "Animation/AnimSequenceBase.h"
+#include "CanvasItem.h"
+#include "Engine/BrushBuilder.h"
+#include "Settings/LevelEditorViewportSettings.h"
+#include "Engine/Brush.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "AssetData.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Animation/AnimBlueprint.h"
+#include "Exporters/ExportTextContainer.h"
+#include "Factories/MaterialFactoryNew.h"
+#include "Editor/GroupActor.h"
+#include "Components/DecalComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/ModelComponent.h"
+#include "Kismet2/ComponentEditorUtils.h"
+#include "Engine/Selection.h"
+#include "UObject/UObjectIterator.h"
+#include "EngineUtils.h"
+#include "Editor.h"
+#include "EditorModeRegistry.h"
+#include "EditorModes.h"
+#include "EditorModeInterpolation.h"
+#include "PhysicsManipulationMode.h"
+#include "UnrealEdGlobals.h"
 #include "Materials/MaterialExpressionTextureSample.h"
-#include "Animation/SkeletalMeshActor.h"
 #include "EditorSupportDelegates.h"
-#include "SoundDefinitions.h"
-#include "CameraController.h"
+#include "AudioDevice.h"
 #include "MouseDeltaTracker.h"
 #include "ScopedTransaction.h"
 #include "HModel.h"
-#include "BSPOps.h"
-#include "LevelUtils.h"
 #include "Layers/ILayers.h"
 #include "StaticLightingSystem/StaticLightingPrivate.h"
-#include "EditorLevelUtils.h"
-#include "Engine.h"
-#include "Editor/LevelEditor/Public/LevelEditor.h"
-#include "Editor/LevelEditor/Public/LevelViewportActions.h"
-#include "Editor/LevelEditor/Public/SLevelViewport.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
+#include "SEditorViewport.h"
+#include "LevelEditor.h"
+#include "LevelViewportActions.h"
+#include "SLevelViewport.h"
 #include "AssetSelection.h"
-#include "BlueprintUtilities.h"
 #include "Kismet2/KismetEditorUtilities.h"
-#include "Collision.h"
-#include "StaticMeshResources.h"
 #include "AssetRegistryModule.h"
 #include "IPlacementModeModule.h"
+#include "Engine/Polys.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #include "ActorEditorUtils.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"
-#include "Editor/Matinee/Public/IMatinee.h"
-#include "Editor/Matinee/Public/MatineeConstants.h"
-#include "MainFrame.h"
 #include "SnappingUtils.h"
 #include "LevelViewportClickHandlers.h"
 #include "DragTool_BoxSelect.h"
 #include "DragTool_FrustumSelect.h"
 #include "DragTool_Measure.h"
 #include "DragTool_ViewportChange.h"
-#include "LevelEditorActions.h"
-#include "BrushBuilderDragDropOp.h"
-#include "AssetRegistryModule.h"
-#include "InstancedFoliage.h"
+#include "DragAndDrop/BrushBuilderDragDropOp.h"
 #include "DynamicMeshBuilder.h"
 #include "Editor/ActorPositioning.h"
-#include "NotificationManager.h"
-#include "SNotificationList.h"
-#include "ComponentEditorUtils.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 #include "Settings/EditorProjectSettings.h"
-#include "IHeadMountedDisplay.h"
 
 DEFINE_LOG_CATEGORY(LogEditorViewport);
 
@@ -1914,6 +1931,11 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		else if (HitProxy->IsA(HActor::StaticGetType()))
 		{
 			HActor* ActorHitProxy = (HActor*)HitProxy;
+			AActor* ConsideredActor = ActorHitProxy->Actor;
+			while (ConsideredActor->IsChildActor())
+			{
+				ConsideredActor = ConsideredActor->GetParentActor();
+			}
 
 			// We want to process the click on the component only if:
 			// 1. The actor clicked is already selected
@@ -1921,8 +1943,8 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			// 3. The actor selected is blueprintable
 			// 4. No components are already selected and the click was a double click
 			// 5. OR, a component is already selected and the click was NOT a double click
-			const bool bActorAlreadySelectedExclusively = GEditor->GetSelectedActors()->IsSelected(ActorHitProxy->Actor) && ( GEditor->GetSelectedActorCount() == 1 );
-			const bool bActorIsBlueprintable = FKismetEditorUtilities::CanCreateBlueprintOfClass(ActorHitProxy->Actor->GetClass());
+			const bool bActorAlreadySelectedExclusively = GEditor->GetSelectedActors()->IsSelected(ConsideredActor) && ( GEditor->GetSelectedActorCount() == 1 );
+			const bool bActorIsBlueprintable = FKismetEditorUtilities::CanCreateBlueprintOfClass(ConsideredActor->GetClass());
 			const bool bComponentAlreadySelected = GEditor->GetSelectedComponentCount() > 0;
 			const bool bWasDoubleClick = ( Click.GetEvent() == IE_DoubleClick );
 
@@ -1934,7 +1956,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			}
 			else
 			{
-				ClickHandlers::ClickActor(this, ActorHitProxy->Actor, Click, true);
+				ClickHandlers::ClickActor(this, ConsideredActor, Click, true);
 			}
 
 			// We clicked an actor, allow the pivot to reposition itself.
@@ -2031,14 +2053,6 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 	bWasEditorCameraCut = bEditorCameraCut;
 
 	FEditorViewportClient::Tick(DeltaTime);
-
-	if (!GUnrealEd->IsPivotMovedIndependently() && GCurrentLevelEditingViewportClient == this &&
-		bIsRealtime &&
-		(Widget == NULL || !Widget->IsDragging()))
-	{
-		// @todo SIE: May be very expensive for lots of actors
-		GUnrealEd->UpdatePivotLocationForSelection();
-	}
 
 	// Update the preview mesh for the preview mesh mode. 
 	GEditor->UpdatePreviewMesh();

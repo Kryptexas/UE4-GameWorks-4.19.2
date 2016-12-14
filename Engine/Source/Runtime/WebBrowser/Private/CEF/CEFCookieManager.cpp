@@ -1,18 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "WebBrowserPrivatePCH.h"
+#include "CoreTypes.h"
+#include "Containers/ContainersFwd.h"
 #if WITH_CEF3
 #include "IWebBrowserCookieManager.h"
 #include "WebBrowserSingleton.h"
 
 #if PLATFORM_WINDOWS
+#	include "WindowsHWrapper.h"
 #	include "AllowWindowsPlatformTypes.h"
+#	include "AllowWindowsPlatformAtomics.h"
 #endif
 #pragma push_macro("OVERRIDE")
 #	undef OVERRIDE // cef headers provide their own OVERRIDE macro
+THIRD_PARTY_INCLUDES_START
 #	include "include/cef_app.h"
+THIRD_PARTY_INCLUDES_END
 #pragma pop_macro("OVERRIDE")
 #if PLATFORM_WINDOWS
+#	include "HideWindowsPlatformAtomics.h"
 #	include "HideWindowsPlatformTypes.h"
 #endif
 

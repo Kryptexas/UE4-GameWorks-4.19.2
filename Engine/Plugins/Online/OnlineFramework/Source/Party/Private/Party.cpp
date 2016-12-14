@@ -1,11 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PartyPrivatePCH.h"
 #include "Party.h"
-#include "PartyGameState.h"
+#include "TimerManager.h"
 #include "Engine/GameInstance.h"
+#include "PartyModule.h"
 
-#include "Online.h"
 #include "OnlineSubsystemUtils.h"
 
 #define LOCTEXT_NAMESPACE "Parties"
@@ -507,7 +506,7 @@ void UParty::PartyExitedInternal(const FUniqueNetId& LocalUserId, const FOnlineP
 	}
 	else
 	{
-		UE_LOG(LogParty, Warning, TEXT("[%s]: Missing party state during exit"), *InPartyId.ToString());
+		UE_LOG(LogParty, Display, TEXT("[%s]: Missing party state during exit"), *InPartyId.ToString());
 	}
 }
 

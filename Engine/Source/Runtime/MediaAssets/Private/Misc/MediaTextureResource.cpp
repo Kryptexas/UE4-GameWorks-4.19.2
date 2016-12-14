@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "MediaAssetsPCH.h"
+#include "Misc/MediaTextureResource.h"
+#include "RenderingThread.h"
+#include "Shader.h"
+#include "IMediaTextureSink.h"
 #include "MediaTexture.h"
-#include "MediaTextureResource.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "StaticBoundShaderState.h"
+#include "SceneUtils.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
+#include "RHIStaticStates.h"
+#include "MediaShaders.h"
+#include "MediaAssetsPrivate.h"
 
 
 /* FMediaTextureResource structors
@@ -365,7 +374,7 @@ void FMediaTextureResource::InitDynamicRHI()
 				BufferDimensions.Y,
 				BufferFormat,
 				1,
-				TexCreate_Dynamic | TexCreate_NoTiling | (SrgbBuffer ? TexCreate_SRGB : 0),
+				TexCreate_Dynamic | (SrgbBuffer ? TexCreate_SRGB : 0),
 				TexCreate_RenderTargetable,
 				false,
 				CreateInfo,
@@ -399,7 +408,7 @@ void FMediaTextureResource::InitDynamicRHI()
 			OutputDimensions.Y,
 			RequiresConversion ? PF_B8G8R8A8 : BufferFormat,
 			1,
-			TexCreate_Dynamic | TexCreate_NoTiling | (Owner.SRGB ? TexCreate_SRGB : 0),
+			TexCreate_Dynamic | (Owner.SRGB ? TexCreate_SRGB : 0),
 			TexCreate_RenderTargetable,
 			false,
 			CreateInfo,

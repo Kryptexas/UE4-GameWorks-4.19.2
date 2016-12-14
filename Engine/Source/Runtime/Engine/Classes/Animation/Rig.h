@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * This is the definition for a Rig that is used for retargeting animations
@@ -11,7 +11,14 @@
 // @todo should we support reset data 
 // @todo does it make sense to have "no constraint" on certain data? What does that mean? Just World? 
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "ReferenceSkeleton.h"
 #include "Rig.generated.h"
+
+class USkeleton;
+struct FPropertyChangedEvent;
 
 /** Rig Controller for bone transform **/
 USTRUCT()

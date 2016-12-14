@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphNode.cpp
 =============================================================================*/
 
-#include "UnrealEd.h"
+#include "MaterialGraph/MaterialGraphNode.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "MaterialGraph/MaterialGraphSchema.h"
 
 #include "Materials/MaterialExpressionComponentMask.h"
 #include "Materials/MaterialExpressionConstant.h"
@@ -12,31 +14,25 @@
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
 #include "Materials/MaterialExpressionFontSample.h"
-#include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
-#include "Materials/MaterialExpressionMaterialFunctionCall.h"
-#include "Materials/MaterialExpressionParameter.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionStaticBool.h"
 #include "Materials/MaterialExpressionStaticBoolParameter.h"
-#include "Materials/MaterialExpressionTangentOutput.h"
+#include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureCoordinate.h"
 #include "Materials/MaterialExpressionTextureSample.h"
-#include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionTextureObject.h"
 #include "Materials/MaterialExpressionTextureProperty.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionViewProperty.h"
-#include "Materials/MaterialFunction.h"
 
 #include "MaterialEditorUtilities.h"
 #include "MaterialEditorActions.h"
 #include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
-#include "EditorClassUtils.h"
-#include "GenericCommands.h"
+#include "Framework/Commands/GenericCommands.h"
 #include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
@@ -429,6 +425,51 @@ void UMaterialGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 	}
 }
 
+FString UMaterialGraphNode::GetShortenPinName(const FString& PinName)
+{
+	FString InputName = PinName;
+
+	// Shorten long expression input names.
+	if (!FCString::Stricmp(*PinName, TEXT("Coordinates")))
+	{
+		InputName = TEXT("UVs");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("TextureObject")))
+	{
+		InputName = TEXT("Tex");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("Input")))
+	{
+		InputName = TEXT("");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("Exponent")))
+	{
+		InputName = TEXT("Exp");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("AGreaterThanB")))
+	{
+		InputName = TEXT("A > B");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("AEqualsB")))
+	{
+		InputName = TEXT("A == B");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("ALessThanB")))
+	{
+		InputName = TEXT("A < B");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("MipLevel")))
+	{
+		InputName = TEXT("Level");
+	}
+	else if (!FCString::Stricmp(*PinName, TEXT("MipBias")))
+	{
+		InputName = TEXT("Bias");
+	}
+
+	return InputName;
+}
+
 void UMaterialGraphNode::CreateInputPins()
 {
 	const TArray<FExpressionInput*> ExpressionInputs = MaterialExpression->GetInputs();
@@ -438,43 +479,7 @@ void UMaterialGraphNode::CreateInputPins()
 		FExpressionInput* Input = ExpressionInputs[Index];
 		FString InputName = MaterialExpression->GetInputName(Index);
 
-		// Shorten long expression input names.
-		if ( !FCString::Stricmp( *InputName, TEXT("Coordinates") ) )
-		{
-			InputName = TEXT("UVs");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("TextureObject") ) )
-		{
-			InputName = TEXT("Tex");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("Input") ) )
-		{
-			InputName = TEXT("");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("Exponent") ) )
-		{
-			InputName = TEXT("Exp");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("AGreaterThanB") ) )
-		{
-			InputName = TEXT("A > B");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("AEqualsB") ) )
-		{
-			InputName = TEXT("A == B");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("ALessThanB") ) )
-		{
-			InputName = TEXT("A < B");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("MipLevel") ) )
-		{
-			InputName = TEXT("Level");
-		}
-		else if ( !FCString::Stricmp( *InputName, TEXT("MipBias") ) )
-		{
-			InputName = TEXT("Bias");
-		}
+		InputName = GetShortenPinName(InputName);
 
 		const UMaterialGraphSchema* Schema = CastChecked<UMaterialGraphSchema>(GetSchema());
 		FString PinCategory = MaterialExpression->IsInputConnectionRequired(Index) ? Schema->PC_Required : Schema->PC_Optional;

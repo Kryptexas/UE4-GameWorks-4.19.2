@@ -1,9 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/UserDefinedEnum.h"
+#include "EditorObjectVersion.h"
 #if WITH_EDITOR
-#include "Editor/UnrealEd/Public/Kismet2/EnumEditorUtils.h"
+#include "Kismet2/EnumEditorUtils.h"
 #endif	// WITH_EDITOR
 
 UUserDefinedEnum::UUserDefinedEnum(const FObjectInitializer& ObjectInitializer)
@@ -16,12 +16,19 @@ void UUserDefinedEnum::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
+	Ar.UsingCustomVersion(FEditorObjectVersion::GUID);
+
 #if WITH_EDITOR
 	if (Ar.IsLoading() && Ar.IsPersistent())
 	{
 		for (int32 i = 0; i < Names.Num(); ++i)
 		{
 			Names[i].Value = i;
+		}
+
+		if (Ar.CustomVer(FEditorObjectVersion::GUID) < FEditorObjectVersion::StableUserDefinedEnumDisplayNames)
+		{
+			FEnumEditorUtils::UpgradeDisplayNamesFromMetaData(this);
 		}
 	}
 #endif // WITH_EDITOR
@@ -68,11 +75,7 @@ void UUserDefinedEnum::PostLoad()
 {
 	Super::PostLoad();
 	FEnumEditorUtils::UpdateAfterPathChanged(this);
-
-	if (GIsEditor && !IsRunningCommandlet())
-	{
-		FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
-	}
+	FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
 }
 
 void UUserDefinedEnum::PostEditUndo()
@@ -96,7 +99,7 @@ FString UUserDefinedEnum::GenerateNewEnumeratorName()
 
 #endif	// WITH_EDITOR
 
-int32 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int32 EnumeratorValue) const
+int64 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int64 EnumeratorValue) const
 {
 #if WITH_EDITOR
 	return FEnumEditorUtils::ResolveEnumerator(this, Ar, EnumeratorValue);
@@ -108,15 +111,18 @@ int32 UUserDefinedEnum::ResolveEnumerator(FArchive& Ar, int32 EnumeratorValue) c
 
 FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
 {
-	if (DisplayNames.IsValidIndex(InIndex))
+	const FName EnumEntryName = *GetEnumName(InIndex);
+
+	const FText* EnumEntryDisplayName = DisplayNameMap.Find(EnumEntryName);
+	if (EnumEntryDisplayName)
 	{
-		return DisplayNames[InIndex];
+		return *EnumEntryDisplayName;
 	}
 
-	return Super::GetEnumText(InIndex);
+	return FText::GetEmpty();
 }
 
-bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing)
+bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, int64>>& InNames, ECppForm InCppForm, bool bAddMaxKeyIfMissing)
 {
 	ensure(bAddMaxKeyIfMissing);
 	if (Names.Num() > 0)
@@ -134,11 +140,11 @@ bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm I
 	{
 		const FString EnumPrefix = (TryNum == 0) ? BaseEnumPrefix : FString::Printf(TEXT("%s_%d"), *BaseEnumPrefix, TryNum - 1);
 		const FName MaxEnumItem = *GenerateFullEnumName(*(EnumPrefix + TEXT("_MAX")));
-		const int32 MaxEnumItemIndex = GetValueByName(MaxEnumItem);
+		const int64 MaxEnumItemIndex = GetValueByName(MaxEnumItem);
 		if ((MaxEnumItemIndex == INDEX_NONE) && (LookupEnumName(MaxEnumItem) == INDEX_NONE))
 		{
-			int MaxEnumValue = (InNames.Num() == 0)? 0 : GetMaxEnumValue() + 1;
-			Names.Add(TPairInitializer<FName, uint8>(MaxEnumItem, MaxEnumValue));
+			int64 MaxEnumValue = (InNames.Num() == 0)? 0 : GetMaxEnumValue() + 1;
+			Names.Add(TPairInitializer<FName, int64>(MaxEnumItem, MaxEnumValue));
 			AddNamesToMasterList();
 			return true;
 		}

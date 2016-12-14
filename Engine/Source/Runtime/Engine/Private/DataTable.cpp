@@ -1,8 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Engine/DataTable.h"
+#include "Serialization/PropertyLocalizationDataGathering.h"
+#include "Serialization/ObjectWriter.h"
+#include "Serialization/ObjectReader.h"
+#include "UObject/LinkerLoad.h"
 #include "DataTableCSV.h"
+#include "Policies/PrettyJsonPrintPolicy.h"
 #include "DataTableJSON.h"
 #include "EditorFramework/AssetImportData.h"
 
@@ -19,10 +23,7 @@ namespace
 		for (const auto& Pair : DataTable->RowMap)
 		{
 			const FString PathToRow = PathToObject + TEXT(".") + Pair.Key.ToString();
-			for (TFieldIterator<const UProperty> PropIt(DataTable->RowStruct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
-			{
-				PropertyLocalizationDataGatherer.GatherLocalizationDataFromChildTextProperties(PathToRow, *PropIt, PropIt->ContainerPtrToValuePtr<void>(Pair.Value), GatherTextFlags);
-			}
+			PropertyLocalizationDataGatherer.GatherLocalizationDataFromStructFields(PathToRow, DataTable->RowStruct, Pair.Value, nullptr, GatherTextFlags);
 		}
 	}
 }

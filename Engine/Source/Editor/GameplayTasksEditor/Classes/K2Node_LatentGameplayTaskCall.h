@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
 #include "K2Node_BaseAsyncTask.h"
+#include "GameplayTask.h"
 #include "K2Node_LatentGameplayTaskCall.generated.h"
 
-class UGameplayTask;
+class FBlueprintActionDatabaseRegistrar;
+class UEdGraph;
+class UEdGraphPin;
+class UEdGraphSchema;
+class UEdGraphSchema_K2;
 
 UCLASS()
 class GAMEPLAYTASKSEDITOR_API UK2Node_LatentGameplayTaskCall : public UK2Node_BaseAsyncTask

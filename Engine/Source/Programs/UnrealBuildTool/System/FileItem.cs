@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -109,12 +109,6 @@ namespace UnrealBuildTool
 		///
 		/// Preparation only (not serialized)
 		/// 
-
-		/// <summary>
-		/// PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
-		/// This is needed by some compilers to use PCH features.
-		/// </summary>
-		public string PCHHeaderNameInCode;
 
 		/// <summary>
 		/// The PCH file that this file will use

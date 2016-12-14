@@ -1,4 +1,6 @@
-﻿using AutomationTool;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using AutomationTool;
 using System;
 using System.Collections.Generic;
 using System.IO;

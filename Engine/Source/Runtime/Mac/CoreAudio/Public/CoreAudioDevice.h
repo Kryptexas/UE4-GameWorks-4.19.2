@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	CoreAudioDevice.h: Unreal CoreAudio audio interface object.
@@ -7,10 +7,10 @@
 #ifndef _INC_COREAUDIODEVICE
 #define _INC_COREAUDIODEVICE
 
-#include "Engine.h"
-#include "SoundDefinitions.h"
+#include "CoreMinimal.h"
 #include "AudioDecompress.h"
 #include "AudioEffect.h"
+#include "AudioDevice.h"
 
 /*------------------------------------------------------------------------------------
  CoreAudio system headers

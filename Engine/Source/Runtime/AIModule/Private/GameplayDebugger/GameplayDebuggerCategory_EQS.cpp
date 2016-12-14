@@ -1,11 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
+#include "GameplayDebugger/GameplayDebuggerCategory_EQS.h"
+#include "GameFramework/PlayerController.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
 
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
-#include "GameplayDebuggerCategory_EQS.h"
-#include "Engine/Canvas.h"
 #include "DrawDebugHelpers.h"
 
 #if WITH_GAMEPLAY_DEBUGGER
@@ -210,8 +211,9 @@ int32 FGameplayDebuggerCategory_EQS::DrawLookedAtItem(const EQSDebug::FQueryData
 			DescTileItem.BlendMode = SE_BLEND_Translucent;
 			CanvasContext.DrawItem(DescTileItem, 0, CanvasContext.CursorY - BackgroundPadding);
 
-			CanvasContext.Printf(FColor::Red, TEXT("Selected item:%d failed test [%d]: {yellow}%s {LightBlue}(%s)"),
+			CanvasContext.Printf(FColor::Red, TEXT("Selected item (#%d, %s) failed test [%d]: {yellow}%s {LightBlue}(%s)"),
 				BestItemIndex,
+				QueryData.Items.IsValidIndex(BestItemIndex) ? *QueryData.Items[BestItemIndex].Desc : TEXT("INVALID"),
 				FailedTestIndex,
 				*QueryData.Tests[FailedTestIndex].ShortName,
 				*QueryData.Tests[FailedTestIndex].Detailed);

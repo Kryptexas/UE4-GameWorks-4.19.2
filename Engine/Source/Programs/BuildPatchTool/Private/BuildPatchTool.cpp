@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "PrivatePch.h"
-#include "RequiredProgramMainCPPInclude.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "BuildPatchTool.h"
+#include "UObject/Object.h"
+#include "RequiredProgramMainCPPInclude.h"
 #include "ToolMode.h"
+#include "Misc/OutputDeviceError.h"
 
 using namespace BuildPatchTool;
 

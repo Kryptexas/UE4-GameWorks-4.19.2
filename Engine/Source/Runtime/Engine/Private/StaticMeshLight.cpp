@@ -1,16 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshLight.cpp: Static mesh lighting code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "StaticMeshResources.h"
-#include "Raster.h"
 #include "StaticMeshLight.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
+#include "UObject/Object.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
+#include "Components/StaticMeshComponent.h"
+#include "Misc/ConfigCacheIni.h"
 #include "ComponentReregisterContext.h"
+#include "StaticMeshResources.h"
+#include "LightMap.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Components/LightComponent.h"
+#include "ShadowMap.h"
 
 /**
  * Creates a static lighting vertex to represent the given static mesh vertex.

@@ -1,11 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLState.cpp: OpenGL state implementation.
 =============================================================================*/
 
-#include "OpenGLDrvPrivate.h"
+#include "CoreMinimal.h"
+#include "Serialization/MemoryWriter.h"
+#include "RHI.h"
 #include "ShaderCache.h"
+#include "OpenGLDrv.h"
 
 GLint GMaxOpenGLTextureFilterAnisotropic = 1;
 

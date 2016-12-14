@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/Texture2D.h"
 #include "SpriteEditorOnlyTypes.generated.h"
+
+class UMaterialInterface;
 
 // The kind of collision that a Paper2D asset or component might participate in
 UENUM()

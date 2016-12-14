@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "ElementBatcher.h"
-#include "SlateRenderTransform.h"
-#include "Internationalization/Text.h"
-#include "SlateStats.h"
+#include "Rendering/ElementBatcher.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Fonts/FontCache.h"
+#include "Rendering/DrawElements.h"
+#include "Rendering/RenderingPolicy.h"
+#include "Stats/SlateStats.h"
+#include "Widgets/SWindow.h"
 
 DECLARE_CYCLE_STAT(TEXT("Find Batch For Element Time"), STAT_SlateFindBatchForElement, STATGROUP_SlateVerbose);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Elements (Prebatch)"), STAT_SlateNumPrebatchElements, STATGROUP_Slate);
@@ -21,16 +23,23 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Elements (Text)"), STAT_SlateNumTextElements, S
 // Super-hacky way of storing the scissor rect so we don't have to change all the FSlateDrawElement APIs for this hacky support.
 SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
 
-
-
+namespace ElementBatcherUtils
+{
+	static FVector2D RoundToInt(const FVector2D& Vec)
+	{
+		return FVector2D(FMath::RoundToInt(Vec.X), FMath::RoundToInt(Vec.Y));
+	}
+}
 
 FSlateElementBatcher::FSlateElementBatcher( TSharedRef<FSlateRenderingPolicy> InRenderingPolicy )
 	: BatchData( nullptr )
 	, DrawLayer( nullptr )
 	, RenderingPolicy( &InRenderingPolicy.Get() )
 	, NumDrawnBatchesStat(0)
+	, NumPostProcessPasses(0)
 	, PixelCenterOffset( InRenderingPolicy->GetPixelCenterOffset() )
 	, bSRGBVertexColor( !InRenderingPolicy->IsVertexColorInLinearSpace() )
+	, bRequiresVsync(false)
 {
 }
 
@@ -49,12 +58,12 @@ void FSlateElementBatcher::AddElements(FSlateWindowElementList& WindowElementLis
 
 	BatchData = &WindowElementList.GetBatchData();
 
-	AddElements(WindowElementList.GetRootDrawLayer());
+	AddElements(WindowElementList, WindowElementList.GetRootDrawLayer());
 
 	TMap < TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>, TSharedPtr<FSlateDrawLayer> >& DrawLayers = WindowElementList.GetChildDrawLayers();
 	for ( auto& Entry : DrawLayers )
 	{
-		AddElements(*Entry.Value.Get());
+		AddElements(WindowElementList, *Entry.Value.Get());
 	}
 
 	// Done with the element list
@@ -67,7 +76,7 @@ void FSlateElementBatcher::AddElements(FSlateWindowElementList& WindowElementLis
 	FPlatformMisc::EndNamedEvent();
 }
 
-void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
+void FSlateElementBatcher::AddElements(const FSlateWindowElementList& ElementList, FSlateDrawLayer& InDrawLayer)
 {
 	// This stuff is just for the counters. Could be scoped by an #ifdef if necessary.
 	static_assert(
@@ -84,7 +93,8 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 		FSlateDrawElement::EElementType::ET_CustomVerts == 10 &&
 		FSlateDrawElement::EElementType::ET_CachedBuffer == 11 &&
 		FSlateDrawElement::EElementType::ET_Layer == 12 &&
-		FSlateDrawElement::EElementType::ET_Count == 13,
+		FSlateDrawElement::EElementType::ET_PostProcessPass == 13 &&
+		FSlateDrawElement::EElementType::ET_Count == 14,
 		"If FSlateDrawElement::EElementType is modified, this array must be made to match." );
 
 	static FName ElementFNames[] =
@@ -102,6 +112,7 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 		FName(TEXT("CustomVerts")),
 		FName(TEXT("CachedBuffer")),
 		FName(TEXT("Layer")),
+		FName(TEXT("FXPass")),
 	};
 
 	DrawLayer = &InDrawLayer;
@@ -175,13 +186,16 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 					AddCustomElement( DrawElement );
 					break;
 				case FSlateDrawElement::ET_CustomVerts:
-					AddCustomVerts(DrawElement);
+					AddCustomVerts( DrawElement);
 					break;
 				case FSlateDrawElement::ET_CachedBuffer:
 					AddCachedBuffer( DrawElement );
 					break;
 				case FSlateDrawElement::ET_Layer:
-					AddLayer(DrawElement);
+					AddLayer( DrawElement );
+					break;
+				case FSlateDrawElement::ET_PostProcessPass:
+					AddPostProcessPass( DrawElement, ElementList.GetWindow()->GetViewportSize());
 					break;
 				default:
 					checkf(0, TEXT("Invalid element type"));
@@ -215,7 +229,7 @@ void FSlateElementBatcher::AddQuadElement( const FSlateDrawElement& DrawElement,
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
 	FSlateRotatedClipRectType RenderClipRect = FSlateRotatedClipRectType::MakeSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
 
-	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), nullptr, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, ESlateDrawEffect::None, ESlateBatchDrawFlag::Wireframe|ESlateBatchDrawFlag::NoBlending, DrawElement.GetScissorRect() );
+	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), nullptr, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, ESlateDrawEffect::None, ESlateBatchDrawFlag::Wireframe|ESlateBatchDrawFlag::NoBlending, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 	FSlateVertexArray& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
 	FSlateIndexArray& BatchIndices = BatchData->GetBatchIndexList(ElementBatch);
 
@@ -355,7 +369,7 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 		ESlateBatchDrawFlag::Type DrawFlags = InPayload.BatchFlags;
 		DrawFlags |= ( ( bTileHorizontal ? ESlateBatchDrawFlag::TileU : 0 ) | ( bTileVertical ? ESlateBatchDrawFlag::TileV : 0 ) );
 
-		FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), Resource, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, InDrawEffects, DrawFlags, DrawElement.GetScissorRect() );
+		FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), Resource, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, InDrawEffects, DrawFlags, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 		FSlateVertexArray& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
 		FSlateIndexArray& BatchIndices = BatchData->GetBatchIndexList(ElementBatch);
 
@@ -692,7 +706,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 					FontShaderResource = ResourceManager.GetFontShaderResource( FontTextureIndex, FontAtlasTexture, InPayload.FontInfo.FontMaterial );
 					check(FontShaderResource);
 
-					ElementBatch = &FindBatchForElement(InLayer, FShaderParams(), FontShaderResource, ESlateDrawPrimitive::TriangleList, ESlateShader::Font, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect() );
+					ElementBatch = &FindBatchForElement(InLayer, FShaderParams(), FontShaderResource, ESlateDrawPrimitive::TriangleList, ESlateShader::Font, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 
 					BatchVertices = &BatchData->GetBatchVertexList(*ElementBatch);
 					BatchIndices = &BatchData->GetBatchIndexList(*ElementBatch);
@@ -905,7 +919,7 @@ void FSlateElementBatcher::AddShapedTextElement( const FSlateDrawElement& DrawEl
 						FontShaderResource = ResourceManager.GetFontShaderResource(FontTextureIndex, FontAtlasTexture, FontMaterial);
 						check(FontShaderResource);
 
-						ElementBatch = &FindBatchForElement(InLayer, FShaderParams(), FontShaderResource, ESlateDrawPrimitive::TriangleList, ESlateShader::Font, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect());
+						ElementBatch = &FindBatchForElement(InLayer, FShaderParams(), FontShaderResource, ESlateDrawPrimitive::TriangleList, ESlateShader::Font, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 
 						BatchVertices = &BatchData->GetBatchVertexList(*ElementBatch);
 						BatchIndices = &BatchData->GetBatchIndexList(*ElementBatch);
@@ -1029,7 +1043,8 @@ void FSlateElementBatcher::AddGradientElement( const FSlateDrawElement& DrawElem
 			ESlateShader::Default,
 			InDrawEffects,
 			InPayload.BatchFlags,
-			DrawElement.GetScissorRect() );
+			DrawElement.GetScissorRect(),
+			DrawElement.GetSceneIndex());
 
 	FSlateVertexArray& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
 	FSlateIndexArray& BatchIndices = BatchData->GetBatchIndexList(ElementBatch);
@@ -1183,7 +1198,7 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 	const float HalfThickness = LineThickness * .5f + Radius;
 
 	// Find a batch for the element
-	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams::MakePixelShaderParams( FVector4( InPayload.Thickness,Radius,0,0) ), nullptr, ESlateDrawPrimitive::TriangleList, ESlateShader::LineSegment, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect() );
+	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams::MakePixelShaderParams( FVector4( InPayload.Thickness,Radius,0,0) ), nullptr, ESlateDrawPrimitive::TriangleList, ESlateShader::LineSegment, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 	FSlateVertexArray& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
 	FSlateIndexArray& BatchIndices = BatchData->GetBatchIndexList(ElementBatch);
 
@@ -1330,7 +1345,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 		const float HalfThickness = LineThickness * .5f + Radius;
 
 		// Find a batch for the element
-		FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams::MakePixelShaderParams( FVector4(RequestedThickness,Radius,0,0) ), nullptr, ESlateDrawPrimitive::TriangleList, ESlateShader::LineSegment, DrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect() );
+		FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams::MakePixelShaderParams( FVector4(RequestedThickness,Radius,0,0) ), nullptr, ESlateDrawPrimitive::TriangleList, ESlateShader::LineSegment, DrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 		FSlateVertexArray& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
 		FSlateIndexArray& BatchIndices = BatchData->GetBatchIndexList(ElementBatch);
 
@@ -1440,7 +1455,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 	else
 	{
 		// Find a batch for the element
-		FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), nullptr, ESlateDrawPrimitive::LineList, ESlateShader::Default, DrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect() );
+		FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), nullptr, ESlateDrawPrimitive::LineList, ESlateShader::Default, DrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 		FSlateVertexArray& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
 		FSlateIndexArray& BatchIndices = BatchData->GetBatchIndexList(ElementBatch);
 
@@ -1481,7 +1496,7 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 
 	ESlateBatchDrawFlag::Type DrawFlags = InPayload.BatchFlags;
 
-	FSlateShaderResource* ViewportResource = InPayload.ViewportRenderTargetTexture;
+	FSlateShaderResource* ViewportResource = InPayload.RenderTargetResource;
 	ESlateShader::Type ShaderType = ESlateShader::Default;
 
 	if( InPayload.bViewportTextureAlphaOnly )
@@ -1491,7 +1506,7 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 	}
 
 
-	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), ViewportResource, ESlateDrawPrimitive::TriangleList, ShaderType, InDrawEffects, DrawFlags, DrawElement.GetScissorRect() );
+	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), ViewportResource, ESlateDrawPrimitive::TriangleList, ShaderType, InDrawEffects, DrawFlags, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 	FSlateVertexArray& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
 	FSlateIndexArray& BatchIndices = BatchData->GetBatchIndexList(ElementBatch);
 
@@ -1626,7 +1641,7 @@ void FSlateElementBatcher::AddBorderElement( const FSlateDrawElement& DrawElemen
 	// Pass the tiling information as a flag so we can pick the correct texture addressing mode
 	ESlateBatchDrawFlag::Type DrawFlags = (ESlateBatchDrawFlag::TileU|ESlateBatchDrawFlag::TileV);
 
-	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, ShaderParams, Resource, ESlateDrawPrimitive::TriangleList, ESlateShader::Border, InDrawEffects, DrawFlags, DrawElement.GetScissorRect() );
+	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, ShaderParams, Resource, ESlateDrawPrimitive::TriangleList, ESlateShader::Border, InDrawEffects, DrawFlags, DrawElement.GetScissorRect(), DrawElement.GetSceneIndex());
 	FSlateVertexArray& BatchVertices = BatchData->GetBatchVertexList(ElementBatch);
 	FSlateIndexArray& BatchIndices = BatchData->GetBatchIndexList(ElementBatch);
 
@@ -1801,7 +1816,8 @@ void FSlateElementBatcher::AddCustomVerts(const FSlateDrawElement& DrawElement)
 			DrawElement.GetScissorRect(),
 			InPayload.NumInstances,
 			InPayload.InstanceOffset,
-			InPayload.InstanceData
+			InPayload.InstanceData,
+			DrawElement.GetSceneIndex()
 		);
 
 		int32 Index = (*ElementBatches)->Add(NewBatch);
@@ -1870,7 +1886,64 @@ void FSlateElementBatcher::AddLayer(const FSlateDrawElement& DrawElement)
 }
 
 
-FSlateElementBatch& FSlateElementBatcher::FindBatchForElement( 
+void FSlateElementBatcher::AddPostProcessPass(const FSlateDrawElement& DrawElement, const FVector2D& WindowSize)
+{
+	++NumPostProcessPasses;
+
+	const FSlateRenderTransform& RenderTransform = DrawElement.GetRenderTransform();
+	const FVector2D& LocalSize = DrawElement.GetLocalSize();
+	
+	const FSlateDataPayload& Payload = DrawElement.GetDataPayload();
+
+	//@todo Doesnt work with rotated or skewed objects yet
+	const FVector2D& Position = DrawElement.GetPosition();
+
+	const FSlateRect& InClippingRect = DrawElement.GetClippingRect();
+
+	uint32 Layer = DrawElement.GetLayer();
+
+	// extract the layout transform from the draw element
+	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), Position)));
+	FSlateRotatedClipRectType RenderClipRect = FSlateRotatedClipRectType::MakeSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
+
+	// Determine the four corners of the quad
+	FVector2D TopLeft = FVector2D::ZeroVector;
+	FVector2D TopRight = FVector2D(LocalSize.X, 0);
+	FVector2D BotLeft = FVector2D(0, LocalSize.Y);
+	FVector2D BotRight = FVector2D(LocalSize.X, LocalSize.Y);
+
+
+	// Offset by half a texel if the platform requires it for pixel perfect sampling
+	//FVector2D HalfTexel = FVector2D(PixelCenterOffset / WindowSize.X, PixelCenterOffset / WindowSize.Y);
+
+	FVector2D WorldTopLeft = ElementBatcherUtils::RoundToInt(TransformPoint(RenderTransform, TopLeft));
+	FVector2D WorldBotRight = ElementBatcherUtils::RoundToInt(TransformPoint(RenderTransform, BotRight));
+
+	// Clip post processing rect to the clip rect
+	WorldTopLeft = FMath::Max(WorldTopLeft, RenderClipRect.TopLeft);
+	WorldBotRight = FMath::Min(WorldBotRight, RenderClipRect.TopLeft + RenderClipRect.ExtentX + RenderClipRect.ExtentY);
+
+	FVector2D SizeUV = (WorldBotRight - WorldTopLeft) / WindowSize;
+
+	FShaderParams Params = FShaderParams::MakePixelShaderParams(FVector4(WorldTopLeft, WorldBotRight), FVector4(Payload.PostProcessData.X, Payload.PostProcessData.Y, Payload.DownsampleAmount, 0));
+
+	FElementBatchMap& LayerToElementBatches = DrawLayer->GetElementBatchMap();
+
+	// See if the layer already exists.
+	TUniqueObj<FElementBatchArray>* ElementBatches = LayerToElementBatches.Find(Layer);
+	if (!ElementBatches)
+	{
+		// The layer doesn't exist so make it now
+		ElementBatches = &LayerToElementBatches.Add(Layer);
+	}
+	check(ElementBatches);
+
+	// Custom elements are not batched together 
+	(*ElementBatches)->Add(FSlateElementBatch(nullptr, Params, ESlateShader::PostProcess, ESlateDrawPrimitive::TriangleList, ESlateDrawEffect::None, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect()));
+	
+}
+
+FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 	uint32 Layer, 
 	const FShaderParams& ShaderParams, 
 	const FSlateShaderResource* InTexture, 
@@ -1878,7 +1951,8 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 	ESlateShader::Type ShaderType, 
 	ESlateDrawEffect::Type DrawEffects, 
 	ESlateBatchDrawFlag::Type DrawFlags,
-	const TOptional<FShortRect>& ScissorRect)
+	const TOptional<FShortRect>& ScissorRect,
+	int32 SceneIndex)
 {
 	SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_HI, GSlateFindBatchTime);
 
@@ -1896,7 +1970,7 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 	checkSlow( ElementBatches );
 
 	// Create a temp batch so we can use it as our key to find if the same batch already exists
-	FSlateElementBatch TempBatch( InTexture, ShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect );
+	FSlateElementBatch TempBatch( InTexture, ShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect, 0, 0, nullptr, SceneIndex );
 
 	FSlateElementBatch* ElementBatch = (*ElementBatches)->FindByKey( TempBatch );
 	if( !ElementBatch )
@@ -1918,5 +1992,6 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 void FSlateElementBatcher::ResetBatches()
 {
 	bRequiresVsync = false;
+	NumPostProcessPasses = 0;
 }
 

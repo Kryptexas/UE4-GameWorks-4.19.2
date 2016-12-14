@@ -1,14 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneIntegerTrack.h"
-#include "MovieSceneIntegerSection.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Tracks/MovieSceneIntegerTrack.h"
+#include "Sections/MovieSceneIntegerSection.h"
+#include "ISequencer.h"
+#include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 #include "PropertyTrackEditor.h"
-
-
-class ISequencer;
-
 
 /**
  * A property track editor for integers.

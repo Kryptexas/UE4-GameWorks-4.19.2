@@ -1,9 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ClientUnitTest.h"
+#include "CoreMinimal.h"
 
+class APlayerController;
+class FUnitTestEnvironment;
+enum class EUnitTestFlags : uint32;
 
 /** The list of registered unit test environments, mapped to game name (unit test modules should add to this, within StartupModule) */
 extern TMap<FString, FUnitTestEnvironment*> UnitTestEnvironments;

@@ -1,25 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TextureAtlas.h"
-#include "UniquePtr.h"
-#include "ShapedTextFwd.h"
+#include "CoreMinimal.h"
+#include "Fonts/ShapedTextFwd.h"
+#include "UObject/ObjectMacros.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Textures/TextureAtlas.h"
+#include "Fonts/FontTypes.h"
 #include "FontCache.generated.h"
 
-class FFreeTypeLibrary;
+class FCompositeFontCache;
+class FFreeTypeAdvanceCache;
 class FFreeTypeFace;
 class FFreeTypeGlyphCache;
-class FFreeTypeAdvanceCache;
 class FFreeTypeKerningPairCache;
-class FCompositeFontCache;
-class FSlateFontRenderer;
-class FSlateTextShaper;
-class FSlateFontCache;
+class FFreeTypeLibrary;
 class FShapedGlyphFaceData;
-
-struct FCharacterRenderData;
-struct FSlateFontKey;
+class FSlateFontCache;
+class FSlateFontRenderer;
+class FSlateShaderResource;
+class FSlateTextShaper;
 
 enum class EFontCacheAtlasDataType : uint8
 {
@@ -863,6 +864,11 @@ private:
 	 */
 	void FlushCache();
 
+	/**
+	 * Clears out any pending UFont objects that were requested to be flushed
+	 */
+	void FlushFontObjects();
+
 	/** Called after the active culture has changed */
 	void HandleCultureChanged();
 
@@ -919,8 +925,9 @@ private:
 	/** The frame counter the last time the font cache was asked to be flushed */
 	uint64 FrameCounterLastFlushRequest;
 
-//@HSL_BEGIN - Chance.Lyon - A critical section to help make this class thread-safe */
-	/** Critical section for thread synchronization for the font cache */
-	mutable FCriticalSection CacheCriticalSection;
-//@HSL_END
+	/** Critical section preventing concurrent access to FontObjectsToFlush */
+	mutable FCriticalSection FontObjectsToFlushCS;
+
+	/** Array of UFont objects that the font cache has been requested to flush. Since GC can happen while the loading screen is running, the request may be deferred until the next call to ConditionalFlushCache */
+	TArray<const UObject*> FontObjectsToFlush;
 };

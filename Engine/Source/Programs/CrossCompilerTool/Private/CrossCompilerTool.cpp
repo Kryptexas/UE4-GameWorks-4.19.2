@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // CrossCompilerTool.cpp: Driver for testing compilation of an individual shader
 
@@ -21,6 +21,33 @@
 DEFINE_LOG_CATEGORY(LogCrossCompilerTool);
 
 IMPLEMENT_APPLICATION(CrossCompilerTool, "CrossCompilerTool");
+
+enum class EMetalComponentType : uint8
+{
+	Uint = 0,
+	Int,
+	Half,
+	Float,
+	Bool,
+	Max
+};
+
+struct FMetalAttribute
+{
+	uint32 Index;
+	uint8 Type;
+	uint32 Components;
+	uint32 Offset;
+};
+
+struct FMetalTessellationOutputs
+{
+	uint32 HSOutSize;
+	uint32 HSTFOutSize;
+	uint32 PatchControlPointOutSize;
+	TArray<FMetalAttribute> HSOut;
+	TArray<FMetalAttribute> PatchControlPointOut;
+};
 
 namespace CCT
 {
@@ -72,7 +99,8 @@ namespace CCT
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
 		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);
 		FMetalLanguageSpec MetalLanguage;
-		FMetalCodeBackend MetalBackend(Flags, CompileTarget, (RunInfo.Target >= HCT_FeatureLevelSM4), true, (RunInfo.Target >= HCT_FeatureLevelSM4));
+		FMetalTessellationOutputs Attribs;
+		FMetalCodeBackend MetalBackend(Attribs, Flags, CompileTarget, 2, (RunInfo.Target >= HCT_FeatureLevelSM4), true, (RunInfo.Target >= HCT_FeatureLevelSM4));
 #if PLATFORM_SUPPORTS_VULKAN
 		FVulkanBindingTable VulkanBindingTable(RunInfo.Frequency);
 		FVulkanLanguageSpec VulkanLanguage(false);
@@ -84,7 +112,7 @@ namespace CCT
 		case CCT::FRunInfo::BE_Metal:
 			Language = &MetalLanguage;
 			Backend = &MetalBackend;
-			CompileTarget = HCT_FeatureLevelES3_1;
+			CompileTarget = HCT_FeatureLevelSM5;
 			break;
 
 		case CCT::FRunInfo::BE_OpenGL:
@@ -207,6 +235,7 @@ namespace CCT
 				&ErrorLog);
 		}
 
+		
 		if (ErrorLog)
 		{
 			FString OutError(ANSI_TO_TCHAR(ErrorLog));

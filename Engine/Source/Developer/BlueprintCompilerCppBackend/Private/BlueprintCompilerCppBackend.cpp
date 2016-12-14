@@ -1,11 +1,22 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackend.h"
+#include "UObject/UnrealType.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "UObject/Interface.h"
+#include "Engine/LatentActionManager.h"
+#include "Engine/UserDefinedEnum.h"
+#include "K2Node.h"
+#include "K2Node_Event.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_ExecutionSequence.h"
+#include "K2Node_FunctionEntry.h"
+#include "KismetCompilerMisc.h"
+#include "KismetCompiler.h"
 #include "BlueprintCompilerCppBackendUtils.h"
-#include "EdGraphSchema_K2.h"
 #include "Kismet/KismetNodeHelperLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "UniquePtr.h"
 
 // Generates single "if" scope. Its condition checks context of given term.
 struct FSafeContextScopedEmmitter
@@ -718,14 +729,14 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 
 	FString Result;
 	FString CloseCast;
-	TAutoPtr<FSetterExpressionBuilder> SetterExpression;
+	TUniquePtr<FSetterExpressionBuilder> SetterExpression;
 	if (!bInline)
 	{
 		// Handle the return value of the function being called
 		UProperty* FuncToCallReturnProperty = Statement.FunctionToCall->GetReturnProperty();
 		if (FuncToCallReturnProperty && ensure(Statement.LHS))
 		{
-			SetterExpression = new FSetterExpressionBuilder(*this, EmitterContext, Statement.LHS);
+			SetterExpression = MakeUnique<FSetterExpressionBuilder>(*this, EmitterContext, Statement.LHS);
 			Result += SetterExpression->BuildStart();
 
 			FString BeginCast;
@@ -836,7 +847,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	}
 
 	Result += CloseCast;
-	if (SetterExpression.IsValid())
+	if (SetterExpression)
 	{
 		Result += SetterExpression->BuildEnd(false);
 	}

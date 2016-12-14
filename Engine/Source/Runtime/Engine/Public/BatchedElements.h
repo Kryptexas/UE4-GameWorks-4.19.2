@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BatchedElements.h: Batched element rendering.
@@ -6,10 +6,16 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "Templates/RefCounting.h"
+#include "RHI.h"
+#include "RenderResource.h"
 #include "HitProxies.h"
+#include "SceneView.h"
 #include "StaticBoundShaderState.h"
-#include "SceneTypes.h"
 
+struct FBatchedPoint;
 
 namespace EBlendModeFilter
 {
@@ -354,7 +360,8 @@ private:
 	/** bound shader state for the regular mesh elements with an sRGB texture */
 	static FSimpleElementBSSContainer RegularSRGBBoundShaderState;
 	/** bound shader state for masked mesh elements */
-	static FSimpleElementBSSContainer MaskedBoundShaderState;
+	static FSimpleElementBSSContainer MaskedLinearBoundShaderState;
+    static FSimpleElementBSSContainer MaskedSRGBBoundShaderState;
 	/** bound shader state for masked mesh elements */
 	static FSimpleElementBSSContainer DistanceFieldBoundShaderState;
 	/** bound shader state for the hit testing mesh elements */

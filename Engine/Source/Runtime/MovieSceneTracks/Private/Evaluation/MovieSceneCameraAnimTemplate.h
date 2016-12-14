@@ -1,16 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneFwd.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneCameraAnimSection.h"
-#include "MovieSceneCameraShakeSection.h"
+#include "Evaluation/PersistentEvaluationData.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Sections/MovieSceneCameraAnimSection.h"
+#include "Sections/MovieSceneCameraShakeSection.h"
 
 #include "MovieSceneCameraAnimTemplate.generated.h"
 
-struct FMovieSceneAdditiveCameraData;
+class ACameraActor;
 
 /** Generic section template for any additive camera animation effects */
 USTRUCT()

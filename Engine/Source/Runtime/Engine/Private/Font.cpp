@@ -1,16 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Font.cpp: Unreal font code.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Engine/Font.h"
-#include "Engine/FontImportOptions.h"
-#include "SlateBasics.h"
+#include "Engine/Texture2D.h"
+#include "Fonts/FontBulkData.h"
+#include "Fonts/FontCache.h"
+#include "Framework/Application/SlateApplication.h"
 #include "EngineFontServices.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/FontFace.h"
+#include "HAL/FileManager.h"
 
 UFontImportOptions::UFontImportOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -373,14 +375,12 @@ void UFont::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
 			{
 				for (const FTypefaceEntry& TypefaceEntry : Typeface.Fonts)
 				{
-#if WITH_EDITORONLY_DATA
 					const UFontFace* FontFace = Cast<const UFontFace>(TypefaceEntry.Font.GetFontFaceAsset());
 					if (FontFace)
 					{
 						const_cast<UFontFace*>(FontFace)->GetResourceSizeEx(CumulativeResourceSize);
 					}
-					else if (TypefaceEntry.Font.GetLoadingPolicy() == EFontLoadingPolicy::PreLoad)
-#endif // WITH_EDITORONLY_DATA
+					else if (TypefaceEntry.Font.GetLoadingPolicy() == EFontLoadingPolicy::LazyLoad)
 					{
 						const int64 FileSize = IFileManager::Get().FileSize(*TypefaceEntry.Font.GetFontFilename());
 						if (FileSize > 0)

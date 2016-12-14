@@ -1,14 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "IMessageAttachment.h"
+#include "CoreMinimal.h"
 #include "IMessageContext.h"
-
-
-// forward declarations
-class UScriptStruct;
-
+#include "IMessageAttachment.h"
 
 /**
  * Implements a message context for messages sent through the message bus.

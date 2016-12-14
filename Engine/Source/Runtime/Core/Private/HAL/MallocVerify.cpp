@@ -1,12 +1,11 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MallocVerify.cpp: Helper class to track memory allocations
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
-#include "MemoryMisc.h"
-#include "MallocVerify.h"
+#include "HAL/MallocVerify.h"
+#include "Logging/LogMacros.h"
 
 #if MALLOC_VERIFY
 

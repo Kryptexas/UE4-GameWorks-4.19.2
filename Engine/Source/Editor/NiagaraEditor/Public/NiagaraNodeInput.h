@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "NiagaraCommon.h"
+#include "NiagaraEditorCommon.h"
 #include "NiagaraNode.h"
 #include "NiagaraNodeInput.generated.h"
+
+class UEdGraphPin;
 
 UCLASS(MinimalAPI)
 class UNiagaraNodeInput : public UNiagaraNode

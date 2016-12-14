@@ -1,7 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Paths.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/App.h"
+#include "Interfaces/ILauncherProfileManager.h"
+#include "Interfaces/ILauncher.h"
+#include "Common/GameProjectHelper.h"
+
+class FProjectLauncherModel;
+class SProjectLauncher;
 
 namespace ELauncherPanels
 {

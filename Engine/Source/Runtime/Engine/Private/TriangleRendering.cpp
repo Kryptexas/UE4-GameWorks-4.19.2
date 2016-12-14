@@ -1,17 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TriangleRendering.cpp: Simple triangle rendering implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "TriangleRendering.h"
-#include "EngineModule.h"
+#include "ShowFlags.h"
+#include "RHI.h"
+#include "RenderResource.h"
+#include "RenderingThread.h"
+#include "VertexFactory.h"
+#include "PackedNormal.h"
 #include "LocalVertexFactory.h"
+#include "SceneView.h"
+#include "CanvasTypes.h"
 #include "MeshBatch.h"
 #include "RendererInterface.h"
 #include "SceneUtils.h"
-#include "CanvasTypes.h"
+#include "EngineModule.h"
 
 /** 
  * vertex data for a screen triangle

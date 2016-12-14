@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLVertexBuffer.cpp: OpenGL texture RHI implementation.
 =============================================================================*/
 
-#include "OpenGLDrvPrivate.h"
+#include "CoreMinimal.h"
+#include "Containers/ResourceArray.h"
+#include "Stats/Stats.h"
+#include "RHI.h"
+#include "RenderUtils.h"
 #include "ShaderCache.h"
+#include "OpenGLDrv.h"
+#include "OpenGLDrvPrivate.h"
 
 /*-----------------------------------------------------------------------------
 	Texture allocator support.

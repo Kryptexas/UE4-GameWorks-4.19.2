@@ -1,6 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Types/SlateEnums.h"
+#include "Layout/Visibility.h"
+#include "Camera/CameraTypes.h"
+#include "IDetailCustomization.h"
+
+class IDetailLayoutBuilder;
+class IPropertyHandle;
+class SEditableTextBox;
+class SWidget;
 
 class FCameraDetails : public IDetailCustomization
 {

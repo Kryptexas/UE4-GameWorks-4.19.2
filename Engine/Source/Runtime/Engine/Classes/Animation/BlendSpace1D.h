@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Blend Space 1D. Contains 1 axis blend 'space'
@@ -7,7 +7,9 @@
 
 #pragma once
 
-#include "BlendSpaceBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/BlendSpaceBase.h"
 #include "BlendSpace1D.generated.h"
 
 UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
@@ -30,9 +32,12 @@ public:
 	virtual bool IsValidAdditiveType(EAdditiveAnimationType AdditiveType) const override;
 protected:
 	//~ Begin UBlendSpaceBase Interface
-	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const;
-	virtual void SnapSamplesToClosestGridPoint();
+	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const;	
 	virtual EBlendSpaceAxis GetAxisToScale() const override;
 	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const override;
+#if WITH_EDITOR
+	virtual void SnapSamplesToClosestGridPoint() override;
+	virtual void RemapSamplesToNewAxisRange() override;
+#endif // WITH_EDITOR
 	//~ End UBlendSpaceBase Interface
 };

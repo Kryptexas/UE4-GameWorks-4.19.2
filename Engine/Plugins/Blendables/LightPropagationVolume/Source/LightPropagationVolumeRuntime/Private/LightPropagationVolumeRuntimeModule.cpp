@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightPropagationVolumeRuntimeModule.cpp: Module encapsulates the LightPropagationVolume settings
 =============================================================================*/
 
-#include "Core.h"
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
 #include "LightPropagationVolumeBlendable.h"
 #include "SceneView.h"
 

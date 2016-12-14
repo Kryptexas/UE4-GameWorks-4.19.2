@@ -1,14 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TextureResource.h"
-#include "TickableObjectRenderThread.h"
+#include "CoreMinimal.h"
+#include "Containers/Ticker.h"
+#include "Containers/TripleBuffer.h"
 #include "UnrealClient.h"
-
+#include "TextureResource.h"
+#include "Containers/Queue.h"
 
 class UMediaTexture;
-
+enum class EMediaTextureSinkFormat;
+enum class EMediaTextureSinkMode;
 
 /**
  * Texture resource type for media textures.

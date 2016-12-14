@@ -1,12 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
-#include "ActorFactories/ActorFactory.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "ActorFactories/ActorFactoryVolume.h"
 #include "ActorFactoryBoxVolume.generated.h"
 
+class AActor;
+class FAssetData;
+
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)
-class UActorFactoryBoxVolume : public UActorFactory
+class UActorFactoryBoxVolume : public UActorFactoryVolume
 {
 	GENERATED_UCLASS_BODY()
 

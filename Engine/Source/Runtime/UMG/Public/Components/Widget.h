@@ -1,19 +1,33 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Attribute.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/ScriptMacros.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Visibility.h"
+#include "Layout/Geometry.h"
+#include "Widgets/SWidget.h"
+#include "Types/SlateStructs.h"
 #include "Components/Visual.h"
-#include "SlateWrapperTypes.h"
-#include "WidgetTransform.h"
-#include "DynamicPropertyPath.h"
+#include "Styling/SlateBrush.h"
+#include "UObject/TextProperty.h"
+#include "Components/SlateWrapperTypes.h"
+#include "Slate/WidgetTransform.h"
 #include "UObject/UObjectThreadContext.h"
 
 #include "Widget.generated.h"
 
-class UPanelSlot;
-class UUserWidget;
+class APlayerController;
 class SObjectWidget;
-
-
+class UPanelSlot;
+class UPropertyBinding;
+class UUserWidget;
+struct FDynamicPropertyPath;
+enum class ECheckBoxState : uint8;
 
 namespace UMWidget
 {
@@ -22,6 +36,7 @@ namespace UMWidget
 	{
 		/// [PropertyMetadata] This property if changed will rebuild the widget designer preview.  Use sparingly, try to update most properties by
 		/// setting them in the SynchronizeProperties function.
+		/// UPROPERTY(meta=(DesignerRebuild))
 		DesignerRebuild,
 		/// [PropertyMetadata] This property requires a widget be bound to it in the designer.  Allows easy native access to designer defined controls.
 		/// UPROPERTY(meta=(BindWidget))
@@ -113,7 +128,7 @@ namespace EWidgetDesignFlags
 /**
  * This is the base class for all wrapped Slate controls that are exposed to UObjects.
  */
-UCLASS(Abstract, BlueprintType)
+UCLASS(Abstract, BlueprintType, Blueprintable)
 class UMG_API UWidget : public UVisual
 {
 	GENERATED_UCLASS_BODY()
@@ -404,6 +419,18 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	virtual void RemoveFromParent();
+
+	/**
+	 * Gets the last geometry used to Tick the widget.  This data may not exist yet if this call happens prior to 
+	 * the widget having been ticked/painted, or it may be out of date, or a frame behind.
+	 *
+	 * We recommend not to use this data unless there's no other way to solve your problem.  Normally in Slate we
+	 * try and handle these issues by making a dependent widget part of the hierarchy, as to avoid frame behind
+	 * or what are referred to as hysteresis problems, both caused by depending on geometry from the previous frame
+	 * being used to advise how to layout a dependent object the current frame.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	const FGeometry& GetCachedGeometry() const;
 
 	/**
 	 * Gets the underlying slate widget or constructs it if it doesn't exist.  If you're looking to replace

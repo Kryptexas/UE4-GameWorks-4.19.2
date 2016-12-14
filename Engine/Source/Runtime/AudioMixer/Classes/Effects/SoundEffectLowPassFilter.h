@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,37 +25,25 @@ struct AUDIOMIXER_API FSoundEffectLowPassFilterSettings
 // USoundEffectLowPassFilter
 // ========================================================================
 
-UCLASS()
-class AUDIOMIXER_API USoundEffectLowPassFilter : public USoundEffectSource
+class AUDIOMIXER_API FSoundEffectLowPassFilter : public FSoundEffectSource
 {
-	GENERATED_BODY()
-
+public:
 	// Called on an audio effect at initialization on main thread before audio processing begins.
 	void Init(const FSoundEffectSourceInitData& InSampleRate) override {}
 	
 	// Process the input block of audio. Called on audio thread.
 	void OnProcessAudio(const FSoundEffectSourceInputData& InData, FSoundEffectSourceOutputData& OutData) override {}
-
 private:
-	//Audio::FLowPass LowPassFilter;
 };
-
-// ========================================================================
-// USoundEffectLowPassFilterPreset
-// This code exposes your preset settings and effect class to the editor.
-// Do not modify this code!
-// ========================================================================
 
 UCLASS()
 class AUDIOMIXER_API USoundEffectLowPassFilterPreset : public USoundEffectSourcePreset
 {
 	GENERATED_BODY()
 
-	void* GetSettings() override { return (void*)&Settings; }
-	uint32 GetSettingsSize() const override { return sizeof(Settings); }
-	UScriptStruct* GetSettingsStruct() const override { return FSoundEffectLowPassFilterSettings::StaticStruct(); }
-	UClass* GetEffectClass() const override { return USoundEffectLowPassFilter::StaticClass(); }
+public:
+	EFFECT_PRESET_METHODS_NO_ASSET_ACTIONS(SoundEffectLowPassFilter)
 
-	UPROPERTY(EditAnywhere, Category = SoundEffect)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SourceEffectPreset)
 	FSoundEffectLowPassFilterSettings Settings;
 };

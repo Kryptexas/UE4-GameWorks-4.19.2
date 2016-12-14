@@ -1,13 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __MOUSEDELTATRACKER_H__
 #define __MOUSEDELTATRACKER_H__
 
-// Forward declarations.
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "UnrealWidget.h"
+
+class FCanvas;
 class FDragTool;
-class FScopedTransaction;
-class FLevelEditorViewportClient;
+class FEditorViewportClient;
+class FPrimitiveDrawInterface;
+class FSceneView;
+struct FInputEventState;
 
 /**
  * Keeps track of mouse movement deltas in the viewports.

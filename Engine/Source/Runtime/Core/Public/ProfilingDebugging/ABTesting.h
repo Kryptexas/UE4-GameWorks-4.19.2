@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
 * Declarations for ABTesting framework.
@@ -6,13 +6,21 @@
 
 #pragma once
 
+#include "CoreTypes.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Containers/BitArray.h"
+#include "Math/RandomStream.h"
+
 #if !UE_BUILD_SHIPPING
 #define ENABLE_ABTEST 1
 #else
 #define ENABLE_ABTEST 0
 #endif
 
-#include "ScopedTimers.h"
+#include "ProfilingDebugging/ScopedTimers.h"
+
+template<typename Allocator > class TBitArray;
 
 #if ENABLE_ABTEST
 class CORE_API FABTest

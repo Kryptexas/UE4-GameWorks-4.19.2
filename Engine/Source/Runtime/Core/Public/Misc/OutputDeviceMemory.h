@@ -1,6 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreTypes.h"
+#include "Misc/OutputDevice.h"
+#include "Serialization/Archive.h"
+#include "Containers/Array.h"
+#include "HAL/CriticalSection.h"
 
 /**
  * Memory output device. Logs only into pre-allocated memory buffer.

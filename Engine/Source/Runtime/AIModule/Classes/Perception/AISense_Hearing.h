@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Perception/AIPerceptionSystem.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GenericTeamAgentInterface.h"
 #include "Perception/AISense.h"
 #include "AISense_Hearing.generated.h"
 
 class UAISenseConfig_Hearing;
+class UAISenseEvent;
 
 USTRUCT()
 struct AIMODULE_API FAINoiseEvent

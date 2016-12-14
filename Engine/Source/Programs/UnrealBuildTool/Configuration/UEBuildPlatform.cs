@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -164,8 +164,8 @@ namespace UnrealBuildTool
 			}
 
 			// Set up the global C++ compilation and link environment.
-			GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
-			GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
+			GlobalCompileEnvironment.Config.Configuration = CompileConfiguration;
+			GlobalLinkEnvironment.Config.Configuration = CompileConfiguration;
 
 			// Create debug info based on the heuristics specified by the user.
 			GlobalCompileEnvironment.Config.bCreateDebugInfo =
@@ -276,13 +276,6 @@ namespace UnrealBuildTool
 					UEBuildConfiguration.bCompileCEF3 = bValue;
 				}
 
-				if (Target != null && Target.IsCooked)
-				{
-					if (Ini.GetBool("/Script/Engine.StreamingSettings", "s.EventDrivenLoaderEnabled", out bValue))
-					{
-						UEBuildConfiguration.bEventDrivenLoader = bValue;
-					}
-				}
 				bInitializedProject = true;
 			}
             else
@@ -779,7 +772,7 @@ namespace UnrealBuildTool
 					ProjIni.GetBool(Section, Key, out Project);
 					if (Default != Project)
 					{
-						Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
+						Log.TraceInformationOnce(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
 						return false;
 					}
 				}
@@ -792,7 +785,7 @@ namespace UnrealBuildTool
 					ProjIni.GetInt32(Section, Key, out Project);
 					if (Default != Project)
 					{
-						Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
+						Log.TraceInformationOnce(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
 						return false;
 					}
 				}
@@ -805,7 +798,7 @@ namespace UnrealBuildTool
 					ProjIni.GetString(Section, Key, out Project);
 					if (Default != Project)
 					{
-						Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
+						Log.TraceInformationOnce(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
 						return false;
 					}
 				}
@@ -820,11 +813,6 @@ namespace UnrealBuildTool
 		/// </summary>
 		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
 		{
-			if(!DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/Engine.StreamingSettings", new string[] { "s.EventDrivenLoaderEnabled" }, null, null))
-			{
-				return false;
-			}
-
 			string[] BoolKeys = new string[] {
 				"bCompileApex", "bCompileBox2D", "bCompileICU", "bCompileSimplygon", "bCompileSimplygonSSF",
 				"bCompileLeanAndMeanUE", "bIncludeADO", "bCompileRecast", "bCompileSpeedTree", 

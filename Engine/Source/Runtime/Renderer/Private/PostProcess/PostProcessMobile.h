@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMobile.h: Mobile uber post processing.
@@ -6,7 +6,11 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
+
+class FViewInfo;
 
 // return Depth of Field Scale if Gaussian DoF mode is active. 0.0f otherwise.
 float GetMobileDepthOfFieldScale(const FViewInfo& View);

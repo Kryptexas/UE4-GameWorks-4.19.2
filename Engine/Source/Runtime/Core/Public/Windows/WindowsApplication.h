@@ -1,18 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GenericApplication.h"
+#include "CoreTypes.h"
+#include "Math/Color.h"
+#include "HAL/IConsoleManager.h"
+#include "GenericPlatform/GenericApplication.h"
 
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
-	#include "Ole2.h"
-	#include "OleIdl.h"
+	#include <Ole2.h>
+	#include <oleidl.h>
 	#include <ShObjIdl.h>
 #include "HideWindowsPlatformTypes.h"
-#include "IInputInterface.h"
-#include "IForceFeedbackSystem.h"
+#include "GenericPlatform/IForceFeedbackSystem.h"
 #include "WindowsTextInputMethodSystem.h"
 
+class FGenericWindow;
+struct FVector2D;
+enum class EWindowTransparency;
+class IInputInterface;
+class ITextInputMethodSystem;
+enum class FForceFeedbackChannelType;
+struct FForceFeedbackValues;
+struct FHapticFeedbackValues;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogWindowsDesktop, Log, All);
 

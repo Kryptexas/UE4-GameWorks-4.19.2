@@ -1,11 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Widgets/SWindow.h"
+#include "Widgets/SViewport.h"
 #include "Engine/Engine.h"
 #include "Runtime/MovieSceneCapture/Public/MovieSceneCaptureHandle.h"
 #include "GameEngine.generated.h"
 
+class Error;
+class FSceneViewport;
+class UGameViewportClient;
+class UNetDriver;
 
 /**
  * Engine that manages core systems that enable a game.
@@ -57,6 +65,8 @@ public:
 	 */
 	static TSharedRef<SWindow> CreateGameWindow();
 
+	static void SafeFrameChanged();
+
 	/**
 	 * Modifies the game window resolution settings if any overrides have been specified on the command line
 	 *
@@ -106,6 +116,7 @@ public:
 	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) override;
 	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) override;
 	virtual bool NetworkRemapPath(UNetDriver* Driver, FString& Str, bool bReading = true) override;
+	virtual bool ShouldDoAsyncEndOfFrameTasks() const override;
 
 public:
 

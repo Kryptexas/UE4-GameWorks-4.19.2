@@ -1,42 +1,51 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "LevelEditor.h"
-#include "ISourceControlModule.h"
-#include "LevelEditorMenu.h"
-#include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "SLevelEditor.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Framework/Docking/LayoutService.h"
+#include "EditorModeRegistry.h"
+#include "EdMode.h"
+#include "Engine/Selection.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Styling/SlateStyleRegistry.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
+#include "EditorStyleSet.h"
+#include "Editor/EditorPerProjectUserSettings.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/EditorExperimentalSettings.h"
+#include "LevelEditorViewport.h"
+#include "EditorModes.h"
+#include "UnrealEdGlobals.h"
+#include "LevelEditor.h"
+#include "LevelEditorMenu.h"
+#include "IDetailsView.h"
 #include "LevelEditorActions.h"
 #include "LevelEditorModesActions.h"
-#include "SLevelViewport.h"
-#include "LevelViewportTabContent.h"
-#include "AssetSelection.h"
 #include "LevelEditorContextMenu.h"
 #include "LevelEditorToolBar.h"
 #include "SLevelEditorToolBox.h"
 #include "SLevelEditorModeContent.h"
 #include "SLevelEditorBuildAndSubmit.h"
-#include "Editor/UnrealEd/Public/Kismet2/DebuggerCommands.h"
-#include "Editor/SceneOutliner/Public/SceneOutliner.h"
+#include "Kismet2/DebuggerCommands.h"
+#include "SceneOutlinerPublicTypes.h"
+#include "SceneOutlinerModule.h"
 #include "Editor/Layers/Public/LayersModule.h"
 #include "Editor/WorldBrowser/Public/WorldBrowserModule.h"
-#include "Editor/ClassViewer/Public/ClassViewerModule.h"
-#include "Toolkits/IToolkit.h"
 #include "Toolkits/ToolkitManager.h"
-#include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
+#include "PropertyEditorModule.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
-#include "Editor/Sequencer/Public/ISequencerModule.h"
-#include "Editor/StatsViewer/Public/StatsViewerModule.h"
-#include "EditorModes.h"
+#include "StatsViewerModule.h"
+#include "Widgets/SToolTip.h"
 #include "IDocumentation.h"
 #include "TutorialMetaData.h"
-#include "SDockTab.h"
+#include "Widgets/Docking/SDockTab.h"
 #include "SActorDetails.h"
-#include "ScopedTransaction.h"
 #include "GameFramework/WorldSettings.h"
-#include "LevelViewportLayout.h"
 #include "HierarchicalLODOutlinerModule.h"
 
 
@@ -1274,18 +1283,19 @@ bool SLevelEditor::IsModeActive( FEditorModeID ModeID )
 
 void SLevelEditor::RefreshEditorModeCommands()
 {
-	FLevelEditorModesCommands::Unregister();
-	FLevelEditorModesCommands::Register();
-	
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor" );
 
+	if(!FLevelEditorModesCommands::IsRegistered())
+	{
+		FLevelEditorModesCommands::Register();
+	}
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 	TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
 
 	// We need to remap all the actions to commands.
 	const FLevelEditorModesCommands& Commands = FLevelEditorModesCommands::Get();
 
-	int commandIndex = 0;
+	int32 CommandIndex = 0;
 	for( const FEditorModeInfo& Mode : FEditorModeRegistry::Get().GetSortedModeInfo() )
 	{
 		// If the mode isn't visible don't create a menu option for it.
@@ -1301,16 +1311,16 @@ void SLevelEditor::RefreshEditorModeCommands()
 			FInputBindingManager::Get().FindCommandInContext(Commands.GetContextName(), EditorModeCommandName);
 
 		// If a command isn't yet registered for this mode, we need to register one.
-		if ( ensure(EditorModeCommand.IsValid()) )
+		if ( EditorModeCommand.IsValid() && !LevelEditorCommands->IsActionMapped(Commands.EditorModeCommands[CommandIndex]) )
 		{
 			LevelEditorCommands->MapAction(
-				Commands.EditorModeCommands[commandIndex],
+				Commands.EditorModeCommands[CommandIndex],
 				FExecuteAction::CreateStatic( &SLevelEditor::ToggleEditorMode, Mode.ID ),
 				FCanExecuteAction(),
 				FIsActionChecked::CreateStatic( &SLevelEditor::IsModeActive, Mode.ID ));
 		}
 
-		commandIndex++;
+		CommandIndex++;
 	}
 
 	for( const auto& ToolBoxTab : ToolBoxTabs )

@@ -1,16 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
+#include "Textures/SlateIcon.h"
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "ISettingsModule.h"
 #include "ISettingsCategory.h"
 #include "ISettingsContainer.h"
-#include "ISettingsModule.h"
 #include "ISettingsSection.h"
-#include "ModuleManager.h"
 
 
 #define LOCTEXT_NAMESPACE "FSettingsMenu"
-
 
 /**
  * Static helper class for populating the "Settings" menu.

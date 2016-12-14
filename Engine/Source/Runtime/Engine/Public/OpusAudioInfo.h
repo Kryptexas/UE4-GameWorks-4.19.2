@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpusAudioInfo.h: Unreal audio opus decompression interface object.
@@ -6,11 +6,13 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "AudioDecompress.h"
 
 #define OPUS_ID_STRING "UE4OPUS"
 
 struct FOpusDecoderWrapper;
+struct FSoundQualityInfo;
 
 /**
 * Helper class to parse opus data

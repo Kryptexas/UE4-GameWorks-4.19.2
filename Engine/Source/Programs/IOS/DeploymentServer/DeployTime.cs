@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+ * Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
  */
 
 using System;
@@ -341,6 +341,54 @@ namespace DeploymentServer
 
             return Results.ToArray();
         }
+
+        /// <summary>
+        /// return the list of devices to stdout
+        /// </summary>
+        public void ListDevices()
+        {
+            PerformActionOnAllDevices(2 * StandardEnumerationDelayMS, delegate(MobileDeviceInstance Device)
+            {
+                string DeviceName = Device.DeviceName;
+                string UDID = Device.DeviceId;
+				ReportIF.Log(String.Format("FOUND: ID: {0} NAME: {1}", UDID, DeviceName));
+
+                return true;
+            });
+        }
+
+		public void ListenToDevice(string inDeviceID)
+		{
+			MobileDeviceInstance	targetDevice = null;
+
+            PerformActionOnAllDevices(2 * StandardEnumerationDelayMS, delegate(MobileDeviceInstance Device)
+            {
+				if(inDeviceID == Device.DeviceId)
+				{
+					targetDevice = Device;
+				}
+				return true;
+            });
+
+			if(targetDevice != null)
+			{
+				targetDevice.StartSyslogService();
+				
+				// This never returns, the process must be killed to stop logging
+				while(true)
+				{
+					string	curLog = targetDevice.GetSyslogData();
+					if(curLog.Trim().Length > 0)
+					{
+						Console.Write(curLog);
+					}
+				}
+			}
+			else
+			{
+				ReportIF.Error("Could not find device " + inDeviceID);
+			}
+		}
 
         /// <summary>
         /// Installs an IPA to all connected devices

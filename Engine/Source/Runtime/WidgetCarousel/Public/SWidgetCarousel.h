@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SWidgetCarousel.h: Declares the SWidgetCarousel class.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Types/SlateEnums.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
+#include "Animation/CurveSequence.h"
+#include "Widgets/Layout/SFxWidget.h"
 
 /** The desired Carousel scroll direction */
 namespace EWidgetCarouselScrollDirection
@@ -385,6 +396,7 @@ class SWidgetCarousel
 {
 public:
 
+	DECLARE_DELEGATE_OneParam(FOnCarouselPageChanged, int32 /*PageIndex*/);
 	typedef typename TSlateDelegates< ItemType >::FOnGenerateWidget FOnGenerateWidget;
 
 	SLATE_BEGIN_ARGS(SWidgetCarousel<ItemType>)
@@ -399,6 +411,8 @@ public:
 
 	/** Called when we change a widget */
 	SLATE_EVENT( FOnGenerateWidget, OnGenerateWidget )
+	/** Event triggered when the current page changes */
+	SLATE_EVENT(FOnCarouselPageChanged, OnPageChanged)
 	/** The data source */
 	SLATE_ARGUMENT( const TArray<ItemType>*, WidgetItemsSource )
 	/** The move speed */
@@ -423,6 +437,7 @@ public:
 	void Construct( const FArguments& InArgs )
 	{
 		OnGenerateWidget = InArgs._OnGenerateWidget;
+		OnPageChanged = InArgs._OnPageChanged;
 		ItemsSource = InArgs._WidgetItemsSource;
 		WidgetIndex = 0;
 		MoveSpeed = InArgs._MoveSpeed.Get();
@@ -470,6 +485,8 @@ public:
 		];
 
 		GenerateWidgets();
+
+		OnPageChanged.ExecuteIfBound(WidgetIndex);
 	}
 
 	/**
@@ -624,6 +641,8 @@ protected:
 		CenterCarouselWidget->ScrollIn(ScrollDirection);
 		RightCarouselWidget->ScrollIn(ScrollDirection);
 		LeftCarouselWidget->ScrollIn(ScrollDirection);
+
+		OnPageChanged.ExecuteIfBound(WidgetIndex);
 	}
 
 	void SetSliderLimits()
@@ -694,6 +713,9 @@ protected:
 
 	// Hold the delegate to be invoked when a widget changes.
 	FOnGenerateWidget OnGenerateWidget;
+
+	// Hold the delegate to be invoked when the current page changes.
+	FOnCarouselPageChanged OnPageChanged;
 
 	// Holds the widget display box.
 	TSharedPtr< SHorizontalBox > WidgetDisplayBox;

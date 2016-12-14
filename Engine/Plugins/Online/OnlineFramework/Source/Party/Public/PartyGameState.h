@@ -1,16 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
+#include "HAL/IConsoleManager.h"
+#include "Templates/Casts.h"
+#include "UObject/CoreOnline.h"
+#include "GameFramework/OnlineReplStructs.h"
+#include "Containers/Queue.h"
 #include "PartyBeaconState.h"
-#include "Online.h"
+#include "OnlineSubsystemTypes.h"
+#include "OnlineSessionSettings.h"
+#include "Interfaces/OnlinePartyInterface.h"
 #include "PartyGameState.generated.h"
 
-class UWorld;
-class FUniqueNetId;
-class FOnlineParty;
-class FOnlinePartyData;
-struct FPartyConfiguration;
+class APartyBeaconClient;
+class ULocalPlayer;
+class UParty;
+class UPartyMemberState;
+
 typedef FUniqueNetIdRepl FOnlinePartyIdRepl;
 class FOnlineSessionSearchResult;
 class UParty;

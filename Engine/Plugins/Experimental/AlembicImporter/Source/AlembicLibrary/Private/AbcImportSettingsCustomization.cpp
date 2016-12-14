@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AlembicLibraryPublicPCH.h"
 #include "AbcImportSettingsCustomization.h"
 
 #include "AbcImportSettings.h"
 
 #include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "IDetailChildrenBuilder.h"
+#include "IDetailPropertyRow.h"
 #include "PropertyRestriction.h"
 
 void FAbcImportSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& LayoutBuilder)
@@ -26,15 +28,14 @@ void FAbcImportSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& Lay
 	if (UAbcImportSettings::Get()->bReimport)
 	{
 		UEnum* ImportTypeEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAlembicImportType"));		
-		static FText RestrictReason = FText::FromString("Unable to change type while reimporting");
+		static FText RestrictReason = NSLOCTEXT("AlembicImportFactory", "ReimportRestriction", "Unable to change type while reimporting");
 		TSharedPtr<FPropertyRestriction> EnumRestriction = MakeShareable(new FPropertyRestriction(RestrictReason));
 
 		for (uint8 EnumIndex = 0; EnumIndex < (ImportTypeEnum->GetMaxEnumValue() + 1); ++EnumIndex)
 		{
 			if (EnumValue != EnumIndex)
 			{
-				const FString RestrictValue = ImportTypeEnum->GetDisplayNameTextByValue(EnumIndex).ToString();
-				EnumRestriction->AddValue(RestrictValue);
+				EnumRestriction->AddDisabledValue(ImportTypeEnum->GetNameByValue(EnumIndex).ToString());
 			}
 		}		
 		ImportType->AddRestriction(EnumRestriction.ToSharedRef());

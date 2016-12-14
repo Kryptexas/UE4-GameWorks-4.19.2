@@ -1,13 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AnimGraphPrivatePCH.h"
-#include "AnimationGraphSchema.h"
 #include "AnimGraphNode_BlendSpaceBase.h"
+#include "EdGraphSchema_K2_Actions.h"
 #include "AnimGraphNode_BlendSpacePlayer.h"
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/BlendSpace1D.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
-#include "GraphEditorActions.h"
 
 #define LOCTEXT_NAMESPACE "AnimGraphNode_BlendSpaceBase"
 
@@ -117,4 +116,11 @@ FText UAnimGraphNode_BlendSpaceBase::GetMenuCategory() const
 {
 	return LOCTEXT("BlendSpaceCategory_Label", "BlendSpaces");
 }
+
+bool UAnimGraphNode_BlendSpaceBase::IsAimOffsetBlendSpace(const UClass* BlendSpaceClass)
+{
+	return  BlendSpaceClass->IsChildOf(UAimOffsetBlendSpace::StaticClass()) ||
+		BlendSpaceClass->IsChildOf(UAimOffsetBlendSpace1D::StaticClass());
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -1,13 +1,35 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SCurveEditor_h__
 #define __SCurveEditor_h__
 
-#include "CurveEditorSettings.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Templates/SubclassOf.h"
+#include "Layout/Geometry.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Curves/KeyHandle.h"
+#include "Widgets/SWidget.h"
+#include "SColorGradientEditor.h"
+#include "UObject/GCObject.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/SlateDelegates.h"
+#include "Curves/CurveBase.h"
 #include "EditorUndoClient.h"
 
+class FPaintArgs;
+class FSlateWindowElementList;
+class FUICommandList;
+class IMenu;
+class SBox;
+class SErrorText;
+class SToolTip;
+class UCurveEditorSettings;
 class UCurveFactory;
+enum class ECheckBoxState : uint8;
 
 //////////////////////////////////////////////////////////////////////////
 // FTrackScaleInfo
@@ -566,6 +588,8 @@ private:
 	void UpdateCurveToolTip( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
 	TSharedPtr<FCurveViewModel> GetViewModelForCurve(FRichCurve* InCurve);
+
+	void OnObjectPropertyChanged(UObject* Object, FPropertyChangedEvent& PropertyChangedEvent);
 
 protected:
 

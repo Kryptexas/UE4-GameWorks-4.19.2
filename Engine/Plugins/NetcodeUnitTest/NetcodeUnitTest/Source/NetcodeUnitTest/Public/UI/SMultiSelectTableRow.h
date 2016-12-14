@@ -1,8 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Layout/Geometry.h"
+#include "Input/DragAndDrop.h"
+#include "Input/Reply.h"
+#include "Widgets/Views/STableRow.h"
+#include "NetcodeUnitTest.h"
 
 /**
  * SMultiSelectTableRow

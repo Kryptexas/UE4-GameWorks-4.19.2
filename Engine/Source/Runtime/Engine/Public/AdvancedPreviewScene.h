@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrettyPreviewScene.h: Pretty preview scene definitions.
@@ -6,22 +6,24 @@
 
 #pragma once
 
-#if WITH_EDITOR
-
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "InputCoreTypes.h"
 #include "PreviewScene.h"
-
+#if WITH_EDITOR
 #include "TickableEditorObject.h"
-#include "EditorSupportDelegates.h"
+#endif
 
-struct FPreviewSceneProfile;
-
-class USphereReflectionCaptureComponent;
-class USkyLightComponent;
-class UStaticMeshComponent;
+class FViewport;
+class UAssetViewerSettings;
 class UMaterialInstanceConstant;
 class UPostProcessComponent;
-class UAssetViewerSettings;
-class UEditorPerProjectUserSettings;
+class USkyLightComponent;
+class UStaticMeshComponent;
+class USphereReflectionCaptureComponent;
+struct FPreviewSceneProfile;
+
+#if WITH_EDITOR
 
 class ENGINE_API FAdvancedPreviewScene : public FPreviewScene, public FTickableEditorObject
 {
@@ -53,10 +55,11 @@ public:
 protected:
 	USkyLightComponent* SkyLightComponent;
 	UStaticMeshComponent* SkyComponent;
+	USphereReflectionCaptureComponent* SphereReflectionComponent;
 	UMaterialInstanceConstant* InstancedSkyMaterial;
 	UPostProcessComponent* PostProcessComponent;
 	UStaticMeshComponent* FloorMeshComponent;
-	UAssetViewerSettings* DefaultSettings;
+	UAssetViewerSettings* DefaultSettings;	
 	bool bRotateLighting;
 
 	float CurrentRotationSpeed;
@@ -64,6 +67,8 @@ protected:
 
 	bool bSkyChanged;
 	bool bPostProcessing;
+
+	bool bUseSkylight;
 
 	int32 CurrentProfileIndex;
 };

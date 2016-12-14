@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -7,8 +7,13 @@
  */
 
 #pragma once
-#include "AnimInstance.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimInstance.h"
 #include "AnimSingleNodeInstance.generated.h"
+
+struct FAnimInstanceProxy;
 
 DECLARE_DYNAMIC_DELEGATE(FPostEvaluateAnimEvent);
 

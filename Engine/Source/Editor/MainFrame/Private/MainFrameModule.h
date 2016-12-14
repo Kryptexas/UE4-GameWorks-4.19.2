@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "HotReloadInterface.h"
+#include "CoreMinimal.h"
+#include "Frame/MainFrameActions.h"
+#include "Widgets/SWidget.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "Interfaces/IMainFrameModule.h"
+#include "UnrealEdMisc.h"
+#include "Frame/MainFrameHandler.h"
+#include "Misc/CompilationResult.h"
 
 /**
  * Editor main frame module

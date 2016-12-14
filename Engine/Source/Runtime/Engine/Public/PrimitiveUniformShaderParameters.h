@@ -1,10 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "RenderResource.h"
+#include "ShaderParameters.h"
 #include "UniformBuffer.h"
-#include "Runtime/ShaderCore/Public/ShaderParameters.h"
 
 
 /** The uniform shader parameters associated with a primitive. */

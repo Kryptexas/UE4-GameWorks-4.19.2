@@ -1,8 +1,6 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "../Misc/Build.h"
 
 // define all other platforms to be zero
 //@port Define the platform here to be zero when compiling for other platforms
@@ -51,8 +49,8 @@
 #if !defined(PLATFORM_LINUX)
 	#define PLATFORM_LINUX 0
 #endif
-#if !defined(PLATFORM_WOLF)
-	#define PLATFORM_WOLF 0
+#if !defined(PLATFORM_SWITCH)
+	#define PLATFORM_SWITCH 0
 #endif
 
 // Platform specific compiler pre-setup.
@@ -72,8 +70,8 @@
 	#include "HTML5/HTML5PlatformCompilerPreSetup.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatformCompilerPreSetup.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfPlatformCompilerPreSetup.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchPlatformCompilerPreSetup.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -108,8 +106,8 @@
 	#include "HTML5/HTML5Platform.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatform.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfPlatform.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchPlatform.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -403,6 +401,10 @@
 	#define DISABLE_FUNCTION_OPTIMIZATION
 #endif
 
+// Enable/disable optimizations for a specific function to improve build times
+#define BEGIN_FUNCTION_BUILD_OPTIMIZATION PRAGMA_DISABLE_OPTIMIZATION
+#define END_FUNCTION_BUILD_OPTIMIZATION   PRAGMA_ENABLE_OPTIMIZATION
+
 #ifndef FORCEINLINE_DEBUGGABLE_ACTUAL
 	#define FORCEINLINE_DEBUGGABLE_ACTUAL inline
 #endif
@@ -477,6 +479,18 @@
 	#define PLATFORM_CACHE_LINE_SIZE	128
 #endif
 
+// Compile-time warnings and errors. Use these as "#pragma COMPILER_WARNING("XYZ")". GCC does not expand macro parameters to _Pragma, so we can't wrap the #pragma part.
+#ifdef _MSC_VER
+	#define MSC_FORMAT_DIAGNOSTIC_HELPER_2(x) #x
+	#define MSC_FORMAT_DIAGNOSTIC_HELPER(x) MSC_FORMAT_DIAGNOSTIC_HELPER_2(x) 
+	#define COMPILE_WARNING(x) __pragma(message(__FILE__ "(" MSC_FORMAT_DIAGNOSTIC_HELPER(__LINE__) "): warning: " x))
+	#define COMPILE_ERROR(x) __pragma(message(__FILE__ "(" MSC_FORMAT_DIAGNOSTIC_HELPER(__LINE__) "): error: " x))
+#else
+	#define GCC_DIAGNOSTIC_HELPER(x) _Pragma(#x)
+	#define COMPILE_WARNING(x) GCC_DIAGNOSTIC_HELPER(GCC warning x)
+	#define COMPILE_ERROR(x) GCC_DIAGNOSTIC_HELPER(GCC error x)
+#endif
+
 // These have to be forced inline on some OSes so the dynamic loader will not 
 // resolve to our allocators for the system libraries.
 #ifndef OPERATOR_NEW_INLINE
@@ -543,6 +557,8 @@ int32 main(int32 ArgC, ANSICHAR* Utf8ArgV[]) \
 } \
 int32 tchar_main(int32 ArgC, TCHAR* ArgV[])
 #endif
+
+template<typename,typename> struct TAreTypesEqual;
 
 //--------------------------------------------------------------------------------------------
 // POD types refactor for porting old code:
@@ -730,8 +746,8 @@ namespace TypeTests
 	#include "HTML5/HTML5PlatformCompilerSetup.h"
 #elif PLATFORM_LINUX
 	#include "Linux/LinuxPlatformCompilerSetup.h"
-#elif PLATFORM_WOLF
-	#include "WolfPlat/WolfPlatformCompilerSetup.h"
+#elif PLATFORM_SWITCH
+	#include "Switch/SwitchPlatformCompilerSetup.h"
 #else
 	#error Unknown Compiler
 #endif
@@ -741,8 +757,3 @@ namespace TypeTests
 	#define TEXT_PASTE(x) L ## x
 	#define TEXT(x) TEXT_PASTE(x)
 #endif
-
-// Include defaults for defines that aren't explicitly set by the platform
-#include "UMemoryDefines.h"
-#include "../Misc/CoreMiscDefines.h"
-#include "../Misc/CoreDefines.h"

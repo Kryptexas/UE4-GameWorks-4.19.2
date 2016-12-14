@@ -1,14 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CaptureSource.h: CaptureSource implementation
 =============================================================================*/
-#include "EnginePrivate.h"
 
-#include "CapturePin.h"
 #include "CaptureSource.h"
-#include "AVIWriter.h"
-
+#include "CapturePin.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/Event.h"
 
 #if PLATFORM_WINDOWS && !UE_BUILD_MINIMAL
 

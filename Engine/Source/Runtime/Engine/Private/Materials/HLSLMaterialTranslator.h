@@ -1,31 +1,42 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 /*=============================================================================
 	HLSLMaterialTranslator.h: Translates material expressions into HLSL code.
 =============================================================================*/
 
 #pragma once
 
-#if WITH_EDITORONLY_DATA
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Misc/Guid.h"
+#include "HAL/IConsoleManager.h"
+#include "ShaderParameters.h"
+#include "StaticParameterSet.h"
+#include "MaterialShared.h"
+#include "Stats/StatsMisc.h"
+#include "Materials/MaterialExpressionMaterialFunctionCall.h"
+#include "Materials/Material.h"
+#include "MaterialCompiler.h"
+#include "RenderUtils.h"
+#include "EngineGlobals.h"
+#include "Engine/Engine.h"
 
-#include "EnginePrivate.h"
-#include "Materials/MaterialExpressionWorldPosition.h"
-#include "Materials/MaterialExpressionTextureSample.h"
+#if WITH_EDITORONLY_DATA
 #include "Materials/MaterialExpressionSceneTexture.h"
 #include "Materials/MaterialExpressionNoise.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
-#include "Materials/MaterialExpressionMaterialFunctionCall.h"
-#include "Materials/MaterialExpressionTransform.h"
-#include "Materials/MaterialExpressionTransformPosition.h"
 #include "Materials/MaterialExpressionCustom.h"
 #include "Materials/MaterialExpressionCustomOutput.h"
 #include "Materials/MaterialExpressionVectorNoise.h"
-#include "Materials/MaterialFunction.h"
-#include "MaterialCompiler.h"
-#include "MaterialUniformExpressions.h"
+#include "Materials/MaterialUniformExpressions.h"
 #include "ParameterCollection.h"
 #include "Materials/MaterialParameterCollection.h"
-#include "LazyPrintf.h"
+#include "Containers/LazyPrintf.h"
+#endif
+
+class Error;
+
+#if WITH_EDITORONLY_DATA
 
 /** @return the number of components in a vector type. */
 static inline uint32 GetNumComponents(EMaterialValueType Type)
@@ -216,6 +227,7 @@ protected:
 	/** True if material will output accurate velocities during base pass rendering. */
 	uint32 bOutputsBasePassVelocities : 1;
 	uint32 bUsesPixelDepthOffset : 1;
+	uint32 bUsesEmissiveColor : 1;
 	/** Tracks the number of texture coordinates used by this material. */
 	uint32 NumUserTexCoords;
 	/** Tracks the number of texture coordinates used by the vertex shader in this material. */
@@ -264,6 +276,7 @@ public:
 	,	bCompilingPreviousFrame(false)
 	,	bOutputsBasePassVelocities(true)
 	,	bUsesPixelDepthOffset(false)
+	,	bUsesEmissiveColor(0)
 	,	NumUserTexCoords(0)
 	,	NumUserVertexTexCoords(0)
 	{
@@ -427,6 +440,7 @@ public:
 				}
 			}
 
+			bUsesEmissiveColor = IsMaterialPropertyUsed(MP_EmissiveColor, Chunk[MP_EmissiveColor], FLinearColor(0, 0, 0, 0), 3);
 			bUsesPixelDepthOffset = IsMaterialPropertyUsed(MP_PixelDepthOffset, Chunk[MP_PixelDepthOffset], FLinearColor(0, 0, 0, 0), 1)
 				|| (Domain == MD_DeferredDecal && Material->GetDecalBlendMode() == DBM_Volumetric_DistanceFunction);
 
@@ -842,6 +856,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("NEEDS_PARTICLE_TRANSFORM"), bUsesParticleTransform);
 		OutEnvironment.SetDefine(TEXT("USES_TRANSFORM_VECTOR"), bUsesTransformVector);
 		OutEnvironment.SetDefine(TEXT("WANT_PIXEL_DEPTH_OFFSET"), bUsesPixelDepthOffset); 
+		OutEnvironment.SetDefine(TEXT("USES_EMISSIVE_COLOR"), bUsesEmissiveColor);
 		// Distortion uses tangent space transform 
 		OutEnvironment.SetDefine(TEXT("USES_DISTORTION"), Material->IsDistorted()); 
 
@@ -1683,6 +1698,13 @@ protected:
 
 	virtual int32 CallExpression(FMaterialExpressionKey ExpressionKey,FMaterialCompiler* Compiler) override
 	{
+		// For any translated result not relying on material attributes, we can discard the attribute ID from the key
+		// to allow result sharing. In cases where we detect an expression loop we must err on the side of caution
+		if (ExpressionKey.Expression && !ExpressionKey.Expression->ContainsInputLoop() && !ExpressionKey.Expression->IsResultMaterialAttributes(ExpressionKey.OutputIndex))
+		{
+			ExpressionKey.MaterialAttributeID = FGuid(0, 0, 0, 0);
+		}
+
 		// Check if this expression has already been translated.
 		check(ShaderFrequency < SF_NumFrequencies);
 		auto& CurrentFunctionStack = FunctionStacks[ShaderFrequency];
@@ -2659,8 +2681,16 @@ protected:
 
 		case WPT_ExcludeAllShaderOffsets:
 			{
-				bNeedsWorldPositionExcludingShaderOffsets = true;
-				FunctionNamePattern = TEXT("Get<PREV>WorldPosition<NO_MATERIAL_OFFSETS>");
+				if (FeatureLevel < ERHIFeatureLevel::ES3_1)
+				{
+					// World position excluding shader offsets is not available on ES2
+					FunctionNamePattern = TEXT("Get<PREV>WorldPosition");
+				}
+				else
+				{
+					bNeedsWorldPositionExcludingShaderOffsets = true;
+					FunctionNamePattern = TEXT("Get<PREV>WorldPosition<NO_MATERIAL_OFFSETS>");
+				}
 				break;
 			}
 
@@ -2672,8 +2702,16 @@ protected:
 
 		case WPT_CameraRelativeNoOffsets:
 			{
-				bNeedsWorldPositionExcludingShaderOffsets = true;
-				FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition<NO_MATERIAL_OFFSETS>");
+				if (FeatureLevel < ERHIFeatureLevel::ES3_1)
+				{
+					// World position excluding shader offsets is not available on ES2
+					FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition");
+				}
+				else
+				{
+					bNeedsWorldPositionExcludingShaderOffsets = true;
+					FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition<NO_MATERIAL_OFFSETS>");
+				}
 				break;
 			}
 
@@ -3016,7 +3054,9 @@ protected:
 
 		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
-		const bool bStoreTexCoordScales = (ShaderFrequency == SF_Pixel && TextureReferenceIndex != INDEX_NONE && Material && Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale);
+		const bool bStoreTexCoordScales = ShaderFrequency == SF_Pixel && TextureReferenceIndex != INDEX_NONE && Material && 
+			(Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeTexCoordScale || Material->GetShaderMapUsage() == EMaterialShaderMapUsage::DebugViewModeRequiredTextureResolution);
+
 		if (bStoreTexCoordScales)
 		{
 			AddCodeChunk(MCT_Float, TEXT("StoreTexCoordScale(Parameters.TexCoordScalesParams, %s, %d)"), *UVs, (int)TextureReferenceIndex);
@@ -3158,7 +3198,8 @@ protected:
 	{
 		const bool bSupportedOnMobile = InSceneTextureId == PPI_PostProcessInput0 ||
 										InSceneTextureId == PPI_CustomDepth ||
-										InSceneTextureId == PPI_SceneDepth;
+										InSceneTextureId == PPI_SceneDepth ||
+										InSceneTextureId == PPI_CustomStencil;
 
 		if (!bSupportedOnMobile	&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
 		{

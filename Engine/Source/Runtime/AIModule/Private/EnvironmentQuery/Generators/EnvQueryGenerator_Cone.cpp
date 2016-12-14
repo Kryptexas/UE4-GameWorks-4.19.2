@@ -1,8 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "AIModulePrivate.h"
-#include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_Cone.h"
+#include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
+#include "GameFramework/Actor.h"
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 
@@ -84,7 +84,7 @@ void UEnvQueryGenerator_Cone::GenerateItems(FEnvQueryInstance& QueryInstance) co
 
 FText UEnvQueryGenerator_Cone::GetDescriptionTitle() const
 {
-	return FText::Format(LOCTEXT("DescriptionGenerateAroundContext", "{0}: generate in front of {1}"),
+	return FText::Format(LOCTEXT("ConeDescriptionGenerateAroundContext", "{0}: generate in front of {1}"),
 		Super::GetDescriptionTitle(), UEnvQueryTypes::DescribeContext(CenterActor));
 }
 

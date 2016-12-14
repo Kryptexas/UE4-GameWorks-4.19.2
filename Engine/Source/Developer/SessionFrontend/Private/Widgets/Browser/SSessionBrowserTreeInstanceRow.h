@@ -1,10 +1,29 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Widgets/SWidget.h"
+#include "Layout/Margin.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Styling/StyleDefaults.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Views/SListView.h"
+#include "SlateOptMacros.h"
+#include "EditorStyleSet.h"
+#include "Models/SessionBrowserTreeItems.h"
+#include "Widgets/Images/SImage.h"
+#include "PlatformInfo.h"
 
 #define LOCTEXT_NAMESPACE "SSessionBrowserTreeRow"
-
 
 /**
  * Implements a row widget for the session browser tree.

@@ -1,15 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 NiagaraSimulation.h: Niagara emitter simulation class
 ==============================================================================*/
 #pragma once
 
-#include "NiagaraScript.h"
-#include "NiagaraComponent.h"
-#include "NiagaraEvents.h"
+#include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
+#include "NiagaraCommon.h"
+#include "Runtime/Niagara/NiagaraConstantSet.h"
 #include "NiagaraDataSet.h"
+#include "NiagaraEvents.h"
 #include "NiagaraEmitterProperties.h"
+
+class FNiagaraEffectInstance;
+class NiagaraEffectRenderer;
 
 /**
 * A Niagara particle simulation.

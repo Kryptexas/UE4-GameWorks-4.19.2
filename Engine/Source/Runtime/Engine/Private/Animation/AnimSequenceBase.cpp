@@ -1,14 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "Animation/AnimSequenceBase.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
-#include "Animation/AnimSequenceBase.h"
 #include "Animation/AnimInstance.h"
-#include "MessageLog.h"
-#include "FrameworkObjectVersion.h"
+#include "Logging/TokenizedMessage.h"
+#include "Logging/MessageLog.h"
+#include "UObject/FrameworkObjectVersion.h"
 
 DEFINE_LOG_CATEGORY(LogAnimMarkerSync);
 
@@ -430,7 +430,9 @@ void UAnimSequenceBase::InitializeNotifyTrack()
 
 int32 UAnimSequenceBase::GetNumberOfFrames() const
 {
-	return (SequenceLength/0.033f);
+	static float DefaultSampleRateInterval = 1.f/DEFAULT_SAMPLERATE;
+	// because of float error, add small margin at the end, so it can clamp correctly
+	return (SequenceLength/DefaultSampleRateInterval + KINDA_SMALL_NUMBER);
 }
 
 int32 UAnimSequenceBase::GetFrameAtTime(const float Time) const

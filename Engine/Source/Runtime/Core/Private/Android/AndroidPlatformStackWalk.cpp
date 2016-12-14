@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidPlatformStackWalk.cpp: Android implementations of stack walk functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "AndroidPlatformStackWalk.h"
+#include "HAL/PlatformMemory.h"
+#include "Misc/CString.h"
 #include <unwind.h>
 #include <dlfcn.h>
 #include <cxxabi.h>

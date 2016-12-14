@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "BlueprintEditorModule.h"
-#include "BlueprintUtilities.h"
+#include "CoreMinimal.h"
+#include "WorkflowOrientedApp/WorkflowTabManager.h"
+#include "BlueprintEditor.h"
 #include "WorkflowOrientedApp/ApplicationMode.h"
 
 struct KISMET_API FBlueprintEditorApplicationModes

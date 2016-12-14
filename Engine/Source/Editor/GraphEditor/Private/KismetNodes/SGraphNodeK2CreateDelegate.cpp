@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "GraphEditorCommon.h"
-#include "SGraphNodeK2Base.h"
-#include "SGraphNodeK2CreateDelegate.h"
+#include "KismetNodes/SGraphNodeK2CreateDelegate.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
+#include "EdGraphSchema_K2.h"
+#include "K2Node_CreateDelegate.h"
 
 FString SGraphNodeK2CreateDelegate::FunctionDescription(const UFunction* Function, const bool bOnlyDescribeSignature, const int32 CharacterLimit)
 {
-	if(!Function || !Function->GetOuter())
+	if (!Function || !Function->GetOuter())
 	{
 		return NSLOCTEXT("GraphNodeK2Create", "Error", "Error").ToString();
 	}
@@ -22,9 +26,9 @@ FString SGraphNodeK2CreateDelegate::FunctionDescription(const UFunction* Functio
 	{
 		UProperty* Param = *PropIt;
 		const bool bIsFunctionInput = Param && (!Param->HasAnyPropertyFlags(CPF_OutParm) || Param->HasAnyPropertyFlags(CPF_ReferenceParm));
-		if(bIsFunctionInput)
+		if (bIsFunctionInput)
 		{
-			if(!bFirst)
+			if (!bFirst)
 			{
 				Result += TEXT(", ");
 			}
@@ -42,7 +46,7 @@ FString SGraphNodeK2CreateDelegate::FunctionDescription(const UFunction* Functio
 	return Result;
 }
 
-void SGraphNodeK2CreateDelegate::Construct( const FArguments& InArgs, UK2Node* InNode )
+void SGraphNodeK2CreateDelegate::Construct(const FArguments& InArgs, UK2Node* InNode)
 {
 	GraphNode = InNode;
 	UpdateGraphNode();
@@ -54,7 +58,7 @@ FText SGraphNodeK2CreateDelegate::GetCurrentFunctionDescription() const
 	UFunction* FunctionSignature = Node ? Node->GetDelegateSignature() : NULL;
 	UClass* ScopeClass = Node ? Node->GetScopeClass() : NULL;
 
-	if(!FunctionSignature || !ScopeClass)
+	if (!FunctionSignature || !ScopeClass)
 	{
 		return NSLOCTEXT("GraphNodeK2Create", "NoneLabel", "");
 	}
@@ -77,21 +81,21 @@ TSharedRef<ITableRow> SGraphNodeK2CreateDelegate::HandleGenerateRowFunction(TSha
 	check(FunctionItemData.IsValid());
 	return SNew(STableRow< TSharedPtr<FFunctionItemData> >, OwnerTable).Content()
 		[
-			SNew( STextBlock ).Text( FText::FromString(FunctionItemData->Description) )
+			SNew(STextBlock).Text(FText::FromString(FunctionItemData->Description))
 		];
 }
 
 void SGraphNodeK2CreateDelegate::OnFunctionSelected(TSharedPtr<FFunctionItemData> FunctionItemData, ESelectInfo::Type SelectInfo)
 {
-	if(FunctionItemData.IsValid())
+	if (FunctionItemData.IsValid())
 	{
-		if(UK2Node_CreateDelegate* Node = Cast<UK2Node_CreateDelegate>(GraphNode))
+		if (UK2Node_CreateDelegate* Node = Cast<UK2Node_CreateDelegate>(GraphNode))
 		{
 			Node->SetFunction(FunctionItemData->Name);
 			Node->HandleAnyChange(true);
 
 			auto SelectFunctionWidgetPtr = SelectFunctionWidget.Pin();
-			if(SelectFunctionWidgetPtr.IsValid())
+			if (SelectFunctionWidgetPtr.IsValid())
 			{
 				SelectFunctionWidgetPtr->SetIsOpen(false);
 			}
@@ -101,12 +105,12 @@ void SGraphNodeK2CreateDelegate::OnFunctionSelected(TSharedPtr<FFunctionItemData
 
 void SGraphNodeK2CreateDelegate::CreateBelowPinControls(TSharedPtr<SVerticalBox> MainBox)
 {
-	if(UK2Node_CreateDelegate* Node = Cast<UK2Node_CreateDelegate>(GraphNode))
+	if (UK2Node_CreateDelegate* Node = Cast<UK2Node_CreateDelegate>(GraphNode))
 	{
 		UFunction* FunctionSignature = Node->GetDelegateSignature();
 		UClass* ScopeClass = Node->GetScopeClass();
 
-		if(FunctionSignature && ScopeClass)
+		if (FunctionSignature && ScopeClass)
 		{
 			FText FunctionSignaturePrompt;
 			{
@@ -127,10 +131,10 @@ void SGraphNodeK2CreateDelegate::CreateBelowPinControls(TSharedPtr<SVerticalBox>
 
 			FunctionDataItems.Empty();
 
-			for(TFieldIterator<UFunction> It(ScopeClass); It; ++It)
+			for (TFieldIterator<UFunction> It(ScopeClass); It; ++It)
 			{
 				UFunction* Func = *It;
-				if (Func && FunctionSignature->IsSignatureCompatibleWith(Func) && 
+				if (Func && FunctionSignature->IsSignatureCompatibleWith(Func) &&
 					UEdGraphSchema_K2::FunctionCanBeUsedInDelegate(Func))
 				{
 					TSharedPtr<FFunctionItemData> ItemData = MakeShareable(new FFunctionItemData());
@@ -153,14 +157,14 @@ void SGraphNodeK2CreateDelegate::CreateBelowPinControls(TSharedPtr<SVerticalBox>
 				.ButtonContent()
 				[
 					SNew(STextBlock)
-						.Text(this, &SGraphNodeK2CreateDelegate::GetCurrentFunctionDescription)
+					.Text(this, &SGraphNodeK2CreateDelegate::GetCurrentFunctionDescription)
 				]
-				.MenuContent()
+			.MenuContent()
 				[
 					SNew(SListView<TSharedPtr<FFunctionItemData> >)
-						.ListItemsSource( &FunctionDataItems )
-						.OnGenerateRow(this, &SGraphNodeK2CreateDelegate::HandleGenerateRowFunction)
-						.OnSelectionChanged(this, &SGraphNodeK2CreateDelegate::OnFunctionSelected)
+					.ListItemsSource(&FunctionDataItems)
+				.OnGenerateRow(this, &SGraphNodeK2CreateDelegate::HandleGenerateRowFunction)
+				.OnSelectionChanged(this, &SGraphNodeK2CreateDelegate::OnFunctionSelected)
 				];
 
 			MainBox->AddSlot()
@@ -179,7 +183,7 @@ void SGraphNodeK2CreateDelegate::CreateBelowPinControls(TSharedPtr<SVerticalBox>
 SGraphNodeK2CreateDelegate::~SGraphNodeK2CreateDelegate()
 {
 	auto SelectFunctionWidgetPtr = SelectFunctionWidget.Pin();
-	if(SelectFunctionWidgetPtr.IsValid())
+	if (SelectFunctionWidgetPtr.IsValid())
 	{
 		SelectFunctionWidgetPtr->SetIsOpen(false);
 	}

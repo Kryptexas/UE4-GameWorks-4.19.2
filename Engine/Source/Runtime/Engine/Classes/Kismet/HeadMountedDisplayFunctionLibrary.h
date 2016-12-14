@@ -1,6 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "HeadMountedDisplayFunctionLibrary.generated.h"
 
 UENUM()
@@ -53,6 +57,14 @@ class ENGINE_API UHeadMountedDisplayFunctionLibrary : public UBlueprintFunctionL
 	 */
 	UFUNCTION(BlueprintPure, Category="Input|HeadMountedDisplay")
 	static bool IsHeadMountedDisplayEnabled();
+
+	/**
+	* Returns whether or not the HMD hardware is connected and ready to use.  It may or may not actually be in use.
+	*
+	* @return (Boolean)  status whether the HMD hardware is connected and ready to use.  It may or may not actually be in use. 
+	*/
+	UFUNCTION(BlueprintPure, Category = "Input|HeadMountedDisplay")
+	static bool IsHeadMountedDisplayConnected();
 
 	/**
 	 * Switches to/from using HMD and stereo rendering.

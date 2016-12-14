@@ -1,14 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
 #include "Kismet/KismetRenderingLibrary.h"
-#include "MessageLog.h"
-#include "UObjectToken.h"
-#include "Runtime/Engine/Classes/Engine/TextureRenderTarget2D.h"
-#include "Runtime/Engine/Classes/Engine/CanvasRenderTarget2D.h"
+#include "HAL/FileManager.h"
+#include "Misc/Paths.h"
+#include "Serialization/BufferArchive.h"
+#include "EngineGlobals.h"
+#include "RenderingThread.h"
+#include "Engine/Engine.h"
+#include "CanvasTypes.h"
+#include "Engine/Canvas.h"
+#include "Misc/App.h"
+#include "TextureResource.h"
+#include "SceneUtils.h"
+#include "Logging/MessageLog.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "ImageUtils.h"
-#include "FileManagerGeneric.h"
-#include "Paths.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetRenderingLibrary
@@ -29,14 +35,13 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 		&& TextureRenderTarget->Resource
 		&& World)
 	{
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			ClearRTCommand,
-			FTextureRenderTargetResource*,RenderTargetResource,TextureRenderTarget->GameThread_GetRenderTargetResource(),
-			FLinearColor,ClearColor,ClearColor,
-		{
-			SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
-			RHICmdList.ClearColorTexture(RenderTargetResource->GetRenderTargetTexture(), ClearColor, FIntRect());
-		});
+		FTextureRenderTargetResource* RenderTargetResource = TextureRenderTarget->GameThread_GetRenderTargetResource();
+		EnqueueUniqueRenderCommand("ClearRTCommand",
+			[RenderTargetResource, ClearColor](FRHICommandList& RHICmdList)
+			{
+				SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
+				RHICmdList.ClearColorTexture(RenderTargetResource->GetRenderTargetTexture(), ClearColor, FIntRect());
+			});
 	}
 }
 
@@ -83,26 +88,25 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 
 		TDrawEvent<FRHICommandList>* DrawMaterialToTargetEvent = new TDrawEvent<FRHICommandList>();
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			BeginDrawEventCommand,
-			FName,RTName,TextureRenderTarget->GetFName(),
-			TDrawEvent<FRHICommandList>*,DrawMaterialToTargetEvent,DrawMaterialToTargetEvent,
-		{
-			BEGIN_DRAW_EVENTF(
-				RHICmdList, 
-				DrawCanvasToTarget, 
-				(*DrawMaterialToTargetEvent), 
-				*RTName.ToString());
-		});
+		FName RTName = TextureRenderTarget->GetFName();
+		EnqueueUniqueRenderCommand("BeginDrawEventCommand",
+			[&RTName ,DrawMaterialToTargetEvent](FRHICommandList& RHICmdList)
+			{
+				BEGIN_DRAW_EVENTF(
+					RHICmdList, 
+					DrawCanvasToTarget, 
+					(*DrawMaterialToTargetEvent), 
+					*RTName.ToString());
+			});
 
 		Canvas->K2_DrawMaterial(Material, FVector2D(0, 0), FVector2D(TextureRenderTarget->SizeX, TextureRenderTarget->SizeY), FVector2D(0, 0));
 
 		RenderCanvas.Flush_GameThread();
 		Canvas->Canvas = NULL;
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			CanvasRenderTargetResolveCommand, FTextureRenderTargetResource*, RenderTargetResource, TextureRenderTarget->GameThread_GetRenderTargetResource(),
-			TDrawEvent<FRHICommandList>*,DrawMaterialToTargetEvent,DrawMaterialToTargetEvent,
+		FTextureRenderTargetResource* RenderTargetResource = TextureRenderTarget->GameThread_GetRenderTargetResource();
+		EnqueueUniqueRenderCommand("CanvasRenderTargetResolveCommand",
+			[RenderTargetResource, DrawMaterialToTargetEvent](FRHICommandList& RHICmdList)
 			{
 				RHICmdList.CopyToResolveTarget(RenderTargetResource->GetRenderTargetTexture(), RenderTargetResource->TextureRHI, true, FResolveParams());
 				STOP_DRAW_EVENT((*DrawMaterialToTargetEvent));
@@ -240,17 +244,17 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 
 		Context.DrawEvent = new TDrawEvent<FRHICommandList>();
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			BeginDrawEventCommand,
-			FName,RTName,TextureRenderTarget->GetFName(),
-			TDrawEvent<FRHICommandList>*,DrawEvent,Context.DrawEvent,
-		{
-			BEGIN_DRAW_EVENTF(
-				RHICmdList, 
-				DrawCanvasToTarget, 
-				(*DrawEvent), 
-				*RTName.ToString());
-		});
+		FName RTName = TextureRenderTarget->GetFName();
+		TDrawEvent<FRHICommandList>* DrawEvent = Context.DrawEvent;
+		EnqueueUniqueRenderCommand("BeginDrawEventCommand",
+			[RTName, DrawEvent](FRHICommandList& RHICmdList)
+			{
+				BEGIN_DRAW_EVENTF(
+					RHICmdList, 
+					DrawCanvasToTarget, 
+					(*DrawEvent), 
+					*RTName.ToString());
+			});
 	}
 	else if (!World)
 	{
@@ -280,9 +284,10 @@ void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextO
 		
 		if (Context.RenderTarget)
 		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				CanvasRenderTargetResolveCommand, FTextureRenderTargetResource*, RenderTargetResource, Context.RenderTarget->GameThread_GetRenderTargetResource(),
-				TDrawEvent<FRHICommandList>*,DrawEvent,Context.DrawEvent,
+			FTextureRenderTargetResource* RenderTargetResource = Context.RenderTarget->GameThread_GetRenderTargetResource();
+			TDrawEvent<FRHICommandList>* DrawEvent = Context.DrawEvent;
+			EnqueueUniqueRenderCommand("CanvasRenderTargetResolveCommand",
+				[RenderTargetResource, DrawEvent](FRHICommandList& RHICmdList)
 				{
 					RHICmdList.CopyToResolveTarget(RenderTargetResource->GetRenderTargetTexture(), RenderTargetResource->TextureRHI, true, FResolveParams());
 					STOP_DRAW_EVENT((*DrawEvent));

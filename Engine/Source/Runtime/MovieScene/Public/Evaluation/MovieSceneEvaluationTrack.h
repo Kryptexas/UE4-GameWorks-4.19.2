@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneSegment.h"
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneTrackImplementation.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
+#include "UObject/Class.h"
+#include "Containers/ArrayView.h"
+#include "Evaluation/MovieSceneSegment.h"
+#include "Evaluation/MovieScenePlayback.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Evaluation/MovieSceneTrackImplementation.h"
 #include "MovieSceneEvaluationTrack.generated.h"
 
 /** Enumeration to determine how a track should be evaluated */

@@ -1,5 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-#include "LogVisualizer.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+#include "SVisualLoggerToolbar.h"
+#include "Framework/MultiBox/MultiBoxDefs.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "LogVisualizerStyle.h"
+#include "VisualLoggerCommands.h"
 #define LOCTEXT_NAMESPACE "SVisualLoggerToolbar"
 
 /* SVisualLoggerToolbar interface

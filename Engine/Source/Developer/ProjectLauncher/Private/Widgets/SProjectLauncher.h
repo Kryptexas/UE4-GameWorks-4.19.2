@@ -1,7 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "SlateFwd.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Docking/WorkspaceItem.h"
+#include "Models/ProjectLauncherModel.h"
+
+class FMenuBuilder;
+class SBorder;
+class SProjectLauncherProgress;
+class SProjectLauncherSettings;
+class SProjectLauncherSimpleDeviceListView;
+class SWindow;
+struct FSlateBrush;
+enum class ECheckBoxState : uint8;
 
 /**
  * Implements a Slate widget for the launcher user interface.

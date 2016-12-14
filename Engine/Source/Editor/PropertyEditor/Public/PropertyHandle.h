@@ -1,10 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/SWidget.h"
 #include "PropertyEditorModule.h"
+#include "UObject/PropertyPortFlags.h"
 
 class FAssetData;
+class IPropertyHandleArray;
+class IPropertyHandleMap;
+class IPropertyHandleSet;
 
 namespace EPropertyValueSetFlags
 {
@@ -202,6 +208,7 @@ public:
 	 * @return The result of attempting to get the value
 	 */
 	virtual FPropertyAccess::Result GetValue( float& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( double& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( bool& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( int8& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( int16& OutValue ) const = 0;
@@ -231,6 +238,7 @@ public:
 	 * @return The result of attempting to set the value
 	 */
 	virtual FPropertyAccess::Result SetValue( const float& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const double& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const bool& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const int8& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const int16& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
@@ -463,18 +471,18 @@ public:
 	virtual void AddRestriction( TSharedRef<const class FPropertyRestriction> Restriction ) = 0;
 
 	/**
-	 * Tests if a value is restricted for this property
-	 * @param Value			The value to test for restriction.
-	 * @return				True if this value is restricted.
-	 */
+	* Tests if a value is restricted for this property
+	* @param Value			The value to test for restriction.
+	* @return				True if this value is restricted.
+	*/
 	virtual bool IsRestricted(const FString& Value) const = 0;
-	
+
 	/**
-	 * Tests if a value is restricted for this property.
-	 * @param Value			The value to test for restriction.
+	* Tests if a value is restricted for this property.
+	* @param Value			The value to test for restriction.
 	 * @param OutReasons	Outputs an array of the reasons why this value is restricted.
-	 * @return				True if this value is restricted.
-	 */
+	* @return				True if this value is restricted.
+	*/
 	virtual bool IsRestricted(const FString& Value, TArray<FText>& OutReasons) const = 0;
 
 	/**
@@ -483,7 +491,37 @@ public:
 	 * @param OutTooltip	The tooltip describing why this value is restricted.
 	 * @return				True if this value is restricted.
 	 */
-	virtual bool GenerateRestrictionToolTip(const FString& Value, FText& OutTooltip)const = 0;
+	virtual bool GenerateRestrictionToolTip(const FString& Value, FText& OutTooltip) const = 0;
+
+	/**
+	* Tests if a value is disabled for this property
+	* @param Value			The value to test whether it is disabled.
+	* @return				True if this value is disabled.
+	*/
+	virtual bool IsDisabled(const FString& Value) const = 0;
+
+	/**
+	* Tests if a value is disabled for this property.
+	* @param Value			The value to test whether it is disabled.
+	* @param OutReasons	Outputs an array of the reasons why this value is disabled.
+	* @return				True if this value is disabled.
+	*/
+	virtual bool IsDisabled(const FString& Value, TArray<FText>& OutReasons) const = 0;
+
+	/**
+	* Tests if a value is hidden for this property
+	* @param Value			The value to test whether it is hidden.
+	* @return				True if this value is hidden.
+	*/
+	virtual bool IsHidden(const FString& Value) const = 0;
+
+	/**
+	* Tests if a value is hidden for this property.
+	* @param Value			The value to test whether it is hidden.
+	* @param OutReasons	Outputs an array of the reasons why this value is hidden.
+	* @return				True if this value is hidden.
+	*/
+	virtual bool IsHidden(const FString& Value, TArray<FText>& OutReasons) const = 0;
 
 	 /** 
 	  * Sets whether or not data validation should occur for this property and all of its children. It is generally unsafe to set this value unless you know what you are doing.  Data validation done by the details panel ensures changes to properties out from under the details panel are known

@@ -1,9 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "Components/RetainerBox.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 
-#include "RetainerBox.h"
-#include "SRetainerWidget.h"
+#include "Slate/SRetainerWidget.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -68,7 +69,7 @@ TSharedRef<SWidget> URetainerBox::RebuildWidget()
 		;
 
 	MyRetainerWidget->SetRetainedRendering(IsDesignTime() ? false : true);
-
+	
 	if ( GetChildrenCount() > 0 )
 	{
 		MyRetainerWidget->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
@@ -83,6 +84,7 @@ void URetainerBox::SynchronizeProperties()
 
 	MyRetainerWidget->SetEffectMaterial(EffectMaterial);
 	MyRetainerWidget->SetTextureParameter(TextureParameter);
+	MyRetainerWidget->SetWorld(GetWorld());
 }
 
 void URetainerBox::OnSlotAdded(UPanelSlot* InSlot)

@@ -1,15 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor/Kismet/Public/BlueprintEditor.h"
-#include "ISequencer.h"
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "Widgets/SWidget.h"
+#include "Framework/Commands/UICommandList.h"
+#include "Framework/MultiBox/MultiBoxExtender.h"
+#include "AssetData.h"
 #include "PreviewScene.h"
+#include "GraphEditor.h"
+#include "BlueprintEditor.h"
+#include "ISequencer.h"
 #include "WidgetReference.h"
+#include "Blueprint/UserWidget.h"
 
-class ISequencer;
+class FMenuBuilder;
+class FWidgetBlueprintEditorToolbar;
+class IMessageLogListing;
+class STextBlock;
+class UPanelSlot;
 class UWidgetAnimation;
-class UUserWidget;
+class UWidgetBlueprint;
 
 struct FNamedSlotSelection
 {
@@ -187,6 +199,7 @@ protected:
 	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode, bool bNewlyCreated = false) override;
 	virtual FGraphAppearanceInfo GetGraphAppearance(class UEdGraph* InGraph) const override;
 	virtual void AppendExtraCompilerResults(TSharedPtr<class IMessageLogListing> ResultsListing) override;
+	virtual TSubclassOf<UEdGraphSchema> GetDefaultSchemaClass() const override;
 	// End FBlueprintEditor
 
 private:

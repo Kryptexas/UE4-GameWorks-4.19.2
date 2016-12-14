@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Viewport.cpp: D3D viewport RHI implementation.
@@ -6,6 +6,7 @@
 
 #include "D3D11RHIPrivate.h"
 #include "RenderCore.h"
+#include "Misc/CommandLine.h"
 
 #include "AllowWindowsPlatformTypes.h"
 #include <dwmapi.h>

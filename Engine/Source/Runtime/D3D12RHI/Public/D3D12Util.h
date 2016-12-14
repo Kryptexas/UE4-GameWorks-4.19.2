@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D12Util.h: D3D RHI utility definitions.
 	=============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Containers/Queue.h"
+#include "RenderUtils.h"
 
 #if WINVER == 0x0502
 // Windows XP uses Win7 sdk, and in that one winerror.h doesn't include them

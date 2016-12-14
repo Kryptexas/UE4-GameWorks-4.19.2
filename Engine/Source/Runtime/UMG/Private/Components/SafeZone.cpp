@@ -1,10 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "UMGPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Components/SafeZone.h"
+#include "SlateFwd.h"
+
 #include "Components/SafeZoneSlot.h"
-#include "Layout/SSafeZone.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

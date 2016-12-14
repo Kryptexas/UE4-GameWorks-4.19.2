@@ -1,7 +1,8 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
-#include "CorePrivatePCH.h"
+#include "Misc/CoreDelegates.h"
+#include "Math/Vector.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -34,6 +35,18 @@ FCoreDelegates::FOnHandleSystemEnsure FCoreDelegates::OnHandleSystemEnsure;
 FCoreDelegates::FOnHandleSystemError FCoreDelegates::OnHandleSystemError;
 FCoreDelegates::FOnActorLabelChanged FCoreDelegates::OnActorLabelChanged;
 
+FCoreDelegates::FPakEncryptionKeyDelegate& FCoreDelegates::GetPakEncryptionKeyDelegate()
+{
+	static FPakEncryptionKeyDelegate PakEncryptionKeyDelegate;
+	return PakEncryptionKeyDelegate;
+}
+
+FCoreDelegates::FPakSigningKeysDelegate& FCoreDelegates::GetPakSigningKeysDelegate()
+{
+	static FPakSigningKeysDelegate PakSigningKeysDelegate;
+	return PakSigningKeysDelegate;
+}
+
 #if WITH_EDITOR
 	FSimpleMulticastDelegate FCoreDelegates::PreModal;
 	FSimpleMulticastDelegate FCoreDelegates::PostModal;
@@ -63,6 +76,10 @@ FCoreDelegates::FApplicationReceivedLocalNotificationDelegate FCoreDelegates::Ap
 
 FCoreDelegates::FOnFConfigFileCreated FCoreDelegates::OnFConfigCreated;
 FCoreDelegates::FOnFConfigFileCreated FCoreDelegates::OnFConfigDeleted;
+
+#if WITH_EDITOR
+FCoreDelegates::FOnTargetPlatformChangedSupportedFormats FCoreDelegates::OnTargetPlatformChangedSupportedFormats;
+#endif 
 
 FCoreDelegates::FStatCheckEnabled FCoreDelegates::StatCheckEnabled;
 FCoreDelegates::FStatEnabled FCoreDelegates::StatEnabled;
@@ -100,3 +117,20 @@ FCoreDelegates::FConfigReadyForUse FCoreDelegates::ConfigReadyForUse;
 
 FSimpleMulticastDelegate FCoreDelegates::OnOutOfMemory;
 FCoreDelegates::FGetOnScreenMessagesDelegate FCoreDelegates::OnGetOnScreenMessages;
+
+void RegisterEncryptionKey(const char* InEncryptionKey)
+{
+	FCoreDelegates::GetPakEncryptionKeyDelegate().BindLambda([InEncryptionKey]() { return InEncryptionKey; });
+}
+
+void RegisterPakSigningKeys(const char* InExponent, const char* InModulus)
+{
+	static FString Exponent(ANSI_TO_TCHAR(InExponent));
+	static FString Modulus(ANSI_TO_TCHAR(InModulus));
+
+	FCoreDelegates::GetPakSigningKeysDelegate().BindLambda([](FString& OutExponent, FString& OutModulus)
+	{
+		OutExponent = Exponent;
+		OutModulus = Modulus;
+	});
+}

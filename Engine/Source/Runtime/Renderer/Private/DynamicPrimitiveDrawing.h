@@ -1,10 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DynamicPrimitiveDrawing.h: Dynamic primitive drawing definitions.
 =============================================================================*/
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "SceneManagement.h"
+#include "SceneRendering.h"
 
 /**
 * Draws a range of view's elements with the specified drawing policy factory type.
@@ -18,6 +22,7 @@ template<class DrawingPolicyFactoryType>
 void DrawViewElementsInner(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog,
@@ -36,6 +41,7 @@ template<class DrawingPolicyFactoryType>
 bool DrawViewElements(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View,
+	const FDrawingPolicyRenderState& DrawRenderState,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog

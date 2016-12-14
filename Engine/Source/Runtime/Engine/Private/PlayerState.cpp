@@ -1,15 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PlayerState.cpp: 
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "GameFramework/PlayerState.h"
+#include "Engine/World.h"
+#include "GameFramework/Controller.h"
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/EngineMessage.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/OnlineEngineInterface.h"
-#include "GameFramework/GameState.h"
-#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameStateBase.h"
 
 APlayerState::APlayerState(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer
@@ -174,7 +176,7 @@ void APlayerState::OnRep_PlayerName()
 		{
 			for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 				if( PlayerController )
 				{
 					PlayerController->ClientReceiveLocalizedMessage( EngineMessageClass, 2, this );
@@ -191,7 +193,7 @@ void APlayerState::OnRep_PlayerName()
 		{
 			for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 				if( PlayerController )
 				{
 					PlayerController->ClientReceiveLocalizedMessage( EngineMessageClass, WelcomeMessageNum, this );
@@ -229,7 +231,7 @@ void APlayerState::Destroyed()
 	{
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if( PlayerController )
 			{
 				PlayerController->ClientReceiveLocalizedMessage( EngineMessageClass, 4, this);

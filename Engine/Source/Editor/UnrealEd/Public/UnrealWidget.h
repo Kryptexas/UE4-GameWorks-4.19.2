@@ -1,14 +1,27 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "HitProxies.h"
 
-class FPrimitiveDrawInterface;
+class FCanvas;
 class FEditorModeTools;
 class FEditorViewportClient;
+class FPrimitiveDrawInterface;
 class FSceneView;
+class UMaterialInstanceDynamic;
 class UMaterialInterface;
 
+/** Coordinate system identifiers. */
+enum ECoordSystem
+{
+	COORD_None	= -1,
+	COORD_World,
+	COORD_Local,
+	COORD_Max,
+};
 
 class FWidget
 	: public FGCObject

@@ -1,10 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WindowsPlatformTime.cpp: Windows implementations of time functions
 =============================================================================*/
 
-#include "CorePrivatePCH.h"
+#include "HTML5/HTML5PlatformTime.h"
 
 #if PLATFORM_HTML5_WIN32
 #include <time.h>

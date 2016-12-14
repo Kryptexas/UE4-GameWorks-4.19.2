@@ -1,11 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EdGraphCompilerUtilities.h"
-#include "UnrealEd.h"
-#include "Editor.h"
-#include "KismetCompiledFunctionContext.h"
+#include "CoreMinimal.h"
+#include "BPTerminal.h"
+#include "BlueprintCompiledStatement.h"
+
+class FCompilerResultsLog;
+class FKismetCompilerContext;
+class UAnimGraphNode_Base;
+class UBlueprint;
+class UEdGraph;
+class UEdGraphSchema_K2;
+class UK2Node;
+class UK2Node_CallFunction;
+struct FKismetFunctionContext;
 
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerUtilities

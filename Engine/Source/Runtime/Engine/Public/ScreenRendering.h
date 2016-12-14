@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScreenRendering.h: Screen rendering definitions.
@@ -6,8 +6,11 @@
 
 #pragma once
 
-#include "Shader.h"
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "RenderResource.h"
 #include "ShaderParameters.h"
+#include "Shader.h"
 #include "GlobalShader.h"
 #include "ShaderParameterUtils.h"
 

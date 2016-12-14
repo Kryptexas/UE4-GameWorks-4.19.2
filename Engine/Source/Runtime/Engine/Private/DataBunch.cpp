@@ -1,11 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataBunch.cpp: Unreal bunch (sub-packet) functions.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "Net/UnrealNetwork.h"
+#include "Net/DataBunch.h"
+#include "Engine/NetConnection.h"
 #include "Engine/ControlChannel.h"
 
 static const int32 MAX_BUNCH_SIZE = 1024 * 1024; 

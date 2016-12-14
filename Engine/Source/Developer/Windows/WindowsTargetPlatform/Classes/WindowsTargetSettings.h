@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WindowsTargetSettings.h: Declares the UWindowsTargetSettings class.
@@ -6,13 +6,14 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
 #include "WindowsTargetSettings.generated.h"
 
 UENUM()
 enum class EMinimumSupportedOS : uint8
 {
 	MSOS_Vista = 0 UMETA(DisplayName = "Windows Vista"),
-	MSOS_XP = 1 UMETA(DisplayName = "Windows XP"),
 };
 
 UENUM()

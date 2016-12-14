@@ -1,31 +1,54 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Skeletal mesh creation from FBX data.
 	Largely based on SkeletalMeshImport.cpp
 =============================================================================*/
 
-#include "UnrealEd.h"
-
-#include "Engine.h"
-#include "TextureLayout.h"
-#include "SkelImport.h"
-#include "FbxImporter.h"
+#include "CoreMinimal.h"
+#include "EngineDefines.h"
+#include "Misc/MessageDialog.h"
+#include "Containers/IndirectArray.h"
+#include "Stats/Stats.h"
+#include "Async/AsyncWork.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "Modules/ModuleManager.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/PackageName.h"
+#include "SkeletalMeshTypes.h"
+#include "Animation/Skeleton.h"
+#include "Engine/SkeletalMesh.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "AnimEncoding.h"
-#include "SSkeletonWidget.h"
+#include "Factories/Factory.h"
+#include "Factories/FbxSkeletalMeshImportData.h"
+#include "Animation/MorphTarget.h"
+#include "PhysicsAssetUtils.h"
 
+#include "SkelImport.h"
+#include "Logging/TokenizedMessage.h"
+#include "FbxImporter.h"
+
+#include "AssetData.h"
+#include "ARFilter.h"
 #include "AssetRegistryModule.h"
 #include "AssetNotifications.h"
 
 #include "ObjectTools.h"
 
 #include "ApexClothingUtils.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "MeshUtilities.h"
 
+#include "IMessageLogListing.h"
 #include "MessageLogModule.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
 #include "ComponentReregisterContext.h"
 
-#include "FbxErrors.h"
+#include "Misc/FbxErrors.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Engine/SkeletalMeshSocket.h"
 
@@ -2156,6 +2179,11 @@ void UnFbx::FFbxImporter::SetMaterialOrderByName(FSkeletalMeshImportData& Import
 
 void UnFbx::FFbxImporter::CleanUpUnusedMaterials(FSkeletalMeshImportData& ImportData)
 {
+	if (ImportData.Materials.Num() <= 0)
+	{
+		return;
+	}
+
 	TArray< VMaterial > ExistingMatList = ImportData.Materials;
 
 	TArray<uint8> UsedMaterialIndex;
@@ -2167,7 +2195,7 @@ void UnFbx::FFbxImporter::CleanUpUnusedMaterials(FSkeletalMeshImportData& Import
 		UsedMaterialIndex.AddUnique(Triangle.MatIndex);
 	}
 	//Remove any unused material.
-	if (UsedMaterialIndex.Num() != ExistingMatList.Num())
+	if (UsedMaterialIndex.Num() < ExistingMatList.Num())
 	{
 		TArray<int32> RemapIndex;
 		TArray< VMaterial > &NewMatList = ImportData.Materials;
@@ -3522,16 +3550,21 @@ FFbxLogger::~FFbxLogger()
 			}
 		}
 	}
-	if(ShowLogMessage && TokenizedErrorMessages.Num() > 0)
-	{
-		const TCHAR* LogTitle = TEXT("FBXImport");
-		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-		TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
-		LogListing->SetLabel(FText::FromString("FBX Import"));
-		LogListing->ClearMessages();
 
+	//Always clear the old message after an import or re-import
+	const TCHAR* LogTitle = TEXT("FBXImport");
+	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+	TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
+	LogListing->SetLabel(FText::FromString("FBX Import"));
+	LogListing->ClearMessages();
+
+	if(TokenizedErrorMessages.Num() > 0)
+	{
 		LogListing->AddMessages(TokenizedErrorMessages);
-		MessageLogModule.OpenMessageLog(LogTitle);
+		if (ShowLogMessage)
+		{
+			MessageLogModule.OpenMessageLog(LogTitle);
+		}
 	}
 }
 #undef LOCTEXT_NAMESPACE

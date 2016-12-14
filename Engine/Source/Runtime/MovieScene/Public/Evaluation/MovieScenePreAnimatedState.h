@@ -1,10 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Evaluation/MovieSceneAnimTypeID.h"
 #include "MovieSceneExecutionToken.h"
 #include "MovieSceneSection.h"
-#include "ObjectKey.h"
+#include "Evaluation/MovieSceneEvaluationKey.h"
+#include "UObject/ObjectKey.h"
+
+class IMovieScenePlayer;
 
 enum class ECapturePreAnimatedState : uint8
 {

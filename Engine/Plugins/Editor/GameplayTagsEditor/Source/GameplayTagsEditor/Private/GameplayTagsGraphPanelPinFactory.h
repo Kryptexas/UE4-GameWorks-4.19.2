@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "EdGraphUtilities.h"
+#include "GameplayTagContainer.h"
+#include "EdGraphSchema_K2.h"
+#include "SGraphPin.h"
 #include "SGameplayTagGraphPin.h"
 #include "SGameplayTagContainerGraphPin.h"
 #include "SGameplayTagQueryGraphPin.h"
-#include "GameplayTags.h"
 
 class FGameplayTagsGraphPanelPinFactory: public FGraphPanelPinFactory
 {

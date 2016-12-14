@@ -1,14 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "GameplayTags.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "GameplayTagContainer.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayPrediction.h"
+#include "UObject/ObjectKey.h"
 #include "GameplayEffect.h"
-#include "ObjectKey.h"
 #include "GameplayCue_Types.generated.h"
 
-class UGameplayCueSet;
 class AGameplayCueNotify_Actor;
+class UAbilitySystemComponent;
+class UGameplayCueSet;
 
 UENUM()
 enum class EGameplayCuePayloadType : uint8

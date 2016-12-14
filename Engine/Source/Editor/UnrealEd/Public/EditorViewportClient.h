@@ -1,30 +1,38 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Editor.h"
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Engine/EngineBaseTypes.h"
+#include "Animation/CurveSequence.h"
+#include "UObject/GCObject.h"
+#include "Editor/UnrealEdTypes.h"
+#include "SceneTypes.h"
+#include "Engine/Scene.h"
+#include "Camera/CameraTypes.h"
 #include "UnrealWidget.h"
-#include "Framework/Commands/Commands.h"
-#include "Layout/SlateRect.h"
+#include "ShowFlags.h"
+#include "UnrealClient.h"
+#include "SceneManagement.h"
 #include "EditorComponents.h"
+#include "Framework/Commands/Commands.h"
 
-
+class FAssetData;
 class FCachedJoystickState;
 class FCameraControllerConfig;
 class FCameraControllerUserImpulseData;
+class FCanvas;
 class FDragTool;
 class FEditorCameraController;
 class FEditorModeTools;
 class FEditorViewportClient;
+class FEdMode;
 class FMouseDeltaTracker;
 class FPreviewScene;
-class FSceneView;
-class FWidget;
-class HHitProxy;
 class IMatineeBase;
 class SEditorViewport;
 class UActorFactory;
-
 
 /** Delegate called by FEditorViewportClient to check its visibility */
 DECLARE_DELEGATE_RetVal( bool, FViewportStateGetter );
@@ -784,7 +792,7 @@ public:
 	}
 
 	/** @return True if InViewModeIndex is the current view mode param */
-	bool IsViewModeParam(int32 InViewModeParam) const { return ViewModeParam == InViewModeParam; }
+	bool IsViewModeParam(int32 InViewModeParam) const;
 
 	/**
 	 * Invalidates this viewport and optionally child views.
@@ -1029,6 +1037,9 @@ public:
 
 	/** Returns the location of the object at the given viewport X,Y */
 	FVector GetHitProxyObjectLocation(int32 X, int32 Y);
+
+	/** Returns the map allowing to convert from the viewmode param to a name. */
+	TMap<int32, FName>& GetViewModeParamNameMap() { return ViewModeParamNameMap; }
 
 protected:
 	/** Invalidates the viewport widget (if valid) to register its active timer */
@@ -1486,6 +1497,10 @@ private:
 
 	/* View mode param */
 	int32 ViewModeParam;
+	FName ViewModeParamName;
+
+	/* A map converting the viewmode param into an asset name. The map gets updated while the menu is populated. */
+	TMap<int32, FName> ViewModeParamNameMap;
 
 	/** near plane adjustable for each editor view, if < 0 GNearClippingPlane should be used. */
 	float NearPlane;
@@ -1498,6 +1513,14 @@ private:
 
 	/** If true, the viewport widget should be invalidated on the next tick (needed to ensure thread safety) */
 	bool bShouldInvalidateViewportWidget;
+
+	/*
+	 * When we drag the manipulator(no camera movement involve) in absolute we need a view to compute the delta
+	 * We want to use the view when the user start dragging and use the same view until the displacement is done.
+	 * Using the same view allow us to move the camera and not disrupt the movement continuity.
+	 */
+	FSceneView* DragStartView;
+	FSceneViewFamily *DragStartViewFamily;
 };
 
 

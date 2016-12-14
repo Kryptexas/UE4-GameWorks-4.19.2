@@ -1,9 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
-#include "SlateCore.h"
+#include "CoreMinimal.h"
+#include "InputCoreTypes.h"
+#include "Layout/Geometry.h"
+#include "Input/CursorReply.h"
+#include "Input/Reply.h"
+#include "Input/PopupMethodReply.h"
+#include "Widgets/SWidget.h"
+#include "Rendering/RenderingCommon.h"
+#include "Textures/SlateShaderResource.h"
+#include "UnrealClient.h"
+
+class FCanvas;
+class FDebugCanvasDrawer;
+class FSlateRenderer;
+class FSlateWindowElementList;
+class SViewport;
+class SWindow;
 
 /** Called in FSceneViewport::ResizeFrame after ResizeViewport*/
 DECLARE_DELEGATE_OneParam( FOnSceneViewportResize, FVector2D );
@@ -236,6 +252,9 @@ public:
 	virtual FIntPoint GetRenderTargetTextureSizeXY() const { return (RTTSize.X != 0) ? RTTSize : GetSizeXY(); }
 
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() override;
+
+	/** Get the cached viewport geometry. */
+	const FGeometry& GetCachedGeometry() const { return CachedGeometry; }
 
 private:
 	/**

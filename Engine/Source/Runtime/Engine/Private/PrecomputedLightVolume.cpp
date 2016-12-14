@@ -1,13 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrecomputedLightVolume.cpp: Implementation of a precomputed light volume.
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "PrecomputedLightVolume.h"
-#include "TargetPlatform.h"
-#include "RenderingObjectVersion.h"
+#include "Stats/Stats.h"
+#include "EngineDefines.h"
+#include "UObject/RenderingObjectVersion.h"
+#include "SceneManagement.h"
+#include "UnrealEngine.h"
+#include "Engine/MapBuildDataRegistry.h"
+#include "Interfaces/ITargetPlatform.h"
 
 template<> TVolumeLightingSample<2>::TVolumeLightingSample(const TVolumeLightingSample<2>& Other)
 {

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -164,6 +164,14 @@ namespace UnrealBuildTool
 		public static bool bCompileAgainstCoreUObject;
 
 		/// <summary>
+		/// Indicates that this is a formal build, intended for distribution. This flag is automatically set to true when Build.version has a changelist set.
+		/// The only behavior currently bound to this flag is to compile the default resource file separately for each binary so that the OriginalFilename field is set correctly. 
+		/// By default, we only compile the resource once to reduce build times.
+		/// </summary>
+		[XmlConfig]
+		public static bool bFormalBuild;
+
+		/// <summary>
 		/// If true, include ADO database support in core
 		/// </summary>
 		[XmlConfig]
@@ -223,6 +231,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bForceEnableExceptions;
+
+		/// <summary>
+		/// Enable RTTI for all modules
+		/// </summary>
+		[XmlConfig]
+		public static bool bForceEnableRTTI;
 
 		/// <summary>
 		/// Compile server-only code.
@@ -372,6 +386,7 @@ namespace UnrealBuildTool
 			UEThirdPartyBinariesDirectory = "../Binaries/ThirdParty/";
 			bCompileRecast = true;
 			bForceEnableExceptions = false;
+			bForceEnableRTTI = false;
 			bWithServerCode = true;
 			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;
@@ -392,7 +407,6 @@ namespace UnrealBuildTool
 			bEditorDependsOnShaderCompileWorker = true;
             bForceCompileDevelopmentAutomationTests = false;
             bForceCompilePerformanceAutomationTests = false;
-			bEventDrivenLoader = false;
 		}
 
 		/// <summary>

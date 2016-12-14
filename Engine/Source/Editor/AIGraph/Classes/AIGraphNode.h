@@ -1,10 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "EdGraph/EdGraphNode.h"
 #include "AIGraphTypes.h"
-#include "DiffResults.h"
 #include "AIGraphNode.generated.h"
+
+class UEdGraph;
+class UEdGraphPin;
+class UEdGraphSchema;
+struct FDiffResults;
+struct FDiffSingleResult;
 
 UCLASS()
 class AIGRAPH_API UAIGraphNode : public UEdGraphNode

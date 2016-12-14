@@ -1,17 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Templates/UnrealTypeTraits.h"
+#include "CoreTypes.h"
+#include "Templates/IsPODType.h"
 #include "Templates/IsEnumClass.h"
 
-#define DEPRECATE_ENUM_AS_BYTE_FOR_ENUM_CLASSES 0
-
-#if DEPRECATE_ENUM_AS_BYTE_FOR_ENUM_CLASSES
-	template <bool> struct TEnumAsByte_EnumClass;
-	template <> struct DEPRECATED(4.15, "TEnumAsByte is not intended for use with enum classes - please derive your enum class from uint8 instead.") TEnumAsByte_EnumClass<true> {};
-	template <> struct TEnumAsByte_EnumClass<false> {};
-#endif
+template <bool> struct TEnumAsByte_EnumClass;
+template <> struct DEPRECATED(4.15, "TEnumAsByte is not intended for use with enum classes - please derive your enum class from uint8 instead.") TEnumAsByte_EnumClass<true> {};
+template <> struct TEnumAsByte_EnumClass<false> {};
 
 /**
  * Template to store enumeration values as bytes in a type-safe way.
@@ -19,9 +16,7 @@
 template<class TEnum>
 class TEnumAsByte
 {
-#if DEPRECATE_ENUM_AS_BYTE_FOR_ENUM_CLASSES
 	typedef TEnumAsByte_EnumClass<TIsEnumClass<TEnum>::Value> Check;
-#endif
 
 public:
 	typedef TEnum EnumType;

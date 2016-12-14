@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * PostProcessVolume:  a post process settings volume
@@ -7,8 +7,12 @@
 
 #pragma once
 
-#include "Scene.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptInterface.h"
 #include "GameFramework/Volume.h"
+#include "Engine/BlendableInterface.h"
+#include "Engine/Scene.h"
 #include "Interfaces/Interface_PostProcessVolume.h"
 
 #include "PostProcessVolume.generated.h"
@@ -20,30 +24,30 @@ class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 	GENERATED_UCLASS_BODY()
 
 	/** Post process settings to use for this volume. */
-	UPROPERTY(interp, Category=PostProcessVolume, meta=(ShowOnlyInnerProperties))
+	UPROPERTY(interp, Category=PostProcessVolumeSettings)
 	struct FPostProcessSettings Settings;
 
 	/**
 	 * Priority of this volume. In the case of overlapping volumes the one with the highest priority
 	 * overrides the lower priority ones. The order is undefined if two or more overlapping volumes have the same priority.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessVolume)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessVolumeSettings)
 	float Priority;
 
 	/** World space radius around the volume that is used for blending (only if not unbound).			*/
-	UPROPERTY(interp, Category=PostProcessVolume, meta=(ClampMin = "0.0", UIMin = "0.0", UIMax = "6000.0"))
+	UPROPERTY(interp, Category=PostProcessVolumeSettings, meta=(ClampMin = "0.0", UIMin = "0.0", UIMax = "6000.0"))
 	float BlendRadius;
 
 	/** 0:no effect, 1:full effect */
-	UPROPERTY(interp, Category=PostProcessVolume, BlueprintReadWrite, meta=(UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY(interp, Category=PostProcessVolumeSettings, BlueprintReadWrite, meta=(UIMin = "0.0", UIMax = "1.0"))
 	float BlendWeight;
 
 	/** Whether this volume is enabled or not.															*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessVolume)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessVolumeSettings)
 	uint32 bEnabled:1;
 
 	/** Whether this volume bounds are used or it affects the whole world.								*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessVolume)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PostProcessVolumeSettings)
 	uint32 bUnbound:1;
 
 	//~ Begin IInterface_PostProcessVolume Interface

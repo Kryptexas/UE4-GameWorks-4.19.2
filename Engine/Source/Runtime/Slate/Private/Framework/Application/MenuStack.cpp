@@ -1,9 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlatePrivatePCH.h"
-#include "Menu.h"
-#include "SPopup.h"
-#include "SMenuAnchor.h"
+#include "Framework/Application/MenuStack.h"
+#include "Layout/LayoutUtils.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Layout/SPopup.h"
+#include "Framework/Application/Menu.h"
 
 #define LOCTEXT_NAMESPACE "MenuStack"
 

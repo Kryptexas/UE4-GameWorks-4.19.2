@@ -1,23 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CustomDepthRendering.cpp: CustomDepth rendering implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "Engine.h"
-#include "ScenePrivate.h"
-#include "ScreenRendering.h"
-#include "PostProcessing.h"
-#include "RenderingCompositionGraph.h"
-#include "SceneFilterRendering.h"
+#include "CustomDepthRendering.h"
 #include "SceneUtils.h"
+#include "DrawingPolicy.h"
+#include "DepthRendering.h"
+#include "SceneRendering.h"
 
 /*-----------------------------------------------------------------------------
 	FCustomDepthPrimSet
 -----------------------------------------------------------------------------*/
 
-bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const TUniformBufferRef<FViewUniformShaderParameters>& ViewUniformBuffer, bool bWriteCustomStencilValues)
+bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FDrawingPolicyRenderState& DrawRenderState, bool bWriteCustomStencilValues)
 {
 	bool bDirty=false;
 
@@ -34,12 +31,19 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 			{
 				const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
 
-				FDepthDrawingPolicyFactory::ContextType Context(ViewUniformBuffer, DDM_AllOpaque, false);
+				FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOpaque, false);
 
+				FDrawingPolicyRenderState DrawRenderStateLocal(&RHICmdList, DrawRenderState);
 				if (bWriteCustomStencilValues)
 				{
 					const uint32 CustomDepthStencilValue = PrimitiveSceneProxy->GetCustomDepthStencilValue();
-					RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), CustomDepthStencilValue);
+					DrawRenderStateLocal.SetDepthStencilState(RHICmdList, TStaticDepthStencilState<true, CF_DepthNearOrEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), CustomDepthStencilValue);
+
+					if (View.GetFeatureLevel() <= ERHIFeatureLevel::ES3_1)
+					{
+						// On mobile platforms write custom stencil value to color target
+						Context.MobileColorValue = CustomDepthStencilValue/255.0f;
+					}
 				}
 
 				// Note: As for custom depth rendering the order doesn't matter we actually could iterate View.DynamicMeshElements without this indirection	
@@ -54,7 +58,8 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 						checkSlow(MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy);
 
 						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-						FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
+
+						FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, true, DrawRenderStateLocal, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 					}
 				}
 
@@ -66,7 +71,9 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 
 						if (View.StaticMeshVisibilityMap[StaticMesh.Id])
 						{
-							const FMeshDrawingRenderState DrawRenderState(FDepthDrawingPolicy::GetDitheredLODTransitionState(View, StaticMesh));
+							FDrawingPolicyRenderState DrawRenderStateLocal2(&RHICmdList, DrawRenderStateLocal);
+							FMeshDrawingPolicy::OnlyApplyDitheredLODTransitionState(RHICmdList, DrawRenderStateLocal2, View, StaticMesh, false);
+
 							bDirty |= FDepthDrawingPolicyFactory::DrawStaticMesh(
 								RHICmdList, 
 								View,
@@ -74,7 +81,7 @@ bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const 
 								StaticMesh,
 								StaticMesh.bRequiresPerElementVisibility ? View.StaticMeshBatchVisibility[StaticMesh.Id] : ((1ull << StaticMesh.Elements.Num()) - 1),
 								true,
-								DrawRenderState,
+								DrawRenderStateLocal2,
 								PrimitiveSceneProxy,
 								StaticMesh.BatchHitProxyId
 								);

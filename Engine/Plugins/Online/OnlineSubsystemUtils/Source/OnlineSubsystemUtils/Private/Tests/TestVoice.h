@@ -1,8 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Ticker.h"
+#include "CoreMinimal.h"
+#include "Misc/CoreMisc.h"
+#include "Containers/Ticker.h"
+
+class IVoiceCapture;
+class IVoiceDecoder;
+class IVoiceEncoder;
 
 #if WITH_DEV_AUTOMATION_TESTS
 

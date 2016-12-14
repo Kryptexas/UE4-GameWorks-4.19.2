@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Templates/SubclassOf.h"
+#include "AI/Navigation/NavAreas/NavArea.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
 #include "NavAreaMeta_SwitchByAgent.generated.h"
+
+class AActor;
 
 /** Class containing definition of a navigation area */
 UCLASS(Abstract)

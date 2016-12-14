@@ -1,14 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "CoreUObjectPrivate.h"
+#include "Blueprint/BlueprintSupport.h"
+#include "Misc/ScopeLock.h"
+#include "Misc/CoreMisc.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/Object.h"
+#include "UObject/GarbageCollection.h"
+#include "UObject/Class.h"
+#include "UObject/Package.h"
+#include "Templates/Casts.h"
+#include "UObject/UnrealType.h"
+#include "Serialization/DuplicatedDataWriter.h"
+#include "Misc/PackageName.h"
+#include "UObject/ObjectResource.h"
+#include "UObject/GCObject.h"
 #include "UObject/LinkerPlaceholderClass.h"
 #include "UObject/LinkerPlaceholderExportObject.h"
 #include "UObject/LinkerPlaceholderFunction.h"
-#include "Linker.h"
-#include "PropertyTag.h"
 #include "UObject/StructScriptLoader.h"
 #include "UObject/UObjectThreadContext.h"
-#include "ModuleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintSupport, Log, All);
 
@@ -1740,9 +1750,7 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 		OuterImport->ObjectName = Import.ObjectRef.PackageName;
 
 		if ((Import.ObjectRef.ClassName == DynamicClassName) 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-			&& GIsInitialLoad
-#endif 
+			&& (!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 			&& (Import.ObjectRef.ClassPackageName == DynamicClassPackageName))
 		{
 			const FString DynamicClassPath = Import.ObjectRef.PackageName.ToString() + TEXT(".") + Import.ObjectRef.ObjectName.ToString();
@@ -1770,8 +1778,8 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 		DynamicTypeExport->ObjectFlags |= RF_Public;
 	}
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-
+	if (GEventDrivenLoaderEnabled)
+	{
 	const FString DynamicTypePath = GetExportPathName(DynamicTypeExportIndex);
 	const FName DynamicTypeClassName = GetDynamicTypeClassName(*DynamicTypePath);
 	ensure(DynamicTypeClassName != NAME_None);
@@ -1881,11 +1889,11 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 			HandleDependencyTypeForExport(EDependencyType::CreateBeforeCreate);
 		}
 	}
-#endif
-
-#if !USE_EVENT_DRIVEN_ASYNC_LOAD
+	}
+	else
+	{
 	LinkerRoot->SetPackageFlags(LinkerRoot->GetPackageFlags() | PKG_CompiledIn);
-#endif
+	}
 }
 
 /*******************************************************************************
@@ -2260,8 +2268,7 @@ void FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(UDynamicClas
 	TArray<FBlueprintDependencyData> UsedAssetdData;
 	GetUsedAssets(UsedAssetdData);
 
-#if USE_EVENT_DRIVEN_ASYNC_LOAD
-	if (!GIsInitialLoad)
+	if (GEventDrivenLoaderEnabled && EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 	{
 		FLinkerLoad* Linker = DynamicClass->GetOutermost()->LinkerLoad;
 		if (Linker)
@@ -2280,7 +2287,6 @@ void FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(UDynamicClas
 		}
 		check(0);
 	}
-#endif
 
 	for (FBlueprintDependencyData& ItData : UsedAssetdData)
 	{

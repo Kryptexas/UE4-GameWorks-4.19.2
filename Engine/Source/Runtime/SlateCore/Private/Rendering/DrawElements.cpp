@@ -1,7 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "SlateCorePrivatePCH.h"
-#include "ReflectionMetadata.h"
+#include "Rendering/DrawElements.h"
+#include "Application/SlateApplicationBase.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SWindow.h"
 
 DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::Make Time"), STAT_SlateDrawElementMakeTime, STATGROUP_SlateVerbose);
 DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::MakeCustomVerts Time"), STAT_SlateDrawElementMakeCustomVertsTime, STATGROUP_Slate);
@@ -42,6 +44,13 @@ void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry
 	DrawEffects = InDrawEffects;
 	extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
 	ScissorRect = GSlateScissorRect;
+
+	// Like GSlateScissorRect above, this is a workaround because we want to keep track of the various Scenes 
+	// in use throughout the UI. We keep a synchronized set with the render thread on the SlateRenderer and 
+	// use indices to synchronize between them.
+	TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
+	check(Renderer.IsValid());
+	SceneIndex = Renderer->GetCurrentSceneIndex();
 
 	DataPayload.BatchFlags = ESlateBatchDrawFlag::None;
 	if ( InDrawEffects & ESlateDrawEffect::NoBlending )
@@ -288,6 +297,17 @@ void FSlateDrawElement::MakeLayer(FSlateWindowElementList& ElementList, uint32 I
 	DrawElt.DataPayload.SetLayerPayloadProperties(DrawLayerHandle.Get());
 }
 
+void FSlateDrawElement::MakePostProcessPass(FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, const FVector4& Params, int32 DownsampleAmount)
+{
+	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
+
+	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, ESlateDrawEffect::None);
+	DrawElt.ElementType = ET_PostProcessPass;
+	DrawElt.DataPayload.DownsampleAmount = DownsampleAmount;
+	DrawElt.DataPayload.PostProcessData = Params;
+}
+
 FVector2D FSlateDrawElement::GetRotationPoint(const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace)
 {
 	FVector2D RotationPoint(0, 0);
@@ -296,17 +316,17 @@ FVector2D FSlateDrawElement::GetRotationPoint(const FPaintGeometry& PaintGeometr
 
 	switch (RotationSpace)
 	{
-	case RelativeToElement:
-	{
-		// If the user did not specify a rotation point, we rotate about the center of the element
-		RotationPoint = UserRotationPoint.Get(LocalSize * 0.5f);
-	}
+		case RelativeToElement:
+		{
+			// If the user did not specify a rotation point, we rotate about the center of the element
+			RotationPoint = UserRotationPoint.Get(LocalSize * 0.5f);
+		}
 		break;
-	case RelativeToWorld:
-	{
-		// its in world space, must convert the point to local space.
-		RotationPoint = TransformPoint(Inverse(PaintGeometry.GetAccumulatedRenderTransform()), UserRotationPoint.Get(FVector2D::ZeroVector));
-	}
+		case RelativeToWorld:
+		{
+			// its in world space, must convert the point to local space.
+			RotationPoint = TransformPoint(Inverse(PaintGeometry.GetAccumulatedRenderTransform()), UserRotationPoint.Get(FVector2D::ZeroVector));
+		}
 		break;
 	default:
 		check(0);
@@ -473,6 +493,10 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 			if ( ElementBatch.GetCustomDrawer().IsValid() )
 			{
 				AddRenderBatch(Layer, ElementBatch, 0, 0, 0, 0);
+			}
+			else if(ElementBatch.GetShaderType() == ESlateShader::PostProcess)
+			{
+				AddRenderBatch(Layer,ElementBatch, 0, 0, 0, 0);
 			}
 			else
 			{

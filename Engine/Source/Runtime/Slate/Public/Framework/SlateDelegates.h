@@ -1,7 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Widgets/SWidget.h"
+
+class ITableRow;
 
 /** Notification when user clicks outside a specified region. */
 DECLARE_DELEGATE(FOnClickedOutside)
@@ -112,6 +117,9 @@ DECLARE_DELEGATE_TwoParams( FOnInt32ValueCommitted, int32, ETextCommit::Type);
 
 /** Notification for FLinearColor value change */
 DECLARE_DELEGATE_OneParam( FOnLinearColorValueChanged, FLinearColor )
+
+/** Notification for FVector4 value change */
+DECLARE_DELEGATE_OneParam(FOnVector4ValueChanged, FVector4&)
 
 
 template< typename ArgumentType >

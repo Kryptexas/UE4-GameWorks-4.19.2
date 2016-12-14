@@ -1,14 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UVehicleAnimInstance.cpp: Single Node Tree Instance 
 	Only plays one animation at a time. 
 =============================================================================*/ 
 
-#include "PhysXVehiclesPrivatePCH.h"
 #include "VehicleAnimInstance.h"
 #include "WheeledVehicleMovementComponent.h"
-#include "VehicleWheel.h"
 #include "WheeledVehicle.h"
 #include "AnimationRuntime.h"
 

@@ -1,28 +1,44 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorBuildUtils.cpp: Utilities for building in the editor
 =============================================================================*/
 
-#include "UnrealEd.h"
 #include "EditorBuildUtils.h"
+#include "Misc/MessageDialog.h"
+#include "HAL/FileManager.h"
+#include "Misc/ScopedSlowTask.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/PackageName.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/Level.h"
+#include "Engine/Brush.h"
+#include "ISourceControlOperation.h"
+#include "SourceControlOperations.h"
 #include "ISourceControlModule.h"
+#include "Materials/MaterialInterface.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Settings/LevelEditorMiscSettings.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/FeedbackContext.h"
+#include "EngineUtils.h"
+#include "Editor.h"
+#include "FileHelpers.h"
+#include "UnrealEdGlobals.h"
+#include "Engine/LevelStreaming.h"
 #include "LevelUtils.h"
 #include "EditorLevelUtils.h"
 #include "BusyCursor.h"
-#include "Database.h"
 #include "Dialogs/SBuildProgress.h"
 #include "LightingBuildOptions.h"
-#include "Dialogs/Dialogs.h"
-#include "MainFrame.h"
 #include "AssetToolsModule.h"
-#include "MessageLog.h"
-#include "Engine/LevelStreaming.h"
-#include "GameFramework/WorldSettings.h"
-#include "AI/Navigation/NavigationSystem.h"
+#include "Logging/MessageLog.h"
 #include "HierarchicalLOD.h"
 #include "ActorEditorUtils.h"
 #include "MaterialUtilities.h"
+#include "UnrealEngine.h"
+#include "DebugViewModeHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildUtils, Log, All);
 
@@ -882,10 +898,11 @@ FBuildAllHandler::FBuildAllHandler()
 	BuildSteps.Add(FBuildOptions::BuildGeometry);
 	BuildSteps.Add(FBuildOptions::BuildHierarchicalLOD);
 	BuildSteps.Add(FBuildOptions::BuildAIPaths);
+	// Texture streaming goes before lighting as lighting needs to be the last build step.
+	// This is not an issue as lightmaps are not taken into consideration in the texture streaming build.
+	BuildSteps.Add(FBuildOptions::BuildTextureStreaming);
 	//Lighting must always be the last one when doing a build all
 	BuildSteps.Add(FBuildOptions::BuildLighting);
-	//Texture streaming follows lighting because it could generate lightmap related data.
-	BuildSteps.Add(FBuildOptions::BuildTextureStreaming);
 }
 
 /**
@@ -1062,15 +1079,14 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, EViewModeIn
 	if (bNeedsMaterialData)
 	{
 		TSet<UMaterialInterface*> Materials;
-
-		if (!GetTextureStreamingBuildMaterials(InWorld, Materials, BuildTextureStreamingTask))
+		if (!GetUsedMaterialsInWorld(InWorld, Materials, BuildTextureStreamingTask))
 		{
 			return false;
 		}
 
 		if (Materials.Num())
 		{
-			if (!CompileTextureStreamingShaders(QualityLevel, FeatureLevel, SelectedViewMode == VMI_Unknown, true, Materials, BuildTextureStreamingTask))
+			if (!CompileDebugViewModeShaders(DVSM_OutputMaterialTextureScales, QualityLevel, FeatureLevel, SelectedViewMode == VMI_Unknown, true, Materials, BuildTextureStreamingTask))
 			{
 				return false;
 			}
@@ -1130,6 +1146,41 @@ bool FEditorBuildUtils::EditorBuildTextureStreaming(UWorld* InWorld, EViewModeIn
 	}
 
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+	return true;
+}
+
+bool FEditorBuildUtils::CompileViewModeShaders(UWorld* InWorld, EViewModeIndex SelectedViewMode)
+{
+	if (!InWorld || SelectedViewMode != VMI_RequiredTextureResolution) return false;
+	const EDebugViewShaderMode ShaderMode = DVSM_RequiredTextureResolution;
+
+	const EMaterialQualityLevel::Type QualityLevel = GetCachedScalabilityCVars().MaterialQualityLevel;;
+	const ERHIFeatureLevel::Type FeatureLevel = InWorld->FeatureLevel;
+
+	FScopedSlowTask CompileShaderTask(3.f, LOCTEXT("CompileDebugViewModeShaders", "Compiling Missing ViewMode Shaders")); // { Get Used Materials, Sync Pending Shader, Wait for Compilation }
+	CompileShaderTask.MakeDialog(true);
+
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+
+	TSet<UMaterialInterface*> Materials;
+	if (!GetUsedMaterialsInWorld(InWorld, Materials, CompileShaderTask))
+	{
+		return false;
+	}
+
+	if (Materials.Num())
+	{
+		if (!CompileDebugViewModeShaders(ShaderMode, QualityLevel, FeatureLevel, false, true, Materials, CompileShaderTask))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		CompileShaderTask.EnterProgressFrame();
+	}
+
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 	return true;
 }
 

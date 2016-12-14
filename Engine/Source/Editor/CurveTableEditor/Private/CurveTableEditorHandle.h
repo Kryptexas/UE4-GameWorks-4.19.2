@@ -1,10 +1,11 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Curves/CurveOwnerInterface.h"
-
-class UCurveTable;
+#include "UObject/WeakObjectPtr.h"
+#include "Engine/CurveTable.h"
 
 /**
  * Handle to a particular row in a table, used for editing individual curves
@@ -34,6 +35,12 @@ struct FCurveTableEditorHandle : public FCurveOwnerInterface
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged(const TArray<FRichCurveEditInfo>& ChangedCurveEditInfos) override;
 	virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) override;
+	virtual TArray<const UObject*> GetOwners() const override
+	{ 
+		//Note this is read only so we return nothing
+		return TArray<const UObject*>(); 
+	}
+
 	//~ End FCurveOwnerInterface Interface.
 
 	/** Returns true if the curve is valid */

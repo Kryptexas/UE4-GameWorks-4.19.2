@@ -1,8 +1,7 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "GraphEditorCommon.h"
-#include "SGraphPinText.h"
+#include "KismetPins/SGraphPinText.h"
 #include "ScopedTransaction.h"
 #include "STextPropertyEditableTextBox.h"
 
@@ -64,6 +63,11 @@ namespace
 			const FScopedTransaction Transaction(NSLOCTEXT("GraphEditor", "ChangeTxtPinValue", "Change Text Pin Value"));
 			GraphPinObj->Modify();
 			GraphPinObj->GetSchema()->TrySetDefaultText(*GraphPinObj, InText);
+		}
+
+		virtual bool IsValidText(const FText& InText, FText& OutErrorMsg) const override
+		{
+			return true;
 		}
 
 #if USE_STABLE_LOCALIZATION_KEYS

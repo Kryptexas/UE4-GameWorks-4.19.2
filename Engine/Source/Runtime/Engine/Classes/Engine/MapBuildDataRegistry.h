@@ -1,13 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Registry for built data from a map build
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Misc/Guid.h"
+#include "Engine/EngineTypes.h"
 #include "SceneTypes.h"
-#include "PrecomputedLightVolume.h"
+#include "UObject/UObjectAnnotation.h"
 #include "MapBuildDataRegistry.generated.h"
+
+class FPrecomputedLightVolumeData;
 
 struct ENGINE_API FPerInstanceLightmapData
 {

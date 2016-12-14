@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Models/TextureEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "TextureEditorViewOptionsMenu"
-
 
 /**
  * Static helper class for populating the "View Options" menu in the texture editor's view port.

@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ScriptStackTracker.h: Script Stack Tracking within Unreal Engine.
 =============================================================================*/
 #pragma once
 
-#include "UMemoryDefines.h"
+#include "CoreMinimal.h"
+
+struct FFrame;
 
 struct FScriptStackTracker
 {

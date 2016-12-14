@@ -145,7 +145,7 @@ public:
 
 						PxsContactManager*		createContactManager(PxsContactManager* contactManager, const bool useCCD);
 						void					createCache(Gu::Cache& cache, PxsContactManager* cm, PxU8 geomType0, PxU8 geomType1);
-						void					destroyCache(Gu::Cache& cache, PxU8 geomType0, PxU8 geomType1);
+						void					destroyCache(Gu::Cache& cache);
 						void					destroyContactManager(PxsContactManager* cm);
 
 						
@@ -236,7 +236,7 @@ public:
 	PxU32										getTotalCompressedContactSize() const	{ return mTotalCompressedCacheSize; }
 	PxU32										getMaxPatchCount() const				{ return mMaxPatches; }
 
-	PX_FORCE_INLINE		PxcThreadCoherantCache<PxcNpThreadContext, PxcNpContext>&		getNpThreadContextPool()
+	PX_FORCE_INLINE		PxcThreadCoherentCache<PxcNpThreadContext, PxcNpContext>&		getNpThreadContextPool()
 	{
 		return mNpThreadContextPool;
 	}
@@ -294,7 +294,7 @@ private:
 						PxU32					mIndex;
 
 	// Threading
-	PxcThreadCoherantCache<PxcNpThreadContext, PxcNpContext>
+	PxcThreadCoherentCache<PxcNpThreadContext, PxcNpContext>
 												mNpThreadContextPool;
 
 	// Contact managers

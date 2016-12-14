@@ -1,8 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "TransformCalculus.h"
+#include "CoreTypes.h"
+#include "Math/Vector.h"
+#include "Math/Rotator.h"
+#include "Math/Matrix.h"
+#include "Math/RotationMatrix.h"
+#include "Math/TranslationMatrix.h"
+#include "Math/Quat.h"
+#include "Math/ScaleMatrix.h"
+#include "Math/TransformCalculus.h"
 
 
 //////////////////////////////////////////////////////////////////////////

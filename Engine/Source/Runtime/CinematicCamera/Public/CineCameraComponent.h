@@ -1,8 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
 #include "Camera/CameraComponent.h"
 #include "CineCameraComponent.generated.h"
+
+class AActor;
+class UMaterial;
+class UMaterialInstanceDynamic;
+class UStaticMesh;
+class UStaticMeshComponent;
 
 /** #note, this struct has a details customization in CameraFilmbackSettingsCustomization.cpp/h */
 USTRUCT()
@@ -222,13 +231,16 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Read-only. Control this value with CurrentFocalLength (and filmback settings). */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Current Camera Settings")
+	UPROPERTY(VisibleAnywhere, Category = "Current Camera Settings")
 	float CurrentHorizontalFOV;
 #endif
 	
 	/** Returns the horizonal FOV of the camera with current settings. */
+	UFUNCTION(BlueprintCallable, Category = "Cine Camera")
 	float GetHorizontalFieldOfView() const;
+	
 	/** Returns the vertical FOV of the camera with current settings. */
+	UFUNCTION(BlueprintCallable, Category = "Cine Camera")
 	float GetVerticalFieldOfView() const;
 
 	/** Returns a list of available filmback presets. */

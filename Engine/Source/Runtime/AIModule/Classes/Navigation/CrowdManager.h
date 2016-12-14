@@ -1,16 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "AI/Navigation/NavigationTypes.h"
 #include "Tickable.h"
 #include "DrawDebugHelpers.h"
 #include "CrowdManager.generated.h"
 
-class UWorld;
-struct FNavMeshPath;
 class ANavigationData;
-class UCrowdFollowingComponent;
+class dtCrowd;
+class dtObstacleAvoidanceDebugData;
 class ICrowdAgentInterface;
+class UCrowdFollowingComponent;
 class UCrowdManager;
+struct dtCrowdAgent;
+struct dtCrowdAgentDebugInfo;
+struct dtCrowdAgentParams;
+struct dtQuerySpecialLinkFilter;
+struct FNavMeshPath;
+
 #if WITH_RECAST
 struct dtQuerySpecialLinkFilter;
 struct dtCrowdAgentParams;
@@ -226,6 +238,8 @@ class AIMODULE_API UCrowdManager : public UObject
 	/** notify called when detour navmesh is changed */
 	void OnNavMeshUpdate();
 
+	const ANavigationData* GetNavData() const { return MyNavData; }
+
 	UWorld* GetWorld() const override;
 
 	static UCrowdManager* GetCurrent(UObject* WorldContextObject);
@@ -267,6 +281,10 @@ protected:
 	/** how often should agents try to optimize their paths? */
 	UPROPERTY(config, EditAnywhere, Category = Config)
 	float PathOptimizationInterval;
+
+	/** clamp separation force to left/right when neighbor is behind (dot between forward and dirToNei, -1 = disabled) */
+	UPROPERTY(config, EditAnywhere, Category = Config)
+	float SeparationDirClamp;
 
 	uint32 bPruneStartedOffmeshConnections : 1;
 	uint32 bSingleAreaVisibilityOptimization : 1;

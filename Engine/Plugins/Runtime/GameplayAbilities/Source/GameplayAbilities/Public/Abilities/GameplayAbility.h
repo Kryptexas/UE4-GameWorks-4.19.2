@@ -1,17 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "Templates/SubclassOf.h"
 #include "GameplayTagContainer.h"
-#include "GameplayTagAssetInterface.h"
-#include "Runtime/Engine/Classes/Animation/AnimInstance.h"
-#include "GameplayAbilityTargetTypes.h"
-#include "GameplayAbilityTypes.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
-#include "Abilities/GameplayAbilityTargetDataFilter.h"
-#include "GameplayTask.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "GameplayTaskOwnerInterface.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "GameplayAbility.generated.h"
+
+class UAbilitySystemComponent;
+class UAnimMontage;
+class UGameplayAbility;
+class UGameplayTask;
+class UGameplayTasksComponent;
+struct EventData;
 
 /**
  * UGameplayAbility
@@ -441,7 +450,7 @@ protected:
 	bool IsEndAbilityValid(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
 
 	/** Native function, called if an ability ends normally or abnormally. If bReplicate is set to true, try to replicate the ending to the client/server */
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility);
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled);
 
 	// -------------------------------------
 	//	GameplayEffects

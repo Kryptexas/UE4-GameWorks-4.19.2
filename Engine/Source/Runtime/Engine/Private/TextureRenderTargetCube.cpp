@@ -1,12 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureRenderTargetCube.cpp: UTextureRenderTargetCube implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
 #include "Engine/TextureRenderTargetCube.h"
-#include "DDSLoader.h"
+#include "RenderUtils.h"
+#include "TextureResource.h"
+#include "UnrealEngine.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 #include "Engine/TextureCube.h"
 
 /*-----------------------------------------------------------------------------

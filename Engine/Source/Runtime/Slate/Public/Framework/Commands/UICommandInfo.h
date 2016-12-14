@@ -1,12 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Layout/Visibility.h"
+#include "CoreMinimal.h"
 #include "Misc/Attribute.h"
-#include "Framework/Commands/InputChord.h"
+#include "InputCoreTypes.h"
+#include "Layout/Visibility.h"
 #include "Textures/SlateIcon.h"
+#include "Framework/Commands/InputChord.h"
 
+class FBindingContext;
+class FUICommandInfo;
 
 /** Types of user interfaces that can be associated with a user interface action */
 namespace EUserInterfaceActionType
@@ -40,8 +44,6 @@ class SLATE_API FUICommandInfoDecl
 
 public:
 
-	DEPRECATED(4.8, "Use DefaultChord instead of DefaultGesture")
-	FUICommandInfoDecl& DefaultGesture( const FInputChord& InDefaultGesture );
 	FUICommandInfoDecl& DefaultChord( const FInputChord& InDefaultChord );
 	FUICommandInfoDecl& UserInterfaceType( EUserInterfaceActionType::Type InType );
 	FUICommandInfoDecl& Icon( const FSlateIcon& InIcon );
@@ -60,6 +62,7 @@ private:
 	const TSharedRef<FBindingContext>& Context;
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnBindingContextChanged, const FBindingContext&);
 
 /**
  * Represents a context in which input bindings are valid
@@ -128,7 +131,7 @@ public:
 	}
 
 	/** A delegate that is called when commands are registered or unregistered with a binding context */
-	static FSimpleMulticastDelegate CommandsChanged; 
+	static FOnBindingContextChanged CommandsChanged;
 
 private:
 
@@ -175,12 +178,8 @@ public:
 	/**
 	 * @return	Returns the active chord for this command
 	 */
-	DEPRECATED(4.8, "Use GetActiveChord instead of GetActiveGesture")
-	const TSharedRef<const FInputChord> GetActiveGesture() const { return GetActiveChord(); }
 	const TSharedRef<const FInputChord> GetActiveChord() const { return ActiveChord; }
 
-	DEPRECATED(4.8, "Use GetDefaultChord instead of GetDefaultGesture")
-	const FInputChord& GetDefaultGesture() const { return GetDefaultChord(); }
 	const FInputChord& GetDefaultChord() const { return DefaultChord; }
 
 	/** Utility function to make an FUICommandInfo */
@@ -205,13 +204,9 @@ public:
 	FName GetBindingContext() const { return BindingContext; }
 
 	/** Sets the new active chord for this command */
-	DEPRECATED(4.8, "Use SetActiveChord instead of SetActiveGesture")
-	void SetActiveGesture( const FInputChord& NewGesture ) { SetActiveChord(NewGesture); }
 	void SetActiveChord( const FInputChord& NewChord );
 
 	/** Removes the active chord from this command */
-	DEPRECATED(4.8, "Use RemoveActiveChord instead of RemoveActiveGesture")
-	void RemoveActiveGesture() { RemoveActiveChord(); }
 	void RemoveActiveChord();
 
 	/** 

@@ -1,11 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleMemoryStatManager.cpp: Particle dynamic data memory manager implementation.
 =============================================================================*/
 
-#include "EnginePrivate.h"
-#include "ParticleDefinitions.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "EngineStats.h"
+#include "ParticleHelper.h"
 
 /*-----------------------------------------------------------------------------
 	ParticleMemoryStatManager

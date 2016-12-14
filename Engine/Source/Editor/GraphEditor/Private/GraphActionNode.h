@@ -1,8 +1,10 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SGraphActionMenu.h" // for FOnRenameRequestActionNode
+#include "CoreMinimal.h"
+#include "EdGraph/EdGraphSchema.h"
+#include "SGraphActionMenu.h"
 
 // Utility class for building menus of graph actions
 struct GRAPHEDITOR_API FGraphActionNode : TSharedFromThis<FGraphActionNode>

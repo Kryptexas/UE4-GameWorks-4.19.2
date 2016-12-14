@@ -1,16 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Misc/Guid.h"
 #include "MovieSceneTrack.h"
 #include "Curves/IntegralCurve.h"
 #include "MovieSceneSpawnTrack.generated.h"
 
-
-class IMovieSceneTrackInstance;
-class UMovieSceneBoolSection;
-class UMovieSceneSection;
-
+struct FMovieSceneEvaluationTrack;
 
 /**
  * Handles when a spawnable should be spawned and destroyed

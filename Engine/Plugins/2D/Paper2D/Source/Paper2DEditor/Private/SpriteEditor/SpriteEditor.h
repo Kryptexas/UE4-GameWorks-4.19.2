@@ -1,12 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/GCObject.h"
+#include "Toolkits/IToolkitHost.h"
 #include "Toolkits/AssetEditorToolkit.h"
-#include "Toolkits/AssetEditorManager.h"
 
+class FToolBarBuilder;
 class SSpriteEditorViewport;
 class SSpriteList;
+class UPaperSprite;
+class UTexture2D;
 
 //////////////////////////////////////////////////////////////////////////
 // 

@@ -1,17 +1,28 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-
-#include "PersonaPrivatePCH.h"
 
 #include "SAnimCurvePanel.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Misc/MessageDialog.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Animation/AnimSequence.h"
+#include "Widgets/Layout/SSplitter.h"
+#include "Layout/WidgetPath.h"
+#include "Framework/Application/MenuStack.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SEditableText.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "Widgets/Layout/SScrollBox.h"
 #include "ScopedTransaction.h"
 #include "SAnimCurveEd.h"
-#include "Editor/KismetWidgets/Public/SScrubWidget.h"
-#include "AssetRegistryModule.h"
-#include "Kismet2NameValidators.h"
-#include "SExpandableArea.h"
-#include "STextEntryPopup.h"
-#include "Animation/AnimSequence.h"
+#include "Kismet2/Kismet2NameValidators.h"
+#include "Widgets/Layout/SExpandableArea.h"
+#include "Widgets/Input/STextEntryPopup.h"
 #include "IEditableSkeleton.h"
 
 #define LOCTEXT_NAMESPACE "AnimCurvePanel"
@@ -80,6 +91,18 @@ public:
 			AnimSequenceBase.Get()->Modify(true);
 			AnimSequenceBase.Get()->MarkRawDataAsModified();
 		}
+	}
+
+	/** Returns the owner(s) of the curve */
+	virtual TArray<const UObject*> GetOwners() const override
+	{
+		TArray<const UObject*> Owners;
+		if (AnimSequenceBase.IsValid())
+		{
+			Owners.Add(AnimSequenceBase.Get());
+		}
+
+		return Owners;
 	}
 
 	/** Called to make curve owner transactional */
@@ -397,54 +420,61 @@ void SCurveEdTrack::NewCurveNameEntered( const FText& NewText, ETextCommit::Type
 	{
 		if (USkeleton* Skeleton = CurveInterface->AnimSequenceBase->GetSkeleton())
 		{
-			// Check that the name doesn't already exist
-			FName RequestedName = FName(*NewText.ToString());
-			const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
-
-			FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
-
-			// If requested name exists, make sure it's not currently in use in this sequence.
-
-			SmartName::UID_Type RequestedNameUID;
-
-			if (const SmartName::UID_Type* RequestedNameUIDPtr = NameMapping->FindUID(RequestedName))
+			// only do this if the name isn't same
+			FText CurrentCurveName = CurveInterface->GetCurveName(CurveInterface->CurveUID);
+			if (!CurrentCurveName.EqualToCaseIgnored(NewText))
 			{
-				RequestedNameUID = *RequestedNameUIDPtr;
-				// Already in use in this sequence, skip
-				if (CurveInterface->AnimSequenceBase->RawCurveData.GetCurveData(RequestedNameUID) != nullptr)
+				// Check that the name doesn't already exist
+				FName RequestedName = FName(*NewText.ToString());
+
+				const FSmartNameMapping* NameMapping = Skeleton->GetSmartNameContainer(USkeleton::AnimCurveMappingName);
+
+				FScopedTransaction Transaction(LOCTEXT("CurveEditor_RenameCurve", "Rename Curve"));
+
+				// If requested name exists, make sure it's not currently in use in this sequence.
+
+				SmartName::UID_Type RequestedNameUID;
+
+				if (const SmartName::UID_Type* RequestedNameUIDPtr = NameMapping->FindUID(RequestedName))
 				{
-					FFormatNamedArguments Args;
-					Args.Add(TEXT("DestinationName"), FText::FromName(RequestedName));
-					const FText DialogMessage = FText::Format(LOCTEXT("CurveEditor_RenameCurve_AlreadyExists", "ERROR: A curve named '{DestinationName}' already exists in this Sequence."), Args);
-					FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
-					Transaction.Cancel();
-					return;
+					RequestedNameUID = *RequestedNameUIDPtr;
+
+					// Already in use in this sequence, and if it's not my UID
+					if (RequestedNameUID != CurveInterface->CurveUID && CurveInterface->AnimSequenceBase->RawCurveData.GetCurveData(RequestedNameUID) != nullptr)
+					{
+						FFormatNamedArguments Args;
+						Args.Add(TEXT("DestinationName"), FText::FromName(RequestedName));
+						const FText DialogMessage = FText::Format(LOCTEXT("CurveEditor_RenameCurve_AlreadyExists", "ERROR: A curve named '{DestinationName}' already exists in this Sequence."), Args);
+						FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
+						Transaction.Cancel();
+						return;
+					}
 				}
-			}
-			else
-			{
-				FSmartName NewName;
-				const bool bAdded = Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, RequestedName, NewName);
-				if (!bAdded)
+				else
 				{
-					const FText DialogMessage = LOCTEXT("CurveEditor_RenameCurve_Unknownfailure", "ERROR: Failed to add new curve smart name, check the log for errors.");
-					FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
-					Transaction.Cancel();
-					return;
+					FSmartName NewName;
+					const bool bAdded = Skeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, RequestedName, NewName);
+					if (!bAdded)
+					{
+						const FText DialogMessage = LOCTEXT("CurveEditor_RenameCurve_Unknownfailure", "ERROR: Failed to add new curve smart name, check the log for errors.");
+						FMessageDialog::Open(EAppMsgType::Ok, DialogMessage);
+						Transaction.Cancel();
+						return;
+					}
+					RequestedNameUID = NewName.UID;
 				}
-				RequestedNameUID = NewName.UID;
-			}
 
-			// Not in use in this sequence, switch it to the other curve name.
-			CurveInterface->AnimSequenceBase->Modify(true);
+				// Not in use in this sequence, switch it to the other curve name.
+				CurveInterface->AnimSequenceBase->Modify(true);
 
-			CurveInterface->UpdateName(RequestedNameUID, RequestedName);
+				CurveInterface->UpdateName(RequestedNameUID, RequestedName);
 
-			// 2. refresh panel
-			TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
-			if (SharedPanel.IsValid())
-			{
-				SharedPanel.Get()->UpdatePanel();
+				// 2. refresh panel
+				TSharedPtr<SAnimCurvePanel> SharedPanel = PanelPtr.Pin();
+				if (SharedPanel.IsValid())
+				{
+					SharedPanel.Get()->UpdatePanel();
+				}
 			}
 		}
 	}
@@ -553,7 +583,6 @@ void SAnimCurvePanel::Construct(const FArguments& InArgs, const TSharedRef<class
 	Sequence = InArgs._Sequence;
 	WidgetWidth = InArgs._WidgetWidth;
 	OnGetScrubValue = InArgs._OnGetScrubValue;
-	OnCurvesChanged = InArgs._OnCurvesChanged;
 
 	InEditableSkeleton->RegisterOnSmartNameRemoved(FOnSmartNameRemoved::FDelegate::CreateSP(this, &SAnimCurvePanel::HandleSmartNameRemoved));
 
@@ -861,8 +890,6 @@ void SAnimCurvePanel::UpdatePanel()
 				Tracks.Add(CurrentTrack);
 			}
 		}
-
-		OnCurvesChanged.ExecuteIfBound();
 	}
 }
 

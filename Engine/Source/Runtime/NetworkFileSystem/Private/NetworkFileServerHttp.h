@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NetworkFileServerHttp.h: Declares the NetworkFileServerHttp class.
@@ -8,9 +8,21 @@
 =============================================================================*/
 #pragma  once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "Misc/Guid.h"
+#include "HAL/Runnable.h"
+#include "Interfaces/INetworkFileServer.h"
+#include "Interfaces/INetworkFileSystemModule.h"
+
+class FInternetAddr;
+class FNetworkFileServerClientConnectionHTTP;
+class ITargetPlatform;
+
 #if ENABLE_HTTP_FOR_NFS
 
 #if PLATFORM_WINDOWS
+#include "WindowsHWrapper.h"
 #include "AllowWindowsPlatformTypes.h"
 #endif
 

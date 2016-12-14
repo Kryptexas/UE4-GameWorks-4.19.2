@@ -1,10 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
-#include "ParticleHelper.h"
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
 
 #include "ParticleSystem.generated.h"
+
+enum class EParticleSignificanceLevel : uint8;
+enum class EParticleSystemInsignificanceReaction: uint8;
 
 /**
  *	ParticleSystemUpdateMode

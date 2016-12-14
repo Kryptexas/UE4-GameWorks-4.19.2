@@ -1,7 +1,19 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Framework/Commands/UICommandInfo.h"
+
+class SButton;
+class SChordEditor;
+class SMenuAnchor;
+struct FSlateBrush;
 
 /**
  * A widget that adds visuals to an SChordEditor
@@ -13,7 +25,6 @@ public:
 
 	SLATE_BEGIN_ARGS( SChordEditBox ){}
 	SLATE_END_ARGS()
-
 public:
 
 	/**
@@ -22,7 +33,6 @@ public:
 	 * @param InArgs The Slate argument list.
 	 */
 	void Construct( const FArguments& InArgs, TSharedPtr<FUICommandInfo> InputCommand );
-
 private:
 
 	/** @return Border image for the text box based on the hovered and focused state */

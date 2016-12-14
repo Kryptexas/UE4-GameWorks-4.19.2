@@ -1,15 +1,14 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessHistogramReduce.cpp: Post processing histogram reduce implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessHistogramReduce.h"
-#include "PostProcessing.h"
+#include "PostProcess/PostProcessHistogramReduce.h"
+#include "StaticBoundShaderState.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "PostProcess/PostProcessing.h"
 
 /** Encapsulates the post processing histogram reduce compute shader. */
 class FPostProcessHistogramReducePS : public FGlobalShader

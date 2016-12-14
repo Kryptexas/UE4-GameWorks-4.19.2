@@ -1,10 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "UObject/ObjectMacros.h"
+#include "EngineDefines.h"
+#include "HitProxies.h"
+#include "Misc/Guid.h"
+#include "Engine/TextureStreamingTypes.h"
 #include "Components/StaticMeshComponent.h"
 
 #include "InstancedStaticMeshComponent.generated.h"
+
+class FLightingBuildOptions;
+class FPrimitiveSceneProxy;
+class FStaticLightingTextureMapping_InstancedStaticMesh;
+class ULightComponent;
+struct FNavigableGeometryExport;
+struct FNavigationRelevantData;
+struct FPerInstanceRenderData;
+struct FStaticLightingPrimitiveInfo;
 
 DECLARE_STATS_GROUP(TEXT("Foliage"), STATGROUP_Foliage, STATCAT_Advanced);
 

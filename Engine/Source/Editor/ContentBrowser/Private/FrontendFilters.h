@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "CollectionManagerTypes.h"
+#include "ISourceControlProvider.h"
+#include "IAssetTools.h"
+#include "Misc/TextFilterExpressionEvaluator.h"
 #include "FrontendFilterBase.h"
-#include "TextFilterExpressionEvaluator.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
+
+class FMenuBuilder;
 
 /** A filter for text search */
 class FFrontendFilter_Text : public FFrontendFilter

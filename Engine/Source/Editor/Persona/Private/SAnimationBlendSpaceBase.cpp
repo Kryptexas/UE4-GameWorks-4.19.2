@@ -1,15 +1,24 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "PersonaPrivatePCH.h"
 #include "SAnimationBlendSpaceBase.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Editor.h"
+#include "Toolkits/AssetEditorManager.h"
+#include "SlateOptMacros.h"
+#include "Fonts/FontMeasure.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IContentBrowserSingleton.h"
+#include "ContentBrowserModule.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 #include "ScopedTransaction.h"
 #include "AnimPreviewInstance.h"
-#include "Animation/BlendSpaceBase.h"
-#include "Animation/BlendSpace.h"
+#include "Widgets/Layout/SExpandableArea.h"
 #include "Animation/AimOffsetBlendSpace.h"
 #include "Animation/AimOffsetBlendSpace1D.h"
 #include "SAnimationBlendSpaceGridWidget.h"
-#include "IPersonaPreviewScene.h"
 
 #define LOCTEXT_NAMESPACE "BlendSpaceEditorBase"
 
@@ -90,7 +99,7 @@ void SBlendSpaceEditorBase::OnSampleMoved(const int32 SampleIndex, const FVector
 void SBlendSpaceEditorBase::OnSampleRemoved(const int32 SampleIndex)
 {
 	FScopedTransaction ScopedTransaction(LOCTEXT("RemoveSample", "Removing Blend Grid Sample"));
-	BlendSpace->Modify();
+				BlendSpace->Modify();
 
 	const bool bRemoveSuccesful = BlendSpace->DeleteSample(SampleIndex);
 	if (bRemoveSuccesful)
@@ -121,6 +130,9 @@ void SBlendSpaceEditorBase::PostUndo()
 
 	// Invalidate widget data
 	NewBlendSpaceGridWidget->InvalidateCachedData();
+
+	// Invalidate sample indices used for UI info
+	NewBlendSpaceGridWidget->InvalidateState();
 
 	// Set flag which will update the preview value in the next tick (this due the recreation of data after Undo)
 	bShouldSetPreviewValue = true;
@@ -178,6 +190,8 @@ void SBlendSpaceEditorBase::NotifyPostChange(const FPropertyChangedEvent& Proper
 {
 	if (BlendSpace)
 	{
+		BlendSpace->ValidateSampleData();
+		ResampleData();
 		BlendSpace->MarkPackageDirty();
 	}
 }

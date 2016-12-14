@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // LocalMessage
@@ -13,7 +13,14 @@
 //=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
 #include "LocalMessage.generated.h"
+
+class APlayerController;
+class APlayerState;
 
 /** Handles the many pieces of data passed into Client Receive */
 USTRUCT()

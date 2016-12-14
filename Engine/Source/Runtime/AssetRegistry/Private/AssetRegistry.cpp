@@ -1,11 +1,23 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 
-#include "AssetRegistryPCH.h"
-#include "ModuleManager.h"
-#include "GenericPlatformChunkInstall.h"
+#include "AssetRegistry.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Serialization/ArrayReader.h"
+#include "Misc/ConfigCacheIni.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/MetaData.h"
+#include "AssetRegistryPrivate.h"
+#include "ARFilter.h"
+#include "DependsNode.h"
+#include "PackageReader.h"
+#include "GenericPlatform/GenericPlatformChunkInstall.h"
 
 #if WITH_EDITOR
+#include "IDirectoryWatcher.h"
 #include "DirectoryWatcherModule.h"
 #endif // WITH_EDITOR
 
@@ -377,18 +389,20 @@ void FAssetRegistry::SearchAllAssets(bool bSynchronousSearch)
 }
 
 
-bool FAssetRegistry::GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData) const
+bool FAssetRegistry::GetAssetsByPackageName(FName PackageName, TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets ) const
 {
 	FARFilter Filter;
 	Filter.PackageNames.Add(PackageName);
+	Filter.bIncludeOnlyOnDiskAssets = bIncludeOnlyOnDiskAssets;
 	return GetAssets(Filter, OutAssetData);
 }
 
-bool FAssetRegistry::GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive) const
+bool FAssetRegistry::GetAssetsByPath(FName PackagePath, TArray<FAssetData>& OutAssetData, bool bRecursive, bool bIncludeOnlyOnDiskAssets) const
 {
 	FARFilter Filter;
 	Filter.bRecursivePaths = bRecursive;
 	Filter.PackagePaths.Add(PackagePath);
+	Filter.bIncludeOnlyOnDiskAssets = bIncludeOnlyOnDiskAssets;
 	return GetAssets(Filter, OutAssetData);
 }
 
@@ -1610,6 +1624,7 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 		// allocate one single block for all asset data structs (to reduce tens of thousands of heap allocations)
 		PreallocatedAssetDataBuffer = new FAssetData[LocalNumAssets];
 
+		double LastPumpTime = FPlatformTime::Seconds();
 		for (int32 AssetIndex = 0; AssetIndex < LocalNumAssets; AssetIndex++)
 		{
 			// make a new asset data object
@@ -1621,6 +1636,16 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 			AddAssetData(NewAssetData);
 
 			AddAssetPath(NewAssetData->PackagePath);
+			
+#if PLATFORM_XBOXONE
+			// Pump OS messages if we've taken too much time serializing
+			double CurTime = FPlatformTime::Seconds();
+			if (CurTime - LastPumpTime > MaxSecondsPerFrame)
+			{
+				FPlatformMisc::PumpMessages(true);
+				LastPumpTime = CurTime;
+			}
+#endif
 		}
 
 		int32 LocalNumDependsNodes = LocalNumAssets;

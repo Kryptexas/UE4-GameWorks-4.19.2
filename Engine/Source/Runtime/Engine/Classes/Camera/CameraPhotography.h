@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "Camera/CameraTypes.h"
-#include "CameraPhotographyModule.h"
+#include "CoreMinimal.h"
 
+class APlayerCameraManager;
+class ICameraPhotography;
+struct FMinimalViewInfo;
 
 /**
  * Free-camera photography manager

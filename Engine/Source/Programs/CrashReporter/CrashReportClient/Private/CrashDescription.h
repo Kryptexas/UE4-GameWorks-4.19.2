@@ -1,11 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "GenericPlatformCrashContext.h"
-#include "UnrealString.h"
-#include "XmlFile.h"
-#include "EngineVersion.h"
 
+#include "CoreMinimal.h"
+#include "Containers/UnrealString.h"
+#include "GenericPlatform/GenericPlatformCrashContext.h"
+#include "XmlFile.h"
+#include "Misc/EngineVersion.h"
+
+enum class ECrashDescVersions : int32;
+enum class ECrashDumpMode : int32;
+class FXmlNode;
 struct FPrimaryCrashProperties;
 struct FAnalyticsEventAttribute;
 
@@ -73,7 +78,7 @@ struct FAnalyticsEventAttribute;
 	"bAllowToBeContacted"
  */
 
-namespace LexicalConversion
+namespace Lex
 {
 	inline void FromString( ECrashDescVersions& OutValue, const TCHAR* Buffer )
 	{
@@ -347,7 +352,7 @@ struct FPrimaryCrashProperties
 	FCrashProperty CrashReporterMessage;
 
 	/**
-	 *	Windows only. Non-zero integrity values are to be discounted as "genuine" crashes.
+	 *	Platform-specific UE4 Core value (integer).
 	 */
 	FCrashProperty PlatformCallbackResult;
 
@@ -450,7 +455,7 @@ protected:
 			const FXmlNode* CategoryNode = MainNode->FindChildNode( SecondCategory );
 			if (CategoryNode)
 			{
-				LexicalConversion::FromString( out_ReadValue, *FGenericCrashContext::UnescapeXMLString( CategoryNode->GetContent() ) );
+				Lex::FromString( out_ReadValue, *FGenericCrashContext::UnescapeXMLString( CategoryNode->GetContent() ) );
 			}
 		}
 	}

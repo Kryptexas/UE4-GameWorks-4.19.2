@@ -1,14 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "MovieSceneEvalTemplate.h"
-#include "MovieSceneLevelVisibilitySection.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Evaluation/PersistentEvaluationData.h"
+#include "Evaluation/MovieSceneEvalTemplate.h"
+#include "Sections/MovieSceneLevelVisibilitySection.h"
 #include "MovieSceneLevelVisibilityTemplate.generated.h"
-
-
-class UMovieSceneLevelVisibilitySection;
-
 
 USTRUCT()
 struct FMovieSceneLevelVisibilitySectionTemplate

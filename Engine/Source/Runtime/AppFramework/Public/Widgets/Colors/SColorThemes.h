@@ -1,13 +1,25 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "SlateBasics.h"
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Input/DragAndDrop.h"
+#include "Input/Reply.h"
+#include "Layout/Visibility.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Styling/SlateColor.h"
+#include "Layout/Children.h"
+#include "Widgets/SCompoundWidget.h"
+#include "Widgets/SPanel.h"
+#include "Widgets/Views/STableViewBase.h"
+#include "Widgets/Views/STableRow.h"
 
-
-// forward declarations
+class FArrangedChildren;
+class SEditableTextBox;
+class SErrorText;
+class STextBlock;
 class SThemeColorBlocksBar;
-
 
 /**
  * A Color Theme is a name and an array of Colors.

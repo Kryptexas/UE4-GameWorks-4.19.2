@@ -1,10 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Misc/Guid.h"
+#include "InputCoreTypes.h"
+#include "HitProxies.h"
+#include "UnrealWidget.h"
 #include "EditorViewportClient.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "Animation/DebugSkelMeshComponent.h"
+#include "IPersonaPreviewScene.h"
 
-class FAdvancedPreviewScene;
+class FCanvas;
+class ISkeletonTree;
+class UPersonaOptions;
+class USkeletalMeshSocket;
 struct FCompactHeapPose;
 
 //////////////////////////////////////////////////////////////////////////
@@ -150,7 +161,7 @@ public:
 	bool IsSetCameraFollowChecked() const;
 
 	/** Handle the skeletal mesh mesh component being used for preview changing */
-	void HandleSkeletalMeshChanged(class USkeletalMesh* InSkeletalMesh);
+	void HandleSkeletalMeshChanged(class USkeletalMesh* OldSkeletalMesh, class USkeletalMesh* NewSkeletalMesh);
 
 	/** Function to display bone names*/
 	void ShowBoneNames(FViewport* Viewport, FCanvas* Canvas);

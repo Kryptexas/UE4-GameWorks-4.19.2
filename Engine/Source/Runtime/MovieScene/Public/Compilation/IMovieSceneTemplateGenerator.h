@@ -1,8 +1,18 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "MovieSceneSequenceID.h"
 #include "MovieSceneFwd.h"
+#include "Containers/ArrayView.h"
+
+class UMovieSceneTrack;
+struct FMovieSceneEvaluationFieldSegmentPtr;
+struct FMovieSceneEvaluationTrack;
+struct FMovieSceneSequenceTransform;
+struct FMovieSceneSharedDataId;
+struct FMovieSceneSubSequenceData;
 
 /** Abstract base class used to generate evaluation templates */
 struct IMovieSceneTemplateGenerator

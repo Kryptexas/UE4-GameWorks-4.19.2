@@ -1,11 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 //~=============================================================================
 // DialogueWaveFactory
 //~=============================================================================
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Factories/Factory.h"
 #include "DialogueWaveFactory.generated.h"
+
+class UDialogueVoice;
 
 UCLASS(hidecategories=Object, MinimalAPI)
 class UDialogueWaveFactory : public UFactory

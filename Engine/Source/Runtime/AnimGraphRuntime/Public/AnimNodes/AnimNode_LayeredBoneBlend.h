@@ -1,12 +1,13 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Animation/AnimTypes.h"
 #include "Animation/AnimNodeBase.h"
 #include "Animation/AnimData/BoneMaskFilter.h"
-#include "Animation/AnimTypes.h"
 #include "AnimNode_LayeredBoneBlend.generated.h"
-
 
 // Layered blend (per bone); has dynamic number of blendposes that can blend per different bone sets
 USTRUCT()

@@ -1,10 +1,16 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "OnlineSubsystemOculus.h"
 #include "OnlineSessionInterface.h"
 #include "OnlineSubsystemOculusTypes.h"
 #include "OnlineSubsystemOculusPackage.h"
+
+#define SETTING_OCULUS_POOL FName(TEXT("OCULUSPOOL"))
+
+#define SEARCH_OCULUS_MODERATED_ROOMS_ONLY FName(TEXT("OCULUSMODERATEDROOMSONLY"))
 
 /**
  * Interface definition for the online services session services
@@ -54,6 +60,11 @@ PACKAGE_SCOPE:
 
 	void TickPendingInvites(float DeltaTime);
 
+	bool CreateRoomSession(int32 HostingPlayerNum, FName SessionName, FNamedOnlineSession& Session, const FOnlineSessionSettings& NewSessionSettings);
+	bool CreateMatchmakingSession(int32 HostingPlayerNum, FName SessionName, FNamedOnlineSession& Session, const FOnlineSessionSettings& NewSessionSettings);
+
+	bool FindModeratedRoomSessions(const TSharedRef<FOnlineSessionSearch>& SearchSettings);
+	bool FindMatchmakingSessions(const FString Pool, const TSharedRef<FOnlineSessionSearch>& SearchSettings);
 public:
 
 	FOnlineSessionOculus(FOnlineSubsystemOculus& InSubsystem);

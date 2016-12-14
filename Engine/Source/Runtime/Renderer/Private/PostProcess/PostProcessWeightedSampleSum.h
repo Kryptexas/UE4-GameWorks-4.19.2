@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessWeightedSampleSum.h: Post processing weight sample sum implementation.
@@ -6,8 +6,9 @@
 
 #pragma once
 
-#include "RenderingCompositionGraph.h"
-#include "PostProcessing.h"
+#include "CoreMinimal.h"
+#include "RendererInterface.h"
+#include "PostProcess/RenderingCompositionGraph.h"
 
 enum EFilterCombineMethod
 {

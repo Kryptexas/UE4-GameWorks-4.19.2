@@ -1,9 +1,15 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "AnimNode_SkeletalControlBase.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "BoneContainer.h"
+#include "BonePose.h"
+#include "BoneControllers/AnimNode_SkeletalControlBase.h"
 #include "AnimNode_ObserveBone.generated.h"
+
+class USkeletalMeshComponent;
 
 /**
  *	Debugging node that displays the current value of a bone in a specific space.

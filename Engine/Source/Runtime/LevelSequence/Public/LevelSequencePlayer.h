@@ -1,15 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/Object.h"
+#include "UObject/ScriptMacros.h"
 #include "IMovieScenePlayer.h"
+#include "Evaluation/MovieScenePlayback.h"
+#include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "LevelSequence.h"
-#include "MovieSceneEvaluationTemplateInstance.h"
 #include "LevelSequencePlayer.generated.h"
 
+class AActor;
 class FLevelSequenceSpawnRegister;
-class ULevel;
-class UMovieSceneBindings;
+class FViewportClient;
+class UCameraComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLevelSequencePlayerEvent);
 

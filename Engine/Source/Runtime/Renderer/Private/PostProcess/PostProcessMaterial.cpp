@@ -1,17 +1,17 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMaterial.cpp: Post processing Material implementation.
 =============================================================================*/
 
-#include "RendererPrivate.h"
-#include "ScenePrivate.h"
-#include "SceneFilterRendering.h"
-#include "PostProcessMaterial.h"
-#include "PostProcessing.h"
-#include "PostProcessEyeAdaptation.h"
-#include "../../../Engine/Public/TileRendering.h"
+#include "PostProcess/PostProcessMaterial.h"
+#include "Materials/Material.h"
+#include "MaterialShaderType.h"
+#include "MaterialShader.h"
 #include "SceneUtils.h"
+#include "PostProcess/SceneRenderTargets.h"
+#include "PostProcess/SceneFilterRendering.h"
+#include "SceneRendering.h"
 
 enum class EPostProcessMaterialTarget
 {
@@ -235,7 +235,12 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
-	if( ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture )
+	if (Context.HasHmdMesh() && View.StereoPass == eSSP_LEFT_EYE)
+	{
+		// needed when using an hmd mesh instead of a full screen quad because we don't touch all of the pixels in the render target
+		Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, FIntRect());
+	}
+	else if (ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture)
 	{
 		Context.RHICmdList.ClearColorTexture(DestRenderTarget.TargetableTexture, FLinearColor::Black, View.ViewRect);
 	}

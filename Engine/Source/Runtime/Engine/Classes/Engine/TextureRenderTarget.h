@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /**
  * TextureRenderTarget
@@ -8,6 +8,10 @@
  */
 
 #pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Engine/Texture.h"
 #include "TextureRenderTarget.generated.h"
 
 UCLASS(abstract, MinimalAPI)

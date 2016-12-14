@@ -1,15 +1,21 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldCollisionAsync.cpp: UWorld async collision implementation
 =============================================================================*/
 
-#include "EnginePrivate.h"
+#include "CoreMinimal.h"
+#include "Stats/Stats.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "EngineDefines.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
 #include "WorldCollision.h"
+#include "Engine/World.h"
+#include "PhysicsEngine/BodyInstance.h"
 
 #if WITH_PHYSX
-	#include "../PhysicsEngine/PhysXSupport.h"
-	#include "PhysXCollision.h"
+	#include "Collision/PhysXCollision.h"
 #endif
 
 /**

@@ -1,25 +1,26 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
-
-#include "PersonaPrivatePCH.h"
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimationEditorPreviewScene.h"
-#include "Components/DirectionalLightComponent.h"
-#include "Components/ExponentialHeightFogComponent.h"
-#include "Components/SphereReflectionCaptureComponent.h"
-#include "NotificationManager.h"
-#include "Animation/DebugSkelMeshComponent.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Misc/MessageDialog.h"
+#include "Modules/ModuleManager.h"
+#include "Components/StaticMeshComponent.h"
+#include "EditorStyleSet.h"
+
+#include "Animation/AnimBlueprint.h"
 #include "AnimPreviewInstance.h"
+#include "IEditableSkeleton.h"
 #include "IPersonaToolkit.h"
 #include "PersonaUtils.h"
 #include "ComponentAssetBroker.h"
-#include "IEditableSkeleton.h"
 #include "Engine/PreviewMeshCollection.h"
 #include "PersonaPreviewSceneDescription.h"
-#include "Engine/WindDirectionalSource.h"
 #include "Components/WindDirectionalSourceComponent.h"
 #include "PhysicsEngine/PhysicsSettings.h"
-#include "Animation/CurveSourceInterface.h"
 #include "PersonaModule.h"
+#include "GameFramework/WorldSettings.h"
+#include "Particles/ParticleSystemComponent.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorPreviewScene"
 
@@ -119,6 +120,8 @@ void FAnimationEditorPreviewScene::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
 
 void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh)
 {
+	USkeletalMesh* OldPreviewMesh = SkeletalMeshComponent->SkeletalMesh;
+
 	ValidatePreviewAttachedAssets(NewPreviewMesh);
 
 	if (NewPreviewMesh != SkeletalMeshComponent->SkeletalMesh)
@@ -182,7 +185,7 @@ void FAnimationEditorPreviewScene::SetPreviewMeshInternal(USkeletalMesh* NewPrev
 		SourceBlueprint->SetObjectBeingDebugged(SkeletalMeshComponent->GetAnimInstance());
 	}
 
-	OnPreviewMeshChanged.Broadcast(NewPreviewMesh);
+	OnPreviewMeshChanged.Broadcast(OldPreviewMesh, NewPreviewMesh);
 }
 
 void FAnimationEditorPreviewScene::ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh)

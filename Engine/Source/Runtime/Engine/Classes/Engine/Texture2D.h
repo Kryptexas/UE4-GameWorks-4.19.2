@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HAL/ThreadSafeCounter.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
 #include "Engine/Texture.h"
+#include "TextureResource.h"
 #include "Texture2D.generated.h"
+
+class FTexture2DResourceMem;
 
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UTexture2D : public UTexture
@@ -76,6 +83,10 @@ public:
 	/** Whether the texture is currently streamable or not.						*/
 	UPROPERTY(transient, NonTransactional)
 	uint32 bIsStreamable:1;
+
+	/** Whether some mips might be streamed soon. If false, the texture is not planned resolution will be stable. */
+	UPROPERTY(transient, NonTransactional)
+	uint32 bHasStreamingUpdatePending:1;
 
 	/** Whether the current texture mip change request is pending cancellation.	*/
 	UPROPERTY(transient, NonTransactional)

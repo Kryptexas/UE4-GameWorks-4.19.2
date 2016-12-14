@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,11 +6,14 @@
  * Interface for talking to source control clients
  */
 
-#include "ModuleManager.h"
+#include "CoreMinimal.h"
+#include "Modules/ModuleManager.h"
 #include "ISourceControlModule.h"
-#include "ISourceControlProvider.h"
 #include "SourceControlSettings.h"
 #include "DefaultSourceControlProvider.h"
+
+class SSourceControlLogin;
+class SWindow;
 
 class FSourceControlModule : public ISourceControlModule
 {

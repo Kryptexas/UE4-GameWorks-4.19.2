@@ -1,6 +1,9 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "RendererPrivate.h"
+#include "ClearQuad.h"
+#include "StaticBoundShaderState.h"
+#include "Shader.h"
+#include "RHIStaticStates.h"
 #include "OneColorShader.h"
 
 FGlobalBoundShaderState GClearMRTBoundShaderState[8];
@@ -116,6 +119,12 @@ void DrawClearQuadMRT( FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Featu
 
 void DrawClearQuadMRT( FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntPoint ViewSize, FIntRect ExcludeRect )
 {
+	if(ExcludeRect.Min == FIntPoint::ZeroValue && ExcludeRect.Max == ViewSize)
+	{
+		// Early out if the entire surface is excluded
+		return;
+	}
+
 	ClearQuadSetup( RHICmdList, FeatureLevel, bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil );
 
 	// Draw a fullscreen quad

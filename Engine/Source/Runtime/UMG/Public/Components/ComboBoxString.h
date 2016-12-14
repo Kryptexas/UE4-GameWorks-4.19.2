@@ -1,9 +1,16 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "ComboBoxWidgetStyle.h"
-#include "EditorObjectVersion.h"
+#include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "Fonts/SlateFontInfo.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateColor.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/SWidget.h"
+#include "Widgets/Input/SComboBox.h"
+#include "Components/Widget.h"
 
 #include "ComboBoxString.generated.h"
 
@@ -69,6 +76,9 @@ public:
 	/** The foreground color to pass through the hierarchy. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style, meta=(DesignerRebuild))
 	FSlateColor ForegroundColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Interaction)
+	bool bIsFocusable;
 
 public: // Events
 

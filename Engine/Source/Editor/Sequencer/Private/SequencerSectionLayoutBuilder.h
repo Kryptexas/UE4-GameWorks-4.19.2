@@ -1,10 +1,12 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class ISequencerSection;
-class FSequencerTrackNode;
-
+#include "CoreMinimal.h"
+#include "DisplayNodes/SequencerDisplayNode.h"
+#include "IKeyArea.h"
+#include "DisplayNodes/SequencerTrackNode.h"
+#include "ISectionLayoutBuilder.h"
 
 class FSequencerSectionLayoutBuilder
 	: public ISectionLayoutBuilder

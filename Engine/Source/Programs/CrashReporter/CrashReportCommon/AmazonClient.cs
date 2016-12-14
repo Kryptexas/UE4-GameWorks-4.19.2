@@ -1,11 +1,9 @@
-﻿using System;
+﻿// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Amazon.Route53.Model;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -182,6 +180,27 @@ namespace Tools.CrashReporter.CrashReportCommon
 				BucketName = BucketName,
 				Key = Key,
 				FilePath = Filepath
+			};
+
+			return S3Client.PutObject(ObjectRequest);
+		}
+
+		/// <summary>
+		/// Uploads a stream to S3 synchronously (blocks until complete).
+		/// </summary>
+		/// <param name="BucketName">S3 bucket name</param>
+		/// <param name="Key">S3 object key</param>
+		/// <param name="InStream">Source stream containing data to upload</param>
+		/// <returns>S3 object response for the uploaded object or null if it fails.</returns>
+		public PutObjectResponse PutS3ObjectFromStream(string BucketName, string Key, Stream InStream)
+		{
+			if (!IsS3Valid) return null;
+
+			PutObjectRequest ObjectRequest = new PutObjectRequest
+			{
+				BucketName = BucketName,
+				Key = Key,
+				InputStream = InStream
 			};
 
 			return S3Client.PutObject(ObjectRequest);

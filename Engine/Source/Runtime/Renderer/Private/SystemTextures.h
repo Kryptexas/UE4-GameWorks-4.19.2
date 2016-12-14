@@ -1,4 +1,4 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SystemTextures.h: System textures definitions.
@@ -6,8 +6,9 @@
 
 #pragma once
 
-#include "ShaderParameters.h"
-#include "PostProcess/RenderTargetPool.h"
+#include "CoreMinimal.h"
+#include "RenderResource.h"
+#include "RendererInterface.h"
 
 /**
  * Encapsulates the system textures used for scene rendering.
@@ -24,7 +25,16 @@ public:
 	/**
 	 * Initialize/allocate textures if not already.
 	 */
-	void InitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel);
+	inline void InitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel)
+	{
+		if (bTexturesInitialized && FeatureLevelInitializedTo >= InFeatureLevel)
+		{
+			// Already initialized up to at least the feature level we need, so do nothing
+			return;
+		}
+
+		InternalInitializeTextures(RHICmdList, InFeatureLevel);
+	}
 
 	// FRenderResource interface.
 	/**
@@ -52,10 +62,17 @@ public:
 	TRefCountPtr<IPooledRenderTarget> MaxFP16Depth;
 	/** Depth texture that holds a single depth value */
 	TRefCountPtr<IPooledRenderTarget> DepthDummy;
+	// float4(0,1,0,1)
+	TRefCountPtr<IPooledRenderTarget> GreenDummy;
+	// float4(0.5,0.5,0.5,1)
+	TRefCountPtr<IPooledRenderTarget> MidGrayDummy;
 
+protected:
 	/** Maximum feature level that the textures have been initialized up to */
 	ERHIFeatureLevel::Type FeatureLevelInitializedTo;
 	bool bTexturesInitialized;
+
+	void InternalInitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel);
 };
 
 /** The global system textures used for scene rendering. */
