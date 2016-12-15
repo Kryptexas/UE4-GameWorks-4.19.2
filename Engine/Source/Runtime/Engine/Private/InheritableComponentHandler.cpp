@@ -7,6 +7,7 @@
 #include "UObject/PropertyPortFlags.h"
 #include "UObject/LinkerLoad.h"
 #include "UObject/BlueprintsObjectVersion.h"
+#include "UObject/UObjectHash.h" // for FindObjectWithOuter()
 
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"

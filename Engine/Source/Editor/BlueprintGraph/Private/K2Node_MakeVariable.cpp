@@ -7,7 +7,7 @@
 #include "EdGraphUtilities.h"
 #include "EdGraph/EdGraphNodeUtils.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-
+#include "Templates/SharedPointer.h"
 #include "KismetCompiledFunctionContext.h"
 #include "KismetCompiler.h"
 #include "KismetCompilerMisc.h"

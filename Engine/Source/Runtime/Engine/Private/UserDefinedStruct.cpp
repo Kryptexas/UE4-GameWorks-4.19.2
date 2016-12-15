@@ -8,6 +8,7 @@
 #include "UObject/LinkerLoad.h"
 #include "Misc/SecureHash.h"
 #include "UObject/PropertyPortFlags.h"
+#include "Misc/PackageName.h" // for FPackageName::GetLongPackageAssetName()
 
 #if WITH_EDITOR
 #include "UserDefinedStructure/UserDefinedStructEditorData.h"
