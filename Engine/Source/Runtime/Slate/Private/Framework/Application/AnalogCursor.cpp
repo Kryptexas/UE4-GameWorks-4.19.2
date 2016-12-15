@@ -131,7 +131,7 @@ bool FAnalogCursor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEv
 	}
 
 	// Bottom face button is a click
-	if (Key == EKeys::Gamepad_FaceButton_Bottom)
+	if (Key == EKeys::Virtual_Accept)
 	{
 		if ( !InKeyEvent.IsRepeat() )
 		{
@@ -169,7 +169,7 @@ bool FAnalogCursor::HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEven
 	}
 
 	// Bottom face button is a click
-	if (Key == EKeys::Gamepad_FaceButton_Bottom && !InKeyEvent.IsRepeat())
+	if (Key == EKeys::Virtual_Accept && !InKeyEvent.IsRepeat())
 	{
 		FPointerEvent MouseEvent(
 			0,

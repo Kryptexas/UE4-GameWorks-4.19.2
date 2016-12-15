@@ -16,6 +16,7 @@
 
 
 #if WITH_FREETYPE
+	THIRD_PARTY_INCLUDES_START
 	#include "ft2build.h"
 
 	// FreeType style include
@@ -25,6 +26,7 @@
 	#include FT_BITMAP_H
 	#include FT_ADVANCES_H
 	#include FT_STROKER_H
+	THIRD_PARTY_INCLUDES_END
 #endif // WITH_FREETYPE
 
 

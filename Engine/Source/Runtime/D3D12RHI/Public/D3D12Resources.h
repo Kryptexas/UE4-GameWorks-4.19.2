@@ -727,7 +727,7 @@ public:
 	// Clears the batch.
 	void Reset()
 	{
-		Barriers.SetNumUnsafeInternal(0);	// Reset the array without shrinking (Does not destruct items, does not de-allocate memory).
+		Barriers.SetNumUnsafeInternal(0);	// Reset the array without shrinking (Does not destruct items, does not de-allocate memory).
 		check(Barriers.Num() == 0);
 	}
 

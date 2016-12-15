@@ -16,6 +16,7 @@
 #include "UObject/GarbageCollection.h"
 #include "UObject/CoreNative.h"
 #include "Templates/HasGetTypeHash.h"
+#include "Templates/IsEnum.h"
 
 struct FCustomPropertyListNode;
 struct FFrame;
@@ -903,6 +904,8 @@ public:
 		/** Calls GetTypeHash if enabled */
 		virtual uint32 GetTypeHash(const void* Src) = 0;
 
+		/** Returns property flag values that can be computed at compile time */
+		virtual uint64 GetComputedPropertyFlags() const = 0;
 	private:
 		/** sizeof() of the structure **/
 		const int32 Size;
@@ -1046,6 +1049,14 @@ public:
 		{
 			ensure(HasGetTypeHash());
 			return GetTypeHashOrNot((const CPPSTRUCT*)Src);
+		}
+		virtual uint64 GetComputedPropertyFlags() const override
+		{
+			return 
+				(TIsPODType<CPPSTRUCT>::Value ? CPF_IsPlainOldData : 0) 
+				| (TIsTriviallyDestructible<CPPSTRUCT>::Value ? CPF_NoDestructor : 0) 
+				| (TIsZeroConstructType<CPPSTRUCT>::Value ? CPF_ZeroConstructor : 0)
+				| (THasGetTypeHash<CPPSTRUCT>::Value ? CPF_HasGetValueTypeHash : 0);;
 		}
 	};
 
@@ -1234,6 +1245,9 @@ public:
 	virtual COREUOBJECT_API void RecursivelyPreload();
 
 	virtual COREUOBJECT_API FGuid GetCustomGuid() const;
+	
+	/** Returns the (native, c++) name of the struct */
+	virtual COREUOBJECT_API FString GetStructCPPName() const;
 
 #if WITH_EDITOR
 	/**
@@ -1365,7 +1379,7 @@ public:
 	{
 		//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
 		const uint64 IgnoreFlags = CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference 
-			| CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm | CPF_HasGetValueTypeHash | CPF_UObjectWrapper
+			| CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm | CPF_UObjectWrapper
 			| CPF_NativeAccessSpecifiers | CPF_AdvancedDisplay;
 		return IgnoreFlags;
 	}
@@ -1407,12 +1421,21 @@ public:
 	UEnum.
 -----------------------------------------------------------------------------*/
 
+typedef FText(*FEnumDisplayNameFn)(int32);
+
 //
 // Reflection data for an enumeration.
 //
 class COREUOBJECT_API UEnum : public UField
 {
-	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UEnum, UField, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UEnum, NO_API)
+	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(UEnum, UField, 0, TEXT("/Script/CoreUObject"), CASTCLASS_UEnum, NO_API)
+	UEnum(const FObjectInitializer& ObjectInitialzer);
+
+	/** Associate a function for looking up Enum display names by index, only intended for use by generated code: */
+	void SetEnumDisplayNameFn(FEnumDisplayNameFn InEnumDisplayNameFn)
+	{ 
+		EnumDisplayNameFn = InEnumDisplayNameFn; 
+	}
 
 public:
 	enum class ECppForm
@@ -1456,6 +1479,9 @@ protected:
 
 	/** How the enum was originally defined. */
 	ECppForm CppForm;
+
+	/** pointer to function used to look up the enum's display name. Currently only assigned for UEnums generated for nativized blueprints */
+	FEnumDisplayNameFn EnumDisplayNameFn;
 
 	/** global list of all value names used by all enums in memory, used for property text import */
 	static TMap<FName, UEnum*> AllEnumNames;

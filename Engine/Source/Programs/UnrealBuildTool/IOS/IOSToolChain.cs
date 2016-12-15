@@ -161,7 +161,18 @@ namespace UnrealBuildTool
 			Result += " -pipe";
 			Result += " -fpascal-strings";
 
-			Result += " -fno-exceptions";
+
+			// Optionally enable exception handling (off by default since it generates extra code needed to propagate exceptions)
+			if (CompileEnvironment.Config.bEnableExceptions || UEBuildConfiguration.bForceEnableExceptions)
+			{
+				Result += " -fexceptions";
+			}
+			else
+			{
+				Result += " -fno-exceptions";
+			}
+
+
 			Result += GetRTTIFlag(CompileEnvironment);
 			Result += " -fvisibility=hidden"; // hides the linker warnings with PhysX
 
@@ -172,9 +183,14 @@ namespace UnrealBuildTool
 
 			Result += " -Wall -Werror";
 
-			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
+			if (CompileEnvironment.Config.bEnableShadowVariableWarnings)
 			{
 				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors ? "" : " -Wno-error=shadow");
+			}
+
+			if (CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings)
+			{
+				Result += " -Wundef" + (BuildConfiguration.bUndefinedIdentifierErrors ? "" : " -Wno-error=undef");
 			}
 
 			Result += " -Wno-unused-variable";
@@ -260,7 +276,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -271,7 +287,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -282,7 +298,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -298,7 +314,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 			Result += " -x objective-c++-header";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			Result += " -stdlib=libc++";
 			return Result;
 		}
@@ -1225,13 +1241,13 @@ namespace UnrealBuildTool
 					if (Directory.Exists(Project))
 					{
                         // ensure the plist, entitlements, and provision files are properly copied
-                        var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(new FileReference(Project), PlatformContext) : new UEDeployTVOS(new FileReference(Project), PlatformContext));
-                        DeployHandler.PrepTargetForDeployment(Target);
+                        var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+                        DeployHandler.PrepTargetForDeployment(new UEBuildDeployTarget(Target));
 
 						var ConfigName = Target.Configuration.ToString();
-						if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+						if (Target.Rules.Type != TargetRules.TargetType.Game && Target.Rules.Type != TargetRules.TargetType.Program)
 						{
-							ConfigName += " " + Target.Rules.ConfigurationName;
+							ConfigName += " " + Target.Rules.Type.ToString();
 						}
 
 						// code sign the project
@@ -1361,8 +1377,8 @@ namespace UnrealBuildTool
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
                     // ensure the plist, entitlements, and provision files are properly copied
-                    var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS(Target.ProjectFile, PlatformContext) : new UEDeployTVOS(Target.ProjectFile, PlatformContext));
-                    DeployHandler.PrepTargetForDeployment(Target);
+                    var DeployHandler = (CppPlatform == CPPTargetPlatform.IOS ? new UEDeployIOS() : new UEDeployTVOS());
+                    DeployHandler.PrepTargetForDeployment(new UEBuildDeployTarget(Target));
 
 					if (!bUseDangerouslyFastMode)
 					{
@@ -1414,9 +1430,9 @@ namespace UnrealBuildTool
 					}
 
 					var SchemeConfiguration = Target.Configuration.ToString();
-					if (Target.Rules.ConfigurationName != "Game" && Target.Rules.ConfigurationName != "Program")
+					if (Target.Rules.Type != TargetRules.TargetType.Game && Target.Rules.Type != TargetRules.TargetType.Program)
 					{
-						SchemeConfiguration += " " + Target.Rules.ConfigurationName;
+						SchemeConfiguration += " " + Target.Rules.Type.ToString();
 					}
 
 					if (bUseDangerouslyFastMode)

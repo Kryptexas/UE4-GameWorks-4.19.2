@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarning)
+		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarnings, bool bEnableUndefinedIdentifierWarnings)
 		{
 			string Result = " ";
 
@@ -70,9 +70,14 @@ namespace UnrealBuildTool
 			// we use this feature to allow static FNames.
 			Result += " -Wno-gnu-string-literal-operator-template";
 
-			if (bEnableShadowVariableWarning)
+			if (bEnableShadowVariableWarnings)
 			{
 				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors ? "" : " -Wno-error=shadow");
+			}
+
+			if (bEnableUndefinedIdentifierWarnings)
+			{
+				Result += " -Wundef" + (BuildConfiguration.bUndefinedIdentifierErrors ? "" : " -Wno-error=undef");
 			}
 
 			// JavsScript option overrides (see src/settings.js)
@@ -117,7 +122,7 @@ namespace UnrealBuildTool
 
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
 		{
-			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Configuration, CompileEnvironment.Config.Architecture, CompileEnvironment.Config.bEnableShadowVariableWarning);
+			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Configuration, CompileEnvironment.Config.Architecture, CompileEnvironment.Config.bEnableShadowVariableWarnings, CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings);
 
 			if (CompileEnvironment.Config.Architecture != "-win32")  // ! simulator
 			{
@@ -175,7 +180,7 @@ namespace UnrealBuildTool
 
 			if (CompileEnvironment.Config.Architecture != "-win32") // ! simulator
 			{
-				Result = " -std=c++11";
+				Result = " -std=c++14";
 			}
 
 			return Result;
@@ -189,7 +194,7 @@ namespace UnrealBuildTool
 
 		static string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
-			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Configuration, LinkEnvironment.Config.Architecture, false);
+			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Configuration, LinkEnvironment.Config.Architecture, false, false);
 
 			if (LinkEnvironment.Config.Architecture != "-win32") // ! simulator
 			{

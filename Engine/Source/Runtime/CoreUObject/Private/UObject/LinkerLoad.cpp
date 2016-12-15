@@ -3022,16 +3022,18 @@ void FLinkerLoad::LoadAllObjects( bool bForcePreload )
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 		UObject* LoadedObject = CreateExportAndPreload(ExportIndex, bForcePreload);
-		// DynamicClass could be created without calling CreateImport. The imported objects will be required later when a CDO is created.
-		// intentional merge conflict, talk to Gil
-		if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(LoadedObject))
+
+		if(!GEventDrivenLoaderEnabled || !EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME)
 		{
-			for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
+			// DynamicClass could be created without calling CreateImport. The imported objects will be required later when a CDO is created.
+			if (UDynamicClass* DynamicClass = Cast<UDynamicClass>(LoadedObject))
 			{
-				CreateImport(ImportIndex);
+				for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num(); ++ImportIndex)
+				{
+					CreateImport(ImportIndex);
+				}
 			}
 		}
-		// intentional merge conflict, talk to Gil
 
 		// If needed send a heartbeat, but no need to do it too often
 		if (bShouldTickHeartBeat && (ExportIndex % 10) == 0)

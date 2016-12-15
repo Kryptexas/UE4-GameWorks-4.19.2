@@ -12,7 +12,10 @@
 #include "Interfaces/ITextureFormatModule.h"
 #include "TextureCompressorModule.h"
 #include "PixelFormat.h"
-#include "nvtt/nvtt.h"
+
+THIRD_PARTY_INCLUDES_START
+	#include "nvtt/nvtt.h"
+THIRD_PARTY_INCLUDES_END
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatDXT, Log, All);
 

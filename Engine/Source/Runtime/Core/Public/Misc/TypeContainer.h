@@ -340,7 +340,7 @@ public:
 		AddProvider(TNameOf<R>::GetName(), Provider);
 	}
 
-#if _MSC_VER >= 1900 || __clang__
+#if (defined(_MSC_VER) && _MSC_VER >= 1900) || defined(__clang__)
 	/**
 	 * Register a factory function for the specified class.
 	 *

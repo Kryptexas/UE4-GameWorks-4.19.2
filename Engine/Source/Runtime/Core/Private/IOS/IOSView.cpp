@@ -277,7 +277,7 @@ id<MTLDevice> GMetalDevice = nil;
 			check(glGetError() == 0);
 			check(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
-#if USE_DETAILED_IPHONE_MEM_TRACKING
+#if defined(USE_DETAILED_IPHONE_MEM_TRACKING) && USE_DETAILED_IPHONE_MEM_TRACKING
 			//This value is used to allow the engine to track gl allocated memory see GetIPhoneOpenGLBackBufferSize
 			uint32 SingleBufferSize = OnScreenWidth * OnScreenHeight * 4/*rgba8*/;
 			IPhoneBackBufferMemSize = singleBufferSize * 3/*iphone back buffer system is tripple buffered*/;
@@ -312,8 +312,11 @@ id<MTLDevice> GMetalDevice = nil;
 			// grab the MetalLayer and typecast it to match what's in layerClass
 			CAMetalLayer* MetalLayer = (CAMetalLayer*)self.layer;
 			CGSize drawableSize = CGSizeMake(Width, Height);
-			check( FMath::TruncToInt(drawableSize.width) == FMath::TruncToInt(self.bounds.size.width * self.contentScaleFactor) && 
-				   FMath::TruncToInt(drawableSize.height) == FMath::TruncToInt(self.bounds.size.height * self.contentScaleFactor));
+			checkf( FMath::TruncToInt(drawableSize.width) == FMath::TruncToInt(self.bounds.size.width * self.contentScaleFactor) && 
+				   FMath::TruncToInt(drawableSize.height) == FMath::TruncToInt(self.bounds.size.height * self.contentScaleFactor),
+				TEXT("[IOSView UpdateRenderWidth:andHeight:] passed in size doesn't match what we expected. Width: %d, Expected Width = %d (%.2f * %.2f). Height = %d, Expected Height = %d (%.2f * %.2f)"),
+				FMath::TruncToInt(drawableSize.width), FMath::TruncToInt(self.bounds.size.width * self.contentScaleFactor), (float)self.bounds.size.width, self.contentScaleFactor,
+				FMath::TruncToInt(drawableSize.height), FMath::TruncToInt(self.bounds.size.height * self.contentScaleFactor), (float)self.bounds.size.height, self.contentScaleFactor);
 			MetalLayer.drawableSize = drawableSize;
 		}
 		return;

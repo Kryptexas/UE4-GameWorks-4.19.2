@@ -16,7 +16,8 @@ static const half InvDistortionScaleBias = 1 / 4.0f;
  * A=negative vertical offset 
  */
 
-#if USE_MSAA
+  
+ #if USE_MSAA
 Texture2DMS<float4> DistortionMSAATexture;
 Texture2DMS<float4> SceneColorMSAATexture;
 #else
@@ -86,3 +87,5 @@ void Merge(
 	OutColor = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, TexCoord.xy);
 #endif
 }
+
+

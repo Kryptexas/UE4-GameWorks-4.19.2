@@ -39,6 +39,8 @@ DECLARE_FLOAT_COUNTER_STAT(TEXT("Slate UI"), Stat_GPU_SlateUI, STATGROUP_GPU);
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
 
+#define USE_MAX_DRAWBUFFERS 0
+
 static TAutoConsoleVariable<float> CVarUILevel(
 	TEXT("r.HDR.UI.Level"),
 	1.0f,

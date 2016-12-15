@@ -34,7 +34,7 @@ public:
 	 * @param  OutHeaderSource	Output destination for the header source.
 	 * @param  OutCppSource		Output destination for the cpp source.
 	 */
-	static void GenerateCppCode(UObject* Obj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource, TSharedPtr<FNativizationSummary> NativizationSummary = TSharedPtr<FNativizationSummary>());
+	static void GenerateCppCode(UObject* Obj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource, TSharedPtr<FNativizationSummary> NativizationSummary, FCompilerNativizationOptions NativizationOptions);
 
 public: 
 	/** 

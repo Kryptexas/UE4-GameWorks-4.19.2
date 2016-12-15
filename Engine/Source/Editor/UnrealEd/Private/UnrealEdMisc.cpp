@@ -76,6 +76,8 @@
 #include "IDesktopPlatform.h"
 #include "DesktopPlatformModule.h"
 
+#define USE_UNIT_TESTS 0
+
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdMisc, Log, All);

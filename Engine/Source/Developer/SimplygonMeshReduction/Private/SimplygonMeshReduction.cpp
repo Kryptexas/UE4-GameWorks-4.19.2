@@ -28,12 +28,6 @@ static const char* USER_MATERIAL_CHANNEL_METALLIC = "UserMetallic";
 static const char* USER_MATERIAL_CHANNEL_ROUGHNESS = "UserRoughness";
 static const char* USER_MATERIAL_CHANNEL_SPECULAR = "UserSpecular";
 
-//@third party code BEGIN SIMPLYGON
-#define USE_USER_OPACITY_CHANNEL 1
-#if USE_USER_OPACITY_CHANNEL
-static const char* USER_MATERIAL_CHANNEL_OPACITY = "UserOpacity";
-#endif
-//@third party code END SIMPLYGON
 static const TCHAR* SG_UE_INTEGRATION_REV = TEXT("@305");
 
 #ifdef __clang__

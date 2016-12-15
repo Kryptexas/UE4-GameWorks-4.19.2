@@ -3277,6 +3277,12 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnu
 			GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tReturnEnum->SetEnums(EnumNames, %s%s);\r\n"), *EnumTypeStr, *ParamAddMaxKeyIfMissing);
 			GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tReturnEnum->CppType = TEXT(\"%s\");\r\n"), *Enum->CppType);
 
+			const FString& EnumDisplayNameFn = Enum->GetMetaData(TEXT("EnumDisplayNameFn"));
+			if( !EnumDisplayNameFn.IsEmpty() )
+			{
+				GeneratedEnumRegisterFunctionText.Logf(TEXT("\t\t\tReturnEnum->SetEnumDisplayNameFn(&%s);\r\n"), *EnumDisplayNameFn);
+			}
+
 			FString Meta = GetMetaDataCodeForObject(Enum, TEXT("ReturnEnum"), TEXT("\t\t\t"));
 			if (Meta.Len())
 			{

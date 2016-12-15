@@ -107,7 +107,7 @@ static bool IsDelayLoadException(PEXCEPTION_POINTERS ExceptionPointers)
  */
 static void SafeCreateDXGIFactory(IDXGIFactory1** DXGIFactory1)
 {
-#if !D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR
+#if !defined(D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR) || !D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR
 	__try
 	{
 		CreateDXGIFactory1(__uuidof(IDXGIFactory1),(void**)DXGIFactory1);

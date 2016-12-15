@@ -3,11 +3,14 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac, UnrealTargetPlatform.Linux)]
+[SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class CrashReportClientTarget : TargetRules
 {
 	public CrashReportClientTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
 	}
 
@@ -15,31 +18,6 @@ public class CrashReportClientTarget : TargetRules
 	// TargetRules interface.
 	//
 
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		OutPlatforms.Add(UnrealTargetPlatform.Win32);
-		OutPlatforms.Add(UnrealTargetPlatform.Win64);
-		OutPlatforms.Add(UnrealTargetPlatform.Mac);
-		OutPlatforms.Add(UnrealTargetPlatform.Linux);
-		return true;
-	}
-
-    public override bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
-	{
-		if( base.GetSupportedConfigurations( ref OutConfigurations, bIncludeTestAndShippingConfigs ) )
-		{
-			if( bIncludeTestAndShippingConfigs )
-			{ 
-				OutConfigurations.Add( UnrealTargetConfiguration.Shipping );
-			}
-			OutConfigurations.Add( UnrealTargetConfiguration.Debug );
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
 
 	public override void SetupBinaries(
 		TargetInfo Target,
@@ -56,11 +34,6 @@ public class CrashReportClientTarget : TargetRules
 		{
 			OutExtraModuleNames.Add("EditorStyle");
 		}
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
     public override void SetupGlobalEnvironment(

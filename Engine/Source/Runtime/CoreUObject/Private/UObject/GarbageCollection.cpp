@@ -25,8 +25,6 @@
    Garbage collection.
 -----------------------------------------------------------------------------*/
 
-#define PERF_DETAILED_PER_CLASS_GC_STATS				(LOOKING_FOR_PERF_ISSUES || 0) 
-
 // FastReferenceCollector uses PERF_DETAILED_PER_CLASS_GC_STATS
 #include "UObject/FastReferenceCollector.h"
 
@@ -35,7 +33,7 @@ DEFINE_LOG_CATEGORY(LogGarbage);
 // UE_BUILD_SHIPPING has GShouldVerifyGCAssumptions=false by default
 #define VERIFY_DISREGARD_GC_ASSUMPTIONS			!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-#define	ENABLE_GC_DEBUG_OUTPUT					1
+#define TEST_ARO_FINDS_ALL_OBJECTS 0
 
 /** Object count during last mark phase																				*/
 int32		GObjectCountDuringLastMarkPhase			= 0;

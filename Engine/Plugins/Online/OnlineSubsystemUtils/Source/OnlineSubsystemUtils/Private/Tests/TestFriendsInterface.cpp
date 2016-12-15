@@ -24,9 +24,11 @@ void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites
 		// Add our delegate for the async call
 		OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendComplete);
 		OnQueryRecentPlayersCompleteDelegate = FOnQueryRecentPlayersCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnQueryRecentPlayersComplete);
+		OnQueryBlockedPlayersCompleteDelegate = FOnQueryBlockedPlayersCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnQueryBlockedPlayersComplete);
 
-		OnDeleteFriendCompleteDelegateHandle       = OnlineSub->GetFriendsInterface()->AddOnDeleteFriendCompleteDelegate_Handle      (0, OnDeleteFriendCompleteDelegate);
-		OnQueryRecentPlayersCompleteDelegateHandle = OnlineSub->GetFriendsInterface()->AddOnQueryRecentPlayersCompleteDelegate_Handle(OnQueryRecentPlayersCompleteDelegate);
+		OnDeleteFriendCompleteDelegateHandle        = OnlineSub->GetFriendsInterface()->AddOnDeleteFriendCompleteDelegate_Handle		(0, OnDeleteFriendCompleteDelegate);
+		OnQueryRecentPlayersCompleteDelegateHandle  = OnlineSub->GetFriendsInterface()->AddOnQueryRecentPlayersCompleteDelegate_Handle	(OnQueryRecentPlayersCompleteDelegate);
+		OnQueryBlockedPlayersCompleteDelegateHandle = OnlineSub->GetFriendsInterface()->AddOnQueryBlockedPlayersCompleteDelegate_Handle	(OnQueryBlockedPlayersCompleteDelegate);
 
 		// list of pending users to send invites to
 		for (int32 Idx=0; Idx < Invites.Num(); Idx++)
@@ -85,6 +87,18 @@ void FTestFriendsInterface::StartNextTest()
 		FOnDeleteFriendsListComplete Delegate = FOnDeleteFriendsListComplete::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendsListComplete);
 		OnlineSub->GetFriendsInterface()->DeleteFriendsList(0, FriendsListName, Delegate);
 	}
+	else if (bQueryBlockedPlayers)
+	{
+		if (OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0).IsValid())
+		{
+			OnlineSub->GetFriendsInterface()->QueryBlockedPlayers(*OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0));
+		}
+		else
+		{
+			bQueryBlockedPlayers = false;
+			StartNextTest();
+		}
+	}
 	else
 	{
 		FinishTest();
@@ -100,6 +114,7 @@ void FTestFriendsInterface::FinishTest()
 		// Clear delegates for the various async calls
 		OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate_Handle      (0, OnDeleteFriendCompleteDelegateHandle);
 		OnlineSub->GetFriendsInterface()->ClearOnQueryRecentPlayersCompleteDelegate_Handle(OnQueryRecentPlayersCompleteDelegateHandle);
+		OnlineSub->GetFriendsInterface()->ClearOnQueryBlockedPlayersCompleteDelegate_Handle(OnQueryBlockedPlayersCompleteDelegateHandle);
 	}
 	delete this;
 }
@@ -253,8 +268,35 @@ void FTestFriendsInterface::OnDeleteFriendsListComplete(int32 LocalPlayer, bool 
 
 	// done with this part of the test
 	bDeleteFriendsList = false;
+	bQueryBlockedPlayers = true;
 	// kick off next test
 	StartNextTest();
 }
 
+void FTestFriendsInterface::OnQueryBlockedPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& Error)
+{
+	UE_LOG(LogOnline, Log, TEXT("QueryBlockedPlayers() for player (%s) was success=%d"), *UserId.ToDebugString(), bWasSuccessful);
+	bQueryBlockedPlayers = false;
+
+	if (bWasSuccessful)
+	{
+		TArray<TSharedRef<FOnlineBlockedPlayer>> BlockedPlayers;
+		if (OnlineSub->GetFriendsInterface()->GetBlockedPlayers(UserId, BlockedPlayers))
+		{
+			UE_LOG(LogOnline, Log, TEXT("GetBlockedPlayers() (%s) returned %d blocked users"), *UserId.ToDebugString(), BlockedPlayers.Num());
+
+			for (int32 Index = 0; Index < BlockedPlayers.Num(); Index++)
+			{
+				const FOnlineBlockedPlayer& BlockedPlayer = *BlockedPlayers[Index];
+				UE_LOG(LogOnline, Log, TEXT("\t%s (%s) is blocked"), *BlockedPlayer.GetRealName(), *BlockedPlayer.GetUserId()->ToDebugString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogOnline, Log, TEXT("GetBlockedPlayers() for player %s failed"), *UserId.ToDebugString());
+		}
+	}
+
+	StartNextTest();
+}
 #endif //WITH_DEV_AUTOMATION_TESTS

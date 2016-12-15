@@ -3,19 +3,16 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealTargetPlatform.Mac)]
 public class DsymExporterTarget : TargetRules
 {
 	public DsymExporterTarget( TargetInfo Target )
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	// TargetRules interface.
-	public override bool GetSupportedPlatforms( ref List<UnrealTargetPlatform> OutPlatforms )
-	{
-		OutPlatforms.Add( UnrealTargetPlatform.Mac );
-		return true;
-	}
 
 	public override void SetupBinaries(
 		TargetInfo Target,
@@ -27,11 +24,6 @@ public class DsymExporterTarget : TargetRules
 			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
 				InModuleNames: new List<string>() { "DsymExporter" })
 			);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

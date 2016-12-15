@@ -62,7 +62,7 @@ namespace OpenGLConsoleVariables
 		TEXT("If true, don't issue dispatch work.")
 		);
 
-	int32 bUseVAB = (PLATFORM_LINUX) ? 0 : 1;	// disable VAB on Linux until vertex attrib binding code path is fixed, see UE-15240
+	int32 bUseVAB = 1;
 	static FAutoConsoleVariableRef CVarUseVAB(
 		TEXT("OpenGL.UseVAB"),
 		bUseVAB,
@@ -2146,11 +2146,11 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 			ContextState.MaxActiveAttrib = FMath::Max( ContextState.MaxActiveAttrib, AttributeIndex);
 
 			//only setup/track attributes actually in use
+			FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
 			if (bAttribInUse)
 			{
 				if (VertexElement.StreamIndex < NumStreams)
 				{
-					FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
 
 					// Track the actively used streams, to limit the updates to those in use
 					StreamMask |= 0x1 << VertexElement.StreamIndex;
@@ -2198,6 +2198,14 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 					AttributeMask &= ~(1 << AttributeIndex);
 				}
 			}
+			else
+			{
+				if (Attr.StreamIndex != StreamIndex)
+				{
+					FOpenGL::VertexAttribBinding(AttributeIndex, VertexElement.StreamIndex);
+					Attr.StreamIndex = StreamIndex;
+				}
+			}
 		}
 		ContextState.VertexDecl = VertexDeclaration;
 
@@ -2206,13 +2214,13 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 	}
 
 	//setup streams
-	for (uint32 StreamIndex = 0; StreamIndex < NumStreams && StreamMask != 0; StreamIndex++, StreamMask >>= 1)
+	for (uint32 StreamIndex = 0; StreamIndex < NumStreams; StreamIndex++, StreamMask >>= 1)
 	{
 		FOpenGLStream &CachedStream = ContextState.VertexStreams[StreamIndex];
 		FOpenGLStream &Stream = Streams[StreamIndex];
+		uint32 Offset = BaseVertexIndex * Stream.Stride + Stream.Offset;
 		if ((StreamMask & 0x1) != 0 && Stream.VertexBuffer)
 		{
-			uint32 Offset = BaseVertexIndex * Stream.Stride + Stream.Offset;
 			if ( CachedStream.VertexBuffer != Stream.VertexBuffer || CachedStream.Offset != Offset || CachedStream.Stride != Stream.Stride)
 			{
 				check(Stream.VertexBuffer->Resource != 0);
@@ -2232,6 +2240,13 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 			if (((StreamMask & 0x1) != 0) && (Stream.VertexBuffer == nullptr))
 			{
 				UE_LOG(LogRHI, Error, TEXT("Stream %d marked as in use, but vertex buffer provided is NULL (Mask = %x)"), StreamIndex, StreamMask);
+			}
+			if (CachedStream.VertexBuffer != Stream.VertexBuffer || CachedStream.Offset != Offset || CachedStream.Stride != Stream.Stride)
+			{
+				FOpenGL::BindVertexBuffer(StreamIndex, 0, 0, 0);
+				CachedStream.VertexBuffer = nullptr;
+				CachedStream.Offset = 0;
+				CachedStream.Stride = 0;
 			}
 		}
 	}

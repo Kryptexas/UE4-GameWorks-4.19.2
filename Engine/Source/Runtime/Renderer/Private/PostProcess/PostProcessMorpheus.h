@@ -10,7 +10,7 @@
 #include "RendererInterface.h"
 #include "PostProcess/RenderingCompositionGraph.h"
 
-#if HAS_MORPHEUS
+#if defined(HAS_MORPHEUS) && HAS_MORPHEUS
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: SceneColor

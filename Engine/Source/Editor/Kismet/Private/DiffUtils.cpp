@@ -14,6 +14,11 @@
 
 static const UProperty* Resolve( const UStruct* Class, FName PropertyName )
 {
+	if(Class == nullptr )
+	{
+		return nullptr;
+	}
+
 	for (TFieldIterator<UProperty> PropertyIt(Class); PropertyIt; ++PropertyIt)
 	{
 		if( PropertyIt->GetFName() == PropertyName )
@@ -72,29 +77,189 @@ FResolvedProperty FPropertySoftPath::Resolve(const UObject* Object) const
 
 FPropertyPath FPropertySoftPath::ResolvePath(const UObject* Object) const
 {
-	const UStruct* ClassOverride = nullptr;
-	FPropertyPath Ret;
-	for( const auto& Property : PropertyChain )
+	auto UpdateContainerAddress = [](const UProperty* Property, const void* Instance, const void*& OutContainerAddress, const UStruct*& OutContainerStruct)
 	{
-		const UProperty* ResolvedProperty = ::Resolve(ClassOverride ? ClassOverride : Object->GetClass(), Property);
-		if (const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(ResolvedProperty))
+		if( ensure(Instance) )
 		{
-			// At the moment the cast of Object to void* just avoids an overzealous assert in ContainerPtrToValuePtr (for some of our
-			// properties, the outer is a UStruct, not a UClass). At some point I want to support diffing of individual array elements, 
-			// and that will necessitate the container be a void* anyway:
-			const UObject* const* BaseObject = reinterpret_cast<const UObject* const*>( ObjectProperty->ContainerPtrToValuePtr<void>( static_cast<const void*>(Object)) );
-			if( BaseObject && *BaseObject )
+			if(const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property))
 			{
-				Object = *BaseObject;
+				const UObject* const* InstanceObject = reinterpret_cast<const UObject* const*>(Instance);
+				if( *InstanceObject)
+				{
+					OutContainerAddress = *InstanceObject;
+					OutContainerStruct = (*InstanceObject)->GetClass();
+				}
 			}
-			ClassOverride = nullptr;
+			else if(const UStructProperty* StructProperty = Cast<UStructProperty>(Property))
+			{
+				OutContainerAddress = Instance;
+				OutContainerStruct = StructProperty->Struct;
+			}
+		}
+	};
+
+	auto TryReadIndex = [](const TArray<FName>& LocalPropertyChain, int32& OutIndex) -> int32
+	{
+		if(OutIndex + 1 < LocalPropertyChain.Num())
+		{
+			FString AsString = LocalPropertyChain[OutIndex + 1].ToString();
+			if(AsString.IsNumeric())
+			{
+				++OutIndex;
+				return FCString::Atoi(*AsString);
+			}
+		}
+		return INDEX_NONE;
+	};
+
+	const void* ContainerAddress = Object;
+	const UStruct* ContainerStruct = Object->GetClass();
+
+	FPropertyPath Ret;
+	for( int32 I = 0; I < PropertyChain.Num(); ++I )
+	{
+		FName PropertyIdentifier = PropertyChain[I];
+		const UProperty * ResolvedProperty = ::Resolve(ContainerStruct, PropertyIdentifier);
+			
+		FPropertyInfo Info = { ResolvedProperty, INDEX_NONE };
+		Ret.AddProperty(Info);
+
+		int32 PropertyIndex = TryReadIndex(PropertyChain, I);
+		
+		
+		// calculate offset so we can continue resolving object properties/structproperties:
+		if( const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(ResolvedProperty) )
+		{
+			if(PropertyIndex != INDEX_NONE)
+			{
+				FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<const void*>( ContainerAddress ));
+
+				UpdateContainerAddress( ArrayProperty->Inner, ArrayHelper.GetRawPtr(PropertyIndex), ContainerAddress, ContainerStruct );
+
+				FPropertyInfo ArrayInfo = { ArrayProperty->Inner, PropertyIndex };
+				Ret.AddProperty(ArrayInfo);
+			}
+		}
+		else if( const USetProperty* SetProperty = Cast<USetProperty>(ResolvedProperty) )
+		{
+			if(PropertyIndex != INDEX_NONE)
+			{
+				FScriptSetHelper SetHelper(SetProperty, SetProperty->ContainerPtrToValuePtr<const void*>( ContainerAddress ));
+
+				// Figure out the real index in this instance of the set (sets have gaps in them):
+				int32 RealIndex = -1;
+				for( int32 J = 0; PropertyIndex >= 0; ++J)
+				{
+					++RealIndex;
+					if(SetHelper.IsValidIndex(J))
+					{
+						--PropertyIndex;
+					}
+				}
+
+				UpdateContainerAddress( SetProperty->ElementProp, SetHelper.GetElementPtr(RealIndex), ContainerAddress, ContainerStruct );
+
+				FPropertyInfo SetInfo = { SetProperty->ElementProp, RealIndex };
+				Ret.AddProperty(SetInfo);
+			}
+		}
+		else if( const UMapProperty* MapProperty = Cast<UMapProperty>(ResolvedProperty) )
+		{
+			if(PropertyIndex != INDEX_NONE)
+			{
+				FScriptMapHelper MapHelper(MapProperty, MapProperty->ContainerPtrToValuePtr<const void*>( ContainerAddress ));
+				
+				// Figure out the real index in this instance of the map (map have gaps in them):
+				int32 RealIndex = -1;
+				for( int32 J = 0; PropertyIndex >= 0; ++J)
+				{
+					++RealIndex;
+					if(MapHelper.IsValidIndex(J))
+					{
+						--PropertyIndex;
+					}
+				}
+
+				// we have an index, but are we looking into a key or value? Peek ahead to find out:
+				if(ensure(I + 1 < PropertyChain.Num()))
+				{
+					if(PropertyChain[I+1] == MapProperty->KeyProp->GetFName())
+					{
+						++I;
+
+						UpdateContainerAddress( MapProperty->KeyProp, MapHelper.GetKeyPtr(RealIndex), ContainerAddress, ContainerStruct );
+
+						FPropertyInfo MakKeyInfo = { MapProperty->KeyProp, RealIndex };
+						Ret.AddProperty(MakKeyInfo);
+					}
+					else if(ensure( PropertyChain[I+1] == MapProperty->ValueProp->GetFName() ))
+					{	
+						++I;
+
+						UpdateContainerAddress( MapProperty->ValueProp, MapHelper.GetValuePtr(RealIndex), ContainerAddress, ContainerStruct );
+						
+						FPropertyInfo MapValueInfo = { MapProperty->ValueProp, RealIndex };
+						Ret.AddProperty(MapValueInfo);
+					}
+				}
+			}
+		}
+		else if (const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(ResolvedProperty))
+		{
+			UpdateContainerAddress( ObjectProperty, ObjectProperty->ContainerPtrToValuePtr<const void*>( ContainerAddress, FMath::Max(PropertyIndex, 0) ), ContainerAddress, ContainerStruct );
+			
+			// handle static arrays:
+			if(PropertyIndex != INDEX_NONE )
+			{
+				FPropertyInfo ObjectInfo = { ResolvedProperty, PropertyIndex };
+				Ret.AddProperty(ObjectInfo);
+			}
 		}
 		else if( const UStructProperty* StructProperty = Cast<UStructProperty>(ResolvedProperty) )
 		{
-			ClassOverride = StructProperty->Struct;
+			UpdateContainerAddress( StructProperty, StructProperty->ContainerPtrToValuePtr<const void*>( ContainerAddress, FMath::Max(PropertyIndex, 0) ), ContainerAddress, ContainerStruct );
+			
+			// handle static arrays:
+			if(PropertyIndex != INDEX_NONE )
+			{
+				FPropertyInfo StructInfo = { ResolvedProperty, PropertyIndex };
+				Ret.AddProperty(StructInfo);
+			}
 		}
-		FPropertyInfo Info = { ResolvedProperty, -1 };
-		Ret.AddProperty(Info);
+		else
+		{
+			// handle static arrays:
+			if(PropertyIndex != INDEX_NONE )
+			{
+				FPropertyInfo StaticArrayInfo = { ResolvedProperty, PropertyIndex };
+				Ret.AddProperty(StaticArrayInfo);
+			}
+		}
+	}
+	return Ret;
+}
+
+FString FPropertySoftPath::ToDisplayName() const
+{
+	FString Ret;
+	for( FName Property : PropertyChain )
+	{
+		FString PropertyAsString = Property.ToString();
+		if(Ret.IsEmpty())
+		{
+			Ret.Append(PropertyAsString);
+		}
+		else if( PropertyAsString.IsNumeric())
+		{
+			Ret.AppendChar('[');
+			Ret.Append(PropertyAsString);
+			Ret.AppendChar(']');
+		}
+		else
+		{
+			Ret.AppendChar(' ');
+			Ret.Append(PropertyAsString);
+		}
 	}
 	return Ret;
 }
@@ -139,9 +304,13 @@ void DiffUtils::CompareUnrelatedObjects(const UObject* A, const UObject* B, TArr
 			FResolvedProperty BProp = PropertyName.Resolve(B);
 
 			check(AProp != FResolvedProperty() && BProp != FResolvedProperty());
-			if (!DiffUtils::Identical(AProp, BProp))
+			TArray<FPropertySoftPath> DifferingSubProperties;
+			if (!DiffUtils::Identical(AProp, BProp, PropertyName, DifferingSubProperties))
 			{
-				OutDifferingProperties.Push(FSingleObjectDiffEntry( PropertyName, EPropertyDiffType::PropertyValueChanged ));
+				for (int DifferingIndex = 0; DifferingIndex < DifferingSubProperties.Num(); DifferingIndex++)
+				{
+					OutDifferingProperties.Push(FSingleObjectDiffEntry(DifferingSubProperties[DifferingIndex], EPropertyDiffType::PropertyValueChanged));
+				}
 			}
 		}
 	}
@@ -205,12 +374,216 @@ void DiffUtils::CompareUnrelatedSCS(const UBlueprint* Old, const TArray< FSCSRes
 	}
 }
 
-bool DiffUtils::Identical(const FResolvedProperty& AProp, const FResolvedProperty& BProp)
+static void AdvanceSetIterator( FScriptSetHelper& SetHelper, int32& Index)
+{
+	while(Index < SetHelper.Num() && !SetHelper.IsValidIndex(Index))
+	{
+		++Index;
+	}
+}
+
+static void AdvanceMapIterator( FScriptMapHelper& MapHelper, int32& Index)
+{
+	while(Index < MapHelper.Num() && !MapHelper.IsValidIndex(Index))
+	{
+		++Index;
+	}
+}
+
+static void IdenticalHelper(const UProperty* AProperty, const UProperty* BProperty, const void* AValue, const void* BValue, const FPropertySoftPath& RootPath, TArray<FPropertySoftPath>& DifferingSubProperties, bool bStaticArrayHandled = false)
+{
+	if(AProperty == nullptr || BProperty == nullptr || AProperty->ArrayDim != BProperty->ArrayDim || AProperty->GetClass() != BProperty->GetClass())
+	{
+		DifferingSubProperties.Push(RootPath);
+		return;
+	}
+
+	if(!bStaticArrayHandled && AProperty->ArrayDim != 1)
+	{
+		// Identical does not handle static array case automatically and we have to do the offset calculation ourself because 
+		// our container (e.g. the struct or class or dynamic array) has already done the initial offset calculation:
+		for( int32 I = 0; I < AProperty->ArrayDim; ++I )
+		{
+			int32 Offset = AProperty->ElementSize * I;
+			const void* CurAValue = reinterpret_cast<const void*>(reinterpret_cast<const uint8*>(AValue) + Offset);
+			const void* CurBValue = reinterpret_cast<const void*>(reinterpret_cast<const uint8*>(BValue) + Offset);
+
+			IdenticalHelper(AProperty, BProperty, CurAValue, CurBValue, FPropertySoftPath(RootPath, I), DifferingSubProperties, true);
+		}
+
+		return;
+	}
+	else if (AProperty->Identical(AValue, BValue, PPF_DeepComparison))
+	{
+		return;
+	}
+
+	const UStructProperty* APropAsStruct = Cast<UStructProperty>(AProperty);
+	const UArrayProperty* APropAsArray = Cast<UArrayProperty>(AProperty);
+	const USetProperty* APropAsSet = Cast<USetProperty>(AProperty);
+	const UMapProperty* APropAsMap = Cast<UMapProperty>(AProperty);
+	const UObjectProperty* APropAsObject = Cast<UObjectProperty>(AProperty);
+	if (APropAsStruct != nullptr)
+	{
+		const UStructProperty* BPropAsStruct = CastChecked<UStructProperty>(BProperty);
+		if (APropAsStruct->Struct->StructFlags & STRUCT_IdenticalNative || BPropAsStruct->Struct != APropAsStruct->Struct)
+		{
+			// If the struct uses CPP identical tests, then we can't dig into it, and we already know it's not identical from the test when we started
+			DifferingSubProperties.Push(RootPath);
+		}
+		else
+		{
+			for (TFieldIterator<UProperty> PropertyIt(APropAsStruct->Struct); PropertyIt; ++PropertyIt)
+			{
+				const UProperty* StructProp = *PropertyIt;
+				IdenticalHelper(StructProp, StructProp, StructProp->ContainerPtrToValuePtr<void>(AValue, 0), StructProp->ContainerPtrToValuePtr<void>(BValue, 0), FPropertySoftPath(RootPath, StructProp), DifferingSubProperties);
+			}
+		}
+	}
+	else if (APropAsArray != nullptr)
+	{
+		const UArrayProperty* BPropAsArray = CastChecked<UArrayProperty>(BProperty);
+		if(BPropAsArray->Inner == APropAsArray->Inner)
+		{
+			FScriptArrayHelper ArrayHelperA(APropAsArray, AValue);
+			FScriptArrayHelper ArrayHelperB(BPropAsArray, BValue);
+		
+			// note any differences in contained types:
+			for (int32 ArrayIndex = 0; ArrayIndex < ArrayHelperA.Num() && ArrayIndex < ArrayHelperB.Num(); ArrayIndex++)
+			{
+				IdenticalHelper(APropAsArray->Inner, APropAsArray->Inner, ArrayHelperA.GetRawPtr(ArrayIndex), ArrayHelperB.GetRawPtr(ArrayIndex), FPropertySoftPath(RootPath, ArrayIndex), DifferingSubProperties);
+			}
+
+			// note any size difference:
+			if (ArrayHelperA.Num() != ArrayHelperB.Num())
+			{
+				DifferingSubProperties.Push(RootPath);
+			}
+		}
+		else
+		{
+			DifferingSubProperties.Push(RootPath);
+		}
+	}
+	else if(APropAsSet != nullptr)
+	{
+		const USetProperty* BPropAsSet = CastChecked<USetProperty>(BProperty);
+		if(BPropAsSet->ElementProp == APropAsSet->ElementProp)
+		{
+			FScriptSetHelper SetHelperA(APropAsSet, AValue);
+			FScriptSetHelper SetHelperB(BPropAsSet, BValue);
+
+			if (SetHelperA.Num() != SetHelperB.Num())
+			{
+				// API not robust enough to indicate changes made to # of set elements, would
+				// need to return something more detailed than DifferingSubProperties array:
+				DifferingSubProperties.Push(RootPath);
+			}
+
+			// note any differences in contained elements:
+			int32 SetSizeA = SetHelperA.Num();
+			int32 SetSizeB = SetHelperA.Num();
+			
+			int32 SetIndexA = 0;
+			int32 SetIndexB = 0;
+
+			AdvanceSetIterator(SetHelperA, SetIndexA);
+			AdvanceSetIterator(SetHelperB, SetIndexB);
+
+			for (int32 VirtualIndex = 0; VirtualIndex < SetSizeA && VirtualIndex < SetSizeB; ++VirtualIndex)
+			{
+				IdenticalHelper(APropAsSet->ElementProp, APropAsSet->ElementProp, SetHelperA.GetElementPtr(SetIndexA), SetHelperB.GetElementPtr(SetIndexB), FPropertySoftPath(RootPath, VirtualIndex), DifferingSubProperties);
+
+				// advance iterators in step:
+				AdvanceSetIterator(SetHelperA, SetIndexA);
+				AdvanceSetIterator(SetHelperB, SetIndexB);
+			}
+		}
+		else
+		{
+			DifferingSubProperties.Push(RootPath);
+		}
+	}
+	else if(APropAsMap != nullptr)
+	{
+		const UMapProperty* BPropAsMap = CastChecked<UMapProperty>(BProperty);
+		if(APropAsMap->KeyProp == BPropAsMap->KeyProp && APropAsMap->ValueProp == BPropAsMap->ValueProp)
+		{
+			FScriptMapHelper MapHelperA(APropAsMap, AValue);
+			FScriptMapHelper MapHelperB(BPropAsMap, BValue);
+
+			if (MapHelperA.Num() != MapHelperB.Num())
+			{
+				// API not robust enough to indicate changes made to # of set elements, would
+				// need to return something more detailed than DifferingSubProperties array:
+				DifferingSubProperties.Push(RootPath);
+			}
+
+			int32 MapSizeA = MapHelperA.Num();
+			int32 MapSizeB = MapHelperB.Num();
+			
+			int32 MapIndexA = 0;
+			int32 MapIndexB = 0;
+
+			AdvanceMapIterator(MapHelperA, MapIndexA);
+			AdvanceMapIterator(MapHelperB, MapIndexB);
+			
+			for (int32 VirtualIndex = 0; VirtualIndex < MapSizeA && VirtualIndex < MapSizeB; ++VirtualIndex)
+			{
+				IdenticalHelper(APropAsMap->KeyProp, APropAsMap->KeyProp, MapHelperA.GetKeyPtr(MapIndexA), MapHelperB.GetKeyPtr(MapIndexB), FPropertySoftPath(RootPath, VirtualIndex), DifferingSubProperties);
+				IdenticalHelper(APropAsMap->ValueProp, APropAsMap->ValueProp, MapHelperA.GetValuePtr(MapIndexA), MapHelperB.GetValuePtr(MapIndexB), FPropertySoftPath(RootPath, VirtualIndex), DifferingSubProperties);
+
+				AdvanceMapIterator(MapHelperA, MapIndexA);
+				AdvanceMapIterator(MapHelperB, MapIndexB);
+			}
+		}
+		else
+		{
+			DifferingSubProperties.Push(RootPath);
+		}
+	}
+	else if(APropAsObject != nullptr)
+	{
+		// dig into the objects if they are in the same package as our initial object:
+		const UObjectProperty* BPropAsObject = CastChecked<UObjectProperty>(BProperty);
+
+		const UObject* A = *((const UObject* const*)AValue);
+		const UObject* B = *((const UObject* const*)BValue);
+
+		if(BPropAsObject->HasAnyPropertyFlags(CPF_InstancedReference) && APropAsObject->HasAnyPropertyFlags(CPF_InstancedReference) && A && B && A->GetClass() == B->GetClass())
+		{
+			// dive into the object to find actual differences:
+			const UClass* AClass = A->GetClass(); // BClass and AClass are identical!
+
+			for (TFieldIterator<UProperty> PropertyIt(AClass); PropertyIt; ++PropertyIt)
+			{
+				const UProperty* ClassProp = *PropertyIt;
+				IdenticalHelper(ClassProp, ClassProp, ClassProp->ContainerPtrToValuePtr<void>(A, 0), ClassProp->ContainerPtrToValuePtr<void>(B, 0), FPropertySoftPath(RootPath, ClassProp), DifferingSubProperties);
+			}
+		}
+		else
+		{		
+			DifferingSubProperties.Push(RootPath);
+		}
+	}
+	else
+	{
+		DifferingSubProperties.Push(RootPath);
+	}
+}
+
+bool DiffUtils::Identical(const FResolvedProperty& AProp, const FResolvedProperty& BProp, const FPropertySoftPath& RootPath, TArray<FPropertySoftPath>& DifferingProperties)
 {
 	const void* AValue = AProp.Property->ContainerPtrToValuePtr<void>(AProp.Object);
 	const void* BValue = BProp.Property->ContainerPtrToValuePtr<void>(BProp.Object);
 
-	return AProp.Property->Identical(AValue, BValue, PPF_DeepComparison);
+	// We _could_ just ask the property for comparison but that would make the "identical" functions significantly more complex.
+	// Instead let's write a new function, specific to DiffUtils, that handles the sub properties
+	// NOTE: For Static Arrays, AValue and BValue were, and are, only references to the value at index 0.  So changes to values past index 0 didn't show up before and
+	// won't show up now.  Changes to index 0 will show up as a change to the entire array.
+	IdenticalHelper(AProp.Property, BProp.Property, AValue, BValue, RootPath, DifferingProperties);
+	
+	return DifferingProperties.Num() == 0;
 }
 
 TArray<FPropertySoftPath> DiffUtils::GetVisiblePropertiesInOrderDeclared(const UObject* ForObj, const TArray<FName>& Scope /*= TArray<FName>()*/)
@@ -582,7 +955,7 @@ FLinearColor DiffViewUtils::Conflicting()
 FText DiffViewUtils::PropertyDiffMessage(FSingleObjectDiffEntry Difference, FText ObjectName)
 {
 	FText Message;
-	FString PropertyName = Difference.Identifier.LastPropertyName().GetPlainNameString();
+	FString PropertyName = Difference.Identifier.ToDisplayName();
 	switch (Difference.DiffType)
 	{
 	case EPropertyDiffType::PropertyAddedToA:

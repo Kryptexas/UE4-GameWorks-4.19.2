@@ -59,8 +59,10 @@ namespace UnrealBuildTool
 					// Extra checks for PS4 and XboxOne folders, which are equivalent to NotForLicensees
 					string PS4FolderName = String.Format("{0}ps4{0}", Path.DirectorySeparatorChar);
 					string XboxFolderName = String.Format("{0}xboxone{0}", Path.DirectorySeparatorChar);
+					string SwitchFolderName = String.Format("{0}switch{0}", Path.DirectorySeparatorChar);
 					if (FilePath.IndexOf(PS4FolderName, StringComparison.InvariantCultureIgnoreCase) >= 0
-					|| FilePath.IndexOf(XboxFolderName, StringComparison.InvariantCultureIgnoreCase) >= 0)
+					|| FilePath.IndexOf(XboxFolderName, StringComparison.InvariantCultureIgnoreCase) >= 0
+					|| FilePath.IndexOf(SwitchFolderName, StringComparison.InvariantCultureIgnoreCase) >= 0)
 					{
 						return UEBuildModuleDistribution.NotForLicensees;
 					}
@@ -1449,8 +1451,9 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Create a header file containing the module definitions, which also includes the PCH itself. Including through another file is necessary on Clang, since we get warnings about #pragma once otherwise, but it 
-		/// also allows us to consistently define the preprocessor state on all platforms.
+		/// Create a header file containing the module definitions, which also includes the PCH itself. Including through another file is necessary on 
+		/// Clang, since we get warnings about #pragma once otherwise, but it also allows us to consistently define the preprocessor state on all 
+		/// platforms.
 		/// </summary>
 		/// <param name="OutputFile">The output file to create</param>
 		/// <param name="Definitions">Definitions required by the PCH</param>
@@ -1463,7 +1466,6 @@ namespace UnrealBuildTool
 			using (StringWriter Writer = new StringWriter(WrapperContents))
 			{
 				Writer.WriteLine("// PCH for {0}", IncludedFile.AbsolutePath);
-				Writer.WriteLine("// Last updated at {0}", IncludedFile.LastWriteTime);
 				WriteDefinitions(Definitions, Writer);
 				Writer.WriteLine("#include \"{0}\"", IncludedFile.AbsolutePath);
 			}
@@ -1471,6 +1473,13 @@ namespace UnrealBuildTool
 			// Create the item
 			FileItem WrapperFile = FileItem.CreateIntermediateTextFile(OutputFile, WrapperContents.ToString());
 			WrapperFile.CachedCPPIncludeInfo = IncludedFile.CachedCPPIncludeInfo;
+
+			// Touch it if the included file is newer, to make sure our timestamp dependency checking is accurate.
+			if (IncludedFile.LastWriteTime > WrapperFile.LastWriteTime)
+			{
+				File.SetLastWriteTimeUtc(WrapperFile.AbsolutePath, DateTime.UtcNow);
+				WrapperFile.ResetFileInfo();
+			}
 			return WrapperFile;
 		}
 
@@ -1552,19 +1561,22 @@ namespace UnrealBuildTool
 
 					// Find the directly included files for each source file, and make sure it includes the matching header if possible
 					InvalidIncludeDirectiveMessages = new List<string>();
-					foreach (FileItem CPPFile in SourceFilesFound.CPPFiles)
+					if (Rules.bEnforceIWYU && UEBuildConfiguration.bEnforceIWYU)
 					{
-						List<DependencyInclude> DirectIncludeFilenames = Headers.GetDirectIncludeDependencies(CPPFile, BuildPlatform, bOnlyCachedDependencies: false);
-						if(DirectIncludeFilenames.Count > 0)
+						foreach (FileItem CPPFile in SourceFilesFound.CPPFiles)
 						{
-							string IncludeName = Path.GetFileNameWithoutExtension(DirectIncludeFilenames[0].IncludeName);
-							string ExpectedName = CPPFile.Reference.GetFileNameWithoutExtension();
-							if(String.Compare(IncludeName, ExpectedName, StringComparison.InvariantCultureIgnoreCase) != 0)
+							List<DependencyInclude> DirectIncludeFilenames = Headers.GetDirectIncludeDependencies(CPPFile, BuildPlatform, bOnlyCachedDependencies: false);
+							if (DirectIncludeFilenames.Count > 0)
 							{
-								FileReference HeaderFile;
-								if(NameToHeaderFile.TryGetValue(ExpectedName, out HeaderFile) && !IgnoreMismatchedHeader(ExpectedName))
+								string IncludeName = Path.GetFileNameWithoutExtension(DirectIncludeFilenames[0].IncludeName);
+								string ExpectedName = CPPFile.Reference.GetFileNameWithoutExtension();
+								if (String.Compare(IncludeName, ExpectedName, StringComparison.InvariantCultureIgnoreCase) != 0)
 								{
-									InvalidIncludeDirectiveMessages.Add(String.Format("{0}(1): error: Expected {1} to be first header included.", CPPFile.Reference, HeaderFile.GetFileName()));
+									FileReference HeaderFile;
+									if (NameToHeaderFile.TryGetValue(ExpectedName, out HeaderFile) && !IgnoreMismatchedHeader(ExpectedName))
+									{
+										InvalidIncludeDirectiveMessages.Add(String.Format("{0}(1): error: Expected {1} to be first header included.", CPPFile.Reference, HeaderFile.GetFileName()));
+									}
 								}
 							}
 						}
@@ -1798,21 +1810,39 @@ namespace UnrealBuildTool
 			Result.Config.MinFilesUsingPrecompiledHeaderOverride = Rules.MinFilesUsingPrecompiledHeaderOverride;
 			Result.Config.bBuildLocallyWithSNDBS = Rules.bBuildLocallyWithSNDBS;
 			Result.Config.bEnableExceptions = Rules.bEnableExceptions;
-			Result.Config.bEnableShadowVariableWarning = Rules.bEnableShadowVariableWarnings;
+			Result.Config.bEnableShadowVariableWarnings = Rules.bEnableShadowVariableWarnings;
+			Result.Config.bEnableUndefinedIdentifierWarnings = Rules.bEnableUndefinedIdentifierWarnings;
 			Result.Config.bUseStaticCRT = (Target.Rules != null && Target.Rules.bUseStaticCRT);
 			Result.Config.OutputDirectory = DirectoryReference.Combine(Binary.Config.IntermediateDirectory, Name);
 			Result.Config.PCHOutputDirectory = (Result.Config.PCHOutputDirectory == null)? null : DirectoryReference.Combine(Result.Config.PCHOutputDirectory, Name);
+
+			// Set the macro used to check whether monolithic headers can be used
+			if (bIsEngineModule && (!Rules.bEnforceIWYU || !UEBuildConfiguration.bEnforceIWYU))
+			{
+				Result.Config.Definitions.Add("SUPPRESS_MONOLITHIC_HEADER_WARNINGS=1");
+			}
 
 			// Add a macro for when we're compiling an engine module, to enable additional compiler diagnostics through code.
 			if (bIsEngineModule)
 			{
 				Result.Config.Definitions.Add("UE_IS_ENGINE_MODULE=1");
 			}
+			else
+			{
+				Result.Config.Definitions.Add("UE_IS_ENGINE_MODULE=0");
+			}
 
 			// Switch the optimization flag if we're building a game module. Also pass the definition for building in DebugGame along (see ModuleManager.h for notes).
-			if (Target.Configuration == UnrealTargetConfiguration.DebugGame && !bIsEngineModule)
+			if (!bIsEngineModule)
 			{
-				Result.Config.Definitions.Add("UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME=1");
+				if (Target.Configuration == UnrealTargetConfiguration.DebugGame)
+				{
+					Result.Config.Definitions.Add("UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME=1");
+				}
+				else
+				{
+					Result.Config.Definitions.Add("UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME=0");
+				}
 			}
 
 			// Add the module's private definitions.
@@ -1856,11 +1886,22 @@ namespace UnrealBuildTool
 			{
 				Result.Config.Definitions.Add("UE_IS_ENGINE_MODULE=1");
 			}
+			else
+			{
+				Result.Config.Definitions.Add("UE_IS_ENGINE_MODULE=0");
+			}
 
 			// Switch the optimization flag if we're building a game module. Also pass the definition for building in DebugGame along (see ModuleManager.h for notes).
-			if (Target.Configuration == UnrealTargetConfiguration.DebugGame && !bIsEngineModule)
+			if (!bIsEngineModule)
 			{
-				Result.Config.Definitions.Add("UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME=1");
+				if (Target.Configuration == UnrealTargetConfiguration.DebugGame)
+				{
+					Result.Config.Definitions.Add("UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME=1");
+				}
+				else
+				{
+					Result.Config.Definitions.Add("UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME=0");
+				}
 			}
 
 			// Add the module's private definitions.

@@ -247,6 +247,8 @@
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Android/extras/..."/>
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/GoogleVR/..."/>
 	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Oculus/OculusMobile/SDK_1_0_3/Libs/..."/>
+	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Oculus/LibOVRPlatform/LibOVRPlatform_APL.xml"/>
+	<Property Name="CopyAndroidFilter" Value="$(CopyAndroidFilter);Engine/Source/ThirdParty/Oculus/LibOVRPlatform/lib/*.so"/>
 	<Property Name="CopyAndroidExceptions" Value="$(CopyAndroidExceptions);Engine/Binaries/Android/....apk"/>
 	
 	<!-- Win64 Specific -->

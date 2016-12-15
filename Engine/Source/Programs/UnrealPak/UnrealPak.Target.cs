@@ -8,6 +8,7 @@ public class UnrealPakTarget : TargetRules
 	public UnrealPakTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	//
@@ -23,11 +24,6 @@ public class UnrealPakTarget : TargetRules
 		OutBuildBinaryConfigurations.Add(
 			new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.Executable, InModuleNames: new List<string>() { "UnrealPak" })
 			);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

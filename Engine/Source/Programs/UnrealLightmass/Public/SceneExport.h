@@ -14,7 +14,7 @@
 #include "Math/SHMath.h"
 #include "Misc/Guid.h"
 #include "MeshExport.h"
-#if UE_LIGHTMASS
+#ifdef UE_LIGHTMASS
 #include "Misc/LMHelpers.h"
 #endif
 

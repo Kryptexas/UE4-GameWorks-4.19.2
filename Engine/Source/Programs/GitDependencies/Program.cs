@@ -575,13 +575,16 @@ namespace GitDependencies
 			List<WorkingFile> TamperedFiles = new List<WorkingFile>();
 			foreach(WorkingFile FileToRemove in CurrentFileLookup.Values)
 			{
-				if(Overwrite != OverwriteMode.Force && FileToRemove.Hash != FileToRemove.ExpectedHash)
+				if (!IsExcludedFolder(FileToRemove.Name, ExcludeFolders) && (IgnoreFile == null || !IgnoreFile.IsExcludedFile(FileToRemove.Name)))
 				{
-					TamperedFiles.Add(FileToRemove);
-				}
-				else if(!SafeDeleteFile(Path.Combine(RootPath, FileToRemove.Name)))
-				{
-					return false;
+					if(Overwrite != OverwriteMode.Force && FileToRemove.Hash != FileToRemove.ExpectedHash)
+					{
+						TamperedFiles.Add(FileToRemove);
+					}
+					else if(!SafeDeleteFile(Path.Combine(RootPath, FileToRemove.Name)))
+					{
+						return false;
+					}
 				}
 			}
 

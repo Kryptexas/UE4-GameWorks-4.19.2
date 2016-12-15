@@ -7,11 +7,12 @@
 
 #if WITH_UNREALPNG
 
-#include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
-
-#include "ThirdParty/libPNG/libPNG-1.5.2/png.h"
-#include "ThirdParty/libPNG/libPNG-1.5.2/pnginfo.h"
-#include <setjmp.h>
+THIRD_PARTY_INCLUDES_START
+	#include "ThirdParty/zlib/zlib-1.2.5/Inc/zlib.h"
+	#include "ThirdParty/libPNG/libPNG-1.5.2/png.h"
+	#include "ThirdParty/libPNG/libPNG-1.5.2/pnginfo.h"
+	#include <setjmp.h>
+THIRD_PARTY_INCLUDES_END
 
 /**
  * PNG implementation of the helper class.

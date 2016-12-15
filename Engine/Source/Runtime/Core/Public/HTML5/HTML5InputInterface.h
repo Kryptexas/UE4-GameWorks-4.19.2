@@ -7,11 +7,13 @@
 #include "Templates/SharedPointer.h"
 #include "GenericPlatform/GenericApplicationMessageHandler.h"
 #include "Containers/BitArray.h"
-#include <SDL.h>
+THIRD_PARTY_INCLUDES_START
+	#include <SDL.h>
 
-#if PLATFORM_HTML5_BROWSER
-#include <emscripten/html5.h>
-#endif
+	#if PLATFORM_HTML5_BROWSER
+		#include <emscripten/html5.h>
+	#endif
+THIRD_PARTY_INCLUDES_END
 
 
 /**

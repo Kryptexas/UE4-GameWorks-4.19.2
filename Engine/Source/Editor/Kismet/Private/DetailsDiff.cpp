@@ -92,7 +92,7 @@ void FDetailsDiff::DiffAgainst(const FDetailsDiff& Newer, TArray< FSingleObjectD
 	ToSet(NewProperties, NewPropertiesSet);
 
 	// detect removed properties:
-	auto RemovedProperties = OldPropertiesSet.Difference(NewPropertiesSet);
+	TSet<FPropertySoftPath> RemovedProperties = OldPropertiesSet.Difference(NewPropertiesSet);
 	for (const auto& RemovedProperty : RemovedProperties)
 	{
 		// @todo: (doc) label these as removed, rather than added to a
@@ -101,25 +101,30 @@ void FDetailsDiff::DiffAgainst(const FDetailsDiff& Newer, TArray< FSingleObjectD
 	}
 
 	// detect added properties:
-	auto AddededProperties = NewPropertiesSet.Difference(OldPropertiesSet);
-	for (const auto& AddedProperty : AddededProperties)
+	TSet<FPropertySoftPath> AddedProperties = NewPropertiesSet.Difference(OldPropertiesSet);
+	for (const auto& AddedProperty : AddedProperties)
 	{
 		FSingleObjectDiffEntry Entry(AddedProperty, EPropertyDiffType::PropertyAddedToB);
 		OutDifferences.Push(Entry);
 	}
 
 	// check for changed properties
-	auto CommonProperties = NewPropertiesSet.Intersect(OldPropertiesSet);
+	TSet<FPropertySoftPath> CommonProperties = NewPropertiesSet.Intersect(OldPropertiesSet);
 	for (const auto& CommonProperty : CommonProperties)
 	{
 		// get value, diff:
 		check(NewSelectedObjects.Num() == 1);
-		auto OldPoperty = CommonProperty.Resolve(OldSelectedObjects[0].Get());
-		auto NewProperty = CommonProperty.Resolve(NewSelectedObjects[0].Get());
+		FResolvedProperty OldProperty = CommonProperty.Resolve(OldSelectedObjects[0].Get());
+		FResolvedProperty NewProperty = CommonProperty.Resolve(NewSelectedObjects[0].Get());
 
-		if (!DiffUtils::Identical(OldPoperty, NewProperty))
+		TArray<FPropertySoftPath> DifferingSubProperties;
+
+		if (!DiffUtils::Identical(OldProperty, NewProperty, CommonProperty, DifferingSubProperties))
 		{
-			OutDifferences.Push(FSingleObjectDiffEntry(CommonProperty, EPropertyDiffType::PropertyValueChanged));
+			for (int32 DifferingIndex = 0; DifferingIndex < DifferingSubProperties.Num(); DifferingIndex++)
+			{
+				OutDifferences.Push(FSingleObjectDiffEntry(DifferingSubProperties[DifferingIndex], EPropertyDiffType::PropertyValueChanged));
+			}
 		}
 	}
 }

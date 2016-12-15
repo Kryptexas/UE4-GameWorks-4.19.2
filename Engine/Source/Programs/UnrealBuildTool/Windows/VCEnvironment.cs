@@ -14,6 +14,7 @@ namespace UnrealBuildTool
 	public class VCEnvironment
 	{
 		public readonly CPPTargetPlatform Platform;              // The platform the envvars have been initialized for
+		public readonly WindowsCompiler Compiler;                // The compiler version we're using
 		public readonly DirectoryReference VSInstallDir;         // The path to the base Visual Studio install directory (may be null for standalone toolchain)
 		public readonly DirectoryReference VCInstallDir;         // The path to the base Visual C++ install directory
 		public readonly DirectoryReference VCToolPath32;	     // The path to the 32bit platform tool binaries.
@@ -57,41 +58,42 @@ namespace UnrealBuildTool
 				return EnvVars;
 			}
 
-			EnvVars = new VCEnvironment(Platform, bSupportWindowsXP);
+			EnvVars = new VCEnvironment(Platform, WindowsPlatform.Compiler, bSupportWindowsXP);
 			return EnvVars;
 		}
 
-		private VCEnvironment(CPPTargetPlatform InPlatform, bool bSupportWindowsXP)
+		private VCEnvironment(CPPTargetPlatform InPlatform, WindowsCompiler InCompiler, bool bSupportWindowsXP)
 		{
 			Platform = InPlatform;
+			Compiler = InCompiler;
 
 			// Get the Visual Studio install directory
-			WindowsPlatform.TryGetVSInstallDir(WindowsPlatform.Compiler, out VSInstallDir);
+			WindowsPlatform.TryGetVSInstallDir(Compiler, out VSInstallDir);
 
 			// Get the Visual C++ compiler install directory. 
-			if(!WindowsPlatform.TryGetVCInstallDir(WindowsPlatform.Compiler, out VCInstallDir))
+			if(!WindowsPlatform.TryGetVCInstallDir(Compiler, out VCInstallDir))
 			{
-				throw new BuildException(WindowsPlatform.GetCompilerName(WindowsPlatform.Compiler) + " must be installed in order to build this target.");
+				throw new BuildException(WindowsPlatform.GetCompilerName(Compiler) + " must be installed in order to build this target.");
 			}
 
 			// Figure out the default toolchain directory. VS15 separates this out into separate directories, with platforms as subdirectories under that.
 			DirectoryReference VCToolChainDir = null;
-			if(WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
+			if(Compiler == WindowsCompiler.VisualStudio2017)
 			{
 				string Version = File.ReadAllText(FileReference.Combine(VCInstallDir, "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt").FullName).Trim();
 				VCToolChainDir = DirectoryReference.Combine(VCInstallDir, "Tools", "MSVC", Version);
 			}
 
-			WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform, bSupportWindowsXP);
+			WindowsSDKDir = FindWindowsSDKInstallationFolder(Platform, Compiler, bSupportWindowsXP);
 			WindowsSDKLibVersion = FindWindowsSDKLibVersion(WindowsSDKDir, bSupportWindowsXP);
-			WindowsSDKExtensionDir = bSupportWindowsXP ? "" : FindWindowsSDKExtensionInstallationFolder();
-			NetFxSDKExtensionDir = bSupportWindowsXP ? "" : FindNetFxSDKExtensionInstallationFolder();
+			WindowsSDKExtensionDir = bSupportWindowsXP ? "" : FindWindowsSDKExtensionInstallationFolder(Compiler);
+			NetFxSDKExtensionDir = bSupportWindowsXP ? "" : FindNetFxSDKExtensionInstallationFolder(Compiler);
 			WindowsSDKExtensionHeaderLibVersion = bSupportWindowsXP ? new Version(0, 0, 0, 0) : FindWindowsSDKExtensionLatestVersion(WindowsSDKExtensionDir);
-			UniversalCRTDir = bSupportWindowsXP ? "" : FindUniversalCRTInstallationFolder();
+			UniversalCRTDir = bSupportWindowsXP ? "" : FindUniversalCRTInstallationFolder(Compiler);
 			UniversalCRTVersion = bSupportWindowsXP ? "0.0.0.0" : FindUniversalCRTVersion(UniversalCRTDir);
 
-			VCToolPath32 = GetVCToolPath32(VCInstallDir, VCToolChainDir);
-			VCToolPath64 = GetVCToolPath64(VCInstallDir, VCToolChainDir);
+			VCToolPath32 = GetVCToolPath32(Compiler, VCInstallDir, VCToolChainDir);
+			VCToolPath64 = GetVCToolPath64(Compiler, VCInstallDir, VCToolChainDir);
 
 			// Compile using 64 bit tools for 64 bit targets, and 32 for 32.
 			DirectoryReference CompilerDir = (Platform == CPPTargetPlatform.Win64) ? VCToolPath64 : VCToolPath32;
@@ -114,7 +116,7 @@ namespace UnrealBuildTool
             }
 
 			// Setup the INCLUDE environment variable
-			List<string> IncludePaths = GetVisualCppIncludePaths(VCInstallDir, VCToolChainDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, bSupportWindowsXP);
+			List<string> IncludePaths = GetVisualCppIncludePaths(Compiler, VCInstallDir, VCToolChainDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, bSupportWindowsXP);
 			if(InitialIncludePaths != null)
 			{
 				IncludePaths.Add(InitialIncludePaths);
@@ -122,7 +124,7 @@ namespace UnrealBuildTool
             Environment.SetEnvironmentVariable("INCLUDE", String.Join(";", IncludePaths));
 			
 			// Setup the LIB environment variable
-            List<string> LibraryPaths = GetVisualCppLibraryPaths(VCInstallDir, VCToolChainDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, Platform, bSupportWindowsXP);
+            List<string> LibraryPaths = GetVisualCppLibraryPaths(Compiler, VCInstallDir, VCToolChainDir, UniversalCRTDir, UniversalCRTVersion, NetFxSDKExtensionDir, WindowsSDKDir, WindowsSDKLibVersion, Platform, bSupportWindowsXP);
 			if(InitialLibraryPaths != null)
 			{
 				LibraryPaths.Add(InitialLibraryPaths);
@@ -131,7 +133,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <returns>The path to Windows SDK directory for the specified version.</returns>
-		private static string FindWindowsSDKInstallationFolder(CPPTargetPlatform InPlatform, bool bSupportWindowsXP)
+		private static string FindWindowsSDKInstallationFolder(CPPTargetPlatform InPlatform, WindowsCompiler InCompiler, bool bSupportWindowsXP)
 		{
 			// When targeting Windows XP on Visual Studio 2012+, we need to point at the older Windows SDK 7.1A that comes
 			// installed with Visual Studio 2012 Update 1. (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
@@ -140,7 +142,7 @@ namespace UnrealBuildTool
 			{
 				Version = "v7.1A";
 			}
-			else switch (WindowsPlatform.Compiler)
+			else switch (InCompiler)
 				{
 					case WindowsCompiler.VisualStudio2017:
 					case WindowsCompiler.VisualStudio2015:
@@ -213,34 +215,37 @@ namespace UnrealBuildTool
 			return WindowsSDKLibVersion;
 		}
 
-		private static string FindNetFxSDKExtensionInstallationFolder()
+		private static string FindNetFxSDKExtensionInstallationFolder(WindowsCompiler Compiler)
 		{
-			string Version;
-			switch (WindowsPlatform.Compiler)
+			string[] Versions;
+			switch (Compiler)
 			{
 				case WindowsCompiler.VisualStudio2017:
 				case WindowsCompiler.VisualStudio2015:
-					Version = "4.6";
+					Versions = new string[] { "4.6", "4.6.1", "4.6.2" };
 					break;
 
 				default:
 					return string.Empty;
 			}
-			string FinalResult = string.Empty;
-			object Result = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null)
-					  ?? Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null);
 
-			if (Result != null)
+			foreach (string Version in Versions)
 			{
-				FinalResult = ((string)Result).TrimEnd('\\');
+				string Result = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null) as string
+							?? Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null) as string;
+				if (Result != null)
+				{
+					return Result.TrimEnd('\\');
+				}
 			}
-			return FinalResult;
+
+			return string.Empty;
 		}
 
-		private static string FindWindowsSDKExtensionInstallationFolder()
+		private static string FindWindowsSDKExtensionInstallationFolder(WindowsCompiler Compiler)
 		{
 			string Version;
-			switch (WindowsPlatform.Compiler)
+			switch (Compiler)
 			{
 				case WindowsCompiler.VisualStudio2017:
 				case WindowsCompiler.VisualStudio2015:
@@ -313,9 +318,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="VCInstallDir">Base install directory for the VC toolchain</param>
 		/// <returns>Directory containing the 32-bit toolchain binaries</returns>
-		static DirectoryReference GetVCToolPath32(DirectoryReference VCInstallDir, DirectoryReference VCToolChainDir)
+		static DirectoryReference GetVCToolPath32(WindowsCompiler Compiler, DirectoryReference VCInstallDir, DirectoryReference VCToolChainDir)
 		{
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
+			if (Compiler == WindowsCompiler.VisualStudio2017)
 			{
 				FileReference NativeCompilerPath = FileReference.Combine(VCToolChainDir, "bin", "HostX64", "x86", "cl.exe");
 				if (NativeCompilerPath.Exists())
@@ -345,11 +350,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Gets the path to the 64bit tool binaries.
 		/// </summary>
+		/// <param name="Compiler">The version of the compiler being used</param>
 		/// <param name="VCInstallDir">Base install directory for the VC toolchain</param>
 		/// <returns>Directory containing the 64-bit toolchain binaries</returns>
-		static DirectoryReference GetVCToolPath64(DirectoryReference VCInstallDir, DirectoryReference VCToolChainDir)
+		static DirectoryReference GetVCToolPath64(WindowsCompiler Compiler, DirectoryReference VCInstallDir, DirectoryReference VCToolChainDir)
 		{
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
+			if (Compiler == WindowsCompiler.VisualStudio2017)
 			{
 				// Use the native 64-bit compiler if present
 				FileReference NativeCompilerPath = FileReference.Combine(VCToolChainDir, "bin", "HostX64", "x64", "cl.exe");
@@ -546,55 +552,81 @@ namespace UnrealBuildTool
 
 		/// <summary>
 		/// Gets the path to MSBuild.
+		/// This mirrors the logic in GetMSBuildPath.bat.
 		/// </summary>
 		public static string GetMSBuildToolPath()
 		{
-			string ToolPath;
-			if(TryGetMSBuildToolPath("FrameworkDir64", "FrameworkVer64", out ToolPath))
+			// Try to get the MSBuild 14.0 path directly (see https://msdn.microsoft.com/en-us/library/hh162058(v=vs.120).aspx)
+			string ToolPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "14.0", "bin", "MSBuild.exe");
+			if(File.Exists(ToolPath))
+			{
+				return ToolPath;
+			} 
+
+			// Try to get the MSBuild 14.0 path from the registry
+			if (TryReadMsBuildInstallPath("Microsoft\\MSBuild\\ToolsVersions\\14.0", "MSBuildToolsPath", "MSBuild.exe", out ToolPath))
 			{
 				return ToolPath;
 			}
-			if(TryGetMSBuildToolPath("FrameworkDir32", "FrameworkVer32", out ToolPath))
+
+			// Check for MSBuild 15. This is installed alongside Visual Studio 2017, so we get the path relative to that.
+			if (TryReadMsBuildInstallPath("Microsoft\\VisualStudio\\SxS\\VS7", "15.0", "MSBuild\\15.0\\bin\\MSBuild.exe", out ToolPath))
 			{
 				return ToolPath;
 			}
+
+			// Check for older versions of MSBuild. These are registered as separate versions in the registry.
+			if (TryReadMsBuildInstallPath("Microsoft\\MSBuild\\ToolsVersions\\12.0", "MSBuildToolsPath", "MSBuild.exe", out ToolPath))
+			{
+				return ToolPath;
+			}
+			if (TryReadMsBuildInstallPath("Microsoft\\MSBuild\\ToolsVersions\\4.0", "MSBuildToolsPath", "MSBuild.exe", out ToolPath))
+			{
+				return ToolPath;
+			}
+
 			throw new BuildException("NOTE: Please ensure that 64bit Tools are installed with DevStudio - there is usually an option to install these during install");
 		}
 
-		static bool TryGetMSBuildToolPath(string FrameworkDirName, string FrameworkVerName, out string ToolPath)
+		/// <summary>
+		/// Function to query the registry under HKCU/HKLM Win32/Wow64 software registry keys for a certain install directory.
+		/// This mirrors the logic in GetMSBuildPath.bat.
+		/// </summary>
+		/// <returns></returns>
+		static bool TryReadMsBuildInstallPath(string KeyRelativePath, string KeyName, string MsBuildRelativePath, out string OutMsBuildPath)
 		{
-			string[] RegistryPaths = 
+			string[] KeyBasePaths =
 			{
-				@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\SxS\VC7",
-				@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\VisualStudio\SxS\VC7",
-				@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7",
-				@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\VisualStudio\SxS\VC7"
+				@"HKEY_CURRENT_USER\SOFTWARE\",
+				@"HKEY_LOCAL_MACHINE\SOFTWARE\",
+				@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\",
+				@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\"
 			};
 
-			foreach(string RegistryPath in RegistryPaths)
+			foreach (string KeyBasePath in KeyBasePaths)
 			{
-				string FrameworkDir = Microsoft.Win32.Registry.GetValue(RegistryPath, FrameworkDirName, null) as string;
-				if(!String.IsNullOrEmpty(FrameworkDir))
+				string Value = Registry.GetValue(KeyBasePath + KeyRelativePath, KeyName, null) as string;
+				if (Value != null)
 				{
-					string FrameworkVer = Microsoft.Win32.Registry.GetValue(RegistryPath, FrameworkVerName, null) as string;
-					if(!String.IsNullOrEmpty(FrameworkVer))
+					string MsBuildPath = Path.Combine(Value, MsBuildRelativePath);
+					if (File.Exists(MsBuildPath))
 					{
-						ToolPath = Path.Combine(FrameworkDir, FrameworkVer, "MSBuild.exe");
+						OutMsBuildPath = MsBuildPath;
 						return true;
 					}
 				}
 			}
 
-			ToolPath = null;
+			OutMsBuildPath = null;
 			return false;
 		}
 
 		/// <summary>
 		/// Finds the directory containing the Universal CRT installation. Returns null for Visual Studio versions before 2015
 		/// </summary>
-		static string FindUniversalCRTInstallationFolder()
+		static string FindUniversalCRTInstallationFolder(WindowsCompiler Compiler)
 		{
-			if (WindowsPlatform.Compiler < WindowsCompiler.VisualStudio2015)
+			if (Compiler < WindowsCompiler.VisualStudio2015)
 			{
 				return null;
 			}
@@ -632,12 +664,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Sets the Visual C++ INCLUDE environment variable
 		/// </summary>
-		static List<string> GetVisualCppIncludePaths(DirectoryReference VisualCppDir, DirectoryReference VisualCppToolchainDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, bool bSupportWindowsXP)
+		static List<string> GetVisualCppIncludePaths(WindowsCompiler Compiler, DirectoryReference VisualCppDir, DirectoryReference VisualCppToolchainDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, bool bSupportWindowsXP)
 		{
 			List<string> IncludePaths = new List<string>();
 
 			// Add the standard Visual C++ include paths
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
+			if (Compiler == WindowsCompiler.VisualStudio2017)
 			{
 				DirectoryReference StdIncludeDir = DirectoryReference.Combine(VisualCppToolchainDir, "INCLUDE");
 				if (StdIncludeDir.Exists())
@@ -681,7 +713,7 @@ namespace UnrealBuildTool
 			{
 				IncludePaths.Add(Path.Combine(WindowsSDKDir, "include"));
 			}
-			else if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
+			else if (Compiler >= WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
 			{
 				IncludePaths.Add(Path.Combine(WindowsSDKDir, "include", WindowsSDKLibVersion, "shared"));
 				IncludePaths.Add(Path.Combine(WindowsSDKDir, "include", WindowsSDKLibVersion, "um"));
@@ -708,12 +740,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Sets the Visual C++ LIB environment variable
 		/// </summary>
-		static List<string> GetVisualCppLibraryPaths(DirectoryReference VisualCppDir, DirectoryReference VisualCppToolchainDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, CPPTargetPlatform Platform, bool bSupportWindowsXP)
+		static List<string> GetVisualCppLibraryPaths(WindowsCompiler Compiler, DirectoryReference VisualCppDir, DirectoryReference VisualCppToolchainDir, string UniversalCRTDir, string UniversalCRTVersion, string NetFXSDKDir, string WindowsSDKDir, string WindowsSDKLibVersion, CPPTargetPlatform Platform, bool bSupportWindowsXP)
 		{
 			List<string> LibraryPaths = new List<string>();
 
 			// Add the standard Visual C++ library paths
-			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017)
+			if (Compiler == WindowsCompiler.VisualStudio2017)
 			{
 				if (Platform == CPPTargetPlatform.Win32)
 				{

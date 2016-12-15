@@ -14,6 +14,8 @@
 #include "Misc/Paths.h"
 #include "HAL/TlsAutoCleanup.h"
 #include "Misc/App.h"
+#include "Misc/CoreDelegates.h"
+#include "ProfilingDebugging/ProfilingHelpers.h"
 
 #if USE_MALLOC_PROFILER
 

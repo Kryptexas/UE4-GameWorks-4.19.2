@@ -1760,8 +1760,10 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 			{
 				// The class object is created here. The class is not fully constructed yet (no CLASS_Constructed flag), ZConstructor will do that later.
 				// The class object is needed to resolve circular dependencies. Regular native classes use deferred initialization/registration to avoid them.
-				ObjectImport->XObject = ClassConstructFn->StaticClassFn();
-				OuterImport->XObject = ObjectImport->XObject->GetOutermost();
+
+				ClassConstructFn->StaticClassFn();
+
+				//We don't fill the ObjectImport->XObject and OuterImport->XObject, because the class still must be created as export.
 			}
 		}
 	}
@@ -1890,10 +1892,8 @@ void FLinkerLoad::CreateDynamicTypeLoader()
 		}
 	}
 	}
-	else
-	{
+
 	LinkerRoot->SetPackageFlags(LinkerRoot->GetPackageFlags() | PKG_CompiledIn);
-	}
 }
 
 /*******************************************************************************
@@ -2242,11 +2242,16 @@ FConvertedBlueprintsDependencies& FConvertedBlueprintsDependencies::Get()
 	return ConvertedBlueprintsDependencies;
 }
 
-void FConvertedBlueprintsDependencies::RegisterClass(FName PackageName, GetDependenciesNamesFunc GetAssets)
+void FConvertedBlueprintsDependencies::RegisterConvertedClass(FName PackageName, GetDependenciesNamesFunc GetAssets)
 {
 	check(!PackageNameToGetter.Contains(PackageName));
 	ensure(GetAssets);
 	PackageNameToGetter.Add(PackageName, GetAssets);
+}
+
+static bool IsBlueprintDependencyDataNull(const FBlueprintDependencyData& Dependency)
+{
+	return Dependency.ObjectRef.ObjectName == NAME_None;
 }
 
 void FConvertedBlueprintsDependencies::GetAssets(FName PackageName, TArray<FBlueprintDependencyData>& OutDependencies) const
@@ -2257,6 +2262,7 @@ void FConvertedBlueprintsDependencies::GetAssets(FName PackageName, TArray<FBlue
 	if (Func)
 	{
 		Func(OutDependencies);
+		OutDependencies.RemoveAll(IsBlueprintDependencyDataNull);
 	}
 }
 
@@ -2276,12 +2282,19 @@ void FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(UDynamicClas
 			int32 ImportIndex = 0;
 			for (FBlueprintDependencyData& ItData : UsedAssetdData)
 			{
-				FObjectImport& Import = Linker->Imp(FPackageIndex::FromImport(ImportIndex));
-				check(Import.ObjectName == ItData.ObjectRef.ObjectName);
-				UObject* TheAsset = Import.XObject;
-				UE_CLOG(!TheAsset, LogBlueprintSupport, Error, TEXT("Could not find UDynamicClass dependent asset (EDL) %s in %s"), *ItData.ObjectRef.ObjectName.ToString(), *ItData.ObjectRef.PackageName.ToString());
-				DynamicClass->UsedAssets.Add(TheAsset);
-				ImportIndex += 2;
+				if (!IsBlueprintDependencyDataNull(ItData))
+				{
+					FObjectImport& Import = Linker->Imp(FPackageIndex::FromImport(ImportIndex));
+					check(Import.ObjectName == ItData.ObjectRef.ObjectName);
+					UObject* TheAsset = Import.XObject;
+					UE_CLOG(!TheAsset, LogBlueprintSupport, Error, TEXT("Could not find UDynamicClass dependent asset (EDL) %s in %s"), *ItData.ObjectRef.ObjectName.ToString(), *ItData.ObjectRef.PackageName.ToString());
+					DynamicClass->UsedAssets.Add(TheAsset);
+					ImportIndex += 2;
+				}
+				else
+				{
+					DynamicClass->UsedAssets.Add(nullptr);
+				}
 			}
 			return;
 		}
@@ -2290,10 +2303,17 @@ void FConvertedBlueprintsDependencies::FillUsedAssetsInDynamicClass(UDynamicClas
 
 	for (FBlueprintDependencyData& ItData : UsedAssetdData)
 	{
-		const FString PathToObj = FString::Printf(TEXT("%s.%s"), *ItData.ObjectRef.PackageName.ToString(), *ItData.ObjectRef.ObjectName.ToString());
-		UObject* TheAsset = LoadObject<UObject>(nullptr, *PathToObj);
-		UE_CLOG(!TheAsset, LogBlueprintSupport, Error, TEXT("Could not find UDynamicClass dependent asset (non-EDL) %s in %s"), *ItData.ObjectRef.ObjectName.ToString(), *ItData.ObjectRef.PackageName.ToString());
-		DynamicClass->UsedAssets.Add(TheAsset);
+		if (ItData.ObjectRef.ObjectName != NAME_None)
+		{
+			const FString PathToObj = FString::Printf(TEXT("%s.%s"), *ItData.ObjectRef.PackageName.ToString(), *ItData.ObjectRef.ObjectName.ToString());
+			UObject* TheAsset = LoadObject<UObject>(nullptr, *PathToObj);
+			UE_CLOG(!TheAsset, LogBlueprintSupport, Error, TEXT("Could not find UDynamicClass dependent asset (non-EDL) %s in %s"), *ItData.ObjectRef.ObjectName.ToString(), *ItData.ObjectRef.PackageName.ToString());
+			DynamicClass->UsedAssets.Add(TheAsset);
+		}
+		else
+		{
+			DynamicClass->UsedAssets.Add(nullptr);
+		}
 	}
 }
 

@@ -58,32 +58,46 @@ public:
 	FVariantData Data;
 	/** How is this session setting advertised with the backend or searches */
 	EOnlineDataAdvertisementType::Type AdvertisementType;
+	/** Optional ID used in some platforms as the index instead of the session name */
+	int32 ID;
 
 	/** Default constructor, used when serializing a network packet */
 	FOnlineSessionSetting() :
-		AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise)
+		AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise),
+		ID(-1)
 	{
 	}
 
 	/** Constructor for settings created/defined on the host for a session */
-	template<typename Type> 
+	template<typename Type>
 	FOnlineSessionSetting(const Type& InData) :
 		Data(InData),
-		AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise)
+		AdvertisementType(EOnlineDataAdvertisementType::DontAdvertise),
+		ID(-1)
 	{
 	}
 
 	/** Constructor for settings created/defined on the host for a session */
-	template<typename Type> 
+	template<typename Type>
 	FOnlineSessionSetting(const Type& InData, EOnlineDataAdvertisementType::Type InAdvertisementType) :
 		Data(InData),
-		AdvertisementType(InAdvertisementType)
+		AdvertisementType(InAdvertisementType),
+		ID(-1)
+	{
+	}
+
+	/** Constructor for settings created/defined on the host for a session */
+	template<typename Type>
+	FOnlineSessionSetting(const Type& InData, EOnlineDataAdvertisementType::Type InAdvertisementType, int32 InID) :
+		Data(InData),
+		AdvertisementType(InAdvertisementType),
+		ID(InID)
 	{
 	}
 
 	/**
-	 *	Comparison operator
-	 */
+	*	Comparison operator
+	*/
 	bool operator==(const FOnlineSessionSetting& Other) const
 	{
 		// Advertisement type not compared because it is not passed to clients
@@ -92,7 +106,7 @@ public:
 
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("%s :%s"), *Data.ToString(), EOnlineDataAdvertisementType::ToString(AdvertisementType));
+		return FString::Printf(TEXT("%s : %s : %d"), *Data.ToString(), EOnlineDataAdvertisementType::ToString(AdvertisementType), ID);
 	}
 };
 
@@ -118,12 +132,15 @@ public:
 	FVariantData Data;
 	/** How is this session setting compared on the backend searches */
 	EOnlineComparisonOp::Type ComparisonOp;
+	/** Optional ID used on some platform to index the session setting */
+	int32 ID;
 
 	/** Constructor for setting search parameters in a query */
 	template<typename Type> 
 	FOnlineSessionSearchParam(const Type& InData) :
 		Data(InData),
-		ComparisonOp(EOnlineComparisonOp::Equals)
+		ComparisonOp(EOnlineComparisonOp::Equals),
+		ID(-1)
 	{
 	}
 
@@ -131,7 +148,17 @@ public:
 	template<typename Type> 
 	FOnlineSessionSearchParam(const Type& InData, EOnlineComparisonOp::Type InComparisonOp) :
 		Data(InData),
-		ComparisonOp(InComparisonOp)
+		ComparisonOp(InComparisonOp),
+		ID(-1)
+	{
+	}
+
+	/** Constructor for setting search parameters in a query */
+	template<typename Type>
+	FOnlineSessionSearchParam(const Type& InData, EOnlineComparisonOp::Type InComparisonOp, int32 InID) :
+		Data(InData),
+		ComparisonOp(InComparisonOp),
+		ID(InID)
 	{
 	}
 
@@ -146,7 +173,7 @@ public:
 
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("Value=%s : %s"), *Data.ToString(), EOnlineComparisonOp::ToString(ComparisonOp));
+		return FString::Printf(TEXT("Value=%s : %s : %d"), *Data.ToString(), EOnlineComparisonOp::ToString(ComparisonOp), ID);
 	}
 };
 
@@ -170,6 +197,17 @@ public:
 	virtual ~FOnlineSearchSettings() 
 	{
 	}
+
+	/**
+	 *	Sets a key value pair combination that defines a search parameter
+	 *
+	 * @param Key key for the setting
+	 * @param Value value of the setting
+	 * @param InType type of comparison
+	 * @param ID ID of comparison
+	 */
+	template<typename ValueType> 
+	void Set(FName Key, const ValueType& Value, EOnlineComparisonOp::Type InType, int32 ID);
 
 	/**
 	 *	Sets a key value pair combination that defines a search parameter
@@ -263,6 +301,17 @@ public:
 	virtual ~FOnlineSessionSettings() {}
 
 	/**
+	 *	Sets a key value pair combination that defines a session setting with an ID
+	 *
+	 * @param Key key for the setting
+	 * @param Value value of the setting
+	 * @param InType type of online advertisement
+	 * @param ID ID for this session setting
+	 */
+	template<typename ValueType>
+	void Set(FName Key, const ValueType& Value, EOnlineDataAdvertisementType::Type InType, int32 InID);
+
+	/**
 	 *	Sets a key value pair combination that defines a session setting
 	 *
 	 * @param Key key for the setting
@@ -309,6 +358,15 @@ public:
 	 * @return the advertisement type for the setting
 	 */
 	EOnlineDataAdvertisementType::Type GetAdvertisementType(FName Key) const;
+
+	/**
+	* Retrieve a session setting's ID
+	*
+	* @param Key key of the setting
+	*
+	* @return the ID for the setting
+	*/
+	int32 GetID(FName Key) const;
 
 };
 
@@ -517,6 +575,8 @@ public:
 #define SEARCH_XBOX_LIVE_HOPPER_NAME FName(TEXT("LIVEHOPPERNAME"))
 /** Which session template from the service configuration to use */
 #define SEARCH_XBOX_LIVE_SESSION_TEMPLATE_NAME FName(TEXT("LIVESESSIONTEMPLATE"))
+/** Selection method used to determine which match to join when multiple are returned (valid only on Switch) */
+#define SEARCH_SWITCH_SELECTION_METHOD FName(TEXT("SWITCHSELECTIONMETHOD"))
 
 /** 
  * Encapsulation of a search for sessions request.

@@ -25,6 +25,7 @@
 	<Option Name="WithAndroid-x86" DefaultValue="false" Description="Compile for Android x86"/>
 	<Option Name="WithAndroid-x64" DefaultValue="false" Description="Compile for Android x64"/>
 	<Option Name="WithHTML5" DefaultValue="false" Description="Compile for HTML5"/>
+	<Option Name="WithSwitch" DefaultValue="false" Description="Compile for Switch"/>
 
 	<Property Name="OtherArgs" Value=""/>
 	<Property Name="OtherArgs" Value="$(OtherArgs) -SkipBuildSolutions" If="$(SkipBuildSolutions)"/>
@@ -107,6 +108,11 @@
 			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=TVOS -TargetConfigs=&quot;$(TargetConfigs)&quot; $(OtherArgs)"/>
 		</Node>
 	</Agent>
+	<Agent Name="PhysX Switch" Type="EngineWin64;PhysX_CompileSwitch">
+		<Node Name="Compile PhysX Switch">
+			<Command Name="BuildPhysX" Arguments="-TargetPlatforms=Switch -TargetConfigs=&quot;$(TargetConfigs)&quot; $(OtherArgs)"/>
+		</Node>
+	</Agent>
 
 	<Property Name="PhysXTargets" Value=""/>
 	<Property Name="PhysXTargets" Value="$(PhysXTargets);Compile PhysX Win32" If="$(WithWin32)"/>
@@ -124,6 +130,7 @@
 	<Property Name="PhysXTargets" Value="$(PhysXTargets);Compile PhysX Mac" If="$(WithMac)"/>
 	<Property Name="PhysXTargets" Value="$(PhysXTargets);Compile PhysX IOS" If="$(WithIOS)"/>
 	<Property Name="PhysXTargets" Value="$(PhysXTargets);Compile PhysX TVOS" If="$(WithTVOS)"/>
+	<Property Name="PhysXTargets" Value="$(PhysXTargets);Compile PhysX Switch" If="$(WithSwitch)"/>
 	
 	<Aggregate Name="Build PhysX" Requires="$(PhysXTargets)"/>
 	

@@ -577,19 +577,30 @@ FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()
 				DeviceType = IOS_IPhoneSE;
 			}
 		}
-		else if (Major >= 9)
+		else if (Major == 9)
 		{
-			// for going forward into unknown devices (like 7/7+?), we can't use Minor,
-			// so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
-			if ([UIScreen mainScreen].scale > 2.5f)
-			{
-				DeviceType = IOS_IPhone6SPlus;
-			}
-			else
-			{
-				DeviceType = IOS_IPhone6S;
-			}
+            if (Minor == 1 || Minor == 3)
+            {
+                DeviceType = IOS_IPhone7;
+            }
+            else if (Minor == 2 || Minor == 4)
+            {
+                DeviceType = IOS_IPhone7Plus;
+            }
 		}
+        else if (Major >= 10)
+        {
+            // for going forward into unknown devices (like 8/8+?), we can't use Minor,
+            // so treat devices with a scale > 2.5 to be 6SPlus type devices, < 2.5 to be 6S type devices
+            if ([UIScreen mainScreen].scale > 2.5f)
+            {
+                DeviceType = IOS_IPhone7Plus;
+            }
+            else
+            {
+                DeviceType = IOS_IPhone7;
+            }
+        }
 	}
 	// tvOS
 	else if ([DeviceIDString hasPrefix:@"AppleTV"])

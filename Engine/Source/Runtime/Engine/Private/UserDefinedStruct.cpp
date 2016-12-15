@@ -227,56 +227,7 @@ void UUserDefinedStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, US
 
 uint32 UUserDefinedStruct::GetStructTypeHash(const void* Src) const
 {
-	// Ugliness to maximize entropy on first call to HashCombine... Alternatively we could
-	// do special logic on the first iteration of the below loops (unwind loops or similar):
-	const auto ConditionalCombineHash = [](uint32 AccumulatedHash, uint32 CurrentHash) -> uint32
-	{
-		if (AccumulatedHash != 0)
-		{
-			return HashCombine(AccumulatedHash, CurrentHash);
-		}
-		else
-		{
-			return CurrentHash;
-		}
-	};
-
-	uint32 ValueHash = 0;
-	// combining bool values and hashing them together, small range enums could get stuffed into here as well,
-	// but UBoolProperty does not actually provide GetValueTypeHash (and probably shouldn't). For structs
-	// with more than 64 boolean values we lose some information, but that is acceptable, just slightly 
-	// increasing risk of hash collision:
-	bool bHasBoolValues = false;
-	uint64 BoolValues = 0;
-	// for blueprint defined structs we can just loop and hash the individual properties:
-	for (TFieldIterator<UProperty> It(this); It; ++It)
-	{
-		uint32 CurrentHash = 0;
-		if (const UBoolProperty* BoolProperty = Cast<UBoolProperty>(*It))
-		{
-			for (int32 I = 0; I < It->ArrayDim; ++I)
-			{
-				BoolValues = (BoolValues << 1) + ( BoolProperty->GetPropertyValue_InContainer(Src, I) ? 1 : 0 );
-			}
-		}
-		else if (ensure(It->HasAllPropertyFlags(CPF_HasGetValueTypeHash)))
-		{
-			for (int32 I = 0; I < It->ArrayDim; ++I)
-			{
-				uint32 Hash = It->GetValueTypeHash(It->ContainerPtrToValuePtr<void>(Src, I));
-				CurrentHash = ConditionalCombineHash(CurrentHash, Hash);
-			}
-		}
-
-		ValueHash = ConditionalCombineHash(ValueHash, CurrentHash);
-	}
-
-	if (bHasBoolValues)
-	{
-		ValueHash = ConditionalCombineHash(ValueHash, GetTypeHash(BoolValues));
-	}
-
-	return ValueHash;
+	return GetUserDefinedStructTypeHash(Src, this);
 }
 
 void UUserDefinedStruct::RecursivelyPreload()
@@ -304,3 +255,76 @@ FGuid UUserDefinedStruct::GetCustomGuid() const
 {
 	return Guid;
 }
+
+FString GetPathPostfix(const UObject* ForObject)
+{
+	FString FullAssetName = ForObject->GetOutermost()->GetPathName();
+	if (FullAssetName.StartsWith(TEXT("/Temp/__TEMP_BP__"), ESearchCase::CaseSensitive))
+	{
+		FullAssetName.RemoveFromStart(TEXT("/Temp/__TEMP_BP__"), ESearchCase::CaseSensitive);
+	}
+	FString AssetName = FPackageName::GetLongPackageAssetName(FullAssetName);
+	// append a hash of the path, this uniquely identifies assets with the same name, but different folders:
+	FullAssetName.RemoveFromEnd(AssetName);
+	return FString::Printf(TEXT("%u"), FCrc::MemCrc32(*FullAssetName, FullAssetName.Len()*sizeof(TCHAR)));
+}
+
+FString UUserDefinedStruct::GetStructCPPName() const
+{
+	return ::UnicodeToCPPIdentifier(*GetName(), false, GetPrefixCPP()) + GetPathPostfix(this);
+}
+
+uint32 UUserDefinedStruct::GetUserDefinedStructTypeHash(const void* Src, const UScriptStruct* Type)
+{
+	// Ugliness to maximize entropy on first call to HashCombine... Alternatively we could
+	// do special logic on the first iteration of the below loops (unwind loops or similar):
+	const auto ConditionalCombineHash = [](uint32 AccumulatedHash, uint32 CurrentHash) -> uint32
+	{
+		if (AccumulatedHash != 0)
+		{
+			return HashCombine(AccumulatedHash, CurrentHash);
+		}
+		else
+		{
+			return CurrentHash;
+		}
+	};
+
+	uint32 ValueHash = 0;
+	// combining bool values and hashing them together, small range enums could get stuffed into here as well,
+	// but UBoolProperty does not actually provide GetValueTypeHash (and probably shouldn't). For structs
+	// with more than 64 boolean values we lose some information, but that is acceptable, just slightly 
+	// increasing risk of hash collision:
+	bool bHasBoolValues = false;
+	uint64 BoolValues = 0;
+	// for blueprint defined structs we can just loop and hash the individual properties:
+	for (TFieldIterator<const UProperty> It(Type); It; ++It)
+	{
+		uint32 CurrentHash = 0;
+		if (const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(*It))
+		{
+			for (int32 I = 0; I < It->ArrayDim; ++I)
+			{
+				BoolValues = (BoolValues << 1) + ( BoolProperty->GetPropertyValue_InContainer(Src, I) ? 1 : 0 );
+			}
+		}
+		else if (ensure(It->HasAllPropertyFlags(CPF_HasGetValueTypeHash)))
+		{
+			for (int32 I = 0; I < It->ArrayDim; ++I)
+			{
+				uint32 Hash = It->GetValueTypeHash(It->ContainerPtrToValuePtr<void>(Src, I));
+				CurrentHash = ConditionalCombineHash(CurrentHash, Hash);
+			}
+		}
+
+		ValueHash = ConditionalCombineHash(ValueHash, CurrentHash);
+	}
+
+	if (bHasBoolValues)
+	{
+		ValueHash = ConditionalCombineHash(ValueHash, GetTypeHash(BoolValues));
+	}
+
+	return ValueHash;
+}
+

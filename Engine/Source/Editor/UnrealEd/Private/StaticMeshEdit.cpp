@@ -772,7 +772,7 @@ static inline void FTexCoordsToVectors(const FVector& V0, const FVector& UV0,
  */
 void CreateModelFromStaticMesh(UModel* Model,AStaticMeshActor* StaticMeshActor)
 {
-#if TODO_STATICMESH
+#ifdef TODO_STATICMESH
 	UStaticMesh*	StaticMesh = StaticMeshActor->StaticMeshComponent->StaticMesh;
 	FMatrix			ActorToWorld = StaticMeshActor->ActorToWorld().ToMatrixWithScale();
 

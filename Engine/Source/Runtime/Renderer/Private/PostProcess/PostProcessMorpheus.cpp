@@ -17,7 +17,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogMorpheusHMDPostProcess, All, All);
 
-#if MORPHEUS_ENGINE_DISTORTION
+#if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION
 
 /** Encapsulates the post processing HMD distortion and correction pixel shader. */
 class FPostProcessMorpheusPS : public FGlobalShader
@@ -220,7 +220,7 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-#if MORPHEUS_ENGINE_DISTORTION
+#if defined(MORPHEUS_ENGINE_DISTORTION) && MORPHEUS_ENGINE_DISTORTION
 	TShaderMapRef<FPostProcessMorpheusVS> VertexShader(Context.GetShaderMap());
 	TShaderMapRef<FPostProcessMorpheusPS> PixelShader(Context.GetShaderMap());
 

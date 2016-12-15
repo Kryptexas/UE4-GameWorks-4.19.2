@@ -41,9 +41,7 @@ typedef	uint64 ScriptPointerType;
 #define UCLASS_FAST_ISA_IMPL UCLASS_ISA_CLASSARRAY
 
 // UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK, if set, does a checked comparison of the current implementation against the outer walk - used for testing.
-#if 0//!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	#define UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK 1
-#endif
+#define UCLASS_FAST_ISA_COMPARE_WITH_OUTERWALK 0
 
 /*-----------------------------------------------------------------------------
 	Core enumerations.
@@ -438,7 +436,7 @@ typedef uint64 EClassCastFlags;
 #define CPF_DevelopmentAssets		(CPF_EditorOnly)
 
 /** all the properties that should never be loaded or saved */
-#define CPF_ComputedFlags			(CPF_IsPlainOldData | CPF_NoDestructor | CPF_ZeroConstructor)
+#define CPF_ComputedFlags			(CPF_IsPlainOldData | CPF_NoDestructor | CPF_ZeroConstructor | CPF_HasGetValueTypeHash)
 
 #define CPF_AllFlags				DECLARE_UINT64(0xFFFFFFFFFFFFFFFF)
 

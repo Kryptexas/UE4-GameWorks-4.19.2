@@ -1361,9 +1361,6 @@ public:
 	 */
 	static void BuildComponentInstancingData(UActorComponent* ComponentTemplate, FBlueprintCookedComponentInstancingData& OutData);
 
-	/** Switch for hiding TMap/TSet support until stablized */
-	static bool ShouldEnableAdvancedContainers();
-
 protected:
 	// Removes all NULL graph references from the SubGraphs array and recurses thru the non-NULL ones
 	static void CleanNullGraphReferencesRecursive(UEdGraph* Graph);

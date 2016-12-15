@@ -261,6 +261,16 @@ namespace UnrealBuildTool
 		}
 	};
 
+	public abstract class ActionExecutor
+	{
+		public abstract string Name
+		{
+			get;
+		}
+
+		public abstract bool ExecuteActions(List<Action> ActionsToExecute);
+	}
+
 	public class ActionGraph
 	{
 		public int NextUniqueId;
@@ -430,74 +440,31 @@ namespace UnrealBuildTool
 		public static bool ExecuteActions(List<Action> ActionsToExecute, out string ExecutorName, string TargetInfoForTelemetry, bool bIsHotReload = false)
 		{
 			bool Result = true;
-			bool bUsedXGE = false;
 			ExecutorName = "";
 			if (ActionsToExecute.Count > 0)
 			{
 				DateTime StartTime = DateTime.UtcNow;
 
-				if (BuildConfiguration.bAllowXGE || BuildConfiguration.bXGEExport)
+				ActionExecutor Executor;
+				if ((XGE.IsAvailable() && BuildConfiguration.bAllowXGE) || BuildConfiguration.bXGEExport)
 				{
-					XGE.ExecutionResult XGEResult = XGE.ExecutionResult.TasksSucceeded;
-
-					// Batch up XGE execution by actions with the same output event handler.
-					List<Action> ActionBatch = new List<Action>();
-					ActionBatch.Add(ActionsToExecute[0]);
-					for (int ActionIndex = 1; ActionIndex < ActionsToExecute.Count && XGEResult == XGE.ExecutionResult.TasksSucceeded; ++ActionIndex)
-					{
-						Action CurrentAction = ActionsToExecute[ActionIndex];
-						if (CurrentAction.OutputEventHandler == ActionBatch[0].OutputEventHandler)
-						{
-							ActionBatch.Add(CurrentAction);
-						}
-						else
-						{
-							XGEResult = XGE.ExecuteActions(ActionBatch);
-							ActionBatch.Clear();
-							ActionBatch.Add(CurrentAction);
-						}
-					}
-					if (ActionBatch.Count > 0 && XGEResult == XGE.ExecutionResult.TasksSucceeded)
-					{
-						XGEResult = XGE.ExecuteActions(ActionBatch);
-						ActionBatch.Clear();
-					}
-
-					if (XGEResult != XGE.ExecutionResult.Unavailable)
-					{
-						ExecutorName = "XGE";
-						Result = (XGEResult == XGE.ExecutionResult.TasksSucceeded);
-						// don't do local compilation
-						bUsedXGE = true;
-					}
+					Executor = new XGE();
+				}
+				else if(BuildConfiguration.bAllowDistcc)
+				{
+					Executor = new Distcc();
+				}
+				else if(SNDBS.IsAvailable() && BuildConfiguration.bAllowSNDBS)
+				{
+					Executor = new SNDBS();
+				}
+				else
+				{
+					Executor = new LocalExecutor();
 				}
 
-				if (!bUsedXGE && BuildConfiguration.bAllowDistcc)
-				{
-					ExecutorName = "Distcc";
-					Result = Distcc.ExecuteActions(ActionsToExecute);
-					// don't do local compilation
-					bUsedXGE = true;
-				}
-
-				if (!bUsedXGE && BuildConfiguration.bAllowSNDBS)
-				{
-					SNDBS.ExecutionResult SNDBSResult = SNDBS.ExecuteActions(ActionsToExecute);
-					if (SNDBSResult != SNDBS.ExecutionResult.Unavailable)
-					{
-						ExecutorName = "SNDBS";
-						Result = (SNDBSResult == SNDBS.ExecutionResult.TasksSucceeded);
-						// don't do local compilation
-						bUsedXGE = true;
-					}
-				}
-
-				// If XGE is disallowed or unavailable, execute the commands locally.
-				if (!bUsedXGE)
-				{
-					ExecutorName = "Local";
-					Result = LocalExecutor.ExecuteActions(ActionsToExecute);
-				}
+				ExecutorName = Executor.Name;
+				Result = Executor.ExecuteActions(ActionsToExecute);
 
 				if(Telemetry.IsAvailable() && !BuildConfiguration.bXGEExport)
 				{
@@ -506,7 +473,6 @@ namespace UnrealBuildTool
 						"OS", Environment.OSVersion.ToString(),
 						"MachineName", Environment.MachineName,
 						"NumLogicalCores", Environment.ProcessorCount.ToString(),
-						"NumPhysicalCores", (bUsedXGE? -1 : Utils.GetPhysicalProcessorCount()).ToString(),
 						"Targets", TargetInfoForTelemetry,
 						"NumActions", ActionsToExecute.Count.ToString(),
 						"NumCompileActions", ActionsToExecute.Count(x => x.ActionType == ActionType.Compile).ToString(),
@@ -515,11 +481,7 @@ namespace UnrealBuildTool
 						"ElapsedTime", (DateTime.UtcNow - StartTime).TotalSeconds.ToString());
 				}
 
-				if (bUsedXGE && BuildConfiguration.bXGEExport)
-				{
-					// we exported xge here, we do not test build products
-				}
-				else
+				if (!BuildConfiguration.bXGEExport)
 				{
 					// Verify the link outputs were created (seems to happen with Win64 compiles)
 					foreach (Action BuildAction in ActionsToExecute)

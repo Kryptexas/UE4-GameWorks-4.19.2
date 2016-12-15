@@ -324,6 +324,36 @@ void FBlueprintCompilerCppBackend::EmitCreateArrayStatement(FEmitterLocalContext
 	}
 }
 
+void FBlueprintCompilerCppBackend::EmitCreateSetStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+{
+	FBPTerminal* SetTerm = Statement.LHS;
+	const FString Set = TermToText(EmitterContext, SetTerm, ENativizedTermUsage::UnspecifiedOrReference);
+
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *Set, Statement.RHS.Num()));
+
+	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
+	{
+		FBPTerminal* CurrentTerminal = Statement.RHS[i];
+		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s );"), *Set, i, *TermToText(EmitterContext, CurrentTerminal, ENativizedTermUsage::Getter)));
+	}
+}
+
+void FBlueprintCompilerCppBackend::EmitCreateMapStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+{
+	FBPTerminal* MapTerm = Statement.LHS;
+	const FString Map = TermToText(EmitterContext, MapTerm, ENativizedTermUsage::UnspecifiedOrReference);
+
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *Map, Statement.RHS.Num()));
+
+	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
+	{
+		FBPTerminal* KeyTerminal = Statement.RHS[i];
+		FBPTerminal* ValueTerminal = Statement.RHS[i];
+		EmitterContext.AddLine(FString::Printf(TEXT("%s.Add( %s, %s );"), *Map, i, *TermToText(EmitterContext, KeyTerminal, ENativizedTermUsage::Getter), *TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter)));
+	}
+}
+
+
 void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	if (Statement.Type == KCST_ComputedGoto)
@@ -333,7 +363,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 			FString NextStateExpression;
 			NextStateExpression = TermToText(EmitterContext, Statement.LHS, ENativizedTermUsage::Getter);
 
-			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %s;"), *NextStateExpression));
+			EmitterContext.AddLine(FString::Printf(TEXT("__CurrentState = %s;"), *NextStateExpression));
 			EmitterContext.AddLine(FString::Printf(TEXT("break;\n")));
 		}
 	}
@@ -349,11 +379,11 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 		{
 			if (bUseFlowStack)
 			{
-				EmitterContext.AddLine(TEXT("CurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
+				EmitterContext.AddLine(TEXT("__CurrentState = (__StateStack.Num() > 0) ? __StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
 			}
 			else if (bUseGotoState)
 			{
-				EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+				EmitterContext.AddLine(TEXT("__CurrentState = -1;"));
 			}
 			else
 			{
@@ -365,7 +395,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 		{
 			if (bUseGotoState)
 			{
-				EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+				EmitterContext.AddLine(TEXT("__CurrentState = -1;"));
 			}
 			else
 			{
@@ -376,7 +406,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 		else
 		{
 			ensureMsgf(bUseGotoState, TEXT("KCST_GotoIfNot requires bUseGotoState == true class: %s"), *GetPathNameSafe(EmitterContext.GetCurrentlyGeneratedClass()));
-			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
+			EmitterContext.AddLine(FString::Printf(TEXT("__CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 		}
 
 		if (bUseGotoState)
@@ -390,7 +420,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 	{
 		if (bUseGotoState)
 		{
-			EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+			EmitterContext.AddLine(TEXT("__CurrentState = -1;"));
 			EmitterContext.AddLine(FString::Printf(TEXT("break;")));
 		}
 		else
@@ -402,7 +432,7 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 	{
 		if (bUseGotoState)
 		{
-			EmitterContext.AddLine(FString::Printf(TEXT("CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
+			EmitterContext.AddLine(FString::Printf(TEXT("__CurrentState = %d;"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 			EmitterContext.AddLine(FString::Printf(TEXT("break;")));
 		}
 		else
@@ -419,19 +449,19 @@ void FBlueprintCompilerCppBackend::EmitGotoStatement(FEmitterLocalContext& Emitt
 void FBlueprintCompilerCppBackend::EmitPushStateStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	ensure(bUseFlowStack);
-	EmitterContext.AddLine(FString::Printf(TEXT("StateStack.Push(%d);"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
+	EmitterContext.AddLine(FString::Printf(TEXT("__StateStack.Push(%d);"), StatementToStateIndex(FunctionContext, Statement.TargetLabel)));
 }
 
 void FBlueprintCompilerCppBackend::EmitEndOfThreadStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext)
 {
 	if (bUseFlowStack)
 	{
-		EmitterContext.AddLine(TEXT("CurrentState = (StateStack.Num() > 0) ? StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
+		EmitterContext.AddLine(TEXT("__CurrentState = (__StateStack.Num() > 0) ? __StateStack.Pop(/*bAllowShrinking=*/ false) : -1;"));
 		EmitterContext.AddLine(TEXT("break;"));
 	}
 	else if (bUseGotoState)
 	{
-		EmitterContext.AddLine(TEXT("CurrentState = -1;"));
+		EmitterContext.AddLine(TEXT("__CurrentState = -1;"));
 		EmitterContext.AddLine(TEXT("break;"));
 	}
 	else
@@ -751,100 +781,76 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		}
 	}
 
-	auto HandleSpeciallyNativizedFunction = [&]() -> bool
+	FNativizationSummaryHelper::FunctionUsed(CurrentClass, Statement.FunctionToCall);
+
+	// Emit object to call the method on
+	if (bInterfaceCallExecute)
 	{
-		const UFunction* const EnumeratorUserFriendlyName = UKismetNodeHelperLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetNodeHelperLibrary, GetEnumeratorUserFriendlyName));
-		if (EnumeratorUserFriendlyName == Statement.FunctionToCall)
-		{
-			const FBPTerminal* const EnumTerminal = Statement.RHS.IsValidIndex(0) ? Statement.RHS[0] : nullptr;
-			// We need the special path only for converted enums. All UUserDefinedEnum are converted.
-			const UUserDefinedEnum* const Enum = EnumTerminal ? Cast<UUserDefinedEnum>(EnumTerminal->ObjectLiteral) : nullptr;
-			const FBPTerminal* const ValueTerminal = Statement.RHS.IsValidIndex(1) ? Statement.RHS[1] : nullptr;
-			if (Enum && ValueTerminal)
-			{
-				const FString Value = TermToText(EmitterContext, ValueTerminal, ENativizedTermUsage::Getter);
-				const FString EnumName = FEmitHelper::GetCppName(Enum);
-				Result += FString::Printf(TEXT("%s__GetUserFriendlyName(EnumToByte<%s>(TEnumAsByte<%s>(%s)))"), *EnumName, *EnumName, *EnumName, *Value);
-				return true;
-			}
-		}
-		return false;
-	};
-
-	const bool bIsSpecialCase = HandleSpeciallyNativizedFunction();
-	if (!bIsSpecialCase)
-	{
-		FNativizationSummaryHelper::FunctionUsed(CurrentClass, Statement.FunctionToCall);
-
-		// Emit object to call the method on
-		if (bInterfaceCallExecute)
-		{
-			auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
-			ensure(ContextInterfaceClass->IsChildOf<UInterface>());
-			Result += FString::Printf(TEXT("%s::Execute_%s(%s.GetObject() ")
-				, *FEmitHelper::GetCppName(ContextInterfaceClass)
-				, *FunctionToCallOriginalName
-				, *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
-		}
-		else
-		{
-			auto FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
-			auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
-			const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
-			const bool bIsCustomThunk = bStaticCall && ( Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk"))
-				|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam"))
-				|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm")) );
-			if (bUnconvertedClass)
-			{
-				ensure(!Statement.bIsParentContext); //unsupported yet
-				ensure(!bStaticCall); //unsupported yet
-				ensure(bCallOnDifferentObject); //unexpected
-				const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
-				const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::UnspecifiedOrReference, false) : TEXT("this");
-				Result += FString::Printf(TEXT("%s(%s)."), *WrapperName, *CalledObject);
-			}
-			else if (bStaticCall)
-			{
-				auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
-				Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(OwnerClass));
-			}
-			else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
-			{
-				Result += FString::Printf(TEXT("%s->"), *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
-			}
-
-			if (Statement.bIsParentContext)
-			{
-				Result += TEXT("Super::");
-			}
-			else if (!bUnconvertedClass && !bStaticCall && FunctionOwner && !OwnerBPGC && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Final))
-			{
-				Result += FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(FunctionOwner));
-			}
-			Result += FunctionToCallOriginalName;
-
-			if (bIsCustomThunk)
-			{
-				Result += CustomThunkFunctionPostfix(Statement);
-			}
-
-			if (Statement.bIsParentContext && bNativeEvent)
-			{
-				ensure(!bCallOnDifferentObject);
-				Result += TEXT("_Implementation");
-			}
-
-			// Emit method parameter list
-			Result += TEXT("(");
-		}
-		const FString ParameterList = EmitMethodInputParameterList(EmitterContext, Statement);
-		if (bInterfaceCallExecute && !ParameterList.IsEmpty())
-		{
-			Result += TEXT(", ");
-		}
-		Result += ParameterList;
-		Result += TEXT(")");
+		auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
+		ensure(ContextInterfaceClass->IsChildOf<UInterface>());
+		Result += FString::Printf(TEXT("%s::Execute_%s(%s.GetObject() ")
+			, *FEmitHelper::GetCppName(ContextInterfaceClass)
+			, *FunctionToCallOriginalName
+			, *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
 	}
+	else
+	{
+		auto FunctionOwner = Statement.FunctionToCall->GetOwnerClass();
+		auto OwnerBPGC = Cast<UBlueprintGeneratedClass>(FunctionOwner);
+		const bool bUnconvertedClass = OwnerBPGC && !EmitterContext.Dependencies.WillClassBeConverted(OwnerBPGC);
+		const bool bIsCustomThunk = bStaticCall && ( Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk"))
+			|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam"))
+			|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm")) );
+		if (bUnconvertedClass)
+		{
+			ensure(!Statement.bIsParentContext); //unsupported yet
+			ensure(!bStaticCall); //unsupported yet
+			ensure(bCallOnDifferentObject); //unexpected
+			const FString WrapperName = FString::Printf(TEXT("FUnconvertedWrapper__%s"), *FEmitHelper::GetCppName(OwnerBPGC));
+			const FString CalledObject = bCallOnDifferentObject ? TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::UnspecifiedOrReference, false) : TEXT("this");
+			Result += FString::Printf(TEXT("%s(%s)."), *WrapperName, *CalledObject);
+		}
+		else if (bStaticCall)
+		{
+			auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
+			Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(OwnerClass));
+		}
+		else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
+		{
+			Result += FString::Printf(TEXT("%s->"), *TermToText(EmitterContext, Statement.FunctionContext, ENativizedTermUsage::Getter, false));
+		}
+
+		if (Statement.bIsParentContext)
+		{
+			Result += TEXT("Super::");
+		}
+		else if (!bUnconvertedClass && !bStaticCall && FunctionOwner && !OwnerBPGC && Statement.FunctionToCall->HasAnyFunctionFlags(FUNC_Final))
+		{
+			Result += FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(FunctionOwner));
+		}
+		Result += FunctionToCallOriginalName;
+
+		if (bIsCustomThunk)
+		{
+			Result += CustomThunkFunctionPostfix(Statement);
+		}
+
+		if (Statement.bIsParentContext && bNativeEvent)
+		{
+			ensure(!bCallOnDifferentObject);
+			Result += TEXT("_Implementation");
+		}
+
+		// Emit method parameter list
+		Result += TEXT("(");
+	}
+	const FString ParameterList = EmitMethodInputParameterList(EmitterContext, Statement);
+	if (bInterfaceCallExecute && !ParameterList.IsEmpty())
+	{
+		Result += TEXT(", ");
+	}
+	Result += ParameterList;
+	Result += TEXT(")");
 
 	Result += CloseCast;
 	if (SetterExpression)
@@ -916,7 +922,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 				? EmitterContext.ExportCppDeclaration(Term->AssociatedVarProperty, EExportedDeclaration::Local, PropertyExportFlags, FEmitterLocalContext::EPropertyNameInDeclaration::Skip)
 				: FEmitHelper::PinTypeToNativeType(Term->Type);
 
-			const FString DefaultValueConstructor = (!Term->Type.bIsArray)
+			const FString DefaultValueConstructor = (!Term->Type.IsContainer())
 				? FEmitHelper::LiteralTerm(EmitterContext, Term->Type, FString(), nullptr, &FText::GetEmpty())
 				: FString::Printf(TEXT("%s{}"), *CppType);
 
@@ -1146,11 +1152,11 @@ bool FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 	{
 		if (bUseFlowStack)
 		{
-			EmitterContext.AddLine(TEXT("TArray< int32, TInlineAllocator<8> > StateStack;\n"));
+			EmitterContext.AddLine(TEXT("TArray< int32, TInlineAllocator<8> > __StateStack;\n"));
 		}
 		if (FunctionContext.bIsUbergraph)
 		{
-			EmitterContext.AddLine(TEXT("int32 CurrentState = bpp__EntryPoint__pf;"));
+			EmitterContext.AddLine(TEXT("int32 __CurrentState = bpp__EntryPoint__pf;"));
 		}
 		else
 		{
@@ -1162,12 +1168,12 @@ bool FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 				FirstStatement = (FirstStatementList && FirstStatementList->Num()) ? (*FirstStatementList)[0] : nullptr;
 			}
 			const int32 FirstIndex = FirstStatement ? StatementToStateIndex(FunctionContext, FirstStatement) : 0;
-			EmitterContext.AddLine(FString::Printf(TEXT("int32 CurrentState = %d;"), FirstIndex));
+			EmitterContext.AddLine(FString::Printf(TEXT("int32 __CurrentState = %d;"), FirstIndex));
 		}
 		EmitterContext.AddLine(TEXT("do"));
 		EmitterContext.AddLine(TEXT("{"));
 		EmitterContext.IncreaseIndent();
-		EmitterContext.AddLine(TEXT("switch( CurrentState )"));
+		EmitterContext.AddLine(TEXT("switch( __CurrentState )"));
 		EmitterContext.AddLine(TEXT("{"));
 	}
 	else if (FunctionContext.bIsUbergraph)
@@ -1199,7 +1205,7 @@ bool FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionCo
 		EmitterContext.DecreaseIndent();
 		EmitterContext.AddLine(TEXT("}"));
 		EmitterContext.DecreaseIndent();
-		EmitterContext.AddLine(TEXT("} while( CurrentState != -1 );"));
+		EmitterContext.AddLine(TEXT("} while( __CurrentState != -1 );"));
 	}
 
 	return bIsNotReducible;
@@ -1362,6 +1368,12 @@ void FBlueprintCompilerCppBackend::EmitStatement(FBlueprintCompiledStatement &St
 	case KCST_GotoReturn:
 	case KCST_GotoReturnIfNot:
 		EmitGotoStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_CreateSet:
+		EmitCreateSetStatement(EmitterContext, FunctionContext, Statement);
+		break;
+	case KCST_CreateMap:
+		EmitCreateMapStatement(EmitterContext, FunctionContext, Statement);
 		break;
 	case KCST_SwitchValue:
 		// Switch Value should be always an "inline" statement, so there is no point to handle it here

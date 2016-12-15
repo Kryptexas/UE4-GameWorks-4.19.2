@@ -46,12 +46,6 @@ static const TCHAR* CLIPPING_GEOMETRY_SETNAME = TEXT("ClippingObjectSet");
 
 #define KEEP_SIMPLYGON_SWARM_TEMPFILES
 
-//@third party code BEGIN SIMPLYGON
-#define USE_USER_OPACITY_CHANNEL 1
-#if USE_USER_OPACITY_CHANNEL
-static const char* USER_MATERIAL_CHANNEL_OPACITY = "UserOpacity";
-#endif
-//@third party code END SIMPLYGON
 static const TCHAR* SG_UE_INTEGRATION_REV = TEXT("#SG_UE_INTEGRATION_REV");
 
 #ifdef __clang__

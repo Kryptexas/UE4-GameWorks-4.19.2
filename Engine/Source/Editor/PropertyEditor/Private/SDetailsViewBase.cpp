@@ -140,7 +140,8 @@ TArray< FPropertyPath > SDetailsViewBase::GetPropertiesInOrderDisplayed() const
 	return Ret;
 }
 
-static TSharedPtr< IDetailTreeNode > FindTreeNodeFromPropertyRecursive( const TArray< TSharedRef<IDetailTreeNode> >& Nodes, const FPropertyPath& Property )
+// @return populates OutNodes with the leaf node corresponding to property as the first entry in the list (e.g. [leaf, parent, grandparent]):
+static void FindTreeNodeFromPropertyRecursive( const TArray< TSharedRef<IDetailTreeNode> >& Nodes, const FPropertyPath& Property, TArray< TSharedPtr< IDetailTreeNode > >& OutNodes )
 {
 	for (auto& TreeNode : Nodes)
 	{
@@ -149,22 +150,21 @@ static TSharedPtr< IDetailTreeNode > FindTreeNodeFromPropertyRecursive( const TA
 			FPropertyPath tmp = TreeNode->GetPropertyPath();
 			if( Property == tmp )
 			{
-				return TreeNode;
+				OutNodes.Push(TreeNode);
+				return;
 			}
 		}
-		else
+
+		// Need to check children even if we're a leaf, because all DetailItemNodes are leaves, even if they may have sub-children
+		TArray< TSharedRef<IDetailTreeNode> > Children;
+		TreeNode->GetChildren(Children);
+		FindTreeNodeFromPropertyRecursive(Children, Property, OutNodes);
+		if (OutNodes.Num() > 0)
 		{
-			TArray< TSharedRef<IDetailTreeNode> > Children;
-			TreeNode->GetChildren(Children);
-			auto Result = FindTreeNodeFromPropertyRecursive(Children, Property);
-			if( Result.IsValid() )
-			{
-				return Result;
-			}
+			OutNodes.Push(TreeNode);
+			return;
 		}
 	}
-
-	return TSharedPtr< IDetailTreeNode >();
 }
 
 void SDetailsViewBase::HighlightProperty(const FPropertyPath& Property)
@@ -175,18 +175,25 @@ void SDetailsViewBase::HighlightProperty(const FPropertyPath& Property)
 		PrevHighlightedNodePtr->SetIsHighlighted(false);
 	}
 
-	auto NextNodePtr = FindTreeNodeFromPropertyRecursive( RootTreeNodes, Property );
-	if (NextNodePtr.IsValid())
+	TSharedPtr< IDetailTreeNode > FinalNodePtr = nullptr;
+	TArray< TSharedPtr< IDetailTreeNode > > TreeNodeChain;
+	FindTreeNodeFromPropertyRecursive(RootTreeNodes, Property, TreeNodeChain);
+	if (TreeNodeChain.Num() > 0)
 	{
-		NextNodePtr->SetIsHighlighted(true);
-		auto ParentCategory = NextNodePtr->GetParentCategory();
-		if (ParentCategory.IsValid())
+		FinalNodePtr = TreeNodeChain[0];
+		check(FinalNodePtr.IsValid());
+		FinalNodePtr->SetIsHighlighted(true);
+
+		for (int ParentIndex = 1; ParentIndex < TreeNodeChain.Num(); ++ParentIndex)
 		{
-			DetailTree->SetItemExpansion(ParentCategory.ToSharedRef(), true);
+			TSharedPtr< IDetailTreeNode > CurrentParent = TreeNodeChain[ParentIndex];
+			check(CurrentParent.IsValid());
+			DetailTree->SetItemExpansion(CurrentParent.ToSharedRef(), true);
 		}
-		DetailTree->RequestScrollIntoView(NextNodePtr.ToSharedRef());
+
+		DetailTree->RequestScrollIntoView(FinalNodePtr.ToSharedRef());
 	}
-	CurrentlyHighlightedNode = NextNodePtr;
+	CurrentlyHighlightedNode = FinalNodePtr;
 }
 
 void SDetailsViewBase::ShowAllAdvancedProperties()
@@ -1344,8 +1351,11 @@ void SDetailsViewBase::UpdateFilteredDetails()
 	NumVisbleTopLevelObjectNodes = 0;
 	FRootPropertyNodeList& RootPropertyNodes = GetRootNodes();
 
-	CurrentFilter.bShowAllAdvanced = GetDefault<UEditorStyleSettings>()->bShowAllAdvancedDetails;
-
+	if( GetDefault<UEditorStyleSettings>()->bShowAllAdvancedDetails )
+	{
+		CurrentFilter.bShowAllAdvanced = true;
+	}
+	
 	for(int32 RootNodeIndex = 0; RootNodeIndex < RootPropertyNodes.Num(); ++RootNodeIndex)
 	{
 		TSharedPtr<FComplexPropertyNode>& RootPropertyNode = RootPropertyNodes[RootNodeIndex];

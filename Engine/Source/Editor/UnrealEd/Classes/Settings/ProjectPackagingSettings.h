@@ -25,7 +25,7 @@ enum EProjectPackagingBuildConfigurations
 };
 
 /**
- * Enumerates the the available internationalization data presets for project packaging.
+ * Enumerates the available internationalization data presets for project packaging.
  */
 UENUM()
 enum class EProjectPackagingInternationalizationPresets : uint8
@@ -44,6 +44,22 @@ enum class EProjectPackagingInternationalizationPresets : uint8
 
 	/** All known cultures. */
 	All
+};
+
+/**
+* Enumerates the available methods for Blueprint nativization during project packaging.
+*/
+UENUM()
+enum class EProjectPackagingBlueprintNativizationMethod : uint8
+{
+	/** Disable Blueprint nativization (default). */
+	Disabled,
+
+	/** Enable nativization for all Blueprint assets. */
+	Inclusive,
+
+	/** Enable nativization for selected Blueprint assets only. */
+	Exclusive
 };
 
 /**
@@ -86,12 +102,16 @@ public:
 	bool IncludeDebugFiles;
 
 	/** If enabled, then the project's Blueprint assets (including structs and enums) will be intermediately converted into C++ and used in the packaged project (in place of the .uasset files).*/
-	UPROPERTY(config, EditAnywhere, Category=Experimental)
-	bool bNativizeBlueprintAssets;
+	UPROPERTY(config, EditAnywhere, Category = Blueprints)
+	EProjectPackagingBlueprintNativizationMethod BlueprintNativizationMethod;
 
-	/** WHen nativization is enabled, only Blueprints with "Nativize" set true will be converted to C++. */
-	UPROPERTY(config, EditAnywhere, Category = Experimental)
-	bool bNativizeOnlySelectedBlueprints;
+	/** List of Blueprints to include for nativization when using the exclusive method. */
+	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category = Blueprints, meta = (DisplayName = "List of Blueprint assets to nativize", RelativeToGameContentDir, LongPackageName))
+	TArray<FFilePath> NativizeBlueprintAssets;
+
+	/** If enabled, a warning will be emitted at build/cook time if nativization is turned on in the Project Settings, but the nativization flag was omitted from the command line. */
+	UPROPERTY(config, EditAnywhere, Category = Blueprints)
+	bool bWarnIfPackagedWithoutNativizationFlag;
 
 	/** If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled). */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
@@ -226,12 +246,27 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Additional Non-Asset Directories To Copy", RelativeToGameContentDir))
 	TArray<FDirectoryPath> DirectoriesToAlwaysStageAsNonUFS;	
 
+private:
+	/** Helper array used to mirror Blueprint asset selections across edits */
+	TArray<FFilePath> CachedNativizeBlueprintAssets;
 
+	UPROPERTY(config)
+	bool bNativizeBlueprintAssets_DEPRECATED;
+
+	UPROPERTY(config)
+	bool bNativizeOnlySelectedBlueprints_DEPRECATED;
 	
 public:
 
 	// UObject Interface
 
+	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 	virtual bool CanEditChange( const UProperty* InProperty ) const override;
+
+	/** Adds the given Blueprint asset to the exclusive nativization list. */
+	bool AddBlueprintAssetToNativizationList(const class UBlueprint* InBlueprint);
+
+	/** Removes the given Blueprint asset from the exclusive nativization list. */
+	bool RemoveBlueprintAssetFromNativizationList(const class UBlueprint* InBlueprint);
 };

@@ -1,11 +1,10 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "HTTPTransport.h"
-#include "Serialization/BufferArchive.h"
 
 #if ENABLE_HTTP_FOR_NFS
 
-#include "HTTPTransport.h"
+#include "Serialization/BufferArchive.h"
 #include "NetworkMessage.h"
 
 #if PLATFORM_HTML5_WIN32
@@ -31,13 +30,15 @@ bool FHTTPTransport::Initialize(const TCHAR* InHostIp)
 	// make sure that we have the correct protcol
 	ensure( HostIp.RemoveFromStart("http://") );
 
-	// check if we have specified the port also
-	if ( HostIp.Contains(":") == false)
+	// strip webserver port
+	if ( HostIp.Contains(":") )
 	{
-		// no port put the default one on
-		HostIp = FString::Printf(TEXT("%s:%d"), *HostIp, (int)(DEFAULT_HTTP_FILE_SERVING_PORT) );
+		HostIp = HostIp.Left(HostIp.Find(":"));
 	}
-		// make sure that our string is again correctly formated
+	// append file server port
+	HostIp = FString::Printf(TEXT("%s:%d"), *HostIp, (int)(DEFAULT_HTTP_FILE_SERVING_PORT) );
+
+	// make sure that our string is again correctly formated
 	HostIp = FString::Printf(TEXT("http://%s"),*HostIp);
 
 	FCString::Sprintf(Url, *HostIp);
@@ -123,14 +124,13 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 
 	return false;
 #else  // PLATFORM_HTML5
-
 	FBufferArchive Ar;
 	if ( In.Num() )
 	{
 		Ar << Guid;
+		Ar.Append(In);
 	}
 
-	Ar.Append(In);
 	unsigned char *OutData = NULL;
 	unsigned int OutSize= 0;
 
@@ -143,7 +143,7 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 	UE_SendAndRecievePayLoad(TCHAR_TO_ANSI(Url),(char*)Ar.GetData(),Ar.Num(),(char**)&OutData,(int*)&OutSize);
 #endif
 
-	if (!Ar.Num())
+//	if (!Ar.Num())
 	{
 		uint32 Size = OutSize;
 		uint32 Marker = 0xDeadBeef;

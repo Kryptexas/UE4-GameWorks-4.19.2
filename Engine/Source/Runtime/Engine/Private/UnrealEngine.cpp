@@ -186,6 +186,8 @@
 DEFINE_LOG_CATEGORY(LogEngine);
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
+#define DEBUGGING_VIEWPORT_SIZES 0
+
 #define LOCTEXT_NAMESPACE "UnrealEngine"
 
 void OnChangeEngineCVarRequiringRecreateRenderState(IConsoleVariable* Var)
@@ -1421,6 +1423,11 @@ void UEngine::ParseCommandline()
 	if(FParse::Param(FCommandLine::Get(),TEXT("nosound")) || FApp::IsBenchmarking() || IsRunningDedicatedServer() || (IsRunningCommandlet() && !IsAllowCommandletAudio()))
 	{
 		bUseSound = false;
+	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("enablesound")))
+	{
+		bUseSound = true;
 	}
 
 	if( FParse::Param( FCommandLine::Get(), TEXT("noailogging")) )

@@ -256,9 +256,6 @@ class UK2Node : public UEdGraphNode
 	 */
 	virtual bool IsNodeSafeToIgnore() const { return false; }
 
-	/** Tries to get a template object from this node. Will only work for 'Add Component' nodes */
-	virtual UActorComponent* GetTemplateFromNode() const { return NULL; }
-
 	/** Called at the end of ReconstructNode, allows node specific work to be performed */
 	BLUEPRINTGRAPH_API virtual void PostReconstructNode();
 

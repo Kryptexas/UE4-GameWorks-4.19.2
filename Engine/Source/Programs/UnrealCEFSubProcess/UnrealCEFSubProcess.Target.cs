@@ -4,30 +4,18 @@ using System.Collections.Generic;
 using System.IO;
 using UnrealBuildTool;
 
+[SupportedPlatforms(UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64, UnrealTargetPlatform.Mac, UnrealTargetPlatform.Linux)]
 public class UnrealCEFSubProcessTarget : TargetRules
 {
 	public UnrealCEFSubProcessTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Monolithic;
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		OutPlatforms.Add(UnrealTargetPlatform.Win32);
-		OutPlatforms.Add(UnrealTargetPlatform.Win64);
-		OutPlatforms.Add(UnrealTargetPlatform.Mac);
-		OutPlatforms.Add(UnrealTargetPlatform.Linux);
-		return true;
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
-	}
 
 	public override void SetupBinaries(
 		TargetInfo Target,

@@ -1,5 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
+#include "CoreMinimal.h"
+
 #if PLATFORM_ANDROIDESDEFERRED
 /*=============================================================================
 	AndroidESDeferredOpenGL.cpp: Manual loading of OpenGL functions from DLL.

@@ -1801,16 +1801,6 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Parses the command's Params list for a parameter and returns whether it is defined or not.
-		/// </summary>
-		/// <param name="Param">Param to check for.</param>
-		/// <returns>True if param was found, false otherwise.</returns>
-		public bool ParseParam(string Param)
-		{
-			return ParseParam(Params, Param);
-		}
-
-		/// <summary>
 		/// Parses the argument list for a parameter and reads its value. 
 		/// Ex. ParseParamValue(Args, "map=")
 		/// </summary>
@@ -1833,17 +1823,6 @@ namespace AutomationTool
 				}
 			}
 			return Default;
-		}
-
-		/// <summary>
-		/// Parses the command's Params list for a parameter and reads its value. 
-		/// Ex. ParseParamValue(Args, "map=")
-		/// </summary>
-		/// <param name="Param">Param to read its value.</param>
-		/// <returns>Returns the value or Default if the parameter was not found.</returns>
-		public string ParseParamValue(string Param, string Default = null)
-		{
-			return ParseParamValue(Params, Param, Default);
 		}
 
 		/// <summary>
@@ -1870,48 +1849,6 @@ namespace AutomationTool
 				}
 			}
 			return Values.ToArray();
-		}
-
-		/// <summary>
-		/// Parses the argument list for any number of parameters.
-		/// </summary>
-		/// <param name="ArgList">Argument list.</param>
-		/// <param name="Param">Param to read its value.</param>
-		/// <returns>Returns an array of values for this parameter (or an empty array if one was not found.</returns>
-		public string[] ParseParamValues(string Param)
-		{
-			return ParseParamValues(Params, Param);
-		}
-
-		/// <summary>
-		/// Parses the command's Params list for a parameter and reads its value. 
-		/// Ex. ParseParamValue(Args, "map=")
-		/// </summary>
-		/// <param name="Param">Param to read its value.</param>
-		/// <returns>Returns the value or Default if the parameter was not found.</returns>
-		public int ParseParamInt(string Param, int Default = 0)
-		{
-			string num = ParseParamValue(Params, Param, Default.ToString());
-			return int.Parse(num);
-		}
-
-		/// <summary>
-		/// Parses the command's Params list for a parameter and reads its value. 
-		/// Ex. ParseParamValue(Args, "map=")
-		/// </summary>
-		/// <param name="Param">Param to read its value.</param>
-		/// <returns>Returns the value or Default if the parameter was not found.</returns>
-		public int? ParseParamNullableInt(string Param)
-		{
-			string Value = ParseParamValue(Params, Param, null);
-			if(Value == null)
-			{
-				return null;
-			}
-			else
-			{
-				return int.Parse(Value);
-			}
 		}
 
 		/// <summary>
@@ -1966,16 +1903,6 @@ namespace AutomationTool
 	    #endregion
 
 		#region Properties
-
-		/// <summary>
-		/// Command line parameters for this command (empty by non-null by default)
-		/// </summary>
-		private string[] CommandLineParams = new string[0];
-		public string[] Params
-		{
-			get { return CommandLineParams; }
-			set { CommandLineParams = value; }
-		}
 
 		/// <summary>
 		/// Checks if this command is running on a build machine.
@@ -2204,7 +2131,7 @@ namespace AutomationTool
 				CommandUtils.CreateDirectory(BaseDirectory);
 
 				// Use system unzip tool as there have been instances of Ionic not being able to open zips created with Mac zip tool
-				string Output = CommandUtils.RunAndLog("unzip", "\"" + ZipFileName + "\" -d \"" + BaseDirectory + "\"");
+				string Output = CommandUtils.RunAndLog("unzip", "\"" + ZipFileName + "\" -d \"" + BaseDirectory + "\"", Options: ERunOptions.Default | ERunOptions.SpewIsVerbose);
 
 				// Split log output into lines
 				string[] Lines = Output.Split(new char[] { '\n', '\r' });

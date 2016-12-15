@@ -1389,7 +1389,7 @@ UEnum* FHeaderParser::CompileEnum()
 	}
 
 	static const FName BlueprintTypeName = TEXT("BlueprintType");
-	if (UnderlyingType != EUnderlyingEnumType::uint8 && !EnumToken.MetaData.Contains(BlueprintTypeName))
+	if (UnderlyingType != EUnderlyingEnumType::uint8 && EnumToken.MetaData.Contains(BlueprintTypeName))
 	{
 		FError::Throwf(TEXT("Invalid BlueprintType enum base - currently only uint8 supported"));
 	}
@@ -3606,11 +3606,6 @@ FIndexRange*                    ParsedVarIndexRange
 			FError::Throwf(TEXT("Nested containers are not supported.") );
 		}
 
-		if (MapKeyType.Type == CPT_Struct)
-		{
-			FError::Throwf(TEXT("USTRUCTs are not currently supported as key types."));
-		}
-
 		if (MapKeyType.Type == CPT_Interface)
 		{
 			FError::Throwf(TEXT("UINTERFACEs are not currently supported as key types."));
@@ -3678,11 +3673,6 @@ FIndexRange*                    ParsedVarIndexRange
 		if (VarProperty.IsContainer())
 		{
 			FError::Throwf(TEXT("Nested containers are not supported.") );
-		}
-
-		if (VarProperty.Type == CPT_Struct)
-		{
-			FError::Throwf(TEXT("USTRUCTs are not currently supported as element types."));
 		}
 
 		if (VarProperty.Type == CPT_Interface)
@@ -6013,7 +6003,17 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	{ 
 		if (!bHasMenuCategory && !bInternalOnly && !bDeprecated) 
 		{ 
-			FError::Throwf(TEXT("Blueprint accessible functions must have a category specified")); 
+			const bool bModuleIsGame = CurrentlyParsedModule && (
+				CurrentlyParsedModule->ModuleType == EBuildModuleType::GameDeveloper ||
+				CurrentlyParsedModule->ModuleType == EBuildModuleType::GameEditor ||
+				CurrentlyParsedModule->ModuleType == EBuildModuleType::GameRuntime ||
+				CurrentlyParsedModule->ModuleType == EBuildModuleType::GameThirdParty);
+
+			// To allow for quick iteration, don't enforce the requirement that game functions have to be categorized
+			if (!bModuleIsGame)
+			{
+				FError::Throwf(TEXT("Blueprint accessible functions must have a category specified"));
+			}
 		} 
 	}
 

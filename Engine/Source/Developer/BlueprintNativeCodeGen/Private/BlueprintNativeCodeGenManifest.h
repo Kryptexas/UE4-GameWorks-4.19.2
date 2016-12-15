@@ -118,7 +118,7 @@ struct FBlueprintNativeCodeGenManifest
 
 public: 
 	FBlueprintNativeCodeGenManifest(); // default ctor for USTRUCT() system
-	FBlueprintNativeCodeGenManifest(const FString& InPluginName, const FString& InOutputDir);
+	FBlueprintNativeCodeGenManifest(const FString& InPluginName, const FString& InOutputDir, FCompilerNativizationOptions InCompilerNativizationOptions);
 	FBlueprintNativeCodeGenManifest(const FString& ManifestFilePath);
 
 	/**
@@ -169,6 +169,11 @@ public:
 	const FUnconvertedRecord& GetUnconvertedDependencies() const { return UnconvertedDependencies; }
 
 	/**
+	 * @return compiler nativization options
+	 */
+	const FCompilerNativizationOptions GetCompilerNativizationOptions() const { return NativizationOptions; }
+
+	/**
 	 * Saves this manifest as json, to its target destination (which it was 
 	 * setup with).
 	 * 
@@ -214,4 +219,7 @@ private:
 
 	UPROPERTY()
 	TMap<FName, FUnconvertedDependencyRecord> UnconvertedDependencies;
+
+	UPROPERTY()
+	FCompilerNativizationOptions NativizationOptions;
 };

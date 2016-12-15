@@ -396,7 +396,7 @@ uint32 FDirectPhotonEmittingThreadRunnable::Run()
 	GSwarm->SendMessage( NSwarm::FTimingMessage( NSwarm::PROGSTATE_Preparing0, ThreadIndex ) );
 
 	const double StartThreadTime = FPlatformTime::Seconds();
-#if _MSC_VER && !XBOX
+#if defined(_MSC_VER) && !defined(XBOX)
 	if(!FPlatformMisc::IsDebuggerPresent())
 	{
 		__try
@@ -790,7 +790,7 @@ uint32 FIndirectPhotonEmittingThreadRunnable::Run()
 {
 	GSwarm->SendMessage( NSwarm::FTimingMessage( NSwarm::PROGSTATE_Preparing1, ThreadIndex ) );
 	const double StartThreadTime = FPlatformTime::Seconds();
-#if _MSC_VER && !XBOX
+#if defined(_MSC_VER) && !defined(XBOX)
 	if(!FPlatformMisc::IsDebuggerPresent())
 	{
 		__try
@@ -1166,7 +1166,7 @@ uint32 FIrradiancePhotonMarkingThreadRunnable::Run()
 {
 	GSwarm->SendMessage( NSwarm::FTimingMessage( NSwarm::PROGSTATE_Preparing2, ThreadIndex ) );
 	const double StartThreadTime = FPlatformTime::Seconds();
-#if _MSC_VER && !XBOX
+#if defined(_MSC_VER) && !defined(XBOX)
 	if(!FPlatformMisc::IsDebuggerPresent())
 	{
 		__try
@@ -1335,7 +1335,7 @@ void FStaticLightingSystem::CalculateIrradiancePhotons(const FBoxSphereBounds& I
 uint32 FIrradiancePhotonCalculatingThreadRunnable::Run()
 {
 	const double StartThreadTime = FPlatformTime::Seconds();
-#if _MSC_VER && !XBOX
+#if defined(_MSC_VER) && !defined(XBOX)
 	if(!FPlatformMisc::IsDebuggerPresent())
 	{
 		__try

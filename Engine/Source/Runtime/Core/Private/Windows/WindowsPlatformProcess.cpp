@@ -763,8 +763,13 @@ const TCHAR* FWindowsPlatformProcess::BaseDir()
 		}
 		else
 		{
-			// Get directory this executable was launched from.
-			GetModuleFileName(hInstance, Result, ARRAY_COUNT(Result));
+			// Get the directory containing the current module if possible, or use the directory containing the executable if not
+			HMODULE hCurrentModule;
+			if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCWSTR)&BaseDir, &hCurrentModule) == 0)
+			{
+				hCurrentModule = hInstance;
+			}
+			GetModuleFileName(hCurrentModule, Result, ARRAY_COUNT(Result));
 			FString TempResult(Result);
 			TempResult = TempResult.Replace(TEXT("\\"), TEXT("/"));
 			FCString::Strcpy(Result, *TempResult);
@@ -1363,25 +1368,31 @@ bool FWindowsPlatformProcess::Daemonize()
 
 void *FWindowsPlatformProcess::LoadLibraryWithSearchPaths(const FString& FileName, const TArray<FString>& SearchPaths)
 {
-	// Create a list of files which we've already checked for imports. Don't add the initial file to this list to improve the resolution of dependencies for direct circular dependencies of this
-	// module; by allowing the module to be visited twice, any mutually depended on DLLs will be visited first.
-	TArray<FString> VisitedImportNames;
-
-	// Find a list of all the DLLs that need to be loaded
-	TArray<FString> ImportFileNames;
-	ResolveImportsRecursive(*FileName, SearchPaths, ImportFileNames, VisitedImportNames);
-
-	// Load all the missing dependencies first
-	for(int32 Idx = 0; Idx < ImportFileNames.Num(); Idx++)
+	// Make sure the initial module exists. If we can't find it from the path we're given, it's probably a system dll.
+	FString FullFileName = FileName;
+	if (FPaths::FileExists(*FullFileName))
 	{
-		if(GetModuleHandle(*ImportFileNames[Idx]) == nullptr)
+		// Convert it to a full path, since LoadLibrary will try to resolve it against the executable directory (which may not be the same as the working dir)
+		FullFileName = FPaths::ConvertRelativePathToFull(FullFileName);
+
+		// Create a list of files which we've already checked for imports. Don't add the initial file to this list to improve the resolution of dependencies for direct circular dependencies of this
+		// module; by allowing the module to be visited twice, any mutually depended on DLLs will be visited first.
+		TArray<FString> VisitedImportNames;
+
+		// Find a list of all the DLLs that need to be loaded
+		TArray<FString> ImportFileNames;
+		ResolveImportsRecursive(*FullFileName, SearchPaths, ImportFileNames, VisitedImportNames);
+
+		// Load all the missing dependencies first
+		for (int32 Idx = 0; Idx < ImportFileNames.Num(); Idx++)
 		{
-			LoadLibrary(*ImportFileNames[Idx]);
+			if (GetModuleHandle(*ImportFileNames[Idx]) == nullptr)
+			{
+				LoadLibrary(*ImportFileNames[Idx]);
+			}
 		}
 	}
-
-	// Finally, load the actual library
-	return LoadLibrary(*FileName);
+	return LoadLibrary(*FullFileName);
 }
 
 void FWindowsPlatformProcess::ResolveImportsRecursive(const FString& FileName, const TArray<FString>& SearchPaths, TArray<FString>& ImportFileNames, TArray<FString>& VisitedImportNames)

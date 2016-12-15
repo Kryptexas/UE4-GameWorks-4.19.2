@@ -1594,9 +1594,9 @@ void UParticleModuleBeamNoise::PostEditChangeProperty(FPropertyChangedEvent& Pro
 
 void UParticleModuleBeamNoise::GetNoiseRange(FVector& NoiseMin, FVector& NoiseMax)
 {
-#if BEAMS_TODO
+#ifdef BEAMS_TODO
 	NoiseRange.GetOutRange(NoiseMin, NoiseMax);
-#endif	//#if BEAMS_TODO
+#endif	//#ifdef BEAMS_TODO
 
 	float Min, Max;
 	// get the min/max for x, y AND z

@@ -169,7 +169,6 @@ FCDODiffControl::FCDODiffControl(
 	: OldDetails(InOldCDO, FDetailsDiff::FOnDisplayedPropertiesChanged() )
 	, NewDetails(InNewCDO, FDetailsDiff::FOnDisplayedPropertiesChanged() )
 {
-	// @todo: (doc): rename InDifferences
 	TArray< FSingleObjectDiffEntry > DifferingProperties;
 	OldDetails.DiffAgainst(NewDetails, DifferingProperties);
 
@@ -180,17 +179,25 @@ FCDODiffControl::FCDODiffControl(
 	TArray<FPropertySoftPath> OldProperties = OldDetails.GetDisplayedProperties();
 	TArray<FPropertySoftPath> NewProperties = NewDetails.GetDisplayedProperties();
 
-	const auto FindAndPushDiff = [&OrderedProperties, &DifferingProperties](const FPropertySoftPath& PropertyIdentifer) -> bool
+	const auto FindAndPushDiff = [&OrderedProperties, &DifferingProperties](const FPropertySoftPath& PropertyIdentifier) -> bool
 	{
+		bool bDiffers = false;
 		for (const auto& Difference : DifferingProperties)
 		{
-			if (Difference.Identifier == PropertyIdentifer)
+			if (Difference.Identifier == PropertyIdentifier)
 			{
+				bDiffers = true;
+				// if there are any nested differences associated with PropertyIdentifier, add those
+				// as well:
 				OrderedProperties.Push(&Difference);
-				return true;
+			}
+			else if (Difference.Identifier.IsSubPropertyMatch(PropertyIdentifier))
+			{
+				bDiffers = true;
+				OrderedProperties.Push(&Difference);
 			}
 		}
-		return false;
+		return bDiffers;
 	};
 
 	// zip the two sets of properties, zip iterators are not trivial to write in c++,

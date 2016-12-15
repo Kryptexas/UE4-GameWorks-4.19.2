@@ -1131,6 +1131,92 @@ bool FDesktopPlatformBase::EnumerateProjectsKnownByEngine(const FString &Identif
 	return true;
 }
 
+#if PLATFORM_WINDOWS
+
+#include "WindowsHWrapper.h"
+#include "AllowWindowsPlatformTypes.h"
+#include <ShlObj.h>
+#include "HideWindowsPlatformTypes.h"
+
+static bool TryReadMsBuildInstallPath(HKEY RootKey, const TCHAR* KeyName, const TCHAR* ValueName, const TCHAR* MsBuildRelativePath, FString& OutMsBuildPath)
+{
+	FString Value;
+	if (!FWindowsPlatformMisc::QueryRegKey(RootKey, KeyName, ValueName, Value))
+	{
+		return false;
+	}
+
+	FString Result = Value / MsBuildRelativePath;
+	if (!FPaths::FileExists(Result))
+	{
+		return false;
+	}
+
+	OutMsBuildPath = Result;
+	return true;
+}
+
+static bool TryReadMsBuildInstallPath(const TCHAR* KeyRelativeName, const TCHAR* ValueName, const TCHAR* MsBuildRelativePath, FString& OutMsBuildPath)
+{
+	if (TryReadMsBuildInstallPath(HKEY_CURRENT_USER, *(FString("SOFTWARE\\") + KeyRelativeName), ValueName, MsBuildRelativePath, OutMsBuildPath))
+	{
+		return true;
+	}
+	if (TryReadMsBuildInstallPath(HKEY_LOCAL_MACHINE, *(FString("SOFTWARE\\") + KeyRelativeName), ValueName, MsBuildRelativePath, OutMsBuildPath))
+	{
+		return true;
+	}
+	if (TryReadMsBuildInstallPath(HKEY_CURRENT_USER, *(FString("SOFTWARE\\Wow6432Node\\") + KeyRelativeName), ValueName, MsBuildRelativePath, OutMsBuildPath))
+	{
+		return true;
+	}
+	if (TryReadMsBuildInstallPath(HKEY_LOCAL_MACHINE, *(FString("SOFTWARE\\Wow6432Node\\") + KeyRelativeName), ValueName, MsBuildRelativePath, OutMsBuildPath))
+	{
+		return true;
+	}
+	return false;
+}
+
+static bool TryReadMsBuildInstallPath(FString& OutPath)
+{
+	// Try to get the MSBuild 14.0 path directly (see https://msdn.microsoft.com/en-us/library/hh162058(v=vs.120).aspx)
+	TCHAR ProgramFilesX86[MAX_PATH];
+	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PROGRAM_FILES | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, ProgramFilesX86)))
+	{
+		FString ToolPath = FString(ProgramFilesX86) / TEXT("MSBuild/14.0/bin/MSBuild.exe");
+		if (FPaths::FileExists(ToolPath))
+		{
+			OutPath = ToolPath;
+			return true;
+		}
+	}
+
+	// Try to get the MSBuild 14.0 path from the registry
+	if (TryReadMsBuildInstallPath(TEXT("Microsoft\\MSBuild\\ToolsVersions\\14.0"), TEXT("MSBuildToolsPath"), TEXT("MSBuild.exe"), OutPath))
+	{
+		return true;
+	}
+
+	// Check for MSBuild 15. This is installed alongside Visual Studio 2017, so we get the path relative to that.
+	if (TryReadMsBuildInstallPath(TEXT("Microsoft\\VisualStudio\\SxS\\VS7"), TEXT("15.0"), TEXT("MSBuild\\15.0\\bin\\MSBuild.exe"), OutPath))
+	{
+		return true;
+	}
+
+	// Check for older versions of MSBuild. These are registered as separate versions in the registry.
+	if (TryReadMsBuildInstallPath(TEXT("Microsoft\\MSBuild\\ToolsVersions\\12.0"), TEXT("MSBuildToolsPath"), TEXT("MSBuild.exe"), OutPath))
+	{
+		return true;
+	}
+	if (TryReadMsBuildInstallPath(TEXT("Microsoft\\MSBuild\\ToolsVersions\\4.0"), TEXT("MSBuildToolsPath"), TEXT("MSBuild.exe"), OutPath))
+	{
+		return true;
+	}
+
+	return false;
+}
+#endif
+
 bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputDevice& Ar)
 {
 	Ar.Logf(TEXT("Building UnrealBuildTool in %s..."), *RootDir);
@@ -1148,48 +1234,14 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputD
 
 	if (PLATFORM_WINDOWS)
 	{
-		// To build UBT for windows, we must assemble a batch file that first registers the environment variable necessary to run msbuild then run it
-		// This can not be done in a single invocation of CMD.exe because the environment variables do not transfer between subsequent commands when using the "&" syntax
-		// devenv.exe can be used to build as well but it takes several seconds to start up so it is not desirable
-
-		// First determine the appropriate vcvars batch file to launch
-		FString VCVarsBat;
-
 #if PLATFORM_WINDOWS
-	#if _MSC_VER >= 1910
-		FPlatformMisc::GetVSComnTools(15, VCVarsBat);
-	#elif _MSC_VER >= 1900
-		FPlatformMisc::GetVSComnTools(14, VCVarsBat);
-	#elif _MSC_VER >= 1800
-		FPlatformMisc::GetVSComnTools(12, VCVarsBat);
-	#else
-		#error "Unsupported Visual Studio version."
-	#endif
-#endif // PLATFORM_WINDOWS
-
-		VCVarsBat = FPaths::Combine(*VCVarsBat, L"../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
-
-		// Check to make sure we found one.
-		if (VCVarsBat.IsEmpty() || !FPaths::FileExists(VCVarsBat))
+		if (!TryReadMsBuildInstallPath(CompilerExecutableFilename))
 		{
-			Ar.Logf(TEXT("Couldn't find %s; skipping."), *VCVarsBat);
+			Ar.Logf(TEXT("Couldn't find MSBuild installation; skipping."));
 			return false;
 		}
-
-		// Now make a batch file in the intermediate directory to invoke the vcvars batch then msbuild
-		FString BuildBatchFile = RootDir / TEXT("Engine/Intermediate/Build/UnrealBuildTool/BuildUBT.bat");
-		BuildBatchFile.ReplaceInline(TEXT("/"), TEXT("\\"));
-
-		FString BatchFileContents;
-		BatchFileContents = FString::Printf(TEXT("call \"%s\"") LINE_TERMINATOR, *VCVarsBat);
-		BatchFileContents += FString::Printf(TEXT("msbuild /nologo /verbosity:quiet \"%s\" /property:Configuration=Development /property:Platform=AnyCPU"), *CsProjLocation);
-		FFileHelper::SaveStringToFile(BatchFileContents, *BuildBatchFile);
-
-		TCHAR CmdExePath[PLATFORM_MAX_FILEPATH_LENGTH];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("ComSpec"), CmdExePath, ARRAY_COUNT(CmdExePath));
-		CompilerExecutableFilename = CmdExePath;
-
-		CmdLineParams = FString::Printf(TEXT("/c \"%s\""), *BuildBatchFile);
+#endif
+		CmdLineParams = FString::Printf(TEXT("/nologo /verbosity:quiet \"%s\" /property:Configuration=Development /property:Platform=AnyCPU"), *CsProjLocation);
 	}
 	else if (PLATFORM_MAC)
 	{

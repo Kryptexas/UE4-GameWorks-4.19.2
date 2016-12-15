@@ -17,56 +17,14 @@ namespace UnrealBuildTool
 	public partial class UnrealBuildTool
 	{
 		/// <summary>
-		/// Time at which control fist passes to UBT.
+		/// Unique identifier used for telemetry
 		/// </summary>
-		static public DateTime StartTime;
-
 		static public string BuildGuid = Guid.NewGuid().ToString();
-
-		/// <summary>
-		/// Total time spent building projects.
-		/// </summary>
-		static public double TotalBuildProjectTime = 0;
-
-		/// <summary>
-		/// Total time spent compiling.
-		/// </summary>
-		static public double TotalCompileTime = 0;
-
-		/// <summary>
-		/// Total time spent creating app bundles.
-		/// </summary>
-		static public double TotalCreateAppBundleTime = 0;
-
-		/// <summary>
-		/// Total time spent generating debug information.
-		/// </summary>
-		static public double TotalGenerateDebugInfoTime = 0;
-
-		/// <summary>
-		/// Total time spent linking.
-		/// </summary>
-		static public double TotalLinkTime = 0;
-
-		/// <summary>
-		/// Total time spent on other actions.
-		/// </summary>
-		static public double TotalOtherActionsTime = 0;
 
 		/// <summary>
 		/// How much time was spent scanning for include dependencies for outdated C++ files
 		/// </summary>
 		public static double TotalDeepIncludeScanTime = 0.0;
-
-		/// <summary>
-		/// Total time spent executing actions
-		/// </summary>
-		static public double TotalExecutorTime = 0;
-
-		/// <summary>
-		/// The command line
-		/// </summary>
-		static public List<string> CmdLine = new List<string>();
 
 		/// <summary>
 		/// The environment at boot time.
@@ -212,6 +170,15 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Sets the global flag indicating whether the engine is installed
+		/// </summary>
+		/// <param name="bInIsEngineInstalled">Whether the engine is installed or not</param>
+		public static void SetIsEngineInstalled(bool bInIsEngineInstalled)
+		{
+			bIsEngineInstalled = bInIsEngineInstalled;
+		}
+
+		/// <summary>
 		/// Returns true if UnrealBuildTool is running using installed Engine components
 		/// </summary>
 		/// <returns>True if running using installed Engine components</returns>
@@ -219,19 +186,8 @@ namespace UnrealBuildTool
 		{
 			if (!bIsEngineInstalled.HasValue)
 			{
-				bIsEngineInstalled = UnrealBuildTool.CommandLineContains("-Installed");
-				FileReference InstalledBuildFile = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt");
-				bIsEngineInstalled |= InstalledBuildFile.Exists();
-				if (bIsEngineInstalled.Value)
-				{
-					bIsEngineInstalled = !UnrealBuildTool.CommandLineContains("-NotInstalledEngine");
-				}
-				else
-				{
-					bIsEngineInstalled = UnrealBuildTool.CommandLineContains("-InstalledEngine");
-				}
+				throw new BuildException("IsEngineInstalled() called before being initialized.");
 			}
-
 			return bIsEngineInstalled.Value;
 		}
 
@@ -255,141 +211,6 @@ namespace UnrealBuildTool
 			RemoteIniPath = Path;
 		}
 
-		// @todo projectfiles: Move this into the ProjectPlatformGeneration class?
-		/// <summary>
-		/// IsDesktopPlatform
-		/// </summary>
-		/// <param name="InPlatform">The platform of interest</param>
-		/// <returns>True if the given platform is a 'desktop' platform</returns>
-		static public bool IsDesktopPlatform(UnrealTargetPlatform InPlatform)
-		{
-			// Windows and Mac are desktop platforms.
-			return (
-				(InPlatform == UnrealTargetPlatform.Win64) ||
-				(InPlatform == UnrealTargetPlatform.Win32) ||
-				(InPlatform == UnrealTargetPlatform.Linux) ||
-				(InPlatform == UnrealTargetPlatform.Mac)
-				);
-		}
-
-		// @todo projectfiles: Move this into the ProjectPlatformGeneration class?
-		/// <summary>
-		/// IsEditorPlatform
-		/// </summary>
-		/// <param name="InPlatform">The platform of interest</param>
-		/// <returns>True if the given platform is a platform that supports the editor.</returns>
-		static public bool IsEditorPlatform(UnrealTargetPlatform InPlatform)
-		{
-			// Windows 64, Linux and Mac are editor platforms.
-			return (
-				(InPlatform == UnrealTargetPlatform.Win64) ||
-				(InPlatform == UnrealTargetPlatform.Linux) ||
-				(InPlatform == UnrealTargetPlatform.Mac)
-				);
-		}
-
-		// @todo projectfiles: Move this into the ProjectPlatformGeneration class?
-		/// <summary>
-		/// IsServerPlatform
-		/// </summary>
-		/// <param name="InPlatform">The platform of interest</param>
-		/// <returns>True if the given platform is a 'server' platform</returns>
-		static public bool IsServerPlatform(UnrealTargetPlatform InPlatform)
-		{
-			// Windows, Mac, and Linux are desktop platforms.
-			return (
-				(InPlatform == UnrealTargetPlatform.Win64) ||
-				(InPlatform == UnrealTargetPlatform.Win32) ||
-				(InPlatform == UnrealTargetPlatform.Mac) ||
-				(InPlatform == UnrealTargetPlatform.Linux)
-				);
-		}
-
-		// @todo projectfiles: Move this into the ProjectPlatformGeneration class?
-		/// <summary>
-		/// PlatformSupportsCrashReporter
-		/// </summary>
-		/// <param name="InPlatform">The platform of interest</param>
-		/// <returns>True if the given platform supports a crash reporter client (i.e. it can be built for it)</returns>
-		static public bool PlatformSupportsCrashReporter(UnrealTargetPlatform InPlatform)
-		{
-			return (
-				(InPlatform == UnrealTargetPlatform.Win64) ||
-				(InPlatform == UnrealTargetPlatform.Win32) ||
-				(InPlatform == UnrealTargetPlatform.Linux) ||
-				(InPlatform == UnrealTargetPlatform.Mac)
-				);
-		}
-
-		/// <summary>
-		/// Gets all platforms that satisfies the predicate.
-		/// </summary>
-		/// <param name="OutPlatforms">The list of platform to fill in.</param>
-		/// <param name="Predicate">The predicate to filter the platforms.</param>
-		/// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
-		/// <returns>True if successful and platforms are found, false if not.</returns>
-		static private bool GetPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, Func<UnrealTargetPlatform, bool> Predicate, bool bCheckValidity = true)
-		{
-			OutPlatforms.Clear();
-			foreach (UnrealTargetPlatform Platform in AllPlatforms)
-			{
-				if (Predicate(Platform))
-				{
-					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
-					if ((bCheckValidity == false) || (BuildPlatform != null))
-					{
-						OutPlatforms.Add(Platform);
-					}
-				}
-			}
-
-			return (OutPlatforms.Count > 0) ? true : false;
-		}
-
-		/// <summary>
-		/// Gets all platforms.
-		/// </summary>
-		/// <param name="OutPlatforms">The list of platform to fill in.</param>
-		/// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
-		/// <returns>True if successful and platforms are found, false if not.</returns>
-		static public bool GetAllPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
-		{
-			return GetPlatforms(ref OutPlatforms, (Platform) => { return true; }, bCheckValidity);
-		}
-
-		/// <summary>
-		/// Gets all desktop platforms.
-		/// </summary>
-		/// <param name="OutPlatforms">The list of platform to fill in.</param>
-		/// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
-		/// <returns>True if successful and platforms are found, false if not.</returns>
-		static public bool GetAllDesktopPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
-		{
-			return GetPlatforms(ref OutPlatforms, UnrealBuildTool.IsDesktopPlatform, bCheckValidity);
-		}
-
-		/// <summary>
-		/// Gets all editor platforms.
-		/// </summary>
-		/// <param name="OutPlatforms">The list of platform to fill in.</param>
-		/// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
-		/// <returns>True if successful and platforms are found, false if not.</returns>
-		static public bool GetAllEditorPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
-		{
-			return GetPlatforms(ref OutPlatforms, UnrealBuildTool.IsEditorPlatform, bCheckValidity);
-		}
-
-		/// <summary>
-		/// Gets all server platforms.
-		/// </summary>
-		/// <param name="OutPlatforms">The list of platform to fill in.</param>
-		/// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
-		/// <returns>True if successful and platforms are found, false if not.</returns>
-		static public bool GetAllServerPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
-		{
-			return GetPlatforms(ref OutPlatforms, UnrealBuildTool.IsServerPlatform, bCheckValidity);
-		}
-
 		/// <summary>
 		/// Is this a valid configuration. Used primarily for Installed vs non-Installed.
 		/// </summary>
@@ -408,47 +229,6 @@ namespace UnrealBuildTool
 		static public bool IsValidPlatform(UnrealTargetPlatform InPlatform)
 		{
 			return InstalledPlatformInfo.Current.IsValidPlatform(InPlatform, EProjectType.Code);
-		}
-
-
-		/// <summary>
-		/// Is this a valid platform. Used primarily for Installed vs non-Installed builds.
-		/// </summary>
-		/// <param name="InPlatform"></param>
-		/// <returns>true if valid, false if not</returns>
-		static public bool IsValidDesktopPlatform(UnrealTargetPlatform InPlatform)
-		{
-			switch (BuildHostPlatform.Current.Platform)
-			{
-				case UnrealTargetPlatform.Linux:
-					return InPlatform == UnrealTargetPlatform.Linux;
-				case UnrealTargetPlatform.Mac:
-					return InPlatform == UnrealTargetPlatform.Mac;
-				case UnrealTargetPlatform.Win64:
-					return ((InPlatform == UnrealTargetPlatform.Win32) || (InPlatform == UnrealTargetPlatform.Win64));
-				default:
-					throw new BuildException("Invalid RuntimePlatform:" + BuildHostPlatform.Current.Platform);
-			}
-		}
-
-		/// <summary>
-		/// See if the given string was pass in on the command line
-		/// </summary>
-		/// <param name="InString">The argument to check for (must include '-' if expected)</param>
-		/// <returns>true if the argument is found, false if not</returns>
-		static public bool CommandLineContains(string InString)
-		{
-			string LowercaseInString = InString.ToLowerInvariant();
-			foreach (string Arg in CmdLine)
-			{
-				string LowercaseArg = Arg.ToLowerInvariant();
-				if (LowercaseArg == LowercaseInString)
-				{
-					return true;
-				}
-			}
-
-			return false;
 		}
 
 		public static void RegisterAllUBTClasses(bool bSkipBuildPlatforms = false, bool bValidatingPlatforms = false)
@@ -602,17 +382,11 @@ namespace UnrealBuildTool
 		/// <param name="Arguments">Cmdline arguments</param>
 		private static void DoStartupStuffThatCannotAccessConfigurationClasses(string[] Arguments)
 		{
-			// Helpers used for stats tracking.
-			StartTime = DateTime.UtcNow;
-
 			// Do super early log init as a safeguard. We'll re-init with proper config options later.
 			PreInitLogging();
 
 			// ensure we can resolve any external assemblies that are not in the same folder as our assembly.
 			AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
-
-			// Copy off the arguments to allow checking for command-line arguments elsewhere
-			CmdLine = new List<string>(Arguments);
 
 			// Grab the environment.
 			InitialEnvironment = Environment.GetEnvironmentVariables();
@@ -690,9 +464,9 @@ namespace UnrealBuildTool
 				{
 					UEBuildConfiguration.bCleanProject = true;
 				}
-				else if (LowercaseArg == "-prepfordeploy")
+				else if (LowercaseArg.StartsWith("-deploy="))
 				{
-					UEBuildConfiguration.bPrepForDeployment = true;
+					UEBuildConfiguration.DeployTargetFile = new FileReference(Argument.Substring("-deploy=".Length));
 				}
 				else if (LowercaseArg == "-generateexternalfilelist")
 				{
@@ -826,7 +600,7 @@ namespace UnrealBuildTool
 				else if (LowercaseArg == "-nosimplygon")
 				{
 					UEBuildConfiguration.bCompileSimplygon = false;
-                    UEBuildConfiguration.bCompileSimplygonSSF = false;
+					UEBuildConfiguration.bCompileSimplygonSSF = false;
 				}
 				else if (LowercaseArg == "-nospeedtree")
 				{
@@ -886,14 +660,32 @@ namespace UnrealBuildTool
 				{
 					UEBuildConfiguration.GPUArchitectures = LowercaseArg.Replace("-gpuarchitectures=", "").Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
 				}
-				else if(LowercaseArg == "-enablecodeanalysis")
+				else if(LowercaseArg.StartsWith("-bundleversion="))
+				{
+					BuildConfiguration.BundleVersion = Argument.Substring("-bundleversion=".Length);
+				}
+				else if (LowercaseArg == "-enablecodeanalysis")
 				{
 					BuildConfiguration.bEnableCodeAnalysis = true;
 				}
-				else if(LowercaseArg == "-skipbuild")
+				else if (LowercaseArg == "-skipbuild")
 				{
 					BuildConfiguration.bSkipBuild = true;
 				}
+				else if (LowercaseArg == "-installed" || LowercaseArg == "-installedengine")
+				{
+					bIsEngineInstalled = true;
+				}
+				else if (LowercaseArg == "-notinstalledengine")
+				{
+					bIsEngineInstalled = false;
+				}
+			}
+
+			// If it wasn't set explicitly by a command line option, check for the installed build marker file
+			if (!bIsEngineInstalled.HasValue)
+			{
+				bIsEngineInstalled = FileReference.Combine(RootDirectory, "Engine", "Build", "InstalledBuild.txt").Exists();
 			}
 		}
 
@@ -921,21 +713,23 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Ini">Config file cache</param>
 		/// <param name="Type">The type to read settings for. Settings will be read from the section with a name corresponding to this type.</param>
-		static void ReadGlobalIniSettings(ConfigCacheIni Ini, Type Type)
+		static void ReadGlobalIniSettings(ConfigHierarchy Ini, Type Type)
 		{
-			ConfigCacheIni.IniSection Section = Ini.FindSection(Type.Name);
+			ConfigHierarchySection Section = Ini.FindSection(Type.Name);
 			if(Section != null)
 			{
-				foreach (KeyValuePair<string, ConfigCacheIni.IniValues> Pair in Section)
+				foreach(string KeyName in Section.KeyNames)
 				{
-					FieldInfo Field = Type.GetField(Pair.Key);
-					if(Field == null || !XmlConfigLoader.IsConfigurableField(Field))
+					FieldInfo Field = Type.GetField(KeyName);
+
+					string Value;
+					if (Field == null || !XmlConfigLoader.IsConfigurableField(Field) || !Section.TryGetValue(KeyName, out Value))
 					{
-						Log.TraceWarning("Invalid setting: {0}.{1}", Type.Name, Pair.Key);
+						Log.TraceWarning("Invalid setting: {0}.{1}", Type.Name, KeyName);
 					}
 					else
 					{
-						Field.SetValue(null, XmlConfigLoader.ParseFieldData(Field.FieldType, String.Join("\n", Pair.Value)));
+						Field.SetValue(null, XmlConfigLoader.ParseFieldData(Field.FieldType, String.Join("\n", Value)));
 					}
 				}
 			}
@@ -943,6 +737,8 @@ namespace UnrealBuildTool
 
 		private static int DoPostStartupStuffThatCanAccessConfigs(string[] Arguments)
 		{
+			DateTime StartTime = DateTime.UtcNow;
+
 			// We can now do a full initialization of the logging system with proper configuration values.
 			InitLogging();
 
@@ -980,7 +776,6 @@ namespace UnrealBuildTool
 			Telemetry.Initialize();
 
 			bool bCheckThirdPartyHeaders = false;
-			bool bIgnoreJunk = false;
 
 			// @todo: Ideally we never need to Mutex unless we are invoked with the same target project,
 			// in the same branch/path!  This would allow two clientspecs to build at the same time (even though we need
@@ -1008,7 +803,7 @@ namespace UnrealBuildTool
 				if (Utils.ParseCommandLineFlag(Arguments, "-autosdkonly", out AutoSDKOnlyArgumentIndex))
 				{
 					bAutoSDKOnly = true;
-					bIgnoreJunk = true;
+					BuildConfiguration.bIgnoreJunk = true;
 				}
 			}
 			bool bValidatePlatforms = false;
@@ -1017,7 +812,7 @@ namespace UnrealBuildTool
 				if (Utils.ParseCommandLineFlag(Arguments, "-validateplatform", out ValidatePlatformsArgumentIndex))
 				{
 					bValidatePlatforms = true;
-					bIgnoreJunk = true;
+					BuildConfiguration.bIgnoreJunk = true;
 				}
 			}
 
@@ -1149,14 +944,17 @@ namespace UnrealBuildTool
 							else if (Arguments.Contains("-2013"))
 							{
 								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2013;
+								VCProjectFile.BuildToolOverride = " -2013";
 							}
 							else if(Arguments.Contains("-2015"))
 							{
 								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2015;
+								VCProjectFile.BuildToolOverride = " -2015";
 							}
 							else if(Arguments.Contains("-2017"))
 							{
 								VCProjectFileGenerator.Version = VCProjectFileFormat.VisualStudio2017;
+								VCProjectFile.BuildToolOverride = " -2017";
 							}
 							ProjectFileTypes.Add(ProjectFileType.VisualStudio);
 						}
@@ -1209,7 +1007,7 @@ namespace UnrealBuildTool
 						}
 						else if (LowercaseArg == "-ignorejunk")
 						{
-							bIgnoreJunk = true;
+							BuildConfiguration.bIgnoreJunk = true;
 						}
 						else if (LowercaseArg == "-define")
 						{
@@ -1264,7 +1062,7 @@ namespace UnrealBuildTool
 					}
 
 					// Read any global configuration settings for the project, now that we have a path to the project file.
-					ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Engine", (ProjectFile == null)? null : ProjectFile.Directory, EngineDirectory);
+					ConfigHierarchy Ini = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine, DirectoryReference.FromFile(ProjectFile), UnrealTargetPlatform.Unknown);
 					ReadGlobalIniSettings(Ini, typeof(BuildConfiguration));
 					ReadGlobalIniSettings(Ini, typeof(UEBuildConfiguration));
 
@@ -1301,7 +1099,7 @@ namespace UnrealBuildTool
 					}
 
 					// now that we know the available platforms, we can delete other platforms' junk. if we're only building specific modules from the editor, don't touch anything else (it may be in use).
-					if (!bSpecificModulesOnly && !bIgnoreJunk)
+					if (!bSpecificModulesOnly && !BuildConfiguration.bIgnoreJunk)
 					{
 						JunkDeleter.DeleteJunk();
 					}
@@ -1353,6 +1151,13 @@ namespace UnrealBuildTool
 					{
 						ValidatePlatforms(Arguments);
 					}
+					else if (UEBuildConfiguration.DeployTargetFile != null)
+					{
+						UEBuildDeployTarget DeployTarget = new UEBuildDeployTarget(UEBuildConfiguration.DeployTargetFile);
+						Log.WriteLine(LogEventType.Console, "Deploying {0} {1} {2}...", DeployTarget.TargetName, DeployTarget.Platform, DeployTarget.Configuration);
+						UEBuildPlatform.GetBuildPlatform(DeployTarget.Platform).Deploy(DeployTarget);
+						Result = ECompilationResult.Succeeded;
+					}
 					else
 					{
 						// Check if any third party headers are included from public engine headers.
@@ -1364,51 +1169,7 @@ namespace UnrealBuildTool
 						// Build our project
 						if (Result == ECompilationResult.Succeeded)
 						{
-							if (UEBuildConfiguration.bPrepForDeployment == false)
-							{
-								// If we are only prepping for deployment, assume the build already occurred.
-								Result = RunUBT(Arguments, ProjectFile);
-							}
-							else
-							{
-								UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform, true);
-								if (BuildPlatform != null)
-								{
-									// Setup environment wasn't called, so set the flag
-									BuildConfiguration.bDeployAfterCompile = BuildPlatform.RequiresDeployPrepAfterCompile();
-									BuildConfiguration.PlatformIntermediateFolder = Path.Combine(BuildConfiguration.BaseIntermediateFolder, CheckPlatform.ToString(), BuildPlatform.CreateContext(ProjectFile).GetActiveArchitectureFolderName());
-								}
-							}
-
-							// If we build w/ bXGEExport true, we didn't REALLY build at this point, 
-							// so don't bother with doing the PrepTargetForDeployment call. 
-							if ((Result == ECompilationResult.Succeeded) && (BuildConfiguration.bDeployAfterCompile == true) && (BuildConfiguration.bXGEExport == false) && String.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile) && 
-								(UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false) && (UEBuildConfiguration.bListBuildFolders == false) && (BuildConfiguration.bDisableLinking == false))
-							{
-								List<TargetDescriptor> TargetDescs = UEBuildTarget.ParseTargetCommandLine(Arguments, ref ProjectFile);
-								if (TargetDescs[0].OnlyModules.Count == 0)
-								{
-									UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(CheckPlatform);
-									UEBuildPlatformContext PlatformContext = BuildPlatform.CreateContext(TargetDescs[0].ProjectFile);
-
-									UEBuildDeploy DeploymentHandler = PlatformContext.CreateDeploymentHandler();
-									if (DeploymentHandler != null)
-									{
-										// We need to be able to identify the Target.Type we can derive it from the Arguments.
-										BuildConfiguration.bFlushBuildDirOnRemoteMac = false;
-										UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget(TargetDescs[0]); // @todo ubtmake: This may not work in assembler only mode.  We don't want to be loading target rules assemblies here either.
-										UEToolChain ToolChain = PlatformContext.CreateToolChainForDefaultCppPlatform();
-										CheckTarget.SetupGlobalEnvironment(ToolChain);
-										if ((CheckTarget.TargetType == TargetRules.TargetType.Game) ||
-											(CheckTarget.TargetType == TargetRules.TargetType.Server) ||
-											(CheckTarget.TargetType == TargetRules.TargetType.Client))
-										{
-											CheckTarget.AppName = CheckTarget.TargetName;
-										}
-										DeploymentHandler.PrepTargetForDeployment(CheckTarget);
-									}
-								}
-							}
+							Result = RunUBT(Arguments, ProjectFile);
 						}
 					}
 					// Print some performance info
@@ -1606,7 +1367,7 @@ namespace UnrealBuildTool
 			UnrealTargetConfiguration ResetConfiguration;
 			UEBuildTarget.ParsePlatformAndConfiguration(Arguments, out ResetPlatform, out ResetConfiguration);
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
-			UEBuildPlatformContext BuildPlatformContext = BuildPlatform.CreateContext(ProjectFile);
+			UEBuildPlatformContext BuildPlatformContext = BuildPlatform.CreateContext(ProjectFile, null);
 			BuildPlatformContext.ResetBuildConfiguration(ResetConfiguration);
 
 			// now that we have the platform, we can set the intermediate path to include the platform/architecture name
@@ -1620,6 +1381,9 @@ namespace UnrealBuildTool
 			Thread CPPIncludesThread = null;
 
 			List<UEBuildTarget> Targets = null;
+
+			double TotalExecutorTime = 0.0;
+
 			try
 			{
 				List<string[]> TargetSettings = ParseCommandLineFlags(Arguments);
@@ -1674,8 +1438,8 @@ namespace UnrealBuildTool
 					return ECompilationResult.Succeeded;
 				}
 
-				bool bNoHotReload = UnrealBuildTool.CommandLineContains("-NoHotReload");
-				UEBuildConfiguration.bHotReloadFromIDE = !bNoHotReload && UEBuildConfiguration.bAllowHotReloadFromIDE && TargetDescs.Count == 1 && !TargetDescs[0].bIsEditorRecompile && ShouldDoHotReloadFromIDE(TargetDescs[0]);
+				bool bNoHotReload = Arguments.Any(x => x.Equals("-NoHotReload", StringComparison.InvariantCultureIgnoreCase));
+				UEBuildConfiguration.bHotReloadFromIDE = !bNoHotReload && UEBuildConfiguration.bAllowHotReloadFromIDE && TargetDescs.Count == 1 && !TargetDescs[0].bIsEditorRecompile && ShouldDoHotReloadFromIDE(Arguments, TargetDescs[0]);
 				bool bIsHotReload = !bNoHotReload && (UEBuildConfiguration.bHotReloadFromIDE || (TargetDescs.Count == 1 && TargetDescs[0].OnlyModules.Count > 0 && TargetDescs[0].ForeignPlugins.Count == 0));
 				TargetDescriptor HotReloadTargetDesc = bIsHotReload ? TargetDescs[0] : null;
 
@@ -1799,11 +1563,9 @@ namespace UnrealBuildTool
 							foreach (TargetDescriptor Desc in TargetDescs)
 							{
 								DirectoryReference ProjectDirectory = DirectoryReference.FromFile(ProjectFile);
-								String[] IniBaseNames = new String[] { "Engine", "Encryption" };
-
-								foreach (String BaseName in IniBaseNames)
+								foreach(ConfigHierarchyType IniType in (ConfigHierarchyType[])Enum.GetValues(typeof(ConfigHierarchyType)))
 								{
-									foreach (FileReference IniFilename in ConfigCacheIni.EnumerateCrossPlatformIniFileNames(ProjectDirectory, UnrealBuildTool.EngineDirectory, Desc.Platform, BaseName, false))
+									foreach (FileReference IniFilename in ConfigHierarchy.EnumerateConfigFileLocations(IniType, ProjectDirectory, Desc.Platform))
 									{
 										FileInfo IniFileInfo = new FileInfo(IniFilename.FullName);
 										if (UBTMakefileInfo.LastWriteTime.CompareTo(IniFileInfo.LastWriteTime) < 0)
@@ -2134,6 +1896,28 @@ namespace UnrealBuildTool
 								}
 							}
 						}
+
+						// Run the deployment steps
+						if (BuildResult.Succeeded() 
+							&& String.IsNullOrEmpty(BuildConfiguration.SingleFileToCompile) 
+							&& !ProjectFileGenerator.bGenerateProjectFiles 
+							&& !UEBuildConfiguration.bGenerateManifest 
+							&& !UEBuildConfiguration.bGenerateExternalFileList
+							&& !UEBuildConfiguration.bCleanProject 
+							&& !UEBuildConfiguration.bListBuildFolders 
+							&& !BuildConfiguration.bXGEExport 
+							&& !BuildConfiguration.bDisableLinking)
+						{
+							foreach (UEBuildTarget Target in Targets)
+							{
+								if(Target.DeployTargetFile != null && Target.OnlyModules.Count == 0)
+								{
+									Log.WriteLine(LogEventType.Console, "Deploying {0} {1} {2}...", Target.TargetName, Target.Platform, Target.Configuration);
+									UEBuildDeployTarget DeployTarget = new UEBuildDeployTarget(Target.DeployTargetFile);
+									BuildPlatform.Deploy(DeployTarget);
+								}
+							}
+						}
 					}
 				}
 			}
@@ -2180,33 +1964,9 @@ namespace UnrealBuildTool
 			// Figure out how long we took to execute.
 			if(ExecutorName != "Unknown")
 			{
-				double BuildDuration = (DateTime.UtcNow - StartTime).TotalSeconds;
+				double BuildDuration = (DateTime.UtcNow - RunUBTInitStartTime).TotalSeconds;
 				Log.TraceInformation("Total build time: {0:0.00} seconds ({1} executor: {2:0.00} seconds)", BuildDuration, ExecutorName, TotalExecutorTime);
-
-				if (ExecutorName != "XGE")
-				{
-					Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats || BuildConfiguration.bPrintDebugInfo,
-						LogEventType.Console,
-						"Cumulative action seconds ({0} processors): {1:0.00} building projects, {2:0.00} compiling, {3:0.00} creating app bundles, {4:0.00} generating debug info, {5:0.00} linking, {6:0.00} other",
-						System.Environment.ProcessorCount,
-						TotalBuildProjectTime,
-						TotalCompileTime,
-						TotalCreateAppBundleTime,
-						TotalGenerateDebugInfoTime,
-						TotalLinkTime,
-						TotalOtherActionsTime
-					);
-				}
 			}
-
-			// reset statistics
-			TotalBuildProjectTime = 0;
-			TotalCompileTime = 0;
-			TotalCreateAppBundleTime = 0;
-			TotalGenerateDebugInfoTime = 0;
-			TotalLinkTime = 0;
-			TotalOtherActionsTime = 0;
-			TotalExecutorTime = 0;
 
 			return BuildResult;
 		}
@@ -2236,9 +1996,9 @@ namespace UnrealBuildTool
 		/// <param name="ResetConfiguration"></param>
 		/// <param name="TargetDesc"></param>
 		/// <returns></returns>
-		private static bool ShouldDoHotReloadFromIDE(TargetDescriptor TargetDesc)
+		private static bool ShouldDoHotReloadFromIDE(string[] Arguments, TargetDescriptor TargetDesc)
 		{
-			if (UnrealBuildTool.CommandLineContains("-NoHotReloadFromIDE"))
+			if (Arguments.Any(x => x.Equals("-NoHotReloadFromIDE", StringComparison.InvariantCultureIgnoreCase)))
 			{
 				// Hot reload disabled through command line, possibly running from UAT
 				return false;

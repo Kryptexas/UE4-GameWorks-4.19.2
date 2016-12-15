@@ -65,7 +65,7 @@ UObject* UEditorTutorialImportFactory::FactoryCreateBinary(UClass* InClass, UObj
 bool UEditorTutorialImportFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 {
 	UBlueprint* Blueprint = Cast<UBlueprint>(Obj);
-	if(Blueprint != nullptr)
+	if(Blueprint != nullptr && Blueprint->GeneratedClass)
 	{
 		UEditorTutorial* EditorTutorial = Cast<UEditorTutorial>(Blueprint->GeneratedClass->GetDefaultObject());
 		if(EditorTutorial != nullptr)

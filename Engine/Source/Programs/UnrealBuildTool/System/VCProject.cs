@@ -110,6 +110,45 @@ namespace UnrealBuildTool
 		/// <param name="ProjectConfigurationName">Name of configuration string to use for Visual Studio project</param>
 		public abstract void MakeProjectPlatformAndConfigurationNames(UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string TargetConfigurationName, out string ProjectPlatformName, out string ProjectConfigurationName);
 
+		static UnrealTargetConfiguration[] GetSupportedConfigurations(TargetRules Rules)
+		{
+			// Check if the rules object implements the legacy GetSupportedPlatforms() function. If it does, we'll call it for backwards compatibility.
+			if (Rules.GetType().GetMethod("GetSupportedConfigurations").DeclaringType != typeof(TargetRules))
+			{
+				List<UnrealTargetConfiguration> ConfigurationList = new List<UnrealTargetConfiguration>();
+#pragma warning disable 0612
+				if (Rules.GetSupportedConfigurations(ref ConfigurationList, true))
+				{
+					return ConfigurationList.Distinct().ToArray();
+				}
+#pragma warning restore 0612
+			}
+
+			// Otherwise take the SupportedConfigurationsAttribute from the first type in the inheritance chain that supports it
+			for (Type CurrentType = Rules.GetType(); CurrentType != null; CurrentType = CurrentType.BaseType)
+			{
+				object[] Attributes = Rules.GetType().GetCustomAttributes(typeof(SupportedConfigurationsAttribute), false);
+				if (Attributes.Length > 0)
+				{
+					return Attributes.OfType<SupportedConfigurationsAttribute>().SelectMany(x => x.Configurations).Distinct().ToArray();
+				}
+			}
+
+			// Otherwise, get the default for the target type
+			if (Rules.Type == TargetRules.TargetType.Program)
+			{
+				return new[] { UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development };
+			}
+			else if(Rules.Type == TargetRules.TargetType.Editor)
+			{
+				return new[] { UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.DebugGame, UnrealTargetConfiguration.Development };
+			}
+			else
+			{
+				return ((UnrealTargetConfiguration[])Enum.GetValues(typeof(UnrealTargetConfiguration))).Where(x => x != UnrealTargetConfiguration.Unknown).ToArray();
+			}
+		}
+
 		/// <summary>
 		/// Checks to see if the specified solution platform and configuration is able to map to this project
 		/// </summary>
@@ -119,6 +158,14 @@ namespace UnrealBuildTool
 		/// <returns>True if this is a valid combination for this project, otherwise false</returns>
 		public static bool IsValidProjectPlatformAndConfiguration(ProjectTarget ProjectTarget, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration)
 		{
+			if (!ProjectFileGenerator.bIncludeTestAndShippingConfigs)
+			{
+				if(Configuration == UnrealTargetConfiguration.Test || Configuration == UnrealTargetConfiguration.Shipping)
+				{
+					return false;
+				}
+			}
+
 			UEPlatformProjectGenerator PlatformProjectGenerator = UEPlatformProjectGenerator.GetPlatformProjectGenerator(Platform, true);
 			if (PlatformProjectGenerator == null)
 			{
@@ -143,17 +190,17 @@ namespace UnrealBuildTool
 			{
 				if (ProjectTarget.TargetRules != null)
 				{
-					ProjectTarget.TargetRules.GetSupportedPlatforms(ref SupportedPlatforms);
+					SupportedPlatforms.AddRange(ProjectTarget.SupportedPlatforms);
 				}
 			}
 			else
 			{
-				UnrealBuildTool.GetAllPlatforms(ref SupportedPlatforms);
+				SupportedPlatforms.AddRange(Utils.GetPlatformsInClass(UnrealPlatformClass.All));
 			}
 
 			if (ProjectTarget.TargetRules != null)
 			{
-				ProjectTarget.TargetRules.GetSupportedConfigurations(ref SupportedConfigurations, ProjectFileGenerator.bIncludeTestAndShippingConfigs);
+				SupportedConfigurations.AddRange(GetSupportedConfigurations(ProjectTarget.TargetRules));
 			}
 
 			// Add all of the extra platforms/configurations for this target
@@ -167,12 +214,9 @@ namespace UnrealBuildTool
 				}
 				foreach (UnrealTargetConfiguration ExtraConfig in ProjectTarget.ExtraSupportedConfigurations)
 				{
-					if (ProjectFileGenerator.bIncludeTestAndShippingConfigs || (ExtraConfig != UnrealTargetConfiguration.Shipping && ExtraConfig != UnrealTargetConfiguration.Test))
+					if (!SupportedConfigurations.Contains(ExtraConfig))
 					{
-						if (!SupportedConfigurations.Contains(ExtraConfig))
-						{
-							SupportedConfigurations.Add(ExtraConfig);
-						}
+						SupportedConfigurations.Add(ExtraConfig);
 					}
 				}
 			}
@@ -216,6 +260,7 @@ namespace UnrealBuildTool
 	{
 		FileReference OnlyGameProject;
 		VCProjectFileFormat ProjectFileFormat;
+		public static string BuildToolOverride;
 
 		// This is the GUID that Visual Studio uses to identify a C++ project file in the solution
 		public override string ProjectTypeGUID
@@ -408,7 +453,7 @@ namespace UnrealBuildTool
 								if (IsValidProjectPlatformAndConfiguration(ProjectTarget, Platform, Configuration))
 								{
 									string ProjectPlatformName, ProjectConfigurationName;
-									MakeProjectPlatformAndConfigurationNames(Platform, Configuration, ProjectTarget.TargetRules.ConfigurationName, out ProjectPlatformName, out ProjectConfigurationName);
+									MakeProjectPlatformAndConfigurationNames(Platform, Configuration, ProjectTarget.TargetRules.Type.ToString(), out ProjectPlatformName, out ProjectConfigurationName);
 
 									ProjectConfigAndTargetCombination Combination = new ProjectConfigAndTargetCombination(Platform, Configuration, ProjectPlatformName, ProjectConfigurationName, ProjectTarget);
 									ProjectConfigAndTargetCombinations.Add(Combination);
@@ -1001,11 +1046,8 @@ namespace UnrealBuildTool
 						"		<NMakeOutput/>" + ProjectFileGenerator.NewLine +
 						"	</PropertyGroup>" + ProjectFileGenerator.NewLine);
 				}
-				else if (UnrealBuildTool.IsEngineInstalled() && Combination.ProjectTarget != null && Combination.ProjectTarget.TargetRules != null && !Combination.ProjectTarget.TargetRules.SupportsPlatform(Combination.Platform))
+				else if (UnrealBuildTool.IsEngineInstalled() && Combination.ProjectTarget != null && Combination.ProjectTarget.TargetRules != null && !Combination.ProjectTarget.SupportedPlatforms.Contains(Combination.Platform))
 				{
-					List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
-					Combination.ProjectTarget.TargetRules.GetSupportedPlatforms(ref SupportedPlatforms);
-
 					string ProjectRelativeUnusedDirectory = NormalizeProjectPath(Path.Combine(ProjectFileGenerator.EngineRelativePath, BuildConfiguration.BaseIntermediateFolder, "Unused"));
 
 					VCProjectFileContent.AppendFormat(
@@ -1016,7 +1058,7 @@ namespace UnrealBuildTool
 						"		<NMakeReBuildCommandLine>@echo {0} is not a supported platform for {1}. Valid platforms are {2}.</NMakeReBuildCommandLine>" + ProjectFileGenerator.NewLine +
 						"		<NMakeCleanCommandLine>@echo {0} is not a supported platform for {1}. Valid platforms are {2}.</NMakeCleanCommandLine>" + ProjectFileGenerator.NewLine +
 						"		<NMakeOutput/>" + ProjectFileGenerator.NewLine +
-						"	</PropertyGroup>" + ProjectFileGenerator.NewLine, Combination.Platform, Combination.ProjectTarget.TargetFilePath.GetFileNameWithoutAnyExtensions(), String.Join(", ", SupportedPlatforms.Select(x => x.ToString())));
+						"	</PropertyGroup>" + ProjectFileGenerator.NewLine, Combination.Platform, Combination.ProjectTarget.TargetFilePath.GetFileNameWithoutAnyExtensions(), String.Join(", ", Combination.ProjectTarget.SupportedPlatforms.Select(x => x.ToString())));
 				}
 				else
 				{
@@ -1028,11 +1070,11 @@ namespace UnrealBuildTool
 
 					// Setup output path
 					UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-					UEBuildPlatformContext BuildPlatformContext = BuildPlatform.CreateContext(Combination.ProjectTarget.ProjectFilePath);
+					UEBuildPlatformContext BuildPlatformContext = BuildPlatform.CreateContext(Combination.ProjectTarget.ProjectFilePath, TargetRulesObject);
 
 					// Figure out if this is a monolithic build
 					bool bShouldCompileMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(Platform);
-					bShouldCompileMonolithic |= TargetRulesObject.ShouldCompileMonolithic(Platform, Configuration);
+					bShouldCompileMonolithic |= (Combination.ProjectTarget.CreateRulesDelegate(Platform, Configuration).GetLegacyLinkType(Platform, Configuration) == TargetRules.TargetLinkType.Monolithic);
 
 					// Get the output directory
 					DirectoryReference RootDirectory = UnrealBuildTool.EngineDirectory;
@@ -1069,7 +1111,7 @@ namespace UnrealBuildTool
 					if (!bShouldCompileMonolithic && TargetRulesObject.Type != TargetRules.TargetType.Program)
 					{
 						// Figure out what the compiled binary will be called so that we can point the IDE to the correct file
-						string TargetConfigurationName = TargetRulesObject.ConfigurationName;
+						string TargetConfigurationName = TargetRulesObject.Type.ToString();
 						if (TargetConfigurationName != TargetRules.TargetType.Game.ToString() && TargetConfigurationName != TargetRules.TargetType.Program.ToString())
 						{
 							BaseExeName = "UE4" + TargetConfigurationName;
@@ -1103,8 +1145,7 @@ namespace UnrealBuildTool
 						VCProjectFileContent.Append(PathStrings);
 					}
 
-					if (TargetRules.IsGameType(TargetRulesObject.Type) &&
-						(TargetRules.IsEditorType(TargetRulesObject.Type) == false))
+					if (TargetRulesObject.Type == TargetRules.TargetType.Game || TargetRulesObject.Type == TargetRules.TargetType.Client || TargetRulesObject.Type == TargetRules.TargetType.Server)
 					{
 						// Allow platforms to add any special properties they require... like aumid override for Xbox One
 						UEPlatformProjectGenerator.GenerateGamePlatformSpecificProperties(Platform, Configuration, TargetRulesObject.Type, VCProjectFileContent, RootDirectory, TargetFilePath);
@@ -1135,20 +1176,10 @@ namespace UnrealBuildTool
 
 					DirectoryReference BatchFilesDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Build", "BatchFiles");
 
-					string BuildToolOverride = "";
-					if (UnrealBuildTool.CommandLineContains("-2013"))
+					if(BuildToolOverride != null)
 					{
-						BuildToolOverride = " -2013";
+						BuildArguments += BuildToolOverride;
 					}
-					if (UnrealBuildTool.CommandLineContains("-2015"))
-					{
-						BuildToolOverride = " -2015";
- 					}
-					if (UnrealBuildTool.CommandLineContains("-2017"))
-					{
-						BuildToolOverride = " -2017";
-					}
-					BuildArguments += BuildToolOverride;
 
 					// NMake Build command line
 					VCProjectFileContent.Append("		<NMakeBuildCommandLine>");

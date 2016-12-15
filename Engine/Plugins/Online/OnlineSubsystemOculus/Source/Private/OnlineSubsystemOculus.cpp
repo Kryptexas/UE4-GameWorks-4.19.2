@@ -15,7 +15,7 @@
 #include "AndroidApplication.h"
 #endif
 
-#if !OVRPL_DISABLED && WITH_EDITOR
+#if !defined(OVRPL_DISABLED) && WITH_EDITOR
 OVRPL_PUBLIC_FUNCTION(void) ovr_ResetInitAndContext();
 #endif
 
@@ -290,7 +290,7 @@ bool FOnlineSubsystemOculus::Shutdown()
 		MessageTaskManager.Release();
 	}
 
-#if !OVRPL_DISABLED && WITH_EDITOR
+#if !defined(OVRPL_DISABLED) && WITH_EDITOR
 	// If we are playing in the editor,
 	// Destroy the context and reset the init status
 	ovr_ResetInitAndContext();

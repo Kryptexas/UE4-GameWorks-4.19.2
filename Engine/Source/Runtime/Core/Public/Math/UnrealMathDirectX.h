@@ -949,10 +949,10 @@ FORCEINLINE VectorRegister VectorMod(const VectorRegister& X, const VectorRegist
 FORCEINLINE VectorRegister VectorSign(const VectorRegister& X)
 {
 	return MakeVectorRegister(
-		(float)(VectorGetComponent(X, 0) >= 0.0f ? 1.0f : 0.0f),
-		(float)(VectorGetComponent(X, 1) >= 0.0f ? 1.0f : 0.0f),
-		(float)(VectorGetComponent(X, 2) >= 0.0f ? 1.0f : 0.0f),
-		(float)(VectorGetComponent(X, 3) >= 0.0f ? 1.0f : 0.0f));
+		(float)(VectorGetComponent(X, 0) >= 0.0f ? 1.0f : -1.0f),
+		(float)(VectorGetComponent(X, 1) >= 0.0f ? 1.0f : -1.0f),
+		(float)(VectorGetComponent(X, 2) >= 0.0f ? 1.0f : -1.0f),
+		(float)(VectorGetComponent(X, 3) >= 0.0f ? 1.0f : -1.0f));
 }
 
 //TODO: Vectorize

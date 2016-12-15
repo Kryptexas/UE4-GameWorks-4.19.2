@@ -32,7 +32,9 @@ class ITargetPlatform;
 	The define will move the openssl define out of the way.
 */
 #define UI UI_ST
+THIRD_PARTY_INCLUDES_START
 #include "libwebsockets.h"
+THIRD_PARTY_INCLUDES_END
 #undef UI
 
 #if PLATFORM_WINDOWS

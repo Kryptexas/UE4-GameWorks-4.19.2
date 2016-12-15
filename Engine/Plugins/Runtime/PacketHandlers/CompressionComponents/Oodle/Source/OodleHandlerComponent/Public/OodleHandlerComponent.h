@@ -12,25 +12,15 @@
 DECLARE_LOG_CATEGORY_EXTERN(OodleHandlerComponentLog, Log, All);
 
 
-/**
- * Whether or not to enable Oodle dev code (packet capturing, dictionary training, and automatic dictionary finding) in shipping mode.
- *
- * This may be useful for multiplayer game mod authors, to optimize netcode compression for their mod (not officially supported).
- * However, Oodle compression makes the games network protocol harder to reverse-engineer - enabling this removes that slight benefit.
- */
-#ifndef OODLE_DEV_SHIPPING
-#define OODLE_DEV_SHIPPING	FALSE
-#endif
-
 // The maximum packet size that this component can handle - UNetConnection's should never allow MaxPacket to exceed MAX_PACKET_SIZE
 #define MAX_OODLE_PACKET_BYTES	MAX_PACKET_SIZE
 
 // The maximum compress/decompress buffer size - overkill, as buffers are statically allocated, and can't use Oodle runtime buffer calc
 #define MAX_OODLE_BUFFER	(MAX_OODLE_PACKET_BYTES * 2)
 
+#include "OodleArchives.h"
 
 #if HAS_OODLE_SDK
-#include "OodleArchives.h"
 
 #if UE4_OODLE_VER >= 200
 #include <oodle2.h>

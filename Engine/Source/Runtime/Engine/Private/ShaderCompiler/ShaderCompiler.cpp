@@ -806,7 +806,7 @@ FShaderCompileThreadRunnable::~FShaderCompileThreadRunnable()
 /** Entry point for the shader compiling thread. */
 uint32 FShaderCompileThreadRunnableBase::Run()
 {
-#if _MSC_VER
+#ifdef _MSC_VER
 	if(!FPlatformMisc::IsDebuggerPresent())
 	{
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED

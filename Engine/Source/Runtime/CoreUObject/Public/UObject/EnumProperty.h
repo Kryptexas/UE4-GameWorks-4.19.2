@@ -64,8 +64,10 @@ public:
 	}
 
 private:
-	friend struct UE4EnumProperty_Private::FEnumPropertyFriend;
+	virtual uint32 GetValueTypeHashInternal(const void* Src) const override;
 
+	friend struct UE4EnumProperty_Private::FEnumPropertyFriend;
+	
 #if HACK_HEADER_GENERATOR
 public:
 #endif

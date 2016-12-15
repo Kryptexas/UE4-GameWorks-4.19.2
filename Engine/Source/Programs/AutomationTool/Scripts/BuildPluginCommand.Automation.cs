@@ -154,13 +154,16 @@ class BuildPlugin : BuildCommand
 	{
 		// Find a list of modules that need to be built for this plugin
 		List<string> ModuleNames = new List<string>();
-		foreach(ModuleDescriptor Module in Plugin.Modules)
+		if (Plugin.Modules != null)
 		{
-			bool bBuildDeveloperTools = (TargetType == TargetRules.TargetType.Editor || TargetType == TargetRules.TargetType.Program);
-			bool bBuildEditor = (TargetType == TargetRules.TargetType.Editor);
-			if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
+			foreach (ModuleDescriptor Module in Plugin.Modules)
 			{
-				ModuleNames.Add(Module.Name);
+				bool bBuildDeveloperTools = (TargetType == TargetRules.TargetType.Editor || TargetType == TargetRules.TargetType.Program);
+				bool bBuildEditor = (TargetType == TargetRules.TargetType.Editor);
+				if (Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
+				{
+					ModuleNames.Add(Module.Name);
+				}
 			}
 		}
 
@@ -173,7 +176,7 @@ class BuildPlugin : BuildCommand
 				Arguments += String.Format(" -module {0}", ModuleName);
 			}
 
-			string Architecture = UEBuildPlatform.GetBuildPlatform(Platform).CreateContext(HostProjectFile).GetActiveArchitecture();
+			string Architecture = UEBuildPlatform.GetBuildPlatform(Platform).CreateContext(HostProjectFile, null).GetActiveArchitecture();
 
 			string ReceiptFileName = TargetReceipt.GetDefaultPath(HostProjectPluginFile.Directory.FullName, TargetName, Platform, Configuration, Architecture);
 			Arguments += String.Format(" -receipt {0}", CommandUtils.MakePathSafeToUseWithCommandLine(ReceiptFileName));

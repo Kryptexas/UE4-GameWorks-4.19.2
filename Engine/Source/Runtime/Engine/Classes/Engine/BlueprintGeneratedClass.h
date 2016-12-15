@@ -210,7 +210,7 @@ protected:
 	TArray<struct FNodeToCodeAssociation> DebugNodeLineNumbers;
 
 	// List of entry points that contributed to the ubergraph
-	TMap<FName, FEdGraphPinReference> DelegatePins;
+	TMap<int32, FName> EntryPoints;
 
 	// Acceleration structure for execution wire highlighting at runtime
 	TMap<TWeakObjectPtr<UFunction>, FDebuggingInfoForSingleFunction> PerFunctionLineNumbers;
@@ -445,11 +445,13 @@ public:
 		PerFuncInfo.SourcePinToLineNumbersMap.Add(SourcePin, CodeOffset);
 	}
 
-	const TMap<FName, FEdGraphPinReference>& GetCompilerGeneratedEvents() const { return DelegatePins; }
+	const TMap<int32, FName>& GetEntryPoints() const { return EntryPoints; }
 
-	void RegisterPinToEventName(UEdGraphPin const* SourcePin, const FName FunctionName)
+	bool IsValidEntryPoint(const int32 LinkId) const { return EntryPoints.Contains(LinkId); }
+
+	void RegisterEntryPoint(const int32 ScriptOffset, const FName FunctionName)
 	{
-		DelegatePins.Add(FunctionName) = SourcePin;
+		EntryPoints.Add(ScriptOffset, FunctionName);
 	}
 
 	// Registers an association between an object (pin or node typically) and an associated class member property

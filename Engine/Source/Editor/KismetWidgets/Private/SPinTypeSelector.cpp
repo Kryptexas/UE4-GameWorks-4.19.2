@@ -286,7 +286,6 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 			.ButtonStyle(FEditorStyle::Get(),  "BlueprintEditor.CompactPinTypeSelector")
 			.ButtonContent()
 			[
-				FBlueprintEditorUtils::ShouldEnableAdvancedContainers() ?
 				SNew(
 					SDoubleImage,
 					TAttribute<const FSlateBrush*>(this, &SPinTypeSelector::GetSecondaryTypeIconImage),
@@ -294,101 +293,77 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 				)
 				.Image(this, &SPinTypeSelector::GetTypeIconImage)
 				.ColorAndOpacity(this, &SPinTypeSelector::GetTypeIconColor)
-				:
-				SNew(SImage)
-				.Image( this, &SPinTypeSelector::GetTypeIconImage )
-				.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
 			];
 	}
 	else
 	{
 		// Traditional Pin Type Selector with a combo button, the icon, the current type name, and a toggle button for being an array
-		TSharedPtr<SWidget> ContainerControl;
-		if (FBlueprintEditorUtils::ShouldEnableAdvancedContainers())
-		{
-			ContainerControl = SNew(SComboButton)
-			.ButtonStyle(FCoreStyle::Get(), "NoBorder")
-			.HasDownArrow(false)
-			.OnGetMenuContent(
-				FOnGetContent::CreateLambda(
-					[this]()
-					{
-						typedef SListView< TSharedPtr<EPinContainerType> > SPinContainerListView;
-						return SNew(SPinContainerListView)
-							.ListItemsSource(&PinTypes)
-							.OnGenerateRow(
-								SPinContainerListView::FOnGenerateRow::CreateLambda(
-									[this](TSharedPtr<EPinContainerType> InPinContainerType, const TSharedRef<STableViewBase>& OwnerTable)->TSharedRef<ITableRow>
-									{
-										EPinContainerType PinContainerType = *InPinContainerType;
-										check(sizeof(Images) / sizeof(*Images) > (int32)PinContainerType);
-										check(sizeof(Tooltips) / sizeof(*Tooltips) > (int32)PinContainerType);
-										const FSlateBrush* SecondaryIcon = PinContainerType == EPinContainerType::Map ? FEditorStyle::GetBrush(TEXT("Kismet.VariableList.MapValueTypeIcon")) : nullptr;
+		TSharedPtr<SWidget> ContainerControl = SNew(SComboButton)
+		.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+		.HasDownArrow(false)
+		.OnGetMenuContent(
+			FOnGetContent::CreateLambda(
+				[this]()
+				{
+					typedef SListView< TSharedPtr<EPinContainerType> > SPinContainerListView;
+					return SNew(SPinContainerListView)
+						.ListItemsSource(&PinTypes)
+						.OnGenerateRow(
+							SPinContainerListView::FOnGenerateRow::CreateLambda(
+								[this](TSharedPtr<EPinContainerType> InPinContainerType, const TSharedRef<STableViewBase>& OwnerTable)->TSharedRef<ITableRow>
+								{
+									EPinContainerType PinContainerType = *InPinContainerType;
+									check(sizeof(Images) / sizeof(*Images) > (int32)PinContainerType);
+									check(sizeof(Tooltips) / sizeof(*Tooltips) > (int32)PinContainerType);
+									const FSlateBrush* SecondaryIcon = PinContainerType == EPinContainerType::Map ? FEditorStyle::GetBrush(TEXT("Kismet.VariableList.MapValueTypeIcon")) : nullptr;
 
-										return SNew(STableRow<TSharedPtr<EPinContainerType>>, OwnerTable)
-											.Content()
-											[
-												SNew(
-													SDoubleImage,
-														SecondaryIcon,
-														TAttribute<FSlateColor>(this, &SPinTypeSelector::GetSecondaryTypeIconColor)
-														)
-												.Image(Images[(int32)PinContainerType])
-												.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltips[(int32)PinContainerType], nullptr, *BigTooltipDocLink, TEXT("Containers")))
-												.ColorAndOpacity(this, &SPinTypeSelector::GetTypeIconColor)
-											]
-											.IsEnabled(
-												TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda( 
-													[PinContainerType, this]() 
-													{ 
-														return !ContainerRequiresGetTypeHash(PinContainerType) || FBlueprintEditorUtils::HasGetTypeHash( this->TargetPinType.Get() );
-													} ) )
-												);
-									}
-								)
+									return SNew(STableRow<TSharedPtr<EPinContainerType>>, OwnerTable)
+										.Content()
+										[
+											SNew(
+												SDoubleImage,
+													SecondaryIcon,
+													TAttribute<FSlateColor>(this, &SPinTypeSelector::GetSecondaryTypeIconColor)
+													)
+											.Image(Images[(int32)PinContainerType])
+											.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltips[(int32)PinContainerType], nullptr, *BigTooltipDocLink, TEXT("Containers")))
+											.ColorAndOpacity(this, &SPinTypeSelector::GetTypeIconColor)
+										]
+										.IsEnabled(
+											TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateLambda( 
+												[PinContainerType, this]() 
+												{ 
+													return !ContainerRequiresGetTypeHash(PinContainerType) || FBlueprintEditorUtils::HasGetTypeHash( this->TargetPinType.Get() );
+												} ) )
+											);
+								}
 							)
-							.OnSelectionChanged(
-								SPinContainerListView::FOnSelectionChanged::CreateLambda(
-									[this](TSharedPtr<EPinContainerType> InType, ESelectInfo::Type)
-									{
-										this->OnContainerTypeSelectionChanged(*InType);
-									}
-								)
-							);
-					}
-				)
+						)
+						.OnSelectionChanged(
+							SPinContainerListView::FOnSelectionChanged::CreateLambda(
+								[this](TSharedPtr<EPinContainerType> InType, ESelectInfo::Type)
+								{
+									this->OnContainerTypeSelectionChanged(*InType);
+								}
+							)
+						);
+				}
 			)
-			.ContentPadding(0)
-			.ToolTip(IDocumentation::Get()->CreateToolTip( TAttribute<FText>(this, &SPinTypeSelector::GetToolTipForContainerWidget), NULL, *BigTooltipDocLink, TEXT("Containers")))
-			.IsEnabled( TargetPinType.Get().PinCategory != Schema->PC_Exec )
-			.Visibility(InArgs._bAllowArrays ? EVisibility::Visible : EVisibility::Collapsed)
-			.ButtonContent()
-			[
-				SNew(
-					SDoubleImage,
-					TAttribute<const FSlateBrush*>(this, &SPinTypeSelector::GetSecondaryTypeIconImage),
-					TAttribute<FSlateColor>(this, &SPinTypeSelector::GetSecondaryTypeIconColor)
-				)
-				.Image(this, &SPinTypeSelector::GetTypeIconImage)
-				.ColorAndOpacity(this, &SPinTypeSelector::GetTypeIconColor)
-			];
-		}
-		else
-		{
-			ContainerControl = SNew( SCheckBox )
-				.ToolTip(IDocumentation::Get()->CreateToolTip( TAttribute<FText>(this, &SPinTypeSelector::GetToolTipForArrayWidget), NULL, *BigTooltipDocLink, TEXT("Array")))
-				.Padding( 1 )
-				.OnCheckStateChanged( this, &SPinTypeSelector::OnArrayCheckStateChanged )
-				.IsChecked( this, &SPinTypeSelector::IsArrayChecked )
-				.IsEnabled( TargetPinType.Get().PinCategory != Schema->PC_Exec )
-				.Style( FEditorStyle::Get(), "ToggleButtonCheckbox" )
-				.Visibility(InArgs._bAllowArrays ? EVisibility::Visible : EVisibility::Collapsed)
-				[
-					SNew(SImage)
-					.Image( FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon")) )
-					.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
-				];
-		}
+		)
+		.ContentPadding(0)
+		.ToolTip(IDocumentation::Get()->CreateToolTip( TAttribute<FText>(this, &SPinTypeSelector::GetToolTipForContainerWidget), NULL, *BigTooltipDocLink, TEXT("Containers")))
+		.IsEnabled( TargetPinType.Get().PinCategory != Schema->PC_Exec )
+		.Visibility(InArgs._bAllowArrays ? EVisibility::Visible : EVisibility::Collapsed)
+		.ButtonContent()
+		[
+			SNew(
+				SDoubleImage,
+				TAttribute<const FSlateBrush*>(this, &SPinTypeSelector::GetSecondaryTypeIconImage),
+				TAttribute<FSlateColor>(this, &SPinTypeSelector::GetSecondaryTypeIconColor)
+			)
+			.Image(this, &SPinTypeSelector::GetTypeIconImage)
+			.ColorAndOpacity(this, &SPinTypeSelector::GetTypeIconColor)
+		];
 
 		Widget = SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()

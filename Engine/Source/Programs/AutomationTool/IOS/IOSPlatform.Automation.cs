@@ -227,7 +227,7 @@ public class IOSPlatform : Platform
     public virtual UnrealBuildTool.UEDeployIOS GetDeployHandler(FileReference InProject, UnrealBuildTool.IOSPlatformContext inPlatformContext)
     {
         Console.WriteLine("Getting IOS Deploy()");
-        return new UnrealBuildTool.UEDeployIOS(InProject, inPlatformContext);
+        return new UnrealBuildTool.UEDeployIOS();
     }
 
     public virtual UnrealBuildTool.IOSPlatformContext CreatePlatformContext(FileReference InProject, bool Distribution)
@@ -320,7 +320,7 @@ public class IOSPlatform : Platform
             // copy in all of the artwork and plist
             var DeployHandler = GetDeployHandler(Params.RawProjectPath, BuildPlatContext);
 
-            DeployHandler.PrepForUATPackageOrDeploy(Params.RawProjectPath,
+            DeployHandler.PrepForUATPackageOrDeploy(TargetConfiguration, Params.RawProjectPath,
 				Params.ShortProjectName,
 				Path.GetDirectoryName(Params.RawProjectPath.FullName),
 				CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0]),
@@ -849,6 +849,7 @@ public class IOSPlatform : Platform
 
                     GetDeployHandler(
                         new FileReference(SC.ProjectRoot), BuildPlatContext).GeneratePList(
+							TargetConfiguration,
                             (SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "/Engine"),
                             !SC.IsCodeBasedProject,
                             (SC.IsCodeBasedProject ? SC.ShortProjectName : "UE4Game"),
@@ -880,7 +881,7 @@ public class IOSPlatform : Platform
 			throw new AutomationException("ARCHIVE FAILED - {0} was not found", ProjectIPA);
 		}
 
-		ConfigCacheIni PlatformGameConfig;
+		ConfigHierarchy PlatformGameConfig;
 		bool bXCArchive = false;
 		if (Params.EngineConfigs.TryGetValue(SC.StageTargetPlatform.PlatformType, out PlatformGameConfig))
 		{

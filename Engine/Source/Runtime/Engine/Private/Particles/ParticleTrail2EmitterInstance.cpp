@@ -75,7 +75,7 @@ void FParticleTrailsEmitterInstance_Base::Tick(float DeltaTime, bool bSuppressSp
 	if (Component)
 	{
 
-#if ULTRA_VERBOSE_TRAILS_DEBUG
+#if defined(ULTRA_VERBOSE_TRAILS_DEBUG) && ULTRA_VERBOSE_TRAILS_DEBUG
 		PrintTrails();
 #endif
 		check(SpriteTemplate);

@@ -115,7 +115,7 @@ namespace Win.Automation
         {
             // Get the list of symbol file name patterns from the platform.
             UEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(Parameters.Platform);
-            UEToolChain ToolChain = Platform.CreateContext(null).CreateToolChainForDefaultCppPlatform();
+            UEToolChain ToolChain = Platform.CreateContext(null, null).CreateToolChainForDefaultCppPlatform();
             var DirectoryStructure = ToolChain.SymbolServerDirectoryStructure;
 
             if (DirectoryStructure == null)

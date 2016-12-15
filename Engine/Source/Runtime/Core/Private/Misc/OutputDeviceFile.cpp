@@ -63,6 +63,9 @@ class CORE_API FAsyncWriter : public FRunnable, public FArchive
 	/** [WRITER THREAD] Last time the archive was flushed. used in threaded situations to flush the underlying archive at a certain maximum rate. */
 	double LastArchiveFlushTime;
 
+	/** [WRITER THREAD] Archive flush interval. */
+	double ArchiveFlushIntervalSec;
+
 	/** [WRITER THREAD] Serialize the contents of the ring buffer to disk */
 	void SerializeBufferToArchive()
 	{
@@ -89,7 +92,6 @@ class CORE_API FAsyncWriter : public FRunnable, public FArchive
 			// Flush the archive periodically if running on a separate thread
 			if (Thread)
 			{
-				const double ArchiveFlushIntervalSec = 0.2;
 				if ((FPlatformTime::Seconds() - LastArchiveFlushTime) > ArchiveFlushIntervalSec)
 				{
 					Ar.Flush();
@@ -127,8 +129,15 @@ public:
 		, BufferStartPos(0)
 		, BufferEndPos(0)
 		, LastArchiveFlushTime(0.0)
+		, ArchiveFlushIntervalSec(0.2)
 	{
 		Buffer.AddUninitialized(InitialBufferSize);
+
+		float CommandLineInterval = 0.0;
+		if (FParse::Value(FCommandLine::Get(), TEXT("LOGFLUSHINTERVAL="), CommandLineInterval))
+		{
+			ArchiveFlushIntervalSec = CommandLineInterval;
+		}
 
 		if (FPlatformProcess::SupportsMultithreading())
 		{
@@ -226,6 +235,10 @@ public:
 			if (SerializeRequestCounter.GetValue() > 0)
 			{
 				SerializeBufferToArchive();
+			}
+			else if ((FPlatformTime::Seconds() - LastArchiveFlushTime) > ArchiveFlushIntervalSec)
+			{
+				SerializeRequestCounter.Increment();
 			}
 			else
 			{

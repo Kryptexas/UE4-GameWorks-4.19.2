@@ -14,3 +14,6 @@
 #ifndef _WINNT_
 #undef TEXT
 #endif
+
+// Disable all normal third party headers
+THIRD_PARTY_INCLUDES_START

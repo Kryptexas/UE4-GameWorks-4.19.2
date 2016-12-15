@@ -97,7 +97,7 @@ struct FMallocCrashPool
 
 		AllocatedMemory = MaxNumAllocations*AllocationSize + sizeof(Allocations);
 
-#if	_DEBUG
+#ifdef	_DEBUG
 		FPlatformMisc::LowLevelOutputDebugStringf( TEXT( "FMallocCrashPool Size=%5u Num=%4i Mem=%8u\n" ), PoolDesc.Size, MaxNumAllocations, AllocatedMemory );
 #endif // _DEBUG
 	}
@@ -176,7 +176,7 @@ struct FMallocCrashPool
 private:
 	void DebugVerify()
 	{
-#if	_DEBUG
+#ifdef	_DEBUG
 		for( uint32 Index = 0; Index < MaxNumAllocations; ++Index )
 		{
 			FPtrInfo* PtrIt = Allocations[Index];
@@ -211,7 +211,7 @@ FGenericPlatformMallocCrash::FGenericPlatformMallocCrash( FMalloc* MainMalloc ) 
 	}
 
 	InitializeSmallPools();
-#if	_DEBUG
+#ifdef	_DEBUG
 	FPlatformMisc::LowLevelOutputDebugStringf( TEXT( "FGenericPlatformMallocCrash overhead is %u bytes\n" ), LargeMemoryPoolSize+GetSmallPoolTotalSize() );
 #endif // _DEBUG
 }
@@ -371,7 +371,7 @@ void FGenericPlatformMallocCrash::Free( void* Ptr )
 
 void FGenericPlatformMallocCrash::PrintPoolsUsage()
 {
-#if	_DEBUG
+#ifdef	_DEBUG
 	FPlatformMisc::LowLevelOutputDebugString( TEXT( "FPoolDesc used\n" ) );
 	for( uint32 Index = 0; Index < FGenericPlatformMallocCrash::NUM_POOLS; ++Index )
 	{

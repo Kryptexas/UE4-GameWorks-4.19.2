@@ -597,6 +597,7 @@ void USetProperty::AddCppProperty( UProperty* Property )
 {
 	check(!ElementProp);
 	check(Property);
+	ensureAlwaysMsgf(Property->HasAllPropertyFlags(CPF_HasGetValueTypeHash), TEXT("Attempting to create Set Property with unhashable element type: %s - Provide a GetTypeHash function!"), *Property->GetName());
 
 	ElementProp = Property;
 }

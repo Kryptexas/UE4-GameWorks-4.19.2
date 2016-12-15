@@ -66,7 +66,6 @@ private:
 /**
  * Hangul Post-Positions argument modifier.
  * Takes two value arguments, where the 0th entry is the consonant version and the 1st entry is the vowel version.
- *  eg) |hpp(과,와)
  */
 class FTextFormatArgumentModifier_HangulPostPositions : public ITextFormatArgumentModifier
 {

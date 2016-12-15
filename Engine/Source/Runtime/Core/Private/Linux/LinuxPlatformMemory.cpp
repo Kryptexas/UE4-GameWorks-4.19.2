@@ -19,6 +19,14 @@
 #include <sys/file.h>
 #include <sys/mman.h>
 
+// do not do a root privilege check on non-x86-64 platforms (assume an embedded device)
+#if defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
+	#define UE4_DO_ROOT_PRIVILEGE_CHECK	 1
+#else
+	#define UE4_DO_ROOT_PRIVILEGE_CHECK	 0
+#endif // defined(_M_X64) || defined(__x86_64__) || defined (__amd64__) 
+
+
 void FLinuxPlatformMemory::Init()
 {
 	FGenericPlatformMemory::Init();
@@ -36,6 +44,7 @@ void FLinuxPlatformMemory::Init()
 
 class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 {
+#if UE4_DO_ROOT_PRIVILEGE_CHECK
 	// This function gets executed very early, way before main() (because global constructors will allocate memory).
 	// This makes it ideal, if unobvious, place for a root privilege check.
 	if (geteuid() == 0)
@@ -45,6 +54,7 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 		// unreachable
 		return nullptr;
 	}
+#endif // UE4_DO_ROOT_PRIVILEGE_CHECK
 
 	if (USE_MALLOC_BINNED2)
 	{

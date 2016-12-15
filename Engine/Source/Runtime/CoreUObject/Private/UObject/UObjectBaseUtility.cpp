@@ -10,6 +10,7 @@
 #include "Templates/Casts.h"
 #include "UObject/Interface.h"
 #include "Modules/ModuleManager.h"
+#include "ProfilingDebugging/MallocProfiler.h"
 
 /***********************/
 /******** Names ********/

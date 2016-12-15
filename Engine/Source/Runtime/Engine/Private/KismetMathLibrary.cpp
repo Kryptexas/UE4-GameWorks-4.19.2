@@ -393,6 +393,12 @@ FRotator UKismetMathLibrary::RandomRotator(bool bRoll)
 	return RRot;
 }
 
+
+FVector UKismetMathLibrary::GetReflectionVector(FVector Direction, FVector SurfaceNormal)
+{
+	return FMath::GetReflectionVector(Direction, SurfaceNormal);
+}
+
 FVector UKismetMathLibrary::FindClosestPointOnLine(FVector Point, FVector LineOrigin, FVector LineDirection)
 {
 	const FVector SafeDir = LineDirection.GetSafeNormal();

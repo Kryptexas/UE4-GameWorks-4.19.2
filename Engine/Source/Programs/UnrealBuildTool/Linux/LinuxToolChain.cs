@@ -395,9 +395,14 @@ namespace UnrealBuildTool
 			// we use this feature to allow static FNames.
 			Result += " -Wno-gnu-string-literal-operator-template";
 
-			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
+			if (CompileEnvironment.Config.bEnableShadowVariableWarnings)
 			{
 				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors ? "" : " -Wno-error=shadow");
+			}
+
+			if (CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings)
+			{
+				Result += " -Wundef" + (BuildConfiguration.bUndefinedIdentifierErrors ? "" : " -Wno-error=undef");
 			}
 
 			//Result += " -DOPERATOR_NEW_INLINE=FORCENOINLINE";
@@ -502,7 +507,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 			Result += " -x c++";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			return Result;
 		}
 
@@ -519,7 +524,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c++";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			return Result;
 		}
 
@@ -548,7 +553,7 @@ namespace UnrealBuildTool
 			Result += " -x objective-c";
 			Result += " -fobjc-abi-version=2";
 			Result += " -fobjc-legacy-dispatch";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			return Result;
 		}
 
@@ -556,7 +561,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 			Result += " -x c++-header";
-			Result += " -std=c++11";
+			Result += " -std=c++14";
 			return Result;
 		}
 
@@ -907,8 +912,15 @@ namespace UnrealBuildTool
 				string InputAbsolutePath = InputFile.AbsolutePath.Replace("\\", "/");
 				InputFileNames.Add(string.Format("\"{0}\"", InputAbsolutePath));
 				ArchiveAction.PrerequisiteItems.Add(InputFile);
-				ArchiveAction.CommandArguments += string.Format(" \"{0}\"", InputAbsolutePath);
 			}
+
+			// this won't stomp linker's response (which is not used when compiling static libraries)
+			FileReference ResponsePath = GetResponseFileName(LinkEnvironment, OutputFile);
+			if (!ProjectFileGenerator.bGenerateProjectFiles)
+			{
+				ResponseFile.Create(ResponsePath, InputFileNames);
+			}
+			ArchiveAction.CommandArguments += string.Format(" @\"{0}\"", ConvertPath(ResponsePath.FullName));
 
 			// add ranlib
 			ArchiveAction.CommandArguments += string.Format(" && \"{0}\" \"{1}\"", GetRanlibPath(LinkEnvironment.Config.Architecture), OutputFile.AbsolutePath);

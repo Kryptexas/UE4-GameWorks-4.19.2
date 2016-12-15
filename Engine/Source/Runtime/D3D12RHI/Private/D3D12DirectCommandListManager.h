@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "RHI.h"
 
-//#define DEBUG_FENCES 1
+#define DEBUG_FENCES 0
 
 extern int32 GCommandListBatchingMode;
 

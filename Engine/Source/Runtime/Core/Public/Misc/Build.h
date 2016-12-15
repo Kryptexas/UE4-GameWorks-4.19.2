@@ -29,6 +29,12 @@
 #ifndef UE_EDITOR
 	#define UE_EDITOR					0
 #endif
+#ifndef UE_BUILD_SHIPPING_WITH_EDITOR
+	#define UE_BUILD_SHIPPING_WITH_EDITOR 0
+#endif
+#ifndef UE_BUILD_DOCS
+	#define UE_BUILD_DOCS				0
+#endif
 
 /** 
  *   Whether compiling for dedicated server or not.

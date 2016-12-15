@@ -1061,6 +1061,14 @@ bool FMallocBinned::GetAllocationSize(void *Original, SIZE_T &SizeOut)
 	UPTRINT BasePtr;
 	FPoolInfo* Pool = Private::FindPoolInfo(*this, (UPTRINT)Original, BasePtr);
 
+#if PLATFORM_IOS || PLATFORM_MAC
+	if (Pool == NULL)
+	{
+		UE_LOG(LogMemory, Warning, TEXT("Attempting to access memory pool info for a pointer we didn't allocate!"));
+		return false;
+	}
+#endif
+
 	PTRINT OffsetFromBase = (PTRINT)Original - (PTRINT)BasePtr;
 	check(OffsetFromBase >= 0);
 
@@ -1075,9 +1083,9 @@ bool FMallocBinned::GetAllocationSize(void *Original, SIZE_T &SizeOut)
 	else
 	{
 		// if we padded out the allocation for alignment, and then offset the returned pointer from the actual allocation
-		// we need to adjust for that offset. Pool->GetBytes() returns the entire size of the allocation, not just the 
+		// we need to adjust for that offset. Pool->GetOsBytes() returns the entire size of the allocation, not just the 
 		// usable part that was returned to the caller
-		SizeOut = Pool->GetBytes() - OffsetFromBase;
+		SizeOut = Pool->GetOsBytes(PageSize, BinnedOSTableIndex) - OffsetFromBase;
 	}
 	return true;
 }

@@ -8,6 +8,7 @@ public class UnrealFileServerTarget : TargetRules
 	public UnrealFileServerTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Modular;
 	}
 
 	//
@@ -24,12 +25,6 @@ public class UnrealFileServerTarget : TargetRules
 			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
 											InModuleNames: new List<string>() { "UnrealFileServer" } )
 			);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		// Don't build monolithic because it could depend on modules that are not public
-		return false;
 	}
 
 	public override void SetupGlobalEnvironment(

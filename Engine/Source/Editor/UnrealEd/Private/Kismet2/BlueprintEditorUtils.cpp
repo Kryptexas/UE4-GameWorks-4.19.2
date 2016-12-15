@@ -7088,7 +7088,10 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 		bIsAnimBlueprint |= Blueprint->IsA(UAnimBlueprint::StaticClass());
 		bIsLevelScriptActor |= Blueprint->ParentClass->IsChildOf( ALevelScriptActor::StaticClass() );
 		bIsComponentBlueprint |= Blueprint->ParentClass->IsChildOf( UActorComponent::StaticClass() );
-		BlueprintClasses.Add(Blueprint->GeneratedClass);
+		if(Blueprint->GeneratedClass)
+		{
+			BlueprintClasses.Add(Blueprint->GeneratedClass);
+		}
 	}
 
 	// Fill in options
@@ -7152,7 +7155,10 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 	for( const UBlueprint* Blueprint : Blueprints)
 	{
 		// don't allow making me my own parent!
-		Filter->DisallowedClasses.Add(Blueprint->GeneratedClass);
+		if(Blueprint->GeneratedClass)
+		{
+			Filter->DisallowedClasses.Add(Blueprint->GeneratedClass);
+		}
 	}
 
 	return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked);
@@ -7237,7 +7243,10 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintInterfaceClassPicke
 	TArray<UClass*> BlueprintClasses;
 	for (const UBlueprint* Blueprint : Blueprints)
 	{
-		BlueprintClasses.Add(Blueprint->GeneratedClass);
+		if(Blueprint->GeneratedClass)
+		{
+			BlueprintClasses.Add(Blueprint->GeneratedClass);
+		}
 	}
 
 	// Fill in options
@@ -7251,8 +7260,11 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintInterfaceClassPicke
 	for (const UBlueprint* Blueprint : Blueprints)
 	{
 		// don't allow making me my own parent!
-		Filter->DisallowedClasses.Add(Blueprint->GeneratedClass);
-
+		if(Blueprint->GeneratedClass)
+		{
+			Filter->DisallowedClasses.Add(Blueprint->GeneratedClass);
+		}
+		
 		UClass const* const ParentClass = Blueprint->ParentClass;
 		// see if the parent class has any prohibited interfaces
 		if ((ParentClass != nullptr) && ParentClass->HasMetaData(FBlueprintMetadata::MD_ProhibitedInterfaces))
@@ -7514,12 +7526,12 @@ void FBlueprintEditorUtils::AnalyticsTrackNewNode( UEdGraphNode *NewNode )
 bool FBlueprintEditorUtils::IsObjectADebugCandidate( AActor* InActorObject, UBlueprint* InBlueprint, bool bInDisallowDerivedBlueprints )
 {
 	const bool bPassesFlags = !InActorObject->HasAnyFlags(RF_ClassDefaultObject) && !InActorObject->IsPendingKill();
-	bool bCanDebugThisObject;
+	bool bCanDebugThisObject = false;
 	if( bInDisallowDerivedBlueprints == true )
 	{
 		bCanDebugThisObject = InActorObject->GetClass()->ClassGeneratedBy == InBlueprint;
 	}
-	else
+	else if(InBlueprint->GeneratedClass)
 	{
 		bCanDebugThisObject = InActorObject->IsA( InBlueprint->GeneratedClass );
 	}
@@ -8325,12 +8337,11 @@ bool FBlueprintEditorUtils::HasGetTypeHash(const FEdGraphPinType& PinType)
 	}
 
 	const UScriptStruct* StructType = Cast<const UScriptStruct>(PinType.PinSubCategoryObject.Get());
-	return StructType && 
-		(	// we can always hash non-native structs (see UScriptStruct::GetStructTypeHash)
-			!StructType->IsNative() || 
-			// but native structs need to provide a GetTypeHash:
-			( StructType->GetCppStructOps() && StructType->GetCppStructOps()->HasGetTypeHash() )
-		); 
+	if( StructType )
+	{
+		return StructHasGetTypeHash(StructType);
+	}
+	return false;
 }
 
 bool FBlueprintEditorUtils::PropertyHasGetTypeHash(const UProperty* PropertyType)
@@ -8572,12 +8583,6 @@ void FBlueprintEditorUtils::BuildComponentInstancingData(UActorComponent* Compon
 		// Flag that cooked data has been built and is now considered to be valid.
 		OutData.bIsValid = true;
 	}
-}
-
-bool FBlueprintEditorUtils::ShouldEnableAdvancedContainers()
-{
-	UBlueprintEditorSettings const* Settings = GetDefault<UBlueprintEditorSettings>();
-	return Settings->bEnableAdvancedContainers;
 }
 
 #undef LOCTEXT_NAMESPACE

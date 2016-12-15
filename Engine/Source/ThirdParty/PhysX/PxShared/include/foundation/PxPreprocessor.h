@@ -31,9 +31,7 @@
 #define PXFOUNDATION_PXPREPROCESSOR_H
 
 #include <stddef.h>
-#if !(defined(__clang__) && (defined(_WIN32) || defined(_WIN64)))
-#include <ciso646>  // detect std::lib, unless clang on windows is used (PxMetaDataGenerator issue)
-#endif
+
 /** \addtogroup foundation
   @{
 */
@@ -87,6 +85,8 @@ Operating system defines, see http://sourceforge.net/p/predef/wiki/OperatingSyst
 #define PX_OSX 1
 #elif defined(__ORBIS__)
 #define PX_PS4 1
+#elif defined(__NX__)
+#define PX_NX 1
 #else
 #error "Unknown operating system"
 #endif
@@ -115,7 +115,6 @@ SIMD defines
 #if defined(__i386__) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64) || (defined (__EMSCRIPTEN__) && defined(__SSE2__))
 #define PX_SSE2 1
 #endif
-// [RCL] FIXME? __ARM_NEON__ is obsolete, only __ARM_NEON should be enough
 #if defined(_M_ARM) || defined(__ARM_NEON__) || defined(__ARM_NEON)
 #define PX_NEON 1
 #endif
@@ -159,6 +158,9 @@ define anything not defined on this platform to 0
 #endif
 #ifndef PX_PS4
 #define PX_PS4 0
+#endif
+#ifndef PX_NX
+#define PX_NX 0
 #endif
 #ifndef PX_X64
 #define PX_X64 0
@@ -225,15 +227,6 @@ family shortcuts
 #define PX_INTEL_FAMILY (PX_X64 || PX_X86)
 #define PX_ARM_FAMILY (PX_ARM || PX_A64)
 #define PX_P64_FAMILY (PX_X64 || PX_A64) // shortcut for 64-bit architectures
-
-/**
-C++ standard library defines
-*/
-#if defined(_LIBCPP_VERSION) || PX_WIN64 || PX_WIN32 || PX_PS4 || PX_XBOXONE || PX_EMSCRIPTEN
-#define PX_LIBCPP 1
-#else
-#define PX_LIBCPP 0
-#endif
 
 // legacy define for PhysX
 #define PX_WINDOWS (PX_WINDOWS_FAMILY && !PX_ARM_FAMILY)
@@ -422,7 +415,7 @@ General defines
 */
 
 // static assert
-#if(defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))) || (PX_PS4) || (PX_APPLE_FAMILY)
+#if(defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))) || (PX_PS4) || (PX_APPLE_FAMILY) || (PX_NX)
 #define PX_COMPILE_TIME_ASSERT(exp) typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1] __attribute__((unused))
 #else
 #define PX_COMPILE_TIME_ASSERT(exp) typedef char PxCompileTimeAssert_Dummy[(exp) ? 1 : -1]

@@ -29,6 +29,7 @@
 #include "K2Node_FormatText.h"
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
+#include "K2Node_AddComponent.h" // for GetTemplateFromNode()
 #include "IDetailCustomization.h"
 #include "Editor.h"
 #include "PropertyEditorModule.h"
@@ -252,10 +253,10 @@ FText SKismetInspector::GetContextualEditingWidgetTitle() const
 					}
 				}
 			}
-			else if (UK2Node* K2Node = Cast<UK2Node>(Object))
+			else if (UK2Node_AddComponent* ComponentNode = Cast<UK2Node_AddComponent>(Object))
 			{
 				// Edit the component template
-				if (UActorComponent* Template = K2Node->GetTemplateFromNode())
+				if (UActorComponent* Template = ComponentNode->GetTemplateFromNode())
 				{
 					Title = FText::Format(LOCTEXT("Name_TemplateFmt", "{0} Template"), FText::FromString(Template->GetClass()->GetName()));
 				}
@@ -583,10 +584,13 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 			else if (UK2Node* K2Node = Cast<UK2Node>(Object))
 			{
 				// Edit the component template if it exists
-				if (UActorComponent* Template = K2Node->GetTemplateFromNode())
+				if (UK2Node_AddComponent* ComponentNode = Cast<UK2Node_AddComponent>(K2Node))
 				{
-					SelectionInfo.ObjectsForPropertyEditing.Add(Template);
-					SelectionInfo.EditableComponentTemplates.Add(Template);
+					if (UActorComponent* Template = ComponentNode->GetTemplateFromNode())
+					{
+						SelectionInfo.ObjectsForPropertyEditing.Add(Template);
+						SelectionInfo.EditableComponentTemplates.Add(Template);
+					}
 				}
 
 				// See if we should edit properties of the node

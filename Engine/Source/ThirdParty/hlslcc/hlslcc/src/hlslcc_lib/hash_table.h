@@ -43,7 +43,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <limits.h>
-#if __APPLE__
+#ifdef __APPLE__
 #else
 #include <malloc.h>
 #endif

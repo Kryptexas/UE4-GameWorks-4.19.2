@@ -208,10 +208,10 @@ enum EExprToken
 	EX_UInt64Const			= 0x36,	// 64-bit unsigned integer constant.
 	//						= 0x37,
 	EX_PrimitiveCast		= 0x38,	// A casting operator for primitives which reads the type as the subsequent byte
-	//						= 0x39,
-	//						= 0x3A,
-	//						= 0x3B,
-	//						= 0x3C,
+	EX_SetSet				= 0x39,
+	EX_EndSet				= 0x3A,
+	EX_SetMap				= 0x3B,
+	EX_EndMap				= 0x3C,
 	//						= 0x3D,
 	//						= 0x3E,
 	//						= 0x3F,

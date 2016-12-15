@@ -3,45 +3,22 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64)]
+[SupportedConfigurations(UnrealTargetConfiguration.Debug, UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping)]
 public class UnrealWatchdogTarget : TargetRules
 {
 	public UnrealWatchdogTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
-        UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
-    }
-
-    //
-    // TargetRules interface.
-    //
-
-    public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		OutPlatforms.Add(UnrealTargetPlatform.Win32);
-		OutPlatforms.Add(UnrealTargetPlatform.Win64);
-		//OutPlatforms.Add(UnrealTargetPlatform.Mac);
-		//OutPlatforms.Add(UnrealTargetPlatform.Linux);
-		return true;
+		LinkType = TargetLinkType.Monolithic;
+		UndecoratedConfiguration = UnrealTargetConfiguration.Shipping;
 	}
 
-    public override bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
-    {
-        if (base.GetSupportedConfigurations(ref OutConfigurations, bIncludeTestAndShippingConfigs))
-        {
-            if (bIncludeTestAndShippingConfigs)
-            {
-                OutConfigurations.Add(UnrealTargetConfiguration.Shipping);
-            }
-            OutConfigurations.Add(UnrealTargetConfiguration.Debug);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
+	//
+	// TargetRules interface.
+	//
 
-    public override void SetupBinaries(
+	public override void SetupBinaries(
 		TargetInfo Target,
 		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
 		ref List<string> OutExtraModuleNames
@@ -51,11 +28,6 @@ public class UnrealWatchdogTarget : TargetRules
 			new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
 											InModuleNames: new List<string>() { "UnrealWatchdog" } )
 			);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		return true;
 	}
 
 	public override void SetupGlobalEnvironment(

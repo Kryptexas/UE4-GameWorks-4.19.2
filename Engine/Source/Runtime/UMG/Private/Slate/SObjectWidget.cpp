@@ -4,6 +4,7 @@
 
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Slate/UMGDragDropOp.h"
+#include "SlateGlobals.h"
 
 void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObject)
 {

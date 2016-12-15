@@ -55,6 +55,8 @@
 
 static bool bDebugPropertyPropagation = false;
 
+#define USE_TRANSIENT_SKELETON 0
+
 #define LOCTEXT_NAMESPACE "KismetCompiler"
 
 //////////////////////////////////////////////////////////////////////////
@@ -3715,16 +3717,6 @@ void FKismetCompilerContext::Compile()
 			}
 		}
 
-		// Create a mapping between compile time generated events and what created them.
-		if (TargetClass->bHasInstrumentation)
-		{
-			FBlueprintDebugData& DebugData = TargetClass->GetDebugData();
-			for (const TPair<UEdGraphPin*, UK2Node_Event*>& EventInfo : SourcePinToExpansionEvent)
-			{
-				DebugData.RegisterPinToEventName(EventInfo.Key, EventInfo.Value->GetFunctionName());
-			}
-		}
-
 		// Save off intermediate build products if requested
 		if (CompileOptions.bSaveIntermediateProducts && !Blueprint->bIsRegeneratingOnLoad)
 		{
@@ -3917,7 +3909,7 @@ void FKismetCompilerContext::Compile()
 			}
 		}
 
-		if (bDisplayBytecode && bIsFullCompile)
+		if (bDisplayBytecode && bIsFullCompile && !IsRunningCommandlet())
 		{
 			TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
 
@@ -3936,14 +3928,14 @@ void FKismetCompilerContext::Compile()
 		}
 
 		// Generate code thru the backend(s)
-		if ((bDisplayCpp && bIsFullCompile) || CompileOptions.DoesRequireCppCodeGeneration())
+		if ((bDisplayCpp && bIsFullCompile && !IsRunningCommandlet()) || CompileOptions.DoesRequireCppCodeGeneration())
 		{
 			FString CppSourceCode;
 			FString HeaderSourceCode;
 
 			{
 				TUniquePtr<IBlueprintCompilerCppBackend> Backend_CPP(IBlueprintCompilerCppBackendModuleInterface::Get().Create());
-				HeaderSourceCode = Backend_CPP->GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile, CppSourceCode);
+				HeaderSourceCode = Backend_CPP->GenerateCodeFromClass(NewClass, FunctionList, !bIsFullCompile, CompileOptions.NativizationOptions, CppSourceCode);
 			}
 
 			if (CompileOptions.OutHeaderSourceCode.IsValid())
@@ -3956,7 +3948,7 @@ void FKismetCompilerContext::Compile()
 				*CompileOptions.OutCppSourceCode = CppSourceCode;
 			}
 
-			if (bDisplayCpp)
+			if (bDisplayCpp && !IsRunningCommandlet())
 			{
 				UE_LOG(LogK2Compiler, Log, TEXT("[header]\n\n\n%s"), *HeaderSourceCode);
 				UE_LOG(LogK2Compiler, Log, TEXT("[body]\n\n\n%s"), *CppSourceCode);
@@ -3964,7 +3956,7 @@ void FKismetCompilerContext::Compile()
 		}
 
 		static const FBoolConfigValueHelper DisplayLayout(TEXT("Kismet"), TEXT("bDisplaysLayout"), GEngineIni);
-		if (!Blueprint->bIsRegeneratingOnLoad && bIsFullCompile && DisplayLayout && NewClass)
+		if (!Blueprint->bIsRegeneratingOnLoad && bIsFullCompile && DisplayLayout && NewClass && !IsRunningCommandlet())
 		{
 			UE_LOG(LogK2Compiler, Log, TEXT("\n\nLAYOUT CLASS %s:"), *GetNameSafe(NewClass));
 

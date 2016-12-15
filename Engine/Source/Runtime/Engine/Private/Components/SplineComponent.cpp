@@ -10,6 +10,7 @@
 #include "PrimitiveSceneProxy.h"
 #include "SceneManagement.h"
 
+#define SPLINE_FAST_BOUNDS_CALCULATION 0
 
 USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

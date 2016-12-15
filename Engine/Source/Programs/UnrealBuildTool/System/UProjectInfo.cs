@@ -214,11 +214,6 @@ namespace UnrealBuildTool
 				TimeSpan TotalProjectInfoTime = StopTime - StartTime;
 				Log.TraceInformation("FillProjectInfo took {0} milliseconds", TotalProjectInfoTime.Milliseconds);
 			}
-
-			if (UnrealBuildTool.CommandLineContains("-dumpprojectinfo"))
-			{
-				UProjectInfo.DumpProjectInfo();
-			}
 		}
 
 		public static void DumpProjectInfo()

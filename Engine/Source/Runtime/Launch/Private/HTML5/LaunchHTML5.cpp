@@ -5,9 +5,13 @@
 #include "Misc/OutputDeviceError.h"
 #include "Templates/ScopedPointer.h"
 #include "LaunchEngineLoop.h"
+THIRD_PARTY_INCLUDES_START
 #include <SDL.h>
+THIRD_PARTY_INCLUDES_END
 #if PLATFORM_HTML5_BROWSER
+	THIRD_PARTY_INCLUDES_START
 	#include <emscripten/emscripten.h>
+	THIRD_PARTY_INCLUDES_END
 #else
 	// SDL defines main to be SDL_main and expects you to use SDLmain.  We don't.
 	#undef main

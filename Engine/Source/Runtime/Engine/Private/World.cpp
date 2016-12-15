@@ -1848,7 +1848,17 @@ void UWorld::TransferBlueprintDebugReferences(UWorld* NewWorld)
 			}
 		}
 	}
-
+	// Ensure the level script actor debug references are transferred to the new world.
+	if (NewWorld)
+	{
+		if (ALevelScriptActor* LevelScript = NewWorld->GetLevelScriptActor())
+		{
+			if (UBlueprint* LevelScriptBlueprint = Cast<UBlueprint>(LevelScript->GetClass()->ClassGeneratedBy))
+			{
+				LevelScriptBlueprint->SetObjectBeingDebugged(LevelScript);
+			}
+		}
+	}
 	// Empty the map, anything useful got moved over the map in the new world
 	BlueprintObjectsBeingDebugged.Empty();
 #endif	//#if WITH_EDITOR

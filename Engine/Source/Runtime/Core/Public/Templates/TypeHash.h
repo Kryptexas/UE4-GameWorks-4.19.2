@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreTypes.h"
-#include "Templates/UnrealTypeTraits.h"
+#include "Templates/IsEnum.h"
 #include "Misc/Crc.h"
 
 /**

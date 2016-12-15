@@ -153,10 +153,12 @@ void FBlueprintCompilerCppBackendBase::DeclareDelegates(FEmitterLocalContext& Em
 				}
 			}
 		}
-
+		
+		int32 UniqeSCDelegateIndex = 0;
 		for (UFunction* SCDelegateSignature : SCDelegateSignaturesWithoutType)
 		{
-			FString SCType = FString::Printf(TEXT("F__%s__SC"), *FEmitHelper::GetCppName(SCDelegateSignature));
+			FString SCType = FString::Printf(TEXT("F__%s__SC_%d"), *FEmitHelper::GetCppName(SCDelegateSignature), UniqeSCDelegateIndex);
+			UniqeSCDelegateIndex++;
 			FEmitHelper::EmitSinglecastDelegateDeclarations_Inner(EmitterContext, SCDelegateSignature, SCType);
 			EmitterContext.MCDelegateSignatureToSCDelegateType.Add(SCDelegateSignature, SCType);
 		}
@@ -165,7 +167,7 @@ void FBlueprintCompilerCppBackendBase::DeclareDelegates(FEmitterLocalContext& Em
 	}
 }
 
-FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, FString& OutCppBody)
+FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, FCompilerNativizationOptions NativizationOptions, FString& OutCppBody)
 {
 	CleanBackend();
 	for (auto& FunctionContext : Functions)
@@ -362,7 +364,7 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceCl
 		{
 			// must be called after GenerateConstructor and GenerateCustomDynamicClassInitialization and other functions implementation
 			// now we knows which assets are directly used in source code
-			FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(EmitterContext, ParentDependencies);
+			FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(EmitterContext, ParentDependencies, NativizationOptions);
 			FEmitDefaultValueHelper::AddRegisterHelper(EmitterContext);
 		}
 
@@ -462,7 +464,8 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 		|| ((1 == BodyFunctionsDeclaration.Num()) && (0 == FunctionContext.UnsortedSeparateExecutionGroups.Num())));
 
 	const bool bIsConstFunction = FunctionContext.Function->HasAllFunctionFlags(FUNC_Const);
-	if (bIsConstFunction)
+	const bool bUseInnerFunctionImplementation = bIsConstFunction && !FunctionContext.Function->HasAnyFunctionFlags(FUNC_Static);
+	if (bUseInnerFunctionImplementation)
 	{
 		ensure(0 == FunctionContext.UnsortedSeparateExecutionGroups.Num());
 		ensure(1 == BodyFunctionsDeclaration.Num());
@@ -500,7 +503,7 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 	const bool bManyExecutionGroups = FunctionContext.UnsortedSeparateExecutionGroups.Num() > 0;
 	for (int32 ExecutionGroupIndex = bManyExecutionGroups ? 0 : -1; ExecutionGroupIndex < FunctionContext.UnsortedSeparateExecutionGroups.Num(); ExecutionGroupIndex++)
 	{
-		if (!bIsConstFunction)
+		if (!bUseInnerFunctionImplementation)
 		{
 			EmitterContext.AddLine(BodyFunctionsDeclaration[bManyExecutionGroups ? ExecutionGroupIndex : 0]);
 		}
@@ -781,7 +784,7 @@ void FBlueprintCompilerCppBackendBase::ConstructFunctionBody(FEmitterLocalContex
 	}
 }
 
-FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum)
+void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum, FString& OutHeaderCode, FString& OutCPPCode)
 {
 	check(SourceEnum);
 	FCodeText Header;
@@ -818,35 +821,59 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum*
 	Header.DecreaseIndent();
 	Header.AddLine(TEXT("};"));
 
-	Header.AddLine(FString::Printf(TEXT("inline FString %s__GetUserFriendlyName(int32 InValue)"), *EnumCppName));
-	Header.AddLine(TEXT("{"));
-	Header.IncreaseIndent();
+	Header.AddLine(FString::Printf(TEXT("FText %s__GetUserFriendlyName(int32 InValue);"), *EnumCppName));
 
-	Header.AddLine(TEXT("FText Text;"));
-	Header.AddLine(FString::Printf(TEXT("const auto EnumValue = static_cast<%s>(InValue);"), *EnumCppName));
-	Header.AddLine(TEXT("switch(EnumValue)"));
-	Header.AddLine(TEXT("{"));
-	Header.IncreaseIndent();
+	OutHeaderCode = MoveTemp(Header.Result);
+	
+	FCodeText Body;
+	
+	const FString PCHFilename = FEmitHelper::GetPCHFilename();
+	if (!PCHFilename.IsEmpty())
+	{
+		Body.AddLine(FString::Printf(TEXT("#include \"%s\""), *PCHFilename));
+	}
+	else
+	{
+		// Used when generated code is not in a separate module
+		const FString MainHeaderFilename = FEmitHelper::GetGameMainHeaderFilename();
+		if (!MainHeaderFilename.IsEmpty())
+		{
+			Body.AddLine(FString::Printf(TEXT("#include \"%s\""), *MainHeaderFilename));
+		}
+	}
+
+	Body.AddLine(FString::Printf(TEXT("#include \"%s.h\""), *FEmitHelper::GetBaseFilename(SourceEnum)));
+
+	// generate implementation of GetUserFriendlyName:
+	Body.AddLine(FString::Printf(TEXT("FText %s__GetUserFriendlyName(int32 InValue)"), *EnumCppName, *EnumCppName));
+	Body.AddLine(TEXT("{"));
+	Body.IncreaseIndent();
+
+	Body.AddLine(TEXT("FText Text;"));
+	Body.AddLine(FString::Printf(TEXT("const auto EnumValue = static_cast<%s>(InValue);"), *EnumCppName));
+	Body.AddLine(TEXT("switch(EnumValue)"));
+	Body.AddLine(TEXT("{"));
+	Body.IncreaseIndent();
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
 	{
 		const FString ElemName = EnumItemName(Index);
 		FString DisplayNameStr;
 		FTextStringHelper::WriteToString(DisplayNameStr, SourceEnum->GetEnumText(Index));
-		Header.AddLine(FString::Printf(TEXT("case %s::%s: FTextStringHelper::%s(TEXT(\"%s\"), Text); break;")
+		Body.AddLine(FString::Printf(TEXT("case %s::%s: FTextStringHelper::%s(TEXT(\"%s\"), Text); break;")
 			, *EnumCppName, *ElemName
 			, GET_FUNCTION_NAME_STRING_CHECKED(FTextStringHelper, ReadFromString)
 			, *DisplayNameStr.ReplaceCharWithEscapedChar()));
 	}
 
-	Header.AddLine(TEXT("default: ensure(false);"));
-	Header.DecreaseIndent();
-	Header.AddLine(TEXT("};"));
+	Body.AddLine(TEXT("default: ensure(false);"));
+	Body.DecreaseIndent();
+	Body.AddLine(TEXT("};"));
 
-	Header.AddLine(TEXT("return Text.ToString();"));
-	Header.DecreaseIndent();
-	Header.AddLine(TEXT("};"));
+	Body.AddLine(TEXT("return Text;"));
+	Body.DecreaseIndent();
+	Body.AddLine(TEXT("};"));
 
-	return Header.Result;
+	OutCPPCode = MoveTemp(Body.Result);
 }
 
 FString FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct)
@@ -874,6 +901,12 @@ FString FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStr
 	EmitterContext.Header.AddLine(FString::Printf(TEXT("return %s::StaticStruct()->%s(this, &__Other, 0);"), *CppStructName, GET_FUNCTION_NAME_STRING_CHECKED(UScriptStruct, CompareScriptStruct)));
 	EmitterContext.Header.DecreaseIndent();
 	EmitterContext.Header.AddLine(TEXT("};"));
+	
+	// Provide GetTypeHash if the struct is hashable:
+	if( FBlueprintEditorUtils::StructHasGetTypeHash( SourceStruct  ) )
+	{
+		EmitterContext.Header.AddLine(FString::Printf(TEXT("friend uint32 GetTypeHash(const %s& __Other) { return UUserDefinedStruct::GetUserDefinedStructTypeHash( &__Other, %s::StaticStruct()); }"), *CppStructName, *CppStructName));
+	}
 
 	EmitterContext.Header.DecreaseIndent();
 	EmitterContext.Header.AddLine(TEXT("};"));

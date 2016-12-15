@@ -455,6 +455,9 @@ void SSkeletonTree::CreateTreeColumns()
 		TreeHolder->AddSlot()
 		[
 			SNew(SScrollBorder, SkeletonTreeView.ToSharedRef())
+			[
+				SkeletonTreeView.ToSharedRef()
+			]
 		];
 	}
 

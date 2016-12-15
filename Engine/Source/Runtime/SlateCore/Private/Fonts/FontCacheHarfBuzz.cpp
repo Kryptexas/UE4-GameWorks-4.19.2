@@ -19,8 +19,10 @@
 	#endif // #if PLATFORM_WINDOWS
 
 	// Include some private headers needed for our font implementation
+	THIRD_PARTY_INCLUDES_START
 	#include "hb-private.hh"
 	#include "hb-font-private.hh"
+	THIRD_PARTY_INCLUDES_END
 
 	#if PLATFORM_WINDOWS || PLATFORM_XBOXONE
 		#pragma warning(pop)

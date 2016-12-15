@@ -78,7 +78,7 @@ private:
 	FConsoleVariableSinkHandle CVarDelegateHandle;
 };
 
-static Windows::HMODULE AnselSDKDLLHandle = 0;
+static void* AnselSDKDLLHandle = 0;
 static bool bAnselDLLLoaded = false;
 
 FNVAnselCameraPhotographyPrivate::FNVAnselCameraPhotographyPrivate()
@@ -541,7 +541,7 @@ public:
 #define STRINGIFY(X) STRINGIFY2(X)
 #define STRINGIFY2(X) #X
 			AnselDLLName = AnselBinariesRoot + TEXT(STRINGIFY(ANSEL_DLL));
-			AnselSDKDLLHandle = Windows::LoadLibraryW(*(AnselDLLName));
+			AnselSDKDLLHandle = FPlatformProcess::GetDllHandle(*(AnselDLLName));
 
 		bAnselDLLLoaded = AnselSDKDLLHandle != 0;
 		
@@ -552,7 +552,7 @@ public:
 	{		
 		if (bAnselDLLLoaded)
 		{
-			Windows::FreeLibrary(AnselSDKDLLHandle);
+			FPlatformProcess::FreeDllHandle(AnselSDKDLLHandle);
 			AnselSDKDLLHandle = 0;
 			bAnselDLLLoaded = false;
 		}

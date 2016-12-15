@@ -42,7 +42,7 @@ using namespace OVR;
 #define OVR_DEFAULT_EYE_RENDER_TARGET_WIDTH		1024
 #define OVR_DEFAULT_EYE_RENDER_TARGET_HEIGHT	1024
 
-//#define OVR_DEBUG_DRAW
+#define OVR_DEBUG_DRAW 0
 
 class FGearVR;
 

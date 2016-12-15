@@ -135,7 +135,7 @@ namespace UnrealBuildTool
 
 				if (!WindowsPlatform.bUseVCCompilerArgs)
 				{
-					Arguments.Add("-std=c++11");
+					Arguments.Add("-std=c++14");
 					Arguments.Add("-fdiagnostics-format=msvc");
 					Arguments.Add("-Xclang -relaxed-aliasing -Xclang --dependent-lib=msvcrt -Xclang --dependent-lib=oldnames -gline-tables-only -ffunction-sections");
 				}
@@ -545,9 +545,8 @@ namespace UnrealBuildTool
 			}
 
 			// Disabled when compiling UnrealCodeAnalyzer as it breaks compilation (some structs in clang/llvm headers require 8-byte alignment in 32-bit compilation)
-			if (!UnrealBuildTool.CommandLineContains(@"UnrealCodeAnalyzer")
-				// and when running UnrealCodeAnalyzer as it doesn't understand the /Zp syntax.
-				&& !BuildConfiguration.bRunUnrealCodeAnalyzer)
+			// and when running UnrealCodeAnalyzer as it doesn't understand the /Zp syntax.
+			if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
 			{
 				if (CompileEnvironment.Config.Platform == CPPTargetPlatform.Win64)
 				{
@@ -587,7 +586,7 @@ namespace UnrealBuildTool
 			if (WindowsPlatform.Compiler >= WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseVCCompilerArgs)
 			{
 				// Disable shadow variable warnings
-				if (CompileEnvironment.Config.bEnableShadowVariableWarning == false)
+				if (CompileEnvironment.Config.bEnableShadowVariableWarnings == false)
 				{
 					Arguments.Add("/wd4456"); // 4456 - declaration of 'LocalVariable' hides previous local declaration
 					Arguments.Add("/wd4458"); // 4458 - declaration of 'parameter' hides class member
@@ -599,6 +598,17 @@ namespace UnrealBuildTool
 				Arguments.Add("/wd4838"); // 4838: conversion from 'type1' to 'type2' requires a narrowing conversion
 			}
 
+			if(WindowsPlatform.bUseVCCompilerArgs && CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings)
+			{
+				if (BuildConfiguration.bUndefinedIdentifierErrors)
+				{
+					Arguments.Add("/we4668");
+				}
+				else
+				{
+					Arguments.Add("/w44668");
+				}
+			}
 		}
 
 		static void AppendCLArguments_CPP(CPPEnvironment CompileEnvironment, List<string> Arguments)
@@ -691,7 +701,7 @@ namespace UnrealBuildTool
 			// Intel compiler options.
 			if (WindowsPlatform.bCompileWithICL)
 			{
-				Arguments.Add("/Qstd=c++11");
+				Arguments.Add("/Qstd=c++14");
 				Arguments.Add("/fp:precise");
 				Arguments.Add("/nologo");
 			}
@@ -710,9 +720,14 @@ namespace UnrealBuildTool
 				// @todo clang: Hack due to how we have our 'DummyPCH' wrappers setup when using unity builds.  This warning should not be disabled!!
 				Arguments.Add("-Wno-msvc-include");
 
-				if (CompileEnvironment.Config.bEnableShadowVariableWarning)
+				if (CompileEnvironment.Config.bEnableShadowVariableWarnings)
 				{
 					Arguments.Add("-Wshadow" + (BuildConfiguration.bShadowVariableErrors ? "" : " -Wno-error=shadow"));
+				}
+
+				if (CompileEnvironment.Config.bEnableUndefinedIdentifierWarnings)
+				{
+					Arguments.Add(" -Wundef" + (BuildConfiguration.bUndefinedIdentifierErrors ? "" : " -Wno-error=undef"));
 				}
 
 				// @todo clang: Kind of a shame to turn these off.  We'd like to catch unused variables, but it is tricky with how our assertion macros work.
@@ -757,7 +772,7 @@ namespace UnrealBuildTool
 
 		static void AppendCLArguments_C(List<string> Arguments)
 		{
-			if (WindowsPlatform.bUseVCCompilerArgs)
+			if (!WindowsPlatform.bUseVCCompilerArgs)
 			{
 				Arguments.Add("-x c");
 			}
@@ -1488,6 +1503,9 @@ namespace UnrealBuildTool
 
 				// Ensure that the import library references the correct filename for the linked binary.
 				Arguments.Add(String.Format("/NAME:\"{0}\"", LinkEnvironment.Config.OutputFilePath.GetFileName()));
+
+				// Ignore warnings about object files with no public symbols.
+				Arguments.Add("/IGNORE:4221");
 			}
 
 

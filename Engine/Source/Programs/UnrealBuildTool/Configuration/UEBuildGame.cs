@@ -20,18 +20,6 @@ namespace UnrealBuildTool
 		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject, RulesAssembly InRulesAssembly, FileReference InTargetCsFilename)
 			: base(InDesc, InRulesObject, InRulesAssembly, "UE4", InTargetCsFilename)
 		{
-			if (ShouldCompileMonolithic())
-			{
-				if (!UnrealBuildTool.IsDesktopPlatform(Platform))
-				{
-					// We are compiling for a console...
-					// We want the output to go into the <GAME>\Binaries folder
-					if (!InRulesObject.bOutputToEngineBinaries)
-					{
-						OutputPaths = OutputPaths.Select(Path => new FileReference(Path.FullName.Replace("Engine\\Binaries", InDesc.TargetName + "\\Binaries"))).ToList();
-					}
-				}
-			}
 		}
 
 		//

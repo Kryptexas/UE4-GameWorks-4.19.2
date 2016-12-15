@@ -32,7 +32,7 @@ extern RENDERCORE_API bool GUseThreadedRendering;
  * Currently set by command line parameter and by the r.rhithread.enable cvar.
  */
 extern RENDERCORE_API bool GUseRHIThread;
-extern RENDERCORE_API void SetEnableRHIThread(bool bEnable);
+extern RENDERCORE_API void SetRHIThreadEnabled(bool bEnable);
 
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static FORCEINLINE void CheckNotBlockedOnRenderThread() {}

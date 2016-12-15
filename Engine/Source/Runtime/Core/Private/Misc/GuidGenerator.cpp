@@ -19,7 +19,7 @@
 ** this software for any purpose.
 */
 
-#if __GNUC__
+#ifdef __GNUC__
 
 #include <sys/types.h>
 #include <sys/time.h>

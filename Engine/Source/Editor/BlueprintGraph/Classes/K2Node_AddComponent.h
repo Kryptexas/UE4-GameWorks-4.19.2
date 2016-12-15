@@ -26,6 +26,9 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	UPROPERTY()
 	FString TemplateBlueprint;
 
+	UPROPERTY()
+	UClass* TemplateType;
+
 	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -40,10 +43,11 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
 	virtual bool IsCompatibleWithGraph(UEdGraph const* Graph) const override;
+	virtual void ReconstructNode() override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin K2Node Interface
-	virtual UActorComponent* GetTemplateFromNode() const override;
+	virtual void PostReconstructNode() override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
@@ -69,6 +73,9 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 		return FindPinChecked(TEXT("bManualAttachment"));
 	}
 
+	/** Tries to get a template object from this node. */
+	BLUEPRINTGRAPH_API UActorComponent* GetTemplateFromNode() const;
+
 	/** Helper method used to generate a new, unique component template name. */
 	FName MakeNewComponentTemplateName(UObject* InOuter, UClass* InComponentClass);
 
@@ -84,7 +91,7 @@ private:
 		return FindPin(TEXT("TemplateName"));
 	}
 
-	const UClass* GetSpawnedType() const;
+	UClass* GetSpawnedType() const;	
 };
 
 

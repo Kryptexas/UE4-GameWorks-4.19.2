@@ -21,6 +21,7 @@ IMPLEMENT_HIT_PROXY(HSplineTangentHandleProxy, HSplineVisProxy);
 
 #define LOCTEXT_NAMESPACE "SplineComponentVisualizer"
 
+#define VISUALIZE_SPLINE_UPVECTORS 0
 
 /** Define commands for the spline component visualizer */
 class FSplineComponentVisualizerCommands : public TCommands<FSplineComponentVisualizerCommands>

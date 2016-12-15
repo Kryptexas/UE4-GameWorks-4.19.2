@@ -3,12 +3,12 @@
 
 #include "VulkanShaderFormat.h"
 
-#if _MSC_VER == 1800
+#if defined(_MSC_VER) && _MSC_VER == 1800
 	#pragma warning(push)
 	#pragma warning(disable:4510) // warning C4510: 'glslang::TShader::Includer::IncludeResult' : default constructor could not be generated
 	#pragma warning(disable:4610) // error C4610: struct 'glslang::TShader::Includer::IncludeResult' can never be instantiated - user defined constructor required
 #endif // _MSC_VER == 1800
-#if _MSC_VER >= 1800
+#if defined(_MSC_VER) && _MSC_VER >= 1800
 	#pragma warning(push)
 	#pragma warning(disable: 6031) // warning C6031: Return value ignored: 'snprintf'.
 	#pragma warning(disable: 6340) // warning C6340: Mismatch on sign: 'const unsigned int' passed as _Param_(4) when some signed type is required in call to 'snprintf'.
@@ -24,10 +24,10 @@ THIRD_PARTY_INCLUDES_START
 	#include "SPIRV/disassemble.h"
 THIRD_PARTY_INCLUDES_END
 
-#if _MSC_VER >= 1800
+#if defined(_MSC_VER) && _MSC_VER >= 1800
 	#pragma warning(pop)
 #endif
-#if _MSC_VER == 1800
+#if defined(_MSC_VER) && _MSC_VER == 1800
 	#pragma warning(pop)
 #endif // _MSC_VER == 1800
 

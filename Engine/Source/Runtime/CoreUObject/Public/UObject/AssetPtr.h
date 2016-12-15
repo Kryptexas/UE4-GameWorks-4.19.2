@@ -86,6 +86,7 @@ public:
 
 template <> struct TIsPODType<FAssetPtr> { enum { Value = TIsPODType<TPersistentObjectPtr<FStringAssetReference> >::Value }; };
 template <> struct TIsWeakPointerType<FAssetPtr> { enum { Value = TIsWeakPointerType<TPersistentObjectPtr<FStringAssetReference> >::Value }; };
+template <> struct THasGetTypeHash<FAssetPtr> { enum { Value = THasGetTypeHash<TPersistentObjectPtr<FStringAssetReference> >::Value }; };
 
 /**
  * TAssetPtr is templatized wrapper of the generic FAssetPtr, it can be used in UProperties

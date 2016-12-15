@@ -40,6 +40,11 @@ FSocket* FSocketSubsystemBSDIPv6::CreateSocket(const FName& SocketType, const FS
 	return NewSocket;
 }
 
+FResolveInfoCached* FSocketSubsystemBSDIPv6::CreateResolveInfoCached(TSharedPtr<FInternetAddr> Addr) const
+{
+	return new FResolveInfoCachedBSDIPv6(*Addr);
+}
+
 void FSocketSubsystemBSDIPv6::DestroySocket(FSocket* Socket)
 {
 	delete Socket;

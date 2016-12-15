@@ -121,11 +121,23 @@ DECLARE_DELEGATE_OneParam( FOnLinearColorValueChanged, FLinearColor )
 /** Notification for FVector4 value change */
 DECLARE_DELEGATE_OneParam(FOnVector4ValueChanged, FVector4&)
 
+DECLARE_DELEGATE(FOnTableViewBadState);
 
 template< typename ArgumentType >
 class TSlateDelegates
 {
 public:
+	/**
+	 * Useful for debugging issues with table views.
+	 */
+	DECLARE_DELEGATE_RetVal_OneParam (
+	/** return: String representation of the item for debugging purposes. */
+	FString,
+		FOnItemToString_Debug,
+		/** param: An item to turn into a string for debug purposes. */
+		ArgumentType);
+
+
 	/** A delegate type for OnGenerateWidget handler. Given a data item, the handler should return a Widget visualizing that item */
 	DECLARE_DELEGATE_RetVal_OneParam (
 	/** return: The Widget visualization of the item */

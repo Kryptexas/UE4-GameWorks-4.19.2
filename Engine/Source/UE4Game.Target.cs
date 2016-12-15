@@ -3,6 +3,7 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
+[SupportedPlatforms(UnrealPlatformClass.All)]
 public class UE4GameTarget : TargetRules
 {
 	public UE4GameTarget( TargetInfo Target )
@@ -11,11 +12,6 @@ public class UE4GameTarget : TargetRules
 
 		// Output to Engine/Binaries/<PLATFORM> even if built as monolithic
 		bOutputToEngineBinaries = true;
-	}
-
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		return UnrealBuildTool.UnrealBuildTool.GetAllPlatforms(ref OutPlatforms, false);
 	}
 
 	public override void SetupBinaries(

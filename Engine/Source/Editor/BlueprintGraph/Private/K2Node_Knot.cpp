@@ -76,60 +76,116 @@ bool UK2Node_Knot::CanSplitPin(const UEdGraphPin* Pin) const
 
 void UK2Node_Knot::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
-	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	UEdGraphPin* MyInputPin = GetInputPin();
-	UEdGraphPin* MyOutputPin = GetOutputPin();
-
-	const int32 NumLinks = MyInputPin->LinkedTo.Num() + MyOutputPin->LinkedTo.Num();
-
-	if (Pin->LinkedTo.Num() > 0)
-	{
-		// Just made a connection, was it the first?
-		if (NumLinks == 1)
-		{
-			UEdGraphPin* TypeSource = Pin->LinkedTo[0];
-
-			MyInputPin->PinType = TypeSource->PinType;
-			MyOutputPin->PinType = TypeSource->PinType;
-		}
-	}
-	else
-	{
-		// Just broke a connection, was it the last?
-		if (NumLinks == 0)
-		{
-			// Revert to wildcard
-			MyInputPin->BreakAllPinLinks();
-			MyInputPin->PinType.ResetToDefaults();
-			MyInputPin->PinType.PinCategory = K2Schema->PC_Wildcard;
-
-			MyOutputPin->BreakAllPinLinks();
-			MyOutputPin->PinType.ResetToDefaults();
-			MyOutputPin->PinType.PinCategory = K2Schema->PC_Wildcard;
-		}
-	}
+	PropagatePinType();
 }
 
 void UK2Node_Knot::PostReconstructNode()
 {
+	PropagatePinType();
+	Super::PostReconstructNode();
+}
+
+void UK2Node_Knot::PropagatePinType()
+{
 	UEdGraphPin* MyInputPin = GetInputPin();
 	UEdGraphPin* MyOutputPin = GetOutputPin();
 
-	// Find a pin that has connections to use to jumpstart the wildcard process
-	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
+	if (MyInputPin->LinkedTo.Num() > 0)
 	{
-		if (Pins[PinIndex]->LinkedTo.Num() > 0)
-		{
-			// The pin is linked, continue to use its type as the type for all pins.
-			UEdGraphPin* TypeSource = Pins[PinIndex]->LinkedTo[0];
+		// If we can't mirror from output type, we should at least get the type information from the input connection chain
+		PropagatePinTypeFromInput();
+	}
+	else if (MyOutputPin->LinkedTo.Num() > 0)
+	{
+		// Try to mirror from output first to make sure we get appropriate member references
+		PropagatePinTypeFromOutput();
+	}
+	else
+	{
+		// Revert to wildcard
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-			MyInputPin->PinType = TypeSource->PinType;
-			MyOutputPin->PinType = TypeSource->PinType;
-			break;
+		MyInputPin->BreakAllPinLinks();
+		MyInputPin->PinType.ResetToDefaults();
+		MyInputPin->PinType.PinCategory = K2Schema->PC_Wildcard;
+
+		MyOutputPin->BreakAllPinLinks();
+		MyOutputPin->PinType.ResetToDefaults();
+		MyOutputPin->PinType.PinCategory = K2Schema->PC_Wildcard;
+	}
+}
+
+void UK2Node_Knot::PropagatePinTypeFromInput()
+{
+	// Set the type of the pin based on input connections.
+	// We have to move up the chain of linked reroute nodes until we reach a node
+	// with type information before percolating that information down.
+	UEdGraphPin* MyInputPin = GetInputPin();
+	UEdGraphPin* MyOutputPin = GetOutputPin();
+
+	for (UEdGraphPin* InPin : MyInputPin->LinkedTo)
+	{
+		if (UK2Node_Knot* KnotNode = Cast<UK2Node_Knot>(InPin->GetOwningNode()))
+		{
+			KnotNode->PropagatePinTypeFromInput();
 		}
 	}
 
-	Super::PostReconstructNode();
+	UEdGraphPin* TypeSource = MyInputPin->LinkedTo.Num() ? MyInputPin->LinkedTo[0] : nullptr;
+	if (TypeSource)
+	{
+		MyInputPin->PinType = TypeSource->PinType;
+		MyOutputPin->PinType = TypeSource->PinType;
+
+		for (UEdGraphPin* InPin : MyInputPin->LinkedTo)
+		{
+			if (UK2Node* OwningNode = Cast<UK2Node>(InPin->GetOwningNode()))
+			{
+				if (!OwningNode->IsA<UK2Node_Knot>())
+				{
+					OwningNode->PinConnectionListChanged(InPin);
+				}
+			}
+		}
+	}
+	else
+	{
+		// TODO?
+	}
+}
+
+void UK2Node_Knot::PropagatePinTypeFromOutput()
+{
+	// Set the type of the pin based on the output connection, and then percolate
+	// that type information up until we no longer reach another Reroute node
+	UEdGraphPin* MyInputPin = GetInputPin();
+	UEdGraphPin* MyOutputPin = GetOutputPin();
+
+	UEdGraphPin* TypeSource = MyOutputPin->LinkedTo.Num() ? MyOutputPin->LinkedTo[0] : nullptr;
+	if (TypeSource)
+	{
+		MyInputPin->PinType = TypeSource->PinType;
+		MyOutputPin->PinType = TypeSource->PinType;
+
+		for (UEdGraphPin* InPin : MyInputPin->LinkedTo)
+		{
+			if (UK2Node* OwningNode = Cast<UK2Node>(InPin->GetOwningNode()))
+			{
+				if (UK2Node_Knot* KnotNode = Cast<UK2Node_Knot>(OwningNode))
+				{
+					KnotNode->PropagatePinTypeFromOutput();
+				}
+				else
+				{
+					OwningNode->PinConnectionListChanged(InPin);
+				}
+			}
+		}
+	}
+	else 
+	{
+		// TODO?
+	}
 }
 
 void UK2Node_Knot::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

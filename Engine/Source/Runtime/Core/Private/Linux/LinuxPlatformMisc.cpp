@@ -184,7 +184,8 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 		UE_LOG(LogInit, Log, TEXT("Initializing SDL."));
 
 		SDL_SetHint("SDL_VIDEO_X11_REQUIRE_XRANDR", "1");  // workaround for misbuilt SDL libraries on X11.
-		if (SDL_Init(SDL_INIT_EVERYTHING | SDL_INIT_NOPARACHUTE) != 0)
+		// we don't use SDL for audio
+		if (SDL_Init((SDL_INIT_EVERYTHING ^ SDL_INIT_AUDIO) | SDL_INIT_NOPARACHUTE) != 0)
 		{
 			const char * SDLError = SDL_GetError();
 
@@ -774,7 +775,7 @@ void FLinuxPlatformMisc::LoadStartupModules()
 	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
 #endif // !IS_PROGRAM && !UE_SERVER
 
-#if WITH_STEAMCONTROLLER
+#if defined(WITH_STEAMCONTROLLER) && WITH_STEAMCONTROLLER
 	FModuleManager::Get().LoadModule(TEXT("SteamController"));
 #endif // WITH_STEAMCONTROLLER
 

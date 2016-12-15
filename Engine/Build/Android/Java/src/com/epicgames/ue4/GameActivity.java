@@ -98,6 +98,9 @@ import android.os.Build;
 
 import com.epicgames.ue4.DownloadShim;
 
+// used in new virtual keyboard
+import android.view.inputmethod.InputMethodManager;
+
 //$${gameActivityImportAdditions}$$
 
 //$${gameActivityPostImportAdditions}$$
@@ -146,6 +149,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	AlertDialog virtualKeyboardAlert;
 	EditText virtualKeyboardInputBox;
 	String virtualKeyboardPreviousContents;
+
+	// Keep a reference to the main content view so we can bring up the virtual keyboard without an editbox
+	private View mainView;
+	private boolean bKeyboardShowing;
 
 	// Console commands receiver
 	ConsoleCmdReceiver consoleCmdReceiver;
@@ -830,6 +837,11 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		MySurfaceView.getHolder().addCallback(this);
 		setContentView(MySurfaceView);
 
+		// cache a reference to the main content view and set it so it can be focused on
+        mainView = findViewById( android.R.id.content );
+        mainView.setFocusable( true );
+        mainView.setFocusableInTouchMode( true );
+
 //$${gameActivityOnCreateAdditions}$$
 		
 		Log.debug("==============> GameActive.onCreate complete!");
@@ -907,6 +919,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		LocalNotificationCheckAppOpen();
 
+		// Forcing this to false so the virtual keyboard can be shown again after resuming
+		// since calls to showSoftInput are ignored on resume so have to make sure state is reset
+		bKeyboardShowing = false;
+
 //$${gameActivityOnResumeAdditions}$$
 		Log.debug("==============> GameActive.onResume complete!");
 	}
@@ -915,6 +931,13 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	protected void onPause()
 	{
 		super.onPause();
+
+		// hide virtual keyboard before going into the background
+		if( bKeyboardShowing )
+		{
+			AndroidThunkJava_HideVirtualKeyboardInput();
+		}
+
 		if(CurrentDialogType != EAlertDialogType.None)
 		{
 			//	If an AlertDialog is showing when the application is paused, it can cause our main window to be terminated
@@ -925,6 +948,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				{
 					switch(CurrentDialogType)
 					{
+						// this hides the old alert dialog that was used for input
 						case Keyboard:
 							virtualKeyboardAlert.hide(); 
 							break;
@@ -1143,7 +1167,8 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		});
 	}
 
-	public void AndroidThunkJava_HideVirtualKeyboardInput()
+	// old virtual keyboard show/hide functions input dialog
+	public void AndroidThunkJava_HideVirtualKeyboardInputDialog()
 	{
 		if (virtualKeyboardAlert.isShowing() == false)
 		{
@@ -1166,7 +1191,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		});
 	}
 
-	public void AndroidThunkJava_ShowVirtualKeyboardInput(int InputType, String Label, String Contents)
+	public void AndroidThunkJava_ShowVirtualKeyboardInputDialog(int InputType, String Label, String Contents)
 	{
 		if (virtualKeyboardAlert.isShowing() == true)
 		{
@@ -1196,6 +1221,44 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			}
 		});
 	}
+
+	// new functions to show/hide virtual keyboard
+	public void AndroidThunkJava_HideVirtualKeyboardInput()
+	{
+		_activity.runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+		        InputMethodManager imm =(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+		        imm.hideSoftInputFromWindow(mainView.getWindowToken(), 0);
+
+		        bKeyboardShowing = false;
+			}
+		});
+	}
+
+	public void AndroidThunkJava_ShowVirtualKeyboardInput(int InputType, String Label, String Contents)
+	{
+		if (bKeyboardShowing)
+		{
+			Log.debug("Virtual keyboard already showing.");
+			return;
+		}
+
+		_activity.runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				if (mainView.requestFocus())
+				{
+		            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+		            imm.showSoftInput(mainView, 0);
+
+		            bKeyboardShowing = true;
+		        }
+		    }
+	    });
+ 	}
 	
 	public void AndroidThunkJava_LaunchURL(String URL)
 	{

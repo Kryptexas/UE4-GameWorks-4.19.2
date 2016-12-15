@@ -10,14 +10,14 @@
 #include "Audio.h"
 #include "AudioDevice.h"
 
-#if SUPPORTS_PRAGMA_PACK
+#if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack (push,8)
 #endif
 #define AL_NO_PROTOTYPES 1
 #define ALC_NO_PROTOTYPES 1
 #include "AL/al.h"
 #include "AL/alc.h"
-#if SUPPORTS_PRAGMA_PACK
+#if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack (pop)
 #endif
 

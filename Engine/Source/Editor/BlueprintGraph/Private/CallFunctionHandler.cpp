@@ -51,7 +51,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_CallFunction
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4750)
 #endif
@@ -126,7 +126,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 								LatentUUID = GetTypeHash(AssociatedNode->NodeGuid);
 
 								UEdGraphNode* ResultNode = AssociatedNode;
-								UEdGraphNode* SourceNode = Cast<UEdGraphNode>(Context.MessageLog.FindSourceObject(AssociatedNode));
+								UEdGraphNode* SourceNode = Cast<UEdGraphNode>(Context.MessageLog.GetIntermediateTunnelInstance(AssociatedNode));
 								while (SourceNode && SourceNode != ResultNode)
 								{
 									if (SourceNode->NodeGuid.IsValid())
@@ -134,7 +134,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 										LatentUUID = HashCombine(LatentUUID, GetTypeHash(SourceNode->NodeGuid));
 									}
 									ResultNode = SourceNode;
-									SourceNode = Cast<UEdGraphNode>(Context.MessageLog.FindSourceObject(ResultNode));
+									SourceNode = Cast<UEdGraphNode>(Context.MessageLog.GetIntermediateTunnelInstance(ResultNode));
 								}
 							}
 							else
@@ -437,6 +437,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 			}
 
 			// Iterate over all the contexts this functions needs to be called on, and emit a call function statement for each
+			FBlueprintCompiledStatement* LatentStatement = nullptr;
 			for (auto TargetListIt = ContextTerms.CreateIterator(); TargetListIt; ++TargetListIt)
 			{
 				FBPTerminal* Target = *TargetListIt;
@@ -471,6 +472,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 						check(LatentTargetParamIndex != INDEX_NONE);
 						Statement.UbergraphCallIndex = LatentTargetParamIndex;
 						Context.GotoFixupRequestMap.Add(&Statement, ThenExecPin);
+						LatentStatement = &Statement;
 					}
 				}
 
@@ -484,6 +486,12 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 				{
 					FBlueprintCompiledStatement& SuspendState = Context.AppendStatementForNode(Node);
 					SuspendState.Type = KCST_InstrumentedStateSuspend;
+					if (LatentTargetNode != NULL)
+					{
+						check(LatentTargetParamIndex != INDEX_NONE);
+						SuspendState.UbergraphCallIndex = LatentTargetParamIndex;
+						SuspendState.TargetLabel = LatentStatement;
+					}
 				}
 				// End this thread of execution; the latent function will resume it at some point in the future
 				FBlueprintCompiledStatement& PopStatement = Context.AppendStatementForNode(Node);
@@ -810,7 +818,7 @@ FString FKCHandler_CallFunction::GetFunctionNameFromNode(UEdGraphNode* Node) con
 	}
 }
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 

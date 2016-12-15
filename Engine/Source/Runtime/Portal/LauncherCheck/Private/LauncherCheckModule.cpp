@@ -10,7 +10,7 @@
 #include "Modules/ModuleManager.h"
 #include "Interfaces/ILauncherCheckModule.h"
 
-#if WITH_LAUNCHERCHECK
+#if defined(WITH_LAUNCHERCHECK) && WITH_LAUNCHERCHECK
 
 #include "GenericPlatformHttp.h"
 #include "IDesktopPlatform.h"

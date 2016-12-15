@@ -53,6 +53,8 @@ enum EKismetCompiledStatementType
 	KCST_InstrumentedTunnelEndOfThread,	// Instrumented tunnel exit
 	//
 	KCST_ArrayGetByRef,
+	KCST_CreateSet,
+	KCST_CreateMap,
 };
 
 //@TODO: Too rigid / icky design

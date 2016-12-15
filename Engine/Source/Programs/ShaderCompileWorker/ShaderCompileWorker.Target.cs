@@ -4,30 +4,18 @@ using System.Collections.Generic;
 using System.IO;
 using UnrealBuildTool;
 
+[SupportedPlatforms(UnrealPlatformClass.Editor)]
 public class ShaderCompileWorkerTarget : TargetRules
 {
 	public ShaderCompileWorkerTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		LinkType = TargetLinkType.Modular;
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
-	{
-		return UnrealBuildTool.UnrealBuildTool.GetAllEditorPlatforms(ref OutPlatforms, false);
-	}
-
-	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-	{
-		if (UnrealBuildTool.UnrealBuildTool.CommandLineContains("-monolithic") == true)
-		{
-			return true;
-		}
-		return false;
-	}
 
 	public override void SetupBinaries(
 		TargetInfo Target,

@@ -71,7 +71,7 @@ void UBlueprintMapLibrary::GenericMap_Values(const void* TargetMap, const UMapPr
 		UProperty* InnerProp = ArrayProperty->Inner;
 		
 		int32 Size = MapHelper.Num();
-		for( int32 I = 0; I < Size; ++I )
+		for( int32 I = 0; Size; ++I )
 		{
 			if(MapHelper.IsValidIndex(I))
 			{

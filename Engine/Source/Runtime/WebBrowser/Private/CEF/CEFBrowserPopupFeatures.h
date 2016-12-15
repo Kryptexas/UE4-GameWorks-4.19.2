@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 
-class IWebBrowserPopupFeatures;
-
 #if WITH_CEF3
 
 #include "IWebBrowserPopupFeatures.h"
@@ -27,6 +25,12 @@ THIRD_PARTY_INCLUDES_END
 #include "HideWindowsPlatformAtomics.h"
 #include "HideWindowsPlatformTypes.h"
 #endif
+
+#endif
+
+class IWebBrowserPopupFeatures;
+
+#if WITH_CEF3
 
 class FCEFBrowserPopupFeatures
 	: public IWebBrowserPopupFeatures

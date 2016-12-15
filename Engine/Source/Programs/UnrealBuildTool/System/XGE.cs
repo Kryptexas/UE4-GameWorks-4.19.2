@@ -10,13 +10,48 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Win32;
+using System.Text;
 
 namespace UnrealBuildTool
 {
-	public class XGE
+	public class XGE : ActionExecutor
 	{
 		private const string ProgressMarkupPrefix = "@action";
 
+		public override string Name
+		{
+			get { return "XGE"; }
+		}
+
+		public static bool IsAvailable()
+		{
+			// Get the name of the XgConsole executable.
+			string XgConsole = "xgConsole";
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64)
+			{
+				XgConsole = "xgConsole.exe";
+			}
+
+			// Search the path for it
+			string PathVariable = Environment.GetEnvironmentVariable("PATH");
+			foreach (string SearchPath in PathVariable.Split(Path.PathSeparator))
+			{
+				try
+				{
+					string PotentialPath = Path.Combine(SearchPath, XgConsole);
+					if(File.Exists(PotentialPath))
+					{
+						return true;
+					}
+				}
+				catch(ArgumentException)
+				{
+					// PATH variable may contain illegal characters; just ignore them.
+				}
+			}
+			return false;
+		}
+	
 		public static void SaveXGEFile(string XGETaskFilePath)
 		{
 			int FileNum = 0;
@@ -38,9 +73,39 @@ namespace UnrealBuildTool
 		// precompile the Regex needed to parse the XGE output (the ones we want are of the form "File (Duration at +time)"
 		private static Regex XGEDurationRegex = new Regex(@"(?<Filename>.*) *\((?<Duration>[0-9:\.]+) at [0-9\+:\.]+\)", RegexOptions.ExplicitCapture);
 
-		public static ExecutionResult ExecuteActions(List<Action> Actions)
+		public override bool ExecuteActions(List<Action> ActionsToExecute)
 		{
-			ExecutionResult XGEResult = ExecutionResult.TasksSucceeded;
+			bool XGEResult = true;
+
+			// Batch up XGE execution by actions with the same output event handler.
+			List<Action> ActionBatch = new List<Action>();
+			ActionBatch.Add(ActionsToExecute[0]);
+			for (int ActionIndex = 1; ActionIndex < ActionsToExecute.Count && XGEResult; ++ActionIndex)
+			{
+				Action CurrentAction = ActionsToExecute[ActionIndex];
+				if (CurrentAction.OutputEventHandler == ActionBatch[0].OutputEventHandler)
+				{
+					ActionBatch.Add(CurrentAction);
+				}
+				else
+				{
+					XGEResult = XGE.ExecuteActionBatch(ActionBatch);
+					ActionBatch.Clear();
+					ActionBatch.Add(CurrentAction);
+				}
+			}
+			if (ActionBatch.Count > 0 && XGEResult)
+			{
+				XGEResult = XGE.ExecuteActionBatch(ActionBatch);
+				ActionBatch.Clear();
+			}
+
+			return XGEResult;
+		}
+
+		static bool ExecuteActionBatch(List<Action> Actions)
+		{
+			bool XGEResult = true;
 			if (Actions.Count > 0)
 			{
 				// Write the actions to execute to a XGE task file.
@@ -379,7 +444,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="TaskFilePath">- The path to the file containing the tasks to execute in XGE XML format.</param>
 		/// <returns>Indicates whether the tasks were successfully executed.</returns>
-		public static ExecutionResult ExecuteTaskFile(string TaskFilePath, DataReceivedEventHandler OutputEventHandler, int ActionCount)
+		public static bool ExecuteTaskFile(string TaskFilePath, DataReceivedEventHandler OutputEventHandler, int ActionCount)
 		{
 			bool bSilentCompileOutput = false;
 			string SilentOption = bSilentCompileOutput ? "/Silent" : "";
@@ -431,21 +496,18 @@ namespace UnrealBuildTool
 
 				// Wait until the process is finished and return whether it all the tasks successfully executed.
 				XGEProcess.WaitForExit();
-				return XGEProcess.ExitCode == 0 ?
-					ExecutionResult.TasksSucceeded :
-					ExecutionResult.TasksFailed;
+				return XGEProcess.ExitCode == 0;
 			}
 			catch (Exception)
 			{
-				// If an exception is thrown while starting the process, return Unavailable.
-				return ExecutionResult.Unavailable;
+				return false;
 			}
 		}
 
 		/// <summary>
 		/// Executes the tasks in the specified file, parsing progress markup as part of the output.
 		/// </summary>
-		public static ExecutionResult ExecuteTaskFileWithProgressMarkup(string TaskFilePath, int NumActions, DataReceivedEventHandler OutputEventHandler)
+		public static bool ExecuteTaskFileWithProgressMarkup(string TaskFilePath, int NumActions, DataReceivedEventHandler OutputEventHandler)
 		{
 			using (ProgressWriter Writer = new ProgressWriter("Compiling C++ source files...", false))
 			{

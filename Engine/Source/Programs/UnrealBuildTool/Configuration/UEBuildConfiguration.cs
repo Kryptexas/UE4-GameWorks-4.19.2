@@ -146,10 +146,9 @@ namespace UnrealBuildTool
 		public static bool bCleanProject;
 
 		/// <summary>
-		/// Whether we are just running the PrepTargetForDeployment step
+		/// If we are just running the deployment step, specifies the path to the given deployment settings
 		/// </summary>
-		[XmlConfig]
-		public static bool bPrepForDeployment;
+		public static FileReference DeployTargetFile;
 
 		/// <summary>
 		/// Enabled for all builds that include the engine project.  Disabled only when building standalone apps that only link with Core.
@@ -360,6 +359,12 @@ namespace UnrealBuildTool
 		public static bool bEventDrivenLoader;
 
 		/// <summary>
+		/// Enforce "include what you use" rules; warns if monolithic headers (Engine.h, UnrealEd.h, etc...) are used, and checks that source files include their matching header first.
+		/// </summary>
+		[XmlConfig]
+		public static bool bEnforceIWYU;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -407,6 +412,7 @@ namespace UnrealBuildTool
 			bEditorDependsOnShaderCompileWorker = true;
             bForceCompileDevelopmentAutomationTests = false;
             bForceCompilePerformanceAutomationTests = false;
+			bEnforceIWYU = true;
 		}
 
 		/// <summary>

@@ -1,7 +1,5 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
-
 #include "SubmixEffects/AudioMixerSubmixEffectReverb.h"
 #include "AudioMixerEffectsManager.h"
 #include "Audio.h"

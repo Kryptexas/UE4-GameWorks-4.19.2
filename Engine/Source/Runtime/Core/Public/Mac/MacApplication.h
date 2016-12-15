@@ -201,6 +201,8 @@ public:
 
 	bool IsWorkspaceSessionActive() const { return bIsWorkspaceSessionActive; }
 
+	bool IsHighDPIModeEnabled() const { return bIsHighDPIModeEnabled; }
+
 	void SystemModalMode(bool const bInSystemModalMode) { bSystemModalMode = bInSystemModalMode; }
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
@@ -231,7 +233,7 @@ public:
 
 	static FVector2D CalculateScreenOrigin(NSScreen* Screen);
 
-	static int32 GetPrimaryScreenBackingScaleFactor();
+	static float GetPrimaryScreenBackingScaleFactor();
 
 private:
 
@@ -337,6 +339,8 @@ private:
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 
 	bool bIsWorkspaceSessionActive;
+
+	bool bIsHighDPIModeEnabled;
 
 	/** Notification center observers */
 	id AppActivationObserver;

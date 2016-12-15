@@ -10,6 +10,10 @@
 	Command line.
 -----------------------------------------------------------------------------*/
 
+#ifndef WANTS_COMMANDLINE_WHITELIST
+	#define WANTS_COMMANDLINE_WHITELIST 0
+#endif
+
 struct CORE_API FCommandLine
 {
 	/** maximum size of the command line */

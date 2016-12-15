@@ -17,14 +17,18 @@ D3D12CommandContext.h: D3D12 Command Context Interfaces
 
 #include "D3D12RHIPrivate.h"
 #include "AllowWindowsPlatformTypes.h"
+THIRD_PARTY_INCLUDES_START
 #include <delayimp.h>
 
-#if D3D12_PROFILING_ENABLED || XBOXONE_PROFILING_ENABLED
+#if D3D12_PROFILING_ENABLED || (defined(XBOXONE_PROFILING_ENABLED) && XBOXONE_PROFILING_ENABLED)
 	static_assert(WITH_PROFILEGPU == 1, "PIX profiling is requested/enabled, however the engine is compiling out draw events. See Build.h.");
-	#define USE_PIX 1
-	#include "pix.h"
+#define USE_PIX 1
+#include "pix.h"
+#else
+#define USE_PIX 0
 #endif
 #include "HideWindowsPlatformTypes.h"
+THIRD_PARTY_INCLUDES_END
 
 class FD3D12CommandContext : public IRHICommandContext, public FD3D12DeviceChild, public FD3D12SingleNodeGPUObject
 {

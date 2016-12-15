@@ -1,11 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "OpenGLDrvPrivate.h"
+THIRD_PARTY_INCLUDES_START
 #include <SDL.h>
 #if !PLATFORM_HTML5_WIN32
 #include <emscripten/emscripten.h>
 #include <emscripten/html5.h>
 #endif
+THIRD_PARTY_INCLUDES_END
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavascriptFX.h"
 #endif

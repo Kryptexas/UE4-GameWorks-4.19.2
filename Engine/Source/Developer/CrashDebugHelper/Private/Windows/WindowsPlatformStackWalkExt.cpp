@@ -82,7 +82,7 @@ void FWindowsPlatformStackWalkExt::InitSymbols()
 	// This option allows for undecorated names to be handled by the symbol engine.
 	SymOpts |= SYMOPT_UNDNAME;
 
-#if	_DEBUG
+#ifdef	_DEBUG
 	// Disable by default as it can be very spammy/slow.  Turn it on if you are debugging symbol look-up!
 	SymOpts |= SYMOPT_DEBUG;
 #endif // _DEBUG

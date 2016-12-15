@@ -12,6 +12,10 @@
 #include "Misc/FeedbackContextMarkup.h"
 #include "HAL/ThreadHeartBeat.h"
 
+#ifndef WITH_LINUX_NATIVE_DIALOGS
+#define WITH_LINUX_NATIVE_DIALOGS 0
+#endif
+
 //#include "LinuxNativeFeedbackContext.h"
 // custom dialogs
 #if WITH_LINUX_NATIVE_DIALOGS

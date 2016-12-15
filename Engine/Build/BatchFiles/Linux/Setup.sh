@@ -57,6 +57,7 @@ if [ -e /etc/os-release ]; then
        libmono-system-io-compression-filesystem4.0-cil
        mono-devel
        clang-3.5
+       build-essential
        "
     elif [[ "$VERSION_ID" == 16.04 ]]; then
      DEPS="mono-xbuild \
@@ -73,6 +74,7 @@ if [ -e /etc/os-release ]; then
        libmono-system-runtime4.0-cil
        mono-devel
        clang-3.8
+       build-essential
        "
     else # assume the latest, this is going to be a moving target
      DEPS="mono-xbuild \
@@ -89,6 +91,7 @@ if [ -e /etc/os-release ]; then
        libmono-system-runtime4.0-cil
        mono-devel
        clang-3.9
+       build-essential
        "
     fi
 

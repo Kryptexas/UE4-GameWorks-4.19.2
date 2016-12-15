@@ -775,7 +775,7 @@ void FBatchedElements::PrepareShaders(
 
 
 //@todo.VC10: Apparent VC10 compiler bug here causes an access violation when drawing Point arrays (TTP 213844), this occurred in the next two methods
-#if _MSC_VER
+#ifdef _MSC_VER
 PRAGMA_DISABLE_OPTIMIZATION
 #endif
 
@@ -1175,7 +1175,7 @@ bool FBatchedElements::Draw(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type 
 	}
 }
 
-#if _MSC_VER
+#ifdef _MSC_VER
 PRAGMA_ENABLE_OPTIMIZATION
 #endif
 

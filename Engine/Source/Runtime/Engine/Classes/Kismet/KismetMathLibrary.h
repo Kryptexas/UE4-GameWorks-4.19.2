@@ -852,6 +852,18 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords = "ProjectOnTo"))
 	static FVector ProjectVectorOnToVector(FVector V, FVector Target);
 
+	/** 
+	 * Given a direction vector and a surface normal, returns the vector reflected across the surface normal.
+	 * Produces a result like shining a laser at a mirror!
+	 *
+	 * @param Direction Direction vector the ray is coming from.
+	 * @param SurfaceNormal A normal of the surface the ray should be reflected on.
+	 *
+	 * @returns Reflected vector.
+	 */
+	UFUNCTION(BlueprintPure, Category="Math|Vector", meta=(Keywords = "Reflection"))
+	static FVector GetReflectionVector(FVector Direction, FVector SurfaceNormal);
+
 	/**
 	 * Find closest points between 2 segments.
 	 *

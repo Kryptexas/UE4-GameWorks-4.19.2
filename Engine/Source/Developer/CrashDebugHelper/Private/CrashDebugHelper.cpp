@@ -580,7 +580,7 @@ bool ICrashDebugHelper::ReadSourceFile( TArray<FString>& OutStrings )
 		// We assume a special folder for syncing all streams and //depot/ is not used in the view mapping.
 		/*
 			//depot/... //machine/... 
-			//UE4/...	//machine/​​Stream/UE4/...​
+			//UE4/...	//machine/Stream/UE4/...
 		*/
 		const TCHAR* DepotDelimiter = TEXT( "//depot/" );
 		const bool bIsDepot = CrashInfo.DepotName.Contains( DepotDelimiter );

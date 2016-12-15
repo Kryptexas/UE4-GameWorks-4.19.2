@@ -69,6 +69,33 @@ void DumpSessionSettings(const FOnlineSessionSettings* SessionSettings)
 	}
 }
 
+template<typename ValueType>
+void FOnlineSessionSettings::Set(FName Key, const ValueType& Value, EOnlineDataAdvertisementType::Type InType, int32 InID)
+{
+	FOnlineSessionSetting* Setting = Settings.Find(Key);
+	if (Setting)
+	{
+		Setting->Data.SetValue(Value);
+		Setting->AdvertisementType = InType;
+		Setting->ID = InID;
+	}
+	else
+	{
+		Settings.Add(Key, FOnlineSessionSetting(Value, InType, InID));
+	}
+}
+
+/** Explicit instantiation of supported types to Set template above */
+#if !UE_BUILD_DOCS
+template ONLINESUBSYSTEM_API void FOnlineSessionSettings::Set(FName Key, const int32& Value, EOnlineDataAdvertisementType::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSessionSettings::Set(FName Key, const float& Value, EOnlineDataAdvertisementType::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSessionSettings::Set(FName Key, const uint64& Value, EOnlineDataAdvertisementType::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSessionSettings::Set(FName Key, const double& Value, EOnlineDataAdvertisementType::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSessionSettings::Set(FName Key, const FString& Value, EOnlineDataAdvertisementType::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSessionSettings::Set(FName Key, const bool& Value, EOnlineDataAdvertisementType::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSessionSettings::Set(FName Key, const TArray<uint8>& Value, EOnlineDataAdvertisementType::Type InType, int32 InID);
+#endif
+
 template<typename ValueType> 
 void FOnlineSessionSettings::Set(FName Key, const ValueType& Value, EOnlineDataAdvertisementType::Type InType)
 {
@@ -147,6 +174,43 @@ EOnlineDataAdvertisementType::Type FOnlineSessionSettings::GetAdvertisementType(
 	UE_LOG(LogOnline, Warning, TEXT("Unable to find key for advertisement type request: %s"), *Key.ToString());
 	return EOnlineDataAdvertisementType::DontAdvertise;
 }
+
+int32 FOnlineSessionSettings::GetID(FName Key) const
+{
+	const FOnlineSessionSetting* Setting = Settings.Find(Key);
+	if (Setting)
+	{
+		return Setting->ID;
+	}
+
+	UE_LOG(LogOnline, Warning, TEXT("Unable to find key for ID request: %s"), *Key.ToString());
+	return -1;
+}
+
+template<typename ValueType>
+void FOnlineSearchSettings::Set(FName Key, const ValueType& Value, EOnlineComparisonOp::Type InType, int32 InID)
+{
+	FOnlineSessionSearchParam* SearchParam = SearchParams.Find(Key);
+	if (SearchParam)
+	{
+		SearchParam->Data.SetValue(Value);
+		SearchParam->ComparisonOp = InType;
+		SearchParam->ID = InID;
+	}
+	else
+	{
+		SearchParams.Add(Key, FOnlineSessionSearchParam(Value, InType, InID));
+	}
+}
+
+/** Explicit instantiation of supported types to Set template above */
+template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<int32>(FName Key, const int32& Value, EOnlineComparisonOp::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<float>(FName Key, const float& Value, EOnlineComparisonOp::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<uint64>(FName Key, const uint64& Value, EOnlineComparisonOp::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<double>(FName Key, const double& Value, EOnlineComparisonOp::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<FString>(FName Key, const FString& Value, EOnlineComparisonOp::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set< TArray<uint8> >(FName Key, const TArray<uint8>& Value, EOnlineComparisonOp::Type InType, int32 InID);
+template ONLINESUBSYSTEM_API void FOnlineSearchSettings::Set<bool>(FName Key, const bool& Value, EOnlineComparisonOp::Type InType, int32 InID);
 
 template<typename ValueType> 
 void FOnlineSearchSettings::Set(FName Key, const ValueType& Value, EOnlineComparisonOp::Type InType)

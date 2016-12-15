@@ -3470,7 +3470,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(const UStaticMesh* StaticMesh, int3
 			AccountedTriangles += TriangleCount;
 		}
 
-#if TODO_FBX
+#ifdef TODO_FBX
 		// Throw a warning if this is a lightmap export and the exported poly count does not match the raw triangle data count
 		if (LightmapUVChannel != -1 && AccountedTriangles != RenderMesh.RawTriangles.GetElementCount())
 		{
@@ -3780,7 +3780,7 @@ void FFbxExporter::ExportSplineMeshToFbx(const USplineMeshComponent* SplineMeshC
 		}
 	}
 
-#if TODO_FBX
+#ifdef TODO_FBX
 	// This is broken. We are exporting the render mesh but providing smoothing
 	// information from the source mesh. The render triangles are not in the
 	// same order. Therefore we should export the raw mesh or not export

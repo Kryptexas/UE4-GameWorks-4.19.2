@@ -984,12 +984,29 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 	case SDL_FINGERDOWN:
 		{
-			UE_LOG(LogLinuxWindow, Verbose, TEXT("Finger %llu is down at (%f, %f)"), Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
-
 			// touch events can have no window associated with them, in that case ignore (with a warning)
 			if (LIKELY(!bWindowlessEvent))
 			{
-				MessageHandler->OnTouchStarted(CurrentEventWindow, GetTouchEventLocation(Event), GetTouchIndexForFinger(Event.tfinger.fingerId), Event.tfinger.touchId);
+				int xOffset, yOffset;
+				GetWindowPositionInEventLoop(NativeWindow, &xOffset, &yOffset);
+				FVector2D Offset(static_cast<float>(xOffset), static_cast<float>(yOffset));
+
+				// remove touch context even if it existed
+				uint64 FingerId = static_cast<uint64>(Event.tfinger.fingerId);
+				if (UNLIKELY(Touches.Find(FingerId) != nullptr))
+				{
+					Touches.Remove(FingerId);
+					UE_LOG(LogLinuxWindow, Warning, TEXT("Received another SDL_FINGERDOWN for finger %llu which was already down."), FingerId);
+				}
+
+				FTouchContext NewTouch;
+				NewTouch.TouchIndex = Touches.Num() + 1;	// +1 to mimic Windows behavior (arguably wrong)
+				NewTouch.Location = GetTouchEventLocation(Event) + Offset;
+				NewTouch.DeviceId = Event.tfinger.touchId;
+				Touches.Add(FingerId, NewTouch);
+
+				UE_LOG(LogLinuxWindow, Verbose, TEXT("OnTouchStarted at (%f, %f), finger %d (system touch id %llu)"), NewTouch.Location.X, NewTouch.Location.Y, NewTouch.TouchIndex, FingerId);
+				MessageHandler->OnTouchStarted(CurrentEventWindow, NewTouch.Location, NewTouch.TouchIndex, 0);// NewTouch.DeviceId);
 			}
 			else
 			{
@@ -1002,15 +1019,72 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 		{
 			UE_LOG(LogLinuxWindow, Verbose, TEXT("Finger %llu is up at (%f, %f)"), Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
 
-			MessageHandler->OnTouchEnded(GetTouchEventLocation(Event), GetTouchIndexForFinger(Event.tfinger.fingerId), Event.tfinger.touchId);
+			// touch events can have no window associated with them, in that case ignore (with a warning)
+			if (LIKELY(!bWindowlessEvent))
+			{
+				int xOffset, yOffset;
+				GetWindowPositionInEventLoop(NativeWindow, &xOffset, &yOffset);
+				FVector2D Offset(static_cast<float>(xOffset), static_cast<float>(yOffset));
+
+				uint64 FingerId = static_cast<uint64>(Event.tfinger.fingerId);
+				FTouchContext* TouchContext = Touches.Find(FingerId);
+				if (UNLIKELY(TouchContext == nullptr))
+				{
+					UE_LOG(LogLinuxWindow, Warning, TEXT("Received SDL_FINGERUP for finger %llu which was already up."), FingerId);
+					// do not send a duplicate up
+				}
+				else
+				{
+					TouchContext->Location = GetTouchEventLocation(Event) + Offset;
+					// check touch device?
+
+					UE_LOG(LogLinuxWindow, Verbose, TEXT("OnTouchEnded at (%f, %f), finger %d (system touch id %llu)"), TouchContext->Location.X, TouchContext->Location.Y, TouchContext->TouchIndex, FingerId);
+					MessageHandler->OnTouchEnded(TouchContext->Location, TouchContext->TouchIndex, 0);// TouchContext->DeviceId);
+
+					// remove the touch
+					Touches.Remove(FingerId);
+				}
+			}
+			else
+			{
+				UE_LOG(LogLinuxWindow, Warning, TEXT("Ignoring touch event SDL_FINGERUP (finger: %llu, x=%f, y=%f) that doesn't have a window associated with it"),
+					Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+			}
 		}
 		break;
 	case SDL_FINGERMOTION:
 		{
-			UE_LOG(LogLinuxWindow, Verbose, TEXT("Finger %llu moved to (%f, %f)"), Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
-
 			// touch events can have no window associated with them, in that case ignore (with a warning)
-			MessageHandler->OnTouchMoved(GetTouchEventLocation(Event), GetTouchIndexForFinger(Event.tfinger.fingerId), Event.tfinger.touchId);
+			if (LIKELY(!bWindowlessEvent))
+			{
+				int xOffset, yOffset;
+				GetWindowPositionInEventLoop(NativeWindow, &xOffset, &yOffset);
+				FVector2D Offset(static_cast<float>(xOffset), static_cast<float>(yOffset));
+
+				uint64 FingerId = static_cast<uint64>(Event.tfinger.fingerId);
+				FTouchContext* TouchContext = Touches.Find(FingerId);
+				if (UNLIKELY(TouchContext == nullptr))
+				{
+					UE_LOG(LogLinuxWindow, Warning, TEXT("Received SDL_FINGERMOTION for finger %llu which was not down."), FingerId);
+					// ignore the event
+				}
+				else
+				{
+					// do not send moved event if position has not changed
+					FVector2D Location = GetTouchEventLocation(Event) + Offset;
+					if (LIKELY((Location - TouchContext->Location).IsNearlyZero() == false))
+					{
+						TouchContext->Location = Location;
+						UE_LOG(LogLinuxWindow, Verbose, TEXT("OnTouchMoved at (%f, %f), finger %d (system touch id %llu)"), TouchContext->Location.X, TouchContext->Location.Y, TouchContext->TouchIndex, FingerId);
+						MessageHandler->OnTouchMoved(TouchContext->Location, TouchContext->TouchIndex, 0);// TouchContext->DeviceId);
+					}
+				}
+			}
+			else
+			{
+				UE_LOG(LogLinuxWindow, Warning, TEXT("Ignoring touch event SDL_FINGERMOTION (finger: %llu, x=%f, y=%f) that doesn't have a window associated with it"),
+					Event.tfinger.fingerId, Event.tfinger.x, Event.tfinger.y);
+			}
 		}
 		break;
 

@@ -1093,7 +1093,7 @@ public:
 	/** Destructor. */
 	~FEventGraphSample()
 	{
-#if	_DEBUG
+#ifdef	_DEBUG
 		int k = 0; k++;
 #endif // _DEBUG
 	}

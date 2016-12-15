@@ -33,6 +33,7 @@
 #include "UObject/LinkerPlaceholderFunction.h"
 #include "UObject/StructScriptLoader.h"
 #include "UObject/PropertyHelper.h"
+#include "Serialization/ArchiveScriptReferenceCollector.h"
 
 // This flag enables some expensive class tree validation that is meant to catch mutations of 
 // the class tree outside of SetSuperStruct. It has been disabled because loading blueprints 
@@ -42,7 +43,7 @@
 DEFINE_LOG_CATEGORY(LogScriptSerialization);
 DEFINE_LOG_CATEGORY(LogClass);
 
-#if _MSC_VER == 1900
+#if defined(_MSC_VER) && _MSC_VER == 1900
 	#ifdef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 	#endif
@@ -1335,6 +1336,18 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		// Required by the unified GC when running in the editor
 		Collector.AddReferencedObject( This->SuperStruct, This );
 		Collector.AddReferencedObject( This->Children, This );
+
+		TArray<UObject*> ScriptObjectReferences;
+		FArchiveScriptReferenceCollector ObjectReferenceCollector( ScriptObjectReferences );
+		int32 iCode = 0;
+		while( iCode < This->Script.Num() )
+		{	
+			This->SerializeExpr( iCode, ObjectReferenceCollector );
+		}
+		for( int32 Index = 0; Index < ScriptObjectReferences.Num(); Index++ )
+		{
+			Collector.AddReferencedObject( ScriptObjectReferences[ Index ], This );
+		}
 	}
 
 	//@todo NickW, temp hack to make stale property chains less crashy
@@ -2484,6 +2497,11 @@ void UScriptStruct::RecursivelyPreload() {}
 FGuid UScriptStruct::GetCustomGuid() const
 {
 	return FGuid();
+}
+
+FString UScriptStruct::GetStructCPPName() const
+{
+	return FString::Printf(TEXT("F%s"), *GetName());
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UScriptStruct, UStruct,
@@ -4956,7 +4974,7 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UDynamicClass, UClass,
 }
 );
 
-#if _MSC_VER == 1900
+#if defined(_MSC_VER) && _MSC_VER == 1900
 	#ifdef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 	#endif

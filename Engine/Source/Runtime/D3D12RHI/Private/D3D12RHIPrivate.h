@@ -18,6 +18,16 @@
 
 #define D3D12_SUPPORTS_PARALLEL_RHI_EXECUTE 1
 
+#if UE_BUILD_SHIPPING || UE_BUILD_TEST
+#define CHECK_SRV_TRANSITIONS 0
+#else
+#define CHECK_SRV_TRANSITIONS 0	// MSFT: Seb: TODO: ENable
+#endif
+
+#ifndef WITH_DX_PERF
+#define WITH_DX_PERF 0
+#endif
+
 // Dependencies.
 #include "CoreMinimal.h"
 #include "RHI.h"
@@ -91,6 +101,8 @@ typedef FD3D12StateCacheBase FD3D12StateCache;
 #define LOG_VIEWPORT_EVENTS 1
 #define LOG_PRESENT 1
 #define LOG_EXECUTE_COMMAND_LISTS 1
+#else
+#define LOG_VIEWPORT_EVENTS 0
 #endif
 
 #if EXECUTE_DEBUG_COMMAND_LISTS

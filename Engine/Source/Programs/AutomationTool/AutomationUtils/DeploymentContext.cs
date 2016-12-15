@@ -348,7 +348,7 @@ public class DeploymentContext //: ProjectParams
         }
         else
         {
-            ConfigCacheIni GameIni = ConfigCacheIni.CreateConfigCacheIni(InTargetPlatform.PlatformType, "Game", RawProjectPath.Directory);
+            ConfigHierarchy GameIni = ConfigCache.ReadHierarchy(ConfigHierarchyType.Game, RawProjectPath.Directory, InTargetPlatform.PlatformType);
             String IniPath = "/Script/UnrealEd.ProjectPackagingSettings";
             bool bSetting = false;
             if (GameIni.GetBool(IniPath, "bGenerateChunks", out bSetting))

@@ -29,14 +29,20 @@ public class HTTP : ModuleRules
 
 			PrivateDependencyModuleNames.Add("SSL");
 		}
-
-        if (Target.Platform == UnrealTargetPlatform.Linux ||
+        else if (Target.Platform == UnrealTargetPlatform.Linux ||
 			Target.Platform == UnrealTargetPlatform.Android ||
 			Target.Platform == UnrealTargetPlatform.Switch)
 		{
             AddEngineThirdPartyPrivateStaticDependencies(Target, "libcurl");
             PrivateDependencyModuleNames.Add("SSL");
 		}
+		else
+		{
+			Definitions.Add("WITH_SSL=0");
+			Definitions.Add("WITH_LIBCURL=0");
+		}
+
+
 		if (Target.Platform == UnrealTargetPlatform.HTML5)
         {
             if (Target.Architecture == "-win32")

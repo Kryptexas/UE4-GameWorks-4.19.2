@@ -32,5 +32,9 @@ public class SSL : ModuleRules
 
 			AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
 		}
+		else
+		{
+			Definitions.Add("WITH_SSL=0");
+		}
     }
 }

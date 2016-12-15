@@ -181,7 +181,7 @@ namespace IncludeTool
 			}
 			else
 			{
-				Markup = PreprocessorMarkup.ParseArray(new TokenReader(Text, TextLocation.Origin));
+				Markup = PreprocessorMarkup.ParseArray(Text);
 			}
 
 			// Find the markup range which excludes header guards

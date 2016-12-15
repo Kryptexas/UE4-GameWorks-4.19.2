@@ -10,6 +10,7 @@
 #include "TextureCompressorModule.h"
 #include "PixelFormat.h"
 #include "TextureConverter.h"
+#include "HAL/PlatformProcess.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatAndroid, Log, All);
 
@@ -247,7 +248,7 @@ static ITextureFormat* Singleton = NULL;
 
 
 #if PLATFORM_WINDOWS
-	Windows::HMODULE	TextureConverterHandle = NULL;
+	void*	TextureConverterHandle = NULL;
 	FString QualCommBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/QualComm/Win64/");
 #endif
 
@@ -259,7 +260,7 @@ public:
 	FTextureFormatAndroidModule()
 	{
 #if PLATFORM_WINDOWS
-		TextureConverterHandle = Windows::LoadLibraryW(*(QualCommBinariesRoot + "TextureConverter.dll"));
+		TextureConverterHandle = FPlatformProcess::GetDllHandle(*(QualCommBinariesRoot + "TextureConverter.dll"));
 #endif
 	}
 
@@ -269,7 +270,7 @@ public:
 		Singleton = NULL;
 
 #if PLATFORM_WINDOWS
-		Windows::FreeLibrary(TextureConverterHandle);
+		FPlatformProcess::FreeDllHandle(TextureConverterHandle);
 #endif
 	}
 	virtual ITextureFormat* GetTextureFormat()
@@ -277,7 +278,7 @@ public:
 		if (!Singleton)
 		{
 #if PLATFORM_WINDOWS
-			TextureConverterHandle = Windows::LoadLibraryW(*(QualCommBinariesRoot + "TextureConverter.dll"));
+			TextureConverterHandle = FPlatformProcess::GetDllHandle(*(QualCommBinariesRoot + "TextureConverter.dll"));
 #endif
 			Singleton = new FTextureFormatAndroid();
 		}

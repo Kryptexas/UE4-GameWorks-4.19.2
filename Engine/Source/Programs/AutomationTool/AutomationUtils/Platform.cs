@@ -518,11 +518,6 @@ namespace AutomationTool
 
 		}
 
-		public virtual void PostBuildTarget(UE4Build Build, FileReference UProjectPath, string TargetName, string Config)
-		{
-
-		}
-
 		/// <summary>
 		/// General purpose command to run generic string commands inside the platform interfeace
 		/// </summary>

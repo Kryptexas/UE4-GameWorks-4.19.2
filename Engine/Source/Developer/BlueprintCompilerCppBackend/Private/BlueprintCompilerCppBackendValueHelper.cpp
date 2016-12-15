@@ -193,10 +193,14 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 		return bComplete;
 	};
 
-	auto StructProperty = Cast<const UStructProperty>(Property);
+	const UStructProperty* StructProperty = Cast<const UStructProperty>(Property);
 	check(!StructProperty || StructProperty->Struct);
-	auto ArrayProperty = Cast<const UArrayProperty>(Property);
+	const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property);
 	check(!ArrayProperty || ArrayProperty->Inner);
+	const USetProperty* SetProperty = Cast<const USetProperty>(Property);
+	check(!SetProperty || SetProperty->ElementProp);
+	const UMapProperty* MapProperty = Cast<const UMapProperty>(Property);
+	check(!MapProperty || (MapProperty->KeyProp && MapProperty->ValueProp));
 
 	if (!bWithoutFirstConstructionLine)
 	{
@@ -207,7 +211,7 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 			Context.AddLine(FString::Printf(TEXT("%s = %s;"), *PathToMember, *ValueStr));
 		}
 		// array initialization "array_var = TArray<..>()" is complete, but it still needs items.
-		if (bComplete && !ArrayProperty)
+		if (bComplete && !ArrayProperty && !SetProperty && !MapProperty)
 		{
 			return;
 		}
@@ -229,63 +233,233 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 	if (ArrayProperty)
 	{
 		FScriptArrayHelper ScriptArrayHelper(ArrayProperty, ValuePtr);
-		UStructProperty* InnerStructProperty = Cast<UStructProperty>(ArrayProperty->Inner);
-		
-		const bool bNoExportStructure = InnerStructProperty && InnerStructProperty->Struct
-			&& InnerStructProperty->Struct->IsNative()
-			&& (InnerStructProperty->Struct->StructFlags & STRUCT_NoExport);
-		const bool bInitializeWithoutScriptStruct = bNoExportStructure;
-
-		UScriptStruct* RegularInnerStruct = nullptr;
-		if (!bInitializeWithoutScriptStruct)
-		{
-			if (InnerStructProperty && !FEmitDefaultValueHelper::SpecialStructureConstructor(InnerStructProperty->Struct, nullptr, nullptr))
-			{
-				RegularInnerStruct = InnerStructProperty->Struct;
-			}
-		}
-
 		if (ScriptArrayHelper.Num())
 		{
-			const TCHAR* ArrayReserveFunctionName = RegularInnerStruct ? TEXT("AddUninitialized") : TEXT("Reserve");
-			Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, ArrayReserveFunctionName, ScriptArrayHelper.Num()));
-
-			if (RegularInnerStruct)
+			const UStructProperty* InnerStructProperty = Cast<const UStructProperty>(ArrayProperty->Inner);
+			const bool bInitializeWithoutScriptStruct =  InnerStructProperty && InnerStructProperty->Struct
+				&& InnerStructProperty->Struct->IsNative()
+				&& (InnerStructProperty->Struct->StructFlags & STRUCT_NoExport);
+			const UScriptStruct* RegularInnerStruct = nullptr;
+			if(!bInitializeWithoutScriptStruct)
 			{
-				const FString InnerStructStr = Context.FindGloballyMappedObject(RegularInnerStruct, UScriptStruct::StaticClass());
+				if (InnerStructProperty && !FEmitDefaultValueHelper::SpecialStructureConstructor(InnerStructProperty->Struct, nullptr, nullptr))
+				{
+					RegularInnerStruct = InnerStructProperty->Struct;
+				}
+			}
+			
+			if(RegularInnerStruct)
+			{
+				Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, TEXT("AddUninitialized"), ScriptArrayHelper.Num()));
 				Context.AddLine(FString::Printf(TEXT("%s->%s(%s.GetData(), %d);")
-					, *InnerStructStr
+					, *Context.FindGloballyMappedObject(RegularInnerStruct, UScriptStruct::StaticClass())
 					, GET_FUNCTION_NAME_STRING_CHECKED(UStruct, InitializeStruct)
 					, *PathToMember
 					, ScriptArrayHelper.Num()));
-			}
-		}
 
-		const FStructOnScope DefaultStruct(RegularInnerStruct);
-
-		for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
-		{
-			const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
-
-			bool bComplete = false;
-			if (!RegularInnerStruct)
-			{
-				FString ValueStr;
-				bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr, bInitializeWithoutScriptStruct);
-				ensure(bComplete || bInitializeWithoutScriptStruct);
-				Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
-			}
-			
-			if (RegularInnerStruct || (bInitializeWithoutScriptStruct && !bComplete))
-			{
-				FString LocalPathToMember = FString::Printf(TEXT("%s[%d]"), *PathToMember, Index);
-				if (RegularInnerStruct)
+				const FStructOnScope DefaultStruct(RegularInnerStruct);
+				for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
 				{
 					const FString ArrayElementRefName = Context.GenerateUniqueLocalName();
-					Context.AddLine(FString::Printf(TEXT("auto& %s = %s;"), *ArrayElementRefName, *LocalPathToMember));
-					LocalPathToMember = ArrayElementRefName;
+					Context.AddLine(FString::Printf(TEXT("auto& %s = %s[%d];"), *ArrayElementRefName, *PathToMember, Index));
+					InnerGenerate(Context, ArrayProperty->Inner, ArrayElementRefName, ScriptArrayHelper.GetRawPtr(Index), nullptr, true);
 				}
-				InnerGenerate(Context, ArrayProperty->Inner, LocalPathToMember, LocalValuePtr, DefaultStruct.GetStructMemory(), true);
+			}
+			else
+			{
+				Context.AddLine(FString::Printf(TEXT("%s.%s(%d);"), *PathToMember, TEXT("Reserve"), ScriptArrayHelper.Num()));
+				
+				for (int32 Index = 0; Index < ScriptArrayHelper.Num(); ++Index)
+				{
+					const uint8* LocalValuePtr = ScriptArrayHelper.GetRawPtr(Index);
+
+					FString ValueStr;
+					bool bComplete = OneLineConstruction(Context, ArrayProperty->Inner, LocalValuePtr, ValueStr, bInitializeWithoutScriptStruct);
+					ensure(bComplete || bInitializeWithoutScriptStruct);
+					Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
+				
+					if (bInitializeWithoutScriptStruct && !bComplete)
+					{
+						InnerGenerate(Context, ArrayProperty->Inner, FString::Printf(TEXT("%s[%d]"), *PathToMember, Index), LocalValuePtr, nullptr, true);
+					}
+				}
+			}
+		}
+	}
+	else if(SetProperty)
+	{
+		FScriptSetHelper ScriptSetHelper(SetProperty, ValuePtr);
+		
+		if (ScriptSetHelper.Num())
+		{
+			const UStructProperty* ElementStructProperty = Cast<const UStructProperty>(SetProperty->ElementProp);
+			
+			Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptSetHelper.Num()));
+
+			if(ElementStructProperty)
+			{
+				// declare a temporary scratch struct for the purpose of initialization. We create a scope so that 
+				// we don't have to generate a new name for it every time we initialize a TSet:
+				Context.AddLine(TEXT("{"));
+				Context.IncreaseIndent();
+
+				Context.AddLine(FString::Printf(TEXT("%s SetMemberScratchInitializer;"), *FEmitHelper::GetCppName(ElementStructProperty->Struct)));
+
+				int32 Size = ScriptSetHelper.Num();
+				for (int32 I = 0; Size; ++I)
+				{
+					if(ScriptSetHelper.IsValidIndex(I))
+					{
+						--Size;
+
+						// populate SetMemberScratchInitializer:
+						InnerGenerate(Context, SetProperty->ElementProp, TEXT("SetMemberScratchInitializer"), ScriptSetHelper.GetElementPtr(I), nullptr, true);
+
+						// Move into the TSet:
+						Context.AddLine(FString::Printf(TEXT("%s.Add(MoveTemp(SetMemberScratchInitializer));"), *PathToMember));
+
+						// reset SetMemberScratchInitializer:
+						Context.AddLine(FString::Printf(TEXT("SetMemberScratchInitializer = %s();"), *FEmitHelper::GetCppName(ElementStructProperty->Struct)));
+					}
+				}
+
+				Context.DecreaseIndent();
+				Context.AddLine(TEXT("}"));
+			}
+			else
+			{
+				int32 Size = ScriptSetHelper.Num();
+				for (int32 I = 0; Size; ++I)
+				{
+					if(ScriptSetHelper.IsValidIndex(I))
+					{
+						--Size;
+
+						FString ValueStr;
+						ensure(OneLineConstruction(Context, SetProperty->ElementProp, ScriptSetHelper.GetElementPtr(I), ValueStr, false));
+						Context.AddLine(FString::Printf(TEXT("%s.Add(%s);"), *PathToMember, *ValueStr));
+					}
+				}
+			}
+		}
+	}
+	else if(MapProperty)
+	{
+		FScriptMapHelper ScriptMapHelper(MapProperty, ValuePtr);
+		if (ScriptMapHelper.Num())
+		{	
+			const UStructProperty* KeyStructProperty = Cast<const UStructProperty>(MapProperty->KeyProp);
+			const UStructProperty* ValueStructProperty = Cast<const UStructProperty>(MapProperty->ValueProp);
+
+			Context.AddLine(FString::Printf(TEXT("%s.Reserve(%d);"), *PathToMember, ScriptMapHelper.Num()));
+
+			// Split into 4 cases. They are all similar (add the Key/Value to the Map), but structs are significantly more complicated to initialize than primitives:
+			if(KeyStructProperty && ValueStructProperty)
+			{
+				// will add indentation and opening/closing brackets
+				// used to manage locals that were added via FEmitHelper::GenerateGetPropertyByName() 
+				// (removes them from the cache so we don't try to use them outside of the scope)
+				FScopeBlock NestedScopeBlock(Context);
+				
+				Context.AddLine(FString::Printf(TEXT("%s MapKeyScratchInitializer;"), *FEmitHelper::GetCppName(KeyStructProperty->Struct)));
+				Context.AddLine(FString::Printf(TEXT("%s MapValueScratchInitializer;"), *FEmitHelper::GetCppName(ValueStructProperty->Struct)));
+
+				int32 Size = ScriptMapHelper.Num();
+				for (int32 I = 0; Size; ++I)
+				{
+					if(ScriptMapHelper.IsValidIndex(I))
+					{
+						--Size;
+
+						// populate MapKeyScratchInitializer and MapValueScratchInitializer:
+						InnerGenerate(Context, MapProperty->KeyProp, TEXT("MapKeyScratchInitializer"), ScriptMapHelper.GetKeyPtr(I), nullptr, true);
+						InnerGenerate(Context, MapProperty->ValueProp, TEXT("MapValueScratchInitializer"), ScriptMapHelper.GetValuePtr(I), nullptr, true);
+
+						// Move into the TMap:
+						Context.AddLine(FString::Printf(TEXT("%s.Add(MoveTemp(MapKeyScratchInitializer), MoveTemp(MapValueScratchInitializer));"), *PathToMember));
+
+						// reset MapKeyScratchInitializer and MapValueScratchInitializer:
+						Context.AddLine(FString::Printf(TEXT("MapKeyScratchInitializer = %s();"), *FEmitHelper::GetCppName(KeyStructProperty->Struct)));
+						Context.AddLine(FString::Printf(TEXT("MapValueScratchInitializer = %s();"), *FEmitHelper::GetCppName(ValueStructProperty->Struct)));
+					}
+				}
+			}
+			else if( KeyStructProperty )
+			{
+				// will add indentation and opening/closing brackets
+				// used to manage locals that were added via FEmitHelper::GenerateGetPropertyByName() 
+				// (removes them from the cache so we don't try to use them outside of the scope)
+				FScopeBlock NestedScopeBlock(Context);
+				
+				Context.AddLine(FString::Printf(TEXT("%s MapKeyScratchInitializer;"), *FEmitHelper::GetCppName(KeyStructProperty->Struct)));
+
+				int32 Size = ScriptMapHelper.Num();
+				for (int32 I = 0; Size; ++I)
+				{
+					if(ScriptMapHelper.IsValidIndex(I))
+					{
+						--Size;
+
+						// populate MapKeyScratchInitializer:
+						InnerGenerate(Context, MapProperty->KeyProp, TEXT("MapKeyScratchInitializer"), ScriptMapHelper.GetKeyPtr(I), nullptr, true);
+						
+						FString ValueStr;
+						ensure(OneLineConstruction(Context, MapProperty->ValueProp, ScriptMapHelper.GetValuePtr(I), ValueStr, false));
+
+						// Move into the TMap:
+						Context.AddLine(FString::Printf(TEXT("%s.Add(MoveTemp(MapKeyScratchInitializer), %s);"), *PathToMember, *ValueStr));
+
+						// reset MapKeyScratchInitializer:
+						Context.AddLine(FString::Printf(TEXT("MapKeyScratchInitializer = %s();"), *FEmitHelper::GetCppName(KeyStructProperty->Struct)));
+					}
+				}
+			}
+			else if( ValueStructProperty )
+			{
+				// will add indentation and opening/closing brackets
+				// used to manage locals that were added via FEmitHelper::GenerateGetPropertyByName() 
+				// (removes them from the cache so we don't try to use them outside of the scope)
+				FScopeBlock NestedScopeBlock(Context);
+				
+				Context.AddLine(FString::Printf(TEXT("%s MapValueScratchInitializer;"), *FEmitHelper::GetCppName(ValueStructProperty->Struct)));
+
+				int32 Size = ScriptMapHelper.Num();
+				for (int32 I = 0; Size; ++I)
+				{
+					if(ScriptMapHelper.IsValidIndex(I))
+					{
+						--Size;
+
+						// populate MapValueScratchInitializer:
+						InnerGenerate(Context, MapProperty->ValueProp, TEXT("MapValueScratchInitializer"), ScriptMapHelper.GetValuePtr(I), nullptr, true);
+						
+						FString KeyStr;
+						ensure(OneLineConstruction(Context, MapProperty->KeyProp, ScriptMapHelper.GetKeyPtr(I), KeyStr, false));
+
+						// Move into the TMap:
+						Context.AddLine(FString::Printf(TEXT("%s.Add(%s, MoveTemp(MapValueScratchInitializer));"), *PathToMember, *KeyStr));
+
+						// reset MapValueScratchInitializer:
+						Context.AddLine(FString::Printf(TEXT("MapValueScratchInitializer = %s();"), *FEmitHelper::GetCppName(ValueStructProperty->Struct)));
+					}
+				}
+			}
+			else
+			{
+				int32 Size = ScriptMapHelper.Num();
+				for (int32 I = 0; Size; ++I)
+				{
+					if(ScriptMapHelper.IsValidIndex(I))
+					{
+						--Size;
+
+						FString KeyStr;
+						ensure(OneLineConstruction(Context, MapProperty->KeyProp, ScriptMapHelper.GetKeyPtr(I), KeyStr, false));
+						FString ValueStr;
+						ensure(OneLineConstruction(Context, MapProperty->ValueProp, ScriptMapHelper.GetValuePtr(I), ValueStr, false));
+						Context.AddLine(FString::Printf(TEXT("%s.Add(%s, %s);"), *PathToMember, *KeyStr, *ValueStr));
+					}
+				}
 			}
 		}
 	}
@@ -804,71 +978,69 @@ struct FFakeImportTableHelper
 		{
 			auto GatherDependencies = [&](UClass* InClass)
 			{
-				check(InClass);
+				SerializeBeforeSerializeClassDependencies.Add(InClass->GetSuperClass());
+
+				for (const FImplementedInterface& ImplementedInterface : InClass->Interfaces)
 				{
-					SerializeBeforeSerializeClassDependencies.Add(InClass->GetSuperClass());
+					SerializeBeforeSerializeClassDependencies.Add(ImplementedInterface.Class);
+				}
 
-					for (const FImplementedInterface& ImplementedInterface : InClass->Interfaces)
+				TArray<UObject*> ObjectsInsideClass;
+				GetObjectsWithOuter(InClass, ObjectsInsideClass, true);
+				for (UObject* Obj : ObjectsInsideClass)
+				{
+					UProperty* Property = Cast<UProperty>(Obj);
+					if (!Property)
 					{
-						SerializeBeforeSerializeClassDependencies.Add(ImplementedInterface.Class);
+						continue;
 					}
-
-					TArray<UObject*> ObjectsInsideClass;
-					GetObjectsWithOuter(InClass, ObjectsInsideClass, true);
-					for (UObject* Obj : ObjectsInsideClass)
+					const UProperty* OwnerProperty = Property->GetOwnerProperty();
+					if (!ensure(IsValid(OwnerProperty)))
 					{
-						UProperty* Property = Cast<UProperty>(Obj);
-						if (!Property)
-						{
-							continue;
-						}
-						const UProperty* OwnerProperty = Property->GetOwnerProperty();
-						if (!ensure(IsValid(OwnerProperty)))
-						{
-							continue;
-						}
+						continue;
+					}
 						
-						// TODO:
-						// Let UDS_A contain UDS_B. Let UDS_B contain an array or a set of UDS_A. It causes a cyclic dependency. 
-						// Should we try to fix it at this stage?
+					// TODO:
+					// Let UDS_A contain UDS_B. Let UDS_B contain an array or a set of UDS_A. It causes a cyclic dependency. 
+					// Should we try to fix it at this stage?
 
-						const bool bIsParam = (0 != (OwnerProperty->PropertyFlags & CPF_Parm)) && OwnerProperty->IsIn(InClass);
-						const bool bIsMemberVariable = (OwnerProperty->GetOuter() == InClass);
-						if (bIsParam || bIsMemberVariable) // Affects the class signature. It is necessary while ZCOnstructor/linking.
+					const bool bIsParam = (0 != (OwnerProperty->PropertyFlags & CPF_Parm)) && OwnerProperty->IsIn(InClass);
+					const bool bIsMemberVariable = (OwnerProperty->GetOuter() == InClass);
+					if (bIsParam || bIsMemberVariable) // Affects the class signature. It is necessary while ZCOnstructor/linking.
+					{
+						TArray<UObject*> LocalPreloadDependencies;
+						Property->GetPreloadDependencies(LocalPreloadDependencies);
+						for (UObject* Dependency : LocalPreloadDependencies)
 						{
-							TArray<UObject*> LocalPreloadDependencies;
-							Property->GetPreloadDependencies(LocalPreloadDependencies);
-							for (UObject* Dependency : LocalPreloadDependencies)
+							const bool bDependencyMustBeSerializedBeforeClassIsLinked = Dependency
+								&& (Dependency->IsA<UScriptStruct>() || Dependency->IsA<UEnum>());
+							if (bDependencyMustBeSerializedBeforeClassIsLinked)
 							{
-								const bool bDependencyMustBeSerializedBeforeClassIsLinked = Dependency
-									&& (Dependency->IsA<UScriptStruct>() || Dependency->IsA<UEnum>());
-								if (bDependencyMustBeSerializedBeforeClassIsLinked)
-								{
-									SerializeBeforeSerializeClassDependencies.Add(Dependency);
-								}
+								SerializeBeforeSerializeClassDependencies.Add(Dependency);
 							}
 						}
 					}
 				}
+				SerializeBeforeCreateCDODependencies.Add(InClass->GetSuperClass()->GetDefaultObject());
+			};
 
+			GatherDependencies(SourceClass);
+			GatherDependencies(OriginalClass);
+
+			auto GetClassesOfSubobjects = [&](TMap<UObject*, FString>& SubobjectsMap)
+			{
+				TArray<UObject*> Subobjects;
+				SubobjectsMap.GetKeys(Subobjects);
+				for (UObject* Subobject : Subobjects)
 				{
-					SerializeBeforeCreateCDODependencies.Add(InClass->GetSuperClass()->GetDefaultObject());
-					auto GetClassesOfSubobjects = [&](TMap<UObject*, FString>& SubobjectsMap)
+					if (Subobject)
 					{
-						TArray<UObject*> Subobjects;
-						SubobjectsMap.GetKeys(Subobjects);
-						for (UObject* Subobject : Subobjects)
-						{
-							if (Subobject)
-							{
-								SerializeBeforeCreateCDODependencies.Add(Subobject->GetClass());
-							}
-						}
-					};
-					GetClassesOfSubobjects(Context.ClassSubobjectsMap);
-					GetClassesOfSubobjects(Context.CommonSubobjectsMap);
+						SerializeBeforeCreateCDODependencies.Add(Subobject->GetClass());
+					}
 				}
 			};
+			GetClassesOfSubobjects(Context.ClassSubobjectsMap);
+			GetClassesOfSubobjects(Context.CommonSubobjectsMap);
 		}
 	}
 
@@ -904,7 +1076,9 @@ struct FFakeImportTableHelper
 	}
 };
 
-void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies)
+void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalContext& Context
+	, TSharedPtr<FGatherConvertedClassDependencies> ParentDependencies
+	, FCompilerNativizationOptions NativizationOptions)
 {
 	// 1. GATHER UDS DEFAULT VALUE DEPENDENCIES
 	{
@@ -922,7 +1096,18 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 	// 2. ALL ASSETS TO LIST
 	TSet<const UObject*> AllDependenciesToHandle = Context.Dependencies.AllDependencies();
 	AllDependenciesToHandle.Append(Context.UsedObjectInCurrentClass);
-	
+	AllDependenciesToHandle.Remove(nullptr);
+
+	// Special case, we don't need to load any dependencies from CoreUObject.
+	UPackage* CoreUObjectPackage = UProperty::StaticClass()->GetOutermost();
+	for (auto Iter = AllDependenciesToHandle.CreateIterator(); Iter; ++Iter)
+	{
+		if ((*Iter)->GetOutermost() == CoreUObjectPackage)
+		{
+			Iter.RemoveCurrent();
+		}
+	}
+
 	// HELPERS
 	auto SourceClass = Context.GetCurrentlyGeneratedClass();
 	auto OriginalClass = Context.Dependencies.FindOriginalClass(SourceClass);
@@ -954,9 +1139,38 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 			, *AssetType->GetName());
 	};
 
-	auto CreateDependencyRecord = [&](const UObject* InAsset) -> FCompactBlueprintDependencyData
+	auto CreateDependencyRecord = [&](const UObject* InAsset, FString& OptionalComment) -> FCompactBlueprintDependencyData
 	{
 		ensure(InAsset);
+		if (InAsset && IsEditorOnlyObject(InAsset))
+		{
+			UE_LOG(LogK2Compiler, Warning, TEXT("Nativized %d depends on editor only asset: %s")
+				, (OriginalClass ? *OriginalClass->GetPathName() : *CppClassName)
+				,*InAsset->GetPathName());
+			OptionalComment = TEXT("Editor Only asset");
+			return FCompactBlueprintDependencyData{};
+		}
+
+		{
+			bool bNotForClient = false;
+			bool bNotForServer = false;
+			for (const UObject* Search = InAsset; Search && !Search->IsA(UPackage::StaticClass()); Search = Search->GetOuter())
+			{
+				bNotForClient = bNotForClient || !Search->NeedsLoadForClient();
+				bNotForServer = bNotForServer || !Search->NeedsLoadForServer();
+			}
+			if (bNotForServer && NativizationOptions.ServerOnlyPlatform)
+			{
+				OptionalComment = TEXT("Not for server");
+				return FCompactBlueprintDependencyData{};
+			}
+			if (bNotForClient && NativizationOptions.ClientOnlyPlatform)
+			{
+				OptionalComment = TEXT("Not for client");
+				return FCompactBlueprintDependencyData{};
+			}
+		}
+
 		FNativizationSummary::FDependencyRecord& DependencyRecord = FDependenciesGlobalMapHelper::FindDependencyRecord(InAsset);
 		ensure(DependencyRecord.Index >= 0);
 		if (DependencyRecord.NativeLine.IsEmpty())
@@ -990,11 +1204,13 @@ void FEmitDefaultValueHelper::AddStaticFunctionsForDependencies(FEmitterLocalCon
 
 		for (const UObject* LocAsset : Assets)
 		{
-			const FCompactBlueprintDependencyData DependencyRecord = CreateDependencyRecord(LocAsset);
-			Context.AddLine(FString::Printf(TEXT("{%d, %s, %s},  // %s ")
+			FString OptionalComment;
+			const FCompactBlueprintDependencyData DependencyRecord = CreateDependencyRecord(LocAsset, OptionalComment);
+			Context.AddLine(FString::Printf(TEXT("{%d, %s, %s},  // %s %s ")
 				, DependencyRecord.ObjectRefIndex
 				, *BlueprintDependencyTypeToString(DependencyRecord.ClassDependency)
 				, *BlueprintDependencyTypeToString(DependencyRecord.CDODependency)
+				, *OptionalComment
 				, *LocAsset->GetFullName()));
 		}
 
@@ -1059,7 +1275,7 @@ void FEmitDefaultValueHelper::AddRegisterHelper(FEmitterLocalContext& Context)
 	Context.IncreaseIndent();
 
 	Context.AddLine(FString::Printf(
-		TEXT("FConvertedBlueprintsDependencies::Get().RegisterClass(TEXT(\"%s\"), &%s::__StaticDependenciesAssets);")
+		TEXT("FConvertedBlueprintsDependencies::Get().RegisterConvertedClass(TEXT(\"%s\"), &%s::__StaticDependenciesAssets);")
 		, *OriginalClass->GetOutermost()->GetPathName()
 		, *CppClassName));
 
@@ -1145,6 +1361,15 @@ void FEmitDefaultValueHelper::GenerateCustomDynamicClassInitialization(FEmitterL
 	// Gather all CT from SCS and IH, the remaining ones are generated for class..
 	if (auto SCS = BPGC->SimpleConstructionScript)
 	{
+		// >>> This code should be removed, once UE-39168 is fixed
+		//TODO: it's an ugly workaround - template from DefaultSceneRootNode is unnecessarily cooked :(
+		UActorComponent* DefaultSceneRootComponentTemplate = SCS->GetDefaultSceneRootNode() ? SCS->GetDefaultSceneRootNode()->ComponentTemplate : nullptr;
+		if (DefaultSceneRootComponentTemplate)
+		{
+			ActorComponentTempatesOwnedByClass.Add(DefaultSceneRootComponentTemplate);
+		}
+		// <<< This code should be removed, once UE-39168 is fixed
+
 		for (auto Node : SCS->GetAllNodes())
 		{
 			ActorComponentTempatesOwnedByClass.RemoveSwap(Node->ComponentTemplate);
@@ -1411,6 +1636,11 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Cont
 		UClass* ObjectClass = Object->GetClass();
 		const FString ActualClass = Context.FindGloballyMappedObject(ObjectClass, UClass::StaticClass());
 		const FString NativeType = FEmitHelper::GetCppName(Context.GetFirstNativeOrConvertedClass(ObjectClass));
+		if(!ObjectClass->IsNative())
+		{
+			// make sure CDO has been created for NativeType:
+			Context.AddLine(FString::Printf(TEXT("%s::StaticClass()->GetDefaultObject();"), *NativeType));
+		}
 		Context.AddLine(FString::Printf(
 			TEXT("auto %s = NewObject<%s>(%s, %s, TEXT(\"%s\"));")
 			, *LocalNativeName
@@ -1525,6 +1755,11 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 
 		const FString ActualClass = Context.FindGloballyMappedObject(ObjectClass, UClass::StaticClass());
 		const FString NativeType = FEmitHelper::GetCppName(Context.GetFirstNativeOrConvertedClass(ObjectClass));
+		if(!ObjectClass->IsNative())
+		{
+			// make sure CDO has been created for NativeType:
+			Context.AddLine(FString::Printf(TEXT("%s::StaticClass()->GetDefaultObject();"), *NativeType));
+		}
 		Context.AddLine(FString::Printf(
 			TEXT("auto %s = NewObject<%s>(%s, %s, TEXT(\"%s\"));")
 			, *LocalNativeName

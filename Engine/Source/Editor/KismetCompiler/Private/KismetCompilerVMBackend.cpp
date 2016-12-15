@@ -220,6 +220,30 @@ struct FSkipOffsetEmitter
 };
 
 //////////////////////////////////////////////////////////////////////////
+// FCodeSkipInfo
+
+class FCodeSkipInfo
+{
+public:
+	enum ECodeSkipType
+	{
+		Fixup = 0,
+		InstrumentedDelegateFixup
+	};
+	FCodeSkipInfo(ECodeSkipType TypeIn, FBlueprintCompiledStatement* TargetLabelIn = nullptr, FBlueprintCompiledStatement* SourceLabelIn = nullptr)
+		: Type(TypeIn)
+		, SourceLabel(SourceLabelIn)
+		, TargetLabel(TargetLabelIn)
+	{
+	}
+
+	ECodeSkipType Type;
+	FBlueprintCompiledStatement* SourceLabel;
+	FBlueprintCompiledStatement* TargetLabel;
+	FName DelegateName;
+};
+
+//////////////////////////////////////////////////////////////////////////
 // FScriptBuilderBase
 
 class FScriptBuilderBase
@@ -241,7 +265,7 @@ private:
 	FKismetCompilerVMBackend::TStatementToSkipSizeMap& UbergraphStatementLabelMap;
 
 	// Fixup list for jump targets (location to overwrite; jump target)
-	TMap<CodeSkipSizeType, FBlueprintCompiledStatement*> JumpTargetFixupMap;
+	TMap<CodeSkipSizeType, FCodeSkipInfo> JumpTargetFixupMap;
 	
 	// Is this compiling the ubergraph?
 	bool bIsUbergraph;
@@ -768,10 +792,13 @@ public:
 				else if (Struct == TransformStruct)
 				{
 					FTransform T = FTransform::Identity;
-					const bool bParsedUsingCustomFormat = T.InitFromString(Term->Name);
-					if (!bParsedUsingCustomFormat)
+					if (!Term->Name.IsEmpty())
 					{
-						Struct->ImportText(*Term->Name, &T, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						const bool bParsedUsingCustomFormat = T.InitFromString(Term->Name);
+						if (!bParsedUsingCustomFormat)
+						{
+							Struct->ImportText(*Term->Name, &T, nullptr, PPF_None, GWarn, GetPathNameSafe(StructProperty));
+						}
 					}
 					Writer << EX_TransformConst;
 					Writer << T;
@@ -973,7 +1000,7 @@ public:
 				// Emit the literal and queue a fixup to correct it once the address is known
 				Writer << EX_SkipOffsetConst;
 				CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
-				JumpTargetFixupMap.Add(PatchUpNeededAtOffset, TargetLabel);
+				JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, TargetLabel));
 			}
 			else if (Prop->GetBoolMetaData(FBlueprintMetadata::MD_LatentCallbackTarget))
 			{
@@ -1248,7 +1275,7 @@ public:
 	{
 		check(Schema && DestinationExpression && !DestinationExpression->Type.PinCategory.IsEmpty());
 
-		const bool bIsArray = DestinationExpression->Type.bIsArray;
+		const bool bIsContainer = DestinationExpression->Type.bIsArray || DestinationExpression->Type.bIsSet || DestinationExpression->Type.bIsMap;
 		const bool bIsDelegate = Schema->PC_Delegate == DestinationExpression->Type.PinCategory;
 		const bool bIsMulticastDelegate = Schema->PC_MCDelegate == DestinationExpression->Type.PinCategory;
 		const bool bIsBoolean = Schema->PC_Boolean == DestinationExpression->Type.PinCategory;
@@ -1256,7 +1283,7 @@ public:
 		const bool bIsAsset = Schema->PC_Asset == DestinationExpression->Type.PinCategory;
 		const bool bIsWeakObjPtr = DestinationExpression->Type.bIsWeakPointer;
 
-		if (bIsArray)
+		if (bIsContainer)
 		{
 			Writer << EX_Let;
 			ensure(DestinationExpression->AssociatedVarProperty);
@@ -1491,6 +1518,53 @@ public:
 		Writer << EX_EndArray;
 	}
 
+	void EmitCreateSetStatement(FBlueprintCompiledStatement& Statement)
+	{
+		Writer << EX_SetSet;
+
+		FBPTerminal* SetTerm = Statement.LHS;
+		EmitTerm(SetTerm);
+		int32 ElementNum = Statement.RHS.Num();
+
+		Writer << ElementNum; // number of elements in the set, used for reserve call
+		
+		USetProperty* SetProperty = CastChecked<USetProperty>(SetTerm->AssociatedVarProperty);
+		UProperty* InnerProperty = SetProperty->ElementProp;
+
+		for(FBPTerminal* Item : Statement.RHS)
+		{
+			EmitTerm(Item, (Item->bIsLiteral ? InnerProperty : NULL));
+		}
+
+		Writer << EX_EndSet;
+	}
+
+	void EmitCreateMapStatement(FBlueprintCompiledStatement& Statement)
+	{
+		Writer << EX_SetMap;
+
+		FBPTerminal* MapTerm = Statement.LHS;
+		EmitTerm(MapTerm);
+		
+		ensureMsgf(Statement.RHS.Num() % 2 == 0, TEXT("Expected even number of key/values whe emitting map statement"));
+		int32 ElementNum = Statement.RHS.Num() / 2;
+
+		Writer << ElementNum;
+
+		UMapProperty* MapProperty = CastChecked<UMapProperty>(MapTerm->AssociatedVarProperty);
+		
+		for(auto MapItemIt = Statement.RHS.CreateIterator(); MapItemIt; ++MapItemIt)
+		{
+			FBPTerminal* Item = *MapItemIt;
+			EmitTerm(Item, (Item->bIsLiteral ? MapProperty->KeyProp : NULL));
+			++MapItemIt;
+			Item = *MapItemIt;
+			EmitTerm(Item, (Item->bIsLiteral ? MapProperty->ValueProp : NULL));
+		}
+
+		Writer << EX_EndMap;
+	}
+
 	void EmitGoto(FBlueprintCompiledStatement& Statement)
 	{
 		if (Statement.Type == KCST_ComputedGoto)
@@ -1508,7 +1582,7 @@ public:
 			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 			// Queue up a fixup to be done once all label offsets are known
-			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, Statement.TargetLabel);
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, Statement.TargetLabel));
 
 			// Now include the boolean expression
 			EmitTerm(Statement.LHS, (UProperty*)(GetDefault<UBoolProperty>()));
@@ -1528,7 +1602,7 @@ public:
 			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 			// Queue up a fixup to be done once all label offsets are known
-			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, Statement.TargetLabel);
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, Statement.TargetLabel));
 		}
 		else if (Statement.Type == KCST_GotoReturn)
 		{
@@ -1537,7 +1611,7 @@ public:
 			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 			// Queue up a fixup to be done once all label offsets are known
-			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, &ReturnStatement);
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, &ReturnStatement));
 		}
 		else if (Statement.Type == KCST_GotoReturnIfNot)
 		{
@@ -1546,7 +1620,7 @@ public:
 			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 			// Queue up a fixup to be done once all label offsets are known
-			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, &ReturnStatement);
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, &ReturnStatement));
 
 			// Now include the boolean expression
 			EmitTerm(Statement.LHS, (UProperty*)(GetDefault<UBoolProperty>()));
@@ -1564,7 +1638,7 @@ public:
 		CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
 		// Mark the target for fixup once the addresses have been resolved
-		JumpTargetFixupMap.Add(PatchUpNeededAtOffset, Statement.TargetLabel);
+		JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, Statement.TargetLabel));
 	}
 
 	void EmitPopExecState(FBlueprintCompiledStatement& Statement)
@@ -1671,6 +1745,20 @@ public:
 				FName EventName(*Statement.Comment);
 				Writer << EventName;
 			}
+			else if (EventType == EScriptInstrumentation::SuspendState)
+			{
+				if (Statement.TargetLabel->TargetLabel)
+				{
+					CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
+					FCodeSkipInfo CodeSkipInfo(FCodeSkipInfo::InstrumentedDelegateFixup, Statement.TargetLabel->TargetLabel, &Statement);
+					if (Statement.TargetLabel && Statement.TargetLabel->FunctionToCall)
+					{
+						CodeSkipInfo.DelegateName = Statement.TargetLabel->FunctionToCall->GetFName();
+					}
+					// Queue up a fixup to be done once all label offsets are known
+					JumpTargetFixupMap.Add(PatchUpNeededAtOffset, CodeSkipInfo);
+				}
+			}
 		}
 
 		TArray<UEdGraphPin*> PinContextArray(Statement.PureOutputContextArray);
@@ -1772,7 +1860,7 @@ public:
 		Writer << EX_PushExecutionFlow;
 		CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
 
-		JumpTargetFixupMap.Add(PatchUpNeededAtOffset, &ReturnTarget);
+		JumpTargetFixupMap.Add(PatchUpNeededAtOffset, FCodeSkipInfo(FCodeSkipInfo::Fixup, &ReturnTarget));
 	}
 
 	void CloseScript()
@@ -1887,6 +1975,12 @@ public:
 		case KCST_ArrayGetByRef:
 			EmitArrayGetByRef(Statement);
 			break;
+		case KCST_CreateSet:
+			EmitCreateSetStatement(Statement);
+			break;
+		case KCST_CreateMap:
+			EmitCreateMapStatement(Statement);
+			break;
 		default:
 			UE_LOG(LogK2Compiler, Warning, TEXT("VM backend encountered unsupported statement type %d"), (int32)Statement.Type);
 		}
@@ -1895,14 +1989,20 @@ public:
 	// Fix up all jump targets
 	void PerformFixups()
 	{
-		for (TMap<CodeSkipSizeType, FBlueprintCompiledStatement*>::TIterator It(JumpTargetFixupMap); It; ++It)
+		for (TMap<CodeSkipSizeType, FCodeSkipInfo>::TIterator It(JumpTargetFixupMap); It; ++It)
 		{
 			CodeSkipSizeType OffsetToFix = It.Key();
-			FBlueprintCompiledStatement* TargetStatement = It.Value();
+			FCodeSkipInfo& CodeSkipInfo = It.Value();
 
-			CodeSkipSizeType TargetStatementOffset = StatementLabelMap.FindChecked(TargetStatement);
+			CodeSkipSizeType TargetStatementOffset = StatementLabelMap.FindChecked(CodeSkipInfo.TargetLabel);
 
 			Writer.CommitSkip(OffsetToFix, TargetStatementOffset);
+
+			if (CodeSkipInfo.Type == FCodeSkipInfo::InstrumentedDelegateFixup)
+			{
+				// Register delegate entrypoint offsets
+				ClassBeingBuilt->GetDebugData().RegisterEntryPoint(TargetStatementOffset, CodeSkipInfo.DelegateName);
+			}
 		}
 
 		JumpTargetFixupMap.Empty();
@@ -1986,6 +2086,21 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 	if (bIsUbergraph)
 	{
 		ScriptWriter.CopyStatementMapToUbergraphMap();
+
+		// Create a mapping between compile time generated events and what created them.
+		if (FunctionContext.bInstrumentScriptCode)
+		{
+			FBlueprintDebugData& DebugData = CompilerContext.NewClass->GetDebugData();
+			for (const TPair<UEdGraphPin*, UK2Node_Event*>& EventInfo : CompilerContext.SourcePinToExpansionEvent)
+			{
+				TArray<int32> PinOffsets;
+				DebugData.FindAllCodeLocationsFromSourcePin(EventInfo.Key, Function, PinOffsets);
+				for (const int32 ScriptOffset : PinOffsets)
+				{
+					DebugData.RegisterEntryPoint(ScriptOffset, EventInfo.Value->GetFunctionName());
+				}
+			}
+		}
 	}
 
 	// Make sure we didn't overflow the maximum bytecode size

@@ -9,7 +9,7 @@
 #include "Math/UnrealMathUtility.h"
 #include "Templates/AlignmentTemplates.h"
 
-#if _MSC_VER || PLATFORM_MAC
+#if defined(_MSC_VER) || PLATFORM_MAC
 	#define USE_ALIGNED_MALLOC 1
 #else
 	//@todo gcc: this should be implemented more elegantly on other platforms

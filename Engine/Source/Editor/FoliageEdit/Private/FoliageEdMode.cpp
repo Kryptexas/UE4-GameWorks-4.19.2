@@ -760,7 +760,7 @@ void FEdModeFoliage::StartFoliageBrushTrace(FEditorViewportClient* ViewportClien
 		PreApplyBrush();
 		ApplyBrush(ViewportClient);
 
-		if (UISettings.GetIsInQuickSingleInstantiationMode() || UISettings.GetIsInSingleInstantiationMode())
+		if (UISettings.IsInAnySingleInstantiationMode())
 		{
 			EndFoliageBrushTrace();
 		}
@@ -1763,6 +1763,11 @@ void FEdModeFoliage::SelectInvalidInstances(const UFoliageType* Settings)
 
 void FEdModeFoliage::AdjustBrushRadius(float Adjustment)
 {
+	if (UISettings.IsInAnySingleInstantiationMode())
+	{
+		return;
+	}
+
 	const float CurrentBrushRadius = UISettings.GetRadius();
 
 	if (Adjustment > 0.f)
@@ -1773,7 +1778,6 @@ void FEdModeFoliage::AdjustBrushRadius(float Adjustment)
 	{
 		UISettings.SetRadius(FMath::Max(CurrentBrushRadius + Adjustment, 0.f));
 	}
-
 }
 
 void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure)
@@ -2206,7 +2210,7 @@ void FEdModeFoliage::ApplyBrush(FEditorViewportClient* ViewportClient)
 			}
 			else
 			{
-				if (UISettings.GetIsInQuickSingleInstantiationMode() || UISettings.GetIsInSingleInstantiationMode())
+				if (UISettings.IsInAnySingleInstantiationMode())
 				{
 					AddSingleInstanceForBrush(World, Settings, Pressure);
 				}

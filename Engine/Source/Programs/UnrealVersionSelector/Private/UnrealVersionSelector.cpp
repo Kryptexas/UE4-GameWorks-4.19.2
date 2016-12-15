@@ -107,6 +107,35 @@ bool SwitchVersion(const FString& ProjectFileName)
 	return GenerateProjectFiles(ProjectFileName);
 }
 
+bool SwitchVersionSilent(const FString& ProjectFileName, const FString& IdentifierOrDirectory)
+{
+	// Convert the identifier or directory into an identifier
+	FString Identifier = IdentifierOrDirectory;
+	if (Identifier.Contains("\\") || Identifier.Contains("/"))
+	{
+		if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(IdentifierOrDirectory, Identifier))
+		{
+			return false;
+		}
+	}
+
+	// Update the project file
+	if (!FDesktopPlatformModule::Get()->SetEngineIdentifierForProject(ProjectFileName, Identifier))
+	{
+		return false;
+	}
+
+	// If it's a content-only project, we're done
+	FProjectStatus ProjectStatus;
+	if(IProjectManager::Get().QueryStatusForProject(ProjectFileName, ProjectStatus) && !ProjectStatus.bCodeBasedProject)
+	{
+		return true;
+	}
+
+	// Generate project files
+	return GenerateProjectFiles(ProjectFileName);
+}
+
 bool GetEngineRootDirForProject(const FString& ProjectFileName, FString& OutRootDir)
 {
 	FString Identifier;
@@ -214,6 +243,11 @@ int Main(const TArray<FString>& Arguments)
 	{
 		// Associate with an engine label
 		bRes = SwitchVersion(Arguments[1]);
+	}
+	else if (Arguments.Num() == 3 && Arguments[0] == TEXT("-switchversionsilent"))
+	{
+		// Associate with a specific engine label
+		bRes = SwitchVersionSilent(Arguments[1], Arguments[2]);
 	}
 	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("-editor"))
 	{

@@ -61,7 +61,7 @@ public:
 };
 
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning (push)
 // Disable possible division by 0 warning
 #pragma warning (disable : 4723)
@@ -128,6 +128,6 @@ FORCEINLINE FReversedZPerspectiveMatrix::FReversedZPerspectiveMatrix(float HalfF
 { }
 
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning (pop)
 #endif

@@ -7,5 +7,6 @@ public class BootstrapPackagedGame : ModuleRules
 	public BootstrapPackagedGame(TargetInfo Target)
 	{
 		PublicAdditionalLibraries.Add("shlwapi.lib");
+		bEnableUndefinedIdentifierWarnings = false;
 	}
 }

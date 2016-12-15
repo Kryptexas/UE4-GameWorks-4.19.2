@@ -23,7 +23,9 @@
 		#define TBB_USE_DEBUG 1
 	#endif
 #endif
+THIRD_PARTY_INCLUDES_START
 #include <tbb/scalable_allocator.h>
+THIRD_PARTY_INCLUDES_END
 
 #define MEM_TIME(st)
 

@@ -470,6 +470,20 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			Log.TraceInformation("Setting up command environment.");
 			CommandUtils.InitCommandEnvironment();
 
+			// Determine if the engine is installed
+			bIsEngineInstalled = GlobalCommandLine.Installed;
+			string InstalledBuildFile = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "InstalledBuild.txt");
+			bIsEngineInstalled |= File.Exists(InstalledBuildFile);
+			if (bIsEngineInstalled.Value)
+			{
+				bIsEngineInstalled = !GlobalCommandLine.NotInstalledEngine;
+			}
+			else
+			{
+				bIsEngineInstalled = GlobalCommandLine.InstalledEngine;
+			}
+			UnrealBuildTool.UnrealBuildTool.SetIsEngineInstalled(bIsEngineInstalled.Value);
+
 			// Change CWD to UE4 root.
 			Environment.CurrentDirectory = CommandUtils.CmdEnv.LocalRoot;
 
@@ -628,17 +642,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		{
 			if (!bIsEngineInstalled.HasValue)
 			{
-				bIsEngineInstalled = GlobalCommandLine.Installed;
-				string InstalledBuildFile = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "InstalledBuild.txt");
-				bIsEngineInstalled |= File.Exists(InstalledBuildFile);
-				if (bIsEngineInstalled.Value)
-				{
-					bIsEngineInstalled = !GlobalCommandLine.NotInstalledEngine;
-				}
-				else
-				{
-					bIsEngineInstalled = GlobalCommandLine.InstalledEngine;
-				}
+				throw new AutomationException("IsEngineInstalled has not been initialized yet");
 			}
 
 			return bIsEngineInstalled.Value;

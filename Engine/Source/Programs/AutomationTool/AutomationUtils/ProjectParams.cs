@@ -24,7 +24,7 @@ namespace AutomationTool
 		/// <param name="Default">Default value.</param>
 		/// <param name="ParamNames">Command line parameter names to parse.</param>
 		/// <returns>Parameter value.</returns>
-		bool GetParamValueIfNotSpecified(CommandUtils Command, bool? SpecifiedValue, bool Default, params string[] ParamNames)
+		bool GetParamValueIfNotSpecified(BuildCommand Command, bool? SpecifiedValue, bool Default, params string[] ParamNames)
 		{
 			if (SpecifiedValue.HasValue)
 			{
@@ -53,7 +53,7 @@ namespace AutomationTool
 		/// <param name="TrueParam">Name of a parameter that sets the value to 'true', for example: -clean</param>
 		/// <param name="FalseParam">Name of a parameter that sets the value to 'false', for example: -noclean</param>
 		/// <returns>Parameter value or default value if the paramater has not been specified</returns>
-		bool? GetOptionalParamValueIfNotSpecified(CommandUtils Command, bool? SpecifiedValue, bool? Default, string TrueParam, string FalseParam)
+		bool? GetOptionalParamValueIfNotSpecified(BuildCommand Command, bool? SpecifiedValue, bool? Default, string TrueParam, string FalseParam)
 		{
 			if (SpecifiedValue.HasValue)
 			{
@@ -88,7 +88,7 @@ namespace AutomationTool
 		/// <param name="Default">Default value</param>
 		/// <param name="bTrimQuotes">If set, the leading and trailing quotes will be removed, e.g. instead of "/home/User Name" it will return /home/User Name</param>
 		/// <returns>Parameter value.</returns>
-		string ParseParamValueIfNotSpecified(CommandUtils Command, string SpecifiedValue, string ParamName, string Default = "", bool bTrimQuotes = false)
+		string ParseParamValueIfNotSpecified(BuildCommand Command, string SpecifiedValue, string ParamName, string Default = "", bool bTrimQuotes = false)
 		{
 			string Result = Default;
 
@@ -114,7 +114,7 @@ namespace AutomationTool
 		/// <param name="AllowPlatformParams">Allow raw -platform options</param>
 		/// <param name="PlatformParamNames">Possible -parameters to check for</param>
 		/// <returns>List of platforms parsed from the command line</returns>
-		private List<TargetPlatformDescriptor> SetupTargetPlatforms(ref Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor> DependentPlatformMap, CommandUtils Command, List<TargetPlatformDescriptor> OverrideTargetPlatforms, List<TargetPlatformDescriptor> DefaultTargetPlatforms, bool AllowPlatformParams, params string[] PlatformParamNames)
+		private List<TargetPlatformDescriptor> SetupTargetPlatforms(ref Dictionary<TargetPlatformDescriptor, TargetPlatformDescriptor> DependentPlatformMap, BuildCommand Command, List<TargetPlatformDescriptor> OverrideTargetPlatforms, List<TargetPlatformDescriptor> DefaultTargetPlatforms, bool AllowPlatformParams, params string[] PlatformParamNames)
 		{
 			List<TargetPlatformDescriptor> TargetPlatforms = null;
 			if (CommandUtils.IsNullOrEmpty(OverrideTargetPlatforms))
@@ -337,7 +337,7 @@ namespace AutomationTool
 		public ProjectParams(			
 			FileReference RawProjectPath,
 
-			CommandUtils Command = null,
+			BuildCommand Command = null,
 			string Device = null,			
 			string MapToRun = null,	
 			string AdditionalServerMapParams = null,
@@ -1669,8 +1669,8 @@ namespace AutomationTool
 		#region Initialization
 
 		private Dictionary<TargetRules.TargetType, SingleTargetProperties> DetectedTargets;
-		private Dictionary<UnrealTargetPlatform, ConfigCacheIni> LoadedEngineConfigs;
-		private Dictionary<UnrealTargetPlatform, ConfigCacheIni> LoadedGameConfigs;
+		private Dictionary<UnrealTargetPlatform, ConfigHierarchy> LoadedEngineConfigs;
+		private Dictionary<UnrealTargetPlatform, ConfigHierarchy> LoadedGameConfigs;
 
 		private void AutodetectSettings(bool bReset)
 		{
@@ -2144,7 +2144,7 @@ namespace AutomationTool
 		/// <summary>
 		/// List of all Engine ini files for this project
 		/// </summary>
-		public Dictionary<UnrealTargetPlatform, ConfigCacheIni> EngineConfigs
+		public Dictionary<UnrealTargetPlatform, ConfigHierarchy> EngineConfigs
 		{
 			get
 			{
@@ -2159,7 +2159,7 @@ namespace AutomationTool
 		/// <summary>
 		/// List of all Game ini files for this project
 		/// </summary>
-		public Dictionary<UnrealTargetPlatform, ConfigCacheIni> GameConfigs
+		public Dictionary<UnrealTargetPlatform, ConfigHierarchy> GameConfigs
 		{
 			get
 			{

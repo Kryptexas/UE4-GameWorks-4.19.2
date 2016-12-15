@@ -148,7 +148,7 @@ void UK2Node_Variable::CreatePinForSelf()
 				{
 					TargetClass = Property->GetOwnerClass()->GetAuthoritativeClass();
 				}
-				else
+				else if(GetBlueprint()->SkeletonGeneratedClass)
 				{
 					TargetClass = GetBlueprint()->SkeletonGeneratedClass->GetAuthoritativeClass();
 				}

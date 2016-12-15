@@ -1332,26 +1332,50 @@ bool UEdGraphSchema_K2::PinDefaultValueIsEditable(const UEdGraphPin& InGraphPin)
 
 void UEdGraphSchema_K2::SelectAllNodesInDirection(TEnumAsByte<enum EEdGraphPinDirection> InDirection, UEdGraph* Graph, UEdGraphPin* InGraphPin)
 {
-	TArray<UEdGraphPin*> AllPins = InGraphPin->LinkedTo;
-
-	if (AllPins.Num() == 0)
+	/** Traverses the node graph out from the specified pin, logging each node that it visits along the way. */
+	struct FDirectionalNodeVisitor
 	{
-		return;
-	}
-
-	for (UEdGraphPin* Pin : AllPins)
-	{
-		UEdGraphNode* OwningNode = Pin->GetOwningNode();
-		FKismetEditorUtilities::AddToSelection(Graph, OwningNode);
-
-		TArray<UEdGraphPin*> LinkedPins = Pin->GetOwningNode()->GetAllPins();
-		for (UEdGraphPin* InputPin : LinkedPins)
+		FDirectionalNodeVisitor(UEdGraphPin* StartingPin, EEdGraphPinDirection TargetDirection)
+			: Direction(TargetDirection)
 		{
-			if (InputPin->Direction == InDirection)
+			TraversePin(StartingPin);
+		}
+
+		/** If the pin is the right direction, visits each of its attached nodes */
+		void TraversePin(UEdGraphPin* Pin)
+		{
+			if (Pin->Direction == Direction)
 			{
-				SelectAllNodesInDirection(InDirection, Graph, InputPin);
+				for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
+				{
+					VisitNode(LinkedPin->GetOwningNode());
+				}
 			}
 		}
+
+		/** If the node has already been visited, does nothing. Otherwise it traverses each of its pins. */
+		void VisitNode(UEdGraphNode* Node)
+		{
+			bool bAlreadyVisited = false;
+			VisitedNodes.Add(Node, &bAlreadyVisited);
+
+			if (!bAlreadyVisited)
+			{
+				for (UEdGraphPin* Pin : Node->Pins)
+				{
+					TraversePin(Pin);
+				}
+			}
+		}
+
+		EEdGraphPinDirection Direction;
+		TSet<UEdGraphNode*>  VisitedNodes;
+	};
+
+	FDirectionalNodeVisitor NodeVisitor(InGraphPin, InDirection);
+	for (UEdGraphNode* Node : NodeVisitor.VisitedNodes)
+	{
+		FKismetEditorUtilities::AddToSelection(Graph, Node);
 	}
 }
 

@@ -51,11 +51,6 @@ public:
 	TCurveInterface(const TCurveInterface&) = default;
 	TCurveInterface& operator=(const TCurveInterface&) = default;
 
-#if PLATFORM_COMPILER_HAS_DEFAULTED_CONSTRUCTORS
-	TCurveInterface(TCurveInterface&&) = default;
-	TCurveInterface& operator=(TCurveInterface&&) = default;
-#endif
-
 	/**
 	  * Add a new key to the curve with the supplied Time and Value. Returns the handle of the new key.
 	  * 

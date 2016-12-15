@@ -8,7 +8,7 @@
 #if WITH_UNREALPNG
 
 // Disable warning "interaction between '_setjmp' and C++ object destruction is non-portable"
-#if _MSC_VER
+#ifdef _MSC_VER
 	#pragma warning(push)
 	#pragma warning(disable:4611)
 #endif
@@ -486,7 +486,7 @@ void FPngImageWrapper::user_free(png_structp /*png_ptr*/, png_voidp struct_ptr )
 }
 
 // Renable warning "interaction between '_setjmp' and C++ object destruction is non-portable"
-#if _MSC_VER
+#ifdef _MSC_VER
 	#pragma warning(pop)
 #endif
 

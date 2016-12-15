@@ -22,6 +22,14 @@ TMap<FName, UEnum*> UEnum::AllEnumNames;
 TMap<FName,TMap<FName,FName> > UEnum::EnumRedirects;
 TMap<FName,TMap<FString,FString> > UEnum::EnumSubstringRedirects;
 
+UEnum::UEnum(const FObjectInitializer& ObjectInitializer)
+	: UField(ObjectInitializer)
+	, CppType()
+	, CppForm(ECppForm::Regular)
+	, EnumDisplayNameFn( nullptr )
+{
+}
+
 void UEnum::Serialize( FArchive& Ar )
 {
 	Ar.UsingCustomVersion(FCoreObjectVersion::GUID);
@@ -397,6 +405,11 @@ FText UEnum::GetEnumText(int32 InIndex) const
 		return LocalizedDisplayName;
 	}
 #endif
+
+	if(EnumDisplayNameFn)
+	{
+		return (*EnumDisplayNameFn)(InIndex);
+	}
 
 	return FText::FromString( GetEnumName(InIndex) );
 }

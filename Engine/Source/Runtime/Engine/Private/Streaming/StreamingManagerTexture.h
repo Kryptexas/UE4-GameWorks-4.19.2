@@ -18,6 +18,8 @@ class UPrimitiveComponent;
 
 template<typename TTask> class FAsyncTask;
 
+#define STATS_FAST 0
+
 /*-----------------------------------------------------------------------------
 	Texture streaming.
 -----------------------------------------------------------------------------*/

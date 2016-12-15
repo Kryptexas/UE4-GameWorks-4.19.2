@@ -17,6 +17,7 @@
 #include "Components/TimelineComponent.h"
 
 #if WITH_EDITOR
+#include "Editor/UnrealEd/Classes/Settings/ProjectPackagingSettings.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -427,6 +428,65 @@ void UBlueprint::Serialize(FArchive& Ar)
 		}
 	}
 
+	if (Ar.IsPersistent())
+	{
+		bool bSettingsChanged = false;
+		const FString PackageName = GetOutermost()->GetName();
+		UProjectPackagingSettings* PackagingSettings = GetMutableDefault<UProjectPackagingSettings>();
+
+		if (Ar.IsLoading())
+		{
+			if (bNativize_DEPRECATED)
+			{
+				// Migrate to the new transient flag.
+				bNativize_DEPRECATED = false;
+				bSelectedForNativization = true;
+
+				// Add this Blueprint asset to the exclusive list in the Project Settings (in case it doesn't exist).
+				bSettingsChanged |= PackagingSettings->AddBlueprintAssetToNativizationList(this);
+			}
+			else
+			{
+				// Cache whether or not this Blueprint asset was selected for exclusive nativization in the Project Settings.
+				for (int AssetIndex = 0; AssetIndex < PackagingSettings->NativizeBlueprintAssets.Num(); ++AssetIndex)
+				{
+					if (PackagingSettings->NativizeBlueprintAssets[AssetIndex].FilePath.Equals(PackageName, ESearchCase::IgnoreCase))
+					{
+						bSelectedForNativization = true;
+						break;
+					}
+				}
+			}
+		}
+		else if (Ar.IsSaving())
+		{
+			if (bSelectedForNativization)
+			{
+				// Auto-enable the exclusive method, but only if Blueprint nativization is not already turned on, and only if this will be the first asset selected for nativization.
+				if (PackagingSettings->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Disabled && !PackagingSettings->NativizeBlueprintAssets.Num())
+				{
+					PackagingSettings->BlueprintNativizationMethod = EProjectPackagingBlueprintNativizationMethod::Exclusive;
+
+					bSettingsChanged = true;
+				}
+
+				// Add this Blueprint asset to the exclusive list in the Project Settings.
+				bSettingsChanged |= PackagingSettings->AddBlueprintAssetToNativizationList(this);
+			}
+			else
+			{
+				// Remove this Blueprint asset from the exclusive list in the Project Settings.
+				bSettingsChanged |= PackagingSettings->RemoveBlueprintAssetFromNativizationList(this);
+			}
+		}
+
+		if (bSettingsChanged)
+		{
+			// Update cached config settings and save.
+			PackagingSettings->SaveConfig();
+			PackagingSettings->UpdateDefaultConfigFile();
+		}
+	}
 #endif // WITH_EDITORONLY_DATA
 }
 
@@ -1246,7 +1306,7 @@ bool UBlueprint::CanEditChange(const UProperty* InProperty) const
 	if (bIsEditable && InProperty)
 	{
 		const FName PropertyName = InProperty->GetFName();
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(UBlueprint, bNativize))
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UBlueprint, bSelectedForNativization))
 		{
 			return (BlueprintType != BPTYPE_LevelScript) && (BlueprintType != BPTYPE_MacroLibrary);
 		}
@@ -1540,6 +1600,38 @@ UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bC
 #endif
 
 #if WITH_EDITOR
+void UBlueprint::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	UProperty* ChangedProperty = PropertyChangedEvent.Property;
+	if (ChangedProperty != nullptr)
+	{
+		if (ChangedProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UBlueprint, bSelectedForNativization) && bSelectedForNativization)
+		{
+			// Toggle the 'bSelectedForNativization' flag on for all parent class and interface dependencies.
+			TArray<UClass*> NativizeClassDependencies;
+			FBlueprintEditorUtils::FindImplementedInterfaces(this, false, NativizeClassDependencies);
+			NativizeClassDependencies.AddUnique(ParentClass);
+
+			for (UClass* NativizeClassDependency : NativizeClassDependencies)
+			{
+				if (UBlueprint* BP = GetBlueprintFromClass(NativizeClassDependency))
+				{
+					// Only toggle if not already turned on.
+					if (!BP->bSelectedForNativization)
+					{
+						BP->PreEditChange(ChangedProperty);
+						BP->bSelectedForNativization = true;
+
+						// This will recursively handle parent classes (as well as any interface classes they might implement).
+						BP->PostEditChangeProperty(PropertyChangedEvent);
+					}
+				}
+			}
+		}
+	}
+}
 
 FName UBlueprint::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
 {

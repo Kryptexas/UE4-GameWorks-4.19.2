@@ -25,6 +25,7 @@
 
 // Allow Windows Platform types in the entire file.
 #include "Windows/AllowWindowsPlatformTypes.h"
+THIRD_PARTY_INCLUDES_START
 #include <ShlObj.h>
 #include <objbase.h>
 #include <SetupAPI.h>
@@ -32,6 +33,7 @@
 #include <dwmapi.h>
 #include <cfgmgr32.h>
 #include <windowsx.h>
+THIRD_PARTY_INCLUDES_END
 
 // Platform code uses IsMaximized which is defined to IsZoomed by windowsx.h
 #pragma push_macro("IsMaximized")
@@ -1783,7 +1785,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 									if (TouchIndex >= 0)
 									{
 										TouchIDs[TouchIndex] = TOptional<int32>( Input.dwID );
-										MessageHandler->OnTouchStarted( CurrentNativeEventWindowPtr, Location, TouchIndex + 1, 0 );
+										UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchStarted at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex + 1, Input.dwID);
+										MessageHandler->OnTouchStarted(CurrentNativeEventWindowPtr, Location, TouchIndex + 1, 0);
 									}
 									else
 									{
@@ -1796,7 +1799,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 								int32 TouchIndex = GetTouchIndexForID( Input.dwID );
 								if ( TouchIndex >= 0 )
 								{
-									MessageHandler->OnTouchMoved( Location, TouchIndex + 1, 0 );
+									UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchMoved at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex + 1, Input.dwID);
+									MessageHandler->OnTouchMoved(Location, TouchIndex + 1, 0);
 								}
 							}
 							else if ( Input.dwFlags & TOUCHEVENTF_UP )
@@ -1805,7 +1809,8 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 								if ( TouchIndex >= 0 )
 								{
 									TouchIDs[TouchIndex] = TOptional<int32>();
-									MessageHandler->OnTouchEnded( Location, TouchIndex + 1, 0 );
+									UE_LOG(LogWindowsDesktop, Verbose, TEXT("OnTouchEnded at (%f, %f), finger %d (system touch id %d)"), Location.X, Location.Y, TouchIndex + 1, Input.dwID);
+									MessageHandler->OnTouchEnded(Location, TouchIndex + 1, 0);
 								}
 								else
 								{
