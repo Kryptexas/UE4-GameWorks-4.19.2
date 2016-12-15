@@ -4,12 +4,6 @@
 
 #include "MultiBoxExtender.h"
 #include "SlateDelegates.h"
-
-
-class FUICommandInfo;
-class FUICommandList;
-struct FSlateIcon;
-struct FUIAction;
 #include "CoreMinimal.h"
 #include "Misc/Attribute.h"
 #include "Layout/Visibility.h"
@@ -21,10 +15,12 @@ struct FUIAction;
 #include "Framework/Commands/UICommandList.h"
 #include "Framework/MultiBox/MultiBoxDefs.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
-
 #include "MultiBox.h"
 
-
+class FUICommandInfo;
+class FUICommandList;
+struct FSlateIcon;
+struct FUIAction;
 
 /** Delegate used by multi-box to call a user function to populate a new menu.  Used for spawning sub-menus and pull-down menus. */
 DECLARE_DELEGATE_OneParam( FNewMenuDelegate, class FMenuBuilder& );
