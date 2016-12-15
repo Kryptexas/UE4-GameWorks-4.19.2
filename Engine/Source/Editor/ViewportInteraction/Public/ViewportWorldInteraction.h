@@ -174,6 +174,8 @@ public:
 
 	virtual FOnStopDragging& OnStopDragging() override { return OnStopDraggingEvent; };
 
+	virtual FOnWorldScaleChanged& OnWorldScaleChanged() override { return OnWorldScaleChangedEvent; };
+
 	/** Starts dragging selected actors around, changing selection if needed.  Called when clicking in the world, or when placing new objects */
 	void StartDraggingActors( UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, UActorComponent* ClickedComponent, const FVector& HitLocation, const bool bIsPlacingActors );
 	
@@ -380,6 +382,9 @@ private:
 	/** Spawns the grid actor */
 	void SpawnGridMeshActor();
 
+	/** Average location of all the current transformables */
+	FVector CalculateAverageLocationOfTransformables();
+
 	//
 	// Colors
 	//
@@ -540,8 +545,11 @@ private:
 	/** Event that is fired when new axis input is received by the InputProcessor */
 	FOnHandleInputAxis OnAxisInputEvent;
 
-	/** Event this is fired when a interactor stopped dragging */
+	/** Event that is fired when a interactor stopped dragging */
 	FOnStopDragging OnStopDraggingEvent;
+
+	/** Event that is fired when the world scale changes */
+	FOnWorldScaleChanged OnWorldScaleChangedEvent;
 
 	/** If the world interaction is active and running the tick function */
 	bool bActive;

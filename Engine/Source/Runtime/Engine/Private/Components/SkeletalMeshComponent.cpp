@@ -840,12 +840,21 @@ bool USkeletalMeshComponent::UpdateLODStatus()
 
 bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
+
 #if WITH_EDITOR
+	
 	// If we're in an editor world (Non running, WorldType will be PIE when simulating or in PIE) then we only want transform updates on LOD changes as the
 	// animation isn't running so it would just waste CPU time
-	if(GetWorld()->WorldType == EWorldType::Editor && !bLODHasChanged)
+	if(GetWorld()->WorldType == EWorldType::Editor)
 	{
-		return false;
+		if( bUpdateAnimationInEditor )
+		{
+			return true;
+		}
+		if( !bLODHasChanged )
+		{
+			return false;
+		}
 	}
 #endif
 
@@ -862,9 +871,18 @@ bool USkeletalMeshComponent::ShouldTickPose() const
 	// So only enforce a single tick per frame.
 	const bool bAlreadyTickedThisFrame = PoseTickedThisFrame();
 
+#if WITH_EDITOR
+	if (GetWorld()->WorldType == EWorldType::Editor)
+	{
+		if (bUpdateAnimationInEditor)
+		{
+			return true;
+		}
+	}
+#endif 
+
 	// Autonomous Ticking is allowed to occur multiple times per frame, as we can receive and process multiple networking updates the same frame.
 	const bool bShouldTickBasedOnAutonomousCheck = bIsAutonomousTickPose || (!bOnlyAllowAutonomousTickPose && !bAlreadyTickedThisFrame);
-
 	const bool bIsPlayingNetworkedRootMotionMontage = (GetAnimInstance() != nullptr)
 		? (GetAnimInstance()->RootMotionMode == ERootMotionMode::RootMotionFromMontagesOnly) && (GetAnimInstance()->GetRootMotionMontageInstance() != nullptr)
 		: false;
@@ -2991,6 +3009,16 @@ void USkeletalMeshComponent::SnapshotPose(FPoseSnapshot& Snapshot)
 	}
 
 	Snapshot.bIsValid = true;
+}
+
+void USkeletalMeshComponent::SetUpdateAnimationInEditor(const bool NewUpdateState)
+{
+	#if WITH_EDITOR
+	if (IsRegistered())
+	{
+		bUpdateAnimationInEditor = NewUpdateState;
+	}
+	#endif
 }
 
 #undef LOCTEXT_NAMESPACE

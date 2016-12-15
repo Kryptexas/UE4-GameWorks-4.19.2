@@ -25,6 +25,9 @@
 #include "MotionControllerComponent.h"
 #include "Features/IModularFeatures.h"
 
+#include "SVRRadialPanel.h"
+#include "VREditorWidgetComponent.h"
+
 namespace VREd
 {
 	//Laser
@@ -40,8 +43,10 @@ namespace VREd
 	static FAutoConsoleVariable LaserPointerLightRadius( TEXT( "VREd.LaserPointLightRadius" ), 20.0f, TEXT( "How big our hover light is" ) );
 
 	//Trigger
-	static FAutoConsoleVariable TriggerLightlyPressedThreshold( TEXT( "VI.TriggerLightlyPressedThreshold" ), 0.03f, TEXT( "Minimum trigger threshold before we consider the trigger at least 'lightly pressed'" ) );
-	static FAutoConsoleVariable TriggerDeadZone( TEXT( "VI.TriggerDeadZone" ), 0.01f, TEXT( "Trigger dead zone.  The trigger must be fully released before we'll trigger a new 'light press'" ) );
+	static FAutoConsoleVariable TriggerLightlyPressedThreshold_Vive( TEXT( "VI.TriggerLightlyPressedThreshold_Vive" ), 0.03f, TEXT( "Minimum trigger threshold before we consider the trigger at least 'lightly pressed'" ) );
+	static FAutoConsoleVariable TriggerDeadZone_Vive( TEXT( "VI.TriggerDeadZone_Vive" ), 0.01f, TEXT( "Trigger dead zone.  The trigger must be fully released before we'll trigger a new 'light press'" ) );
+	static FAutoConsoleVariable TriggerLightlyPressedThreshold_Rift( TEXT( "VI.TriggerLightlyPressedThreshold_Rift" ), 0.2f, TEXT( "Minimum trigger threshold before we consider the trigger at least 'lightly pressed'" ) );
+	static FAutoConsoleVariable TriggerDeadZone_Rift( TEXT( "VI.TriggerDeadZone_Rift" ), 0.15f, TEXT( "Trigger dead zone.  The trigger must be fully released before we'll trigger a new 'light press'" ) );
 	static FAutoConsoleVariable TriggerFullyPressedThreshold( TEXT( "VI.TriggerFullyPressedThreshold" ), 0.95f, TEXT( "Minimum trigger threshold before we consider the trigger 'fully pressed'" ) );
 	static FAutoConsoleVariable TriggerFullyPressedReleaseThreshold( TEXT( "VI.TriggerFullyPressedReleaseThreshold" ), 0.8f, TEXT( "After fully pressing the trigger, if the axis falls below this threshold we no longer consider it fully pressed" ) );
 
@@ -54,7 +59,6 @@ namespace VREd
 	static FAutoConsoleVariable InvertTrackpadVertical( TEXT( "VREd.InvertTrackpadVertical" ), 1, TEXT( "Toggles inverting the touch pad vertical axis" ) );
 	static FAutoConsoleVariable TriggerLightlyPressedLockTime( TEXT( "VREd.TriggerLightlyPressedLockTime" ), 0.15f, TEXT( "If the trigger remains lightly pressed for longer than this, we'll continue to treat it as a light press in some cases" ) );
 	static FAutoConsoleVariable MinVelocityForInertia( TEXT( "VREd.MinVelocityForMotionControllerInertia" ), 1.0f, TEXT( "Minimum velocity (in cm/frame in unscaled room space) before inertia will kick in when releasing objects (or the world)" ) );
-	static FAutoConsoleVariable MinJoystickOffsetBeforeRadialMenu( TEXT( "VREd.MinJoystickOffsetBeforeRadialMenu" ), 0.15f, TEXT( "Toggles inverting the touch pad vertical axis" ) );
 
 	static FAutoConsoleVariable HelpLabelFadeDuration( TEXT( "VREd.HelpLabelFadeDuration" ), 0.4f, TEXT( "Duration to fade controller help labels in and out" ) );
 	static FAutoConsoleVariable HelpLabelFadeDistance( TEXT( "VREd.HelpLabelFadeDistance" ), 30.0f, TEXT( "Distance at which controller help labels should appear (in cm)" ) );
@@ -132,8 +136,6 @@ void UVREditorMotionControllerInteractor::Init( class UVREditorMode* InVRMode )
 		AddKeyAction( EKeys::MotionController_Left_Grip1, FViewportActionKeyInput( ViewportWorldActionTypes::WorldMovement ) );
 		AddKeyAction( UVREditorMotionControllerInteractor::MotionController_Left_FullyPressedTriggerAxis, FViewportActionKeyInput( ViewportWorldActionTypes::SelectAndMove ) );
 		AddKeyAction( UVREditorMotionControllerInteractor::MotionController_Left_LightlyPressedTriggerAxis, FViewportActionKeyInput( ViewportWorldActionTypes::SelectAndMove_LightlyPressed ) );
-		AddKeyAction( EKeys::MotionController_Left_Thumbstick, FViewportActionKeyInput( VRActionTypes::ConfirmRadialSelection ) );
-
 		AddKeyAction( SteamVRControllerKeyNames::Touch0, FViewportActionKeyInput( VRActionTypes::Touch ) );
 		AddKeyAction( EKeys::MotionController_Left_TriggerAxis, FViewportActionKeyInput( UVREditorMotionControllerInteractor::TriggerAxis ) );
 		AddKeyAction( EKeys::MotionController_Left_Thumbstick_X, FViewportActionKeyInput( UVREditorMotionControllerInteractor::TrackpadPositionX ) );
@@ -335,7 +337,7 @@ void UVREditorMotionControllerInteractor::Tick( const float DeltaTime )
 		}
 	}
 
-	UpdateRadialMenuInput( DeltaTime );
+	UpdateRadialMenuInput(DeltaTime);
 
 	{
 		const float WorldScaleFactor = WorldInteraction->GetWorldScaleFactor();
@@ -629,6 +631,32 @@ void UVREditorMotionControllerInteractor::HandleInputKey( FViewportActionKeyInpu
 		}
 	}
 
+	if( Action.ActionType == VRActionTypes::ConfirmRadialSelection )
+	{
+		bOutWasHandled = true;
+		const EViewportInteractionDraggingMode DraggingMode = GetDraggingMode();
+
+		if( Event == IE_Pressed )
+		{ 
+			// Start dragging at laser impact when already dragging actors freely
+			if( DraggingMode == EViewportInteractionDraggingMode::ActorsFreely )
+			{
+				FVector PlaceAt = GetHoverLocation();
+				const bool bIsPlacingActors = true;
+				const FViewportActionKeyInput FakeSelectAndMoveAction( ViewportWorldActionTypes::SelectAndMove_LightlyPressed );
+				WorldInteraction->StartDraggingActors( this, FakeSelectAndMoveAction, WorldInteraction->GetTransformGizmoActor()->GetRootComponent(), PlaceAt, bIsPlacingActors );
+			}
+		}
+		else if( Event == IE_Released )
+		{
+			// Disable dragging at laser impact when releasing
+			if( DraggingMode == EViewportInteractionDraggingMode::ActorsAtLaserImpact )
+			{
+				SetDraggingMode( EViewportInteractionDraggingMode::ActorsFreely );
+			}
+		}
+	}
+
 	ApplyButtonPressColors( Action );
 }
 
@@ -636,6 +664,9 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 {
 	if ( Action.ActionType == TriggerAxis )
 	{
+		const float TriggerLightlyPressedThreshold = ( GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ) ? VREd::TriggerLightlyPressedThreshold_Rift->GetFloat() : VREd::TriggerLightlyPressedThreshold_Vive->GetFloat();
+		const float TriggerDeadZone = ( GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift ) ? VREd::TriggerDeadZone_Rift->GetFloat() : VREd::TriggerDeadZone_Vive->GetFloat();
+
 		// Synthesize "lightly pressed" events for the trigger
 		{
 			// Store latest trigger value amount
@@ -647,7 +678,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 			if ( !bIsFullPressAlreadyCapturing &&		// Don't fire if we're already capturing input for a full press
 				!bIsTriggerAtLeastLightlyPressed &&	// Don't fire unless we are already pressed
 				bHasTriggerBeenReleasedSinceLastPress &&	// Only if we've been fully released since the last time we fired
-				Delta >= VREd::TriggerLightlyPressedThreshold->GetFloat() )
+				Delta >= TriggerLightlyPressedThreshold )
 			{
 				bIsTriggerAtLeastLightlyPressed = true;
 				SetAllowTriggerLightPressLocking( true );
@@ -659,7 +690,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 				const EInputEvent InputEvent = IE_Pressed;
 				const bool bWasLightPressHandled = UViewportInteractor::HandleInputKey( ControllerHandSide == EControllerHand::Left ? MotionController_Left_LightlyPressedTriggerAxis : MotionController_Right_LightlyPressedTriggerAxis, InputEvent );
 			}
-			else if ( bIsTriggerAtLeastLightlyPressed && Delta < VREd::TriggerLightlyPressedThreshold->GetFloat() )
+			else if ( bIsTriggerAtLeastLightlyPressed && Delta < TriggerLightlyPressedThreshold )
 			{
 				bIsTriggerAtLeastLightlyPressed = false;
 
@@ -669,7 +700,7 @@ void UVREditorMotionControllerInteractor::HandleInputAxis( FViewportActionKeyInp
 			}
 		}
 
-		if ( Delta < VREd::TriggerDeadZone->GetFloat() )
+		if ( !bHasTriggerBeenReleasedSinceLastPress && Delta < TriggerDeadZone )
 		{
 			bHasTriggerBeenReleasedSinceLastPress = true;
 		}
@@ -1278,7 +1309,7 @@ void UVREditorMotionControllerInteractor::SetLaserVisuals( const FLinearColor& N
 void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float DeltaTime )
 {
 	UVREditorUISystem& UISystem = GetVRMode().GetUISystem();
-
+	const EHMDDeviceType::Type HMDDeviceType = GetVRMode().GetHMDDeviceType();
 	//Update the radial menu
 	EViewportInteractionDraggingMode DraggingMode = GetDraggingMode();
 	if ( !HasUIInFront() &&
@@ -1290,24 +1321,21 @@ void UVREditorMotionControllerInteractor::UpdateRadialMenuInput( const float Del
 		!UISystem.IsInteractorDraggingDockUI( this ) &&
 		!UISystem.IsShowingRadialMenu( Cast<UVREditorInteractor>( OtherInteractor ) ) )
 	{
-		const EHMDDeviceType::Type HMDDevice = GetHMDDeviceType();
-
-		// Spawn the radial menu if we are using the touchpad for steamvr or the analog stick for the oculus
-		if ( ( HMDDevice == EHMDDeviceType::DT_SteamVR && bIsTouchingTrackpad ) ||
-			( HMDDevice == EHMDDeviceType::DT_OculusRift && TrackpadPosition.Size() > VREd::MinJoystickOffsetBeforeRadialMenu->GetFloat() ) )
-		{
-			UISystem.TryToSpawnRadialMenu( this );
-		}
-		else
-		{
-			// Hide it if we are not using the touchpad or analog stick
-			UISystem.HideRadialMenu( this );
-		}
-
 		// Update the radial menu if we are already showing the radial menu
 		if ( UISystem.IsShowingRadialMenu( this ) )
 		{
-			UISystem.UpdateRadialMenu( this );
+			const TSharedPtr<SRadialBox>& RadialBox = StaticCastSharedPtr<SRadialBox>(UISystem.GetRadialWidget());
+			RadialBox->HighlightSlot(TrackpadPosition);
+		}
+	}
+	// If we are not currently touching the Vive touchpad, reset the highlighted button
+	else if (HMDDeviceType == EHMDDeviceType::DT_SteamVR && !bIsTouchingTrackpad)
+	{
+		if (UISystem.IsShowingRadialMenu( this ))
+		{
+			const TSharedPtr<SRadialBox>& RadialBox = StaticCastSharedPtr<SRadialBox>( UISystem.GetRadialWidget() );
+			FVector2D ReturnToCenter = FVector2D::ZeroVector;
+			RadialBox->HighlightSlot( ReturnToCenter );
 		}
 	}
 }

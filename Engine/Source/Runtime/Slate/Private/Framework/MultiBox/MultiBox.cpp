@@ -257,7 +257,7 @@ void FMultiBox::InsertCustomMultiBlock( TSharedRef<const FMultiBlock> InBlock, i
  *
  * @return  MultiBox widget object
  */
-TSharedRef< SMultiBoxWidget > FMultiBox::MakeWidget( bool bSearchable )
+TSharedRef< SMultiBoxWidget > FMultiBox::MakeWidget( bool bSearchable, FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride /* = nullptr */ )
 {	
 	ApplyCustomizedBlocks();
 
@@ -270,8 +270,16 @@ TSharedRef< SMultiBoxWidget > FMultiBox::MakeWidget( bool bSearchable )
 	// Assign ourselves to the MultiBox widget
 	NewMultiBoxWidget->SetMultiBox( AsShared() );
 
-	// Build up the widget
-	NewMultiBoxWidget->BuildMultiBoxWidget();
+	if( (InMakeMultiBoxBuilderOverride != nullptr) && (InMakeMultiBoxBuilderOverride->IsBound()) )
+	{
+		TSharedRef<FMultiBox> ThisMultiBox = AsShared();
+		InMakeMultiBoxBuilderOverride->Execute( ThisMultiBox, NewMultiBoxWidget );
+	}
+	else
+	{
+		// Build up the widget
+		NewMultiBoxWidget->BuildMultiBoxWidget();
+	}
 	
 #if PLATFORM_MAC
 	if(Type == EMultiBoxType::MenuBar)

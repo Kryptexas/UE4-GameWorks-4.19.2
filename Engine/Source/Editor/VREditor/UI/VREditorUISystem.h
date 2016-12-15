@@ -15,6 +15,69 @@ class SColorPicker;
 class UViewportInteractor;
 class UVREditorInteractor;
 
+
+/** Stores the animation playback state of a VR UI element */
+enum class EVREditorAnimationState : uint8
+{
+	None,
+	Forward,
+	Backward
+};
+
+/** Structure to keep track of all relevant interaction and animation elements of a VR Button */
+struct FVRButton
+{
+	/** Pointer to button */
+	TSharedPtr<SButton> Button;
+
+	/** Pointer to slot in overlay with lower z-order */
+	SOverlay::FOverlaySlot* BaseSlot;
+
+	/** Pointer to slot in overlay with higher z-order */
+	SOverlay::FOverlaySlot* HoverSlot;
+
+	/** Pointer to button border */
+	TSharedPtr<SBorder> ButtonBorder;
+
+	/** Animation playback state of the button */
+	EVREditorAnimationState AnimationDirection;
+
+	/** Current scale of the button element */
+	float CurrentScale;
+
+	/** Minimum scale of the button element */
+	float MinScale;
+
+	/** Maximum scale of the button element */
+	float MaxScale;
+
+	/** Rate at which the button changes scale. Currently the same for scaling up and scaling down. */
+	float ScaleRate;
+
+	FVRButton()
+		: AnimationDirection(EVREditorAnimationState::None),
+		CurrentScale(1.0f),
+		MinScale(1.0f),
+		MaxScale(1.10f),
+		ScaleRate(2.0f)
+		{}
+
+	FVRButton(TSharedPtr<SButton> InButton, SOverlay::FOverlaySlot* InBaseSlot, SOverlay::FOverlaySlot* InHoverSlot, TSharedPtr<SBorder> InButtonBorder,
+		EVREditorAnimationState InAnimationDirection = EVREditorAnimationState::None, float InCurrentScale = 1.0f, float InMinScale = 1.0f, float InMaxScale = 1.25f, float InScaleRate = 2.0f)
+		: Button(InButton),
+		BaseSlot(InBaseSlot),
+		HoverSlot(InHoverSlot),
+		ButtonBorder(InButtonBorder),
+		AnimationDirection(InAnimationDirection),
+		CurrentScale(InCurrentScale),
+		MinScale(InMinScale),
+		MaxScale(InMaxScale),
+		ScaleRate(InScaleRate)
+		{}
+
+};
+
+
 /**
  * VR Editor user interface manager
  */
@@ -86,13 +149,10 @@ public:
 	void ShowEditorUIPanel( class AVREditorFloatingUI* Panel, UVREditorInteractor* Interactor, const bool bShouldShow, const bool OnHand = false, const bool bRefreshQuickMenu = true, const bool bPlaySound = true );
 
 	/** Returns true if the radial menu is visible on this hand */
-	bool IsShowingRadialMenu( UVREditorInteractor* Interactor ) const;
+	bool IsShowingRadialMenu(const UVREditorInteractor* Interactor ) const;
 
 	/** Tries to spawn the radial menu (if the specified hand isn't doing anything else) */
-	void TryToSpawnRadialMenu( UVREditorInteractor* Interactor );
-
-	/** Updates the radial menu with the current hand trackpad location */
-	void UpdateRadialMenu( UVREditorInteractor* Interactor );
+	void TryToSpawnRadialMenu( UVREditorInteractor* Interactor, const bool bForceOverUI );
 
 	/** Hides the radial menu if the specified hand is showing it */
 	void HideRadialMenu( UVREditorInteractor* Interactor );
@@ -128,6 +188,17 @@ public:
 
 	/** Toggles the visibility of the panel, if the panel is in room space it will be hidden and docked to nothing */
 	void TogglePanelVisibility( const EEditorUIPanel EditorUIPanel );
+
+	/** Returns the radial widget so other classes, like the interactors, can access its functionality */
+	const TSharedPtr<SWidget>& GetRadialWidget();
+
+	/** 
+	 * Finds a widget with a given name inside the Content argument 
+	 * @param Content The widget to begin searching in
+	 * @param The FName of the widget type to find. 
+	 */
+	static const TSharedRef<SWidget>& FindWidgetOfType(const TSharedRef<SWidget>& Content, FName WidgetType);
+
 
 protected:
 
@@ -166,6 +237,30 @@ protected:
 	/** Hides the VR-specific color picker. Gets bound to SColorPicker's destruction override delegate */
 	void DestroyVRColorPicker();
 
+	/**  Makes a uniform grid widget from the menu information contained in a MultiBox and MultiBoxWidget */
+	void MakeUniformGridMenu( const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget, int32 Columns);
+	/**  Makes a radial box widget from the menu information contained in a MultiBox and MultiBoxWidget */
+	void MakeRadialBoxMenu(const TSharedRef<FMultiBox>& MultiBox, const TSharedRef<SMultiBoxWidget>& MultiBoxWidget, float RadiusRatioOverride);
+
+	/** Adds a hoverable button of a given type to an overlay, using menu data from a BlockWidget */
+	TSharedRef<SWidget> AddHoverableButton(TSharedRef<SWidget>& BlockWidget, FName ButtonType, TSharedRef<SOverlay>& TestOverlay);
+	/** Sets the text wrap size of the text block element nested in a BlockWidget */
+	TSharedRef<SWidget> SetButtonTextWrap(TSharedRef<SWidget>& BlockWidget, float WrapSize);
+	
+	/** Builds the quick menu Slate widget */
+	TSharedRef<SWidget> BuildQuickMenuWidget();
+	/** Builds the radial menu Slate widget */
+	TSharedRef<SWidget> BuildRadialMenuWidget();
+	/** Builds the numpad Slate widget */
+	TSharedRef<SWidget> BuildNumPadWidget();
+	/** Swaps the content of the radial menu between the radial menu and the numpad */
+	void SwapRadialMenu();
+
+	/** Called when a laser or simulated mouse hover enters a button */
+	void OnHoverBeginEffect(TSharedRef<SButton> Button);
+	/** Called when a laser or simulated mouse hover leaves a button */
+	void OnHoverEndEffect(TSharedRef<SButton> Button);
+
 
 protected:
 
@@ -192,14 +287,17 @@ protected:
 	/** The time since the radial menu was updated */
 	float RadialMenuHideDelayTime;
 
-	/** Quick menu widget class */
-	UClass* QuickMenuWidgetClass;
-
-	/** Quick radial menu widget class */
-	UClass* QuickRadialWidgetClass;
-
 	/** Tutorial menu widget class */
 	UClass* TutorialWidgetClass;
+
+	/** Pointer to the radial menu widget */
+	TSharedPtr<SWidget> RadialWidget;
+
+	/** True if the radial menu was visible when the content was swapped */
+	bool bRadialMenuVisibleAtSwap;
+
+	/** True if the radial menu is currently displaying the numpad */
+	bool bRadialMenuIsNumpad;
 	
 	//
 	// Dragging UI
@@ -250,6 +348,10 @@ protected:
 	UPROPERTY()
 	class USoundCue* ShowUISound;
 
+	/** Button press sound */
+	UPROPERTY()
+	class USoundCue* ButtonPressSound;
+
 	/** If the current dragged dock passed a certain distance if dragged from a hand */
 	bool bDraggedDockFromHandPassedThreshold;
 
@@ -258,6 +360,9 @@ protected:
 
 	/** Default transforms */
 	TArray<FTransform> DefaultWindowTransforms;
+
+	/** All buttons created for the radial and quick menus */
+	TArray<FVRButton> VRButtons;
 
 	/** If this is the first time using TogglePanelsVisibility */
 	bool bSetDefaultLayout;

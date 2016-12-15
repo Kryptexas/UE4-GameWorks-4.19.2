@@ -66,12 +66,14 @@ void UVREditorWorldInteraction::Init( UVREditorMode* InOwner, UViewportWorldInte
 	FEditorDelegates::OnAssetDragStarted.AddUObject( this, &UVREditorWorldInteraction::OnAssetDragStartedFromContentBrowser );
 
 	ViewportWorldInteraction->OnStopDragging().AddUObject( this, &UVREditorWorldInteraction::StopDragging );
+	ViewportWorldInteraction->OnWorldScaleChanged().AddUObject( this, &UVREditorWorldInteraction::UpdateNearClipPlaneOnScaleChange );
 }
 
 void UVREditorWorldInteraction::Shutdown()
 {
 	FEditorDelegates::OnAssetDragStarted.RemoveAll( this );
 	ViewportWorldInteraction->OnStopDragging().RemoveAll( this );
+	ViewportWorldInteraction->OnWorldScaleChanged().RemoveAll( this );
 
 	PlacingMaterialOrTextureAsset = nullptr;
 	FloatingUIAssetDraggedFrom = nullptr;
@@ -119,6 +121,13 @@ void UVREditorWorldInteraction::StopDragging( UViewportInteractor* Interactor )
 			true, false, false, false );
 		FloatingUIAssetDraggedFrom = nullptr;
 	}
+}
+
+void UVREditorWorldInteraction::UpdateNearClipPlaneOnScaleChange(const float NewWorldToMetersScale)
+{
+	// Adjust the clipping plane for the user's scale, but don't let it be larger than the engine default
+	const float DefaultWorldToMetersScale = Owner->GetSavedEditorState().WorldToMetersScale;
+	GNearClippingPlane = FMath::Min((Owner->GetDefaultVRNearClipPlane()) * (NewWorldToMetersScale / DefaultWorldToMetersScale), Owner->GetSavedEditorState().NearClipPlane);
 }
 
 void UVREditorWorldInteraction::StartDraggingMaterialOrTexture( UViewportInteractor* Interactor, const FViewportActionKeyInput& Action, const FVector HitLocation, UObject* MaterialOrTextureAsset )

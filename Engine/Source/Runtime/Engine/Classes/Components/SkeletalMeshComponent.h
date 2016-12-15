@@ -613,6 +613,15 @@ public:
 	UPROPERTY()
 	uint32 bEnableLineCheckWithBounds:1;
 
+protected:
+#if WITH_EDITORONLY_DATA
+	/** If true, this will Tick until disabled */
+	UPROPERTY(AdvancedDisplay, EditInstanceOnly, transient, Category = SkeletalMesh)
+	uint32 bUpdateAnimationInEditor : 1;
+#endif
+
+public:
+
 	/** Cache AnimCurveUidVersion from Skeleton and this will be used to identify if it needs to be updated */
 	UPROPERTY(transient)
 	uint16 CachedAnimCurveUidVersion;
@@ -828,6 +837,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(UnsafeDuringActorConstruction="true"))
 	void UnbindClothFromMasterPoseComponent(bool bRestoreSimulationSpace = true);
+
+	/**
+	* Sets whether or not to force tick component in order to update animation and refresh transform for this component
+	* This is supported only in the editor
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh", meta = (DevelopmentOnly, UnsafeDuringActorConstruction = "true"))
+	void SetUpdateAnimationInEditor(const bool NewUpdateState);
 
 	/** We detach the Component once we are done playing it.
 	 *

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "MultiBoxExtender.h"
+#include "SlateDelegates.h"
 #include "CoreMinimal.h"
 #include "Misc/Attribute.h"
 #include "Layout/Visibility.h"
@@ -13,6 +15,12 @@
 #include "Framework/Commands/UICommandList.h"
 #include "Framework/MultiBox/MultiBoxDefs.h"
 #include "Framework/MultiBox/MultiBoxExtender.h"
+#include "MultiBox.h"
+
+class FUICommandInfo;
+class FUICommandList;
+struct FSlateIcon;
+struct FUIAction;
 
 /** Delegate used by multi-box to call a user function to populate a new menu.  Used for spawning sub-menus and pull-down menus. */
 DECLARE_DELEGATE_OneParam( FNewMenuDelegate, class FMenuBuilder& );
@@ -56,7 +64,7 @@ public:
 	 *
 	 * @return  New widget object
 	 */
-	virtual TSharedRef< class SWidget > MakeWidget();
+	virtual TSharedRef< class SWidget > MakeWidget( FMultiBox::FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride = nullptr );
 	
 
 	/** 
@@ -213,7 +221,7 @@ public:
 	*
 	* @return  New widget object
 	*/
-	virtual TSharedRef< class SWidget > MakeWidget() override;
+	virtual TSharedRef< class SWidget > MakeWidget( FMultiBox::FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride = nullptr ) override;
 
 	/**
 	 * Adds a menu separator

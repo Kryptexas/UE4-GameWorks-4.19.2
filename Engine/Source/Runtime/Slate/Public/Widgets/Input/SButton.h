@@ -147,6 +147,12 @@ public:
 	/** See OnClicked event */
 	void SetOnClicked(FOnClicked InOnClicked);
 
+	/** Set OnHovered event */
+	void SetOnHovered(FSimpleDelegate InOnHovered);
+
+	/** Set OnUnhovered event */
+	void SetOnUnhovered(FSimpleDelegate InOnUnhovered);
+
 	/** See ButtonStyle attribute */
 	void SetButtonStyle(const FButtonStyle* ButtonStyle);
 

@@ -7,6 +7,7 @@
 namespace VREd
 {
 	static FAutoConsoleVariable UIOnHandRotationOffset( TEXT( "VREd.UIOnHandRotationOffset" ), 45.0f, TEXT( "Rotation offset for UI that's docked to your hand, to make it more comfortable to hold" ) );
+	static FAutoConsoleVariable UIOnArmRotationOffset( TEXT( "VREd.UIOnArmRotationOffset" ), 15.0f, TEXT( "Rotation offset for UI that's docked to your arm, so it aligns with the controllers" ) );
 }
 
 AVREditorBaseActor::AVREditorBaseActor() 
@@ -89,9 +90,15 @@ FTransform AVREditorBaseActor::MakeUITransformLockedToHand( UViewportInteractor*
 	const float WorldScaleFactor = VRMode->GetWorldScaleFactor();
 
 	FTransform UIToHandTransform( InLocalRotation, InRelativeOffset * WorldScaleFactor );
+	// If the UI is on the hand
 	if ( !bOnArm )
 	{
 		UIToHandTransform *= FTransform( FRotator( VREd::UIOnHandRotationOffset->GetFloat(), 0.0f, 0.0f ).Quaternion(), FVector::ZeroVector );
+	}
+	// If the UI is on the arm
+	else
+	{
+		UIToHandTransform *= FTransform( FRotator( VREd::UIOnArmRotationOffset->GetFloat(), 0.0f, 0.0f ).Quaternion(), FVector::ZeroVector );
 	}
 
 	const FTransform HandToWorldTransform = Interactor->GetTransform();

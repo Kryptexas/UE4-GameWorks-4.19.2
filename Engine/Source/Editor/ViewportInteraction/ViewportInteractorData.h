@@ -138,6 +138,10 @@ struct FViewportInteractorData
 	/** If the latest hitresult is hovering over a priority type */
 	bool bHitResultIsPriorityType;
 
+	/** The offset between the hitlocation of the object selected to start dragging and its center. 
+		This is used to offset the objects when dragging to the end of the laser */
+	FVector StartHitLocationToTransformableCenter;
+
 	/** Default constructor for FVirtualHand that initializes safe defaults */
 	FViewportInteractorData()
 	{
@@ -173,6 +177,8 @@ struct FViewportInteractorData
 		bAllowTriggerLightPressLocking = true;
 		bAllowTriggerFullPress = true;
 		bHitResultIsPriorityType = false;
+
+		StartHitLocationToTransformableCenter = FVector::ZeroVector;
 	}
 };
 

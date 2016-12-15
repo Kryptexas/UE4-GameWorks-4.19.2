@@ -255,12 +255,14 @@ public:
 	 */
 	void InsertCustomMultiBlock( TSharedRef<const FMultiBlock> InBlock, int32 Index );
 
+	DECLARE_DELEGATE_TwoParams( FOnMakeMultiBoxBuilderOverride, const TSharedRef<FMultiBox>&, const TSharedRef<SMultiBoxWidget>& );
+
 	/**
 	 * Creates a MultiBox widget for this MultiBox
 	 *
 	 * @return  MultiBox widget object
 	 */
-	TSharedRef< class SMultiBoxWidget > MakeWidget( bool bSearchable );
+	TSharedRef< class SMultiBoxWidget > MakeWidget( bool bSearchable, FOnMakeMultiBoxBuilderOverride* InMakeMultiBoxBuilderOverride = nullptr );
 
 
 	/**
@@ -491,6 +493,18 @@ public:
 		MultiBox = InMultiBox;
 	}
 
+	/**
+	* Sets new content for the SMultiBoxWidget
+	*
+	* @param	InContent	The new content to place in the ChildSlot
+	*/
+	void SetContent( TSharedRef< SWidget > InContent )
+	{	
+		ChildSlot
+		[
+			InContent 
+		];
+	}
 
 	/**
 	 * Access the MultiBox associated with this widget
