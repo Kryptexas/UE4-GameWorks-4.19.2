@@ -458,6 +458,11 @@ public:
 
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
+
+	inline void AddUsedMaterialForVerification(UMaterialInterface* Material)
+	{
+		UsedMaterialsForVerification.AddUnique(Material);
+	}
 #endif
 
 	inline FLinearColor GetWireframeColor() const { return WireframeColor; }
