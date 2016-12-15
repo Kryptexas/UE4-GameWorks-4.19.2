@@ -89,7 +89,7 @@ void UChildActorComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 	// Since we sometimes serialize properties in instead of using duplication if we are a template
 	// and are not pointing at a component we own we'll need to fix that
-	if (ChildActorTemplate && ChildActorTemplate->GetOuter() != this && IsTemplate())
+	if (!Ar.IsPersistent() && ChildActorTemplate && ChildActorTemplate->GetOuter() != this && IsTemplate())
 	{
 		const FString TemplateName = FString::Printf(TEXT("%s_%s_CAT"), *GetName(), *ChildActorClass->GetName());
 		ChildActorTemplate = CastChecked<AActor>(StaticDuplicateObject(ChildActorTemplate, this, *TemplateName));

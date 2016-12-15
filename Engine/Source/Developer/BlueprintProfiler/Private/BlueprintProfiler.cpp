@@ -349,6 +349,15 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 									SuspendedEventMap->Remove(LatentLinkId);
 								}
 							}
+							else 
+							{
+								const int32 EntryPointId = InstrumentationEventQueue[EventRangeToProcess.StartIdx].GetScriptCodeOffset();
+								UBlueprintGeneratedClass* BPGC = EventRangeToProcess.BlueprintContext->GetBlueprintClass().Get();
+								if (BPGC && BPGC->GetDebugData().IsValidEntryPoint(EntryPointId))
+								{
+									EventToProcess = (MakeShareable(new FScriptEventPlayback(EventRangeToProcess.BlueprintContext, EventRangeToProcess.InstanceName)));
+								}
+							}
 						}
 						else
 						{
@@ -376,8 +385,6 @@ void FBlueprintProfiler::ProcessEventProfilingData()
 			}
 		}
 	}
-	// We need to ensure this doesn't happen. but for now kill anything remaining in the queue.
-	InstrumentationEventQueue.SetNum(0);
 	// Update all active contexts if the display settings changed.
 	UBlueprintProfilerSettings* Settings = GetMutableDefault<UBlueprintProfilerSettings>();
 	if (Settings->GetPerformanceThresholdsModified())

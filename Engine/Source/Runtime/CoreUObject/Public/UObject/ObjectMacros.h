@@ -436,7 +436,7 @@ typedef uint64 EClassCastFlags;
 #define CPF_DevelopmentAssets		(CPF_EditorOnly)
 
 /** all the properties that should never be loaded or saved */
-#define CPF_ComputedFlags			(CPF_IsPlainOldData | CPF_NoDestructor | CPF_ZeroConstructor)
+#define CPF_ComputedFlags			(CPF_IsPlainOldData | CPF_NoDestructor | CPF_ZeroConstructor | CPF_HasGetValueTypeHash)
 
 #define CPF_AllFlags				DECLARE_UINT64(0xFFFFFFFFFFFFFFFF)
 

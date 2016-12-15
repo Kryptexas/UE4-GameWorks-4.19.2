@@ -122,11 +122,11 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	static int32 Array_LastIndex(const TArray<int32>& TargetArray);
 
 	/*
-	 *Given an array and an index, returns the item found at that index
+	 *Given an array and an index, returns a copy of the item found at that index
 	 *
 	 *@param	TargetArray		The array to get an item from
 	 *@param	Index			The index in the array to get an item from
-	 *@return	The item stored at the index
+	 *@return	A copy of the item stored at the index
 	*/
 	UFUNCTION(BlueprintPure, CustomThunk, meta=(DisplayName = "Get", CompactNodeTitle = "GET", ArrayParm = "TargetArray", ArrayTypeDependentParams = "Item", BlueprintThreadSafe), Category="Utilities|Array")
 	static void Array_Get(const TArray<int32>& TargetArray, int32 Index, int32& Item);
@@ -185,7 +185,7 @@ class ENGINE_API UKismetArrayLibrary : public UBlueprintFunctionLibrary
 	 *@param	IndexToTest		The Index, that we want to test for being valid
 	 *@return	True if the Index is Valid, i.e. greater than or equal to zero, and less than the number of elements in TargetArray.
 	*/
-	UFUNCTION(BlueprintPure, CustomThunk, meta = (DisplayName = "Is Valid Index", CompactNodeTitle = "IS VALID INDEX", ArrayParm = "TargetArray", BlueprintThreadSafe), Category = "Utilities/Array")
+	UFUNCTION(BlueprintPure, CustomThunk, meta = (DisplayName = "Is Valid Index", CompactNodeTitle = "IS VALID INDEX", ArrayParm = "TargetArray", BlueprintThreadSafe), Category = "Utilities|Array")
 	static bool Array_IsValidIndex(const TArray<int32>& TargetArray, int32 IndexToTest);
 
 	// Native functions that will be called by the below custom thunk layers, which read off the property address, and call the appropriate native handler

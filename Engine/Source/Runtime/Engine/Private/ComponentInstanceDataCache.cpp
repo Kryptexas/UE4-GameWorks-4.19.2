@@ -61,11 +61,26 @@ FActorComponentInstanceData::FActorComponentInstanceData(const UActorComponent* 
 			FComponentPropertyWriter(const UActorComponent* Component, TArray<uint8>& InBytes)
 				: FObjectWriter(InBytes)
 			{
+				// Include properties that would normally skip tagged serialization (e.g. bulk serialization of array properties).
+				ArPortFlags |= PPF_ForceTaggedSerialization;
+
 				if (Component)
 				{
+					UClass* ComponentClass = Component->GetClass();
+
 					Component->GetUCSModifiedProperties(PropertiesToSkip);
 
-					UClass* ComponentClass = Component->GetClass();
+					if (AActor* ComponentOwner = Component->GetOwner())
+					{
+						// If this is the owning Actor's root scene component, don't include relative transform properties. This is handled elsewhere.
+						if (Component == ComponentOwner->GetRootComponent())
+						{
+							PropertiesToSkip.Add(ComponentClass->FindPropertyByName(GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeLocation)));
+							PropertiesToSkip.Add(ComponentClass->FindPropertyByName(GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeRotation)));
+							PropertiesToSkip.Add(ComponentClass->FindPropertyByName(GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeScale3D)));
+						}
+					}
+
 					ComponentClass->SerializeTaggedProperties(*this, (uint8*)Component, ComponentClass, (uint8*)Component->GetArchetype());
 				}
 			}
@@ -158,6 +173,9 @@ void FActorComponentInstanceData::ApplyToComponent(UActorComponent* Component, c
 			FComponentPropertyReader(UActorComponent* InComponent, TArray<uint8>& InBytes)
 				: FObjectReader(InBytes)
 			{
+				// Include properties that would normally skip tagged serialization (e.g. bulk serialization of array properties).
+				ArPortFlags |= PPF_ForceTaggedSerialization;
+
 				InComponent->GetUCSModifiedProperties(PropertiesToSkip);
 
 				UClass* Class = InComponent->GetClass();

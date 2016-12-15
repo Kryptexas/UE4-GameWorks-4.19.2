@@ -18,6 +18,7 @@ struct CORE_API FBlueprintsObjectVersion
 		AllowDeletionConformed,
 		AdvancedContainerSupport,
 		SCSHasComponentTemplateClass,
+		ComponentTemplateClassSupport,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

@@ -416,6 +416,16 @@
 			while( SerializeExpr( iCode, Ar) != EX_EndArray );
 			break;
 		}
+		case EX_SetSet:
+			SerializeExpr( iCode, Ar ); // set property
+			XFER(int32);			// Number of elements
+			while( SerializeExpr( iCode, Ar) != EX_EndSet );
+			break;
+		case EX_SetMap:
+			SerializeExpr( iCode, Ar ); // map property
+			XFER(int32);			// Number of elements
+			while( SerializeExpr( iCode, Ar) != EX_EndMap );
+			break;
 		case EX_ArrayConst:
 		{
 			XFERPTR(UProperty*);	// Inner property

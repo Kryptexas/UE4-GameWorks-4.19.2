@@ -59,9 +59,39 @@ struct FPropertySoftPath
 		}
 	}
 
+	FPropertySoftPath(const FPropertySoftPath& SubPropertyPath, const UProperty* LeafProperty)
+		: PropertyChain(SubPropertyPath.PropertyChain)
+	{
+		PropertyChain.Push(LeafProperty->GetFName());
+	}
+
+	FPropertySoftPath(const FPropertySoftPath& SubPropertyPath, int32 ContainerIndex)
+		: PropertyChain(SubPropertyPath.PropertyChain)
+	{
+		PropertyChain.Push(FName(*FString::FromInt(ContainerIndex)));
+	}
+
 	FResolvedProperty Resolve(const UObject* Object) const;
 	FPropertyPath ResolvePath(const UObject* Object) const;
-	FName LastPropertyName() const;
+	FString ToDisplayName() const;
+
+	inline bool IsSubPropertyMatch(const FPropertySoftPath& PotentialBasePropertyPath) const
+	{
+		if (PropertyChain.Num() <= PotentialBasePropertyPath.PropertyChain.Num())
+		{
+			return false;
+		}
+
+		for (int32 CurChainElement = 0; CurChainElement < PotentialBasePropertyPath.PropertyChain.Num(); CurChainElement++)
+		{
+			if (PotentialBasePropertyPath.PropertyChain[CurChainElement] != PropertyChain[CurChainElement])
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
 
 	inline bool operator==(FPropertySoftPath const& RHS) const
 	{
@@ -97,15 +127,6 @@ FORCEINLINE bool operator==( const FSCSIdentifier& A, const FSCSIdentifier& B )
 FORCEINLINE bool operator!=(const FSCSIdentifier& A, const FSCSIdentifier& B)
 {
 	return !(A == B);
-}
-
-FORCEINLINE FName FPropertySoftPath::LastPropertyName() const
-{
-	if( PropertyChain.Num() != 0 )
-	{
-		return PropertyChain.Last();
-	}
-	return FName();
 }
 
 FORCEINLINE uint32 GetTypeHash( FPropertySoftPath const& Path )
@@ -188,7 +209,7 @@ namespace DiffUtils
 	KISMET_API const UObject* GetCDO(const UBlueprint* ForBlueprint);
 	KISMET_API void CompareUnrelatedObjects(const UObject* A, const UObject* B, TArray<FSingleObjectDiffEntry>& OutDifferingProperties);
 	KISMET_API void CompareUnrelatedSCS(const UBlueprint* Old, const TArray< FSCSResolvedIdentifier >& OldHierarchy, const UBlueprint* New, const TArray< FSCSResolvedIdentifier >& NewHierarchy, FSCSDiffRoot& OutDifferingEntries );
-	KISMET_API bool Identical(const FResolvedProperty& AProp, const FResolvedProperty& BProp);
+	KISMET_API bool Identical(const FResolvedProperty& AProp, const FResolvedProperty& BProp, const FPropertySoftPath& RootPath, TArray<FPropertySoftPath>& DifferingProperties); 
 	TArray<FPropertySoftPath> GetVisiblePropertiesInOrderDeclared(const UObject* ForObj, const TArray<FName>& Scope = TArray<FName>());
 
 	KISMET_API TArray<FPropertyPath> ResolveAll(const UObject* Object, const TArray<FPropertySoftPath>& InSoftProperties);

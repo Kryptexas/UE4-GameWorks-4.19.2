@@ -35,14 +35,14 @@ static inline void PreloadInnerStructMembers(UStructProperty* StructProperty)
 -----------------------------------------------------------------------------*/
 
 UStructProperty::UStructProperty(ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct)
-	: UProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InFlags)
+	: UProperty(FObjectInitializer::Get(), EC_CppProperty, InOffset, InStruct->GetCppStructOps() ? InStruct->GetCppStructOps()->GetComputedPropertyFlags() | InFlags : InFlags)
 	, Struct(InStruct)
 {
 	ElementSize = Struct->PropertiesSize;
 }
 
 UStructProperty::UStructProperty( const FObjectInitializer& ObjectInitializer, ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct )
-	:	UProperty( ObjectInitializer, EC_CppProperty, InOffset, InFlags )
+	:	UProperty( ObjectInitializer, EC_CppProperty, InOffset, InStruct->GetCppStructOps() ? InStruct->GetCppStructOps()->GetComputedPropertyFlags() | InFlags : InFlags )
 	,	Struct( InStruct )
 {
 	ElementSize = Struct->PropertiesSize;
@@ -77,17 +77,14 @@ void UStructProperty::LinkInternal(FArchive& Ar)
 	PreloadInnerStructMembers(this);
 	
 	ElementSize = Align(Struct->PropertiesSize, Struct->GetMinAlignment());
-	if (Struct->StructFlags & STRUCT_IsPlainOldData) // if there is nothing to construct or the struct is known to be memcpy-able, then allow memcpy
+	if(UScriptStruct::ICppStructOps* Ops = Struct->GetCppStructOps())
 	{
-		PropertyFlags |= CPF_IsPlainOldData;
+		PropertyFlags |= Ops->GetComputedPropertyFlags();
 	}
-	if (Struct->StructFlags & STRUCT_NoDestructor)
+	else
 	{
-		PropertyFlags |= CPF_NoDestructor;
-	}
-	if (Struct->StructFlags & STRUCT_ZeroConstructor)
-	{
-		PropertyFlags |= CPF_ZeroConstructor;
+		// User Defined structs won't have UScriptStruct::ICppStructOps. Setting their flags here.
+		PropertyFlags |= CPF_HasGetValueTypeHash;
 	}
 }
 
@@ -211,7 +208,7 @@ bool UStructProperty::HasNoOpConstructor() const
 
 FString UStructProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
-	return FString::Printf(TEXT("F%s"), *Struct->GetName());
+	return Struct->GetStructCPPName();
 }
 
 FString UStructProperty::GetCPPTypeForwardDeclaration() const

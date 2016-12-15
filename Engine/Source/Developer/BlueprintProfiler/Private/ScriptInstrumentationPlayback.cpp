@@ -819,7 +819,7 @@ void FBlueprintFunctionContext::CreateDelegatePinEvents()
 	};
 
 	FBlueprintDebugData& DebugData = BlueprintClass.Get()->GetDebugData();
-	const TMap<FName, FEdGraphPinReference>& PinEvents = DebugData.GetCompilerGeneratedEvents();
+	const TMap<int32, FName>& PinEvents = DebugData.GetEntryPoints();
 	if (PinEvents.Num())
 	{
 		TMap<const UEdGraphNode*, TArray<FPinDelegateDesc>> NodeEventDescs;
@@ -828,7 +828,7 @@ void FBlueprintFunctionContext::CreateDelegatePinEvents()
 		// Build event contexts per node
 		for (auto PinEvent : PinEvents)
 		{
-			if (UEdGraphPin* DelegatePin = PinEvent.Value.Get())
+			if (UEdGraphPin* DelegatePin = DebugData.FindSourcePinFromCodeLocation(BlueprintClass.Get()->UberGraphFunction, PinEvent.Key))
 			{
 				const UEdGraphNode* OwningNode = DelegatePin->GetOwningNode();
 				TArray<FPinDelegateDesc>& Events = NodeEventDescs.FindOrAdd(OwningNode);
@@ -836,14 +836,14 @@ void FBlueprintFunctionContext::CreateDelegatePinEvents()
 				FNodeExecutionContext& NodeContext = GetNodeExecutionContext(ScriptOffset);
 				if (NodeContext.IsValid())
 				{
-					const FName ScopedEventName = NodeContext.ProfilerContext->GetScopedEventName(PinEvent.Key);
+					const FName ScopedEventName = NodeContext.ProfilerContext->GetScopedEventName(PinEvent.Value);
 					Events.Add(FPinDelegateDesc(ScopedEventName, DelegatePin, ScriptOffset, NodeContext));
 				}
 				else
 				{
 					NodeContext.ProfilerContext = AsShared();
 					NodeContext.GraphNode = OwningNode;
-					const FName ScopedEventName = GetScopedEventName(PinEvent.Key);
+					const FName ScopedEventName = GetScopedEventName(PinEvent.Value);
 					Events.Add(FPinDelegateDesc(ScopedEventName, DelegatePin, ScriptOffset, NodeContext));
 				}
 			}
@@ -2953,21 +2953,7 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 						{
 							if (UWorld* WorldForEvent = InstanceObj->GetWorld())
 							{
-								FLatentActionManager& LatentActionManager = WorldForEvent->GetLatentActionManager();
-								TSet<int32> UUIDSet;
-								int32 UUID = INDEX_NONE;
-								LatentActionManager.GetActiveUUIDs(InstanceObj, UUIDSet);
-								for (auto SetEntry : UUIDSet)
-								{
-									UUID = SetEntry;
-								}
-								if (UUID != INDEX_NONE)
-								{
-									if (FDelayAction* Action = LatentActionManager.FindExistingAction<FDelayAction>(InstanceObj, UUID))
-									{
-										LatentLinkId = Action->OutputLink;
-									}
-								}
+								LatentLinkId = CurrSignal.GetScriptCodeOffset();
 							}
 						}
 						break;
@@ -3116,7 +3102,7 @@ bool FScriptEventPlayback::Process(const TArray<FScriptInstrumentedEvent>& Signa
 						{
 							PerfData = PureChainNode->GetOrAddPerfDataByInstanceAndTracePath(InstanceName, NodeTracePath);
 							PerfData->AddEventTiming(PureChainDuration);
-						}
+  						}
 						PureChainEntryTime = NodeEntryTime = 0.0;
 						break;
 					}

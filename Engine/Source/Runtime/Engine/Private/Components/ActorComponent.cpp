@@ -1660,6 +1660,9 @@ void UActorComponent::DetermineUCSModifiedProperties()
 				: FArchive()
 			{
 				ArIsSaving = true;
+
+				// Include properties that would normally skip tagged serialization (e.g. bulk serialization of array properties).
+				ArPortFlags |= PPF_ForceTaggedSerialization;
 			}
 
 			virtual bool ShouldSkipProperty(const UProperty* InProperty) const override

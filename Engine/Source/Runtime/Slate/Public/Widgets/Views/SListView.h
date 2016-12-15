@@ -57,13 +57,15 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonClick FOnMouseButtonClick;
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 
+	typedef typename TSlateDelegates< ItemType >::FOnItemToString_Debug FOnItemToString_Debug; 
+
 	DECLARE_DELEGATE_OneParam( FOnWidgetToBeRemoved, const TSharedRef<ITableRow>& );
 
 public:
 	SLATE_BEGIN_ARGS( SListView<ItemType> )
 		: _OnGenerateRow()
 		, _OnRowReleased()
-		, _ListItemsSource( static_cast<const TArray<ItemType>*>(nullptr) ) //@todo Slate Syntax: Initializing from nullptr without a cast
+		, _ListItemsSource()
 		, _ItemHeight(16)
 		, _OnContextMenuOpening()
 		, _OnMouseButtonClick()
@@ -76,6 +78,8 @@ public:
 		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
 		, _WheelScrollMultiplier(GetGlobalScrollAmount())
 		, _HandleGamepadEvents( true )
+		, _OnItemToString_Debug()
+		, _OnEnteredBadState()
 		{ }
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -116,14 +120,19 @@ public:
 
 		SLATE_ARGUMENT( bool, HandleGamepadEvents );
 
+		/** Assign this to get more diagnostics from the list view. */
+		SLATE_EVENT(FOnItemToString_Debug, OnItemToString_Debug)
+
+		SLATE_EVENT(FOnTableViewBadState, OnEnteredBadState);
+
 	SLATE_END_ARGS()
 
 	/**
-		* Construct this widget
-		*
-		* @param	InArgs	The declaration data for this widget
-		*/
-	void Construct( const typename SListView<ItemType>::FArguments& InArgs )
+	 * Construct this widget
+	 *
+	 * @param	InArgs	The declaration data for this widget
+	 */
+	void Construct(const typename SListView<ItemType>::FArguments& InArgs)
 	{
 		this->OnGenerateRow = InArgs._OnGenerateRow;
 		this->OnRowReleased = InArgs._OnRowReleased;
@@ -143,6 +152,12 @@ public:
 
 		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
 		this->bHandleGamepadEvents = InArgs._HandleGamepadEvents;
+
+		this->OnItemToString_Debug =
+			InArgs._OnItemToString_Debug.IsBound()
+			? InArgs._OnItemToString_Debug
+			: GetDefaultDebugDelegate();
+		OnEnteredBadState = InArgs._OnEnteredBadState;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;
@@ -417,6 +432,7 @@ public:
 
 private:
 
+	friend class FWidgetGenerator;
 	/**
 	 * A WidgetGenerator is a component responsible for creating widgets from data items.
 	 * It also provides mapping from currently generated widgets to the data items which they
@@ -510,13 +526,7 @@ private:
 				}				
 			}
 
-			checkf( ItemToWidgetMap.Num() == WidgetMapToItem.Num(),
-			        TEXT( "ItemToWidgetMap length (%d) does not match WidgetMapToItem length (%d).  %s" ), ItemToWidgetMap.Num(),
-			        WidgetMapToItem.Num(), OwnerList ? *OwnerList->ToString() : TEXT( "null" ) );
-
-			checkf( WidgetMapToItem.Num() == ItemsWithGeneratedWidgets.Num(),
-			        TEXT( "WidgetMapToItem length (%d) does not match ItemsWithGeneratedWidgets length (%d). This is often because the same item is in the list more than once.  %s" ),
-			        WidgetMapToItem.Num(), ItemsWithGeneratedWidgets.Num(), OwnerList ? *OwnerList->ToString() : TEXT( "null" ) );
+			ValidateWidgetGeneration();
 
 			ItemsToBeCleanedUp.Reset();
 		}
@@ -543,6 +553,64 @@ private:
 			}
 
 			ItemsToBeCleanedUp.Reset();
+		}
+
+		void ValidateWidgetGeneration()
+		{
+			const bool bMapsMismatch = ItemToWidgetMap.Num() != WidgetMapToItem.Num();
+			const bool bGeneratedWidgetsSizeMismatch = WidgetMapToItem.Num() != ItemsWithGeneratedWidgets.Num();
+			if (bMapsMismatch)
+			{
+				UE_LOG(LogSlate, Warning, TEXT("ItemToWidgetMap length (%d) does not match WidgetMapToItem length (%d) in %s. Diagnostics follow. "),
+					ItemToWidgetMap.Num(),
+					WidgetMapToItem.Num(),
+					OwnerList ? *OwnerList->ToString() : TEXT("null"));
+			}
+			
+			if (bGeneratedWidgetsSizeMismatch)
+			{
+				UE_LOG(LogSlate, Warning,
+					TEXT("WidgetMapToItem length (%d) does not match ItemsWithGeneratedWidgets length (%d). This is often because the same item is in the list more than once in %s. Diagnostics follow."),
+					WidgetMapToItem.Num(),
+					ItemsWithGeneratedWidgets.Num(),
+					OwnerList ? *OwnerList->ToString() : TEXT("null"));
+			}
+
+			if (bMapsMismatch || bGeneratedWidgetsSizeMismatch)
+			{
+				if (OwnerList->OnItemToString_Debug.IsBound())
+				{
+					UE_LOG(LogSlate, Warning, TEXT(""));
+					UE_LOG(LogSlate, Warning, TEXT("ItemToWidgetMap :"));
+					for (auto ItemWidgetPair = ItemToWidgetMap.CreateConstIterator(); ItemWidgetPair; ++ItemWidgetPair)
+					{
+						const TSharedRef<SWidget> RowAsWidget = ItemWidgetPair.Value()->AsWidget();
+						UE_LOG(LogSlate, Warning, TEXT("%s -> 0x%08x @ %s"), *OwnerList->OnItemToString_Debug.Execute(ItemWidgetPair.Key()), &RowAsWidget.Get(), *RowAsWidget->ToString() );
+					}
+
+					UE_LOG(LogSlate, Warning, TEXT(""));
+					UE_LOG(LogSlate, Warning, TEXT("WidgetMapToItem:"))
+					for (auto WidgetItemPair = WidgetMapToItem.CreateConstIterator(); WidgetItemPair; ++WidgetItemPair)
+					{
+						UE_LOG(LogSlate, Warning, TEXT("0x%08x -> %s"), WidgetItemPair.Key(), *OwnerList->OnItemToString_Debug.Execute(WidgetItemPair.Value()) );
+					}
+
+					UE_LOG(LogSlate, Warning, TEXT(""));
+					UE_LOG(LogSlate, Warning, TEXT("ItemsWithGeneratedWidgets:"));
+					for (int i = 0; i < ItemsWithGeneratedWidgets.Num(); ++i)
+					{
+						UE_LOG(LogSlate, Warning, TEXT("[%d] %s"),i, *OwnerList->OnItemToString_Debug.Execute(ItemsWithGeneratedWidgets[i]));
+					}
+				}
+				else
+				{
+					UE_LOG(LogSlate, Warning, TEXT("Provide custom 'OnItemToString_Debug' for diagnostics dump."));
+				}
+
+				OwnerList->OnEnteredBadState.ExecuteIfBound();
+
+				checkf( false, TEXT("%s detected a critical error. See diagnostic dump above. Provide a custom 'OnItemToString_Debug' for more detailed diagnostics."), *OwnerList->ToString() );
+			}			
 		}
 
 		/** We store a pointer to the owner list for error purposes, so when asserts occur we can report which list it happened for. */
@@ -1160,6 +1228,22 @@ public:
 
 protected:
 
+	FOnItemToString_Debug GetDefaultDebugDelegate()
+	{
+		return
+		FOnItemToString_Debug::CreateLambda([](ItemType InItem)
+		{
+			if (TListTypeTraits<ItemType>::IsPtrValid(InItem))
+			{
+				return FString::Printf(TEXT("0x%08x"), &(*InItem));
+			}
+			else
+			{
+				return FString(TEXT("nullptr"));
+			}
+		});
+	}
+
 	/**
 	 * If there is a pending request to scroll an item into view, do so.
 	 * 
@@ -1424,6 +1508,12 @@ protected:
 
 	/** Delegate to be invoked when the list needs to generate a new widget from a data item. */
 	FOnGenerateRow OnGenerateRow;
+
+	/** Assign this to get more diagnostics from the list view. */
+	FOnItemToString_Debug OnItemToString_Debug;
+
+	/** Invoked when the tree enters a bad state. */
+	FOnTableViewBadState OnEnteredBadState;
 
 	/**/
 	FOnWidgetToBeRemoved OnRowReleased;

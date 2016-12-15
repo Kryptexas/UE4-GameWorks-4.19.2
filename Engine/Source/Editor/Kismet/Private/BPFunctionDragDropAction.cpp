@@ -11,6 +11,7 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintNodeBinder.h"
 #include "BlueprintFunctionNodeSpawner.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "FunctionDragDropAction"
 
@@ -236,6 +237,8 @@ FReply FKismetFunctionDragDropAction::DroppedOnPanel(TSharedRef<SWidget> const& 
 			if ((Function != NULL) && UEdGraphSchema_K2::CanUserKismetCallFunction(Function))
 			{
 				AnalyticCallback.ExecuteIfBound();
+
+				const FScopedTransaction Transaction( LOCTEXT("KismetFunction_DroppedOnPanel", "Function Dropped on Graph") );
 
 				IBlueprintNodeBinder::FBindingSet Bindings;
 				FunctionNodeSpawner->Invoke(&Graph, Bindings, GraphPosition);

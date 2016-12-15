@@ -42,8 +42,8 @@ protected:
 public:
 
 	// IBlueprintCompilerCppBackend implementation
-	virtual FString GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, FString& OutCppBody) override;
-	virtual FString GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum) override;
+	virtual FString GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly, FCompilerNativizationOptions NativizationOptions, FString& OutCppBody) override;
+	virtual void GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum, FString& OutHeaderCode, FString& OutCPPCode) override;
 	virtual FString GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct) override;
 	virtual FString GenerateWrapperForClass(UClass* SourceClass) override;
 	// end of IBlueprintCompilerCppBackend implementation

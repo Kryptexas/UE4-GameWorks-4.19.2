@@ -240,6 +240,9 @@ public:
 	}
 
 	ENGINE_API bool Serialize(FArchive& Ar);
+
+	static ENGINE_API FEdGraphPinType GetPinTypeForTerminalType( const FEdGraphTerminalType& TerminalType );
+	static ENGINE_API FEdGraphPinType GetTerminalTypeForContainer( const FEdGraphPinType& ContainerType );
 };
 
 template<>

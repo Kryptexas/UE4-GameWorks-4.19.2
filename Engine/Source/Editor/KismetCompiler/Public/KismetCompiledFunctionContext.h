@@ -320,10 +320,9 @@ public:
 		}
 		else
 		{
-			MessageLog.Warning(
-				*FString::Printf(TEXT("A node that generated no code of it's own (@@) tried to inject code into @@. %s"), *GetFullNameSafe(Source))
-				, Source
-				, Destination);
+			// A node that generated no code of it's own (Source) tried to inject code into (Destination).
+			// It is ok, for example: UK2Node_GetClassDefaults works like this.
+			// Moreover when KismetCompilerDebugOptions::EmitNodeComments is enabled there is always a Comment state generated anyway.
 		}
 	}
 

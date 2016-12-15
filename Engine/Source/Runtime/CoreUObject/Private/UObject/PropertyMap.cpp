@@ -663,6 +663,7 @@ void UMapProperty::AddCppProperty( UProperty* Property )
 	{
 		// If it's at offset zero, assume it's the key
 		check(!KeyProp);
+		ensureAlwaysMsgf(Property->HasAllPropertyFlags(CPF_HasGetValueTypeHash), TEXT("Attempting to create Map Property with unhashable key type: %s - Provide a GetTypeHash function!"), *Property->GetName());
 		KeyProp = Property;
 	}
 	else

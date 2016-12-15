@@ -1165,6 +1165,8 @@ public:
 	DECLARE_FUNCTION(execTransformConst);
 	DECLARE_FUNCTION(execStructConst);
 	DECLARE_FUNCTION(execSetArray);
+	DECLARE_FUNCTION(execSetSet);
+	DECLARE_FUNCTION(execSetMap);
 	DECLARE_FUNCTION(execArrayConst);
 
 	// Object construction

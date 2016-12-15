@@ -82,9 +82,14 @@ struct FFindAssetsToInclude : public FGatherConvertedClassDependenciesHelperBase
 	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
 	{
 		UObject* Object = InObject;
-		if (!Object || Object->IsA<UBlueprint>())
+		if (!Object)
 		{
 			return;
+		}
+
+		if (Object->IsA<UBlueprint>())
+		{
+			Object = CastChecked<UBlueprint>(Object)->GeneratedClass;
 		}
 
 		UClass* ActualClass = Cast<UClass>(Dependencies.GetActualStruct());

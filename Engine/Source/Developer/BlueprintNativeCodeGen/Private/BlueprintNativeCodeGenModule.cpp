@@ -65,7 +65,7 @@ public:
 	}
 protected:
 	virtual void Initialize(const FNativeCodeGenInitData& InitData) override;
-	virtual void InitializeForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets) override;
+	virtual void InitializeForRerunDebugOnly(const TArray<FPlatformNativizationDetails>& CodegenTargets) override;
 	//~ End IBlueprintNativeCodeGenModule interface
 
 	//~ Begin FScriptCookReplacmentCoordinator interface
@@ -102,6 +102,9 @@ private:
 
 	TSet<TAssetPtr<UBlueprint>> ToGenerate;
 	TMultiMap<FName, TAssetSubclassOf<UObject>> FunctionsBoundToADelegate; // is a function could be bound to a delegate, then it must have UFUNCTION macro. So we cannot optimize it.
+
+	// Cached values from IsTargetedForReplacement
+	mutable TMap<FStringAssetReference, EReplacementResult> CachedIsTargetedForReplacement;
 };
 
 void FBlueprintNativeCodeGenModule::ReadConfig()
@@ -234,22 +237,22 @@ void FBlueprintNativeCodeGenModule::FillIsFunctionUsedInADelegate()
 
 void FBlueprintNativeCodeGenModule::Initialize(const FNativeCodeGenInitData& InitData)
 {
+	CachedIsTargetedForReplacement.Reset();
 	ReadConfig();
 
 	IBlueprintNativeCodeGenCore::Register(this);
 
 	// Each platform will need a manifest, because each platform could cook different assets:
-	for (auto& Platform : InitData.CodegenTargets)
+	for (const FPlatformNativizationDetails& Platform : InitData.CodegenTargets)
 	{
-		const TCHAR* TargetDirectory = *Platform.Value;
-		FString OutputPath = FPaths::Combine(TargetDirectory, NativizationCookControllerImpl::DefaultPluginName);
+		FString OutputPath = FPaths::Combine(*Platform.PlatformTargetDirectory, NativizationCookControllerImpl::DefaultPluginName);
 
-		Manifests.Add(FString(*Platform.Key), TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(NativizationCookControllerImpl::DefaultPluginName, OutputPath)));
+		Manifests.Add(*Platform.PlatformName, TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(NativizationCookControllerImpl::DefaultPluginName, OutputPath, Platform.CompilerNativizationOptions)));
 
-		TargetPlatformNames.Add(Platform.Key);
+		TargetPlatformNames.Add(Platform.PlatformName);
 
 		// Clear source code folder
-		const FString SourceCodeDir = GetManifest(*Platform.Key).GetTargetPaths().PluginSourceDir();
+		const FString SourceCodeDir = GetManifest(*Platform.PlatformName).GetTargetPaths().PluginSourceDir();
 		UE_LOG(LogBlueprintCodeGen, Log, TEXT("Clear nativized source code directory: %s"), *SourceCodeDir);
 		IFileManager::Get().DeleteDirectory(*SourceCodeDir, false, true);
 	}
@@ -259,22 +262,22 @@ void FBlueprintNativeCodeGenModule::Initialize(const FNativeCodeGenInitData& Ini
 	FillIsFunctionUsedInADelegate();
 }
 
-void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TPair< FString, FString > >& CodegenTargets)
+void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray<FPlatformNativizationDetails>& CodegenTargets)
 {
+	CachedIsTargetedForReplacement.Reset();
 	ReadConfig();
 	IBlueprintNativeCodeGenCore::Register(this);
 	FillTargetedForReplacementQuery();
 	FillIsFunctionUsedInADelegate();
 
-	for (const auto& Platform : CodegenTargets)
+	for (const FPlatformNativizationDetails& Platform : CodegenTargets)
 	{
 		// load the old manifest:
-		const TCHAR* TargetDirectory = *Platform.Value;
-		FString OutputPath = FPaths::Combine(TargetDirectory, NativizationCookControllerImpl::DefaultPluginName, *FBlueprintNativeCodeGenPaths::GetDefaultManifestPath());
-		Manifests.Add(FString(*Platform.Key), TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(FPaths::ConvertRelativePathToFull(OutputPath))));
+		FString OutputPath = FPaths::Combine(*Platform.PlatformTargetDirectory, NativizationCookControllerImpl::DefaultPluginName, *FBlueprintNativeCodeGenPaths::GetDefaultManifestPath());
+		Manifests.Add(Platform.PlatformName, TUniquePtr<FBlueprintNativeCodeGenManifest>(new FBlueprintNativeCodeGenManifest(FPaths::ConvertRelativePathToFull(OutputPath))));
 		//FBlueprintNativeCodeGenManifest OldManifest(FPaths::ConvertRelativePathToFull(OutputPath));
 		// reconvert every assets listed in the manifest:
-		for (const auto& ConversionTarget : GetManifest(*Platform.Key).GetConversionRecord())
+		for (const auto& ConversionTarget : GetManifest(*Platform.PlatformName).GetConversionRecord())
 		{
 			// load the package:
 			UPackage* Package = LoadPackage(nullptr, *ConversionTarget.Value.TargetObjPath, LOAD_None);
@@ -286,11 +289,11 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TP
 			}
 
 			// reconvert it
-			Convert(Package, ESavePackageResult::ReplaceCompletely, *Platform.Key);
+			Convert(Package, ESavePackageResult::ReplaceCompletely, *Platform.PlatformName);
 		}
 
 		// reconvert every unconverted dependency listed in the manifest:
-		for (const auto& ConversionTarget : GetManifest(*Platform.Key).GetUnconvertedDependencies())
+		for (const auto& ConversionTarget : GetManifest(*Platform.PlatformName).GetUnconvertedDependencies())
 		{
 			// load the package:
 			UPackage* Package = LoadPackage(nullptr, *ConversionTarget.Key.GetPlainNameString(), LOAD_None);
@@ -302,7 +305,7 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TP
 			if (ensure(BP))
 			{
 				CollectBoundFunctions(BP);
-				GenerateSingleStub(BP, *Platform.Key);
+				GenerateSingleStub(BP, *Platform.PlatformName);
 			}
 		}
 
@@ -311,7 +314,7 @@ void FBlueprintNativeCodeGenModule::InitializeForRerunDebugOnly(const TArray< TP
 			UBlueprint* BP = BPPtr.LoadSynchronous();
 			if (ensure(BP))
 			{
-				GenerateSingleAsset(BP->GeneratedClass, *Platform.Key);
+				GenerateSingleAsset(BP->GeneratedClass, *Platform.PlatformName);
 			}
 		}
 	}
@@ -420,7 +423,7 @@ void FBlueprintNativeCodeGenModule::GenerateSingleAsset(UField* ForConversion, c
 	TSharedPtr<FString> HeaderSource(new FString());
 	TSharedPtr<FString> CppSource(new FString());
 
-	FBlueprintNativeCodeGenUtils::GenerateCppCode(ForConversion, HeaderSource, CppSource, NativizationSummary);
+	FBlueprintNativeCodeGenUtils::GenerateCppCode(ForConversion, HeaderSource, CppSource, NativizationSummary, GetManifest(PlatformName).GetCompilerNativizationOptions());
 	bool bSuccess = !HeaderSource->IsEmpty() || !CppSource->IsEmpty();
 	// Run the cpp first, because we cue off of the presence of a header for a valid conversion record (see
 	// FConvertedAssetRecord::IsValid)
@@ -605,7 +608,6 @@ UClass* FBlueprintNativeCodeGenModule::FindReplacedClassForObject(const UObject*
 UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object, FName& OutName) const
 {
 	OutName = NAME_None;
-	UObject* Outer = nullptr;
 
 	UActorComponent* ActorComponent = Cast<UActorComponent>(Object);
 	if (ActorComponent)
@@ -616,20 +618,22 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 		{
 			if (OuterObject->HasAnyFlags(RF_ClassDefaultObject))
 			{
-				return Outer;
+				return nullptr;
 			}
 			BPGC = Cast<UBlueprintGeneratedClass>(OuterObject);
 		}
 
-		for (UBlueprintGeneratedClass* SuperBPGC = BPGC; SuperBPGC && (OutName == NAME_None); SuperBPGC = Cast<UBlueprintGeneratedClass>(SuperBPGC->GetSuperClass()))
+		FName NewName = NAME_None;
+		UObject* OuterCDO = nullptr;
+		for (UBlueprintGeneratedClass* SuperBPGC = BPGC; SuperBPGC && (NewName == NAME_None); SuperBPGC = Cast<UBlueprintGeneratedClass>(SuperBPGC->GetSuperClass()))
 		{
 			if (SuperBPGC->InheritableComponentHandler)
 			{
 				FComponentKey FoundKey = SuperBPGC->InheritableComponentHandler->FindKey(ActorComponent);
 				if (FoundKey.IsValid())
 				{
-					OutName = FoundKey.IsSCSKey() ? FoundKey.GetSCSVariableName() : ActorComponent->GetFName();
-					Outer = BPGC->GetDefaultObject(false);
+					NewName = FoundKey.IsSCSKey() ? FoundKey.GetSCSVariableName() : ActorComponent->GetFName();
+					OuterCDO = BPGC->GetDefaultObject(false);
 					break;
 				}
 			}
@@ -639,22 +643,23 @@ UObject* FBlueprintNativeCodeGenModule::FindReplacedNameAndOuter(UObject* Object
 				{
 					if (Node->ComponentTemplate == ActorComponent)
 					{
-						OutName = Node->GetVariableName();
-						if (OutName != NAME_None)
+						NewName = Node->GetVariableName();
+						if (NewName != NAME_None)
 						{
-							Outer = BPGC->GetDefaultObject(false);
+							OuterCDO = BPGC->GetDefaultObject(false);
 							break;
 						}
 					}
 				}
 			}
 		}
-	}
 
-	if (Outer && (EReplacementResult::ReplaceCompletely == IsTargetedForReplacement(Object->GetClass())))
-	{
-		UE_LOG(LogBlueprintCodeGen, Log, TEXT("Object '%s' has replaced name '%s' and outer: '%s'"), *GetPathNameSafe(Object), *OutName.ToString(), *GetPathNameSafe(Outer));
-		return Outer;
+		if (OuterCDO && (EReplacementResult::ReplaceCompletely == IsTargetedForReplacement(OuterCDO->GetClass())))
+		{
+			OutName = NewName;
+			UE_LOG(LogBlueprintCodeGen, Log, TEXT("Object '%s' has replaced name '%s' and outer: '%s'"), *GetPathNameSafe(Object), *OutName.ToString(), *GetPathNameSafe(OuterCDO));
+			return OuterCDO;
+		}
 	}
 
 	return nullptr;
@@ -677,26 +682,35 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 
 EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const UObject* Object) const
 {
-	const UStruct* const Struct = Cast<UStruct>(Object);
-	const UEnum* const Enum = Cast<UEnum>(Object);
-	const UClass* const BlueprintClass = Cast<UClass>(Struct);
+	if (Object == nullptr)
+	{
+		return EReplacementResult::DontReplace;
+	}
+
+	const UUserDefinedStruct* const UDStruct = Cast<const UUserDefinedStruct>(Object);
+	const UUserDefinedEnum* const UDEnum = Cast<const UUserDefinedEnum>(Object);
+	const UBlueprintGeneratedClass* const BlueprintClass = Cast<const UBlueprintGeneratedClass>(Object);
+	if (UDStruct == nullptr && UDEnum == nullptr && BlueprintClass == nullptr)
+	{
+		return EReplacementResult::DontReplace;
+	}
+
+	const FStringAssetReference ObjectKey(Object);
+	{
+		const EReplacementResult* const CachedValue = CachedIsTargetedForReplacement.Find(ObjectKey); //THe referenced returned by FindOrAdd could be invalid later, when filled.
+		if (CachedValue)
+		{
+			return *CachedValue;
+		}
+	}
+
 	const UBlueprint* const Blueprint = BlueprintClass ? Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy) : nullptr;
 
 	auto ObjectIsNotReplacedAtAll = [&]() -> bool
 	{
-		if (Object == nullptr)
-		{
-			return true;
-		}
-
-		if (Struct == nullptr && Enum == nullptr)
-		{
-			return true;
-		}
-
 		// EDITOR ON DEVELOPMENT OBJECT
 		{
-			auto IsDeveloperObject = [&](const UObject* Obj) -> bool
+			auto IsDeveloperObject = [](const UObject* Obj) -> bool
 			{
 				auto IsObjectFromDeveloperPackage = [](const UObject* InObj) -> bool
 				{
@@ -734,10 +748,16 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 				return true;
 			}
 		}
+		// Don't convert objects like Default__WidgetBlueprintGeneratedClass
+		if (Object && (Object->HasAnyFlags(RF_ClassDefaultObject)))
+		{
+			return true;
+		}
 		return false;
 	};
 	if (ObjectIsNotReplacedAtAll())
 	{
+		CachedIsTargetedForReplacement.Add(ObjectKey, EReplacementResult::DontReplace);
 		return EReplacementResult::DontReplace;
 	}
 
@@ -759,12 +779,12 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 		// ExcludedAssetTypes
 		{
 			// we can't use FindObject, because we may be converting a type while saving
-			if (Enum && ExcludedAssetTypes.Find(Enum->GetPathName()) != INDEX_NONE)
+			if (UDEnum && ExcludedAssetTypes.Find(UDEnum->GetPathName()) != INDEX_NONE)
 			{
 				return true;
 			}
 
-			const UStruct* LocStruct = Struct;
+			const UStruct* LocStruct = Cast<const UStruct>(Object);
 			while (LocStruct)
 			{
 				if (ExcludedAssetTypes.Find(LocStruct->GetPathName()) != INDEX_NONE)
@@ -835,10 +855,10 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 			}
 
 			const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
-			const bool bNativizeOnlySelectedBPs = PackagingSettings && PackagingSettings->bNativizeOnlySelectedBlueprints;
+			const bool bNativizeOnlySelectedBPs = PackagingSettings && PackagingSettings->BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive;
 
 			// Blueprint is not selected
-			if (bNativizeOnlySelectedBPs && !Blueprint->bNativize)
+			if (bNativizeOnlySelectedBPs && !Blueprint->bSelectedForNativization)
 			{
 				return true;
 			}
@@ -857,14 +877,36 @@ EReplacementResult FBlueprintNativeCodeGenModule::IsTargetedForReplacement(const
 					return true;
 				}
 			}
+
+			// Interface class not converted
+			TArray<UClass*> InterfaceClasses;
+			FBlueprintEditorUtils::FindImplementedInterfaces(Blueprint, false, InterfaceClasses);
+			for (const UClass* InterfaceClassIt : InterfaceClasses)
+			{
+				const UBlueprintGeneratedClass* InterfaceBPGC = Cast<const UBlueprintGeneratedClass>(InterfaceClassIt);
+				if (InterfaceBPGC)
+				{
+					const EReplacementResult InterfaceResult = IsTargetedForReplacement(InterfaceBPGC);
+					if (InterfaceResult != EReplacementResult::ReplaceCompletely)
+					{
+						if (bNativizeOnlySelectedBPs)
+						{
+							UE_LOG(LogBlueprintCodeGen, Error, TEXT("BP %s is selected for nativization, but BP interface class %s is not nativized."), *GetPathNameSafe(Blueprint), *GetPathNameSafe(InterfaceClassIt));
+						}
+						return true;
+					}
+				}
+			}
 		}
 		return false;
 	};
 	if (ObjectGenratesOnlyStub())
 	{
+		CachedIsTargetedForReplacement.Add(ObjectKey, EReplacementResult::GenerateStub);
 		return EReplacementResult::GenerateStub;
 	}
 
+	CachedIsTargetedForReplacement.Add(ObjectKey, EReplacementResult::ReplaceCompletely);
 	return EReplacementResult::ReplaceCompletely;
 }
 

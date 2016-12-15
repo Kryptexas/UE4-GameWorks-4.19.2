@@ -70,7 +70,10 @@ public:
 	virtual uint32 GetStructTypeHash(const void* Src) const override;
 	virtual void RecursivelyPreload() override;
 	virtual FGuid GetCustomGuid() const override;
+	virtual FString GetStructCPPName() const override;
 	// End of  UScriptStruct interface.
+
+	static uint32 GetUserDefinedStructTypeHash(const void* Src, const UScriptStruct* Type);
 
 #if WITH_EDITOR
 public:

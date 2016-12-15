@@ -125,6 +125,7 @@ public:
 public:
 
 	//~ Begin UObject Interface
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void GetPreloadDependencies(TArray<UObject*>& OutDeps) override;
 	//~ End UObject Interface
@@ -152,6 +153,9 @@ public:
 
 private:
 	const FComponentOverrideRecord* FindRecord(const FComponentKey Key) const;
+
+	/** Helper method used to assist with fixing up component template names at load time. */
+	void FixComponentTemplateName(UActorComponent* ComponentTemplate, const FString& NewName);
 	
 	/** All component records */
 	UPROPERTY()

@@ -1556,6 +1556,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			// Use the PlayWorld as the GWorld, because who knows what will happen in the Tick.
 			OldGWorld = SetPlayInEditorWorld( PlayWorld );
 
+			// Transfer debug references to ensure debugging ref's are valid for this tick in case of multiple game instances.
+			if (OldGWorld && OldGWorld != PlayWorld)
+			{
+				OldGWorld->TransferBlueprintDebugReferences(PlayWorld);
+			}
+
 			// Tick all travel and Pending NetGames (Seamless, server, client)
 			TickWorldTravel(PieContext, DeltaSeconds);
 

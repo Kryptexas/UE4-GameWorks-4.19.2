@@ -51,4 +51,9 @@ public:
 	{
 		return Pins[1];
 	}
+
+private:
+	void PropagatePinType();
+	void PropagatePinTypeFromInput();
+	void PropagatePinTypeFromOutput();
 };

@@ -75,6 +75,7 @@ public:
 	TSharedPtr< FUICommandInfo > RecompileBlueprintEditor;
 	TSharedPtr< FUICommandInfo > RecompilePersona;
 	TSharedPtr< FUICommandInfo > GenerateNativeCode;
+	TSharedPtr< FUICommandInfo > ShowActionMenuItemSignatures;
 
 	// SSC commands
 	TSharedPtr< FUICommandInfo > BeginBlueprintMerge;

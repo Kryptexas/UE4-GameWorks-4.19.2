@@ -84,6 +84,23 @@ enum class EBlueprintCompileMode : uint8
 	FinalRelease UMETA(ToolTip="Always compile in final release mode.")
 };
 
+USTRUCT()
+struct FCompilerNativizationOptions
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	bool ServerOnlyPlatform;
+
+	UPROPERTY()
+	bool ClientOnlyPlatform;
+
+	FCompilerNativizationOptions()
+		: ServerOnlyPlatform(false)
+		, ClientOnlyPlatform(false)
+	{}
+};
+
 struct FKismetCompilerOptions
 {
 public:
@@ -104,6 +121,7 @@ public:
 
 	TSharedPtr<FString> OutHeaderSourceCode;
 	TSharedPtr<FString> OutCppSourceCode;
+	FCompilerNativizationOptions NativizationOptions;
 
 	bool DoesRequireCppCodeGeneration() const
 	{
@@ -355,9 +373,9 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(EditAnywhere, Category=BlueprintOptions)
 	TArray<FString> HideCategories;
 	 
-	/** When nativization is enabled, and "NativizeOnlySelectedBlueprints" is set true, then this asset will be nativized. All super classes must be also nativized. */
-	UPROPERTY(EditAnywhere, Category=Experimental)
-	bool bNativize;
+	/** When exclusive nativization is enabled, then this asset will be nativized. All super classes must be also nativized. */
+	UPROPERTY(transient, DisplayName = "Nativize", EditAnywhere, Category= Packaging)
+	bool bSelectedForNativization;
 
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
@@ -568,6 +586,9 @@ public:
 	/** Find the object in the TemplateObjects array with the supplied name */
 	UActorComponent* FindTemplateByName(const FName& TemplateName) const;
 
+	/** Rename the component template in the TemplateObjects array with the supplied name */
+	bool RenameComponentTemplate(const FName& OldTemplateName, const FName& NewTemplateName);
+
 	/** Find a timeline by name */
 	class UTimelineTemplate* FindTimelineTemplateByVariableName(const FName& TimelineName);	
 
@@ -643,6 +664,9 @@ public:
 	virtual void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
 	virtual bool IsCachedCookedPlatformDataLoaded(const ITargetPlatform* TargetPlatform) override;
 	virtual void ClearAllCachedCookedPlatformData() override;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 	//~ End UObject Interface
 
 	/** Consigns the GeneratedClass and the SkeletonGeneratedClass to oblivion, and nulls their references */
@@ -775,6 +799,10 @@ private:
 
 	/** Broadcasts a notification whenever the blueprint is compiled. */
 	FCompiledEvent CompiledEvent;
+
+	/** Deprecated properties. */
+	UPROPERTY()
+	bool bNativize_DEPRECATED;
 
 #if WITH_EDITOR
 public:

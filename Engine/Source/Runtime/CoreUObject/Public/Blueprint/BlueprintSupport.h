@@ -274,6 +274,8 @@ struct COREUOBJECT_API FBlueprintDependencyObjectRef
 	FName ClassPackageName;
 	FName ClassName;
 
+	FBlueprintDependencyObjectRef() {}
+
 	FORCENOINLINE FBlueprintDependencyObjectRef(const TCHAR* InPackageFolder
 		, const TCHAR* InShortPackageName
 		, const TCHAR* InObjectName
@@ -312,7 +314,7 @@ private:
 public:
 	static FConvertedBlueprintsDependencies& Get();
 
-	void RegisterClass(FName PackageName, GetDependenciesNamesFunc GetAssets);
+	void RegisterConvertedClass(FName PackageName, GetDependenciesNamesFunc GetAssets);
 
 	/** Get all assets paths necessary for the class with the given class name and all converted classes that dependencies. */
 	void GetAssets(FName PackageName, TArray<FBlueprintDependencyData>& OutDependencies) const;

@@ -194,6 +194,11 @@ void UK2Node_TunnelBoundary::CreateBoundariesForExpansionNodes(UEdGraphNode* Sou
 		{
 			for (UEdGraphPin* LinkedPin : Pin->LinkedTo)
 			{
+				//if (ExpansionNode->IsA<UK2Node_Event>() && Pin->Direction == EGPD_Output && Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec)
+				//{
+				//	// Add boundary for expansion events.
+				//	LinkedPinMap.Add(Pin, LinkedPin);
+				//}
 				if (UEdGraphPin** SourcePin = LinkedPinMap.Find(LinkedPin))
 				{
 					if (Pin->Direction == EGPD_Input)

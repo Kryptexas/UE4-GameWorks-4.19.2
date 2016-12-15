@@ -999,6 +999,14 @@ private:
 			ADD_ALIAS("RAND")
 			ADD_ALIAS("RANDOM")
 		FUNC_ALIASES_END
+
+		FUNC_ALIASES_BEGIN("Dot_VectorVector")
+			ADD_ALIAS("Dot")
+		FUNC_ALIASES_END
+
+		FUNC_ALIASES_BEGIN("Cross_VectorVector")
+			ADD_ALIAS("Cross")
+		FUNC_ALIASES_END
 				
 		// if none of the above aliases returned, then we don't have any for
 		// this function (use its regular name)

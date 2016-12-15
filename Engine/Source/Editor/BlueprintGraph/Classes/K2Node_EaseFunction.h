@@ -55,6 +55,7 @@ class UK2Node_EaseFunction : public UK2Node
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual bool IsNodePure() const override { return true; }
 	//~ End UK2Node Interface.
 
 private:

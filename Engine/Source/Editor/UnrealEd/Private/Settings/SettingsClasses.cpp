@@ -495,6 +495,31 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 UProjectPackagingSettings::UProjectPackagingSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 {
+	bWarnIfPackagedWithoutNativizationFlag = true;
+}
+
+
+void UProjectPackagingSettings::PostInitProperties()
+{
+	// Migrate from deprecated Blueprint nativization packaging flags.
+	// Note: This assumes that LoadConfig() has been called before getting here.
+	FString NewValue;
+	const FString ConfigFileName = UProjectPackagingSettings::StaticClass()->GetConfigName();
+	const FString ClassSectionName = UProjectPackagingSettings::StaticClass()->GetPathName();
+	const bool bIgnoreOldFlags = GConfig->GetString(*ClassSectionName, GET_MEMBER_NAME_STRING_CHECKED(UProjectPackagingSettings, BlueprintNativizationMethod), NewValue, ConfigFileName);
+	if (!bIgnoreOldFlags && bNativizeBlueprintAssets_DEPRECATED)
+	{
+		BlueprintNativizationMethod = bNativizeOnlySelectedBlueprints_DEPRECATED ? EProjectPackagingBlueprintNativizationMethod::Exclusive : EProjectPackagingBlueprintNativizationMethod::Inclusive;
+	}
+
+	// Reset deprecated settings to defaults.
+	bNativizeBlueprintAssets_DEPRECATED = false;
+	bNativizeOnlySelectedBlueprints_DEPRECATED = false;
+
+	// Cache the current set of Blueprint assets selected for nativization.
+	CachedNativizeBlueprintAssets = NativizeBlueprintAssets;
+
+	Super::PostInitProperties();
 }
 
 
@@ -588,6 +613,107 @@ void UProjectPackagingSettings::PostEditChangeProperty( FPropertyChangedEvent& P
 			}
 		}
 	}
+	else if (Name == FName((TEXT("NativizeBlueprintAssets"))))
+	{
+		int32 AssetIndex;
+		auto OnSelectBlueprintForExclusiveNativizationLambda = [](const FString& PackageName, bool bSelect)
+		{
+			if (!PackageName.IsEmpty())
+			{
+				// This should only apply to loaded packages. Any unloaded packages defer setting the transient flag to when they're loaded.
+				if (UPackage* Package = FindPackage(nullptr, *PackageName))
+				{
+					// Find the Blueprint asset within the package.
+					if (UBlueprint* Blueprint = FindObject<UBlueprint>(Package, *FPaths::GetBaseFilename(PackageName)))
+					{
+						// We're toggling the transient flag on or off.
+						if (Blueprint->bSelectedForNativization != bSelect)
+						{
+							// Get a reference to the property.
+							UProperty* PropertyToChange = UBlueprint::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UBlueprint, bSelectedForNativization));
+							check(PropertyToChange != nullptr);
+
+							// Update the transient property's value.
+							Blueprint->PreEditChange(PropertyToChange);
+							Blueprint->bSelectedForNativization = bSelect;
+
+							// If selecting for nativization, this will propagate the transient flag to any dependencies. Note that we don't reverse-propagate here
+							// back to the config settings until/unless Blueprint assets are saved, so this will only set the transient flag and mark dependencies dirty.
+							FPropertyChangedEvent BlueprintPropertyChangedEvent(PropertyToChange);
+							Blueprint->PostEditChangeProperty(BlueprintPropertyChangedEvent);
+						}
+					}
+				}
+			}
+		};
+
+		if (NativizeBlueprintAssets.Num() > 0)
+		{
+			for (AssetIndex = 0; AssetIndex < NativizeBlueprintAssets.Num(); ++AssetIndex)
+			{
+				const FString& PackageName = NativizeBlueprintAssets[AssetIndex].FilePath;
+				if (AssetIndex >= CachedNativizeBlueprintAssets.Num())
+				{
+					// A new entry was added; toggle the exclusive flag on the corresponding Blueprint asset (if loaded).
+					OnSelectBlueprintForExclusiveNativizationLambda(PackageName, true);
+
+					// Add an entry to the end of the cached list.
+					CachedNativizeBlueprintAssets.Add(NativizeBlueprintAssets[AssetIndex]);
+				}
+				else if (!PackageName.Equals(CachedNativizeBlueprintAssets[AssetIndex].FilePath))
+				{
+					if (NativizeBlueprintAssets.Num() < CachedNativizeBlueprintAssets.Num())
+					{
+						// An entry was removed; toggle the exclusive flag on the corresponding Blueprint asset (if loaded).
+						OnSelectBlueprintForExclusiveNativizationLambda(CachedNativizeBlueprintAssets[AssetIndex].FilePath, false);
+
+						// Remove this entry from the cached list.
+						CachedNativizeBlueprintAssets.RemoveAt(AssetIndex);
+					}
+					else if(NativizeBlueprintAssets.Num() > CachedNativizeBlueprintAssets.Num())
+					{
+						// A new entry was inserted; toggle the exclusive flag on the corresponding Blueprint asset (if loaded).
+						OnSelectBlueprintForExclusiveNativizationLambda(PackageName, true);
+
+						// Insert the new entry into the cached list.
+						CachedNativizeBlueprintAssets.Insert(NativizeBlueprintAssets[AssetIndex], AssetIndex);
+					}
+					else
+					{
+						// An entry was changed; toggle the exclusive flag on the corresponding Blueprint assets (if loaded).
+						OnSelectBlueprintForExclusiveNativizationLambda(CachedNativizeBlueprintAssets[AssetIndex].FilePath, false);
+						OnSelectBlueprintForExclusiveNativizationLambda(PackageName, true);
+
+						// Update the cached entry.
+						CachedNativizeBlueprintAssets[AssetIndex].FilePath = PackageName;
+					}
+				}
+			}
+
+			if (CachedNativizeBlueprintAssets.Num() > NativizeBlueprintAssets.Num())
+			{
+				// Removed entries at the end of the list; toggle the exclusive flag on the corresponding Blueprint asset(s) (if loaded).
+				for (AssetIndex = NativizeBlueprintAssets.Num(); AssetIndex < CachedNativizeBlueprintAssets.Num(); ++AssetIndex)
+				{
+					OnSelectBlueprintForExclusiveNativizationLambda(CachedNativizeBlueprintAssets[AssetIndex].FilePath, false);
+				}
+
+				// Remove entries from the end of the cached list.
+				CachedNativizeBlueprintAssets.RemoveAt(NativizeBlueprintAssets.Num(), CachedNativizeBlueprintAssets.Num() - NativizeBlueprintAssets.Num());
+			}
+		}
+		else if(CachedNativizeBlueprintAssets.Num() > 0)
+		{
+			// Removed all entries; toggle the exclusive flag on the corresponding Blueprint asset(s) (if loaded).
+			for (AssetIndex = 0; AssetIndex < CachedNativizeBlueprintAssets.Num(); ++AssetIndex)
+			{
+				OnSelectBlueprintForExclusiveNativizationLambda(CachedNativizeBlueprintAssets[AssetIndex].FilePath, false);
+			}
+
+			// Clear the cached list.
+			CachedNativizeBlueprintAssets.Empty();
+		}
+	}
 }
 
 bool UProjectPackagingSettings::CanEditChange( const UProperty* InProperty ) const
@@ -596,8 +722,71 @@ bool UProjectPackagingSettings::CanEditChange( const UProperty* InProperty ) con
 	{
 		return false;
 	}
+	else if (InProperty->GetFName() == FName(TEXT("NativizeBlueprintAssets")))
+	{
+		return BlueprintNativizationMethod == EProjectPackagingBlueprintNativizationMethod::Exclusive;
+	}
 
 	return Super::CanEditChange(InProperty);
+}
+
+bool UProjectPackagingSettings::AddBlueprintAssetToNativizationList(const class UBlueprint* InBlueprint)
+{
+	if (InBlueprint)
+	{
+		const FString PackageName = InBlueprint->GetOutermost()->GetName();
+
+		// Make sure it's not already in the exclusive list. This can happen if the user previously added this asset in the Project Settings editor.
+		bool bFound = false;
+		for (int AssetIndex = 0; AssetIndex < NativizeBlueprintAssets.Num(); ++AssetIndex)
+		{
+			if (NativizeBlueprintAssets[AssetIndex].FilePath.Equals(PackageName, ESearchCase::IgnoreCase))
+			{
+				bFound = true;
+				break;
+			}
+		}
+
+		if (!bFound)
+		{
+			// Add this Blueprint asset to the exclusive list.
+			FFilePath FileInfo;
+			FileInfo.FilePath = PackageName;
+			NativizeBlueprintAssets.Add(FileInfo);
+
+			// Also add it to the mirrored list for tracking edits.
+			CachedNativizeBlueprintAssets.Add(FileInfo);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UProjectPackagingSettings::RemoveBlueprintAssetFromNativizationList(const class UBlueprint* InBlueprint)
+{
+	if (InBlueprint)
+	{
+		const FString PackageName = InBlueprint->GetOutermost()->GetName();
+
+		// Remove this Blueprint asset from the exclusive list (if found).
+		for (int AssetIndex = 0; AssetIndex < NativizeBlueprintAssets.Num(); ++AssetIndex)
+		{
+			if (NativizeBlueprintAssets[AssetIndex].FilePath.Equals(PackageName, ESearchCase::IgnoreCase))
+			{
+				// Note: Intentionally not using RemoveAtSwap() here, so that the order is preserved.
+				NativizeBlueprintAssets.RemoveAt(AssetIndex);
+
+				// Also remove it from the mirrored list (for tracking edits).
+				CachedNativizeBlueprintAssets.RemoveAt(AssetIndex);
+				
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 /* UCrashReporterSettings interface

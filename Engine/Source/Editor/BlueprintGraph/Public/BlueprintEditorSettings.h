@@ -81,9 +81,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Workflow)
 	bool bHideConstructionScriptComponentsInDetailsView;
 
-	UPROPERTY(EditAnywhere, config, Category = Experimental, AdvancedDisplay, meta = (DisplayName = "Enable (incomplete, non-functional) support for TSet and TMap"))
-	bool bEnableAdvancedContainers;
-
 // Compiler Settings
 public:
 	/** Determines when to save Blueprints post-compile */

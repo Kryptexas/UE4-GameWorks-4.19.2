@@ -153,6 +153,27 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 	return true;
 }
 
+FEdGraphPinType FEdGraphPinType::GetPinTypeForTerminalType( const FEdGraphTerminalType& TerminalType )
+{
+	FEdGraphPinType TerminalTypeAsPin;
+	TerminalTypeAsPin.PinCategory = TerminalType.TerminalCategory;
+	TerminalTypeAsPin.PinSubCategory = TerminalType.TerminalSubCategory;
+	TerminalTypeAsPin.PinSubCategoryObject = TerminalType.TerminalSubCategoryObject;
+
+	return TerminalTypeAsPin;
+}
+
+FEdGraphPinType FEdGraphPinType::GetTerminalTypeForContainer( const FEdGraphPinType& ContainerType )
+{
+	ensure(ContainerType.IsContainer());
+	
+	FEdGraphPinType TerminalType = ContainerType;
+	TerminalType.bIsArray = false;
+	TerminalType.bIsMap = false;
+	TerminalType.bIsSet = false;
+	return TerminalType;
+}
+
 /////////////////////////////////////////////////////
 // FEdGraphPinReference
 void FEdGraphPinReference::SetPin(const UEdGraphPin* NewPin)

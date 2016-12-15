@@ -640,6 +640,13 @@ public:
 			{
 				MarkNameAsReferenced(ReplObjClass->GetFName());
 			}
+
+			FName ReplacedName;
+			Coordinator->FindReplacedNameAndOuter(Obj, ReplacedName); //TODO: should we care about replaced outer ?
+			if (ReplacedName != NAME_None)
+			{
+				MarkNameAsReferenced(ReplacedName);
+			}
 		}
 	}
 #endif //WITH_EDITOR
@@ -4673,9 +4680,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 					TArray<UObject*> TagImpObjects;
 					GetObjectsWithAnyMarks(TagImpObjects, OBJECTMARK_TagImp);
 
+					const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(TargetPlatform, Linker->IsCooking());
 					if (Linker->IsCooking())
 					{
-						const EObjectMark ObjectMarks = UPackage::GetObjectMarksForTargetPlatform(TargetPlatform, Linker->IsCooking());
 						for (UObject* ObjImport : TagImpObjects)
 						{
 							if (ObjImport->HasAllMarks(ObjectMarks))
@@ -4700,6 +4707,11 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 							if (UObject* ReplacedOuter = Coordinator->FindReplacedNameAndOuter(Obj, /*out*/ReplacedName))
 							{
 								ReplacedImportOuters.Add(Obj, ReplacedOuter);
+								if (ReplacedOuter->HasAllMarks(ObjectMarks))
+								{
+									// The actual outer is not for the current platform, so the object shouldn't be cooked.
+									Obj->UnMark(OBJECTMARK_TagImp);
+								}
 							}
 						}
 #endif //WITH_EDITOR

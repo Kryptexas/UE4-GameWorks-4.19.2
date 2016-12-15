@@ -1636,17 +1636,18 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports_Event()
 			ExistingPackage = CastChecked<UPackage>(Import->XObject);
 			PendingPackage = ExistingPackage->LinkerLoad ? ExistingPackage->LinkerLoad->AsyncRoot : nullptr;
 		}
-		bool bCompiledIn = ExistingPackage && ExistingPackage->HasAnyPackageFlags(PKG_CompiledIn);
+		const bool bDynamicPackage = ExistingPackage && GetConvertedDynamicPackageNameToTypeName().Contains(ExistingPackage->GetFName());
+		const bool bCompiledInNotDynamic = ExistingPackage && ExistingPackage->HasAnyPackageFlags(PKG_CompiledIn) && !bDynamicPackage;
 		// Our import package name is the import name
 		const FName ImportPackageFName(Import->ObjectName);
-		check(!PendingPackage || !bCompiledIn); // we should never have a pending package for something that is compiled in
-		if (!PendingPackage && !bCompiledIn)
+		check(!PendingPackage || !bCompiledInNotDynamic); // we should never have a pending package for something that is compiled in
+		if (!PendingPackage && !bCompiledInNotDynamic)
 		{
 			PendingPackage = FAsyncLoadingThread::Get().FindAsyncPackage(ImportPackageFName);
 		}
 		if (!PendingPackage)
 		{
-			if (bCompiledIn)
+			if (bCompiledInNotDynamic)
 			{
 				// This can happen with editor only classes, not sure if this should be a warning or a silent continue
 				UE_LOG(LogStreaming, Warning, TEXT("FAsyncPackage::LoadImports for %s: Skipping import %s, depends on missing native class"), *Desc.NameToLoad.ToString(), *OriginalImport->ObjectName.ToString());
@@ -1759,17 +1760,26 @@ static bool IsFullyLoadedObj(UObject* Obj)
 	}
 //native blueprint 
 	UDynamicClass* UD = Cast<UDynamicClass>(Obj);
-	if (!UD || 0 != (UD->ClassFlags & CLASS_Constructed))
+	if (!UD)
 	{
 		return true;
 	}
-	/*
-	if (UD->GetDefaultObject(false))
+
+	if (GEventDrivenLoaderEnabled)
 	{
-		UE_CLOG(!UD->HasAnyClassFlags(CLASS_TokenStreamAssembled), LogStreaming, Fatal, TEXT("Class %s is fully loaded, but does not have its token stream assembled."), *UD->GetFullName());
-		return true;
+		if (0 != (UD->ClassFlags & CLASS_Constructed))
+		{
+			return true;
+		}
 	}
-	*/
+	else
+	{
+		if (UD->GetDefaultObject(false))
+		{
+			UE_CLOG(!UD->HasAnyClassFlags(CLASS_TokenStreamAssembled), LogStreaming, Fatal, TEXT("Class %s is fully loaded, but does not have its token stream assembled."), *UD->GetFullName());
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -1815,7 +1825,6 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 			if (ImportPackage)
 			{
 				FLinkerLoad* ImportLinker = ImportPackage->LinkerLoad;
-				check(!ImportLinker || !ImportPackage->HasAnyPackageFlags(PKG_CompiledIn)); // we should never have a linker on a compiled in package
 				if (ImportLinker && ImportLinker->AsyncRoot)
 				{
 					check(ImportLinker->AsyncRoot != this);
@@ -1859,7 +1868,6 @@ EAsyncPackageState::Type FAsyncPackage::SetupImports_Event()
 			if (ImportPackage)
 			{
 				FLinkerLoad* ImportLinker = ImportPackage->LinkerLoad;
-				check(!ImportLinker || !ImportPackage->HasAnyPackageFlags(PKG_CompiledIn)); // we should never have a linker on a compiled in package
 				bool bDynamicImport = ImportLinker && ImportLinker->bDynamicClassLinker;
 				if (!ImportLinker || !ImportLinker->AsyncRoot)
 				{
@@ -3405,7 +3413,7 @@ void FAsyncPackage::Event_StartPostload()
 			FObjectExport& Export = Linker->ExportMap[LocalExportIndex];
 			UObject* Object = Export.Object;
 			checkSlow(!(Object && !ReferencedObjects.Contains(Object)));
-			if (Object && (Object->HasAnyFlags(RF_NeedPostLoad) || Object->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading)))
+			if (Object && (Object->HasAnyFlags(RF_NeedPostLoad) || Linker->bDynamicClassLinker || Object->HasAnyInternalFlags(EInternalObjectFlags::AsyncLoading)))
 			{
 				ObjLoaded.Add(Object);
 			}

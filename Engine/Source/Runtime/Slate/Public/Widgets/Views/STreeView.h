@@ -84,6 +84,8 @@ public:
 	typedef typename TSlateDelegates< ItemType >::FOnMouseButtonDoubleClick FOnMouseButtonDoubleClick;
 	typedef typename TSlateDelegates< ItemType >::FOnExpansionChanged FOnExpansionChanged;
 
+	typedef typename TSlateDelegates< ItemType >::FOnItemToString_Debug FOnItemToString_Debug; 
+
 	using FOnWidgetToBeRemoved = typename SListView<ItemType>::FOnWidgetToBeRemoved;
 
 public:
@@ -104,6 +106,8 @@ public:
 		, _ConsumeMouseWheel( EConsumeMouseWheel::WhenScrollingPossible )
 		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _WheelScrollMultiplier(GetGlobalScrollAmount())
+		, _OnItemToString_Debug()
+		, _OnEnteredBadState()
 		{}
 
 		SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
@@ -144,6 +148,11 @@ public:
 
 		SLATE_ARGUMENT( float, WheelScrollMultiplier );
 
+		/** Assign this to get more diagnostics from the list view. */
+		SLATE_EVENT(FOnItemToString_Debug, OnItemToString_Debug)
+
+		SLATE_EVENT(FOnTableViewBadState, OnEnteredBadState);
+
 	SLATE_END_ARGS()
 
 		
@@ -172,6 +181,11 @@ public:
 		this->AllowOverscroll = InArgs._AllowOverscroll;
 
 		this->WheelScrollMultiplier = InArgs._WheelScrollMultiplier;
+
+		this->OnItemToString_Debug = InArgs._OnItemToString_Debug.IsBound()
+			? InArgs._OnItemToString_Debug
+			: SListView< ItemType >::GetDefaultDebugDelegate();
+		this->OnEnteredBadState = InArgs._OnEnteredBadState;
 
 		// Check for any parameters that the coder forgot to specify.
 		FString ErrorString;

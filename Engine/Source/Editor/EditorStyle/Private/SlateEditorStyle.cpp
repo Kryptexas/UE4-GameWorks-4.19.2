@@ -4057,7 +4057,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 				);
 
 			Set( "Graph.CompactNode.Title", FTextBlockStyle(NormalText)
-				.SetFont( TTF_FONT( "Fonts/Roboto-BoldCondensed", 40 ) )
+				.SetFont( TTF_FONT( "Fonts/Roboto-BoldCondensed", 20 ) )
 				.SetColorAndOpacity( FLinearColor(1.0f, 1.0f, 1.0f, 0.5f) )
 				.SetShadowOffset( FVector2D::ZeroVector )
 				.SetShadowColorAndOpacity( FLinearColor::White )

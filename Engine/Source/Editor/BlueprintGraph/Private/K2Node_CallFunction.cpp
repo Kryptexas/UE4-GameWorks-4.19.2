@@ -1003,14 +1003,6 @@ void UK2Node_CallFunction::PostReconstructNode()
 		}
 	}
 
-	// Set the return type to the right class of component
-	UActorComponent* TemplateComp = GetTemplateFromNode();
-	UEdGraphPin* ReturnPin = GetReturnValuePin();
-	if(TemplateComp && ReturnPin)
-	{
-		ReturnPin->PinType.PinSubCategoryObject = TemplateComp->GetClass()->GetAuthoritativeClass();
-	}
-
 	if (UEdGraphPin* TypePickerPin = FDynamicOutputHelper::GetTypePickerPin(this))
 	{
 		FDynamicOutputHelper(TypePickerPin).ConformOutputType();
@@ -1025,22 +1017,6 @@ void UK2Node_CallFunction::PostReconstructNode()
 			FKismetDebugUtilities::StartDeletingBreakpoint(ExistingBreakpoint, GetBlueprint());
 		}
 	}
-}
-
-void UK2Node_CallFunction::DestroyNode()
-{
-	// See if this node has a template
-	UActorComponent* Template = GetTemplateFromNode();
-	if (Template != NULL)
-	{
-		// Get the blueprint so we can remove it from it
-		UBlueprint* BlueprintObj = GetBlueprint();
-
-		// remove it
-		BlueprintObj->ComponentTemplates.Remove(Template);
-	}
-
-	Super::DestroyNode();
 }
 
 void UK2Node_CallFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)

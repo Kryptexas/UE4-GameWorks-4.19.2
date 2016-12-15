@@ -372,9 +372,15 @@ public:
 				ReturnField = FindField<TFieldType>(TargetScope, MemberName);
 
 #if WITH_EDITOR
+
+				// If the reference variable is valid we need to make sure that our GUID matches
+				if (ReturnField != NULL)
+				{
+					UBlueprint::GetGuidFromClassByFieldName<TFieldType>(TargetScope, MemberName, MemberGuid);
+				}
 				// If we have a GUID find the reference variable and make sure the name is up to date and find the field again
 				// For now only variable references will have valid GUIDs.  Will have to deal with finding other names subsequently
-				if (ReturnField == NULL && MemberGuid.IsValid())
+				else if (MemberGuid.IsValid())
 				{
 					const FName RenamedMemberName = UBlueprint::GetFieldNameFromClassByGuid<TFieldType>(TargetScope, MemberGuid);
 					if (RenamedMemberName != NAME_None)

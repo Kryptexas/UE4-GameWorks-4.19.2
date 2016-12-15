@@ -221,6 +221,38 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			//SerializeExpr( ScriptIndex );
 			break;
 		}
+	case EX_SetSet:
+		{
+ 			Ar.Logf(TEXT("%s $%X: set set"), *Indents, (int32)Opcode);
+			SerializeExpr(ScriptIndex);
+			ReadINT(ScriptIndex);
+ 			while( SerializeExpr(ScriptIndex) != EX_EndSet)
+ 			{
+ 				// Set contents
+ 			}
+ 			break;
+		}
+	case EX_EndSet:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_EndSet"), *Indents, (int32)Opcode);
+			break;
+		}
+	case EX_SetMap:
+		{
+ 			Ar.Logf(TEXT("%s $%X: set map"), *Indents, (int32)Opcode);
+			SerializeExpr(ScriptIndex);
+ 			ReadINT(ScriptIndex);
+ 			while( SerializeExpr(ScriptIndex) != EX_EndMap)
+ 			{
+ 				// Map contents
+ 			}
+ 			break;
+		}
+	case EX_EndMap:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_EndMap"), *Indents, (int32)Opcode);
+			break;
+		}
 	case EX_ObjToInterfaceCast:
 		{
 			// A conversion from an object variable to a native interface variable.

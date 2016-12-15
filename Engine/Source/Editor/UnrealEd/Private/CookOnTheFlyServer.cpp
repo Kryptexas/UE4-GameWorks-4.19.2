@@ -5845,11 +5845,11 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 
 	GenerateAssetRegistry();
 
+	const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 
 	NeverCookPackageList.Empty();
 	{
 		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
-		const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 
 		TArray<FString> NeverCookDirectories = CookByTheBookStartupOptions.NeverCookDirectories;
 
@@ -5923,13 +5923,28 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	if (bRunConversion)
 	{
 		FNativeCodeGenInitData CodeGenData;
-		for (auto Entry : CookByTheBookStartupOptions.TargetPlatforms)
+		for (const ITargetPlatform* Entry : CookByTheBookStartupOptions.TargetPlatforms)
 		{
+			FPlatformNativizationDetails PlatformNativizationDetails;
+			PlatformNativizationDetails.PlatformName = Entry->PlatformName();
 			// If you change this target path you must also update logic in CookCommand.Automation.CS. Passing a single directory around is cumbersome for testing, so I have hard coded it.
-			CodeGenData.CodegenTargets.Push(TPairInitializer<FString, FString>(Entry->PlatformName(), FString(FPaths::Combine( *FPaths::GameIntermediateDir(), *(Entry->PlatformName())))));
+			PlatformNativizationDetails.PlatformTargetDirectory = FString(FPaths::Combine(*FPaths::GameIntermediateDir(), *(Entry->PlatformName())));
+			PlatformNativizationDetails.CompilerNativizationOptions.ClientOnlyPlatform = Entry->IsClientOnly();
+			PlatformNativizationDetails.CompilerNativizationOptions.ServerOnlyPlatform = Entry->IsServerOnly();
+
+			CodeGenData.CodegenTargets.Push(PlatformNativizationDetails);
 		}
 		CodeGenData.ManifestIdentifier = CookByTheBookStartupOptions.ChildCookIdentifier;
 		IBlueprintNativeCodeGenModule::InitializeModule(CodeGenData);
+	}
+	else if(PackagingSettings->bWarnIfPackagedWithoutNativizationFlag && PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Disabled)
+	{
+		// Warn if we're cooking without the -nativizeAssets flag, when the project settings specify a nativization method.
+		// If the "exclusive" (whitelist) method is set, we only warn if at least one asset has been selected for conversion.
+		if (PackagingSettings->BlueprintNativizationMethod != EProjectPackagingBlueprintNativizationMethod::Exclusive || PackagingSettings->NativizeBlueprintAssets.Num() > 0)
+		{
+			UE_LOG(LogCook, Warning, TEXT("Project is configured for Blueprint nativization, but the conversion flag (-nativizeAssets) has been omitted from the command line. No assets will be converted as a result."));
+		}
 	}
 
 	// need to test this out
