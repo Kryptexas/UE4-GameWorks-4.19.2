@@ -24,7 +24,6 @@
 
 #define LOCTEXT_NAMESPACE "UWheeledVehicleMovementComponent"
 
-
 #if WITH_VEHICLE
 
 /**
