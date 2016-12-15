@@ -11,11 +11,14 @@
 
 #include "ClientUnitTest.generated.h"
 
+
+// Forward declarations
 class AActor;
 class ANUTActor;
 class AOnlineBeaconClient;
 class APlayerController;
 class FInBunch;
+class FFuncReflection;
 class FNetworkNotifyHook;
 class UActorChannel;
 class UChannel;
@@ -60,21 +63,24 @@ enum class EUnitTestFlags : uint32 // NOTE: If you change from uint32, you need 
 
 	/** Unit test state-setup/requirements/prerequisites */
 	RequirePlayerController	= 0x00000200,	// Whether or not to wait for the PlayerController, before triggering ExecuteClientUnitTest
-	RequirePawn				= 0x00000400,	// Whether or not to wait for the PlayerController's pawn, before ExecuteClientUnitTest
-	RequirePing				= 0x00000800,	// Whether or not to wait for a ping round-trip, before triggering ExecuteClientUnitTest
-	RequireNUTActor			= 0x00001000,	// Whether or not to wait for the NUTActor, before triggering ExecuteClientUnitTest
-	RequireBeacon			= 0x00002000,	// Whether or not to wait for beacon replication, before triggering ExecuteClientUnitTest
-	RequireCustom			= 0x00004000,	// Whether or not ExecuteClientUnitTest will be executed manually, within the unit test
+	RequirePawn				= 0x00000400,	// Whether or not to wait for PlayerController's pawn, before ExecuteClientUnitTest
+	RequirePlayerState		= 0x00000800,	// Whether or not to wait for PlayerController's PlayerState, before ExecuteClientUnitTest
+	RequirePing				= 0x00001000,	// Whether or not to wait for a ping round-trip, before triggering ExecuteClientUnitTest
+	RequireNUTActor			= 0x00002000,	// Whether or not to wait for the NUTActor, before triggering ExecuteClientUnitTest
+	RequireBeacon			= 0x00004000,	// Whether or not to wait for beacon replication, before triggering ExecuteClientUnitTest
+	RequireCustom			= 0x00008000,	// Whether or not ExecuteClientUnitTest will be executed manually, within the unit test
 
-	RequirementsMask		= RequirePlayerController | RequirePawn | RequirePing | RequireNUTActor | RequireBeacon | RequireCustom,
+	RequirementsMask		= RequirePlayerController | RequirePawn | RequirePlayerState | RequirePing | RequireNUTActor |
+								RequireBeacon | RequireCustom,
 
 	/** Unit test error/crash detection */
 	ExpectServerCrash		= 0x00010000,	// Whether or not this unit test will intentionally crash the server
+	ExpectDisconnect		= 0x00020000,	// Whether or not this unit test will intentionally trigger a disconnect from the server
 
 	/** Unit test error/crash detection debugging (NOTE: Don't use these in finalized unit tests, unit tests must handle all errors) */
-	IgnoreServerCrash		= 0x00020000,	// Whether or not server crashes should be treated as a unit test failure
-	IgnoreClientCrash		= 0x00040000,	// Whether or not client crashes should be treated as a unit test failure
-	IgnoreDisconnect		= 0x00080000,	// Whether or not minimal/fake client disconnects, should be treated as a unit test failure
+	IgnoreServerCrash		= 0x00040000,	// Whether or not server crashes should be treated as a unit test failure
+	IgnoreClientCrash		= 0x00080000,	// Whether or not client crashes should be treated as a unit test failure
+	IgnoreDisconnect		= 0x00100000,	// Whether or not minimal/fake client disconnects, should be treated as a unit test failure
 
 	/** Unit test events */
 	NotifyNetActors			= 0x00200000,	// Whether or not to trigger a 'NotifyNetActor' event, AFTER creation of actor channel actor
@@ -113,11 +119,13 @@ inline FString GetUnitTestFlagName(EUnitTestFlags Flag)
 		EUTF_CASE(BeaconConnect);
 		EUTF_CASE(RequirePlayerController);
 		EUTF_CASE(RequirePawn);
+		EUTF_CASE(RequirePlayerState);
 		EUTF_CASE(RequirePing);
 		EUTF_CASE(RequireNUTActor);
 		EUTF_CASE(RequireBeacon);
 		EUTF_CASE(RequireCustom);
 		EUTF_CASE(ExpectServerCrash);
+		EUTF_CASE(ExpectDisconnect);
 		EUTF_CASE(IgnoreServerCrash);
 		EUTF_CASE(IgnoreClientCrash);
 		EUTF_CASE(IgnoreDisconnect);
@@ -159,6 +167,7 @@ class NETCODEUNITTEST_API UClientUnitTest : public UProcessUnitTest
 
 
 	friend class FScopedLog;
+	friend class FScopedNetObjectReplace;
 	friend class UUnitTestManager;
 	friend class FUnitTestEnvironment;
 
@@ -239,6 +248,9 @@ protected:
 	/** Whether or not the UnitPC Pawn was fully setup (requires EUnitTestFlags::RequirePawn) */
 	bool bUnitPawnSetup;
 
+	/** Whether or not the UnitPC PlayerState was fully setup (requires EUnitTestFlags::RequirePlayerState) */
+	bool bUnitPlayerStateSetup;
+
 	/** If EUnitTestFlags::RequireNUTActor is set, stores a reference to the replicated NUTActor */
 	TWeakObjectPtr<ANUTActor> UnitNUTActor;
 
@@ -253,6 +265,9 @@ protected:
 
 	/** If notifying of net actor creation, this keeps track of new actor channel indexes pending notification */
 	TArray<int32> PendingNetActorChans;
+
+	/** An expected network failure occurred, which will be handled during the next tick instead of immediately */
+	bool bPendingNetworkFailure;
 
 
 #if TARGET_UE4_CL >= CL_DEPRECATEDEL
@@ -425,14 +440,14 @@ public:
 	/**
 	 * Sends the specified RPC for the specified actor, and verifies that the RPC was sent (triggering a unit test failure if not)
 	 *
-	 * @param Target				The actor which will send the RPC
+	 * @param Target				The Actor or ActorComponent which will send the RPC
 	 * @param FunctionName			The name of the RPC
 	 * @param Parms					The RPC parameters (same as would be specified to ProcessEvent)
 	 * @param ParmsSize				The size of the RPC parameters, for verifying binary compatibility
 	 * @param ParmsSizeCorrection	Some parameters are compressed to a different size. Verify Parms matches, and use this to correct.
 	 * @return						Whether or not the RPC was sent successfully
 	 */
-	bool SendRPCChecked(AActor* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize, int16 ParmsSizeCorrection=0);
+	bool SendRPCChecked(UObject* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize, int16 ParmsSizeCorrection=0);
 
 	/**
 	 * As above, except the RPC is called within a lambda
@@ -454,6 +469,15 @@ public:
 		return bSuccess;
 	}
 
+	/**
+	 * As above, except optimized for use with reflection
+	 *
+	 * @param Target	The Actor or ActorComponent which will send the RPC
+	 * @param FuncRefl	The function reflection instance, containing the function to be called and its assigned parameters.
+	 * @return						Whether or not the RPC was sent successfully
+	 */
+	bool SendRPCChecked(UObject* Target, FFuncReflection& FuncRefl);
+
 
 	/**
 	 * Internal function, for preparing for a checked RPC call
@@ -464,10 +488,25 @@ public:
 	 * Internal function, for handling the aftermath of a checked RPC call
 	 *
 	 * @param RPCName	The name of the RPC, for logging purposes
-	 * @param Target	The actor the RPC is being called on (optional - for internal logging/debugging)
+	 * @param Target	The Actor or ActorComponent the RPC is being called on (optional - for internal logging/debugging)
 	 * @return			Whether or not the RPC was sent successfully
 	 */
-	bool PostSendRPC(FString RPCName, AActor* Target=nullptr);
+	bool PostSendRPC(FString RPCName, UObject* Target=nullptr);
+
+
+	/**
+	 * Gets the generic log message that is used to indicate unit test failure
+	 */
+	FORCEINLINE const TCHAR* GetGenericExploitFailLog()
+	{
+		return TEXT("Blank exploit fail log message");
+	}
+
+	/**
+	 * Sends a generic log message to the server, which (if successfully logged) indicates unit test failure.
+	 * This is for use with unit tests that are expecting a crash.
+	 */
+	void SendGenericExploitFailLog();
 
 	/**
 	 * Internal base implementation and utility functions for client unit tests

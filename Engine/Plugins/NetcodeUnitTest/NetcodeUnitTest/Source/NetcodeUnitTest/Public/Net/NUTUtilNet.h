@@ -18,6 +18,8 @@ class UNetDriver;
 class UUnitTestChannel;
 class UUnitTestNetDriver;
 struct FUniqueNetIdRepl;
+class UClientUnitTest;
+
 
 /**
  * A transparent FSocket-hook, for capturing lowest-level socket operations (use Attach/Detach functions for hooking)
@@ -311,6 +313,26 @@ private:
 	FDelegateHandle PostTickFlushDelegateHandle;
 #endif
 };
+
+
+/**
+ * Hooks netcode object serialization, in order to replace replication of a specific object, with another specified object,
+ * for the lifetime of the scoped instance
+ */
+class NETCODEUNITTEST_API FScopedNetObjectReplace
+{
+public:
+	FScopedNetObjectReplace(UClientUnitTest* InUnitTest, UObject* InObjToReplace, UObject* InObjReplacement);
+
+	~FScopedNetObjectReplace();
+
+
+private:
+	UClientUnitTest* UnitTest;
+
+	UObject* ObjToReplace;
+};
+
 
 /**
  * Netcode based utility functions

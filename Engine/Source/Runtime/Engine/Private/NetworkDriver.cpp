@@ -2103,6 +2103,22 @@ void UNetDriver::FlushActorDormancy(AActor* Actor)
 #endif // WITH_SERVER_CODE
 }
 
+void UNetDriver::ForcePropertyCompare( AActor* Actor )
+{
+#if WITH_SERVER_CODE
+	check( Actor );
+
+	for ( int32 i=0; i < ClientConnections.Num(); ++i )
+	{
+		UNetConnection *NetConnection = ClientConnections[i];
+		if ( NetConnection != NULL )
+		{
+			NetConnection->ForcePropertyCompare( Actor );
+		}
+	}
+#endif // WITH_SERVER_CODE
+}
+
 UChildConnection* UNetDriver::CreateChild(UNetConnection* Parent)
 {
 	UE_LOG(LogNet, Log, TEXT("Creating child connection with %s parent"), *Parent->GetName());

@@ -146,10 +146,11 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 
 	for (int32 i = 0; i < DataNum && !Ar.IsError(); ++i)
 	{
-		UScriptStruct* ScriptStruct = Data[i].IsValid() ? Data[i]->GetScriptStruct() : NULL;
+		TCheckedObjPtr<UScriptStruct> ScriptStruct = Data[i].IsValid() ? Data[i]->GetScriptStruct() : NULL;
+
 		Ar << ScriptStruct;
 
-		if (ScriptStruct)
+		if (ScriptStruct.IsValid())
 		{
 			if (Ar.IsLoading())
 			{
@@ -178,7 +179,7 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 
 				ABILITY_LOG(Fatal, TEXT("FGameplayAbilityTargetDataHandle::NetSerialize called on data struct %s without a native NetSerialize"), *ScriptStruct->GetName());
 
-				for (TFieldIterator<UProperty> It(ScriptStruct); It; ++It)
+				for (TFieldIterator<UProperty> It(ScriptStruct.Get()); It; ++It)
 				{
 					if (It->PropertyFlags & CPF_RepSkip)
 					{
@@ -190,6 +191,14 @@ bool FGameplayAbilityTargetDataHandle::NetSerialize(FArchive& Ar, class UPackage
 					It->NetSerializeItem(Ar, Map, PropertyData);
 				}
 			}
+		}
+		else if (ScriptStruct.IsError())
+		{
+#if !UE_BUILD_SHIPPING
+			ABILITY_LOG(Error, TEXT("FGameplayAbilityTargetDataHandle::NetSerialize: Bad ScriptStruct serialized, can't recover."))
+#endif
+
+			Ar.SetError();
 		}
 	}
 

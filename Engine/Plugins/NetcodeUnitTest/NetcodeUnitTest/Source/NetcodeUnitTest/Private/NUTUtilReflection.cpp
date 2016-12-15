@@ -9,6 +9,11 @@
 #include "NetcodeUnitTest.h"
 
 
+// @todo #JohnB: With the DebugDump function, NextActionError often seems to be garbled, but can't see an obvious reason why.
+//					Investigate/fix this, may be a sign of a bigger problem.
+
+// @todo #JohnB: Review the UEnumProperty changes that were added elsewhere, and test them
+#define UENUM_REFL 1
 
 /**
  * Wrapper macro for cast operator returns
@@ -25,14 +30,18 @@
  */
 
 FVMReflection::FVMReflection()
-	: FieldAddress(NULL)
+	: BaseAddress(nullptr)
+	, FieldInstance(nullptr)
+	, FieldAddress(nullptr)
 	, bVerifiedFieldType(false)
 	, bSetArrayElement(false)
 	, bNextActionMustBeCast(false)
+	, bIsError(false)
 	, NextActionError()
-	, bOutError(NULL)
+	, bOutError(nullptr)
 	, History()
-	, OutHistoryPtr(NULL)
+	, OutHistoryPtr(nullptr)
+	, WarnLevel(EVMRefWarning::Warn)
 {
 }
 
@@ -41,17 +50,17 @@ FVMReflection::FVMReflection(UObject* InBaseObject, EVMRefWarning InWarnLevel/*=
 {
 	WarnLevel = InWarnLevel;
 
-	if (InBaseObject != NULL)
+	if (InBaseObject != nullptr)
 	{
 		BaseAddress = InBaseObject;
 		FieldInstance = InBaseObject->GetClass();
-		bIsError = false;
 	}
 	else
 	{
-		BaseAddress = NULL;
-		FieldInstance = NULL;
-		bIsError = true;
+		BaseAddress = nullptr;
+		FieldInstance = nullptr;
+
+		SetError(TEXT("Bad InBaseObject in constructor"));
 	}
 }
 
@@ -60,19 +69,19 @@ FVMReflection::FVMReflection(FStructOnScope& InStruct, EVMRefWarning InWarnLevel
 {
 	WarnLevel = InWarnLevel;
 
-	UScriptStruct* TargetStruct = (InStruct.IsValid() ? (UScriptStruct*)Cast<UScriptStruct>(InStruct.GetStruct()) : NULL);
+	UStruct* TargetStruct = (InStruct.IsValid() ? (UStruct*)Cast<UStruct>(InStruct.GetStruct()) : nullptr);
 
-	if (TargetStruct != NULL)
+	if (TargetStruct != nullptr)
 	{
 		BaseAddress = InStruct.GetStructMemory();
 		FieldInstance = TargetStruct;
-		bIsError = false;
 	}
 	else
 	{
-		BaseAddress = NULL;
-		FieldInstance = NULL;
-		bIsError = true;
+		BaseAddress = nullptr;
+		FieldInstance = nullptr;
+
+		SetError(TEXT("Bad TargetStruct in constructor"));
 	}
 }
 
@@ -87,7 +96,7 @@ FVMReflection::FVMReflection(const FVMReflection& ToCopy)
 	, NextActionError(ToCopy.NextActionError)
 	, bOutError(NULL)
 	, History()
-	, OutHistoryPtr(NULL)
+	, OutHistoryPtr(nullptr)
 	, WarnLevel(EVMRefWarning::Warn)
 {
 }
@@ -177,7 +186,9 @@ FVMReflection& FVMReflection::operator ->*(const ANSICHAR* InPropertyName)
 		static const TArray<UClass*> SupportedTypes = TArrayBuilder<UClass*>()
 														.Add(UClass::StaticClass())
 														.Add(UByteProperty::StaticClass())
+#if UENUM_REFL
 														.Add(UEnumProperty::StaticClass())
+#endif
 														.Add(UUInt16Property::StaticClass())
 														.Add(UUInt32Property::StaticClass())
 														.Add(UUInt64Property::StaticClass())
@@ -393,6 +404,7 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 			FIELD_TYPE_CHECK(TEXT("uint64"), UUInt64Property)
 			FIELD_TYPE_CHECK(TEXT("FString"), UStrProperty)
 			FIELD_TYPE_CHECK(TEXT("FText"), UTextProperty)
+#if UENUM_REFL
 			else if (ActualFieldType->IsA(UEnumProperty::StaticClass()))
 			{
 				const UProperty* UnderlyingActualFieldType = static_cast<const UEnumProperty*>(ActualFieldType)->GetUnderlyingProperty();
@@ -434,6 +446,7 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 								CheckType, *ExpectedFieldType, *UnderlyingActualFieldType->GetClass()->GetName()));
 				}
 			}
+#endif
 			// UObject and subclasses
 			else if (ExpectedFieldType.Len() > 2 &&
 						(ExpectedFieldType.Left(1) == TEXT("U") || ExpectedFieldType.Left(1) == TEXT("A")) &&
@@ -461,7 +474,7 @@ FVMReflection& FVMReflection::operator [](const ANSICHAR* InFieldType)
 			// UStruct
 			else if (ExpectedFieldType.Len() > 1 && ExpectedFieldType.Left(1) == TEXT("F"))
 			{
-				UScriptStruct* StructRef = Cast<UScriptStruct>(ActualFieldType);
+				UStruct* StructRef = Cast<UStruct>(ActualFieldType);
 
 				if (StructRef != NULL)
 				{
@@ -593,10 +606,12 @@ InType* FVMReflection::GetWritableCast(const TCHAR* InTypeStr, bool bDoingUpCast
 		{
 			ReturnVal = (InType*)FieldAddress;
 		}
+#if UENUM_REFL
 		else if (FieldInstance->IsA<UEnumProperty>() && static_cast<const UEnumProperty*>(FieldInstance)->GetUnderlyingProperty()->IsA(InTypeClass::StaticClass()))
 		{
 			ReturnVal = (InType*)FieldAddress;
 		}
+#endif
 		else if (!bDoingUpCast)
 		{
 			FString Error = FString::Printf(TEXT("Tried to cast type '%s' to type '%s'."), *FieldInstance->GetClass()->GetName(),
@@ -667,6 +682,7 @@ InType FVMReflection::GetNumericTypeCast(const TCHAR* InTypeStr, const TArray<UC
 			NUMERIC_UPCAST(int16, UInt16Property)
 			NUMERIC_UPCAST(int32, UIntProperty)
 			NUMERIC_UPCAST(float, UFloatProperty)
+#if UENUM_REFL
 			else if (FieldInstance->IsA(UEnumProperty::StaticClass()))
 			{
 				const UEnumProperty* EnumFieldInstance = static_cast<const UEnumProperty*>(FieldInstance);
@@ -720,6 +736,7 @@ InType FVMReflection::GetNumericTypeCast(const TCHAR* InTypeStr, const TArray<UC
 					SetCastError(Error);
 				}
 			}
+#endif
 			else
 			{
 				FString Error = FString::Printf(TEXT("No upcast possible from type '%s' to type '%s'."),

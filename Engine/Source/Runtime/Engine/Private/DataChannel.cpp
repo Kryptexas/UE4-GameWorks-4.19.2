@@ -1468,8 +1468,7 @@ void UActorChannel::Init( UNetConnection* InConnection, int32 InChannelIndex, bo
 
 	RelevantTime			= Connection->Driver->Time;
 	LastUpdateTime			= Connection->Driver->Time - Connection->Driver->SpawnPrioritySeconds;
-	bActorMustStayDirty		= false;
-	bActorStillInitial		= false;
+	bForceCompareProperties	= false;
 	CustomTimeDilation		= 1.0f;
 }
 
@@ -2223,7 +2222,7 @@ public:
 		{
 			if ( !RepFlags.bNetOwner )
 			{
-				Actor->SetAutonomousProxy( false );
+				Actor->SetAutonomousProxy( false, false );
 			}
 		}
 	}
@@ -2237,7 +2236,7 @@ public:
 
 			if ( ActualRemoteRole == ROLE_AutonomousProxy )
 			{
-				Actor->SetAutonomousProxy( true );
+				Actor->SetAutonomousProxy( true, false );
 			}
 		}
 	}
@@ -2371,12 +2370,8 @@ bool UActorChannel::ReplicateActor()
 
 	RepFlags.bNetSimulated	= ( Actor->GetRemoteRole() == ROLE_SimulatedProxy );
 	RepFlags.bRepPhysics	= Actor->ReplicatedMovement.bRepPhysics;
-
-	RepFlags.bReplay				= ActorWorld && (ActorWorld->DemoNetDriver == Connection->GetDriver());
-
-	RepFlags.bNetInitial = RepFlags.bNetInitial || bActorStillInitial; // for replication purposes, bNetInitial stays true until all properties sent
-	bActorMustStayDirty = false;
-	bActorStillInitial = false;
+	RepFlags.bReplay		= ActorWorld && (ActorWorld->DemoNetDriver == Connection->GetDriver());
+	RepFlags.bNetInitial	= RepFlags.bNetInitial;
 
 	UE_LOG(LogNetTraffic, Log, TEXT("Replicate %s, bNetInitial: %d, bNetOwner: %d"), *Actor->GetName(), RepFlags.bNetInitial, RepFlags.bNetOwner );
 
@@ -2486,11 +2481,11 @@ bool UActorChannel::ReplicateActor()
 	// If we evaluated everything, mark LastUpdateTime, even if nothing changed.
 	LastUpdateTime = Connection->Driver->Time;
 
-	bActorStillInitial = RepFlags.bNetInitial && (!Actor->bNetTemporary && bActorMustStayDirty);
-
 	MemMark.Pop();
 
 	bIsReplicatingActor = false;
+
+	bForceCompareProperties = false;		// Only do this once per frame when set
 
 	return SentBunch;
 }

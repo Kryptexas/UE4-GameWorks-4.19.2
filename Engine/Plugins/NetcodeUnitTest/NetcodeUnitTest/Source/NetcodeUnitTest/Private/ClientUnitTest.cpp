@@ -5,6 +5,7 @@
 #include "Misc/FeedbackContext.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/PlayerState.h"
 #include "HAL/PlatformNamedPipe.h"
 
 #include "UnitTestManager.h"
@@ -59,11 +60,13 @@ UClientUnitTest::UClientUnitTest(const FObjectInitializer& ObjectInitializer)
 	, bTriggerredInitialConnect(false)
 	, UnitPC(NULL)
 	, bUnitPawnSetup(false)
+	, bUnitPlayerStateSetup(false)
 	, UnitNUTActor(NULL)
 	, UnitBeacon(NULL)
 	, bReceivedPong(false)
 	, ControlBunchSequence(0)
 	, PendingNetActorChans()
+	, bPendingNetworkFailure(false)
 {
 }
 
@@ -121,25 +124,31 @@ bool UClientUnitTest::NotifyAllowNetActor(UClass* ActorClass, bool bActorChannel
 {
 	bool bAllow = false;
 
-	if (!!(UnitTestFlags & EUnitTestFlags::RequireNUTActor) && ActorClass == ANUTActor::StaticClass() && UnitNUTActor == NULL)
+	if (!!(UnitTestFlags & EUnitTestFlags::RequireNUTActor) && ActorClass == ANUTActor::StaticClass() && UnitNUTActor == nullptr)
 	{
 		bAllow = true;
 	}
 
 	if (!!(UnitTestFlags & EUnitTestFlags::AcceptPlayerController) && ActorClass->IsChildOf(APlayerController::StaticClass()) &&
-		UnitPC == NULL)
+		UnitPC == nullptr)
 	{
 		bAllow = true;
 	}
 
 	if (!!(UnitTestFlags & EUnitTestFlags::RequirePawn) && ActorClass->IsChildOf(ACharacter::StaticClass()) &&
-		(!UnitPC.IsValid() || UnitPC->GetCharacter() == NULL))
+		(!UnitPC.IsValid() || UnitPC->GetCharacter() == nullptr))
+	{
+		bAllow = true;
+	}
+
+	if (!!(UnitTestFlags & EUnitTestFlags::RequirePlayerState) && ActorClass->IsChildOf(APlayerState::StaticClass()) &&
+		(!UnitPC.IsValid() || UnitPC->PlayerState == nullptr))
 	{
 		bAllow = true;
 	}
 
 	if (!!(UnitTestFlags & EUnitTestFlags::RequireBeacon) && ActorClass->IsChildOf(AOnlineBeaconClient::StaticClass()) &&
-		UnitBeacon == NULL)
+		UnitBeacon == nullptr)
 	{
 		bAllow = true;
 	}
@@ -194,8 +203,8 @@ void UClientUnitTest::NotifyNetActor(UActorChannel* ActorChannel, AActor* Actor)
 		}
 	}
 
-	if (!!(UnitTestFlags & EUnitTestFlags::RequirePawn) && !bUnitPawnSetup && UnitPC.IsValid() && Cast<ACharacter>(Actor) != NULL &&
-		UnitPC->GetCharacter() != NULL)
+	if (!!(UnitTestFlags & EUnitTestFlags::RequirePawn) && !bUnitPawnSetup && UnitPC.IsValid() && Cast<ACharacter>(Actor) != nullptr &&
+		UnitPC->GetCharacter() != nullptr)
 	{
 		bUnitPawnSetup = true;
 
@@ -204,6 +213,20 @@ void UClientUnitTest::NotifyNetActor(UActorChannel* ActorChannel, AActor* Actor)
 		if (HasAllRequirements())
 		{
 			ResetTimeout(TEXT("ExecuteClientUnitTest (NotifyNetActor - bUnitPawnSetup)"));
+			ExecuteClientUnitTest();
+		}
+	}
+
+	if (!!(UnitTestFlags & EUnitTestFlags::RequirePlayerState) && !bUnitPlayerStateSetup && UnitPC.IsValid() &&
+		Cast<APlayerState>(Actor) != nullptr && UnitPC->PlayerState != nullptr)
+	{
+		bUnitPlayerStateSetup = true;
+
+		ResetTimeout(TEXT("NotifyNetActor - bUnitPlayerStateSetup"));
+
+		if (HasAllRequirements())
+		{
+			ResetTimeout(TEXT("ExecuteClientUnitTest (NotifyNetActor - bUnitPlayerStateSetup)"));
 			ExecuteClientUnitTest();
 		}
 	}
@@ -227,12 +250,24 @@ void UClientUnitTest::NotifyNetworkFailure(ENetworkFailure::Type FailureType, co
 
 			if (!(UnitTestFlags & EUnitTestFlags::IgnoreDisconnect))
 			{
-				LogMsg += TEXT(", marking unit test as needing update.");
+				if (!!(UnitTestFlags & EUnitTestFlags::ExpectDisconnect))
+				{
+					LogMsg += TEXT(".");
 
-				UNIT_LOG(ELogType::StatusFailure | ELogType::StyleBold, TEXT("%s"), *LogMsg);
-				UNIT_STATUS_LOG(ELogType::StatusFailure | ELogType::StatusVerbose | ELogType::StyleBold, TEXT("%s"), *LogMsg);
+					UNIT_LOG(ELogType::StatusWarning, TEXT("%s"), *LogMsg);
+					UNIT_STATUS_LOG(ELogType::StatusWarning | ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 
-				VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
+					bPendingNetworkFailure = true;
+				}
+				else
+				{
+					LogMsg += TEXT(", marking unit test as needing update.");
+
+					UNIT_LOG(ELogType::StatusFailure | ELogType::StyleBold, TEXT("%s"), *LogMsg);
+					UNIT_STATUS_LOG(ELogType::StatusFailure | ELogType::StatusVerbose | ELogType::StyleBold, TEXT("%s"), *LogMsg);
+
+					VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
+				}
 			}
 			else
 			{
@@ -321,8 +356,8 @@ bool UClientUnitTest::NotifyScriptProcessEvent(AActor* Actor, UFunction* Functio
 	bool bBlockEvent = false;
 
 	// Handle UnitTestFlags that require RPC monitoring
-	if (AllowedClientRPCs.Num() > 0 || !(UnitTestFlags & EUnitTestFlags::AcceptRPCs) || !!(UnitTestFlags & EUnitTestFlags::DumpReceivedRPC) ||
-		!!(UnitTestFlags & EUnitTestFlags::RequirePawn))
+	if (AllowedClientRPCs.Num() > 0 || !(UnitTestFlags & EUnitTestFlags::AcceptRPCs) ||
+		!!(UnitTestFlags & EUnitTestFlags::DumpReceivedRPC) || !!(UnitTestFlags & EUnitTestFlags::RequirePawn))
 	{
 		bool bNetClientRPC = !!(Function->FunctionFlags & FUNC_Net) && !!(Function->FunctionFlags & FUNC_NetClient);
 
@@ -776,7 +811,7 @@ void UClientUnitTest::GetCommandContextList(TArray<TSharedPtr<FString>>& OutList
 }
 
 
-bool UClientUnitTest::SendRPCChecked(AActor* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize,
+bool UClientUnitTest::SendRPCChecked(UObject* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize,
 										int16 ParmsSizeCorrection/*=0*/)
 {
 	bool bSuccess = false;
@@ -784,7 +819,7 @@ bool UClientUnitTest::SendRPCChecked(AActor* Target, const TCHAR* FunctionName, 
 
 	PreSendRPC();
 
-	if (TargetFunc != NULL)
+	if (TargetFunc != nullptr)
 	{
 		if (TargetFunc->ParmsSize == ParmsSize + ParmsSizeCorrection)
 		{
@@ -803,8 +838,28 @@ bool UClientUnitTest::SendRPCChecked(AActor* Target, const TCHAR* FunctionName, 
 						FunctionName, TargetFunc->ParmsSize, ParmsSize + ParmsSizeCorrection, ParmsSize, -ParmsSizeCorrection);
 		}
 	}
+	else
+	{
+		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC, could not find RPC: %s"), FunctionName);
+	}
 
 	bSuccess = PostSendRPC(FunctionName, Target);
+
+	return bSuccess;
+}
+
+bool UClientUnitTest::SendRPCChecked(UObject* Target, FFuncReflection& FuncRefl)
+{
+	bool bSuccess = false;
+
+	if (FuncRefl.IsValid())
+	{
+		bSuccess = SendRPCChecked(Target, *FuncRefl.Function->GetName(), FuncRefl.GetParms(), FuncRefl.Function->ParmsSize);
+	}
+	else
+	{
+		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', reflection failed."), FuncRefl.FunctionName);
+	}
 
 	return bSuccess;
 }
@@ -817,16 +872,17 @@ void UClientUnitTest::PreSendRPC()
 	GSentBunch = false;
 }
 
-bool UClientUnitTest::PostSendRPC(FString RPCName, AActor* Target/*=NULL*/)
+bool UClientUnitTest::PostSendRPC(FString RPCName, UObject* Target/*=NULL*/)
 {
 	bool bSuccess = false;
+	UActorComponent* TargetComponent = Cast<UActorComponent>(Target);
+	AActor* TargetActor = (TargetComponent != nullptr ? TargetComponent->GetOwner() : Cast<AActor>(Target));
+	UChannel* TargetChan = UnitConn->ActorChannels.FindRef(TargetActor);
 
 	UnitConn->FlushNet();
 
 	// Just hack-erase bunch overflow tracking for this actors channel
-	UChannel* TargetChan = UnitConn->ActorChannels.FindRef(Target);
-
-	if (TargetChan != NULL)
+	if (TargetChan != nullptr)
 	{
 		TargetChan->NumOutRec = 0;
 	}
@@ -837,9 +893,87 @@ bool UClientUnitTest::PostSendRPC(FString RPCName, AActor* Target/*=NULL*/)
 		FString LogMsg = FString::Printf(TEXT("Failed to send RPC '%s', unit test needs update."), *RPCName);
 
 		// If specific/known failure cases are encountered, append them to the log message, to aid debugging
-		if (Target != NULL && Target->GetNetConnection() == NULL)
+		// (try to enumerate all possible cases)
+		if (TargetActor != nullptr)
 		{
-			LogMsg += TEXT(" (GetNetConnection() returned NULL)");
+			FString LogAppend = TEXT("");
+			UWorld* TargetWorld = TargetActor->GetWorld();
+
+			if (IsGarbageCollecting())
+			{
+				LogAppend += TEXT(", IsGarbageCollecting() returned TRUE");
+			}
+
+			if (TargetWorld == nullptr)
+			{
+				LogAppend += TEXT(", TargetWorld == nullptr");
+			}
+			else if (!TargetWorld->AreActorsInitialized() && !GAllowActorScriptExecutionInEditor)
+			{
+				LogAppend += TEXT(", AreActorsInitialized() returned FALSE");
+			}
+
+			if (TargetActor->IsPendingKill())
+			{
+				LogAppend += TEXT(", IsPendingKill() returned TRUE");
+			}
+
+			UFunction* TargetFunc = TargetActor->FindFunction(FName(*RPCName));
+
+			if (TargetFunc == nullptr)
+			{
+				LogAppend += TEXT(", TargetFunc == nullptr");
+			}
+			else
+			{
+				int32 Callspace = TargetActor->GetFunctionCallspace(TargetFunc, nullptr, nullptr);
+
+				if (!(Callspace & FunctionCallspace::Remote))
+				{
+					LogAppend += FString::Printf(TEXT(", GetFunctionCallspace() returned non-remote, value: %i (%s)"), Callspace,
+													FunctionCallspace::ToString((FunctionCallspace::Type)Callspace));
+				}
+			}
+
+			if (TargetActor->GetNetDriver() == nullptr)
+			{
+				FName TargetNetDriver = TargetActor->GetNetDriverName();
+
+				LogAppend += FString::Printf(TEXT(", GetNetDriver() returned nullptr - NetDriverName: %s"),
+												*TargetNetDriver.ToString());
+
+				if (TargetNetDriver == NAME_GameNetDriver && TargetWorld != nullptr && TargetWorld->GetNetDriver() == nullptr)
+				{
+					LogAppend += FString::Printf(TEXT(", TargetWorld->GetNetDriver() returned nullptr - World: %s"),
+													*TargetWorld->GetFullName());
+				}
+			}
+
+			UNetConnection* TargetConn = TargetActor->GetNetConnection();
+
+			if (TargetConn == nullptr)
+			{
+				LogAppend += TEXT(", GetNetConnection() returned nullptr");
+			}
+			else if (!TargetConn->IsNetReady(0))
+			{
+				LogAppend += TEXT(", IsNetReady() returned FALSE");
+			}
+
+			if (TargetChan == nullptr)
+			{
+				LogAppend += TEXT(", TargetChan == nullptr");
+			}
+			else if (TargetChan->OpenPacketId.First == INDEX_NONE)
+			{
+				LogAppend += TEXT(", Channel not open");
+			}
+
+
+			if (LogAppend.Len() > 0)
+			{
+				LogMsg += FString::Printf(TEXT(" (%s)"), *LogAppend.Mid(2));
+			}
 		}
 
 		UNIT_LOG(ELogType::StatusFailure, TEXT("%s"), *LogMsg);
@@ -855,6 +989,23 @@ bool UClientUnitTest::PostSendRPC(FString RPCName, AActor* Target/*=NULL*/)
 	}
 
 	return bSuccess;
+}
+
+void UClientUnitTest::SendGenericExploitFailLog()
+{
+	UNIT_ASSERT(!!(UnitTestFlags & EUnitTestFlags::ExpectServerCrash));
+
+	FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
+
+	uint8 ControlMsg = NMT_NUTControl;
+	uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
+	FString Cmd = GetGenericExploitFailLog();
+
+	*ControlChanBunch << ControlMsg;
+	*ControlChanBunch << ControlCmd;
+	*ControlChanBunch << Cmd;
+
+	NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
 }
 
 
@@ -890,6 +1041,9 @@ bool UClientUnitTest::ValidateUnitTestSettings(bool bCDOCheck/*=false*/)
 	// If you require a pawn, you must enable NotifyProcessEvent
 	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::RequirePawn) || !!(UnitTestFlags & EUnitTestFlags::NotifyProcessEvent));
 
+	// If you require a PlayerState, you must require a PlayerController
+	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::RequirePlayerState) || !!(UnitTestFlags & EUnitTestFlags::RequirePlayerController));
+
 	// If you want to dump received RPC's, you need to hook NotifyProcessEvent
 	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::DumpReceivedRPC) || !!(UnitTestFlags & EUnitTestFlags::NotifyProcessEvent));
 
@@ -913,6 +1067,9 @@ bool UClientUnitTest::ValidateUnitTestSettings(bool bCDOCheck/*=false*/)
 
 	// For part of pawn-setup detection, you need notification for net actors
 	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::RequirePawn) || !!(UnitTestFlags & EUnitTestFlags::NotifyNetActors));
+
+	// For part of PlayerState-setup detection, you need notification for net actors
+	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::RequirePlayerState) || !!(UnitTestFlags & EUnitTestFlags::NotifyNetActors));
 
 	// If the ping requirements flag is set, it should be the ONLY one set
 	// (which means only one bit should be set, and one bit means it should be power-of-two)
@@ -981,6 +1138,11 @@ EUnitTestFlags UClientUnitTest::GetMetRequirements()
 	if (!!(UnitTestFlags & EUnitTestFlags::RequirePawn) && UnitPC != NULL && UnitPC->GetCharacter() != NULL)
 	{
 		ReturnVal |= EUnitTestFlags::RequirePawn;
+	}
+
+	if (!!(UnitTestFlags & EUnitTestFlags::RequirePlayerState) && UnitPC != NULL && UnitPC->PlayerState != NULL)
+	{
+		ReturnVal |= EUnitTestFlags::RequirePlayerState;
 	}
 
 	if (!!(UnitTestFlags & EUnitTestFlags::RequirePing) && bReceivedPong)
@@ -1214,6 +1376,8 @@ bool UClientUnitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID/*=NULL*/)
 				{
 					bSuccess = true;
 
+					UnitNetDriver->InitialConnectTimeout = FMath::Max(UnitNetDriver->InitialConnectTimeout, (float)UnitTestTimeout);
+					UnitNetDriver->ConnectionTimeout = FMath::Max(UnitNetDriver->ConnectionTimeout, (float)UnitTestTimeout);
 
 					if (GEngine != NULL)
 					{
@@ -1332,11 +1496,13 @@ void UClientUnitTest::CleanupFakeClient()
 	UnitPC = NULL;
 	UnitConn = NULL;
 	bUnitPawnSetup = false;
+	bUnitPlayerStateSetup = false;
 	UnitNUTActor = NULL;
 	UnitBeacon = nullptr;
 	bReceivedPong = false;
 	ControlBunchSequence = 0;
 	PendingNetActorChans.Empty();
+	bPendingNetworkFailure = false;
 
 	if (UnitNotify != NULL)
 	{
@@ -1427,10 +1593,11 @@ FString UClientUnitTest::ConstructServerParameters()
 {
 	// NOTE: In the absence of "-ddc=noshared", a VPN connection can cause UE4 to take a long time to startup
 	// NOTE: Without '-CrashForUAT'/'-unattended' the auto-reporter can pop up
+	// NOTE: Without '-UseAutoReporter' the crash report executable is launched
 	FString Parameters = FString(FApp::GetGameName()) + TEXT(" ") + BaseServerURL + TEXT(" -server ") + BaseServerParameters +
 							TEXT(" -Log=UnitTestServer.log -forcelogflush -stdout -AllowStdOutLogVerbosity -ddc=noshared") +
-							TEXT(" -unattended -CrashForUAT");
-	
+							TEXT(" -unattended -CrashForUAT -UseAutoReporter");
+
 							// Removed this, to support detection of shader compilation, based on shader compiler .exe
 							//TEXT(" -NoShaderWorker");
 
@@ -1469,9 +1636,10 @@ FString UClientUnitTest::ConstructClientParameters(FString ConnectIP)
 {
 	// NOTE: In the absence of "-ddc=noshared", a VPN connection can cause UE4 to take a long time to startup
 	// NOTE: Without '-CrashForUAT'/'-unattended' the auto-reporter can pop up
+	// NOTE: Without '-UseAutoReporter' the crash report executable is launched
 	FString Parameters = FString(FApp::GetGameName()) + TEXT(" ") + ConnectIP + BaseClientURL + TEXT(" -game ") + BaseClientParameters +
 							TEXT(" -Log=UnitTestClient.log -forcelogflush -stdout -AllowStdOutLogVerbosity -ddc=noshared -nosplash") +
-							TEXT(" -unattended -CrashForUAT -nosound");
+							TEXT(" -unattended -CrashForUAT -nosound -UseAutoReporter");
 
 							// Removed this, to support detection of shader compilation, based on shader compiler .exe
 							//TEXT(" -NoShaderWorker")
@@ -1631,6 +1799,19 @@ void UClientUnitTest::UnitTick(float DeltaTime)
 	}
 
 	Super::UnitTick(DeltaTime);
+
+	// After there has been a chance to process remaining server output, finish handling the pending disconnect
+	if (VerificationState == EUnitTestVerification::Unverified && bPendingNetworkFailure)
+	{
+		const TCHAR* LogMsg = TEXT("Handling pending disconnect, marking unit test as needing update.");
+
+		UNIT_LOG(ELogType::StatusFailure | ELogType::StyleBold, TEXT("%s"), LogMsg);
+		UNIT_STATUS_LOG(ELogType::StatusFailure | ELogType::StatusVerbose | ELogType::StyleBold, TEXT("%s"), LogMsg);
+
+		VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
+
+		bPendingNetworkFailure = false;
+	}
 }
 
 bool UClientUnitTest::IsTickable() const
@@ -1638,7 +1819,7 @@ bool UClientUnitTest::IsTickable() const
 	bool bReturnVal = Super::IsTickable();
 
 	bReturnVal = bReturnVal || bDeveloperMode || bBlockingServerDelay || bBlockingClientDelay || bBlockingFakeClientDelay ||
-					(!!(UnitTestFlags & EUnitTestFlags::NotifyNetActors) && PendingNetActorChans.Num() > 0);
+					(!!(UnitTestFlags & EUnitTestFlags::NotifyNetActors) && PendingNetActorChans.Num() > 0) || bPendingNetworkFailure;
 
 	return bReturnVal;
 }

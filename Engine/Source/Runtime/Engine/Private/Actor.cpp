@@ -1833,6 +1833,33 @@ void AActor::FlushNetDormancy()
 	}
 }
 
+void AActor::ForcePropertyCompare()
+{
+	if ( IsNetMode( NM_Client ) )
+	{
+		return;
+	}
+
+	if ( !bReplicates )
+	{
+		return;
+	}
+
+	const UWorld* MyWorld = GetWorld();
+
+	UNetDriver* NetDriver = GetNetDriver();
+
+	if ( NetDriver )
+	{
+		NetDriver->ForcePropertyCompare( this );
+
+		if ( MyWorld->DemoNetDriver && MyWorld->DemoNetDriver != NetDriver )
+		{
+			MyWorld->DemoNetDriver->ForcePropertyCompare( this );
+		}
+	}
+}
+
 void AActor::PostRenderFor(APlayerController *PC, UCanvas *Canvas, FVector CameraPosition, FVector CameraDir) {}
 
 void AActor::PrestreamTextures( float Seconds, bool bEnableStreaming, int32 CinematicTextureGroups )
@@ -2961,11 +2988,20 @@ void AActor::SetReplicateMovement(bool bInReplicateMovement)
 	bReplicateMovement = bInReplicateMovement;
 }
 
-void AActor::SetAutonomousProxy(bool bInAutonomousProxy)
+void AActor::SetAutonomousProxy(const bool bInAutonomousProxy, const bool bAllowForcePropertyCompare)
 {
 	if (bReplicates)
 	{
+		const TEnumAsByte<enum ENetRole> OldRemoteRole = RemoteRole;
+
 		RemoteRole = (bInAutonomousProxy ? ROLE_AutonomousProxy : ROLE_SimulatedProxy);
+
+		if (bAllowForcePropertyCompare && RemoteRole != OldRemoteRole)
+		{ 
+			// We have to do this so the role change above will replicate (turn off shadow state sharing for a frame)
+			// This is because RemoteRole is special since it will change between connections, so we have to special case
+			ForcePropertyCompare();
+		}
 	}
 	else
 	{

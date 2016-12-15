@@ -59,7 +59,7 @@ public:
 
 	~FReplicationChangelistMgr();
 
-	void Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags );
+	void Update( const UObject* InObject, const uint32 ReplicationFrame, const int32 LastCompareIndex, const FReplicationFlags& RepFlags, const bool bForceCompare );
 
 	FRepChangelistState* GetRepChangelistState() const { return RepChangelistState.Get(); }
 

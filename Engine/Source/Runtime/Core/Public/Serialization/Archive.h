@@ -24,6 +24,92 @@ template<class TEnum> class TEnumAsByte;
 #define EVENT_DRIVEN_ASYNC_LOAD_ACTIVE_AT_RUNTIME (!GIsInitialLoad) // set to (!GIsInitialLoad) to avoid using the EDL at boot time
 #define DEVIRTUALIZE_FLinkerLoad_Serialize (!WITH_EDITORONLY_DATA)
 
+
+/**
+ * TCheckedObjPtr
+ *
+ * Wrapper for UObject pointers, which checks that the base class is accurate, upon serializing (to prevent illegal casting)
+ */
+template<class T> class TCheckedObjPtr
+{
+	friend class FArchive;
+
+public:
+	TCheckedObjPtr()
+		: Object(nullptr)
+		, bError(false)
+	{
+	}
+
+	TCheckedObjPtr(T* InObject)
+		: Object(InObject)
+		, bError(false)
+	{
+	}
+
+	/**
+	 * Assigns a value to the object pointer
+	 *
+	 * @param InObject	The value to assign to the pointer
+	 */
+	FORCEINLINE TCheckedObjPtr& operator = (T* InObject)
+	{
+		Object = InObject;
+
+		return *this;
+	}
+
+	/**
+	 * Returns the object pointer, for accessing members of the object
+	 *
+	 * @return	Returns the object pointer
+	 */
+	FORCEINLINE T* operator -> () const
+	{
+		return Object;
+	}
+
+	/**
+	 * Retrieves a writable/serializable reference to the pointer
+	 *
+	 * @return	Returns a reference to the pointer
+	 */
+	FORCEINLINE T*& Get()
+	{
+		return Object;
+	}
+
+	/**
+	 * Whether or not the pointer is valid/non-null
+	 *
+	 * @return	Whether or not the pointer is valid
+	 */
+	FORCEINLINE bool IsValid() const
+	{
+		return Object != nullptr;
+	}
+
+	/**
+	 * Whether or not there was an error during the previous serialization.
+	 * This occurs if an object was successfully serialized, but with the wrong base class
+	 * (which net serialization may have to recover from, if there was supposed to be data serialized along with the object)
+	 *
+	 * @return	Whether or not there was an error
+	 */
+	FORCEINLINE bool IsError() const
+	{
+		return bError;
+	}
+
+protected:
+	/** The object pointer */
+	T* Object;
+
+	/** Whether or not there was an error upon serializing */
+	bool bError;
+};
+
+
 /**
  * Base class for archives that can be used for loading, saving, and garbage
  * collecting in a byte order neutral way.
@@ -81,6 +167,49 @@ public:
 	 */
 	virtual FArchive& operator<<(class UObject*& Value)
 	{
+		return *this;
+	}
+
+	/**
+	 * Serializes a UObject wrapped in a TCheckedObjPtr container, using the above operator,
+	 * and verifies the serialized object is derived from the correct base class, to prevent illegal casting.
+	 *
+	 * @param Value The value to serialize.
+	 * @return This instance.
+	 */
+	template<class T> FORCEINLINE FArchive& operator<<(TCheckedObjPtr<T>& Value)
+	{
+		Value.bError = false;
+
+		if (IsSaving())
+		{
+			UObject* SerializeObj = nullptr;
+
+			if (Value.IsValid())
+			{
+				if (Value.Get()->IsA(T::StaticClass()))
+				{
+					SerializeObj = Value.Get();
+				}
+				else
+				{
+					Value.bError = true;
+				}
+			}
+
+			*this << SerializeObj;
+		}
+		else
+		{
+			*this << Value.Get();
+
+			if (IsLoading() && Value.IsValid() && !Value.Get()->IsA(T::StaticClass()))
+			{
+				Value.bError = true;
+				Value = nullptr;
+			}
+		}
+
 		return *this;
 	}
 

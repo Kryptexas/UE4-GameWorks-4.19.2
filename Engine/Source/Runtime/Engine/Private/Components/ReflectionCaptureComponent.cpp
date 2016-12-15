@@ -848,6 +848,7 @@ UReflectionCaptureComponent::UReflectionCaptureComponent(const FObjectInitialize
 
 	bCaptureDirty = false;
 	bDerivedDataDirty = false;
+	bLoadedCookedData = false;
 	AverageBrightness = 1.0f;
 }
 
@@ -1013,10 +1014,17 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_REFLECTION_CAPTURE_COOKING)
 	{
-		bCooked = Ar.IsCooking();
+		bCooked = Ar.IsCooking() || bLoadedCookedData;
 		// Save a bool indicating whether this is cooked data
 		// This is needed when loading cooked data, to know to serialize differently
 		Ar << bCooked;
+
+		// Save the cooked bool in a member so that if this object was loaded with cooked data,
+		// it can be saved correctly later, such as if it needs to be duplicated.
+		if (Ar.IsLoading())
+		{
+			bLoadedCookedData = bCooked;
+		}
 	}
 
 	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())
@@ -1029,14 +1037,24 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 		static FName FullHDR(TEXT("FullHDR"));
 		static FName EncodedHDR(TEXT("EncodedHDR"));
 
-		// Saving for cooking path
-		if (Ar.IsCooking())
+		// Saving for cooking, or previously loaded cooked data
+		if (Ar.IsSaving())
 		{
 			Ar << AverageBrightness;
 
-			// Get all the reflection capture formats that the target platform wants
 			TArray<FName> Formats;
-			Ar.CookingTarget()->GetReflectionCaptureFormats(Formats);
+
+			// Get all the reflection capture formats that the target platform wants
+			if (Ar.IsCooking())
+			{
+				// Get all the reflection capture formats that the target platform wants
+				Ar.CookingTarget()->GetReflectionCaptureFormats(Formats);
+			}
+			else
+			{
+				// Get the reflection capture formats that were loaded from cooked data
+				Formats = LoadedFormats;
+			}
 
 			int32 NumFormats = Formats.Num();
 			Ar << NumFormats;
@@ -1072,7 +1090,7 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 					
 					// FullHDRData would have been set in PostLoad during cooking
 					// Generate temporary encoded HDR data for saving
-					if (FullHDRData != NULL)
+					if (FullHDRData != NULL && Ar.IsCooking())
 					{
 						EncodedHDRData = FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(*FullHDRData, StateId, Brightness);
 					}
@@ -1102,10 +1120,13 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 			int32 NumFormats = 0;
 			Ar << NumFormats;
 
+			LoadedFormats.SetNum(NumFormats);
+
 			for (int32 FormatIndex = 0; FormatIndex < NumFormats; FormatIndex++)
 			{
 				FName CurrentFormat;
 				Ar << CurrentFormat;
+				LoadedFormats[FormatIndex] = CurrentFormat;
 
 				bool bValid = false;
 				Ar << bValid;

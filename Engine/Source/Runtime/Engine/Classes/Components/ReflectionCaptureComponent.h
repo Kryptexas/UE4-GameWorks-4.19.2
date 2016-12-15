@@ -259,6 +259,12 @@ private:
 	/** Whether DerivedData is up to date. */
 	bool bDerivedDataDirty;
 
+	/** Whether or not this component was serialized from cooked data. */
+	bool bLoadedCookedData;
+
+	/** List of formats loaded from cooked data. Only used when duplicating this object after loading it from cooked data. */
+	TArray<FName> LoadedFormats;
+
 	UPROPERTY()
 	FGuid StateId;
 

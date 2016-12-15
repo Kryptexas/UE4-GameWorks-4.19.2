@@ -5,9 +5,9 @@ Description: Creates the source file for a basic unit test.
 Source:
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "$UnitTestProject$PCH.h"
-
 #include "UnitTests/$FILE_BASE$.h"
+
+#include "$UnitTestProject$PCH.h"
 
 #include "UnitTestEnvironment.h"
 

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Class.h"
 #include "UObject/UnrealType.h"
+#include "UObject/StructOnScope.h"
 
 class FStructOnScope;
 
@@ -37,6 +38,20 @@ class FStructOnScope;
  *
  * Not yet implemented:
  *	- (...->*"Function")("Parm1", etc.):	Execute the specified function, with the specified parameters. Might not get implemented.
+ *
+ *
+ * Setting function parameters:
+ *	- It's possible to assign function parameters through reflection, for ProcessEvent etc., by passing a UFunction to FStructOnScope,
+ *		assigning the parameters through FVMReflection, as if they were part of a struct,
+ *		and then passing FStructOnScope.GetStructMemory() as the pointer to the function parameters.
+ *
+ *		For example:
+ *			UFunction* TargetFunc = ...;
+ *			FStructOnScope ParmsStruct(TargetFunc);
+ *
+ *			FVMReflection(ParmsStruct)->*"Data"->*"Guid"->*"A" = 1;
+ *
+ *			TargetObj->ProcessEvent(TargetFunc, ParmsStruct.GetStructMemory());
  *
  *
  * - Example:
@@ -104,18 +119,18 @@ class FStructOnScope;
  *					- DelegateProperty
  *					- InterfaceProperty
  *					- MulticastDelegateProperty
- *	readwrite		- NameProperty										arraycheck
+ *	readwrite		- NameProperty										arraycheck	assign
  *	done			- NumericProperty
- *	readwrite			- ByteProperty									arraycheck
- *	readwriteupcast		- DoubleProperty								arraycheck
- *	readwrite			- FloatProperty									arraycheck
- *	readwriteupcast		- Int16Property									arraycheck
- *	readwriteupcast		- Int64Property									arraycheck
- *	readwrite			- Int8Property									arraycheck
- *	readwriteupcast		- IntProperty									arraycheck
- *	readwriteupcast		- UInt16Property								arraycheck
- *	readwriteupcast		- UIntProperty									arraycheck
- *	readwriteupcast		- UInt64Property								arraycheck
+ *	readwrite			- ByteProperty									arraycheck	assign
+ *	readwriteupcast		- DoubleProperty								arraycheck	assign
+ *	readwrite			- FloatProperty									arraycheck	assign
+ *	readwriteupcast		- Int16Property									arraycheck	assign
+ *	readwriteupcast		- Int64Property									arraycheck	assign
+ *	readwrite			- Int8Property									arraycheck	assign
+ *	readwriteupcast		- IntProperty									arraycheck	assign
+ *	readwriteupcast		- UInt16Property								arraycheck	assign
+ *	readwriteupcast		- UIntProperty									arraycheck	assign
+ *	readwriteupcast		- UInt64Property								arraycheck	assign
  *					- ObjectPropertyBase
  *						- AssetObjectProperty
  *							- AssetClassProperty
@@ -123,9 +138,9 @@ class FStructOnScope;
  *	readwrite			- ObjectProperty								arraycheck
  *	inherited				- ClassProperty								inherited
  *						- WeakObjectProperty
- *	readwrite		- StrProperty										arraycheck
+ *	readwrite		- StrProperty										arraycheck	assign
  *	readwrite		- StructProperty									arraycheck
- *	readwrite		- TextProperty										arraycheck
+ *	readwrite		- TextProperty										arraycheck	assign
  *	readwrite	- Struct
  *	readwrite		- Class
  *						- BlueprintGeneratedClass
@@ -173,6 +188,7 @@ class FStructOnScope;
 //				Beyond the scope of the unit test tool, but (with much of the legwork done below) it's low hanging fruit,
 //				that'd make for a nice feature.
 //				If you (eventually) add autocomplete to the unit test tool log window, this would be the next logical feature.
+
 
 
 /**
@@ -303,15 +319,29 @@ private:
 
 
 	// Some macros for declaring casts, which are implemented using correspondingly named macros, in the .cpp
-	#define GENERIC_POINTER_CAST(InType) \
-		explicit operator InType*();
+	#define GENERIC_POINTER_CAST_ASSIGN(InType) \
+		explicit operator InType*(); \
+		\
+		/** Also implement the assignment operator, for automatically performing these casts and assigning */ \
+		FVMReflection& operator = (InType Value) \
+		{ \
+			InType* VarRef = (InType*)(*this); \
+			\
+			if (VarRef != nullptr) \
+			{ \
+				*VarRef = Value; \
+			} \
+			\
+			return *this; \
+		}
 
-	#define NUMERIC_POINTER_CAST(InType) GENERIC_POINTER_CAST(InType)
+	#define NUMERIC_POINTER_CAST_ASSIGN(InType) GENERIC_POINTER_CAST_ASSIGN(InType)
 
-	#define NUMERIC_CAST_BASIC(InType) \
+	#define NUMERIC_CAST_ASSIGN_BASIC(InType) \
 		explicit operator InType();
 
-	#define NUMERIC_CAST(InType) NUMERIC_CAST_BASIC(InType)
+	#define NUMERIC_CAST_ASSIGN(InType) NUMERIC_CAST_ASSIGN_BASIC(InType)
+
 
 public:
 	/**
@@ -319,34 +349,37 @@ public:
 	 */
 
 	// Declare numeric pointer casts
-	NUMERIC_POINTER_CAST(uint8);
-	NUMERIC_POINTER_CAST(uint16);
-	NUMERIC_POINTER_CAST(uint32);
-	NUMERIC_POINTER_CAST(uint64);
-	NUMERIC_POINTER_CAST(int8);
-	NUMERIC_POINTER_CAST(int16);
-	NUMERIC_POINTER_CAST(int32);
-	NUMERIC_POINTER_CAST(int64);
-	NUMERIC_POINTER_CAST(float);
-	NUMERIC_POINTER_CAST(double);
+	NUMERIC_POINTER_CAST_ASSIGN(uint8);
+	NUMERIC_POINTER_CAST_ASSIGN(uint16);
+	NUMERIC_POINTER_CAST_ASSIGN(uint32);
+	NUMERIC_POINTER_CAST_ASSIGN(uint64);
+	NUMERIC_POINTER_CAST_ASSIGN(int8);
+	NUMERIC_POINTER_CAST_ASSIGN(int16);
+	NUMERIC_POINTER_CAST_ASSIGN(int32);
+	NUMERIC_POINTER_CAST_ASSIGN(int64);
+	NUMERIC_POINTER_CAST_ASSIGN(float);
+	NUMERIC_POINTER_CAST_ASSIGN(double);
 
 	// Declare readonly numeric casts
-	NUMERIC_CAST_BASIC(uint8);
-	NUMERIC_CAST(uint16);
-	NUMERIC_CAST(uint32);
-	NUMERIC_CAST(uint64);
-	NUMERIC_CAST_BASIC(int8);
-	NUMERIC_CAST(int16);
-	NUMERIC_CAST(int32);
-	NUMERIC_CAST(int64);
-	NUMERIC_CAST_BASIC(float);
-	NUMERIC_CAST(double);
+	NUMERIC_CAST_ASSIGN_BASIC(uint8);
+	NUMERIC_CAST_ASSIGN(uint16);
+	NUMERIC_CAST_ASSIGN(uint32);
+	NUMERIC_CAST_ASSIGN(uint64);
+	NUMERIC_CAST_ASSIGN_BASIC(int8);
+	NUMERIC_CAST_ASSIGN(int16);
+	NUMERIC_CAST_ASSIGN(int32);
+	NUMERIC_CAST_ASSIGN(int64);
+	NUMERIC_CAST_ASSIGN_BASIC(float);
+	NUMERIC_CAST_ASSIGN(double);
 
 
 	// Declare generic pointer casts
-	GENERIC_POINTER_CAST(FName);
-	GENERIC_POINTER_CAST(FString);
-	GENERIC_POINTER_CAST(FText);
+	GENERIC_POINTER_CAST_ASSIGN(FName);
+	GENERIC_POINTER_CAST_ASSIGN(FString);
+	GENERIC_POINTER_CAST_ASSIGN(FText);
+
+
+	// @todo #JohnB: Implement the assignment operator for other writable casts below
 
 
 	/**
@@ -423,10 +456,10 @@ public:
 	explicit operator void*();
 
 
-	#undef GENERIC_POINTER_CAST
-	#undef NUMERIC_POINTER_CAST
-	#undef NUMERIC_CAST_BASIC
-	#undef NUMERIC_CAST
+	#undef GENERIC_POINTER_CAST_ASSIGN
+	#undef NUMERIC_POINTER_CAST_ASSIGN
+	#undef NUMERIC_CAST_ASSIGN_BASIC
+	#undef NUMERIC_CAST_ASSIGN
 
 
 	/**
@@ -462,7 +495,7 @@ public:
 	 *
 	 * @param Whether or not the reflection helper encountered an error
 	 */
-	FORCEINLINE bool IsError()
+	FORCEINLINE bool IsError() const
 	{
 		return bIsError;
 	}
@@ -683,9 +716,61 @@ private:
 
 
 /**
+ * FFuncReflection - helper for quickly/concisely setting function parameters through reflection
+ */
+class FFuncReflection
+{
+private:
+	FFuncReflection(UFunction* InFunction, const TCHAR* InFuncName)
+		: FunctionName(InFuncName)
+		, Function(InFunction)
+		, ParmsMemory(Function)
+		, ParmsRefl(ParmsMemory)
+	{
+	}
+
+public:
+	FFuncReflection(const TCHAR* InClassName, const TCHAR* InFuncName)
+		: FFuncReflection(FindField<UFunction>(FindObject<UClass>(ANY_PACKAGE, InClassName), InFuncName), InFuncName)
+	{
+	}
+
+	FFuncReflection(UObject* TargetObj, const TCHAR* InFuncName)
+		: FFuncReflection((TargetObj != nullptr ? TargetObj->FindFunction(InFuncName) : nullptr), InFuncName)
+	{
+	}
+
+	FORCEINLINE bool IsValid() const
+	{
+		return Function != nullptr && ParmsMemory.IsValid() && !ParmsRefl.IsError();
+	}
+
+	FORCEINLINE void* GetParms() const
+	{
+		return (void*)ParmsMemory.GetStructMemory();
+	}
+
+public:
+	/** The name of the function */
+	const TCHAR* FunctionName;
+
+	/** Reference to the function */
+	const UFunction* Function;
+
+private:
+	/** The function parameters in memory */
+	FStructOnScope ParmsMemory;
+
+public:
+	/** Reflection instance, for writing the function parameters */
+	FVMReflection ParmsRefl;
+};
+
+
+/**
  * NUTUtilRefl - general reflection helper utility functions
  */
-struct NUTUtilRefl
+struct NETCODEUNITTEST_API NUTUtilRefl
 {
 	/**
 	 * Iterates a functions parameters, and converts them to a human readable string
