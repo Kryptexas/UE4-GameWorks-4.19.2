@@ -18,7 +18,7 @@
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/Layout/SBorder.h"
 
-#include "Framework/Multibox/Multibox.h"
+#include "Framework/MultiBox/MultiBox.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Docking/TabManager.h"
 #include "Layout/WidgetPath.h"

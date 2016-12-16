@@ -15,7 +15,7 @@ class SColorPicker;
 class SBorder;
 class SButton;
 class SOverlay;
-class FMultibox;
+class FMultiBox;
 class SMultiBoxWidget;
 class SWidget;
 class UViewportInteractor;
