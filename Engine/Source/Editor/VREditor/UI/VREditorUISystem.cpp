@@ -6,15 +6,23 @@
 #include "GenericPlatform/GenericApplication.h"
 #include "Modules/ModuleManager.h"
 #include "InputCoreTypes.h"
-#include "Widgets/SNullWidget.h"
 #include "Input/Events.h"
 #include "Input/Reply.h"
+
+#include "Widgets/SNullWidget.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/SWidget.h"
 #include "Widgets/SWindow.h"
-#include "Layout/WidgetPath.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/SOverlay.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Layout/SBorder.h"
+
+#include "Framework/Multibox/Multibox.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Docking/TabManager.h"
+#include "Layout/WidgetPath.h"
+
 #include "Engine/EngineTypes.h"
 #include "Editor/UnrealEdEngine.h"
 #include "Kismet/GameplayStatics.h"
@@ -23,6 +31,7 @@
 #include "EditorModeManager.h"
 #include "EditorModes.h"
 #include "UnrealEdGlobals.h"
+
 #include "VREditorMode.h"
 #include "VREditorBaseActor.h"
 #include "VREditorBaseUserWidget.h"

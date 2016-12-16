@@ -12,6 +12,12 @@ class AVREditorDockableWindow;
 class AVREditorFloatingUI;
 class FProxyTabmanager;
 class SColorPicker;
+class SBorder;
+class SButton;
+class SOverlay;
+class FMultibox;
+class SMultiBoxWidget;
+class SWidget;
 class UViewportInteractor;
 class UVREditorInteractor;
 
