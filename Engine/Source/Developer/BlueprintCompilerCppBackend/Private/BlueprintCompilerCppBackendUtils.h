@@ -7,6 +7,7 @@
 #include "UObject/UnrealType.h"
 #include "IBlueprintCompilerCppBackendModule.h"
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
+#include "Engine/Blueprint.h" // for FCompilerNativizationOptions
 
 class USCS_Node;
 class UUserDefinedEnum;

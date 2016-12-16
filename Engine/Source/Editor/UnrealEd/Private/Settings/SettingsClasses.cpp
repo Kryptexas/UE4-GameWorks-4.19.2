@@ -30,7 +30,7 @@
 #include "UnrealEdMisc.h"
 #include "CrashReporterSettings.h"
 #include "AutoReimport/AutoReimportUtilities.h"
-
+#include "Misc/ConfigCacheIni.h" // for FConfigCacheIni::GetString()
 #include "SourceCodeNavigation.h"
 #include "Developer/BlueprintProfiler/Public/BlueprintProfilerModule.h"
 
