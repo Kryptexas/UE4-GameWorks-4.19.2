@@ -228,19 +228,23 @@ void FKeyContextMenu::AddPropertiesMenu(FMenuBuilder& MenuBuilder)
 		// @todo sequencer: only one struct per structure view supported right now :/
 		if (Keys.Num() == 1)
 		{
-			TPair<TSharedPtr<FStructOnScope>, const FSequencerSelectedKey&>& Key = Keys[0];
+			TSharedPtr<FStructOnScope> SharedKeyStruct = Keys[0].Key;
+			TWeakObjectPtr<UMovieSceneSection> WeakSection = Keys[0].Value.Section;
 
 			// register details customizations for this instance
-			StructureDetailsView->GetDetailsView().RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, TWeakObjectPtr<const UMovieSceneSection>(Key.Value.Section)));
+			StructureDetailsView->GetDetailsView().RegisterInstancedCustomPropertyLayout(FIntegralKey::StaticStruct(), FOnGetDetailCustomizationInstance::CreateStatic(&FIntegralKeyDetailsCustomization::MakeInstance, TWeakObjectPtr<const UMovieSceneSection>(WeakSection)));
 
-			StructureDetailsView->SetStructureData(Key.Key);
+			StructureDetailsView->SetStructureData(Keys[0].Key);
 			StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddLambda(
 				[=](const FPropertyChangedEvent& ChangeEvent) {
-					
-					Key.Value.Section->Modify();
-					if (Key.Key->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
+
+					if (UMovieSceneSection* Section = WeakSection.Get())
 					{
-						((FMovieSceneKeyStruct*)Key.Key->GetStructMemory())->PropagateChanges(ChangeEvent);
+						Section->Modify();
+					}
+					if (SharedKeyStruct->GetStruct()->IsChildOf(FMovieSceneKeyStruct::StaticStruct()))
+					{
+						((FMovieSceneKeyStruct*)SharedKeyStruct->GetStructMemory())->PropagateChanges(ChangeEvent);
 					}
 					Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
 				}
@@ -432,6 +436,15 @@ void FSectionContextMenu::AddEditMenu(FMenuBuilder& MenuBuilder)
 		FUIAction(
 			FExecuteAction::CreateLambda([=]{ Shared->SplitSection(); }),
 			FCanExecuteAction::CreateLambda([=]{ return Shared->IsTrimmable(); }))
+	);
+		
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("ReduceKeysSection", "Reduce Keys"),
+		LOCTEXT("ReduceKeysTooltip", "Reduce keys in this section"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateLambda([=]{ Shared->ReduceKeys(); }),
+			FCanExecuteAction::CreateLambda([=]{ return Shared->CanReduceKeys(); }))
 	);
 }
 
@@ -705,6 +718,40 @@ void FSectionContextMenu::SplitSection()
 }
 
 
+void FSectionContextMenu::ReduceKeys()
+{
+	FScopedTransaction ReduceKeysTransaction(LOCTEXT("ReduceKeys_Transaction", "Reduce Keys"));
+
+	TSet<TSharedPtr<IKeyArea> > KeyAreas;
+	for (auto DisplayNode : Sequencer->GetSelection().GetSelectedOutlinerNodes())
+	{
+		SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
+	}
+
+	if (KeyAreas.Num() == 0)
+	{
+		TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetNodesWithSelectedKeysOrSections();
+		for (auto DisplayNode : SelectedNodes)
+		{
+			SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
+		}
+	}
+
+	for (auto KeyArea : KeyAreas)
+	{
+		if (KeyArea.IsValid())
+		{
+			if (KeyArea->GetRichCurve() && KeyArea->GetOwningSection())
+			{
+				KeyArea->GetOwningSection()->Modify();
+				KeyArea->GetRichCurve()->RemoveRedundantKeys(KINDA_SMALL_NUMBER);
+			}
+		}
+	}
+
+	Sequencer->NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::TrackValueChanged );
+}
+
 bool FSectionContextMenu::IsTrimmable() const
 {
 	for (auto Section : Sequencer->GetSelection().GetSelectedSections())
@@ -715,6 +762,26 @@ bool FSectionContextMenu::IsTrimmable() const
 		}
 	}
 	return false;
+}
+
+bool FSectionContextMenu::CanReduceKeys() const
+{
+	TSet<TSharedPtr<IKeyArea> > KeyAreas;
+	for (auto DisplayNode : Sequencer->GetSelection().GetSelectedOutlinerNodes())
+	{
+		SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
+	}
+
+	if (KeyAreas.Num() == 0)
+	{
+		TSet<TSharedRef<FSequencerDisplayNode>> SelectedNodes = Sequencer->GetSelection().GetNodesWithSelectedKeysOrSections();
+		for (auto DisplayNode : SelectedNodes)
+		{
+			SequencerHelpers::GetAllKeyAreas(DisplayNode, KeyAreas);
+		}
+	}
+
+	return KeyAreas.Num() != 0;
 }
 
 

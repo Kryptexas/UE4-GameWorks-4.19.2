@@ -7,8 +7,12 @@
 #include "Engine/Engine.h"
 #include "GameFramework/WorldSettings.h"
 #include "EngineGlobals.h"
+#include "MovieSceneEvaluation.h"
+#include "IMovieScenePlayer.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("Slomo Track Token Execute"), MovieSceneEval_SlomoTrack_TokenExecute, STATGROUP_MovieSceneEval);
+
 
 struct FSlomoTrackToken
 {
@@ -23,18 +27,15 @@ struct FSlomoTrackToken
 		UObject* PlaybackContext = Player.GetPlaybackContext();
 		UWorld* World = PlaybackContext ? PlaybackContext->GetWorld() : nullptr;
 
-		if (!GIsEditor || 
-			(World && World->GetWorld()->GetNetMode() == NM_Client) ||
-			!GEngine ||
-			SlomoValue <= 0.f)
+		if (!World || (!GIsEditor && World->GetNetMode() == NM_Client) || SlomoValue <= 0.f)
 		{
 			return;
 		}
 
-		AWorldSettings* WorldSettings = World ? World->GetWorldSettings() : nullptr;
-			
+		AWorldSettings* WorldSettings = World->GetWorldSettings();
+
 		if (WorldSettings)
-		{	
+		{
 			WorldSettings->MatineeTimeDilation = SlomoValue;
 			WorldSettings->ForceNetUpdate();
 		}

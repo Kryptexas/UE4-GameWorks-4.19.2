@@ -110,7 +110,7 @@ void FSequencerTrackNode::FixRowIndices()
 
 namespace
 {
-	void AddBoolPropertyMenuItem(FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track, const UBoolProperty* Property, void* PropertyContainer)
+	void AddBoolPropertyMenuItem(FMenuBuilder& MenuBuilder, FCanExecuteAction InCanExecute, UMovieSceneTrack* Track, const UBoolProperty* Property, void* PropertyContainer)
 	{
 		MenuBuilder.AddMenuEntry(
 			Property->GetDisplayNameText(),
@@ -124,7 +124,7 @@ namespace
 					bool bIsSet = Property->GetPropertyValue(PropertyContainer);
 					Property->SetPropertyValue(PropertyContainer, !bIsSet);
 				}),
-				FCanExecuteAction::CreateLambda([]{ return true; }),
+				InCanExecute,
 				FIsActionChecked::CreateLambda([PropertyContainer, Property]{ return Property->GetPropertyValue(PropertyContainer); })
 			),
 			NAME_None,
@@ -146,24 +146,27 @@ void FSequencerTrackNode::BuildContextMenu(FMenuBuilder& MenuBuilder)
 			return;
 		}
 
+		bool bIsReadOnly = !GetSequencer().IsReadOnly();
+		FCanExecuteAction CanExecute = FCanExecuteAction::CreateLambda([bIsReadOnly]{ return bIsReadOnly; });
+
 		UStruct* EvalOptionsStruct = FMovieSceneTrackEvalOptions::StaticStruct();
 
 		const UBoolProperty* NearestSectionProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateNearestSection)));
 		if (NearestSectionProperty && Track->EvalOptions.bCanEvaluateNearestSection)
 		{
-			AddBoolPropertyMenuItem(MenuBuilder, Track, NearestSectionProperty, NearestSectionProperty->ContainerPtrToValuePtr<void>(&Track->EvalOptions));
+			AddBoolPropertyMenuItem(MenuBuilder, CanExecute, Track, NearestSectionProperty, NearestSectionProperty->ContainerPtrToValuePtr<void>(&Track->EvalOptions));
 		}
 
 		const UBoolProperty* PrerollProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateInPreroll)));
 		if (PrerollProperty)
 		{
-			AddBoolPropertyMenuItem(MenuBuilder, Track, PrerollProperty, PrerollProperty->ContainerPtrToValuePtr<void>(&Track->EvalOptions));
+			AddBoolPropertyMenuItem(MenuBuilder, CanExecute, Track, PrerollProperty, PrerollProperty->ContainerPtrToValuePtr<void>(&Track->EvalOptions));
 		}
 
 		const UBoolProperty* PostrollProperty = Cast<UBoolProperty>(EvalOptionsStruct->FindPropertyByName(GET_MEMBER_NAME_CHECKED(FMovieSceneTrackEvalOptions, bEvaluateInPostroll)));
 		if (PostrollProperty)
 		{
-			AddBoolPropertyMenuItem(MenuBuilder, Track, PostrollProperty, PostrollProperty->ContainerPtrToValuePtr<void>(&Track->EvalOptions));
+			AddBoolPropertyMenuItem(MenuBuilder, CanExecute, Track, PostrollProperty, PostrollProperty->ContainerPtrToValuePtr<void>(&Track->EvalOptions));
 		}
 	}
 	MenuBuilder.EndSection();
@@ -203,6 +206,7 @@ TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
 					SNew(SBox)
 					.WidthOverride(100)
 					.HAlign(HAlign_Left)
+					.IsEnabled(!GetSequencer().IsReadOnly())
 					[
 						KeyAreas[0]->CreateKeyEditor(&GetSequencer())
 					]
@@ -243,7 +247,7 @@ TSharedRef<SWidget> FSequencerTrackNode::GetCustomOutlinerContent()
 		FBuildEditWidgetParams Params;
 		Params.NodeIsHovered = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FSequencerDisplayNode::IsHovered));
 
-		TSharedPtr<SWidget> Widget = AssociatedEditor.BuildOutlinerEditWidget(ObjectBinding, AssociatedTrack.Get(), Params);
+		TSharedPtr<SWidget> Widget = GetSequencer().IsReadOnly() ? SNullWidget::NullWidget : AssociatedEditor.BuildOutlinerEditWidget(ObjectBinding, AssociatedTrack.Get(), Params);
 
 		TSharedRef<SHorizontalBox> BoxPanel = SNew(SHorizontalBox);
 

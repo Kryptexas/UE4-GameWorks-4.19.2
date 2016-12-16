@@ -1422,9 +1422,10 @@ namespace UnrealBuildTool
 						break;
 				}
 			}
+			bool bSupportingAllTextureFormats = bETC1Enabled && bETC2Enabled && bDXTEnabled && bATCEnabled && bPVRTCEnabled && bASTCEnabled;
 
 			// If it is only ETC2 we need to skip adding the texture format filtering and instead use ES 3.0 as minimum version (it requires ETC2)
-			bool bOnlyETC2Enabled = (bETC2Enabled && !(bETC1Enabled || bDXTEnabled || bATCEnabled || bASTCEnabled));
+			bool bOnlyETC2Enabled = (bETC2Enabled && !(bETC1Enabled || bDXTEnabled || bATCEnabled || bPVRTCEnabled || bASTCEnabled));
 
 			StringBuilder Text = new StringBuilder();
 			Text.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -1620,34 +1621,37 @@ namespace UnrealBuildTool
 					Text.AppendLine("\t<uses-permission android:name=\"com.qti.permission.PROFILER\"/>");
 				}
 
-				Text.AppendLine("\t<!-- Supported texture compression formats (cooked) -->");
-				if (bETC1Enabled)
+				if (!bSupportingAllTextureFormats)
 				{
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_OES_compressed_ETC1_RGB8_texture\" />");
-				}
-				if (bETC2Enabled && !bOnlyETC2Enabled)
-				{
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_COMPRESSED_RGB8_ETC2\" />");
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_COMPRESSED_RGBA8_ETC2_EAC\" />");
-				}
-				if (bATCEnabled)
-				{
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_AMD_compressed_ATC_texture\" />");
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_ATI_texture_compression_atitc\" />");
-				}
-				if (bDXTEnabled)
-				{
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_EXT_texture_compression_dxt1\" />");
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_EXT_texture_compression_s3tc\" />");
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_NV_texture_compression_s3tc\" />");
-				}
-				if (bPVRTCEnabled)
-				{
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_IMG_texture_compression_pvrtc\" />");
-				}
-				if (bASTCEnabled)
-				{
-					Text.AppendLine("\t<supports-gl-texture android:name=\"GL_KHR_texture_compression_astc_ldr\" />");
+					Text.AppendLine("\t<!-- Supported texture compression formats (cooked) -->");
+					if (bETC1Enabled)
+					{
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_OES_compressed_ETC1_RGB8_texture\" />");
+					}
+					if (bETC2Enabled && !bOnlyETC2Enabled)
+					{
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_COMPRESSED_RGB8_ETC2\" />");
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_COMPRESSED_RGBA8_ETC2_EAC\" />");
+					}
+					if (bATCEnabled)
+					{
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_AMD_compressed_ATC_texture\" />");
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_ATI_texture_compression_atitc\" />");
+					}
+					if (bDXTEnabled)
+					{
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_EXT_texture_compression_dxt1\" />");
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_EXT_texture_compression_s3tc\" />");
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_NV_texture_compression_s3tc\" />");
+					}
+					if (bPVRTCEnabled)
+					{
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_IMG_texture_compression_pvrtc\" />");
+					}
+					if (bASTCEnabled)
+					{
+						Text.AppendLine("\t<supports-gl-texture android:name=\"GL_KHR_texture_compression_astc_ldr\" />");
+					}
 				}
 			}
 

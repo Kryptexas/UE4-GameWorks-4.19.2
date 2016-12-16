@@ -1,6 +1,6 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Customizations/LevelSequencePlaybackSettingsCustomization.h"
+#include "MovieSceneSequencePlaybackSettingsCustomization.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Engine/GameViewportClient.h"
 #include "Widgets/SBoxPanel.h"
@@ -11,30 +11,30 @@
 #include "PropertyHandle.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
-#include "LevelSequencePlayer.h"
+#include "MovieSceneSequencePlayer.h"
 #include "IDetailChildrenBuilder.h"
 
 
-#define LOCTEXT_NAMESPACE "LevelSequencePlaybackSettingsCustomization"
+#define LOCTEXT_NAMESPACE "MovieSceneSequencePlaybackSettingsCustomization"
 
 
-TSharedRef<IPropertyTypeCustomization> FLevelSequencePlaybackSettingsCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FMovieSceneSequencePlaybackSettingsCustomization::MakeInstance()
 {
-	return MakeShareable(new FLevelSequencePlaybackSettingsCustomization);
+	return MakeShareable(new FMovieSceneSequencePlaybackSettingsCustomization);
 }
 
 
-void FLevelSequencePlaybackSettingsCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils)
+void FMovieSceneSequencePlaybackSettingsCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
 	// do nothing
 }
 
 
-void FLevelSequencePlaybackSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InPropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
+void FMovieSceneSequencePlaybackSettingsCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InPropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
 	StructPropertyHandle = InPropertyHandle;
-	ChildBuilder.AddChildProperty(StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLevelSequencePlaybackSettings, PlayRate)).ToSharedRef());
-	LoopCountProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLevelSequencePlaybackSettings, LoopCount));
+	ChildBuilder.AddChildProperty(StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneSequencePlaybackSettings, PlayRate)).ToSharedRef());
+	LoopCountProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneSequencePlaybackSettings, LoopCount));
 
 	// Set up the initial environment
 	{
@@ -110,7 +110,7 @@ void FLevelSequencePlaybackSettingsCustomization::CustomizeChildren(TSharedRef<I
 						[
 							SNew(STextBlock)
 								.Font(IDetailLayoutBuilder::GetDetailFont())
-								.Text_Raw(this, &FLevelSequencePlaybackSettingsCustomization::GetCustomSuffix)
+								.Text_Raw(this, &FMovieSceneSequencePlaybackSettingsCustomization::GetCustomSuffix)
 						]
 				]
 
@@ -119,8 +119,8 @@ void FLevelSequencePlaybackSettingsCustomization::CustomizeChildren(TSharedRef<I
 				.AutoWidth()
 				[
 					SNew(SButton)
-					.OnClicked(this, &FLevelSequencePlaybackSettingsCustomization::OnLoopResetClicked)
-					.Visibility(this, &FLevelSequencePlaybackSettingsCustomization::GetLoopResetVisibility)
+					.OnClicked(this, &FMovieSceneSequencePlaybackSettingsCustomization::OnLoopResetClicked)
+					.Visibility(this, &FMovieSceneSequencePlaybackSettingsCustomization::GetLoopResetVisibility)
 					.ContentPadding(FMargin(5.f, 0.f))
 					.ToolTipText(LOCTEXT("ResetToDefaultToolTip", "Reset to Default"))
 					.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
@@ -131,10 +131,14 @@ void FLevelSequencePlaybackSettingsCustomization::CustomizeChildren(TSharedRef<I
 					]
 				]
 		];
+
+	ChildBuilder.AddChildProperty(StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneSequencePlaybackSettings, bRandomStartTime)).ToSharedRef());
+	ChildBuilder.AddChildProperty(StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneSequencePlaybackSettings, StartTime)).ToSharedRef());
+	ChildBuilder.AddChildProperty(StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FMovieSceneSequencePlaybackSettings, bRestoreState)).ToSharedRef());
 }
 
 
-FText FLevelSequencePlaybackSettingsCustomization::GetCustomSuffix() const
+FText FMovieSceneSequencePlaybackSettingsCustomization::GetCustomSuffix() const
 {
 	int32 NumLoops = 0;
 	LoopCountProperty->GetValue(NumLoops);
@@ -144,12 +148,12 @@ FText FLevelSequencePlaybackSettingsCustomization::GetCustomSuffix() const
 		: LOCTEXT("Times", "times");
 }
 
-EVisibility FLevelSequencePlaybackSettingsCustomization::GetLoopResetVisibility() const
+EVisibility FMovieSceneSequencePlaybackSettingsCustomization::GetLoopResetVisibility() const
 {
 	return CurrentMode == LoopModes[0] ? EVisibility::Hidden : EVisibility::Visible;
 }
 
-FReply FLevelSequencePlaybackSettingsCustomization::OnLoopResetClicked()
+FReply FMovieSceneSequencePlaybackSettingsCustomization::OnLoopResetClicked()
 {
 	CurrentMode = LoopModes[0];
 
@@ -158,7 +162,7 @@ FReply FLevelSequencePlaybackSettingsCustomization::OnLoopResetClicked()
 	return FReply::Handled();
 }
 
-void FLevelSequencePlaybackSettingsCustomization::UpdateProperty()
+void FMovieSceneSequencePlaybackSettingsCustomization::UpdateProperty()
 {
 	if (CurrentMode == LoopModes.Last())
 	{

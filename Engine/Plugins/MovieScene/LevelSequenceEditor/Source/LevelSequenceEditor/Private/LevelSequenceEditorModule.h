@@ -5,6 +5,10 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleInterface.h"
 
+
+class UObject;
+
+
 /**
  * Interface for the Level Sequence Editor module.
  */

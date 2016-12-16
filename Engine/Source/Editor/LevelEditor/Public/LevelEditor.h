@@ -237,6 +237,12 @@ public:
 	virtual TSharedPtr<FExtensibilityManager> GetModeBarExtensibilityManager() {return ModeBarExtensibilityManager;}
 	virtual TSharedPtr<FExtensibilityManager> GetNotificationBarExtensibilityManager() {return NotificationBarExtensibilityManager;}
 
+	DECLARE_EVENT_OneParam(ILevelEditor, FOnRegisterTabs, TSharedPtr<FTabManager>);
+	FOnRegisterTabs& OnRegisterTabs() { return RegisterTabs; }
+
+	DECLARE_EVENT_OneParam(ILevelEditor, FOnRegisterLayoutExtensions, FLayoutExtender&);
+	FOnRegisterLayoutExtensions& OnRegisterLayoutExtensions() { return RegisterLayoutExtensions; }
+
 	/** Called when a new map is loaded */
 	DECLARE_EVENT( FLevelEditorModule, FNotificationBarChanged );
 	virtual FNotificationBarChanged& OnNotificationBarChanged() { return NotificationBarChangedEvent; }
@@ -381,6 +387,12 @@ private:
 
 	/** Map of named viewport types to factory functions */
 	TMap<FName, FViewportTypeDefinition> CustomViewports;
+
+	/** Register layout extensions event */
+	FOnRegisterLayoutExtensions RegisterLayoutExtensions;
+
+	/** Register external tabs event */
+	FOnRegisterTabs RegisterTabs;
 
 	/** Array of delegates that are used to check if the specified objects should be editable on the details panel */
 	TArray<FAreObjectsEditable> AreObjectsEditableDelegates;

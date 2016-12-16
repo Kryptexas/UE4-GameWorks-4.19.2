@@ -252,7 +252,9 @@ namespace EAnimationMode
 	enum Type
 	{
 		AnimationBlueprint UMETA(DisplayName="Use Animation Blueprint"), 
-		AnimationSingleNode UMETA(DisplayName="Use Animation Asset")
+		AnimationSingleNode UMETA(DisplayName="Use Animation Asset"), 
+		// This is custom type, engine leaves AnimInstance as it is
+		AnimationCustomMode UMETA(DisplayName = "Use Custom Mode"),
 	};
 }
 

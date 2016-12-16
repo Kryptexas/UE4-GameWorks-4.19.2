@@ -129,6 +129,12 @@ struct FTimeSliderArgs
 	/** Round the scrub position to an integer during playback */
 	TAttribute<EMovieScenePlayerStatus::Type> PlaybackStatus;
 
+	/** Attribute defining whether the playback range is locked */
+	TAttribute<bool> IsPlaybackRangeLocked;
+
+	/** Called when toggling the playback range lock */
+	FSimpleDelegate OnTogglePlaybackRangeLocked;
+
 	/** If we are allowed to zoom */
 	bool AllowZoom;
 

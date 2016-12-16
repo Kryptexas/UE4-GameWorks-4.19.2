@@ -35,6 +35,8 @@ struct FUIData
 {
 	/** The name of the current shot */
 	FText ShotName;
+	/** The name of the current camera */
+	FText CameraName;
 	/** The name of the current shot's lens */
 	FText Lens;
 	/** The name of the current shot's filmback */

@@ -1,8 +1,11 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "IMovieScenePlayer.h"
 #include "MovieSceneSequence.h"
-
+#include "MovieSceneSequence.h"
+#include "MovieSceneSequenceInstance.h"
+#include "MovieSceneExecutionTokens.h"
 
 DECLARE_CYCLE_STAT(TEXT("Entire Evaluation Cost"), MovieSceneEval_EntireEvaluationCost, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Gather Entries For Frame"), MovieSceneEval_GatherEntries, STATGROUP_MovieSceneEval);

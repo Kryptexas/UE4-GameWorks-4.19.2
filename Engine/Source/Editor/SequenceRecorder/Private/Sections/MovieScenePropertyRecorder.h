@@ -7,6 +7,7 @@
 #include "MovieSceneSection.h"
 #include "SequenceRecorderSettings.h"
 
+
 /** Interface for a generic property recorder */
 class IMovieScenePropertyRecorder
 {

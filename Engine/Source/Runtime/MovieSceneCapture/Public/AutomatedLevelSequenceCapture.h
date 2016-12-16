@@ -84,7 +84,7 @@ private:
 	void UpdateFrameState();
 
 	/** Called when the level sequence has updated the world */
-	void SequenceUpdated(const ULevelSequencePlayer& Player, float CurrentTime, float PreviousTime);
+	void SequenceUpdated(const UMovieSceneSequencePlayer& Player, float CurrentTime, float PreviousTime);
 
 	/** Called to set up the player's playback range */
 	void SetupFrameRange();

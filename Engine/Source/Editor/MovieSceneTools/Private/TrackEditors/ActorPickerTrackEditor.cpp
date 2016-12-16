@@ -10,6 +10,8 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SBox.h"
+#include "Widgets/Views/STableRow.h"
+#include "Widgets/Views/SListView.h"
 #include "Widgets/Input/SButton.h"
 #include "EditorStyleSet.h"
 #include "Editor/UnrealEdEngine.h"
@@ -118,6 +120,101 @@ void FActorPickerTrackEditor::ShowActorSubMenu(FMenuBuilder& MenuBuilder, FGuid 
 	MenuBuilder.AddWidget(MenuWidget, FText::GetEmpty(), false);
 }
 
+class SComponentChooserPopup : public SCompoundWidget
+{
+public:
+	DECLARE_DELEGATE_OneParam( FOnComponentChosen, FString );
+
+	SLATE_BEGIN_ARGS( SComponentChooserPopup )
+		: _Actor(NULL)
+		{}
+
+		/** An actor with components */
+		SLATE_ARGUMENT( AActor*, Actor )
+
+		/** Called when the text is chosen. */
+		SLATE_EVENT( FOnComponentChosen, OnComponentChosen )
+
+	SLATE_END_ARGS()
+
+	/** Delegate to call when component is selected */
+	FOnComponentChosen OnComponentChosen;
+
+	/** List of tag names selected in the tag containers*/
+	TArray< TSharedPtr<FString> > ComponentNames;
+
+private:
+	TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable)
+	{
+		return SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
+				[
+					SNew(STextBlock) .Text( FText::FromString(*InItem.Get()) )
+				];
+	}
+
+	void OnComponentSelected(TSharedPtr<FString> InItem, ESelectInfo::Type InSelectInfo)
+	{
+		FSlateApplication::Get().DismissAllMenus();
+
+		if(OnComponentChosen.IsBound())
+		{
+			OnComponentChosen.Execute(*InItem.Get());
+		}
+	}
+
+public:
+	void Construct( const FArguments& InArgs )
+	{
+		OnComponentChosen = InArgs._OnComponentChosen;
+		AActor* Actor = InArgs._Actor;
+
+		TInlineComponentArray<USceneComponent*> Components(Actor);
+
+		ComponentNames.Empty();
+		for(USceneComponent* Component : Components)
+		{
+			if (Component->HasAnySockets())
+			{
+				ComponentNames.Add(MakeShareable(new FString(Component->GetName())));
+			}
+		}
+
+		// Then make widget
+		this->ChildSlot
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush(TEXT("Menu.Background")))
+			.Padding(5)
+			.Content()
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0.0f, 1.0f)
+				[
+					SNew(STextBlock)
+					.Font( FEditorStyle::GetFontStyle(TEXT("SocketChooser.TitleFont")) )
+					.Text( NSLOCTEXT("ComponentChooser", "ChooseComponentLabel", "Choose Component") )
+				]
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.MaxHeight(512)
+				[
+					SNew(SBox)
+					.WidthOverride(256)
+					.Content()
+					[
+						SNew(SListView< TSharedPtr<FString> >)
+						.ListItemsSource( &ComponentNames)
+						.OnGenerateRow( this, &SComponentChooserPopup::MakeListViewWidget )
+						.OnSelectionChanged( this, &SComponentChooserPopup::OnComponentSelected )
+					]
+				]
+			]
+		];
+	}
+};
+
 void FActorPickerTrackEditor::ActorPicked(AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
 {
 	TArray<USceneComponent*> ComponentsWithSockets;
@@ -134,49 +231,24 @@ void FActorPickerTrackEditor::ActorPicked(AActor* ParentActor, FGuid ObjectGuid,
 		}
 	}
 
-	// Show socket chooser if we have sockets to select
-	if (ComponentsWithSockets.Num() > 0)
+	if (ComponentsWithSockets.Num() == 0)
 	{
-		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor");
-		TSharedPtr< ILevelEditor > LevelEditor = LevelEditorModule.GetFirstLevelEditor();
+		FSlateApplication::Get().DismissAllMenus();
+		ActorSocketPicked( NAME_None, nullptr, ParentActor, ObjectGuid, Section );
+		return;
+	}
 
-		TSharedPtr<SWidget> MenuWidget;
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor");
+	TSharedPtr< ILevelEditor > LevelEditor = LevelEditorModule.GetFirstLevelEditor();
 
-		if(ComponentsWithSockets.Num() > 1)
-		{
-			const bool bInShouldCloseWindowAfterMenuSelection = true;
-			FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, TSharedPtr<const FUICommandList>());
+	TSharedPtr<SWidget> MenuWidget;
 
-			MenuBuilder.BeginSection(TEXT("ComponentsWithSockets"), LOCTEXT("ComponentsWithSockets", "Components With Sockets"));
-
-			for(USceneComponent* Component : ComponentsWithSockets)
-			{
-				auto NewMenuDelegate = [&](FMenuBuilder& ComponentMenuBuilder)
-				{
-					ComponentMenuBuilder.AddWidget(
-						SNew(SSocketChooserPopup)
-						.SceneComponent(Component)
-						.OnSocketChosen(this, &FActorPickerTrackEditor::ActorSocketPicked, Component, ParentActor, ObjectGuid, Section),
-						FText());
-				};
-
-				MenuBuilder.AddSubMenu(
-					FText::FromName(Component->GetFName()),
-					FText::Format(LOCTEXT("ComponentSubMenuToolTip", "View sockets for component {0}"), FText::FromName(Component->GetFName())),
-					FNewMenuDelegate::CreateLambda(NewMenuDelegate)
-					);
-			}
-		
-			MenuBuilder.EndSection();
-			MenuWidget = MenuBuilder.MakeWidget();
-		}
-		else
-		{
-			MenuWidget = 
-				SNew(SSocketChooserPopup)
-				.SceneComponent(ComponentsWithSockets[0])
-				.OnSocketChosen(this, &FActorPickerTrackEditor::ActorSocketPicked, ComponentsWithSockets[0], ParentActor, ObjectGuid, Section);		
-		}
+	if (ComponentsWithSockets.Num() > 1)
+	{			
+		MenuWidget = 
+			SNew(SComponentChooserPopup)
+			.Actor(ParentActor)
+			.OnComponentChosen(this, &FActorPickerTrackEditor::ActorComponentPicked, ParentActor, ObjectGuid, Section);		
 
 		// Create as context menu
 		FSlateApplication::Get().PushMenu(
@@ -189,9 +261,48 @@ void FActorPickerTrackEditor::ActorPicked(AActor* ParentActor, FGuid ObjectGuid,
 	}
 	else
 	{
-		FSlateApplication::Get().DismissAllMenus();
-		ActorSocketPicked( NAME_None, nullptr, ParentActor, ObjectGuid, Section );
+		ActorComponentPicked(ComponentsWithSockets[0]->GetName(), ParentActor, ObjectGuid, Section);
 	}
+}
+
+
+void FActorPickerTrackEditor::ActorComponentPicked(FString ComponentName, AActor* ParentActor, FGuid ObjectGuid, UMovieSceneSection* Section)
+{
+	USceneComponent* ComponentWithSockets = nullptr;
+	TInlineComponentArray<USceneComponent*> Components(ParentActor);
+
+	for(USceneComponent* Component : Components)
+	{
+		if (Component->GetName() == ComponentName)
+		{
+			ComponentWithSockets = Component;
+			break;
+		}
+	}
+
+	if (ComponentWithSockets == nullptr)
+	{
+		return;
+	}
+
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor");
+	TSharedPtr< ILevelEditor > LevelEditor = LevelEditorModule.GetFirstLevelEditor();
+
+	TSharedPtr<SWidget> MenuWidget;
+
+	MenuWidget = 
+		SNew(SSocketChooserPopup)
+		.SceneComponent(ComponentWithSockets)
+		.OnSocketChosen(this, &FActorPickerTrackEditor::ActorSocketPicked, ComponentWithSockets, ParentActor, ObjectGuid, Section);		
+
+	// Create as context menu
+	FSlateApplication::Get().PushMenu(
+		LevelEditor.ToSharedRef(),
+		FWidgetPath(),
+		MenuWidget.ToSharedRef(),
+		FSlateApplication::Get().GetCursorPos(),
+		FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
+		);
 }
 
 #undef LOCTEXT_NAMESPACE

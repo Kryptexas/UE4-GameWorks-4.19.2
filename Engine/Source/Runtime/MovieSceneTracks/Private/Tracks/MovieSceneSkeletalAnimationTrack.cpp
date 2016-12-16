@@ -3,7 +3,9 @@
 #include "Tracks/MovieSceneSkeletalAnimationTrack.h"
 #include "Sections/MovieSceneSkeletalAnimationSection.h"
 #include "Compilation/MovieSceneCompilerRules.h"
-
+#include "Evaluation/MovieSceneEvaluationTrack.h"
+#include "Evaluation/MovieSceneSkeletalAnimationTemplate.h"
+#include "Compilation/IMovieSceneTemplateGenerator.h"
 
 #define LOCTEXT_NAMESPACE "MovieSceneSkeletalAnimationTrack"
 
@@ -59,6 +61,12 @@ TArray<UMovieSceneSection*> UMovieSceneSkeletalAnimationTrack::GetAnimSectionsAt
 const TArray<UMovieSceneSection*>& UMovieSceneSkeletalAnimationTrack::GetAllSections() const
 {
 	return AnimationSections;
+}
+
+
+bool UMovieSceneSkeletalAnimationTrack::SupportsMultipleRows() const
+{
+	return true;
 }
 
 
@@ -119,5 +127,37 @@ FText UMovieSceneSkeletalAnimationTrack::GetDefaultDisplayName() const
 
 #endif
 
+TInlineValue<FMovieSceneSegmentCompilerRules> UMovieSceneSkeletalAnimationTrack::GetRowCompilerRules() const
+{
+	// Apply an upper bound exclusive blend
+	struct FSkeletalAnimationRowCompilerRules : FMovieSceneSegmentCompilerRules
+	{
+		FSkeletalAnimationRowCompilerRules(TInlineValue<FMovieSceneSegmentCompilerRules>&& InParentCompilerRules) { ParentCompilerRules = MoveTemp(InParentCompilerRules); }
+			
+		virtual void BlendSegment(FMovieSceneSegment& Segment, const TArrayView<const FMovieSceneSectionData>& SourceData) const
+		{
+			// Make the skeletal animation sections upper bound exclusive so that when you place animation 
+			// sections back to back, they don't blend at the transition times. This might be an option that 
+			// is exposed to the user in the future.
+
+			MovieSceneSegmentCompiler::BlendSegmentUpperBoundExclusive(Segment, SourceData);
+
+			ParentCompilerRules.GetValue().BlendSegment(Segment, SourceData);
+		}
+
+		TInlineValue<FMovieSceneSegmentCompilerRules> ParentCompilerRules;
+	};
+	return FSkeletalAnimationRowCompilerRules(Super::GetRowCompilerRules());
+}
+
+void UMovieSceneSkeletalAnimationTrack::PostCompile(FMovieSceneEvaluationTrack& OutTrack, const FMovieSceneTrackCompilerArgs& Args) const
+{
+	FMovieSceneSharedDataId UniqueId = FMovieSceneSkeletalAnimationSharedTrack::GetSharedDataKey().UniqueId;
+
+	FMovieSceneEvaluationTrack ActuatorTemplate(Args.ObjectBindingId);
+	ActuatorTemplate.DefineAsSingleTemplate(FMovieSceneSkeletalAnimationSharedTrack());
+	ActuatorTemplate.SetEvaluationPriority(ActuatorTemplate.GetEvaluationPriority() - 1);
+	Args.Generator.AddSharedTrack(MoveTemp(ActuatorTemplate), UniqueId, *this);
+}
 
 #undef LOCTEXT_NAMESPACE

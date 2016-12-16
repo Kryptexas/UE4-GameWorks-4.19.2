@@ -4,6 +4,7 @@
 #include "Tracks/MovieSceneParticleParameterTrack.h"
 #include "Particles/Emitter.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "IMovieScenePlayer.h"
 
 DECLARE_CYCLE_STAT(TEXT("Particle Parameter Track Token Execute"), MovieSceneEval_ParticleParameterTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

@@ -62,13 +62,16 @@ void SStringCurveKeyEditor::OnTextCommitted(const FText& InText, ETextCommit::Ty
 				Curve->AddKey(CurrentTime, InText.ToString(), CurrentKeyHandle);
 			}
 
-			if (OwningSection->GetStartTime() > CurrentTime)
+			if (Curve->GetNumKeys() != 0)
 			{
-				OwningSection->SetStartTime(CurrentTime);
-			}
-			if (OwningSection->GetEndTime() < CurrentTime)
-			{
-				OwningSection->SetEndTime(CurrentTime);
+				if (OwningSection->GetStartTime() > CurrentTime)
+				{
+					OwningSection->SetStartTime(CurrentTime);
+				}
+				if (OwningSection->GetEndTime() < CurrentTime)
+				{
+					OwningSection->SetEndTime(CurrentTime);
+				}
 			}
 		}
 

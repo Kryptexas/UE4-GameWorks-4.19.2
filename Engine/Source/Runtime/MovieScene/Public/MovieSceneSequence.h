@@ -12,6 +12,7 @@
 
 class ITargetPlatform;
 class UMovieScene;
+struct FMovieScenePossessable;
 
 /**
  * Abstract base class for movie scene animations (C++ version).
@@ -131,6 +132,14 @@ public:
 	 * @return A new object template of the specified name
 	 */
 	virtual UObject* MakeSpawnableTemplateFromInstance(UObject& InSourceObject, FName ObjectName) { return nullptr; }
+
+	/**
+	 * Specifies whether this sequence allows rebinding of the specified possessable
+	 *
+	 * @param InPossessable The possessable to check
+	 * @return true if rebinding this possessable is valid at runtime, false otherwise
+	 */
+	virtual bool CanRebindPossessable(const FMovieScenePossessable& InPossessable) const { return false; }
 
 public:
 

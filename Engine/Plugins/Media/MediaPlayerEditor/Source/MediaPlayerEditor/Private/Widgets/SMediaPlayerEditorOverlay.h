@@ -7,6 +7,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Layout/SConstraintCanvas.h"
 
+class SConstraintCanvas;
 class SRichTextBlock;
 class UMediaPlayer;
 enum class EMediaOverlayType;

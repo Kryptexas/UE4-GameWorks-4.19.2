@@ -9,17 +9,19 @@
 #include "GameFramework/Actor.h"
 #include "Misc/StringClassReference.h"
 #include "LevelSequencePlayer.h"
+#include "MovieSceneBindingOwnerInterface.h"
+#include "MovieSceneBindingOverrides.h"
 #include "LevelSequenceActor.generated.h"
 
 class ULevelSequenceBurnIn;
 
-UCLASS(Blueprintable)
+UCLASS(Blueprintable, DefaultToInstanced)
 class LEVELSEQUENCE_API ULevelSequenceBurnInInitSettings : public UObject
 {
 	GENERATED_BODY()
 };
 
-UCLASS()
+UCLASS(DefaultToInstanced)
 class LEVELSEQUENCE_API ULevelSequenceBurnInOptions : public UObject
 {
 public:
@@ -38,7 +40,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="General", meta=(EditCondition=bUseBurnIn, MetaClass="LevelSequenceBurnIn"))
 	FStringClassReference BurnInClass;
 
-	UPROPERTY(EditAnywhere, Category="General", meta=(EditCondition=bUseBurnIn, EditInline))
+	UPROPERTY(Instanced, EditAnywhere, Category="General", meta=(EditCondition=bUseBurnIn))
 	ULevelSequenceBurnInInitSettings* Settings;
 
 protected:
@@ -54,6 +56,7 @@ protected:
 UCLASS(hideCategories=(Rendering, Physics, LOD, Activation))
 class LEVELSEQUENCE_API ALevelSequenceActor
 	: public AActor
+	, public IMovieSceneBindingOwnerInterface
 {
 public:
 
@@ -68,16 +71,20 @@ public:
 	bool bAutoPlay;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Playback", meta=(ShowOnlyInnerProperties))
-	FLevelSequencePlaybackSettings PlaybackSettings;
+	FMovieSceneSequencePlaybackSettings PlaybackSettings;
 
-	UPROPERTY(transient, BlueprintReadOnly, Category="Playback")
+	UPROPERTY(transient, BlueprintReadOnly, Category="Playback", meta=(ExposeFunctionCategories="Game|Cinematic"))
 	ULevelSequencePlayer* SequencePlayer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="General", meta=(AllowedClasses="LevelSequence"))
 	FStringAssetReference LevelSequence;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="General", meta=(EditInline))
+	UPROPERTY(Instanced, VisibleAnywhere, AdvancedDisplay, BlueprintReadOnly, Category="General")
 	ULevelSequenceBurnInOptions* BurnInOptions;
+
+	/** Mapping of actors to override the sequence bindings with */
+	UPROPERTY(Instanced, VisibleAnywhere, AdvancedDisplay, BlueprintReadOnly, Category="General")
+	UMovieSceneBindingOverrides* BindingOverrides;
 
 public:
 
@@ -105,6 +112,63 @@ public:
 
 public:
 
+	/** Overrides the specified binding with the specified actors, optionally still allowing the bindings defined in the Level Sequence asset */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic|Bindings")
+	void SetBinding(FMovieSceneObjectBindingPtr Binding, const TArray<AActor*>& Actors, bool bAllowBindingsFromAsset = false)
+	{
+		BindingOverrides->SetBinding(Binding, TArray<UObject*>(Actors), bAllowBindingsFromAsset);
+		if (SequencePlayer)
+		{
+			SequencePlayer->State.Invalidate(Binding.Guid, MovieSceneSequenceID::Root);
+		}
+	}
+
+	/** Adds the specified actor to the overridden bindings for the specified binding ID, optionally still allowing the bindings defined in the Level Sequence asset */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic|Bindings")
+	void AddBinding(FMovieSceneObjectBindingPtr Binding, AActor* Actor, bool bAllowBindingsFromAsset = false)
+	{
+		BindingOverrides->AddBinding(Binding, Actor);
+		if (SequencePlayer)
+		{
+			SequencePlayer->State.Invalidate(Binding.Guid, MovieSceneSequenceID::Root);
+		}
+	}
+
+	/** Removes the specified actor from the specified binding's actor array */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic|Bindings")
+	void RemoveBinding(FMovieSceneObjectBindingPtr Binding, AActor* Actor)
+	{
+		BindingOverrides->RemoveBinding(Binding, Actor);
+		if (SequencePlayer)
+		{
+			SequencePlayer->State.Invalidate(Binding.Guid, MovieSceneSequenceID::Root);
+		}
+	}
+
+	/** Resets the specified binding back to the defaults defined by the Level Sequence asset */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic|Bindings")
+	void ResetBinding(FMovieSceneObjectBindingPtr Binding)
+	{
+		BindingOverrides->ResetBinding(Binding);
+		if (SequencePlayer)
+		{
+			SequencePlayer->State.Invalidate(Binding.Guid, MovieSceneSequenceID::Root);
+		}
+	}
+
+	/** Resets all overridden bindings back to the defaults defined by the Level Sequence asset */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic|Bindings")
+	void ResetBindings()
+	{
+		BindingOverrides->ResetBindings();
+		if (SequencePlayer)
+		{
+			SequencePlayer->State.ClearObjectCaches();
+		}
+	}
+
+public:
+
 	virtual void PostInitializeComponents() override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void PostLoad() override;
@@ -120,8 +184,38 @@ public:
 
 	void InitializePlayer();
 
+#if WITH_EDITOR
+	virtual TSharedPtr<FStructOnScope> GetObjectPickerProxy(TSharedPtr<IPropertyHandle> PropertyHandle) override;
+	virtual void UpdateObjectFromProxy(FStructOnScope& Proxy, IPropertyHandle& ObjectPropertyHandle) override;
+	virtual UMovieSceneSequence* RetrieveOwnedSequence() const override
+	{
+		return GetSequence(true);
+	}
+#endif
+
 private:
 	/** Burn-in widget */
 	UPROPERTY()
 	ULevelSequenceBurnIn* BurnInInstance;
+};
+
+
+USTRUCT()
+struct FBoundActorProxy
+{
+	GENERATED_BODY()
+
+#if WITH_EDITORONLY_DATA
+
+	/** Specifies the actor to override the binding with */
+	UPROPERTY(EditInstanceOnly, AdvancedDisplay, Category="General")
+	AActor* BoundActor;
+
+	void Initialize(TSharedPtr<IPropertyHandle> InPropertyHandle);
+
+	void OnReflectedPropertyChanged();
+
+	TSharedPtr<IPropertyHandle> ReflectedProperty;
+
+#endif
 };

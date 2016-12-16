@@ -14,7 +14,7 @@ class UAnimGraphNode_TwoWayBlend : public UAnimGraphNode_Base
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=Settings)
-	FAnimationNode_TwoWayBlend BlendNode;
+	FAnimNode_TwoWayBlend BlendNode;
 
 	//~ Begin UEdGraphNode Interface.
 	virtual FLinearColor GetNodeTitleColor() const override;

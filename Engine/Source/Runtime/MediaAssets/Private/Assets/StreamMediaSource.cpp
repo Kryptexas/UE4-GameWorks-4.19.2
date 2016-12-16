@@ -3,6 +3,9 @@
 #include "StreamMediaSource.h"
 
 
+/* UMediaSource overrides
+ *****************************************************************************/
+
 FString UStreamMediaSource::GetUrl() const
 {
 	return StreamUrl;

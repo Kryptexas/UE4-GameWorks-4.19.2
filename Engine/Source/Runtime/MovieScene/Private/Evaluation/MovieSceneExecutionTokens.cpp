@@ -1,9 +1,12 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneExecutionTokens.h"
+#include "IMovieScenePlayer.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("Apply Execution Tokens"), MovieSceneEval_ApplyExecutionTokens, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Apply Execution Token"), MovieSceneEval_ApplyExecutionToken, STATGROUP_MovieSceneEval);
+
 
 void FMovieSceneExecutionTokens::Apply(IMovieScenePlayer& Player)
 {

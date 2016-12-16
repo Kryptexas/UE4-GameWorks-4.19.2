@@ -14,9 +14,9 @@ class STextBlock;
 class SWidget;
 
 /**
- * Details view customization for the FLevelSequencePlaybackSettings struct.
+ * Details view customization for the FMovieSceneSequencePlaybackSettings struct.
  */
-class FLevelSequencePlaybackSettingsCustomization
+class FMovieSceneSequencePlaybackSettingsCustomization
 	: public IPropertyTypeCustomization
 {
 public:

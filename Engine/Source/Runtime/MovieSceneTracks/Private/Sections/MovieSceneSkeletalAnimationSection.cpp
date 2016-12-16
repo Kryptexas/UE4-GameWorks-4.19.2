@@ -3,6 +3,11 @@
 #include "Sections/MovieSceneSkeletalAnimationSection.h"
 #include "Animation/AnimSequence.h"
 #include "Evaluation/MovieSceneSkeletalAnimationTemplate.h"
+#include "MessageLog.h"
+#include "MovieScene.h"
+#include "SequencerObjectVersion.h"
+
+#define LOCTEXT_NAMESPACE "MovieSceneSkeletalAnimationSection"
 
 namespace
 {
@@ -17,6 +22,7 @@ FMovieSceneSkeletalAnimationParams::FMovieSceneSkeletalAnimationParams()
 	PlayRate = 1.f;
 	bReverse = false;
 	SlotName = DefaultSlotName;
+	Weight.SetDefaultValue(1.f);
 }
 
 UMovieSceneSkeletalAnimationSection::UMovieSceneSkeletalAnimationSection( const FObjectInitializer& ObjectInitializer )
@@ -30,9 +36,18 @@ UMovieSceneSkeletalAnimationSection::UMovieSceneSkeletalAnimationSection( const 
 	bReverse_DEPRECATED = false;
 	SlotName_DEPRECATED = DefaultSlotName;
 
+	// Section template relies on always restoring state for objects when they are no longer animating. This is how it releases animation control.
+	EvalOptions.CompletionMode = EMovieSceneCompletionMode::RestoreState;
+
 #if WITH_EDITOR
 	PreviousPlayRate = Params.PlayRate;
 #endif
+}
+
+void UMovieSceneSkeletalAnimationSection::Serialize(FArchive& Ar)
+{
+	Ar.UsingCustomVersion(FSequencerObjectVersion::GUID);
+	Super::Serialize(Ar);
 }
 
 void UMovieSceneSkeletalAnimationSection::PostLoad()
@@ -72,6 +87,39 @@ void UMovieSceneSkeletalAnimationSection::PostLoad()
 		Params.SlotName = SlotName_DEPRECATED;
 	}
 
+	// if version is less than this
+	if (GetLinkerCustomVersion(FSequencerObjectVersion::GUID) < FSequencerObjectVersion::ConvertEnableRootMotionToForceRootLock)
+	{
+		UAnimSequence* AnimSeq = Cast<UAnimSequence>(Params.Animation);
+		if (AnimSeq && AnimSeq->bEnableRootMotion)
+		{
+			// this is not ideal, but previously single player node was using this flag to whether or not to extract root motion
+			// with new anim sequencer instance, this would break because we use the instance flag to extract root motion or not
+			// so instead of setting that flag, we use bForceRootLock flag to asset
+			// this can have side effect, where users didn't want that to be on to start with
+			// So we'll notify users to let them know this has to be saved
+			AnimSeq->bForceRootLock = true;
+			AnimSeq->MarkPackageDirty();
+			// warning to users
+#if WITH_EDITOR			
+			if (!IsRunningGame())
+			{
+				static FName NAME_LoadErrors("LoadErrors");
+				FMessageLog LoadErrors(NAME_LoadErrors);
+
+				TSharedRef<FTokenizedMessage> Message = LoadErrors.Warning();
+				Message->AddToken(FTextToken::Create(LOCTEXT("RootMotionFixUp1", "The Animation ")));
+				Message->AddToken(FAssetNameToken::Create(AnimSeq->GetPathName(), FText::FromString(GetNameSafe(AnimSeq))));
+				Message->AddToken(FTextToken::Create(LOCTEXT("RootMotionFixUp2", "will be set to ForceRootLock on. Please save the animation if you want to keep this change.")));
+				Message->SetSeverity(EMessageSeverity::Warning);
+				LoadErrors.Notify();
+			}
+#endif // WITH_EDITOR
+
+			UE_LOG(LogMovieScene, Warning, TEXT("%s Animation has set ForceRootLock to be used in Sequencer. If this animation is used in anywhere else using root motion, that will cause conflict."), *AnimSeq->GetName());
+		}
+	}
+
 	Super::PostLoad();
 }
 
@@ -80,10 +128,32 @@ FMovieSceneEvalTemplatePtr UMovieSceneSkeletalAnimationSection::GenerateTemplate
 	return FMovieSceneSkeletalAnimationSectionTemplate(*this);
 }
 
+void UMovieSceneSkeletalAnimationSection::PostLoadUpgradeTrackRow(const TRange<float>& InEvaluationRange)
+{
+	if (!Params.Weight.IsKeyHandleValid(Params.Weight.FindKey(GetStartTime())))
+	{
+		FKeyHandle StartKeyHandle = Params.Weight.UpdateOrAddKey(GetStartTime(), 1.f);
+		Params.Weight.SetKeyInterpMode(StartKeyHandle, RCIM_Constant);
+	}
+
+	if (InEvaluationRange.HasLowerBound())
+	{
+		FKeyHandle EvalInKeyHandle = Params.Weight.UpdateOrAddKey(InEvaluationRange.GetLowerBoundValue(), 1.f);
+		Params.Weight.SetKeyInterpMode(EvalInKeyHandle, RCIM_Constant);
+	}
+
+	if (InEvaluationRange.HasUpperBound())
+	{
+		FKeyHandle EvalOutKeyHandle = Params.Weight.UpdateOrAddKey(InEvaluationRange.GetUpperBoundValue(), 0.f);
+		Params.Weight.SetKeyInterpMode(EvalOutKeyHandle, RCIM_Constant);
+	}
+}
 
 void UMovieSceneSkeletalAnimationSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
 	Super::MoveSection(DeltaTime, KeyHandles);
+
+	Params.Weight.ShiftCurve(DeltaTime, KeyHandles);
 }
 
 
@@ -92,6 +162,8 @@ void UMovieSceneSkeletalAnimationSection::DilateSection( float DilationFactor, f
 	Params.PlayRate /= DilationFactor;
 
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
+	
+	Params.Weight.ScaleCurve(Origin, DilationFactor, KeyHandles);
 }
 
 UMovieSceneSection* UMovieSceneSkeletalAnimationSection::SplitSection(float SplitTime)
@@ -113,9 +185,21 @@ UMovieSceneSection* UMovieSceneSkeletalAnimationSection::SplitSection(float Spli
 }
 
 
-void UMovieSceneSkeletalAnimationSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles, TRange<float> TimeRange) const
+void UMovieSceneSkeletalAnimationSection::GetKeyHandles(TSet<FKeyHandle>& OutKeyHandles, TRange<float> TimeRange) const
 {
-	// do nothing
+	if (!TimeRange.Overlaps(GetRange()))
+	{
+		return;
+	}
+
+	for (auto It(Params.Weight.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = Params.Weight.GetKeyTime(It.Key());
+		if (TimeRange.Contains(Time))
+		{
+			OutKeyHandles.Add(It.Key());
+		}
+	}
 }
 
 
@@ -128,7 +212,7 @@ void UMovieSceneSkeletalAnimationSection::GetSnapTimes(TArray<float>& OutSnapTim
 	float SeqLength = (Params.GetSequenceLength() - (Params.StartOffset + Params.EndOffset)) / AnimPlayRate;
 
 	// Snap to the repeat times
-	while (CurrentTime <= GetEndTime() && !FMath::IsNearlyZero(Params.GetDuration()) && SeqLength > 0)
+	while (CurrentTime <= GetEndTime() && !FMath::IsNearlyZero(SeqLength, KINDA_SMALL_NUMBER) && SeqLength > 0)
 	{
 		if (CurrentTime >= GetStartTime())
 		{
@@ -170,3 +254,5 @@ void UMovieSceneSkeletalAnimationSection::PostEditChangeProperty(FPropertyChange
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif
+
+#undef LOCTEXT_NAMESPACE 

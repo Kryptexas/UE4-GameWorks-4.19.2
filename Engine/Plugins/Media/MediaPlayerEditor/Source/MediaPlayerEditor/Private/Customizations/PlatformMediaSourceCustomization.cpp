@@ -36,16 +36,18 @@ void FPlatformMediaSourceCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 		{
 			IDetailPropertyRow& PlatformMediaSourcesRow = SourcesCategory.AddProperty(PlatformMediaSourcesProperty);
 
-			PlatformMediaSourcesRow.CustomWidget()
-				.NameContent()
-				[
-					PlatformMediaSourcesProperty->CreatePropertyNameWidget()
-				]
-				.ValueContent()
-				.MaxDesiredWidth(0.0f)
-				[
-					MakePlatformMediaSourcesValueWidget()
-				];
+			PlatformMediaSourcesRow
+				.ShowPropertyButtons(false)
+				.CustomWidget()
+					.NameContent()
+					[
+						PlatformMediaSourcesProperty->CreatePropertyNameWidget()
+					]
+					.ValueContent()
+					.MaxDesiredWidth(0.0f)
+					[
+						MakePlatformMediaSourcesValueWidget()
+					];
 		}
 	}
 }

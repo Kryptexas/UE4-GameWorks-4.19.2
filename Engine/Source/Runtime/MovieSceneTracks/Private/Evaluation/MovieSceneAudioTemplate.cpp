@@ -10,13 +10,16 @@
 #include "AudioThread.h"
 #include "AudioDevice.h"
 #include "ActiveSound.h"
-
 #include "Sections/MovieSceneAudioSection.h"
 #include "Tracks/MovieSceneAudioTrack.h"
 #include "MovieScene.h"
+#include "MovieSceneEvaluation.h"
+#include "IMovieScenePlayer.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("Audio Track Evaluate"), MovieSceneEval_AudioTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Audio Track Token Execute"), MovieSceneEval_AudioTrack_TokenExecute, STATGROUP_MovieSceneEval);
+
 
 /** Stop audio from playing */
 struct FStopAudioPreAnimatedToken : IMovieScenePreAnimatedToken
@@ -232,9 +235,10 @@ struct FAudioSectionExecutionToken : IMovieSceneExecutionToken
 
 FMovieSceneAudioSectionTemplateData::FMovieSceneAudioSectionTemplateData(const UMovieSceneAudioSection& Section)
 	: Sound(Section.GetSound())
-	, AudioStartTime(Section.GetAudioStartTime())
-	, AudioDilationFactor(Section.GetAudioDilationFactor())
-	, AudioVolume(Section.GetAudioVolume())
+	, AudioStartOffset(Section.GetStartOffset())
+	, AudioRange(Section.GetAudioRange())
+	, AudioPitchMultiplierCurve(Section.GetPitchMultiplierCurve())
+	, AudioVolumeCurve(Section.GetSoundVolumeCurve())
 	, RowIndex(Section.GetRowIndex())
 {
 }
@@ -244,18 +248,27 @@ void FMovieSceneAudioSectionTemplateData::EnsureAudioIsPlaying(UAudioComponent& 
 	Player.SavePreAnimatedState(AudioComponent, FStopAudioPreAnimatedToken::GetAnimTypeID(), FStopAudioPreAnimatedToken::FProducer());
 
 	bool bPlaySound = !AudioComponent.IsPlaying() || AudioComponent.Sound != Sound;
+	float AudioVolume = AudioVolumeCurve.Eval(Context.GetTime());
+	float PitchMultiplier = AudioPitchMultiplierCurve.Eval(Context.GetTime());
+
+	if (AudioComponent.VolumeMultiplier != AudioVolume)
+	{
+		AudioComponent.SetVolumeMultiplier(AudioVolume);
+	}
+	
+	if (AudioComponent.PitchMultiplier != PitchMultiplier)
+	{
+		AudioComponent.SetPitchMultiplier(PitchMultiplier);
+	}
+
 	if (bPlaySound)
 	{
-		float PitchMultiplier = 1.f / AudioDilationFactor;
-
 		AudioComponent.bAllowSpatialization = bAllowSpatialization;
 		AudioComponent.bOverrideAttenuation = bAllowSpatialization;
 		AudioComponent.Stop();
 		AudioComponent.SetSound(Sound);
-		AudioComponent.SetVolumeMultiplier(AudioVolume);
-		AudioComponent.SetPitchMultiplier(PitchMultiplier);
 		AudioComponent.bIsUISound = true;
-		AudioComponent.Play(Context.GetTime() - AudioStartTime);
+		AudioComponent.Play(AudioStartOffset < 0 ? 0 : AudioStartOffset);
 
 		if (Context.GetStatus() == EMovieScenePlayerStatus::Scrubbing)
 		{
@@ -295,7 +308,7 @@ void FMovieSceneAudioSectionTemplate::Evaluate(const FMovieSceneEvaluationOperan
 {
 	MOVIESCENE_DETAILED_SCOPE_CYCLE_COUNTER(MovieSceneEval_AudioTrack_Evaluate)
 
-	if (GEngine && GEngine->UseSound() && !Context.HasJumped() && Context.GetStatus() != EMovieScenePlayerStatus::Jumping)
+	if (GEngine && GEngine->UseSound() && !Context.HasJumped() && Context.GetStatus() != EMovieScenePlayerStatus::Jumping && AudioData.AudioRange.Contains(Context.GetTime()))
 	{
 		ExecutionTokens.Add(FAudioSectionExecutionToken(AudioData));
 	}

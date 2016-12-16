@@ -833,6 +833,17 @@ TSharedPtr<class FUICommandList> SDetailsViewBase::GetHostCommandList() const
 	return DetailsViewArgs.HostCommandList;
 }
 
+TSharedPtr<FTabManager> SDetailsViewBase::GetHostTabManager() const
+{
+	return DetailsViewArgs.HostTabManager;
+}
+
+void SDetailsViewBase::SetHostTabManager(TSharedPtr<FTabManager> InTabManager)
+{
+	DetailsViewArgs.HostTabManager = InTabManager;
+}
+
+
 /** 
  * Hides or shows properties based on the passed in filter text
  * 

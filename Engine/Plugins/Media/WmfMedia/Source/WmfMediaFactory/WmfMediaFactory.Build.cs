@@ -33,7 +33,14 @@ namespace UnrealBuildTool.Rules
 				}
 			);
 
-			if (Target.Type == TargetRules.TargetType.Editor)
+            PublicDependencyModuleNames.AddRange(
+                new string[] {
+                    "Core",
+                    "CoreUObject",
+                }
+            );
+
+            if (Target.Type == TargetRules.TargetType.Editor)
 			{
 				DynamicallyLoadedModuleNames.Add("Settings");
 				PrivateIncludePathModuleNames.Add("Settings");

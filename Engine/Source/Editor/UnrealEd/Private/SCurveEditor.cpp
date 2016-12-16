@@ -69,6 +69,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	OutputSnap = InArgs._OutputSnap;
 	bInputSnappingEnabled = InArgs._InputSnappingEnabled;
 	bOutputSnappingEnabled = InArgs._OutputSnappingEnabled;
+	bShowTimeInFrames = InArgs._ShowTimeInFrames;
 
 	bZoomToFitVertical = InArgs._ZoomToFitVertical;
 	bZoomToFitHorizontal = InArgs._ZoomToFitHorizontal;
@@ -290,6 +291,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 	CurveSelectionWidget = CurveSelector;
 
 	InputAxisName = InArgs._XAxisName.IsSet() ? FText::FromString(InArgs._XAxisName.GetValue()) : LOCTEXT("Time", "Time");
+	InputFrameAxisName = InArgs._XAxisName.IsSet() ? FText::FromString(InArgs._XAxisName.GetValue()) : LOCTEXT("Frame", "Frame");
 	OutputAxisName = InArgs._YAxisName.IsSet() ? FText::FromString(InArgs._YAxisName.GetValue()) : LOCTEXT("Value", "Value");
 
 	this->ChildSlot
@@ -364,27 +366,62 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 						.Visibility(this, &SCurveEditor::GetEditVisibility)
 						.VAlign(VAlign_Center)
 						[
-							SNew(SNumericEntryBox<float>)
-							.IsEnabled(this, &SCurveEditor::GetInputEditEnabled)
-							.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
-							.Value(this, &SCurveEditor::OnGetTime)
-							.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
-							.OnValueCommitted(this, &SCurveEditor::OnTimeComitted)
-							.OnValueChanged(this, &SCurveEditor::OnTimeChanged)
-							.OnBeginSliderMovement(this, &SCurveEditor::OnBeginSliderMovement, LOCTEXT("SetTime", "Set New Time"))
-							.OnEndSliderMovement(this, &SCurveEditor::OnEndSliderMovement)
-							.LabelVAlign(VAlign_Center)
-							.AllowSpin(true)
-							.MinValue(TOptional<float>())
-							.MaxValue(TOptional<float>())
-							.MaxSliderValue(TOptional<float>())
-							.MinSliderValue(TOptional<float>())
-							.Delta(this, &SCurveEditor::GetInputNumericEntryBoxDelta)
-							.MinDesiredValueWidth(60.0f)
-							.Label()
+							SNew(SHorizontalBox)
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
 							[
-								SNew(STextBlock)
-								.Text(InputAxisName)
+								SNew(SNumericEntryBox<float>)
+								.IsEnabled(this, &SCurveEditor::GetInputEditEnabled)
+								.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
+								.Value(this, &SCurveEditor::OnGetTime)
+								.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
+								.OnValueCommitted(this, &SCurveEditor::OnTimeComitted)
+								.OnValueChanged(this, &SCurveEditor::OnTimeChanged)
+								.OnBeginSliderMovement(this, &SCurveEditor::OnBeginSliderMovement, LOCTEXT("SetTime", "Set New Time"))
+								.OnEndSliderMovement(this, &SCurveEditor::OnEndSliderMovement)
+								.LabelVAlign(VAlign_Center)
+								.AllowSpin(true)
+								.MinValue(TOptional<float>())
+								.MaxValue(TOptional<float>())
+								.MaxSliderValue(TOptional<float>())
+								.MinSliderValue(TOptional<float>())
+								.Delta(this, &SCurveEditor::GetInputNumericEntryBoxDelta)
+								.MinDesiredValueWidth(60.0f)
+								.Visibility(this, &SCurveEditor::GetTimeEditVisibility)
+								.Label()
+								[
+									SNew(STextBlock)
+									.Text(this, &SCurveEditor::GetInputAxisName)
+								]
+							]
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							[
+								SNew(SNumericEntryBox<int32>)
+								.IsEnabled(this, &SCurveEditor::GetInputEditEnabled)
+								.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
+								.Value(this, &SCurveEditor::OnGetTimeInFrames)
+								.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
+								.OnValueCommitted(this, &SCurveEditor::OnTimeInFramesComitted)
+								.OnValueChanged(this, &SCurveEditor::OnTimeInFramesChanged)
+								.OnBeginSliderMovement(this, &SCurveEditor::OnBeginSliderMovement, LOCTEXT("SetFrame", "Set New Frame"))
+								.OnEndSliderMovement(this, &SCurveEditor::OnEndSliderMovement)
+								.LabelVAlign(VAlign_Center)
+								.AllowSpin(true)
+								.MinValue(TOptional<int32>())
+								.MaxValue(TOptional<int32>())
+								.MaxSliderValue(TOptional<int32>())
+								.MinSliderValue(TOptional<int32>())
+								.Delta(1)
+								.MinDesiredValueWidth(60.0f)
+								.Visibility(this, &SCurveEditor::GetFrameEditVisibility)
+								.Label()
+								[
+									SNew(STextBlock)
+									.Text(this, &SCurveEditor::GetInputAxisName)
+								]
 							]
 						]
 					]
@@ -531,6 +568,11 @@ FText SCurveEditor::GetCurveToolTipInputText() const
 FText SCurveEditor::GetCurveToolTipOutputText() const
 {
 	return CurveToolTipOutputText;
+}
+
+FText SCurveEditor::GetInputAxisName() const
+{
+	return ShowTimeInFrames() ? InputFrameAxisName : InputAxisName;
 }
 
 SCurveEditor::~SCurveEditor()
@@ -685,6 +727,16 @@ EVisibility SCurveEditor::GetColorGradientVisibility() const
 EVisibility SCurveEditor::GetZoomButtonVisibility() const
 {
 	return (IsHovered() || (false == bHideUI)) && bShowZoomButtons ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility SCurveEditor::GetTimeEditVisibility() const
+{
+	return ShowTimeInFrames() ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+EVisibility SCurveEditor::GetFrameEditVisibility() const
+{
+	return ShowTimeInFrames() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 bool SCurveEditor::GetInputEditEnabled() const
@@ -1455,8 +1507,16 @@ void SCurveEditor::UpdateCurveToolTip(const FGeometry& InMyGeometry, const FPoin
 			FNumberFormattingOptions FormattingOptions;
 			FormattingOptions.MaximumFractionalDigits = 2;
 			CurveToolTipNameText = FText::FromName(HoveredCurve->CurveInfo.CurveName);
-			CurveToolTipInputText = FText::Format(LOCTEXT("CurveToolTipTimeFormat", "{0}: {1}"), InputAxisName, FText::AsNumber(Time, &FormattingOptions));
 			CurveToolTipOutputText = FText::Format(LOCTEXT("CurveToolTipValueFormat", "{0}: {1}"), OutputAxisName, FText::AsNumber(Value, &FormattingOptions));
+
+			if (ShowTimeInFrames())
+			{
+				CurveToolTipInputText = FText::Format(LOCTEXT("CurveToolTipFrameFormat", "{0}: {1}"), GetInputAxisName(), FText::AsNumber(TimeToFrame(Time)));
+			}
+			else
+			{
+				CurveToolTipInputText = FText::Format(LOCTEXT("CurveToolTipTimeFormat", "{0}: {1}"), GetInputAxisName(), FText::AsNumber(Time, &FormattingOptions));
+			}
 
 			if (CurveToolTip.IsValid() == false)
 			{
@@ -2028,6 +2088,64 @@ void SCurveEditor::OnTimeChanged(float NewTime)
 	}
 }
 
+TOptional<int32> SCurveEditor::OnGetTimeInFrames() const
+{
+	if ( SelectedKeys.Num() == 1 )
+	{
+		TOptional<float> KeyTime = GetKeyTime(SelectedKeys[0]);
+		if (KeyTime.IsSet())
+		{
+			return TOptional<int32>(TimeToFrame(KeyTime.GetValue()));
+		}
+	}
+
+	// Value couldn't be accessed.  Return an unset value
+	return TOptional<int32>();
+}
+
+void SCurveEditor::OnTimeInFramesComitted(int32 NewFrame, ETextCommit::Type CommitType)
+{
+	// Don't digest the number if we just clicked away from the pop-up
+	if ( !bIsUsingSlider && ((CommitType == ETextCommit::OnEnter) || ( CommitType == ETextCommit::OnUserMovedFocus )) )
+	{
+		if ( SelectedKeys.Num() >= 1 )
+		{
+			auto Key = SelectedKeys[0];
+			if ( IsValidCurve(Key.Curve) )
+			{
+				const FScopedTransaction Transaction(LOCTEXT("CurveEditor_NewFrame", "New Frame Entered"));
+				CurveOwner->ModifyOwner();
+				Key.Curve->SetKeyTime(Key.KeyHandle, FrameToTime(NewFrame));
+				TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+				ChangedCurveEditInfos.Add(GetViewModelForCurve(Key.Curve)->CurveInfo);
+				CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
+			}
+		}
+
+		FSlateApplication::Get().DismissAllMenus();
+	}
+}
+
+void SCurveEditor::OnTimeInFramesChanged(int32 NewFrame)
+{
+	if ( bIsUsingSlider )
+	{
+		if ( SelectedKeys.Num() >= 1 )
+		{
+			auto Key = SelectedKeys[0];
+			if ( IsValidCurve(Key.Curve) )
+			{
+				const FScopedTransaction Transaction( LOCTEXT( "CurveEditor_NewFrame", "New Frame Entered" ) );
+				CurveOwner->ModifyOwner();
+				Key.Curve->SetKeyTime(Key.KeyHandle, FrameToTime(NewFrame));
+				TArray<FRichCurveEditInfo> ChangedCurveEditInfos;
+				ChangedCurveEditInfos.Add(GetViewModelForCurve(Key.Curve)->CurveInfo);
+				CurveOwner->OnCurveChanged(ChangedCurveEditInfos);
+			}
+		}
+	}
+}
+
 TOptional<float> SCurveEditor::OnGetValue() const
 {
 	TOptional<float> Value;
@@ -2126,6 +2244,13 @@ void SCurveEditor::OnBeginSliderMovement(FText TransactionName)
 }
 
 void SCurveEditor::OnEndSliderMovement(float NewValue)
+{
+	bIsUsingSlider = false;
+
+	GEditor->EndTransaction();
+}
+
+void SCurveEditor::OnEndSliderMovement(int32 NewValue)
 {
 	bIsUsingSlider = false;
 
@@ -2570,14 +2695,19 @@ void SCurveEditor::ToggleOutputSnapping()
 	}
 }
 
-bool SCurveEditor::IsInputSnappingEnabled()
+bool SCurveEditor::IsInputSnappingEnabled() const
 {
 	return bInputSnappingEnabled.Get();
 }
 
-bool SCurveEditor::IsOutputSnappingEnabled()
+bool SCurveEditor::IsOutputSnappingEnabled() const
 {
 	return bOutputSnappingEnabled.Get();
+}
+
+bool SCurveEditor::ShowTimeInFrames() const
+{
+	return bShowTimeInFrames.Get();
 }
 
 void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
@@ -3657,6 +3787,21 @@ void SCurveEditor::CloseEntryPopupMenu()
 	{
 		EntryPopupMenu.Pin()->Dismiss();
 	}
+}
+
+	
+int32 SCurveEditor::TimeToFrame(float InTime) const
+{
+	const float FrameRate = InputSnap.IsSet() ? 1.0f / InputSnap.Get() : 1.f;
+	float Frame = InTime * FrameRate;
+	return FMath::RoundToInt(Frame);
+}
+
+
+float SCurveEditor::FrameToTime(int32 InFrame) const
+{
+	const float FrameRate = InputSnap.IsSet() ? 1.0f / InputSnap.Get() : 1.f;
+	return InFrame / FrameRate;
 }
 
 #undef LOCTEXT_NAMESPACE

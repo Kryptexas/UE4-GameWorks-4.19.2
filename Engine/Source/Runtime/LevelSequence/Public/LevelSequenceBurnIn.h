@@ -36,7 +36,7 @@ public:
 protected:
 
 	/** Called as part of the game tick loop when the sequence has been updated */
-	void OnSequenceUpdated(const ULevelSequencePlayer& Player, float CurrentTime, float PreviousTime);
+	void OnSequenceUpdated(const UMovieSceneSequencePlayer& Player, float CurrentTime, float PreviousTime);
 
 protected:
 

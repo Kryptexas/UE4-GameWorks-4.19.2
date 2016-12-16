@@ -48,9 +48,11 @@ public:
 
 	// ISequencerTrackEditor interface
 
+	virtual void BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings) override;
 	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) override;
 	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track, const FBuildEditWidgetParams& Params) override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack& Track, FGuid ObjectBinding) override;
+	virtual void OnRelease() override;
 	virtual bool SupportsType(TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual void Tick(float DeltaTime) override;
 	virtual const FSlateBrush* GetIconBrush() const override;
@@ -87,6 +89,9 @@ private:
 
 	/** Delegate for locked camera button */
 	void OnLockCameraClicked(ECheckBoxState CheckBoxState);
+
+	/** Toggle the state of the camera lock */
+	void ToggleLockCamera();
 
 	/** Delegate for camera button lock tooltip */
 	FText GetLockCameraToolTip() const; 

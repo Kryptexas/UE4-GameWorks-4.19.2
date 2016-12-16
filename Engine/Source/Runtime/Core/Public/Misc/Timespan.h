@@ -122,7 +122,6 @@ public:
 	FTimespan& operator+=(const FTimespan& Other)
 	{
 		Ticks += Other.Ticks;
-
 		return *this;
 	}
 
@@ -158,7 +157,6 @@ public:
 	FTimespan& operator-=(const FTimespan& Other)
 	{
 		Ticks -= Other.Ticks;
-
 		return *this;
 	}
 
@@ -182,7 +180,29 @@ public:
 	FTimespan& operator*=(float Scalar)
 	{
 		Ticks = (int64)(Ticks * Scalar);
+		return *this;
+	}
 
+	/**
+	 * Returns the result of calculating the modulus of this time span with another time span.
+	 *
+	 * @param Other The time span to divide by.
+	 * @return A time span representing the remainder of the modulus operation.
+	 */
+	FTimespan operator%(const FTimespan& Other) const
+	{
+		return FTimespan(Ticks % Other.Ticks);
+	}
+
+	/**
+	 * Calculates this time span modulo another.
+	 *
+	 * @param Other The time span to divide by.
+	 * @return This time span.
+	 */
+	FTimespan& operator%=(const FTimespan& Other)
+	{
+		Ticks = Ticks % Other.Ticks;
 		return *this;
 	}
 
@@ -433,6 +453,16 @@ public:
 	 */
 	CORE_API bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 
+	/**
+	 * Check whether this time span is zero.
+	 *
+	 * @return true if the time span is zero, false otherwise.
+	 * @see Zero
+	 */
+	bool IsZero() const
+	{
+		return (Ticks == 0LL);
+	}
 
 	/**
 	 * Serializes this time span from or into the specified archive.
@@ -577,7 +607,7 @@ public:
 	 * The zero time span value can be used in comparison operations with other time spans.
 	 *
 	 * @return Zero time span.
-	 * @see MaxValue, MinValue
+	 * @see IsZero, MaxValue, MinValue
 	 */
 	static FTimespan Zero()
 	{

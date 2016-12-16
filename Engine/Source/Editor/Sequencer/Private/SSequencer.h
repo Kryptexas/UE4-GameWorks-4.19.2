@@ -141,6 +141,12 @@ public:
 		/** Called when the user has finished dragging the selection range */
 		SLATE_EVENT( FSimpleDelegate, OnSelectionRangeEndDrag )
 
+		/** Whether the playback range is locked */
+		SLATE_ATTRIBUTE( bool, IsPlaybackRangeLocked )
+
+		/** Called when the user toggles the play back range lock */
+		SLATE_EVENT( FSimpleDelegate, OnTogglePlaybackRangeLocked )
+
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
 
@@ -161,6 +167,9 @@ public:
 
 		/** Called to populate the add combo button in the toolbar. */
 		SLATE_EVENT( FOnGetAddMenuContent, OnGetAddMenuContent )
+
+		/** Called when any widget contained within sequencer has received focus */
+		SLATE_EVENT( FSimpleDelegate, OnReceivedFocus )
 
 		/** Extender to use for the add menu. */
 		SLATE_ARGUMENT( TSharedPtr<FExtender>, AddMenuExtender )
@@ -243,6 +252,7 @@ protected:
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
+	virtual void OnFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent ) override;
 
 private:
 	
@@ -275,6 +285,12 @@ private:
 
 	/** Makes the general menu for the toolbar. */
 	TSharedRef<SWidget> MakeGeneralMenu();
+
+	/** Makes the plabacky menu for the toolbar. */
+	TSharedRef<SWidget> MakePlaybackMenu();
+
+	/** Makes the select/edit menu for the toolbar. */
+	TSharedRef<SWidget> MakeSelectEditMenu();
 
 	/** Makes the snapping menu for the toolbar. */
 	TSharedRef<SWidget> MakeSnapMenu();
@@ -482,6 +498,9 @@ private:
 
 	/** Called when the user has finished dragging the playback range */
 	FSimpleDelegate OnPlaybackRangeEndDrag;
+
+	/** Called when any widget contained within sequencer has received focus */
+	FSimpleDelegate OnReceivedFocus;
 
 	/** Cached clamp and view range for unlinking the curve editor time range */
 	TRange<float> CachedClampRange;

@@ -17,12 +17,17 @@ struct TKeyFrameProxy
 		, Value(InValue)
 	{}
 
+	TKeyFrameProxy* operator->() { return this; }
+	const TKeyFrameProxy* operator->() const { return this; }
+
 	/** The key time */
 	TimeType Time;
 
 	/** (potentially const) Reference to the key's value */
 	KeyValueType& Value;
 };
+
+template<typename KeyValueType, typename TimeType> struct TKeyIterator;
 
 /**
  * Templated interface to externally owned curve data data
@@ -78,7 +83,7 @@ public:
 		int32 Index = this->GetIndex(KeyHandle);
 		if (Index != INDEX_NONE)
 		{
-			return TKeyFrameProxy<const KeyValueType, const TimeType>(this->GetKeyTimeChecked(Index), (*KeyValues)[Index]);
+			return TKeyFrameProxy<const KeyValueType, TimeType>(this->GetKeyTimeChecked(Index), (*KeyValues)[Index]);
 		}
 		return TOptional<TKeyFrameProxy<const KeyValueType, TimeType>>();
 	}
@@ -132,6 +137,24 @@ public:
 		}
 	}
 
+public:
+
+	/**
+	 * Iterate this curve's keys
+	 */
+	TKeyIterator<KeyValueType, TimeType> IterateKeysAndValues()
+	{
+		return TKeyIterator<KeyValueType, TimeType>(*this);
+	}
+
+	/**
+	 * Iterate this curve's keys
+	 */
+	TKeyIterator<const KeyValueType, TimeType> IterateKeysAndValues() const
+	{
+		return TKeyIterator<const KeyValueType, TimeType>(*this);
+	}
+
 protected:
 
 	virtual void OnKeyAdded(int32 Index) override
@@ -155,6 +178,108 @@ protected:
 
 private:
 
+	friend TKeyIterator<KeyValueType, TimeType>;
+	friend TKeyIterator<const KeyValueType, TimeType>;
+
 	/** Array of associated key data */
 	TArray<KeyValueType>* KeyValues;
+};
+
+
+namespace Impl
+{
+	template<typename TSrc, typename TDest>
+	struct TMatchConst
+	{
+		typedef TDest Type;
+	};
+
+	template<typename TSrc, typename TDest>
+	struct TMatchConst<const TSrc, TDest>
+	{
+		typedef const TDest Type;
+	};
+}
+
+/**
+ * Key time iterator for TKeyFrameManipulator
+ */
+template<typename KeyValueType, typename TimeType>
+struct TKeyIterator
+{
+	typedef typename Impl::TMatchConst<KeyValueType, TCurveInterface<typename TRemoveConst<KeyValueType>::Type, TimeType>>::Type CurveInterfaceType;
+
+	TKeyIterator(CurveInterfaceType& InCurveInterface)
+		: CurveInterface(InCurveInterface)
+		, Index(0)
+	{}
+
+	FORCEINLINE TKeyIterator& operator++()
+	{
+		++Index;
+		return *this;
+	}
+
+	/** conversion to "bool" returning true if the iterator is valid. */
+	FORCEINLINE explicit operator bool() const
+	{ 
+		return Index < CurveInterface.KeyValues->Num();
+	}
+	/** inverse of the "bool" operator */
+	FORCEINLINE bool operator !() const 
+	{
+		return !(bool)*this;
+	}
+
+	FORCEINLINE friend bool operator==(const TKeyIterator& LHS, const TKeyIterator& RHS)
+	{
+		return &LHS.CurveInterface == &RHS.CurveInterface && LHS.Index == RHS.Index;
+	}
+
+	FORCEINLINE friend bool operator!=(const TKeyIterator& LHS, const TKeyIterator& RHS)
+	{
+		return !(LHS == RHS);
+	}
+
+	FORCEINLINE TKeyFrameProxy<KeyValueType, TimeType> operator*() const
+	{
+		return TKeyFrameProxy<KeyValueType, TimeType>(CurveInterface.GetKeyTimeChecked(Index), (*CurveInterface.KeyValues)[Index]);
+	}
+
+	FORCEINLINE TKeyFrameProxy<KeyValueType, TimeType> operator->() const
+	{
+		return TKeyFrameProxy<KeyValueType, TimeType>(CurveInterface.GetKeyTimeChecked(Index), (*CurveInterface.KeyValues)[Index]);
+	}
+
+	FKeyHandle GetKeyHandle()
+	{
+		return CurveInterface.GetKeyHandleFromIndex(Index);
+	}
+
+	int32 GetStartIndex() const
+	{
+		return 0;
+	}
+
+	int32 GetEndIndex() const
+	{
+		return CurveInterface.KeyValues->Num();
+	}
+
+	FORCEINLINE friend TKeyIterator<KeyValueType, TimeType> begin(const TKeyIterator<KeyValueType, TimeType>& Iter)
+	{
+		TKeyIterator<KeyValueType, TimeType> NewIter = Iter;
+		NewIter.Index = Iter.GetStartIndex();
+		return NewIter;
+	}
+	FORCEINLINE friend TKeyIterator<KeyValueType, TimeType> end(const TKeyIterator<KeyValueType, TimeType>& Iter)
+	{
+		TKeyIterator<KeyValueType, TimeType> NewIter = Iter;
+		NewIter.Index = NewIter.GetEndIndex();
+		return NewIter;
+	}
+
+private:
+	CurveInterfaceType& CurveInterface;
+	int32 Index;
 };

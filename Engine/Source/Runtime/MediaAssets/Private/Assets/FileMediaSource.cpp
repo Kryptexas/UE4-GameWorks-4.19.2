@@ -4,7 +4,11 @@
 #include "Misc/Paths.h"
 
 
-static FName PrecacheFileName("PrecacheFile");
+namespace FileMediaSource
+{
+	/** Name of the PrecacheFile media option. */
+	static const FName PrecacheFileOption("PrecacheFile");
+}
 
 
 /* UFileMediaSource interface
@@ -32,19 +36,33 @@ void UFileMediaSource::SetFilePath(const FString& Path)
 }
 
 
-/* UMediaSource overrides
+/* IMediaSource overrides
  *****************************************************************************/
 
 bool UFileMediaSource::GetMediaOption(const FName& Key, bool DefaultValue) const
 {
-	if (Key == PrecacheFileName)
+	if (Key == FileMediaSource::PrecacheFileOption)
 	{
 		return PrecacheFile;
 	}
 
-	return DefaultValue;
+	return Super::GetMediaOption(Key, DefaultValue);
 }
 
+
+bool UFileMediaSource::HasMediaOption(const FName& Key) const
+{
+	if (Key == FileMediaSource::PrecacheFileOption)
+	{
+		return true;
+	}
+
+	return Super::HasMediaOption(Key);
+}
+
+
+/* UMediaSource overrides
+ *****************************************************************************/
 
 FString UFileMediaSource::GetUrl() const
 {

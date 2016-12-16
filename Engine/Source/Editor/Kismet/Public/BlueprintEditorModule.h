@@ -18,6 +18,8 @@ extern const FName BlueprintEditorAppName;
 
 class FBlueprintEditor;
 class UUserDefinedEnum;
+class UUserDefinedStruct;
+
 
 /** Describes the reason for Refreshing the editor */
 namespace ERefreshBlueprintEditorReason
@@ -142,6 +144,12 @@ public:
 	DECLARE_EVENT_TwoParams(FBlueprintEditorModule, FBlueprintMenuExtensionEvent, TSharedPtr<FExtender>, UBlueprint*);
 	FBlueprintMenuExtensionEvent& OnGatherBlueprintMenuExtensions() { return GatherBlueprintMenuExtensions; }
 
+	DECLARE_EVENT_ThreeParams(IBlueprintEditor, FOnRegisterTabs, FWorkflowAllowedTabSet&, FName /** ModeName */, TSharedPtr<FBlueprintEditor>);
+	FOnRegisterTabs& OnRegisterTabsForEditor() { return RegisterTabsForEditor; }
+
+	DECLARE_EVENT_OneParam(IBlueprintEditor, FOnRegisterLayoutExtensions, FLayoutExtender&);
+	FOnRegisterLayoutExtensions& OnRegisterLayoutExtensions() { return RegisterLayoutExtensions; }
+
 	/** 
 	 * Register a customization for interacting with the SCS editor 
 	 * @param	InComponentName			The name of the component to customize behavior for
@@ -175,6 +183,10 @@ private:
 
 	//
 	FBlueprintMenuExtensionEvent GatherBlueprintMenuExtensions;
+
+	/** Event called to allow external clients to register additional tabs for the specified editor */
+	FOnRegisterTabs RegisterTabsForEditor;
+	FOnRegisterLayoutExtensions RegisterLayoutExtensions;
 
 	// Event to be called when the blueprint editor is opened
 	FBlueprintEditorOpenedEvent BlueprintEditorOpened;

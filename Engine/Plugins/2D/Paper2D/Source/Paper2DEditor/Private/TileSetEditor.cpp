@@ -84,7 +84,7 @@ public:
 	{
 		TileSetEditorPtr = InTileSetEditor;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InTileSetEditor->GetToolkitCommands()));
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InTileSetEditor->GetToolkitCommands()).HostTabManager(InTileSetEditor->GetTabManager()));
 
 		// Register for index change notifications
 		TSharedPtr<FSingleTileEditorViewportClient> SingleTileEditor = TileSetEditorPtr.Pin()->GetSingleTileEditor();

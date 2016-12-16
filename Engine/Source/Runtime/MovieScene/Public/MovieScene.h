@@ -19,6 +19,15 @@ class UMovieSceneTrack;
 
 MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogMovieScene, Log, All);
 
+USTRUCT(BlueprintType)
+struct FMovieSceneObjectBindingPtr
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category="Binding")
+	FGuid Guid;
+};
+
 
 /** @todo: remove this type when support for intrinsics on TMap values is added? */
 USTRUCT()
@@ -81,7 +90,7 @@ struct FMovieSceneTrackLabels
 /**
  * Implements a movie scene asset.
  */
-UCLASS()
+UCLASS(DefaultToInstanced)
 class MOVIESCENE_API UMovieScene
 	: public UMovieSceneSignedObject
 {
@@ -225,8 +234,6 @@ public:
 
 	/**
 	* Adds a given track.
-	*
-	* Note: Function will only add if the track is not already exist.
 	*
 	* @param InTrack The track to add.
 	* @param ObjectGuid The runtime object guid that the type should bind to.
@@ -489,6 +496,18 @@ public:
 	 */
 	void SetViewRange(float Start, float End);
 
+#if WITH_EDITORONLY_DATA
+	/** 
+	 * Return whether the playback range is locked.
+	 */
+	bool IsPlaybackRangeLocked() const;
+
+	/**
+	 * Set whether the playback range is locked.
+	 */
+	void SetPlaybackRangeLocked(bool bLocked);
+#endif
+
 	/**
 	 * Gets whether or not playback should be forced to match the fixed frame interval.  When true all time values will be rounded to a fixed
 	 * frame value which will force editor and runtime playback to match exactly, but will result in duplicate frames if the runtime and editor
@@ -567,6 +586,10 @@ protected:
 	/** Perform legacy upgrade of time ranges */
 	void UpgradeTimeRanges();
 
+	/** Perform legacy upgrade of track rows */
+	void UpgradeTrackRows();
+	void UpgradeTrackRow(UMovieSceneTrack*);
+
 private:
 
 	// Small value added for fixed frame interval calculations to make up for consistency in
@@ -590,11 +613,11 @@ private:
 	TArray<FMovieSceneBinding> ObjectBindings;
 
 	/** Master tracks which are not bound to spawned or possessed objects */
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	TArray<UMovieSceneTrack*> MasterTracks;
 
 	/** The camera cut track is a specialized track for switching between cameras on a cinematic */
-	UPROPERTY()
+	UPROPERTY(Instanced)
 	UMovieSceneTrack* CameraCutTrack;
 
 	/** User-defined selection range. */
@@ -604,6 +627,12 @@ private:
 	/** User-defined playback range for this movie scene. Must be a finite range. Relative to this movie-scene's 0-time origin. */
 	UPROPERTY()
 	FFloatRange PlaybackRange;
+
+	/** User-defined playback range is locked. */
+#if WITH_EDITORONLY_DATA
+	UPROPERTY()
+	bool bPlaybackRangeLocked;
+#endif
 
 	UPROPERTY()
 	bool bForceFixedFrameIntervalPlayback;

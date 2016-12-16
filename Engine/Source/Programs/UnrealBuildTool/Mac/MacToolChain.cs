@@ -764,7 +764,17 @@ namespace UnrealBuildTool
 					LinkCommand += string.Format(" -weak_library \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
 
 					AddLibraryPathToRPaths(AdditionalLibrary, AbsolutePath, ref RPaths, ref LinkCommand, bIsBuildingAppBundle);
-				}
+
+                    if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+                    {
+                        // copy over libs we may need
+                        FileItem ShadowFile = FileItem.GetExistingItemByPath(AdditionalLibrary);
+                        if (ShadowFile != null)
+                        {
+                            QueueFileForBatchUpload(ShadowFile);
+                        }
+                    }
+                }
 			}
 
 			// Add frameworks

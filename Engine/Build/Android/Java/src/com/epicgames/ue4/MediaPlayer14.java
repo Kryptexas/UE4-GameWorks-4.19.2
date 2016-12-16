@@ -105,7 +105,7 @@ public class MediaPlayer14
 				AudioTrackInfo audioTrack = new AudioTrackInfo();
 				audioTrack.Index = index;
 				audioTrack.MimeType = mimeType;
-				audioTrack.DisplayName = "Video Track " + numAudioTracks;
+				audioTrack.DisplayName = "Audio Track " + numAudioTracks + " (Stream " + index + ")";
 				audioTrack.Language = "und";
 				audioTrack.Channels = mediaFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
 				audioTrack.SampleRate = mediaFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
@@ -117,7 +117,7 @@ public class MediaPlayer14
 				VideoTrackInfo videoTrack = new VideoTrackInfo();
 				videoTrack.Index = index;
 				videoTrack.MimeType = mimeType;
-				videoTrack.DisplayName = "Video Track " + numVideoTracks;
+				videoTrack.DisplayName = "Video Track " + numVideoTracks + " (Stream " + index + ")";
 				videoTrack.Language = "und";
 				videoTrack.BitRate = 0;
 				videoTrack.Width = mediaFormat.getInteger(MediaFormat.KEY_WIDTH);
@@ -1150,7 +1150,7 @@ public class MediaPlayer14
 				{
 					AudioTracks[TrackIndex] = new AudioTrackInfo();
 					AudioTracks[TrackIndex].Index = Index;
-					AudioTracks[TrackIndex].DisplayName = "Audio Track " + TrackIndex;
+					AudioTracks[TrackIndex].DisplayName = "Audio Track " + TrackIndex + " (Stream " + Index + ")";
 					AudioTracks[TrackIndex].Language = trackInfo[Index].getLanguage();
 	
 					boolean formatValid = false;
@@ -1195,7 +1195,7 @@ public class MediaPlayer14
 
 		AudioTracks[0].Index = 0;
 		AudioTracks[0].MimeType = "audio/unknown";
-		AudioTracks[0].DisplayName = "Audio Track 0";
+		AudioTracks[0].DisplayName = "Audio Track 0 (Stream 0)";
 		AudioTracks[0].Language = "und";
 		AudioTracks[0].Channels = 2;
 		AudioTracks[0].SampleRate = 44100;
@@ -1225,7 +1225,7 @@ public class MediaPlayer14
 				{
 					CaptionTracks[TrackIndex] = new CaptionTrackInfo();
 					CaptionTracks[TrackIndex].Index = Index;
-					CaptionTracks[TrackIndex].DisplayName = "Caption Track " + TrackIndex;
+					CaptionTracks[TrackIndex].DisplayName = "Caption Track " + TrackIndex + " (Stream " + Index + ")";
 
 					MediaFormat mediaFormat = trackInfo[Index].getFormat();
 					if (mediaFormat != null)
@@ -1277,7 +1277,7 @@ public class MediaPlayer14
 				{
 					VideoTracks[TrackIndex] = new VideoTrackInfo();
 					VideoTracks[TrackIndex].Index = Index;
-					VideoTracks[TrackIndex].DisplayName = "Video Track " + TrackIndex;
+					VideoTracks[TrackIndex].DisplayName = "Video Track " + TrackIndex + " (Stream " + Index + ")";
 					VideoTracks[TrackIndex].Language = trackInfo[Index].getLanguage();
 					VideoTracks[TrackIndex].BitRate = 0;
 
@@ -1329,7 +1329,7 @@ public class MediaPlayer14
 			VideoTrackInfo VideoTrack = new VideoTrackInfo();
 			VideoTracks[0].Index = 0;
 			VideoTracks[0].MimeType = "video/unknown";
-			VideoTracks[0].DisplayName = "Video Track 0";
+			VideoTracks[0].DisplayName = "Video Track 0 (Stream 0)";
 			VideoTracks[0].Language = "und";
 			VideoTracks[0].BitRate = 0;
 			VideoTracks[0].Width = Width;

@@ -38,6 +38,7 @@
 #include "Matinee/InterpTrackDirector.h"
 #include "Matinee/InterpTrackEvent.h"
 #include "Matinee/InterpTrackAudioMaster.h"
+#include "Matinee/InterpTrackVectorProp.h"
 #include "Matinee/InterpTrackVisibility.h"
 #include "Matinee/InterpGroupInst.h"
 #include "Matinee/InterpGroupDirector.h"
@@ -65,6 +66,7 @@
 #include "Tracks/MovieSceneSlomoTrack.h"
 #include "Tracks/MovieSceneCameraCutTrack.h"
 #include "Tracks/MovieSceneEventTrack.h"
+#include "Tracks/MovieSceneVectorTrack.h"
 #include "Tracks/MovieSceneVisibilityTrack.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Dialogs/Dialogs.h"
@@ -474,8 +476,9 @@ protected:
 
 				if ( bHasKeyframes && PossessableGuid.IsValid())
 				{
+					FVector DefaultScale = GroupActor != nullptr ? GroupActor->GetActorScale() : FVector(1.f);
 					UMovieScene3DTransformTrack* TransformTrack = NewMovieScene->AddTrack<UMovieScene3DTransformTrack>(PossessableGuid);								
-					FMatineeImportTools::CopyInterpMoveTrack(MatineeMoveTrack, TransformTrack);
+					FMatineeImportTools::CopyInterpMoveTrack(MatineeMoveTrack, TransformTrack, DefaultScale);
 				}
 			}
 			else if (Track->IsA(UInterpTrackAnimControl::StaticClass()))
@@ -546,6 +549,19 @@ protected:
 					if (FloatTrack)
 					{
 						FMatineeImportTools::CopyInterpFloatTrack(MatineeFloatTrack, FloatTrack);
+					}
+				}
+			}
+			else if (Track->IsA(UInterpTrackVectorProp::StaticClass()))
+			{
+				UInterpTrackVectorProp* MatineeVectorTrack = StaticCast<UInterpTrackVectorProp*>(Track);
+				if (MatineeVectorTrack->GetNumKeyframes() != 0 && GroupActor && PossessableGuid.IsValid())
+				{
+					UMovieSceneVectorTrack* VectorTrack = AddPropertyTrack<UMovieSceneVectorTrack>(MatineeVectorTrack->PropertyName, GroupActor, PossessableGuid, Player, NewSequence, NewMovieScene, NumWarnings);
+					if (VectorTrack)
+					{
+						VectorTrack->SetNumChannelsUsed(3);
+						FMatineeImportTools::CopyInterpVectorTrack(MatineeVectorTrack, VectorTrack);
 					}
 				}
 			}

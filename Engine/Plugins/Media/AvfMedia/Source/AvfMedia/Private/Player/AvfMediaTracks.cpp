@@ -778,6 +778,12 @@ void FAvfMediaTracks::SetAudioSink(IMediaAudioSink* Sink)
 }
 
 
+void FAvfMediaTracks::SetMetadataSink(IMediaBinarySink* Sink)
+{
+	// not supported
+}
+
+
 void FAvfMediaTracks::SetOverlaySink(IMediaOverlaySink* Sink)
 {
 	if (Sink != OverlaySink)

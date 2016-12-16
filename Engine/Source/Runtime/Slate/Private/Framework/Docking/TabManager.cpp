@@ -17,6 +17,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "Framework/Docking/SDockingTabStack.h"
 #include "Framework/Docking/SDockingTabWell.h"
+#include "LayoutExtender.h"
 #if PLATFORM_MAC
 #include "../MultiBox/Mac/MacMenu.h"
 #endif
@@ -387,6 +388,96 @@ TSharedRef<FJsonObject> FTabManager::FLayout::PersistToString_Helper(const TShar
 	return JsonObj;
 }
 
+void FTabManager::FLayout::ProcessExtensions(const FLayoutExtender& Extender)
+{
+	struct FTabInformation
+	{
+		FTabInformation(FTabManager::FLayout& Layout)
+		{
+			Gather(Layout);
+		}
+
+		void Gather(FTabManager::FLayout& Layout)
+		{
+			for (TSharedRef<FTabManager::FArea>& Area : Layout.Areas)
+			{
+				Gather(*Area);
+			}
+		}
+
+		void Gather(FTabManager::FSplitter& Splitter)
+		{
+			for (TSharedRef<FTabManager::FLayoutNode>& Child : Splitter.ChildNodes)
+			{
+				TSharedPtr<FTabManager::FStack> Stack = Child->AsStack();
+				if (Stack.IsValid())
+				{
+					AllStacks.Add(Stack.Get());
+
+					for (FTabManager::FTab& Tab : Stack->Tabs)
+					{
+						AllDefinedTabs.Add(Tab.TabId);
+					}
+
+					continue;
+				}
+
+				TSharedPtr<FTabManager::FSplitter> ChildSplitter = Child->AsSplitter();
+				if (ChildSplitter.IsValid())
+				{
+					Gather(*ChildSplitter);
+					continue;
+				}
+
+				TSharedPtr<FTabManager::FArea> Area = Child->AsArea();
+				if (Area.IsValid())
+				{
+					Gather(*Area);
+					continue;
+				}
+			}
+		}
+
+		bool Contains(FTabId TabId) const
+		{
+			return AllDefinedTabs.Contains(TabId);
+		}
+
+		TArray<FTabManager::FStack*> AllStacks;
+		TSet<FTabId> AllDefinedTabs;
+	};
+	FTabInformation AllTabs(*this);
+
+	TArray<FTab, TInlineAllocator<1>> ExtendedTabs;
+
+	for (FTabManager::FStack* Stack : AllTabs.AllStacks)
+	{
+		for (int32 TabIndex = 0; TabIndex < Stack->Tabs.Num();)
+		{
+			FTabId TabId = Stack->Tabs[TabIndex].TabId;
+
+			Extender.FindExtensions(TabId, ELayoutExtensionPosition::Before, ExtendedTabs);
+			for (FTab& NewTab : ExtendedTabs)
+			{
+				if (!AllTabs.Contains(NewTab.TabId))
+				{
+					Stack->Tabs.Insert(NewTab, TabIndex++);
+				}
+			}
+
+			++TabIndex;
+
+			Extender.FindExtensions(TabId, ELayoutExtensionPosition::After, ExtendedTabs);
+			for (FTab& NewTab : ExtendedTabs)
+			{
+				if (!AllTabs.Contains(NewTab.TabId))
+				{
+					Stack->Tabs.Insert(NewTab, TabIndex++);
+				}
+			}
+		}
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // FTabManager::PrivateApi

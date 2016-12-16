@@ -1726,7 +1726,7 @@ bool FMaterial::BeginCompileShaderMap(
 		else
 		{
 #if DEBUG_INFINITESHADERCOMPILE
-			UE_LOG(LogTemp, Display, TEXT("Kicking of shader compilation for %s, GameThreadShaderMap 0x%08X%08X"), *GetFriendlyName(), (int)((int64)(NewShaderMap.GetReference()) >> 32), (int)((int64)(NewShaderMap.GetReference())));
+			UE_LOG(LogTemp, Display, TEXT("Kicking off shader compilation for %s, GameThreadShaderMap 0x%08X%08X"), *GetFriendlyName(), (int)((int64)(NewShaderMap.GetReference()) >> 32), (int)((int64)(NewShaderMap.GetReference())));
 #endif
 			OutstandingCompileShaderMapIds.AddUnique( NewShaderMap->GetCompilingId() );
 			// Async compile, use NULL so that rendering will fall back to the default material.

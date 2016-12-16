@@ -70,16 +70,16 @@ public:
 	FOnCurveEditorCurveVisibilityChanged& GetOnCurveEditorCurveVisibilityChanged();
 
 protected:
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category="Curve Editor" )
 	bool bAutoFrameCurveEditor;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category="Curve Editor" )
 	bool bShowCurveEditorCurveToolTips;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category="Curve Editor" )
 	TEnumAsByte<ECurveEditorCurveVisibility::Type> CurveVisibility;
 
-	UPROPERTY( config )
+	UPROPERTY( config, EditAnywhere, Category="Curve Editor" )
 	TEnumAsByte<ECurveEditorTangentVisibility::Type> TangentVisibility;
 
 	FOnCurveEditorCurveVisibilityChanged OnCurveEditorCurveVisibilityChanged;

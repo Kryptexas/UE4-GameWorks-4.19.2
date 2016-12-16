@@ -194,6 +194,14 @@ protected:
 	{
 		return KeyHandleLUT->GetIndex(KeyHandle);
 	}
+	
+	/**
+	 * Get the handle that corresponds to the specified index
+	 */
+	FKeyHandle GetKeyHandleFromIndex(int32 Index) const
+	{
+		return KeyTimes->IsValidIndex(Index) ? KeyHandleLUT->FindOrAddKeyHandle(Index) : FKeyHandle();
+	}
 
 	/**
 	 * Move a key from one index to another

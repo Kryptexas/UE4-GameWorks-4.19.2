@@ -1,6 +1,8 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieSceneEvaluationTrack.h"
+#include "MovieSceneExecutionTokens.h"
+
 
 FMovieSceneEvaluationTrack::FMovieSceneEvaluationTrack()
 {

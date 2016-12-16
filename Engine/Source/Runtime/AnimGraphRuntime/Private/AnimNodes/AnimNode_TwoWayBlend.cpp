@@ -4,9 +4,9 @@
 #include "AnimationRuntime.h"
 
 /////////////////////////////////////////////////////
-// FAnimationNode_TwoWayBlend
+// FAnimNode_TwoWayBlend
 
-void FAnimationNode_TwoWayBlend::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_TwoWayBlend::Initialize(const FAnimationInitializeContext& Context)
 {
 	FAnimNode_Base::Initialize(Context);
 
@@ -17,13 +17,13 @@ void FAnimationNode_TwoWayBlend::Initialize(const FAnimationInitializeContext& C
 	bBIsRelevant = false;
 }
 
-void FAnimationNode_TwoWayBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
+void FAnimNode_TwoWayBlend::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
 	A.CacheBones(Context);
 	B.CacheBones(Context);
 }
 
-void FAnimationNode_TwoWayBlend::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_TwoWayBlend::Update(const FAnimationUpdateContext& Context)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnimationNode_TwoWayBlend_Update);
 	EvaluateGraphExposedInputs.Execute(Context);
@@ -76,7 +76,7 @@ void FAnimationNode_TwoWayBlend::Update(const FAnimationUpdateContext& Context)
 	}
 }
 
-void FAnimationNode_TwoWayBlend::Evaluate(FPoseContext& Output)
+void FAnimNode_TwoWayBlend::Evaluate(FPoseContext& Output)
 {
 	if (bBIsRelevant)
 	{
@@ -102,7 +102,7 @@ void FAnimationNode_TwoWayBlend::Evaluate(FPoseContext& Output)
 }
 
 
-void FAnimationNode_TwoWayBlend::GatherDebugData(FNodeDebugData& DebugData)
+void FAnimNode_TwoWayBlend::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
 	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%%)"), InternalBlendAlpha *100);

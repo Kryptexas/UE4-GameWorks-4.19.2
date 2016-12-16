@@ -492,8 +492,8 @@ void ULevel::SortActorList()
 				NewActors.Add(Actor);
 			}
 		}
-
 	}
+
 	iFirstNetRelevantActor = NewActors.Num();
 
 	NewActors.Append(MoveTemp(NewNetActors));
@@ -509,6 +509,11 @@ void ULevel::SortActorList()
 		if (!OwningWorld->IsGameWorld())
 		{
 			iFirstNetRelevantActor = 0;
+		}
+		// Ensure the world settings actor is added if it's not going to get added in the loop below
+		else if ( IsNetActor( WorldSettings ) )
+		{
+			OwningWorld->AddNetworkActor( WorldSettings );
 		}
 
 		for ( int32 i = iFirstNetRelevantActor; i < Actors.Num(); i++ )

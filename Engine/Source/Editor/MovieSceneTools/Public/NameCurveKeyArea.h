@@ -54,6 +54,7 @@ public:
 	virtual UMovieSceneSection* GetOwningSection() override;
 	virtual FRichCurve* GetRichCurve() override;
 	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const override;
+	virtual FKeyHandle DilateKey(FKeyHandle KeyHandle, float Scale, float Origin) override;
 	virtual FKeyHandle MoveKey(FKeyHandle KeyHandle, float DeltaPosition) override;
 	virtual void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) override;
 	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override;

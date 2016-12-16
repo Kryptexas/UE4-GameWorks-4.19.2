@@ -102,8 +102,11 @@
 #include "MovieSceneCaptureCustomization.h"
 #include "MovieSceneEvalOptionsCustomization.h"
 #include "MovieSceneEventParametersCustomization.h"
+#include "MovieSceneSequencePlaybackSettingsCustomization.h"
 #include "MovieSceneCurveInterfaceKeyEditStructCustomization.h"
 #include "LevelSequenceBurnInOptionsCustomization.h"
+#include "MovieSceneBindingOverrideDataCustomization.h"
+#include "MovieSceneObjectBindingPtrCustomization.h"
 #include "TextCustomization.h"
 #include "AnimTrailNodeDetails.h"
 #include "MaterialProxySettingsCustomizations.h"
@@ -231,6 +234,9 @@ void FDetailCustomizationsModule::RegisterPropertyTypeCustomizations()
 	RegisterCustomPropertyTypeLayout("CameraFilmbackSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCameraFilmbackSettingsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("CameraLensSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCameraLensSettingsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("CameraFocusSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCameraFocusSettingsCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("MovieSceneSequencePlaybackSettings", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneSequencePlaybackSettingsCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("MovieSceneBindingOverrideData", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneBindingOverrideDataCustomization::MakeInstance));
+	RegisterCustomPropertyTypeLayout("MovieSceneObjectBindingPtr", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneObjectBindingPtrCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("MovieSceneTrackEvalOptions", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneTrackEvalOptionsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("MovieSceneSectionEvalOptions", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneSectionEvalOptionsCustomization::MakeInstance));
 	RegisterCustomPropertyTypeLayout("MovieSceneEventParameters", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FMovieSceneEventParametersCustomization::MakeInstance));

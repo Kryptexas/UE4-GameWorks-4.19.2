@@ -76,7 +76,7 @@ void FLevelSequenceActions::OpenAssetEditor(const TArray<UObject*>& InObjects, T
 			LevelSequence->ConvertPersistentBindingsToDefault(WorldContext);
 
 			TSharedRef<FLevelSequenceEditorToolkit> Toolkit = MakeShareable(new FLevelSequenceEditorToolkit(Style));
-			Toolkit->Initialize(Mode, EditWithinLevelEditor, LevelSequence, true);
+			Toolkit->Initialize(Mode, EditWithinLevelEditor, LevelSequence);
 		}
 	}
 }

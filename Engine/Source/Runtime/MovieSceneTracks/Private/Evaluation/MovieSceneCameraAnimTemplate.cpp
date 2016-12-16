@@ -8,7 +8,10 @@
 #include "Camera/CameraAnimInst.h"
 #include "Engine/World.h"
 #include "MovieSceneCommonHelpers.h"
+#include "MovieSceneEvaluation.h"
 #include "UObject/Package.h"
+#include "IMovieScenePlayer.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("Camera Anim Track Token Execute"), MovieSceneEval_CameraAnimTrack_TokenExecute, STATGROUP_MovieSceneEval);
 

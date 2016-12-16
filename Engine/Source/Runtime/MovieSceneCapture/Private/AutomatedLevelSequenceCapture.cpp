@@ -473,7 +473,7 @@ void UAutomatedLevelSequenceCapture::Tick(float DeltaSeconds)
 	}
 }
 
-void UAutomatedLevelSequenceCapture::SequenceUpdated(const ULevelSequencePlayer& Player, float CurrentTime, float PreviousTime)
+void UAutomatedLevelSequenceCapture::SequenceUpdated(const UMovieSceneSequencePlayer& Player, float CurrentTime, float PreviousTime)
 {
 	if (bCapturing)
 	{
@@ -575,8 +575,8 @@ void UAutomatedLevelSequenceCapture::ExportEDL()
 	
 	ALevelSequenceActor* Actor = LevelSequenceActor.Get();
 	ULevelSequencePlayer* Player = Actor ? Actor->SequencePlayer : nullptr;
-	ULevelSequence* LevelSequence = Player ? Player->GetLevelSequence() : nullptr;
-	UMovieScene* MovieScene = LevelSequence ? LevelSequence->GetMovieScene() : nullptr;
+	UMovieSceneSequence* Sequence = Player ? Player->GetSequence() : nullptr;
+	UMovieScene* MovieScene = Sequence ? Sequence->GetMovieScene() : nullptr;
 
 	if (!MovieScene)
 	{

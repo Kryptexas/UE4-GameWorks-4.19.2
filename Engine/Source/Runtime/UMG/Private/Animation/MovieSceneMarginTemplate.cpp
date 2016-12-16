@@ -4,6 +4,7 @@
 
 #include "Animation/MovieSceneMarginSection.h"
 #include "Tracks/MovieScenePropertyTrack.h"
+#include "MovieSceneEvaluation.h"
 
 FMovieSceneMarginSectionTemplate::FMovieSceneMarginSectionTemplate(const UMovieSceneMarginSection& Section, const UMovieScenePropertyTrack& Track)
 	: PropertyData(Track.GetPropertyName(), Track.GetPropertyPath())

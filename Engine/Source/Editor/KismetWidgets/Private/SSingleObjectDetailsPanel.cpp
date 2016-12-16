@@ -18,6 +18,7 @@ void SSingleObjectDetailsPanel::Construct(const FArguments& InArgs, bool bAutoma
 
 	FDetailsViewArgs DetailsViewArgs(/*bUpdateFromSelection=*/ false, /*bLockable=*/ false, bAllowSearch, FDetailsViewArgs::HideNameArea, /*bHideSelectionTip=*/ true);
 	DetailsViewArgs.HostCommandList = InArgs._HostCommandList;
+	DetailsViewArgs.HostTabManager = InArgs._HostTabManager;
 
 	PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
 	

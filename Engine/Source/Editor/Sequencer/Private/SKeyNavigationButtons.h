@@ -79,6 +79,7 @@ public:
 				.Padding(0)
 				.BorderImage(NoBorder)
 				.ColorAndOpacity(HoverTint)
+				.IsEnabled(!InDisplayNode->GetSequencer().IsReadOnly())
 				[
 					SNew(SButton)
 					.ButtonStyle(FEditorStyle::Get(), "FlatButton")

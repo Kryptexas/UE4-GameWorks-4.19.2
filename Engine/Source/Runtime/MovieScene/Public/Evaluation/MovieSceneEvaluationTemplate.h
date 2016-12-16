@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+#include "UObject/WeakObjectPtr.h"
 #include "Misc/Guid.h"
 #include "UObject/Class.h"
 #include "MovieSceneTrack.h"
@@ -42,7 +44,7 @@ public:
 	/** Custom serialized - map of track signature to array of track identifiers that it created */
 	TMap<FGuid, TArray<FMovieSceneTrackIdentifier, TInlineAllocator<1>>> TrackSignatureToTrackIdentifier;
 };
-template<> struct TStructOpsTypeTraits<FMovieSceneGenerationLedger> : public TStructOpsTypeTraitsBase { enum { WithSerializer = true }; };
+template<> struct TStructOpsTypeTraits<FMovieSceneGenerationLedger> : public TStructOpsTypeTraitsBase { enum { WithSerializer = true, WithCopy = true }; };
 
 /**
  * Template that is used for efficient runtime evaluation of a movie scene sequence. Potentially serialized into the asset.
@@ -233,8 +235,6 @@ struct FCachedMovieSceneEvaluationTemplate : public FMovieSceneEvaluationTemplat
 	MOVIESCENE_API bool IsOutOfDate(const FMovieSceneTrackCompilationParams& NewParams) const;
 
 private:
-
-	void RegenerateImpl(const FMovieSceneTrackCompilationParams& Params);
 
 	/** Transient data */
 	TWeakObjectPtr<UMovieSceneSequence> SourceSequence;

@@ -8,26 +8,15 @@
 #include "MovieSceneSequenceInstance.h"
 #include "Evaluation/MovieSceneEvaluationKey.h"
 #include "Evaluation/MovieScenePreAnimatedState.h"
+#include "MovieSceneFwd.h"
 #include "MovieSceneSpawnRegister.h"
 #include "Containers/ArrayView.h"
 #include "Evaluation/MovieSceneEvaluationState.h"
+#include "MovieSceneSequence.h"
+
 
 class FViewportClient;
 struct FMovieSceneRootEvaluationTemplateInstance;
-
-namespace EMovieScenePlayerStatus
-{
-	enum Type
-	{
-		Stopped,
-		Playing,
-		Recording,
-		Scrubbing,
-		Jumping,
-		Stepping,
-		MAX
-	};
-}
 
 
 struct EMovieSceneViewportParams
@@ -54,7 +43,6 @@ struct EMovieSceneViewportParams
 	FVector ColorScale; 
 	bool bEnableColorScaling;
 };
-
 
 /**
  * Interface for movie scene players
@@ -99,6 +87,17 @@ public:
 	* @param PlaybackStatus The playback status to set
 	*/
 	virtual void SetPlaybackStatus(EMovieScenePlayerStatus::Type InPlaybackStatus) = 0;
+
+	/**
+	 * Resolve objects bound to the specified binding ID
+	 *
+	 * @param InBindingId	The ID relating to the object(s) to resolve
+	 * @param OutObjects	Container to populate with the bound objects
+	 */
+	virtual void ResolveBoundObjects(const FGuid& InBindingId, FMovieSceneSequenceID SequenceID, UMovieSceneSequence& Sequence, UObject* ResolutionContext, TArray<UObject*, TInlineAllocator<1>>& OutObjects) const
+	{
+		Sequence.LocateBoundObjects(InBindingId, ResolutionContext, OutObjects);
+	}
 
 	/**
 	 * Obtain an object responsible for managing movie scene spawnables
@@ -227,6 +226,7 @@ public:
 	void RestorePreAnimatedState()
 	{
 		PreAnimatedState.RestorePreAnimatedState(*this);
+		State.ClearObjectCaches();
 	}
 
 	/**

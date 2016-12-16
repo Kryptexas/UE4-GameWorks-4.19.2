@@ -33,32 +33,6 @@ FAndroidMediaPlayer::~FAndroidMediaPlayer()
 }
 
 
-/* FTickerObjectBase interface
- *****************************************************************************/
-
-bool FAndroidMediaPlayer::Tick(float DeltaTime)
-{
-	if (State == EMediaState::Playing)
-	{
-		Tracks.Tick();
-
-		if (!JavaMediaPlayer->IsPlaying())
-		{
-			//FPlatformMisc::LowLevelOutputDebugString(TEXT("STOPPED!!!!!"));
-			State = EMediaState::Stopped;
-			MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
-		}
-		else if (Tracks.DidPlaybackLoop())
-		{
-			//FPlatformMisc::LowLevelOutputDebugString(TEXT("LOOPED!!!!!"));
-			MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
-		}
-	}
-
-	return true;
-}
-
-
 /* IMediaControls interface
  *****************************************************************************/
 
@@ -348,6 +322,35 @@ bool FAndroidMediaPlayer::Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& 
 {
 	// @todo AndroidMedia: implement opening media from FArchive
 	return false;
+}
+
+
+void FAndroidMediaPlayer::TickPlayer(float DeltaTime)
+{
+	if (State != EMediaState::Playing)
+	{
+		return;
+	}
+
+	Tracks.Tick();
+
+	if (!JavaMediaPlayer->IsPlaying())
+	{
+		//FPlatformMisc::LowLevelOutputDebugString(TEXT("STOPPED!!!!!"));
+		State = EMediaState::Stopped;
+		MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
+	}
+	else if (Tracks.DidPlaybackLoop())
+	{
+		//FPlatformMisc::LowLevelOutputDebugString(TEXT("LOOPED!!!!!"));
+		MediaEvent.Broadcast(EMediaEvent::PlaybackEndReached);
+	}
+}
+
+
+void FAndroidMediaPlayer::TickVideo(float DeltaTime)
+{
+
 }
 
 

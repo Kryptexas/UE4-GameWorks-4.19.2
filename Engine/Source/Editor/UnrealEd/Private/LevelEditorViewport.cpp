@@ -2573,6 +2573,16 @@ void FLevelEditorViewportClient::TrackingStarted( const FInputEventState& InInpu
 		if (bIsDraggingWidget)
 		{
 			Widget->SetSnapEnabled(true);
+
+			for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+			{
+				USceneComponent* SceneComponent = Cast<USceneComponent>(*It);
+				if (SceneComponent)
+				{
+					// Notify that this component is beginning to move
+					GEditor->BroadcastBeginObjectMovement(*SceneComponent);
+				}
+			}
 		}
 	}
 	else
@@ -2743,6 +2753,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 				}
 			}
 
+			bool bComponentsMoved = false;
 			if (GEditor->GetSelectedComponentCount() > 0)
 			{
 				USelection* ComponentSelection = GEditor->GetSelectedComponents();
@@ -2783,11 +2794,19 @@ void FLevelEditorViewportClient::TrackingStopped()
 				for (USceneComponent* SceneComp : ComponentsToMove)
 				{
 					SceneComp->PostEditComponentMove(true);
+
+					GEditor->BroadcastEndObjectMovement(*SceneComp);
+
+					bComponentsMoved = true;
 				}
 			}
-
-			Actor->PostEditMove(true);
-			GEditor->BroadcastEndObjectMovement(*Actor);
+				
+			if (!bComponentsMoved)
+			{
+				Actor->PostEditMove(true);
+	
+				GEditor->BroadcastEndObjectMovement(*Actor);
+			}
 		}
 
 		if (!GUnrealEd->IsPivotMovedIndependently())

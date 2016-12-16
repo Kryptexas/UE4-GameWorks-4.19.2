@@ -7,12 +7,15 @@
 #include "PropertyEditorDelegates.h"
 #include "Framework/Commands/UICommandList.h"
 
+
 class AActor;
 class FNotifyHook;
 class FPropertyPath;
+class FTabManager;
 class IDetailKeyframeHandler;
 class IDetailPropertyExtensionHandler;
 class IDetailRootObjectCustomization;
+
 
 /**
  * Init params for a details view widget
@@ -45,6 +48,8 @@ struct FDetailsViewArgs
 	EEditDefaultsOnlyNodeVisibility DefaultsOnlyVisibility;
 	/** The command list from the host of the details view, allowing child widgets to bind actions with a bound chord */
 	TSharedPtr<class FUICommandList> HostCommandList;
+	/** The tab manager from the host of the details view, allowing child widgets to spawn tabs */
+	TSharedPtr<FTabManager> HostTabManager;
 
 	/** Identifier for this details view; NAME_None if this view is anonymous */
 	FName ViewIdentifier;
@@ -305,4 +310,10 @@ public:
 
 	/** Returns the command list of the hosting toolkit (can be nullptr if the widget that contains the details panel didn't route a command list in) */
 	virtual TSharedPtr<class FUICommandList> GetHostCommandList() const = 0;
+
+	/** Returns the tab manager of the hosting toolkit (can be nullptr if the details panel is not hosted within a tab) */
+	virtual TSharedPtr<FTabManager> GetHostTabManager() const = 0;
+
+	/** Sets the tab manager of the hosting toolkit (can be nullptr if the details panel is not hosted within a tab) */
+	virtual void SetHostTabManager(TSharedPtr<FTabManager> InTabManager) = 0;
 };

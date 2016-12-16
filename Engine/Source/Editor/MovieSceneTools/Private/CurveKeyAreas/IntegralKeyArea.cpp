@@ -111,6 +111,14 @@ TArray<FKeyHandle> FIntegralCurveKeyAreaBase::GetUnsortedKeyHandles() const
 }
 
 
+FKeyHandle FIntegralCurveKeyAreaBase::DilateKey(FKeyHandle KeyHandle, float Scale, float Origin)
+{
+	float NewKeyTime = Curve.GetKeyTime(KeyHandle);
+	NewKeyTime = (NewKeyTime - Origin) * Scale + Origin;
+	return Curve.SetKeyTime(KeyHandle, NewKeyTime);
+}
+
+
 FKeyHandle FIntegralCurveKeyAreaBase::MoveKey(FKeyHandle KeyHandle, float DeltaPosition)
 {
 	return Curve.SetKeyTime(KeyHandle, Curve.GetKeyTime(KeyHandle) + DeltaPosition);

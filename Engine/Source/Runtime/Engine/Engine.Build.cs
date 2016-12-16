@@ -167,6 +167,7 @@ public class Engine : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
+				"ActorSequence",
 				"MovieScene",
 				"MovieSceneCapture",
 				"MovieSceneTracks",

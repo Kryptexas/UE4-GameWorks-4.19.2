@@ -2,6 +2,8 @@
 
 #include "Evaluation/MovieSceneLegacyTrackInstanceTemplate.h"
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
+#include "IMovieScenePlayer.h"
+
 
 /** Legacy tracks just get a new ID each time (so they always save/restore state, regardless of whether a similar track has already animated the object. That was the old behaviour) */
 struct FMovieSceneLegacyAnimTypeID : FMovieSceneAnimTypeID

@@ -53,21 +53,16 @@ SMediaPlayerEditorOutput::~SMediaPlayerEditorOutput()
 		MediaPlayer->OnMediaEvent().RemoveAll(this);
 	
 		// remove default sinks from native player
-		TSharedPtr<IMediaPlayer> Player = MediaPlayer->GetPlayer();
+		FMediaPlayerBase& Player = MediaPlayer->GetBasePlayer();
 
-		if (Player.IsValid())
+		if (MediaPlayer->GetSoundWave() == nullptr)
 		{
-			IMediaOutput& Output = Player->GetOutput();
+			Player.SetAudioSink(nullptr);
+		}
 
-			if (MediaPlayer->GetSoundWave() == nullptr)
-			{
-				Output.SetAudioSink(nullptr);
-			}
-
-			if (MediaPlayer->GetVideoTexture() == nullptr)
-			{
-				Output.SetVideoSink(nullptr);
-			}
+		if (MediaPlayer->GetVideoTexture() == nullptr)
+		{
+			Player.SetVideoSink(nullptr);
 		}
 	}
 
@@ -180,12 +175,7 @@ void SMediaPlayerEditorOutput::UpdateMaterial()
 		// set default texture as output sink
 		if (DefaultTexture != nullptr)
 		{
-			TSharedPtr<IMediaPlayer> Player = MediaPlayer->GetPlayer();
-
-			if (Player.IsValid())
-			{
-				Player->GetOutput().SetVideoSink(DefaultTexture);
-			}
+			MediaPlayer->GetBasePlayer().SetVideoSink(DefaultTexture);
 		}
 
 		Texture = DefaultTexture;
@@ -228,12 +218,7 @@ void SMediaPlayerEditorOutput::UpdateSoundWave()
 			// set default sound wave as output sink
 			if (DefaultSoundWave != nullptr)
 			{
-				TSharedPtr<IMediaPlayer> Player = MediaPlayer->GetPlayer();
-
-				if (Player.IsValid())
-				{
-					Player->GetOutput().SetAudioSink(DefaultSoundWave);
-				}
+				MediaPlayer->GetBasePlayer().SetAudioSink(DefaultSoundWave);
 			}
 
 			SoundWave = DefaultSoundWave;

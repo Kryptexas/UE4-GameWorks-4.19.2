@@ -11,6 +11,8 @@
 #include "Runtime/Media/Public/IMediaPlayerFactory.h"
 #include "Runtime/Media/Public/IMediaTextureSink.h"
 
+#include "../../AvfMediaFactory/Public/AvfMediaSettings.h"
+
 #import <AVFoundation/AVFoundation.h>
 
 #if PLATFORM_MAC
@@ -21,15 +23,16 @@
 /** Log category for the AvfMedia module. */
 DECLARE_LOG_CATEGORY_EXTERN(LogAvfMedia, Log, All);
 
+
 #if PLATFORM_MAC
-#define AVF_GAME_THREAD_BLOCK 
-#define AVF_GAME_THREAD_RETURN 
-#define AVF_GAME_THREAD_CALL(Block)	GameThreadCall(Block, @[ NSDefaultRunLoopMode ], false)
+	#define AVF_GAME_THREAD_BLOCK 
+	#define AVF_GAME_THREAD_RETURN 
+	#define AVF_GAME_THREAD_CALL(Block)	GameThreadCall(Block, @[ NSDefaultRunLoopMode ], false)
 #else
-#define AVF_GAME_THREAD_BLOCK bool(void)
-#define AVF_GAME_THREAD_RETURN return true
-#define AVF_GAME_THREAD_CALL(Block) \
-		[FIOSAsyncTask CreateTaskWithBlock: \
-			Block	\
-		]
+	#define AVF_GAME_THREAD_BLOCK bool(void)
+	#define AVF_GAME_THREAD_RETURN return true
+	#define AVF_GAME_THREAD_CALL(Block) \
+			[FIOSAsyncTask CreateTaskWithBlock: \
+				Block	\
+			]
 #endif

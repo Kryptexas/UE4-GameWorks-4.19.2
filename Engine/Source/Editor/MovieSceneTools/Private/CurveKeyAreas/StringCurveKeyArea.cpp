@@ -154,6 +154,14 @@ TArray<FKeyHandle> FStringCurveKeyArea::GetUnsortedKeyHandles() const
 }
 
 
+FKeyHandle FStringCurveKeyArea::DilateKey(FKeyHandle KeyHandle, float Scale, float Origin)
+{
+	float NewKeyTime = Curve->GetKeyTime(KeyHandle);
+	NewKeyTime = (NewKeyTime - Origin) * Scale + Origin;
+	return Curve->SetKeyTime(KeyHandle, NewKeyTime);
+}
+
+
 FKeyHandle FStringCurveKeyArea::MoveKey(FKeyHandle KeyHandle, float DeltaPosition)
 {
 	return Curve->SetKeyTime(KeyHandle, Curve->GetKeyTime(KeyHandle) + DeltaPosition);

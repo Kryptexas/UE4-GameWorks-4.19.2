@@ -2,9 +2,11 @@
 
 #include "PlatformMediaSource.h"
 #include "UObject/SequencerObjectVersion.h"
+
 #if WITH_EDITOR
 	#include "Interfaces/ITargetPlatform.h"
 #endif
+
 
 /* UMediaSource interface
  *****************************************************************************/
@@ -82,40 +84,76 @@ UMediaSource* UPlatformMediaSource::GetMediaSource() const
 bool UPlatformMediaSource::GetMediaOption(const FName& Key, bool DefaultValue) const
 {
 	UMediaSource* PlatformMediaSource = GetMediaSource();
-	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	
+	if (PlatformMediaSource != nullptr)
+	{
+		return PlatformMediaSource->GetMediaOption(Key, DefaultValue);
+	}
+	
+	return Super::GetMediaOption(Key, DefaultValue);
 }
 
 
 double UPlatformMediaSource::GetMediaOption(const FName& Key, double DefaultValue) const
 {
 	UMediaSource* PlatformMediaSource = GetMediaSource();
-	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	
+	if (PlatformMediaSource != nullptr)
+	{
+		return PlatformMediaSource->GetMediaOption(Key, DefaultValue);
+	}
+
+	return Super::GetMediaOption(Key, DefaultValue);
 }
 
 
 int64 UPlatformMediaSource::GetMediaOption(const FName& Key, int64 DefaultValue) const
 {
 	UMediaSource* PlatformMediaSource = GetMediaSource();
-	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	
+	if (PlatformMediaSource != nullptr)
+	{
+		return PlatformMediaSource->GetMediaOption(Key, DefaultValue);
+	}
+
+	return Super::GetMediaOption(Key, DefaultValue);
 }
 
 
 FString UPlatformMediaSource::GetMediaOption(const FName& Key, const FString& DefaultValue) const
 {
 	UMediaSource* PlatformMediaSource = GetMediaSource();
-	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	
+	if (PlatformMediaSource != nullptr)
+	{
+		return PlatformMediaSource->GetMediaOption(Key, DefaultValue);
+	}
+
+	return Super::GetMediaOption(Key, DefaultValue);
 }
 
 
 FText UPlatformMediaSource::GetMediaOption(const FName& Key, const FText& DefaultValue) const
 {
 	UMediaSource* PlatformMediaSource = GetMediaSource();
-	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->GetMediaOption(Key, DefaultValue) : DefaultValue;
+	
+	if (PlatformMediaSource != nullptr)
+	{
+		return PlatformMediaSource->GetMediaOption(Key, DefaultValue);
+	}
+
+	return Super::GetMediaOption(Key, DefaultValue);
 }
 
 
 bool UPlatformMediaSource::HasMediaOption(const FName& Key) const
 {
 	UMediaSource* PlatformMediaSource = GetMediaSource();
-	return (PlatformMediaSource != nullptr) ? PlatformMediaSource->HasMediaOption(Key) : false;
+	
+	if (PlatformMediaSource != nullptr)
+	{
+		return PlatformMediaSource->HasMediaOption(Key);
+	}
+
+	return Super::HasMediaOption(Key);
 }

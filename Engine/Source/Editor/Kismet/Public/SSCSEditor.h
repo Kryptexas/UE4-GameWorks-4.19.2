@@ -521,6 +521,8 @@ public:
 	FString GetDocumentationLink() const;
 	FString GetDocumentationExcerptName() const;
 	
+	KISMET_API static FSlateColor GetColorTintForIcon(FSCSEditorTreeNodePtrType InNode);
+
 	FText GetAssetName() const;
 	FText GetAssetPath() const;
 	EVisibility GetAssetVisibility() const;

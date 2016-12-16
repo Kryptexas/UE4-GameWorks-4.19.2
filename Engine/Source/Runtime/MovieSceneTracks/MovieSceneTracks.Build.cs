@@ -26,6 +26,7 @@ public class MovieSceneTracks : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"SlateCore",
+                "AnimGraphRuntime"
 			}
 		);
 	}

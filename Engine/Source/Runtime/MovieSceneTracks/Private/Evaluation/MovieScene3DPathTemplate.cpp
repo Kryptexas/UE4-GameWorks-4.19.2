@@ -1,12 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "Evaluation/MovieScene3DPathTemplate.h"
-
 #include "Evaluation/MovieSceneTemplateCommon.h"
 #include "MovieSceneCommonHelpers.h"
-
 #include "GameFramework/Actor.h"
 #include "Components/SplineComponent.h"
+#include "MovieSceneEvaluation.h"
+#include "IMovieScenePlayer.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("Path Track Evaluate"), MovieSceneEval_PathTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Path Track Token Execute"), MovieSceneEval_PathTrack_TokenExecute, STATGROUP_MovieSceneEval);

@@ -33,7 +33,9 @@ void FFileMediaSourceCustomization::CustomizeDetails(IDetailLayoutBuilder& Detai
 		{
 			IDetailPropertyRow& FilePathRow = FileCategory.AddProperty(FilePathProperty);
 
-			FilePathRow.CustomWidget()
+			FilePathRow
+				.ShowPropertyButtons(false)
+				.CustomWidget()
 				.NameContent()
 					[
 						SNew(SHorizontalBox)

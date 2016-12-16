@@ -6,8 +6,12 @@
 #include "Evaluation/MovieSceneEvaluationTemplateInstance.h"
 #include "EngineGlobals.h"
 #include "MovieScene.h"
+#include "MovieSceneEvaluation.h"
+#include "IMovieScenePlayer.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("Event Track Token Execute"), MovieSceneEval_EventTrack_TokenExecute, STATGROUP_MovieSceneEval);
+
 
 struct FEventData
 {
@@ -50,14 +54,18 @@ struct FEventTrackExecutionToken
 		}
 
 #if !UE_BUILD_SHIPPING
-		UWorld* World = Player.GetPlaybackContext()->GetWorld();
-		if (World)
+		if (PerformanceCaptureEventPositions.Num())
 		{
-			FString LevelSequenceName = Player.GetEvaluationTemplate().GetSequence(MovieSceneSequenceID::Root)->GetName();
-			
-			for (float EventPosition : PerformanceCaptureEventPositions)
+			UObject* PlaybackContext = Player.GetPlaybackContext();
+			UWorld* World = PlaybackContext ? PlaybackContext->GetWorld() : nullptr;
+			if (World)
 			{
-				GEngine->PerformanceCapture(World, World->GetName(), LevelSequenceName, EventPosition);
+				FString LevelSequenceName = Player.GetEvaluationTemplate().GetSequence(MovieSceneSequenceID::Root)->GetName();
+			
+				for (float EventPosition : PerformanceCaptureEventPositions)
+				{
+					GEngine->PerformanceCapture(World, World->GetName(), LevelSequenceName, EventPosition);
+				}
 			}
 		}
 #endif	// UE_BUILD_SHIPPING

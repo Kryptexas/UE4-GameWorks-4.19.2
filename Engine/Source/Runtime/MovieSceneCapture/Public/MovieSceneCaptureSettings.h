@@ -74,7 +74,7 @@ struct MOVIESCENECAPTURE_API FMovieSceneCaptureSettings
 	uint8 ZeroPadFrameNumbers;
 
 	/** The frame rate at which to capture */
-	UPROPERTY(config, EditAnywhere, Category=CaptureSettings)
+	UPROPERTY(config, EditAnywhere, Category=CaptureSettings, meta=(ClampMin=1, UIMin=1, ClampMax=200, UIMax=200))
 	int32 FrameRate;
 
 	/** The resolution at which to capture */

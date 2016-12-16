@@ -7,6 +7,11 @@
 #include "Evaluation/MovieScenePlayback.h"
 #include "MovieSceneEvalTemplateBase.generated.h"
 
+
+struct FPersistentEvaluationData;
+class IMovieScenePlayer;
+
+
 /** Empty struct used for serialization */
 USTRUCT()
 struct FMovieSceneEmptyStruct

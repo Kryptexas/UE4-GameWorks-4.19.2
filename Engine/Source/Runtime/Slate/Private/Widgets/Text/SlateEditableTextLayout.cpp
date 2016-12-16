@@ -2997,8 +2997,8 @@ void FSlateEditableTextLayout::Tick(const FGeometry& AllottedGeometry, const dou
 		{
 			// Let outsiders know that the text content has been changed
 			OwnerWidget->OnTextCommitted(GetEditableText(), VirtualKeyboardTextCommitType);
-			bTextCommittedByVirtualKeyboard = false;
 		}
+		bTextCommittedByVirtualKeyboard = false;
 	}
 	else if (bTextChangedByVirtualKeyboard)
 	{

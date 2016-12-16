@@ -169,7 +169,7 @@ public:
 	 * @param	InExtensionHook		The section hook. Can be NAME_None
 	 * @param	InLabelOverride		Optional label override.  If omitted, then the action's label will be used instead.
 	 * @param	InToolTipOverride	Optional tool tip override.	 If omitted, then the action's label will be used instead.
-	 * @param	InIconOverride		Optional name of the slate brush to use for the tool bar image.  If omitted, then the action's icon will be used instead.
+	 * @param	InIconOverride		Optional name of the slate brush to use for the tool bar image.  If omitted, then the command's icon will be used instead.
 	 * @param	InTutorialHighlightName	Optional name to identify this widget and highlight during tutorials
 	 */
 	void AddMenuEntry( const TSharedPtr< const FUICommandInfo > InCommand, FName InExtensionHook = NAME_None, const TAttribute<FText>& InLabelOverride = TAttribute<FText>(), const TAttribute<FText>& InToolTipOverride = TAttribute<FText>(), const FSlateIcon& InIconOverride = FSlateIcon(), FName InTutorialHighlightName = NAME_None );

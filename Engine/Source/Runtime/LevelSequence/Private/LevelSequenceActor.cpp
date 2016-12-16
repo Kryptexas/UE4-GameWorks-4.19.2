@@ -6,6 +6,11 @@
 #include "Components/BillboardComponent.h"
 #include "LevelSequenceBurnIn.h"
 
+#if WITH_EDITOR
+	#include "PropertyCustomizationHelpers.h"
+	#include "ActorPickerMode.h"
+	#include "SceneOutlinerFilters.h"
+#endif
 
 ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 	: Super(Init)
@@ -38,6 +43,7 @@ ALevelSequenceActor::ALevelSequenceActor(const FObjectInitializer& Init)
 	}
 #endif //WITH_EDITORONLY_DATA
 
+	BindingOverrides = Init.CreateDefaultSubobject<UMovieSceneBindingOverrides>(this, "BindingOverrides");
 	BurnInOptions = Init.CreateDefaultSubobject<ULevelSequenceBurnInOptions>(this, "BurnInOptions");
 	PrimaryActorTick.bCanEverTick = true;
 	bAutoPlay = false;
@@ -105,6 +111,40 @@ void ALevelSequenceActor::PostLoad()
 #endif
 }
 
+#if WITH_EDITOR
+
+void FBoundActorProxy::Initialize(TSharedPtr<IPropertyHandle> InPropertyHandle)
+{
+	ReflectedProperty = InPropertyHandle;
+
+	UObject* Object = nullptr;
+	ReflectedProperty->GetValue(Object);
+	BoundActor = Cast<AActor>(Object);
+
+	ReflectedProperty->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FBoundActorProxy::OnReflectedPropertyChanged));
+}
+
+void FBoundActorProxy::OnReflectedPropertyChanged()
+{
+	UObject* Object = nullptr;
+	ReflectedProperty->GetValue(Object);
+	BoundActor = Cast<AActor>(Object);
+}
+
+TSharedPtr<FStructOnScope> ALevelSequenceActor::GetObjectPickerProxy(TSharedPtr<IPropertyHandle> ObjectPropertyHandle)
+{
+	TSharedRef<FStructOnScope> Struct = MakeShared<FStructOnScope>(FBoundActorProxy::StaticStruct());
+	reinterpret_cast<FBoundActorProxy*>(Struct->GetStructMemory())->Initialize(ObjectPropertyHandle);
+	return Struct;
+}
+
+void ALevelSequenceActor::UpdateObjectFromProxy(FStructOnScope& Proxy, IPropertyHandle& ObjectPropertyHandle)
+{
+	UObject* BoundActor = reinterpret_cast<FBoundActorProxy*>(Proxy.GetStructMemory())->BoundActor;
+	ObjectPropertyHandle.SetValue(BoundActor);
+}
+
+#endif
 
 ULevelSequence* ALevelSequenceActor::GetSequence(bool Load) const
 {
@@ -128,6 +168,8 @@ void ALevelSequenceActor::InitializePlayer()
 
 	if (GetWorld()->IsGameWorld() && (LevelSequenceAsset != nullptr))
 	{
+		PlaybackSettings.BindingOverrides = BindingOverrides;
+
 		SequencePlayer = NewObject<ULevelSequencePlayer>(this, "AnimationPlayer");
 		SequencePlayer->Initialize(LevelSequenceAsset, GetWorld(), PlaybackSettings);
 
@@ -191,7 +233,13 @@ void ULevelSequenceBurnInOptions::ResetSettings()
 		{
 			if (!Settings || !Settings->IsA(SettingsClass))
 			{
-				Settings = NewObject<ULevelSequenceBurnInInitSettings>(this, SettingsClass);
+				if (Settings)
+				{
+					Settings->Rename(*MakeUniqueObjectName(this, ULevelSequenceBurnInInitSettings::StaticClass(), "Settings_EXPIRED").ToString());
+				}
+				
+				Settings = NewObject<ULevelSequenceBurnInInitSettings>(this, SettingsClass, "Settings");
+				Settings->SetFlags(GetMaskedFlags(RF_PropagateToSubObjects));
 			}
 		}
 		else

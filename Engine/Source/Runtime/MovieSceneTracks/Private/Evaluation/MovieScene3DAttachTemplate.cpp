@@ -7,9 +7,13 @@
 #include "Components/SceneComponent.h"
 #include "GameFramework/Actor.h"
 #include "MovieSceneCommonHelpers.h"
+#include "MovieSceneEvaluation.h"
+#include "IMovieScenePlayer.h"
+
 
 DECLARE_CYCLE_STAT(TEXT("Attach Track Evaluate"), MovieSceneEval_AttachTrack_Evaluate, STATGROUP_MovieSceneEval);
 DECLARE_CYCLE_STAT(TEXT("Attach Track Token Execute"), MovieSceneEval_AttachTrack_TokenExecute, STATGROUP_MovieSceneEval);
+
 
 /** A token that sets a component's attach */
 struct F3DAttachTrackToken

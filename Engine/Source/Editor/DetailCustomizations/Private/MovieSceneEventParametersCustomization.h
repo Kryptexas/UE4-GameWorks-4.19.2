@@ -22,7 +22,7 @@ public:
 
 private:
 	void OnStructChanged(const FAssetData& AssetData);
-	void OnEditStructContentsChanged();
+	void OnEditStructChildContentsChanged();
 
 	TSharedPtr<IPropertyUtilities> PropertyUtilities;
 	TSharedPtr<IPropertyHandle> PropertyHandle;

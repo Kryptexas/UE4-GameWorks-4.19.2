@@ -5,14 +5,16 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "MediaSource.h"
+
 #include "PlatformMediaSource.generated.h"
+
 
 /**
  * A media source that selects other media sources based on target platform.
  *
  * Use this asset to override media sources on a per-platform basis.
  */
-UCLASS(BlueprintType, hidecategories=(Overrides))
+UCLASS(BlueprintType)
 class MEDIAASSETS_API UPlatformMediaSource
 	: public UMediaSource
 {

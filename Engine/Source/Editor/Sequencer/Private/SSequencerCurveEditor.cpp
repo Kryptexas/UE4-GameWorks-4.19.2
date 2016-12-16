@@ -1,10 +1,13 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "SSequencerCurveEditor.h"
-#include "SequencerSettings.h"
+#include "SequencerCommonHelpers.h"
 #include "SequencerCurveOwner.h"
+#include "SequencerSettings.h"
+
 
 #define LOCTEXT_NAMESPACE "SequencerCurveEditor"
+
 
 void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer, TSharedRef<ITimeSliderController> InTimeSliderController )
 {
@@ -28,6 +31,7 @@ void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSeq
 		.ShowCurveSelector( false )
 		.ShowZoomButtons( false )
 		.ShowInputGridNumbers( false )
+		.ShowTimeInFrames(this, &SSequencerCurveEditor::GetShowTimeInFrames)
 		.InputSnappingEnabled(this, &SSequencerCurveEditor::GetInputCurveSnapEnabled)
 		.InputSnap( this, &SSequencerCurveEditor::GetCurveTimeSnapInterval )
 		.OutputSnap( this, &SSequencerCurveEditor::GetCurveValueSnapInterval )
@@ -161,6 +165,11 @@ float SSequencerCurveEditor::GetCurveValueSnapInterval() const
 	return SequencerSettings->GetSnapCurveValueToInterval()
 		? SequencerSettings->GetCurveValueSnapInterval()
 		: 0;
+}
+
+bool SSequencerCurveEditor::GetShowTimeInFrames() const
+{
+	return SequencerSnapValues::IsTimeSnapIntervalFrameRate(SequencerSettings->GetTimeSnapInterval());
 }
 
 void SSequencerCurveEditor::NodeTreeSelectionChanged()

@@ -117,14 +117,7 @@ void FMovieSceneAnimationSectionRecorder::FinalizeSection()
 		if (AnimationSettings.bRemoveRootAnimation)
 		{
 			// enable root motion on the animation
-			AnimSequence->bEnableRootMotion = true;
-			AnimSequence->RootMotionRootLock = ERootMotionRootLock::Zero;
-		}
-		else
-		{
-			// enable root motion on the animation
-			AnimSequence->bEnableRootMotion = false;
-			AnimSequence->RootMotionRootLock = ERootMotionRootLock::RefPose;
+			AnimSequence->bForceRootLock = true;
 		}
 	}
 

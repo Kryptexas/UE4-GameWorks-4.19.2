@@ -54,6 +54,7 @@ FUdpMessageProcessor::~FUdpMessageProcessor()
 	// shut down worker thread
 	Thread->Kill(true);
 	delete Thread;
+	Thread = nullptr;
 
 	// remove all transport nodes
 	if (NodeLostDelegate.IsBound())

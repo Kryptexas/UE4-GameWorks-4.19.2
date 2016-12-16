@@ -9,8 +9,11 @@
 #include "Evaluation/MovieSceneEvalTemplateBase.h"
 #include "MovieSceneTrackImplementation.generated.h"
 
+
+struct FMovieSceneEvaluationOperand;
 struct FMovieSceneEvaluationTrack;
 struct FMovieSceneExecutionTokens;
+
 
 /**
  * Structure that allows the implementation of setup/teardown/initialization/evaluation logic at the track level.
@@ -111,6 +114,9 @@ struct FMovieSceneTrackImplementationPtr
 	FMovieSceneTrackImplementationPtr(T&& In)
 		: TInlineValue(Forward<T>(In))
 	{
+#if WITH_EDITOR
+		checkf(T::StaticStruct() == &In.GetScriptStruct(), TEXT("%s type does not correctly override GetScriptStructImpl. Track will not serialize correctly."), *T::StaticStruct()->GetName());
+#endif
 	}
 	
 	/** Copy construction/assignment */

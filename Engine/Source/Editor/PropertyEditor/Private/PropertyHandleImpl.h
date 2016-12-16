@@ -478,6 +478,7 @@ public:
 	virtual bool IsRestricted(const FString& Value, TArray<FText>& OutReasons) const override;
 	virtual bool GenerateRestrictionToolTip(const FString& Value, FText& OutTooltip) const override;
 	virtual void SetIgnoreValidation(bool bInIgnore) override;
+	virtual TArray<TSharedPtr<IPropertyHandle>> AddChildStructure( TSharedRef<FStructOnScope> ChildStructure ) override;
 
 	TSharedPtr<FPropertyNode> GetPropertyNode() const;
 protected:

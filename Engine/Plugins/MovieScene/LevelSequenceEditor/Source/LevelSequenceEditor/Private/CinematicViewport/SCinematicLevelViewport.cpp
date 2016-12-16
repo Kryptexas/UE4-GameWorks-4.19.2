@@ -27,6 +27,8 @@
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "CineCameraComponent.h"
 #include "Math/UnitConversion.h"
+#include "LevelEditorSequencerIntegration.h"
+
 
 #define LOCTEXT_NAMESPACE "SCinematicLevelViewport"
 
@@ -293,9 +295,26 @@ void SCinematicLevelViewport::Construct(const FArguments& InArgs)
 							+ SHorizontalBox::Slot()
 							.HAlign(HAlign_Left)
 							[
-								SNew(STextBlock)
-								.ColorAndOpacity(Gray)
-								.Text_Lambda([=]{ return UIData.ShotName; })
+								SNew(SHorizontalBox)
+
+								+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Left)
+								.AutoWidth()
+								[
+									SNew(STextBlock)
+									.ColorAndOpacity(Gray)
+									.Text_Lambda([=]{ return UIData.ShotName; })
+								]
+
+								+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Right)
+								.AutoWidth()
+								.Padding(FMargin(5.f, 0.f, 0.f, 0.f))
+								[
+									SNew(STextBlock)
+									.ColorAndOpacity(Gray)
+									.Text_Lambda([=]{ return UIData.CameraName; })
+								]
 							]
 
 							+ SHorizontalBox::Slot()
@@ -507,7 +526,8 @@ void SCinematicLevelViewport::Setup(FLevelSequenceEditorToolkit& NewToolkit)
 	ISequencer* Sequencer = GetSequencer();
 	if (Sequencer)
 	{
-		Sequencer->SetViewportTransportControlsVisibility(false);
+		FLevelEditorSequencerIntegration::Get().SetViewportTransportControlsVisibility(false);
+
 		TypeInterfaceProxy->Impl = Sequencer->GetZeroPadNumericTypeInterface();
 
 		if (TransportRange.IsValid())
@@ -662,9 +682,17 @@ void SCinematicLevelViewport::Tick(const FGeometry& AllottedGeometry, const doub
 		FText::FromString(ZeroPadTypeInterface->ToString(EntireRange.GetUpperBoundValue()))
 	);
 
+	UIData.CameraName = FText::GetEmpty();
+
 	UCameraComponent* CameraComponent = ViewportClient->GetCameraComponentForView();
 	if (CameraComponent)
 	{
+		AActor* OuterActor = Cast<AActor>(CameraComponent->GetOuter());
+		if (OuterActor != nullptr)
+		{
+			UIData.CameraName = FText::FromString(OuterActor->GetActorLabel());
+		}
+
 		if (UCineCameraComponent* CineCam = Cast<UCineCameraComponent>(CameraComponent))
 		{
 			const float SensorWidth = CineCam->FilmbackSettings.SensorWidth;

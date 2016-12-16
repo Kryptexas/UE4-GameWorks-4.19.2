@@ -2,6 +2,12 @@
 
 #include "TrackEditors/PropertyTrackEditors/VectorPropertyTrackEditor.h"
 #include "Sections/VectorPropertySection.h"
+#include "MovieSceneVectorTrack.h"
+#include "MatineeImportTools.h"
+#include "Matinee/InterpTrackVectorProp.h"
+#include "UnrealEdGlobals.h"
+#include "Classes/Editor/UnrealEdEngine.h"
+
 
 FName FVectorPropertyTrackEditor::XName( "X" );
 FName FVectorPropertyTrackEditor::YName( "Y" );
@@ -96,3 +102,36 @@ void FVectorPropertyTrackEditor::InitializeNewTrack( UMovieSceneVectorTrack* New
 		NewTrack->SetNumChannelsUsed( 4 );
 	}
 }
+
+void CopyInterpVectorTrack(TSharedRef<ISequencer> Sequencer, UInterpTrackVectorProp* MatineeVectorTrack, UMovieSceneVectorTrack* VectorTrack)
+{
+	if (FMatineeImportTools::CopyInterpVectorTrack(MatineeVectorTrack, VectorTrack))
+	{
+		Sequencer.Get().NotifyMovieSceneDataChanged( EMovieSceneDataChangeType::MovieSceneStructureItemAdded );
+	}
+}
+
+void FVectorPropertyTrackEditor::BuildTrackContextMenu( FMenuBuilder& MenuBuilder, UMovieSceneTrack* Track )
+{
+	UInterpTrackVectorProp* MatineeVectorTrack = nullptr;
+	for ( UObject* CopyPasteObject : GUnrealEd->MatineeCopyPasteBuffer )
+	{
+		MatineeVectorTrack = Cast<UInterpTrackVectorProp>( CopyPasteObject );
+		if ( MatineeVectorTrack != nullptr )
+		{
+			break;
+		}
+	}
+	UMovieSceneVectorTrack* VectorTrack = Cast<UMovieSceneVectorTrack>( Track );
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT( "Sequencer", "PasteMatineeVectorTrack", "Paste Matinee Vector Track" ),
+		NSLOCTEXT( "Sequencer", "PasteMatineeVectorTrackTooltip", "Pastes keys from a Matinee vector track into this track." ),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateStatic( &CopyInterpVectorTrack, GetSequencer().ToSharedRef(), MatineeVectorTrack, VectorTrack ),
+			FCanExecuteAction::CreateLambda( [=]()->bool { return MatineeVectorTrack != nullptr && MatineeVectorTrack->GetNumKeys() > 0 && VectorTrack != nullptr && VectorTrack->GetNumChannelsUsed() == 3; } ) ) );
+
+	MenuBuilder.AddMenuSeparator();
+	FKeyframeTrackEditor::BuildTrackContextMenu(MenuBuilder, Track);
+}
+

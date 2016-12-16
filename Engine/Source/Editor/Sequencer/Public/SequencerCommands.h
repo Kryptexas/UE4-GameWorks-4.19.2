@@ -70,6 +70,9 @@ public:
 	/** Zoom out of the view range */
 	TSharedPtr< FUICommandInfo > ZoomOutViewRange;
 
+	/** Toggle locking the playback range. */
+	TSharedPtr< FUICommandInfo > TogglePlaybackRangeLocked;
+
 	/** Forces playback both in editor and at runtime to be evaluated at fixed frame intervals. */
 	TSharedPtr< FUICommandInfo > ToggleForceFixedFrameIntervalPlayback;
 
@@ -102,6 +105,12 @@ public:
 
 	/** Select all keys that fall into the selection range*/
 	TSharedPtr< FUICommandInfo > SelectKeysInSelectionRange;
+
+	/** Select all sections that fall into the selection range*/
+	TSharedPtr< FUICommandInfo > SelectSectionsInSelectionRange;
+
+	/** Select all keys and sections that fall into the selection range*/
+	TSharedPtr< FUICommandInfo > SelectAllInSelectionRange;
 
 	/** Sets a key at the current time for the selected actor */
 	TSharedPtr< FUICommandInfo > SetKey;
@@ -225,6 +234,9 @@ public:
 
 	/** Saves the current state of this object as the default spawnable state. */
 	TSharedPtr< FUICommandInfo > SaveCurrentSpawnableState;
+
+	/** Restores all animated state for the current sequence. */
+	TSharedPtr< FUICommandInfo > RestoreAnimatedState;
 
 	/** Discard all changes to the current movie scene. */
 	TSharedPtr< FUICommandInfo > DiscardChanges;

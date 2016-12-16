@@ -93,6 +93,7 @@
 #include "Kismet2/Kismet2NameValidators.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "Editor.h"
+#include "IDetailsView.h"
 
 #include "BlueprintEditorTabs.h"
 
@@ -183,6 +184,8 @@ TSharedRef<SDockTab> FSelectionDetailsSummoner::SpawnTab(const FWorkflowTabSpawn
 
 	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 	BlueprintEditorPtr->GetInspector()->SetOwnerTab(Tab);
+
+	BlueprintEditorPtr->GetInspector()->GetPropertyView()->SetHostTabManager(Info.TabManager);
 
 	return Tab;
 }

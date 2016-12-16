@@ -1778,19 +1778,23 @@ EVisibility SSCS_RowWidget::GetAssetVisibility() const
 
 FSlateColor SSCS_RowWidget::GetColorTintForIcon() const
 {
+	return GetColorTintForIcon(GetNode());
+}
+
+FSlateColor SSCS_RowWidget::GetColorTintForIcon(FSCSEditorTreeNodePtrType InNode)
+{
 	const FLinearColor InheritedBlueprintComponentColor(0.08f, 0.35f, 0.6f);
 	const FLinearColor InstancedInheritedBlueprintComponentColor(0.08f, 0.35f, 0.6f);
 	const FLinearColor InheritedNativeComponentColor(0.7f, 0.9f, 0.7f);
 	const FLinearColor IntroducedHereColor(FLinearColor::White);
-
-	FSCSEditorTreeNodePtrType NodePtr = GetNode();
-	if (NodePtr->IsInherited())
+	
+	if (InNode->IsInherited())
 	{
-		if (NodePtr->IsNative())
+		if (InNode->IsNative())
 		{
 			return InheritedNativeComponentColor;
 		}
-		else if (NodePtr->IsInstanced())
+		else if (InNode->IsInstanced())
 		{
 			return InstancedInheritedBlueprintComponentColor;
 		}

@@ -570,6 +570,10 @@ void FAssetEditorToolkit::SaveAssetAs_Execute()
 	TArray<UObject*> SavedObjects;
 	FEditorFileUtils::SaveAssetsAs(ObjectsToSave, SavedObjects);
 
+	if (SavedObjects.Num() == 0)
+	{
+		return;
+	}
 
 	// close existing asset editors for resaved assets
 	FAssetEditorManager& AssetEditorManager = FAssetEditorManager::Get();
@@ -1062,6 +1066,11 @@ void FAssetEditorToolkit::RestoreFromLayout(const TSharedRef<FTabManager::FLayou
 
 		// Load the potentially previously saved new layout
 		TSharedRef<FTabManager::FLayout> UserConfiguredNewLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni, NewLayout);
+
+		for (TSharedPtr<FLayoutExtender> LayoutExtender : LayoutExtenders)
+		{
+			NewLayout->ProcessExtensions(*LayoutExtender);
+		}
 
 		// Apply the new layout
 		HostWidget->RestoreFromLayout(UserConfiguredNewLayout);

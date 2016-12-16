@@ -18,6 +18,7 @@
 #include "Curves/CurveInterface.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SSpinBox.h"
+#include "SequencerClipboardReconciler.h"
 #include "GenericKeyArea.generated.h"
 
 class ISequencer;
@@ -137,6 +138,20 @@ public:
 		ExtendSectionBounds(NewKeyTime);
 	}
 
+	virtual FKeyHandle DilateKey(FKeyHandle KeyHandle, TimeType Scale, TimeType Origin) override
+	{
+		TOptional<TimeType> Time = CurveInterface.GetKeyTime(KeyHandle);
+		if (Time.IsSet())
+		{
+			ModifySection();
+			
+			float NewKeyTime = Time.GetValue();
+			NewKeyTime = (NewKeyTime - Origin) * Scale + Origin;
+			CurveInterface.SetKeyTime(KeyHandle, NewKeyTime);
+		}
+		return KeyHandle;
+	}
+
 	virtual FKeyHandle MoveKey(FKeyHandle KeyHandle, TimeType DeltaPosition) override
 	{
 		TOptional<TimeType> Time = CurveInterface.GetKeyTime(KeyHandle);
@@ -194,11 +209,59 @@ public:
 	
 	virtual void CopyKeys(FMovieSceneClipboardBuilder& ClipboardBuilder, const TFunctionRef<bool(FKeyHandle, const IKeyArea&)>& KeyMask) const override
 	{
+		const UMovieSceneSection* Section = OwningSection.Get();
+		UMovieSceneTrack* Track = Section ? Section->GetTypedOuter<UMovieSceneTrack>() : nullptr;
+		if (Track)
+		{
+			FMovieSceneClipboardKeyTrack* KeyTrack = nullptr;
+			TKeyIterator<const KeyValueType, TimeType> Iterator = CurveInterface.IterateKeysAndValues();
 
+			for (auto It = begin(Iterator); It != end(Iterator); ++It)
+			{
+				if (KeyMask(It.GetKeyHandle(), *this))
+				{
+					if (!KeyTrack)
+					{
+						KeyTrack = &ClipboardBuilder.FindOrAddKeyTrack<KeyValueType>(GetName(), *Track);
+					}
+
+					KeyTrack->AddKey(It->Time, It->Value);
+				}
+			}
+		}
 	}
+
 	virtual void PasteKeys(const FMovieSceneClipboardKeyTrack& KeyTrack, const FMovieSceneClipboardEnvironment& SrcEnvironment, const FSequencerPasteEnvironment& DstEnvironment) override
 	{
+		float PasteAt = DstEnvironment.CardinalTime;
 
+		KeyTrack.IterateKeys([&](const FMovieSceneClipboardKey& Key){
+			UMovieSceneSection* Section = GetOwningSection();
+			if (!Section)
+			{
+				return true;
+			}
+
+			if (Section->TryModify())
+			{
+				float Time = PasteAt + Key.GetTime();
+				if (Section->GetStartTime() > Time)
+				{
+					Section->SetStartTime(Time);
+				}
+				if (Section->GetEndTime() < Time)
+				{
+					Section->SetEndTime(Time);
+				}
+
+				KeyValueType NewKeyValue = Key.GetValue<KeyValueType>();
+
+				FKeyHandle KeyHandle = CurveInterface.UpdateOrAddKey(Time, NewKeyValue, KINDA_SMALL_NUMBER);
+				DstEnvironment.ReportPastedKey(KeyHandle, *this);
+			}
+
+			return true;
+		});
 	}
 
 private:

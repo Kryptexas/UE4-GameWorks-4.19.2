@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreTypes.h"
+#include "Traits/ElementType.h"
 
 namespace AlgoImpl
 {
 	template <typename RangeType, typename PredicateType>
-	const typename RangeType::ElementType* FindByPredicate(const RangeType& Range, PredicateType Predicate)
+	const typename TElementType<RangeType>::Type* FindByPredicate(const RangeType& Range, PredicateType Predicate)
 	{
 		for (const auto& Elem : Range)
 		{
@@ -31,9 +32,9 @@ namespace Algo
 	 * @return A pointer to the first element found, or nullptr if none was found.
 	 */
 	template <typename RangeType, typename ValueType>
-	FORCEINLINE typename RangeType::ElementType* Find(RangeType& Range, const ValueType& Value)
+	FORCEINLINE typename TElementType<RangeType>::Type* Find(RangeType& Range, const ValueType& Value)
 	{
-		return const_cast<typename RangeType::ElementType*>(Find(const_cast<const RangeType&>(Range), Value));
+		return const_cast<typename TElementType<RangeType>::Type*>(Find(const_cast<const RangeType&>(Range), Value));
 	}
 
 	/**
@@ -44,9 +45,9 @@ namespace Algo
 	 * @return A pointer to the first element found, or nullptr if none was found.
 	 */
 	template <typename RangeType, typename ValueType>
-	FORCEINLINE const typename RangeType::ElementType* Find(const RangeType& Range, const ValueType& Value)
+	FORCEINLINE const typename TElementType<RangeType>::Type* Find(const RangeType& Range, const ValueType& Value)
 	{
-		return AlgoImpl::FindByPredicate(Range, [&](const typename RangeType::ElementType& Elem){
+		return AlgoImpl::FindByPredicate(Range, [&](const typename TElementType<RangeType>::Type& Elem){
 			return Elem == Value;
 		});
 	}
@@ -59,9 +60,9 @@ namespace Algo
 	 * @return A pointer to the first element found, or nullptr if none was found.
 	 */
 	template <typename RangeType, typename PredicateType>
-	FORCEINLINE typename RangeType::ElementType* FindByPredicate(RangeType& Range, PredicateType Pred)
+	FORCEINLINE typename TElementType<RangeType>::Type* FindByPredicate(RangeType& Range, PredicateType Pred)
 	{
-		return const_cast<typename RangeType::ElementType*>(FindByPredicate(const_cast<const RangeType&>(Range), Pred));
+		return const_cast<typename TElementType<RangeType>::Type*>(FindByPredicate(const_cast<const RangeType&>(Range), Pred));
 	}
 
 	/**
@@ -72,7 +73,7 @@ namespace Algo
 	 * @return A pointer to the first element found, or nullptr if none was found.
 	 */
 	template <typename RangeType, typename PredicateType>
-	FORCEINLINE const typename RangeType::ElementType* FindByPredicate(const RangeType& Range, PredicateType Pred)
+	FORCEINLINE const typename TElementType<RangeType>::Type* FindByPredicate(const RangeType& Range, PredicateType Pred)
 	{
 		return AlgoImpl::FindByPredicate(Range, Pred);
 	}

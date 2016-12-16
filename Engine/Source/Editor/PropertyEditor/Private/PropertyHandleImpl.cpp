@@ -17,6 +17,7 @@
 #include "ScopedTransaction.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Engine/Selection.h"
+#include "ItemPropertyNode.h"
 
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -2571,6 +2572,72 @@ void FPropertyHandleBase::SetIgnoreValidation(bool bInIgnore)
 	{
 		PropertyNode->SetNodeFlags( EPropertyNodeFlags::SkipChildValidation, bInIgnore); 
 	}
+}
+
+TArray<TSharedPtr<IPropertyHandle>> FPropertyHandleBase::AddChildStructure( TSharedRef<FStructOnScope> InStruct )
+{
+	TArray<TSharedPtr<IPropertyHandle>> PropertyHandles;
+
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if( !PropertyNode.IsValid() )
+	{
+		return PropertyHandles;
+	}
+
+	TSharedPtr<FStructurePropertyNode> StructPropertyNode( new FStructurePropertyNode );
+	StructPropertyNode->SetStructure(InStruct);
+
+	FPropertyNodeInitParams RootInitParams;
+	RootInitParams.ParentNode = PropertyNode;
+	RootInitParams.Property = nullptr;
+	RootInitParams.ArrayOffset = 0;
+	RootInitParams.ArrayIndex = INDEX_NONE;
+	RootInitParams.bAllowChildren = true;
+	RootInitParams.bForceHiddenPropertyVisibility = FPropertySettings::Get().ShowHiddenProperties();
+	RootInitParams.bCreateCategoryNodes = false;
+
+	StructPropertyNode->InitNode(RootInitParams);
+
+	const bool bShouldShowHiddenProperties = !!PropertyNode->HasNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties);
+	const bool bShouldShowDisableEditOnInstance = !!PropertyNode->HasNodeFlags(EPropertyNodeFlags::ShouldShowDisableEditOnInstance);
+
+	for (TFieldIterator<UProperty> It(InStruct->GetStruct()); It; ++It)
+	{
+		UProperty* StructMember = *It;
+		if (!StructMember)
+		{
+			continue;
+		}
+
+		static const FName Name_InlineEditConditionToggle("InlineEditConditionToggle");
+		const bool bOnlyShowAsInlineEditCondition = StructMember->HasMetaData(Name_InlineEditConditionToggle);
+		const bool bShowIfEditableProperty = StructMember->HasAnyPropertyFlags(CPF_Edit);
+		const bool bShowIfDisableEditOnInstance = !StructMember->HasAnyPropertyFlags(CPF_DisableEditOnInstance) || bShouldShowDisableEditOnInstance;
+
+		if (bShouldShowHiddenProperties || (bShowIfEditableProperty && !bOnlyShowAsInlineEditCondition && bShowIfDisableEditOnInstance))
+		{
+			TSharedRef<FItemPropertyNode> NewItemNode(new FItemPropertyNode);
+
+			FPropertyNodeInitParams InitParams;
+			InitParams.ParentNode = StructPropertyNode;
+			InitParams.Property = StructMember;
+			InitParams.ArrayOffset = 0;
+			InitParams.ArrayIndex = INDEX_NONE;
+			InitParams.bAllowChildren = true;
+			InitParams.bForceHiddenPropertyVisibility = bShouldShowHiddenProperties;
+			InitParams.bCreateDisableEditOnInstanceNodes = bShouldShowDisableEditOnInstance;
+			InitParams.bCreateCategoryNodes = false;
+
+			NewItemNode->InitNode(InitParams);
+			StructPropertyNode->AddChildNode(NewItemNode);
+
+			PropertyHandles.Add(PropertyEditorHelpers::GetPropertyHandle(NewItemNode, Implementation->GetNotifyHook(), Implementation->GetPropertyUtilities()));
+		}
+	}
+
+	PropertyNode->AddChildNode(StructPropertyNode);
+
+	return PropertyHandles;
 }
 
 /** Implements common property value functions */

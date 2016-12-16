@@ -7,6 +7,7 @@
 #include "AvfMediaTracks.h"
 #include "IMediaControls.h"
 #include "IMediaPlayer.h"
+#include "Containers/Queue.h"
 #include "Containers/Ticker.h"
 
 
@@ -19,8 +20,7 @@
  * Implements a media player using the AV framework.
  */
 class FAvfMediaPlayer
-	: public FTickerObjectBase
-	, public IMediaControls
+	: public IMediaControls
 	, public IMediaPlayer
 {
 public:
@@ -36,12 +36,6 @@ public:
 
 	/** Called by the delegate when the playback reaches the end. */
 	void HandleDidReachEnd();
-
-public:
-
-	//~ FTickerObjectBase interface
-
-	virtual bool Tick(float DeltaTime) override;
 
 public:
 
@@ -74,6 +68,8 @@ public:
 	virtual FString GetUrl() const override;
 	virtual bool Open(const FString& Url, const IMediaOptions& Options) override;
 	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options) override;
+	virtual void TickPlayer(float DeltaTime) override;
+	virtual void TickVideo(float DeltaTime) override;
 
 	DECLARE_DERIVED_EVENT(FVlcMediaPlayer, IMediaPlayer::FOnMediaEvent, FOnMediaEvent);
 	virtual FOnMediaEvent& OnMediaEvent() override
@@ -109,6 +105,9 @@ private:
 
 	/** The player item which the media player uses to progress. */
 	AVPlayerItem* PlayerItem;
+
+	/** Tasks to be executed on the player thread. */
+	TQueue<TFunction<void()>> PlayerTasks;
 
 	/** Should the video loop to the beginning at completion */
     bool ShouldLoop;

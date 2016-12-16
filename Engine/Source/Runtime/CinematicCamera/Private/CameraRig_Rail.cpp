@@ -127,7 +127,7 @@ void ACameraRig_Rail::UpdatePreviewMeshes()
 			GetComponents(OwnedSplineMeshComponents);
 			for (auto OwnedComponent : OwnedSplineMeshComponents)
 			{
-				if (!PreviewRailMeshSegments.Contains(OwnedComponent))
+				if (!PreviewRailMeshSegments.Contains(OwnedComponent) && OwnedComponent->IsRegistered())
 				{
 					OwnedComponent->UnregisterComponent();
 				}

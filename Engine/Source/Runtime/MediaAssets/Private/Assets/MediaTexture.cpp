@@ -57,6 +57,99 @@ int32 UMediaTexture::GetWidth() const
 }
 
 
+/* UTexture interface
+ *****************************************************************************/
+
+FTextureResource* UMediaTexture::CreateResource()
+{
+	return new FMediaTextureResource(*this, ClearColor, SinkOutputDim, SinkFormat, SinkMode);
+}
+
+
+EMaterialValueType UMediaTexture::GetMaterialType()
+{
+	return MCT_Texture2D;
+}
+
+
+float UMediaTexture::GetSurfaceWidth() const
+{
+	return (Resource != nullptr) ? Resource->GetSizeX() : 0.0f;
+}
+
+
+float UMediaTexture::GetSurfaceHeight() const
+{
+	return (Resource != nullptr) ? Resource->GetSizeY() : 0.0f;
+}
+
+
+void UMediaTexture::UpdateResource()
+{
+	FScopeLock Lock(&CriticalSection);
+
+	Super::UpdateResource();
+}
+
+
+/* UObject interface
+ *****************************************************************************/
+
+void UMediaTexture::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	BeginDestroyEvent.Broadcast(*this);
+}
+
+
+FString UMediaTexture::GetDesc()
+{
+	return FString::Printf(TEXT("%dx%d [%s]"), GetSurfaceWidth(),  GetSurfaceHeight(), GPixelFormats[PF_B8G8R8A8].Name);
+}
+
+
+void UMediaTexture::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
+{
+	Super::GetResourceSizeEx(CumulativeResourceSize);
+
+	if (Resource)
+	{
+		((FMediaTextureResource*)Resource)->GetResourceSizeEx(CumulativeResourceSize);
+	}
+}
+
+
+#if WITH_EDITOR
+
+void UMediaTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	const FName PropertyName = (PropertyChangedEvent.Property != nullptr)
+		? PropertyChangedEvent.Property->GetFName()
+		: NAME_None;
+
+	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UMediaTexture, ClearColor)) &&
+		(PropertyChangedEvent.ChangeType != EPropertyChangeType::ValueSet))
+	{
+		UObject::PostEditChangeProperty(PropertyChangedEvent);
+	}
+	else
+	{
+		Super::PostEditChangeProperty(PropertyChangedEvent);
+	}
+}
+
+
+void UMediaTexture::PreEditChange(UProperty* PropertyAboutToChange)
+{
+	Super::PreEditChange(PropertyAboutToChange);
+
+	FlushRenderingCommands();
+}
+
+#endif // WITH_EDITOR
+
+
 /* IMediaTextureSink interface
  *****************************************************************************/
 
@@ -190,96 +283,3 @@ void UMediaTexture::UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITex
 		((FMediaTextureResource*)Resource)->UpdateTextures(RenderTarget, ShaderResource);
 	}
 }
-
-
-/* UTexture interface
- *****************************************************************************/
-
-FTextureResource* UMediaTexture::CreateResource()
-{
-	return new FMediaTextureResource(*this, ClearColor, SinkOutputDim, SinkFormat, SinkMode);
-}
-
-
-EMaterialValueType UMediaTexture::GetMaterialType()
-{
-	return MCT_Texture2D;
-}
-
-
-float UMediaTexture::GetSurfaceWidth() const
-{
-	return (Resource != nullptr) ? Resource->GetSizeX() : 0.0f;
-}
-
-
-float UMediaTexture::GetSurfaceHeight() const
-{
-	return (Resource != nullptr) ? Resource->GetSizeY() : 0.0f;
-}
-
-
-void UMediaTexture::UpdateResource()
-{
-	FScopeLock Lock(&CriticalSection);
-
-	Super::UpdateResource();
-}
-
-
-/* UObject interface
- *****************************************************************************/
-
-void UMediaTexture::BeginDestroy()
-{
-	Super::BeginDestroy();
-
-	BeginDestroyEvent.Broadcast(*this);
-}
-
-
-FString UMediaTexture::GetDesc()
-{
-	return FString::Printf(TEXT("%dx%d [%s]"), GetSurfaceWidth(),  GetSurfaceHeight(), GPixelFormats[PF_B8G8R8A8].Name);
-}
-
-
-void UMediaTexture::GetResourceSizeEx(FResourceSizeEx& CumulativeResourceSize)
-{
-	Super::GetResourceSizeEx(CumulativeResourceSize);
-
-	if (Resource)
-	{
-		((FMediaTextureResource*)Resource)->GetResourceSizeEx(CumulativeResourceSize);
-	}
-}
-
-
-#if WITH_EDITOR
-
-void UMediaTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	const FName PropertyName = (PropertyChangedEvent.Property != nullptr)
-		? PropertyChangedEvent.Property->GetFName()
-		: NAME_None;
-
-	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UMediaTexture, ClearColor)) &&
-		(PropertyChangedEvent.ChangeType != EPropertyChangeType::ValueSet))
-	{
-		UObject::PostEditChangeProperty(PropertyChangedEvent);
-	}
-	else
-	{
-		Super::PostEditChangeProperty(PropertyChangedEvent);
-	}
-}
-
-
-void UMediaTexture::PreEditChange(UProperty* PropertyAboutToChange)
-{
-	Super::PreEditChange(PropertyAboutToChange);
-
-	FlushRenderingCommands();
-}
-
-#endif // WITH_EDITOR

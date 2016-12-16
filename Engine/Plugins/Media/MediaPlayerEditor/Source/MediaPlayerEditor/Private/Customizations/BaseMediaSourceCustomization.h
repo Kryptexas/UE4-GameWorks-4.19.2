@@ -13,7 +13,7 @@ class IPropertyHandle;
 /**
  * Implements a details view customization for the UMediaSource class.
  */
-class FMediaSourceCustomization
+class FBaseMediaSourceCustomization
 	: public IDetailCustomization
 {
 public:
@@ -31,7 +31,7 @@ public:
 	 */
 	static TSharedRef<IDetailCustomization> MakeInstance()
 	{
-		return MakeShareable(new FMediaSourceCustomization());
+		return MakeShareable(new FBaseMediaSourceCustomization());
 	}
 
 protected:
@@ -39,11 +39,11 @@ protected:
 	/**
 	 * Create a player selection menu widget for the specified platform.
 	 *
-	 * @param PlatformName The name of the platform to create the menu for.
+	 * @param IniPlatformName The INI name of the platform to create the menu for.
 	 * @param PlayerFactories The available player factories.
 	 * @return The menu widget.
 	 */
-	TSharedRef<SWidget> MakePlatformPlayersMenu(const FString& PlatformName, const TArray<IMediaPlayerFactory*>& PlayerFactories);
+	TSharedRef<SWidget> MakePlatformPlayersMenu(const FString& IniPlatformName, const TArray<IMediaPlayerFactory*>& PlayerFactories);
 
 	/**
 	 * Makes a widget for the DefaultPlayers property value.

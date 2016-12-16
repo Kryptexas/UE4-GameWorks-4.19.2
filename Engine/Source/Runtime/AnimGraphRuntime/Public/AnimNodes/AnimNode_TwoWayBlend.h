@@ -10,7 +10,7 @@
 
 // This represents a baked transition
 USTRUCT()
-struct ANIMGRAPHRUNTIME_API FAnimationNode_TwoWayBlend : public FAnimNode_Base
+struct ANIMGRAPHRUNTIME_API FAnimNode_TwoWayBlend : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
 public:
@@ -42,7 +42,7 @@ protected:
 	bool bResetChildOnActivation;
 
 public:
-	FAnimationNode_TwoWayBlend()
+	FAnimNode_TwoWayBlend()
 		: Alpha(0.0f)
 		, bResetChildOnActivation(false)
 	{

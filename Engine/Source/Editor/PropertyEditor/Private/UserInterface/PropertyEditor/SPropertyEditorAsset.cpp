@@ -246,7 +246,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 			// Go through all the found objects and see if any are a CDO, we can't set an actor in a CDO default.
 			for (UObject* Obj : ObjectList)
 			{
-				if (Obj->HasAllFlags(RF_ClassDefaultObject))
+				if (Obj->IsTemplate())
 				{
 					IsEnabledAttribute.Set(false);
 					TooltipAttribute.Set(LOCTEXT("VariableHasDisableEditOnTemplateTooltip", "Editing this value in a Class Default Object is not allowed"));

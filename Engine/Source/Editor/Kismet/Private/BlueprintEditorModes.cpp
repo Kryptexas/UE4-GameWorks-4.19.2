@@ -14,6 +14,7 @@
 // Debugging
 // End of debugging
 
+#include "LayoutExtender.h"
 #include "SBlueprintEditorToolbar.h"
 #include "BlueprintEditorTabs.h"
 #include "BlueprintEditorTabFactories.h"
@@ -121,6 +122,12 @@ FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<clas
 	InBlueprintEditor->GetToolbarBuilder()->AddBlueprintGlobalOptionsToolbar(ToolbarExtender);
 	InBlueprintEditor->GetToolbarBuilder()->AddDebuggingToolbar(ToolbarExtender);
 	InBlueprintEditor->GetToolbarBuilder()->AddProfilerToolbar(ToolbarExtender);
+
+	FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>("Kismet");
+	BlueprintEditorModule.OnRegisterTabsForEditor().Broadcast(BlueprintEditorTabFactories, InModeName, InBlueprintEditor);
+
+	LayoutExtender = MakeShared<FLayoutExtender>();
+	BlueprintEditorModule.OnRegisterLayoutExtensions().Broadcast(*LayoutExtender);
 }
 
 void FBlueprintEditorApplicationMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)
@@ -574,7 +581,7 @@ FBlueprintEditorUnifiedMode::FBlueprintEditorUnifiedMode(TSharedPtr<class FBluep
 
 	if ( bRegisterViewport )
 	{
-		TabLayout = FTabManager::NewLayout( "Blueprints_Unified_Components_v5" )
+		TabLayout = FTabManager::NewLayout( "Blueprints_Unified_Components_v6" )
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
@@ -719,6 +726,12 @@ FBlueprintEditorUnifiedMode::FBlueprintEditorUnifiedMode(TSharedPtr<class FBluep
 	}
 	
 	InBlueprintEditor->GetToolbarBuilder()->AddDebuggingToolbar(ToolbarExtender);
+
+	FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>("Kismet");
+	BlueprintEditorModule.OnRegisterTabsForEditor().Broadcast(BlueprintEditorTabFactories, InModeName, InBlueprintEditor);
+
+	LayoutExtender = MakeShared<FLayoutExtender>();
+	BlueprintEditorModule.OnRegisterLayoutExtensions().Broadcast(*LayoutExtender);
 }
 
 void FBlueprintEditorUnifiedMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)

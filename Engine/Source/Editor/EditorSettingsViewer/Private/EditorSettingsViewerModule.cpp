@@ -37,6 +37,7 @@
 
 #include "Tests/AutomationTestSettings.h"
 #include "BlueprintEditorSettings.h"
+#include "CurveEditorSettings.h"
 
 #include "CrashReporterSettings.h"
 #include "Analytics/AnalyticsPrivacySettings.h"
@@ -233,6 +234,13 @@ protected:
 			LOCTEXT("ContentEditorsPersonaSettingsDescription", "Customize Persona Editor."),
 			GetMutableDefault<UPersonaOptions>()
 		);
+
+		// curve editor
+		SettingsModule.RegisterSettings("Editor", "ContentEditors", "CurveEditor",
+			LOCTEXT("ContentEditorsCurveEditorSettingsName", "Curve Editor"),
+			LOCTEXT("ContentEditorsCurveEditorSettingsDescription", "Customize Curve Editors."),
+			GetMutableDefault<UCurveEditorSettings>()
+		);
 	}
 
 	void RegisterPrivacySettings(ISettingsModule& SettingsModule)
@@ -273,6 +281,7 @@ protected:
 //			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "DestructableMeshEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "GraphEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "Persona");
+			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "CurveEditor");
 		}
 	}
 

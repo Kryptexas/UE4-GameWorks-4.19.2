@@ -37,15 +37,22 @@ struct FSequencerViewParams
 
 	FOnGetAddMenuContent OnGetAddMenuContent;
 
+	/** Called when this sequencer has received user focus */
+	FSimpleDelegate OnReceivedFocus;
+
 	/** A menu extender for the add menu */
 	TSharedPtr<FExtender> AddMenuExtender;
 
 	/** Unique name for the sequencer. */
 	FString UniqueName;
 
+	/** Whether the sequencer is read-only */
+	bool bReadOnly;
+
 	FSequencerViewParams(FString InName = FString())
 		: InitialScrubPosition(0.0f)
 		, UniqueName(MoveTemp(InName))
+		, bReadOnly(false)
 	{ }
 };
 

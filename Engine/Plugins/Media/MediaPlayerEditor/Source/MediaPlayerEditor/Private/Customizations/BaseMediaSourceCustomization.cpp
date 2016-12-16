@@ -1,44 +1,50 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
-#include "Customizations/MediaSourceCustomization.h"
-#include "Layout/Margin.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Textures/SlateIcon.h"
-#include "Framework/Commands/UIAction.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Customizations/BaseMediaSourceCustomization.h"
+
 #include "EditorStyleSet.h"
+#include "Modules/ModuleManager.h"
 #include "PlatformInfo.h"
+
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
+#include "IDetailPropertyRow.h"
+
+#include "BaseMediaSource.h"
+#include "IMediaPlayerFactory.h"
+#include "IMediaModule.h"
+
+#include "Framework/Commands/UIAction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Layout/Margin.h"
+#include "Textures/SlateIcon.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SGridPanel.h"
 #include "Widgets/Input/SComboButton.h"
-#include "DetailWidgetRow.h"
-#include "IDetailPropertyRow.h"
-#include "DetailCategoryBuilder.h"
-#include "DetailLayoutBuilder.h"
-#include "IMediaPlayerFactory.h"
-#include "IMediaModule.h"
-#include "MediaSource.h"
-#include "Modules/ModuleManager.h"
+#include "Widgets/Text/STextBlock.h"
 
 
-#define LOCTEXT_NAMESPACE "FMediaSourceCustomization"
+#define LOCTEXT_NAMESPACE "FBaseMediaSourceCustomization"
 
 
 /* IDetailCustomization interface
  *****************************************************************************/
 
-void FMediaSourceCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
+void FBaseMediaSourceCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	// customize 'Platforms' category
-	IDetailCategoryBuilder& OverridesCategory = DetailBuilder.EditCategory("Overrides");
+	IDetailCategoryBuilder& OverridesCategory = DetailBuilder.EditCategory("Platforms");
 	{
 		// PlatformPlayerNames
-		PlatformPlayerNamesProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UMediaSource, PlatformPlayerNames));
+		PlatformPlayerNamesProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBaseMediaSource, PlatformPlayerNames));
 		{
 			IDetailPropertyRow& PlayerNamesRow = OverridesCategory.AddProperty(PlatformPlayerNamesProperty);
 
-			PlayerNamesRow.CustomWidget()
+			PlayerNamesRow
+				.ShowPropertyButtons(false)
+				.CustomWidget()
 				.NameContent()
 				[
 					PlatformPlayerNamesProperty->CreatePropertyNameWidget()
@@ -53,48 +59,61 @@ void FMediaSourceCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBui
 }
 
 
-/* FMediaSourceCustomization implementation
+/* FBaseMediaSourceCustomization implementation
  *****************************************************************************/
 
-TSharedRef<SWidget> FMediaSourceCustomization::MakePlatformPlayersMenu(const FString& PlatformName, const TArray<IMediaPlayerFactory*>& PlayerFactories)
+TSharedRef<SWidget> FBaseMediaSourceCustomization::MakePlatformPlayersMenu(const FString& IniPlatformName, const TArray<IMediaPlayerFactory*>& PlayerFactories)
 {
 	FMenuBuilder MenuBuilder(true, NULL);
 
 	MenuBuilder.AddMenuEntry(
-		LOCTEXT("AutoPlayer", "Auto"),
+		LOCTEXT("AutoPlayer", "Automatic"),
 		LOCTEXT("AutoPlayerTooltip", "Select a player automatically based on the media source"),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateLambda([=] { SetPlatformPlayerNamesValue(PlatformName, NAME_None); }),
+			FExecuteAction::CreateLambda([=] { SetPlatformPlayerNamesValue(IniPlatformName, NAME_None); }),
 			FCanExecuteAction()
 		),
 		NAME_None,
 		EUserInterfaceActionType::Button
 	);
 
-	for (IMediaPlayerFactory* Factory : PlayerFactories)
-	{
-		const bool SupportsRunningPlatform = Factory->GetSupportedPlatforms().Contains(*PlatformName);
-		const FName PlayerName = Factory->GetName();
+	MenuBuilder.AddMenuSeparator();
 
-		MenuBuilder.AddMenuEntry(
-			FText::Format(LOCTEXT("PlayerNameFormat", "{0} ({1})"), Factory->GetDisplayName(), FText::FromName(PlayerName)),
-			FText::FromString(FString::Join(Factory->GetSupportedPlatforms(), TEXT(", "))),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateLambda([=] { SetPlatformPlayerNamesValue(PlatformName, PlayerName); }),
-				FCanExecuteAction::CreateLambda([=] { return SupportsRunningPlatform; })
-			),
-			NAME_None,
-			EUserInterfaceActionType::Button
-		);
+	if (PlayerFactories.Num() == 0)
+	{
+		TSharedRef<SWidget> NoPlayersAvailableWidget = SNew(STextBlock)
+			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+			.Text(LOCTEXT("NoPlayerPluginsInstalled", "No media player plug-ins installed"));
+
+		MenuBuilder.AddWidget(NoPlayersAvailableWidget, FText::GetEmpty(), true, false);
+	}
+	else
+	{
+		for (IMediaPlayerFactory* Factory : PlayerFactories)
+		{
+			const bool SupportsPlatform = Factory->GetSupportedPlatforms().Contains(*IniPlatformName);
+			const FName PlayerName = Factory->GetName();
+
+			MenuBuilder.AddMenuEntry(
+				FText::Format(LOCTEXT("PlayerNameFormat", "{0} ({1})"), Factory->GetDisplayName(), FText::FromName(PlayerName)),
+				FText::FromString(FString::Join(Factory->GetSupportedPlatforms(), TEXT(", "))),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateLambda([=] { SetPlatformPlayerNamesValue(IniPlatformName, PlayerName); }),
+					FCanExecuteAction::CreateLambda([=] { return SupportsPlatform; })
+				),
+				NAME_None,
+				EUserInterfaceActionType::Button
+			);
+		}
 	}
 
 	return MenuBuilder.MakeWidget();
 }
 
 
-TSharedRef<SWidget> FMediaSourceCustomization::MakePlatformPlayerNamesValueWidget()
+TSharedRef<SWidget> FBaseMediaSourceCustomization::MakePlatformPlayerNamesValueWidget()
 {
 	// get registered player plug-ins
 	auto MediaModule = FModuleManager::LoadModulePtr<IMediaModule>("Media");
@@ -106,7 +125,12 @@ TSharedRef<SWidget> FMediaSourceCustomization::MakePlatformPlayerNamesValueWidge
 			.Text(LOCTEXT("NoPlayersAvailableLabel", "No players available"));
 	}
 
-	const TArray<IMediaPlayerFactory*>& PlayerFactories = MediaModule->GetPlayerFactories();
+	TArray<IMediaPlayerFactory*> PlayerFactories = MediaModule->GetPlayerFactories();
+	{
+		PlayerFactories.Sort([](IMediaPlayerFactory& A, IMediaPlayerFactory& B) -> bool {
+			return (A.GetDisplayName().CompareTo(B.GetDisplayName()) < 0);
+		});
+	}
 
 	// get available platforms
 	TArray<const PlatformInfo::FPlatformInfo*> AvailablePlatforms;
@@ -119,7 +143,6 @@ TSharedRef<SWidget> FMediaSourceCustomization::MakePlatformPlayerNamesValueWidge
 		}
 	}
 
-	// sort available platforms alphabetically
 	AvailablePlatforms.Sort([](const PlatformInfo::FPlatformInfo& One, const PlatformInfo::FPlatformInfo& Two) -> bool
 	{
 		return One.DisplayName.CompareTo(Two.DisplayName) < 0;
@@ -131,11 +154,6 @@ TSharedRef<SWidget> FMediaSourceCustomization::MakePlatformPlayerNamesValueWidge
 	for (int32 PlatformIndex = 0; PlatformIndex < AvailablePlatforms.Num(); ++PlatformIndex)
 	{
 		const PlatformInfo::FPlatformInfo* Platform = AvailablePlatforms[PlatformIndex];
-
-		// hack: FPlatformInfo does not currently include IniPlatformName,
-		// so we're using PlatformInfoName and strip desktop suffixes.
-		FString PlatformName = Platform->PlatformInfoName.ToString();
-		PlatformName.RemoveFromEnd(TEXT("NoEditor"));
 
 		// platform icon
 		PlatformPanel->AddSlot(0, PlatformIndex)
@@ -162,13 +180,13 @@ TSharedRef<SWidget> FMediaSourceCustomization::MakePlatformPlayerNamesValueWidge
 					.ButtonContent()
 					[
 						SNew(STextBlock)
-							.Text(this, &FMediaSourceCustomization::HandlePlatformPlayersComboButtonText, PlatformName)
+							.Text(this, &FBaseMediaSourceCustomization::HandlePlatformPlayersComboButtonText, Platform->IniPlatformName)
 							.ToolTipText(LOCTEXT("PlatformPlayerComboButtonToolTipText", "Choose desired player for this platform"))
 					]
 					.ContentPadding(FMargin(6.0f, 2.0f))
 					.MenuContent()
 					[
-						MakePlatformPlayersMenu(PlatformName, PlayerFactories)
+						MakePlatformPlayersMenu(Platform->IniPlatformName, PlayerFactories)
 					]
 			];
 	}
@@ -177,7 +195,7 @@ TSharedRef<SWidget> FMediaSourceCustomization::MakePlatformPlayerNamesValueWidge
 }
 
 
-void FMediaSourceCustomization::SetPlatformPlayerNamesValue(FString PlatformName, FName PlayerName)
+void FBaseMediaSourceCustomization::SetPlatformPlayerNamesValue(FString PlatformName, FName PlayerName)
 {
 	TArray<UObject*> OuterObjects;
 	{
@@ -186,7 +204,7 @@ void FMediaSourceCustomization::SetPlatformPlayerNamesValue(FString PlatformName
 
 	for (auto Object : OuterObjects)
 	{
-		FName& OldPlayerName = Cast<UMediaSource>(Object)->PlatformPlayerNames.FindOrAdd(PlatformName);;
+		FName& OldPlayerName = Cast<UBaseMediaSource>(Object)->PlatformPlayerNames.FindOrAdd(PlatformName);;
 
 		if (OldPlayerName != PlayerName)
 		{
@@ -197,10 +215,10 @@ void FMediaSourceCustomization::SetPlatformPlayerNamesValue(FString PlatformName
 }
 
 
-/* FMediaSourceCustomization callbacks
+/* FBaseMediaSourceCustomization callbacks
  *****************************************************************************/
 
-FText FMediaSourceCustomization::HandlePlatformPlayersComboButtonText(FString PlatformName) const
+FText FBaseMediaSourceCustomization::HandlePlatformPlayersComboButtonText(FString PlatformName) const
 {
 	TArray<UObject*> OuterObjects;
 	{
@@ -212,11 +230,11 @@ FText FMediaSourceCustomization::HandlePlatformPlayersComboButtonText(FString Pl
 		return FText::GetEmpty();
 	}
 
-	FName PlayerName = Cast<UMediaSource>(OuterObjects[0])->PlatformPlayerNames.FindRef(PlatformName);
+	FName PlayerName = Cast<UBaseMediaSource>(OuterObjects[0])->PlatformPlayerNames.FindRef(PlatformName);
 
 	for (int32 ObjectIndex = 1; ObjectIndex < OuterObjects.Num(); ++ObjectIndex)
 	{
-		if (Cast<UMediaSource>(OuterObjects[ObjectIndex])->PlatformPlayerNames.FindRef(PlatformName) != PlayerName)
+		if (Cast<UBaseMediaSource>(OuterObjects[ObjectIndex])->PlatformPlayerNames.FindRef(PlatformName) != PlayerName)
 		{
 			return NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
 		}
@@ -224,7 +242,7 @@ FText FMediaSourceCustomization::HandlePlatformPlayersComboButtonText(FString Pl
 
 	if (PlayerName == NAME_None)
 	{
-		return LOCTEXT("AutomaticLabel", "Auto");
+		return LOCTEXT("AutomaticLabel", "Automatic");
 	}
 
 	return FText::FromName(PlayerName);

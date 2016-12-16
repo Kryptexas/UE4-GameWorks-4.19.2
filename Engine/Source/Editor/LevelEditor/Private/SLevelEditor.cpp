@@ -46,6 +46,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "SActorDetails.h"
 #include "GameFramework/WorldSettings.h"
+#include "LayoutExtender.h"
 #include "HierarchicalLODOutlinerModule.h"
 
 
@@ -1108,6 +1109,8 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 
 		FTabSpawnerEntry& BuildAndSubmitEntry = LevelEditorTabManager->RegisterTabSpawner(LevelEditorBuildAndSubmitTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, LevelEditorBuildAndSubmitTab, FString()));
 		BuildAndSubmitEntry.SetAutoGenerateMenuEntry(false);
+
+		LevelEditorModule.OnRegisterTabs().Broadcast(LevelEditorTabManager);
 	}
 
 	// Rebuild the editor mode commands and their tab spawners before we restore the layout,
@@ -1188,6 +1191,9 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 			
 		));
 	
+	FLayoutExtender LayoutExtender;
+	LevelEditorModule.OnRegisterLayoutExtensions().Broadcast(LayoutExtender);
+	Layout->ProcessExtensions(LayoutExtender);
 
 	return LevelEditorTabManager->RestoreFrom( Layout, OwnerWindow ).ToSharedRef();
 }
@@ -1489,7 +1495,7 @@ void SLevelEditor::AddStandaloneLevelViewport( const TSharedRef<SLevelViewport>&
 
 TSharedRef<SWidget> SLevelEditor::CreateActorDetails( const FName TabIdentifier )
 {
-	TSharedRef<SActorDetails> ActorDetails = SNew( SActorDetails, TabIdentifier, LevelEditorCommands );
+	TSharedRef<SActorDetails> ActorDetails = SNew( SActorDetails, TabIdentifier, LevelEditorCommands, GetTabManager() );
 
 	// Immediately update it (otherwise it will appear empty)
 	{

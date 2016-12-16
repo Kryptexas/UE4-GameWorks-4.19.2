@@ -2,6 +2,7 @@
 
 #include "LevelSequenceSpawnRegister.h"
 #include "Engine/EngineTypes.h"
+#include "IMovieScenePlayer.h"
 #include "MovieScene.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
@@ -93,7 +94,8 @@ UObject* FLevelSequenceSpawnRegister::SpawnObject(FMovieSceneSpawnable& Spawnabl
 	// tag this actor so we know it was spawned by sequencer
 	SpawnedActor->Tags.Add(SequencerActorTag);
 
-	SpawnedActor->FinishSpawning(SpawnTransform);
+	const bool bIsDefaultTransform = true;
+	SpawnedActor->FinishSpawning(SpawnTransform, bIsDefaultTransform);
 
 	return SpawnedActor;
 }

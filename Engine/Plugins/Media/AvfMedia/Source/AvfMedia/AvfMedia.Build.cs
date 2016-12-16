@@ -14,6 +14,7 @@ namespace UnrealBuildTool.Rules
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
+                    "AvfMediaFactory",
 					"Core",
 					"RenderCore",
 					"RHI",

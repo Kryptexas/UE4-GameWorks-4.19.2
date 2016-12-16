@@ -113,6 +113,9 @@ void UCineCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 		DebugFocusPlaneMID->SetVectorParameterValue(FName(TEXT("Color")), FocusSettings.DebugFocusPlaneColor.ReinterpretAsLinear());
 	}
 
+	// reset interpolation if the user changes anything
+	bResetInterpolation = true;
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 

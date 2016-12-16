@@ -154,6 +154,22 @@ public:
 	 */
 	virtual bool Open(const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl, const IMediaOptions& Options) = 0;
 
+	/**
+	 * Tick the media player logic.
+	 *
+	 * @param DeltaTime Time since last tick.
+	 * @see TickVideo
+	 */
+	virtual void TickPlayer(float DeltaTime) = 0;
+
+	/**
+	 * Tick the media player's video code.
+	 *
+	 * @param DeltaTime Time since last tick.
+	 * @see TickPlayer
+	 */
+	virtual void TickVideo(float DeltaTime) = 0;
+
 public:
 
 	/** Get an event delegate that is invoked when an event occurred. */

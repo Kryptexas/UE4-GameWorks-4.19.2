@@ -64,28 +64,16 @@ public:
 
 public:
 
+	/**
+	 * Get the event delegate that is invoked when this asset is being destroyed.
+	 *
+	 * @return The delegate.
+	 */
 	DECLARE_EVENT_OneParam(UMediaTexture, FOnBeginDestroy, UMediaTexture& /*DestroyedMediaTexture*/)
 	FOnBeginDestroy& OnBeginDestroy()
 	{
 		return BeginDestroyEvent;
 	}
-
-public:
-
-	//~ IMediaTextureSink interface
-
-	virtual void* AcquireTextureSinkBuffer() override;
-	virtual void DisplayTextureSinkBuffer(FTimespan Time) override;
-	virtual FIntPoint GetTextureSinkDimensions() const override;
-	virtual EMediaTextureSinkFormat GetTextureSinkFormat() const override;
-	virtual EMediaTextureSinkMode GetTextureSinkMode() const override;
-	virtual FRHITexture* GetTextureSinkTexture() override;
-	virtual bool InitializeTextureSink(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode) override;
-	virtual void ReleaseTextureSinkBuffer() override;
-	virtual void ShutdownTextureSink() override;
-	virtual bool SupportsTextureSinkFormat(EMediaTextureSinkFormat Format) const override;
-	virtual void UpdateTextureSinkBuffer(const uint8* Data, uint32 Pitch = 0) override;
-	virtual void UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITexture* ShaderResource) override;
 
 public:
 
@@ -110,6 +98,23 @@ public:
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif
 
+public:
+
+	//~ IMediaTextureSink interface
+
+	virtual void* AcquireTextureSinkBuffer() override;
+	virtual void DisplayTextureSinkBuffer(FTimespan Time) override;
+	virtual FIntPoint GetTextureSinkDimensions() const override;
+	virtual EMediaTextureSinkFormat GetTextureSinkFormat() const override;
+	virtual EMediaTextureSinkMode GetTextureSinkMode() const override;
+	virtual FRHITexture* GetTextureSinkTexture() override;
+	virtual bool InitializeTextureSink(FIntPoint OutputDim, FIntPoint BufferDim, EMediaTextureSinkFormat Format, EMediaTextureSinkMode Mode) override;
+	virtual void ReleaseTextureSinkBuffer() override;
+	virtual void ShutdownTextureSink() override;
+	virtual bool SupportsTextureSinkFormat(EMediaTextureSinkFormat Format) const override;
+	virtual void UpdateTextureSinkBuffer(const uint8* Data, uint32 Pitch = 0) override;
+	virtual void UpdateTextureSinkResource(FRHITexture* RenderTarget, FRHITexture* ShaderResource) override;
+
 protected:
 
 	//~ Deprecated members
@@ -124,7 +129,7 @@ protected:
 
 private:
 
-	/** An event delegate that is invoked when this media texture is being destroyed. */
+	/** An event delegate that is invoked when this asset is being destroyed. */
 	FOnBeginDestroy BeginDestroyEvent;
 
 	/** Critical section for synchronizing access to texture resource object. */
