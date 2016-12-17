@@ -6,6 +6,8 @@ public class Hotfix : ModuleRules
 {
 	public Hotfix(TargetInfo Target)
     {
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		
         PrivateDependencyModuleNames.AddRange(
 			new string[] { 
 				"Core",

@@ -7,6 +7,7 @@ public class Party : ModuleRules
 	public Party(TargetInfo Target)
 	{
 		Definitions.Add("PARTY_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateIncludePaths.AddRange(
 			new string[] {

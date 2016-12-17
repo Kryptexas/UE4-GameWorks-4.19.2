@@ -3,9 +3,11 @@
 #include "OnlineAsyncTaskGooglePlayLogin.h"
 #include "OnlineSubsystemGooglePlay.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/builder.h"
 #include "gpg/debug.h"
 #include "gpg/types.h"
+THIRD_PARTY_INCLUDES_END
 
 FOnlineAsyncTaskGooglePlayLogin::FOnlineAsyncTaskGooglePlayLogin(
 	FOnlineSubsystemGooglePlay* InSubsystem,

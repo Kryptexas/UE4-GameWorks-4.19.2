@@ -735,7 +735,7 @@ bool FOnlineSessionNull::GetResolvedConnectString(FName SessionName, FString& Co
 	return bSuccess;
 }
 
-bool FOnlineSessionNull::GetResolvedConnectString(const class FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo)
+bool FOnlineSessionNull::GetResolvedConnectString(const FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo)
 {
 	bool bSuccess = false;
 	if (SearchResult.Session.SessionInfo.IsValid())
@@ -744,11 +744,11 @@ bool FOnlineSessionNull::GetResolvedConnectString(const class FOnlineSessionSear
 
 		if (PortType == BeaconPort)
 		{
-			int32 BeaconListenPort = 15000;
+			int32 BeaconListenPort = DEFAULT_BEACON_PORT;
 			if (!SearchResult.Session.SessionSettings.Get(SETTING_BEACONPORT, BeaconListenPort) || BeaconListenPort <= 0)
 			{
-				// Reset the default BeaconListenPort back to 15000 because the SessionSettings value does not exist or was not valid
-				BeaconListenPort = 15000;
+				// Reset the default BeaconListenPort back to DEFAULT_BEACON_PORT because the SessionSettings value does not exist or was not valid
+				BeaconListenPort = DEFAULT_BEACON_PORT;
 			}
 			bSuccess = GetConnectStringFromSessionInfo(SessionInfo, ConnectInfo, BeaconListenPort);
 

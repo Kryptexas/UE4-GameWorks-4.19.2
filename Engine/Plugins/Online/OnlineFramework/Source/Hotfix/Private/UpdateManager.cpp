@@ -101,9 +101,10 @@ UUpdateManager::EUpdateStartResult UUpdateManager::StartCheckInternal(bool bInCh
 		return Result;
 	}
 
-	if (CurrentUpdateState == EUpdateState::UpdateIdle ||
+	if (!IsTimerHandleActive(StartCheckInternalTimerHandle) &&
+		(CurrentUpdateState == EUpdateState::UpdateIdle ||
 		CurrentUpdateState == EUpdateState::UpdatePending ||
-		CurrentUpdateState == EUpdateState::UpdateComplete)
+		CurrentUpdateState == EUpdateState::UpdateComplete))
 	{
 		bCheckHotfixAvailabilityOnly = bInCheckHotfixOnly;
 
@@ -129,7 +130,7 @@ UUpdateManager::EUpdateStartResult UUpdateManager::StartCheckInternal(bool bInCh
 			};
 
 			// Give the UI state widget a chance to start listening for delegates
-			DelayResponse(StartDelegate, 0.2f);
+			StartCheckInternalTimerHandle = DelayResponse(StartDelegate, 0.2f);
 			Result = EUpdateStartResult::UpdateStarted;
 		}
 		else
@@ -140,7 +141,7 @@ UUpdateManager::EUpdateStartResult UUpdateManager::StartCheckInternal(bool bInCh
 				CheckComplete(LastResult, false);
 			};
 
-			DelayResponse(StartDelegate, 0.1f);
+			StartCheckInternalTimerHandle = DelayResponse(StartDelegate, 0.1f);
 			Result = EUpdateStartResult::UpdateCached;
 		}
 	}
@@ -406,8 +407,16 @@ void UUpdateManager::PlatformEnvironmentCheck_OnLoginConsoleComplete(int32 Local
 	}
 	else
 	{
-		UE_LOG(LogHotfixManager, Warning, TEXT("Failed to detect online environment for the platform"));
-		CheckComplete(EUpdateCompletionStatus::UpdateFailure_NotLoggedIn);
+		if (Error.Contains(TEXT("getUserAccessCode failed : 0x8055000f"), ESearchCase::IgnoreCase))
+		{
+			UE_LOG(LogHotfixManager, Warning, TEXT("Failed to complete login because patch is required"));
+			CheckComplete(EUpdateCompletionStatus::UpdateSuccess_NeedsPatch);
+		}
+		else
+		{
+			UE_LOG(LogHotfixManager, Warning, TEXT("Failed to detect online environment for the platform"));
+			CheckComplete(EUpdateCompletionStatus::UpdateFailure_NotLoggedIn);
+		}
 	}
 }
 
@@ -636,6 +645,17 @@ FTimerHandle UUpdateManager::DelayResponse(DelayCb&& Delegate, float Delay)
 	}
 
 	return TimerHandle;
+}
+
+bool UUpdateManager::IsTimerHandleActive(const FTimerHandle& TimerHandle) const
+{
+	UWorld* World = GetWorld();
+	if (ensure(World != nullptr))
+	{
+		return World->GetTimerManager().IsTimerActive(TimerHandle);
+	}
+
+	return false;
 }
 
 UWorld* UUpdateManager::GetWorld() const

@@ -7,6 +7,7 @@ public class OnlineSubsystemGooglePlay : ModuleRules
 	public OnlineSubsystemGooglePlay(TargetInfo Target)
 	{
 		Definitions.Add("ONLINESUBSYSTEMGOOGLEPLAY_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateIncludePaths.AddRange(
 			new string[] {

@@ -104,6 +104,10 @@ void UQosEvaluator::FindDatacenters(const FQosParams& InParams, TArray<FQosDatac
 			{
 				new (Datacenters) FQosRegionInfo(Datacenter);
 			}
+			else
+			{
+				UE_LOG(LogQos, Verbose, TEXT("Skipping region [%s]"), *Datacenter.RegionId);
+			}
 		}
 
 		if (!InParams.bUseOldQosServers)
@@ -173,7 +177,8 @@ void UQosEvaluator::PingRegionServers(const FQosParams& InParams, const FOnQosSe
 			const FString& RegionId = Region.Region.RegionId;
 			const int32 NumServers = Region.Region.Servers.Num();
 			int32 ServerIdx = FMath::RandHelper(NumServers);
-			Region.Result = NumServers > 0 ? EQosCompletionResult::Invalid : EQosCompletionResult::Success;
+			// Default to invalid ping tests and set it to something else later
+			Region.Result = EQosCompletionResult::Invalid;
 			if (NumServers > 0)
 			{
 				for (int32 PingIdx = 0; PingIdx < NumTestsPerRegion; PingIdx++)
@@ -181,16 +186,18 @@ void UQosEvaluator::PingRegionServers(const FQosParams& InParams, const FOnQosSe
 					const FQosPingServerInfo& Server = Region.Region.Servers[ServerIdx];
 					const FString Address = FString::Printf(TEXT("%s:%d"), *Server.Address, Server.Port);
 
-					auto CompletionDelegate = [WeakThisCap, RegionId, NumTestsPerRegion, InCompletionDelegate](FIcmpEchoResult Result)
+					auto CompletionDelegate = [WeakThisCap, RegionId, NumTestsPerRegion, InCompletionDelegate](FIcmpEchoResult InResult)
 					{
 						if (WeakThisCap.IsValid())
 						{
 							auto StrongThis = WeakThisCap.Get();
-							StrongThis->OnPingResultComplete(RegionId, NumTestsPerRegion, Result);
+							StrongThis->OnPingResultComplete(RegionId, NumTestsPerRegion, InResult);
 							if (StrongThis->AreAllRegionsComplete())
 							{
+								EQosCompletionResult Result = EQosCompletionResult::Success;
 								StrongThis->CalculatePingAverages();
-								InCompletionDelegate.ExecuteIfBound(EQosCompletionResult::Success, StrongThis->Datacenters);
+								StrongThis->EndAnalytics(Result);
+								InCompletionDelegate.ExecuteIfBound(Result, StrongThis->Datacenters);
 								StrongThis->bInProgress = false;
 							}
 						}
@@ -202,6 +209,14 @@ void UQosEvaluator::PingRegionServers(const FQosParams& InParams, const FOnQosSe
 					bDidNothing = false;
 				}
 			}
+			else
+			{
+				UE_LOG(LogQos, Verbose, TEXT("Nothing to ping [%s]"), *RegionId);
+			}
+		}
+		else
+		{
+			UE_LOG(LogQos, Verbose, TEXT("Region disabled [%s]"), *Region.Region.RegionId);
 		}
 	}
 
@@ -567,7 +582,7 @@ void UQosEvaluator::OnPingResultComplete(const FString& RegionId, int32 NumTests
 
 			if (QosStats.IsValid())
 			{
-				QosStats->RecordQosAttempt(RegionId, PingInMs, bSuccess);
+				QosStats->RecordQosAttempt(RegionId, Result.ResolvedAddress, PingInMs, bSuccess);
 			}
 
 			if (Region.PingResults.Num() == NumTests)

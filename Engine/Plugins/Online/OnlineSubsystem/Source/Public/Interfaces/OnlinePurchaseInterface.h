@@ -20,24 +20,28 @@ public:
 	 * @param InNamespace namespace of offer to be purchased
 	 * @param InOfferId id of offer to be purchased
 	 * @param InQuantity number to purchase
+	 * @param bInIsConsumable is the offer consumable or one time purchase
 	 */
-	void AddPurchaseOffer(const FOfferNamespace& InNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity)
+	void AddPurchaseOffer(const FOfferNamespace& InNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity, bool bInIsConsumable = true)
 	{ 
-		PurchaseOffers.Add(FPurchaseOfferEntry(InNamespace, InOfferId, InQuantity)); 
+		PurchaseOffers.Add(FPurchaseOfferEntry(InNamespace, InOfferId, InQuantity, bInIsConsumable));
 	}
 	/**
 	 * Single offer entry for purchase 
 	 */
 	struct FPurchaseOfferEntry
 	{
-		FPurchaseOfferEntry(const FOfferNamespace& InOfferNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity)
+		FPurchaseOfferEntry(const FOfferNamespace& InOfferNamespace, const FUniqueOfferId& InOfferId, int32 InQuantity, bool bInIsConsumable)
 			: OfferNamespace(InOfferNamespace)
 			, OfferId(InOfferId)
 			, Quantity(InQuantity)
 		{ }
 
+		/** Namespace in which the offer resides */
 		FOfferNamespace OfferNamespace;
+		/** Platform specific offer id (defined on backend) */
 		FUniqueOfferId OfferId;
+		/** Number of offers of this type to purchase */
 		int32 Quantity;
 	};	
 	/** List of offers being purchased */
@@ -47,24 +51,27 @@ public:
 /**
  * State of a purchase transaction
  */
-namespace EPurchaseTransactionState
+enum class EPurchaseTransactionState : uint8
 {
-	enum Type
-	{
-		/** processing has not started on the purchase */
-		NotStarted,
-		/** currently processing the purchase */
-		Processing,
-		/** purchase completed successfully */
-		Purchased,
-		/** purchase completed but failed */
-		Failed,
-		/** purchase canceled by user */
-		Canceled,
-		/** prior purchase that has been restored */
-		Restored
-	};
-}
+	/** processing has not started on the purchase */
+	NotStarted,
+	/** currently processing the purchase */
+	Processing,
+	/** purchase completed successfully */
+	Purchased,
+	/** purchase completed but failed */
+	Failed,
+	/** purchase has been deferred (neither failed nor completed) */
+	Deferred,
+	/** purchase canceled by user */
+	Canceled,
+	/** prior purchase that has been restored */
+	Restored,
+	/** purchase failed as not allowed */
+	NotAllowed,
+	/** purchase failed as invalid */
+	Invalid
+};
 
 /**
  * Receipt result from checkout
@@ -131,7 +138,7 @@ public:
 	/** Unique Id for this transaction/order */
 	FString TransactionId;
 	/** Current state of the purchase */
-	EPurchaseTransactionState::Type TransactionState;
+	EPurchaseTransactionState TransactionState;
 
 	/** List of offers that were purchased */
 	TArray<FReceiptOfferEntry> ReceiptOffers;
@@ -187,7 +194,16 @@ public:
 	 * @param Delegate completion callback (guaranteed to be called)
 	 */
 	virtual void Checkout(const FUniqueNetId& UserId, const FPurchaseCheckoutRequest& CheckoutRequest, const FOnPurchaseCheckoutComplete& Delegate) = 0;
-
+	
+	/**
+	 * Finalizes a purchase with the supporting platform
+	 * Acknowledges that the purchase has been properly redeemed by the application
+	 *
+	 * @param UserId user where the purchase was made
+	 * @param ReceiptId purchase id for this platform
+	 */
+	virtual void FinalizePurchase(const FUniqueNetId& UserId, const FString& ReceiptId) = 0;
+	
 	/**
 	 * Initiate the checkout process for obtaining offers via code redemption
 	 *
@@ -201,9 +217,10 @@ public:
 	 * Query for all of the user's receipts from prior purchases
 	 *
 	 * @param UserId user initiating the request
+	 * @param bRestoreReceipts initiate recovery of any receipts on the specific platform
 	 * @param Delegate completion callback (guaranteed to be called)
 	 */
-	virtual void QueryReceipts(const FUniqueNetId& UserId, const FOnQueryReceiptsComplete& Delegate) = 0;
+	virtual void QueryReceipts(const FUniqueNetId& UserId, bool bRestoreReceipts, const FOnQueryReceiptsComplete& Delegate) = 0;
 
 	/**
 	 * Get list of cached receipts for user (includes transactions currently being processed)

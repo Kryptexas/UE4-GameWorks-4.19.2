@@ -96,7 +96,7 @@ void FQosDatacenterStats::RecordQosAttempt(const FOnlineSessionSearchResult& Sea
 		QosData.NumSuccessAttempts += bSuccess ? 1 : 0;
 
 		FQosStats_QosSearchResult& NewSearchResult = *new (QosData.SearchResults) FQosStats_QosSearchResult();
-		NewSearchResult.OwnerId = SearchResult.Session.OwningUserId;
+		NewSearchResult.OwnerId = SearchResult.Session.OwningUserId.IsValid() ? SearchResult.Session.OwningUserId->ToString() : TEXT("Unknown");
 		NewSearchResult.PingInMs = SearchResult.PingInMs;
 		NewSearchResult.bIsValid = SearchResult.IsValid();
 
@@ -108,7 +108,7 @@ void FQosDatacenterStats::RecordQosAttempt(const FOnlineSessionSearchResult& Sea
 	}
 }
 
-void FQosDatacenterStats::RecordQosAttempt(const FString& Region, int32 PingInMs, bool bSuccess)
+void FQosDatacenterStats::RecordQosAttempt(const FString& Region, const FString& OwnerId, int32 PingInMs, bool bSuccess)
 {
 	if (bAnalyticsInProgress)
 	{
@@ -116,7 +116,7 @@ void FQosDatacenterStats::RecordQosAttempt(const FString& Region, int32 PingInMs
 		QosData.NumSuccessAttempts += bSuccess ? 1 : 0;
 
 		FQosStats_QosSearchResult& NewSearchResult = *new (QosData.SearchResults) FQosStats_QosSearchResult();
-		NewSearchResult.OwnerId = nullptr;
+		NewSearchResult.OwnerId = OwnerId;
 		NewSearchResult.PingInMs = PingInMs;
 		NewSearchResult.DatacenterId = Region;
 		NewSearchResult.bIsValid = true;
@@ -205,7 +205,7 @@ void FQosDatacenterStats::ParseQosResults(TSharedPtr<IAnalyticsProvider>& Analyt
 		for (auto& SearchResult : QosData.SearchResults)
 		{
 			SearchDetails += FString::Printf(TEXT("{\"OwnerId\":\"%s\", \"RegionId\":\"%s\", \"PingInMs\":%d, \"bIsValid\":%s},"),
-				SearchResult.OwnerId.IsValid() ? *SearchResult.OwnerId->ToString() : TEXT("Unknown"),
+				*SearchResult.OwnerId,
 				*SearchResult.DatacenterId,
 				SearchResult.PingInMs,
 				SearchResult.bIsValid ? TEXT("true") : TEXT("false")

@@ -34,7 +34,7 @@ class FOnlineVoiceSteam : public IOnlineVoice
 	TArray<FRemoteTalker> RemoteTalkers;
 	/** Remote players locally muted explicitly */
 	TArray<FUniqueNetIdSteam> SystemMuteList;
-	/** Remote players locally muted */
+	/** Remote players locally muted (super set of SystemMuteList) */
 	TArray<FUniqueNetIdSteam> MuteList;
 
 	/** Time to wait for new data before triggering "not talking" */
@@ -54,8 +54,21 @@ class FOnlineVoiceSteam : public IOnlineVoice
 
 	/**
 	 * Is a given id presently muted (either by system mute or game server)
+	 *
+	 * @param UniqueId the net id to query
+	 *
+	 * @return true if the net id is muted at all, false otherwise
 	 */
 	bool IsLocallyMuted(const FUniqueNetId& UniqueId) const;
+
+	/**
+	 * Does a given id exist in the system wide mute list
+	 *
+	 * @param UniqueId the net id to query
+	 *
+	 * @return true if the net id is on the system wide mute list, false otherwise
+	 */
+	bool IsSystemWideMuted(const FUniqueNetId& UniqueId) const;
 
 PACKAGE_SCOPE:
 	FOnlineVoiceSteam() :

@@ -7,6 +7,7 @@ public class GameCircleRuntimeSettings : ModuleRules
 	public GameCircleRuntimeSettings(TargetInfo Target)
 	{
 		BinariesSubFolder = "Android";
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]

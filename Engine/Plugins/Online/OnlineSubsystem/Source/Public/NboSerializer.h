@@ -4,8 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Misc/Guid.h"
-#include "OnlineKeyValuePair.h"
 #include "OnlineSessionSettings.h"
+#include "OnlineKeyValuePair.h"
 #include "IPAddress.h"
 
 /**

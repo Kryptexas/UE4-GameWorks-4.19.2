@@ -9,6 +9,7 @@ namespace UnrealBuildTool.Rules
 		public OnlineSubsystemGameCircle(TargetInfo Target)
 		{
 			Definitions.Add("ONLINESUBSYSTEMGAMECIRCLE_PACKAGE=1");
+			PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 			PrivateIncludePaths.AddRange(
 				new string[] {

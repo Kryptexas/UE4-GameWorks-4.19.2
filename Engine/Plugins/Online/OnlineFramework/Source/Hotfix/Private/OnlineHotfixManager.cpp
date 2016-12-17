@@ -83,6 +83,8 @@ void UOnlineHotfixManager::PostInitProperties()
 	// So we only try to apply files for this platform
 	PlatformPrefix = DebugPrefix + ANSI_TO_TCHAR(FPlatformProperties::PlatformName());
 	PlatformPrefix += TEXT("_");
+	// Server prefix
+	ServerPrefix = DebugPrefix + TEXT("DedicatedServer");
 	// Build the default prefix too
 	DefaultPrefix = DebugPrefix + TEXT("Default");
 
@@ -160,60 +162,67 @@ struct FHotfixFileSortPredicate
 	struct FHotfixFileNameSortPredicate
 	{
 		const FString PlatformPrefix;
+		const FString ServerPrefix;
 		const FString DefaultPrefix;
 
-		FHotfixFileNameSortPredicate(const FString& InPlatformPrefix, const FString& InDefaultPrefix) :
+		FHotfixFileNameSortPredicate(const FString& InPlatformPrefix, const FString& InServerPrefix, const FString& InDefaultPrefix) :
 			PlatformPrefix(InPlatformPrefix),
+			ServerPrefix(InServerPrefix),
 			DefaultPrefix(InDefaultPrefix)
 		{
 		}
 
+		int32 GetPriorityForCompare(const FString& HotfixName) const
+		{
+			// Non-ini files are applied last
+			int32 Priority = 5;
+			
+			if (HotfixName.EndsWith(TEXT("INI")))
+			{
+				// Defaults are applied first
+				if (HotfixName.StartsWith(DefaultPrefix))
+				{
+					Priority = 1;
+				}
+				// Server trumps default
+				else if (HotfixName.StartsWith(ServerPrefix))
+				{
+					Priority = 2;
+				}
+				// Platform trumps server
+				else if (HotfixName.StartsWith(PlatformPrefix))
+				{
+					Priority = 3;
+				}
+				// Other INIs whitelisted in game override of WantsHotfixProcessing will trump all other INIs
+				else
+				{
+					Priority = 4;
+				}
+			}
+
+			return Priority;
+		}
+
 		bool Compare(const FString& A, const FString& B) const
 		{
-			bool bAIsIni = A.EndsWith(TEXT("INI"));
-			bool bBIsIni = B.EndsWith(TEXT("INI"));
-			if (bAIsIni && bBIsIni)
+			int32 APriority = GetPriorityForCompare(A);
+			int32 BPriority = GetPriorityForCompare(B);
+			if (APriority != BPriority)
 			{
-				bool bAStartsWithDefault = A.StartsWith(DefaultPrefix);
-				bool bBStartsWithDefault = B.StartsWith(DefaultPrefix);
-				bool bAStartsWithPlatformName = A.StartsWith(PlatformPrefix);
-				bool bBStartsWithPlatformName = B.StartsWith(PlatformPrefix);
-				// Sort any file with Default in front of the Platform version so they apply in correct order
-				if (bAStartsWithDefault && bBStartsWithPlatformName)
-				{
-					return true;
-				}
-				else if (bAStartsWithPlatformName && bBStartsWithDefault)
-				{
-					return false;
-				}
-				// Sort any Default/Platform INIs before other INIs
-				else if ((bAStartsWithDefault || bAStartsWithPlatformName) && !(bBStartsWithDefault || bBStartsWithPlatformName))
-				{
-					return true;
-				}
-				else if (!(bAStartsWithDefault || bAStartsWithPlatformName) && (bBStartsWithDefault || bBStartsWithPlatformName))
-				{
-					return false;
-				}
+				return APriority < BPriority;
 			}
-			// Sort all INI files before non-INI files
-			else if (bAIsIni && !bBIsIni)
+			else
 			{
-				return true;
+				// Fall back to sort by the string order if both have same priority
+				return A < B;
 			}
-			else if (!bAIsIni && bBIsIni)
-			{
-				return false;
-			}
-			// Sort by the string order
-			return A < B;
 		}
 	};
 	FHotfixFileNameSortPredicate FileNameSorter;
 
-	FHotfixFileSortPredicate(const FString& InPlatformPrefix, const FString& InDefaultPrefix) :
-		FileNameSorter(InPlatformPrefix, InDefaultPrefix)
+	FHotfixFileSortPredicate(const FString& InPlatformPrefix, const FString& InServerPrefix, const FString& InDefaultPrefix) :
+		FileNameSorter(InPlatformPrefix, InServerPrefix, InDefaultPrefix)
 	{
 	}
 
@@ -242,7 +251,7 @@ void UOnlineHotfixManager::OnEnumerateFilesComplete(bool bWasSuccessful)
 		// Reduce the set of work to just the files that changed since last run
 		BuildHotfixFileListDeltas();
 		// Sort after filtering so that the comparison below doesn't fail to different order from the server
-		ChangedHotfixFileList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(PlatformPrefix, DefaultPrefix));
+		ChangedHotfixFileList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(PlatformPrefix, ServerPrefix, DefaultPrefix));
 		// Perform any undo operations needed
 		if (ChangedHotfixFileList.Num() > 0 || RemovedHotfixFileList.Num() > 0)
 		{
@@ -520,7 +529,25 @@ bool UOnlineHotfixManager::WantsHotfixProcessing(const FCloudFileHeader& FileHea
 	const FString Extension = FPaths::GetExtension(FileHeader.FileName);
 	if (Extension == TEXT("INI"))
 	{
-		return FileHeader.FileName.StartsWith(PlatformPrefix) || FileHeader.FileName.StartsWith(DefaultPrefix);
+		bool bIsServerHotfix = FileHeader.FileName.StartsWith(ServerPrefix);
+		bool bWantsServerHotfix = IsRunningDedicatedServer() && bIsServerHotfix;
+		bool bWantsDefaultHotfix = FileHeader.FileName.StartsWith(DefaultPrefix);
+		bool bWantsPlatformHotfix = FileHeader.FileName.StartsWith(PlatformPrefix);
+
+		if (bWantsPlatformHotfix)
+		{
+			UE_LOG(LogHotfixManager, Verbose, TEXT("Using platform hotfix %s"), * FileHeader.FileName);
+		}
+		else if (bWantsServerHotfix)
+		{
+			UE_LOG(LogHotfixManager, Verbose, TEXT("Using server hotfix %s"), * FileHeader.FileName);
+		}
+		else if (bWantsDefaultHotfix)
+		{
+			UE_LOG(LogHotfixManager, Verbose, TEXT("Using default hotfix %s"), * FileHeader.FileName);
+		}
+
+		return bWantsPlatformHotfix || bWantsServerHotfix || bWantsDefaultHotfix;
 	}
 	else if (Extension == TEXT("PAK"))
 	{
@@ -753,7 +780,7 @@ bool UOnlineHotfixManager::HotfixPakFile(const FCloudFileHeader& FileHeader)
 			}
 		}
 		// Sort the INIs so they are processed consistently
-		IniList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(PlatformPrefix, DefaultPrefix));
+		IniList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(PlatformPrefix, ServerPrefix, DefaultPrefix));
 		// Now process the INIs in sorted order
 		for (auto& IniName : IniList)
 		{
@@ -990,6 +1017,8 @@ struct FHotfixManagerExec :
 			FCloudFileHeader Header;
 			Header.FileName = TEXT("SomeRandom.ini");
 			TestList.Add(Header);
+			Header.FileName = TEXT("DedicatedServerGame.ini");
+			TestList.Add(Header);
 			Header.FileName = TEXT("pakchunk1-PS4_P.pak");
 			TestList.Add(Header);
 			Header.FileName = TEXT("EN_Game.locres");
@@ -1006,7 +1035,9 @@ struct FHotfixManagerExec :
 			TestList.Add(Header);
 			Header.FileName = TEXT("AnotherRandom.ini");
 			TestList.Add(Header);
-			TestList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(TEXT("PS4_"), TEXT("Default")));
+			Header.FileName = TEXT("DedicatedServerEngine.ini");
+			TestList.Add(Header);
+			TestList.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(TEXT("PS4_"), TEXT("DedicatedServer"), TEXT("Default")));
 
 			UE_LOG(LogHotfixManager, Log, TEXT("Hotfixing sort is:"));
 			for (auto& FileHeader : TestList)
@@ -1018,10 +1049,12 @@ struct FHotfixManagerExec :
 			TestList2.Add(TEXT("SomeRandom.ini"));
 			TestList2.Add(TEXT("DefaultGame.ini"));
 			TestList2.Add(TEXT("PS4_DefaultEngine.ini"));
+			TestList2.Add(TEXT("DedicatedServerEngine.ini"));
+			TestList2.Add(TEXT("DedicatedServerGame.ini"));
 			TestList2.Add(TEXT("DefaultEngine.ini"));
 			TestList2.Add(TEXT("PS4_DefaultGame.ini"));
 			TestList2.Add(TEXT("AnotherRandom.ini"));
-			TestList2.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(TEXT("PS4_"), TEXT("Default")));
+			TestList2.Sort<FHotfixFileSortPredicate>(FHotfixFileSortPredicate(TEXT("PS4_"), TEXT("DedicatedServer"), TEXT("Default")));
 
 			UE_LOG(LogHotfixManager, Log, TEXT("Hotfixing PAK INI file sort is:"));
 			for (auto& IniName : TestList2)

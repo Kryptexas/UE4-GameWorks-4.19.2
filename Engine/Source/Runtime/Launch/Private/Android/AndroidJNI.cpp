@@ -9,9 +9,13 @@
 #include "AndroidInputInterface.h"
 #include "Widgets/Input/IVirtualKeyboardEntry.h"
 #include "UnrealEngine.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/FeedbackContext.h"
+
+THIRD_PARTY_INCLUDES_START
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
+THIRD_PARTY_INCLUDES_END
 
 #define JNI_CURRENT_VERSION JNI_VERSION_1_6
 
@@ -31,7 +35,7 @@ FOnActivityResult FJavaWrapper::OnActivityResultDelegate;
 //////////////////////////////////////////////////////////////////////////
 
 #if UE_BUILD_SHIPPING
-// always clear any exceptions in SHipping
+// always clear any exceptions in Shipping
 #define CHECK_JNI_RESULT(Id) if (Id == 0) { Env->ExceptionClear(); }
 #else
 #define CHECK_JNI_RESULT(Id) \
@@ -41,6 +45,8 @@ if (Id == 0) \
 	else { Env->ExceptionDescribe(); checkf(Id != 0, TEXT("Failed to find " #Id)); } \
 }
 #endif
+
+#define CHECK_JNI_METHOD(Id) checkf(Id != nullptr, TEXT("Failed to find " #Id));
 
 void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 {
@@ -89,6 +95,11 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	InputDeviceInfo_Name = FJavaWrapper::FindField(Env, InputDeviceInfoClass, "name", "Ljava/lang/String;", bIsOptional);
 	InputDeviceInfo_Descriptor = FJavaWrapper::FindField(Env, InputDeviceInfoClass, "descriptor", "Ljava/lang/String;", bIsOptional);
 
+	/** GooglePlay services */
+	FindGooglePlayMethods(Env);
+	/** GooglePlay billing services */
+	FindGooglePlayBillingMethods(Env);
+
 	// get field IDs for LaunchNotificationClass class members
 	jclass localLaunchNotificationClass = FindClass(Env, "com/epicgames/ue4/GameActivity$LaunchNotification", bIsOptional);
 	LaunchNotificationClass = (jclass)Env->NewGlobalRef(localLaunchNotificationClass);
@@ -99,6 +110,16 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 
 	// the rest are optional
 	bIsOptional = true;
+
+	// SurfaceView functionality for view scaling on some devices
+	AndroidThunkJava_UseSurfaceViewWorkaround = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_UseSurfaceViewWorkaround", "()V", bIsOptional);
+	AndroidThunkJava_SetDesiredViewSize = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_SetDesiredViewSize", "(II)V", bIsOptional);
+}
+
+void FJavaWrapper::FindGooglePlayMethods(JNIEnv* Env)
+{
+	bool bIsOptional = true;
+
 	// @todo split GooglePlay
 	//	GoogleServicesClassID = FindClass(Env, "com/epicgames/ue4/GoogleServices", bIsOptional);
 	GoogleServicesClassID = GameActivityClassID;
@@ -112,20 +133,27 @@ void FJavaWrapper::FindClassesAndMethods(JNIEnv* Env)
 	AndroidThunkJava_ShowInterstitialAd = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_ShowInterstitialAd", "()V", bIsOptional);
 	AndroidThunkJava_GoogleClientConnect = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_GoogleClientConnect", "()V", bIsOptional);
 	AndroidThunkJava_GoogleClientDisconnect = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_GoogleClientDisconnect", "()V", bIsOptional);
-
+}
+void FJavaWrapper::FindGooglePlayBillingMethods(JNIEnv* Env)
+{
 	// In app purchase functionality
+	bool bSupportsInAppPurchasing = false;
+	if (!GConfig->GetBool(TEXT("OnlineSubsystemGooglePlay.Store"), TEXT("bSupportsInAppPurchasing"), bSupportsInAppPurchasing, GEngineIni))
+	{
+		FPlatformMisc::LowLevelOutputDebugString(TEXT("[JNI] - Failed to determine if app purchasing is enabled!"));
+	}
+	bool bIsStoreOptional = !bSupportsInAppPurchasing;
+
 	jclass localStringClass = Env->FindClass("java/lang/String");
 	JavaStringClass = (jclass)Env->NewGlobalRef(localStringClass);
 	Env->DeleteLocalRef(localStringClass);
-	AndroidThunkJava_IapSetupService = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapSetupService", "(Ljava/lang/String;)V", bIsOptional);
-	AndroidThunkJava_IapQueryInAppPurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapQueryInAppPurchases", "([Ljava/lang/String;[Z)Z", bIsOptional);
-	AndroidThunkJava_IapBeginPurchase = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapBeginPurchase", "(Ljava/lang/String;Z)Z", bIsOptional);
-	AndroidThunkJava_IapIsAllowedToMakePurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapIsAllowedToMakePurchases", "()Z", bIsOptional);
-	AndroidThunkJava_IapRestorePurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapRestorePurchases", "([Ljava/lang/String;[Z)Z", bIsOptional);
-
-	// SurfaceView functionality for view scaling on some devices
-	AndroidThunkJava_UseSurfaceViewWorkaround = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_UseSurfaceViewWorkaround", "()V", bIsOptional);
-	AndroidThunkJava_SetDesiredViewSize = FindMethod(Env, GameActivityClassID, "AndroidThunkJava_SetDesiredViewSize", "(II)V", bIsOptional);
+	AndroidThunkJava_IapSetupService = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapSetupService", "(Ljava/lang/String;)V", bIsStoreOptional);
+	AndroidThunkJava_IapQueryInAppPurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapQueryInAppPurchases", "([Ljava/lang/String;)Z", bIsStoreOptional);
+	AndroidThunkJava_IapBeginPurchase = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapBeginPurchase", "(Ljava/lang/String;)Z", bIsStoreOptional);
+	AndroidThunkJava_IapIsAllowedToMakePurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapIsAllowedToMakePurchases", "()Z", bIsStoreOptional);
+	AndroidThunkJava_IapRestorePurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapRestorePurchases", "([Ljava/lang/String;[Z)Z", bIsStoreOptional);
+	AndroidThunkJava_IapConsumePurchase = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapConsumePurchase", "(Ljava/lang/String;)Z", bIsStoreOptional);
+	AndroidThunkJava_IapQueryExistingPurchases = FindMethod(Env, GoogleServicesClassID, "AndroidThunkJava_IapQueryExistingPurchases", "()Z", bIsStoreOptional);
 }
 
 jclass FJavaWrapper::FindClass(JNIEnv* Env, const ANSICHAR* ClassName, bool bIsOptional)
@@ -273,6 +301,8 @@ jmethodID FJavaWrapper::AndroidThunkJava_IapQueryInAppPurchases;
 jmethodID FJavaWrapper::AndroidThunkJava_IapBeginPurchase;
 jmethodID FJavaWrapper::AndroidThunkJava_IapIsAllowedToMakePurchases;
 jmethodID FJavaWrapper::AndroidThunkJava_IapRestorePurchases;
+jmethodID FJavaWrapper::AndroidThunkJava_IapQueryExistingPurchases;
+jmethodID FJavaWrapper::AndroidThunkJava_IapConsumePurchase;
 
 jmethodID FJavaWrapper::AndroidThunkJava_UseSurfaceViewWorkaround;
 jmethodID FJavaWrapper::AndroidThunkJava_SetDesiredViewSize;
@@ -800,34 +830,51 @@ void AndroidThunkCpp_Iap_SetupIapService(const FString& InProductKey)
 	}
 }
 
-bool AndroidThunkCpp_Iap_QueryInAppPurchases(const TArray<FString>& ProductIDs, const TArray<bool>& bConsumable)
+bool AndroidThunkCpp_Iap_QueryInAppPurchases(const TArray<FString>& ProductIDs)
 {
-	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_QueryInAppPurchases");
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("[JNI] - AndroidThunkCpp_Iap_QueryInAppPurchases"));
 	bool bResult = false;
 
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
+		CHECK_JNI_METHOD(FJavaWrapper::AndroidThunkJava_IapQueryInAppPurchases);
+
 		// Populate some java types with the provided product information
 		jobjectArray ProductIDArray = (jobjectArray)Env->NewObjectArray(ProductIDs.Num(), FJavaWrapper::JavaStringClass, NULL);
-		jbooleanArray ConsumeArray = (jbooleanArray)Env->NewBooleanArray(ProductIDs.Num());
-
-		jboolean* ConsumeArrayValues = Env->GetBooleanArrayElements(ConsumeArray, 0);
 		for (uint32 Param = 0; Param < ProductIDs.Num(); Param++)
 		{
 			jstring StringValue = Env->NewStringUTF(TCHAR_TO_UTF8(*ProductIDs[Param]));
 			Env->SetObjectArrayElement(ProductIDArray, Param, StringValue);
 			Env->DeleteLocalRef(StringValue);
-
-			ConsumeArrayValues[Param] = bConsumable[Param];
 		}
-		Env->ReleaseBooleanArrayElements(ConsumeArray, ConsumeArrayValues, 0);
 
 		// Execute the java code for this operation
-		bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IapQueryInAppPurchases, ProductIDArray, ConsumeArray);
+		bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IapQueryInAppPurchases, ProductIDArray);
 		
 		// clean up references
 		Env->DeleteLocalRef(ProductIDArray);
-		Env->DeleteLocalRef(ConsumeArray);
+	}
+
+	return bResult;
+}
+
+bool AndroidThunkCpp_Iap_QueryInAppPurchases(const TArray<FString>& ProductIDs, const TArray<bool>& bConsumable)
+{
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidThunkCpp_Iap_QueryInAppPurchases DEPRECATED, won't use consumables array"));
+	return AndroidThunkCpp_Iap_QueryInAppPurchases(ProductIDs);
+}
+
+bool AndroidThunkCpp_Iap_BeginPurchase(const FString& ProductID)
+{
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[JNI] - AndroidThunkCpp_Iap_BeginPurchase %s"), *ProductID);
+	bool bResult = false;
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		CHECK_JNI_METHOD(FJavaWrapper::AndroidThunkJava_IapBeginPurchase);
+
+		jstring ProductIdJava = Env->NewStringUTF(TCHAR_TO_UTF8(*ProductID));
+		bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IapBeginPurchase, ProductIdJava);
+		Env->DeleteLocalRef(ProductIdJava);
 	}
 
 	return bResult;
@@ -835,13 +882,44 @@ bool AndroidThunkCpp_Iap_QueryInAppPurchases(const TArray<FString>& ProductIDs, 
 
 bool AndroidThunkCpp_Iap_BeginPurchase(const FString& ProductID, const bool bConsumable)
 {
-	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_BeginPurchase");
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("AndroidThunkCpp_Iap_BeginPurchase DEPRECATED, won't use consumable flag"));
+	return AndroidThunkCpp_Iap_BeginPurchase(ProductID);
+}
+
+bool AndroidThunkCpp_Iap_ConsumePurchase(const FString& ProductToken)
+{
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[JNI] - AndroidThunkCpp_Iap_ConsumePurchase %s"), *ProductToken);
+	
+	bool bResult = false;
+	if (!ProductToken.IsEmpty())
+	{
+		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+		{
+			CHECK_JNI_METHOD(FJavaWrapper::AndroidThunkJava_IapConsumePurchase);
+
+			jstring ProductTokenJava = Env->NewStringUTF(TCHAR_TO_UTF8(*ProductToken));
+			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[JNI] - AndroidThunkCpp_Iap_ConsumePurchase BEGIN"));
+			bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IapConsumePurchase, ProductTokenJava);
+			//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[JNI] - AndroidThunkCpp_Iap_ConsumePurchase END"));
+			Env->DeleteLocalRef(ProductTokenJava);
+		}
+	}
+
+	return bResult;
+}
+
+bool AndroidThunkCpp_Iap_QueryExistingPurchases()
+{
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[JNI] - AndroidThunkCpp_Iap_QueryExistingPurchases"));
+	
 	bool bResult = false;
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		jstring ProductIdJava = Env->NewStringUTF(TCHAR_TO_UTF8(*ProductID));
-		bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IapBeginPurchase, ProductIdJava, bConsumable);
-		Env->DeleteLocalRef(ProductIdJava);
+		CHECK_JNI_METHOD(FJavaWrapper::AndroidThunkJava_IapQueryExistingPurchases);
+
+		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[JNI] - AndroidThunkCpp_Iap_QueryExistingPurchases BEGIN"));
+		bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IapQueryExistingPurchases);
+		//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[JNI] - AndroidThunkCpp_Iap_QueryExistingPurchases END"));
 	}
 
 	return bResult;
@@ -849,10 +927,12 @@ bool AndroidThunkCpp_Iap_BeginPurchase(const FString& ProductID, const bool bCon
 
 bool AndroidThunkCpp_Iap_IsAllowedToMakePurchases()
 {
-	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_IsAllowedToMakePurchases");
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("[JNI] - AndroidThunkCpp_Iap_IsAllowedToMakePurchases"));
 	bool bResult = false;
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
+		CHECK_JNI_METHOD(FJavaWrapper::AndroidThunkJava_IapIsAllowedToMakePurchases);
+
 		bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GoogleServicesThis, FJavaWrapper::AndroidThunkJava_IapIsAllowedToMakePurchases);
 	}
 	return bResult;
@@ -860,11 +940,13 @@ bool AndroidThunkCpp_Iap_IsAllowedToMakePurchases()
 
 bool AndroidThunkCpp_Iap_RestorePurchases(const TArray<FString>& ProductIDs, const TArray<bool>& bConsumable)
 {
-	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_RestorePurchases");
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("[JNI] - AndroidThunkCpp_Iap_RestorePurchases"));
 	bool bResult = false;
 
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
+		CHECK_JNI_METHOD(FJavaWrapper::AndroidThunkJava_IapRestorePurchases);
+
 		// Populate some java types with the provided product information
 		jobjectArray ProductIDArray = (jobjectArray)Env->NewObjectArray(ProductIDs.Num(), FJavaWrapper::JavaStringClass, NULL);
 		jbooleanArray ConsumeArray = (jbooleanArray)Env->NewBooleanArray(ProductIDs.Num());
@@ -1001,12 +1083,12 @@ bool AndroidThunkCpp_HasActiveWiFiConnection()
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 {
-	FPlatformMisc::LowLevelOutputDebugString(L"In the JNI_OnLoad function");
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("In the JNI_OnLoad function"));
 
 	JNIEnv* Env = NULL;
 	InJavaVM->GetEnv((void **)&Env, JNI_CURRENT_VERSION);
 
-	// if you have problems with stuff being missing esspecially in distribution builds then it could be because proguard is stripping things from java
+	// if you have problems with stuff being missing especially in distribution builds then it could be because proguard is stripping things from java
 	// check proguard-project.txt and see if your stuff is included in the exceptions
 	GJavaVM = InJavaVM;
 	FAndroidApplication::InitializeJavaEnv(GJavaVM, JNI_CURRENT_VERSION, FJavaWrapper::GameActivityThis);
@@ -1051,8 +1133,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	extern CORE_API FAndroidLaunchURLDelegate OnAndroidLaunchURL;
 	OnAndroidLaunchURL = FAndroidLaunchURLDelegate::CreateStatic(&AndroidThunkCpp_LaunchURL);
 
-	FPlatformMisc::LowLevelOutputDebugString(L"In the JNI_OnLoad function 5");
-
+	FPlatformMisc::LowLevelOutputDebugString(TEXT("In the JNI_OnLoad function 5"));
 
 	return JNI_CURRENT_VERSION;
 }
@@ -1067,7 +1148,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIE
 		FJavaWrapper::GameActivityThis = jenv->NewGlobalRef(thiz);
 		if (!FJavaWrapper::GameActivityThis)
 		{
-			FPlatformMisc::LowLevelOutputDebugString(L"Error setting the global GameActivity activity");
+			FPlatformMisc::LowLevelOutputDebugString(TEXT("Error setting the global GameActivity activity"));
 			check(false);
 		}
 

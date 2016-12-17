@@ -2,8 +2,11 @@
 
 #include "OnlineAsyncTaskGooglePlayLogout.h"
 #include "OnlineSubsystemGooglePlay.h"
+#include "OnlineIdentityInterfaceGooglePlay.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/game_services.h"
+THIRD_PARTY_INCLUDES_END
 
 FOnlineAsyncTaskGooglePlayLogout::FOnlineAsyncTaskGooglePlayLogout(
 	FOnlineSubsystemGooglePlay* InSubsystem,

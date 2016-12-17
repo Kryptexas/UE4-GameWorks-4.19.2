@@ -9,8 +9,11 @@
 #include "OnlineSubsystemGooglePlayPackage.h"
 
 #include <vector>
+
+THIRD_PARTY_INCLUDES_START
 #include "gpg/types.h"
 #include "gpg/player_manager.h"
+THIRD_PARTY_INCLUDES_END
 
 
 class FOnlineSubsystemGooglePlay;

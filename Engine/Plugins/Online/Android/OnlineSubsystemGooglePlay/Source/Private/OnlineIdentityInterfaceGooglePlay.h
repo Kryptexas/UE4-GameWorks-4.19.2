@@ -6,8 +6,10 @@
 #include "OnlineIdentityInterface.h"
 #include "OnlineSubsystemGooglePlayPackage.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/status.h"
 #include "gpg/player.h"
+THIRD_PARTY_INCLUDES_END
 
 class FOnlineIdentityGooglePlay :
 	public IOnlineIdentity

@@ -8,6 +8,8 @@
 #include "Containers/Queue.h"
 #include "OnlineSubsystemPackage.h"
 
+struct FOnlineError;
+
 DECLARE_DELEGATE(FNextTickDelegate);
 
 namespace OSSConsoleVariables
@@ -28,6 +30,13 @@ private:
 	 */
 	bool HandleFriendExecCommands(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar);
 	bool HandleSessionExecCommands(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar);
+	bool HandlePurchaseExecCommands(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar);
+	
+	/** Delegate fired when exec cheat related to receipts completes */
+	void OnQueryReceiptsComplete(const FOnlineError& Result, TSharedPtr<const FUniqueNetId> UserId);
+	
+	/** Dump purchase receipts for a given user id */
+	void DumpReceipts(const FUniqueNetId& UserId);
 
 protected:
 
@@ -70,6 +79,7 @@ public:
 	virtual ~FOnlineSubsystemImpl();
 
 	// IOnlineSubsystem
+	virtual void PreUnload() override;
 	virtual bool Shutdown() override;
 	virtual bool IsServer() const override;
 	virtual bool IsDedicated() const override{ return bForceDedicated || IsRunningDedicatedServer(); }

@@ -8,6 +8,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.text.DecimalFormat;
 
 import android.app.NativeActivity;
 import android.os.Bundle;
@@ -1201,12 +1202,15 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 		// Set label and starting contents
 		virtualKeyboardAlert.setTitle(Label);
+
+		// @HSL_BEGIN - Josh.May - 11/01/2016 - Ensure the input mode of the text box is set before setting the contents.
+		// configure for type of input
+		virtualKeyboardInputBox.setInputType(InputType);
+		
 		virtualKeyboardInputBox.setText("");
 		virtualKeyboardInputBox.append(Contents);
 		virtualKeyboardPreviousContents = Contents;
-
-		// configure for type of input
-		virtualKeyboardInputBox.setInputType(InputType);
+		// @HSL_END - Josh.May - 11/01/2016
 
 		_activity.runOnUiThread(new Runnable()
 		{
@@ -1652,6 +1656,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			IapStoreHelper = new GooglePlayStoreHelper(InProductKey, this, Log);
 			if (IapStoreHelper != null)
 			{
+				Log.debug("[JAVA] - AndroidThunkJava_IapSetupService - Setup started");
+			}
+			else
+			{
 				Log.debug("[JAVA] - AndroidThunkJava_IapSetupService - Failed to setup IAP service");
 			}
 		}
@@ -1664,12 +1672,10 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 	
 
 	private String[] CachedQueryProductIDs;
-	private boolean[] CachedQueryConsumables;
-	public boolean AndroidThunkJava_IapQueryInAppPurchases(String[] ProductIDs, boolean[] bConsumable)
+	public boolean AndroidThunkJava_IapQueryInAppPurchases(String[] ProductIDs)
 	{
 		Log.debug("[JAVA] - AndroidThunkJava_IapQueryInAppPurchases");
 		CachedQueryProductIDs = ProductIDs;
-		CachedQueryConsumables = bConsumable;
 
 		boolean bTriggeredQuery = false;
 		if( IapStoreHelper != null )
@@ -1681,7 +1687,7 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 				@Override
 				public void run()
 				{
-					IapStoreHelper.QueryInAppPurchases(CachedQueryProductIDs, CachedQueryConsumables);
+					IapStoreHelper.QueryInAppPurchases(CachedQueryProductIDs);
 				}
 			});
 		}
@@ -1776,13 +1782,13 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 		}
 	}
 	
-	public boolean AndroidThunkJava_IapBeginPurchase(String ProductId, boolean bConsumable)
+	public boolean AndroidThunkJava_IapBeginPurchase(String ProductId)
 	{
 		Log.debug("[JAVA] - AndroidThunkJava_IapBeginPurchase");
 		boolean bTriggeredPurchase = false;
 		if( IapStoreHelper != null )
 		{
-			bTriggeredPurchase = IapStoreHelper.BeginPurchase(ProductId, bConsumable);
+			bTriggeredPurchase = IapStoreHelper.BeginPurchase(ProductId);
 		}
 		else
 		{
@@ -1804,6 +1810,36 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 			Log.debug("[JAVA] - Store Helper is invalid");
 		}
 		return bIsAllowedToMakePurchase;
+	}
+
+	public boolean AndroidThunkJava_IapConsumePurchase(String purchaseToken)
+	{
+		Log.debug("[JAVA] - AndroidThunkJava_IapConsumePurchase " + purchaseToken);
+
+		if( IapStoreHelper != null )
+		{
+			IapStoreHelper.ConsumePurchase(purchaseToken);
+			return true;
+		}
+
+		Log.debug("[JAVA] - Store Helper is invalid");
+		return false;
+	}
+
+	public boolean AndroidThunkJava_IapQueryExistingPurchases()
+	{
+		Log.debug("[JAVA] - AndroidThunkJava_IapQueryExistingPurchases");
+		boolean bTriggeredQuery = false;
+		if( IapStoreHelper != null )
+		{
+			Log.debug("[JAVA] - AndroidThunkJava_IapQueryExistingPurchases - Kick off logic here!");
+			bTriggeredQuery = IapStoreHelper.QueryExistingPurchases();
+		}
+		else
+		{
+			Log.debug("[JAVA] - Store Helper is invalid");
+		}
+		return bTriggeredQuery;
 	}
 
 	public boolean AndroidThunkJava_IapRestorePurchases(String[] InProductIDs, boolean[] bConsumable)
@@ -2271,6 +2307,20 @@ public class GameActivity extends NativeActivity implements SurfaceHolder.Callba
 
 	public String AndroidThunkJava_GetMetaDataString(String key)
 	{
+		if (key.equals("ue4.displaymetrics.dpi"))
+		{
+			DisplayMetrics metrics = new DisplayMetrics();
+			if (android.os.Build.VERSION.SDK_INT >= 17)
+			{
+				getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
+			} else {
+				// note: not available so get what we can
+				getWindowManager().getDefaultDisplay().getMetrics(metrics);
+			}
+			String screenDPI = new DecimalFormat("###.##").format(metrics.xdpi) + "," + new DecimalFormat("###.##").format(metrics.ydpi) + "," + new DecimalFormat("###.##").format(metrics.densityDpi);
+			return screenDPI;
+		}
+		else
 		if (_bundle == null || key == null)
 		{
 			return null;

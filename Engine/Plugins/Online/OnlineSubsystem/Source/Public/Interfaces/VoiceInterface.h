@@ -340,7 +340,7 @@ public:
 	 * @param LocalUserNum the controller number of the associated user
 	 * @param UniqueId the id of the player being checked
 	 *
-	 * @return true if a member of their friends list, false otherwise
+	 * @return true if the specified user is muted, false otherwise
 	 */
 	virtual bool IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const = 0;
 

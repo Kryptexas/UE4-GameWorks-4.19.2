@@ -128,6 +128,9 @@ protected:
 	/** Has this beacon been properly logged in */
 	bool bLoggedIn;
 
+	/** True once the server has acknowledged our join intent */
+	bool bLobbyJoinAcked;
+
 	/** Session Id of the destination host */
 	FString DestSessionId;
 	

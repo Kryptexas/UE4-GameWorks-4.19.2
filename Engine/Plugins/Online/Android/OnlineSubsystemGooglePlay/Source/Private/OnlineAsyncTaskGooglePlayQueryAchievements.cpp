@@ -2,8 +2,11 @@
 
 #include "OnlineAsyncTaskGooglePlayQueryAchievements.h"
 #include "OnlineSubsystemGooglePlay.h"
+#include "OnlineAchievementsInterfaceGooglePlay.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/achievement_manager.h"
+THIRD_PARTY_INCLUDES_END
 
 FOnlineAsyncTaskGooglePlayQueryAchievements::FOnlineAsyncTaskGooglePlayQueryAchievements(
 	FOnlineSubsystemGooglePlay* InSubsystem,

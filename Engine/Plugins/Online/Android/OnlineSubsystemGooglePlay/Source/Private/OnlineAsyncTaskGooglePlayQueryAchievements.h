@@ -7,7 +7,9 @@
 #include "OnlineSubsystemGooglePlayPackage.h"
 #include "OnlineAchievementsInterface.h"
 
+THIRD_PARTY_INCLUDES_START
 #include "gpg/achievement_manager.h"
+THIRD_PARTY_INCLUDES_END
 
 class FOnlineSubsystemGooglePlay;
 

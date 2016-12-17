@@ -14,6 +14,7 @@ public class OnlineSubsystemSteam : ModuleRules
 		Definitions.Add("WITH_STEAMWORKS=" + (bSteamSDKFound ? "1" : "0"));
 
 		Definitions.Add("ONLINESUBSYSTEMSTEAM_PACKAGE=1");
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] { 

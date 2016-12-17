@@ -46,7 +46,7 @@ bool FOnlineExternalUISteam::ShowFriendsUI(int32 LocalUserNum)
 	return true;
 }
 
-bool FOnlineExternalUISteam::ShowInviteUI(int32 LocalUserNum, FName SessionMame)
+bool FOnlineExternalUISteam::ShowInviteUI(int32 LocalUserNum, FName SessionName)
 {
 	IOnlineSessionPtr SessionInt = SteamSubsystem->GetSessionInterface();
 	if (SessionInt.IsValid() && SessionInt->HasPresenceSession())

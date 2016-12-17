@@ -59,9 +59,20 @@ static TSharedPtr<IModuleInterface> LoadSubsystemModule(const FString& Subsystem
 
 void FOnlineSubsystemModule::StartupModule()
 {
+	// These should not be LoadModuleChecked because these modules might not exist
+	// Load dependent modules to ensure they will still exist during ShutdownModule.
+	// We will alwawys load these modules at the cost of extra modules loaded for the few OSS (like Null) that don't use it.
+	FModuleManager::Get().LoadModule(TEXT("HTTP"));
+	FModuleManager::Get().LoadModule(TEXT("XMPP"));
+
 	LoadDefaultSubsystem();
 	// Also load the console/platform specific OSS which might not necessarily be the default OSS instance
 	IOnlineSubsystem::GetByPlatform();
+}
+
+void FOnlineSubsystemModule::PreUnloadCallback()
+{
+	PreUnloadOnlineSubsystem();
 }
 
 void FOnlineSubsystemModule::ShutdownModule()
@@ -120,6 +131,15 @@ void FOnlineSubsystemModule::ReloadDefaultSubsystem()
 {
 	DestroyOnlineSubsystem(DefaultPlatformService);
 	LoadDefaultSubsystem();
+}
+
+void FOnlineSubsystemModule::PreUnloadOnlineSubsystem()
+{
+	// Shutdown all online subsystem instances
+	for (TMap<FName, IOnlineSubsystemPtr>::TIterator It(OnlineSubsystems); It; ++It)
+	{
+		It.Value()->PreUnload();
+	}
 }
 
 void FOnlineSubsystemModule::ShutdownOnlineSubsystem()
