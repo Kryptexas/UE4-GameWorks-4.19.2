@@ -12,7 +12,7 @@
 #include "SLevelViewport.h"
 #include "ImageUtils.h"
 #include "FileHelper.h"
-
+#include "Framework/Application/SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "VREditorActions"
 

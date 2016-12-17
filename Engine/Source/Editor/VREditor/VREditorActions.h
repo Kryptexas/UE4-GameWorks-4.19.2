@@ -2,6 +2,8 @@
 #pragma once
 
 #include "VREditorUISystem.h"
+#include "SlateTypes.h"
+#include "InputCoreTypes.h"
 
 namespace EVREditorActions
 {
