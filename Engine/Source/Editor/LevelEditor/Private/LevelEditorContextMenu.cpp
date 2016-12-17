@@ -390,7 +390,7 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().OpenMergeActor,
 					NAME_None,
 					LOCTEXT("OpenMergeActor", "Merge Actors"),
-					LOCTEXT("GoToDocsForActor_ToolTip", "Click to open the Merge Actor panel"));
+					LOCTEXT("OpenMergeActor_ToolTip", "Click to open the Merge Actor panel"));
 		}
 
 		if (GEditor->PlayWorld != NULL)

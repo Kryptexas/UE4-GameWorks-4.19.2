@@ -194,5 +194,3 @@ UEdGraphPin* UK2Node_MakeVariable::GetOutputPin() const
 {
 	return FindPinChecked(MakeVariableOutputPinName);
 }
-
-#undef LOCTEXT_NAMESPACE

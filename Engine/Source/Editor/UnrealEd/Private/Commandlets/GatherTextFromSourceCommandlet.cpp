@@ -1361,7 +1361,7 @@ void UGatherTextFromSourceCommandlet::FStringMacroDescriptor::TryParse(const FSt
 				if ( Identifier.IsEmpty() )
 				{
 					//The command doesn't have an identifier so we can't gather it
-					UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Macro doesn't have unique identifier. %s"), *SourceLocation );
+					UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("Localization macro has an empty identifier and cannot be gathered. %s"), *SourceLocation );
 					return;
 				}
 

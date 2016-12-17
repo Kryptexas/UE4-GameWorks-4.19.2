@@ -3272,7 +3272,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 						[
 							SNew(STextBlock)
 							.Font(IDetailLayoutBuilder::GetDetailFontBold())
-							.Text(LOCTEXT("FunctionNewInputArg", "New Parameter"))
+							.Text(LOCTEXT("FunctionNewParameterInputArg", "New Parameter"))
 							.Visibility(this, &FBlueprintGraphActionDetails::OnGetSectionTextVisibility, WeakInputsHeaderWidget)
 							.ShadowOffset(FVector2D(1, 1))
 						]
