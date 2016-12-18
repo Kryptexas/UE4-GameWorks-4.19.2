@@ -974,18 +974,6 @@ namespace UnrealBuildTool
 						}
 
 						// Propagate command-line options
-						if ( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2017 )
-						{
-							UBTArguments.Append(" -2017");
-						}
-						if ( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 )
-						{
-							UBTArguments.Append(" -2015");
-						}
-						if ( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013 )
-						{
-							UBTArguments.Append(" -2013");
-						}
 						if ( BuildConfiguration.bIgnoreJunk )
 						{
 							UBTArguments.Append(" -ignorejunk");
