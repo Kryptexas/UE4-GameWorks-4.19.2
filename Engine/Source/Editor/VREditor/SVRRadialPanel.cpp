@@ -3,7 +3,8 @@
 #include "SVRRadialPanel.h"
 #include "VREditorModule.h"
 #include "VREditorUISystem.h"
-
+#include "HAL/IConsoleManager.h"
+#include "Layout/LayoutUtils.h"
 
 namespace VREd
 {

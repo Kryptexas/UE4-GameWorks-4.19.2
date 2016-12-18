@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Misc/StringAssetReference.h"
+#include "Engine/Blueprint.h"
 #include "BlueprintNativeCodeGenManifest.generated.h"
 
 class FAssetData;

@@ -12,6 +12,7 @@
 #include "Widgets/SWidget.h"
 #include "Layout/Children.h"
 #include "Widgets/SPanel.h"
+#include "Widgets/Input/SButton.h"
 
 /**
  * A RadialPanel contains one child and describes how that child should be arranged on the screen.

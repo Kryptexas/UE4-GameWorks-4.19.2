@@ -16,6 +16,7 @@
 #include "ScopedTransaction.h"
 #include "ISequencerModule.h"
 #include "ActorSequenceEditorTabSummoner.h"
+#include "Widgets/Input/SButton.h"
 
 #define LOCTEXT_NAMESPACE "ActorSequenceComponentCustomization"
 

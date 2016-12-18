@@ -9,6 +9,13 @@
 #include "SSCSEditor.h"
 #include "SlateIconFinder.h"
 #include "BlueprintEditorUtils.h"
+#include "EditorStyleSet.h"
+#include "Widgets/Images/SImage.h"
+#include "Editor.h"
+#include "ScopedTransaction.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Framework/Application/SlateApplication.h"
+
 
 #define LOCTEXT_NAMESPACE "ActorSequenceEditorSummoner"
 

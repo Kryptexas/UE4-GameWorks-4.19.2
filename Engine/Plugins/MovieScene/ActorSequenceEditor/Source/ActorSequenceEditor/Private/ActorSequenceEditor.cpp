@@ -13,6 +13,8 @@
 #include "PropertyEditorModule.h"
 #include "Styling/SlateStyle.h"
 #include "WorkflowTabManager.h"
+#include "Modules/ModuleManager.h"
+#include "Widgets/Docking/SDockTab.h"
 
 
 #define LOCTEXT_NAMESPACE "ActorSequenceEditor"
