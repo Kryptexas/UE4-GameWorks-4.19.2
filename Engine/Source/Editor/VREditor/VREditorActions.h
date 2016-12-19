@@ -8,10 +8,10 @@
 namespace EVREditorActions
 {
 	//Gizmo coordinate button text starts blank before it is initialized
-	static FText GizmoCoordinateSystemText = NSLOCTEXT("GizmoCoordinateDefault", "", "");
+	static FText GizmoCoordinateSystemText;
 
 	//Gizmo mode button text starts blank before it is initialized
-	static FText GizmoModeText = NSLOCTEXT("GizmoModeDefault", "", "");;
+	static FText GizmoModeText;
 }
 
 /**
