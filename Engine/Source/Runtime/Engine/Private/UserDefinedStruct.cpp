@@ -257,7 +257,7 @@ FGuid UUserDefinedStruct::GetCustomGuid() const
 	return Guid;
 }
 
-FString GetPathPostfix(const UObject* ForObject)
+ENGINE_API FString GetPathPostfix(const UObject* ForObject)
 {
 	FString FullAssetName = ForObject->GetOutermost()->GetPathName();
 	if (FullAssetName.StartsWith(TEXT("/Temp/__TEMP_BP__"), ESearchCase::CaseSensitive))

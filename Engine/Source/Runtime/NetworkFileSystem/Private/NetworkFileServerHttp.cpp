@@ -121,7 +121,7 @@ bool FNetworkFileServerHttp::IsItReadyToAcceptConnections(void) const
 }
 
 #if UE_BUILD_DEBUG
-void lws_debugLog(int level, const char *line)
+inline void lws_debugLog(int level, const char *line)
 {
 	UE_LOG(LogFileServer, Warning, TEXT(" LibWebsocket: %s"), ANSI_TO_TCHAR(line));
 }

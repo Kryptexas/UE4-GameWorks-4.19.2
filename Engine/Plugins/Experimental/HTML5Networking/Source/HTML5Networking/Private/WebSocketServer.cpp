@@ -25,7 +25,7 @@ struct PerSessionDataServer
 static int unreal_networking_server(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len);
 
 #if !UE_BUILD_SHIPPING
-	void lws_debugLog(int level, const char *line)
+	inline void lws_debugLog(int level, const char *line)
 	{
 		UE_LOG(LogHTML5Networking, Log, TEXT("websocket server: %s"), ANSI_TO_TCHAR(line));
 	}
