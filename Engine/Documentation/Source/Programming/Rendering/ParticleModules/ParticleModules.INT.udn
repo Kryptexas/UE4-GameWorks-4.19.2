@@ -3,6 +3,7 @@ Title:Particle Module Technical Guide
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:Programmer's guide to adding new particle modules for customizing the behavior of particle systems.
 Version: 4.9
+tags:Rendering
 
 [TOC (start:2 end:3)]
 

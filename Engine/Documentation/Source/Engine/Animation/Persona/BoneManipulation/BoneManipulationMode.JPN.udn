@@ -1,44 +1,65 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3217046
+Availability:Public
 Title:Bone Manipulation モード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
-Description:アニメーション アセットをプレビューしながらボーンの平行移動または回転を有効にするペルソナのモード
+Description:Animation アセットをプレビューしながらボーンを移動または回転する Bone Manipulation モードの概要。
 Related:Engine/Content/FBX/Animations
 Related:Engine/Content/Types/SkeletalMeshes
 Related:Engine/Animation/PhysicallyDrivenAnimation
 Related:Engine/Content/Tools/MayaRiggingTool
-version:4.9
-
-**Bone Manipulation** モードはペルソナのモードの 1 つです。テクニカルアーティストはアニメーションのプレビュー中に、スケルタルメッシュのスキニング問題を確認するために一時的にボーンを平行移動したり回転することができます。
+version:4.14
+type:reference
+topic-image:bonemanipulationmode.png
 
 ![Bone Manipulation Mode](Bones_TwoViews.png)
 
-**ボーンを操作する方法**
-1. ペルソナ (Persona) でスケルタルメッシュ アセットを開きます。
-1. Bone Manipulation モードを使用するには、 **[Asset Browser (アセット ブラウザ)]** のリストからアニメーション アセットを選択します。**Skeleton** 、 **Mesh** 、 **Animation** モードからもアニメーション アセットを選択することができます。(ボーンを操作する前にアニメーションを一時停止してください)
+[Animation Editor (アニメーション エディタ)](Engine/Animation/Persona/Modes/Animation) 内の **Bone Manipulation (ボーン操作) モード** では、テクニカルアーティストはアニメーションのプレビュー中に、スケルタルメッシュのスキニング問題を調べるために一時的にボーンを移動、回転することができます。 
+Bone Manipulation モードでもうひとつ便利なのは、ボーンを移動または回転させてから (例えば、キャラクターの頭部を上下に傾ける)、 [タイムラインの記録](Engine/Animation/Sequences/Editor) オプションを使って変更されたボーンの位置に基づき新規アニメーションを作成できることです。  
 
-	![](Bones_SelectAnimation.png)
-1. **[Skeleton Tree (スケルトンツリー)]** パネルで操作するボーンを選択します。
+## ボーンを操作する
 
-	![](Bones_SelectBone.png)
-1. **[Viewport (ビューポート)]** パネルの一番上にある、ウィジェットをアクティベートするために平行移動または回転のアイコンを選択します。
+アニメーション再生中にスケルタルメッシュのボーンを操作するには以下の手順に従います。 
 
-	![Translation Widgets](Bones_Widgets.png)
-1. 表示されるウィジェットを使用して、ボーンを平行移動または回転させます。
-1. アニメーションを再生して、スキニング問題がないかを確認します。
+1. [](Engine/Content/Browser) (または [アセット ブラウザ](Engine/Animation/Persona/AssetBrowser)) で任意の Animation アセットを開きます。 
 
-平行移動や回転のウィジェットの使用に関する詳細は、[インタラクティブなトランスフォーム](Engine/Actors/Transform\#インタラクティブなトランスフォーム) を参照してください。
+1. **Animation Editor** のタイムライン上で **Pause** ボタンをクリックしてアニメーションを一時停止します。 
+
+	 ![](PauseAnimation.png)
+
+1. **[Skeleton Tree]** タブをクリックし、**[Tree View]** ウィンドウから必要なボーンを選択します。 
+
+	![](BoneSelection.png)
+
+1. [Transform ウィジェット](Engine/Actors/Transform\#インタラクティブなトランスフォーム) を使って、選択したボーンを移動 (**W** キー)、回転 (**E** キー)、またはスケーリング (**R** キー) します。 
+
+	![](ModifyBone.png)
+
+	ビューポート上部のツールバーからトランスフォーム オプションのひとつをクリックすることもできます。 
+
+1. 変更したボーンのトランスフォームでアニメーションを再生します。 
+
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	V29k8E0K2jk
+	[/PARAMLITERAL]
+	[/OBJECT]
+
+	上の動画では、2 種類のボーンを調整して、この 2 つが異なる位置にある場合にアニメーションがどのように見えるかを確認しました。 
 
 [REGION:note]
-ボーンの操作後は、別のアニメーション アセットを選択しても操作が持続するため、別のアニメーションで変更をプレビューすることができます。
+ボーンの操作後は、別のアニメーション アセットを選択しても操作が持続するため、別のアニメーションで変更をプレビューすることができます。 
+変更されたボーンは、**Animation Editor** を閉じたり、再度開くとデフォルトの移動、回転、スケーリングに戻ります。 
 [/REGION]
 
-**ボーンをデフォルトの平行移動値と回転値に戻す方法**
 
-* **スケルトンツリー** で別のボーンを選択します。
 
-[REGION:tip]
-**Bone Scaling** をキャラクターに適用した例は、セクション 1.7 の [アニメーション コンテンツ サンプル](Resources\ContentExamples\Animation) を参照してください。
-[/REGION]
+
 
 
 

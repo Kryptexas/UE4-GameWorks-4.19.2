@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3151861
 Availability:Public
 Title: 클라이언트-서버 모델
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking
@@ -51,10 +51,10 @@ GameMode 에 대한 상세 설명은, [](Gameplay/Framework/GameMode) 문서를 
 1. 클라이언트가 접속 요청을 보냅니다.
 2. 서버가 수락하면, 현재 맵을 전송합니다.
 3. 서버는 클라이언트가 이 맵을 로드할 때까지 기다립니다.
-4. 로드가 되면, 서버 로컬에서 AGameMode::PreLogin 를 호출합니다.
+4. 로드가 되면, 서버 로컬에서 AGameModeBase::PreLogin 를 호출합니다.
 	* GameMode 에 접속을 거부할 수 있는 기회를 줍니다.
-5. 수락되면, 서버는 AGameMode::Login 을 호출합니다.
+5. 수락되면, 서버는 AGameModeBase::Login 을 호출합니다.
 	* 이 함수의 역할은 PlayerController 를 만든 다음 새로 접속된 클라이언트에 리플리케이트 시킵니다. 수신되면 이 PlayerController 가 클라이언트의 접속 과정에서 견본으로 사용되던 임시 PlayerController 를 대체합니다.
-	* 여기서 APlayerController::BeginPlay 가 호출되는 것을 눈여겨 봅시다. 이 액터에서 RPC 함수를 호출하는 것은 아직 안전하지 않다는 점 참고하시구요. AGameMode::PostLogin 호출시까지 기다려야 합니다.
-6. 모든 것이 잘 돌아갔다는 가정하에 AGameMode::PostLogin 이 호출됩니다.
+	* 여기서 APlayerController::BeginPlay 가 호출되는 것을 눈여겨 봅시다. 이 액터에서 RPC 함수를 호출하는 것은 아직 안전하지 않다는 점 참고하시구요. AGameModeBase::PostLogin 호출시까지 기다려야 합니다.
+6. 모든 것이 잘 돌아갔다는 가정하에 AGameModeBase::PostLogin 이 호출됩니다.
 	* 이제 서버가 이 PlayerController 에서 RPC 함수 호출을 시작해도 안전합니다.

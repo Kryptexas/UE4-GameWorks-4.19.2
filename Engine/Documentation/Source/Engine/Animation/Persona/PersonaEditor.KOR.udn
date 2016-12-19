@@ -1,68 +1,75 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3237313
 Availability:Public
-Title:페르소나 애니메이션 에디터 참고서
+Title:애니메이션 에디터
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:애니메이션 블루프린트, 애니메이션 시퀀스, 기타 애니메이션 애셋을 미리보고 편집하는 에디터입니다.
-version: 4.9
-
+Description:애님 블루프린트, 애니메이션 시퀀스 및 기타 애니메이션 애셋을 미리보고 편집할 수 있는 에디터입니다.
+version: 4.14
+parent:Engine/Animation
+topic-image:Engine/Animation/animation_topic.png
+reference-image:UpdatedPersonaWindowAnim.gif
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Content/Tools/MayaRiggingTool
+tags:Animation
+tags:Skeleton Asset
+tags:Animation Blueprint
+tags:Skeletal Mesh
+type:landing
 
 [VAR:ModeSize]w:450 convert:false[/VAR]
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[REGION:fullwidth]
-![](UpdatedPersonaWindow.png)
+[REGION:asyncgif]
+![](UpdatedPersonaWindowAnim.gif)
 [/REGION]
 
-[TOC (start:2 end:3)]
-
-
-
 [EXCERPT:Intro]
+언리얼 엔진 4 에는 스켈레탈 애니메이션 및 **스켈레탈 메시** 작업에 쓰이는 주요 툴이 네 가지 들어있는데, 스켈레톤 에디터, 스켈레탈 메시 에디터, 애니메이션 에디터, 애니메이션 블루프린트 에디터 입니다. 이들 각각은 할당된 애셋을 편집하거나 각 애니메이션 에디터 상단의 내비게이션 버튼 넷을 사용하여 접근할 수 있습니다.
 
-[INCLUDE:Shared/Glossary/P/#Glossary_Persona]
+* **스켈레톤 에디터** 는 **스켈레탈 메시** 의 **스켈레톤** 을 확인하고 변경하는 데 사용됩니다. 여기서 조인트에 **소켓** 을 추가하거나 스켈레탈 메시의 조인트 회전 방식을 테스트할 수 있습니다.
+
+* **스켈레탈 메시 에디터** 는 **스켈레탈 메시** 의 LOD 를 임포트하고 기본 머티리얼을 할당하는 데 사용됩니다. APEX 클로딩 붙이기, 스켈레탈 메시의 바운드 변경, 심지어 특수 **섀도 피직스 애셋** 할당과 같은 작업이 가능한 곳이기도 합니다.
+
+* **애니메이션 에디터** 는 **애니메이션 시퀀스** 및 **블렌드 스페이스**, **애니메이션 몽타주** 와 같은 애니메이션 애셋 작업을 하는 데 사용됩니다. 애님 노티파이 생성, 포즈 애셋 작업, 애니메이션 시퀀스의 압축 및 타이밍 조절, 애니메이션 몽타주 빌드 등의 작업이 가능합니다.
+
+* 마지막으로 **애니메이션 블루프린트 에디터** 는 애니메이션을 언제 재생시킬지에 대한 규칙을 만드는 데 사용됩니다. 복잡한 스테이트 머신 및 다양한 블렌드를 사용하여 캐릭터에 생동감을 불어넣을 수 있습니다.
 
 [/EXCERPT:Intro]
 
-## 페르소나 열기
+[REGION:note]
+언리얼 엔진 4.14 버전 이전 애니메이션 에디터는 **Persona** (페르소나)라는 것으로 합쳐져 있었는데, 이것이 4.14 에서 네 개의 에디터로 나뉘었습니다. 그 기능은 기본적으로 같지만, 일부 인터페이스가 변경되었고, 이제 다수의 애니메이션 에디터 창을 각기 다른 상태로 여는 것이 가능해 졌습니다. 예를 들어 이제 게임 내 각 **애니메이션 시퀀스** 마다 탭을 따로 열어둘 수가 있습니다. 기존에는 하나의 탭에서 각기 다른 시퀀스로 전환을 해야 했었습니다 (이와 같은 방식은 **애셋 브라우저** 에서 **애니메이션 시퀀스** 를 선택하는 것으로 여전히 지원되기는 합니다).
+[/REGION]
 
-[REGION:fullwidth]
+<!-- [INCLUDE:Shared/Glossary/P/#Glossary_Persona] -->
+
+## 특정 애니메이션 에디터 열기
+
+[REGION:raw]
 ![](OpeningPersona.png)
 [/REGION]
 
 
-페르소나는 **콘텐츠 브라우저** 에서 애니메이션 애셋에 더블클릭하여 열 수 있습니다:
+각 애니메이션 에디터는 **콘텐츠 브라우저** 에서 해당 에디터에 연결된 애셋을 **더블클릭** 하는 것으로 열 수 있습니다:
 
-* _Animation Blueprint_ 애니메이션 블루프린트
-* _Skeleton_ 스켈레톤
-* _Skeletal Mesh_ 스켈레탈 메시
-* _AnimationSequence_ 애니메이션 시퀀스
-* _Blend Space_ 블렌드 스페이스
-* _Animation Montage_ 애니메이션 몽타주
+| 에디터 | 애셋 유형 |
+| --- | --- |
+| 스켈레톤 에디터 | 스켈레톤 애셋 |
+| 스켈레탈 메시 에디터 | 스켈레탈 메시 |
+| 애니메이션 에디터 | 애니메이션 시퀀스, 애니메이션 몽타주, 1D 블렌드 스페이스, 블렌드 스페이스, 에임 오프셋 1D, 에임 오프셋, 애니메이션 컴포짓, 포즈 애셋 |
+| 애니메이션 블루프린트 에디터 | 애니메이션 블루프린트 |
 
 [REGION:tip]
-페르소나는 콘텐츠 브라우저에서 위의 애셋 중 아무거나 우클릭한 다음 맥락 메뉴에서 **편집** 을 선택하는 것으로도 열 수 있습니다!
+또한 **콘텐츠 브라우저** 에서 위 애셋 중 하나에 **우클릭** 한 뒤 맥락 메뉴에서 **편집** 을 선택하는 것으로도 애셋에 연결된 에디터를 열 수 있습니다!
 [/REGION]
 
-## 페르소나 모드와 유저 인터페이스
+## 애니메이션 에디터 참고서
+
+각 에디터의 인터페이스와 사용법 관련 상세 정보는 각 에디터 페이지를 참고하세요:
+
+[INCLUDE:Engine/Animation/Persona/Modes#animeditors]
+
+<!--
+## 페르소나 모드 및 유저 인터페이스
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -89,21 +96,38 @@ version: 4.9
 
 각 모드는 툴을 가지고 수행하고자 하는 작업 유형에 특화되어 있습니다. 각 모드에 들어가면, 툴과 인터페이스 요소의 특정 부분만 보이고 사용할 수 있습니다. 그러나 유연성의 여지가 굉장히 많으므로, 모드 전환 없이도 다른 모드의 여러가지 작업을 하는 것도 가능합니다.
 
+
+보이든 안보이든, 각 모드별로 접할 수 있는 인터페이스의 모든 부분은 페르소나의 **창** 메뉴를 통해 사용할 수 있습니다. 패널 전체 목록은 아래와 같으며, 각 모드의 섹션에는 그 모드에서 기본적으로 사용할 수 있는 패널이 나열됩니다.
+
+* [스켈레톤 트리](Engine/Animation/Persona/SkeletonTree)
+* [애셋 브라우저](Engine/Animation/Persona/AssetBrowser)
+* [뷰포트](Engine/Animation/Persona/Viewport)
+* [모프 타겟 프리뷰어](Engine/Animation/Persona/MorphTargetPreviewer)
+* [애님 커브](Engine/Animation/Persona/AnimCurves)
+* [애니메이션 노티파이](Engine/Animation/Persona/AnimationNotifies)
+* [리타겟 매니저](Engine/Animation/Persona\BasePoseManager)
+* [애님 슬롯 매니저](Engine/Animation/AnimMontage#animslotmanager)
+* 블렌드 프로파일
+* 프리뷰 씬 세팅
+* [디테일](Engine/UI/LevelEditor/Details)
+* [애님 애셋 디테일](Engine/Animation/Persona/AnimAssetDetails)
+* [툴바](Engine/Animation/Persona/Toolbar)
+
+
+
 [REGION:note]
 아래 위치는 각 창의 기본 위치입니다. 패널의 이동에 따라 각 인터페이스 요소는 다른 위치에 나타날 수 있습니다. 어떤 패널이 무엇인지 구분되도록 각 패널마다 탭을 꼭 사용하도록 하세요.
 [/REGION]
 
 
-[REGION:tip]
-보이든 보이지 않든, 각 모드에서 접할 수 있는 모든 인터페이스 부분은 페르소나의 _창_ 메뉴를 통해 사용할 수 있습니다.
-[/REGION]
+
 
 [OBJECT:IconSection]
 	[PARAM:icon]
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Skeleton.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Skeleton.png)
 	[/PARAM]
 	[PARAM:title]
-		스켈레톤 모드
+		스켈레톤 에디터
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#skeletonoverview]
@@ -118,7 +142,7 @@ version: 4.9
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Mesh.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Mesh.png)
 	[/PARAM]
 	[PARAM:title]
-		메시 모드
+		스켈레탈 메시 에디터
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#meshoverview]
@@ -134,7 +158,7 @@ version: 4.9
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Anmation.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Anmation.png)
 	[/PARAM]
 	[PARAM:title]
-		애니메이션 모드
+		애니메이션 에디터
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#animationoverview]
@@ -152,7 +176,7 @@ version: 4.9
 		[![](Engine\Animation\Persona\Modes\Persona_Mode_Vim.png)(%modesize%)](Engine\Animation\Persona\Modes\Persona_Mode_Vim.png)
 	[/PARAM]
 	[PARAM:title]
-		그래프 모드
+		애니메이션 블루프린트 에디터
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:#graphoverview]
@@ -167,7 +191,7 @@ version: 4.9
 [/REGION]
 
 
-
+-->
 
 
 
@@ -453,6 +477,7 @@ _애니메이션 블루프린트_ 를 테스트할 때, 애니메이션 블렌�
 
 
 --->
+
 
 
 

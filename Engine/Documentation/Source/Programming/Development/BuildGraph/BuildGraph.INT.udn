@@ -1,4 +1,4 @@
-Availability: Docs
+Availability: Public
 Title: BuildGraph
 Crumbs: %ROOT%, Programming, Programming/Development
 Description: Customize your Installed Builds by using our BuildGraph scripting system.
@@ -68,12 +68,7 @@ The syntax of elements used to define BuildGraph constructs is listed in the fol
 
 ## BuildGraph Scripting Reference
 
-[REGION:topics third]
-%Programming/Development/BuildGraph/ScriptAnatomy/Types:topiccompact%
-%Programming/Development/BuildGraph/ScriptAnatomy/Elements:topiccompact%
-%Programming/Development/BuildGraph/ScriptAnatomy/Conditions:topiccompact%
-%Programming/Development/BuildGraph/ScriptAnatomy/Tasks:topiccompact%
-[/REGION]
+[DIR(output:"listbutton" parent:"Programming/Development/BuildGraph" org:"flat" type:"reference")]
 
 ## Using BuildGraph
 

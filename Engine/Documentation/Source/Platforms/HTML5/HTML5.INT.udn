@@ -13,7 +13,7 @@ HTML5 uses the emscripten tool chain from [Mozilla](https://www.mozilla.org/en-U
 
 ## Starting Out
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/HTML5")]
+[DIR(output:"listbutton" type:"quick start" parent:"Platforms/HTML5")]
 
 ## Samples
 

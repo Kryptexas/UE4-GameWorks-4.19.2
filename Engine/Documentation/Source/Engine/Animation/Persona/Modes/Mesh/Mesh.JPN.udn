@@ -1,156 +1,50 @@
-﻿INTSourceChangelist:2994308
+﻿INTSourceChangelist:3237313
 Availability:Public
-Title:メッシュ モード
+Title:スケルタルメッシュ エディタ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
-Description:ペルソナ アニメーション エディタのメッシュ モードのユーザーガイド
-version:4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/Modes/Mesh:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/Modes/Mesh:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/Modes/Mesh:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/Modes/Mesh]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+Description:UE4 のスケルタルメッシュ エディタの主な機能 
+version:4.14
+Related:Engine\Animation\Persona\Modes\Skeleton
+Related:Engine\Animation\Persona\Modes\Animation
+Related:Engine\Animation\Persona\Modes\Graph
+Related:Engine/Content/FBX/SkeletalMeshes
+type:landing
+topic-image:skelMeshEditor_topic.png
+tags:Animation
+tags:Skeletal Mesh
+tags:FBX Importing
 
 [EXCERPT:Overview]
-**Persona (ペルソナ)** アニメーション エディタの **Mesh (メッシュ)** モードは (**[メッシュ]** タブをクリックしてアクセス)、他の編集モードで利用可能ないくつかのウィンドウと同じウィンドウを共有しています。しかし、**メッシュ** モード固有のウィンドウが 2 つあります。[メッシュの詳細](Engine/Animation/Persona\MeshDetails) および [モーフターゲットのプレビューア](Engine/Animation/Persona\MorphTargetPreviewer) の 2 つです。 
+**コンテンツ ブラウザ** 内で (または **エディタ ツールバー** から) **Skeletal Mesh** アセットを開くと 、**スケルタルメッシュ エディタ** が開きます。 
+このエディタでは、スケルタルメッシュの **マテリアル** を設定し、クロス (布地) エレメントを追加し、LOD を設定し、メッシュに適用したモーフターゲットをテストしたりすることでポリゴン メッシュに変更を加えることができます。 
+エディタにはツールバーやビューポートなど (デフォルトで非表示になっているもの) の他のアニメーション ツールで見られるようなウィンドウがありますが、ほとんどのメッシュの作業は、**[Asset Details (アセットの詳細)]** と **[Morph Target Preview (モーフターゲットのプレビュー)]** のウィンドウで行います。 
+
 [/EXCERPT:Overview]
 
 [REGION:fullwidth]
-![](MeshModeWindows.png)
+![](SkeletalMeshEditor.png)
 [/REGION]
 
-##メッシュの詳細
-**[Mesh Details(メッシュの詳細)]** ウィンドウでは、スケルタルメッシュのメッシュに関連するプロパティ、例えば、**マテリアル** や **Level of Detail (LOD)** の設定を編集できます。また、**Apex Clothing** の割り当て、メッシュを既存メッシュに追加、**Mirroring (ミラリング)** 設定の調整、**Physics Asset (物理アセット)** をメッシュに割り当てたりすることもできます。さらに、アセットデータの **Reimport (再インポート)**、**Thumbnail Orbit** や **Texture Streaming** の設定を調整することもできます。 
+スケルタルメッシュ エディタのユーザー インターフェースの内容については以下の各セクションをご覧ください。 
 
-### LOD 設定
+## 1.ツールバー
 
-[REGION:fullwidth]
-![](LOD_Settings.png)
-[/REGION]
+スケルタルメッシュ エディタ内の [ツールバー](Engine/Animation/Persona/Toolbar) には、アニメーションに加えた変更を保存したり、コンテンツ ブラウザでアニメーションを探すためのオプションがあります。 
+プレビューの現在のポーズからスタティックメッシュを作成することができます。 
+ツールバーの右端に、**エディタのツールバー** があり、UE4 の様々なアニメーション ツール間で切り替えることができます。 
 
-このセクションでは、スケルタルメッシュの面にマテリアルを割り当て、こうしたマテリアル がシャドウを投影するか否かを切り替えることができます。 
+## 2.アセットの詳細
 
-**LOD Info** セクションには、LOD がどのように機能するかを変更できる設定があります。 
+[Asset Details(アセットの詳細)](Engine\Animation\Persona\MeshDetails) パネルには、サーフェスに適用されたマテリアル、スキニング、LOD のオプションなど、スケルタル メッシュに関する特定のプロパティが表示されます。 
+APEX Clothing を割り当てて調整したり、ラグドール タイプの動きを作成するために必要なスケルタルメッシュの **Physics アセット** を定義し、関連付けることもできます。 
 
-| プロパティ| 説明 |
-|--- | --- |
-| **Display Factor** | LOD をいつ使用するかを示します。値が小さくなるほど、遠く離れた時に LOD を使用します。|
-| **LODHysteresis** | LOD 境界上にある場合に、「点滅」を避けるために使用します。複雑から単純に移行する場合にのみ考慮されます。 |
-| **LODMaterial Map** | LOD のマテリアルから USkeletalMesh マテリアル アレイへのマッピング テーブルを指定します。 |
-| **Triangle Sorting** | 現在のトライアングル ソート方法を設定します。 |
-| **Custom Left Right Axis** | 左右軸を設定します。 |
-| **Custom Left Right Bone Name** | 左右のボーン名を設定します。 |
+## 3.ビューポート
 
-### クロス
+[ビューポート](Engine/Animation/Persona/Viewport) ウィンドウでは、 [Asset Details] パネルでメッシュに加えた変更やモーフターゲットの設定をプレビューすることができます。 
+ビューポートから使用するスケルタルメッシュのアニメーションのプレビューを指定し、ライティング モードの変更、スケルトンのボーンの表示、非表示、アニメーションの再生速度の調整、ターンテーブル上でスケルタルメッシュを自動的に回転させてあらゆるアングルから見ることもできます。 
 
-![](AddClothing.png)
+## 4.モーフターゲットのプレビュー
 
-**Mesh Details** のセクションでは、**Apex Cloth** アセットをメッシュに割り当て、割り当てたアセットに関する情報を見ることができます。割り当てた各アセットに対して調整できる **物理プロパティ** もあります。 
-
-| プロパティ| 説明 |
-|--- | --- |
-| **Bend Resistance** | 範囲 [0, 1] のクロスの曲げ剛性 |
-| **Shear Resistance** | 範囲 [0, 1] のクロスのせん断 (シア) 剛性 |
-| **Stretch Limit** | クロスのシミュレーションの伸縮性を弱めます。値を 1 よりも低く設定すると、オフになります。 |
-| **Friction** |範囲 [0, 1] の摩擦係数。 |
-| **Damping** | 範囲 [0, 1] のクロスのスプリングの減衰 |
-| **Drag** | 範囲 [0, 1] のドラッグ係数  |
-| **Gravity Scale** | クロスに適用する重力の大きさ |
-| **Inertia Blend** | ローカル空間シミュレーションを使用する際に保持する慣性量です。内部名は、慣性スケール (inertia scale) です。 |
-| **Self Collision Thickness** | パーティクル同士が保つ最低限の距離 |
-
-###追加のメッシュ
-
-このセクションでは、既存のメッシュにメッシュを追加する、または追加されたメッシュを取り除くことができます。 
-
-###メッシュ
-
-このセクションでは、スケルタルメッシュと合わせて使用するスケルトンと **コンテンツ ブラウザ** 内での場所を一覧表示します。 
-
-###スケルタルメッシュ
-
-![](SkeletalMeshSection.png)
-
-**スケルタルメッシュ** セクションでは、存在するマテリアル インターフェースに対してマテリアルを定義し、マテリアルからのシャドウ キャストを有効にするかを定義することができます。**Use Full Precision UVs (最大精度の UV を使用)** にするかどうかを設定する機能を利用できます。これが true の場合、32 ビット UV を使用します。false の場合、メモリを節約するために 16 ビット UV を使用します。 
-
-<!--Commenting this section out as it no longer exists as of 4.9 Preview 4 
-###ミラリング
-
-![](MirroringSection.png)
-
-**ミラリング** セクション内では 2 つのオプションを利用可能であり、以下のように設定できます。 
-
-| プロパティ| 説明 |
-|--- | --- |
-| **Skel Mirror Table** | ミラリングすべき全ボーンをリスト化します。 |
-| **Skel Mirror Axis** | ミラー軸を X, Y, Z または None に設定します。 |
-| **Skel Mirror Flip Axis** | ミラー フリップ軸を X, Y, Z または None に設定します。 |
-
-###物理
-
-**Physics** セクションで、物理アセットをメッシュに割り当てることができます。**コンテンツ ブラウザ** でのアセットの場所も表示されます (該当する場合)。 
-
-###再インポート
-
-![](ReimportSection.png)
-
-Reimport (再インポート) のオプションでは、使用しているアセットを再インポートし、インポート設定を調整することができます (該当する場合は、現在使用しているインポートデータと設定も表示されます)。
-
-| プロパティ| 説明 |
-|--- | --- |
-| **Update Skeleton Reference Pose** | 有効になると、(インポートされているメッシュの) スケルトンの参照ポーズを更新します。 |
-| **Use T0As Ref Pose** | このオプションを有効にすると、フレーム 0 を参照ポーズとして使用します。 |
-| **Preserve Smoothing Groups** | チェックを入れると、スムージンググループが一致しないトライアングルは物理的に分裂します。 |
-| **Import Meshes in Bone Hierarchy** | チェックを入れると、ボーン階層にネスティングされたメッシュは、ボーンに変換される代わりにインポートされます。 |
-| **Import Morph Targets** | 有効になると、インポートしたメッシュに対し、Unreal モーフオブジェクトを作成します。|
-| **Import Mesh LODs** | 有効になると、インポートされたファイルの LOD からアンリアルメッシュの LOD モデルを作成します。無効になると、LOD グループから基本メッシュのみをインポートします。 |
-| **Normal Import Method** | このオプションを有効にすると、自動的にタンジェントを生成する代わりに FBX ファイルからタンジェント(tangent, binormal, normal) を読み込みます。  |
-| **Source File Path** | スタティックメッシュを作成するために使用したリソースへのパスです。 |
-| **Source File Timestamp** | 最後のインポートのファイルの日付/タイムスタンプです。 |
-
-###サムネイル
-
-![](ThumbnailSection.png)
-
-**Thumbnail** セクションでは、アセット周囲のカメラの **Orbit Pitch**、**Orbit Yaw**、**Orbit Zoom** を設定できます。
-
-| プロパティ| 説明 |
-|--- | --- |
-| **Orbit Pitch** | アセット周囲の軌道カメラのピッチ |
-| **Orbit Yaw** | アセット周囲の軌道カメラのヨー (左右回転) |
-| **Orbit Zoom** | オブジェクトから境界球体の距離のオフセットを設定します。 |
-
-###テクスチャのストリーミング
-
-![](TextureStreamingSection.png)
-
-**Texture Streaming** では、アーティストは UV 0 を使用するテクスチャがストリームイン / ストリームアウトする距離を調整することができます。
-
-| プロパティ| 説明 |
-|--- | --- |
-| **Streaming Distance Multiplier** | デフォルトは 1.0 です。値が高いほど、ストリーム インの解像度が高くなります。 |
-
-
-
-##モーフターゲット プレビューア
-
-[INCLUDE:Engine/Animation/Persona/MorphTargetPreviewer#Overview]
-
-詳細は、[モーフターゲットのプレビューア](Engine/Animation/Persona/MorphTargetPreviewer/) のドキュメントをご覧ください。 
+[Morph Target Preview] タブでは現在のスケルタルメッシュで利用できる [モーフターゲット](Engine/Animation/Persona/MorphTargetPreviewer) (ブレンド シェイプ) をプレビューすることができます。 
 
 

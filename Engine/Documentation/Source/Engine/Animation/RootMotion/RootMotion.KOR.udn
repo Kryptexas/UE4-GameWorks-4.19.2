@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2728238
+﻿INTSourceChangelist:3206317
 Availability:Public
 Title:루트 모션
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -48,7 +48,7 @@ TKAcNubFOH8
 [/REGION]
 
 
-애니메이션의 루트 모션은 페르소나에서 시각화시켜 볼 수 있습니다. 루트 본이 움직이는 아무 애니메이션이나 열고, 뷰포트에서 **표시 > 본** 을 선택합니다. 애니메이션 프로퍼티에서 'Enable Root Motion' 으로 루트 모션을 활성화시키지 않은 경우, 캐릭터의 루트가 움직임에 따라 빨강 선이 표시되는 것을 볼 수 있습니다. 이 선이 애니메이션의 루트 모션을 나타냅니다.
+애니메이션의 루트 모션은 재생 도중 시각화시켜 볼 수 있습니다. 루트 본이 움직이는 아무 애니메이션이나 열고, 뷰포트에서 **표시 > 본** 을 선택합니다. 애니메이션 프로퍼티에서 'Enable Root Motion' 으로 루트 모션을 활성화시키지 않은 경우, 캐릭터의 루트가 움직임에 따라 빨강 선이 표시되는 것을 볼 수 있습니다. 이 선이 애니메이션의 루트 모션을 나타냅니다.
 
 [REGION:fullwidth]
 ![](RootMotionBone.png)
@@ -63,48 +63,44 @@ TKAcNubFOH8
 자, 이게 무슨 뜻일까요? 시스템이 캐릭터 애니메이션의 루트 모션을 계산에 넣게 되었으니, 이제 같은 모션을 캐릭터의 콜리전 캡슐에 재적용할 수 있게 된 것입니다. 즉 애니메이터가 의도한 모션 그대로를 유지할 수 있으나, 게임내 콜리전이나 기타 물리 및 게임플레이 이벤트에도 제대로 반응할 수 있다는 뜻입니다. 실제 어떤지는 아래 섹션에서 확인해 보도록 하겠습니다.
 
 
-## Enabling Root Motion
+## 루트 모션 켜기
 
-Root Motion can be enabled inside the **Anim Asset Details** panel of **Persona** for your [Animation Sequence](Engine\Animation\Sequences). 
+루트 모션은 [애니메이션 시퀀스](Engine\Animation\Sequences) 에 대한 **애니메이션 에디터** 의 **애님 애셋 디테일** 패널에서 켤 수 있습니다.
 
 ![](RootMotion.png)
 
 [REGION:warning]
-Early versions of the engine (Versions previous to 4.5) required the use of an [Animation Montage](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimMontage/index.html) to define Root Motion. Since version 4.6, Root Motion is now handled per Animation Sequence and can be toggled on/off in the animation's properties in Persona.
-For networked games however, Root Motion still requires the use of an Animation Montage, see [Root Motion from Montages Only](#rootmotionfrommontagesonly) below. 
+엔진 초기 (4.5 이전) 버전은 [애니메이션 몽타주](Engine/Animation/AnimMontage) 를 사용하여 루트 모션을 정의해야 했습니다. 4.6 버전 이후부터 루트 모션은 애니메이션 시퀀스 별로 처리되어 페르소나의 애니메이션 프로퍼티에서 켜고 끌 수 있게 되었습니다.
+그러나 네트워크 게임의 경우, 루트 모션은 여전히 애니메이션 몽타주를 사용해야 합니다. 아래 [몽타주에서만 루트 모션](#몽타주에서만루트모션) 부분을 참고하세요.
 
 [/REGION]
 
-While defining if Root Motion is enabled in done inside the Animation Sequence, you will still need to determine how that sequence is handled inside of an [Animation Blueprint]( Engine/Animation/AnimBlueprints). There are several different ways in which you can handle Root Motion within Animation Blueprints. You can define this through the **Root Motion Mode** drop down menu inside the Anim Blueprint Editor inside Persona. 
+루트 모션이 켜졌는지를 정의하는 부분은 애니메이션 시퀀스 안에서 이루어지지지만, 그 시퀀스의 처리 방식은 여전히 [애니메이션 블루프린트]( Engine/Animation/AnimBlueprints) 안에서 해줘야 합니다. 애니메이션 블루프린트 안에서 루트 모션을 처리하는 방법은 여러가지 있습니다. **애님 블루프린트 에디터** 의 **디테일** 패널에서 **Root Motion Mode** (루트 모션 모드) 드롭다운 메뉴를 통해 정의할 수 있습니다.
 
 ![](RootMotionMode.png)
 
-[REGION:note]
-Make sure that you are setting this inside the **Edit Defaults** tab and not the **Edit Preview**.
-[/REGION]
-
 The options are as follows: 
 
-| **Property** | **Description** |
+| **프로퍼티** | **설명** |
 | --- | --- |
-| **No Root Motion Extraction** | Root Motion is left as is (applied to the root bone). |
-| **Ignore Root Motion** | Root Motion is extracted (and removed from the root bone), but not applied to the character.  |
-| **Root Motion from Everything** | See Below. |
-| **Root Motion from Montages Only** | See Below. |
+| **No Root Motion Extraction** | 루트 모션 추출 없음 - 루트 모션은 그대로 놔둡니다 (루트 본에 적용됩니다). |
+| **Ignore Root Motion** | 루트 모션 무시 - 루트 모션을 추출(하고 루트 본에서 제거)하지만, 캐릭터에 적용되지는 않습니다. |
+| **Root Motion from Everything** | 모든 것에서 루트 모션 - 아래 참고. |
+| **Root Motion from Montages Only** | 몽타주에서만 루트 모션 - 아래 참고. |
 
-### Root Motion from Everything
+### 모든 것에서 루트 모션
 
-When this option is set as the Root Motion Mode, each animation asset (AnimSequence, Blendspace, AnimMontage, etc.) that contributes to the final character pose has its Root Motion extracted (if it has been set as containing Root Motion). Each piece of extracted Root Motion is blended based on the weight of the source assets contributing to the pose. 
+루트 모션 모드로 이 옵션이 설정되면, 최종 캐릭터 포즈에 기여하는 각 애니메이션 애셋(애님 시퀀스, 블렌드스페이스, 애님 몽타주 등)은 (루트 모션을 포함한 것으로 설정된 경우) 그 루트 모션이 추출됩니다. 추출된 루트 모션 각 조각은 포즈에 기여하는 소스 애셋의 가중치에 따라 블렌딩됩니다.
 
-For example:
+예:
 
 ![](FromEverything.png)
 
-In the image above, the Root Motion of **Jog_Loop_Fwd_RM** and **Jog_Loop_Right_RM** would each be blended together with a weight of 0.5. The resulting animation in this case is a character running diagonally forwards and right across a map. 
+위 그림에서 **Jog_Loop_Fwd_RM** 과 **Jog_Loop_Right_RM** 의 루트 모션은 각각 0.5 의 가중치로 블렌딩될 것입니다. 이 경우 결과 애니메이션은 맵을 우전방 대각선으로 가로질러 뛰어가는 캐릭터가 될 것입니다.
 
-### Root Motion from Montages Only
+### 몽타주에서만 루트 모션
 
-This method is intended for network games which is the reason for its more restricted functionally. Because **Root Motion from Everything** is designed to be unrestricted, it is recommended that it only be used in games where animation isn�t replicated over a network.  
+이 메소드는 기능적으로 더욱 많이 제한되어 있는 네트워크 게임용입니다. 제한되지 않은 상황에는 **Root Motion from Everything** (모든 것에서 루트 모션) 을 쓰는 것이 맞으므로, 이 옵션은 네트워크를 통해 애니메이션이 리플리케이트되지 않는 게임에서만 사용하는 것이 좋습니다.
 
 
 

@@ -2,6 +2,9 @@ Availability: Public
 Title:Fog Effects
 Crumbs: %ROOT%, Engine
 Description:Using fog to add ambiance to the world and set the mood of environments.
+parent:Engine/Rendering
+order:6
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]

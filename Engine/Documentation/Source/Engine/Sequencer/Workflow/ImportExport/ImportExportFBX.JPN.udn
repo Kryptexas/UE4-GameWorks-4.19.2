@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3106698
-Availability:Docs
+﻿INTSourceChangelist:3124629
+Availability:Public
 Title:FBX ファイルのエクスポートとインポート
 Crumbs: %ROOT%, Engine
 Description:FBX ファイルをシーケンサーからエクスポート、およびシーケンサーにインポートする方法を説明します。 
@@ -33,7 +33,7 @@ Related:Engine/Sequencer/HowTo
 
 まず、どのレベル シーケンスをエクスポートするかを決めます。 
 
-1.	以下のクリップでは、変更したいショットを選んでそれを開いています。次に **[General Options]** に進んで、**[Export]** を選びます。 
+1.	以下のクリップでは、変更したいショットを選んでそれを開いています。次に **[General Options]** に進んで、**[Export]** を選びます。**shot0040_001** を含むマスター トラックがあるので、その特定のレベル シーケンスを開いてエクスポートします。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -46,10 +46,8 @@ Related:Engine/Sequencer/HowTo
 	SM77fHV_wu8
 	[/PARAMLITERAL]
 	[/OBJECT]
+	### 外部の編集
 
-	**shot0040_001** を含むマスター トラックがあるので、その特定のレベル シーケンスを開いてエクスポートします。 
-
-### 外部の編集
 
 シーケンサーからエクスポートした FBX が用意できたらサードパーティのアプリケーションを開いてそれをインポートして編集を開始できるようにします。 
 
@@ -67,7 +65,7 @@ Related:Engine/Sequencer/HowTo
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-1.	次に FBX を Maya にインポートし、編集を開始できるようにシーンをセットアップします。 
+1.	次に FBX を Maya にインポートし、編集を開始できるようにシーンをセットアップします。シーンをインポートしたら、**[Panel]** で Perspective を設定し、カメラの **shotCamA** をシーンで使用し、ビューを妨げるエレメント (ゴッドレイ メッシュなど) があればそれを選択した状態で **Ctrl + H** キーを押して非表示にします。最後に、**[View]** で **Select Camera (カメラを選択)** し、**shotCamA** のプロパティとキーフレームを表示し、編集を開始します。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -79,12 +77,9 @@ Related:Engine/Sequencer/HowTo
 	[PARAMLITERAL:videoid]
 	0Nc4S-T1t1I
 	[/PARAMLITERAL]
-	[/OBJECT]
+	[/OBJECT] 
 
-	シーンをインポートしたら、**Panel** で Perspective を設定し、カメラの **shotCamA** をシーンで使用し、ビューを妨げるエレメント (ゴッドレイ メッシュなど) があればそれを選択した状態で **Ctrl + H** キーを押して非表示にします 。 
-	最後に **View** で **Select Camera (カメラを選択)** し、**shotCamA** に対するプロパティとキーフレームを表示し、編集を開始できるようにします。 
-
-1.	次にカメラの動きを編集します。 
+1.	次にカメラの動きを編集します。上の図では、**shotCamA** の Translation (平行移動) と Rotation (回転) のプロパティを選択し、**右クリック** して、**Break Connection** を選んでいます。続いて、シーンの開始に合わせてカメラの新しい開始点を選んで、**S** キーを押して、新しい位置をキーフレーム化します。前方向に少しスクラブして、カメラを終了位置まで動かし、再度 **S** キーを押して、終了位置をキーフレーム化し、カメラが新しいパスに沿って移動するようにします。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -96,13 +91,9 @@ Related:Engine/Sequencer/HowTo
 	[PARAMLITERAL:videoid]
 	3asklRbBagA
 	[/PARAMLITERAL]
-	[/OBJECT]
+	[/OBJECT] 
 
-	上の図では、**shotCamA** の Translation (平行移動) と Rotation (回転) のプロパティを選択し、**右クリック** して、**Break Connection** を選んでいます。 
-	続いて、シーンの開始に合わせてカメラの新しい開始点を選んで、**S** キーを押して、新しい位置をキーフレーム化します。 
-	前方向に少しスクラブして、カメラを終了位置まで動かし、再度 **S** キーを押して、終了位置をキーフレーム化し、カメラが新しいパスに沿って移動するようにします。 
-
-1.	変更を加えた状態で、 **[Export Selection] ** を使ってシーンをエクスポートします。
+1.	変更を加えた状態で、 **[Export Selection] ** を使ってシーンをエクスポートします。Maya からのエクスポート プロセス中に、まずエクスポート タイプを **FBX export** に変更します。次に、**[Advanced Options (詳細オプション)]** の **[Axis Conversion (軸変換)]** で、**[Up Axis]** が **Z** に従うように変更し、アンリアル エンジンに互換性のあるインポートを行うことができるようにします。エンジンの将来のバージョンでは、軸変換をしなくてもいいようになるかもしれませんが、現時点ではインポートで生じる問題を回避するためにこれを行ってください。
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -114,18 +105,14 @@ Related:Engine/Sequencer/HowTo
 	[PARAMLITERAL:videoid]
 	sj-gWprQFNk
 	[/PARAMLITERAL]
-	[/OBJECT]
-
-	Maya からのエクスポート プロセスでは、最初にエクスポート タイプを **[FBX export]** に変更します。
-	**[Advanced Options (詳細オプション)]** の **[Axis Conversion (軸変換)]** で、**[Up Axis]** が **Z** に従うように変更し、アンリアル エンジンに互換性のあるインポートを行うことができるようにします。 
-	エンジンの将来のバージョンでは、軸変換をしなくてもいいようになるかもしれませんが、現時点ではインポートで生じる問題を回避するためにこれを行ってください。 
+	[/OBJECT] 
 
 
 ### シーケンサーへのインポート
 
 これで FBX 形式の編集バージョンが用意できたので、このファイルを加えた変更と共にアンリアル エンジンにインポートしてシーンを更新します。
 
-1.	編集する **shot0040_001** 内の **shotCamA** 上で **右クリック** して **[Import]** を選択します。 
+1.	編集する **shot0040_001** 内の **shotCamA** 上で **右クリック** して **[Import]** を選択します。FBX 内のトランスフォーム データをアンリアル エンジンの選択したオブジェクトに適用します。これは同じトランスフォーム データをシーン内の複数オブジェクトに適用したい場合に便利です。 
 
 	[OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -139,12 +126,13 @@ Related:Engine/Sequencer/HowTo
 	[/PARAMLITERAL]
 	[/OBJECT]
 
-	FBX 内のトランスフォーム データをアンリアル エンジンの選択したオブジェクトに適用します。 
-	これは同じトランスフォーム データをシーン内の複数オブジェクトに適用したい場合に便利です。この 右クリックによる方法を使う代わりに、**[General Options]** ウィンドウから FBX をインポートすることもできます。 
+	[REGION:tip]
+	この 右クリックによる方法を使う代わりに、**[General Options]** ウィンドウから FBX をインポートすることもできます。 
 
 	![](ImportOption.png)
 
 	この方法を選ぶと、アンリアル エンジンはオブジェクトの名前を合わせようとします。例えば、FBX ファイルとシーケンスの両方に **shotCamA** が用意できたので、FBX ファイルからのデータをアンリアル エンジン内のオブジェクトに適用します。 
+	[/REGION]
 
 この例では、トランスフォームの変更だけをカメラに適用しました。**Focal Length** の新しい値をキーフレーム化して見た目が異なるショットを作ることもできます。
 このワークフローでいろいろ試して、各自の状況に最適に機能するものを使ってください。Maya や 3dsMax などの 3D パッケージにエクスポートして、シーンを微調整してから、加えた変更をアンリアル エンジンにインポートして戻すこともできます。 

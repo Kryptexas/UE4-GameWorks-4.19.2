@@ -3,6 +3,7 @@ Title:HLSL Cross Compiler
 Crumbs:%ROOT%, Programming, Programming/Rendering, Programming/Rendering/ShaderDevelopment
 Description:Information on the HLSLCC tool used to convert HLSL into GLSL.
 Version: 4.9
+tags:Rendering
 
 
 This library compiles **High Level Shading Language (HLSL)** shader source code into a high-level intermediate representation, performs device-independent optimizations, and produces **OpenGL Shading Language (GLSL)** compatible source code. The library is largely based on the GLSL compiler from Mesa. The frontend has been heavily rewritten to parse HLSL and generate Mesa IR from the HLSL **Abstract Syntax Tree (AST)**. The library leverages Mesa's IR optimization to simplify the code and finally generates GLSL source code from the Mesa IR. The GLSL generation is based on the work in glsl-optimizer.

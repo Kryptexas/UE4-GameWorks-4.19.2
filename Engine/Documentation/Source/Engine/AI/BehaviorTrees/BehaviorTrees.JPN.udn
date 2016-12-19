@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3178047
 Availability:Public
 Title:ビヘイビアツリー
 Crumbs:%ROOT%, Engine, Gameplay/AI
-Description:ビヘイビアツリーに関連する全ドキュメントへのランディング ページ
+Description:ビヘイビアツリーに関連する全ドキュメントへのランディング ページです。
 parent:Engine
-order:5
+order:6
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,16 +45,16 @@ order:5
 [/OBJECT]
 [/VAR]
 
-**Behavior Trees (ビヘイビアツリー)** は、闇に潜む憎きゴキブリから、シューティング ゲームの Bot に至るまで、撃つタイミングやヘルス値と弾薬を探すタイミングが分かる AI をアンリアル エンジン 4 に作り出すパワフルなツールです。 
+**Behavior Trees (ビヘイビアツリー)** は、闇に潜む憎きゴキブリから、シューティング ゲームの Bot に至るまで、撃つタイミングやヘルス値と弾薬を求めるタイミングが分かる AI をアンリアル エンジン 4 で作るパワフルなツールです。 
 
-以下の 2 つのアセットタイプ **Blackboard** と **Behavior Tree** の組み合わせになります。
+2 つのアセットタイプ、 **Blackboard** と **Behavior Tree** の組み合わせになります。
 
 | アセット タイプ | 説明 |
 | --- | --- |
 | **Blackboard** | Blackboard は AI のメモリです。Behavior Tree が使うキー値を格納します。 |
 | **Behavior Tree** | Behavior Tree は AI のプロセッサーです。判断を下し、その判断に基づいて行動します。 |
 
-以下は、ビヘイビア ツリー の使用方法に関するドキュメントのリンク先です。[クイックスタート ガイド](Engine/AI/BehaviorTrees/QuickStart) で、AI にプレイヤーを追いかけさせる方法が学習できます。[ユーザーガイド](Engine/AI/BehaviorTrees/UserGuide) は、ビヘイビアツリー使用時に最もよく使うタスクの説明書です。[ノード リファレンス](Engine/AI/BehaviorTrees/NodeReference) は、ビヘイビアツリー エディタで使用できる全ノードの一覧です。機能の内容、含まれるプロパティが分かります。[アンリアル エンジン 4 のビヘイビアツリーの特徴](Engine/AI/BehaviorTrees/HowUE4BehaviorTreesDiffer) は、他のビヘイビアツリーの動作に慣れているユーザー向けのドキュメントです。
+以下は、ビヘイビア ツリー の使用方法に関するドキュメントのリンク先です。[クイックスタート ガイド](Engine/AI/BehaviorTrees/QuickStart) で、AI にプレイヤーを追いかけさせる方法が学習できます。[ユーザーガイド](Engine/AI/BehaviorTrees/UserGuide) は、ビヘイビアツリー使用時に頻繁に使うタスクを説明します。[ノード リファレンス](Engine/AI/BehaviorTrees/NodeReference) は、ビヘイビアツリー エディタで使用できる全ノードの一覧です。機能の内容、プロパティが分かります。[アンリアル エンジン 4 のビヘイビアツリーの特徴](Engine/AI/BehaviorTrees/HowUE4BehaviorTreesDiffer) は、他のビヘイビアツリーの動作に慣れているユーザー向けのドキュメントです。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

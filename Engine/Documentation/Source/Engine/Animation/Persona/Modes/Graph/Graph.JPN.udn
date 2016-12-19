@@ -1,43 +1,30 @@
-﻿INTSourceChangelist:2666103
+﻿INTSourceChangelist:3237313
 Availability:Public
-Title:グラフ モード
+Title:Animation ブループリント エディタ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
-Description:ペルソナ アニメーション エディタのGraph モードのユーザーガイド
-バージョン：4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/Modes/Graph:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/Modes/Graph:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/Modes/Graph:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/Modes/Graph]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+Description:UE4 の Animation ブループリント エディタの主な機能 
+Related:Engine/Animation/AnimBlueprints
+Related:Engine/Blueprints
+Related:Engine\Animation\Persona\Modes\Animation
+Related:Engine\Animation\Persona\Modes\Skeleton
+Related:Engine\Animation\Persona\Modes\Mesh
+version:4.14
+type:landing
+topic-image:AnimGraphEditor_topic.png
+tags:Animation
+tags:Blueprints
 
 
 [REGION:fullwidth]
-![](AnimationGraph.png)
+![](AnimBPEditor.png)
 [/REGION]
 
-**ペルソナ** の **Graph (グラフ)** モードは、ロジックを指定し、アニメーションとアニメーションのステートを、**AnimGraph** および **EventGraph** 内で設定した変数や条件に基づき接続する場所です。このグラフで作業することは、ブループリント グラフでの作業と似ています。しかし、以下で説明するように、アニメーション ブループリントには、いくつかの重要な詳細があります。 
+**Animation ブループリント エディタ** は、キャラクターのアニメーションを動かすロジックを指定する場所で、**コンテンツ ブラウザ** から (または **エディタのツールバー** から) **Animation ブループリント** を開いてアクセスすることができます。 
+Animation ブループリント エディタの操作は、 [ブループリント エディタ](Engine/Blueprints) で作業するのと似ています。同じビジュアル ノード ベースのスクリプティング システムを使用し、アニメーションの管理、[](Engine/Animation/StateMachines)、[](Engine/Animation/AnimationBlending) を制御するために [](Engine/Animation/NodeReference/Blend) を使用、またはスクリプトを通して [スケルタル制御](Engine/Animation/NodeReference/SkeletalControls) を指示します。 
 
-##アニメーション ブループリントの概要
-
-[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
-
-アニメーション ブループリントの作業に関する詳細は、[アニメーション ブループリント](Engine/Animation/AnimBlueprints) を参照してください。 
+[REGION:note]
+**Animation ブループリント** と **Animation ブループリント エディタ** の作業に関する詳細は、[Animation ブループリント](Engine/Animation/AnimBlueprints) のドキュメントを参照してください。 
+[/REGION]
 
 
 

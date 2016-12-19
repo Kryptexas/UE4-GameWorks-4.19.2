@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:4. On Your Own!
+Title:4.自由发挥！
 Crumbs:%ROOT%, Platforms/GearVR
-Description:Using the methods provided during this guide, polish up your level with additional content and read up on related topics. 
+Description:通过此指南中提供的方法，使用额外内容完善关卡并阅读相关要点。 
 Navigation:platform
-Version: 4.9
-Skilllevel: Intermediate
+Version:4.9
+Skilllevel:Intermediate
 tags:VR
 tags:GearVR
 type:sequential
@@ -15,25 +15,25 @@ Checkpoint:GearVRQS
 
 [nav]
 
-Now that you can deploy a UE4 project to your Android based smartphone and view it with your Gear VR HMD try adding the following items.
+将 UE4 项目部署到安卓智能手机并通过 Gear VR 头戴显示器查看后，可尝试添加以下内容。
 
-* Use the [Migrate Tool](Engine/Content/Browser/UserGuide/Migrate/) to move content from one of the mobile content examples into your project for use.
+* 使用 [移植工具](Engine/Content/Browser/UserGuide/Migrate/) 将移动内容实例中的内容移入项目进行使用。
 
-* Adjust the settings of the [Default Device Profiles](Platforms/Mobile/Performance/TipsAndTricks) to ensure that your project will run as fast as possible when deployed to your Android based smartphone.
+* 调整 [默认设备描述](Platforms/Mobile/Performance/TipsAndTricks) 设置，确保项目部署到安卓智能手机后拥有最快的运行速度。
 
-* Use the [GPU Profiler](Engine/Performance/GPU/) to help track your projects performance while you are building it.
+* 构建时使用 [GPU 性能分析](Engine/Performance/GPU/) 跟踪项目性能。
 
 
 
-As for specifics covered in this quick start:
+快速入门中包含的具体内容：
 
-* For more information on setting up the Android SDK, see: [Install the Android SDK](Platforms/Android/GettingStarted/1/)
+* 关于设置安卓 SDK 的更多内容，请查阅： [](Platforms/Android/GettingStarted/1/)
 
-* For more information on setting up your Android Device for UE4 Development, see: [Set Up Your Android Device](Platforms/Android/GettingStarted/2/)
+* 关于设置安卓设备进行 UE4 开发的更多内容，请查阅： [](Platforms/Android/GettingStarted/2/)
 
-* For more information on what features Android devices support, see: [Android Device Compatibility](Platforms/Android/DeviceCompatibility/)
+* 关于安卓设备支持功能的更多内容，请查阅： [](Platforms/Android/DeviceCompatibility/)
 
-* For more information on reducing the packaged size of your project, see: [Reducing APK Package Size](Platforms/Android/ReducingAPKSize/)
+* 关于缩减项目打包容量的更多内容，请查阅： [](Platforms/Android/ReducingAPKSize/)
 
 
 

@@ -6,7 +6,7 @@ SkillLevel: Beginner
 Version: 4.12
 parent:Engine/Levels
 order:4
-type:howto
+type:how-to
 
 
 In the [](Engine/UI/ProjectSettings) editor, you can change a number of settings specific to your project. That includes being able to set the Level that your project's players

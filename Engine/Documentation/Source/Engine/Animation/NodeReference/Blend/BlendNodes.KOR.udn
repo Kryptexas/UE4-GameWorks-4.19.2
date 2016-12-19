@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:Blend 노드
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
@@ -15,9 +15,9 @@ version: 4.9
 Blend 노드는 여러 애니메이션을 블렌딩하는 데 쓰입니다. 이 노드는 _Animation Blueprint_ (애니메이션 블루프린트)의 **AnimGraph** (애님 그래프)에서만 놓아 사용할 수 있습니다. 각 블렌드 노드는 여러 포즈와 알파 또는 웨이트(weight) 값을 받아 최종 결과물에서 각 포즈에 대한 비중을 계산합니다. 어떤 블렌드 노드는 조금 더 복잡하여 추가적인 데이터 입력이 필요할 수도 있습니다.
 [/EXCERPT:Intro]
 
-## Apply Additive
+## Apply Additive 및 Apply Mesh Space Additive
 
-**Apply Additive** 노드는 알파 값에 따라 일반 베이스 애니메이션 포즈에 애디티브 포즈를 더합니다.
+**Apply Additive** 및 **Apply Mesh Space Additive** 노드는 알파 값에 따라 일반 베이스 애니메이션 포즈에 애디티브 포즈를 더합니다.
 
 ![](ApplyAdditive.png)
 
@@ -29,6 +29,10 @@ Blend 노드는 여러 애니메이션을 블렌딩하는 데 쓰입니다. 이 
 | Alpha | 애디티브 포즈가 끼치는 영향력 결정을 위한 알파 값으로 사용할 **[0.0, 1.0]** 범위의 `float` 값입니다. **0.0** 은 **Base** 입력 포즈에 **Additive** 포즈를 전혀 더하지 않음을, **1.0** 은 **Base** 입력 포즈에 **Additive** 포즈를 온전히 더함을 뜻합니다. |
 | [REGION:tablesection]**출력 핀**[/REGION] ||
 | Pose | 블렌딩 적용 이후의 최종 포즈입니다. |
+
+**Apply Additive** 노드는 4.11 에 도입된 **LOD Threshold** (LOD 한계치) 시스템 영향도 받습니다. 이 세팅은 **Apply Additive** 노드의 디테일 패널에서 찾을 수 있습니다.
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#lodthresh]
 
 ## Blend
 

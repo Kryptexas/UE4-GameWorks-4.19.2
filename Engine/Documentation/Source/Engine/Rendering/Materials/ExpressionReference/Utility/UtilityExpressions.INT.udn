@@ -251,22 +251,7 @@ The **Noise** expression creates a procedural noise field, giving you control ov
 
 ## Vector Noise
 
-The **Vector Noise** expression creates a variety of procedural noise effects with 3D output.
-
-| Item | Description |
-| -------- | ----------- |
-| [REGION:tablesection]Properties[/REGION] ||
-| **Function** | [INCLUDE:#VectorNoiseFunctions] |
-| **Quality** | A look/performance setting. Lower values are faster but may look worse, higher values are slower but may look better. |
-| **Tiling** | For noise functions that support it, allows noise to tile. This is more expensive, but useful when baking noise into a seamless wrapping texture. |
-| **Tile Size** | When tiling, how often should the noise repeat. For Perlin noise variants, the Tile Size must be a multiple of three. |
-|| [REGION:tablesection]Inputs[/REGION] ||
-| **Position** | Allows the texture size to be adjusted via a 3D vector. |
-
-![Cellnoise.png](Cellnoise.png)
-![PerlinGradient.png](PerlinGradient.png)
-![Voronoi.png](Voronoi.png)
-
+[INCLUDE:Engine\Rendering\Materials\ExpressionReference\Vector#VectorNoiseTest]
 
 ## QualitySwitch
 
@@ -427,14 +412,14 @@ The image below shows what data the DistanceFieldGradient will use when the vari
 <!--
 [EXCERPT:NoiseFunctions]
 
-|Function| Description|
-|---------|-----------|
+| Function |     | Description|
+| -------- | --- | ----------- |
 |Simplex | Texture Based|High quality for direct use and bumps about 77 instructions per level, 4 Texture lookups, Can not tile.|
 |Gradient | Texture Based| High quality for direct use and bumps. Non-tiled: about 61 instructions per level, 8 Texture lookups. Tiling: about 74 instructions per level, 8 Texture lookups. Even "non tiled' mode has a repeat of 128. Useful repeat size range <= 128. Formerly labeled as Perlin Noise.|
 |Fast Gradient | 3D Texture | High quality for direct use, **BAD** for bumps. about 16 instructions per level, 1 Texture lookup. Always tiles with a repeat of 16, "Tiling" mode is not an option for Fast Gradient noise.|
 | Gradient | Computational | High quality for direct use and bumps. Non-tiled: about 80 instructions per level, no Textures. Tiling: about 143 instructions per level, no Textures. |
 | Value | Computational | Low quality, but pure computation. Non-tiled: about 53 instructions per level, no Textures. Tiling: about 118 instructions per level, no Textures. Formerly mislabeled as Gradient noise. |
-| Voronoi | Also know as Worley or Cellular noise. Quality=1 searches 8 cells, Quality=2 searches 16 cells, Quality=3 searches 27 cells, Quality=4 searches 32 cells. All are about about 20 instructions per cell searched. |
+| Voronoi | | Also know as Worley or Cellular noise. Quality=1 searches 8 cells, Quality=2 searches 16 cells, Quality=3 searches 27 cells, Quality=4 searches 32 cells. All are about about 20 instructions per cell searched. |
 [/EXCERPT]
 -->
 
@@ -450,3 +435,6 @@ The image below shows what data the DistanceFieldGradient will use when the vari
 | Voronoi | The same algorithm and instruction counts as the Voronoi function in the *Noise* expression, but RGB is the location of the closest seed point in each Voronoi cell, and A is the distance to that seed point. |
 [/EXCERPT]
 -->
+
+
+

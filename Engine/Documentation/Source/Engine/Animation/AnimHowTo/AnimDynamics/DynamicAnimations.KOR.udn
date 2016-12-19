@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability: Public
-Title:Creating Dynamic Animations
+Title:다이내믹 애니메이션 제작
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Using AnimDynamics to provide physically based secondary animations to a character.
+Description:AnimDynamics 를 사용하여 캐릭터에 물리 기반 이차 애니메이션을 주는 법입니다.
 version: 4.12
 skilllevel: Advanced
 
-One way you can improve the realism in your character's movement is to provide dynamic animations for items that they may be carrying or wearing. 
-With [**AnimDynamics**](Engine/Animation/NodeReference/SkeletalControls) those pieces that you would expect to move around as you move in real life (hair, necklaces, bracelets, swords, pouches, etc.) will bounce around and move while your character moves. 
+캐릭터 동작의 사실감을 향상시킬 수 있는 한 가지 방법은, 캐릭터가 들거나 입고 있는 아이템에 동적인 애니메이션을 주는 것입니다.
+[**AnimDynamics**](Engine/Animation/NodeReference/SkeletalControls) (애님 다이내믹스)로 현실에서 움직일 것으로 기대되는 부분(헤어, 목걸이, 팔찌, 칼, 주머니 등)을, 캐릭터가 움직이면 같이 움직이도록 만들 수 있습니다.
 
-In this How-to we will apply AnimDynamics to a character to achieve the effect seen below: 
+이번 비법에서는 캐릭터에 애님 다이내믹스를 적용시켜 아래와 같은 효과를 내 보도록 하겠습니다: 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -23,11 +23,11 @@ w7c3i2vpcUc
 [/PARAMLITERAL]
 [/OBJECT]
 
-Above, the character has AnimDynamics applied to the harness and furnace that is being carried around the character's neck. As the character moves, the harness shifts slightly while the furnace has a bit more movement forwards/backwards. 
-The amount of movement can be adjusted via the **Details** panel of the AnimDynamics node to achieve the effect you are looking for. Additional constraints can be added as well to manipulate just how the bones move. 
+위에서, 캐릭터의 목에 걸어 들고 다니는 장비와 풀무에 애님 다이내믹스가 적용되어 있습니다. 캐릭터가 움직임에 따라, 장비가 약간씩 움직이며, 풀무는 약간 더 앞뒤로 움직입니다.
+움직이는 정도는 AnimDynamics 노드의 **디테일** 패널을 통해 조절하여 원하는 효과를 얻을 수 있습니다. 컨스트레인트를 추가하여 본의 이동 방식을 추가 조정할 수 있습니다.
 
 [REGION:note]
-If you already have a character with an AnimBlueprint and bones ready to drive with AnimDynamics, you can proceed to step 2. 
+애님 블루프린트가 있는 캐릭터와 애님 다이내믹스로 구동시킬 준비가 된 본이 있으면, 2 단계로 진행하세요.
 [/REGION]
 
 [OBJECT:TopicButtonList]
@@ -35,7 +35,7 @@ If you already have a character with an AnimBlueprint and bones ready to drive w
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		단계
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

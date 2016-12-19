@@ -1,30 +1,30 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: BuildGraph Script Tasks
-Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph
-Description: Learn how BuildGraph can help you create custom tasks.
-version: 4.13
+﻿INTSourceChangelist:3108692
+Availability:Docs
+Title:BuildGraph 脚本任务
+Crumbs: %ROOT%, Programming, Programming/Development, Programming/Development/BuildGraph, Programming/Development/BuildGraph/ScriptAnatomy
+Description:了解如何利用 BuildGraph 创建自定义任务。
+version:4.13
 parent:Programming/Development/BuildGraph
 type:Reference
-related: Programming/Development/BuildGraph/BuildGraphScriptAnatomy
+related:Programming/Development/BuildGraph/ScriptAnatomy
 tags:BuildGraph
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Programming/Development/BuildGraph/BuildGraphScriptTasks%](tasks_topic.png)
+		![%Programming/Development/BuildGraph/ScriptAnatomy/Tasks%](tasks_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/reference_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Programming/Development/BuildGraph/BuildGraphScriptTasks:title%
+		%Programming/Development/BuildGraph/ScriptAnatomy/Tasks:title%
 	[/PARAM]
 	[PARAM:description]
-		%Programming/Development/BuildGraph/BuildGraphScriptTasks:description%
+		%Programming/Development/BuildGraph/ScriptAnatomy/Tasks:description%
 	[/PARAM]
 	[PARAM:path]
-		[RELATIVE:Programming/Development/BuildGraph/BuildGraphScriptTasks]
+		[RELATIVE:Programming/Development/BuildGraph/ScriptAnatomy/Tasks]
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -33,27 +33,18 @@ tags:BuildGraph
 
 [EXCERPT:BuildGraphScriptTasks]
 
-Typically, project-specific utility scripts are implemented as AutomationTool BuildCommand classes. There are times; however, when you'll want 
-to automate custom tasks for your project. This is where BuildGraph can help. BuildGraph can be extended with any number of tasks, enabling you 
-to customize your build automation tasks in ways that suit your specific needs. The following section goes over ways of creating custom 
-tasks using BuildGraph, including a listing of predefined tasks that'll give you a great starting point for creating custom tasks.
+通常而言，项目特定的实用脚本被实现为 AutomationTool BuildCommand 类。然而有时您需要为项目自动化自定义任务。这时 BuildGraph 便可提供协助。BuildGraph 可通过任意数量的任务进行延展，便于您用最符合自身需求的方式自定义构建自动化任务。以下部分将说明使用 BuildGraph 创建自定义任务的多种方式，包括预定义任务的列表，为创建自定义任务提供良好的起始点。
 
-## Custom Tasks
+## 自定义任务
 
-To create a new custom task, implement a class derived from the `CustomTask` class and apply the `[TaskElement]` attribute to it. 
-The `TaskElement` constructor takes two arguments; the name of the XML element that it's represented by, and the type of class 
-containing its parameters (which is passed to the constructor at load time).
+如需新建自定义任务，需实现一个派生自 `CustomTask` 类的类并对其应用 `[TaskElement]` 属性。`TaskElement` 构造函数拥有两个参数：其所代表的 XML 元素的命名、和包含其参数的类类型（将在加载时传至构造函数）。
 
-If you want to read parameter class fields from an XML file, attach the `[TaskParameter]` attribute to the task. Attaching the 
-`TaskParameter` attribute indicates if the parameter is required or optional, including additional validation that should be 
-applied to the argument.
+如需从 XML 文件读取参数类域，将 `[TaskParameter]` 属性附加到任务。附加 `TaskParameter` 属性将说明形式参数为必须或可选，包括应被应用到实际参数的额外验证。
 
-## Predefined Tasks
+## 预定义任务
 
-If you'd like to have a starting point for creating tasks, we're providing a variety of predefined tasks as templates for you to work from. 
-If you're looking for a simple predefined task to start from, we recommend using `LogTask` as a good starting point. If you want to keep up with 
-our latest improvements to BuildGraph; bookmark this page, because the following list of predefined tasks will be updated periodically. 
+作为创建任务的起始点，我们提供各种预定义任务供您使用。如果需要上手使用的简单预定义任务，我们推荐将 `LogTask` 用作一个较好的起始点。如需了解 BuildGraph 的最新改良，请将此页设为书签，以下预定义任务列表将定期更新。 
 
-[INCLUDE:Programming/Development/BuildGraph/BuildGraphScriptTasks/BuildGraphScriptPredefinedTasks]
+[INCLUDE:Programming/Development/BuildGraph/ScriptAnatomy/Tasks/PredefinedTasks]
 
 [/EXCERPT:BuildGraphScriptTasks]

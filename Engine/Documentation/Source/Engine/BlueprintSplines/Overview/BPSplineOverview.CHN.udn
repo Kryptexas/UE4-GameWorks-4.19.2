@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Blueprint Spline Components Overview
+﻿INTSourceChangeList:3149199
+Availability:Public
+Title:蓝图样条组件总览
 Crumbs: %ROOT%, Engine
-Description:A brief overview of Blueprint Spline Components and Blueprint Spline Mesh Components.
+Description:蓝图样条组件和蓝图样条网格体组件的简要总览。
 Navigation:topic
 parent:Engine/BlueprintSplines
 order:1
@@ -12,6 +12,9 @@ related:Engine/BlueprintSplines/HowTo
 related:Engine/BlueprintSplines/Reference/ComponentProperties
 related:Engine/BlueprintSplines/Reference/MeshComponentProperties
 related:Engine/BlueprintSplines/Reference/SplineEditorTool
+version:4.13
+type:overview
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -53,14 +56,14 @@ related:Engine/BlueprintSplines/Reference/SplineEditorTool
 [/VAR]
 
 
-At their core, **Blueprint Spline Components** are just a path for you to use for positional data. You can use it to move **Actors** (or other **Components**) around the world or place a series of **Actors** (or other **Components**) along the spline. They are fully editable in Blueprints with the ability to add/remove/duplicate Spline Points, change their tangent types, even animate them on tick. Further, they are also editable in the Level Editor with the capability to pass back those edits to their **Blueprint Construction Script**.
+就本质而言，**蓝图样条组件** 只是用于定义和使用位置数据的一个路径。可使用它在世界场景中移动 **Actors**（或其他 **组件**），或沿样条放置一系列的 **Actors**（或其他 **组件**）。它们可在蓝图视口和关卡编辑器中进行完整编辑，并能添加/移除/复制样条点，变更其切线类型、甚至按 tick 对其设置动画。此外，使用 **蓝图构造脚本** 也可对它们进行编辑，接受蓝图视口或关卡编辑器中进行的编辑并对它们进行进一步修改。
 
 ![](BPSC_1.png)
 
-**Blueprint Spline Mesh Components** have a completely different use case. These deform a single **Static Mesh** along a two point spline. You cannot add more Spline Points to a Blueprint Spline Mesh Component, but the two points are completely controllable through Blueprints.
+**蓝图样条网格体组件** 的使用情况则完全不同。它们将使单个 **静态网格体** 沿一个两点样条变形。无法对蓝图样条网格体组件添加更多样条点，但可通过蓝图完全控制两点。
 
 ![](BPSMC_1.png)
 
-While their use cases are very different, they share the same procedures for adding them to a Blueprint, and editing tools.
+虽然它们的使用情况相差很大，但添加到蓝图的步骤相同，且使用相同的编辑工具。
 
 

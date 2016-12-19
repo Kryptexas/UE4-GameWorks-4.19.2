@@ -1,35 +1,35 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Media Framework How-To
+﻿INTSourceChangeList:3108692
+Availability:Public
+Title:Media Framework の操作ガイド
 Crumbs:%ROOT%, Engine
-Description:Links to step-by-step guides for working with Media Framework in Unreal Engine 4. 
+Description:アンリアル エンジン 4 で Media Framework を使用するための操作ガイドのリンク集 
 Navigation:topic
 parent:Engine/MediaFramework
 order:2
-Version: 4.13
-Related: Engine\MediaFramework\Overview
-Related: Engine\MediaFramework\TechReference
+Version:4.13
+Related:Engine\MediaFramework\Overview
+Related:Engine\MediaFramework\TechReference
 
-This page provides links to step-by-step guides to creating and using the **Media Framework** tools within Unreal Engine 4. 
-If you are looking to quickly get a video asset up and running inside your levels, check out the Beginner tutorials which illustrate how to use files located on disk as well as URL based media sources. 
+このページでは、アンリアル エンジンで **Media Framework** ツールを作成および使用するための操作ガイドのリンクを紹介します。 
+URL べ－スのメディアソースだけでなく、ディスクに入っているフィアルの使用方法を図説した初心者向けチュートリアル 
 
-Refer to the table below for more information and click each link to view its contents. 
+詳細は以下を参照してください。 
 
-## Beginner
+## 初心者向け
 [REGION:wrapper transparent]
 [](FANCY:Engine\MediaFramework\HowTo\FileMediaSource "%Engine\MediaFramework\HowTo\FileMediaSource:description%")
 [](FANCY:Engine\MediaFramework\HowTo\StreamMediaSource "%Engine\MediaFramework\HowTo\StreamMediaSource:description%")
 [/REGION]
 
 
-## Intermediate
+## 中級者向け
 [REGION:wrapper transparent]
 [](FANCY:Engine\MediaFramework\HowTo\MediaPlaylists "%Engine\MediaFramework\HowTo\MediaPlaylists:description%")
 [](FANCY:Engine\MediaFramework\HowTo\ControllingPlayback "%Engine\MediaFramework\HowTo\ControllingPlayback:description%")
 [/REGION]
 
 <!-- To Do
-## Advanced
+## 上級者向け
 [REGION:wrapper transparent]
 [/REGION]
 -->

@@ -5,6 +5,9 @@ Description:Using Lighting and shadowing geometry, using Global Illumination, an
 Navigation:topic
 Related:Engine/Rendering/ParticleSystems/ParticleLights
 Version: 4.9
+parent:Engine/Rendering
+order:3
+type:landing
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -64,6 +67,7 @@ Version: 4.9
 %Engine/Rendering/LightingAndShadows/IndirectLightingCache:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:Topic%
 %Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:Topic%
+%Engine/Rendering/LightingAndShadows/PrecomputedLightingScenarios:Topic%
 [/REGION]
 
 

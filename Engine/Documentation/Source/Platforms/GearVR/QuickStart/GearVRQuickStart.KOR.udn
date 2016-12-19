@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:삼성 기어 VR UE4 퀵스타트
 Crumbs:%ROOT%, Platforms/GearVR
@@ -6,27 +6,29 @@ Description:삼성 기어 VR 헤드셋과 함께 사용할 프로젝트를 빠�
 Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
-Version: 4.9
-type:quickstart
+Version:4.9
+type:quick start
 parent:Platforms/GearVR
 tags:VR
 tags:GearVR
+order:1
+Checkpoint:GearVRQS
+prereq:Platforms\GearVR\Prerequisites
 
+![](GVR_Headset_00.png)
+
+
+## 목표
 이 기어 VR 퀵스타트에서는 개발 PC 와 삼성 갤럭시 노트 4 스마트폰이 삼성 기어 VR 헤드셋에 작동되도록 하는 방법을 안내해 드립니다.
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		단계
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-	* [](Platforms/GearVR/QuickStart/1 "%Platforms/GearVR/QuickStart/1:description%")
-	* [](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:description%")
-	* [](Platforms/GearVR/QuickStart/3 "%Platforms/GearVR/QuickStart/3:description%")
-	[/PARAM]
-[/OBJECT]
+## 목적
+* 기어 VR 개발을 타겟으로 한 UE4 프로젝트를 새로 만듭니다.
+* 프로젝트를 기어 VR 과 사용할 수 있도록 하기 위해 필요한 프로젝트 세팅을 설정합니다.
+* 기어 VR HMD 로 UE4 프로젝트를 실행시켜 확인합니다.
+
+[DIR(output:"checkpoint" parent:"Platforms/GearVR/QuickStart")]
+
+[REGION:call_to_action]
+ [클릭하면 시작합니다.](Platforms/GearVR/QuickStart/1 "%Platforms/GearVR/QuickStart/1:title%")
+[/REGION]
 

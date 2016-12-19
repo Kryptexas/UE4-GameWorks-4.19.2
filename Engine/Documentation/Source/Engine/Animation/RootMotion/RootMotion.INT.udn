@@ -47,7 +47,7 @@ In order to properly use Root Motion, it is important to note that the Root Bone
 [/REGION]
 
 
-The Root Motion of an animation can be visualized in Persona. Simply open up any animation in which the root bone is moving, and in the viewport choose **Show > Bones**. If you have not selected **Enable Root Motion** in the animation properties, you will notice a red line that appears as the character's root moves. This illustrates the Root Motion of the animation.
+The Root Motion of an animation can be visualized during playback. Simply open up any animation in which the root bone is moving, and in the viewport choose **Show > Bones**. If you have not selected **Enable Root Motion** in the animation properties, you will notice a red line that appears as the character's root moves. This illustrates the Root Motion of the animation.
 
 [REGION:fullwidth]
 ![](RootMotionBone.png)
@@ -64,7 +64,7 @@ So, what does this mean? Now that the system is taking the Root Motion of the ch
 
 ## Enabling Root Motion
 
-Root Motion can be enabled inside the **Anim Asset Details** panel of **Persona** for your [Animation Sequence](Engine\Animation\Sequences). 
+Root Motion can be enabled inside the **Asset Details** panel in the **Animation Editor** for your [Animation Sequence](Engine\Animation\Sequences). 
 
 ![](RootMotion.png)
 
@@ -74,13 +74,9 @@ For networked games however, Root Motion still requires the use of an Animation 
 
 [/REGION]
 
-While defining if Root Motion is enabled in done inside the Animation Sequence, you will still need to determine how that sequence is handled inside of an [Animation Blueprint]( Engine/Animation/AnimBlueprints). There are several different ways in which you can handle Root Motion within Animation Blueprints. You can define this through the **Root Motion Mode** drop down menu inside the Anim Blueprint Editor inside Persona. 
+While defining if Root Motion is enabled in done inside the Animation Sequence, you will still need to determine how that sequence is handled inside of an [Animation Blueprint]( Engine/Animation/AnimBlueprints). There are several different ways in which you can handle Root Motion within Animation Blueprints. You can define this through the **Root Motion Mode** drop down in the **Details** panel of the **Anim Blueprint Editor**. 
 
 ![](RootMotionMode.png)
-
-[REGION:note]
-Make sure that you are setting this inside the **Edit Defaults** tab and not the **Edit Preview**.
-[/REGION]
 
 The options are as follows: 
 

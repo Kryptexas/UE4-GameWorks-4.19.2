@@ -1,10 +1,11 @@
-﻿INTSourceChangelist:3011129
+﻿Availability:Public
 Availability:Public
 Title: 언리얼 엔진 4 문서
 Crumbs:
 Description: 언리얼 엔진 4 사용법 학습용 자료 전집입니다.
 Navigation:home
 social-image:home_social.png
+type:landing
 
 [PUBLISH:Rocket]
 ## 검색
@@ -65,7 +66,7 @@ social-image:home_social.png
 
 [/PUBLISH:Rocket]
 
-[DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%")]
+[DIR(end:"1" output:"role" org:"hierarchy" parent:"%ROOT%" type:"landing")]
 
 <!--
 [REGION:frontpage]

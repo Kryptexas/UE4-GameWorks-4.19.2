@@ -1,18 +1,18 @@
-﻿INTSourceChangelist:2680802
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:関数の作成
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:キーの押下時にテキストを表示する関数の作成 
 Related:Engine/Blueprints/UserGuide/Functions
 Related:Engine/Blueprints/UserGuide/Functions/FunctionCalls
-バージョン:4.9
-skilllevel:中級
+version:4.9
+skilllevel:Intermediate
 
 [INCLUDE:Engine/Blueprints/UserGuide/Functions#intro]
 
 ボタンが押されると画面上にテキストを出力する関数の作成は、以下の手順で行います。 
 
-1. **コンテンツ ブラウザ** で、 **[New]** ボタンをクリックし、 **[Blueprint]** をクリックします。 
+1. **コンテンツ ブラウザ** で、 **[New]** ボタンをクリックし、 **[Blueprint クラス]** をクリックします。 
 
 	![](NewBlueprint.png)
 
@@ -22,7 +22,7 @@ skilllevel:中級
 
 1. ブループリントに名前を付けて、ブループリント エディタ上で **ダブルクリック** して開きます。 
 
-	![](FunctionBlueprint.png)
+![](FunctionBlueprint.png)
 
 1.	再びグラフ内を **右クリック** して、 **Event Begin Play** Event を選択して追加します。 
 
@@ -56,7 +56,7 @@ skilllevel:中級
 
 	![](RenameFunction.png)
 
-	関数名を「 Print Text 」などにします。 
+	関数名を「Print Text」などにします。 
 
 1.	関数のグラフで **Print Text** ピンを引き出して **Print String** ノードを選択して追加します。 
 
@@ -74,7 +74,7 @@ skilllevel:中級
 
 	![](FKeyEvent.png)
 
-1.	**Pressed** ピンを引き出し、 **Print Text** を選択して追加します。 
+1.	**Pressed** ピンを引き出し、 **Print Text** を見つけて追加します。 
 
 	![](CallFunction.png)
 

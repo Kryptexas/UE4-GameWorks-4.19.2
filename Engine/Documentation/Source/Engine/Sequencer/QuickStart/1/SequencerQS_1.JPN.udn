@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3038380
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:1 - 必要な設定
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
@@ -9,7 +9,7 @@ Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
 checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
-type:sequential
+type:multi-step
 order:1
  
 [NAV]
@@ -77,6 +77,7 @@ order:1
 
 
 ## 最終結果
+
 
 プロジェクトをセットアップしたので、サンプル シネマティックスをオーサリングする準備が整いました。 
 **Master** レベル シーケンスとひとつめの **ショット** を作成し、エディタ インターフェースにシネマティックス ビューポートを含むようにセットアップしました。これにより、シネマティックスがどのように見えるかをリアルタイムでプレビューすることができます。 

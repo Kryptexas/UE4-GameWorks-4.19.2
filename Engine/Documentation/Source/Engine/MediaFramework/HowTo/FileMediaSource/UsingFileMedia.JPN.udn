@@ -1,108 +1,95 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title: Playing Videos in a Level
+﻿INTSourceChangeList:3108692
+Availability:Public
+Title:レベル内でビデオをプレイする
 Crumbs:%ROOT%, Engine
-Description:Describes how to use the File Media asset to play videos inside a level. 
-parent:Engine/MediaFramework/HowTo
+Description:メディア内でビデオをプレイするための File Media アセットの使用方法 
+parent:Engine/MediaFramework
 order:3
 checkpoint: editorqs
-Version: 4.13
-SkillLevel: Beginner
-Related: Engine\MediaFramework
+Version:4.13
+SkillLevel:Beginner
+Related:Engine\MediaFramework
 
-If you are looking to have video playing inside your level on an object whether its a TV or a monitor or some other object, you can do so using the **Media Framework** assets. 
-In this how-to we place a video file inside the **Content** folder of our project, then use the **Media Player** and related assets (with a little **Blueprint Visual Script**) to play the video during gameplay. 
+レベル内でプレイするビデオを探しているなら、TV でもモニタでも別のオブジェクトでも **Media Framework** アセットを使って検索ができます。 
+この操作ガイドでは、プロジェクトの **「Content」** フォルダにビデオ ファイルを置いて、**Media Player** と関連アセット (**Blueprint Visual Script** も少しだけ) を使ってゲームプレイ中にビデオをプレイします。 
 
 [REGION:note]
-For this how-to we are using the **Blueprint Third Person Template** project with **Starter Content** enabled.
-You will also need a [Supported Video File](Engine\MediaFramework\TechReference) saved on our computer that you want to play. You can use your own or **Right-click** and download this [Sample Video](SampleVideo.mp4). 
+ここでは **Starter Content Enabled (スターター コンテンツを有効にした状態)** で **Blueprint Third Person Template** プロジェクトを使います。
+再生するコンピュータ上に [サポートされているビデオ ファイル](Engine\MediaFramework\TechReference) がいくつか必要です。お持ちのビデオを使用するか、あるいは **右クリック** して [サンプル ビデオ](SampleVideo.mp4) をダウンロードすることもできます。 
 [/REGION]
 
 
-## Steps
+## ステップ
 
-1.	In the **Content Browser** expand the **Sources Panel**, then under **Content** create a folder called **Movies**. 
+1.	**[コンテンツ ブラウザ]** の **[Sources Panel]** を展開したら、**[Content]** に **「Movies」** という名前のフォルダを作成します。 
 
 	![](FileMedia_01.png)
 
-1.	**Right-click** on the **Movies** folder and select **Show in Explorer**. 
+1.	**「Movies」** フォルダを **右クリック** して **[Show in Explorer (エクスプローラーで表示)]** を選択します。 
 
 	![](FileMedia_01b.png)
 
-1.	Drag your video file into the **Content/Movies** folder of your project. 
+1.	ビデオファイルをプロジェクトの **「Content/Movies」** フォルダにドラッグします。プロジェクトの **「Content/Movies」** フォルダにビデオファイルを置くと、ビデオが確実に正しくパックされます。 
 
 	![](FileMedia_02.png)
 
-	Placing your video files inside the **Content/Movies** folder of your project will ensure the videos are properly packaged. 
-
-1.	Inside Unreal Engine and your project, **Right-click** in the **Movies** folder and under **Media** select **File Media Source**. 
+1.	アンリアル エンジンのプロジェクトの中にある**「Movies」** フォルダを **右クリック** して、**[Media]** の **[File Media Source]** を選択します。 
 
 	![](FileMedia_03.png)
 
-1.	Call the asset **SampleVideo**, then open it and point the **File Path** to the location of your video file in the **Content/Movies** folder. 
+1.	**SampleVideo** アセットを呼び出して開き、**File Path** を **「Content/Movies」** フォルダのビデオ ファイルの場所に指定します。 
 
 	![](FileMedia_04.png)
 
-1.	**Right-click** in the **Content Browser** then under **Media** select the **Media Player** asset. 
+1.	**[コンテンツ ブラウザ]** を **右クリック** して **[Media]** から **[Media Player]** アセットを選択します。 
 
 	![](FileMedia_05.png)
 
-1.	In the **Create Media Player** window, check **Audio output SoundWave asset** and **Video output Media Texture asset**. 
+1.	**[Create Media Player(Media Player を作成)]** ウィンドウの **[Audio output SoundWave asset]** と **[Video output Media Texture asset]** にチェックを入れます。再生する必要のあるこの Media Player アセットにリンクしている Media Sound Wave と Media Texture アセットを自動的に作成します。 
 
 	![](FileMedia_06.png)
 
-	This will automatically create a Sound Wave and Media Texture asset linked to this Media Player asset which is needed for playback. 
+1. 作成された Media Playe アセットに名前を付けます。Sound Wave と Media Texture にも適用可能な Media Player アセットの **SampleMedia** を呼び出しました。 
 
 	![](FileMedia_07.png)
 
-	We have called our Media Player asset **SampleMedia** which is also applied to the Sound Wave and Media Texture. 
-
-	If you open the Media Player asset, you can **Double-click** on your Media Source asset and it will playback. 
+1. Media Player アセットを開き、Media Source アセットを **ダブルクリック** して再生します。**[Details (詳細)]** パネルの右下にある **[Output (出力)]** セクションにも、Sound Wave と Media Texture が自動で割り当てられます。 
 
 	![](FileMedia_08.png)
 
-	In the lower-right in the **Details** panel the **Output** section will also have auto-assigned the Sound Wave and Media Texture. 
-
-1.	In the **Content Browser** under **StarterContent/Shapes** drag a **Shape_Plane** into the level. 
+1.	**[コンテンツ ブラウザ]** の **[StarterContent/Shapes]** で、**Shape_Plane** をレベルにドラッグします。このスタティックメッシュ上でビデオを再生します。 
 
 	![](FileMedia_09.png)
 
-	We will use this Static Mesh to playback our video on. 
-
-1.	Use the **Translate (W)**, **Rotation (E)** and **Scale (R)** tools to adjust the mesh similar to below. 
+1.	**Translate (W)**、**Rotation (E)**、**Scale (R)** ツールを使って、スタティックメッシュを以下のように調節します。 
 
 	![](FileMedia_10.png)
 
-1.	Hold **Ctrl** then select both the **Sound Wave** and **Media Texture** assets and drop them on top of the **Static Mesh** in the level. 
+1.	**[Ctrl]** を押しながら、**Sound Wave** アセットと **Media Texture** アセットを両方選択して、レベル内の **スタティックメッシュ** 上にリリースします。すると **マテリアル** が自動作成され、スタティックメッシュに適用されます。 
 
 	![](FileMedia_11.png)
 
-	This will automatically create a **Material** and apply it to the Static Mesh. 
-
-1.	From the Toolbar, click the **Blueprints** button and **Open Level Blueprint**. 
+1.	メイン ツールバー で **[Blueprint]** ボタンをクリックして、**[Open Level Blueprint]** を選択します。 
 
 	![](FileMedia_12.png)
 
-1.	Add a **Variable** of the **Media Player Reference** type called **Media Player** and set it to your **SampleMedia** Media Player asset. 
+1.	**「Media Player」** という名前の **Media Player Reference** タイプの **変数** を追加し、**SampleMedia** Media Player アセットに設定します。**Default Value** を代入するには、その前に **コンパイル** する必要があります。 
 
 	![](FileMedia_13.png)
 
-	You may need to **Compile** before you can assign the **Default Value**. 
-
-1.	Hold **Ctrl** and drag in the **MediaPlayer** variable and also **Right-click** and add an **Event Begin Play** node. 
+1.	**Ctrl** を押しながら **MediaPlayer** 変数へドラッグし、**右クリック** して **Event Begin Play** ノードを追加します。 
 
 	![](FileMedia_14.png)
 
-1.	Drag off the **MediaPlayer** variable and use the **Open Source** node set to your **SampleVideo** Media Source then connect as shown. 
+1.	**MediaPlayer** 変数を引き出して **Open Source** ノードを **SampleVideo** Media Source に設定して、以下のように接続します。 
 
 	![](FileMedia_15.png)
 
-1.	Close the Level Blueprint, then **Play** in the editor. 
+1.	Level ブループリントを閉じてから、エディタで **プレイ** します。 
 
-	
-## End Result
+## 最終結果
 
-When you play in the editor, the video will start playing on the Static Mesh. 
+エディタで再生した場合、スタティックメッシュ上でビデオがプレイを開始します。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -116,5 +103,5 @@ zxyY2s6ZfrU
 [/PARAMLITERAL]
 [/OBJECT]
 
-**Media Player** assets by default are set to **Play on Open** which is why the video automatically starts playing when calling the **Open Source** function.
-There are additional commands you can issue to the Media Player asset such as pausing, rewinding or stopping the video once it has begun playing which can be found under the **Media Player** section when dragging off the Media Player Reference.
+**Media Player** アセットはデフォルトで **[Play on Open]** に設定されているため、**Open Source** 関数を呼び出すとビデオが自動的に開始されます。
+一時停止、巻き戻り、ビデオの停止など Media Player アセットに発行できるコマンドは他にもあります。プレイが開始されると Media Player Reference を引き出す時に、**Media Player** セクションに表示されます。

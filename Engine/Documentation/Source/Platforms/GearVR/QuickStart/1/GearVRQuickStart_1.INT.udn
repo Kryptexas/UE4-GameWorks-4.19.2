@@ -7,7 +7,7 @@ Version: 4.9
 Skilllevel: Intermediate
 tags:VR
 tags:GearVR
-type:sequential
+type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:1
 Checkpoint:GearVRQS

@@ -2,7 +2,7 @@ Availability: Public
 Title:2. Extend Our Game Mode
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:Extending the project's Game Mode to add and remove menus from the screen.
-version:4.9
+version:4.14
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -76,6 +76,24 @@ version:4.9
 		}
 
 	[REGION:note]This code will create instances of any **Widgets** we provide and put them on the screen. It also removes them, so that only one is active at a time, although **Unreal Engine** can handle displaying and interacting with many Widgets at once. We never need to destroy a Widget directly, because removing it from the viewport and clearing (or changing) all variables that reference it will cause it to be cleaned up by Unreal Engine's garbage collection system.[/REGION]
+
+1. Finally, we need to set the input mode on our **Player Controller** class. To do this, we'll add a new C++ class to our project, based on **Player Controller**. Within this class, we only need to call one extra function when the game starts to ensure that we can interact with UI elements.
+
+	[![](NewClass.png)](NewClass.png)
+	[![](PlayerController.png)](PlayerController.png)
+	
+	In HowTo_UMGPlayerController.h, we will add the following override to the class:
+	
+		public:
+			virtual void BeginPlay() override;
+
+	In HowTo_UMGPlayerController.cpp, we will add our overridden function:
+	
+		void AHowTo_UMGPlayerController::BeginPlay()
+		{
+			Super::BeginPlay();
+			SetInputMode(FInputModeGameAndUI());
+		}
 
 
 ----
@@ -181,6 +199,39 @@ We have built the code framework to create and display menus, and remove them wh
 					}
 				}
 			}
+			
+		**HowTo_UMGPlayerController.h**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#pragma once
+
+			#include "GameFramework/PlayerController.h"
+			#include "HowTo_UMGPlayerController.generated.h"
+
+			/**
+			 * 
+			 */
+			UCLASS()
+			class HOWTO_UMG_API AHowTo_UMGPlayerController : public APlayerController
+			{
+				GENERATED_BODY()
+				
+			public:
+				virtual void BeginPlay() override;
+			};
+
+		**HowTo_UMGPlayerController.cpp**
+			// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+
+			#include "HowTo_UMG.h"
+			#include "HowTo_UMGPlayerController.h"
+
+			void AHowTo_UMGPlayerController::BeginPlay()
+			{
+				Super::BeginPlay();
+				SetInputMode(FInputModeGameAndUI());
+			}
+			
     [/PARAM]
 [/OBJECT]
 

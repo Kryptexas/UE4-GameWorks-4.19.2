@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3023291
+﻿INTSourceChangelist:3198499
 Availability:Public
 Title:ステートマシンの概要
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:ステートマシンの仕組みとその中で使われるコア システムについて説明します。
-version:4.12
+version:4.14
 related:Engine/Animation/StateMachines/CreatingStateMachines
 related:Engine/Animation/StateMachines/EditingStateMachines
 related:Engine/Animation/StateMachines/TransitionRules
@@ -46,7 +46,7 @@ related:Engine/Animation/AnimBlueprints
 
 [TOC (start:2)]
 
-アニメーション **ステートマシーン** を使うと、 [ **Animation ブループリント** ](Engine/Animation/AnimBlueprints/) をモジュールとして捉えることができます。 
+アニメーション **ステートマシン** を使うと、 [ **Animation ブループリント** ](Engine/Animation/AnimBlueprints/) をモジュールとして捉えることができます。 
 ユーザーは、キャラクターやスケルタルメッシュが存在しうる一連のさまざまなステートを定義するだけです。 
 次に、キャラクターもしくはメッシュが、ステートに出入りする状況をフローチャートのように定義します。 
 
@@ -56,14 +56,14 @@ related:Engine/Animation/AnimBlueprints
 ![](AnimationFlowChart.png)(w:700)
 [/REGION]
 
-上のフローに対してステートマシーンを設定した場合、最終的にはこのような感じになります。
+上のフローに対してステートマシンを設定した場合、最終的にはこのような感じになります。
 
 ![](StateMachine.png)(W:700)
 
 
-## ステートマシーンのアナトミー
+## ステートマシンのアナトミー
 
-ステートマシーンは、ステートのネットワークとその出入りの遷移を定義するルールで主に構成されています。各ステートは、各ルールセットと合わせて、凝縮された [**ブループリント**](Engine/Blueprints) ネットワークになります。 
+ステートマシンは、ステートのネットワークとその出入りの遷移を定義するルールで主に構成されています。各ステートは、各ルールセットと合わせて、凝縮された [**ブループリント**](Engine/Blueprints) ネットワークになります。 
 これにより、複雑なアニメーションのブレンドを、過度に複雑な **AnimGraph** を使用せずに簡単に処理できるようになります。 
 
 ### ステート
@@ -71,7 +71,7 @@ related:Engine/Animation/AnimBlueprints
 概念上、ステートはキャラクターまたはスケルタルメッシュが定期的にブレンドインしたり、ブレンドアウトするとわかっている AnimGraph のまとまった部分と考えると良いでしょう。 
 その後、グラフのこの部分へ遷移することができます。例えばキャラクターのアニメーションに Idle ステートが含まれていて、このステートに単一アニメーションのみが格納されていることがあります。 
 
-Idle ステートをステートマシーンから見るとこのようになります。
+Idle ステートをステートマシンから見るとこのようになります。
 
 ![](State.png)
 

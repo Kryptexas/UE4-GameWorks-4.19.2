@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2677195
+﻿INTSourceChangelist:3110576
 Availability:Public
-Title:Movable Lights（可動ライト）
+Title:Movable Lights (可動ライト)
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
 Description:実行中にその全プロパティを変更できる完全に動的なライト
 Version:4.9
@@ -48,7 +48,7 @@ Version:4.9
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
-[TOC(start:2 end:2)]
+[TOC(start:2 end:3)]
 
 
 
@@ -62,9 +62,74 @@ Version:4.9
 
 シャドウをキャストするための Movable Lights (可動ライト) のセットアップは、シーン全体の動的シャドウを使用します。これは、かなりのパフォーマンス負荷がかかります。パフォーマンス負荷は、主にライトの影響を受けるメッシュ数とこうしたメッシュのトライアングル カウントによって生じます。つまり、シャドウをキャストする Movable Lights (可動ライト) で半径の大きなものは、小さな半径の可動ライトに比べて何倍も負荷が大きくなります。
 
-## 使用法
+## 使用方法
 
-ライトの　**[Transform (変形)]** カテゴリには、**[Mobility (可動性)]** と呼ばれるプルダウン プロパティがあります。このプロパティを **[Movable (可動)]** に変更します。このプロパティは、ブループリントに追加されたライト コンポーネントにも表示されます。
+ライトの **[Transform (変形)]** カテゴリには **[Mobility (可動性)]** と呼ばれるプルダウン プロパティがあります。このプロパティを **[Movable (可動)]** に変更します。このプロパティは、ブループリントに追加されたライト コンポーネントにも表示されます。
 
 ![](ML_movableProp.png)
+
+## シャドウマップのキャッシュ 
+
+移動しないポイント ライトまたはスポット ライトに対して、シャドウ マップを格納して次のフレームに再利用することができます。この機能は、背景が通常は動かないゲームでは、シャドウ キャスティング ムーバブル ポイントライトとスポットライトの効率を上げます。次のドキュメントでは、この機能を UE4 プロジェクトで使用する方法を説明します。
+
+### シャドウマップのキャッシュとパフォーマンスの確認方法
+シャドウマップのキャッシュは UE4 プロジェクトでは自動的に有効にされます。シャドウマップのキャッシュののパフォーマンスを確認するために、以下の手順でシャドウマップのキャッシュの有効 / 無効を切り替えます。
+
+[region:note]
+以下のシャドウマップ キャッシュのデモには Sun Temple プロジェクトを使用しました。Sun Temple  マップは、エピック ゲームズ ランチャーの [Learn] タブから見つけることができます。
+[/region]
+
+1. プロジェクト レベルで動的シャドウをキャストしたいライトをすべて選択します。
+
+	![](SMC_Select_All_Lights.png)
+
+1. ライトの **[Mobility (可動性)]** を **[Movable]** に設定し、**[Cast Shadows (シャドウをキャストする)]** が有効になっていることを確認します。
+
+	![](SMC_Set_Mob_Shadow_Cast.png)
+
+1. **Backtick (`)** キーを押して **コンソール** を開き、`Stat Shadowrendering` と入力して動的シャドウの現在の負荷を確認します。 
+
+	![](SMC_Console_ShadowRendering.png)
+
+1. Backtick (`) キーを押して **コンソール** を開き、`r.Shadow.CacheWholeSceneShadows 0` と入力して動的シャドウ キャッシュを無効にします。
+
+	![](SMC_Disable_Shadow_Cache.png)
+
+	[region:note]
+	 Make sure to note the the numbers in the **[CallCount]** セクションと **[InclusiveAug]** セクションの数字のメモを必ず取ってください。
+	[/region]
+
+1. 再度 Backtick (`) キーを押して **コンソール** を開き、`r.Shadow.CacheWholeSceneShadows 1` と入力して動的シャドウ キャッシュを再度有効にします。**CallCount** と **InclusiveAug** の数を比較すれば、この機能が動的シャドウのパフォーマンスに影響を及ぼしていることが分かります。
+
+	[OBJECT:ComparisonSlider]
+		[PARAM:before]
+		![Shadow Caching On](SMC_On.png)
+		[/PARAM]
+		[PARAM:after]
+		![Shadow Caching Off](SMC_Off.png)
+		[/PARAM]
+	[/OBJECT]
+
+### パフォーマンス
+この機能はかなりの影響をパフォーマンスに与えます。解像度 1920x1200 の画面で NVIDIA 970 GTX GPU を使ってこの機能をテストした結果です。
+
+* この機能を有効にする前は、キャッシュのないシャドウキャストするポイント ライト 3 個のシャドウ深度のレンダリング時間は 14.89 ms でした。
+
+* Cached Shadow Maps を有効にすると、同じ 3 つのシャドウ キャスト ライトのレダリング時間は **16 倍の速さ** の 9ms となります。
+	[region:note]
+	33 個のポイント ライトの寄与のレンダリングにあと 2ms 必要であることに留意してください。別の方法でも最適化できますが、この変更は反映されません。
+	[/region]
+* **r.Shadow.WholeSceneShadowCacheMb** を使って Shadow Map Cache が使用している最大メモリを調節します。
+
+### 制限事項
+シャドウマップ キャッシュを有効にすると、UE4 プロジェクトで動的シャドウを使用する負荷を抑えることができますが、サポートされていない機能と使うとレンダリング アーティファクトの原因となる制約があります。次のセクションでは、シャドウマップ キャッシングの制約およびその対策を説明します。
+
+
+* デフォルトで、キャッシングはオブジェクトが以下の要件を満たした時のみ起こる設定です。
+
+	* プリミティブの **[Mobility (可動性)]** が **[Static (静的)]** または **[Stationary (固定)]** に設定されている場合 
+	* レベルで使用しているマテリアルが **World Position Offset** を使わない場合
+	* ライトは **ポイント** ライトか **Spot** ライトのいずれか、**[Mobility (可動性)]** を **[Movable (可動)]** に設定して **[Shadow Casting]** を有効にします。
+	* ライトは 1 個所に残しておかなければなりません。
+	* アニメートしている **テセレーション** または **ピクセル深度オフセット** を使用しているマテリアルは、シャドウ深度がキャッシュされるとアーティファクトを生じ得ることがあります。
 

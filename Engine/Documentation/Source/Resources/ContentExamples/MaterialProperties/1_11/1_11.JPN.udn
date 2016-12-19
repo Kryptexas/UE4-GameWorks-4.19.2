@@ -1,15 +1,16 @@
-﻿Availability:Public
-Title:1.11 - 反射深度バイアス
+﻿INTSourceChangeList:3108692
+Availability:Public
+Title:1.11 - 屈折深度バイアス
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.11：反射深度バイアス
-Related: Engine/Rendering/Materials/PhysicallyBased
-Related: Engine/Rendering/Materials
-Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
-Related: Engine/Rendering/Materials/ExpressionReference
-Related: Engine/Rendering/Materials/MaterialInputs
-Related: Engine/Rendering/Materials/LayeredMaterials
-Related: Engine/Rendering/Materials/MaterialInstances
-Related: Engine/Actors/DecalActor
+Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.11：屈折深度バイアス
+Related:Engine/Rendering/Materials/PhysicallyBased
+Related:Engine/Rendering/Materials
+Related:Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related:Engine/Rendering/Materials/ExpressionReference
+Related:Engine/Rendering/Materials/MaterialInputs
+Related:Engine/Rendering/Materials/LayeredMaterials
+Related:Engine/Rendering/Materials/MaterialInstances
+Related:Engine/Actors/DecalActor
 Version:4.9
 
 [VAR:Steps]
@@ -72,4 +73,4 @@ Version:4.9
 ![](MP_1_11_001.png)
 [/REGION]
 
-**反射** はスクリーン空間のエフェクトで、**深度バイアス** は近すぎるオブジェクトをマスクアウトするために使用します。このサンプルでは、エフェクトを示すためにとても強調して表示しています。反射しているオブジェクトの形状が複雑で法線マップがある場合、近すぎるオブジェクトはほとんど消滅します。
+**屈折 (Refraction)** はスクリーン空間のエフェクトで、**屈折バイアス (Refraction bias)** は近すぎるオブジェクトをマスクアウトするために使用します。このサンプルでは、エフェクトが分かるようにかなり強調して表示しています。屈折オブジェクトの形状が複雑で法線マップがある場合、近すぎるオブジェクトはほとんど消滅します。

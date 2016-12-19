@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How To Make Material Functions
+Title:Creating Material Functions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:A How To Guide for using Creating and using Material functions in your materials 
+Description:Guide for creating and using Material functions in your materials 
 Related: Engine/Rendering/Materials/Functions
 Related: Engine/Rendering/Materials/Functions/Creating
 Related: Engine/Rendering/Materials/Functions/Editing

@@ -1,12 +1,15 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Blueprint Spline Mesh Component Property Reference
+﻿INTSourceChangeList:3149199
+Availability:Public
+Title:Blueprint Spline Mesh コンポーネントのプロパティ リファレンス
 Crumbs: %ROOT%, Engine
-Description:Contains a reference of all properties available in the editor for Blueprint Spline Mesh Components.
+Description:Blueprint Spline Mesh コンポーネントのエディタで使用できるすべてのプロパティのリファレンスの情報です。
 Navigation:topic
 parent:Engine/BlueprintSplines
 order:1
 social-image:Splines_social.png
+version:4.13
+type:reference
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,9 +54,9 @@ social-image:Splines_social.png
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains a reference listing of properties available on **Spline Components**. The properties displayed will be slightly different if the **Blueprint Spline Component** is selected in the **Blueprint Editor**, is a **Root Component**, or if the component is selected in the **Level Editor**.
+このページでは、**Blueprint Spline コンポーネント** プロパティのリファレンス リストを紹介します。**ブループリント エディタ** で **Blueprint Spline Mesh コンポーネント** を選択した場合、**Root コンポーネント** を選択した場合、またはコンポーネントを **レベル エディタ** で選択した場合、若干異なるプロパティが表示されます。
 
-## Properties
+## プロパティ
 
 [INCLUDE:Engine/BlueprintSplines/Reference/ComponentProperties#PropTransformCat]
 
@@ -79,9 +82,9 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](StaticMeshCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Static Mesh** || Specifies the **Static Mesh** to render for this component. |
+| **Static Mesh** || 対象コンポーネントをレンダリングする **Static Mesh** を指定します。 |
 
 [/REGION]
 
@@ -90,9 +93,9 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](MaterialsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Element #** || Once a **Static Mesh** has been specified in the **Static Mesh Property**, a number of additional **Material Properties** will appear. These will be named based on the **Material IDs** applied to the **Static Mesh**. |
+| **Element #** || **Static Mesh プロパティ** で **スタティックメッシュ** が指定されると、**マテリアル プロパティ** が多数追加表示されます。これらは **Static Mesh** に適用された **マテリアル ID** に基づいて名前が付けられます。. |
 [/REGION]
 
 [/VAR]
@@ -118,22 +121,22 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](SplineMeshCat.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
-| **Start Pos** || %doxygen:FSplineMeshParams::StartPos% |
-| **Start Tangent** || %doxygen:FSplineMeshParams::StartTangent% |
+| **Start Awake** || %doxygen:FSplineMeshParams::StartPos% |
+| **Start Awake** || %doxygen:FSplineMeshParams::StartTangent% |
 | **End Pos** || %doxygen:FSplineMeshParams::EndPos% |
 | **End Tangent** || %doxygen:FSplineMeshParams::EndTangent% |
 | **Spline Up Dir** || %doxygen:USplineMeshComponent::SplineUpDir% |
 | **Forward Axis** || %doxygen:USplineMeshComponent::ForwardAxis% |
 [/REGION]
 
-###Advanced
+### 詳細設定
 
-![](SplineMeshCatAdv.png)
+![](SplineMeshCat.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Start Scale** || %doxygen:FSplineMeshParams::StartScale% |
 | **Start Roll** || %doxygen:FSplineMeshParams::StartRoll% |
@@ -154,7 +157,7 @@ This page contains a reference listing of properties available on **Spline Compo
 [EXCERPT:PropSplineCat]
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
-		SplineCat
+		SplineCatd
 	[/PARAMLITERAL]
 	[PARAM:heading]
 		Spline
@@ -169,7 +172,7 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](BPSM_SplineCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| プロパティ | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Allow Spline Editing Per Instance** || %doxygen:USplineMeshComponent::bAllowSplineEditingPerInstance% |
 [/REGION]
@@ -179,7 +182,7 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		PhysicsCat
 	[/PARAMLITERAL]
@@ -191,7 +194,7 @@ This page contains a reference listing of properties available on **Spline Compo
 	[/PARAM]
 [/OBJECT]
 
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		CollisionCat
 	[/PARAMLITERAL]
@@ -203,9 +206,142 @@ This page contains a reference listing of properties available on **Spline Compo
 	[/PARAM]
 [/OBJECT]
 
-[INCLUDE:Engine/BlueprintSplines/Reference/ComponentProperties#PropLightingCat]
 
-[INCLUDE:Engine/BlueprintSplines/Reference/ComponentProperties#PropRenderingCat]
+
+
+[EXCERPT:PropLightingCat]
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		LightingCat
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Lighting
+	[/PARAM]
+	[PARAM:content]
+		%c5%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:c5]
+
+![](LightingCatRef.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Cast Shadow** || %doxygen:UPrimitiveComponent::CastShadow% |
+[/REGION]
+
+### 詳細設定
+
+![](LightingCatRefAdv.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Affect Dynamic Indirect Lighting** || %doxygen:UPrimitiveComponent::bAffectDynamicIndirectLighting% |
+| **Affect Distance Field Lighting** || %doxygen:UPrimitiveComponent::bAffectDistanceFieldLighting% |
+| **Cast Dynamic Shadow** || %doxygen:UPrimitiveComponent::bCastDynamicShadow% |
+| **Cast Static Shadow** || %doxygen:UPrimitiveComponent::bCastStaticShadow% |
+| **Cast Volumetric Translucent Shadow** || %doxygen:UPrimitiveComponent::bCastVolumetricTranslucentShadow% |
+| **Self Shadow Only** || %doxygen:UPrimitiveComponent::bSelfShadowOnly% |
+| **Cast Far Shadow** || %doxygen:UPrimitiveComponent::bCastFarShadow% |
+| **Cast Inset Shadow** || %doxygen:UPrimitiveComponent::bCastInsetShadow% |
+| **Cast Cinematic Shadow** || %doxygen:UPrimitiveComponent::bCastCinematicShadow% |
+| **Cast Hidden Shadow** || %doxygen:UPrimitiveComponent::bCastHiddenShadow% |
+| **Cast Shadow as Two Sided** || %doxygen:UPrimitiveComponent::bCastShadowAsTwoSided% |
+| **Light as if Static** || %doxygen:UPrimitiveComponent::bLightAsIfStatic% |
+| **Light Attachments as Group** || %doxygen:UPrimitiveComponent::bLightAttachmentsAsGroup% |
+| **Indirect Lighting Cache Quality** || %doxygen:UPrimitiveComponent::IndirectLightingCacheQuality% |
+| **Single Sample Shadow From Stationary Lights** || %doxygen:UPrimitiveComponent::bSingleSampleShadowFromStationaryLights% |
+| **Lighting Channels** || %doxygen:UPrimitiveComponent::LightingChannels% |
+[/REGION]
+
+[/VAR]
+[/EXCERPT]
+
+
+
+[EXCERPT:PropRenderingCat]
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		RenderingCat
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Rendering
+	[/PARAM]
+	[PARAM:content]
+		%c6%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:c6]
+
+![](RenderingCatRef.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Visible** || %doxygen:USceneComponent::bVisible% |
+| **Hidden in Game** ||  %doxygen:USceneComponent::bHiddenInGame%|
+[/REGION]
+
+### 詳細設定
+
+![](RenderingCatRefAdv.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Texture Streaming** || [INCLUDE:#TextureStreamingProp] |
+| **LOD** || [INCLUDE:#LODProp] |
+| **Render In Main Pass** || %doxygen:UPrimitiveComponent::bRenderInMainPass% |
+| **Receives Decals** || %doxygen:UPrimitiveComponent::bReceivesDecals% |
+| **Owner No See** || %doxygen:UPrimitiveComponent::bOwnerNoSee% |
+| **Only Owner See** || %doxygen:UPrimitiveComponent::bOnlyOwnerSee% |
+| **Treat As Background for Occlusion** || %doxygen:UPrimitiveComponent::bTreatAsBackgroundForOcclusion% |
+| **Use As Occluder** || %doxygen:UPrimitiveComponent::bUseAsOccluder% |
+| **Render CustomDepth Pass** || %doxygen:UPrimitiveComponent::bRenderCustomDepth% |
+| **CustomDepth Stencil Value** || %doxygen:UPrimitiveComponent::CustomDepthStencilValue% |
+| **Translucency Sort Priority** || ソート優先度の低い透過オブジェクトは、優先度の高いオブジェクトの後ろに描画されます。優先度が同じ透過オブジェクトは、バウンドの原点を基点に後ろから前にレンダリングされます。 |
+| **Lpv Bias Multiplier** || %doxygen:UPrimitiveComponent::LpvBiasMultiplier% |
+| **Bounds Scale** || %doxygen:UPrimitiveComponent::BoundsScale% |
+| **Use Attach Parent Bound** || %doxygen:USceneComponent::bUseAttachParentBound% |
+[/REGION]
+
+[/VAR]
+[/EXCERPT]
+
+
+
+<!--
+[EXCERPT:TextureStreamingProp]
+
+[REGION:raw]
+| プロパティ | %spacer2% | 説明 |
+| --- | :---: | :--- |
+| **Force Mip Streaming** || %doxygen:UPrimitiveComponent::bForceMipStreaming% |
+[/REGION]
+
+[/EXCERPT]
+
+[EXCERPT:LODProp]
+
+[REGION:raw]
+| プロパティ | %spacer2% | 説明 |
+| --- | :---: | :--- |
+| **Min Draw Distance** || %doxygen:UPrimitiveComponent::MinDrawDistance% |
+| **Desired Max Draw Distance** || %doxygen:UPrimitiveComponent::LDMaxDrawDistance% |
+| **Current Max Draw Distance** || %doxygen:UPrimitiveComponent::CachedMaxDrawDistance% |
+| **Allow Cull Distance Volume** || %doxygen:UPrimitiveComponent::bAllowCullDistanceVolume% |
+| **Detail Mode** || %doxygen:USceneComponent::DetailMode% |
+[/REGION]
+
+[/EXCERPT]
+-->
+
+
+
 
 [INCLUDE:Engine/BlueprintSplines/Reference/ComponentProperties#PropTagsCat]
 
@@ -213,4 +349,28 @@ This page contains a reference listing of properties available on **Spline Compo
 
 [INCLUDE:Engine/BlueprintSplines/Reference/ComponentProperties#PropEventsCat]
 
-[INCLUDE:Engine/BlueprintSplines/Reference/ComponentProperties#PropMobileCat]
+[EXCERPT:PropMobileCat]
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		MobileCat
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Mobile
+	[/PARAM]
+	[PARAM:content]
+		%c10%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:c10]
+
+![](MobileCatRef.png)
+
+[REGION:raw]
+| プロパティ | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Receive Combined Static and CSM Shadows from Stationary Lights** || %doxygen:UPrimitiveComponent::bReceiveCombinedCSMAndStaticShadowsFromStationaryLights%  |
+[/REGION]
+
+[/VAR]
+[/EXCERPT]

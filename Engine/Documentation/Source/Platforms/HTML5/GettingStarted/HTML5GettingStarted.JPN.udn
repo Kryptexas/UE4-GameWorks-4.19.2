@@ -1,159 +1,34 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:入門編:HTML5 プロジェクトの開発
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
 Description:HTML5 プラットフォーム開発の設定
-Version:4.9
+Version:4.11
 SkillLevel:Intermediate
 type:quickstart
 parent:Platforms/HTML5
 tags:HTML5
 
-[TOC(start:2 end:3)]
-
-## ご注意
 
 [REGION:todo]
 HTML5 パイプラインは現在実験版です。HTML5 プラットフォーム向けにビルドしても、適切に動かないプロジェクトがあるかもしれません。ラフエッジを予期してください。
 [/REGION:todo]
 
-%Globals:BinarySourceSelectVar%
-
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	BinarySourceSelect
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	binaryinstall
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	active_button_content
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%binary%
-	[/PARAM]
-[/OBJECT]
-[OBJECT:ToggleButtonContent]
-	[PARAMLITERAL:category]
-	BinarySourceSelect
-	[/PARAMLITERAL]
-	[PARAMLITERAL:id]
-	sourceinstall
-	[/PARAMLITERAL]
-	[PARAMLITERAL:active]
-	[/PARAMLITERAL]
-	[PARAM:content]
-	%source%
-	[/PARAM]
-[/OBJECT]
-
-
-[VAR:source]
-## ソースと Github ユーザー向け
-
-HTML5 プラットフォームは Windows および Mac の両方のホスト プラットフォームでターゲット プラットフォームとしてビルドすることができます。 
-
-HTML5 は [Mozilla](https://www.mozilla.org/en-US/) から [**emscripten**](https://github.com/kripken/emscripten) ツールチェーンを使用して C++ を javascript にクロスコンパイルします。ソースコードの形式、公開済み SDK、あるいは移植できるディストリビューションで配布されます。UE4 ビルドシステムは、わずかなステップでこれらすべてをサポートします。 
-
-### ソースからのインストール方法： 
-
-インストールの前提条件 
-
-* [Node.js](http://nodejs.org/)
-
-* [Python (2.X series)](https://www.python.org/downloads/)
-
-	* python.exe が Path 環境変数に含まれるようにしてください。 
-
-* [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-
-* **emscripten** レポジトリ \[[emscripten Repository](https://github.com/kripken/emscripten)\] をクローンします。
-
-* **Fastcomp** レポジトリ \[[howto](http://kripken.github.io/emscripten-site/docs/building_from_source/building_fastcomp_manually_from_source.html)\] をクローンし、ビルドします。
-
-### .emscripten Config ファイルのセットアップ
-
-**emscripten** ツールチェーンが正しく機能するためにはコンフィギュレーション ファイル .emscripten が必要です。Emscripten に関する [ドキュメント](http://kripken.github.io/emscripten-site/docs/building_from_source/configuring_emscripten_settings.html) を参照して、正しくセットアップしてください。 
-
-### SDK からのインストール方法： 
-
-Emscripten の [ウェブサイト](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html) に記載されている指示に従ってください。SDK の最新バージョンをインストールのが通常は一番良い方法です。
-
-### アンリアル エンジン 4 のセットアップ 
-
-* アンリアル エンジン 4 のレポジトリをフォークおよびクローンします \[[UnrealEngine](https://github.com/EpicGames/UnrealEngine)\]
-
-* シェルで `Setup.bat -include=HTML5` を実行します。
-
-* `Engine\Config\HTML5\HTML5Engine.ini` を編集し、 `\[HTML5SDkPaths\]` セクション配下の OS に SDK へのパスを設定します。必要に応じてセクションを追加します。Python インストールにパスも追加します。通常は emscripten SDK インストールに含まれています。Python が PATH にある場合は、この手順を飛ばしてください。以下のようになります。 
-
-		\[HTML5SDKPaths\]
-		Emscripten="C:/Program Files/Emscripten/emscripten/X.YY.Z"
-		Python="C:/Program Files/Emscripten/python/X.YY.Z_64bit/python.exe"
-
-別の OS に対するパスも別途指定する必要がある場合は、以下のようにします。
-
-	\[HTML5SDKPaths\]
-	Windows="C:/html5sdk/path/on/windows"
-	Mac="/html5sdk/path/on/mac"
-
-主要なブラウザをインストールし、`\[HTML5DevicesWindows\]` セクションの `HTML5Engine.ini` のリンクが正しいブラウザ バイナリへ向くようにしてください。 
-
-例えば、
-
-	\[HTML5DevicesWindows\]
-	Firefox="C:/Program Files (x86)/Mozilla Firefox/firefox.exe"
-	Chrome(32bit)="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
-	Chrome(64bit)="C:/Program Files/Google/Chrome/Application/chrome.exe"
-
-[https://github.com/EpicGames/UnrealEngine](https://github.com/EpicGames/UnrealEngine) に掲載されている指示に従ってエディタをビルドします。ソリューション コンフィギュレーションを **Development** 、ソリューション プラットフォームを **HTML5** に設定して HTML5 をビルドします。 
-
-### Mac OS
-
-Mac OS での移植については、[http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#verifying-the-installation](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#verifying-the-installation) を参照してください。そして、上記の手順に従って UE4 を設定してください。今のところ、xcode 内に HTML5 をビルドする方法はありませんが、xcode. で呼び出した既存のスクリプトを使ってコマンドラインから HTML5 をビルドすることができます。例えば、
-
-	Engine\Build\Batchfiles\Mac\Build.sh UE4Game HTML5 Development
-
-[/VAR]
-
-
-
-
-
-
-[VAR:binary]
-
-## バイナリとランチャーユーザー向け
-
-1. [emcripten をインストールします](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html)。Windows ユーザーの場合は、[emscripten SDK Web Installer](https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-1.29.0-web-64bit.exe) の使用をお勧めします。
-
-	[REGION:note]
-	Emscripten 用のウェブ インストーラがパスをシステム パス環境変数へ加えているはずですが、念のためそうなっているか確認してください。
-	[/REGION]
-
-1. [Install Python 2.7](https://www.python.org/download/releases/2.7/)
-
-	Python **2.7** のすべてのバージョンに当てはまります。このドキュメントを記載している現時点では、2.7 の最新版は 2.7.10 です。Python 3.X は使わないでください。
-
-1. `Engine\Config\HTML5\HTML5Engine.ini` ファイルを更新してください。
-
-		[HTML5SDKPaths]
-		Mac="/path/to/emscripten/sdk"
-		Emscripten="C:/Program Files/Emscripten/emscripten/1.29.0"
-		Python="C:/Python27"
-
-[REGION:warning]
-Chrome や Firefox など別の場所に何かをインストールする場合は、必ずこのファイル内で変更してください。
-[/REGION]
-
-
-### 64 ビット ブラウザの必要性
+HTML5 は [Mozilla](http://kripken.github.io/emscripten-site/) から [emscripten](https://github.com/kripken/emscripten) ツールチェーンを使用して C++ を javascript にクロスコンパイルします。バージョン 4.9 以降では、Emscripten と Python が含まれています。
+これらは`Engine/Source/ThirdParty/HTML5/emsdk/` で検索でき、コンフィギュレーションや追加のインストールなしで HTML5 へデプロイできます。 
 
 HTML5 ビルドを実行するには、現在 64 ビット ブラウザが必要です。
 
 * [Firefox nightlies をダウンロード](ftp://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/)
 * [Chromium ビルドをダウンロード](http://chromium.woolyss.com/#windows-64-bit)
 
-[/VAR]
 
+インストールが完了したら、**[Launch]** ドロップダウン メニューからブラウザを [マップを起動する](Engine/Deployment/Launching) に選択します。 
+![](LaunchNightly.png)
 
+**[packaged HTML5 project](Engine/Basics/Projects/Packaging) をテストする:**
+1. **[Package Project (プロジェクトをパッケージする)]** ポップアップ メニューから **[HTML5]** を選択します。 
+1. プロジェクトのパッケージングが完了したら、保存場所から **[HTML5LaunchHelper]** を開きます。
+1. このウィンドウで表示されるローカルホストに注目してください。
+	![](localhostinfo.png)
+1. 64 ビット ブラウザで `[Localhost Address]/[ProjectName].html` を開きます。例えば、`MyProject` というプロジェクト名で上記のローカルホスト アドレスを使っている場合は、`http://localhost:8000/MyProject.html` です。

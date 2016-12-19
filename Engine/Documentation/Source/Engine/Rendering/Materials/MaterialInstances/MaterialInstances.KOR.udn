@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3151855
 Availability: Public
 Title:인스턴싱된 머티리얼
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:셰이더 리컴파일 없이 자손 머티리얼의 작동방식이나 외형을 변경하고자 프로퍼티의 변경을 허용하는 계층구조식 머티리얼 관계입니다.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:6
+topic-image:Engine/Rendering/Materials/InstanceTopic.png
+type:overview
 
 
 ![](MICEditor.png)

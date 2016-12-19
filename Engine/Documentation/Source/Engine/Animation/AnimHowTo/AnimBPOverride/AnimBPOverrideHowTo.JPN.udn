@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2692223
+﻿INTSourceChangelist:3226913
 Availability:Public
 Title:Animation ブループリントのオーバーライド
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -7,15 +7,17 @@ Related:Engine\Animation\Sequences
 Related:Engine\Animation\AnimBlueprints
 Related:Engine\Animation\Skeleton
 Related:Engine\Animation\Overview
-version:4.9
+version:4.14
 skilllevel:Advanced
+type:howto
+topic-image:animbpoverride_topic.png
+tags:Animation
+tags:Animation Blueprint
 
 キャラクターのセットアップやアニメーションをキャラクター向けにセットアップする場合、あるキャラクターのアクションに対してあるアニメーションを実行させ、別のキャラクターには同じアクションに対して別のアニメーションを実行させたい場合があるでしょう。子 [Animation ブループリント](Engine/Animation/AnimBlueprints) 内で **Asset Override Editor** を使用することで、[Sequence Player Node](Engine/Animation/Sequences/UserGuide) で使用される以前設定したアセットをオーバーライドすることができます。これにより、各キャラクターが使用できる Animation ブループリントのバリエーションを迅速に作成できます。 
 
-
-
 [REGION:note]
-このガイドでは、**Blueprint Third Person** テンプレートを使用し、**Infinity Blade:Warriors** と **Animation Starter Pack** アセットを含めました。これらはマーケットから無料でご利用いただけます。[アニメーションのリターゲット](Engine/Animation/AnimHowTo/Retargeting) を行い、 Animation Starter Pack に含まれる Animation ブループリントとアニメーションを Infinity Blade のキャラクターと合わせて使用するためにリターゲットしました。 
+このガイドでは、**Blueprint Third Person** テンプレートを使用し、**Infinity Blade:Warriors** と **Animation Starter Pack** アセットを含めました。これらはマーケットプレイスから無料でご利用いただけます。[アニメーションのリターゲット](Engine/Animation/AnimHowTo/Retargeting) を行い、 Animation Starter Pack に含まれる Animation ブループリントとアニメーションを Infinity Blade のキャラクターと合わせて使用するためにリターゲットしました。 
 [/REGION]
 
 ## ステップ
@@ -32,7 +34,7 @@ skilllevel:Advanced
 
 	![](03_AssetOverrideEditor.png)
 
-	各アセットの隣にある矢印をクリックして、アセットの表示を展開、折り畳みすることができます。 
+	各アセットの隣にある矢印をクリックして、アセットの表示を展開したり、折り畳むことができます。 
 
 1. **Asset** 列で、ドロップダウン ウィンドウをクリックして、使用する新規アセットを指定します (その結果、呼び出されると既存のものをオーバーライドします)。 
 
@@ -45,7 +47,7 @@ skilllevel:Advanced
 1. **Compile** をクリック後、変更を見ることができます。以上です！ 
 
 
-## 結果
+## 最終結果
 
 以下は、親の Animation ブループリントでキャラクターのデフォルトの動き (Jog (ジョギング) としてアサイン) がオーバーライドされて、代わりにキャラクターがWalk (歩行) するようになっています。 
 
@@ -58,7 +60,7 @@ skilllevel:Advanced
 360
 [/PARAMLITERAL]
 [PARAMLITERAL:videoid]
-MuQ5VQIGfY4
+2BNKUuTLGMM
 [/PARAMLITERAL]
 [/OBJECT]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3151855
 Title: 게임플레이 안내
 Crumbs:%ROOT%
 Description:프로그래머와 비주얼 스크립터를 위한 게임플레이 함수성 개요 및 예제입니다.
@@ -6,6 +6,7 @@ Availability:Public
 version: 4.9
 parent:%ROOT%
 order:6
+type:landing
 
 [VAR:Params]
 [PARAM:image]

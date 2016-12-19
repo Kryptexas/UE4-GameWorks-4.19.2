@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:3108692
+Availability:Public
 Title:FABRIK
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
 Description:Forward And Backward Reaching Inverse Kinematics, 앞뒤로 늘어나는 IK 를 사용하는 애니메이션 노드입니다.

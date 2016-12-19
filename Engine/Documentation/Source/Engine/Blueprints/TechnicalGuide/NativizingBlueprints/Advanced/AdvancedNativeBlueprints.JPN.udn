@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:3007724
-Availability:Docs
+﻿INTSourceChangelist:3157305
+Availability:Public
 Title:高度なブループリントのネイティブ化
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
 Description:ゲームプレイ要素をブループリントに公開するゲームプレイ プログラマーのためのテクニカル ガイド
-Related: Engine/Blueprints/TechnicalGuide/NativizingBlueprints
+Related:Engine/Blueprints/TechnicalGuide/NativizingBlueprints
 Parent:Engine/Blueprints/TechnicalGuide
 Version:4.12
 type:reference
@@ -18,6 +18,9 @@ type:reference
 
 ネイティブ化されたブループリントは、新しい別のモジュールに格納されます。つまり、ゲームプレイ モジュールのヘッダはモジュール外で使用することが可能になります。 
 すべてのヘッダが、使用しているすべてのクラスと構造体を、インクルード ヘッダもしくは前方宣言として宣言していることを確認してください。
+
+多くのプロジェクトには "修正型" ヘッダである `[GameName]/[GameName].h` あるいは `[GameName]/Public/[GameName].h` が付いています。このヘッダへのパスを `DefaultEditor.ini` の `[BlueprintNativizationSettings]` の `FilesToIncludeInModuleHeader` に追加すると、 
+不足しているヘッダに起因する多くの問題を解決することができます。
 
 手書きのコードとネイティブ化したコード間の連携の信頼性と効率をさらに高めるルール / 制限があります。 
 

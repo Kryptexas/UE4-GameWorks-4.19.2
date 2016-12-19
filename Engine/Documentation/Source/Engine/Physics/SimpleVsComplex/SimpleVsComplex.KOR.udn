@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2985497
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:단순 대 복합 콜리전
 Crumbs: %ROOT%, Engine
@@ -63,6 +63,12 @@ PhysX 안에서 단순 & 복합 모양 둘 다 만든 뒤, 사용자가 원하�
 | **Default** || 기본 - 단순 콜리전 요청이 단순 콜리전을, 복합 요청은 복합 콜리전을 사용하도록 하는 "기본" 동작입니다. |
 | **UseSimpleAsComplex** || 단순을 복합으로 사용 - 복합 쿼리 요청시에도 엔진은 단순 모양에 대한 쿼리를 계속, 기본적으로 트라이메시를 무시합니다. 트라이메시를 구을 필요가 없기에 메모리가 절약되고, 콜리전 지오메트리가 단순해 지면 퍼포먼스가 향상될 수도 있습니다. |
 | **UseComplexAsSimple** || 복합을 단순으로 사용 - 단순 쿼리 요청시에도 엔진은 복합 모양에 대한 쿼리를 계속, 기본적으로 단순 콜리전을 무시합니다. 이를 통해 물리 시뮬레이션 콜리전에 트라이메시를 사용할 수 있습니다. 참고로 **UseComplexAsSimple** 사용중인 경우 오브젝트 시뮬레이션은 불가능하나, 다른 시뮬레이션 (단순) 오브젝트와의 충돌은 가능합니다. |
+[/REGION]
+
+예: 아래 그림에서 왼쪽의 의자는 단순 콜리전인데, 폰이 그 위로 떨어지면 시트를 덮는 광각 표면으로 미끄러져 내립니다. 하지만 오른쪽 의자는 **UseCompleAsSimple** (복합을 단순으로 사용)을 사용하므로, 폰이 그 위로 떨어지면 의자 시트쪽에 내려 앉게 됩니다.
+
+[REGION:lightbox]
+[![](exImage.png)](exImage.png)
 [/REGION]
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]

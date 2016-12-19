@@ -41,7 +41,9 @@ For example, a character may have a state of "Idle" when not moving. Once the ch
 
 -->
 
+[EXCERPT:Overview]
 **State Machines** provide a graphical way to break the animation of a Skeletal Mesh into a series of States. These states are then governed by **Transition Rules** that control how to blend from one state to another. As a tool, they greatly simplify the design process for Skeletal Mesh animation, in that you can create a graph that easily controls how your characters can flow between types of animation without having to create a complex Blueprint network.
+[/EXCERPT:Overview]
 
 Below you will find the information and tutorials for working with State Machines in Unreal Engine 4. 
 

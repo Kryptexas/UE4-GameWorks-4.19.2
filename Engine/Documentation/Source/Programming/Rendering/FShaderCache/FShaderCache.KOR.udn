@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2955014
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title:FShaderCache
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:FShaderCache 로 게임내 셰이더 버벅임 현상을 감소시킬 수 있습니다.
 Version: 4.9
+tags:Rendering
 
 
 ## 개요

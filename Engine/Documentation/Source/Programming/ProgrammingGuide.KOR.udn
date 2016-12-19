@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2821916
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title:프로그래밍 가이드
 Crumbs: %ROOT%
@@ -6,6 +6,7 @@ Description:언리얼 엔진으로 개발하는 프로그래머를 위한 정보
 version: 4.9
 parent:%ROOT%
 order:4
+type:landing
 
 [VAR:Params]
 [PARAM:image]

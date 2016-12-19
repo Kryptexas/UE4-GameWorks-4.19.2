@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2827260
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title:2.将材质应用于 Actor
+Title: 2.将材质应用于 Actor
 Crumbs:%ROOT%, Gameplay, GettingStarted\HowTo, GettingStarted\HowTo\DetailsPanel
-Description:使用“细节”（Details）面板将材质应用于 Actor。 
-Related:Engine/UI/LevelEditor/Details
-Related:Engine/UI/LevelEditor/Details/Interface
-Related:Engine/Rendering/Materials
-Version:4.10
-SkillLevel:Beginner
+Description: 使用“细节”（Details）面板将材质应用于 Actor。 
+Related: Engine/UI/LevelEditor/Details
+Related: Engine/UI/LevelEditor/Details/Interface
+Related: Engine/Rendering/Materials
+Version: 4.10
+SkillLevel: Beginner
 checkpoint: editorqs
 
 [VAR:Steps]

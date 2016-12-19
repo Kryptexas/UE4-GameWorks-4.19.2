@@ -9,7 +9,6 @@ type:landing
 parent:Platforms
 tags:Linux
 related: GettingStarted/RecommendedSpecifications
-related: Platforms/Linux/GettingStarted
 
 Fueling the future of Linux game development is at your fingertips! Now, more than ever, you can harness the power of
 Unreal Engine 4 (UE4) to create and share games with Linux users worldwide. If you're new to Linux game development,
@@ -17,7 +16,9 @@ you'll want to work your way through the Quick Start Guide before moving onto mo
 
 ## Getting Started
 
+%Platforms/Linux/GettingStarted:topic%
 %Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow:topic%
+<!--%Platforms/Linux/BeginnerLinuxDeveloper/SettingUpAnIDE:topic%-->
 
 ## Reference
 

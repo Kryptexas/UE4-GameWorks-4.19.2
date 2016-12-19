@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2690274
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:ベクター表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -25,7 +25,7 @@ Version:4.9
 ## CameraPositionWS
 
 
-**CameraWorldPosition** 表現式は、ワールド空間のカメラ位置を表す 3 チャンネルのベクター値を出力します。
+CameraWorldPosition 表現式は、ワールド空間のカメラ位置を表す 3 つのチャンネルのベクター値を出力します。
 
 カメラが回転すると球のプレビュー表示は変化します。
 
@@ -35,7 +35,7 @@ Version:4.9
 
 ## CameraVectorWS
 
-**CameraVector** 表現式はサーフェスに対するカメラ方向を表す 3 チャンネルベクター値を出力しま。つまり、ピクセルからカメラへの方向を表します。
+CameraVector 表現式はサーフェスに対するカメラ方向を表す 3 つのチャンネルのベクター値を出力します。つまり、ピクセルからカメラへの方向を表します。
 
 **使用例：** CameraVector は、CameraVector と ComponentMask を接続して環境マップの偽造や、テクスチャ座標として CameraVector の X、Y チャンネルを使用します。
 
@@ -58,9 +58,9 @@ Version:4.9
 **ライティング計算は現在保留となっているため、この表現式はアンリアル・エンジン 4 で将来的にサポートの保証がありません。**
 [/REGION:warning]
 <!--
-LightVector 表現式はサーフェスに対するライト方向を表す 3 チャンネルベクター値です。
+LightVector 表現式はサーフェスに対するライト方向を表す 3 つのチャンネルのベクター値です。
 
-**使用例：** LightVector はランバート照明モデルのような、カスタムのライティング計算に使用します。
+**使用例：** シンプルな LightVector はランバート照明モデルのような、カスタムのライティング計算に使用します。
 
 ![LightVectorExample.jpg](LightVectorExample.jpg)
 
@@ -73,7 +73,7 @@ LightVector 表現式はサーフェスに対するライト方向を表す 3 �
 
 ## Object Bounds
 
-**Object Bounds** 表現式は、各軸のオブジェクトのサイズを出力します。カラーとして使用すると、X 軸、Y 軸と Z 軸はそれぞれ R、G、および B に対応します。 
+**Object Bounds** 表現式は、各軸のオブジェクトのサイズを出力します。カラーとして使用すると、X 軸、Y 軸、および Z 軸はそれぞれ R、G、および B に対応します。 
 
 ![](ObjectBoundsScene.png)(w:411) ![](ObjectBoundsNetwork.png)
 
@@ -107,18 +107,18 @@ LightVector 表現式はサーフェスに対するライト方向を表す 3 �
 [EXCERPT:PixelNormalWS]
 ## PixelNormalWS
 
-**PixelNormalWS** 表現式は、現法線をベースに対面しているピクセルの方向を表すベクターデータを出力します。
+**PixelNormalWS** 表現式は、現在の法線をベースに対面しているピクセルの方向を表すベクターデータを出力します。
 
 ![PixelNormalWSExample.png](PixelNormalWSExample.png)
 
-この例では、PixelNormalWS は Base Color へ入力されています。ピクセルごとに結果を出すための法線マップの使用方法にご注目ください。 
+この例では、PixelNormalWS は Base Color へ入力されています。ピクセルごとに結果を表示する法線マップの使用方法に注目してください。 
 
 [/EXCERPT:PixelNormalWS]
 
 
 ## ReflectionVectorWS
 
-**ReflectionVectorWS** 表現式は [CameraVectorWS](#CameraVectorWS) と似た性質をもっていますが、サーフェス法線上に反射するカメラ方向を表す 3 チャンネルのベクター値を出力します。
+**ReflectionVectorWS** 表現式は [CameraVectorWS](#CameraVectorWS) と類似した性質をもっていますが、サーフェス法線上に反射するカメラ方向を表す 3 つのチャンネルのベクター値を出力します。
 
 **使用例：** ReflectionVector は、反射ベクターの X、Y コンポーネントがキューブマップ テクスチャへの UV として使用される環境マップで一般的に使用されます。
 
@@ -130,7 +130,7 @@ LightVector 表現式はサーフェスに対するライト方向を表す 3 �
 ## VertexNormalWS
 
 
-**VertexNormalWS** 表現式はワールド空間の頂点法線を出力します。WorldPositionOffset など頂点シェーダーで実行するマテリアル入力としてのみ使用することができます。メッシュを拡大または収縮させるのに便利です。法線に沿ったオフセット位置は UV の継ぎ目に沿ってジオメトリが割れる原因であることに注目してください。
+**VertexNormalWS** 表現式はワールド空間の頂点法線を出力します。WorldPositionOffset など頂点シェーダーで実行するマテリアル入力としてのみ使用することができます。メッシュを拡大または収縮させるのに便利です。法線に沿ってオフセットすると UV のシームに沿ってジオメトリが割れる原因になることに注意してください。
 
 [REGION:fullwidth]
 ![VertexNormalWSExample.png](VertexNormalWSExample.png)

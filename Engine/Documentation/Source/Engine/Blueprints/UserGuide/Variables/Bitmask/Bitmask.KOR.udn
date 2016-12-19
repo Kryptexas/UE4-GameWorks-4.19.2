@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:비트마스크 블루프린트 변수
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
@@ -6,7 +6,7 @@ Description: 블루프린트 인티저 변수를 비트마스크로 선언하여
 version: 4.12
 skilllevel:Intermediate
 Parent:Engine/Blueprints
-type:guide
+type:overview
 
 [TOC (start:2)]
 

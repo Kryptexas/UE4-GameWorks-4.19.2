@@ -1,0 +1,156 @@
+﻿INTSourceChangeList:3184064
+Availability:Docs
+Title:Stereo Panoramic Capture ヒントとコツ
+Crumbs:%ROOT%, Platforms, Platforms/VR
+Description:Stereo Panoramic capture ツールによくある問題の解決方法
+Navigation:platform
+Version:4.13
+parent:Platforms/VR/StereoPanoramicCapture
+type:overview
+
+[TOC(start:2)]
+
+このセクションでは、Stereo Panoramic プラグインを使うと最も起こりやすいエラーと問題点、それらの解決 / 回避方法を説明します。
+
+## Stereo ツールでムービーをキャプチャする
+Stereo Panoramic capture ツールは、以下のコマンドで、後にステレオ ムービーにする画像シーケンスの出力にも使用できます。
+
+* SP.PanoramicMovie (キャプチャの対象のフレーム範囲)
+
+例えば、長さ 60 FPS および 60 秒で動くステレオ ムービーをキャプチャする場合、以下の方法でコマンドを出力します。
+
+* SP.PanoramicMovie 0 3600
+
+このコマンドで、対象フレームの左目用に 1 つと右目用に 1 つ、合わせて 2 つの画像が出力されます。完了すれば、画選択した DCC に像シーケンスをインポートして、ステレオ ビデオの中へ結合することができます。
+
+## 画像の継ぎ目
+
+Stereo Image Material を使っている画像を表示すると、以下のように左右のテクスチャが合わさる個所に継ぎ目ができます。
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Seam](TP_Seam_Example.png)
+    [/PARAM]
+    [PARAM:after]
+    ![No Seam](TP_No_Seam.png)
+    [/PARAM]
+[/OBJECT]
+
+この継ぎ目を取り除くには、まず、右目用と左目用の画像を UE4 テクスチャ ビューアを開きます。次に、**[Level of Detail]** セクションで **[Mip Gen Settings]** の値を **NoMipmaps** に変えます。 
+
+[REGION:lightbox]
+[![](Platforms\VR\StereoPanoramicCapture\HowTo\CreatingViewerMaterial\SPHT_Mip_Gen_Settings.png)(w:439)](Platforms\VR\StereoPanoramicCapture\HowTo\CreatingViewerMaterial\SPHT_Mip_Gen_Settings.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+## 画像の暗度
+
+ プロジェクトのライティング設定によっては、画像が非常に暗く出力される場合があるかもしれません。この現象を回避する方法の 1 つを紹介します。UE4 コンソールを開いて **r.tonemapperfilm=1** と入力します。次に、Post Process (PP) ボリューム内部で、以下の PP カテゴリのパラメータを自由に調節します。
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![r.ToneMapperFilm Off](TP_No_PP.png)
+    [/PARAM]
+    [PARAM:after]
+    ![r.ToneMapperFilm On](TP_PP.png)
+    [/PARAM]
+[/OBJECT]
+
+ * ホワイト バランス
+ * カラー グレーディング
+ * フィルム
+ * シーン カラー
+ * グローバル イルミネーション
+
+    [region:note]
+    上記カテゴリは画面上での見え方を変更する設定がありますが、中には機能しない設定もあるのでご注意ください。
+    [/region]
+
+## 画像の歪み 
+
+ステレオ画像の作成方法が原因で、画像の上部と下部に歪み / つまみ現象が生じます。歪み / 縮小拡大
+
+[REGION:lightbox]
+[![](TP_Image_Distortion.png)(w:256)](TP_Image_Distortion.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+この歪みを取ることはできませんが、最小限に抑える方法はいくつかあります。この歪み / つまみ現象の問題に対応するためのヒントをいくつか紹介します。 
+
+* 下または上に向かって薄くなるグラディエントを少しだけ追加して、この画像のように歪み / つまみ現象をごまかすことができます。
+
+    [REGION:lightbox]
+    [![](TP_Image_Distortion_Fix.png)(w:256)](TP_Image_Distortion_Fix.png)
+    [/REGION]
+
+    [REGION:caption]
+    クリックしてフルサイズで表示
+    [/REGION]
+
+* オブジェクトがキャプチャするカメラに非常に近いと発散が生じることがあり、ユーザーは 3D 画像にフォーカスしずらくなってしまいます。これを避けるには、キャプチャ対象オブジェクトからカメラをできるだけ遠くに離すようにします。発散を防ぐことができない画像もありますが、カメラの配置を考えれば、発散効果を減らすことができます。以下の動画は、画像における様々な発散レベルを紹介しています。 
+
+    [OBJECT:EmbeddedVideo]
+        [PARAMLITERAL:width]
+        640
+        [/PARAMLITERAL]
+        [PARAMLITERAL:height]
+        360
+        [/PARAMLITERAL]
+        [PARAMLITERAL:videoid]
+        sjwiAQW90qg
+        [/PARAMLITERAL]
+    [/OBJECT]
+
+    ユーザーが見上げると、ハンググライダーの上部がキャプチャ カメラに近いために、画像上部にフォーカスできません。ただし、ユーザーが見下ろすと、カメラと地面は十分距離があるので発散現象は起きず、問題なくフォーカスできます。
+
+## すべてのエフェクトが機能するわけではない
+
+Stereo Panoramic image capture ツールは、スクリーン空間で作成されたエフェクト、もしくはカメラ正対エフェクトには機能しません。つまり、画像にエラーがでないように、以下のエフェクトは無効にしておいてください。 
+
+* ライトシャフト
+* 画面ベースの歪み
+* カメラ正対メッシュまたはパーティクル
+ ビネット 
+
+[region:note]
+キャプチャが機能しないエフェクトは、上記以外にもあります。ご注意ください。画像によく似た症状が出た場合は、そのエフェクトを無効にしてから、再度画像をキャプチャして症状が消えたか確認してください。
+[/region]
+
+画面ベースのエフェクトが使われていたり、カメラ正対のものをキャプチャすると、下の画像のような現象が起こります。画像の囲まれた部分を見てください。遠くで消えている雲の中のにハードラインが現れています。キャプチャ ツールは、平行と水平の両軸の画像を連続ズームしてシーンをキャプチャするので、この線ができます。これが原因で、カメラの正面にあるエフェクトは、カメラが移動していることを認識せず、方向が更新されないため、結果、このようなアーティファクトが生じます。 
+
+[REGION:lightbox]
+[![](TP_Screen_Based_Effects_Not_Working.png)(w:806)](TP_Screen_Based_Effects_Not_Working.png)
+[/REGION]
+
+[REGION:caption]
+クリックしてフルサイズで表示
+[/REGION]
+
+## すべてキャプチャしていることを確認する
+
+デフォルトでは、UE4 にはデフォルトで UE4 プロジェクトのレンダリング負荷を抑える最適化機能がビルトインされています。ただし、ステレオ画像をキャプチャする場合は、これらの最適化を使うと、オブジェクトのない画像もしくは最高品質設定が使われていないオブジェクトをキャプチャした画像ができてしまうことがあります。この問題を回避し、画像が最高品質になるように、以下のパラメータを有効しておきましょう。
+
+* コマンドライン オプション:以下のコマンドはゲーム / エディタに追加して、プロジェクトのロード中に有効化できるようにしてください。
+    * -usefixedtimestep 
+    * -fps=60
+    * -notexturestreaming
+
+* コンソール コマンド:これらのコマンドは、プロジェクトが UE4 エディタにロード中に入力してください。
+    * r.AllowOcclusionQueries= 0
+
+## 追加のリソース
+
+[Ninja Theory](http://www.ninjatheory.com/wp/) を見ると、Stereo Panoramic ツールを使ってステレオ内の画像と動画をキャプチャする方法が分かりやすく書かれています。非常に役立つ情報ですので、エピックのウェブサイトで Ninja Theory のブログ記事をチェックしてみてください。こちらの画像をクリックすると、ブログ記事にジャンプします。
+
+[![](Hellblade_Link_Image.png)](https://www.unrealengine.com/blog/capturing-stereoscopic-360-screenshots-videos-movies-unreal-engine-4)
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2872149
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:Collision 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -112,8 +112,8 @@ Particle Collision (파티클 콜리전) 모듈을 **iOS** 모바일 디바이�
 |_EPCC_Freeze_|얼림 - 자리에 있는 파티클을 얼립니다.|
 |_EPCC_HaltCollisions_|충돌 중지 - 콜리전 검사를 멈추되 업데이트는 유지합니다. 파티클이 오브젝트를 '뚫고 떨어질' 수가 있습니다.|
 |_EPCC_FreezeTranslation_|트랜슬레이션 얼림 - 파티클의 트랜슬레이션은 멈추되 나머지는 계속 업데이트합니다.|
-|_EPCC_FreeRotation_ |로테이션 얼림 - 파티클의 로테이션은 멈추되 나머지는 계속 업데이트합니다.|
-|_EPCC_FreeMovement_ |무브먼트 얼림 - 파티클의 트랜슬레이션/로테이션은 멈추되 나머지는 계속 업데이트합니다.|
+|_EPCC_FreezeRotation_ |로테이션 얼림 - 파티클의 로테이션은 멈추되 나머지는 계속 업데이트합니다.|
+|_EPCC_FreezeMovement_ |무브먼트 얼림 - 파티클의 트랜슬레이션/로테이션은 멈추되 나머지는 계속 업데이트합니다.|
 [/REGION]
 [/EXCERPT:CollisionCompletionOption]
 

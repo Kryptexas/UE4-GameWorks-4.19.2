@@ -6,6 +6,7 @@ Navigation:topic
 Version: 4.9
 parent:%ROOT%
 order:7
+type:landing
 
 [VAR:Params]
 [PARAM:image]

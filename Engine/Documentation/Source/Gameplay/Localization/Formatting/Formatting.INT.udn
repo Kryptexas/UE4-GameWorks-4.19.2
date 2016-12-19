@@ -1,25 +1,35 @@
-﻿Availability:Docs
+﻿Availability:Public
 Title:Formatting User-Facing Text
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
 Description:Using the Format function to present localized text to your users
 Parent:Gameplay/Localization
 Order:3
 version: 4.13
+Related:Programming/UnrealArchitecture/StringHandling/FText
 
 FText is used to create user-facing text, which is often localized. This means that user interface text that changes dynamically over the course of gameplay can also be subject to grammar rules from a number of different languages. Using `FText::Format` and the corresponding 
 **Format Text** Blueprint node enables you to construct reusable format patterns to make the localization process easier and less prone to edge-case errors. Both functions support ordered arguments, named arguments, and specialized arguments based on plural forms, gender forms, 
 and Hangul post-positions.
 
-FText::Format is also available in Blueprints. The Format text can be a literal or connected to a pin. When used as a literal, it will auto-generate arguments for formatting. So by entering the literal "There are {number} days until {day}.", a Number pin and a Day pin will be 
-automatically added to the node. These pins can be filled in as a literal or from a variable and the output Text will replace the arguments with whatever values are hooked to the pins.
+In C++, you can pre-compile your `FText` format pattern into an `FTextFormat` to reuse the compiled format pattern. This is useful if you're reusing a format pattern frequently, and it also automatically recompiles if the source format pattern changes due to a culture change.
 
-When the Format pin is connected, the Format can not be deciphered because it is variable. In this case, you can add pins yourself and name them after the possible arguments. In this way, you can set up the Format Text node to be ready for multiple possibilities. Whenever an argument 
+You can also format FText in Blueprints using the **Format Text** node. The **Format** text can be a literal or connected to a pin. When used as a literal, it will auto-generate arguments for formatting. So by entering the literal "There are {number} days until {day}.", a **Number** pin and a **Day** pin will be 
+automatically added to the node. These pins can be filled in as a literal or from a variable and the output **Text** will replace the arguments with whatever values are hooked to the pins.
+
+When the **Format** pin is connected to a variable, the **Format** can not be deciphered because it can possibly change over the course of gameplay. In this case, you can add pins yourself and name them after the possible arguments. In this way, you can set up the **Format Text** node to be ready for multiple possibilities. Whenever an argument 
 matches an argument in the Format variable, it will utilize the provided information.
 
-Pin names can be changed, added, and removed from the Details Panel.
+Pin names can be changed, added, and removed from the **Details** panel.
+
+[REGION:imagetable]
+|![](FormatNode.png)(h:400) | ![](FormatNodeDetails.png)(h:400)|
+|--- |---- |
+|**Format Text** node | **Details** panel | 
+[/REGION]
+
 
 [REGION:tip]
-For users using a source build of Unreal Engine, `TextTest.cpp` can show you examples of how to perform valid culture aware formatting, comparison, and sorting.
+For those using a source build of Unreal Engine, `TextTest.cpp` can show you examples of how to perform valid culture aware formatting, comparison, and sorting.
 [/REGION]
 
 ## Ordered Arguments
@@ -57,7 +67,7 @@ The following C++ and Blueprint snippets show a named format argument to display
 
 ## Specialized Arguments
 
-To allow you to pass in the numeric/gender values needed for plural/gender form support, all of the FText::Format(...) family of functions now take their values as FFormatArgumentValue rather than FText. This can be implicitly constructed from any numeric type, ETextGender, or FText.
+To allow you to pass in the numeric/gender values needed for plural/gender form support, all of the `FText::Format(...)` family of functions now take their values as FFormatArgumentValue rather than FText. This can be implicitly constructed from any numeric type, ETextGender, or FText. 
 
 The ability to set these value types in Blueprints has been exposed using wildcard pins on the **Format Text** node.
 

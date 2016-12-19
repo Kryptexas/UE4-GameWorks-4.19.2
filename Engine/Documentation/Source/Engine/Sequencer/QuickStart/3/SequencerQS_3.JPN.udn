@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3038380
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:3 - 最初のショット - キャラクター アニメーション
 Crumbs:%ROOT%
@@ -9,7 +9,7 @@ Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
 checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
-type:sequential
+type:multi-step
 order:3
  
 [NAV]
@@ -26,11 +26,11 @@ order:3
 
 	![](SequencerQS_3_2.png) 
 
-1.	左のビューポートで、**End** キーを押してそのスケルタルメッシュをグラウンドにドロップします。次に E キーを押して以下のように回転させます。次に E キーを押して以下のように回転させます。 
+1.	左のビューポートで、**End** キーを押してそのスケルタルメッシュをグラウンドにドロップします。次に E キーを押して以下のように回転させます。 
 
 	![](SequencerQS_3_3.png)
 
-1.	スケルタルメッシュを選択したままの状態で、**シーケンサー** で **Add** ボタンをクリックして、レベル シーケンスに追加します。 
+1.	スケルタルメッシュを選択したままの状態で、**シーケンサー** で **[Add]** ボタンをクリックして、レベル シーケンスに追加します。 
 
 	![](SequencerQS_3_4.png)
 

@@ -3,26 +3,11 @@ Title:Material Editor Reference
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Guide to using the Material Editor for creating shaders.
 Version: 4.9
+parent:Engine/Rendering/Materials
+topic-image:Engine/Rendering/Materials/MatEditorUserGuideTopic.png
+type:reference
+order:2
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/Materials/:title%](Engine/Rendering/Materials_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/texture_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Material Editor
-	[/PARAM]
-	[PARAM:description]
-		Guide to using the Material Editor for creating shaders.
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/Materials/Editor]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
 
 [TOC(start:2)]
 

@@ -175,7 +175,7 @@ The iOS scale factor is directly related to Apple's scale factor system.
 |r.MobileContentScaleFactor|0.0|This will use the native resolution of the device.|
 |r.MobileContentScaleFactor|1.0|On a Retina device is the non-retina resolution.|
 |r.MobileContentScaleFactor|2.0|Full native resolution on iPhone 5S, iPad Air, etc.|
-|r.MobileContentScaleFactor|3.0|ull native resolution for iPhone 6+.|
+|r.MobileContentScaleFactor|3.0|Full native resolution for iPhone 6+.|
 
 ### Mobile Content Scale Factor for Android
 When using the Mobile Content Scale Factor for Android devices inputting the following number after the r.MobileContentScaleFactor will produce the following results. Please note that inputting value other than **0.0** will use this value as the scale factor for a standard 1280x720 or 720x1280 resolution depending on orientation.
@@ -272,7 +272,7 @@ The **Quality Switch** Material Expression allows you to define different levels
 
 ![](image08.png)
 
-To use the Quality Switch in your Materials, you will need to first add the Quality Switch Material Expression node to the Material Graph and then plug it's output into any if the inputs on the Main Material node you want to change when the quality level is changed. In the following image, the M_Brick_Clay_Old Material that can be found with the Starter Content was set up so that when the Quality Level is switched the complexity of the Material is reduced. 
+To use the Quality Switch in your Materials, you will need to first add the Quality Switch Material Expression node to the Material Graph and then plug it's output into any of the inputs on the Main Material node you want to change when the quality level is changed. In the following image, the M_Brick_Clay_Old Material that can be found with the Starter Content was set up so that when the Quality Level is switched the complexity of the Material is reduced. 
 
 [REGION:lightbox]
 [![](MQS_Material_Setup.png)(w:789 h:412)](MQS_Material_Setup.png)
@@ -335,8 +335,8 @@ Under the Mobile section you will find a number of different options that can be
 |--------------------|-------|
 |Mobile HDR|If true, mobile renders in full HDR. Disable this setting for games that do not require lighting features for better performance on slow devices.|
 |Max Dynamic Point Lights|The number of dynamic point lights to support on mobile devices. Setting this to 0 for games which do not require dynamic point lights will reduce the number of shader generated. Changing this setting requires restarting the editor.|
-|Use Shared Dynamic Point LIght Shaders|If this setting is enabled, the same shader will be sued for any number of dynamic point lights(up to the maximum specified above)hitting a surface. This is slightly slower but reduced the number of shaders generated. Changing this setting requires restarting the editor. |
-|Enabled Combined Static and CSM Shadowing|Allo primitives to receive both static and CSM shadows from a stationary light. Disabling will free a mobile texture sampler.|
+|Use Shared Dynamic Point Light Shaders|If this setting is enabled, the same shader will be used for any number of dynamic point lights(up to the maximum specified above)hitting a surface. This is slightly slower but reduced the number of shaders generated. Changing this setting requires restarting the editor. |
+|Enabled Combined Static and CSM Shadowing|Allows primitives to receive both static and CSM shadows from a stationary light. Disabling will free a mobile texture sampler.|
 
 
 <!-----

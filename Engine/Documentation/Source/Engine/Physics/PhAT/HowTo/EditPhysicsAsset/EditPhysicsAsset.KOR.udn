@@ -1,0 +1,68 @@
+﻿INTSourceChangelist:3149430
+Availability: Public
+Title:피직스 애셋 편집
+Crumbs: %ROOT%, Engine
+Description:피직스 애셋 툴에서 피직스 애셋을 편집용으로 여는 방법에 대한 안내입니다.
+parent:Engine/Physics/PhAT/HowTo
+order:1
+Version: 4.13
+related:Engine/Physics/PhAT/HowTo/EditPhATPhysicsBodies
+related:Engine/Physics/PhAT/HowTo/EditPhATPhysicsConstraints
+skilllevel:Beginner
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/HowTo/EditPhysicsAsset:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/HowTo/EditPhysicsAsset:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/HowTo/EditPhysicsAsset:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/HowTo]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/HowTo/EditPhysicsAsset:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/HowTo/EditPhysicsAsset:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/HowTo/EditPhysicsAsset:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/HowTo]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+**피직스 애셋 툴** 에서 **피직스 애셋** 을 편집용으로 여는 법에 대한 단계별 안내입니다.
+
+## 단계
+
+1. 콘텐츠 브라우저에서 피직스 애셋을 찾습니다.
+
+	![](Engine/Physics\PhysicalMaterials\PhysMatUserGuide\PhysMat_PhAT_02.png)
+
+1. **더블클릭** 하여 피직스 애셋 툴(PhAT)에서 엽니다.
+
+	![](Engine/Physics/PhAT/HowTo/PhATUG_FullWindow.png)(w:900)
+
+## 결과
+
+**피직스 애셋** 이 **피직스 애셋 툴** 에 편집할 수 있는 상태로 열립니다.
+
+

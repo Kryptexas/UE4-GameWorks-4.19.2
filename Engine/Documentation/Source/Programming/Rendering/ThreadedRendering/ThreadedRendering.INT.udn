@@ -3,6 +3,7 @@ Title:Threaded Rendering
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:Information for graphics programmers working with the threaded renderer.
 Version: 4.9
+tags:Rendering
 
 ## Rendering thread
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 5. 직접 해보기
 Crumbs:
@@ -6,6 +6,7 @@ Description: 그래스 툴로 다음에 해 볼 작업입니다.
 Navigation:topic
 SkillLevel:Intermediate
 Version: 4.8
+
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]

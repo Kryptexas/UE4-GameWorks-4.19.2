@@ -18,6 +18,9 @@ To nativize Blueprints while building with Unreal Automation too, add the `-nati
 Nativized blueprints are stored in a new, separate module, which means that the headers from gameplay module are now used outside their module. 
 You should check that all headers have declared all classes and all structs that are used, either as a included header, or as a forward declaration.
 
+Many projects have an "aggregate" header `[GameName]/[GameName].h` or `[GameName]/Public/[GameName].h`. If you add the path to this header to 
+`FilesToIncludeInModuleHeader` under `[BlueprintNativizationSettings]` in `DefaultEditor.ini`, it can fix many issues related to missing headers.
+
 There are some rules/restrictions that help make cooperation between manually written code and the nativized code more reliable and efficient. 
 
 The following implementations are not supported: 

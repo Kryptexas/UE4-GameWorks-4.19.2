@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2897028
+﻿INTSourceChangelist:3177941
 Availability:Public
 Title:다이내믹 델리게이트
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
@@ -28,12 +28,3 @@ Version: 4.9
 ## 다이내믹 델리게이트 실행하기
 
 [INCLUDE:Programming/UnrealArchitecture/Delegates#ExecutingDelegates]
-
-## 래핑된 다이내믹 델리게이트
-
-다이내믹 델리게이트는 델리게이트 실행을 위해 래퍼 프록시 메소드와 함께 선언 가능합니다.
-
-| 선언 매크로 | 설명 |
-| --- | --- |
-| `DECLARE_DYNAMIC_DELEGATE[_RetVal, etc.]( DelegateName )` | 래핑된 다이내믹 델리게이트를 생성합니다. |
-| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_RetVal, etc.]( DelegateName )` | 래핑된 다이내믹 멀티캐스트 델리게이트를 생성합니다. |

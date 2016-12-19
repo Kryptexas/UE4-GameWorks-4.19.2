@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2735872
+﻿INTSourceChangelist:3178047
 Availability:Public
 Title:Environment Query System
 Crumbs:%ROOT%, Engine, Gameplay/AI
 Description:Environment Query System に関連する全ドキュメントへのランディング ページ
 parent:Engine
-order:6
+order:7
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -70,6 +70,6 @@ order:6
 <!---
 * [](Engine/AI/EnvironmentQuerySystem/QuickStart "%Engine/AI/EnvironmentQuerySystem/QuickStart:description%")
 
-書き込みをする権利がない場合があります。
+May not have the rights to post:
 * [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")
 --->

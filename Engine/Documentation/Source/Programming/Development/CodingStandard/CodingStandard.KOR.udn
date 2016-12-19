@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2957997
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title: 코딩 표준
 Crumbs:%ROOT%, Programming, Programming\Development
@@ -50,7 +50,7 @@ Version: 4.11
     * Typedef 접두사는 적합한 유형을 붙여야 합니다: 구조체의 typedef 인 경우 F, UObject 등의 typedef 인 경우 U 입니다.
         * 특정 템플릿 인스턴스의 typedef 는 더이상 템플릿이 아니라 그에 맞는 접두사를 붙여야 합니다, 예:
 
-			typedef TArray<FMyType> FArrayOfMyTypes;
+                typedef TArray<FMyType> FArrayOfMyTypes;
     * C# 에서는 접두사가 생략됩니다.
     * UnrealHeaderTool (언리얼 헤더 툴)은 대부분의 경우 올바른 접두사가 필수이므로, 제대로 붙여주는 것이 중요합니다.
 * 유형과 변수명은 명사입니다.

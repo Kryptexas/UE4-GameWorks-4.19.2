@@ -3,7 +3,7 @@ Description: Learn how to navigate the world when working in VR mode.
 Crumbs:
 Availability: public
 parent: Engine/Editor/VR
-type: howto
+type:how-to
 order: 3
 tags: VR
 tags: Level Editing

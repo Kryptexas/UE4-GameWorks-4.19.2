@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3065279
-Availability:Docs
+﻿INTSourceChangelist:3150518
+Availability:Public
 Title:블루프린트의 구조체 변수
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Scripting
 Description: 블루프린트 구조체 변수로 관련된 정보가 들어있는 다양한 데이터 유형을 저장할 수 있습니다.
@@ -7,7 +7,7 @@ version: 4.12
 skilllevel:Intermediate
 Parent:Engine/Blueprints/Scripting
 tag:Arrays and Structures
-type:guide
+type:overview
 
 [TOC]
 
@@ -80,7 +80,7 @@ type:guide
 
 ### 구조체에 멤버 설정
 
-가끔 구조체에 들어있는 데이터가 많은데 그 중 몇 개의 요소만 변경하고플 때가 있습니다. 구조체에 멤버를 설정하면 변경되지 않는 데이터 핀 연결 작업을 일일히 해줄 필요 없이, 변경하고자 하는 
+가끔 구조체에 들어있는 데이터가 많은데 그 중 몇 개의 요소만 변경하고플 때가 있습니다. 구조체에 멤버를 설정하면 변경되지 않는 데이터 핀 연결 작업을 일일이 해줄 필요 없이, 변경하고자 하는 
 데이터만 콕 찝어서 작업하는 것이 가능합니다.
 
 ![](SetMembersInStruct.png)

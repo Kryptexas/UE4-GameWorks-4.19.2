@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title:플랫폼 개발
 Crumbs:%ROOT%
@@ -7,6 +7,7 @@ Navigation:platform
 version: 4.9
 parent:%ROOT%
 order:8
+type:landing
 
 [VAR:Params]
 [PARAM:image]

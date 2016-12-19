@@ -5,7 +5,7 @@ Availability:Public
 Version: 4.11
 SkillLevel: Intermediate
 parent:Platforms/Oculus
-type:quickstart
+type:quick start
 tags:VR
 tags:Oculus Rift
 

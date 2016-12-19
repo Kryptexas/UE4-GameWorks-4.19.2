@@ -26,7 +26,7 @@ The **Settings** are a set of properties for controlling selection, editing, and
 | **Enable Socket Snapping** | If checked, allows Actors to be snapped to sockets. |
 | **Enable Vertex Snapping** | If checked, Actors will snap to the nearest vertex on another Actor in the direction of movement. |
 | **Enable Planar Snapping** | If checked, actors will snap to the nearest location on the constraint plane. This only works correctly in Perspective views. |
-[REGION:tablesection]Viewport[/REGION] ||
+| [REGION:tablesection]Viewport[/REGION] ||
 | **Hide Viewport UI** | Toggles hidden Viewport UI mode, and hides all overlaid Viewport UI widgets. |
 | [REGION:tablesection]Previewing[/REGION] ||
 | **Draw Brush Polys** | If checked, semi-translucent polygons are rendered for the faces of a CSG brush when selected. [INCLUDE:Engine/UI/LevelEditor/QuickSettings#BrushPolys] |

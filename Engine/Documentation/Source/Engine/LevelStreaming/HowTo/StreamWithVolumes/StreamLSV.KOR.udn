@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Stream Sublevels with Level Streaming Volumes
+﻿INTSourceChangelist:3215926
+Availability: Public
+Title:레벨 스트리밍 볼륨으로 서브레벨 스트리밍
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
-Description:How to use volumes to control the streaming of Levels based on the player's viewpoint.
+Description:볼륨을 사용하여 플레이어의 시점에 따라 레벨 스트리밍을 제어하는 방법입니다.
 Version: 4.12
 parent:Engine/LevelStreaming/HowTo
-type:howto
+type:how-to
 order:1
 tags:Level Streaming
 
@@ -14,33 +14,35 @@ tags:Level Streaming
 [INCLUDE:Engine/LevelStreaming/HowTo#levelstreamscenario]
 
 
-## Streaming In Levels with Volumes
+## 볼륨으로 레벨 스트림 인
 
-1. In the **Modes** panel, select **Volumes** and then drag a **Level Streaming Volume** into your level.
+1. **모드** 패널에서 **볼륨** 을 선택한 다음 **Level Streaming Volume** (레벨 스트리밍 볼륨)을 끌어 레벨에 놓습니다.
 
 	![](LevelStreamingVolumeModes.png)
 
-1. Arrange the **Level Streaming Volume** to encompass the whole walkable area of **SunTemple_Streaming**.
+1. **Level Streaming Volume** (레벨 스트리밍 볼륨)이 **SunTemple_Streaming** 에서 걸어다닐 수 있는 영역 전체를 덮도록 조절합니다.
 	![](LSVPlacement.png)
 
 	[REGION:tip]
-	Keep in mind that the logic for Level Streaming Volumes tracks where your active camera is, so if you have a camera placed at a distance from your player's Pawn or Character, you may need to adjust the
-	size and placement of the Level Streaming Volume accordingly.
+	레벨 스트리밍 볼륨 로직은 현재 카메라 위치를 추적하므로, 플레이어의 폰 또는 캐릭터와 먼 거리에 카메라를 배치한 경우, 그에 맞게 
+	레벨 스트리밍 볼륨 크기와 위치를 조정해야 합니다.
 	[/REGION]
 
-1. Click on **Windows**, then select **Levels**.
+1. **창** - **레벨** 을 선택합니다.
 
 	![](Engine/Levels/LevelsWindow/WindowLevels.png)
 	
-1. Select **SunTemple_Streaming**, then click on the **Level Details** icon.
+1. **SunTemple_Streaming** 을 선택한 뒤 **레벨 디테일** 아이콘을 클릭합니다.
 
-1. Next to **Streaming Volumes**, click on the plus sign (**+**) to add a new volume. Then, use the dropdown menu or the eyedropper to select the **Level Streaming Volume** you just placed in the level.
+	![](LevelDetails.png)
+
+1. **스트리밍 볼륨** 옆 더하기 (**+**) 부호를 클릭하여 레벨을 새로 추가합니다. 그런 다음 드롭다운 메뉴나 스포이드 아이콘을 선택하여 방금 레벨에 배치한 **레벨 스트리밍 볼륨** 을 선택합니다.
 	![](AddLSV.png)
 
-1. Ensure that the **Initially Loaded** and **Initially Visible** checkboxes are unchecked, then close the **Level Details** panel.
+1. **Initially Loaded** (초기 로드됨) 및 **Initially Visible** (초기 보임) 박스의 체크가 해제되었는지 확인한 뒤, **레벨 디테일** 패널을 닫습니다.
 
-1. Back in the **Viewport**, select the **Level Streaming Volume**. In the **Details** panel, set the following properties of the volume: **Editor Pre Vis Only** and **Disabled** should be unchecked, and **Streaming Usage** should be set to **SVB Visibility Blocking on Load**.
+1. **뷰포트** 로 돌아와서 **레벨 스트리밍 볼륨** 을 선택합니다. **디테일** 패널에서 볼륨의 다음 프로퍼티를 설정합니다: **Editor Pre Vis Only** 와 **Disabled** 박스 체크는 해제, **Streaming Usage** 는 **SVB Visibility Blocking on Load** 로 설정되어 있어야 합니다.
 	
 	![](LSVSettings.png)
 	
-1. Use **Play in Editor** to test out your streaming level. 
+1. **에디터에서 플레이** 를 사용하여 스트리밍 레벨을 테스트합니다.

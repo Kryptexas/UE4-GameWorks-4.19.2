@@ -1,9 +1,14 @@
-﻿INTSourceChangelist:3106123
+﻿INTSourceChangelist:3189768
 title:HLOD のリファレンス
 description:HLOD アウトライナーにあるインターフェース エレメントとプロパティのリファレンスです。
 crumbs:
-availability:docs
+availability:Public
 version:4.13
+parent:Engine/HLOD
+order:2
+type:reference
+tags:HLOD
+topic-image:Engine/HLOD/defaultHLOD_topic.png
 
 このページでは、**Hierarchical LOD アウトライナー** にあるボタンとプロパティの詳細を説明します。
 
@@ -11,8 +16,10 @@ version:4.13
 
 ![HLOD Outliner Fully Expanded](image_2.png)
 
-[REGION:raw]
-### インターフェース エレメント
+
+### HLOD アクション
+
+![](InterfaceElements.png)
 
 以下は **Hierarchical LOD アウトライナー** にある 3 つのボタンとスライダーに関する説明です。
 
@@ -21,43 +28,43 @@ version:4.13
 | **Generate Clusters** || グループ化できるシーン内の **Static Mesh アクタ** の球状のクラスターを生成します。HLOD アウトライナーの LODSystem で指定される各 LOD 設定を使うことで処理されます。 |
 | **Delete Clusters** || 過去にレベルでセットアップされたすべての HLOD を削除します。これにはすべての生成されたプロキシ メッシュやセットアップされたクラスタが含まれます。HLOD レベルに対して過去に設定された値やプロパティは消去しません。 |
 | **Generate Proxy Meshes** || [INCLUDE:#gpm] |
-| **Forced Viewing Level** || 特定の LOD レベルをエディタで強制的に可視状態にすることができます。生じうる LOD 問題をデバッグするのに役立ちます。
+| **Forced Viewing Level** || 特定の LOD レベルをエディタで強制的に可視状態にすることができます。LOD の問題をデバッグするのに役立ちます。
 | | %spacer%  | |
 [/REGION]
 
-### コンテキスト メニュー
+### Hierarchical LOD アウトライナー コンテキスト メニュー
 
 Hierarchical LOD (HLOD) アウトライナーには、いくつかの右クリック コンテキスト メニューがあります。以下はそのアクセス方法とオプションです。
 
-* ひとつめは、HLOD アウトライナーで **Cluster Entry** 上で右クリックしてアクセスできます。
+#### LOD Actor コンテキスト メニュー
 
-	[REGION:raw]
-	![](ContextMenu1.png)
-	[/REGION]
+[REGION:raw]
+![](ContextMenu1.png)
+[/REGION]
 
-	[REGION:raw]
-	| オプション | %spacer% | 説明 |
-	| --- | :---: | :--- |
-	| **Select LOD Actor** || ビューポートで LOD アクタを選択します (クラスタを左クリックするのと同じ効果があります)。 |
-	| **Select Contained Actors** || **LOD Cluster** に含まれるすべての **アクタ** を選択します。 |
-	| **ForceView** || ビューポートで **HLOD Actor** のビューを切り替えます。 |
-	| **Rebuild Proxy Mesh** || 右クリックしたクラスタがプロキシ メッシュをリビルドするように強制します。 |
-	| **Create Containing Hierarchical Volume** || **クラスタ** に含まれる **アクタ** の周囲に **Hierarchical Volume** を作成します。これを修正して、より多くのまたはより少ない **アクタ** を含めることができます。 |
-	| **Delete Cluster** || 右クリックしたクラスタを削除します。 |
-	[/REGION]
+[REGION:raw]
+| オプション | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Select LOD Actor** || ビューポートで LOD アクタを選択します (クラスタを左クリックするのと同じ効果があります)。 |
+| **Select Contained Actors** || **LOD Cluster** に含まれるすべての **アクタ** を選択します。 |
+| **ForceView** || ビューポートで **HLOD Actor** のビューを切り替えます。 |
+| **Rebuild Proxy Mesh** || 右クリックしたクラスタがプロキシ メッシュをリビルドするように強制します。 |
+| **Create Containing Hierarchical Volume** || **クラスタ** に含まれる **アクタ** の周囲に **Hierarchical Volume** を作成します。これを修正して、より多くのまたはより少ない **アクタ** を含めることができます。 |
+| **Delete Cluster** || 右クリックしたクラスタを削除します。 |
+[/REGION]
 
-* 次は、HLOD アウトライナーで **Cluster Entry** 内にある **アクタ** を右クリックしてアクセスできます。
+#### Actor コンテキスト メニュー
 
-	[REGION:raw]
-	![](ContextMenu2.png)
-	[/REGION]
+[REGION:raw]
+![](ContextMenu2.png)
+[/REGION]
 
-	[REGION:raw]
-	| オプション | %spacer% | 説明 |
-	| --- | :---: | :--- |
-	| **Remove From Cluster** || 右クリックした **アクタ** を **クラスタ** から取り除きます。 |
-	| **Exclude From Cluster Generation** || **クラスタ** 生成から右クリックした **アクタ** を取り除きます。除外した **アクタ** を再度追加するには、**ワールド アウトライナー** でそれをクリックして **Hierarchical LOD アウトライナー** にある **クラスタ** にドラッグします。 |
-	[/REGION]
+[REGION:raw]
+| オプション | %spacer% | 説明 |
+| --- | :---: | :--- |
+| **Remove From Cluster** || 右クリックした **アクタ** を **クラスタ** から取り除きます。 |
+| **Exclude From Cluster Generation** || **クラスタ** 生成から右クリックした **アクタ** を取り除きます。除外した **アクタ** を再度追加するには、**ワールド アウトライナー** でそれをクリックして **Hierarchical LOD アウトライナー** にある **クラスタ** にドラッグします。 |
+[/REGION]
 
 ### プロパティ
 
@@ -65,15 +72,22 @@ Hierarchical LOD (HLOD) アウトライナーには、いくつかの右クリ�
 
 ### クラスタ生成の設定
 
-| プロパティ | %spacer% | 説明 |
+![](cluster.png)
+
+[REGION:raw]
+| Property | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Desired Bound Radius** || 自動クラスタリングのためのフィルファクタを計算するために使用されますが、必ずしも保証はされません。 |
 | **Desired Filling Percentage** || 自動クラスタリングのためのフィルファクタを計算するために使用されますが、必ずしも保証はされません。 |
 | **Min Number of Actors to Build** || LODActor をビルドするための **アクタ** の最小数です。 |
+[/REGION]
 
 ### メッシュ生成の設定
 
-| プロパティ | %spacer% | 説明 |
+![](meshSettings.png)
+
+[REGION:raw]
+| Property | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Transition Screen Size** || LOD **Actor** にスワップする前にメッシュ オブジェクトが到達すべき画面半径です。親の LOD が表示されると、子の LOD は表示されません。
 | [REGION:tablesection]**マージ設定**[/REGION] |||
@@ -81,16 +95,20 @@ Hierarchical LOD (HLOD) アウトライナーには、いくつかの右クリ�
 | **Target Light Map UVChannel** || ライトマップ UV を割り当てるターゲット UV チャンネルです。 |
 | **Target Light Map Resolution** || マージされたメッシュに設定されるライトマップ解像度です。 |
 | **Pivot Point at Zero** || マージされたメッシュがワールド基点でピボットを持つか、生成されたクラスタから最初にマージされた **アクタ** でピボットを持つかです。 |
-| **Merge Physics Data:** || **アクタ** を結合する場合に、コリジョンのプリミティブをマージするか否かです。 |
+| **Merge Physics Data** || **アクタ** を結合する場合に、コリジョンのプリミティブをマージするか否かです。 |
 | **Merge Materials** || ソース マテリアルをひとつのフラットなマテリアルにマージするか否かです。 |
 | [REGION:tablesection]**[以下のマテリアルの設定を参照](#マテリアルの設定)**[/REGION] |||
 | **Bake Vertex Data ** || ペイントされた頂点カラーをモデル/ベイクされたマテリアルに組み込みます。 |
 |**Use Vertex Data for Baking Material** || マテリアルをベイクする場合に頂点カラーなどの頂点データを使用するかどうかを設定します。 |
 | **Use Landscape Culling** ||利用可能なランドスケープのジオメトリを使用して不可視のトライアングルをカリングするかどうかを設定します。 |
+[/REGION]
 
 ### マテリアルの設定
 
-| プロパティ | %spacer% | 説明 |
+![](material.png)
+
+[REGION:raw]
+| Property | %spacer% | 説明 |
 | --- | :---: | :--- |
 | **Texture Size** || 生成された BaseColor テクスチャ マップのサイズです。 |
 | **Texture Sizing Type** || [INCLUDE:#tst] |
@@ -104,11 +122,12 @@ Hierarchical LOD (HLOD) アウトライナーには、いくつかの右クリ�
 | **Emissive Map** || エミッシブ マップを生成するか否かを指定します。 |
 | **Diffuse Texture Size** || ディフューズ テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
 | **Normal Texture Size** ||法線テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
-| **Metallic Texture Size** || メタリック テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
+| **[Metallic Texture Size]** || メタリック テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
 | **Roughness Texture Size** || ラフネス テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
 | **Specular Texture Size** || スペキュラ テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
 | **Emissive Texture Size** || エミッシブ テクスチャ サイズをオーバーライドします。**[Texture Sizing Type]** が **[Use per property manually overriden texture sizes]** に設定されている場合に有効になります。 |
 [/REGION]
+
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 
@@ -119,7 +138,7 @@ Hierarchical LOD (HLOD) アウトライナーには、いくつかの右クリ�
 プロキシ メッシュを生成する場合、クラスタ化された LOD を使ってこうした **アクタ** をひとつのアセットにまとめます。HLOD レベルに対してどの設定を変更したかに応じて、スタティックメッシュがそれに基づき生成されます。これは、マテリアル、ライトマップ、様々な他のプロパティにも影響を及ぼします。 
 
 [REGION:note]
-このプロセスは、シーンの複雑度や HLOD レベルの設定に応じて **非常に長い時間** がかかることがあることにご注意ください。
+このプロセスは、シーンの複雑度や HLOD レベルの設定に応じて **長時間** かかることがありますのでご注意ください。
 [/REGION]
 [/EXCERPT]
 
@@ -133,7 +152,7 @@ Hierarchical LOD (HLOD) アウトライナーには、いくつかの右クリ�
 | **Use TextureSize for all material properties** || サイジングのために **Texture Size** に入力された値を使用します。 |
 | **Use automatically biased texture sizes based on TextureSize** || **{1:0.5:0.25}** の割合を使ってバイアスをかけた **{normal:diffuse:otherproperties}** のテクスチャのセットを作成します。そのため、テクスチャ サイズが 512 の場合は、512 の法線マップ、256 のディフューズ マップ、128 のラフネス、スペキュラなどのマップを出力します (ディフューズは 32x32 にクランプされ、ラフネス、スペキュラなどは 16x16 にクランプされます)。|
 | **Use per property manually overridden texture sizes** || テクスチャ毎のオーバーライドを有効にして、**Texture Size** の代わりにこうした値を使用します。 |
-| **Use Simplygon’s automatic texture sizing** || **Simplygonの** のサイジングを使用します。 |
+| **Use Simplygon’s automatic texture sizing** || **Simplygon** のサイジングを使用します。 |
 [/REGION]
 
 [/EXCERPT]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2726951
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:着色器开发
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -87,7 +87,7 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(,FLightFunctionPixelShader,TEXT("LightFunctionPix
 
 UE4 使用流式系统以异步方式编译着色器。编译请求在没有高速缓存的着色器贴图的材质加载时排入队列，编译结果将在它们变为可用时应用，而不会阻塞引擎。这可在装入时间和编译吞吐量方面实现最佳结果，但这意味着实际平台着色器编译与请求编译的材质之间存在相当多的层。  
 
-实际编译工作在称为“着色器编译工作程序”的辅助进程中完成，这是因为平台着色器编译函数 (D3DCompile) 中通常包含关键的小节，这些小节导致无法在单个进程中进行多内核比例调整。
+实际编译工作在称为“着色器编译工作程序”的辅助进程中完成，这是因为平台着色器编译函数 (D3DCompile) 中通常包含不可分割区块，这些区块导致无法在单个进程中进行多内核比例调整。
 
 #### 调试着色器编译器
 

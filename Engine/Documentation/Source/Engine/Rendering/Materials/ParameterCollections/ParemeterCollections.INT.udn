@@ -8,6 +8,10 @@ Related: Engine/Rendering/Materials/Editor
 Related: Engine/Rendering/Materials/HowTo/Instancing
 Related: Engine/Blueprints/UserGuide/Timelines
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:11
+topic-image:Engine/Rendering/Materials/ParamCollectTopic.png
+type:overview
 
 [TOC(start:2)]
 

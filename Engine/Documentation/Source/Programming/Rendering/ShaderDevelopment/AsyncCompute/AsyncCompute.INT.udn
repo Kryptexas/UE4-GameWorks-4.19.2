@@ -3,6 +3,7 @@ Title:AsyncCompute
 Crumbs:%ROOT%, Programming, Programming/Rendering, Programming/Rendering/ShaderDevelopment
 Description:This is about AsyncCompute, a hardware feature that allows to interleave different GPU work to improve efficiency.
 Version: 4.9
+tags:Rendering
 
 The Rendering Hardware Interface (RHI) now supports asynchronous compute (**AsyncCompute**) for Xbox One. This is a good way to utilize unused GPU resources (Compute Units (CUs), registers and bandwidth),
 by running **dispatch()** calls asynchronously with the rendering. Async compute uses a separate context, and we provide RHI functions to

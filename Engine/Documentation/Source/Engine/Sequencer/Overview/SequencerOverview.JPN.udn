@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:3108675
-Availability:Public
+﻿Availability:Public
 Title:シーケンサーの概要
 Crumbs: %ROOT%, Engine
 Description:シーケンサーは UE4 のマルチトラック エディタです。シネマティックス シーケンスを作成し、リアルタイムでプレビューするために使用します。 
@@ -10,7 +9,7 @@ Version:4.12
 Related:Engine\Sequencer\ReferenceEditor
 Related:Engine\Sequencer\HowTo
 
-**Sequencer (シーケンサー)** エディタには、 [**マチネ**](Engine\Matinee\) に似た特殊なマルチ トラック エディタを通してインゲームのシネマティックスを作成する機能があります。 
+**Sequencer (シーケンサー)** エディタには、**[マチネ]**](Engine\Matinee\) に似た特殊なマルチ トラック エディタを通してインゲームのシネマティックスを作成する機能があります。 
 **レベル シーケンス** を作成し **トラック** を追加することで、各トラックの構成を定義し、それによりシーンの内容を決めることができます。
 トラックには、アニメーション (キャラクターをアニメートするため)、トランスフォーム (カメラなどをシーン内で動かす) 、オーディオ (音楽やサウンド エフェクトを含むため)、およびその他数種類があります。  
 
@@ -87,7 +86,7 @@ KoksbI7ZOTM
 これはどのようなメリットがあり、どのようなときに "spawnable" オブジェクトを使うのでしょうか？ シーケンサーはオーナーであり、オブジェクトをスポーンするため、特定のレベルに制約されません。スポーン可能なものはどのレベルでも使用可能です。そのため、シーンを作成し、任意の環境でスポーン可能にし、再作成する必要なく新しいレベルでそれを再利用できます。 
 
 [REGION:note]
-詳細は、 [**Spawnables（スポーン可能なもの）を作成する**](Engine\Sequencer\HowTo\Spawnables\) をご覧ください。 
+詳細は、[Spawnables（スポーン可能なもの）を作成する](Engine\Sequencer\HowTo\Spawnables\) をご覧ください。 
 [/REGION]
 
 
@@ -154,7 +153,7 @@ Start Playback (再生開始) および Stop Playback (再生終了) のマー�
 
 ![](SpecialViewports.png)
 
-こうした [**シネマティクス ビューポート**](Engine\Sequencer\HowTo\ViewportOptions) では、最終的なシーンがどのようになるかが把握しやすくなります。これは、**ビューポート** のオプションボタンから有効にすることができます。 
+こうした [シネマティクス ビューポート](Engine\Sequencer\HowTo\ViewportOptions) では、最終的なシーンがどのようになるかが把握しやすくなります。これは、**ビューポート** のオプションボタンから有効にすることができます。 
 
 ##Cinematic アクタ
 
@@ -173,7 +172,7 @@ Camera Rig Crane アクタを使うと、通常の映画撮影で使われるク
 カメラを Camera Rig Crane アクタにアタッチし、クレーンの動きを **[Details]** パネルと **[Crane Controls]** の値で操作します。こうした値は、クレーンのピッチ、クレーンのヨー、クレーンのアームの長さに影響を与えます。こうした値はシーケンサー内でキーフレーム化できます。これにより、必要に応じてシネマティックス中に調整することができます。 
 
 [REGION:note]
-詳細は [**CameraRigCrane から撮影する**](Engine\Sequencer\HowTo\CameraRigCrane) をご覧ください。 
+詳細は [CameraRigCrane から撮影する](Engine\Sequencer\HowTo\CameraRigCrane) をご覧ください。 
 [/REGION]
 
 ### Camera Rig Rail
@@ -185,7 +184,7 @@ Camera Rig Rail アクタはスプライン ベースのツールでカメラを
 スプラインの各ポイントを選択して、タンジェントを変更してカメラが追う経路を作ります。レールにアタッチしたカメラを独立して回転させたり、レール上のカメラの位置を **[Details]** パネルの **[Current Position on Rail (レール上の現在位置)]** プロパティで調整することができます。この値をキーフレーム化すると、シーケンサーで値を変更することができます。 
 
 [REGION:note]
-詳細は [**CameraRigRail から撮影する**](Engine\Sequencer\HowTo\CameraRigRail) をご覧ください。 
+詳細は [CameraRigRail から撮影する](Engine\Sequencer\HowTo\CameraRigRail) をご覧ください。 
 [/REGION]
 
 ### Cine Camera アクタ
@@ -198,10 +197,10 @@ Cine Camera アクタはデフォルトの Camera アクタです。ただし、
 上の画面には、Cine Camera アクタ (黒いカメラ) とデフォルトの Camera アクタ (青いカメラ) があります。 
 [/REGION]
 
-Cine Camera アクタには、Look at トラッキング (Actor に追随)、Filmback 設定(16:9 DSLR、 Super 8mm、 35mm VistaVision など)、Lens とFocus の設定、およびCurrent Aperture と Current Focus Distances の設定があります。通常の Camera アクタを使っても問題はありませんが、一段とシネマティックスな雰囲気にし、より多くのカメラ設定を使えるようにするには、Cine Camera アクタを使ってシーンを撮影することをお勧めします。 
+Cine Camera アクタには、Look at トラッキング (Actor に追随)、Filmback 設定(16:9 DSLR、 Super 8mm、 35mm VistaVision など)、Lens と Focus の設定、および Current Aperture と Current Focus Distances の設定があります。通常の Camera アクタを使っても問題はありませんが、一段とシネマティックスな雰囲気にし、より多くのカメラ設定を使えるようにするには、Cine Camera アクタを使ってシーンを撮影することをお勧めします。 
 
 [REGION:note]
-詳細は [**CineCamera アクタを使用する**](Engine\Sequencer\HowTo\CineCameraActors) をご覧ください。 
+詳細は [CineCamera アクタを使用する](Engine\Sequencer\HowTo\CineCameraActors) をご覧ください。 
 [/REGION]
 
 
@@ -224,7 +223,7 @@ mvCPXslVb8Y
 新しい記録を追加し、記録対象のアクタを選んで、Record をクリックしてキャプチャを開始します。記録を停止すると新しい Level Sequence アセットが作成されます。これを既存の シネマティックスに組み込んだり、記録したレベル シーケンスの一部を使って新しいシーケンスを作成することができます。
 
 [REGION:note]
-詳細は [**ゲームプレイを記録する**](Engine/Sequencer/HowTo/SequenceRecorder) をご覧ください。 
+詳細は [ゲームプレイを記録する](Engine/Sequencer/HowTo/SequenceRecorder) をご覧ください。 
 [/REGION]
 
 ##ムービー出力の設定
@@ -239,16 +238,16 @@ mvCPXslVb8Y
 
 シーンの録画のキャプチャ プロセスを開始するには、**[Capture Movie]** ボタンをクリックします。 
 
-### Custom
+### Custom Burn-ins
 
-はじめに
+[INCLUDE:Engine/Sequencer/HowTo/BurnIns#intro]
 
 [REGION:note]
 burn-ins の使用についての手順を示したガイドについては、[](Engine/Sequencer/HowTo/BurnIns) をご覧ください。 
 [/REGION]
 
 [PUBLISH:docs]
-### Import/Export EDLs
+### EDLs のインポート / エクスポート
 
 [INCLUDE:Engine/Sequencer/HowTo/ImportExportEDLs#intro]
 
@@ -265,7 +264,7 @@ EDLs の使用についての手順を示したガイドについては、[](Eng
 
 
 [REGION:note]
-詳細は、 [](Engine\Sequencer\Workflow\CustomRenderPass) をご覧ください。
+詳細は、[](Engine\Sequencer\Workflow\CustomRenderPass) をご覧ください。
 [/REGION]
 [/PUBLISH:docs]
 
@@ -276,5 +275,5 @@ EDLs の使用についての手順を示したガイドについては、[](Eng
 
 
 [REGION:note]
-詳細は、 [**ワークフロー上の考慮事項**](Engine\Sequencer\Workflow\ToolUsage) をご覧ください。 
+詳細は、[ワークフロー上の考慮事項](Engine\Sequencer\Workflow\ToolUsage) をご覧ください。 
 [/REGION]

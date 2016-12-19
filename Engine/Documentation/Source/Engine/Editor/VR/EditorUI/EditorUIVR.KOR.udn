@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2911160
+﻿INTSourceChangelist:3108692
 Title: VR 모드에서의 에디터 창
 Description: VR 모드 작업시 에디터 패널과 창을 띄우고 작업하는 방법입니다.
 Crumbs:
@@ -7,7 +7,7 @@ parent: Engine/Editor/VR
 type: reference
 order: 5
 tags: VR
-version: 4.11
+version: 4.13
 skilllevel: intermediate
 
 [VAR:Topic]
@@ -49,9 +49,11 @@ skilllevel: intermediate
 VR 에디터에서 띄워 붙일 수 있는 여러가지 패널과 창은 다음과 같습니다:
 
 [REGION:imagetable]
-| ![](window_content.png)(w:145) | ![](window_details.png)(w:145) | ![](window_modes.png)(w:145) | ![](window_outliner.png)(w:145) | ![](window_tutorials.png)(w:145) | ![](window_asset.png)(w:145) |
-| --- | --- | --- | --- | --- | --- |
-| 콘텐츠 브라우저 | 디테일 패널 | 모드 패널 | 아웃라이너 패널 | 튜토리얼 | 애셋 패널 |
+| ![](window_content.png)(w:225) | ![](window_details.png)(w:225) | ![](window_modes.png)(w:225) | ![](window_outliner.png)(w:225) |
+| --- | --- | --- | --- |
+| 콘텐츠 브라우저 | 디테일 패널 | 모드 패널 | 아웃라이너 패널 | 
+|![](window_tutorials.png)(w:225) | ![](window_asset.png)(w:225) | ![](colorPicker.png)(w:225)| ![](worldSettings.png)(w:225)|
+| 튜토리얼 | 애셋 패널 | 색 선택기 | 월드 세팅 |
 [/REGION]
 
 ## VR 모드에서 창 열기
@@ -60,11 +62,11 @@ VR 에디터에서 띄워 붙일 수 있는 여러가지 패널과 창은 다음
 
 1. 한 콘트롤러로 다른 콘트롤러를 조준하여 **빠른 선택** 메뉴를 엽니다.
 
-	![](window_quick_select.png)(w:480)
+	![](quickmenu_1.png)(w:480)
 
 1. 다른 콘트롤러로 인터페이스 섹션의 옵션 중 하나를 조준하고 **트리거** 를 쥐면 그 창이 열립니다.
 
-	![](window_quick_select_highlight.png)(w:480)
+	![](quickmenu_2.png)(w:480)
 
 
 ## 도킹
@@ -118,13 +120,13 @@ VR 에디터에서 패널과 창 작업을 할 수 있는 방법은 여러가지
 
 1. 트리거를 쥐면 창을 닫습니다.
 
-**모든 창을 숨기기 / 표시 하려면:**
+**콘텐츠 브라우저, 디테일 패널, 모드 패널, 씬 아웃라이너 등 주요 창을 숨기기 / 표시 하려면:**
 
-1. 창이 열린 상태에서 **트랙 패드** 의 아래를 한 번 누르면 모든 창을 숨깁니다.
+1. 창이 열린 상태에서 **트랙 패드** 의 아래를 한 번 누르면 주요 창을 숨깁니다.
 
 	![](window_show.png)(w:480) ![](window_hide.png)(w:480)
 
-1. 창이 숨겨진 상태에서 **트랙 패드** 의 아래를 한 번 누르면 모든 창을 표시합니다.
+1. 창이 숨겨진 상태에서 **트랙 패드** 의 아래를 한 번 누르면 주요 창을 표시합니다.
 
 	![](window_hide.png)(w:480) ![](window_show.png)(w:480)
 

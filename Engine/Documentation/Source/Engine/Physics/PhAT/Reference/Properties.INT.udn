@@ -2,47 +2,12 @@ Availability: Public
 Title:Physics Asset Properties Reference
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
 Description:A listing of properties and descriptions for Physics Bodies, Physics Constraints, and Physics Assets accessible in the Physics Asset Tool.
-Version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/Properties:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/Properties:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/Properties:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhAT/Properties]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Physics/PhAT/Properties:title%](Engine/Physics/physics_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/physics_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Physics/PhAT/Properties:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Physics/PhAT/Properties:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Physics/PhAT/Properties]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
+parent:Engine/Physics/PhAT
+order:1
+Version: 4.13
+topic-image:Engine/Physics/physics_topic.png
+tags:Physics
+SkillLevel: Beginner
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 
@@ -151,13 +116,26 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Physics Blend** || %doxygen:UPhATSimOptions::PhysicsBlend% |
-| **Update Joints from Animation** || |
-| **Poke Pause Time** || %doxygen:UPhATSimOptions::PokePauseTime% |
-| **Poke Blend Time** || %doxygen:UPhATSimOptions::PokeBlendTime% |
+| **Physics Blend** || Enables you to manually control the physics/animation blend while simulating in the **Physics Asset Tool**. |
+| **Update Joints from Animation** || Let's you manually control the physics/animation. |
+| **Physics Update Mode** || [INCLUDE:#UpdateJointsfromAnimationEnum] |
+| **Poke Pause Time** || Time between poking a ragdoll and starting to blend back. |
+| **Poke Blend Time** || Time taken to blend from physics to animation. |
 [/REGION]
 
 [/VAR]
+
+<!--
+[EXCERPT:UpdateJointsfromAnimationEnum]
+
+Determines whether simulation of root body updates component transform.
+
+| Value | %spacer2% | Description |
+| --- | :---: | :--- |
+| **Simulation Updates Component Transfrom** || Simulation updates the component's transform. |
+| **Component Trasform is Kinematic** || Simulation doesn't update the component's transform. Instead it is driven by animation, blueprint, etc... |
+[/EXCERPT]
+-->
 
 [VAR:p12]
 
@@ -166,8 +144,8 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-|**Floor Gap** || %doxygen:UPhATSimOptions::FloorGap% |
-|**Grav Scale** || %doxygen:UPhATSimOptions::GravScale% |
+|**Floor Gap** || The gap between the floor and physics objects in the **Physics Asset Tool**. Changing this requires a restart of the **Physics Asset Tool**. |
+|**Grav Scale** || Scale factor for the gravity used in the simulation while in the **Physics Asset Tool**. |
 |**Max FPS** || Max FPS for simulation in PhAT. This is helpful for targeting the same FPS as your game. -1 means this is disabled.  |
 |**Time Dilation** || This will dilate the time by scale.  |
 [/REGION]
@@ -181,11 +159,11 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-|**Handle Linear Damping** || %doxygen:UPhATSimOptions::HandleLinearDamping% |
-|**Handle Linear Stiffness** || %doxygen:UPhATSimOptions::HandleLinearStiffness% |
-|**Handle Angular Damping** || %doxygen:UPhATSimOptions::HandleAngularDamping% |
-|**Handle Angular Stiffness** || %doxygen:UPhATSimOptions::HandleAngularStiffness% |
-|**Interpolation Speed** || %doxygen:UPhATSimOptions::InterpolationSpeed%|
+|**Handle Linear Damping** || Linear damping of mouse spring forces. |
+|**Handle Linear Stiffness** || Linear stiffness of mouse spring forces. |
+|**Handle Angular Damping** || Angular damping of mouse spring forces. |
+|**Handle Angular Stiffness** || Angular stiffness of mouse spring forces. |
+|**Interpolation Speed** || How quickly we interpolate the physics target transform for mouse spring forces. |
 [/REGION]
 
 [/VAR]
@@ -197,7 +175,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Poke Strength** || %doxygen:UPhATSimOptions::PokeStrength% |
+| **Poke Strength** || Strength of the impulse used when poking with the left mouse button. |
 [/REGION]
 
 [/VAR]
@@ -209,8 +187,8 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Show Constraints as Points** || %doxygen:UPhATSimOptions::bShowConstraintsAsPoints% |
-| **Show Names in Hierarchy** || %doxygen:UPhATSimOptions::bShowNamesInHierarchy% |
+| **Show Constraints as Points** || Whether or not to draw constraints as points. |
+| **Show Names in Hierarchy** || Whether or not to draw bone names in the viewport. |
 [/REGION]
 
 [/VAR]
@@ -222,7 +200,7 @@ When no Physics Body or Physics Constraint is selected (regardless of mode), the
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Constraint Draw Size** || %doxygen:UPhATSimOptions::ConstraintDrawSize% |
+| **Constraint Draw Size** || Controls how large constraints are drawn in the **Physics Asset Tool**. |
 [/REGION]
 
 [/VAR]
@@ -247,18 +225,6 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 
 [OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
-		Body1
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Body Setup
-	[/PARAM]
-	[PARAM:content]
-		%p21%
-	[/PARAM]
-[/OBJECT]
-
-[OBJECT:modulesectionexpanded]
-	[PARAMLITERAL:id]
 		Phys1
 	[/PARAMLITERAL]
 	[PARAM:heading]
@@ -266,6 +232,18 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 	[/PARAM]
 	[PARAM:content]
 		%p22%
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		Body1
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Body Setup
+	[/PARAM]
+	[PARAM:content]
+		%p21%
 	[/PARAM]
 [/OBJECT]
 
@@ -281,6 +259,18 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 	[/PARAM]
 [/OBJECT]
 
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		PhysAnim
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Physical Animation
+	[/PARAM]
+	[PARAM:content]
+		%p24%
+	[/PARAM]
+[/OBJECT]
+
 [/VAR]
 
 [VAR:p21]
@@ -290,8 +280,9 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Bone Name** || %doxygen:UBodySetup::BoneName% |
-| **Consider for Bounds** || %doxygen:UBodySetup::bConsiderForBounds% |
+| **Primitives** || The basic shapes that compose this Bone's collision. |
+| **Bone Name** || Used in the PhysicsAsset case, associates this Body with a Bone in a Skeletal Mesh. |
+| **Consider for Bounds** || Should this bone be used in the calculation for the bounding volume of the Skeletal Mesh. |
 [/REGION]
 
 [/VAR]
@@ -304,12 +295,12 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
 | **Mass in KG** || Mass of the body in KG. |
-| **Linear Damping** || %doxygen:FBodyInstance::LinearDamping% |
-| **Angular Damping** || %doxygen:FBodyInstance::AngularDamping% |
-| **Enable Gravity** || %doxygen:FBodyInstance::bEnableGravity% |
-| **Physics Type** || %doxygen:UBodySetup::PhysicsType% |
+| **Linear Damping** || "Drag" force added to reduce linear movement. |
+| **Angular Damping** || "Drag" force added to reduce angular movement.  |
+| **Enable Gravity** || If object should have the force of gravity applied.  |
+| **Physics Type** || If this is set to **Unfixed** it will use physics. If this is set to **Fixed** it will use kinematic. **Default** will inherit from **OwnerComponent**'s behavior. |
 | **Double Sided Geometry** || If true, the physics triangle mesh will use double sided faces when doing scene queries. Thsi is useful for planes and single sided meshes that need traces to work on both sides. |
-| **Simple Collision Physical Material** || %doxygen:UBodySetup::PhysMaterial% |
+| **Simple Collision Physical Material** || The **Physical Material** to use for simple collision on this body. |
 [/REGION]
 
 ### Advanced
@@ -319,20 +310,19 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Start Awake** || %doxygen:FBodyInstance::bStartAwake% |
-| **Center of Mass Offset** || %doxygen:FBodyInstance::COMNudge% |
-| **Mass Scale** || %doxygen:FBodyInstance::MassScale% |
+| **Start Awake** || If the physics body should start awake (and moving), or asleep (stationary until interacted with). |
+| **Center of Mass Offset** || User specified offset for the center of mass of this object, from the calculated location. |
+| **Mass Scale** || Per-instance scaling of mass. |
 | **Max Angular Velocity** || The maximum angular velocity for this instance. |
-| **Use Async Scene** || %doxygen:FBodyInstance::bUseAsyncScene% |
-| **Generate Wake Events** ||  |
+| **Generate Wake Events** || Should **wake**/**sleep** events fire when this object is woken up or put to sleep by the physics simulation. |
 | **Max Depenetration Velocity** || The maximum velocity used to depenetrate this object.  |
-| **Walkable Slope Override** || %doxygen:UBodySetup::WalkableSlopeOverride% |
+| **Walkable Slope Override** || Custom walkable slope setting for this body. See the [Walkable Slope](Engine/Physics/WalkableSlope) documentation for usage information. |
 | **Walkable Slope Behavior** || Behavior of this surface (whether we affect the walkable slope). Determines how the Walkable Slope Angle operates on the existing walkable angle, whether it increases or decreases it. |
-| **Walkable Slope Angle** || %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
-| **Custom Sleep Threshold Multiplier** || |
-| **Position Solver Iteration Count** || %doxygen:FBodyInstance::PositionSolverIterationCount% |
-| **Velocity Solver Iteration Count** || %doxygen:FBodyInstance::VelocitySolverIterationCount% |
-| **Sleep Family** || %doxygen:FBodyInstance::SleepFamily% |
+| **Walkable Slope Angle** || Override walkable slope, applying the rules of the Walkable Slope Behavior. |
+| **Custom Sleep Threshold Multiplier** || If the **SleepFamily** is set to custom, multiply the natural sleep threshold by this amount. A higher number will cause the body to sleep sooner. |
+| **Position Solver Iteration Count** || This physics body's solver iteration count for position. Increasing this will be more CPU intensive, but better stabilized. |
+| **Velocity Solver Iteration Count** || This physics body's solver iteration count for velocity. Increasing this will be more CPU intensive, but better stabilized. |
+| **Sleep Family** || The set of values used in considering when put this body to sleep. |
 [/REGION]
 
 [/VAR]
@@ -344,9 +334,9 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Simulation Generates Hit Events** || %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
-| **Phys Material Override** || %doxygen:FBodyInstance::PhysMaterialOverride% |
-| **Collision Response** || %doxygen:UBodySetup::CollisionReponse% |
+| **Simulation Generates Hit Events** || Should 'Hit' events fire when this object collides during physics simulation. |
+| **Phys Material Override** || Allows you to override the PhysicalMaterial to use for simple collision on this body. |
+| **Collision Response** || See the [Collision Response Reference](Engine/Physics/Collision/Reference) documentation for more information. |
 
 [/REGION]
 ### Advanced
@@ -356,11 +346,18 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Use CCD** || %doxygen:FBodyInstance::bUseCCD% |
+| **Use CCD** || If true Continuous Collision Detection (CCD) will be used for this component. |
 [/REGION]
 
 [/VAR]
 
+[VAR:p24]
+
+![](PhATBody4.png)
+
+Please see the [](Engine/Physics/PhAT/HowTo) for more information on using **Physical Animations**.
+
+[/VAR]
 
 ---
 
@@ -461,10 +458,9 @@ When the Physics Asset Tool is in Body Mode and a Physics Body is selected, the 
 [REGION:raw]
 | Property | %spacer% | Description |
 | --- | :---: | :--- |
-| **Joint Name** || %doxygen:FConstraintInstance::JointName% |
-| **Constraint Bone 1** || %doxygen:FConstraintInstance::ConstraintBone1% |
-| **Constraint Bone 2** || %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** || Disable collision between bodies joined by this constraint. |
+| **Joint Name** || The name of the bone (**Physics Body**) this **Physics Constraint** is associated with. |
+| **Constraint Bone 1** || Name of the first bone (**Physics Body**) this **Physics Constraint** is connecting. This will be the "child" bone in a **Physics Asset**. |
+| **Constraint Bone 2** || Name of the second bone (**Physics Body**) this **Physics Constraint** is connecting. This will be the "parent" bone in a **Physics Asset**. |
 [/REGION]
 [/VAR]
 

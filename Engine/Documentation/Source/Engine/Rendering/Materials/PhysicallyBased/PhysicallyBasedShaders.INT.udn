@@ -3,6 +3,12 @@ Title:Physically Based Materials
 Crumbs: %ROOT%, Engine
 Description:An overview of the primary Material inputs and how best to use them.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:13
+topic-image:physically_based_topic.png
+type:overview
+tags:Physically Based Shading
+tags:PBR
 
 [REGION:fullwidth]
 ![](PhysMatHeader.png)

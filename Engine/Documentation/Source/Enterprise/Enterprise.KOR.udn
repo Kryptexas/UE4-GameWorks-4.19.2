@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3112291
 Availability:Public
-Title: Enterprise Applications
-Description:Using Unreal Engine for automotive, aviation, architecture, consumer electronics, and complex data visualization applications
+Title: 엔터프라이즈 어플리케이션
+Description:차량, 항공, 건축, 소비자 가전, 복합 데이터 시각화 어플리케이션에 사용되는 언리얼 엔진입니다.
 Crumbs:%ROOT%,
 version:4.13
 Parent:%ROOT%
@@ -13,6 +13,6 @@ topic-icon:%ROOT%/enterprise_icon.png
 
 ![](Enterprise_Hero.png)
 
-Unreal Engine and its real-time interaction and rendering capabilities are well-suited for a huge range of projects across all Enterprise applications, including automotive, aviation, architecture, consumer electronics and complex data visualization.
+언리얼 엔진과 그 실시간 상호작용 및 렌더링 기술은 차량, 항공, 건축, 소비자 가전, 복합 데이터 시각화와 같은 폭넓은 분야의 다양한 엔터프라이즈 어플리케이션에 쓰기에 적합합니다.
 
 [DIR(output:"topic" org:"hierarchy" parent:"Enterprise")]

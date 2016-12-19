@@ -1,41 +1,61 @@
-﻿INTSourceChangelist:2714483
-Availability:Public
-Title:애니메이션 모드
+﻿INTSourceChangelist:3237313
+Availability: Public
+Title:애니메이션 에디터
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
-Description:페르소나 애니메이션 에디터의 애니메이션 모드에 대한 사용 안내서입니다.
-version: 4.9
+Description:언리얼 엔진 4 의 애니메이션 에디터 핵심 기능에 대한 개요입니다.
+version: 4.14
+type:landing
+topic-image:animEditor_topic.png
+Related: Engine\Animation\Persona\Modes\Skeleton
+Related: Engine\Animation\Persona\Modes\Mesh
+Related: Engine\Animation\Persona\Modes\Graph
+Related: Engine/Content/FBX/Animations
+tags:Animation
+tags:Skeletal Mesh
+tags:FBX Importing
 
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/Persona/Modes/Animation:title%](Engine/Animation/animation_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/content_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/Persona/Modes/Animation:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/Persona/Modes/Animation:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/Persona/Modes/Animation]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[EXCERPT:Overview]
+**애니메이션 에디터** 에서는 스켈레탈 메시에 사용할 수 있는 다양한 애니메이션 관련 애셋에 쉽게 접근할 수 있습니다.
+애니메이션 에디터에서는, 애니메이션 시퀀스, 블렌드 스페이스, 애니메이션 몽타주와 같은 애니메이션 애셋 재생을 미리보거나, 애니메이션 애셋을 편집하거나, 머티리얼 파라미터 또는 모프 타겟에 대한 커브를 추가 및 편집하는 것은 물론, 애니메이션 노티파이 (애니메이션의 특정 지점에 발생하는 이벤트) 정의도 가능합니다.
+[/EXCERPT:Overview]
 
-
+**콘텐츠 브라우저** (또는 에디터 툴바) 를 통해 애니메이션 애셋을 열면, 애니메이션 에디터가 열립니다:
 
 [REGION:fullwidth]
 ![](AnimationModeWindow.png)
 [/REGION]
 
-**페르소나** 의 **애니메이션** 모드는 (툴바 창의 **애니메이션** 탭을 선택하여 접근 가능하며) 다른 모드에 나타나는 창이 여럿 있지만, **애니메이션** 모드작업시 가장 자주 사용되는 창은 (위에 언급된) 세 가지입니다.
+애니메이션 에디터 유저 인터페이스 분석은 아래 각 섹션을 참고하세요:
 
-1. [애님 애셋 디테일](Engine\Animation\Persona\AnimAssetDetails) - **애님 애셋 디테일** 패널은 맥락 의존적인 프로퍼티 에디터로, 애님 시퀀스, 블렌드 스페이스, 애님 몽타주 등과 같은 다양한 애니메이션 애셋의 세팅을 변경할 수 있습니다. 기본적으로, **애님 애셋 디테일** 패널은 페르소나가 **애니메이션** 모드에 있을 때만 보입니다.
-1. [애님 시퀀스 에디터](Engine\Animation\Sequences\Editor) - **애니메이션 시퀀스 에디터** 는 개별 _애니메이션 시퀀스_ 애셋을 미리보고 편집하는 기능을 제공합니다. _애니메이션 시퀀스_ 의 압축 방법을 포함한 프로퍼티를 설정할 수 있고, 애니메이션 노티파이 이벤트( 소위 노티파이)를 추가하여 애니메이션에 맞춰 카메라 이펙트, 파티클 이펙트, 사운드 등을 발동시킬 수 있습니다.
-1. [애셋 브라우저](Engine\Animation\Persona\AssetBrowser) - **애셋 브라우저** 패널에는 _애님 시퀀스_, _블렌드 스페이스_, _애님 몽타주_, _에임 오프셋 블렌드 스페이스_ 등, 미니 **콘텐츠 브라우저** 스타일의 인터페이스로 타겟 _스켈레톤_ 에 유효한 것들을 표시해 줍니다.
+## 1. 툴바
+
+애니메이션 에디터 안의 [툴바](Engine/Animation/Persona/Toolbar) 에는 애니메이션에 대한 변경사항 저장 또는 콘텐츠 브라우저에서 찾기 옵션이 제공됩니다. 또한 새로운 애니메이션 애셋 생성, 압축 세팅 정의, 애디티브 레이어 조절, 프리뷰의 현재 포즈에서 스태틱 메시 생성과 같은 옵션도 제공됩니다.
+툴바 멀리 오른쪽은 **에디터 툴바** 로, 여기서 언리얼 엔진 4 의 다양한 애니메이션 툴로 전환할 수 있습니다.
+
+## 2. 애셋 디테일 / 스켈레톤 트리
+
+[애셋 디테일](Engine\Animation\Persona\AnimAssetDetails) 탭에는 애니메이션 애셋 작동 방식을 정의하는 옵션이 제공되며, 이는 어떤 애니메이션 애셋을 열었는가에 따라 바뀝니다.
+애셋 디테일 옆에는 [](Engine/Animation/Persona/SkeletonTree) 창이 도킹되어 있으며, 여기에는 현재 스켈레톤 애셋의 스켈레탈 계층구조가 표시됩니다. 여기서 소켓의 생성/편집 및 애니메이션 리타게팅 관련 세팅 정의가 가능합니다.
+
+## 3. 뷰포트
+
+[뷰포트](Engine/Animation/Persona/Viewport) 창에서는 선택된 스켈레탈 메시에서 애니메이션 애셋 재생을 미리볼 수 있고, 애셋 관련 정보도 제공됩니다. 라이팅 모드 변경, 스켈레톤의 본 표시 또는 숨김, 애니메이션 재생 속도 조절, 심지어 스켈레탈 메시를 턴 테이블에 올려놓고 자동 회전시켜 모든 각도에서 확인할 수 있도록 하는 작업도 가능합니다. 
+
+## 4. 디테일
+
+[디테일](Engine/UI/LevelEditor/Details) 패널은 메인 에디터에서와 마찬가지로, **애셋 에디터** 작업 도중 추가된 옵션을 변경하는 데 사용됩니다.
+예를 들어 애니메이션 시퀀스에 노티파이를 추가할 때, 노티파이를 클릭하면 디테일 패널에 그 노티파이 관련 옵션이 채워집니다. 애니메이션 몽타주에 새로운 섹션을 추가하면, 디테일 패널에서 그 섹션의 콘텐츠를 변경할 수 있습니다.
+
+## 5. 애셋 에디터
+
+[애셋 에디터](Engine/Animation/Persona/AssetEditor) 는 열린 애니메이션 애셋의 유형에 따라 인터페이스 레이아웃 및 옵션이 변하는 맥락 의존적 에디터입니다. 이 창 안에서 애님 시퀀스, 블렌드 스페이스, 애님 몽타주, 기타 애니메이션 애셋의 변경은 물론 하단에 위치한 툴바에서 애니메이션 재생( 또는 새 애니메이션 녹화)도 가능합니다.
+
+## 6. 애셋 브라우저
+
+[](Engine\Animation\Persona\AssetBrowser) 에서는 연관된 애니메이션 애셋 및 현재 스켈레톤 애셋에서 사용할 수 있는 애셋 전부를 확인할 수 있습니다.
+
+
+
 
 
 

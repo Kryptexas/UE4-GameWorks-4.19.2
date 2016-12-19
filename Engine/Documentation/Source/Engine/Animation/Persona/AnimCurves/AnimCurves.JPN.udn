@@ -1,0 +1,91 @@
+﻿INTSourceChangelist:3201003
+Availability:Public
+Title:Anim Curves
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:Anim Curves ウィンドウ内で利用可能な操作について説明します。
+version:4.14
+Related:Engine/Animation/Sequences/Curves/
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Toolbar:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Toolbar:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Toolbar:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Toolbar]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+![](AnimCurvesAlone.png)
+
+**[Anim Curves]** パネルは、プロジェクトの **[Morph Target]**、 **[Attribute]** および **[Material]** のカーブの値を表示します。 
+ここでカーブの削除、名前変更をしたり、カーブ データをプレビューすることもできます。
+**All Curves** をクリックしてその選択を解除し、可視カーブをフィルタリングして、アクティブなカーブだけを表示することができます。チェックボックスを使って **Morph Target**、 **Attribute**、および **Material** のカーブでフィルタリングすることもできます。
+さらに、マテリアル パラメータやモーフ カーブ (関連するアニメーション内にモーフ ターゲットが存在する場合) を操作できる [マテリアル カーブ](Engine/Animation/Sequences/Curves) を定義することができます。 
+
+**Skeleton Editor** または **Animation Editor** で **Anim Curves** パネルを開くには以下の手順に従います。 
+
+* **[Window]** メニューをクリックします。次にドロップダウン メニューから **[Anim Curves]** を選択します。
+
+	![](OpenAnimCurve.png)
+
+
+デフォルトでアニメーションを再生すると、カーブ値は再生に沿って更新されます。以下の画像では、**L_smile_pose** と **R_smile_pose** のカーブは、顔のメッシュでスマイルを作るために使用されています。 
+こうしたカーブの値は、アニメーションの現在位置で **Anim Curves** パネルに表示されます (アニメーションの最後に到達したとき、**1.0** の重みでフルスマイルになります)。 
+
+![](AllAnimCurve.png)
+
+特定のカーブの **[Auto]** チェックボックスのチェックを外すと、カーブからデータを取り出さなくなります。これによりカーブの影響を選択してオフにして、その結果をプレビューすることができます。手動で値を入力することもできます。
+または、**[Weight]** フィールドをクリックしてドラッグして値を入力することもできます。以下の画像では、**[L_brow_up_pose]** カーブ値は手動で 1.0 に設定されています。ビューポートでエフェクトを見ることができます。
+顔の左まゆ毛が上がっています。
+
+![](UncheckAuto.png)
+
+## カーブを管理する
+
+**カーブの名前を変更する** には以下の手順に従います。
+
+1. カーブ上で右クリックして、ドロップダウン メニューから **[Rename]** を選択します。
+
+	![](RenameCurve.png)
+
+1. 新しい名前を入力します。
+
+	![](NewNameCurve.png)
+
+1. **[Enter]** を押して新しい名前を入力します。
+
+**カーブを追加** するには、以下の手順に従います。
+
+1. 任意のカーブ上で右クリックして、ドロップダウン メニューから **[Add]** を選択します。
+
+	![](AddCurve.png)
+
+1. 新しいカーブ名を入力します。
+
+	![](NewNameAddCurve.png)
+
+1. **[Enter]** を押して新しい名前を入力します。
+
+これにより、現在のスケルトンにカーブが追加されますが、そのカーブを **[Animation Editor]** に追加し、その情報を設定し、カーブが影響を与えるものを決める必要があります。
+
+**カーブを削除する** には以下の手順に従います。
+
+1. カーブ上で右クリックして、ドロップダウン メニューから **[Delete]** を選択します。
+	![](DeleteCurve.png)
+
+
+	カーブがプロジェクト内のアセットによって現在使用されている場合、カーブがこうしたアセットから削除されることを警告する確認ウィンドウが表示されます。 
+
+1. 削除するには **Yes** をクリックします。または、キャンセルするには **No** をクリックします。

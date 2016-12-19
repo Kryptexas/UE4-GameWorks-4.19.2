@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3108692
 Availability: Public
 title:수학
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -55,7 +55,7 @@ Vector2 나 Vector3 나 Vector4 를 받아 그 성분을 합친 다음 결과를
 | ---- | ---- |
 |[REGION:tablesection]입력[/REGION] ||
 | **Value** (Scalar) | 값 - 선형 사인 함수를 적용할 입력값입니다. 이 값이 시간에 따라 변하면 출력은 곡선이 됩니다.|
-| **Period** (Scalar) | 주기 - 한 번 완전히 이행하는 데 걸리는 시간을 조절합니다. 입력값이 1 보다 크면 곡선을 늦춥니다. |
+| **Period** (Scalar) | 주기 - 한 번 완전히 전환되는 데 걸리는 시간을 조절합니다. 입력값이 1 보다 크면 곡선을 늦춥니다. |
 | **-1 to 1** (StaticBool) | -1 에서 1 까지 - _True_ 로 설정하면 0 에서 1 범위가 아닌, -1 에서 1 범위 곡선으로 오프셋시킵니다. |
 | **Sine Phase** (StaticBool) | 사인 위상 - _True_ 로 설정하면 선형 방식이 아닌 정상 사인 곡선을 출력합니다. |
 |[REGION:tablesection]출력[/REGION] ||

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2980307
+﻿INTSourceChangelist:3172421
 Availability:Public
 Title:仮想現実 （VR） のベスト プラクティス
 Crumbs:%ROOT%, Platforms, Platforms/VR
@@ -62,14 +62,13 @@ type:overview
 ## VR .INI 設定
 
 以下の .INI 設定は、UE4 が搭載された VR デモの Showdown のものです。 
-これらの INI 設定を使用する場合は、プロジェクト **「Config\ DefaultEngine.INI」** ファイルの **[SystemSettings]** に追加しなければなりません。 
+これらの .INI 設定を使用する場合は、プロジェクト **「Config\ DefaultEngine.INI」** ファイルの **[SystemSettings]** に追加しなければなりません。 
 
 	[SystemSettings]
 	r.VolumeMultiplier=1.0
 	r.screenpercentage=130
 	r.SeparateTranslucency=0
 	r.HZBOcclusion=0
-	r.FinishCurrentFrame=1
 	r.MotionBlurQuality=0
 	r.PostProcessAAQuality=3
 	r.BloomQuality=1
@@ -85,7 +84,6 @@ type:overview
 	r.LensFlareQuality=0
 	r.SceneColorFringeQuality=0
 	r.FastBlurThreshold=0
-	showflag.decals=0
 	r.SSR.MaxRoughness=0.1
 	r.rhicmdbypass=0
 	r.TiledReflectionEnvironmentMinimumCount=10
@@ -120,10 +118,22 @@ Instanced Stereo レンダリングを有効にした後、エンジンを再起
 
 VR には負荷が大きすぎるアセットを追跡するには、プロジェクトのライフタイムを通じて可能な限り、CPU と GPU 上でプロジェクトが何をしているのかをプロファイルする必要があります。 
 
-* **GPU Profiling** - プロジェクトの実行中に **CTRL + SHIFT + ,(カンマ キー)** を一緒に押すと、GPU プロファイラを有効にすることができます。キーを押すと、新規ウィンドウが開いて以下の画像のようになります。 
+* **GPU Profiling** - プロジェクトの実行中に **CTRL + SHIFT + ,(カンマ キー)** を一緒に押すと、GPU プロファイラを有効にすることができます。キーを押すと、新規ウィンドウが開いて以下の画像のようになります。
+
 	![](VR_GPU_Profiler.png)
 
-* **CPU Profiler** - CPU 上のプロジェクトの動作分析は、GPU のプロファイルよりも若干複雑になります。この方法についての詳細については、上記の [パフォーマンス プロファイラ] テクスチャ サンプルのテクスチャ オブジェクトへの変換のセクションをご覧ください。 
+* **CPU Profiler** - CPU 上のプロジェクトの動作分析は、GPU のプロファイルよりも若干複雑になります。この方法についての詳細については、[パフォーマンス プロファイラ](https://docs.unrealengine.com/latest/INT/Engine/Performance/Profiler/index.html) をご覧ください。 
+
+## VR 前方レンダリング
+
+![](Engine\Performance\ForwardRenderer\ForwardRenderingBanner.png)(w:840)
+
+[INCLUDE:Engine\Performance\ForwardRenderer#intro]
+
+[REGION:note]
+詳細は [](Engine\Performance\ForwardRenderer) のドキュメントをご覧ください。 
+[/REGION]
+
 
 ## VR ポストプロセス設定
 
@@ -165,8 +175,8 @@ UE4 内の **[World Settings (ワールド設定)]** にある **World to Meters
 
 ## VR とシミュレーション酔い
 
-シミュレーション酔いは、VR ワールドで HMD デバイスを使用する際に生じる乗り物酔いの一形態です。シミュレーション酔いは、 
-ユーザーの VR 体験に著しい影響を与え、場合によっては、VR 体験を完全に台無しにします。VR 体験が苦痛になってしまわないためにも、 
+シミュレーション酔いは、VR ワールドで HMD デバイスを使用する際に生じる乗り物酔いの一形態です。シミュレーション酔いがユーザーの VR 体験に与える打撃はかなり大きく、 
+せっかくの VR 体験を台無しにしてしまう事もあります。ユーザーに辛い VR 体験をさせないためにも、 
 以下のベストプラクティスを **遵守** してください。そうしなかった場合、 
 ユーザーは非常に不快な VR 体験をするかもしれません。    
 
@@ -209,7 +219,7 @@ VR ヘッドセットを使用したキャラクターのセットアップは�
 [REGION:tip]
  VR ワールドのオブジェクトを構築する場合、デジタル オブジェクトのスケールを 
  現実世界のオブジェクトと同じにすることが重要です。現実世界よりも大きくしたり、小さくしたりすると、 
- 達成しようとする没入感を損なうことがあります。 
+ 達成できる没入感を台無しにしてしまうことがあります。 
 [/REGION]
  
  **キャラクターの高さと幅**
@@ -340,4 +350,4 @@ VR でオブジェクト上の法線マップを見ると、これまでのよ�
 |形状タイプ|説明|
 |---|---|
 |[視差マッピング](http://en.wikipedia.org/wiki/Parallax_mapping)| 視差マッピングは、法線マッピングでは考慮しないデプスキューを考慮することで法線マッピングを次のレベルに高めます。視差マッピング シェーダーは、オブジェクトが実際よりも詳細に表示されるようにすることで、深さ情報をよりよく表示できます。どのアングルで見ても視差マップ自体が補正し、その視点からの正確な深さ情報を表示するようにします。視差マップは、敷石道や表面の細部などの使用に最適です。 
-|[テッセレーション シェーダのディスプレースメント](Resources/ContentExamples/MaterialNodes/1_11) | テッセレーション シェーダのディスプレースメントは、オブジェクトにモデル化されない詳細を付け加えることで 3D ジオメトリをリアルタイムでディスプレースします。テッセレーション シェーダーは情報を表示するうえで素晴らしい作業を行います。実際には、さらに多くの頂点を作り、それを 3D 空間にリアルタイムでディスプレースすることで欠落している詳細を作ります。 |
+

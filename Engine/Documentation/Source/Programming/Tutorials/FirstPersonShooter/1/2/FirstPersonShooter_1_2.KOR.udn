@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2923487
-Availability: Docs
+﻿INTSourceChangelist:3151861
+Availability: Public
 Title: 1.2 - Visual Studio 에서 프로젝트 열기
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/1
 Description: Visual Studio 에서 C++ 프로젝트를 여는 법을 배워봅니다.
@@ -43,14 +43,14 @@ Version: 4.11
 
 		#pragma once
 		
-		#include "GameFramework/GameMode.h"
+		#include "GameFramework/GameModeBase.h"
 		#include "FPSProjectGameMode.generated.h"
 		
 		/**
 		 * 
 		 */
 		UCLASS()
-		class FPSPROJECT_API AFPSProjectGameMode : public AGameMode
+		class FPSPROJECT_API AFPSProjectGameMode : public AGameModeBase
 		{
 			GENERATED_BODY()
 		};

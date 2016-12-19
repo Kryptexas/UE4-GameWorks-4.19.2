@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3151855
 Availability: Docs
 Title:머티리얼 표현식 만들기
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:머티리얼 에디터에서 사용할 수 있는 머티리얼 표현식을 새로 만드는 방법 안내입니다.
 Version: 4.9
+tags:Rendering
 
 [TOC (start:2 end:3)]
 

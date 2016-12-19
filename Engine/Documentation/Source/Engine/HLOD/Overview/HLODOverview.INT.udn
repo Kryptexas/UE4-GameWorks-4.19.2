@@ -1,8 +1,15 @@
 title:Hierarchical Level of Detail Overview
 description:Overview of the Hierarchical Level of Detail system in Unreal Engine 4
 crumbs:%ROOT%
-availability:docs
+availability:Public
 version:4.13
+parent:Engine/HLOD
+type:overview
+order:1
+tags:HLOD
+topic-image:Engine/HLOD/HowTo/HLOD_howto_Topic_01.png
+
+![](Engine\HLOD\HowTo\HLOD_howto_header.png)
 
 HLODs, in their simplest form, combine pre-existing **Static Mesh Actors** into a single **Static Mesh Actor** and material, with atlased textures, to reduce draw calls which in-turn helps with your performance of your game. There is a robust system that enables you to set what needs to be generated when you create these **HLOD Actors**.
 
@@ -21,7 +28,7 @@ The proxy mesh above contains several different elements that originally all had
 
 [REGION:note]
 
-This can be problematic for anything using **Mask** or **Opacity**. These alpha channels are not passed to these assets for this merged texture. If opacity or masked items are need you would want to consider unchecking the option for **Merge Textures**. When doing this the Proxy Mesh will assign the original material as a **Material Element ID** instead of combining.
+This can be problematic for anything using **Mask** or **Opacity**. These alpha channels are not passed to these assets for this merged texture. If opacity or masked items are needed you would want to consider unchecking the option for **Merge Textures**. When doing this the Proxy Mesh will assign the original material as a **Material Element ID** instead of combining.
 
 [/REGION]
 
@@ -33,7 +40,7 @@ This can be problematic for anything using **Mask** or **Opacity**. These alpha 
 
 ![image alt text](image_18.png)(h:266 w:229 convert:false)
 
-Place this volume around **Actors** you want to be grouped into the same cluster. It can be helpful to make this slightly larger than the **Actors** and should not be tightly bounding them. Once you are have placed the volume around the **Actors** you can use the option **Generate Clusters** from the HLOD Outliner to create a new cluster with these grouped **Actors**.
+Place this volume around **Actors** you want to be grouped into the same cluster. It can be helpful to make this slightly larger than the **Actors** and should not be tightly bounding them. Once you have placed the volume around the **Actors** you can use the option **Generate Clusters** from the HLOD Outliner to create a new cluster with these grouped **Actors**.
 
 ### Example
 
@@ -57,7 +64,7 @@ Right-click on the **LODActor** in the HLOD Outliner and click on **Select Conta
 
 ![image alt text](image_23.png)(h:268 w:357 convert:false)
 
-## Details Panel for **LODActor**
+## Details Panel for LODActor
 
 By selecting a **LODActor** in the level you have access to some settings in the Details panel to override some aspects of your generated HLOD along with details to which static meshes have been included with this cluster. This is not unlike any other **Actors** in your scene where you have the option to override or change some values to work within the confines of your design. 
 

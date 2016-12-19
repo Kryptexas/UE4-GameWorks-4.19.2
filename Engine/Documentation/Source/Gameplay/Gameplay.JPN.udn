@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2740161
+﻿INTSourceChangelist:3151855
 Title:ゲームプレイ ガイド
 Crumbs:%ROOT%
 Description:プログラマおよびビジュアル スクリプタ向けのゲームプレイ機能の概要とサンプル
@@ -6,6 +6,7 @@ Availability:Public
 version:4.9
 parent:%ROOT%
 order:6
+type:landing
 
 [VAR:Params]
 [PARAM:image]
@@ -41,7 +42,7 @@ order:6
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
-ゲームプレイ
+gameplay
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
@@ -54,7 +55,7 @@ order:6
 		ゲームプレイの基本概念
 	[/PARAM]
 	[PARAM:description]
-		このページでは、主要なアンリアル用語を紹介します。ゲームプレイ オブジェクトに新規タイプを追加するためには、通常新規クラスを作成します。 
+		このページでは、主要なアンリアル用語を紹介します。ゲームプレイ オブジェクトの新しい型を追加するには、通常新規クラスを作成します。 
 		クラスは、新規オブジェクト用のテンプレートあるいはルールのコレクションであるため、プロパティとビヘイビアをテンプレートに設定して、 
 		好きな数だけ複製を作成することができます。
 	[/PARAM]
@@ -127,8 +128,8 @@ order:6
 		ゲームプレイの How To
 	[/PARAM]
 	[PARAM:description]
-		このページは、最も一般的なゲームプレイ シナリオの生成方法について、ステップごとに説明します。 
-		ゲームの中で敵やピックアップをスポーンする方法、カメラ角度を変更する方法、プレイヤー入力の設定方法は、ブループリントと C++ 向けの両方の設定例を紹介しています。
+		このページは、ごく一般的なゲームプレイ シナリオの生成方法について、ステップごとに説明します。 
+		ゲームの中で敵やピックアップをスポーンする方法、カメラ アングルを変更する方法、プレイヤー入力の設定方法は、ブループリントと C++ 向けの両方の設定例を紹介しています。
 	[/PARAM]
 	[PARAM:links]
 	[DIR(end:"3" type:"how-to" output:"listbutton" parent:"Gameplay" org:"hierarchy")]

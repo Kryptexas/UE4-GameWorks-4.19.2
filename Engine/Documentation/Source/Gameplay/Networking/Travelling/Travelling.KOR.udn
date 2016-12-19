@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3151861
 Availability:Public
 Title: 멀티플레이어에서의 이동(Travel)
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking
@@ -58,7 +58,7 @@ UE4 멀티플레이어 게임은 가급적 매끄러운 이동을 사용할 것�
 
 이제 현재 맵에서 트랜지션 맵으로 이동한 다음, 거기서 최종 맵으로 이동하면 됩니다. 트랜지션 맵은 매우 작으므로, 현재 맵을 최종 맵으로 대체시키는 와중에 그다지 큰 부하가 걸리지 않습니다.
 
-트랜지션 맵 구성이 완료된 후 `AGameMode::bUseSeamlessTravel` 을 true 설정하면, 매끄러운 이동이 작동할 것입니다!
+트랜지션 맵 구성이 완료된 후 `AGameModeBase::bUseSeamlessTravel` 을 true 설정하면, 매끄러운 이동이 작동할 것입니다!
 
 ## 매끄러운 이동 흐름
 
@@ -74,7 +74,7 @@ UE4 멀티플레이어 게임은 가급적 매끄러운 이동을 사용할 것�
 
 기본적으로 자동 지속되는 액터는 다음과 같습니다:
 * `GameMode` 액터 (서버만)
-	* `AGameMode::GetSeamlessTravelActorList` 를 통해 추가된 액터
+	* `AGameModeBase::GetSeamlessTravelActorList` 를 통해 추가된 액터
 * 유효한 `PlayerState` 가 있는 모든 Controller (서버만)
 * 모든 `PlayerController` (서버만)
 * 모든 로컬 `PlayerController` (서버 및 클라이언트)

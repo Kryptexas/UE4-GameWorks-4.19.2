@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangeList:3213360
 availability:docs
-title:Blueprint & Render Target Best Practices
-description: A collection of Best Practices to follow when using Blueprints and Render Targets.
+title:ブループリントとレンダリング ターゲットのベスト プラクティス
+description:ブループリントとレンダリング ターゲット使用時のベスト プラクティス集
 crumbs:
 version:4.13
 Type:topic

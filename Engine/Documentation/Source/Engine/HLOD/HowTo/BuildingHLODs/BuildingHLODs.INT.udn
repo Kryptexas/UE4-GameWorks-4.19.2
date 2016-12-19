@@ -1,10 +1,16 @@
-title:How-To Build Hierarchical Level of Detail Meshes
+title:Building Hierarchical Level of Detail Meshes
 description:This how to covers how to generate the HLOD meshes for your HLOD enabled Unreal Engine 4 project.
 crumbs:
-availability:docs
+availability:Public
 version:4.13
 related:Engine/HLOD/Overview
 related:Engine/HLOD/Reference
+skilllevel:intermediate
+order:2
+parent:Engine/HLOD/HowTo
+type:how-to
+tags:HLOD
+topic-image:Engine/HLOD/HowTo/HLOD_howto_Topic_02.png
 
 There are two major steps in building your **Hierarchical Level of Detail** (HLOD) Meshes. Firstly, you must **Generate Clusters**, which groups **Actors** in your level together based on the setting you specify in the **Cluster Generation Settings**. Then you have to **Generate Proxy Meshes**, which can take a very long time based on scene complexity and settings specified in the **Mesh Generation Settings**.
 

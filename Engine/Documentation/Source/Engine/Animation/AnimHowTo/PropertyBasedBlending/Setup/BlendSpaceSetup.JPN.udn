@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2945857
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:1.ブレンドスペースを設定する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo, Engine\Animation\AnimHowTo\PropertyBasedBlending
@@ -11,7 +11,7 @@ Related:Engine/Animation/StateMachines
 version:4.10
 skilllevel:Intermediate
 checkpoint: animpropertyblend
-type:sequential
+type:multi-step
 order:1
 parent:Engine/Animation/AnimHowTo/PropertyBasedBlending
 
@@ -32,7 +32,7 @@ Animation Starter Pack をダウンロードしたら、ランチャーの **[Ad
 
 ## ステップ
 
-1.**コンテンツ ブラウザ** の **Content/ThirdPersonBP/Blueprints** で **ThirdPersonGameMode** ブループリントを開きます。 
+1. **コンテンツ ブラウザ** の **Content/ThirdPersonBP/Blueprints** で **ThirdPersonGameMode** ブループリントを開きます。 
 
 1.	**Default Pawn Class (デフォルトのポーン クラス)** でドロップダウン メニューをクリックし、**Ue4ASP_Character** を選択します。 
 

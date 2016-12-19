@@ -1,29 +1,12 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3108692
 Availability: Public
 Title:랜드스케이프 머티리얼
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:랜드스케이프 터레인에서 쓸 머티리얼 셋업 관련 안내서입니다.
 version: 4.9
-
-[VAR:Topic]
-[OBJECT:Topiccompact]
-	[PARAM:image]
-		![%Engine/Landscape/Materials:title%](Engine/Landscape/Materials/landscape_materials_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/landscape_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Landscape/Materials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Landscape/Materials:description%
-	[/PARAM]
-	[PARAMLITERAL:path]
-		[RELATIVE:Engine/Landscape/Materials]
-	[/PARAMLITERAL]
-[/OBJECT]
-[/VAR]
+parent:Engine/Landscape
+order:5
+topic-image:landscape_materials_topic.png
 
 [TOC(start:2 end:3)]
 
@@ -235,9 +218,11 @@ LandscapeLayerWeight 노드로 레이어들을 수동 블렌딩하는 데 대한
 **LandscapeLayerBlend 노드를 사용하려면:**
 
 1. 머티리얼 에디터에서 LandscapeLayerBlend 노드를 추가합니다.
+	
 	![](Landscape_LayerBlend_Material_Example_00.png)
 
 1. **디테일** 패널에서, **Layers** (레이어) 옆에 더하기 (![Plus Sign](Shared/Icons/icon_PlusSymbol_12x.png)) 아이콘을 클릭하여 레이어를 추가합니다.
+	
 	![](Landscape_LayerBlend_Material_Example_01.png)
 
 1. 레이어를 펼쳐 그 프로퍼티를 확인합니다.
@@ -382,10 +367,16 @@ Landscape **Layer Blend** 머티리얼 노드에는 세 가지 블렌드 모드 
 
 ## Tessellation 과 Displacement
 
-머티리얼의 **Tessellation Multipliers** 와 **World Displacement** 채널은 랜드스케이프 터레인과 함께 사용하여 디테일과 디포메이션(변형)을 더하는 데 사용할 수 있습니다. 이는 다른 표준 머티리얼과 함께 했을 때와 마찬가지로 작동할 것이며, 레이어 블렌딩도 **베이스 컬러**, **노멀** 등의 채널과 마찬가지로 함께 사용할 수 있습니다.
+머티리얼의 **Tessellation Multipliers** 와 **World Displacement** 채널은 랜드스케이프가 카메라에 가까이 있을 때 랜드스케이프 터레인과 함께 사용하여 디테일과 디포메이션(변형)을 더하는 데 사용할 수 있습니다. 이는 다른 표준 머티리얼과 함께 했을 때와 마찬가지로 작동할 것이며, 레이어 블렌딩도 **베이스 컬러**, **노멀** 등의 채널과 마찬가지로 함께 사용할 수 있습니다. 랜드스케이프는 최고 레벨 오브 디테일(LOD)에서만 하드웨어 테셀레이션을 렌더링하는데, 랜드스케이프가 두 번째 LOD 에 접근하면서 페이드 아웃 됩니다. 그 이후의 LOD 는 더이상 테셀레이션이 켜지지 않아 랜드스케이프 터레인의 디스플레이스먼트에 테셀레이션을 켤 때 퍼포먼스가 크게 향상됩니다.
 
 [REGION:note]
-이 기능은 DirectX 11 이 있어야 사용할 수 있는 기능입니다. 그러므로 DirectX 하드웨어만을 노린 것이 아니라면, 2차적인 폴리시 이펙트로만 사용해야 할 것입니다.
+이 기능은 DirectX 11 이 있어야 사용할 수 있는 기능입니다. 그러므로 DirectX 하드웨어만을 노린 것이 아니라면, 2차적인 폴리시 이펙트로만 사용해야 할 것입니다. 프로젝트에 테셀레이션을 켜고 사용하는 법에 대해서는 [](Resources/ContentExamples/MaterialNodes/1_12) 문서를 참고하세요.
+[/REGION]
+
+![](Landscape_HW_Tess.png)
+
+[REGION:caption]
+위 시각화에서 최고 (흰색) LOD 는 테셀레이션을 켜고 렌더링한 것인 반면, 다른 (다른 색) LOD 는 테셀레이션 없이 렌더링된 것입니다.
 [/REGION]
 
 

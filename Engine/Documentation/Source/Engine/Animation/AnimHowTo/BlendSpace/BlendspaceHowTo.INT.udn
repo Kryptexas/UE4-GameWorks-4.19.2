@@ -1,162 +1,170 @@
 Availability:Public
 Title:Creating a Blend Space
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:Using a Blend Space, a character blends between walking/jogging when a button is pressed. 
-Related: Engine/Animation/Blendspaces
-Related: Engine/Animation/NodeReference/Blend
-Related: Engine/Animation/CharacterSetupOverview
-Related: Engine/Animation/AnimBlueprints
-Related: Engine/Animation/StateMachines
-version: 4.9
+Description:Example of a Blend Space used to toggle a character from walking/jogging animations smoothly. 
+version: 4.14
 skilllevel: Intermediate
+type:howto
+tags:Animation
+tags:How-To
+tags:Blend Space
+Related: Engine/Animation/Blendspaces
+Related: Engine/Animation/AimOffset
+Related: Engine/Animation/StateMachines
+Related: Engine/Animation/Skeleton
+
+[Blend Spaces](Engine/Animation/Blendspaces) are special assets which can be sampled in **AnimGraphs** that allow for blending of animations based on the values of two inputs. 
+Simple blending between two animations based on a single input can be performed using one of the standard [Blend Nodes](Engine/Animation/NodeReference/Blend) available in Animation Blueprints. 
+Blend Spaces provide a means of doing more complex blending between multiple animations based on multiple values (currently limited to two).
+
+In this How-to, we use a Blend Space to blend between walking and jogging animations based on the character's movement speed and movement direction. 
 
 
-[Blend Spaces](Engine/Animation/Blendspaces) are special assets which can be sampled in **AnimGraphs** that allow for blending of animations based on the values of two inputs. Simple blending between two animations based on a single input can be performed using one of the standard [blend nodes](Engine/Animation/NodeReference/Blend) available in Animation Blueprints. Blend Spaces provide a means of doing more complex blending between multiple animations based on multiple values (currently limited to two).
+[INCLUDE:Engine\Animation\AnimHowTo\AdditiveAnimations\01_BlendSetup#intro]
 
-This page will show you how to take an existing character and apply a Blend Space which will blend between walking and jogging animations based on the characters movement speed. 
+## Steps
 
+1.  In your project in the **Content/ThirdPersonBP/Blueprints** folder, open the **ThirdPersonGameMode** and set the **Default Pawn Class** to **Ue4ASP_Character**. 
 
-[EXCERPT:Intro]
-For this guide, we have created a new project using the **Blueprint Third Person** template with **Starter Content** enabled. 
+	![](BlendSpace1.png)
 
-We are also using the **Animation Starter Pack** which is available for download for free via the **Marketplace**. 
+	This will allow us to use the playable character that was created along with the Animation Starter Pack project. 
 
-![](Engine\Animation\AnimHowTo\AdditiveAnimations\AnimationAssetPack.png)
+1.	In the Level, select the **ThirdPersonCharacter** and delete it from the level. 
 
-Once downloaded, you can add the Animation Starter Pack to your project via the **Add to project** button from the Launcher.
-[/EXCERPT:Intro]
+	![](BlendSpace2.png)
 
-1.  With your project open, inside the **Content Browser** under the **Game/ThirdPersonBP/Blueprints** folder, open the **ThirdPersonGameMode** Blueprint. 
+	We need to delete this character from the level in order to spawn in as the character from the previous step. 
 
-1.	Under **Default Pawn Class**, click the dropdown menu and select the **Ue4ASP_Character**. 
+1.	In the **Content/AnimStarterPack/UE4_Mannequin/Mesh** folder, **Right-click** on the **UE4_Mannequin** and under **Create**, select **Blend Space**. 
 
-	![](BS_DefaultPawnClass.jpg)
+	![](BlendSpace3.png)
 
-1.	**Compile** and **Save** then close the Blueprint. 
+	Blend Space assets need a Skeleton asset to reference, here we are using a shortcut to create a Blend Space from this Skeleton asset. 
 
-1.	In the **Content Browser**, click the **Add New** Button then under **Animation**, select **Blend Space**. 
-
-	![](BS_BlendSpace.jpg)
-
-1.	In the **Pick Skeleton** window, select the **UE4_Mannequin_Skeleton** that is located in the **Game/AnimStaterPack/UE4_Mannequin/Mesh** folder. 
-
-	![](BlendSpace2.png)(w:400)
-
-	Give the Blend Space a name such as **Walk_Jog_BS**. 
-
-	![](BS_Walk_Jog_BS.jpg)
-
-1.	Open the **Walk_Jog_BS**, then in the center window under the **Parameters** section, enter the values shown. 
+1.	In the **Parameters** section, apply the values below then press the **Apply Parameter Changes** button. 
 
 	![](BlendSpace4.png)
 
-	Set the **X Axis Label** to **Direction** and its range to **-180 to 180**. Set the **Y Axis Label** to **Speed** and its range to **150 to 270**. With the values set, click the **Apply Parameter Changes** button which will make the grid space to the left update with your values. Here we are defining the parameters that will determine the motion the Blend Space will produce based on the variables **Direction** and **Speed** (clamped by the range provided) which we will get from the player character. 
+	* Set the **X Axis Label** to **Direction**
+	* Set the **X Axis Range** to **-180 - 180**
+	* Set the **Y Axis Label** to **Speed**
+	* Set the **Y Axis Range** to **150 - 260**
 
-1.	From the **Asset Browser** window, drag the **Walk_Fwd_Rifle_Ironsights** animation into the graph and the bottom center location. 
+	This Blend Space using the parameters **Direction** and **Speed** to determine which pose we should be using or blending to or from. 
+
+1.	In the **Asset Browser**, drag the **Walk_Fwd_Rifle_Ironsights** animation to the center-bottom position on the grid. 
 
 	![](BlendSpace5.png)
 
-1.	Drag the **Walk_Lt_Rifle_Ironsights** animation to position 1 and the **Walk_Rt_Rifle_Ironsights** animation to position 2 below. 
+	Placing this animation here indicates that when our Speed is 150 and are direction is not left or right, we should be walking forward with our rifle up at ironsights level. 
 
-	![](BlendSpace6.png)(w:640)
+1.	Drag the **Walk_Lt_Rifle_Ironsights** animation to location **1** and **Walk_Rt_Rifle_Ironsights** animation to location **2** below. 
 
-1.	Drag the **Walk_Bwd_Rifle_Ironsights** animation to position 1 and 2 below. 
+	![](BlendSpace6.png)
 
-	![](BlendSpace7.png)(w:640)
+	Here we place the animations to use when moving left or right and our speed is 150. 
 
-1.	Drag the **Jog_Fwd_Rifle** animation into the grid in the top center location. 
+1.	Drag the **Walk_Bwd_Rifle_Ironsights** animation to locations **1** and **2** below.
+
+	![](BlendSpace7.png)
+
+	Here we place the animation to use when moving backward and our speed it 150. 
+
+1.	From the **Asset Browser**, drag the **Jog_Fwd_Rifle** animation to the top-center position on the grid. 
 
 	![](BlendSpace8.png)
 
-1.	Drag the **Jog_Lt_Rifle** animation to position 1 and the **Jog_Rt_Rifle** animation to position 2 below. 
+	This allows us to use a different animation when our speed is at max 270 and we are not moving left or right, we are jogging forward. 
 
-	![](BlendSpace9.png)(w:640)
+1.	Drag the **Jog_Lt_Rifle** animation to location **1** and **Jog_Rt_Rifle** animation to location **2** below. 
 
-1.	Drag the **Jog_Bwd_Rifle** animation to position 1 and 2 below.
+	![](BlendSpace9.png)
 
-	![](BlendSpace10.png)(w:640)
+1.	Drag the **Jog_Bwd_Rifle** animation to locations **1** and **2** below.
 
-	If you move your mouse around inside the grid, you will see the character start to blend between the different walk/jog animations. 
+	![](BlendSpace10.png)
 
-1.	Inside the **Anim Asset Details** window, under Sample Interpolation set **Target Weight Interpolation Speed Per Sec** to **4.0**. 
+1.	In the **Content/AnimStarterPack** folder, open the **UE4ASP_HeroTPP_AnimBlueprint** then in the **My Blueprint** panel, **Double-click** the **Locomotion** graph. 
 
 	![](BlendSpace11.png)
 
-	This will smooth out the transition between the animations in the Blend Space to prevent popping from pose-to-pose. 
+1.	**Double-click** the **Jog** State to open its graph. 
 
-1.	Click **Save** then close the Blend Space, then in the **Content Browser**, open the **Ue4ASP_HeroTPP_AnimBlueprint**. 
+	![](BlendSpace12.png)
 
-1.	Inside the Animation Blueprint, click the **MyBlueprint** tab, then expand **AnimGraph** and **Double-click Locomotion**. 
+	This [State Machine](Engine/Animation/StateMachines) already has a Jog State and in it, a Blend Space for different Jogging motions. 
 
-	![](BlendSpace12.png)(w:640)
+1.	From the **Asset Browser**, drag the **Walk_Jog_BS** into the graph and replace the **BS_Jog** Blend Space as shown below. 
 
-	This will open the [State Machine](Engine/Animation/StateMachines) used to drive the characters animation states. 
+	![](BlendSpace13.png)
 
-1.	**Double-click** on the **Jog** state to open its graph. 
+	The default Blend Space does not include Walking states which our Blend Space does, so let's replace it with ours! 
 
-	![](BlendSpace13.png)(w:640)
+1.	In the **Content/AnimStarterPack** folder, open the **Ue4ASP_Character**. 
 
-1.	Click the **Asset Browser** tab, then drag the **Walk_Jog_BS** into the graph. 
+1.	Locate the section marked **Crouch** in the graph and replace the **InputAction Crouch** node with a **C** Key Event. 
 
-	![](BlendSpace14.png)(w:640)
+	![](BlendSpace14.png)
 
-1.	Replace **R_Jog** with the **Walk_Jog_BS** Blend Space and connect **Direction** and **Speed** and feed it into the **Result**. 
+	By default, the Animation Starter Pack has bindings created for crouch which we will replace with a normal **C** press (or whatever key you want to crouch with). 
 
-	![](BlendSpace15.png)(w:640)
+1.	**Right-click** in the graph and add a **Left Shift** Key Event, then drag the **CharacterMovement** into the graph from the **Components** tab. 
 
-1.	Click **Compile** and **Save** then close the Animation Blueprint. 
+	![](BlendSpace15.png)
 
-1.	In the **Content Browser**, open the **Ue4ASP_Character** Blueprint. 
+	When we press and hold the Left Shift button, that will toggle us from walking into a jog. 
 
-1.	With the Blueprint open, find the **Crouching** section and replace the **InputAction Crouch** node with a **C** Key Event. 
+1.	Hold the **B** key and **Left-click** in the graph and create two **Branch** nodes, then drag in the **Crouch Button Down** variable and connect as shown below. 
 
-	![](BlendSpace17.png)(w:640)
+	![](BlendSpace16.png)
 
-	This AnimBlueprint was built with the expectation that there is an **Action Mapping** called **Crouch**, since it does not exist in a fresh project and to get rid of the yellow warning sign, we will replace it with the **C** Key Event so that the player crouches when C is pressed. 
+	We need to check and make sure that we are not crouching while holding shift (as for this example, sprinting can only occur when not crouched). 
 
-1.	Drag off the **Pressed** pin and add a **FlipFlop** node, then connect the **A** and **B** pins as shown below. 
+1.	Drag off the **CharacterMovement** node and **Set Max Walk Speed** for both **Branch** nodes with the values **260** and **150** respectively. 
 
-	![](BlendSpace18.png)(w:640)
+	![](BlendSpace17.png)
 
-	The **FlipFlop** node acts as a toggle causing the character to crouch the first time **C** is pressed, then stand the second time it is pressed. 
+	We are changing our movement speed based on if Left Shift is held and will alter our character's movement speed in game. 
 
-1.	Inside **MyBlueprint**, click the **Show inherited variables** box, then hold **Ctrl** and drag the **CharacterMovement** into the graph. 
-
-	![](BlendSpace19.png)
-
-1.	Drag off the **CharacterMovement** node in the graph, search for and add the **Set Max Walk Speed** node and set it to **125**. 
-
-1.	Duplicate the **Set Max Walk Speed** node and set the new node to **150**, then connect the nodes as shown below. 
+1.	**Right-click** in the graph and add an **Event Begin Play** node and connect a **CharacterMovement** component to **Set Max Walk Speed** to **150**. 
 
 	![](BlendSpace20.png)
 
-1.	Below the Crouch section, **Right-click** in the graph and add the **Left Shift** Key Event. 
+	To start the game, we need to update our character's default movement speed so they start out walking. 
 
-1.	Drag off the **Pressed** pin and add a **Branch** node, then also add a **Branch** of the **Released** pin. 
+1.	Click the **CapsuleComponent** in the **Components** tab and in the **Details** panel, check the **Hidden in Game** option. 
 
-1.	For the **Condition** for both, hold **Ctrl** and drag in the **Crouch Button Down** variable and connect it to both **Condition** pins. 
+	![](BlendSpace18.png)
 
-	![](BlendSpace21.png)
+	This will turn off the collision capsule debug display in game. 
 
-1.	Duplicate the **CharacterMovement** and **Set Max Walk Speed** nodes from the Crouch section. 
+1.	Click the **CharacterMovement** component, then in the **Details** panel set the **Max Walk Speed** to **260**. 
 
-1.	Connect off the **False** pins of each **Branch** as shown below and set the **Max Walk Speed** values to **270** and **150**. 
+	![](BlendSpace19.png)
 
-	![](BlendSpace22.png)
+	Here we are capping the maximum movement speed to reflect what is in our Blend Space. 
 
-1.	In the upper-right of the Blueprint, click the **Defaults** tab. 
-
-1.	Enter **Max Walk Speed** in the search field, then set **Max Walk Speed** to **150** and **Max Walk Speed Crouched** to **125**. 
-
-	![](BlendSpace23.png)
-
-1.	Click **Compile** and **Save** then close the Blueprint, then delete the existing ThirdPersonCharacter from the scene.
-
-1. Click **Play** to play in the editor. 
-
-When playing in the Editor, using **WASD** to move around, the character will now walk by default and blend between walking animations when changing directions. If you press **C** to crouch, the character will now stay in a crouched position while walking at a slightly reduced speed than found when standing/walking. While standing, pressing and holding **Left Shift** while using WASD will cause the character to blend from the walk/aim animation to a lowered/aim jog animation, essentially creating a "sprint" for the character. 
+1.	Click **Compile** then click the **Play** in editor button from the Toolbar. 
 
 
+## End Result
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+vn0_YKcu1RU
+[/PARAMLITERAL]
+[/OBJECT]
+
+When playing in the Editor, using **WASD** to move around, the character will now walk by default and blend between walking animations when changing directions. 
+While standing, pressing and holding **Left Shift** while using WASD will cause the character to blend from the walk/aim animation to a lowered/aim jog animation, essentially creating a sprint for the character. 
+You can also press and hold **C**, to crouch walk using the Blend Space that was created as part of the Animation Starter Pack project, blending between crouch walking animations. 
 
 
 	
@@ -165,6 +173,7 @@ When playing in the Editor, using **WASD** to move around, the character will no
 
 
 	
+
 
 
 

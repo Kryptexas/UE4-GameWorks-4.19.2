@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3037940
+﻿INTSourceChangelist:3150518
 Availability: Public
 Title:액터 레퍼런스 Set / Get
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -6,7 +6,7 @@ Description:레벨의 여러가지 액터 이동을 위해 액터 레퍼런스 �
 Related: Gameplay/HowTo/ReferenceAssets/Blueprints
 version: 4.9
 skilllevel:Intermediate
-type:howto
+type:how-to
 parent:Engine/Blueprints/BP_HowTo
 order:1
 tags:Data Types

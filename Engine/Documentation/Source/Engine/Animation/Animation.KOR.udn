@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3231087
 Availability:Public
-Title: 페르소나: 스켈레탈 메시 애니메이션
+Title: 스켈레탈 메시 애니메이션 시스템
 Crumbs: %ROOT%, Engine
 Description:키프레임 애니메이션 데이터와 모프 타겟을 기반으로 스켈레탈 메시를 변형시키는 시스템입니다.
 Navigation:topic
@@ -61,7 +61,7 @@ order:3
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Animation/Overview "%Engine/Animation/Overview:description%")
-		* [](Engine/Animation/Persona "%Engine/Animation/Persona:description%")
+		* [](Engine\Animation\Persona\Modes "%Engine\Animation\Persona\Modes:description%")
 		* [](Engine\Animation\AnimHowTo "%Engine\Animation\AnimHowTo:description%")
 	[/PARAM]
 [/OBJECT]
@@ -100,10 +100,10 @@ order:3
 		기능
 	[/PARAM]
 	[PARAM:links]
+		* [](Engine\Animation\AnimPose "%Engine\Animation\AnimPose:description%")
 		* [](Engine/Animation/Persona/BoneManipulation "%Engine/Animation/Persona/BoneManipulation:description%")
 		* [](Engine/Animation/AnimationBlending "%Engine/Animation/AnimationBlending:description%")
 		* [](Engine/Animation/AnimationRetargeting "%Engine/Animation/AnimationRetargeting:description%")
-		* [](Engine/Animation/RetargetingDifferentSkeletons "%Engine/Animation/RetargetingDifferentSkeletons:description%")
 		* [](Engine/Animation/PhysicallyDrivenAnimation "%Engine/Animation/PhysicallyDrivenAnimation:description%")
 		* [](Engine/Animation/RootMotion "%Engine/Animation/RootMotion:description%")
 		* [](Engine/Animation/NonUniformScale "%Engine/Animation/NonUniformScale:description%")
@@ -143,6 +143,7 @@ order:3
 			* [](Engine/Animation/UsingMixamoContent "%Engine/Animation/UsingMixamoContent:description%")
 	[/PARAM]
 [/OBJECT]
+
 
 
 

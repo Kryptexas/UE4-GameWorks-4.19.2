@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:C++ 프로그래밍 튜토리얼
 Crumbs: %ROOT%, Programming
@@ -143,6 +143,24 @@ programming
 	[/PARAM]
 	[PARAMLITERAL:id]
 		variablestimersevents
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[OBJECT:Role]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Tutorials/FirstPersonShooter:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Tutorials/FirstPersonShooter]
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Tutorials/FirstPersonShooter:description%
+	[/PARAM]
+	[PARAMLITERAL:id]
+		cppfps
 	[/PARAMLITERAL]
 [/OBJECT]
 

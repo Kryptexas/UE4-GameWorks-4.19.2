@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2991202
+﻿INTSourceChangelist:3198499
 Availability:Public
 Title:遷移ルール
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:ステートマシンの遷移を規定するルールのガイド
-version:4.9
+version:4.14
 Related:Engine/Animation/StateMachines
 Related:Engine/Animation/AnimBlueprints
 Related:Engine/Blueprints/GettingStarted
@@ -23,7 +23,7 @@ Related:Engine/Blueprints/GettingStarted
 
 ![](TransitionRule.png)(w:540)
 
-アイコンにマウスをかざすと、ルールが視覚的に表示されます。 
+このアイコン上にマウスオーバーすると何のルールかが視覚的に表示されます。 
 
 ![](TransitionRuleMouseOver.png)(w:540)
 
@@ -42,7 +42,7 @@ _この例では、**JumpLoop** から **JumpEnd** に遷移するために、�
 
 ![](EditRule.png)(w:840)
 
-**ブループリント** と同様に、**My Blueprint** ウィンドウで変数を指定し、それをグラフにドラッグすることができます。変数を様々な条件に接続し、それらを **Result** ノードに接続することで、遷移が起こるために何が _true_ であるべきかを定義できます。 
+**ブループリント** と同様に、**My Blueprint** ウィンドウで変数を指定し、それをグラフにドラッグすることができます。変数を様々な条件に接続し、それらを **Result** ノードに接続することで、遷移が起こるために何が _true_ (または _false_) であるべきかを定義できます。 
 
 [REGION:note]
 ブループリントの使用を開始するための情報は、[ブループリント入門](Engine/Blueprints/GettingStarted) のドキュメントをご覧ください。 
@@ -60,16 +60,16 @@ _この例では、**JumpLoop** から **JumpEnd** に遷移するために、�
 | **Bidirectional** | 遷移が双方向であるか否かを決定します。 |
 | **Blend Logic** | 使用する遷移ロジックを指定します。標準ブレンドまたは [カスタム ブレンド](#カスタムブレンドノード)。カスタムを選択すると、ブレンドグラフにカスタムのブレンド遷移を設定するように入力できます。 |
 | **Transition Rule Sharing** | 他の遷移とルールを共有できるか否か、または他の遷移からのルールを使用するかを設定することができます。  |
+| **Automatic Rule Based on Sequence Player in State** | 内部時間は無視して最も関係のあるプレイヤーのノードの残り時間と遷移のクロスフェード持続時間に基づき自動的にルールを設定しようとします。 |
 | **Transition Interrupt** | Trigger Weight Threshold を設定し、Notify State Class を指定します。  |
 | **Transition Crossfade Sharing** | 既存の Transition Crossfade Blend を使用する、または既存の Transition Crossfade を共有に昇格します。  |
 | **Duration** | クロスフェードに適用する持続時間。 |
 | **Mode** | クロスフェードに適用するブレンドのタイプ。詳細は [](Engine\Animation\NonLinearBlends) を参照してください。 |
+| **Custom Blend Curve** | ユーザー指定のブレンドカーブを取り込み、それをブレンド中に適用します。 |
+| **Blend Profile** | ボーン単位で遷移を評価するために使うブレンド プロファイルです。  |
 | **Start Transition Event / Custom Blueprint Event** | 遷移開始時に通知されたブループリント内からイベントを呼び出し実行します。 |
-| **Blueprint Notify** | 遷移開始時に通知されるブループリントです。 |
 | **End Transition Event / Custom Blueprint Event** | 遷移終了時に通知されたブループリント内からイベントを呼び出し実行します。 |
-| **Blueprint Notify** | 遷移終了時に通知されるブループリントです。 |
 | **Interrupt Transition Event / Custom Blueprint Event** | 遷移中断時に、通知されたブループリント内からイベントを呼び出し実行します。 |
-| **Blueprint Notify** | 遷移中断時に通知されるブループリント。 |
 
 
 ## その他の検討事項
@@ -106,6 +106,7 @@ _この例では、**JumpLoop** から **JumpEnd** に遷移するために、�
 [REGION:note]
 アンリアル エンジンのアニメーションのプログラミングを理解している場合は、パフォーマンスを向上させるために [ネイティブの getter](Programming/Animation/AnimNodes) をご利用いただくこともできます。
 [/REGION]
+
 
 
 

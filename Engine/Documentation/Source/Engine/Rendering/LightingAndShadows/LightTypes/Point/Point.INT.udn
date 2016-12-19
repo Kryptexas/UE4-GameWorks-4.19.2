@@ -2,7 +2,7 @@ Availability: Public
 Title:Point Lights
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
 Description:The basics of Point Lights.
-Version: 4.9
+Version: 4.14
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -113,6 +113,7 @@ Property | Description |
 | **Min Roughness** | Min roughness effective for this light, used for softening specular highlights. |
 | **Shadow Bias** | Controls how accurate the shadows from this light are. |
 | **Shadow Filter Sharpen** | How much to sharpen shadow filtering for this light. |
+| **Contact Shadow Length** | The length of screen space to ray trace for sharp contact shadows. A value of zero disables this option. |
 | **Cast Translucent Shadows** | Whether this light is allowed to cast dynamic shadows through translucent objects. |
 | **Affect Dynamic Indirect Lighting** | Whether the light should be injected into the Light Propagation Volume.|
 | **Cast Static Shadows** | Whether this light casts static shadows. |

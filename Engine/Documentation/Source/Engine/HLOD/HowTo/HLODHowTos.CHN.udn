@@ -1,21 +1,29 @@
-﻿INTSourceChangelist:0
-title:Hierarchical Level of Detail How-To's
-description:Words
+﻿INTSourceChangelist:3188567
+title:分层细节级别指南
+description:启用分层细节级别（HLOD）系统和在游戏中设置 HLOD 的指南。
 crumbs:
-availability:docs
+availability:Public
+version:4.13
+parent:Engine/HLOD
+tags:HLOD
+type:how-to
+order:3
+topic-image:Engine/HLOD/HowTo/HLOD_howto_Topic_02.png
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		HLOD Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/HLOD/HowTo/BuildingHLODs "%Engine/HLOD/HowTo/BuildingHLODs:description%")
-		* [](Engine/HLOD/HowTo/Enabling "%Engine/HLOD/HowTo/Enabling:description%")
-	[/PARAM]
-[/OBJECT]
-[]()
+![](Engine/HLOD/HowTo/HLOD_howto_Topic_02.png)
+
+这些指南将说明启用 **分层细节级别**（HLOD）系统和在游戏中设置 HLOD 的方法。
+
+## 初级
+
+[DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"beginner")]
+
+## 中级
+
+[DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"intermediate")]
+
+<!--
+## 高级
+
+[DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"advanced")]
+-->

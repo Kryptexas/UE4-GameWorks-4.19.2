@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2620171
+﻿INTSourceChangelist:3213718
 Availability:Public
-Title:UMG を使用したユーザー インターフェイス
+Title:UMG を使ったユーザー インターフェース
 Crumbs:%ROOT%, GettingStarted
-Description:UMG を使用したシンプルなメニューシステムを作成する
-バージョン:4.9
+Description:UMG を使ったシンプルなメニュー システム
+version:4.14
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,7 +39,7 @@ Description:UMG を使用したシンプルなメニューシステムを作成�
 [/OBJECT]
 [/VAR]
 
-このチュートリアルを通じて、複数のスクリーンやボタンを表示する基本的なメニューシステムの構築に UMG を使用する方法を学びます。
+このチュートリアルでは、UMG を使って複数のスクリーンやボタンを表示する基本的なメニューシステムを構築する方法を学びます。
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]

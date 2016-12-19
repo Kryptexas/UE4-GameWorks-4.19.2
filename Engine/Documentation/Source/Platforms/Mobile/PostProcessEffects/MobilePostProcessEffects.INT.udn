@@ -3,20 +3,27 @@ Title:Post Process Effects on Mobile Platforms
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
 Description:Using Post Process Effects on mobile games.
 Platform:Mobile
-Version: 4.9
+Version: 4.14
 parent:Platforms/Mobile
 order:5
 type:overview
 tags:mobile
+reference-image:Mobile_PostProcessEffect.gif
 
 [TOC(start:2)]
 
+Mobile Post Processing is implemented as a separate code path from PC/Console Post Processing. This is to reflect the slower dependent texture reads, missing hardware features, extra render target resolve costs, and slower performance in general. 
+To enable Post Processing for your mobile applications, please make sure that **Mobile HDR** is enabled in your **Project Settings** as most of the settings below require Mobile HDR to be enabled for the effect(s) to work.
 
-Mobile Post Processing is implemented as a separate code path from PC/Console post processing. This is to reflect the slower dependent texture reads, missing hardware features, extra render target resolve costs, and the slower performance in general. The following categories can be found in a Post Process volume (or a camera Actor).
-
-[region:note]
-Make sure that Mobile HDR is enabled in your project settings as most of the settings below require this setting to be enabled for the effect to work.
+[region: lightbox]
+[![](MobileHDR_Enabled.png)(w:400 h:200)](MobileHDR_Enabled.png)
 [/region]
+
+[region:caption]
+Click for full image.
+[/region]
+
+The following categories can be found in a Post Process volume (or a camera Actor). 
 
 ## Enabling Tonemapper for Mobile Devices
 To use the Tonemapper Post Processing options on Mobile Devices, you will need to set the value of **r.tonemapperfilm** from its default of **0** to **1**.  You can change, enable, or disable the Tonemapper inside of the Unreal Engine 4 (UE4) Editor in the following ways: 
@@ -215,6 +222,37 @@ The AA Method supports "None" (the fastest) and "TemporalAA" which provides a sp
 |Quality|Yes|0 & 1|
 |Max Roughness|Yes|0 & 1|
 
+
+## Custom Post Process Materials
+
+Unreal Engine ships with a variety of Post Process effects, allowing you to customize the look and feel of your mobile applications. There are times, though, when you'll want to create 
+custom Post Process Materials, enabling your own effects (such as "VCR Static").
+
+[REGION:asyncgif]
+![image alt text](Mobile_PostProcessEffect.gif)
+[/REGION]
+
+Adding effects to your mobile application requires the development of custom Post Process materials. When creating custom Post Process materials for mobile applications, you should note that there 
+are some key things to consider. Specifically, it's important to note that custom Post Process materials for mobile applications can only fetch from PostProcessInput0 (Scene Color) with the 
+following **Blendable Locations**:
+
+* **Before Tonemapping**
+* **After Tonemapping**
+
+To learn more about Blendable Locations, read through our [](Engine/Rendering/PostProcessEffects/PostProcessMaterials) reference page. 
+Currently, you cannot create custom Post Process materials for older Android devices that require 'mosaic' mode for HDR rendering. Finally, pixel depth information is not yet supported.
+
+### Custom Depth
+
+You can now use the **Custom Depth** Post Process option with the Mobile rendering path. Custom Post-Process Materials can now sample from **Scene Depth**, **Custom Depth** as well as **Scene Color**. 
+
+![](Custom_Scene_Depth.png)
+
+As this features requires Post-Processing to work correctly, **Mobile HDR** must be enabled. To enable Mobile HDR go to **Project Settings** > **Engine** > **Rendering** > **Mobile** and make sure that **Mobile HDR** is checked.
+
+[region:warning]
+Please note that this feature also does not currently work while **Mobile MSAA** is enabled so Mobile MSAA will have to be disabled for you to see the effect on the device.
+[/region]
 
 ## General Performance Tips
 

@@ -1,745 +1,747 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3112291
 Availability:Public
-Title:Unreal Engine 4.13 Release Notes
+Title:虚幻引擎 4.13 版本信息
 Crumbs:%ROOT%, Engine
 Description:
 order:13
 
-Unreal Engine 4.13 Release Notes
+虚幻引擎 4.13 发布信息 
 
-This release brings hundreds of updates for Unreal Engine 4, including 145 improvements submitted by the community of Unreal Engine developers on GitHub! Thanks to all of these contributors to Unreal Engine 4.13:
+这次的版本带来了数百个虚幻引擎 4 的更新，包括来自 GitHub 的社区成员们提交的 145 个改进！感谢所有为虚幻引擎 4 添砖加瓦贡献的人们：
 
 alk3ovation, Allegorithmic (Allegorithmic), Alwin Tom (alwintom), Andreas Axelsson (judgeaxl), Andrew Scheidecker (AndrewScheidecker), Andrian Nord (NightNord), ArnoB (ABeekhub), Artem (umerov1999), Artem V. Navrotskiy (bozaro), Błażej Szczygieł (zaps166), Brent Scriver (FineRedMist), Cedric Neukirchen (eXifreXi), Céleste (CelPlays), Chris Conway (Koderz), Chris528, Christoph Becher (chbecher), Christopher P. Yarger (cpyarger), DanielDylan, DaveC79, Derek van Vliet (derekvanvliet), DevVancouver, Eric-Ketchum, Eugene (grisevg), Franco Salas (SupremeNinjaMaster), gameDNA (gameDNAstudio), ghost, Joel McGinnis (joelmcginnis), Jonathan Johansson (DualCoder), Jørgen P. Tjernø (jorgenpt), Joshua Kaiser (JoshuaKaiser), korkuveren, Kory Postma (korypostma), Krish Munot (KrishMunot), Kuts Alexey (krunt), Lars Jørgen Solberg (larsjsol), Lectem, Lee Reilly (leereilly), Lukasz Baran (iniside), madsystem, Manny (Manny-MADE), Marat Radchenko (slonopotamus), Markus Breyer (pluranium), Martin Gerhardy (mgerhardy), Marvin Pohl (pampersrocker), massanoori, Mateusz Polewaczyk (matii1509), Matthias Huerbe (MatzeOGH), Matthijs Lavrijsen (Mattiwatti), MaximDC, mfortin-bhvr, Michael Allar (Allar), Michael Schoell (MichaelSchoell), mik14a, Miłosz Kosobucki (MiKom), mkirzinger, Moritz Wundke (moritz-wundke), Nachtmahr (NachtMahr87), Narendra Umate (ardneran), NaturalMotionTechnology, Oleksandr Kuznietsov (Teivaz), OWIAdmin, Patryk Stępniewski (kodomastro), Paul Evans (paulevans), pfranz, Piotr Bąk (Pierdek), PistonMiner, projectgheist, Rama (EverNewJoy), Ricardo Maes (kukiric), Rick Deist (dreckard), Robert Segal (robertfsegal), RobertTroughton, Rohan Liston (rohanliston), Saffron (SaffronCR), Sajid (sajidfarooq), salamanderrake, Samuel Maddock (samuelmaddock), Sébastien Rombauts (SRombauts), Tanner Mickelson (DarthCoder117), Thomas Mayer (tommybear), tmiv, Tyler Thompson (Bogustus), Victor Polevoy (vityafx), Webster Sheets (Web-eWorks), Wesley Hearn (wshearn), yehaike, Yohann Martel (ymartel06), Yong-Quan Chen (wingedrobin), Yu He (yuhe00), Zachary Burke (error454)
 
-# What’s New
+# 全新内容
 
-**Unreal Engine 4.13** has arrived!  In this version you'll find numerous improvements across the board.
+**虚幻引擎 4.13** 已经来了！在这个版本中可以看到方方面面的各种改进。
 
-Many new **rendering features** have been added, such as mesh decals, Blueprint drawing to render targets, GPU morph targets, refraction improvements and high quality, optimized noise functions are now available to materials.  Shadow map caching allows for more shadow-casting dynamic lights in a scene than ever before!
+这次添加了很多新的 **渲染特性**，比如模型贴花，由蓝图绘制 Render Target，GPU 顶点变化，改进的折射效果，以及面向材质使用的高质量并已油画的噪点函数。阴影缓存贴图先能够支持同场景下比以往更多的动态灯光投射阴影！
 
-**Sequencer**, our new non-linear cinematic editor, has been updated with a slew of new features for high-end cinematography.  **Live recording** from gameplay has been significantly improved.  Also, you can now transfer shots and animations back and forth from external applications.  You can see these features in our [Siggraph Real-time Live! 2016 demonstration](http://www.unrealengine.com/blog/unreal-engine-4-powers-real-time-cinematography-at-siggraph).
+**Sequencer**，新的非线性影响编辑器，这次也为高端影视制作带来了一些新的特性。在游戏中 实况录像 的功能得到了大幅改进。另外现在也可以对 SLOT 和 Animation 在外部程序中来回迁移。可以在我们的 [2016 SINGGRAPH Real-Time Live! 的演示](http://www.unrealengine.com/blog/unreal-engine-4-powers-real-time-cinematography-at-siggraph) 中看到这些功能。
 
-**Alembic** support allows you to import complex and interesting vertex animations.  And the new **Physical Animation Component** lets your characters respond realistically to physical forces by driving their skeletal animation through motors.
+支持了 **Alembic** 使引擎能够导入复杂且有趣的顶点动画。新的 **物理动画组件** 能够让角色对物理的力作出更加真实的反应，由力通过马达驱动角色骨骼动画来实现。
 
-For **mobile developers**, dynamic shadows have been optimized, full-precision materials are supported, and custom post-processing is now possible.  OpenGL ES 3.1 can now be used on Android, and binary shader caching will improve your iteration times.
+对于 **移动应用的开发者**，这次优化了动态阴影，支持 full-precision 材质，并且支持自定义后处理过程。OpenGL ES 3.1 也能用于安卓设备，二进制的 Shader Caching 也将为迭代次数带来改善。
 
-**VR games** can now use capsule shadows, and stereo instancing has been optimized.  Oh, and check out the new **VR Template Project**!  It's a great example of how to use motion controllers to interact and navigate in your VR game.  
+**VR 游戏** 现在可以使用胶囊体阴影技术，即时立体渲染也得到了优化。另外记得去看一下新的 **VR 项目模板**！对于如何使用手柄交互，如何在游戏中移动，它都提供了一个很好的示例。
 
-Want to build your levels while in VR?  Unreal's **VR Editor** has been improved with support for mesh and foliage painting, a new transform gizmo, and VR color picking.  Finally, you now can instantly play your game right from VR!  You can turn on "Enable VR Editing" in the Experimental section of your Editor Preferences.
+想在虚拟现实的环境下搭建游戏关卡吗？虚幻的 **VR Editor** 也有了进一步进展，现在支持对模型或植被的绘制，有了一个新的移动控制句柄，还有 VR 色彩选取。最后，现在还可以直接在 VR 中进行游戏！在编辑器首选项设置中的实验室板块，可以找到 “Enable VR Editing” 并启用它。
 
-# Major Features
+# 主要功能
 
-## New: Sequencer Live Recording
+## 新货：SEQUENCER 实况录像
 
-Sequencer been updated with new Live Recording improvements as shown at [Siggraph Real-Time Live! 2016](https://www.unrealengine.com/blog/unreal-engine-4-powers-real-time-cinematography-at-siggraph).
+Sequencer 中更新了一个新功能，实况录像，并在 [Siggraph Real-Time Live! 2016](https://www.unrealengine.com/blog/unreal-engine-4-powers-real-time-cinematography-at-siggraph) 上做了展示。
 
 ![image alt text](image_1.jpg)(h:674 w:929 convert:false)
 
-The Sequence Recorder allows you to capture live gameplay, including all animation, audio and effects into a standalone asset that you can edit using Sequencer!  New features in this release:
+Sequence 的 Recorder 能够捕获实时的游戏内容，包括所有的动画，声音和特效，捕获到一个独立的资源中，并可以使用 Sequencer 对它进一步进行编辑！这次的版本中的新功能包括：
 
-* Quickly record selected actors and automatically create camera cuts track if camera is recorded.
+* 选中物体的快速录像，摄像机选中时自动创建摄像机轨道。
 
-* Ability to specify arbitrary components and properties to record.
+* 能够定义 Arbitrary 组件和属性来记录。
 
-* Optionally record data to actor possessed in level.
+* 能够选择是否要记录 Actor 在场景中附属的其他数据。
 
-* Record transforms in world space when actor is attached but not recorded.
+* 当一个 Actor 被附属但为标记录像时，以世界空间坐标系来记录位置信息。
 
-## New: Shadow Map Caching for Movable Lights
+## 新货：动态光的阴影贴图缓存
 
-When a point or spot light is not moving, we can store off the shadow map for that light and reuse it next frame.  This is now done automatically and makes shadow casting movable point and spot lights much more affordable in games where the environment is often not moving.
+当一个点光源或者聚光灯不移动的时候，我们能将该光源产生的阴影保存下来，并在下一帧中重用。现在这个功能被自动实现，对于周遭环境变化不大的时候，动态点光源和的聚光源的投影的性能在游戏中变得可以接受。
 
 ![image alt text](image_2.jpg)(h:541 w:929 convert:false)
 
-The above image shows 33 dynamic shadow-casting point lights, with very minimal overhead:
+上图中展示了 33 个能够产生投影的动态点光源，并且消耗非常的小：
 
-Performance results on a 970 GTX at 1920x1200
+使用 970 GTX 在 1920x1200 下的性能：
 
-* 33 shadow casting point lights without caching: **14.89ms to render Shadow Depths.**
+* 33 个产生投影的点光源不使用缓存时：**渲染 Shadow Depths 花费 14.89ms**。
 
-* With cached shadow maps: **.9ms** **(about 16 times faster!)**
+* 使用缓存阴影贴图：**.9ms （大约快了 16 倍！）**
 
-* Note that it still costs 2ms to render the contributions of the 33 point lights, which can be optimized in other ways but is not affected by this change.
+* 请注意这将花费 2ms 来渲染 33 个点光源的效果，这点可以通过其他方法优化，并且并不被这个功能有额外影响。
 
-* Memory used by the cache can be seen under ‘Stat ShadowRendering’ and was 25.6Mb in this scene.
+* 这个缓存的内存使用可以由 ‘Stat ShadowRendering’ 查看，此场景是 25.6Mb。
 
-* Max memory used by the cache can be controlled with ‘r.Shadow.WholeSceneShadowCacheMb’
+* 这个缓存的最大内存占用可以通过 ‘r.Shadow.WholeSceneShadowCacheMb’ 来控制。
 
-Limitations
+限制
 
-* By default, caching can only happen when:
+* 默认情况下，缓存只会在以下情况发生：
 
-    * Primitives have mobility set to Static or Stationary 
+    * 物件的移动性设置为 静态 或者 固定
 
-    * Materials used do not use World Position Offset
+    * 材质并未使用世界位置偏移
 
-    * Light is point or spot, shadow casting, and mobility set to Movable but not currently moving
+    * 光源为点光源或者聚光源，移动性被设置为 Movable，并且当前并未移动。
 
-* Materials that use an animating Tessellation or Pixel Depth Offset can cause artifacts as their shadow depths are cached.
+* 使用动画细分或者像素深度偏移的材质可能会在他们的阴影深度被缓存时导致一些可见的错误。
 
-## New: Voronoi Noise Materials
+## 新货：VORONOI 噪点材质
 
-We’ve added a new Voronoi noise option available for the Noise material node. Voronoi noise, also sometimes called Worley or Cellular noise, is can be useful for procedural material creation. 
+这次我们为 Noise 材质节点添加了一个新的 Voronoi 的选项。Voronoi noise 有时也被称做 Worley 或者 Cellular noise，对 precedural material 的制作十分有帮助。
 
 ![image alt text](image_3.jpg)(h:333 w:624 convert:false)
 
-Voronoi noise can be used to generate patterns for familiar physical materials such as marble, as seen on the statue below.
+Voronoi noise 可以用来生成一些熟悉的物理材质模式，比如大理石，请看下图中的雕塑。
 
 ![image alt text](image_4.jpg)(h:377 w:624 convert:false)
 
-This example uses a Voronoi noise with a technique called ‘gradient mapping’ to achieve a marble look.
+这个例子使用了 Voronoi noise 以及一项叫做 ‘gradient mapping’ 的技术来得到大理石的外观效果。
 
 ![image alt text](image_5.jpg)(h:233 w:929 convert:false)
 
-From Left to Right:
+从左至右：
 
-1) Standard Voronoi Noise, 1 octave
+1）标准的 Voronoi Noise，1 octave
 
-2) Voronoi with "Gradient" noise added to input position, set to 0.05
+2）输入的位置附加 "Gradient" 的 Voronoi noise，设置为 0.05
 
-3) Gradient noise multiplied by 0.3 before adding to Voronoi input position
+3）在输入前将 Gradient noise 乘了 0.3
 
-4) Using result of step 3 as texture coordinates for a random tiling texture
+4) 使用第 3 步的结果作为一个随机平铺贴图的座标。
 
-The Voronoi noise has four quality levels, with decreasing grid artifacts at the higher levels at the cost of significantly increased shading time.
+Voronoi noise 有 4 个质量等级，越高等级下网格越小，但 Shading 的时间开销会巨大的增加。
 
-Also, performance has been improved for several of the Noise Material Node features, with more detailed description of the performance tradeoffs in the function selection tooltips. Most of these can be slow for runtime use, so baking the results into a texture is encouraged.
+同时，其他的 Noise 材质节点也做了优化，在函数的选择上对性能的取舍也做了更多细节描述。这里的大部分在运行时都比较慢，因此应该鼓励将结果先预烘培到贴图上来提高性能。
 
-## New: Blueprint Drawing to Render Targets
+## 新货：面向 RENDER TARGET 的蓝图绘制
 
-Blueprint functions can now be used to draw materials into render targets.  This enables a huge variety of game-specific rendering effects to be implemented without having to modify source code.
+蓝图函数现在能够直接用于面向 render target 绘制材质。该功能使得在不修改源代码的情况下实现各种不同类型的游戏特定渲染特性成为可能。
 
 ![image alt text](image_6.gif)(convert:false)
 
-This is a fluid surface simulation implemented entirely in Blueprint and Material graphs.  Characters and projectiles can push the fluid around!
+这里实现了流体表面的模拟，仅使用蓝图和材质。角色和投射物便能够推动流体变动！
 
 ![image alt text](image_7.gif)(convert:false)
 
-Above shows a simple heightfield painter made entirely in Blueprint, by accumulating a height value at projectile impacts.
+上图展示了一个简单的高度绘制模式，完全由蓝图实现，模拟投射处增高高度值。
 
-The new Blueprint function **Draw Material to Render Target** draws a quad filling the destination render target with the **Emissive Color** input in the material.
+这个新的蓝图函数 **Draw Material to Render Target** 绘制一个四边形的目标 render target，使用 **Emissive Color** 作为材质的输入。
 
 ![image alt text](image_8.jpg)(h:149 w:661 convert:false)
 
-Upon starting the game, **Begin Play** is called and the render target is filled with blue.  You can then right-click on the render target and save it as a static Texture which can be compressed.  
+在开始游戏时，会先调用 **Begin Play**，该 render target 会填充为蓝色。可以此时右键点击该 render target，并存为一个静态贴图，以便能够被压缩。
 
 ![image alt text](image_9.jpg)(h:164 w:500 convert:false)
 
-For more advanced drawing to a render target, use **Begin Draw Canvas to Render Target **and **End Draw Canvas to Render Target**.  These allow multiple draws to a subset of the render target efficiently, as well as font drawing methods through the Canvas object.
+对于更高阶的 render target 绘制，使用 **Begin Draw Canvas to Render Target** 和 **End Draw Canvas to Render Target**。这能够有效的多次绘制到一个 render target 的子集上，还有通过 Canvas 物体的字图绘制的方法。
 
 ![image alt text](image_10.jpg)(h:517 w:896 convert:false)
 
-Being able to render off-screen from blueprint enables a ton of rendering features to be implemented quickly without a graphics programmer.  It's also very easy to tank the GPU by doing a lot of pixel shader work with many passes to large render targets.  These draw calls show up after typing 'ProfileGPU' in the debug console (under the WorldTick event)
+利用蓝图绘制屏幕以外的渲染特性，使得快速实现各类渲染效果而不需要程序员的帮助成为可能。这里可能会很轻易的给 GPU 放上大量的 render target 所需的像素 Shader 计算工作。可以通过输入 'ProfileGPU' 来查看这些 draw call 信息（在 WorldTick 事件下）。
 
-Limitations
+限制
 
-* You cannot draw to a render target that is being sampled as a texture by the material you specify.  Either use alpha blending to modify a render target in-place, or ping-pong between two different render targets.
+* 无法对一个已经被样例化成贴图在材质中使用的 render target 进行绘制。也不能使用 alpha blending 来修改一个 render target，或者在两个 render target 之间来回更新。
 
-* Only the Emissive Color and Opacity outputs of the material are valid when drawing to a render target, lighting is not supported and nodes like WorldPosition may have unexpected values.
+* 材质只有 Emissive Color 和 Opacity 的输出对绘制到一个 render target 才有效，光照目前并不支持，类似 WorldPosition 的节点则可能会产生预期之外的效果。
 
-* Emissive Color is clamped to be positive by default, but you can output negative values by enabling the material property ‘AllowNegativeEmissiveColor’
+* 默认情况下 Emissive Color 会被限制在正数，但可以通过启用材质属性的 ‘AllowNegativeEmissiveColor’ 来实现输出负数。
 
-Check out the **BlueprintRenderToTarget **map in the ContentExamples project for working examples!
+在 ContentExamples 中查看 **BlueprintRenderToTarget** 地图以了解可以运行的示例！
 
-## New: Alembic Importer for Vertex Animation (Experimental)
+## 新货：对顶点动画支持 ALEMBIC 导入（试验功能）
 
-Alembic animation import is now supported!  Alembic allows for complex animations to be authored offline, then rendered in real-time inside UE4!  This feature is still considered experimental, but please try it out and send us feedback.
+现在支持 Alembic 动画导入了！Alembic 使得复杂动画能够被离线制作，并在 UE4 中实时渲染！该功能目前仍处于试验阶段，各位可以试用并给我们反馈意见。
 
 ![image alt text](image_11.gif)(convert:false)
 
-We allow importing Alembic caches in different ways:
+我们现在导入 Alembic 数据有几种方式：
 
-* **Static Mesh**.  A single frame from the Alembic animation will be imported as a static mesh asset (no animation.)
+* **静态网格体**。Alembic 的单帧动画数据会被导入为一个静态模型资源（不含动画）。
 
-* **Geometry Cache.  **This is a new type of animation asset that allows playback of vertex-varying sequences.  The imported Alembic animation will be played back as a flipbook of frames.  Performance will scale with your mesh’s complexity and may not be optimal in all cases
+* **几何体缓存**。这是一种新的动画资源类型，能够对顶点动画进行回放。导入的 Alembic 动画将会被逐帧回放。性能上因模型本身的复杂度会大不相同，并不是所有的情形下都能够得到优化处理。
 
-* **Skeletal Mesh**.  This is the most efficient way to play back an Alembic animation, as long as the vertex count doesn’t change.  During import, your animation sequence will be compressed using a PCA scheme, in which common poses (bases) are extracted and weighted to compose the original animation during playback time. The percentage or fixed number of bases used can be set during import to tweak the level of compression
+* **骨架网格体**。只要顶点数量不发生变化的时候，这是用于回放 Alembic 动画数据最有效的方式。在导入时，动画序列会使用一个 PCA 压缩，这时通用的姿势（基础）会被分离并计算权重，来组成一个回放时的原始动画。其中的百分比或者固定的基础姿势数量可以在导入时作为压缩等级选项来进行调整。
 
-## New: Mesh Preview Scenes
+## 新货：用于模型预览的场景
 
-New functionality has been added to setup the scene used to preview Static and Skeletal meshes. 
+新增了一个功能，在预览静态网格体或者骨架网格体时可以设置预览时的场景。
 
 ![image alt text](image_12.jpg)(h:232 w:929 convert:false)
 
-A new Preview Scene Settings panel has been added to the Static Mesh and Skeletal Mesh editors.  Here, you can setup multiple profiles (scenes) to preview your meshes, and the profiles allow for changing:
+在静态网格体和骨架网格体的编辑器中有一个新的 Preview Scene Settings 面板界面。这里可以多个方案（场景）来预览模型，并且方案是可以被修改的：
 
-* Directional light (colour, intensity, rotation)
+* 方向光（颜色、强度、朝向）
 
-* Sky light (HDRI environment map, intensity, rotation)
+* 天光（HDRI 环境贴图，强度、朝向）
 
-* Post processing settings (identical to post process volume)
+* 后处理设置（基于后处理体积）
 
 ![image alt text](image_13.jpg)(h:494 w:766 convert:false)
 
-We’ve also added some showcase functionality:
+我们还增加了一些示例用的功能：
 
-* Manually rotate environment (hold K key) and directional light (hold L key)
+* 手动旋转环境（按住 K 键）和方向光（按住 L 键）
 
-* Automatically rotate lighting rig (directional light and environment)
+* 自动旋转光照环境（方向光和环境）
 
-* Easily hide the floor (O key) and environment (I key)
+* 快速隐藏地面（O 键）和环境（I 键）
 
-## New: Mesh Decals
+## 新货：模型贴花
 
-The new Mesh Decals feature lets you efficiently splat materials on top of your static meshes, effectively allowing you to smoothly layer different materials on top of one another.  You can think of it as a second mesh that sits above the underlying geometry’s profile with it’s own topology and materials. 
+新的模型贴花功能能够有效的将材质贴到一个静态网格体上，可以把它看作在网格体上的第二个网格体，但共享了原网格体的拓扑结构和材质。
 
 ![image alt text](image_14.jpg)(h:326 w:428 convert:false)
 
-The above pillars are each created as base mesh overlayed with a single detailed break mesh, as shown in the wireframe below. The left pillar is using a mesh decal to allow smoothly blended color, normals and roughness. The right-most pillar is a masked material, just for comparison.  
+上图中的柱子每个都是一个基础的模型覆盖了另一个单独的破碎模型。如下面的线框图所示，左面的柱子使用了模型贴花来获得更好的颜色、法线、粗造度的混合效果。而右图则是简单的材质覆盖，这里做一个对比。
 
 ![image alt text](image_15.jpg)(h:220 w:165 convert:false)![image alt text](image_16.jpg)(h:220 w:169 convert:false)
 
-Unlike deferred decals there is no projection involved, so a typical decal mesh which is tightly coupled to the underlying surface may need to include a surface offset in the material.  Also, be careful if you have LODs where the mesh decal geometry would interpenetrate the LOD mesh.
+和延迟贴花不同，这里没有涉及任何投射，因此一个典型的贴花模型，由于和模型紧贴，可能要在材质中包括一个表面的偏移，另外，还要小心对于 LOD 的模型，贴花可能会在 LOD 时造成不好的效果。
 
-## New: Widget Interaction Component
+## 新货：空间交互组件
 
-Using the widget interaction component, you can now simulate hardware input events with widget components in the world.  
+使用空间交互组件，可以为控件组件在游戏世界中模拟出硬件输入事件。
 
 ![image alt text](image_17.gif)(convert:false)
 
-You can attach it like a laser pointer to any object in the world to interact with widgets; there are also some other options available for more customized behavior.  When standard input comes to the player controller, you’ll instruct the interaction component to simulate a particular hardware input such as Left Mouse Down/Up over whatever widget the user happens to be hovering at that time.
+可以将它像镭射指示器一样附加于任何物体上来和控件进行交互，也有其他一些选项可供自定义行为使用。当标准输入来自玩家控制器时，可以将该输入定向到交互组件上来模拟一个特定的硬件输入，比如鼠标左键按下/抬起，并根据当前用户悬停的物体来实现。
 
-For users who were previously relying on clicking directly on Widget Components in the world using the mouse, that path is no longer supported.  Users will need to attach an Interaction Component (In Mouse Mode) to their player, then forward input to the Interaction Component when the player receives it.
+对于以前依靠直接在空间组件中点击鼠标来实现的做法而言，这个通道已不再支持。用户需要先附加一个交互组件（在鼠标模式下），并在输入事件发生时进一步传递输入给交互组件来实现。
 
-## New: VR Project Template
+## 新货：VR 项目模板
 
-We’ve added a new project template designed for Virtual Reality on desktop and console.
+我们这次新增了一个项目模板，为桌面和主机的虚拟现实项目专门设计。
 
 ![image alt text](image_18.gif)(convert:false)
 
-To access this, simply choose the new VR option in the New Project template selection window.
+要访问这个模板，只需在新建项目的窗口中选择 VR 项目即可。
 
-This Blueprint project has settings that are optimized to run in VR up to 90 frames per second.  To support different types of controllers the template includes two methods of locomotion, split into two distinct Pawn Blueprints. The first is designed for gamepads while the second supports motion controllers.  When using motion controllers, you can teleport to different locations and grab and throw objects.  A C++ version of this template will follow in a future update.  Also, mobile VR templates will be coming later too.
+这个蓝图项目的设置已经为在 VR 上能跑到每秒 90 帧做了准备。为了支持不同类型的控制器，该模板包含了两种运动方式，分别在两套不同的 Pawn 蓝图中实现。第一套为游戏手柄设计，另外一套则是为运动控制器设计。在使用运动控制器时，可以瞬移到不同的位置来抓去、扔出物体。将来的更新中会提供本模板的 C++ 版本，另外移动平台的 VR 模板以后也会到来。
 
-## New: Custom Post-Process for Mobile
+## 新货：移动设备自定义后处理过程
 
-Custom Post-Process materials now can be used on Mobile devices!  Here is a "TV Static" effect displayed using the mobile renderer.
+现在在移动设备上也能使用自定义的后处理材质了！看看这个移动渲染器上的“电视雪花屏”效果吧。
 
 ![image alt text](image_20.gif)(convert:false)
 
-* This feature requires the "**Mobile HDR**" option to be enabled in your Project Settings
+* 这个功能需要你打开在项目设置中的 **Mobile HDR** 选项
 
-* Supports fetching from PostProcessInput0 (SceneColor) with blendable location ‘Before Tonemapping’ and ‘After Tonemapping’
+* 支持获取混合位置在 ‘Before Tonemapping’ 和 ‘After Tonemapping’ 的 PostProcessInput0 (SceneColor)
 
-* This feature does not currently work on older Android devices which require the ‘mosaic’ mode for HDR rendering.
+* 此功能目前尚不支持那些需要用“马赛克”编码来达成 HDR 渲染的旧安卓设备。
 
-* Pixel depth information is not yet supported.
+* 目前还不支持像素深度信息
 
-## New: Lighting Channels on Mobile
+## 新货：支持移动设备的光通道
 
-Lighting channels now work in the mobile renderer!  These allows you to selectively influence objects with specific lights.  Great for cinematics of advanced lighting rigs.
+现在在移动设备上也能使用光通道了！这允许你有选择性的用指定的灯光影响物件。对于需要高级光照的动画来说相当有意义。
 
 ![image alt text](image_21.jpg)(h:224 w:793 convert:false)
 
-* Multiple directional lights are supported in different channels.
+* 在不同的通道中能支持多个方向光。
 
-* Each primitive can be affected by only one directional light. The first lighting channel set on a primitive determines which directional light will affect it.
+* 每个渲染对象（Primitive）只会受一个方向光影响。在渲染对象（Primitive）上的第一个光通道设置会决定它会受哪个方向光的影响。
 
-* CSM shadows from stationary or movable directional lights cast only on primitives with matching lighting channels.
+* 固定或者动态的方向光生成的 CSM 阴影只会投影到匹配光通道设置的渲染对象（Primitives）上。
 
-* Dynamic point lights fully support lighting channels.
+* 动态点光源完全支持光通道。
 
-## New: Shader Model 5 Rendering for Mac
+## 新货：MAC 上的 SHADER MODEL 5 渲染
 
-Mac Metal now has initial Shader Model 5 support enabled by default. This exposes all the available features of Metal on Mac OS X 10.11.6 that are applicable to Unreal Engine 4. 
+Mac Metal 现在能够默认开启 Shader Model 5 的支持了。这将使得所有 Mac OS X 10.11.6 的 Metal 上可用的特性都能在虚幻引擎 4 中得以使用。
 
 ![image alt text](image_22.jpg)(h:521 w:925 convert:false)
 
-* Implements the RHI thread & parallel translation features to parallelise render command dispatch.
+* 实现了 RHI 线程和平行调度分发渲染指令。
 
-* Exposes support for Metal compute shaders.
+* 对 Metal 计算 shader 的支持。
 
-* Exposes asynchronous compute support on AMD GPUs.
+* 支持在 AMD GPU 上的异步计算。
 
-* Enables high-end rendering features previously unavailable on Mac, including:
+* 启用了原先在 Mac 上不可用的一些高阶渲染特性，包括：
 
-    * *High quality dynamic exposure (a.k.a. Eye Adaptation).*
+    * *高质量的动态曝光功能（也被称作人眼适应）。*
 
-    * *Compute-shader reflection environments - only available on discrete GPUs for 4.13.*
+    * *环境反射 Shader 计算 —— 仅在 4.13 版本且有独立显卡设备上工作。*
 
-    * *DistanceField Ambient Occlusion - only available on discrete GPUs for 4.13.*
+    * *距离场环境遮蔽 —— 仅在 4.13 版本且有独立显卡设备上工作。*
 
-    * *DistanceField Shadowing - only available on discrete GPUs for 4.13.*
+    * *距离场投影 —— 仅在 4.13 版本且有独立显卡设备上工作。*
 
-## New: Physical Animation Component (Experimental)
+## 新货：物理动画组件（试验功能）
 
-We’ve added a physical animation component that allows you to easily drive skeletal mesh animation through physical motors! 
+新增了物理动画组件，能够很容易的通过物理来驱动骨架网格体的动画行为！
 
 ![image alt text](image_23.gif)(convert:false)
 
-The component allows you to set motor strengths directly, as well as using pre-configured physical animation profiles which can be created and edited inside PhAT.  The new "**Physical Animation Profiles**" feature in PhAT provide a powerful way to customize character physics in different game contexts, as well as fine tune it for special animations. 
+该组件能够直接设置马达的强度，并使用一个预先设置的物理动画配置，该配置是在 PhAT 中创建并编辑的。PhAT 中新的 **Physical Animation Profiles** 功能为不同的游戏内容中的角色提供了强大的支持，并能够为特殊动画提供调整的手段。
 
-You can create and edit different profiles within the PhAT tool, and then change between them easily at runtime.  Check out the new "Apply Physical Animation Profile" and “Apply Physical Animation Settings” functions in Blueprints, which allow you to to change physical animation behavior dynamically.
+可以在 PhAT 的工具中创建并编辑不同的配置，并在运行时很容易就能对它们做改动。在蓝图中看一下新的 "Apply Physical Animation Profile" 和 “Apply Physical Animation Settings” 函数，它们能够动态的改变物理动画的行为。
 
-## New: Procedural Mesh Slicing
+## 新货：过程生成模型的切割
 
-There is a new utility in Procedural Mesh Component which will ‘slice’ a Procedural Mesh at runtime using a plane.
+对于过程生成网格体组件，现在有一个工具可以在运行时对它进行切割。
 
 ![image alt text](image_25.gif)(convert:false)
 
-After slicing, we support adding ‘capping’ geometry, and creating a second Procedural Mesh Component for the ‘other half’ if desired. 
+在切割后，我们添加了 ‘capping’ 几何体，并创建了第二个过程生成网格体组件，作为预期的 ‘另一半’。
 
-Also, Procedural Mesh now supports simple collision, so physics simulation can be enabled!  Finally, we added a utility to copy data from a Static Mesh to a Procedural Mesh (‘Allow CPU Access’ flag must be set on the Static Mesh for this to work in cooked builds.) 
+另外，过程生成网格体也支持简单的碰撞，因此可以启用物理模拟，最后，我们添加了一个工具根据静态网格体数据拷贝给过程生成网格体（要在 cooked 的版本下工作的话，‘Allow CPU Access’ flag 必须在静态网格体上被设置）。
 
-## New: Mesh Painting in VR
+## 新货：VR 中的模型表面涂抹
 
-You can now paint on textures and mesh vertices in using the VR Editor.
+现在 VR 编辑器中可以直接对贴图和模型表面进行涂抹。
 
 ![image alt text](image_26.gif)(convert:false)
 
-This allows you to use motion controllers to paint on static meshes while immersed in VR.    To use this feature, open the "Modes" window in VR, then click the “Mesh Paint” tab.  Now simply select an object in the world, then aim and pull your trigger to paint!  Pressure sensitivity is supported on your controller’s trigger, and you can hold the ‘Modifier’ button to erase instead of paint.
+这里便可以使用运动控制手柄在 VR 的沉浸环境下直接对静态网格体表面进行涂抹。只需要打开 “模式” 面板，点击 “Mesh Paint” 分页。然后只需要在场景中选择一个物体，瞄准它并扣下手柄扳机就能涂抹了。压力敏感度也由手柄扳机按钮支持，并且可以按住 “Modifier” 按钮来擦除当前的绘制。
 
-## New: Foliage Painting in VR
+## 新货：VR 中的植被涂抹
 
-In this release, you can use motion controllers to spray down foliage instances while in VR.
+在这次的版本中，可以使用运动手柄在 VR 中直接绘刷表面植被。
 
 ![image alt text](image_27.gif)(convert:false)
 
-Select a foliage type, aim your laser and pull the trigger to paint foliage! You can hold the modifier button to erase foliage. Pressure sensitivity on the trigger is supported. Additionally, the Foliage Editor has been improved to be a bit more functional while in VR, although some features, lasso tool and select tool, are still unavailable.
+选择一个植被类型，用镭射线指向所需要的位置并扣下扳机扳机按键就能绘刷植被！还可以按住 Modifier 键来擦除植被。按压的力度也是有效的。另外，植被编辑器也为 VR 中更好的使用而做了一些改进，但目前仍然有一些功能不可用，比如 lasso 工具和选取工具。
 
-## New: Color Picker in VR
+## 新货：VR 中的颜色选取工具
 
-The Color Picker window is now available in VR, so you can change color properties on lights and other Actors in your level. You can also use the Color Picker to select colors for Vertex Painting and Texture Painting in VR. 
+现在在 VR 中颜色选取窗口也可直接使用了。因此可以直接对场景中的灯光或者其他 Actor 的颜色属性进行修改。也可以使用颜色选取器来作为 VR 中的顶点绘制和贴图绘制的用途来使用。
 
 ![image alt text](image_28.gif)(convert:false)
 
-## New: Play from VR Editor
+## 新货：VR 编辑器直接运行游戏
 
-To easily prototype your project it is now possible to play your game in VR from within the VR Editor. Press the "Play" button on the quick menu to start playing in VR!  To instantly go back to the VR Editor, *hold the Grip buttons on both controllers and squeeze both trigger buttons*.
+为了更容易的制作游戏原型，现在能够在 VR 编辑器内直接启动 VR 游戏。只需要在快速菜单上点击 “Play” 便能直接启动游戏进入 VR！*退出游戏回到 VR 编辑器的操作是两个手柄同时按住 Grip 按钮，并且同时扣下扳机按钮。*
 
 ![image alt text](image_29.gif)(convert:false)
 
-## New: Improved VR Transform Gizmo
+## 新货：VR 物体控制工具改进
 
-The VR Editor’s transform gizmo has been improved with better usability and new features!
+VR 编辑器中的移动工具也做了改进，更加易用并且还有一些新的特性！
 
 ![image alt text](image_30.jpg)(h:442 w:466 convert:false)
 
-Translating and rotating objects feels much more natural, and you can now uniformly scale objects or translate them along a single 2D plane in VR.  We’ll continue to make improvements to VR gizmos in future releases.
+平移和旋转物体更加自然，在 VR 中也可以通过一个 2D 平面来一致的平移或缩放物体。之后我们还会对该工具做进一步的改进。
 
-## New: VR Editor Flashlight
+## 新货：VR 编辑器中的手电筒功能
 
-Using the Quick Menu, you can now add a flashlight to your controller, to light up dark parts of your scene or see how light interacts with different Materials.
+通过使用快速菜单，现在可以在手柄上增加一个手电筒，来照亮场景中的暗部，或者通过它来查看不同材质和灯光的交互效果。
 
 ![image alt text](image_31.jpg)(h:333 w:466 convert:false)
 
-## New: Screenshots from VR Editor
+## 新货：在 VR 编辑器中截屏
 
-You can now take screenshots right from VR!
+现在可以直接在 VR 中截屏了！
 
 ![image alt text](image_32.jpg)(h:392 w:604 convert:false)
 
-## New: Automatic Entry to VR Editing Mode
+## 新货：VR 编辑模式的自动启用
 
-You can now enter and leave VR editing mode when the VR editor is enabled without having to use the VR button or escape manually! As long as the editor is in the foreground, when you wear the headset, you will automatically enter VR editing mode; when you remove the headset, you will leave it.
+现在，当 VR Editor 模式被开启时，不再需要手动的点击 VR 按钮来进入或退出 VR 模式。在编辑器为当前激活窗口时，只需要带上头显设备，就会自动进入 VR 编辑模式，但移除头显设备时便自动退出 VR 编辑模式。
 
 ![image alt text](image_33.gif)(convert:false)
 
-There is a setting under VR in the Experimental section of Editor Settings that will allow you to turn off auto-entry if you prefer.
+如果需要的话，在 VR 的试验功能处有一个设置来开关是否使用这个自动的功能。
 
 ![image alt text](image_34.jpg)(h:84 w:384 convert:false)
 
-## New: Sequencer Import/Export
+## 新货：SEQUENCER 的导入/导出
 
-Sequencer can now import and export CMX EDL files for interchange with non-linear editing packages. 
+Sequencer 现在支持以 CMX EDL 文件格式的导入和导出，来回非线编编辑包的交互。
 
 ![image alt text](image_35.jpg)(h:529 w:869 convert:false)
 
-The above shot shows a sequence that was exported to Adobe Premiere Pro.  Each shot in a sequence will be written to a separate movie file which is referenced by the EDL file.  Any sequencing changes made in Premiere can then be imported back into UE4’s Sequencer!
+上图显示了一个 sequence 的 shot 被导出到 Adobe Premiere Pro 中。每个 sequence 的 shot 被写成一个单独的视频文件，并被 EDL 文件引用。任何在 Premiere 中的改动则可以被重新导入到 UE4 的 Sequencer 中！
 
-Sequencer’s ability to export HDR data in OpenEXR files has been expanded to give the user a choice of the color gamut used to encode the HDR data. 
+Sequencer 导出 OpenEXR 文件的 HDR 数据功能现在扩展了一些，用户可以选择 HDR 数据编码时的色域设置。
+
 ![image alt text](image_36.jpg)(h:220 w:492 convert:false)
 
-Finally, Sequencer now supports importing FBX animation directly to an object or track. You can also export animated tracks to FBX!
+最后，Sequencer 现在支持直接导入 FBX 动画给一个物体或者一个轨道。也可以将动画轨道导出成 FBX！
 
-## New: Sequencer Burn-ins on Renders
+## 新货：SEQUENCER 在渲染器上的 BURN-IN
 
-When rendering out your movie sequence, you can now configure a "Burn-in" for the exported images.  This is very useful in dailies for identifying and tracking shots.
+在将电影序列渲染成品时，可以为输出图片配置 “Burn-in”。这个功能能更方便的识别每个 Track Shot。
+
 ![image alt text](image_37.jpg)(h:458 w:865 convert:false)
 
-## New: Media Framework Overhaul
+## 新货：媒体播放的框架结构翻新
 
-Media Framework API has been completely overhauled, with many new features!  Media Framework allows you embed live video and audio into your projects, with numerous powerful features.
+这次媒体框架 API 被彻底翻新了，还加了很多新功能！现在能够在项目中嵌入实时的视频和音频，还有其他诸多强大的特性。
 
 ![image alt text](image_38.jpg)(convert:false)
 
-* Playlist assets for playing multiple media sources in a row
+* 为播放多个媒体源的播放列表资源
 
-* Audio playback support has been added
+* 支持回放音频
 
-* Improved media file import workflow
+* 改进了导入媒体文件的过程
 
-* Improved Blueprint integration
+* 改进了蓝图的整合
 
-* Performance improvements on several platforms
+* 在多个平台上改进了性能
 
-* Pixel format conversion on the GPU
+* 在 GPU 上进行像素格式转换
 
-* Support for dynamically changing video dimensions on some platforms
+* 对一些平台支持动态改变视频分辨率
 
 **Android**
 
-* Support for multiple audio tracks
+* 支持多个音频轨道
 
-* HTTP Live Streaming (HLS) on devices supporting it (m3u8)
+* 支持可用 HTTP Live Streaming (HLS) 的设备（m3u8）
 
 **Playstation 4**
 
-* HTTP Live Streaming (HLS)
+* HTTP Live Streaming （HLS）
 
-* Improved playback controls (Pause, SetRate, etc.)
+* 回放控制的改进（Pause，SetRate，等）
 
-* Media files can be pre-cached to memory
+* 媒体文件可以预先缓存到内存中
 
-* Opening media from FArchive
+* 从 FArchive 打开媒体
 
-* Ability to play multiple videos at once (may require increased memory pool settings)
+* 能够同时播放多个视频（可能需要在设定中增大内存池）
 
 **Windows**
 
-* H.264 is now supported
+* 现支持 H.264
 
-* Better support for HTTP(S) and RTSP streams
+* 对 HTTP(S) 和 RTSP 流媒体支持的更友善
 
-* Better error handling and logging
+* 更好的错误处理和日志记录
 
-* Stability and usability improvements
+* 改进稳定性和可用性
 
-* Graceful handling of non-standard & unsupported codecs
+* 对于非标准或不支持的编码格式处理的更加优雅
 
-**Notes**
+**备注**
 
-* Early experimental macOS/iOS support (*AvfMedia* plug-in)
+* 对 macOS/iOS 的支持当前为试验功能 （*AvfMedia* 插件）
 
-* Experimental Linux support (via *VlcMedia* plug-in on Github)
+* 对 Linux 的支持为试验功能 （GitHub 上的 *VlcMedia* 插件）
 
-* Experimental Video-Over-IP support (via *NdiMedia* plug-in on Github)
+* 对 Video-Over-IP 的支持为试验功能 （GitHub 上的 *NdiMedia* 插件）
 
-* XboxOne (*MfMedia*) and HTML5 are not supported yet
+* XboxOne （*MfMedia*） 和 HTML5 暂时还不支持
 
-* Integration with Sequencer/Video Recording is scheduled for 4.14
+* 和 Sequencer/视频录像 的功能整合计划在 4.14 中实现
 
-* *PlatformMediaSource* asset is not implemented yet
+* *PlatformMediaSource* 资源暂时还没有实现
 
-## New: Platform SDK Updates
+## 更新：各平台 SDK 更新
 
-In every release, we update the engine to support the latest SDK releases from platform partners.  Also in this release, you can remote compile iOS/tvOS projects from Windows in the binary version of UE4!
+在每次版本中，我们对会将引擎对各大平台 SDK 更新到最新的版本。同样在这次的版本中，现在已经能够在 Windows 下使用二进制的 UE4 版本直接远程编译 iOS/tvOS 的项目了！
 
 ![image alt text](image_39.jpg)(h:377 w:888 convert:false)
 
-* iOs/tvOS: Code projects are now supported in the Windows version of the binary version of UE4 with the Unreal Engine Launcher. (You do need a Mac somewhere to remote compile on)
+* iOs/tvOS: 在 Windows 下使用 Unreal Engine Launcher 下载的二进制 UE4 版本已经可以直接编译具有代码的项目了。（当然仍然需要某处有一台 Mac 来远程编译）
 
-* macOS: Now supports Xcode8 and macOS 10.13 Sierra
+* macOS: 现支持 Xcode8 和 macOS 10.13 Sierra
 
-* iOS/tvOS: Now supports iOS10/tvOS10
+* iOS/tvOS: 现支持 iOS10/tvOS10
 
-* Xbox One: Upgraded to August 2016 XDK
+* Xbox One: 更新到 August 2016 XDK
 
-* Playstation 4: Upgraded to PS4 SDK 3.508.201
+* Playstation 4: 更新到 PS4 SDK 3.508.201
 
-* Oculus Rift: Updated to the Oculus 1.6 Runtime
+* Oculus Rift: 更新到 Oculus 1.6 Runtime
 
-* SteamVR:  Updated to OpenVR 1.0.2
+* SteamVR: 更新到 OpenVR 1.0.2
 
-* Google VR: Added Google VR (Cardboard) support for iOS
+* Google VR: 为 iOS 添加了 Google VR (Cardboard) 的支持
 
-* OSVR:  Updated to v0.6-1194-g0c54f5e
+* OSVR: 更新到 v0.6-1194-g0c54f5e
 
-* Android: Google Play Games native C++ SDK updated to 2.1
+* Android: Google Play Games native C++ SDK 更新到 2.1
 
-* Android: Google Play Services updated to  9.2.0
+* Android: Google Play Services 更新到 9.2.0
 
-* Android: Supports running on Nougat aka Android 7.0
+* Android: 支持在 Nougat 上运行，即 Android 7.0
 
-* Vulkan API: Updated SDK to 1.0.17.0 (for Android and Windows)
+* Vulkan API: 更新 SDK 为 1.0.17.0 （面向 安卓 及 Windows 平台）
 
-## New: Improved Landscape Tessellation
+## 更新：地形的表面细分的功能改进
 
-Hardware tessellation on landscape is now much faster!  Landscape will now only render hardware tessellation on the highest level-of-detail (LOD), fading out as the landscape approaches the second LOD. Subsequent LODs will no longer have tessellation enabled. This significantly improves performance of enabling tessellation for displacement or extra detail up close to the camera. 
+硬件的地形曲面细分现在更快了！现在地形的渲染只会在最高级的 LOD 上做硬件曲面细分，并将地形对次一级的 LOD 做渐变过渡。低级别的 LOD 不再做曲面细分，这将大幅提升性能，并对靠近摄像机部分的画面细节再次提升。
 
 ![image alt text](image_40.jpg)(h:429 w:593 convert:false)
 
-In the visualization above, the highest the LOD (white) is rendered with tessellation enabled, while the other LODs (colors) are rendered without tessellation.
+在上图的可视化结果中，最高级别的 LOD 渲染时启用了曲面细分，而其他 LODs（颜色）渲染时则不使用曲面细分。
 
-## New: Animation Pose Assets
+## 新货：动画 POSE 资源
 
-We have added a new type of animation asset called a Pose Asset. This contains a set of named bone poses, which you can blend additively, in a similar manner to blend shapes for vertices. 
+我们为动画资源增加了一个新的类型，叫做 Pose 资源。它包含一组骨骼的位置，可以被附加在其他动画上使用，类似于顶点在混合空间中的用法。
 
 ![image alt text](image_41.gif)(convert:false)
 
-One use for this is to support facial animation where either FACS (Facial Action Coding System) or viseme curves can drive poses. However you could use this system to create new animation by blending multiple poses.
+一个用途可以支持面部表情动画，要么通过 FACS（Facial Action Coding System） 驱动，或者 viseme 曲线驱动。可以用这套系统通过混合其他姿势来创造新的动画。
 
-Currently you create a Pose Asset from an Anim Sequence using Content Browser context menu or the Create Asset menu in Persona. When you create a Pose Asset, the pose names will be automatically generated. After that you can rename each pose manually, or use clipboard paste to rename all of them at once. 
+可以在 Persona 中的 Create Asset 菜单，或者内容管理器中的内容菜单，从一个动画序列资源中创建 Pose 资源。在创建 Pose 时资源的名字会自动生成，之后可以手动对它重新命名，或者使用剪贴板粘帖给所有资源同时重新命名。
 
-Poses are driven by normal animation curves. As long as they exist in the animation you can see the curve. In Persona, in order to preview a pose from a curve, you need to set the current Preview Pose Asset. 
+Pose 由普通动画曲线驱动。在动画中都能看到这个曲线。在 Persona 中如果想要从曲线中预览一个 Pose，需要设置当前预览 Pose 资源。
 
 ![image alt text](image_42.jpg)(h:152 w:348 convert:false)
 
-In the AnimGraph, you can use a Pose Blender Node (or Pose By Name) to output the pose based on the incoming curves. 
+在动画图表中，可以使用 Pose Blender 节点（或者是 Pose By Name），根据输入曲线来输出 Pose 信息。
 
 ![image alt text](image_43.jpg)(h:146 w:422 convert:false)
 
-To support this system, we have improved how we handle scale with additive blending. In the future we would like to support curves on other assets (e.g. Sound Waves) that can be used to drive Pose Assets and Morph Targets.
+为了支持这个系统，我们对如何处理附加混合的缩放做了改进。将来我们希望对其他资源也支持曲线（比如声音波形资源），以用来驱动 Pose 资源或者顶点变化。
 
-## New: Pose Driver Animation Node (Experimental)
+## 新货：动作驱动的动画节点（试验功能）
 
-We have added a new Pose Driver node, which lets you drive a curve value (such as a morph target weight) based on a bone’s movement. 
+我们新增了一个 Pose Driver 节点，可以通过它根据一个骨骼的运动来驱动曲线数值（比如顶点变化的目标权重）。
 
 ![image alt text](image_44.gif)(convert:false)
 
-This uses an RBF (Radial Basis Function) to interpolate driven values based on the orientation of a target bone. You use a PoseAsset to define the target poses for the bone, and the desired curve values at each pose. This node can be used as a Pose Space Deformer, to drive corrective blend shapes based on the orientation of a bone.
+这里使用了一个 RBF（Radial Basis 函数）基于目标骨骼的朝向和驱动数值之间做插值。使用一个 Pose 资源来定义骨骼的目标姿势，以及每个姿势上所期望的曲线数值。该节点能够作为一个 Pose Space Deformer，根据骨骼的朝向驱动正确的混合形状。
 
-## New: Animation Node Pose Watching 
+## 新货：动画节点姿势的查看功能
 
-Anim graph nodes can now be "watched" in Persona. 
+动画图表中的节点可以在 Persona 中进行查看了。
 
 ![image alt text](image_45.gif)(convert:false)
 
-This allows you to see a representation of the pose being generated at any point in the anim graph dynamically. Multiple watches can be active at once allowing you to compare poses at different points and find the exact point at which any errors in your current pose are introduced. This can be very useful for debugging complex Animation Blueprints and previously would only have been achievable by connecting the node you wanted to view directly to the root node and recompiling the blueprint.
+这个功能提供了一个方式来查看动画图表中任意节点位置计算得出的动画效果的实时显示。可以同时查看多个节点，以便于对一些可疑的问题更容易的找到原因。这个功能对调试复杂的动画蓝图系统是非常有用的，而以前只能通过将想观察的节点直接连接至 ROOT 上并重新编译蓝图才能看到效果。
 
-## New: Improved Scene Capture
+## 更新：场景捕获功能的改进
 
-Scene Captures have been improved to be more useful with the new ‘Blueprint Drawing to Render Targets’ feature!
+和新的 “蓝图绘制到 Render Target” 功能一起，场景捕获的功能做了改进并且更加有用了！
 
 ![image alt text](image_46.jpg)(h:173 w:929 convert:false)
 
-* Orthographic projections are now supported.
+* 现支持正交投射。
 
-* When blueprints update a scene capture through the **Capture Scene** function, it happens immediately, allowing subsequent image processing with **Draw Material to Render Target**
+* 当蓝图通过 Capture Scene 函数更新场景获取画面时，它会立刻执行，使得画面能够对 Draw Material to Render Target 进行处理
 
-* Opacity is now captured in alpha, which allows partial rendering in a scene capture and compositing into another scene later.
+* 不透明度以 Alpha 形态捕获，这能够对场景捕获时部分渲染并且方便之后和其他场景合成。
 
-* Various GBuffer attributes are now available to be captured, including depth.
+* 各种 GBuffer 属性现在也能被捕获，包括深度。
 
-* Added ‘Hidden Actors’ and ‘Show Only Actors’ arrays which can be used to easily control what is rendered into a scene capture.
+* 新增了 ‘Hidden Actors’ 和 ‘Show Only Actors’ 数组，使用它们可以较容易的控制场景捕获时那些要被渲染。
 
 ![image alt text](image_47.jpg)(h:312 w:364 convert:false)
 
-Game specific effects like fog of war can be implemented by rendering meshes as visibility shapes into an orthographic scene capture, and then doing image processing with Draw Material To Render Target.
+游戏的特定效果，比如战争迷雾，可以根据模型的可见性来决定是否在正交场景捕获是渲染，然后再使用 Draw Material To Render Target 对图像进行处理。
 
-## New: Improved Refraction Shaders
+## 更新：折射材质的改进
 
-There’s a new "Pixel Normal Offset" refraction mode which uses the vertex normal as a reference, and computes the refraction offset from how different the per-pixel normal is from the vertex normal.  This is non-physical but allows refraction to be used on flat water surfaces.
+有个新的 “像素法线偏移” 的折射模式，基于顶点法线，并根据像素法线和顶点法线的差异计算折射便宜。这倒不是基于物理的算法但能够使得平面的水面得到折射效果。
 
 ![image alt text](image_48.jpg)(h:153 w:929 convert:false)
 
-Left: simple scene with no refraction
+左：简单的场景，没有折射
 
-Center: default refraction method which causes an undesired constant offset for a water surface
+中：默认的折射方法，引起了水面不希望见到的常量偏移
 
-Right: Pixel Normal Offset refraction method which distorts based on the normalmap difference
+右：像素法线偏移折射方法，根据法线贴图的差异计算
 
 ![image alt text](image_49.jpg)(h:78 w:344 convert:false)
 
-## New: Texture Coordinates from Line Traces
+## 新货：来自射线跟踪的贴图坐标
 
-We have added a project setting to support texture coordinate (UV) info from line traces. 
+我们在项目设置中增加了一项支持来自射线跟踪下的贴图坐标（UV）。
 
 ![image alt text](image_50.jpg)(h:330 w:297 convert:false)
 
-The option is under Project Settings -> Physics -> Optimizations. When this is enabled, you can use the ‘Find Collision UV’ function to take a Hit Result and find the UV info for any UV channel at the point of impact. Enabling this feature does use extra memory, as a copy of UV information must be stored in CPU memory.
+该选项在 项目设置 -> Physics -> Optimizations。在启用时，可以使用 ‘Find Collision UV’ 函数做一次碰撞检测并对任意 UV 通道在该碰撞处获取 UV 信息。该功能会使用额外一些内存，作为 UV 信息的一部分拷贝需要被保存到 CPU 访问的内存中。
 
-## New: Spline Editing Improvements
+## 更新：SPLINE 编辑的改进
 
-**Editing Spline Component defaults in the Blueprint Editor**
+**蓝图编辑器中默认编辑 Spline 组件**
 
-Now it's possible to set Spline Component points in the Blueprint Editor using the standard spline visualizer editing features.  New instances of the Blueprint will be created with these defaults, although these too can be overridden on a per-instance level once placed.
+现在可以在蓝图编辑器中直接对 Spline 组件的控制点进行编辑。默认情况下会创建新的蓝图实例，也可以对关卡中放置的示例逐一覆盖。
 
 ![image alt text](image_51.jpg)(h:445 w:929 convert:false)
 
-The "Reset to Default" context action on the spline visualizer will set an instance back to the Blueprint default.  Any changes made to the Blueprint default will be propagated to any instance whose spline points have not been subsequently edited.
+"Reset to Default" 操作可以将当前实例的 spline 恢复到蓝图类默认状态。任何对蓝图类的修改都会被自动的应用到那些没有做过自定义修改的实例上。
 
 ![image alt text](image_52.gif)(convert:false)
 
-**Numerical editing of spline points in the Details panel**
+**细节面板中对 spline 控制点的数值编辑**
 
-Before there was no way to precisely place spline points and assign scale, roll or tangents to them.  Now these properties are exposed in the Details panel for selected spline points:
+原先并没有方法来精确的控制各个点和他们的缩放、倾向、角度信息。现在这些属性可以在当前选中 spline 时的细节面板中直接编辑了：
 
 ![image alt text](image_53.jpg)(h:190 w:449 convert:false)
 
-**New spline point properties**
+**新的 spline 点属性**
 
-Spline points can now be defined with distinct arrive and leave tangents, and an arbitrary input key.  The former allows for splines with discontinuities, while the latter allows for greater control of interpolation speed between points.   This allows for greater versatility when designing spline paths.
+现在 spline 点能够逐个定义进入角和离去角，以及一个仲裁输入键值。以前只允许 spline 不连续，而以后可以在点上有更多控制手段。在设计 spline 线路时这会带来很多帮助。
 
-In the spline visualizer, in the Spline Component details, there is an option in the context menu to allow the arrive and leave tangents to be edited separately instead of locked:
+在 spline 可视化窗口中，Spline 组件细节面板上，菜单中有一个选项可以允许每个进入角和离去角的单独设置，而不再是锁定的状态：
 
 ![image alt text](image_54.jpg)(h:220 w:190 convert:false)
 
-As a consequence of being able to set arbitrary input keys per point, there is now also a way to specify the input key of the Loop Position for closed splines:
+作为可以可以每个点设置输入值的结果，现在有另一个方法来定义一个封闭 spline 的循环位置的输入值：
 
 ![image alt text](image_55.jpg)(h:192 w:454 convert:false)
 
-If input keys or a loop position are not specified, they will default to starting at 0.0 and incrementing by 1.0 for each point, as before.
+如果输入值或者循环点未被定义，那么仍然和以前一样，会从 0.0 处开始，并每个点增加 1.0。
 
-**Defer spline update in Blueprints**
+**蓝图中的 spline 延迟更新**
 
-Sometimes it's desirable to build splines procedurally in a Blueprint construction script.  Previously every operation on a spline point would cause the spline to be rebuilt, but now - for optimization purposes - it's possible to specify whether the spline should be rebuilt following a spline point operation.  There's also an explicit Update Spline node.
+有时候，可能希望在蓝图的构造脚本中过程生成 spline。先前每个对 spline 的操作都会造成 spline 重新构建，现在，为了优化的目的，在每个 spline 点上操作后都能够指定 spline 是否需要重新构建。因此有一个转为更新 spline 用的节点。
 
 ![image alt text](image_56.jpg)(h:413 w:918 convert:false)
 
-**Input Spline Points to Construction Script**
+**为构建脚本输入 spline 点**
 
-Sometimes it's useful to be able to hand edit a spline with the spline visualizer, and then refine them with a Blueprint construction script.  An example might be a Blueprint which locks all edited points to the surface of a sphere, like this:
+有时候在 spline 可视化编辑器中编辑 spline，并在蓝图脚本中对它进一步改造。比如蓝图可以锁定所有的可编辑点到一个球体的表面，类似这样子：
 
 ![image alt text](image_57.jpg)(h:456 w:929 convert:false)
 
-This is now achievable by checking the "Input Spline Points to Construction Script" property:
+可以通过勾选 "Input Spline Points to Construction Script" 属性来实现：
 
 ![image alt text](image_58.jpg)(h:196 w:452 convert:false)
 
-## New: Sub Animation Blueprints
+## 新货：子动画蓝图
 
-You can now share animation logic by using a ‘Sub Anim Instance’ node within your Animation Blueprint to reference another Sub Animation Blueprint. This also allows you to break up large Animation Blueprints into separate assets, for example into ‘locomotion’ and ‘physics’ parts. 
+现在，可以在动画蓝图中使用 ‘Sub Anim Instance’ 节点，来引用另一个子动画蓝图，这么做可以将一个巨大的动画蓝图分解成几个不同的部分，比如分解成 “运动” 部分和 “物理” 部分。
 
 ![image alt text](image_59.jpg)(h:149 w:644 convert:false)
 
-Member variables of the Sub Blueprint can be exposed as input pins on the node. The Sub Animation Blueprint must use the same Skeleton as the outer Animation Blueprint.
+子蓝图的成员变量可以被对外暴露并作为节点的输入引脚。子动画蓝图和它的外部蓝图必须使用同一个骨架结构。
 
-## New: Animation Curve Viewer
+## 新货：动画曲线视图
 
-We removed the Skeleton Curve tab from Persona, and moved that functionality into the improved Animation Curves tab. Here you can now rename and delete curves, as well as previewing curve data. 
+我们从 Persona 中医除了骨架曲线的分页，将这部分功能改进并作为动画曲线分页。这里可以对曲线进行重命名或删除曲线，以及预览曲线的数据。
 
 ![image alt text](image_60.jpg)(h:381 w:622 convert:false)
 
-You can see all curves that belong to current skeleton or currently active curves from preview asset. And you could also filter by specific type of curves if you only want to see active curves. Please note that we named default curve to be called "Attribute", so any animation curves will be by default attribute curves. 
+这里可以看到当前骨架下的所有曲线，或者来自上一个资源的当前活跃曲线。这里还可以根据特定类型对曲线进行过滤。请注意我们将默认曲线改称为“属性”，因此任何动画曲线都将有默认属性曲线。
 
-## If you want to modify the curve value, you can either turn off Auto check box option or just type the value. 
+如果想要修改曲线数值，可以去掉 Auto 的勾选项，或者直接输入数值。
 
-## New: Sprites in UMG Widgets
+## 新货：UMG 控件中的 SPRITE
 
-You can now use Paper2D Sprites as Brush inputs for UMG and Slate Widgets.  In addition to allowing users to reference UI art that may have been developed as a sprite sheet, it permits users to more efficiently render widgets on platforms where the draw call count budget is tight.  Sprites that are part of the same texture atlas can be batched together in Slate, provided they all share the same layer when rendered.
+现在可以使用 Paper2D Sprite 作为 UMG 和 Slate 空间的 Brush 输入。除了可以对已有的 UI 有更好的使用外，这么做还对空间渲染带来很多优化效果，在很多平台上 drawcall 的数量始终很紧张。不同的 Sprite 可以作为同一个贴图数据并在 Slate 中整合在一起，渲染时共享同一个层面以提高效能。
 
 ![image alt text](image_61.jpg)(h:257 w:460 convert:false)![image alt text](image_62.jpg)(h:258 w:460 convert:false)
 
-## New: Optimized Instanced Stereo Rendering for VR
+## 更新：VR 中即时立体渲染的优化
 
-There have been a number of improvements to instanced stereo rendering, including moving the velocity pass to use instanced stereo rendering.  Multi-view support has also been enabled on the PS4, which leads to significant performance improvements when using the ISR path.
+这次对即时立体渲染做了一些改进，包括了将 velocity pass 移动到即时立体渲染中，多视口支持对 PS4 也起效，这在使用 ISR 过程的时候带来巨大的性能提升。
 
-## New: GPU Morph Targets
+## 新货：GPU 顶点变形（MORPH TARGET）
 
-Projects can now enable calculating morph targets on the GPU on Shader Model 5 level hardware. This frees the CPU from performing those calculations:
+现在项目可以通过 GPU 在 硬件上计算 Shader Model 5 的顶点变形。这么做将释放更多的 CPU 计算性能。
 
 ![image alt text](image_63.jpg)(h:194 w:520 convert:false)
 
-## New: Optimized Landscape Shader Memory
+## 更新：优化地形 SHADER 的内存
 
-Landscape now compiles dramatically fewer shader combinations for landscape materials, improving first-load shader compile times, improving editor iteration and reducing memory usage and shader cache size.
+现在对于地形材质来说，编译少得多的 Shader 组合，改进了第一次 Shader 的加载编译时间，在编辑器的迭代工作和 Shader Cache 的大小及内存占用上都做了优化。
 
-## New: Shadow Optimizations for Mobile
+## 更新：移动平台的 SHADER 优化
 
-Optimizations have been added to the Combined Static and CSM shadow mode added in 4.12. In this mode, a stationary directional lights cast static shadows from static objects and CSM shadows for dynamic objects. In 4.13, the appropriate shader is now automatically selected based on the bounds of the dynamic objects casting CSM shadows, and there is no longer any need to manually tag each primitive that will receive combined static and CSM shadows.
+Combined Static 和 CSM 阴影模式在 4.12 中就有了，这个模式下，静态方向光源能够对静态物体产生静态阴影，对动态物体产生 CSM 阴影。在 4.13 中，对造成 CSM 阴影的动态物体会根据它们的边界自动的选取合适的 shader，不再需要手动的为每个受相关光照影响的物件指定标签了。
 
-## New: Landscape Import Plug-ins
+## 新货：地形导入插件
 
-A new plugin API has been added for landscape file formats, allowing developers to create plugins that add support for different heightmap and weightmap file formats to landscape. The existing raw and png support has been converted to the new API. The png support in particular makes a good reference for implementing new landscape file format plugins.
+这次为地形文件格式新增了一个插件 API，为地形支持不同的高度图和权重图的文件格式。现存的 raw 支持和 png 支持也被更新到了新的 API。特别是 png 支持的部分，也是一个要实现其他新的地形文件格式插件的很好的参考示例。
 
-## New: Automation Testing for Android
+## 新货：安卓的自动测试
 
-The Project Launcher is now able to package and launch your project onto multiple Android devices simultaneously. The app running on each device will communicate back to your host PC over the USB cable and the will appear in the Session Frontend window.
+现在项目启动器可以打包并同时在多个安卓设备上启动游戏。每个设备上运行的应用程序都会通过 USB 和主机电脑通信，并显示在 Session Frontend 窗口中。
 
-You can then launch Automated Tests on all the devices and see the results in the Session Frontend.
+可以在所有设备上启动自动化测试，并在 Session Frontend 中查看结果。
 
 ![image alt text](image_64.jpg)(h:542 w:838 convert:false)
 
-## New: OpenGL ES 3.1 on Android
+## 更新：安卓上的 OPENGL ES 3.1
 
-While UE4 has long supported many OpenGL ES 3.0 and 3.1 features on Android, you can now specifically target ES 3.1 on Android. This brings feature parity with Metal and Vulkan to higher-end Android devices and gives you access to 16 texture samplers as well as improved performance through the use of uniform buffers.
+虽然 UE4 并不支持一些 OpenGL ES 3.0 和 3.1 的特性，但现在可以在安卓设备上指定使用 ES 3.1。这里会为安卓设备带来一些 Metal 和 Vulkan 的高端特性，能够使用 16 个贴图采样，以及使用统一的缓存区来改进性能。
 
-You can choose to package bothe ES 2.0 and ES 3.1 shaders for the same project, and the device will chooses the best shader platform based on the device’s capabilities. 
+可以为项目打包同时选择 ES 2.0 和 ES 3.1 shader，设备会自动使用当前兼容下的最佳 shader 平台。
 
 ![image alt text](image_65.jpg)(h:220 w:582 convert:false)
 
-## New: Mobile Packaging Wizard 
+## 新货：移动平台打包引导
 
-We have added a Mobile Packaging Wizard to help support packaging for mobile where a minimal app without any content is uploaded to an App Store and the rest of the content is downloaded from the Cloud.
+我们添加了一个 Mobile Packaging Wizard 来帮助生成一个最小的需要上传到 AppStore 的程序以及其他可以通过云端下载的内容。
 
 ![image alt text](image_66.jpg)(h:484 w:800 convert:false)
 
-* This type of packaging is common with larger games that have regular DLC updates
+* 这种类型的打包方式对具有固定 DLC 更新到大型游戏很常见
 
-* It also allows the user to download only the specific content required for their device, such as the texture or shader format their device needs
+* 这么做也能够使得用户可以仅下载设备相关的内容，比如符合设备所需的 shader 和贴图格式等
 
-* Wizard can be accessed from Project Launcher window as an option for new profile creation
+* 该 Wizard 可以从 Project Launcher 窗口的创建新增配置选项处打开
 
-## New: Full Precision Materials on Mobile
+## 新货：移动设备支持全精度材质
 
-Materials have an option to use full precision (default: medium precision) in pixel shader when used on Mobile devices. For example this helps in cases when material uses world coordinates in computations.
+在移动设备上，材质有一个选项可以在 Pixel Shader 上使用全精度（默认是中度精度），例如这么做对于使用世界坐标参与计算的材质就能带来效果的帮助。
 
 ![image alt text](image_67.jpg)(h:92 w:260 convert:false)
 
-## New: Binary Shader Caching for Android
+## 新货：安卓设备的二进制 SHADER 缓存
 
-Compiled shaders will be stored on the disk on first use and then reused on subsequent application runs. 
+已编译的 Shader 会被保存在磁盘上用于第一次加载使用，并在之后的运行中被重用。
 
-* Requires GL_OES_get_program_binary extension 
+* 需要支持 GL_OES_get_program_binary 扩展
 
-* Disabled by default, can be enabled only on Android devices (r.UseProgramBinaryCache=1)
+* 默认关闭，仅能在安卓设备上开启。(r.UseProgramBinaryCache=1)
 
-## New: Localized Text Formatting Improvements
+## 更新：本地化文本格式改进
 
-We’ve improved our localized text formatting to allow your translations to be more accurate.
+为了更准确的实现文本的翻译，我们改进了本地化文本的格式。
 
-**Plural Forms**:
+**复数形式：**
 
-* Plural forms allow you to use different text based upon a numeric variable given to your text format. Plural forms may be cardinal, eg "There is 1 cat", “There are 4 cats”, or ordinal, eg) “You came 1st!”, “You came 2nd!”, etc.
+* 复数形式可以根据一个给定的数字，使用多个文本。复数形式可以是 Cardinal 格式，比如 "There is 1 cat", “There are 4 cats”，或者是 Ordinal 格式，比如）“You came 1st!”, “You came 2nd!”，等等。
 
-* Plural forms are specified as key->value pairs, and support any of the following keywords (as defined for your culture by the [CLDR data](http://www.unicode.org/cldr/charts/29/supplemental/language_plural_rules.html)): zero, one, two, few, many, other. Values are an optionally quoted string that may also contain format markers.
+* 复数形式通过 key->value 一组来定义，并支持任意一下关键字（有 culture 的 CLDR Data 来定义，）：zero, one, two, few, many, other. 数值是另一个引用字符串，并可以包含格式标记。
 
-* Cardinal Format Example: "There {NumCats}|plural(one=is,other=are) {NumCats} {NumCats}|plural(one=cat,other=cats)"
+* Cardinal Format 示例："There {NumCats}|plural(one=is,other=are) {NumCats} {NumCats}|plural(one=cat,other=cats)"
 
-* Ordinal Format Example: "You came {Place}{Place}|ordinal(one=st,two=nd,few=rd,other=th)!"
+* Ordinal Format 示例："You came {Place}{Place}|ordinal(one=st,two=nd,few=rd,other=th)!"
 
-**Gender Forms:**
+**性别形式：**
 
-* Gender forms allow you to use different text based upon an ETextGender value given to your text format, eg) "Le guerrier est fort", “La guerrière est forte”.
+* 性别形式能够根据 ETextGender 的值来对文本使用不同的字符串，比如："Le guerrier est fort", “La guerrière est forte”.
 
-* Gender forms are specified as a list of values in the order of masculine, feminine, neuter (neuter is optional). Values are an optionally quoted string that may also contain format markers.
+* 性别形式定义了一个列表，顺序是男性，女性，中性（中性为可选）。数值是另一个字符并且可以包含格式标记。
 
-* Format Example: "{Gender}|gender(Le,La) {Gender}|gender(guerrier,guerrière) est {Gender}|gender(fort,forte)"
+* 格式示例："{Gender}|gender(Le,La) {Gender}|gender(guerrier,guerrière) est {Gender}|gender(fort,forte)"
 
-**Hangul Post-Positions:**
+**韩文位置后处理：**
 
-* Hangul post-positions help you deal with the grammar rules present in Korean, and will insert the correct glyph(s) based upon whether the value being inserted ends in a consonant or a vowel, eg) "사람은", “사자는”.
+* 文位置后处理能够在显示韩文的时候处理语法规则，并根据结尾处的辅音或元音在正确的位置插入字形，比如："사람은", “사자는”.
 
-* Hangul post-positions are specified as a list of values in the order of consonant, vowel. Values are an optionally quoted string.
+* 韩文位置后处理有一个列表定义，顺序为 辅音，元音。数值则是可选的字符串。
 
-* Format Example: "{Arg}|hpp(은,는)"
+* 格式示例："{Arg}|hpp(은,는)"
 
-To allow you to pass in the numeric/gender values needed for plural/gender form support, all of the FText::Format(...) family of functions now take their values as FFormatArgumentValue rather than FText. This can be implicitly constructed from any numeric type, ETextGender, or FText.
+为了复数形式和性别形式的支持，正确的传入 数字/性别 的数值，所有的 FText::Format(...) 家族函数现在传入 FFormatArgumentValue 而不是 FText。这样可以准确的从数值类型、ETextGender 或者 FText 来执行函数。
 
-The ability to set these value types in Blueprints has been exposed using wildcard pins on the "Format Text" node:
+在蓝图中也暴露了这些功能，在 "Format Text" 的节点上的通配符输入引脚：
 
 ![image alt text](image_68.jpg)(h:166 w:564 convert:false)
 
 ![image alt text](image_69.jpg)(h:168 w:820 convert:false)
 
-You can also pre-compile your format pattern if you’re going to be re-using it for multiple calls to FText::Format(...). Simply create and store a FTextFormat instance and pass it as the pattern to FText::Format(...).
+如果预期会被多次调用 FText::Format(...) 的话，还可以预编译格式模式来重用。只需要新建并保存一个 FTextFormat 实例并将它作为模式传给 FText::Format(...)。
 
-## New: Multi-threaded Audio (Experimental)
+## 新货：多线程声音（试验功能）
 
-Outside of the editor, sound cue evaluation and active wave instance determination can now run independently of the game thread. Benefits will vary per game depending on the quantity and complexity of active sound cues, however for some context, in early testing, we’ve seen a shift of approximately 1ms per frame off of the Game Thread and on to the Audio thread.  
+除编辑器外，现在 sound cue 的评估和激活的 wave 实例的确定性计算能独立于游戏线程运行。正对游戏的活跃的 sound cue 的数量和复杂度，每个游戏的收益可能有所不同，不过在有些情况下，在我们的测试中，我们发现了差不多每帧有1毫秒的游戏线程时间转移到了音频线程。
 
-This feature is disabled by default in 4.13, but you can try it out by changing **UseAudioThread** to **true** in the [Audio] section of BaseEngine.ini.
+这个功能在 4.13 中默认是关闭的，不过你可以尝试在 BaseEngine.ini 的 [Audio] 部分修改 UseAudioThread 为 true 来打开它。
 
-## New: Network Replay Backwards Compatibility
+## 新货：网络回放的向下兼容
 
-The replay recording feature now supports backwards compatibility. This means you can make modifications to a build, even add or remove replicated properties and then load replays on the new build that were recorded with an older build. 
+现在，录像录制功能有了向后兼容性。这意味着你可以修改版本，甚至添加或者删除一些用以同步的属性，然后再在新版本中打开一个在旧版本中录制的录像。
 
-To test this feature out, you can simply record a replay with a certain build, change some replicated properties, and then load that same replay on a newer build!
+如果要测试这个功能，你可以简单的用某个版本录制一个录像，改变一些同步的属性，并且在新的版本中打开同样的录像！
 
-Most of the work is handled by the low level reflection information we have for each replicated property. For custom serialized network data (UObject::NetSerialize), you can now use two new functions added to FArchive (FArchive::EngineNetVer() and FArchive::GameNetVer()) which allow you to obtain the current network version of the stream and handle old data manually.
+大部分工作是在每个同步属性的底层的反射信息中被处理的。对于自定义序列化的网络数据（UObject::NetSerialize），你现在可以使用两个新加到 FArchive 的方法（FArchive::EngineNetVer() 和 FArchive::GameNetVer()），这些可以让你获取当前版本的网络数据流并且手动处理旧的数据。
 
-## New: Build Graph Scripting (Experimental)
+## 新货：构建图表脚本化（试验功能）
 
-BuildGraph scripts can be used to create custom sequences of UE4 build commands for build automation. Graphs are declared using an XML script using syntax similar to MSBuild, ANT or NAnt, and consist of a network of dependent *nodes* made up of *tasks*. 
+BuildGraph 脚本可被用来创建自定义的UE4构建命令序列用以自动化构建。这些图（构建脚本）以 XML 脚本的形式，用类似 MSBuild，Ant 或者 NAnt 的语法，由一个有依赖 节点 的网络来组成各个 *任务*。
 
 ![image alt text](image_70.jpg)(h:382 w:677 convert:false)
 
-Some example BuildGraph scripts are stored under Engine/Build/Graph/Examples/…
+一些 BuildGraph 脚本的示例存在了这里：Engine/Build/Graph/Examples/…
 
-## New: Script for Making Installed Builds
+## 新货：制作安装版本的脚本
 
-The build process for installed UE4 distributions has been re-written using the BuildGraph scripting language, with a goal to making the process simpler and more transparent for other development teams with engine customizations. The script can be found at Engine/Build/InstalledEngineBuild.xml, and can be run by invoking AutomationTool with one of the following command lines:
+以制作过程更简单以及对其他的开发团队更透明的引擎定制化为目标，我们已经用 BuildGraph 脚本语言重写了可安装的 UE4 发布版本的构建过程。脚本在 Engine/Build/InstalledEngineBuild.xml，能用 AuomationTool 和一下的命令行来运行。
 
 **Windows:**
 
@@ -749,13 +751,13 @@ BuildGraph -target="Make Installed Build Win64” -script=Engine/Build/Installed
 
 BuildGraph -target="Make Installed Build Mac” -script=Engine/Build/InstalledEngineBuild.xml -clean
 
-Append the -listonly option to view a list of available options for customizing the build process.
+加上 -listonly 选项来查看定制化构建过程的可用选项列表。
 
-## New: TSets as Unreal Properties
+## 新货：作为虚幻属性的 TSets
 
-TSets can now be used as a UPROPERTY for the purposes of automatic serialization, garbage collection, ini settings, and editing via the details panel (limited to entering as a string (i.e. "(1,2,3)")). Similar to TMap, TSet properties do not yet work as replicated members, nor can they be used in Blueprints.
+TSets 现在能被用来作为 UPROPERTY 了，也就是说可以被用来做自动的序列化，垃圾回收，ini 设置以及通过细节面板来编辑（受限于用字符串来输入（例如 "(1,2,3)"））。类似于 TMap，TSet 的属性目前还不能作为 “同步属性” 以及不能被用在蓝图中。
 
-# Release Notes
+# 版本变更详单（以下保留原文）
 
 ### AI
 

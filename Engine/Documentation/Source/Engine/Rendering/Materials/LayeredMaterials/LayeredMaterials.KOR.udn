@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2737400
+﻿INTSourceChangelist:3158648
 Availability: Public
 Title:레이어드 머티리얼
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:UE4 의 레이어드 머티리얼 기법에 대한 소개 문서입니다.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:8
+topic-image:Engine/Rendering/Materials/LayeredMaterialsTopic.png
+type:overview
 
 [REGION:fullwidth]
 ![](LayeredMaterials.png)
@@ -79,7 +83,7 @@ Version: 4.9
 |**MatLayerBlend_BreakBaseColor** 베이스 컬러 분리 | 입력되는 머티리얼 레이어에서 베이스 컬러를 출력합니다. |
 |**MatLayerBlend_BreakNormal** 노멀 분리 | 입력되는 머티리얼 레이어에서 노멀을 출력합니다. |
 |**MatLayerBlend_Decal** 데칼 | 머티리얼 위에 2차 UV 채널을 사용하여 데칼 시트를 블렌딩합니다. |
-|**MatLayerBlend_Decal_UV3** 데칼 UV3 | 머티리얼 레이어 위에 2차 UV 채널을 사용하여 데칼 시트를 블렌딩합니다. |
+|**MatLayerBlend_Decal_UV3** 데칼 UV3 | 머티리얼 레이어 위에 3차 UV 채널을 사용하여 데칼 시트를 블렌딩합니다. |
 |**MatLayerBlend_Emissive** 이미시브 | 머티리얼 레이어 위에 이미시브 텍스처를 블렌딩합니다. |
 |**MatLayerBlend_GlobalNormal** 글로벌 노멀 | 머티리얼 레이어 위에 노멀 텍스처를 블렌딩합니다. |
 |**MatLayerBlend_LightmassReplace** 라이트매스 대체 | 라이트매스의 베이스 컬러를 대체, 간접광 결과에 변화를 줄 수 있습니다. |

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3102822
+﻿INTSourceChangelist:3180166
 Availability:Public
 Title:詳細パネル
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -202,6 +202,28 @@ Version:4.12
 	[/PARAM]
 	[PARAM:path]
 	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/Array]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Properties/Map/map_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Properties/Map:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/Map]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Properties/Set/set_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Properties/Set:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/Set]
 	[/PARAM]
 [/OBJECT]
 [/REGION]

@@ -62,8 +62,10 @@ You can access the **Ambient Zone Settings** from the **Details** panel of an **
 1. Set the **Interior LPF** to .2 
 	* This is the final LowPassFilter on Ambient Sounds that are inside the Ambient Zone when the player is outside the Ambient Zone.
 1. Create a new **Sound Class** and in its properties, check **Apply Ambient Volumes**: 
+
 	![](AmbientZone_SoundClass.png)
 1. Assign the **Sound Class** to both the interior and exterior sounds from the **Details** panel of each sound: 
+
 	![](SoundClass_Override.png)
 1. Rebuild geometry, and enter the **Audio Volume** with the **Ambient Zone** you just set up.
 	* The Ambient Sound that is outside the Ambient Zone will have its volume and LowPassFilter multiplied by .5

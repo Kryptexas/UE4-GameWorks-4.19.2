@@ -1,11 +1,18 @@
-﻿INTSourceChangelist:3106123
+﻿INTSourceChangelist:3189773
 title:HLOD （Hierarchical Level of Detail）の概要
-Description:UE4 のHLOD システムの概要のページです。
+Description:UE4 の HLOD システムの概要のページです。
 crumbs:%ROOT%
-availability:docs
+availability:Public
 version:4.13
+parent:Engine/HLOD
+type:overview
+order:1
+tags:HLOD
+topic-image:Engine/HLOD/HowTo/HLOD_howto_Topic_01.png
 
-HLOD の最も単純な形式では、既に存在している **Static Mesh アクタ** を、アトラス化したテクスチャで単一の **Static Mesh アクタ** とマテリアルにまとめて、ドローコールを減らしゲームのパフォーマンスを改善します。こうした **HLOD アクタ** を作成するときに生成する必要があるものを設定できる堅牢なシステムがあります。
+![](Engine\HLOD\HowTo\HLOD_howto_header.png)
+
+HLOD の最も単純な形式では、既存の **Static Mesh アクタ** を、アトラス化したテクスチャで単一の **Static Mesh アクタ** とマテリアルにまとめて、ドローコールを減らしゲームのパフォーマンスを改善します。こうした **HLOD アクタ** を作成するときに生成する必要があるものを設定できる堅牢なシステムがあります。
 
 ## プロキシ メッシュ
 
@@ -17,7 +24,7 @@ HLOD の最も単純な形式では、既に存在している **Static Mesh ア
 
 ![image alt text](image_16.png)(h:357 w:404 convert:false)
 
-上の画面のプロキシ メッシュには、単一のテキスチャに結合された元々独自のテクスチャを持っていた複数種類のエレメントが含まれます。
+上の画面のプロキシ メッシュには、単一のテクスチャに結合された元々独自のテクスチャを持っていた複数種類のエレメントが含まれます。
 
 
 [REGION:note]
@@ -46,7 +53,7 @@ HLOD レベルの望ましい境界範囲:500
 
 ![image alt text](image_20.png)(h:288 w:372 convert:false)
 
-ボリューム内をドラッグして、**アクタ** をカバーするようにスケーリングします。  
+ボリューム内をドラッグして、**アクタ** をカバーするようにスケーリングします。
 
  ![image alt text](image_21.png)(h:273 w:370 convert:false)
 

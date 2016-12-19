@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2793676
+﻿INTSourceChangelist:3178047
 Availability:Public
 Title:게임 패키징 & 쿠킹
 Crumbs:%ROOT%, Engine
 Description:게임에서 사용되는 애셋에 대한 플랫폼 전용 콘텐츠 생성하기 입니다.
 Version: 4.9
 parent:Engine
-order:14
+order:18
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -29,7 +29,7 @@ section in your game's **DefaultEngine.ini**. This section is originally declare
 where the paths are set to Epic's internal DDC share. Re-declare the section and change the paths to point 
 to a share on your network (e.g. `Path=\\mystudio.net\DDC`):
 
-	[DerivedDataBackendGraph]
+	[InstalledDerivedDataBackendGraph]
 	MinimumDaysToKeepFile=7
 	Root=(Type=KeyLength, Length=120, Inner=AsyncPut)
 	AsyncPut=(Type=AsyncPut, Inner=Hierarchy)

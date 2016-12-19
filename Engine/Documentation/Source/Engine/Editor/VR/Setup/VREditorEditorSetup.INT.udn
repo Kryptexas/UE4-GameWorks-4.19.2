@@ -3,7 +3,7 @@ Description: Download and configure the Unreal Engine VR Editor Preview from Git
 Crumbs:
 Availability: public
 parent: Engine/Editor/VR
-type: howto
+type:how-to
 order: 1
 tags: VR
 tags: GitHub

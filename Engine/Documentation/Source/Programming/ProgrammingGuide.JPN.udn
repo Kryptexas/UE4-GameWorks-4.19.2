@@ -1,11 +1,12 @@
-﻿INTSourceChangelist:2821916
+﻿INTSourceChangelist:3151855
 Availability:Public
 Title:プログラミング ガイド
-Crumbs:%ROOT%
+Crumbs: %ROOT%
 Description:プログラミングに関する情報をみてみましょう
 version:4.9
 parent:%ROOT%
 order:4
+type:landing
 
 [VAR:Params]
 [PARAM:image]
@@ -33,7 +34,7 @@ order:4
 	![](%ROOT%/prog_icon.png)(convert:false)
 [/PARAM]
 [PARAM:title]
-	Programmers
+	プログラマー
 [/PARAM]
 [PARAM:description]
 	%Programming:description%
@@ -59,7 +60,7 @@ order:4
 [OBJECT:Role]
 %homeparams%
 [PARAMLITERAL:id]
-programmer
+プログラマー
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
@@ -68,7 +69,7 @@ programmer
 [OBJECT:Role]
 %params%
 [PARAMLITERAL:id]
-programming
+プログラミング
 [/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
@@ -79,7 +80,7 @@ C++ で書くことができ、Visual Studio または Xcode でのコンパイ�
 
 C++ クラスはブループリント クラスの基底として使用できます。そのため、プログラマーが基本的なゲームプレイ クラスを設定し、後でレベル デザイナがサブクラス化し繰り返し使用することができます。  
 
-## 入門編
+## はじめよう
 
 [REGION:features third]
 [OBJECT:Role]
@@ -205,7 +206,7 @@ C++ クラスはブループリント クラスの基底として使用できま
 		![](%ROOT%/gameplay_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ゲームプレイ
+		アンリアル ゲームプレイ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

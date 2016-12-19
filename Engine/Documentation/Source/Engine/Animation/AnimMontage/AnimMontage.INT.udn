@@ -9,7 +9,7 @@ Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
 Related: Gameplay/Input
-version: 4.9
+version: 4.14
 
 [TOC(start:2 end:2)]
 
@@ -21,12 +21,11 @@ Montages are animation assets that can be created and exist within the **Content
 
 Montages also provide a way to replicate [](Engine\Animation\RootMotion\) across networked games if your animation has Root Motion enabled. 
 
-
 ## Montage Example
 
 ![](Montage_Screen2.png)
 
-The image above is a melee attack with 3 sections [start, loop, and end]. When the player **Left-clicks**, it triggers the _Start_ section by default when you ask to play the montage. The middle section called _Loop_ (which is set to loop), immediately follows the _Start_ section and will loop there forever. If the player lets the mouse button go, it will stop, but you do not want to stop right away since the animation will pop in the middle of the loop. You would like to relink the _Loop_ to the _End_ section, where it will then transition out to the end and finish the animation. 
+The image above is a melee attack with 3 sections, labeled _Start_, _Loop_, and _End_; the divisions between the sections are marked in yellow. When the player presses the attack button, the animation is played by the game, and it begins at the _Start_ section. The looping middle section, called _Loop_, immediately follows the _Start_ section and will be programmed to repeat indefinitely. If the player releases the attack button, the animation will stop looping and eventually reach the _End_ section and transition out.
 
 Some additional uses for Montages include:
 * The ability to play an animation from within an AnimBlueprint's **EventGraph**.
@@ -39,7 +38,6 @@ Some additional uses for Montages include:
 [REGION:note]
 A Montage applied to a character can also be seen on the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.5.
 [/REGION]
-
 
 ## Montage Properties
 
@@ -81,7 +79,7 @@ When looking at a Montage in Persona, it is useful to know what each area is and
 
 ## Montage Area
 
-The Montage Area breaks down like so:
+The Montage Area breaks down as follows:
 
 [REGION:raw]
 ![](MontageArea.png)
@@ -93,7 +91,6 @@ The Montage Area breaks down like so:
 [REGION:note]
 You may have as many Slot Tracks as you like within a single Montage, each with their own name and containing their own unique animations. However, you may only have one Section Track for each Montage.
 [/REGION]
-
 
 ### Sections
 
@@ -107,7 +104,7 @@ Sections are created by **Right-clicking** on the Section track and choosing **N
 ### Slots
 
 [EXCERPT:Slots]
-Within a Montage, a **Slot** is just a single track that can hold any number of animations. You can name this Slot, and then blend to those specific animations by calling the Slot name. A great example is having a character with a weapon reload animation. You may have different versions of the reload for when the player is standing, crouching, and lying prone. So long as all 3 of the animations used the same timing, you could place each one within a separate Slot in your Montage; the Slots could be named Standing, Crouching, and Prone. In your Animation Blueprint's **AnimGraph**, you can use the Slot node to determine which one you want to play based on your character's current state. When they are standing, you can use the result of the animation in the Standing Slot. When they are prone, you can see the result of the Prone Slot.
+Within a Montage, a **Slot** is just a single track that can hold any number of animations. you can pick any name for a Slot and then use that name to blend to those specific animations. A great example is having a character with a weapon reload animation. You may have different versions of the reload for when the player is standing, crouching, and lying prone. So long as all 3 of the animations used the same timing, you could place each one within a separate Slot in your Montage; the Slots could be named Standing, Crouching, and Prone. In your Animation Blueprint's **AnimGraph**, you can use the Slot node to determine which one you want to play based on your character's current state. When they are standing, you can use the result of the animation in the Standing Slot. When they are prone, you can see the result of the Prone Slot.
 
 It is an important point to keep in mind that although much of your Montage control will take place in the Animation Blueprint's **Event Graph**, Slots are actually handled within the **Anim Graph**. This is done by way of the Slot node, which simply takes in the name for a Slot. By positioning this node at a strategic point along your AnimGraph's execution, you can have multiple Montages that utilize the same Slot name.
 [/EXCERPT:Slots]
@@ -188,13 +185,36 @@ Please see [](Engine/Animation/Sequences\Curves) for more information.
 [/REGION]
 
 
+## Creating Variant Montages
+**Child Anim Montages** provide a convenient way to create animation variants without affecting gameplay, and without needing to recreate and maintain notifications or other details across multiple assets. An example use case for this might be varying the auto-attack animations on units in an RTS game, or changing a character's idle animation in an RPG or action game based on what kind of weapons or armor they are holding or wearing. A Child Animation Montage can be created from an existing Animation Montage via the "Create Child Montage" context-menu option.
+
+![](CreateChildMontage.png)
+
+The new montage will have the same name as the original, but with "_Child" added to the end.
+
+![](ChildAnimMontageCB.png)
+
+[REGION:note]
+Although Child Anim Montages are not a separate class from standard Anim Montages (both are `UAnimMontage`), Child Anim Montages cannot be used as parents for other Child Anim Montages.
+[/REGION]
+
+When editing a Child Anim Montage, all editable parts of the interface will be dimmed and deactivated except for the Slot Track. The Slot Track is in a special mode which enables animations to be overridden. New animations cannot be added, and the details of an animation (such as play rate) will not be editable. This helps to create varied animations with minimal effort and without affecting gameplay, since you can randomly pick between the original montage and its children freely, knowing that the timing of the animations themselves, and all notification events, will be identical. When editing a Child Anim Montage, animations that have not been changed from the parent will be shown in green, and animations that have been overridden will be shown in yellow.
+
+![](AnimMontageSlot.png)
+
+![](ChildAnimMontageSlot.png)
+
+The animation substitution in the picture above is indicated by the yellow box in the Child Anim Montage's editor window. 
+
+It is possible to substitute any animation for any other, even if they are of different lengths. The engine will automatically adjust the play rate, start time, and end time of the replacement animation so that it uses the equivalent portion and runs in the same time as the original would have. For example, if a one-second animation with a start time of 0.5 and an end time of 1.0 is replaced with a two-second animation, the two-second animation will play with a start time of 1.0, an end time of 2.0, and will play at double the speed of the one-second animation. The replacement animation will always fit perfectly into the original slot.
+
 ## Playing Montages
 
 Montages can be played in a number of different ways: 
 
-* You can assign them as the **Anim to Play** for a **Skeletal Mesh**.  
-* You can call them directly through **Blueprint** script or C++. 
-* You can incorporate them into the **Animation Graph** as part of your **Animation Blueprint**. 
+* You can assign them as the **Anim to Play** for a **Skeletal Mesh**.
+* You can call them directly through **Blueprint** script or C++.
+* You can incorporate them into the **Animation Graph** as part of your **Animation Blueprint**.
 
 [REGION:note]
 Please see [](Engine/Animation/AnimHowTo/AdditiveAnimations) for an example of how a Montage can be used inside your Animation Blueprints. This example illustrates a character that can perform two animations at the same time independently of one another (in this case the character can move and shoot at the same time).
@@ -202,44 +222,44 @@ Please see [](Engine/Animation/AnimHowTo/AdditiveAnimations) for an example of h
 
 ### Playing Multiple Montages
 
-Prior to Unreal Engine version 4.6, you could only play a single Montage at a time. However, as of 4.6 or later it is now possible to play as many Montages at you would like through the use of **Anim Slots** and **Anim Groups**. 
+Prior to Unreal Engine version 4.6, you could only play a single Montage at a time. However, as of 4.6 or later it is now possible to play as many Montages at you would like through the use of **Anim Slots** and **Anim Groups**.
 
 Here's a quick rundown of how it works: 
 
-* Animations are organized into Anim Groups. You can play a single Montage per group. If you want to play another Montage at the same time, you can create a new Anim Group for it. 
-* Anim Groups and Anim Slots are centralized into the **Anim Slot Manager** tab inside **Persona** (see [Anim Slot Manager](#animslotmanager) below). 
-* You can use the drop-down UI to select between valid slots. 
-* When creating a new Montage, Slot nodes start out with a single **Default Slot** so they are immediately functional. 
+1. Animations are organized into Anim Groups. You can play a single Montage per group. If you want to play another Montage at the same time, you can create a new Anim Group for it.
+1. Anim Groups and Anim Slots are centralized into the **Anim Slot Manager** tab inside **Persona** (see [Anim Slot Manager](#animslotmanager) below).
+1. You can use the drop-down UI to select between valid slots.
+1. When creating a new Montage, Slot nodes start out with a single **Default Slot** so they are immediately functional.
 
 ### Anim Slot Manager
 
-The **Anim Slot Manager** is where you will manage your Anim Slot and Anim Group names. It displays a hierarchical view and lets you make changes. You can open the Anim Slot Manager inside a Montage in **Persona**, by clicking the magnifying glass icon (pictured below). 
+The **Anim Slot Manager** is where you will manage your Anim Slot and Anim Group names. It displays a hierarchical view and lets you make changes. You can open the Anim Slot Manager inside a Montage in **Persona**, by clicking the magnifying glass icon (pictured below).
 
 ![](OpenAnimSlotManger.png)
 
-This will open the Anim Slot Manager. 
+This will open the Anim Slot Manager.
 
 ![](AnimSlotManager.png)
 
-Groups and Slots are saved in the **Skeleton** asset so all Animation Blueprints and Montages from the same family can use the same settings. The **Save** button inside the Anim Slot Manager is there so that you can easily save the changes to the Skeleton asset whenever you make any changes. 
+Groups and Slots are saved in the **Skeleton** asset so all Animation Blueprints and Montages from the same family can use the same settings. The **Save** button inside the Anim Slot Manager is there so that you can easily save the changes to the Skeleton asset whenever you make any changes.
 
-When **Right-clicking** on a Slot name, a context menu is presented which will also allow you to move it to a different group if you desire. This makes it easier to manage the Slots you have created and place and move them into different groups and arrange them as you see fit. 
+When **Right-clicking** on a Slot name, a context menu is presented which will also allow you to move it to a different group if you desire. This makes it easier to manage the Slots you have created and place and move them into different groups and arrange them as you see fit.
 
 ![](SlotClicking.png)
 
 ### Editing Slots on Montage Tracks
 
-Below is an example of the **Montage Editor** inside **Persona**, the drop-down box (highlighted) lists the available Slots for that track. 
+Below is an example of the **Montage Editor** inside **Persona**, the drop-down box (highlighted) lists the available Slots for that track.
 
 ![](SlotExample1.png)
 
-If you need to create a new Slot or Group, clicking the magnifying glass icon will take you to the **Anim Slot Manager**. 
+If you need to create a new Slot or Group, clicking the magnifying glass icon will take you to the **Anim Slot Manager**.
 
-The status bar across the top will tell you which Group the Montage belongs to. This is determined by the first Track's Slot. 
+The status bar across the top will tell you which Group the Montage belongs to. This is determined by the first Track's Slot.
 
 ![](SlotExample2.png)
 
-If you have multiple Slots, the status bar will also tell you if there are any issues with the setup. For example, if you mix and match Slots that belong to different groups, a warning sign will appear to which you can hover over and see more information about the problem. 
+If you have multiple Slots, the status bar will also tell you if there are any issues with the setup. For example, if you mix and match Slots that belong to different groups, a warning sign will appear to which you can hover over and see more information about the problem.
 
 ![](SlotExample3.png)
 
@@ -379,14 +399,3 @@ And that is it! If we compile, we will now see that the character continues to s
 [/OBJECT]
 
 -------------------->
-
-
-
-
-
-
-
-
-
-
-

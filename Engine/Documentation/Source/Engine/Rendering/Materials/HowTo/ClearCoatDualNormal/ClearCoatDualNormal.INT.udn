@@ -1,6 +1,6 @@
 Availability: Public
-Title:Material Editor - How To use Dual Normals with Clear Coat
-Description: A How-To guide for using Dual Normal maps in your Clear Coat Material.
+Title:Using Dual Normals with Clear Coat
+Description: Guide for using dual Normal Maps in your Clear Coat Material.
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
 Version: 4.12
 SkillLevel: Intermediate
@@ -105,7 +105,7 @@ With the Dual - Normal Clear Coat option now enabled, it is now time to create a
 	|Texture Coordinate| N/A|N/A|
 	|Multiply| N/A|N/A|
 	|FlattenNormal| N/A|N/A|
-	|ClearCoatBottomNormal| N/A|N/A|
+	|ClearCoatBottomNormal (ClearCoatNormalCustomOutput)| N/A|N/A|
 
 	![](Dual_CC_Normal_ClearCoat_Setup.png)
 

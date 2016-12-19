@@ -1,13 +1,34 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3187786
 Availability:Public
 Title: 리눅스 프로젝트 개발 시작하기
 Crumbs:%ROOT%, Platforms, Platforms/Linux
-Description:리눅스 플랫폼용 개발 셋업하기 입니다.
+Description:리눅스 플랫폼용 개발 셋업 안내서입니다.
 Version: 4.9
 SkillLevel: Advanced
-type:quickstart
+type:quick start
 parent:Platforms/Linux
 tags:Linux
+
+[VAR:Params]
+[PARAM:image]
+	![%Platforms/Linux/GettingStarted:title%](GettingStarted_Topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/tutorial_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Platforms/Linux/GettingStarted:title%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Platforms/Linux/GettingStarted]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
 
 <!--- %Globals:BinarySourceSelectVar% --->
 

@@ -3,6 +3,10 @@ Title:Instanced Materials
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:Hierarchical material relationships that allow modification of properties to alter behavior and appearance of child materials without shader recompilation.
 Version: 4.9
+parent:Engine/Rendering/Materials
+order:6
+topic-image:Engine/Rendering/Materials/InstanceTopic.png
+type:overview
 
 
 ![](MICEditor.png)

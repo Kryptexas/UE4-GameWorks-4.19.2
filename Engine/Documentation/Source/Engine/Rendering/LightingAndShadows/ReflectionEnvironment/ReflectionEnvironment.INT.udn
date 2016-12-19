@@ -2,7 +2,7 @@ Availability:Public
 Title: Reflection Environment
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:System for capturing and displaying local glossy reflections.
-Version: 4.12
+Version: 4.14
 
 [TOC(start:2)]
 
@@ -158,6 +158,27 @@ to see results.
 	[/PARAM]
 [/OBJECT]
 
+## Reflection Capture Lightmap Mixing
+
+When you use Reflection Capture Actors, UE4 mixes the indirect Specular from the Reflection Capture with the indirect Diffuse lighting from lightmaps. This helps to reduce leaking since the reflection cubemap was only captured at one point in space, but the lightmaps were computed on all the receiver surfaces and contain local shadowing information.
+
+[OBJECT:ComparisonSlider]
+    [PARAM:before]
+    ![Reduce Lightmap Mixing On Smooth Surfaces Off](ReduceLightmapMixingOnSmoothSurfaces_Off.png)
+    [/PARAM]
+    [PARAM:after]
+    ![Reduce Lightmap Mixing On Smooth Surfaces On.png](ReduceLightmapMixingOnSmoothSurfaces_On.png)
+    [/PARAM]
+[/OBJECT]
+
+While lightmap mixing works well for rough surfaces, this method breaks down on smooth surfaces as reflections from Reflection Capture Actors no longer match reflections from other methods like Screen Space Reflections or Planar Reflections. Because of this, lightmap mixing is no longer applied to very smooth surfaces. A surface with Roughness value of 0.3 will get full lightmap mixing, fading out to no lightmap mixing by Roughness 0.1 and below. This also allows Reflection Captures and Screen Space Reflections to match better and make it harder to spot transitions between the two.
+
+### Lightmap Mixing and Existing Content
+
+By default, lightmap mixing will be enabled which means it will affect existing content. In cases where you had reflections leaking on smooth surfaces, that leaking will be more apparent. To solve this, you can either place additional Reflection Capture Actors around the level to help reduce the leaking. Or you can revert to the old lightmap mixing behavior by going to **Edit** > **Project Settings** >  **Rendering** > **Reflections** and then un-check the **Reduce lightmap mixing on smooth surfaces**.
+
+![](Engine\Rendering\LightingAndShadows\ReflectionEnvironment\Enable_LM_Mixing.png)
+
 ## High Quality Reflections
 
 While the default reflection quality settings strike a good balance between performance and visual quality, there could be instances where you want to achieve even higher quality reflections. The following sections describe the available methods for achieving high quality reflections.
@@ -176,7 +197,7 @@ An important factor in achieving high quality reflections is how accurately the 
 	[![](SM_HP_Vertex_Normals_00.png)(w:400 h:350)](SM_HP_Vertex_Normals_00.png)
 	[/REGION]
 
-1. At the bottom of the **LOD0**, there is a section called **Build Settings**. Click on the small triangle next Build Settings to expand the Build Settings options.
+1. At the bottom of the **LOD0**, there is a section called **Build Settings**. Click on the small triangle next to Build Settings to expand the Build Settings options.
 
 	[REGION:lightbox]
 	[![](SM_HP_Vertex_Normals_01.png)(w:400 h:350)](SM_HP_Vertex_Normals_01.png)

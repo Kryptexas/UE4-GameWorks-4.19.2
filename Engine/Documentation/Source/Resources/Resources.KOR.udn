@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2744667
+﻿INTSourceChangelist:3151855
 Availability: Public
 Title:샘플 & 튜토리얼
 Crumbs:%ROOT%
@@ -7,6 +7,7 @@ Navigation:topic
 Version: 4.9
 parent:%ROOT%
 order:7
+type:landing
 
 [VAR:Params]
 [PARAM:image]

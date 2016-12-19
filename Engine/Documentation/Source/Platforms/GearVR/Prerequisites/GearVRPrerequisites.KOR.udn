@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2940199
+﻿INTSourceChangelist:3108692
 Title: 삼성 기어 VR 헤드셋 요구사항
 Description:기어 VR 헤드셋의 필수 초기 구성입니다.
 Availability:Public
-Crumbs:
+Crumbs:%ROOT%, Platforms, Platforms/GearVR
 Navigation:platform
 Platform:Gear VR
 Skilllevel: Intermediate
@@ -29,8 +29,6 @@ tags:GearVR
 * **[Oculus Mobile Software Development Kit(SDK) Device and Environment Setup Guide](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.4.0_Device_and_Environment_Setup_Guide.pdf)**
 * **[Oculus Mobile Development Documentation](http://static.oculus.com/sdk-downloads/documents/Oculus_Mobile_v0.5.0_SDK_Documentation.pdf)**
 
-
-
 ## 기어 VR 헤드셋 요구사항
 
 UE4 기어 VR 개발에 들어가기 전, 먼저 다음 요구사항이 갖춰졌는지 확인해야 합니다. 그렇지 않으면 기어 VR 프로젝트가 기어 VR 헤드셋에 작동하지 않을 위험이 있습니다.
@@ -39,8 +37,9 @@ UE4 기어 VR 개발에 들어가기 전, 먼저 다음 요구사항이 갖춰�
 USB 코드가 정말 중요한데, 개발 PC 와 스마트폰 사이의 데이터 전송을 담당하기 때문입니다.
 
 * 특정 유형의 삼성 갤럭시 스마트폰만 기어 VR 헤드셋에 작동합니다.
-	[Oculus website](https://support.oculus.com/hc/en-us/articles/204113096-Samsung-Gear-VR-Innovator-Edition-Samsung-Galaxy-Note-4-Compatibility) 에 기어 VR 헤드셋과 작동하는 폰 모델 목록이 있습니다.
+	[Oculus website](https://support.oculus.com/help/oculus/1099393013405406/?ref=hc_fnav) 에 기어 VR 헤드셋과 작동하는 폰 모델 목록이 있습니다.
 	구매하시려는 삼성 갤럭시 노트 4 스마트폰이 기어 VR 헤드셋과 작동하는 올바른 모델인지 확인하시기 바랍니다.
+
 
 * [Samsung Website](http://www.samsung.com/us/support/downloads) 에서 갤럭시 노트 4 에 맞는 USB 드라이버를 다운로드한 뒤 설치하세요.
 
@@ -48,10 +47,10 @@ USB 코드가 정말 중요한데, 개발 PC 와 스마트폰 사이의 데이�
 
 * [UE4 런처](https://www.unrealengine.com/) or [Github](https://www.unrealengine.com/ue4-on-github) 에서 언리얼 엔진 버전 **4.7.4** 이상을 다운로드하세요.
 
-* **Engine\Extras\Android** 에서 찾을 수 있는 **Tegra Android Development Pack** 을 설치하세요.
+* **Engine\Extras\Android** 에서 찾을 수 있는 **CodeWorks for Android 1R4** 를 설치하세요.
 
-* 삼성 갤럭시 노트 4 스마트폰에 [개발자 모드](https://docs.unrealengine.com/latest/INT/Platforms/Android/GettingStarted/2/index.html) 가 활성화되었는지 확인하고, 안되어 있으면 해 줍니다.
-
+* 삼성 갤럭시 노트 4 스마트폰에 [개발자 모드](Platforms/Android/GettingStarted/2) 가 활성화되었는지 확인하고, 안되어 있으면 해 줍니다.
+	
 	![](Platforms\GearVR\GVR_Dev_Options_Enabled.png)
 
 * USB 를 통해 스마트폰을 개발 PC 에 꽂은 상태로, PC 에서 RSA Fingerprint 키를 수락합니다.
@@ -73,6 +72,8 @@ USB 코드가 정말 중요한데, 개발 PC 와 스마트폰 사이의 데이�
 	[/region]
 	
 	![](Platforms\GearVR\GVR_OSIG_File_Location.png)
+
+* 프로젝트의 Engine/Build/Android/Java 가 아닌 **Build/Android/assets** 디렉토리에 OSIG 파일을 넣어도 됩니다. 이런 식으로 OSIG 파일을 추가하면 그 파일은 추가된 프로젝트에만 사용될 뿐, 다른 기어 VR 프로젝트에는 사용되지 않는다는 점 유념해 주세요.
 
 다음으로 넘어가기 전 기어 VR 요구사항 부분에 나열된 모든 항목이 완료되었는지 확인하는 것이 매우 중요합니다.
 한 단계라도 건너뛰면 프로젝트가 기어 VR 헤드셋에 정상 작동하지 않을 수 있습니다.

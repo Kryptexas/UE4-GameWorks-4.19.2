@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:3108692
 Availability:Public
 Title:2. 그래스 툴 액터 생성 및 구성
 Crumbs:
@@ -31,21 +31,25 @@ Version: 4.8
 
 1. 랜드스케이프 그래스 타입 생성은, **콘텐츠 브라우저** 에 **우클릭** 한 다음 메뉴에서 **기타** > **기타** > **랜드스케이프 그래스 타입** 을 선택한 다음 이름을 **Grass_00** 라 합니다.
 
-	![](T_Create_LS_Grass.png)
+	[REGION:lightbox]
+	[![](T_Create_LS_Grass.png)(w:196 h:342)](T_Create_LS_Grass.png)
+	[/REGION]
 
 1. 랜드스케이프 그래스 타입에 **더블클릭** 하여 열고, **Grass Variaties** 배열 이름 옆 **더하기** 아이콘을 눌러 새 항목을 추가합니다.
 	
-	![](T_Add_New_GV.png)
+	[REGION:lightbox]
+	[![](T_Add_New_GV.png)(w:298 h:288)](T_Add_New_GV.png)
+	[/REGION]
 
-1. **랜드스케이프 그래스 타입** 액터 안에서 **Grass Mesh** 섹션을 찾은 다음 **None** 이라 되어있는 입력창을 클릭하고 **SM_FieldGrass_01** 라고 검색합니다.
+1. **랜드스케이프 그래스 타입** 액터 안에서 **Grass Mesh** 섹션을 찾은 다음 **None** 이라 되어있는 입력창을 클릭하고 **SM_FieldGrass_01** 라고 검색한 후, **SM_FieldGrass_01** 을 클릭하여 **Grass Mesh** 로 로드합니다.
 
 	![](T_Set_Grass_Type.gif)(convert:false)
 
-1. SM_FieldGrass_01 를 클릭하여 **Grass Mesh** 로 로드합니다.
-
 1. 스태틱 메시를 추가했으면, 프로퍼티를 다음과 같이 설정하여 충분한 메시를 스폰했을 때 임의로 회전되어 랜드스케이프 터레인에 정렬되도록 합니다.
 
-	![](T_Grass_Props.png)
+	[REGION:lightbox]
+	[![](T_Grass_Props.png)(w:330 h:387)](T_Grass_Props.png)
+	[/REGION]
 	
 	|프로퍼티 이름 | 값 | 이유 |
 	|--------------|-------|---------|

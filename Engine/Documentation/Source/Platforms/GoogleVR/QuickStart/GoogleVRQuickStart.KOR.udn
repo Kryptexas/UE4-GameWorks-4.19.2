@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2983084
+﻿INTSourceChangelist:3150518
 Title:구글 VR 퀵 스타트
 Crumbs:%ROOT%, Platforms, Platforms/GoogleVR
 Description:구글 VR 구성 및 사용 방법 안내입니다.
@@ -6,7 +6,7 @@ Availability:Public
 Version: 4.12
 SkillLevel: Intermediate
 parent:Platforms/GoogleVR
-type:quickstart
+type:quick start
 tags:VR
 tags:Google VR
 

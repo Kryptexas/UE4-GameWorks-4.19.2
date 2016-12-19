@@ -1,24 +1,29 @@
-﻿INTSourceChangelist:3106123
+﻿INTSourceChangelist:3188567
 title:HLOD （Hierarchical Level of Detail）の操作ガイド
-description:Words
+description:このガイドでは、HLOD システムを有効にし、ゲーム内で HLOD をセットアップする方法を説明しています。
 crumbs:
-availability:docs
+availability:Public
 version:4.13
+parent:Engine/HLOD
+tags:HLOD
+type:how-to
+order:3
+topic-image:Engine/HLOD/HowTo/HLOD_howto_Topic_02.png
+ 
+![](Engine/HLOD/HowTo/HLOD_howto_Topic_02.png)
 
-このページでは、**Hierarchical Level of Detail** (HLOD、階層的 LOD) メッシュの操作ガイドへのリンクを示します。こうしたガイドでは、HLOD システムを有効にし、ゲーム内で HLOD をセットアップする方法を説明しています。
+このガイドでは、HLOD システムを有効にし、ゲーム内で HLOD をセットアップする方法を説明しています。
 
-[OBJECT:TopicButtonList]
-	[PARAM:icon]
-		![](%ROOT%/tech_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		HLOD Topics
-	[/PARAM]
-	[PARAM:description]
-	[/PARAM]
-	[PARAM:links]
-		* [](Engine/HLOD/HowTo/Enabling "%Engine/HLOD/HowTo/Enabling:description%")
-		* [](Engine/HLOD/HowTo/BuildingHLODs "%Engine/HLOD/HowTo/BuildingHLODs:description%")
-	[/PARAM]
-[/OBJECT]
-[]()
+## Beginner
+
+[DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"beginner")]
+
+## Intermediate
+
+[DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"intermediate")]
+
+<!--
+## Advanced
+
+[DIR(output:"fancy" parent:"Engine/HLOD/HowTo" skill_level:"advanced")]
+-->

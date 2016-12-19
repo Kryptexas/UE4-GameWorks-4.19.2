@@ -8,12 +8,13 @@ type:landing
 parent:Platforms/VR
 tags:VR
 tags:SteamVR
+tags:Platform
 
 ![](T_Vive_HMD.png)
 
 ## Starting Out
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/SteamVR")]
+[DIR(output:"listbutton" type:"quick start" parent:"Platforms/SteamVR")]
 
 ## SteamVR Topics
 

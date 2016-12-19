@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3038380
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:2 - 첫 번째 샷 - 카메라
 Crumbs:%ROOT%
@@ -9,7 +9,7 @@ Related:Engine\Sequencer
 Related:Engine\Sequencer\Overview
 checkpoint: sequencerqs
 parent:Engine/Sequencer/QuickStart
-type:sequential
+type:multi-step
 order:2
  
 [NAV]

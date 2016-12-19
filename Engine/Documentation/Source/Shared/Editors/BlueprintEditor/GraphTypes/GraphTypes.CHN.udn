@@ -1,16 +1,16 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:3108692
 Availability:NoPublish
-Title:Blueprint Graph Types
+Title:蓝图图表类型
 Crumbs:
-Description:Overview of the Blueprint Graph types.
+Description:蓝图图表类型总览。
 
 
 [EXCERPT:ConstructionScript]
-The ConstructionScript function is executed whenever an instance of this Blueprint is placed or modified. It allows you to do several powerful things:
+此蓝图的实例被放置或修改时将执行 ConstructionScript 函数。通过它可进行数项强力操作：
 
-* Configure components inside your Blueprint based on the value of exposed variables.
-* Create components through programming allowing for procedural content.
-* Modify the blueprint based on the scene (e.g. results of line traces).
+* 基于公开变量的数值在蓝图中配置组件。
+* 通过允许过程内容的编程创建组件。
+* 基于场景修改蓝图（如线追踪的结果）。
 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/UserGuide/UserConstructionScript
@@ -19,7 +19,7 @@ Engine/Blueprints/UserGuide/UserConstructionScript
 [/EXCERPT:ConstructionScript]
 
 [EXCERPT:EventGraph]
-An Event Graph allows you to place many types of nodes to create different behaviors. Event graphs are very flexible and can have multiple Event nodes to start execution, nodes that take time to execute (e.g. Delay), as well as Timeline nodes.
+通过事件图表能放置多种类型的节点，创建不同行为。事件图表非常灵活，可拥有多个事件节点开始执行、需要时间执行的节点（如 Delay），以及 Timeline 节点。
 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/UserGuide/EventGraph
@@ -28,9 +28,9 @@ Engine/Blueprints/UserGuide/EventGraph
 [/EXCERPT:EventGraph]
 
 [EXCERPT:FunctionGraph]
-A Function Graph allows you to encapsulate functionality and re-use it. Function graphs have a single input and output node with a single execution pin, but you can add as many input and output data pins as you like. Functions cannot contain any nodes that take time (e.g. Delay or Timelines) or Event nodes. You can add temporary 'local variable' nodes to a Function, but they will be wiped when the function is completed.
+函数图表可封装功能并重新使用。函数图表拥有带单个执行引脚的单一输入和输出节点，但用户可根据需求添加任意数量的输入和输出数据引脚。函数无法包含花费时间的节点（如 Delay 或 Timeline）或 Event 节点。可将临时“本地变量”节点添加到函数，但函数完成时它们将被清除。
 
-You can drag-and-drop a Function from the MyBlueprint tab into the graph area to create a use of that function.
+可从 MyBlueprint 标签拖放函数到图表区域中，建立对该函数的使用。
 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/UserGuide/Functions
@@ -39,7 +39,7 @@ Engine/Blueprints/UserGuide/Functions
 [/EXCERPT:FunctionGraph]
 
 [EXCERPT:MacroGraph]
-A Macro Graph allows you to encapsulate functionality and re-use it. Macros have a single input and output node, but you can add as many input and output pins as you like (including execution pins). Macro's can contain nodes that take time (e.g. Delay) but can not contain Timeline or Event nodes. You can add 'local variable' nodes to a Macro, and their value will persist when the macro is complete.
+宏图表可封装功能并重新使用。宏拥有单一输入和输出节点，但用户可根据需求添加任意数量的输入和输出引脚（包含执行引脚）。宏可以包含花费时间的节点（如 Delay），但无法包含 Timeline 或 Event 节点。可将“本地变量”节点添加到宏，但宏完成后它们的值将保持不变。
 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/UserGuide/Macros
@@ -48,7 +48,7 @@ Engine/Blueprints/UserGuide/Macros
 [/EXCERPT:MacroGraph]
 
 [EXCERPT:AnimGraph]
-An AnimGraph is a special graph used to blend Animations together. White lines in an AnimGraph represent animated poses being blended, not execution flow.
+动画图表（AnimGraph）是用于混合动画的特殊图表。AnimGraph 中的白线代表正在混合的动画动作，并非执行流。
 
 [VAR:ToolTipFullLink]
 Engine/Animation/AnimBlueprints/AnimGraph
@@ -57,16 +57,16 @@ Engine/Animation/AnimBlueprints/AnimGraph
 [/EXCERPT:AnimGraph]
 
 [EXCERPT:StateMachine]
-A State Machine graph is used as part of the animation system to play animations (and transitions) in response to a set of transition rules.
+状态机（State Machine）图表作为动画系统的一部分播放动画（和过渡），响应一套过渡规则。
 
 [/EXCERPT:StateMachine]
 
 [EXCERPT:Variable]
-A variable is used to store data inside your Blueprint.
+变量用于在蓝图中保存数据。
 
-You can drag variables around in the MyBlueprint tab to change their order and category. You can also drag them into the graph area to add a 'get' or 'set' node for that variable. Dragging a variable onto the pin of a node will create a 'get' or 'set' node connected to that pin (if possible). Dragging a variable onto an existing get or set node will change that node to use the new variable instead.
+可在 MyBlueprint 标签中随意拖动变量，改变其顺序和类目。可将它们拖入图表区，为此变量添加一个“get”或“set”节点。将变量拖到节点引脚上将创建一个与该引脚相连的“get”或“set”节点（如可能）。将变量拖到现有的一个 get 或 set 节点上将改变节点转而使用新变量。
 
-Selecting a variable will let you edit its name, type, tooltip, etc in the Details tab.
+选中变量后即可在 Details 标签中编辑其命名、类型、提示文本等。
 
 [VAR:ToolTipFullLink]
 Engine/Blueprints/UserGuide/Variables
@@ -75,10 +75,10 @@ Engine/Blueprints/UserGuide/Variables
 [/EXCERPT:Variable]
 
 [EXCERPT:Event]
-An Event is a node that starts execution in an Event Graph in response to some action. This might be a key being pressed, or a trigger being overlapped.
+Event 是为响应某些操作而开始在事件图表中执行的节点。这可能是一个按下的键或重叠的触发器。
 
 [/EXCERPT:Event]
 
 [EXCERPT:LocalVariable]
-Local variables are variables that exist only within the scope of the function that they are created in, and the data is not persistent between calls of the functions.
+本地变量只存在于函数（变量创建于此函数中）的范围内，函数调用之间数据会发生变化。
 [/EXCERPT:LocalVariable]

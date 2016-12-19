@@ -3,6 +3,9 @@ Title: Scalability
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:Options for adjusting quality and performance.
 version: 4.9
+parent:Engine/Performance
+tags:Performance and Profiling
+tags:scalability
 
 [VAR:Topic]
 [OBJECT:Topic]

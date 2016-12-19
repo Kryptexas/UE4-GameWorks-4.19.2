@@ -9,27 +9,13 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Animation/StateMachines
 Related: Gameplay/AI
 Related: Engine/Content/Tools/MayaRiggingTool
-version: 4.12
-
-[VAR:Topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Animation/AnimBlueprints:title%](AnimBP_topic.png)
-	[/PARAM]
-	[PARAM:icon]
-		![](%ROOT%/anim_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Animation/AnimBlueprints:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Animation/AnimBlueprints:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Animation/AnimBlueprints]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+version: 4.14
+type:landing
+topic-image:animbptopic.png
+tags:Animation
+tags:Animation Blueprint
+tags:Blueprints
+tags:State Machine
 
 [REGION:banner]
 ![](AnimationBlueprint.png)
@@ -37,26 +23,17 @@ version: 4.12
 
 
 [EXCERPT:Intro]
-An **Animation Blueprint** is essentially a specialized [**Blueprint**](Engine/Blueprints) whose graphs 
-control the animation of a SkeletalMesh. It can perform blending of animations, directly control the 
-bones of the skeleton, and output a final pose for a SkeletalMesh each frame.
-
-The Controller directs its Pawn (or Character) to move based on player input or decisions made based on the gameplay 
-environment. Each Pawn has a SkeletalMeshComponent that references the SkeletalMesh to animate and 
-has an instance of a Animation Blueprint. The Animation Blueprint, through its two graphs, can access properties 
-of the owning Pawn, compute values used for blending or state transitions or driving AnimMontages, and 
-calculate the current pose of the SkeletalMesh based on blending of AnimationSequences and direct 
-transformations of the Skeleton from SkeletalControls.
+An **Animation Blueprint** is essentially a specialized [Blueprint](Engine/Blueprints) whose graphs control the animation of a [Skeletal Mesh.](Engine/Content/Types/SkeletalMeshes) 
+Graphs are edited inside the **Animation Blueprint Editor** where you can perform blending of animations, directly control the bones of a Skeleton, or set up logic that will ultimately define the final animation pose for a Skeletal Mesh to use each frame. 
 [/EXCERPT:Intro]
 
 [REGION:note]
-An example of an **Animation Blueprint** is demonstrated on the [**Animation Content Examples**](Resources\ContentExamples\Animation) page under section 1.2.
+An example of an **Animation Blueprint** is demonstrated on the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.2.
 [/REGION]
 
 ## Creating & Navigating Animation Blueprints
 
-Before jumping into how Animation Blueprints work, it’s best to understand how to create them and start to familiarize yourself with the Animation Blueprint Interface. 
-Check out each of the links below for more information. 
+Before jumping into how Animation Blueprints work, it's best to understand how to create them and start to familiarize yourself with the Animation Blueprint Interface. 
 
 [REGION:topics half]
 %Engine\Animation\AnimBlueprints\Creation:TopicCompact%
@@ -65,7 +42,7 @@ Check out each of the links below for more information.
 
 ## Working with Animation Blueprints
 
-Once you have created your Animation Blueprint and can navigate the UI, it's time to consider which aspect of it you want to work on first.
+Once you have created your Animation Blueprint and can navigate the UI, it's time to consider which aspect you want to work on first.
 
 [EXCERPT:Graphs]
 There are two main components in an Animation Blueprint that work in conjunction to create the final animation 
@@ -74,22 +51,41 @@ to drive State Machines, BlendSpaces, or other nodes allowing blending between m
 that can fire off notifications to other systems to enable dynamic animation-driven effects to occur.
 [/EXCERPT:Graphs]
 
-Check out the links below for more information on each topic. 
-
 [REGION:topics half]
 %Engine\Animation\AnimBlueprints\EventGraph:TopicCompact%
 %Engine\Animation\AnimBlueprints\AnimGraph:TopicCompact%
 [/REGION]
 
 
-## Working with Child Animation Blueprints
+## Working with Sub Animation Blueprint Instances
 
-When creating and setting up your characters and Animation Blueprints, there may be instances where you have multiple characters that are similar but have entirely different animations for different states. Rather than create Animation Blueprints for each of those characters, you may be able to use a **Child Animation Blueprint** of a pre-existing Animation Blueprint and override the animation assets that you want to replace. The Child Animation Blueprint will inherit everything from the parent, but it will also allow you to specify which animations to override via the **Asset Override Editor**. 
+When creating Animation Blueprints for various characters, it is not uncommon to share animation logic between those characters. 
+For example, suppose you have physical animation or [AnimDynamics](Engine\Animation\AnimHowTo\AnimDynamics) applied to one character and you want to apply it to another. 
+With the **Sub Anim Instance** node, you can create a reference to a separate Animation Blueprint to access and include all of its logic within another Animation Blueprint (sort of like a function call). 
 
-For example, suppose you have two humanoid type characters where one is a human and another is a werewolf. Both characters can walk, run, jump, crawl, etc. However, their motions may be entirely different. The logic of moving between those motions is the same, but the motions themselves are different. It's perfectly fine to create two different Animation Blueprints, but to save some time. you can create a Child Animation Blueprint and selectively choose which animations to override. 
+This can be used to break up large Animation Blueprints into separate, smaller Animation Blueprints, that can be included within other Animation Blueprints. 
+For example, you could have one Animation Blueprint for purely "Locomotion" and a Sub Anim Instance that handles any physics-based animation. 
+Member variables of a Sub Animation Blueprint can also be exposed as input pins inside their parent Animation Blueprint and **Sub-Graph Input** nodes can be used to expose **In Poses** on the Sub Anim Instance (shown below).
+
+![](SubAnimInstance.png)
+
+[REGION:warning]
+When working with Sub Anim Instances, they must use the same Skeleton as the outer Animation Blueprint it resides in.
+[/REGION]
 
 [REGION:note]
-See [**Animation Blueprint Override**](Engine/Animation/AnimHowTo/AnimBPOverride) for an example walk-through of creating and overriding an Animation Blueprint with a Child Animation Blueprint.
+See [Using Sub Anim Instances](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimHowTo/SubAnimInstance/index.html) for an example walk-through of setting up a Sub Animation Blueprint Instance to affect a character's movement. 
+[/REGION]
+
+
+## Working with Child Animation Blueprints
+
+Also when creating and setting up your characters and Animation Blueprints, there may be instances where you have multiple characters that are similar but have entirely different animations for different states. Rather than create Animation Blueprints for each of those characters, you may be able to use a **Child Animation Blueprint** of a pre-existing Animation Blueprint and override the animation assets that you want to replace. The Child Animation Blueprint will inherit everything from the parent, but it will also allow you to specify which animations to override via the **Asset Override Editor**. 
+
+For example, suppose you have two humanoid type characters where one is a human and another is a werewolf. Both characters can walk, run, jump, crawl, etc. However, their motions may be entirely different. The logic of moving between those motions is the same, but the motions themselves are different. It's perfectly fine to create two different Animation Blueprints but to save some time. you can create a Child Animation Blueprint and selectively choose which animations to override. 
+
+[REGION:note]
+See [Animation Blueprint Override](Engine/Animation/AnimHowTo/AnimBPOverride) for an example walk-through of creating and overriding an Animation Blueprint with a Child Animation Blueprint.
 [/REGION]
 
 

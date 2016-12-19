@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:3046164
-Availability:Docs
+﻿INTSourceChangelist:3138899
+Availability:Public
 Title:C++ を使ってレベルをロード / アンロードする
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
 Description:C++ で作成したカスタム ストリーミング アクタでレベルをストリームする方法
@@ -35,8 +35,8 @@ tags:Level Streaming
 OverlapBegins は UFUNCTION マクロでタグ付けされなければならず、OnComponentBeginOverlap と同じシグネチャを持たなければならないという意味です。
 		protected:
 
-		UFUNCTION()
-		void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+	UFUNCTION()
+	void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 
 1. `LevelStreamerActor.h` で、LevelToLoad を呼び出す EditAnywhere である protected の FName 変数も作成します。これにより、インスタンスごとに LevelToLoad を変更できるようになります。
 
@@ -47,15 +47,11 @@ OverlapBegins は UFUNCTION マクロでタグ付けされなければならず�
 
 		#include "Kismet/GameplayStatics.h"
 
-1. OverlapBegins 機能を作成する準備ができました。`LevelStreamerActor.cpp` で、関数の定義を開始します。If 文を追加して、 
-キャラクターの取得と照合が可能なワールドがあるかチェックします。Index 0 でキャラクターを取得するために、GameplayStatics 関数 `GetPlayerCharacter` も使用できます。 
+1. OverlapBegins 機能を作成する準備ができました。`LevelStreamerActor.cpp` で、関数の定義を開始します。Index 0 でキャラクターを取得するために、GameplayStatics 関数 `GetPlayerCharacter` も使用できます。 
 
 		void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 		{
-			if(GWorld)
-			{
-				ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);			
-			}
+				ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);		
 		}
 
 1. MyCharacter を取得したら、OtherActor が BoxComponent にオーバーラップしていることを確認します。さらに、LevelToLoad が空でないことを確認したら LoadStreamLevel を呼び出します。 
@@ -86,7 +82,7 @@ OverlapBegins は UFUNCTION マクロでタグ付けされなければならず�
 			// Sets default values for this actor's properties (このアクタのプロパティのデフォルト値を設定します)
 			ALevelStreamerActor();
 
-			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
+			// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
 			virtual void BeginPlay() override;
 
 			// Called every frame (フレームごとに呼ばれます) 
@@ -105,9 +101,9 @@ OverlapBegins は UFUNCTION マクロでタグ付けされなければならず�
 			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 			UBoxComponent* OverlapVolume;
 
-		};
+			};
 
-	`LevelStreamerActor.cpp` は最終的にこのようになります。
+		`LevelStreamerActor.cpp` は最終的にこのようになります。
 
 		#include "Levels.h"
 		#include "Kismet/GameplayStatics.h"
@@ -122,10 +118,9 @@ OverlapBegins は UFUNCTION マクロでタグ付けされなければならず�
 			OverlapVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("OverlapVolume"));
 			RootComponent = OverlapVolume;
 
-
 			OverlapVolume->OnComponentBeginOverlap.AddUniqueDynamic(this, &ALevelStreamerActor::OverlapBegins);
 		}
-		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます) 
+		// Called when the game starts or when spawned (ゲーム開始時またはスポーン時に呼ばれます)
 		void ALevelStreamerActor::BeginPlay()
 		{
 			Super::BeginPlay();
@@ -141,15 +136,12 @@ OverlapBegins は UFUNCTION マクロでタグ付けされなければならず�
 
 		void OverlapBegins(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 		{
-			if(GWorld)
-			{
 				ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);
 				if (OtherActor == MyCharacter && LevelToLoad != "")
 				{
 					FLatentActionInfo LatentInfo;
 					UGameplayStatics::LoadStreamLevel(this, LevelToLoad, true, true, LatentInfo);
 				}
-			}
 		}
 1. コードをコンパイルしたら、エディタに切り替えます。
 
@@ -165,27 +157,24 @@ OverlapBegins は UFUNCTION マクロでタグ付けされなければならず�
 _Character_ が BoxComponent からでる時にレベルをアンロードするには、`UGameplayStatics::UnloadStreamLevel` を呼び出して `OnComponentEndOverlap` へ結合する `OverlapEnds` 関数を作成します。次のコード スニペットを  
 your LevelStreamerActor: に追加します。
 
-In LevelStreamerActor.h:
+LevelStreamerActor.h の場合:
 
 	UFUNCTION()
 	void OverlapEnds(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 
 
-In LevelStreamerActor.cpp:
+LevelStreamerActor.cpp の場合:
 
 	void ALevelStreamerActor::OverlapEnds(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 	{
-		if (GWorld)
-		{
 			ACharacter* MyCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);
 			if (OtherActor == MyCharacter && LevelToLoad != "")
 			{
 				FLatentActionInfo LatentInfo;
 				UGameplayStatics::UnloadStreamLevel(this, LevelToLoad, LatentInfo);
 			}
-		}
 	}
 
-In the constructor:
+コンストラクタの場合:
 	OverlapVolume->OnComponentEndOverlap.AddUniqueDynamic(this, &ALevelStreamerActor::OverlapEnds);

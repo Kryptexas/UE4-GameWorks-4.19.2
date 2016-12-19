@@ -23,11 +23,12 @@ In your .h file (e.g. `ItemInterface.h`):
     UINTERFACE(Blueprintable)
     class UItemInterface : public UInterface
     {
-        GENERATED_UINTERFACE_BODY()
+        GENERATED_BODY()
     };
 
     class IItemInterface
-    {    GENERATED_IINTERFACE_BODY()
+    {    
+		GENERATED_BODY()
 
     public:
 

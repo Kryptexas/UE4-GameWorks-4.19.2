@@ -1,7 +1,8 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title:Managing Multiple Levels
-Description:Manage your persistent level and sublevels with the Levels window.
+﻿INTSourceChangelist:3108692
+Availability: Public
+Title:다수의 레벨 관리
+Description:레벨 창으로 퍼시스턴트 레벨과 서브 레벨을 관리하는 법입니다.
+crumbs:
 Version: 4.12
 parent:Engine/Levels
 type:reference
@@ -48,117 +49,115 @@ order:2
 
 [TOC]
 
-Levels are managed with the **Levels** window. You can access the **Levels** window through the **Windows** menu.
+레벨은 **레벨** 창을 통해 관리합니다. **레벨** 창은 **창** 메뉴를 통해 열 수 있습니다.
 
 ![](WindowLevels.png)
 
-You will always have a **Persistent Level**, and you can have one or more sublevels that are always loaded or are streamed in with Level Streaming Volumes, Blueprints, or C++ code.
-The **Levels** window shows all of these levels, enabling you to change which level is current (indicated in bold blue text), save one or more levels, and access Level Blueprints.
- The current Level is the one that will be modified if changes are made in the Level Editor's viewport. This allows you to easily work on multiple maps, as long as they
- are all writeable.
+항상 하나의 **Persistent Level** (지속 레벨, 퍼시스턴트 레벨)이 있으며, 항상 로드되거나 레벨 스트리밍 볼륨, 블루프린트, C++ 코드를 통해 스트림 인 가능한 서브 레벨 하나 이상으로 구성됩니다.
+**레벨** 창에는 이 레벨이 전부 표시되어, (두꺼운 파랑 글씨로 표시된) 현재 레벨 설정을 변경하거나, 하나 이상의 레벨을 저장하거나, 레벨 블루프린트에 접근할 수 있습니다.
+ 현재 레벨은 레벨 에디터 뷰포트에서 변경할 때 실제로 변경되는 레벨입니다. 이를 통해 다수의 맵에 대한 작업을, 전부 쓰기 가능하게 설정된 경우 
+쉽게 할 수 있습니다.
 
 ![](LevelsWindow.png)
 
-By right-clicking on the **Persistent Level**, you can perform operations like making it the current level, changing its visibility and lock status, and selecting all the Actors in that level.
+**퍼시스턴트 레벨** 에 우클릭하면 현재 레벨로 만들거나, 표시여부 및 잠김 상태를 변경하거나, 해당 레벨의 모든 액터를 선택하는 등의 작업을 할 수 있습니다.
 
 ![](RightClickPersistent.png)
 
-Right-clicking on any sublevel gives a similar array of options, with additional entries for removing the sublevel and changing its streaming method. 
+아무 서브레벨에 우클릭하면 비슷한 옵션이 나열되며, 서브레벨 제거나 스트리밍 메소드 변경을 위한 추가 항목이 포함되어 있습니다.
 
 ![](RightClickStreaming.png)
 
-Changing a level's visibility is for visualization purposes only and has no bearing on whether or not a level will stream into 
-the game when it is run. However, a level that is not visible here will not be affected if you rebuild the level, which can be a great timesaver if you have complicated levels. 
+레벨의 표시여부를 바꾸는 것은 시각화 용도일 뿐, 게임 실행 시 레벨을 스트림 인 시킬지 여부와는 관계가 없습니다.
+하지만 여기 보이지 않는 레벨은 레벨을 다시 빌드하면 영향을 받지 않을 것이므로, 복잡한 레벨이 있는 경우 시간을 크게 절약시켜줄 것입니다.
 
-## Adding New Sublevels
+## 새 서브레벨 추가
 
-You can create sublevels by splitting off part of an existing Persistent Level or sublevel, by creating a new level, or by adding an existing level.
-Adding a new sublevel makes it the current Level, so if you want to continue working in the level you were using prior to the addition, make sure to right-click on it and select 
-**Make Current** from the context menu.
+서브레벨 생성은 기존 퍼시스턴트 레벨이나 서브레벨의 일부분을 떼어내거나, 새로운 레벨을 만들거나, 기존 레벨을 추가하는 식으로 이루어집니다.
+새로운 서브레벨을 추가하면 현재 레벨로 설정되어, 추가하기 전 사용했던 레벨을 계속 사용하고자 하는 경우, **우클릭** 맥락 메뉴에서 
+**Make Current** (현재로 만들기)를 선택해 주세요.
 
-### Adding an Existing Level
+### 기존 레벨에 추가
 
-1. Click on the **Levels** dropdown menu, then select **Add Existing...** to add a new sublevel.
+1. **레벨** 드롭다운 메뉴를 클릭한 뒤 **Add Existing...** (기존 추가...)를 선택하면 새로운 서브레벨을 추가합니다.
 
 	![](AddExisting.png)
 
-1. Select your Level to add in the **Open Level** dialog, then click on **Open**.
+1. **레벨 열기** 대화창에서 추가할 레벨을 선택한 뒤, **열기** 를 클릭합니다.
 	
 	![](SunTempleStreaming_Select.png)
 
-### Creating an Empty Sublevel
+### 공백 서브레벨 생성
 
-1. Click on the **Levels** dropdown menu, then select **Create New...** to create a new blank Level.
+1. **레벨** 드롭다운 메뉴를 클릭한 뒤, **Create New...** (새로 생성...)을 선택하여 공백 레벨을 새로 만듭니다.
 
 	![](CreateNew.png)
 
-1. Select a save location and a name for your Level, then click on **Save**. 
+1. 레벨의 저장 위치와 이름을 선택한 뒤, **저장** 을 클릭합니다.
 
 	![](Engine/Levels/HowTo/WorkWithLevelAssets/SaveLevelAs.png)(w:400)
 
-	The new Level will be added as a sublevel of your current persistent Level, and it will also be made the current Level for working in the Viewport.
+	새로운 레벨이 현재 퍼시스턴트 레벨의 서브레벨로 추가되며, 뷰포트에 현재 작업 레벨로도 설정됩니다.
 
-### Splitting Off Sublevels
+### 서브레벨 분할
 
-If you've already created a Level, and later decide you want to split part of that Level off for streaming or for collaboration with a team, you can create a new Level with Actors
-from the original. 
+이미 레벨을 만든 상태에서 나중에 해당 레벨의 일정 부분을 떼어내어 스트리밍 또는 팀과의 공동 작업에 쓰려는 경우, 원본의 액터로 레벨을 새로 
+만들 수 있습니다.
 
-1. Select the Actors you want to move to the new level in the **Scene Outliner** or in the **Viewport**.
+1. **씬 아웃라이너** 또는 **뷰포트** 에서 새로운 레벨로 옮기고자 하는 액터를 선택합니다.
 
-1. In the **Levels** window, click on the **Levels** dropdown menu, then select **Create New with Selected Actors...** to create a new Level.
+1. **레벨** 창에서 **레벨** 드롭다운 메뉴를 클릭한 뒤 **Create New with Selected Actors...** (선택된 액터로 새로 생성...)을 선택하여 새 레벨을 만듭니다.
 
 	![](CreateNewWithSelectedActors.png)
 
-1. Select a save location and a name for your Level, then click on **Save**. 
+1. 레벨의 저장 위치와 이름을 선택한 뒤, **저장** 을 클릭합니다.
 
 	![](Engine/Levels/HowTo/WorkWithLevelAssets/SaveLevelAs.png)(w:500)
 
-	All your selected Actors will be removed from their original Level and added to the new one, which will be added as a sublevel of your current persistent Level and made the current Level for working in the Viewport. 
+	선택된 액터 전부 원본 레벨에서 제거되어 새로운 레벨에 추가되며, 해당 레벨은 현재 퍼시스턴트 레벨의 서브레벨로 추가됨과 동시에 뷰포트 현재 작업 레벨로 설정됩니다.
 
 	[REGION:note]
-	If you are moving an Actor that another Actor that remains in the persistent Level references, you will get a pop-up message asking if you really want to delete it from the persistent Level.
+	퍼시스턴트 레벨에 남아있는 액터가 레퍼런싱하는 액터를 옮기는 경우, 퍼시스턴트 레벨에서 정말 삭제하겠냐는 메시지가 뜹니다.
 
 	![](DeleteNewLevel.png)
 	[/REGION]
 
-## Moving Actors Between Levels
+## 레벨간 액터 이동
 
-While you can copy Actors from your active Level, then switch active Levels to paste Actors, there is a simpler way to move Actors between Levels.
+활성 레벨에서 액터를 복사한 뒤, 활성 레벨을 전환하여 액터를 붙일 수도 있지만, 레벨간 액터 이동을 단순하게 할 수 있는 방법이 있습니다.
 
-1. Select the Actors you want to move to the new level in the **Scene Outliner** or in the **Viewport**.
+1. 새 레벨로 옮기고자 하는 액터를 **씬 아웃라이너** 또는 **뷰포트** 에서 선택합니다.
 
-1. **Right-click** on a Level in the **Levels** window, then select **Move Selected Actors to Level** from the context menu.
+1. **레벨** 창에서 레벨에 **우클릭** 한 뒤 맥락 메뉴에서 **Move Selected Actors to Level** (선택된 액터를 레벨로 이동) 옵션을 선택합니다.
 
 	![](MoveSelectedActors.png)
 
-1. Press **Ctrl+S** to save all Levels.
+1. **Ctrl+S** 키를 눌러 모든 레벨을 저장합니다.
 
-## Level Details
+## 레벨 디테일
 
-The **Level Details** button is indicated with a magnifying glass and question mark in the **Levels Window**, and enables you to access additional information about your current Levels.
-To set Level Streaming Volumes, you need to open the **Level Details** for your streaming Levels; for more on this process, see the [Level Streaming Volumes how-to](Engine/LevelStreaming/HowTo/StreamWithVolumes).
+**레벨 디테일** 버튼은 **레벨 창** 에 돋보기와 물음표로 나타나며, 현재 레벨 관련 부가 정보에 접근할 수 있습니다.
+레벨 스트리밍 볼륨을 설정하려면, 스트리밍 레벨에 대한 **레벨 디테일** 창을 열어보면 됩니다. 이 프로세스 관련 자세한 내용은 [](Engine/LevelStreaming/HowTo/StreamWithVolumes) 문서를 참고하세요.
 
 ![](SummonLevelDetails.png)
 
-No additional details are visible for persistent Levels, although there is a dropdown menu you can use to change to another Level. 
+퍼시스턴트 레벨에 대해 추가적인 세부 정보가 보이지 않으나, 드롭다운 메뉴를 통해 다른 레벨로 변경할 수 있습니다.
 
 ![](LevelDetails_Persistent.png)(w:500)
 
-For sublevels, you can set the Level's offset **Position** and **Rotation**, as well as the **Streaming Volumes** to use and the debug **Level Color**. Advanced settings like the 
-[minimum time between unload requests](Engine/LevelStreaming/Overview#addinghysteresistounloadingrequests) to improve performance are also accessible here.
+서브레벨의 경우, 레벨의 오프셋 **위치** 및 **회전** 과 아울러 사용할 **스트리밍 볼륨** 을 설정하고 **레벨 컬러** 디버깅을 할 수 있습니다. [언로드 재요청 최소 간격](Engine/LevelStreaming/StreamingVolumes) 처럼 퍼포먼스 향상을 위한 고급 세팅 역시 여기서 접근 가능합니다.
 
 ![](LevelDetails_Streaming.png)
 
-## Visualizing Sublevels
+## 서브레벨 시각화
 
-You can set the color of sublevels either in the main **Levels** window or in the **Level Details** window. 
+서브 레벨의 색은 메인 **레벨** 창 또는 **레벨 디테일** 창에서 설정할 수 있습니다.
 
-To toggle showing the level color, use the **Show** button on the viewport, then select **Advanced > Level Coloration**.
+레벨 색 표시 토글은 뷰포트의 **표시** 버튼을 누른 뒤 **고급 > Level Coloration** (레벨 착색)을 선택하면 됩니다.
 
 ![](ShowLevelColoration.png)
 
-The persistent level will be shown in white, while all sublevels will be indicated with their selected colors. **Level Coloration** works in perspective and orthographic viewports,
-and will be toggled off with **Game Mode**.
+퍼시스턴트 레벨은 흰색으로 표시되는 반면, 모든 서브레벨은 선택된 색으로 나타납니다. **Level Coloration** (레벨 착색)은 원근 뷰포트와 직교 뷰포트에서 작동하며, 
+**게임 모드** 로 껐다켰다 할 수 있습니다.
 
 ![](LevelColorOn.png)
-

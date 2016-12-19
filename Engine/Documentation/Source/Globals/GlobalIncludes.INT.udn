@@ -204,6 +204,40 @@ Description:
 [/REGION]
 [/VAR]
 
+[VAR:MobileSelect]
+[REGION:section]
+	[REGION:titlesection]
+	Choose Your mobile platform
+	[/REGION]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		Platform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		android
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Android
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		Platform
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		ios
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		iOS
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+[/VAR]
 
 [EXCERPT:bpModesRemoved]
 [REGION:note]

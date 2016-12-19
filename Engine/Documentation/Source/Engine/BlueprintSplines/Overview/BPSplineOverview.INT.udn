@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title:Blueprint Spline Components Overview
 Crumbs: %ROOT%, Engine
 Description:A brief overview of Blueprint Spline Components and Blueprint Spline Mesh Components.
@@ -11,6 +11,9 @@ related:Engine/BlueprintSplines/HowTo
 related:Engine/BlueprintSplines/Reference/ComponentProperties
 related:Engine/BlueprintSplines/Reference/MeshComponentProperties
 related:Engine/BlueprintSplines/Reference/SplineEditorTool
+version:4.13
+type:overview
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,7 +55,7 @@ related:Engine/BlueprintSplines/Reference/SplineEditorTool
 [/VAR]
 
 
-At their core, **Blueprint Spline Components** are just a path for you to use for positional data. You can use it to move **Actors** (or other **Components**) around the world or place a series of **Actors** (or other **Components**) along the spline. They are fully editable in Blueprints with the ability to add/remove/duplicate Spline Points, change their tangent types, even animate them on tick. Further, they are also editable in the Level Editor with the capability to pass back those edits to their **Blueprint Construction Script**.
+At their core, a **Blueprint Spline Component** is just a path for you to define and use positional data. You can use it to move **Actors** (or other **Components**) around the world, or place a series of **Actors** (or other **Components**) along the spline. They are fully editable in the Blueprint Viewport and in the Level Editor, with the ability to add/remove/duplicate Spline Points, change their tangent types, and even animate them on tick. Further, they are also editable using the **Blueprint Construction Script**, taking in edits made in the Blueprint Viewport or Level Editor, and mofifying them further.
 
 ![](BPSC_1.png)
 
@@ -60,6 +63,6 @@ At their core, **Blueprint Spline Components** are just a path for you to use fo
 
 ![](BPSMC_1.png)
 
-While their use cases are very different, they share the same procedures for adding them to a Blueprint, and editing tools.
+While their use cases are very different, they share the same procedures for adding them to a Blueprint, and use the same editing tools.
 
 

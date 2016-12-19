@@ -1,10 +1,13 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3151855
 Availability: Public
 Title:핵심 머티리얼 개념
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:UE4 머티리얼과 그 작동법에 대한 소개 문서입니다.
 Version: 4.9
 SkillLevel: Beginner
+topic-image:Engine/Rendering/Materials/EssentialImage.png
+order:1
+type:overview
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -20,40 +23,6 @@ SkillLevel: Beginner
 	[PARAM:home]
 		[](Tracks/LevelDesign/Beginner)
 		%Tracks/LevelDesign/Beginner:menu%
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:topic]
-[OBJECT:Topic]
-	[PARAM:image]
-		![%Engine/Rendering/Materials/IntroductionToMaterials:title%](Engine/Rendering/Materials/EssentialImage.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/Materials/IntroductionToMaterials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/Materials/IntroductionToMaterials:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/Materials/IntroductionToMaterials]
-	[/PARAM]
-[/OBJECT]
-[/VAR]
-
-[VAR:TopicCompact]
-[OBJECT:TopicCompact]
-	[PARAM:image]
-		![%Engine/Rendering/Materials/IntroductionToMaterials:title%](Engine/Rendering/Materials/EssentialImage.png)
-	[/PARAM]
-	[PARAM:title]
-		%Engine/Rendering/Materials/IntroductionToMaterials:title%
-	[/PARAM]
-	[PARAM:description]
-		%Engine/Rendering/Materials/IntroductionToMaterials:description%
-	[/PARAM]
-	[PARAM:path]
-		[RELATIVE:Engine/Rendering/Materials/IntroductionToMaterials]
 	[/PARAM]
 [/OBJECT]
 [/VAR]

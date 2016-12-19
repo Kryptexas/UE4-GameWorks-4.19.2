@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3150518
 Title: SteamVR 퀵 스타트
 Crumbs:%ROOT%, Platforms
 Description: UE4 에서 SteamVR 을 사용하도록 하는 구성법 안내서입니다.
 Availability:public
 Navigation:platform
 Platform:SteamVR
-type:quickstart
+type:quick start
 parent:Platforms/SteamVR
 tags:VR
 tags:SteamVR

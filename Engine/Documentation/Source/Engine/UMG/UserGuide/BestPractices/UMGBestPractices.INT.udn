@@ -5,7 +5,7 @@ Description:Tips and Tricks for working with Unreal Motion Graphics.
 version: 4.10
 parent:Engine/UMG	
 order:2
-type:howto
+type:how-to
 
 
 [VAR:Topic]

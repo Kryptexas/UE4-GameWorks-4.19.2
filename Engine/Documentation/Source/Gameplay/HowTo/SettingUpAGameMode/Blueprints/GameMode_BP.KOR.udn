@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3151861
 Availability: Public
 Title:블루프린트로 게임 모드 구성
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SettingUpAGameMode
 Description:블루프린트로 게임 모드를 구성하는 비법 안내서입니다.
-Version: 4.9
+Version: 4.14
 SkillLevel: Advanced
 
 [TOC (start:2 end:2)]
@@ -18,7 +18,7 @@ _이 예제에서는 **블루프린트 삼인칭 템플릿** 을 사용하지만
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation#CreateBP1]
 
-**부모 클래스 선택** 창에서 **Game Mode** (게임 모드) 클래스를 선택합니다.
+**부모 클래스 선택** 창에서 **Game Mode Base** 클래스를 선택합니다. 모든 게임 모드의 부모 클래스입니다.
 
 ## 게임 모드 디폴트 편집
 

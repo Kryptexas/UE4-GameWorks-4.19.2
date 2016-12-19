@@ -1,13 +1,14 @@
-﻿INTSourceChangelist:2951974
+﻿INTSourceChangelist:3151855
 Availability:Public
-Title:はじめよう
-Crumbs:%ROOT%
+Title:UE4 を始めましょう。
+Crumbs: %ROOT%
 Description:UNREAL ENGINE 入門
 Navigation:start
 version:4.9
 parent:%ROOT%
 order:1
 tags:Getting Started
+type:landing
 
 [VAR:Params]
 [PARAM:image]
@@ -104,7 +105,7 @@ gettingstarted
 		![](%ROOT%/editor_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		エディタの基本
+		エディタの基本原理
 	[/PARAM]
 	[PARAM:description]
 		[INCLUDE:Shared/Glossary/P/#Glossary_project]
@@ -206,11 +207,11 @@ gettingstarted
 	[/PARAM]
 	[PARAM:description]
 		シーンをライティングするには、光源として機能し、以下のようなライトの特性を決めるプロパティを含むライト アクタを使用します。
+
 		* ライトの明るさ
-
 		* ライトの色
-		様々な方向に光を放出する様々な種類のライトもあります。例えば、標準的な電球は全方向に光を放出します。アンリアル エンジンでは、 
 
+		様々な方向に光を放出する様々な種類のライトもあります。例えば、標準的な電球は全方向に光を放出します。アンリアル エンジンでは、 
 		これを _ポイントライト_ と呼びます。他の状況では、放出された光はフラッドライトなど電球の背面を不透明にすることで物理的制約を受けます。 
 		これは、_スポットライト_ になります。太陽からの屋外光は非常に遠くにあるため、単独の場所からというよりは、 
 		ある方向からくるように見えます。このタイプのライティングをシミュレーションするために、_指向性ライト_ があります。 
@@ -275,7 +276,7 @@ gettingstarted
 		プログラミング
 	[/PARAM]
 	[PARAM:description]
-		ゲームプレイを実装し、エンジンを修正することは、ゲーム プロジェクトで不可欠な側面です。アンリアル エンジンには、 
+		ゲームプレイの実装やエンジンの修正は、ゲームプロジェクトに必要不可欠な側面です。アンリアル エンジンには、 
 		コードまたはブループリントを用いて視覚的にゲームプレイを実装する機能があります。 
 		また、エンジンやエディタを修正または拡張するプラグインまで作成し、 
 		デザイナーやアーティストが使用するための完全なカスタム機能を追加します。
@@ -283,9 +284,9 @@ gettingstarted
 	[PARAM:links]
 		* [](Programming/QuickStart "%Programming/QuickStart:description%")
 		* [](Programming/Basics "%Programming/Basics:description%")
-		* [ゲーム フレームワークについて学習する](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
-	[REGION:gallery]
+		* [クイック リファレンス](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
 
+		[REGION:gallery]
 		[REGION:normaltitle]
 		関連ビデオ
 		[/REGION]

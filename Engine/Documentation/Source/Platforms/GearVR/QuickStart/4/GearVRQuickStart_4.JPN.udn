@@ -1,39 +1,39 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangeList:3150518
 Availability:Public
-Title:4. On Your Own!
+Title:4.応用編
 Crumbs:%ROOT%, Platforms/GearVR
-Description:Using the methods provided during this guide, polish up your level with additional content and read up on related topics. 
+Description:このガイドで説明した方法を使って、追加のコンテンツでレベルにさらに磨きをかけます。関連トピックスのドキュメントも紹介します。 
 Navigation:platform
-Version: 4.9
-Skilllevel: Intermediate
+Version:4.9
+Skilllevel:Intermediate
 tags:VR
 tags:GearVR
-type:sequential
+type:multi-step
 parent:Platforms/GearVR/QuickStart
 order:4
 Checkpoint:GearVRQS
 
 [nav]
 
-Now that you can deploy a UE4 project to your Android based smartphone and view it with your Gear VR HMD try adding the following items.
+Android のスマートフォンに UE4 プロジェクトをデプロイし、Gear VR HMD を使って表示したら、以下の項目を追加してみましょう。
 
-* Use the [Migrate Tool](Engine/Content/Browser/UserGuide/Migrate/) to move content from one of the mobile content examples into your project for use.
+* [Migrate ツール](Engine/Content/Browser/UserGuide/Migrate/) を使って、コンテンツをモバイル コンテンツ サンプルから使用するプロジェクトに移動することができます。
 
-* Adjust the settings of the [Default Device Profiles](Platforms/Mobile/Performance/TipsAndTricks) to ensure that your project will run as fast as possible when deployed to your Android based smartphone.
+* Android スマートフォンへデプロイした時に、プロジェクトができるだけ速く実行するように [Default Device Profiles](Platforms/Mobile/Performance/TipsAndTricks) の設定を変更します。
 
-* Use the [GPU Profiler](Engine/Performance/GPU/) to help track your projects performance while you are building it.
+* [GPU Profiler](Engine/Performance/GPU/) を使って、ビルド中にプロジェクト パフォーマンスをトラックします。
 
 
 
-As for specifics covered in this quick start:
+以下は、このクイックスタートガイドで扱った詳細です。
 
-* For more information on setting up the Android SDK, see: [Install the Android SDK](Platforms/Android/GettingStarted/1/)
+* Android SDK の設定に関する詳細は、[Android SDK をインストールする](Platforms/Android/GettingStarted/1/) をご覧ください。
 
-* For more information on setting up your Android Device for UE4 Development, see: [Set Up Your Android Device](Platforms/Android/GettingStarted/2/)
+* UE4 用 Android SDK の設定に関する詳細は、[Android デバイスを設定する](Platforms/Android/GettingStarted/2/) をご覧ください。
 
-* For more information on what features Android devices support, see: [Android Device Compatibility](Platforms/Android/DeviceCompatibility/)
+* Android デバイスがサポートする機能に関する詳細は [Android デバイスの互換性](Platforms/Android/DeviceCompatibility/) をご覧ください。
 
-* For more information on reducing the packaged size of your project, see: [Reducing APK Package Size](Platforms/Android/ReducingAPKSize/)
+* プロジェクトのパッケージ サイズの縮小に関する詳細は [APK パッケージ サイズの縮小](Platforms/Android/ReducingAPKSize/) をご覧ください。
 
 
 

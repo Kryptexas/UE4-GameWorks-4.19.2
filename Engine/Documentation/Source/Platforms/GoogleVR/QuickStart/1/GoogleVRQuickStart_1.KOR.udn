@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2983084
+﻿INTSourceChangelist:3155346
 Availability:Public
 Title:1. 구글 VR 프로젝트 생성
 Crumbs:%ROOT%, Platforms/GoogleVR
@@ -8,7 +8,7 @@ Skilllevel: Intermediate
 Version: 4.12
 Parent:Platforms/GoogleVR/QuickStart
 order:1
-type:step
+type:multi-step
 tags:VR
 tags:Google VR
 

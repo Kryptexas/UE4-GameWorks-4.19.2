@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2803509
+﻿INTSourceChangelist:3108692
 Availability:Public
-Title: 패키지 크기 줄이기
-Crumbs:
-Description:안드로이드 게임 패키지 파일 크기를 줄이는 방법입니다.
+Title: 게임 패키지 크기 줄이기
+Crumbs:%ROOT%, Engine, Engine/Performance
+Description:게임 패키지 크기를 줄이는 방법입니다.
 Skilllevel: Intermediate
-Version: 4.8
-related:Platforms/Android/ReducingAPKSize
+Version: 4.12
+Related:Platforms/Android/ReducingAPKSize
 Parent:Engine/Performance
 
 [VAR:Topic]
@@ -69,7 +69,7 @@ APK 패키지 크기 줄이기에 가장 쉽고 빠른 방법은 UE4 더러 패�
 
 	![](T_Expose_Advanced_Props.png)
 
-1. **Create compressed cooked packages** (압축 쿠킹 패키지 생성) 옵션을 찾아 이미 켜져있지 않은 경우 켜줍니다.
+1. **Create compressed cooked packages** (압축 쿠킹 패키지 생성) 옵션을 찾아 (이미 켜져있지 않은 경우) 켜줍니다.
 
 	![](T_Enable_Comp_Packages.png)
 	
@@ -88,7 +88,61 @@ APK 패키지 크기 줄이기에 가장 쉽고 빠른 방법은 UE4 더러 패�
 
 	![](T_Set_Maps.png)
 
-## 쿠킹되는 콘텐츠 검사
+1. **Game Default Map** (게임 디폴트 맵) 옆의 화살표를 클릭하고 애셋 목록에서 게임 기본 시작 레벨에 사용하고자 하는 맵을 선택합니다.
+	
+	![](T_Project_Settings_Default_Game_Map.png)
+
+1. 필요한 맵 유형마다 레벨 구성이 완료될 때까지 이 프로세스를 반복합니다.
+
+## 패키지에 포함시킬 콘텐츠 선택
+프로젝트 세팅의 Packaging (패키징) 섹션에서는 게임 패키지에 어떤 맵과 콘텐츠를 포함시킬지 지정할 수 있습니다. 프로젝트에 포함시킬 맵을 지정하는 방법은 다음과 같습니다:
+
+[region:warning]
+쿠킹할 맵을 지정하지 않으면 테스트 맵까지 포함해서 모든 맵이 쿠킹됩니다. 쿠킹할 맵을 지정하지 않으면 최종 게임 패키지 크기는 필요 이상으로 커질 것입니다.
+[/region]
+
+1. 먼저 **메인 툴바** 의 **편집** > **프로젝트 세팅** 창을 엽니다.
+
+	![](T_Project_Settings_Menu.png)
+
+1. **Project** (프로젝트) 아래 **Packaging** (패키징) 섹션에서 **Packaging** 옵션을 찾습니다.
+
+	![](Content_To_Pack.png)
+
+1. 패키징 섹션 하단의 **작은 흰색 삼각형** 을 클릭하면 고급 패키징 옵션이 나옵니다.
+
+	![](Advanced_Packing_Section.png)
+
+1. 고급 패키징 옵션 하단으로 내려가면 **Cook everything in the project content directory(ignore list of maps below)** (프로젝트 콘텐츠 디렉토리 내 전부 쿠킹 (아래 맵 목록 무시)) 옵션이 있습니다. 여기 보이는 옵션으로 프로젝트와 함께 어떤 콘텐츠와 맵을 패키지에 포함시킬지 지정할 수 있습니다.
+
+	![](Advanced_Packing_Options.png)
+
+1. 항목을 포함 또는 제외시키려면 새 항목 생성에 사용하고자 하는 옵션 옆의 흰색 더하기 아이콘을 누릅니다.
+
+	![](Add_New_Item.png)
+
+1. 그리고 새 항목 옆의 작은 흰색 점 세 개를 클릭하여 뜨는 창에서, 빌드에 포함 또는 제외시킬 애셋을 선택합니다.
+
+	![](Select_Items_To_Cook.png)
+
+1. 애셋을 선택하면, 입력 창이 프로젝트 폴더 내 해당 애셋에 대한 링크로 바뀝니다.
+
+	![](Selected_Item_Location.png)
+
+| 프로퍼티 이름 | 설명 |
+|--------------|------------|
+|Cook everything in the project content directory(ignore list of maps below.|프로젝트 콘텐츠 디렉토리 내 전부 쿠킹 (아래 맵 목록 무시) - 프로젝트 콘텐츠 디렉토리의 모든 것을 쿠킹합니다. |
+|Cook only maps(this only affects cook all).|맵만 쿠킹 (모두 쿠킹에만 영향) - 맵만 쿠킹합니다 (cookall 플래그에만 영향을 끼칩니다). |
+|Create compressed cooked packages.|압축 쿠킹 패키지 생성 - 압축된 쿠킹 패키지를 생성합니다 (디플로이 크기가 줄어듭니다).|
+|Do not include editor content in this package may cause game to crash / error if you are using this content| 이 패키지에는 에디터 콘텐츠를 포함시키지 않습니다. 이 콘텐츠를 사용하는 경우 게임 크래시 / 오류가 날 수 있습니다 - 에디터 전용 콘텐츠는 쿠킹에서 제외시킵니다. |
+|List of maps to include in a packaged build|패키지 빌드에 포함시킬 맵 목록 - 명령줄에 다른 맵 목록을 지정하지 않은 경우 포함시킬 맵 목록입니다. |
+|Additional Asset Directories to Cook|쿠킹할 부가 애셋 디렉토리 - 프로젝트의 다른 것에 레퍼런싱되어 있지 않더라도 항상 쿠킹해야 하는 .uasset 파일이 들어있는 디렉토리입니다. 주: 프로젝트 Content 디렉토리 기준 상대 경로입니다. |
+|Directories to never cook|절대 쿠킹하지 않을 디렉토리 - 절대 쿠킹하지 않을 디렉토리입니다. |
+|Additional Non-Asset Directories to Package.|패키징할 부가 비애셋 디렉토리 - .pak 파일에 항상 추가시킬 파일이 들어있는 디렉토리입니다 (.pak 파일이 아닌 경우 개별 파일로 복사합니다). UFS (언리얼 파일 시스템) 파일 IO API 를 통해 수동 로드할 부가 파일을 스테이징하는 데 사용됩니다. 주: 이 경로는 프로젝트 Content 디렉토리 기준 상대 경로입니다. |
+|Additional Non-Asset Directories to Copy.|복사할 부가 비애셋 디렉토리 - .pak 파일의 일부가 될 것은 아니지만 프로젝트 패키지에 항상 복사할 파일이 들어있는 디렉토리입니다. UFS (언리얼 파일 시스템) 파일 IO API 를 사용하여 수동 로드할 부가 파일을 스테이징하는 데 사용됩니다 (예: 별도의 내부 파일 IO 로 작동되는 서드파티 라이브러리). 주: 이 경로는 프로젝트의 Content 디렉토리 기준 상대 경로입니다. |
+
+
+## 쿠킹되는 콘텐츠 확인
 프로젝트에 관련이 있는 콘텐츠만 APK 에 추가되는지 확인하려면, 프로젝트의 **Cooked** 폴더에서 프로젝트 APK 에 추가되는 콘텐츠를 검사하면 됩니다.
 Cooked 폴더를 찾을 수 있는 곳은 **(ProjectName)\Saved\Cooked** 에서 프로젝트를 쿠킹한 포맷으로 된 폴더를 선택하면 됩니다.
 
@@ -105,7 +159,6 @@ Cooked 폴더를 찾을 수 있는 곳은 **(ProjectName)\Saved\Cooked** 에서 
 ![](T_Cooked_Content.png)
 
 ## Development 대 Shipping 빌드 크기
-
 프로젝트 최종 크기가 얼마나 될지 알아내고자 할 때, 프로젝트 Development 버전 크기는 Shipping 빌드 크기보다 약간 크다는 점을 염두에 두세요.
 Medieval Match 예제 게임의 Development 빌드와 Shipping 빌드의 크기는 약 **14 퍼센트** 차이가 났습니다.
 하지만 각 프로젝트마다 요구사항이 다르므로, 두 빌드 유형간의 차이는 14 퍼센트 이상 또는 이하가 될 수도 있습니다.
@@ -127,7 +180,6 @@ UE4 에서 오브젝트를 삭제하려면 이렇게 하는 것이 좋으며, �
 
 애셋 삭제 메뉴는 지우려고 하는 애셋이 다른 애셋에 레퍼런싱되어있는지 아닌지를 알려줍니다.
 레퍼런싱되어있지 않다면 그냥 지우면 되지만, 다른 애셋에 레퍼런싱되어 있다면 **레퍼런스 대체** 옵션을 사용해서 그 애셋으로의 레퍼런스를 프로젝트 패키지에 들어갈 예정인 다른 애셋으로 바꿔주면 됩니다.
-
 
 ## 미사용 플러그인 제거
 UE4 에디터 안에서 사용되지 않는 플러그인을 비활성화시키는 것도 불필요한 콘텐츠와 코드가 최종 APK 패키지 파일에 들어가지 않도록 하는 또 한가지 방법입니다.
@@ -160,7 +212,6 @@ UE4 안에서 플러그인을 비활성화시키는 방법은 다음과 같습�
 	[/OBJECT]
 
 ## 패키지 블랙 리스트
-
 언리얼 엔진 4.9 이상 버전에서는 이제 프로젝트의 **Build/Platform/(타겟 플랫폼 폴더)** 디렉토리에 텍스트 파일을 넣어서 쿠커에게 프로젝트 패키징시 파일 경로 부분 또는 전체를 제외시킬 수 있습니다.
 프로젝트는 Debug, Development, Test, Shipping 빌드별로 다중 블랙 리스트 파일을 가질 수 있어, 프로젝트에 원하는 데이터의 추가 또는 제거 구성이 가능합니다.
 안드로이드용 하나, 플랫폼용으로 다른 하나 등, 프로젝트가 지원하는 각 플랫폼에 대해 각기 다른 블랙 리스트를 만드는 것도 가능합니다.
@@ -174,13 +225,12 @@ UE4 안에서 플러그인을 비활성화시키는 방법은 다음과 같습�
 
 	![](T_Black_List.png)
 
-처음 세 항목은 어떤 프로젝트에도 안전할 것이나, 프로젝트에 따라 실행시간에 **AssetRegistry.bin** 이 필요한 경우도 있습니다.
+처음 세 항목은 어떤 프로젝트에도 안전할 것이나, (프로젝트에 따라) 실행시간에 **AssetRegistry.bin** 이 필요한 경우도 있습니다.
 제거하는 콘텐츠가 악영향을 끼치지는 않는지, 철저히 테스트할 것을 강력 추천합니다.
 쉽고 간편한 테스트법이라면, 모든 프로젝트 레벨을 열어 로드하고 오류나 경고가 없으면 됩니다.
 문제가 생겼는데 무엇때문인지 모르겠다면 Logcat 에 어떤 오류가 있는지 확인해 보시기 바랍니다.
 
 ## 최대 다이내믹 포인트 라이트
-
 언리얼 엔진 4.9 이후로 다이내믹 라이트용으로 생성되는 셰이더 수를 줄이는 데 도움이 될 수 있는 옵션이 새로 도입되었습니다.
 다이내믹 라이트를 요하지 않는  모바일 게임에서 특히나 유용합니다.
 **프로젝트 세팅** > **모바일** 섹션에서 **Max Dynamic Point Lights** 옵션을 찾을 수 있습니다.

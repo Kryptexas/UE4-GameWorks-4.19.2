@@ -1,84 +1,133 @@
-﻿INTSourceChangelist:0
-title:Hierarchical LOD Reference
-description:A reference of the interface elements and properties found in the Hierarchical LOD Outliner.
+﻿INTSourceChangelist:3189768
+title:계층형 LOD 참고서
+description:계층형 LOD 아웃라이너에서 찾을 수 있는 인터페이스 요소와 프로퍼티에 대한 참고서입니다.
 crumbs:
-availability:docs
+availability:Public
+version:4.13
+parent:Engine/HLOD
+order:2
+type:reference
+tags:HLOD
+topic-image:Engine/HLOD/defaultHLOD_topic.png
 
-This page details the buttons and properties that exist on the Hierarchical LOD Outliner.
+**계층형 LOD 아웃라이너** 에 존재하는 버튼과 프로퍼티 관련 자세한 설명입니다.
 
-[REGION:warning]
-HLOD doesn't currently work well with dynamic shadows (casting or recieving them), and as such, you should use static lighting and shadowing for the meshes that the HLOD system generates.
-[/REGION]
-
-## Property and Interface Reference
+## 프로퍼티 및 인터페이스 참고서
 
 ![HLOD Outliner Fully Expanded](image_2.png)
 
+
+### HLOD 액션
+
+![](InterfaceElements.png)
+
+**계층형 LOD 아웃라이너** 에 있는 버튼 셋과 슬라이더에 대한 설명입니다.
+
 [REGION:raw]
-### Interface Elements
-
-Below are the descriptions for the 3 buttons and slider that exist in the **Hierarchical LOD Outliner**.
-
 | --- | :---: | :--- |
-| **Generate Clusters** || This will generate spherical clusters of static mesh actors in the scene that can be grouped. The way this is handled is by using the settings for each LOD settings specified under the LODSystem section of the HLOD Outliner. |
-| **Delete Clusters** || This will delete all HLODs that have been previously setup in this level. This includes all generated proxy meshes as well as the clusters that have been setup. This will not wipe the previously set values or properties for the HLOD Levels. |
-| **Generate Proxy Meshes** || [INCLUDE:#gpm] |
-| **Forced Viewing Level** || This will allow you to force a specific LOD level to be visible in the editor. This is helpful for debugging any LOD issues you may have. |
+| **Generate Clusters** || 클러스터 생성 - 씬에서 그룹으로 묶을 수 있는 **스태틱 메시 액터** 의 구체 클러스터를 생성합니다. 그 처리 방식은 HLOD 아웃라이너의 LOD System 섹션 아래 지정된 각각의 LOD 세팅으로 조절할 수 있습니다. |
+| **Delete Clusters** || 클러스터 삭제 - 기존 이 레벨에 구성해 둔 HLOD 를 전부 삭제합니다. 생성된 프록시 메시는 물론 클러스터도 전부 포함됩니다. HLOD 레벨에서 기존에 설정된 값 또는 프로퍼티를 지우지는 않습니다. |
+| **Generate Proxy Meshes** || 프록시 메시 생성 - [INCLUDE:#gpm] |
+| **Forced Viewing Level** || 강제 표시 레벨 - 에디터에 특정 LOD 가 강제로 표시되도록 합니다. LOD 문제를 디버깅할 때 좋습니다. |
 | | %spacer%  | |
 [/REGION]
 
-### Properties
+### 계층형 LOD 아웃라이너 맥락 메뉴
 
-Below, broken out by major section, are the properties that can be found in a **Hierarchical LODSetup** in the **LODSystem** panel located in the lower portion of the **Hierarchical LOD Outliner** interface.
+계층형 LOD 아웃라이너에는 몇 가지 우클릭 맥락 메뉴가 있는데, 여는 방법과 제공되는 옵션은 다음과 같습니다.
+
+#### LOD 액터 맥락 메뉴
 
 [REGION:raw]
-
-### Cluster Generation Settings
-
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Desired Bound Radius** || This is not guaranteed but used to calculate filling factor for auto clustering. |
-| **Desired Filling Percentage** || This is not guaranteed but used to calculate filling factor for auto clustering. |
-| **Min Number of Actors to Build** || Min number of actors to build LODActor. |
-
-### Mesh Generation Settings
-
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Transition Screen Size** || The screen radius a mesh object should reach before swapping to the LOD actor. When the parent LOD displays it won’t display any of the children. |
-| [REGION:tablesection]**Merge Settings**[/REGION] |||
-| **Generate Light Map UV** || Whether to generate a lightmap UV for a merged mesh. |
-| **Target Light Map UVChannel** || The target UV channel to assign the lightmap UV. |
-| **Target Light Map Resolution** || The lightmap resolution set for the merged mesh. |
-| **Pivot Point at Zero** || Whether a merged mesh should have a pivot at the World Origin, or at the first merged actor from a generated cluster. |
-| **Merge Physics Data:** || Whether to merge the collision primitives when combining the actors. |
-| **Merge Materials** || Whether to merge source materials into one flat material. |
-| [REGION:tablesection]**[Material Settings See Below](#materialsettings)**[/REGION] |||
-| **Bake Vertex Data ** || Incorporates painted vertex colours into model/baked out material. |
-| **Calculate Correct LODModel** || Calculates the correct LOD model based upon the screen size value (similar to how regular LODs are determined for static meshes in the editor/game). |
-| **Export Specific LOD** || Forces the system to pick the given LOD level for all models (if the LOD level exists, otherwise picks the maximum closest value). |
-
-### Material Settings
-
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Texture Size** || Size of the generated BaseColor texture map. |
-| **Texture Sizing Type** || [INCLUDE:#tst] |
-| **Normal Map** || Whether to generate a Normal map. |
-| **Metallic Map** || Whether to generate a Metallic map. |
-| **Metallic Constant** || Allows to you set a roughness constant value in place of a texture map. |
-| **Roughness Map** || Whether to generate a Roughness map. |
-| **Roughness Constant** || Allows to you set a roughness constant value in place of a texture map. |
-| **Specular Map** || Whether to generate a Specular map. |
-| **Specular Constant** || Allows to you set a roughness constant value in place of a texture map. |
-| **Emissive Map** || Whether to generate aa Emissive map. |
-| **Diffuse Texture Size** || Override for the Diffuse Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Normal Texture Size** || Override for the Normal Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Metallic Texture Size** || Override for the Metallic Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Roughness Texture Size** || Override for the Roughness Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Specular Texture Size** || Override for the Specular Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
-| **Emissive Texture Size** || Override for the Emissive Texture Size. Enabled when **Texture Sizing Type** is set to **Use per property manually overriden texture sizes**. |
+![](ContextMenu1.png)
 [/REGION]
+
+[REGION:raw]
+| 옵션 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Select LOD Actor** || LOD 액터 선택 - 뷰포트에서 LOD 액터를 선택합니다 (클러스터 좌클릭과 같습니다). |
+| **Select Contained Actors** || 포함된 액터 선택 - **LOD 클러스터** 에 포함된 모든 **액터** 를 선택합니다. |
+| **ForceView** || 강제 뷰 - 뷰포트의 **HLOD 액터** 뷰 토글입니다. |
+| **Rebuild Proxy Mesh** || 프록시 메시 리빌드 - 우클릭한 클러스터가 그 프록시 메시를 다시 빌드하도록 합니다. |
+| **Create Containing Hierarchical Volume** || 포함된 계층형 볼륨 생성 - **클러스터** 에 포함된 **액터** 주변을 두르는 **Hierarchical Volume** (계층형 볼륨)을 만듭니다. 이 볼륨을 변경하여 포함되는 액터 수를 조절할 수 있습니다. |
+| **Delete Cluster** || 클러스터 삭제 - 우클릭한 클러스터를 삭제합니다. |
+[/REGION]
+
+#### 액터 맥락 메뉴
+
+[REGION:raw]
+![](ContextMenu2.png)
+[/REGION]
+
+[REGION:raw]
+| 옵션 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Remove From Cluster** || 클러스터에서 제거 - 우클릭한 **액터** 를 **클러스터** 에서 제거합니다. |
+| **Exclude From Cluster Generation** || 클러스터 생성에서 제외 - 우클릭한 **액터** 를 **클러스터** 생성에서 제외시킵니다. 제외된 **액터** 를 다시 추가하려면, **월드 아웃라이너** 에서 끌어 **계층형 LOD 아웃라이너** 의 **클러스터** 에 놓으면 됩니다. |
+[/REGION]
+
+### 프로퍼티
+
+**계층형 LOD 아웃라이너** 인터페이스 하단에 위치한 **LOD 시스템** 패널의 **Hierarchical LODSetup** 에서 찾을 수 있는 프로퍼티를 크게 나눠보면 다음과 같습니다.
+
+### 클러스터 생성 세팅
+
+![](cluster.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Desired Bound Radius** || 원하는 바운드 반경 - 보장되는 것은 아니지만, 자동 클러스터를 채우는 비율을 계산하는 데 사용됩니다. |
+| **Desired Filling Percentage** || 원하는 채우기 비율 - 보장되는 것은 아니지만, 자동 클러스터를 채우는 비율을 계산하는 데 사용됩니다. |
+| **Min Number of Actors to Build** || 빌드할 액터 최소 개수 - LOD 액터를 빌드할 **액터** 최소 개수입니다. |
+[/REGION]
+
+### 메시 생성 세팅
+
+![](meshSettings.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Transition Screen Size** || 전환 화면 크기 - 메시 오브젝트의 크기가 이 이상 되면 LOD **액터** 가 전환됩니다. 부모 LOD 가 표시되면 그 자손이 표시되지 않습니다. |
+| [REGION:tablesection]**병합 세팅**[/REGION] |||
+| **Generate Light Map UV** || 라이트 맵 UV - 병합된 메시에 라이트맵 UV 생성 여부입니다. |
+| **Target Light Map UVChannel** || 타겟 라이트 맵 UV 채널 - 라이트맵 UV 를 할당할 타겟 UV 채널입니다. |
+| **Target Light Map Resolution** || 타겟 라이트 맵 해상도 - 병합된 메시에 설정된 라이트맵 해상도입니다. |
+| **Pivot Point at Zero** || 영점에 피벗 포인트 - 병합된 메시의 피벗을 월드 원점으로 할 것인지, 생성된 클러스터에서 처음 병합되는 **액터** 위치로 할 것인지 입니다.|
+| **Merge Physics Data:** || 피직스 데이터 병합 - **액터** 를 합칠 때 콜리전 프리미티브 병합 여부입니다. |
+| **Merge Materials** || 머티리얼 병합 - 소스 머티리얼을 하나의 플랫 머티리얼로 병합할지 여부입니다. |
+| [REGION:tablesection]**[머티리얼 세팅](#머티리얼세팅)**[/REGION] |||
+| **Bake Vertex Data ** || 버텍스 데이터 굽기 - 모델/구워낸 머티리얼에 칠한 버텍스 컬러를 포함시킵니다. |
+| **Use Vertex Data for Baking Material** || 머티리얼 굽기에 버텍스 데이터 사용 - 머티리얼을 구을 때 버텍스 컬러같은 버텍스 데이터를 사용할지 여부입니다. |
+| **Use Landscape Culling** || 랜드스케이프 컬링 사용 - 보이지 않는 트라이앵글을 선별해 낼 때 사용할 수 있는 랜드스케이프 지오메트리 사용 여부입니다. |
+[/REGION]
+
+### 머티리얼 세팅
+
+![](material.png)
+
+[REGION:raw]
+| 프로퍼티 | %spacer% | 설명 |
+| --- | :---: | :--- |
+| **Texture Size** || 텍스처 크기 - 생성된 베이스 컬러 텍스처 맵의 크기입니다. |
+| **Texture Sizing Type** || 텍스처 크기 유형 - [INCLUDE:#tst] |
+| **Normal Map** || 노멀 맵 - 노멀 맵 생성 여부입니다. |
+| **Metallic Map** || 메탈릭 맵 - 메탈릭 맵 생성 여부입니다. |
+| **Metallic Constant** || 메탈릭 상수 - 텍스처 맵 대신 러프니스 상수 값을 설정할 수 있습니다. |
+| **Roughness Map** || 러프니스 맵 - 러프니스 맵 생성 여부입니다. |
+| **Roughness Constant** || 러프니스 상수 - 텍스처 맵 대신 러프니스 상수 값을 설정할 수 있습니다. |
+| **Specular Map** || 스페큘러 맵 - 스페큘러 맵 생성 여부입니다. |
+| **Specular Constant** || 스페큘러 상수 - 텍스처 맵 대신 러프니스 상수 값을 설정할 수 있습니다. |
+| **Emissive Map** || 이미시브 맵 - 이미시브 맵 생성 여부입니다. |
+| **Diffuse Texture Size** || 디퓨즈 텍스처 크기 - 티퓨즈 텍스처 크기 대체값입니다. **Texture Sizing Type** (텍스처 크기 유형)이 **Use per property manually overriden texture sizes** (크기를 수동 덮어쓴 프로퍼티마다 사용)으로 설정 된 경우 활성화됩니다. |
+| **Normal Texture Size** || 노멀 텍스처 크기 - 노멀 텍스처 크기 대체값입니다. **Texture Sizing Type** (텍스처 크기 유형)이 **Use per property manually overriden texture sizes** (크기를 수동 덮어쓴 프로퍼티마다 사용)으로 설정된 경우 활성화됩니다. |
+| **Metallic Texture Size** || 메탈릭 텍스처 크기 - 메탈릭 텍스처 크기 대체값입니다. **Texture Sizing Type** (텍스처 크기 유형)이 **Use per property manually overriden texture sizes** (크기를 수동 덮어쓴 프로퍼티마다 사용)으로 설정된 경우 활성화됩니다. |
+| **Roughness Texture Size** || 러프니스 텍스처 크기 - 러프니스 텍스처 크기 대체값입니다. **Texture Sizing Type** (텍스처 크기 유형)이 **Use per property manually overriden texture sizes** (크기를 수동 덮어쓴 프로퍼티마다 사용)으로 설정된 경우 활성화됩니다. |
+| **Specular Texture Size** || 스페큘러 텍스처 크기 - 스페큘러 텍스처 크기 대체값입니다. **Texture Sizing Type** (텍스처 크기 유형)이 **Use per property manually overriden texture sizes** (크기를 수동 덮어쓴 프로퍼티마다 사용)으로 설정된 경우 활성화됩니다. |
+| **Emissive Texture Size** || 이미시브 텍스처 크기 - 이미시브 텍스처 크기 대체값입니다. **Texture Sizing Type** (텍스처 크기 유형)이 **Use per property manually overriden texture sizes** (크기를 수동 덮어쓴 프로퍼티마다 사용)으로 설정된 경우 활성화됩니다. |
+[/REGION]
+
 
 [VAR:spacer]![](%ROOT%/spacer.png)(w:150 convert:false)[/VAR]
 
@@ -86,24 +135,24 @@ Below, broken out by major section, are the properties that can be found in a **
 
 <!--
 [EXCERPT:GPM]
-When you generate the proxy meshes this will use the clustered LODs to merge these actors together into a single asset. Depending on what settings you changed for the HLOD levels your static meshes will generate based on this. This can affect your materials, lightmaps, and various other properties as well. 
+프록시 메시를 생성할 때, 클러스터로 묶인 LOD 를 사용하여 이 **액터** 를 하나의 애셋으로 병합시킵니다. HLOD 레벨에 어떤 세팅을 변경했는지에 따라, 스태틱 메시는 이를 기준으로 생성됩니다. 머티리얼, 라이트맵, 기타 여러가지 프로퍼티에도 영향을 끼칠 수 있습니다.
 
 [REGION:note]
-Be aware that this process can take a **very long time** depending on your scene complexity and settings for your HLOD levels.
+참고로 이 프로세스는 씬 복잡도와 HLOD 레벨 설정에 따라 **시간이 매우 오래** 걸릴 수 있다는 점 주의하시기 바랍니다.
 [/REGION]
 [/EXCERPT]
 
 [EXCERPT:TST]
 
-Texture Sizing Type Description
+텍스처 크기 유형 설명
 
 [REGION:raw]
-| Type | %spacer2% | Description |
+| 유형 | %spacer2% | 설명 |
 | --- | :---: | :--- |	
-| **Use TextureSize for all material properties** || Will use the value entered into **Texture Size** for sizing. |
-| **Use automatically biased texture sizes based on TextureSize** || This creates a biased set of **{normal:diffuse:otherproperties}** textures using the ratio of **{1:0.5:0.25}** so if the texture size is set to 512 it will output a 512 normal map, 256 diffuse map and 128 map for roughness specular etc (diffuse is clamped to 32x32 and roughness specular etc to 16x16 |
-| **Use per property manually overridden texture sizes** || Enables the per texture overrides, and uses those values instead of **Texture Size**. |
-| **Use Simplygon’s automatic texture sizing** || Uses **Simplygon's** sizing. |
+| **Use TextureSize for all material properties** || 모든 머티리얼 프로퍼티에 TextureSize 사용 - 크기를 잡는 데 **Texture Size** 에 입력된 값을 사용합니다. |
+| **Use automatically biased texture sizes based on TextureSize** || TextureSize 에 따라 바이어스가 자동 적용된 텍스처 크기 사용 - **{노멀:디퓨즈:기타}** 텍스처에 바이어스가 적용된 세트를 **{1:0.5:0.25}** 비율로 자동 생성합니다. 즉 TextureSize 가 512 로 설정되어 있다면, 노멀맵 512, 디퓨즈맵 256, 러프니스나 스페큘러 등에는 128 을 사용합니다 (디퓨즈는 32x32 로, 러프니스 스페큘러 등은 16x16 으로 클램핑이 적용됩니다). |
+| **Use per property manually overridden texture sizes** || 프로퍼티별 수동 덮어쓴 텍스처 크기값 사용 - 텍스처 별로 **Texture Size** 대신 대체값을 사용할 수 있도록 합니다. |
+| **Use Simplygon’s automatic texture sizing** || 심플리곤의 자동 텍스처 사이징 사용 - 심플리곤의 사이징 값을 사용합니다. |
 [/REGION]
 
 [/EXCERPT]

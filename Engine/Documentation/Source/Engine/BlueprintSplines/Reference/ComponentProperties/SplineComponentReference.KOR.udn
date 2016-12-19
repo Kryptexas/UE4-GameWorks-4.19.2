@@ -1,12 +1,15 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:Blueprint Spline Component Property Reference
+﻿INTSourceChangelist:3149199
+Availability:Public
+Title:블루프린트 스플라인 컴포넌트 프로퍼티 참고서
 Crumbs: %ROOT%, Engine
-Description:Contains a reference of all properties available in the editor for Blueprint Spline Components.
+Description:에디터에서 블루프린트 스플라인 컴포넌트에 대해 사용할 수 있는 모든 프로퍼티 참고서입니다.
 Navigation:topic
 parent:Engine/BlueprintSplines
 order:1
 social-image:Splines_social.png
+version:4.13
+type:reference
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -51,17 +54,17 @@ social-image:Splines_social.png
 
 [VAR:spacer2]![](%ROOT%/spacer.png)(w:40 convert:false)[/VAR]
 
-This page contains a reference listing of properties available on **Spline Components**. The properties displayed will be slightly different if the **Blueprint Spline Component** is selected in the **Blueprint Editor**, is a **Root Component**, or if the component is selected in the **Level Editor**.
+**Blueprint Spline Components** (블루프린트 스플라인 컴포넌트)에서 사용할 수 있는 프로퍼티에 대한 참고서입니다. 표시되는 프로퍼티는 **블루프린트 에디터** 에서 **블루프린트 스플라인 컴포넌트** 를 선택했는지, **루트 컴포넌트** 인지, 또는 **레벨 에디터** 에서 선택했는지에 따라 달라집니다.
 
-## Properties
+## 프로퍼티
 
 [EXCERPT:PropTransformCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		TransformCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Transform
+		Transform 트랜스폼
 	[/PARAM]
 	[PARAM:content]
 		%c1%
@@ -73,11 +76,11 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](TransformCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
-| **Location** || The location of the **Actor** or **Component** in **World Space** or **Relative** to its parent. |
-| **Rotation** || The rotation of the **Actor** or **Component** in **World Space** or **Relative** to its parent. |
-| **Scale** || The Scale of the **Actor** or **Component** in **World Space** or **Relative** to its parent. |
+| **Location** || 위치 - **액터** 또는 **컴포넌트** 의 위치로, **World Space** (월드 스페이스) 또는 그 부모를 기준으로 한 **Relative** (상대) 위치입니다. |
+| **Rotation** || 회전 - **액터** 또는 **컴포넌트** 의 회전으로, **World Space** (월드 스페이스) 또는 그 부모를 기준으로 한 **Relative** (상대) 회전입니다. |
+| **Scale** || 스케일 - **액터** 또는 **컴포넌트** 의 스케일로, **World Space** (월드 스페이스) 또는 그 부모를 기준으로 한 **Relative** (상대) 스케일입니다. |
 [/REGION]
 
 [/VAR]
@@ -86,12 +89,12 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 [EXCERPT:PropSocketsCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		SocketsCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Sockets
+		Sockets 소켓
 	[/PARAM]
 	[PARAM:content]
 		%c2%
@@ -103,9 +106,9 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](SocketsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
-| **Parent Socket** || When a this component is the **Child** of a **Skeletal Mesh Component** (or **Static Mesh Component** with a **Socket**) you can specify a **Socket** or **Joint** to attach this component to. |
+| **Parent Socket** || 부모 소켓 - 이 컴포넌트가 **스켈레탈 메시 컴포넌트** (또는 **소켓** 이 있는 **스태틱 메시 컴포넌트**) 의 **자손** 인지 여부입니다. 이 컴포넌트에 붙일 **소켓** 또는 **조인트** 를 지정할 수 있습니다. |
 [/REGION]
 
 [/VAR]
@@ -119,7 +122,7 @@ This page contains a reference listing of properties available on **Spline Compo
 		SplineCatd
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Spline
+		Spline 스플라인
 	[/PARAM]
 	[PARAM:content]
 		%sp1%
@@ -131,7 +134,7 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](BPS_SplineCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Duration** || %doxygen:USplineComponent::Duration% |
 | **Override Construction Script** || %doxygen:USplineComponent::bSplineHasBeenEdited% |
@@ -141,12 +144,12 @@ This page contains a reference listing of properties available on **Spline Compo
 | **Default Up Vector** || %doxygen:USplineComponent::DefaultUpVector% |
 [/REGION]
 
-### Advanced
+### 고급
 
 ![](BPS_SplineCatRefAdv.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Reparam Steps Per Segment** || %doxygen:USplineComponent::ReparamStepsPerSegment% |
 | **Stationary Endpoints** || %doxygen:USplineComponent::bStationaryEndpoints% |
@@ -163,7 +166,7 @@ This page contains a reference listing of properties available on **Spline Compo
 		EditorCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Editor
+		Editor 에디터
 	[/PARAM]
 	[PARAM:content]
 		%sp2%
@@ -175,12 +178,12 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](BPS_EditorCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
-| **Editor Unselected Spline Segment Color** || Color of an unselected spline component segment in the editor. |
-| **Editor Selected Spline Segment Color** || Color of a selected spline component segment in the editor. |
-| **Should Visualize Scale** || Whether or not scale visualization should be displayed in the editor. |
-| **Scale Visualization Width** || Width of the spline when scale visualization is enabled in the editor. |
+| **Editor Unselected Spline Segment Color** || 에디터 미선택 스플라인 선분 색 - 에디터에서 선택되지 않은 스플라인 컴포넌트 선분의 색입니다. |
+| **Editor Selected Spline Segment Color** || 에디터 선택된 스플라인 선분 색 - 에디터에서 선택된 스플라인 컴포넌트 선분의 색입니다. |
+| **Should Visualize Scale** || 스케일 시각화 여부 - 에디터에서의 스케일 시각화 표시 여부입니다. |
+| **Scale Visualization Width** || 스케일 시각화 폭 - 에디터에서 스케일 시각화를 켰을 때의 스플라인 폭입니다. |
 [/REGION]
 
 [/VAR]
@@ -188,83 +191,34 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 
-[OBJECT:modulesection]
+
+[EXCERPT:PropSelectedPointsCat]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
-		PhysicsCat
+		SelectedPointsCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Physics
+		Selected Points 선택된 포인트
 	[/PARAM]
 	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:c3%
+		%sp3%
 	[/PARAM]
 [/OBJECT]
 
+[VAR:sp3]
 
-
-
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		CollisionCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Collision
-	[/PARAM]
-	[PARAM:content]
-		%Engine/Physics/PhysicsBodies/Reference:p2%
-	[/PARAM]
-[/OBJECT]
-
-
-
-
-
-[EXCERPT:PropLightingCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		LightingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Lighting
-	[/PARAM]
-	[PARAM:content]
-		%c5%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c5]
-
-![](LightingCatRef.png)
+![](BPS_SelectedPointsRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
-| **Cast Shadow** || %doxygen:UPrimitiveComponent::CastShadow% |
-[/REGION]
-
-###Advanced
-
-![](LightingCatRefAdv.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Affect Dynamic Indirect Lighting** || %doxygen:UPrimitiveComponent::bAffectDynamicIndirectLighting% |
-| **Affect Distance Field Lighting** || %doxygen:UPrimitiveComponent::bAffectDistanceFieldLighting% |
-| **Cast Dynamic Shadow** || %doxygen:UPrimitiveComponent::bCastDynamicShadow% |
-| **Cast Static Shadow** || %doxygen:UPrimitiveComponent::bCastStaticShadow% |
-| **Cast Volumetric Translucent Shadow** || %doxygen:UPrimitiveComponent::bCastVolumetricTranslucentShadow% |
-| **Self Shadow Only** || %doxygen:UPrimitiveComponent::bSelfShadowOnly% |
-| **Cast Far Shadow** || %doxygen:UPrimitiveComponent::bCastFarShadow% |
-| **Cast Inset Shadow** || %doxygen:UPrimitiveComponent::bCastInsetShadow% |
-| **Cast Cinematic Shadow** || %doxygen:UPrimitiveComponent::bCastCinematicShadow% |
-| **Cast Hidden Shadow** || %doxygen:UPrimitiveComponent::bCastHiddenShadow% |
-| **Cast Shadow as Two Sided** || %doxygen:UPrimitiveComponent::bCastShadowAsTwoSided% |
-| **Light as if Static** || %doxygen:UPrimitiveComponent::bLightAsIfStatic% |
-| **Light Attachments as Group** || %doxygen:UPrimitiveComponent::bLightAttachmentsAsGroup% |
-| **Indirect Lighting Cache Quality** || %doxygen:UPrimitiveComponent::IndirectLightingCacheQuality% |
-| **Single Sample Shadow From Stationary Lights** || %doxygen:UPrimitiveComponent::bSingleSampleShadowFromStationaryLights% |
-| **Lighting Channles** || %doxygen:UPrimitiveComponent::LightingChannels% |
+| **Input Key** || 입력 키 - 커브에 선택된 **커브 포인트** 의 인덱스입니다. |
+| **Position** || 위치 - 선택된 **커브 포인트** 의 로컬 스페이스 위치입니다. |
+| **Arrive Tangent** || 도착 탄젠트 - 선택된 **커브 포인트** 로 들어오는 커브의 탄젠트를 정의하는 벡터입니다. |
+| **Leave Tangent** || 출발 탄젠트 - 선택된 **커브 포인트** 를 나가는 커브의 탄젠트를 정의하는 벡터입니다. |
+| **Rotation** || 회전 - **커브 포인트** 에 적용시켜 그 탄젠트를 변경하는 회전입니다. 이 값은 탄젠트와 별도로 적용되므로, 둘 다 변경해서 원하는 결과를 만들어낼 수 있습니다. |
+| **Scale** || 스케일 - **커브 포인트** 에 적용하여 그 탄젠트를 변경하는 스케일입니다. 이 값은 탄젠트와 별도로 적용되므로, 둘 다 변경해서 원하는 결과를 만들어낼 수 있습니다. |
+| **Type** || [INCLUDE:#PointsType] |
 [/REGION]
 
 [/VAR]
@@ -272,89 +226,14 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 
-[EXCERPT:PropRenderingCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		RenderingCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Rendering
-	[/PARAM]
-	[PARAM:content]
-		%c6%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c6]
-
-![](RenderingCatRef.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Visible** || %doxygen:USceneComponent::bVisible% |
-| **Hidden in Game** ||  %doxygen:USceneComponent::bHiddenInGame%|
-[/REGION]
-
-###Advanced
-
-![](RenderingCatRefAdv.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
-| --- | :---: | :--- |
-| **Texture Streaming** || [INCLUDE:#TextureStreamingProp] |
-| **LOD** || [INCLUDE:#LODProp] |
-| **Render In Main Pass** || %doxygen:UPrimitiveComponent::bRenderInMainPass% |
-| **Receives Decals** || %doxygen:UPrimitiveComponent::bReceivesDecals% |
-| **Owner No See** || %doxygen:UPrimitiveComponent::bOwnerNoSee% |
-| **Only Owner See** || %doxygen:UPrimitiveComponent::bOnlyOwnerSee% |
-| **Treat As Background for Occlusion** || %doxygen:UPrimitiveComponent::bTreatAsBackgroundForOcclusion% |
-| **Use As Occluder** || %doxygen:UPrimitiveComponent::bUseAsOccluder% |
-| **Render CustomDepth Pass** || %doxygen:UPrimitiveComponent::bRenderCustomDepth% |
-| **CustomDepth Stencil Value** || %doxygen:UPrimitiveComponent::CustomDepthStencilValue% |
-| **Translucency Sort Priority** || Translucent objects with a lower sort priority draw behind objects with a higher priority. Translucent objects with the same priority are rendered from back-to-front based on their bounds origin. |
-| **Lpv Bias Multiplier** || %doxygen:UPrimitiveComponent::LpvBiasMultiplier% |
-| **Bounds Scale** || %doxygen:UPrimitiveComponent::BoundsScale% |
-| **Use Attach Parent Bound** || %doxygen:USceneComponent::bUseAttachParentBound% |
-[/REGION]
-
-[/VAR]
-[/EXCERPT]
-
-<!--
-[EXCERPT:TextureStreamingProp]
-
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Force Mip Streaming** || %doxygen:UPrimitiveComponent::bForceMipStreaming% |
-[/REGION]
-
-[/EXCERPT]
-
-[EXCERPT:LODProp]
-
-[REGION:raw]
-| Property | %spacer2% | Description |
-| --- | :---: | :--- |
-| **Min Draw Distance** || %doxygen:UPrimitiveComponent::MinDrawDistance% |
-| **Desired Max Draw Distance** || %doxygen:UPrimitiveComponent::LDMaxDrawDistance% |
-| **Current Max Draw Distance** || %doxygen:UPrimitiveComponent::CachedMaxDrawDistance% |
-| **Allow Cull Distance Volume** || %doxygen:UPrimitiveComponent::bAllowCullDistanceVolume% |
-| **Detail Mode** || %doxygen:USceneComponent::DetailMode% |
-[/REGION]
-
-[/EXCERPT]
--->
 
 [EXCERPT:PropTagsCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		TagsCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Tags
+		Tags 태그
 	[/PARAM]
 	[PARAM:content]
 		%c7%
@@ -366,7 +245,7 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](TagsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Component Tags** || %doxygen:UActorComponent::ComponentTags% |
 [/REGION]
@@ -377,12 +256,12 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 [EXCERPT:PropActivationCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		ActivationCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Activation
+		Activation 활성화
 	[/PARAM]
 	[PARAM:content]
 		%c8%
@@ -394,7 +273,7 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](ActivationCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **Auto Activate** || %doxygen:UActorComponent::bAutoActivate% |
 [/REGION]
@@ -405,12 +284,12 @@ This page contains a reference listing of properties available on **Spline Compo
 
 
 [EXCERPT:PropEventsCat]
-[OBJECT:modulesection]
+[OBJECT:modulesectionexpanded]
 	[PARAMLITERAL:id]
 		EventsCat
 	[/PARAMLITERAL]
 	[PARAM:heading]
-		Events
+		Events 이벤트
 	[/PARAM]
 	[PARAM:content]
 		%c9%
@@ -422,7 +301,7 @@ This page contains a reference listing of properties available on **Spline Compo
 ![](EventsCatRef.png)
 
 [REGION:raw]
-| Property | %spacer% | Description |
+| 프로퍼티 | %spacer% | 설명 |
 | --- | :---: | :--- |
 | **On Component Hit** || %doxygen:UPrimitiveComponent::OnComponentHit% |
 | **On Component Begin Overlap** || %doxygen:UPrimitiveComponent::OnComponentBeginOverlap% |
@@ -444,31 +323,16 @@ This page contains a reference listing of properties available on **Spline Compo
 [/EXCERPT]
 
 
+<!--
+[EXCERPT:PointsType]
+선택된 **커브 포인트** 의 커브 유형을 정의합니다. 
 
-[EXCERPT:PropMobileCat]
-[OBJECT:modulesection]
-	[PARAMLITERAL:id]
-		MobileCat
-	[/PARAMLITERAL]
-	[PARAM:heading]
-		Mobile
-	[/PARAM]
-	[PARAM:content]
-		%c10%
-	[/PARAM]
-[/OBJECT]
-
-[VAR:c10]
-
-![](MobileCatRef.png)
-
-[REGION:raw]
-| Property | %spacer% | Description |
+| 유형 | %spacer2% | 설명 |
 | --- | :---: | :--- |
-| **Receive Combined Static and CSM Shadows from Stationary Lights** || %doxygen:UPrimitiveComponent::bReceiveCombinedCSMAndStaticShadowsFromStationaryLights%  |
-[/REGION]
-
-[/VAR]
+| **Linear** || 선형 - 선택된 **커브 포인트** 에서 다음까지 커브는 직선입니다. 선택된 **커프 포인트** 로 들어오는 탄젠트는 물론 다음으로 출발하는 탄젠트에까지 영향을 끼칩니다. |
+| **Curve** || 커브 - 기본값입니다. (선택된 것 이전 및 다음) **커브 포인트** 의 위치로, 선택된 **커브 포인트** 의 탄젠트를 정의합니다. |
+| **Constant** || 상수 - **선형** 과 비슷하지만, 선택된 **커브 포인트** 로 들어오는 탄젠트와 다음으로 나가는 탄젠트에는 영향을 끼치지 **않습니다**. |
+| **CurveClamped** || 클램프 적용 커브 - **커브** 와 비슷하지만 커브의 탄젠트에 클램프를 적용합니다. |
+| **CurveCustomTangent** || 커스텀 탄젠트 커브 - **커브 포인트** 의 탄젠트를 조절하면, 이 값으로 설정됩니다. |
 [/EXCERPT]
-
-
+-->

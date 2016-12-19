@@ -1,5 +1,5 @@
 Availability:Public
-Title: Persona: Skeletal Mesh Animation
+Title: Skeletal Mesh Animation System
 Crumbs: %ROOT%, Engine
 Description:System for deforming skeletal meshes based on keyframed animation data and morph targets.
 Navigation:topic
@@ -60,7 +60,7 @@ order:3
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Animation/Overview "%Engine/Animation/Overview:description%")
-		* [](Engine/Animation/Persona "%Engine/Animation/Persona:description%")
+		* [](Engine\Animation\Persona\Modes "%Engine\Animation\Persona\Modes:description%")
 		* [](Engine\Animation\AnimHowTo "%Engine\Animation\AnimHowTo:description%")
 	[/PARAM]
 [/OBJECT]
@@ -99,10 +99,10 @@ order:3
 		Features
 	[/PARAM]
 	[PARAM:links]
+		* [](Engine\Animation\AnimPose "%Engine\Animation\AnimPose:description%")
 		* [](Engine/Animation/Persona/BoneManipulation "%Engine/Animation/Persona/BoneManipulation:description%")
 		* [](Engine/Animation/AnimationBlending "%Engine/Animation/AnimationBlending:description%")
 		* [](Engine/Animation/AnimationRetargeting "%Engine/Animation/AnimationRetargeting:description%")
-		* [](Engine/Animation/RetargetingDifferentSkeletons "%Engine/Animation/RetargetingDifferentSkeletons:description%")
 		* [](Engine/Animation/PhysicallyDrivenAnimation "%Engine/Animation/PhysicallyDrivenAnimation:description%")
 		* [](Engine/Animation/RootMotion "%Engine/Animation/RootMotion:description%")
 		* [](Engine/Animation/NonUniformScale "%Engine/Animation/NonUniformScale:description%")

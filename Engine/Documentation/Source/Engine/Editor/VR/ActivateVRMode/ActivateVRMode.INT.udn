@@ -3,7 +3,7 @@ Description: Learn how to enable VR mode in Unreal Editor
 Crumbs:
 Availability: public
 parent: Engine/Editor/VR
-type: howto
+type:how-to
 order: 2
 tags: VR
 tags: Getting Started

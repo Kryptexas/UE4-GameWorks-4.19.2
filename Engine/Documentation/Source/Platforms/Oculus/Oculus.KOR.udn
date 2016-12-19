@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:3011129
+﻿INTSourceChangelist:3150518
 Title:오큘러스 리프트 개발
 Crumbs:%ROOT%, Platforms
 Description:
@@ -14,12 +14,15 @@ tags:Oculus Rift
 
 ## 시작하기
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/Oculus")]
+[DIR(output:"listbutton" type:"quick start" parent:"Platforms/Oculus")]
 
 ## 오큘러스 리프트 토픽
 
-[REGION:buttonlist]
 [DIR(output:"listbutton" type:"overview" parent:"Platforms/Oculus")]
+
+## 오큘러스 리프트 자료
+
+[REGION:buttonlist]
 * [Lessons from Integrating the Oculus Rift into Unreal Engine 4](https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx "Oculus Connect 2014 Presentation")
 [/REGION]
 
@@ -42,8 +45,8 @@ UE4 VR 프로젝트를 개발중일 때는 오큘러스에 등록 및 검토를 
 	![](Rift_UKS_03.png)
 
 1. 완료시 버튼에 **X** 대신 체크표시가 보일 것입니다. 이 변경사항을 기본 설정으로 되돌리려면, 버튼을 다시 눌러 체크 표시를 X 표시로 되돌립니다.
+	
 	![](Rift_UKS_04.png)
-
 
 
 ## Oculus 대담

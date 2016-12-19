@@ -1,14 +1,17 @@
-﻿INTSourceChangelist:0
-Availability:Docs
-Title:How-To Add a Spline Component to a Blueprint
+﻿INTSourceChangelist:3149199
+Availability:Public
+Title:如何将样条组件添加到蓝图
 Crumbs: %ROOT%, Engine
-Description:This how-to will show you how to add a Spline or Spline Mesh Component to a Blueprint.
+Description:此指南将说明如何将样条或样条网格体组件添加到蓝图。
 Navigation:topic
 parent:Engine/BlueprintSplines/HowTo
 order:1
 social-image:Splines_social.png
+version:4.13
+skilllevel:Beginner
 related:Engine/BlueprintSplines/HowTo/EditSplineComponentInEditor
 related:Engine/BlueprintSplines/HowTo/EditSplineInConstScript
+tags:Splines
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,25 +53,23 @@ related:Engine/BlueprintSplines/HowTo/EditSplineInConstScript
 [/VAR]
 
 
-This page will take you through the steps necessary to add a **Blueprint Spline Component** or **Blueprint Spline Mesh Component** to any Blueprint you have available. Both of these components require that your Blueprint inherits from any class that can trace its linage back to **Actor** (Pawn, Character, etc...).
+本页面将详细说明将 **蓝图样条组件** 或 **蓝图样条网格体组件** 添加到可用蓝图的必要步骤。这两种组件均要求蓝图继承自可回查行数到 **Actor**（Pawn、角色等）的类。
 
-## Steps
+## 步骤
 
-1. Create a new **Blueprint** or Open a **Blueprint** in the **Blueprint Editor**.
+1. 在 **蓝图编辑器** 中新建一个 **蓝图** 或打开一个 **蓝图**。
 
-1. **Add Component** ![](AddComp_Button.png) -> Spline **or** Add Component -> Spline Mesh.
+1. **添加组件** ![](AddComp_Button.png) -> Spline **or** Add Component -> Spline Mesh.
 
 	[REGION:raw]
 	![](AddSplineComp.png)
 	[/REGION]
 	
-1. Adjust any settings for the added component. See [](Engine/BlueprintSplines/Reference/ComponentProperties) or [](Engine/BlueprintSplines/Reference/MeshComponentProperties) for more information on the properties available.
+1. 调整所添加组件的任意设置。在 [](Engine/BlueprintSplines/Reference/ComponentProperties) 或 [](Engine/BlueprintSplines/Reference/MeshComponentProperties) 中查阅可用属性的更多信息。
 
-	You won't be able to directly edit the Spline's or Spline Mesh's points in the **Blueprint Editor Viewport**. You'll either need define the curve in the **Construction Script** of your Blueprint or place your Blueprint in your level and edit the points there.
+	可在 **蓝图编辑器视口** 中直接编辑 **蓝图样条组件** 的点。
 	
-## Result
+## 结果
 
-You will have added a **Spline Component** or **Spline Mesh Component** to your Blueprint, see the next how-to's for more information on how to manipulate them.
-
-
+必须要将 **蓝图样条组件** 或 **蓝图样条网格体组件** 添加至蓝图，可在下个指南中查看操作说明。
 

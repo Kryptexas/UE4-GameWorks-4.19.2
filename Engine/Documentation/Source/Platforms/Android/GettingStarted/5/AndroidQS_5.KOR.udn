@@ -1,31 +1,24 @@
-﻿INTSourceChangelist:2714483
+﻿INTSourceChangelist:3150518
 Availability:Public
 Title:5. 게임 패키징
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:설치를 위해 게임을 패키징합니다.
-Version:4.9
+Version:4.12
 Skilllevel:Intermediate
+tags:Android
+tags:Mobile
+type:multi-step
+parent:Platforms/Android/GettingStarted
+order:5
+Checkpoint:AndroidQS
 
-[VAR:Steps]
-[OBJECT:Navigation]
-	[PARAM:previous]
-		[예전 단계](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
-	[/PARAM]
-	[PARAM:current]
-	[/PARAM]
-	[PARAM:home]
-		[퀵스타트 홈](Platforms/Android/GettingStarted)
-	[/PARAM]
-	[PARAM:next]
-		[다음 단계](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:title%")
-	[/PARAM]
-[/OBJECT]
-[/VAR]
+[nav]
 
 다른 사람과 프로젝트를 공유하거나 디지털 스토어에 올려 판매하기 위해서는, 프로젝트를 패키징해야 합니다.
 여기서는 완성된 프로젝트를 UE4 내에서 배포용으로 패키징하는 방법을 살펴보겠습니다.
 
-%Steps%
+## 단계
+
 
 %Globals:OSSelect%
 
@@ -57,6 +50,8 @@ Skilllevel:Intermediate
 	[INCLUDE:#MacOSSetup]
 	[/PARAM]
 [/OBJECT]
+
+
 
 <!--
 [EXCERPT:WindowsSetup]
@@ -149,4 +144,6 @@ Skilllevel:Intermediate
 [/EXCERPT:MacOSSetup]
 -->
 
-%Steps%
+## 최종 결과
+완료되면 .BAT 파일을 통해서 안드로이드 기반 스마트폰에 UE4 프로젝트를 설치하는 .APK 파일이 생겨있을 것입니다.
+[nav]

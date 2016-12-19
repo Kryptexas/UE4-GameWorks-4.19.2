@@ -9,6 +9,7 @@ type:landing
 parent:Platforms/VR
 tags:VR
 tags:Google VR
+tags:Platform
 prereq: Platforms/Android/GettingStarted/
 social-image:googlevr_social.png
 
@@ -16,7 +17,7 @@ social-image:googlevr_social.png
 
 The GoogleVR Quick Start will walk you through getting your PC and Android-based smartphone to work with UE4 and Google VR.
 
-[DIR(output:"listbutton" type:"quickstart" parent:"Platforms/GoogleVR")]
+[DIR(output:"listbutton" type:"quick start" parent:"Platforms/GoogleVR")]
 
 ## Google VR Daydream
 

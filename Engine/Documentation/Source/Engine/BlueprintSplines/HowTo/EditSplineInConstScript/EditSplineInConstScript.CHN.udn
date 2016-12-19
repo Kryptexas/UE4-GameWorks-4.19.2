@@ -1,12 +1,14 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangeList:3112568
 Availability:Docs
-Title:How-To Edit a Spline Component in the Construction Script
+Title:如何在构造脚本中编辑样条组件
 Crumbs: %ROOT%, Engine
 Description:Null
 Navigation:topic
 parent:Engine/BlueprintSplines/HowTo
 order:3
 social-image:Splines_social.png
+version:4.13
+skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]

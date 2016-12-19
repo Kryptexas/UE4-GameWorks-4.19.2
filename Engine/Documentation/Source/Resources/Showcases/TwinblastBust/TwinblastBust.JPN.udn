@@ -1,73 +1,76 @@
-﻿INTSourceChangelist:0
-Availability: Docs
+﻿INTSourceChangelist:3108692
+Availability:Docs
 Title:Twinblast Bust
 Crumbs:%ROOT%, Resources
-Description:An overview of the Twinblast Bust showcase.
-Related: Engine/Rendering/Materials
-Related: Engine/Rendering/Materials/PhysicallyBased
-Related: Engine/Rendering/Materials/LayeredMaterials
-Version: 4.13
+Description:Twinblast Bust ショーケースの概要
+Related:Engine/Rendering/Materials
+Related:Engine/Rendering/Materials/PhysicallyBased
+Related:Engine/Rendering/Materials/LayeredMaterials
+Version:4.13
 
 [TOC(start:2 end:3)]
 
-The purpose of this showcase is to demonstrate the use of high-quality character shader techniques, as demonstrated on a character from Epic's MOBA game Paragon. To view this showcase, simply open the project and press Play In Editor to see the cinematic pan-around. 
+![](TwinblastHeader.png)(w:700 convert:false)
 
-For more information on the tech used to produce this character, please refer to this [Unreal Engine Livestream - Tech & Techniques Behind Creating the Characters for Paragon](https://www.youtube.com/watch?v=toLJh5nnJA8).
 
-## Skin Shading
+このショーケースの目的は、エピックの MOBA ゲーム、Paragon のキャラクターのような高品質なキャラクター シェーダー技術の使用についてデモすることです。このショーケースを観るには、このプロジェクトを開いて [Play In Editor] を押して、シネマティックスの周囲をパンします。 
 
-The character's skin is created primarily through the use of UE4's [Subsurface Profile shading model](Engine/Rendering/Materials/LightingModels/SubSurfaceProfile/). 
+このキャラクターを生成するために使う技術の詳しい情報は、[Unreal Engine Livestream - Tech & Techniques Behind Creating the Characters for Paragon](https://www.youtube.com/watch?v=toLJh5nnJA8) をご覧ください。
+
+## スキン シェーディング
+
+キャラクターのスキンは、UE4 の [サブサーフェス プロファイルのシェーディング モデル](Engine/Rendering/Materials/LightingModels/SubSurfaceProfile/) を使って作成されています。 
 
 ![](TwinblastSkinMat.png)(w:700 convert:false)
 
-Note the use of [Material Functions](Engine/Rendering/Materials/Functions/) to set up the base for the skin Material. This is done as a reusable authoring approach to creating Materials for Paragon. In this way, artists can standardize approaches to generating certain types of surfaces, knowing that a fundamental change to a single Function will update all instances where that Function is being used. 
+スキン マテリアルのベースをセットアップするには、 [マテリアル関数](Engine/Rendering/Materials/Functions/) の使用に注意してください。これは、Paragon のマテリアルを作成する再利用可能なオーサリング アプローチとして行われます。このやり方を用いて、アーティストはひとつの関数に対する基本的な変更が、その関数を使用する全インスタンスを更新することを理解したうえで、一部のタイプのサーフェスを生成するアプローチを標準化することができます。 
 
-### Skin Shader Textures 
+### スキン シェーダーのテクスチャ 
 
-The textures used on Twinblast's skin are all at 4K resolution and were originally produced from facial scans of the actor. The textures were then cleaned up and tweaked by artists at Epic. This skin setup utilizes five total texture maps: diffuse, roughness, specularity, scatter, and normal.
+Twinblast のスキンで使われているテクスチャは、すべて 4K の解像度であり、もともと人の顔をスキャンして作られています。テクスチャはエピックのアーティストがクリーンアップして微調整しています。このスキンのセットアップでは、ディフューズ、ラフネス、スペキュラリティ、散乱、法線の合計 5 種類の テクスチャ マップを利用しています。
 
-| Texture | Name | Description |
+| テクスチャ | 名前 | 説明 |
 |---------|------|-------------|
-|![](SkinDiffuse.png)(w:200 convert:false)|**Diffuse**|The diffuse map supplies the Base Color for the Material. At 4K, you can see the tiny capillaries just underneath the surface. Any darkening of wrinkles will accentuate the texture supplied by the normal map. (*TwinBlast_UE4_Demo_Head_D*)|
-|![](SkinRough.png)(w:200 convert:false)|**Roughness**|The roughness map is stored within the alpha channel of the diffuse texture. This is a common technique used to minimize the amount of textures in use. Note that the roughness increases wihtin pores and wrinkles. This causes those areas to appear less shiny, accentuating the look of depth provided by the diffuse and normal map. Also note that the hair texture on the head is pushed out to fully rough (1.0) this prevents any stray specular highlights from the scalp, which will give a much more significant sense of depth to the hair. (*TwinBlast_UE4_Demo_Head_D*)|
-|![](SkinSpec.png)(w:200 convert:false)|**Specular**|The specular map scales the amount of specular highlight visible across the surface of the skin. It is important to note that the default value for specularity is 0.5. This map boosts specularity at areas where the skin may be stretched a bit tighter, and dampens it in areas where we don't want to see reflection, such as the center of pores and within wrinkles. (*CH2_exp04_merged_spec_f_FC_FINAL*)|
-|![](SkinScatter.png)(w:200 convert:false)|**Scatter**|The scatter map controls how much light is going to be scattered through the surface of the skin. Areas that are dark will exhibit very little scatter, such as the cheeks, while lighter areas will have higher amounts of perceived scatter, such as the nose and ears. The color of the scatter is managed by the [Subsurface Profile asset.](Engine/Rendering/Materials/LightingModels/SubSurfaceProfile/) (*TwinBlast_UE4_Demo_Head_BackScatter*)|
-|![](SkinNormal.png)(w:200 convert:false)|**Normal**|The normal map works as expected in typical material setups, supplying the tactile texture to the surface by perturbing pixel normals. There is nothing out of the ordinary in its setup for this example. (*TwinBlast_UE4_Demo_Head__normals*)|
+|![](SkinDiffuse.png)(w:200 convert:false)|**Diffuse**|ディフューズ マップは、マテリアルの基本色を与えます。4K で、サーフェスのすぐ下に毛細血管があるのがわかります。しわが黒くなると、法線マップによって与えられるテクスチャが強調されます (*TwinBlast_UE4_Demo_Head_D*)。|
+|![](SkinRough.png)(w:200 convert:false)|**Roughness**|ラフネス マップは、ディフューズ テクスチャのアルファ チャンネル内に保存されます。これは使用するテクスチャ量を最小限に抑えるために使われる一般的なテクニックです。毛穴としわの中でラフネスが増していることがわかります。これにより、こうしたエリアの光沢を減らして、ディフューズと法線マップによる深度の見た目を強調します。頭部の髪のテクスチャは完全にラフ (1.0) になっており、頭皮からのスペキュラ ハイライトの迷光を防ぎます。これにより、髪の深度がよりはっきりと感じられるようになります (*TwinBlast_UE4_Demo_Head_D*)|
+|![](SkinSpec.png)(w:200 convert:false)|**Specular**|スペキュラ マップは皮膚のサーフェスで可視のスペキュラ ハイライトの量をスケーリングします。スペキュラリティ (鏡面反射性) のデフォルト値は、0.5 であることが重要です。このマップは、皮膚が少しタイトにストレッチされうる場所でスペキュラリティを増して、毛穴の中央や、しわの中など反射させたくない場所で抑えます。(*CH2_exp04_merged_spec_f_FC_FINAL*)|
+|![](SkinScatter.png)(w:200 convert:false)|**Scatter**|散乱マップは、皮膚のサーフェスを通してどの程度光が散乱するかを制御します。頬など暗くなっている場所の散乱はごくわずかですが、鼻や耳などの明るめの場所では認識される散乱量は増えます。散乱の色は、 [Subsurface Profile アセット](Engine/Rendering/Materials/LightingModels/SubSurfaceProfile/) (*TwinBlast_UE4_Demo_Head_BackScatter*) によって管理されます。|
+|![](SkinNormal.png)(w:200 convert:false)|**Normal**|法線マップはピクセルの法線に凹凸を与えることでサーフェスを立体的なテクスチャにし、通常のマテリアルのセットアップで期待通りに機能します。このサンプルのセットアップでは、特に変わったものはありません。 (*TwinBlast_UE4_Demo_Head__normals*)|
 
 
-## Hair Shading
+## ヘアシェーディング
 
-Hair shading is handled by way of UE4's Hair shader model. This shader is physically based shading model based on research by [Eugene d'Eon, Steve Marschner and Johannes Hanika](http://www.eugenedeon.com/project/importance-sampling-for-physically-based-hair-fiber-models/) and currently used by [Weta Digital](http://www.wetafx.co.nz/research). The shader approximates light's reflection from the surface of the hair with anisotropic specularity, as well as its refraction through it and its scatter throughout multiple strands. 
+ヘアシェーディングは、UE4 のヘア シェーダー モデルによって処理されます。このシェーダーは [Eugene d'Eon 氏、Steve Marschner 氏、および Johannes Hanika 氏](http://www.eugenedeon.com/project/importance-sampling-for-physically-based-hair-fiber-models/) によるリサーチに基づいた物理ベースのシェーディング モデルです。現在は、[Weta Digital](http://www.wetafx.co.nz/research) によって使用されています。シェーダーはアニソトロピック (異方性) スペキュラリティとそれを通る屈折と複数の髪の毛への散乱を用いてヘアのサーフェスからの光の反射を近似します。 
 
-To utilize the UE4 Hair shader, set the **Shading Model** property of your Material to **Hair**.
+UE4 のヘア シェーダーを利用するには、マテリアルの **Shading Model** プロパティを **Hair** に設定します。
 
 
 ![](HairSM.png)
 
-### Hair and Specularity
+### 髪とスペキュラリティ
 
-In the real world, hair tends to have multiple specular highlights: one representing the color of the light and another that is a mix of hair color and light color. For sake of this document, we will refer to these as primary and secondary specular highlights. The Hair shader approximates the same effects with highly realistic results.
+現実世界では、髪は複数のスペキュラ ハイライトを持ちます。光の色を表すもの、および髪の色と光の色を混ぜ合わせたものもあります。このドキュメントでは、これらをプライマリ スペキュラ ハイライトとセカンダリ スペキュラ ハイライトと呼びます。ヘア シェーダーは、同じエフェクトを非常にリアルな結果に近づけます。
 
 ![](TwinblastHair_Specs_Diagram.png)(w:700 convert:false)
-[REGION:caption]1. The lighter hair represents the primary specular highlight. 2. The brighter red hair represents the secondary specular highlight.[/REGION]
+[REGION:caption]1.淡い色の髪はプライマリ スペキュラ ハイライトです。2.濃い赤い色のヘアは、セカンダリ スペキュラ ハイライトです。[/REGION]
 
-The approximation algorithm used in UE4's hair shader creates these effects in a similar manner to how they are made in the real world. As light strikes the surface of a hair follicle, it does not simply bounce off. Hair is translucent, allowing some light to pass *through* it, to potentially bounce around inside it, then exit. The hair shader approximates this with three possible paths for light to travel as it interacts with hair, as shown in the animated GIF diagram below:
+UE4 のヘア シェーダーで使われる近似アルゴリズムは、現実世界と同じようなやりかたでこうしたエフェクトを作成します。ライトが毛包 (毛が作られる場所で、その中で皮膚表面から見える部分が毛穴) の表面にあたり、単純にバウンスしません。髪は透過であるため、一部の光は髪の中を通過し、その中でバウンスして、出ていきます。以下のアニメートされた GIF の図のようにヘア シェーダーは、光が髪に作用する場合に、これを光が伝搬する 3 つの考えうる経路で近似します。
 
 ![](HairDiagram.gif)(w:700 convert:false)
-[REGION:caption]Cross section of single hair follicle showing how the hair shader approximates interaction with light, demonstrating the three primary types of paths light will take. See the table below for descriptions of each part of the process.[/REGION] 
+[REGION:caption]一本の髪の毛包の断面を見ると、3 つの主な光の通り道があり、光との相互作用でヘア シェーダーがどのように近似するかがわかります。プロセスの各部分の説明については、以下の表をご覧ください。[/REGION] 
 
-| Number | Description |
+| 番号 | 説明 |
 |--------|-------------|
-|0. |The growth (root/tip) direction of the hair follicle. |
-|1. |Reflection only path, with light bouncing off the surface of the hair. This produces the primary specular highlight.|
-|2. |Transmission-transmission path, in which light passes into the hair follicle and back out the other side. This is how light scatters within a volume of hair.|
-|3. |Transmission-reflection-transmission path, in which light enters the hair follicle, reflects off the inside boundary of the surface, and then exits . This produces the secondary specular highlight.|
+|0. |毛包の成長方向 (毛根から先端)。 |
+|1. |光が髪の表面でバウンスする反射のみの経路。これはプライマリ スペキュラ ハイライトを生成します。|
+|2. |光が毛包に入りもう一方の側から戻る透過から透過の経路。髪の中で光が散乱する様子を表しています。|
+|3. |光が毛包に入り、表面の境界内から反射し、出ていく透過、反射、透過の経路。これはセカンダリ スペキュラ ハイライトを生成します。|
 
-As shown in the diagram above, a strand of hair is not a perfect cylinder or tube. In actuality hair appears more as a series of stacked cones. This means light bouncing off the surface of hair will be scattered differently than it would if hair were perfectly smooth. Further, because each strand of hair is generally pointing in a different direction, the specular highlight will not be unified, but will be independently placed based on the direction the hair is pointing. This is often referred to as *anisotropic* specularity, which is also supported by the UE4 hair shader.
+上図のように髪の束は完全なシリンダー状、チューブ状ではありません。実際に髪は円錐状のものが重なった状態に似ています。つまり、髪の表面で跳ね返る光は、髪が完璧に滑らかな場合に比べて、散乱の様子が異なります。さらに髪の一本一本は一般的に別の方向を向いています。スペキュラのハイライトは統一されませんが、髪が向いている方向に応じて個別に配置されます。これは、アニソトロピック (異方性) スペキュラリティと呼ばれ、UE4 のヘア シェーダーでもサポートされています。
 
-### Hair and Transparency
+### 髪と透過処理
 
-The Hair Shader uses the Masked blend mode instead of translucency. However, Masked transparency results in a binary result - surfaces are either fully opaque or fully transparent. A noisy dither pattern is constantly moved across the surface, becoming more dense in areas that need to be more solid. Dither is used as a way to blend Masked transparency, but only works when TemporalAA is active. 
+ヘア シェーダーは、透過性の代わりにマスクしたブレンド モードを使用します。ただし、マスクした透過処理では二値の結果が得られます。サーフェスは完全に不透明か完全に透明になります。ノイズがあるディザ パターンは絶えずサーフェス上を移動し、一段とソリッドである必要があるエリアでは濃くなります。ディザはマスクした透過処理の手段として使用されますが、TemporalAA がアクティブな場合に限り機能します。 
 
 [OBJECT:ComparisonSlider]
 [PARAM:before]
@@ -78,64 +81,64 @@ The Hair Shader uses the Masked blend mode instead of translucency. However, Mas
 [/PARAM]
 [/OBJECT]
 
-[REGION:note]Using an animated dither with TemporalAA requires several frames to resolve the blend. This can lead to some artifacting on hair while it is in motion. This is an expected side effect of the technique.[/REGION]
+[REGION:note]アニメートされたディザを TemporalAA と合わせて使用すると、このブレンドをリゾルブするためにいくつかのフレームが必要です。これにより動作中に髪にアーティファクトが生じることがあります。この技術で予期される好ましくない影響です。[/REGION]
 
-#### Edge Masking
+#### エッジのマスキング
 
 ![](EdgeMaskGraph.png)(w:700 convert:false)
 
-Though not specifically part of the shader itself, it is worth noting that the Material used on Twinblast's hair - as well as the other characters of Paragon - uses what is called an "Edge Mask" to fade the hair away as it becomes edge-on to the camera. Since hair is rendered as a series of planes - see [Hair and Geometry](#hairgeometry) below - it is likely that from certain camera angles, one would see the edge of each sheet, breaking the hair effect.
+シェーダーの一部ではありませんが、Twinblast の髪で使われているマテリアルおよび 『Paragon』 の他のキャラクターでは、いわゆる「エッジ マスク」を使ってカメラに対して真横になるにつれて髪をフェードさせます。髪は一連の平面としてレンダリングされるため、 (以下の [髪のジオメトリ](#髪のジオメトリ) を参照) 一定のカメラ アングルからは、各シートのエッジが見えて、ヘアのエフェクトが壊れます。
 
-To help alleviate this problem, the Material calculates the camera's vector against the vertex normal such that as the surface turns perpendicularly away from the camera, it will also fade away to complete transparency. This is also why many characters with thick heads of hair will often have a hair texture painted on the scalp, as seen in the image below.
+この問題を緩和するために、マテリアルは頂点法線に対してカメラのベクターを計算し、サーフェスがカメラから垂直に遠ざかるにつれて、完全に透過にフェードしていくようにします。これは髪の量が多いキャラクターでは多くの場合、以下の画像のように頭皮にヘア テクスチャがペイントされている理由でもあります。
 
 ![](TwinblastScalp.png)(w:700 convert:false)
 
-[REGION:tip]It should also be pointed out that this effect is tied to a Quality Switch node, so that on lower-powered platforms it can easily be switched off to trade back some shader performance. As always, it's best to test on target platform.[/REGION]
+[REGION:tip]このエフェクトは、Quality Switch ノードに結び付いていて、性能が低いプラットフォームでは一部のシェーダー パフォーマンスと引き換えに簡単にオフにすることができます。常にターゲット プラットフォームでテストを実施すると良いでしょう。[/REGION]
 
 
 
 
 
-### Hair Authoring
+### 髪のオーサリング
 
-Creating hair using the techniques shown in this showcase requires a bit of understand of how Epic constructed this character's hair.
+このショーケースで示した技術を使って髪を作成するには、エピックがこのキャラクターの髪をどのように作成したかについて少々理解する必要があります。
 
-#### Hair Geometry
+#### 髪のジオメトリ
 
-Hair geometry using UE4's hair shader is generally going to be constructed using a series of planar surfaces, which is a common approach in many game hair solutions. These can be authored in the DCC app of your choice.
+UE4 のヘア シェーダーを使ったヘア ジオメトリは一般的に、一連のプラナー サーフェスを使って構築されます。これは、多くのリアルタイム ヘア ソリューションで一般的なアプローチです。これは、お好きな DCC アプリケーションでオーサリングできます。
 
 ![](HairGeo.png)(w:700 convert:false)
 
-#### Hair Textures
+#### ヘア テクスチャ
 
-In this use of the UE4 Hair shader, the final result is driven by five primary textures: *Diffuse*, *Alpha*, *Root*, *Depth*, and a unique-per-strand *ID* texture. At Epic, these textures are typically generated using 3ds Max's Hair system, projecting the simulated hair results onto a piece of geometry. However, there are many available options for similar results. 
+UE4 のヘア シェーダーでこれを使用すると、最終結果は以下の 5 つの主要テクスチャによって操作されます。すなわち、*Diffuse*、 *Alpha*、 *Root*、*Depth*、および髪一本毎に固有の *ID* の 5 つです。エピックでは、こうしたテクスチャは通常、3ds Max のヘア システムを使って生成します。シミュレートした髪の結果をジオメトリの一部に投影します。ただし、似たような結果を得るために利用できるオプションが数多くあります。 
 
 
-| Texture | Name | Description |
+| テクスチャ | 名前 | 説明 |
 |---------|------|-------------|
-|![](Diffuse.png)(w:200 convert:false)|**Diffuse**|The Diffuse texture is precisely what one might expect in that supplies the primary diffuse - or *base* - color of the hair itself. It is sometimes desirable to leave this texture uncolored and drive its color via parameters, especially in those cases where a character's hair may take on many different colors. (*TwinBlast_UE4_Demo_Hair_D*)|
-|![](Alpha.png)(w:200 convert:false)|**Alpha**|The Alpha texture supplies the areas of opacity for the hair, hiding geometry outside the body of strands. (*TwinBlast_UE4_Demo_Hair_A*)|
-|![](Root.png)(w:200 convert:false)|**Root**|The Root texture provides a mask which is used to change the color of the hair from the root to the tip, useful for lightening or darkening hair along its length. (*TwinBlast_UE4_Demo_Hair_Roots*)|
-|![](Depth.png)(w:200 convert:false)|**Depth**|The Depth texture is used by Pixel Depth offset to give the illusion of pushing the hair deeper into the hair volume. It can also be used as a basis to change color or shading values for hair at different depths, such as reducing overall specularity as hair falls further toward the scalp. (*TwinBlast_UE4_Demo_Hair_Depth*)|
-|![](ID.png)(w:200 convert:false)|**Unique ID**| The Unique ID texture simply provides a unique 0 to 1 (black to white) value for each strand of hair on a given piece of hair geometry. This is used to provide subtle variation within the hair itself. (*TwinBlast_UE4_Demo_Hair_ID*)|
+|![](Diffuse.png)(w:200 convert:false)|**Diffuse**|ディフューズ テクスチャは、髪そのものの色のプライマリ ディフューズすなわちベースとなります。このテクスチャの色は無しにして、色をパラメータで操作するのが望ましい場合があります。特にキャラクターの髪が多様な色になる場合にこれが該当します。(*TwinBlast_UE4_Demo_Hair_D*)|
+|![](Alpha.png)(w:200 convert:false)|**Alpha**|Alpha テクスチャは、髪のオパシティのエリアを指定し、髪の束の外側のジオメトリを隠します。 (*TwinBlast_UE4_Demo_Hair_A*)|
+|![](Root.png)(w:200 convert:false)|**Root**|Root テクスチャは、毛根から先端までの色を変更するマスクを提供します。長さ方向に沿って髪の色を明るくしたり、暗くするのに便利です。 (*TwinBlast_UE4_Demo_Hair_Roots*)|
+|![](Depth.png)(w:200 convert:false)|**Depth**|Depth テクスチャは、Pixel Depth のオフセットによって使用され、髪全体の奥深くに髪があるかのような錯覚を与えます。髪が頭皮に向かうと全体的なスペキュラリティを減らすなど色やシェーディングの値を変更する基本として使用することもできます。 (*TwinBlast_UE4_Demo_Hair_Depth*)|
+|![](ID.png)(w:200 convert:false)|**Unique ID**| Unique ID テクスチャは、ヘア ジオメトリの任意の部分の髪一本ずつに 0 から 1 (黒から白) の固有の値を与えます。これは髪そのものに微妙な変化を与えるために使用します。(*TwinBlast_UE4_Demo_Hair_ID*)|
 
 
 
-### Hair Shader Properties
+### ヘア シェーダーのプロパティ
 
-When using the Hair Shader you will notice some new properties available on the main Material node: **Scatter**, **Tangent**, and **Backlit**.
+ヘア シェーダーを使用すると、メインのマテリアル ノードで一部の新しいプロパティ、**Scatter**、 **Tangent**、 および **Backlit** を利用できるようになります。
 
 ![](HairProperties.png)
 
-[REGION:warning]At the time of this writing (4.13), the Backlit property only exists as a part of an early version of the shader. Connections to it are not used internally by the Hair shader and the property can therefore be ignored.[/REGION]
+[REGION:warning]このドキュメントの作成時点 (4.13) では、Backlit プロパティは、シェーダーの早期バージョンの一部としてのみ存在します。ヘア シェーダー内部では、これに接続しないため、このプロパティは無視することができます。[/REGION]
 
-#### Scatter
+#### 散乱
 
-One of the primary reasons we refer to the Hair shader as an *approximation*, rather than a *simulation*, is that it is not actually simulating every individual strand of hair, nor is it simulating perfectly accurate lighting behavior. In the real world, as light bounces off of and transmits through follicles of hair, it will often encounter *other* strands of hair, repeating the same process potentially many times in succession. At this time there is no computing system capable of accurately producing the effects of such a simulation in realtime.
+ヘア シェーダーをシミュレーションではなく、近似であると言及する主な理由は、実際には個々の髪をシミュレーションせず、完全に正確なライティングの挙動をシミュレーションするわけではないからです。現実世界では、光が、毛包をバウンスし、その中を透過すると、多くの場合、他の髪の束があり、同じプロセスを何回も連続して繰り返すことになります。現時点で、こうしたシミュレーションのエフェクトをリアルタイムで正確に生成する機能を持つコンピューティング システムはありません。
 
-Nevertheless, the way in which light scatters through a body of hair is still crucial to how realistic that hair appears to be, in a game just as much as in the real world. To control this, the Hair shader provides the Scatter property, which replaces Metallic on your primary shader node and is limited to values between 0.0 and 0.1. Scatter controls how much light can pass into and scatter through the hair *as a whole surface*, rather than per follicle. In simpler terms, this controls how much light passes through the entire body of your character's hair. 
+しかし、髪の中で光がどのように散乱するかは、現実世界と同じようにゲーム内で髪をリアルに見せるために重要です。これを制御するためにヘア シェーダーには、Scatter プロパティがあります。これはプライマリ シェーダー ノードの Metallic に代わるものであり、0.0 と 0.1 の間の値に制限されます。Scatter は、毛包単位ではなく髪の表面全体としてどれくらいの光が通り散乱するかを制御します。簡単にいうと、キャラクターの髪全体をどれくらいの光が通過するかを制御します。 
 
-An important point to note about Scatter is that it will tend to be higher for lighter colored hair and darker for darker hair. This follows the physcal rules of the natural world, as darker hair will tend to absorb more light. In practical terms, if you are trying to create a blonde character, you will find that changing the diffuse texture or color is not enough; you will also have to increase the Scatter value as well.
+Scatter について重要な点は、明るい色の髪では高くなり、暗い色の髪では暗くなります。これは自然界の物理のルールに従います。髪の色が暗いほど、より多くの光を吸収します。実際の問題として、ブロンドの髪のキャラクターを作ろうとしているなら、ディフューズ テクスチャまたは色を変えるだけでは不十分です。Scatter 値も増やさなければなりません。
 
 
 [OBJECT:ComparisonSlider]
@@ -146,20 +149,20 @@ An important point to note about Scatter is that it will tend to be higher for l
 ![Scatter value of 1.0](HighScatter.png)(w:700 convert:false)
 [/PARAM]
 [/OBJECT]
-[REGION:caption]In this example the Diffuse texture has not been modified from its default dark brown color. This illustrates how various tones of hair can be generated just by changing the Scatter value.[/REGION]
+[REGION:caption]この例では、ディフューズ テクスチャはデフォルトのダークブラウンから変更されていません。これは、Scatter 値を変えるだけで、様々な髪のトーンが生成される様子を表しています。[/REGION]
 
 #### Tangent
 
-The Tangent property replaces the Normal property on the Hair shader. Instead of a typical normal map, the hair shader calculates a tangent. The tangent is calculated as a vector that runs parallel to each strand of hair, pointed back toward the root. In Twinblast's hair shader, this vector is given a random offset in the Z-Axis between 0.3 and -0.3, using the Unique ID texture. This produces a vector which has a random direction within an arc, and aids in providing variation within the anisotropic specular highlights.
+Tangent プロパティは、ヘア シェーダーの Normal プロパティに変わるものです。通常の法線マップの代わりに、ヘア シェーダーは接線を計算します。接線は毛根に向かう各髪に並行なベクターとして計算されます。Twinblast のヘア シェーダーでは、ベクターは固有の ID テクスチャを使って 0.3 と -0.3 との間の Z- 軸でランダムなオフセットを与えられます。これで、円弧内でランダムな方向を持つベクターが生成され、異方性スペキュラ ハイライト内で変化をつけます。
 
 ![](HairTangent.png)(w:700 convert:false)
-[REGION:caption]In this image the yellow line represents the tangent along a strand of hair, pointing back toward the root.[/REGION]
+[REGION:caption]この画像では黄色の線は、髪一本に沿う毛根に向かう接線を表します。[/REGION]
 
-Tangents can be mapped in one of two ways: automatically or with the help of a flow map. The automatic method simply requires that that the textures for each sheet of hair be oriented such that the root is toward the top and the tips are toward the bottom. So long as your hair is short, and no sheets are bending around and twisting too much, this approach is adequate. This is the method used on Twinblast's hair.
+接線は、自動またはフロー マップの使用のいずれかの方法でマッピングされます。自動の方法では、一面の髪のテクスチャが、毛根が上に向かい、先端が下部に向くようにする必要があります。髪が短い限り、面が曲がったり、ツイストしすぎたりせず、この方法が適切です。Twinblast の髪で使われたのはこの方法です。
 
-##### Flow Maps for Tangency
+##### 接線のフローマップ
 
-The other method requires the creation of a flow map. This is useful if your character's hair is long and is bending and needs to appear to bend and curl more than the actual geometry does, or if the individual texture portions for the hair are oriented in different ways (not top-to-bottom as described above). The flow map will represent the direction the hair is moving in tangent space, or along the surface. Within the Twinblast Bust project, you can find an unused flow map named *T_SparrowHair_Flow*. Below is a comparison of that flowmap and the result of the specularity. 
+もうひとつの方法では、フローマップを作成する必要があります。これはキャラクターの髪が長く、真っ直ぐではなく、実際のジオメトリよりも曲がったり、カールしている必要がある場合、または髪の個々のテクスチャ部分が様々な方向に向いている場合に便利です (上記のように上から下ではなく)。フロー マップは、タンジェント空間すなわちサーフェスに沿って髪が動く方向を表します。Twinblast Bust プロジェクト内には、*T_SparrowHair_Flow* という名前の未使用のフローマップがあります。以下は、フローマップとスペキュラリティの結果を比較したものです。 
 
 [OBJECT:ComparisonSlider]
 [PARAM:before]
@@ -169,14 +172,14 @@ The other method requires the creation of a flow map. This is useful if your cha
 ![Flow Map Texturing](SparowFlowMap2.png)(w:600 convert:false)
 [/PARAM]
 [/OBJECT]
-[REGION:caption]Here you can see how the flow map is textured along the surface of Sparrow's hair. Note that the flowmap is only in use on some of the hair sheets, not the entire body of hair. Notice how different values along the flow map subtly shift the specularity along the hair.[/REGION]
+[REGION:caption]ここでは、Sparrow の髪の表面にそってフローマップがどのようにテクスチャリングされるかがわかります。フローマップは、一部の髪の面でのみ使用され、髪全体で使用されるわけではないことに注意してください。フローマップに沿う様々な値によって、髪に沿ってスペキュラリティが変わるのがわかります。[/REGION]
 
 
 
 
-#### Using Pixel Depth Offset with the Hair Shader
+#### ヘア シェーダーでピクセル深度オフセットを使用する
 
-Pixel Depth Offset (PDO) is not a property unique to the Hair shader. In layman's terms, PDO causes pixels to look recessed away from the camera, creating an artificial sense of depth along the surface. Since hair is made up of simple sheets of geometry, as explained in [Hair and Geometry](#hairgeometry) below, the use of PDO can provide a tangible sense of depth to the hair shape as a whole. It also breaks up the intersection point where a plane of hair geometry contacts the scalp, as shown below.
+Pixel Depth Offset (PDO、ピクセル深度オフセット) は、ヘア シェーダー固有のプロパティではありません。わかりやすく説明すると、PDO ではカメラから離れてピクセルがへこんでいるように見え、サーフェスにそって人工的な深度を作り出します。[髪のジオメトリ](#髪のジオメトリ) で説明しているように、髪は単純なジオメトリのシートでできています。PDO を使用すると、全体として髪の形状に深度を加えます。以下のように髪のジオメトリの面が頭皮に接触する交差ポイントも分けます。
 
 [OBJECT:ComparisonSlider]
 [PARAM:before]
@@ -190,36 +193,36 @@ Pixel Depth Offset (PDO) is not a property unique to the Hair shader. In layman'
 
 
 
-## Eye Shading
+## 目のシェーディング
 
 ![](EyeShading.png)(w:700 convert:false)
 
-Eyes are often referred to as "the windows to the soul." Few aspects of a character have as much influence on the viewer's perception of a character as a real person as that character's eyes. The Eye shader in UE4 is designed to bring realistic rendering of an eye surface, exposing artistic control over each of the biological parts of the eye itself.
+目は、しばしば「心の窓」と言われます。実際の人間としてキャラクターの目ほど見る側の認識に影響を及ぼす部分はありません。UE4 の目のシェーダーは、目の表面をリアルにレンダリングするように設計されています。目そのものの生物学的な各部をアーティスティックに制御します。
 
-[REGION:warning]The Eye shader in UE4 is highly technical and has been developed such that there are **very strong dependencies** between the shader code, the Material, the shape of the geometry, and the geometry's UV layout. Building an eye from scratch using this shader is not recommended without extensive experience. To that end, we strongly recommend, for those creating realistic humanoid eyes, that you extract the eye geometry from this example and use the eye Material **as-is**, replacing the necessary textures to suit your purpose. [/REGION]
+[REGION:warning]UE4 の目のシェーダーは非常に技術的で、シェーダーのコード、マテリアル、ジオメトリの形状、およびジオメトリの UV レイアウトとの間で非常に **強い従属関係** を持つように開発されてきました。幅広い経験がない場合は、このシェーダーを使って何もないところから目を作るのはお勧めしません。この観点から、リアルな人間の目を作るには、このサンプルから目のジオメトリを抽出して、目的に合わせて必要なテクスチャを置き換えて目のマテリアルを **そのまま** 使います。[/REGION]
 
-### Eye Biology
+### 目の生物学
 
-In order to fully understand the features of the eye it is best to know a little bit of eye biology. Each of the parts you see here are represented in this eye setup, and all can be modified in some way using the exposed parameters in the Material Instance applied to Twinblast's eyes (*MI_TwinBlast_EyeRefractive_Bust*).
+目の機能を十分に理解するには、簡単に目の仕組みを理解すると良いでしょう。ここで示す各部は、この目の構造で表されています。Twinblast の目に適用されたマテリアル インスタンス (*MI_TwinBlast_EyeRefractive_Bust*) で公開されているパラメータを使って変更することができます。
 
-Here is a quick refresher:
+以下は概要です。
 
 ![](EyeDiagram.png)(w:700 convert:false)
 |Number|Name|Description|
 |------|----|-----------|
-|1|Sclera|The sclera is also known as the "white of the eye." This area of the eye is generally very wet and has a slight amount of tactile texture.|
-|2|Limbus|The limbus is the dark ring that is present between the iris and the sclera. It is more dominant in some eyes than others, and will tend to fade away when viewed from edge-on.|
-|3|Iris|The iris is the ring of color around the center of the eye. When one is said to have "green" eyes, it is because their iris is predominantly green. In a real eye, the iris is a ring of muscle-like fibers that expand and contract, allowing more light into - or closing light out of - the pupil. It is also worth noting that in the real world, the iris is actually more of a disc or cone shape, and does not bulge outward with the rest of the eye.|
-|4|Pupil|The pupil is the dark spot at the center of the eye. It is the hole through which light passes so it can be picked up by the rods and cones of the retina.|
-|5|Cornea|The cornea is the clear, fluid-filled dome that rests over the surface of the iris. |
+|1|強膜|眼球の白目部分です。目のこの部分は一般的に湿っていて、若干立体的なテクスチャになっています。|
+|2|縁|虹彩と強膜の間にある暗い色の輪です。目によって目立つ度合いが異なり、真横から見ると見えなくなる傾向があります。|
+|3|虹彩|目の中央周辺にある色の輪です。目が緑色であるのは、虹彩が主に緑色だからです。実際の目では、虹彩は筋肉状の繊維の輪であり、拡張、収縮し、瞳孔に入ってくる光の量を調整します。現実の世界では、虹彩は実際にはディスク状あるいは円錐形状であり、目の他の部分から出っ張ってはいません。|
+|4|瞳孔| 瞳孔は、目中央部の暗い部分です。網膜の桿体細胞と錐体視細胞を通った光が通る穴です。|
+|5|角膜|透明であり、液体で満たされたドーム状のもので、虹彩の表面上にあります。 |
 
-### Refraction within the Eye
+### 目の中の屈折
 
-Because the eyeball is filled with fluid, it is given to refracting any light that passes through it. This can be seen in the real world when looking at an eye from multiple angles. The iris and pupil will be distorted by refraction as they are viewed through the cornea. Traditional approaches to solving this for games and film was to create two separate eye surfaces: one that supplied the sclera, iris, and pupil; and another surface on top that supplied the cornea and overall wetness of the eye. This allowed for refraction as the underlying surface was viewed through the wet layer shell. Such an approach was used in Epic's *A Boy and His Kite* tech demo on the boy's eyes. The diagram below shows a representation of the two surfaces.
+目玉は液体で満たされているため、その中を通る光は屈折します。複数の角度から目を見ると、現実世界でもこれがわかります。角膜から見ると虹彩と瞳孔は反射によって歪みます。ゲームや映像でこれに対処する従来のアプローチは、2 つの別箇の目のサーフェスを作るというものです。ひとつは、強膜、虹彩、瞳孔になり、その上のもうひとつのサーフェスは角膜と全体的な目の水分になります。これにより、屈折が可能になります。下の方にあるサーフェスが水分がある層のシェルを通して見られるからです。こうしたアプローチは、エピックの「A Boy and His Kite」の技術デモで使用されました。以下の図では、2 つのサーフェスを表しています。
 
 ![](KiteBoyEyes.png)(w:700 convert:false)
 
-Using our new Eye shader, however, an even more realistic effect can be achieved with a *single surface*. The refraction of light through the surface of the cornea is now handled entirely within the shader, alleviating the need for underlying geometry. You can experiment with this yourself by opening the *MI_TwinBlast_EyeRefractive_Bust* Material Instance and adjusting the **Depth Scale** property.
+ただし、目のシェーダーを使うと、1 つのサーフェスでさらにリアルなエフェクトを実現できます。角膜表面を通る光の屈折は、現在完全にシェーダー内で処理されています。これにより、下の層のジオメトリの必要性が軽減されます。これを試すには、*MI_TwinBlast_EyeRefractive_Bust* マテリアル インスタンスを開いて、**Depth Scale** プロパティを調整します。
 
 [OBJECT:ComparisonSlider]
 [PARAM:before]
@@ -231,52 +234,52 @@ Using our new Eye shader, however, an even more realistic effect can be achieved
 [/OBJECT]
 
 
-### Eye Authoring
+### 目のオーサリング
 
-Earlier in this section we provided a warning that there are strong interdependencies between the code of the Eye shader, the setup of the material, and the geometry of the eye mesh. The following is a high-level overview of what makes the eye setup so particular, which will be useful if you should try replacing the geometry with your own eye mesh for your characters.
+このセクションの前の方で、目のシェーダーのコード、マテリアルのセットアップ、目のメッシュのジオメトリとの間には強い従属関係があることを警告しました。以下では目のセットアップがいかに特別であるかについての概要を説明します。これは、ジオメトリをキャラクターの目のメッシュで置き換える場合に役立ちます。
 
-When building your own eyes, we **strongly** recommend that you start using the eye geometry and Material provided in this example. As such, most of the information provided here will be based upon that assumption.
+独自の目を作成する場合、このサンプルに入っている目のジオメトリとマテリアルを使用することをお勧めします。ここで扱う情報のほとんどは、これらを使用することを前提にしています。
 
-#### Shape and UV Layout
+#### 形状と UV レイアウト
 
-Much like the human eye of the real world, the eye mesh is not modeled to be perfectly spherical. Rather, it has a distinct dome at the front to represent the cornea. This gives the eye almost an egg shape.
+現実世界の人間の目のように、目のメッシュは完全に球状になるようにモデル化されていません。角膜を表すために前面ではっきりとドーム状になっています。こうした形状から、目はほとんど卵形になっています。
 
 ![](EyeGeometry.png)(w:400 convert:false)
-[REGION:caption]In this image you can see the geometry of the eye viewed from the side in Maya. Note the raised area of the cornea at the front.[/REGION]
+[REGION:caption]この画像では、Maya で横から見た目のジオメトリを示しています。前面の角膜の一部が高く上がっているのがわかります。[/REGION]
 
-The UV layout for the eye is also critical, as it is from this that the proportions of each eye texture are produced. Fortunately, the UV layout that works best with the Eye shader is relatively basic: a planar projection along the front axis of the eye. Inclusion of backfaces is not extremely important (since they'll be behind the eye anyway), which can be seen on the Twinblast example.
+目の UV レイアウトも非常に重要です。これを使って、各目のテクスチャの比率が生成されるからです。幸い、目のシェーダーで最もうまく機能する UV レイアウトはどちらかというと基本的なものです。目の前の軸に沿った平面プロジェクションです。裏面を含めるかどうかは、あまり重要ではありません (いずれにせよ目の後ろ側だからです)。Twinblast のサンプルをご覧いただければわかります。
  
- The UV layout will look like this:
+ UV レイアウトは以下のようになります。
 
 ![](EyeUVs.png)(w:400 convert:false)
-[REGION:caption]Notice that the UV layout is centered on the 0-1 space and that the projection looks directly into the cornea. [/REGION]
+[REGION:caption]UV レイアウトは 0-1 空間の中心にあり、プロジェクションは直接角膜の中を見ます。[/REGION]
 
 
-### Eye Textures
+### 目のテクスチャ
 
-Many of the textures you'll create for your eyes will be based on the UV layout created above, with the exception of the iris map. The list of primary editable textures includes:
+目のために作成するテクスチャの多くは、虹彩のマップを除いて、上記で作成した UV レイアウトに基づきます。基本的に編集可能なテクスチャとして以下があります。
 
-| Texture | Name | Description |
+| テクスチャ | 名前 | 説明 |
 |---------|------|-------------|
-|![](ScleraMap.png)(w:200 convert:false) |**Sclera Map**|The sclera map controls the colors of the eye whites, as well as the vein and tissue color that will be present at the edges of the eye. If you wanted your character to be able to have bloodshot eyes, for example, this is the texture you would modify. (*TwinBlast_UE4_Demo_Eye_Sclera_Color*)|
-|![](DispMap.png)(w:200 convert:false) |**Mid Plane Displacement Map**|The mid plane displacement map is used to lock down a plane that cuts through the center of the eye, and is used as a basis for offsetting the depth of the iris. (*EyeMidPlaneDisplacement_Example*)|
-|![](WetNormal.png)(w:200 convert:false) |**Normal Map**|The normal map does the same job as normal maps in all shaders - it supplies tactile texture variation. In the case of the Twinblast eye setup, it provides tiny lumps and bumps along the wet surface of the eye. (*T_Eye_Wet_Normal*)|
-|![](Normal.png)(w:200 convert:false) |**Tangent Map**|The tangent map is used to control the direction the surface is flowing in tangent space. In the case of Twinblast's eye setup, this is used to accentuate the change in direction where the cornea meets the sclera. (*EYE_NORMALS.EYE_NORMALS*)|
-|![](IrisTexture.png)(w:200 convert:false)|**Iris Map**|The iris texture is unique in that it does not match the UV layout. Instead, the texure fills the entirety of the resolution. UVs and alpha masks are employed to control the overall iris size, as well as the size of the pupil. If making your own iris maps, try to keep the pupil size reasonably close to the proportions in the supplied texture. (*TwinBlast_UE4_Demo_Eye_Iris*)|
+|![](ScleraMap.png)(w:200 convert:false) |**Sclera Map**|この強膜マップは、白目の色を制御します。さらに、目の端にある静脈と組織の色も制御します。例えば、キャラクターの目を充血させたい場合は、(*TwinBlast_UE4_Demo_Eye_Sclera_Color*) のテクスチャを修正します。|
+|![](DispMap.png)(w:200 convert:false) |**Mid Plane Displacement Map**|このマップは目の中央を横断する平面をロックするために使い、虹彩の深度をオフセットする基本として使用します。(*EyeMidPlaneDisplacement_Example*)|
+|![](WetNormal.png)(w:200 convert:false) |**Normal Map**|この法線マップは、立体的なテクスチャにする機能があるすべてのシェーダーの法線マップと同じように機能します。Twinblast の目のセットアップでは、目の湿った表面にそって小さなでこぼこを作っています (*T_Eye_Wet_Normal*)|
+|![](Normal.png)(w:200 convert:false) |**Tangent Map**|タンジェント マップはタンジェント空間に流れこむサーフェスの方向を制御するために使用します。Twinblast の目のセットアップでは、角膜が強膜と接触する方向の変化を強調するために使用します。(*EYE_NORMALS.EYE_NORMALS*)|
+|![](IrisTexture.png)(w:200 convert:false)|**Iris Map**|虹彩のテクスチャは UV レイアウトと一致しないという点においてユニークなものです。代わりにこのテクスチャは解像度を全体的に満たします。UV とアルファ マスクは、全体的な虹彩のサイズ、および瞳孔のサイズを制御するために使用します。独自の虹彩マップを作成することが難しければ、与えられたテクスチャの比率に近くなるように瞳孔のサイズを適切に維持するようにしてください。(*TwinBlast_UE4_Demo_Eye_Iris*)|
 
-[REGION:warning]Note that the Tangent Map output is **not** fed directly into the Normal Map input. Rather, it is connected to a **Tangent Output** node, which must be created separately, as seen in the master material **M_HairSheet_Master2**. [/REGION]
+[REGION:warning]タンジェント マップの出力が Normal Map の入力に直接 **入力されないことに注意してください。**これは、**Tangent Output** ノードに接続されます。マスター マテリアル、**M_HairSheet_Master2** のように別個に作成しなければなりません。[/REGION]
 ![](TangentOutput.png)
 
 
 
-### Eye Ambient Occlusion
+### 目のアンビエント オクルージョン
 
-The final part of the eye setup for Twinblast is the use of a translucent helper surface to to simulate ambient occlusion around the eye. In the real world - wherever your eye comes in contact with other tissues such as the eyelid or the tear duct - you will see very soft shadowing. The softness is due to the fact that the eye itself is translucent; light will scatter through it. To help simulate this realistically, we have placed a sheet of geometry that covers the eye and provides approximated ambient occlusion, creating a richer degree of realism across the eye.
+Twinblast の目のセットアップの最終部分では、目の周囲にアンビエント オクルージョンをシミュレーションするために、透明のヘルパー サーフェスを使用します。現実世界では、目がまぶたや涙腺などの他の組織に接触するたびに、非常にソフトな陰影があります。このソフトさは、目そのものが透明であるためであり、光がその中で散乱します。これを現実的にシミュレートするために、目をカバーし、近似されたアンビエント オクルージョンが得られるジオメトリのシートを配置し、目全体のリアルさを増します。
 
-The Material applied to this sheet is named *MI_TwinBlast_Eye_Occlusion_Bust* and can be found in Element 3 of the Twinblast model.
+このシートに適用されるマテリアルは、*MI_TwinBlast_Eye_Occlusion_Bust* という名前であり、Twinblast モデルの Element 3 に入っています。
 
 ![](AOSheetMaya.png)(w:700 convert:false) 
-[REGION:caption]This image shows the ambient occlusion sheet geometry in Maya, without the geometry of the face. The border edge of the sheet will perfectly fill the opening of the eyelid. [/REGION]
+[REGION:caption]この画像は、顔のジオメトリなしの Maya のアンビエント オクルージョン シートのジオメトリです。シートの境界エッジはまぶたの開口部分を完全に満たします。[/REGION]
 
 
 [OBJECT:ComparisonSlider]
@@ -288,6 +291,6 @@ The Material applied to this sheet is named *MI_TwinBlast_Eye_Occlusion_Bust* an
 [/PARAM]
 [/OBJECT]
 
-## Special Thanks
+## 謝辞
 
-Special thanks to [Eugene d'Eon, Steve Marschner and Johannes Hanika](http://www.eugenedeon.com/project/importance-sampling-for-physically-based-hair-fiber-models/) for releasing their work [*The importance of sampling for physically-based hair fiber models*](http://dl.acm.org/authorize?6967840), upon which some of the work of UE4's hair shader is based.
+[物理ベースの髪の繊維モデルのサンプリングの重要性](http://dl.acm.org/authorize?6967840) を公開してくださった [Eugene d'Eon 氏、 Steve Marschner 氏、 およびJohannes Hanika 氏](http://www.eugenedeon.com/project/importance-sampling-for-physically-based-hair-fiber-models/) の皆様に感謝いたします。 UE4 のヘア シェーダーの一部はこの内容に基づいたものです。

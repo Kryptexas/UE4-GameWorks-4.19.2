@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How To use Colored Translucent Shadows
+Title:Using Colored Translucent Shadows
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description:A How To Guide for setting up and using Colored Translucent Shadows
+Description:Guide for setting up and using Colored Translucent Shadows
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/LightingandShadows/Lightmass
 Related: Engine/Rendering/Materials/Functions/Reference/Opacity

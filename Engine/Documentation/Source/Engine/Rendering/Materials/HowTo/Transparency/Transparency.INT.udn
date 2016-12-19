@@ -1,7 +1,7 @@
 Availability: Public
-Title:Material Editor - How To Use Transparency
+Title:Using Transparency
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
-Description:A How To Guide for using Transparency in your Materials
+Description:Guide for using Transparency in your Materials
 Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
 Related: Engine/Rendering/Materials/Functions/Reference/Opacity
 Related: Engine/Rendering/LightingAndShadows/LitTranslucency
