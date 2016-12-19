@@ -1094,7 +1094,7 @@ void FGPUSkinCache::CVarSinkFunction()
 
 	if (NewGPUSkinCacheValue != GEnableGPUSkinCache)
 	{
-		EnqueueUniqueRenderCommand("DoEnableSkinCaching", 
+		ENQUEUE_RENDER_COMMAND(DoEnableSkinCaching)(
 			[NewGPUSkinCacheValue](FRHICommandList& RHICmdList)
 			{
 				GEnableGPUSkinCache = NewGPUSkinCacheValue;

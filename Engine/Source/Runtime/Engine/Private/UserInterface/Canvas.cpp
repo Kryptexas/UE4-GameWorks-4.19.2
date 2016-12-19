@@ -455,7 +455,7 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 			Canvas->GetFeatureLevel(),
 			Canvas->GetShaderPlatform()
 		};
-		EnqueueUniqueRenderCommand("BatchedDrawCommand",
+		ENQUEUE_RENDER_COMMAND(BatchedDrawCommand)(
 			[DrawParameters](FRHICommandList& RHICmdList)
 			{
 				// draw batched items
@@ -758,7 +758,7 @@ void FCanvas::Flush_GameThread(bool bForce)
 	};
 	bool bEmitCanvasDrawEvents = GEmitDrawEvents;
 
-	EnqueueUniqueRenderCommand("CanvasFlushSetupCommand",
+	ENQUEUE_RENDER_COMMAND(CanvasFlushSetupCommand)(
 		[FlushParameters](FRHICommandList& RHICmdList)
 		{
 			// Set the RHI render target.
@@ -900,7 +900,7 @@ void FCanvas::SetRenderTargetRect( const FIntRect& InViewRect )
 void FCanvas::Clear(const FLinearColor& ClearColor)
 {
 	FRenderTarget* CanvasRenderTarget = GetRenderTarget();
-	EnqueueUniqueRenderCommand("ClearCommand",
+	ENQUEUE_RENDER_COMMAND(ClearCommand)(
 		[ClearColor, CanvasRenderTarget](FRHICommandList& RHICmdList)
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, CanvasClear);

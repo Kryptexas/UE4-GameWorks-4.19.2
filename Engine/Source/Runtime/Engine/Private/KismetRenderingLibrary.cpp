@@ -36,7 +36,7 @@ void UKismetRenderingLibrary::ClearRenderTarget2D(UObject* WorldContextObject, U
 		&& World)
 	{
 		FTextureRenderTargetResource* RenderTargetResource = TextureRenderTarget->GameThread_GetRenderTargetResource();
-		EnqueueUniqueRenderCommand("ClearRTCommand",
+		ENQUEUE_RENDER_COMMAND(ClearRTCommand)(
 			[RenderTargetResource, ClearColor](FRHICommandList& RHICmdList)
 			{
 				SetRenderTarget(RHICmdList, RenderTargetResource->GetRenderTargetTexture(), FTextureRHIRef(), true);
@@ -89,7 +89,7 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 		TDrawEvent<FRHICommandList>* DrawMaterialToTargetEvent = new TDrawEvent<FRHICommandList>();
 
 		FName RTName = TextureRenderTarget->GetFName();
-		EnqueueUniqueRenderCommand("BeginDrawEventCommand",
+		ENQUEUE_RENDER_COMMAND(BeginDrawEventCommand)(
 			[&RTName ,DrawMaterialToTargetEvent](FRHICommandList& RHICmdList)
 			{
 				BEGIN_DRAW_EVENTF(
@@ -105,7 +105,7 @@ void UKismetRenderingLibrary::DrawMaterialToRenderTarget(UObject* WorldContextOb
 		Canvas->Canvas = NULL;
 
 		FTextureRenderTargetResource* RenderTargetResource = TextureRenderTarget->GameThread_GetRenderTargetResource();
-		EnqueueUniqueRenderCommand("CanvasRenderTargetResolveCommand",
+		ENQUEUE_RENDER_COMMAND(CanvasRenderTargetResolveCommand)(
 			[RenderTargetResource, DrawMaterialToTargetEvent](FRHICommandList& RHICmdList)
 			{
 				RHICmdList.CopyToResolveTarget(RenderTargetResource->GetRenderTargetTexture(), RenderTargetResource->TextureRHI, true, FResolveParams());
@@ -246,7 +246,7 @@ void UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(UObject* WorldContex
 
 		FName RTName = TextureRenderTarget->GetFName();
 		TDrawEvent<FRHICommandList>* DrawEvent = Context.DrawEvent;
-		EnqueueUniqueRenderCommand("BeginDrawEventCommand",
+		ENQUEUE_RENDER_COMMAND(BeginDrawEventCommand)(
 			[RTName, DrawEvent](FRHICommandList& RHICmdList)
 			{
 				BEGIN_DRAW_EVENTF(
@@ -286,7 +286,7 @@ void UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(UObject* WorldContextO
 		{
 			FTextureRenderTargetResource* RenderTargetResource = Context.RenderTarget->GameThread_GetRenderTargetResource();
 			TDrawEvent<FRHICommandList>* DrawEvent = Context.DrawEvent;
-			EnqueueUniqueRenderCommand("CanvasRenderTargetResolveCommand",
+			ENQUEUE_RENDER_COMMAND(CanvasRenderTargetResolveCommand)(
 				[RenderTargetResource, DrawEvent](FRHICommandList& RHICmdList)
 				{
 					RHICmdList.CopyToResolveTarget(RenderTargetResource->GetRenderTargetTexture(), RenderTargetResource->TextureRHI, true, FResolveParams());
